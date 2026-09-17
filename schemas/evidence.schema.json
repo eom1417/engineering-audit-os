@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "id",
+    "kind",
+    "location",
+    "revision",
+    "observed_at",
+    "observation",
+    "method",
+    "limitations"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "location": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observed_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observation": {
+      "type": "string",
+      "minLength": 1
+    },
+    "method": {
+      "type": "string",
+      "minLength": 1
+    },
+    "limitations": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "enum": [
+        "source",
+        "configuration",
+        "runtime",
+        "test",
+        "requirement",
+        "external",
+        "absence_search"
+      ]
+    },
+    "search_scope": {
+      "type": "string",
+      "minLength": 1
+    },
+    "queries": {
+      "type": "string",
+      "minLength": 1
+    },
+    "shared_controls_checked": {
+      "type": "string",
+      "minLength": 1
+    },
+    "remaining_unknowns": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": true
+}

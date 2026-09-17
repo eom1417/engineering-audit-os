@@ -1,0 +1,2970 @@
+{
+  "framework_version": "1.0.0",
+  "modules": [
+    {
+      "id": "01",
+      "title": "Discovery & Inventory",
+      "applies_when": "كل مستودع؛ بعض عناصر الجرد تصبح N/A بدليل",
+      "artifacts": "file inventory، manifests، entrypoints، deployment config، revision",
+      "source_ids": [
+        "SRC-C4",
+        "SRC-PRR"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-01-001",
+          "name": "نطاق قابل للقياس",
+          "invariant": "لا يُفقد تطبيق أو مسار حساس داخل monorepo",
+          "procedure": "اربط كل executable/package بمالك ومسار بناء ونشر؛ قارن workspaces مع CI وroutes",
+          "verification": "قارن inventory بنقاط الدخول المولدة فعليًا إن أمكن؛ سجل الفروق",
+          "counter_evidence": "مجلد vendor ليس تطبيقًا مفقودًا؛ وثق الاستبعاد",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-PRR"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "file inventory، manifests، entrypoints، deployment config، revision",
+          "applicability": "كل مستودع؛ بعض عناصر الجرد تصبح N/A بدليل",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-01-002",
+          "name": "إصدارات وقيود المنصة",
+          "invariant": "كل اختبار يستهدف semantics الإصدار الفعلي",
+          "procedure": "اقرأ lockfiles وruntime images وengines وdeployment target؛ ابحث عن التعارضات",
+          "verification": "بناء معزول بنفس الإصدارات المعلنة وتسجيل اختلاف المحلي والإنتاج",
+          "counter_evidence": "اسم dependency دون النسخة المحلولة لا يثبت النسخة المنشورة",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-PRR"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "file inventory، manifests، entrypoints، deployment config، revision",
+          "applicability": "كل مستودع؛ بعض عناصر الجرد تصبح N/A بدليل",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-01-003",
+          "name": "حدود ثقة ونشر",
+          "invariant": "كل مكون خارجي وحساس ظاهر في الخريطة",
+          "procedure": "احصر ingress وDB وqueues وstorage وadmin وwebhooks وطرق bypass",
+          "verification": "راجع اتصال كل entrypoint بالمخزن وبالهوية؛ سجل حدود لا يمكن التحقق منها",
+          "counter_evidence": "غياب IaC لا يثبت غياب إعداد يدوي أو provider-managed",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-PRR"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "file inventory، manifests، entrypoints، deployment config، revision",
+          "applicability": "كل مستودع؛ بعض عناصر الجرد تصبح N/A بدليل",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-01-004",
+          "name": "سطح تحكم القواعد",
+          "invariant": "كل قيمة فعالة لها أصل واضح",
+          "procedure": "اتبع config/default/override/flag من المصدر حتى العرض والتنفيذ؛ سجل mutable وimmutable",
+          "verification": "غيّر قيمة تجريبية وتحقق من أثرها المفسر دون قيم خفية",
+          "counter_evidence": "defaults الموثقة والمناسبة ليست عيبًا؛ عدم قابلية كل شيء للتعديل ليس خطأ",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-PRR"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "file inventory، manifests، entrypoints، deployment config، revision",
+          "applicability": "كل مستودع؛ بعض عناصر الجرد تصبح N/A بدليل",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "02",
+      "title": "Architecture & Domain Boundaries",
+      "applies_when": "كل مشروع؛ عمق الرسم يتناسب مع حجمه",
+      "artifacts": "dependency graph، call paths، ADRs، business rule ownership",
+      "source_ids": [
+        "SRC-C4",
+        "SRC-REVIEW",
+        "SRC-NEXT"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-02-001",
+          "name": "اتجاه الاعتماد",
+          "invariant": "التغييرات لا تكسر حدود مجال مستقلة بلا داع",
+          "procedure": "ارسم imports وruntime calls؛ ابحث عن cycles وdomain يعتمد على UI/provider internals",
+          "verification": "غيّر adapter تجريبيًا أو اختبر domain منفصلًا وحدد العقبات الفعلية",
+          "counter_evidence": "cycle في type-only definitions أو إطار العمل قد لا يخلق coupling تشغيليًا",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-NEXT"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "dependency graph، call paths، ADRs، business rule ownership",
+          "applicability": "كل مشروع؛ عمق الرسم يتناسب مع حجمه",
+          "seed_refs": [
+            "VID-01",
+            "VID-02"
+          ]
+        },
+        {
+          "id": "EAOS-02-002",
+          "name": "ملكية business rules",
+          "invariant": "قرار المجال متسق عبر جميع المداخل",
+          "procedure": "ابحث عن نفس قيد الأهلية أو السعر أو الجدولة في UI/API/job/DB؛ قارن semantics",
+          "verification": "نفس fixture عبر كل entrypoint يعطي نفس النتيجة المبررة",
+          "counter_evidence": "تكرار validation في UI والخادم مشروع؛ اختلاف دلالة المجال قد يبرر فصل المنطق",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-NEXT"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "dependency graph، call paths، ADRs، business rule ownership",
+          "applicability": "كل مشروع؛ عمق الرسم يتناسب مع حجمه",
+          "seed_refs": [
+            "VID-01",
+            "VID-02"
+          ]
+        },
+        {
+          "id": "EAOS-02-003",
+          "name": "التماسك والتغليف",
+          "invariant": "المكون يملك مسؤولية مفهومة ولا يسرب تفاصيله",
+          "procedure": "ارصد modules كثيرة المسؤوليات، shared dumping ground، leaking ORM types، الوصول المباشر لبيانات مجال آخر",
+          "verification": "تتبع أثر تغيير business rule وعدّ الحدود التي تحتاج معرفة تفاصيلها",
+          "counter_evidence": "حجم الملف وعدد imports مؤشرات لا proof؛ تجنب استخراج interface لمستعمل واحد دون فائدة",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-NEXT"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "dependency graph، call paths، ADRs، business rule ownership",
+          "applicability": "كل مشروع؛ عمق الرسم يتناسب مع حجمه",
+          "seed_refs": [
+            "VID-01",
+            "VID-02"
+          ]
+        },
+        {
+          "id": "EAOS-02-004",
+          "name": "Source of truth",
+          "invariant": "مصادر القرار لا تتنافس بلا reconciliation",
+          "procedure": "حدد canonical owner للهوية والاشتراك والحالة والعدادات؛ افحص النسخ والـsync",
+          "verification": "حدث المصدر ثم اختبر propagation/invalidation وفشل التحديث الجزئي",
+          "counter_evidence": "read model مشتق ليس duplicate authority إذا كانت الملكية والتزامن واضحين",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-NEXT"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "dependency graph، call paths، ADRs، business rule ownership",
+          "applicability": "كل مشروع؛ عمق الرسم يتناسب مع حجمه",
+          "seed_refs": [
+            "VID-01",
+            "VID-02"
+          ]
+        },
+        {
+          "id": "EAOS-02-005",
+          "name": "Architectural drift",
+          "invariant": "السلوك الحالي وقرارات التصميم لا يتعارضان خفية",
+          "procedure": "قارن ADRs بالعلاقات الفعلية والقيود؛ صنّف الانحراف intentional أو accidental",
+          "verification": "أثبت خرق contract أو زيادة خطر/صعوبة تغيير قبل اقتراح refactor",
+          "counter_evidence": "وثيقة قديمة لا تعني أن التصميم الحالي خاطئ؛ حدّث قرارًا مقصودًا",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-NEXT"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "dependency graph، call paths، ADRs، business rule ownership",
+          "applicability": "كل مشروع؛ عمق الرسم يتناسب مع حجمه",
+          "seed_refs": [
+            "VID-01",
+            "VID-02"
+          ]
+        },
+        {
+          "id": "EAOS-02-006",
+          "name": "ملاءمة البنية",
+          "invariant": "اختيار stack يستوفي القيود الفعلية",
+          "procedure": "قارن jobs/streaming/concurrency/runtime limits مع احتياج مثبت وخيارات أبسط",
+          "verification": "نفذ spike أو capacity check محدودًا للقدرة المختلف عليها",
+          "counter_evidence": "اسم framework أو monolith وحده لا يثبت عدم صلاحية الإنتاج",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-NEXT"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "dependency graph، call paths، ADRs، business rule ownership",
+          "applicability": "كل مشروع؛ عمق الرسم يتناسب مع حجمه",
+          "seed_refs": [
+            "VID-01",
+            "VID-02"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "title": "Product Logic & State Machines",
+      "applies_when": "كل منتج ذي وظائف؛ حجم العينة لا يخفي رحلات حرجة",
+      "artifacts": "requirements، journeys، state transitions، persistence، UI/API contracts",
+      "source_ids": [
+        "SRC-REVIEW"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-03-001",
+          "name": "اكتمال الرحلات",
+          "invariant": "كل وظيفة معلنة تصل إلى نتيجة صحيحة قابلة للاستخدام",
+          "procedure": "اتبع onboarding/create/edit/publish/export/delete؛ طابق الواجهة بالآثار الدائمة",
+          "verification": "اختبر البداية والنهاية والحالة بعد reload وحساب آخر ذي صلاحية",
+          "counter_evidence": "stub داخلي غير منشور ليس functionality مفقودة للمستخدم",
+          "source_ids": [
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "requirements، journeys، state transitions، persistence، UI/API contracts",
+          "applicability": "كل منتج ذي وظائف؛ حجم العينة لا يخفي رحلات حرجة",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-03-002",
+          "name": "حالات وانتقالات",
+          "invariant": "لا يمكن تجاوز prerequisites أو إنشاء حالة مستحيلة",
+          "procedure": "استخرج enums وguards وحدد state transition table مع actors",
+          "verification": "جرّب transitions غير مسموحة وout-of-order وتكرار الفعل",
+          "counter_evidence": "الحالات الإضافية المقصودة قد تكون workflow valid؛ لا تفرض flow متخيلًا",
+          "source_ids": [
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "requirements، journeys، state transitions، persistence، UI/API contracts",
+          "applicability": "كل منتج ذي وظائف؛ حجم العينة لا يخفي رحلات حرجة",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-03-003",
+          "name": "دقة القرارات",
+          "invariant": "الحسابات وحدود الأهلية قابلة للتفسير ومتسقة",
+          "procedure": "راجع rounding والوحدات والحدود inclusive/exclusive وnull/default",
+          "verification": "اختبر boundary values وقارن oracle مستقلًا مع قرار المنتج",
+          "counter_evidence": "لا تفترض سياسة مالية أو تجارية لم يحددها المالك",
+          "source_ids": [
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "requirements، journeys، state transitions، persistence، UI/API contracts",
+          "applicability": "كل منتج ذي وظائف؛ حجم العينة لا يخفي رحلات حرجة",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-03-004",
+          "name": "تزامن المستخدمين",
+          "invariant": "آخر كاتب لا يمحو تعديلًا مهمًا بصمت",
+          "procedure": "اختبر نافذتين وحسابين يعدلان المورد نفسه؛ راجع versions/conflict UI",
+          "verification": "تثبت حالة التعارض أو merge الموثق واستعادة التعديل",
+          "counter_evidence": "last-write-wins قد يكون قرارًا مناسبًا لبيانات منخفضة المخاطر إن أعلن",
+          "source_ids": [
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "requirements، journeys، state transitions، persistence، UI/API contracts",
+          "applicability": "كل منتج ذي وظائف؛ حجم العينة لا يخفي رحلات حرجة",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "04",
+      "title": "Code Quality & Maintainability",
+      "applies_when": "الكود المملوك للمشروع",
+      "artifacts": "call graph، changed paths، dynamic usage، test seams",
+      "source_ids": [
+        "SRC-REVIEW"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-04-001",
+          "name": "الكود الميت",
+          "invariant": "لا تزال عملية إزالة آمنة لكل طرق الاستدعاء",
+          "procedure": "ابحث عن symbols غير مستخدمة ثم dynamic imports/reflection/config/plugin hooks",
+          "verification": "build واختبار المسار الذي كان قد يستدعي الرمز قبل الحذف وبعده",
+          "counter_evidence": "grep بلا callers لا يثبت dead code",
+          "source_ids": [
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "call graph، changed paths، dynamic usage، test seams",
+          "applicability": "الكود المملوك للمشروع",
+          "seed_refs": [
+            "VID-02"
+          ]
+        },
+        {
+          "id": "EAOS-04-002",
+          "name": "التكرار والانحراف",
+          "invariant": "السلوك الواحد لا يتباعد بين نسخ مستقلة",
+          "procedure": "قارن نسخ functions ذات الغرض نفسه لا التشابه النصي فقط",
+          "verification": "اختبار تفاضلي على المدخلات المشتركة والحدود يوضح divergence",
+          "counter_evidence": "تشابه شكلي بين domains مختلفة لا يبرر abstraction مشتركة",
+          "source_ids": [
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "call graph، changed paths، dynamic usage، test seams",
+          "applicability": "الكود المملوك للمشروع",
+          "seed_refs": [
+            "VID-02"
+          ]
+        },
+        {
+          "id": "EAOS-04-003",
+          "name": "الإخفاء والاستثناءات",
+          "invariant": "الفشل لا يتحول نجاحًا أو قيمة default مضللة",
+          "procedure": "اتبع catch/empty handlers/fallback/TODO/stub إلى response وDB",
+          "verification": "احقن فشلًا متوقعًا؛ يجب حفظ معنى الحالة وعدم ابتلاع الخطأ",
+          "counter_evidence": "fallback المقصود مع telemetry وعقد واضح ليس silent failure",
+          "source_ids": [
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "call graph، changed paths، dynamic usage، test seams",
+          "applicability": "الكود المملوك للمشروع",
+          "seed_refs": [
+            "VID-02"
+          ]
+        },
+        {
+          "id": "EAOS-04-004",
+          "name": "جودة abstraction",
+          "invariant": "العقد يخفض المعرفة اللازمة ولا يوزعها",
+          "procedure": "افحص flags الكثيرة والـgod objects وparameter bags ومسؤولية كل layer",
+          "verification": "حالة إضافة صغيرة نموذجية تكشف مساحة التغيير ومخاطرها",
+          "counter_evidence": "لا refactor لأجل تسمية أو تنسيق أو نمط مفضل",
+          "source_ids": [
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "call graph، changed paths، dynamic usage، test seams",
+          "applicability": "الكود المملوك للمشروع",
+          "seed_refs": [
+            "VID-02"
+          ]
+        },
+        {
+          "id": "EAOS-04-005",
+          "name": "إدارة الموارد",
+          "invariant": "الموارد تحرر مع success/error/cancellation",
+          "procedure": "اتبع فتح connection/file/stream/timer/listener حتى الإغلاق",
+          "verification": "كرر العملية مع abort وفشل وراقب memory/file descriptors/handles",
+          "counter_evidence": "pool دائم أو cache محدود مشروع؛ النمو المستقر لا يساوي leak",
+          "source_ids": [
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "call graph، changed paths، dynamic usage، test seams",
+          "applicability": "الكود المملوك للمشروع",
+          "seed_refs": [
+            "VID-02"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "05",
+      "title": "Security & Data Flow",
+      "applies_when": "أي مدخل غير موثوق أو بيانات حساسة أو سطح شبكي",
+      "artifacts": "source-to-sink paths، middleware، headers، storage policies، negative tests",
+      "source_ids": [
+        "SRC-ASVS",
+        "SRC-WSTG",
+        "SRC-API"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-05-001",
+          "name": "Injection",
+          "invariant": "المدخل لا يتحول أمرًا أو استعلامًا غير مقيد",
+          "procedure": "اتبع SQL/NoSQL/shell/template/deserializer sinks؛ افحص parameter binding وallowlisted operators",
+          "verification": "payloads محلية مأمونة تثبت التعامل كبيانات ورفض البنى غير المسموحة",
+          "counter_evidence": "وجود ORM لا يحمي raw query؛ وجود sanitize لا يثبت أمان كل sink",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-WSTG",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "source-to-sink paths، middleware، headers، storage policies، negative tests",
+          "applicability": "أي مدخل غير موثوق أو بيانات حساسة أو سطح شبكي",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-05-002",
+          "name": "XSS وencoding",
+          "invariant": "الإخراج يحترم سياق HTML/URL/JS/CSS",
+          "procedure": "تتبع stored/reflected/DOM content وrich text وdangerous rendering؛ افحص encoder/sanitizer المناسب",
+          "verification": "اختبر السياق الذي سيستهلك القيمة وCSP كدفاع إضافي",
+          "counter_evidence": "escaping افتراضي قد يكون فعالًا؛ CSP وحده لا يثبت غياب XSS",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-WSTG",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "source-to-sink paths، middleware، headers، storage policies، negative tests",
+          "applicability": "أي مدخل غير موثوق أو بيانات حساسة أو سطح شبكي",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-05-003",
+          "name": "SSRF",
+          "invariant": "طلبات الخادم لا تمنح وصولًا لشبكات محمية",
+          "procedure": "راجع URL parsing وredirects وDNS resolution وegress وmetadata hosts",
+          "verification": "اختبار مع mock endpoints وredirect إلى عنوان محظور داخل المختبر",
+          "counter_evidence": "allowlist شكلية لا تكفي؛ provider egress policy مثبتة قد تمنع المسار",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-WSTG",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "source-to-sink paths، middleware، headers، storage policies، negative tests",
+          "applicability": "أي مدخل غير موثوق أو بيانات حساسة أو سطح شبكي",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-05-004",
+          "name": "Path traversal ورفع الملفات",
+          "invariant": "المستخدم لا يختار مسارًا أو نوعًا تنفيذيًا غير مصرح",
+          "procedure": "افحص filename normalization وarchive extraction وsize/decompression وMIME وdownload auth",
+          "verification": "اختبر اسمًا ملتبسًا وحجمًا زائدًا وامتدادًا مزيفًا وأرشيفًا بمسار خارجي في sandbox",
+          "counter_evidence": "رفع ملف غير تنفيذي إلى مخزن خاص مع تنزيل آمن ليس ثغرة لمجرد السماح بالرفع",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-WSTG",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "source-to-sink paths، middleware، headers، storage policies، negative tests",
+          "applicability": "أي مدخل غير موثوق أو بيانات حساسة أو سطح شبكي",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-05-005",
+          "name": "CSRF وCORS",
+          "invariant": "المتصفح لا يجري فعلًا حساسًا بهوية الضحية دون نية",
+          "procedure": "افحص cookie credentials وCSRF tokens/origin checks وSameSite وcredentialed CORS",
+          "verification": "اختبار origin مسموح وآخر مرفوض لكل mutation وpreflight الفعلي",
+          "counter_evidence": "CORS ليس authorization؛ bearer API غير cookie-based له نموذج CSRF مختلف",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-WSTG",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "source-to-sink paths، middleware، headers، storage policies، negative tests",
+          "applicability": "أي مدخل غير موثوق أو بيانات حساسة أو سطح شبكي",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-05-006",
+          "name": "Redirect وdeserialization",
+          "invariant": "البيانات لا تختار وجهة خطرة أو نوعًا قابلًا للتنفيذ",
+          "procedure": "افحص redirect allowlist وobject reconstruction وpolymorphic types وXML features",
+          "verification": "مدخل يحاول تغيير scheme/host/type يرفض قبل side effect",
+          "counter_evidence": "JSON parser بسيط لا يساوي insecure deserialization تلقائيًا",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-WSTG",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "source-to-sink paths، middleware، headers، storage policies، negative tests",
+          "applicability": "أي مدخل غير موثوق أو بيانات حساسة أو سطح شبكي",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-05-007",
+          "name": "Secrets والتشفير",
+          "invariant": "الأسرار لا تصل للعميل أو logs ولا تتجاوز صلاحياتها",
+          "procedure": "افحص build-time env/public bundles وgit history المتاح وsecret stores وkey lifecycle وTLS config",
+          "verification": "secret scanning منقح وفحص artifact وتدوير تجريبي دون كشف القيمة",
+          "counter_evidence": "public client identifier ليس server secret؛ encryption at rest لا يعوض access control",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-WSTG",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "source-to-sink paths، middleware، headers، storage policies، negative tests",
+          "applicability": "أي مدخل غير موثوق أو بيانات حساسة أو سطح شبكي",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-05-008",
+          "name": "Abuse وحدود الموارد",
+          "invariant": "طلبات قليلة الكلفة للعميل لا تستهلك موارد غير محدودة",
+          "procedure": "افحص login/reset/search/export/upload/GraphQL depth وأحجام body والوقت والكلفة وdistributed limits",
+          "verification": "حمل محدود مصرح مع identities متعددة وproxy headers وتجاوز limit",
+          "counter_evidence": "عدم وجود مكتبة rate limit لا يثبت الغياب؛ upstream protection تحتاج دليل",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-WSTG",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "source-to-sink paths، middleware، headers، storage policies، negative tests",
+          "applicability": "أي مدخل غير موثوق أو بيانات حساسة أو سطح شبكي",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-05-009",
+          "name": "أمان المستهلك الخارجي",
+          "invariant": "ردود provider تعالج كبيانات غير موثوقة",
+          "procedure": "راجع validation/size/timeouts على responses ورسائل queue وwebhooks",
+          "verification": "رد غير مطابق أو ضخم أو بطيء لا يؤدي لتسريب أو حالة نجاح وهمية",
+          "counter_evidence": "التوقيع يثبت منشأ الرسالة ولا يثبت صحة business state",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-WSTG",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "source-to-sink paths، middleware، headers، storage policies، negative tests",
+          "applicability": "أي مدخل غير موثوق أو بيانات حساسة أو سطح شبكي",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-05-010",
+          "name": "Headers وmisconfiguration",
+          "invariant": "إعداد النشر يحمي السياق الفعلي",
+          "procedure": "افحص TLS/security headers/CSP/cookies/debug/source maps/admin exposure عند ingress والتطبيق",
+          "verification": "اطلب response حقيقيًا من البيئة المصرح بها واربطه بالإعداد",
+          "counter_evidence": "غياب header غير منطبق ليس خطرًا عاليًا؛ source map بلا أسرار ليس ثغرة تلقائية",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-WSTG",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "source-to-sink paths، middleware، headers، storage policies، negative tests",
+          "applicability": "أي مدخل غير موثوق أو بيانات حساسة أو سطح شبكي",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "06",
+      "title": "Authentication & Session Lifecycle",
+      "applies_when": "مشروع به مستخدمون أو machine identities أو token exchange",
+      "artifacts": "identity flow، cookie/token config، refresh handlers، clocked tests",
+      "source_ids": [
+        "SRC-ASVS",
+        "SRC-OAUTH"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-06-001",
+          "name": "هوية موثوقة",
+          "invariant": "الهوية تستمد من credential صالح للجهة والوقت والغرض",
+          "procedure": "راجع JWT signature/algorithm allowlist/issuer/audience/exp/nbf/key rotation وsession lookup",
+          "verification": "رفض token غلط issuer/audience/expiry وتوقيع غير صحيح دون تفاصيل مسربة",
+          "counter_evidence": "JWT ليس مطلوبًا؛ session opaque سليم قد يكون أبسط",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-OAUTH"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "identity flow، cookie/token config، refresh handlers، clocked tests",
+          "applicability": "مشروع به مستخدمون أو machine identities أو token exchange",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-06-002",
+          "name": "تجديد الجلسة",
+          "invariant": "انتهاء access لا يفقد رحلة مصرحًا بها ولا يطيل جلسة ملغاة",
+          "procedure": "تتبع frontend/server/middleware والredirect وrefresh response وcookie scope",
+          "verification": "expiry أثناء form وSSR وAPI ونافذتين وطلبات متوازية وclock skew مضبوط",
+          "counter_evidence": "refresh-on-401 مقبول إن لم يسبقه logout أو loop وإن ضُبط replay؛ مدة 15 دقيقة ليست عيبًا",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-OAUTH"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "identity flow، cookie/token config، refresh handlers، clocked tests",
+          "applicability": "مشروع به مستخدمون أو machine identities أو token exchange",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-06-003",
+          "name": "Refresh replay وrevocation",
+          "invariant": "token قديم لا يعيد صلاحية ألغيت وفق العقد",
+          "procedure": "راجع rotation/sender constraints/session family/reuse detection/logout/password change",
+          "verification": "إعادة refresh قديم وتزامن refresh وتغيير كلمة المرور تبطل الجلسات وفق السياسة",
+          "counter_evidence": "طبق RFC وفق نوع OAuth client؛ لا تفرض token rotation على opaque session تصميمه مختلف",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-OAUTH"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "identity flow، cookie/token config، refresh handlers، clocked tests",
+          "applicability": "مشروع به مستخدمون أو machine identities أو token exchange",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-06-004",
+          "name": "كلمات المرور والاستعادة",
+          "invariant": "استعادة الحساب لا تتجاوز حماية الدخول",
+          "procedure": "افحص hashing المناسب وunique/single-use reset tokens وexpiry وaccount binding وenumeration",
+          "verification": "reuse/expired/wrong-user reset يرفض، وتكتمل رحلة صحيحة واحدة",
+          "counter_evidence": "استعادة عبر IdP تدقق integration ومحددات provider لا خوارزمية محلية غير موجودة",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-OAUTH"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "identity flow، cookie/token config، refresh handlers، clocked tests",
+          "applicability": "مشروع به مستخدمون أو machine identities أو token exchange",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-06-005",
+          "name": "MFA وstep-up",
+          "invariant": "العمليات الحساسة لا تتجاوز العامل المطلوب",
+          "procedure": "راجع enrollment/recovery/disable/change-email وbackup codes وreauth",
+          "verification": "جلسة غير حديثة أو recovery code مستخدم لا يجيز فعلًا محميًا",
+          "counter_evidence": "ليس كل موقع يحتاج MFA؛ اربطه بالتعرض والدور والسياسة",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-OAUTH"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "identity flow، cookie/token config، refresh handlers، clocked tests",
+          "applicability": "مشروع به مستخدمون أو machine identities أو token exchange",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-06-006",
+          "name": "تخزين الجلسات",
+          "invariant": "credential لا يتسرب عبر URL/storage/logs",
+          "procedure": "راجع Secure/HttpOnly/SameSite/domain/path وserver-side storage وclient cache cleanup",
+          "verification": "logout ثم back/offline/tab آخر لا يعرض بيانات جلسة سابقة وفق النموذج",
+          "counter_evidence": "Cookie expiry وحده ليس token expiry ولا دليل على تنفيذ refresh",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-OAUTH"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "identity flow، cookie/token config، refresh handlers، clocked tests",
+          "applicability": "مشروع به مستخدمون أو machine identities أو token exchange",
+          "seed_refs": [
+            "VID-01"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "07",
+      "title": "Authorization & Permissions",
+      "applies_when": "بيانات أو عمليات تختلف صلاحياتها بحسب هوية أو سياق",
+      "artifacts": "permission matrix، policy engine، route/job queries، deny tests",
+      "source_ids": [
+        "SRC-AUTHZ",
+        "SRC-API",
+        "SRC-ASVS"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-07-001",
+          "name": "Object/function authorization",
+          "invariant": "كل فعل على مورد يخضع لصلاحية الخادم",
+          "procedure": "ابنِ actor-action-object matrix؛ اتبع routes البديلة وbulk وadmin وexports",
+          "verification": "نفس الطلب بمستخدم آخر وID آخر ودور أقل يُرفض دون كشف الكائن",
+          "counter_evidence": "إخفاء الزر ليس حماية؛ middleware مركزي صحيح قد يغطي routes متعددة",
+          "source_ids": [
+            "SRC-AUTHZ",
+            "SRC-API",
+            "SRC-ASVS"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "permission matrix، policy engine، route/job queries، deny tests",
+          "applicability": "بيانات أو عمليات تختلف صلاحياتها بحسب هوية أو سياق",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-07-002",
+          "name": "صلاحيات الحقول",
+          "invariant": "لا يقرأ أو يكتب المستخدم حقولًا خارج سلطته",
+          "procedure": "راجع DTO/serialization/mass assignment وfields allowlist وnested relations",
+          "verification": "أضف role/tenant_id/price/owner إلى payload وقارن الناتج بحقوق المستخدم",
+          "counter_evidence": "field موجود في DB لا يعني أنه يجب إخفاؤه دائمًا؛ اتبع contract",
+          "source_ids": [
+            "SRC-AUTHZ",
+            "SRC-API",
+            "SRC-ASVS"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "permission matrix، policy engine، route/job queries، deny tests",
+          "applicability": "بيانات أو عمليات تختلف صلاحياتها بحسب هوية أو سياق",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-07-003",
+          "name": "RBAC وABAC",
+          "invariant": "الدور والسمات والملكية وحالة المورد تتوافق في كل مدخل",
+          "procedure": "قارن policy defaults وdeny precedence وorg roles وresource ownership",
+          "verification": "مصفوفة role/state/attribute مع deny cases وتغيير ownership",
+          "counter_evidence": "RBAC بسيط قد يكون كافيًا؛ لا تفرض ABAC دون شروط تحتاجه",
+          "source_ids": [
+            "SRC-AUTHZ",
+            "SRC-API",
+            "SRC-ASVS"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "permission matrix، policy engine، route/job queries، deny tests",
+          "applicability": "بيانات أو عمليات تختلف صلاحياتها بحسب هوية أو سياق",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-07-004",
+          "name": "تغير الصلاحية أثناء العمل",
+          "invariant": "job أو request مؤجل لا يمنح صلاحية منتهية بلا سياسة",
+          "procedure": "حدد وقت التفويض: enqueue/start/commit/delivery؛ راجع revoked memberships",
+          "verification": "ألغِ الصلاحية أثناء export/job ثم افحص التسليم والنتيجة",
+          "counter_evidence": "قد يسمح العقد بإكمال job مفوض سابقًا؛ يجب تحديد حدود القرار بوضوح",
+          "source_ids": [
+            "SRC-AUTHZ",
+            "SRC-API",
+            "SRC-ASVS"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "permission matrix، policy engine، route/job queries، deny tests",
+          "applicability": "بيانات أو عمليات تختلف صلاحياتها بحسب هوية أو سياق",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-07-005",
+          "name": "Admin ودعم العملاء",
+          "invariant": "العمليات المميزة مقيدة وقابلة للمحاسبة",
+          "procedure": "راجع impersonation/service accounts/support tools/break-glass والـaudit",
+          "verification": "اختبر حدود الدور والتبرير والمدة وتسجيل الفعل بلا secrets",
+          "counter_evidence": "اسم internal endpoint لا يجعله مأمونًا ولا يلغي الحاجة لتفويض",
+          "source_ids": [
+            "SRC-AUTHZ",
+            "SRC-API",
+            "SRC-ASVS"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "permission matrix، policy engine، route/job queries، deny tests",
+          "applicability": "بيانات أو عمليات تختلف صلاحياتها بحسب هوية أو سياق",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "08",
+      "title": "Database & Data Integrity",
+      "applies_when": "كل تخزين دائم؛ اختر adapter للمحرك الفعلي",
+      "artifacts": "DDL/schema، migrations، queries، transactions، query plans، concurrency tests",
+      "source_ids": [
+        "SRC-PGISO",
+        "SRC-PGCON",
+        "SRC-PGINDEX",
+        "SRC-OUTBOX"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-08-001",
+          "name": "المخطط والدلالة",
+          "invariant": "الأنواع والعلاقات تمثل معنى المجال",
+          "procedure": "راجع normalization مقابل denormalization وnullability والعملة والزمن والوحدات",
+          "verification": "fixtures مخالفة لدلالة المجال تفشل أو ترفض عند الحد المناسب",
+          "counter_evidence": "denormalization ليست عيبًا إذا كان مصدرها وإعادة بنائها واضحين",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-PGCON",
+            "SRC-PGINDEX",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "DDL/schema، migrations، queries، transactions، query plans، concurrency tests",
+          "applicability": "كل تخزين دائم؛ اختر adapter للمحرك الفعلي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-08-002",
+          "name": "القيود والتكرار",
+          "invariant": "منافذ الكتابة كلها تحمي uniqueness وreferential integrity",
+          "procedure": "افحص unique/FK/check/composite tenant keys/triggers وبدائل المحركات غير العلائقية",
+          "verification": "أدخل عمليتين متزامنتين لنفس المفتاح من مسارين مختلفين",
+          "counter_evidence": "validation في API وحده قد يسبقه race؛ البديل الذري في محرك آخر مقبول",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-PGCON",
+            "SRC-PGINDEX",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "DDL/schema، migrations، queries، transactions، query plans، concurrency tests",
+          "applicability": "كل تخزين دائم؛ اختر adapter للمحرك الفعلي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-08-003",
+          "name": "المعاملات والعزل",
+          "invariant": "العملية متعددة الخطوات لا تترك حالة مخالفة",
+          "procedure": "اتبع transaction boundaries/isolation/atomic updates/CAS/locks",
+          "verification": "interleavings حتمية بحواجز: lost update/write skew/duplicate reservation",
+          "counter_evidence": "وجود transaction لا يمنع كل anomaly؛ SERIALIZABLE قد يتطلب retry",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-PGCON",
+            "SRC-PGINDEX",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "DDL/schema، migrations، queries، transactions، query plans، concurrency tests",
+          "applicability": "كل تخزين دائم؛ اختر adapter للمحرك الفعلي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-08-004",
+          "name": "Locking وdeadlocks",
+          "invariant": "الانتظار مقيد والاستعادة لا تكرر أثرًا",
+          "procedure": "راجع lock order وtimeouts وحدود transaction وexternal calls داخلها",
+          "verification": "تنازع متعمد محلي يحرر القفل ويعيد المعاملة كاملة بأمان عند الحاجة",
+          "counter_evidence": "قفل قصير في مسار قليل الحمل ليس مشكلة بلا أثر",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-PGCON",
+            "SRC-PGINDEX",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "DDL/schema، migrations، queries، transactions، query plans، concurrency tests",
+          "applicability": "كل تخزين دائم؛ اختر adapter للمحرك الفعلي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-08-005",
+          "name": "أنماط الاستعلام والفهارس",
+          "invariant": "الوصول يلائم حجم وتوزيع البيانات المستهدف",
+          "procedure": "طابق WHERE/JOIN/ORDER مع indexes/selectivity؛ راجع N+1 وfull scans",
+          "verification": "explain/profile على بيانات ممثلة وعد queries وتكلفة الكتابة قبل/بعد",
+          "counter_evidence": "full scan على جدول صغير قد يكون أفضل؛ index زائد له تكلفة",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-PGCON",
+            "SRC-PGINDEX",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "DDL/schema، migrations، queries، transactions، query plans، concurrency tests",
+          "applicability": "كل تخزين دائم؛ اختر adapter للمحرك الفعلي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-08-006",
+          "name": "حذف وسجلات يتيمة",
+          "invariant": "الحذف والتعافي يحفظان العلاقات والسياسة",
+          "procedure": "افحص cascade/restrict/soft delete/restore وunique على الصفوف المحذوفة",
+          "verification": "احذف parent ثم restore مع children واسم معاد الاستخدام",
+          "counter_evidence": "soft delete ليس بديلًا تامًا عن حذف الخصوصية ولا requirement لكل جدول",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-PGCON",
+            "SRC-PGINDEX",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "DDL/schema، migrations، queries، transactions، query plans، concurrency tests",
+          "applicability": "كل تخزين دائم؛ اختر adapter للمحرك الفعلي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-08-007",
+          "name": "الهجرة وbackfill",
+          "invariant": "تغير schema لا يفقد بيانات ولا يوقف الكتابة بلا خطة",
+          "procedure": "راجع expand/contract وlarge table DDL وbatching/checkpoint/locks",
+          "verification": "old/new app مع schema الانتقالية، interruption/resume وvalidation counts",
+          "counter_evidence": "down migration قد يفسد البيانات؛ roll-forward موثق قد يكون الأنسب",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-PGCON",
+            "SRC-PGINDEX",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "DDL/schema، migrations، queries، transactions، query plans، concurrency tests",
+          "applicability": "كل تخزين دائم؛ اختر adapter للمحرك الفعلي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-08-008",
+          "name": "Pooling وreplicas",
+          "invariant": "عدد الاتصالات واتساق القراءة لا ينهاران عند التوسع",
+          "procedure": "احسب instances × pool وحدود DB وreplica lag/read-after-write",
+          "verification": "اختبار تشبع محدود وقراءة بعد كتابة وfailover مع مراقبة wait",
+          "counter_evidence": "pool أكبر لا يعني أداء أفضل؛ read replica ليس مصدر truth مستقلًا",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-PGCON",
+            "SRC-PGINDEX",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "DDL/schema، migrations، queries، transactions، query plans، concurrency tests",
+          "applicability": "كل تخزين دائم؛ اختر adapter للمحرك الفعلي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-08-009",
+          "name": "Pagination وsearch",
+          "invariant": "لا تختفي سجلات أو تتكرر بسبب حدود أو ترتيب غير ثابت",
+          "procedure": "افحص cursor/offset/order tie-breaker/filter وindex sync وtenant filter",
+          "verification": "بيانات أقل/أكثر من الحد مع إدخال وحذف بين الصفحات وبحث سجل قديم",
+          "counter_evidence": "حد 200 مشروع إن كان هناك بحث/تصفح كامل؛ رفع الحد بلا سقف ليس إصلاحًا",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-PGCON",
+            "SRC-PGINDEX",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "DDL/schema، migrations، queries، transactions، query plans، concurrency tests",
+          "applicability": "كل تخزين دائم؛ اختر adapter للمحرك الفعلي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-08-010",
+          "name": "Backup وhistory",
+          "invariant": "الاستعادة تعيد بيانات قابلة للاستخدام حسب RPO/RTO",
+          "procedure": "اقرأ policies/retention/history/audit ومفاتيح التشفير وrestore runbooks",
+          "verification": "استعادة معزولة وفحص علاقات وعدد سجلات وعينة أعمال ومدة",
+          "counter_evidence": "وجود backup job لا يثبت نجاح restore ولا يعني أن replication backup",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-PGCON",
+            "SRC-PGINDEX",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "DDL/schema، migrations، queries، transactions، query plans، concurrency tests",
+          "applicability": "كل تخزين دائم؛ اختر adapter للمحرك الفعلي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "09",
+      "title": "API Contracts & Integration",
+      "applies_when": "HTTP/RPC/GraphQL/WebSocket أو تكامل خارجي",
+      "artifacts": "route inventory، schemas/contracts، clients، request/response tests",
+      "source_ids": [
+        "SRC-OAS",
+        "SRC-PROBLEM",
+        "SRC-IDEMP",
+        "SRC-API"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-09-001",
+          "name": "العقود والتحقق",
+          "invariant": "العقد المعلن يطابق ما يقبله ويرجعه التنفيذ",
+          "procedure": "قارن schemas وruntime validation وclients وunknown fields وresponse shaping",
+          "verification": "valid/invalid/missing/null/extra fields واختبار serialized response",
+          "counter_evidence": "type في لغة البرمجة لا يضمن validation لمدخل الشبكة",
+          "source_ids": [
+            "SRC-OAS",
+            "SRC-PROBLEM",
+            "SRC-IDEMP",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "route inventory، schemas/contracts، clients، request/response tests",
+          "applicability": "HTTP/RPC/GraphQL/WebSocket أو تكامل خارجي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-09-002",
+          "name": "خطأ قابل للفهم",
+          "invariant": "فشل العملية لا يقدم نجاحًا ولا يكشف internals",
+          "procedure": "راجع status/error codes/correlation/retryability وpartial success",
+          "verification": "نفس فئات الفشل متسقة مع UI/client دون stack trace/PII",
+          "counter_evidence": "ليس مطلوبًا RFC 9457 حرفيًا إن كان العقد الحالي سليمًا ومتسقًا",
+          "source_ids": [
+            "SRC-OAS",
+            "SRC-PROBLEM",
+            "SRC-IDEMP",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "route inventory، schemas/contracts، clients، request/response tests",
+          "applicability": "HTTP/RPC/GraphQL/WebSocket أو تكامل خارجي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-09-003",
+          "name": "القوائم والنسخ",
+          "invariant": "التصفح والتصفية والترتيب والإصدار قابل للاعتماد",
+          "procedure": "راجع stable ordering/limits/filter allowlist/versioning/deprecation",
+          "verification": "client قديم وحدود pagination وتغيير schema مفاجئ",
+          "counter_evidence": "version في URL ليست الطريقة الوحيدة؛ additive field قد يظل breaking لمستهلك صارم",
+          "source_ids": [
+            "SRC-OAS",
+            "SRC-PROBLEM",
+            "SRC-IDEMP",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "route inventory، schemas/contracts، clients، request/response tests",
+          "applicability": "HTTP/RPC/GraphQL/WebSocket أو تكامل خارجي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-09-004",
+          "name": "Idempotency",
+          "invariant": "إعادة نفس intent لا تضاعف side effects",
+          "procedure": "افحص key scope وpayload binding وatomic reservation/result retention/expiry",
+          "verification": "نفس المفتاح concurrent ثم payload مختلف ثم retry بعد timeout",
+          "counter_evidence": "HTTP method وحده لا يضمن semantics؛ dedupe بالpayload وحده قد يدمج قصدين مختلفين",
+          "source_ids": [
+            "SRC-OAS",
+            "SRC-PROBLEM",
+            "SRC-IDEMP",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "route inventory، schemas/contracts، clients، request/response tests",
+          "applicability": "HTTP/RPC/GraphQL/WebSocket أو تكامل خارجي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-09-005",
+          "name": "الوقت والإعادات",
+          "invariant": "العقد يوضح المهلة والإلغاء وإعادة المحاولة",
+          "procedure": "اتبع client → gateway → service → dependency budgets و429/retry-after",
+          "verification": "تأخر جزئي وانقطاع بعد commit؛ لا blind retry لفعل غير آمن",
+          "counter_evidence": "كل retries ليست سيئة؛ الحاجة تعتمد على transient failure وidempotency",
+          "source_ids": [
+            "SRC-OAS",
+            "SRC-PROBLEM",
+            "SRC-IDEMP",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "route inventory، schemas/contracts، clients، request/response tests",
+          "applicability": "HTTP/RPC/GraphQL/WebSocket أو تكامل خارجي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-09-006",
+          "name": "توازن aggregation",
+          "invariant": "تجميع الردود يحسن الرحلة دون تضخم صلاحيات أو كلفة",
+          "procedure": "قارن endpoint aggregation مع parallel requests/cache/dedup؛ افصل HTTP calls عن SQL queries",
+          "verification": "قياس زمن usable form وعد queries وحجم payload وpartial errors",
+          "counter_evidence": "8 طلبات ليست proof لعيب؛ JOIN لقوائم مستقلة قد ينتج Cartesian product",
+          "source_ids": [
+            "SRC-OAS",
+            "SRC-PROBLEM",
+            "SRC-IDEMP",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "route inventory، schemas/contracts، clients، request/response tests",
+          "applicability": "HTTP/RPC/GraphQL/WebSocket أو تكامل خارجي",
+          "seed_refs": [
+            "VID-01"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "10",
+      "title": "Frontend State & Rendering",
+      "applies_when": "واجهة متصفح أو PWA",
+      "artifacts": "component/state graph، network trace، browser interactions، cache behavior",
+      "source_ids": [
+        "SRC-VITALS",
+        "SRC-REVIEW"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-10-001",
+          "name": "ملكية الحالة",
+          "invariant": "server/client/form state لا تتنافس على الحقيقة",
+          "procedure": "حدد owner واشتقاق القيم والsync وURL state وform defaults",
+          "verification": "تحديث خارجي ثم تنقل/back/reload لا يعيد قيمة قديمة خفية",
+          "counter_evidence": "نسخة form draft مقصودة ليست duplicate source إن كان commit واضحًا",
+          "source_ids": [
+            "SRC-VITALS",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "component/state graph، network trace، browser interactions، cache behavior",
+          "applicability": "واجهة متصفح أو PWA",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-10-002",
+          "name": "Stale responses",
+          "invariant": "رد قديم لا يستبدل اختيارًا أحدث",
+          "procedure": "راجع effects/cancel/request identity/search debounce والtenant switch",
+          "verification": "اجعل request الأول أبطأ من الثاني ثم تحقق من آخر intent",
+          "counter_evidence": "إلغاء الشبكة ليس الحل الوحيد؛ response version guard قد يكفي",
+          "source_ids": [
+            "SRC-VITALS",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "component/state graph، network trace، browser interactions، cache behavior",
+          "applicability": "واجهة متصفح أو PWA",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-10-003",
+          "name": "Optimistic updates",
+          "invariant": "الفشل يعيد واجهة متسقة دون فقد تعديل جديد",
+          "procedure": "اتبع optimistic patch وrollback وserver reconcile وتداخل mutations",
+          "verification": "mutation تفشل ثم أخرى تنجح؛ لا يمحو rollback الحالة الصحيحة",
+          "counter_evidence": "تعطيل optimistic update قد يكون أبسط لعمليات حساسة",
+          "source_ids": [
+            "SRC-VITALS",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "component/state graph، network trace، browser interactions، cache behavior",
+          "applicability": "واجهة متصفح أو PWA",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-10-004",
+          "name": "SSR وhydration",
+          "invariant": "الحد بين الخادم والعميل لا يسرب أو يكرر أثرًا",
+          "procedure": "افحص server/client bundles وrender-time side effects وhydration mismatch",
+          "verification": "reload/direct navigation مع auth وlocale/date مختلفين",
+          "counter_evidence": "كل rerender ليس عيبًا؛ افحص أثرًا مقاسًا أو side effect خاطئًا",
+          "source_ids": [
+            "SRC-VITALS",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "component/state graph، network trace، browser interactions، cache behavior",
+          "applicability": "واجهة متصفح أو PWA",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-10-005",
+          "name": "Offline وPWA",
+          "invariant": "التخزين والعمل المؤجل لا يسربان جلسة أو يكرران قصدًا",
+          "procedure": "راجع service worker caching/update/offline queue/versioning/logout purge",
+          "verification": "offline submit ثم reconnect مرتين وتبديل مستخدم وتحديث app",
+          "counter_evidence": "المنتج غير المعلن offline لا يلزم sync كاملًا؛ يحتاج فشلًا مفهومًا",
+          "source_ids": [
+            "SRC-VITALS",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "component/state graph، network trace، browser interactions، cache behavior",
+          "applicability": "واجهة متصفح أو PWA",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-10-006",
+          "name": "الأصول والتحميل",
+          "invariant": "الواجهة تصل إلى حالة قابلة للاستخدام دون كلفة غير لازمة",
+          "procedure": "راجع code splitting/lazy loading/assets/image/font/request waterfalls",
+          "verification": "قياس loading على جهاز/شبكة ممثلين وتحديد critical path",
+          "counter_evidence": "bundle size وحده بلا budget/أثر لا يثبت severity",
+          "source_ids": [
+            "SRC-VITALS",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "component/state graph، network trace، browser interactions، cache behavior",
+          "applicability": "واجهة متصفح أو PWA",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "11",
+      "title": "Performance & Capacity",
+      "applies_when": "كل منتج؛ الحمل الفعلي أو المتوقع موثق",
+      "artifacts": "workload definition، profiles، query plans، browser timing، resource metrics",
+      "source_ids": [
+        "SRC-VITALS",
+        "SRC-SLO",
+        "SRC-OVERLOAD",
+        "SRC-PGINDEX"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-11-001",
+          "name": "نموذج الحمل",
+          "invariant": "الأداء يقاس بعمليات أعمال صحيحة على حجم ممثل",
+          "procedure": "حدد read/write mix وRPS/concurrency/think time/cache/data distribution وحمل tenant كبير",
+          "verification": "تكرار baseline مع error rate وthroughput وpercentiles وcorrectness",
+          "counter_evidence": "عدد مستخدمين في سكريبت لا يساوي عدد مستخدمين أعمال أو سعة قطعية",
+          "source_ids": [
+            "SRC-VITALS",
+            "SRC-SLO",
+            "SRC-OVERLOAD",
+            "SRC-PGINDEX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "workload definition، profiles، query plans، browser timing، resource metrics",
+          "applicability": "كل منتج؛ الحمل الفعلي أو المتوقع موثق",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-11-002",
+          "name": "موضع الاختناق",
+          "invariant": "التحسين يستهدف كلفة مثبتة",
+          "procedure": "اجمع CPU/memory/I/O/network/pool/DB/render profiles واربط spans",
+          "verification": "تغير عامل واحد ثم قارن before/after مع نفس workload",
+          "counter_evidence": "بطء HTTP لا يثبت أن قاعدة البيانات السبب؛ cache قد يخفي أصلًا",
+          "source_ids": [
+            "SRC-VITALS",
+            "SRC-SLO",
+            "SRC-OVERLOAD",
+            "SRC-PGINDEX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "workload definition، profiles، query plans، browser timing، resource metrics",
+          "applicability": "كل منتج؛ الحمل الفعلي أو المتوقع موثق",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-11-003",
+          "name": "الكاش الصحيح",
+          "invariant": "الكاش لا يكسر tenant/permission/freshness",
+          "procedure": "راجع key dimensions/TTL/invalidation/stampede/negative caching وحجم الكاش",
+          "verification": "update/delete/role change/cold burst/tenant switch ينتج قيمًا صحيحة",
+          "counter_evidence": "الهوية لا تُكاش عالميًا؛ لا يوجد TTL صحيح لكل أنواع البيانات",
+          "source_ids": [
+            "SRC-VITALS",
+            "SRC-SLO",
+            "SRC-OVERLOAD",
+            "SRC-PGINDEX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "workload definition، profiles، query plans، browser timing، resource metrics",
+          "applicability": "كل منتج؛ الحمل الفعلي أو المتوقع موثق",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-11-004",
+          "name": "مساحة الموارد",
+          "invariant": "الذاكرة والمعالجة والاتصالات لها حدود قابلة للإدارة",
+          "procedure": "افحص batching/streaming/serialization/compression وbig payload وlong jobs",
+          "verification": "soak محدود مع حجم بيانات متزايد وabort وقياس plateau",
+          "counter_evidence": "streaming أو compression قد يزيد CPU/التعقيد دون فائدة على payload صغير",
+          "source_ids": [
+            "SRC-VITALS",
+            "SRC-SLO",
+            "SRC-OVERLOAD",
+            "SRC-PGINDEX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "workload definition، profiles، query plans، browser timing، resource metrics",
+          "applicability": "كل منتج؛ الحمل الفعلي أو المتوقع موثق",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-11-005",
+          "name": "Startup والتوسع والتكلفة",
+          "invariant": "التوسع يحسن الإنجاز دون نقل الاختناق أو تضخيم الكلفة",
+          "procedure": "راجع cold starts/init/thread pools/autoscaling/CDN/cache distribution",
+          "verification": "cold/warm وscale-out مع connections وcost per successful operation",
+          "counter_evidence": "لا توصي autoscale قبل معرفة حدود DB/provider ولا تفرض CDN لبيانات خاصة",
+          "source_ids": [
+            "SRC-VITALS",
+            "SRC-SLO",
+            "SRC-OVERLOAD",
+            "SRC-PGINDEX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "workload definition، profiles، query plans، browser timing، resource metrics",
+          "applicability": "كل منتج؛ الحمل الفعلي أو المتوقع موثق",
+          "seed_refs": [
+            "VID-01"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "12",
+      "title": "Reliability & Distributed Failure",
+      "applies_when": "اتصالات أو أعمال خلفية أو حالة حرجة؛ ليس microservices فقط",
+      "artifacts": "failure matrix، deadlines، queues، durable states، injected-failure tests",
+      "source_ids": [
+        "SRC-IDEMP",
+        "SRC-OUTBOX",
+        "SRC-OVERLOAD",
+        "SRC-SRETEST"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-12-001",
+          "name": "ميزانية المهلة",
+          "invariant": "كل انتظار محدود وقابل للإلغاء",
+          "procedure": "اتبع deadline من العميل لكل dependency وDB/job؛ راجع ماذا يستمر بعد انقطاع العميل",
+          "verification": "dependency بطيء ثم cancellation لا يترك عملًا متراكمًا بلا حد",
+          "counter_evidence": "قد يحتاج job دائمًا بعد قطع HTTP؛ يلزمه durable ownership لا abort أعمى",
+          "source_ids": [
+            "SRC-IDEMP",
+            "SRC-OUTBOX",
+            "SRC-OVERLOAD",
+            "SRC-SRETEST"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "failure matrix، deadlines، queues، durable states، injected-failure tests",
+          "applicability": "اتصالات أو أعمال خلفية أو حالة حرجة؛ ليس microservices فقط",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-12-002",
+          "name": "إعادات محدودة",
+          "invariant": "retry لا يضاعف الحمل أو الأثر",
+          "procedure": "احصر retries عبر SDK/gateway/client/worker؛ حدد budgets/backoff/jitter",
+          "verification": "transient failure ثم تعافٍ؛ عدد المحاولات محدود والأثر مرة حسب intent",
+          "counter_evidence": "circuit breaker ليس إلزاميًا إذا كانت حدود الحمل والعزل تحقق الحاجة",
+          "source_ids": [
+            "SRC-IDEMP",
+            "SRC-OUTBOX",
+            "SRC-OVERLOAD",
+            "SRC-SRETEST"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "failure matrix، deadlines، queues، durable states، injected-failure tests",
+          "applicability": "اتصالات أو أعمال خلفية أو حالة حرجة؛ ليس microservices فقط",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-12-003",
+          "name": "تسليم الأحداث",
+          "invariant": "التكرار وإعادة الترتيب لا يفسدان الحالة",
+          "procedure": "حدد delivery semantics وdedupe/ordering keys/version guards",
+          "verification": "event duplicate وlate/old version بعد الجديد لا يرجع الحالة للخلف",
+          "counter_evidence": "timestamp وحده قد لا يحدد ترتيبًا؛ exactly-once تحتاج تحديد حد الضمان",
+          "source_ids": [
+            "SRC-IDEMP",
+            "SRC-OUTBOX",
+            "SRC-OVERLOAD",
+            "SRC-SRETEST"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "failure matrix، deadlines، queues، durable states، injected-failure tests",
+          "applicability": "اتصالات أو أعمال خلفية أو حالة حرجة؛ ليس microservices فقط",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-12-004",
+          "name": "Commit مقابل acknowledgement",
+          "invariant": "نجاح الأثر مع ضياع الرد قابل للتسوية",
+          "procedure": "ارسم state commit/external side effect/ack وdurability وoutbox أو reconciliation",
+          "verification": "فشل عند كل حد ثم retry يعيد حالة صحيحة ويكشف unknown outcome",
+          "counter_evidence": "transaction محلية لا تضم gateway دفع خارجي؛ outbox اختياري لا حل لكل نظام",
+          "source_ids": [
+            "SRC-IDEMP",
+            "SRC-OUTBOX",
+            "SRC-OVERLOAD",
+            "SRC-SRETEST"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "failure matrix، deadlines، queues، durable states، injected-failure tests",
+          "applicability": "اتصالات أو أعمال خلفية أو حالة حرجة؛ ليس microservices فقط",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-12-005",
+          "name": "Queues وpoison messages",
+          "invariant": "رسالة فاسدة لا تعطل الصف للأبد",
+          "procedure": "راجع visibility timeout/lease/max attempts/DLQ/redrive/ordering وpayload version",
+          "verification": "worker يموت بعد effect وقبل ack؛ poison message تعزل ويمكن replay آمن",
+          "counter_evidence": "نقل الرسالة إلى DLQ وحده ليس recovery إن لم يوجد alert/owner",
+          "source_ids": [
+            "SRC-IDEMP",
+            "SRC-OUTBOX",
+            "SRC-OVERLOAD",
+            "SRC-SRETEST"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "failure matrix، deadlines، queues، durable states، injected-failure tests",
+          "applicability": "اتصالات أو أعمال خلفية أو حالة حرجة؛ ليس microservices فقط",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-12-006",
+          "name": "تعويض وفشل جزئي",
+          "invariant": "workflow متعدد الآثار يصل لحالة مفسرة أو recovery",
+          "procedure": "افحص sagas/compensation/partial success/irreversible effects",
+          "verification": "أوقف المرحلة الوسطى واختبر الاستكمال والتعويض الفاشل دون فقد الأثر",
+          "counter_evidence": "تعويض مالي ليس حذف سجل؛ لا تفرض saga على transaction واحدة",
+          "source_ids": [
+            "SRC-IDEMP",
+            "SRC-OUTBOX",
+            "SRC-OVERLOAD",
+            "SRC-SRETEST"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "failure matrix، deadlines، queues، durable states، injected-failure tests",
+          "applicability": "اتصالات أو أعمال خلفية أو حالة حرجة؛ ليس microservices فقط",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-12-007",
+          "name": "تدهور وعزل",
+          "invariant": "تعطل خدمة ثانوية لا يسقط المسار الأساسي بلا داع",
+          "procedure": "حدد critical/optional dependencies وbulkheads/load shedding/fallback age",
+          "verification": "provider down/cache down/DB unavailable؛ الواجهة لا تعرض نجاحًا كاذبًا",
+          "counter_evidence": "stale data غير آمنة للرصيد أو الصلاحية قد تكون أسوأ من رفض واضح",
+          "source_ids": [
+            "SRC-IDEMP",
+            "SRC-OUTBOX",
+            "SRC-OVERLOAD",
+            "SRC-SRETEST"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "failure matrix، deadlines، queues، durable states، injected-failure tests",
+          "applicability": "اتصالات أو أعمال خلفية أو حالة حرجة؛ ليس microservices فقط",
+          "seed_refs": [
+            "VID-01"
+          ]
+        },
+        {
+          "id": "EAOS-12-008",
+          "name": "Disaster recovery",
+          "invariant": "الاستعادة تشمل الخدمة والبيانات والأسرار والتبعيات",
+          "procedure": "اربط RPO/RTO وrestore وDNS/config/secrets وrunbook والمسؤول",
+          "verification": "تمرين استعادة معزول من artifact وbackup وتوثيق زمن وخسارة فعلية",
+          "counter_evidence": "وجود replication أو multi-region لا يثبت recovery قابلًا للتشغيل",
+          "source_ids": [
+            "SRC-IDEMP",
+            "SRC-OUTBOX",
+            "SRC-OVERLOAD",
+            "SRC-SRETEST"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "failure matrix، deadlines، queues، durable states، injected-failure tests",
+          "applicability": "اتصالات أو أعمال خلفية أو حالة حرجة؛ ليس microservices فقط",
+          "seed_refs": [
+            "VID-01"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "13",
+      "title": "SaaS Tenancy & Organization Lifecycle",
+      "applies_when": "عدة مؤسسات أو tenants أو فرق تشترك بالمنصة",
+      "artifacts": "tenant resolution، memberships، storage/cache/jobs، lifecycle tests",
+      "source_ids": [
+        "SRC-TENANT",
+        "SRC-AUTHZ"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-13-001",
+          "name": "سياق المستأجر",
+          "invariant": "tenant يشتق من هوية وعضوية موثوقتين",
+          "procedure": "اتبع route/subdomain/header/token/DB ويمنع spoofed tenant selection",
+          "verification": "حساب من A يطلب resource/cache/object من B ويرفض عبر كل entrypoint",
+          "counter_evidence": "UUID غير قابل للتخمين لا يحمي العزل؛ RLS يلزم اختبار connection context",
+          "source_ids": [
+            "SRC-TENANT",
+            "SRC-AUTHZ"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "tenant resolution، memberships، storage/cache/jobs، lifecycle tests",
+          "applicability": "عدة مؤسسات أو tenants أو فرق تشترك بالمنصة",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-13-002",
+          "name": "العزل الشامل",
+          "invariant": "العزل يشمل غير SQL",
+          "procedure": "افحص cache keys/object paths/search indexes/exports/jobs/telemetry",
+          "verification": "مستأجران بIDs متشابهة وjobs متزامنة لا يتبادلان آثارًا",
+          "counter_evidence": "tenant_id في الجداول وحده لا يثبت عزل storage أو search",
+          "source_ids": [
+            "SRC-TENANT",
+            "SRC-AUTHZ"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "tenant resolution، memberships، storage/cache/jobs، lifecycle tests",
+          "applicability": "عدة مؤسسات أو tenants أو فرق تشترك بالمنصة",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-13-003",
+          "name": "دعوات وعضوية",
+          "invariant": "الدعوة محددة الجهة والدور والمدة والاستخدام",
+          "procedure": "راجع invite token/email binding/acceptance/current role/revoke",
+          "verification": "invitation ملغاة أو قديمة أو مقبولة مرتين أو لحساب آخر ترفض وفق العقد",
+          "counter_evidence": "email domain واحد لا يعني عضوية تلقائية ما لم توجد سياسة موثقة",
+          "source_ids": [
+            "SRC-TENANT",
+            "SRC-AUTHZ"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "tenant resolution، memberships، storage/cache/jobs، lifecycle tests",
+          "applicability": "عدة مؤسسات أو tenants أو فرق تشترك بالمنصة",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-13-004",
+          "name": "ملكية المنظمة",
+          "invariant": "حذف أو مغادرة آخر owner لا يترك منظمة بلا مسؤول وفق السياسة",
+          "procedure": "راجع owner count/transfer/deletion بعملية ذرية وخيارات recovery",
+          "verification": "ownerان يغادران بالتزامن وآخر owner يحذف حسابه",
+          "counter_evidence": "السياسة قد تسمح archive بدل نقل الملكية؛ يجب إعلانها واختبارها",
+          "source_ids": [
+            "SRC-TENANT",
+            "SRC-AUTHZ"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "tenant resolution، memberships، storage/cache/jobs، lifecycle tests",
+          "applicability": "عدة مؤسسات أو tenants أو فرق تشترك بالمنصة",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-13-005",
+          "name": "حذف ونقل tenant",
+          "invariant": "migration/delete لا يترك بيانات أو credentials تعمل",
+          "procedure": "احصر مراحل freeze/export/move/validate/cutover/delete وjobs pending",
+          "verification": "أعد العملية بعد فشل جزئي وراجع dangling membership/cache/secrets",
+          "counter_evidence": "حذف منطقي قد لا يحقق حذف نهائي؛ لا تحذف billing evidence المطلوبة دون سياسة",
+          "source_ids": [
+            "SRC-TENANT",
+            "SRC-AUTHZ"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "tenant resolution، memberships، storage/cache/jobs، lifecycle tests",
+          "applicability": "عدة مؤسسات أو tenants أو فرق تشترك بالمنصة",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-13-006",
+          "name": "Noisy neighbor",
+          "invariant": "مستأجر لا يستهلك حصة غيره بلا حدود",
+          "procedure": "راجع per-tenant fair scheduling/quotas/pool allocation وhot tenants",
+          "verification": "حمل tenant كبير لا يخرق أهداف بقية tenants وفق capacity plan",
+          "counter_evidence": "لا تفرض DB منفصلة لكل tenant إذا كان العزل والـSLO مثبتين",
+          "source_ids": [
+            "SRC-TENANT",
+            "SRC-AUTHZ"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "tenant resolution، memberships، storage/cache/jobs، lifecycle tests",
+          "applicability": "عدة مؤسسات أو tenants أو فرق تشترك بالمنصة",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "14",
+      "title": "Subscriptions Billing & Entitlements",
+      "applies_when": "دفع أو اشتراك أو metering أو حدود خطط",
+      "artifacts": "billing state machine، provider contract، ledger، webhooks، entitlement policy",
+      "source_ids": [
+        "SRC-STRIPE",
+        "SRC-IDEMP",
+        "SRC-OUTBOX"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-14-001",
+          "name": "حالة الدفع مقابل الإتاحة",
+          "invariant": "صلاحية الميزة تتبع سياسة اشتراك واضحة",
+          "procedure": "حدد canonical payment state وderived entitlement وtrial/past_due/grace/cancel/reactivate",
+          "verification": "انتقالات كاملة مع فشل دفع وتأخر webhook وغياب browser redirect",
+          "counter_evidence": "نجاح صفحة checkout لا يثبت دفعًا؛ الفاتورة والاشتراك ليسا نفس الحالة",
+          "source_ids": [
+            "SRC-STRIPE",
+            "SRC-IDEMP",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "billing state machine، provider contract، ledger، webhooks، entitlement policy",
+          "applicability": "دفع أو اشتراك أو metering أو حدود خطط",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-14-002",
+          "name": "الويبهوك",
+          "invariant": "الحدث أصيل ولا يضاعف المعاملة",
+          "procedure": "تحقق من raw-body signature/secret/timestamp وdurable receipt/dedupe scope",
+          "verification": "توقيع خاطئ وevent مكرر ومتأخر وفشل handler قبل/بعد commit",
+          "counter_evidence": "event ID dedupe لا يمنع duplicate business intents بأحداث مختلفة",
+          "source_ids": [
+            "SRC-STRIPE",
+            "SRC-IDEMP",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "billing state machine، provider contract، ledger، webhooks، entitlement policy",
+          "applicability": "دفع أو اشتراك أو metering أو حدود خطط",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-14-003",
+          "name": "نجاح الدفع وفشل DB",
+          "invariant": "الأموال والوصول لا يبقيان مختلفين دون reconciliation",
+          "procedure": "راجع mapping provider ids وidempotency/outcome lookup/reconciliation job",
+          "verification": "provider نجح ثم local commit فشل؛ التكرار لا يخصم مرتين ويصلح الحالة",
+          "counter_evidence": "database transaction وحدها لا تجعل payment atomic",
+          "source_ids": [
+            "SRC-STRIPE",
+            "SRC-IDEMP",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "billing state machine، provider contract، ledger، webhooks، entitlement policy",
+          "applicability": "دفع أو اشتراك أو metering أو حدود خطط",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-14-004",
+          "name": "Quotas وmetering",
+          "invariant": "الحد لا يُتجاوز عبر التزامن أو المسارات البديلة",
+          "procedure": "راجع atomic reservation/usage events/dedupe/period/time zone/refunds",
+          "verification": "طلبان عند آخر وحدة وحذف ثم إعادة إنشاء وjob يعاد لا يزيد العداد خطأً",
+          "counter_evidence": "عد UI أو count-before-insert وحده لا يحمي الحصة؛ overage قد يكون مسموحًا تجاريًا",
+          "source_ids": [
+            "SRC-STRIPE",
+            "SRC-IDEMP",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "billing state machine، provider contract، ledger، webhooks، entitlement policy",
+          "applicability": "دفع أو اشتراك أو metering أو حدود خطط",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-14-005",
+          "name": "تغير الخطة أثناء العمل",
+          "invariant": "downgrade/upgrade لا يفقد بيانات أو يمنح استعمالًا مجهولًا",
+          "procedure": "وثق entitlement snapshot مقابل recheck وover-limit policy وeffective time",
+          "verification": "job يبدأ بخطة ثم تتغير؛ over-limit يظهر حالة واضحة وخيارات خروج",
+          "counter_evidence": "لا تحذف بيانات تلقائيًا لإجبار limit؛ تحدد السياسة read-only/grace/overage",
+          "source_ids": [
+            "SRC-STRIPE",
+            "SRC-IDEMP",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "billing state machine، provider contract، ledger، webhooks، entitlement policy",
+          "applicability": "دفع أو اشتراك أو metering أو حدود خطط",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-14-006",
+          "name": "المال والمصالحة",
+          "invariant": "القيم المالية والهوية والأثر قابلة للتتبع",
+          "procedure": "راجع decimal/minor units/currency/refund/proration/rounding/provider reconciliation",
+          "verification": "حدود rounding وتكرار refund وفرق currency بين السعر والعملية",
+          "counter_evidence": "لا يخترع الوكيل سياسة ضريبة أو احتساب؛ يطلب المرجع عند غياب requirement",
+          "source_ids": [
+            "SRC-STRIPE",
+            "SRC-IDEMP",
+            "SRC-OUTBOX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "billing state machine، provider contract، ledger، webhooks، entitlement policy",
+          "applicability": "دفع أو اشتراك أو metering أو حدود خطط",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "15",
+      "title": "Testing Strategy & Quality",
+      "applies_when": "كل مشروع؛ نوع الاختبارات يتبع المخاطر",
+      "artifacts": "test inventory، CI results، fixtures، critical flow matrix",
+      "source_ids": [
+        "SRC-SRETEST",
+        "SRC-SSDF",
+        "SRC-REVIEW"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-15-001",
+          "name": "حماية المسارات الحرجة",
+          "invariant": "المخاطر الأعلى لها اختبارات تكشف عطلها",
+          "procedure": "طابق رحلة/invariant مع unit/integration/contract/E2E والنتيجة المتوقعة",
+          "verification": "عطل fixture مقصودًا وتحقق من فشل اختبار ذي معنى لا مجرد coverage",
+          "counter_evidence": "نسبة سطور عالية لا تثبت صلاحيات أو recovery",
+          "source_ids": [
+            "SRC-SRETEST",
+            "SRC-SSDF",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "test inventory، CI results، fixtures، critical flow matrix",
+          "applicability": "كل مشروع؛ نوع الاختبارات يتبع المخاطر",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-15-002",
+          "name": "واقعية الحدود",
+          "invariant": "الـmocks لا تخفي دلالة DB/provider الفعلية",
+          "procedure": "راجع ما استبدل بالـmocks وcontract fixtures والنسخ الحقيقية",
+          "verification": "integration بمحرك مطابق يثبت constraints/isolation وserialization",
+          "counter_evidence": "mock مناسب لوحدة isolated؛ ليس كل test يحتاج شبكة حقيقية",
+          "source_ids": [
+            "SRC-SRETEST",
+            "SRC-SSDF",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "test inventory، CI results، fixtures، critical flow matrix",
+          "applicability": "كل مشروع؛ نوع الاختبارات يتبع المخاطر",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-15-003",
+          "name": "فشل وتزامن",
+          "invariant": "اختبارات happy path لا تخفي أخطار edge cases",
+          "procedure": "احصر denial/timeout/retry/cancel/conflict/migration/load tests اللازمة",
+          "verification": "استخدم barriers/fake clock/fault injection بدل sleeps العشوائية",
+          "counter_evidence": "عدم وجود نوع test بالاسم لا يثبت غياب تغطية سلوكه في مستوى آخر",
+          "source_ids": [
+            "SRC-SRETEST",
+            "SRC-SSDF",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "test inventory، CI results، fixtures، critical flow matrix",
+          "applicability": "كل مشروع؛ نوع الاختبارات يتبع المخاطر",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-15-004",
+          "name": "ثبات واستقلال",
+          "invariant": "الاختبار لا ينجح أو يفشل بسبب ترتيب أو وقت غير مضبوط",
+          "procedure": "افحص shared state/fixed ports/time zone/random seeds وflaky retries",
+          "verification": "أعد tests المعنية مع ترتيب/seed معلومين وisolated DB",
+          "counter_evidence": "إعادة flaky test حتى ينجح ليست proof إصلاح",
+          "source_ids": [
+            "SRC-SRETEST",
+            "SRC-SSDF",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "test inventory، CI results، fixtures، critical flow matrix",
+          "applicability": "كل مشروع؛ نوع الاختبارات يتبع المخاطر",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-15-005",
+          "name": "مرجعية التوقع",
+          "invariant": "الاختبار يقيس contract مستقلًا عن implementation",
+          "procedure": "راجع snapshots/assertions التي تنسخ نفس algorithm أو تقبل أي response",
+          "verification": "mutation مقصودة تكسر invariant يجب أن يكشفها الاختبار",
+          "counter_evidence": "snapshot بصري قد يفيد layout لكنه لا يثبت صحة الحساب أو التفويض",
+          "source_ids": [
+            "SRC-SRETEST",
+            "SRC-SSDF",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "test inventory، CI results، fixtures، critical flow matrix",
+          "applicability": "كل مشروع؛ نوع الاختبارات يتبع المخاطر",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "16",
+      "title": "Infrastructure Deployment & Recovery",
+      "applies_when": "أي منتج منشور أو مخطط لنشره",
+      "artifacts": "IaC/runtime config، deployment artifacts، probes، backups، runbooks",
+      "source_ids": [
+        "SRC-PRR",
+        "SRC-SLO",
+        "SRC-PGINDEX"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-16-001",
+          "name": "فصل البيئات",
+          "invariant": "التطوير والاختبار لا يكتبان في إنتاج عرضًا",
+          "procedure": "افحص credentials/databases/buckets/webhooks/email/payment modes",
+          "verification": "اختبار smoke مع identifiers صناعية يثبت الوجهة المعزولة",
+          "counter_evidence": "اسم env=staging لا يكفي إذا كان credential للإنتاج",
+          "source_ids": [
+            "SRC-PRR",
+            "SRC-SLO",
+            "SRC-PGINDEX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "IaC/runtime config، deployment artifacts، probes، backups، runbooks",
+          "applicability": "أي منتج منشور أو مخطط لنشره",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-16-002",
+          "name": "أمان الحاوية والحدود",
+          "invariant": "العملية تعمل بأقل صلاحيات وموارد مناسبة",
+          "procedure": "راجع user/capabilities/fs/network/secrets/image/base version/resource limits",
+          "verification": "تشغيل container بconfig مماثل واختبار shutdown/limits والملفات",
+          "counter_evidence": "عدم استخدام Docker أو Kubernetes ليس gap بذاته",
+          "source_ids": [
+            "SRC-PRR",
+            "SRC-SLO",
+            "SRC-PGINDEX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "IaC/runtime config، deployment artifacts، probes، backups، runbooks",
+          "applicability": "أي منتج منشور أو مخطط لنشره",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-16-003",
+          "name": "Probes وshutdown",
+          "invariant": "النشر لا يرسل عملًا لمن لا يستطيع إنجازه",
+          "procedure": "افصل liveness/readiness/startup وdraining/termination/job leases",
+          "verification": "deploy أثناء requests/job مع توقف dependency لا يولد restart cascade",
+          "counter_evidence": "ربط liveness بكل dependency قد يزيد الانهيار؛ health=200 ليس readiness",
+          "source_ids": [
+            "SRC-PRR",
+            "SRC-SLO",
+            "SRC-PGINDEX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "IaC/runtime config، deployment artifacts، probes، backups، runbooks",
+          "applicability": "أي منتج منشور أو مخطط لنشره",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-16-004",
+          "name": "نشر متوافق",
+          "invariant": "قديم وجديد وschema انتقالي يعملون دون فساد",
+          "procedure": "افحص rollout/feature flag/canary/rollback/artifact identity",
+          "verification": "اختبار mixed versions وrollback كود مع DB بعد migration",
+          "counter_evidence": "zero downtime وعد يحتاج برهان؛ restart قصير مقبول إن كان ضمن العقد",
+          "source_ids": [
+            "SRC-PRR",
+            "SRC-SLO",
+            "SRC-PGINDEX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "IaC/runtime config، deployment artifacts، probes، backups، runbooks",
+          "applicability": "أي منتج منشور أو مخطط لنشره",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-16-005",
+          "name": "Drift والتوسع",
+          "invariant": "الإعداد الفعلي قابل للمقارنة والتعافي",
+          "procedure": "قارن IaC مع provider config المتاح وregions/quotas/autoscaling",
+          "verification": "وثق drift وأثره؛ تمرين scale/restore محدود في البيئة المصرح بها",
+          "counter_evidence": "IaC وحده لا يثبت الإعداد المنشور؛ managed infrastructure تُفحص بعقدها",
+          "source_ids": [
+            "SRC-PRR",
+            "SRC-SLO",
+            "SRC-PGINDEX"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "IaC/runtime config، deployment artifacts، probes، backups، runbooks",
+          "applicability": "أي منتج منشور أو مخطط لنشره",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-16-006",
+          "name": "هوية التشغيل وIAM",
+          "invariant": "كل workload يملك الصلاحيات والموارد اللازمة فقط",
+          "procedure": "اربط human/service identities بtrust policies وresource grants وcredential lifetimes وbreak-glass؛ راجع cross-account وCI federation",
+          "verification": "اختبار allow/deny ببيئة معزولة لعملية لازمة وأخرى ممنوعة، مع audit trail",
+          "counter_evidence": "وجود role واسع بالاسم لا يثبت الصلاحيات الفعلية؛ اجمع inherited policies والحدود",
+          "source_ids": [
+            "SRC-CLOUD",
+            "SRC-PRR"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "IaC + redacted observed configuration + environment/account scope + authorized test evidence",
+          "applicability": "وجود المكونات المذكورة؛ Kubernetes conditional فقط",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-16-007",
+          "name": "الشبكة ومسار ingress/egress",
+          "invariant": "لا مسار غير مقصود يتجاوز طبقة الحماية أو يصل للبيانات",
+          "procedure": "ارسم DNS→CDN/WAF→LB→service→store؛ تحقق routes/firewalls/private endpoints/egress وproxy trust؛ افصل state المعلن عن الفعلي",
+          "verification": "تحقق مصرح من الوصول إلى origin/admin/database من مواقع مسموحة وممنوعة؛ لا مسح خارجي غير مصرح",
+          "counter_evidence": "public endpoint قد يكون مقصودًا؛ الحكم على exposure مع auth/controls وليس public IP وحده",
+          "source_ids": [
+            "SRC-CLOUD",
+            "SRC-PRR"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "IaC + redacted observed configuration + environment/account scope + authorized test evidence",
+          "applicability": "وجود المكونات المذكورة؛ Kubernetes conditional فقط",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-16-008",
+          "name": "DNS وTLS وملكية النطاق",
+          "invariant": "لا فشل هوية أو انقطاع صامت عند التجديد أو تبديل الوجهة",
+          "procedure": "راجع DNS records وdangling targets وTTL وdomain ownership وcertificate chain/renewal/termination boundaries",
+          "verification": "اختبار staging لتجديد وتبديل شهادة وhostname mismatch وخطة نقل DNS",
+          "counter_evidence": "HSTS أو pinning لا يفرضان بلا تحليل توافق؛ شهادة صالحة اليوم لا تثبت تجديدًا ناجحًا",
+          "source_ids": [
+            "SRC-CLOUD",
+            "SRC-PRR"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "IaC + redacted observed configuration + environment/account scope + authorized test evidence",
+          "applicability": "وجود المكونات المذكورة؛ Kubernetes conditional فقط",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-16-009",
+          "name": "المخازن ومفاتيح التشفير",
+          "invariant": "كل نسخة بيانات محمية وقابلة للاسترجاع بصلاحية صحيحة",
+          "procedure": "احصر buckets/disks/snapshots/replicas وpublic access وretention وkey grants وrotation/deletion windows",
+          "verification": "اختبار object access عبر هويتين واستعادة نسخة صناعية بمفتاحها وفحص audit log",
+          "counter_evidence": "encryption at rest لا يصلح authorization؛ خدمات managed تتطلب إثبات config لا إعادة تنفيذها",
+          "source_ids": [
+            "SRC-CLOUD",
+            "SRC-PRR"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "IaC + redacted observed configuration + environment/account scope + authorized test evidence",
+          "applicability": "وجود المكونات المذكورة؛ Kubernetes conditional فقط",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-16-010",
+          "name": "تعافي disaster وحدود الفشل",
+          "invariant": "الأثر والوقت وفقد البيانات يطابقون RTO/RPO معلنين",
+          "procedure": "اربط restore order بالهوية وDNS وkeys والـDB والqueue؛ افحص فشل zone/region/provider وإعادة failback",
+          "verification": "تمرين restore معزول يُقاس فيه فقد فعلي ووقت عودة الرحلة، وإعادة تشغيل أحداث لا تضاعف الأثر",
+          "counter_evidence": "multi-region ليس مطلبًا لكل منتج؛ نسخة backup ناجحة لا تثبت restoration",
+          "source_ids": [
+            "SRC-CLOUD",
+            "SRC-PRR"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "IaC + redacted observed configuration + environment/account scope + authorized test evidence",
+          "applicability": "وجود المكونات المذكورة؛ Kubernetes conditional فقط",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-16-011",
+          "name": "Kubernetes عند انطباقه",
+          "invariant": "control plane وpods معزولة وفق threat model",
+          "procedure": "راجع API/etcd/kubelet exposure وRBAC وservice accounts وPod Security admission وCNI enforcement وhost mounts",
+          "verification": "اختبارات deny للصلاحيات والاتصالات مع workload ممثل؛ تحقق من enforcement لا وجود YAML فقط",
+          "counter_evidence": "namespace ليس tenant security boundary كافيًا وحده؛ غياب service mesh ليس عيبًا تلقائيًا",
+          "source_ids": [
+            "SRC-CLOUD",
+            "SRC-K8S"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "IaC + redacted observed configuration + environment/account scope + authorized test evidence",
+          "applicability": "وجود المكونات المذكورة؛ Kubernetes conditional فقط",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-16-012",
+          "name": "سعة وكلفة الموارد",
+          "invariant": "التوسع يحقق SLO ضمن ميزانية وlimits مرصودة",
+          "procedure": "حدد autoscale signals وmin/max وquota bottlenecks وegress/storage/log costs وorphan resources؛ اربط الكلفة بbusiness unit",
+          "verification": "اختبار surge مصرح بحد تكلفة ومؤشر throughput صحيح؛ إنذار budget وقياس بعد scale-down",
+          "counter_evidence": "أرخص بنية قد تهدم recovery؛ لا تلغِ redundancy مطلوبة لتحسين فاتورة فقط",
+          "source_ids": [
+            "SRC-CLOUD",
+            "SRC-PRR"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "IaC + redacted observed configuration + environment/account scope + authorized test evidence",
+          "applicability": "وجود المكونات المذكورة؛ Kubernetes conditional فقط",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "17",
+      "title": "CI/CD & Build Integrity",
+      "applies_when": "أي سلسلة بناء أو نشر آلي/يدوي",
+      "artifacts": "workflow files، permissions، artifact digests، gates، environment protections",
+      "source_ids": [
+        "SRC-GHA",
+        "SRC-SLSA",
+        "SRC-SSDF"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-17-001",
+          "name": "حدود الثقة في CI",
+          "invariant": "كود غير موثوق لا يحصل على أسرار أو write token",
+          "procedure": "راجع PR/fork triggers وshell interpolation وcheckout events وpermissions",
+          "verification": "fixture لعنوان PR أو branch غير موثوق لا يتحول أمرًا؛ افحص صلاحية job",
+          "counter_evidence": "masking للأسرار لا يمنع exfiltration؛ protected branch وحده لا يكفي",
+          "source_ids": [
+            "SRC-GHA",
+            "SRC-SLSA",
+            "SRC-SSDF"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "workflow files، permissions، artifact digests، gates، environment protections",
+          "applicability": "أي سلسلة بناء أو نشر آلي/يدوي",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-17-002",
+          "name": "هوية artifact",
+          "invariant": "ما نُشر هو ما بُني واختُبر من revision معروف",
+          "procedure": "اتبع source→build→sign/provenance→registry→deploy؛ افحص mutable tags",
+          "verification": "قارن digest في اختبار القطعة مع digest النشر وbuilder identity",
+          "counter_evidence": "وجود SBOM ليس provenance؛ وجود signature دون verification لا يكفي",
+          "source_ids": [
+            "SRC-GHA",
+            "SRC-SLSA",
+            "SRC-SSDF"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "workflow files، permissions، artifact digests، gates، environment protections",
+          "applicability": "أي سلسلة بناء أو نشر آلي/يدوي",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-17-003",
+          "name": "Gates ملزمة",
+          "invariant": "الإطلاق لا يتجاوز فحصًا مطلوبًا بصمت",
+          "procedure": "راجع required checks/continue-on-error/conditional skips/manual paths",
+          "verification": "فشل اختبار fixture يمنع مسار النشر المستهدف",
+          "counter_evidence": "gate غير منطبق قد يسجل N/A؛ إعادة تسمية check لا تعني تشغيله",
+          "source_ids": [
+            "SRC-GHA",
+            "SRC-SLSA",
+            "SRC-SSDF"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "workflow files، permissions، artifact digests، gates، environment protections",
+          "applicability": "أي سلسلة بناء أو نشر آلي/يدوي",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-17-004",
+          "name": "صلاحيات وأسرار النشر",
+          "invariant": "أسرار CI محدودة الوظيفة والزمن والوجهة",
+          "procedure": "راجع token scopes/OIDC trust/env protections/runner persistence",
+          "verification": "job غير مخول لا يحصل على deploy credential؛ لا secrets في logs/artifacts",
+          "counter_evidence": "OIDC لا يكون آمنًا إذا كانت trust conditions واسعة",
+          "source_ids": [
+            "SRC-GHA",
+            "SRC-SLSA",
+            "SRC-SSDF"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "workflow files، permissions، artifact digests، gates، environment protections",
+          "applicability": "أي سلسلة بناء أو نشر آلي/يدوي",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-17-005",
+          "name": "Reproducibility",
+          "invariant": "البناء لا يتغير بسبب dependency أو script غير معلوم",
+          "procedure": "راجع lockfile/install flags/pinned actions/toolchains/cache poisoning",
+          "verification": "build نظيف من نفس المدخلات وسجل الفروق وscript effects",
+          "counter_evidence": "ليس مطلوبًا bit-for-bit لكل مشروع؛ يلزم تتبع المدخلات وعدم الانزلاق الخفي",
+          "source_ids": [
+            "SRC-GHA",
+            "SRC-SLSA",
+            "SRC-SSDF"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "workflow files، permissions، artifact digests، gates، environment protections",
+          "applicability": "أي سلسلة بناء أو نشر آلي/يدوي",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "18",
+      "title": "Observability & Incident Diagnosis",
+      "applies_when": "أي خدمة أو رحلة إنتاجية لها أثر يستدعي التحقيق",
+      "artifacts": "logs/metrics/traces/alerts، incident reconstruction، dashboards",
+      "source_ids": [
+        "SRC-OTEL",
+        "SRC-MONITOR",
+        "SRC-SLO"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-18-001",
+          "name": "ربط الحدث بالرحلة",
+          "invariant": "يمكن تحديد ماذا حدث ولمن ومتى وعبر أي طلب",
+          "procedure": "تتبع request/trace/job/event ids بين services مع tenant pseudonym وrevision",
+          "verification": "نفذ فشلًا صناعيًا ثم استرجع مساره من العميل إلى dependency",
+          "counter_evidence": "request ID غير موثوق من المستخدم يحتاج validation؛ لا تُسجل raw tokens",
+          "source_ids": [
+            "SRC-OTEL",
+            "SRC-MONITOR",
+            "SRC-SLO"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "logs/metrics/traces/alerts، incident reconstruction، dashboards",
+          "applicability": "أي خدمة أو رحلة إنتاجية لها أثر يستدعي التحقيق",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-18-002",
+          "name": "SLIs والتنبيه",
+          "invariant": "التنبيه يعكس ضرر المستخدم وله إجراء واضح",
+          "procedure": "راجع success/latency/traffic/errors/saturation وqueue age وbusiness SLIs",
+          "verification": "فشل رحلة اصطناعية يصل للتنبيه المناسب مع runbook وowner",
+          "counter_evidence": "CPU مرتفع ليس outage تلقائيًا؛ dashboard بلا alert ليس detection",
+          "source_ids": [
+            "SRC-OTEL",
+            "SRC-MONITOR",
+            "SRC-SLO"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "logs/metrics/traces/alerts، incident reconstruction، dashboards",
+          "applicability": "أي خدمة أو رحلة إنتاجية لها أثر يستدعي التحقيق",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-18-003",
+          "name": "فشل الرصد نفسه",
+          "invariant": "تعطل exporter أو logging لا يسقط المنتج أو يملأ القرص",
+          "procedure": "افحص buffers/drop policy/backpressure/sampling/rate/cardinality",
+          "verification": "أوقف collector واختبر حد الذاكرة والخدمة وإنذار فقد telemetry",
+          "counter_evidence": "tracing لكل request قد لا يناسب الحجم؛ sampling لا يضمن كل incident",
+          "source_ids": [
+            "SRC-OTEL",
+            "SRC-MONITOR",
+            "SRC-SLO"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "logs/metrics/traces/alerts، incident reconstruction، dashboards",
+          "applicability": "أي خدمة أو رحلة إنتاجية لها أثر يستدعي التحقيق",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-18-004",
+          "name": "سجلات الأعمال والأمن",
+          "invariant": "التغيير المهم قابل للمحاسبة دون تسريب بيانات",
+          "procedure": "راجع actor/action/resource/result/time/role changes وaudit tamper/access/retention",
+          "verification": "أعد بناء ownership transfer أو حذف من سجل منقح",
+          "counter_evidence": "application logs وحدها قد لا توفر audit trail مقاومًا للتعديل",
+          "source_ids": [
+            "SRC-OTEL",
+            "SRC-MONITOR",
+            "SRC-SLO"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "logs/metrics/traces/alerts، incident reconstruction، dashboards",
+          "applicability": "أي خدمة أو رحلة إنتاجية لها أثر يستدعي التحقيق",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-18-005",
+          "name": "Root cause بحذر",
+          "invariant": "الرصد يميز العرض عن السبب والفرضية",
+          "procedure": "اربط تغير deploy مع spans وDB/queue metrics وحدد evidence بدائل",
+          "verification": "ابحث عن مؤشرين مستقلين يدعمان السبب أو صرّح أنه محتمل",
+          "counter_evidence": "التزامن الزمني correlation ليس إثبات causation",
+          "source_ids": [
+            "SRC-OTEL",
+            "SRC-MONITOR",
+            "SRC-SLO"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "logs/metrics/traces/alerts، incident reconstruction، dashboards",
+          "applicability": "أي خدمة أو رحلة إنتاجية لها أثر يستدعي التحقيق",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "19",
+      "title": "UX Robustness Mobile & Recovery",
+      "applies_when": "واجهة يستخدمها أشخاص",
+      "artifacts": "journey tests، viewport/device matrix، screenshots، persisted state",
+      "source_ids": [
+        "SRC-WCAG",
+        "SRC-REVIEW"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-19-001",
+          "name": "حالات الواجهة",
+          "invariant": "كل loading/empty/error/partial/success له معنى وإجراء",
+          "procedure": "اتبع fetch/mutation states وpermission/session errors والdouble submit",
+          "verification": "شبكة بطيئة وempty data وفشل جزئي لا تظهر false success أو spinner دائم",
+          "counter_evidence": "لا يلزم modal لكل فعل؛ الرسالة تتناسب مع الأثر",
+          "source_ids": [
+            "SRC-WCAG",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "journey tests، viewport/device matrix، screenshots، persisted state",
+          "applicability": "واجهة يستخدمها أشخاص",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-19-002",
+          "name": "حفظ العمل",
+          "invariant": "الإلغاء والتنقل والجلسة لا تفقد إدخالًا مهمًا دون سياسة",
+          "procedure": "راجع drafts/dirty guard/retry/recovery/idempotency وrefresh",
+          "verification": "اكتب form طويلًا ثم expire/offline/back/reload وتحقق من recovery المناسب",
+          "counter_evidence": "الحفظ المحلي لبيانات حساسة قد يزيد الخطر؛ ليس autosave مطلوبًا دائمًا",
+          "source_ids": [
+            "SRC-WCAG",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "journey tests، viewport/device matrix، screenshots، persisted state",
+          "applicability": "واجهة يستخدمها أشخاص",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-19-003",
+          "name": "حذف وتراجع",
+          "invariant": "العملية غير القابلة للعكس مفهومة ومحمية",
+          "procedure": "راجع confirm/undo/soft delete/dependency impact والتمييز بين archive/delete",
+          "verification": "إلغاء الفعل لا يترك أثرًا؛ undo يعيد الحالة المتفق عليها",
+          "counter_evidence": "تأكيد كل click يزيد الاحتكاك؛ اربطه بخطر الخطأ",
+          "source_ids": [
+            "SRC-WCAG",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "journey tests، viewport/device matrix، screenshots، persisted state",
+          "applicability": "واجهة يستخدمها أشخاص",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-19-004",
+          "name": "Mobile-first وRTL",
+          "invariant": "الرحلة الأساسية قابلة للإنجاز على جهاز ممثل",
+          "procedure": "اختبر narrow viewport/touch/keyboards/safe areas/RTL/table overflow",
+          "verification": "أكمل رحلة فعلية على الهاتف لا مجرد screenshot للصفحة الأولى",
+          "counter_evidence": "responsive CSS لا يثبت قابلية إدخال form أو قراءة error",
+          "source_ids": [
+            "SRC-WCAG",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "journey tests، viewport/device matrix، screenshots، persisted state",
+          "applicability": "واجهة يستخدمها أشخاص",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-19-005",
+          "name": "اتساق الصلاحيات",
+          "invariant": "واجهة المستخدم تفسر المنع دون أن تعد بفعل مرفوض",
+          "procedure": "قارن UI capability مع API وسياسة role/plan/current state",
+          "verification": "سحب صلاحية أثناء صفحة مفتوحة ينتج state مفهومًا وتحديثًا صحيحًا",
+          "counter_evidence": "UI يمكن أن يتأخر قليلًا لكن backend يظل مصدر إنفاذ الصلاحية",
+          "source_ids": [
+            "SRC-WCAG",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "journey tests، viewport/device matrix، screenshots، persisted state",
+          "applicability": "واجهة يستخدمها أشخاص",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "20",
+      "title": "Accessibility",
+      "applies_when": "أي واجهة بشرية؛ حدد مستوى الهدف ونطاق WCAG",
+      "artifacts": "keyboard/screen-reader checks، semantics، contrast، focus، criterion map",
+      "source_ids": [
+        "SRC-WCAG"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-20-001",
+          "name": "لوحة المفاتيح والتركيز",
+          "invariant": "كل مهمة أساسية قابلة للإنجاز بلا mouse",
+          "procedure": "افحص tab order/focus visible/modals/escape/return focus وعدم حجب العنصر",
+          "verification": "رحلة كاملة بالkeyboard مع dialog وerror route change",
+          "counter_evidence": "scanner وحده لا يختبر تجربة التركيز والمهام",
+          "source_ids": [
+            "SRC-WCAG"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "keyboard/screen-reader checks، semantics، contrast، focus، criterion map",
+          "applicability": "أي واجهة بشرية؛ حدد مستوى الهدف ونطاق WCAG",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-20-002",
+          "name": "الدلالة والتسمية",
+          "invariant": "التقنية المساعدة تعرف الاسم والدور والقيمة",
+          "procedure": "راجع labels/headings/landmarks/buttons/tables/status announcements",
+          "verification": "screen reader مع validation وloading يشرح ماذا تغير",
+          "counter_evidence": "ARIA زائد قد يضر؛ native semantic controls غالبًا أبسط",
+          "source_ids": [
+            "SRC-WCAG"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "keyboard/screen-reader checks، semantics، contrast، focus، criterion map",
+          "applicability": "أي واجهة بشرية؛ حدد مستوى الهدف ونطاق WCAG",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-20-003",
+          "name": "وضوح وإعادة تدفق",
+          "invariant": "النص والتفاعل يظلان مفهومين عند zoom أو إعاقة بصرية",
+          "procedure": "راجع contrast/color-only/zoom/reflow/target size ومحتوى RTL",
+          "verification": "اختبار عرض ضيق وتكبير وتسميات أخطاء دون الاعتماد على اللون",
+          "counter_evidence": "تحديد قياس pixel عام لا يغني عن criterion المطبق واستثناءاته",
+          "source_ids": [
+            "SRC-WCAG"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "keyboard/screen-reader checks، semantics، contrast، focus، criterion map",
+          "applicability": "أي واجهة بشرية؛ حدد مستوى الهدف ونطاق WCAG",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-20-004",
+          "name": "إدخال ومصادقة ميسرة",
+          "invariant": "الخطوات لا تمنع أدوات مساعدة أو تفرض عبئًا غير لازم",
+          "procedure": "افحص paste/password managers/redundant entry/help/timeout controls",
+          "verification": "أكمل sign-in/verification/form بأدوات مساعدة وفق target",
+          "counter_evidence": "لا تعلن WCAG AA كاملًا من هذه الأربع؛ أنشئ معيارًا لكل Success Criterion منطبق",
+          "source_ids": [
+            "SRC-WCAG"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "keyboard/screen-reader checks، semantics، contrast، focus، criterion map",
+          "applicability": "أي واجهة بشرية؛ حدد مستوى الهدف ونطاق WCAG",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "21",
+      "title": "Dependencies & Supply Chain",
+      "applies_when": "أي مكتبات أو أدوات بناء أو artifacts خارجية",
+      "artifacts": "resolved lockfiles، SBOM عند الحاجة، advisories، package scripts، provenance",
+      "source_ids": [
+        "SRC-SLSA",
+        "SRC-GHA",
+        "SRC-SSDF"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-21-001",
+          "name": "جرد الاعتماديات",
+          "invariant": "كل مباشر/transitive/runtime/build dependency معروف الإصدار",
+          "procedure": "قارن manifests/lockfiles/container layers/CDN scripts والأصول المضمنة",
+          "verification": "reproducible resolution وجرد artifact الفعلي يوافق المصدر",
+          "counter_evidence": "outdated لا يساوي vulnerable؛ direct list لا تكفي لتبعيات متداخلة",
+          "source_ids": [
+            "SRC-SLSA",
+            "SRC-GHA",
+            "SRC-SSDF"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "resolved lockfiles، SBOM عند الحاجة، advisories، package scripts، provenance",
+          "applicability": "أي مكتبات أو أدوات بناء أو artifacts خارجية",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-21-002",
+          "name": "قابلية تأثر فعلية",
+          "invariant": "advisory يرتبط بالإصدار والوظيفة والتعرض",
+          "procedure": "تحقق من affected ranges/reachability/config/mitigations/vendor fix",
+          "verification": "test أو path analysis يثبت الانطباق؛ إن تعذر سجل HIGHLY_LIKELY/POSSIBLE",
+          "counter_evidence": "scanner false positives وdev-only context يغيران الأثر لا يُسقطان المراجعة",
+          "source_ids": [
+            "SRC-SLSA",
+            "SRC-GHA",
+            "SRC-SSDF"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "resolved lockfiles، SBOM عند الحاجة، advisories، package scripts، provenance",
+          "applicability": "أي مكتبات أو أدوات بناء أو artifacts خارجية",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-21-003",
+          "name": "الثقة في المصدر",
+          "invariant": "تحديث أو install لا ينفذ تعليمات غير مصرح بها",
+          "procedure": "راجع registry/source/pinning/checksums/install hooks/dependency confusion",
+          "verification": "بيئة تثبيت معزولة وسجل الجهات/scripts؛ لا secrets في مرحلة غير لازمة",
+          "counter_evidence": "وجود package مشهور ليس ضمانًا؛ library مهجورة مؤشر لا proof عيب",
+          "source_ids": [
+            "SRC-SLSA",
+            "SRC-GHA",
+            "SRC-SSDF"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "resolved lockfiles، SBOM عند الحاجة، advisories، package scripts، provenance",
+          "applicability": "أي مكتبات أو أدوات بناء أو artifacts خارجية",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-21-004",
+          "name": "التبسيط والترخيص",
+          "invariant": "مكتبة تضيف قيمة تتناسب مع كلفتها وقيودها",
+          "procedure": "احصر duplicates/bundle weight/unused imports/license constraints",
+          "verification": "إزالة مرشحة فقط بعد usage proof وbuild/behavior comparison",
+          "counter_evidence": "لا تحذف dependency ديناميكية لأن بحثًا نصيًا لم يجدها؛ مراجعة الترخيص لا تصبح استشارة قانونية",
+          "source_ids": [
+            "SRC-SLSA",
+            "SRC-GHA",
+            "SRC-SSDF"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "resolved lockfiles، SBOM عند الحاجة، advisories، package scripts، provenance",
+          "applicability": "أي مكتبات أو أدوات بناء أو artifacts خارجية",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-21-005",
+          "name": "الاستجابة للثغرات",
+          "invariant": "التحديث والتدوير والاستبدال له مالك ومسار عملي",
+          "procedure": "راجع upgrade policy/advisory intake/patch verification/compromised artifact response",
+          "verification": "تمرين تحديث dependency مهمة مع rollback وتحقق behavior",
+          "counter_evidence": "وجود bot PRs لا يعني أن patches تُختبر أو تُنشر",
+          "source_ids": [
+            "SRC-SLSA",
+            "SRC-GHA",
+            "SRC-SSDF"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "resolved lockfiles، SBOM عند الحاجة، advisories، package scripts، provenance",
+          "applicability": "أي مكتبات أو أدوات بناء أو artifacts خارجية",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "22",
+      "title": "Configuration Documentation & Operations",
+      "applies_when": "كل مشروع؛ العمق بحسب تشغيله",
+      "artifacts": "config schema/defaults/flags، README/ADRs/runbooks، operation ownership",
+      "source_ids": [
+        "SRC-SSDF",
+        "SRC-PRR"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-22-001",
+          "name": "Configuration صحيحة",
+          "invariant": "إعداد غير صالح يفشل بشكل واضح قبل إفساد العمل",
+          "procedure": "افحص required env/type/ranges/defaults/precedence/build vs runtime config",
+          "verification": "قيمة ناقصة/خاطئة تنتج error مفهومًا؛ لا fallback unsafe",
+          "counter_evidence": "default موثق آمن قد يغني عن env إضافي؛ لا تجعل كل ثابت قابلًا للتغيير",
+          "source_ids": [
+            "SRC-SSDF",
+            "SRC-PRR"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "config schema/defaults/flags، README/ADRs/runbooks، operation ownership",
+          "applicability": "كل مشروع؛ العمق بحسب تشغيله",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-22-002",
+          "name": "Feature flags",
+          "invariant": "الـflag لا يخلق حالة غير مدعومة أو تجاوز صلاحية",
+          "procedure": "سجل owner/expiry/default/rollout/tenant targeting وتداخل flags",
+          "verification": "on/off وتغير flag أثناء job وrollback تعمل ضمن العقود",
+          "counter_evidence": "feature flag ليس entitlement ولا security boundary",
+          "source_ids": [
+            "SRC-SSDF",
+            "SRC-PRR"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "config schema/defaults/flags، README/ADRs/runbooks، operation ownership",
+          "applicability": "كل مشروع؛ العمق بحسب تشغيله",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-22-003",
+          "name": "وثائق التشغيل",
+          "invariant": "مهندس آخر يستطيع بناء وتشغيل وتشخيص النظام",
+          "procedure": "قارن setup/run/test/deploy/restore commands بالملفات الفعلية",
+          "verification": "تشغيل نظيف أو walkthrough موثق يكشف الخطوات المفقودة",
+          "counter_evidence": "تفاصيل deployment قد تكون في منصة خارج repo؛ غياب README وحده لا يثبت فقدها",
+          "source_ids": [
+            "SRC-SSDF",
+            "SRC-PRR"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "config schema/defaults/flags، README/ADRs/runbooks، operation ownership",
+          "applicability": "كل مشروع؛ العمق بحسب تشغيله",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-22-004",
+          "name": "قرارات وملكية",
+          "invariant": "المفاضلات المهمة قابلة للفهم والمراجعة",
+          "procedure": "حدد ADRs للمعاملات والعزل والوقت والـbilling؛ سجل مالك المراجعة وtrigger",
+          "verification": "اختبر تفسير invariant مع مثالين متعارضين والسياسة تحسمهما",
+          "counter_evidence": "لا يلزم ADR لكل function؛ اكتب قرارات ذات أثر أو خلاف فعلي",
+          "source_ids": [
+            "SRC-SSDF",
+            "SRC-PRR"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "config schema/defaults/flags، README/ADRs/runbooks، operation ownership",
+          "applicability": "كل مشروع؛ العمق بحسب تشغيله",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "23",
+      "title": "Privacy Data Lifecycle & Exports",
+      "applies_when": "بيانات شخصية/حساسة أو retention/export/delete",
+      "artifacts": "data inventory، consent/purpose policies، storage locations، deletion/export tests",
+      "source_ids": [
+        "SRC-ASVS",
+        "SRC-TENANT"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-23-001",
+          "name": "تقليل البيانات",
+          "invariant": "كل حقل حساس له غرض ووصول ومدة واضحة",
+          "procedure": "تتبع PII في DB/logs/analytics/cache/backups/exports/providers",
+          "verification": "افحص response والتقارير والمخرجات المنقحة بحسب الدور",
+          "counter_evidence": "لا يخترع الوكيل مدة احتفاظ أو قانونًا؛ يحدد حاجة قرار المالك",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-TENANT"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "data inventory، consent/purpose policies، storage locations، deletion/export tests",
+          "applicability": "بيانات شخصية/حساسة أو retention/export/delete",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-23-002",
+          "name": "تصدير آمن",
+          "invariant": "التصدير كامل للنطاق المصرح ولا يسرب tenant آخر",
+          "procedure": "راجع async export filters/download links/expiry/CSV formula content",
+          "verification": "tenantان وrecords بعد الصفحة الأولى وrevoked user؛ افحص الرابط بعد انتهاء المدة",
+          "counter_evidence": "URL عشوائي ليس صلاحية؛ export كل الأعمدة ليس دائمًا مطلوبًا",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-TENANT"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "data inventory، consent/purpose policies، storage locations، deletion/export tests",
+          "applicability": "بيانات شخصية/حساسة أو retention/export/delete",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-23-003",
+          "name": "حذف قابل للتحقق",
+          "invariant": "قرار الحذف يصل للنسخ والمشتقات وفق policy",
+          "procedure": "احصر primary/cache/search/object/queue/provider/backup lifecycle",
+          "verification": "حذف ثم إعادة بناء index/restore لا يعيد بيانات محظورة دون tombstone policy",
+          "counter_evidence": "backup retention قد يؤخر الحذف المادي؛ يجب توضيح السياسة بدل ادعاء حذف فوري شامل",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-TENANT"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "data inventory، consent/purpose policies، storage locations، deletion/export tests",
+          "applicability": "بيانات شخصية/حساسة أو retention/export/delete",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-23-004",
+          "name": "صلاحية الأدلة",
+          "invariant": "المراجعة نفسها لا تنشر بيانات العملاء",
+          "procedure": "أنشئ redaction policy وsynthetic fixtures وaccess-controlled evidence",
+          "verification": "فحص artifacts والتقرير يمنع tokens/passwords/raw sensitive records",
+          "counter_evidence": "hash لبعض القيم القصيرة قد يبقى قابلًا للتخمين؛ استخدم معرفات اصطناعية عند الإمكان",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-TENANT"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "data inventory، consent/purpose policies، storage locations، deletion/export tests",
+          "applicability": "بيانات شخصية/حساسة أو retention/export/delete",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "24",
+      "title": "Time Scheduling & Constraint Systems",
+      "applies_when": "جدولة أو حجوزات أو recurrence أو quota windows أو وظائف زمنية",
+      "artifacts": "time model، constraint registry، solver inputs/outputs، fixtures، publication history",
+      "source_ids": [
+        "SRC-PGISO",
+        "SRC-REVIEW"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-24-001",
+          "name": "معنى الوقت",
+          "invariant": "instant/local date/duration/time zone لا تختلط",
+          "procedure": "حدد storage/display/recurrence semantics وDST/leap dates/overnight intervals",
+          "verification": "اختبر تغير التوقيت ومناوبة تعبر منتصف الليل وإدخال منطقة أخرى",
+          "counter_evidence": "تخزين UTC وحده لا يحفظ موعدًا محليًا متكررًا؛ السعودية بلا DST لا تلغي users خارجها",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "time model، constraint registry، solver inputs/outputs، fixtures، publication history",
+          "applicability": "جدولة أو حجوزات أو recurrence أو quota windows أو وظائف زمنية",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-24-002",
+          "name": "قواعد معلنة",
+          "invariant": "كل قيد فعّال ظاهر ومملوك ومفسر",
+          "procedure": "احصر hard/soft constraints/defaults/weights/rank capabilities/overrides ونسخها",
+          "verification": "غيّر rule من الواجهة وراقب مدخل solver والنتيجة والتفسير/export",
+          "counter_evidence": "ليس كل implementation detail قاعدة للمستخدم؛ الثابت التقني ليس hidden policy",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "time model، constraint registry، solver inputs/outputs، fixtures، publication history",
+          "applicability": "جدولة أو حجوزات أو recurrence أو quota windows أو وظائف زمنية",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-24-003",
+          "name": "Feasibility",
+          "invariant": "النظام لا يعلن النجاح إذا كسر قيدًا صلبًا",
+          "procedure": "افحص validation بعد solver وتفسير infeasible/time budget/partial results",
+          "verification": "بيانات متعارضة تعطي unsatisfied constraints واضحة ولا جدولًا يبدو مكتملًا",
+          "counter_evidence": "حل غير optimal قد يكون مقبولًا؛ فرق بين feasibility وoptimality",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "time model، constraint registry، solver inputs/outputs، fixtures، publication history",
+          "applicability": "جدولة أو حجوزات أو recurrence أو quota windows أو وظائف زمنية",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-24-004",
+          "name": "تزامن وحجز",
+          "invariant": "لا ينشر حل قديم فوق تعديل أحدث ولا يحجز موردًا مرتين",
+          "procedure": "راجع input revision/optimistic lock/atomic publish/reservation keys",
+          "verification": "تشغيل مولدين ثم تعديل المدخل؛ القديم لا يصبح الحالي بصمت",
+          "counter_evidence": "تعطيل الزر لا يمنع منافذ أخرى؛ invariants تحمى في write boundary",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "time model، constraint registry، solver inputs/outputs، fixtures، publication history",
+          "applicability": "جدولة أو حجوزات أو recurrence أو quota windows أو وظائف زمنية",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-24-005",
+          "name": "العدالة والتاريخ",
+          "invariant": "معيار العدالة المعلن يطابق الحساب والتاريخ",
+          "procedure": "راجع توزيع النوبات/أوزان الأهلية/leave/history/manual override/audit",
+          "verification": "احسب يدويًا عينة صغيرة وقارن solver والتقارير وبعد override",
+          "counter_evidence": "العدالة اختيار منتج وليست قيمة واحدة؛ لا تفرض توزيعًا متساويًا مع قيود غير متساوية",
+          "source_ids": [
+            "SRC-PGISO",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "time model، constraint registry، solver inputs/outputs، fixtures، publication history",
+          "applicability": "جدولة أو حجوزات أو recurrence أو quota windows أو وظائف زمنية",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "25",
+      "title": "AI Features & Agent Boundaries",
+      "applies_when": "منتج يستخدم LLM/RAG/tools/generated actions؛ ليس لمجرد أن الكود كُتب بالـAI",
+      "artifacts": "prompt/tool/data boundaries، retrieval ACLs، evals، budget telemetry",
+      "source_ids": [
+        "SRC-ASVS",
+        "SRC-AUTHZ",
+        "SRC-API"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-25-001",
+          "name": "Untrusted context",
+          "invariant": "النص المسترجع لا يمنح صلاحيات للـtools",
+          "procedure": "افصل developer policy عن user/retrieved content وtool authorization الخارجي",
+          "verification": "وثيقة تحاول طلب secret/action لا تغير حدود الأداة؛ اختبر ببيانات صناعية",
+          "counter_evidence": "prompt وحده ليس حد أمان؛ توليد اقتراح بلا تنفيذ أقل خطرًا من agent منفذ",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-AUTHZ",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "prompt/tool/data boundaries، retrieval ACLs، evals، budget telemetry",
+          "applicability": "منتج يستخدم LLM/RAG/tools/generated actions؛ ليس لمجرد أن الكود كُتب بالـAI",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-25-002",
+          "name": "عزل retrieval",
+          "invariant": "البحث والسياق والمخرجات يحترمون صلاحيات المستخدم",
+          "procedure": "راجع vector metadata filters/cache/user context/citations والtenant switch",
+          "verification": "مستأجر B لا يسترجع مقتطف A حتى مع استعلام مطابق أو rerank",
+          "counter_evidence": "منع عرض citation لا يمحو نصًا تسرب في الإجابة؛ ACL يجب أن يحمي retrieval",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-AUTHZ",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "prompt/tool/data boundaries، retrieval ACLs، evals، budget telemetry",
+          "applicability": "منتج يستخدم LLM/RAG/tools/generated actions؛ ليس لمجرد أن الكود كُتب بالـAI",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-25-003",
+          "name": "مخرجات وإجراءات",
+          "invariant": "النص المولد يتحقق منه قبل execution/storage/display",
+          "procedure": "راجع schema validation/allowlists/human gates للأفعال عالية الأثر",
+          "verification": "JSON خاطئ أو tool call زائد الصلاحية يرفض بلا side effect",
+          "counter_evidence": "structured output يضمن شكلًا محدودًا لا صحة business decision",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-AUTHZ",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "prompt/tool/data boundaries، retrieval ACLs، evals، budget telemetry",
+          "applicability": "منتج يستخدم LLM/RAG/tools/generated actions؛ ليس لمجرد أن الكود كُتب بالـAI",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-25-004",
+          "name": "الكلفة والاعتمادية",
+          "invariant": "الـloop له حدود تكلفة وزمن وفشل مفهوم",
+          "procedure": "افحص tokens/tool calls/deadlines/retries/provider fallback وpersisted run ids",
+          "verification": "provider fail وtool timeout وloop متكرر يصل إلى حالة توقف قابلة للاستئناف",
+          "counter_evidence": "لا تضف multi-agent إلى منتج بسيط لمجرد وجود AI",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-AUTHZ",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "prompt/tool/data boundaries، retrieval ACLs، evals، budget telemetry",
+          "applicability": "منتج يستخدم LLM/RAG/tools/generated actions؛ ليس لمجرد أن الكود كُتب بالـAI",
+          "seed_refs": []
+        },
+        {
+          "id": "EAOS-25-005",
+          "name": "التقييم",
+          "invariant": "الجودة تقاس على مهام وfailure modes ممثلة",
+          "procedure": "حدد offline eval cases/task success/unsafe action/refusal boundaries وregressions",
+          "verification": "مجموعة golden/adversarial ثابتة قبل/بعد تغيير model/prompt",
+          "counter_evidence": "نجاح build لا يقيس جودة نموذج؛ القواعد هنا امتداد EAOS وليست معيار AI متخصصًا كاملًا",
+          "source_ids": [
+            "SRC-ASVS",
+            "SRC-AUTHZ",
+            "SRC-API"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "prompt/tool/data boundaries، retrieval ACLs، evals، budget telemetry",
+          "applicability": "منتج يستخدم LLM/RAG/tools/generated actions؛ ليس لمجرد أن الكود كُتب بالـAI",
+          "seed_refs": []
+        }
+      ]
+    },
+    {
+      "id": "26",
+      "title": "AI Audit Execution Context & Handoffs",
+      "applies_when": "كل تشغيل لهذا الإطار بواسطة coding agent؛ التفويض متعدد الوكلاء اختياري ومشروط",
+      "artifacts": "retrieval log، rule ownership map، checkpoints، tool outputs، handoff contracts",
+      "source_ids": [
+        "SRC-LITM",
+        "SRC-RAG",
+        "SRC-REACT",
+        "SRC-REVIEW"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-26-001",
+          "name": "استرجاع موجّه",
+          "invariant": "كل حكم يستند إلى الملفات اللازمة لا ملخص غير متحقق",
+          "procedure": "ابدأ بخريطة المسار ثم اقرأ definitions/callers/shared guards/config/tests؛ سجل ما قرئ وما لم يقرأ",
+          "verification": "سؤال عن invariant يعاد إسناده إلى الملف والـrevision دون الاعتماد على ذاكرة المحادثة",
+          "counter_evidence": "تحميل المستودع كاملًا أو كبر context ليس دليل فهم؛ grep وحده قد يفوّت dynamic edges",
+          "source_ids": [
+            "SRC-LITM",
+            "SRC-RAG",
+            "SRC-REACT",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "retrieval log، rule ownership map، checkpoints، tool outputs، handoff contracts",
+          "applicability": "كل تشغيل لهذا الإطار بواسطة coding agent؛ التفويض متعدد الوكلاء اختياري ومشروط",
+          "seed_refs": [
+            "VID-02"
+          ]
+        },
+        {
+          "id": "EAOS-26-002",
+          "name": "Checkpoint أمين",
+          "invariant": "استئناف الجلسة يحافظ على الأدلة والفجوات والقرارات",
+          "procedure": "احفظ canonical findings/coverage/evidence/decisions/next action؛ ملخص المحادثة فهرس لها",
+          "verification": "أعد تشغيل الوكيل من checkpoint وتحقق من بقاء unknowns وrevision وقيود التفويض",
+          "counter_evidence": "ملخص بلا روابط للأصل قد يسقط شرطًا حاسمًا؛ لا يحوّل المجهول إلى حقيقة",
+          "source_ids": [
+            "SRC-LITM",
+            "SRC-RAG",
+            "SRC-REACT",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "retrieval log، rule ownership map، checkpoints، tool outputs، handoff contracts",
+          "applicability": "كل تشغيل لهذا الإطار بواسطة coding agent؛ التفويض متعدد الوكلاء اختياري ومشروط",
+          "seed_refs": [
+            "VID-02"
+          ]
+        },
+        {
+          "id": "EAOS-26-003",
+          "name": "حلقة أدوات قابلة للتدقيق",
+          "invariant": "كل قرار Done يتبع ملاحظة فعلية لا نية تشغيل",
+          "procedure": "سجل command/exit/result ثم حدّث الفرضية؛ لا تكرر نفس البحث دون سؤال جديد",
+          "verification": "اختبار فاشل أو tool error لا يسجل PASS؛ توقف عند blocker موثق أو هدف متحقق",
+          "counter_evidence": "توليد أمر اختبار دون تنفيذه ليس verification؛ agent loop ليس ضمانًا للصواب",
+          "source_ids": [
+            "SRC-LITM",
+            "SRC-RAG",
+            "SRC-REACT",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "retrieval log، rule ownership map، checkpoints، tool outputs، handoff contracts",
+          "applicability": "كل تشغيل لهذا الإطار بواسطة coding agent؛ التفويض متعدد الوكلاء اختياري ومشروط",
+          "seed_refs": [
+            "VID-02"
+          ]
+        },
+        {
+          "id": "EAOS-26-004",
+          "name": "تكامل المراجعات",
+          "invariant": "نتائج مهام متوازية تتفق على العقود والـrevision",
+          "procedure": "إذا سُمح بالتفويض عرّف owner لكل ملف/control وhandoff schema وshared invariants؛ إن لم يسمح نفذ تسلسليًا",
+          "verification": "المنسق يقرأ evidence لا ملخص النتيجة فقط ويعيد integration checks للحدود المشتركة",
+          "counter_evidence": "لا تضف subagents تلقائيًا ولا تفترض استقلال مهمتين تعدلان contract واحدًا",
+          "source_ids": [
+            "SRC-LITM",
+            "SRC-RAG",
+            "SRC-REACT",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "retrieval log، rule ownership map، checkpoints، tool outputs، handoff contracts",
+          "applicability": "كل تشغيل لهذا الإطار بواسطة coding agent؛ التفويض متعدد الوكلاء اختياري ومشروط",
+          "seed_refs": [
+            "VID-02"
+          ]
+        },
+        {
+          "id": "EAOS-26-005",
+          "name": "حجم التغيير والسياق",
+          "invariant": "الإصلاح يرى كل الشروط اللازمة دون تضخم غير مفيد",
+          "procedure": "حدد minimal sufficient context وقراءة مصدر الحقيقة قبل تعديل دالة مشتركة",
+          "verification": "تعديل قاعدة مستخدمة في quotation/invoice يعاد فحص مستهلكيها وعقودهما",
+          "counter_evidence": "التكرار قد ينشأ من task scope أو قرار بشري؛ لا تثبت سببه context window بلا دليل",
+          "source_ids": [
+            "SRC-LITM",
+            "SRC-RAG",
+            "SRC-REACT",
+            "SRC-REVIEW"
+          ],
+          "origin": "EAOS_SYNTHESIS",
+          "evidence_required": "retrieval log، rule ownership map، checkpoints، tool outputs، handoff contracts",
+          "applicability": "كل تشغيل لهذا الإطار بواسطة coding agent؛ التفويض متعدد الوكلاء اختياري ومشروط",
+          "seed_refs": [
+            "VID-02"
+          ]
+        }
+      ]
+    }
+  ]
+}
