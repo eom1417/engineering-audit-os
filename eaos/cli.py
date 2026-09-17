@@ -6,6 +6,7 @@ from pathlib import Path
 import sys
 from . import __version__
 from . import architecture as arch
+from . import discovery, workflow
 from .workspace import DATA, bounded_int, now, digest, read, write, registry, controls, inventory, load_run, fresh, safe_file
 from .audit_records import check, schema_errors
 
@@ -81,7 +82,12 @@ def validate(args):
     return 2 if result['errors'] or (getattr(args,'require_complete',False) and result['computed_audit_completion']!='COMPLETE') else 0
 
 def report(args):
-    run,state=load_run(args.run);result=check(run)
+    run,state=load_run(args.run)
+    if (run/'workflow.json').exists():
+        result,progress,roadmap=workflow.render_report(run)
+        print(run/'report.md')
+        return 0 if progress['stage']=='AUDIT_AND_PLAN_READY' else 2
+    result=check(run)
     text='# Engineering Audit Report\n\n'+json.dumps(result,ensure_ascii=False,indent=2)+'\n\n## Findings\n\n'
     for f in read(run/'findings.json'):
         text+=f"- {f.get('id')}: {f.get('severity')} / {f.get('claim_status')} / {f.get('status')} — {f.get('current_behavior')}\n"
@@ -123,11 +129,48 @@ def context_command(args):
     write(path.with_suffix('.json'),{'revision':state['revision'],'model_sha256':context['model_sha256'],'characters':len(text),'budget_characters':args.budget_chars,'token_count':'NOT_MEASURED','node':args.node,'depth':args.depth,'packet_sha256':digest(text.encode())})
     print(path)
 
+def audit_command(args):
+    init(args)
+    run=Path(args.out).resolve()
+    workflow.initialize(run)
+    discovery.scan(run)
+    (run/'AGENT-START.md').write_text((DATA/'START-HERE.md').read_text()+'\n\nRead the packaged core/AGENT-WORKFLOW.md. Run directory: '+str(run)+'\nTarget: '+str(Path(args.target).resolve())+'\nRun `eaos next "'+str(run)+'"` and follow its current stage.\n',encoding='utf-8')
+    print(json.dumps(workflow.write_next(run),ensure_ascii=False,indent=2))
+
+
+def discover_command(args):
+    result=discovery.scan(args.run)
+    print(json.dumps({'counts':result['counts'],'limitations':result['limitations']},ensure_ascii=False,indent=2))
+
+
+def next_command(args):
+    result=workflow.write_next(args.run)
+    print(json.dumps(result,ensure_ascii=False,indent=2))
+    return 2 if result['stage'].startswith('BLOCKED') else 0
+
+
+def observe_command(args):
+    print(discovery.capture(args.run,args.file,args.start,args.end,args.observation))
+
+
+def roadmap_command(args):
+    run,state=load_run(args.run)
+    if not fresh(state,read(run/'inventory.json'))[0]:raise ValueError('Snapshot changed or incomplete; revalidate in a new run')
+    result=workflow.seed_roadmap(run) if args.seed else workflow.roadmap_check(run,state)
+    print(json.dumps(result,ensure_ascii=False,indent=2))
+    return 2 if not result['ready'] else 0
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(prog='eaos',description='Architecture, structure and maintainability audit workspaces; target is read-only')
     p.add_argument('--version',action='version',version='EAOS '+__version__)
     s=p.add_subparsers(dest='command',required=True)
-    q=s.add_parser('init');q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--profile',choices=['architecture','full'],default='architecture');q.add_argument('--max-files',type=bounded_int,default=100000);q.add_argument('--max-bytes',type=bounded_int,default=2_000_000);q.set_defaults(func=init)
+    for command,fn in [('init',init),('audit',audit_command)]:
+        q=s.add_parser(command);q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--profile',choices=['architecture','full'],default='architecture');q.add_argument('--max-files',type=bounded_int,default=100000);q.add_argument('--max-bytes',type=bounded_int,default=2_000_000);q.set_defaults(func=fn)
+    for command,fn in [('discover',discover_command),('next',next_command)]:
+        q=s.add_parser(command);q.add_argument('run');q.set_defaults(func=fn)
+    q=s.add_parser('observe');q.add_argument('run');q.add_argument('--file',required=True);q.add_argument('--start',type=bounded_int,required=True);q.add_argument('--end',type=bounded_int,required=True);q.add_argument('--observation',required=True);q.set_defaults(func=observe_command)
+    q=s.add_parser('roadmap');q.add_argument('run');q.add_argument('--seed',action='store_true');q.set_defaults(func=roadmap_command)
     for name,fn in [('plan',plan),('validate',validate),('report',report),('resume',resume)]:
         q=s.add_parser(name);q.add_argument('run');q.set_defaults(func=fn)
         if name=='validate':q.add_argument('--require-complete',action='store_true')

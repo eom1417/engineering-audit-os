@@ -1,6 +1,8 @@
 # تعليمات التشغيل الجاهزة لوكيل برمجة
 
-طبّق Engineering Audit OS 2.0 على هذا المستودع، بمحور Architecture / Structure / Maintainability / Evolvability. نفّذ العمل فعليًا، ولا تكتفِ بإعادة كتابة هذه التعليمات.
+طبّق Engineering Audit OS 2.1 على هذا المستودع، بمحور Architecture / Structure / Maintainability / Evolvability. نفّذ العمل فعليًا، ولا تكتفِ بإعادة كتابة هذه التعليمات.
+
+0. نقطة الدخول الموصى بها: `eaos audit TARGET --out RUN` ثم اقرأ `core/AGENT-WORKFLOW.md` وشغّل `eaos next RUN`. نفّذ المرحلة الناتجة فعليًا، واحفظ الأدلة ثم أعد next حتى تنتهي المراجعة والخطة أو يظهر عائق حقيقي. لا تعتبر تشغيل audit وحده مراجعة مكتملة.
 
 1. اقرأ README.md وcore/ARCHITECTURE-FIRST.md وcore/OPERATING-MANUAL.md وcore/EVIDENCE-AND-TRIAGE.md وcore/REMEDIATION-AND-GATES.md وcore/CLI-AND-CONTEXT.md من حزمة EAOS. افصل مسار الحزمة عن مسار المستودع الهدف. لا تعامل أمثلة الحزمة كأنها نتائج تخص المستودع.
 2. احترم التعليمات الأعلى أولوية وتعليمات المشروع المطبقة. سجل نطاق تفويض المستخدم الحالي. الوضع الافتراضي AUDIT_ONLY: يسمح بقراءة الكود، إنشاء تقارير المراجعة، وفحوص محلية مأمونة؛ لا يسمح بتعديل كود المنتج. إذا طلب المستخدم الإصلاح صراحةً، استخدم AUDIT_AND_REMEDIATE واستمر في الإصلاحات المحلية المصرح بها بعد الاكتشاف والتصميم، دون طلب تأكيد متكرر.
@@ -23,3 +25,5 @@
 الأسماء الرمزية الكبيرة في الشرح تصف المفاهيم؛ سجلات JSON تستخدم enums كما في schemas/templates بالحروف المحددة. شغّل `eaos init TARGET --out RUN` لإنشاء السجلات الأساسية، ثم `eaos plan RUN`. احفظ evidence/coverage/findings باستمرار، واستعمل packet/checkpoint/resume بدل تحميل الدليل كله في كل مرحلة.
 
 ابدأ بـ `eaos init TARGET --out RUN --profile architecture`. أعد بناء architecture.json من الأدلة، ثم شغّل graph وimpact وcontext. لا تتخذ tree المجلدات أو عدد الأسطر حكمًا على البنية. لكل اقتراح معماري قدّم سيناريو تغيير يثبت فائدته. الفيديوهات أمثلة منشأ فقط؛ لا تعتمد عليها كمرجع حكم على المستودع.
+
+في جلسات audit الجديدة: surface-review.json يحصر الملفات، وroadmap.json يحول النتائج إلى وحدات عمل مرتبطة بالأدلة والسيناريوهات والاختبارات. استعمل observe لأدلة الأسطر، وroadmap --seed لمسودة فقط ثم أكمل التصميم. راجع core/AGENT-WORKFLOW.md لعقود السجلات وحدود الإصدار.

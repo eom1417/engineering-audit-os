@@ -45,7 +45,7 @@ python -m venv .venv
 - `modules/` و`MASTER-MANUAL.md` و`eaos/data/`: نواتج مولدة؛ عدّل الأصل وشغّل render، لا تعدل النسخ.
 - `tests/`: اختبارات منع الثقة الزائفة، القراءة خارج النطاق، وإعادة استخدام سياق قديم.
 
-امتداد cloud مستقبلي يتطلب adapter مستقلًا: capabilities مصرح بها، مصادر read-only، redaction، `observed_at` وenvironment/account scope، ميزانية استدعاءات، failure states وcontract tests. لا توحّد state الحي وIaC والوثائق في حقيقة واحدة؛ قارن declared/observed/deployed وسجّل drift. لا توجد cloud adapters منفذة في 2.0.0.
+امتداد cloud مستقبلي يتطلب adapter مستقلًا: capabilities مصرح بها، مصادر read-only، redaction، `observed_at` وenvironment/account scope، ميزانية استدعاءات، failure states وcontract tests. لا توحّد state الحي وIaC والوثائق في حقيقة واحدة؛ قارن declared/observed/deployed وسجّل drift. لا توجد cloud adapters منفذة في 2.1.0.
 
 ## بروتوكول Context Engineering
 

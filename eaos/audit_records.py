@@ -1,5 +1,6 @@
 """Audit-record consistency and completion gates, separate from CLI dispatch."""
-from .workspace import read, load_run, registry, controls, DATA, fresh
+from pathlib import Path
+from .workspace import read, load_run, registry, controls, DATA, fresh, safe_file, digest
 from . import architecture as arch
 
 GATE_STATES = {'pass','fail','blocked','not_run','not_applicable'}
@@ -55,6 +56,21 @@ def check(run,check_target=True):
         need(e.get('kind') in ['source','runtime','test','configuration','requirement','external','absence_search'],f"Evidence {e.get('id')} invalid kind")
         if e.get('kind')=='absence_search':
             need(all(e.get(k) for k in ['search_scope','queries','shared_controls_checked','remaining_unknowns']),f"Evidence {e.get('id')} insufficient absence search")
+        if e.get('method')=='source_range_capture' or 'source_ref' in e:
+            ref=e.get('source_ref',{})
+            try:
+                if not isinstance(ref,dict):raise ValueError('Invalid source reference')
+                start,end=ref['start_line'],ref['end_line']
+                if type(start) is not int or type(end) is not int:raise ValueError('Invalid line range')
+                item=next((f for f in read(run/'inventory.json')['files'] if f['path']==ref['path']),None)
+                if not item or item['capture']!='hashed' or item['sha256']!=ref['sha256']:raise ValueError('Source hash not in inventory')
+                if check_target:
+                    raw=safe_file(Path(state['target']),ref['path']).read_bytes()
+                    lines=raw.decode('utf-8').splitlines(keepends=True)
+                    if digest(raw)!=ref['sha256'] or not 1<=start<=end<=len(lines):raise ValueError('Source changed or invalid range')
+                    if digest(''.join(lines[start-1:end]).encode('utf-8'))!=ref['range_sha256']:raise ValueError('Range hash mismatch')
+            except (KeyError,TypeError,ValueError,OSError,UnicodeError):
+                errors.append('Invalid captured source evidence '+str(e.get('id')))
     for g in gates:
         if g.get('required_for_audit') and g.get('status') in ['blocked','not_run']:
             gaps.append(f"Required audit gate {g.get('id')} unresolved")
@@ -139,9 +155,15 @@ def check(run,check_target=True):
     if check_target:
         ok,_=fresh(state,inv)
         if not ok:gaps.append('Target changed or unavailable snapshot; new run/revalidation required')
+    if (run/'workflow.json').exists():
+        from .workflow import surface_check, meaningful
+        surface_errors,surface_gaps=surface_check(run,state)
+        errors.extend(surface_errors);gaps.extend(surface_gaps)
+        for finding in findings:
+            for field in ['current_behavior','expected_behavior','root_cause','why_this_matters','recommended_remediation','implementation_strategy']:
+                if not meaningful(finding.get(field)):errors.append('Finding '+str(finding.get('id'))+' contains unfinished '+field)
     activity=bool(evidence or findings or coverage)
     computed='INCOMPLETE' if errors or not activity else 'PARTIALLY_COMPLETE' if gaps else 'COMPLETE'
     need(state.get('completion') in ['INCOMPLETE','PARTIALLY_COMPLETE','COMPLETE'],'Invalid claimed completion')
     if state.get('completion')=='COMPLETE' and computed!='COMPLETE':errors.append('False completion claim')
     return {'record_integrity':'INVALID' if errors else 'VALID','computed_audit_completion':computed,'claimed_completion':state.get('completion'),'errors':errors,'gaps':gaps,'limits':'Checks record consistency only. Evidence authenticity, exhaustive scope and engineering judgments require review; COMPLETE does not mean secure or ready for production.'}
-

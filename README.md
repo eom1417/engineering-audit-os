@@ -1,4 +1,4 @@
-# Engineering Audit OS — Architecture Edition 2.0.0
+# Engineering Audit OS — Agent Workflow Edition 2.1.0
 
 ريبو CLI محلي لمراجعة **Architecture وStructure وقابلية الصيانة والتطور** بالتعاون مع Coding Agent. التركيز على فهم المسؤوليات والعقود والاعتماديات ومكان منطق العمل ومدى أمان وكلفة التغيير. لا يفرض لغة أو framework أو نمطًا معماريًا.
 
@@ -6,7 +6,8 @@
 
 ```bash
 # داخل الريبو: Python 3.10+، دون dependencies وقت التشغيل
-python -m eaos init /path/to/project --out /path/to/audit-run --profile architecture
+python -m eaos audit /path/to/project --out /path/to/audit-run --profile architecture
+python -m eaos next /path/to/audit-run
 python -m eaos plan /path/to/audit-run
 # الوكيل يقرأ START-HERE.md ثم يعيد بناء architecture.json بالأدلة
 python -m eaos graph /path/to/audit-run
@@ -23,6 +24,7 @@ python -m eaos validate /path/to/audit-run --require-complete
 
 | الملف | الاستخدام |
 |---|---|
+| core/AGENT-WORKFLOW.md | منسق المراجعة وخطة التطوير وعقود السجلات وحدود التنفيذ |
 | START-HERE.md | تعليمات الوكيل الجاهزة |
 | core/ARCHITECTURE-FIRST.md | البروتوكول المركزي للبنية والصيانة والتطور |
 | core/CLI-AND-CONTEXT.md | التشغيل وميزانية السياق والاستئناف |
@@ -51,8 +53,24 @@ python tools/validate.py
 python -m unittest discover -s tests -v
 ```
 
-المصادر canonical هي controls.json وsources.json وcore وschemas. لا تعدل modules/ أو eaos/data أو MASTER-MANUAL مباشرة. نسخة2.0 تتطلب run جديدًا بدل ترقية حالات1.0 يدويًا.
+المصادر canonical هي controls.json وsources.json وcore وschemas. لا تعدل modules/ أو eaos/data أو MASTER-MANUAL مباشرة. نسخة2.1 تتطلب run جديدًا بدل ترقية حالات أقدم يدويًا.
 
 ## حدود مراجعة الفيديوهات
 
 قرئت التفريغات الآلية كاملة للفيديوهات الثلاثة؛ لم تُنجز مشاهدة مرئية متصلة أو إعادة تدقيق مستقلة للمستودعات المعروضة. لا نعتمد أرقام جداول غير مقروءة بصريًا، ولا نعيد نشر التفريغات. القواعد synthesis مستقلة لها شروط وأدلة، وليست نسبًا مطلقة للفيديو.
+
+## إضافات 2.1 وحدودها
+
+`audit` يبدأ جلسة agent-led كاملة السجلات؛ `next` يحدد المرحلة التالية وفق النواقص؛ `discover` يفحص Python AST وpackage.json ويستخرج hints غير مؤكدة لـJS/TS؛ `observe` يربط ملاحظة بنطاق أسطر وhash؛ `roadmap` يتحقق من مهام التطوير واعتمادياتها وثوابتها وبدائلها واختباراتها. report في هذا المسار يحتوي كامل السجلات والخطة.
+
+المسار الجديد لا يساوي تشغيل نموذج مستقل. الوكيل يقرأ الكود ويبني المعنى والخطة؛ الأداة تدير العقود وتكشف النواقص. لا يوجد إصلاح آلي أو نقل آلي للأدلة بين revisions. راجع [دليل التشغيل](core/AGENT-WORKFLOW.md) و[معايير القبول](ACCEPTANCE.md) قبل إعلان جاهزية Production.
+
+```text
+Apply EAOS to this repository using core/AGENT-WORKFLOW.md.
+Start with eaos audit TARGET --out RUN, then execute eaos next RUN repeatedly.
+Reconstruct architecture from source, record evidence and coverage, and design an
+ordered roadmap with invariants, alternatives, rollback and verification gates.
+Default to audit and plan; make code changes only within my explicit authorization.
+Persist state and continue through all available work. Report actual blockers and
+never claim completeness from a scan, a folder tree, or filled templates alone.
+```
