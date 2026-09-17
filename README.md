@@ -1,52 +1,58 @@
-# Engineering Audit OS — EAOS 1.0.0
+# Engineering Audit OS — Architecture Edition 2.0.0
 
-ريبو CLI محلي ودليل تشغيل عربي مستقل عن اللغة والمنصة لوكلاء مراجعة المنتجات البرمجية.
-تاريخ إعداد البحث: 2026-09-17. الحالة: إصدار تأسيسي قابل للاستخدام، لم يُعتمد ميدانيًا على مستودعات إنتاج متعددة.
+ريبو CLI محلي لمراجعة **Architecture وStructure وقابلية الصيانة والتطور** بالتعاون مع Coding Agent. التركيز على فهم المسؤوليات والعقود والاعتماديات ومكان منطق العمل ومدى أمان وكلفة التغيير. لا يفرض لغة أو framework أو نمطًا معماريًا.
 
-## نقطة الدخول
-
-اقرأ `START-HERE.md` ثم `core/OPERATING-MANUAL.md`. القواعد الأصلية في `controls.json`، والملفات في `modules/` عروض مولّدة منها. لا تعدّل النسخ المولّدة مباشرة. `MASTER-MANUAL.md` تجميع للقراءة أو للأدوات التي لا تستطيع تحميل المجلد. البحث في `research/RESEARCH.md`.
-
-احتفظ بريبو EAOS خارج المستودع الهدف. لا تستبدل تعليمات المشروع أو ملفات AGENTS.md. الـCLI يفرض أن تكون نتائج التشغيل خارج المشروع المستهدف.
+## البدء
 
 ```bash
-python -m eaos init /path/to/project --out /path/to/audit-run
+# داخل الريبو: Python 3.10+، دون dependencies وقت التشغيل
+python -m eaos init /path/to/project --out /path/to/audit-run --profile architecture
 python -m eaos plan /path/to/audit-run
-python -m eaos packet /path/to/audit-run --module 01
+# الوكيل يقرأ START-HERE.md ثم يعيد بناء architecture.json بالأدلة
+python -m eaos graph /path/to/audit-run
+python -m eaos impact /path/to/audit-run --node NODE_ID --depth 2
+python -m eaos context /path/to/audit-run --node NODE_ID --budget-chars 18000
 python -m eaos validate /path/to/audit-run --require-complete
 ```
 
-نفّذ الأوامر من جذر ريبو EAOS، أو ثبّت الأداة محليًا باستخدام `python -m pip install .` لتستدعي `eaos` من أي مكان. تفاصيل التثبيت والعقد وكفاءة السياق في `core/CLI-AND-CONTEXT.md`. لا حزمة منشورة ولا تكامل cloud أو model API مفترض.
+استبدل NODE_ID بمعرف فعلي في نموذجك. أو ثبّت محليًا باستخدام `python -m pip install .` أو wheel المرفقة لاستدعاء `eaos` من أي مكان. لا نفترض package منشورة على registry عام. Windows/macOS/Linux تستخدم Python؛ التحقق الفعلي لهذا الإصدار كان على Linux.
 
-## خريطة المخرجات المطلوبة
+الـCLI لا يشغّل نموذجًا ولا يرسل code إلى خدمة خارجية؛ الوكيل الذي تختاره يعيد بناء النموذج ويجمع الأدلة، والأداة تتحقق من اتساق السجلات وتحسب الاستعلامات وتجهز السياق. target يبقى read-only بالنسبة للـCLI؛ الإصلاح في المنتج مهمة منفصلة للوكيل ضمن تفويض المستخدم.
 
-| المخرج | الملف |
+## المسارات
+
+| الملف | الاستخدام |
 |---|---|
-| 1–3 تحليل المصدر، مبادئه، وحدود تغطيته | research/RESEARCH.md |
-| 4 المراجع وما أضافه كل منها | research/SOURCES.md + sources.json |
-| 5 Taxonomy | TAXONOMY.md |
-| 6 Master Framework | core/OPERATING-MANUAL.md |
-| 7 Detailed Modules | modules/ + controls.json |
-| 8 Finding Schema | schemas/finding.schema.json + templates/finding.json |
-| 9–10 الشدة، الأولوية، الأدلة، الثقة | core/EVIDENCE-AND-TRIAGE.md |
-| 11–13 الإصلاح، التحقق، الإكمال | core/REMEDIATION-AND-GATES.md |
-| 14 التوسعة والإصدارات | core/EXTENSION-PROTOCOL.md |
-| 15 النسخة الجاهزة للوكيل | START-HERE.md + MASTER-MANUAL.md |
+| START-HERE.md | تعليمات الوكيل الجاهزة |
+| core/ARCHITECTURE-FIRST.md | البروتوكول المركزي للبنية والصيانة والتطور |
+| core/CLI-AND-CONTEXT.md | التشغيل وميزانية السياق والاستئناف |
+| MASTER-MANUAL.md | الدليل الكامل؛ حمّل منه ما يلزم تدريجيًا |
+| controls.json + modules/ | 27 مجالًا و165 قاعدة؛ modules مولدة |
+| schemas/ + templates/ | Finding/evidence/coverage/gates/architecture |
+| research/RESEARCH.md | تحليل المصدرين الأولين والمبادئ وgap analysis |
+| research/ARCHITECTURE-SEED.md | تحليل الفيديو الثالث وتحويله إلى مفاهيم مستقلة |
+| research/SOURCES.md + sources.json | 41 سجل مصدر، منها الفيديوهات الثلاثة، وحدود القراءة |
+| examples/architecture/ | نموذج توضيحي يختبر عقود graph، ليس audit لمشروع حقيقي |
+| tests/ + VALIDATION.md | اختبارات وإثبات الإصدار وحدوده |
 
-## حدود مهمة
+profile الافتراضي architecture يجعل مجالات البنية والجودة والاختبار والتوثيق والسياق هي الأساس، ويحتفظ بالأمن والأداء والتشغيل وغيرها كعدسات تُفعّل عند الصلة. `--profile full` يحتفظ بالمراجعة العامة الشاملة. COMPLETE للمراجعة البنيوية لا يعني تدقيقًا أمنيًا كاملًا ولا جاهزية نشر.
 
-المراجعة المنجزة للجزأين هي قراءة تفريغيهما الآليين كاملين: الأول من 00:00 إلى 29:52 (المدة 29:54)، والثاني من 00:00 إلى 24:56 (المدة 25:00)، مع وصفي الناشر. لم تتوفر مشاهدة مرئية متصلة أو قراءة مستقلة لجداول الأداء داخل الصورة. لذلك أرقام تلك الجداول غير معتمدة، ولا يوجد ادعاء بمشاهدة كل إطار من الفيديو. لا تتضمن الحزمة تفريغًا معاد نشره للفيديو.
+## ما ينفذ فعليًا
 
-الإطار لا يضمن انعدام العيوب، ولا يمنح شهادة OWASP أو WCAG أو SLSA. اكتمال مراجعة النطاق المحدد لا يساوي أمان المنتج أو جاهزيته للإنتاج. الأهداف العددية يحددها المنتج، ولا يفرضها الدليل تعسفًا.
+Discovery بالمسارات وhashes؛ نموذج graph يتحقق من الأدلة والمراجع؛ حساب cycles وfan-in/out؛ مطابقة dependency policies المعلنة؛ impact walk محدود مع frontier؛ context packets مرتبطة بالعقود والقواعد؛ checkpoint/resume؛ findings وcoverage وإغلاق يحتاج أدلة. مؤشرات graph ليست نتائج آلية عن جودة المشروع.
 
-## إعادة التوليد والفحص
+لا يتضمن الإصدار semantic/AST extraction شاملًا لكل اللغات، ولا cloud adapters ولا scanner ثغرات شاملًا. هذه حدود تنفيذ صريحة، وليست مناطق تُسجل PASS. جودة الخريطة والأحكام تحتاج مراجعة المصدر والسيناريوهات.
 
-`python3 tools/render.py` يعيد بناء الوحدات والفهرس والدليل الجامع من الملفات الأصلية.
-`python3 tools/validate.py` يفحص اتساق الحزمة ومعرفات القواعد والمراجع والنسخ المولدة.
-`python3 tools/validate.py /path/to/audit-runs/RUN-ID` يفحص سجلات تشغيل فعلية. الفاحص البنيوي لا ينفذ اختبارًا أمنيًا ولا يثبت صحة الأدلة.
+## إعادة التوليد والاختبار
 
-`python -m unittest discover -s tests -v` يختبر سلوك CLI وبوابات السجلات. `eaos/data/` نسخة مولدة لازمة للتثبيت وليست مصدر قواعد ثانٍ.
+```bash
+python tools/render.py
+python tools/validate.py
+python -m unittest discover -s tests -v
+```
 
-## حالة الإصدار
+المصادر canonical هي controls.json وsources.json وcore وschemas. لا تعدل modules/ أو eaos/data أو MASTER-MANUAL مباشرة. نسخة2.0 تتطلب run جديدًا بدل ترقية حالات1.0 يدويًا.
 
-26 مجالًا، 151 قاعدة، 37 سجل مصدر يتضمن الفيديوين. الاختبارات وحدود الإثبات موثقة في `VALIDATION.md`. الريبو محلي وجاهز للنقل إلى منصة Git؛ لم يُنشر remote أو package عامة.
+## حدود مراجعة الفيديوهات
+
+قرئت التفريغات الآلية كاملة للفيديوهات الثلاثة؛ لم تُنجز مشاهدة مرئية متصلة أو إعادة تدقيق مستقلة للمستودعات المعروضة. لا نعتمد أرقام جداول غير مقروءة بصريًا، ولا نعيد نشر التفريغات. القواعد synthesis مستقلة لها شروط وأدلة، وليست نسبًا مطلقة للفيديو.

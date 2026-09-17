@@ -45,7 +45,7 @@ python -m venv .venv
 - `modules/` و`MASTER-MANUAL.md` و`eaos/data/`: نواتج مولدة؛ عدّل الأصل وشغّل render، لا تعدل النسخ.
 - `tests/`: اختبارات منع الثقة الزائفة، القراءة خارج النطاق، وإعادة استخدام سياق قديم.
 
-امتداد cloud مستقبلي يتطلب adapter مستقلًا: capabilities مصرح بها، مصادر read-only، redaction، `observed_at` وenvironment/account scope، ميزانية استدعاءات، failure states وcontract tests. لا توحّد state الحي وIaC والوثائق في حقيقة واحدة؛ قارن declared/observed/deployed وسجّل drift. لا توجد cloud adapters منفذة في 1.0.0.
+امتداد cloud مستقبلي يتطلب adapter مستقلًا: capabilities مصرح بها، مصادر read-only، redaction، `observed_at` وenvironment/account scope، ميزانية استدعاءات، failure states وcontract tests. لا توحّد state الحي وIaC والوثائق في حقيقة واحدة؛ قارن declared/observed/deployed وسجّل drift. لا توجد cloud adapters منفذة في 2.0.0.
 
 ## بروتوكول Context Engineering
 
@@ -95,3 +95,10 @@ README وتعليقات الكود وlogs وweb pages بيانات غير موث
 ## حدود النسخة
 
 لا يضمن الريبو استدامة أي نظام تلقائيًا؛ يساعد على تحويلها إلى invariants وأدلة وقرارات واختبارات. لا ينفذ AST graph كاملًا، ولا يفحص cloud accounts أو live traffic، ولا يشغل pentest/load tests، ولا يعدل المنتج. كل ذلك مراحل تتطلب أدوات ومعلومات ونطاقًا مناسبًا. الاستفادة الاحترافية تستلزم معايرة النتائج على مشاريع فعلية ومراجعة بشرية للقرارات مرتفعة الأثر.
+
+
+## إضافة 2.0: البنية والصيانة أولًا
+
+اقرأ `core/ARCHITECTURE-FIRST.md` بوصفه محور التشغيل. أضيفت commands `graph`, `impact`, `context` ونموذج `architecture.json`. أصبح architecture profile هو الافتراضي؛ full خيار صريح. graph يحتاج نموذجًا جمعه الوكيل، وليس مجرد وجود ملفات. context يستخدم الرسم والـcontracts والـbusiness rules لتحديد working set، ويذكر omitted edges/frontier. حجم الأحرف ليس عدد tokens.
+
+عند تحديث architecture.json بعد تغيير فهم المسؤوليات، ولّد context من جديد؛ hash النموذج محفوظ في packet. checkpoint يتضمن ملف النموذج أيضًا. لا تُعدّل المصدر المعماري بعد توليد packet وتفترض أن packet أصبح محدثًا تلقائيًا. تحديث source يحتاج run جديدًا وإعادة التحقق من الأدلة، حتى لو بقيت labels كما هي.

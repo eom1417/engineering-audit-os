@@ -13,6 +13,7 @@ class AuditTests(unittest.TestCase):
         self.base=Path(self.tmp.name);self.target=self.base/'product';self.target.mkdir();self.run=self.base/'run'
         (self.target/'package.json').write_text('{"scripts":{"postinstall":"DO_NOT_EXECUTE"}}')
         (self.target/'app.py').write_text('print("test fixture, not an audit finding")\n')
+        (self.target/'store.py').write_text('# synthetic adapter fixture\n')
         (self.target/'.env').write_text('EXAMPLE_SECRET=synthetic-value')
         self.assertEqual(self.call('init',str(self.target),'--out',str(self.run)),0)
     def call(self,*args):
@@ -91,6 +92,8 @@ class AuditTests(unittest.TestCase):
         state.update(scope_confirmed=True,inventory_reviewed=True,architecture_reviewed=True,product_flows_reviewed=True,unknowns=[],expected_instances=[c['id'] for c in coverage],completion='COMPLETE')
         state['scope']['environments']=['fixture']
         for d in state['module_decisions']:d.update(applicability='APPLICABLE',reason='synthetic contract test',evidence_ids=['E-1'])
+        model=cli.read(Path(__file__).resolve().parents[1]/'examples/architecture/model.json');model['revision']=rev
+        cli.write(self.run/'architecture.json',model)
         cli.write(self.run/'run.json',state);cli.write(self.run/'evidence.json',evidence);cli.write(self.run/'coverage.json',coverage)
     def test_consistent_complete_contract(self):
         self.complete_fixture();r=cli.check(self.run);self.assertEqual(r['errors'],[]);self.assertEqual(r['computed_audit_completion'],'COMPLETE')

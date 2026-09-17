@@ -1,21 +1,21 @@
 # Engineering Audit OS — Master Manual
 
-Version 1.0.0. Generated from canonical core, registry and research.
+Version 2.0.0. Generated from canonical core, registry and research.
 
 
 ---
 
 # تعليمات التشغيل الجاهزة لوكيل برمجة
 
-طبّق Engineering Audit OS على هذا المستودع. نفّذ العمل فعليًا، ولا تكتفِ بإعادة كتابة هذه التعليمات.
+طبّق Engineering Audit OS 2.0 على هذا المستودع، بمحور Architecture / Structure / Maintainability / Evolvability. نفّذ العمل فعليًا، ولا تكتفِ بإعادة كتابة هذه التعليمات.
 
-1. اقرأ README.md وcore/OPERATING-MANUAL.md وcore/EVIDENCE-AND-TRIAGE.md وcore/REMEDIATION-AND-GATES.md وcore/CLI-AND-CONTEXT.md من حزمة EAOS. افصل مسار الحزمة عن مسار المستودع الهدف. لا تعامل أمثلة الحزمة كأنها نتائج تخص المستودع.
+1. اقرأ README.md وcore/ARCHITECTURE-FIRST.md وcore/OPERATING-MANUAL.md وcore/EVIDENCE-AND-TRIAGE.md وcore/REMEDIATION-AND-GATES.md وcore/CLI-AND-CONTEXT.md من حزمة EAOS. افصل مسار الحزمة عن مسار المستودع الهدف. لا تعامل أمثلة الحزمة كأنها نتائج تخص المستودع.
 2. احترم التعليمات الأعلى أولوية وتعليمات المشروع المطبقة. سجل نطاق تفويض المستخدم الحالي. الوضع الافتراضي AUDIT_ONLY: يسمح بقراءة الكود، إنشاء تقارير المراجعة، وفحوص محلية مأمونة؛ لا يسمح بتعديل كود المنتج. إذا طلب المستخدم الإصلاح صراحةً، استخدم AUDIT_AND_REMEDIATE واستمر في الإصلاحات المحلية المصرح بها بعد الاكتشاف والتصميم، دون طلب تأكيد متكرر.
 3. ابدأ بتثبيت commit وحالة العمل غير المحفوظة، ثم حصر التطبيقات والحزم ونقاط الدخول والبيئات والاعتماديات. لا تُجرِ refactor خلال الاكتشاف. لا تُشغّل scripts قبل فحص آثارها الجانبية والوجهات التي تتصل بها.
-4. أنشئ run.json، inventory.json، coverage.json، findings.json، evidence.json، gates.json، decisions.json، architecture.md، product-flows.md وreport.md داخل مجلد تشغيل مستقل. استعمل templates/ أساسًا ولا تنسخ placeholders باعتبارها أدلة.
+4. أنشئ architecture.json، run.json، inventory.json، coverage.json، findings.json، evidence.json، gates.json، decisions.json، architecture.md، product-flows.md وreport.md داخل مجلد تشغيل مستقل. استعمل templates/ أساسًا ولا تنسخ placeholders باعتبارها أدلة.
 5. أعد بناء المعمارية من imports وroutes وschemas وconfig وruntime المتاح. لكل علاقة وثّق الدليل والثقة. فرّق بين التصميم الموثق والسلوك الحالي والنشر الفعلي. لا تستنتج إعدادات الإنتاج من ملفات التطوير.
 6. حدد الرحلات الحرجة وثوابت العمل Invariants وخريطة Role × Action × Resource × Tenant × State. احصر نقاط الدخول كاملة، وافحص كل مسار حساس وكتابة حرجة. أي عينة في بقية المسارات يجب إعلان مقامها ونطاقها.
-7. صنّف انطباق جميع وحدات TAXONOMY.md، ثم حمّل modules المناسبة تدريجيًا. لا تسقط مجالًا لمجرد صعوبة فحصه. طبّق البطاقات في controls.json، وسجل لكل قاعدة instances بحسب المكوّن والمسار والبيئة.
+7. ابدأ بمجالات profile architecture الأساسية؛ صنّف بقية المجالات كعدسات مساندة أو OUT_OF_SCOPE صريحة، وفعّلها حين يعبرها التغيير. في profile full صنّف انطباق جميع وحدات TAXONOMY.md، ثم حمّل modules المناسبة تدريجيًا. لا تسقط مجالًا لمجرد صعوبة فحصه. طبّق البطاقات في controls.json، وسجل لكل قاعدة instances بحسب المكوّن والمسار والبيئة.
 8. تتبع المدخل غير الموثوق عبر التحويل والتفويض والعمل والتخزين والمخرجات. تتبع كذلك أثر الفشل والإعادة والتزامن وتغير الصلاحية أثناء العملية. اقرأ الحمايات المشتركة قبل إصدار حكم بغيابها.
 9. لا تنشئ Finding إلا بدليل أو فرضية مسماة بوضوح. سجّل الحالات CONFIRMED/HIGHLY_LIKELY/POSSIBLE/NOT_VERIFIED مستقلة عن الشدة. NOT_APPLICABLE وصف انطباق للقاعدة، وليس ثقة ولا ثغرة. افصل PASS/FAIL/INCONCLUSIVE عن حالات النتيجة.
 10. في كل نتيجة وضّح السلوك الحالي والمتوقع ومصدر التوقع، السبب الجذري المؤكد أو المحتمل، الأثر، الملفات والرموز والـcommit، خطوات الإثبات، حدود الاستنتاج، والحل الأقل تدخلًا واختبارات التحقق.
@@ -29,8 +29,126 @@ Version 1.0.0. Generated from canonical core, registry and research.
 
 الأسماء الرمزية الكبيرة في الشرح تصف المفاهيم؛ سجلات JSON تستخدم enums كما في schemas/templates بالحروف المحددة. شغّل `eaos init TARGET --out RUN` لإنشاء السجلات الأساسية، ثم `eaos plan RUN`. احفظ evidence/coverage/findings باستمرار، واستعمل packet/checkpoint/resume بدل تحميل الدليل كله في كل مرحلة.
 
+ابدأ بـ `eaos init TARGET --out RUN --profile architecture`. أعد بناء architecture.json من الأدلة، ثم شغّل graph وimpact وcontext. لا تتخذ tree المجلدات أو عدد الأسطر حكمًا على البنية. لكل اقتراح معماري قدّم سيناريو تغيير يثبت فائدته. الفيديوهات أمثلة منشأ فقط؛ لا تعتمد عليها كمرجع حكم على المستودع.
+
 
 ---
+
+# Architecture & Structure Operating Protocol — 2.0
+
+## الغرض وحدود الحكم
+
+الغرض الأساسي هو أن يبقى المنتج **مفهومًا، قابلًا للتعديل والاختبار، وقابلًا لإضافة وظائف عبر الزمن بكلفة معقولة**. ليست الاستدامة ضمان حياة لعدد سنوات، وليست مرادفًا للبنية السحابية أو زيادة عدد الخدمات. لا نستبدل المنتج بarchitecture مثالية متخيلة.
+
+المرجع المعياري هو invariant وعقد المشروع والدليل والاختبار. الفيديوهات بذور أمثلة تاريخية؛ لا تصبح سلطة تحدد صلاحية كل منتج. المصادر الهندسية تدعم طرق التفكير، لكن شروط التطبيق والمفاضلات تبقى معلنة. انظر [تعريفات Fowler](https://martinfowler.com/architecture/) و[سيناريوهات الجودة لدى SEI](https://www.sei.cmu.edu/library/quality-attribute-workshops-qaws-third-edition/). فرضية [Design Stamina](https://martinfowler.com/bliki/DesignStaminaHypothesis.html) تساعد على التفكير بالكلفة المستقبلية؛ لا نستخدمها كبرهان عددي على العائد.
+
+## أربعة مستويات مترابطة
+
+| العدسة | ما الذي نفهمه؟ | الإثبات | علامة تستحق التحقيق |
+|---|---|---|---|
+| Contract | ما الذي يعد به المكوّن؟ inputs/outputs/errors/side effects/state/version | واجهة فعلية واختبارات ومستهلكون | consumer يعتمد تفاصيل غير معلنة |
+| Structure | أين تسكن المسؤوليات والقواعد؟ وكيف نقسمها؟ | ملفات/رموز/حدود/ملكية | تغيير قاعدة واحدة في مواضع متباعدة بلا سبب |
+| Architecture | لماذا ترتبط الوحدات هكذا؟ ومن يملك القرارات؟ | dependency/data/control/lifecycle maps وقرارات | سياسة لا تصمد عبر مسار آخر |
+| Local implementation | كيف ينفذ الجزء عقده؟ | source trace وnegative tests | خوارزمية أو serialization أو concurrency تكسر invariant |
+
+هذه العدسات ليست disjoint layers يجب إنشاؤها في الكود. لا تحول أسماء العدسات إلى أربعة مجلدات. Infrastructure تدخل الخريطة فقط بالقدر الذي تشارك به في علاقات المنتج وقيوده أو ضمن profile شامل.
+
+## ترتيب التنفيذ الإلزامي
+
+1. **Discover**: ثبت revision وscope، وابحث عن التطبيقات والـmanifests ونقاط الدخول. inventory ليس فهمًا معماريًا.
+2. **Explain the product**: اكتب actors والرحلات والقواعد؛ ميّز observed/required/hypothesized. لا تفترض أن منتجًا يحتاج وظيفة لم يطلبها.
+3. **Reconstruct structure**: عرّف وحدات بمسؤولية دلالية. لا تجعل كل ملف node ولا تجمع كل المشروع في node يخفي الاعتماديات. وثق abstraction level.
+4. **Reconstruct contracts and relationships**: consumer→provider، source dependencies منفصلة عن runtime calls/data access. كل edge له source evidence وstatus.
+5. **Map ownership and lifecycle**: من يملك القرار؟ ما consumers؟ create/save/load/apply/update/delete. اذكر أين يتكرر enforcement عمدًا.
+6. **Exercise change scenarios**: إضافة قاعدة، تغيير contract، استبدال adapter، استعادة حالة بعد update؛ اختر السيناريوهات ذات الصلة فعليًا.
+7. **Challenge boundaries**: قارن expected touchpoints بما وجد؛ ابحث عن consumers من خارج القائمة وعن bypass وhidden state. تستخدم تخصصات الأمن والأداء كعدسات لدعم السؤال البنيوي.
+8. **Assess**: لكل finding invariant وأثر على تغيير/فهم/اختبار مع evidence وcounter-evidence. الروائح إشارات لا أحكام.
+9. **Design minimal correction**: قارن keep / local fix / extraction / boundary repair / staged migration. أظهر لماذا الحل الأقل تدخلًا لا يكفي إذا رفضته.
+10. **Verify and preserve**: أعد سيناريو التغيير نفسه واختبار الحدود والمستهلكين؛ حدّث العقد والنموذج والـADR وfitness checks.
+
+## بنية الأدلة المطلوبة
+
+`architecture.json` هو المصدر الوحيد للخريطة لهذا التشغيل. `architecture.md` وصف توضيحي لا بديل عن السجل. يتضمن:
+
+- `nodes`: معرف، اسم، kind، responsibility، domain، boundary، owner، exact source paths، evidence_ids. owner هنا مسؤولية تنظيمية/منطقية؛ لا يلزم كشف أسماء أشخاص.
+- `edges`: from/to/relation/reason/status/evidence_ids. الاتجاه دائمًا من المستهلك إلى ما يعتمد عليه. العلاقات: imports/calls/uses_contract/reads/writes/configures. لا تُنشئ edge معكوسة لتجميل الرسم.
+- `contracts`: owner node، consumers، description، invariant، failure_semantics، compatibility، evidence_ids.
+- `business_rules`: owner node، consumers، description، invariant، evidence_ids. يمكن static site تسجيل invariant مثل ملكية المحتوى وعقد البناء دون اختراع business domain.
+- `change_scenarios`: stimulus/environment/artifact/response/measure/method/affected_nodes/status/evidence_ids. TRACED تحليل من source؛ TESTED يحتاج دليل test. لا تعتبر design rehearsal تنفيذًا ناجحًا.
+- `dependency_policies`: علاقة forbidden محددة وأسبابها وأدلتها. عدم ذكر policy لا يعني حرية كل علاقة؛ يعني عدم وجود policy قابلة للفحص في النموذج.
+- `coverage`: UNREVIEWED/PARTIAL/REVIEWED، scope وحدود لم تحسم. REVIEWED يعبّر عن النطاق المذكور ولا يصح إن بقيت limitations غير محسومة.
+
+إذا لم يعرف المراجع العلاقة يسجل HYPOTHESIS ولا يثبتها بالرسم. absence في graph لا يثبت عدم وجود علاقة فعلية. adapters/DI/events/reflection/generated clients/SQL/stored procedures/feature flags قد تخفي edges؛ وثق طريقة كشفها أو gap.
+
+## قراءة graph دون تضليل
+
+`eaos graph RUN` يحسب strongly connected components لعلاقات imports وuses_contract المؤكدة، وfan-in/fan-out من تلك العلاقات، ويطابق forbidden policies المعلنة فقط. لا يحول النتائج إلى findings تلقائية. شبكة calls دورية قد تمثل callback مشروعًا؛ كثرة fan-in قد تمثل core stable contract. التفسير يحتاج المستوى المعماري والمفاضلة وسيناريو تغيير.
+
+`eaos impact RUN --node billing --depth 2` يسير عكسيًا عبر علاقات مؤكدة من جميع الأنواع. يعرض dependents المحتملين وdependencies المباشرة وconsumers المذكورين في العقود والقواعد، وfrontier لم يُوسّع. هذه قائمة من يجب فحصه، وليست أمر تعديل للجميع. نقص edge أو عمق محدود يجعل النتيجة غير شاملة، وتظهر هذه الحدود صراحة.
+
+`eaos context RUN --node billing --depth 2 --budget-chars 18000` يضم علاقات النطاق وعقوده وقواعده وسيناريوهاته وأدلته وhash النموذج. يحفظ references إلى ملفات المصدر ولا يرسل الكود إلى مزود خارجي. للمصدر المحدد استخدم packet --file بعد مراجعة eligibility. لا يدخل كل المستودع في السياق. إذا تجاوزت البيانات الميزانية يفشل صراحةً، فلا يسقط شرطًا بصمت.
+
+## مصفوفة مراجعة الاستدامة
+
+| السؤال | دليل مناسب | ما لا يكفي |
+|---|---|---|
+| هل نعرف أين نضيف سلوكًا؟ | route→use case→rule→adapter→test trace | README يزعم clean architecture |
+| هل التغيير موضعي عند ملاءمته؟ | سيناريو مع required touchpoints والمستهلكين | مجرد diff قصير |
+| هل الوحدات مستقلة بالقدر المطلوب؟ | عقود وpolicy dependencies واختبار isolation | مجلدات بأسماء services وrepositories |
+| هل نفس القاعدة متسقة؟ | owner ومستهلكون واختبار semantic consistency | dedup نصي يخلط معاني مختلفة |
+| هل يمكن اختبارها؟ | seams وfixtures وفحص فشل وتزامن relevant | coverage رقمية وحدها |
+| هل سيبقى الفهم بعد تبدل المطور؟ | خريطة source-backed وADRs وقرار trade-off | شفهيات أو summary بلا evidence |
+| هل يمكن تحسين البنية بأمان؟ | مراحل compatibility وتراجع/rollforward | إعادة كتابة واسعة بلا success criteria |
+
+## سيناريوهات التطور
+
+لا تضع أرقامًا عالمية مثل «أي ميزة يجب أن تحتاج ملفين». لكل سيناريو عرّف measure يناسب المنتج: عدد حدود العقود المتغيرة، actors المتأثرون، اختبارات يجب أن تتغير، الحاجة لتنسيق إصدارات، migration، أو زمن فهم مقاس. التقدير يوسم ESTIMATE، والقياس يوسم OBSERVED مع بيئته.
+
+1. **إضافة rule**: سجل owner ووحدة التنفيذ وواجهة التحكم إن كانت من متطلبات المنتج؛ تتبع UI/API/jobs/import/export والـdefaults. hidden default عيب إذا يناقض العقد أو يخلق مصدر حقيقة آخر، لا لأنه ليس في UI دائمًا.
+2. **استبدال خدمة خارجية**: اقرأ contract والاستخدامات الفعلية للفشل/timeout؛ تحقق إن كانت تفاصيل provider تتسرب إلى domain/UI. لا تنفذ الاستبدال فقط لإثبات وجود interface.
+3. **تغيير entitlement/permission**: تتبع cache/background tasks/routes/gateway وفق الخريطة. لا يختفي الشرط عند مسار ثانٍ، ولا تضف تعديل proxy إن لم يكن جزءًا من enforcement.
+4. **تغيير schema**: تحقق من consumers وwriters أثناء mixed versions؛ compatibility جزء من architecture لا مهمة SQL منعزلة.
+5. **حذف ميزة**: هل يمكن إزالة UI/API/jobs/config/dependencies/flags دون ترك قاعدة مخفية أو dangling event؟ سجل shared ownership قبل الحذف.
+6. **استعادة حالة**: إثبات persistence منفصل عن activation. جرب restart/upgrade على بيانات اختبار قديمة وجديدة.
+
+## الانضباط ضد الإفراط
+
+قارن الحلول بمقدار حماية invariant وبساطة تفسيرها وscope وخطر regression، لا بعدد الأنماط أو الطبقات أو الاختبارات. إعادة تسمية مجلدات وحدها STYLE، لا تحسين معماري مثبت. DI وDDD وCQRS وevent sourcing وmicroservices خيارات مشروطة، لا سلم احتراف. قد يكون monolith بسيط بعقود واضحة أفضل من خدمات موزعة بلا استقلال حقيقي.
+
+قبل أي refactor: اذكر المشكلة المثبتة، لماذا تؤثر على التغيير، البدائل الأقل تدخلًا، cost assumptions، وما إذا كان الحل يزيد عدد المفاهيم اللازمة لفهم السلوك. امنع abstraction مبنية على احتمال وحيد متخيل؛ إن كان هناك تغيّر متكرر بدليل فصمم seam قابلًا للاختبار.
+
+## Profile وسياسة الإكمال
+
+`architecture` هو الافتراضي: المجالات 01/02/03/04/15/22/26/27 أساسية. باقي المجالات OUT_OF_SCOPE مبدئيًا للـfull-domain audit، وليست NOT_APPLICABLE ولا PASS. فعّل المجال المساند أو instance منه عند تقاطع التغيير معه. احتفظ بتقرير نطاق يوضح مثلًا «تحققنا من حدود authorization المؤثرة في التصميم، ولم ننجز pentest كاملًا».
+
+`full` يحتفظ بطلب المراجعة الشاملة؛ كل المجالات تحتاج applicability decision. القواعد الأصلية باقية، ولا يسقط security/privacy/runtime المطلوب في النطاق بمجرد اختيار الاسم.
+
+COMPLETE يتطلب أيضًا نموذجًا صحيحًا وأدلته وعقوده وقواعده وسيناريو تغيير واحدًا على الأقل، مع scope مراجع ولا limitations غير محسومة. هذا حد آلي أدنى؛ المشروع متعدد المجالات يحتاج سيناريوهات تمثل تغيراته الحرجة كلها وفق سجل scope. لا يُختصر مشروع كبير إلى عقد وnode واحد لتمرير البوابة. reviewer يقارن النموذج بالمستودع، لأن الآلة لا تستطيع إثبات صدق corpus المقدم لها.
+
+الترقية من1.0 إلى2.0 كاسرة لعقد التشغيل: أنشئ run جديدًا؛ لا ترفع version يدويًا ولا تنسخ حالات complete. يمكن نقل evidence بعد إعادة ربط revision وإعادة فحصها. يبقى archive1.0 متاحًا كتاريخ، والإصدار2.0 هو الاتجاه الحالي.
+
+
+## بنية الأداة نفسها
+
+```mermaid
+flowchart TD
+  C[CLI orchestration] --> R[Audit record gates]
+  C --> W[Workspace and snapshots]
+  C --> A[Architecture model and queries]
+  R --> W
+  R --> A
+```
+
+`eaos/architecture.py` لا يقرأ filesystem ولا يشغل tools؛ يعمل على نموذج صريح، ما يسمح باختبار direction/cycles/impact بمعزل عن واجهة الأوامر. `workspace.py` يملك جرد وقراءة المصدر وfingerprints وحدود المسارات. `audit_records.py` يملك اتساق الأدلة والتغطية والإغلاق. `cli.py` يملك arguments وتنسيق المخرجات وتركيب العمليات. لا تعتمد أي وحدة على CLI كي تعمل، ولا توجد provider SDK داخل graph domain.
+
+اختير هذا الفصل لسبب تغير حقيقي: سياسة الأدلة تختلف عن خوارزمية أثر التغيير وعن واجهة الأوامر. لم نضف plugin framework أو DI container إلى برنامج صغير. لو أضيف AST parser لاحقًا، ينتج نموذج candidate مستقلًا ثم يمر بنفس validation، ولا يغير domain كي يدعم لغة معينة.
+
+
+---
+
+# توجيه الإصدار 2.0
+
+Architecture وStructure والصيانة والتطور هي محور العمل. هذا الملف kernel عام يُطبق بعد `ARCHITECTURE-FIRST.md`. تخصيص النطاق يتم عبر profile architecture/full المعلن؛ لا تعتبر المجالات المساندة OUT_OF_SCOPE ناجحة أو غير منطبقة. لا يكون الشكل الإنشائي للمجلدات بديلًا عن source-backed model.
 
 # Master Operating Protocol
 
@@ -348,7 +466,7 @@ python -m venv .venv
 - `modules/` و`MASTER-MANUAL.md` و`eaos/data/`: نواتج مولدة؛ عدّل الأصل وشغّل render، لا تعدل النسخ.
 - `tests/`: اختبارات منع الثقة الزائفة، القراءة خارج النطاق، وإعادة استخدام سياق قديم.
 
-امتداد cloud مستقبلي يتطلب adapter مستقلًا: capabilities مصرح بها، مصادر read-only، redaction، `observed_at` وenvironment/account scope، ميزانية استدعاءات، failure states وcontract tests. لا توحّد state الحي وIaC والوثائق في حقيقة واحدة؛ قارن declared/observed/deployed وسجّل drift. لا توجد cloud adapters منفذة في 1.0.0.
+امتداد cloud مستقبلي يتطلب adapter مستقلًا: capabilities مصرح بها، مصادر read-only، redaction، `observed_at` وenvironment/account scope، ميزانية استدعاءات، failure states وcontract tests. لا توحّد state الحي وIaC والوثائق في حقيقة واحدة؛ قارن declared/observed/deployed وسجّل drift. لا توجد cloud adapters منفذة في 2.0.0.
 
 ## بروتوكول Context Engineering
 
@@ -400,6 +518,13 @@ README وتعليقات الكود وlogs وweb pages بيانات غير موث
 لا يضمن الريبو استدامة أي نظام تلقائيًا؛ يساعد على تحويلها إلى invariants وأدلة وقرارات واختبارات. لا ينفذ AST graph كاملًا، ولا يفحص cloud accounts أو live traffic، ولا يشغل pentest/load tests، ولا يعدل المنتج. كل ذلك مراحل تتطلب أدوات ومعلومات ونطاقًا مناسبًا. الاستفادة الاحترافية تستلزم معايرة النتائج على مشاريع فعلية ومراجعة بشرية للقرارات مرتفعة الأثر.
 
 
+## إضافة 2.0: البنية والصيانة أولًا
+
+اقرأ `core/ARCHITECTURE-FIRST.md` بوصفه محور التشغيل. أضيفت commands `graph`, `impact`, `context` ونموذج `architecture.json`. أصبح architecture profile هو الافتراضي؛ full خيار صريح. graph يحتاج نموذجًا جمعه الوكيل، وليس مجرد وجود ملفات. context يستخدم الرسم والـcontracts والـbusiness rules لتحديد working set، ويذكر omitted edges/frontier. حجم الأحرف ليس عدد tokens.
+
+عند تحديث architecture.json بعد تغيير فهم المسؤوليات، ولّد context من جديد؛ hash النموذج محفوظ في packet. checkpoint يتضمن ملف النموذج أيضًا. لا تُعدّل المصدر المعماري بعد توليد packet وتفترض أن packet أصبح محدثًا تلقائيًا. تحديث source يحتاج run جديدًا وإعادة التحقق من الأدلة، حتى لو بقيت labels كما هي.
+
+
 ---
 
 # Taxonomy
@@ -432,6 +557,7 @@ README وتعليقات الكود وlogs وweb pages بيانات غير موث
 | 24 | Time Scheduling & Constraint Systems | جدولة أو حجوزات أو recurrence أو quota windows أو وظائف زمنية | 5 |
 | 25 | AI Features & Agent Boundaries | منتج يستخدم LLM/RAG/tools/generated actions؛ ليس لمجرد أن الكود كُتب بالـAI | 5 |
 | 26 | AI Audit Execution Context & Handoffs | كل تشغيل لهذا الإطار بواسطة coding agent؛ التفويض متعدد الوكلاء اختياري ومشروط | 5 |
+| 27 | Architecture Structure Maintainability & Evolution | المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع | 14 |
 
 
 ---
@@ -2284,6 +2410,159 @@ Generated from controls.json. Do not edit this derived file.
 
 ---
 
+# 27 — Architecture Structure Maintainability & Evolution
+
+Generated from controls.json. Do not edit this derived file.
+
+**Applicability:** المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع
+**Artifacts:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+
+قبل الحكم: حدد component/flow/environment/revision. افصل requirement عن preference. لكل control سجل evidence وcounter-evidence وcoverage instance؛ لا تعتبر N/A بلا سبب.
+
+## EAOS-27-001 — قابلية اكتشاف المسؤولية
+
+- **Invariant:** كل سلوك مهم يقود إلى مكان مسؤول واضح
+- **Inspection procedure:** خذ عطلًا أو طلب تغيير؛ انتقل من entrypoint إلى مالك القاعدة والعقد والاختبار؛ سجل المسارات والتفسيرات البديلة
+- **Verification / negative test:** أعد نفس تمرين الوصول من خريطة النظام دون الاعتماد على ذاكرة من كتب الكود
+- **Counter-evidence:** أسماء folders وحدها لا تثبت separation؛ ملف كبير قد يكون generated أو cohesive
+- **Required evidence:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+- **Source IDs:** SRC-C4, SRC-REVIEW, SRC-FOWLER-ARCH, SRC-QAW
+- **Provenance:** EAOS_SYNTHESIS; seed references: VID-03
+
+## EAOS-27-002 — اتجاه الاعتمادية
+
+- **Invariant:** تتبع الوحدات سياسة تبعية صريحة تحمي قراراتها
+- **Inspection procedure:** افصل imports عن runtime calls وعن reads/writes؛ ارسم consumer→provider؛ اقرأ shared façades وdynamic registration
+- **Verification / negative test:** اختبار architecture fitness يمنع import محظور أو عبور implementation داخلي
+- **Counter-evidence:** الدائرة runtime ليست تلقائيًا circular source dependency؛ لا تفرض layers بعينها
+- **Required evidence:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+- **Source IDs:** SRC-C4, SRC-REVIEW, SRC-FOWLER-ARCH, SRC-QAW
+- **Provenance:** EAOS_SYNTHESIS; seed references: VID-03
+
+## EAOS-27-003 — ملكية منطق العمل
+
+- **Invariant:** كل invariant له مالك ومعنى ومستهلكون معروفون
+- **Inspection procedure:** اربط UI/API/jobs/DB guards بالقاعدة المشتركة؛ ميز duplication في المعرفة عن checks دفاعية عند الحدود
+- **Verification / negative test:** غيّر قيمة أو سياسة مفترضة وتتبع جميع writers والاختبارات المتوقعة
+- **Counter-evidence:** Validation في أكثر من boundary قد يكون صحيحًا؛ توحيد نص متشابه بمعنى مختلف يخلق coupling
+- **Required evidence:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+- **Source IDs:** SRC-C4, SRC-REVIEW, SRC-FOWLER-ARCH, SRC-QAW
+- **Provenance:** EAOS_SYNTHESIS; seed references: VID-03
+
+## EAOS-27-004 — الواجهات والعقود الداخلية
+
+- **Invariant:** التغيير الداخلي لا يجبر المستهلك على معرفة تفاصيل غير لازمة
+- **Inspection procedure:** وثق input/output/errors/side effects/transaction ownership وفشل وإلغاء/timeout حسب الانطباق
+- **Verification / negative test:** اختبار contract للمستهلك الحقيقي مع حالات فشل؛ تحقق من compatibility قبل تغيير signature
+- **Counter-evidence:** interface لكل class ليس هدفًا؛ wrapper بلا سياسة أو seam حقيقي قد يزيد التعقيد
+- **Required evidence:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+- **Source IDs:** SRC-C4, SRC-REVIEW, SRC-FOWLER-ARCH, SRC-QAW
+- **Provenance:** EAOS_SYNTHESIS; seed references: VID-03
+
+## EAOS-27-005 — الحدود الدلالية للميزات
+
+- **Invariant:** الميزة لها حدود تغيير تتوافق مع أسباب تغيرها
+- **Inspection procedure:** حدد actors/rules/state lifecycle لكل feature؛ افحص god module أو shared utils يتوسع بلا cohesion
+- **Verification / negative test:** قارن طلبين مستقلين: هل يغيران أجزاء مشتركة بلا ضرورة دلالية؟
+- **Counter-evidence:** vertical slices وlayered structure كلاهما صالح؛ وجود folder واحد لا يعني ضعف modularity
+- **Required evidence:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+- **Source IDs:** SRC-C4, SRC-REVIEW, SRC-FOWLER-ARCH, SRC-QAW
+- **Provenance:** EAOS_SYNTHESIS; seed references: VID-03
+
+## EAOS-27-006 — دورة حياة الحالة
+
+- **Invariant:** حفظ الحالة وإعادة تحميلها وتطبيقها متسقة عبر العمر التشغيلي
+- **Inspection procedure:** تتبع create/save/load/activate/update/restart/migrate/delete؛ حدد من يملك كل transition
+- **Verification / negative test:** اختبار setting محفوظ ثم upgrade/restart ثم إعادة تطبيقه؛ فصل فساد التخزين عن غياب الاستحضار
+- **Counter-evidence:** وجود write ناجح لا يثبت restoration؛ تغيير backup لا يصلح loader مفقودًا
+- **Required evidence:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+- **Source IDs:** SRC-C4, SRC-REVIEW, SRC-FOWLER-ARCH, SRC-QAW
+- **Provenance:** EAOS_SYNTHESIS; seed references: VID-03
+
+## EAOS-27-007 — انتشار أثر التغيير
+
+- **Invariant:** كل تغيير يرى حدوده ومستهلكيه قبل التنفيذ
+- **Inspection procedure:** أجر reverse dependency walk ثم contract/rule consumers وconfiguration/deployment seams؛ أعلن dynamic gaps
+- **Verification / negative test:** اختبر سيناريو إضافة policy أو تغيير contract مع expected touchpoints قبل diff
+- **Counter-evidence:** عدد الملفات ليس جودة: تعديلات متعددة لازمة قد تكون أصح من shortcut يترك consumers مكسورين
+- **Required evidence:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+- **Source IDs:** SRC-C4, SRC-REVIEW, SRC-FOWLER-ARCH, SRC-QAW
+- **Provenance:** EAOS_SYNTHESIS; seed references: VID-03
+
+## EAOS-27-008 — قابلية الاختبار والعزل
+
+- **Invariant:** يمكن اختبار invariant دون تشغيل منظومة غير لازمة
+- **Inspection procedure:** افحص construction/global state/clock/random/network/db coupling؛ حدد أصغر seam يمكن التحكم فيه
+- **Verification / negative test:** نفذ failure test بمحاكاة الحدود مع integration حقيقي مناسب؛ راقب mock-overuse
+- **Counter-evidence:** لا تفرض DI container؛ تمرير dependency واضح قد يكفي ولا معنى لفصل لا يستخدم
+- **Required evidence:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+- **Source IDs:** SRC-C4, SRC-REVIEW, SRC-FOWLER-ARCH, SRC-QAW
+- **Provenance:** EAOS_SYNTHESIS; seed references: VID-03
+
+## EAOS-27-009 — المرونة المتناسبة
+
+- **Invariant:** التوسعة تعالج تغيرًا معلومًا بكلفة مفهومة
+- **Inspection procedure:** حدد extension point من سيناريو واقعي، راجع options: direct change/small extraction/strategy/plugin؛ قارن complexity
+- **Verification / negative test:** جرّب امتدادًا واحدًا في تصميم أو sandbox مأذون ثم قارن الشروط والاختبارات والكلفة
+- **Counter-evidence:** لا تبنِ plugin system لميزة افتراضية؛ لا تُقيّم extensibility بعدد interfaces
+- **Required evidence:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+- **Source IDs:** SRC-C4, SRC-REVIEW, SRC-FOWLER-ARCH, SRC-QAW
+- **Provenance:** EAOS_SYNTHESIS; seed references: VID-03
+
+## EAOS-27-010 — انجراف القرارات
+
+- **Invariant:** البنية الحالية والقرار المعتمد مختلفان فقط بسبب مفهوم ومراجع
+- **Inspection procedure:** اقرأ ADRs وdiffs وdeprecated paths وقارن directed edges بpolicy وownership
+- **Verification / negative test:** تحقق من تغيير متعمد مع ADR supersedes أو ارفع deviation بدليل؛ لا تسم كل اختلاف bug
+- **Counter-evidence:** القرار القديم قد يكون لم يعد مناسبًا؛ لا تصلح الكود ليتبع وثيقة خاطئة
+- **Required evidence:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+- **Source IDs:** SRC-C4, SRC-REVIEW, SRC-FOWLER-ARCH, SRC-QAW
+- **Provenance:** EAOS_SYNTHESIS; seed references: VID-03
+
+## EAOS-27-011 — نقاط تغيير متكررة
+
+- **Invariant:** مخاطر الصيانة مربوطة بتاريخ أو سيناريو لا حجم مجرد
+- **Inspection procedure:** إذا توفر history اقرأ changes/co-change مع استبعاد formatting/generated؛ اربطها بمسؤوليات وانتهاكات أو وقت إصلاح
+- **Verification / negative test:** تحقق من أمثلة تغييرات تسبب ripple effects أو regressions متكررة
+- **Counter-evidence:** churn/fan-in/complexity إشارات؛ module محوري مستقر قد يكون تصميمًا سليمًا
+- **Required evidence:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+- **Source IDs:** SRC-C4, SRC-REVIEW, SRC-FOWLER-ARCH, SRC-QAW
+- **Provenance:** EAOS_SYNTHESIS; seed references: VID-03
+
+## EAOS-27-012 — هجرة معمارية تدريجية
+
+- **Invariant:** التحسين يحقق invariant قبل توسيع مساحة التغيير
+- **Inspection procedure:** اقترح seam وحدود target architecture وخطوات compatibility وrollback وdeletion of old path بعد تحقق
+- **Verification / negative test:** اختبار old/new consumer وrollback أو rollforward؛ مقارنة قبل/بعد عبر change scenario نفسه
+- **Counter-evidence:** إعادة كتابة المشروع ليست استنتاجًا طبيعيًا من smell؛ لا تترك نظامين مصدرَي حقيقة
+- **Required evidence:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+- **Source IDs:** SRC-C4, SRC-REVIEW, SRC-FOWLER-ARCH, SRC-QAW
+- **Provenance:** EAOS_SYNTHESIS; seed references: VID-03
+
+## EAOS-27-013 — الاستدامة البشرية والسياقية
+
+- **Invariant:** الفهم ينتقل بأدلة إلى مهندس أو وكيل آخر
+- **Inspection procedure:** اربط ownership/ADR/contracts/rules/source/testing map؛ سجل مفقودات النموذج بدل ملء الفراغ بالحدس
+- **Verification / negative test:** استئناف مهمة تغيير من context packet ثم إعادة تحقق من hashes والقرارات
+- **Counter-evidence:** ملخص طويل أو model context كبير لا يثبت قابلية الفهم؛ تقليل tokens ليس هدفًا إذا أخفى شروطًا
+- **Required evidence:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+- **Source IDs:** SRC-C4, SRC-REVIEW, SRC-FOWLER-ARCH, SRC-QAW
+- **Provenance:** EAOS_SYNTHESIS; seed references: VID-03
+
+## EAOS-27-014 — اختيار مستوى المراجعة
+
+- **Invariant:** عمق قراءة التنفيذ يتناسب مع المخاطر والعقود
+- **Inspection procedure:** بعد معرفة architecture اقرأ local code الحاسم: auth/crypto/money/concurrency/state serialization؛ لا تعفِ الدوال الصغيرة
+- **Verification / negative test:** راجع negative paths واستخدم مكتبات موثوقة واختبارات تفصل correctness عن style
+- **Counter-evidence:** الوثوق بنموذج في وظيفة سابقة ليس دليلًا لصحة الدالة الحالية؛ heuristic يحتاج اختبارًا
+- **Required evidence:** architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map
+- **Source IDs:** SRC-C4, SRC-REVIEW, SRC-FOWLER-ARCH, SRC-QAW
+- **Provenance:** EAOS_SYNTHESIS; seed references: VID-03
+
+
+
+---
+
 # عقد السجلات
 
 `init` ينشئ arrays فارغة. الوكيل يملؤها بـJSON؛ لا تعوّض محتوى placeholder عن الملاحظة. revision هو fingerprint inventory وليس commit Git. احفظ commit وdeployment revision كـevidence إضافي عند توفرهما. لا يُنشر محتوى السجلات افتراضيًا.
@@ -2599,6 +2878,53 @@ KV cache في transformer يحتفظ بتمثيلات key/value من attention �
 
 ---
 
+# الفيديو الثالث: من المثال إلى بروتوكول مستقل
+
+[هل لازم فعلاً أفهم الكود ولا لا؟](https://www.youtube.com/watch?v=Pi6C1_91vUM) — بشمهندس مازن. قرئ التفريغ الآلي كاملًا من 00:00 إلى آخر مقطع 28:07. لا ندعي مشاهدة مرئية متصلة أو التحقق من كود المشروع المعروض أو PRs. هذا سجل بذور توضيحي، وليس مرجعًا ملزمًا للأداة. لا تُنقل أسماء المجلدات أو اختيار اللغة أو reverse proxy كمتطلبات عامة.
+
+| المدى | بذرة توضيحية | التحويل في الأداة |
+|---|---|---|
+| 00:00–04:49 | معنى فهم الكود ونقاش وتعريف بالمحتوى | فصل المعرفة البنيوية عن حفظ التفاصيل |
+| 04:50–07:10 | عقود وحدود التعامل مع المكتبات | Contract register |
+| 07:11–09:18 | تنظيم وطبقات ومسؤوليات | Structural map |
+| 09:19–15:14 | إعداد محفوظ لا يُستحضر عند التحديث | Lifecycle trace |
+| 15:15–17:23 | تغيير يعبر خدمة وproxy | Change-impact map |
+| 17:24–20:50 | حدود مراجعة التنفيذ المحلي | Risk-based code depth |
+| 20:51–25:20 | اتساع diff وتحدي الحل | Simpler-option review |
+| 25:21–28:07 | صيانة واستمرار فهم المشروع | Evolution scenarios |
+
+## ما اعتمدناه ولماذا
+
+اعتمدنا مستويات **contract / structure / architecture / local implementation** كعدسات عملية متداخلة. ليست taxonomy علمية حصرية: structure جزء من architecture، والعقد يشمل الأنواع والفشل والتزامن والآثار الجانبية، وليس API signature فقط. يسمح الفصل للوكيل بمعرفة مستوى السؤال والأدلة اللازمة دون افتراض أنه يحتاج حفظ كل سطر.
+
+### 1. بنية قابلة للاكتشاف
+
+عندما يبدأ bug report من سلوك للمستخدم، يحتاج المراجع طريقًا واضحًا إلى مالك السلوك وإلى dependency أو store الذي يخدمه. نقيس هذا بمسار تتبع موثق؛ لا نقيسه بمدى مشابهة الشجرة لقالب مشهور. قد تكون feature folders أصح من technical layers في مشروع معين. المهم أن يبقى السبب الواحد للتغيير مفهومًا، وأن لا تصل الوحدات إلى تفاصيل بعضها خفية.
+
+### 2. دورة حياة السلوك كاملة
+
+وجود كتابة إلى store يثبت مرحلة واحدة. السلوك بعد restart أو upgrade يحتاج قراءة وتحويلًا وتطبيقًا بالترتيب الصحيح. لذلك نطلب state lifecycle مستقلًا عن folder map. السيناريو التشغيلي الأصلي للإطار هو: حفظ إعداد، توقف، استئناف، تحقّق من إعادة تطبيق الإعداد ومن التعامل مع حالة قديمة أو مفقودة. الإصلاح يتبع مكان انقطاع المسار، لا فرضية مسبقة بأن البيانات ضاعت.
+
+### 3. أثر التغيير يتجاوز الملف
+
+العلاقة بين خدمة ومستهلك أو policy عند boundary تتطلب مراجعة الطرفين حين يتغير contract. هذا لا يعني أن كل تعديل هوية يلزم تعديل proxy في جميع الأنظمة. نربط التغيير بعلاقات مثبتة في المشروع الهدف؛ المستهلك غير المتأثر لا يُعدّل لمجرد وجود المثال في الفيديو. أمر impact يعطي نطاق مراجعة محتملًا لا قائمة ملفات واجبة التعديل.
+
+### 4. ما لا نتبناه كقاعدة مطلقة
+
+- قلة الملفات أو الأسطر ليست دليل جودة. قارن اكتمال invariant وحفظ العقود وكلفة الشرح والاختبار، ثم فضّل أبسط حل صحيح.
+- تنفيذ محلي صغير قد يحوي ثغرة أو race أو خطأ حسابيًا؛ لا يُعفى من المراجعة لأن AI كتبه أو نجح في حالات سابقة.
+- لا ننسب سوء التنظيم إلى AI وحده، ولا نفترض فشل نموذج في كل architecture. الحكم على evidence ونتائج المهمة، لا هوية الكاتب.
+- لا يُطلب microservices أو layering أو patterns إضافية لإضفاء مظهر احترافي. البنية المناسبة تُثبت بسيناريوهات التغيير والقيود.
+
+## الفرق الذي أحدثه التوجيه في المنتج
+
+الإصدار 2.0 يجعل architecture/structure/maintainability المسار الافتراضي، ويحتفظ بباقي المجالات كعدسات مساندة. الأمن والأداء والتشغيل تُفحص عند تقاطعها مع boundary أو invariant أو تغيير؛ التشغيل الشامل يبقى profile صريحًا. لا نسمّي إنهاء المراجعة البنيوية إنهاء تدقيق أمني شامل.
+
+الناتج الجديد: نموذج علاقات قابل للتحقق، سجل عقود وملكية قواعد، سيناريوهات تطور، كشف cycles ومخالفة dependency policies المعلنة، استعلام أثر تغيير، وحزم سياق مشتقة من النموذج. لا مصدر فيديو مطلوب لتشغيل القواعد؛ الروابط محفوظة لتاريخ المعرفة فقط.
+
+
+---
+
 # External Research — المصادر المنتقاة
 
 المراجع أدناه أولية وتضيف بُعدًا أو طريقة تحقق أو تصحيحًا. معرف المصدر يربط الدعم المفاهيمي بالقواعد؛ ليس mapping معتمدًا لكل بند في معيار. توضح حدود القراءة إن كانت صفحة بحث وملخصًا فقط. الإصدارات المحددة ليست ادعاءً بأنها الأحدث عالميًا.
@@ -2643,6 +2969,420 @@ KV cache في transformer يحتفظ بتمثيلات key/value من attention �
 
 - [AWS Well-Architected Security Pillar](https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/welcome.html): إضافة منظور مسؤولية التشغيل وأمان البنية ومفاضلات الكلفة والاستدامة. حدود القراءة: قرئت المقدمة؛ الضوابط التفصيلية التالية synthesis وليست اقتباسًا لكل فصل AWS.
 - [Kubernetes Security Checklist](https://kubernetes.io/docs/concepts/security/security-checklist/): فصل network policy عن دعم CNI، وتدقيق واجهات الإدارة وRBAC وPod Security. حدود القراءة: أقسام security checklist ذات الصلة؛ لا تفرض Kubernetes على مشروع لا يستخدمه.
+
+## مصادر الاتجاه المعماري في 2.0
+
+- **VID-03** [هل لازم فعلاً أفهم الكود ولا لا؟ — Bashmohandes Mazen](https://www.youtube.com/watch?v=Pi6C1_91vUM): بذور: العقود والبنية والعلاقات، lifecycle، حدود التعديل. حدود الإثبات: قراءة كاملة للتفريغ، لا تحقق بصري متصل ولا وصول لريبو العرض. مصدر توضيح لا معيار إلزامي.
+- **SRC-FOWLER-ARCH** [Software Architecture Guide — Martin Fowler](https://martinfowler.com/architecture/): تمييز القرارات المهمة الداخلية والقدرة على التطور عن تعقيد الشكل. حدود الإثبات: قرئت أقسام التعريف والجدوى والتطبيق؛ لا ادعاء قراءة كل الروابط.
+- **SRC-STAMINA** [Design Stamina Hypothesis — Martin Fowler](https://martinfowler.com/bliki/DesignStaminaHypothesis.html): إطار تفكير في كلفة التغيير المتراكمة والاستثمار في التصميم. حدود الإثبات: فرضية مهنية يصفها المؤلف كذلك، ليست ضمان إنتاجية أو علاقة عددية مثبتة.
+- **SRC-QAW** [Quality Attribute Workshops Third Edition — SEI](https://www.sei.cmu.edu/library/quality-attribute-workshops-qaws-third-edition/): استخدام سيناريوهات أصحاب المصلحة لتوضيح خصائص الجودة. حدود الإثبات: قرئت صفحة الملخص؛ صيغة السيناريوهات في الحزمة تصميم تشغيلي أصلي، لا ادعاء تنفيذ QAW أو ATAM كامل.
+
+
+---
+
+# Architecture JSON Schema
+
+```json
+{
+  "type": "object",
+  "required": [
+    "schema_version",
+    "revision",
+    "coverage",
+    "nodes",
+    "edges",
+    "contracts",
+    "business_rules",
+    "change_scenarios",
+    "dependency_policies"
+  ],
+  "properties": {
+    "schema_version": {
+      "enum": [
+        1
+      ]
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "status",
+        "scope",
+        "limitations"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "UNREVIEWED",
+            "PARTIAL",
+            "REVIEWED"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "responsibility",
+          "domain",
+          "boundary",
+          "owner",
+          "paths",
+          "evidence_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responsibility": {
+            "type": "string",
+            "minLength": 1
+          },
+          "domain": {
+            "type": "string",
+            "minLength": 1
+          },
+          "boundary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "from",
+          "to",
+          "reason",
+          "relation",
+          "status",
+          "evidence_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "relation": {
+            "enum": [
+              "imports",
+              "calls",
+              "uses_contract",
+              "reads",
+              "writes",
+              "configures"
+            ]
+          },
+          "status": {
+            "enum": [
+              "CONFIRMED",
+              "HYPOTHESIS"
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "owner",
+          "description",
+          "invariant",
+          "failure_semantics",
+          "compatibility",
+          "consumers",
+          "evidence_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "invariant": {
+            "type": "string",
+            "minLength": 1
+          },
+          "failure_semantics": {
+            "type": "string",
+            "minLength": 1
+          },
+          "compatibility": {
+            "type": "string",
+            "minLength": 1
+          },
+          "consumers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "business_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "owner",
+          "description",
+          "invariant",
+          "consumers",
+          "evidence_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "invariant": {
+            "type": "string",
+            "minLength": 1
+          },
+          "consumers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "change_scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "stimulus",
+          "environment",
+          "artifact",
+          "response",
+          "measure",
+          "method",
+          "affected_nodes",
+          "status",
+          "evidence_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stimulus": {
+            "type": "string",
+            "minLength": 1
+          },
+          "environment": {
+            "type": "string",
+            "minLength": 1
+          },
+          "artifact": {
+            "type": "string",
+            "minLength": 1
+          },
+          "response": {
+            "type": "string",
+            "minLength": 1
+          },
+          "measure": {
+            "type": "string",
+            "minLength": 1
+          },
+          "method": {
+            "type": "string",
+            "minLength": 1
+          },
+          "affected_nodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "status": {
+            "enum": [
+              "UNREVIEWED",
+              "TRACED",
+              "TESTED"
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "dependency_policies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "from",
+          "to",
+          "relation",
+          "reason",
+          "rule",
+          "evidence_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to": {
+            "type": "string",
+            "minLength": 1
+          },
+          "relation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rule": {
+            "enum": [
+              "forbid"
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}
+```
 
 
 ---

@@ -1,0 +1,399 @@
+{
+  "type": "object",
+  "required": [
+    "schema_version",
+    "revision",
+    "coverage",
+    "nodes",
+    "edges",
+    "contracts",
+    "business_rules",
+    "change_scenarios",
+    "dependency_policies"
+  ],
+  "properties": {
+    "schema_version": {
+      "enum": [
+        1
+      ]
+    },
+    "revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "status",
+        "scope",
+        "limitations"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "UNREVIEWED",
+            "PARTIAL",
+            "REVIEWED"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "responsibility",
+          "domain",
+          "boundary",
+          "owner",
+          "paths",
+          "evidence_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "responsibility": {
+            "type": "string",
+            "minLength": 1
+          },
+          "domain": {
+            "type": "string",
+            "minLength": 1
+          },
+          "boundary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "from",
+          "to",
+          "reason",
+          "relation",
+          "status",
+          "evidence_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "relation": {
+            "enum": [
+              "imports",
+              "calls",
+              "uses_contract",
+              "reads",
+              "writes",
+              "configures"
+            ]
+          },
+          "status": {
+            "enum": [
+              "CONFIRMED",
+              "HYPOTHESIS"
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "contracts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "owner",
+          "description",
+          "invariant",
+          "failure_semantics",
+          "compatibility",
+          "consumers",
+          "evidence_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "invariant": {
+            "type": "string",
+            "minLength": 1
+          },
+          "failure_semantics": {
+            "type": "string",
+            "minLength": 1
+          },
+          "compatibility": {
+            "type": "string",
+            "minLength": 1
+          },
+          "consumers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "business_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "owner",
+          "description",
+          "invariant",
+          "consumers",
+          "evidence_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "invariant": {
+            "type": "string",
+            "minLength": 1
+          },
+          "consumers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "change_scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "stimulus",
+          "environment",
+          "artifact",
+          "response",
+          "measure",
+          "method",
+          "affected_nodes",
+          "status",
+          "evidence_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "stimulus": {
+            "type": "string",
+            "minLength": 1
+          },
+          "environment": {
+            "type": "string",
+            "minLength": 1
+          },
+          "artifact": {
+            "type": "string",
+            "minLength": 1
+          },
+          "response": {
+            "type": "string",
+            "minLength": 1
+          },
+          "measure": {
+            "type": "string",
+            "minLength": 1
+          },
+          "method": {
+            "type": "string",
+            "minLength": 1
+          },
+          "affected_nodes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "status": {
+            "enum": [
+              "UNREVIEWED",
+              "TRACED",
+              "TESTED"
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "dependency_policies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "from",
+          "to",
+          "relation",
+          "reason",
+          "rule",
+          "evidence_ids"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "from": {
+            "type": "string",
+            "minLength": 1
+          },
+          "to": {
+            "type": "string",
+            "minLength": 1
+          },
+          "relation": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rule": {
+            "enum": [
+              "forbid"
+            ]
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

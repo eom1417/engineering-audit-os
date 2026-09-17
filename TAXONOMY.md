@@ -28,3 +28,4 @@
 | 24 | Time Scheduling & Constraint Systems | جدولة أو حجوزات أو recurrence أو quota windows أو وظائف زمنية | 5 |
 | 25 | AI Features & Agent Boundaries | منتج يستخدم LLM/RAG/tools/generated actions؛ ليس لمجرد أن الكود كُتب بالـAI | 5 |
 | 26 | AI Audit Execution Context & Handoffs | كل تشغيل لهذا الإطار بواسطة coding agent؛ التفويض متعدد الوكلاء اختياري ومشروط | 5 |
+| 27 | Architecture Structure Maintainability & Evolution | المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع | 14 |

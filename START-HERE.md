@@ -1,14 +1,14 @@
 # تعليمات التشغيل الجاهزة لوكيل برمجة
 
-طبّق Engineering Audit OS على هذا المستودع. نفّذ العمل فعليًا، ولا تكتفِ بإعادة كتابة هذه التعليمات.
+طبّق Engineering Audit OS 2.0 على هذا المستودع، بمحور Architecture / Structure / Maintainability / Evolvability. نفّذ العمل فعليًا، ولا تكتفِ بإعادة كتابة هذه التعليمات.
 
-1. اقرأ README.md وcore/OPERATING-MANUAL.md وcore/EVIDENCE-AND-TRIAGE.md وcore/REMEDIATION-AND-GATES.md وcore/CLI-AND-CONTEXT.md من حزمة EAOS. افصل مسار الحزمة عن مسار المستودع الهدف. لا تعامل أمثلة الحزمة كأنها نتائج تخص المستودع.
+1. اقرأ README.md وcore/ARCHITECTURE-FIRST.md وcore/OPERATING-MANUAL.md وcore/EVIDENCE-AND-TRIAGE.md وcore/REMEDIATION-AND-GATES.md وcore/CLI-AND-CONTEXT.md من حزمة EAOS. افصل مسار الحزمة عن مسار المستودع الهدف. لا تعامل أمثلة الحزمة كأنها نتائج تخص المستودع.
 2. احترم التعليمات الأعلى أولوية وتعليمات المشروع المطبقة. سجل نطاق تفويض المستخدم الحالي. الوضع الافتراضي AUDIT_ONLY: يسمح بقراءة الكود، إنشاء تقارير المراجعة، وفحوص محلية مأمونة؛ لا يسمح بتعديل كود المنتج. إذا طلب المستخدم الإصلاح صراحةً، استخدم AUDIT_AND_REMEDIATE واستمر في الإصلاحات المحلية المصرح بها بعد الاكتشاف والتصميم، دون طلب تأكيد متكرر.
 3. ابدأ بتثبيت commit وحالة العمل غير المحفوظة، ثم حصر التطبيقات والحزم ونقاط الدخول والبيئات والاعتماديات. لا تُجرِ refactor خلال الاكتشاف. لا تُشغّل scripts قبل فحص آثارها الجانبية والوجهات التي تتصل بها.
-4. أنشئ run.json، inventory.json، coverage.json، findings.json، evidence.json، gates.json، decisions.json، architecture.md، product-flows.md وreport.md داخل مجلد تشغيل مستقل. استعمل templates/ أساسًا ولا تنسخ placeholders باعتبارها أدلة.
+4. أنشئ architecture.json، run.json، inventory.json، coverage.json، findings.json، evidence.json، gates.json، decisions.json، architecture.md، product-flows.md وreport.md داخل مجلد تشغيل مستقل. استعمل templates/ أساسًا ولا تنسخ placeholders باعتبارها أدلة.
 5. أعد بناء المعمارية من imports وroutes وschemas وconfig وruntime المتاح. لكل علاقة وثّق الدليل والثقة. فرّق بين التصميم الموثق والسلوك الحالي والنشر الفعلي. لا تستنتج إعدادات الإنتاج من ملفات التطوير.
 6. حدد الرحلات الحرجة وثوابت العمل Invariants وخريطة Role × Action × Resource × Tenant × State. احصر نقاط الدخول كاملة، وافحص كل مسار حساس وكتابة حرجة. أي عينة في بقية المسارات يجب إعلان مقامها ونطاقها.
-7. صنّف انطباق جميع وحدات TAXONOMY.md، ثم حمّل modules المناسبة تدريجيًا. لا تسقط مجالًا لمجرد صعوبة فحصه. طبّق البطاقات في controls.json، وسجل لكل قاعدة instances بحسب المكوّن والمسار والبيئة.
+7. ابدأ بمجالات profile architecture الأساسية؛ صنّف بقية المجالات كعدسات مساندة أو OUT_OF_SCOPE صريحة، وفعّلها حين يعبرها التغيير. في profile full صنّف انطباق جميع وحدات TAXONOMY.md، ثم حمّل modules المناسبة تدريجيًا. لا تسقط مجالًا لمجرد صعوبة فحصه. طبّق البطاقات في controls.json، وسجل لكل قاعدة instances بحسب المكوّن والمسار والبيئة.
 8. تتبع المدخل غير الموثوق عبر التحويل والتفويض والعمل والتخزين والمخرجات. تتبع كذلك أثر الفشل والإعادة والتزامن وتغير الصلاحية أثناء العملية. اقرأ الحمايات المشتركة قبل إصدار حكم بغيابها.
 9. لا تنشئ Finding إلا بدليل أو فرضية مسماة بوضوح. سجّل الحالات CONFIRMED/HIGHLY_LIKELY/POSSIBLE/NOT_VERIFIED مستقلة عن الشدة. NOT_APPLICABLE وصف انطباق للقاعدة، وليس ثقة ولا ثغرة. افصل PASS/FAIL/INCONCLUSIVE عن حالات النتيجة.
 10. في كل نتيجة وضّح السلوك الحالي والمتوقع ومصدر التوقع، السبب الجذري المؤكد أو المحتمل، الأثر، الملفات والرموز والـcommit، خطوات الإثبات، حدود الاستنتاج، والحل الأقل تدخلًا واختبارات التحقق.
@@ -21,3 +21,5 @@
 ابدأ الآن بالمرحلة الأولى. استعمل الافتراضات المعقولة المعلنة في القرارات، ولا تنتظر أسئلة اختيارية إذا كانت الأدلة المتاحة تكفي للتقدم.
 
 الأسماء الرمزية الكبيرة في الشرح تصف المفاهيم؛ سجلات JSON تستخدم enums كما في schemas/templates بالحروف المحددة. شغّل `eaos init TARGET --out RUN` لإنشاء السجلات الأساسية، ثم `eaos plan RUN`. احفظ evidence/coverage/findings باستمرار، واستعمل packet/checkpoint/resume بدل تحميل الدليل كله في كل مرحلة.
+
+ابدأ بـ `eaos init TARGET --out RUN --profile architecture`. أعد بناء architecture.json من الأدلة، ثم شغّل graph وimpact وcontext. لا تتخذ tree المجلدات أو عدد الأسطر حكمًا على البنية. لكل اقتراح معماري قدّم سيناريو تغيير يثبت فائدته. الفيديوهات أمثلة منشأ فقط؛ لا تعتمد عليها كمرجع حكم على المستودع.

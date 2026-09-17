@@ -1,13 +1,13 @@
-# Release validation — 1.0.0
+# Release validation — 2.0.0
 
-Date: 2026-09-17.
+Date: 2026-09-17. Architecture, Structure, Maintainability & Evolvability edition.
 
-- Framework registry: 26 modules, 151 controls, 37 source records (including the two seed videos). No duplicate control IDs, unresolved source references or mismatched packaged copies detected.
-- `python -m unittest discover -s tests -v`: 22 tests passed. Tests cover false completion, unresolved gateway knowledge, evidence requirements, required applicability, stale source/record detection, bounded packets, sensitive filenames, traversal/symlinks, read-only target behavior, and record consistency.
-- Local wheel built with `pip wheel --no-deps --no-build-isolation .` and installed into an isolated virtual environment. Installed entry point and packaged controls were exercised from outside the repository.
-- The complete-record test uses explicitly synthetic records. It validates record contracts; it does not demonstrate the accuracy or completeness of a real software audit.
-- No live cloud account, original video repository, production load test, penetration test or multi-project field calibration was performed.
-- Both video transcripts were read in full. Continuous visual review and independent verification of on-screen performance tables remain incomplete.
-- Runtime CLI has no third-party dependencies. The installer/build uses setuptools; package publication and hosted Git repository are not part of this release.
+- Registry: 27 modules, 165 controls, 41 source records including three illustrative seed videos. IDs, references and packaged canonical copies validated.
+- `python -m unittest discover -s tests -v`: 40 tests passed after the architectural module split. Checks include model references, typed dependency cycles, reverse impact direction, explicit depth frontier, hypothesis handling, contract consumers, context budgets, stale models, scenario/evidence completion gates, path boundaries and the original record checks.
+- Internal boundary check: architecture graph module imports only collections/pathlib; CLI, source IO and audit gates are separate modules. This is a targeted dependency fitness test, not a claim that all design decisions are optimal.
+- Wheel built locally and installed in an isolated environment; CLI entry point and registry exercised outside the repository. Runtime has no third-party dependencies. Python 3.10+ declared; execution tested in the available Linux/Python environment, not an all-platform certification.
+- Complete-record and graph tests use explicitly synthetic fixtures. They verify algorithms/contracts and prevent selected false completion modes; they do not prove accuracy of a real product audit.
+- All three auto-generated video transcripts were read fully. Continuous visual review and independent source-repository verification remain incomplete.
+- No production repository calibration, cloud adapter, universal AST extractor, model-provider orchestration or live security/load test is claimed.
 
-Remaining integration work, if desired: provider-specific read-only cloud adapters, AST/call-graph adapters, actual tokenizer budgets and model-provider orchestration. These are explicitly not implemented features of this release.
+Upgrade: create a fresh 2.0 run. Do not manually bump old run versions or reuse COMPLETE without rebuilding evidence/model/coverage. Version 1.0 remains historical; 2.0 uses architecture as the default profile.

@@ -514,5 +514,69 @@
     ],
     "accessed": "2026-09-17",
     "retrieval_status": "RELEVANT_SECTIONS_READ"
+  },
+  {
+    "id": "VID-03",
+    "title": "هل لازم فعلاً أفهم الكود ولا لا؟ — Bashmohandes Mazen",
+    "url": "https://www.youtube.com/watch?v=Pi6C1_91vUM",
+    "version": "تفريغ آلي عربي 00:00–28:07",
+    "contribution": "بذور: العقود والبنية والعلاقات، lifecycle، حدود التعديل.",
+    "limits": "قراءة كاملة للتفريغ، لا تحقق بصري متصل ولا وصول لريبو العرض. مصدر توضيح لا معيار إلزامي.",
+    "domains": [
+      "02",
+      "04",
+      "26",
+      "27"
+    ],
+    "accessed": "2026-09-17",
+    "retrieval_status": "FULL_AUTO_TRANSCRIPT_READ"
+  },
+  {
+    "id": "SRC-FOWLER-ARCH",
+    "title": "Software Architecture Guide — Martin Fowler",
+    "url": "https://martinfowler.com/architecture/",
+    "version": "2019 / living guide",
+    "contribution": "تمييز القرارات المهمة الداخلية والقدرة على التطور عن تعقيد الشكل.",
+    "limits": "قرئت أقسام التعريف والجدوى والتطبيق؛ لا ادعاء قراءة كل الروابط.",
+    "domains": [
+      "02",
+      "04",
+      "26",
+      "27"
+    ],
+    "accessed": "2026-09-17",
+    "retrieval_status": "RELEVANT_SECTIONS_READ"
+  },
+  {
+    "id": "SRC-STAMINA",
+    "title": "Design Stamina Hypothesis — Martin Fowler",
+    "url": "https://martinfowler.com/bliki/DesignStaminaHypothesis.html",
+    "version": "2007",
+    "contribution": "إطار تفكير في كلفة التغيير المتراكمة والاستثمار في التصميم.",
+    "limits": "فرضية مهنية يصفها المؤلف كذلك، ليست ضمان إنتاجية أو علاقة عددية مثبتة.",
+    "domains": [
+      "02",
+      "04",
+      "26",
+      "27"
+    ],
+    "accessed": "2026-09-17",
+    "retrieval_status": "ARTICLE_READ"
+  },
+  {
+    "id": "SRC-QAW",
+    "title": "Quality Attribute Workshops Third Edition — SEI",
+    "url": "https://www.sei.cmu.edu/library/quality-attribute-workshops-qaws-third-edition/",
+    "version": "CMU/SEI-2003-TR-016",
+    "contribution": "استخدام سيناريوهات أصحاب المصلحة لتوضيح خصائص الجودة.",
+    "limits": "قرئت صفحة الملخص؛ صيغة السيناريوهات في الحزمة تصميم تشغيلي أصلي، لا ادعاء تنفيذ QAW أو ATAM كامل.",
+    "domains": [
+      "02",
+      "04",
+      "26",
+      "27"
+    ],
+    "accessed": "2026-09-17",
+    "retrieval_status": "ABSTRACT_READ"
   }
 ]

@@ -42,3 +42,10 @@
 
 - [AWS Well-Architected Security Pillar](https://docs.aws.amazon.com/wellarchitected/latest/security-pillar/welcome.html): إضافة منظور مسؤولية التشغيل وأمان البنية ومفاضلات الكلفة والاستدامة. حدود القراءة: قرئت المقدمة؛ الضوابط التفصيلية التالية synthesis وليست اقتباسًا لكل فصل AWS.
 - [Kubernetes Security Checklist](https://kubernetes.io/docs/concepts/security/security-checklist/): فصل network policy عن دعم CNI، وتدقيق واجهات الإدارة وRBAC وPod Security. حدود القراءة: أقسام security checklist ذات الصلة؛ لا تفرض Kubernetes على مشروع لا يستخدمه.
+
+## مصادر الاتجاه المعماري في 2.0
+
+- **VID-03** [هل لازم فعلاً أفهم الكود ولا لا؟ — Bashmohandes Mazen](https://www.youtube.com/watch?v=Pi6C1_91vUM): بذور: العقود والبنية والعلاقات، lifecycle، حدود التعديل. حدود الإثبات: قراءة كاملة للتفريغ، لا تحقق بصري متصل ولا وصول لريبو العرض. مصدر توضيح لا معيار إلزامي.
+- **SRC-FOWLER-ARCH** [Software Architecture Guide — Martin Fowler](https://martinfowler.com/architecture/): تمييز القرارات المهمة الداخلية والقدرة على التطور عن تعقيد الشكل. حدود الإثبات: قرئت أقسام التعريف والجدوى والتطبيق؛ لا ادعاء قراءة كل الروابط.
+- **SRC-STAMINA** [Design Stamina Hypothesis — Martin Fowler](https://martinfowler.com/bliki/DesignStaminaHypothesis.html): إطار تفكير في كلفة التغيير المتراكمة والاستثمار في التصميم. حدود الإثبات: فرضية مهنية يصفها المؤلف كذلك، ليست ضمان إنتاجية أو علاقة عددية مثبتة.
+- **SRC-QAW** [Quality Attribute Workshops Third Edition — SEI](https://www.sei.cmu.edu/library/quality-attribute-workshops-qaws-third-edition/): استخدام سيناريوهات أصحاب المصلحة لتوضيح خصائص الجودة. حدود الإثبات: قرئت صفحة الملخص؛ صيغة السيناريوهات في الحزمة تصميم تشغيلي أصلي، لا ادعاء تنفيذ QAW أو ATAM كامل.

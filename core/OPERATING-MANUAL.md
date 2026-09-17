@@ -1,3 +1,7 @@
+# توجيه الإصدار 2.0
+
+Architecture وStructure والصيانة والتطور هي محور العمل. هذا الملف kernel عام يُطبق بعد `ARCHITECTURE-FIRST.md`. تخصيص النطاق يتم عبر profile architecture/full المعلن؛ لا تعتبر المجالات المساندة OUT_OF_SCOPE ناجحة أو غير منطبقة. لا يكون الشكل الإنشائي للمجلدات بديلًا عن source-backed model.
+
 # Master Operating Protocol
 
 ## 00 — العقد التشغيلي

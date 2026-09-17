@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "revision": "SYNTHETIC_FIXTURE",
+  "coverage": {
+    "status": "REVIEWED",
+    "scope": "Synthetic record-contract fixture only",
+    "limitations": []
+  },
+  "nodes": [
+    {
+      "id": "entry",
+      "name": "entry",
+      "kind": "module",
+      "responsibility": "Synthetic entry contract",
+      "domain": "synthetic",
+      "boundary": "entry",
+      "owner": "entry",
+      "paths": [
+        "package.json"
+      ],
+      "evidence_ids": [
+        "E-1"
+      ]
+    },
+    {
+      "id": "service",
+      "name": "service",
+      "kind": "module",
+      "responsibility": "Synthetic policy owner",
+      "domain": "synthetic",
+      "boundary": "service",
+      "owner": "service",
+      "paths": [
+        "app.py"
+      ],
+      "evidence_ids": [
+        "E-1"
+      ]
+    },
+    {
+      "id": "store",
+      "name": "store",
+      "kind": "module",
+      "responsibility": "Synthetic storage adapter",
+      "domain": "synthetic",
+      "boundary": "store",
+      "owner": "store",
+      "paths": [
+        "store.py"
+      ],
+      "evidence_ids": [
+        "E-1"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "EDGE-1",
+      "from": "entry",
+      "to": "service",
+      "relation": "uses_contract",
+      "reason": "Synthetic relation",
+      "status": "CONFIRMED",
+      "evidence_ids": [
+        "E-1"
+      ]
+    },
+    {
+      "id": "EDGE-2",
+      "from": "service",
+      "to": "store",
+      "relation": "calls",
+      "reason": "Synthetic relation",
+      "status": "CONFIRMED",
+      "evidence_ids": [
+        "E-1"
+      ]
+    }
+  ],
+  "contracts": [
+    {
+      "id": "CONTRACT-1",
+      "owner": "service",
+      "consumers": [
+        "entry"
+      ],
+      "description": "Synthetic policy operation",
+      "invariant": "Only valid transitions accepted",
+      "failure_semantics": "Reject invalid input without writes",
+      "compatibility": "Keep declared inputs/outputs",
+      "evidence_ids": [
+        "E-1"
+      ]
+    }
+  ],
+  "business_rules": [
+    {
+      "id": "RULE-1",
+      "owner": "service",
+      "consumers": [
+        "entry"
+      ],
+      "description": "Synthetic transition policy",
+      "invariant": "One logical operation has one effect",
+      "evidence_ids": [
+        "E-1"
+      ]
+    }
+  ],
+  "change_scenarios": [
+    {
+      "id": "CHANGE-1",
+      "stimulus": "Add a policy condition",
+      "environment": "Synthetic design exercise",
+      "artifact": "Policy and consumer contract",
+      "response": "Trace owner, consumers and tests",
+      "measure": "Explicit owner and all modelled consumers identified; not measured in production",
+      "method": "Synthetic record fixture; no real product verification",
+      "affected_nodes": [
+        "entry",
+        "service"
+      ],
+      "status": "TRACED",
+      "evidence_ids": [
+        "E-1"
+      ]
+    }
+  ],
+  "dependency_policies": []
+}

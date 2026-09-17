@@ -3,8 +3,8 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 [project]
 name = "engineering-audit-os"
-version = "1.0.0"
-description = "Evidence-first engineering audit workspace and context CLI"
+version = "2.0.0"
+description = "Architecture, structure and maintainability audit CLI"
 requires-python = ">=3.10"
 readme = "README.md"
 [project.scripts]

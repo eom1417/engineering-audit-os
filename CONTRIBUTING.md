@@ -9,3 +9,5 @@
 7. أضف changelog، لا ترفع ادعاء field-validation دون تجارب منشورة داخل المشروع.
 
 الـCLI مستقل عن agent providers. إضافة adapter ليست مبررًا لتغيير evidence-first policy أو الإرسال التلقائي لكود العميل.
+
+في2.0: graph algorithms في eaos/architecture.py لا تنفذ IO؛ CLI يستدعيها ويضبط revision والملفات. أي إضافة semantic parser تستخرج candidate edges مع evidence/confidence، ولا ترفعها CONFIRMED بمجرد regex match. اختبر direction وunknown edges وscope truncation وfalse positives، وحافظ على فصل graph signals عن Findings.

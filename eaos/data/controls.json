@@ -1,5 +1,5 @@
 {
-  "framework_version": "1.0.0",
+  "framework_version": "2.0.0",
   "modules": [
     {
       "id": "01",
@@ -2963,6 +2963,300 @@
           "seed_refs": [
             "VID-02"
           ]
+        }
+      ]
+    },
+    {
+      "id": "27",
+      "title": "Architecture Structure Maintainability & Evolution",
+      "applies_when": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+      "artifacts": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+      "source_ids": [
+        "SRC-C4",
+        "SRC-REVIEW",
+        "SRC-FOWLER-ARCH",
+        "SRC-QAW"
+      ],
+      "controls": [
+        {
+          "id": "EAOS-27-001",
+          "name": "قابلية اكتشاف المسؤولية",
+          "invariant": "كل سلوك مهم يقود إلى مكان مسؤول واضح",
+          "procedure": "خذ عطلًا أو طلب تغيير؛ انتقل من entrypoint إلى مالك القاعدة والعقد والاختبار؛ سجل المسارات والتفسيرات البديلة",
+          "verification": "أعد نفس تمرين الوصول من خريطة النظام دون الاعتماد على ذاكرة من كتب الكود",
+          "counter_evidence": "أسماء folders وحدها لا تثبت separation؛ ملف كبير قد يكون generated أو cohesive",
+          "evidence_required": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+          "applicability": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-FOWLER-ARCH",
+            "SRC-QAW"
+          ],
+          "seed_refs": [
+            "VID-03"
+          ],
+          "origin": "EAOS_SYNTHESIS"
+        },
+        {
+          "id": "EAOS-27-002",
+          "name": "اتجاه الاعتمادية",
+          "invariant": "تتبع الوحدات سياسة تبعية صريحة تحمي قراراتها",
+          "procedure": "افصل imports عن runtime calls وعن reads/writes؛ ارسم consumer→provider؛ اقرأ shared façades وdynamic registration",
+          "verification": "اختبار architecture fitness يمنع import محظور أو عبور implementation داخلي",
+          "counter_evidence": "الدائرة runtime ليست تلقائيًا circular source dependency؛ لا تفرض layers بعينها",
+          "evidence_required": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+          "applicability": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-FOWLER-ARCH",
+            "SRC-QAW"
+          ],
+          "seed_refs": [
+            "VID-03"
+          ],
+          "origin": "EAOS_SYNTHESIS"
+        },
+        {
+          "id": "EAOS-27-003",
+          "name": "ملكية منطق العمل",
+          "invariant": "كل invariant له مالك ومعنى ومستهلكون معروفون",
+          "procedure": "اربط UI/API/jobs/DB guards بالقاعدة المشتركة؛ ميز duplication في المعرفة عن checks دفاعية عند الحدود",
+          "verification": "غيّر قيمة أو سياسة مفترضة وتتبع جميع writers والاختبارات المتوقعة",
+          "counter_evidence": "Validation في أكثر من boundary قد يكون صحيحًا؛ توحيد نص متشابه بمعنى مختلف يخلق coupling",
+          "evidence_required": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+          "applicability": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-FOWLER-ARCH",
+            "SRC-QAW"
+          ],
+          "seed_refs": [
+            "VID-03"
+          ],
+          "origin": "EAOS_SYNTHESIS"
+        },
+        {
+          "id": "EAOS-27-004",
+          "name": "الواجهات والعقود الداخلية",
+          "invariant": "التغيير الداخلي لا يجبر المستهلك على معرفة تفاصيل غير لازمة",
+          "procedure": "وثق input/output/errors/side effects/transaction ownership وفشل وإلغاء/timeout حسب الانطباق",
+          "verification": "اختبار contract للمستهلك الحقيقي مع حالات فشل؛ تحقق من compatibility قبل تغيير signature",
+          "counter_evidence": "interface لكل class ليس هدفًا؛ wrapper بلا سياسة أو seam حقيقي قد يزيد التعقيد",
+          "evidence_required": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+          "applicability": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-FOWLER-ARCH",
+            "SRC-QAW"
+          ],
+          "seed_refs": [
+            "VID-03"
+          ],
+          "origin": "EAOS_SYNTHESIS"
+        },
+        {
+          "id": "EAOS-27-005",
+          "name": "الحدود الدلالية للميزات",
+          "invariant": "الميزة لها حدود تغيير تتوافق مع أسباب تغيرها",
+          "procedure": "حدد actors/rules/state lifecycle لكل feature؛ افحص god module أو shared utils يتوسع بلا cohesion",
+          "verification": "قارن طلبين مستقلين: هل يغيران أجزاء مشتركة بلا ضرورة دلالية؟",
+          "counter_evidence": "vertical slices وlayered structure كلاهما صالح؛ وجود folder واحد لا يعني ضعف modularity",
+          "evidence_required": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+          "applicability": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-FOWLER-ARCH",
+            "SRC-QAW"
+          ],
+          "seed_refs": [
+            "VID-03"
+          ],
+          "origin": "EAOS_SYNTHESIS"
+        },
+        {
+          "id": "EAOS-27-006",
+          "name": "دورة حياة الحالة",
+          "invariant": "حفظ الحالة وإعادة تحميلها وتطبيقها متسقة عبر العمر التشغيلي",
+          "procedure": "تتبع create/save/load/activate/update/restart/migrate/delete؛ حدد من يملك كل transition",
+          "verification": "اختبار setting محفوظ ثم upgrade/restart ثم إعادة تطبيقه؛ فصل فساد التخزين عن غياب الاستحضار",
+          "counter_evidence": "وجود write ناجح لا يثبت restoration؛ تغيير backup لا يصلح loader مفقودًا",
+          "evidence_required": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+          "applicability": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-FOWLER-ARCH",
+            "SRC-QAW"
+          ],
+          "seed_refs": [
+            "VID-03"
+          ],
+          "origin": "EAOS_SYNTHESIS"
+        },
+        {
+          "id": "EAOS-27-007",
+          "name": "انتشار أثر التغيير",
+          "invariant": "كل تغيير يرى حدوده ومستهلكيه قبل التنفيذ",
+          "procedure": "أجر reverse dependency walk ثم contract/rule consumers وconfiguration/deployment seams؛ أعلن dynamic gaps",
+          "verification": "اختبر سيناريو إضافة policy أو تغيير contract مع expected touchpoints قبل diff",
+          "counter_evidence": "عدد الملفات ليس جودة: تعديلات متعددة لازمة قد تكون أصح من shortcut يترك consumers مكسورين",
+          "evidence_required": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+          "applicability": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-FOWLER-ARCH",
+            "SRC-QAW"
+          ],
+          "seed_refs": [
+            "VID-03"
+          ],
+          "origin": "EAOS_SYNTHESIS"
+        },
+        {
+          "id": "EAOS-27-008",
+          "name": "قابلية الاختبار والعزل",
+          "invariant": "يمكن اختبار invariant دون تشغيل منظومة غير لازمة",
+          "procedure": "افحص construction/global state/clock/random/network/db coupling؛ حدد أصغر seam يمكن التحكم فيه",
+          "verification": "نفذ failure test بمحاكاة الحدود مع integration حقيقي مناسب؛ راقب mock-overuse",
+          "counter_evidence": "لا تفرض DI container؛ تمرير dependency واضح قد يكفي ولا معنى لفصل لا يستخدم",
+          "evidence_required": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+          "applicability": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-FOWLER-ARCH",
+            "SRC-QAW"
+          ],
+          "seed_refs": [
+            "VID-03"
+          ],
+          "origin": "EAOS_SYNTHESIS"
+        },
+        {
+          "id": "EAOS-27-009",
+          "name": "المرونة المتناسبة",
+          "invariant": "التوسعة تعالج تغيرًا معلومًا بكلفة مفهومة",
+          "procedure": "حدد extension point من سيناريو واقعي، راجع options: direct change/small extraction/strategy/plugin؛ قارن complexity",
+          "verification": "جرّب امتدادًا واحدًا في تصميم أو sandbox مأذون ثم قارن الشروط والاختبارات والكلفة",
+          "counter_evidence": "لا تبنِ plugin system لميزة افتراضية؛ لا تُقيّم extensibility بعدد interfaces",
+          "evidence_required": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+          "applicability": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-FOWLER-ARCH",
+            "SRC-QAW"
+          ],
+          "seed_refs": [
+            "VID-03"
+          ],
+          "origin": "EAOS_SYNTHESIS"
+        },
+        {
+          "id": "EAOS-27-010",
+          "name": "انجراف القرارات",
+          "invariant": "البنية الحالية والقرار المعتمد مختلفان فقط بسبب مفهوم ومراجع",
+          "procedure": "اقرأ ADRs وdiffs وdeprecated paths وقارن directed edges بpolicy وownership",
+          "verification": "تحقق من تغيير متعمد مع ADR supersedes أو ارفع deviation بدليل؛ لا تسم كل اختلاف bug",
+          "counter_evidence": "القرار القديم قد يكون لم يعد مناسبًا؛ لا تصلح الكود ليتبع وثيقة خاطئة",
+          "evidence_required": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+          "applicability": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-FOWLER-ARCH",
+            "SRC-QAW"
+          ],
+          "seed_refs": [
+            "VID-03"
+          ],
+          "origin": "EAOS_SYNTHESIS"
+        },
+        {
+          "id": "EAOS-27-011",
+          "name": "نقاط تغيير متكررة",
+          "invariant": "مخاطر الصيانة مربوطة بتاريخ أو سيناريو لا حجم مجرد",
+          "procedure": "إذا توفر history اقرأ changes/co-change مع استبعاد formatting/generated؛ اربطها بمسؤوليات وانتهاكات أو وقت إصلاح",
+          "verification": "تحقق من أمثلة تغييرات تسبب ripple effects أو regressions متكررة",
+          "counter_evidence": "churn/fan-in/complexity إشارات؛ module محوري مستقر قد يكون تصميمًا سليمًا",
+          "evidence_required": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+          "applicability": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-FOWLER-ARCH",
+            "SRC-QAW"
+          ],
+          "seed_refs": [
+            "VID-03"
+          ],
+          "origin": "EAOS_SYNTHESIS"
+        },
+        {
+          "id": "EAOS-27-012",
+          "name": "هجرة معمارية تدريجية",
+          "invariant": "التحسين يحقق invariant قبل توسيع مساحة التغيير",
+          "procedure": "اقترح seam وحدود target architecture وخطوات compatibility وrollback وdeletion of old path بعد تحقق",
+          "verification": "اختبار old/new consumer وrollback أو rollforward؛ مقارنة قبل/بعد عبر change scenario نفسه",
+          "counter_evidence": "إعادة كتابة المشروع ليست استنتاجًا طبيعيًا من smell؛ لا تترك نظامين مصدرَي حقيقة",
+          "evidence_required": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+          "applicability": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-FOWLER-ARCH",
+            "SRC-QAW"
+          ],
+          "seed_refs": [
+            "VID-03"
+          ],
+          "origin": "EAOS_SYNTHESIS"
+        },
+        {
+          "id": "EAOS-27-013",
+          "name": "الاستدامة البشرية والسياقية",
+          "invariant": "الفهم ينتقل بأدلة إلى مهندس أو وكيل آخر",
+          "procedure": "اربط ownership/ADR/contracts/rules/source/testing map؛ سجل مفقودات النموذج بدل ملء الفراغ بالحدس",
+          "verification": "استئناف مهمة تغيير من context packet ثم إعادة تحقق من hashes والقرارات",
+          "counter_evidence": "ملخص طويل أو model context كبير لا يثبت قابلية الفهم؛ تقليل tokens ليس هدفًا إذا أخفى شروطًا",
+          "evidence_required": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+          "applicability": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-FOWLER-ARCH",
+            "SRC-QAW"
+          ],
+          "seed_refs": [
+            "VID-03"
+          ],
+          "origin": "EAOS_SYNTHESIS"
+        },
+        {
+          "id": "EAOS-27-014",
+          "name": "اختيار مستوى المراجعة",
+          "invariant": "عمق قراءة التنفيذ يتناسب مع المخاطر والعقود",
+          "procedure": "بعد معرفة architecture اقرأ local code الحاسم: auth/crypto/money/concurrency/state serialization؛ لا تعفِ الدوال الصغيرة",
+          "verification": "راجع negative paths واستخدم مكتبات موثوقة واختبارات تفصل correctness عن style",
+          "counter_evidence": "الوثوق بنموذج في وظيفة سابقة ليس دليلًا لصحة الدالة الحالية؛ heuristic يحتاج اختبارًا",
+          "evidence_required": "architecture.json، contracts، rule ownership، change scenarios، ADRs، source/evidence/test map",
+          "applicability": "المحور الأساسي لكل منتج؛ يخصص العمق حسب الحجم والعمر والتغير المتوقع",
+          "source_ids": [
+            "SRC-C4",
+            "SRC-REVIEW",
+            "SRC-FOWLER-ARCH",
+            "SRC-QAW"
+          ],
+          "seed_refs": [
+            "VID-03"
+          ],
+          "origin": "EAOS_SYNTHESIS"
         }
       ]
     }

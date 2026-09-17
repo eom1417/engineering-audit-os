@@ -14,12 +14,13 @@ def render():
             lines += [f"## {c['id']} — {c['name']}",'',f"- **Invariant:** {c['invariant']}",f"- **Inspection procedure:** {c['procedure']}",f"- **Verification / negative test:** {c['verification']}",f"- **Counter-evidence:** {c['counter_evidence']}",f"- **Required evidence:** {c['evidence_required']}",f"- **Source IDs:** {', '.join(c['source_ids'])}",f"- **Provenance:** {c['origin']}; seed references: {', '.join(c['seed_refs']) or 'external research / original synthesis'}",'']
         content='\n'.join(lines)+'\n'; (R/'modules'/f"{m['id']}.md").write_text(content);outputs.append(content)
     (R/'TAXONOMY.md').write_text('\n'.join(taxonomy)+'\n')
-    parts=['# Engineering Audit OS — Master Manual\n\nVersion 1.0.0. Generated from canonical core, registry and research.\n']
-    for name in ['START-HERE.md','core/OPERATING-MANUAL.md','core/EVIDENCE-AND-TRIAGE.md','core/REMEDIATION-AND-GATES.md','core/CLI-AND-CONTEXT.md','TAXONOMY.md']:
+    parts=['# Engineering Audit OS — Master Manual\n\nVersion 2.0.0. Generated from canonical core, registry and research.\n']
+    for name in ['START-HERE.md','core/ARCHITECTURE-FIRST.md','core/OPERATING-MANUAL.md','core/EVIDENCE-AND-TRIAGE.md','core/REMEDIATION-AND-GATES.md','core/CLI-AND-CONTEXT.md','TAXONOMY.md']:
         parts.append((R/name).read_text())
     parts+=outputs
-    for name in ['templates/RECORDS.md','examples/SCENARIOS.md','core/EXTENSION-PROTOCOL.md','research/RESEARCH.md','research/SOURCES.md']:
+    for name in ['templates/RECORDS.md','examples/SCENARIOS.md','core/EXTENSION-PROTOCOL.md','research/RESEARCH.md','research/ARCHITECTURE-SEED.md','research/SOURCES.md']:
         parts.append((R/name).read_text())
+    parts.append('# Architecture JSON Schema\n\n```json\n'+(R/'schemas/architecture.schema.json').read_text()+'```\n')
     parts.append('# Finding JSON Schema\n\n```json\n'+(R/'schemas/finding.schema.json').read_text()+'```\n')
     (R/'MASTER-MANUAL.md').write_text('\n\n---\n\n'.join(parts))
     data=R/'eaos/data';data.mkdir(exist_ok=True)
