@@ -8,7 +8,7 @@ import signal
 import subprocess
 import tempfile
 import time
-from ..workspace import read,write,load_run,inventory,fresh,digest,SENSITIVE
+from ..workspace import read,write,load_run,inventory,fresh,digest,SENSITIVE,run_lock
 from ..workflow import roadmap_check
 from .context import Context,redact
 from .jobs import Jobs
@@ -73,6 +73,11 @@ def validated_edits(edits,allowed,root):
 
 
 def implement(path,task_id,out,checks_path,provider,budget=96000,max_rounds=8):
+    with run_lock(path):
+        return _implement(path,task_id,out,checks_path,provider,budget,max_rounds)
+
+
+def _implement(path,task_id,out,checks_path,provider,budget=96000,max_rounds=8):
     run,state=load_run(path);inv=read(run/'inventory.json')
     if not fresh(state,inv)[0]:raise ValueError('Audit source changed; review current source first')
     readiness=roadmap_check(run,state)
@@ -92,13 +97,13 @@ def implement(path,task_id,out,checks_path,provider,budget=96000,max_rounds=8):
         except ValueError:continue
         if digest(original.read_bytes())!=item['sha256']:raise ValueError('Source changed while copying')
         target=project/item['path'];target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(original,target)
-    manifest={f['path']:f['sha256'] for f in inv['files'] if f['capture']=='hashed'}
+    manifest={f['path']:f['sha256'] for f in inv['files'] if f['capture']=='hashed' and (project/f['path']).is_file()}
     baseline=run_checks(project,config,'baseline');write(records/'baseline.json',baseline)
     if any(r['status']!='pass' for r in baseline):
         result={'status':'BASELINE_FAILED','project':str(project),'checks':baseline,'original_target_unchanged':fresh(state,inv)[0]};write(records/'result.json',result);return result
     for rel,h in manifest.items():
         p=project/rel
-        if p.exists() and digest(p.read_bytes())!=h:raise ValueError('Baseline check modified source; inspect isolated copy before proceeding')
+        if not p.is_file() or digest(p.read_bytes())!=h:raise ValueError('Baseline check modified source; inspect isolated copy before proceeding')
     context=Context(run,state,budget);jobs=Jobs(records,context,provider,budget,max_rounds)
     # Records and retrieval are from the original audit; source edits are only written into project.
     for name in ['architecture.json','findings.json','roadmap.json','target-architecture.json','flows.json']:
@@ -134,7 +139,16 @@ def implement(path,task_id,out,checks_path,provider,budget=96000,max_rounds=8):
         for p,content in edits:
             if content is None:p.unlink(missing_ok=True)
             else:p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content,encoding='utf-8')
-        checks=run_checks(project,config,'post-change-'+str(attempt));write(records/('checks-'+str(attempt)+'.json'),checks)
+        expected=dict(manifest)
+        for rel in task['files']:
+            p=project/rel;expected[rel]=digest(p.read_bytes()) if p.is_file() else None
+        checks=run_checks(project,config,'post-change-'+str(attempt))
+        mutated=[]
+        for rel,h in expected.items():
+            p=project/rel;actual=digest(p.read_bytes()) if p.is_file() else None
+            if actual!=h:mutated.append(rel)
+        if mutated:checks.append({'id':'SOURCE-INTEGRITY','phase':'post-change-'+str(attempt),'status':'fail','exit_code':None,'output':'Verification commands changed source after the candidate was prepared: '+', '.join(mutated)})
+        write(records/('checks-'+str(attempt)+'.json'),checks)
         if all(c['status']=='pass' for c in checks):accepted=True;break
         feedback={'failed_checks':[c for c in checks if c['status']!='pass'],'candidate_files':{rel:(project/rel).read_text() if (project/rel).is_file() else None for rel in task['files']}}
     patch=''

@@ -2,7 +2,7 @@
 
 ## Product contract
 
-EAOS guides a coding agent through discovery, reconstruction, audit and an actionable development plan. The CLI never calls a model, runs repository scripts or edits target code. The host agent performs semantic analysis and any separately authorized remediation. A GitHub URL distributes this system; it does not execute an agent. An installed wheel contains this manual in `eaos/data/core/`.
+This manual describes host-driven audit/next. The executable run/implement/improve route is documented in core/RUNTIME.md and supersedes historical 2.1 runtime limitations below. In host-driven audit/next, EAOS guides a coding agent through discovery, reconstruction, audit and an actionable development plan; these commands do not call a model or run project scripts. The host agent performs semantic analysis and any separately authorized remediation. A GitHub URL distributes this system; it does not execute an agent. An installed wheel contains this manual in `eaos/data/core/`.
 
 One entry point:
 

@@ -33,6 +33,7 @@ def contract(stage):
     if stage=='review':return {'applicability':'APPLICABLE or NOT_APPLICABLE','reason':'Evidence-backed reason','evidence_ids':['SRC-...'],'findings_schema':read(DATA/'schemas/finding.schema.json'),'coverage_schema':read(DATA/'schemas/coverage.schema.json'),'findings':[],'coverage':[],'unknowns':[]}
     if stage=='design':return dict(DESIGN,roadmap_schema=read(DATA/'schemas/roadmap.schema.json'),gate_schema=read(DATA/'schemas/gate.schema.json'))
     if stage in {'challenge','reaudit'}:return CHALLENGE
+    if stage=='uncertainty':return {'resolutions':[{'question':'Exact input question','status':'resolved or unresolved','rationale':'How evidence resolves this question, or what remains unknown','evidence_ids':['SRC-...']}]}
     if stage=='repair':return {'edits':[{'path':'Exact planned relative path','content':'Full new UTF-8 content, or null for deletion'}],'rationale':'Why these changes protect the task invariant','evidence_ids':['SRC-...']}
     raise ValueError('Unknown engine stage')
 
@@ -40,7 +41,7 @@ def contract(stage):
 def basic_errors(stage,result):
     if not isinstance(result,dict):return ['Result must be an object']
     errors=[]
-    required={'inspect':['summary','responsibilities','business_rules','flows','risks','unknowns','evidence_ids'],'reduce':['summary','responsibilities','business_rules','flows','risks','unknowns','evidence_ids'],'architecture':['architecture','flows','unknowns'],'review_plan':['applicability','reason','evidence_ids','instances'],'reconcile':['findings','coverage','unknowns'],'review':['applicability','reason','evidence_ids','findings','coverage','unknowns'],'design':['tasks','dispositions','gates','target_architecture','unknowns'],'challenge':['assessment','issues','rationale','evidence_ids'],'reaudit':['assessment','issues','rationale','evidence_ids'],'repair':['edits','rationale','evidence_ids']}[stage]
+    required={'inspect':['summary','responsibilities','business_rules','flows','risks','unknowns','evidence_ids'],'reduce':['summary','responsibilities','business_rules','flows','risks','unknowns','evidence_ids'],'architecture':['architecture','flows','unknowns'],'review_plan':['applicability','reason','evidence_ids','instances'],'reconcile':['findings','coverage','unknowns'],'review':['applicability','reason','evidence_ids','findings','coverage','unknowns'],'design':['tasks','dispositions','gates','target_architecture','unknowns'],'challenge':['assessment','issues','rationale','evidence_ids'],'reaudit':['assessment','issues','rationale','evidence_ids'],'uncertainty':['resolutions'],'repair':['edits','rationale','evidence_ids']}[stage]
     for key in required:
         if key not in result:errors.append('Missing '+key)
     if errors:return errors
@@ -53,6 +54,7 @@ def basic_errors(stage,result):
             if not isinstance(result[key],dict):errors.append('Invalid object '+key)
         elif not isinstance(result[key],list):errors.append('Invalid array '+key)
     if errors:return errors
+    if 'unknowns' in result and any(not isinstance(q,str) or not q.strip() for q in result['unknowns']):errors.append('Unknowns must be nonempty question strings')
     if stage in {'inspect','reduce'} and len(result['summary'])>3000:errors.append('Summary exceeds 3000 characters')
     if stage in {'challenge','reaudit'}:
         if result['assessment'] not in {'ACCEPT','REVISE'}:errors.append('Invalid assessment')

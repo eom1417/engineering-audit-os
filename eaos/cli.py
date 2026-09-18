@@ -7,24 +7,15 @@ import sys
 from . import __version__
 from . import architecture as arch
 from . import discovery, workflow
-from .workspace import DATA, bounded_int, now, digest, read, write, registry, controls, inventory, load_run, fresh, safe_file
+from .workspace import DATA, bounded_int, now, digest, read, write, registry, controls, inventory, load_run, fresh, safe_file, run_lock
 from .audit_records import check, schema_errors
 
 def init(args):
-    target=Path(args.target).resolve();out=Path(args.out).resolve()
-    if out==target or target in out.parents: raise ValueError('--out must be outside target to preserve read-only discovery')
-    if out.exists(): raise ValueError('Output exists; choose a new run directory (never overwritten)')
-    inv=inventory(target,args.max_files,args.max_bytes)
-    out.mkdir(parents=True)
-    write(out/'inventory.json',inv)
-    state={'schema_version':2,'framework_version':__version__,'profile':args.profile,'id':out.name,'created_at':now(),'target':str(target),'revision':inv['fingerprint'],'mode':'audit_only','completion':'INCOMPLETE','remediation_completion':'NOT_REQUESTED','production_readiness':'NOT_ASSESSED','scope':{'description':'UNDEFINED — agent must define boundaries, environments and excluded surfaces','environments':[],'approved_exclusions':[]},'scope_confirmed':False,'inventory_reviewed':False,'architecture_reviewed':False,'product_flows_reviewed':False,'expected_instances':[],'unknowns':['Architecture, responsibilities and change impact have not been reconstructed.'],'module_decisions':[{'module_id':m['id'],'applicability':'UNDECIDED' if args.profile=='full' or m['id'] in arch.CORE_MODULES else 'OUT_OF_SCOPE','reason':'' if args.profile=='full' or m['id'] in arch.CORE_MODULES else 'Supporting lens; activate when architecture or change scenarios cross this domain. Not a complete domain audit.','evidence_ids':[]} for m in registry()['modules']]}
-    write(out/'run.json',state)
-    write(out/'architecture.json',arch.empty_model(state['revision']))
-    for n in ['findings','coverage','evidence','gates','decisions']:write(out/(n+'.json'),[])
-    (out/'architecture.md').write_text('# Architecture reconstruction\n\nUNREVIEWED. Record components, trust boundaries and evidence-backed edges.\n')
-    (out/'product-flows.md').write_text('# Product journeys and invariants\n\nUNREVIEWED. Separate requirements, observed behavior and hypotheses.\n')
-    (out/'AGENT-START.md').write_text((DATA/'START-HERE.md').read_text()+'\n\nRun directory: `'+str(out)+'`\nTarget: `'+str(target)+'`\nUse `eaos plan` and `eaos packet`; review unknowns before claiming completion.\n')
+    from .sessions import create_run
+    out=create_run(args.target,args.out,args.profile,args.max_files,args.max_bytes)
+    inv=read(out/'inventory.json')
     print(json.dumps({'run':str(out),'files':len(inv['files']),'stack_hints':inv['stack_hints'],'completion':'INCOMPLETE'},ensure_ascii=False))
+
 
 def plan(args):
     run,state=load_run(args.run)
@@ -225,7 +216,10 @@ def main(argv=None):
         q=s.add_parser(command);q.add_argument('run');q.add_argument('--node',required=True);q.add_argument('--depth',type=bounded_int,default=2);q.set_defaults(func=fn)
         if command=='context':q.add_argument('--budget-chars',type=bounded_int,default=18000)
     args=p.parse_args(argv)
-    try:return args.func(args) or 0
+    try:
+        if hasattr(args,'run') and args.command not in {'continue','implement','improve'}:
+            with run_lock(args.run):return args.func(args) or 0
+        return args.func(args) or 0
     except (ValueError,OSError,KeyError,TypeError,UnicodeError) as e:
         print(f'eaos: {e}',file=sys.stderr);return 2
 if __name__=='__main__':raise SystemExit(main())

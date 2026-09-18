@@ -7,6 +7,7 @@ from .contracts import SYSTEM,contract,basic_errors
 class Jobs:
     def __init__(self,run,context,provider,budget,max_rounds=8):
         self.run=Path(run);self.context=context;self.provider=provider;self.budget=budget;self.max_rounds=max_rounds
+        self.max_calls=getattr(provider,'config',{}).get('max_calls',400)
         (self.run/'jobs').mkdir(exist_ok=True)
         self.catalog=set();self.dependencies={}
         self.metrics=read(self.run/'usage.json') if (self.run/'usage.json').exists() else []
@@ -34,7 +35,8 @@ class Jobs:
             errors=basic_errors(stage,result)+self.context.verify_refs(result)+(validate(result) if validate else [])
             dependencies=cached.get('record_hashes',{})
             records_current=all((self.run/name).is_file() and digest((self.run/name).read_bytes())==h for name,h in dependencies.items())
-            if cached.get('key')==key and not errors and records_current:return result
+            result_current=cached.get('result_sha256')==digest(json.dumps(result,sort_keys=True,ensure_ascii=False).encode())
+            if cached.get('key')==key and not errors and records_current and result_current:return result
         initial={'stage':stage,'instructions':payload,'output_contract':contract(stage),'available_records':{'catalog':'record-index.json (paginated array of all available record names)','core':[n for n in sorted(self.catalog) if not n.startswith(('brief-','synthesis-','scope-','review-'))]}}
         memory={};history=[];self.dependencies={}
         for round_no in range(self.max_rounds):
@@ -42,8 +44,18 @@ class Jobs:
             if memory:messages.append({'role':'user','content':json.dumps(memory,ensure_ascii=False)})
             chars=len(json.dumps(messages,ensure_ascii=False))
             if chars>self.budget:raise ValueError(f'Job {name} exceeds context budget ({chars}>{self.budget}); nothing silently truncated')
-            if len(self.metrics)>=400:raise ValueError('Run reached its 400-call limit; progress preserved. Review usage before starting additional work.')
-            response,usage=self.provider.complete(messages)
+            if len(self.metrics)>=self.max_calls:raise ValueError('Run reached configured max_calls; progress preserved. Raise max_calls in provider config to resume without invalidating completed semantic jobs.')
+            try:
+                response,usage=self.provider.complete(messages)
+            except json.JSONDecodeError:
+                self.metrics.append({'job':name,'round':round_no+1,'request_characters':chars,'usage':{},'error':'invalid_json','time':now()})
+                write(self.run/'usage.json',self.metrics)
+                memory={'feedback':'Response was not valid JSON. Return only the requested read/final JSON envelope.'}
+                continue
+            except (ValueError,OSError):
+                self.metrics.append({'job':name,'round':round_no+1,'request_characters':chars,'usage':{},'error':'provider_failure','time':now()})
+                write(self.run/'usage.json',self.metrics)
+                raise
             self.metrics.append({'job':name,'round':round_no+1,'request_characters':chars,'usage':usage,'time':now()})
             write(self.run/'usage.json',self.metrics)
             if response.get('action')=='read':
@@ -68,6 +80,6 @@ class Jobs:
                 # Large invalid output is retained on disk for diagnosis; no silent truncation.
                 write(self.run/'jobs'/(name+'-invalid.json'),{'response':response,'errors':errors})
                 continue
-            write(path,{'key':key,'stage':stage,'revision':self.context.state['revision'],'result':result,'validation_history':history,'record_hashes':dict(self.dependencies),'created_at':now()})
+            write(path,{'key':key,'stage':stage,'revision':self.context.state['revision'],'result':result,'result_sha256':digest(json.dumps(result,sort_keys=True,ensure_ascii=False).encode()),'validation_history':history,'record_hashes':dict(self.dependencies),'created_at':now()})
             return result
         raise ValueError(f'Job {name} exhausted {self.max_rounds} rounds; progress saved, no completion claim')

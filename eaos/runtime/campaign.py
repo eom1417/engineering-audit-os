@@ -1,8 +1,8 @@
 """Iterative isolated remediation: implement → verify → fresh full audit → next task."""
 from pathlib import Path
 import shutil
-from argparse import Namespace
-from ..workspace import read,write,load_run
+from ..workspace import read,write,load_run,fresh
+from ..sessions import create_run
 from .pipeline import execute
 from .remediate import implement
 
@@ -13,7 +13,7 @@ def improve(path,out,checks,provider,budget=96000,max_rounds=8,max_steps=10):
     if not 1<=max_steps<=100:raise ValueError('Campaign max steps must be 1–100')
     destination.mkdir(parents=True);current=original;history=[]
     def finish(status,reason,project):
-        result={'status':status,'reason':reason,'original_audit':str(original),'latest_audit':str(current),'project':str(project),'steps':history,'original_repository_modified':False}
+        result={'status':status,'reason':reason,'original_audit':str(original),'latest_audit':str(current),'project':str(project),'steps':history,'original_repository_modified':not fresh(state,read(original/'inventory.json'))[0]}
         write(destination/'campaign.json',result)
         (destination/'CAMPAIGN.md').write_text('# Remediation campaign\n\nStatus: '+status+'\n\n'+reason+'\n\nLatest project: '+str(project)+'\nLatest audit: '+str(current)+'\n')
         return result
@@ -33,10 +33,9 @@ def improve(path,out,checks,provider,budget=96000,max_rounds=8,max_steps=10):
         if result['status']!='VERIFIED_IN_ISOLATED_COPY':return finish('PARTIALLY_COMPLETE','Verification or re-audit did not accept the candidate; inspect preserved changes and evidence.',result['project'])
         if not Path(result['patch']).read_text().strip():return finish('PARTIALLY_COMPLETE','Task produced no source changes; refusing an unproductive repair loop.',result['project'])
         next_run=destination/f'audit-{index+1:03d}'
-        from ..cli import init
         from ..workflow import initialize
         limits=read(current/'inventory.json')['limits']
-        init(Namespace(target=result['project'],out=str(next_run),profile=current_state['profile'],max_files=limits['max_files'],max_bytes=limits['max_bytes']))
+        create_run(result['project'],str(next_run),current_state['profile'],limits['max_files'],limits['max_bytes'])
         initialize(next_run)
         # Reuse only source-inspection jobs keyed by actual source content; semantic/global stages rerun.
         (next_run/'jobs').mkdir(exist_ok=True)
@@ -44,4 +43,7 @@ def improve(path,out,checks,provider,budget=96000,max_rounds=8,max_steps=10):
             if not p.is_symlink() and not p.name.endswith('-invalid.json'):shutil.copy2(p,next_run/'jobs'/p.name)
         write(next_run/'decisions.json',[{'id':'PREDECESSOR','previous_audit':str(current),'remediation_task':task['id'],'verification':str(Path(result['patch']).parent/'verification/result.json'),'note':'Historical context only. Source evidence and global architecture are revalidated for this new snapshot.'}])
         execute(next_run,provider,budget,max_rounds);current=next_run
-    return finish('PARTIALLY_COMPLETE','Configured campaign step limit reached; inspect current plan before increasing the bound.',read(current/'run.json')['target'])
+    latest=read(current/'run.json')
+    remaining=[f for f in read(current/'findings.json') if f['status'] not in {'verified_closed','false_positive','duplicate'}]
+    if latest['completion']=='COMPLETE' and not remaining:return finish('COMPLETE','Final allowed step resolved all findings in the re-audited scope.',latest['target'])
+    return finish('PARTIALLY_COMPLETE','Configured campaign step limit reached; inspect current plan before increasing the bound.',latest['target'])

@@ -2,7 +2,7 @@
 import json
 import os
 from pathlib import Path
-from ..workspace import read,write,load_run,fresh,registry,DATA,now
+from ..workspace import read,write,load_run,fresh,registry,DATA,now,run_lock
 from ..architecture import CORE_MODULES,validate_model
 from ..discovery import classify,scan
 from ..audit_records import check
@@ -14,17 +14,13 @@ from .jobs import Jobs
 def execute(path,provider,budget=96000,max_rounds=8):
     run,state=load_run(path)
     if budget<24000:raise ValueError('Engine budget must be at least 24000 characters; no token equivalence assumed')
-    lock=run/'engine.lock'
-    try:fd=os.open(lock,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
-    except FileExistsError:raise ValueError('Engine run is locked; verify no process is active before removing a stale engine.lock') from None
-    os.write(fd,str(os.getpid()).encode());os.close(fd)
-    try:
-        return _execute(run,state,provider,budget,max_rounds)
-    except Exception as exc:
-        write(run/'engine-state.json',{'status':'BLOCKED','revision':state['revision'],'error':str(exc),'at':now(),'resume':'Run eaos continue with the same provider config; valid completed jobs are reused. A changed source requires a fresh run.'})
-        (run/'ENGINE-STATUS.md').write_text('# Audit blocked\n\n'+str(exc)+'\n\nExisting reports may be from a prior attempt. Inspect engine-state.json; do not claim completion.\n')
-        raise
-    finally:lock.unlink(missing_ok=True)
+    with run_lock(run):
+        try:
+            return _execute(run,state,provider,budget,max_rounds)
+        except Exception as exc:
+            write(run/'engine-state.json',{'status':'BLOCKED','revision':state['revision'],'error':str(exc),'at':now(),'resume':'Run eaos continue with the same provider config; valid completed jobs are reused. A changed source requires a fresh run.'})
+            (run/'ENGINE-STATUS.md').write_text('# Audit blocked\n\n'+str(exc)+'\n\nExisting reports may be from a prior attempt. Inspect engine-state.json; do not claim completion.\n')
+            raise
 
 
 def _execute(run,state,provider,budget,max_rounds):
@@ -89,7 +85,7 @@ def _execute(run,state,provider,budget,max_rounds):
     (run/'architecture.md').write_text('# Observed architecture\n\n```json\n'+json.dumps(model,ensure_ascii=False,indent=2)+'\n```\n')
     (run/'product-flows.md').write_text('# Product flows\n\n```json\n'+json.dumps(architecture['flows'],ensure_ascii=False,indent=2)+'\n```\n')
     state.update(architecture_reviewed=True,product_flows_reviewed=True)
-    findings=[];coverage=[];decisions=[];unknowns=list(architecture['unknowns'])
+    findings=[];coverage=[];decisions=[];unknowns=list(architecture['unknowns'])+[q for brief in briefs for q in brief['unknowns']]
     for module in registry()['modules']:
         mid=module['id']
         phase('scope and review module '+mid)
@@ -208,7 +204,25 @@ def _execute(run,state,provider,budget,max_rounds):
     expose('plan-challenge.json',plan_challenge)
     for name,result in [('diagnosis',challenge),('plan',plan_challenge)]:
         if result['assessment']=='REVISE':state['unknowns'].append(name+' challenge unresolved: '+result['rationale'])
-    state['unknowns']=list(dict.fromkeys(state['unknowns']));write(run/'run.json',state)
+    state['unknowns']=list(dict.fromkeys(state['unknowns']))
+    # No uncertainty disappears merely because a later model summary omitted it.
+    immutable_blockers={o['path']+': '+o['reason'] for o in omissions}
+    immutable_blockers.update(q for q in state['unknowns'] if q.startswith(('diagnosis challenge unresolved:','plan challenge unresolved:')))
+    questions=[q for q in state['unknowns'] if q not in immutable_blockers]
+    if questions:
+        def verify_resolutions(r):
+            rows=r['resolutions'];errors=[]
+            if any(not isinstance(x,dict) for x in rows):return ['Resolution rows must be objects']
+            if len(rows)!=len(questions) or {x.get('question') for x in rows}!=set(questions):errors.append('Account for every question exactly once')
+            for row in rows:
+                if row.get('status') not in {'resolved','unresolved'}:errors.append('Invalid resolution status')
+                if not isinstance(row.get('rationale'),str) or not row['rationale'].strip():errors.append('Resolution needs rationale')
+                if row.get('status')=='resolved' and not row.get('evidence_ids'):errors.append('Resolved question requires evidence')
+            return errors
+        resolutions=jobs.run_job('uncertainty','uncertainty',{'questions':questions,'task':'Resolve these carried questions only by reading actual evidence. Do not drop, merge away or relabel a question to obtain completion. Source cannot prove an unobserved runtime fact. Keep unresolved questions explicit.'},verify_resolutions)
+        expose('uncertainty-resolutions.json',resolutions)
+        state['unknowns']=sorted(immutable_blockers)+[r['question'] for r in resolutions['resolutions'] if r['status']=='unresolved']
+    write(run/'run.json',state)
     result=check(run);state['completion']=result['computed_audit_completion'];write(run/'run.json',state)
     result,progress,plan=render_report(run)
     with (run/'report.md').open('a') as file:

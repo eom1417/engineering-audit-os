@@ -7,11 +7,13 @@ from ..workspace import read,write,safe_file,digest,now
 from ..discovery import classify
 
 # Preserve line numbering; obvious credential values are removed before provider access.
-SECRET=re.compile(r'(?i)(\b(?:api[_-]?key|secret|password|access[_-]?token|authorization)\b\s*[=:]\s*)([^\r\n]+)')
+SECRET=re.compile(r'''(?i)(\b[\w-]*(?:api[_-]?key|secret|password|access[_-]?token|authorization)[\w-]*["']?\s*[=:]\s*)("(?:\\.|[^"\\\r\n])*"|'(?:\\.|[^'\\\r\n])*'|[^\r\n,;}]+)''')
 TOKEN=re.compile(r'\b(?:sk-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[A-Z0-9]{16})\b')
+URL_CREDENTIALS=re.compile(r'(?i)([a-z][a-z0-9+.-]*://)[^/\s:@]+:[^@\s]+@')
 
 def redact(text):
     text=re.sub(r'-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----',lambda m:'[REDACTED PRIVATE KEY]'+('\n'*m.group().count('\n')),text)
+    text=URL_CREDENTIALS.sub(lambda m:m.group(1)+'[REDACTED CREDENTIALS]@',text)
     return TOKEN.sub('[REDACTED TOKEN]',SECRET.sub(lambda m:m.group(1)+'[REDACTED VALUE]',text))
 
 class Context:

@@ -115,6 +115,38 @@ class RuntimeTests(unittest.TestCase):
         self.assertNotIn('abcdefghijklmnopqrstuvwxyz',result)
         self.assertEqual(text.count('\n'),result.count('\n'))
 
+    def test_http_provider_wire_contract_and_truncated_output_rejection(self):
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+        import threading
+        received=[];finish=['stop']
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self,*args):pass
+            def do_POST(self):
+                received.append(json.loads(self.rfile.read(int(self.headers['Content-Length']))))
+                body=json.dumps({'choices':[{'finish_reason':finish[0],'message':{'content':json.dumps({'action':'final','result':{'ok':True}})}}],'usage':{'total_tokens':12}}).encode()
+                self.send_response(200);self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
+        server=ThreadingHTTPServer(('127.0.0.1',0),Handler);thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+        try:
+            provider=Provider({'kind':'chat_completions','endpoint':'http://127.0.0.1:'+str(server.server_port)+'/v1/chat/completions','model':'protocol-fixture','api_key_env':''})
+            response,usage=provider.complete([{'role':'user','content':'JSON fixture'}])
+            self.assertTrue(response['result']['ok']);self.assertEqual(usage['total_tokens'],12)
+            self.assertEqual(received[0]['response_format'],{'type':'json_object'})
+            finish[0]='length'
+            with self.assertRaises(ValueError):provider.complete([])
+        finally:server.shutdown();server.server_close();thread.join()
+
+    def test_challenged_design_is_revised_automatically(self):
+        class ChallengeFixture(FixtureProvider):
+            def __init__(self):super().__init__();self.challenged=False
+            def complete(self,messages):
+                req=json.loads(messages[1]['content']);response,usage=super().complete(messages)
+                if req['stage']=='challenge' and req['instructions']['task'].startswith('Read target-architecture') and not self.challenged:
+                    self.challenged=True;response['result'].update(assessment='REVISE',issues=[{'finding_id':'F-02-001','reason':'Recheck cutover compatibility','evidence_ids':self.ids}])
+                return response,usage
+        self.provider=ChallengeFixture();self.assertEqual(self.execute()['status'],'COMPLETE')
+        self.assertTrue(list((self.run/'jobs').glob('design-revision-*.json')))
+        self.assertEqual(cli.read(self.run/'plan-challenge.json')['assessment'],'ACCEPT')
+
     def test_model_provider_explicit_and_no_redirect_credentials(self):
         with self.assertRaises(ValueError):Provider({'kind':'chat_completions','model':'chosen','endpoint':'http://remote.example/chat','api_key_env':''})
         with self.assertRaises(ValueError):Provider({'kind':'chat_completions','model':'chosen','endpoint':'https://user:pass@example.test/chat','api_key_env':''})

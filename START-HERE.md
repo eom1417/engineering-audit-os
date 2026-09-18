@@ -1,6 +1,8 @@
 # تعليمات التشغيل الجاهزة لوكيل برمجة
 
-طبّق Engineering Audit OS 2.1 على هذا المستودع، بمحور Architecture / Structure / Maintainability / Evolvability. نفّذ العمل فعليًا، ولا تكتفِ بإعادة كتابة هذه التعليمات.
+للتشغيل المتصل بالنموذج استخدم `eaos run TARGET --out RUN --provider CONFIG` واقرأ `core/RUNTIME.md`. التعليمات التالية تخص نمط الوكيل المستضيف audit/next، وتبقى مبادئ الأدلة والتصميم والتحقق مشتركة.
+
+طبّق Engineering Audit OS 3.0 على هذا المستودع، بمحور Architecture / Structure / Maintainability / Evolvability. نفّذ العمل فعليًا، ولا تكتفِ بإعادة كتابة هذه التعليمات.
 
 0. نقطة الدخول الموصى بها: `eaos audit TARGET --out RUN` ثم اقرأ `core/AGENT-WORKFLOW.md` وشغّل `eaos next RUN`. نفّذ المرحلة الناتجة فعليًا، واحفظ الأدلة ثم أعد next حتى تنتهي المراجعة والخطة أو يظهر عائق حقيقي. لا تعتبر تشغيل audit وحده مراجعة مكتملة.
 

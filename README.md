@@ -1,51 +1,70 @@
-# Engineering Audit OS — Agent Workflow Edition 2.1.0
+# Engineering Audit OS
 
-ريبو CLI محلي لمراجعة **Architecture وStructure وقابلية الصيانة والتطور** بالتعاون مع Coding Agent. التركيز على فهم المسؤوليات والعقود والاعتماديات ومكان منطق العمل ومدى أمان وكلفة التغيير. لا يفرض لغة أو framework أو نمطًا معماريًا.
+نظام مراجعة **Architecture / Structure / Maintainability / Evolvability**: اكتشاف المشروع، إعادة بناء البنية، مراجعة الأسباب الجذرية، تصميم البنية المستهدفة وخطة الانتقال، ثم إصلاحات قابلة للتحقق في نسخة مستقلة.
 
-## البدء
+## التشغيل المتصل بالنموذج
 
 ```bash
-# داخل الريبو: Python 3.10+، دون dependencies وقت التشغيل
-python -m eaos audit /path/to/project --out /path/to/audit-run --profile architecture
-python -m eaos next /path/to/audit-run
-python -m eaos plan /path/to/audit-run
-# الوكيل يقرأ START-HERE.md ثم يعيد بناء architecture.json بالأدلة
-python -m eaos graph /path/to/audit-run
-python -m eaos impact /path/to/audit-run --node NODE_ID --depth 2
-python -m eaos context /path/to/audit-run --node NODE_ID --budget-chars 18000
-python -m eaos validate /path/to/audit-run --require-complete
+python -m pip install .
+eaos run /absolute/project --out /absolute/audit --provider /absolute/provider.json
 ```
 
-استبدل NODE_ID بمعرف فعلي في نموذجك. أو ثبّت محليًا باستخدام `python -m pip install .` أو wheel المرفقة لاستدعاء `eaos` من أي مكان. لا نفترض package منشورة على registry عام. Windows/macOS/Linux تستخدم Python؛ التحقق الفعلي لهذا الإصدار كان على Linux.
+هذا الأمر ينفذ مراحل التحليل فعلًا باستدعاء النموذج المحدد. يحتاج إعداد مزود مرة واحدة؛ لا توجد حزمة منشورة على registry مفترضة ولا مفتاح API مضمّن. راجع [دليل التشغيل الكامل](core/RUNTIME.md) لإعداد HTTP أو adapter لوكيلك الحالي، وحدود البيانات والتكلفة والصلاحيات.
 
-الـCLI لا يشغّل نموذجًا ولا يرسل code إلى خدمة خارجية؛ الوكيل الذي تختاره يعيد بناء النموذج ويجمع الأدلة، والأداة تتحقق من اتساق السجلات وتحسب الاستعلامات وتجهز السياق. target يبقى read-only بالنسبة للـCLI؛ الإصلاح في المنتج مهمة منفصلة للوكيل ضمن تفويض المستخدم.
+```bash
+# استكمال العمل المحفوظ
+eaos continue /absolute/audit --provider /absolute/provider.json
 
-## المسارات
+# تنفيذ مهمة محددة في نسخة منفصلة، مع اختبارات فعلية
+eaos implement /absolute/audit --task TASK_ID --out /absolute/candidate \
+  --checks /absolute/checks.json --provider /absolute/provider.json
 
-| الملف | الاستخدام |
-|---|---|
-| core/AGENT-WORKFLOW.md | منسق المراجعة وخطة التطوير وعقود السجلات وحدود التنفيذ |
-| START-HERE.md | تعليمات الوكيل الجاهزة |
-| core/ARCHITECTURE-FIRST.md | البروتوكول المركزي للبنية والصيانة والتطور |
-| core/CLI-AND-CONTEXT.md | التشغيل وميزانية السياق والاستئناف |
-| MASTER-MANUAL.md | الدليل الكامل؛ حمّل منه ما يلزم تدريجيًا |
-| controls.json + modules/ | 27 مجالًا و165 قاعدة؛ modules مولدة |
-| schemas/ + templates/ | Finding/evidence/coverage/gates/architecture |
-| research/RESEARCH.md | تحليل المصدرين الأولين والمبادئ وgap analysis |
-| research/ARCHITECTURE-SEED.md | تحليل الفيديو الثالث وتحويله إلى مفاهيم مستقلة |
-| research/SOURCES.md + sources.json | 41 سجل مصدر، منها الفيديوهات الثلاثة، وحدود القراءة |
-| examples/architecture/ | نموذج توضيحي يختبر عقود graph، ليس audit لمشروع حقيقي |
-| tests/ + VALIDATION.md | اختبارات وإثبات الإصدار وحدوده |
+# سلسلة تحسينات: تنفيذ → اختبارات → إعادة مراجعة المصدر الجديد → المهمة التالية
+eaos improve /absolute/audit --out /absolute/campaign \
+  --checks /absolute/checks.json --provider /absolute/provider.json --max-steps 10
+```
 
-profile الافتراضي architecture يجعل مجالات البنية والجودة والاختبار والتوثيق والسياق هي الأساس، ويحتفظ بالأمن والأداء والتشغيل وغيرها كعدسات تُفعّل عند الصلة. `--profile full` يحتفظ بالمراجعة العامة الشاملة. COMPLETE للمراجعة البنيوية لا يعني تدقيقًا أمنيًا كاملًا ولا جاهزية نشر.
+استبدل TASK_ID وgate IDs بمعرفات الخطة الفعلية. run لا يعدل المشروع. implement/improve ينشئان نسخة جديدة وpatch وأدلة تحقق؛ لا ينشران ولا يدمجان التغييرات في مستودعك الأصلي.
 
-## ما ينفذ فعليًا
+## المخرجات
 
-Discovery بالمسارات وhashes؛ نموذج graph يتحقق من الأدلة والمراجع؛ حساب cycles وfan-in/out؛ مطابقة dependency policies المعلنة؛ impact walk محدود مع frontier؛ context packets مرتبطة بالعقود والقواعد؛ checkpoint/resume؛ findings وcoverage وإغلاق يحتاج أدلة. مؤشرات graph ليست نتائج آلية عن جودة المشروع.
+- `EXECUTIVE.md`: النتائج وأسبابها وأولوياتها.
+- `ARCHITECTURE.md` و`architecture.mmd`: البنية الفعلية والعقود وملكية القواعد.
+- `TARGET-ARCHITECTURE.md` و`target-architecture.mmd`: المكوّنات المستهدفة، قرارات التصميم، البدائل وخطة الهجرة.
+- `IMPLEMENTATION-PLAN.md`: مهام مرتبة بالاعتماديات، مع invariants والاختبارات والتراجع.
+- `report.md`: التقرير الكامل؛ `findings/evidence/coverage/roadmap.json`: سجلات قابلة للمعالجة.
+- `diagnosis-challenge.json` و`plan-challenge.json`: مراجعة مضادة للتشخيص والتصميم.
+- `engine-state.json` و`usage.json` و`jobs/`: حالة التنفيذ وميزانية السياق والاستئناف.
 
-لا يتضمن الإصدار semantic/AST extraction شاملًا لكل اللغات، ولا cloud adapters ولا scanner ثغرات شاملًا. هذه حدود تنفيذ صريحة، وليست مناطق تُسجل PASS. جودة الخريطة والأحكام تحتاج مراجعة المصدر والسيناريوهات.
+## الاستخدام داخل وكيل برمجي دون adapter مستقل
 
-## إعادة التوليد والاختبار
+```bash
+eaos audit /absolute/project --out /absolute/audit
+eaos next /absolute/audit
+```
+
+أعط الوكيل `START-HERE.md` و`core/AGENT-WORKFLOW.md`. الوكيل المستضيف يقرأ ويحلل، والـCLI يدير الأدلة والسجلات والبوابات. هذا نمط مختلف عن run الذي يستدعي النموذج بنفسه.
+
+## كيف يحافظ على العمق
+
+حصر الملفات لا يساوي فهم البنية. المحرك يراجع المسؤوليات والحدود ومصادر الحقيقة وتدفقات العمل وسيناريوهات التغيير. يحدد نطاق الفحوص قبل تنفيذها، ثم يتحدى التشخيص والتصميم ويعيدهما للتصحيح عند الحاجة. لا تُمحى الأسئلة غير المحسومة بالاختصار. الخطة تربط الإصلاح بسبب مثبت وبنية مستهدفة، ولا تفرض تقسيم ملفات أو خدمات بلا داعٍ.
+
+اختبارات الإصلاح تعمل فعليًا قبل التغيير وبعده، ويتحقق النظام من بقاء المصدر خارج الخطة دون تعديل ومن عدم تغيير أوامر الفحص للمصدر بعد إعداد الإصلاح. النسخة المنفصلة ليست sandbox لنظام التشغيل؛ شغّل المشاريع غير الموثوقة داخل بيئة عزل مناسبة.
+
+## البنية الداخلية
+
+- `sessions.py` و`workspace.py`: إنشاء الجلسة والوصول المقيد إلى الملفات.
+- `architecture.py` و`surface_records.py` و`audit_records.py`: نموذج العلاقات وعقود الأدلة والاكتمال.
+- `workflow.py`: سير العمل لوكيل مستضيف.
+- `runtime/provider.py`: النقل إلى نموذج HTTP أو adapter صريح.
+- `runtime/context.py` و`jobs.py`: قراءة الأسطر، التنقيح، السياق، التحقق والاستئناف.
+- `runtime/contracts.py` و`pipeline.py`: عقود المراحل وتنفيذ المراجعة والتصميم.
+- `runtime/remediate.py` و`campaign.py`: تنفيذ الإصلاحات والتحقق وإعادة المراجعة.
+- `runtime/reporting.py`: المخرجات المقروءة والرسوم.
+
+## المعرفة والتطوير
+
+27 مجالًا و165 قاعدة و41 سجل مصدر، منها الفيديوهات الثلاثة كبذور مفاهيمية. `controls.json` و`sources.json` و`core/` و`schemas/` هي المصادر canonical؛ `modules/` و`eaos/data/` و`MASTER-MANUAL.md` مولدة.
 
 ```bash
 python tools/render.py
@@ -53,24 +72,6 @@ python tools/validate.py
 python -m unittest discover -s tests -v
 ```
 
-المصادر canonical هي controls.json وsources.json وcore وschemas. لا تعدل modules/ أو eaos/data أو MASTER-MANUAL مباشرة. نسخة2.1 تتطلب run جديدًا بدل ترقية حالات أقدم يدويًا.
+راجع `VALIDATION.md` للأدلة الفعلية و`ACCEPTANCE.md` لحدود الاستنتاج. اختبارات المحرك تستخدم مزودًا تجريبيًا مبرمجًا وخادم HTTP محليًا؛ ليست تقييمًا حيًا لنموذج خارجي. المراجعة الذاتية المنفذة بواسطة الوكيل موثقة بنتائج واختبارات فاشلة قبل الإصلاح وناجحة بعده.
 
-## حدود مراجعة الفيديوهات
-
-قرئت التفريغات الآلية كاملة للفيديوهات الثلاثة؛ لم تُنجز مشاهدة مرئية متصلة أو إعادة تدقيق مستقلة للمستودعات المعروضة. لا نعتمد أرقام جداول غير مقروءة بصريًا، ولا نعيد نشر التفريغات. القواعد synthesis مستقلة لها شروط وأدلة، وليست نسبًا مطلقة للفيديو.
-
-## إضافات 2.1 وحدودها
-
-`audit` يبدأ جلسة agent-led كاملة السجلات؛ `next` يحدد المرحلة التالية وفق النواقص؛ `discover` يفحص Python AST وpackage.json ويستخرج hints غير مؤكدة لـJS/TS؛ `observe` يربط ملاحظة بنطاق أسطر وhash؛ `roadmap` يتحقق من مهام التطوير واعتمادياتها وثوابتها وبدائلها واختباراتها. report في هذا المسار يحتوي كامل السجلات والخطة.
-
-المسار الجديد لا يساوي تشغيل نموذج مستقل. الوكيل يقرأ الكود ويبني المعنى والخطة؛ الأداة تدير العقود وتكشف النواقص. لا يوجد إصلاح آلي أو نقل آلي للأدلة بين revisions. راجع [دليل التشغيل](core/AGENT-WORKFLOW.md) و[معايير القبول](ACCEPTANCE.md) قبل إعلان جاهزية Production.
-
-```text
-Apply EAOS to this repository using core/AGENT-WORKFLOW.md.
-Start with eaos audit TARGET --out RUN, then execute eaos next RUN repeatedly.
-Reconstruct architecture from source, record evidence and coverage, and design an
-ordered roadmap with invariants, alternatives, rollback and verification gates.
-Default to audit and plan; make code changes only within my explicit authorization.
-Persist state and continue through all available work. Report actual blockers and
-never claim completeness from a scan, a folder tree, or filled templates alone.
-```
+لا يعني COMPLETE ضمان اكتشاف جميع الأخطاء أو الجاهزية للإنتاج. النطاق غير المتاح يظهر صراحة. لم يتم نشر هذا المستودع أو package خارجيًا ضمن التسليم المحلي. تشغيل المصادر والفيديوهات موثق في research؛ قرئت التفريغات الآلية الثلاثة، ولا تُدّعى مشاهدة مرئية متصلة أو مراجعة مستقلة لمستودعات الفيديوهات.

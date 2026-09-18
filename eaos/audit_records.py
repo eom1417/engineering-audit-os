@@ -156,7 +156,7 @@ def check(run,check_target=True):
         ok,_=fresh(state,inv)
         if not ok:gaps.append('Target changed or unavailable snapshot; new run/revalidation required')
     if (run/'workflow.json').exists():
-        from .workflow import surface_check, meaningful
+        from .surface_records import surface_check, meaningful
         surface_errors,surface_gaps=surface_check(run,state)
         errors.extend(surface_errors);gaps.extend(surface_gaps)
         for finding in findings:

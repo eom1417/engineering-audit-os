@@ -1,6 +1,7 @@
 """Local, read-only target discovery and evidence orchestration. No LLM/network."""
 from __future__ import annotations
 import argparse
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -81,3 +82,15 @@ def safe_file(root,relative):
     if any(SENSITIVE.search(p) for p in rel.parts): raise ValueError('Sensitive path: metadata only; do not capture contents')
     return resolved
 
+
+
+@contextmanager
+def run_lock(run):
+    """Single writer/read-consistent CLI session across cooperating processes."""
+    lock=Path(run).resolve()/'engine.lock'
+    try:fd=os.open(lock,os.O_CREAT|os.O_EXCL|os.O_WRONLY,0o600)
+    except FileExistsError:raise ValueError('Run is locked; verify its process stopped before removing a stale engine.lock') from None
+    try:
+        with os.fdopen(fd,'w') as stream:stream.write(str(os.getpid()))
+        yield
+    finally:lock.unlink(missing_ok=True)

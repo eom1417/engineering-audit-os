@@ -1,3 +1,22 @@
+# Current release validation — 3.0.0
+
+Date: 2026-09-18. Executable architecture audit, target design, isolated remediation and fresh-audit campaign.
+
+- 92 tests passed before final package verification: 62 prior tests, 18 runtime tests and 12 regressions from self-audit. Exact final command output is included with self-audit evidence.
+- Engine end-to-end test: source inspection → architecture → scope declaration → domain reviews → diagnosis challenge → target design → plan challenge → full report. Model responses are explicitly scripted test fixtures.
+- Real execution: baseline and post-change Python tests ran in a separate copy; the pricing fixture changed from duplicated conflicting policy to one shared owner while retaining entry contracts. Patch and source re-audit records are produced. This fixture is synthetic, not a production-model benchmark.
+- Transport: a real command subprocess and a local HTTP server exercise JSON protocol, usage parsing and truncated-output rejection. No external model API request was executed for the test suite.
+- Self-audit: source/flow inspection found nine grouped issues; twelve regressions failed before correction and pass afterward. One early campaign regression initially exposed a test-fixture ID error; the corrected test then reproduced the actual campaign completion defect, with both logs retained transparently.
+- Runtime checks run in an isolated COPY, not an OS sandbox. Endpoint/provider selection and verification commands are explicit caller configuration. Production deployment and GitHub publication were not performed.
+- Supported interpreter declaration remains Python 3.10+; tests executed on Linux/Python 3.12. Other interpreter/platform combinations were not certified.
+- The runtime's source evidence, graph and plan validators check references and contracts. They cannot certify model truth, exhaustive discovery or production security.
+
+Fresh sessions are required for the new framework version. Historical evidence retains its original revision; campaign audits rebuild evidence on changed source.
+
+---
+
+## Historical validation records
+
 # Release validation — 2.1.0
 
 Date: 2026-09-17. Agent-led workflow and evidence-backed development planning.

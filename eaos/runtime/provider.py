@@ -16,6 +16,8 @@ class Provider:
     def __init__(self,config):
         self.config=dict(config)
         self.kind=config.get('kind','chat_completions')
+        max_calls=config.get('max_calls',400)
+        if type(max_calls) is not int or not 1<=max_calls<=100000:raise ValueError('max_calls must be an integer between 1 and 100000')
         self.timeout=config.get('timeout_seconds',120)
         if type(self.timeout) not in (int,float) or not 1<=self.timeout<=600:raise ValueError('Provider timeout must be 1–600 seconds')
         self.limit=config.get('max_response_bytes',2_000_000)
@@ -36,7 +38,7 @@ class Provider:
 
     def identity(self):
         # Cache identity omits secret values; changing model/endpoint/adapter changes jobs.
-        return {k:v for k,v in self.config.items() if k not in {'api_key','token','password'}}
+        return {k:v for k,v in self.config.items() if k in {'kind','model','endpoint','argv','max_completion_tokens'}}
 
     def complete(self,messages):
         if self.kind=='command':

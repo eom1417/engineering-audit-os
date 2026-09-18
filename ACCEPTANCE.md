@@ -1,8 +1,18 @@
+# Current acceptance evidence — executable runtime
+
+The run/continue/implement/improve commands are implemented. The deterministic integration suite covers a configured model protocol, source retrieval, analysis stages, concrete target design, real baseline/post-change checks, isolated source edits and fresh audits across campaign snapshots. Automated model judgments in these tests are scripted fixtures; HTTP is exercised against a local protocol server. No live external-model benchmark is claimed.
+
+The host coding agent applied the framework to its own code and fixed nine evidence-backed issue groups, protected by twelve before/after regression tests: dependency direction, record/workflow cycle, source integrity during verification, call-budget resumption, final-step completion, cache integrity, credential redaction uncertainty preservation and shared-session locking. See the delivered self-audit report and VALIDATION.md.
+
+Product-level judgment accuracy across arbitrary repositories remains an empirical property, not a guarantee derived from test counts. The current delivery includes the executable system and self-review evidence; it does not claim that every possible architectural defect is discoverable or that a configured model cannot make mistakes. Use the evaluation procedure below for external validation.
+
+## Historical acceptance baseline (2.1, before runtime implementation)
+
 # Acceptance contract — depth before readiness
 
 Version: 2.1.0. This is a release of agent workflow tooling, not a claim that the universal audit product is production-proven.
 
-## What can be guaranteed by this implementation
+## Historical 2.1 contract boundary
 
 For the tested contracts, EAOS refuses structurally incomplete work and discloses limitations. Source targets are read-only for CLI commands. A passing contract validator is not a guarantee that an AI understood the repository or found all issues.
 
