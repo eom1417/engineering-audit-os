@@ -1,4 +1,4 @@
-"""CLI dispatch and output orchestration; no project scripts or model API calls."""
+"""CLI orchestration; model and isolated execution are explicit runtime commands."""
 from __future__ import annotations
 import argparse
 import json
@@ -161,6 +161,41 @@ def roadmap_command(args):
     return 2 if not result['ready'] else 0
 
 
+def run_command(args):
+    from .runtime.provider import load_provider
+    from .runtime.pipeline import execute
+    provider=load_provider(args.provider)
+    init(args)
+    workflow.initialize(Path(args.out))
+    result=execute(args.out,provider,args.budget_chars,args.max_rounds)
+    print(json.dumps(result,ensure_ascii=False,indent=2))
+    return 0 if result['status']=='COMPLETE' else 2
+
+
+def continue_command(args):
+    from .runtime.provider import load_provider
+    from .runtime.pipeline import execute
+    result=execute(args.run,load_provider(args.provider),args.budget_chars,args.max_rounds)
+    print(json.dumps(result,ensure_ascii=False,indent=2))
+    return 0 if result['status']=='COMPLETE' else 2
+
+
+def implement_command(args):
+    from .runtime.provider import load_provider
+    from .runtime.remediate import implement
+    result=implement(args.run,args.task,args.out,args.checks,load_provider(args.provider),args.budget_chars,args.max_rounds)
+    print(json.dumps(result,ensure_ascii=False,indent=2))
+    return 0 if result['status']=='VERIFIED_IN_ISOLATED_COPY' else 2
+
+
+def improve_command(args):
+    from .runtime.provider import load_provider
+    from .runtime.campaign import improve
+    result=improve(args.run,args.out,args.checks,load_provider(args.provider),args.budget_chars,args.max_rounds,args.max_steps)
+    print(json.dumps(result,ensure_ascii=False,indent=2))
+    return 0 if result['status']=='COMPLETE' else 2
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(prog='eaos',description='Architecture, structure and maintainability audit workspaces; target is read-only')
     p.add_argument('--version',action='version',version='EAOS '+__version__)
@@ -174,6 +209,15 @@ def main(argv=None):
     for name,fn in [('plan',plan),('validate',validate),('report',report),('resume',resume)]:
         q=s.add_parser(name);q.add_argument('run');q.set_defaults(func=fn)
         if name=='validate':q.add_argument('--require-complete',action='store_true')
+    for command,fn in [('run',run_command),('continue',continue_command),('implement',implement_command),('improve',improve_command)]:
+        q=s.add_parser(command)
+        if command=='run':
+            q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--profile',choices=['architecture','full'],default='architecture');q.add_argument('--max-files',type=bounded_int,default=100000);q.add_argument('--max-bytes',type=bounded_int,default=2_000_000)
+        else:q.add_argument('run')
+        if command in {'implement','improve'}:q.add_argument('--out',required=True);q.add_argument('--checks',required=True)
+        if command=='implement':q.add_argument('--task',required=True)
+        if command=='improve':q.add_argument('--max-steps',type=bounded_int,default=10)
+        q.add_argument('--provider',required=True);q.add_argument('--budget-chars',type=bounded_int,default=96000);q.add_argument('--max-rounds',type=bounded_int,default=8);q.set_defaults(func=fn)
     q=s.add_parser('packet');q.add_argument('run');q.add_argument('--module',required=True);q.add_argument('--file',action='append',default=[]);q.add_argument('--budget-chars',type=bounded_int,default=24000);q.set_defaults(func=packet)
     q=s.add_parser('checkpoint');q.add_argument('run');q.add_argument('--note',required=True);q.add_argument('--next',required=True);q.set_defaults(func=checkpoint)
     q=s.add_parser('graph');q.add_argument('run');q.set_defaults(func=graph_command)
