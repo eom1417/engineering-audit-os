@@ -1,2 +1,77 @@
-# engineering-audit-os
-Evidence-first architecture and maintainability audit CLI for AI coding agents, with structured findings, migration plans and verified remediation.
+# Engineering Audit OS
+
+نظام مراجعة **Architecture / Structure / Maintainability / Evolvability**: اكتشاف المشروع، إعادة بناء البنية، مراجعة الأسباب الجذرية، تصميم البنية المستهدفة وخطة الانتقال، ثم إصلاحات قابلة للتحقق في نسخة مستقلة.
+
+## التشغيل المتصل بالنموذج
+
+```bash
+python -m pip install .
+eaos run /absolute/project --out /absolute/audit --provider /absolute/provider.json
+```
+
+هذا الأمر ينفذ مراحل التحليل فعلًا باستدعاء النموذج المحدد. يحتاج إعداد مزود مرة واحدة؛ لا توجد حزمة منشورة على registry مفترضة ولا مفتاح API مضمّن. راجع [دليل التشغيل الكامل](core/RUNTIME.md) لإعداد HTTP أو adapter لوكيلك الحالي، وحدود البيانات والتكلفة والصلاحيات.
+
+```bash
+# استكمال العمل المحفوظ
+eaos continue /absolute/audit --provider /absolute/provider.json
+
+# تنفيذ مهمة محددة في نسخة منفصلة، مع اختبارات فعلية
+eaos implement /absolute/audit --task TASK_ID --out /absolute/candidate \
+  --checks /absolute/checks.json --provider /absolute/provider.json
+
+# سلسلة تحسينات: تنفيذ → اختبارات → إعادة مراجعة المصدر الجديد → المهمة التالية
+eaos improve /absolute/audit --out /absolute/campaign \
+  --checks /absolute/checks.json --provider /absolute/provider.json --max-steps 10
+```
+
+استبدل TASK_ID وgate IDs بمعرفات الخطة الفعلية. run لا يعدل المشروع. implement/improve ينشئان نسخة جديدة وpatch وأدلة تحقق؛ لا ينشران ولا يدمجان التغييرات في مستودعك الأصلي.
+
+## المخرجات
+
+- `EXECUTIVE.md`: النتائج وأسبابها وأولوياتها.
+- `ARCHITECTURE.md` و`architecture.mmd`: البنية الفعلية والعقود وملكية القواعد.
+- `TARGET-ARCHITECTURE.md` و`target-architecture.mmd`: المكوّنات المستهدفة، قرارات التصميم، البدائل وخطة الهجرة.
+- `IMPLEMENTATION-PLAN.md`: مهام مرتبة بالاعتماديات، مع invariants والاختبارات والتراجع.
+- `report.md`: التقرير الكامل؛ `findings/evidence/coverage/roadmap.json`: سجلات قابلة للمعالجة.
+- `diagnosis-challenge.json` و`plan-challenge.json`: مراجعة مضادة للتشخيص والتصميم.
+- `engine-state.json` و`usage.json` و`jobs/`: حالة التنفيذ وميزانية السياق والاستئناف.
+
+## الاستخدام داخل وكيل برمجي دون adapter مستقل
+
+```bash
+eaos audit /absolute/project --out /absolute/audit
+eaos next /absolute/audit
+```
+
+أعط الوكيل `START-HERE.md` و`core/AGENT-WORKFLOW.md`. الوكيل المستضيف يقرأ ويحلل، والـCLI يدير الأدلة والسجلات والبوابات. هذا نمط مختلف عن run الذي يستدعي النموذج بنفسه.
+
+## كيف يحافظ على العمق
+
+حصر الملفات لا يساوي فهم البنية. المحرك يراجع المسؤوليات والحدود ومصادر الحقيقة وتدفقات العمل وسيناريوهات التغيير. يحدد نطاق الفحوص قبل تنفيذها، ثم يتحدى التشخيص والتصميم ويعيدهما للتصحيح عند الحاجة. لا تُمحى الأسئلة غير المحسومة بالاختصار. الخطة تربط الإصلاح بسبب مثبت وبنية مستهدفة، ولا تفرض تقسيم ملفات أو خدمات بلا داعٍ.
+
+اختبارات الإصلاح تعمل فعليًا قبل التغيير وبعده، ويتحقق النظام من بقاء المصدر خارج الخطة دون تعديل ومن عدم تغيير أوامر الفحص للمصدر بعد إعداد الإصلاح. النسخة المنفصلة ليست sandbox لنظام التشغيل؛ شغّل المشاريع غير الموثوقة داخل بيئة عزل مناسبة.
+
+## البنية الداخلية
+
+- `sessions.py` و`workspace.py`: إنشاء الجلسة والوصول المقيد إلى الملفات.
+- `architecture.py` و`surface_records.py` و`audit_records.py`: نموذج العلاقات وعقود الأدلة والاكتمال.
+- `workflow.py`: سير العمل لوكيل مستضيف.
+- `runtime/provider.py`: النقل إلى نموذج HTTP أو adapter صريح.
+- `runtime/context.py` و`jobs.py`: قراءة الأسطر، التنقيح، السياق، التحقق والاستئناف.
+- `runtime/contracts.py` و`pipeline.py`: عقود المراحل وتنفيذ المراجعة والتصميم.
+- `runtime/remediate.py` و`campaign.py`: تنفيذ الإصلاحات والتحقق وإعادة المراجعة.
+- `runtime/reporting.py`: المخرجات المقروءة والرسوم.
+
+## المعرفة والتطوير
+
+27 مجالًا و165 قاعدة و41 سجل مصدر، منها الفيديوهات الثلاثة كبذور مفاهيمية. `controls.json` و`sources.json` و`core/` و`schemas/` هي المصادر canonical؛ `modules/` و`eaos/data/` و`MASTER-MANUAL.md` مولدة.
+
+```bash
+python tools/render.py
+python tools/validate.py
+python -m unittest discover -s tests -v
+```
+
+راجع `VALIDATION.md` للأدلة الفعلية و`ACCEPTANCE.md` لحدود الاستنتاج. اختبارات المحرك تستخدم مزودًا تجريبيًا مبرمجًا وخادم HTTP محليًا؛ ليست تقييمًا حيًا لنموذج خارجي. المراجعة الذاتية المنفذة بواسطة الوكيل موثقة بنتائج واختبارات فاشلة قبل الإصلاح وناجحة بعده.
+
+لا يعني COMPLETE ضمان اكتشاف جميع الأخطاء أو الجاهزية للإنتاج. النطاق غير المتاح يظهر صراحة. لم يتم نشر هذا المستودع أو package خارجيًا ضمن التسليم المحلي. تشغيل المصادر والفيديوهات موثق في research؛ قرئت التفريغات الآلية الثلاثة، ولا تُدّعى مشاهدة مرئية متصلة أو مراجعة مستقلة لمستودعات الفيديوهات.
