@@ -5,7 +5,7 @@ the problem is what proves it is gone. A task without a runnable criterion is no
 """
 from pathlib import Path
 from .compose import Document
-from .compose.labels import statement_of
+from .compose.labels import impact_of, statement_of
 from .impact import assess, load
 from .ranking import claim_paths
 from .remediation_patterns import pattern_for
@@ -65,6 +65,7 @@ def build_tasks(target, out, dossier, sets):
             'pattern': pattern['name'], 'paths': paths,
             'origin': claim.get('origin', 'unknown'),
             'impact': (claim.get('impact') or {}).get('scenario', ''),
+            'impact_render': claim.get('render'),
             'evidence': {'fact_ids': claim.get('fact_ids', []), 'evidence_ids': claim.get('evidence_ids', []),
                          'probe_ids': claim.get('probe_ids', []), 'falsifier': claim['falsifier']},
             'blast_radius': {'direct_dependents': radius['direct_dependents'],
@@ -134,7 +135,7 @@ def card(task, language):
                      f"claim: {task['claim_id']} · pattern: {task['pattern']} · priority: {task['priority']}"])
     document.section('المشكلة' if language == 'ar' else 'The problem')
     document.text(title_of(task, language))
-    document.text(task['impact'])
+    document.text(impact_of({'impact': {'scenario': task['impact']}, 'render': task.get('impact_render')}, language))
     document.section('الدليل' if language == 'ar' else 'Evidence')
     document.bullets([f"facts: {', '.join(task['evidence']['fact_ids']) or '—'}",
                       f"probes: {', '.join(task['evidence']['probe_ids']) or '—'}",

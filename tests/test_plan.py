@@ -163,3 +163,12 @@ class PatternCoverageTests(unittest.TestCase):
             tasks = json.loads((out / 'plan.json').read_text())['tasks']
             self.assertTrue(tasks)
             self.assertEqual([task['id'] for task in tasks if task['pattern'] == 'generic'], [])
+
+    def test_the_consequence_line_is_translated_too(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            assemble(FIXTURE, out)
+            build(FIXTURE, out, language='ar')
+            text = ' '.join(path.read_text() for path in (out / 'PLAN').glob('TASK-*.md'))
+            self.assertIn('مسارين يختلفان', text)
+            self.assertNotIn('makes two paths disagree', text)
