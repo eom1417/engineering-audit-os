@@ -172,8 +172,7 @@ def brief(target, dossier, language):
     document.section('ما هذا النظام' if language == 'ar' else 'What this system is')
     document.text(dossier['description'])
     document.section('أخطر ما وجدناه' if language == 'ar' else 'Most serious findings')
-    ranked = sorted(dossier['claims'], key=lambda c: (ORIGIN_RANK.get(c.get('origin', 'unknown'), 2), RANK[c['confidence']],
-                                                      -len((c.get('impact') or {}).get('scenario', '')), c['id']))
+    ranked = sorted(dossier['claims'], key=lambda c: (-c.get('priority', 0), RANK[c['confidence']], c['id']))
     # Anything with a stated consequence competes for the five slots, whatever its record type.
     top = [c for c in ranked if c['claim_type'] in {'risk', 'cause', 'structure'} or (c.get('impact') or {}).get('scenario')][:5]
     document.table(['#', 'الادعاء' if language == 'ar' else 'Claim', 'الثقة' if language == 'ar' else 'Confidence',
@@ -193,6 +192,30 @@ def brief(target, dossier, language):
                    [[q['id'], shorten(q['question'], 160), q['source']] for q in dossier['questions']], limit=10)
     document.section(words['not_examined'])
     document.bullets(coverage['not_examined'])
+    return document
+
+
+def risk_register(dossier, language):
+    words = Document('', language).words
+    document = Document('سجل المخاطر' if language == 'ar' else 'Risk register', language, budget_lines=200)
+    from .ranking import WEIGHTS
+    document.header([WEIGHTS['formula'],
+                     ('الترتيب معيار معلن بمدخلات ظاهرة، وليس تصنيف خطورة.' if language == 'ar'
+                      else 'A declared ordering with visible inputs, not a severity classification.')])
+    rows = sorted(dossier['claims'], key=lambda claim: (-claim.get('priority', 0), claim['id']))
+    document.table(['#', 'الأولوية' if language == 'ar' else 'Priority',
+                    'الادعاء' if language == 'ar' else 'Claim',
+                    'المدى' if language == 'ar' else 'Reach',
+                    'الكلفة' if language == 'ar' else 'Cost',
+                    'الأصل' if language == 'ar' else 'Origin',
+                    'التصرف' if language == 'ar' else 'Disposition'],
+                   [[claim['id'], claim.get('priority', 0), shorten(claim['statement'], 110),
+                     (claim.get('priority_factors') or {}).get('reach', {}).get('total', '—'),
+                     (claim.get('priority_factors') or {}).get('cost', {}).get('bucket', '—'),
+                     claim.get('origin', '—'),
+                     (claim.get('disposition') or {}).get('kind', '—')] for claim in rows], limit=30)
+    document.section('كيف تُقرأ الأولوية' if language == 'ar' else 'How to read the priority')
+    document.bullets([f'{key}: {value}' for key, value in sorted(WEIGHTS.items()) if key != 'formula'])
     return document
 
 
@@ -373,8 +396,13 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
     if coverage_set: sets['verification'] = coverage_set
     runtime = runtime_claims(verification, len(rows), (coverage_set or {}).get('facts'), excluded=source_filter)
     for fact in (coverage_set or {}).get('facts', []): fact_index.setdefault(fact['id'], fact['location'].get('path'))
-    for row in runtime: row['origin'] = origin_of(row, fact_index)
+    for row in runtime:
+        row['origin'] = origin_of(row, fact_index)
+        row.setdefault('artifacts', [BRIEF])
+        row.setdefault('disposition', {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'})
     rows += runtime
+    from .ranking import rank
+    rows = rank(rows, sets, fact_index)
     problems = ledger.errors(rows, {e['id'] for e in records['evidence']} if records['evidence'] else (),
                              {f['id'] for data in sets.values() for f in data['facts']})
     if problems: raise ValueError('Claim ledger rejected: ' + '; '.join(problems[:5]))
@@ -405,13 +433,15 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
         ['Do not treat this as a security review or a production-readiness certificate.',
          'Do not read the attention order as a severity order; it is a declared reading convention.',
          'Do not read an absent finding as safety; absence means unexamined unless an absence search is declared.'],
-        'artifacts': sorted([BRIEF, PROVENANCE, 'FLOWS.md', 'DOMAIN-AND-DATA.md', 'CONTRACTS.md', 'VERIFICATION-MAP.md', *ARTIFACTS]),
+        'artifacts': sorted([BRIEF, PROVENANCE, 'FLOWS.md', 'DOMAIN-AND-DATA.md', 'CONTRACTS.md',
+                             'VERIFICATION-MAP.md', 'RISK-REGISTER.md', *ARTIFACTS]),
     }
     write(out / 'dossier.json', dossier)
     (out / BRIEF).write_text(brief(str(target), dossier, language).render(), encoding='utf-8')
     for name, builder in [('FLOWS.md', flows_document), ('DOMAIN-AND-DATA.md', domain_document), ('CONTRACTS.md', contracts_document)]:
         (out / name).write_text(builder(dossier, sets, language).render(), encoding='utf-8')
     (out / 'VERIFICATION-MAP.md').write_text(verification_document(verification, language).render(), encoding='utf-8')
+    (out / 'RISK-REGISTER.md').write_text(risk_register(dossier, language).render(), encoding='utf-8')
     (out / PROVENANCE).write_text(provenance_document(str(target), dossier, language).render(), encoding='utf-8')
     violations = validate(out, dossier)
     result = {'target': str(target), 'out': str(out), 'artifacts': dossier['artifacts'],

@@ -191,6 +191,16 @@
         "unknown"
       ],
       "description": "Whether the claim is about product code, test and fixture code, or both. A reader must never confuse a finding in a fixture with a finding in the product."
+    },
+    "priority": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Composite priority: reach × confidence × origin ÷ cost. Never a severity label."
+    },
+    "priority_factors": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Every input the priority was computed from, so the ordering can be argued with."
     }
   }
 }

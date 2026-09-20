@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 
 BUDGETS = {'DECISION-BRIEF.md': 120, 'SYSTEM-MAP.md': 260, 'COUPLING-ATLAS.md': 220, 'EVOLUTION.md': 220,
-           'PROVENANCE.md': 80, 'FLOWS.md': 300, 'DOMAIN-AND-DATA.md': 240, 'CONTRACTS.md': 200, 'RISK-REGISTER.md': 200, 'VERIFICATION-MAP.md': 160, 'DELTA.md': 160, 'VERIFICATION-MAP.md': 180}
+           'PROVENANCE.md': 80, 'FLOWS.md': 300, 'DOMAIN-AND-DATA.md': 240, 'CONTRACTS.md': 200, 'RISK-REGISTER.md': 200, 'VERIFICATION-MAP.md': 160, 'DELTA.md': 160, 'VERIFICATION-MAP.md': 180, 'RISK-REGISTER.md': 200, 'README.md': 120, 'ONBOARDING.md': 200, 'POLICY.md': 160}
 HUMAN_ARTIFACTS = set(BUDGETS)
 CLAIM_REFERENCE = re.compile(r'\bCLM-\d{3,}\b')
 MARKERS = {'⬤', '◐', '○', '؟'}
@@ -49,6 +49,9 @@ def validate(out, dossier):
     for task in dossier.get('tasks', []):
         if not task.get('verify_command'):
             problems.append(f"R7 {task.get('id', '?')}: the acceptance criterion is not a runnable command")
+    for claim in dossier.get('claims', []):
+        if 'priority' in claim and not claim.get('priority_factors'):
+            problems.append(f"R11 {claim['id']}: priority without the inputs it was computed from")
     seen = {}
     for claim in dossier.get('claims', []):
         artifacts = claim.get('artifacts') or []

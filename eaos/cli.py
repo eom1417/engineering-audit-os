@@ -234,6 +234,18 @@ def verify_command(args):
     return 0
 
 
+def plan_command(args):
+    from .plan import build
+    print(json.dumps(build(args.target,args.out,args.lang),ensure_ascii=False,indent=2))
+    return 0
+
+
+def impact_report_command(args):
+    from .impact import assess
+    print(json.dumps(assess(args.out,args.target,args.depth),ensure_ascii=False,indent=2))
+    return 0
+
+
 def probe_command(args):
     from .probes import run_all
     print(json.dumps(run_all(args.target,args.out,args.execute),ensure_ascii=False,indent=2))
@@ -291,6 +303,12 @@ def main(argv=None):
     q.add_argument('--timeout',type=bounded_int,default=900)
     q.add_argument('--execute',action='store_true',help='Actually run the command; without it only declared coverage is reported')
     q.set_defaults(func=verify_command)
+    q=s.add_parser('tasks',help='Generate task cards and execution waves from confirmed claims')
+    q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.set_defaults(func=plan_command)
+    q=s.add_parser('impact-of',help='What a change to a file or symbol touches, computed from facts')
+    q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--depth',type=bounded_int,default=3)
+    q.set_defaults(func=impact_report_command)
     q=s.add_parser('probe',help='Run derived probes against a dossier and update claim confidence')
     q.add_argument('target');q.add_argument('--out',required=True)
     q.add_argument('--execute',action='store_true',help='Allow probes that execute commands in an isolated copy')

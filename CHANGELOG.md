@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add `eaos impact-of <path|symbol>`: what a change reaches, computed from resolved imports, traced flows, executed coverage and history — direct and transitive dependents, flows crossing the target, tests that cover it, and files that historically change with it.
+- Rank findings by a declared formula — reach × confidence × origin ÷ cost — with every input exposed on the claim, replacing an ordering that effectively sorted by the length of a sentence. New `RISK-REGISTER.md` artifact.
+- Add `eaos tasks`: a self-contained card per confirmed claim, with the blast radius from facts, remediation options that always include doing nothing and its cost, a rollback, an effort estimate that states its own confidence, and an acceptance criterion derived from the probe that confirmed the claim. Cards are sequenced into waves, where two tasks touching the same file never share a wave and investigations precede the changes they inform.
+
 - Verify the isolated copy as a whole tree: any file added, removed or modified outside the planned task files now blocks `VERIFIED_IN_ISOLATED_COPY`, and `changes.patch` is derived from the real difference between the original and the delivered candidate. Two regression tests, one reproducing the prior defect where a check could create an unplanned file and still reach a verified state.
 - Derive the expected packaged data set from canonical sources instead of the files that happen to exist, so a missing, stale or leftover packaged file fails validation. New `tests/test_packaging.py`.
 - Add a deterministic fact layer (`eaos/facts/`) with nine extractors: multi-language syntax (tree-sitter, optional extra), import resolution to real file targets, entry-point detection through framework plugins, configuration and environment reads, size/branching/duplication metrics, repository history, domain constants and data models, the dependency graph with a declared attention ranking, and static flow traces from each entry point. Per-file results are cached by content hash; a cached run is cheaper but byte-identical.
