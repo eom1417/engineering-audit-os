@@ -88,8 +88,11 @@ def candidates(dossier, sets):
                          'detail': 'duplicated' if value['duplicated'] else 'single definition',
                          'citation': f"{fact['location']['path']}:{fact['location']['start_line']}"})
         else:
-            rows.append({'kind': fact['kind'], 'id': value['name'], 'text': value['name'], 'detail': value.get('kind', ''),
-                         'citation': f"{fact['location']['path']}:{fact['location']['start_line']}"})
+            # Domain facts are not all named the same way: a cross-module write has a module and an attribute.
+            name = value.get('name') or f"{value.get('module', '')}.{value.get('attribute', '')}".strip('.')
+            if not name: continue
+            rows.append({'kind': fact['kind'], 'id': name, 'text': name, 'detail': str(value.get('kind') or value.get('shape') or ''),
+                         'citation': f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"})
     for fact in sets.get('syntax', {}).get('facts', []):
         if fact['kind'] != 'symbol': continue
         rows.append({'kind': 'symbol', 'id': fact['location'].get('symbol') or fact['value']['name'],

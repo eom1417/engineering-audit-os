@@ -90,3 +90,19 @@ class AskRankingTests(unittest.TestCase):
         result = answer(self.out, 'zzzqxv nonexistent subsystem')
         self.assertEqual(result['next_questions'], [])
         self.assertIn('No record answers', result['note'])
+
+
+class AskRobustnessTests(unittest.TestCase):
+    """Every record kind must survive being indexed, whatever shape its value has."""
+
+    def test_domain_facts_without_a_name_field_do_not_break_the_index(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'settings.py').write_text('LIMIT = 10\n')
+            (repo / 'main.py').write_text('import argparse\nimport settings\n\n\ndef main():\n'
+                                          '    argparse.ArgumentParser(prog="x").parse_args()\n    settings.LIMIT = 1\n')
+            out = Path(tmp) / 'out'
+            assemble(repo, out)
+            result = answer(out, 'settings LIMIT')
+            self.assertEqual(result['status'], 'ANSWERED')
+            self.assertTrue(any('settings' in row['text'] for row in result['answers']))
