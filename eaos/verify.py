@@ -7,6 +7,7 @@ from collections import defaultdict
 import json
 import os
 from pathlib import Path
+import sys
 import shutil
 import subprocess
 import tempfile
@@ -24,11 +25,17 @@ LIMITATIONS = [
     'Coverage reflects the command that was run, not all behaviour the system can exhibit.',
     'An uncovered line is not proof of dead code; it is proof this command did not reach it.',
     'Test discovery by path convention misses suites that do not follow it.',
+    'Commands run with the interpreter running EAOS unless an absolute one is configured; a project needing its own virtualenv must configure the command explicitly.',
 ]
+# The interpreter running EAOS is the one guaranteed to exist and to have the runtime extra
+# installed. Assuming a bare `python` on PATH silently loses all execution evidence on systems
+# that only ship `python3`.
+INTERPRETER = sys.executable or 'python3'
 DEFAULT_COMMANDS = [
-    ['python', '-m', 'pytest', '-q'],
-    ['python', '-m', 'unittest', 'discover', '-s', 'tests'],
+    [INTERPRETER, '-m', 'pytest', '-q'],
+    [INTERPRETER, '-m', 'unittest', 'discover', '-s', 'tests'],
 ]
+INTERPRETER_NAMES = {'python', 'python3', 'py'}
 
 
 def isolated_copy(target, destination):
@@ -60,11 +67,16 @@ def run_command(project, argv, timeout):
 
 
 def coverage_command(argv):
-    return ['python', '-m', 'coverage', 'run', '--branch', *argv[1:]] if argv[:1] == ['python'] else None
+    """Instrument a Python command, resolving a bare interpreter name to the one actually running."""
+    if not argv: return None
+    head = Path(argv[0]).name
+    if head not in INTERPRETER_NAMES and argv[0] != INTERPRETER: return None
+    interpreter = argv[0] if Path(argv[0]).is_absolute() and Path(argv[0]).exists() else INTERPRETER
+    return [interpreter, '-m', 'coverage', 'run', '--branch', *argv[1:]]
 
 
 def parse_coverage(project):
-    report = run_command(project, ['python', '-m', 'coverage', 'json', '-o', '.eaos-coverage.json'], 120)
+    report = run_command(project, [INTERPRETER, '-m', 'coverage', 'json', '-o', '.eaos-coverage.json'], 120)
     path = project / '.eaos-coverage.json'
     if report['exit_code'] != 0 or not path.is_file(): return None, report
     data = json.loads(path.read_text())

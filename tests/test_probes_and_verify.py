@@ -110,3 +110,23 @@ class VerificationTests(unittest.TestCase):
             verify_run(repo, Path(tmp) / 'out', command=['python', '-m', 'unittest', 'discover', '-s', 'tests'], execute=True)
             after = {path.relative_to(repo).as_posix(): path.read_bytes() for path in repo.rglob('*') if path.is_file()}
             self.assertEqual(before, after)
+
+    def test_default_commands_use_a_real_interpreter_not_a_bare_name(self):
+        """A system with only python3 must still produce execution evidence."""
+        import sys
+        from eaos import verify
+        self.assertTrue(all(Path(command[0]).is_absolute() for command in verify.DEFAULT_COMMANDS),
+                        'default commands must not depend on a bare python on PATH')
+        self.assertEqual(verify.coverage_command(['python', '-m', 'unittest'])[0], sys.executable)
+        self.assertEqual(verify.coverage_command(['node', 'test.js']), None)
+
+    def test_a_project_whose_tests_run_only_under_python3_still_verifies(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; (repo / 'tests').mkdir(parents=True)
+            (repo / 'used.py').write_text('def add(a, b):\n    return a + b\n')
+            (repo / 'tests/test_used.py').write_text('import unittest\nimport used\n\n\n'
+                                                     'class T(unittest.TestCase):\n    def test_add(self):\n'
+                                                     '        self.assertEqual(used.add(1, 2), 3)\n')
+            result = verify_run(repo, Path(tmp) / 'out', execute=True)
+            self.assertTrue(result['executed'], result.get('reason'))
+            self.assertGreater(result['overall_percent'], 0)
