@@ -109,6 +109,14 @@ def runtime_claims(verification, offset, coverage_facts=None, excluded=None):
     return rows
 
 
+PROBLEM_TYPES = {'risk', 'cause', 'business_rule', 'structure', 'capability_gap'}
+
+
+def asserts_a_problem(claim):
+    """A claim that states a consequence must end somewhere: a task, an acceptance, or an investigation."""
+    return claim['claim_type'] in PROBLEM_TYPES or bool((claim.get('impact') or {}).get('scenario'))
+
+
 def origin_of(claim, fact_index):
     """Whether a claim is about product code or about test and fixture code; a reader must not confuse them."""
     from .discovery import classify
@@ -136,13 +144,12 @@ def build_claims(sets, records):
             members = (fact['value'] or {}).get('members') if isinstance(fact.get('value'), dict) else None
             if members: fact_index[fact['id'] + ':paths'] = list(members)
     rows = ledger.renumber(ledger.merge(rows))
-    for row in rows: row['origin'] = origin_of(row, fact_index)
-    return rows, fact_index
     for row in rows:
-        row.setdefault('artifacts', [BRIEF if row['claim_type'] in {'risk', 'cause', 'structure'} or (row.get('impact') or {}).get('scenario') else 'SYSTEM-MAP.md'])
-        if row['claim_type'] in {'risk', 'cause', 'structure'} and (row.get('disposition') or {}).get('kind') in (None, 'none_yet'):
+        row['origin'] = origin_of(row, fact_index)
+        row.setdefault('artifacts', [BRIEF if asserts_a_problem(row) else 'SYSTEM-MAP.md'])
+        if asserts_a_problem(row) and (row.get('disposition') or {}).get('kind') in (None, 'none_yet'):
             row['disposition'] = {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'}
-    return rows
+    return rows, fact_index
 
 
 def brief(target, dossier, language):

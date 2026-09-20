@@ -39,8 +39,10 @@ def validate(out, dossier):
             problems.append('R6 DECISION-BRIEF.md: the unexamined-scope section may not be omitted')
         if not any(marker in brief for marker in MARKERS):
             problems.append('R3 DECISION-BRIEF.md: no confidence markers on stated claims')
+    problem_types = {'risk', 'cause', 'business_rule', 'structure', 'capability_gap'}
     for claim in dossier.get('claims', []):
-        if claim.get('claim_type') in {'risk', 'cause'} and claim.get('confidence') != 'REFUTED':
+        states_a_problem = claim.get('claim_type') in problem_types or bool((claim.get('impact') or {}).get('scenario'))
+        if states_a_problem and claim.get('confidence') != 'REFUTED':
             disposition = (claim.get('disposition') or {}).get('kind')
             if disposition in (None, 'none_yet'):
                 problems.append(f"R5 {claim['id']}: a live risk needs a task or a documented acceptance")

@@ -86,3 +86,43 @@ class DossierTests(unittest.TestCase):
         self.assertEqual(rows[0]['claim_type'], 'business_rule')
         self.assertEqual(rows[0]['evidence_ids'], ['SRC-1', 'SRC-2'])
         self.assertEqual(rows[0]['legacy_id'], 'C-1, RULE-1')
+
+
+class DispositionTests(unittest.TestCase):
+    """Regression: the code that assigns a disposition sat after a return and nothing noticed."""
+
+    def test_every_claim_stating_a_consequence_gets_a_disposition(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            assemble(FIXTURE, out)
+            claims = json.loads((out / 'dossier.json').read_text())['claims']
+            self.assertTrue(claims)
+            for claim in claims:
+                if (claim.get('impact') or {}).get('scenario'):
+                    self.assertIn((claim.get('disposition') or {}).get('kind'),
+                                  {'task', 'accepted', 'investigate'}, claim['id'])
+                self.assertTrue(claim.get('artifacts'), claim['id'])
+
+    def test_the_contract_rejects_a_structural_finding_with_no_disposition(self):
+        dossier = {'claims': [{'id': 'CLM-001', 'claim_type': 'business_rule', 'confidence': 'CONFIRMED',
+                               'statement': 'A rule lives in two modules'}], 'tasks': []}
+        self.assertTrue(any(problem.startswith('R5') for problem in validate(Path('.'), dossier)))
+
+
+class UnreachableCodeTests(unittest.TestCase):
+    """A statement after a return is silently dead; the last one disabled a product rule."""
+
+    def test_no_statement_follows_a_return_in_the_package(self):
+        import ast
+        root = Path(__file__).resolve().parents[1] / 'eaos'
+        offenders = []
+        for path in sorted(root.rglob('*.py')):
+            tree = ast.parse(path.read_text(encoding='utf-8'))
+            for node in ast.walk(tree):
+                for field in ('body', 'orelse', 'finalbody'):
+                    block = getattr(node, field, None)
+                    if not isinstance(block, list): continue
+                    for index, statement in enumerate(block[:-1]):
+                        if isinstance(statement, (ast.Return, ast.Raise, ast.Continue, ast.Break)):
+                            offenders.append(f'{path.relative_to(root.parent)}:{block[index + 1].lineno}')
+        self.assertEqual(offenders, [], 'unreachable statements found')
