@@ -39,7 +39,10 @@ class Context:
     def source(self,path,start,end,persist=True):
         lines=self.lines(path)
         if type(start) is not int or type(end) is not int or not 1<=start<=end<=len(lines):raise ValueError('Invalid requested source range')
-        raw=''.join(lines[start-1:end]);clean=redact(raw)
+        raw=''.join(lines[start-1:end])
+        # Redact before slicing: a requested range can start inside a multiline key.
+        # Redaction preserves line boundaries; evidence hashes still use raw source.
+        clean=''.join(redact(''.join(lines)).splitlines(keepends=True)[start-1:end])
         ref={'path':path,'start_line':start,'end_line':end,'sha256':self.files[path]['sha256'],'range_sha256':digest(raw.encode())}
         eid='SRC-'+digest(json.dumps(ref,sort_keys=True).encode())[:20]
         block={'evidence_id':eid,'path':path,'start_line':start,'end_line':end,'redacted':raw!=clean,'source':'\n'.join(f'{i}: {line}' for i,line in enumerate(clean.splitlines(),start))}
