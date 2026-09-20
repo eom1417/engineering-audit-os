@@ -71,3 +71,25 @@ class ClaimLedgerTests(unittest.TestCase):
         self.assertEqual(rows[0]['method'], ['model_inference'])
         self.assertTrue(all(row['falsifier'] for row in rows))
         self.assertEqual(claims.errors(rows, evidence_ids={'SRC-1'}), [])
+
+
+class SchemaKeywordTests(unittest.TestCase):
+    """Regression: declared constraints that nobody enforced read as guarantees they were not."""
+
+    def test_identifier_pattern_and_minimum_items_are_enforced(self):
+        bad = {'id': 'not-a-claim-id', 'statement': 'x' * 20, 'claim_type': 'risk', 'confidence': 'LIKELY',
+               'method': [], 'evidence_ids': ['SRC-1'], 'falsifier': 'a counter-example', 'status': 'open',
+               'created_at': '2026-09-20T00:00:00Z'}
+        problems = ' '.join(claims.errors([bad]))
+        self.assertIn('does not match', problems)
+        self.assertIn('needs at least 1 items', problems)
+
+    def test_unenforced_schema_keywords_are_reported_not_ignored(self):
+        from eaos.audit_records import schema_errors
+        problems = schema_errors('x', {'type': 'string', 'multipleOf': 2})
+        self.assertTrue(any('unenforced keywords' in problem for problem in problems))
+
+    def test_a_fact_backed_claim_needs_no_evidence_id(self):
+        row = claims.make(1, 'Two modules define the same rule', 'business_rule', 'CONFIRMED', ['static_fact'],
+                          [], 'A single definition imported by the other site.', fact_ids=['FACT-1'])
+        self.assertEqual(claims.errors([row]), [])

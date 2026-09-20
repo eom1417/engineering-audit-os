@@ -73,10 +73,10 @@
     },
     "evidence_ids": {
       "type": "array",
-      "minItems": 1,
       "items": {
         "type": "string"
-      }
+      },
+      "description": "Evidence records backing this claim. A claim must cite at least one evidence id or one fact id; which of the two is enforced by the ledger, not by this schema."
     },
     "falsifier": {
       "type": "string",
