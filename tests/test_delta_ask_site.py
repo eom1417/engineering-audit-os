@@ -118,3 +118,23 @@ class SiteTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaisesRegex(ValueError, 'No rendered artifacts'):
                 build_site(Path(tmp))
+
+
+class ToolchainDriftTests(unittest.TestCase):
+    """A changed analyser must not be read as changed code."""
+
+    def test_a_toolchain_change_is_declared_in_the_delta(self):
+        from eaos.delta import compare
+        before = {'provenance': {'tool_version': '3.0.0', 'extractors': {'syntax': '1'}, 'generated_at': 'a'},
+                  'claims': [], 'coverage': {}}
+        after = {'provenance': {'tool_version': '3.1.0', 'extractors': {'syntax': '2'}, 'generated_at': 'b'},
+                 'claims': [], 'coverage': {}}
+        result = compare(before, after)
+        self.assertEqual(set(result['toolchain_changes']), {'tool_version', 'syntax'})
+
+    def test_an_unchanged_toolchain_reports_nothing(self):
+        from eaos.delta import compare
+        same = {'provenance': {'tool_version': '3.0.0', 'extractors': {'syntax': '1'}, 'generated_at': 'a'},
+                'claims': [], 'coverage': {}}
+        self.assertEqual(compare(same, dict(same)), compare(same, dict(same)))
+        self.assertEqual(compare(same, dict(same))['toolchain_changes'], {})

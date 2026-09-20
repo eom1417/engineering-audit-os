@@ -25,8 +25,17 @@ def compare(previous, current):
         if coverage_before.get(field) != coverage_after.get(field):
             coverage_delta[field] = {'from': coverage_before.get(field), 'to': coverage_after.get(field)}
     new_severe = [claim for claim in appeared if claim['confidence'] in SEVERE and claim['claim_type'] in {'risk', 'cause', 'business_rule', 'structure'}]
+    # A difference can come from changed code or from a changed toolchain. Saying which is not optional.
+    before_tools = previous.get('provenance', {})
+    after_tools = current.get('provenance', {})
+    toolchain = {}
+    if before_tools.get('tool_version') != after_tools.get('tool_version'):
+        toolchain['tool_version'] = {'from': before_tools.get('tool_version'), 'to': after_tools.get('tool_version')}
+    for name, version in sorted((after_tools.get('extractors') or {}).items()):
+        older = (before_tools.get('extractors') or {}).get(name)
+        if older != version: toolchain[name] = {'from': older, 'to': version}
     return {'new_claims': appeared, 'resolved_claims': resolved, 'confidence_changes': changed,
-            'coverage_changes': coverage_delta, 'new_severe_claims': new_severe,
+            'coverage_changes': coverage_delta, 'new_severe_claims': new_severe, 'toolchain_changes': toolchain,
             'counts': {'new': len(appeared), 'resolved': len(resolved), 'changed': len(changed), 'new_severe': len(new_severe)}}
 
 
@@ -36,7 +45,13 @@ def document(result, previous, current, language):
     doc = Document(heading, language, budget_lines=160)
     doc.header([f"{previous['provenance']['generated_at']} → {current['provenance']['generated_at']}",
                 f"new {result['counts']['new']} · resolved {result['counts']['resolved']} · "
-                f"confidence changed {result['counts']['changed']} · new severe {result['counts']['new_severe']}"])
+                f"confidence changed {result['counts']['changed']} · new severe {result['counts']['new_severe']}",
+                (('تنبيه: أدوات التحليل تغيّرت بين اللقطتين (' if language == 'ar' else
+                  'Warning: the analysis toolchain changed between the snapshots (')
+                 + ', '.join(sorted(result['toolchain_changes'])) +
+                 ('), فبعض الفروق قد تعود إلى تحسّن الكشف لا إلى تغيّر الكود.' if language == 'ar' else
+                  '), so part of this difference may be improved detection rather than changed code.'))
+                if result['toolchain_changes'] else None])
     doc.section('ادعاءات جديدة' if language == 'ar' else 'New claims')
     doc.table(['#', 'الادعاء' if language == 'ar' else 'Claim', 'الثقة' if language == 'ar' else 'Confidence'],
               [[claim['id'], claim['statement'][:140], claim['confidence']] for claim in result['new_claims']], limit=20)
@@ -60,5 +75,6 @@ def run(previous_out, current_out, language='ar', fail_on_new_severe=False):
     (Path(current_out) / 'DELTA.md').write_text(document(result, previous, current, language).render(), encoding='utf-8')
     status = 'DRIFT' if (fail_on_new_severe and result['new_severe_claims']) else 'OK'
     return {'previous': str(previous_out), 'current': str(current_out), 'counts': result['counts'],
+            'toolchain_changes': result['toolchain_changes'],
             'new_severe_claims': [claim['id'] for claim in result['new_severe_claims']], 'status': status,
             'limits': 'A delta compares two dossiers. A claim that disappears may have been fixed, or may simply no longer be detectable.'}
