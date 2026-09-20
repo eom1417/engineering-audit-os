@@ -47,9 +47,18 @@ eaos ask "أين تُحسب قاعدة الخصم" --out /absolute/out     # إ�
 eaos site --out /absolute/out                           # صفحة HTML واحدة بالبحث
 eaos delta /absolute/old /absolute/new --fail-on-new-severe   # بوابة انحراف في CI
 eaos evaluate /absolute/benchmarks --out /absolute/eval # قياس الاكتشاف مقابل حقيقة أرضية
+eaos tasks /absolute/project --out /absolute/out        # بطاقات مهام وموجات تنفيذ من الادعاءات المؤكدة
+eaos impact-of <path|symbol> --out /absolute/out        # ما الذي يمسّه تغيير هذا الملف أو الرمز
+eaos policy check /absolute/project --out /absolute/out # فحص السياسة المعمارية المعلنة (بوابة CI)
+eaos api-diff /absolute/old /absolute/new               # سطح الكسر بين لقطتين
+eaos semantic /absolute/project --out /absolute/out --provider p.json   # طبقة دلالية فوق الحقائق
 ```
 
-`dossier` ينتج `dossier.json` كمصدر وحيد، ويشتق منه: `DECISION-BRIEF.md` (صفحتان)، `SYSTEM-MAP.md` (نقاط الدخول والتجمعات)، `FLOWS.md` (تتبع كل نقطة دخول بـ`file:line`)، `DOMAIN-AND-DATA.md` (مصدر الحقيقة والقواعد المكررة)، `CONTRACTS.md`، `COUPLING-ATLAS.md`، `EVOLUTION.md`، `VERIFICATION-MAP.md`، `PROVENANCE.md`. كل ادعاء يحمل ثقته وطريقته ودليله وما ينقضه؛ وعقد المخرج يرفض البناء عند مخالفته.
+`eaos tasks` ينتج لكل ادعاء مؤكد بطاقة مكتفية بذاتها: المشكلة وموضعها، الدليل، **نطاق الأثر محسوبًا من الرسم**، خيارات معالجة تتضمن دائمًا «لا نفعل شيئًا» وكلفتها، **معيار قبول مشتق من المجسّ الذي أكد الادعاء**، التراجع، وتقدير يعلن ثقته. والبطاقات مرتبة في موجات: مهمتان تتشاركان ملفًا لا تقعان في موجة واحدة.
+
+`eaos policy check` يقرأ `eaos.policy.json` من المشروع الهدف: الطبقات والاعتماديات الممنوعة بسبب مكتوب. كل حافة مخالفة تصير ادعاءً بموضعها، والأمر يخرج بغير صفر فتصلح بوابةً في CI.
+
+`dossier` ينتج `dossier.json` كمصدر وحيد، ويشتق منه: `README.md` (فهرس وترتيب قراءة ودرجة إسناد لكل قسم)، `DECISION-BRIEF.md` (صفحتان)، `RISK-REGISTER.md` (ترتيب بمعيار: مدى × ثقة ÷ كلفة)، `ONBOARDING.md`، `SYSTEM-MAP.md` (نقاط الدخول والتجمعات)، `FLOWS.md` (تتبع كل نقطة دخول بـ`file:line`)، `DOMAIN-AND-DATA.md` (مصدر الحقيقة والقواعد المكررة)، `CONTRACTS.md`، `COUPLING-ATLAS.md`، `EVOLUTION.md`، `VERIFICATION-MAP.md`، `PROVENANCE.md`. كل ادعاء يحمل ثقته وطريقته ودليله وما ينقضه؛ وعقد المخرج يرفض البناء عند مخالفته.
 
 `--audit-run <dir>` يدمج سجلات مراجعة نموذجية سابقة داخل نفس الملف.
 
