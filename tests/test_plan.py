@@ -137,3 +137,29 @@ class CardLanguageTests(unittest.TestCase):
             text = (out / 'PLAN/TASK-001.md').read_text()
             self.assertIn('is defined in', text)
             self.assertNotIn('معرّف في', text)
+
+
+class PatternCoverageTests(unittest.TestCase):
+    """Every claim class the tool can detect must have a remediation pattern, or cards say nothing useful."""
+
+    def test_each_detectable_class_maps_to_a_named_pattern(self):
+        queries = {'cycle_present': 'import_cycle', 'flow_has_unresolved_steps': 'trace_gap',
+                   'no_code_dependency': 'hidden_coupling', 'metric_threshold': 'hotspot',
+                   'mutable_global_present': 'mutable_state', 'external_write_present': 'external_write',
+                   'policy_violation_present': 'policy_violation'}
+        for query, expected in queries.items():
+            claim = {'probe_spec': {'probe_type': 'graph_query', 'specification': {'query': query}}}
+            self.assertEqual(classify(claim), expected, query)
+            pattern = pattern_for(claim)
+            self.assertNotEqual(pattern['name'], 'generic')
+            self.assertTrue(pattern['change'] and pattern['rollback'])
+            self.assertIn('لا نفعل شيئًا', [option['option'] for option in pattern['options']])
+
+    def test_no_generated_card_falls_back_to_the_generic_pattern(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            assemble(FIXTURE, out)
+            plan = build(FIXTURE, out)
+            tasks = json.loads((out / 'plan.json').read_text())['tasks']
+            self.assertTrue(tasks)
+            self.assertEqual([task['id'] for task in tasks if task['pattern'] == 'generic'], [])
