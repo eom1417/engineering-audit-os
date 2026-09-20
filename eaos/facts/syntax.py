@@ -70,9 +70,18 @@ def python_units(text):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             kind = 'class' if isinstance(node, ast.ClassDef) else ('method' if parent else 'function')
             qualified = '.'.join(scope + [node.name])
+            signature = None
+            if not isinstance(node, ast.ClassDef):
+                arguments = node.args
+                names = [a.arg for a in [*arguments.posonlyargs, *arguments.args]]
+                if arguments.vararg: names.append('*' + arguments.vararg.arg)
+                names += [a.arg for a in arguments.kwonlyargs]
+                if arguments.kwarg: names.append('**' + arguments.kwarg.arg)
+                required = len(names) - len(arguments.defaults) - len(arguments.kw_defaults or [])
+                signature = {'parameters': names, 'required': max(required, 0)}
             symbols.append({'name': node.name, 'qualified_name': qualified, 'kind': kind, 'parent': parent,
                             'start_line': node.lineno, 'end_line': node.end_lineno,
-                            'exported': not node.name.startswith('_'),
+                            'exported': not node.name.startswith('_'), 'signature': signature,
                             'decorators': [ast.unparse(d) for d in node.decorator_list][:8]})
             scope.append(node.name)
             for child in ast.iter_child_nodes(node): visit(child, qualified)
@@ -161,9 +170,15 @@ def tree_sitter_units(language, text, config):
             name = named_child(node, blob) or anonymous_name(node, blob)
             if name:
                 qualified = (enclosing + '.' + name) if enclosing else name
+                parameters = node.child_by_field_name('parameters') or node.child_by_field_name('formal_parameters')
+                signature = None
+                if parameters is not None:
+                    names = [node_text(child, blob).split(':')[0].strip()
+                             for child in parameters.named_children if child.type != 'comment']
+                    signature = {'parameters': [name for name in names if name], 'required': None}
                 symbols.append({'name': name, 'qualified_name': qualified, 'kind': kind, 'parent': enclosing,
                                 'start_line': node.start_point[0] + 1, 'end_line': node.end_point[0] + 1,
-                                'exported': True, 'decorators': []})
+                                'exported': True, 'signature': signature, 'decorators': []})
                 current = qualified
         if node.type in config['imports']:
             module = first_string(node, blob)
@@ -247,7 +262,7 @@ def run(target, source, cache=None, **options):
         for symbol in symbols:
             facts.append(make('symbol', NAME, VERSION, item['sha256'],
                               {'path': rel, 'start_line': symbol['start_line'], 'end_line': symbol['end_line'], 'symbol': symbol['qualified_name']},
-                              {k: symbol[k] for k in ['name', 'kind', 'parent', 'exported', 'decorators']} | {'language': language},
+                              {k: symbol[k] for k in ['name', 'kind', 'parent', 'exported', 'decorators', 'signature']} | {'language': language},
                               limitations=LIMITATIONS))
         for entry in imports:
             facts.append(make('import_edge', NAME, VERSION, item['sha256'], {'path': rel, 'start_line': entry['line']},

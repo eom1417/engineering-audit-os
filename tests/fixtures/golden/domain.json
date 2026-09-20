@@ -8,7 +8,8 @@
     "Only literal module-level constants are captured; values computed at runtime are not.",
     "Two identical values are a duplication signal, not proof that they encode the same rule.",
     "Table and model detection is pattern-based; an unrecognised ORM is missed, not absent.",
-    "Ownership of a rule is not asserted here; that requires semantic review."
+    "Ownership of a rule is not asserted here; that requires semantic review.",
+    "A mutable module-level value is a shared-state signal, not proof of a concurrency defect."
   ],
   "summary": {
     "constants": 2,
@@ -18,6 +19,9 @@
     ],
     "duplicated_with_different_values": [],
     "excluded_from_duplication": [],
+    "mutable_globals": 0,
+    "mutable_globals_changed_at_runtime": 0,
+    "external_state_writes": 0,
     "data_models": 0,
     "data_tables": 0,
     "migration_paths": [],
@@ -51,7 +55,8 @@
         "Only literal module-level constants are captured; values computed at runtime are not.",
         "Two identical values are a duplication signal, not proof that they encode the same rule.",
         "Table and model detection is pattern-based; an unrecognised ORM is missed, not absent.",
-        "Ownership of a rule is not asserted here; that requires semantic review."
+        "Ownership of a rule is not asserted here; that requires semantic review.",
+        "A mutable module-level value is a shared-state signal, not proof of a concurrency defect."
       ]
     },
     {
@@ -89,7 +94,8 @@
         "Only literal module-level constants are captured; values computed at runtime are not.",
         "Two identical values are a duplication signal, not proof that they encode the same rule.",
         "Table and model detection is pattern-based; an unrecognised ORM is missed, not absent.",
-        "Ownership of a rule is not asserted here; that requires semantic review."
+        "Ownership of a rule is not asserted here; that requires semantic review.",
+        "A mutable module-level value is a shared-state signal, not proof of a concurrency defect."
       ]
     }
   ]

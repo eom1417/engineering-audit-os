@@ -16,6 +16,7 @@ LIMITATIONS = [
     'Two identical values are a duplication signal, not proof that they encode the same rule.',
     'Table and model detection is pattern-based; an unrecognised ORM is missed, not absent.',
     'Ownership of a rule is not asserted here; that requires semantic review.',
+    'A mutable module-level value is a shared-state signal, not proof of a concurrency defect.',
 ]
 JS_CONST = re.compile(r'^\s*(?:export\s+)?(?:const|let|var)\s+(?P<name>[A-Z][A-Z0-9_]{2,})\s*=\s*(?P<value>[^;\n]+)', re.M)
 SQL_TABLE = re.compile(r'CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"\[]?(?P<name>[\w.]+)', re.I)
@@ -25,6 +26,81 @@ MIGRATION = re.compile(r'(migrations?|alembic|flyway|liquibase)/', re.I)
 # Per-module metadata, not shared domain rules: repeating these names says nothing about rule ownership.
 CONVENTIONAL = {'NAME', 'VERSION', 'SCHEMA_VERSION', 'LIMITATIONS', 'LOGGER', 'LOG', 'DEBUG', 'TAG', 'AUTHOR',
                 'LICENSE', 'ORDER', 'DEFAULT', 'PREFIX', 'SUFFIX', 'ENCODING', 'TIMEOUT_DEFAULT'}
+
+
+MUTABLE = (ast.List, ast.Dict, ast.Set, ast.ListComp, ast.DictComp, ast.SetComp)
+
+
+MUTATORS = {'append', 'extend', 'insert', 'pop', 'remove', 'clear', 'update', 'add', 'discard', 'setdefault', 'popitem', 'sort'}
+
+
+def python_mutable_globals(text):
+    """Module-level state that is actually mutated.
+
+    A module-level dict used as a lookup table is a constant in practice. Reporting all of them
+    would bury the few that are genuinely written to, which are the ones that cause surprises.
+    """
+    try: tree = ast.parse(text)
+    except (SyntaxError, ValueError, RecursionError): return []
+    bound = {}
+    for node in tree.body:
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if isinstance(target, ast.Name) and isinstance(node.value, MUTABLE):
+                    bound[target.id] = (type(node.value).__name__, node.lineno)
+    # A dict built up at module level is initialisation; the same write inside a function is
+    # state that changes while the program runs, which is the case worth reporting.
+    module_level = set()
+    for statement in tree.body:
+        for node in ast.walk(statement):
+            if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): continue
+            module_level.add(id(node))
+    mutated = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Global):
+            for name in node.names: mutated[name] = ('global_statement', node.lineno, 'function')
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) \
+                and isinstance(node.func.value, ast.Name) and node.func.value.id in bound \
+                and node.func.attr in MUTATORS:
+            mutated[node.func.value.id] = ('method:' + node.func.attr, node.lineno,
+                                           'module' if id(node) in module_level else 'function')
+        elif isinstance(node, (ast.Assign, ast.AugAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name) and target.value.id in bound:
+                    mutated[target.value.id] = ('item_assignment', node.lineno,
+                                                'module' if id(node) in module_level else 'function')
+    found = []
+    for name, (shape, line) in sorted(bound.items()):
+        if name not in mutated: continue
+        how, where, scope = mutated[name]
+        found.append((name, shape, line, how, where, scope))
+    for name, value in sorted(mutated.items()):
+        how, where, scope = value
+        if name not in bound and how == 'global_statement':
+            found.append((name, 'rebound_global', where, how, where, scope))
+    return found
+
+
+def python_external_writes(text):
+    """Assignments into another module's namespace: state written by someone who does not own it."""
+    try: tree = ast.parse(text)
+    except (SyntaxError, ValueError, RecursionError): return []
+    modules = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names: modules.add((alias.asname or alias.name).split('.')[0])
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names: modules.add(alias.asname or alias.name)
+    found = []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Assign, ast.AugAssign)): continue
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        for target in targets:
+            if isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name) and target.value.id in modules:
+                found.append((target.value.id, target.attr, node.lineno))
+    return found
 
 
 def python_constants(text):
@@ -47,6 +123,7 @@ def run(target, source, **options):
     facts, fingerprints = [], []
     constants = defaultdict(list)
     models, tables, migrations = [], [], []
+    mutable_globals, external_writes = [], []
     for item in source.readable():
         rel, text = item['path'], source.text(item['path'])
         if text is None: continue
@@ -54,6 +131,10 @@ def run(target, source, **options):
         fingerprints.append(item['sha256'])
         if language == 'python':
             for name, value, line in python_constants(text): constants[name].append((rel, line, value))
+            for name, shape, line, how, where, scope in python_mutable_globals(text):
+                mutable_globals.append((rel, name, shape, line, how, where, scope))
+            for module, attribute, line in python_external_writes(text):
+                external_writes.append((rel, module, attribute, line))
             for match in ORM_MODEL.finditer(text):
                 models.append((match.group('name'), rel, text.count('\n', 0, match.start()) + 1, 'python_class'))
         elif language in {'javascript', 'typescript', 'tsx'}:
@@ -93,6 +174,18 @@ def run(target, source, **options):
     for name, rel, line in sorted(tables):
         facts.append(make('data_table', NAME, VERSION, digest((name + rel).encode('utf-8')), {'path': rel, 'start_line': line},
                           {'name': name}, limitations=LIMITATIONS))
+    for rel, name, shape, line, how, where, scope in sorted(mutable_globals):
+        facts.append(make('mutable_global', NAME, VERSION, digest((rel + name).encode('utf-8')),
+                          {'path': rel, 'start_line': line},
+                          {'name': name, 'shape': shape, 'mutated_by': how, 'mutated_at_line': where,
+                           'mutation_scope': scope,
+                           'note': 'Built at import time in its own module.' if scope == 'module'
+                                   else 'Changed while the program runs.'},
+                          limitations=LIMITATIONS))
+    for rel, module, attribute, line in sorted(external_writes):
+        facts.append(make('external_state_write', NAME, VERSION, digest((rel + module + attribute).encode('utf-8')),
+                          {'path': rel, 'start_line': line},
+                          {'module': module, 'attribute': attribute}, limitations=LIMITATIONS))
     facts.sort(key=lambda f: (f['kind'], f['value'].get('name', ''), f['location']['path']))
     flagged = {fact['value']['name'] for fact in facts if fact['kind'] == 'domain_constant' and fact['value']['duplicated']}
     summary = {'constants': len(constants), 'duplicated_constants': duplicated,
@@ -102,6 +195,8 @@ def run(target, source, **options):
                                                           if len({repr(v) for _, _, v in constants[name]}) > 1),
                'excluded_from_duplication': sorted({fact['value']['name'] for fact in facts
                                                     if fact['kind'] == 'domain_constant' and fact['value'].get('excluded_reason')}),
+               'mutable_globals': len(mutable_globals),
+               'mutable_globals_changed_at_runtime': sum(1 for row in mutable_globals if row[6] == 'function'), 'external_state_writes': len(external_writes),
                'data_models': len(models), 'data_tables': len(tables), 'migration_paths': sorted(set(migrations))[:20],
                'interpretation': 'A constant repeated in two modules is a question about rule ownership, not yet a defect.'}
     return {'facts': facts, 'summary': summary, 'available': True,

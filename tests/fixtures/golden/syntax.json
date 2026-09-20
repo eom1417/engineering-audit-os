@@ -83,7 +83,7 @@
       ]
     },
     {
-      "id": "FACT-aea1d65527bfc968",
+      "id": "FACT-3c12a0dd6ecc191c",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -100,6 +100,13 @@
         "parent": null,
         "exported": true,
         "decorators": [],
+        "signature": {
+          "parameters": [
+            "req",
+            "res"
+          ],
+          "required": null
+        },
         "language": "typescript"
       },
       "limitations": [
@@ -134,7 +141,7 @@
       ]
     },
     {
-      "id": "FACT-eea0358c468f2db3",
+      "id": "FACT-9b18790261c33e17",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -151,6 +158,13 @@
         "parent": null,
         "exported": true,
         "decorators": [],
+        "signature": {
+          "parameters": [
+            "req",
+            "res"
+          ],
+          "required": null
+        },
         "language": "typescript"
       },
       "limitations": [
@@ -232,7 +246,7 @@
       ]
     },
     {
-      "id": "FACT-b9ee539e15aceafd",
+      "id": "FACT-b256151900e43228",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -249,6 +263,13 @@
         "parent": null,
         "exported": true,
         "decorators": [],
+        "signature": {
+          "parameters": [
+            "action",
+            "subject"
+          ],
+          "required": null
+        },
         "language": "typescript"
       },
       "limitations": [
@@ -282,7 +303,7 @@
       ]
     },
     {
-      "id": "FACT-098a7e7b8ad1556c",
+      "id": "FACT-507d409143b98f13",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -299,6 +320,12 @@
         "parent": null,
         "exported": true,
         "decorators": [],
+        "signature": {
+          "parameters": [
+            "items"
+          ],
+          "required": null
+        },
         "language": "typescript"
       },
       "limitations": [
@@ -333,7 +360,7 @@
       ]
     },
     {
-      "id": "FACT-67f30a12f465f356",
+      "id": "FACT-b50dad2ed113abb4",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -350,6 +377,13 @@
         "parent": null,
         "exported": true,
         "decorators": [],
+        "signature": {
+          "parameters": [
+            "items",
+            "tier = 'standard'"
+          ],
+          "required": null
+        },
         "language": "typescript"
       },
       "limitations": [
@@ -657,7 +691,7 @@
       ]
     },
     {
-      "id": "FACT-cc5790863aa6f9c5",
+      "id": "FACT-5fa0c76b2f354942",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -674,6 +708,10 @@
         "parent": null,
         "exported": true,
         "decorators": [],
+        "signature": {
+          "parameters": [],
+          "required": null
+        },
         "language": "typescript"
       },
       "limitations": [
@@ -783,7 +821,7 @@
       ]
     },
     {
-      "id": "FACT-a2142b59221fc635",
+      "id": "FACT-1c54ea4330b7ef31",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -800,6 +838,12 @@
         "parent": null,
         "exported": true,
         "decorators": [],
+        "signature": {
+          "parameters": [
+            "args"
+          ],
+          "required": 1
+        },
         "language": "python"
       },
       "limitations": [
@@ -858,7 +902,7 @@
       ]
     },
     {
-      "id": "FACT-40459cd50fbdcfcb",
+      "id": "FACT-2d775097125cd342",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -875,6 +919,12 @@
         "parent": null,
         "exported": true,
         "decorators": [],
+        "signature": {
+          "parameters": [
+            "argv"
+          ],
+          "required": 0
+        },
         "language": "python"
       },
       "limitations": [
@@ -1247,7 +1297,7 @@
       ]
     },
     {
-      "id": "FACT-753d10af10e044d5",
+      "id": "FACT-cd88fb55b9ccabcf",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -1264,6 +1314,13 @@
         "parent": null,
         "exported": true,
         "decorators": [],
+        "signature": {
+          "parameters": [
+            "action",
+            "subject"
+          ],
+          "required": 2
+        },
         "language": "python"
       },
       "limitations": [
@@ -1274,7 +1331,7 @@
       ]
     },
     {
-      "id": "FACT-0172a2afd7b72169",
+      "id": "FACT-e1c64c1150f66bbe",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -1291,6 +1348,12 @@
         "parent": null,
         "exported": true,
         "decorators": [],
+        "signature": {
+          "parameters": [
+            "items"
+          ],
+          "required": 1
+        },
         "language": "python"
       },
       "limitations": [
@@ -1445,7 +1508,7 @@
       ]
     },
     {
-      "id": "FACT-1dcfcaec8d343a41",
+      "id": "FACT-ec5e443b8a3f3597",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -1462,6 +1525,12 @@
         "parent": null,
         "exported": true,
         "decorators": [],
+        "signature": {
+          "parameters": [
+            "items"
+          ],
+          "required": 1
+        },
         "language": "python"
       },
       "limitations": [
@@ -1496,7 +1565,7 @@
       ]
     },
     {
-      "id": "FACT-d55a1e569858150b",
+      "id": "FACT-ecf5a92fe93b4308",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -1513,6 +1582,13 @@
         "parent": null,
         "exported": true,
         "decorators": [],
+        "signature": {
+          "parameters": [
+            "items",
+            "tier"
+          ],
+          "required": 1
+        },
         "language": "python"
       },
       "limitations": [
@@ -1690,7 +1766,7 @@
       ]
     },
     {
-      "id": "FACT-44f5a7408aefbb0d",
+      "id": "FACT-8baeaa2dafb96027",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -1707,6 +1783,13 @@
         "parent": null,
         "exported": true,
         "decorators": [],
+        "signature": {
+          "parameters": [
+            "w http.ResponseWriter",
+            "r *http.Request"
+          ],
+          "required": null
+        },
         "language": "go"
       },
       "limitations": [
@@ -1741,7 +1824,7 @@
       ]
     },
     {
-      "id": "FACT-7d243a6725b06c69",
+      "id": "FACT-741ff3b9e4d1bab5",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -1758,6 +1841,10 @@
         "parent": null,
         "exported": true,
         "decorators": [],
+        "signature": {
+          "parameters": [],
+          "required": null
+        },
         "language": "go"
       },
       "limitations": [
@@ -1893,7 +1980,7 @@
       ]
     },
     {
-      "id": "FACT-8ab64f82426a1eb4",
+      "id": "FACT-efdebf86cba22939",
       "kind": "symbol",
       "extractor": "syntax",
       "extractor_version": "1",
@@ -1912,6 +1999,14 @@
         "decorators": [
           "shared_task"
         ],
+        "signature": {
+          "parameters": [
+            "order_id",
+            "items",
+            "tier"
+          ],
+          "required": 3
+        },
         "language": "python"
       },
       "limitations": [

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "layers": {
+    "facts": ["eaos/facts/**"],
+    "compose": ["eaos/compose/**"],
+    "runtime": ["eaos/runtime/**"],
+    "core": ["eaos/*.py"],
+    "tools": ["tools/**"],
+    "tests": ["tests/**"]
+  },
+  "rules": [
+    {"deny": {"from": "facts", "to": "runtime"},
+     "reason": "الطبقة الحتمية يجب أن تعمل بلا مسار النموذج؛ اعتمادها عليه يكسر eaos map بلا مزوّد"},
+    {"deny": {"from": "compose", "to": "core"},
+     "reason": "المؤلّف يعرض السجلات فقط ولا يعرف منطق التجميع"},
+    {"deny": {"from": "compose", "to": "facts"},
+     "reason": "العرض لا يستخرج حقائق بنفسه"},
+    {"deny": {"from": "runtime", "to": "tools"},
+     "reason": "أدوات التطوير ليست جزءًا من زمن التشغيل"}
+  ]
+}

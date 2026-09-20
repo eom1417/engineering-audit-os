@@ -161,6 +161,59 @@ def from_facts(fact_sets):
                                                                                          'expected': 'The name is defined in more than one file with no import linking them.'}},
                            impact={'scenario': 'Changing the rule in one place and not the others makes two paths disagree'
                                                + (' — and they already hold different values.' if differs else '.')}))
+    # Maintenance hotspot: complexity that sits where change and dependency already concentrate.
+    BRANCH_THRESHOLD, ATTENTION_TOP, MAX_HOTSPOTS = 60, 10, 3
+    hotspots = 0
+    graph_nodes = {fact['location']['path']: fact['value'] for fact in graph.get('facts', []) if fact['kind'] == 'graph_node'}
+    for fact in sorted(fact_sets.get('metrics', {}).get('facts', []),
+                       key=lambda f: -(f['value'].get('branches') or 0)):
+        if fact['kind'] != 'metric' or fact['value'].get('scope') == 'file': continue
+        path, symbol = fact['location']['path'], fact['location'].get('symbol')
+        node = graph_nodes.get(path)
+        if not node or (node.get('attention_rank') or 999) > ATTENTION_TOP: continue
+        if (fact['value'].get('branches') or 0) < BRANCH_THRESHOLD: continue
+        if hotspots >= MAX_HOTSPOTS: break
+        hotspots += 1
+        index += 1
+        claims.append(make(index, f"{symbol} in {path} carries {fact['value']['branches']} branches over "
+                                  f"{fact['value']['lines']} lines, in a file ranked {node['attention_rank']} for attention",
+                           'structure', 'CONFIRMED', ['static_fact'], [],
+                           'A measurement showing the branching is below the declared threshold, or evidence that the '
+                           'complexity is inherent to the problem and isolated behind a tested contract.',
+                           fact_ids=[fact['id']],
+                           probe_spec={'probe_type': 'graph_query',
+                                       'specification': {'query': 'metric_threshold', 'path': path, 'symbol': symbol,
+                                                         'max_branches': BRANCH_THRESHOLD,
+                                                         'expected': 'The symbol still exceeds the declared branch threshold.'}},
+                           impact={'scenario': f'Every change to this path passes through one dense function; '
+                                               f'it is the most concentrated maintenance risk in the module.'}))
+    domain_facts = fact_sets.get('domain', {}).get('facts', [])
+    for fact in [f for f in domain_facts if f['kind'] == 'mutable_global' and f['value'].get('mutation_scope') == 'function']:
+        index += 1
+        claims.append(make(index, f"{fact['value']['name']} in {fact['location']['path']} is module-level state changed "
+                                  f"at runtime ({fact['value']['mutated_by']}, line {fact['value']['mutated_at_line']})",
+                           'risk', 'CONFIRMED', ['static_fact'], [],
+                           'The value becoming immutable, or the mutation moving behind an owner that serialises access.',
+                           fact_ids=[fact['id']],
+                           probe_spec={'probe_type': 'graph_query',
+                                       'specification': {'query': 'mutable_global_present', 'path': fact['location']['path'],
+                                                         'name': fact['value']['name'],
+                                                         'expected': 'The module-level value is still mutated at runtime.'}},
+                           impact={'scenario': 'Two callers can observe different values depending on order, and tests '
+                                               'can pass in isolation while failing together.'}))
+    for fact in [f for f in domain_facts if f['kind'] == 'external_state_write']:
+        index += 1
+        claims.append(make(index, f"{fact['location']['path']} writes into {fact['value']['module']}."
+                                  f"{fact['value']['attribute']}, state it does not own",
+                           'structure', 'CONFIRMED', ['static_fact'], [],
+                           'The write moving into the owning module behind a named operation.',
+                           fact_ids=[fact['id']],
+                           probe_spec={'probe_type': 'graph_query',
+                                       'specification': {'query': 'external_write_present', 'path': fact['location']['path'],
+                                                         'module': fact['value']['module'], 'attribute': fact['value']['attribute'],
+                                                         'expected': 'The cross-module assignment is still present.'}},
+                           impact={'scenario': 'The owning module cannot guarantee its own invariant, because another '
+                                               'module assigns into it directly.'}))
     flows = fact_sets.get('flows', {})
     for fact in [f for f in flows.get('facts', []) if f['value']['unresolved_steps'] > 2][:10]:
         index += 1

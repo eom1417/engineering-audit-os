@@ -100,3 +100,90 @@ class DomainFactTests(unittest.TestCase):
 
     def test_duplication_is_framed_as_a_question_not_a_verdict(self):
         self.assertIn('not yet a defect', self.data['summary']['interpretation'])
+
+
+class SharedStateTests(unittest.TestCase):
+    """Module-level state and cross-module writes: reported only when they actually happen."""
+
+    def analyse(self, tmp, body, name='app.py'):
+        repo = Path(tmp) / 'repo'; repo.mkdir(exist_ok=True)
+        (repo / name).write_text(body)
+        collect(repo, Path(tmp) / 'out', SETS)
+        return read_set(Path(tmp) / 'out', 'domain')
+
+    def test_a_lookup_table_is_not_reported_as_mutable_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data = self.analyse(tmp, 'TABLE = {"a": 1, "b": 2}\n\n\ndef lookup(key):\n    return TABLE[key]\n')
+            self.assertEqual(data['summary']['mutable_globals'], 0)
+
+    def test_state_mutated_at_runtime_is_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data = self.analyse(tmp, 'CACHE = {}\n\n\ndef remember(key, value):\n    CACHE[key] = value\n')
+            self.assertEqual(data['summary']['mutable_globals_changed_at_runtime'], 1)
+            fact = next(f for f in data['facts'] if f['kind'] == 'mutable_global')
+            self.assertEqual(fact['value']['mutation_scope'], 'function')
+
+    def test_state_built_at_import_time_is_recorded_but_separated(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data = self.analyse(tmp, 'PATTERNS = {"a": 1}\nPATTERNS["b"] = 2\n')
+            self.assertEqual(data['summary']['mutable_globals'], 1)
+            self.assertEqual(data['summary']['mutable_globals_changed_at_runtime'], 0)
+
+    def test_writing_into_another_module_is_reported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'settings.py').write_text('LIMIT = 10\n')
+            (repo / 'app.py').write_text('import settings\n\n\ndef raise_limit():\n    settings.LIMIT = 99\n')
+            collect(repo, Path(tmp) / 'out', SETS)
+            data = read_set(Path(tmp) / 'out', 'domain')
+            self.assertEqual(data['summary']['external_state_writes'], 1)
+            fact = next(f for f in data['facts'] if f['kind'] == 'external_state_write')
+            self.assertEqual((fact['value']['module'], fact['value']['attribute']), ('settings', 'LIMIT'))
+
+    def test_runtime_state_and_cross_module_writes_become_claims_with_probes(self):
+        from eaos.dossier import assemble
+        from eaos import probes
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'settings.py').write_text('LIMIT = 10\n')
+            (repo / 'app.py').write_text('import argparse\nimport settings\n\nCACHE = {}\n\n\n'
+                                         'def main():\n    argparse.ArgumentParser(prog="demo")\n'
+                                         '    CACHE["x"] = 1\n    settings.LIMIT = 99\n')
+            out = Path(tmp) / 'out'
+            assemble(repo, out)
+            probes.run_all(repo, out)
+            claims = json.loads((out / 'dossier.json').read_text())['claims']
+            kinds = {claim['statement'].split()[0] for claim in claims}
+            self.assertIn('CACHE', kinds)
+            self.assertTrue(any('writes into settings.LIMIT' in claim['statement'] for claim in claims))
+            self.assertTrue(all(claim['confidence'] == 'CONFIRMED' for claim in claims))
+
+
+class HotspotTests(unittest.TestCase):
+    """Complexity is only a finding where change and dependency already concentrate."""
+
+    def test_a_dense_function_on_a_central_path_becomes_a_claim(self):
+        from eaos.dossier import assemble
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            branches = '\n'.join(f'    if value == {n}:\n        return {n}' for n in range(70))
+            (repo / 'core.py').write_text(f'def decide(value):\n{branches}\n    return 0\n')
+            (repo / 'main.py').write_text('import argparse\nimport core\n\n\ndef main():\n'
+                                          '    argparse.ArgumentParser(prog="demo")\n    return core.decide(1)\n')
+            out = Path(tmp) / 'out'
+            assemble(repo, out)
+            claims = json.loads((out / 'dossier.json').read_text())['claims']
+            hotspot = [claim for claim in claims if 'branches over' in claim['statement']]
+            self.assertTrue(hotspot)
+            self.assertEqual(hotspot[0]['confidence'], 'CONFIRMED')
+            self.assertEqual(hotspot[0]['probe_spec']['specification']['query'], 'metric_threshold')
+
+    def test_a_simple_project_produces_no_hotspot(self):
+        from eaos.dossier import assemble
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'core.py').write_text('def add(a, b):\n    return a + b\n')
+            out = Path(tmp) / 'out'
+            assemble(repo, out)
+            claims = json.loads((out / 'dossier.json').read_text())['claims']
+            self.assertEqual([claim for claim in claims if 'branches over' in claim['statement']], [])

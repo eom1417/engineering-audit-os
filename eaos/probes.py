@@ -97,6 +97,26 @@ def run_graph_query(specification, sets):
         flow = next((fact['value'] for fact in sets['flows']['facts'] if fact['value']['flow_id'] == specification['flow_id']), None)
         if flow is None: return 'INCONCLUSIVE', 'flow not present in this snapshot'
         return ('CONFIRMED', f"{flow['unresolved_steps']} unresolved steps") if flow['unresolved_steps'] else ('REFUTED', 'all steps resolve now')
+    if query == 'metric_threshold':
+        rows = [fact for fact in sets.get('metrics', {}).get('facts', [])
+                if fact['location'].get('symbol') == specification['symbol']
+                and fact['location']['path'] == specification['path']]
+        if not rows: return 'INCONCLUSIVE', 'the symbol is no longer present under that name'
+        branches = rows[0]['value']['branches']
+        return ('CONFIRMED', f"{branches} branches, threshold {specification['max_branches']}") if branches >= specification['max_branches'] \
+            else ('REFUTED', f"{branches} branches, now below the threshold of {specification['max_branches']}")
+    if query == 'mutable_global_present':
+        rows = [fact for fact in sets.get('domain', {}).get('facts', [])
+                if fact['kind'] == 'mutable_global' and fact['location']['path'] == specification['path']
+                and fact['value']['name'] == specification['name']
+                and fact['value'].get('mutation_scope') == 'function']
+        return ('CONFIRMED', 'still mutated at runtime') if rows else ('REFUTED', 'no runtime mutation of this value remains')
+    if query == 'external_write_present':
+        rows = [fact for fact in sets.get('domain', {}).get('facts', [])
+                if fact['kind'] == 'external_state_write' and fact['location']['path'] == specification['path']
+                and fact['value']['module'] == specification['module']
+                and fact['value']['attribute'] == specification['attribute']]
+        return ('CONFIRMED', 'the cross-module assignment is still there') if rows else ('REFUTED', 'the assignment is gone')
     if query == 'no_code_dependency':
         nodes = {fact['location']['path']: set(fact['value']['depends_on']) for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
         linked = specification['right'] in nodes.get(specification['left'], set()) or specification['left'] in nodes.get(specification['right'], set())
