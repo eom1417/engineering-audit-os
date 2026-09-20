@@ -118,6 +118,23 @@ def anonymous_name(node, blob):
     return None
 
 
+def imported_names(node, blob):
+    """Names an import statement actually brings in, so a later probe can reason about them."""
+    names, stack = [], [node]
+    while stack:
+        current = stack.pop(0)
+        if current.type in {'import_specifier', 'namespace_import', 'identifier', 'shorthand_property_identifier_pattern'}:
+            field = current.child_by_field_name('name') or current
+            text = node_text(field, blob).strip()
+            if text and text.isidentifier(): names.append(text)
+            if current.type == 'import_specifier': continue
+        stack.extend(current.named_children)
+    unique = []
+    for name in names:
+        if name not in unique: unique.append(name)
+    return unique
+
+
 def first_string(node, blob):
     stack = [node]
     while stack:
@@ -153,7 +170,8 @@ def tree_sitter_units(language, text, config):
             if module is None and node.named_children:
                 module = node_text(node.named_children[0], blob).strip('\'"`;')
             if module:
-                imports.append({'module': module, 'names': [], 'level': 0, 'line': node.start_point[0] + 1,
+                imports.append({'module': module, 'names': imported_names(node, blob), 'level': 0,
+                                'line': node.start_point[0] + 1,
                                 'style': 'relative' if module.startswith('.') else 'absolute'})
         elif node.type in config['calls']:
             target = node.child_by_field_name('function') or node.child_by_field_name('method') or (node.named_children[0] if node.named_children else None)

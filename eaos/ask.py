@@ -18,9 +18,28 @@ def terms(question):
     return [w for w in words if w not in STOP]
 
 
+KIND_WEIGHT = {'claim': 4, 'open question': 3, 'flow': 3, 'entry point': 3, 'rule constant': 3,
+               'configuration': 2, 'data_model': 2, 'data_table': 2, 'artifact section': 2, 'symbol': 1}
+
+
 def score(text, wanted):
     lowered = (text or '').lower()
     return sum(3 if word in lowered.split() else 1 for word in wanted if word in lowered)
+
+
+def artifact_sections(out):
+    """The rendered artifacts are part of the record, and they are the only Arabic surface we have."""
+    rows = []
+    for path in sorted(Path(out).glob('*.md')):
+        heading = path.stem
+        for number, line in enumerate(path.read_text(encoding='utf-8').split('\n'), start=1):
+            if line.startswith('#'): heading = line.lstrip('#').strip()
+            elif line.strip().startswith('|') and len(line) > 12:
+                cells = [cell.strip() for cell in line.strip().strip('|').split('|')]
+                if all(set(cell) <= {'-', ':'} for cell in cells if cell): continue  # table rule, not content
+                rows.append({'kind': 'artifact section', 'id': heading[:40], 'text': ' · '.join(cells)[:200],
+                             'detail': path.name, 'citation': f'{path.name}:{number}'})
+    return rows
 
 
 def records(out):
@@ -83,14 +102,15 @@ def answer(out, question, limit=8):
         return {'question': question, 'answers': [], 'status': 'NO_QUERY',
                 'note': 'The question contains no searchable term.'}
     scored = []
-    for row in candidates(dossier, sets):
+    for row in candidates(dossier, sets) + artifact_sections(out):
         value = score(row['text'] + ' ' + row['id'] + ' ' + row['citation'], wanted)
-        if value: scored.append((value, row))
+        if value: scored.append((value * KIND_WEIGHT.get(row['kind'], 1), row))
     scored.sort(key=lambda pair: (-pair[0], pair[1]['kind'], pair[1]['id']))
     answers = [dict(row, score=value) for value, row in scored[:limit]]
     return {'question': question, 'terms': wanted, 'answers': answers,
             'status': 'ANSWERED' if answers else 'NOT_IN_RECORDS',
             'note': ('Answers come only from recorded facts and claims; each carries its own location.'
                      if answers else
-                     'No record answers this question. Extend coverage (eaos facts/verify) or run a semantic audit before concluding anything.'),
+                     'No record answers this question. Records are written in the code\'s own language; try the identifier or path you are after, '
+                     'or extend coverage with eaos facts/verify before concluding anything.'),
             'unexamined': dossier.get('coverage', {}).get('not_examined', [])}

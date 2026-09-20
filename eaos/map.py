@@ -41,10 +41,16 @@ def system_map(target, sets, language):
     document.table([words['language'], words['files'], words['lines']],
                    sorted(([name, count, lines] for name, (count, lines) in per_language.items()), key=lambda r: -r[2]), limit=12)
     document.section(words['entry_points'])
+    production = [fact for fact in by_kind(entry['facts'], 'entry_point') if fact['value'].get('category') != 'test']
+    in_tests = len(by_kind(entry['facts'], 'entry_point')) - len(production)
     rows = [[fact['value']['surface'], fact['value']['http_method'] or '—', fact['value']['route'] or '—',
              fact['value']['handler'] or '—', f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}",
-             fact['value']['framework']] for fact in by_kind(entry['facts'], 'entry_point')]
+             fact['value']['framework']] for fact in production]
     document.table([words['surface'], words['method'], words['route'], words['handler'], words['location'], words['framework']], rows, limit=40)
+    if in_tests:
+        document.text(f'+{in_tests} entry points declared inside test code, listed in the fact records only.'
+                      if language != 'ar' else
+                      f'+{in_tests} نقطة دخول معرّفة داخل كود الاختبارات، مذكورة في سجلات الحقائق فقط.')
     document.section(words['components'])
     groups = defaultdict(lambda: [0, 0])
     for fact in by_kind(syntax['facts'], 'source_file'):

@@ -124,7 +124,7 @@
       ]
     },
     {
-      "id": "FACT-54b696302dfd765a",
+      "id": "FACT-9fb03db38064585a",
       "kind": "entry_point",
       "extractor": "entrypoints",
       "extractor_version": "1",
@@ -132,13 +132,13 @@
       "location": {
         "path": "cli.py",
         "start_line": 13,
-        "symbol": "main"
+        "symbol": "quote"
       },
       "value": {
         "surface": "cli",
         "route": "quote",
         "http_method": null,
-        "handler": "main",
+        "handler": "quote",
         "framework": "argparse",
         "language": "python",
         "category": "source",

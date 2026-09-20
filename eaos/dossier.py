@@ -13,6 +13,16 @@ from .map import ARTIFACTS, generate
 from .workspace import read, write
 
 MARKER = {'CONFIRMED': '⬤', 'LIKELY': '◐', 'HYPOTHESIS': '○', 'REFUTED': '⊘'}
+ORIGIN_RANK = {'source': 0, 'test_and_source': 1, 'unknown': 2, 'test': 3}
+
+
+def shorten(text, limit):
+    """Cut on a word boundary; a decision artifact should not end a sentence mid-word."""
+    text = ' '.join(str(text).split())
+    if len(text) <= limit: return text
+    cut = text[:limit]
+    space = cut.rfind(' ')
+    return (cut[:space] if space > limit * 0.6 else cut).rstrip(' ,،') + '…'
 BRIEF = 'DECISION-BRIEF.md'
 PROVENANCE = 'PROVENANCE.md'
 RANK = {'CONFIRMED': 0, 'LIKELY': 1, 'HYPOTHESIS': 2, 'REFUTED': 3}
@@ -29,7 +39,7 @@ def legacy_records(run):
             'state': maybe('run.json', {})}
 
 
-def coverage_of(sets, records):
+def coverage_of(sets, records, verification=None):
     syntax, resolve, entry = sets['syntax']['summary'], sets['resolve']['summary'], sets['entrypoints']['summary']
     return {'source_files': syntax['source_files'], 'files_parsed': syntax['files_parsed'],
             'parse_coverage': syntax['parse_coverage'],
@@ -46,7 +56,9 @@ def coverage_of(sets, records):
                 f"unparsed source files: {syntax['by_status'].get('BLOCKED', 0) + syntax['by_status'].get('UNSUPPORTED', 0)}",
                 f"unresolved or ambiguous imports: {resolve['by_resolution']['UNRESOLVED'] + resolve['by_resolution']['AMBIGUOUS']}",
                 f"invocation surfaces with no detector: {sum(entry['files_without_any_detector'].values())} files",
-                'runtime behaviour: no execution evidence in this run' ,
+                ('runtime behaviour: no execution evidence in this run'
+                 if not (verification and verification.get('executed'))
+                 else f"runtime behaviour beyond the executed command ({' '.join(verification.get('command') or [])}): unobserved"),
                 *( [] if records['findings'] else ['semantic review: not performed in this run (facts only)'] ),
             ]}
 
@@ -97,12 +109,34 @@ def runtime_claims(verification, offset, coverage_facts=None, excluded=None):
     return rows
 
 
+def origin_of(claim, fact_index):
+    """Whether a claim is about product code or about test and fixture code; a reader must not confuse them."""
+    from .discovery import classify
+    paths = [fact_index[fact_id] for fact_id in claim.get('fact_ids', []) if fact_id in fact_index]
+    extra = []
+    for fact_id in claim.get('fact_ids', []):
+        extra += fact_index.get(fact_id + ':paths', [])
+    categories = {classify(path) for path in paths + extra if path}
+    if not categories: return 'unknown'
+    if categories == {'test'}: return 'test'
+    return 'test_and_source' if 'test' in categories else 'source'
+
+
 def build_claims(sets, records):
     rows = ledger.from_facts(sets)
     if records['findings'] or records['architecture']:
         rows += ledger.from_legacy(records['findings'], records['architecture'] or {}, records['flows'],
                                    records['coverage'], (records['state'] or {}).get('revision'))
+    fact_index = {}
+    for data in sets.values():
+        for fact in data['facts']:
+            fact_index[fact['id']] = fact['location'].get('path')
+            definitions = (fact['value'] or {}).get('definitions') if isinstance(fact.get('value'), dict) else None
+            if definitions: fact_index[fact['id'] + ':paths'] = [row['path'] for row in definitions]
+            members = (fact['value'] or {}).get('members') if isinstance(fact.get('value'), dict) else None
+            if members: fact_index[fact['id'] + ':paths'] = list(members)
     rows = ledger.renumber(ledger.merge(rows))
+    for row in rows: row['origin'] = origin_of(row, fact_index)
     for row in rows:
         row.setdefault('artifacts', [BRIEF if row['claim_type'] in {'risk', 'cause', 'structure'} or (row.get('impact') or {}).get('scenario') else 'SYSTEM-MAP.md'])
         if row['claim_type'] in {'risk', 'cause', 'structure'} and (row.get('disposition') or {}).get('kind') in (None, 'none_yet'):
@@ -130,21 +164,25 @@ def brief(target, dossier, language):
     document.section('ما هذا النظام' if language == 'ar' else 'What this system is')
     document.text(dossier['description'])
     document.section('أخطر ما وجدناه' if language == 'ar' else 'Most serious findings')
-    ranked = sorted(dossier['claims'], key=lambda c: (RANK[c['confidence']], -len((c.get('impact') or {}).get('scenario', '')), c['id']))
+    ranked = sorted(dossier['claims'], key=lambda c: (ORIGIN_RANK.get(c.get('origin', 'unknown'), 2), RANK[c['confidence']],
+                                                      -len((c.get('impact') or {}).get('scenario', '')), c['id']))
     # Anything with a stated consequence competes for the five slots, whatever its record type.
     top = [c for c in ranked if c['claim_type'] in {'risk', 'cause', 'structure'} or (c.get('impact') or {}).get('scenario')][:5]
     document.table(['#', 'الادعاء' if language == 'ar' else 'Claim', 'الثقة' if language == 'ar' else 'Confidence',
                     'الأثر' if language == 'ar' else 'Impact'],
-                   [[claim['id'], claim['statement'][:150], MARKER[claim['confidence']] + ' ' + claim['confidence'],
-                     ((claim.get('impact') or {}).get('scenario') or '—')[:120]] for claim in top])
+                   [[claim['id'], shorten(claim['statement'], 150)
+                     + (' [كود اختبارات]' if language == 'ar' and claim.get('origin') == 'test'
+                        else ' [test code]' if claim.get('origin') == 'test' else ''),
+                     MARKER[claim['confidence']] + ' ' + claim['confidence'],
+                     shorten((claim.get('impact') or {}).get('scenario') or '—', 120)] for claim in top])
     document.section('افعل الآن' if language == 'ar' else 'Do now')
     document.bullets([f"{task['id']} — {task['title']}" for task in dossier['tasks'][:3]] or
-                     [claim['id'] + ' — ' + claim['statement'][:120] for claim in top[:3]])
+                     [claim['id'] + ' — ' + shorten(claim['statement'], 120) for claim in top[:3]])
     document.section('لا تفعل (الآن)' if language == 'ar' else 'Do not do (yet)')
     document.bullets(dossier['do_not'])
     document.section('أسئلة مفتوحة' if language == 'ar' else 'Open questions')
     document.table(['#', 'السؤال' if language == 'ar' else 'Question', 'المصدر' if language == 'ar' else 'Source'],
-                   [[q['id'], q['question'][:160], q['source']] for q in dossier['questions']], limit=10)
+                   [[q['id'], shorten(q['question'], 160), q['source']] for q in dossier['questions']], limit=10)
     document.section(words['not_examined'])
     document.bullets(coverage['not_examined'])
     return document
@@ -177,13 +215,26 @@ def flows_document(dossier, sets, language):
     words = Document('', language).words
     document = Document(words['flows'], language, budget_lines=300)
     document.header([words['flow_note']])
-    rows = [f['value'] for f in sets['flows']['facts']]
+    informative = {'local', 'imported'}
+    rows = sorted((f['value'] for f in sets['flows']['facts']),
+                  key=lambda flow: (-len({step['to_path'] for step in flow['steps']
+                                          if step['resolution'] in informative and step['to_path']}),
+                                    flow['flow_id']))
     if not rows:
         document.text(words['no_rows'])
         return document
+    summary = sets['flows']['summary']
+    shallow = [flow for flow in rows if not flow['in_codebase_steps']]
+    rows = [flow for flow in rows if flow['in_codebase_steps']]
     document.section(words['coverage'])
-    document.table([words['flows'], 'steps', 'unresolved'],
-                   [[len(rows), sets['flows']['summary']['total_steps'], sets['flows']['summary']['unresolved_steps']]])
+    document.table([words['flows'], 'steps', 'unresolved', 'stop at first boundary'],
+                   [[len(rows), summary['total_steps'], summary['unresolved_steps'], len(shallow)]])
+    if shallow:
+        document.text(('هذه المداخل لم يصل تتبعها إلى كود آخر داخل المشروع (توزيع ديناميكي أو استدعاءات مكتبة فقط): '
+                       if language == 'ar' else
+                       'These entry points reach no further code in the project (dynamic dispatch or library calls only): ')
+                      + ', '.join(f"{flow['entry']['path']}:{flow['entry']['line']}" for flow in shallow[:8])
+                      + (' …' if len(shallow) > 8 else ''))
     for flow in rows[:12]:
         entry = flow['entry']
         document.section(f"{flow['flow_id']} — {entry['surface']} {entry['http_method'] or ''} {entry['route']}".strip(), level=2)
@@ -191,10 +242,17 @@ def flows_document(dossier, sets, language):
                           f"{words['handler']}: {entry['handler']}",
                           f"{words['touched']}: {', '.join(flow['touched_files'])}",
                           (f"{words['env']}: {', '.join(flow['environment_reads'])}" if flow['environment_reads'] else None)])
+        # Calls into the codebase carry the behaviour; framework plumbing is counted, not listed.
+        traced = [step for step in flow['steps'] if step['resolution'] in informative]
+        plumbing = len(flow['steps']) - len(traced)
         document.table([words['step'], words['call'], words['location'], words['resolution']],
                        [[step['from'], step['callee'],
                          f"{step['to_path'] or step['from_path']}:{step['line']}", step['resolution']]
-                        for step in flow['steps']], limit=12)
+                        for step in traced], limit=12)
+        if plumbing:
+            document.text(f"+{plumbing} library or method calls on this path (in the fact records)"
+                          if language != 'ar' else
+                          f"+{plumbing} استدعاء مكتبة أو دالة عضو على هذا المسار (في سجلات الحقائق)")
     return document
 
 
@@ -227,19 +285,40 @@ def domain_document(dossier, sets, language):
     return document
 
 
+NODE_BUILTINS = {'fs', 'path', 'http', 'https', 'os', 'util', 'events', 'stream', 'crypto', 'url', 'zlib',
+                 'child_process', 'net', 'buffer', 'assert', 'querystring', 'tty', 'readline', 'process'}
+
+
+def dependency_kind(module, language):
+    """A standard-library import is not a third-party dependency, and mixing them hides the real surface."""
+    import sys
+    root = module.split('.')[0].split('/')[0]
+    if language == 'python': return 'standard library' if root in sys.stdlib_module_names else 'third party'
+    if language in {'javascript', 'typescript', 'tsx'}:
+        return 'standard library' if root in NODE_BUILTINS or module.startswith('node:') else 'third party'
+    if language == 'go': return 'standard library' if '.' not in root else 'third party'
+    return 'unknown'
+
+
 def contracts_document(dossier, sets, language):
     words = Document('', language).words
     document = Document(words['contracts_doc'], language, budget_lines=200)
     document.header([words['signal_note']])
-    external = {}
+    external, languages = {}, {}
     for fact in sets['resolve']['facts']:
         if fact['resolution'] == 'EXTERNAL':
             external.setdefault(fact['value']['module'], set()).add(fact['location']['path'])
+            languages[fact['value']['module']] = fact['value'].get('language')
+    grouped = {}
+    for module, paths in external.items():
+        grouped.setdefault(dependency_kind(module, languages.get(module)), []).append((module, len(paths)))
     document.section(words['external_deps'])
-    document.table([words['name'], words['language'], 'used in'],
-                   [[module, next(iter({f['value']['language'] for f in sets['resolve']['facts']
-                                        if f['value']['module'] == module}), ''), len(paths)]
-                    for module, paths in sorted(external.items(), key=lambda kv: (-len(kv[1]), kv[0]))], limit=30)
+    document.table([words['name'], words['language'], 'kind', 'used in'],
+                   [[module, languages.get(module) or '', kind, count]
+                    for kind in ['third party', 'unknown', 'standard library']
+                    for module, count in sorted(grouped.get(kind, []), key=lambda row: (-row[1], row[0]))], limit=30)
+    document.bullets([f"third party: {len(grouped.get('third party', []))} · "
+                      f"standard library: {len(grouped.get('standard library', []))}"])
     document.section(words['entry_points'])
     document.table([words['surface'], words['method'], words['route'], words['location']],
                    [[f['value']['surface'], f['value']['http_method'] or '—', f['value']['route'] or '—',
@@ -299,7 +378,7 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
                        'model_calls': 0 if not run else (records['state'] or {}).get('model_calls', 'see engine-state.json'),
                        'extractors': {name: data['extractor_version'] for name, data in sorted(sets.items())},
                        'excluded_patterns': list(exclude or [])},
-        'coverage': {**coverage_of(sets, records),
+        'coverage': {**coverage_of(sets, records, verification),
                      'runtime_confirmation': sum(1 for row in rows if 'test_evidence' in row['method'] or 'runtime_probe' in row['method']),
                      'executed_verification': bool(verification and verification.get('executed')),
                      'executed_coverage_percent': (verification or {}).get('overall_percent')},

@@ -9,9 +9,19 @@ JS_EXPORT = re.compile(r'^\s*export\s+(?:const|function|class|default)\s+(?P<nam
 JS_REEXPORT = re.compile(r'^\s*export\s*\{(?P<names>[^}]*)\}', re.M)
 
 
+SOURCE_ROOTS = {'src', 'lib', 'app', 'packages'}
+
+
+def top_level(rel):
+    """Only a package a consumer can import directly counts as a public surface."""
+    parts = rel.split('/')
+    if len(parts) <= 2: return True
+    return len(parts) == 3 and parts[0] in SOURCE_ROOTS
+
+
 def detect(context):
     name = context.rel.split('/')[-1]
-    if name not in FILENAMES: return []
+    if name not in FILENAMES or not top_level(context.rel): return []
     found, seen = [], set()
 
     def add(symbol, line):

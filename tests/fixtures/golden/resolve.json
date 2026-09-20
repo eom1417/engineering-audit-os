@@ -3,7 +3,7 @@
   "extractor": "resolve",
   "extractor_version": "1",
   "available": true,
-  "input_sha": "5005674d0998c684ea18064a4e9bf83a519812067bc3af8b4ba1fc6d24317d72",
+  "input_sha": "ecaa0e75b0be5af2ba3b082c6b17f887dfcf6c5a75aadce1c93602113827a779",
   "limitations": [
     "Only statically written imports are resolved; dynamic loading and injection are invisible.",
     "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
@@ -24,7 +24,7 @@
   },
   "facts": [
     {
-      "id": "FACT-b4a1d1772d463b53",
+      "id": "FACT-a49b7bbed0be50a9",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -38,7 +38,7 @@
         "language": "typescript",
         "to_path": "api/lib/pricing.ts",
         "candidates": [],
-        "import_fact_id": "FACT-886ba28f373ee161"
+        "import_fact_id": "FACT-0aef082e214fe682"
       },
       "resolution": "RESOLVED",
       "limitations": [
@@ -49,7 +49,7 @@
       ]
     },
     {
-      "id": "FACT-1cec329adcc69a8f",
+      "id": "FACT-5be9dc6ccf7ebc9b",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -63,7 +63,7 @@
         "language": "typescript",
         "to_path": null,
         "candidates": [],
-        "import_fact_id": "FACT-591498b224d42fcf"
+        "import_fact_id": "FACT-297199c12bea0b3e"
       },
       "resolution": "EXTERNAL",
       "limitations": [
@@ -74,7 +74,7 @@
       ]
     },
     {
-      "id": "FACT-198b2aa5a958247c",
+      "id": "FACT-6ce075d0ae2390b7",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -88,7 +88,7 @@
         "language": "typescript",
         "to_path": "api/handlers/orders.ts",
         "candidates": [],
-        "import_fact_id": "FACT-996209fd2b7422b1"
+        "import_fact_id": "FACT-03e82f5206858b4e"
       },
       "resolution": "RESOLVED",
       "limitations": [
@@ -99,7 +99,7 @@
       ]
     },
     {
-      "id": "FACT-660d51d2d161bfdf",
+      "id": "FACT-a47ce158635db19b",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -113,7 +113,7 @@
         "language": "typescript",
         "to_path": "api/lib/audit.ts",
         "candidates": [],
-        "import_fact_id": "FACT-58efb2dd1a576dd2"
+        "import_fact_id": "FACT-e0518f59ad2e1062"
       },
       "resolution": "RESOLVED",
       "limitations": [

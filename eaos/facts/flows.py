@@ -145,9 +145,24 @@ def run(target, source, symbols=None, calls=None, edges=None, entry_points=None,
     # Routes declared inside a test suite are fixtures for the tests, not the product's own surface.
     ranked = sorted([f for f in entry_points or [] if f['value'].get('handler') and f['value'].get('category') != 'test'],
                     key=lambda f: (order.get(f['value']['surface'], 9), str(f['value']['route']), f['location']['path']))
-    for index, entry in enumerate(ranked, start=1):
+    # One handler is one flow, however many routes reach it; five identical traces are noise, not coverage.
+    seen_handlers = {}
+    deduplicated = []
+    for entry in ranked:
+        key = (entry['location']['path'], entry['value'].get('handler'))
+        if key in seen_handlers:
+            seen_handlers[key]['value'].setdefault('also_reached_by', []).append(
+                {'surface': entry['value']['surface'], 'route': entry['value']['route'],
+                 'line': entry['location'].get('start_line')})
+            continue
+        copy = {**entry, 'value': dict(entry['value'])}
+        seen_handlers[key] = copy
+        deduplicated.append(copy)
+    for index, entry in enumerate(deduplicated, start=1):
         traced = trace(entry, by_file, by_name, call_index, imported_map, env_by_file, external_names)
         if not traced['handler_found'] or not traced['steps']: continue
+        traced['also_reached_by'] = entry['value'].get('also_reached_by', [])
+        traced['in_codebase_steps'] = sum(1 for step in traced['steps'] if step['resolution'] in {'local', 'imported'})
         facts.append(make('flow', NAME, VERSION, entry['input_sha'],
                           {'path': entry['location']['path'], 'start_line': entry['location'].get('start_line'),
                            'symbol': entry['value'].get('handler')},
@@ -155,7 +170,11 @@ def run(target, source, symbols=None, calls=None, edges=None, entry_points=None,
                           resolution='RESOLVED' if not traced['unresolved_steps'] else 'UNRESOLVED',
                           limitations=LIMITATIONS))
     facts.sort(key=lambda f: f['value']['flow_id'])
+    traced_into_code = sum(1 for fact in facts if fact['value']['in_codebase_steps'])
     summary = {'flows': len(facts), 'entry_points_considered': len(ranked),
+               'distinct_handlers': len(deduplicated),
+               'flows_reaching_other_code': traced_into_code,
+               'flows_stopping_at_the_first_boundary': len(facts) - traced_into_code,
                'test_entry_points_excluded': sum(1 for f in entry_points or [] if f['value'].get('category') == 'test'),
                'entry_points_without_traceable_handler': len(ranked) - len(facts),
                'total_steps': sum(len(f['value']['steps']) for f in facts),

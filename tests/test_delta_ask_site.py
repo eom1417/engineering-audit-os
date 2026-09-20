@@ -83,6 +83,12 @@ class AskTests(unittest.TestCase):
         result = answer(self.out, 'what handles POST /orders')
         self.assertTrue(any(row['kind'] == 'entry point' for row in result['answers']))
 
+    def test_an_arabic_question_reaches_the_arabic_artifacts(self):
+        result = answer(self.out, 'أين قاعدة الخصم المكررة')
+        self.assertEqual(result['status'], 'ANSWERED')
+        self.assertTrue(any(row['kind'] == 'artifact section' for row in result['answers']))
+        self.assertFalse(any(set(row['text'].replace(' · ', '')) <= {'-', ':'} for row in result['answers']))
+
     def test_an_unanswerable_question_says_so_instead_of_guessing(self):
         result = answer(self.out, 'zzzqxv nonexistent subsystem')
         self.assertEqual(result['status'], 'NOT_IN_RECORDS')
@@ -93,7 +99,7 @@ class AskTests(unittest.TestCase):
         result = answer(self.out, 'pricing')
         for row in result['answers']:
             self.assertIn(row['kind'], {'claim', 'open question', 'entry point', 'flow', 'rule constant',
-                                        'symbol', 'configuration', 'data_model', 'data_table'})
+                                        'symbol', 'configuration', 'data_model', 'data_table', 'artifact section'})
 
 
 class SiteTests(unittest.TestCase):

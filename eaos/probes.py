@@ -60,16 +60,32 @@ def derive(claims, sets):
     return probes
 
 
-def search_definitions(name, source):
-    pattern = re.compile(r'^\s*(?:export\s+)?(?:const|let|var)?\s*%s\s*[:=]' % re.escape(name), re.M)
-    importing = re.compile(r'(?:import|from).*\b%s\b' % re.escape(name))
-    definitions, importers = [], []
-    for item in source.readable():
-        text = source.text(item['path'])
-        if text is None: continue
-        if pattern.search(text): definitions.append(item['path'])
-        elif importing.search(text): importers.append(item['path'])
-    return sorted(definitions), sorted(importers)
+def constant_sites(name, sets):
+    """Definition sites come from the parsed domain facts, not from a text search over the repository.
+
+    A text search cannot tell a definition from the same words inside a string literal in a test,
+    and acting on that difference is how a true finding gets wrongly withdrawn.
+    """
+    for fact in sets.get('domain', {}).get('facts', []):
+        if fact['kind'] == 'domain_constant' and fact['value']['name'] == name:
+            return [definition['path'] for definition in fact['value']['definitions']]
+    return []
+
+
+def linking_import(name, sites, sets):
+    """A real import edge between two definition sites, taken from resolved facts."""
+    by_id = {fact['id']: fact for fact in sets.get('syntax', {}).get('facts', []) if fact['kind'] == 'import_edge'}
+    for edge in sets.get('resolve', {}).get('facts', []):
+        if edge['resolution'] != 'RESOLVED': continue
+        origin, destination = edge['location']['path'], edge['value'].get('to_path')
+        if origin not in sites or destination not in sites: continue
+        imported = by_id.get(edge['value'].get('import_fact_id'), {}).get('value', {}).get('names') or []
+        if name in imported:
+            return f'{origin} imports {name} from {destination}'
+        if not imported:
+            # An edge with no recorded names cannot show who owns the value; it is not grounds to withdraw a finding.
+            return 'UNKNOWN: ' + f'{origin} imports from {destination}, but the imported names were not captured'
+    return None
 
 
 def run_graph_query(specification, sets):
@@ -118,18 +134,23 @@ def run_all(target, out, allow_execution=False):
             status, detail = run_graph_query(row['specification'], sets)
         elif row['probe_type'] == 'absence_search':
             name = re.sub(r'^\\b|\\b$', '', row['specification']['patterns'][0]).replace('\\', '')
-            definitions, importers = search_definitions(name, source)
-            if len(definitions) > 1 and not importers:
-                status, detail = 'CONFIRMED', f"defined in {len(definitions)} files with no import between them"
-            elif importers:
-                status, detail = 'REFUTED', f"imported by {', '.join(importers[:3])}, so a single owner exists"
+            sites = constant_sites(name, sets)
+            link = linking_import(name, sites, sets) if len(sites) > 1 else None
+            if len(sites) > 1 and not link:
+                status, detail = 'CONFIRMED', f"parsed as a definition in {len(sites)} files with no import linking them: " + ', '.join(sites)
+            elif link and link.startswith('UNKNOWN: '):
+                status, detail = 'INCONCLUSIVE', link[len('UNKNOWN: '):] + '; a claim is not withdrawn on weaker evidence than confirmed it'
+            elif link:
+                status, detail = 'REFUTED', f'a single owner exists: {link}'
             else:
-                status, detail = 'INCONCLUSIVE', 'fewer than two definitions found by search'
+                status, detail = 'INCONCLUSIVE', 'the current snapshot no longer parses more than one definition of this name'
         elif row['probe_type'] in {'execution', 'coverage'} and not allow_execution:
             status, detail = 'blocked', 'execution probes are disabled; rerun with execution explicitly allowed'
         else:
             status, detail = 'INCONCLUSIVE', 'no runner for this probe type'
         row['status'], row['result'], row['ran_at'] = status, detail, now()
+        row['searched'] = sorted(constant_sites(re.sub(r'^\\b|\\b$', '', row['specification']['patterns'][0]).replace('\\', ''), sets)) \
+            if row['probe_type'] == 'absence_search' else None
         counts[status] = counts.get(status, 0) + 1
         claim = by_claim.get(row['claim_id'])
         if claim is None: continue

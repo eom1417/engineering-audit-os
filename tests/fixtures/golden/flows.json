@@ -3,7 +3,7 @@
   "extractor": "flows",
   "extractor_version": "1",
   "available": true,
-  "input_sha": "9dfd61bc0b4c8e71c64e250b510f278c172f2d5c17540097f7d0b597cd5b2d53",
+  "input_sha": "503e282c1a7f888253e2259b49b3542f6019fc9d87d0cf42e609434b2973acf7",
   "limitations": [
     "A trace follows statically resolvable calls; dispatch through variables, callbacks or DI is not followed.",
     "Order inside a function is source order, not proof of runtime order or of the branch actually taken.",
@@ -13,16 +13,19 @@
   "summary": {
     "flows": 6,
     "entry_points_considered": 6,
+    "distinct_handlers": 6,
+    "flows_reaching_other_code": 3,
+    "flows_stopping_at_the_first_boundary": 3,
     "test_entry_points_excluded": 0,
     "entry_points_without_traceable_handler": 0,
-    "total_steps": 24,
+    "total_steps": 19,
     "unresolved_steps": 0,
     "steps_by_resolution": {
-      "local": 2,
-      "imported": 2,
+      "local": 3,
+      "imported": 3,
       "external": 0,
-      "builtin": 0,
-      "method_or_external": 20,
+      "builtin": 1,
+      "method_or_external": 12,
       "ambiguous": 0,
       "unresolved": 0
     },
@@ -32,7 +35,7 @@
   },
   "facts": [
     {
-      "id": "FACT-1d94090583a33044",
+      "id": "FACT-f951916df8b36600",
       "kind": "flow",
       "extractor": "flows",
       "extractor_version": "1",
@@ -71,7 +74,9 @@
           "svc/main.go"
         ],
         "environment_reads": [],
-        "truncated": false
+        "truncated": false,
+        "also_reached_by": [],
+        "in_codebase_steps": 0
       },
       "resolution": "RESOLVED",
       "limitations": [
@@ -82,7 +87,7 @@
       ]
     },
     {
-      "id": "FACT-54fcfc7b641e502d",
+      "id": "FACT-49ca7f18d6025a15",
       "kind": "flow",
       "extractor": "flows",
       "extractor_version": "1",
@@ -124,7 +129,9 @@
         "environment_reads": [
           "PORT"
         ],
-        "truncated": false
+        "truncated": false,
+        "also_reached_by": [],
+        "in_codebase_steps": 0
       },
       "resolution": "RESOLVED",
       "limitations": [
@@ -135,7 +142,7 @@
       ]
     },
     {
-      "id": "FACT-0227ec05dcb7fd12",
+      "id": "FACT-e3f758e80a9e613b",
       "kind": "flow",
       "extractor": "flows",
       "extractor_version": "1",
@@ -208,7 +215,9 @@
         "environment_reads": [
           "PORT"
         ],
-        "truncated": false
+        "truncated": false,
+        "also_reached_by": [],
+        "in_codebase_steps": 2
       },
       "resolution": "RESOLVED",
       "limitations": [
@@ -219,7 +228,7 @@
       ]
     },
     {
-      "id": "FACT-f0acc860ce4c655b",
+      "id": "FACT-7b9cfd9864f3a7ef",
       "kind": "flow",
       "extractor": "flows",
       "extractor_version": "1",
@@ -271,7 +280,9 @@
         "environment_reads": [
           "TAX_RATE"
         ],
-        "truncated": false
+        "truncated": false,
+        "also_reached_by": [],
+        "in_codebase_steps": 2
       },
       "resolution": "RESOLVED",
       "limitations": [
@@ -282,7 +293,7 @@
       ]
     },
     {
-      "id": "FACT-c63296436052f4b2",
+      "id": "FACT-5db74025a9914b57",
       "kind": "flow",
       "extractor": "flows",
       "extractor_version": "1",
@@ -391,7 +402,9 @@
           "cli.py"
         ],
         "environment_reads": [],
-        "truncated": false
+        "truncated": false,
+        "also_reached_by": [],
+        "in_codebase_steps": 0
       },
       "resolution": "RESOLVED",
       "limitations": [
@@ -402,7 +415,7 @@
       ]
     },
     {
-      "id": "FACT-4e258fc5b93876ed",
+      "id": "FACT-9cb8025f8a5ce1d0",
       "kind": "flow",
       "extractor": "flows",
       "extractor_version": "1",
@@ -410,7 +423,7 @@
       "location": {
         "path": "cli.py",
         "start_line": 13,
-        "symbol": "main"
+        "symbol": "quote"
       },
       "value": {
         "flow_id": "FLOW-006",
@@ -421,97 +434,52 @@
           "framework": "argparse",
           "path": "cli.py",
           "line": 13,
-          "handler": "main"
+          "handler": "quote"
         },
         "handler_found": true,
         "steps": [
           {
-            "from": "main",
+            "from": "quote",
             "from_path": "cli.py",
-            "callee": "ArgumentParser",
-            "line": 11,
-            "resolution": "method_or_external",
+            "callee": "price_for",
+            "line": 7,
+            "resolution": "imported",
+            "to_path": "core/pricing.py",
+            "to_symbol": "price_for",
+            "depth": 0
+          },
+          {
+            "from": "quote",
+            "from_path": "cli.py",
+            "callee": "print",
+            "line": 7,
+            "resolution": "builtin",
             "to_path": null,
             "to_symbol": null,
             "depth": 0
           },
           {
-            "from": "main",
-            "from_path": "cli.py",
-            "callee": "add_subparsers",
-            "line": 12,
-            "resolution": "method_or_external",
-            "to_path": null,
-            "to_symbol": null,
-            "depth": 0
-          },
-          {
-            "from": "main",
-            "from_path": "cli.py",
-            "callee": "add_parser",
+            "from": "price_for",
+            "from_path": "core/pricing.py",
+            "callee": "base_total",
             "line": 13,
-            "resolution": "method_or_external",
-            "to_path": null,
-            "to_symbol": null,
-            "depth": 0
-          },
-          {
-            "from": "main",
-            "from_path": "cli.py",
-            "callee": "add_argument",
-            "line": 14,
-            "resolution": "method_or_external",
-            "to_path": null,
-            "to_symbol": null,
-            "depth": 0
-          },
-          {
-            "from": "main",
-            "from_path": "cli.py",
-            "callee": "add_argument",
-            "line": 15,
-            "resolution": "method_or_external",
-            "to_path": null,
-            "to_symbol": null,
-            "depth": 0
-          },
-          {
-            "from": "main",
-            "from_path": "cli.py",
-            "callee": "set_defaults",
-            "line": 16,
-            "resolution": "method_or_external",
-            "to_path": null,
-            "to_symbol": null,
-            "depth": 0
-          },
-          {
-            "from": "main",
-            "from_path": "cli.py",
-            "callee": "parse_args",
-            "line": 17,
-            "resolution": "method_or_external",
-            "to_path": null,
-            "to_symbol": null,
-            "depth": 0
-          },
-          {
-            "from": "main",
-            "from_path": "cli.py",
-            "callee": "func",
-            "line": 18,
-            "resolution": "method_or_external",
-            "to_path": null,
-            "to_symbol": null,
-            "depth": 0
+            "resolution": "local",
+            "to_path": "core/pricing.py",
+            "to_symbol": "base_total",
+            "depth": 1
           }
         ],
         "unresolved_steps": 0,
         "touched_files": [
-          "cli.py"
+          "cli.py",
+          "core/pricing.py"
         ],
-        "environment_reads": [],
-        "truncated": false
+        "environment_reads": [
+          "TAX_RATE"
+        ],
+        "truncated": false,
+        "also_reached_by": [],
+        "in_codebase_steps": 2
       },
       "resolution": "RESOLVED",
       "limitations": [

@@ -21,7 +21,7 @@ class ProbeTests(unittest.TestCase):
             self.assertEqual(result['by_status']['CONFIRMED'], 1)
             rows = json.loads((out / 'probes.json').read_text())
             self.assertEqual(rows[0]['probe_type'], 'absence_search')
-            self.assertIn('defined in 3 files', rows[0]['result'])
+            self.assertIn('parsed as a definition in 3 files', rows[0]['result'])
 
     def test_a_probe_that_fails_refutes_its_claim_and_keeps_it_in_the_ledger(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -41,6 +41,29 @@ class ProbeTests(unittest.TestCase):
             self.assertEqual(refuted['confidence'], 'REFUTED')
             self.assertEqual(refuted['status'], 'withdrawn')
             self.assertTrue(refuted['refuted_by'])
+
+    def test_a_mention_inside_a_test_string_cannot_withdraw_a_true_finding(self):
+        """Regression: a text search matched an import written inside a test's string literal and refuted a true claim."""
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; (repo / 'tests').mkdir(parents=True)
+            (repo / 'api.py').write_text('VAT_RATE = 0.15\n\n\ndef total(x):\n    return x * (1 + VAT_RATE)\n')
+            (repo / 'export.py').write_text('VAT_RATE = 0.14\n\n\ndef report(x):\n    return x * (1 + VAT_RATE)\n')
+            (repo / 'tests/test_case.py').write_text(
+                'CASE = "from api import VAT_RATE"\n\n\ndef test_case():\n    assert CASE\n')
+            out = Path(tmp) / 'out'
+            assemble(repo, out)
+            probes.run_all(repo, out)
+            rows = json.loads((out / 'probes.json').read_text())
+            self.assertEqual([row['status'] for row in rows], ['CONFIRMED'])
+            claims = json.loads((out / 'dossier.json').read_text())['claims']
+            self.assertTrue(all(claim['confidence'] != 'REFUTED' for claim in claims))
+
+    def test_an_import_with_uncaptured_names_is_inconclusive_not_a_refutation(self):
+        from eaos.probes import linking_import
+        sets = {'syntax': {'facts': [{'id': 'F1', 'kind': 'import_edge', 'value': {'names': []}}]},
+                'resolve': {'facts': [{'resolution': 'RESOLVED', 'location': {'path': 'a.ts'},
+                                       'value': {'to_path': 'b.ts', 'import_fact_id': 'F1'}}]}}
+        self.assertTrue(linking_import('RATE', ['a.ts', 'b.ts'], sets).startswith('UNKNOWN: '))
 
     def test_execution_probes_are_blocked_unless_explicitly_allowed(self):
         row = probes.probe(1, 'CLM-001', 'execution', {'command': 'pytest'}, requires_execution=True)
