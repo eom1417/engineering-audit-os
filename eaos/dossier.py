@@ -137,6 +137,7 @@ def build_claims(sets, records):
             if members: fact_index[fact['id'] + ':paths'] = list(members)
     rows = ledger.renumber(ledger.merge(rows))
     for row in rows: row['origin'] = origin_of(row, fact_index)
+    return rows, fact_index
     for row in rows:
         row.setdefault('artifacts', [BRIEF if row['claim_type'] in {'risk', 'cause', 'structure'} or (row.get('impact') or {}).get('scenario') else 'SYSTEM-MAP.md'])
         if row['claim_type'] in {'risk', 'cause', 'structure'} and (row.get('disposition') or {}).get('kind') in (None, 'none_yet'):
@@ -357,13 +358,16 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
     records = legacy_records(run) if run else {'findings': [], 'architecture': {}, 'flows': [], 'coverage': [],
                                                'evidence': [], 'roadmap': {}, 'state': {}}
     verification = read(out / 'verification.json') if (out / 'verification.json').is_file() else None
-    rows = build_claims(sets, records)
+    rows, fact_index = build_claims(sets, records)
     from fnmatch import fnmatch
     patterns = [p.strip('/') for p in (exclude or []) if p.strip('/')]
     def source_filter(path): return any(path == p or path.startswith(p + '/') or fnmatch(path, p) for p in patterns)
     coverage_set = read_set(out, 'verification') if (out / 'facts/verification.json').is_file() else None
     if coverage_set: sets['verification'] = coverage_set
-    rows += runtime_claims(verification, len(rows), (coverage_set or {}).get('facts'), excluded=source_filter)
+    runtime = runtime_claims(verification, len(rows), (coverage_set or {}).get('facts'), excluded=source_filter)
+    for fact in (coverage_set or {}).get('facts', []): fact_index.setdefault(fact['id'], fact['location'].get('path'))
+    for row in runtime: row['origin'] = origin_of(row, fact_index)
+    rows += runtime
     problems = ledger.errors(rows, {e['id'] for e in records['evidence']} if records['evidence'] else (),
                              {f['id'] for data in sets.values() for f in data['facts']})
     if problems: raise ValueError('Claim ledger rejected: ' + '; '.join(problems[:5]))
