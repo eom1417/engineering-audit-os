@@ -75,6 +75,7 @@ TEMPLATES = {
         'mutable_global': '{name} في {path} حالة على مستوى الوحدة تتغيّر أثناء التشغيل ({how}، سطر {line})',
         'external_write': '{path} يكتب في {module}.{attribute}، وهي حالة لا يملكها',
         'untested': '{count} ملفًا يصل إليها مسار من نقطة دخول ولم ينفّذها أمر الاختبار',
+        'policy': '{path} يستورد {to}، وهو ما تمنعه السياسة المعلنة ({from_layer} ← {to_layer})',
     },
     'en': {
         'cycle': 'Import cycle between: {members}',
@@ -86,6 +87,7 @@ TEMPLATES = {
         'mutable_global': '{name} in {path} is module-level state changed at runtime ({how}, line {line})',
         'external_write': '{path} writes into {module}.{attribute}, state it does not own',
         'untested': '{count} files reachable from an entry point were never executed by the test command',
+        'policy': '{path} imports {to}, which the declared policy forbids ({from_layer} → {to_layer})',
     },
 }
 IMPACTS = {

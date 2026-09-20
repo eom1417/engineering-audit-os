@@ -231,6 +231,24 @@ def from_facts(fact_sets):
                                                          'expected': 'The cross-module assignment is still present.'}},
                            impact={'scenario': 'The owning module cannot guarantee its own invariant, because another '
                                                'module assigns into it directly.'}))
+    for fact in fact_sets.get('policy', {}).get('facts', []):
+        if fact['kind'] != 'policy_violation': continue
+        index += 1
+        claims.append(make(index, f"{fact['location']['path']} imports {fact['value']['to_path']}, which the declared "
+                                  f"policy forbids ({fact['value']['from_layer']} → {fact['value']['to_layer']})",
+                           'structure', 'CONFIRMED', ['static_fact'], [],
+                           'The edge disappearing from the resolved graph, or the policy being changed deliberately with a reason.',
+                           fact_ids=[fact['id']],
+                           render={'key': 'policy', 'params': {'path': fact['location']['path'],
+                                                               'to': fact['value']['to_path'],
+                                                               'from_layer': fact['value']['from_layer'],
+                                                               'to_layer': fact['value']['to_layer']}},
+                           probe_spec={'probe_type': 'graph_query',
+                                       'specification': {'query': 'policy_violation_present',
+                                                         'path': fact['location']['path'],
+                                                         'to_path': fact['value']['to_path'],
+                                                         'expected': 'The forbidden edge is still present in the resolved graph.'}},
+                           impact={'scenario': fact['value']['reason']}))
     flows = fact_sets.get('flows', {})
     for fact in [f for f in flows.get('facts', []) if f['value']['unresolved_steps'] > 2][:10]:
         index += 1

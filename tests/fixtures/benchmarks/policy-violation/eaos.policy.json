@@ -1,0 +1,2 @@
+{"schema_version":1,"layers":{"facts":["app/facts/**"],"runtime":["app/runtime/**"]},
+ "rules":[{"deny":{"from":"facts","to":"runtime"},"reason":"the deterministic layer must run without the model path"}]}

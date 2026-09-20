@@ -1,0 +1,1 @@
+{"name":"mutable-state","planted":[{"id":"GT-1","kind":"mutable_global","match":"module-level state changed at runtime","why":"A shared cache is written from a request path."}],"must_not_claim":["cycle"]}

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add `eaos semantic`: the model reads the fact digest and the confirmed claims — never raw files — and may only return interpretations that cite facts already held, each with a falsifier. Model inference can never reach CONFIRMED on its own; a probe has to do that. This is the path that assesses responsibilities, boundaries and internal contracts, and it is labelled as inference throughout.
+- Enforce a declared policy as part of the dossier, so a forbidden edge becomes a claim with a task card rather than a separate report.
+- Extend the benchmark corpus to nine cases covering every claim class the tool detects, and measure the plan as well as the detection: 8 of 8 planted defects found, no false positives, against 1 of 8 for the grep baseline, with a complete and runnable card for every actionable finding.
 - Add `README.md` to the dossier: an index with a reading order for four kinds of reader, and a grade for how well each section is sourced — including the plain statement that responsibilities and internal contracts are not assessed without the model path.
 - Add `ONBOARDING.md`: build and test commands taken from declared manifests, the entry points worth trying, the ten files to read first ordered by the graph, the project's own vocabulary, and the traps this snapshot already knows about.
 - Render claims in the reader's language from a template and its parameters, and link every finding in the brief to the artifact holding its detail. The Arabic dossier no longer mixes Arabic headings with English sentences.

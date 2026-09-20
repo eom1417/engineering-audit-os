@@ -54,3 +54,54 @@ class EvaluationTests(unittest.TestCase):
             found = baseline(repo)
             self.assertEqual(len(found), 1)
             self.assertIn('RATE', found[0])
+
+
+class EvaluationV2Tests(unittest.TestCase):
+    """Measurement across every claim class the tool claims to detect, plus the plan it produces."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.result = run(CORPUS, Path(cls.tmp.name) / 'out')
+        cls.details = json.loads((Path(cls.tmp.name) / 'out/eval.json').read_text())
+
+    @classmethod
+    def tearDownClass(cls): cls.tmp.cleanup()
+
+    def case(self, name): return next(row for row in self.details['cases'] if row['case'] == name)
+
+    def test_every_new_claim_class_has_a_measured_case(self):
+        names = {row['case'] for row in self.details['cases']}
+        self.assertLessEqual({'policy-violation', 'hotspot', 'mutable-state', 'external-write', 'api-break'}, names)
+
+    def test_all_planted_defects_are_detected_with_no_false_positive(self):
+        self.assertEqual(self.result['totals']['recall'], 1.0)
+        self.assertEqual(self.result['totals']['false_positives'], 0)
+
+    def test_the_framework_still_beats_the_grep_baseline_by_a_wide_margin(self):
+        self.assertGreaterEqual(self.result['totals']['detected'], 8)
+        self.assertLessEqual(self.result['totals']['baseline_detected'], 2)
+
+    def test_a_declared_policy_is_enforced_inside_the_dossier(self):
+        row = self.case('policy-violation')
+        self.assertEqual(row['framework']['detected'], 1)
+        self.assertGreaterEqual(row['plan']['cards'], 1)
+
+    def test_a_breaking_api_change_is_measured_on_two_snapshots(self):
+        row = self.case('api-break')
+        self.assertEqual(row['mode'], 'api_break')
+        self.assertEqual(row['framework']['detected'], 1)
+
+    def test_every_generated_card_is_complete_and_runnable(self):
+        totals = self.result['totals']
+        self.assertEqual(totals['complete_cards'], totals['cards'])
+        self.assertEqual(totals['runnable_acceptance'], totals['cards'])
+        self.assertGreater(totals['cards'], 0)
+
+    def test_the_clean_project_still_produces_nothing(self):
+        row = self.case('clean-project')
+        self.assertEqual(row['claims'], 0)
+        self.assertEqual(row['plan']['cards'], 0)
+
+    def test_the_report_states_that_card_usefulness_is_not_measured(self):
+        self.assertTrue(any('blind human rating' in note for note in self.details['not_measured']))

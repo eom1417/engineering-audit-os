@@ -117,6 +117,11 @@ def run_graph_query(specification, sets):
                 and fact['value']['module'] == specification['module']
                 and fact['value']['attribute'] == specification['attribute']]
         return ('CONFIRMED', 'the cross-module assignment is still there') if rows else ('REFUTED', 'the assignment is gone')
+    if query == 'policy_violation_present':
+        nodes = {fact['location']['path']: set(fact['value']['depends_on'])
+                 for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
+        present = specification['to_path'] in nodes.get(specification['path'], set())
+        return ('CONFIRMED', 'the forbidden edge is still in the graph') if present else ('REFUTED', 'the edge is gone')
     if query == 'no_code_dependency':
         nodes = {fact['location']['path']: set(fact['value']['depends_on']) for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
         linked = specification['right'] in nodes.get(specification['left'], set()) or specification['left'] in nodes.get(specification['right'], set())

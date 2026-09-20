@@ -1,0 +1,1 @@
+{"name":"external-write","planted":[{"id":"GT-1","kind":"external_state_write","match":"writes into settings.LIMIT","why":"A module assigns into another module's namespace."}],"must_not_claim":["cycle"]}

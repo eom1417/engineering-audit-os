@@ -505,6 +505,11 @@ def verification_document(verification, language):
 def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
     target, out = Path(target).resolve(), Path(out).resolve()
     map_result, sets = generate(target, out, language, exclude=exclude)
+    # A project that declares a policy gets it enforced as part of the dossier, not as a separate step.
+    from .policy import FILENAME as POLICY_FILE, check as check_policy
+    if (target / POLICY_FILE).is_file():
+        check_policy(target, out, language=language)
+        sets['policy'] = read_set(out, 'policy')
     records = legacy_records(run) if run else {'findings': [], 'architecture': {}, 'flows': [], 'coverage': [],
                                                'evidence': [], 'roadmap': {}, 'state': {}}
     verification = read(out / 'verification.json') if (out / 'verification.json').is_file() else None
@@ -554,7 +559,8 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
          'Do not read the attention order as a severity order; it is a declared reading convention.',
          'Do not read an absent finding as safety; absence means unexamined unless an absence search is declared.'],
         'artifacts': sorted([BRIEF, PROVENANCE, 'FLOWS.md', 'DOMAIN-AND-DATA.md', 'CONTRACTS.md',
-                             'VERIFICATION-MAP.md', 'RISK-REGISTER.md', 'README.md', 'ONBOARDING.md', *ARTIFACTS]),
+                             'VERIFICATION-MAP.md', 'RISK-REGISTER.md', 'README.md', 'ONBOARDING.md', *ARTIFACTS]
+                            + (['POLICY.md'] if (target / 'eaos.policy.json').is_file() else [])),
     }
     write(out / 'dossier.json', dossier)
     (out / BRIEF).write_text(brief(str(target), dossier, language).render(), encoding='utf-8')

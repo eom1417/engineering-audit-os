@@ -234,6 +234,13 @@ def verify_command(args):
     return 0
 
 
+def semantic_command(args):
+    from .runtime.provider import load_provider
+    from .semantic import run as run_semantic
+    print(json.dumps(run_semantic(args.target,args.out,load_provider(args.provider),args.max_rounds),ensure_ascii=False,indent=2))
+    return 0
+
+
 def api_diff_command(args):
     from .apidiff import run as run_api_diff
     result=run_api_diff(args.before,args.after,args.lang)
@@ -319,6 +326,9 @@ def main(argv=None):
     q.add_argument('--timeout',type=bounded_int,default=900)
     q.add_argument('--execute',action='store_true',help='Actually run the command; without it only declared coverage is reported')
     q.set_defaults(func=verify_command)
+    q=s.add_parser('semantic',help='Model interpretation over the collected facts; every claim stays a hypothesis until probed')
+    q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--provider',required=True)
+    q.add_argument('--max-rounds',type=bounded_int,default=3);q.set_defaults(func=semantic_command)
     q=s.add_parser('api-diff',help='Compare the public surface of two fact sets and report what breaks a consumer')
     q.add_argument('before');q.add_argument('after');q.add_argument('--lang',choices=['ar','en'],default='ar')
     q.add_argument('--fail-on-breaking',action='store_true');q.set_defaults(func=api_diff_command)

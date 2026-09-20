@@ -1,0 +1,1 @@
+{"name":"policy-violation","planted":[{"id":"GT-1","kind":"policy_violation","match":"app/facts/reader.py","why":"The deterministic layer imports the runtime layer, which the declared policy forbids."}],"must_not_claim":["defined in","cycle"],"policy":true}

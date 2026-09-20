@@ -9,8 +9,12 @@ import re
 import shutil
 import tempfile
 import time
+from .apidiff import run as api_diff
 from .compose import Document
 from .dossier import assemble
+from .facts.run import collect
+from .plan import build as build_plan
+from .policy import check as check_policy
 from .verify import run as verify_run
 from .workspace import write
 
@@ -45,8 +49,40 @@ def score(statements, truth):
             'precision': round(true_positives / (true_positives + false_positives), 3) if (true_positives + false_positives) else None}
 
 
+def plan_quality(out, detected_count):
+    """Detection is half the job: was each finding turned into work someone can pick up?"""
+    plan_path = Path(out) / 'plan.json'
+    if not plan_path.is_file(): return {'cards': 0, 'complete_cards': 0, 'runnable_acceptance': 0}
+    tasks = json.loads(plan_path.read_text())['tasks']
+    complete = [task for task in tasks
+                if task['paths'] is not None and task['options'] and task['acceptance']
+                and task['rollback'] and task['effort'] and task['blast_radius']]
+    runnable = [task for task in tasks if task.get('verify_command')]
+    return {'cards': len(tasks), 'complete_cards': len(complete), 'runnable_acceptance': len(runnable),
+            'cards_for_detected': min(len(tasks), detected_count or 0)}
+
+
+def evaluate_api_break(case, workspace, truth):
+    outputs = []
+    for side in ['before', 'after']:
+        repo = Path(workspace) / (case.name + '-' + side)
+        shutil.copytree(case / side, repo)
+        out = Path(workspace) / (case.name + '-' + side + '-out')
+        collect(repo, out, ['syntax'])
+        outputs.append(out)
+    started = time.monotonic()
+    result = api_diff(*outputs)
+    statements = [f"{row.split('::')[-1]} broke for consumers of {row.split('::')[0]}" for row in result['breaking']]
+    return {'case': case.name, 'seconds': round(time.monotonic() - started, 2), 'model_calls': 0,
+            'claims': len(statements), 'framework': score(statements, truth),
+            'baseline': score([], truth), 'confirmed_claims': len(statements), 'runtime_confirmed': 0,
+            'output_spec_violations': [], 'plan': {'cards': 0, 'complete_cards': 0, 'runnable_acceptance': 0},
+            'mode': 'api_break'}
+
+
 def evaluate_case(case, workspace, execute=True):
     truth = json.loads((case / 'ground-truth.json').read_text())
+    if truth.get('kind') == 'api_break': return evaluate_api_break(case, workspace, truth)
     repo = Path(workspace) / case.name
     shutil.copytree(case, repo)
     (repo / 'ground-truth.json').unlink()
@@ -55,16 +91,18 @@ def evaluate_case(case, workspace, execute=True):
     if truth.get('requires_execution') and execute:
         verify_run(repo, out, execute=True, timeout=300)
     result = assemble(repo, out)
-    elapsed = round(time.monotonic() - started, 2)
     dossier = json.loads((out / 'dossier.json').read_text())
     statements = [claim['statement'] for claim in dossier['claims']]
+    build_plan(repo, out)
+    elapsed = round(time.monotonic() - started, 2)
     framework = score(statements, truth)
     reference = score(baseline(repo), truth)
     return {'case': case.name, 'seconds': elapsed, 'model_calls': result['model_calls'],
             'claims': len(statements), 'framework': framework, 'baseline': reference,
             'confirmed_claims': sum(1 for claim in dossier['claims'] if claim['confidence'] == 'CONFIRMED'),
             'runtime_confirmed': dossier['coverage'].get('runtime_confirmation', 0),
-            'output_spec_violations': result['output_spec_violations']}
+            'plan': plan_quality(out, framework.get('detected', 0)),
+            'output_spec_violations': result['output_spec_violations'], 'mode': 'dossier'}
 
 
 def document(results, language):
@@ -77,10 +115,11 @@ def document(results, language):
                 'التقييم يغطي المسار الحتمي فقط؛ لم يُشغَّل نموذج حي في هذه الجولة.' if language == 'ar'
                 else 'This covers the deterministic path only; no live model was run in this round.'])
     doc.section('النتائج لكل حالة' if language == 'ar' else 'Per case')
-    doc.table(['case', 'planted', 'detected', 'missed', 'false positives', 'baseline detected', 'seconds'],
+    doc.table(['case', 'planted', 'detected', 'missed', 'false positives', 'baseline', 'cards', 'runnable', 'seconds'],
               [[row['case'], row['framework']['planted'], row['framework']['detected'],
                 len(row['framework']['missed']), len(row['framework']['false_positives']),
-                row['baseline']['detected'], row['seconds']] for row in results['cases']])
+                row['baseline']['detected'], row.get('plan', {}).get('cards', 0),
+                row.get('plan', {}).get('runnable_acceptance', 0), row['seconds']] for row in results['cases']])
     doc.section('ما لم يُقس' if language == 'ar' else 'Not measured')
     doc.bullets(results['not_measured'])
     return doc
@@ -99,13 +138,17 @@ def run(corpus, out, language='ar', execute=True):
               'baseline_detected': sum(row['baseline']['detected'] for row in rows),
               'baseline_false_positives': sum(len(row['baseline']['false_positives']) for row in rows),
               'model_calls': sum(row['model_calls'] if isinstance(row['model_calls'], int) else 0 for row in rows),
+              'cards': sum(row.get('plan', {}).get('cards', 0) for row in rows),
+              'complete_cards': sum(row.get('plan', {}).get('complete_cards', 0) for row in rows),
+              'runnable_acceptance': sum(row.get('plan', {}).get('runnable_acceptance', 0) for row in rows),
               'seconds': round(sum(row['seconds'] for row in rows), 2)}
     totals['recall'] = round(totals['detected'] / totals['planted'], 3) if totals['planted'] else None
     totals['baseline_recall'] = round(totals['baseline_detected'] / totals['planted'], 3) if totals['planted'] else None
     results = {'corpus': str(corpus), 'cases': rows, 'totals': totals,
                'not_measured': [
                    'Live-model diagnosis quality: no provider was configured in this round.',
-                   'Plan usefulness: no blind human rating was collected.',
+                   'Plan usefulness: card completeness is measured mechanically; whether a card is genuinely useful '
+                   'to an engineer is not, and needs a blind human rating.',
                    'Large real-world repositories: measured separately for scale, without ground truth.',
                    'False negatives outside the planted set: unknown by construction.']}
     out.mkdir(parents=True, exist_ok=True)
