@@ -116,3 +116,24 @@ class WaveTests(unittest.TestCase):
     def test_each_wave_declares_entry_and_exit_conditions(self):
         plan = waves([self.task('TASK-001', ['a.py'])])
         self.assertTrue(plan[0]['entry_condition'] and plan[0]['exit_condition'])
+
+
+class CardLanguageTests(unittest.TestCase):
+    """A card is read by the same person who read the brief; it speaks the same language."""
+
+    def test_cards_and_waves_render_in_the_reader_language(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            assemble(FIXTURE, out)
+            build(FIXTURE, out, language='ar')
+            waves_text = (out / 'PLAN/WAVES.md').read_text()
+            self.assertIn('معرّف في', waves_text + (out / 'PLAN/TASK-001.md').read_text())
+
+    def test_english_rendering_stays_english(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            assemble(FIXTURE, out, language='en')
+            build(FIXTURE, out, language='en')
+            text = (out / 'PLAN/TASK-001.md').read_text()
+            self.assertIn('is defined in', text)
+            self.assertNotIn('معرّف في', text)

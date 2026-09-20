@@ -5,6 +5,7 @@ the problem is what proves it is gone. A task without a runnable criterion is no
 """
 from pathlib import Path
 from .compose import Document
+from .compose.labels import statement_of
 from .impact import assess, load
 from .ranking import claim_paths
 from .remediation_patterns import pattern_for
@@ -58,6 +59,7 @@ def build_tasks(target, out, dossier, sets):
         effort, effort_confidence = effort_for(radius['blast_radius'], cost.get('bucket', 'medium'))
         tasks.append({
             'id': 'TASK-%03d' % index, 'claim_id': claim['id'], 'title': claim['statement'][:120],
+            'render': claim.get('render'),
             'kind': 'investigate' if pattern['name'] == 'hidden_coupling' else 'remediate',
             'status': 'planned', 'priority': claim.get('priority', 0),
             'pattern': pattern['name'], 'paths': paths,
@@ -120,14 +122,18 @@ def coverage_line(coverage, language):
     return ('تغطية منفّذة: ' if language == 'ar' else 'executed coverage: ') + parts
 
 
+def title_of(task, language):
+    return statement_of({'statement': task['title'], 'render': task.get('render')}, language)[:120]
+
+
 def card(task, language):
-    document = Document(f"{task['id']} — {task['title']}", language, budget_lines=140)
+    document = Document(f"{task['id']} — {title_of(task, language)}", language, budget_lines=140)
     marker = ' [كود اختبارات]' if language == 'ar' and task['origin'] == 'test' else ''
     document.header([f"الادعاء: {task['claim_id']} · النمط: {task['pattern']} · الأولوية: {task['priority']}{marker}"
                      if language == 'ar' else
                      f"claim: {task['claim_id']} · pattern: {task['pattern']} · priority: {task['priority']}"])
     document.section('المشكلة' if language == 'ar' else 'The problem')
-    document.text(task['title'])
+    document.text(title_of(task, language))
     document.text(task['impact'])
     document.section('الدليل' if language == 'ar' else 'Evidence')
     document.bullets([f"facts: {', '.join(task['evidence']['fact_ids']) or '—'}",
@@ -171,7 +177,7 @@ def waves_document(plan, tasks, language):
         document.section(f"الموجة {wave['wave']}" if language == 'ar' else f"Wave {wave['wave']}")
         document.table(['#', 'المهمة' if language == 'ar' else 'Task', 'النوع' if language == 'ar' else 'Kind',
                         'الأولوية' if language == 'ar' else 'Priority'],
-                       [[identifier, by_id[identifier]['title'][:90], by_id[identifier]['kind'],
+                       [[identifier, title_of(by_id[identifier], language)[:90], by_id[identifier]['kind'],
                          by_id[identifier]['priority']] for identifier in wave['tasks']])
         document.bullets([f"شرط الدخول: {wave['entry_condition']}" if language == 'ar' else f"entry: {wave['entry_condition']}",
                           f"شرط الخروج: {wave['exit_condition']}" if language == 'ar' else f"exit: {wave['exit_condition']}"])

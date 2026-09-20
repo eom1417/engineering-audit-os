@@ -105,6 +105,7 @@ def runtime_claims(verification, offset, coverage_facts=None, excluded=None):
                                 'risk', 'CONFIRMED', ['test_evidence'], [],
                                 'A test run that executes those files, or evidence that they are not reachable in production either.',
                                 fact_ids=sorted({by_path[path] for path in uncovered if path in by_path}),
+                                render={'key': 'untested', 'params': {'count': len(uncovered)}},
                                 impact={'scenario': 'A change in these files can ship without any test exercising it.'},
                                 disposition={'kind': 'investigate', 'reason': 'Decide whether each path needs a test or is genuinely dead.'}))
     return rows
