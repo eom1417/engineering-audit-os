@@ -1,0 +1,506 @@
+{
+  "schema_version": 1,
+  "extractor": "graph",
+  "extractor_version": "1",
+  "available": true,
+  "input_sha": "a40d0a77ed8d29e87c2df9289d5bc03b7e58f30e7ac49b8915b6b5e560fd662a",
+  "limitations": [
+    "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
+    "A cycle is a signal to investigate, not a defect by itself.",
+    "Attention weights are a declared convention, not a measured predictor of risk.",
+    "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+  ],
+  "summary": {
+    "nodes": 10,
+    "edges": 6,
+    "cycles": 0,
+    "cycle_members": [],
+    "entry_files": [
+      "api/server.ts",
+      "cli.py",
+      "package.json",
+      "svc/main.go",
+      "worker/tasks.py"
+    ],
+    "reachable_from_entry": 8,
+    "unreachable_from_entry": 2,
+    "weights": {
+      "centrality": 0.3,
+      "change": 0.3,
+      "complexity": 0.2,
+      "entry_proximity": 0.2
+    },
+    "attention_order": [
+      {
+        "path": "core/pricing.py",
+        "score": 0.6,
+        "factors": {
+          "centrality": 1.0,
+          "change": 0.0,
+          "complexity": 1.0,
+          "entry_proximity": 0.5
+        }
+      },
+      {
+        "path": "api/handlers/orders.ts",
+        "score": 0.3,
+        "factors": {
+          "centrality": 0.333,
+          "change": 0.0,
+          "complexity": 0.5,
+          "entry_proximity": 0.5
+        }
+      },
+      {
+        "path": "cli.py",
+        "score": 0.3,
+        "factors": {
+          "centrality": 0.0,
+          "change": 0.0,
+          "complexity": 0.5,
+          "entry_proximity": 1.0
+        }
+      },
+      {
+        "path": "api/lib/pricing.ts",
+        "score": 0.2667,
+        "factors": {
+          "centrality": 0.333,
+          "change": 0.0,
+          "complexity": 0.5,
+          "entry_proximity": 0.333
+        }
+      },
+      {
+        "path": "api/lib/audit.ts",
+        "score": 0.2,
+        "factors": {
+          "centrality": 0.333,
+          "change": 0.0,
+          "complexity": 0.0,
+          "entry_proximity": 0.5
+        }
+      },
+      {
+        "path": "api/server.ts",
+        "score": 0.2,
+        "factors": {
+          "centrality": 0.0,
+          "change": 0.0,
+          "complexity": 0.0,
+          "entry_proximity": 1.0
+        }
+      },
+      {
+        "path": "svc/main.go",
+        "score": 0.2,
+        "factors": {
+          "centrality": 0.0,
+          "change": 0.0,
+          "complexity": 0.0,
+          "entry_proximity": 1.0
+        }
+      },
+      {
+        "path": "worker/tasks.py",
+        "score": 0.2,
+        "factors": {
+          "centrality": 0.0,
+          "change": 0.0,
+          "complexity": 0.0,
+          "entry_proximity": 1.0
+        }
+      },
+      {
+        "path": "core/__init__.py",
+        "score": 0.0,
+        "factors": {
+          "centrality": 0.0,
+          "change": 0.0,
+          "complexity": 0.0,
+          "entry_proximity": 0.0
+        }
+      },
+      {
+        "path": "core/audit.py",
+        "score": 0.0,
+        "factors": {
+          "centrality": 0.0,
+          "change": 0.0,
+          "complexity": 0.0,
+          "entry_proximity": 0.0
+        }
+      }
+    ],
+    "most_depended_on": [
+      {
+        "path": "core/pricing.py",
+        "fan_in": 3
+      },
+      {
+        "path": "api/handlers/orders.ts",
+        "fan_in": 1
+      },
+      {
+        "path": "api/lib/audit.ts",
+        "fan_in": 1
+      },
+      {
+        "path": "api/lib/pricing.ts",
+        "fan_in": 1
+      },
+      {
+        "path": "api/server.ts",
+        "fan_in": 0
+      },
+      {
+        "path": "cli.py",
+        "fan_in": 0
+      },
+      {
+        "path": "core/__init__.py",
+        "fan_in": 0
+      },
+      {
+        "path": "core/audit.py",
+        "fan_in": 0
+      },
+      {
+        "path": "svc/main.go",
+        "fan_in": 0
+      },
+      {
+        "path": "worker/tasks.py",
+        "fan_in": 0
+      }
+    ],
+    "isolated_files": [
+      "core/__init__.py",
+      "svc/main.go"
+    ],
+    "interpretation": "Structure and attention order only. Nothing here judges design quality; a cycle or a high rank is an invitation to look, not a verdict."
+  },
+  "facts": [
+    {
+      "id": "FACT-5d47c41999cb0f08",
+      "kind": "graph_node",
+      "extractor": "graph",
+      "extractor_version": "1",
+      "input_sha": "d4ebc6539f87ed0dd47951074ce1bccd4069797ea566560a0b5357e6cbd7b1a5",
+      "location": {
+        "path": "api/handlers/orders.ts"
+      },
+      "value": {
+        "fan_in": 1,
+        "fan_out": 1,
+        "depends_on": [
+          "api/lib/pricing.ts"
+        ],
+        "entry_distance": 1,
+        "cycle_group": null,
+        "attention_score": 0.3,
+        "attention_rank": 2,
+        "factors": {
+          "centrality": 0.3333,
+          "change": 0.0,
+          "complexity": 0.5,
+          "entry_proximity": 0.5
+        }
+      },
+      "limitations": [
+        "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
+        "A cycle is a signal to investigate, not a defect by itself.",
+        "Attention weights are a declared convention, not a measured predictor of risk.",
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+      ]
+    },
+    {
+      "id": "FACT-ac499389bfeb36bb",
+      "kind": "graph_node",
+      "extractor": "graph",
+      "extractor_version": "1",
+      "input_sha": "d87eb2d7b753f57b1fd951186884e31701cf55aeb973143a0d010e8859d0b2f3",
+      "location": {
+        "path": "api/lib/audit.ts"
+      },
+      "value": {
+        "fan_in": 1,
+        "fan_out": 0,
+        "depends_on": [],
+        "entry_distance": 1,
+        "cycle_group": null,
+        "attention_score": 0.2,
+        "attention_rank": 5,
+        "factors": {
+          "centrality": 0.3333,
+          "change": 0.0,
+          "complexity": 0.0,
+          "entry_proximity": 0.5
+        }
+      },
+      "limitations": [
+        "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
+        "A cycle is a signal to investigate, not a defect by itself.",
+        "Attention weights are a declared convention, not a measured predictor of risk.",
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+      ]
+    },
+    {
+      "id": "FACT-b22b7dfe9738e0f1",
+      "kind": "graph_node",
+      "extractor": "graph",
+      "extractor_version": "1",
+      "input_sha": "005eac7b3acebe53efc048fb5caf79d5efb998351f0e449d55528b6484874ff7",
+      "location": {
+        "path": "api/lib/pricing.ts"
+      },
+      "value": {
+        "fan_in": 1,
+        "fan_out": 0,
+        "depends_on": [],
+        "entry_distance": 2,
+        "cycle_group": null,
+        "attention_score": 0.2667,
+        "attention_rank": 4,
+        "factors": {
+          "centrality": 0.3333,
+          "change": 0.0,
+          "complexity": 0.5,
+          "entry_proximity": 0.3333
+        }
+      },
+      "limitations": [
+        "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
+        "A cycle is a signal to investigate, not a defect by itself.",
+        "Attention weights are a declared convention, not a measured predictor of risk.",
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+      ]
+    },
+    {
+      "id": "FACT-2b5a3828231be3fd",
+      "kind": "graph_node",
+      "extractor": "graph",
+      "extractor_version": "1",
+      "input_sha": "30c857590403c04863c43b01a72b9b1d4892fbbc173644e9bac6fd3a2b1d4251",
+      "location": {
+        "path": "api/server.ts"
+      },
+      "value": {
+        "fan_in": 0,
+        "fan_out": 2,
+        "depends_on": [
+          "api/handlers/orders.ts",
+          "api/lib/audit.ts"
+        ],
+        "entry_distance": 0,
+        "cycle_group": null,
+        "attention_score": 0.2,
+        "attention_rank": 6,
+        "factors": {
+          "centrality": 0.0,
+          "change": 0.0,
+          "complexity": 0.0,
+          "entry_proximity": 1.0
+        }
+      },
+      "limitations": [
+        "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
+        "A cycle is a signal to investigate, not a defect by itself.",
+        "Attention weights are a declared convention, not a measured predictor of risk.",
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+      ]
+    },
+    {
+      "id": "FACT-7a2e6d3c79f9fe50",
+      "kind": "graph_node",
+      "extractor": "graph",
+      "extractor_version": "1",
+      "input_sha": "7648f5f4cce4bf01d02de43f8c5f6f2130b787baece0cf6338210496d8bdfcdc",
+      "location": {
+        "path": "cli.py"
+      },
+      "value": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "depends_on": [
+          "core/pricing.py"
+        ],
+        "entry_distance": 0,
+        "cycle_group": null,
+        "attention_score": 0.3,
+        "attention_rank": 3,
+        "factors": {
+          "centrality": 0.0,
+          "change": 0.0,
+          "complexity": 0.5,
+          "entry_proximity": 1.0
+        }
+      },
+      "limitations": [
+        "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
+        "A cycle is a signal to investigate, not a defect by itself.",
+        "Attention weights are a declared convention, not a measured predictor of risk.",
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+      ]
+    },
+    {
+      "id": "FACT-9e4eaae7af795924",
+      "kind": "graph_node",
+      "extractor": "graph",
+      "extractor_version": "1",
+      "input_sha": "dd141d90af32dc0eb153cac1a72314632c92a44b90725b1c905ce0a9241bc9b1",
+      "location": {
+        "path": "core/__init__.py"
+      },
+      "value": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "depends_on": [],
+        "entry_distance": null,
+        "cycle_group": null,
+        "attention_score": 0.0,
+        "attention_rank": 9,
+        "factors": {
+          "centrality": 0.0,
+          "change": 0.0,
+          "complexity": 0.0,
+          "entry_proximity": 0.0
+        }
+      },
+      "limitations": [
+        "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
+        "A cycle is a signal to investigate, not a defect by itself.",
+        "Attention weights are a declared convention, not a measured predictor of risk.",
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+      ]
+    },
+    {
+      "id": "FACT-f90dca0518fe9c7d",
+      "kind": "graph_node",
+      "extractor": "graph",
+      "extractor_version": "1",
+      "input_sha": "5ae6427e9f105983b1f9c8af73e53d64ffde0216fe85078b11d71c6e612f5441",
+      "location": {
+        "path": "core/audit.py"
+      },
+      "value": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "depends_on": [
+          "core/pricing.py"
+        ],
+        "entry_distance": null,
+        "cycle_group": null,
+        "attention_score": 0.0,
+        "attention_rank": 10,
+        "factors": {
+          "centrality": 0.0,
+          "change": 0.0,
+          "complexity": 0.0,
+          "entry_proximity": 0.0
+        }
+      },
+      "limitations": [
+        "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
+        "A cycle is a signal to investigate, not a defect by itself.",
+        "Attention weights are a declared convention, not a measured predictor of risk.",
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+      ]
+    },
+    {
+      "id": "FACT-761acc9d1e608419",
+      "kind": "graph_node",
+      "extractor": "graph",
+      "extractor_version": "1",
+      "input_sha": "33029ae80794e3e6b705c0d523756fe30c8062eff536d3357a36be7edfb43bd3",
+      "location": {
+        "path": "core/pricing.py"
+      },
+      "value": {
+        "fan_in": 3,
+        "fan_out": 0,
+        "depends_on": [],
+        "entry_distance": 1,
+        "cycle_group": null,
+        "attention_score": 0.6,
+        "attention_rank": 1,
+        "factors": {
+          "centrality": 1.0,
+          "change": 0.0,
+          "complexity": 1.0,
+          "entry_proximity": 0.5
+        }
+      },
+      "limitations": [
+        "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
+        "A cycle is a signal to investigate, not a defect by itself.",
+        "Attention weights are a declared convention, not a measured predictor of risk.",
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+      ]
+    },
+    {
+      "id": "FACT-d65f90578b5e1a3a",
+      "kind": "graph_node",
+      "extractor": "graph",
+      "extractor_version": "1",
+      "input_sha": "e2cc65e9ebfc6495fddbd8586666ab05389a00f81a564631d08614e3265a5519",
+      "location": {
+        "path": "svc/main.go"
+      },
+      "value": {
+        "fan_in": 0,
+        "fan_out": 0,
+        "depends_on": [],
+        "entry_distance": 0,
+        "cycle_group": null,
+        "attention_score": 0.2,
+        "attention_rank": 7,
+        "factors": {
+          "centrality": 0.0,
+          "change": 0.0,
+          "complexity": 0.0,
+          "entry_proximity": 1.0
+        }
+      },
+      "limitations": [
+        "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
+        "A cycle is a signal to investigate, not a defect by itself.",
+        "Attention weights are a declared convention, not a measured predictor of risk.",
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+      ]
+    },
+    {
+      "id": "FACT-38627bdba65508c8",
+      "kind": "graph_node",
+      "extractor": "graph",
+      "extractor_version": "1",
+      "input_sha": "b2aa0be81dfc10bb28cd1f039c301d4436e336e9eaef746e7d2522788faf0883",
+      "location": {
+        "path": "worker/tasks.py"
+      },
+      "value": {
+        "fan_in": 0,
+        "fan_out": 1,
+        "depends_on": [
+          "core/pricing.py"
+        ],
+        "entry_distance": 0,
+        "cycle_group": null,
+        "attention_score": 0.2,
+        "attention_rank": 8,
+        "factors": {
+          "centrality": 0.0,
+          "change": 0.0,
+          "complexity": 0.0,
+          "entry_proximity": 1.0
+        }
+      },
+      "limitations": [
+        "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
+        "A cycle is a signal to investigate, not a defect by itself.",
+        "Attention weights are a declared convention, not a measured predictor of risk.",
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+      ]
+    }
+  ]
+}

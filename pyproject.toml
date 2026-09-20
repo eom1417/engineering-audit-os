@@ -7,6 +7,10 @@ version = "3.0.0"
 description = "Architecture, structure and maintainability audit CLI"
 requires-python = ">=3.10"
 readme = "README.md"
+[project.optional-dependencies]
+facts = ["tree-sitter>=0.21", "tree-sitter-language-pack>=0.2"]
+runtime = ["coverage>=7.0"]
+
 [project.scripts]
 eaos = "eaos.cli:main"
 [tool.setuptools.packages.find]

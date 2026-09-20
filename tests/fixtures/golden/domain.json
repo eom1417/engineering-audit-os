@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "extractor": "domain",
+  "extractor_version": "1",
+  "available": true,
+  "input_sha": "3bf0e04af967a054f27e7de625443b386da687df35719f3b5e3d57f8b3fbc292",
+  "limitations": [
+    "Only literal module-level constants are captured; values computed at runtime are not.",
+    "Two identical values are a duplication signal, not proof that they encode the same rule.",
+    "Table and model detection is pattern-based; an unrecognised ORM is missed, not absent.",
+    "Ownership of a rule is not asserted here; that requires semantic review."
+  ],
+  "summary": {
+    "constants": 2,
+    "duplicated_constants": 1,
+    "duplicated_with_same_value": [
+      "PREMIUM_DISCOUNT"
+    ],
+    "duplicated_with_different_values": [],
+    "excluded_from_duplication": [],
+    "data_models": 0,
+    "data_tables": 0,
+    "migration_paths": [],
+    "interpretation": "A constant repeated in two modules is a question about rule ownership, not yet a defect."
+  },
+  "facts": [
+    {
+      "id": "FACT-1096a493a930cbb3",
+      "kind": "domain_constant",
+      "extractor": "domain",
+      "extractor_version": "1",
+      "input_sha": "6acc99af99f6b3a1dcc5bbe7d00be59f947cbe8cda444c34fa2f90f1c0d92693",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 6
+      },
+      "value": {
+        "name": "PORT",
+        "definitions": [
+          {
+            "path": "api/server.ts",
+            "line": 6
+          }
+        ],
+        "distinct_values": 1,
+        "duplicated": false,
+        "same_value_everywhere": false,
+        "excluded_reason": null
+      },
+      "limitations": [
+        "Only literal module-level constants are captured; values computed at runtime are not.",
+        "Two identical values are a duplication signal, not proof that they encode the same rule.",
+        "Table and model detection is pattern-based; an unrecognised ORM is missed, not absent.",
+        "Ownership of a rule is not asserted here; that requires semantic review."
+      ]
+    },
+    {
+      "id": "FACT-b9ea8040d02bb098",
+      "kind": "domain_constant",
+      "extractor": "domain",
+      "extractor_version": "1",
+      "input_sha": "c65ca2cc0829d69b89a8f34db6ca22fda0697083e22cfea01a7a6589677bf34f",
+      "location": {
+        "path": "api/handlers/orders.ts",
+        "start_line": 2
+      },
+      "value": {
+        "name": "PREMIUM_DISCOUNT",
+        "definitions": [
+          {
+            "path": "api/handlers/orders.ts",
+            "line": 2
+          },
+          {
+            "path": "api/lib/pricing.ts",
+            "line": 1
+          },
+          {
+            "path": "core/pricing.py",
+            "line": 4
+          }
+        ],
+        "distinct_values": 1,
+        "duplicated": true,
+        "same_value_everywhere": true,
+        "excluded_reason": null
+      },
+      "limitations": [
+        "Only literal module-level constants are captured; values computed at runtime are not.",
+        "Two identical values are a duplication signal, not proof that they encode the same rule.",
+        "Table and model detection is pattern-based; an unrecognised ORM is missed, not absent.",
+        "Ownership of a rule is not asserted here; that requires semantic review."
+      ]
+    }
+  ]
+}

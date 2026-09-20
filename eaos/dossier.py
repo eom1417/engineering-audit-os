@@ -1,0 +1,334 @@
+"""Assemble the canonical dossier and the artifacts derived from it.
+
+Everything a reader sees is derived from `dossier.json`. Nothing is written into a human artifact
+that does not exist in the ledger, and no claim reaches a reader without its confidence and source.
+"""
+from datetime import datetime, timezone
+from pathlib import Path
+from . import claims as ledger
+from .compose import Document
+from .compose.rules import validate
+from .facts.store import read_set
+from .map import ARTIFACTS, generate
+from .workspace import read, write
+
+MARKER = {'CONFIRMED': '⬤', 'LIKELY': '◐', 'HYPOTHESIS': '○', 'REFUTED': '⊘'}
+BRIEF = 'DECISION-BRIEF.md'
+PROVENANCE = 'PROVENANCE.md'
+RANK = {'CONFIRMED': 0, 'LIKELY': 1, 'HYPOTHESIS': 2, 'REFUTED': 3}
+
+
+def legacy_records(run):
+    run = Path(run)
+    def maybe(name, default):
+        path = run / name
+        return read(path) if path.is_file() else default
+    return {'findings': maybe('findings.json', []), 'architecture': maybe('architecture.json', {}),
+            'flows': maybe('flows.json', []), 'coverage': maybe('coverage.json', []),
+            'evidence': maybe('evidence.json', []), 'roadmap': maybe('roadmap.json', {}),
+            'state': maybe('run.json', {})}
+
+
+def coverage_of(sets, records):
+    syntax, resolve, entry = sets['syntax']['summary'], sets['resolve']['summary'], sets['entrypoints']['summary']
+    return {'source_files': syntax['source_files'], 'files_parsed': syntax['files_parsed'],
+            'parse_coverage': syntax['parse_coverage'],
+            'imports_resolved': resolve['by_resolution']['RESOLVED'],
+            'imports_total': sum(resolve['by_resolution'].values()),
+            'internal_imports_resolved_rate': resolve['internal_resolution_rate'],
+            'external_imports': resolve['by_resolution']['EXTERNAL'],
+            'entry_points': entry['entry_points'],
+            'production_entry_points': entry.get('production_entry_points', entry['entry_points']),
+            'history_available': sets['history']['available'],
+            'semantic_review': bool(records['findings']),
+            'runtime_confirmation': 0,  # replaced below when execution evidence exists
+            'not_examined': [
+                f"unparsed source files: {syntax['by_status'].get('BLOCKED', 0) + syntax['by_status'].get('UNSUPPORTED', 0)}",
+                f"unresolved or ambiguous imports: {resolve['by_resolution']['UNRESOLVED'] + resolve['by_resolution']['AMBIGUOUS']}",
+                f"invocation surfaces with no detector: {sum(entry['files_without_any_detector'].values())} files",
+                'runtime behaviour: no execution evidence in this run' ,
+                *( [] if records['findings'] else ['semantic review: not performed in this run (facts only)'] ),
+            ]}
+
+
+def questions_of(records, sets):
+    questions = [{'id': 'Q-%03d' % (index + 1), 'question': text, 'source': 'audit run'}
+                 for index, text in enumerate(records['state'].get('unknowns', []) or [])]
+    offset = len(questions)
+    if not sets['history']['available']:
+        offset += 1
+        questions.append({'id': 'Q-%03d' % offset, 'question': 'History signals are unavailable for this snapshot; co-change coupling cannot be assessed.', 'source': 'facts'})
+    elif (sets['history']['summary'].get('commits_analysed') or 0) < 10:
+        offset += 1
+        questions.append({'id': 'Q-%03d' % offset,
+                          'question': 'History is too shallow (%d commits in scope) for co-change coupling to mean anything; no coupling claim was made from it.'
+                                      % sets['history']['summary'].get('commits_analysed', 0), 'source': 'facts'})
+    if not records['findings']:
+        offset += 1
+        questions.append({'id': 'Q-%03d' % offset, 'question': 'No semantic review was run: responsibilities, contracts and root causes are unassessed.', 'source': 'facts'})
+    return questions
+
+
+def tasks_of(records):
+    rows = []
+    for task in (records['roadmap'] or {}).get('tasks', []):
+        rows.append({'id': task['id'], 'title': task.get('title', ''), 'kind': task.get('kind'),
+                     'status': task.get('status'), 'finding_ids': task.get('finding_ids', []),
+                     'verify_command': task.get('verify_command'), 'files': task.get('files', [])})
+    return rows
+
+
+def runtime_claims(verification, offset, coverage_facts=None, excluded=None):
+    """Execution evidence produces claims that are CONFIRMED because something actually ran."""
+    if not verification or not verification.get('executed'): return []
+    rows = []
+    by_path = {fact['location']['path']: fact['id'] for fact in coverage_facts or []}
+    uncovered = [path for path in verification.get('uncovered_entry_reachable_files', [])
+                 if not (excluded and excluded(path))]
+    if uncovered:
+        rows.append(ledger.make(offset + 1,
+                                f"{len(uncovered)} files reachable from an entry point were never executed by the test command "
+                                f"({', '.join(uncovered[:3])}{'…' if len(uncovered) > 3 else ''})",
+                                'risk', 'CONFIRMED', ['test_evidence'], [],
+                                'A test run that executes those files, or evidence that they are not reachable in production either.',
+                                fact_ids=sorted({by_path[path] for path in uncovered if path in by_path}),
+                                impact={'scenario': 'A change in these files can ship without any test exercising it.'},
+                                disposition={'kind': 'investigate', 'reason': 'Decide whether each path needs a test or is genuinely dead.'}))
+    return rows
+
+
+def build_claims(sets, records):
+    rows = ledger.from_facts(sets)
+    if records['findings'] or records['architecture']:
+        rows += ledger.from_legacy(records['findings'], records['architecture'] or {}, records['flows'],
+                                   records['coverage'], (records['state'] or {}).get('revision'))
+    rows = ledger.renumber(ledger.merge(rows))
+    for row in rows:
+        row.setdefault('artifacts', [BRIEF if row['claim_type'] in {'risk', 'cause', 'structure'} or (row.get('impact') or {}).get('scenario') else 'SYSTEM-MAP.md'])
+        if row['claim_type'] in {'risk', 'cause', 'structure'} and (row.get('disposition') or {}).get('kind') in (None, 'none_yet'):
+            row['disposition'] = {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'}
+    return rows
+
+
+def brief(target, dossier, language):
+    document = Document(Document('', language).words['decision_brief'], language, budget_lines=120)
+    words = document.words
+    coverage = dossier['coverage']
+    counts = dossier['claim_counts']
+    document.header([
+        f"{target}  ·  {dossier['provenance']['generated_at']}  ·  eaos {dossier['provenance']['tool_version']}",
+        f"{words['coverage']}: {coverage['files_parsed']}/{coverage['source_files']} "
+        f"({round(coverage['parse_coverage'] * 100)}%) · internal imports resolved "
+        f"{round(coverage['internal_imports_resolved_rate'] * 100)}% ({coverage['external_imports']} external) · "
+        f"entry points {coverage['production_entry_points']}"
+        + (f" (+{coverage['entry_points'] - coverage['production_entry_points']} in tests)"
+           if coverage['entry_points'] != coverage['production_entry_points'] else '')
+        + f" · runtime-confirmed {coverage['runtime_confirmation']}",
+        '⬤ %d · ◐ %d · ○ %d · ؟ %d' % (counts.get('CONFIRMED', 0), counts.get('LIKELY', 0), counts.get('HYPOTHESIS', 0), len(dossier['questions'])),
+        f"model calls: {dossier['provenance']['model_calls']}",
+    ])
+    document.section('ما هذا النظام' if language == 'ar' else 'What this system is')
+    document.text(dossier['description'])
+    document.section('أخطر ما وجدناه' if language == 'ar' else 'Most serious findings')
+    ranked = sorted(dossier['claims'], key=lambda c: (RANK[c['confidence']], -len((c.get('impact') or {}).get('scenario', '')), c['id']))
+    # Anything with a stated consequence competes for the five slots, whatever its record type.
+    top = [c for c in ranked if c['claim_type'] in {'risk', 'cause', 'structure'} or (c.get('impact') or {}).get('scenario')][:5]
+    document.table(['#', 'الادعاء' if language == 'ar' else 'Claim', 'الثقة' if language == 'ar' else 'Confidence',
+                    'الأثر' if language == 'ar' else 'Impact'],
+                   [[claim['id'], claim['statement'][:150], MARKER[claim['confidence']] + ' ' + claim['confidence'],
+                     ((claim.get('impact') or {}).get('scenario') or '—')[:120]] for claim in top])
+    document.section('افعل الآن' if language == 'ar' else 'Do now')
+    document.bullets([f"{task['id']} — {task['title']}" for task in dossier['tasks'][:3]] or
+                     [claim['id'] + ' — ' + claim['statement'][:120] for claim in top[:3]])
+    document.section('لا تفعل (الآن)' if language == 'ar' else 'Do not do (yet)')
+    document.bullets(dossier['do_not'])
+    document.section('أسئلة مفتوحة' if language == 'ar' else 'Open questions')
+    document.table(['#', 'السؤال' if language == 'ar' else 'Question', 'المصدر' if language == 'ar' else 'Source'],
+                   [[q['id'], q['question'][:160], q['source']] for q in dossier['questions']], limit=10)
+    document.section(words['not_examined'])
+    document.bullets(coverage['not_examined'])
+    return document
+
+
+def provenance_document(target, dossier, language):
+    document = Document(Document('', language).words['provenance'], language, budget_lines=80)
+    provenance = dossier['provenance']
+    document.table(['key', 'value'], [[key, str(value)] for key, value in sorted(provenance.items())])
+    document.section('reproduce')
+    document.bullets([f"eaos report {target} --out <dir>" + (f" --run {provenance['audit_run']}" if provenance.get('audit_run') else ''),
+                      'Deterministic fact sets are byte-identical for the same snapshot and extractor versions.',
+                      'Model-derived claims are not deterministic and carry their provider configuration above.'])
+    return document
+
+
+def describe(sets, records):
+    syntax = sets['syntax']['summary']
+    entry = sets['entrypoints']['summary']
+    languages = ', '.join(f'{name} ({count})' for name, count in sorted(syntax['by_language'].items(), key=lambda kv: -kv[1])[:4])
+    surfaces = ', '.join(f'{name} ({count})' for name, count in sorted(entry['by_surface'].items()))
+    line = (f"⬤ {syntax['source_files']} source files, {syntax['symbols']} symbols, languages: {languages}. "
+            f"Invocation surfaces: {surfaces or 'none detected'}.")
+    if not records['findings']:
+        line += ' ○ Responsibilities and contracts are not assessed in a facts-only run.'
+    return line
+
+
+def flows_document(dossier, sets, language):
+    words = Document('', language).words
+    document = Document(words['flows'], language, budget_lines=300)
+    document.header([words['flow_note']])
+    rows = [f['value'] for f in sets['flows']['facts']]
+    if not rows:
+        document.text(words['no_rows'])
+        return document
+    document.section(words['coverage'])
+    document.table([words['flows'], 'steps', 'unresolved'],
+                   [[len(rows), sets['flows']['summary']['total_steps'], sets['flows']['summary']['unresolved_steps']]])
+    for flow in rows[:12]:
+        entry = flow['entry']
+        document.section(f"{flow['flow_id']} — {entry['surface']} {entry['http_method'] or ''} {entry['route']}".strip(), level=2)
+        document.bullets([f"{words['entry']}: {entry['path']}:{entry['line']} [{entry['framework']}]",
+                          f"{words['handler']}: {entry['handler']}",
+                          f"{words['touched']}: {', '.join(flow['touched_files'])}",
+                          (f"{words['env']}: {', '.join(flow['environment_reads'])}" if flow['environment_reads'] else None)])
+        document.table([words['step'], words['call'], words['location'], words['resolution']],
+                       [[step['from'], step['callee'],
+                         f"{step['to_path'] or step['from_path']}:{step['line']}", step['resolution']]
+                        for step in flow['steps']], limit=12)
+    return document
+
+
+def domain_document(dossier, sets, language):
+    words = Document('', language).words
+    document = Document(words['domain_data'], language, budget_lines=240)
+    domain, config = sets['domain'], sets['config']
+    document.header([domain['summary']['interpretation']])
+    document.section(words['duplicated_rule'])
+    document.table([words['constant'], words['defined_in'], 'values'],
+                   [[fact['value']['name'], ', '.join(f"{d['path']}:{d['line']}" for d in fact['value']['definitions']),
+                     fact['value']['distinct_values']]
+                    for fact in domain['facts'] if fact['kind'] == 'domain_constant' and fact['value']['duplicated']], limit=20)
+    document.section(words['data_models'])
+    document.table([words['name'], 'kind', words['location']],
+                   [[fact['value']['name'], fact['value'].get('kind', 'table'), f"{fact['location']['path']}:{fact['location']['start_line']}"]
+                    for fact in domain['facts'] if fact['kind'] in {'data_model', 'data_table'}], limit=25)
+    document.section(words['config_contract'])
+    reads = {}
+    for fact in config['facts']:
+        if fact['kind'] == 'env_read':
+            reads.setdefault(fact['value']['name'], []).append(f"{fact['location']['path']}:{fact['location']['start_line']}")
+    document.table([words['name'], words['read_in'], 'default'],
+                   [[name, ', '.join(sorted(places)[:3]), 'yes' if any(
+                       fact['value']['has_default'] for fact in config['facts']
+                       if fact['kind'] == 'env_read' and fact['value']['name'] == name) else 'no']
+                    for name, places in sorted(reads.items())], limit=25)
+    unread = config['summary']['unread_sensitive_config_files']
+    if unread: document.bullets([f"sensitive config listed but never read: {', '.join(unread)}"])
+    return document
+
+
+def contracts_document(dossier, sets, language):
+    words = Document('', language).words
+    document = Document(words['contracts_doc'], language, budget_lines=200)
+    document.header([words['signal_note']])
+    external = {}
+    for fact in sets['resolve']['facts']:
+        if fact['resolution'] == 'EXTERNAL':
+            external.setdefault(fact['value']['module'], set()).add(fact['location']['path'])
+    document.section(words['external_deps'])
+    document.table([words['name'], words['language'], 'used in'],
+                   [[module, next(iter({f['value']['language'] for f in sets['resolve']['facts']
+                                        if f['value']['module'] == module}), ''), len(paths)]
+                    for module, paths in sorted(external.items(), key=lambda kv: (-len(kv[1]), kv[0]))], limit=30)
+    document.section(words['entry_points'])
+    document.table([words['surface'], words['method'], words['route'], words['location']],
+                   [[f['value']['surface'], f['value']['http_method'] or '—', f['value']['route'] or '—',
+                     f"{f['location']['path']}:{f['location'].get('start_line') or 1}"]
+                    for f in sets['entrypoints']['facts']], limit=30)
+    return document
+
+
+def verification_document(verification, language):
+    words = Document('', language).words
+    document = Document(words['verification'], language, budget_lines=180)
+    document.header([words['verify_note']])
+    if not verification:
+        document.text('No verification run recorded. Run eaos verify --execute to obtain execution evidence.')
+        return document
+    document.section(words['executed'])
+    document.bullets([f"executed: {verification['executed']}",
+                      f"command: {' '.join(verification.get('command', [])) or '—'}",
+                      f"overall coverage: {verification.get('overall_percent', '—')}%",
+                      f"{words['tests']}: {len(verification.get('test_files', []))}",
+                      verification.get('reason')])
+    coverage = verification.get('coverage') or {}
+    document.section(words['coverage_pct'])
+    document.table([words['path'], words['coverage_pct'], 'statements'],
+                   [[path, value['percent'], value['statements']]
+                    for path, value in sorted(coverage.items(), key=lambda kv: (kv[1]['percent'], kv[0]))
+                    if value['statements']], limit=20)
+    document.section(words['uncovered'])
+    document.bullets(verification.get('uncovered_entry_reachable_files', [])[:20] or [words['no_rows']])
+    return document
+
+
+def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
+    target, out = Path(target).resolve(), Path(out).resolve()
+    map_result, sets = generate(target, out, language, exclude=exclude)
+    records = legacy_records(run) if run else {'findings': [], 'architecture': {}, 'flows': [], 'coverage': [],
+                                               'evidence': [], 'roadmap': {}, 'state': {}}
+    verification = read(out / 'verification.json') if (out / 'verification.json').is_file() else None
+    rows = build_claims(sets, records)
+    from fnmatch import fnmatch
+    patterns = [p.strip('/') for p in (exclude or []) if p.strip('/')]
+    def source_filter(path): return any(path == p or path.startswith(p + '/') or fnmatch(path, p) for p in patterns)
+    coverage_set = read_set(out, 'verification') if (out / 'facts/verification.json').is_file() else None
+    if coverage_set: sets['verification'] = coverage_set
+    rows += runtime_claims(verification, len(rows), (coverage_set or {}).get('facts'), excluded=source_filter)
+    problems = ledger.errors(rows, {e['id'] for e in records['evidence']} if records['evidence'] else (),
+                             {f['id'] for data in sets.values() for f in data['facts']})
+    if problems: raise ValueError('Claim ledger rejected: ' + '; '.join(problems[:5]))
+    counts = {}
+    for row in rows: counts[row['confidence']] = counts.get(row['confidence'], 0) + 1
+    dossier = {
+        'schema_version': 1,
+        'provenance': {'target': str(target), 'tool_version': version,
+                       'generated_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'),
+                       'snapshot_fingerprint': sets['syntax']['input_sha'],
+                       'audit_run': str(run) if run else None,
+                       'model_calls': 0 if not run else (records['state'] or {}).get('model_calls', 'see engine-state.json'),
+                       'extractors': {name: data['extractor_version'] for name, data in sorted(sets.items())},
+                       'excluded_patterns': list(exclude or [])},
+        'coverage': {**coverage_of(sets, records),
+                     'runtime_confirmation': sum(1 for row in rows if 'test_evidence' in row['method'] or 'runtime_probe' in row['method']),
+                     'executed_verification': bool(verification and verification.get('executed')),
+                     'executed_coverage_percent': (verification or {}).get('overall_percent')},
+        'description': describe(sets, records),
+        'claim_counts': counts,
+        'claims': rows,
+        'questions': questions_of(records, sets),
+        'tasks': tasks_of(records),
+        'do_not': ['لا تعتمد هذا المخرج كمراجعة أمنية أو شهادة جاهزية إنتاج.',
+                   'لا تقرأ ترتيب الانتباه كترتيب خطورة؛ هو اصطلاح معلن للأولوية في القراءة.',
+                   'لا تعتبر غياب نتيجة دليلًا على سلامة؛ الغياب يعني عدم الفحص ما لم يُصرَّح ببحث عن الغياب.']
+        if language == 'ar' else
+        ['Do not treat this as a security review or a production-readiness certificate.',
+         'Do not read the attention order as a severity order; it is a declared reading convention.',
+         'Do not read an absent finding as safety; absence means unexamined unless an absence search is declared.'],
+        'artifacts': sorted([BRIEF, PROVENANCE, 'FLOWS.md', 'DOMAIN-AND-DATA.md', 'CONTRACTS.md', 'VERIFICATION-MAP.md', *ARTIFACTS]),
+    }
+    write(out / 'dossier.json', dossier)
+    (out / BRIEF).write_text(brief(str(target), dossier, language).render(), encoding='utf-8')
+    for name, builder in [('FLOWS.md', flows_document), ('DOMAIN-AND-DATA.md', domain_document), ('CONTRACTS.md', contracts_document)]:
+        (out / name).write_text(builder(dossier, sets, language).render(), encoding='utf-8')
+    (out / 'VERIFICATION-MAP.md').write_text(verification_document(verification, language).render(), encoding='utf-8')
+    (out / PROVENANCE).write_text(provenance_document(str(target), dossier, language).render(), encoding='utf-8')
+    violations = validate(out, dossier)
+    result = {'target': str(target), 'out': str(out), 'artifacts': dossier['artifacts'],
+              'claims': len(rows), 'claim_counts': counts, 'questions': len(dossier['questions']),
+              'facts': map_result['facts'], 'model_calls': dossier['provenance']['model_calls'],
+              'output_spec_violations': violations,
+              'status': 'READY' if not violations else 'OUTPUT_SPEC_VIOLATED',
+              'limits': 'A dossier reports what was examined. Claims carry their confidence and their refutation; unexamined scope is listed, not implied.'}
+    write(out / 'report-result.json', result)
+    return result

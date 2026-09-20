@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "extractor": "config",
+  "extractor_version": "1",
+  "available": true,
+  "input_sha": "24edda13dea0fbb6fcbb030b72f0688c3760bf76de4f7a03adf761f720f48e5f",
+  "limitations": [
+    "Values are deliberately never captured; only names and whether a default exists.",
+    "Variables assembled at runtime (prefix + name) are not detected.",
+    "A key present in a config file is not proof that any code reads it, and vice versa.",
+    "Secret-shaped names are a naming signal only, not a finding that a secret is exposed."
+  ],
+  "summary": {
+    "env_variables_read": 3,
+    "env_read_sites": 4,
+    "config_keys_declared": 0,
+    "read_but_not_declared": [
+      "AUDIT_SINK",
+      "PORT",
+      "TAX_RATE"
+    ],
+    "declared_but_not_read": [],
+    "unread_sensitive_config_files": [],
+    "secret_shaped_names": [],
+    "interpretation": "Names only; no configuration value was captured. A mismatch between declared and read names is a question, not a defect."
+  },
+  "facts": [
+    {
+      "id": "FACT-97fe155ee4c12262",
+      "kind": "env_read",
+      "extractor": "config",
+      "extractor_version": "1",
+      "input_sha": "3c11f430c4a6cb315259fb6f905bc6f0a2cf0e1ee476f16123d33aae2f63c6c1",
+      "location": {
+        "path": "api/lib/audit.ts",
+        "start_line": 2
+      },
+      "value": {
+        "name": "AUDIT_SINK",
+        "has_default": false,
+        "language": "typescript",
+        "secret_shaped": false
+      },
+      "limitations": [
+        "Values are deliberately never captured; only names and whether a default exists.",
+        "Variables assembled at runtime (prefix + name) are not detected.",
+        "A key present in a config file is not proof that any code reads it, and vice versa.",
+        "Secret-shaped names are a naming signal only, not a finding that a secret is exposed."
+      ]
+    },
+    {
+      "id": "FACT-f347742809bf74a5",
+      "kind": "env_read",
+      "extractor": "config",
+      "extractor_version": "1",
+      "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 5
+      },
+      "value": {
+        "name": "AUDIT_SINK",
+        "has_default": true,
+        "language": "python",
+        "secret_shaped": false
+      },
+      "limitations": [
+        "Values are deliberately never captured; only names and whether a default exists.",
+        "Variables assembled at runtime (prefix + name) are not detected.",
+        "A key present in a config file is not proof that any code reads it, and vice versa.",
+        "Secret-shaped names are a naming signal only, not a finding that a secret is exposed."
+      ]
+    },
+    {
+      "id": "FACT-af4b747271029941",
+      "kind": "env_read",
+      "extractor": "config",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 6
+      },
+      "value": {
+        "name": "PORT",
+        "has_default": false,
+        "language": "typescript",
+        "secret_shaped": false
+      },
+      "limitations": [
+        "Values are deliberately never captured; only names and whether a default exists.",
+        "Variables assembled at runtime (prefix + name) are not detected.",
+        "A key present in a config file is not proof that any code reads it, and vice versa.",
+        "Secret-shaped names are a naming signal only, not a finding that a secret is exposed."
+      ]
+    },
+    {
+      "id": "FACT-e322060e8fd9653b",
+      "kind": "env_read",
+      "extractor": "config",
+      "extractor_version": "1",
+      "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 5
+      },
+      "value": {
+        "name": "TAX_RATE",
+        "has_default": true,
+        "language": "python",
+        "secret_shaped": false
+      },
+      "limitations": [
+        "Values are deliberately never captured; only names and whether a default exists.",
+        "Variables assembled at runtime (prefix + name) are not detected.",
+        "A key present in a config file is not proof that any code reads it, and vice versa.",
+        "Secret-shaped names are a naming signal only, not a finding that a secret is exposed."
+      ]
+    }
+  ]
+}

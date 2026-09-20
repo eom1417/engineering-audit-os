@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eaos.local/schemas/probe.schema.json",
+  "title": "Probe — a runnable check that raises or drops a claim's confidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "claim_id", "probe_type", "specification", "status"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^PRB-[0-9]{3,}$"},
+    "claim_id": {"type": "string"},
+    "probe_type": {
+      "enum": ["absence_search", "graph_query", "execution", "coverage", "falsification"],
+      "description": "absence_search generalises today's evidence kind of the same name: an absence claim requires a declared search scope."
+    },
+    "specification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "command": {"type": "string", "description": "Exact command for execution/coverage probes."},
+        "query": {"type": "string", "description": "Deterministic query over the fact graph."},
+        "search_scope": {"type": "array", "items": {"type": "string"}},
+        "patterns": {"type": "array", "items": {"type": "string"}},
+        "expected": {"type": "string", "description": "The observation that counts as confirmation."}
+      }
+    },
+    "requires_execution": {"type": "boolean", "default": false, "description": "Execution probes are disabled by default; untrusted sources need an OS-level sandbox."},
+    "status": {"enum": ["not_run", "CONFIRMED", "REFUTED", "INCONCLUSIVE", "blocked"]},
+    "result": {"type": "string"},
+    "evidence_id": {"type": "string"},
+    "ran_at": {"type": "string", "format": "date-time"}
+  }
+}

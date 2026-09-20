@@ -1,0 +1,7 @@
+{
+  "name": "polyglot-fixture",
+  "version": "1.0.0",
+  "scripts": {"start": "node api/server.js", "test": "jest"},
+  "dependencies": {"express": "^4.18.0"},
+  "devDependencies": {"jest": "^29.0.0"}
+}

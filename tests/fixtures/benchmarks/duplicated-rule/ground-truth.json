@@ -1,0 +1,7 @@
+{
+  "name": "duplicated-rule",
+  "planted": [
+    {"id": "GT-1", "kind": "duplicated_rule", "match": "VAT_RATE", "why": "The same tax rule is written in two modules with different values; totals disagree between the API and the export."}
+  ],
+  "must_not_claim": ["cycle", "never executed"]
+}

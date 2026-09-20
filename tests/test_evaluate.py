@@ -1,0 +1,56 @@
+"""The evaluation harness: numbers on planted cases, and a baseline to compare against."""
+import json
+from pathlib import Path
+import tempfile
+import unittest
+from eaos.evaluate import baseline, run, score
+
+CORPUS = Path(__file__).resolve().parent / 'fixtures/benchmarks'
+
+
+class EvaluationTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.result = run(CORPUS, Path(cls.tmp.name) / 'out')
+        cls.details = json.loads((Path(cls.tmp.name) / 'out/eval.json').read_text())
+
+    @classmethod
+    def tearDownClass(cls): cls.tmp.cleanup()
+
+    def test_every_planted_defect_is_detected(self):
+        self.assertEqual(self.result['totals']['detected'], self.result['totals']['planted'])
+        self.assertEqual(self.result['totals']['recall'], 1.0)
+
+    def test_the_clean_project_produces_no_false_positive(self):
+        clean = next(row for row in self.details['cases'] if row['case'] == 'clean-project')
+        self.assertEqual(clean['framework']['false_positives'], [])
+        self.assertEqual(clean['claims'], 0)
+
+    def test_the_framework_beats_the_grep_baseline(self):
+        self.assertGreater(self.result['totals']['detected'], self.result['totals']['baseline_detected'])
+
+    def test_the_untested_path_case_needs_real_execution(self):
+        row = next(row for row in self.details['cases'] if row['case'] == 'untested-path')
+        self.assertEqual(row['framework']['detected'], 1)
+        self.assertGreaterEqual(row['runtime_confirmed'], 1)
+
+    def test_what_was_not_measured_is_stated(self):
+        joined = ' '.join(self.details['not_measured'])
+        self.assertIn('Live-model', joined)
+        self.assertIn('blind human rating', joined)
+
+    def test_scoring_counts_forbidden_claims_as_false_positives(self):
+        outcome = score(['X is defined in 2 places'], {'planted': [], 'must_not_claim': ['defined in']})
+        self.assertEqual(len(outcome['false_positives']), 1)
+        self.assertEqual(outcome['precision'], 0.0)
+
+    def test_baseline_only_sees_repeated_constants(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'a.py').write_text('RATE = 1\n')
+            (repo / 'b.py').write_text('RATE = 2\n')
+            (repo / 'c.py').write_text('import a\n')
+            found = baseline(repo)
+            self.assertEqual(len(found), 1)
+            self.assertIn('RATE', found[0])

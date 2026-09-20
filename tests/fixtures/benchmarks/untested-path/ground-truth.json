@@ -1,0 +1,8 @@
+{
+  "name": "untested-path",
+  "planted": [
+    {"id": "GT-1", "kind": "untested_reachable", "match": "never executed", "why": "refunds.py is reachable from the CLI but no test ever executes it."}
+  ],
+  "must_not_claim": ["cycle"],
+  "requires_execution": true
+}

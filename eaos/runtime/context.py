@@ -52,11 +52,22 @@ class Context:
         if persist:write(self.run/'evidence.json',list(self.evidence.values()))
         return block
 
-    def chunks(self):
+    def chunks(self,order=None,max_files=None):
+        """Inspect in declared attention order; anything beyond the budget is deferred visibly, not dropped."""
         omissions=[]
+        paths=list(self.files)
+        if order:
+            ranked=[p for p in order if p in self.files]
+            paths=ranked+[p for p in paths if p not in set(ranked)]
+        deferred=[]
+        if max_files is not None and max_files < len(paths):
+            paths,deferred=paths[:max_files],paths[max_files:]
+        for path in deferred:
+            omissions.append({'path':path,'reason':'Deferred by the declared attention budget; this file was not semantically reviewed'})
         def stream():
             batch=[];size=0
-            for path,item in self.files.items():
+            for path in paths:
+                item=self.files[path]
                 if item['capture']!='hashed':omissions.append({'path':path,'reason':item['capture']});continue
                 try:lines=self.lines(path)
                 except (ValueError,UnicodeError,OSError):omissions.append({'path':path,'reason':'Sensitive, binary, unreadable or changed source'});continue

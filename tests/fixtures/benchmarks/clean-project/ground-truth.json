@@ -1,0 +1,5 @@
+{
+  "name": "clean-project",
+  "planted": [],
+  "must_not_claim": ["defined in", "cycle", "never executed"]
+}

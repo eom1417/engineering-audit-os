@@ -36,6 +36,31 @@ eaos improve /absolute/audit --out /absolute/campaign \
 - `diagnosis-challenge.json` و`plan-challenge.json`: مراجعة مضادة للتشخيص والتصميم.
 - `engine-state.json` و`usage.json` و`jobs/`: حالة التنفيذ وميزانية السياق والاستئناف.
 
+## المسار الحتمي: خريطة وملف مراجعة بلا نموذج
+
+```bash
+eaos map /absolute/project --out /absolute/out          # خريطة النظام والاقتران والتطور
+eaos dossier /absolute/project --out /absolute/out      # ملف المراجعة الكامل + موجز القرار
+eaos verify /absolute/project --out /absolute/out --execute   # تشغيل الاختبارات بتغطية في نسخة معزولة
+eaos probe /absolute/project --out /absolute/out        # إعادة حسم الادعاءات آليًا
+eaos ask "أين تُحسب قاعدة الخصم" --out /absolute/out     # إجابة من السجلات باستشهاد
+eaos site --out /absolute/out                           # صفحة HTML واحدة بالبحث
+eaos delta /absolute/old /absolute/new --fail-on-new-severe   # بوابة انحراف في CI
+eaos evaluate /absolute/benchmarks --out /absolute/eval # قياس الاكتشاف مقابل حقيقة أرضية
+```
+
+`dossier` ينتج `dossier.json` كمصدر وحيد، ويشتق منه: `DECISION-BRIEF.md` (صفحتان)، `SYSTEM-MAP.md` (نقاط الدخول والتجمعات)، `FLOWS.md` (تتبع كل نقطة دخول بـ`file:line`)، `DOMAIN-AND-DATA.md` (مصدر الحقيقة والقواعد المكررة)، `CONTRACTS.md`، `COUPLING-ATLAS.md`، `EVOLUTION.md`، `VERIFICATION-MAP.md`، `PROVENANCE.md`. كل ادعاء يحمل ثقته وطريقته ودليله وما ينقضه؛ وعقد المخرج يرفض البناء عند مخالفته.
+
+`--audit-run <dir>` يدمج سجلات مراجعة نموذجية سابقة داخل نفس الملف.
+
+## حقائق حتمية بلا نموذج
+
+```bash
+eaos facts /absolute/project --out /absolute/facts --history
+```
+
+مُستخرِجات برمجية حتمية لا تستدعي أي نموذج: معدل التغيير، الاقتران بالتغيير المشترك، توزيع الملكية، عمر آخر تغيير، كثافة الإصلاحات. نفس المدخل يعطي نفس الملف بايت-بايت؛ الطوابع الزمنية في `facts/run.json` وحده. رسائل الـcommit تُصنَّف ثم تُهمل ولا تُخزَّن. غياب `.git` يُعلَن في المخرج ولا يُعد خطأ. هذه إشارات انتباه، وليست أحكامًا على جودة التصميم.
+
 ## الاستخدام داخل وكيل برمجي دون adapter مستقل
 
 ```bash

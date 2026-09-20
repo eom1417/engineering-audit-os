@@ -1,0 +1,1940 @@
+{
+  "schema_version": 1,
+  "extractor": "syntax",
+  "extractor_version": "1",
+  "available": true,
+  "input_sha": "3bf0e04af967a054f27e7de625443b386da687df35719f3b5e3d57f8b3fbc292",
+  "limitations": [
+    "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+    "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+    "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+    "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+  ],
+  "summary": {
+    "files_considered": 12,
+    "source_files": 10,
+    "files_parsed": 10,
+    "parse_coverage": 1.0,
+    "by_status": {
+      "NOT_SOURCE": 2,
+      "OBSERVED": 10
+    },
+    "by_language": {
+      "go": 1,
+      "python": 5,
+      "typescript": 4,
+      "unknown": 2
+    },
+    "symbols": 15,
+    "imports": 13,
+    "calls": 37,
+    "tree_sitter_available": true,
+    "interpretation": "Structural observations only. No responsibility, boundary or defect is implied by any symbol or edge."
+  },
+  "facts": [
+    {
+      "id": "FACT-ac687be393858c60",
+      "kind": "source_file",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
+      "location": {
+        "path": "api/handlers/orders.ts"
+      },
+      "value": {
+        "language": "typescript",
+        "lines": 15,
+        "parse_status": "OBSERVED",
+        "parser": "tree_sitter:typescript",
+        "category": "source"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-886ba28f373ee161",
+      "kind": "import_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
+      "location": {
+        "path": "api/handlers/orders.ts",
+        "start_line": 1
+      },
+      "value": {
+        "module": "../lib/pricing",
+        "names": [],
+        "level": 0,
+        "style": "relative",
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-aea1d65527bfc968",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
+      "location": {
+        "path": "api/handlers/orders.ts",
+        "start_line": 5,
+        "end_line": 7,
+        "symbol": "listOrders"
+      },
+      "value": {
+        "name": "listOrders",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [],
+        "language": "typescript"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-ffa3fc79cde19b5e",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
+      "location": {
+        "path": "api/handlers/orders.ts",
+        "start_line": 6,
+        "symbol": "listOrders"
+      },
+      "value": {
+        "callee": "json",
+        "attribute": true,
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-eea0358c468f2db3",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
+      "location": {
+        "path": "api/handlers/orders.ts",
+        "start_line": 9,
+        "end_line": 14,
+        "symbol": "createOrder"
+      },
+      "value": {
+        "name": "createOrder",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [],
+        "language": "typescript"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-20c215fbc1d85169",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
+      "location": {
+        "path": "api/handlers/orders.ts",
+        "start_line": 10,
+        "symbol": "createOrder"
+      },
+      "value": {
+        "callee": "priceFor",
+        "attribute": false,
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-73764e4a73f45136",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
+      "location": {
+        "path": "api/handlers/orders.ts",
+        "start_line": 13,
+        "symbol": "createOrder"
+      },
+      "value": {
+        "callee": "json",
+        "attribute": true,
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-c39dca1e64b6bbcd",
+      "kind": "source_file",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "3c11f430c4a6cb315259fb6f905bc6f0a2cf0e1ee476f16123d33aae2f63c6c1",
+      "location": {
+        "path": "api/lib/audit.ts"
+      },
+      "value": {
+        "language": "typescript",
+        "lines": 4,
+        "parse_status": "OBSERVED",
+        "parser": "tree_sitter:typescript",
+        "category": "source"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-b9ee539e15aceafd",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "3c11f430c4a6cb315259fb6f905bc6f0a2cf0e1ee476f16123d33aae2f63c6c1",
+      "location": {
+        "path": "api/lib/audit.ts",
+        "start_line": 1,
+        "end_line": 3,
+        "symbol": "auditLog"
+      },
+      "value": {
+        "name": "auditLog",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [],
+        "language": "typescript"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-632403eb75961237",
+      "kind": "source_file",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
+      "location": {
+        "path": "api/lib/pricing.ts"
+      },
+      "value": {
+        "language": "typescript",
+        "lines": 11,
+        "parse_status": "OBSERVED",
+        "parser": "tree_sitter:typescript",
+        "category": "source"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-098a7e7b8ad1556c",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
+      "location": {
+        "path": "api/lib/pricing.ts",
+        "start_line": 3,
+        "end_line": 5,
+        "symbol": "baseTotal"
+      },
+      "value": {
+        "name": "baseTotal",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [],
+        "language": "typescript"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-9a4ee4a4d845a295",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
+      "location": {
+        "path": "api/lib/pricing.ts",
+        "start_line": 4,
+        "symbol": "baseTotal"
+      },
+      "value": {
+        "callee": "reduce",
+        "attribute": true,
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-67f30a12f465f356",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
+      "location": {
+        "path": "api/lib/pricing.ts",
+        "start_line": 7,
+        "end_line": 10,
+        "symbol": "priceFor"
+      },
+      "value": {
+        "name": "priceFor",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [],
+        "language": "typescript"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-9857d393479e4fa6",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
+      "location": {
+        "path": "api/lib/pricing.ts",
+        "start_line": 8,
+        "symbol": "priceFor"
+      },
+      "value": {
+        "callee": "baseTotal",
+        "attribute": false,
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-74143eb5c0375b45",
+      "kind": "source_file",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts"
+      },
+      "value": {
+        "language": "typescript",
+        "lines": 19,
+        "parse_status": "OBSERVED",
+        "parser": "tree_sitter:typescript",
+        "category": "source"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-591498b224d42fcf",
+      "kind": "import_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 1
+      },
+      "value": {
+        "module": "express",
+        "names": [],
+        "level": 0,
+        "style": "absolute",
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-996209fd2b7422b1",
+      "kind": "import_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 2
+      },
+      "value": {
+        "module": "./handlers/orders",
+        "names": [],
+        "level": 0,
+        "style": "relative",
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-58efb2dd1a576dd2",
+      "kind": "import_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 3
+      },
+      "value": {
+        "module": "./lib/audit",
+        "names": [],
+        "level": 0,
+        "style": "relative",
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-74d7b327b4267809",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 5,
+        "symbol": null
+      },
+      "value": {
+        "callee": "express",
+        "attribute": false,
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-a67a41140a6a5fa1",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 8,
+        "symbol": null
+      },
+      "value": {
+        "callee": "get",
+        "attribute": true,
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-27221b2ba97dab2e",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 9,
+        "symbol": null
+      },
+      "value": {
+        "callee": "post",
+        "attribute": true,
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-bb2e8d0c1d2d0842",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 11,
+        "symbol": null
+      },
+      "value": {
+        "callee": "delete",
+        "attribute": true,
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-ed0ff10fd9b95005",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 12,
+        "symbol": null
+      },
+      "value": {
+        "callee": "auditLog",
+        "attribute": false,
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-82fb991ba3c04256",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 13,
+        "symbol": null
+      },
+      "value": {
+        "callee": "status",
+        "attribute": true,
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-82fb991ba3c04256",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 13,
+        "symbol": null
+      },
+      "value": {
+        "callee": "status",
+        "attribute": true,
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-cc5790863aa6f9c5",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 16,
+        "end_line": 18,
+        "symbol": "start"
+      },
+      "value": {
+        "name": "start",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [],
+        "language": "typescript"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-cd173d7982b89724",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 17,
+        "symbol": "start"
+      },
+      "value": {
+        "callee": "listen",
+        "attribute": true,
+        "language": "typescript"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-c285d9716f39dd73",
+      "kind": "source_file",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py"
+      },
+      "value": {
+        "language": "python",
+        "lines": 23,
+        "parse_status": "OBSERVED",
+        "parser": "python_ast",
+        "category": "source"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-1ec5d776cb07a066",
+      "kind": "import_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 2
+      },
+      "value": {
+        "module": "argparse",
+        "names": [],
+        "level": 0,
+        "style": "absolute",
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-ba9c495f1bc92661",
+      "kind": "import_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 3
+      },
+      "value": {
+        "module": "core.pricing",
+        "names": [
+          "price_for"
+        ],
+        "level": 0,
+        "style": "absolute",
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-a2142b59221fc635",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 6,
+        "end_line": 7,
+        "symbol": "quote"
+      },
+      "value": {
+        "name": "quote",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [],
+        "language": "python"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-0f1dafde9f7b82e3",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 7,
+        "symbol": "quote"
+      },
+      "value": {
+        "callee": "print",
+        "attribute": false,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-7c2a42cb0bc34416",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 7,
+        "symbol": "quote"
+      },
+      "value": {
+        "callee": "price_for",
+        "attribute": false,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-40459cd50fbdcfcb",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 10,
+        "end_line": 18,
+        "symbol": "main"
+      },
+      "value": {
+        "name": "main",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [],
+        "language": "python"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-f4a809cb97b747c3",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 11,
+        "symbol": "main"
+      },
+      "value": {
+        "callee": "ArgumentParser",
+        "attribute": true,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-69848bea23b5c36d",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 12,
+        "symbol": "main"
+      },
+      "value": {
+        "callee": "add_subparsers",
+        "attribute": true,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-6903dc08c72ab33b",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 13,
+        "symbol": "main"
+      },
+      "value": {
+        "callee": "add_parser",
+        "attribute": true,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-49d85d2682521d9b",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 14,
+        "symbol": "main"
+      },
+      "value": {
+        "callee": "add_argument",
+        "attribute": true,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-ff1e94fa809aead1",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 15,
+        "symbol": "main"
+      },
+      "value": {
+        "callee": "add_argument",
+        "attribute": true,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-a0320e32d10f29d1",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 16,
+        "symbol": "main"
+      },
+      "value": {
+        "callee": "set_defaults",
+        "attribute": true,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-204b2cd9b9532433",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 17,
+        "symbol": "main"
+      },
+      "value": {
+        "callee": "parse_args",
+        "attribute": true,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-e7bb254e1741f4c7",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 18,
+        "symbol": "main"
+      },
+      "value": {
+        "callee": "func",
+        "attribute": true,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-2b075e062d2b3b0e",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 22,
+        "symbol": null
+      },
+      "value": {
+        "callee": "main",
+        "attribute": false,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-737fe20afea5c59f",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 22,
+        "symbol": null
+      },
+      "value": {
+        "callee": "SystemExit",
+        "attribute": false,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-21567bcc417429b5",
+      "kind": "source_file",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "location": {
+        "path": "core/__init__.py"
+      },
+      "value": {
+        "language": "python",
+        "lines": 1,
+        "parse_status": "OBSERVED",
+        "parser": "python_ast",
+        "category": "source"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-1c26c36b60b26eaa",
+      "kind": "source_file",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
+      "location": {
+        "path": "core/audit.py"
+      },
+      "value": {
+        "language": "python",
+        "lines": 14,
+        "parse_status": "OBSERVED",
+        "parser": "python_ast",
+        "category": "source"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-60d8b065f7c59829",
+      "kind": "import_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 2
+      },
+      "value": {
+        "module": "os",
+        "names": [],
+        "level": 0,
+        "style": "absolute",
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-4ff31815756fc782",
+      "kind": "import_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 3
+      },
+      "value": {
+        "module": "pricing",
+        "names": [
+          "base_total"
+        ],
+        "level": 1,
+        "style": "relative",
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-dfc2c50d1e90ddeb",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 5,
+        "symbol": null
+      },
+      "value": {
+        "callee": "get",
+        "attribute": true,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-753d10af10e044d5",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 8,
+        "end_line": 9,
+        "symbol": "audit_log"
+      },
+      "value": {
+        "name": "audit_log",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [],
+        "language": "python"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-0172a2afd7b72169",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 12,
+        "end_line": 13,
+        "symbol": "audit_totals"
+      },
+      "value": {
+        "name": "audit_totals",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [],
+        "language": "python"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-0b1b6f617b4dda40",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 13,
+        "symbol": "audit_totals"
+      },
+      "value": {
+        "callee": "base_total",
+        "attribute": false,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-6b024cb2e3a9f778",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 13,
+        "symbol": "audit_totals"
+      },
+      "value": {
+        "callee": "audit_log",
+        "attribute": false,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-5f43b27350dc3ca3",
+      "kind": "source_file",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
+      "location": {
+        "path": "core/pricing.py"
+      },
+      "value": {
+        "language": "python",
+        "lines": 17,
+        "parse_status": "OBSERVED",
+        "parser": "python_ast",
+        "category": "source"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-2de3d3244863f1d4",
+      "kind": "import_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 2
+      },
+      "value": {
+        "module": "os",
+        "names": [],
+        "level": 0,
+        "style": "absolute",
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-c4d0a4dc6991edae",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 5,
+        "symbol": null
+      },
+      "value": {
+        "callee": "float",
+        "attribute": false,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-eb686d1a5dfeb347",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 5,
+        "symbol": null
+      },
+      "value": {
+        "callee": "get",
+        "attribute": true,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-1dcfcaec8d343a41",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 8,
+        "end_line": 9,
+        "symbol": "base_total"
+      },
+      "value": {
+        "name": "base_total",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [],
+        "language": "python"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-12db4a411864d984",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 9,
+        "symbol": "base_total"
+      },
+      "value": {
+        "callee": "sum",
+        "attribute": false,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-d55a1e569858150b",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 12,
+        "end_line": 16,
+        "symbol": "price_for"
+      },
+      "value": {
+        "name": "price_for",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [],
+        "language": "python"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-a9c08c665ce02604",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 13,
+        "symbol": "price_for"
+      },
+      "value": {
+        "callee": "base_total",
+        "attribute": false,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-acbc4fbaf32eb2da",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 16,
+        "symbol": "price_for"
+      },
+      "value": {
+        "callee": "round",
+        "attribute": false,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-1ffbf9f4e4ca5f96",
+      "kind": "source_file",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "1b3ce6ce6859ccd2be87b349098a4067a13a975f2b66ec887e22a2ba6fc8f948",
+      "location": {
+        "path": "package.json"
+      },
+      "value": {
+        "language": null,
+        "lines": 8,
+        "parse_status": "NOT_SOURCE",
+        "parser": "not_a_source_language",
+        "category": "manifest"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-96f8d3506e14069e",
+      "kind": "source_file",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "284d878720b91449560cdb315389a28f2484637a909c1a419b12056533147273",
+      "location": {
+        "path": "pyproject.toml"
+      },
+      "value": {
+        "language": null,
+        "lines": 4,
+        "parse_status": "NOT_SOURCE",
+        "parser": "not_a_source_language",
+        "category": "manifest"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-677059f32e533639",
+      "kind": "source_file",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
+      "location": {
+        "path": "svc/main.go"
+      },
+      "value": {
+        "language": "go",
+        "lines": 16,
+        "parse_status": "OBSERVED",
+        "parser": "tree_sitter:go",
+        "category": "source"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-d274d76a600f4789",
+      "kind": "import_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
+      "location": {
+        "path": "svc/main.go",
+        "start_line": 4
+      },
+      "value": {
+        "module": "fmt",
+        "names": [],
+        "level": 0,
+        "style": "absolute",
+        "language": "go"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-989c1b58d838373b",
+      "kind": "import_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
+      "location": {
+        "path": "svc/main.go",
+        "start_line": 5
+      },
+      "value": {
+        "module": "net/http",
+        "names": [],
+        "level": 0,
+        "style": "absolute",
+        "language": "go"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-44f5a7408aefbb0d",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
+      "location": {
+        "path": "svc/main.go",
+        "start_line": 8,
+        "end_line": 10,
+        "symbol": "healthHandler"
+      },
+      "value": {
+        "name": "healthHandler",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [],
+        "language": "go"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-4519fdca7fe0c1f7",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
+      "location": {
+        "path": "svc/main.go",
+        "start_line": 9,
+        "symbol": "healthHandler"
+      },
+      "value": {
+        "callee": "Fprint",
+        "attribute": true,
+        "language": "go"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-7d243a6725b06c69",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
+      "location": {
+        "path": "svc/main.go",
+        "start_line": 12,
+        "end_line": 15,
+        "symbol": "main"
+      },
+      "value": {
+        "name": "main",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [],
+        "language": "go"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-779973ea01643a63",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
+      "location": {
+        "path": "svc/main.go",
+        "start_line": 13,
+        "symbol": "main"
+      },
+      "value": {
+        "callee": "HandleFunc",
+        "attribute": true,
+        "language": "go"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-8c1c7180d782ce3c",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
+      "location": {
+        "path": "svc/main.go",
+        "start_line": 14,
+        "symbol": "main"
+      },
+      "value": {
+        "callee": "ListenAndServe",
+        "attribute": true,
+        "language": "go"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-101e3230f6d059bc",
+      "kind": "source_file",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
+      "location": {
+        "path": "worker/tasks.py"
+      },
+      "value": {
+        "language": "python",
+        "lines": 9,
+        "parse_status": "OBSERVED",
+        "parser": "python_ast",
+        "category": "source"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-a5a8c174b9e9ed56",
+      "kind": "import_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
+      "location": {
+        "path": "worker/tasks.py",
+        "start_line": 2
+      },
+      "value": {
+        "module": "celery",
+        "names": [
+          "shared_task"
+        ],
+        "level": 0,
+        "style": "absolute",
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-965471b3ae476582",
+      "kind": "import_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
+      "location": {
+        "path": "worker/tasks.py",
+        "start_line": 3
+      },
+      "value": {
+        "module": "core.pricing",
+        "names": [
+          "price_for"
+        ],
+        "level": 0,
+        "style": "absolute",
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-8ab64f82426a1eb4",
+      "kind": "symbol",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
+      "location": {
+        "path": "worker/tasks.py",
+        "start_line": 7,
+        "end_line": 8,
+        "symbol": "recalculate"
+      },
+      "value": {
+        "name": "recalculate",
+        "kind": "function",
+        "parent": null,
+        "exported": true,
+        "decorators": [
+          "shared_task"
+        ],
+        "language": "python"
+      },
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-71a05059487d0153",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "1",
+      "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
+      "location": {
+        "path": "worker/tasks.py",
+        "start_line": 8,
+        "symbol": "recalculate"
+      },
+      "value": {
+        "callee": "price_for",
+        "attribute": false,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    }
+  ]
+}

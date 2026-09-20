@@ -1,0 +1,7 @@
+{
+  "name": "import-cycle",
+  "planted": [
+    {"id": "GT-1", "kind": "import_cycle", "match": "cycle", "why": "orders and invoices import each other, so neither can be changed or tested alone."}
+  ],
+  "must_not_claim": ["defined in 2 places"]
+}

@@ -1,0 +1,301 @@
+{
+  "schema_version": 1,
+  "extractor": "entrypoints",
+  "extractor_version": "1",
+  "available": true,
+  "input_sha": "7e38072d89a625b92f7f4d6f2487f59a250e2c83b4540e22aee50d09200ea453",
+  "limitations": [
+    "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
+    "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
+    "A detected route says nothing about who may call it; authentication and authorisation need their own evidence.",
+    "A handler name is the nearest symbol in the same file; indirection through wrappers is not followed."
+  ],
+  "summary": {
+    "entry_points": 9,
+    "production_entry_points": 9,
+    "test_only_entry_points": 0,
+    "by_surface": {
+      "cli": 4,
+      "http": 4,
+      "job": 1
+    },
+    "by_framework": {
+      "argparse": 2,
+      "celery": 1,
+      "express_like": 3,
+      "go_http": 1,
+      "npm_script": 2
+    },
+    "languages_with_detections": [
+      "go",
+      "manifest",
+      "python",
+      "typescript"
+    ],
+    "files_without_any_detector": {},
+    "interpretation": "Detected invocation surfaces. Absence of a route here means no detector matched, not that the system cannot be invoked that way."
+  },
+  "facts": [
+    {
+      "id": "FACT-0e40afe3fe59dc01",
+      "kind": "entry_point",
+      "extractor": "entrypoints",
+      "extractor_version": "1",
+      "input_sha": "1b3ce6ce6859ccd2be87b349098a4067a13a975f2b66ec887e22a2ba6fc8f948",
+      "location": {
+        "path": "package.json",
+        "start_line": 1,
+        "symbol": null
+      },
+      "value": {
+        "surface": "cli",
+        "route": "npm run start",
+        "http_method": null,
+        "handler": null,
+        "framework": "npm_script",
+        "language": null,
+        "category": "manifest",
+        "note": null
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
+        "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
+        "A detected route says nothing about who may call it; authentication and authorisation need their own evidence.",
+        "A handler name is the nearest symbol in the same file; indirection through wrappers is not followed."
+      ]
+    },
+    {
+      "id": "FACT-8522382b281fef19",
+      "kind": "entry_point",
+      "extractor": "entrypoints",
+      "extractor_version": "1",
+      "input_sha": "1b3ce6ce6859ccd2be87b349098a4067a13a975f2b66ec887e22a2ba6fc8f948",
+      "location": {
+        "path": "package.json",
+        "start_line": 1,
+        "symbol": null
+      },
+      "value": {
+        "surface": "cli",
+        "route": "npm run test",
+        "http_method": null,
+        "handler": null,
+        "framework": "npm_script",
+        "language": null,
+        "category": "manifest",
+        "note": null
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
+        "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
+        "A detected route says nothing about who may call it; authentication and authorisation need their own evidence.",
+        "A handler name is the nearest symbol in the same file; indirection through wrappers is not followed."
+      ]
+    },
+    {
+      "id": "FACT-84c2b0fb9fe04b18",
+      "kind": "entry_point",
+      "extractor": "entrypoints",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 11,
+        "symbol": "main"
+      },
+      "value": {
+        "surface": "cli",
+        "route": "polyglot",
+        "http_method": null,
+        "handler": "main",
+        "framework": "argparse",
+        "language": "python",
+        "category": "source",
+        "note": null
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
+        "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
+        "A detected route says nothing about who may call it; authentication and authorisation need their own evidence.",
+        "A handler name is the nearest symbol in the same file; indirection through wrappers is not followed."
+      ]
+    },
+    {
+      "id": "FACT-54b696302dfd765a",
+      "kind": "entry_point",
+      "extractor": "entrypoints",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 13,
+        "symbol": "main"
+      },
+      "value": {
+        "surface": "cli",
+        "route": "quote",
+        "http_method": null,
+        "handler": "main",
+        "framework": "argparse",
+        "language": "python",
+        "category": "source",
+        "note": null
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
+        "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
+        "A detected route says nothing about who may call it; authentication and authorisation need their own evidence.",
+        "A handler name is the nearest symbol in the same file; indirection through wrappers is not followed."
+      ]
+    },
+    {
+      "id": "FACT-8b85536df0ab9b31",
+      "kind": "entry_point",
+      "extractor": "entrypoints",
+      "extractor_version": "1",
+      "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
+      "location": {
+        "path": "svc/main.go",
+        "start_line": 13,
+        "symbol": "healthHandler"
+      },
+      "value": {
+        "surface": "http",
+        "route": "/health",
+        "http_method": "ANY",
+        "handler": "healthHandler",
+        "framework": "go_http",
+        "language": "go",
+        "category": "source",
+        "note": null
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
+        "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
+        "A detected route says nothing about who may call it; authentication and authorisation need their own evidence.",
+        "A handler name is the nearest symbol in the same file; indirection through wrappers is not followed."
+      ]
+    },
+    {
+      "id": "FACT-aabba9d40cb00906",
+      "kind": "entry_point",
+      "extractor": "entrypoints",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 8,
+        "symbol": "listOrders"
+      },
+      "value": {
+        "surface": "http",
+        "route": "/orders",
+        "http_method": "GET",
+        "handler": "listOrders",
+        "framework": "express_like",
+        "language": "typescript",
+        "category": "source",
+        "note": null
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
+        "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
+        "A detected route says nothing about who may call it; authentication and authorisation need their own evidence.",
+        "A handler name is the nearest symbol in the same file; indirection through wrappers is not followed."
+      ]
+    },
+    {
+      "id": "FACT-c162df6b5cae93e9",
+      "kind": "entry_point",
+      "extractor": "entrypoints",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 9,
+        "symbol": "createOrder"
+      },
+      "value": {
+        "surface": "http",
+        "route": "/orders",
+        "http_method": "POST",
+        "handler": "createOrder",
+        "framework": "express_like",
+        "language": "typescript",
+        "category": "source",
+        "note": null
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
+        "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
+        "A detected route says nothing about who may call it; authentication and authorisation need their own evidence.",
+        "A handler name is the nearest symbol in the same file; indirection through wrappers is not followed."
+      ]
+    },
+    {
+      "id": "FACT-80c221b2265d7ebf",
+      "kind": "entry_point",
+      "extractor": "entrypoints",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 11,
+        "symbol": null
+      },
+      "value": {
+        "surface": "http",
+        "route": "/orders/:id",
+        "http_method": "DELETE",
+        "handler": null,
+        "framework": "express_like",
+        "language": "typescript",
+        "category": "source",
+        "note": null
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
+        "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
+        "A detected route says nothing about who may call it; authentication and authorisation need their own evidence.",
+        "A handler name is the nearest symbol in the same file; indirection through wrappers is not followed."
+      ]
+    },
+    {
+      "id": "FACT-0b4e4e1c3c477760",
+      "kind": "entry_point",
+      "extractor": "entrypoints",
+      "extractor_version": "1",
+      "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
+      "location": {
+        "path": "worker/tasks.py",
+        "start_line": 4,
+        "symbol": "recalculate"
+      },
+      "value": {
+        "surface": "job",
+        "route": "recalculate",
+        "http_method": null,
+        "handler": "recalculate",
+        "framework": "celery",
+        "language": "python",
+        "category": "source",
+        "note": null
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
+        "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
+        "A detected route says nothing about who may call it; authentication and authorisation need their own evidence.",
+        "A handler name is the nearest symbol in the same file; indirection through wrappers is not followed."
+      ]
+    }
+  ]
+}

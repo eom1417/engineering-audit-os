@@ -190,6 +190,15 @@
               "minLength": 1
             },
             "minItems": 1
+          },
+          "verify_command": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "description": "Runnable argv that decides the acceptance criterion. Optional for records created before this field existed; required for a task to satisfy the output contract."
           }
         },
         "additionalProperties": false

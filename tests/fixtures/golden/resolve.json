@@ -1,0 +1,352 @@
+{
+  "schema_version": 1,
+  "extractor": "resolve",
+  "extractor_version": "1",
+  "available": true,
+  "input_sha": "5005674d0998c684ea18064a4e9bf83a519812067bc3af8b4ba1fc6d24317d72",
+  "limitations": [
+    "Only statically written imports are resolved; dynamic loading and injection are invisible.",
+    "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
+    "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
+    "A resolved import is a source dependency, not proof that the call happens at runtime."
+  ],
+  "summary": {
+    "edges": 13,
+    "by_resolution": {
+      "RESOLVED": 6,
+      "EXTERNAL": 7,
+      "AMBIGUOUS": 0,
+      "UNRESOLVED": 0
+    },
+    "internal_resolution_rate": 1.0,
+    "go_module": null,
+    "interpretation": "Source dependencies only. Unresolved and ambiguous edges stay visible and must never be drawn as confirmed dependencies."
+  },
+  "facts": [
+    {
+      "id": "FACT-b4a1d1772d463b53",
+      "kind": "module_edge",
+      "extractor": "resolve",
+      "extractor_version": "1",
+      "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
+      "location": {
+        "path": "api/handlers/orders.ts",
+        "start_line": 1
+      },
+      "value": {
+        "module": "../lib/pricing",
+        "language": "typescript",
+        "to_path": "api/lib/pricing.ts",
+        "candidates": [],
+        "import_fact_id": "FACT-886ba28f373ee161"
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "Only statically written imports are resolved; dynamic loading and injection are invisible.",
+        "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
+        "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
+        "A resolved import is a source dependency, not proof that the call happens at runtime."
+      ]
+    },
+    {
+      "id": "FACT-1cec329adcc69a8f",
+      "kind": "module_edge",
+      "extractor": "resolve",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 1
+      },
+      "value": {
+        "module": "express",
+        "language": "typescript",
+        "to_path": null,
+        "candidates": [],
+        "import_fact_id": "FACT-591498b224d42fcf"
+      },
+      "resolution": "EXTERNAL",
+      "limitations": [
+        "Only statically written imports are resolved; dynamic loading and injection are invisible.",
+        "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
+        "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
+        "A resolved import is a source dependency, not proof that the call happens at runtime."
+      ]
+    },
+    {
+      "id": "FACT-198b2aa5a958247c",
+      "kind": "module_edge",
+      "extractor": "resolve",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 2
+      },
+      "value": {
+        "module": "./handlers/orders",
+        "language": "typescript",
+        "to_path": "api/handlers/orders.ts",
+        "candidates": [],
+        "import_fact_id": "FACT-996209fd2b7422b1"
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "Only statically written imports are resolved; dynamic loading and injection are invisible.",
+        "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
+        "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
+        "A resolved import is a source dependency, not proof that the call happens at runtime."
+      ]
+    },
+    {
+      "id": "FACT-660d51d2d161bfdf",
+      "kind": "module_edge",
+      "extractor": "resolve",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 3
+      },
+      "value": {
+        "module": "./lib/audit",
+        "language": "typescript",
+        "to_path": "api/lib/audit.ts",
+        "candidates": [],
+        "import_fact_id": "FACT-58efb2dd1a576dd2"
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "Only statically written imports are resolved; dynamic loading and injection are invisible.",
+        "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
+        "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
+        "A resolved import is a source dependency, not proof that the call happens at runtime."
+      ]
+    },
+    {
+      "id": "FACT-388ccc8b8de5fca5",
+      "kind": "module_edge",
+      "extractor": "resolve",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 2
+      },
+      "value": {
+        "module": "argparse",
+        "language": "python",
+        "to_path": null,
+        "candidates": [],
+        "import_fact_id": "FACT-1ec5d776cb07a066"
+      },
+      "resolution": "EXTERNAL",
+      "limitations": [
+        "Only statically written imports are resolved; dynamic loading and injection are invisible.",
+        "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
+        "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
+        "A resolved import is a source dependency, not proof that the call happens at runtime."
+      ]
+    },
+    {
+      "id": "FACT-81a69a42d8a31e18",
+      "kind": "module_edge",
+      "extractor": "resolve",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 3
+      },
+      "value": {
+        "module": "core.pricing",
+        "language": "python",
+        "to_path": "core/pricing.py",
+        "candidates": [],
+        "import_fact_id": "FACT-ba9c495f1bc92661"
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "Only statically written imports are resolved; dynamic loading and injection are invisible.",
+        "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
+        "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
+        "A resolved import is a source dependency, not proof that the call happens at runtime."
+      ]
+    },
+    {
+      "id": "FACT-0a4a4aab09e3ad46",
+      "kind": "module_edge",
+      "extractor": "resolve",
+      "extractor_version": "1",
+      "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 2
+      },
+      "value": {
+        "module": "os",
+        "language": "python",
+        "to_path": null,
+        "candidates": [],
+        "import_fact_id": "FACT-60d8b065f7c59829"
+      },
+      "resolution": "EXTERNAL",
+      "limitations": [
+        "Only statically written imports are resolved; dynamic loading and injection are invisible.",
+        "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
+        "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
+        "A resolved import is a source dependency, not proof that the call happens at runtime."
+      ]
+    },
+    {
+      "id": "FACT-5528cd61e56efbc0",
+      "kind": "module_edge",
+      "extractor": "resolve",
+      "extractor_version": "1",
+      "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 3
+      },
+      "value": {
+        "module": "pricing",
+        "language": "python",
+        "to_path": "core/pricing.py",
+        "candidates": [],
+        "import_fact_id": "FACT-4ff31815756fc782"
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "Only statically written imports are resolved; dynamic loading and injection are invisible.",
+        "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
+        "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
+        "A resolved import is a source dependency, not proof that the call happens at runtime."
+      ]
+    },
+    {
+      "id": "FACT-1ddf828e9b6d4d20",
+      "kind": "module_edge",
+      "extractor": "resolve",
+      "extractor_version": "1",
+      "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 2
+      },
+      "value": {
+        "module": "os",
+        "language": "python",
+        "to_path": null,
+        "candidates": [],
+        "import_fact_id": "FACT-2de3d3244863f1d4"
+      },
+      "resolution": "EXTERNAL",
+      "limitations": [
+        "Only statically written imports are resolved; dynamic loading and injection are invisible.",
+        "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
+        "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
+        "A resolved import is a source dependency, not proof that the call happens at runtime."
+      ]
+    },
+    {
+      "id": "FACT-178b5323d1d356dd",
+      "kind": "module_edge",
+      "extractor": "resolve",
+      "extractor_version": "1",
+      "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
+      "location": {
+        "path": "svc/main.go",
+        "start_line": 4
+      },
+      "value": {
+        "module": "fmt",
+        "language": "go",
+        "to_path": null,
+        "candidates": [],
+        "import_fact_id": "FACT-d274d76a600f4789"
+      },
+      "resolution": "EXTERNAL",
+      "limitations": [
+        "Only statically written imports are resolved; dynamic loading and injection are invisible.",
+        "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
+        "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
+        "A resolved import is a source dependency, not proof that the call happens at runtime."
+      ]
+    },
+    {
+      "id": "FACT-b4d4c8250952b2bd",
+      "kind": "module_edge",
+      "extractor": "resolve",
+      "extractor_version": "1",
+      "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
+      "location": {
+        "path": "svc/main.go",
+        "start_line": 5
+      },
+      "value": {
+        "module": "net/http",
+        "language": "go",
+        "to_path": null,
+        "candidates": [],
+        "import_fact_id": "FACT-989c1b58d838373b"
+      },
+      "resolution": "EXTERNAL",
+      "limitations": [
+        "Only statically written imports are resolved; dynamic loading and injection are invisible.",
+        "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
+        "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
+        "A resolved import is a source dependency, not proof that the call happens at runtime."
+      ]
+    },
+    {
+      "id": "FACT-c10ac53c43b0a27c",
+      "kind": "module_edge",
+      "extractor": "resolve",
+      "extractor_version": "1",
+      "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
+      "location": {
+        "path": "worker/tasks.py",
+        "start_line": 2
+      },
+      "value": {
+        "module": "celery",
+        "language": "python",
+        "to_path": null,
+        "candidates": [],
+        "import_fact_id": "FACT-a5a8c174b9e9ed56"
+      },
+      "resolution": "EXTERNAL",
+      "limitations": [
+        "Only statically written imports are resolved; dynamic loading and injection are invisible.",
+        "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
+        "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
+        "A resolved import is a source dependency, not proof that the call happens at runtime."
+      ]
+    },
+    {
+      "id": "FACT-c82a7edb43316ff8",
+      "kind": "module_edge",
+      "extractor": "resolve",
+      "extractor_version": "1",
+      "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
+      "location": {
+        "path": "worker/tasks.py",
+        "start_line": 3
+      },
+      "value": {
+        "module": "core.pricing",
+        "language": "python",
+        "to_path": "core/pricing.py",
+        "candidates": [],
+        "import_fact_id": "FACT-965471b3ae476582"
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "Only statically written imports are resolved; dynamic loading and injection are invisible.",
+        "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
+        "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
+        "A resolved import is a source dependency, not proof that the call happens at runtime."
+      ]
+    }
+  ]
+}

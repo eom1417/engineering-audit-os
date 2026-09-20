@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eaos.local/schemas/fact.schema.json",
+  "title": "Fact — deterministic, reproducible observation produced by an extractor",
+  "description": "A fact is never produced by a model. Same input sha + same extractor version must yield a byte-identical record. Timestamps live in the fact-set provenance file (facts/run.json), never inside a fact, so reruns stay comparable byte-for-byte.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "kind",
+    "extractor",
+    "extractor_version",
+    "input_sha",
+    "location",
+    "value"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^FACT-[A-Za-z0-9]{8,}$"
+    },
+    "kind": {
+      "enum": [
+        "symbol",
+        "import_edge",
+        "call_edge",
+        "entry_point",
+        "config_key",
+        "env_read",
+        "data_model",
+        "migration",
+        "metric",
+        "clone_cluster",
+        "history_churn",
+        "history_cochange",
+        "history_ownership",
+        "test_case",
+        "coverage_hit",
+        "dependency_manifest"
+      ]
+    },
+    "extractor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "extractor_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "input_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "sha256 of the exact input the extractor consumed"
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "start_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "symbol": {
+          "type": "string"
+        }
+      }
+    },
+    "value": {
+      "description": "Extractor-specific payload; must be JSON-serialisable and order-stable"
+    },
+    "resolution": {
+      "enum": [
+        "RESOLVED",
+        "UNRESOLVED",
+        "AMBIGUOUS"
+      ],
+      "description": "For edges only. UNRESOLVED/AMBIGUOUS must never be rendered as a confirmed relationship."
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "What this extractor structurally cannot see (e.g. dynamic imports)."
+    }
+  }
+}

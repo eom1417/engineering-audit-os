@@ -11,19 +11,19 @@ from .context import Context
 from .jobs import Jobs
 
 
-def execute(path,provider,budget=96000,max_rounds=8):
+def execute(path,provider,budget=96000,max_rounds=8,max_inspect_files=None):
     run,state=load_run(path)
     if budget<24000:raise ValueError('Engine budget must be at least 24000 characters; no token equivalence assumed')
     with run_lock(run):
         try:
-            return _execute(run,state,provider,budget,max_rounds)
+            return _execute(run,state,provider,budget,max_rounds,max_inspect_files)
         except Exception as exc:
             write(run/'engine-state.json',{'status':'BLOCKED','revision':state['revision'],'error':str(exc),'at':now(),'resume':'Run eaos continue with the same provider config; valid completed jobs are reused. A changed source requires a fresh run.'})
             (run/'ENGINE-STATUS.md').write_text('# Audit blocked\n\n'+str(exc)+'\n\nExisting reports may be from a prior attempt. Inspect engine-state.json; do not claim completion.\n')
             raise
 
 
-def _execute(run,state,provider,budget,max_rounds):
+def _execute(run,state,provider,budget,max_rounds,max_inspect_files=None):
     inv=read(run/'inventory.json')
     if not fresh(state,inv)[0]:raise ValueError('Snapshot changed or inventory incomplete; start a fresh run')
     if not (run/'workflow.json').exists():raise ValueError('Start with eaos run or eaos audit to create workflow records')
@@ -34,8 +34,25 @@ def _execute(run,state,provider,budget,max_rounds):
         write(run/'engine-state.json',{'status':'RUNNING','phase':name,'revision':state['revision'],'at':now()})
         print('EAOS: '+name,flush=True)
     def expose(name,value):write(run/name,value);jobs.catalog.add(name)
+    phase('deterministic facts')
+    from ..facts.run import collect as collect_facts
+    from ..facts.source import Source
+    facts_summary,attention={},[]
+    try:
+        facts_result=collect_facts(state['target'],run,source=Source(state['target'],inv))
+        from ..facts.store import read_set
+        sets={entry['set']:read_set(run,entry['set']) for entry in facts_result['sets']}
+        facts_summary={name:{'available':data['available'],'summary':data['summary'],'limitations':data['limitations']} for name,data in sets.items()}
+        attention=[row['path'] for row in sets['graph']['summary']['attention_order']]
+        expose('facts-summary.json',facts_summary)
+        expose('entry-points.json',[f['value']|{'location':f['location']} for f in sets['entrypoints']['facts']])
+        expose('attention.json',{'order':attention,'weights':sets['graph']['summary']['weights'],
+                                 'interpretation':'Reading order derived from deterministic facts; not a severity ranking.'})
+    except (ValueError,OSError,KeyError) as exc:
+        facts_summary={'error':str(exc),'note':'Deterministic facts unavailable; semantic review proceeds without attention ordering.'}
+        expose('facts-summary.json',facts_summary)
     phase('source inspection')
-    batches,omissions=context.chunks()
+    batches,omissions=context.chunks(attention or None,max_inspect_files)
     expose('source-index.json',[{'path':f['path'],'capture':f['capture'],'category':classify(f['path'])} for f in inv['files']])
     expose('source-omissions.json',omissions)
     briefs=[];surfaces={}
@@ -79,7 +96,7 @@ def _execute(run,state,provider,budget,max_rounds):
         for flow in result['flows']:
             if not isinstance(flow,dict) or not all(flow.get(k) for k in ['id','name','steps','invariants','failure_recovery','evidence_ids']):errors.append('Flow requires steps, invariants, recovery and evidence')
         return errors
-    architecture=jobs.run_job('architecture','architecture',{'briefs':working,'revision':state['revision'],'task':'Reconstruct the actual system, not an ideal folder template. Assign responsibility and business-rule ownership; distinguish domain, runtime and deployment boundaries. Include contracts, change scenarios and data/control flow. Read source and original briefs to resolve cross-boundary assumptions. Mark uncertainty, and do not label scenarios TESTED without real test evidence.'},verify_arch)
+    architecture=jobs.run_job('architecture','architecture',{'briefs':working,'revision':state['revision'],'deterministic_facts':facts_summary,'task':'Reconstruct the actual system, not an ideal folder template. Assign responsibility and business-rule ownership; distinguish domain, runtime and deployment boundaries. Include contracts, change scenarios and data/control flow. Read source and original briefs to resolve cross-boundary assumptions. Mark uncertainty, and do not label scenarios TESTED without real test evidence.'},verify_arch)
     model=architecture['architecture'];model['revision']=state['revision']
     expose('architecture.json',model);expose('flows.json',architecture['flows'])
     (run/'architecture.md').write_text('# Observed architecture\n\n```json\n'+json.dumps(model,ensure_ascii=False,indent=2)+'\n```\n')

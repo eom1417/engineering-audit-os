@@ -158,7 +158,7 @@ def run_command(args):
     provider=load_provider(args.provider)
     init(args)
     workflow.initialize(Path(args.out))
-    result=execute(args.out,provider,args.budget_chars,args.max_rounds)
+    result=execute(args.out,provider,args.budget_chars,args.max_rounds,args.max_inspect_files)
     print(json.dumps(result,ensure_ascii=False,indent=2))
     return 0 if result['status']=='COMPLETE' else 2
 
@@ -166,7 +166,7 @@ def run_command(args):
 def continue_command(args):
     from .runtime.provider import load_provider
     from .runtime.pipeline import execute
-    result=execute(args.run,load_provider(args.provider),args.budget_chars,args.max_rounds)
+    result=execute(args.run,load_provider(args.provider),args.budget_chars,args.max_rounds,args.max_inspect_files)
     print(json.dumps(result,ensure_ascii=False,indent=2))
     return 0 if result['status']=='COMPLETE' else 2
 
@@ -185,6 +185,65 @@ def improve_command(args):
     result=improve(args.run,args.out,args.checks,load_provider(args.provider),args.budget_chars,args.max_rounds,args.max_steps)
     print(json.dumps(result,ensure_ascii=False,indent=2))
     return 0 if result['status']=='COMPLETE' else 2
+
+
+def facts_command(args):
+    from .facts.run import collect
+    selected=[name for name,flag in [('history',args.history)] if flag] or None
+    print(json.dumps(collect(args.target,args.out,selected,args.max_commits,exclude=args.exclude),ensure_ascii=False,indent=2))
+    return 0
+
+
+def report_command(args):
+    from .dossier import assemble
+    result=assemble(args.target,args.out,args.audit_run,args.lang,exclude=args.exclude)
+    print(json.dumps(result,ensure_ascii=False,indent=2))
+    return 0 if result['status']=='READY' else 2
+
+
+def evaluate_command(args):
+    from .evaluate import run as run_evaluation
+    print(json.dumps(run_evaluation(args.corpus,args.out,args.lang,not args.no_execute),ensure_ascii=False,indent=2))
+    return 0
+
+
+def site_command(args):
+    from .site import build
+    print(json.dumps(build(args.out,args.title),ensure_ascii=False,indent=2))
+    return 0
+
+
+def ask_command(args):
+    from .ask import answer
+    result=answer(args.out,' '.join(args.question))
+    print(json.dumps(result,ensure_ascii=False,indent=2))
+    return 0 if result['status']=='ANSWERED' else 1
+
+
+def delta_command(args):
+    from .delta import run as run_delta
+    result=run_delta(args.previous,args.current,args.lang,args.fail_on_new_severe)
+    print(json.dumps(result,ensure_ascii=False,indent=2))
+    return 2 if result['status']=='DRIFT' else 0
+
+
+def verify_command(args):
+    from .verify import run as run_verification
+    result=run_verification(args.target,args.out,args.command or None,args.timeout,args.execute)
+    print(json.dumps(result,ensure_ascii=False,indent=2))
+    return 0
+
+
+def probe_command(args):
+    from .probes import run_all
+    print(json.dumps(run_all(args.target,args.out,args.execute),ensure_ascii=False,indent=2))
+    return 0
+
+
+def map_command(args):
+    from .map import build
+    print(json.dumps(build(args.target,args.out,args.lang,args.max_files,args.max_bytes,args.exclude),ensure_ascii=False,indent=2))
+    return 0
 
 
 def main(argv=None):
@@ -208,7 +267,44 @@ def main(argv=None):
         if command in {'implement','improve'}:q.add_argument('--out',required=True);q.add_argument('--checks',required=True)
         if command=='implement':q.add_argument('--task',required=True)
         if command=='improve':q.add_argument('--max-steps',type=bounded_int,default=10)
-        q.add_argument('--provider',required=True);q.add_argument('--budget-chars',type=bounded_int,default=96000);q.add_argument('--max-rounds',type=bounded_int,default=8);q.set_defaults(func=fn)
+        q.add_argument('--provider',required=True);q.add_argument('--budget-chars',type=bounded_int,default=96000);q.add_argument('--max-rounds',type=bounded_int,default=8)
+        if command in {'run','continue'}:q.add_argument('--max-inspect-files',type=bounded_int,default=None,help='Declared attention budget: inspect at most N files, ranked by deterministic facts; the rest are recorded as deferred')
+        q.set_defaults(func=fn)
+    q=s.add_parser('dossier',help='Assemble the dossier: facts, claims and decision artifacts')
+    q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--audit-run',default=None)
+    q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.add_argument('--exclude',action='append',default=[],help='Path prefix or glob to leave out of analysis; exclusions are reported in the output')
+    q.set_defaults(func=report_command)
+    q=s.add_parser('evaluate',help='Measure detection against benchmark cases with known ground truth')
+    q.add_argument('corpus');q.add_argument('--out',required=True);q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.add_argument('--no-execute',action='store_true');q.set_defaults(func=evaluate_command)
+    q=s.add_parser('site',help='Render the dossier as one self-contained HTML page with search')
+    q.add_argument('--out',required=True);q.add_argument('--title',default=None);q.set_defaults(func=site_command)
+    q=s.add_parser('ask',help='Answer a question strictly from recorded facts and claims, with citations')
+    q.add_argument('question',nargs='+');q.add_argument('--out',required=True);q.set_defaults(func=ask_command)
+    q=s.add_parser('delta',help='Compare two dossiers and report what changed; usable as a CI drift gate')
+    q.add_argument('previous');q.add_argument('current');q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.add_argument('--fail-on-new-severe',action='store_true',help='Exit nonzero when a new confirmed or likely risk appears')
+    q.set_defaults(func=delta_command)
+    q=s.add_parser('verify',help='Execution evidence: run the test suite in an isolated copy and map real coverage')
+    q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--command',nargs='+',default=None)
+    q.add_argument('--timeout',type=bounded_int,default=900)
+    q.add_argument('--execute',action='store_true',help='Actually run the command; without it only declared coverage is reported')
+    q.set_defaults(func=verify_command)
+    q=s.add_parser('probe',help='Run derived probes against a dossier and update claim confidence')
+    q.add_argument('target');q.add_argument('--out',required=True)
+    q.add_argument('--execute',action='store_true',help='Allow probes that execute commands in an isolated copy')
+    q.set_defaults(func=probe_command)
+    q=s.add_parser('map',help='Structural map of a project from deterministic facts; no model is used')
+    q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.add_argument('--max-files',type=bounded_int,default=100000);q.add_argument('--max-bytes',type=bounded_int,default=2_000_000)
+    q.add_argument('--exclude',action='append',default=[],help='Path prefix or glob to leave out of analysis; exclusions are reported in the output')
+    q.set_defaults(func=map_command)
+    q=s.add_parser('facts',help='Deterministic facts about a target; no model is used')
+    q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--history',action='store_true')
+    q.add_argument('--max-commits',type=bounded_int,default=2000)
+    q.add_argument('--exclude',action='append',default=[])
+    q.set_defaults(func=facts_command)
     q=s.add_parser('packet');q.add_argument('run');q.add_argument('--module',required=True);q.add_argument('--file',action='append',default=[]);q.add_argument('--budget-chars',type=bounded_int,default=24000);q.set_defaults(func=packet)
     q=s.add_parser('checkpoint');q.add_argument('run');q.add_argument('--note',required=True);q.add_argument('--next',required=True);q.set_defaults(func=checkpoint)
     q=s.add_parser('graph');q.add_argument('run');q.set_defaults(func=graph_command)
