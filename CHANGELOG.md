@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add `README.md` to the dossier: an index with a reading order for four kinds of reader, and a grade for how well each section is sourced — including the plain statement that responsibilities and internal contracts are not assessed without the model path.
+- Add `ONBOARDING.md`: build and test commands taken from declared manifests, the entry points worth trying, the ten files to read first ordered by the graph, the project's own vocabulary, and the traps this snapshot already knows about.
+- Render claims in the reader's language from a template and its parameters, and link every finding in the brief to the artifact holding its detail. The Arabic dossier no longer mixes Arabic headings with English sentences.
+- Rank answers by structure rather than word overlap, and suggest the next command after every answer. "what handles POST /orders" now returns the entry point first.
 - Add `eaos policy check` and `eaos policy init`: the project declares its layers and the dependencies it forbids in `eaos.policy.json`, and every resolved import edge is checked against it. A violation is a fact with a location and the reason the team wrote down, and the command exits nonzero so CI can hold the line. This repository now declares and passes its own policy.
 - Add `eaos api-diff`: the exported surface of two snapshots compared, separating what breaks a consumer (a removed name, a removed parameter, a new required one) from what does not (an addition). Function signatures are now captured as facts to make this possible.
 - Add three claim classes: a maintenance hotspot where branching concentrates on a central, frequently changed path; module-level state that is actually mutated at runtime, kept separate from tables merely built at import time; and a module writing into another module's namespace. Each carries a probe that can re-decide it on a later snapshot.

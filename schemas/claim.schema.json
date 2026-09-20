@@ -201,6 +201,11 @@
       "type": "object",
       "additionalProperties": true,
       "description": "Every input the priority was computed from, so the ordering can be argued with."
+    },
+    "render": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "A template key and its parameters, so the same claim can be rendered in the reader language without translating machine text."
     }
   }
 }

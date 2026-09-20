@@ -29,6 +29,13 @@ def validate(out, dossier):
         for reference in sorted(set(CLAIM_REFERENCE.findall(text))):
             if reference not in known:
                 problems.append(f'R1 {name}: references {reference}, which is absent from the ledger')
+    if 'README.md' not in documents:
+        problems.append('R12 README.md: the dossier has no index or reading order')
+    for name, text in sorted(documents.items()):
+        if name in {'README.md', 'PROVENANCE.md'}: continue
+        # A brief with nothing to report has nothing to link to; the rule applies when claims exist.
+        if name == 'DECISION-BRIEF.md' and dossier.get('claims') and '](' not in text:
+            problems.append('R12 DECISION-BRIEF.md: no cross-reference to the artifact holding the detail')
     brief = documents.get('DECISION-BRIEF.md')
     if brief is None:
         problems.append('R6 DECISION-BRIEF.md: the decision artifact is missing')

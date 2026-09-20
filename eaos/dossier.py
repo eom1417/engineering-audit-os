@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from . import claims as ledger
 from .compose import Document
+from .compose.labels import detail_artifact, impact_of, statement_of
 from .compose.rules import validate
 from .facts.store import read_set
 from .map import ARTIFACTS, generate
@@ -146,7 +147,7 @@ def build_claims(sets, records):
     rows = ledger.renumber(ledger.merge(rows))
     for row in rows:
         row['origin'] = origin_of(row, fact_index)
-        row.setdefault('artifacts', [BRIEF if asserts_a_problem(row) else 'SYSTEM-MAP.md'])
+        row.setdefault('artifacts', [BRIEF if asserts_a_problem(row) else (detail_artifact(row) or 'SYSTEM-MAP.md')])
         if asserts_a_problem(row) and (row.get('disposition') or {}).get('kind') in (None, 'none_yet'):
             row['disposition'] = {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'}
     return rows, fact_index
@@ -176,15 +177,18 @@ def brief(target, dossier, language):
     # Anything with a stated consequence competes for the five slots, whatever its record type.
     top = [c for c in ranked if c['claim_type'] in {'risk', 'cause', 'structure'} or (c.get('impact') or {}).get('scenario')][:5]
     document.table(['#', 'الادعاء' if language == 'ar' else 'Claim', 'الثقة' if language == 'ar' else 'Confidence',
-                    'الأثر' if language == 'ar' else 'Impact'],
-                   [[claim['id'], shorten(claim['statement'], 150)
+                    'الأثر' if language == 'ar' else 'Impact', 'التفصيل' if language == 'ar' else 'Detail'],
+                   [[claim['id'], shorten(statement_of(claim, language), 150)
                      + (' [كود اختبارات]' if language == 'ar' and claim.get('origin') == 'test'
                         else ' [test code]' if claim.get('origin') == 'test' else ''),
                      MARKER[claim['confidence']] + ' ' + claim['confidence'],
-                     shorten((claim.get('impact') or {}).get('scenario') or '—', 120)] for claim in top])
+                     shorten(impact_of(claim, language), 120),
+                     f"[{detail_artifact(claim) or 'dossier.json'}]({detail_artifact(claim) or 'dossier.json'})"]
+                    for claim in top])
     document.section('افعل الآن' if language == 'ar' else 'Do now')
     document.bullets([f"{task['id']} — {task['title']}" for task in dossier['tasks'][:3]] or
-                     [claim['id'] + ' — ' + shorten(claim['statement'], 120) for claim in top[:3]])
+                     [claim['id'] + ' — ' + shorten(statement_of(claim, language), 120)
+                      + f" → [{detail_artifact(claim) or 'PLAN/'}]({detail_artifact(claim) or 'PLAN/WAVES.md'})" for claim in top[:3]])
     document.section('لا تفعل (الآن)' if language == 'ar' else 'Do not do (yet)')
     document.bullets(dossier['do_not'])
     document.section('أسئلة مفتوحة' if language == 'ar' else 'Open questions')
@@ -192,6 +196,122 @@ def brief(target, dossier, language):
                    [[q['id'], shorten(q['question'], 160), q['source']] for q in dossier['questions']], limit=10)
     document.section(words['not_examined'])
     document.bullets(coverage['not_examined'])
+    return document
+
+
+def trust_grades(dossier, sets, verification):
+    """How well each section is sourced, so a reader knows which parts to take at face value."""
+    flows = sets.get('flows', {}).get('summary', {})
+    history = sets.get('history', {})
+    executed = bool(verification and verification.get('executed'))
+    commits = (history.get('summary') or {}).get('commits_analysed', 0) if history.get('available') else 0
+    return [
+        {'section': 'SYSTEM-MAP.md', 'source': 'deterministic extractors', 'grade': '⬤',
+         'note': 'reproducible byte for byte from the same snapshot'},
+        {'section': 'CONTRACTS.md', 'source': 'resolved imports and entry points', 'grade': '⬤', 'note': ''},
+        {'section': 'FLOWS.md', 'source': 'static trace', 'grade': '◐',
+         'note': f"{flows.get('unresolved_steps', 0)} unresolved steps declared"},
+        {'section': 'DOMAIN-AND-DATA.md', 'source': 'parsed definitions', 'grade': '⬤', 'note': ''},
+        {'section': 'COUPLING-ATLAS.md', 'source': 'graph and metrics', 'grade': '⬤',
+         'note': 'attention order is a declared convention, not a measured predictor'},
+        {'section': 'EVOLUTION.md', 'source': 'git history', 'grade': '⬤' if commits >= 50 else '◐',
+         'note': f'{commits} commits in scope'},
+        {'section': 'VERIFICATION-MAP.md', 'source': 'executed test run' if executed else 'not executed',
+         'grade': '⬤' if executed else '○',
+         'note': f"{verification.get('overall_percent')}% coverage" if executed else 'run eaos verify --execute'},
+        {'section': 'responsibilities, boundaries, internal contracts', 'source': '—', 'grade': '○',
+         'note': 'not assessed: needs the model path'},
+    ]
+
+
+def onboarding_document(target, dossier, sets, verification, language):
+    """What a new engineer needs on day one, assembled from manifests, entry points and the graph."""
+    words = Document('', language).words
+    document = Document('دليل الانضمام' if language == 'ar' else 'Onboarding runbook', language, budget_lines=200)
+    document.header(['مولَّد من الحقائق: الأوامر من الملفات المعلنة، وترتيب القراءة من الرسم.'
+                     if language == 'ar' else
+                     'Generated from facts: commands come from declared manifests, reading order from the graph.'])
+    commands = [fact for fact in sets.get('entrypoints', {}).get('facts', [])
+                if fact['value']['framework'] in {'npm_script', 'make', 'console_script', 'docker_cmd', 'docker_entrypoint'}]
+    document.section('ابنِ وشغّل' if language == 'ar' else 'Build and run')
+    document.table(['الأمر' if language == 'ar' else 'Command', 'المصدر' if language == 'ar' else 'Declared in'],
+                   [[fact['value']['route'], f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"]
+                    for fact in commands], limit=15)
+    document.section('اختبر' if language == 'ar' else 'Test')
+    if verification and verification.get('executed'):
+        document.bullets([' '.join(verification['command']),
+                          f"{verification.get('overall_percent')}% coverage over {len(verification.get('test_files', []))} test files"])
+    else:
+        document.bullets([f"{len((verification or {}).get('test_files', []))} test files found; "
+                          f"no command has been executed in this run (eaos verify --execute)"])
+    document.section('نقاط الدخول لتجربتها' if language == 'ar' else 'Entry points to try')
+    production = [fact for fact in sets.get('entrypoints', {}).get('facts', [])
+                  if fact['value'].get('category') != 'test' and fact['value']['surface'] in {'http', 'cli', 'job'}
+                  and fact['value']['route'] and fact['value']['handler']]
+    document.table([words['surface'], words['route'], words['handler'], words['location']],
+                   [[fact['value']['surface'], fact['value']['route'] or '—', fact['value']['handler'] or '—',
+                     f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"]
+                    for fact in production], limit=15)
+    document.section('أول عشرة ملفات تقرؤها' if language == 'ar' else 'The first ten files to read')
+    from .discovery import classify
+    ordered = [row for row in sets['graph']['summary']['attention_order'] if classify(row['path']) == 'source'][:10]
+    document.table([words['path'], words['score'], 'لماذا' if language == 'ar' else 'Why'],
+                   [[row['path'], row['score'],
+                     'مركزية ' + str(row['factors']['centrality']) + ' · تغيّر ' + str(row['factors']['change'])
+                     if language == 'ar' else
+                     f"centrality {row['factors']['centrality']} · change {row['factors']['change']}"]
+                    for row in ordered], limit=10)
+    document.section('مصطلحات المشروع' if language == 'ar' else 'Project vocabulary')
+    domain = [fact for fact in sets.get('domain', {}).get('facts', []) if fact['kind'] in {'domain_constant', 'data_model', 'data_table'}]
+    document.table([words['name'], 'النوع' if language == 'ar' else 'Kind', words['location']],
+                   [[fact['value'].get('name'), fact['kind'],
+                     f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"]
+                    for fact in domain], limit=20)
+    document.section('مصائد معروفة' if language == 'ar' else 'Known traps')
+    entry_summary = sets['entrypoints']['summary']
+    document.bullets([
+        f"{sum(1 for fact in sets['entrypoints']['facts'] if fact['resolution'] == 'UNRESOLVED')} نقطة دخول تُسجَّل ديناميكيًا ولا يمكن تتبعها ساكنًا"
+        if language == 'ar' else
+        f"{sum(1 for fact in sets['entrypoints']['facts'] if fact['resolution'] == 'UNRESOLVED')} entry points are registered dynamically and cannot be traced statically",
+        f"{len(sets['config']['summary']['unread_sensitive_config_files'])} sensitive config files are listed but never read",
+        f"{sets['flows']['summary'].get('unresolved_steps', 0)} steps in the traced flows stop at calls the resolver cannot follow",
+    ])
+    return document
+
+
+def index_document(target, dossier, sets, verification, language):
+    words = Document('', language).words
+    document = Document('الفهرس وترتيب القراءة' if language == 'ar' else 'Index and reading order',
+                        language, budget_lines=120)
+    provenance = dossier['provenance']
+    coverage = dossier['coverage']
+    document.header([f"{target} · eaos {provenance['tool_version']} · {provenance['generated_at']} · "
+                     f"model calls {provenance['model_calls']}",
+                     f"{words['coverage']}: {coverage['files_parsed']}/{coverage['source_files']} · "
+                     f"claims {len(dossier['claims'])} · tasks {len(dossier.get('tasks', []))}"])
+    document.section('اقرأ بهذا الترتيب' if language == 'ar' else 'Read in this order')
+    rows = [
+        ('تقرّر أين يذهب الجهد' if language == 'ar' else 'deciding where effort goes',
+         '[DECISION-BRIEF.md](DECISION-BRIEF.md) → [RISK-REGISTER.md](RISK-REGISTER.md) → [PLAN/WAVES.md](PLAN/WAVES.md)', '5 min'),
+        ('تنضم للمشروع اليوم' if language == 'ar' else 'joining the project today',
+         '[ONBOARDING.md](ONBOARDING.md) → [SYSTEM-MAP.md](SYSTEM-MAP.md) → [FLOWS.md](FLOWS.md)', '45 min'),
+        ('تراجع البنية' if language == 'ar' else 'reviewing the architecture',
+         '[POLICY.md](POLICY.md) → [COUPLING-ATLAS.md](COUPLING-ATLAS.md) → [CONTRACTS.md](CONTRACTS.md)', '30 min'),
+        ('ستغيّر ملفًا محددًا' if language == 'ar' else 'about to change one file',
+         '`eaos impact-of <path> --out .`', '1 min'),
+    ]
+    document.table(['إن كنت…' if language == 'ar' else 'If you are…', 'ابدأ بـ' if language == 'ar' else 'Start with',
+                    'الوقت' if language == 'ar' else 'Time'], [list(row) for row in rows])
+    document.section('درجة الإسناد لكل قسم' if language == 'ar' else 'How well each section is sourced')
+    document.table(['القسم' if language == 'ar' else 'Section', 'المصدر' if language == 'ar' else 'Source',
+                    'الدرجة' if language == 'ar' else 'Grade', 'ملاحظة' if language == 'ar' else 'Note'],
+                   [[row['section'], row['source'], row['grade'], row['note']]
+                    for row in trust_grades(dossier, sets, verification)])
+    document.section(words['not_examined'])
+    document.bullets(coverage['not_examined'])
+    document.section('إعادة الإنتاج' if language == 'ar' else 'Reproduce')
+    document.bullets([f'eaos verify {target} --out <dir> --execute', f'eaos dossier {target} --out <dir>',
+                      f'eaos probe {target} --out <dir>', f'eaos tasks {target} --out <dir>'])
     return document
 
 
@@ -434,7 +554,7 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
          'Do not read the attention order as a severity order; it is a declared reading convention.',
          'Do not read an absent finding as safety; absence means unexamined unless an absence search is declared.'],
         'artifacts': sorted([BRIEF, PROVENANCE, 'FLOWS.md', 'DOMAIN-AND-DATA.md', 'CONTRACTS.md',
-                             'VERIFICATION-MAP.md', 'RISK-REGISTER.md', *ARTIFACTS]),
+                             'VERIFICATION-MAP.md', 'RISK-REGISTER.md', 'README.md', 'ONBOARDING.md', *ARTIFACTS]),
     }
     write(out / 'dossier.json', dossier)
     (out / BRIEF).write_text(brief(str(target), dossier, language).render(), encoding='utf-8')
@@ -442,6 +562,8 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
         (out / name).write_text(builder(dossier, sets, language).render(), encoding='utf-8')
     (out / 'VERIFICATION-MAP.md').write_text(verification_document(verification, language).render(), encoding='utf-8')
     (out / 'RISK-REGISTER.md').write_text(risk_register(dossier, language).render(), encoding='utf-8')
+    (out / 'README.md').write_text(index_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')
+    (out / 'ONBOARDING.md').write_text(onboarding_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')
     (out / PROVENANCE).write_text(provenance_document(str(target), dossier, language).render(), encoding='utf-8')
     violations = validate(out, dossier)
     result = {'target': str(target), 'out': str(out), 'artifacts': dossier['artifacts'],
