@@ -29,7 +29,54 @@ def check_commands(config,required):
     if len(set(ids))!=len(ids) or not set(required).issubset(ids):raise ValueError('Every predeclared task gate needs a unique configured command')
     inherited=config.get('inherit_env',[])
     if not isinstance(inherited,list) or not all(isinstance(x,str) for x in inherited):raise ValueError('inherit_env must be an array of names')
+    for rel in ephemeral_paths(config):
+        path=Path(rel)
+        if path.is_absolute() or '..' in path.parts:raise ValueError('ephemeral_paths must be relative paths inside the isolated copy')
     return config['checks']
+
+
+# Generated artifacts a verification command may legitimately create. The policy is declared,
+# never inferred: anything outside it counts as a real change to the candidate.
+EPHEMERAL_DIRS={'__pycache__','.pytest_cache','.mypy_cache','.ruff_cache','.tox','.nox','.cache','htmlcov','.coverage_cache','node_modules','.git','.venv','venv','.eggs'}
+EPHEMERAL_SUFFIXES=('.pyc','.pyo','.pyd')
+EPHEMERAL_NAMES={'.coverage'}
+
+
+def ephemeral_paths(config):
+    declared=config.get('ephemeral_paths',[]) if isinstance(config,dict) else []
+    if not isinstance(declared,list) or not all(isinstance(x,str) and x.strip() for x in declared):raise ValueError('ephemeral_paths must be an array of relative path strings')
+    return [x.strip('/') for x in declared]
+
+
+def ignored(rel,declared):
+    parts=rel.split('/')
+    if set(parts)&EPHEMERAL_DIRS or parts[-1] in EPHEMERAL_NAMES or rel.endswith(EPHEMERAL_SUFFIXES):return True
+    if any(part.endswith('.egg-info') for part in parts):return True
+    return any(rel==x or rel.startswith(x+'/') for x in declared)
+
+
+def tree_state(root,declared=()):
+    """Complete path→content state of the isolated copy; unknown new paths are visible, not only known ones."""
+    state={}
+    for path in sorted(Path(root).rglob('*')):
+        rel=path.relative_to(root).as_posix()
+        if ignored(rel,declared):continue
+        if path.is_symlink():state[rel]='symlink:'+digest(str(path.readlink()).encode())
+        elif path.is_file():state[rel]=digest(path.read_bytes())
+    return state
+
+
+def tree_diff(before,after):
+    added=sorted(set(after)-set(before));removed=sorted(set(before)-set(after))
+    modified=sorted(rel for rel in set(before)&set(after) if before[rel]!=after[rel])
+    return {'added':added,'removed':removed,'modified':modified}
+
+
+def diff_paths(diff):return sorted(set(diff['added'])|set(diff['removed'])|set(diff['modified']))
+
+
+def describe_diff(diff):
+    return '; '.join(f'{label}: '+', '.join(diff[label]) for label in ['added','removed','modified'] if diff[label])
 
 
 def run_checks(root,config,phase):
@@ -98,12 +145,12 @@ def _implement(path,task_id,out,checks_path,provider,budget=96000,max_rounds=8):
         if digest(original.read_bytes())!=item['sha256']:raise ValueError('Source changed while copying')
         target=project/item['path'];target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(original,target)
     manifest={f['path']:f['sha256'] for f in inv['files'] if f['capture']=='hashed' and (project/f['path']).is_file()}
+    declared=ephemeral_paths(config);copied=tree_state(project,declared)
     baseline=run_checks(project,config,'baseline');write(records/'baseline.json',baseline)
     if any(r['status']!='pass' for r in baseline):
         result={'status':'BASELINE_FAILED','project':str(project),'checks':baseline,'original_target_unchanged':fresh(state,inv)[0]};write(records/'result.json',result);return result
-    for rel,h in manifest.items():
-        p=project/rel
-        if not p.is_file() or digest(p.read_bytes())!=h:raise ValueError('Baseline check modified source; inspect isolated copy before proceeding')
+    baseline_drift=tree_diff(copied,tree_state(project,declared))
+    if diff_paths(baseline_drift):raise ValueError('Baseline check modified source; inspect isolated copy before proceeding — '+describe_diff(baseline_drift))
     context=Context(run,state,budget);jobs=Jobs(records,context,provider,budget,max_rounds)
     # Records and retrieval are from the original audit; source edits are only written into project.
     for name in ['architecture.json','findings.json','roadmap.json','target-architecture.json','flows.json']:
@@ -139,23 +186,34 @@ def _implement(path,task_id,out,checks_path,provider,budget=96000,max_rounds=8):
         for p,content in edits:
             if content is None:p.unlink(missing_ok=True)
             else:p.parent.mkdir(parents=True,exist_ok=True);p.write_text(content,encoding='utf-8')
-        expected=dict(manifest)
-        for rel in task['files']:
-            p=project/rel;expected[rel]=digest(p.read_bytes()) if p.is_file() else None
+        prepared=tree_state(project,declared)
+        planned=tree_diff(copied,prepared)
+        unplanned=sorted(set(diff_paths(planned))-set(task['files']))
         checks=run_checks(project,config,'post-change-'+str(attempt))
-        mutated=[]
-        for rel,h in expected.items():
-            p=project/rel;actual=digest(p.read_bytes()) if p.is_file() else None
-            if actual!=h:mutated.append(rel)
-        if mutated:checks.append({'id':'SOURCE-INTEGRITY','phase':'post-change-'+str(attempt),'status':'fail','exit_code':None,'output':'Verification commands changed source after the candidate was prepared: '+', '.join(mutated)})
+        drift=tree_diff(prepared,tree_state(project,declared))
+        if diff_paths(drift):checks.append({'id':'SOURCE-INTEGRITY','phase':'post-change-'+str(attempt),'status':'fail','exit_code':None,'output':'Verification commands changed the isolated copy after the candidate was prepared — '+describe_diff(drift)})
+        if unplanned:checks.append({'id':'PLAN-CONFORMANCE','phase':'post-change-'+str(attempt),'status':'fail','exit_code':None,'output':'Isolated copy differs from the original outside the planned task files: '+', '.join(unplanned)})
         write(records/('checks-'+str(attempt)+'.json'),checks)
         if all(c['status']=='pass' for c in checks):accepted=True;break
         feedback={'failed_checks':[c for c in checks if c['status']!='pass'],'candidate_files':{rel:(project/rel).read_text() if (project/rel).is_file() else None for rel in task['files']}}
-    patch=''
-    for rel,old in before.items():
-        new=(project/rel).read_text() if (project/rel).is_file() else None
-        patch+=''.join(difflib.unified_diff((old or '').splitlines(keepends=True),(new or '').splitlines(keepends=True),fromfile='a/'+rel if old is not None else '/dev/null',tofile='b/'+rel if new is not None else '/dev/null'))
+    # The patch is derived from the real difference between the original copy and the delivered
+    # candidate, so a change the plan did not anticipate cannot stay invisible in the delivery.
+    from ..workspace import safe_file
+    changed=tree_diff(copied,tree_state(project,declared));patch='';unrepresented=[]
+    for rel in diff_paths(changed):
+        previous=before.get(rel)
+        if previous is None and rel in manifest:
+            try:previous=safe_file(source,rel).read_text(encoding='utf-8')
+            except (ValueError,OSError,UnicodeError):unrepresented.append(rel);continue
+        current=None
+        if (project/rel).is_file():
+            try:current=(project/rel).read_text(encoding='utf-8')
+            except UnicodeError:unrepresented.append(rel);continue
+        if previous==current:unrepresented.append(rel);continue
+        patch+=''.join(difflib.unified_diff((previous or '').splitlines(keepends=True),(current or '').splitlines(keepends=True),fromfile='a/'+rel if previous is not None else '/dev/null',tofile='b/'+rel if current is not None else '/dev/null'))
     (destination/'changes.patch').write_text(patch)
+    patch_complete=not unrepresented
+    if not patch_complete:checks.append({'id':'PATCH-COMPLETENESS','phase':'delivery','status':'fail','exit_code':None,'output':'changes.patch does not represent every difference in the isolated copy: '+', '.join(unrepresented)})
     assessment=None
     if accepted:
         changed_inventory=inventory(project,**inv['limits']);newstate=dict(state,target=str(project),revision=changed_inventory['fingerprint'])
@@ -169,7 +227,8 @@ def _implement(path,task_id,out,checks_path,provider,budget=96000,max_rounds=8):
                 if lines:blocks.append(newcontext.source(rel,1,min(len(lines),80)))
         assessment=newjobs.run_job('re-audit','reaudit',{'task':task,'changed_source':blocks,'actual_checks':checks,'task_instructions':'Re-audit the changed invariant and adjacent contracts. Read full affected source when needed. Test success alone does not prove root-cause repair. ACCEPT only if source supports resolution without a new boundary or behavior defect. Old architecture/findings are historical context; source reads reference the changed copy.'})
     original_unchanged=fresh(state,inv)[0]
-    result={'status':'VERIFIED_IN_ISOLATED_COPY' if accepted and assessment['assessment']=='ACCEPT' and original_unchanged else 'NEEDS_REVIEW','task_id':task_id,'project':str(project),'patch':str(destination/'changes.patch'),'baseline':baseline,'post_checks':checks,'re_audit':assessment,'original_target_unchanged':original_unchanged,'limits':'Checks were actually executed in a separate copy, not an OS sandbox. No deployment performed; original audit records remain historical and are not relabeled as repaired.'}
+    verified=accepted and patch_complete and assessment is not None and assessment['assessment']=='ACCEPT' and original_unchanged
+    result={'status':'VERIFIED_IN_ISOLATED_COPY' if verified else 'NEEDS_REVIEW','task_id':task_id,'project':str(project),'patch':str(destination/'changes.patch'),'changed_paths':changed,'patch_complete':patch_complete,'baseline':baseline,'post_checks':checks,'re_audit':assessment,'original_target_unchanged':original_unchanged,'limits':'Checks were actually executed in a separate copy, not an OS sandbox. No deployment performed; original audit records remain historical and are not relabeled as repaired.'}
     write(records/'result.json',result)
     (destination/'RESULT.md').write_text('# Remediation result\n\n```json\n'+json.dumps(result,ensure_ascii=False,indent=2)+'\n```\n')
     return result

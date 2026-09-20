@@ -1,10 +1,49 @@
 """Validate framework references and consistency; not an engineering scanner."""
+from fnmatch import fnmatch
 from pathlib import Path
 import json
 import sys
 R=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(R))
 from eaos.cli import check
+
+PACKAGED_ROOTS=['core','modules','schemas']
+PACKAGED_TOP=['controls.json','sources.json','START-HERE.md']
+
+
+def expected_package_files(root):
+    """The set that MUST be packaged, derived from canonical sources — not from what happens to exist."""
+    root=Path(root);expected=set(PACKAGED_TOP)
+    for module in json.loads((root/'controls.json').read_text())['modules']:expected.add('modules/'+module['id']+'.md')
+    for folder in PACKAGED_ROOTS:
+        for path in sorted((root/folder).iterdir()):
+            if path.is_file():expected.add(folder+'/'+path.name)
+    return expected
+
+
+def package_data_patterns(root):
+    try:import tomllib
+    except ImportError:return None
+    config=tomllib.loads((Path(root)/'pyproject.toml').read_text())
+    return config.get('tool',{}).get('setuptools',{}).get('package-data',{}).get('eaos')
+
+
+def packaged_errors(root,data=None):
+    root=Path(root);data=Path(data) if data else root/'eaos/data'
+    errors=[]
+    if not data.is_dir():return ['Packaged data directory is absent: '+str(data)]
+    expected=expected_package_files(root)
+    present={path.relative_to(data).as_posix() for path in data.rglob('*') if path.is_file()}
+    errors+=['Missing packaged file '+rel for rel in sorted(expected-present)]
+    errors+=['Unexpected packaged file '+rel for rel in sorted(present-expected)]
+    errors+=['Stale packaged copy '+rel for rel in sorted(expected&present) if (root/rel).read_bytes()!=(data/rel).read_bytes()]
+    patterns=package_data_patterns(root)
+    if patterns is not None:
+        for rel in sorted(expected):
+            if not any(fnmatch(rel,pattern.split('data/',1)[-1] if pattern.startswith('data/') else pattern) for pattern in patterns):
+                errors.append('Packaging pattern does not include '+rel)
+    return errors
+
 
 def main():
     if len(sys.argv)>1:
@@ -21,10 +60,7 @@ def main():
                 if not c.get(key):errors.append('Missing '+key+' '+c['id'])
             for sid in c['source_ids']+c['seed_refs']:
                 if sid not in sources:errors.append('Unknown source '+sid)
-    for p in (R/'eaos/data').rglob('*'):
-        if p.is_file():
-            original=R/p.relative_to(R/'eaos/data')
-            if not original.exists() or original.read_bytes()!=p.read_bytes():errors.append('Stale packaged copy '+str(p.relative_to(R)))
+    errors+=packaged_errors(R)
     print(json.dumps({'modules':len(data['modules']),'controls':len(ids),'sources':len(sources),'errors':errors},ensure_ascii=False,indent=2))
     return bool(errors)
 if __name__=='__main__':raise SystemExit(main())

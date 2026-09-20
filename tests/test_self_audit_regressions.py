@@ -1,6 +1,8 @@
 """Regressions for defects found by applying EAOS to its own architecture/runtime."""
 import ast
 import contextlib
+import shutil
+import subprocess
 import io
 from pathlib import Path
 import sys
@@ -115,6 +117,29 @@ class SelfAuditRegressionTests(unittest.TestCase):
         calls=self.provider.calls
         restored=jobs.run_job('tamper','inspect',{'source_blocks':[]})
         self.assertGreater(self.provider.calls,calls);self.assertEqual(restored['summary'],result['summary'])
+
+    def test_post_checks_cannot_add_unplanned_file_and_claim_verified(self):
+        """A check that creates a file outside the plan must not end in a verified state."""
+        self.execute();config=self.base/'checks.json'
+        script='from pathlib import Path; Path("unplanned.py").write_text("x=1\\n") if Path("rules.py").exists() else None'
+        cli.write(config,{'checks':[{'id':'G-PRICE','argv':[sys.executable,'-c',script]}]})
+        result=implement(self.run,'T-PRICE',self.base/'added',config,self.provider)
+        self.assertNotEqual(result['status'],'VERIFIED_IN_ISOLATED_COPY',result)
+        self.assertTrue((self.base/'added/project/unplanned.py').is_file())
+        self.assertIn('unplanned.py',' '.join(c['output'] for c in result['post_checks'] if c['status']=='fail'))
+
+    def test_delivered_patch_reproduces_the_verified_copy(self):
+        """changes.patch must rebuild exactly the tree that was checked, from the original source."""
+        from eaos.runtime.remediate import tree_state
+        self.execute();config=self.base/'checks.json'
+        cli.write(config,{'checks':[{'id':'G-PRICE','argv':[sys.executable,'-m','unittest','discover','-s','tests'],'timeout_seconds':60}]})
+        result=implement(self.run,'T-PRICE',self.base/'delivery',config,self.provider)
+        self.assertEqual(result['status'],'VERIFIED_IN_ISOLATED_COPY',result)
+        self.assertTrue(result['patch_complete'])
+        replay=self.base/'replay';shutil.copytree(self.target,replay)
+        applied=subprocess.run(['patch','-p1','--batch','-i',str(self.base/'delivery/changes.patch')],cwd=replay,capture_output=True,text=True)
+        self.assertEqual(applied.returncode,0,applied.stdout+applied.stderr)
+        self.assertEqual(tree_state(replay),tree_state(self.base/'delivery/project'))
 
 del RuntimeTests
 if __name__=='__main__':unittest.main()
