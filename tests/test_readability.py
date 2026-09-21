@@ -200,3 +200,21 @@ class LayeringTests(unittest.TestCase):
             cycles = [fact['value']['members'] for fact in read_set(out, 'graph')['facts']
                       if fact['kind'] == 'graph_cycle']
             self.assertEqual(cycles, [], 'the package must stay acyclic')
+
+    def test_the_description_stops_denying_a_semantic_pass_that_ran(self):
+        from eaos import claims as ledger
+        from eaos.dossier import refresh_views
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            assemble(FIXTURE, out)
+            dossier = json.loads((out / 'dossier.json').read_text())
+            self.assertIn('not assessed in a facts-only run', dossier['description'])
+            dossier['claims'].append(ledger.make(
+                903, 'The pricing module owns the discount rule', 'responsibility', 'HYPOTHESIS',
+                ['model_inference'], [], 'A second module applying it without importing',
+                fact_ids=dossier['claims'][0]['fact_ids'], origin='source'))
+            (out / 'dossier.json').write_text(json.dumps(dossier, ensure_ascii=False))
+            refresh_views(out)
+            updated = json.loads((out / 'dossier.json').read_text())
+            self.assertNotIn('not assessed in a facts-only run', updated['description'])
+            self.assertIn('model inference', updated['description'])

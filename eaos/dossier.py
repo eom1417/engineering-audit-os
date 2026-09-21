@@ -571,6 +571,11 @@ def refresh_views(out, language='ar'):
     if semantic_ran:
         dossier['questions'] = [question for question in dossier['questions']
                                 if not question['question'].startswith('No semantic review was run')]
+        # The one-line description also claimed nothing had been interpreted.
+        dossier['description'] = dossier['description'].replace(
+            '○ Responsibilities and contracts are not assessed in a facts-only run.',
+            f'○ {semantic_claims(dossier)} responsibility and contract claims come from model inference '
+            'and none is confirmed by inference alone.')
     from .decisions import decide, identity
     for claim in dossier['claims']: claim.setdefault('uid', identity(claim))
     dossier['decisions'] = [decide(claim) for claim in dossier['claims']]
