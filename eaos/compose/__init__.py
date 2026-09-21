@@ -39,32 +39,59 @@ class Document:
             self.blocks.append(('text', self.words['no_rows']))
             return self
         shown = rows if limit is None or len(rows) <= limit else rows[:limit]
-        self.blocks.append(('table', (headers, shown)))
-        if len(shown) < len(rows):
-            note = self.words['truncated'] % {'shown': len(shown), 'total': len(rows)}
-            self.truncations.append(note)
-            self.blocks.append(('text', note))
+        self.blocks.append(('table', (headers, shown, len(rows))))
+        self._note(len(self.blocks) - 1)
         return self
+
+    def _note(self, index):
+        """Keep the 'showing N of M' line beside its own table, so trimming never loses the real total."""
+        _, shown, total = self.blocks[index][1]
+        after = index + 1
+        if after < len(self.blocks) and self.blocks[after][0] == 'note':
+            self.truncations.remove(self.blocks[after][1])
+            del self.blocks[after]
+        if len(shown) < total:
+            note = self.words['truncated'] % {'shown': len(shown), 'total': total}
+            self.truncations.append(note)
+            self.blocks.insert(after, ('note', note))
 
     def mermaid(self, lines):
         self.blocks.append(('mermaid', lines))
         return self
 
-    def render(self):
+    def _emit(self):
         out = []
         for kind, payload in self.blocks:
             if kind == 'title': out += ['# ' + payload, '']
             elif kind == 'header': out += ['> ' + row for row in payload] + ['']
             elif kind == 'heading': out += ['#' * payload[1] + ' ' + payload[0], '']
-            elif kind == 'text': out += [payload, '']
+            elif kind in ('text', 'note'): out += [payload, '']
             elif kind == 'bullets': out += ['- ' + item for item in payload] + ['']
             elif kind == 'mermaid': out += ['```mermaid'] + payload + ['```', '']
             elif kind == 'table':
-                headers, rows = payload
+                headers, rows = payload[0], payload[1]
                 out += ['| ' + ' | '.join(headers) + ' |', '|' + '---|' * len(headers)]
                 out += ['| ' + ' | '.join(cell.replace('|', '\\|') for cell in row) + ' |' for row in rows]
                 out += ['']
-        text = '\n'.join(out).rstrip() + '\n'
-        if self.budget_lines and text.count('\n') > self.budget_lines:
-            raise ValueError(f'{self.title}: rendered {text.count(chr(10))} lines over a budget of {self.budget_lines}; move detail into records')
+        return '\n'.join(out).rstrip() + '\n'
+
+    def _longest_table(self):
+        candidates = [index for index, (kind, payload) in enumerate(self.blocks)
+                      if kind == 'table' and len(payload[1]) > 1]
+        return max(candidates, key=lambda index: len(self.blocks[index][1][1])) if candidates else None
+
+    def render(self):
+        """Render, trimming the longest table until the budget holds; trimmed rows stay in the JSON records."""
+        text = self._emit()
+        while self.budget_lines and text.count('\n') > self.budget_lines:
+            overflow = text.count('\n') - self.budget_lines
+            index = self._longest_table()
+            if index is None:
+                raise ValueError(f'{self.title}: rendered {text.count(chr(10))} lines over a budget of '
+                                 f'{self.budget_lines} with no table left to trim; move detail into records')
+            headers, shown, total = self.blocks[index][1]
+            keep = max(1, min(len(shown) - 1, len(shown) - overflow - 2))
+            self.blocks[index] = ('table', (headers, shown[:keep], total))
+            self._note(index)
+            text = self._emit()
         return text

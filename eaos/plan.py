@@ -217,21 +217,42 @@ def card(task, language):
     return document
 
 
+def _condition_lines(entry, exit_condition, language):
+    """One wording for a wave's entry and exit, wherever they are printed."""
+    if language == 'ar':
+        return [f'شرط الدخول: {entry}', f'شرط الخروج: {exit_condition}']
+    return [f'entry: {entry}', f'exit: {exit_condition}']
+
+
 def waves_document(plan, tasks, language):
     document = Document('موجات التنفيذ' if language == 'ar' else 'Execution waves', language, budget_lines=140)
     by_id = {task['id']: task for task in tasks}
+    conditions = {(wave['entry_condition'], wave['exit_condition']) for wave in plan}
     document.header(['مهمتان تتشاركان ملفًا لا تقعان في موجة واحدة؛ التحقيق يسبق التغيير الذي يبني عليه.'
                      if language == 'ar' else
                      'Two tasks touching the same file never share a wave; an investigation precedes the change it informs.'])
+    # Conditions identical for every wave are stated once, not repeated into the line budget.
+    if len(conditions) == 1:
+        document.bullets(list(_condition_lines(*conditions.copy().pop(), language)))
     for wave in plan:
         document.section(f"الموجة {wave['wave']}" if language == 'ar' else f"Wave {wave['wave']}")
         document.table(['#', 'المهمة' if language == 'ar' else 'Task', 'النوع' if language == 'ar' else 'Kind',
                         'الأولوية' if language == 'ar' else 'Priority'],
                        [[identifier, title_of(by_id[identifier], language)[:90], by_id[identifier]['kind'],
                          by_id[identifier]['priority']] for identifier in wave['tasks']])
-        document.bullets([f"شرط الدخول: {wave['entry_condition']}" if language == 'ar' else f"entry: {wave['entry_condition']}",
-                          f"شرط الخروج: {wave['exit_condition']}" if language == 'ar' else f"exit: {wave['exit_condition']}"])
+        if len(conditions) > 1:
+            document.bullets(list(_condition_lines(wave['entry_condition'], wave['exit_condition'], language)))
     return document
+
+
+def publish(directory, tasks, plan, language):
+    """Render every card and the wave document before touching disk: a render failure leaves no half-written plan."""
+    documents = {task['id'] + '.md': card(task, language).render() for task in tasks}
+    documents['WAVES.md'] = waves_document(plan, tasks, language).render()
+    directory.mkdir(parents=True, exist_ok=True)
+    for stale in directory.glob('TASK-*.md'): stale.unlink()
+    for name, text in documents.items():
+        (directory / name).write_text(text, encoding='utf-8')
 
 
 def rebuild(out, dossier, language='ar', target=None):
@@ -242,11 +263,7 @@ def rebuild(out, dossier, language='ar', target=None):
     tasks = build_tasks(source, out, dossier, sets)
     plan = waves(tasks)
     directory = out / PLAN_DIR
-    directory.mkdir(parents=True, exist_ok=True)
-    for stale in directory.glob('TASK-*.md'): stale.unlink()
-    for task in tasks:
-        (directory / (task['id'] + '.md')).write_text(card(task, language).render(), encoding='utf-8')
-    (directory / 'WAVES.md').write_text(waves_document(plan, tasks, language).render(), encoding='utf-8')
+    publish(directory, tasks, plan, language)
     dossier['tasks'], dossier['waves'], dossier['plan_contract_version'] = tasks, plan, 1
     write(out / 'dossier.json', dossier)
     write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan,
@@ -263,11 +280,7 @@ def build(target, out, language='ar'):
     tasks = build_tasks(target, out, dossier, sets)
     plan = waves(tasks)
     directory = out / PLAN_DIR
-    directory.mkdir(parents=True, exist_ok=True)
-    for stale in directory.glob('TASK-*.md'): stale.unlink()
-    for task in tasks:
-        (directory / (task['id'] + '.md')).write_text(card(task, language).render(), encoding='utf-8')
-    (directory / 'WAVES.md').write_text(waves_document(plan, tasks, language).render(), encoding='utf-8')
+    publish(directory, tasks, plan, language)
     dossier['plan_contract_version'] = 1
     dossier['tasks'] = tasks
     dossier['waves'] = plan

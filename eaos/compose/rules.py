@@ -3,7 +3,9 @@ from pathlib import Path
 import re
 
 BUDGETS = {'DECISION-BRIEF.md': 120, 'SYSTEM-MAP.md': 260, 'COUPLING-ATLAS.md': 220, 'EVOLUTION.md': 220,
-           'PROVENANCE.md': 80, 'FLOWS.md': 300, 'DOMAIN-AND-DATA.md': 240, 'CONTRACTS.md': 200, 'RISK-REGISTER.md': 200, 'VERIFICATION-MAP.md': 160, 'DELTA.md': 160, 'VERIFICATION-MAP.md': 180, 'RISK-REGISTER.md': 200, 'README.md': 120, 'ONBOARDING.md': 200, 'POLICY.md': 160}
+           'PROVENANCE.md': 80, 'FLOWS.md': 300, 'DOMAIN-AND-DATA.md': 240, 'CONTRACTS.md': 200,
+           'RISK-REGISTER.md': 200, 'VERIFICATION-MAP.md': 180, 'DELTA.md': 160, 'README.md': 120,
+           'ONBOARDING.md': 200, 'POLICY.md': 160}
 HUMAN_ARTIFACTS = set(BUDGETS)
 CLAIM_REFERENCE = re.compile(r'\bCLM-\d{3,}\b')
 MARKERS = {'⬤', '◐', '○', '؟'}
