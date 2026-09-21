@@ -28,7 +28,8 @@
     ],
     "output_contract_violations": 0,
     "policy_violations": 0,
-    "python_modules": 86
+    "python_modules": 86,
+    "note": "أرقام ما قبل T1؛ قارنها بـ docs/baseline.json"
   },
   "stages": [
     {
@@ -49,7 +50,7 @@
       "depends_on": [
         "T0"
       ],
-      "status": "todo",
+      "status": "done",
       "why": "اليوم الترتيب مكتوب داخل product_review.run كسلسلة استدعاءات، فلا يمكن استعلامه ولا تخطّي مرحلة ولا معرفة ما لم يُشغَّل.",
       "changes": [
         "eaos/pipeline/stages.py: STAGES قائمة مرتبة من {name, produces, requires, optional, reason_if_skipped, runner}",
@@ -65,7 +66,7 @@
       "depends_on": [
         "T1"
       ],
-      "status": "todo",
+      "status": "done",
       "why": "المرحلة التي تفشل اليوم تُسقط الدورة كلها، والمرحلة التي لا تُشغَّل لا تترك أثرًا — وهذا يخالف قاعدة صدق التغطية التي نفرضها على غيرنا.",
       "changes": [
         "eaos/pipeline/run.py: execute(target, out, only, skip, resume) ينفّذ المراحل بالترتيب",
@@ -82,12 +83,14 @@
       "depends_on": [
         "T2"
       ],
-      "status": "todo",
+      "status": "done",
       "why": "review-project ينتج 15 مصنوعة ويتخطى صامتًا خمسة أنظمة فرعية: sustainability و engines و transform-plan و probe و verify.",
       "changes": [
         "eaos/cli.py: أمر audit <target> --out بأعلام --only/--skip/--resume/--engines/--provider",
         "review-project يصبح غلافًا على audit بمجموعة مراحل مسمّاة، ثم يُعلَن مهجورًا في CHANGELOG",
-        "run-manifest.json يُعرض في README.md المولَّد: ما شُغِّل وما لم يُشغَّل ولماذا"
+        "run-manifest.json يُعرض في README.md المولَّد: ما شُغِّل وما لم يُشغَّل ولماذا",
+        "قرار مُتخذ أثناء التنفيذ: الاسم `audit` كان محجوزًا لمهيّئ المسار القديم، فأُعيد تسميته `legacy-audit` بلا تغيير سلوك، وانتقل الاسم إلى الأمر الذي يدقّق فعلًا",
+        "RUN.md: مصنوعة تملكها مرحلة validate، تقول ما فُحص وما لم يُفحص وسببه قبل أي نتيجة"
       ],
       "acceptance": "eaos audit . --out /tmp/t3 --engines && python3 -c \"import json,os;m=json.load(open('/tmp/t3/run-manifest.json'));assert all(s['status'] in ('ok','skipped','unavailable') for s in m['stages'].values());assert os.path.exists('/tmp/t3/SUSTAINABILITY.md') and os.path.exists('/tmp/t3/ENGINES.md') and os.path.exists('/tmp/t3/probes.json')\"",
       "rollback": "إبقاء review-project كما هو وحذف أمر audit"

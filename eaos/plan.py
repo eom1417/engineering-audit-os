@@ -217,6 +217,25 @@ def card(task, language):
     return document
 
 
+def _compact_waves(document, plan, by_id, language):
+    """One row per wave: every task id kept, every title deferred to its card."""
+    conditions = {(wave['entry_condition'], wave['exit_condition']) for wave in plan}
+    document.header(['مهمتان تتشاركان ملفًا لا تقعان في موجة واحدة؛ التحقيق يسبق التغيير الذي يبني عليه.'
+                     if language == 'ar' else
+                     'Two tasks touching the same file never share a wave; an investigation precedes the change it informs.',
+                     f"{len(plan)} موجات · التفاصيل في بطاقات PLAN/" if language == 'ar' else
+                     f'{len(plan)} waves · the detail is in the PLAN/ cards'])
+    if len(conditions) == 1:
+        document.bullets(list(_condition_lines(*conditions.copy().pop(), language)))
+    document.table(['#', 'المهام' if language == 'ar' else 'Tasks',
+                    'النوع' if language == 'ar' else 'Kinds', 'الأولوية' if language == 'ar' else 'Top priority'],
+                   [[str(wave['wave']), ' '.join(wave['tasks']),
+                     ', '.join(sorted({by_id[identifier]['kind'] for identifier in wave['tasks']})),
+                     str(max(by_id[identifier]['priority'] for identifier in wave['tasks']))]
+                    for wave in plan])
+    return document
+
+
 def _condition_lines(entry, exit_condition, language):
     """One wording for a wave's entry and exit, wherever they are printed."""
     if language == 'ar':
@@ -224,9 +243,20 @@ def _condition_lines(entry, exit_condition, language):
     return [f'entry: {entry}', f'exit: {exit_condition}']
 
 
+WAVE_BUDGET = 140
+# Chrome per wave in the sectioned form: heading, table header, separator, blank lines.
+SECTION_OVERHEAD = 7
+
+
 def waves_document(plan, tasks, language):
-    document = Document('موجات التنفيذ' if language == 'ar' else 'Execution waves', language, budget_lines=140)
+    document = Document('موجات التنفيذ' if language == 'ar' else 'Execution waves', language,
+                        budget_lines=WAVE_BUDGET)
     by_id = {task['id']: task for task in tasks}
+    # A section per wave costs a fixed overhead each. Past a few dozen waves that overhead alone
+    # exceeds the budget and every table gets trimmed to one row, which hides the plan instead of
+    # shortening it. One row per wave scales, and the titles live in the cards either way.
+    if len(plan) * SECTION_OVERHEAD + len(tasks) > WAVE_BUDGET - 12:
+        return _compact_waves(document, plan, by_id, language)
     conditions = {(wave['entry_condition'], wave['exit_condition']) for wave in plan}
     document.header(['مهمتان تتشاركان ملفًا لا تقعان في موجة واحدة؛ التحقيق يسبق التغيير الذي يبني عليه.'
                      if language == 'ar' else

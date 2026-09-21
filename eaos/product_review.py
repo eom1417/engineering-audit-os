@@ -1,41 +1,45 @@
-"""One entry point for the output-first dossier, plan and browsable report."""
+"""The reviewed-project summary, built on the one declared pipeline rather than its own copy of it.
+
+This module used to hold a second ordering of the same work — assemble, then plan, then report —
+which is how five subsystems ended up unreachable from the command most people run.
+"""
 from pathlib import Path
+
 from .workspace import read, write
 
 GOALS = {'onboarding', 'debugging', 'evolution', 'architecture'}
+# What a project review does not do: it never executes the target's tests and never shells out to
+# an external engine unless the caller asks for those stages by name.
+WITHOUT = ('engines', 'verify')
 
 
 def run(target, out, *, goal='evolution', language='ar', provider=None, exclude=(), audit_run=None):
-    if goal not in GOALS: raise ValueError('Unknown review goal')
-    target, out = Path(target).resolve(), Path(out).resolve()
-    if out == target or target in out.parents:
-        raise ValueError('Review output must be outside the target to avoid analyzing generated artifacts')
-    from .dossier import assemble
-    from .plan import build
-    from .site import build as build_site
-    result = assemble(target, out, run=audit_run, language=language, exclude=exclude)
-    dossier = read(out / 'dossier.json')
-    dossier['review_goal'] = goal
-    write(out / 'dossier.json', dossier)
-    if provider:
-        from .semantic import run as interpret
-        interpret(target, out, provider, language=language)
-        from .views import refresh
-        refresh(out, language)
-    build(target, out, language)
-    dossier = read(out / 'dossier.json')
-    from .compose.product_report import render
-    render(out, dossier, language)
-    site = build_site(out)
-    from .compose.rules import validate
-    violations = validate(out, dossier)
-    summary = {'target': str(target), 'out': str(out), 'goal': goal,
-               'mode': 'semantic_review' if provider else 'facts_only',
-               'report': str(out / 'PRODUCT-REPORT.md'), 'site': site,
-               'decision_counts': {kind: sum(row['kind'] == kind for row in dossier['decisions'])
-                                   for kind in ('repair', 'investigate', 'retain')},
-               'executable_repairs': sum(task.get('decision', {}).get('readiness') == 'ready' for task in dossier['tasks']),
-               'output_spec_violations': violations,
-               'status': 'REVIEW_REQUIRED' if not violations else 'OUTPUT_SPEC_VIOLATED'}
+    if goal not in GOALS:
+        raise ValueError('Unknown review goal')
+    from .pipeline import execute
+    manifest = execute(target, out, skip=WITHOUT, language=language, exclude=exclude, provider=provider,
+                       goal=goal, audit_run=audit_run)
+    return summarise(Path(out).resolve(), manifest, goal, bool(provider))
+
+
+def summarise(out, manifest, goal, interpreted):
+    dossier = read(out / 'dossier.json') if (out / 'dossier.json').is_file() else {'decisions': [], 'tasks': []}
+    result = read(out / 'report-result.json') if (out / 'report-result.json').is_file() else {}
+    violations = result.get('output_spec_violations', ['the output contract was never checked'])
+    summary = {
+        'target': manifest['target'], 'out': str(out), 'goal': goal,
+        'mode': 'semantic_review' if interpreted else 'facts_only',
+        'report': str(out / 'PRODUCT-REPORT.md'), 'site': str(out / 'index.html'),
+        'decision_counts': {kind: sum(row['kind'] == kind for row in dossier.get('decisions', []))
+                            for kind in ('repair', 'investigate', 'retain')},
+        'executable_repairs': sum(task.get('decision', {}).get('readiness') == 'ready'
+                                  for task in dossier.get('tasks', [])),
+        'output_spec_violations': violations,
+        'stages': {name: row['status'] for name, row in manifest['stages'].items()},
+        'not_examined': {name: row['reason'] for name, row in manifest['stages'].items()
+                         if row['status'] != 'ok'},
+        'status': ('OUTPUT_SPEC_VIOLATED' if violations else
+                   'INCOMPLETE' if manifest['status'] != 'COMPLETE' else 'REVIEW_REQUIRED'),
+    }
     write(out / 'product-review.json', summary)
     return summary

@@ -120,7 +120,8 @@ def context_command(args):
     write(path.with_suffix('.json'),{'revision':state['revision'],'model_sha256':context['model_sha256'],'characters':len(text),'budget_characters':args.budget_chars,'token_count':'NOT_MEASURED','node':args.node,'depth':args.depth,'packet_sha256':digest(text.encode())})
     print(path)
 
-def audit_command(args):
+def legacy_audit_command(args):
+    """Bootstrap the older agent-led run directory. Superseded by `eaos audit`; see CHANGELOG."""
     init(args)
     run=Path(args.out).resolve()
     workflow.initialize(run)
@@ -193,6 +194,40 @@ def facts_command(args):
     print(json.dumps(collect(args.target,args.out,selected,args.max_commits,exclude=args.exclude,
                              engines=args.engines),ensure_ascii=False,indent=2))
     return 0
+
+
+def audit_command(args):
+    from .pipeline import execute, resume
+    run = resume if args.resume else execute
+    manifest = run(args.target, args.out, only=args.only or (), skip=args.skip or (), language=args.lang,
+                   exclude=args.exclude, engines=args.engines, provider=_provider(args),
+                   test_command=args.test_command, site=not args.no_site, goal=args.goal)
+    from .product_review import summarise
+    summary = summarise(Path(args.out).resolve(), manifest, args.goal, bool(args.provider))
+    print(json.dumps({'status': summary['status'], 'stages': summary['stages'],
+                      'not_examined': summary['not_examined'], 'seconds': manifest['seconds'],
+                      'output_spec_violations': summary['output_spec_violations'],
+                      'manifest': str(Path(args.out) / 'run-manifest.json'),
+                      'report': summary['report'], 'site': summary['site']},
+                     ensure_ascii=False, indent=2))
+    return 0 if summary['status'] == 'REVIEW_REQUIRED' else 2
+
+
+def stages_command(args):
+    from .pipeline import STAGES, errors
+    print(json.dumps({'stages': [{'name': stage.name, 'requires': list(stage.requires),
+                                  'produces': list(stage.produces), 'necessity': stage.necessity,
+                                  'absent_when': stage.absent_when, 'description': stage.description}
+                                 for stage in STAGES],
+                      'declaration_errors': errors()}, ensure_ascii=False, indent=2))
+    return 0 if not errors() else 2
+
+
+def _provider(args):
+    if not getattr(args, 'provider', None):
+        return None
+    from .runtime.provider import load_provider
+    return load_provider(args.provider)
 
 
 def engines_command(args):
@@ -364,7 +399,7 @@ def main(argv=None):
     p=argparse.ArgumentParser(prog='eaos',description='Architecture, structure and maintainability audit workspaces; target is read-only')
     p.add_argument('--version',action='version',version='EAOS '+__version__)
     s=p.add_subparsers(dest='command',required=True)
-    for command,fn in [('init',init),('audit',audit_command)]:
+    for command,fn in [('init',init),('legacy-audit',legacy_audit_command)]:
         q=s.add_parser(command);q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--profile',choices=['architecture','full'],default='architecture');q.add_argument('--max-files',type=bounded_int,default=100000);q.add_argument('--max-bytes',type=bounded_int,default=2_000_000);q.set_defaults(func=fn)
     for command,fn in [('discover',discover_command),('next',next_command)]:
         q=s.add_parser(command);q.add_argument('run');q.set_defaults(func=fn)
@@ -462,6 +497,20 @@ def main(argv=None):
     q.add_argument('--engines',nargs='*',default=None,metavar='ENGINE',
                    help='also run the pinned external engines; name a subset, or pass the flag alone for all')
     q.set_defaults(func=facts_command)
+    q=s.add_parser('audit',help='Run the whole pipeline in one command and report what each stage did')
+    q.add_argument('target');q.add_argument('--out',required=True)
+    q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.add_argument('--goal',choices=['onboarding','debugging','evolution','architecture'],default='evolution')
+    q.add_argument('--exclude',action='append',default=[])
+    q.add_argument('--engines',nargs='*',default=None,metavar='ENGINE')
+    q.add_argument('--provider');q.add_argument('--test-command')
+    q.add_argument('--only',action='append',default=[],metavar='STAGE')
+    q.add_argument('--skip',action='append',default=[],metavar='STAGE')
+    q.add_argument('--resume',action='store_true')
+    q.add_argument('--no-site',action='store_true')
+    q.set_defaults(func=audit_command)
+    q=s.add_parser('stages',help='The declared pipeline: what runs, in what order, and what may be absent')
+    q.set_defaults(func=stages_command)
     q=s.add_parser('engines',help='External analysis engines: what is installed, and what they report')
     q.add_argument('action',choices=['list','run'])
     q.add_argument('target',nargs='?',default='.')

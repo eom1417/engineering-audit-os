@@ -76,3 +76,26 @@ class WaveDocumentTests(unittest.TestCase):
         text = waves_document(plan, tasks, 'en').render()
         self.assertEqual(text.count('entry: '), len(plan))
         self.assertIn('a different entry', text)
+
+
+class WaveScaleTests(unittest.TestCase):
+    """Past a few dozen waves the sectioned form is all chrome; the compact form keeps every task."""
+
+    def _tasks(self, count):
+        return [{'id': f'TASK-{index:03d}', 'title': f'task {index}', 'kind': 'repair', 'priority': 1,
+                 'paths': [f'module_{index}.py'], 'claim_id': f'CLM-{index:03d}'} for index in range(count)]
+
+    def test_a_plan_with_many_waves_renders_without_losing_a_task(self):
+        from eaos.plan import waves, waves_document
+        tasks = self._tasks(83)
+        plan = waves(tasks)
+        text = waves_document(plan, tasks, 'en').render()
+        self.assertLessEqual(text.count('\n'), 140)
+        for task in tasks:
+            self.assertIn(task['id'], text)
+
+    def test_a_small_plan_still_gets_the_readable_sectioned_form(self):
+        from eaos.plan import waves, waves_document
+        tasks = self._tasks(4)
+        text = waves_document(waves(tasks), tasks, 'en').render()
+        self.assertIn('## Wave 1', text)

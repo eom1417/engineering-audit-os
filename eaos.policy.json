@@ -48,6 +48,7 @@
       "eaos/cli.py",
       "eaos/decision_review.py",
       "eaos/evaluate.py",
+      "eaos/pipeline/**",
       "eaos/product_review.py",
       "eaos/views.py"
     ],

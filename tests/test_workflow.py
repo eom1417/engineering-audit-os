@@ -48,7 +48,7 @@ class WorkflowTests(unittest.TestCase):
     def test_single_entrypoint_read_only_and_no_script_execution(self):
         out=self.base/'single-entry'
         before={p.name:p.read_bytes() for p in self.target.iterdir()}
-        self.assertEqual(self.call('audit',str(self.target),'--out',str(out)),0)
+        self.assertEqual(self.call('legacy-audit',str(self.target),'--out',str(out)),0)
         self.assertEqual(workflow.status(out)['stage'],'SCOPE')
         self.assertEqual(before,{p.name:p.read_bytes() for p in self.target.iterdir()})
         self.assertEqual(cli.read(out/'architecture.json')['nodes'],[])
@@ -162,7 +162,7 @@ class DiscoveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             base=Path(folder);target=base/'product';target.mkdir();run=base/'run'
             for name,content in {'bad.py':'def broken(', 'main.go':'package main', '.env':'SECRET=NEVER_COPY','package.json':'{}','route.ts':"import './x';"}.items():(target/name).write_text(content)
-            with contextlib.redirect_stdout(io.StringIO()):self.assertEqual(cli.main(['audit',str(target),'--out',str(run)]),0)
+            with contextlib.redirect_stdout(io.StringIO()):self.assertEqual(cli.main(['legacy-audit',str(target),'--out',str(run)]),0)
             rows={r['path']:r for r in cli.read(run/'discovery.json')['files']}
             self.assertEqual(rows['bad.py']['parse_status'],'BLOCKED')
             self.assertEqual(rows['main.go']['parse_status'],'UNSUPPORTED')

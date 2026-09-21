@@ -37,6 +37,27 @@ def ordered(selected):
     return names
 
 
+def collect_external(target, out, source, only=None):
+    """Run the pinned external engines over the same snapshot and persist their fact set.
+
+    One implementation, two callers: `collect(..., engines=...)` for the single-shot command, and
+    the pipeline's own engines stage, so neither can drift from the other.
+    """
+    result = external.run(target, source, out=out, only=only)
+    return write_set(out, 'external', external.NAME, external.VERSION, result['facts'], result['input_sha'],
+                     external.LIMITATIONS, result['summary'], result['available'], result['reason'])
+
+
+def add_to_index(out, target, entry):
+    """Fold a set produced outside the main sweep into the index, replacing any earlier copy."""
+    from .store import facts_dir
+    import json as _json
+    path = facts_dir(out) / 'index.json'
+    existing = _json.loads(path.read_text(encoding='utf-8'))['sets'] if path.is_file() else []
+    keep = [row for row in existing if row['set'] != entry['set']]
+    return write_index(out, target, keep + [entry])
+
+
 def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_bytes=2_000_000, source=None,
             exclude=(), engines=None):
     target = Path(target).resolve()
@@ -73,12 +94,7 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
         entries.append(write_set(out, name, module.NAME, module.VERSION, result['facts'], result['input_sha'],
                                  module.LIMITATIONS, result['summary'], result['available'], result['reason']))
     if engines is not None:
-        names.append('external')
-        result = external.run(target, source, out=out, only=engines or None)
-        produced['external'] = result['facts']
-        entries.append(write_set(out, 'external', external.NAME, external.VERSION, result['facts'],
-                                 result['input_sha'], external.LIMITATIONS, result['summary'],
-                                 result['available'], result['reason']))
+        entries.append(collect_external(target, out, source, only=engines or None))
     cache_path.write_text(json.dumps(cache, ensure_ascii=False), encoding='utf-8')
     index = write_index(out, target, entries)
     return {'target': str(target), 'out': str(out), 'fingerprint': source.fingerprint, 'sets': index['sets'],
