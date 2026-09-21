@@ -1,0 +1,457 @@
+{
+  "schema_version": 1,
+  "extracted_at_commit": "f0858cc",
+  "invariants": [
+    {
+      "id": "INV-def1ea7c0e",
+      "file": "eaos/acceptance.py",
+      "symbol": "<module>",
+      "statement": "Stored commands never authorize themselves.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_probes_and_verify.py::ProbeTests::test_execution_probes_are_blocked_unless_explicitly_allowed",
+      "note": ""
+    },
+    {
+      "id": "INV-eace136354",
+      "file": "eaos/ask.py",
+      "symbol": "<module>",
+      "statement": "It never writes prose about code it has not indexed, so an empty answer is a real answer: the records do not cover the question yet.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_delta_ask_site.py::AskTests::test_a_real_question_is_answered_with_locations",
+      "note": ""
+    },
+    {
+      "id": "INV-faac8b9fcc",
+      "file": "eaos/canonical_home.py",
+      "symbol": "<module>",
+      "statement": "Three properties a candidate must have: reachable every duplicate site can import the canonical home without new violations acyclic placing the home here does not create a cycle in_layer the candidate must belong to a layer the project's policy allows",
+      "kind": "invariant",
+      "enforced_by": "tests/test_canonical_home.py::CanonicalHomeTests::test_candidates_do_not_introduce_cycles",
+      "note": ""
+    },
+    {
+      "id": "INV-0e5fbf39ed",
+      "file": "eaos/claims.py",
+      "symbol": "errors",
+      "statement": "A claim that cannot be wrong is not an engineering claim.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_claims.py::ClaimLedgerTests::test_a_claim_without_a_falsifier_is_rejected",
+      "note": ""
+    },
+    {
+      "id": "INV-393bad3fda",
+      "file": "eaos/compose/__init__.py",
+      "symbol": "_note",
+      "statement": "Keep the 'showing N of M' line beside its own table, so trimming never loses the real total.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_compose_budget.py::BudgetTrimmingTests::test_a_large_table_is_trimmed_to_the_budget_with_the_real_total_reported",
+      "note": ""
+    },
+    {
+      "id": "INV-5b7af3e98b",
+      "file": "eaos/compose/rules.py",
+      "symbol": "missing_required",
+      "statement": "R13: a required artifact that is absent must be explained by the run manifest, not by silence.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_artifact_contract.py::RuleThirteenTests::test_a_required_artifact_absent_with_no_reason_is_a_violation",
+      "note": ""
+    },
+    {
+      "id": "INV-a57bc61b22",
+      "file": "eaos/compose/rules.py",
+      "symbol": "missing_required",
+      "statement": "With no manifest there was no pipeline run — a single command wrote part of a report — and we cannot call an artifact missing when nothing claimed it would be produced.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_artifact_contract.py::PartialRunTests::test_without_a_manifest_no_artifact_is_declared_missing",
+      "note": ""
+    },
+    {
+      "id": "INV-b6310ed161",
+      "file": "eaos/dossier.py",
+      "symbol": "origin_of",
+      "statement": "Whether a claim is about product code or about test and fixture code; a reader must not confuse them.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_a_claim_about_test_code_is_marked_as_such",
+      "note": ""
+    },
+    {
+      "id": "INV-8e76009ca0",
+      "file": "eaos/engines/__init__.py",
+      "symbol": "<module>",
+      "statement": "A missing engine reduces coverage; it never fails the run.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_engines.py::DegradationTests::test_an_uninstalled_engine_reports_unavailable_rather_than_silence",
+      "note": ""
+    },
+    {
+      "id": "INV-1a0698fc2d",
+      "file": "eaos/engines/__init__.py",
+      "symbol": "<module>",
+      "statement": "Every engine's version is discovered by running it, never assumed, and a version that does not match its pin is reported as such and still recorded — so a reader can tell \"we did not look\" apart from \"we looked and found nothing\".",
+      "kind": "invariant",
+      "enforced_by": "tests/test_engines.py::DegradationTests::test_health_reports_every_adapter_whether_installed_or_not",
+      "note": ""
+    },
+    {
+      "id": "INV-30c763c99a",
+      "file": "eaos/engines/contract.py",
+      "symbol": "<module>",
+      "statement": "It never tells us what is true: we did not implement its rules and cannot vouch for what they decide, so every external finding enters as heuristic evidence and carries the confidence the engine claimed as data, not as authority.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_engines.py::EngineClaimTests::test_corroborated_evidence_becomes_a_likely_claim_capped_at_likely",
+      "note": ""
+    },
+    {
+      "id": "INV-06bea61c36",
+      "file": "eaos/engines/process.py",
+      "symbol": "run",
+      "statement": "Never raises on a bad exit.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_running_a_missing_binary_returns_a_code_rather_than_raising",
+      "note": ""
+    },
+    {
+      "id": "INV-200db9b77b",
+      "file": "eaos/executive.py",
+      "symbol": "<module>",
+      "statement": "The page never invents metrics; every number traces back to a fact or a declared target.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_the_executive_page_cites_only_measured_numbers",
+      "note": ""
+    },
+    {
+      "id": "INV-6687aa4d6f",
+      "file": "eaos/facts/__init__.py",
+      "symbol": "<module>",
+      "statement": "A fact is a reproducible observation, never a model output.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_golden_facts.py::GoldenFactTests::test_every_extractor_matches_its_golden_snapshot",
+      "note": ""
+    },
+    {
+      "id": "INV-6fed6c4354",
+      "file": "eaos/facts/config.py",
+      "symbol": "<module>",
+      "statement": "No value is ever recorded — not from source, not from a .env file, not from a default — so this extractor cannot become a way to copy secrets out of a repository.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_config_metrics.py::ConfigFactTests::test_defaults_are_flagged_without_capturing_the_value",
+      "note": ""
+    },
+    {
+      "id": "INV-e26b7512dc",
+      "file": "eaos/facts/entrypoints.py",
+      "symbol": "<module>",
+      "statement": "A detector reports only what it matched in the text; an unsupported framework becomes a declared gap, never an invented route.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_entrypoints.py::EntryPointTests::test_nothing_is_invented_for_a_project_without_entry_points",
+      "note": ""
+    },
+    {
+      "id": "INV-65b537752b",
+      "file": "eaos/facts/flows.py",
+      "symbol": "<module>",
+      "statement": "A call we cannot resolve is recorded as an explicit gap in the trace, never skipped, so a short flow is visibly short rather than quietly incomplete.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_flows_domain.py::FlowTraceTests::test_an_unresolvable_call_is_recorded_not_skipped",
+      "note": ""
+    },
+    {
+      "id": "INV-cb50a3567d",
+      "file": "eaos/facts/frameworks/__init__.py",
+      "symbol": "<module>",
+      "statement": "Adding a framework means adding one module here, never touching the core.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_a_framework_detector_is_self_contained",
+      "note": ""
+    },
+    {
+      "id": "INV-9f494aaa0c",
+      "file": "eaos/facts/frameworks/__init__.py",
+      "symbol": "<module>",
+      "statement": "A detector must never emit an entry point it has not actually matched in the text; a missed entry point is a declared gap, an invented one is a defect.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_entrypoints.py::EntryPointTests::test_runtime_registered_commands_are_declared_as_gaps_not_hidden",
+      "note": ""
+    },
+    {
+      "id": "INV-53c7c48b24",
+      "file": "eaos/facts/graph.py",
+      "symbol": "<module>",
+      "statement": "It is never a quality score and never an ordering of severity.",
+      "kind": "rationale",
+      "enforced_by": null,
+      "note": "A reading convention, not a behaviour: the code cannot prove that a reader treats the attention order as advice rather than severity. The wording is the guarantee."
+    },
+    {
+      "id": "INV-d6093a880b",
+      "file": "eaos/facts/history.py",
+      "symbol": "prefix_of",
+      "statement": "When the target is a subdirectory of a repository, history must be scoped to that subtree.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_history_of_a_subdirectory_is_scoped_to_it",
+      "note": ""
+    },
+    {
+      "id": "INV-33136841ab",
+      "file": "eaos/facts/metrics.py",
+      "symbol": "<module>",
+      "statement": "Size, branching and duplicated blocks — signals for where to look, never scores of quality.",
+      "kind": "rationale",
+      "enforced_by": null,
+      "note": "Describes how the numbers should be read, not what the extractor does; nothing in the code can be broken to violate it."
+    },
+    {
+      "id": "INV-01f72bf4a5",
+      "file": "eaos/facts/redundancy.py",
+      "symbol": "_exclusive_branches",
+      "statement": "Pairs of statement groups that never both execute: if/elif/else arms and try/except arms.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_two_arms_of_one_branch_are_not_a_repetition",
+      "note": ""
+    },
+    {
+      "id": "INV-19f26f879a",
+      "file": "eaos/facts/redundancy.py",
+      "symbol": "_value_producing_calls",
+      "statement": "Only a computation whose value is stored can be hoisted, so only that is reported — a vocabulary of \"safe\" names could never cover every library.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_redundancy.py::RedundancyFactTests::test_call_independent_of_loop_variable_is_hoistable",
+      "note": ""
+    },
+    {
+      "id": "INV-7695cab977",
+      "file": "eaos/facts/runtime.py",
+      "symbol": "<module>",
+      "statement": "It cannot describe what the code *does* in production: where it runs, who can reach it, what it emits, what it depends on outside the codebase, and how its data shape evolves.",
+      "kind": "rationale",
+      "enforced_by": null,
+      "note": "States the boundary of static analysis in general, not a promise about this extractor."
+    },
+    {
+      "id": "INV-c4f4f55b90",
+      "file": "eaos/facts/runtime.py",
+      "symbol": "<module>",
+      "statement": "Every fact is structural: derived from a parsed manifest, never from running the system.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_runtime.py::RuntimeLimitationsTests::test_runtime_facts_are_static_observations",
+      "note": ""
+    },
+    {
+      "id": "INV-ec8d708876",
+      "file": "eaos/facts/runtime.py",
+      "symbol": "yaml_load",
+      "statement": "We never rely on it for completeness; the parser raises on the rest and we leave it as unparsed in the output.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_unparsed_yaml_is_declared_not_guessed",
+      "note": ""
+    },
+    {
+      "id": "INV-06e987a929",
+      "file": "eaos/facts/runtime.py",
+      "symbol": "_refuse_unsupported",
+      "statement": "Raise on the constructs this reader cannot represent faithfully.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_unparsed_yaml_is_declared_not_guessed",
+      "note": ""
+    },
+    {
+      "id": "INV-2626091d7a",
+      "file": "eaos/facts/source.py",
+      "symbol": "Source",
+      "statement": "One snapshot, read once, shared by all extractors; the target is never written to.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_cli.py::AuditTests::test_no_target_write",
+      "note": ""
+    },
+    {
+      "id": "INV-06b13c6d12",
+      "file": "eaos/facts/structure.py",
+      "symbol": "<module>",
+      "statement": "These facts are the substrate of every redundancy detector that follows: a duplicate call must sit inside a function, a hoistable call must sit inside a loop, a pass-through layer must have a body that is one call, and a call sequence must come from an ordered list of call sites.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_structure.py::StructureFactTests::test_call_site_carries_its_enclosing_symbol",
+      "note": ""
+    },
+    {
+      "id": "INV-5af979c1c0",
+      "file": "eaos/facts/structure.py",
+      "symbol": "<module>",
+      "statement": "Without these facts, L3/L4/L5 detection cannot exist at all.",
+      "kind": "rationale",
+      "enforced_by": null,
+      "note": "Explains why the structure facts exist; the dependency itself is enforced by the detectors failing without them."
+    },
+    {
+      "id": "INV-9595f1d29a",
+      "file": "eaos/facts/syntax.py",
+      "symbol": "<module>",
+      "statement": "Other languages use tree-sitter when the optional extra is installed; without it they are reported as unparsed rather than guessed at, and a file we cannot parse stays visible in the denominator.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_syntax.py::SyntaxFactTests::test_parser_absence_is_declared_rather_than_approximated",
+      "note": ""
+    },
+    {
+      "id": "INV-904a0dce25",
+      "file": "eaos/pipeline/report.py",
+      "symbol": "<module>",
+      "statement": "A reader who does not know which stages were absent cannot judge what an empty section means.",
+      "kind": "rationale",
+      "enforced_by": null,
+      "note": "Explains why RUN.md exists; that it lists absences is enforced separately."
+    },
+    {
+      "id": "INV-478b05f50c",
+      "file": "eaos/pipeline/run.py",
+      "symbol": "<module>",
+      "statement": "A stage that never ran leaves a reason, never a gap.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_pipeline_run.py::ExecutionTests::test_a_stage_left_out_of_the_run_says_so",
+      "note": ""
+    },
+    {
+      "id": "INV-66f82f8acf",
+      "file": "eaos/pipeline/run.py",
+      "symbol": "_runners",
+      "statement": "Imported lazily: a pipeline declaration must be readable without importing the whole product.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_the_stage_declaration_imports_nothing_but_the_standard_library",
+      "note": ""
+    },
+    {
+      "id": "INV-84a60556a2",
+      "file": "eaos/pipeline/stages.py",
+      "symbol": "<module>",
+      "statement": "The order used to live inside one function as a sequence of calls, which meant nothing could ask what the pipeline does, skip a step, resume one, or report what never ran.",
+      "kind": "rationale",
+      "enforced_by": null,
+      "note": "History: why the pipeline is data rather than a function. Nothing present can violate a past state."
+    },
+    {
+      "id": "INV-0001f105bc",
+      "file": "eaos/pipeline/stages.py",
+      "symbol": "SkipStage",
+      "statement": "Raised by a runner that cannot apply here — no provider, no policy, no engine installed.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_pipeline_run.py::ExecutionTests::test_a_stage_that_does_not_apply_is_unavailable_with_its_reason",
+      "note": ""
+    },
+    {
+      "id": "INV-7f1c174ed4",
+      "file": "eaos/pipeline/stages.py",
+      "symbol": "dependents",
+      "statement": "Every stage that cannot run once this one has failed.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_pipeline_run.py::ExecutionTests::test_the_dependents_of_a_failed_stage_are_recorded_not_left_blank",
+      "note": ""
+    },
+    {
+      "id": "INV-feaa91c35e",
+      "file": "eaos/plan.py",
+      "symbol": "conflicts",
+      "statement": "Two tasks that touch the same file cannot be executed in the same wave.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_plan.py::WaveTests::test_tasks_touching_the_same_file_never_share_a_wave",
+      "note": ""
+    },
+    {
+      "id": "INV-da137248c8",
+      "file": "eaos/probes.py",
+      "symbol": "_apply_ceiling",
+      "statement": "A claim may declare a confidence it must never exceed, however well its probe runs.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_engines.py::EngineClaimTests::test_a_probe_cannot_raise_an_external_claim_to_confirmed",
+      "note": ""
+    },
+    {
+      "id": "INV-ac084a831e",
+      "file": "eaos/probes.py",
+      "symbol": "_apply_ceiling",
+      "statement": "An external engine asked the same question twice gives the same answer twice; that is repetition, not corroboration, and it must not read as proof.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_engines.py::EngineClaimTests::test_a_probe_cannot_raise_an_external_claim_to_confirmed",
+      "note": ""
+    },
+    {
+      "id": "INV-43cd774844",
+      "file": "eaos/probes.py",
+      "symbol": "constant_sites",
+      "statement": "A text search cannot tell a definition from the same words inside a string literal in a test, and acting on that difference is how a true finding gets wrongly withdrawn.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_probes_and_verify.py::ProbeTests::test_a_mention_inside_a_test_string_cannot_withdraw_a_true_finding",
+      "note": ""
+    },
+    {
+      "id": "INV-aa7dc86b69",
+      "file": "eaos/remediation_patterns.py",
+      "symbol": "<module>",
+      "statement": "A pattern never invents a fix for a claim class it does not know; it says plainly that the change must be designed by hand, and still requires a runnable acceptance criterion.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_plan.py::PatternTests::test_an_unknown_class_says_so_instead_of_inventing_a_fix",
+      "note": ""
+    },
+    {
+      "id": "INV-570f3dae77",
+      "file": "eaos/semantic.py",
+      "symbol": "<module>",
+      "statement": "The model's layer: interpretation on top of facts, never instead of them.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_semantic.py::SemanticTests::test_model_inference_can_never_reach_confirmed",
+      "note": ""
+    },
+    {
+      "id": "INV-2861e4e651",
+      "file": "eaos/surface_records.py",
+      "symbol": "surface_check",
+      "statement": "A file-ledger complements, and never replaces, flow/control coverage.",
+      "kind": "rationale",
+      "enforced_by": null,
+      "note": "States how two coverage views relate, not a check a test can fail."
+    },
+    {
+      "id": "INV-dd7b1d441e",
+      "file": "eaos/sustainability.py",
+      "symbol": "<module>",
+      "statement": "Indicators are computed from facts only, never from the model.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_sustainability.py::SustainabilityLimitationsTests::test_indicators_are_pure_functions_of_facts",
+      "note": ""
+    },
+    {
+      "id": "INV-e4c7004fd6",
+      "file": "eaos/sustainability.py",
+      "symbol": "_read_sets",
+      "statement": "This module kept its own copy and it omitted flows, policy and verification, so P4 reported \"no policy declared\" on a project that declares one and P5 never measured anything.",
+      "kind": "rationale",
+      "enforced_by": null,
+      "note": "History: the duplicate list this module used to keep. The fix is enforced elsewhere by the single fact-set registry."
+    },
+    {
+      "id": "INV-1a9ad27f63",
+      "file": "eaos/sustainability.py",
+      "symbol": "_indicator_verifiable_paths",
+      "statement": "An earlier version divided resolved flows by total flows, so a perfect result read as the worst gap on the dashboard — and it read a summary key that does not exist, so it always returned 1.0.",
+      "kind": "rationale",
+      "enforced_by": null,
+      "note": "History: what an earlier version of the indicator computed."
+    },
+    {
+      "id": "INV-68ea99553c",
+      "file": "eaos/transform_plan.py",
+      "symbol": "_stage_acceptance",
+      "statement": "We never invent arbitrary test commands.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_a_stage_acceptance_command_comes_from_the_project",
+      "note": ""
+    },
+    {
+      "id": "INV-7e3b5ef701",
+      "file": "eaos/workflow.py",
+      "symbol": "<module>",
+      "statement": "Agent-led workflow: deterministic gates and next actions, never an autonomous LLM.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_workflow.py::WorkflowTests::test_single_entrypoint_read_only_and_no_script_execution",
+      "note": ""
+    }
+  ],
+  "limits": "Extraction is lexical: it finds sentences that assert, not every promise a docstring makes. A sentence it misses is still an invariant."
+}

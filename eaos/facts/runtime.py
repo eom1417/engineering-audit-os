@@ -126,12 +126,38 @@ def _migration_files(name):
     return 'migrate' in name or 'migration' in name or name.endswith('0001_initial.py')
 
 
+class UnsupportedYaml(ValueError):
+    """What this reader will not guess at. The caller records the file as unparsed."""
+
+
 def yaml_load(text):
     """A minimal YAML reader for the simple structures we encounter. We never
     rely on it for completeness; the parser raises on the rest and we leave it
     as unparsed in the output."""
     text = re.sub(r'#[^\n]*', '', text)
+    _refuse_unsupported(text)
     return _yaml_reader(text)
+
+
+def _refuse_unsupported(text):
+    """Raise on the constructs this reader cannot represent faithfully.
+
+    Without this it returned a partial answer instead: `a: [unclosed` became the string
+    "[unclosed", and a document with a broken sequence lost its items silently. A parser that
+    guesses turns an unreadable file into fabricated facts, which is worse than no facts.
+    """
+    for number, line in enumerate(text.splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if line[:len(line) - len(line.lstrip())].count('\t'):
+            raise UnsupportedYaml(f'line {number}: tab indentation is not valid YAML')
+        for opener, closer in (('[', ']'), ('{', '}')):
+            if stripped.count(opener) != stripped.count(closer):
+                raise UnsupportedYaml(f'line {number}: unbalanced {opener}{closer} — flow style is '
+                                      f'only read when it closes on its own line')
+        if stripped.startswith(('&', '*', '<<', '!', '|', '>')) or stripped.endswith(('|', '>')):
+            raise UnsupportedYaml(f'line {number}: anchors, tags and block scalars are not read')
 
 
 def _yaml_reader(text, indent=0):

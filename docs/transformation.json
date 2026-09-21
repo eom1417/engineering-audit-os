@@ -73,9 +73,11 @@
     "output_contract_violations": 0,
     "policy_violations": 0,
     "tasks_total": 34,
-    "tasks_done": 12,
+    "tasks_done": 16,
     "milestones_total": 13,
-    "milestones_done": 6
+    "milestones_done": 7,
+    "declared_invariants": 50,
+    "unenforced_invariants": 0
   },
   "milestones": [
     {
@@ -759,7 +761,7 @@
     {
       "id": "M6",
       "title": "الفلسفة تصير اختبارًا أو تُحذف",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "M3"
       ],
@@ -772,7 +774,7 @@
         {
           "id": "M6.T1",
           "title": "استخراج الثوابت المعلنة",
-          "status": "todo",
+          "status": "done",
           "files": [
             "tools/invariants.py",
             "docs/invariants.json",
@@ -830,7 +832,7 @@
         {
           "id": "M6.T2",
           "title": "ربط كل ثابت باختبار يفرضه",
-          "status": "todo",
+          "status": "done",
           "files": [
             "docs/invariants.json",
             "tests/test_invariant_enforcement.py"
@@ -874,7 +876,7 @@
         {
           "id": "M6.T3",
           "title": "سدّ الفجوة: اختبار أو حذف الجملة",
-          "status": "todo",
+          "status": "done",
           "files": [
             "tests/",
             "eaos/"
@@ -919,7 +921,7 @@
         {
           "id": "M6.T4",
           "title": "إدخال الفحص في بوابة العبور",
-          "status": "todo",
+          "status": "done",
           "files": [
             "tools/validate.py",
             "docs/transformation.json"

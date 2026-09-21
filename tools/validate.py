@@ -3,6 +3,7 @@ from fnmatch import fnmatch
 from pathlib import Path
 import json
 import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 R=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(R))
 from eaos.cli import check
@@ -61,6 +62,13 @@ def main():
             for sid in c['source_ids']+c['seed_refs']:
                 if sid not in sources:errors.append('Unknown source '+sid)
     errors+=packaged_errors(R)
-    print(json.dumps({'modules':len(data['modules']),'controls':len(ids),'sources':len(sources),'errors':errors},ensure_ascii=False,indent=2))
+    # An invariant a docstring asserts and no test enforces is an intention, not a guarantee.
+    from invariants import check as invariant_check, extract, load_register, merge
+    register=merge(extract(),load_register())
+    unenforced=invariant_check(register)
+    errors+=unenforced
+    print(json.dumps({'modules':len(data['modules']),'controls':len(ids),'sources':len(sources),
+                      'invariants':len(register['invariants']),'unenforced_invariants':len(unenforced),
+                      'errors':errors},ensure_ascii=False,indent=2))
     return bool(errors)
 if __name__=='__main__':raise SystemExit(main())
