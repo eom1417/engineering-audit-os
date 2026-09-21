@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "035b930",
+  "extracted_at_commit": "fa2db5c",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -63,6 +63,15 @@
       "statement": "With no manifest there was no pipeline run — a single command wrote part of a report — and we cannot call an artifact missing when nothing claimed it would be produced.",
       "kind": "invariant",
       "enforced_by": "tests/test_artifact_contract.py::PartialRunTests::test_without_a_manifest_no_artifact_is_declared_missing",
+      "note": ""
+    },
+    {
+      "id": "INV-45c4c10e6c",
+      "file": "eaos/decision_bridge.py",
+      "symbol": "executable",
+      "statement": "Never raises on a malformed task.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_decision_runtime.py::ExecutabilityTests::test_a_malformed_task_is_refused_rather_than_crashing",
       "note": ""
     },
     {
@@ -288,6 +297,24 @@
       "statement": "Other languages use tree-sitter when the optional extra is installed; without it they are reported as unparsed rather than guessed at, and a file we cannot parse stays visible in the denominator.",
       "kind": "invariant",
       "enforced_by": "tests/test_facts_syntax.py::SyntaxFactTests::test_parser_absence_is_declared_rather_than_approximated",
+      "note": ""
+    },
+    {
+      "id": "INV-c73970a551",
+      "file": "eaos/identity.py",
+      "symbol": "migrate",
+      "statement": "It is never inferred from how alike two statements look.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_identity_migration.py::LookAlikeTests::test_similarity_never_appears_as_a_match_reason",
+      "note": ""
+    },
+    {
+      "id": "INV-794f9e8c41",
+      "file": "eaos/identity.py",
+      "symbol": "similarity",
+      "statement": "Reported for a human to judge, never used to match.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_identity_migration.py::LookAlikeTests::test_similar_wording_is_reported_and_never_merged",
       "note": ""
     },
     {

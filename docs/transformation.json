@@ -59,7 +59,7 @@
   },
   "measured_state": {
     "commit": "c7640dc",
-    "tests": 609,
+    "tests": 650,
     "package_lines": 10921,
     "python_modules": 89,
     "cli_commands": 38,
@@ -73,10 +73,10 @@
     "output_contract_violations": 0,
     "policy_violations": 0,
     "tasks_total": 34,
-    "tasks_done": 23,
+    "tasks_done": 26,
     "milestones_total": 13,
-    "milestones_done": 9,
-    "declared_invariants": 50,
+    "milestones_done": 10,
+    "declared_invariants": 53,
     "unenforced_invariants": 0
   },
   "milestones": [
@@ -1452,7 +1452,7 @@
     {
       "id": "M10",
       "title": "اكتمال عقد القرار ودورة الإثبات",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "M3"
       ],
@@ -1461,7 +1461,7 @@
         {
           "id": "M10.T1",
           "title": "عقد مشترك بين المخطط والمنفذ القديم",
-          "status": "todo",
+          "status": "done",
           "depends_on": [
             "M4.T1"
           ],
@@ -1540,7 +1540,7 @@
         {
           "id": "M10.T2",
           "title": "حفظ نتيجة التحقق وربط إغلاق القضية بالمرشح",
-          "status": "todo",
+          "status": "done",
           "depends_on": [
             "M10.T1"
           ],
@@ -1607,7 +1607,7 @@
         {
           "id": "M10.T3",
           "title": "ثبات الهوية والترحيل عند تغيير الأسماء",
-          "status": "todo",
+          "status": "done",
           "depends_on": [
             "M10.T2"
           ],

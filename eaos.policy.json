@@ -30,8 +30,10 @@
       "eaos/discover.py",
       "eaos/dossier.py",
       "eaos/engines_report.py",
+      "eaos/identity.py",
       "eaos/impact.py",
       "eaos/map.py",
+      "eaos/outcomes.py",
       "eaos/policy.py",
       "eaos/probes.py",
       "eaos/progress.py",
@@ -43,11 +45,12 @@
       "eaos/verify.py"
     ],
     "planning": [
+      "eaos/acceptance.py",
+      "eaos/canonical_home.py",
+      "eaos/decision_bridge.py",
+      "eaos/guarantee.py",
       "eaos/plan.py",
       "eaos/remediation_patterns.py",
-      "eaos/acceptance.py",
-      "eaos/guarantee.py",
-      "eaos/canonical_home.py",
       "eaos/simulator.py",
       "eaos/target_architecture.py",
       "eaos/transform_plan.py"

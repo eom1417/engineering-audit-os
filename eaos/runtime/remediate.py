@@ -131,6 +131,11 @@ def _implement(path,task_id,out,checks_path,provider,budget=96000,max_rounds=8):
     if not readiness['ready']:raise ValueError('Plan has unresolved contract errors or gaps')
     tasks=read(run/'roadmap.json')['tasks'];task=next((t for t in tasks if t['id']==task_id),None)
     if not task or task['kind']!='remediate':raise ValueError('Choose a confirmed remediation task')
+    # One contract for both planners: an investigation, a blocked repair, or a record too old to
+    # interpret is refused here rather than executed on trust.
+    from ..decision_bridge import executable
+    allowed,verdict=executable(task,read(run/'findings.json'),read(run/'gates.json'))
+    if not allowed:raise ValueError('The decision contract refuses this task: '+'; '.join(verdict['refusals']))
     byid={t['id']:t for t in tasks}
     if any(byid[dep]['status']!='verified' for dep in task['depends_on']):raise ValueError('Task prerequisites are not verified')
     config=read(checks_path);check_commands(config,task['required_gate_ids'])
