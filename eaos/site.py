@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import re
 
-ORDER = ['DECISION-BRIEF.md', 'SYSTEM-MAP.md', 'FLOWS.md', 'DOMAIN-AND-DATA.md', 'CONTRACTS.md',
+ORDER = ['PRODUCT-REPORT.md', 'BLOCKERS.md', 'DECISION-BRIEF.md', 'SYSTEM-MAP.md', 'FLOWS.md', 'DOMAIN-AND-DATA.md', 'CONTRACTS.md',
          'COUPLING-ATLAS.md', 'EVOLUTION.md', 'VERIFICATION-MAP.md', 'DELTA.md', 'PROVENANCE.md']
 STYLE = """
 :root{color-scheme:light dark;--line:#8883;--muted:#7a7a7a}
@@ -41,6 +41,18 @@ def cells(line):
     return [cell.strip() for cell in line.strip().strip('|').split('|')]
 
 
+def inline(text):
+    escaped = html.escape(text)
+    def link(match):
+        label, target = match.group(1), html.unescape(match.group(2))
+        if target.startswith('//') or (':' in target and not target.startswith(('https://', 'http://'))):
+            return label
+        if target.endswith('.md') and not target.startswith(('http://', 'https://')):
+            target = '#' + target[:-3].lower()
+        return '<a href="' + html.escape(target, quote=True) + '">' + label + '</a>'
+    return re.sub(r'\[([^\]]+)\]\(([^)]+)\)', link, escaped)
+
+
 def to_html(markdown):
     out, rows, in_table, in_code = [], [], False, False
     lines = markdown.split('\n')
@@ -67,15 +79,15 @@ def to_html(markdown):
             level = len(line) - len(line.lstrip('#'))
             out.append(f'<h{level}>{html.escape(line[level:].strip())}</h{level}>')
         elif line.startswith('> '):
-            out.append(f'<blockquote>{html.escape(line[2:])}</blockquote>')
+            out.append(f'<blockquote>{inline(line[2:])}</blockquote>')
         elif line.startswith('- '):
             items = []
             while index < len(lines) and lines[index].startswith('- '):
-                items.append(f'<li>{html.escape(lines[index][2:])}</li>'); index += 1
+                items.append(f'<li>{inline(lines[index][2:])}</li>'); index += 1
             out.append('<ul>' + ''.join(items) + '</ul>')
             continue
         elif line.strip():
-            out.append(f'<p>{html.escape(line)}</p>')
+            out.append(f'<p>{inline(line)}</p>')
         index += 1
     if in_table: out.append(render_table(rows))
     return '\n'.join(out)
@@ -85,13 +97,15 @@ def render_table(rows):
     if not rows: return ''
     body = [row for row in rows[1:] if not all(re.fullmatch(r'-{2,}', cell or '') for cell in row)]
     head = '<tr>' + ''.join(f'<th>{html.escape(cell)}</th>' for cell in rows[0]) + '</tr>'
-    lines = ''.join('<tr>' + ''.join(f'<td>{html.escape(cell)}</td>' for cell in row) + '</tr>' for row in body)
+    lines = ''.join('<tr>' + ''.join(f'<td>{inline(cell)}</td>' for cell in row) + '</tr>' for row in body)
     return f'<table><thead>{head}</thead><tbody>{lines}</tbody></table>'
 
 
 def build(out, title=None):
     out = Path(out)
     documents = [name for name in ORDER if (out / name).is_file()]
+    documents += [path.relative_to(out).as_posix() for path in sorted((out / 'PLAN').glob('*.md'))]
+    documents += [name for name in ('SEMANTIC.md', 'RISK-REGISTER.md') if (out / name).is_file()]
     if not documents: raise ValueError('No rendered artifacts found; build a dossier first')
     dossier = json.loads((out / 'dossier.json').read_text()) if (out / 'dossier.json').is_file() else {}
     heading = title or (dossier.get('provenance', {}).get('target') or 'Engineering dossier')

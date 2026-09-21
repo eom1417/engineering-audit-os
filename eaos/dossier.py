@@ -86,7 +86,8 @@ def tasks_of(records):
     rows = []
     for task in (records['roadmap'] or {}).get('tasks', []):
         rows.append({'id': task['id'], 'title': task.get('title', ''), 'kind': task.get('kind'),
-                     'status': task.get('status'), 'finding_ids': task.get('finding_ids', []),
+                     'status': task.get('status'), 'readiness': 'needs_revalidation',
+                     'compatibility': {'source': 'legacy', 'missing': ['typed decision', 'revision-bound checks']}, 'finding_ids': task.get('finding_ids', []),
                      'verify_command': task.get('verify_command'), 'files': task.get('files', [])})
     return rows
 
@@ -187,7 +188,7 @@ def brief(target, dossier, language):
     ])
     document.section('ما هذا النظام' if language == 'ar' else 'What this system is')
     document.text(dossier['description'])
-    document.section('أخطر ما وجدناه' if language == 'ar' else 'Most serious findings')
+    document.section('ملاحظات تستحق المراجعة' if language == 'ar' else 'Observations for review')
     ranked = sorted(dossier['claims'], key=lambda c: (-c.get('priority', 0), RANK[c['confidence']], c['id']))
     # Anything with a stated consequence competes for the five slots, whatever its record type.
     top = [c for c in ranked if c['claim_type'] in {'risk', 'cause', 'structure'} or (c.get('impact') or {}).get('scenario')][:5]
@@ -200,8 +201,12 @@ def brief(target, dossier, language):
                      shorten(impact_of(claim, language), 120),
                      f"[{detail_artifact(claim) or 'dossier.json'}]({detail_artifact(claim) or 'dossier.json'})"]
                     for claim in top])
+    from .decisions import decide
+    decisions = [decide(claim) for claim in ranked]
+    document.bullets([('القرارات: ' if language == 'ar' else 'Decisions: ') +
+                      ', '.join(f"{kind}: {sum(d['kind'] == kind for d in decisions)}" for kind in ('repair', 'investigate', 'retain'))])
     document.section('افعل الآن' if language == 'ar' else 'Do now')
-    document.bullets([f"{task['id']} — {task['title']}" for task in dossier['tasks'][:3]] or
+    document.bullets([f"{task['id']} — {task.get('kind', 'legacy')}: {task['title']}" for task in dossier['tasks'][:3]] or
                      [claim['id'] + ' — ' + shorten(statement_of(claim, language), 120)
                       + f" → [{detail_artifact(claim) or 'PLAN/'}]({detail_artifact(claim) or 'PLAN/WAVES.md'})" for claim in top[:3]])
     document.section('لا تفعل (الآن)' if language == 'ar' else 'Do not do (yet)')
@@ -529,11 +534,10 @@ def verification_document(verification, language):
 
 
 def refresh_views(out, language='ar'):
-    """Re-render the derived human artifacts from the ledger.
+    """Re-render the views the ledger owns: the brief, the risk register and the index.
 
-    Any command that changes dossier.json — a probe verdict, a semantic pass, a generated plan —
-    must leave the readable views agreeing with it, or the index tells the reader something the
-    records no longer say.
+    Rebuilding the plan or the product report belongs to eaos.views, one layer up. Doing it here
+    made dossier, plan and product_review import each other in a cycle.
     """
     out = Path(out)
     dossier_path = out / 'dossier.json'
@@ -567,6 +571,9 @@ def refresh_views(out, language='ar'):
     if semantic_ran:
         dossier['questions'] = [question for question in dossier['questions']
                                 if not question['question'].startswith('No semantic review was run')]
+    from .decisions import decide, identity
+    for claim in dossier['claims']: claim.setdefault('uid', identity(claim))
+    dossier['decisions'] = [decide(claim) for claim in dossier['claims']]
     write(dossier_path, dossier)
     (out / BRIEF).write_text(brief(target, dossier, language).render(), encoding='utf-8')
     (out / 'RISK-REGISTER.md').write_text(risk_register(dossier, language).render(), encoding='utf-8')
@@ -577,6 +584,8 @@ def refresh_views(out, language='ar'):
 
 def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
     target, out = Path(target).resolve(), Path(out).resolve()
+    from .policy import declared_exclusions
+    exclude = sorted({*(exclude or ()), *declared_exclusions(target)})
     map_result, sets = generate(target, out, language, exclude=exclude)
     # A project that declares a policy gets it enforced as part of the dossier, not as a separate step.
     from .policy import FILENAME as POLICY_FILE, check as check_policy
@@ -624,6 +633,9 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
         'claims': rows,
         'questions': questions_of(records, sets),
         'tasks': tasks_of(records),
+        'legacy_tasks': tasks_of(records),
+        'compatibility': {'source': 'legacy' if run else 'native',
+                          'legacy_tasks_require_revalidation': bool(tasks_of(records))},
         'do_not': ['لا تعتمد هذا المخرج كمراجعة أمنية أو شهادة جاهزية إنتاج.',
                    'لا تقرأ ترتيب الانتباه كترتيب خطورة؛ هو اصطلاح معلن للأولوية في القراءة.',
                    'لا تعتبر غياب نتيجة دليلًا على سلامة؛ الغياب يعني عدم الفحص ما لم يُصرَّح ببحث عن الغياب.']
@@ -635,6 +647,9 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
                              'VERIFICATION-MAP.md', 'RISK-REGISTER.md', 'README.md', 'ONBOARDING.md', *ARTIFACTS]
                             + (['POLICY.md'] if (target / 'eaos.policy.json').is_file() else [])),
     }
+    from .decisions import decide, identity
+    for claim in dossier['claims']: claim.setdefault('uid', identity(claim))
+    dossier['decisions'] = [decide(claim) for claim in dossier['claims']]
     write(out / 'dossier.json', dossier)
     (out / BRIEF).write_text(brief(str(target), dossier, language).render(), encoding='utf-8')
     for name, builder in [('FLOWS.md', flows_document), ('DOMAIN-AND-DATA.md', domain_document), ('CONTRACTS.md', contracts_document)]:

@@ -11,11 +11,11 @@
     "A handler name is the nearest symbol in the same file; indirection through wrappers is not followed."
   ],
   "summary": {
-    "entry_points": 9,
-    "production_entry_points": 9,
+    "entry_points": 10,
+    "production_entry_points": 10,
     "test_only_entry_points": 0,
     "by_surface": {
-      "cli": 4,
+      "cli": 5,
       "http": 4,
       "job": 1
     },
@@ -24,7 +24,8 @@
       "celery": 1,
       "express_like": 3,
       "go_http": 1,
-      "npm_script": 2
+      "npm_script": 2,
+      "python_script": 1
     },
     "languages_with_detections": [
       "go",
@@ -36,6 +37,35 @@
     "interpretation": "Detected invocation surfaces. Absence of a route here means no detector matched, not that the system cannot be invoked that way."
   },
   "facts": [
+    {
+      "id": "FACT-c8bf485a14103a71",
+      "kind": "entry_point",
+      "extractor": "entrypoints",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 21,
+        "symbol": "main"
+      },
+      "value": {
+        "surface": "cli",
+        "route": "cli",
+        "http_method": null,
+        "handler": "main",
+        "framework": "python_script",
+        "language": "python",
+        "category": "source",
+        "note": null
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
+        "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
+        "A detected route says nothing about who may call it; authentication and authorisation need their own evidence.",
+        "A handler name is the nearest symbol in the same file; indirection through wrappers is not followed."
+      ]
+    },
     {
       "id": "FACT-0e40afe3fe59dc01",
       "kind": "entry_point",

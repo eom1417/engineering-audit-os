@@ -11,6 +11,9 @@ PAIR = re.compile(r'\(\s*[\'"](?P<name>[^\'"]+)[\'"]\s*,\s*(?P<handler>[A-Za-z_]
 DYNAMIC = re.compile(r'add_parser\(\s*(?P<expr>[A-Za-z_][\w.\[\]]*)\s*[,)]', re.M)
 CLICK = re.compile(r'^\s*@(?:click|typer|app)\.(?:command|group)\((?:\s*(?P<quote>[\'"])(?P<name>[^\'"]*)(?P=quote))?', re.M)
 PARSER = re.compile(r'ArgumentParser\(\s*(?:prog\s*=\s*(?P<quote>[\'"])(?P<prog>[^\'"]+)(?P=quote))?')
+# A script guarded by __main__ is an invocation surface; without it the file looks unreachable.
+MAIN_GUARD = re.compile(r'^if\s+__name__\s*==\s*[\'"]__main__[\'"]\s*:(?P<body>(?:\n[ \t]+.*)*)', re.M)
+CALLED = re.compile(r'([A-Za-z_]\w*)\s*\(')
 
 
 def bound_handler(text, position, window=700):
@@ -48,6 +51,13 @@ def detect(context):
         # A command name computed at runtime is a visible gap, not a silent omission.
         found.append({'surface': 'cli', 'route': None, 'http_method': None, 'handler': context.symbol_at(line),
                       'framework': 'argparse_dynamic', 'line': line, 'note': 'Command name is built at runtime from ' + match.group('expr')})
+    for match in MAIN_GUARD.finditer(context.text):
+        line = context.line_of(match.start())
+        called = CALLED.findall(match.group('body') or '')
+        handler = next((name for name in called if name not in {'SystemExit', 'exit', 'print'}), None)
+        found.append({'surface': 'cli', 'route': context.rel.rsplit('/', 1)[-1].removesuffix('.py'),
+                      'http_method': None, 'handler': handler or context.symbol_at(line),
+                      'framework': 'python_script', 'line': line})
     for match in CLICK.finditer(context.text):
         line = context.line_of(match.start())
         handler = context.symbol_after(line)

@@ -96,3 +96,44 @@ class PolicyTests(unittest.TestCase):
             collect(root, out, SETS)
             result = check(root, out)
             self.assertEqual(result['status'], 'OK', 'the project must obey the layering it declares')
+
+
+class DeclaredExclusionTests(unittest.TestCase):
+    """What counts as the system under review is the project's decision, declared in its policy."""
+
+    def repo_with(self, root, exclude):
+        repo = Path(root) / 'repo'; (repo / 'samples').mkdir(parents=True)
+        (repo / 'app.py').write_text('RATE = 0.1\n\n\ndef total(x):\n    return x * RATE\n')
+        (repo / 'samples/copy.py').write_text('RATE = 0.1\n\n\ndef total(x):\n    return x * RATE\n')
+        policy = {'schema_version': 1, 'layers': {'app': ['app.py']}, 'rules': []}
+        if exclude is not None: policy['analysis'] = {'exclude': exclude}
+        (repo / 'eaos.policy.json').write_text(json.dumps(policy))
+        return repo
+
+    def test_declared_exclusions_are_honoured_without_a_flag(self):
+        from eaos.dossier import assemble
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = self.repo_with(tmp, ['samples'])
+            assemble(repo, Path(tmp) / 'out')
+            dossier = json.loads((Path(tmp) / 'out/dossier.json').read_text())
+            self.assertIn('samples', dossier['provenance']['excluded_patterns'])
+            self.assertEqual([c for c in dossier['claims'] if 'RATE' in c['statement']], [])
+
+    def test_without_a_declaration_nothing_is_excluded_silently(self):
+        from eaos.dossier import assemble
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = self.repo_with(tmp, None)
+            assemble(repo, Path(tmp) / 'out')
+            dossier = json.loads((Path(tmp) / 'out/dossier.json').read_text())
+            self.assertEqual(dossier['provenance']['excluded_patterns'], [])
+            self.assertTrue([c for c in dossier['claims'] if 'RATE' in c['statement']])
+
+    def test_a_malformed_exclusion_list_is_rejected(self):
+        from eaos.policy import declared_exclusions
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = self.repo_with(tmp, None)
+            policy = json.loads((repo / 'eaos.policy.json').read_text())
+            policy['analysis'] = {'exclude': 'tests'}
+            (repo / 'eaos.policy.json').write_text(json.dumps(policy))
+            with self.assertRaisesRegex(ValueError, 'analysis.exclude'):
+                declared_exclusions(repo)

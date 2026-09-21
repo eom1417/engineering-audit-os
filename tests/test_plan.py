@@ -45,12 +45,13 @@ class TaskCardTests(unittest.TestCase):
             nothing = next(option for option in task['options'] if option['option'] == 'لا نفعل شيئًا')
             self.assertTrue(nothing['verdict'])
 
-    def test_acceptance_is_runnable_and_derived_from_the_probe(self):
+    def test_observation_only_card_requires_review_not_a_fake_check(self):
         task = next(task for task in self.plan['tasks'] if task['pattern'] == 'duplicated_rule')
         commands = ' '.join(step['command'] for step in task['acceptance'])
-        self.assertIn('eaos probe', commands)
+        self.assertIn('human review', commands)
         self.assertIn(task['claim_id'], ' '.join(step['expect'] for step in task['acceptance']))
-        self.assertTrue(task['verify_command'])
+        self.assertEqual(task['verify_command'], [])
+        self.assertEqual(task['kind'], 'investigate')
 
     def test_blast_radius_comes_from_facts_not_prose(self):
         task = next(task for task in self.plan['tasks'] if 'core/pricing.py' in task['paths'])
@@ -59,7 +60,7 @@ class TaskCardTests(unittest.TestCase):
 
     def test_effort_states_its_own_confidence(self):
         for task in self.plan['tasks']:
-            self.assertIn(task['effort'], {'صغير', 'متوسط', 'كبير'})
+            self.assertEqual(task['effort'], 'unknown')
             self.assertTrue(task['effort_confidence'])
 
     def test_the_output_contract_accepts_the_generated_plan(self):
@@ -196,3 +197,19 @@ class HypothesisTaskTests(unittest.TestCase):
             self.assertIn('أثبت هذا الادعاء أو انقضه', investigation['change'])
             self.assertIn('CONFIRMED or REFUTED', ' '.join(step['expect'] for step in investigation['acceptance']))
             self.assertIn('لا تغيير في الكود', investigation['rollback'])
+
+    def test_a_card_with_no_named_file_says_so_instead_of_an_empty_radius(self):
+        from eaos import claims as ledger
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            assemble(FIXTURE, out)
+            dossier = json.loads((out / 'dossier.json').read_text())
+            wide = ledger.make(902, 'Two products share one command line and the docs cover only one',
+                               'structure', 'HYPOTHESIS', ['model_inference'], ['SRC-1'],
+                               'A document stating which path serves which need', origin='source')
+            dossier['claims'].append(wide)
+            (out / 'dossier.json').write_text(json.dumps(dossier, ensure_ascii=False))
+            build(FIXTURE, out)
+            card = next(path.read_text() for path in (out / 'PLAN').glob('TASK-*.md')
+                        if 'Two products share one command line' in path.read_text())
+            self.assertIn('لا يشير إلى ملف بعينه', card)

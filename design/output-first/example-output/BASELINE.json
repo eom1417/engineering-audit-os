@@ -1,0 +1,70 @@
+{
+  "artifact_role": "reference_output_example_not_automatically_generated_plan",
+  "executed_at": "2026-09-21T07:44:33.785727+00:00",
+  "argv": [
+    "python3",
+    "/workspace/engineering-audit-os/design/output-first/example-output/check_acceptance.py",
+    "/workspace/engineering-audit-os/examples/benchmark/coupled-billing"
+  ],
+  "cwd": "/tmp",
+  "exit_code": 1,
+  "interpretation": "expected_failure: synthetic premium quote is 95 instead of required 90",
+  "source_files_sha256": {
+    "README.md": "8428238f965d6e06027b24a51ed68a02e968d9397f19e2e219f6852fcd732938",
+    "app.py": "23e6a401123f2739e85bc0808ef21851f8e10e754861101075c9e3b2efc6ea98",
+    "export.py": "d5bd03868917c34702af29f0df8e97ec4f35c94c3aa89c37a393e406607649fd",
+    "tests/test_pricing.py": "03f517d0ee43f3b4348e6e3197ea8b15f515db8774bfd9102f05036f468bf213"
+  },
+  "target_unchanged": true,
+  "result": {
+    "status": "fail",
+    "invariant": "EX-PRICE-01",
+    "observations": [
+      {
+        "entry": "quote",
+        "input": {
+          "amount": 100,
+          "premium": false
+        },
+        "expected": 100.0,
+        "actual": 100.0,
+        "pass": true
+      },
+      {
+        "entry": "exported_total",
+        "input": {
+          "amount": 100,
+          "premium": false
+        },
+        "expected": 100.0,
+        "actual": 100.0,
+        "pass": true
+      },
+      {
+        "entry": "quote",
+        "input": {
+          "amount": 100,
+          "premium": true
+        },
+        "expected": 90.0,
+        "actual": 95.0,
+        "pass": false
+      },
+      {
+        "entry": "exported_total",
+        "input": {
+          "amount": 100,
+          "premium": true
+        },
+        "expected": 90.0,
+        "actual": 90.0,
+        "pass": true
+      }
+    ]
+  },
+  "limits": [
+    "Only the four named input/entry cases were executed.",
+    "Source is a deliberately defective benchmark fixture, not a production EAOS business function.",
+    "Post-change check has not run; fixture has not been repaired."
+  ]
+}

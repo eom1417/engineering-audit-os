@@ -109,3 +109,13 @@ python -m unittest discover -s tests -v
 راجع `VALIDATION.md` للأدلة الفعلية و`ACCEPTANCE.md` لحدود الاستنتاج. اختبارات المحرك تستخدم مزودًا تجريبيًا مبرمجًا وخادم HTTP محليًا؛ ليست تقييمًا حيًا لنموذج خارجي. المراجعة الذاتية المنفذة بواسطة الوكيل موثقة بنتائج واختبارات فاشلة قبل الإصلاح وناجحة بعده.
 
 لا يعني COMPLETE ضمان اكتشاف جميع الأخطاء أو الجاهزية للإنتاج. النطاق غير المتاح يظهر صراحة. لم يتم نشر هذا المستودع أو package خارجيًا ضمن التسليم المحلي. تشغيل المصادر والفيديوهات موثق في research؛ قرئت التفريغات الآلية الثلاثة، ولا تُدّعى مشاهدة مرئية متصلة أو مراجعة مستقلة لمستودعات الفيديوهات.
+
+## Output-first project review (development preview)
+
+```bash
+eaos review-project /path/to/repository --out /path/outside/repository --goal evolution --lang ar
+```
+
+Generates `PRODUCT-REPORT.md`, a typed decision ledger, investigation/repair cards and a browsable `index.html`. Without `--provider`, the result is explicitly facts-only. Confirmed structural observations do not automatically authorize repairs. `decision-review` records sourced engineering judgments; `acceptance` runs explicitly authorized checks bound to a candidate fingerprint. Disappearing observations are unobserved, not automatically repaired.
+
+See [implementation status and remaining release gates](design/output-first/IMPLEMENTATION-STATUS.md). This is a development preview; live-model and independent usefulness evaluation remain outstanding.

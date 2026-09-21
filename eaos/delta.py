@@ -6,12 +6,16 @@ from .workspace import read, write
 SEVERE = {'CONFIRMED', 'LIKELY'}
 
 
-def key_of(claim): return (claim['claim_type'], ' '.join(claim['statement'].split()).lower())
+def key_of(claim):
+    return (claim['claim_type'], claim.get('uid') or ' '.join(claim['statement'].split()).lower())
 
 
 def compare(previous, current):
-    before = {key_of(claim): claim for claim in previous.get('claims', [])}
-    after = {key_of(claim): claim for claim in current.get('claims', [])}
+    from collections import Counter
+    duplicates = {key for snapshot in (previous, current)
+                  for key, count in Counter(key_of(claim) for claim in snapshot.get('claims', [])).items() if count > 1}
+    before = {key_of(claim): claim for claim in previous.get('claims', []) if key_of(claim) not in duplicates}
+    after = {key_of(claim): claim for claim in current.get('claims', []) if key_of(claim) not in duplicates}
     appeared = [after[key] for key in sorted(set(after) - set(before), key=lambda k: (k[0], k[1]))]
     resolved = [before[key] for key in sorted(set(before) - set(after), key=lambda k: (k[0], k[1]))]
     changed = []
@@ -34,9 +38,11 @@ def compare(previous, current):
     for name, version in sorted((after_tools.get('extractors') or {}).items()):
         older = (before_tools.get('extractors') or {}).get(name)
         if older != version: toolchain[name] = {'from': older, 'to': version}
-    return {'new_claims': appeared, 'resolved_claims': resolved, 'confidence_changes': changed,
+    return {'ambiguous_identities': sorted(duplicates), 'new_claims': appeared, 'resolved_claims': [], 'unobserved_claims': resolved,
+            'comparison_status': 'scope_changed' if coverage_delta or toolchain or
+            previous.get('provenance', {}).get('excluded_patterns') != current.get('provenance', {}).get('excluded_patterns') else 'comparable', 'confidence_changes': changed,
             'coverage_changes': coverage_delta, 'new_severe_claims': new_severe, 'toolchain_changes': toolchain,
-            'counts': {'new': len(appeared), 'resolved': len(resolved), 'changed': len(changed), 'new_severe': len(new_severe)}}
+            'counts': {'new': len(appeared), 'resolved': 0, 'unobserved': len(resolved), 'changed': len(changed), 'new_severe': len(new_severe)}}
 
 
 def document(result, previous, current, language):
@@ -57,7 +63,7 @@ def document(result, previous, current, language):
               [[claim['id'], claim['statement'][:140], claim['confidence']] for claim in result['new_claims']], limit=20)
     doc.section('ادعاءات لم تعد قائمة' if language == 'ar' else 'Claims no longer present')
     doc.table(['#', 'الادعاء' if language == 'ar' else 'Claim'],
-              [[claim['id'], claim['statement'][:140]] for claim in result['resolved_claims']], limit=20)
+              [[claim['id'], claim['statement'][:140]] for claim in result['unobserved_claims']], limit=20)
     doc.section('تغيّر الثقة' if language == 'ar' else 'Confidence changes')
     doc.table(['#', 'من' if language == 'ar' else 'From', 'إلى' if language == 'ar' else 'To', 'الادعاء' if language == 'ar' else 'Claim'],
               [[row['id'], row['from'], row['to'], row['statement'][:120]] for row in result['confidence_changes']], limit=20)

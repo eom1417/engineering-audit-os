@@ -234,10 +234,38 @@ def verify_command(args):
     return 0
 
 
+def product_review_command(args):
+    from .product_review import run
+    provider = None
+    if args.provider:
+        from .runtime.provider import load_provider
+        provider = load_provider(args.provider)
+    result = run(args.target, args.out, goal=args.goal, language=args.lang, provider=provider, exclude=args.exclude, audit_run=args.audit_run)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 2 if result['output_spec_violations'] else 0
+
+
+def decision_command(args):
+    from .decision_review import apply
+    print(json.dumps(apply(args.out, read(args.review), args.lang), ensure_ascii=False, indent=2))
+    return 0
+
+
+def acceptance_command(args):
+    from .acceptance import run
+    result = run(json.loads(Path(args.check).read_text()), args.target, execute=args.execute, timeout=args.timeout)
+    if args.out: Path(args.out).write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return {'pass': 0, 'fail': 1}.get(result['status'], 2)
+
+
 def semantic_command(args):
     from .runtime.provider import load_provider
     from .semantic import run as run_semantic
-    print(json.dumps(run_semantic(args.target,args.out,load_provider(args.provider),args.max_rounds),ensure_ascii=False,indent=2))
+    from .views import refresh
+    result=run_semantic(args.target,args.out,load_provider(args.provider),args.max_rounds,args.lang)
+    refresh(args.out,args.lang)
+    print(json.dumps(result,ensure_ascii=False,indent=2))
     return 0
 
 
@@ -271,7 +299,10 @@ def impact_report_command(args):
 
 def probe_command(args):
     from .probes import run_all
-    print(json.dumps(run_all(args.target,args.out,args.execute),ensure_ascii=False,indent=2))
+    from .views import refresh
+    result=run_all(args.target,args.out,args.execute)
+    refresh(args.out)
+    print(json.dumps(result,ensure_ascii=False,indent=2))
     return 0
 
 
@@ -328,7 +359,8 @@ def main(argv=None):
     q.set_defaults(func=verify_command)
     q=s.add_parser('semantic',help='Model interpretation over the collected facts; every claim stays a hypothesis until probed')
     q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--provider',required=True)
-    q.add_argument('--max-rounds',type=bounded_int,default=3);q.set_defaults(func=semantic_command)
+    q.add_argument('--max-rounds',type=bounded_int,default=3);q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.set_defaults(func=semantic_command)
     q=s.add_parser('api-diff',help='Compare the public surface of two fact sets and report what breaks a consumer')
     q.add_argument('before');q.add_argument('after');q.add_argument('--lang',choices=['ar','en'],default='ar')
     q.add_argument('--fail-on-breaking',action='store_true');q.set_defaults(func=api_diff_command)
@@ -336,6 +368,18 @@ def main(argv=None):
     q.add_argument('action',choices=['check','init']);q.add_argument('target');q.add_argument('--out',required=True)
     q.add_argument('--policy',default=None);q.add_argument('--lang',choices=['ar','en'],default='ar')
     q.set_defaults(func=policy_command)
+    q=s.add_parser('review-project',help='Generate a project understanding report and evidenced development plan')
+    q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--provider');q.add_argument('--audit-run')
+    q.add_argument('--goal',choices=['onboarding','debugging','evolution','architecture'],default='evolution')
+    q.add_argument('--lang',choices=['ar','en'],default='ar');q.add_argument('--exclude',action='append',default=[])
+    q.set_defaults(func=product_review_command)
+    q=s.add_parser('decision-review',help='Record a sourced engineering review and refresh the plan')
+    q.add_argument('--out',required=True);q.add_argument('--review',required=True)
+    q.add_argument('--lang',choices=['ar','en'],default='ar');q.set_defaults(func=decision_command)
+    q=s.add_parser('acceptance',help='Run an explicitly authorized revision-bound behavioral check')
+    q.add_argument('target');q.add_argument('--check',required=True);q.add_argument('--out')
+    q.add_argument('--execute',action='store_true');q.add_argument('--timeout',type=bounded_int,default=60)
+    q.set_defaults(func=acceptance_command)
     q=s.add_parser('tasks',help='Generate task cards and execution waves from confirmed claims')
     q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--lang',choices=['ar','en'],default='ar')
     q.set_defaults(func=plan_command)

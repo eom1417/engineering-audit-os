@@ -5,6 +5,7 @@ where does this rule live, and does it live in more than one place?
 """
 import ast
 from collections import defaultdict
+from pathlib import PurePosixPath
 import re
 from . import digest, make
 from .source import language_of
@@ -17,6 +18,7 @@ LIMITATIONS = [
     'Table and model detection is pattern-based; an unrecognised ORM is missed, not absent.',
     'Ownership of a rule is not asserted here; that requires semantic review.',
     'A mutable module-level value is a shared-state signal, not proof of a concurrency defect.',
+    'Writes into third-party or standard-library modules are not reported; only modules this snapshot defines.',
 ]
 JS_CONST = re.compile(r'^\s*(?:export\s+)?(?:const|let|var)\s+(?P<name>[A-Z][A-Z0-9_]{2,})\s*=\s*(?P<value>[^;\n]+)', re.M)
 SQL_TABLE = re.compile(r'CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"\[]?(?P<name>[\w.]+)', re.I)
@@ -83,8 +85,12 @@ def python_mutable_globals(text):
     return found
 
 
-def python_external_writes(text):
-    """Assignments into another module's namespace: state written by someone who does not own it."""
+def python_external_writes(text, owned=None):
+    """Assignments into another module's namespace: state written by someone who does not own it.
+
+    Only modules this project owns count. Setting sys.dont_write_bytecode is an idiom, not a
+    violation of somebody's invariant, and flagging it buries the case that matters.
+    """
     try: tree = ast.parse(text)
     except (SyntaxError, ValueError, RecursionError): return []
     modules = set()
@@ -99,6 +105,7 @@ def python_external_writes(text):
         targets = node.targets if isinstance(node, ast.Assign) else [node.target]
         for target in targets:
             if isinstance(target, ast.Attribute) and isinstance(target.value, ast.Name) and target.value.id in modules:
+                if owned is not None and target.value.id not in owned: continue
                 found.append((target.value.id, target.attr, node.lineno))
     return found
 
@@ -124,6 +131,13 @@ def run(target, source, **options):
     constants = defaultdict(list)
     models, tables, migrations = [], [], []
     mutable_globals, external_writes = [], []
+    # A module is "ours" when a file in the snapshot defines it.
+    owned_modules = set()
+    for item in source.readable():
+        parts = PurePosixPath(item['path']).parts
+        if item['path'].endswith('.py'):
+            owned_modules.add(PurePosixPath(item['path']).stem)
+            if len(parts) > 1: owned_modules.add(parts[-2])
     for item in source.readable():
         rel, text = item['path'], source.text(item['path'])
         if text is None: continue
@@ -133,7 +147,7 @@ def run(target, source, **options):
             for name, value, line in python_constants(text): constants[name].append((rel, line, value))
             for name, shape, line, how, where, scope in python_mutable_globals(text):
                 mutable_globals.append((rel, name, shape, line, how, where, scope))
-            for module, attribute, line in python_external_writes(text):
+            for module, attribute, line in python_external_writes(text, owned_modules):
                 external_writes.append((rel, module, attribute, line))
             for match in ORM_MODEL.finditer(text):
                 models.append((match.group('name'), rel, text.count('\n', 0, match.start()) + 1, 'python_class'))

@@ -12,7 +12,9 @@ GAP_MARKERS = ('ما لم يُفحص', 'Not examined')
 
 
 def rendered(out):
-    return {path.name: path.read_text(encoding='utf-8') for path in sorted(Path(out).glob('*.md')) if path.name in HUMAN_ARTIFACTS}
+    paths = [p for p in Path(out).glob('*.md') if p.name in HUMAN_ARTIFACTS or p.name == 'SEMANTIC.md']
+    paths += list((Path(out) / 'PLAN').glob('*.md'))
+    return {p.relative_to(out).as_posix(): p.read_text(encoding='utf-8') for p in sorted(paths)}
 
 
 def validate(out, dossier):
@@ -22,8 +24,8 @@ def validate(out, dossier):
     problems = []
     for name, text in sorted(documents.items()):
         lines = text.count('\n')
-        if lines > BUDGETS[name]:
-            problems.append(f'R2 {name}: {lines} lines exceeds the budget of {BUDGETS[name]}')
+        if lines > BUDGETS.get(name, 200):
+            problems.append(f'R2 {name}: {lines} lines exceeds the budget of {BUDGETS.get(name, 200)}')
         if '```json' in text:
             problems.append(f'R8 {name}: raw record dump in a human artifact')
         for reference in sorted(set(CLAIM_REFERENCE.findall(text))):
@@ -56,7 +58,13 @@ def validate(out, dossier):
             if disposition in (None, 'none_yet'):
                 problems.append(f"R5 {claim['id']}: a live risk needs a task or a documented acceptance")
     for task in dossier.get('tasks', []):
-        if not task.get('verify_command'):
+        if task.get('contract_version') == 1:
+            decision = task.get('decision') or {}
+            if decision.get('kind') not in {'repair', 'investigate', 'retain'}:
+                problems.append(f"R7 {task.get('id', '?')}: missing typed decision")
+            if decision.get('readiness') == 'ready' and (not decision.get('checks') or decision.get('blockers')):
+                problems.append(f"R7 {task.get('id', '?')}: ready task lacks checks or has blockers")
+        elif not task.get('verify_command'):
             problems.append(f"R7 {task.get('id', '?')}: the acceptance criterion is not a runnable command")
     for claim in dossier.get('claims', []):
         if 'priority' in claim and not claim.get('priority_factors'):
@@ -66,7 +74,8 @@ def validate(out, dossier):
         artifacts = claim.get('artifacts') or []
         if len(artifacts) > 1:
             problems.append(f"R4 {claim['id']}: presented in full in more than one artifact ({', '.join(artifacts)})")
-        seen.setdefault(claim.get('statement'), []).append(claim['id'])
+        import json
+        seen.setdefault((claim.get('statement'), json.dumps(claim.get('probe_spec') or {}, sort_keys=True)), []).append(claim['id'])
     for statement, identifiers in sorted(seen.items()):
         if len(identifiers) > 1:
             problems.append('R4 duplicate statement across ' + ', '.join(identifiers))

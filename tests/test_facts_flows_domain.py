@@ -187,3 +187,23 @@ class HotspotTests(unittest.TestCase):
             assemble(repo, out)
             claims = json.loads((out / 'dossier.json').read_text())['claims']
             self.assertEqual([claim for claim in claims if 'branches over' in claim['statement']], [])
+
+    def test_the_worst_offender_stays_visible_when_its_file_is_not_top_ranked(self):
+        """Regression: the most complex function in the project vanished when other modules outranked it."""
+        from eaos.dossier import assemble
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            branches = '\n'.join(f'    if value == {n}:\n        return {n}' for n in range(80))
+            (repo / 'buried.py').write_text(f'def decide(value):\n{branches}\n    return 0\n')
+            # Fifteen small, central modules outrank the complex one on attention.
+            for index in range(15):
+                (repo / f'mod{index}.py').write_text('import buried\n\n\ndef use():\n    return buried.decide(1)\n')
+            (repo / 'main.py').write_text('import argparse\n' + ''.join(f'import mod{i}\n' for i in range(15))
+                                          + '\n\ndef main():\n    argparse.ArgumentParser(prog="x").parse_args()\n'
+                                          + '    return mod0.use()\n')
+            out = Path(tmp) / 'out'
+            assemble(repo, out)
+            claims = json.loads((out / 'dossier.json').read_text())['claims']
+            hotspots = [claim for claim in claims if 'branches over' in claim['statement']]
+            self.assertTrue(hotspots, 'the most branching function must be reported whatever its file rank')
+            self.assertIn('decide', hotspots[0]['statement'])

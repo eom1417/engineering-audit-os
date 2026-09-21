@@ -1,7 +1,7 @@
-"""Turn confirmed claims into work that can be handed over: task cards and ordered waves.
+"""Build reviewable task cards with separate investigation and repair decisions.
 
-The acceptance criterion of a task is the probe that confirmed its claim, inverted: whatever proved
-the problem is what proves it is gone. A task without a runnable criterion is not generated.
+An observed pattern does not establish a violation. Repairs need sourced requirements,
+review and independent acceptance; investigations may conclude no change.
 """
 from pathlib import Path
 from .compose import Document
@@ -16,29 +16,22 @@ ACTIONABLE = {'CONFIRMED', 'LIKELY', 'HYPOTHESIS'}
 
 
 def acceptance_for(claim, target, out):
-    if claim['confidence'] == 'HYPOTHESIS':
-        return [{'command': f'eaos dossier {target} --out {out} && eaos probe {target} --out {out}',
-                 'expect': f"the probe attached to {claim['id']} returns CONFIRMED or REFUTED instead of leaving it a hypothesis"},
-                {'command': 'review the falsifier by hand if no probe can decide it',
-                 'expect': f"a written decision recorded against {claim['id']}: {claim['falsifier'][:120]}"}]
-    """Commands that decide the task, derived from how the claim was proven."""
-    probe = (claim.get('probe_spec') or {}).get('probe_type')
-    commands = [{'command': f'eaos facts {target} --out {out}',
-                 'expect': 'the fact set is rebuilt from the changed source'}]
-    if probe:
-        commands.append({'command': f'eaos dossier {target} --out {out} && eaos probe {target} --out {out}',
-                         'expect': f"the probe for {claim['id']} no longer reports CONFIRMED "
-                                   f"(it was confirmed by: {(claim.get('probe_spec') or {}).get('specification', {}).get('expected', 'the recorded probe')})"})
-    else:
-        commands.append({'command': f'eaos dossier {target} --out {out}',
-                         'expect': f"{claim['id']} is absent from dossier.json, or carries a documented acceptance"})
-    commands.append({'command': 'python -m unittest discover -s tests',
-                     'expect': 'no behavioural regression'})
-    return commands
+    from .decisions import decide
+    decision = decide(claim)
+    if decision['kind'] == 'repair' and decision['checks']:
+        import shlex
+        return [{'command': shlex.join(check['argv']) if check.get('kind') == 'command' else 'human review',
+                 'expect': check.get('expected', '')} for check in decision['checks']]
+    return [{'command': 'human review / مراجعة هندسية',
+             'expect': claim['id'] + ': CONFIRMED or REFUTED concerns the observation only; '
+                       'record requirement evidence and decide repair, retain, or blocked_missing_requirement. ' + claim['falsifier']}]
 
 
 def verify_command_for(claim, target, out):
-    return ['eaos', 'dossier', str(target), '--out', str(out)]
+    from .decisions import decide
+    decision = decide(claim)
+    checks = decision['checks']
+    return next((check['argv'] for check in checks if check.get('kind') == 'command' and check.get('argv')), [])
 
 
 def effort_for(radius, cost_bucket):
@@ -51,7 +44,9 @@ def build_tasks(target, out, dossier, sets):
     tasks, index = [], 0
     for claim in sorted(dossier['claims'], key=lambda row: (-row.get('priority', 0), row['id'])):
         if claim['confidence'] not in ACTIONABLE: continue
-        if (claim.get('disposition') or {}).get('kind') == 'accepted': continue
+        from .decisions import decide
+        decision = decide(claim)
+        if decision['kind'] == 'retain': continue
         index += 1
         paths = claim_paths(claim, {}) or (claim.get('priority_factors') or {}).get('paths', [])
         radius = {'direct_dependents': [], 'transitive_dependents': [], 'flows': [], 'covering_tests': [],
@@ -60,15 +55,18 @@ def build_tasks(target, out, dossier, sets):
             try: radius = assess(out, paths, sets=sets)
             except ValueError: pass
         pattern = pattern_for(claim)
-        unproven = claim['confidence'] == 'HYPOTHESIS'
+        unproven = decision['kind'] == 'investigate'
         cost = (claim.get('priority_factors') or {}).get('cost', {})
         effort, effort_confidence = effort_for(radius['blast_radius'], cost.get('bucket', 'medium'))
         tasks.append({
             'id': 'TASK-%03d' % index, 'claim_id': claim['id'], 'title': claim['statement'][:120],
             'render': claim.get('render'),
-            'kind': 'investigate' if unproven or pattern['name'] == 'hidden_coupling' else 'remediate',
+            'kind': 'investigate' if unproven else 'remediate',
+            'contract_version': 1, 'decision': decision,
+            'prerequisites': [], 'before': (claim.get('assessment') or {}).get('before'),
+            'after': (claim.get('assessment') or {}).get('after'),
             'status': 'planned', 'priority': claim.get('priority', 0),
-            'pattern': 'investigation' if unproven else pattern['name'], 'paths': paths,
+            'pattern': 'investigation' if claim['confidence'] == 'HYPOTHESIS' else pattern['name'], 'paths': paths,
             'origin': claim.get('origin', 'unknown'),
             'impact': (claim.get('impact') or {}).get('scenario', ''),
             'impact_render': claim.get('render'),
@@ -80,16 +78,29 @@ def build_tasks(target, out, dossier, sets):
                              'covering_tests': radius['covering_tests'],
                              'coverage': radius['coverage'], 'change_partners': radius['change_partners'],
                              'total': radius['blast_radius']},
-            'change': ('أثبت هذا الادعاء أو انقضه قبل أي تغيير: ' + claim['falsifier']) if unproven else pattern['change'],
+            'change': ('أثبت هذا الادعاء أو انقضه قبل أي تغيير: ' + claim['falsifier']) if unproven else (claim.get('assessment') or {}).get('proposed_change', pattern['change']),
             'options': ([{'option': 'تشغيل مجسّ يحسم الادعاء', 'cost': 'منخفضة', 'verdict': 'مختار: لا تغيير قبل الحسم'},
                          {'option': 'قبول الادعاء بلا إثبات', 'cost': 'صفر الآن', 'verdict': 'مرفوض: يخالف قاعدة الإسناد'},
                          *pattern['options']] if unproven else pattern['options']),
             'rollback': 'لا تغيير في الكود خلال التحقيق.' if unproven else pattern['rollback'],
             'acceptance': acceptance_for(claim, target, out),
             'verify_command': verify_command_for(claim, target, out),
-            'effort': effort, 'effort_confidence': effort_confidence,
+            'effort': 'unknown', 'effort_confidence': 'Not measured / لم يُقَس',
             'finding_ids': [claim['id']],
         })
+    by_claim = {task['claim_id']: task['id'] for task in tasks}
+    source_claims = {claim['id']: claim for claim in dossier['claims']}
+    for task in tasks:
+        dependencies = (source_claims[task['claim_id']].get('assessment') or {}).get('prerequisites', [])
+        for dependency in dependencies:
+            if dependency.get('claim_id') not in by_claim:
+                raise ValueError('Unknown or non-actionable prerequisite claim')
+            if not dependency.get('reason'): raise ValueError('Prerequisite needs a reason')
+            task['prerequisites'].append({'task_id': by_claim[dependency['claim_id']], 'reason': dependency['reason']})
+    from .decisions import task_errors
+    for task in tasks:
+        errors = task_errors(task)
+        if errors: raise ValueError('Invalid task: ' + '; '.join(errors))
     return tasks
 
 
@@ -104,20 +115,32 @@ def conflicts(tasks):
 
 
 def waves(tasks):
-    """Greedy sequencing: highest priority first, investigations before the changes they inform."""
+    """Causal prerequisites and file conflicts are distinct constraints."""
     graph = conflicts(tasks)
-    ordered = sorted(tasks, key=lambda task: (0 if task['kind'] == 'investigate' else 1, -task['priority'], task['id']))
+    by_id = {task['id']: task for task in tasks}
+    if len(by_id) != len(tasks): raise ValueError('Duplicate task id')
+    dependencies = {}
+    for task in tasks:
+        refs = task.get('prerequisites', [])
+        dependencies[task['id']] = set()
+        for ref in refs:
+            if not isinstance(ref, dict) or not ref.get('reason'): raise ValueError('Prerequisite needs a reason')
+            if ref.get('task_id') not in by_id: raise ValueError('Unknown prerequisite')
+            dependencies[task['id']].add(ref['task_id'])
     placed, result = {}, []
-    for task in ordered:
-        level = 0
-        while any(placed.get(other) == level for other in graph[task['id']]): level += 1
-        placed[task['id']] = level
-        while len(result) <= level: result.append([])
-        result[level].append(task['id'])
-    return [{'wave': number + 1, 'tasks': members,
-             'entry_condition': 'الموجة السابقة اجتازت معايير قبولها' if number else 'ابدأ هنا',
-             'exit_condition': 'كل مهمة في الموجة اجتازت أمر قبولها وسجّلت نتيجته'}
-            for number, members in enumerate(result)]
+    while len(placed) < len(tasks):
+        available = [task for task in tasks if task['id'] not in placed
+                     and dependencies[task['id']] <= set(placed)]
+        if not available: raise ValueError('Causal dependency cycle')
+        available.sort(key=lambda task: (task['kind'] != 'investigate', -task['priority'], task['id']))
+        members = []
+        for task in available:
+            if not graph[task['id']] & set(members): members.append(task['id'])
+        for identifier in members: placed[identifier] = len(result)
+        result.append({'wave': len(result) + 1, 'tasks': members,
+                       'entry_condition': 'Required predecessor decisions accepted; file conflicts serialized.',
+                       'exit_condition': 'Record check outcomes or an evidenced investigation decision.'})
+    return result
 
 
 def capped(items, limit=8):
@@ -143,6 +166,9 @@ def card(task, language):
     document.header([f"الادعاء: {task['claim_id']} · النمط: {task['pattern']} · الأولوية: {task['priority']}{marker}"
                      if language == 'ar' else
                      f"claim: {task['claim_id']} · pattern: {task['pattern']} · priority: {task['priority']}"])
+    decision = task.get('decision', {})
+    document.header([f"{decision.get('kind', 'legacy')} · {decision.get('readiness', 'needs_revalidation')}"])
+    document.bullets(decision.get('blockers', []))
     document.section('المشكلة' if language == 'ar' else 'The problem')
     document.text(title_of(task, language))
     document.text(impact_of({'impact': {'scenario': task['impact']}, 'render': task.get('impact_render')}, language))
@@ -152,6 +178,12 @@ def card(task, language):
                       f"falsifier: {task['evidence']['falsifier']}"])
     document.section('نطاق الأثر' if language == 'ar' else 'Blast radius')
     radius = task['blast_radius']
+    if not task['paths']:
+        document.text('هذا الادعاء يخص المنتج ككل ولا يشير إلى ملف بعينه، فلا نطاق أثر محسوبًا له؛ '
+                      'حدّد الملفات المعنية أثناء التحقيق.' if language == 'ar' else
+                      'This claim is about the product as a whole and names no file, so there is no computed '
+                      'blast radius; identify the affected files during the investigation.')
+        return document
     document.bullets([
         f"الملفات المعنية: {capped(task['paths'])}" if language == 'ar' else f"files: {capped(task['paths'])}",
         f"مستوردون مباشرون ({len(radius['direct_dependents'])}): {capped(radius['direct_dependents'])}",
@@ -164,14 +196,21 @@ def card(task, language):
     document.section('الخيارات' if language == 'ar' else 'Options')
     document.table(['الخيار' if language == 'ar' else 'Option', 'الكلفة' if language == 'ar' else 'Cost',
                     'الحكم' if language == 'ar' else 'Verdict'],
-                   [[option.get('option'), option.get('cost'), option.get('verdict', '')] for option in task['options']])
+                   ([['Investigate the requirement', 'unknown', 'Determine repair or retain'],
+                     ['Keep current design', 'unknown', 'Valid outcome if no violation is established']]
+                    if language == 'en' and task['kind'] == 'investigate' else
+                    [[option.get('option'), option.get('cost'), option.get('verdict', '')] for option in task['options']]))
+    if task.get('before') or task.get('after'):
+        document.section('قبل وبعد' if language == 'ar' else 'Before and after')
+        document.bullets([str(task.get('before')), str(task.get('after'))])
     document.section('التغيير المقترح' if language == 'ar' else 'Proposed change')
-    document.text(task['change'])
+    document.text(('Establish or refute this observation before changing code: ' + task['evidence']['falsifier'])
+                  if language == 'en' and task['kind'] == 'investigate' else task['change'])
     document.section('معيار القبول' if language == 'ar' else 'Acceptance criterion')
     document.table(['الأمر' if language == 'ar' else 'Command', 'المتوقع' if language == 'ar' else 'Expected'],
                    [[step['command'], step['expect']] for step in task['acceptance']])
     document.section('التراجع' if language == 'ar' else 'Rollback')
-    document.text(task['rollback'])
+    document.text('No code changes during investigation.' if language == 'en' and task['kind'] == 'investigate' else task['rollback'])
     document.section('التقدير' if language == 'ar' else 'Effort')
     document.text(f"{task['effort']} · ثقة التقدير: {task['effort_confidence']}" if language == 'ar'
                   else f"{task['effort']} · estimate confidence: {task['effort_confidence']}")
@@ -195,6 +234,26 @@ def waves_document(plan, tasks, language):
     return document
 
 
+def rebuild(out, dossier, language='ar', target=None):
+    """Regenerate the plan from a ledger that changed, without re-reading the target twice."""
+    out = Path(out)
+    sets = load(out)
+    source = Path(target) if target else Path(dossier['provenance']['target'])
+    tasks = build_tasks(source, out, dossier, sets)
+    plan = waves(tasks)
+    directory = out / PLAN_DIR
+    directory.mkdir(parents=True, exist_ok=True)
+    for stale in directory.glob('TASK-*.md'): stale.unlink()
+    for task in tasks:
+        (directory / (task['id'] + '.md')).write_text(card(task, language).render(), encoding='utf-8')
+    (directory / 'WAVES.md').write_text(waves_document(plan, tasks, language).render(), encoding='utf-8')
+    dossier['tasks'], dossier['waves'], dossier['plan_contract_version'] = tasks, plan, 1
+    write(out / 'dossier.json', dossier)
+    write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan,
+                              'decisions': dossier.get('decisions', [])})
+    return len(tasks)
+
+
 def build(target, out, language='ar'):
     target, out = Path(target).resolve(), Path(out).resolve()
     dossier_path = out / 'dossier.json'
@@ -205,16 +264,20 @@ def build(target, out, language='ar'):
     plan = waves(tasks)
     directory = out / PLAN_DIR
     directory.mkdir(parents=True, exist_ok=True)
+    for stale in directory.glob('TASK-*.md'): stale.unlink()
     for task in tasks:
         (directory / (task['id'] + '.md')).write_text(card(task, language).render(), encoding='utf-8')
     (directory / 'WAVES.md').write_text(waves_document(plan, tasks, language).render(), encoding='utf-8')
+    dossier['plan_contract_version'] = 1
     dossier['tasks'] = tasks
     dossier['waves'] = plan
     write(dossier_path, dossier)
-    write(out / 'plan.json', {'tasks': tasks, 'waves': plan})
+    from .decisions import decide
+    write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan,
+                             'decisions': [decide(claim) for claim in dossier['claims']]})
     from .dossier import refresh_views
     refresh_views(out, language)
     return {'target': str(target), 'out': str(out), 'tasks': len(tasks), 'waves': len(plan),
             'cards': [str(directory / (task['id'] + '.md')) for task in tasks],
-            'limits': 'Each task states one runnable acceptance criterion derived from the probe that confirmed its claim. '
+            'limits': 'Repairs require evidenced violations and independent checks. Investigations may conclude no change. '
                       'Effort is an estimate with declared confidence, not a commitment.'}

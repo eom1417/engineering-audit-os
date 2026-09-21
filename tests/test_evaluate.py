@@ -43,7 +43,8 @@ class EvaluationTests(unittest.TestCase):
     def test_scoring_counts_forbidden_claims_as_false_positives(self):
         outcome = score(['X is defined in 2 places'], {'planted': [], 'must_not_claim': ['defined in']})
         self.assertEqual(len(outcome['false_positives']), 1)
-        self.assertEqual(outcome['precision'], 0.0)
+        self.assertIsNone(outcome['precision'])
+        self.assertEqual(outcome['not_adjudicated'], 1)
 
     def test_baseline_only_sees_repeated_constants(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -92,10 +93,10 @@ class EvaluationV2Tests(unittest.TestCase):
         self.assertEqual(row['mode'], 'api_break')
         self.assertEqual(row['framework']['detected'], 1)
 
-    def test_every_generated_card_is_complete_and_runnable(self):
+    def test_investigations_are_complete_but_not_counted_as_executable_repairs(self):
         totals = self.result['totals']
         self.assertEqual(totals['complete_cards'], totals['cards'])
-        self.assertEqual(totals['runnable_acceptance'], totals['cards'])
+        self.assertEqual(totals['runnable_acceptance'], 0)
         self.assertGreater(totals['cards'], 0)
 
     def test_the_clean_project_still_produces_nothing(self):

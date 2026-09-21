@@ -3,7 +3,7 @@
   "extractor": "flows",
   "extractor_version": "1",
   "available": true,
-  "input_sha": "503e282c1a7f888253e2259b49b3542f6019fc9d87d0cf42e609434b2973acf7",
+  "input_sha": "995bff9ff6ee13e46302189b472fd456d2ba458cfa9cdb6d2309c2d3bb660bfc",
   "limitations": [
     "A trace follows statically resolvable calls; dispatch through variables, callbacks or DI is not followed.",
     "Order inside a function is source order, not proof of runtime order or of the branch actually taken.",
@@ -12,12 +12,12 @@
   ],
   "summary": {
     "flows": 6,
-    "entry_points_considered": 6,
+    "entry_points_considered": 7,
     "distinct_handlers": 6,
     "flows_reaching_other_code": 3,
     "flows_stopping_at_the_first_boundary": 3,
     "test_entry_points_excluded": 0,
-    "entry_points_without_traceable_handler": 0,
+    "entry_points_without_traceable_handler": 1,
     "total_steps": 19,
     "unresolved_steps": 0,
     "steps_by_resolution": {
@@ -293,25 +293,25 @@
       ]
     },
     {
-      "id": "FACT-5db74025a9914b57",
+      "id": "FACT-f8b76d431bf03263",
       "kind": "flow",
       "extractor": "flows",
       "extractor_version": "1",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
-        "start_line": 11,
+        "start_line": 21,
         "symbol": "main"
       },
       "value": {
         "flow_id": "FLOW-005",
         "entry": {
           "surface": "cli",
-          "route": "polyglot",
+          "route": "cli",
           "http_method": null,
-          "framework": "argparse",
+          "framework": "python_script",
           "path": "cli.py",
-          "line": 11,
+          "line": 21,
           "handler": "main"
         },
         "handler_found": true,
@@ -403,7 +403,13 @@
         ],
         "environment_reads": [],
         "truncated": false,
-        "also_reached_by": [],
+        "also_reached_by": [
+          {
+            "surface": "cli",
+            "route": "polyglot",
+            "line": 11
+          }
+        ],
         "in_codebase_steps": 0
       },
       "resolution": "RESOLVED",

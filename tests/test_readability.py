@@ -160,3 +160,43 @@ class ViewFreshnessTests(unittest.TestCase):
             self.assertFalse(any(question['question'].startswith('No semantic review was run')
                                  for question in updated['questions']),
                              'a question answered by a later pass must not stay open')
+
+
+class LayeringTests(unittest.TestCase):
+    """The refresh layer must sit above what it rebuilds, or nothing can be changed alone."""
+
+    def test_the_ledger_does_not_depend_on_the_plan_or_the_report(self):
+        import ast
+        root = Path(__file__).resolve().parents[1] / 'eaos'
+        tree = ast.parse((root / 'dossier.py').read_text())
+        imported = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module:
+                imported.add(node.module.lstrip('.'))
+        self.assertFalse(imported & {'plan', 'product_review', 'site', 'views'},
+                         f'dossier must not import the layers that render from it: {imported}')
+
+    def test_refreshing_through_the_top_layer_rebuilds_everything_downstream(self):
+        from eaos.plan import build
+        from eaos.views import refresh
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            assemble(FIXTURE, out)
+            build(FIXTURE, out)
+            summary = refresh(out)
+            self.assertIn('PLAN/', summary['refreshed'])
+            self.assertGreater(summary['tasks'], 0)
+
+    def test_the_package_has_no_import_cycle(self):
+        """A cycle means two modules can no longer be changed, tested or replaced alone."""
+        import tempfile as tf
+        from eaos.facts.run import collect
+        from eaos.facts.store import read_set
+        root = Path(__file__).resolve().parents[1]
+        with tf.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            collect(root, out, ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'graph'],
+                    exclude=['tests/fixtures'])
+            cycles = [fact['value']['members'] for fact in read_set(out, 'graph')['facts']
+                      if fact['kind'] == 'graph_cycle']
+            self.assertEqual(cycles, [], 'the package must stay acyclic')

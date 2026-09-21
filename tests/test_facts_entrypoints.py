@@ -75,3 +75,22 @@ class EntryPointTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             collect(FIXTURE, Path(tmp) / 'a', ['syntax', 'entrypoints']); collect(FIXTURE, Path(tmp) / 'b', ['syntax', 'entrypoints'])
             self.assertEqual((Path(tmp) / 'a/facts/entrypoints.json').read_bytes(), (Path(tmp) / 'b/facts/entrypoints.json').read_bytes())
+
+    def test_a_script_guarded_by_main_is_an_entry_point(self):
+        """A runnable script looked unreachable because its __main__ guard was not a surface."""
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'render.py').write_text('def render():\n    return 1\n\n\nif __name__ == "__main__":\n'
+                                            '    raise SystemExit(render())\n')
+            rows = [f['value'] for f in load(tmp, repo)['facts']]
+            script = next(row for row in rows if row['framework'] == 'python_script')
+            self.assertEqual(script['route'], 'render')
+            self.assertEqual(script['handler'], 'render')
+            self.assertEqual(script['surface'], 'cli')
+
+    def test_a_module_without_a_main_guard_is_not_an_entry_point(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'lib.py').write_text('def helper():\n    return 1\n')
+            self.assertEqual([f for f in load(tmp, repo)['facts']
+                              if f['value']['framework'] == 'python_script'], [])

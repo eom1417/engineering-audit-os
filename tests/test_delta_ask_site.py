@@ -41,16 +41,17 @@ class DeltaTests(unittest.TestCase):
             assemble(repo, Path(tmp) / 'after')
             result = run_delta(Path(tmp) / 'before', Path(tmp) / 'after', fail_on_new_severe=True)
             self.assertEqual(result['status'], 'OK')
-            self.assertEqual(result['counts'], {'new': 0, 'resolved': 0, 'changed': 0, 'new_severe': 0})
+            self.assertEqual(result['counts'], {'new': 0, 'resolved': 0, 'unobserved': 0, 'changed': 0, 'new_severe': 0})
 
-    def test_a_resolved_problem_shows_as_resolved(self):
+    def test_disappearance_is_unobserved_without_behavioral_proof(self):
         with tempfile.TemporaryDirectory() as tmp:
             repo = small_repo(tmp, discount_sites=2)
             assemble(repo, Path(tmp) / 'before')
             (repo / 'checkout.py').write_text('from pricing import PREMIUM_DISCOUNT\n\n\ndef total(x):\n    return x * (1 - PREMIUM_DISCOUNT)\n')
             assemble(repo, Path(tmp) / 'after')
             result = run_delta(Path(tmp) / 'before', Path(tmp) / 'after')
-            self.assertEqual(result['counts']['resolved'], 1)
+            self.assertEqual(result['counts']['resolved'], 0)
+            self.assertEqual(result['counts']['unobserved'], 1)
             self.assertEqual(result['counts']['new'], 0)
 
     def test_cli_exits_nonzero_on_drift(self):

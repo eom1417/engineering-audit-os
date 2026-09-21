@@ -1,0 +1,120 @@
+{
+  "contract_version": "design-draft-1",
+  "executable_by_current_eaos": false,
+  "artifact_role": "reference_specimen",
+  "subject": "Bundled synthetic coupled-billing fixture",
+  "source": {
+    "files_sha256": {
+      "README.md": "8428238f965d6e06027b24a51ed68a02e968d9397f19e2e219f6852fcd732938",
+      "app.py": "23e6a401123f2739e85bc0808ef21851f8e10e754861101075c9e3b2efc6ea98",
+      "export.py": "d5bd03868917c34702af29f0df8e97ec4f35c94c3aa89c37a393e406607649fd",
+      "tests/test_pricing.py": "03f517d0ee43f3b4348e6e3197ea8b15f515db8774bfd9102f05036f468bf213"
+    }
+  },
+  "assessment": {
+    "id": "EX-A-PRICE",
+    "observation_status": "observed",
+    "violation_status": "confirmed_for_declared_fixture_cases",
+    "cause_status": "source_supported",
+    "invariant_id": "EX-PRICE-01",
+    "requirement_source": "examples/benchmark/coupled-billing/README.md",
+    "evidence": [
+      "BASELINE.json",
+      "examples/benchmark/coupled-billing/app.py",
+      "examples/benchmark/coupled-billing/export.py"
+    ],
+    "counter_evidence": "Standard customer behavior already agrees; this fixture intentionally contains the defect.",
+    "scope_limitations": [
+      "Only the four named input/entry cases were executed.",
+      "Source is a deliberately defective benchmark fixture, not a production EAOS business function.",
+      "Post-change check has not run; fixture has not been repaired."
+    ]
+  },
+  "decision": {
+    "kind": "propose_repair",
+    "ready_for": "design_review",
+    "authority": "reference example, no production authorization"
+  },
+  "task": {
+    "uid": "EX-T-PRICE",
+    "kind": "repair",
+    "status": "planned",
+    "prerequisites": [],
+    "planned_paths": [
+      "app.py",
+      "export.py",
+      "rules.py",
+      "tests/test_pricing.py"
+    ],
+    "checks": [
+      {
+        "id": "G-PRICE",
+        "invariant_id": "EX-PRICE-01",
+        "kind": "command",
+        "argv_template": [
+          "python3",
+          "check_acceptance.py",
+          "{trusted_candidate_directory}"
+        ],
+        "cwd": "example-output directory",
+        "prerequisites": [
+          "Trusted Python fixture source",
+          "Python 3.10+ interpreter"
+        ],
+        "expected": {
+          "exit_code": 0,
+          "json.status": "pass",
+          "observations": 4,
+          "each_observation.pass": true
+        },
+        "baseline": {
+          "record": "BASELINE.json",
+          "status": "fail",
+          "exit_code": 1
+        },
+        "post_change": {
+          "status": "not_run"
+        }
+      },
+      {
+        "id": "G-OWNER",
+        "kind": "human_review",
+        "rubric": [
+          "Both entrypoints delegate to one policy function",
+          "Public signatures and rounding behavior preserved"
+        ],
+        "post_change": {
+          "status": "not_run"
+        }
+      },
+      {
+        "id": "G-DELIVERY",
+        "kind": "tree_comparison",
+        "expected": "Applying approved patch reproduces approved candidate source tree",
+        "post_change": {
+          "status": "not_run"
+        }
+      }
+    ]
+  },
+  "investigation_example": {
+    "uid": "EX-I-NAMES",
+    "kind": "investigate",
+    "actual_finding": false,
+    "question": "Do identically named limits represent one invariant or two independent policies?",
+    "allowed_outcomes": [
+      "retain_separate",
+      "create_repair_task",
+      "blocked_missing_requirement"
+    ],
+    "requires_patch": false,
+    "completion_check": {
+      "kind": "human_review",
+      "rubric": [
+        "Meaning and owners documented",
+        "References support the decision",
+        "Missing business requirement remains blocked"
+      ]
+    }
+  }
+}

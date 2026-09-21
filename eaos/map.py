@@ -145,6 +145,8 @@ def evolution(target, sets, language):
 def generate(target, out, language='ar', max_files=100000, max_bytes=2_000_000, exclude=()):
     """Collect facts, render the structural artifacts, and hand the fact sets back to the caller."""
     target, out = Path(target).resolve(), Path(out).resolve()
+    from .policy import declared_exclusions
+    exclude = sorted({*(exclude or ()), *declared_exclusions(target)})
     result = collect(target, out, None, max_files=max_files, max_bytes=max_bytes, exclude=exclude)
     sets = {entry['set']: read_set(out, entry['set']) for entry in result['sets']}
     written = []

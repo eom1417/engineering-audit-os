@@ -1,21 +1,124 @@
 {
   "schema_version": 1,
+  "analysis": {
+    "exclude": [
+      "tests/fixtures"
+    ],
+    "reason": "مستودعات التثبيت ومجموعة القياس بيانات اختبار للأداة، وليست جزءًا من النظام قيد المراجعة"
+  },
   "layers": {
-    "facts": ["eaos/facts/**"],
-    "compose": ["eaos/compose/**"],
-    "runtime": ["eaos/runtime/**"],
-    "core": ["eaos/*.py"],
-    "tools": ["tools/**"],
-    "tests": ["tests/**"]
+    "facts": [
+      "eaos/facts/**"
+    ],
+    "compose": [
+      "eaos/compose/**"
+    ],
+    "runtime": [
+      "eaos/runtime/**"
+    ],
+    "ledger": [
+      "eaos/claims.py",
+      "eaos/dossier.py",
+      "eaos/decisions.py",
+      "eaos/ranking.py",
+      "eaos/impact.py",
+      "eaos/probes.py",
+      "eaos/policy.py",
+      "eaos/apidiff.py",
+      "eaos/delta.py",
+      "eaos/verify.py",
+      "eaos/semantic.py",
+      "eaos/semantic_source.py",
+      "eaos/map.py",
+      "eaos/ask.py",
+      "eaos/site.py"
+    ],
+    "planning": [
+      "eaos/plan.py",
+      "eaos/remediation_patterns.py",
+      "eaos/acceptance.py"
+    ],
+    "orchestration": [
+      "eaos/__main__.py",
+      "eaos/cli.py",
+      "eaos/decision_review.py",
+      "eaos/evaluate.py",
+      "eaos/product_review.py",
+      "eaos/views.py"
+    ],
+    "core": [
+      "eaos/workspace.py",
+      "eaos/discovery.py",
+      "eaos/architecture.py",
+      "eaos/audit_records.py",
+      "eaos/workflow.py",
+      "eaos/sessions.py",
+      "eaos/surface_records.py",
+      "eaos/__init__.py"
+    ],
+    "tools": [
+      "tools/**"
+    ],
+    "tests": [
+      "tests/**"
+    ]
   },
   "rules": [
-    {"deny": {"from": "facts", "to": "runtime"},
-     "reason": "الطبقة الحتمية يجب أن تعمل بلا مسار النموذج؛ اعتمادها عليه يكسر eaos map بلا مزوّد"},
-    {"deny": {"from": "compose", "to": "core"},
-     "reason": "المؤلّف يعرض السجلات فقط ولا يعرف منطق التجميع"},
-    {"deny": {"from": "compose", "to": "facts"},
-     "reason": "العرض لا يستخرج حقائق بنفسه"},
-    {"deny": {"from": "runtime", "to": "tools"},
-     "reason": "أدوات التطوير ليست جزءًا من زمن التشغيل"}
+    {
+      "deny": {
+        "from": "facts",
+        "to": "runtime"
+      },
+      "reason": "الطبقة الحتمية يجب أن تعمل بلا مسار النموذج؛ اعتمادها عليه يكسر eaos map بلا مزوّد"
+    },
+    {
+      "deny": {
+        "from": "facts",
+        "to": "ledger"
+      },
+      "reason": "استخراج الحقائق لا يعرف كيف تُفسَّر أو تُعرض"
+    },
+    {
+      "deny": {
+        "from": "compose",
+        "to": "ledger"
+      },
+      "reason": "المؤلّف يعرض السجلات فقط ولا يعرف منطق التجميع"
+    },
+    {
+      "deny": {
+        "from": "compose",
+        "to": "facts"
+      },
+      "reason": "العرض لا يستخرج حقائق بنفسه"
+    },
+    {
+      "deny": {
+        "from": "ledger",
+        "to": "planning"
+      },
+      "reason": "السجل لا يعتمد على ما يخطط انطلاقًا منه؛ عكس هذا الاتجاه أنتج دورة استيراد فعلية"
+    },
+    {
+      "deny": {
+        "from": "ledger",
+        "to": "orchestration"
+      },
+      "reason": "السجل لا يستدعي طبقة التنسيق التي تستدعيه"
+    },
+    {
+      "deny": {
+        "from": "planning",
+        "to": "orchestration"
+      },
+      "reason": "التخطيط يُستدعى من التنسيق ولا يستدعيه"
+    },
+    {
+      "deny": {
+        "from": "runtime",
+        "to": "tools"
+      },
+      "reason": "أدوات التطوير ليست جزءًا من زمن التشغيل"
+    }
   ]
 }

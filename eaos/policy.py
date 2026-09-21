@@ -20,6 +20,24 @@ LIMITATIONS = [
 ]
 
 
+def declared_exclusions(target, path=None):
+    """Paths the project itself says are not part of the system under review.
+
+    Hardcoding a default (say, anything under tests/fixtures) would be guessing on the project's
+    behalf. Declaring it in the policy keeps the decision with the team and visible in the output.
+    """
+    try:
+        policy, _ = load_policy(target, path)
+    except (ValueError, OSError):
+        return []
+    if not policy: return []
+    analysis = policy.get('analysis') or {}
+    patterns = analysis.get('exclude') or []
+    if not isinstance(patterns, list) or not all(isinstance(item, str) for item in patterns):
+        raise ValueError('analysis.exclude must be an array of path patterns')
+    return [item.strip('/') for item in patterns if item.strip('/')]
+
+
 def load_policy(target, path=None):
     candidate = Path(path) if path else Path(target) / FILENAME
     if not candidate.is_file(): return None, str(candidate)
@@ -27,6 +45,8 @@ def load_policy(target, path=None):
     if policy.get('schema_version') != 1: raise ValueError('Unsupported policy schema_version')
     if not isinstance(policy.get('layers'), dict) or not policy['layers']:
         raise ValueError('A policy needs at least one layer')
+    analysis = policy.get('analysis')
+    if analysis is not None and not isinstance(analysis, dict): raise ValueError('analysis must be an object')
     for rule in policy.get('rules', []):
         if not ({'deny', 'allow_only'} & set(rule)): raise ValueError('Each rule needs deny or allow_only')
         if not rule.get('reason'): raise ValueError('Each rule needs a reason; an unexplained rule cannot be argued with')

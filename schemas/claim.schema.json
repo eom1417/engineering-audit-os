@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://eaos.local/schemas/claim.schema.json",
-  "title": "Claim — an interpretation or judgement, always attributed and falsifiable",
+  "title": "Claim \u2014 an interpretation or judgement, always attributed and falsifiable",
   "description": "Unifies today's findings, architecture assertions, flow statements and risks into one ledger. Rendering is derived from this record; no artifact may state a claim absent here.",
   "type": "object",
   "additionalProperties": false,
@@ -81,7 +81,7 @@
     "falsifier": {
       "type": "string",
       "minLength": 10,
-      "description": "What observation would disprove this claim. Mandatory — a claim nobody can refute is not an engineering claim."
+      "description": "What observation would disprove this claim. Mandatory \u2014 a claim nobody can refute is not an engineering claim."
     },
     "probe_ids": {
       "type": "array",
@@ -195,7 +195,7 @@
     "priority": {
       "type": "number",
       "minimum": 0,
-      "description": "Composite priority: reach × confidence × origin ÷ cost. Never a severity label."
+      "description": "Composite priority: reach \u00d7 confidence \u00d7 origin \u00f7 cost. Never a severity label."
     },
     "priority_factors": {
       "type": "object",
@@ -206,6 +206,66 @@
       "type": "object",
       "additionalProperties": true,
       "description": "A template key and its parameters, so the same claim can be rendered in the reader language without translating machine text."
+    },
+    "uid": {
+      "type": "string"
+    },
+    "assessment": {
+      "type": "object",
+      "properties": {
+        "reviewed_by": {
+          "type": "string"
+        },
+        "violated_invariant": {
+          "type": "string"
+        },
+        "before": {
+          "type": "string"
+        },
+        "after": {
+          "type": "string"
+        },
+        "proposed_change": {
+          "type": "string"
+        },
+        "requirement_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prerequisites": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "claim_id",
+              "reason"
+            ],
+            "properties": {
+              "claim_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
     }
   }
 }

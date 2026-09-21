@@ -9,7 +9,8 @@
     "Two identical values are a duplication signal, not proof that they encode the same rule.",
     "Table and model detection is pattern-based; an unrecognised ORM is missed, not absent.",
     "Ownership of a rule is not asserted here; that requires semantic review.",
-    "A mutable module-level value is a shared-state signal, not proof of a concurrency defect."
+    "A mutable module-level value is a shared-state signal, not proof of a concurrency defect.",
+    "Writes into third-party or standard-library modules are not reported; only modules this snapshot defines."
   ],
   "summary": {
     "constants": 2,
@@ -56,7 +57,8 @@
         "Two identical values are a duplication signal, not proof that they encode the same rule.",
         "Table and model detection is pattern-based; an unrecognised ORM is missed, not absent.",
         "Ownership of a rule is not asserted here; that requires semantic review.",
-        "A mutable module-level value is a shared-state signal, not proof of a concurrency defect."
+        "A mutable module-level value is a shared-state signal, not proof of a concurrency defect.",
+        "Writes into third-party or standard-library modules are not reported; only modules this snapshot defines."
       ]
     },
     {
@@ -95,7 +97,8 @@
         "Two identical values are a duplication signal, not proof that they encode the same rule.",
         "Table and model detection is pattern-based; an unrecognised ORM is missed, not absent.",
         "Ownership of a rule is not asserted here; that requires semantic review.",
-        "A mutable module-level value is a shared-state signal, not proof of a concurrency defect."
+        "A mutable module-level value is a shared-state signal, not proof of a concurrency defect.",
+        "Writes into third-party or standard-library modules are not reported; only modules this snapshot defines."
       ]
     }
   ]

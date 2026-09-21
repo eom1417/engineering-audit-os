@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Engineering decision v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "observation_uid",
+    "kind",
+    "reason",
+    "readiness",
+    "blockers",
+    "checks",
+    "allowed_outcomes"
+  ],
+  "properties": {
+    "contract_version": {
+      "enum": [
+        1
+      ]
+    },
+    "observation_uid": {
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "repair",
+        "investigate",
+        "retain"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "readiness": {
+      "enum": [
+        "ready",
+        "blocked",
+        "needs_review",
+        "no_change"
+      ]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "allowed_outcomes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

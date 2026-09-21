@@ -170,13 +170,21 @@ def from_facts(fact_sets):
     # Maintenance hotspot: complexity that sits where change and dependency already concentrate.
     BRANCH_THRESHOLD, ATTENTION_TOP, MAX_HOTSPOTS = 60, 10, 3
     hotspots = 0
+    # Rank alone is unstable: adding modules pushed the most complex function in the project out of
+    # the top ten and silently dropped the finding. The worst offenders stay visible on their own merit.
+    ranked_symbols = sorted((fact for fact in fact_sets.get('metrics', {}).get('facts', [])
+                             if fact['kind'] == 'metric' and fact['value'].get('scope') != 'file'),
+                            key=lambda fact: -(fact['value'].get('branches') or 0))
+    worst = {fact['id'] for fact in ranked_symbols[:MAX_HOTSPOTS]}
     graph_nodes = {fact['location']['path']: fact['value'] for fact in graph.get('facts', []) if fact['kind'] == 'graph_node'}
     for fact in sorted(fact_sets.get('metrics', {}).get('facts', []),
                        key=lambda f: -(f['value'].get('branches') or 0)):
         if fact['kind'] != 'metric' or fact['value'].get('scope') == 'file': continue
         path, symbol = fact['location']['path'], fact['location'].get('symbol')
         node = graph_nodes.get(path)
-        if not node or (node.get('attention_rank') or 999) > ATTENTION_TOP: continue
+        if not node: continue
+        central = (node.get('attention_rank') or 999) <= ATTENTION_TOP
+        if not central and fact['id'] not in worst: continue
         if (fact['value'].get('branches') or 0) < BRANCH_THRESHOLD: continue
         if hotspots >= MAX_HOTSPOTS: break
         hotspots += 1
@@ -195,8 +203,9 @@ def from_facts(fact_sets):
                                        'specification': {'query': 'metric_threshold', 'path': path, 'symbol': symbol,
                                                          'max_branches': BRANCH_THRESHOLD,
                                                          'expected': 'The symbol still exceeds the declared branch threshold.'}},
-                           impact={'scenario': f'Every change to this path passes through one dense function; '
-                                               f'it is the most concentrated maintenance risk in the module.'}))
+                           impact={'scenario': 'Every change to this path passes through one dense function; '
+                                               'it is the most concentrated maintenance risk in the module.'
+                                               + ('' if central else ' It is among the most branching functions in the project.')}))
     domain_facts = fact_sets.get('domain', {}).get('facts', [])
     for fact in [f for f in domain_facts if f['kind'] == 'mutable_global' and f['value'].get('mutation_scope') == 'function']:
         index += 1
@@ -275,7 +284,8 @@ def merge(claims):
         ['business_rule', 'contract', 'cause', 'risk', 'flow_step', 'responsibility', 'structure', 'capability_gap', 'cost'])}
     grouped = {}
     for claim in claims:
-        key = ' '.join(claim['statement'].split()).lower()
+        key = (' '.join(claim['statement'].split()).lower(),
+               json.dumps(claim.get('probe_spec') or {}, sort_keys=True))
         existing = grouped.get(key)
         if existing is None:
             grouped[key] = dict(claim)
@@ -303,5 +313,7 @@ def renumber(claims):
         row = dict(claim)
         if row['id'] != claim_id(index): row['supersedes'] = sorted(set(row.get('supersedes', []) + [row['id']]))
         row['id'] = claim_id(index)
+        from .decisions import identity
+        row.setdefault('uid', identity(row))
         result.append(row)
     return result

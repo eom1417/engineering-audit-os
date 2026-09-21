@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Break the import cycle the growing package had formed: the ledger no longer rebuilds the plan or the product report. A new `eaos/views.py` sits above them and refreshes everything downstream in one direction, and the product report renderer moves into the composer. The package is acyclic again, with a test that fails if a cycle returns.
+- Express that layering as declared policy: nine layers with seven forbidden directions, each with the reason it exists. Enforcing it immediately caught six real inversions, including the ledger calling the refresh layer that calls it.
+- Let a project declare `analysis.exclude` in its policy. Test corpora and fixtures are the project's own call, not a hardcoded default, and the exclusion is reported in the output. This repository now excludes its benchmark fixtures, and its dossier is about the product again.
+- Report a maintenance hotspot when the function is among the most branching in the project, not only when its file is top-ranked for attention. Adding modules had pushed the single most complex function out of the ranking and silently dropped the finding.
+- Detect a script's `__main__` guard as an entry point, so runnable tools stop looking unreachable.
+- Report cross-module writes only for modules the snapshot defines; setting a standard-library attribute is an idiom, not a violated invariant.
+- Say plainly on a task card when the claim names no file, instead of printing an empty blast radius.
+- Write semantic claims in the reader's language, and refresh the views from the command that changed the ledger rather than from the ledger itself.
+
 - Refresh the derived views whenever the ledger changes. The index reported "tasks 0" next to ten generated cards, and still said no semantic review had run after one had, because the brief, the risk register and the index were written once during assembly and never again. Probing, the semantic pass and plan generation now re-render them.
 
 - A probe now only settles what it can actually settle. A branch-count measurement confirmed a claim about *why* the branches existed; a static check can show that a structure exists but not why, so a claim of cause or responsibility rises to LIKELY at most and the probe is recorded as PARTIAL with the reason.

@@ -44,9 +44,15 @@ def score(statements, truth):
     forbidden = [statement for statement in statements
                  if any(pattern.lower() in statement.lower() for pattern in truth.get('must_not_claim', []))]
     true_positives, false_positives = len(detected), len(forbidden)
-    return {'planted': len(planted), 'detected': true_positives, 'missed': missed, 'false_positives': forbidden,
+    adjudications = truth.get('adjudications', {})
+    judgments = [{'statement': statement, 'verdict': adjudications.get(statement, 'not_adjudicated')} for statement in statements]
+    correct = sum(row['verdict'] == 'correct' for row in judgments)
+    incorrect = sum(row['verdict'] == 'incorrect' for row in judgments)
+    return {'judgments': judgments, 'not_adjudicated': sum(row['verdict'] == 'not_adjudicated' for row in judgments),
+            'adjudicated_precision': round(correct / (correct + incorrect), 3) if correct + incorrect else None,
+            'measurement': 'substring detection only; not semantic accuracy', 'planted': len(planted), 'detected': true_positives, 'missed': missed, 'false_positives': forbidden,
             'recall': round(true_positives / len(planted), 3) if planted else None,
-            'precision': round(true_positives / (true_positives + false_positives), 3) if (true_positives + false_positives) else None}
+            'precision': None}
 
 
 def plan_quality(out, detected_count):
@@ -57,7 +63,7 @@ def plan_quality(out, detected_count):
     complete = [task for task in tasks
                 if task['paths'] is not None and task['options'] and task['acceptance']
                 and task['rollback'] and task['effort'] and task['blast_radius']]
-    runnable = [task for task in tasks if task.get('verify_command')]
+    runnable = [task for task in tasks if task.get('decision', {}).get('readiness') == 'ready' and task.get('verify_command')]
     return {'cards': len(tasks), 'complete_cards': len(complete), 'runnable_acceptance': len(runnable),
             'cards_for_detected': min(len(tasks), detected_count or 0)}
 
