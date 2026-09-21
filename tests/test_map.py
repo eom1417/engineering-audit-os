@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import tempfile
 import unittest
+from shared_fixture import TemporaryWorkspace
 from eaos import cli
 from eaos.map import build
 
@@ -13,7 +14,7 @@ FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
 STAMP = re.compile(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2} UTC')
 
 
-class MapTests(unittest.TestCase):
+class MapTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
@@ -21,8 +22,6 @@ class MapTests(unittest.TestCase):
         cls.result = build(FIXTURE, cls.out)
         cls.system = (cls.out / 'SYSTEM-MAP.md').read_text()
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def test_three_artifacts_are_produced_without_any_model_call(self):
         self.assertEqual(self.result['model_calls'], 0)

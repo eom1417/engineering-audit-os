@@ -7,6 +7,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from shared_fixture import TemporaryWorkspace
 from eaos.facts.run import collect
 from eaos.facts.store import read_set
 
@@ -16,15 +17,13 @@ GOLDEN = ROOT / 'fixtures/golden'
 SETS = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'redundancy', 'runtime', 'entrypoints', 'config', 'metrics', 'domain', 'graph', 'flows']
 
 
-class GoldenFactTests(unittest.TestCase):
+class GoldenFactTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         collect(FIXTURE, Path(cls.tmp.name) / 'out', SETS)
         cls.produced = {name: read_set(Path(cls.tmp.name) / 'out', name) for name in SETS}
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def test_every_extractor_matches_its_golden_snapshot(self):
         for name in SETS:

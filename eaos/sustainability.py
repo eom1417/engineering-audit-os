@@ -25,7 +25,9 @@ LIMITATIONS = [
     'A falsifier is a hint at the kind of evidence that would reject the move; it is not a guard.',
 ]
 
-SHOWN_MOVES = 10
+SHOWN_MOVES = 6
+# Each move lists where it applies; a cluster with sixty sites is a record, not a paragraph.
+SHOWN_SITES = 6
 INDICATORS = ['single_source', 'minimal_path', 'data_owners', 'honest_boundaries',
                'verifiable_paths', 'understandable_units']
 
@@ -224,13 +226,19 @@ def render(out, targets=None, language='ar'):
             if 'rule' in move:
                 lines += [f"- cluster: {move['rule'][:16]}"]
                 lines += ["- " + ('المواضع' if ar else 'sites') + ":"]
-                for occ in move['occurrences']:
+                for occ in move['occurrences'][:SHOWN_SITES]:
                     lines += [f"  - {occ['path']}:{occ['line']} {occ['symbol']}"]
+                if len(move['occurrences']) > SHOWN_SITES:
+                    lines += [f"  - … {len(move['occurrences']) - SHOWN_SITES} "
+                              + ('أخرى في `sustainability.json`' if ar else 'more in `sustainability.json`')]
             if 'kind' in move:
                 lines += [f"- kind: {move['kind']}",
                            "- " + ('المواضع' if ar else 'sites') + ":"]
-                for site in move['sites']:
+                for site in move['sites'][:SHOWN_SITES]:
                     lines += [f"  - {site['path']}:{site['line']} {site['symbol']} ({site['callee']})"]
+                if len(move['sites']) > SHOWN_SITES:
+                    lines += [f"  - … {len(move['sites']) - SHOWN_SITES} "
+                              + ('أخرى في `sustainability.json`' if ar else 'more in `sustainability.json`')]
             if 'predicted' in move:
                 for k, v in move['predicted'].items():
                     lines += [f"- predicted {k}: {v}"]

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from shared_fixture import TemporaryWorkspace
 from eaos import cli
 from eaos.compose.rules import validate
 from eaos.dossier import assemble
@@ -12,7 +13,7 @@ from eaos.dossier import assemble
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
 
 
-class DossierTests(unittest.TestCase):
+class DossierTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
@@ -20,8 +21,6 @@ class DossierTests(unittest.TestCase):
         cls.result = assemble(FIXTURE, cls.out)
         cls.dossier = json.loads((cls.out / 'dossier.json').read_text())
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def test_facts_only_run_produces_a_clean_decision_artifact(self):
         self.assertEqual(self.result['status'], 'READY')

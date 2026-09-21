@@ -4,6 +4,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from shared_fixture import Workspace
 from eaos.audit import run as run_audit
 from eaos.sustainability import compute, DEFAULT_TARGETS
 from eaos.progress import render as render_progress
@@ -11,9 +12,7 @@ from eaos.guarantee import compare as compare_guarantee
 from eaos.executive import render as render_executive
 
 
-class FixVerificationTests(unittest.TestCase):
-    def setUp(self): self.tmp = tempfile.mkdtemp()
-    def tearDown(self): shutil.rmtree(self.tmp, ignore_errors=True)
+class FixVerificationTests(Workspace):
 
     def test_verifiable_paths_target_is_zero(self):
         self.assertEqual(DEFAULT_TARGETS['verifiable_paths'], 0.0)

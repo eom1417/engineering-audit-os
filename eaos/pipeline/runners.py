@@ -12,11 +12,18 @@ POLICY_FILE = 'eaos.policy.json'
 
 def facts(context):
     from ..facts.run import collect
+    from ..facts.scope import declared_exclusions
     from ..facts.source import Source
-    context['source'] = Source(context.target, exclude=context.exclude, max_files=context.max_files, max_bytes=context.max_bytes)
+    # collect() merges the project's declared exclusions, but a Source built before that call has
+    # already walked the tree. Building it here without them analysed 98 fixture files this project
+    # had explicitly put out of scope, and they dominated the sustainability dashboard.
+    context['exclude'] = sorted({*context.exclude, *declared_exclusions(context.target)})
+    context['source'] = Source(context.target, exclude=context['exclude'],
+                               max_files=context.max_files, max_bytes=context.max_bytes)
     context['collected'] = collect(context.target, context.out, None, source=context['source'],
-                                   exclude=context.exclude)
-    return {'facts': context['collected']['facts'], 'sets': len(context['collected']['sets'])}
+                                   exclude=context['exclude'])
+    return {'facts': context['collected']['facts'], 'sets': len(context['collected']['sets']),
+            'exclude': context['exclude']}
 
 
 def engines(context):

@@ -3,21 +3,20 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from shared_fixture import TemporaryWorkspace
 from eaos.facts import syntax
 from eaos.facts.run import collect
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
 
 
-class SyntaxFactTests(unittest.TestCase):
+class SyntaxFactTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         collect(FIXTURE, Path(cls.tmp.name) / 'out', ['syntax'])
         cls.data = json.loads((Path(cls.tmp.name) / 'out/facts/syntax.json').read_text())
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def kind(self, kind): return [f for f in self.data['facts'] if f['kind'] == kind]
 

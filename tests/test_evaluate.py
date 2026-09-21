@@ -3,20 +3,19 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from shared_fixture import TemporaryWorkspace
 from eaos.evaluate import baseline, run, score
 
 CORPUS = Path(__file__).resolve().parent / 'fixtures/benchmarks'
 
 
-class EvaluationTests(unittest.TestCase):
+class EvaluationTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.result = run(CORPUS, Path(cls.tmp.name) / 'out')
         cls.details = json.loads((Path(cls.tmp.name) / 'out/eval.json').read_text())
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def test_every_planted_defect_is_detected(self):
         self.assertEqual(self.result['totals']['detected'], self.result['totals']['planted'])
@@ -57,7 +56,7 @@ class EvaluationTests(unittest.TestCase):
             self.assertIn('RATE', found[0])
 
 
-class EvaluationV2Tests(unittest.TestCase):
+class EvaluationV2Tests(TemporaryWorkspace):
     """Measurement across every claim class the tool claims to detect, plus the plan it produces."""
 
     @classmethod
@@ -66,8 +65,6 @@ class EvaluationV2Tests(unittest.TestCase):
         cls.result = run(CORPUS, Path(cls.tmp.name) / 'out')
         cls.details = json.loads((Path(cls.tmp.name) / 'out/eval.json').read_text())
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def case(self, name): return next(row for row in self.details['cases'] if row['case'] == name)
 

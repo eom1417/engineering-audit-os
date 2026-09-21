@@ -42,13 +42,16 @@ def data_model(out, language='ar'):
         by_framework[model['value']['framework']].append(model)
     for framework in sorted(by_framework):
         rows = by_framework[framework]
-        lines += ['', '## ' + framework, '']
-        for model in rows:
+        lines += ['', '## ' + framework + f' ({len(rows)})', '']
+        for model in rows[:SHOWN_PER_FRAMEWORK]:
             lines += ['- `' + model['value']['name'] + '` @ `' + model['location']['path'] + '`']
+        if len(rows) > SHOWN_PER_FRAMEWORK:
+            lines += ['- ' + (f'… و{len(rows) - SHOWN_PER_FRAMEWORK} أخرى في `facts/runtime.json`' if ar
+                              else f'… and {len(rows) - SHOWN_PER_FRAMEWORK} more in `facts/runtime.json`')]
     migrations = [f for f in sets.get('runtime', {}).get('facts', []) if f['kind'] == 'migration_step']
     if migrations:
-        lines += ['', '## ' + ('الهجرات' if ar else 'Migrations'), '']
-        for migration in migrations:
+        lines += ['', '## ' + ('الهجرات' if ar else 'Migrations') + f' ({len(migrations)})', '']
+        for migration in migrations[:SHOWN_PER_FRAMEWORK]:
             lines += ['- `' + migration['value']['name'] + '` @ `' + migration['location']['path'] + '`']
     return '\n'.join(lines) + '\n'
 
@@ -131,6 +134,9 @@ def integrations(out, language='ar'):
 # renders them from the ledger with claim cross-references and declared budgets. Writing them
 # here too meant the last writer won: 574 lines of measured content were replaced by four empty
 # headings in every full run. This module writes only what it alone derives.
+# A document that grows with the project outgrows its budget on a real one.
+SHOWN_PER_FRAMEWORK = 25
+
 OWNED = ('DATA-MODEL.md', 'DEPLOYMENT.md', 'OBSERVABILITY.md', 'SECURITY-SURFACE.md', 'INTEGRATIONS.md')
 
 

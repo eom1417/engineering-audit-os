@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-21",
+  "method": "eaos audit . --out <dir> --skip site, then acting on the moves it ranked highest",
+  "closed": [
+    {
+      "finding": "seventeen test classes carried the same tearDownClass body",
+      "indicator": "single_source",
+      "before": 0.055,
+      "after": 0.046,
+      "action": "tests/shared_fixture.py::TemporaryWorkspace became the canonical home"
+    },
+    {
+      "finding": "twelve test classes carried the same setUp/tearDown pair",
+      "indicator": "single_source",
+      "before": 0.046,
+      "after": 0.038,
+      "action": "tests/shared_fixture.py::Workspace became the canonical home"
+    },
+    {
+      "finding": "five more test classes still carried their own setUp/tearDown pair",
+      "indicator": "single_source",
+      "before": 0.038,
+      "after": 0.034,
+      "action": "the same canonical home; one class that owns a class-scoped lifetime is allowed and named"
+    }
+  ],
+  "accepted": [
+    {
+      "finding": "six limitation tests share a shape: each asserts that one extractor declares its own limits",
+      "reason": "They are one assertion per extractor, and the whole point is that each extractor states its own. Folding them into one parameterised test would remove the per-extractor guarantee to remove a resemblance. P1 asks for one definition per concept, not for zero repetition."
+    },
+    {
+      "finding": "the remaining minimal_path gap of 0.44",
+      "reason": "Measured, not closed. The redundancy detector reports observations, and turning each into a change needs a reading this loop did not do. Recorded as open rather than silenced."
+    },
+    {
+      "finding": "the AST check for returning copies matched its own source text at first",
+      "reason": "Rewritten to parse rather than grep. Recorded because a checker that matches its own text is the same defect class the probe layer already guards against, and it reappeared in a test rather than in the product."
+    }
+  ],
+  "still_open": {
+    "single_source": 0.034,
+    "minimal_path": 0.44,
+    "verifiable_paths": 0.317,
+    "understandable_units": 11,
+    "data_owners": 0,
+    "honest_boundaries": 0
+  },
+  "limits": "Improving an indicator is evidence the move did what the simulator predicted, not that the codebase is better in any sense a reader would care about."
+}

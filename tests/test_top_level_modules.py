@@ -4,11 +4,12 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from shared_fixture import Workspace
 from eaos import engagement, target_architecture, executive, bundles, progress, guarantee
 from eaos.audit import run as run_audit
 
 
-class EngagementTests(unittest.TestCase):
+class EngagementTests(Workspace):
     def test_default_contract_has_priority_targets_scenarios(self):
         contract = engagement.render_contract()
         self.assertEqual(contract['schema_version'], 1)
@@ -28,9 +29,7 @@ class EngagementTests(unittest.TestCase):
         self.assertEqual(ranked[0]['id'], 'A')
 
 
-class TargetArchitectureTests(unittest.TestCase):
-    def setUp(self): self.tmp = tempfile.mkdtemp()
-    def tearDown(self): shutil.rmtree(self.tmp, ignore_errors=True)
+class TargetArchitectureTests(Workspace):
 
     def test_components_are_per_symbol(self):
         run_audit(Path('tests/fixtures/sustainability'), Path(self.tmp) / 'out', language='en')
@@ -48,9 +47,7 @@ class TargetArchitectureTests(unittest.TestCase):
             self.assertIn(component['id'], covered)
 
 
-class ExecutiveTests(unittest.TestCase):
-    def setUp(self): self.tmp = tempfile.mkdtemp()
-    def tearDown(self): shutil.rmtree(self.tmp, ignore_errors=True)
+class ExecutiveTests(Workspace):
 
     def test_executive_md_is_one_page(self):
         run_audit(Path('tests/fixtures/sustainability'), Path(self.tmp) / 'out', language='en')
@@ -62,9 +59,7 @@ class ExecutiveTests(unittest.TestCase):
         self.assertLess(len(content.splitlines()), 60)
 
 
-class BundlesTests(unittest.TestCase):
-    def setUp(self): self.tmp = tempfile.mkdtemp()
-    def tearDown(self): shutil.rmtree(self.tmp, ignore_errors=True)
+class BundlesTests(Workspace):
 
     def test_five_bundles_are_created(self):
         run_audit(Path('tests/fixtures/sustainability'), Path(self.tmp) / 'out', language='en')
@@ -74,9 +69,7 @@ class BundlesTests(unittest.TestCase):
                             '03-TARGET', '04-TRANSFORM', 'SUMMARY'})
 
 
-class ProgressTests(unittest.TestCase):
-    def setUp(self): self.tmp = tempfile.mkdtemp()
-    def tearDown(self): shutil.rmtree(self.tmp, ignore_errors=True)
+class ProgressTests(Workspace):
 
     def test_progress_reports_per_indicator(self):
         run_audit(Path('tests/fixtures/sustainability'), Path(self.tmp) / 'a', language='en')
@@ -88,9 +81,7 @@ class ProgressTests(unittest.TestCase):
             self.assertIn(row['direction'], {'improved', 'worsened', 'unchanged'})
 
 
-class GuaranteesTests(unittest.TestCase):
-    def setUp(self): self.tmp = tempfile.mkdtemp()
-    def tearDown(self): shutil.rmtree(self.tmp, ignore_errors=True)
+class GuaranteesTests(Workspace):
 
     def test_without_a_recorded_prediction_there_is_nothing_to_grade(self):
         """A verdict with no prediction behind it would be the tool inventing its own accuracy."""

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from shared_fixture import TemporaryWorkspace
 from eaos import cli
 from eaos.ask import answer
 from eaos.delta import run as run_delta
@@ -68,15 +69,13 @@ class DeltaTests(unittest.TestCase):
             self.assertEqual(code, 2)
 
 
-class AskTests(unittest.TestCase):
+class AskTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.out = Path(cls.tmp.name) / 'out'
         assemble(FIXTURE, cls.out)
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def test_a_real_question_is_answered_with_locations(self):
         result = answer(self.out, 'where is the premium discount defined')

@@ -4,6 +4,7 @@ import re
 import shutil
 import tempfile
 import unittest
+from shared_fixture import Workspace
 from pathlib import Path
 
 from eaos.audit import run as run_audit
@@ -69,16 +70,13 @@ class ParityTests(unittest.TestCase):
             self.assertTrue(text.lstrip().startswith('#'), f'{path.name} has no heading')
 
 
-class RecordDrivenTests(unittest.TestCase):
+class RecordDrivenTests(Workspace):
     """A changed record must change the rendering, or the rendering is not reading it."""
 
     def setUp(self):
-        self.directory = tempfile.mkdtemp()
-        self.out = Path(self.directory) / 'out'
+        super().setUp()
+        self.out = Path(self.tmp) / 'out'
         run_audit(FIXTURE, self.out, language='en')
-
-    def tearDown(self):
-        shutil.rmtree(self.directory, ignore_errors=True)
 
     def test_removing_a_task_removes_its_card(self):
         plan = json.loads((self.out / 'plan.json').read_text(encoding='utf-8'))

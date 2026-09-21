@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from shared_fixture import TemporaryWorkspace
 from eaos.facts.run import collect
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
@@ -13,14 +14,12 @@ def run_sets(repo, out, sets):
     return {name: json.loads((Path(out) / f'facts/{name}.json').read_text()) for name in sets if name != 'syntax'}
 
 
-class ConfigFactTests(unittest.TestCase):
+class ConfigFactTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.data = run_sets(FIXTURE, Path(cls.tmp.name) / 'out', ['config'])['config']
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def test_environment_reads_are_found_across_languages(self):
         names = {(f['value']['name'], f['value']['language']) for f in self.data['facts'] if f['kind'] == 'env_read'}

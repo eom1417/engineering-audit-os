@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from shared_fixture import TemporaryWorkspace
 from eaos import cli
 from eaos.dossier import assemble
 from eaos.plan import build, waves
@@ -13,7 +14,7 @@ from eaos.remediation_patterns import classify, pattern_for
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
 
 
-class TaskCardTests(unittest.TestCase):
+class TaskCardTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
@@ -22,8 +23,6 @@ class TaskCardTests(unittest.TestCase):
         cls.result = build(FIXTURE, cls.out)
         cls.plan = json.loads((cls.out / 'plan.json').read_text())
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def test_a_card_exists_for_every_actionable_claim(self):
         dossier = json.loads((self.out / 'dossier.json').read_text())

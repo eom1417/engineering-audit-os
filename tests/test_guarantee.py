@@ -4,16 +4,12 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from shared_fixture import Workspace
 from eaos.audit import run as run_audit
 from eaos.guarantee import compare
 
 
-class GuaranteeTests(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp()
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp, ignore_errors=True)
+class GuaranteeTests(Workspace):
 
     def test_identical_snapshots_produce_honest_results(self):
         a = Path(self.tmp) / 'a'; b = Path(self.tmp) / 'b'
@@ -44,7 +40,7 @@ class GuaranteeTests(unittest.TestCase):
         self.assertIn('Verification guarantee', content)
 
 
-class GuaranteeLimitationsTests(unittest.TestCase):
+class GuaranteeLimitationsTests(Workspace):
     def test_guarantee_does_not_run_runtime_checks(self):
         from eaos import guarantee
         self.assertIn('structural indicator deltas', ' '.join(guarantee.LIMITATIONS))

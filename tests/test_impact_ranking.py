@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from shared_fixture import TemporaryWorkspace
 from eaos import cli
 from eaos.dossier import assemble
 from eaos.impact import assess, load
@@ -13,15 +14,13 @@ from eaos.ranking import rank
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
 
 
-class ImpactTests(unittest.TestCase):
+class ImpactTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.out = Path(cls.tmp.name) / 'out'
         assemble(FIXTURE, cls.out)
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def test_a_shared_module_reports_its_real_dependents(self):
         result = assess(self.out, 'core/pricing.py')

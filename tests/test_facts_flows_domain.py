@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from shared_fixture import TemporaryWorkspace
 from eaos.facts.run import collect
 from eaos.facts.store import read_set
 
@@ -10,7 +11,7 @@ FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
 SETS = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'graph', 'flows']
 
 
-class FlowTraceTests(unittest.TestCase):
+class FlowTraceTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
@@ -18,8 +19,6 @@ class FlowTraceTests(unittest.TestCase):
         cls.flows = {f['value']['flow_id']: f['value'] for f in read_set(Path(cls.tmp.name) / 'out', 'flows')['facts']}
         cls.summary = read_set(Path(cls.tmp.name) / 'out', 'flows')['summary']
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def flow_for(self, route, method=None):
         return next(flow for flow in self.flows.values()
@@ -61,15 +60,13 @@ class FlowTraceTests(unittest.TestCase):
             self.assertEqual(next(step for step in steps if step['callee'] == 'mystery_function')['resolution'], 'unresolved')
 
 
-class DomainFactTests(unittest.TestCase):
+class DomainFactTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         collect(FIXTURE, Path(cls.tmp.name) / 'out', SETS)
         cls.data = read_set(Path(cls.tmp.name) / 'out', 'domain')
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def test_a_rule_constant_duplicated_across_languages_is_found(self):
         fact = next(f for f in self.data['facts'] if f['value'].get('name') == 'PREMIUM_DISCOUNT')

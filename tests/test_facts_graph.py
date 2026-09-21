@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from shared_fixture import TemporaryWorkspace
 from eaos.facts.run import collect
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
@@ -14,15 +15,13 @@ def graph_of(repo, out):
     return json.loads((Path(out) / 'facts/graph.json').read_text())
 
 
-class GraphTests(unittest.TestCase):
+class GraphTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.data = graph_of(FIXTURE, Path(cls.tmp.name) / 'out')
         cls.nodes = {f['location']['path']: f['value'] for f in cls.data['facts'] if f['kind'] == 'graph_node'}
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def test_shared_module_shows_real_fan_in(self):
         self.assertEqual(self.nodes['core/pricing.py']['fan_in'], 3)

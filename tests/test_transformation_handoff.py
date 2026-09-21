@@ -17,7 +17,23 @@ class HandoffTests(unittest.TestCase):
 
     def test_real_plan_has_valid_references_and_acyclic_dependencies(self):
         self.assertEqual(renderer.validate(self.plan), [])
-        self.assertEqual(renderer.ready_tasks(self.plan)[0]['id'], 'M12.T1')
+
+    def test_the_next_ready_task_is_a_real_task_whose_prerequisites_are_done(self):
+        """Naming the expected id here made the test fail every time work was finished."""
+        ready = renderer.ready_tasks(self.plan)
+        known = {task['id']: task for task in renderer.tasks(self.plan)}
+        for task in ready:
+            self.assertIn(task['id'], known)
+            self.assertEqual(task['status'], 'todo')
+            for prerequisite in task.get('depends_on', []):
+                self.assertEqual(known[prerequisite]['status'], 'done',
+                                 f"{task['id']} is offered while {prerequisite} is unfinished")
+
+    def test_when_every_task_is_done_nothing_is_offered(self):
+        finished = copy.deepcopy(self.plan)
+        for task in renderer.tasks(finished):
+            task['status'] = 'done'
+        self.assertEqual(renderer.ready_tasks(finished), [])
 
     def test_self_dependency_is_rejected(self):
         task = renderer.tasks(self.plan)[-1]

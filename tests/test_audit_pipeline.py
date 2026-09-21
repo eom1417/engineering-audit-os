@@ -3,16 +3,12 @@ import json
 import shutil
 import tempfile
 import unittest
+from shared_fixture import Workspace
 from pathlib import Path
 from eaos.audit import run as run_audit
 
 
-class AuditPipelineTests(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp()
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp, ignore_errors=True)
+class AuditPipelineTests(Workspace):
 
     def test_full_pipeline_produces_all_artifacts(self):
         result = run_audit(Path('tests/fixtures/sustainability'), Path(self.tmp) / 'out', language='en')

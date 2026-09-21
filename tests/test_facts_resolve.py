@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from shared_fixture import TemporaryWorkspace
 from eaos.facts.run import collect
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
@@ -13,15 +14,13 @@ def edges(out):
     return data, {(f['location']['path'], f['value']['module']): f for f in data['facts']}
 
 
-class ResolveTests(unittest.TestCase):
+class ResolveTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         collect(FIXTURE, Path(cls.tmp.name) / 'out', ['syntax', 'resolve'])
         cls.data, cls.edges = edges(Path(cls.tmp.name) / 'out')
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def test_python_package_and_relative_imports_resolve_to_files(self):
         self.assertEqual(self.edges[('cli.py', 'core.pricing')]['value']['to_path'], 'core/pricing.py')

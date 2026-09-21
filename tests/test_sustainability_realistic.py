@@ -3,17 +3,13 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from shared_fixture import Workspace
 from eaos.facts.run import collect
 from eaos.sustainability import render
 from eaos.transform_plan import build, render as render_plan
 
 
-class RealisticScenarioTests(unittest.TestCase):
-    def setUp(self):
-        self.tmp = tempfile.mkdtemp()
-
-    def tearDown(self):
-        shutil.rmtree(self.tmp, ignore_errors=True)
+class RealisticScenarioTests(Workspace):
 
     def _make_repo(self):
         repo = Path(self.tmp) / 'app'; repo.mkdir()

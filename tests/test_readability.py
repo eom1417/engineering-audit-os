@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from shared_fixture import TemporaryWorkspace
 from eaos.ask import answer
 from eaos.compose.labels import detail_artifact, statement_of
 from eaos.compose.rules import validate
@@ -11,15 +12,13 @@ from eaos.dossier import assemble
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
 
 
-class IndexTests(unittest.TestCase):
+class IndexTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.out = Path(cls.tmp.name) / 'out'
         assemble(FIXTURE, cls.out)
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def test_the_dossier_opens_with_an_index_and_a_reading_order(self):
         text = (self.out / 'README.md').read_text()
@@ -67,15 +66,13 @@ class IndexTests(unittest.TestCase):
             self.assertIn(heading, text)
 
 
-class AskRankingTests(unittest.TestCase):
+class AskRankingTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.out = Path(cls.tmp.name) / 'out'
         assemble(FIXTURE, cls.out)
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def test_a_question_about_a_route_returns_the_entry_point_first(self):
         result = answer(self.out, 'what handles POST /orders')

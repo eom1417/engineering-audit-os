@@ -59,7 +59,7 @@
   },
   "measured_state": {
     "commit": "c7640dc",
-    "tests": 717,
+    "tests": 724,
     "package_lines": 10921,
     "python_modules": 89,
     "cli_commands": 38,
@@ -73,11 +73,12 @@
     "output_contract_violations": 0,
     "policy_violations": 0,
     "tasks_total": 34,
-    "tasks_done": 32,
+    "tasks_done": 34,
     "milestones_total": 13,
-    "milestones_done": 12,
+    "milestones_done": 13,
     "declared_invariants": 53,
-    "unenforced_invariants": 0
+    "unenforced_invariants": 0,
+    "single_source_after_self_audit": 0.034
   },
   "milestones": [
     {
@@ -1344,7 +1345,7 @@
     {
       "id": "M9",
       "title": "تدقيق ذاتي وإصلاح مبرر دون إسكات القياس",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "M4",
         "M5",
@@ -1360,7 +1361,7 @@
         {
           "id": "M9.T1",
           "title": "سيناريو التدقيق الذاتي",
-          "status": "todo",
+          "status": "done",
           "files": [
             "tests/gate/self_audit.sh"
           ],
@@ -1404,7 +1405,7 @@
         {
           "id": "M9.T2",
           "title": "إغلاق ما يكشفه على نفسه",
-          "status": "todo",
+          "status": "done",
           "files": [
             "eaos/",
             "tests/",

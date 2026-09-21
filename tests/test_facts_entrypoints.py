@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from shared_fixture import TemporaryWorkspace
 from eaos.facts.run import collect
 
 FIXTURE = Path(__file__).resolve().parent / 'fixtures/polyglot'
@@ -13,15 +14,13 @@ def load(root, repo, sets=('syntax', 'entrypoints')):
     return json.loads((Path(root) / 'out/facts/entrypoints.json').read_text())
 
 
-class EntryPointTests(unittest.TestCase):
+class EntryPointTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.data = load(cls.tmp.name, FIXTURE)
         cls.rows = [f['value'] | {'path': f['location']['path'], 'resolution': f['resolution']} for f in cls.data['facts']]
 
-    @classmethod
-    def tearDownClass(cls): cls.tmp.cleanup()
 
     def routes(self, surface): return {(r['http_method'], r['route']) for r in self.rows if r['surface'] == surface}
 

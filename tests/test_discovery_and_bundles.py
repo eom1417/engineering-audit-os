@@ -4,6 +4,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
+from shared_fixture import Workspace
 from eaos import discover, bundles
 from eaos.audit import run as run_audit
 
@@ -18,9 +19,7 @@ def _setup(tmp, source='examples/benchmark/coupled-billing'):
     return out
 
 
-class DiscoveryTests(unittest.TestCase):
-    def setUp(self): self.tmp = tempfile.mkdtemp()
-    def tearDown(self): shutil.rmtree(self.tmp, ignore_errors=True)
+class DiscoveryTests(Workspace):
 
     def test_write_all_returns_eight_files(self):
         out = _setup(self.tmp)
@@ -42,9 +41,7 @@ class DiscoveryTests(unittest.TestCase):
         self.assertIn('خريطة النظام', content)
 
 
-class BundlesGenerationTests(unittest.TestCase):
-    def setUp(self): self.tmp = tempfile.mkdtemp()
-    def tearDown(self): shutil.rmtree(self.tmp, ignore_errors=True)
+class BundlesGenerationTests(Workspace):
 
     def test_every_bundle_has_at_least_one_file(self):
         out = _setup(self.tmp)
