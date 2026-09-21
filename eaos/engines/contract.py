@@ -16,12 +16,19 @@ KINDS = ('cycle', 'coupling', 'complexity', 'duplication', 'dead_code', 'dataflo
          'literal_duplication', 'test_quality', 'naming', 'boundary')
 
 
+# At what resolution an engine answers a question. Two engines disagreeing about cycles while
+# looking at different resolutions are not contradicting each other, and must not be read as if
+# they were: a package can depend on itself through files that do not.
+PACKAGE, FILE, SYMBOL = 'package', 'file', 'symbol'
+
+
 @dataclass(frozen=True)
 class Capability:
-    """What one engine rule produces, in our vocabulary."""
+    """What one engine rule produces, in our vocabulary, and at what resolution."""
     kind: str
     rule: str
     method: str = HEURISTIC
+    granularity: str = FILE
 
 
 @dataclass
@@ -37,9 +44,10 @@ class Report:
     provenance: dict = field(default_factory=dict)
     raw: str | None = None
     unmapped: dict = field(default_factory=dict)
-    # Which kinds this engine actually evaluated, and how completely. An engine that looked for
-    # cycles and found none is evidence of absence; one that never looked is not; one that looked
-    # partially is weaker counter-evidence than one that looked fully. All three must read apart.
+    # Which kinds this engine actually evaluated, how completely, and at what resolution. An engine
+    # that looked for cycles and found none is evidence of absence; one that never looked is not;
+    # one that looked partially, or at another resolution, is weaker still. All must read apart.
+    # Shape: {kind: {'status': 'observed'|'partial'|..., 'granularity': 'package'|'file'|'symbol'}}
     evaluated: dict = field(default_factory=dict)
 
     def as_dict(self):

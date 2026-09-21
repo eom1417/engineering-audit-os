@@ -7,7 +7,7 @@ rather than assumed to work.
 import json
 from pathlib import Path
 
-from .contract import Capability, Report, OBSERVED, UNAVAILABLE, ERROR, finding, subject
+from .contract import Capability, Report, OBSERVED, UNAVAILABLE, ERROR, FILE, finding, subject
 from .process import run, which
 
 NAME, BINARY, PINNED = 'codegraph', 'codegraph-server', 'v0.20.1'
@@ -21,7 +21,7 @@ RESULT_LIMIT = 5000
 
 
 def capabilities():
-    return [Capability(kind, tool) for tool, kind in sorted(TOOLS.items())]
+    return [Capability(kind, tool, granularity=FILE) for tool, kind in sorted(TOOLS.items())]
 
 
 def version():
@@ -73,4 +73,5 @@ def analyze(target, workdir, exclude=(), formats=None, timeout=900):
                 'declined_tools': DECLINED, 'mode': 'graph-only (no embeddings, no model)'}
     return Report(NAME, found, PINNED, OBSERVED, seconds=elapsed, findings=findings, coverage=coverage,
                   provenance={'tools': sorted(TOOLS)}, raw=str(workdir),
-                  evaluated={TOOLS[tool]: 'observed' for tool in TOOLS if tool not in failures})
+                  evaluated={TOOLS[tool]: {'status': 'observed', 'granularity': FILE}
+                            for tool in TOOLS if tool not in failures})

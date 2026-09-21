@@ -347,13 +347,13 @@ def from_engines(fact_sets, offset=0):
     probe must settle. One engine speaking alone is left as a fact: promoting it would flood the
     ledger with 586 findings and teach a reader to ignore it.
     """
-    from .correlate import clusters, CORROBORATED, CONTESTED
+    from .correlate import clusters, CORROBORATED, CONTESTED, GRANULARITY_GAP
     if not fact_sets.get('external'):
         return []
     made, index = [], offset
     for cluster in clusters(fact_sets):
         for kind, detail in sorted(cluster['corroboration'].items()):
-            if detail['verdict'] not in (CORROBORATED, CONTESTED):
+            if detail['verdict'] not in (CORROBORATED, CONTESTED, GRANULARITY_GAP):
                 continue
             index += 1
             engines = ', '.join(detail['asserted_by'])
@@ -364,6 +364,15 @@ def from_engines(fact_sets, offset=0):
                 falsifier = ('Show the measurement each engine reports is below the threshold it declares, '
                              'or that the engines share one implementation and are therefore one witness.')
                 impact = {'scenario': 'أدلة متعددة المصدر على موضع واحد؛ مرشّح أول للمراجعة، لا حكم بوجود عيب.'}
+            elif detail['verdict'] == GRANULARITY_GAP:
+                elsewhere = ', '.join(detail['silent_at_another_resolution'])
+                level = ', '.join(detail['asserted_at']) or 'unknown'
+                statement = (f"{engines} يبلّغ عن {word} في {cluster['place']} على مستوى {level}، "
+                             f"و{elsewhere} فحص على مستوى آخر ولم يجدها")
+                confidence = ceiling = 'LIKELY'
+                falsifier = ('Show that no import inside this package reaches back into it, so the loop '
+                             'does not close at that resolution either.')
+                impact = {'scenario': 'الخاصية قائمة عند دقة قياس ومنتفية عند أخرى؛ القرار يتبع الدقة التي تهمّ المشروع.'}
             else:
                 denied = ', '.join(detail['denied_by'])
                 statement = (f"{engines} يبلّغ عن {word} في {cluster['place']}، و{denied} فحص الخاصية نفسها ولم يجدها")

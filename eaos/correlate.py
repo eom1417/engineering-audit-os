@@ -6,6 +6,7 @@ many looked and did not, and therefore what a claim built on it may honestly ass
 from hashlib import sha1
 
 CORROBORATED, SINGLE, CONTESTED = 'corroborated', 'single_engine', 'contested'
+GRANULARITY_GAP = 'different_resolution'
 OBSERVED, PARTIAL = 'observed', 'partial'
 # Silence only contradicts where the property is structural: a graph either has that cycle or it
 # does not. For threshold rules — complexity, coupling, duplication — a silent engine set its
@@ -36,20 +37,43 @@ def _places(fact):
     return [location.get('path') or location.get('symbol')] if (location.get('path') or location.get('symbol')) else []
 
 
+def _resolution(evaluated, engine, kind):
+    detail = (evaluated.get(engine) or {}).get(kind)
+    return (detail or {}).get('granularity') if isinstance(detail, dict) else None
+
+
+def _status(evaluated, engine, kind):
+    detail = (evaluated.get(engine) or {}).get(kind)
+    return detail.get('status') if isinstance(detail, dict) else detail
+
+
 def verdict(kind, asserted_by, evaluated):
-    """How much weight a kind of finding at one place has earned, and from whom."""
-    silent = {engine: status for engine, kinds in evaluated.items()
-              if (status := kinds.get(kind)) and engine not in asserted_by}
-    denied_fully = sorted(engine for engine, status in silent.items()
-                          if status == OBSERVED and kind in DENIABLE)
+    """How much weight a kind of finding at one place has earned, and from whom.
+
+    A silent engine only contradicts when it answered the same question at the same resolution.
+    enola sees a cycle over package nodes that CodeGraph does not see over files — and both are
+    right, because eaos/facts imports eaos.workspace while no single file closes the loop.
+    """
+    silent = {engine: state for engine in evaluated
+              if (state := _status(evaluated, engine, kind)) and engine not in asserted_by}
+    asserted_at = {_resolution(evaluated, engine, kind) for engine in asserted_by}
+    same_resolution = sorted(engine for engine, state in silent.items()
+                             if state == OBSERVED and _resolution(evaluated, engine, kind) in asserted_at)
+    other_resolution = sorted(engine for engine, state in silent.items()
+                              if state == OBSERVED and _resolution(evaluated, engine, kind) not in asserted_at)
+    denied_fully = same_resolution if kind in DENIABLE else []
     if len(asserted_by) > 1:
         decision = CORROBORATED
     elif denied_fully:
         decision = CONTESTED
+    elif kind in DENIABLE and other_resolution:
+        decision = GRANULARITY_GAP
     else:
         decision = SINGLE
     return {'verdict': decision, 'asserted_by': sorted(asserted_by),
-            'evaluated_and_silent': dict(sorted(silent.items())), 'denied_by': denied_fully}
+            'asserted_at': sorted(level for level in asserted_at if level),
+            'evaluated_and_silent': dict(sorted(silent.items())), 'denied_by': denied_fully,
+            'silent_at_another_resolution': other_resolution}
 
 
 def clusters(sets):
@@ -76,7 +100,7 @@ def clusters(sets):
             'findings': len(facts),
             # A place two engines agree on outranks a place one engine mentions four times.
             'weight': round(sum(2.0 if detail['verdict'] == CORROBORATED else
-                                0.5 if detail['verdict'] == CONTESTED else 1.0
+                                0.5 if detail['verdict'] in (CONTESTED, GRANULARITY_GAP) else 1.0
                                 for detail in corroboration.values()), 2),
             'measurements': sorted({(m['name'], m.get('unit')) for fact in facts
                                     for m in fact['value'].get('measurements', []) if m.get('name')}),

@@ -6,7 +6,8 @@ states its schema version; an unknown one is refused rather than guessed at.
 import json
 from pathlib import Path
 
-from .contract import Capability, Report, OBSERVED, UNAVAILABLE, ERROR, SCHEMA_MISMATCH, finding, measurement, subject
+from .contract import (Capability, Report, OBSERVED, UNAVAILABLE, ERROR, SCHEMA_MISMATCH, FILE, SYMBOL,
+                       finding, measurement, subject)
 from .process import run, which
 
 NAME, BINARY, PINNED, SCHEMA = 'reforge', 'reforge', '0.3.0', 27
@@ -118,7 +119,8 @@ def analyze(target, workdir, exclude=(), formats=None):
     for kind, rules in _RULES_BY_KIND.items():
         seen = {status_by_rule[rule] for rule in rules if rule in status_by_rule}
         if seen:
-            evaluated[kind] = 'observed' if 'observed' in seen else sorted(seen)[0]
+            evaluated[kind] = {'status': 'observed' if 'observed' in seen else sorted(seen)[0],
+                               'granularity': FILE}
     coverage = {'status': 'observed', 'scanned_files': (report.get('summary') or {}).get('scanned_files'),
                 'rules': {rule: detail.get('status') for rule, detail
                           in ((report.get('coverage') or {}).get('codebase') or {}).get('rules', {}).items()},

@@ -8,7 +8,8 @@ import json
 import re
 from pathlib import Path
 
-from .contract import Capability, Report, OBSERVED, UNAVAILABLE, ERROR, finding, measurement, subject
+from .contract import (Capability, Report, OBSERVED, UNAVAILABLE, ERROR, FILE, PACKAGE, SYMBOL,
+                       finding, measurement, subject)
 from .process import mirror, run, which
 
 NAME, BINARY, PINNED = 'enola', 'enola', '0.4.21'
@@ -22,8 +23,13 @@ KIND_BY_SOURCE = {'cycles': 'cycle', 'god-class': 'coupling', 'hotspots': 'coupl
 COMPLEXITY = re.compile(r'cyclomatic complexity (\d+)')
 
 
+# enola's cycle and coupling explainers work over package nodes; the rest name symbols.
+GRANULARITY = {'cycle': PACKAGE, 'coupling': PACKAGE, 'boundary': PACKAGE}
+
+
 def capabilities():
-    return [Capability(kind, source) for source, kind in sorted(KIND_BY_SOURCE.items())]
+    return [Capability(kind, source, granularity=GRANULARITY.get(kind, SYMBOL))
+            for source, kind in sorted(KIND_BY_SOURCE.items())]
 
 
 def version():
@@ -79,7 +85,8 @@ def analyze(target, workdir, exclude=(), formats=None):
             # The only number enola states structurally is in prose; parsed here, pinned by version.
             measurements=[measurement('cyclomatic_complexity', int(complexity.group(1)))] if complexity else (),
             engine_confidence=insight.get('confidence'), raw_ref='enola/insights.json'))
-    evaluated = {KIND_BY_SOURCE[name]: 'observed' for name in receipt.get('explainers', []) if name in KIND_BY_SOURCE}
+    evaluated = {KIND_BY_SOURCE[name]: {'status': 'observed', 'granularity': GRANULARITY.get(KIND_BY_SOURCE[name], SYMBOL)}
+                 for name in receipt.get('explainers', []) if name in KIND_BY_SOURCE}
     coverage = {'status': 'observed', 'extractors': receipt.get('extractors', []),
                 'explainers': receipt.get('explainers', []), 'mirror_mode': mode,
                 'facts': receipt.get('fact_count'), 'insights': len(insights)}

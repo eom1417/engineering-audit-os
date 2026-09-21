@@ -17,6 +17,11 @@ def engine_fact(identifier, engine, kind, path, rule='r', sites=None, message='m
                       'sites': sites if sites is not None else [{'path': path, 'line': None}]}}
 
 
+def evaluated_at(**kinds):
+    """{'cycle': ('observed', 'file')} -> the shape an adapter reports."""
+    return {kind: {'status': state, 'granularity': level} for kind, (state, level) in kinds.items()}
+
+
 def fact_set(facts, evaluated):
     return {'external': {'facts': facts, 'summary': {'evaluated_kinds': evaluated}}}
 
@@ -76,28 +81,43 @@ class CorrelationTests(unittest.TestCase):
     def test_two_engines_on_one_place_are_one_corroborated_cluster(self):
         sets = fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py'),
                          engine_fact('F2', 'reforge', 'complexity', 'a.py')],
-                        {'enola': {'complexity': 'observed'}, 'reforge': {'complexity': 'observed'}})
+                        {'enola': evaluated_at(complexity=('observed', 'file')),
+                         'reforge': evaluated_at(complexity=('observed', 'file'))})
         [cluster] = correlate.clusters(sets)
         self.assertEqual(cluster['corroboration']['complexity']['verdict'], correlate.CORROBORATED)
         self.assertEqual(cluster['engines'], ['enola', 'reforge'])
 
     def test_silence_about_a_threshold_rule_is_not_a_denial(self):
         sets = fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py')],
-                        {'enola': {'complexity': 'observed'}, 'reforge': {'complexity': 'observed'}})
+                        {'enola': evaluated_at(complexity=('observed', 'file')),
+                         'reforge': evaluated_at(complexity=('observed', 'file'))})
         [cluster] = correlate.clusters(sets)
         self.assertEqual(cluster['corroboration']['complexity']['verdict'], correlate.SINGLE)
 
-    def test_silence_about_a_structural_property_is_a_denial(self):
+    def test_silence_about_a_structural_property_at_the_same_resolution_is_a_denial(self):
         sets = fact_set([engine_fact('F1', 'enola', 'cycle', 'pkg')],
-                        {'enola': {'cycle': 'observed'}, 'codegraph': {'cycle': 'observed'}})
+                        {'enola': evaluated_at(cycle=('observed', 'file')),
+                         'codegraph': evaluated_at(cycle=('observed', 'file'))})
         [cluster] = correlate.clusters(sets)
         detail = cluster['corroboration']['cycle']
         self.assertEqual(detail['verdict'], correlate.CONTESTED)
         self.assertEqual(detail['denied_by'], ['codegraph'])
 
+    def test_silence_at_another_resolution_is_a_gap_not_a_contradiction(self):
+        sets = fact_set([engine_fact('F1', 'enola', 'cycle', 'pkg')],
+                        {'enola': evaluated_at(cycle=('observed', 'package')),
+                         'codegraph': evaluated_at(cycle=('observed', 'file'))})
+        [cluster] = correlate.clusters(sets)
+        detail = cluster['corroboration']['cycle']
+        self.assertEqual(detail['verdict'], correlate.GRANULARITY_GAP)
+        self.assertEqual(detail['denied_by'], [])
+        self.assertEqual(detail['silent_at_another_resolution'], ['codegraph'])
+        self.assertEqual(detail['asserted_at'], ['package'])
+
     def test_a_partial_evaluation_does_not_deny(self):
         sets = fact_set([engine_fact('F1', 'enola', 'cycle', 'pkg')],
-                        {'enola': {'cycle': 'observed'}, 'reforge': {'cycle': 'partial'}})
+                        {'enola': evaluated_at(cycle=('observed', 'file')),
+                         'reforge': evaluated_at(cycle=('partial', 'file'))})
         [cluster] = correlate.clusters(sets)
         self.assertEqual(cluster['corroboration']['cycle']['verdict'], correlate.SINGLE)
         self.assertEqual(cluster['corroboration']['cycle']['evaluated_and_silent'], {'reforge': 'partial'})
@@ -105,21 +125,23 @@ class CorrelationTests(unittest.TestCase):
     def test_a_multi_site_finding_belongs_to_every_site(self):
         sets = fact_set([engine_fact('F1', 'jscpd', 'literal_duplication', 'a.py',
                                      sites=[{'path': 'a.py', 'line': 1}, {'path': 'b.py', 'line': 9}])],
-                        {'jscpd': {'literal_duplication': 'observed'}})
+                        {'jscpd': evaluated_at(literal_duplication=('observed', 'file'))})
         self.assertEqual([cluster['place'] for cluster in correlate.clusters(sets)], ['a.py', 'b.py'])
 
 
 class EngineClaimTests(unittest.TestCase):
     def test_one_engine_speaking_alone_produces_no_claim(self):
         from eaos.claims import from_engines
-        sets = fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py')], {'enola': {'complexity': 'observed'}})
+        sets = fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py')],
+                        {'enola': evaluated_at(complexity=('observed', 'file'))})
         self.assertEqual(from_engines(sets), [])
 
     def test_corroborated_evidence_becomes_a_likely_claim_capped_at_likely(self):
         from eaos.claims import from_engines
         sets = fact_set([engine_fact('F1', 'enola', 'complexity', 'a.py'),
                          engine_fact('F2', 'reforge', 'complexity', 'a.py')],
-                        {'enola': {'complexity': 'observed'}, 'reforge': {'complexity': 'observed'}})
+                        {'enola': evaluated_at(complexity=('observed', 'file')),
+                         'reforge': evaluated_at(complexity=('observed', 'file'))})
         [claim] = from_engines(sets)
         self.assertEqual(claim['confidence'], 'LIKELY')
         self.assertEqual(claim['confidence_ceiling'], 'LIKELY')
@@ -129,7 +151,8 @@ class EngineClaimTests(unittest.TestCase):
     def test_a_contested_structural_finding_becomes_a_hypothesis_capped_at_hypothesis(self):
         from eaos.claims import from_engines
         sets = fact_set([engine_fact('F1', 'enola', 'cycle', 'pkg')],
-                        {'enola': {'cycle': 'observed'}, 'codegraph': {'cycle': 'observed'}})
+                        {'enola': evaluated_at(cycle=('observed', 'file')),
+                         'codegraph': evaluated_at(cycle=('observed', 'file'))})
         [claim] = from_engines(sets)
         self.assertEqual(claim['confidence'], 'HYPOTHESIS')
         self.assertEqual(claim['confidence_ceiling'], 'HYPOTHESIS')
@@ -161,7 +184,8 @@ class ReportRenderingTests(unittest.TestCase):
     def test_the_engine_artifact_leads_with_the_disagreements(self):
         from eaos.engines_report import document
         sets = fact_set([engine_fact('F1', 'enola', 'cycle', 'pkg')],
-                        {'enola': {'cycle': 'observed'}, 'codegraph': {'cycle': 'observed'}})
+                        {'enola': evaluated_at(cycle=('observed', 'file')),
+                         'codegraph': evaluated_at(cycle=('observed', 'file'))})
         sets['external']['summary'].update({'engines_observed': ['codegraph', 'enola'], 'engines_unavailable': [],
                                             'by_engine': {'enola': 1, 'codegraph': 0}})
         text = document(sets, 'en').render()

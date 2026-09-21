@@ -6,7 +6,7 @@ report artifacts and reported 23.1% duplication where the source holds 1.85%; sc
 import json
 from pathlib import Path
 
-from .contract import Capability, Report, OBSERVED, UNAVAILABLE, ERROR, finding, measurement, subject
+from .contract import Capability, Report, OBSERVED, UNAVAILABLE, ERROR, FILE, finding, measurement, subject
 from .process import run, which
 
 NAME, BINARY, PINNED = 'jscpd', 'jscpd', '5.3.0'
@@ -15,7 +15,7 @@ ALWAYS_IGNORED = ('**/.git/**', '**/node_modules/**', '**/.venv/**', '**/dist/**
 
 
 def capabilities():
-    return [Capability('literal_duplication', 'jscpd.exact_clone')]
+    return [Capability('literal_duplication', 'jscpd.exact_clone', granularity=FILE)]
 
 
 def version():
@@ -63,4 +63,4 @@ def analyze(target, workdir, exclude=(), formats=None):
                 'duplicated_line_percentage': total.get('percentage'), 'ignored': ignored,
                 'formats_requested': sorted(formats) if formats else 'every format jscpd detects'}
     return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, coverage=coverage,
-                  provenance={'threshold_tokens': 50}, raw=str(report_path), evaluated={'literal_duplication': 'observed'})
+                  provenance={'threshold_tokens': 50}, raw=str(report_path), evaluated={'literal_duplication': {'status': 'observed', 'granularity': FILE}})
