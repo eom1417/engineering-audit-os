@@ -103,3 +103,28 @@ class RankingTests(unittest.TestCase):
             self.assertIn('priority =', register)
             claims = json.loads((out / 'dossier.json').read_text())['claims']
             self.assertTrue(all('priority' in claim for claim in claims))
+
+
+class LateClaimRankingTests(unittest.TestCase):
+    """A claim that arrives after assembly still has to earn its place in the order."""
+
+    def test_a_semantic_claim_is_ranked_when_the_views_refresh(self):
+        from eaos import claims as ledger
+        from eaos.dossier import refresh_views
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            assemble(FIXTURE, out)
+            dossier = json.loads((out / 'dossier.json').read_text())
+            late = ledger.make(900, 'The pricing module owns the discount rule for every path', 'responsibility',
+                               'HYPOTHESIS', ['model_inference'], [],
+                               'A second module applying the rule without importing it',
+                               fact_ids=dossier['claims'][0]['fact_ids'], origin='source')
+            dossier['claims'].append(late)
+            (out / 'dossier.json').write_text(json.dumps(dossier, ensure_ascii=False))
+            refresh_views(out)
+            updated = json.loads((out / 'dossier.json').read_text())
+            ranked = next(claim for claim in updated['claims'] if claim['id'] == late['id'])
+            self.assertIn('priority', ranked)
+            self.assertIn('priority_factors', ranked)
+            self.assertGreater(ranked['priority'], 0)
+            self.assertEqual((ranked.get('disposition') or {}).get('kind'), 'investigate')

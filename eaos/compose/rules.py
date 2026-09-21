@@ -48,7 +48,9 @@ def validate(out, dossier):
             problems.append('R3 DECISION-BRIEF.md: no confidence markers on stated claims')
     problem_types = {'risk', 'cause', 'business_rule', 'structure', 'capability_gap'}
     for claim in dossier.get('claims', []):
-        states_a_problem = claim.get('claim_type') in problem_types or bool((claim.get('impact') or {}).get('scenario'))
+        states_a_problem = (claim.get('claim_type') in problem_types
+                            or bool((claim.get('impact') or {}).get('scenario'))
+                            or claim.get('confidence') in {'HYPOTHESIS', 'LIKELY'})
         if states_a_problem and claim.get('confidence') != 'REFUTED':
             disposition = (claim.get('disposition') or {}).get('kind')
             if disposition in (None, 'none_yet'):

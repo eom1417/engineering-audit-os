@@ -114,9 +114,16 @@ def runtime_claims(verification, offset, coverage_facts=None, excluded=None):
 PROBLEM_TYPES = {'risk', 'cause', 'business_rule', 'structure', 'capability_gap'}
 
 
+def needs_a_disposition(claim):
+    """Anything that states a consequence, and anything not yet established, has to end somewhere:
+    a task, a documented acceptance, or an open investigation."""
+    return (claim['claim_type'] in PROBLEM_TYPES
+            or bool((claim.get('impact') or {}).get('scenario'))
+            or claim.get('confidence') in {'HYPOTHESIS', 'LIKELY'})
+
+
 def asserts_a_problem(claim):
-    """A claim that states a consequence must end somewhere: a task, an acceptance, or an investigation."""
-    return claim['claim_type'] in PROBLEM_TYPES or bool((claim.get('impact') or {}).get('scenario'))
+    return needs_a_disposition(claim)
 
 
 def origin_of(claim, fact_index):
@@ -132,19 +139,26 @@ def origin_of(claim, fact_index):
     return 'test_and_source' if 'test' in categories else 'source'
 
 
+def fact_index_of(sets):
+    """Where each fact lives, including the several paths a single fact can cover."""
+    index = {}
+    for data in sets.values():
+        for fact in data['facts']:
+            index[fact['id']] = fact['location'].get('path')
+            value = fact.get('value') if isinstance(fact.get('value'), dict) else {}
+            definitions = value.get('definitions')
+            if definitions: index[fact['id'] + ':paths'] = [row['path'] for row in definitions]
+            members = value.get('members')
+            if members: index[fact['id'] + ':paths'] = list(members)
+    return index
+
+
 def build_claims(sets, records):
     rows = ledger.from_facts(sets)
     if records['findings'] or records['architecture']:
         rows += ledger.from_legacy(records['findings'], records['architecture'] or {}, records['flows'],
                                    records['coverage'], (records['state'] or {}).get('revision'))
-    fact_index = {}
-    for data in sets.values():
-        for fact in data['facts']:
-            fact_index[fact['id']] = fact['location'].get('path')
-            definitions = (fact['value'] or {}).get('definitions') if isinstance(fact.get('value'), dict) else None
-            if definitions: fact_index[fact['id'] + ':paths'] = [row['path'] for row in definitions]
-            members = (fact['value'] or {}).get('members') if isinstance(fact.get('value'), dict) else None
-            if members: fact_index[fact['id'] + ':paths'] = list(members)
+    fact_index = fact_index_of(sets)
     rows = ledger.renumber(ledger.merge(rows))
     for row in rows:
         row['origin'] = origin_of(row, fact_index)
@@ -530,6 +544,17 @@ def refresh_views(out, language='ar'):
         if (out / 'facts' / (name + '.json')).is_file(): sets[name] = read_set(out, name)
     verification = read(out / 'verification.json') if (out / 'verification.json').is_file() else None
     target = dossier['provenance']['target']
+    # A claim added after assembly — by the semantic pass or by a later probe — must be ranked too,
+    # or it sorts at zero and lands wherever the list happens to put it.
+    from .ranking import rank
+    for claim in dossier['claims']:
+        claim.setdefault('artifacts', [BRIEF if asserts_a_problem(claim) else (detail_artifact(claim) or 'SYSTEM-MAP.md')])
+        if needs_a_disposition(claim) and (claim.get('disposition') or {}).get('kind') in (None, 'none_yet'):
+            claim['disposition'] = {'kind': 'investigate',
+                                    'reason': ('Not established yet; decide it before acting on it.'
+                                               if claim.get('confidence') in {'HYPOTHESIS', 'LIKELY'}
+                                               else 'Ranked for review; no owner assigned yet in this run.')}
+    dossier['claims'] = rank(dossier['claims'], sets, fact_index_of(sets))
     counts = {}
     for claim in dossier['claims']: counts[claim['confidence']] = counts.get(claim['confidence'], 0) + 1
     dossier['claim_counts'] = counts
