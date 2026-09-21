@@ -1,271 +1,280 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://eaos.local/schemas/claim.schema.json",
-  "title": "Claim \u2014 an interpretation or judgement, always attributed and falsifiable",
-  "description": "Unifies today's findings, architecture assertions, flow statements and risks into one ledger. Rendering is derived from this record; no artifact may state a claim absent here.",
-  "type": "object",
-  "additionalProperties": false,
-  "required": [
-    "claim_type",
-    "confidence",
-    "created_at",
-    "evidence_ids",
-    "falsifier",
-    "id",
-    "method",
-    "statement",
-    "status"
-  ],
-  "properties": {
-    "id": {
-      "type": "string",
-      "pattern": "^CLM-[0-9]{3,}$"
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://eaos.local/schemas/claim.schema.json",
+ "title": "Claim — an interpretation or judgement, always attributed and falsifiable",
+ "description": "Unifies today's findings, architecture assertions, flow statements and risks into one ledger. Rendering is derived from this record; no artifact may state a claim absent here.",
+ "type": "object",
+ "additionalProperties": false,
+ "required": [
+  "claim_type",
+  "confidence",
+  "created_at",
+  "evidence_ids",
+  "falsifier",
+  "id",
+  "method",
+  "statement",
+  "status"
+ ],
+ "properties": {
+  "id": {
+   "type": "string",
+   "pattern": "^CLM-[0-9]{3,}$"
+  },
+  "statement": {
+   "type": "string",
+   "minLength": 10,
+   "maxLength": 600,
+   "description": "One decidable sentence. Not a paragraph, not a recommendation."
+  },
+  "claim_type": {
+   "enum": [
+    "structure",
+    "responsibility",
+    "contract",
+    "business_rule",
+    "flow_step",
+    "risk",
+    "cause",
+    "capability_gap",
+    "cost"
+   ]
+  },
+  "confidence": {
+   "enum": [
+    "CONFIRMED",
+    "LIKELY",
+    "HYPOTHESIS",
+    "REFUTED"
+   ]
+  },
+  "method": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "enum": [
+     "static_fact",
+     "history_fact",
+     "runtime_probe",
+     "test_evidence",
+     "external_engine",
+     "model_inference",
+     "human_assertion",
+     "document_assertion"
+    ]
+   },
+   "description": "CONFIRMED requires at least one of runtime_probe or test_evidence, or a deterministic graph probe. external_engine is never proving on its own: we did not implement that engine's rule."
+  },
+  "fact_ids": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "Deterministic facts this claim rests on."
+  },
+  "evidence_ids": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "Evidence records backing this claim. A claim must cite at least one evidence id or one fact id; which of the two is enforced by the ledger, not by this schema."
+  },
+  "falsifier": {
+   "type": "string",
+   "minLength": 10,
+   "description": "What observation would disprove this claim. Mandatory — a claim nobody can refute is not an engineering claim."
+  },
+  "probe_ids": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "supersedes": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   }
+  },
+  "refuted_by": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "Kept in the ledger; refuted claims are never deleted."
+  },
+  "impact": {
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+    "scenario": {
+     "type": "string",
+     "description": "Concrete change or failure scenario. A coupling number without a scenario is noise."
     },
-    "statement": {
-      "type": "string",
-      "minLength": 10,
-      "maxLength": 600,
-      "description": "One decidable sentence. Not a paragraph, not a recommendation."
-    },
-    "claim_type": {
-      "enum": [
-        "structure",
-        "responsibility",
-        "contract",
-        "business_rule",
-        "flow_step",
-        "risk",
-        "cause",
-        "capability_gap",
-        "cost"
-      ]
-    },
-    "confidence": {
-      "enum": [
-        "CONFIRMED",
-        "LIKELY",
-        "HYPOTHESIS",
-        "REFUTED"
-      ]
-    },
-    "method": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "enum": [
-          "static_fact",
-          "history_fact",
-          "runtime_probe",
-          "test_evidence",
-          "model_inference",
-          "human_assertion",
-          "document_assertion"
-        ]
-      },
-      "description": "CONFIRMED requires at least one of runtime_probe or test_evidence, or a deterministic graph probe."
-    },
-    "fact_ids": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Deterministic facts this claim rests on."
-    },
-    "evidence_ids": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Evidence records backing this claim. A claim must cite at least one evidence id or one fact id; which of the two is enforced by the ledger, not by this schema."
-    },
-    "falsifier": {
-      "type": "string",
-      "minLength": 10,
-      "description": "What observation would disprove this claim. Mandatory \u2014 a claim nobody can refute is not an engineering claim."
-    },
-    "probe_ids": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "supersedes": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "refuted_by": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Kept in the ledger; refuted claims are never deleted."
-    },
-    "impact": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "scenario": {
-          "type": "string",
-          "description": "Concrete change or failure scenario. A coupling number without a scenario is noise."
-        },
-        "affected_nodes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "cost_if_ignored": {
-          "type": "string"
-        }
-      }
-    },
-    "disposition": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "kind"
-      ],
-      "properties": {
-        "kind": {
-          "enum": [
-            "task",
-            "accepted",
-            "investigate",
-            "none_yet"
-          ]
-        },
-        "task_id": {
-          "type": "string"
-        },
-        "owner": {
-          "type": "string"
-        },
-        "reason": {
-          "type": "string"
-        },
-        "expires_on": {
-          "type": "string",
-          "format": "date"
-        }
-      },
-      "description": "Rule R5: every risk-type claim ends in a task or a documented acceptance with owner and expiry."
-    },
-    "artifacts": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Artifact IDs (A1..A15) this claim is rendered into. Rule R4: a claim is presented in full exactly once."
-    },
-    "revision": {
+    "affected_nodes": {
+     "type": "array",
+     "items": {
       "type": "string"
+     }
     },
-    "created_at": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "legacy_id": {
-      "type": "string",
-      "description": "Identifier of the pre-ledger record this claim was bridged from."
-    },
-    "status": {
-      "enum": [
-        "open",
-        "resolved",
-        "withdrawn"
-      ],
-      "description": "Lifecycle of the claim itself, not of any fix."
-    },
-    "probe_spec": {
-      "type": "object",
-      "additionalProperties": true,
-      "description": "How this claim can be mechanically re-decided: {probe_type, specification}. A claim that declares this can be confirmed or refuted on any later snapshot."
-    },
-    "origin": {
-      "enum": [
-        "source",
-        "test",
-        "test_and_source",
-        "unknown"
-      ],
-      "description": "Whether the claim is about product code, test and fixture code, or both. A reader must never confuse a finding in a fixture with a finding in the product."
-    },
-    "priority": {
-      "type": "number",
-      "minimum": 0,
-      "description": "Composite priority: reach \u00d7 confidence \u00d7 origin \u00f7 cost. Never a severity label."
-    },
-    "priority_factors": {
-      "type": "object",
-      "additionalProperties": true,
-      "description": "Every input the priority was computed from, so the ordering can be argued with."
-    },
-    "render": {
-      "type": "object",
-      "additionalProperties": true,
-      "description": "A template key and its parameters, so the same claim can be rendered in the reader language without translating machine text."
-    },
-    "uid": {
-      "type": "string"
-    },
-    "assessment": {
-      "type": "object",
-      "properties": {
-        "reviewed_by": {
-          "type": "string"
-        },
-        "violated_invariant": {
-          "type": "string"
-        },
-        "before": {
-          "type": "string"
-        },
-        "after": {
-          "type": "string"
-        },
-        "proposed_change": {
-          "type": "string"
-        },
-        "requirement_refs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "evidence_refs": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "prerequisites": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "claim_id",
-              "reason"
-            ],
-            "properties": {
-              "claim_id": {
-                "type": "string"
-              },
-              "reason": {
-                "type": "string",
-                "minLength": 1
-              }
-            }
-          }
-        }
-      }
-    },
-    "checks": {
-      "type": "array",
-      "items": {
-        "type": "object"
-      }
+    "cost_if_ignored": {
+     "type": "string"
     }
+   }
+  },
+  "disposition": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "kind"
+   ],
+   "properties": {
+    "kind": {
+     "enum": [
+      "task",
+      "accepted",
+      "investigate",
+      "none_yet"
+     ]
+    },
+    "task_id": {
+     "type": "string"
+    },
+    "owner": {
+     "type": "string"
+    },
+    "reason": {
+     "type": "string"
+    },
+    "expires_on": {
+     "type": "string",
+     "format": "date"
+    }
+   },
+   "description": "Rule R5: every risk-type claim ends in a task or a documented acceptance with owner and expiry."
+  },
+  "artifacts": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "description": "Artifact IDs (A1..A15) this claim is rendered into. Rule R4: a claim is presented in full exactly once."
+  },
+  "revision": {
+   "type": "string"
+  },
+  "created_at": {
+   "type": "string",
+   "format": "date-time"
+  },
+  "legacy_id": {
+   "type": "string",
+   "description": "Identifier of the pre-ledger record this claim was bridged from."
+  },
+  "status": {
+   "enum": [
+    "open",
+    "resolved",
+    "withdrawn"
+   ],
+   "description": "Lifecycle of the claim itself, not of any fix."
+  },
+  "probe_spec": {
+   "type": "object",
+   "additionalProperties": true,
+   "description": "How this claim can be mechanically re-decided: {probe_type, specification}. A claim that declares this can be confirmed or refuted on any later snapshot."
+  },
+  "origin": {
+   "enum": [
+    "source",
+    "test",
+    "test_and_source",
+    "unknown"
+   ],
+   "description": "Whether the claim is about product code, test and fixture code, or both. A reader must never confuse a finding in a fixture with a finding in the product."
+  },
+  "priority": {
+   "type": "number",
+   "minimum": 0,
+   "description": "Composite priority: reach × confidence × origin ÷ cost. Never a severity label."
+  },
+  "priority_factors": {
+   "type": "object",
+   "additionalProperties": true,
+   "description": "Every input the priority was computed from, so the ordering can be argued with."
+  },
+  "render": {
+   "type": "object",
+   "additionalProperties": true,
+   "description": "A template key and its parameters, so the same claim can be rendered in the reader language without translating machine text."
+  },
+  "uid": {
+   "type": "string"
+  },
+  "assessment": {
+   "type": "object",
+   "properties": {
+    "reviewed_by": {
+     "type": "string"
+    },
+    "violated_invariant": {
+     "type": "string"
+    },
+    "before": {
+     "type": "string"
+    },
+    "after": {
+     "type": "string"
+    },
+    "proposed_change": {
+     "type": "string"
+    },
+    "requirement_refs": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "evidence_refs": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "prerequisites": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": [
+       "claim_id",
+       "reason"
+      ],
+      "properties": {
+       "claim_id": {
+        "type": "string"
+       },
+       "reason": {
+        "type": "string",
+        "minLength": 1
+       }
+      }
+     }
+    }
+   }
+  },
+  "checks": {
+   "type": "array",
+   "items": {
+    "type": "object"
+   }
+  },
+  "confidence_ceiling": {
+   "enum": [
+    "CONFIRMED",
+    "LIKELY",
+    "HYPOTHESIS"
+   ],
+   "description": "The highest confidence this claim may ever reach, whatever a probe returns. An engine repeating itself is not proof, and two engines contradicting each other stay a question until the contradiction is resolved."
   }
+ }
 }

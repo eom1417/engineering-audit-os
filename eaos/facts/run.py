@@ -1,7 +1,7 @@
 """Run deterministic extractors over one shared snapshot and persist their fact sets."""
 import json
 from pathlib import Path
-from . import config, domain, entrypoints, fingerprint, flows, graph, history, metrics, redundancy, resolve, sequences, structure, syntax
+from . import config, domain, entrypoints, external, fingerprint, flows, graph, history, metrics, redundancy, resolve, sequences, structure, syntax
 from .source import Source
 from .store import facts_dir, write_index, write_set
 
@@ -14,7 +14,9 @@ ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'redundan
 # Every fact set the tool can read, in one place. Three modules used to keep their own copy of
 # this list, and a set added to one of them was invisible to the others — the duplication this
 # product exists to find, in the product itself.
-PRODUCED_ELSEWHERE = ['policy', 'verification']
+# 'external' is produced here too, but only when a caller asks for engines: it shells out to
+# pinned binaries, so it never runs by default.
+PRODUCED_ELSEWHERE = ['policy', 'verification', 'external']
 ALL_SETS = ORDER + PRODUCED_ELSEWHERE
 # The minimum a caller needs before it can ask what a change would reach.
 GRAPH_PREREQUISITES = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'history', 'graph']
@@ -35,7 +37,8 @@ def ordered(selected):
     return names
 
 
-def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_bytes=2_000_000, source=None, exclude=()):
+def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_bytes=2_000_000, source=None,
+            exclude=(), engines=None):
     target = Path(target).resolve()
     if not target.is_dir(): raise ValueError('Target must be an existing directory')
     out = Path(out).resolve()
@@ -69,6 +72,13 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
         if result.get('reused_from_cache'): reuse[name] = result['reused_from_cache']
         entries.append(write_set(out, name, module.NAME, module.VERSION, result['facts'], result['input_sha'],
                                  module.LIMITATIONS, result['summary'], result['available'], result['reason']))
+    if engines is not None:
+        names.append('external')
+        result = external.run(target, source, out=out, only=engines or None)
+        produced['external'] = result['facts']
+        entries.append(write_set(out, 'external', external.NAME, external.VERSION, result['facts'],
+                                 result['input_sha'], external.LIMITATIONS, result['summary'],
+                                 result['available'], result['reason']))
     cache_path.write_text(json.dumps(cache, ensure_ascii=False), encoding='utf-8')
     index = write_index(out, target, entries)
     return {'target': str(target), 'out': str(out), 'fingerprint': source.fingerprint, 'sets': index['sets'],

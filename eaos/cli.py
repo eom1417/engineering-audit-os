@@ -190,13 +190,30 @@ def improve_command(args):
 def facts_command(args):
     from .facts.run import collect
     selected=[name for name,flag in [('history',args.history)] if flag] or None
-    print(json.dumps(collect(args.target,args.out,selected,args.max_commits,exclude=args.exclude),ensure_ascii=False,indent=2))
+    print(json.dumps(collect(args.target,args.out,selected,args.max_commits,exclude=args.exclude,
+                             engines=args.engines),ensure_ascii=False,indent=2))
     return 0
+
+
+def engines_command(args):
+    from . import engines as engine_layer
+    if args.action=='list':
+        print(json.dumps(engine_layer.health(),ensure_ascii=False,indent=2));return 0
+    from .facts.external import source_formats
+    from .facts.scope import declared_exclusions
+    exclude=sorted({*(args.exclude or ()),*declared_exclusions(args.target)})
+    manifest=engine_layer.analyze(args.target,Path(args.out)/'engines',exclude=exclude,
+                                  only=args.engine or None,formats=source_formats())
+    print(json.dumps({'target':manifest['target'],'target_unchanged':manifest['target_unchanged'],
+                      'findings':len(manifest['findings']),'coverage':manifest['coverage'],
+                      'limits':manifest['limits']},ensure_ascii=False,indent=2))
+    return 0 if engine_layer.observed(manifest) else 2
 
 
 def report_command(args):
     from .dossier import assemble
-    result=assemble(args.target,args.out,args.audit_run,args.lang,exclude=args.exclude)
+    result=assemble(args.target,args.out,args.audit_run,args.lang,exclude=args.exclude,
+                    engines=getattr(args,'engines',None))
     print(json.dumps(result,ensure_ascii=False,indent=2))
     return 0 if result['status']=='READY' else 2
 
@@ -371,6 +388,8 @@ def main(argv=None):
     q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--audit-run',default=None)
     q.add_argument('--lang',choices=['ar','en'],default='ar')
     q.add_argument('--exclude',action='append',default=[],help='Path prefix or glob to leave out of analysis; exclusions are reported in the output')
+    q.add_argument('--engines',nargs='*',default=None,metavar='ENGINE',
+                   help='also run the pinned external engines; name a subset, or pass the flag alone for all')
     q.set_defaults(func=report_command)
     q=s.add_parser('evaluate',help='Measure detection against benchmark cases with known ground truth')
     q.add_argument('corpus');q.add_argument('--out',required=True);q.add_argument('--lang',choices=['ar','en'],default='ar')
@@ -440,7 +459,16 @@ def main(argv=None):
     q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--history',action='store_true')
     q.add_argument('--max-commits',type=bounded_int,default=2000)
     q.add_argument('--exclude',action='append',default=[])
+    q.add_argument('--engines',nargs='*',default=None,metavar='ENGINE',
+                   help='also run the pinned external engines; name a subset, or pass the flag alone for all')
     q.set_defaults(func=facts_command)
+    q=s.add_parser('engines',help='External analysis engines: what is installed, and what they report')
+    q.add_argument('action',choices=['list','run'])
+    q.add_argument('target',nargs='?',default='.')
+    q.add_argument('--out',default='.')
+    q.add_argument('--engine',action='append',default=[])
+    q.add_argument('--exclude',action='append',default=[])
+    q.set_defaults(func=engines_command)
     q=s.add_parser('packet');q.add_argument('run');q.add_argument('--module',required=True);q.add_argument('--file',action='append',default=[]);q.add_argument('--budget-chars',type=bounded_int,default=24000);q.set_defaults(func=packet)
     q=s.add_parser('checkpoint');q.add_argument('run');q.add_argument('--note',required=True);q.add_argument('--next',required=True);q.set_defaults(func=checkpoint)
     q=s.add_parser('graph');q.add_argument('run');q.set_defaults(func=graph_command)

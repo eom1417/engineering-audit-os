@@ -20,6 +20,7 @@ DECIDABLE = {
     'falsification': {'structure', 'business_rule', 'contract', 'cause', 'risk', 'capability_gap', 'responsibility'},
 }
 DEFAULT_SCOPE = ['source', 'test']
+CONFIDENCE = ['CONFIRMED', 'LIKELY', 'HYPOTHESIS', 'REFUTED']
 
 
 def now(): return datetime.now(timezone.utc).isoformat()
@@ -28,6 +29,20 @@ def now(): return datetime.now(timezone.utc).isoformat()
 def probe(index, claim_id, kind, specification, requires_execution=False):
     return {'id': 'PRB-%03d' % index, 'claim_id': claim_id, 'probe_type': kind,
             'specification': specification, 'requires_execution': requires_execution, 'status': 'not_run'}
+
+
+def _apply_ceiling(claim, row):
+    """A claim may declare a confidence it must never exceed, however well its probe runs.
+
+    An external engine asked the same question twice gives the same answer twice; that is
+    repetition, not corroboration, and it must not read as proof.
+    """
+    ceiling = claim.get('confidence_ceiling')
+    if not ceiling or CONFIDENCE.index(claim['confidence']) >= CONFIDENCE.index(ceiling):
+        return
+    claim['confidence'] = ceiling
+    row['status'] = 'PARTIAL'
+    row['result'] += f"; this claim is capped at {ceiling} by its source and cannot rise above it"
 
 
 def derive(claims, sets):
@@ -104,6 +119,7 @@ QUERY_REQUIRES = {
     'metric_threshold': 'metrics', 'mutable_global_present': 'domain', 'external_write_present': 'domain',
     'policy_violation_present': 'graph', 'duplicate_cluster_present': 'fingerprint',
     'sequence_cluster_present': 'sequences', 'redundancy_present': 'redundancy',
+    'engine_cluster_present': 'external',
 }
 
 
@@ -119,6 +135,18 @@ def run_graph_query(specification, sets):
         flow = next((fact['value'] for fact in sets['flows']['facts'] if fact['value']['flow_id'] == specification['flow_id']), None)
         if flow is None: return 'INCONCLUSIVE', 'flow not present in this snapshot'
         return ('CONFIRMED', f"{flow['unresolved_steps']} unresolved steps") if flow['unresolved_steps'] else ('REFUTED', 'all steps resolve now')
+    if query == 'engine_cluster_present':
+        # Re-running the engines is the probe: the claim is about what they report, so it is settled
+        # by asking them again, not by re-reading a graph we built ourselves.
+        from .correlate import clusters
+        for cluster in clusters(sets):
+            if cluster['place'] != specification['place']:
+                continue
+            detail = cluster['corroboration'].get(specification['kind'])
+            if detail is None:
+                return 'REFUTED', 'no engine reports this kind at this place any more'
+            return 'CONFIRMED', f"{detail['verdict']}: asserted by {', '.join(detail['asserted_by'])}"
+        return 'REFUTED', 'no engine reports anything at this place any more'
     if query == 'metric_threshold':
         rows = [fact for fact in sets.get('metrics', {}).get('facts', [])
                 if fact['location'].get('symbol') == specification['symbol']
@@ -235,6 +263,7 @@ def run_all(target, out, allow_execution=False):
                                   f"so the claim rises to LIKELY at most")
                 row['status'] = 'PARTIAL'
             claim['method'] = sorted(set(claim['method'] + ['runtime_probe' if row['probe_type'] == 'execution' else 'static_fact']))
+            _apply_ceiling(claim, row)
         elif status == 'REFUTED':
             claim['confidence'] = 'REFUTED'
             claim['status'] = 'withdrawn'

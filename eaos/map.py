@@ -142,10 +142,10 @@ def evolution(target, sets, language):
     return document
 
 
-def generate(target, out, language='ar', max_files=100000, max_bytes=2_000_000, exclude=()):
+def generate(target, out, language='ar', max_files=100000, max_bytes=2_000_000, exclude=(), engines=None):
     """Collect facts, render the structural artifacts, and hand the fact sets back to the caller."""
     target, out = Path(target).resolve(), Path(out).resolve()
-    result = collect(target, out, None, max_files=max_files, max_bytes=max_bytes, exclude=exclude)
+    result = collect(target, out, None, max_files=max_files, max_bytes=max_bytes, exclude=exclude, engines=engines)
     sets = {entry['set']: read_set(out, entry['set']) for entry in result['sets']}
     written = []
     for name, builder in zip(ARTIFACTS, [system_map, coupling_atlas, evolution]):

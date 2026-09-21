@@ -591,9 +591,9 @@ def refresh_views(out, language='ar'):
             'refreshed': [BRIEF, 'RISK-REGISTER.md', 'README.md']}
 
 
-def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
+def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=(), engines=None):
     target, out = Path(target).resolve(), Path(out).resolve()
-    map_result, sets = generate(target, out, language, exclude=exclude)
+    map_result, sets = generate(target, out, language, exclude=exclude, engines=engines)
     # A project that declares a policy gets it enforced as part of the dossier, not as a separate step.
     from .policy import FILENAME as POLICY_FILE, check as check_policy
     if (target / POLICY_FILE).is_file():
@@ -654,7 +654,8 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
          'Do not read an absent finding as safety; absence means unexamined unless an absence search is declared.'],
         'artifacts': sorted([BRIEF, PROVENANCE, 'FLOWS.md', 'DOMAIN-AND-DATA.md', 'CONTRACTS.md',
                              'VERIFICATION-MAP.md', 'RISK-REGISTER.md', 'README.md', 'ONBOARDING.md', *ARTIFACTS]
-                            + (['POLICY.md'] if (target / 'eaos.policy.json').is_file() else [])),
+                            + (['POLICY.md'] if (target / 'eaos.policy.json').is_file() else [])
+                            + (['ENGINES.md'] if sets.get('external') else [])),
     }
     from .decisions import decide, identity
     for claim in dossier['claims']: claim.setdefault('uid', identity(claim))
@@ -668,6 +669,9 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
     (out / 'README.md').write_text(index_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')
     (out / 'ONBOARDING.md').write_text(onboarding_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')
     (out / PROVENANCE).write_text(provenance_document(str(target), dossier, language).render(), encoding='utf-8')
+    if sets.get('external'):
+        from .engines_report import document as engines_document
+        (out / 'ENGINES.md').write_text(engines_document(sets, language).render(), encoding='utf-8')
     violations = validate(out, dossier)
     result = {'target': str(target), 'out': str(out), 'artifacts': dossier['artifacts'],
               'claims': len(rows), 'claim_counts': counts, 'questions': len(dossier['questions']),

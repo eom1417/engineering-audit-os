@@ -329,7 +329,60 @@ def from_facts(fact_sets):
                            probe_spec={'probe_type': 'graph_query', 'specification': {'query': 'flow_has_unresolved_steps', 'flow_id': fact['value']['flow_id'],
                                                                                       'expected': 'The traced flow still stops at calls the resolver cannot follow.'}},
                            impact={'scenario': 'The end-to-end behaviour of this entry point is not fully visible from source alone.'}))
+    claims += from_engines(fact_sets, len(claims))
     return claims
+
+
+ENGINE_KIND_WORDS = {'complexity': 'تعقيد', 'coupling': 'ترابط', 'cycle': 'دورة اعتماد',
+                     'duplication': 'تكرار بنيوي', 'literal_duplication': 'تكرار حرفي',
+                     'dead_code': 'كود ميت', 'dataflow': 'تدفق بيانات', 'surface': 'سطح عام',
+                     'boundary': 'خرق حد', 'naming': 'انحراف تسمية', 'test_quality': 'جودة اختبار'}
+
+
+def from_engines(fact_sets, offset=0):
+    """External evidence becomes a claim only when it has earned one.
+
+    Two independent engines agreeing is worth a LIKELY claim that a probe can raise. One engine
+    contradicted by another that fully evaluated the same property is worth a HYPOTHESIS that a
+    probe must settle. One engine speaking alone is left as a fact: promoting it would flood the
+    ledger with 586 findings and teach a reader to ignore it.
+    """
+    from .correlate import clusters, CORROBORATED, CONTESTED
+    if not fact_sets.get('external'):
+        return []
+    made, index = [], offset
+    for cluster in clusters(fact_sets):
+        for kind, detail in sorted(cluster['corroboration'].items()):
+            if detail['verdict'] not in (CORROBORATED, CONTESTED):
+                continue
+            index += 1
+            engines = ', '.join(detail['asserted_by'])
+            word = ENGINE_KIND_WORDS.get(kind, kind)
+            if detail['verdict'] == CORROBORATED:
+                statement = f"{len(detail['asserted_by'])} محركات مستقلة ({engines}) تبلّغ عن {word} في {cluster['place']}"
+                confidence = ceiling = 'LIKELY'
+                falsifier = ('Show the measurement each engine reports is below the threshold it declares, '
+                             'or that the engines share one implementation and are therefore one witness.')
+                impact = {'scenario': 'أدلة متعددة المصدر على موضع واحد؛ مرشّح أول للمراجعة، لا حكم بوجود عيب.'}
+            else:
+                denied = ', '.join(detail['denied_by'])
+                statement = (f"{engines} يبلّغ عن {word} في {cluster['place']}، و{denied} فحص الخاصية نفسها ولم يجدها")
+                confidence = ceiling = 'HYPOTHESIS'
+                falsifier = ('Resolve the contradiction: exhibit the edges that close the cycle in the source, '
+                             'or show the asserting engine inferred an edge no import supports.')
+                impact = {'scenario': 'محركان يتناقضان في خاصية بنيوية؛ أحدهما مخطئ ولا يصح البناء على أي منهما قبل الحسم.'}
+            made.append(make(index, statement[:600], 'structure' if kind in ('cycle', 'boundary') else 'risk',
+                             confidence, ['external_engine'], [],
+                             falsifier, fact_ids=cluster['fact_ids'], confidence_ceiling=ceiling,
+                             render={'key': 'engine_cluster',
+                                     'params': {'place': cluster['place'], 'kind': kind,
+                                                'engines': engines, 'verdict': detail['verdict']}},
+                             probe_spec={'probe_type': 'graph_query',
+                                         'specification': {'query': 'engine_cluster_present',
+                                                           'place': cluster['place'], 'kind': kind,
+                                                           'expected': 'The same engines still report this kind at this place.'}},
+                             impact=impact))
+    return made
 
 
 def merge(claims):

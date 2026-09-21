@@ -2,9 +2,12 @@
   "schema_version": 1,
   "analysis": {
     "exclude": [
-      "tests/fixtures"
+      "build",
+      "tests/fixtures",
+      "upstream-src",
+      "upstreams"
     ],
-    "reason": "مستودعات التثبيت ومجموعة القياس بيانات اختبار للأداة، وليست جزءًا من النظام قيد المراجعة"
+    "reason": "مستودعات التثبيت ومجموعة القياس بيانات اختبار للأداة، وليست جزءًا من النظام قيد المراجعة؛ و build/ و upstream-src/ نسخ مبنية أو منسوخة من مصدر آخر، وقياسها يقيس شيئًا آخر."
   },
   "layers": {
     "facts": [
@@ -17,21 +20,23 @@
       "eaos/runtime/**"
     ],
     "ledger": [
-      "eaos/claims.py",
-      "eaos/dossier.py",
-      "eaos/decisions.py",
-      "eaos/ranking.py",
-      "eaos/impact.py",
-      "eaos/probes.py",
-      "eaos/policy.py",
       "eaos/apidiff.py",
+      "eaos/ask.py",
+      "eaos/claims.py",
+      "eaos/correlate.py",
+      "eaos/decisions.py",
       "eaos/delta.py",
-      "eaos/verify.py",
+      "eaos/dossier.py",
+      "eaos/engines_report.py",
+      "eaos/impact.py",
+      "eaos/map.py",
+      "eaos/policy.py",
+      "eaos/probes.py",
+      "eaos/ranking.py",
       "eaos/semantic.py",
       "eaos/semantic_source.py",
-      "eaos/map.py",
-      "eaos/ask.py",
-      "eaos/site.py"
+      "eaos/site.py",
+      "eaos/verify.py"
     ],
     "planning": [
       "eaos/plan.py",
@@ -61,6 +66,9 @@
     ],
     "tests": [
       "tests/**"
+    ],
+    "engines": [
+      "eaos/engines/**"
     ]
   },
   "rules": [
@@ -119,6 +127,34 @@
         "to": "tools"
       },
       "reason": "أدوات التطوير ليست جزءًا من زمن التشغيل"
+    },
+    {
+      "deny": {
+        "from": "engines",
+        "to": "ledger"
+      },
+      "reason": "المحوّل ينقل ما قاله المحرك ولا يعرف كيف يُفسَّر أو تُبنى عليه ادعاءات"
+    },
+    {
+      "deny": {
+        "from": "engines",
+        "to": "facts"
+      },
+      "reason": "الاتجاه واحد: طبقة الحقائق تستهلك المحوّلات، والعكس يصنع دورة"
+    },
+    {
+      "deny": {
+        "from": "engines",
+        "to": "planning"
+      },
+      "reason": "أداة خارجية لا تقرر ما يُصلَح"
+    },
+    {
+      "deny": {
+        "from": "engines",
+        "to": "compose"
+      },
+      "reason": "المحوّل لا يعرض شيئًا"
     }
   ]
 }
