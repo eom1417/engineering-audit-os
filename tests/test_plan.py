@@ -192,6 +192,7 @@ class HypothesisTaskTests(unittest.TestCase):
             tasks = json.loads((out / 'plan.json').read_text())['tasks']
             investigation = next(task for task in tasks if task['claim_id'] == guess['id'])
             self.assertEqual(investigation['kind'], 'investigate')
+            self.assertEqual(investigation['pattern'], 'investigation')
             self.assertIn('أثبت هذا الادعاء أو انقضه', investigation['change'])
             self.assertIn('CONFIRMED or REFUTED', ' '.join(step['expect'] for step in investigation['acceptance']))
             self.assertIn('لا تغيير في الكود', investigation['rollback'])

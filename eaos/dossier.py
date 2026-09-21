@@ -564,6 +564,9 @@ def refresh_views(out, language='ar'):
     semantic_ran = any('model_inference' in claim.get('method', []) for claim in dossier['claims'])
     dossier['coverage']['not_examined'] = [note for note in dossier['coverage']['not_examined']
                                            if not (semantic_ran and note.startswith('semantic review'))]
+    if semantic_ran:
+        dossier['questions'] = [question for question in dossier['questions']
+                                if not question['question'].startswith('No semantic review was run')]
     write(dossier_path, dossier)
     (out / BRIEF).write_text(brief(target, dossier, language).render(), encoding='utf-8')
     (out / 'RISK-REGISTER.md').write_text(risk_register(dossier, language).render(), encoding='utf-8')

@@ -68,7 +68,7 @@ def build_tasks(target, out, dossier, sets):
             'render': claim.get('render'),
             'kind': 'investigate' if unproven or pattern['name'] == 'hidden_coupling' else 'remediate',
             'status': 'planned', 'priority': claim.get('priority', 0),
-            'pattern': pattern['name'], 'paths': paths,
+            'pattern': 'investigation' if unproven else pattern['name'], 'paths': paths,
             'origin': claim.get('origin', 'unknown'),
             'impact': (claim.get('impact') or {}).get('scenario', ''),
             'impact_render': claim.get('render'),

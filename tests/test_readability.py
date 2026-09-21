@@ -156,3 +156,7 @@ class ViewFreshnessTests(unittest.TestCase):
             text = (out / 'README.md').read_text()
             self.assertNotIn('semantic review: not performed', text)
             self.assertIn('model inference over facts', text)
+            updated = json.loads((out / 'dossier.json').read_text())
+            self.assertFalse(any(question['question'].startswith('No semantic review was run')
+                                 for question in updated['questions']),
+                             'a question answered by a later pass must not stay open')
