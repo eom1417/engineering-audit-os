@@ -1,0 +1,11 @@
+{
+  "engine": "codegraph",
+  "pinned_version": "v0.20.1",
+  "captured_from": "a two-module package with a real import cycle",
+  "codegraph_find_circular_deps.json": {
+    "cycles": [],
+    "has_circular_deps": false,
+    "total_cycles": 0,
+    "warning": "Workspace has only 7 nodes — it may not be indexed yet. Run codegraph_reindex_workspace for full code intelligence (typically 10-50× more results)."
+  }
+}

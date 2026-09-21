@@ -1,0 +1,16 @@
+{
+  "name": "complex-function",
+  "engine_case": true,
+  "planted": [
+    {
+      "id": "GT-1",
+      "engine": "enola",
+      "kind": "complexity",
+      "path": "router.py",
+      "why": "one function with six-deep nesting and fifty branches among twelve trivial ones: a relative measure needs a population to be an outlier in."
+    }
+  ],
+  "known_limitations": [
+    "reforge reported nothing here under both its balanced and strict presets, measured on 2026-09-21: its complexity thresholds are higher than this function reaches."
+  ]
+}

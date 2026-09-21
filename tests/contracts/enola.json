@@ -1,0 +1,106 @@
+{
+  "engine": "enola",
+  "pinned_version": "0.4.21",
+  "insights.json": [
+    {
+      "title": "High cyclomatic complexity: rules.validate (47)",
+      "source": "complexity-outliers",
+      "description": "\"rules.validate\" has a cyclomatic complexity of 47 — well above the repo average. Highly branched functions are hard to test fully and are frequent defect sites.",
+      "confidence": 0.7,
+      "evidence": [
+        {
+          "file": "rules.py",
+          "symbol": "rules.validate",
+          "detail": "cyclomatic complexity 47 at line 22",
+          "line": 22,
+          "fact_id": "090c6c8e48ff6a25e7d9ec8933c7cfae"
+        }
+      ],
+      "suggested_actions": [
+        "Extract guard clauses and nested branches into helper functions",
+        "Replace deep conditionals with table/strategy dispatch where possible",
+        "Add tests covering the distinct branches before refactoring"
+      ]
+    },
+    {
+      "title": "Dead code candidate: function artifacts.owner",
+      "source": "dead-code",
+      "description": "function \"artifacts.owner\" is isolated — nothing in the snapshot graph references it (high confidence). References are matched by short name and biased conservative, so verify against dynamic/reflective dispatch and consumers outside the snapshot before removing.",
+      "confidence": 0.8,
+      "evidence": [
+        {
+          "file": "artifacts.py",
+          "symbol": "artifacts.owner",
+          "detail": "function · isolated · artifacts.py:102",
+          "line": 102,
+          "fact_id": "ec5ac975bf4661ecb06dc1f01cd50639"
+        },
+        {
+          "symbol": "artifacts.owner",
+          "detail": "exported — may be used outside this snapshot; verify before removal",
+          "fact_id": "ec5ac975bf4661ecb06dc1f01cd50639"
+        }
+      ],
+      "suggested_actions": [
+        "Confirm no dynamic/reflective or out-of-snapshot callers, then remove the symbol"
+      ]
+    },
+    {
+      "title": "Performance risk (nested-loop, O(n³)): __init__.Document._emit",
+      "source": "performance",
+      "description": "Loops nest 3 deep, so the body runs about O(n³) in the loop bounds. Big-O is a deterministic estimate of structural worst case from parser facts, not a proof — treat as a lead to verify.",
+      "confidence": 0.8,
+      "evidence": [
+        {
+          "file": "__init__.py",
+          "symbol": "__init__.Document._emit",
+          "detail": "Loops nest 3 deep, so the body runs about O(n³) in the loop bounds.",
+          "line": 62,
+          "fact_id": "7a550de836deeb99d4d6e03f8b23b85b"
+        },
+        {
+          "symbol": "__init__.Document._emit",
+          "detail": "loop_depth=3, loop_count=5, cyclomatic=13",
+          "fact_id": "7a550de836deeb99d4d6e03f8b23b85b"
+        }
+      ],
+      "suggested_actions": [
+        "Confirm the hot path with a profiler or benchmark before optimizing",
+        "Batch or hoist per-iteration I/O out of loops; add memoization or an iterative rewrite for recursion"
+      ]
+    }
+  ],
+  "receipt.json": {
+    "snapshot_id": "sha256:545694992dbf179ece6482159f2fae567a2b9eb83e8f9abe6865517bf4d5fe40",
+    "format_version": 1,
+    "enola_version": "0.4.21",
+    "extractor_version": "v270",
+    "extractors": [
+      "python"
+    ],
+    "explainers": [
+      "cycles",
+      "layers",
+      "crossrepo",
+      "coverage",
+      "unused-routes",
+      "domain",
+      "query-loops",
+      "dead-methods",
+      "entry-points",
+      "messaging-coverage",
+      "god-class",
+      "hotspots",
+      "dependency-depth",
+      "exported-surface",
+      "complexity-outliers",
+      "intent",
+      "constraints",
+      "vendored-candidates",
+      "import-closure",
+      "package-metrics",
+      "dead-code",
+      "performance"
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "literal-clone",
+  "engine_case": true,
+  "planted": [
+    {"id": "GT-1", "engine": "jscpd", "kind": "literal_duplication", "path": "shipping.py",
+     "why": "twenty identical lines exist in two files, which jscpd detects at token level and our AST-shape detector does not."}
+  ]
+}

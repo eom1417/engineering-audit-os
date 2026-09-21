@@ -20,6 +20,9 @@ KIND_BY_SOURCE = {'cycles': 'cycle', 'god-class': 'coupling', 'hotspots': 'coupl
                   'performance': 'complexity', 'dead-code': 'dead_code', 'dead-methods': 'dead_code',
                   'unused-routes': 'dead_code', 'query-loops': 'dataflow', 'layers': 'boundary',
                   'constraints': 'boundary', 'vendored-candidates': 'duplication'}
+# Sources we see and deliberately do not map: they report scope rather than a finding.
+DECLINED_SOURCES = ('domain', 'coverage', 'crossrepo', 'entry-points', 'intent',
+                    'messaging-coverage', 'package-metrics')
 COMPLEXITY = re.compile(r'cyclomatic complexity (\d+)')
 
 

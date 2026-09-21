@@ -1,0 +1,66 @@
+{
+  "rows": [
+    {
+      "case": "complex-function",
+      "planted": "GT-1",
+      "engine": "enola",
+      "kind": "complexity",
+      "found": true,
+      "found_by_any_engine": [
+        "enola"
+      ],
+      "findings_of_this_kind": 1,
+      "findings_in_total": 12,
+      "why": "one function with six-deep nesting and fifty branches among twelve trivial ones: a relative measure needs a population to be an outlier in."
+    },
+    {
+      "case": "dead-import",
+      "planted": "GT-1",
+      "engine": "enola",
+      "kind": "dead_code",
+      "found": true,
+      "found_by_any_engine": [
+        "enola"
+      ],
+      "findings_of_this_kind": 2,
+      "findings_in_total": 2,
+      "why": "a module-level function nothing calls, which enola reports as a dead-code candidate."
+    },
+    {
+      "case": "literal-clone",
+      "planted": "GT-1",
+      "engine": "jscpd",
+      "kind": "literal_duplication",
+      "found": true,
+      "found_by_any_engine": [
+        "jscpd"
+      ],
+      "findings_of_this_kind": 1,
+      "findings_in_total": 3,
+      "why": "twenty identical lines exist in two files, which jscpd detects at token level and our AST-shape detector does not."
+    }
+  ],
+  "summary": {
+    "cases": 3,
+    "planted": 3,
+    "found": 3,
+    "by_engine": {
+      "enola": {
+        "planted": 2,
+        "found": 2,
+        "kinds": [
+          "complexity",
+          "dead_code"
+        ]
+      },
+      "jscpd": {
+        "planted": 1,
+        "found": 1,
+        "kinds": [
+          "literal_duplication"
+        ]
+      }
+    },
+    "limits": "Detection on planted cases, measured. The volume column is not a false-positive count: an extra finding may be correct and simply unplanted."
+  }
+}

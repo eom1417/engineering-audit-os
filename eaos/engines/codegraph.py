@@ -54,7 +54,7 @@ def analyze(target, workdir, exclude=(), formats=None, timeout=900):
     workdir.mkdir(parents=True, exist_ok=True)
     home = workdir / 'home'
     home.mkdir(parents=True, exist_ok=True)
-    findings, elapsed, failures = [], 0.0, {}
+    findings, elapsed, failures, warnings = [], 0.0, {}, {}
     for tool, kind in sorted(TOOLS.items()):
         payload, seconds, problem = _one_tool(which(BINARY), target, tool, timeout, home)
         elapsed += seconds
@@ -62,6 +62,10 @@ def analyze(target, workdir, exclude=(), formats=None, timeout=900):
             failures[tool] = problem
             continue
         (workdir / f'{tool}.json').write_text(json.dumps(payload, indent=1), encoding='utf-8')
+        # The engine says when its own answer may be incomplete. Recording that as a clean "none
+        # found" is the absence-as-evidence error this product exists to catch.
+        if payload.get('warning'):
+            warnings[tool] = payload['warning']
         for cycle in payload.get('cycles', []):
             members = cycle if isinstance(cycle, list) else cycle.get('modules', [])
             findings.append(finding(NAME, found, tool, kind, subject('module', ' -> '.join(map(str, members))),
@@ -70,8 +74,10 @@ def analyze(target, workdir, exclude=(), formats=None, timeout=900):
         return Report(NAME, found, PINNED, ERROR, seconds=elapsed, reason='; '.join(failures.values())[:300])
     findings.sort(key=lambda row: row['id'])
     coverage = {'status': 'observed', 'tools_run': sorted(set(TOOLS) - set(failures)), 'tools_failed': failures,
+                'engine_warnings': warnings,
                 'declined_tools': DECLINED, 'mode': 'graph-only (no embeddings, no model)'}
     return Report(NAME, found, PINNED, OBSERVED, seconds=elapsed, findings=findings, coverage=coverage,
                   provenance={'tools': sorted(TOOLS)}, raw=str(workdir),
-                  evaluated={TOOLS[tool]: {'status': 'observed', 'granularity': FILE}
-                            for tool in TOOLS if tool not in failures})
+                  evaluated={TOOLS[tool]: {'status': 'partial' if tool in warnings else 'observed',
+                                           'granularity': FILE}
+                             for tool in TOOLS if tool not in failures})

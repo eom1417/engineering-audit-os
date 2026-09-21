@@ -1,0 +1,140 @@
+{
+  "engine": "jscpd",
+  "pinned_version": "5.3.0",
+  "captured_from": "eaos/facts",
+  "jscpd-report.json": {
+    "statistics": {
+      "total": {
+        "clones": 14,
+        "duplicatedLines": 110,
+        "duplicatedTokens": 839,
+        "lines": 3413,
+        "newClones": 0,
+        "newDuplicatedLines": 0,
+        "percentage": 3.222970993261061,
+        "percentageTokens": 2.490131481316594,
+        "sources": 29,
+        "tokens": 33693
+      },
+      "formats": {
+        "python": {}
+      }
+    },
+    "duplicates": [
+      {
+        "firstFile": {
+          "end": 73,
+          "endLoc": {
+            "column": 39,
+            "line": 73,
+            "position": 3235
+          },
+          "name": "fingerprint.py",
+          "start": 65,
+          "startLoc": {
+            "column": 12,
+            "line": 65,
+            "position": 2893
+          }
+        },
+        "format": "python",
+        "fragment": "            scope.append(node.name)\n            for child in ast.iter_child_nodes(node):\n                yield from visit(child, qualified)\n            scope.pop()\n            return\n        if isinstance(node, ast.ClassDef):\n            scope.append(node.name)\n            for child in ast.iter_child_nodes(node):\n                yield from visit(child, parent_qual)",
+        "isNew": false,
+        "kind": "exact",
+        "lines": 9,
+        "secondFile": {
+          "end": 263,
+          "endLoc": {
+            "column": 39,
+            "line": 263,
+            "position": 13238
+          },
+          "name": "redundancy.py",
+          "start": 255,
+          "startLoc": {
+            "column": 12,
+            "line": 255,
+            "position": 12896
+          }
+        },
+        "tokens": 66
+      },
+      {
+        "firstFile": {
+          "end": 150,
+          "endLoc": {
+            "column": 19,
+            "line": 150,
+            "position": 6000
+          },
+          "name": "fingerprint.py",
+          "start": 138,
+          "startLoc": {
+            "column": 69,
+            "line": 138,
+            "position": 5659
+          }
+        },
+        "format": "python",
+        "fragment": "    \"\"\"Fingerprint every function-shaped node in a tree-sitter file.\"\"\"\n    try:\n        from tree_sitter_language_pack import get_parser\n    except ImportError:\n        return None\n    try:\n        parser = get_parser('c_sharp' if language == 'csharp' else language)\n    except Exception:\n        return None\n    try:\n        tree = parser.parse(text.encode('utf-8'))\n    except Exception:\n        return None",
+        "isNew": false,
+        "kind": "exact",
+        "lines": 13,
+        "secondFile": {
+          "end": 307,
+          "endLoc": {
+            "column": 33,
+            "line": 307,
+            "position": 15329
+          },
+          "name": "redundancy.py",
+          "start": 300,
+          "startLoc": {
+            "column": 98,
+            "line": 300,
+            "position": 15028
+          }
+        },
+        "tokens": 52
+      },
+      {
+        "firstFile": {
+          "end": 155,
+          "endLoc": {
+            "column": 39,
+            "line": 155,
+            "position": 6253
+          },
+          "name": "fingerprint.py",
+          "start": 138,
+          "startLoc": {
+            "column": 69,
+            "line": 138,
+            "position": 5659
+          }
+        },
+        "format": "python",
+        "fragment": "    \"\"\"Fingerprint every function-shaped node in a tree-sitter file.\"\"\"\n    try:\n        from tree_sitter_language_pack import get_parser\n    except ImportError:\n        return None\n    try:\n        parser = get_parser('c_sharp' if language == 'csharp' else language)\n    except Exception:\n        return None\n    try:\n        tree = parser.parse(text.encode('utf-8'))\n    except Exception:\n        return None\n    root = tree.root_node\n\n    function_types = {'function_declaration', 'function_definition', 'function_item',\n                      'method_declaration', 'method_definition', 'function', 'function_expression',\n                      'arrow_function', 'generator_function_declaration', 'singleton_method',",
+        "isNew": false,
+        "kind": "exact",
+        "lines": 18,
+        "secondFile": {
+          "end": 186,
+          "endLoc": {
+            "column": 95,
+            "line": 186,
+            "position": 8382
+          },
+          "name": "structure.py",
+          "start": 170,
+          "startLoc": {
+            "column": 107,
+            "line": 170,
+            "position": 7810
+          }
+        },
+        "tokens": 76
+      }
+    ]
+  }
+}

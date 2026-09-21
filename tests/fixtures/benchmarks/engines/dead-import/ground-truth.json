@@ -1,0 +1,8 @@
+{
+  "name": "dead-import",
+  "engine_case": true,
+  "planted": [
+    {"id": "GT-1", "engine": "enola", "kind": "dead_code", "path": "orphan.py",
+     "why": "a module-level function nothing calls, which enola reports as a dead-code candidate."}
+  ]
+}

@@ -59,7 +59,7 @@
   },
   "measured_state": {
     "commit": "c7640dc",
-    "tests": 588,
+    "tests": 609,
     "package_lines": 10921,
     "python_modules": 89,
     "cli_commands": 38,
@@ -73,9 +73,9 @@
     "output_contract_violations": 0,
     "policy_violations": 0,
     "tasks_total": 34,
-    "tasks_done": 20,
+    "tasks_done": 23,
     "milestones_total": 13,
-    "milestones_done": 8,
+    "milestones_done": 9,
     "declared_invariants": 50,
     "unenforced_invariants": 0
   },
@@ -1168,7 +1168,7 @@
     {
       "id": "M8",
       "title": "تثبيت المنابع وترقيتها بأمان",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "M3"
       ],
@@ -1181,7 +1181,7 @@
         {
           "id": "M8.T1",
           "title": "عيّنات مخرَج مثبّتة لكل محرك",
-          "status": "todo",
+          "status": "done",
           "files": [
             "tests/contracts/enola.json",
             "tests/contracts/reforge.json",
@@ -1246,7 +1246,7 @@
         {
           "id": "M8.T2",
           "title": "أداة فحص الترقية",
-          "status": "todo",
+          "status": "done",
           "files": [
             "tools/upstream_check.py"
           ],
@@ -1288,7 +1288,7 @@
         {
           "id": "M8.T3",
           "title": "قياس دقة المحركات على حالات معنونة",
-          "status": "todo",
+          "status": "done",
           "files": [
             "tests/fixtures/benchmarks/engines/",
             "eaos/evaluate.py",

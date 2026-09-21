@@ -1,0 +1,804 @@
+{
+  "engine": "reforge",
+  "pinned_version": "0.3.0",
+  "report.json": {
+    "schema_version": 27,
+    "producer": {
+      "name": "reforge.analyze",
+      "version": "0.3.0",
+      "revision": "1f96d62849999a51a85252c85017225fb68bc408"
+    },
+    "provenance": {
+      "identity_scheme": "reforge-identity-v7"
+    },
+    "summary": {
+      "issue_count": 7,
+      "evidence_count": 7,
+      "scanned_files": 5
+    },
+    "coverage": {
+      "codebase": {
+        "status": "observed",
+        "scanned_files": 5,
+        "languages": {
+          "python": {
+            "status": "observed",
+            "files": 5,
+            "functions": 23
+          }
+        },
+        "rules": {
+          "reforge.codebase.adapter_boundary_bypass": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "files_scanned",
+                "count": 5,
+                "unit": "file"
+              }
+            ]
+          },
+          "reforge.codebase.complex_function": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "functions_analyzed",
+                "count": 23,
+                "unit": "function"
+              }
+            ]
+          },
+          "reforge.codebase.config_key_drift": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "files_scanned",
+                "count": 5,
+                "unit": "file"
+              }
+            ]
+          },
+          "reforge.codebase.data_clump": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "functions_analyzed",
+                "count": 23,
+                "unit": "function"
+              }
+            ]
+          },
+          "reforge.codebase.debt_marker": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "files_scanned",
+                "count": 5,
+                "unit": "file"
+              }
+            ]
+          },
+          "reforge.codebase.deep_nesting": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "functions_analyzed",
+                "count": 23,
+                "unit": "function"
+              }
+            ]
+          },
+          "reforge.codebase.dependency_cycle": {
+            "status": "partial",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "dependency_nodes_analyzed",
+                "count": 5,
+                "unit": "dependency_node"
+              }
+            ],
+            "limitations": [
+              {
+                "code": "unresolved_dependency_edge",
+                "count": 1,
+                "message": "dependency edges could not be resolved"
+              }
+            ]
+          },
+          "reforge.codebase.dependency_hub": {
+            "status": "partial",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "dependency_nodes_analyzed",
+                "count": 5,
+                "unit": "dependency_node"
+              }
+            ],
+            "limitations": [
+              {
+                "code": "unresolved_dependency_edge",
+                "count": 1,
+                "message": "dependency edges could not be resolved"
+              }
+            ]
+          },
+          "reforge.codebase.directory_drift": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "directories_scanned",
+                "count": 1,
+                "unit": "directory"
+              }
+            ]
+          },
+          "reforge.codebase.duplicate_type_shape": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "types_analyzed",
+                "count": 2,
+                "unit": "type"
+              }
+            ]
+          },
+          "reforge.codebase.file_naming_drift": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "directories_scanned",
+                "count": 1,
+                "unit": "directory"
+              }
+            ]
+          },
+          "reforge.codebase.fixture_factory_drift": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "files_scanned",
+                "count": 5,
+                "unit": "file"
+              }
+            ]
+          },
+          "reforge.codebase.function_proliferation": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "files_scanned",
+                "count": 5,
+                "unit": "file"
+              }
+            ]
+          },
+          "reforge.codebase.generic_bucket_drift": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "directories_scanned",
+                "count": 1,
+                "unit": "directory"
+              }
+            ]
+          },
+          "reforge.codebase.happy_path_only_tests": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "files_scanned",
+                "count": 5,
+                "unit": "file"
+              }
+            ]
+          },
+          "reforge.codebase.import_heavy_file": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "files_scanned",
+                "count": 5,
+                "unit": "file"
+              }
+            ]
+          },
+          "reforge.codebase.large_directory": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "directories_scanned",
+                "count": 1,
+                "unit": "directory"
+              }
+            ]
+          },
+          "reforge.codebase.large_file": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "files_scanned",
+                "count": 5,
+                "unit": "file"
+              }
+            ]
+          },
+          "reforge.codebase.large_public_surface": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "files_scanned",
+                "count": 5,
+                "unit": "file"
+              }
+            ]
+          },
+          "reforge.codebase.large_type": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "types_analyzed",
+                "count": 2,
+                "unit": "type"
+              }
+            ]
+          },
+          "reforge.codebase.long_function": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "functions_analyzed",
+                "count": 23,
+                "unit": "function"
+              }
+            ]
+          },
+          "reforge.codebase.many_parameters": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "functions_analyzed",
+                "count": 23,
+                "unit": "function"
+              }
+            ]
+          },
+          "reforge.codebase.parallel_implementation": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "functions_analyzed",
+                "count": 23,
+                "unit": "function"
+              }
+            ]
+          },
+          "reforge.codebase.repeated_error_pattern": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "files_scanned",
+                "count": 5,
+                "unit": "file"
+              }
+            ]
+          },
+          "reforge.codebase.repeated_literal": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "files_scanned",
+                "count": 5,
+                "unit": "file"
+              }
+            ]
+          },
+          "reforge.codebase.shadowed_abstraction": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "functions_analyzed",
+                "count": 23,
+                "unit": "function"
+              }
+            ]
+          },
+          "reforge.codebase.similar_functions": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "function_pairs_compared",
+                "count": 45,
+                "unit": "function_pair"
+              }
+            ]
+          },
+          "reforge.codebase.stale_compatibility_path": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "files_scanned",
+                "count": 5,
+                "unit": "file"
+              }
+            ]
+          },
+          "reforge.codebase.test_duplication": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "files_scanned",
+                "count": 5,
+                "unit": "file"
+              }
+            ]
+          },
+          "reforge.codebase.unused_function": {
+            "status": "observed",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "functions_analyzed",
+                "count": 23,
+                "unit": "function"
+              }
+            ]
+          }
+        }
+      },
+      "dataflow": {
+        "status": "partial",
+        "scanned_files": 5,
+        "languages": {
+          "python": {
+            "status": "observed",
+            "files": 5,
+            "functions": 23,
+            "capabilities": {
+              "call_return_composition": {
+                "status": "partial",
+                "limitations": [
+                  {
+                    "code": "unresolved_direct_call",
+                    "count": 153,
+                    "message": "ambiguous or unsupported calls were not connected"
+                  }
+                ]
+              },
+              "direct_calls": {
+                "status": "partial",
+                "limitations": [
+                  {
+                    "code": "unresolved_direct_call",
+                    "count": 153,
+                    "message": "ambiguous or unsupported calls were not connected"
+                  }
+                ]
+              },
+              "dynamic_dispatch": {
+                "status": "unsupported",
+                "limitations": [
+                  {
+                    "code": "dynamic_dispatch_unsupported",
+                    "count": 1,
+                    "message": "method, trait, interface, member, and dynamic dispatch are not resolved"
+                  }
+                ]
+              },
+              "field_flow": {
+                "status": "unsupported",
+                "limitations": [
+                  {
+                    "code": "field_flow_unsupported",
+                    "count": 1,
+                    "message": "field and heap alias flow is modeled for observation but not exact"
+                  }
+                ]
+              },
+              "lexical_scopes": {
+                "status": "observed"
+              },
+              "local_def_use": {
+                "status": "observed"
+              },
+              "symbols": {
+                "status": "observed"
+              },
+              "syntax": {
+                "status": "observed"
+              }
+            }
+          }
+        },
+        "rules": {
+          "reforge.dataflow.adapter_flow_bypass": {
+            "status": "not_applicable",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "limitations": [
+              {
+                "code": "policy_not_configured",
+                "count": 1,
+                "message": "no adapter boundary policy is configured"
+              }
+            ]
+          },
+          "reforge.dataflow.excessive_relay": {
+            "status": "partial",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "dataflow_sources_evaluated",
+                "count": 36,
+                "unit": "dataflow_source"
+              }
+            ],
+            "limitations": [
+              {
+                "code": "unresolved_flow_edge",
+                "count": 153,
+                "message": "flow edges could not be resolved exactly"
+              }
+            ]
+          },
+          "reforge.dataflow.flow_fan_out": {
+            "status": "partial",
+            "maturity": "preview",
+            "enabled_source": "enable",
+            "observations": [
+              {
+                "name": "dataflow_sources_evaluated",
+                "count": 36,
+                "unit": "dataflow_source"
+              }
+            ],
+            "limitations": [
+              {
+                "code": "unresolved_flow_edge",
+                "count": 153,
+                "message": "flow edges could not be resolved exactly"
+              }
+            ]
+          }
+        },
+        "limitations": [
+          {
+            "code": "unresolved_flow_edge",
+            "count": 153,
+            "message": "flow edges could not be resolved exactly"
+          }
+        ]
+      }
+    },
+    "issues": [
+      {
+        "id": "ri7-137b44788927a3a6a306",
+        "kind": "advisory",
+        "content_fingerprint": "rc7-3fc661eff918fd5f158e",
+        "analysis": "codebase",
+        "family": "reforge.codebase.function_readability",
+        "subject": {
+          "kind": "symbol",
+          "entity": {
+            "key": "python:function:product_report.py::render:arity:3",
+            "path": "product_report.py",
+            "symbol": "render"
+          }
+        },
+        "title": "Function readability: render in product_report.py",
+        "guidance": "Reduce the function to a clear sequence of named responsibilities.",
+        "evidence": [
+          {
+            "id": "re7-cfd23dd19a599c808d84",
+            "rule": "reforge.codebase.complex_function",
+            "message": "function `render` has estimated complexity 42; consider reducing branches",
+            "measurements": [
+              {
+                "name": "function.complexity",
+                "value": 42.0,
+                "threshold": 15.0,
+                "unit": "complexity"
+              }
+            ],
+            "locations": [
+              {
+                "path": "product_report.py",
+                "line": 6
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ri7-65d8b3773be11c9b814d",
+        "kind": "advisory",
+        "content_fingerprint": "rc7-d2d36595c1d468fba46e",
+        "analysis": "codebase",
+        "family": "reforge.codebase.literal_ownership",
+        "subject": {
+          "kind": "group",
+          "members": [
+            {
+              "key": "function:rules.py::validate#1",
+              "path": "rules.py"
+            },
+            {
+              "key": "text:artifacts.py:30, 200, record='sustainability.json'),#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('CANONICAL-HOMES.md', 'bundles', DOCUMENT, 'Where each repeated definition should live', 31, 200,#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('CONTRACTS.md', 'claims', DOCUMENT, 'The public surface other code depends on', 14, 200),#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('DATA-MODEL.md', 'bundles', DOCUMENT, 'Persisted shapes and their migrations', 16, 200),#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('DEPLOYMENT.md', 'bundles', DOCUMENT, 'Where the system is declared to run', 17, 200),#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('ENGINES.md', 'engines', DOCUMENT, 'What each external engine saw, and where they disagree', 21, 200,#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('INTEGRATIONS.md', 'bundles', DOCUMENT, 'Outbound calls to systems outside this repository', 20, 200),#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('OBSERVABILITY.md', 'bundles', DOCUMENT, 'What the system reports about itself', 18, 200),#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('ONBOARDING.md', 'claims', DOCUMENT, 'The shortest path to understanding this system', 25, 200),#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('PRODUCT-REPORT.md', 'compose', DOCUMENT, 'The reviewed project in one narrative', 5, 200),#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('RISK-REGISTER.md', 'claims', DOCUMENT, 'Live risks with their dispositions', 24, 200),#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('SECURITY-SURFACE.md', 'bundles', DOCUMENT, 'Reachable surfaces and declared secrets', 19, 200),#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('SEMANTIC.md', 'semantic', DOCUMENT, 'Model interpretation, every line still a hypothesis', 41, 200,#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('STAGES.md', 'bundles', DOCUMENT, 'Each transform stage with its acceptance check', 34, 200,#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('TARGET-ARCHITECTURE.md', 'target', DOCUMENT, 'The structure the evidence argues for', 32, 200,#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('WAVES.md', 'bundles', DOCUMENT, 'Execution waves over the task cards', 35, 200, record='plan.json'),#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "text:artifacts.py:Artifact('transform-plan.md', 'transform', DOCUMENT, 'The staged route from here to there', 33, 200,#1",
+              "path": "artifacts.py"
+            },
+            {
+              "key": "type:artifacts.py::Artifact#1",
+              "path": "artifacts.py"
+            }
+          ]
+        },
+        "title": "Literal ownership: 19 related items",
+        "guidance": "Give repeated or drifting values one named owner.",
+        "evidence": [
+          {
+            "id": "re7-fe7e7ad54868277e9898",
+            "rule": "reforge.codebase.repeated_literal",
+            "message": "literal \"200\" is repeated 19 times",
+            "measurements": [
+              {
+                "name": "group.size",
+                "value": 19.0,
+                "threshold": 12.0,
+                "unit": "occurrences"
+              }
+            ],
+            "locations": [
+              {
+                "path": "artifacts.py",
+                "line": 20
+              },
+              {
+                "path": "artifacts.py",
+                "line": 20
+              },
+              {
+                "path": "artifacts.py",
+                "line": 34
+              },
+              {
+                "path": "artifacts.py",
+                "line": 40
+              },
+              {
+                "path": "artifacts.py",
+                "line": 42
+              },
+              {
+                "path": "artifacts.py",
+                "line": 43
+              },
+              {
+                "path": "artifacts.py",
+                "line": 44
+              },
+              {
+                "path": "artifacts.py",
+                "line": 45
+              },
+              {
+                "path": "artifacts.py",
+                "line": 46
+              },
+              {
+                "path": "artifacts.py",
+                "line": 47
+              },
+              {
+                "path": "artifacts.py",
+                "line": 54
+              },
+              {
+                "path": "artifacts.py",
+                "line": 55
+              },
+              {
+                "path": "artifacts.py",
+                "line": 57
+              },
+              {
+                "path": "artifacts.py",
+                "line": 58
+              },
+              {
+                "path": "artifacts.py",
+                "line": 60
+              },
+              {
+                "path": "artifacts.py",
+                "line": 62
+              },
+              {
+                "path": "artifacts.py",
+                "line": 64
+              },
+              {
+                "path": "artifacts.py",
+                "line": 66
+              },
+              {
+                "path": "artifacts.py",
+                "line": 71
+              },
+              {
+                "path": "rules.py",
+                "line": 29
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "ri7-dbaab24696a36eb58731",
+        "kind": "advisory",
+        "content_fingerprint": "rc7-512743abf2e47fbf96ca",
+        "analysis": "codebase",
+        "family": "reforge.codebase.responsibility_decomposition",
+        "subject": {
+          "kind": "symbol",
+          "entity": {
+            "key": "python:type:__init__.py::Document:declaration",
+            "path": "__init__.py",
+            "symbol": "Document"
+          }
+        },
+        "title": "Responsibility decomposition: Document in __init__.py",
+        "guidance": "Split the subject around cohesive responsibilities.",
+        "evidence": [
+          {
+            "id": "re7-75e950776c6ea3137007",
+            "rule": "reforge.codebase.large_type",
+            "message": "type `Document` spans 88 lines and has 31 members; consider splitting responsibilities",
+            "measurements": [
+              {
+                "name": "type.loc",
+                "value": 88.0,
+                "threshold": 250.0,
+                "unit": "lines"
+              },
+              {
+                "name": "type.member_count",
+                "value": 31.0,
+                "threshold": 30.0,
+                "unit": "members"
+              }
+            ],
+            "locations": [
+              {
+                "path": "__init__.py",
+                "line": 10
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -128,3 +128,12 @@ evaluated_and_declined:
       amount of attribution makes copying lawful. Its useful ideas — DSM, centrality,
       bridge nodes, strongly connected components, artifact-backed stages with typed
       schemas — are concepts we already implement or can implement independently.
+
+upgrade_workflow:
+  offline: "python tools/upstream_check.py --offline — runs the pinned contracts in tests/contracts/ with no engine installed"
+  online: "python tools/upstream_check.py --online — adds the installed version and the latest release per engine"
+  rule: "Never upgrade while the offline contracts fail. Upgrade one engine, re-capture its sample, re-run the corpus."
+  measured_on_2026-09-21:
+    contracts_pass: true
+    moved_since_pinning: ["jscpd 5.3.0 -> v5.3.1"]
+  detection_corpus: "tests/fixtures/benchmarks/engines — 3 labelled cases, 3 of 3 planted findings detected; see docs/engine-precision.json"
