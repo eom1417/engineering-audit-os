@@ -275,6 +275,21 @@
     "HYPOTHESIS"
    ],
    "description": "The highest confidence this claim may ever reach, whatever a probe returns. An engine repeating itself is not proof, and two engines contradicting each other stay a question until the contradiction is resolved."
+  },
+  "basis": {
+   "enum": [
+    "documented",
+    "observed",
+    "inferred"
+   ],
+   "description": "Where the statement comes from: written down somewhere, visible in the code, or concluded by a model with nothing else supporting it. Interpretation must not read like documentation."
+  },
+  "basis_source": {
+   "type": [
+    "string",
+    "null"
+   ],
+   "description": "Where a documented basis is written down. Required when basis is documented."
   }
  }
 }

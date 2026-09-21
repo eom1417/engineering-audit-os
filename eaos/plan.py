@@ -86,6 +86,8 @@ def build_tasks(target, out, dossier, sets):
             'acceptance': acceptance_for(claim, target, out),
             'verify_command': verify_command_for(claim, target, out),
             'effort': 'unknown', 'effort_confidence': 'Not measured / لم يُقَس',
+            'invariants': invariants_of(claim),
+            'harm': harm_of(claim, radius, effort, effort_confidence),
             'finding_ids': [claim['id']],
         })
     by_claim = {task['claim_id']: task['id'] for task in tasks}
@@ -102,6 +104,41 @@ def build_tasks(target, out, dossier, sets):
         errors = task_errors(task)
         if errors: raise ValueError('Invalid task: ' + '; '.join(errors))
     return tasks
+
+
+UNKNOWN = 'unknown'
+
+
+def invariants_of(claim):
+    """What must still hold after the change. An empty list is a real answer, not a gap to fill."""
+    assessment = claim.get('assessment') or {}
+    stated = assessment.get('violated_invariant')
+    rows = []
+    if stated:
+        rows.append({'invariant': stated, 'source': 'assessment', 'must_hold_after': True})
+    rows.append({'invariant': claim['falsifier'], 'source': 'falsifier',
+                 'must_hold_after': False,
+                 'note': 'the observation that would show this claim is wrong; after a repair it should hold'})
+    return rows
+
+
+def harm_of(claim, radius, effort, effort_confidence):
+    """Three different questions kept apart: what it costs the business, what it touches, what it costs us.
+
+    Reach is measured and effort is estimated; business harm is neither unless someone evidenced it.
+    Reporting a measured reach as if it were business harm is how a structural observation starts
+    reading like an incident.
+    """
+    assessment = claim.get('assessment') or {}
+    evidenced = assessment.get('business_harm') or (claim.get('impact') or {}).get('business_harm')
+    return {
+        'business': {'value': evidenced or UNKNOWN,
+                     'basis': 'evidenced in the assessment' if evidenced else
+                              'not established: no requirement or incident evidences a business cost'},
+        'reach': {'value': radius['blast_radius'], 'basis': 'measured from the dependency graph',
+                  'direct_dependents': len(radius['direct_dependents']), 'flows': len(radius['flows'])},
+        'effort': {'value': effort, 'basis': effort_confidence},
+    }
 
 
 def conflicts(tasks):

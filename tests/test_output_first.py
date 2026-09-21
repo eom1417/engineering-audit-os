@@ -115,10 +115,12 @@ class SemanticSourceTests(unittest.TestCase):
                     return {'claims': [], 'source_requests': [{'path': 'zz_last.py', 'start_line': 1, 'end_line': 1},
                                                              {'path': '../secret', 'start_line': 1, 'end_line': 1}]}
                 assert 'answer = 42' in digest['source_ranges'][0]['source']
+                assert digest['source_ranges'][0]['trust'] == 'untrusted_project_data'
                 assert digest['source_omissions']
                 return {'claims': [{'statement': 'The last module defines the documented answer constant',
                         'claim_type': 'responsibility', 'fact_ids': [digest['source_ranges'][0]['fact_id']],
-                        'falsifier': 'The source no longer defines the answer constant'}], 'questions': []}
+                        'falsifier': 'The source no longer defines the answer constant',
+                        'basis': 'observed'}], 'questions': []}
         with tempfile.TemporaryDirectory() as tmp:
             root, out = Path(tmp) / 'repo', Path(tmp) / 'out'
             root.mkdir()

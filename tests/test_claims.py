@@ -93,3 +93,31 @@ class SchemaKeywordTests(unittest.TestCase):
         row = claims.make(1, 'Two modules define the same rule', 'business_rule', 'CONFIRMED', ['static_fact'],
                           [], 'A single definition imported by the other site.', fact_ids=['FACT-1'])
         self.assertEqual(claims.errors([row]), [])
+
+
+class LargeCycleTests(unittest.TestCase):
+    """A cycle with many members must still produce a claim the ledger accepts."""
+
+    def test_the_statement_stays_inside_the_schema_limit(self):
+        from eaos.claims import naming
+        members = [f'package/module_{index:03d}.py' for index in range(80)]
+        statement = 'Import cycle between: ' + naming(members)
+        self.assertLess(len(statement), 600)
+        self.assertIn('74 more', statement)
+        self.assertIn('package/module_000.py', statement)
+
+    def test_a_small_cycle_still_names_every_member(self):
+        from eaos.claims import naming
+        self.assertEqual(naming(['a.py', 'b.py']), 'a.py, b.py')
+
+    def test_the_full_member_list_stays_in_the_probe(self):
+        from eaos.claims import from_facts
+        members = [f'm{index}.py' for index in range(80)]
+        sets = {'graph': {'facts': [{'id': 'FACT-1', 'kind': 'graph_cycle',
+                                     'location': {'path': 'm0.py'}, 'value': {'members': members}}],
+                          'summary': {}},
+                'history': {'facts': [], 'summary': {'commits_analysed': 0}}}
+        claims = from_facts(sets)
+        cycle = next(claim for claim in claims if claim['claim_type'] == 'structure')
+        self.assertLess(len(cycle['statement']), 600)
+        self.assertEqual(cycle['probe_spec']['specification']['members'], members)

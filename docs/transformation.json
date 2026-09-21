@@ -59,7 +59,7 @@
   },
   "measured_state": {
     "commit": "c7640dc",
-    "tests": 650,
+    "tests": 691,
     "package_lines": 10921,
     "python_modules": 89,
     "cli_commands": 38,
@@ -73,9 +73,9 @@
     "output_contract_violations": 0,
     "policy_violations": 0,
     "tasks_total": 34,
-    "tasks_done": 26,
+    "tasks_done": 29,
     "milestones_total": 13,
-    "milestones_done": 10,
+    "milestones_done": 11,
     "declared_invariants": 53,
     "unenforced_invariants": 0
   },
@@ -1667,7 +1667,7 @@
     {
       "id": "M11",
       "title": "المخرج المستهدف: فهم ثم خطة واضحة",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "M10",
         "M5"
@@ -1677,7 +1677,7 @@
         {
           "id": "M11.T1",
           "title": "فهم تدفقات وعقود موثق بالمصدر",
-          "status": "todo",
+          "status": "done",
           "depends_on": [
             "M10.T1"
           ],
@@ -1748,7 +1748,7 @@
         {
           "id": "M11.T2",
           "title": "بطاقات تنفيذ ذات بدائل وأولوية واعتماديات مبررة",
-          "status": "todo",
+          "status": "done",
           "depends_on": [
             "M11.T1",
             "M10.T3"
@@ -1822,7 +1822,7 @@
         {
           "id": "M11.T3",
           "title": "تقرير موحد كامل بالعربية والإنجليزية",
-          "status": "todo",
+          "status": "done",
           "depends_on": [
             "M11.T2",
             "M5.T3"

@@ -114,13 +114,26 @@ def from_legacy(findings, model, flows, coverage, revision=None):
     return claims
 
 
+# A claim statement is one decidable sentence, and the schema caps it at 600 characters. An
+# eighty-module cycle listed every member and the whole dossier failed to assemble; the members
+# live in the fact, so the sentence names enough of them to recognise and says how many more.
+NAMED_IN_A_STATEMENT = 6
+
+
+def naming(members, limit=NAMED_IN_A_STATEMENT):
+    members = list(members)
+    if len(members) <= limit:
+        return ', '.join(members)
+    return ', '.join(members[:limit]) + f' and {len(members) - limit} more'
+
+
 def from_facts(fact_sets):
     """Deterministic facts promoted to claims keep CONFIRMED status and name their own refutation."""
     claims, index = [], 0
     graph = fact_sets.get('graph', {})
     for fact in [f for f in graph.get('facts', []) if f['kind'] == 'graph_cycle']:
         index += 1
-        claims.append(make(index, 'Import cycle between: ' + ', '.join(fact['value']['members']), 'structure',
+        claims.append(make(index, 'Import cycle between: ' + naming(fact['value']['members']), 'structure',
                            'CONFIRMED', ['static_fact'], [], 'A resolved import graph in which these files no longer form a cycle.',
                            fact_ids=[fact['id']],
                            probe_spec={'probe_type': 'graph_query', 'specification': {'query': 'cycle_present', 'members': fact['value']['members'],

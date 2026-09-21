@@ -32,8 +32,11 @@ def render(out, dossier, language='ar'):
                   'Investigations may conclude no change. Blocked repairs need their evidence and checks completed.')
     # No truncation of blockers: detailed complete list remains a first-class artifact.
     blockers = [(task['id'], reason) for task in tasks for reason in task['decision']['blockers']]
-    lines = ['# Blockers / عوائق الجاهزية', ''] + [f'- {task}: {reason}' for task, reason in blockers]
-    if not blockers: lines.append('No recorded repair blockers / لا توجد عوائق إصلاح مسجلة')
+    # The reader asked for one language; a bilingual heading is neither.
+    lines = ['# ' + ('عوائق الجاهزية' if ar else 'Blockers'), ''] + \
+            [f'- {task}: {reason}' for task, reason in blockers]
+    if not blockers:
+        lines.append('لا توجد عوائق إصلاح مسجلة' if ar else 'No recorded repair blockers')
     (Path(out) / 'BLOCKERS.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
     document.text(f"[BLOCKERS.md](BLOCKERS.md): {len(blockers)}")
     document.section('5. حدود الثقة' if ar else '5. Confidence limits')

@@ -28,6 +28,7 @@ def grounded(digest, call):
     return {'claims': [{'statement': 'The pricing module owns the discount rule for every entry path',
                         'claim_type': 'responsibility', 'fact_ids': [fact],
                         'falsifier': 'A second module applying a different discount without importing this one',
+                        'basis': 'observed',
                         'reasoning': 'highest fan-in among pricing files'}],
             'questions': ['Which component owns tax, if any?']}
 
@@ -63,7 +64,8 @@ class SemanticTests(unittest.TestCase):
             if call == 1:
                 return {'claims': [{'statement': 'Something is wrong somewhere in the system',
                                     'claim_type': 'cause', 'fact_ids': ['FACT-doesnotexist'],
-                                    'falsifier': 'evidence to the contrary'}], 'questions': []}
+                                    'falsifier': 'evidence to the contrary',
+                                    'basis': 'inferred'}], 'questions': []}
             return grounded(digest, call)
         with tempfile.TemporaryDirectory() as tmp:
             out = self.prepared(tmp)
