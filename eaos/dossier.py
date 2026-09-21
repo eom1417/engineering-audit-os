@@ -129,7 +129,7 @@ def asserts_a_problem(claim):
 
 def origin_of(claim, fact_index):
     """Whether a claim is about product code or about test and fixture code; a reader must not confuse them."""
-    from .discovery import classify
+    from .vocabulary import classify
     paths = [fact_index[fact_id] for fact_id in claim.get('fact_ids', []) if fact_id in fact_index]
     extra = []
     for fact_id in claim.get('fact_ids', []):
@@ -285,7 +285,7 @@ def onboarding_document(target, dossier, sets, verification, language):
                      f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"]
                     for fact in production], limit=15)
     document.section('أول عشرة ملفات تقرؤها' if language == 'ar' else 'The first ten files to read')
-    from .discovery import classify
+    from .vocabulary import classify
     ordered = [row for row in sets['graph']['summary']['attention_order'] if classify(row['path']) == 'source'][:10]
     document.table([words['path'], words['score'], 'لماذا' if language == 'ar' else 'Why'],
                    [[row['path'], row['score'],
@@ -691,11 +691,49 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=(), 
     (out / 'ONBOARDING.md').write_text(onboarding_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')
     (out / PROVENANCE).write_text(provenance_document(str(target), dossier, language).render(), encoding='utf-8')
     violations = validate(out, dossier)
-    result = {'target': str(target), 'out': str(out), 'artifacts': dossier['artifacts'],
-              'claims': len(rows), 'claim_counts': counts, 'questions': len(dossier['questions']),
-              'facts': map_result['facts'], 'model_calls': dossier['provenance']['model_calls'],
-              'output_spec_violations': violations,
-              'status': 'READY' if not violations else 'OUTPUT_SPEC_VIOLATED',
-              'limits': 'A dossier reports what was examined. Claims carry their confidence and their refutation; unexamined scope is listed, not implied.'}
-    write(out / 'report-result.json', result)
+    result = write_verdict(out, dossier, violations, target=str(target), facts=map_result['facts'])
     return result
+
+
+VERDICT = 'report-result.json'
+
+
+def write_verdict(out, dossier, violations, target=None, facts=None):
+    """The one place report-result.json is written.
+
+    The validate stage used to write a thinner copy of this record over the dossier's, dropping the
+    claim and fact counts a reader needs beside the verdict.
+    """
+    out = Path(out)
+    provenance = dossier.get('provenance') or {}
+    result = {'target': target or provenance.get('target'), 'out': str(out),
+              'artifacts': dossier.get('artifacts', []),
+              'claims': len(dossier.get('claims', [])),
+              'claim_counts': dossier.get('claim_counts') or _counts(dossier.get('claims', [])),
+              'questions': len(dossier.get('questions', [])),
+              'facts': facts if facts is not None else _fact_count(out),
+              'model_calls': provenance.get('model_calls', 0),
+              'output_spec_violations': list(violations),
+              'status': 'READY' if not violations else 'OUTPUT_SPEC_VIOLATED',
+              'limits': 'A dossier reports what was examined. Claims carry their confidence and their '
+                        'refutation; unexamined scope is listed, not implied.'}
+    write(out / VERDICT, result)
+    return result
+
+
+def _fact_count(out):
+    """How many facts the report rests on, read from the index rather than guessed."""
+    index = Path(out) / 'facts' / 'index.json'
+    if not index.is_file():
+        return None
+    try:
+        return sum(entry.get('facts', 0) for entry in read(index)['sets'])
+    except (ValueError, KeyError, OSError):
+        return None
+
+
+def _counts(claims):
+    tally = {}
+    for claim in claims:
+        tally[claim.get('confidence', '?')] = tally.get(claim.get('confidence', '?'), 0) + 1
+    return tally

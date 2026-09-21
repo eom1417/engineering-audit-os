@@ -54,12 +54,6 @@ def packet(args):
     write(p.with_suffix('.json'),{'revision':state['revision'],'module_id':args.module,'characters':len(text),'budget_characters':args.budget_chars,'files':selected,'packet_sha256':digest(text.encode()),'created_at':now(),'token_count':'NOT_MEASURED — character budget is not tokenizer measurement'})
     print(p)
 
-def checkpoint(args):
-    run,state=load_run(args.run); inv=read(run/'inventory.json');ok,_=fresh(state,inv)
-    if not ok:raise ValueError('Target snapshot changed or is incomplete; checkpoint cannot certify current evidence')
-    record_hashes={p.name:digest(p.read_bytes()) for p in run.iterdir() if p.suffix in ['.json','.md'] and p.name not in ['checkpoint.json','report.md']}
-    write(run/'checkpoint.json',{'created_at':now(),'revision':state['revision'],'note':args.note,'next_action':args.next,'record_hashes':record_hashes,'resumption':'Verify source and records; reload evidence referenced by next action, not all source files.'})
-    print(run/'checkpoint.json')
 
 def resume(args):
     run,state=load_run(args.run);cp=read(run/'checkpoint.json');ok,current=fresh(state,read(run/'inventory.json'))
@@ -67,25 +61,6 @@ def resume(args):
     result={'source_current':ok,'records_changed':changed,'checkpoint_revision_matches':cp['revision']==state['revision'],'note':cp['note'],'next_action':cp['next_action'],'action':'REVALIDATE affected evidence and create a new run for changed source' if not ok or changed or cp['revision']!=state['revision'] else 'Resume from cited records; assumptions remain unverified until checked'}
     print(json.dumps(result,ensure_ascii=False,indent=2))
     return 0 if ok and not changed and cp['revision']==state['revision'] else 2
-
-def validate(args):
-    result=check(args.run);print(json.dumps(result,ensure_ascii=False,indent=2))
-    return 2 if result['errors'] or (getattr(args,'require_complete',False) and result['computed_audit_completion']!='COMPLETE') else 0
-
-def report(args):
-    run,state=load_run(args.run)
-    if (run/'workflow.json').exists():
-        result,progress,roadmap=workflow.render_report(run)
-        print(run/'report.md')
-        return 0 if progress['stage']=='AUDIT_AND_PLAN_READY' else 2
-    result=check(run)
-    text='# Engineering Audit Report\n\n'+json.dumps(result,ensure_ascii=False,indent=2)+'\n\n## Findings\n\n'
-    for f in read(run/'findings.json'):
-        text+=f"- {f.get('id')}: {f.get('severity')} / {f.get('claim_status')} / {f.get('status')} — {f.get('current_behavior')}\n"
-    text+='\nRemediation: '+state.get('remediation_completion','NOT_ASSESSED')+'; production readiness: '+state.get('production_readiness','NOT_ASSESSED')+' (human/agent assessment; not inferred by CLI).\n'
-    text+='\n## Scope\n\n'+json.dumps(state['scope'],ensure_ascii=False,indent=2)+'\n\nAudit completion, remediation completion and production readiness are separate decisions. No deployment authorization is implied.\n'
-    (run/'report.md').write_text(text,encoding='utf-8');print(run/'report.md')
-    return 2 if result['errors'] else 0
 
 
 def architecture_input(path):
@@ -119,38 +94,6 @@ def context_command(args):
     path=folder/('architecture-'+digest(text.encode())[:16]+'.md');path.write_text(text,encoding='utf-8')
     write(path.with_suffix('.json'),{'revision':state['revision'],'model_sha256':context['model_sha256'],'characters':len(text),'budget_characters':args.budget_chars,'token_count':'NOT_MEASURED','node':args.node,'depth':args.depth,'packet_sha256':digest(text.encode())})
     print(path)
-
-def legacy_audit_command(args):
-    """Bootstrap the older agent-led run directory. Superseded by `eaos audit`; see CHANGELOG."""
-    init(args)
-    run=Path(args.out).resolve()
-    workflow.initialize(run)
-    discovery.scan(run)
-    (run/'AGENT-START.md').write_text((DATA/'START-HERE.md').read_text()+'\n\nRead the packaged core/AGENT-WORKFLOW.md. Run directory: '+str(run)+'\nTarget: '+str(Path(args.target).resolve())+'\nRun `eaos next "'+str(run)+'"` and follow its current stage.\n',encoding='utf-8')
-    print(json.dumps(workflow.write_next(run),ensure_ascii=False,indent=2))
-
-
-def discover_command(args):
-    result=discovery.scan(args.run)
-    print(json.dumps({'counts':result['counts'],'limitations':result['limitations']},ensure_ascii=False,indent=2))
-
-
-def next_command(args):
-    result=workflow.write_next(args.run)
-    print(json.dumps(result,ensure_ascii=False,indent=2))
-    return 2 if result['stage'].startswith('BLOCKED') else 0
-
-
-def observe_command(args):
-    print(discovery.capture(args.run,args.file,args.start,args.end,args.observation))
-
-
-def roadmap_command(args):
-    run,state=load_run(args.run)
-    if not fresh(state,read(run/'inventory.json'))[0]:raise ValueError('Snapshot changed or incomplete; revalidate in a new run')
-    result=workflow.seed_roadmap(run) if args.seed else workflow.roadmap_check(run,state)
-    print(json.dumps(result,ensure_ascii=False,indent=2))
-    return 2 if not result['ready'] else 0
 
 
 def run_command(args):
@@ -470,18 +413,19 @@ def transform_plan_command(args):
 
 
 def main(argv=None):
-    p=argparse.ArgumentParser(prog='eaos',description='Architecture, structure and maintainability audit workspaces; target is read-only')
+    from .command_groups import epilog
+    p=argparse.ArgumentParser(prog='eaos',description='Architecture, structure and maintainability audit workspaces; target is read-only',
+                              epilog=epilog(),formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--version',action='version',version='EAOS '+__version__)
     s=p.add_subparsers(dest='command',required=True)
-    for command,fn in [('init',init),('legacy-audit',legacy_audit_command)]:
-        q=s.add_parser(command);q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--profile',choices=['architecture','full'],default='architecture');q.add_argument('--max-files',type=bounded_int,default=100000);q.add_argument('--max-bytes',type=bounded_int,default=2_000_000);q.set_defaults(func=fn)
-    for command,fn in [('discover',discover_command),('next',next_command)]:
-        q=s.add_parser(command);q.add_argument('run');q.set_defaults(func=fn)
-    q=s.add_parser('observe');q.add_argument('run');q.add_argument('--file',required=True);q.add_argument('--start',type=bounded_int,required=True);q.add_argument('--end',type=bounded_int,required=True);q.add_argument('--observation',required=True);q.set_defaults(func=observe_command)
-    q=s.add_parser('roadmap');q.add_argument('run');q.add_argument('--seed',action='store_true');q.set_defaults(func=roadmap_command)
-    for name,fn in [('plan',plan),('validate',validate),('report',report),('resume',resume)]:
-        q=s.add_parser(name);q.add_argument('run');q.set_defaults(func=fn)
-        if name=='validate':q.add_argument('--require-complete',action='store_true')
+    # Ten commands of the agent-led run workflow were retired here; docs/legacy-inventory.json
+    # names each one and the declared stage that answers the same question. `init` stays because
+    # the model-driven repair path below operates in the workspace it creates.
+    q=s.add_parser('init',help='Create the workspace the model-driven repair commands operate in')
+    q.add_argument('target');q.add_argument('--out',required=True)
+    q.add_argument('--profile',choices=['architecture','full'],default='architecture')
+    q.add_argument('--max-files',type=bounded_int,default=100000)
+    q.add_argument('--max-bytes',type=bounded_int,default=2_000_000);q.set_defaults(func=init)
     for command,fn in [('run',run_command),('continue',continue_command),('implement',implement_command),('improve',improve_command)]:
         q=s.add_parser(command)
         if command=='run':
@@ -626,7 +570,6 @@ def main(argv=None):
     q.add_argument('--exclude',action='append',default=[])
     q.set_defaults(func=engines_command)
     q=s.add_parser('packet');q.add_argument('run');q.add_argument('--module',required=True);q.add_argument('--file',action='append',default=[]);q.add_argument('--budget-chars',type=bounded_int,default=24000);q.set_defaults(func=packet)
-    q=s.add_parser('checkpoint');q.add_argument('run');q.add_argument('--note',required=True);q.add_argument('--next',required=True);q.set_defaults(func=checkpoint)
     q=s.add_parser('graph');q.add_argument('run');q.set_defaults(func=graph_command)
     for command,fn in [('impact',impact_command),('context',context_command)]:
         q=s.add_parser(command);q.add_argument('run');q.add_argument('--node',required=True);q.add_argument('--depth',type=bounded_int,default=2);q.set_defaults(func=fn)

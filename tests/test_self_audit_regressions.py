@@ -74,11 +74,13 @@ class SelfAuditRegressionTests(unittest.TestCase):
         self.assertEqual(provider.calls,1)
 
     def test_cli_mutation_respects_active_engine_lock(self):
+        """A run-scoped command refuses while the engine holds the lock, and writes nothing."""
         (self.run/'engine.lock').write_text('active-fixture')
+        before=sorted(p.name for p in self.run.iterdir())
         with contextlib.redirect_stdout(io.StringIO()),contextlib.redirect_stderr(io.StringIO()):
-            result=cli.main(['observe',str(self.run),'--file','app.py','--start','1','--end','2','--observation','Concurrent mutation'])
+            result=cli.main(['packet',str(self.run),'--module','01'])
         self.assertEqual(result,2)
-        self.assertEqual(cli.read(self.run/'evidence.json'),[])
+        self.assertEqual(before,sorted(p.name for p in self.run.iterdir()))
 
     def test_remediation_respects_active_engine_lock(self):
         self.execute();(self.run/'engine.lock').write_text('active-fixture')

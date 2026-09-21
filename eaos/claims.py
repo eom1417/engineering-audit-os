@@ -5,7 +5,7 @@ what would disprove it. A question is an admitted gap. Nothing rendered may exis
 """
 from datetime import datetime, timezone
 import json
-from .audit_records import schema_errors
+from .vocabulary import schema_errors
 from .workspace import DATA, read, write
 
 CONFIDENCE = ['CONFIRMED', 'LIKELY', 'HYPOTHESIS', 'REFUTED']

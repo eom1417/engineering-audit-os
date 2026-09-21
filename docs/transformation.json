@@ -62,8 +62,8 @@
     "tests": 558,
     "package_lines": 10921,
     "python_modules": 89,
-    "cli_commands": 41,
-    "legacy_commands": 19,
+    "cli_commands": 38,
+    "legacy_commands": 9,
     "modern_commands": 22,
     "legacy_subsystem_lines": 1612,
     "artifacts_with_more_than_one_writer": 6,
@@ -73,9 +73,9 @@
     "output_contract_violations": 0,
     "policy_violations": 0,
     "tasks_total": 34,
-    "tasks_done": 8,
+    "tasks_done": 12,
     "milestones_total": 13,
-    "milestones_done": 5
+    "milestones_done": 6
   },
   "milestones": [
     {
@@ -295,7 +295,7 @@
     {
       "id": "M4",
       "title": "خط أنابيب واحد: إنهاء المسار القديم",
-      "status": "in_progress",
+      "status": "done",
       "depends_on": [
         "M3"
       ],
@@ -310,7 +310,7 @@
         {
           "id": "M4.T1",
           "title": "سجل قدرات المسار القديم قبل حذف أي شيء",
-          "status": "todo",
+          "status": "done",
           "files": [
             "docs/legacy-inventory.json",
             "tests/test_legacy_inventory.py"
@@ -380,7 +380,7 @@
         {
           "id": "M4.T2",
           "title": "نقل المساعدَين المشتركَين إلى core",
-          "status": "todo",
+          "status": "done",
           "files": [
             "eaos/audit_records.py",
             "eaos/discovery.py",
@@ -438,7 +438,7 @@
         {
           "id": "M4.T3",
           "title": "مالك واحد لكل مصنوعة متنازع عليها",
-          "status": "todo",
+          "status": "done",
           "files": [
             "eaos/sessions.py",
             "eaos/runtime/pipeline.py",
@@ -498,7 +498,7 @@
         {
           "id": "M4.T4",
           "title": "التنفيذ على دفعات حسب الحكم",
-          "status": "todo",
+          "status": "done",
           "files": [
             "eaos/cli.py",
             "tests/test_workflow.py",

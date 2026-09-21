@@ -129,10 +129,10 @@ def validate(context):
     manifest = read(context.out / 'run-manifest.json') if (context.out / 'run-manifest.json').is_file() else None
     (context.out / 'RUN.md').write_text(document(manifest or context['manifest_so_far'],
                                                  context.language).render(), encoding='utf-8')
+    from ..dossier import write_verdict
     dossier = read(context.out / 'dossier.json')
     violations = check(context.out, dossier)
-    write(context.out / 'report-result.json', {'out': str(context.out), 'output_spec_violations': violations,
-                                               'status': 'OK' if not violations else 'OUTPUT_SPEC_VIOLATED'})
+    write_verdict(context.out, dossier, violations, target=str(context.target))
     return {'violations': len(violations)}
 
 

@@ -22,7 +22,8 @@ class AuditTests(unittest.TestCase):
         obj=cli.read(self.run/file);fn(obj);cli.write(self.run/file,obj)
     def test_inventory_not_audit(self):
         r=cli.check(self.run);self.assertEqual(r['computed_audit_completion'],'INCOMPLETE');self.assertEqual(r['errors'],[])
-        self.assertEqual(self.call('validate',str(self.run),'--require-complete'),2)
+        # An inventory is not an audit: completion must not be claimed from a scan alone.
+        self.assertNotEqual(r['computed_audit_completion'],'COMPLETE')
     def test_false_completion(self):
         self.update('run.json',lambda r:r.update(completion='COMPLETE'))
         self.assertIn('False completion claim',cli.check(self.run)['errors'])
@@ -31,9 +32,14 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(env['capture'],'sensitive_metadata_only');self.assertIsNone(env['sha256'])
         self.assertEqual(self.call('packet',str(self.run),'--module','01','--file','.env'),2)
     def test_no_target_write(self):
+        """The declared pipeline reads the target and proves afterwards that it did not touch it."""
         before={p.name:p.read_bytes() for p in self.target.iterdir()}
-        self.assertEqual(self.call('plan',str(self.run)),0)
+        out=self.base/'report'
+        self.assertEqual(self.call('audit',str(self.target),'--out',str(out)),0)
         self.assertEqual(before,{p.name:p.read_bytes() for p in self.target.iterdir()})
+        manifest=cli.read(out/'run-manifest.json')
+        self.assertEqual(manifest['source_fingerprint'],
+                         cli.inventory(self.target)['fingerprint'])
         self.assertEqual(self.call('init',str(self.target),'--out',str(self.target/'audit')),2)
     def test_existing_run_not_overwritten(self):
         self.assertEqual(self.call('init',str(self.target),'--out',str(self.run)),2)
@@ -49,18 +55,22 @@ class AuditTests(unittest.TestCase):
     def test_symlink_rejected(self):
         (self.target/'linked.py').symlink_to(self.target/'app.py')
         with self.assertRaises(ValueError):cli.safe_file(self.target,'linked.py')
-    def test_source_change_detected(self):
-        self.assertEqual(self.call('checkpoint',str(self.run),'--note','Reviewed inventory','--next','Architecture'),0)
+    def test_source_change_refuses_to_resume_stale_evidence(self):
+        out=self.base/'report'
+        self.assertEqual(self.call('audit',str(self.target),'--out',str(out)),0)
         (self.target/'app.py').write_text('changed\n')
-        self.assertEqual(self.call('resume',str(self.run)),2)
+        with self.assertRaises(ValueError):
+            from eaos.pipeline import resume
+            resume(str(self.target),str(out))
         self.assertEqual(self.call('packet',str(self.run),'--module','01'),2)
-    def test_record_change_detected(self):
-        self.assertEqual(self.call('checkpoint',str(self.run),'--note','Reviewed','--next','Trace'),0)
-        self.update('decisions.json',lambda d:d.append({'id':'D-1'}))
-        self.assertEqual(self.call('resume',str(self.run)),2)
-    def test_clean_resume(self):
-        self.assertEqual(self.call('checkpoint',str(self.run),'--note','Reviewed','--next','Trace'),0)
-        self.assertEqual(self.call('resume',str(self.run)),0)
+    def test_clean_resume_reruns_nothing_that_finished(self):
+        from eaos.pipeline import resume
+        out=self.base/'report'
+        self.assertEqual(self.call('audit',str(self.target),'--out',str(out)),0)
+        first=cli.read(out/'run-manifest.json')
+        again=resume(str(self.target),str(out))
+        self.assertEqual({n:r['status'] for n,r in again['stages'].items()},
+                         {n:r['status'] for n,r in first['stages'].items()})
     def test_truncated_inventory(self):
         inv=cli.inventory(self.target,max_files=1)
         self.assertTrue(inv['truncated'])
@@ -112,3 +122,60 @@ class AuditTests(unittest.TestCase):
         cli.write(self.run/'gates.json',[{'id':'G-1','status':'pass','revision':rev,'rationale':'claims passed','evidence_ids':[]}])
         self.assertTrue(any('requires execution evidence' in e for e in cli.check(self.run)['errors']))
 if __name__=='__main__':unittest.main()
+
+
+class CommandSurfaceTests(unittest.TestCase):
+    """Thirty-eight commands need a map, and every one of them needs to be on it."""
+
+    def _commands(self):
+        import argparse, contextlib, io
+        captured = {}
+        original = argparse.ArgumentParser.parse_args
+
+        def spy(self, argv=None, namespace=None):
+            captured['parser'] = self
+            raise SystemExit(0)
+
+        argparse.ArgumentParser.parse_args = spy
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                cli.main(['--version'])
+        except SystemExit:
+            pass
+        finally:
+            argparse.ArgumentParser.parse_args = original
+        action = [a for a in captured['parser']._actions if isinstance(a, argparse._SubParsersAction)][0]
+        return action.choices
+
+    def test_every_command_belongs_to_a_declared_group(self):
+        from eaos.command_groups import group_of
+        ungrouped = sorted(name for name in self._commands() if group_of(name) is None)
+        self.assertEqual(ungrouped, [], 'these commands appear in no group and no reader can place them')
+
+    def test_every_group_member_is_a_real_command(self):
+        from eaos.command_groups import GROUPS
+        known = set(self._commands())
+        for key, _, _, members in GROUPS:
+            missing = sorted(set(members) - known)
+            self.assertEqual(missing, [], f'group {key} lists commands that do not exist')
+
+    def test_the_retired_commands_are_gone_and_recorded(self):
+        inventory = json.loads(Path('docs/legacy-inventory.json').read_text(encoding='utf-8'))
+        retired = {row['command'] for row in inventory['commands'] if row['verdict'] in ('replaced', 'delete')}
+        self.assertTrue(retired)
+        self.assertEqual(sorted(retired & set(self._commands())), [])
+        for row in inventory['commands']:
+            if row['verdict'] == 'replaced':
+                self.assertTrue(row['modern_equivalent'], row['command'])
+
+    def test_every_kept_legacy_command_still_works(self):
+        inventory = json.loads(Path('docs/legacy-inventory.json').read_text(encoding='utf-8'))
+        kept = {row['command'] for row in inventory['commands'] if row['verdict'] == 'keep'}
+        self.assertEqual(sorted(kept - set(self._commands())), [])
+
+    def test_no_two_commands_claim_the_same_artifact(self):
+        from eaos.compose.artifacts import ARTIFACTS
+        owners = {}
+        for artifact in ARTIFACTS:
+            self.assertNotIn(artifact.name, owners)
+            owners[artifact.name] = artifact.owner

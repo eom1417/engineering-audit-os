@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-21",
+  "method": "Every command was run against a scratch run directory created by `eaos init` over examples/benchmark/coupled-billing, and its handler read. A verdict of \"replaced\" means the declared pipeline answers the same question for the same input, not that the words match.",
+  "subsystems": {
+    "agent_led_workflow": "Guides a human or agent through a staged audit of a run directory: scan, next action, observations, roadmap, module plan, record validation, report, resume. The declared pipeline now does this deterministically and in one command.",
+    "model_driven_repair": "Copies the target into an isolated project, asks a model for a repair, runs the declared checks before and after, and emits changes.patch. It never writes into the target. Nothing in the deterministic pipeline does this."
+  },
+  "commands": [
+    {
+      "command": "legacy-audit",
+      "handler": "legacy_audit_command",
+      "modules": [
+        "sessions",
+        "workflow",
+        "discovery"
+      ],
+      "what_it_does": "init plus workflow.initialize, discovery.scan and AGENT-START.md",
+      "modern_equivalent": "eaos audit",
+      "verdict": "replaced",
+      "evidence": "eaos audit runs 16 declared stages over the same target and reports what each did"
+    },
+    {
+      "command": "discover",
+      "handler": "discover_command",
+      "modules": [
+        "discovery"
+      ],
+      "what_it_does": "Scan the run inventory and classify files",
+      "modern_equivalent": "the facts stage (eaos audit --only facts)",
+      "verdict": "replaced",
+      "evidence": "facts/index.json carries the same inventory, content-addressed and reproducible"
+    },
+    {
+      "command": "next",
+      "handler": "next_command",
+      "modules": [
+        "workflow"
+      ],
+      "what_it_does": "Print the next workflow stage for an agent to perform",
+      "modern_equivalent": "RUN.md and PLAN/ cards",
+      "verdict": "replaced",
+      "evidence": "fails without workflow.json, which only legacy-audit writes; RUN.md states stage status for every run"
+    },
+    {
+      "command": "observe",
+      "handler": "observe_command",
+      "modules": [
+        "discovery"
+      ],
+      "what_it_does": "Record a human observation against a file line range",
+      "modern_equivalent": "eaos decision-review --review <file>",
+      "verdict": "replaced",
+      "evidence": "decision-review records a sourced human review and refreshes the plan from it"
+    },
+    {
+      "command": "roadmap",
+      "handler": "roadmap_command",
+      "modules": [
+        "workflow"
+      ],
+      "what_it_does": "Seed and check roadmap.json",
+      "modern_equivalent": "plan.json and PLAN/WAVES.md",
+      "verdict": "replaced",
+      "evidence": "fails without roadmap.json; the plan stage produces ordered waves from confirmed claims"
+    },
+    {
+      "command": "plan",
+      "handler": "plan",
+      "modules": [
+        "workspace.registry"
+      ],
+      "what_it_does": "Write plan.md listing every audit module from the registry",
+      "modern_equivalent": "eaos tasks",
+      "verdict": "replaced",
+      "evidence": "produces a static module listing, not a plan derived from this project"
+    },
+    {
+      "command": "validate",
+      "handler": "validate",
+      "modules": [
+        "audit_records"
+      ],
+      "what_it_does": "Check the run records against their schemas",
+      "modern_equivalent": "the validate stage and tools/validate.py",
+      "verdict": "replaced",
+      "evidence": "the output contract R1-R13 checks the rendered report; audit_records stays as a library"
+    },
+    {
+      "command": "report",
+      "handler": "report",
+      "modules": [
+        "workflow",
+        "audit_records"
+      ],
+      "what_it_does": "Render report.md from the workflow records",
+      "modern_equivalent": "PRODUCT-REPORT.md and EXECUTIVE.md",
+      "verdict": "replaced",
+      "evidence": "both are produced by declared stages with budgets the contract enforces"
+    },
+    {
+      "command": "resume",
+      "handler": "resume",
+      "modules": [
+        "workspace.load_run"
+      ],
+      "what_it_does": "Report whether the recorded evidence is still current",
+      "modern_equivalent": "eaos audit --resume",
+      "verdict": "replaced",
+      "evidence": "resume compares the source fingerprint and reruns only stages that did not complete"
+    },
+    {
+      "command": "checkpoint",
+      "handler": "checkpoint",
+      "modules": [
+        "workspace.load_run"
+      ],
+      "what_it_does": "Hash the run records and write a resumption note",
+      "modern_equivalent": "run-manifest.json",
+      "verdict": "replaced",
+      "evidence": "the manifest records per-stage status, artifacts and the source fingerprint"
+    },
+    {
+      "command": "init",
+      "handler": "init",
+      "modules": [
+        "sessions"
+      ],
+      "what_it_does": "Create the run workspace the model-driven repair path operates in",
+      "modern_equivalent": null,
+      "verdict": "keep",
+      "evidence": "run, continue, implement, improve, packet, graph, impact and context all need this workspace"
+    },
+    {
+      "command": "run",
+      "handler": "run_command",
+      "modules": [
+        "runtime.pipeline"
+      ],
+      "what_it_does": "Model-driven audit: multi-round interrogation with a budget, writing architecture.json",
+      "modern_equivalent": "the semantic stage does one pass, not a bounded multi-round interrogation",
+      "verdict": "keep",
+      "evidence": "eaos audit --provider runs semantic once; this drives rounds against a character budget"
+    },
+    {
+      "command": "continue",
+      "handler": "continue_command",
+      "modules": [
+        "runtime.pipeline"
+      ],
+      "what_it_does": "Resume a blocked model-driven run, reusing completed jobs",
+      "modern_equivalent": null,
+      "verdict": "keep",
+      "evidence": "no deterministic stage resumes a model interrogation"
+    },
+    {
+      "command": "implement",
+      "handler": "implement_command",
+      "modules": [
+        "runtime.remediate"
+      ],
+      "what_it_does": "Ask a model for a repair inside an isolated copy, run the declared checks before and after, and emit changes.patch",
+      "modern_equivalent": null,
+      "verdict": "keep",
+      "evidence": "remediate.py copies the target into project/ and edits the copy; the target is never written"
+    },
+    {
+      "command": "improve",
+      "handler": "improve_command",
+      "modules": [
+        "runtime.campaign"
+      ],
+      "what_it_does": "Loop audit and repair until a stop condition, writing CAMPAIGN.md",
+      "modern_equivalent": null,
+      "verdict": "keep",
+      "evidence": "no deterministic stage iterates repair"
+    },
+    {
+      "command": "packet",
+      "handler": "packet",
+      "modules": [
+        "workspace.load_run",
+        "workspace.registry"
+      ],
+      "what_it_does": "Build a character-budgeted context packet over untrusted source, refusing to exceed the budget",
+      "modern_equivalent": "bundles/ groups artifacts but does not bound source excerpts or mark them untrusted",
+      "verdict": "keep",
+      "evidence": "the packet refuses rather than truncates, and labels every excerpt UNTRUSTED"
+    },
+    {
+      "command": "graph",
+      "handler": "graph_command",
+      "modules": [
+        "architecture"
+      ],
+      "what_it_does": "Summarise the architecture model the model-driven run produced",
+      "modern_equivalent": "SYSTEM-MAP.md is derived from facts, not from the declared model",
+      "verdict": "keep",
+      "evidence": "reads architecture.json, which only the model path writes"
+    },
+    {
+      "command": "impact",
+      "handler": "impact_command",
+      "modules": [
+        "architecture"
+      ],
+      "what_it_does": "Impact of a change over the declared architecture model",
+      "modern_equivalent": "eaos impact-of computes impact from resolved imports instead",
+      "verdict": "keep",
+      "evidence": "different input: a reviewed model rather than extracted facts"
+    },
+    {
+      "command": "context",
+      "handler": "context_command",
+      "modules": [
+        "architecture"
+      ],
+      "what_it_does": "Budgeted context slice of the declared architecture model",
+      "modern_equivalent": null,
+      "verdict": "keep",
+      "evidence": "reads architecture.json"
+    }
+  ],
+  "counts": {
+    "replaced": 10,
+    "keep": 9
+  }
+}

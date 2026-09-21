@@ -4,7 +4,39 @@ import io
 from pathlib import Path
 import tempfile
 import unittest
-from eaos import cli, discovery, workflow
+from eaos import audit_records, cli, discovery, workflow
+
+
+def roadmap_seed(run):
+    """What `eaos roadmap --seed` used to return: the seeded roadmap's readiness, or 2 on refusal."""
+    try:
+        return 0 if workflow.seed_roadmap(run)['ready'] else 2
+    except ValueError:
+        return 2
+
+
+def roadmap_exit(run):
+    """What `eaos roadmap` used to return: 0 when ready, 2 when not ready or refused."""
+    try:
+        directory, state = cli.load_run(run)
+        # The retired command refused outright on a changed snapshot; the guard lived in the CLI.
+        if not cli.fresh(state, cli.read(directory / 'inventory.json'))[0]:
+            return 2
+        return 0 if workflow.roadmap_check(directory, state)['ready'] else 2
+    except ValueError:
+        return 2
+
+
+def report_exit(run):
+    """What `eaos report` used to return, read from the workflow rather than the CLI."""
+    _, progress, _ = workflow.render_report(run)
+    return 0 if progress['stage'] == 'AUDIT_AND_PLAN_READY' else 2
+
+
+def validate_exit(run, require_complete=False):
+    result = audit_records.check(run)
+    return 2 if result['errors'] or (require_complete and
+                                     result['computed_audit_completion'] != 'COMPLETE') else 0
 from test_cli import AuditTests as Helpers
 
 class WorkflowTests(unittest.TestCase):
@@ -48,7 +80,8 @@ class WorkflowTests(unittest.TestCase):
     def test_single_entrypoint_read_only_and_no_script_execution(self):
         out=self.base/'single-entry'
         before={p.name:p.read_bytes() for p in self.target.iterdir()}
-        self.assertEqual(self.call('legacy-audit',str(self.target),'--out',str(out)),0)
+        self.assertEqual(self.call('init',str(self.target),'--out',str(out)),0)
+        workflow.initialize(out); discovery.scan(out)
         self.assertEqual(workflow.status(out)['stage'],'SCOPE')
         self.assertEqual(before,{p.name:p.read_bytes() for p in self.target.iterdir()})
         self.assertEqual(cli.read(out/'architecture.json')['nodes'],[])
@@ -62,7 +95,7 @@ class WorkflowTests(unittest.TestCase):
     def test_unaccounted_file_blocks_complete_audit(self):
         self.complete();self.update('surface-review.json',lambda rows:rows.pop())
         self.assertEqual(workflow.status(self.run)['stage'],'REVIEW_SURFACES')
-        self.assertEqual(self.call('validate',str(self.run),'--require-complete'),2)
+        self.assertEqual(validate_exit(self.run, True),2)
 
     def test_unrelated_evidence_cannot_mark_file_reviewed(self):
         self.complete();self.update('surface-review.json',lambda rows:[r.update(evidence_ids=['E-1']) for r in rows if r['status']=='reviewed'])
@@ -79,14 +112,14 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(result['production_readiness'],'NOT_ASSESSED')
         self.assertEqual(result['remediation_completion'],'NOT_REQUESTED')
         self.assertEqual(result['task_order'],['T-1'])
-        self.assertEqual(self.call('report',str(self.run)),0)
+        self.assertEqual(report_exit(self.run),0)
         report=(self.run/'report.md').read_text()
         for section in ['Architecture and change scenarios','Findings','Ordered development work','Control coverage','Verification gates','Evidence','Decisions']:self.assertIn(section,report)
 
     def test_missing_invariant_prevents_ready(self):
         self.prepare_plan();self.update('roadmap.json',lambda d:d['tasks'][0].update(invariant='TODO'))
         self.assertEqual(workflow.status(self.run)['stage'],'DESIGN_PLAN')
-        self.assertEqual(self.call('roadmap',str(self.run)),2)
+        self.assertEqual(roadmap_exit(self.run),2)
 
     def test_missing_finding_disposition_prevents_ready(self):
         self.complete();self.add_finding()
@@ -94,9 +127,9 @@ class WorkflowTests(unittest.TestCase):
 
     def test_seed_is_draft_and_preserves_existing_plan(self):
         self.complete();self.add_finding()
-        self.assertEqual(self.call('roadmap',str(self.run),'--seed'),2)
+        self.assertEqual(roadmap_seed(self.run),2)
         doc=(self.run/'roadmap.json').read_bytes()
-        self.assertEqual(self.call('roadmap',str(self.run),'--seed'),2)
+        self.assertEqual(roadmap_seed(self.run),2)
         self.assertEqual(doc,(self.run/'roadmap.json').read_bytes())
 
     def test_task_dependency_cycle_rejected(self):
@@ -121,7 +154,7 @@ class WorkflowTests(unittest.TestCase):
     def test_source_mutation_invalidates_workflow_and_plan(self):
         self.prepare_plan();(self.target/'app.py').write_text('print("changed")\n')
         self.assertEqual(workflow.status(self.run)['stage'],'BLOCKED_SNAPSHOT')
-        self.assertEqual(self.call('roadmap',str(self.run)),2)
+        self.assertEqual(roadmap_exit(self.run),2)
 
     def test_capture_is_reproducible_and_deduplicated(self):
         eid=discovery.capture(self.run,'app.py',1,1,'Print fixture text')
@@ -136,7 +169,7 @@ class WorkflowTests(unittest.TestCase):
             with self.assertRaises(ValueError):discovery.capture(self.run,rel,start,end,'observation')
 
     def test_report_partial_is_explicit(self):
-        self.start();self.assertEqual(self.call('report',str(self.run)),2)
+        self.start();self.assertEqual(report_exit(self.run),2)
         self.assertIn('not evidence of a clean system',(self.run/'report.md').read_text())
 
 class DiscoveryTests(unittest.TestCase):
@@ -162,7 +195,9 @@ class DiscoveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             base=Path(folder);target=base/'product';target.mkdir();run=base/'run'
             for name,content in {'bad.py':'def broken(', 'main.go':'package main', '.env':'SECRET=NEVER_COPY','package.json':'{}','route.ts':"import './x';"}.items():(target/name).write_text(content)
-            with contextlib.redirect_stdout(io.StringIO()):self.assertEqual(cli.main(['legacy-audit',str(target),'--out',str(run)]),0)
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(cli.main(['init',str(target),'--out',str(run)]),0)
+                workflow.initialize(run); discovery.scan(run)
             rows={r['path']:r for r in cli.read(run/'discovery.json')['files']}
             self.assertEqual(rows['bad.py']['parse_status'],'BLOCKED')
             self.assertEqual(rows['main.go']['parse_status'],'UNSUPPORTED')

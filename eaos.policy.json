@@ -64,16 +64,18 @@
       "eaos/executive.py"
     ],
     "core": [
-      "eaos/workspace.py",
-      "eaos/discovery.py",
+      "eaos/__init__.py",
       "eaos/architecture.py",
       "eaos/audit_records.py",
-      "eaos/workflow.py",
-      "eaos/sessions.py",
-      "eaos/surface_records.py",
-      "eaos/__init__.py",
+      "eaos/command_groups.py",
+      "eaos/discovery.py",
       "eaos/engagement.py",
-      "eaos/snapshots.py"
+      "eaos/sessions.py",
+      "eaos/snapshots.py",
+      "eaos/surface_records.py",
+      "eaos/vocabulary.py",
+      "eaos/workflow.py",
+      "eaos/workspace.py"
     ],
     "tools": [
       "tools/**",

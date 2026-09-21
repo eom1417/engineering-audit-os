@@ -20,6 +20,7 @@ class Artifact:
     budget_lines: int = 200     # documents only; a record has no length budget
     record: str = ''            # the machine-readable twin that holds the full detail
     checked: bool = True        # False when it is written after the contract runs
+    mutated_by: tuple = ()      # stages that legitimately update it after its owner created it
     required: bool = True
     absent_when: str = ''
 
@@ -68,7 +69,8 @@ ARTIFACTS = (
     Artifact('SEMANTIC.md', 'semantic', DOCUMENT, 'Model interpretation, every line still a hypothesis', 41, 200,
              record='semantic.json', required=False, absent_when='no model provider was configured'),
 
-    Artifact('dossier.json', 'claims', RECORD, 'The claim ledger this report renders'),
+    Artifact('dossier.json', 'claims', RECORD, 'The claim ledger this report renders',
+             mutated_by=('probe', 'plan', 'semantic')),
     Artifact('plan.json', 'plan', RECORD, 'Task cards and waves'),
     Artifact('probes.json', 'probe', RECORD, 'What each probe decided'),
     Artifact('report-result.json', 'validate', RECORD, 'The output-contract verdict'),

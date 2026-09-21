@@ -91,8 +91,8 @@ class RuleThirteenTests(unittest.TestCase):
 class SingleWriterTests(unittest.TestCase):
     """One artifact, one module. Two writers is how the system map was silently emptied."""
 
-    def _writers(self):
-        """Modules that actually call write_text on a path naming a declared document."""
+    def _writers(self, kind=contract.DOCUMENT):
+        """Modules that actually call write_text on a path naming a declared artifact."""
         writers = {}
         for path in sorted(Path('eaos').rglob('*.py')):
             tree = ast.parse(path.read_text(encoding='utf-8'))
@@ -103,13 +103,21 @@ class SingleWriterTests(unittest.TestCase):
                 for inner in ast.walk(node.func.value):
                     if (isinstance(inner, ast.Constant) and isinstance(inner.value, str)
                             and inner.value in contract.BY_NAME
-                            and contract.BY_NAME[inner.value].kind == contract.DOCUMENT):
+                            and contract.BY_NAME[inner.value].kind == kind):
                         writers.setdefault(inner.value, set()).add(path.as_posix())
         return writers
 
     def test_no_document_is_named_for_writing_by_two_unrelated_modules(self):
         offenders = {name: sorted(paths) for name, paths in self._writers().items() if len(paths) > 1}
         self.assertEqual(offenders, {}, 'each of these documents is written from more than one module')
+
+    def test_a_record_with_several_writers_declares_who_may_mutate_it(self):
+        for name, paths in self._writers(contract.RECORD).items():
+            if len(paths) <= 1:
+                continue
+            artifact = contract.BY_NAME[name]
+            self.assertTrue(artifact.mutated_by,
+                            f'{name} is written from {sorted(paths)} without declaring mutated_by')
 
 
 class PartialRunTests(unittest.TestCase):

@@ -6,19 +6,9 @@ import json
 from pathlib import Path
 import re
 from .workspace import read, write, load_run, fresh, safe_file, digest, now, INFRA, STACKS
+from .vocabulary import CONFIG, SOURCE, classify
 
-SOURCE = {'.py','.js','.jsx','.ts','.tsx','.mjs','.cjs','.go','.rs','.java','.kt','.cs','.php','.rb','.ex','.exs','.dart','.vue','.svelte','.swift','.c','.cpp','.h','.sql'}
-CONFIG = {'.json','.toml','.yaml','.yml','.xml','.ini','.cfg','.tf','.sh'}
 
-def classify(path):
-    p=Path(path);name=p.name.lower();parts={s.lower() for s in p.parts}
-    if p.name in STACKS or p.suffix in {'.csproj','.fsproj'}:return 'manifest'
-    if INFRA.search(path):return 'infrastructure'
-    if parts & {'tests','test','__tests__','spec'} or re.search(r'(^test_|[._](test|spec)\.)',name):return 'test'
-    if p.suffix in SOURCE:return 'source'
-    if p.suffix in CONFIG or name in {'dockerfile','makefile'}:return 'configuration'
-    if p.suffix in {'.md','.rst','.txt'}:return 'documentation'
-    return 'other'
 
 def python_observations(text):
     tree=ast.parse(text);symbols=[];imports=[]

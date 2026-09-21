@@ -3,49 +3,12 @@ from pathlib import Path
 import re
 from .workspace import read, load_run, registry, controls, DATA, fresh, safe_file, digest
 from . import architecture as arch
+from .vocabulary import SUPPORTED_KEYWORDS, schema_errors
 
 GATE_STATES = {'pass','fail','blocked','not_run','not_applicable'}
 COVER_STATES = {'pass','fail','blocked','not_run','not_applicable'}
 
-SUPPORTED_KEYWORDS={'type','enum','const','properties','required','additionalProperties','items',
-                    'minLength','maxLength','pattern','minItems','maxItems','minimum','maximum','description',
-                    '$schema','$id','title','format','anyOf'}
 
-# Contract checks deliberately limited to record consistency, never proof of real-world behavior.
-# Keywords outside SUPPORTED_KEYWORDS are reported rather than ignored: a constraint nobody enforces
-# is worse than no constraint, because the schema reads as a guarantee.
-def schema_errors(value, spec, path='$'):
-    errors=[]
-    types={'object':dict,'array':list,'string':str,'null':type(None),'boolean':bool,'integer':int,'number':(int,float)}
-    unsupported=sorted(set(spec)-SUPPORTED_KEYWORDS)
-    if unsupported:errors.append(path+' schema uses unenforced keywords: '+', '.join(unsupported))
-    expected=spec.get('type')
-    allowed=expected if isinstance(expected,list) else [expected] if expected else []
-    if allowed:
-        if any(t=='integer' for t in allowed) and isinstance(value,bool):return [path+' invalid type']
-        if not any(isinstance(value,types[t]) for t in allowed if t in types):return [path+' invalid type']
-    if 'enum' in spec and value not in spec['enum']:errors.append(path+' invalid enum')
-    if 'const' in spec and value!=spec['const']:errors.append(path+' must equal '+repr(spec['const']))
-    if isinstance(value,str):
-        if len(value)<spec.get('minLength',0):errors.append(path+' empty text')
-        if 'maxLength' in spec and len(value)>spec['maxLength']:errors.append(path+' longer than '+str(spec['maxLength']))
-        if 'pattern' in spec and not re.search(spec['pattern'],value):errors.append(path+' does not match '+spec['pattern'])
-    if isinstance(value,(int,float)) and not isinstance(value,bool):
-        if 'minimum' in spec and value<spec['minimum']:errors.append(path+' below minimum')
-        if 'maximum' in spec and value>spec['maximum']:errors.append(path+' above maximum')
-    if isinstance(value,list):
-        if len(value)<spec.get('minItems',0):errors.append(path+' needs at least '+str(spec['minItems'])+' items')
-        if 'maxItems' in spec and len(value)>spec['maxItems']:errors.append(path+' has more than '+str(spec['maxItems'])+' items')
-    if isinstance(value,dict):
-        for key in spec.get('required',[]):
-            if key not in value:errors.append(path+' missing '+key)
-        props=spec.get('properties',{})
-        for key,v in value.items():
-            if key in props:errors+=schema_errors(v,props[key],path+'.'+key)
-            elif spec.get('additionalProperties') is False:errors.append(path+' unexpected '+key)
-    if isinstance(value,list) and 'items' in spec:
-        for i,v in enumerate(value):errors+=schema_errors(v,spec['items'],path+f'[{i}]')
-    return errors
 
 def check(run,check_target=True):
     run,state=load_run(run); errors=[]; gaps=[]
