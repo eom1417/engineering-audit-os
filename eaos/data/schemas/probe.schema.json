@@ -4,29 +4,103 @@
   "title": "Probe — a runnable check that raises or drops a claim's confidence",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "claim_id", "probe_type", "specification", "status"],
+  "required": [
+    "id",
+    "claim_id",
+    "probe_type",
+    "specification",
+    "status"
+  ],
   "properties": {
-    "id": {"type": "string", "pattern": "^PRB-[0-9]{3,}$"},
-    "claim_id": {"type": "string"},
+    "id": {
+      "type": "string",
+      "pattern": "^PRB-[0-9]{3,}$"
+    },
+    "claim_id": {
+      "type": "string"
+    },
     "probe_type": {
-      "enum": ["absence_search", "graph_query", "execution", "coverage", "falsification"],
+      "enum": [
+        "absence_search",
+        "graph_query",
+        "execution",
+        "coverage",
+        "falsification"
+      ],
       "description": "absence_search generalises today's evidence kind of the same name: an absence claim requires a declared search scope."
     },
     "specification": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "command": {"type": "string", "description": "Exact command for execution/coverage probes."},
-        "query": {"type": "string", "description": "Deterministic query over the fact graph."},
-        "search_scope": {"type": "array", "items": {"type": "string"}},
-        "patterns": {"type": "array", "items": {"type": "string"}},
-        "expected": {"type": "string", "description": "The observation that counts as confirmation."}
+        "command": {
+          "type": "string",
+          "description": "Exact command for execution/coverage probes."
+        },
+        "query": {
+          "type": "string",
+          "description": "Deterministic query over the fact graph."
+        },
+        "search_scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "patterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expected": {
+          "type": "string",
+          "description": "The observation that counts as confirmation."
+        },
+        "direction": {
+          "enum": [
+            "one_way",
+            "either"
+          ],
+          "description": "For dependency queries: whether the claim is about one direction only."
+        }
       }
     },
-    "requires_execution": {"type": "boolean", "default": false, "description": "Execution probes are disabled by default; untrusted sources need an OS-level sandbox."},
-    "status": {"enum": ["not_run", "CONFIRMED", "REFUTED", "INCONCLUSIVE", "blocked"]},
-    "result": {"type": "string"},
-    "evidence_id": {"type": "string"},
-    "ran_at": {"type": "string", "format": "date-time"}
+    "requires_execution": {
+      "type": "boolean",
+      "default": false,
+      "description": "Execution probes are disabled by default; untrusted sources need an OS-level sandbox."
+    },
+    "status": {
+      "enum": [
+        "not_run",
+        "CONFIRMED",
+        "PARTIAL",
+        "REFUTED",
+        "INCONCLUSIVE",
+        "blocked"
+      ],
+      "description": "PARTIAL means the probe passed but cannot establish this kind of claim on its own."
+    },
+    "result": {
+      "type": "string"
+    },
+    "evidence_id": {
+      "type": "string"
+    },
+    "ran_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "searched": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      },
+      "description": "Paths the probe actually looked at."
+    }
   }
 }

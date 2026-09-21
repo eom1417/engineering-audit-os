@@ -10,6 +10,15 @@ from .facts.source import Source
 from .workspace import read, write
 
 KINDS = ['absence_search', 'graph_query', 'execution', 'coverage', 'falsification']
+# What each kind of probe is able to settle. A static check can show that a structure exists;
+# it cannot show why it exists, so a claim about cause or responsibility cannot be confirmed by one.
+DECIDABLE = {
+    'graph_query': {'structure', 'business_rule', 'capability_gap', 'contract', 'risk'},
+    'absence_search': {'structure', 'business_rule', 'contract'},
+    'coverage': {'risk', 'capability_gap', 'structure'},
+    'execution': {'structure', 'business_rule', 'contract', 'cause', 'risk', 'capability_gap', 'responsibility'},
+    'falsification': {'structure', 'business_rule', 'contract', 'cause', 'risk', 'capability_gap', 'responsibility'},
+}
 DEFAULT_SCOPE = ['source', 'test']
 
 
@@ -124,7 +133,14 @@ def run_graph_query(specification, sets):
         return ('CONFIRMED', 'the forbidden edge is still in the graph') if present else ('REFUTED', 'the edge is gone')
     if query == 'no_code_dependency':
         nodes = {fact['location']['path']: set(fact['value']['depends_on']) for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
-        linked = specification['right'] in nodes.get(specification['left'], set()) or specification['left'] in nodes.get(specification['right'], set())
+        forward = specification['right'] in nodes.get(specification['left'], set())
+        backward = specification['left'] in nodes.get(specification['right'], set())
+        # A claim about one direction must not be refuted by an edge running the other way.
+        if specification.get('direction') == 'one_way':
+            return ('REFUTED', f"{specification['left']} imports {specification['right']}") if forward \
+                else ('CONFIRMED', f"no resolved import from {specification['left']} to {specification['right']}"
+                                   + (f" (the reverse edge exists and is allowed)" if backward else ''))
+        linked = forward or backward
         return ('REFUTED', 'a resolved import links them') if linked else ('CONFIRMED', 'no resolved import between them')
     return 'INCONCLUSIVE', 'unknown query'
 
@@ -153,7 +169,7 @@ def run_all(target, out, allow_execution=False):
     source = Source(target)
     probes = derive(dossier['claims'], sets)
     by_claim = {claim['id']: claim for claim in dossier['claims']}
-    counts = {'CONFIRMED': 0, 'REFUTED': 0, 'INCONCLUSIVE': 0, 'blocked': 0}
+    counts = {'CONFIRMED': 0, 'REFUTED': 0, 'PARTIAL': 0, 'INCONCLUSIVE': 0, 'blocked': 0}
     for row in probes:
         if row['probe_type'] == 'graph_query':
             status, detail = run_graph_query(row['specification'], sets)
@@ -174,19 +190,30 @@ def run_all(target, out, allow_execution=False):
         else:
             status, detail = 'INCONCLUSIVE', 'no runner for this probe type'
         row['status'], row['result'], row['ran_at'] = status, detail, now()
+        original_status = status
         row['searched'] = sorted(constant_sites(re.sub(r'^\\b|\\b$', '', row['specification']['patterns'][0]).replace('\\', ''), sets)) \
             if row['probe_type'] == 'absence_search' else None
-        counts[status] = counts.get(status, 0) + 1
         claim = by_claim.get(row['claim_id'])
-        if claim is None: continue
+        if claim is None:
+            counts[status] = counts.get(status, 0) + 1
+            continue
         claim.setdefault('probe_ids', []).append(row['id'])
         if status == 'CONFIRMED':
-            claim['confidence'] = 'CONFIRMED'
+            decidable = DECIDABLE.get(row['probe_type'], set())
+            if claim.get('claim_type') in decidable:
+                claim['confidence'] = 'CONFIRMED'
+            else:
+                # The probe supports the claim without establishing it: consistent evidence, not proof.
+                claim['confidence'] = 'LIKELY' if claim['confidence'] == 'HYPOTHESIS' else claim['confidence']
+                row['result'] += (f"; this probe cannot establish a {claim.get('claim_type')} claim, "
+                                  f"so the claim rises to LIKELY at most")
+                row['status'] = 'PARTIAL'
             claim['method'] = sorted(set(claim['method'] + ['runtime_probe' if row['probe_type'] == 'execution' else 'static_fact']))
         elif status == 'REFUTED':
             claim['confidence'] = 'REFUTED'
             claim['status'] = 'withdrawn'
             claim.setdefault('refuted_by', []).append(row['id'])
+        counts[row['status']] = counts.get(row['status'], 0) + 1
     write(out / 'probes.json', probes)
     confirmed = sum(1 for claim in dossier['claims'] if claim['confidence'] == 'CONFIRMED')
     dossier['coverage']['probe_confirmed_claims'] = confirmed

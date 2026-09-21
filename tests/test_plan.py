@@ -172,3 +172,26 @@ class PatternCoverageTests(unittest.TestCase):
             text = ' '.join(path.read_text() for path in (out / 'PLAN').glob('TASK-*.md'))
             self.assertIn('مسارين يختلفان', text)
             self.assertNotIn('makes two paths disagree', text)
+
+
+class HypothesisTaskTests(unittest.TestCase):
+    """An unproven claim is work too: prove it or drop it, never change code on it."""
+
+    def test_a_hypothesis_becomes_an_investigation_not_a_change(self):
+        from eaos import claims as ledger
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            assemble(FIXTURE, out)
+            dossier = json.loads((out / 'dossier.json').read_text())
+            guess = ledger.make(901, 'The pricing module probably owns the tax rule as well', 'responsibility',
+                                'HYPOTHESIS', ['model_inference'], [], 'A second module applying tax without importing it',
+                                fact_ids=dossier['claims'][0]['fact_ids'], origin='source')
+            dossier['claims'].append(guess)
+            (out / 'dossier.json').write_text(json.dumps(dossier, ensure_ascii=False))
+            build(FIXTURE, out)
+            tasks = json.loads((out / 'plan.json').read_text())['tasks']
+            investigation = next(task for task in tasks if task['claim_id'] == guess['id'])
+            self.assertEqual(investigation['kind'], 'investigate')
+            self.assertIn('أثبت هذا الادعاء أو انقضه', investigation['change'])
+            self.assertIn('CONFIRMED or REFUTED', ' '.join(step['expect'] for step in investigation['acceptance']))
+            self.assertIn('لا تغيير في الكود', investigation['rollback'])

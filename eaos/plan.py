@@ -12,10 +12,15 @@ from .remediation_patterns import pattern_for
 from .workspace import read, write
 
 PLAN_DIR = 'PLAN'
-ACTIONABLE = {'CONFIRMED', 'LIKELY'}
+ACTIONABLE = {'CONFIRMED', 'LIKELY', 'HYPOTHESIS'}
 
 
 def acceptance_for(claim, target, out):
+    if claim['confidence'] == 'HYPOTHESIS':
+        return [{'command': f'eaos dossier {target} --out {out} && eaos probe {target} --out {out}',
+                 'expect': f"the probe attached to {claim['id']} returns CONFIRMED or REFUTED instead of leaving it a hypothesis"},
+                {'command': 'review the falsifier by hand if no probe can decide it',
+                 'expect': f"a written decision recorded against {claim['id']}: {claim['falsifier'][:120]}"}]
     """Commands that decide the task, derived from how the claim was proven."""
     probe = (claim.get('probe_spec') or {}).get('probe_type')
     commands = [{'command': f'eaos facts {target} --out {out}',
@@ -55,12 +60,13 @@ def build_tasks(target, out, dossier, sets):
             try: radius = assess(out, paths, sets=sets)
             except ValueError: pass
         pattern = pattern_for(claim)
+        unproven = claim['confidence'] == 'HYPOTHESIS'
         cost = (claim.get('priority_factors') or {}).get('cost', {})
         effort, effort_confidence = effort_for(radius['blast_radius'], cost.get('bucket', 'medium'))
         tasks.append({
             'id': 'TASK-%03d' % index, 'claim_id': claim['id'], 'title': claim['statement'][:120],
             'render': claim.get('render'),
-            'kind': 'investigate' if pattern['name'] == 'hidden_coupling' else 'remediate',
+            'kind': 'investigate' if unproven or pattern['name'] == 'hidden_coupling' else 'remediate',
             'status': 'planned', 'priority': claim.get('priority', 0),
             'pattern': pattern['name'], 'paths': paths,
             'origin': claim.get('origin', 'unknown'),
@@ -74,7 +80,11 @@ def build_tasks(target, out, dossier, sets):
                              'covering_tests': radius['covering_tests'],
                              'coverage': radius['coverage'], 'change_partners': radius['change_partners'],
                              'total': radius['blast_radius']},
-            'change': pattern['change'], 'options': pattern['options'], 'rollback': pattern['rollback'],
+            'change': ('أثبت هذا الادعاء أو انقضه قبل أي تغيير: ' + claim['falsifier']) if unproven else pattern['change'],
+            'options': ([{'option': 'تشغيل مجسّ يحسم الادعاء', 'cost': 'منخفضة', 'verdict': 'مختار: لا تغيير قبل الحسم'},
+                         {'option': 'قبول الادعاء بلا إثبات', 'cost': 'صفر الآن', 'verdict': 'مرفوض: يخالف قاعدة الإسناد'},
+                         *pattern['options']] if unproven else pattern['options']),
+            'rollback': 'لا تغيير في الكود خلال التحقيق.' if unproven else pattern['rollback'],
             'acceptance': acceptance_for(claim, target, out),
             'verify_command': verify_command_for(claim, target, out),
             'effort': effort, 'effort_confidence': effort_confidence,

@@ -153,3 +153,43 @@ class VerificationTests(unittest.TestCase):
             result = verify_run(repo, Path(tmp) / 'out', execute=True)
             self.assertTrue(result['executed'], result.get('reason'))
             self.assertGreater(result['overall_percent'], 0)
+
+    def test_a_one_way_claim_is_not_refuted_by_the_reverse_edge(self):
+        """Regression: a claim that A must not import B was refuted because B imports A."""
+        from eaos.probes import run_graph_query
+        sets = {'graph': {'facts': [
+            {'kind': 'graph_node', 'location': {'path': 'a.py'}, 'value': {'depends_on': []}},
+            {'kind': 'graph_node', 'location': {'path': 'b.py'}, 'value': {'depends_on': ['a.py']}}]}}
+        status, detail = run_graph_query({'query': 'no_code_dependency', 'left': 'a.py', 'right': 'b.py',
+                                          'direction': 'one_way'}, sets)
+        self.assertEqual(status, 'CONFIRMED')
+        self.assertIn('reverse edge', detail)
+        symmetric, _ = run_graph_query({'query': 'no_code_dependency', 'left': 'a.py', 'right': 'b.py'}, sets)
+        self.assertEqual(symmetric, 'REFUTED')
+
+    def test_a_static_probe_cannot_confirm_a_causal_claim(self):
+        """Regression: a branch-count probe raised a claim about *why* the branches exist to CONFIRMED."""
+        from eaos import claims as ledger
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            branches = '\n'.join(f'    if value == {n}:\n        return {n}' for n in range(70))
+            (repo / 'core.py').write_text(f'def decide(value):\n{branches}\n    return 0\n')
+            (repo / 'main.py').write_text('import argparse\nimport core\n\n\ndef main():\n'
+                                          '    argparse.ArgumentParser(prog="demo").parse_args()\n    return core.decide(1)\n')
+            out = Path(tmp) / 'out'
+            assemble(repo, out)
+            dossier = json.loads((out / 'dossier.json').read_text())
+            hotspot = next(claim for claim in dossier['claims'] if 'branches over' in claim['statement'])
+            causal = ledger.make(900, 'The branching comes from inlined validation rather than the problem itself',
+                                 'cause', 'HYPOTHESIS', ['model_inference'], [], 'Extracting the validation and measuring no change',
+                                 fact_ids=hotspot['fact_ids'], probe_spec=hotspot['probe_spec'])
+            dossier['claims'].append(causal)
+            (out / 'dossier.json').write_text(json.dumps(dossier, ensure_ascii=False))
+            probes.run_all(repo, out)
+            updated = json.loads((out / 'dossier.json').read_text())
+            decided = next(claim for claim in updated['claims'] if claim['claim_type'] == 'cause')
+            self.assertEqual(decided['confidence'], 'LIKELY')
+            rows = json.loads((out / 'probes.json').read_text())
+            partial = [row for row in rows if row['status'] == 'PARTIAL']
+            self.assertTrue(partial)
+            self.assertIn('cannot establish a cause claim', partial[0]['result'])

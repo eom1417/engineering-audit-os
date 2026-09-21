@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- A probe now only settles what it can actually settle. A branch-count measurement confirmed a claim about *why* the branches existed; a static check can show that a structure exists but not why, so a claim of cause or responsibility rises to LIKELY at most and the probe is recorded as PARTIAL with the reason.
+- Dependency probes can be directional. A claim that one layer must not import another was refuted by an edge running the other way, which is allowed; `direction: one_way` distinguishes the two and reports the reverse edge instead of contradicting the claim.
+- An unproven claim now produces an investigation task rather than nothing: prove it or drop it, with no code change until it is decided, and the acceptance criterion is the probe returning a verdict.
+
 - Add `eaos semantic`: the model reads the fact digest and the confirmed claims — never raw files — and may only return interpretations that cite facts already held, each with a falsifier. Model inference can never reach CONFIRMED on its own; a probe has to do that. This is the path that assesses responsibilities, boundaries and internal contracts, and it is labelled as inference throughout.
 - Enforce a declared policy as part of the dossier, so a forbidden edge becomes a claim with a task card rather than a separate report.
 - Extend the benchmark corpus to nine cases covering every claim class the tool detects, and measure the plan as well as the detection: 8 of 8 planted defects found, no false positives, against 1 of 8 for the grep baseline, with a complete and runnable card for every actionable finding.
