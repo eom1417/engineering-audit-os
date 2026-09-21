@@ -126,3 +126,24 @@ class UnreachableCodeTests(unittest.TestCase):
                         if isinstance(statement, (ast.Return, ast.Raise, ast.Continue, ast.Break)):
                             offenders.append(f'{path.relative_to(root.parent)}:{block[index + 1].lineno}')
         self.assertEqual(offenders, [], 'unreachable statements found')
+
+
+class DecisionContractRuleTests(unittest.TestCase):
+    """The output contract must reject a task that carries no typed decision."""
+
+    def test_a_contract_task_without_a_decision_is_rejected(self):
+        dossier = {'claims': [], 'tasks': [{'id': 'TASK-001', 'contract_version': 1, 'decision': {}}]}
+        problems = validate(Path('.'), dossier)
+        self.assertTrue(any(problem.startswith('R7') and 'typed decision' in problem for problem in problems))
+
+    def test_a_ready_repair_without_checks_is_rejected(self):
+        dossier = {'claims': [], 'tasks': [{'id': 'TASK-002', 'contract_version': 1,
+                                            'decision': {'kind': 'repair', 'readiness': 'ready', 'checks': []}}]}
+        problems = validate(Path('.'), dossier)
+        self.assertTrue(any(problem.startswith('R7') for problem in problems))
+
+    def test_a_well_formed_investigation_passes(self):
+        dossier = {'claims': [], 'tasks': [{'id': 'TASK-003', 'contract_version': 1,
+                                            'decision': {'kind': 'investigate', 'readiness': 'needs_review',
+                                                         'checks': [], 'blockers': []}}]}
+        self.assertEqual([p for p in validate(Path('.'), dossier) if p.startswith('R7')], [])

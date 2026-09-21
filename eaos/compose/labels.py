@@ -76,6 +76,9 @@ TEMPLATES = {
         'external_write': '{path} يكتب في {module}.{attribute}، وهي حالة لا يملكها',
         'untested': '{count} ملفًا يصل إليها مسار من نقطة دخول ولم ينفّذها أمر الاختبار',
         'policy': '{path} يستورد {to}، وهو ما تمنعه السياسة المعلنة ({from_layer} ← {to_layer})',
+        'structural_duplicate': '{count} رموز تتشارك البنية نفسها باختلاف الأسماء فقط ({where})',
+        'sequence_duplicate': '{count} دوال تنفّذ التسلسل نفسه من النداءات ({where})',
+        'redundant_work': 'عمل زائد ({kind}) في {symbol} عند {location}: {callee}',
     },
     'en': {
         'cycle': 'Import cycle between: {members}',
@@ -88,6 +91,9 @@ TEMPLATES = {
         'external_write': '{path} writes into {module}.{attribute}, state it does not own',
         'untested': '{count} files reachable from an entry point were never executed by the test command',
         'policy': '{path} imports {to}, which the declared policy forbids ({from_layer} → {to_layer})',
+        'structural_duplicate': '{count} symbols share the same structure up to identifier names ({where})',
+        'sequence_duplicate': '{count} functions perform the same ordered sequence of calls ({where})',
+        'redundant_work': 'redundant work ({kind}) in {symbol} at {location}: {callee}',
     },
 }
 IMPACTS = {
@@ -101,6 +107,9 @@ IMPACTS = {
         'mutable_global': 'قد يرى مستدعيان قيمتين مختلفتين حسب الترتيب، وقد تنجح الاختبارات منفردة وتفشل مجتمعة.',
         'external_write': 'الوحدة المالكة لا تستطيع ضمان ثابتها، لأن وحدة أخرى تكتب فيها مباشرة.',
         'untested': 'تغيير في هذه الملفات قد يُشحن دون أن ينفّذه أي اختبار.',
+        'structural_duplicate': 'تعديل القاعدة في نسخة دون الأخرى يجعل المسارات تختلف، ولا شيء في الكود يربطها.',
+        'sequence_duplicate': 'التنسيق نفسه يُصان في أكثر من موضع في آن واحد.',
+        'redundant_work': 'المسار ينفّذ عملًا أكثر مما تحتاجه نتيجته، في كل تنفيذ.',
     },
     'en': {},
 }
@@ -119,6 +128,8 @@ DETAIL_ARTIFACT = {
     'cycle': 'COUPLING-ATLAS.md', 'cochange': 'EVOLUTION.md', 'duplicated_rule': 'DOMAIN-AND-DATA.md',
     'trace_gap': 'FLOWS.md', 'hotspot': 'COUPLING-ATLAS.md', 'mutable_global': 'DOMAIN-AND-DATA.md',
     'external_write': 'DOMAIN-AND-DATA.md', 'untested': 'VERIFICATION-MAP.md', 'policy': 'POLICY.md',
+    'structural_duplicate': 'SUSTAINABILITY.md', 'sequence_duplicate': 'SUSTAINABILITY.md',
+    'redundant_work': 'SUSTAINABILITY.md',
 }
 
 

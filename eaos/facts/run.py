@@ -1,13 +1,31 @@
 """Run deterministic extractors over one shared snapshot and persist their fact sets."""
 import json
 from pathlib import Path
-from . import config, domain, entrypoints, flows, graph, history, metrics, resolve, syntax
+from . import config, domain, entrypoints, fingerprint, flows, graph, history, metrics, redundancy, resolve, sequences, structure, syntax
 from .source import Source
 from .store import facts_dir, write_index, write_set
 
-EXTRACTORS = {'history': history, 'syntax': syntax, 'resolve': resolve, 'entrypoints': entrypoints,
-              'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain}
-ORDER = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows']
+EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,
+              'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain,
+              'fingerprint': fingerprint, 'sequences': sequences, 'redundancy': redundancy}
+ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'redundancy', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows']
+
+
+# Every fact set the tool can read, in one place. Three modules used to keep their own copy of
+# this list, and a set added to one of them was invisible to the others — the duplication this
+# product exists to find, in the product itself.
+PRODUCED_ELSEWHERE = ['policy', 'verification']
+ALL_SETS = ORDER + PRODUCED_ELSEWHERE
+# The minimum a caller needs before it can ask what a change would reach.
+GRAPH_PREREQUISITES = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'history', 'graph']
+
+
+def read_available(out):
+    """Load every fact set present in a report directory, whoever produced it."""
+    from pathlib import Path as _Path
+    from .store import read_set
+    return {name: read_set(out, name) for name in ALL_SETS
+            if (_Path(out) / 'facts' / (name + '.json')).is_file()}
 
 
 def ordered(selected):
@@ -22,6 +40,10 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
     if not target.is_dir(): raise ValueError('Target must be an existing directory')
     out = Path(out).resolve()
     if out == target or target in out.parents: raise ValueError('Write facts outside the target; the target stays read-only')
+    # What the project declared out of scope applies to every caller, not only the ones that
+    # remembered to ask. Two commands honoured it and three did not.
+    from .scope import declared_exclusions
+    exclude = sorted({*(exclude or ()), *declared_exclusions(target)})
     names = ordered(selected)
     source = source or Source(target, max_files=max_files, max_bytes=max_bytes, exclude=exclude)
     cache_path = facts_dir(out) / 'syntax-cache.json'
@@ -34,6 +56,7 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
         module = EXTRACTORS[name]
         if name == 'history': result = module.run(target, source, max_commits=max_commits)
         elif name == 'resolve': result = module.run(target, source, imports=[f for f in produced.get('syntax', []) if f['kind'] == 'import_edge'] or None)
+        elif name in {'structure', 'fingerprint', 'sequences', 'redundancy'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)
         elif name in {'entrypoints', 'metrics'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)
         elif name == 'flows': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'],
                                                    calls=[f for f in produced.get('syntax', []) if f['kind'] == 'call_edge'],

@@ -7,7 +7,7 @@ from collections import deque
 from pathlib import Path
 from .facts.store import read_set
 
-SETS = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'verification']
+from .facts.run import ALL_SETS as SETS
 DEFAULT_DEPTH = 3
 LIMITS = [
     'Only statically resolved dependencies are followed; dynamic dispatch and injection are invisible.',

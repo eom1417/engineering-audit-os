@@ -10,7 +10,7 @@ from .workspace import read
 
 STOP = {'the', 'a', 'an', 'of', 'in', 'is', 'are', 'how', 'what', 'where', 'which', 'does', 'do', 'to', 'and',
         'for', 'from', 'this', 'that', 'it', 'on', 'with', 'أين', 'كيف', 'ما', 'هل', 'من', 'في', 'على', 'الى', 'إلى'}
-SETS = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'verification']
+from .facts.run import ALL_SETS as SETS
 
 
 def terms(question):

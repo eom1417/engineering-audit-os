@@ -105,7 +105,8 @@ def run(target, out, command=None, timeout=900, execute=True):
     if not all((out / 'facts' / (name + '.json')).is_file() for name in needed):
         # Verification needs the graph to know which files an entry point can reach.
         from .facts.run import collect
-        collect(target, out, ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'history', 'graph'], source=source)
+        from .facts.run import GRAPH_PREREQUISITES
+        collect(target, out, GRAPH_PREREQUISITES, source=source)
     sets = {name: read_set(out, name) for name in needed if (out / 'facts' / (name + '.json')).is_file()}
     tests, declared = discover_tests(source, sets)
     result = {'target': str(target), 'out': str(out), 'test_files': tests,

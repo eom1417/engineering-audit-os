@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "extractor": "redundancy",
+  "extractor_version": "1",
+  "available": true,
+  "input_sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "limitations": [
+    "A repeated call is detected by signature equality; this is a structural hypothesis, not runtime proof.",
+    "A hoistable call is detected by syntactic independence from the loop variable; runtime may still require it.",
+    "N+1 detection is structural: any data access in a loop is flagged, even when the loop iterates once.",
+    "A pass-through layer is one-call-forwarding; layers with hidden side effects are not detected.",
+    "Only parsed languages produce redundancy facts; unparsed files stay out of the denominator."
+  ],
+  "summary": {
+    "files_observed": 10,
+    "files_blocked": 0,
+    "repeated_calls": 0,
+    "hoistable_calls": 0,
+    "n_plus_one": 0,
+    "pass_through": 2,
+    "interpretation": "Each fact is a structural hypothesis about redundant work; the runtime never proves the work is wasted; a profiler is the only honest verification."
+  },
+  "facts": [
+    {
+      "id": "FACT-4d88bf1a16e61a51",
+      "kind": "redundancy",
+      "extractor": "redundancy",
+      "extractor_version": "1",
+      "input_sha": "5b34256285041a624a910a0ad94cfb8a37cd81d74ceab38d1d3fe3e4bdcc3638",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 13,
+        "end_line": 13,
+        "symbol": "audit_totals"
+      },
+      "value": {
+        "kind": "pass_through",
+        "callee": "audit_log"
+      },
+      "limitations": [
+        "A repeated call is detected by signature equality; this is a structural hypothesis, not runtime proof.",
+        "A hoistable call is detected by syntactic independence from the loop variable; runtime may still require it.",
+        "N+1 detection is structural: any data access in a loop is flagged, even when the loop iterates once.",
+        "A pass-through layer is one-call-forwarding; layers with hidden side effects are not detected.",
+        "Only parsed languages produce redundancy facts; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-64b123b475792926",
+      "kind": "redundancy",
+      "extractor": "redundancy",
+      "extractor_version": "1",
+      "input_sha": "ac38ab7361e4bfec5be654fdafee3f3cfa6a55c601c97d18c25d070d1d0e5381",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 9,
+        "end_line": 9,
+        "symbol": "base_total"
+      },
+      "value": {
+        "kind": "pass_through",
+        "callee": "sum"
+      },
+      "limitations": [
+        "A repeated call is detected by signature equality; this is a structural hypothesis, not runtime proof.",
+        "A hoistable call is detected by syntactic independence from the loop variable; runtime may still require it.",
+        "N+1 detection is structural: any data access in a loop is flagged, even when the loop iterates once.",
+        "A pass-through layer is one-call-forwarding; layers with hidden side effects are not detected.",
+        "Only parsed languages produce redundancy facts; unparsed files stay out of the denominator."
+      ]
+    }
+  ]
+}

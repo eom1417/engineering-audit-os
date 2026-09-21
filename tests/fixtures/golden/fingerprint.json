@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "extractor": "fingerprint",
+  "extractor_version": "1",
+  "available": true,
+  "input_sha": "4e5e29cc6636fb5f0b7e5fe3ca7f7a3e2459533500a283a704a18f38f7565891",
+  "limitations": [
+    "Identifier renames are normalised; literal renames are not.",
+    "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+    "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+    "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+  ],
+  "summary": {
+    "files_observed": 10,
+    "files_blocked": 0,
+    "fingerprints": 7,
+    "clusters": 0,
+    "interpretation": "A cluster contains symbols whose AST shape is identical up to identifier names. Membership is structural; the cluster itself is a hypothesis, not a defect."
+  },
+  "facts": [
+    {
+      "id": "FACT-126480ccc6681d6b",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "d5284afe064106841427d717b69d2bec84f5b415c7882d108e5e6d4fae8d6aa6",
+      "location": {
+        "path": "cli.py",
+        "start_line": 6,
+        "end_line": 7,
+        "symbol": "quote"
+      },
+      "value": {
+        "name": "quote",
+        "size": 24,
+        "shape_sha": "d5284afe064106841427d717b69d2bec84f5b415c7882d108e5e6d4fae8d6aa6"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-e8eef59a6731c18d",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "3337f354512ca6c2b6574d7cc0cef2750bfe9ce40b70c1b8a9e374224e94fcfc",
+      "location": {
+        "path": "cli.py",
+        "start_line": 10,
+        "end_line": 18,
+        "symbol": "main"
+      },
+      "value": {
+        "name": "main",
+        "size": 83,
+        "shape_sha": "3337f354512ca6c2b6574d7cc0cef2750bfe9ce40b70c1b8a9e374224e94fcfc"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-41a58a2550a71acb",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "5acb2a869fb03573504cd963c9e18fc52e8a4fd3387e5b6d2b2b2b6a89557115",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 8,
+        "end_line": 9,
+        "symbol": "audit_log"
+      },
+      "value": {
+        "name": "audit_log",
+        "size": 15,
+        "shape_sha": "5acb2a869fb03573504cd963c9e18fc52e8a4fd3387e5b6d2b2b2b6a89557115"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-6dda211b8e3f5c4a",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "b3e488d51ab4518da4f53220ff2b3292fe8da5fcbc78ef4c481a90cc2a5ad78c",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 12,
+        "end_line": 13,
+        "symbol": "audit_totals"
+      },
+      "value": {
+        "name": "audit_totals",
+        "size": 13,
+        "shape_sha": "b3e488d51ab4518da4f53220ff2b3292fe8da5fcbc78ef4c481a90cc2a5ad78c"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-3f3267f07483c061",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "e780b040c3fad731283e0aefe8d860eed6f1f8f855e6c35b666fc3334db73d01",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 8,
+        "end_line": 9,
+        "symbol": "base_total"
+      },
+      "value": {
+        "name": "base_total",
+        "size": 25,
+        "shape_sha": "e780b040c3fad731283e0aefe8d860eed6f1f8f855e6c35b666fc3334db73d01"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-a2ce2771fbb398f5",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "ae9a699ed3d0b9a68427d74a92c8433b7d457e6dad5e3e0c8fab793f57ce1e14",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 12,
+        "end_line": 16,
+        "symbol": "price_for"
+      },
+      "value": {
+        "name": "price_for",
+        "size": 45,
+        "shape_sha": "ae9a699ed3d0b9a68427d74a92c8433b7d457e6dad5e3e0c8fab793f57ce1e14"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-5b7b115315b1fab6",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "35ffb45393fb3d402c363f5cb0c03cfe6303effe8b9829922e9b6d546426b9de",
+      "location": {
+        "path": "worker/tasks.py",
+        "start_line": 7,
+        "end_line": 8,
+        "symbol": "recalculate"
+      },
+      "value": {
+        "name": "recalculate",
+        "size": 15,
+        "shape_sha": "35ffb45393fb3d402c363f5cb0c03cfe6303effe8b9829922e9b6d546426b9de"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    }
+  ]
+}

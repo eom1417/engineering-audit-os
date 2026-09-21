@@ -97,8 +97,21 @@ def linking_import(name, sites, sets):
     return None
 
 
+# Which fact set each query reads. A probe that cannot see its data has no verdict to give:
+# refuting a claim because the evidence was not loaded is the worst failure this tool can make.
+QUERY_REQUIRES = {
+    'cycle_present': 'graph', 'flow_has_unresolved_steps': 'flows', 'no_code_dependency': 'graph',
+    'metric_threshold': 'metrics', 'mutable_global_present': 'domain', 'external_write_present': 'domain',
+    'policy_violation_present': 'graph', 'duplicate_cluster_present': 'fingerprint',
+    'sequence_cluster_present': 'sequences', 'redundancy_present': 'redundancy',
+}
+
+
 def run_graph_query(specification, sets):
     query = specification['query']
+    required = QUERY_REQUIRES.get(query)
+    if required and required not in sets:
+        return 'INCONCLUSIVE', f'the {required} facts are not present in this run, so this probe cannot decide'
     if query == 'cycle_present':
         groups = [fact['value']['members'] for fact in sets['graph']['facts'] if fact['kind'] == 'graph_cycle']
         return ('CONFIRMED', 'cycle still present') if specification['members'] in groups else ('REFUTED', 'no such cycle in the current graph')
@@ -131,6 +144,21 @@ def run_graph_query(specification, sets):
                  for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
         present = specification['to_path'] in nodes.get(specification['path'], set())
         return ('CONFIRMED', 'the forbidden edge is still in the graph') if present else ('REFUTED', 'the edge is gone')
+    if query == 'duplicate_cluster_present':
+        shapes = {fact['value'].get('shape_sha') for fact in sets.get('fingerprint', {}).get('facts', [])
+                  if fact['kind'] == 'duplicate_cluster'}
+        return ('CONFIRMED', 'the structural cluster is still present') if specification['shape_sha'] in shapes \
+            else ('REFUTED', 'the occurrences no longer share a structure')
+    if query == 'sequence_cluster_present':
+        shapes = {fact['value'].get('sequence_sha') for fact in sets.get('sequences', {}).get('facts', [])}
+        return ('CONFIRMED', 'the repeated sequence is still present') if specification.get('sequence_sha') in shapes \
+            else ('REFUTED', 'the sequence is no longer repeated')
+    if query == 'redundancy_present':
+        rows = [fact for fact in sets.get('redundancy', {}).get('facts', [])
+                if fact['kind'] == 'redundancy' and fact['location']['path'] == specification['path']
+                and fact['value']['kind'] == specification['kind']
+                and fact['value']['callee'] == specification['callee']]
+        return ('CONFIRMED', 'the redundant work is still there') if rows else ('REFUTED', 'the redundancy is gone')
     if query == 'no_code_dependency':
         nodes = {fact['location']['path']: set(fact['value']['depends_on']) for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
         forward = specification['right'] in nodes.get(specification['left'], set())
@@ -162,10 +190,8 @@ def run_all(target, out, allow_execution=False):
     out = Path(out)
     dossier = read(out / 'dossier.json')
     from .facts.store import read_set
-    sets = {}
-    for name in ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows']:
-        path = out / 'facts' / (name + '.json')
-        if path.is_file(): sets[name] = read_set(out, name)
+    from .facts.run import read_available
+    sets = read_available(out)
     source = Source(target)
     probes = derive(dossier['claims'], sets)
     by_claim = {claim['id']: claim for claim in dossier['claims']}

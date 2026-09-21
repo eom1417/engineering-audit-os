@@ -20,6 +20,9 @@ def classify(claim):
     if query == 'mutable_global_present': return 'mutable_state'
     if query == 'external_write_present': return 'external_write'
     if query == 'policy_violation_present': return 'policy_violation'
+    if query == 'duplicate_cluster_present': return 'canonicalize'
+    if query == 'sequence_cluster_present': return 'canonicalize'
+    if query == 'redundancy_present': return 'redundant_work'
     if probe_type == 'absence_search': return 'duplicated_rule'
     if claim.get('claim_type') == 'risk' and 'never executed' in claim['statement']: return 'untested_path'
     if claim.get('claim_type') == 'capability_gap': return 'trace_gap'
@@ -105,6 +108,29 @@ PATTERNS = {
         ],
         'rollback': 'أي من المسارين قابل للإرجاع؛ السياسة ملف واحد.',
     },
+    'canonicalize': {
+        'change': 'أعطِ المعنى المكرر موضعًا مرجعيًا واحدًا يحسبه الرسم (أدنى سلف مشترك لا يُنشئ دورة ولا يخالف الطبقة)، '
+                  'وحوّل بقية المواضع إلى إحالة، وولّد اختبار تكافؤ يثبت أن كل موضع ينتج النتيجة نفسها كما قبل التغيير.',
+        'options': [
+            {'option': 'تعريف واحد في الموضع المرجعي + إحالات + اختبار تكافؤ', 'cost': 'متوسطة',
+             'verdict': 'مختار افتراضيًا حين تكون المواضع قاعدة واحدة فعلًا'},
+            {'option': 'إبقاء النسخ مع اختبار تكافؤ يربطها', 'cost': 'منخفضة',
+             'verdict': 'أنسب عبر حدود اللغات أو الخدمات حين يتعذّر الاستيراد'},
+            {'option': 'إبقاء موثّق بعد إثبات اختلاف السببين', 'cost': 'صفر',
+             'verdict': 'نتيجة صحيحة لا فشل: التشابه اليوم لا يعني قاعدة واحدة غدًا'},
+        ],
+        'rollback': 'إرجاع الإحالة إلى تعريف محلي؛ بلا هجرة بيانات.',
+    },
+    'redundant_work': {
+        'change': 'احذف العمل الزائد: احسب مرة واحدة واحتفظ بالنتيجة، أو ارفع النداء خارج الحلقة، '
+                  'أو اجلب البيانات دفعة واحدة بدل نداء لكل سجل.',
+        'options': [
+            {'option': 'حساب واحد وإعادة استعماله في النطاق', 'cost': 'منخفضة', 'verdict': 'مختار للنداء المكرر'},
+            {'option': 'رفع النداء خارج الحلقة', 'cost': 'منخفضة', 'verdict': 'حين لا يعتمد على متغيّر الحلقة'},
+            {'option': 'جلب دفعي بدل N+1', 'cost': 'متوسطة', 'verdict': 'الأعلى أثرًا على الأداء'},
+        ],
+        'rollback': 'تغيير محصور داخل الدالة؛ الإرجاع بـrevert واحد.',
+    },
     'generic': {
         'change': '⧗ لا نمط معالجة معروف لهذه الفئة: صمّم التغيير يدويًا، واذكر البديل «لا نفعل شيئًا» صراحة قبل الاعتماد.',
         'options': [{'option': 'تصميم يدوي بعد قراءة الدليل', 'cost': 'غير محددة', 'verdict': 'مطلوب'}],
@@ -132,5 +158,7 @@ def cost_of_inaction(name):
         'mutable_state': 'تبقى نتيجة التشغيل معتمدة على الترتيب، وتبقى الاختبارات قد تنجح منفردة وتفشل مجتمعة',
         'external_write': 'تبقى الوحدة المالكة عاجزة عن ضمان ثابتها',
         'policy_violation': 'تبقى السياسة المعلنة مخالَفة، فتفقد قيمتها كعقد ويتآكل الالتزام بها',
+        'canonicalize': 'يبقى المعنى الواحد مكتوبًا في مواضع متعددة، وأول تعديل يجعلها تختلف',
+        'redundant_work': 'يبقى المسار ينفّذ عملًا لا تحتاجه نتيجته في كل تنفيذ',
         'generic': '⧗ غير محددة',
     }[name]

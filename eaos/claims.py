@@ -240,6 +240,62 @@ def from_facts(fact_sets):
                                                          'expected': 'The cross-module assignment is still present.'}},
                            impact={'scenario': 'The owning module cannot guarantee its own invariant, because another '
                                                'module assigns into it directly.'}))
+    # Sustainability observations reach the same ledger as everything else: one record, one decision.
+    DUPLICATE_MIN, REDUNDANCY_MAX = 2, 10
+    for fact in fact_sets.get('fingerprint', {}).get('facts', []):
+        if fact['kind'] != 'duplicate_cluster': continue
+        places = fact['value']['occurrences']
+        if len(places) < DUPLICATE_MIN: continue
+        index += 1
+        where = ', '.join(f"{row['path']}:{row['start_line']} {row['symbol']}" for row in places[:4])
+        claims.append(make(index, f"{len(places)} symbols share the same structure up to identifier names ({where})",
+                           'business_rule', 'CONFIRMED', ['static_fact'], [],
+                           'Evidence that the occurrences encode different rules that evolve for different reasons, '
+                           'which would make a single definition wrong rather than missing.',
+                           fact_ids=[fact['id']],
+                           render={'key': 'structural_duplicate',
+                                   'params': {'count': len(places), 'where': where}},
+                           probe_spec={'probe_type': 'graph_query',
+                                       'specification': {'query': 'duplicate_cluster_present',
+                                                         'shape_sha': fact['value']['shape_sha'],
+                                                         'expected': 'The same structural cluster is still present.'}},
+                           impact={'scenario': 'Changing the rule in one occurrence and not the others makes the paths '
+                                               'disagree, and nothing in the code links them.'}))
+    for fact in fact_sets.get('sequences', {}).get('facts', [])[:5]:
+        if fact['kind'] != 'sequence_cluster': continue
+        index += 1
+        members = fact['value'].get('occurrences') or []
+        where = ', '.join(f"{row['path']}:{row.get('start_line')}" for row in members[:4])
+        claims.append(make(index, f"{len(members)} functions perform the same ordered sequence of calls ({where})",
+                           'structure', 'CONFIRMED', ['static_fact'], [],
+                           'Evidence that the shared order is coincidental rather than one orchestration copied.',
+                           fact_ids=[fact['id']],
+                           render={'key': 'sequence_duplicate', 'params': {'count': len(members), 'where': where}},
+                           probe_spec={'probe_type': 'graph_query',
+                                       'specification': {'query': 'sequence_cluster_present',
+                                                         'sequence_sha': fact['value'].get('sequence_sha'),
+                                                         'expected': 'The same call sequence is still repeated.'}},
+                           impact={'scenario': 'The orchestration is maintained in several places at once.'}))
+    redundant = [fact for fact in fact_sets.get('redundancy', {}).get('facts', []) if fact['kind'] == 'redundancy']
+    for fact in redundant[:REDUNDANCY_MAX]:
+        index += 1
+        kind = fact['value']['kind']
+        location = f"{fact['location']['path']}:{fact['location']['start_line']}"
+        claims.append(make(index, f"{kind} at {location} in {fact['location'].get('symbol')}: {fact['value']['callee']}",
+                           'risk' if kind == 'n_plus_one' else 'structure', 'CONFIRMED', ['static_fact'], [],
+                           'Evidence that the repetition is required — a different result per call, or a dependency on '
+                           'state that changes between the two.',
+                           fact_ids=[fact['id']],
+                           render={'key': 'redundant_work',
+                                   'params': {'kind': kind, 'location': location,
+                                              'symbol': fact['location'].get('symbol'),
+                                              'callee': fact['value']['callee']}},
+                           probe_spec={'probe_type': 'graph_query',
+                                       'specification': {'query': 'redundancy_present', 'path': fact['location']['path'],
+                                                         'line': fact['location']['start_line'], 'kind': kind,
+                                                         'callee': fact['value']['callee'],
+                                                         'expected': 'The redundant work is still present at that location.'}},
+                           impact={'scenario': 'The path does more work than its result requires, on every execution.'}))
     for fact in fact_sets.get('policy', {}).get('facts', []):
         if fact['kind'] != 'policy_violation': continue
         index += 1

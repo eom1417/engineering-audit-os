@@ -20,22 +20,7 @@ LIMITATIONS = [
 ]
 
 
-def declared_exclusions(target, path=None):
-    """Paths the project itself says are not part of the system under review.
-
-    Hardcoding a default (say, anything under tests/fixtures) would be guessing on the project's
-    behalf. Declaring it in the policy keeps the decision with the team and visible in the output.
-    """
-    try:
-        policy, _ = load_policy(target, path)
-    except (ValueError, OSError):
-        return []
-    if not policy: return []
-    analysis = policy.get('analysis') or {}
-    patterns = analysis.get('exclude') or []
-    if not isinstance(patterns, list) or not all(isinstance(item, str) for item in patterns):
-        raise ValueError('analysis.exclude must be an array of path patterns')
-    return [item.strip('/') for item in patterns if item.strip('/')]
+from .facts.scope import declared_exclusions  # noqa: F401  (re-exported for callers)
 
 
 def load_policy(target, path=None):

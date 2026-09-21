@@ -31,7 +31,10 @@ class DeltaTests(unittest.TestCase):
             assemble(repo, Path(tmp) / 'after')
             result = run_delta(Path(tmp) / 'before', Path(tmp) / 'after', fail_on_new_severe=True)
             self.assertEqual(result['status'], 'DRIFT')
-            self.assertEqual(result['counts']['new'], 1)
+            self.assertGreaterEqual(result['counts']['new'], 1)
+            new_statements = ' '.join(claim['statement'] for claim in
+                                      json.loads((Path(tmp) / 'after/delta.json').read_text())['new_claims'])
+            self.assertIn('PREMIUM_DISCOUNT', new_statements)
             self.assertTrue((Path(tmp) / 'after/DELTA.md').is_file())
 
     def test_an_unchanged_project_reports_no_drift(self):

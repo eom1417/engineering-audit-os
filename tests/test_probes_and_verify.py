@@ -18,10 +18,10 @@ class ProbeTests(unittest.TestCase):
             out = Path(tmp) / 'out'
             assemble(FIXTURE, out)
             result = probes.run_all(FIXTURE, out)
-            self.assertEqual(result['by_status']['CONFIRMED'], 1)
+            self.assertGreaterEqual(result['by_status']['CONFIRMED'], 1)
             rows = json.loads((out / 'probes.json').read_text())
-            self.assertEqual(rows[0]['probe_type'], 'absence_search')
-            self.assertIn('parsed as a definition in 3 files', rows[0]['result'])
+            derivation = next(row for row in rows if row['probe_type'] == 'absence_search')
+            self.assertIn('parsed as a definition in 3 files', derivation['result'])
 
     def test_a_probe_that_fails_refutes_its_claim_and_keeps_it_in_the_ledger(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -54,7 +54,9 @@ class ProbeTests(unittest.TestCase):
             assemble(repo, out)
             probes.run_all(repo, out)
             rows = json.loads((out / 'probes.json').read_text())
-            self.assertEqual([row['status'] for row in rows], ['CONFIRMED'])
+            self.assertTrue(rows)
+            self.assertNotIn('REFUTED', [row['status'] for row in rows],
+                             'a mention inside a test string must never withdraw a finding')
             claims = json.loads((out / 'dossier.json').read_text())['claims']
             self.assertTrue(all(claim['confidence'] != 'REFUTED' for claim in claims))
 

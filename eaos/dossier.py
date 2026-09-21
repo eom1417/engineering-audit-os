@@ -151,6 +151,11 @@ def fact_index_of(sets):
             if definitions: index[fact['id'] + ':paths'] = [row['path'] for row in definitions]
             members = value.get('members')
             if members: index[fact['id'] + ':paths'] = list(members)
+            # A cluster spans several files; without them the claim looks like it names none.
+            occurrences = value.get('occurrences')
+            if isinstance(occurrences, list) and occurrences and isinstance(occurrences[0], dict):
+                paths = sorted({row['path'] for row in occurrences if row.get('path')})
+                if paths: index[fact['id'] + ':paths'] = paths
     return index
 
 
@@ -543,9 +548,8 @@ def refresh_views(out, language='ar'):
     dossier_path = out / 'dossier.json'
     if not dossier_path.is_file(): raise ValueError('No dossier to refresh in ' + str(out))
     dossier = read(dossier_path)
-    sets = {}
-    for name in ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'policy', 'verification']:
-        if (out / 'facts' / (name + '.json')).is_file(): sets[name] = read_set(out, name)
+    from .facts.run import read_available
+    sets = read_available(out)
     verification = read(out / 'verification.json') if (out / 'verification.json').is_file() else None
     target = dossier['provenance']['target']
     # A claim added after assembly — by the semantic pass or by a later probe — must be ranked too,
@@ -589,8 +593,6 @@ def refresh_views(out, language='ar'):
 
 def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
     target, out = Path(target).resolve(), Path(out).resolve()
-    from .policy import declared_exclusions
-    exclude = sorted({*(exclude or ()), *declared_exclusions(target)})
     map_result, sets = generate(target, out, language, exclude=exclude)
     # A project that declares a policy gets it enforced as part of the dossier, not as a separate step.
     from .policy import FILENAME as POLICY_FILE, check as check_policy
@@ -604,6 +606,8 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
     from fnmatch import fnmatch
     patterns = [p.strip('/') for p in (exclude or []) if p.strip('/')]
     def source_filter(path): return any(path == p or path.startswith(p + '/') or fnmatch(path, p) for p in patterns)
+    for extra in ['fingerprint', 'sequences', 'redundancy', 'structure']:
+        if (out / 'facts' / (extra + '.json')).is_file(): sets[extra] = read_set(out, extra)
     coverage_set = read_set(out, 'verification') if (out / 'facts/verification.json').is_file() else None
     if coverage_set: sets['verification'] = coverage_set
     runtime = runtime_claims(verification, len(rows), (coverage_set or {}).get('facts'), excluded=source_filter)
@@ -628,7 +632,7 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):
                        'audit_run': str(run) if run else None,
                        'model_calls': 0 if not run else (records['state'] or {}).get('model_calls', 'see engine-state.json'),
                        'extractors': {name: data['extractor_version'] for name, data in sorted(sets.items())},
-                       'excluded_patterns': list(exclude or [])},
+                       'excluded_patterns': map_result.get('exclude_patterns', list(exclude or []))},
         'coverage': {**coverage_of(sets, records, verification),
                      'runtime_confirmation': sum(1 for row in rows if 'test_evidence' in row['method'] or 'runtime_probe' in row['method']),
                      'executed_verification': bool(verification and verification.get('executed')),

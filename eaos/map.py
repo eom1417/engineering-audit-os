@@ -145,15 +145,15 @@ def evolution(target, sets, language):
 def generate(target, out, language='ar', max_files=100000, max_bytes=2_000_000, exclude=()):
     """Collect facts, render the structural artifacts, and hand the fact sets back to the caller."""
     target, out = Path(target).resolve(), Path(out).resolve()
-    from .policy import declared_exclusions
-    exclude = sorted({*(exclude or ()), *declared_exclusions(target)})
     result = collect(target, out, None, max_files=max_files, max_bytes=max_bytes, exclude=exclude)
     sets = {entry['set']: read_set(out, entry['set']) for entry in result['sets']}
     written = []
     for name, builder in zip(ARTIFACTS, [system_map, coupling_atlas, evolution]):
         (out / name).write_text(builder(str(target), sets, language).render(), encoding='utf-8')
         written.append(str(out / name))
+    result['effective_exclude'] = result.get('exclude_patterns', [])
     return {'target': str(target), 'out': str(out), 'artifacts': written, 'facts': result['facts'],
+            'exclude_patterns': result.get('exclude_patterns', []),
             'sets': result['sets'], 'model_calls': 0,
             'limits': 'Deterministic structural map only. No responsibility, contract or defect is asserted; those require the audit path.'}, sets
 

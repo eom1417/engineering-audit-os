@@ -11,7 +11,7 @@ from . import claims as ledger
 from .facts.store import read_set
 from .workspace import read, write
 
-SETS = ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'policy']
+from .facts.run import ALL_SETS as SETS
 TYPES = {'responsibility', 'contract', 'business_rule', 'cause', 'structure', 'capability_gap'}
 MAX_ROUNDS = 3
 SYSTEM = (

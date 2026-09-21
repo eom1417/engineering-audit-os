@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- Verify the sustainability engine and fix what the verification found. The structural-duplication, sequence, redundancy and scorecard facts never reached the ledger, so a detected duplicate produced no claim, no decision and no card; they are wired in now, each with a probe that can re-decide it.
+- Cut the redundancy detector's false positives from 4,691 observations to 216 on this repository — N+1 from 1,014 to 2 — by making a call's identity include its callee and receiver, treating names assigned inside a loop as loop-varying, excluding the loop's own iterable, reporting only computations whose value is stored, and dropping trivial builtins, side-effecting calls and mutually exclusive branches. The reference case still fires.
+- Fix the verifiability indicator, which read a summary key that does not exist and therefore always returned 1.0, and compared it against a target of zero so a perfect result read as the worst gap. Every indicator now points the same way, and an indicator that cannot be measured says so instead of reporting a number.
+- Stop `eaos sustainability` and `eaos transform-plan` from re-collecting a hand-listed subset of fact sets: doing so reran dependent extractors without their inputs and overwrote 36 traced flows with zero. A test now fails if any command asks for a partial collection.
+- Put the list of fact sets in one place. Five modules kept their own copy, and a set added to one was invisible to the others — the duplication this product exists to find, in the product itself. The same applies to declared analysis exclusions, now read once in the facts layer and honoured by every command.
+
+## Sustainability engine
+
+Add the six-indicator sustainability dashboard, the structural detectors that feed it, and the machine-executable transform plan it produces. Five new fact extractors ship with their own golden snapshots and tests; one new command renders the dashboard, another renders the plan.
+
+- **`eaos/facts/structure.py`** records loops, branches, scopes and call sites for every parsed language. Without these facts, a duplicate call inside a loop is invisible; with them, the L5 detector can see what is happening.
+- **`eaos/facts/fingerprint.py`** normalises every function to a shape tree that ignores identifier names. Two functions computing the same rule under different parameter names cluster together; structurally different functions do not. The doctrine's reference example (`compute_total` vs `order_total` vs `invoice_amount`) lands in a single cluster.
+- **`eaos/facts/sequences.py`** sliding-windows each function's ordered list of callees. Three functions calling `validate → save → notify` in the same order appear as one cluster, and a different ordering produces nothing.
+- **`eaos/facts/redundancy.py`** flags four classes of redundant work: a repeated call with the same arguments, a call inside a loop that does not depend on the loop variable, an attribute access on a loop-bound value (the N+1 idiom), and a pass-through layer whose body forwards its arguments to one call.
+- **`eaos/sustainability.py`** computes the six indicators P1..P6 from the new facts alone, ranks moves by gap, attaches a falsifier to each move, and writes `SUSTAINABILITY.md`. Indicators are pure functions of facts; targets are taken from the engagement contract or the declared policy.
+- **`eaos/canonical_home.py`** picks a candidate file or directory for a cluster of duplicates. A candidate must be reachable from every duplicate site, must not create a cycle, and must satisfy the project's layering policy. No viable candidate means the project needs a layer rule change before unification is safe.
+- **`eaos/transform_plan.py`** turns the dashboard into `transform-plan.json` and `transform-plan.md`. Each stage carries the canonical home, the sites, the steps, the acceptance criterion, the rollback note, the falsifier and the predicted indicator delta. A model or human reviewer can consume the plan stage by stage; nothing requires running the engine again.
+- **`eaos sustainability` and `eaos transform-plan`** commands render the artifacts from any project.
+
+The engine runs against itself in seconds; the self-audit reports a single canonicalize move and ten redundancy moves, with zero policy violations.
+
 - Break the import cycle the growing package had formed: the ledger no longer rebuilds the plan or the product report. A new `eaos/views.py` sits above them and refreshes everything downstream in one direction, and the product report renderer moves into the composer. The package is acyclic again, with a test that fails if a cycle returns.
 - Express that layering as declared policy: nine layers with seven forbidden directions, each with the reason it exists. Enforcing it immediately caught six real inversions, including the ledger calling the refresh layer that calls it.
 - Let a project declare `analysis.exclude` in its policy. Test corpora and fixtures are the project's own call, not a hardcoded default, and the exclusion is reported in the output. This repository now excludes its benchmark fixtures, and its dossier is about the product again.

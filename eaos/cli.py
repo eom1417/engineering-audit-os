@@ -312,6 +312,37 @@ def map_command(args):
     return 0
 
 
+def sustainability_command(args):
+    from .facts.run import collect
+    from .sustainability import render
+    # Collect every fact set we depend on for the dashboard.
+    # Collect every set, never a subset: a partial collection reruns dependent extractors without
+    # their inputs and overwrites good results with empty ones. Running this after eaos dossier
+    # used to wipe the traced flows.
+    collect(Path(args.target).resolve(), Path(args.out).resolve(), None,
+             max_files=args.max_files, max_bytes=args.max_bytes,
+             exclude=args.exclude or [])
+    result = render(Path(args.out).resolve(), language=args.lang)
+    print(json.dumps({'rows': result['rows'], 'moves': result['moves'],
+                       'artifact': result['artifact']}, ensure_ascii=False, indent=2))
+    return 0
+
+
+def transform_plan_command(args):
+    from .facts.run import collect
+    from .transform_plan import build, render as render_plan
+    out = Path(args.out).resolve()
+    collect(Path(args.target).resolve(), out, None,
+             max_files=args.max_files, max_bytes=args.max_bytes,
+             exclude=args.exclude or [])
+    plan = build(out, policy_path=args.policy)
+    files = render_plan(out, plan, language=args.lang)
+    print(json.dumps({'stages': plan['stages'], 'summary': plan['summary'],
+                       'json': files['json'], 'markdown': files['markdown']},
+                      ensure_ascii=False, indent=2))
+    return 0
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(prog='eaos',description='Architecture, structure and maintainability audit workspaces; target is read-only')
     p.add_argument('--version',action='version',version='EAOS '+__version__)
@@ -395,6 +426,16 @@ def main(argv=None):
     q.add_argument('--max-files',type=bounded_int,default=100000);q.add_argument('--max-bytes',type=bounded_int,default=2_000_000)
     q.add_argument('--exclude',action='append',default=[],help='Path prefix or glob to leave out of analysis; exclusions are reported in the output')
     q.set_defaults(func=map_command)
+    q=s.add_parser('sustainability',help='Six-indicator sustainability dashboard with proposed moves and falsifiers')
+    q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.add_argument('--max-files',type=bounded_int,default=100000);q.add_argument('--max-bytes',type=bounded_int,default=2_000_000)
+    q.add_argument('--exclude',action='append',default=[])
+    q.set_defaults(func=sustainability_command)
+    q=s.add_parser('transform-plan',help='Build a machine-executable transform plan from the sustainability dashboard')
+    q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.add_argument('--policy',default=None);q.add_argument('--max-files',type=bounded_int,default=100000)
+    q.add_argument('--max-bytes',type=bounded_int,default=2_000_000);q.add_argument('--exclude',action='append',default=[])
+    q.set_defaults(func=transform_plan_command)
     q=s.add_parser('facts',help='Deterministic facts about a target; no model is used')
     q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--history',action='store_true')
     q.add_argument('--max-commits',type=bounded_int,default=2000)
