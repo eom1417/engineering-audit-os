@@ -30,6 +30,7 @@
       "eaos/discover.py",
       "eaos/dossier.py",
       "eaos/engines_report.py",
+      "eaos/evaluation_protocol.py",
       "eaos/identity.py",
       "eaos/impact.py",
       "eaos/map.py",

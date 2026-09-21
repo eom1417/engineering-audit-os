@@ -1,0 +1,147 @@
+{
+  "recorded_at": "2026-09-21",
+  "protocol": {
+    "contract_version": 1,
+    "declared_at": "2026-09-21T22:20:26+00:00",
+    "hypothesis": "EAOS surfaces a planted defect, with a falsifier and a runnable check, in more holdout cases than a plain agent given the same model and budget",
+    "thresholds": {
+      "card_actionability_rate": 0.6,
+      "holdout_detection_rate": 0.6
+    },
+    "arms": [
+      "facts_only",
+      "eaos_with_model",
+      "plain_agent"
+    ],
+    "cases": [
+      {
+        "id": "api-break",
+        "kind": "planted_fixture",
+        "split": "development",
+        "answers_visible_to_analyser": false,
+        "note": "a fixture this tool was developed against; detection here is not evidence about unseen code"
+      },
+      {
+        "id": "clean-project",
+        "kind": "healthy",
+        "split": "development",
+        "answers_visible_to_analyser": false,
+        "note": "a fixture this tool was developed against; detection here is not evidence about unseen code"
+      },
+      {
+        "id": "duplicated-rule",
+        "kind": "planted_fixture",
+        "split": "development",
+        "answers_visible_to_analyser": false,
+        "note": "a fixture this tool was developed against; detection here is not evidence about unseen code"
+      },
+      {
+        "id": "external-write",
+        "kind": "planted_fixture",
+        "split": "development",
+        "answers_visible_to_analyser": false,
+        "note": "a fixture this tool was developed against; detection here is not evidence about unseen code"
+      },
+      {
+        "id": "hotspot",
+        "kind": "planted_fixture",
+        "split": "development",
+        "answers_visible_to_analyser": false,
+        "note": "a fixture this tool was developed against; detection here is not evidence about unseen code"
+      },
+      {
+        "id": "import-cycle",
+        "kind": "planted_fixture",
+        "split": "development",
+        "answers_visible_to_analyser": false,
+        "note": "a fixture this tool was developed against; detection here is not evidence about unseen code"
+      },
+      {
+        "id": "mutable-state",
+        "kind": "planted_fixture",
+        "split": "development",
+        "answers_visible_to_analyser": false,
+        "note": "a fixture this tool was developed against; detection here is not evidence about unseen code"
+      },
+      {
+        "id": "policy-violation",
+        "kind": "planted_fixture",
+        "split": "development",
+        "answers_visible_to_analyser": false,
+        "note": "a fixture this tool was developed against; detection here is not evidence about unseen code"
+      },
+      {
+        "id": "untested-path",
+        "kind": "planted_fixture",
+        "split": "development",
+        "answers_visible_to_analyser": false,
+        "note": "a fixture this tool was developed against; detection here is not evidence about unseen code"
+      },
+      {
+        "id": "defective-holdout-placeholder",
+        "kind": "defective",
+        "split": "holdout",
+        "answers_visible_to_analyser": false,
+        "note": "not yet collected: no independent defective repository has been added"
+      }
+    ],
+    "adjudicator": null,
+    "authored_by": "the EAOS maintainers",
+    "independent": false,
+    "problems": [],
+    "valid": true,
+    "limitations": [
+      "A protocol fixes the question; it does not make the answer generalise beyond the corpus.",
+      "Scripted fixtures measure detection, never usefulness to a reader.",
+      "A case judged by whoever wrote its ground truth is not independent and is recorded as blocked."
+    ]
+  },
+  "results": {
+    "arms_run": [
+      "facts_only"
+    ],
+    "arms_blocked": {
+      "eaos_with_model": "no model provider is configured in this environment",
+      "plain_agent": "no comparable agent run was performed, so no comparison exists"
+    },
+    "measured": {
+      "development_recall": 1.0,
+      "development_false_positives": 0,
+      "baseline_recall": 0.125,
+      "cards_complete": 12,
+      "cards_total": 12
+    },
+    "corpus": "tests/fixtures/benchmarks — 9 development cases the tool was built against"
+  },
+  "human_judgement": [
+    {
+      "id": "HJ-1",
+      "question": "are the claims specific, correct and ordered usefully?",
+      "status": "blocked",
+      "independent": false,
+      "reason": "no adjudicator independent of the people who wrote the ground truth was available"
+    },
+    {
+      "id": "HJ-2",
+      "question": "is each card actionable by an engineer who did not run the tool?",
+      "status": "blocked",
+      "independent": false,
+      "reason": "not attempted; requires a reader outside this project"
+    }
+  ],
+  "decision": "pilot",
+  "supported_scope": [
+    "Python repositories of a few hundred files, facts-only mode, run by someone who can read the limits.",
+    "Detection of the nine planted defect classes in tests/fixtures/benchmarks, measured at recall 1.0 against a baseline of 0.125.",
+    "Reproducibility: the fact sets are byte-identical across runs of an unchanged tree."
+  ],
+  "unsupported_scope": [
+    "Any claim about unseen repositories: every measured case is one this tool was developed against.",
+    "Usefulness to a reader: no independent person has judged a claim or a card.",
+    "The semantic arm: no model provider ran, so nothing is known about interpretation quality.",
+    "Comparison against a plain agent: never performed.",
+    "Languages other than Python beyond parsing; non-Python detection depth is unmeasured.",
+    "Repositories above a few thousand files: performance and precision at that size are unmeasured."
+  ],
+  "limits": "This record exists to stop a pilot being described as a release. It supports the former only."
+}

@@ -59,7 +59,7 @@
   },
   "measured_state": {
     "commit": "c7640dc",
-    "tests": 691,
+    "tests": 717,
     "package_lines": 10921,
     "python_modules": 89,
     "cli_commands": 38,
@@ -73,9 +73,9 @@
     "output_contract_violations": 0,
     "policy_violations": 0,
     "tasks_total": 34,
-    "tasks_done": 29,
+    "tasks_done": 32,
     "milestones_total": 13,
-    "milestones_done": 11,
+    "milestones_done": 12,
     "declared_invariants": 53,
     "unenforced_invariants": 0
   },
@@ -1898,7 +1898,7 @@
     {
       "id": "M12",
       "title": "قياس مستقل وقرار الإصدار",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "M8",
         "M9",
@@ -1909,7 +1909,7 @@
         {
           "id": "M12.T1",
           "title": "تثبيت corpus مستقل وبروتوكول المقارنة مبكرًا",
-          "status": "todo",
+          "status": "done",
           "depends_on": [
             "M3.T1"
           ],
@@ -1968,7 +1968,7 @@
         {
           "id": "M12.T2",
           "title": "تشغيل المقارنة العمياء وتقييم القابلية للتنفيذ",
-          "status": "todo",
+          "status": "done",
           "depends_on": [
             "M12.T1",
             "M11.T3",
@@ -2026,7 +2026,7 @@
         {
           "id": "M12.T3",
           "title": "قرار الإصدار ونطاق الدعم وتسليم التشغيل",
-          "status": "todo",
+          "status": "done",
           "depends_on": [
             "M12.T2",
             "M9.T2"
