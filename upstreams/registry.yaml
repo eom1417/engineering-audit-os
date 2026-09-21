@@ -1,0 +1,130 @@
+# Every capability this platform did not build itself, and where it came from.
+# Verified by running each engine against this repository on 2026-09-21.
+schema_version: 1
+
+upstreams:
+  - name: enola
+    repository: https://github.com/enola-labs/enola
+    license: Apache-2.0
+    version: 0.4.21
+    extractor_version: v270          # enola's own "what it extracts like" contract
+    commit: d086926aca80975dde34094e99c84cce59fb1cd6
+    integration_mode: cli-subprocess + structured-artifact-import
+    invocation: enola --generate <target>   # writes .enola/{facts.jsonl,insights.json,receipt.json}
+    measured_on_this_repo:
+      wall_clock_seconds: 0.71
+      facts: 2103
+      insights: 112
+      languages_detected: [python, typescript, go]
+    capabilities_used:
+      - package-level dependency graph with instability/abstractness/distance
+      - cycles, layers, hotspots, god-class, dependency-depth, exported-surface
+      - complexity-outliers, dead-code, performance (complexity class estimate)
+      - receipt.json provenance (snapshot id, git commit, dirty flag, extractor list)
+    capabilities_not_used:
+      - MCP server mode, dashboard, session hooks, cross-repo cluster, history store
+      - enola's own baseline/check gate — our delta gate already owns that decision
+    known_limitations:
+      - "Reported 1 package cycle (eaos -> eaos/facts -> eaos/runtime -> eaos) that no
+         fact in its own facts.jsonl supports, and that three other engines do not see.
+         Treated as HEURISTIC evidence requiring a probe, never as a confirmed claim."
+    local_modifications: none
+    upgrade_strategy: pin the version and the extractor_version; re-run the engine contract tests
+
+  - name: codegraph
+    repository: https://github.com/codegraph-ai/CodeGraph
+    license: Apache-2.0
+    version: v0.20.1
+    build: 489ccf1
+    commit: 64f4f306e2a88eaba43eaef05499779d7fe6f75b
+    artifact_sha256: 32b26422fa5ffe0a130955b7f7df771f722b2d427d67f53f104d9907bdfb24a6
+    integration_mode: cli-subprocess (one-shot --run-tool, --graph-only)
+    invocation: codegraph-server --graph-only -w <target> --run-tool <tool> --tool-args '{}'
+    measured_on_this_repo:
+      cold_index_seconds: 10.6
+      files_indexed: 121
+      nodes: 1806
+      edges: 3327
+    capabilities_used:
+      - find_circular_deps, analyze_coupling, analyze_complexity, analyze_impact
+      - find_duplicates, find_similar, cluster_symbols (semantic duplication)
+      - find_dead_imports, find_unused_code, find_entry_points, find_hot_paths
+      - find_related_tests, get_call_graph, get_dependency_graph
+    capabilities_not_used:
+      - embeddings and semantic search (--graph-only): deterministic evidence first
+      - memory layer, IDE extensions, security scanners, git-history mining
+    known_limitations:
+      - cold index is the slowest of the four engines; the graph persists per project slug
+    local_modifications: none
+    upgrade_strategy: pin the release tag and verify the published sha256 before use
+
+  - name: reforge
+    repository: https://github.com/LyleMi/Reforge
+    license: Apache-2.0
+    version: 0.3.0
+    revision: 1f96d62849999a51a85252c85017225fb68bc408
+    commit: 6c986d4739e13d198e71d0eed9490c69d16e707a
+    integration_mode: cli-subprocess + json-schema-import (schema_version 27)
+    invocation: reforge analyze <target> --config <reforge.toml> --output json --reproducible
+    measured_on_this_repo:
+      wall_clock_seconds: 2.5
+      issues: 348
+      rules_evaluated: 33
+    capabilities_used:
+      - 33 rules with per-rule coverage status, maturity and observation counts
+      - measurements (name/value/threshold/unit) attached to every piece of evidence
+      - content_fingerprint: stable issue identity across runs, usable as a baseline key
+      - dataflow analysis (flow_fan_out, excessive_relay, adapter_flow_bypass)
+    capabilities_not_used:
+      - HTML report app, its own gate/baseline (our delta gate owns that)
+    known_limitations:
+      - "All rules ship disabled; a versioned reforge.toml named exactly reforge.toml is required."
+      - "Reported 0 similar_functions and 0 parallel_implementation where our own structural
+         detector reports 63 duplicate clusters. Different definitions, not a contradiction —
+         recorded as complementary coverage, not as agreement."
+    local_modifications: none
+    upgrade_strategy: schema_version is explicit in every report; the adapter refuses an unknown one
+
+  - name: jscpd
+    repository: https://github.com/kucherenko/jscpd
+    license: MIT
+    version: 5.3.0
+    commit: 91e4444de1de68ff3ef27c0b5084c53f0b3b11b5
+    integration_mode: cli-subprocess + json-import
+    invocation: jscpd <target> --reporters json --output <dir> --ignore <globs> --silent
+    measured_on_this_repo:
+      wall_clock_seconds: 0.21
+      clone_pairs_in_source: 38
+      duplicated_line_percentage: 1.85
+    capabilities_used:
+      - Type-1 token-level clone detection over 224 formats
+      - per-pair file/line ranges and the duplicated fragment itself
+    capabilities_not_used:
+      - --dead-code, --complexity, --health, --history (covered by enola/reforge/our own facts)
+      - MCP server, SARIF upload, badge reporters
+    known_limitations:
+      - "Scans everything it is given: without an ignore list it reported 23.1% duplication
+         by counting our own .enola artifacts and markdown. Scope is the caller's duty."
+    local_modifications: none
+    upgrade_strategy: pin the version; the report carries no schema version, so the adapter validates keys
+
+evaluated_and_declined:
+  - name: serena
+    repository: https://github.com/oraios/serena
+    license: "per component — SolidLSP MIT, Serena application GPL-3.0-or-later"
+    decision: declined for now
+    reason: >
+      The GPL-3.0-or-later application half would put a copyleft obligation on a core we
+      distribute permissively, and the capability it adds (symbol navigation, find
+      references, symbol-level editing) is already served by CodeGraph under Apache-2.0.
+      Revisit only as an out-of-process MCP integration the user opts into, never vendored.
+
+  - name: archmind
+    repository: https://github.com/homerquan/archmind
+    license: none declared
+    decision: concepts only, zero code reuse
+    reason: >
+      The repository ships no LICENSE file, so every right is reserved by default and no
+      amount of attribution makes copying lawful. Its useful ideas — DSM, centrality,
+      bridge nodes, strongly connected components, artifact-backed stages with typed
+      schemas — are concepts we already implement or can implement independently.
