@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Refresh the derived views whenever the ledger changes. The index reported "tasks 0" next to ten generated cards, and still said no semantic review had run after one had, because the brief, the risk register and the index were written once during assembly and never again. Probing, the semantic pass and plan generation now re-render them.
+
 - A probe now only settles what it can actually settle. A branch-count measurement confirmed a claim about *why* the branches existed; a static check can show that a structure exists but not why, so a claim of cause or responsibility rises to LIKELY at most and the probe is recorded as PARTIAL with the reason.
 - Dependency probes can be directional. A claim that one layer must not import another was refuted by an edge running the other way, which is allowed; `direction: one_way` distinguishes the two and reports the reverse edge instead of contradicting the claim.
 - An unproven claim now produces an investigation task rather than nothing: prove it or drop it, with no code change until it is decided, and the acceptance criterion is the probe returning a verdict.

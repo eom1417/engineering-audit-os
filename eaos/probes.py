@@ -222,6 +222,8 @@ def run_all(target, out, allow_execution=False):
     for claim in dossier['claims']:
         dossier['claim_counts'][claim['confidence']] = dossier['claim_counts'].get(claim['confidence'], 0) + 1
     write(out / 'dossier.json', dossier)
+    from .dossier import refresh_views
+    refresh_views(out)
     return {'target': str(Path(target).resolve()), 'out': str(out), 'probes': len(probes), 'by_status': counts,
             'confirmed_claims': confirmed, 'claims': len(dossier['claims']),
             'limits': 'A probe decides only what it checks. Execution probes stay disabled unless explicitly allowed, and an isolated copy is not an OS sandbox.'}

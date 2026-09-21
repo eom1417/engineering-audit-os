@@ -200,6 +200,10 @@ def brief(target, dossier, language):
     return document
 
 
+def semantic_claims(dossier):
+    return sum(1 for claim in dossier['claims'] if 'model_inference' in claim.get('method', []))
+
+
 def trust_grades(dossier, sets, verification):
     """How well each section is sourced, so a reader knows which parts to take at face value."""
     flows = sets.get('flows', {}).get('summary', {})
@@ -220,8 +224,11 @@ def trust_grades(dossier, sets, verification):
         {'section': 'VERIFICATION-MAP.md', 'source': 'executed test run' if executed else 'not executed',
          'grade': '⬤' if executed else '○',
          'note': f"{verification.get('overall_percent')}% coverage" if executed else 'run eaos verify --execute'},
-        {'section': 'responsibilities, boundaries, internal contracts', 'source': '—', 'grade': '○',
-         'note': 'not assessed: needs the model path'},
+        {'section': 'responsibilities, boundaries, internal contracts',
+         'source': 'model inference over facts' if semantic_claims(dossier) else '—',
+         'grade': '○',
+         'note': (f'{semantic_claims(dossier)} claims, none confirmed by inference alone'
+                  if semantic_claims(dossier) else 'not assessed: needs the model path')},
     ]
 
 
@@ -286,10 +293,14 @@ def index_document(target, dossier, sets, verification, language):
                         language, budget_lines=120)
     provenance = dossier['provenance']
     coverage = dossier['coverage']
+    semantic = sum(1 for claim in dossier['claims'] if 'model_inference' in claim.get('method', []))
     document.header([f"{target} · eaos {provenance['tool_version']} · {provenance['generated_at']} · "
                      f"model calls {provenance['model_calls']}",
                      f"{words['coverage']}: {coverage['files_parsed']}/{coverage['source_files']} · "
-                     f"claims {len(dossier['claims'])} · tasks {len(dossier.get('tasks', []))}"])
+                     f"claims {len(dossier['claims'])} ({semantic} من طبقة دلالية)" if language == 'ar' else
+                     f"{words['coverage']}: {coverage['files_parsed']}/{coverage['source_files']} · "
+                     f"claims {len(dossier['claims'])} ({semantic} semantic)",
+                     f"tasks {len(dossier.get('tasks', []))} · waves {len(dossier.get('waves', []))}"])
     document.section('اقرأ بهذا الترتيب' if language == 'ar' else 'Read in this order')
     rows = [
         ('تقرّر أين يذهب الجهد' if language == 'ar' else 'deciding where effort goes',
@@ -501,6 +512,39 @@ def verification_document(verification, language):
     document.section(words['uncovered'])
     document.bullets(verification.get('uncovered_entry_reachable_files', [])[:20] or [words['no_rows']])
     return document
+
+
+def refresh_views(out, language='ar'):
+    """Re-render the derived human artifacts from the ledger.
+
+    Any command that changes dossier.json — a probe verdict, a semantic pass, a generated plan —
+    must leave the readable views agreeing with it, or the index tells the reader something the
+    records no longer say.
+    """
+    out = Path(out)
+    dossier_path = out / 'dossier.json'
+    if not dossier_path.is_file(): raise ValueError('No dossier to refresh in ' + str(out))
+    dossier = read(dossier_path)
+    sets = {}
+    for name in ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'policy', 'verification']:
+        if (out / 'facts' / (name + '.json')).is_file(): sets[name] = read_set(out, name)
+    verification = read(out / 'verification.json') if (out / 'verification.json').is_file() else None
+    target = dossier['provenance']['target']
+    counts = {}
+    for claim in dossier['claims']: counts[claim['confidence']] = counts.get(claim['confidence'], 0) + 1
+    dossier['claim_counts'] = counts
+    if verification and verification.get('executed'):
+        dossier['coverage']['runtime_confirmation'] = sum(
+            1 for claim in dossier['claims'] if {'test_evidence', 'runtime_probe'} & set(claim.get('method', [])))
+    semantic_ran = any('model_inference' in claim.get('method', []) for claim in dossier['claims'])
+    dossier['coverage']['not_examined'] = [note for note in dossier['coverage']['not_examined']
+                                           if not (semantic_ran and note.startswith('semantic review'))]
+    write(dossier_path, dossier)
+    (out / BRIEF).write_text(brief(target, dossier, language).render(), encoding='utf-8')
+    (out / 'RISK-REGISTER.md').write_text(risk_register(dossier, language).render(), encoding='utf-8')
+    (out / 'README.md').write_text(index_document(target, dossier, sets, verification, language).render(), encoding='utf-8')
+    return {'out': str(out), 'claims': len(dossier['claims']), 'tasks': len(dossier.get('tasks', [])),
+            'refreshed': [BRIEF, 'RISK-REGISTER.md', 'README.md']}
 
 
 def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=()):

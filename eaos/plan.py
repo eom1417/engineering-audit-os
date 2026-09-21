@@ -212,6 +212,8 @@ def build(target, out, language='ar'):
     dossier['waves'] = plan
     write(dossier_path, dossier)
     write(out / 'plan.json', {'tasks': tasks, 'waves': plan})
+    from .dossier import refresh_views
+    refresh_views(out, language)
     return {'target': str(target), 'out': str(out), 'tasks': len(tasks), 'waves': len(plan),
             'cards': [str(directory / (task['id'] + '.md')) for task in tasks],
             'limits': 'Each task states one runnable acceptance criterion derived from the probe that confirmed its claim. '

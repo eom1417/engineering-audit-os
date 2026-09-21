@@ -138,6 +138,8 @@ def run(target, out, provider, max_rounds=MAX_ROUNDS):
     write(out / 'semantic.json', {'claims': added, 'questions': questions,
                                   'provider': provider.identity(), 'digest_components': len(digest['components'])})
     render(out, added, questions, provider)
+    from .dossier import refresh_views
+    refresh_views(out)
     return {'target': str(target), 'out': str(out), 'claims': len(added), 'questions': len(questions),
             'confidence': 'HYPOTHESIS for every semantic claim; only a probe can raise it',
             'limits': 'Interpretation over facts. The model never sees raw files here and cannot assert runtime behaviour.'}

@@ -106,3 +106,53 @@ class AskRobustnessTests(unittest.TestCase):
             result = answer(out, 'settings LIMIT')
             self.assertEqual(result['status'], 'ANSWERED')
             self.assertTrue(any('settings' in row['text'] for row in result['answers']))
+
+
+class ViewFreshnessTests(unittest.TestCase):
+    """Regression: the index said tasks 0 while ten cards sat next to it."""
+
+    def test_the_index_reflects_the_plan_once_it_exists(self):
+        from eaos.plan import build
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            assemble(FIXTURE, out)
+            self.assertIn('tasks 0', (out / 'README.md').read_text())
+            build(FIXTURE, out)
+            text = (out / 'README.md').read_text()
+            self.assertNotIn('tasks 0', text)
+            self.assertIn('waves', text)
+
+    def test_a_probe_verdict_reaches_the_brief(self):
+        from eaos import probes
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            assemble(FIXTURE, out)
+            probes.run_all(FIXTURE, out)
+            dossier = json.loads((out / 'dossier.json').read_text())
+            counts = {}
+            for claim in dossier['claims']: counts[claim['confidence']] = counts.get(claim['confidence'], 0) + 1
+            self.assertEqual(dossier['claim_counts'], counts)
+
+    def test_refreshing_without_a_dossier_fails_clearly(self):
+        from eaos.dossier import refresh_views
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaisesRegex(ValueError, 'No dossier to refresh'):
+                refresh_views(Path(tmp))
+
+    def test_the_index_stops_claiming_no_semantic_review_once_one_ran(self):
+        from eaos import claims as ledger
+        from eaos.dossier import refresh_views
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            assemble(FIXTURE, out)
+            self.assertIn('semantic review: not performed', (out / 'README.md').read_text())
+            dossier = json.loads((out / 'dossier.json').read_text())
+            dossier['claims'].append(ledger.make(
+                900, 'The pricing module owns the discount rule', 'responsibility', 'HYPOTHESIS',
+                ['model_inference'], [], 'A second module applying it without importing',
+                fact_ids=dossier['claims'][0]['fact_ids'], origin='source'))
+            (out / 'dossier.json').write_text(json.dumps(dossier, ensure_ascii=False))
+            refresh_views(out)
+            text = (out / 'README.md').read_text()
+            self.assertNotIn('semantic review: not performed', text)
+            self.assertIn('model inference over facts', text)
