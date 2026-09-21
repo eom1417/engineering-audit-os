@@ -25,6 +25,7 @@ LIMITATIONS = [
     'A falsifier is a hint at the kind of evidence that would reject the move; it is not a guard.',
 ]
 
+SHOWN_MOVES = 10
 INDICATORS = ['single_source', 'minimal_path', 'data_owners', 'honest_boundaries',
                'verifiable_paths', 'understandable_units']
 
@@ -33,7 +34,7 @@ DEFAULT_TARGETS = {
     'minimal_path': 0.0,
     'data_owners': 0,
     'honest_boundaries': 0,
-    'verifiable_paths': 0.0,
+    'verifiable_paths': 0.0,  # P5: fraction of flows that stop at the first boundary. Zero is best.
     'understandable_units': 0,
 }
 
@@ -133,7 +134,8 @@ def compute(out, targets=None):
                      'target': target, 'measured': bool(measured),
                      'gap': round(value - target, 4) if measured and value is not None else None,
                      'details': {k: v for k, v in indicator.items() if k != 'value'}})
-    return {'indicators': indicators, 'rows': rows, 'targets': targets,
+    moves = _transformations(out, {'rows': rows})
+    return {'indicators': indicators, 'rows': rows, 'targets': targets, 'moves': moves,
             'interpretation': 'Indicators are pure functions of structural facts. The target is declared; the gap is the '
                               'distance to the declared target; the proposal is a function of the same facts.'}
 
@@ -184,7 +186,7 @@ def _transformations(out, dashboard):
 def render(out, targets=None, language='ar'):
     """Render SUSTAINABILITY.md from the computed dashboard."""
     dashboard = compute(out, targets)
-    moves = _transformations(out, dashboard)
+    moves = dashboard['moves']
     ar = language == 'ar'
     lines = []
     if ar:
@@ -214,7 +216,9 @@ def render(out, targets=None, language='ar'):
     if not moves:
         lines += [('لا حركات مطلوبة؛ الفجوات صفر.' if ar else 'No moves required; every gap is zero.')]
     else:
-        for index, move in enumerate(moves, start=1):
+        # The document shows the moves a reader can act on today; sustainability.json holds them all.
+        # Printing 60 moves produced a 664-line document nobody reads and the contract never checked.
+        for index, move in enumerate(moves[:SHOWN_MOVES], start=1):
             lines += [f"### Move {index}: {move['move']}",
                        f"- " + ('مؤشر' if ar else 'indicator') + f": {move['indicator']}"]
             if 'rule' in move:
@@ -233,15 +237,27 @@ def render(out, targets=None, language='ar'):
             if 'falsifier' in move:
                 lines += ["- " + ('ناقض' if ar else 'falsifier') + f": {move['falsifier']}"]
             lines += ['']
+        if len(moves) > SHOWN_MOVES:
+            lines += [(f'عُرضت {SHOWN_MOVES} حركة من {len(moves)}؛ البقية في `sustainability.json`.' if ar else
+                       f'Showing {SHOWN_MOVES} of {len(moves)} moves; the rest are in `sustainability.json`.'), '']
     lines += ['## ' + ('التفاصيل' if ar else 'Details'), '']
+    # The measured detail behind each indicator is a record, not prose: R8 forbids dumping it here.
+    lines += [('قياس كل مؤشر بالكامل — المدخلات والعتبات والمواضع — في `sustainability.json`.' if ar else
+               'The full measurement behind every indicator — inputs, thresholds and sites — is in '
+               '`sustainability.json`.'), '']
     for row in dashboard['rows']:
         label = (name_ar.get(row['indicator']) if ar else name_en.get(row['indicator']))
-        # A block labelled json must be json: the previous version printed a Python repr.
-        payload = json.dumps({'value': row['value'], 'target': row['target'], 'measured': row['measured'],
-                              'gap': row['gap'], 'details': row['details']}, ensure_ascii=False, indent=2)
-        lines += [f"### {label}", '', '```json', payload, '```', '']
-    lines += ['## ' + ('الحدود' if ar else 'Limits'), '']
+        detail = row['details']
+        summary = ', '.join(f'{key}={value}' for key, value in sorted(detail.items())
+                            if isinstance(value, (int, float, str, bool)) and key != 'note')
+        lines += [f"- **{label}** — {summary or ('لا تفاصيل' if ar else 'no detail')}"]
+    lines += ['', '## ' + ('الحدود' if ar else 'Limits'), '']
     for line in LIMITATIONS: lines += [f"- {line}"]
     (Path(out) / 'SUSTAINABILITY.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+    record = {'schema_version': 1, 'rows': dashboard['rows'], 'indicators': dashboard['indicators'],
+              'targets': dashboard['targets'], 'moves': moves, 'shown_in_document': min(SHOWN_MOVES, len(moves)),
+              'interpretation': dashboard['interpretation'], 'limitations': LIMITATIONS}
+    (Path(out) / 'sustainability.json').write_text(
+        json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     return {'rows': dashboard['rows'], 'moves': moves,
-            'artifact': str(Path(out) / 'SUSTAINABILITY.md')}
+            'artifact': str(Path(out) / 'SUSTAINABILITY.md'), 'record': str(Path(out) / 'sustainability.json')}

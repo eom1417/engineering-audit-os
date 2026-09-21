@@ -29,7 +29,7 @@ def fake_runners(**behaviour):
                 for artifact in stage.produces:
                     path = context.out / artifact
                     path.parent.mkdir(parents=True, exist_ok=True)
-                    path.write_text('x', encoding='utf-8')
+                    path.write_text('{}' if path.suffix == '.json' else 'x', encoding='utf-8')
                 return {'stage': stage.name}
             return run
         runners[stage.name] = make()
@@ -128,3 +128,42 @@ class ManifestTests(unittest.TestCase):
             manifest = json.loads((Path(directory) / MANIFEST).read_text(encoding='utf-8'))
         self.assertIn('limits', manifest)
         self.assertIn('did not run', manifest['limits'])
+
+
+class PrerequisiteTests(unittest.TestCase):
+    """A prerequisite already satisfied on disk must not block a single-stage re-run."""
+
+    def test_only_one_stage_runs_when_the_earlier_artifacts_are_already_there(self):
+        with tempfile.TemporaryDirectory() as directory:
+            execute('.', directory, runners=fake_runners())
+            ran = []
+            runners = fake_runners()
+            for name, runner in list(runners.items()):
+                def wrap(context, name=name, runner=runner):
+                    ran.append(name)
+                    return runner(context)
+                runners[name] = wrap
+            manifest = execute('.', directory, only=['plan'], runners=runners)
+            self.assertEqual(ran, ['plan'])
+            self.assertEqual(manifest['stages']['plan']['status'], OK)
+
+    def test_a_stage_whose_inputs_are_absent_is_not_reached(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manifest = execute('.', directory, only=['plan'], runners=fake_runners())
+            self.assertEqual(manifest['stages']['plan']['status'], NOT_REACHED)
+            self.assertIn('Prerequisites not completed', manifest['stages']['plan']['reason'])
+
+    def test_a_partial_run_is_graded_partial_not_incomplete(self):
+        with tempfile.TemporaryDirectory() as directory:
+            execute('.', directory, runners=fake_runners())
+            manifest = execute('.', directory, only=['plan'], runners=fake_runners())
+            self.assertEqual(manifest['status'], 'PARTIAL')
+
+    def test_the_printed_status_repeats_the_manifest_verdict(self):
+        from eaos.product_review import summarise
+        with tempfile.TemporaryDirectory() as directory:
+            execute('.', directory, runners=fake_runners())
+            manifest = execute('.', directory, only=['plan'], runners=fake_runners())
+            summary = summarise(Path(directory), manifest, 'evolution', False)
+            self.assertEqual(summary['run_status'], manifest['status'])
+            self.assertIn(summary['status'], {manifest['status'], 'OUTPUT_SPEC_VIOLATED'})

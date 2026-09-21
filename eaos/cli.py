@@ -189,7 +189,7 @@ def improve_command(args):
 
 
 def facts_command(args):
-    from .facts.run import collect
+    from .facts.run import collect, ORDER as ALL_SETS
     selected=[name for name,flag in [('history',args.history)] if flag] or None
     print(json.dumps(collect(args.target,args.out,selected,args.max_commits,exclude=args.exclude,
                              engines=args.engines),ensure_ascii=False,indent=2))
@@ -380,6 +380,80 @@ def sustainability_command(args):
     return 0
 
 
+def review_command(args):
+    from .audit import run
+    result = run(args.target, args.out, max_files=args.max_files,
+                  max_bytes=args.max_bytes, exclude=args.exclude or [],
+                  language=args.lang, policy_path=args.policy)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0 if result['status'] == 'COMPLETE' else 2
+
+
+def target_architecture_command(args):
+    from .facts.run import collect
+    from .target_architecture import build as build_target, render as render_target
+    out = Path(args.out).resolve()
+    collect_path(args.target, out, args, ALL_SETS)
+    target = build_target(out)
+    files = render_target(out, target, language=args.lang)
+    print(json.dumps({'markdown': files['markdown'], 'json': files['json'],
+                       'components': len(target['components']),
+                       'decisions': len(target['decisions'])},
+                      ensure_ascii=False, indent=2))
+    return 0
+
+
+def executive_command(args):
+    from .facts.run import collect
+    from .executive import render
+    out = Path(args.out).resolve()
+    collect_path(args.target, out, args, ALL_SETS)
+    result = render(out, language=args.lang)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def bundles_command(args):
+    from .facts.run import collect
+    from .bundles import build
+    out = Path(args.out).resolve()
+    collect_path(args.target, out, args, ALL_SETS)
+    result = build(out)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+def progress_command(args):
+    from .progress import render
+    result = render(args.previous, args.current, language=args.lang)
+    if result is None:
+        print(json.dumps({'error': 'previous snapshot has no facts'}, ensure_ascii=False))
+        return 2
+    print(json.dumps({'artifact': result['artifact']}, ensure_ascii=False, indent=2))
+    return 0
+
+
+def guarantee_command(args):
+    from .guarantee import compare
+    result = compare(args.previous, args.current, tolerance=args.tolerance / 100, language=args.lang, prediction=args.prediction)
+    if result is None:
+        print(json.dumps({'error': 'previous snapshot has no facts'}, ensure_ascii=False))
+        return 2
+    print(json.dumps({'artifact': result['artifact'], 'summary': result['summary'], 'status': result['status'], 'reasons': result['reasons']},
+                      ensure_ascii=False, indent=2))
+    return 0 if result['status'] == 'COMPARED' else 2
+
+
+def simulate_command(args):
+    from .guarantee import predict
+    plan = read(Path(args.snapshot) / 'transform-plan.json')
+    stage = next((row for row in plan['stages'] if row['stage'] == args.stage), None)
+    if stage is None: raise ValueError('Unknown transform stage')
+    result = predict(args.snapshot, stage, args.out)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def transform_plan_command(args):
     from .facts.run import collect
     from .transform_plan import build, render as render_plan
@@ -490,6 +564,39 @@ def main(argv=None):
     q.add_argument('--policy',default=None);q.add_argument('--max-files',type=bounded_int,default=100000)
     q.add_argument('--max-bytes',type=bounded_int,default=2_000_000);q.add_argument('--exclude',action='append',default=[])
     q.set_defaults(func=transform_plan_command)
+    q=s.add_parser('review',help='Run the full pipeline: collect → dashboard → plan → target → executive → bundles')
+    q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.add_argument('--policy',default=None);q.add_argument('--max-files',type=bounded_int,default=100000)
+    q.add_argument('--max-bytes',type=bounded_int,default=2_000_000);q.add_argument('--exclude',action='append',default=[])
+    q.set_defaults(func=review_command)
+    q=s.add_parser('target-architecture',help='Build a target architecture with ADRs and a gap matrix')
+    q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.add_argument('--max-files',type=bounded_int,default=100000);q.add_argument('--max-bytes',type=bounded_int,default=2_000_000)
+    q.add_argument('--exclude',action='append',default=[])
+    q.set_defaults(func=target_architecture_command)
+    q=s.add_parser('executive',help='Render a one-page executive summary from the dashboard')
+    q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.add_argument('--max-files',type=bounded_int,default=100000);q.add_argument('--max-bytes',type=bounded_int,default=2_000_000)
+    q.add_argument('--exclude',action='append',default=[])
+    q.set_defaults(func=executive_command)
+    q=s.add_parser('bundles',help='Group the artifacts into the five-bundle engagement layout')
+    q.add_argument('target');q.add_argument('--out',required=True)
+    q.add_argument('--max-files',type=bounded_int,default=100000);q.add_argument('--max-bytes',type=bounded_int,default=2_000_000)
+    q.add_argument('--exclude',action='append',default=[])
+    q.set_defaults(func=bundles_command)
+    q=s.add_parser('progress',help='Compare two snapshots and report indicator deltas')
+    q.add_argument('previous');q.add_argument('current');q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.set_defaults(func=progress_command)
+    q=s.add_parser('simulate',help='Record a structural prediction bound to a snapshot and plan stage')
+    q.add_argument('snapshot');q.add_argument('--stage',type=bounded_int,required=True);q.add_argument('--out',required=True)
+    q.set_defaults(func=simulate_command)
+    q=s.add_parser('guarantee',help='Compare predicted vs observed indicator deltas across two snapshots')
+    q.add_argument('previous');q.add_argument('current')
+    q.add_argument('--prediction',help='Recorded prediction from eaos simulate')
+    q.add_argument('--tolerance',type=bounded_int,default=5,
+                    help='Tolerance in 1/100ths of an indicator unit (default 0.05)')
+    q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.set_defaults(func=guarantee_command)
     q=s.add_parser('facts',help='Deterministic facts about a target; no model is used')
     q.add_argument('target');q.add_argument('--out',required=True);q.add_argument('--history',action='store_true')
     q.add_argument('--max-commits',type=bounded_int,default=2000)
@@ -532,3 +639,9 @@ def main(argv=None):
     except (ValueError,OSError,KeyError,TypeError,UnicodeError) as e:
         print(f'eaos: {e}',file=sys.stderr);return 2
 if __name__=='__main__':raise SystemExit(main())
+
+def collect_path(target, out, args, sets):
+    from .facts.run import collect
+    collect(Path(target).resolve(), Path(out).resolve(), sets,
+             max_files=args.max_files, max_bytes=args.max_bytes,
+             exclude=args.exclude or [])

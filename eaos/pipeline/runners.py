@@ -13,7 +13,7 @@ POLICY_FILE = 'eaos.policy.json'
 def facts(context):
     from ..facts.run import collect
     from ..facts.source import Source
-    context['source'] = Source(context.target, exclude=context.exclude)
+    context['source'] = Source(context.target, exclude=context.exclude, max_files=context.max_files, max_bytes=context.max_bytes)
     context['collected'] = collect(context.target, context.out, None, source=context['source'],
                                    exclude=context.exclude)
     return {'facts': context['collected']['facts'], 'sets': len(context['collected']['sets'])}
@@ -25,7 +25,7 @@ def engines(context):
     from ..facts.run import add_to_index, collect_external
     if 'source' not in context:
         from ..facts.source import Source
-        context['source'] = Source(context.target, exclude=context.exclude)
+        context['source'] = Source(context.target, exclude=context.exclude, max_files=context.max_files, max_bytes=context.max_bytes)
     entry = collect_external(context.target, context.out, context['source'], only=context.engines or None)
     add_to_index(context.out, context.target, entry)
     if not entry['available']:
@@ -51,10 +51,10 @@ def verify(context):
 
 
 def policy(context):
-    if not (Path(context.target) / POLICY_FILE).is_file():
+    if not context.policy_path and not (Path(context.target) / POLICY_FILE).is_file():
         raise SkipStage(f'the project declares no {POLICY_FILE}')
     from ..policy import check
-    result = check(context.target, context.out, language=context.language)
+    result = check(context.target, context.out, policy_path=context.policy_path, language=context.language)
     return {'violations': result.get('violations')}
 
 
@@ -94,7 +94,7 @@ def sustainability(context):
 
 def transform(context):
     from ..transform_plan import build, render
-    policy_path = Path(context.target) / POLICY_FILE
+    policy_path = Path(context.policy_path) if context.policy_path else Path(context.target) / POLICY_FILE
     plan = build(context.out, policy_path=str(policy_path) if policy_path.is_file() else None)
     render(context.out, plan, language=context.language)
     return {'moves': len(plan.get('stages', plan.get('moves', [])))}
@@ -117,7 +117,8 @@ def site(context):
     if not context.site:
         raise SkipStage('the site was turned off for this run')
     from ..site import build
-    return {'bytes': build(context.out).get('bytes') if isinstance(build(context.out), dict) else None}
+    result = build(context.out)
+    return {'bytes': result.get('bytes')}
 
 
 def validate(context):
@@ -138,3 +139,23 @@ def validate(context):
 RUNNERS = {'facts': facts, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
            'probe': probe, 'semantic': semantic, 'sustainability': sustainability, 'transform': transform,
            'plan': plan, 'compose': compose, 'site': site, 'validate': validate}
+
+
+def target(context):
+    from ..target_architecture import build, render
+    result = build(context.out)
+    render(context.out, result, language=context.language)
+    return {'components': len(result['components']), 'status': result['status']}
+
+
+def executive(context):
+    from ..executive import render
+    return render(context.out, language=context.language)
+
+
+def bundles(context):
+    from ..bundles import build
+    return build(context.out, language=context.language)
+
+
+RUNNERS.update(target=target, executive=executive, bundles=bundles)

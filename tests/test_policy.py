@@ -26,7 +26,7 @@ def layered_repo(root, violating=False):
     (repo / 'app/__init__.py').write_text('')
     (repo / 'eaos.policy.json').write_text(json.dumps({
         'schema_version': 1,
-        'layers': {'facts': ['app/facts/**'], 'runtime': ['app/runtime/**']},
+        'layers': {'facts': ['app/facts/**'], 'runtime': ['app/runtime/**'], 'core': ['app/__init__.py']},
         'rules': [{'deny': {'from': 'facts', 'to': 'runtime'},
                    'reason': 'the deterministic layer must run without the model path'}]}))
     return repo
@@ -45,6 +45,28 @@ class PolicyTests(unittest.TestCase):
             result = check(repo, out)
             self.assertEqual(result['status'], 'OK')
             self.assertEqual(result['violations'], 0)
+            self.assertEqual(result['unclassified_count'], 0)
+
+    def test_a_policy_that_leaves_files_uncovered_is_incomplete_not_clean(self):
+        """A file outside every layer is unchecked; reporting OK would call unexamined code safe."""
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, out = self.prepared(tmp, violating=False)
+            policy = json.loads((repo / 'eaos.policy.json').read_text())
+            del policy['layers']['core']
+            (repo / 'eaos.policy.json').write_text(json.dumps(policy))
+            result = check(repo, out)
+            self.assertEqual(result['status'], 'INCOMPLETE')
+            self.assertEqual(result['violations'], 0)
+            self.assertEqual(result['unclassified_count'], 1)
+            self.assertIn('app/__init__.py', (out / 'POLICY.md').read_text(encoding='utf-8'))
+
+    def test_a_violation_outranks_an_incomplete_policy(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, out = self.prepared(tmp, violating=True)
+            policy = json.loads((repo / 'eaos.policy.json').read_text())
+            del policy['layers']['core']
+            (repo / 'eaos.policy.json').write_text(json.dumps(policy))
+            self.assertEqual(check(repo, out)['status'], 'VIOLATED')
 
     def test_a_forbidden_edge_is_reported_with_its_location_and_reason(self):
         with tempfile.TemporaryDirectory() as tmp:

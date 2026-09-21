@@ -1,14 +1,14 @@
 """Run deterministic extractors over one shared snapshot and persist their fact sets."""
 import json
 from pathlib import Path
-from . import config, domain, entrypoints, external, fingerprint, flows, graph, history, metrics, redundancy, resolve, sequences, structure, syntax
+from . import config, domain, entrypoints, external, fingerprint, flows, graph, history, metrics, redundancy, resolve, runtime, sequences, structure, syntax
 from .source import Source
 from .store import facts_dir, write_index, write_set
 
 EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,
               'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain,
-              'fingerprint': fingerprint, 'sequences': sequences, 'redundancy': redundancy}
-ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'redundancy', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows']
+              'fingerprint': fingerprint, 'sequences': sequences, 'redundancy': redundancy, 'runtime': runtime}
+ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'redundancy', 'runtime', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows']
 
 
 # Every fact set the tool can read, in one place. Three modules used to keep their own copy of
@@ -80,7 +80,7 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
         module = EXTRACTORS[name]
         if name == 'history': result = module.run(target, source, max_commits=max_commits)
         elif name == 'resolve': result = module.run(target, source, imports=[f for f in produced.get('syntax', []) if f['kind'] == 'import_edge'] or None)
-        elif name in {'structure', 'fingerprint', 'sequences', 'redundancy'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)
+        elif name in {'structure', 'fingerprint', 'sequences', 'redundancy', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)
         elif name in {'entrypoints', 'metrics'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)
         elif name == 'flows': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'],
                                                    calls=[f for f in produced.get('syntax', []) if f['kind'] == 'call_edge'],

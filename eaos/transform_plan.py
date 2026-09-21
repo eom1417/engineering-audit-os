@@ -126,6 +126,10 @@ def build(out, policy_path=None, targets=None):
             'limits': ' '.join(LIMITATIONS)}
 
 
+# A 1,065-line plan is a record, not a document: the first stages are what anyone reads.
+SHOWN_STAGES = 6
+
+
 def render(out, plan, language='ar'):
     """Write transform-plan.json and transform-plan.md to the output directory."""
     ar = language == 'ar'
@@ -144,7 +148,7 @@ def render(out, plan, language='ar'):
     lines += [f"- " + ('عدد المراحل' if ar else 'stages') + f": {plan['summary']['stages']}"]
     lines += [f"- " + ('حركات بلا موضع مرجحي' if ar else 'moves with no viable candidate')
               + f": {plan['summary']['moves_with_no_viable_candidate']}"]
-    for stage in plan['stages']:
+    for stage in plan['stages'][:SHOWN_STAGES]:
         lines += ['', '## ' + ('مرحلة' if ar else 'Stage') + f" {stage['stage']}: {stage['move']}"]
         if 'rule' in stage:
             lines += [f"- " + ('القاعدة' if ar else 'rule') + f": {stage['rule'][:16]}"]
@@ -170,6 +174,11 @@ def render(out, plan, language='ar'):
             lines += ["- " + ('التأثير المتوقع' if ar else 'predicted') + ":"]
             for k, v in stage['predicted'].items():
                 lines += [f"  - {k}: {v}"]
+    if len(plan['stages']) > SHOWN_STAGES:
+        lines += ['', (f"عُرضت {SHOWN_STAGES} مرحلة من {len(plan['stages'])}؛ البقية في `transform-plan.json`."
+                       if ar else
+                       f"Showing {SHOWN_STAGES} of {len(plan['stages'])} stages; the rest are in "
+                       f"`transform-plan.json`.")]
     lines += ['', '## ' + ('الحدود' if ar else 'Limits'), '']
     for line in LIMITATIONS: lines += [f"- {line}"]
     Path(out, 'transform-plan.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')

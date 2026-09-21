@@ -345,10 +345,31 @@ def index_document(target, dossier, sets, verification, language):
                     for row in trust_grades(dossier, sets, verification)])
     document.section(words['not_examined'])
     document.bullets(coverage['not_examined'])
+    document.section('كل الملفات' if language == 'ar' else 'Every file')
+    document.table(['#', 'الملف' if language == 'ar' else 'File', 'لماذا' if language == 'ar' else 'Why'],
+                   inventory_rows(language))
     document.section('إعادة الإنتاج' if language == 'ar' else 'Reproduce')
-    document.bullets([f'eaos verify {target} --out <dir> --execute', f'eaos dossier {target} --out <dir>',
-                      f'eaos probe {target} --out <dir>', f'eaos tasks {target} --out <dir>'])
+    document.bullets([f'eaos audit {target} --out <dir> --engines',
+                      f'eaos audit {target} --out <dir> --resume',
+                      f'eaos impact-of <path> --out <dir>'])
     return document
+
+
+def inventory_rows(language):
+    """Every declared document in reading order, with the reason a reader would open it.
+
+    Generated from the artifact contract, not written by hand, so a document that is added,
+    renamed or dropped appears here instead of being discoverable only by listing the directory.
+    Whether this particular run produced it is RUN.md's question, not this one's.
+    """
+    from .compose.artifacts import reading_order
+    rows = []
+    for position, artifact in enumerate(reading_order(), start=1):
+        note = artifact.purpose
+        if not artifact.required:
+            note += (' — يغيب حين: ' if language == 'ar' else ' — absent when: ') + artifact.absent_when
+        rows.append([str(position), f'[{artifact.name}]({artifact.name})', note])
+    return rows
 
 
 def risk_register(dossier, language):

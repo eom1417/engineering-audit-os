@@ -2,10 +2,10 @@
 from pathlib import Path
 import re
 
-BUDGETS = {'DECISION-BRIEF.md': 120, 'SYSTEM-MAP.md': 260, 'COUPLING-ATLAS.md': 220, 'EVOLUTION.md': 220,
-           'PROVENANCE.md': 80, 'FLOWS.md': 300, 'DOMAIN-AND-DATA.md': 240, 'CONTRACTS.md': 200,
-           'RISK-REGISTER.md': 200, 'VERIFICATION-MAP.md': 180, 'DELTA.md': 160, 'README.md': 120,
-           'ONBOARDING.md': 200, 'POLICY.md': 160}
+from .artifacts import BY_NAME, BUDGETS, DOCUMENT
+
+# One source for what may be produced and how long it may be; rules.py used to keep its own list,
+# and sixteen documents were outside it and therefore never checked at all.
 HUMAN_ARTIFACTS = set(BUDGETS)
 CLAIM_REFERENCE = re.compile(r'\bCLM-\d{3,}\b')
 MARKERS = {'⬤', '◐', '○', '؟'}
@@ -14,8 +14,8 @@ GAP_MARKERS = ('ما لم يُفحص', 'Not examined')
 
 
 def rendered(out):
-    paths = [p for p in Path(out).glob('*.md') if p.name in HUMAN_ARTIFACTS or p.name == 'SEMANTIC.md']
-    paths += list((Path(out) / 'PLAN').glob('*.md'))
+    """Every markdown document in the report, declared or not. An undeclared one is R13's business."""
+    paths = list(Path(out).glob('*.md')) + list((Path(out) / 'PLAN').glob('*.md'))
     return {p.relative_to(out).as_posix(): p.read_text(encoding='utf-8') for p in sorted(paths)}
 
 
@@ -28,6 +28,9 @@ def validate(out, dossier):
         lines = text.count('\n')
         if lines > BUDGETS.get(name, 200):
             problems.append(f'R2 {name}: {lines} lines exceeds the budget of {BUDGETS.get(name, 200)}')
+        if name not in BY_NAME and not name.startswith('PLAN/'):
+            problems.append(f'R13 {name}: produced but not declared in the artifact contract, '
+                            f'so no stage owns it and no budget applies')
         if '```json' in text:
             problems.append(f'R8 {name}: raw record dump in a human artifact')
         for reference in sorted(set(CLAIM_REFERENCE.findall(text))):
@@ -35,6 +38,7 @@ def validate(out, dossier):
                 problems.append(f'R1 {name}: references {reference}, which is absent from the ledger')
     if 'README.md' not in documents:
         problems.append('R12 README.md: the dossier has no index or reading order')
+    problems += missing_required(out, documents)
     for name, text in sorted(documents.items()):
         if name in {'README.md', 'PROVENANCE.md'}: continue
         # A brief with nothing to report has nothing to link to; the rule applies when claims exist.
@@ -82,3 +86,31 @@ def validate(out, dossier):
         if len(identifiers) > 1:
             problems.append('R4 duplicate statement across ' + ', '.join(identifiers))
     return sorted(set(problems))
+
+
+def missing_required(out, documents):
+    """R13: a required artifact that is absent must be explained by the run manifest, not by silence.
+
+    With no manifest there was no pipeline run — a single command wrote part of a report — and we
+    cannot call an artifact missing when nothing claimed it would be produced.
+    """
+    import json
+    manifest_path = Path(out) / 'run-manifest.json'
+    if not manifest_path.is_file():
+        return []
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8')).get('stages', {})
+    except ValueError:
+        return []
+    found = []
+    for artifact in BY_NAME.values():
+        if not artifact.required or not artifact.checked or (Path(out) / artifact.name).exists():
+            continue
+        if artifact.kind == DOCUMENT and artifact.name in documents:
+            continue
+        status = (manifest.get(artifact.owner) or {}).get('status')
+        if status in ('skipped', 'unavailable', 'failed', 'not_reached'):
+            continue
+        found.append(f"R13 {artifact.name}: required, absent, and stage '{artifact.owner}' "
+                     f"does not explain it (status {status or 'unknown'})")
+    return sorted(found)

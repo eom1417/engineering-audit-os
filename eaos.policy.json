@@ -36,12 +36,20 @@
       "eaos/semantic.py",
       "eaos/semantic_source.py",
       "eaos/site.py",
-      "eaos/verify.py"
+      "eaos/verify.py",
+      "eaos/sustainability.py",
+      "eaos/progress.py",
+      "eaos/discover.py"
     ],
     "planning": [
       "eaos/plan.py",
       "eaos/remediation_patterns.py",
-      "eaos/acceptance.py"
+      "eaos/acceptance.py",
+      "eaos/guarantee.py",
+      "eaos/canonical_home.py",
+      "eaos/simulator.py",
+      "eaos/target_architecture.py",
+      "eaos/transform_plan.py"
     ],
     "orchestration": [
       "eaos/__main__.py",
@@ -50,7 +58,10 @@
       "eaos/evaluate.py",
       "eaos/pipeline/**",
       "eaos/product_review.py",
-      "eaos/views.py"
+      "eaos/views.py",
+      "eaos/audit.py",
+      "eaos/bundles.py",
+      "eaos/executive.py"
     ],
     "core": [
       "eaos/workspace.py",
@@ -60,13 +71,17 @@
       "eaos/workflow.py",
       "eaos/sessions.py",
       "eaos/surface_records.py",
-      "eaos/__init__.py"
+      "eaos/__init__.py",
+      "eaos/engagement.py",
+      "eaos/snapshots.py"
     ],
     "tools": [
-      "tools/**"
+      "tools/**",
+      "design/**"
     ],
     "tests": [
-      "tests/**"
+      "tests/**",
+      "examples/**"
     ],
     "engines": [
       "eaos/engines/**"

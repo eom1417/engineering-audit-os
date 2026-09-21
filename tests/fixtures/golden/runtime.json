@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "extractor": "runtime",
+  "extractor_version": "1",
+  "available": true,
+  "input_sha": "3bf0e04af967a054f27e7de625443b386da687df35719f3b5e3d57f8b3fbc292",
+  "limitations": [
+    "Only manifests the engine has a parser for are observed; an unsupported format stays a gap, never a guess.",
+    "A \"security surface\" is a route grouped by authentication hint: static analysis cannot decide who is allowed.",
+    "A \"deployment target\" is whatever a manifest declares; it does not prove the deployment actually runs.",
+    "A \"data field\" is read from the model declaration; runtime constraints (NOT NULL, FK) live in migrations."
+  ],
+  "summary": {
+    "files_observed": 12,
+    "facts": 2,
+    "by_kind": {
+      "data_model": 0,
+      "migration_step": 0,
+      "ci_step": 2,
+      "integration_target": 0,
+      "security_surface": 0,
+      "deployment_target": 0,
+      "observability_signal": 0
+    },
+    "interpretation": "Runtime facts describe the operational surface the static walk cannot see. None proves the system actually runs that way."
+  },
+  "facts": [
+    {
+      "id": "FACT-fb50df5b077a21b9",
+      "kind": "ci_step",
+      "extractor": "runtime",
+      "extractor_version": "1",
+      "input_sha": "1b3ce6ce6859ccd2be87b349098a4067a13a975f2b66ec887e22a2ba6fc8f948",
+      "location": {
+        "path": "package.json"
+      },
+      "value": {
+        "name": "npm:start"
+      },
+      "limitations": [
+        "Only manifests the engine has a parser for are observed; an unsupported format stays a gap, never a guess.",
+        "A \"security surface\" is a route grouped by authentication hint: static analysis cannot decide who is allowed.",
+        "A \"deployment target\" is whatever a manifest declares; it does not prove the deployment actually runs.",
+        "A \"data field\" is read from the model declaration; runtime constraints (NOT NULL, FK) live in migrations."
+      ]
+    },
+    {
+      "id": "FACT-5c554d90bf5414fb",
+      "kind": "ci_step",
+      "extractor": "runtime",
+      "extractor_version": "1",
+      "input_sha": "1b3ce6ce6859ccd2be87b349098a4067a13a975f2b66ec887e22a2ba6fc8f948",
+      "location": {
+        "path": "package.json"
+      },
+      "value": {
+        "name": "npm:test"
+      },
+      "limitations": [
+        "Only manifests the engine has a parser for are observed; an unsupported format stays a gap, never a guess.",
+        "A \"security surface\" is a route grouped by authentication hint: static analysis cannot decide who is allowed.",
+        "A \"deployment target\" is whatever a manifest declares; it does not prove the deployment actually runs.",
+        "A \"data field\" is read from the model declaration; runtime constraints (NOT NULL, FK) live in migrations."
+      ]
+    }
+  ]
+}

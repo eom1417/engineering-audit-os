@@ -63,7 +63,9 @@ def scaffold(target, sets):
 
 def violations(policy, sets):
     layers = policy['layers']
-    found, unmatched = [], set()
+    found = []
+    unmatched = {f['location']['path'] for f in sets.get('graph', {}).get('facts', [])
+                 if f['kind'] == 'graph_node' and layer_of(f['location']['path'], layers) is None}
     for edge in sets['resolve']['facts']:
         if edge['resolution'] != 'RESOLVED': continue
         source_path, target_path = edge['location']['path'], edge['value'].get('to_path')
@@ -106,7 +108,7 @@ def run(target, out, policy_path=None, **options):
              for row in sorted(found, key=lambda row: (row['from_path'], row['to_path']))]
     summary = {'declared': True, 'policy_file': location, 'layers': sorted(policy['layers']),
                'rules': len(policy.get('rules', [])), 'violations': len(facts),
-               'paths_outside_every_layer': unmatched[:30],
+               'paths_outside_every_layer': unmatched, 'unclassified_count': len(unmatched),
                'interpretation': 'Violations are resolved import edges that contradict a rule the project declared.'}
     return {'facts': facts, 'summary': summary, 'available': True,
             'input_sha': digest(json.dumps(policy, sort_keys=True).encode()), 'reason': None}
@@ -140,8 +142,8 @@ def check(target, out, policy_path=None, language='ar'):
             document.bullets(summary['paths_outside_every_layer'][:15])
     (out / 'POLICY.md').write_text(document.render(), encoding='utf-8')
     return {'target': str(target), 'out': str(out), 'declared': summary.get('declared', False),
-            'violations': summary.get('violations', 0), 'artifact': str(out / 'POLICY.md'),
-            'status': 'VIOLATED' if summary.get('violations') else ('OK' if summary.get('declared') else 'NO_POLICY'),
+            'violations': summary.get('violations', 0), 'unclassified_count': summary.get('unclassified_count', 0), 'artifact': str(out / 'POLICY.md'),
+            'status': 'VIOLATED' if summary.get('violations') else ('INCOMPLETE' if summary.get('unclassified_count') else 'OK' if summary.get('declared') else 'NO_POLICY'),
             'limits': 'Statically resolved imports only; a policy cannot see dynamic wiring.'}
 
 

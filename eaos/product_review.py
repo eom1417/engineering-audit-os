@@ -38,8 +38,11 @@ def summarise(out, manifest, goal, interpreted):
         'stages': {name: row['status'] for name, row in manifest['stages'].items()},
         'not_examined': {name: row['reason'] for name, row in manifest['stages'].items()
                          if row['status'] != 'ok'},
+        # The engine already graded the run as COMPLETE, PARTIAL or INCOMPLETE. Re-deriving it here
+        # collapsed PARTIAL into INCOMPLETE, so one command printed two different verdicts for one run.
+        'run_status': manifest['status'],
         'status': ('OUTPUT_SPEC_VIOLATED' if violations else
-                   'INCOMPLETE' if manifest['status'] != 'COMPLETE' else 'REVIEW_REQUIRED'),
+                   'REVIEW_REQUIRED' if manifest['status'] == 'COMPLETE' else manifest['status']),
     }
     write(out / 'product-review.json', summary)
     return summary

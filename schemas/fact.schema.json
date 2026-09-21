@@ -36,7 +36,25 @@
         "history_ownership",
         "test_case",
         "coverage_hit",
-        "dependency_manifest"
+        "dependency_manifest",
+        "scope",
+        "loop",
+        "branch",
+        "call_site",
+        "fingerprint",
+        "duplicate_cluster",
+        "sequence_cluster",
+        "redundancy",
+        "security_surface",
+        "deployment_target",
+        "ci_step",
+        "observability_signal",
+        "integration_target",
+        "data_field",
+        "data_relation",
+        "migration_step",
+        "move",
+        "stage"
       ]
     },
     "extractor": {
