@@ -59,7 +59,7 @@
   },
   "measured_state": {
     "commit": "c7640dc",
-    "tests": 558,
+    "tests": 588,
     "package_lines": 10921,
     "python_modules": 89,
     "cli_commands": 38,
@@ -73,9 +73,9 @@
     "output_contract_violations": 0,
     "policy_violations": 0,
     "tasks_total": 34,
-    "tasks_done": 16,
+    "tasks_done": 20,
     "milestones_total": 13,
-    "milestones_done": 7,
+    "milestones_done": 8,
     "declared_invariants": 50,
     "unenforced_invariants": 0
   },
@@ -966,7 +966,7 @@
     {
       "id": "M7",
       "title": "خط أساس وبوابة لا دين جديد",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "M5"
       ],
@@ -979,7 +979,7 @@
         {
           "id": "M7.T1",
           "title": "eaos baseline pin/show/clear",
-          "status": "todo",
+          "status": "done",
           "files": [
             "eaos/baseline.py",
             "eaos/cli.py"
@@ -1030,7 +1030,7 @@
         {
           "id": "M7.T2",
           "title": "بوابة الجديد فقط",
-          "status": "todo",
+          "status": "done",
           "files": [
             "eaos/cli.py",
             "eaos/delta.py"
@@ -1075,7 +1075,7 @@
         {
           "id": "M7.T3",
           "title": "سيناريو البوابة كاختبار",
-          "status": "todo",
+          "status": "done",
           "files": [
             "tests/gate/no_new_debt.sh",
             "tests/fixtures/debt/",
@@ -1121,7 +1121,7 @@
         {
           "id": "M7.T4",
           "title": "تقرير تقادم خط الأساس",
-          "status": "todo",
+          "status": "done",
           "files": [
             "eaos/baseline.py",
             "eaos/compose/artifacts.py"

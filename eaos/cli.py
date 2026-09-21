@@ -147,12 +147,19 @@ def audit_command(args):
                    test_command=args.test_command, site=not args.no_site, goal=args.goal)
     from .product_review import summarise
     summary = summarise(Path(args.out).resolve(), manifest, args.goal, bool(args.provider))
-    print(json.dumps({'status': summary['status'], 'stages': summary['stages'],
+    verdict = None
+    if args.gate:
+        from .baseline import gate
+        verdict = gate(Path(args.out).resolve(), args.gate)
+        summary['gate'] = verdict
+    print(json.dumps({'status': summary['status'], 'stages': summary['stages'], 'gate': verdict,
                       'not_examined': summary['not_examined'], 'seconds': manifest['seconds'],
                       'output_spec_violations': summary['output_spec_violations'],
                       'manifest': str(Path(args.out) / 'run-manifest.json'),
                       'report': summary['report'], 'site': summary['site']},
                      ensure_ascii=False, indent=2))
+    if verdict and verdict['status'] == 'FAIL' and not args.warn_only:
+        return 1
     return 0 if summary['status'] == 'REVIEW_REQUIRED' else 2
 
 
@@ -171,6 +178,19 @@ def _provider(args):
         return None
     from .runtime.provider import load_provider
     return load_provider(args.provider)
+
+
+def baseline_command(args):
+    from . import baseline
+    out = Path(args.out).resolve()
+    if args.action == 'pin':
+        result = baseline.pin(out, note=args.note or '')
+    elif args.action == 'show':
+        result = baseline.show(out, language=args.lang)
+    else:
+        result = baseline.clear(out)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
 
 
 def engines_command(args):
@@ -559,9 +579,17 @@ def main(argv=None):
     q.add_argument('--skip',action='append',default=[],metavar='STAGE')
     q.add_argument('--resume',action='store_true')
     q.add_argument('--no-site',action='store_true')
+    q.add_argument('--gate',choices=['new','all'],default=None,
+                   help='fail the run on findings: new = only those absent from the pinned baseline')
+    q.add_argument('--warn-only',action='store_true',help='report the gate verdict without failing')
     q.set_defaults(func=audit_command)
     q=s.add_parser('stages',help='The declared pipeline: what runs, in what order, and what may be absent')
     q.set_defaults(func=stages_command)
+    q=s.add_parser('baseline',help='Freeze the debt a project already had, so a gate can fail only on what is new')
+    q.add_argument('action',choices=['pin','show','clear'])
+    q.add_argument('--out',required=True);q.add_argument('--note',default='')
+    q.add_argument('--lang',choices=['ar','en'],default='ar')
+    q.set_defaults(func=baseline_command)
     q=s.add_parser('engines',help='External analysis engines: what is installed, and what they report')
     q.add_argument('action',choices=['list','run'])
     q.add_argument('target',nargs='?',default='.')

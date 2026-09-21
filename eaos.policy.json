@@ -22,24 +22,25 @@
     "ledger": [
       "eaos/apidiff.py",
       "eaos/ask.py",
+      "eaos/baseline.py",
       "eaos/claims.py",
       "eaos/correlate.py",
       "eaos/decisions.py",
       "eaos/delta.py",
+      "eaos/discover.py",
       "eaos/dossier.py",
       "eaos/engines_report.py",
       "eaos/impact.py",
       "eaos/map.py",
       "eaos/policy.py",
       "eaos/probes.py",
+      "eaos/progress.py",
       "eaos/ranking.py",
       "eaos/semantic.py",
       "eaos/semantic_source.py",
       "eaos/site.py",
-      "eaos/verify.py",
       "eaos/sustainability.py",
-      "eaos/progress.py",
-      "eaos/discover.py"
+      "eaos/verify.py"
     ],
     "planning": [
       "eaos/plan.py",

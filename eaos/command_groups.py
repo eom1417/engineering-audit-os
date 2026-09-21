@@ -12,7 +12,7 @@ GROUPS = (
      ('sustainability', 'transform-plan', 'target-architecture', 'executive', 'bundles',
       'simulate', 'guarantee', 'progress', 'review')),
     ('govern', 'حوكمة وانحراف', 'Govern and detect drift',
-     ('policy', 'delta', 'api-diff', 'acceptance', 'decision-review', 'evaluate')),
+     ('policy', 'baseline', 'delta', 'api-diff', 'acceptance', 'decision-review', 'evaluate')),
     ('repair', 'إصلاح يقوده نموذج (مساحة عمل منفصلة عبر eaos init)', 'Model-driven repair (separate workspace via eaos init)',
      ('init', 'run', 'continue', 'implement', 'improve', 'packet', 'graph', 'impact', 'context')),
 )
