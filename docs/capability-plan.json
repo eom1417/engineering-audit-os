@@ -1098,7 +1098,8 @@
             "N9.T1"
           ],
           "references": [],
-          "status": "todo"
+          "status": "blocked",
+          "blocked_reason": "requires a reviewer outside this project"
         }
       ]
     },
@@ -1139,7 +1140,8 @@
           "rollback": "لا ينطبق",
           "depends_on": [],
           "references": [],
-          "status": "todo"
+          "status": "blocked",
+          "blocked_reason": "measured below 0.80: structure_polyglot=0.5115, load_model=0.6731, target_architecture=0.6667, transformation_plan=0.6667"
         },
         {
           "id": "N10.T2",

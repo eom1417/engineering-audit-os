@@ -728,6 +728,62 @@
       },
       "overall_at_this_point": 0.6987,
       "note": "Review-pack acceptance passed; full gate failed twice because sandbox denied localhost socket creation."
+    },
+    {
+      "task": "N10.T1",
+      "title": "إعادة القياس على نفس التقارير",
+      "recorded_at": "2026-09-22T14:29:34+00:00",
+      "commit": "42af077",
+      "acceptance_command": "python tools/capability_score.py /tmp/selfr /tmp/gor && python3 -c \"import json;c=json.load(open('docs/capability-score.json'));bad={k:v['score'] for k,v in c['domains'].items() if not v['meets_target'] and k!='independent_proof'};assert not bad, bad\"",
+      "acceptance_exit_code": 1,
+      "acceptance_passed": false,
+      "status_recorded_in_plan": "blocked",
+      "moves": {
+        "indicator": "overall",
+        "from": 0.4874,
+        "to": 0.8
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9554,
+        "structure_polyglot": 0.5115,
+        "runtime_surface": 0.8334,
+        "load_model": 0.6731,
+        "target_architecture": 0.6667,
+        "transformation_plan": 0.6667,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.6785,
+      "note": "Stable score 0.6785; four non-independent domains remained below 0.80."
+    },
+    {
+      "task": "N9.T2",
+      "title": "تشغيل المراجعة (يحتاج إنسانًا)",
+      "recorded_at": "2026-09-22T14:29:51+00:00",
+      "commit": "42af077",
+      "acceptance_command": "python tools/check_release_evidence.py evaluations/release-evidence.json",
+      "acceptance_exit_code": 1,
+      "acceptance_passed": false,
+      "status_recorded_in_plan": "blocked",
+      "moves": {
+        "indicator": "independent_proof.independent_reviews",
+        "from": 0.0,
+        "to": 0.8
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9554,
+        "structure_polyglot": 0.5115,
+        "runtime_surface": 0.8334,
+        "load_model": 0.6731,
+        "target_architecture": 0.6667,
+        "transformation_plan": 0.6667,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.6785,
+      "note": "requires a reviewer outside this project"
     }
   ]
 }

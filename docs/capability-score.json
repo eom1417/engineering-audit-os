@@ -11,24 +11,24 @@
         "one_artifact_one_owner": 1.0,
         "policy_covers_every_file": 1.0,
         "policy_has_no_violations": 1.0,
-        "tests_pass": 1.0
+        "tests_pass": 0.0
       },
       "measured_indicators": 5,
       "unmeasured_indicators": 0,
-      "score": 1.0,
+      "score": 0.8,
       "target": 0.8,
       "meets_target": true
     },
     "structure_python": {
       "indicators": {
-        "entry_points_traced": 0.8333,
+        "entry_points_traced": 0.8214,
         "python_files_parsed": 1.0,
         "python_imports_resolved": 1.0,
         "symbols_extracted": 1.0
       },
       "measured_indicators": 4,
       "unmeasured_indicators": 0,
-      "score": 0.9583,
+      "score": 0.9554,
       "target": 0.8,
       "meets_target": true
     },
@@ -71,12 +71,12 @@
     "target_architecture": {
       "indicators": {
         "components_assessed": 1.0,
-        "decisions_with_alternatives": 0.0,
+        "decisions_with_alternatives": 1.0,
         "gap_matrix_resolved": 0.0
       },
       "measured_indicators": 3,
       "unmeasured_indicators": 0,
-      "score": 0.3333,
+      "score": 0.6667,
       "target": 0.8,
       "meets_target": false
     },
@@ -85,11 +85,11 @@
         "predictions_verified": null,
         "stages_with_predicted_effect": 1.0,
         "stages_with_rollback": 1.0,
-        "stages_with_runnable_acceptance": 0.9365
+        "stages_with_runnable_acceptance": 0.0
       },
       "measured_indicators": 3,
       "unmeasured_indicators": 1,
-      "score": 0.9788,
+      "score": 0.6667,
       "target": 0.8,
       "meets_target": false
     },
@@ -118,7 +118,7 @@
       "meets_target": false
     }
   },
-  "overall": 0.6987,
+  "overall": 0.6785,
   "domains_meeting_target": 4,
   "domains_total": 9,
   "target": 0.8,
