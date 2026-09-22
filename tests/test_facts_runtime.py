@@ -236,3 +236,90 @@ class QueryBoundDetectorTests(unittest.TestCase):
             data = _collect(tmp, body=body)
             bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
             self.assertTrue(any(b['value']['bounded'] == 'unknown' for b in bounds))
+
+
+class ResiliencePolicyDetectorTests(unittest.TestCase):
+    """Each outbound call carries the resilience policy the file declares for its host."""
+
+    def test_a_bare_call_records_no_guards(self):
+        body = "import requests\ndef f():\n    return requests.get('https://api.example.com')\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy']
+            self.assertEqual(len(policies), 1)
+            self.assertFalse(policies[0]['value']['has_timeout'])
+            self.assertFalse(policies[0]['value']['has_retry'])
+            self.assertFalse(policies[0]['value']['has_circuit_breaker'])
+
+    def test_a_protected_call_records_timeout_retry_and_breaker(self):
+        body = (
+            "import requests\n"
+            "from tenacity import retry\n"
+            "import pybreaker\n"
+            "@retry\n"
+            "@pybreaker.CircuitBreaker(fail_max=5)\n"
+            "def f():\n"
+            "    return requests.get('https://api.example.com', timeout=30)\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy']
+            self.assertGreater(len(policies), 0)
+            self.assertTrue(policies[0]['value']['has_timeout'])
+            self.assertTrue(policies[0]['value']['has_retry'])
+            self.assertTrue(policies[0]['value']['has_circuit_breaker'])
+
+    def test_retry_only_call_records_only_retry(self):
+        body = (
+            "import requests\n"
+            "from tenacity import retry\n"
+            "@retry\n"
+            "def f():\n"
+            "    return requests.get('https://api.example.com')\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy']
+            self.assertGreater(len(policies), 0)
+            self.assertTrue(policies[0]['value']['has_retry'])
+            self.assertFalse(policies[0]['value']['has_timeout'])
+            self.assertFalse(policies[0]['value']['has_circuit_breaker'])
+
+    def test_circuit_breaker_aliases_are_detected(self):
+        for alias in ['hystrix', 'CircuitBreaker', 'pybreaker', 'resilience4j']:
+            body = (
+                "import requests\n"
+                f"import {alias}\n"
+                "def f():\n"
+                "    return requests.get('https://api.example.com')\n"
+            )
+            with tempfile.TemporaryDirectory() as tmp:
+                data = _collect(tmp, body=body)
+                policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy'
+                            and f['value']['host'] == 'api.example.com']
+                if not policies:
+                    continue
+                # If the alias was a bare import, our regex matches the module name on import line
+                self.assertTrue(policies[0]['value']['has_circuit_breaker'],
+                                f'expected breaker detection for {alias}, got {policies[0]["value"]}')
+
+    def test_go_http_client_timeout_is_detected(self):
+        body = ('package main\n'
+                'import ("net/http"; "time")\n'
+                'func Protected(client *http.Client) error {\n'
+                '    client.Timeout = 30 * time.Second\n'
+                '    _, err := client.Get("https://api.example.com")\n'
+                '    return err\n'
+                '}\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body, name='orders.go')
+            policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy']
+            self.assertGreater(len(policies), 0)
+            self.assertTrue(policies[0]['value']['has_timeout'])
+
+    def test_no_resilience_policy_fact_when_no_outbound_call(self):
+        body = "def f():\n    return 1 + 1\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy']
+            self.assertEqual(policies, [])

@@ -47,6 +47,7 @@
         "redundancy",
         "security_surface",
         "query_bound",
+        "resilience_policy",
         "deployment_target",
         "ci_step",
         "observability_signal",

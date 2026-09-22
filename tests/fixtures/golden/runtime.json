@@ -21,6 +21,7 @@
       "migration_step": 0,
       "observability_signal": 0,
       "query_bound": 10,
+      "resilience_policy": 0,
       "security_surface": 0
     },
     "interpretation": "Runtime facts describe the operational surface the static walk cannot see. None proves the system actually runs that way."

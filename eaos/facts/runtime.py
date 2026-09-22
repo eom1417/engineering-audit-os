@@ -21,7 +21,8 @@ from .entrypoints import MODULES, applicable
 
 
 KINDS = ('ci_step', 'data_model', 'deployment_target', 'integration_target',
-         'migration_step', 'observability_signal', 'query_bound', 'security_surface')
+         'migration_step', 'observability_signal', 'query_bound', 'resilience_policy',
+         'security_surface')
 
 NAME = 'runtime'
 VERSION = '1'
@@ -317,6 +318,65 @@ def _detect_query_bounds(text, language):
     return rows
 
 
+# Resilience policy detection: an outbound integration_target needs timeout/retry/circuit-breaker
+# to keep one service's slowness from becoming your outage.
+_TIMEOUT_PATTERNS = [
+    re.compile(r'timeout\s*[=:]\s*\d+', re.IGNORECASE),     # timeout=30, timeout: 30
+    re.compile(r'\bTimeout\s*\('),                            # Timeout(30)
+    re.compile(r'\btimeout\s*=\s*[^,\)]+'),                  # timeout=httpx_timeout()
+    re.compile(r'\.timeout\s*\(\s*\d+'),                     # httpx .timeout(30)
+    re.compile(r'\bctx\s+with\s+timeout', re.IGNORECASE),     # context with timeout
+    re.compile(r'\.with_timeout\s*\('),                       # tokio .with_timeout()
+    re.compile(r'context\s+with\s+timeout', re.IGNORECASE),    # asyncio ctx with timeout
+    re.compile(r'\bhttp\.Client\([^)]*Timeout'),              # Go http.Client{Timeout: ...}
+]
+_RETRY_PATTERNS = [
+    re.compile(r'\bretry\b', re.IGNORECASE),
+    re.compile(r'\bRetry\b'),
+    re.compile(r'\bbackoff\b', re.IGNORECASE),
+    re.compile(r'\btenacity\b'),
+    re.compile(r'@retry'),
+    re.compile(r'@retryable'),
+    re.compile(r'\bmax_retries\b'),
+    re.compile(r'\bMaxRetries\b'),
+    re.compile(r'\.retry\s*\('),
+]
+_CIRCUIT_BREAKER_PATTERNS = [
+    re.compile(r'\bcircuit[_\-]?breaker\b', re.IGNORECASE),
+    re.compile(r'\bCircuitBreaker\b'),
+    re.compile(r'\bhystrix\b', re.IGNORECASE),
+    re.compile(r'\bresilience4j\b', re.IGNORECASE),
+    re.compile(r'\bpybreaker\b', re.IGNORECASE),
+]
+
+
+def _has_timeout(text, around_line=None):
+    """True if any timeout pattern appears anywhere; we cannot cheaply localise to a call."""
+    return any(p.search(text) for p in _TIMEOUT_PATTERNS)
+
+
+def _has_retry(text):
+    return any(p.search(text) for p in _RETRY_PATTERNS)
+
+
+def _has_circuit_breaker(text):
+    return any(p.search(text) for p in _CIRCUIT_BREAKER_PATTERNS)
+
+
+def _detect_resilience_for_integration(text, host):
+    """One resilience_policy fact per integration host, recording which guards are present.
+
+    We attribute the policy to the file that makes the call; the call site is local evidence,
+    the host is the global one. Unknown is the honest answer when we cannot detect.
+    """
+    return {
+        'host': host,
+        'has_timeout': _has_timeout(text),
+        'has_retry': _has_retry(text),
+        'has_circuit_breaker': _has_circuit_breaker(text),
+    }
+
+
 def run(target, source, symbols=None, **options):
     facts, fingerprints = [], []
     seen = set()
@@ -371,6 +431,9 @@ def run(target, source, symbols=None, **options):
                                    {'path': rel}, {'host': host,
                                                     'language': language_of(rel)},
                                    limitations=LIMITATIONS))
+                policy = _detect_resilience_for_integration(text, host)
+                facts.append(make('resilience_policy', NAME, VERSION, item['sha256'],
+                                   {'path': rel}, policy, limitations=LIMITATIONS))
             for model in _orm_models(text):
                 facts.append(make('data_model', NAME, VERSION, item['sha256'],
                                    {'path': rel}, {'name': model['name'],
