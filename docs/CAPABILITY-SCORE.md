@@ -2,11 +2,11 @@
 
 > Measured from 2 report(s). An unmeasured indicator is not a pass. Target for every domain: 0.8.
 
-**Overall 0.6785** · 4 of 9 domains at target.
+**Overall 0.7008** · 4 of 9 domains at target.
 
 | Domain | Score | Target | Met | Unmeasured |
 | --- | --- | --- | --- | --- |
-| layered_engineering | 0.8 | 0.8 | yes | 0 |
+| layered_engineering | 1.0 | 0.8 | yes | 0 |
 | structure_python | 0.9554 | 0.8 | yes | 0 |
 | structure_polyglot | 0.5115 | 0.8 | no | 0 |
 | runtime_surface | 0.8334 | 0.8 | yes | 0 |
@@ -24,7 +24,7 @@
 | one_artifact_one_owner | 1.0 |
 | policy_covers_every_file | 1.0 |
 | policy_has_no_violations | 1.0 |
-| tests_pass | 0.0 |
+| tests_pass | 1.0 |
 
 ## structure_python
 
