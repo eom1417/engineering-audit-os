@@ -23,6 +23,7 @@ def classify(claim):
     if query == 'duplicate_cluster_present': return 'canonicalize'
     if query == 'sequence_cluster_present': return 'canonicalize'
     if query == 'redundancy_present': return 'redundant_work'
+    if query == 'load_blocker_present': return 'load_blocker'
     if probe_type == 'absence_search': return 'duplicated_rule'
     if claim.get('claim_type') == 'risk' and 'never executed' in claim['statement']: return 'untested_path'
     if claim.get('claim_type') == 'capability_gap': return 'trace_gap'
@@ -30,6 +31,22 @@ def classify(claim):
 
 
 PATTERNS = {
+    'load_blocker': {
+        'change': 'اجعل كلفة نقطة الدخول مستقلة عن حجم البيانات: احضر ما يلزم في استعلام واحد محدود، '
+                  'وانقل الحالة المشتركة إلى مخزن مشترك، واضبط مهلة على كل نداء خارج.',
+        'options': [
+            {'option': 'جلب مجمَّع بدل استعلام لكل عنصر', 'cost': 'منخفضة',
+             'verdict': 'مختار افتراضيًا حين يكون العائق استعلامًا داخل حلقة'},
+            {'option': 'حد أعلى وترقيم صفحات على الرد', 'cost': 'منخفضة',
+             'verdict': 'مختار حين ينمو الرد مع حجم الجدول'},
+            {'option': 'نقل الحالة إلى مخزن مشترك', 'cost': 'متوسطة',
+             'verdict': 'لازم قبل تشغيل أكثر من نسخة'},
+            {'option': 'مهلة وإعادة محاولة وقاطع دائرة على النداء الخارج', 'cost': 'منخفضة',
+             'verdict': 'مختار حين يكون العائق تبعية غير محمية'},
+        ],
+        'rollback': 'كل خيار تغيير موضعي في معالج واحد؛ الإرجاع بـrevert واحد بلا هجرة بيانات.',
+        'consequence': 'الكلفة تبقى تنمو مع البيانات، فتظهر المشكلة عند حمل لا يمكن اختباره بعد وقوعه.',
+    },
     'import_cycle': {
         'change': 'اكسر الاتجاه الأضعف في الدورة: انقل ما يحتاجه الطرفان إلى وحدة ثالثة، أو اعكس الاعتماد بحقنه عند نقطة التركيب.',
         'options': [
@@ -160,5 +177,6 @@ def cost_of_inaction(name):
         'policy_violation': 'تبقى السياسة المعلنة مخالَفة، فتفقد قيمتها كعقد ويتآكل الالتزام بها',
         'canonicalize': 'يبقى المعنى الواحد مكتوبًا في مواضع متعددة، وأول تعديل يجعلها تختلف',
         'redundant_work': 'يبقى المسار ينفّذ عملًا لا تحتاجه نتيجته في كل تنفيذ',
+        'load_blocker': 'تبقى الكلفة تنمو مع الحركة أو البيانات، فتظهر المشكلة عند حمل لا يمكن اختباره بعد وقوعه',
         'generic': '⧗ غير محددة',
     }[name]

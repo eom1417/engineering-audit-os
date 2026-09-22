@@ -119,7 +119,7 @@ QUERY_REQUIRES = {
     'metric_threshold': 'metrics', 'mutable_global_present': 'domain', 'external_write_present': 'domain',
     'policy_violation_present': 'graph', 'duplicate_cluster_present': 'fingerprint',
     'sequence_cluster_present': 'sequences', 'redundancy_present': 'redundancy',
-    'engine_cluster_present': 'external',
+    'engine_cluster_present': 'external', 'load_blocker_present': 'load_model',
 }
 
 
@@ -135,6 +135,14 @@ def run_graph_query(specification, sets):
         flow = next((fact['value'] for fact in sets['flows']['facts'] if fact['value']['flow_id'] == specification['flow_id']), None)
         if flow is None: return 'INCONCLUSIVE', 'flow not present in this snapshot'
         return ('CONFIRMED', f"{flow['unresolved_steps']} unresolved steps") if flow['unresolved_steps'] else ('REFUTED', 'all steps resolve now')
+    if query == 'load_blocker_present':
+        # Re-derive the blocker from the load model: the claim is about what the questions answer.
+        from .load_model import blockers
+        for blocker in blockers(sets['load_model']):
+            if (blocker['entry_point'] == specification['entry_point']
+                    and blocker['question'] == specification['question']):
+                return 'CONFIRMED', f"{blocker['question']} still answers {blocker['value']!r}"
+        return 'REFUTED', 'the question no longer answers that way for this entry point'
     if query == 'engine_cluster_present':
         # Re-running the engines is the probe: the claim is about what they report, so it is settled
         # by asking them again, not by re-reading a graph we built ourselves.

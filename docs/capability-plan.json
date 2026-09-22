@@ -720,7 +720,7 @@
             "N5.T4"
           ],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N5.T6",
@@ -1171,6 +1171,6 @@
   "totals": {
     "milestones": 10,
     "tasks": 35,
-    "done": 3
+    "done": 21
   }
 }

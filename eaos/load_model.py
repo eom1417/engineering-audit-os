@@ -102,16 +102,18 @@ def compute(record_root):
         flows_by_handler.setdefault(key, []).append(flow)
 
     # Pre-bucket runtime facts by path
-    def _by_path(name):
-        return {f['location']['path']: f for f in runtime_payload.get('facts', [])
+    def _by_path(name, payload=None):
+        return {f['location']['path']: f for f in (payload or runtime_payload).get('facts', [])
                 if f['kind'] == name}
 
     query_bound_by_path = _by_path('query_bound')
     resilience_by_path = _by_path('resilience_policy')
     cache_by_path = _by_path('cache_policy')
     rate_limit_by_path = _by_path('rate_limit')
-    mutable_by_path = _by_path('mutable_global')
-    external_write_by_path = _by_path('external_state_write')
+    # Shared mutable state is a domain fact, not a runtime one. Looking for it in the runtime set
+    # meant shared_mutable_state answered "undetectable" on every project that has it.
+    mutable_by_path = _by_path('mutable_global', domain_payload)
+    external_write_by_path = _by_path('external_state_write', domain_payload)
     call_sites_by_path = {}
     for fact in structure_payload.get('facts', []):
         if fact['kind'] == 'call_site':
@@ -120,9 +122,11 @@ def compute(record_root):
     for fact in structure_payload.get('facts', []):
         if fact['kind'] == 'loop':
             loops_by_path.setdefault(fact['location']['path'], []).append(fact)
+    # A redundancy fact's kind is 'redundancy'; which redundancy it is lives in value.kind.
+    # Testing the outer kind meant repeats_per_iteration never fired, on any project.
     n_plus_one_by_path = {}
     for fact in redundancy_payload.get('facts', []):
-        if fact['kind'] == 'n_plus_one':
+        if fact['kind'] == 'redundancy' and (fact.get('value') or {}).get('kind') == 'n_plus_one':
             n_plus_one_by_path.setdefault(fact['location']['path'], []).append(fact)
     # Engine rule=performance facts
     perf_facts = [f for f in external_payload.get('facts', [])
@@ -415,3 +419,71 @@ def project(record, multiplier=1000):
             f'×50 per missing rate limit'
         ),
     }}
+
+
+# A load blocker is an answered question whose answer means the entry point gets worse as traffic
+# grows. An unanswered question is never a blocker: we do not know, and saying otherwise would
+# invent a risk.
+BLOCKERS = {
+    'repeats_per_iteration': {
+        'kind': 'n_plus_one',
+        'holds_when': lambda value: bool(value),
+        'statement': 'يصدر استعلامًا لكل عنصر' ,
+        'statement_en': 'issues one query per item',
+        'falsifier': 'A measurement showing this call runs once regardless of the number of items.',
+        'scenario': 'كل عنصر إضافي في الطلب يضيف استعلامًا؛ الكلفة تنمو مع البيانات لا مع الحركة وحدها.',
+    },
+    'result_is_bounded': {
+        'kind': 'unbounded_result',
+        'holds_when': lambda value: value is False,
+        'statement': 'يعيد نتيجة بلا حد أعلى',
+        'statement_en': 'returns an unbounded result',
+        'falsifier': 'A limit, page size or cursor on this query, or a schema guaranteeing the row count.',
+        'scenario': 'حجم الرد ينمو مع حجم البيانات؛ ما يعمل اليوم على ألف صف يسقط على مليون.',
+    },
+    'shared_mutable_state': {
+        'kind': 'horizontal_scaling_blocker',
+        'holds_when': lambda value: bool(value),
+        'statement': 'يكتب في حالة على مستوى الوحدة',
+        'statement_en': 'writes module-level state',
+        'falsifier': 'The state moved to a shared store, or shown to be read-only after import.',
+        'scenario': 'نسختان من التطبيق ترى كل منهما حالة مختلفة؛ هذا يمنع التوسّع الأفقي قبل أن تصل قاعدة البيانات إلى حدّها.',
+    },
+    'outbound_calls_protected': {
+        'kind': 'unprotected_dependency',
+        # The answer is a guard-by-guard record. A missing timeout is the blocker: retries without
+        # a timeout make the pile-up worse, not better.
+        'holds_when': lambda value: (value is False or
+                                     (isinstance(value, dict) and value.get('timeout') is False)),
+        'statement': 'ينادي خدمة خارجية بلا مهلة أو إعادة محاولة',
+        'statement_en': 'calls an external service with no timeout or retry',
+        'falsifier': 'A timeout, retry policy or circuit breaker on the call, or evidence the call is local.',
+        'scenario': 'بطء الخدمة الأخرى يصير توقفًا عندك؛ الطلبات تتراكم حتى ينفد التجمّع.',
+    },
+}
+
+
+def blockers(record):
+    """Every answered question whose answer means this entry point degrades under load."""
+    found = []
+    for entry in record.get('entry_points', []):
+        for question, rule in BLOCKERS.items():
+            answer = (entry.get('answers') or {}).get(question) or {}
+            if answer.get('status') != 'answered':
+                continue
+            if not rule['holds_when'](answer.get('value')):
+                continue
+            found.append({
+                'entry_point': entry.get('id'),
+                'path': entry.get('path'),
+                'route': (entry.get('entry') or {}).get('route'),
+                'question': question,
+                'kind': rule['kind'],
+                'statement': rule['statement'],
+                'statement_en': rule['statement_en'],
+                'falsifier': rule['falsifier'],
+                'scenario': rule['scenario'],
+                'value': answer.get('value'),
+                'evidence': list(answer.get('evidence') or []),
+            })
+    return sorted(found, key=lambda row: (row['kind'], str(row['path']), str(row['entry_point'])))

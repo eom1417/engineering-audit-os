@@ -80,8 +80,10 @@ TEMPLATES = {
         'sequence_duplicate': '{count} دوال تنفّذ التسلسل نفسه من النداءات ({where})',
         'redundant_work': 'عمل زائد ({kind}) في {symbol} عند {location}: {callee}',
         'engine_cluster': '{engines} يبلّغ عن {kind} في {place} ({verdict})',
+        'load_blocker': '{where}: {statement} — عائق حمل ({kind})',
     },
     'en': {
+        'load_blocker': 'Cost at this entry point grows with traffic or with data; what works today may not at scale.',
         'engine_cluster': 'Evidence from more than one engine about one place: a review candidate, not a verdict.',
         'cycle': 'Import cycle between: {members}',
         'cochange': '{left} and {right} change together in {support} commits with no visible code dependency',
@@ -97,10 +99,12 @@ TEMPLATES = {
         'sequence_duplicate': '{count} functions perform the same ordered sequence of calls ({where})',
         'redundant_work': 'redundant work ({kind}) in {symbol} at {location}: {callee}',
         'engine_cluster': '{engines} report {kind} at {place} ({verdict})',
+        'load_blocker': '{where}: {statement} — load blocker ({kind})',
     },
 }
 IMPACTS = {
     'ar': {
+        'load_blocker': 'الكلفة تنمو مع الحركة أو مع البيانات عند هذه النقطة؛ ما يعمل اليوم قد لا يعمل عند مضاعفة الحمل.',
         'engine_cluster': 'أدلة من أكثر من محرك على موضع واحد؛ مرشّح للمراجعة، لا حكم بوجود عيب.',
         'cycle': 'تغيير أي عضو قد يفرض تغيير البقية معه؛ ولا يمكن اختبار المجموعة أو استبدالها منفردة.',
         'cochange': 'تغيير أحدهما يستدعي غالبًا تغييرًا مقابلًا في الآخر، بلا أي إشارة في الكود.',
@@ -133,7 +137,7 @@ DETAIL_ARTIFACT = {
     'trace_gap': 'FLOWS.md', 'hotspot': 'COUPLING-ATLAS.md', 'mutable_global': 'DOMAIN-AND-DATA.md',
     'external_write': 'DOMAIN-AND-DATA.md', 'untested': 'VERIFICATION-MAP.md', 'policy': 'POLICY.md',
     'structural_duplicate': 'SUSTAINABILITY.md', 'sequence_duplicate': 'SUSTAINABILITY.md',
-    'redundant_work': 'SUSTAINABILITY.md', 'engine_cluster': 'ENGINES.md',
+    'redundant_work': 'SUSTAINABILITY.md', 'engine_cluster': 'ENGINES.md', 'load_blocker': 'LOAD-MODEL.md',
 }
 
 

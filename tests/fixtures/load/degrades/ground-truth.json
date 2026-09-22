@@ -1,0 +1,14 @@
+{
+  "name": "degrades-under-load",
+  "load_case": true,
+  "planted": [
+    {"id": "GT-1", "question": "repeats_per_iteration", "kind": "n_plus_one", "path": "app.py",
+     "why": "a query inside the loop over orders: one more query for every order"},
+    {"id": "GT-2", "question": "result_is_bounded", "kind": "unbounded_result", "path": "app.py",
+     "why": "session.query(Order).all() has no limit, so the response grows with the table"},
+    {"id": "GT-3", "question": "shared_mutable_state", "kind": "horizontal_scaling_blocker", "path": "app.py",
+     "why": "RECENT is written at request time, so two instances disagree"},
+    {"id": "GT-4", "question": "outbound_calls_protected", "kind": "unprotected_dependency", "path": "app.py",
+     "why": "requests.get with no timeout: a slow dependency becomes an outage here"}
+  ]
+}

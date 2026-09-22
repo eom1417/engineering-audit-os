@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "4dced45",
+  "extracted_at_commit": "f64a4f0",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -54,6 +54,15 @@
       "statement": "A claim that cannot be wrong is not an engineering claim.",
       "kind": "invariant",
       "enforced_by": "tests/test_claims.py::ClaimLedgerTests::test_a_claim_without_a_falsifier_is_rejected",
+      "note": ""
+    },
+    {
+      "id": "INV-dfd48f3021",
+      "file": "eaos/claims.py",
+      "symbol": "from_load_model",
+      "statement": "An unanswered one is never a claim: we do not know, and a risk we invented is worse than a risk we missed.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_load_model.py::BlockerTests::test_an_unanswered_question_is_never_a_blocker",
       "note": ""
     },
     {

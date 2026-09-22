@@ -1,5 +1,6 @@
 """The eight load-model questions, their shape, and what counts as evidence."""
 import unittest
+from pathlib import Path
 from eaos import load_model
 
 
@@ -445,3 +446,77 @@ class DocumentBudgetTests(unittest.TestCase):
         text = render(self._record(entries), language='en')
         self.assertEqual(text.count('one shared reason'), 1, 'the same reason was printed twenty times')
         self.assertIn('20:', text, 'the count of affected entry points is not stated')
+
+
+class BlockerTests(unittest.TestCase):
+    """A blocker comes only from an answered question, and reaches a task card."""
+
+    def _record(self, question, value, status='answered'):
+        from eaos.load_model import QUESTIONS
+        answers = {name: {'status': 'undetectable', 'reason': 'not measured here'} for name in QUESTIONS}
+        answers[question] = {'status': status, 'value': value, 'evidence': ['FACT-1']}
+        return {'entry_points': [{'id': 'E1', 'path': 'app.py', 'entry': {'route': '/orders'},
+                                  'answers': answers}]}
+
+    def test_an_unanswered_question_is_never_a_blocker(self):
+        from eaos.load_model import blockers
+        self.assertEqual(blockers(self._record('repeats_per_iteration', None, status='undetectable')), [])
+
+    def test_a_query_per_item_is_a_blocker(self):
+        from eaos.load_model import blockers
+        found = blockers(self._record('repeats_per_iteration', True))
+        self.assertEqual([row['kind'] for row in found], ['n_plus_one'])
+        self.assertTrue(found[0]['falsifier'])
+        self.assertEqual(found[0]['evidence'], ['FACT-1'])
+
+    def test_a_bounded_result_is_not_a_blocker_and_an_unbounded_one_is(self):
+        from eaos.load_model import blockers
+        self.assertEqual(blockers(self._record('result_is_bounded', True)), [])
+        self.assertEqual([row['kind'] for row in blockers(self._record('result_is_bounded', False))],
+                         ['unbounded_result'])
+
+    def test_a_call_with_a_timeout_is_not_a_blocker(self):
+        from eaos.load_model import blockers
+        guarded = {'timeout': True, 'retry': False, 'circuit_breaker': False}
+        self.assertEqual(blockers(self._record('outbound_calls_protected', guarded)), [])
+        bare = {'timeout': False, 'retry': True, 'circuit_breaker': False}
+        self.assertEqual([row['kind'] for row in blockers(self._record('outbound_calls_protected', bare))],
+                         ['unprotected_dependency'],
+                         'retries without a timeout make the pile-up worse, not better')
+
+    def test_every_blocker_states_what_would_disprove_it_and_what_it_costs(self):
+        from eaos.load_model import BLOCKERS
+        for question, rule in BLOCKERS.items():
+            for field in ('kind', 'statement', 'statement_en', 'falsifier', 'scenario'):
+                self.assertTrue(rule[field].strip(), f'{question}.{field}')
+
+
+class BlockerToCardTests(unittest.TestCase):
+    """The fixture that degrades under load must come out the other end as cards."""
+
+    FIXTURE = Path(__file__).resolve().parent / 'fixtures/load/degrades'
+
+    def test_the_planted_blockers_become_claims_and_cards(self):
+        import json as _json
+        import tempfile as _tempfile
+        from eaos.audit import run as run_audit
+        truth = _json.loads((self.FIXTURE / 'ground-truth.json').read_text(encoding='utf-8'))
+        expected = {row['kind'] for row in truth['planted']}
+        with _tempfile.TemporaryDirectory() as out:
+            run_audit(self.FIXTURE, out, language='en')
+            dossier = _json.loads(Path(out, 'dossier.json').read_text(encoding='utf-8'))
+            record = _json.loads(Path(out, 'load-model.json').read_text(encoding='utf-8'))
+        from eaos.load_model import blockers
+        found = {row['kind'] for row in blockers(record)}
+        self.assertEqual(sorted(found), sorted(expected), 'a planted load blocker was not detected')
+        claims = [claim for claim in dossier['claims']
+                  if (claim.get('render') or {}).get('key') == 'load_blocker']
+        self.assertEqual(len(claims), len(expected))
+        for claim in claims:
+            self.assertTrue(claim['falsifier'].strip())
+            self.assertTrue(claim.get('fact_ids'), 'a load claim with no fact behind it')
+        cards = [task for task in dossier['tasks'] if task['pattern'] == 'load_blocker']
+        self.assertEqual(len(cards), len(expected), 'a load claim did not reach a task card')
+        for card in cards:
+            self.assertTrue(card['options'])
+            self.assertTrue(card['rollback'].strip())

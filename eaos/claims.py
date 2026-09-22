@@ -346,6 +346,36 @@ def from_facts(fact_sets):
     return claims
 
 
+def from_load_model(fact_sets, offset=0):
+    """Every load blocker becomes a claim, so a scaling risk reaches a task card like any other.
+
+    A blocker comes only from an answered question. An unanswered one is never a claim: we do not
+    know, and a risk we invented is worse than a risk we missed.
+    """
+    record = fact_sets.get('load_model')
+    if not record:
+        return []
+    from .load_model import blockers
+    made, index = [], offset
+    for blocker in blockers(record):
+        index += 1
+        where = blocker['route'] or blocker['path'] or blocker['entry_point']
+        made.append(make(index, f"{where}: {blocker['statement']}"[:600], 'risk', 'CONFIRMED',
+                         ['static_fact'], [], blocker['falsifier'],
+                         fact_ids=blocker['evidence'],
+                         render={'key': 'load_blocker',
+                                 'params': {'where': str(where), 'kind': blocker['kind'],
+                                            'statement': blocker['statement']}},
+                         probe_spec={'probe_type': 'graph_query',
+                                     'specification': {'query': 'load_blocker_present',
+                                                       'entry_point': blocker['entry_point'],
+                                                       'question': blocker['question'],
+                                                       'expected': 'The same question still answers the '
+                                                                   'same way for this entry point.'}},
+                         impact={'scenario': blocker['scenario']}))
+    return made
+
+
 ENGINE_KIND_WORDS = {'complexity': 'تعقيد', 'coupling': 'ترابط', 'cycle': 'دورة اعتماد',
                      'duplication': 'تكرار بنيوي', 'literal_duplication': 'تكرار حرفي',
                      'dead_code': 'كود ميت', 'dataflow': 'تدفق بيانات', 'surface': 'سطح عام',
