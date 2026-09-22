@@ -80,6 +80,7 @@ def _stage_acceptance(kind, sites, out=None, stage=1):
         'expected': 'The command exits successfully in the candidate repository.',
         'source_revision': 'candidate',
         'argv': argv,
+        'command': ' '.join(argv),
         'cwd': '.',
         'expected_exit': 0,
         'origin': origin,

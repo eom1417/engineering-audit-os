@@ -1,8 +1,8 @@
 {
   "contract_version": 1,
   "reports": [
-    "/tmp/selfr2",
-    "/tmp/gor2"
+    "/tmp/selfr",
+    "/tmp/gor"
   ],
   "domains": {
     "layered_engineering": {
@@ -60,13 +60,13 @@
       "indicators": {
         "entry_points_with_a_cost_record": 1.0,
         "projection_recorded": 1.0,
-        "questions_answered": 0.0096
+        "questions_answered": 0.6346
       },
       "measured_indicators": 3,
       "unmeasured_indicators": 0,
-      "score": 0.6699,
+      "score": 0.8782,
       "target": 0.8,
-      "meets_target": false
+      "meets_target": true
     },
     "target_architecture": {
       "indicators": {
@@ -85,11 +85,11 @@
         "predictions_verified": null,
         "stages_with_predicted_effect": 1.0,
         "stages_with_rollback": 1.0,
-        "stages_with_runnable_acceptance": 0.0
+        "stages_with_runnable_acceptance": 1.0
       },
       "measured_indicators": 3,
       "unmeasured_indicators": 1,
-      "score": 0.6667,
+      "score": 1.0,
       "target": 0.8,
       "meets_target": false
     },
@@ -109,17 +109,17 @@
     },
     "independent_proof": {
       "indicators": {
-        "independent_reviews": null
+        "independent_reviews": 0.0
       },
-      "measured_indicators": 0,
-      "unmeasured_indicators": 1,
-      "score": null,
+      "measured_indicators": 1,
+      "unmeasured_indicators": 0,
+      "score": 0.0,
       "target": 0.8,
       "meets_target": false
     }
   },
-  "overall": 0.8416,
-  "domains_meeting_target": 5,
+  "overall": 0.8083,
+  "domains_meeting_target": 6,
   "domains_total": 9,
   "target": 0.8,
   "limitations": [

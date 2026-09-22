@@ -41,6 +41,17 @@ class ParityTests(unittest.TestCase):
                 leaking[path.name] = found[:3]
         self.assertEqual(leaking, {}, 'the reader asked for English')
 
+    def test_load_blocker_uses_the_reader_language(self):
+        from eaos.compose.labels import statement_of
+        claim = {'statement': 'مسار: ينادي خدمة خارجية',
+                 'render': {'key': 'load_blocker',
+                            'params': {'where': 'route', 'kind': 'timeout',
+                                       'statement': 'ينادي خدمة خارجية'},
+                            'params_en': {'where': 'route', 'kind': 'timeout',
+                                          'statement': 'calls an external service'}}}
+        self.assertNotRegex(statement_of(claim, 'en'), ARABIC)
+        self.assertIn('calls an external service', statement_of(claim, 'en'))
+
     def test_the_arabic_report_still_keeps_identifiers_as_written(self):
         text = (self.arabic / 'SYSTEM-MAP.md').read_text(encoding='utf-8')
         self.assertTrue(LATIN_WORD.search(text), 'symbol and path names must not be translated')

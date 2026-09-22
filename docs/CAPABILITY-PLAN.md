@@ -77,7 +77,7 @@ python -m unittest discover -s tests -q && python tools/validate.py && python to
 | N8 | تقرير يفهمه أي نموذج وينفّذه | N5, N6, N7 | 0/3 | ⬜ |
 | N9 | الحكم المستقل | N8 | 1/2 | ⬜ |
 | N10 | إعادة القياس وقرار الإصدار | N2, N3, N4, N5, N6, N7, N8 | 0/2 | ⬜ |
-| N11 | إصلاح ما كشفته المراجعة البعدية | N3, N5, N6, N7 | 3/9 | ⬜ |
+| N11 | إصلاح ما كشفته المراجعة البعدية | N3, N5, N6, N7 | 4/9 | ⬜ |
 
 ## N1 — أداة القياس وبوابة عدم التراجع
 
@@ -1215,7 +1215,7 @@ eaos audit /workspace/upstream-src/enola --out /tmp/n11t4 --skip site && python3
 
 **التراجع:** git checkout eaos/facts/runtime.py eaos/facts/domain.py eaos/load_model.py
 
-### N11.T5 — أمر قبول قابل للّصق في كل مرحلة تحويل ⬜
+### N11.T5 — أمر قبول قابل للّصق في كل مرحلة تحويل ✅
 
 **لماذا:** N7.T1 كتب argv والمقياس يقرأ acceptance.command، فهبط المؤشر من 0.9365 إلى صفر بينما نجح اختباره.
 **يحرّك:** `transformation_plan.stages_with_runnable_acceptance` من `0.0` إلى `0.9`

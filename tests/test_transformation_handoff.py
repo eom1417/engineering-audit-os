@@ -2,6 +2,7 @@
 import copy
 import importlib.util
 import json
+import tempfile
 from pathlib import Path
 import unittest
 
@@ -83,3 +84,48 @@ class RunnableStageAcceptanceTests(unittest.TestCase):
                  'source_revision': 'candidate', 'argv': ['eaos', 'facts', '.'],
                  'cwd': '.', 'expected_exit': 0}
         self.assertIn('report regeneration is not behavioral acceptance', check_errors(check))
+
+
+class StageCommandStringTests(unittest.TestCase):
+    """Every real stage's acceptance must carry a `command` string the runner can paste."""
+
+    def test_every_real_stage_has_a_command_string(self):
+        """Read a real transform-plan.json and assert every stage has a non-empty command."""
+        from pathlib import Path
+        import json
+        plan_path = Path(__file__).resolve().parents[1] / 'docs' / 'transform-plan.json'
+        if not plan_path.is_file():
+            self.skipTest('no recorded transform-plan.json yet')
+        plan = json.loads(plan_path.read_text(encoding='utf-8'))
+        stages = plan.get('stages', [])
+        self.assertGreater(len(stages), 0)
+        for stage in stages:
+            acceptance = stage.get('acceptance') or {}
+            command = acceptance.get('command')
+            argv = acceptance.get('argv')
+            self.assertIsInstance(command, str,
+                                    f'stage {stage["stage"]} missing acceptance.command')
+            self.assertTrue(command.strip(),
+                             f'stage {stage["stage"]} has an empty acceptance.command')
+            # argv is the list form the automated runner uses; command is the joined paste form.
+            self.assertIsInstance(argv, list,
+                                    f'stage {stage["stage"]} missing acceptance.argv')
+            self.assertGreater(len(argv), 0,
+                                f'stage {stage["stage"]} has empty acceptance.argv')
+            self.assertEqual(command, ' '.join(argv),
+                              f'stage {stage["stage"]} command disagrees with argv: '
+                              f'{command!r} vs {" ".join(argv)!r}')
+
+    def test_a_synthetic_stage_command_equals_joined_argv(self):
+        """A stage built in-memory gets the command string for free."""
+        from eaos.transform_plan import _stage_acceptance
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'app.py').write_text('VALUE = 1\n')
+            sites = [{'path': 'app.py', 'line': 1, 'symbol': 'VALUE'}]
+            # When there are no tests, the fallback is the compileall invocation.
+            acceptance = _stage_acceptance('canonicalize', sites, out=Path(tmp), stage=7)
+            self.assertIsInstance(acceptance, dict)
+            self.assertEqual(acceptance['kind'], 'command')
+            self.assertIsInstance(acceptance['command'], str)
+            self.assertEqual(acceptance['command'], ' '.join(acceptance['argv']))
+            self.assertIn('compileall', acceptance['command'])

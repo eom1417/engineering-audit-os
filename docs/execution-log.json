@@ -868,6 +868,34 @@
       },
       "overall_at_this_point": 0.8416,
       "note": "DETECTOR_LANGUAGES per question; answered=False when path is in vocabulary and flow traced; undetectable only when flow missing or path outside vocabulary; questions_answered 0.2165 -> 0.7946 (selfr); overall 0.7008 -> 0.8416"
+    },
+    {
+      "task": "N11.T5",
+      "title": "أمر قبول قابل للّصق في كل مرحلة تحويل",
+      "recorded_at": "2026-09-22T21:26:40+00:00",
+      "commit": "e2ee62c",
+      "acceptance_command": "python -m unittest tests.test_transformation_handoff -q && eaos audit . --out /tmp/n11t5 --skip site && python3 -c \"import sys;sys.path.insert(0,'.');from eaos import capability;v=capability.transformation_plan('/tmp/n11t5')['stages_with_runnable_acceptance'];assert v is not None and v>=0.9, v\"",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "transformation_plan.stages_with_runnable_acceptance",
+        "from": 0.0,
+        "to": 0.9
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.8782,
+        "target_architecture": 0.6667,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8083,
+      "note": "Added pasteable command beside argv; real-report indicator reached 1.0; fixed stale ADR regression and English load-blocker rendering found by the full gate."
     }
   ]
 }

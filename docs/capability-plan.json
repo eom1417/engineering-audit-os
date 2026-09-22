@@ -1324,7 +1324,7 @@
           "rollback": "git checkout eaos/transform_plan.py",
           "depends_on": [],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N11.T7",

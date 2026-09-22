@@ -17,9 +17,11 @@ def render(out, dossier, language='ar'):
         document.text('لا يوجد تغيير مبرر ضمن نطاق الفحص؛ لا تعني هذه النتيجة سلامة الأجزاء غير المفحوصة.' if ar else
                       'No justified change in the examined scope; unexamined behavior remains unknown.')
     else:
+        from .labels import statement_of
         document.table(['#', 'النوع' if ar else 'Kind', 'الحالة' if ar else 'Readiness', 'التفصيل' if ar else 'Details'],
                        [[task['id'], task['decision']['kind'], task['decision']['readiness'],
-                         f"[{task['title'][:100]}](PLAN/{task['id']}.md)"] for task in tasks], limit=10)
+                         f"[{statement_of({'statement': task['title'], 'render': task.get('render')}, language)[:100]}]"
+                         f"(PLAN/{task['id']}.md)"] for task in tasks], limit=10)
     document.section('2. كيف يعمل النظام' if ar else '2. How the system works')
     document.text(dossier['description'])
     document.bullets(['[SYSTEM-MAP.md](SYSTEM-MAP.md)', '[FLOWS.md](FLOWS.md)', '[CONTRACTS.md](CONTRACTS.md)'])

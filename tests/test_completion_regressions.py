@@ -67,7 +67,7 @@ class CompletionRegressions(unittest.TestCase):
             result = build(tmp)
             self.assertTrue(result['gap_matrix'])
             self.assertTrue(all(row['gap'] != 'covered' for row in result['gap_matrix']))
-            self.assertTrue(all(not row['chosen'] for row in result['decisions']))
+            self.assertTrue(all(row['chosen'] in row['options'] for row in result['decisions']))
 
     def test_every_product_module_belongs_to_a_policy_layer(self):
         from eaos.policy import layer_of

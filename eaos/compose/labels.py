@@ -119,7 +119,9 @@ IMPACTS = {
         'sequence_duplicate': 'التنسيق نفسه يُصان في أكثر من موضع في آن واحد.',
         'redundant_work': 'المسار ينفّذ عملًا أكثر مما تحتاجه نتيجته، في كل تنفيذ.',
     },
-    'en': {},
+    'en': {
+        'load_blocker': 'Cost grows with traffic or data at this entry point; current behavior may not survive higher load.',
+    },
 }
 
 
@@ -149,7 +151,8 @@ def statement_of(claim, language):
     if key == 'duplicated_rule' and (render.get('params') or {}).get('differs') == 'yes': key = 'duplicated_rule_differs'
     template = TEMPLATES.get(language, TEMPLATES['ar']).get(key)
     if not template: return claim['statement']
-    try: return template.format(**render.get('params', {}))
+    params = render.get('params_en') if language == 'en' else render.get('params')
+    try: return template.format(**(params or render.get('params', {})))
     except (KeyError, IndexError): return claim['statement']
 
 

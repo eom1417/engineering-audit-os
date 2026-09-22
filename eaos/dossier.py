@@ -213,7 +213,9 @@ def brief(target, dossier, language):
     document.bullets([('القرارات: ' if language == 'ar' else 'Decisions: ') +
                       ', '.join(f"{kind}: {sum(d['kind'] == kind for d in decisions)}" for kind in ('repair', 'investigate', 'retain'))])
     document.section('افعل الآن' if language == 'ar' else 'Do now')
-    document.bullets([f"{task['id']} — {task.get('kind', 'legacy')}: {task['title']}" for task in dossier['tasks'][:3]] or
+    document.bullets([f"{task['id']} — {task.get('kind', 'legacy')}: "
+                      f"{statement_of({'statement': task['title'], 'render': task.get('render')}, language)[:120]}"
+                      for task in dossier['tasks'][:3]] or
                      [claim['id'] + ' — ' + shorten(statement_of(claim, language), 120)
                       + f" → [{detail_artifact(claim) or 'PLAN/'}]({detail_artifact(claim) or 'PLAN/WAVES.md'})" for claim in top[:3]])
     document.section('لا تفعل (الآن)' if language == 'ar' else 'Do not do (yet)')
@@ -388,7 +390,7 @@ def risk_register(dossier, language):
                     'الكلفة' if language == 'ar' else 'Cost',
                     'الأصل' if language == 'ar' else 'Origin',
                     'التصرف' if language == 'ar' else 'Disposition'],
-                   [[claim['id'], claim.get('priority', 0), shorten(claim['statement'], 110),
+                   [[claim['id'], claim.get('priority', 0), shorten(statement_of(claim, language), 110),
                      (claim.get('priority_factors') or {}).get('reach', {}).get('total', '—'),
                      (claim.get('priority_factors') or {}).get('cost', {}).get('bucket', '—'),
                      claim.get('origin', '—'),
