@@ -130,6 +130,11 @@ def compose(context):
     return {}
 
 
+def execution_guide(context):
+    from ..execution_guide import render
+    return render(context.out, language=context.language)
+
+
 def site(context):
     if not context.site:
         raise SkipStage('the site was turned off for this run')
@@ -155,7 +160,8 @@ def validate(context):
 
 RUNNERS = {'facts': facts, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
            'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,
-           'transform': transform, 'plan': plan, 'compose': compose, 'site': site, 'validate': validate}
+           'transform': transform, 'plan': plan, 'execution_guide': execution_guide,
+           'compose': compose, 'site': site, 'validate': validate}
 
 
 def target(context):

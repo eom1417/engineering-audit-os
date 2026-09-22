@@ -32,6 +32,7 @@
       "eaos/dossier.py",
       "eaos/engines_report.py",
       "eaos/evaluation_protocol.py",
+      "eaos/execution_guide.py",
       "eaos/identity.py",
       "eaos/impact.py",
       "eaos/load_model.py",

@@ -54,6 +54,8 @@ STAGES = (
           description='Confirmed claims become task cards ordered into waves'),
     Stage('target', produces=('TARGET-ARCHITECTURE.md', 'target-architecture.json'), requires=('plan', 'transform'),
           description='Source inventory and explicitly reviewed target decisions; unknowns remain gaps'),
+    Stage('execution_guide', produces=('EXECUTION-GUIDE.md',), requires=('plan', 'transform', 'load'),
+          description='Literal, ordered execution instructions for every task card'),
     Stage('executive', produces=('EXECUTIVE.md',), requires=('sustainability',),
           description='Executive view of the measured indicators and their limits'),
     Stage('compose', produces=('PRODUCT-REPORT.md', 'BLOCKERS.md'), requires=('plan', 'target', 'executive'),

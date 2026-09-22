@@ -980,7 +980,7 @@
           "rollback": "حذف المولّد والمصنوعة",
           "depends_on": [],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N8.T2",

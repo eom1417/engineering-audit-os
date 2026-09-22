@@ -1036,6 +1036,34 @@
       },
       "overall_at_this_point": 0.8496,
       "note": "Gap rows now resolve to covered, partial, or missing with evidence and PLAN/transform blockers; target_architecture reached 1.0."
+    },
+    {
+      "task": "N8.T1",
+      "title": "دليل التنفيذ المولَّد",
+      "recorded_at": "2026-09-22T22:24:55+00:00",
+      "commit": "a894ef5",
+      "acceptance_command": "eaos audit . --out /tmp/eg --skip site && python -m unittest tests.test_execution_guide -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "report_clarity.documents_declared",
+        "from": 1.0,
+        "to": 1.0
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.9167,
+        "target_architecture": 1.0,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8496,
+      "note": "Generated a bilingual, budgeted execution guide from plan, transform, and load records; 903 tests and full self-audit gate pass."
     }
   ]
 }
