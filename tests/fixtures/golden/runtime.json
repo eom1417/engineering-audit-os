@@ -14,6 +14,7 @@
     "files_observed": 12,
     "facts": 12,
     "by_kind": {
+      "cache_policy": 0,
       "ci_step": 2,
       "data_model": 0,
       "deployment_target": 0,

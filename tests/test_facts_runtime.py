@@ -323,3 +323,64 @@ class ResiliencePolicyDetectorTests(unittest.TestCase):
             data = _collect(tmp, body=body)
             policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy']
             self.assertEqual(policies, [])
+
+
+class CachePolicyDetectorTests(unittest.TestCase):
+    """A cache site is reported with its scope and whether a TTL was declared."""
+
+    def test_lru_cache_creates_process_scoped_policy(self):
+        body = "import functools\n@functools.lru_cache(maxsize=128)\ndef f(n):\n    return n\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            policies = [f for f in data['facts'] if f['kind'] == 'cache_policy']
+            process = [p for p in policies if p['value']['scope'] == 'process']
+            self.assertGreater(len(process), 0)
+
+    def test_redis_creates_shared_scoped_policy(self):
+        body = "import redis\nr = redis.Redis()\ndef g():\n    return r.get('k')\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            policies = [f for f in data['facts'] if f['kind'] == 'cache_policy']
+            shared = [p for p in policies if p['value']['scope'] == 'shared']
+            self.assertGreater(len(shared), 0)
+
+    def test_cache_control_header_creates_http_scoped_policy(self):
+        body = "from fastapi import Response\nresp = Response()\nresp.headers['Cache-Control'] = 'max-age=60'\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            policies = [f for f in data['facts'] if f['kind'] == 'cache_policy']
+            http = [p for p in policies if p['value']['scope'] == 'http']
+            self.assertGreater(len(http), 0)
+
+    def test_ttl_declared_when_expires_in_keyword_appears(self):
+        body = "import redis\nr = redis.Redis()\ndef g():\n    return r.set('k', 'v', ex=30)\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            policies = [f for f in data['facts'] if f['kind'] == 'cache_policy']
+            self.assertTrue(any(p['value']['ttl_declared'] is True for p in policies))
+
+    def test_ttl_unknown_when_no_ttl_marker_anywhere(self):
+        body = "import functools\n@functools.lru_cache\ndef f(n):\n    return n\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            policies = [f for f in data['facts'] if f['kind'] == 'cache_policy']
+            self.assertTrue(all(p['value']['ttl_declared'] is False for p in policies))
+
+    def test_no_cache_fact_when_file_has_no_cache_marker(self):
+        body = "def f():\n    return 1 + 1\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            policies = [f for f in data['facts'] if f['kind'] == 'cache_policy']
+            self.assertEqual(policies, [])
+
+    def test_each_cache_site_carries_location_and_mechanism(self):
+        body = "import functools\n@functools.lru_cache(maxsize=10)\ndef f():\n    return 1\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            policies = [f for f in data['facts'] if f['kind'] == 'cache_policy']
+            self.assertGreater(len(policies), 0)
+            for fact in policies:
+                self.assertIn('path', fact['location'])
+                self.assertIn('mechanism', fact['value'])
+                self.assertIn('scope', fact['value'])
+                self.assertIn('ttl_declared', fact['value'])

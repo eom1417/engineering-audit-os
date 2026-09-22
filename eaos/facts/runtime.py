@@ -20,7 +20,7 @@ from .source import language_of
 from .entrypoints import MODULES, applicable
 
 
-KINDS = ('ci_step', 'data_model', 'deployment_target', 'integration_target',
+KINDS = ('cache_policy', 'ci_step', 'data_model', 'deployment_target', 'integration_target',
          'migration_step', 'observability_signal', 'query_bound', 'resilience_policy',
          'security_surface')
 
@@ -377,6 +377,78 @@ def _detect_resilience_for_integration(text, host):
     }
 
 
+# Cache detection: a known scope (process, shared, http) is the value; we report what we observe.
+_PROCESS_CACHE = [
+    ('lru_cache', re.compile(r'@lru_cache', re.IGNORECASE)),
+    ('lru_cache_maxsize', re.compile(r'@lru_cache\s*\(\s*maxsize\s*=')),
+    ('cached_property', re.compile(r'@cached_property')),
+    ('functools_cache', re.compile(r'functools\.cache\s*\(')),
+    ('functools_lru_cache', re.compile(r'functools\.lru_cache')),
+    ('cache_decorator', re.compile(r'@cache\b')),
+]
+_SHARED_CACHE = [
+    ('redis', re.compile(r'redis', re.IGNORECASE)),
+    ('memcached', re.compile(r'memcache', re.IGNORECASE)),
+    ('django_cache', re.compile(r'django\.core\.cache')),
+    ('cache_set', re.compile(r'\.cache\.set\s*\(')),
+    ('cache_get', re.compile(r'\.cache\.get\s*\(')),
+    ('pylibmc', re.compile(r'pylibmc')),
+]
+_HTTP_CACHE = [
+    ("cache_control_response", re.compile(r"Cache-Control\s*:", re.IGNORECASE)),
+    ("cache_control_set", re.compile(r"set_header\(\s*[\'\"]Cache-Control")),
+    ("cacheable", re.compile(r"@Cacheable", re.IGNORECASE)),
+    ("revalidate", re.compile(r"@revalidate")),
+    ("cache_header", re.compile(r"\w*headers\[[\'\"]Cache-Control[\'\"]\]")),
+    ("s_maxage", re.compile(r"s-maxage\s*=", re.IGNORECASE)),
+]
+_TTL_DECLARED = [
+    re.compile(r'ttl\s*=', re.IGNORECASE),
+    re.compile(r'expire\s*=', re.IGNORECASE),
+    re.compile(r'expires_in\s*=', re.IGNORECASE),
+    re.compile(r'expires\s*=', re.IGNORECASE),
+    re.compile(r'max_age\s*=', re.IGNORECASE),
+    re.compile(r'maxage\s*=', re.IGNORECASE),
+    re.compile(r'timeout\s*=\s*\d+'),  # redis client timeout
+    # redis-specific: ex= and px= are TTLs at the call site
+    re.compile(r'\bex\s*=\s*\d+'),
+    re.compile(r'\bpx\s*=\s*\d+'),
+]
+
+
+def _detect_cache_policies(text):
+    """Each match becomes one cache_policy fact with scope and ttl flag.
+
+    scope is one of process | shared | http; we report what we observed, never the absence
+    of other scopes. ttl_declared is True if any ttl/expire/timeout literal is in the file,
+    False otherwise, 'unknown' if we did not see any cache evidence at all.
+    """
+    facts = []
+    seen = set()
+    for kind, regex in _PROCESS_CACHE:
+        for match in regex.finditer(text):
+            line = text.count('\n', 0, match.start()) + 1
+            if ('process', kind, line) in seen: continue
+            seen.add(('process', kind, line))
+            facts.append({'scope': 'process', 'mechanism': kind, 'line': line,
+                           'ttl_declared': any(p.search(text) for p in _TTL_DECLARED)})
+    for kind, regex in _SHARED_CACHE:
+        for match in regex.finditer(text):
+            line = text.count('\n', 0, match.start()) + 1
+            if ('shared', kind, line) in seen: continue
+            seen.add(('shared', kind, line))
+            facts.append({'scope': 'shared', 'mechanism': kind, 'line': line,
+                           'ttl_declared': any(p.search(text) for p in _TTL_DECLARED)})
+    for kind, regex in _HTTP_CACHE:
+        for match in regex.finditer(text):
+            line = text.count('\n', 0, match.start()) + 1
+            if ('http', kind, line) in seen: continue
+            seen.add(('http', kind, line))
+            facts.append({'scope': 'http', 'mechanism': kind, 'line': line,
+                           'ttl_declared': any(p.search(text) for p in _TTL_DECLARED)})
+    return facts
+
+
 def run(target, source, symbols=None, **options):
     facts, fingerprints = [], []
     seen = set()
@@ -434,6 +506,12 @@ def run(target, source, symbols=None, **options):
                 policy = _detect_resilience_for_integration(text, host)
                 facts.append(make('resilience_policy', NAME, VERSION, item['sha256'],
                                    {'path': rel}, policy, limitations=LIMITATIONS))
+            for cache in _detect_cache_policies(text):
+                facts.append(make('cache_policy', NAME, VERSION, item['sha256'],
+                                   {'path': rel, 'start_line': cache['line']},
+                                   {'scope': cache['scope'], 'mechanism': cache['mechanism'],
+                                    'ttl_declared': cache['ttl_declared']},
+                                   limitations=LIMITATIONS))
             for model in _orm_models(text):
                 facts.append(make('data_model', NAME, VERSION, item['sha256'],
                                    {'path': rel}, {'name': model['name'],
