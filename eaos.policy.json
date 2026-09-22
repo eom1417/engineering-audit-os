@@ -35,6 +35,7 @@
       "eaos/identity.py",
       "eaos/impact.py",
       "eaos/load_model.py",
+      "eaos/load_report.py",
       "eaos/map.py",
       "eaos/outcomes.py",
       "eaos/policy.py",

@@ -70,6 +70,9 @@ ARTIFACTS = (
     Artifact('PROVENANCE.md', 'claims', DOCUMENT, 'Which tool, which version, which commit produced this', 40, 80),
     Artifact('SEMANTIC.md', 'semantic', DOCUMENT, 'Model interpretation, every line still a hypothesis', 41, 200,
              record='semantic.json', required=False, absent_when='no model provider was configured'),
+    Artifact('LOAD-MODEL.md', 'load', DOCUMENT, 'Per-entry-point cost record and 1000x projection, ranked', 42, 200,
+             record='load-model.json'),
+    Artifact('load-model.json', 'load', RECORD, 'The cost record and projection this document renders'),
 
     Artifact('dossier.json', 'claims', RECORD, 'The claim ledger this report renders',
              mutated_by=('probe', 'plan', 'semantic')),

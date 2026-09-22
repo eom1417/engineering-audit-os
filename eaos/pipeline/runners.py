@@ -93,6 +93,16 @@ def semantic(context):
     return {'hypotheses': result.get('claims')}
 
 
+def load(context):
+    from ..load_model import compute, project
+    from ..load_report import write
+    record = compute(context.out)
+    record = project(record)
+    write(context.out, record, language=context.language)
+    return {'entry_points': len(record.get('entry_points', [])),
+            'incomplete': sum(1 for e in record.get('entry_points', []) if (e.get('projection') or {}).get('incomplete'))}
+
+
 def sustainability(context):
     from ..sustainability import render
     render(context.out, language=context.language)
@@ -144,8 +154,8 @@ def validate(context):
 
 
 RUNNERS = {'facts': facts, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
-           'probe': probe, 'semantic': semantic, 'sustainability': sustainability, 'transform': transform,
-           'plan': plan, 'compose': compose, 'site': site, 'validate': validate}
+           'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,
+           'transform': transform, 'plan': plan, 'compose': compose, 'site': site, 'validate': validate}
 
 
 def target(context):

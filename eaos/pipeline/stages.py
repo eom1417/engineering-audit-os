@@ -41,6 +41,8 @@ STAGES = (
           description='Facts interpreted into a ledger of falsifiable claims'),
     Stage('probe', produces=('probes.json',), requires=('claims',),
           description='Settle every claim whose truth can be decided mechanically'),
+    Stage('load', produces=('load-model.json', 'LOAD-MODEL.md'), requires=('facts', 'claims'),
+          description='A cost record per entry point, with a stated projection at 1000x'),
     Stage('semantic', produces=('SEMANTIC.md',), requires=('claims',), necessity=OPTIONAL,
           absent_when='no model provider was configured',
           description='Model interpretation over the facts; every output stays a hypothesis'),
