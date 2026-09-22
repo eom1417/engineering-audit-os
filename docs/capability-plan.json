@@ -937,7 +937,8 @@
             "N7.T1"
           ],
           "references": [],
-          "status": "todo"
+          "status": "blocked",
+          "blocked_reason": "the machinery landed and its acceptance passes, but the indicator cannot be reached from one audit: predictions_verified reads guarantee.json, and a guarantee needs a report taken after the change was made. The engine never writes code and the analysed tree is untrusted input, so a single run of an unmodified repository has nothing to verify against. Measured on /tmp/pv: predictions_verified=None, the other three indicators=1.0"
         }
       ]
     },
@@ -1442,7 +1443,7 @@
     "milestones": 11,
     "tasks": 44,
     "done": 39,
-    "todo": 3,
-    "blocked": 2
+    "todo": 2,
+    "blocked": 3
   }
 }

@@ -871,7 +871,7 @@ python -m unittest tests.test_transformation_handoff -q
 
 **التراجع:** إرجاع المعيار الوصفي
 
-### N7.T2 — قياس التوقّع بعد التنفيذ ⬜
+### N7.T2 — قياس التوقّع بعد التنفيذ ⛔
 
 **لماذا:** توقّع لا يُقارن بما حدث هو ادعاء عن المستقبل بلا حساب.
 **يحرّك:** `transformation_plan.predictions_verified` من `None` إلى `0.85`

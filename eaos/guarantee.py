@@ -66,3 +66,43 @@ def compare(previous, current, tolerance=0.05, language='ar', prediction=None):
     (current / 'GUARANTEE.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
     (current / 'guarantee.json').write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
     return result
+
+
+# Recording a prediction costs one structural simulation per stage. A plan with sixty-five stages
+# would spend longer predicting than planning, so the record is capped and says where it stopped.
+PREDICTION_BUDGET = 20
+
+
+def record_predictions(out, plan, budget=PREDICTION_BUDGET):
+    """Write down what each transform stage claims it will change, before anything is changed.
+
+    A prediction made after the fact is not a prediction. Writing it during the transform stage is
+    what later lets `eaos guarantee` say whether the plan was HONEST, OVERSTATED or UNDERSTATED
+    instead of merely restating the plan. Nothing here executes a stage or touches the analysed
+    repository: the delta comes from the structural simulator reading facts we already hold.
+    """
+    from .simulator import simulate
+    out = Path(out)
+    stages = plan.get('stages') or []
+    before = snapshot(out)
+    rows, skipped = [], []
+    for stage in stages[:budget]:
+        try:
+            rows.append({'stage': stage.get('stage'), 'move': stage.get('move'),
+                         'indicator': stage.get('indicator'),
+                         'prediction': simulate(out, stage), 'method': 'structural_simulator_v1'})
+        except Exception as problem:                 # one unsimulatable stage must not lose the rest
+            skipped.append({'stage': stage.get('stage'),
+                            'reason': f'{type(problem).__name__}: {problem}'[:200]})
+    if len(stages) > budget:
+        skipped.append({'stage': None,
+                        'reason': f'{len(stages) - budget} stage(s) beyond the budget of {budget} '
+                                  f'were not simulated in this run'})
+    record = {'schema_version': 1, 'before_snapshot': before, 'stages_in_plan': len(stages),
+              'predictions': rows, 'skipped': skipped,
+              'verified_by': 'eaos guarantee --previous <this report> --current <report after the change>',
+              'limits': ['A prediction is a structural estimate, not a promise about runtime.',
+                         'Nothing is verified here: verification needs a report taken after the change.']}
+    (out / 'predictions.json').write_text(
+        json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    return {'recorded': len(rows), 'skipped': len(skipped)}

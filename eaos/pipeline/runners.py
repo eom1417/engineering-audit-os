@@ -111,10 +111,13 @@ def sustainability(context):
 
 def transform(context):
     from ..transform_plan import build, render
+    from ..guarantee import record_predictions
     policy_path = Path(context.policy_path) if context.policy_path else Path(context.target) / POLICY_FILE
     plan = build(context.out, policy_path=str(policy_path) if policy_path.is_file() else None)
     render(context.out, plan, language=context.language)
-    return {'moves': len(plan.get('stages', plan.get('moves', [])))}
+    predictions = record_predictions(context.out, plan)
+    return {'moves': len(plan.get('stages', plan.get('moves', []))),
+            'predictions': predictions['recorded'], 'predictions_skipped': predictions['skipped']}
 
 
 def plan(context):
