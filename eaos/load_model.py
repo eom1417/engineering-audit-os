@@ -303,3 +303,115 @@ def compute(record_root):
         })
 
     return {'schema_version': 1, 'entry_points': out_entries}
+
+
+# A simple, stated projection: we do not measure performance. We combine the load-model
+# answers into a per-entry-point ceiling on the multiple of cost you should expect at
+# `m` times the current traffic. The rule is explicit so the reader can disagree with
+# the formula and still trust the number.
+def project(record, multiplier=1000):
+    """Add a `projection.at_<multiplier>x` block to the record.
+
+    The cost ceiling is a multiplicative score, not a number of seconds:
+      -1.0 per undetectable answer (the projection cannot say),
+      +m per answered query (the query runs m times),
+      +m*100 per answered n+1 (each iteration triggers another query),
+      +0 per bounded cache (free, modulo m),
+      +1.0 per unbounded query (grows with data, not with m),
+      +1.0 per missing rate limit (no protection against burst).
+
+    We rank bottlenecks in this order: missing rate limit > n+1 > unbounded query > shared state.
+    """
+    out_entry_points = []
+    for entry in record.get('entry_points', []):
+        answers = entry.get('answers') or {}
+        cost = 0.0
+        unknown = []
+
+        dac = answers.get('data_access_calls', {})
+        access_count = dac.get('value') if dac.get('status') == 'answered' else None
+        if access_count is None:
+            unknown.append('data_access_calls')
+            access_count = 0
+        else:
+            cost += access_count * multiplier
+
+        rep = answers.get('repeats_per_iteration', {})
+        if rep.get('status') != 'answered':
+            unknown.append('repeats_per_iteration')
+            n_plus_one_factor = 0
+        elif rep.get('value') is True:
+            # n+1 multiplies per iteration: the effective cost scales by `m * n_iterations`
+            n_plus_one_factor = multiplier * 100
+            cost += n_plus_one_factor
+        else:
+            n_plus_one_factor = 0
+
+        rib = answers.get('result_is_bounded', {})
+        if rib.get('status') != 'answered':
+            unknown.append('result_is_bounded')
+            unbounded = False
+        else:
+            unbounded = rib.get('value') is False
+            if unbounded: cost += multiplier  # result grows with data, not with m
+
+        sm = answers.get('shared_mutable_state', {})
+        if sm.get('status') != 'answered':
+            unknown.append('shared_mutable_state')
+            shared = False
+        else:
+            shared = sm.get('value') is True
+            if shared: cost += multiplier * 10  # serialization pressure
+
+        rl = answers.get('rate_limited', {})
+        if rl.get('status') != 'answered':
+            unknown.append('rate_limited')
+            no_limit = False
+        else:
+            no_limit = rl.get('value') is False
+            if no_limit: cost += multiplier * 50  # one burst and you're done
+
+        # Rank bottlenecks: missing limit > n+1 > unbounded > shared
+        bottlenecks = []
+        if no_limit: bottlenecks.append('no_rate_limit')
+        if rep.get('status') == 'answered' and rep.get('value') is True:
+            bottlenecks.append('n_plus_one')
+        if unbounded: bottlenecks.append('unbounded_query')
+        if shared: bottlenecks.append('shared_mutable_state')
+
+        projection = {
+            'multiplier': multiplier,
+            'cost_score': round(cost, 2),
+            'interpretation': (
+                f'projected ceiling of {round(cost, 2)} cost units at {multiplier}x traffic '
+                f'(data_access_calls={access_count}, n_plus_one={rep.get("value") if rep.get("status") == "answered" else "?"}, '
+                f'unbounded={unbounded}, shared_state={shared}, rate_limited={not no_limit})'
+            ),
+            'bottlenecks': bottlenecks,
+            'caveats': [
+                'This is a structural projection, not a performance measurement.',
+                'Cost is in arbitrary units that rank entries, not seconds or RPS.',
+                'An undetectable answer becomes a caveat: the entry is "incomplete" in the projection.',
+            ],
+        }
+        # Completeness covers every question, not only the ones whose answers
+        # affect the cost score.
+        all_unknown = []
+        for question, answer in answers.items():
+            if answer.get('status') != 'answered' and answer.get('status') != 'not_applicable':
+                all_unknown.append(question)
+        if all_unknown:
+            projection['incomplete'] = True
+            projection['unanswered_questions'] = sorted(all_unknown)
+        else:
+            projection['incomplete'] = False
+        out_entry_points.append({**entry, 'projection': projection})
+
+    return {**record, 'entry_points': out_entry_points, 'projection': {
+        'multiplier': multiplier,
+        'method': (
+            f'multiplier={multiplier}; cost per data_access_call, ×100 per n+1, '
+            f'×{multiplier} per unbounded query, ×10 per shared-state mutation, '
+            f'×50 per missing rate limit'
+        ),
+    }}

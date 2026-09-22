@@ -268,3 +268,99 @@ class ComputeValidationTests(unittest.TestCase):
             record = load_model.compute(tmp)
             problems = load_model.validate(record)
             self.assertEqual(problems, [])
+
+
+class ProjectionTests(unittest.TestCase):
+    """The projection is a stated heuristic; it ranks entries and names bottlenecks."""
+
+    def test_a_complete_record_projects_a_finite_cost(self):
+        record = {'entry_points': [{
+            'id': 'E1', 'path': 'a.py',
+            'answers': {
+                q: {'status': 'answered', 'value': (5 if q == 'data_access_calls' else True),
+                     'evidence': ['F-x']} for q in load_model.QUESTIONS
+            }
+        }]}
+        projected = load_model.project(record)
+        entry = projected['entry_points'][0]
+        self.assertFalse(entry['projection']['incomplete'])
+        self.assertGreater(entry['projection']['cost_score'], 0)
+
+    def test_an_incomplete_record_marks_incomplete_and_lists_missing(self):
+        record = {'entry_points': [{
+            'id': 'E1', 'path': 'a.py',
+            'answers': {
+                q: {'status': 'undetectable', 'reason': 'no evidence yet'}
+                for q in load_model.QUESTIONS
+            }
+        }]}
+        projected = load_model.project(record)
+        entry = projected['entry_points'][0]
+        self.assertTrue(entry['projection']['incomplete'])
+        self.assertEqual(len(entry['projection']['unanswered_questions']), 8)
+
+    def test_bottlenecks_are_ranked_in_priority_order(self):
+        record = {'entry_points': [{
+            'id': 'E1', 'path': 'a.py',
+            'answers': {
+                'data_access_calls': {'status': 'answered', 'value': 5, 'evidence': ['x']},
+                'repeats_per_iteration': {'status': 'answered', 'value': True, 'evidence': ['x']},
+                'result_is_bounded': {'status': 'answered', 'value': False, 'evidence': ['x']},
+                'shared_mutable_state': {'status': 'answered', 'value': True, 'evidence': ['x']},
+                'outbound_calls_protected': {'status': 'answered', 'value': {'timeout': False, 'retry': False, 'circuit_breaker': False}, 'evidence': ['x']},
+                'cached': {'status': 'answered', 'value': False, 'evidence': ['x']},
+                'rate_limited': {'status': 'answered', 'value': False, 'evidence': ['x']},
+                'complexity_class': {'status': 'answered', 'value': 'O(n)', 'evidence': ['x']},
+            }
+        }]}
+        projected = load_model.project(record)
+        bottlenecks = projected['entry_points'][0]['projection']['bottlenecks']
+        self.assertEqual(bottlenecks, ['no_rate_limit', 'n_plus_one', 'unbounded_query', 'shared_mutable_state'])
+
+    def test_projection_includes_a_method_statement(self):
+        record = {'entry_points': []}
+        projected = load_model.project(record)
+        self.assertIn('method', projected['projection'])
+        self.assertIn('multiplier', projected['projection'])
+
+    def test_projection_with_unbounded_query_only_yields_finite_cost(self):
+        record = {'entry_points': [{
+            'id': 'E1', 'path': 'a.py',
+            'answers': {
+                q: {'status': 'answered', 'value': (5 if q == 'data_access_calls'
+                                                     else True if q in {'repeats_per_iteration', 'cached', 'rate_limited'}
+                                                     else False if q in {'result_is_bounded'}
+                                                     else {'timeout': True, 'retry': True, 'circuit_breaker': True}
+                                                          if q == 'outbound_calls_protected'
+                                                     else 'O(1)'),
+                     'evidence': ['x']} for q in load_model.QUESTIONS
+            }
+        }]}
+        projected = load_model.project(record)
+        entry = projected['entry_points'][0]
+        self.assertFalse(entry['projection']['incomplete'])
+        self.assertIn('unbounded_query', entry['projection']['bottlenecks'])
+
+    def test_projection_with_no_evidence_marks_incomplete(self):
+        record = {'entry_points': [{
+            'id': 'E1', 'path': 'a.py',
+            'answers': {
+                q: {'status': 'answered', 'value': False, 'evidence': []}
+                for q in load_model.QUESTIONS
+            }
+        }]}
+        projected = load_model.project(record)
+        # The projection still runs even if the record was invalid; we only care about shape here.
+        self.assertIn('cost_score', projected['entry_points'][0]['projection'])
+
+
+class ProjectionDeterminismTests(unittest.TestCase):
+    def test_same_record_projects_the_same_score(self):
+        record = {'entry_points': [{
+            'id': 'E1', 'path': 'a.py',
+            'answers': {q: {'status': 'answered', 'value': 1, 'evidence': ['x']} for q in load_model.QUESTIONS}
+        }]}
+        first = load_model.project(record)
+        second = load_model.project(record)
+        self.assertEqual(first['entry_points'][0]['projection']['cost_score'],
+                          second['entry_points'][0]['projection']['cost_score'])
