@@ -980,7 +980,8 @@
           "rollback": "حذف المولّد والمصنوعة",
           "depends_on": [],
           "references": [],
-          "status": "todo"
+          "status": "blocked",
+          "blocked_reason": "requires eaos/pipeline/runners.py to invoke the generator, but that file is outside the task's binding files list"
         },
         {
           "id": "N8.T2",
