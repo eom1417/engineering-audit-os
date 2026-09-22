@@ -1,0 +1,129 @@
+{
+  "contract_version": 1,
+  "reports": [
+    "/tmp/selff",
+    "/tmp/bigrun"
+  ],
+  "domains": {
+    "layered_engineering": {
+      "indicators": {
+        "invariants_enforced": 1.0,
+        "one_artifact_one_owner": 1.0,
+        "policy_covers_every_file": 1.0,
+        "policy_has_no_violations": 1.0,
+        "tests_pass": 1.0
+      },
+      "measured_indicators": 5,
+      "unmeasured_indicators": 0,
+      "score": 1.0,
+      "target": 0.8,
+      "meets_target": true
+    },
+    "structure_python": {
+      "indicators": {
+        "entry_points_traced": 0.8367,
+        "python_files_parsed": 1.0,
+        "python_imports_resolved": 1.0,
+        "symbols_extracted": 1.0
+      },
+      "measured_indicators": 4,
+      "unmeasured_indicators": 0,
+      "score": 0.9592,
+      "target": 0.8,
+      "meets_target": true
+    },
+    "structure_polyglot": {
+      "indicators": {
+        "imports_resolved_outside_python": 0.067,
+        "languages_seen": 13,
+        "languages_with_depth": 0.5385
+      },
+      "measured_indicators": 2,
+      "unmeasured_indicators": 0,
+      "score": 0.3027,
+      "target": 0.8,
+      "meets_target": false
+    },
+    "runtime_surface": {
+      "indicators": {
+        "detectors_finding_evidence": 0.3333,
+        "detectors_implemented": 0.5833
+      },
+      "measured_indicators": 2,
+      "unmeasured_indicators": 0,
+      "score": 0.4583,
+      "target": 0.8,
+      "meets_target": false
+    },
+    "load_model": {
+      "indicators": {
+        "entry_points_with_a_cost_record": 0.0,
+        "projection_recorded": 0.0,
+        "questions_answered": 0.0
+      },
+      "measured_indicators": 3,
+      "unmeasured_indicators": 0,
+      "score": 0.0,
+      "target": 0.8,
+      "meets_target": false
+    },
+    "target_architecture": {
+      "indicators": {
+        "components_assessed": 0.0,
+        "decisions_with_alternatives": 0.0,
+        "gap_matrix_resolved": 0.0
+      },
+      "measured_indicators": 3,
+      "unmeasured_indicators": 0,
+      "score": 0.0,
+      "target": 0.8,
+      "meets_target": false
+    },
+    "transformation_plan": {
+      "indicators": {
+        "predictions_verified": null,
+        "stages_with_predicted_effect": 1.0,
+        "stages_with_rollback": 1.0,
+        "stages_with_runnable_acceptance": 0.0
+      },
+      "measured_indicators": 3,
+      "unmeasured_indicators": 1,
+      "score": 0.6667,
+      "target": 0.8,
+      "meets_target": false
+    },
+    "report_clarity": {
+      "indicators": {
+        "claims_with_evidence_and_falsifier": 1.0,
+        "documents_declared": 1.0,
+        "interpretation_declares_its_basis": 1.0,
+        "output_contract_clean": 1.0,
+        "top_findings_are_about_the_reader_s_code": 0.6
+      },
+      "measured_indicators": 5,
+      "unmeasured_indicators": 0,
+      "score": 0.92,
+      "target": 0.8,
+      "meets_target": true
+    },
+    "independent_proof": {
+      "indicators": {
+        "independent_reviews": 0.0
+      },
+      "measured_indicators": 1,
+      "unmeasured_indicators": 0,
+      "score": 0.0,
+      "target": 0.8,
+      "meets_target": false
+    }
+  },
+  "overall": 0.4785,
+  "domains_meeting_target": 3,
+  "domains_total": 9,
+  "target": 0.8,
+  "limitations": [
+    "A score measures what the tool produced on the reports it was given, never how useful a reader found it. The independent_proof domain is the only one that asks that question.",
+    "An indicator with no evidence is unmeasured, not zero and not one.",
+    "Scores over a corpus of one project describe that project."
+  ]
+}

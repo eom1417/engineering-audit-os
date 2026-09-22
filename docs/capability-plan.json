@@ -1,0 +1,1176 @@
+{
+  "schema_version": 1,
+  "title": "خطة رفع القدرات: من 0.49 إلى 0.80+ في كل مجال",
+  "recorded_at": "2026-09-22",
+  "baseline_commit": "47f4886",
+  "baseline_scorecard": "docs/capability-score.json",
+  "measured_baseline": {
+    "overall": 0.4874,
+    "layered_engineering": 1.0,
+    "report_clarity": 0.92,
+    "structure_python": 0.9592,
+    "transformation_plan": 0.6667,
+    "runtime_surface": 0.4583,
+    "structure_polyglot": 0.3027,
+    "load_model": 0.0,
+    "target_architecture": 0.0,
+    "independent_proof": 0.0,
+    "domains_at_target": 3,
+    "domains_total": 9
+  },
+  "goal": "كل مجال ≥ 0.80، مقيسًا بـ tools/capability_score.py لا بالرأي.",
+  "how_any_model_executes_this": [
+    "١. شغّل: python tools/capability_score.py <report-dirs> — هذا وضعك الحالي.",
+    "٢. افتح docs/capability-plan.json، وخذ أول مهمة status=todo اكتملت كل depends_on لها.",
+    "٣. اقرأ حقل files: هذه هي الملفات التي ستلمسها. لا تلمس غيرها.",
+    "٤. نفّذ steps بالترتيب حرفيًا. كل خطوة جملة واحدة قابلة للتنفيذ.",
+    "٥. شغّل acceptance كما هو مكتوب. خروج 0 = انتهت. غير ذلك = لم تنتهِ، مهما بدا الكود صحيحًا.",
+    "٦. شغّل بوابة العبور (gate أدناه). إن فشلت، أصلح قبل أن تكمل.",
+    "٧. غيّر status إلى done في هذا الملف، وشغّل python tools/render_capability_plan.py، ثم التزم بالتغيير.",
+    "٨. لا تضف عملًا خارج steps. ما ينقص يُسجَّل مهمة جديدة في نهاية نفس المعلم.",
+    "٩. مهمة فشلت مرتين: status=blocked مع سطر واحد يشرح السبب، ثم انتقل إلى مهمة لا تعتمد عليها."
+  ],
+  "gate": "python -m unittest discover -s tests -q && python tools/validate.py && python tools/invariants.py && eaos policy check . --out /tmp/gate && bash tests/gate/self_audit.sh",
+  "rules": [
+    "لا مهمة تُغلق بوصف نصي؛ معيار القبول أمر يرجع 0.",
+    "كل كاشف جديد يأتي معه fixture فيه الحالة الموجبة والحالة السالبة.",
+    "كل حقيقة جديدة تُضاف إلى schemas/fact.schema.json وإلى نسخة eaos/data عبر tools/render.py.",
+    "كل وحدة جديدة تُعلَن في eaos.policy.json وإلا فشلت بوابة السياسة.",
+    "كل docstring يدّعي ثابتًا يُسجَّل في docs/invariants.json مع اختبار يفرضه.",
+    "كل مصنوعة جديدة تُعلَن في eaos/compose/artifacts.py بمالك وغرض وميزانية.",
+    "لا تقيس بالرأي: إن لم يتحرك المؤشر في tools/capability_score.py فالمهمة لم تنجح."
+  ],
+  "references": {
+    "أداة القياس": "tools/capability_score.py و eaos/capability.py",
+    "النموذج المقاس": "docs/capability-score.json (الخط الأساسي) و docs/CAPABILITY-SCORE.md",
+    "خط الأنابيب": "eaos/pipeline/stages.py (16 مرحلة معلَنة)",
+    "عقد المصنوعات": "eaos/compose/artifacts.py",
+    "عقد المخرجات": "eaos/compose/rules.py (R1–R13)",
+    "طبقة المحركات": "eaos/engines/ و upstreams/registry.yaml",
+    "المحركات المثبّتة": "/workspace/engine-tools/bin/{enola,codegraph-server,reforge,jscpd}",
+    "نسخ المنبع": "/workspace/upstream-src/{enola,CodeGraph,Reforge,jscpd}",
+    "أدوات CodeGraph": "codegraph-server --graph-only -w <dir> --run-tool <tool> --tool-args '{}'",
+    "تقارير مرجعية للقياس": "أعد إنتاجها: eaos audit . --out /tmp/selfr && eaos audit /workspace/upstream-src/enola --out /tmp/gor --skip site"
+  },
+  "milestones": [
+    {
+      "id": "N1",
+      "title": "أداة القياس وبوابة عدم التراجع",
+      "status": "done",
+      "depends_on": [],
+      "goal": "رقم لكل مجال يُحسب من الأدلة، فيصير كل هدف بعده قابلًا للتحقق.",
+      "tasks": [
+        {
+          "id": "N1.T1",
+          "title": "نموذج القدرات وحاسبته",
+          "why": "خطة بأهداف غير قابلة للقياس ليست خطة.",
+          "moves": {
+            "indicator": "n/a",
+            "from": null,
+            "to": null
+          },
+          "files": [
+            "eaos/capability.py",
+            "tools/capability_score.py",
+            "tests/test_capability.py"
+          ],
+          "steps": [
+            "تسعة مجالات، لكل مجال مؤشرات تُحسب من مجلد تقرير حقيقي",
+            "مؤشر بلا دليل = غير مقيس، ولا يُحتسب نجاحًا",
+            "أضعف تقرير يحدد درجة المجال"
+          ],
+          "acceptance": "python -m unittest tests.test_capability -q",
+          "rollback": "حذف الوحدة والأداة",
+          "depends_on": [],
+          "references": [],
+          "status": "done"
+        },
+        {
+          "id": "N1.T2",
+          "title": "تسجيل الخط الأساسي",
+          "why": "بلا خط أساس لا يوجد \"تحسّن\".",
+          "moves": {
+            "indicator": "n/a",
+            "from": null,
+            "to": null
+          },
+          "files": [
+            "docs/capability-score.json",
+            "docs/CAPABILITY-SCORE.md"
+          ],
+          "steps": [
+            "شغّل الحاسبة على تقريرين: هذا المستودع ومستودع Go خارجي",
+            "اكتب النتيجة بـ --write"
+          ],
+          "acceptance": "test -f docs/capability-score.json",
+          "rollback": "حذف الملف",
+          "depends_on": [],
+          "references": [],
+          "status": "done"
+        },
+        {
+          "id": "N1.T3",
+          "title": "بوابة عدم التراجع",
+          "why": "مجال بلغ هدفه يجب ألا يعود تحته بصمت.",
+          "moves": {
+            "indicator": "n/a",
+            "from": null,
+            "to": null
+          },
+          "files": [
+            "tests/gate/capability_no_regression.sh",
+            "tests/test_capability.py"
+          ],
+          "steps": [
+            "سكربت يعيد حساب الدرجات ويقارنها بـ docs/capability-score.json",
+            "يفشل إذا نزل أي مجال أكثر من 0.02 عن آخر قيمة مسجلة",
+            "يُحدّث الملف المسجل عند التحسّن فقط"
+          ],
+          "acceptance": "bash tests/gate/capability_no_regression.sh",
+          "rollback": "حذف السكربت",
+          "depends_on": [
+            "N1.T2"
+          ],
+          "references": [],
+          "status": "done"
+        }
+      ]
+    },
+    {
+      "id": "N2",
+      "title": "الإشارة فوق الضجيج",
+      "status": "todo",
+      "depends_on": [
+        "N1"
+      ],
+      "goal": "أن يكون أول ما يقرأه القارئ عن كوده هو، لا عن تجهيزات مشروعه.",
+      "measured_problem": "على مستودع Go حقيقي: 8 من 19 ادعاءً جاءت من internal/engine/testdata، و5 ادعاءات \"421 دالة تنفّذ نفس التسلسل\" تسلسلها len→Fatalf→len وهو اصطلاح اختبارات Go. وأولوية الضجيج 0.233 مقابل 0.0014 لدالة فيها 189 تفرّعًا.",
+      "tasks": [
+        {
+          "id": "N2.T1",
+          "title": "استبعاد ما ليس كود القارئ افتراضيًا",
+          "why": "تقرير عن fixtures المشروع المفحوص ليس تقريرًا عنه.",
+          "moves": {
+            "indicator": "report_clarity.top_findings_are_about_the_reader_s_code",
+            "from": 0.6,
+            "to": 1.0
+          },
+          "files": [
+            "eaos/facts/scope.py",
+            "eaos/facts/source.py",
+            "tests/test_facts_scope.py"
+          ],
+          "steps": [
+            "أضف VENDORED = (\"testdata\", \"fixtures\", \"vendor\", \"node_modules\", \"third_party\", \"generated\", \".venv\", \"dist\", \"build\") إلى eaos/facts/scope.py",
+            "اجعل declared_exclusions تُرجع الاستثناءات المعلنة + VENDORED، ما لم يعلن المشروع include_vendored: true في eaos.policy.json",
+            "سجّل في ملخص مجموعة الحقائق كم ملفًا استُبعد ولماذا — الاستبعاد الصامت ممنوع",
+            "أضف اختبارًا: مشروع فيه testdata/ لا تظهر ملفاته في facts، والعدد المستبعد مذكور"
+          ],
+          "acceptance": "python -m unittest tests.test_facts_scope -q",
+          "rollback": "إرجاع VENDORED إلى قائمة فارغة",
+          "depends_on": [],
+          "references": [
+            "eaos/facts/scope.py",
+            "eaos.policy.json"
+          ],
+          "status": "todo"
+        },
+        {
+          "id": "N2.T2",
+          "title": "الوصول يُقاس من الرسم لا من حجم العنقود",
+          "why": "عنقود من 421 دالة اختبار يسحق دالة إلهية حقيقية لأن المعادلة تكافئ الحجم.",
+          "moves": {
+            "indicator": "report_clarity.top_findings_are_about_the_reader_s_code",
+            "from": 0.6,
+            "to": 1.0
+          },
+          "files": [
+            "eaos/ranking.py",
+            "tests/test_impact_ranking.py"
+          ],
+          "steps": [
+            "في eaos/ranking.py: احسب reach من عدد المعتمدين والتدفقات ونقاط الدخول في facts/graph.json فقط",
+            "عنقود بلا عقد في الرسم: reach = 0 وليس حجم العنقود",
+            "أضف حقل reach_source إلى priority_factors بقيمة \"graph\" أو \"no_graph_node\"",
+            "اختبار: عنقود من 400 عضو بلا عقد رسم أولويته أقل من دالة واحدة فيها 189 تفرّعًا"
+          ],
+          "acceptance": "python -m unittest tests.test_impact_ranking -q",
+          "rollback": "إرجاع المعادلة السابقة من git",
+          "depends_on": [
+            "N2.T1"
+          ],
+          "references": [
+            "eaos/ranking.py:12 WEIGHTS"
+          ],
+          "status": "todo"
+        },
+        {
+          "id": "N2.T3",
+          "title": "كاشف التسلسلات يعرف اصطلاحات اللغة",
+          "why": "len→Fatalf→len ليس تكرارًا في الأعمال؛ هو كيف تُكتب اختبارات Go.",
+          "moves": {
+            "indicator": "report_clarity.top_findings_are_about_the_reader_s_code",
+            "from": 0.6,
+            "to": 1.0
+          },
+          "files": [
+            "eaos/facts/sequences.py",
+            "tests/fixtures/idioms/",
+            "tests/test_facts_sequences.py"
+          ],
+          "steps": [
+            "أضف IDIOMS في eaos/facts/sequences.py: قاموس لغة → مجموعات نداءات اصطلاحية (go: t.Run/t.Fatalf/t.Errorf/require/assert/len/err؛ python: assertEqual/assertTrue/patch؛ javascript: expect/describe/it)",
+            "تسلسل كل نداءاته من الاصطلاحات لا يصير عنقودًا",
+            "أضف fixture لكل لغة: ملف اختبارات اصطلاحي (يجب ألا يُبلَّغ) وملف فيه تكرار حقيقي (يجب أن يُبلَّغ)",
+            "سجّل في الملخص عدد العناقيد المستبعدة كاصطلاح — لا إسقاط صامت"
+          ],
+          "acceptance": "python -m unittest tests.test_facts_sequences -q",
+          "rollback": "تفريغ IDIOMS",
+          "depends_on": [
+            "N2.T1"
+          ],
+          "references": [
+            "eaos/facts/sequences.py"
+          ],
+          "status": "todo"
+        },
+        {
+          "id": "N2.T4",
+          "title": "إثبات على المستودع الحقيقي",
+          "why": "الإصلاح يُثبت على المستودع الذي كشف العيب، لا على fixture.",
+          "moves": {
+            "indicator": "report_clarity.top_findings_are_about_the_reader_s_code",
+            "from": 0.6,
+            "to": 1.0
+          },
+          "files": [
+            "tests/gate/signal_first.sh"
+          ],
+          "steps": [
+            "سكربت: eaos audit /workspace/upstream-src/enola --out <tmp> --skip site",
+            "يفشل إذا كان أي من أعلى 10 ادعاءات مساره داخل testdata أو vendor",
+            "يفشل إذا لم يظهر أي ادعاء hotspot ضمن أعلى 10"
+          ],
+          "acceptance": "bash tests/gate/signal_first.sh",
+          "rollback": "حذف السكربت",
+          "depends_on": [
+            "N2.T2",
+            "N2.T3"
+          ],
+          "references": [],
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "N3",
+      "title": "عمق اللغات غير Python",
+      "status": "todo",
+      "depends_on": [
+        "N2"
+      ],
+      "goal": "structure_polyglot من 0.30 إلى ≥0.80.",
+      "measured_problem": "استيرادات Go تُحلّ بنسبة 6.7٪ عبر اللغات غير Python. بلا رسم اعتماد لا يوجد نطاق أثر ولا تدفقات ولا ترتيب ذو معنى: 65 نقطة دخول أنتجت 7 تدفقات فقط.",
+      "tasks": [
+        {
+          "id": "N3.T1",
+          "title": "قياس الحل لكل لغة قبل أي تغيير",
+          "why": "بلا رقم لكل لغة لن نعرف أي محوّل نفع.",
+          "moves": {
+            "indicator": "structure_polyglot.imports_resolved_outside_python",
+            "from": 0.067,
+            "to": 0.067
+          },
+          "files": [
+            "tools/language_depth.py",
+            "docs/language-depth.json"
+          ],
+          "steps": [
+            "أداة تطبع لكل لغة: عدد الملفات، نسبة التحليل النحوي، نسبة حل الاستيرادات الداخلية، عدد الرموز",
+            "شغّلها على /workspace/upstream-src/enola و CodeGraph و Reforge واكتب النتيجة",
+            "هذا هو خط الأساس لكل مهمة بعده"
+          ],
+          "acceptance": "python tools/language_depth.py --write && test -f docs/language-depth.json",
+          "rollback": "حذف الأداة والملف",
+          "depends_on": [],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N3.T2",
+          "title": "محوّل CodeGraph للرسم والاستدعاءات",
+          "why": "نستعمل أداة واحدة من 68. الأدوات الأربع هذه هي بالضبط ما يسدّ فجوة الـ6.7٪.",
+          "moves": {
+            "indicator": "structure_polyglot.imports_resolved_outside_python",
+            "from": 0.067,
+            "to": 0.5
+          },
+          "files": [
+            "eaos/engines/codegraph.py",
+            "tests/contracts/codegraph.json",
+            "tests/test_engine_contracts.py"
+          ],
+          "steps": [
+            "أضف إلى TOOLS: codegraph_get_dependency_graph و codegraph_get_call_graph و codegraph_analyze_coupling و codegraph_find_hot_paths",
+            "لكل أداة: شغّلها مرة على /workspace/upstream-src/enola وسجّل شكل المخرج قبل كتابة أي تطبيع",
+            "أضف kind جديدًا \"call_edge_external\" و \"module_edge_external\" إلى eaos/engines/contract.py:KINDS",
+            "إن رجعت أداة تحذيرًا في payload: خفّض تقييمها إلى partial كما يفعل كاشف الدورات",
+            "أضف عيّنة مثبّتة لكل أداة في tests/contracts/codegraph.json",
+            "إن أعادت أداة لا شيء على enola: سجّلها في DECLINED بالسبب المقيس ولا تضفها"
+          ],
+          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "rollback": "إرجاع TOOLS إلى أداة واحدة",
+          "depends_on": [
+            "N3.T1"
+          ],
+          "references": [
+            "/workspace/upstream-src/CodeGraph/crates",
+            "eaos/engines/codegraph.py"
+          ],
+          "status": "todo"
+        },
+        {
+          "id": "N3.T3",
+          "title": "دمج رسم المحرك في حقائقنا",
+          "why": "الرسم الخارجي بلا دمج يبقى معلومة لا يستعملها نطاق الأثر ولا التدفقات.",
+          "moves": {
+            "indicator": "structure_polyglot.imports_resolved_outside_python",
+            "from": 0.5,
+            "to": 0.8
+          },
+          "files": [
+            "eaos/facts/resolve.py",
+            "eaos/facts/graph.py",
+            "eaos/facts/external.py",
+            "tests/test_facts_resolve.py"
+          ],
+          "steps": [
+            "في eaos/facts/external.py: حوّل call_edge_external و module_edge_external إلى حقائق حواف",
+            "في resolve.py: عندما يعجز حلّالنا عن حافة ويوجد لها حل خارجي، سجّلها resolution=RESOLVED_BY_ENGINE مع اسم المحرك في الحقيقة — لا تخلطها مع حلّنا",
+            "في graph.py: أدخل الحواف الخارجية في الرسم مع وسم مصدرها",
+            "أضف إلى ملخص resolve: resolved_by_us و resolved_by_engine منفصلين",
+            "اختبار: مشروع Go تُحلّ حوافه عبر المحرك، والحقيقة تقول أي محرك حلّها"
+          ],
+          "acceptance": "python -m unittest tests.test_facts_resolve -q && python tools/language_depth.py",
+          "rollback": "إسقاط RESOLVED_BY_ENGINE وإرجاع الرسم لحلّنا وحده",
+          "depends_on": [
+            "N3.T2"
+          ],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N3.T4",
+          "title": "عتبة لكل لغة في القياس",
+          "why": "متوسط عبر اللغات يخفي لغة ميتة.",
+          "moves": {
+            "indicator": "structure_polyglot.languages_with_depth",
+            "from": 0.5385,
+            "to": 0.8
+          },
+          "files": [
+            "eaos/capability.py",
+            "tests/test_capability.py"
+          ],
+          "steps": [
+            "في structure_polyglot: اجعل languages_with_depth يعدّ اللغات التي depth لها ≥ 0.80",
+            "أضف مؤشرًا thirdmost_language_depth: عمق ثالث أضعف لغة لها ≥5 ملفات",
+            "اختبار: لغة واحدة ممتازة وأربع ميتة لا تعطي درجة عالية"
+          ],
+          "acceptance": "python -m unittest tests.test_capability -q && python tools/capability_score.py /tmp/selfr /tmp/gor",
+          "rollback": "إرجاع المؤشر السابق",
+          "depends_on": [
+            "N3.T3"
+          ],
+          "references": [],
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "N4",
+      "title": "الكواشف التشغيلية الخمسة الناقصة",
+      "status": "todo",
+      "depends_on": [
+        "N1"
+      ],
+      "goal": "runtime_surface من 0.46 إلى ≥0.80.",
+      "measured_problem": "سبعة كواشف تشغيلية من اثني عشر مطلوبة. الخمسة الناقصة هي بالضبط ما يحتاجه نموذج الحمل: حدود الاستعلام، الصمود، التخزين المؤقت، تحديد المعدّل، تجمّع الاتصالات.",
+      "tasks": [
+        {
+          "id": "N4.T1",
+          "title": "كاشف حدود الاستعلام",
+          "why": "استعلام بلا حد أعلى يعمل على ألف صف ويسقط على مليون.",
+          "moves": {
+            "indicator": "runtime_surface.detectors_implemented",
+            "from": 0.5833,
+            "to": 0.6667
+          },
+          "files": [
+            "eaos/facts/runtime.py",
+            "tests/fixtures/runtime/query-bounds/",
+            "tests/test_facts_runtime.py",
+            "schemas/fact.schema.json"
+          ],
+          "steps": [
+            "أضف kind \"query_bound\" إلى schemas/fact.schema.json ثم شغّل python tools/render.py",
+            "اكشف في Python: .limit( .offset( [:n] paginate( first( .all() )بلا حد",
+            "اكشف في JavaScript/TypeScript: .limit( .take( .skip( findMany({take",
+            "اكشف في Go: LIMIT في نص SQL، و .Limit( في ORM",
+            "كل حقيقة تحمل: bounded=true/false، والآلية، والموضع",
+            "fixture: ملف فيه استعلام محدود وآخر غير محدود لكل لغة من الثلاث",
+            "ما لا تعرفه: لا تحكم. سجّل bounded=unknown مع السبب"
+          ],
+          "acceptance": "python -m unittest tests.test_facts_runtime -q",
+          "rollback": "حذف الكاشف ونوع الحقيقة",
+          "depends_on": [],
+          "references": [
+            "eaos/facts/runtime.py"
+          ],
+          "status": "todo"
+        },
+        {
+          "id": "N4.T2",
+          "title": "كاشف سياسات الصمود",
+          "why": "نداء خارجي بلا مهلة يحوّل بطء خدمة أخرى إلى توقف عندك.",
+          "moves": {
+            "indicator": "runtime_surface.detectors_implemented",
+            "from": 0.6667,
+            "to": 0.75
+          },
+          "files": [
+            "eaos/facts/runtime.py",
+            "tests/fixtures/runtime/resilience/",
+            "tests/test_facts_runtime.py",
+            "schemas/fact.schema.json"
+          ],
+          "steps": [
+            "أضف kind \"resilience_policy\"",
+            "لكل integration_target مكتشف: ابحث في نفس النداء عن timeout= أو Timeout أو ctx مع مهلة",
+            "اكشف إعادة المحاولة: retry/Retry/backoff/tenacity/@retry",
+            "اكشف قاطع الدائرة: circuit/breaker/hystrix/resilience4j/pybreaker",
+            "كل حقيقة: {target, has_timeout, has_retry, has_circuit_breaker} وكل قيمة true/false/unknown",
+            "fixture: نداء محمي وآخر عارٍ"
+          ],
+          "acceptance": "python -m unittest tests.test_facts_runtime -q",
+          "rollback": "حذف الكاشف",
+          "depends_on": [
+            "N4.T1"
+          ],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N4.T3",
+          "title": "كاشف التخزين المؤقت",
+          "why": "بلا معرفة ما هو مُخزَّن مؤقتًا، كل تقدير للحمل خطأ بمقدار مجهول.",
+          "moves": {
+            "indicator": "runtime_surface.detectors_implemented",
+            "from": 0.75,
+            "to": 0.8333
+          },
+          "files": [
+            "eaos/facts/runtime.py",
+            "tests/fixtures/runtime/cache/",
+            "tests/test_facts_runtime.py",
+            "schemas/fact.schema.json"
+          ],
+          "steps": [
+            "أضف kind \"cache_policy\"",
+            "اكشف: lru_cache/cached_property/functools.cache، redis/memcached/cache.get، Cache-Control في الردود، @Cacheable، revalidate",
+            "كل حقيقة: {mechanism, scope: process|shared|http, ttl_declared: true/false/unknown, location}",
+            "fixture: تخزين داخل العملية، وتخزين مشترك، ولا تخزين"
+          ],
+          "acceptance": "python -m unittest tests.test_facts_runtime -q",
+          "rollback": "حذف الكاشف",
+          "depends_on": [
+            "N4.T2"
+          ],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N4.T4",
+          "title": "كاشف تحديد المعدّل وحدود التزامن",
+          "why": "نقطة دخول بلا حد معدّل تُسقط النظام كله عند أول ارتفاع.",
+          "moves": {
+            "indicator": "runtime_surface.detectors_implemented",
+            "from": 0.8333,
+            "to": 0.9167
+          },
+          "files": [
+            "eaos/facts/runtime.py",
+            "tests/fixtures/runtime/limits/",
+            "tests/test_facts_runtime.py",
+            "schemas/fact.schema.json"
+          ],
+          "steps": [
+            "أضف kind \"rate_limit\"",
+            "اكشف في الكود: @limiter/@throttle/RateLimiter/semaphore/Semaphore/max_concurrent",
+            "اكشف في الإعداد: nginx limit_req، Kubernetes resources.limits، إعدادات gateway",
+            "كل حقيقة: {entry_point_or_global, mechanism, declared_limit, source: code|config}",
+            "fixture: نقطة محدودة وأخرى مفتوحة"
+          ],
+          "acceptance": "python -m unittest tests.test_facts_runtime -q",
+          "rollback": "حذف الكاشف",
+          "depends_on": [
+            "N4.T3"
+          ],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N4.T5",
+          "title": "كاشف تجمّع الاتصالات",
+          "why": "حجم التجمّع هو السقف الحقيقي لعدد الطلبات المتزامنة، ونادرًا ما ينتبه له أحد.",
+          "moves": {
+            "indicator": "runtime_surface.detectors_implemented",
+            "from": 0.9167,
+            "to": 1.0
+          },
+          "files": [
+            "eaos/facts/runtime.py",
+            "tests/fixtures/runtime/pool/",
+            "tests/test_facts_runtime.py",
+            "schemas/fact.schema.json"
+          ],
+          "steps": [
+            "أضف kind \"connection_pool\"",
+            "اكشف: pool_size/max_connections/maxPoolSize/SetMaxOpenConns/pool_pre_ping، و DATABASE_URL بمعاملات تجمّع",
+            "كل حقيقة: {resource, declared_size, source, location}؛ غير المعلن = unknown لا افتراض",
+            "fixture: تجمّع معلن وآخر بالإعداد الافتراضي"
+          ],
+          "acceptance": "python -m unittest tests.test_facts_runtime -q && python tools/capability_score.py /tmp/selfr /tmp/gor",
+          "rollback": "حذف الكاشف",
+          "depends_on": [
+            "N4.T4"
+          ],
+          "references": [],
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "N5",
+      "title": "نموذج الحمل — قلب الاستشارة",
+      "status": "todo",
+      "depends_on": [
+        "N3",
+        "N4"
+      ],
+      "goal": "load_model من 0.00 إلى ≥0.80: ثمانية أسئلة مُجابة لكل نقطة دخول، وإسقاط عند ١٠٠٠ ضعف.",
+      "measured_problem": "نملك 50 نتيجة O(n²)/O(n³) من enola وكاشف N+1 وحالة وحدة قابلة للتغيير — ولا شيء منها مُجمَّع في جواب واحد عن نقطة دخول واحدة.",
+      "the_eight_questions": [
+        "data_access_calls — كم استعلامًا/نداء تخزين يُصدره هذا المسار؟",
+        "repeats_per_iteration — هل أحدها داخل حلقة (N+1)؟",
+        "result_is_bounded — هل النتيجة محدودة (limit/pagination)؟",
+        "complexity_class — ما رتبة المعالج الزمنية؟",
+        "shared_mutable_state — هل يلمس حالة على مستوى الوحدة تمنع التشغيل الأفقي؟",
+        "outbound_calls_protected — هل النداءات الخارجة محمية بمهلة/إعادة محاولة؟",
+        "cached — هل على المسار تخزين مؤقت، وأي نطاق؟",
+        "rate_limited — هل لنقطة الدخول حد معدّل أو حد تزامن؟"
+      ],
+      "tasks": [
+        {
+          "id": "N5.T1",
+          "title": "عقد نموذج الحمل",
+          "why": "قبل الحساب، يُكتب شكل الجواب — وإلا صار كل جواب شكلًا مختلفًا.",
+          "moves": {
+            "indicator": "load_model.questions_answered",
+            "from": 0.0,
+            "to": 0.0
+          },
+          "files": [
+            "eaos/load_model.py",
+            "schemas/load-model.schema.json",
+            "tests/test_load_model.py"
+          ],
+          "steps": [
+            "أنشئ eaos/load_model.py بثابت QUESTIONS يحوي الأسئلة الثمانية بأسمائها الحرفية",
+            "لكل سؤال جواب بالشكل: {status: answered|not_applicable|undetectable, value, evidence: [fact_ids], reason}",
+            "status=undetectable يجب أن يحمل reason غير فارغ — الغياب بلا سبب ممنوع",
+            "أضف schemas/load-model.schema.json وتحقق منه",
+            "أعلن eaos/load_model.py في eaos.policy.json تحت ledger"
+          ],
+          "acceptance": "python -m unittest tests.test_load_model -q",
+          "rollback": "حذف الوحدة والمخطط",
+          "depends_on": [],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N5.T2",
+          "title": "سجل كلفة لكل نقطة دخول",
+          "why": "الجواب يكون عن نقطة دخول يعرفها القارئ، لا عن دالة لا يعرف أين تُستدعى.",
+          "moves": {
+            "indicator": "load_model.entry_points_with_a_cost_record",
+            "from": 0.0,
+            "to": 0.9
+          },
+          "files": [
+            "eaos/load_model.py",
+            "tests/test_load_model.py"
+          ],
+          "steps": [
+            "لكل entry_point غير اختباري: اجمع التدفق المتتبَّع له من facts/flows.json",
+            "data_access_calls: عُدّ نداءات التخزين على المسار من facts/structure.json + _N1_NAMES في redundancy",
+            "repeats_per_iteration: من حقائق redundancy kind=n_plus_one الواقعة على المسار",
+            "complexity_class: من حقائق external rule=performance على رموز المسار",
+            "result_is_bounded: من query_bound (N4.T1)",
+            "shared_mutable_state: من domain mutable_global و external_state_write على المسار",
+            "outbound_calls_protected: من resilience_policy (N4.T2) على integration_target في المسار",
+            "cached: من cache_policy (N4.T3)",
+            "rate_limited: من rate_limit (N4.T4)",
+            "كل جواب يحمل fact_ids؛ جواب بلا دليل ممنوع",
+            "تدفق لم يُتتبَّع = كل الأسئلة undetectable بسبب \"the flow could not be traced\""
+          ],
+          "acceptance": "python -m unittest tests.test_load_model -q",
+          "rollback": "إرجاع الوحدة إلى العقد وحده",
+          "depends_on": [
+            "N5.T1"
+          ],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N5.T3",
+          "title": "الإسقاط عند ١٠٠٠ ضعف",
+          "why": "العميل لا يسأل \"كم استعلامًا\"؛ يسأل \"هل يصمد\".",
+          "moves": {
+            "indicator": "load_model.projection_recorded",
+            "from": 0.0,
+            "to": 1.0
+          },
+          "files": [
+            "eaos/load_model.py",
+            "tests/test_load_model.py"
+          ],
+          "steps": [
+            "لكل نقطة دخول: احسب كيف تتضاعف الأجوبة عند مضاعف حركة m (افتراضي 1000)",
+            "القاعدة صريحة ومكتوبة في المخرج: استعلام ثابت ×m، استعلام داخل حلقة ×m×n، نتيجة غير محدودة تنمو مع البيانات لا مع الحركة",
+            "رتّب العوائق: حالة الوحدة أولًا (تمنع النسخ المتعددة)، ثم N+1، ثم غياب الحد",
+            "اكتب الافتراضات صراحةً: هذا إسقاط حسابي من البنية، وليس قياس أداء",
+            "نقطة دخول فيها سؤال undetectable: الإسقاط لها يقول \"غير مكتمل\" ويسمّي السؤال الناقص"
+          ],
+          "acceptance": "python -m unittest tests.test_load_model -q",
+          "rollback": "إسقاط الإسقاط والاكتفاء بالسجل",
+          "depends_on": [
+            "N5.T2"
+          ],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N5.T4",
+          "title": "مرحلة وتقرير ومصنوعة",
+          "why": "ما لا يظهر في المخرج لم يُنجز.",
+          "moves": {
+            "indicator": "load_model.entry_points_with_a_cost_record",
+            "from": 0.9,
+            "to": 0.95
+          },
+          "files": [
+            "eaos/pipeline/stages.py",
+            "eaos/pipeline/runners.py",
+            "eaos/compose/artifacts.py",
+            "eaos/load_report.py",
+            "tests/test_load_model.py"
+          ],
+          "steps": [
+            "أضف مرحلة \"load\" بعد \"probe\" تنتج load-model.json و LOAD-MODEL.md",
+            "requires=(\"facts\",\"claims\")، ضرورية لا اختيارية",
+            "أعلن المصنوعتين في eaos/compose/artifacts.py بمالك load وميزانية 200 سطر ورابط record",
+            "LOAD-MODEL.md: جدول نقاط الدخول مرتبًا بخطر الحمل، ثم أسوأ خمس نقاط بتفصيلها، ثم قسم \"ما لم نستطع قياسه ولماذا\"",
+            "اربط كل سطر بـ fact_ids كما تفعل بقية الوثائق"
+          ],
+          "acceptance": "eaos audit . --out /tmp/lm --skip site && test -f /tmp/lm/LOAD-MODEL.md && python3 -c \"import json;d=json.load(open('/tmp/lm/load-model.json'));assert d['entry_points']\"",
+          "rollback": "إزالة المرحلة والمصنوعتين",
+          "depends_on": [
+            "N5.T3"
+          ],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N5.T5",
+          "title": "ادعاءات الحمل تدخل السجل",
+          "why": "خطر حمل لا يصير ادعاءً لا يصير بطاقة ولا يُنفَّذ.",
+          "moves": {
+            "indicator": "load_model.questions_answered",
+            "from": 0.5,
+            "to": 0.8
+          },
+          "files": [
+            "eaos/claims.py",
+            "eaos/probes.py",
+            "eaos/compose/labels.py",
+            "eaos/remediation_patterns.py",
+            "tests/test_load_model.py"
+          ],
+          "steps": [
+            "ولّد ادعاءً من كل عائق حمل: N+1 على مسار، حالة وحدة على مسار، نداء خارجي بلا مهلة، نتيجة غير محدودة على نقطة دخول عامة",
+            "لكل ادعاء ناقض: مثلًا \"قياس يُظهر أن هذا الاستعلام يُنفَّذ مرة واحدة مهما كان عدد البنود\"",
+            "أضف probe_spec بنوع graph_query واستعلام load_blocker_present",
+            "أضف قوالب العرض في labels.py ونمط إصلاح في remediation_patterns.py لكل نوع عائق",
+            "DETAIL_ARTIFACT لهذه الادعاءات = LOAD-MODEL.md"
+          ],
+          "acceptance": "python -m unittest tests.test_load_model tests.test_claims -q",
+          "rollback": "حذف المولّدات",
+          "depends_on": [
+            "N5.T4"
+          ],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N5.T6",
+          "title": "حالات معنونة تثبت كل سؤال",
+          "why": "كاشف بلا حالة موجبة وسالبة ليس مقيسًا.",
+          "moves": {
+            "indicator": "load_model.questions_answered",
+            "from": 0.8,
+            "to": 0.9
+          },
+          "files": [
+            "tests/fixtures/benchmarks/load/",
+            "tools/engine_precision.py"
+          ],
+          "steps": [
+            "لكل سؤال من الثمانية: مشروع صغير فيه الحالة الموجبة والسالبة",
+            "ground-truth.json لكل حالة يذكر السؤال والجواب المتوقع وسبب أهميته",
+            "وسّع tools/engine_precision.py ليقيس أسئلة الحمل أيضًا",
+            "سجّل النتيجة في docs/engine-precision.json"
+          ],
+          "acceptance": "python tools/engine_precision.py --write",
+          "rollback": "حذف الحالات",
+          "depends_on": [
+            "N5.T5"
+          ],
+          "references": [],
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "N6",
+      "title": "الصورة المثالية بمحتوى",
+      "status": "todo",
+      "depends_on": [
+        "N3",
+        "N5"
+      ],
+      "goal": "target_architecture من 0.00 إلى ≥0.80.",
+      "measured_problem": "على المستودعين: 0٪ من المكوّنات مُقيَّمة. المخرج قائمة بـ10,938 رمزًا كلها \"unassessed\"، ومصفوفة الفجوة كلها \"unassessed\". أي أن \"الصورة المثالية\" اليوم هيكل فارغ.",
+      "tasks": [
+        {
+          "id": "N6.T1",
+          "title": "المكوّن وحدة معمارية لا رمز",
+          "why": "10,938 مكوّنًا ليست معمارية؛ هي قائمة رموز.",
+          "moves": {
+            "indicator": "target_architecture.components_assessed",
+            "from": 0.0,
+            "to": 0.3
+          },
+          "files": [
+            "eaos/target_architecture.py",
+            "tests/test_target_architecture.py"
+          ],
+          "steps": [
+            "عرّف المكوّن كعقدة وحدة/حزمة من facts/graph.json، لا كرمز من syntax",
+            "ادمج الرموز تحت مكوّنها؛ عدد المكوّنات يجب أن يكون بعشرات لا بالآلاف",
+            "اختبار: مستودع بـ10,000 رمز في 40 حزمة ينتج 40 مكوّنًا لا 10,000"
+          ],
+          "acceptance": "python -m unittest tests.test_target_architecture -q",
+          "rollback": "إرجاع التعريف السابق",
+          "depends_on": [],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N6.T2",
+          "title": "قاعدة تقييم لكل مكوّن، ودليلها",
+          "why": "\"unassessed\" مقبول كجواب، لكن ليس كجواب وحيد لكل شيء.",
+          "moves": {
+            "indicator": "target_architecture.components_assessed",
+            "from": 0.3,
+            "to": 0.85
+          },
+          "files": [
+            "eaos/target_architecture.py",
+            "tests/test_target_architecture.py"
+          ],
+          "steps": [
+            "retain: مكوّن بلا مخالفة سياسة ولا دورة ولا عائق حمل ولا تكرار — والدليل هو غياب هذه",
+            "modify: مكوّن عليه ادعاء CONFIRMED واحد على الأقل — الدليل هو معرّفات تلك الادعاءات",
+            "introduce: بيت قانوني مقترح من canonical_home لعنقود تكرار عابر للمكوّنات",
+            "retire: مكوّن كل رموزه في حقائق dead_code ولا نقطة دخول تصله",
+            "unassessed: يبقى فقط لمكوّن لم يصله أي استخراج، ومعه reason إلزامي",
+            "كل مكوّن يحمل evidence: [fact_ids] و reason؛ تقييم بلا دليل ممنوع بالاختبار"
+          ],
+          "acceptance": "python -m unittest tests.test_target_architecture -q",
+          "rollback": "إرجاع الكل إلى unassessed",
+          "depends_on": [
+            "N6.T1"
+          ],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N6.T3",
+          "title": "قرار معماري ببدائله",
+          "why": "قرار بلا بديل مرفوض ليس قرارًا؛ هو تفضيل.",
+          "moves": {
+            "indicator": "target_architecture.decisions_with_alternatives",
+            "from": 0.0,
+            "to": 0.85
+          },
+          "files": [
+            "eaos/target_architecture.py",
+            "docs/adr/",
+            "tests/test_target_architecture.py"
+          ],
+          "steps": [
+            "لكل مكوّن بتقييم modify/introduce/retire: ولّد ADR",
+            "كل ADR: {id, problem, evidence: [fact_ids], options: [بديلان على الأقل أحدهما \"لا تفعل شيئًا\"], chosen, tradeoffs, consequences, migration}",
+            "اكتبها ملفات في docs/adr/ADR-NNN.md وسجلًا في target-architecture.json",
+            "اختبار: ADR بخيار واحد أو بلا مقايضة يُرفض"
+          ],
+          "acceptance": "python -m unittest tests.test_target_architecture -q",
+          "rollback": "حذف مولّد ADR",
+          "depends_on": [
+            "N6.T2"
+          ],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N6.T4",
+          "title": "مصفوفة فجوة حقيقية",
+          "why": "مصفوفة كلها \"unassessed\" لا تقول أين نحن من الهدف.",
+          "moves": {
+            "indicator": "target_architecture.gap_matrix_resolved",
+            "from": 0.0,
+            "to": 0.85
+          },
+          "files": [
+            "eaos/target_architecture.py",
+            "eaos/bundles.py",
+            "tests/test_target_architecture.py"
+          ],
+          "steps": [
+            "لكل مكوّن صف: {component, current, target, gap: covered|partial|missing, evidence, blocking_tasks}",
+            "covered = التقييم retain ولا ادعاء مفتوح عليه",
+            "partial = عليه ادعاءات وبعضها له بطاقة مهمة",
+            "missing = عليه ادعاءات بلا بطاقة، أو تقييمه introduce ولا مرحلة تحويل تنتجه",
+            "اربط كل صف ببطاقات PLAN/ التي تغلقه"
+          ],
+          "acceptance": "python -m unittest tests.test_target_architecture -q && eaos audit . --out /tmp/ta --skip site && python3 -c \"import json;d=json.load(open('/tmp/ta/target-architecture.json'));rows=d['gap_matrix'];assert sum(1 for r in rows if r['gap']!='unassessed')/len(rows) >= 0.85\"",
+          "rollback": "إرجاع المصفوفة السابقة",
+          "depends_on": [
+            "N6.T3"
+          ],
+          "references": [],
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "N7",
+      "title": "خطة تنفيذها مضمون",
+      "status": "todo",
+      "depends_on": [
+        "N6"
+      ],
+      "goal": "transformation_plan من 0.67 إلى ≥0.85.",
+      "measured_problem": "صفر مرحلة تحمل أمر قبول قابلًا للتشغيل، ولا توقّع واحد جرت مقارنته بما حدث.",
+      "tasks": [
+        {
+          "id": "N7.T1",
+          "title": "أمر قبول قابل للتشغيل لكل مرحلة",
+          "why": "معيار قبول لا يُشغَّل ليس معيارًا.",
+          "moves": {
+            "indicator": "transformation_plan.stages_with_runnable_acceptance",
+            "from": 0.0,
+            "to": 0.9
+          },
+          "files": [
+            "eaos/transform_plan.py",
+            "tests/test_transformation_handoff.py"
+          ],
+          "steps": [
+            "لكل مرحلة: اشتق أمرًا من أمر اختبار المشروع المكتشف (facts/config أو manifests)",
+            "إن لم يكن للمشروع أمر اختبار: الأمر هو فحص تكافؤ مولَّد، ويُعلَن كذلك",
+            "الأمر يجب أن يكون قائمة argv لا نصًا، و cwd جذر المرشّح، و expected_exit عددًا",
+            "امنع أوامر إعادة توليد التقرير كمعيار قبول (موجود في decisions.check_errors — أعد استخدامه)",
+            "اختبار: كل مرحلة في خطة مولَّدة على هذا المستودع لها أمر يمر decisions.check_errors"
+          ],
+          "acceptance": "python -m unittest tests.test_transformation_handoff -q",
+          "rollback": "إرجاع المعيار الوصفي",
+          "depends_on": [],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N7.T2",
+          "title": "قياس التوقّع بعد التنفيذ",
+          "why": "توقّع لا يُقارن بما حدث هو ادعاء عن المستقبل بلا حساب.",
+          "moves": {
+            "indicator": "transformation_plan.predictions_verified",
+            "from": null,
+            "to": 0.85
+          },
+          "files": [
+            "eaos/guarantee.py",
+            "eaos/pipeline/stages.py",
+            "eaos/pipeline/runners.py",
+            "tests/test_guarantee.py"
+          ],
+          "steps": [
+            "اجعل تسجيل التوقّع جزءًا من مرحلة transform: prediction.json لكل مرحلة",
+            "أضف أمرًا eaos guarantee --before <dir> --after <dir> يكتب GUARANTEE.md و guarantee.json",
+            "أعلن المصنوعتين في artifacts.py",
+            "اختبار: مرحلة نُفّذت فعلًا على مشروع تجريبي، والمقارنة تعطي HONEST/OVERSTATED/UNDERSTATED"
+          ],
+          "acceptance": "python -m unittest tests.test_guarantee -q",
+          "rollback": "إبقاء guarantee أمرًا يدويًا",
+          "depends_on": [
+            "N7.T1"
+          ],
+          "references": [],
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "N8",
+      "title": "تقرير يفهمه أي نموذج وينفّذه",
+      "status": "todo",
+      "depends_on": [
+        "N5",
+        "N6",
+        "N7"
+      ],
+      "goal": "report_clarity ≥0.90 مع بقاء كل ما سبق، ودليل تنفيذ يقرأه نموذج ضعيف فينفّذ.",
+      "tasks": [
+        {
+          "id": "N8.T1",
+          "title": "دليل التنفيذ المولَّد",
+          "why": "التقرير يصف؛ الدليل ينفَّذ. وشرطك أن أي قصور في الفهم قصور في التدوين.",
+          "moves": {
+            "indicator": "report_clarity.documents_declared",
+            "from": 1.0,
+            "to": 1.0
+          },
+          "files": [
+            "eaos/execution_guide.py",
+            "eaos/compose/artifacts.py",
+            "eaos/pipeline/stages.py",
+            "tests/test_execution_guide.py"
+          ],
+          "steps": [
+            "ولّد EXECUTION-GUIDE.md من plan.json و transform-plan.json و load-model.json",
+            "لكل مهمة بالترتيب: الهدف في جملة، الملفات بالضبط، الخطوات مرقّمة، أمر القبول، التراجع، الاعتماديات",
+            "ابدأ الوثيقة بقسم \"اقرأ هذا أولًا\": كيف يُنفَّذ، ما الممنوع، ومتى يتوقف المنفّذ ويسأل",
+            "كل معرّف في الدليل (مسار، رمز، أمر) يُكتب حرفيًا بلا اختصار ولا ترجمة",
+            "أعلن المصنوعة في artifacts.py بميزانية 300 سطر و record=plan.json"
+          ],
+          "acceptance": "eaos audit . --out /tmp/eg --skip site && python -m unittest tests.test_execution_guide -q",
+          "rollback": "حذف المولّد والمصنوعة",
+          "depends_on": [],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N8.T2",
+          "title": "اختبار قابلية التنفيذ آليًا",
+          "why": "ادعاء \"أي نموذج يفهمه\" يجب أن يكون قابلًا للفشل.",
+          "moves": {
+            "indicator": "report_clarity.documents_declared",
+            "from": 1.0,
+            "to": 1.0
+          },
+          "files": [
+            "tests/test_execution_guide.py"
+          ],
+          "steps": [
+            "عرّف FORBIDDEN_TOKENS في eaos/execution_guide.py: قائمة الرموز التي تجعل خطوة غير قابلة للتنفيذ — علامات الحذف، وأدوات التقريب والاحتمال، وكلمات النيابة عن قيمة لم تُحدَّد بعد. القائمة تُكتب هناك مرة واحدة ولا تُكرَّر هنا.",
+            "اختبار: كل مهمة في الدليل لها ملفات موجودة فعلًا على القرص",
+            "اختبار: كل أمر قبول قابل للتحليل كـargv ولا يحتوي أي رمز من FORBIDDEN_TOKENS",
+            "اختبار: كل خطوة جملة أمرية واحدة ولا تحتوي أي رمز من FORBIDDEN_TOKENS",
+            "اختبار: كل مهمة لها تراجع غير فارغ",
+            "اختبار: ترتيب المهام طوبولوجي — لا مهمة قبل اعتماديتها"
+          ],
+          "acceptance": "python -m unittest tests.test_execution_guide -q",
+          "rollback": "حذف الاختبارات",
+          "depends_on": [
+            "N8.T1"
+          ],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N8.T3",
+          "title": "توأم JSON لكل وثيقة",
+          "why": "النموذج يقرأ السجل؛ الإنسان يقرأ الوثيقة. الاثنان من مصدر واحد.",
+          "moves": {
+            "indicator": "report_clarity.documents_declared",
+            "from": 1.0,
+            "to": 1.0
+          },
+          "files": [
+            "eaos/compose/artifacts.py",
+            "tests/test_artifact_contract.py"
+          ],
+          "steps": [
+            "كل مصنوعة من نوع document يجب أن تحمل record غير فارغ، أو absent_when يشرح لماذا لا سجل لها",
+            "أضف قاعدة R14 في compose/rules.py: وثيقة بلا توأم سجل ولا تعليل = مخالفة",
+            "اختبار طفرة: أضف وثيقة بلا record → يجب أن تفشل R14"
+          ],
+          "acceptance": "python -m unittest tests.test_artifact_contract -q",
+          "rollback": "إسقاط R14",
+          "depends_on": [
+            "N8.T2"
+          ],
+          "references": [],
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "N9",
+      "title": "الحكم المستقل",
+      "status": "todo",
+      "depends_on": [
+        "N8"
+      ],
+      "goal": "independent_proof من 0.00 إلى ≥0.80. هذا المعلم وحده يحتاج إنسانًا.",
+      "human_required": true,
+      "tasks": [
+        {
+          "id": "N9.T1",
+          "title": "حزمة المراجعة الجاهزة",
+          "why": "حكم مستقل لم يحدث لأن تجهيزه لم يُجهَّز، لا لأنه صعب.",
+          "moves": {
+            "indicator": "independent_proof.independent_reviews",
+            "from": 0.0,
+            "to": 0.0
+          },
+          "files": [
+            "evaluations/review-pack/",
+            "tools/build_review_pack.py"
+          ],
+          "steps": [
+            "أداة تبني حزمة: تقرير على مشروع لم تُضبط عليه الأداة + استمارة حكم من عشرة أسئلة",
+            "الأسئلة تُجاب بنعم/لا/لا أستطيع الحكم: هل الادعاء صحيح؟ محدد؟ له موضع؟ هل البطاقة قابلة للتنفيذ بلا سؤالي؟ هل الترتيب منطقي؟ هل الحدود واضحة؟",
+            "الحزمة لا تحتوي إجابات الحقيقة — المحكّم يرى المخرج فقط",
+            "تعليمات المحكّم في صفحة واحدة، والوقت المطلوب لا يتجاوز 30 دقيقة"
+          ],
+          "acceptance": "python tools/build_review_pack.py --out evaluations/review-pack && test -f evaluations/review-pack/README.md",
+          "rollback": "حذف الحزمة",
+          "depends_on": [],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N9.T2",
+          "title": "تشغيل المراجعة (يحتاج إنسانًا)",
+          "why": "لا يستطيع نموذج أن يشهد لنفسه بالفائدة.",
+          "moves": {
+            "indicator": "independent_proof.independent_reviews",
+            "from": 0.0,
+            "to": 0.8
+          },
+          "files": [
+            "evaluations/release-evidence.json"
+          ],
+          "steps": [
+            "أعطِ الحزمة لمهندس لم يشارك في بناء الأداة ولم يكتب أي ground truth",
+            "سجّل إجاباته حرفيًا في human_judgement مع independent=true واسمه أو رمزه",
+            "لا تُعدّل جوابًا ولا تُلخّصه؛ الإجابة السلبية دليل مثل الإيجابية"
+          ],
+          "acceptance": "python tools/check_release_evidence.py evaluations/release-evidence.json",
+          "rollback": "إرجاع الحالة إلى blocked",
+          "depends_on": [
+            "N9.T1"
+          ],
+          "references": [],
+          "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "N10",
+      "title": "إعادة القياس وقرار الإصدار",
+      "status": "todo",
+      "depends_on": [
+        "N2",
+        "N3",
+        "N4",
+        "N5",
+        "N6",
+        "N7",
+        "N8"
+      ],
+      "goal": "إثبات أن كل مجال بلغ ≥0.80، ثم اتخاذ قرار الإصدار على هذا الدليل.",
+      "tasks": [
+        {
+          "id": "N10.T1",
+          "title": "إعادة القياس على نفس التقارير",
+          "why": "القياس على تقارير أخرى ليس مقارنة.",
+          "moves": {
+            "indicator": "overall",
+            "from": 0.4874,
+            "to": 0.8
+          },
+          "files": [
+            "docs/capability-score.json",
+            "docs/CAPABILITY-SCORE.md"
+          ],
+          "steps": [
+            "أعد إنتاج نفس التقريرين: eaos audit . --out /tmp/selfr و eaos audit /workspace/upstream-src/enola --out /tmp/gor --skip site",
+            "شغّل python tools/capability_score.py /tmp/selfr /tmp/gor --write",
+            "قارن بـ docs/capability-score.json السابق واكتب جدول قبل/بعد في CHANGELOG"
+          ],
+          "acceptance": "python tools/capability_score.py /tmp/selfr /tmp/gor && python3 -c \"import json;c=json.load(open('docs/capability-score.json'));bad={k:v['score'] for k,v in c['domains'].items() if not v['meets_target'] and k!='independent_proof'};assert not bad, bad\"",
+          "rollback": "لا ينطبق",
+          "depends_on": [],
+          "references": [],
+          "status": "todo"
+        },
+        {
+          "id": "N10.T2",
+          "title": "قرار الإصدار على الدليل الجديد",
+          "why": "القرار يتبع الدليل، لا العكس.",
+          "moves": {
+            "indicator": "overall",
+            "from": 0.8,
+            "to": 0.8
+          },
+          "files": [
+            "evaluations/release-evidence.json",
+            "README.md",
+            "CHANGELOG.md"
+          ],
+          "steps": [
+            "حدّث results.measured بالدرجات الجديدة و supported_scope بما صار مدعومًا",
+            "انقل من unsupported_scope ما أثبتّه فقط، واترك الباقي",
+            "اختر release أو limited_release أو pilot حسب ما يسمح به tools/check_release_evidence.py",
+            "حدّث README بنطاق الدعم المُثبت وبأوامر التشغيل والرجوع"
+          ],
+          "acceptance": "python tools/check_release_evidence.py evaluations/release-evidence.json && python -m unittest tests.test_installed_review -q",
+          "rollback": "إرجاع القرار السابق",
+          "depends_on": [
+            "N10.T1"
+          ],
+          "references": [],
+          "status": "todo"
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "milestones": 10,
+    "tasks": 35,
+    "done": 3
+  }
+}

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "cca6d4e",
+  "extracted_at_commit": "47f4886",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -27,6 +27,24 @@
       "statement": "Three properties a candidate must have: reachable every duplicate site can import the canonical home without new violations acyclic placing the home here does not create a cycle in_layer the candidate must belong to a layer the project's policy allows",
       "kind": "invariant",
       "enforced_by": "tests/test_canonical_home.py::CanonicalHomeTests::test_candidates_do_not_introduce_cycles",
+      "note": ""
+    },
+    {
+      "id": "INV-5b06a6388b",
+      "file": "eaos/capability.py",
+      "symbol": "<module>",
+      "statement": "A plan whose targets cannot be measured is a wish.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_capability.py::UnmeasuredTests::test_the_target_is_declared_once",
+      "note": ""
+    },
+    {
+      "id": "INV-ba63f7be9f",
+      "file": "eaos/capability.py",
+      "symbol": "<module>",
+      "statement": "Every indicator here is computed from an actual report directory: if the evidence for it is absent, the indicator is unmeasured and says so, and an unmeasured indicator never counts as a pass.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_capability.py::UnmeasuredTests::test_an_unmeasured_indicator_blocks_the_target_even_at_a_high_score",
       "note": ""
     },
     {

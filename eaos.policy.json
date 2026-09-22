@@ -23,6 +23,7 @@
       "eaos/apidiff.py",
       "eaos/ask.py",
       "eaos/baseline.py",
+      "eaos/capability.py",
       "eaos/claims.py",
       "eaos/correlate.py",
       "eaos/decisions.py",
