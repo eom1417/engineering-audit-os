@@ -12,19 +12,43 @@
   ],
   "summary": {
     "files_observed": 12,
-    "facts": 2,
+    "facts": 12,
     "by_kind": {
-      "data_model": 0,
-      "migration_step": 0,
       "ci_step": 2,
-      "integration_target": 0,
-      "security_surface": 0,
+      "data_model": 0,
       "deployment_target": 0,
-      "observability_signal": 0
+      "integration_target": 0,
+      "migration_step": 0,
+      "observability_signal": 0,
+      "query_bound": 10,
+      "security_surface": 0
     },
     "interpretation": "Runtime facts describe the operational surface the static walk cannot see. None proves the system actually runs that way."
   },
   "facts": [
+    {
+      "id": "FACT-6062f33ef4a69c49",
+      "kind": "query_bound",
+      "extractor": "runtime",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 0
+      },
+      "value": {
+        "bounded": "unknown",
+        "mechanism": "no_match",
+        "kind": "unknown",
+        "snippet": ""
+      },
+      "limitations": [
+        "Only manifests the engine has a parser for are observed; an unsupported format stays a gap, never a guess.",
+        "A \"security surface\" is a route grouped by authentication hint: static analysis cannot decide who is allowed.",
+        "A \"deployment target\" is whatever a manifest declares; it does not prove the deployment actually runs.",
+        "A \"data field\" is read from the model declaration; runtime constraints (NOT NULL, FK) live in migrations."
+      ]
+    },
     {
       "id": "FACT-fb50df5b077a21b9",
       "kind": "ci_step",
@@ -55,6 +79,213 @@
       },
       "value": {
         "name": "npm:test"
+      },
+      "limitations": [
+        "Only manifests the engine has a parser for are observed; an unsupported format stays a gap, never a guess.",
+        "A \"security surface\" is a route grouped by authentication hint: static analysis cannot decide who is allowed.",
+        "A \"deployment target\" is whatever a manifest declares; it does not prove the deployment actually runs.",
+        "A \"data field\" is read from the model declaration; runtime constraints (NOT NULL, FK) live in migrations."
+      ]
+    },
+    {
+      "id": "FACT-a5005cd4b940f6c9",
+      "kind": "query_bound",
+      "extractor": "runtime",
+      "extractor_version": "1",
+      "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 0
+      },
+      "value": {
+        "bounded": "unknown",
+        "mechanism": "no_match",
+        "kind": "unknown",
+        "snippet": ""
+      },
+      "limitations": [
+        "Only manifests the engine has a parser for are observed; an unsupported format stays a gap, never a guess.",
+        "A \"security surface\" is a route grouped by authentication hint: static analysis cannot decide who is allowed.",
+        "A \"deployment target\" is whatever a manifest declares; it does not prove the deployment actually runs.",
+        "A \"data field\" is read from the model declaration; runtime constraints (NOT NULL, FK) live in migrations."
+      ]
+    },
+    {
+      "id": "FACT-c358efebcc280665",
+      "kind": "query_bound",
+      "extractor": "runtime",
+      "extractor_version": "1",
+      "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
+      "location": {
+        "path": "api/handlers/orders.ts",
+        "start_line": 0
+      },
+      "value": {
+        "bounded": "unknown",
+        "mechanism": "no_match",
+        "kind": "unknown",
+        "snippet": ""
+      },
+      "limitations": [
+        "Only manifests the engine has a parser for are observed; an unsupported format stays a gap, never a guess.",
+        "A \"security surface\" is a route grouped by authentication hint: static analysis cannot decide who is allowed.",
+        "A \"deployment target\" is whatever a manifest declares; it does not prove the deployment actually runs.",
+        "A \"data field\" is read from the model declaration; runtime constraints (NOT NULL, FK) live in migrations."
+      ]
+    },
+    {
+      "id": "FACT-2c6f2a9f7eff8178",
+      "kind": "query_bound",
+      "extractor": "runtime",
+      "extractor_version": "1",
+      "input_sha": "3c11f430c4a6cb315259fb6f905bc6f0a2cf0e1ee476f16123d33aae2f63c6c1",
+      "location": {
+        "path": "api/lib/audit.ts",
+        "start_line": 0
+      },
+      "value": {
+        "bounded": "unknown",
+        "mechanism": "no_match",
+        "kind": "unknown",
+        "snippet": ""
+      },
+      "limitations": [
+        "Only manifests the engine has a parser for are observed; an unsupported format stays a gap, never a guess.",
+        "A \"security surface\" is a route grouped by authentication hint: static analysis cannot decide who is allowed.",
+        "A \"deployment target\" is whatever a manifest declares; it does not prove the deployment actually runs.",
+        "A \"data field\" is read from the model declaration; runtime constraints (NOT NULL, FK) live in migrations."
+      ]
+    },
+    {
+      "id": "FACT-a5de96a877ac1bef",
+      "kind": "query_bound",
+      "extractor": "runtime",
+      "extractor_version": "1",
+      "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
+      "location": {
+        "path": "api/lib/pricing.ts",
+        "start_line": 0
+      },
+      "value": {
+        "bounded": "unknown",
+        "mechanism": "no_match",
+        "kind": "unknown",
+        "snippet": ""
+      },
+      "limitations": [
+        "Only manifests the engine has a parser for are observed; an unsupported format stays a gap, never a guess.",
+        "A \"security surface\" is a route grouped by authentication hint: static analysis cannot decide who is allowed.",
+        "A \"deployment target\" is whatever a manifest declares; it does not prove the deployment actually runs.",
+        "A \"data field\" is read from the model declaration; runtime constraints (NOT NULL, FK) live in migrations."
+      ]
+    },
+    {
+      "id": "FACT-67bacdd07dff3995",
+      "kind": "query_bound",
+      "extractor": "runtime",
+      "extractor_version": "1",
+      "input_sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "location": {
+        "path": "core/__init__.py",
+        "start_line": 0
+      },
+      "value": {
+        "bounded": "unknown",
+        "mechanism": "no_match",
+        "kind": "unknown",
+        "snippet": ""
+      },
+      "limitations": [
+        "Only manifests the engine has a parser for are observed; an unsupported format stays a gap, never a guess.",
+        "A \"security surface\" is a route grouped by authentication hint: static analysis cannot decide who is allowed.",
+        "A \"deployment target\" is whatever a manifest declares; it does not prove the deployment actually runs.",
+        "A \"data field\" is read from the model declaration; runtime constraints (NOT NULL, FK) live in migrations."
+      ]
+    },
+    {
+      "id": "FACT-c53156cdc628f8a1",
+      "kind": "query_bound",
+      "extractor": "runtime",
+      "extractor_version": "1",
+      "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 0
+      },
+      "value": {
+        "bounded": "unknown",
+        "mechanism": "no_match",
+        "kind": "unknown",
+        "snippet": ""
+      },
+      "limitations": [
+        "Only manifests the engine has a parser for are observed; an unsupported format stays a gap, never a guess.",
+        "A \"security surface\" is a route grouped by authentication hint: static analysis cannot decide who is allowed.",
+        "A \"deployment target\" is whatever a manifest declares; it does not prove the deployment actually runs.",
+        "A \"data field\" is read from the model declaration; runtime constraints (NOT NULL, FK) live in migrations."
+      ]
+    },
+    {
+      "id": "FACT-39f11473268eccf8",
+      "kind": "query_bound",
+      "extractor": "runtime",
+      "extractor_version": "1",
+      "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 0
+      },
+      "value": {
+        "bounded": "unknown",
+        "mechanism": "no_match",
+        "kind": "unknown",
+        "snippet": ""
+      },
+      "limitations": [
+        "Only manifests the engine has a parser for are observed; an unsupported format stays a gap, never a guess.",
+        "A \"security surface\" is a route grouped by authentication hint: static analysis cannot decide who is allowed.",
+        "A \"deployment target\" is whatever a manifest declares; it does not prove the deployment actually runs.",
+        "A \"data field\" is read from the model declaration; runtime constraints (NOT NULL, FK) live in migrations."
+      ]
+    },
+    {
+      "id": "FACT-759521c1b6f05faa",
+      "kind": "query_bound",
+      "extractor": "runtime",
+      "extractor_version": "1",
+      "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
+      "location": {
+        "path": "svc/main.go",
+        "start_line": 0
+      },
+      "value": {
+        "bounded": "unknown",
+        "mechanism": "no_match",
+        "kind": "unknown",
+        "snippet": ""
+      },
+      "limitations": [
+        "Only manifests the engine has a parser for are observed; an unsupported format stays a gap, never a guess.",
+        "A \"security surface\" is a route grouped by authentication hint: static analysis cannot decide who is allowed.",
+        "A \"deployment target\" is whatever a manifest declares; it does not prove the deployment actually runs.",
+        "A \"data field\" is read from the model declaration; runtime constraints (NOT NULL, FK) live in migrations."
+      ]
+    },
+    {
+      "id": "FACT-ccf1107354e13a48",
+      "kind": "query_bound",
+      "extractor": "runtime",
+      "extractor_version": "1",
+      "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
+      "location": {
+        "path": "worker/tasks.py",
+        "start_line": 0
+      },
+      "value": {
+        "bounded": "unknown",
+        "mechanism": "no_match",
+        "kind": "unknown",
+        "snippet": ""
       },
       "limitations": [
         "Only manifests the engine has a parser for are observed; an unsupported format stays a gap, never a guess.",

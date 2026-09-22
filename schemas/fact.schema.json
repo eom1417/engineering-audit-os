@@ -46,6 +46,7 @@
         "sequence_cluster",
         "redundancy",
         "security_surface",
+        "query_bound",
         "deployment_target",
         "ci_step",
         "observability_signal",

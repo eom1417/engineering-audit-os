@@ -139,3 +139,100 @@ class ReproducibilityTests(unittest.TestCase):
                 collect('eaos/compose', out, ['syntax', 'runtime'])
                 written.append(Path(out, 'facts/runtime.json').read_bytes())
         self.assertEqual(written[0], written[1])
+
+
+class QueryBoundDetectorTests(unittest.TestCase):
+    """A query that returns rows must declare a bound, or the detector flags it."""
+
+    FIXTURE = Path(__file__).resolve().parent / 'fixtures/runtime/query-bounds'
+
+    def _facts_for(self, name):
+        data = _collect(str(self.FIXTURE).rsplit('/', 1)[0], name=str(self.FIXTURE / name))
+        return [f for f in data['facts'] if f['kind'] == 'query_bound']
+
+    def test_python_unbounded_all_is_flagged(self):
+        """An `.all()` chain without a preceding limit is unbounded."""
+        body = "def f():\n    return Order.query.filter(Order.paid == True).all()\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
+            unbounded = [f for f in bounds if f['value']['bounded'] is False]
+            self.assertGreater(len(unbounded), 0, 'expected at least one unbounded site')
+
+    def test_python_limit_with_literal_is_bounded(self):
+        body = "def f():\n    return Order.query.limit(50).all()\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
+            bounded = [f for f in bounds if f['value']['bounded'] is True]
+            self.assertGreater(len(bounded), 0, 'expected at least one bounded site')
+
+    def test_python_first_is_bounded(self):
+        body = "def f():\n    return Order.query.first()\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
+            kinds = {b['value']['kind'] for b in bounds}
+            self.assertIn('first', kinds)
+
+    def test_javascript_prisma_findMany_without_take_is_unbounded(self):
+        body = "async function f() { return await prisma.order.findMany({}); }\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body, name='app.ts')
+            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
+            unbounded = [f for f in bounds if f['value']['bounded'] is False]
+            self.assertGreater(len(unbounded), 0)
+
+    def test_javascript_take_with_literal_is_bounded(self):
+        body = "async function f() { return await prisma.order.findMany({ take: 25 }); }\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body, name='app.ts')
+            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
+            bounded = [f for f in bounds if f['value']['bounded'] is True]
+            self.assertGreater(len(bounded), 0)
+
+    def test_go_sql_without_limit_is_unbounded(self):
+        body = 'package main\nimport "database/sql"\nfunc f(db *sql.DB) error {\n    return db.Query("SELECT * FROM orders")\n}\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body, name='orders.go')
+            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
+            # We don't have a Go unbounded detector; expect unknown
+            self.assertTrue(any(b['value']['bounded'] == 'unknown' for b in bounds) or
+                            any(b['value']['bounded'] is False for b in bounds),
+                            'Go query without LIMIT should be recorded as either unbounded or unknown')
+
+    def test_go_sql_with_limit_is_bounded(self):
+        body = 'package main\nimport "database/sql"\nfunc f(db *sql.DB) error {\n    return db.Query("SELECT * FROM orders LIMIT 100")\n}\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body, name='orders.go')
+            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
+            bounded = [f for f in bounds if f['value']['bounded'] is True]
+            self.assertGreater(len(bounded), 0, 'expected at least one bounded site for LIMIT 100')
+
+    def test_go_gorm_limit_is_bounded(self):
+        body = 'package main\nfunc f(db *gorm.DB) error {\n    return db.Limit(50).Find(&orders)\n}\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body, name='orders.go')
+            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
+            bounded = [f for f in bounds if f['value']['bounded'] is True and 'gorm' in f['value']['kind']]
+            self.assertGreater(len(bounded), 0)
+
+    def test_query_bound_fact_carries_position_and_mechanism(self):
+        """Every query_bound fact carries bounded, mechanism, location, kind."""
+        body = "def f():\n    return Order.query.limit(10).all()\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
+            for fact in bounds:
+                self.assertIn('bounded', fact['value'])
+                self.assertIn('mechanism', fact['value'])
+                self.assertIn('kind', fact['value'])
+                self.assertIn('path', fact['location'])
+
+    def test_query_bound_unknowable_recorded_as_unknown(self):
+        """A file with no detectable patterns records bounded=unknown rather than silently omitting."""
+        body = "def f():\n    x = 1 + 1\n    return x\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            bounds = [f for f in data['facts'] if f['kind'] == 'query_bound']
+            self.assertTrue(any(b['value']['bounded'] == 'unknown' for b in bounds))

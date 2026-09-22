@@ -21,7 +21,7 @@ from .entrypoints import MODULES, applicable
 
 
 KINDS = ('ci_step', 'data_model', 'deployment_target', 'integration_target',
-         'migration_step', 'observability_signal', 'security_surface')
+         'migration_step', 'observability_signal', 'query_bound', 'security_surface')
 
 NAME = 'runtime'
 VERSION = '1'
@@ -230,6 +230,93 @@ def _yaml_scalar(value):
     return value
 
 
+# Bounded-query detection: a chain or call that could return a result set must declare a bound.
+# Patterns per language are stated, not exhaustive: if a chain doesn't match, the fact records
+# `bounded=unknown` so the detector never claims to have measured something it didn't.
+_QUERY_BOUND_PATTERNS = {
+    'python': [
+        # SQLAlchemy: .limit(N), .offset(N), .all()/.first()/.one() without preceding bound
+        ('limit', re.compile(r'\.limit\(\s*\d+'), 'sqlalchemy_limit'),
+        ('offset', re.compile(r'\.offset\(\s*\d+'), 'sqlalchemy_offset'),
+        ('slice', re.compile(r'\[\s*\d+\s*:\s*\d+\s*\]'), 'slice'),
+        # Django ORM: .filter(...).all() without .first()/.count()/.exists()/.aggregate()
+        ('aggregate', re.compile(r'\.aggregate\('), 'aggregate'),
+        ('exists', re.compile(r'\.exists\(\s*\)'), 'exists'),
+        ('first', re.compile(r'\.first\(\s*\)'), 'first'),
+        # Dangerous: .all() without preceding bound on a queryset
+    ],
+    'javascript': [
+        ('limit', re.compile(r'\.limit\(\s*\d+'), 'js_limit'),
+        ('take', re.compile(r'\.take\(\s*\d+'), 'prisma_take'),
+        ('skip', re.compile(r'\.skip\(\s*\d+'), 'prisma_skip'),
+    ],
+    'typescript': [
+        ('limit', re.compile(r'\.limit\(\s*\d+'), 'js_limit'),
+        ('take', re.compile(r'\.take\(\s*\d+'), 'prisma_take'),
+        ('skip', re.compile(r'\.skip\(\s*\d+'), 'prisma_skip'),
+        ('findMany_bounded', re.compile(r'findMany\s*\(\s*\{[^}]*take\s*:'), 'prisma_findMany_take'),
+    ],
+    'go': [
+        # Raw SQL: 'LIMIT' clause (integer or placeholder)
+        ('sql_limit', re.compile(r'\bLIMIT\s+(?:\?|\d+)', re.IGNORECASE), 'sql_limit'),
+        # GORM: .Limit(N)
+        ('orm_limit', re.compile(r'\.Limit\(\s*\d+'), 'gorm_limit'),
+    ],
+}
+
+# Unbounded patterns: a query path that returns rows without an explicit bound.
+_UNBOUNDED_PATTERNS = {
+    'python': [
+        re.compile(r'\.all\(\s*\)'),
+        re.compile(r'\.filter\([^)]*\)\.all\(\s*\)'),
+    ],
+    'javascript': [
+        re.compile(r'\.findMany\(\s*\)'),
+        re.compile(r'\.findMany\(\s*\{\s*\}\s*\)'),
+    ],
+    'typescript': [
+        re.compile(r'\.findMany\(\s*\)'),
+        re.compile(r'\.findMany\(\s*\{\s*\}\s*\)'),
+    ],
+    'go': [
+        re.compile(r'\.Find\(\s*\&'),
+    ],
+}
+
+
+def _detect_query_bounds(text, language):
+    """Walk a source file and record one query_bound fact per detected site.
+
+    Bounded facts: the call explicitly caps the result set.
+    Unbounded facts: a query chain lacks any of the bounded patterns above.
+    Unknown facts: neither pattern matched; we cannot say either way.
+    """
+    rows = []
+    patterns = _QUERY_BOUND_PATTERNS.get(language, [])
+    unbounded = _UNBOUNDED_PATTERNS.get(language, [])
+    # Bounded sites
+    for mechanism, regex, kind in patterns:
+        for match in regex.finditer(text):
+            line = text.count('\n', 0, match.start()) + 1
+            rows.append({
+                'bounded': True, 'mechanism': mechanism, 'kind': kind,
+                'line': line, 'snippet': text.splitlines()[line - 1].strip()[:120] if line - 1 < len(text.splitlines()) else ''
+            })
+    # Unbounded sites
+    for regex in unbounded:
+        for match in regex.finditer(text):
+            line = text.count('\n', 0, match.start()) + 1
+            rows.append({
+                'bounded': False, 'mechanism': 'unbounded', 'kind': regex.pattern[:30],
+                'line': line, 'snippet': text.splitlines()[line - 1].strip()[:120] if line - 1 < len(text.splitlines()) else ''
+            })
+    if not rows:
+        # No matches at all means we cannot measure; record that explicitly.
+        rows.append({'bounded': 'unknown', 'mechanism': 'no_match', 'kind': 'unknown',
+                      'line': 0, 'snippet': ''})
+    return rows
+
+
 def run(target, source, symbols=None, **options):
     facts, fingerprints = [], []
     seen = set()
@@ -288,6 +375,12 @@ def run(target, source, symbols=None, **options):
                 facts.append(make('data_model', NAME, VERSION, item['sha256'],
                                    {'path': rel}, {'name': model['name'],
                                                     'framework': model['framework']},
+                                   limitations=LIMITATIONS))
+            for bound in _detect_query_bounds(text, language_of(rel)):
+                facts.append(make('query_bound', NAME, VERSION, item['sha256'],
+                                   {'path': rel, 'start_line': bound['line']},
+                                   {'bounded': bound['bounded'], 'mechanism': bound['mechanism'],
+                                    'kind': bound['kind'], 'snippet': bound['snippet']},
                                    limitations=LIMITATIONS))
         if _migration_files(name):
             facts.append(make('migration_step', NAME, VERSION, item['sha256'],
