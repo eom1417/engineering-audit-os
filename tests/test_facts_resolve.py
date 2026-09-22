@@ -114,3 +114,61 @@ def _resolve_with_engine_edge():
                            resolution='RESOLVED_BY_ENGINE', limitations=[])
         result = resolve_run(repo, src, imports=None, external_edges=[engine_edge])
         return result['facts'], result['summary']
+
+
+class GoPackageFolderResolutionTests(TemporaryWorkspace):
+    """A Go import points at a package, not at a single file. Multiple candidate .go files in the
+    same directory are not ambiguity: that directory IS the target. Real ambiguity only exists
+    when candidates span more than one directory.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = cls.workspace()
+
+    def test_single_folder_with_multiple_go_files_resolves_to_the_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; (repo / 'internal/config').mkdir(parents=True)
+            (repo / 'go.mod').write_text('module example.com/app\n\ngo 1.21\n')
+            (repo / 'internal/config/config.go').write_text('package config\n\nvar A = 1\n')
+            (repo / 'internal/config/loader.go').write_text('package config\n\nvar B = 2\n')
+            (repo / 'main.go').write_text(
+                'package main\n\nimport "example.com/app/internal/config"\n\n'
+                'var _ = config.A\n')
+            collect(repo, Path(tmp) / 'out', ['syntax', 'resolve'])
+            data, found = edges(Path(tmp) / 'out')
+        edge = found[('main.go', 'example.com/app/internal/config')]
+        self.assertEqual(edge['resolution'], 'RESOLVED')
+        self.assertEqual(edge['value']['target_kind'], 'package')
+        self.assertEqual(edge['value']['to_path'], 'internal/config/config.go')
+        # The candidates field lists every member of the package, so the reader can audit which
+        # files compiled into the resolved package.
+        self.assertEqual(set(edge['value']['candidates']),
+                         {'internal/config/config.go', 'internal/config/loader.go'})
+
+    def test_real_ambiguity_across_two_folders_stays_ambiguous(self):
+        # Go imports that share a common prefix with files in two distinct folders must
+        # stay AMBIGUOUS — the single-folder rule must not collapse them. We synthesise the
+        # import_edge directly so the resolver sees three candidates spanning three folders.
+        from eaos.facts import resolve as resolve_mod
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'
+            for folder in ('one', 'two', 'three'):
+                (repo / 'pkg' / folder).mkdir(parents=True)
+                (repo / 'pkg' / folder / 'util.go').write_text('package util\n')
+            (repo / 'go.mod').write_text('module example.com/app\n\ngo 1.21\n')
+            (repo / 'main.go').write_text('package main\n')
+            src = __import__('eaos.facts.source', fromlist=['Source']).Source(repo)
+            import_edge = resolve_mod.make('import_edge', 'syntax', '1',
+                                            'sha', {'path': 'main.go', 'start_line': 1},
+                                            {'module': 'example.com/app/pkg', 'language': 'go',
+                                             'names': [], 'level': 0, 'style': 'import'},
+                                            limitations=[])
+            result = resolve_mod.run(repo, src, imports=[import_edge])
+        edges_amb = [e for e in result['facts']
+                      if e['value'].get('language') == 'go'
+                      and e['value'].get('module') == 'example.com/app/pkg']
+        ambiguous = [e for e in edges_amb if e['resolution'] == 'AMBIGUOUS']
+        self.assertTrue(ambiguous,
+                          f'expected at least one AMBIGUOUS across folders, got: '
+                          f'{[(e["resolution"], e["value"].get("candidates")) for e in edges_amb]}')

@@ -27,7 +27,7 @@
   },
   "facts": [
     {
-      "id": "FACT-a49b7bbed0be50a9",
+      "id": "FACT-e0d03720d2e1d514",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -40,7 +40,10 @@
         "module": "../lib/pricing",
         "language": "typescript",
         "to_path": "api/lib/pricing.ts",
-        "candidates": [],
+        "target_kind": null,
+        "candidates": [
+          "api/lib/pricing.ts"
+        ],
         "import_fact_id": "FACT-0aef082e214fe682"
       },
       "resolution": "RESOLVED",
@@ -52,7 +55,7 @@
       ]
     },
     {
-      "id": "FACT-5be9dc6ccf7ebc9b",
+      "id": "FACT-96b8f86f9b7fb31b",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -65,6 +68,7 @@
         "module": "express",
         "language": "typescript",
         "to_path": null,
+        "target_kind": null,
         "candidates": [],
         "import_fact_id": "FACT-297199c12bea0b3e"
       },
@@ -77,7 +81,7 @@
       ]
     },
     {
-      "id": "FACT-6ce075d0ae2390b7",
+      "id": "FACT-60132d67add4fa03",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -90,7 +94,10 @@
         "module": "./handlers/orders",
         "language": "typescript",
         "to_path": "api/handlers/orders.ts",
-        "candidates": [],
+        "target_kind": null,
+        "candidates": [
+          "api/handlers/orders.ts"
+        ],
         "import_fact_id": "FACT-03e82f5206858b4e"
       },
       "resolution": "RESOLVED",
@@ -102,7 +109,7 @@
       ]
     },
     {
-      "id": "FACT-a47ce158635db19b",
+      "id": "FACT-5996af0915e22794",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -115,7 +122,10 @@
         "module": "./lib/audit",
         "language": "typescript",
         "to_path": "api/lib/audit.ts",
-        "candidates": [],
+        "target_kind": null,
+        "candidates": [
+          "api/lib/audit.ts"
+        ],
         "import_fact_id": "FACT-e0518f59ad2e1062"
       },
       "resolution": "RESOLVED",
@@ -127,7 +137,7 @@
       ]
     },
     {
-      "id": "FACT-388ccc8b8de5fca5",
+      "id": "FACT-3e6efe7b46bd9fe2",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -140,6 +150,7 @@
         "module": "argparse",
         "language": "python",
         "to_path": null,
+        "target_kind": null,
         "candidates": [],
         "import_fact_id": "FACT-1ec5d776cb07a066"
       },
@@ -152,7 +163,7 @@
       ]
     },
     {
-      "id": "FACT-81a69a42d8a31e18",
+      "id": "FACT-0d7d45fccfa3ce0b",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -165,7 +176,10 @@
         "module": "core.pricing",
         "language": "python",
         "to_path": "core/pricing.py",
-        "candidates": [],
+        "target_kind": null,
+        "candidates": [
+          "core/pricing.py"
+        ],
         "import_fact_id": "FACT-ba9c495f1bc92661"
       },
       "resolution": "RESOLVED",
@@ -177,7 +191,7 @@
       ]
     },
     {
-      "id": "FACT-0a4a4aab09e3ad46",
+      "id": "FACT-75b9b88484a1c282",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -190,6 +204,7 @@
         "module": "os",
         "language": "python",
         "to_path": null,
+        "target_kind": null,
         "candidates": [],
         "import_fact_id": "FACT-60d8b065f7c59829"
       },
@@ -202,7 +217,7 @@
       ]
     },
     {
-      "id": "FACT-5528cd61e56efbc0",
+      "id": "FACT-e665c3c6361b7698",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -215,7 +230,10 @@
         "module": "pricing",
         "language": "python",
         "to_path": "core/pricing.py",
-        "candidates": [],
+        "target_kind": null,
+        "candidates": [
+          "core/pricing.py"
+        ],
         "import_fact_id": "FACT-4ff31815756fc782"
       },
       "resolution": "RESOLVED",
@@ -227,7 +245,7 @@
       ]
     },
     {
-      "id": "FACT-1ddf828e9b6d4d20",
+      "id": "FACT-dbefc28b7b394157",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -240,6 +258,7 @@
         "module": "os",
         "language": "python",
         "to_path": null,
+        "target_kind": null,
         "candidates": [],
         "import_fact_id": "FACT-2de3d3244863f1d4"
       },
@@ -252,7 +271,7 @@
       ]
     },
     {
-      "id": "FACT-178b5323d1d356dd",
+      "id": "FACT-9b610504243c773a",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -265,6 +284,7 @@
         "module": "fmt",
         "language": "go",
         "to_path": null,
+        "target_kind": null,
         "candidates": [],
         "import_fact_id": "FACT-d274d76a600f4789"
       },
@@ -277,7 +297,7 @@
       ]
     },
     {
-      "id": "FACT-b4d4c8250952b2bd",
+      "id": "FACT-fabe50e658a30db9",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -290,6 +310,7 @@
         "module": "net/http",
         "language": "go",
         "to_path": null,
+        "target_kind": null,
         "candidates": [],
         "import_fact_id": "FACT-989c1b58d838373b"
       },
@@ -302,7 +323,7 @@
       ]
     },
     {
-      "id": "FACT-c10ac53c43b0a27c",
+      "id": "FACT-96812755d7a75fe0",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -315,6 +336,7 @@
         "module": "celery",
         "language": "python",
         "to_path": null,
+        "target_kind": null,
         "candidates": [],
         "import_fact_id": "FACT-a5a8c174b9e9ed56"
       },
@@ -327,7 +349,7 @@
       ]
     },
     {
-      "id": "FACT-c82a7edb43316ff8",
+      "id": "FACT-8a81c2b77e93a12c",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -340,7 +362,10 @@
         "module": "core.pricing",
         "language": "python",
         "to_path": "core/pricing.py",
-        "candidates": [],
+        "target_kind": null,
+        "candidates": [
+          "core/pricing.py"
+        ],
         "import_fact_id": "FACT-965471b3ae476582"
       },
       "resolution": "RESOLVED",

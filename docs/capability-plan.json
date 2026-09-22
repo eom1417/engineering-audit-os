@@ -1211,7 +1211,7 @@
           "rollback": "git checkout eaos/facts/resolve.py",
           "depends_on": [],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N11.T2",

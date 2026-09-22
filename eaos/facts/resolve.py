@@ -150,17 +150,29 @@ def run(target, source, imports=None, external_edges=None, **options):
         if language == 'go' and not matches and candidates:
             prefix = candidates[0]
             matches = sorted(p for p in known if p.startswith(prefix) and language_of(p) == 'go')
-        if len(matches) == 1: resolution, value = 'RESOLVED', matches[0]
-        elif len(matches) > 1: resolution, value = 'AMBIGUOUS', None
+        # A Go import `import ".../internal/config"` resolves to a package, not a single file.
+        # When every candidate is in the same directory it is not ambiguity: the directory
+        # IS the target. Real ambiguity only exists when candidates span multiple directories.
+        if language == 'go' and len(matches) > 1:
+            folders = {PurePosixPath(p).parent.as_posix() for p in matches}
+            if len(folders) == 1:
+                resolution, value = 'RESOLVED', sorted(matches)[0]
+                target_kind = 'package'
+            else:
+                resolution, value = 'AMBIGUOUS', None
+                target_kind = None
+        elif len(matches) == 1: resolution, value, target_kind = 'RESOLVED', matches[0], None
+        elif len(matches) > 1: resolution, value, target_kind = 'AMBIGUOUS', None, None
         elif not candidates or (language in {'javascript', 'typescript', 'tsx'} and not module.startswith('.')) or (language == 'python' and not level and module.split('.')[0] not in {PurePosixPath(p).parts[0] for p in known} | {d.split('/')[0] for d in directories}):
-            resolution, value = 'EXTERNAL', None
-        else: resolution, value = 'UNRESOLVED', None
+            resolution, value, target_kind = 'EXTERNAL', None, None
+        else: resolution, value, target_kind = 'UNRESOLVED', None, None
         counts[resolution] += 1
         fingerprints.append(row['id'])
         facts.append(make('module_edge', NAME, VERSION, row['input_sha'],
                           {'path': importer, 'start_line': row['location'].get('start_line')},
                           {'module': module, 'language': language, 'to_path': value,
-                           'candidates': matches[:5] if resolution == 'AMBIGUOUS' else [],
+                           'target_kind': target_kind,
+                           'candidates': matches[:5] if resolution == 'AMBIGUOUS' else matches,
                            'import_fact_id': row['id']},
                           resolution=resolution, limitations=LIMITATIONS))
     # Layer in what the external engine resolved. Each carries its own resolution marker.
