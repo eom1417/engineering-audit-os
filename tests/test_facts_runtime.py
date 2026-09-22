@@ -455,3 +455,75 @@ class RateLimitDetectorTests(unittest.TestCase):
                 self.assertIn('source', fact['value'])
                 self.assertIn('declared_limit', fact['value'])
                 self.assertIn(fact['value']['source'], ('code', 'config'))
+
+
+class ConnectionPoolDetectorTests(unittest.TestCase):
+    """A connection pool is the real ceiling on concurrency; we record what is declared."""
+
+    def test_sqlalchemy_pool_size_is_a_connection_pool(self):
+        body = "from sqlalchemy import create_engine\ne = create_engine('postgresql://x', pool_size=20)\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
+            sqlalchemy = [p for p in pools if 'sqlalchemy' in p['value']['resource']]
+            self.assertGreater(len(sqlalchemy), 0)
+            self.assertEqual(sqlalchemy[0]['value']['declared_size'], 20)
+
+    def test_sqlalchemy_no_pool_size_emits_no_fact(self):
+        """We do not assume defaults: undeclared means unknown means no fact."""
+        body = "from sqlalchemy import create_engine\ne = create_engine('sqlite:///local.db')\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
+            self.assertEqual(pools, [])
+
+    def test_go_http_max_idle_conns_is_a_connection_pool(self):
+        body = ('package main\n'
+                'import "net/http"\n'
+                'func f() *http.Client {\n'
+                '    transport := &http.Transport{MaxIdleConns: 100}\n'
+                '    return &http.Client{Transport: transport}\n'
+                '}\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body, name='orders.go')
+            pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
+            self.assertGreater(len(pools), 0)
+            self.assertEqual(pools[0]['value']['declared_size'], 100)
+
+    def test_pgx_max_conns_is_a_connection_pool(self):
+        body = ('package main\n'
+                'import "github.com/jackc/pgx/v4/pgxpool"\n'
+                'func f() {\n'
+                '    cfg, _ := pgxpool.ParseConfig("")\n'
+                '    cfg.MaxConns = 30\n'
+                '}\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body, name='orders.go')
+            pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
+            self.assertGreater(len(pools), 0)
+            self.assertEqual(pools[0]['value']['declared_size'], 30)
+
+    def test_no_pool_fact_when_nothing_matches(self):
+        body = "def f():\n    return 1 + 1\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
+            self.assertEqual(pools, [])
+
+    def test_each_pool_fact_carries_resource_declared_size_and_source(self):
+        body = "from sqlalchemy import create_engine\ne = create_engine('postgresql://x', pool_size=5)\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
+            for fact in pools:
+                self.assertIn('resource', fact['value'])
+                self.assertIn('declared_size', fact['value'])
+                self.assertIn('source', fact['value'])
+                self.assertIn('path', fact['location'])
+
+    def test_database_url_with_pool_param_is_a_connection_pool(self):
+        body = 'DATABASE_URL = "postgres://x?pool=50"\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body, name='config.py')
+            pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
+            self.assertGreater(len(pools), 0)

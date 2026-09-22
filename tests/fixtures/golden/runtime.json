@@ -16,6 +16,7 @@
     "by_kind": {
       "cache_policy": 0,
       "ci_step": 2,
+      "connection_pool": 0,
       "data_model": 0,
       "deployment_target": 0,
       "integration_target": 0,

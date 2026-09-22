@@ -20,9 +20,9 @@ from .source import language_of
 from .entrypoints import MODULES, applicable
 
 
-KINDS = ('cache_policy', 'ci_step', 'data_model', 'deployment_target', 'integration_target',
-         'migration_step', 'observability_signal', 'query_bound', 'rate_limit',
-         'resilience_policy', 'security_surface')
+KINDS = ('cache_policy', 'ci_step', 'connection_pool', 'data_model', 'deployment_target',
+         'integration_target', 'migration_step', 'observability_signal', 'query_bound',
+         'rate_limit', 'resilience_policy', 'security_surface')
 
 NAME = 'runtime'
 VERSION = '1'
@@ -539,6 +539,48 @@ def _detect_rate_limits(text, rel, name):
     return rows
 
 
+# Connection pool detection: pool_size is the real ceiling on concurrency.
+# We never assume a default — undeclared means unknown.
+_POOL_PATTERNS = [
+    ('sqlalchemy_pool_size', re.compile(r'pool_size\s*=\s*(\d+)', re.IGNORECASE)),
+    ('sqlalchemy_max_overflow', re.compile(r'max_overflow\s*=\s*(\d+)', re.IGNORECASE)),
+    ('sqlalchemy_pool', re.compile(r'create_engine\([^)]*pool')),
+    ('pg_pool_max', re.compile(r'max_connections\s*=\s*(\d+)', re.IGNORECASE)),
+    ('pgxpool_max', re.compile(r'pgxpool\.New\([^)]*MaxConn(?:ections)?\s*[:=]?\s*(\d+)', re.IGNORECASE)),
+    ('go_max_conns', re.compile(r'\.MaxConn(?:s|ections)?\s*[:=]\s*(\d+)')),
+    ('sqlx_max', re.compile(r'sqlx\.Open[^)]*max_connections', re.IGNORECASE)),
+    ('http_transport', re.compile(r'MaxIdleConns\s*[:=]\s*(\d+)', re.IGNORECASE)),
+    ('http2_transport', re.compile(r'MaxConnsPerHost\s*[:=]\s*(\d+)', re.IGNORECASE)),
+    ('mongoose_max', re.compile(r'maxPoolSize\s*:\s*(\d+)', re.IGNORECASE)),
+    ('prisma_pool', re.compile(r'connection_limit\s*:\s*(\d+)', re.IGNORECASE)),
+    ('sequelize_pool', re.compile(r'pool\s*:\s*\{[^}]*max\s*:\s*(\d+)', re.DOTALL)),
+    ('gorm_setmax', re.compile(r'SetMaxOpenConns\s*\(\s*(\d+)')),
+    ('dburl_pool', re.compile(r'DATABASE_URL[^&]*[?&](?:pool|max_connections|connection_limit)\s*=\s*(\d+)', re.IGNORECASE)),
+]
+
+
+def _detect_connection_pools(text):
+    """One connection_pool fact per declared pool size.
+
+    Undeclared pools are not facts: we report what we observed, not what we assumed.
+    A file with no pool patterns emits no pool facts.
+    """
+    rows = []
+    for kind, regex in _POOL_PATTERNS:
+        for match in regex.finditer(text):
+            line = text.count('\n', 0, match.start()) + 1
+            # Numeric capture if present
+            declared = None
+            if match.groups():
+                try:
+                    declared = int(match.group(1))
+                except (ValueError, TypeError):
+                    declared = None
+            rows.append({'resource': kind, 'declared_size': declared,
+                          'source': 'code', 'line': line})
+    return rows
+
+
 def run(target, source, symbols=None, **options):
     facts, fingerprints = [], []
     seen = set()
@@ -619,6 +661,13 @@ def run(target, source, symbols=None, **options):
                                {'scope': limit['scope'], 'mechanism': limit['mechanism'],
                                 'declared_limit': limit['declared_limit'],
                                 'source': limit['source']},
+                               limitations=LIMITATIONS))
+        for pool in _detect_connection_pools(text):
+            facts.append(make('connection_pool', NAME, VERSION, item['sha256'],
+                               {'path': rel, 'start_line': pool['line']},
+                               {'resource': pool['resource'],
+                                'declared_size': pool['declared_size'],
+                                'source': pool['source']},
                                limitations=LIMITATIONS))
         if _migration_files(name):
             facts.append(make('migration_step', NAME, VERSION, item['sha256'],
