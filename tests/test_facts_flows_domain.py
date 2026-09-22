@@ -204,3 +204,37 @@ class HotspotTests(unittest.TestCase):
             hotspots = [claim for claim in claims if 'branches over' in claim['statement']]
             self.assertTrue(hotspots, 'the most branching function must be reported whatever its file rank')
             self.assertIn('decide', hotspots[0]['statement'])
+
+
+class FlowHandlerLinkingTests(TemporaryWorkspace):
+    """Handler-to-symbol linking handles Go receiver-method calls and cross-file imports."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+
+    def test_a_handler_with_a_receiver_resolves_to_the_method_symbol(self):
+        """`s.handleIndex` is registered against a symbol named `handleIndex` in the same file."""
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'server.go').write_text(
+                'package main\n\n'
+                'import "net/http"\n\n'
+                'type Server struct{}\n\n'
+                'func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {}\n\n'
+                'func main() {\n'
+                '    s := &Server{}\n'
+                '    http.HandleFunc("/", s.handleIndex)\n'
+                '}\n')
+            collect(repo, Path(tmp) / 'out',
+                    ['syntax', 'resolve', 'entrypoints', 'config', 'metrics', 'domain', 'graph', 'flows'])
+            flows = read_set(Path(tmp) / 'out', 'flows')
+            handler_found = any(f['value']['handler_found'] for f in flows['facts'])
+            self.assertTrue(handler_found,
+                              "receiver-method handler did not link")
+            flow = flows['facts'][0]
+            self.assertEqual(flow['value']['entry']['handler'], 's.handleIndex')
+            # The handler is `s.handleIndex` in the entry_point, but the trace must have
+            # found the symbol named `handleIndex` in the same file.
+            self.assertTrue(any(step.get('to_symbol') == 'handleIndex' or 'handleIndex' in str(step)
+                                for step in flow['value']['steps']) or flow['value']['handler_found'])

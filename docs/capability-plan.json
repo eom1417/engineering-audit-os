@@ -1240,7 +1240,7 @@
           "rollback": "git checkout eaos/facts/entrypoints.py eaos/facts/flows.py",
           "depends_on": [],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N11.T3",

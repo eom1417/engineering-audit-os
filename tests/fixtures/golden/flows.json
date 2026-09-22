@@ -3,7 +3,7 @@
   "extractor": "flows",
   "extractor_version": "1",
   "available": true,
-  "input_sha": "995bff9ff6ee13e46302189b472fd456d2ba458cfa9cdb6d2309c2d3bb660bfc",
+  "input_sha": "ae6aeabc38e506e15da258dc9c58ef9c1aec19486ebf9d3bd01e1e6fe6a28312",
   "limitations": [
     "A trace follows statically resolvable calls; dispatch through variables, callbacks or DI is not followed.",
     "Order inside a function is source order, not proof of runtime order or of the branch actually taken.",
@@ -11,21 +11,21 @@
     "Nothing here proves the flow runs in production, or that its error paths behave as written."
   ],
   "summary": {
-    "flows": 6,
-    "entry_points_considered": 7,
-    "distinct_handlers": 6,
+    "flows": 8,
+    "entry_points_considered": 8,
+    "distinct_handlers": 8,
     "flows_reaching_other_code": 3,
-    "flows_stopping_at_the_first_boundary": 3,
+    "flows_stopping_at_the_first_boundary": 5,
     "test_entry_points_excluded": 0,
-    "entry_points_without_traceable_handler": 1,
-    "total_steps": 19,
+    "entry_points_without_traceable_handler": 0,
+    "total_steps": 29,
     "unresolved_steps": 0,
     "steps_by_resolution": {
       "local": 3,
       "imported": 3,
       "external": 0,
       "builtin": 1,
-      "method_or_external": 12,
+      "method_or_external": 22,
       "ambiguous": 0,
       "unresolved": 0
     },
@@ -293,7 +293,7 @@
       ]
     },
     {
-      "id": "FACT-f8b76d431bf03263",
+      "id": "FACT-74e490ca6b903399",
       "kind": "flow",
       "extractor": "flows",
       "extractor_version": "1",
@@ -403,13 +403,7 @@
         ],
         "environment_reads": [],
         "truncated": false,
-        "also_reached_by": [
-          {
-            "surface": "cli",
-            "route": "polyglot",
-            "line": 11
-          }
-        ],
+        "also_reached_by": [],
         "in_codebase_steps": 0
       },
       "resolution": "RESOLVED",
@@ -421,7 +415,191 @@
       ]
     },
     {
-      "id": "FACT-9cb8025f8a5ce1d0",
+      "id": "FACT-cb21db26bcd31b49",
+      "kind": "flow",
+      "extractor": "flows",
+      "extractor_version": "1",
+      "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
+      "location": {
+        "path": "svc/main.go",
+        "start_line": 11,
+        "symbol": "main"
+      },
+      "value": {
+        "flow_id": "FLOW-006",
+        "entry": {
+          "surface": "cli",
+          "route": "main",
+          "http_method": null,
+          "framework": "go_main",
+          "path": "svc/main.go",
+          "line": 11,
+          "handler": "main"
+        },
+        "handler_found": true,
+        "steps": [
+          {
+            "from": "main",
+            "from_path": "svc/main.go",
+            "callee": "HandleFunc",
+            "line": 13,
+            "resolution": "method_or_external",
+            "to_path": null,
+            "to_symbol": null,
+            "depth": 0
+          },
+          {
+            "from": "main",
+            "from_path": "svc/main.go",
+            "callee": "ListenAndServe",
+            "line": 14,
+            "resolution": "method_or_external",
+            "to_path": null,
+            "to_symbol": null,
+            "depth": 0
+          }
+        ],
+        "unresolved_steps": 0,
+        "touched_files": [
+          "svc/main.go"
+        ],
+        "environment_reads": [],
+        "truncated": false,
+        "also_reached_by": [],
+        "in_codebase_steps": 0
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "A trace follows statically resolvable calls; dispatch through variables, callbacks or DI is not followed.",
+        "Order inside a function is source order, not proof of runtime order or of the branch actually taken.",
+        "An unresolved step means the tracer stopped there, not that execution stops there.",
+        "Nothing here proves the flow runs in production, or that its error paths behave as written."
+      ]
+    },
+    {
+      "id": "FACT-8d79d468d3a409f6",
+      "kind": "flow",
+      "extractor": "flows",
+      "extractor_version": "1",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 11,
+        "symbol": "main"
+      },
+      "value": {
+        "flow_id": "FLOW-007",
+        "entry": {
+          "surface": "cli",
+          "route": "polyglot",
+          "http_method": null,
+          "framework": "argparse",
+          "path": "cli.py",
+          "line": 11,
+          "handler": "main"
+        },
+        "handler_found": true,
+        "steps": [
+          {
+            "from": "main",
+            "from_path": "cli.py",
+            "callee": "ArgumentParser",
+            "line": 11,
+            "resolution": "method_or_external",
+            "to_path": null,
+            "to_symbol": null,
+            "depth": 0
+          },
+          {
+            "from": "main",
+            "from_path": "cli.py",
+            "callee": "add_subparsers",
+            "line": 12,
+            "resolution": "method_or_external",
+            "to_path": null,
+            "to_symbol": null,
+            "depth": 0
+          },
+          {
+            "from": "main",
+            "from_path": "cli.py",
+            "callee": "add_parser",
+            "line": 13,
+            "resolution": "method_or_external",
+            "to_path": null,
+            "to_symbol": null,
+            "depth": 0
+          },
+          {
+            "from": "main",
+            "from_path": "cli.py",
+            "callee": "add_argument",
+            "line": 14,
+            "resolution": "method_or_external",
+            "to_path": null,
+            "to_symbol": null,
+            "depth": 0
+          },
+          {
+            "from": "main",
+            "from_path": "cli.py",
+            "callee": "add_argument",
+            "line": 15,
+            "resolution": "method_or_external",
+            "to_path": null,
+            "to_symbol": null,
+            "depth": 0
+          },
+          {
+            "from": "main",
+            "from_path": "cli.py",
+            "callee": "set_defaults",
+            "line": 16,
+            "resolution": "method_or_external",
+            "to_path": null,
+            "to_symbol": null,
+            "depth": 0
+          },
+          {
+            "from": "main",
+            "from_path": "cli.py",
+            "callee": "parse_args",
+            "line": 17,
+            "resolution": "method_or_external",
+            "to_path": null,
+            "to_symbol": null,
+            "depth": 0
+          },
+          {
+            "from": "main",
+            "from_path": "cli.py",
+            "callee": "func",
+            "line": 18,
+            "resolution": "method_or_external",
+            "to_path": null,
+            "to_symbol": null,
+            "depth": 0
+          }
+        ],
+        "unresolved_steps": 0,
+        "touched_files": [
+          "cli.py"
+        ],
+        "environment_reads": [],
+        "truncated": false,
+        "also_reached_by": [],
+        "in_codebase_steps": 0
+      },
+      "resolution": "RESOLVED",
+      "limitations": [
+        "A trace follows statically resolvable calls; dispatch through variables, callbacks or DI is not followed.",
+        "Order inside a function is source order, not proof of runtime order or of the branch actually taken.",
+        "An unresolved step means the tracer stopped there, not that execution stops there.",
+        "Nothing here proves the flow runs in production, or that its error paths behave as written."
+      ]
+    },
+    {
+      "id": "FACT-a1b67f8f8c051702",
       "kind": "flow",
       "extractor": "flows",
       "extractor_version": "1",
@@ -432,7 +610,7 @@
         "symbol": "quote"
       },
       "value": {
-        "flow_id": "FLOW-006",
+        "flow_id": "FLOW-008",
         "entry": {
           "surface": "cli",
           "route": "quote",

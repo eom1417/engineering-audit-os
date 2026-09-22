@@ -93,3 +93,62 @@ class EntryPointTests(TemporaryWorkspace):
             (repo / 'lib.py').write_text('def helper():\n    return 1\n')
             self.assertEqual([f for f in load(tmp, repo)['facts']
                               if f['value']['framework'] == 'python_script'], [])
+
+
+class GoMainPackageTests(TemporaryWorkspace):
+    """`package main` + `func main()` is the binary's entry point: surface=cli, framework=go_main.
+
+    The detector only fires when both pieces are present; either alone is not a runtime surface.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+
+    def test_cmd_x_main_go_with_package_main_and_func_main_is_an_entry_point(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'cmd/x').mkdir(parents=True)
+            (repo / 'cmd/x/main.go').write_text('package main\n\nimport "fmt"\n\n'
+                                                 'func main() {\n    fmt.Println("hi")\n}\n')
+            rows = [f['value'] for f in load(tmp, repo)['facts']]
+        main_entry = next((r for r in rows if r['framework'] == 'go_main'), None)
+        self.assertIsNotNone(main_entry)
+        self.assertEqual(main_entry['surface'], 'cli')
+        self.assertEqual(main_entry['handler'], 'main')
+        self.assertEqual(main_entry['route'], 'main')
+
+    def test_a_package_main_file_without_func_main_does_not_emit_a_go_main_entry_point(self):
+        """A library file that happens to start with `package main` is not an entry point."""
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'helpers.go').write_text('package main\n\nfunc helper() {}\n')
+            rows = [f['value'] for f in load(tmp, repo)['facts']]
+        self.assertEqual([r for r in rows if r['framework'] == 'go_main'], [])
+
+    def test_a_non_main_package_with_func_main_does_not_emit_a_go_main_entry_point(self):
+        """`func main` only counts in a `package main` file; anything else is a collision."""
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'lib.go').write_text('package lib\n\nfunc main() {}\n')
+            rows = [f['value'] for f in load(tmp, repo)['facts']]
+        self.assertEqual([r for r in rows if r['framework'] == 'go_main'], [])
+
+    def test_http_handler_with_receiver_is_an_entry_point(self):
+        """A receiver-method handler like `s.handleIndex` registers as an http route."""
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'server.go').write_text(
+                'package main\n\n'
+                'import "net/http"\n\n'
+                'type Server struct{}\n\n'
+                'func (s *Server) handleIndex(w http.ResponseWriter, r *http.Request) {}\n\n'
+                'func main() {\n'
+                '    s := &Server{}\n'
+                '    http.HandleFunc("/", s.handleIndex)\n'
+                '}\n')
+            rows = [f['value'] for f in load(tmp, repo)['facts']]
+        http_route = next((r for r in rows if r['surface'] == 'http'), None)
+        self.assertIsNotNone(http_route)
+        self.assertEqual(http_route['handler'], 's.handleIndex')
+        self.assertEqual(http_route['framework'], 'go_http')

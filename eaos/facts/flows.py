@@ -44,11 +44,25 @@ def index_calls(call_facts):
     return calls
 
 
-def imported_files(edge_facts):
+def imported_files(edge_facts, symbol_facts=None):
     imports = defaultdict(set)
     for fact in edge_facts:
         if fact['resolution'] == 'RESOLVED' and fact['value'].get('to_path'):
             imports[fact['location']['path']].add(fact['value']['to_path'])
+    # Go's package-internal imports are implicit: any file in the same directory can call any
+    # symbol defined in any other file in that directory. We treat the directory as the unit
+    # of visibility, so a handler in foo/bar.go can reach a symbol in foo/baz.go.
+    if symbol_facts:
+        directories = defaultdict(set)
+        for fact in symbol_facts:
+            if fact['kind'] == 'symbol':
+                rel = fact['location']['path']
+                directories['/'.join(rel.split('/')[:-1])].add(rel)
+        for path in list(imports.keys()):
+            directory = '/'.join(path.split('/')[:-1])
+            for sibling in directories.get(directory, ()):
+                if sibling != path:
+                    imports[path].add(sibling)
     return imports
 
 
@@ -68,17 +82,29 @@ def resolve_callee(name, path, by_file, by_name, imports, external_names, attrib
 GAP_RESOLUTIONS = {'unresolved', 'ambiguous'}
 
 
+def _resolve_handler(handler, path, by_file, by_name, imports):
+    """Locate the symbol a handler points at. Accepts bare names, receiver-qualified calls
+    like `s.handleIndex`, and cross-file imports."""
+    if not handler: return None
+    for row in by_file.get(path, []):
+        if row['symbol'] == handler or row['name'] == handler: return row
+    if '.' in handler:
+        suffix = handler.rsplit('.', 1)[-1]
+        for row in by_file.get(path, []):
+            if row['symbol'] == suffix or row['name'] == suffix: return row
+    candidates = [row for row in by_name.get(handler, []) if row['path'] in imports.get(path, set())]
+    if len(candidates) == 1: return candidates[0]
+    if '.' in handler:
+        suffix = handler.rsplit('.', 1)[-1]
+        candidates = [row for row in by_name.get(suffix, []) if row['path'] in imports.get(path, set())]
+        if len(candidates) == 1: return candidates[0]
+    return None
+
 def trace(entry, by_file, by_name, calls, imports, env_by_file, external_names):
     """Follow one entry point through resolvable calls, recording every stop with its reason."""
     handler = entry['value'].get('handler')
     path = entry['location']['path']
-    start = None
-    for row in by_file.get(path, []):
-        if row['symbol'] == handler or row['name'] == handler: start = row; break
-    if start is None:
-        # A route can be registered in one file and implemented in a module it imports.
-        candidates = [row for row in by_name.get(handler, []) if row['path'] in imports.get(path, set())]
-        if len(candidates) == 1: start = candidates[0]
+    start = _resolve_handler(handler, path, by_file, by_name, imports)
     steps, seen, unresolved = [], set(), 0
     queue = [(start, 0)] if start else []
     while queue and len(steps) < MAX_STEPS:
@@ -135,7 +161,7 @@ def run(target, source, symbols=None, calls=None, edges=None, entry_points=None,
         env = config_module.run(target, source)['facts']
     by_file, by_name = index_symbols(symbols)
     call_index = index_calls(calls or [])
-    imported_map = imported_files(edges or [])
+    imported_map = imported_files(edges or [], symbols)
     env_by_file = defaultdict(set)
     for fact in env or []:
         if fact['kind'] == 'env_read': env_by_file[fact['location']['path']].add(fact['value']['name'])
@@ -149,7 +175,8 @@ def run(target, source, symbols=None, calls=None, edges=None, entry_points=None,
     seen_handlers = {}
     deduplicated = []
     for entry in ranked:
-        key = (entry['location']['path'], entry['value'].get('handler'))
+        key = (entry['location']['path'], entry['value'].get('handler'),
+                 entry['value'].get('framework'))
         if key in seen_handlers:
             seen_handlers[key]['value'].setdefault('also_reached_by', []).append(
                 {'surface': entry['value']['surface'], 'route': entry['value']['route'],
@@ -160,7 +187,7 @@ def run(target, source, symbols=None, calls=None, edges=None, entry_points=None,
         deduplicated.append(copy)
     for index, entry in enumerate(deduplicated, start=1):
         traced = trace(entry, by_file, by_name, call_index, imported_map, env_by_file, external_names)
-        if not traced['handler_found'] or not traced['steps']: continue
+        if not traced['handler_found']: continue
         traced['also_reached_by'] = entry['value'].get('also_reached_by', [])
         traced['in_codebase_steps'] = sum(1 for step in traced['steps'] if step['resolution'] in {'local', 'imported'})
         facts.append(make('flow', NAME, VERSION, entry['input_sha'],

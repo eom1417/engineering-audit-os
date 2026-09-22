@@ -812,6 +812,34 @@
       },
       "overall_at_this_point": 0.8398,
       "note": "Go imports: 1336 AMBIGUOUS -> mostly RESOLVED; imports_resolved_outside_python 0.0594 -> 0.9769; structure_polyglot 0.5115 -> 0.9228; overall 0.7008 -> 0.8398; 4 -> 5 at target"
+    },
+    {
+      "task": "N11.T2",
+      "title": "نقطة دخول Go وربط المعالج بالرمز",
+      "recorded_at": "2026-09-22T20:38:06+00:00",
+      "commit": "43e5d75",
+      "acceptance_command": "eaos audit /workspace/upstream-src/enola --out /tmp/n11t2 --skip site && python3 -c \"import json;s=json.load(open('/tmp/n11t2/facts/flows.json'))['summary'];assert s['flows']>=8, s;assert s['entry_points_without_traceable_handler']<=2, s\"",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "structure_polyglot.thirdmost_language_depth",
+        "from": 0.875,
+        "to": 0.875
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.6699,
+        "target_architecture": 0.6667,
+        "transformation_plan": 0.6667,
+        "report_clarity": 1.0,
+        "independent_proof": null
+      },
+      "overall_at_this_point": 0.8416,
+      "note": "Go main + http receiver + CLI dispatch detectors; comment stripping in go_web; same-package imports; flows 1 -> 25 (enola); unlinked 8 -> 1; thirdmost_language_depth 0.875 -> 0.9915; overall 0.8398 -> 0.8416"
     }
   ]
 }

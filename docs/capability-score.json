@@ -1,8 +1,8 @@
 {
   "contract_version": 1,
   "reports": [
-    "/tmp/selfr_new",
-    "/tmp/gor_new"
+    "/tmp/selfr2",
+    "/tmp/gor2"
   ],
   "domains": {
     "layered_engineering": {
@@ -21,14 +21,14 @@
     },
     "structure_python": {
       "indicators": {
-        "entry_points_traced": 0.8214,
+        "entry_points_traced": 0.8929,
         "python_files_parsed": 1.0,
         "python_imports_resolved": 1.0,
         "symbols_extracted": 1.0
       },
       "measured_indicators": 4,
       "unmeasured_indicators": 0,
-      "score": 0.9554,
+      "score": 0.9732,
       "target": 0.8,
       "meets_target": true
     },
@@ -60,11 +60,11 @@
       "indicators": {
         "entry_points_with_a_cost_record": 1.0,
         "projection_recorded": 1.0,
-        "questions_answered": 0.0192
+        "questions_answered": 0.0096
       },
       "measured_indicators": 3,
       "unmeasured_indicators": 0,
-      "score": 0.6731,
+      "score": 0.6699,
       "target": 0.8,
       "meets_target": false
     },
@@ -118,7 +118,7 @@
       "meets_target": false
     }
   },
-  "overall": 0.8398,
+  "overall": 0.8416,
   "domains_meeting_target": 5,
   "domains_total": 9,
   "target": 0.8,
