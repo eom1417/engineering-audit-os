@@ -118,3 +118,153 @@ class PolicyTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ComputeTests(unittest.TestCase):
+    """compute() builds a record from facts already produced; it never invents one."""
+
+    def _report_with(self, tmp, facts_files):
+        """Write a few facts files into tmp/facts/ and return the tmp path."""
+        from pathlib import Path
+        import json
+        facts_dir = Path(tmp) / 'facts'
+        facts_dir.mkdir(parents=True, exist_ok=True)
+        for name, payload in facts_files.items():
+            (facts_dir / f'{name}.json').write_text(json.dumps(payload))
+        return Path(tmp)
+
+    def test_an_empty_report_produces_an_empty_record(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            record = load_model.compute(tmp)
+        self.assertEqual(record['entry_points'], [])
+
+    def test_an_undetectable_entry_point_has_eight_answers_with_a_reason(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            self._report_with(tmp, {
+                'entrypoints': {'facts': [{
+                    'kind': 'entry_point', 'id': 'E1',
+                    'location': {'path': 'a.py', 'symbol': 'handle'},
+                    'value': {'category': 'http', 'handler': 'handle'}}],
+                    'flows': {'facts': []}},
+                'flows': {'facts': []},
+            })
+            record = load_model.compute(tmp)
+        self.assertEqual(len(record['entry_points']), 1)
+        entry = record['entry_points'][0]
+        self.assertEqual(len(entry['answers']), 8)
+        for question, answer in entry['answers'].items():
+            self.assertEqual(answer['status'], 'undetectable', question)
+            self.assertTrue(answer['reason'], f'{question} needs a reason')
+            self.assertEqual(load_model.QUESTIONS, tuple(entry['answers']),
+                              'all eight questions must be answered')
+
+    def test_a_test_entry_point_is_excluded(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            self._report_with(tmp, {
+                'entrypoints': {'facts': [{
+                    'kind': 'entry_point', 'id': 'T1',
+                    'location': {'path': 'test_x.py', 'symbol': 'test_handle'},
+                    'value': {'category': 'test', 'handler': 'test_handle'}}]},
+            })
+            record = load_model.compute(tmp)
+        self.assertEqual(record['entry_points'], [])
+
+    def test_data_access_calls_counts_call_sites_in_the_entry_file(self):
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            self._report_with(tmp, {
+                'entrypoints': {'facts': [{
+                    'kind': 'entry_point', 'id': 'E1',
+                    'location': {'path': 'a.py', 'symbol': 'handle'},
+                    'value': {'category': 'http', 'handler': 'handle'}}]},
+                'structure': {'facts': [
+                    {'id': 'cs1', 'kind': 'call_site',
+                     'location': {'path': 'a.py'},
+                     'value': {'callee': 'session.execute', 'attribute': True, 'enclosing': 'handle'}},
+                    {'id': 'cs2', 'kind': 'call_site',
+                     'location': {'path': 'a.py'},
+                     'value': {'callee': 'parse_int', 'attribute': False, 'enclosing': 'handle'}},
+                ]},
+                'flows': {'facts': [{
+                    'kind': 'flow',
+                    'location': {'path': 'a.py', 'symbol': 'handle'},
+                    'value': {'flow_id': 'F1', 'steps': [], 'in_codebase_steps': 0,
+                                'unresolved_steps': 0, 'handler_found': True}}]},
+            })
+            record = load_model.compute(tmp)
+        self.assertEqual(record['entry_points'][0]['answers']['data_access_calls']['status'], 'answered')
+        self.assertEqual(record['entry_points'][0]['answers']['data_access_calls']['value'], 1)
+
+    def test_query_bound_with_bounded_true_yields_answer(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            self._report_with(tmp, {
+                'entrypoints': {'facts': [{
+                    'kind': 'entry_point', 'id': 'E1',
+                    'location': {'path': 'a.py', 'symbol': 'handle'},
+                    'value': {'category': 'http', 'handler': 'handle'}}]},
+                'flows': {'facts': [{
+                    'kind': 'flow',
+                    'location': {'path': 'a.py', 'symbol': 'handle'},
+                    'value': {'flow_id': 'F1', 'steps': [], 'in_codebase_steps': 0,
+                                'unresolved_steps': 0, 'handler_found': True}}]},
+                'runtime': {'facts': [
+                    {'id': 'qb1', 'kind': 'query_bound',
+                     'location': {'path': 'a.py'},
+                     'value': {'bounded': True, 'mechanism': 'limit', 'kind': 'sqlalchemy_limit'}},
+                ]},
+            })
+            record = load_model.compute(tmp)
+        ans = record['entry_points'][0]['answers']['result_is_bounded']
+        self.assertEqual(ans['status'], 'answered')
+        self.assertTrue(ans['value'])
+
+
+class ComputeValidationTests(unittest.TestCase):
+    """The record compute() returns must pass its own validate()."""
+
+    def test_computed_record_is_well_formed_for_traced_entry(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            from pathlib import Path
+            import json
+            facts_dir = Path(tmp) / 'facts'
+            facts_dir.mkdir(parents=True, exist_ok=True)
+            for name, payload in {
+                'entrypoints': {'facts': [{
+                    'kind': 'entry_point', 'id': 'E1',
+                    'location': {'path': 'a.py', 'symbol': 'handle'},
+                    'value': {'category': 'http', 'handler': 'handle'}}]},
+                'flows': {'facts': [{
+                    'kind': 'flow',
+                    'location': {'path': 'a.py', 'symbol': 'handle'},
+                    'value': {'flow_id': 'F1', 'steps': [], 'in_codebase_steps': 0,
+                                'unresolved_steps': 0, 'handler_found': True}}]},
+            }.items():
+                (facts_dir / f'{name}.json').write_text(json.dumps(payload))
+            record = load_model.compute(tmp)
+            problems = load_model.validate(record)
+            self.assertEqual(problems, [], f'unexpected problems: {problems}')
+
+    def test_computed_record_with_undetectable_answers_is_well_formed(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            from pathlib import Path
+            import json
+            facts_dir = Path(tmp) / 'facts'
+            facts_dir.mkdir(parents=True, exist_ok=True)
+            for name, payload in {
+                'entrypoints': {'facts': [{
+                    'kind': 'entry_point', 'id': 'E1',
+                    'location': {'path': 'a.py', 'symbol': 'handle'},
+                    'value': {'category': 'http', 'handler': 'handle'}}]},
+                'flows': {'facts': []},
+            }.items():
+                (facts_dir / f'{name}.json').write_text(json.dumps(payload))
+            record = load_model.compute(tmp)
+            problems = load_model.validate(record)
+            self.assertEqual(problems, [])
