@@ -136,31 +136,73 @@ def assess(component, sets, claims=None, load_record=None):
                       'the evidence for keeping it is the absence of each'), sorted(component['evidence_ids'])
 
 
+def assessment_details(component, sets, claims=None, load_record=None):
+    claims = claims or []
+    paths = set(component.get('paths') or [])
+    live = [claim for claim in claims
+            if paths & set((claim.get('priority_factors') or {}).get('paths') or [])
+            and claim.get('confidence') in ('CONFIRMED', 'LIKELY') and claim.get('status') != 'withdrawn']
+    cycles = [fact for fact in sets.get('graph', {}).get('facts', [])
+              if fact['kind'] == 'graph_cycle' and paths & set(fact['value'].get('members') or [])]
+    violations = [fact for fact in sets.get('policy', {}).get('facts', [])
+                  if fact['kind'] == 'policy_violation' and fact['location']['path'] in paths]
+    blockers = []
+    if load_record:
+        from .load_model import blockers as load_blockers
+        blockers = [row for row in load_blockers(load_record) if row.get('path') in paths]
+    return {'live_claims': len(live), 'policy_violations': len(violations),
+            'dependency_cycles': len(cycles), 'load_blockers': len(blockers)}
+
+
 def _adr(component, number):
     relation = component['relation']
-    action = {
-        'modify': 'Change the component at its existing boundary.',
-        'introduce': 'Introduce the proposed component behind its declared contracts.',
-        'retire': 'Retire the component after its callers have moved.',
-    }[relation]
-    alternatives = {
-        'modify': ['Do nothing and accept the evidenced problem.', action],
-        'introduce': ['Do nothing and leave the capability without an owner.', action],
-        'retire': ['Do nothing and keep maintaining the component.', action],
-    }[relation]
+    measured = component.get('assessment') or {}
+    paths = component.get('paths') or [component.get('origin') or component['id']]
+    if relation == 'introduce':
+        alternatives = ['Introduce the component behind its declared contracts.',
+                        'Extend the closest existing owner instead of adding a component.',
+                        'Do nothing and leave the capability without an owner.']
+    elif relation == 'retire':
+        alternatives = ['Move callers to the named successor, then retire the component.',
+                        'Keep a compatibility adapter at the current boundary.',
+                        'Do nothing and keep maintaining the component.']
+    elif measured.get('dependency_cycles'):
+        alternatives = ['Break the cycle by moving the shared responsibility to its owning component.',
+                        'Invert one dependency behind an interface at the current boundary.',
+                        'Do nothing and retain the dependency cycle.']
+    elif measured.get('load_blockers'):
+        alternatives = ['Bound the entry path with rate limiting and explicit result pagination.',
+                        'Cache repeated reads at the component boundary with an explicit lifetime.',
+                        'Do nothing and accept the measured load blockers.']
+    elif measured.get('policy_violations'):
+        alternatives = ['Move the violating files to the layer that owns their responsibility.',
+                        'Amend the declared policy with a reviewed exception and rationale.',
+                        'Do nothing and retain the policy violation.']
+    else:
+        alternatives = ['Resolve the live claims inside the existing component boundary.',
+                        'Split the claimed responsibility into a separately owned component.',
+                        'Do nothing and retain the live claims.']
+    action = alternatives[0]
+    evidence = sorted(set(component.get('evidence_ids') or []))
+    shown_evidence = evidence[:5]
+    if len(evidence) > 5: shown_evidence.append(f'+{len(evidence) - 5} more evidence IDs')
+    counts = (f"{measured.get('live_claims', 0)} live claim(s), "
+              f"{measured.get('policy_violations', 0)} policy violation(s), "
+              f"{measured.get('dependency_cycles', 0)} cycle(s), and "
+              f"{measured.get('load_blockers', 0)} load blocker(s)")
     decision = {
         'id': f'ADR-{number:03d}',
         'component_id': component['id'],
         'problem': component.get('reason') or f'The component is assessed as {relation}.',
-        'evidence': sorted(set(component.get('evidence_ids') or [])),
+        'evidence': shown_evidence,
         'options': alternatives,
         'chosen': action,
-        'tradeoffs': ('The chosen option follows the assessed relation and keeps the change at the '
-                      'component boundary; it costs migration work and must preserve its contracts.'),
+        'tradeoffs': (f"The component has {counts}. The chosen option changes {len(paths)} file(s); "
+                      'it keeps ownership at this boundary but requires its existing contracts to remain compatible.'),
         'consequences': [f'The component remains traceable as {relation}.',
                          'The cited evidence must be rechecked after migration.'],
-        'migration': ['Record the current contract and its acceptance check.',
-                      action, 'Run the acceptance check and update the evidence ledger.'],
+        'migration': [f"Record the contract and acceptance check for `{path}`." for path in paths[:3]] +
+                     [action, 'Run the acceptance check and update the evidence ledger.'],
     }
     validate_decision(decision)
     return decision
@@ -246,6 +288,7 @@ def build(out, contracts_by_path=None, target_components=None):
         component['relation'] = relation
         component['reason'] = reason
         component['evidence_ids'] = sorted(set(component['evidence_ids']) | set(evidence))
+        component['assessment'] = assessment_details(component, sets, claims, load_record)
     proposal = Path(out) / 'target-design.json'
     if target_components is None and proposal.is_file():
         data = json.loads(proposal.read_text())

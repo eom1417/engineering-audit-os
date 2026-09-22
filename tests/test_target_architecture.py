@@ -5,7 +5,9 @@ import unittest
 class ArchitecturalDecisionTests(unittest.TestCase):
     def component(self, relation='modify'):
         return {'id': 'T-app', 'relation': relation, 'reason': 'FACT-c1 shows a cycle',
-                'evidence_ids': ['FACT-c1']}
+                'evidence_ids': ['FACT-c1'], 'paths': ['app/a.py'],
+                'assessment': {'dependency_cycles': 1, 'live_claims': 0,
+                               'policy_violations': 0, 'load_blockers': 0}}
 
     def test_every_changed_component_gets_a_complete_adr(self):
         from eaos.target_architecture import decisions
@@ -45,6 +47,26 @@ class ArchitecturalDecisionTests(unittest.TestCase):
             text = Path(out, 'docs/adr/ADR-001.md').read_text(encoding='utf-8')
         self.assertIn('Do nothing', text)
         self.assertIn('FACT-c1', text)
+
+    def test_options_follow_the_evidence_instead_of_repeating_one_template(self):
+        from eaos.target_architecture import decisions
+        cycle = self.component()
+        load = dict(self.component(), id='T-api', reason='load blockers', paths=['api/handler.py'],
+                    assessment={'dependency_cycles': 0, 'live_claims': 1,
+                                'policy_violations': 0, 'load_blockers': 2})
+        records = decisions([cycle, load])
+        self.assertNotEqual(records[0]['options'], records[1]['options'])
+        self.assertIn('cycle', ' '.join(records[0]['options']).lower())
+        self.assertRegex(' '.join(records[1]['options']).lower(), 'rate|cache|paginat')
+        self.assertIn('app/a.py', ' '.join(records[0]['migration']))
+
+    def test_evidence_is_capped_with_a_remainder_counter(self):
+        from eaos.target_architecture import decisions
+        component = self.component()
+        component['evidence_ids'] = [f'FACT-{index}' for index in range(10)]
+        evidence = decisions([component])[0]['evidence']
+        self.assertEqual(len(evidence), 6)
+        self.assertIn('+5 more evidence IDs', evidence)
 
 class ComponentGranularityTests(unittest.TestCase):
     """A component is an architectural unit, and every one carries a verdict with its evidence."""

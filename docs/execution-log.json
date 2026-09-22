@@ -952,6 +952,62 @@
       },
       "overall_at_this_point": 0.8125,
       "note": "CodeGraph edge merge now reports merged, empty, failed, or unavailable; zero normalized facts carry a reason."
+    },
+    {
+      "task": "N11.T8",
+      "title": "بدائل معمارية تخص المكوّن لا قالبًا مكرّرًا",
+      "recorded_at": "2026-09-22T21:55:14+00:00",
+      "commit": "277dbe4",
+      "acceptance_command": "python -m unittest tests.test_target_architecture -q && eaos audit . --out /tmp/n11t8 --skip site && python3 -c \"import json;d=json.load(open('/tmp/n11t8/target-architecture.json'));o=[tuple(x['options']) for x in d['decisions']];assert len(set(o))>=2, len(set(o));assert all(len(x['evidence'])<=6 for x in d['decisions'])\"",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "target_architecture.decisions_with_alternatives",
+        "from": 1.0,
+        "to": 1.0
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.9167,
+        "target_architecture": 0.6667,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8125,
+      "note": "ADRs now derive options, measured tradeoffs, file-specific migration, and capped evidence from each component."
+    },
+    {
+      "task": "N6.T3",
+      "title": "قرار معماري ببدائله",
+      "recorded_at": "2026-09-22T21:55:14+00:00",
+      "commit": "277dbe4",
+      "acceptance_command": "python -m unittest tests.test_target_architecture -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "target_architecture.decisions_with_alternatives",
+        "from": 0.0,
+        "to": 0.85
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.9167,
+        "target_architecture": 0.6667,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8125,
+      "note": "Revalidated after N11.T8 replaced the repeated ADR template with evidence-specific decisions."
     }
   ]
 }

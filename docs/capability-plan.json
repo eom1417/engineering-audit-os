@@ -841,8 +841,7 @@
             "N6.T2"
           ],
           "references": [],
-          "status": "blocked",
-          "blocked_reason": "the generator emits the same two options, tradeoffs and migration steps for every component; the indicator reads 1.0 but the content is a template, so N11.T6 replaces it"
+          "status": "done"
         },
         {
           "id": "N6.T4",
@@ -1406,7 +1405,7 @@
           "rollback": "git checkout eaos/target_architecture.py",
           "depends_on": [],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N11.T9",
