@@ -844,7 +844,7 @@ python -m unittest tests.test_target_architecture -q && eaos audit . --out /tmp/
 
 **المشكلة المقيسة:** صفر مرحلة تحمل أمر قبول قابلًا للتشغيل، ولا توقّع واحد جرت مقارنته بما حدث.
 
-### N7.T1 — أمر قبول قابل للتشغيل لكل مرحلة ⬜
+### N7.T1 — أمر قبول قابل للتشغيل لكل مرحلة ⛔
 
 **لماذا:** معيار قبول لا يُشغَّل ليس معيارًا.
 **يحرّك:** `transformation_plan.stages_with_runnable_acceptance` من `0.0` إلى `0.9`

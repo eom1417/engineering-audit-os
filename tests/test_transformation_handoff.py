@@ -48,3 +48,38 @@ class HandoffTests(unittest.TestCase):
         task = next(t for t in renderer.tasks(self.plan) if t['id'] == 'M4.T4')
         task['depends_on'].remove('M4.T1')
         self.assertTrue(any('unbound future reference' in error for error in renderer.validate(self.plan)))
+
+
+class RunnableStageAcceptanceTests(unittest.TestCase):
+    def test_every_real_stage_has_a_valid_behavioral_command(self):
+        import tempfile
+        from eaos.audit import run
+        from eaos.decisions import check_errors
+        with tempfile.TemporaryDirectory() as out:
+            run(ROOT, out, language='en')
+            plan = json.loads(Path(out, 'transform-plan.json').read_text(encoding='utf-8'))
+        self.assertTrue(plan['stages'])
+        for stage in plan['stages']:
+            check = stage['acceptance']
+            self.assertEqual(check_errors(check), [], stage['stage'])
+            self.assertIsInstance(check['argv'], list)
+            self.assertEqual(check['cwd'], '.')
+            self.assertIs(type(check['expected_exit']), int)
+
+    def test_a_repository_without_tests_gets_a_declared_fallback(self):
+        import tempfile
+        from eaos.transform_plan import _stage_acceptance
+        with tempfile.TemporaryDirectory() as out:
+            facts = Path(out, 'facts'); facts.mkdir()
+            target = Path(out, 'candidate'); target.mkdir()
+            Path(facts, 'run.json').write_text(json.dumps({'target': str(target)}), encoding='utf-8')
+            check = _stage_acceptance('canonicalize', [{'path': 'app.py'}], out, 1)
+        self.assertEqual(check['origin'], 'generated_equivalence_fallback')
+        self.assertEqual(check['argv'][1:4], ['-m', 'compileall', '-q'])
+
+    def test_report_regeneration_is_never_an_acceptance_command(self):
+        from eaos.decisions import check_errors
+        check = {'id': 'x', 'kind': 'command', 'invariant': 'behavior', 'expected': 'passes',
+                 'source_revision': 'candidate', 'argv': ['eaos', 'facts', '.'],
+                 'cwd': '.', 'expected_exit': 0}
+        self.assertIn('report regeneration is not behavioral acceptance', check_errors(check))
