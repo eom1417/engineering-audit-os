@@ -1176,6 +1176,34 @@
       },
       "overall_at_this_point": 0.8537,
       "note": "prediction recording, declared artifact and a really-executed before/after test landed; indicator stays unmeasured without an after-report"
+    },
+    {
+      "task": "N8.T3",
+      "title": "توأم JSON لكل وثيقة",
+      "recorded_at": "2026-09-22T23:56:42+00:00",
+      "commit": "d93c046",
+      "acceptance_command": "python -m unittest tests.test_artifact_contract -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "report_clarity.documents_declared",
+        "from": 1.0,
+        "to": 1.0
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.9535,
+        "target_architecture": 1.0,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8537,
+      "note": "R14: every document names its record twin or says why it has none; three records a document pointed at were undeclared and now are"
     }
   ]
 }

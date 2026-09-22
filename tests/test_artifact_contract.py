@@ -137,3 +137,44 @@ class PartialRunTests(unittest.TestCase):
             (out / 'STRAY.md').write_text('# stray\n', encoding='utf-8')
             problems = validate(out, {'claims': []})
         self.assertTrue(any(p.startswith('R13 STRAY.md') for p in problems), problems)
+
+
+class RecordTwinTests(unittest.TestCase):
+    """R14: a document a model cannot act on is a dead end, and silence is not an answer."""
+
+    def test_every_declared_document_has_a_record_twin_or_says_why_not(self):
+        from eaos.compose.rules import documents_without_a_record_twin
+        self.assertEqual(documents_without_a_record_twin(), [])
+
+    def test_a_document_declared_without_either_is_caught(self):
+        # The mutation the rule exists to catch: a new document added with neither field set.
+        from eaos.compose import rules
+        from eaos.compose.artifacts import Artifact, DOCUMENT
+        silent = Artifact('NEW-THING.md', 'compose', DOCUMENT, 'a document nobody can act on', 99, 120)
+        original = dict(rules.BY_NAME)
+        try:
+            rules.BY_NAME['NEW-THING.md'] = silent
+            problems = rules.documents_without_a_record_twin()
+        finally:
+            rules.BY_NAME.clear(); rules.BY_NAME.update(original)
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn('R14 NEW-THING.md', problems[0])
+        # And the rule is satisfied by either field, not only by a record.
+        for field in ({'record': 'thing.json'}, {'record_absent_because': 'it renders facts/ directly'}):
+            with self.subTest(field=sorted(field)[0]):
+                try:
+                    rules.BY_NAME['NEW-THING.md'] = Artifact(
+                        'NEW-THING.md', 'compose', DOCUMENT, 'a document nobody can act on', 99, 120, **field)
+                    self.assertEqual(rules.documents_without_a_record_twin(), [])
+                finally:
+                    rules.BY_NAME.clear(); rules.BY_NAME.update(original)
+
+    def test_a_named_record_twin_is_itself_a_declared_artifact(self):
+        # Pointing at a file nobody writes would satisfy the letter of R14 and none of its point.
+        from eaos.compose.artifacts import ARTIFACTS, BY_NAME, DOCUMENT
+        for artifact in ARTIFACTS:
+            if artifact.kind != DOCUMENT or not artifact.record:
+                continue
+            with self.subTest(document=artifact.name):
+                self.assertIn(artifact.record, BY_NAME,
+                              f'{artifact.name} names {artifact.record}, which no stage declares')

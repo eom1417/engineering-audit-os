@@ -1034,7 +1034,7 @@
             "N8.T2"
           ],
           "references": [],
-          "status": "todo"
+          "status": "done"
         }
       ]
     },
@@ -1442,8 +1442,8 @@
   "totals": {
     "milestones": 11,
     "tasks": 44,
-    "done": 39,
-    "todo": 2,
+    "done": 40,
+    "todo": 1,
     "blocked": 3
   }
 }

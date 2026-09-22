@@ -39,6 +39,7 @@ def validate(out, dossier):
     if 'README.md' not in documents:
         problems.append('R12 README.md: the dossier has no index or reading order')
     problems += missing_required(out, documents)
+    problems += documents_without_a_record_twin()
     for name, text in sorted(documents.items()):
         if name in {'README.md', 'PROVENANCE.md'}: continue
         # A brief with nothing to report has nothing to link to; the rule applies when claims exist.
@@ -113,4 +114,23 @@ def missing_required(out, documents):
             continue
         found.append(f"R13 {artifact.name}: required, absent, and stage '{artifact.owner}' "
                      f"does not explain it (status {status or 'unknown'})")
+    return sorted(found)
+
+
+def documents_without_a_record_twin():
+    """R14: a model reads the record, a person reads the document, and both come from one source.
+
+    A document with no machine-readable twin is a dead end for anything that has to act on what it
+    says: the reader can see the conclusion and cannot reach the detail behind it. Some documents
+    genuinely have no separate twin because they render the fact store directly, and those say so.
+    Silence is the only answer this rule refuses.
+    """
+    found = []
+    for artifact in BY_NAME.values():
+        if artifact.kind != DOCUMENT:
+            continue
+        if artifact.record or artifact.record_absent_because:
+            continue
+        found.append(f'R14 {artifact.name}: a document with no record twin and no reason given; '
+                     f'set `record=` to its machine-readable source or `record_absent_because=`')
     return sorted(found)
