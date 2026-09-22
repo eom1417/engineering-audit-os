@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 import tempfile
+import shutil
 import unittest
 from shared_fixture import TemporaryWorkspace
 from eaos.facts.run import collect
@@ -77,3 +78,77 @@ class AttentionBudgetTests(unittest.TestCase):
             deferred = [row['path'] for row in omissions if 'attention budget' in row['reason']]
             self.assertIn('api/server.ts', deferred)
             self.assertNotIn('core/pricing.py', deferred)
+
+
+class EngineEdgesInGraphTests(TemporaryWorkspace):
+    """Edges an external engine resolved must show up in the graph, but labelled with their engine."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = cls.workspace()
+
+    def test_engine_resolved_edges_appear_in_the_graph_with_source_label(self):
+        """When an engine provides an edge, the graph records it under 'engine:<name>' and counts it."""
+        from eaos.facts.resolve import make as fact_make, digest
+        from eaos.facts.source import Source
+        from eaos.facts.graph import run as graph_run
+        from eaos.facts.resolve import run as resolve_run
+        from pathlib import Path
+        tmp = tempfile.mkdtemp()
+        try:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'a.go').write_text('package a\n')
+            (repo / 'b.go').write_text('package b\n')
+            src = Source(repo)
+            engine_edge = fact_make('call_edge', 'external', '1', digest(b''),
+                                     {'path': 'a.go'},
+                                     {'caller': 'A', 'callee': 'B',
+                                      'caller_path': 'a.go', 'callee_path': 'b.go',
+                                      'line': 1, 'source': 'codegraph', 'engine': 'codegraph'},
+                                     resolution='RESOLVED_BY_ENGINE', limitations=[])
+            resolved = resolve_run(repo, src, imports=None, external_edges=[engine_edge])
+            graph = graph_run(repo, src, edges=resolved['facts'], entry_points=[], metrics=[], history=[])
+            self.assertEqual(graph['summary']['engine_edges'], 1)
+            self.assertEqual(graph['summary']['own_edges'], 0)
+            nodes = {f['location']['path']: f['value'] for f in graph['facts'] if f['kind'] == 'graph_node'}
+            self.assertIn('b.go', nodes['a.go']['depends_on'])
+            source_map = {d['path']: d['source'] for d in nodes['a.go']['depends_on_with_source']}
+            self.assertEqual(source_map['b.go'], 'engine:codegraph')
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_own_and_engine_edges_are_counted_separately(self):
+        """An engine edge alongside our own resolver's edge yields both counters non-zero."""
+        from eaos.facts.resolve import make as fact_make, digest
+        from eaos.facts.source import Source
+        from eaos.facts.graph import run as graph_run
+        from eaos.facts.resolve import run as resolve_run
+        from pathlib import Path
+        tmp = tempfile.mkdtemp()
+        try:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'a.go').write_text('package a\n')
+            (repo / 'b.go').write_text('package b\n')
+            (repo / 'c.go').write_text('package c\n')
+            src = Source(repo)
+            own_edge = fact_make('call_edge', 'resolve', '1', digest(b''),
+                                 {'path': 'a.go'},
+                                 {'caller': 'A', 'callee': 'B',
+                                  'caller_path': 'a.go', 'callee_path': 'b.go',
+                                  'line': 1},
+                                 resolution='RESOLVED', limitations=[])
+            engine_edge = fact_make('call_edge', 'external', '1', digest(b''),
+                                     {'path': 'a.go'},
+                                     {'caller': 'A', 'callee': 'C',
+                                      'caller_path': 'a.go', 'callee_path': 'c.go',
+                                      'line': 1, 'source': 'codegraph', 'engine': 'codegraph'},
+                                     resolution='RESOLVED_BY_ENGINE', limitations=[])
+            resolved = resolve_run(repo, src, imports=None, external_edges=[engine_edge])
+            # Inject the own edge into the resolved facts
+            resolved['facts'].append(own_edge)
+            graph = graph_run(repo, src, edges=resolved['facts'], entry_points=[], metrics=[], history=[])
+            self.assertEqual(graph['summary']['own_edges'], 1)
+            self.assertEqual(graph['summary']['engine_edges'], 1)
+            self.assertEqual(graph['summary']['edges'], 2)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)

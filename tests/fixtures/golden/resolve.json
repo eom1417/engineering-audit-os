@@ -16,8 +16,11 @@
       "RESOLVED": 6,
       "EXTERNAL": 7,
       "AMBIGUOUS": 0,
-      "UNRESOLVED": 0
+      "UNRESOLVED": 0,
+      "RESOLVED_BY_ENGINE": 0
     },
+    "resolved_by_us": 6,
+    "resolved_by_engine": 0,
     "internal_resolution_rate": 1.0,
     "go_module": null,
     "interpretation": "Source dependencies only. Unresolved and ambiguous edges stay visible and must never be drawn as confirmed dependencies."

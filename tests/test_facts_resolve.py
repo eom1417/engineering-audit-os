@@ -70,3 +70,47 @@ class ResolveTests(TemporaryWorkspace):
         with tempfile.TemporaryDirectory() as tmp:
             collect(FIXTURE, Path(tmp) / 'a', ['syntax', 'resolve']); collect(FIXTURE, Path(tmp) / 'b', ['syntax', 'resolve'])
             self.assertEqual((Path(tmp) / 'a/facts/resolve.json').read_bytes(), (Path(tmp) / 'b/facts/resolve.json').read_bytes())
+
+
+class EngineResolvedEdgesTests(TemporaryWorkspace):
+    """When an external engine resolves an edge, the resolver records it under its own banner."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = cls.workspace()
+
+    def test_an_engine_resolved_edge_is_carrying_the_engine_name(self):
+        """The edge comes through resolve with RESOLVED_BY_ENGINE and an engine key in value."""
+        from eaos.facts.resolve import make, digest
+        facts, summary = _resolve_with_engine_edge()
+        engine_edges = [f for f in facts if f.get('resolution') == 'RESOLVED_BY_ENGINE']
+        self.assertGreater(len(engine_edges), 0)
+        for edge in engine_edges:
+            self.assertIn('engine', edge['value'])
+            self.assertTrue(edge['value']['engine'])
+
+    def test_engine_edges_and_own_edges_are_counted_separately(self):
+        facts, summary = _resolve_with_engine_edge()
+        self.assertIn('resolved_by_us', summary)
+        self.assertIn('resolved_by_engine', summary)
+        self.assertGreater(summary['resolved_by_engine'], 0)
+
+
+def _resolve_with_engine_edge():
+    """Run resolve with one RESOLVED_BY_ENGINE edge mixed in."""
+    from eaos.facts.resolve import run as resolve_run, make, digest
+    from eaos.facts.source import Source
+    import tempfile
+    from pathlib import Path
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / 'repo'; repo.mkdir()
+        (repo / 'a.go').write_text('package a\n')
+        src = Source(repo)
+        engine_edge = make('call_edge', 'external', '1', digest(b''),
+                           {'path': 'a.go'},
+                           {'caller': 'A', 'callee': 'B',
+                            'caller_path': 'a.go', 'callee_path': 'b.go',
+                            'line': 1, 'source': 'codegraph', 'engine': 'codegraph'},
+                           resolution='RESOLVED_BY_ENGINE', limitations=[])
+        result = resolve_run(repo, src, imports=None, external_edges=[engine_edge])
+        return result['facts'], result['summary']

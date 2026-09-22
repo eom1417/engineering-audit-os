@@ -15,12 +15,37 @@ LIMITATIONS = [
     'A cycle is a signal to investigate, not a defect by itself.',
     'Attention weights are a declared convention, not a measured predictor of risk.',
     'Files unreachable from a detected entry point may still be reached through paths no detector covers.',
+    'Edges from external engines carry the engine name and resolution RESOLVED_BY_ENGINE; they are not the same evidence as edges resolved by our own resolver.',
 ]
 
 
 def normalise(values):
     top = max(values.values(), default=0)
     return {key: (value / top if top else 0.0) for key, value in values.items()}
+
+
+def _edge_endpoints(edge):
+    """Pull (source_path, target_path) from any of the edge kinds we accept.
+
+    Returns None when the fact is not a graph edge we know how to orient, so the caller can skip it.
+    """
+    kind = edge.get('kind')
+    value = edge.get('value', {})
+    location = edge.get('location', {}) or {}
+    if kind == 'module_edge':
+        target = value.get('to_path')
+        if not target: return None
+        return location.get('path'), target
+    if kind == 'import_edge':
+        target = value.get('to_path')
+        if not target: return None
+        return value.get('from_path') or location.get('path'), target
+    if kind == 'call_edge':
+        source = value.get('caller_path') or location.get('path')
+        target = value.get('callee_path')
+        if not source or not target: return None
+        return source, target
+    return None
 
 
 def run(target, source, edges=None, entry_points=None, metrics=None, history=None, **options):
@@ -32,14 +57,28 @@ def run(target, source, edges=None, entry_points=None, metrics=None, history=Non
         metrics = metrics_module.run(target, source, symbols=[f for f in produced if f['kind'] == 'symbol'])['facts']
         history = history_module.run(target, source)['facts']
     from .source import language_of
-    participating = {edge['location']['path'] for edge in edges or []} | {edge['value'].get('to_path') for edge in edges or []}
+    # Endpoints we see, regardless of resolution: used only to widen the node set.
+    participating = set()
+    for edge in edges or []:
+        endpoints = _edge_endpoints(edge)
+        if endpoints:
+            participating.update(endpoints)
     nodes = sorted({item['path'] for item in source.readable()
                     if language_of(item['path']) is not None or item['path'] in participating} - {None})
     adjacency = {path: set() for path in nodes}
+    edge_source = {}  # (source_path, target_path) -> 'own' | 'engine:<name>'
     for edge in edges or []:
-        if edge['resolution'] != 'RESOLVED': continue
-        source_path, target_path = edge['location']['path'], edge['value']['to_path']
-        if source_path in adjacency and target_path in adjacency: adjacency[source_path].add(target_path)
+        if edge.get('resolution') not in ('RESOLVED', 'RESOLVED_BY_ENGINE'): continue
+        endpoints = _edge_endpoints(edge)
+        if not endpoints: continue
+        source_path, target_path = endpoints
+        if source_path in adjacency and target_path in adjacency:
+            adjacency[source_path].add(target_path)
+            if edge['resolution'] == 'RESOLVED_BY_ENGINE':
+                engine = (edge.get('value') or {}).get('engine') or 'engine'
+                edge_source[(source_path, target_path)] = 'engine:' + engine
+            else:
+                edge_source.setdefault((source_path, target_path), 'own')
     fan_in = {path: 0 for path in nodes}
     for path, targets in adjacency.items():
         for other in targets: fan_in[other] += 1
@@ -72,9 +111,14 @@ def run(target, source, edges=None, entry_points=None, metrics=None, history=Non
     in_cycle = {path: index for index, group in enumerate(groups) for path in group}
     facts = []
     for path in nodes:
+        depends = sorted(adjacency[path])
+        depends_with_source = []
+        for target in depends:
+            depends_with_source.append({'path': target, 'source': edge_source.get((path, target), 'own')})
         facts.append(make('graph_node', NAME, VERSION, digest(path.encode('utf-8')), {'path': path},
                           {'fan_in': fan_in[path], 'fan_out': len(adjacency[path]),
-                           'depends_on': sorted(adjacency[path]),
+                           'depends_on': depends,
+                           'depends_on_with_source': depends_with_source,
                            'entry_distance': distance.get(path), 'cycle_group': in_cycle.get(path),
                            'attention_score': scored[path], 'attention_rank': position[path],
                            'factors': {name: round(factors[name][path], 4) for name in WEIGHTS}},
@@ -85,7 +129,13 @@ def run(target, source, edges=None, entry_points=None, metrics=None, history=Non
     facts.sort(key=lambda f: (f['kind'], f['location']['path']))
     reachable = [path for path in nodes if path in distance]
     orphans = [path for path in nodes if not fan_in[path] and not adjacency[path]]
+    # Per-edge source breakdown: how much of the graph is our own work, how much came from an engine.
+    by_source = {'own': 0, 'engine': 0}
+    for label in edge_source.values():
+        if label == 'own': by_source['own'] += 1
+        else: by_source['engine'] += 1
     summary = {'nodes': len(nodes), 'edges': sum(len(targets) for targets in adjacency.values()),
+               'own_edges': by_source['own'], 'engine_edges': by_source['engine'],
                'cycles': len(groups), 'cycle_members': sorted(in_cycle),
                'entry_files': entry_files,
                'reachable_from_entry': len(reachable),
@@ -94,6 +144,6 @@ def run(target, source, edges=None, entry_points=None, metrics=None, history=Non
                'attention_order': [{'path': path, 'score': scored[path], 'factors': {n: round(factors[n][path], 3) for n in WEIGHTS}} for path in ranking[:30]],
                'most_depended_on': [{'path': path, 'fan_in': fan_in[path]} for path in sorted(nodes, key=lambda p: (-fan_in[p], p))[:15]],
                'isolated_files': orphans[:50],
-               'interpretation': 'Structure and attention order only. Nothing here judges design quality; a cycle or a high rank is an invitation to look, not a verdict.'}
+               'interpretation': 'Structure and attention order only. Nothing here judges design quality; a cycle or a high rank is an invitation to look, not a verdict. Engine-resolved edges are listed separately so they cannot be mistaken for edges we resolved ourselves.'}
     return {'facts': facts, 'summary': summary, 'available': True,
             'input_sha': digest('|'.join(nodes).encode('utf-8')), 'reason': None}

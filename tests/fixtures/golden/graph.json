@@ -8,11 +8,14 @@
     "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
     "A cycle is a signal to investigate, not a defect by itself.",
     "Attention weights are a declared convention, not a measured predictor of risk.",
-    "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+    "Files unreachable from a detected entry point may still be reached through paths no detector covers.",
+    "Edges from external engines carry the engine name and resolution RESOLVED_BY_ENGINE; they are not the same evidence as edges resolved by our own resolver."
   ],
   "summary": {
     "nodes": 10,
     "edges": 6,
+    "own_edges": 6,
+    "engine_edges": 0,
     "cycles": 0,
     "cycle_members": [],
     "entry_files": [
@@ -178,11 +181,11 @@
       "core/__init__.py",
       "svc/main.go"
     ],
-    "interpretation": "Structure and attention order only. Nothing here judges design quality; a cycle or a high rank is an invitation to look, not a verdict."
+    "interpretation": "Structure and attention order only. Nothing here judges design quality; a cycle or a high rank is an invitation to look, not a verdict. Engine-resolved edges are listed separately so they cannot be mistaken for edges we resolved ourselves."
   },
   "facts": [
     {
-      "id": "FACT-5d47c41999cb0f08",
+      "id": "FACT-b33b0fd5dd598fc9",
       "kind": "graph_node",
       "extractor": "graph",
       "extractor_version": "1",
@@ -195,6 +198,12 @@
         "fan_out": 1,
         "depends_on": [
           "api/lib/pricing.ts"
+        ],
+        "depends_on_with_source": [
+          {
+            "path": "api/lib/pricing.ts",
+            "source": "own"
+          }
         ],
         "entry_distance": 1,
         "cycle_group": null,
@@ -211,11 +220,12 @@
         "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
         "A cycle is a signal to investigate, not a defect by itself.",
         "Attention weights are a declared convention, not a measured predictor of risk.",
-        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers.",
+        "Edges from external engines carry the engine name and resolution RESOLVED_BY_ENGINE; they are not the same evidence as edges resolved by our own resolver."
       ]
     },
     {
-      "id": "FACT-ac499389bfeb36bb",
+      "id": "FACT-4ad310c161728ee8",
       "kind": "graph_node",
       "extractor": "graph",
       "extractor_version": "1",
@@ -227,6 +237,7 @@
         "fan_in": 1,
         "fan_out": 0,
         "depends_on": [],
+        "depends_on_with_source": [],
         "entry_distance": 1,
         "cycle_group": null,
         "attention_score": 0.2,
@@ -242,11 +253,12 @@
         "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
         "A cycle is a signal to investigate, not a defect by itself.",
         "Attention weights are a declared convention, not a measured predictor of risk.",
-        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers.",
+        "Edges from external engines carry the engine name and resolution RESOLVED_BY_ENGINE; they are not the same evidence as edges resolved by our own resolver."
       ]
     },
     {
-      "id": "FACT-b22b7dfe9738e0f1",
+      "id": "FACT-d811c1bb4f22684e",
       "kind": "graph_node",
       "extractor": "graph",
       "extractor_version": "1",
@@ -258,6 +270,7 @@
         "fan_in": 1,
         "fan_out": 0,
         "depends_on": [],
+        "depends_on_with_source": [],
         "entry_distance": 2,
         "cycle_group": null,
         "attention_score": 0.2667,
@@ -273,11 +286,12 @@
         "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
         "A cycle is a signal to investigate, not a defect by itself.",
         "Attention weights are a declared convention, not a measured predictor of risk.",
-        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers.",
+        "Edges from external engines carry the engine name and resolution RESOLVED_BY_ENGINE; they are not the same evidence as edges resolved by our own resolver."
       ]
     },
     {
-      "id": "FACT-2b5a3828231be3fd",
+      "id": "FACT-a10cd100a3e2b2d7",
       "kind": "graph_node",
       "extractor": "graph",
       "extractor_version": "1",
@@ -291,6 +305,16 @@
         "depends_on": [
           "api/handlers/orders.ts",
           "api/lib/audit.ts"
+        ],
+        "depends_on_with_source": [
+          {
+            "path": "api/handlers/orders.ts",
+            "source": "own"
+          },
+          {
+            "path": "api/lib/audit.ts",
+            "source": "own"
+          }
         ],
         "entry_distance": 0,
         "cycle_group": null,
@@ -307,11 +331,12 @@
         "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
         "A cycle is a signal to investigate, not a defect by itself.",
         "Attention weights are a declared convention, not a measured predictor of risk.",
-        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers.",
+        "Edges from external engines carry the engine name and resolution RESOLVED_BY_ENGINE; they are not the same evidence as edges resolved by our own resolver."
       ]
     },
     {
-      "id": "FACT-7a2e6d3c79f9fe50",
+      "id": "FACT-c2ca0e4b768a3e80",
       "kind": "graph_node",
       "extractor": "graph",
       "extractor_version": "1",
@@ -324,6 +349,12 @@
         "fan_out": 1,
         "depends_on": [
           "core/pricing.py"
+        ],
+        "depends_on_with_source": [
+          {
+            "path": "core/pricing.py",
+            "source": "own"
+          }
         ],
         "entry_distance": 0,
         "cycle_group": null,
@@ -340,11 +371,12 @@
         "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
         "A cycle is a signal to investigate, not a defect by itself.",
         "Attention weights are a declared convention, not a measured predictor of risk.",
-        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers.",
+        "Edges from external engines carry the engine name and resolution RESOLVED_BY_ENGINE; they are not the same evidence as edges resolved by our own resolver."
       ]
     },
     {
-      "id": "FACT-9e4eaae7af795924",
+      "id": "FACT-2010c4c4336a919d",
       "kind": "graph_node",
       "extractor": "graph",
       "extractor_version": "1",
@@ -356,6 +388,7 @@
         "fan_in": 0,
         "fan_out": 0,
         "depends_on": [],
+        "depends_on_with_source": [],
         "entry_distance": null,
         "cycle_group": null,
         "attention_score": 0.0,
@@ -371,11 +404,12 @@
         "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
         "A cycle is a signal to investigate, not a defect by itself.",
         "Attention weights are a declared convention, not a measured predictor of risk.",
-        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers.",
+        "Edges from external engines carry the engine name and resolution RESOLVED_BY_ENGINE; they are not the same evidence as edges resolved by our own resolver."
       ]
     },
     {
-      "id": "FACT-f90dca0518fe9c7d",
+      "id": "FACT-b2e962862252be1a",
       "kind": "graph_node",
       "extractor": "graph",
       "extractor_version": "1",
@@ -388,6 +422,12 @@
         "fan_out": 1,
         "depends_on": [
           "core/pricing.py"
+        ],
+        "depends_on_with_source": [
+          {
+            "path": "core/pricing.py",
+            "source": "own"
+          }
         ],
         "entry_distance": null,
         "cycle_group": null,
@@ -404,11 +444,12 @@
         "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
         "A cycle is a signal to investigate, not a defect by itself.",
         "Attention weights are a declared convention, not a measured predictor of risk.",
-        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers.",
+        "Edges from external engines carry the engine name and resolution RESOLVED_BY_ENGINE; they are not the same evidence as edges resolved by our own resolver."
       ]
     },
     {
-      "id": "FACT-761acc9d1e608419",
+      "id": "FACT-752d04a9b6ef9f9f",
       "kind": "graph_node",
       "extractor": "graph",
       "extractor_version": "1",
@@ -420,6 +461,7 @@
         "fan_in": 3,
         "fan_out": 0,
         "depends_on": [],
+        "depends_on_with_source": [],
         "entry_distance": 1,
         "cycle_group": null,
         "attention_score": 0.6,
@@ -435,11 +477,12 @@
         "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
         "A cycle is a signal to investigate, not a defect by itself.",
         "Attention weights are a declared convention, not a measured predictor of risk.",
-        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers.",
+        "Edges from external engines carry the engine name and resolution RESOLVED_BY_ENGINE; they are not the same evidence as edges resolved by our own resolver."
       ]
     },
     {
-      "id": "FACT-d65f90578b5e1a3a",
+      "id": "FACT-6606f3a4a097f4d0",
       "kind": "graph_node",
       "extractor": "graph",
       "extractor_version": "1",
@@ -451,6 +494,7 @@
         "fan_in": 0,
         "fan_out": 0,
         "depends_on": [],
+        "depends_on_with_source": [],
         "entry_distance": 0,
         "cycle_group": null,
         "attention_score": 0.2,
@@ -466,11 +510,12 @@
         "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
         "A cycle is a signal to investigate, not a defect by itself.",
         "Attention weights are a declared convention, not a measured predictor of risk.",
-        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers.",
+        "Edges from external engines carry the engine name and resolution RESOLVED_BY_ENGINE; they are not the same evidence as edges resolved by our own resolver."
       ]
     },
     {
-      "id": "FACT-38627bdba65508c8",
+      "id": "FACT-02a3eebc6901c533",
       "kind": "graph_node",
       "extractor": "graph",
       "extractor_version": "1",
@@ -483,6 +528,12 @@
         "fan_out": 1,
         "depends_on": [
           "core/pricing.py"
+        ],
+        "depends_on_with_source": [
+          {
+            "path": "core/pricing.py",
+            "source": "own"
+          }
         ],
         "entry_distance": 0,
         "cycle_group": null,
@@ -499,7 +550,8 @@
         "The graph contains resolved source imports only; runtime wiring and dynamic dispatch are absent.",
         "A cycle is a signal to investigate, not a defect by itself.",
         "Attention weights are a declared convention, not a measured predictor of risk.",
-        "Files unreachable from a detected entry point may still be reached through paths no detector covers."
+        "Files unreachable from a detected entry point may still be reached through paths no detector covers.",
+        "Edges from external engines carry the engine name and resolution RESOLVED_BY_ENGINE; they are not the same evidence as edges resolved by our own resolver."
       ]
     }
   ]
