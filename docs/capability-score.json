@@ -70,13 +70,13 @@
     },
     "target_architecture": {
       "indicators": {
-        "components_assessed": 0.0,
+        "components_assessed": 1.0,
         "decisions_with_alternatives": 0.0,
         "gap_matrix_resolved": 0.0
       },
       "measured_indicators": 3,
       "unmeasured_indicators": 0,
-      "score": 0.0,
+      "score": 0.3333,
       "target": 0.8,
       "meets_target": false
     },
@@ -118,7 +118,7 @@
       "meets_target": false
     }
   },
-  "overall": 0.6617,
+  "overall": 0.6987,
   "domains_meeting_target": 4,
   "domains_total": 9,
   "target": 0.8,

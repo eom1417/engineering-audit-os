@@ -2,7 +2,7 @@
 
 > Measured from 2 report(s). An unmeasured indicator is not a pass. Target for every domain: 0.8.
 
-**Overall 0.6617** · 4 of 9 domains at target.
+**Overall 0.6987** · 4 of 9 domains at target.
 
 | Domain | Score | Target | Met | Unmeasured |
 | --- | --- | --- | --- | --- |
@@ -11,7 +11,7 @@
 | structure_polyglot | 0.5115 | 0.8 | no | 0 |
 | runtime_surface | 0.8334 | 0.8 | yes | 0 |
 | load_model | 0.6731 | 0.8 | no | 0 |
-| target_architecture | 0.0 | 0.8 | no | 0 |
+| target_architecture | 0.3333 | 0.8 | no | 0 |
 | transformation_plan | 0.9788 | 0.8 | no | 1 |
 | report_clarity | 1.0 | 0.8 | yes | 0 |
 | independent_proof | 0.0 | 0.8 | no | 0 |
@@ -63,7 +63,7 @@
 
 | Indicator | Value |
 | --- | --- |
-| components_assessed | 0.0 |
+| components_assessed | 1.0 |
 | decisions_with_alternatives | 0.0 |
 | gap_matrix_resolved | 0.0 |
 
