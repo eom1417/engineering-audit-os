@@ -15,7 +15,22 @@ LIMITATIONS = [
     'EXTERNAL means "not a file in this snapshot", not "third-party package" in every case.',
     'AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.',
     'A resolved import is a source dependency, not proof that the call happens at runtime.',
+    'When `target_kind` is "package" the import names the directory in `package_path`; `to_path` is '
+    'one source file standing in for it, so that every reader of the graph still follows a file.',
 ]
+
+
+def non_test_files(paths):
+    """The paths that are not a test file, by each language's own naming convention.
+
+    A package's stand-in file must not be a test: an import of `internal/engine` that points at
+    `append_replace_test.go` puts a fixture on the dependency graph. Returns an empty list when
+    every candidate is a test, and the caller then falls back to the full list rather than
+    dropping the edge.
+    """
+    markers = ('_test.go', '_test.py', '.test.ts', '.test.js', '.spec.ts', '.spec.js', '_spec.rb')
+    return [path for path in paths
+            if not path.endswith(markers) and not PurePosixPath(path).name.startswith('test_')]
 JS_SUFFIXES = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.vue', '.svelte']
 JS_INDEX = ['/index.ts', '/index.tsx', '/index.js', '/index.jsx']
 
@@ -153,11 +168,17 @@ def run(target, source, imports=None, external_edges=None, **options):
         # A Go import `import ".../internal/config"` resolves to a package, not a single file.
         # When every candidate is in the same directory it is not ambiguity: the directory
         # IS the target. Real ambiguity only exists when candidates span multiple directories.
+        package_path = None
         if language == 'go' and len(matches) > 1:
             folders = {PurePosixPath(p).parent.as_posix() for p in matches}
             if len(folders) == 1:
-                resolution, value = 'RESOLVED', sorted(matches)[0]
-                target_kind = 'package'
+                # `to_path` has to stay a file: the graph, the policy and the tracer all follow it.
+                # It stands in for the package, so it must never be a test file while a source file
+                # exists -- an edge into `_test.go` would put somebody else's fixtures on the
+                # architecture picture. `package_path` carries the target the import actually names.
+                resolution, target_kind = 'RESOLVED', 'package'
+                package_path = folders.pop()
+                value = sorted(non_test_files(matches) or matches)[0]
             else:
                 resolution, value = 'AMBIGUOUS', None
                 target_kind = None
@@ -171,7 +192,7 @@ def run(target, source, imports=None, external_edges=None, **options):
         facts.append(make('module_edge', NAME, VERSION, row['input_sha'],
                           {'path': importer, 'start_line': row['location'].get('start_line')},
                           {'module': module, 'language': language, 'to_path': value,
-                           'target_kind': target_kind,
+                           'target_kind': target_kind, 'package_path': package_path,
                            'candidates': matches[:5] if resolution == 'AMBIGUOUS' else matches,
                            'import_fact_id': row['id']},
                           resolution=resolution, limitations=LIMITATIONS))

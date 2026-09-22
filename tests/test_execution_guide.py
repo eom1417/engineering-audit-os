@@ -1,8 +1,11 @@
 import tempfile
 import unittest
 from pathlib import Path
+import json
+import re
+import shlex
 
-from eaos.execution_guide import document
+from eaos.execution_guide import FORBIDDEN_TOKENS, _transform_for, document
 
 
 class ExecutionGuideTests(unittest.TestCase):
@@ -41,7 +44,6 @@ class ExecutionGuideTests(unittest.TestCase):
         out = Path('/tmp/eg')
         if not (out / 'EXECUTION-GUIDE.md').is_file():
             self.skipTest('acceptance audit has not populated /tmp/eg')
-        import json
         plan = json.loads((out / 'plan.json').read_text(encoding='utf-8'))
         body = (out / 'EXECUTION-GUIDE.md').read_text(encoding='utf-8')
         self.assertLessEqual(len(body.splitlines()), 300)
@@ -49,6 +51,57 @@ class ExecutionGuideTests(unittest.TestCase):
             self.assertEqual(body.count(f"**{task['id']} /"), 1)
             for path in task.get('paths', []):
                 self.assertIn(f'`{path}`', body)
+
+    def test_real_cards_are_mechanically_executable(self):
+        out = Path('/tmp/eg')
+        if not (out / 'EXECUTION-GUIDE.md').is_file():
+            self.skipTest('acceptance audit has not populated /tmp/eg')
+        plan = json.loads((out / 'plan.json').read_text(encoding='utf-8'))
+        transform = json.loads((out / 'transform-plan.json').read_text(encoding='utf-8'))
+        run = json.loads((out / 'facts/run.json').read_text(encoding='utf-8'))
+        target = Path(run['target'])
+        order = {}
+        for wave in plan['waves']:
+            for position, task_id in enumerate(wave['tasks']):
+                order[task_id] = (wave['wave'], position)
+
+        for task in plan['tasks']:
+            with self.subTest(task=task['id']):
+                self.assertTrue(task.get('paths'))
+                for path in task['paths']:
+                    self.assertTrue((target / path).exists(), f'{task["id"]}: missing {path}')
+
+                checks = task.get('acceptance') or []
+                self.assertTrue(checks, f'{task["id"]}: no acceptance command')
+                for check in checks:
+                    argv = shlex.split(check.get('command', ''))
+                    self.assertTrue(argv, f'{task["id"]}: acceptance is not argv')
+                    self._assert_concrete(check['command'], task['id'])
+
+                stage = _transform_for(task, transform.get('stages', []))
+                steps = [task.get('change'), *(stage or {}).get('steps', [])]
+                self.assertTrue(all(steps), f'{task["id"]}: empty step')
+                for step in steps:
+                    self.assertNotIn('\n', step, f'{task["id"]}: step spans sentences')
+                    self.assertLessEqual(len(re.findall(r'[.!?؟](?:\s|$)', step)), 1,
+                                         f'{task["id"]}: step is not one sentence')
+                    self._assert_concrete(step, task['id'])
+
+                self.assertTrue(str(task.get('rollback', '')).strip(), f'{task["id"]}: empty rollback')
+                for dependency in task.get('prerequisites', []):
+                    dependency_id = dependency['task_id'] if isinstance(dependency, dict) else dependency
+                    self.assertIn(dependency_id, order, f'{task["id"]}: unknown dependency')
+                    self.assertLess(order[dependency_id], order[task['id']],
+                                    f'{task["id"]}: dependency follows task')
+
+    def _assert_concrete(self, text, task_id):
+        folded = text.casefold()
+        found = [token for token in FORBIDDEN_TOKENS if token.casefold() in folded]
+        self.assertEqual(found, [], f'{task_id}: ambiguous token(s) {found}')
+
+    def test_forbidden_tokens_cover_omission_approximation_and_placeholders(self):
+        for token in ('...', '…', 'approximately', 'maybe', 'as needed', 'TBD', '<placeholder>', 'ربما'):
+            self.assertIn(token, FORBIDDEN_TOKENS)
 
 
 if __name__ == '__main__':

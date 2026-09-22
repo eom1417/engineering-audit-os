@@ -145,6 +145,43 @@ class GoPackageFolderResolutionTests(TemporaryWorkspace):
         # files compiled into the resolved package.
         self.assertEqual(set(edge['value']['candidates']),
                          {'internal/config/config.go', 'internal/config/loader.go'})
+        # The import names the directory; to_path only stands in for it so the graph keeps a file.
+        self.assertEqual(edge['value']['package_path'], 'internal/config')
+
+    def test_the_package_stand_in_file_is_never_a_test_file(self):
+        # Picking the alphabetically first member put `append_replace_test.go` on the dependency
+        # graph as the target of an `internal/engine` import: a fixture standing in for a package.
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; (repo / 'internal/engine').mkdir(parents=True)
+            (repo / 'go.mod').write_text('module example.com/app\n\ngo 1.21\n')
+            (repo / 'internal/engine/append_replace_test.go').write_text('package engine\n\nvar T = 1\n')
+            (repo / 'internal/engine/engine.go').write_text('package engine\n\nvar E = 2\n')
+            (repo / 'main.go').write_text(
+                'package main\n\nimport "example.com/app/internal/engine"\n\n'
+                'var _ = engine.E\n')
+            collect(repo, Path(tmp) / 'out', ['syntax', 'resolve'])
+            data, found = edges(Path(tmp) / 'out')
+        edge = found[('main.go', 'example.com/app/internal/engine')]
+        self.assertEqual(edge['resolution'], 'RESOLVED')
+        self.assertEqual(edge['value']['to_path'], 'internal/engine/engine.go')
+        self.assertEqual(edge['value']['package_path'], 'internal/engine')
+
+    def test_an_all_test_package_still_resolves_rather_than_losing_the_edge(self):
+        # Dropping the edge would hide a real dependency. The stand-in falls back to the full list.
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; (repo / 'internal/only').mkdir(parents=True)
+            (repo / 'go.mod').write_text('module example.com/app\n\ngo 1.21\n')
+            (repo / 'internal/only/a_test.go').write_text('package only\n\nvar A = 1\n')
+            (repo / 'internal/only/b_test.go').write_text('package only\n\nvar B = 2\n')
+            (repo / 'main.go').write_text(
+                'package main\n\nimport "example.com/app/internal/only"\n\n'
+                'var _ = only.A\n')
+            collect(repo, Path(tmp) / 'out', ['syntax', 'resolve'])
+            data, found = edges(Path(tmp) / 'out')
+        edge = found[('main.go', 'example.com/app/internal/only')]
+        self.assertEqual(edge['resolution'], 'RESOLVED')
+        self.assertTrue(edge['value']['to_path'].endswith('_test.go'))
+        self.assertEqual(edge['value']['package_path'], 'internal/only')
 
     def test_real_ambiguity_across_two_folders_stays_ambiguous(self):
         # Go imports that share a common prefix with files in two distinct folders must

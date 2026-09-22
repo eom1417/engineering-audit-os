@@ -1064,6 +1064,34 @@
       },
       "overall_at_this_point": 0.8496,
       "note": "Generated a bilingual, budgeted execution guide from plan, transform, and load records; 903 tests and full self-audit gate pass."
+    },
+    {
+      "task": "N8.T2",
+      "title": "اختبار قابلية التنفيذ آليًا",
+      "recorded_at": "2026-09-22T22:49:05+00:00",
+      "commit": "036b2d7",
+      "acceptance_command": "python -m unittest tests.test_execution_guide -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "todo",
+      "moves": {
+        "indicator": "report_clarity.documents_declared",
+        "from": 1.0,
+        "to": 1.0
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.9167,
+        "target_architecture": 1.0,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8496,
+      "note": "FORBIDDEN_TOKENS covers omission, approximation and placeholders in both languages; real cards asserted executable"
     }
   ]
 }

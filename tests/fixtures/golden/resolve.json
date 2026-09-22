@@ -8,7 +8,8 @@
     "Only statically written imports are resolved; dynamic loading and injection are invisible.",
     "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
     "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
-    "A resolved import is a source dependency, not proof that the call happens at runtime."
+    "A resolved import is a source dependency, not proof that the call happens at runtime.",
+    "When `target_kind` is \"package\" the import names the directory in `package_path`; `to_path` is one source file standing in for it, so that every reader of the graph still follows a file."
   ],
   "summary": {
     "edges": 13,
@@ -27,7 +28,7 @@
   },
   "facts": [
     {
-      "id": "FACT-e0d03720d2e1d514",
+      "id": "FACT-8390e3899658c5bd",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -41,6 +42,7 @@
         "language": "typescript",
         "to_path": "api/lib/pricing.ts",
         "target_kind": null,
+        "package_path": null,
         "candidates": [
           "api/lib/pricing.ts"
         ],
@@ -51,11 +53,12 @@
         "Only statically written imports are resolved; dynamic loading and injection are invisible.",
         "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
         "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
-        "A resolved import is a source dependency, not proof that the call happens at runtime."
+        "A resolved import is a source dependency, not proof that the call happens at runtime.",
+        "When `target_kind` is \"package\" the import names the directory in `package_path`; `to_path` is one source file standing in for it, so that every reader of the graph still follows a file."
       ]
     },
     {
-      "id": "FACT-96b8f86f9b7fb31b",
+      "id": "FACT-8cd92696a28c3f61",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -69,6 +72,7 @@
         "language": "typescript",
         "to_path": null,
         "target_kind": null,
+        "package_path": null,
         "candidates": [],
         "import_fact_id": "FACT-297199c12bea0b3e"
       },
@@ -77,11 +81,12 @@
         "Only statically written imports are resolved; dynamic loading and injection are invisible.",
         "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
         "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
-        "A resolved import is a source dependency, not proof that the call happens at runtime."
+        "A resolved import is a source dependency, not proof that the call happens at runtime.",
+        "When `target_kind` is \"package\" the import names the directory in `package_path`; `to_path` is one source file standing in for it, so that every reader of the graph still follows a file."
       ]
     },
     {
-      "id": "FACT-60132d67add4fa03",
+      "id": "FACT-439cdf134cf78b93",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -95,6 +100,7 @@
         "language": "typescript",
         "to_path": "api/handlers/orders.ts",
         "target_kind": null,
+        "package_path": null,
         "candidates": [
           "api/handlers/orders.ts"
         ],
@@ -105,11 +111,12 @@
         "Only statically written imports are resolved; dynamic loading and injection are invisible.",
         "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
         "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
-        "A resolved import is a source dependency, not proof that the call happens at runtime."
+        "A resolved import is a source dependency, not proof that the call happens at runtime.",
+        "When `target_kind` is \"package\" the import names the directory in `package_path`; `to_path` is one source file standing in for it, so that every reader of the graph still follows a file."
       ]
     },
     {
-      "id": "FACT-5996af0915e22794",
+      "id": "FACT-2b697f677903f717",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -123,6 +130,7 @@
         "language": "typescript",
         "to_path": "api/lib/audit.ts",
         "target_kind": null,
+        "package_path": null,
         "candidates": [
           "api/lib/audit.ts"
         ],
@@ -133,11 +141,12 @@
         "Only statically written imports are resolved; dynamic loading and injection are invisible.",
         "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
         "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
-        "A resolved import is a source dependency, not proof that the call happens at runtime."
+        "A resolved import is a source dependency, not proof that the call happens at runtime.",
+        "When `target_kind` is \"package\" the import names the directory in `package_path`; `to_path` is one source file standing in for it, so that every reader of the graph still follows a file."
       ]
     },
     {
-      "id": "FACT-3e6efe7b46bd9fe2",
+      "id": "FACT-56abf7fec6dab799",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -151,6 +160,7 @@
         "language": "python",
         "to_path": null,
         "target_kind": null,
+        "package_path": null,
         "candidates": [],
         "import_fact_id": "FACT-1ec5d776cb07a066"
       },
@@ -159,11 +169,12 @@
         "Only statically written imports are resolved; dynamic loading and injection are invisible.",
         "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
         "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
-        "A resolved import is a source dependency, not proof that the call happens at runtime."
+        "A resolved import is a source dependency, not proof that the call happens at runtime.",
+        "When `target_kind` is \"package\" the import names the directory in `package_path`; `to_path` is one source file standing in for it, so that every reader of the graph still follows a file."
       ]
     },
     {
-      "id": "FACT-0d7d45fccfa3ce0b",
+      "id": "FACT-f5dad94026a89ef5",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -177,6 +188,7 @@
         "language": "python",
         "to_path": "core/pricing.py",
         "target_kind": null,
+        "package_path": null,
         "candidates": [
           "core/pricing.py"
         ],
@@ -187,11 +199,12 @@
         "Only statically written imports are resolved; dynamic loading and injection are invisible.",
         "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
         "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
-        "A resolved import is a source dependency, not proof that the call happens at runtime."
+        "A resolved import is a source dependency, not proof that the call happens at runtime.",
+        "When `target_kind` is \"package\" the import names the directory in `package_path`; `to_path` is one source file standing in for it, so that every reader of the graph still follows a file."
       ]
     },
     {
-      "id": "FACT-75b9b88484a1c282",
+      "id": "FACT-e3c50cc23e476597",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -205,6 +218,7 @@
         "language": "python",
         "to_path": null,
         "target_kind": null,
+        "package_path": null,
         "candidates": [],
         "import_fact_id": "FACT-60d8b065f7c59829"
       },
@@ -213,11 +227,12 @@
         "Only statically written imports are resolved; dynamic loading and injection are invisible.",
         "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
         "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
-        "A resolved import is a source dependency, not proof that the call happens at runtime."
+        "A resolved import is a source dependency, not proof that the call happens at runtime.",
+        "When `target_kind` is \"package\" the import names the directory in `package_path`; `to_path` is one source file standing in for it, so that every reader of the graph still follows a file."
       ]
     },
     {
-      "id": "FACT-e665c3c6361b7698",
+      "id": "FACT-8fec9e41d13776c2",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -231,6 +246,7 @@
         "language": "python",
         "to_path": "core/pricing.py",
         "target_kind": null,
+        "package_path": null,
         "candidates": [
           "core/pricing.py"
         ],
@@ -241,11 +257,12 @@
         "Only statically written imports are resolved; dynamic loading and injection are invisible.",
         "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
         "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
-        "A resolved import is a source dependency, not proof that the call happens at runtime."
+        "A resolved import is a source dependency, not proof that the call happens at runtime.",
+        "When `target_kind` is \"package\" the import names the directory in `package_path`; `to_path` is one source file standing in for it, so that every reader of the graph still follows a file."
       ]
     },
     {
-      "id": "FACT-dbefc28b7b394157",
+      "id": "FACT-ab846d69f9a27747",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -259,6 +276,7 @@
         "language": "python",
         "to_path": null,
         "target_kind": null,
+        "package_path": null,
         "candidates": [],
         "import_fact_id": "FACT-2de3d3244863f1d4"
       },
@@ -267,11 +285,12 @@
         "Only statically written imports are resolved; dynamic loading and injection are invisible.",
         "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
         "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
-        "A resolved import is a source dependency, not proof that the call happens at runtime."
+        "A resolved import is a source dependency, not proof that the call happens at runtime.",
+        "When `target_kind` is \"package\" the import names the directory in `package_path`; `to_path` is one source file standing in for it, so that every reader of the graph still follows a file."
       ]
     },
     {
-      "id": "FACT-9b610504243c773a",
+      "id": "FACT-4c484e82ac883ce5",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -285,6 +304,7 @@
         "language": "go",
         "to_path": null,
         "target_kind": null,
+        "package_path": null,
         "candidates": [],
         "import_fact_id": "FACT-d274d76a600f4789"
       },
@@ -293,11 +313,12 @@
         "Only statically written imports are resolved; dynamic loading and injection are invisible.",
         "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
         "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
-        "A resolved import is a source dependency, not proof that the call happens at runtime."
+        "A resolved import is a source dependency, not proof that the call happens at runtime.",
+        "When `target_kind` is \"package\" the import names the directory in `package_path`; `to_path` is one source file standing in for it, so that every reader of the graph still follows a file."
       ]
     },
     {
-      "id": "FACT-fabe50e658a30db9",
+      "id": "FACT-1a5ea50b9df66489",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -311,6 +332,7 @@
         "language": "go",
         "to_path": null,
         "target_kind": null,
+        "package_path": null,
         "candidates": [],
         "import_fact_id": "FACT-989c1b58d838373b"
       },
@@ -319,11 +341,12 @@
         "Only statically written imports are resolved; dynamic loading and injection are invisible.",
         "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
         "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
-        "A resolved import is a source dependency, not proof that the call happens at runtime."
+        "A resolved import is a source dependency, not proof that the call happens at runtime.",
+        "When `target_kind` is \"package\" the import names the directory in `package_path`; `to_path` is one source file standing in for it, so that every reader of the graph still follows a file."
       ]
     },
     {
-      "id": "FACT-96812755d7a75fe0",
+      "id": "FACT-59306b0e95771f1b",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -337,6 +360,7 @@
         "language": "python",
         "to_path": null,
         "target_kind": null,
+        "package_path": null,
         "candidates": [],
         "import_fact_id": "FACT-a5a8c174b9e9ed56"
       },
@@ -345,11 +369,12 @@
         "Only statically written imports are resolved; dynamic loading and injection are invisible.",
         "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
         "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
-        "A resolved import is a source dependency, not proof that the call happens at runtime."
+        "A resolved import is a source dependency, not proof that the call happens at runtime.",
+        "When `target_kind` is \"package\" the import names the directory in `package_path`; `to_path` is one source file standing in for it, so that every reader of the graph still follows a file."
       ]
     },
     {
-      "id": "FACT-8a81c2b77e93a12c",
+      "id": "FACT-76990efd4a904c2c",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -363,6 +388,7 @@
         "language": "python",
         "to_path": "core/pricing.py",
         "target_kind": null,
+        "package_path": null,
         "candidates": [
           "core/pricing.py"
         ],
@@ -373,7 +399,8 @@
         "Only statically written imports are resolved; dynamic loading and injection are invisible.",
         "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
         "AMBIGUOUS edges have more than one plausible target and must not be read as a dependency.",
-        "A resolved import is a source dependency, not proof that the call happens at runtime."
+        "A resolved import is a source dependency, not proof that the call happens at runtime.",
+        "When `target_kind` is \"package\" the import names the directory in `package_path`; `to_path` is one source file standing in for it, so that every reader of the graph still follows a file."
       ]
     }
   ]

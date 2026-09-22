@@ -5,7 +5,12 @@ import json
 
 # Shared with the follow-up contract test: these tokens make an instruction
 # non-executable because the implementer has to guess what was omitted.
-FORBIDDEN_TOKENS = ('...', '…', 'TBD', 'TODO', 'as needed', 'and so on')
+FORBIDDEN_TOKENS = (
+    '...', '…', 'TBD', 'TODO', '<placeholder>',
+    'approximately', 'roughly', 'maybe', 'perhaps', 'somehow',
+    'as needed', 'as appropriate', 'if possible', 'and so on',
+    'تقريبًا', 'حوالي', 'ربما', 'لاحقًا',
+)
 
 
 def _read(path):
