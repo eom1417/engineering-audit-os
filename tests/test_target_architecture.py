@@ -145,3 +145,42 @@ class ComponentGranularityTests(unittest.TestCase):
         for row in record['components']:
             self.assertTrue(row['reason'].strip(), row['id'])
             self.assertTrue(row['evidence_ids'], f"{row['id']} was judged with no evidence")
+
+
+class GapMatrixTests(unittest.TestCase):
+    def component(self, relation='modify'):
+        return {'id': 'T-api', 'origin': 'api', 'relation': relation, 'reason': 'one claim',
+                'paths': ['api/handler.py'], 'evidence_ids': ['FACT-1']}
+
+    def test_retain_without_an_open_claim_is_covered(self):
+        from eaos.target_architecture import gap_matrix
+        row = gap_matrix([self.component('retain')], [])[0]
+        self.assertEqual(row['gap'], 'covered')
+        self.assertEqual(row['blocking_tasks'], [])
+
+    def test_claim_with_a_task_is_partial_and_names_the_card(self):
+        from eaos.target_architecture import gap_matrix
+        claim = {'id': 'CLM-1', 'confidence': 'CONFIRMED',
+                 'priority_factors': {'paths': ['api/handler.py']}}
+        task = {'id': 'TASK-1', 'claim_id': 'CLM-1'}
+        row = gap_matrix([self.component()], [], [claim], [task])[0]
+        self.assertEqual(row['gap'], 'partial')
+        self.assertEqual(row['blocking_tasks'], ['TASK-1'])
+        self.assertIn('CLM-1', row['evidence'])
+
+    def test_claim_without_a_task_is_missing(self):
+        from eaos.target_architecture import gap_matrix
+        claim = {'id': 'CLM-1', 'confidence': 'LIKELY',
+                 'priority_factors': {'paths': ['api/handler.py']}}
+        row = gap_matrix([self.component()], [], [claim], [])[0]
+        self.assertEqual(row['gap'], 'missing')
+
+    def test_introduced_component_needs_a_transform_stage(self):
+        from eaos.target_architecture import gap_matrix
+        target = {'id': 'T-new', 'relation': 'introduce', 'paths': ['new/service.py'],
+                  'evidence_ids': ['FACT-2']}
+        missing = gap_matrix([], [target], stages=[])[0]
+        partial = gap_matrix([], [target], stages=[{'stage': 2, 'sites': [{'path': 'new/service.py'}]}])[0]
+        self.assertEqual(missing['gap'], 'missing')
+        self.assertEqual(partial['gap'], 'partial')
+        self.assertEqual(partial['blocking_tasks'], ['TRANSFORM-002'])

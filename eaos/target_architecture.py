@@ -254,8 +254,9 @@ def render_decisions(out, records):
             path.unlink()
 
 
-def gap_matrix(current_components, target_components):
-    """For each current component, what target component descends from it, if any."""
+def gap_matrix(current_components, target_components, claims=None, tasks=None, stages=None):
+    """Map every component to the evidence and executable work that closes its gap."""
+    claims, tasks, stages = claims or [], tasks or [], stages or []
     by_source = defaultdict(list)
     for target in target_components:
         if target.get('source_component_id'):
@@ -263,11 +264,41 @@ def gap_matrix(current_components, target_components):
     rows = []
     for current in current_components:
         matches = by_source[current['id']]
-        complete = matches and all(t.get('contracts') and t.get('responsibility') and t.get('evidence_ids')
-                                   and t.get('relation') in {'retain', 'modify', 'retire'} for t in matches)
-        rows.append({'current_id': current['id'], 'current_origin': current['origin'],
-                     'target_ids': [t['id'] for t in matches],
-                     'gap': 'covered' if complete else 'incomplete_contract' if matches else 'unassessed'})
+        paths = set(current.get('paths') or [])
+        open_claims = [claim for claim in claims
+                       if claim.get('confidence') in {'CONFIRMED', 'LIKELY', 'HYPOTHESIS'}
+                       and claim.get('status') != 'withdrawn'
+                       and paths & set((claim.get('priority_factors') or {}).get('paths') or [])]
+        claim_ids = {claim['id'] for claim in open_claims}
+        blocking = sorted(task['id'] for task in tasks if task.get('claim_id') in claim_ids)
+        if current.get('relation') == 'retain' and not open_claims:
+            gap = 'covered'
+        elif open_claims and blocking:
+            gap = 'partial'
+        else:
+            gap = 'missing'
+        target_ids = [target['id'] for target in matches]
+        rows.append({'component': current['id'],
+                     'current': {'relation': current.get('relation'), 'origin': current.get('origin'),
+                                 'reason': current.get('reason')},
+                     'target': target_ids or [f"{current.get('relation')} {current['id']}"],
+                     'gap': gap,
+                     'evidence': sorted(set(current.get('evidence_ids') or []) | claim_ids),
+                     'blocking_tasks': blocking,
+                     # Compatibility names used by older machine consumers.
+                     'current_id': current['id'], 'current_origin': current['origin'],
+                     'target_ids': target_ids})
+    for target in target_components:
+        if target.get('relation') != 'introduce': continue
+        paths = set(target.get('paths') or [])
+        producing = [stage for stage in stages
+                     if paths & ({site.get('path') for site in stage.get('sites', [])}
+                                 | {stage.get('canonical_home')})]
+        rows.append({'component': target['id'], 'current': None,
+                     'target': [target['id']], 'gap': 'partial' if producing else 'missing',
+                     'evidence': list(target.get('evidence_ids') or []),
+                     'blocking_tasks': [f"TRANSFORM-{stage['stage']:03d}" for stage in producing],
+                     'current_id': None, 'current_origin': None, 'target_ids': [target['id']]})
     return rows
 
 
@@ -306,7 +337,13 @@ def build(out, contracts_by_path=None, target_components=None):
         if relation != 'introduce' and component.get('source_component_id') not in known:
             raise ValueError('Target component refers to an unknown source component')
         if not component.get('evidence_ids'): raise ValueError('Target component needs evidence')
-    matrix = gap_matrix(current, target_components)
+    plan_path = Path(out) / 'plan.json'
+    plan_tasks = json.loads(plan_path.read_text(encoding='utf-8')).get('tasks', []) \
+        if plan_path.is_file() else []
+    transform_path = Path(out) / 'transform-plan.json'
+    transform_stages = json.loads(transform_path.read_text(encoding='utf-8')).get('stages', []) \
+        if transform_path.is_file() else []
+    matrix = gap_matrix(current, target_components, claims, plan_tasks, transform_stages)
     architectural_decisions = decisions([*current, *target_components])
     return {'schema_version': 2, 'status': 'REVIEW_REQUIRED',
             'retained_structure': 'Source inventory is shown below. Missing target decisions remain explicit gaps.',

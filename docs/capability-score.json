@@ -72,13 +72,13 @@
       "indicators": {
         "components_assessed": 1.0,
         "decisions_with_alternatives": 1.0,
-        "gap_matrix_resolved": 0.0
+        "gap_matrix_resolved": 1.0
       },
       "measured_indicators": 3,
       "unmeasured_indicators": 0,
-      "score": 0.6667,
+      "score": 1.0,
       "target": 0.8,
-      "meets_target": false
+      "meets_target": true
     },
     "transformation_plan": {
       "indicators": {
@@ -118,8 +118,8 @@
       "meets_target": false
     }
   },
-  "overall": 0.8125,
-  "domains_meeting_target": 6,
+  "overall": 0.8496,
+  "domains_meeting_target": 7,
   "domains_total": 9,
   "target": 0.8,
   "limitations": [

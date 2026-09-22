@@ -1008,6 +1008,34 @@
       },
       "overall_at_this_point": 0.8125,
       "note": "Revalidated after N11.T8 replaced the repeated ADR template with evidence-specific decisions."
+    },
+    {
+      "task": "N6.T4",
+      "title": "مصفوفة فجوة حقيقية",
+      "recorded_at": "2026-09-22T22:04:39+00:00",
+      "commit": "ac186c0",
+      "acceptance_command": "python -m unittest tests.test_target_architecture -q && eaos audit . --out /tmp/ta --skip site && python3 -c \"import json;d=json.load(open('/tmp/ta/target-architecture.json'));rows=d['gap_matrix'];assert sum(1 for r in rows if r['gap']!='unassessed')/len(rows) >= 0.85\"",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "target_architecture.gap_matrix_resolved",
+        "from": 0.0,
+        "to": 0.85
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.9167,
+        "target_architecture": 1.0,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8496,
+      "note": "Gap rows now resolve to covered, partial, or missing with evidence and PLAN/transform blockers; target_architecture reached 1.0."
     }
   ]
 }

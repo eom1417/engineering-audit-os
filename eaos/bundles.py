@@ -110,6 +110,8 @@ def _generate_gap_matrix(out, language):
     target = json.loads(target_path.read_text())
     return {'rows': target.get('gap_matrix', []),
             'covered': sum(1 for r in target.get('gap_matrix', []) if r['gap'] == 'covered'),
+            'partial': sum(1 for r in target.get('gap_matrix', []) if r['gap'] == 'partial'),
+            'missing': sum(1 for r in target.get('gap_matrix', []) if r['gap'] == 'missing'),
             'total': len(target.get('gap_matrix', []))}
 
 
