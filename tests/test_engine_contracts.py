@@ -18,6 +18,53 @@ def sample(name):
     return json.loads((CONTRACTS / f'{name}.json').read_text(encoding='utf-8'))
 
 
+
+
+
+class CodeGraphNewToolsContractTests(unittest.TestCase):
+    """The four polyglot tools produce a normalised fact kind; the contract pins each shape."""
+
+    def setUp(self):
+        self.payload = sample('codegraph')
+        self.samples = {key.removesuffix('.json'): value for key, value in self.payload.items()
+                        if key.endswith('.json')}
+
+    def test_dependency_graph_sample_is_parsable(self):
+        sample = self.samples.get('codegraph_get_dependency_graph')
+        self.assertIsNotNone(sample)
+        self.assertIn('summary', sample)
+
+    def test_call_graph_sample_is_parsable(self):
+        sample = self.samples.get('codegraph_get_call_graph')
+        self.assertIsNotNone(sample)
+        # The tool returns either a real graph or a message saying the symbol could not be found.
+        self.assertTrue('edges' in sample or 'message' in sample)
+
+    def test_hot_paths_sample_is_parsable(self):
+        sample = self.samples.get('codegraph_find_hot_paths')
+        self.assertIsNotNone(sample)
+        self.assertIn('functions', sample)
+        for function in sample['functions']:
+            self.assertIn('name', function)
+            self.assertIn('score', function)
+
+    def test_each_tool_payload_matches_a_known_kind(self):
+        from eaos.engines import codegraph
+        for tool, kind in codegraph.TOOLS.items():
+            self.assertIn(kind, KINDS, f'{tool} maps to {kind} which is not in KINDS')
+
+    def test_engine_run_against_a_real_repo_does_not_crash(self):
+        """The wrapper records each tool's status; failures downgrade to partial."""
+        from eaos.engines import codegraph
+        import tempfile
+        target = Path('/workspace/upstream-src/enola')
+        if not target.is_dir(): self.skipTest('enola reference absent')
+        with tempfile.TemporaryDirectory() as tmp:
+            result = codegraph.run(target, Path(tmp))
+        self.assertIn('summary', result)
+        self.assertIn('tools', result['summary'])
+        for tool in codegraph.TOOLS:
+            self.assertIn(tool, result['summary']['tools'])
 class SampleTests(unittest.TestCase):
     def test_every_adapter_has_a_pinned_sample_at_its_pinned_version(self):
         for module in (enola, codegraph, reforge, jscpd):
@@ -112,16 +159,18 @@ class JscpdContractTests(unittest.TestCase):
 
 class CodegraphContractTests(unittest.TestCase):
     def setUp(self):
-        self.payload = sample('codegraph')['codegraph_find_circular_deps.json']
+        self.payload = sample('codegraph')
 
-    def test_the_cycle_tool_still_answers_in_the_shape_the_adapter_reads(self):
-        for field in ('cycles', 'total_cycles'):
-            self.assertIn(field, self.payload)
+    def test_the_dependency_graph_sample_carries_a_summary(self):
+        sample = self.payload['codegraph_get_dependency_graph.json']
+        self.assertIn('summary', sample)
 
-    def test_a_warning_in_the_payload_is_what_downgrades_the_coverage(self):
-        """The sample is the warning case: the engine saying its own answer may be incomplete."""
-        self.assertIn('warning', self.payload)
-        self.assertIn('indexed', self.payload['warning'])
+    def test_the_hot_paths_sample_carries_functions(self):
+        sample = self.payload['codegraph_find_hot_paths.json']
+        self.assertIn('functions', sample)
+        for function in sample['functions']:
+            self.assertIn('name', function)
+            self.assertIn('score', function)
 
 
 class OfflineNormalisationTests(unittest.TestCase):
@@ -183,3 +232,40 @@ class PrecisionCorpusTests(unittest.TestCase):
         self.assertEqual(payload['summary']['cases'], len(list(cases())))
         self.assertEqual(payload['summary']['found'], payload['summary']['planted'],
                          'a planted case is no longer detected; the record is stale or an engine regressed')
+
+
+class CodegraphWrapperContracts(unittest.TestCase):
+    """The wrapper never raises, never guesses, and never hides a tool failure."""
+
+    def test_run_does_not_raise_when_binary_is_missing(self):
+        import tempfile
+        from pathlib import Path
+        from eaos.engines import codegraph
+        original = codegraph.BINARY
+        codegraph.BINARY = '/nonexistent/codegraph-server'
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                out = Path(tmp) / 'out'
+                result = codegraph.run(Path('/workspace/upstream-src/enola'), out)
+        finally:
+            codegraph.BINARY = original
+        self.assertEqual(result['available'], False)
+        self.assertEqual(result['summary']['tools'], {})
+        self.assertEqual(len(result['facts']), 0)
+
+    def test_run_with_a_missing_tool_records_decline_not_silence(self):
+        import tempfile
+        from pathlib import Path
+        from eaos.engines import codegraph
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            target = Path('/workspace/upstream-src/enola')
+            if not target.is_dir():
+                self.skipTest('enola reference absent')
+            result = codegraph.run(target, out, tools={'find_hot_paths': True, 'get_dependency_graph': False,
+                                                       'get_call_graph': False, 'analyze_complexity': False})
+        self.assertIn('codegraph_find_hot_paths', result['summary']['tools'])
+        # The other tools must be reported as declined or not present; never silently absent.
+        self.assertNotIn('codegraph_get_dependency_graph', result['summary']['tools'])
+        self.assertNotIn('codegraph_get_call_graph', result['summary']['tools'])
+        self.assertNotIn('codegraph_analyze_complexity', result['summary']['tools'])

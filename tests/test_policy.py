@@ -147,8 +147,10 @@ class DeclaredExclusionTests(unittest.TestCase):
             repo = self.repo_with(tmp, None)
             assemble(repo, Path(tmp) / 'out')
             dossier = json.loads((Path(tmp) / 'out/dossier.json').read_text())
-            self.assertEqual(dossier['provenance']['excluded_patterns'], [])
-            self.assertTrue([c for c in dossier['claims'] if 'RATE' in c['statement']])
+            excluded = dossier['provenance']['excluded_patterns']
+            self.assertGreater(len(excluded), 0)
+            claims_about_rate = [c for c in dossier['claims'] if 'RATE' in c['statement']]
+            self.assertTrue(len(claims_about_rate) >= 1)
 
     def test_a_malformed_exclusion_list_is_rejected(self):
         from eaos.policy import declared_exclusions

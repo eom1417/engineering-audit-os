@@ -19,16 +19,28 @@ def language_of(path): return LANGUAGE_BY_SUFFIX.get(Path(path).suffix.lower())
 class Source:
     """One snapshot, read once, shared by all extractors; the target is never written to."""
 
-    def __init__(self, target, inv=None, max_files=100000, max_bytes=2_000_000, exclude=()):
+    def __init__(self, target, inv=None, max_files=100000, max_bytes=2_000_000, exclude=None, include_vendored=False):
         self.target = Path(target).resolve()
         self.inventory = inv or inventory(self.target, max_files, max_bytes)
-        self.exclude = [prefix.strip('/') for prefix in exclude or () if prefix.strip('/')]
+        if exclude is None:
+            from .scope import vendored_patterns
+            exclude = [] if include_vendored else vendored_patterns()
+        self.exclude = [prefix.strip('/') for prefix in exclude if prefix.strip('/')]
         self.files = [item for item in self.inventory['files'] if not self.excluded(item['path'])]
         self.excluded_files = [item['path'] for item in self.inventory['files'] if self.excluded(item['path'])]
         self._text = {}
 
     def excluded(self, rel):
-        return any(rel == prefix or rel.startswith(prefix + '/') or fnmatch(rel, prefix) for prefix in self.exclude)
+        for prefix in self.exclude:
+            if rel == prefix:
+                return True
+            if rel.startswith(prefix + '/') or rel.startswith('/' + prefix + '/'):
+                return True
+            if '/' + prefix + '/' in '/' + rel or rel.startswith(prefix + '/'):
+                return True
+            if fnmatch(rel, prefix) or fnmatch(rel, '*/' + prefix) or fnmatch(rel, '*/' + prefix + '/*'):
+                return True
+        return False
 
     @property
     def fingerprint(self): return self.inventory['fingerprint']

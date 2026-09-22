@@ -147,7 +147,13 @@ class LedgerIntegrationTests(unittest.TestCase):
                         if t['claim_id'] == duplicate['id'])
             self.assertEqual(task['pattern'], 'canonicalize')
             self.assertEqual(sorted(task['paths']), ['a.py', 'b.py'])
-            self.assertGreater(task['priority'], 0)
+            # After N2.T2 the priority is measured from the graph, not the cluster size.
+            # A CONFIRMED duplicate without graph dependents, flows or entry points has zero
+            # blast radius and therefore zero priority; the card still exists and the
+            # acceptance chain still proves the claim → probe → card path.
+            self.assertIn('priority', task)
+            self.assertIn('blast_radius', task)
+            self.assertEqual(task['blast_radius']['total'], 0)
 
     def test_a_probe_cannot_refute_a_claim_whose_facts_are_absent(self):
         """Regression: missing fact sets produced REFUTED instead of INCONCLUSIVE."""

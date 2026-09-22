@@ -28,6 +28,482 @@
       },
       "overall_at_this_point": 0.4785,
       "note": "the instrument, the baseline and the no-regression gate were built and verified"
+    },
+    {
+      "task": "N2.T1",
+      "title": "استبعاد ما ليس كود القارئ افتراضيًا",
+      "recorded_at": "2026-09-22T09:31:33+00:00",
+      "commit": "5863f1f",
+      "acceptance_command": "python -m unittest tests.test_facts_scope -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "report_clarity.top_findings_are_about_the_reader_s_code",
+        "from": 0.6,
+        "to": 1.0
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "Added VENDORED defaults to scope.py; updated Source to apply them when no exclude given; collect now reports excluded_paths and exclusion_reasons in summary; test_facts_scope.py covers the contract."
+    },
+    {
+      "task": "N2.T2",
+      "title": "الوصول يُقاس من الرسم لا من حجم العنقود",
+      "recorded_at": "2026-09-22T09:41:40+00:00",
+      "commit": "5863f1f",
+      "acceptance_command": "python -m unittest tests.test_impact_ranking -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "report_clarity.top_findings_are_about_the_reader_s_code",
+        "from": 0.6,
+        "to": 1.0
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "reach_of now computes total from graph only and exposes reach_source in priority_factors; cluster with no graph node has zero reach; test_every_claim_exposes_the_inputs_of its_priority updated to include the new key."
+    },
+    {
+      "task": "N2.T3",
+      "title": "كاشف التسلسلات يعرف اصطلاحات اللغة",
+      "recorded_at": "2026-09-22T09:51:23+00:00",
+      "commit": "5863f1f",
+      "acceptance_command": "python -m unittest tests.test_facts_sequences -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "report_clarity.top_findings_are_about_the_reader_s_code",
+        "from": 0.6,
+        "to": 1.0
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "Added IDIOMS dict for python/go/javascript/typescript to sequences.py; windows where every call is in the language idiom set are excluded and counted in summary. Added three positive fixtures and three negative fixtures under tests/fixtures/idioms/."
+    },
+    {
+      "task": "N2.T4",
+      "title": "إثبات على المستودع الحقيقي",
+      "recorded_at": "2026-09-22T10:03:36+00:00",
+      "commit": "5863f1f",
+      "acceptance_command": "bash tests/gate/signal_first.sh",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "report_clarity.top_findings_are_about_the_reader_s_code",
+        "from": 0.6,
+        "to": 1.0
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "tests/gate/signal_first.sh runs against /workspace/upstream-src/enola, asserts no top-10 claim lands under a vendored path and at least one is hotspot-style. Also fixed Source.excluded to match directory names that are not at the path root."
+    },
+    {
+      "task": "N3.T1",
+      "title": "قياس الحل لكل لغة قبل أي تغيير",
+      "recorded_at": "2026-09-22T10:07:42+00:00",
+      "commit": "5863f1f",
+      "acceptance_command": "python tools/language_depth.py --write && test -f docs/language-depth.json",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "structure_polyglot.imports_resolved_outside_python",
+        "from": 0.067,
+        "to": 0.067
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "tools/language_depth.py measures files/parsed/symbols/imports_resolved per language; ran on self and enola; docs/language-depth.json holds the numbers."
+    },
+    {
+      "task": "N3.T2",
+      "title": "محوّل CodeGraph للرسم والاستدعاءات",
+      "recorded_at": "2026-09-22T10:26:46+00:00",
+      "commit": "5863f1f",
+      "acceptance_command": "python -m unittest tests.test_engine_contracts -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "structure_polyglot.imports_resolved_outside_python",
+        "from": 0.067,
+        "to": 0.5
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "Added four CodeGraph tool wrappers (get_dependency_graph, get_call_graph, analyze_complexity, find_hot_paths). Updated tests/contracts/codegraph.json with real samples. Extended KINDS in engines/contract.py with module_edge_external, call_edge_external, symbol_metric_external, hot_path_external. Registered the new invariants in docs/invariants.json."
+    },
+    {
+      "task": "N3.T3",
+      "title": "دمج رسم المحرك في حقائقنا",
+      "recorded_at": "2026-09-22T10:52:30+00:00",
+      "commit": "1831df7",
+      "acceptance_command": "python -m unittest tests.test_facts_resolve -q && python tools/language_depth.py",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "structure_polyglot.imports_resolved_outside_python",
+        "from": 0.5,
+        "to": 0.8
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "graph.py now accepts RESOLVED_BY_ENGINE edges with 'engine:<name>' source; summary has own_edges/engine_edges; depends_on_with_source added per node; golden regenerated; tearDown moved to shared_fixture.TemporaryWorkspace"
+    },
+    {
+      "task": "N3.T4",
+      "title": "عتبة لكل لغة في القياس",
+      "recorded_at": "2026-09-22T11:04:19+00:00",
+      "commit": "8ef9354",
+      "acceptance_command": "python -m unittest tests.test_capability -q && python tools/capability_score.py /tmp/selfr /tmp/gor",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "structure_polyglot.languages_with_depth",
+        "from": 0.5385,
+        "to": 0.8
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "structure_polyglot now measures languages_with_depth against languages_with_min_files and adds thirdmost_language_depth; tests cover single-strong-dead-others, all-meeting, third-weak-dropping, and floor cases"
+    },
+    {
+      "task": "N4.T1",
+      "title": "كاشف حدود الاستعلام",
+      "recorded_at": "2026-09-22T11:10:09+00:00",
+      "commit": "af5dc7f",
+      "acceptance_command": "python -m unittest tests.test_facts_runtime -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "runtime_surface.detectors_implemented",
+        "from": 0.5833,
+        "to": 0.6667
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "query_bound detector added in runtime.py with per-language patterns; bounded/unbounded/unknown truth values; fixture and tests for python/js/ts/go; schema enum updated"
+    },
+    {
+      "task": "N4.T2",
+      "title": "كاشف سياسات الصمود",
+      "recorded_at": "2026-09-22T11:11:35+00:00",
+      "commit": "6b0c695",
+      "acceptance_command": "python -m unittest tests.test_facts_runtime -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "runtime_surface.detectors_implemented",
+        "from": 0.6667,
+        "to": 0.75
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "resilience_policy detector: timeout/retry/circuit_breaker per integration_target; aliases for hystrix, pybreaker, resilience4j, CircuitBreaker; per-language patterns; schema and tests added"
+    },
+    {
+      "task": "N4.T3",
+      "title": "كاشف التخزين المؤقت",
+      "recorded_at": "2026-09-22T11:15:25+00:00",
+      "commit": "580705b",
+      "acceptance_command": "python -m unittest tests.test_facts_runtime -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "runtime_surface.detectors_implemented",
+        "from": 0.75,
+        "to": 0.8333
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "cache_policy detector: scope (process|shared|http), mechanism, ttl_declared; per-language patterns for lru_cache, redis, memcached, Cache-Control, @Cacheable, @revalidate"
+    },
+    {
+      "task": "N4.T4",
+      "title": "كاشف تحديد المعدّل وحدود التزامن",
+      "recorded_at": "2026-09-22T11:21:47+00:00",
+      "commit": "b954d75",
+      "acceptance_command": "python -m unittest tests.test_facts_runtime -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "runtime_surface.detectors_implemented",
+        "from": 0.8333,
+        "to": 0.9167
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "rate_limit detector: limiter/throttle/semaphore/max_workers/limit_req_zone/k8s resources; source code|config; declared_limit captured"
+    },
+    {
+      "task": "N4.T5",
+      "title": "كاشف تجمّع الاتصالات",
+      "recorded_at": "2026-09-22T11:25:19+00:00",
+      "commit": "284a679",
+      "acceptance_command": "python -m unittest tests.test_facts_runtime -q && python tools/capability_score.py /tmp/selfr /tmp/gor",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "runtime_surface.detectors_implemented",
+        "from": 0.9167,
+        "to": 1.0
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "connection_pool detector: pool_size/max_connections/MaxIdleConns/MaxConns/pool param; declared_size numeric when found; no fact when undeclared"
+    },
+    {
+      "task": "N5.T1",
+      "title": "عقد نموذج الحمل",
+      "recorded_at": "2026-09-22T11:29:16+00:00",
+      "commit": "2632d45",
+      "acceptance_command": "python -m unittest tests.test_load_model -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "load_model.questions_answered",
+        "from": 0.0,
+        "to": 0.0
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "load_model.QUESTIONS=8 questions with validate(); schema in schemas/load-model.schema.json; ledger declared; tests cover shapes, statuses, reasons, evidence"
+    },
+    {
+      "task": "N5.T2",
+      "title": "سجل كلفة لكل نقطة دخول",
+      "recorded_at": "2026-09-22T11:32:06+00:00",
+      "commit": "e55e617",
+      "acceptance_command": "python -m unittest tests.test_load_model -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "load_model.entry_points_with_a_cost_record",
+        "from": 0.0,
+        "to": 0.9
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "compute() reads entrypoints/flows/structure/redundancy/runtime/domain; produces 8 answers with fact_ids evidence; undetectable when flow missing"
+    },
+    {
+      "task": "N5.T3",
+      "title": "الإسقاط عند ١٠٠٠ ضعف",
+      "recorded_at": "2026-09-22T11:33:37+00:00",
+      "commit": "c721e90",
+      "acceptance_command": "python -m unittest tests.test_load_model -q",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "load_model.projection_recorded",
+        "from": 0.0,
+        "to": 1.0
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "project() ranks entries, names bottlenecks, marks incomplete records; cost formula explicit in projection.method"
+    },
+    {
+      "task": "N5.T4",
+      "title": "مرحلة وتقرير ومصنوعة",
+      "recorded_at": "2026-09-22T11:49:38+00:00",
+      "commit": "4dced45",
+      "acceptance_command": "eaos audit . --out /tmp/lm --skip site && test -f /tmp/lm/LOAD-MODEL.md && python3 -c \"import json;d=json.load(open('/tmp/lm/load-model.json'));assert d['entry_points']\"",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "load_model.entry_points_with_a_cost_record",
+        "from": 0.9,
+        "to": 0.95
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 0.8,
+        "structure_python": 0.9616,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4566,
+      "note": "load stage added; produces load-model.json + LOAD-MODEL.md; declared in artifacts.py; audit run produces 54 ranked entry points"
     }
   ]
 }

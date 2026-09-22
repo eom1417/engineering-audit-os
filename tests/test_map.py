@@ -90,6 +90,9 @@ class ExclusionTests(unittest.TestCase):
             self.assertGreater(json.loads((Path(tmp) / 'all/dossier.json').read_text())['claims'].__len__(), 0)
             filtered = json.loads((Path(tmp) / 'filtered/dossier.json').read_text())
             self.assertEqual(filtered['claims'], [])
-            self.assertEqual(filtered['provenance']['excluded_patterns'], ['thirdparty'])
+            # After N2.T1, the vendored defaults are always excluded unless opted in.
+            # The test directory 'thirdparty' is therefore in excluded_patterns along with
+            # the engine's defaults; the project did not add anything of its own.
+            self.assertIn('thirdparty', filtered['provenance']['excluded_patterns'])
             self.assertEqual(with_all['status'], 'READY')
             self.assertEqual(without['status'], 'READY')

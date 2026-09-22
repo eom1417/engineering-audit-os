@@ -71,12 +71,23 @@ def render(record, language='en'):
             lines.append(f'| {question} | {status} | {value} | {evidence} |')
         lines.append('')
 
-    lines += ['## What we could not measure and why', '']
+    # One line per unanswered question per entry point grows with the project: 342 lines on this
+    # repository alone. The reasons repeat, so the document counts them and the record keeps each one.
+    gaps = {}
     for entry in ranked:
         for question, answer in (entry.get('answers') or {}).items():
             if answer.get('status') in ('undetectable', 'not_applicable') and answer.get('reason'):
-                lines.append(f"- **{entry.get('id', '?')} / {question}** — {answer['reason']}")
-    lines.append('')
+                key = (question, answer['reason'])
+                gaps.setdefault(key, []).append(entry.get('id', '?'))
+    lines += ['## What we could not measure and why', '']
+    if not gaps:
+        lines += ['Every question was answered for every entry point.', '']
+    else:
+        lines += ['| Question | Reason | Entry points |', '| --- | --- | --- |']
+        for (question, reason), entries in sorted(gaps.items(), key=lambda row: (-len(row[1]), row[0])):
+            shown = ', '.join(entries[:3]) + (f' and {len(entries) - 3} more' if len(entries) > 3 else '')
+            lines.append(f'| {question} | {reason} | {len(entries)}: {shown} |')
+        lines += ['', 'Every entry point and every reason is in `load-model.json`.', '']
 
     return '\n'.join(lines) + '\n'
 

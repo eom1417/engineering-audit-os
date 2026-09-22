@@ -527,3 +527,45 @@ class ConnectionPoolDetectorTests(unittest.TestCase):
             data = _collect(tmp, body=body, name='config.py')
             pools = [f for f in data['facts'] if f['kind'] == 'connection_pool']
             self.assertGreater(len(pools), 0)
+
+
+class HonestUnknownTests(unittest.TestCase):
+    """A detector that cannot tell says so; it never reports absence as a clean result."""
+
+    def test_a_timeout_anywhere_in_the_file_marks_the_integration_as_protected(self):
+        """eaos/facts/runtime.py:_has_timeout — the detector is file-scoped and says so."""
+        from eaos.facts.runtime import _has_timeout
+        self.assertTrue(_has_timeout('import requests\nTIMEOUT = 5\nrequests.get(url, timeout=TIMEOUT)\n'))
+        self.assertTrue(_has_timeout('client = Client(timeout=30)\n\n\ndef fetch():\n    return client.get(url)\n'),
+                        'a timeout declared elsewhere in the file still counts; the detector is file-scoped')
+        self.assertFalse(_has_timeout('import requests\nrequests.get(url)\n'))
+
+    def test_resilience_reports_unknown_rather_than_false_when_it_cannot_tell(self):
+        """eaos/facts/runtime.py:_detect_resilience_for_integration — unknown is the honest answer."""
+        from eaos.facts.runtime import _detect_resilience_for_integration as detect
+        covered = detect('import requests\nrequests.get(url)\n', 'x', 'python')
+        self.assertIs(covered['has_timeout'], False, 'we looked and found none, which is False')
+        uncovered = detect('HTTPoison.get(url)', 'x', 'elixir')
+        self.assertEqual(uncovered['has_timeout'], 'unknown',
+                         'a language we have no vocabulary for must answer unknown, never False')
+        self.assertTrue(uncovered['reason'])
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body='import requests\n\n\ndef fetch():\n    return requests.get("http://x/y")\n')
+            policies = [f for f in data['facts'] if f['kind'] == 'resilience_policy']
+            for policy in policies:
+                for field in ('has_timeout', 'has_retry', 'has_circuit_breaker'):
+                    self.assertIn(policy['value'][field], (True, False, 'unknown'), field)
+
+    def test_a_cache_of_one_scope_never_asserts_the_absence_of_another(self):
+        """eaos/facts/runtime.py:_detect_cache_policies — we report what we observed only."""
+        body = ('from functools import lru_cache\n\n\n'
+                '@lru_cache(maxsize=128)\ndef rate(code):\n    return code\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            caches = [f for f in data['facts'] if f['kind'] == 'cache_policy']
+        self.assertTrue(caches, 'the process-scoped cache was not detected')
+        scopes = {fact['value']['scope'] for fact in caches}
+        self.assertIn('process', scopes)
+        for fact in caches:
+            self.assertNotIn('absent', json.dumps(fact['value']),
+                             'a cache fact must describe what was seen, never what was not')

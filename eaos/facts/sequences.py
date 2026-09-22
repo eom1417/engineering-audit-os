@@ -23,6 +23,30 @@ _MIN_SEQUENCE = 3
 _CLUSTER_MIN = 3
 _MIN_FUNCTION_SIZE = 3
 
+# Idiomatic call patterns per language. A sequence whose every element belongs to the
+# idiomatic set is not a coordination copy; it is the language's normal way of writing
+# a particular kind of work. The detector records the exclusion in the summary rather
+# than silently dropping the cluster.
+IDIOMS = {
+    'python': {frozenset({'assertEqual', 'assertTrue', 'assertFalse', 'assertNotEqual',
+                           'assertRaises', 'assertIsNone', 'assertIsNotNone',
+                           'patch', 'mock', 'MagicMock'})},
+    'go': {frozenset({'t.Run', 't.Fatalf', 't.Errorf', 't.Logf', 't.Skip',
+                       'require', 'assert', 'NoError', 'Equal', 'NotEqual',
+                       'len', 'cap', 'err', 'nil'})},
+    'javascript': {frozenset({'expect', 'describe', 'it', 'beforeEach', 'afterEach',
+                                'jest', 'fn'})},
+    'typescript': {frozenset({'expect', 'describe', 'it', 'beforeEach', 'afterEach',
+                                 'jest', 'fn'})},
+}
+
+
+def _is_idiomatic(sequence, language):
+    """A sequence is idiomatic when all of its calls are in the language's idiom set."""
+    idioms = IDIOMS.get(language) or set()
+    seq_set = frozenset(sequence)
+    return any(seq_set <= idiom for idiom in idioms)
+
 
 def _python_call_name(node):
     if isinstance(node, ast.Name): return node.id
@@ -121,6 +145,8 @@ def run(target, source, symbols=None, **options):
         symbols = [f for f in syntax_result['facts'] if f['kind'] == 'symbol']
     sequence_clusters = defaultdict(list)
     files_observed = 0; files_blocked = 0
+    idiomatic_clusters = 0
+    idiom_languages = {}
     for item in source.readable():
         rel = item['path']; language = language_of(rel)
         if language is None: continue
@@ -135,6 +161,10 @@ def run(target, source, symbols=None, **options):
             if len(callees) < _MIN_FUNCTION_SIZE: continue
             for i in range(0, len(callees) - _MIN_SEQUENCE + 1):
                 window = tuple(callees[i:i + _MIN_SEQUENCE])
+                if _is_idiomatic(window, language):
+                    idiomatic_clusters += 1
+                    idiom_languages[language] = idiom_languages.get(language, 0) + 1
+                    continue
                 sequence_clusters[window].append({'path': rel, 'start': start, 'end': end,
                                                    'qualified': qualified})
     cluster_facts = []
@@ -155,8 +185,10 @@ def run(target, source, symbols=None, **options):
                                     limitations=LIMITATIONS))
     summary = {'files_observed': files_observed, 'files_blocked': files_blocked,
                'clusters': len(cluster_facts),
+               'idiomatic_clusters_excluded': idiomatic_clusters,
+               'idiomatic_clusters_by_language': idiom_languages,
                'interpretation': 'A cluster contains functions that perform the same ordered list of callees. '
-                                  'The cluster is a hypothesis; one shared list may be coincidence or coordination copy.'}
+                                  'Idiomatic sequences (test patterns, common library calls) are excluded and reported.'}
     return {'facts': cluster_facts, 'summary': summary,
             'available': True, 'input_sha': digest(b''),
             'reason': None}

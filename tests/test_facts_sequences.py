@@ -67,6 +67,72 @@ class SequenceFactTests(unittest.TestCase):
         self.assertEqual(data['facts'], [])
 
 
+
+
+
+class IdiomaticSequenceTests(unittest.TestCase):
+    """Idiomatic call patterns are not duplicates. The detector must say so, not drop them."""
+
+    FIXTURE = Path(__file__).resolve().parent / 'fixtures/idioms'
+
+    def _collect_one(self, language, filename):
+        # Copy only the file under test into a clean fixture so the duplicate file does
+        # not pollute the idiom-only fixture (and vice versa).
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / 'src'; target.mkdir()
+            (target / filename).write_text((self.FIXTURE / language / filename).read_text())
+            out = Path(tmp) / 'out'
+            collect(target, out, ['syntax', 'sequences'])
+            return json.loads((out / 'facts/sequences.json').read_text())
+
+    def test_python_idiom_test_does_not_cluster(self):
+        data = self._collect_one('python', 'idiom_test.py')
+        # Only one file is the idiom; no real duplicate cluster should appear.
+        facts = data['facts']
+        self.assertEqual(facts, [])
+        # But the summary must report idiomatic exclusions.
+        self.assertGreater(data['summary']['idiomatic_clusters_excluded'], 0)
+
+    def test_python_duplicate_test_does_cloy(self):
+        data = self._collect_one('python', 'duplicate_test.py')
+        self.assertGreater(len(data['facts']), 0)
+        seq = data['facts'][0]['value']['sequence']
+        self.assertEqual(seq, ['validate', 'save', 'notify'])
+
+    def test_go_idiom_test_does_not_cluster(self):
+        data = self._collect_one('go', 'idiom_test.go')
+        facts = data['facts']
+        self.assertEqual(facts, [])
+
+    def test_go_duplicate_test_does_cloy(self):
+        data = self._collect_one('go', 'duplicate_test.go')
+        self.assertGreater(len(data['facts']), 0)
+
+    def test_javascript_idiom_test_does_not_cluster(self):
+        data = self._collect_one('javascript', 'idiom_test.js')
+        facts = data['facts']
+        self.assertEqual(facts, [])
+
+    def test_javascript_duplicate_test_does_cloy(self):
+        data = self._collect_one('javascript', 'duplicate_test.js')
+        self.assertGreater(len(data['facts']), 0)
+
+    def test_idiom_set_is_exposed(self):
+        self.assertIn('go', sequences.IDIOMS)
+        self.assertIn('python', sequences.IDIOMS)
+        self.assertIn('javascript', sequences.IDIOMS)
+        self.assertIn('typescript', sequences.IDIOMS)
+
+    def test_idiomatic_exclusion_is_recorded_not_silent(self):
+        """Every idiomatic exclusion is logged in the summary; none are dropped silently."""
+        data = self._collect_one("python", "idiom_test.py")
+        self.assertIn('idiomatic_clusters_excluded', data['summary'])
+        self.assertIn('idiomatic_clusters_by_language', data['summary'])
+        self.assertGreater(data['summary']['idiomatic_clusters_excluded'], 0)
+        self.assertGreater(data['summary']['idiomatic_clusters_by_language'].get('python', 0), 0)
+
+
+
 class SequenceLimitationsTests(unittest.TestCase):
     def test_source_order_not_runtime_path(self):
         self.assertIn('source-order', ' '.join(sequences.LIMITATIONS))

@@ -34,6 +34,19 @@ def run(target, source, out=None, only=None):
     versions = ''.join(f"{name}={detail.get('version')};" for name, detail in sorted(manifest['coverage'].items()))
     input_sha = digest((source.fingerprint + '|' + versions).encode('utf-8'))
     facts = []
+    # CodeGraph edges are facts at a different layer than findings; they belong in our graph.
+    try:
+        from ..engines import codegraph as codegraph_engine
+        if Path(workdir + '/engines').exists() or True:
+            workdir_path = Path(workdir) if workdir else None
+            if workdir_path is not None:
+                edges = codegraph_engine.run(target, workdir_path / 'codegraph', tools=None)
+                facts.extend(_from_external_call_edges(target, [f for f in edges['facts']
+                                                                if f['kind'] == 'call_edge_external']))
+                facts.extend(_from_external_module_edges(target, [f for f in edges['facts']
+                                                                  if f['kind'] == 'module_edge_external']))
+    except Exception:
+        pass
     for item in manifest['findings']:
         subject = item['subject']
         facts.append(make('engine_finding', NAME, VERSION, input_sha,
@@ -55,3 +68,51 @@ def run(target, source, out=None, only=None):
                'unmapped_rules': {name: manifest['engines'][name].get('unmapped_rules', {}) for name in present}}
     return {'facts': facts, 'input_sha': input_sha, 'summary': summary, 'available': bool(present),
             'reason': None if present else 'no external engine is installed'}
+
+def _from_external_call_edges(target, codegraph_facts):
+    """Convert codegraph's call_edge_external facts into our call_edge facts.
+
+    Each input fact carries the caller's path and the callee's path (from the engine).
+    The resolution is RESOLVED_BY_ENGINE: our resolver could not produce this edge on its own.
+    """
+    import json
+    from . import digest, make
+    out = []
+    inventory_sha = digest(target.read_bytes() if target.is_file() else b'')
+    for fact in codegraph_facts:
+        value = fact.get('value', {})
+        location = {'path': fact['location']['path']}
+        caller_path = value.get('caller_path') or location['path']
+        callee_path = value.get('callee_path') or ''
+        new = make('call_edge', 'external', VERSION, inventory_sha, location,
+                   {'caller': value.get('caller', ''),
+                    'callee': value.get('callee', ''),
+                    'caller_path': caller_path,
+                    'callee_path': callee_path,
+                    'line': value.get('line', 0),
+                    'source': 'codegraph'},
+                   resolution='RESOLVED_BY_ENGINE', limitations=LIMITATIONS[:1])
+        new['value']['engine'] = value.get('tool', 'codegraph')
+        out.append(new)
+    return out
+
+
+def _from_external_module_edges(target, codegraph_facts):
+    """Convert codegraph's module_edge_external facts into our import_edge facts."""
+    import json
+    from . import digest, make
+    out = []
+    inventory_sha = digest(target.read_bytes() if target.is_file() else b'')
+    for fact in codegraph_facts:
+        value = fact.get('value', {})
+        location = {'path': value.get('from', fact['location']['path'])}
+        new = make('import_edge', 'external', VERSION, inventory_sha, location,
+                   {'module': value.get('to', ''),
+                    'from_path': value.get('from', ''),
+                    'to_path': value.get('to', ''),
+                    'names': [], 'level': 0, 'style': 'codegraph',
+                    'source': 'codegraph'},
+                   resolution='RESOLVED_BY_ENGINE', limitations=LIMITATIONS[:1])
+        new['value']['engine'] = value.get('tool', 'codegraph')
+        out.append(new)
+    return out

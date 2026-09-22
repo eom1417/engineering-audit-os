@@ -98,14 +98,22 @@ def go_module_name(source):
     return None
 
 
-def run(target, source, imports=None, **options):
+def run(target, source, imports=None, external_edges=None, **options):
+    """Augment our import graph with what the external engine resolved.
+
+    `external_edges` is a list of `call_edge` / `import_edge` facts produced by
+    `eaos.facts.external`. Each carries resolution=RESOLVED_BY_ENGINE; we keep them
+    separate from edges we resolved ourselves so a reviewer can tell which
+    engine claimed the relationship.
+    """
     from . import syntax
     facts, fingerprints = [], []
     known = {item['path'] for item in source.readable()}
     directories = {PurePosixPath(p).parent.as_posix() for p in known}
     go_module = go_module_name(source)
     rows = imports if imports is not None else [f for f in syntax.run(target, source)['facts'] if f['kind'] == 'import_edge']
-    counts = {'RESOLVED': 0, 'EXTERNAL': 0, 'AMBIGUOUS': 0, 'UNRESOLVED': 0}
+    counts = {'RESOLVED': 0, 'EXTERNAL': 0, 'AMBIGUOUS': 0, 'UNRESOLVED': 0,
+                'RESOLVED_BY_ENGINE': 0}
     expanded = []
     for row in sorted(rows, key=lambda f: (f['location']['path'], f['location'].get('start_line', 0), f['value']['module'])):
         names = row['value'].get('names') or []
@@ -155,8 +163,15 @@ def run(target, source, imports=None, **options):
                            'candidates': matches[:5] if resolution == 'AMBIGUOUS' else [],
                            'import_fact_id': row['id']},
                           resolution=resolution, limitations=LIMITATIONS))
+    # Layer in what the external engine resolved. Each carries its own resolution marker.
+    engine_facts = list(external_edges or [])
+    facts.extend(engine_facts)
+    counts['RESOLVED_BY_ENGINE'] = sum(1 for f in engine_facts if f.get('resolution') == 'RESOLVED_BY_ENGINE')
+
     internal = counts['RESOLVED'] + counts['AMBIGUOUS'] + counts['UNRESOLVED']
     summary = {'edges': len(facts), 'by_resolution': counts,
+               'resolved_by_us': counts['RESOLVED'],
+               'resolved_by_engine': counts['RESOLVED_BY_ENGINE'],
                'internal_resolution_rate': round(counts['RESOLVED'] / internal, 3) if internal else 0.0,
                'go_module': go_module,
                'interpretation': 'Source dependencies only. Unresolved and ambiguous edges stay visible and must never be drawn as confirmed dependencies.'}

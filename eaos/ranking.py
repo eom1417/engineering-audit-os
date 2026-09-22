@@ -36,12 +36,22 @@ def cost_of(paths, sets):
 
 
 def reach_of(claim, paths, sets):
-    if not paths: return {'dependents': 0, 'flows': 0, 'entry_points': 0, 'total': 0}
+    """Reach is what the dependency graph, the traced flows, and the entry points say.
+
+    A cluster with hundreds of paths but no graph node, no flow and no entry point has zero
+    reach: a change to it does not touch the rest of the system. Treating cluster size as
+    reach would let a test corpus outweigh a real entry point.
+    """
+    if not paths: return {'dependents': 0, 'flows': 0, 'entry_points': 0, 'total': 0,
+                          'paths': 0, 'reach_source': 'no_paths'}
     distance, _ = dependents(sets, paths, depth=2)
     flows = flows_through(sets, paths)
     entries = entry_points_in(sets, paths)
+    total = len(distance) + 2 * len(flows) + 3 * len(entries)
+    has_graph_signal = bool(distance or flows or entries)
     return {'dependents': len(distance), 'flows': len(flows), 'entry_points': len(entries),
-            'total': len(distance) + 2 * len(flows) + 3 * len(entries) + len(paths)}
+            'total': total, 'paths': len(paths),
+            'reach_source': 'graph' if has_graph_signal else 'no_graph_node'}
 
 
 def rank(claims, sets, fact_index):
@@ -57,6 +67,7 @@ def rank(claims, sets, fact_index):
         priority = round((reach['total'] / largest) * confidence * origin / cost['points'], 4)
         claim['priority'] = priority
         claim['priority_factors'] = {'reach': reach, 'reach_normalised': round(reach['total'] / largest, 3),
+                                     'reach_source': reach['reach_source'],
                                      'confidence': confidence, 'origin': origin, 'cost': cost,
                                      'paths': paths, 'formula': WEIGHTS['formula']}
     return sorted(claims, key=lambda claim: (-claim['priority'], claim['id']))

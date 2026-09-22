@@ -67,7 +67,9 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
     # What the project declared out of scope applies to every caller, not only the ones that
     # remembered to ask. Two commands honoured it and three did not.
     from .scope import declared_exclusions
+    from .scope import exclusion_reasons
     exclude = sorted({*(exclude or ()), *declared_exclusions(target)})
+    exclusion_reason_map = exclusion_reasons(target)
     names = ordered(selected)
     source = source or Source(target, max_files=max_files, max_bytes=max_bytes, exclude=exclude)
     cache_path = facts_dir(out) / 'syntax-cache.json'
@@ -79,7 +81,12 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
     for name in names:
         module = EXTRACTORS[name]
         if name == 'history': result = module.run(target, source, max_commits=max_commits)
-        elif name == 'resolve': result = module.run(target, source, imports=[f for f in produced.get('syntax', []) if f['kind'] == 'import_edge'] or None)
+        elif name == 'resolve':
+            ext = []
+            if 'external' in produced:
+                ext = [f for f in produced['external'] if f.get('resolution') == 'RESOLVED_BY_ENGINE']
+            result = module.run(target, source, imports=[f for f in produced.get('syntax', []) if f['kind'] == 'import_edge'] or None,
+                                external_edges=ext or None)
         elif name in {'structure', 'fingerprint', 'sequences', 'redundancy', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)
         elif name in {'entrypoints', 'metrics'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)
         elif name == 'flows': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'],
@@ -100,4 +107,5 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
     return {'target': str(target), 'out': str(out), 'fingerprint': source.fingerprint, 'sets': index['sets'],
             'facts': sum(e['facts'] for e in entries), 'reused_from_cache': reuse,
             'excluded_paths': len(source.excluded_files), 'exclude_patterns': list(exclude or []),
+            'exclusion_reasons': exclusion_reason_map,
             'limits': 'Deterministic extraction only. No model was consulted and no semantic conclusion is implied.'}

@@ -14,7 +14,9 @@
     "files_observed": 10,
     "files_blocked": 0,
     "clusters": 0,
-    "interpretation": "A cluster contains functions that perform the same ordered list of callees. The cluster is a hypothesis; one shared list may be coincidence or coordination copy."
+    "idiomatic_clusters_excluded": 0,
+    "idiomatic_clusters_by_language": {},
+    "interpretation": "A cluster contains functions that perform the same ordered list of callees. Idiomatic sequences (test patterns, common library calls) are excluded and reported."
   },
   "facts": []
 }

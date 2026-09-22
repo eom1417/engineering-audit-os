@@ -363,12 +363,23 @@ def _has_circuit_breaker(text):
     return any(p.search(text) for p in _CIRCUIT_BREAKER_PATTERNS)
 
 
-def _detect_resilience_for_integration(text, host):
+# Languages whose guard vocabulary these patterns actually cover. For anything else the patterns
+# would return False for every file, which reads as "no timeout" when it means "we did not look".
+_RESILIENCE_LANGUAGES = ('python', 'javascript', 'typescript', 'tsx', 'go', 'java', 'kotlin', 'ruby')
+
+
+def _detect_resilience_for_integration(text, host, language=None):
     """One resilience_policy fact per integration host, recording which guards are present.
 
     We attribute the policy to the file that makes the call; the call site is local evidence,
-    the host is the global one. Unknown is the honest answer when we cannot detect.
+    the host is the global one. Unknown is the honest answer when we cannot detect: a language
+    whose guard vocabulary these patterns do not cover returns unknown, never False, because
+    False would claim we looked.
     """
+    if language is not None and language not in _RESILIENCE_LANGUAGES:
+        return {'host': host, 'has_timeout': 'unknown', 'has_retry': 'unknown',
+                'has_circuit_breaker': 'unknown',
+                'reason': f'no resilience vocabulary is defined for {language}'}
     return {
         'host': host,
         'has_timeout': _has_timeout(text),
@@ -635,7 +646,7 @@ def run(target, source, symbols=None, **options):
                                    {'path': rel}, {'host': host,
                                                     'language': language_of(rel)},
                                    limitations=LIMITATIONS))
-                policy = _detect_resilience_for_integration(text, host)
+                policy = _detect_resilience_for_integration(text, host, language_of(rel))
                 facts.append(make('resilience_policy', NAME, VERSION, item['sha256'],
                                    {'path': rel}, policy, limitations=LIMITATIONS))
             for cache in _detect_cache_policies(text):

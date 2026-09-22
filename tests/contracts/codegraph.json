@@ -1,11 +1,34 @@
 {
   "engine": "codegraph",
   "pinned_version": "v0.20.1",
-  "captured_from": "a two-module package with a real import cycle",
-  "codegraph_find_circular_deps.json": {
-    "cycles": [],
-    "has_circular_deps": false,
-    "total_cycles": 0,
-    "warning": "Workspace has only 7 nodes — it may not be indexed yet. Run codegraph_reindex_workspace for full code intelligence (typically 10-50× more results)."
+  "captured_from": "captured from the pinned binary against /workspace/upstream-src/enola",
+  "codegraph_get_dependency_graph.json": {
+    "summary": {
+      "depth": 3,
+      "direction": "both",
+      "edge_count": 0,
+      "node_count": 0
+    }
+  },
+  "codegraph_get_call_graph.json": {
+    "edges": [],
+    "message": "Could not find symbol at location",
+    "nodes": []
+  },
+  "codegraph_find_hot_paths.json": {
+    "functions": [
+      {
+        "direct_callers": 772,
+        "line_end": 15,
+        "line_start": 8,
+        "name": "make",
+        "node_id": "17412",
+        "path": "./internal/engine/testdata/repos/scala_sample/app/src/main/scala/com/example/app/Handlers.scala",
+        "score": 2803.0,
+        "signature": "def make(): Runner =",
+        "transitive_callers": 5072
+      }
+    ],
+    "total_analyzed": 10772
   }
 }

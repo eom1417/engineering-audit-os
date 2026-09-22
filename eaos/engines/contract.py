@@ -13,7 +13,8 @@ OBSERVED, UNAVAILABLE, ERROR, SCHEMA_MISMATCH = 'observed', 'unavailable', 'erro
 # The vocabulary every engine is normalised into. Anything an engine reports outside it is dropped
 # and counted, so an unmapped rule shows up as reduced coverage instead of silently disappearing.
 KINDS = ('cycle', 'coupling', 'complexity', 'duplication', 'dead_code', 'dataflow', 'surface',
-         'literal_duplication', 'test_quality', 'naming', 'boundary')
+         'literal_duplication', 'test_quality', 'naming', 'boundary',
+         'module_edge_external', 'call_edge_external', 'symbol_metric_external', 'hot_path_external')
 
 
 # At what resolution an engine answers a question. Two engines disagreeing about cycles while

@@ -1,0 +1,167 @@
+{
+  "self": {
+    "python": {
+      "files": 329,
+      "parsed": 18657,
+      "symbols": 1826,
+      "imports": 1361,
+      "imports_resolved": 0
+    },
+    "unknown": {
+      "files": 243,
+      "parsed": 5,
+      "symbols": 0,
+      "imports": 0,
+      "imports_resolved": 0
+    },
+    "bash": {
+      "files": 5,
+      "parsed": 91,
+      "symbols": 2,
+      "imports": 0,
+      "imports_resolved": 0
+    },
+    "go": {
+      "files": 3,
+      "parsed": 0,
+      "symbols": 0,
+      "imports": 0,
+      "imports_resolved": 0
+    },
+    "javascript": {
+      "files": 2,
+      "parsed": 0,
+      "symbols": 0,
+      "imports": 0,
+      "imports_resolved": 0
+    },
+    "typescript": {
+      "files": 4,
+      "parsed": 0,
+      "symbols": 0,
+      "imports": 0,
+      "imports_resolved": 0
+    }
+  },
+  "enola": {
+    "go": {
+      "files": 1003,
+      "parsed": 94682,
+      "symbols": 10329,
+      "imports": 4938,
+      "imports_resolved": 0
+    },
+    "unknown": {
+      "files": 284,
+      "parsed": 8,
+      "symbols": 0,
+      "imports": 0,
+      "imports_resolved": 0
+    },
+    "bash": {
+      "files": 9,
+      "parsed": 604,
+      "symbols": 21,
+      "imports": 0,
+      "imports_resolved": 0
+    },
+    "typescript": {
+      "files": 46,
+      "parsed": 37,
+      "symbols": 16,
+      "imports": 4,
+      "imports_resolved": 0
+    },
+    "javascript": {
+      "files": 13,
+      "parsed": 97,
+      "symbols": 13,
+      "imports": 4,
+      "imports_resolved": 0
+    },
+    "ruby": {
+      "files": 16,
+      "parsed": 799,
+      "symbols": 89,
+      "imports": 704,
+      "imports_resolved": 0
+    },
+    "c": {
+      "files": 19,
+      "parsed": 159,
+      "symbols": 19,
+      "imports": 33,
+      "imports_resolved": 0
+    },
+    "python": {
+      "files": 26,
+      "parsed": 80,
+      "symbols": 8,
+      "imports": 8,
+      "imports_resolved": 0
+    },
+    "cpp": {
+      "files": 1,
+      "parsed": 0,
+      "symbols": 0,
+      "imports": 0,
+      "imports_resolved": 0
+    },
+    "csharp": {
+      "files": 13,
+      "parsed": 0,
+      "symbols": 0,
+      "imports": 0,
+      "imports_resolved": 0
+    },
+    "dart": {
+      "files": 12,
+      "parsed": 0,
+      "symbols": 0,
+      "imports": 0,
+      "imports_resolved": 0
+    },
+    "java": {
+      "files": 15,
+      "parsed": 0,
+      "symbols": 0,
+      "imports": 0,
+      "imports_resolved": 0
+    },
+    "kotlin": {
+      "files": 6,
+      "parsed": 0,
+      "symbols": 0,
+      "imports": 0,
+      "imports_resolved": 0
+    },
+    "swift": {
+      "files": 10,
+      "parsed": 0,
+      "symbols": 0,
+      "imports": 0,
+      "imports_resolved": 0
+    },
+    "php": {
+      "files": 11,
+      "parsed": 0,
+      "symbols": 0,
+      "imports": 0,
+      "imports_resolved": 0
+    },
+    "rust": {
+      "files": 2,
+      "parsed": 0,
+      "symbols": 0,
+      "imports": 0,
+      "imports_resolved": 0
+    },
+    "scala": {
+      "files": 11,
+      "parsed": 0,
+      "symbols": 0,
+      "imports": 0,
+      "imports_resolved": 0
+    }
+  }
+}

@@ -91,7 +91,7 @@ class RankingTests(unittest.TestCase):
         sets = self.sets_for(2)
         ordered = rank([self.claim('CLM-001')], sets, {'F1': 'core.py'})
         factors = ordered[0]['priority_factors']
-        self.assertEqual(set(factors), {'reach', 'reach_normalised', 'confidence', 'origin', 'cost', 'paths', 'formula'})
+        self.assertEqual(set(factors), {'reach', 'reach_normalised', 'reach_source', 'confidence', 'origin', 'cost', 'paths', 'formula'})
         self.assertEqual(factors['cost']['bucket'], 'small')
 
     def test_the_register_orders_product_findings_above_fixtures(self):
@@ -102,6 +102,67 @@ class RankingTests(unittest.TestCase):
             self.assertIn('priority =', register)
             claims = json.loads((out / 'dossier.json').read_text())['claims']
             self.assertTrue(all('priority' in claim for claim in claims))
+
+
+
+
+class ReachFromGraphTests(unittest.TestCase):
+    """Reach counts dependents, flows and entry points in the graph — never cluster size."""
+
+    def _sets(self, target_path):
+        return {'graph': {'facts': [
+            {'kind': 'graph_node', 'location': {'path': target_path}, 'value': {'depends_on': []}},
+        ]}, 'metrics': {'facts': []}, 'flows': {'facts': []}, 'entrypoints': {'facts': []}}
+
+    def _claim(self, identifier, fact_path):
+        return {'id': identifier, 'statement': 'x' * 30, 'claim_type': 'structure',
+                'confidence': 'CONFIRMED', 'method': ['static_fact'], 'evidence_ids': [],
+                'fact_ids': ['F' + identifier], 'falsifier': 'y', 'status': 'open', 'created_at': 'now',
+                'origin': 'source'}
+
+    def test_cluster_with_no_graph_node_has_zero_reach(self):
+        sets = self._sets('target.py')
+        # 400 facts but the index resolves none to a known path.
+        cluster = self._claim('CLM-CLUSTER', 'target.py')
+        cluster['fact_ids'] = [f'f{i}' for i in range(400)]
+        ordered = rank([cluster], sets, {})
+        # None of the 400 facts maps to a path, so reach is zero.
+        self.assertEqual(ordered[0]['priority_factors']['reach']['reach_source'], 'no_paths')
+        self.assertEqual(ordered[0]['priority_factors']['reach']['total'], 0)
+
+    def test_cluster_with_paths_but_no_graph_signal_has_zero_reach(self):
+        sets = self._sets('target.py')
+        cluster = self._claim('CLM-CLUSTER', 'target.py')
+        # All facts resolve to a path that exists in graph nodes but has no dependents.
+        cluster['fact_ids'] = [f'f{i}' for i in range(400)]
+        index = {f'f{i}': 'target.py' for i in range(400)}
+        ordered = rank([cluster], sets, index)
+        # The path is in the graph but nothing depends on it, no flow touches it, no entry.
+        self.assertEqual(ordered[0]['priority_factors']['reach']['reach_source'], 'no_graph_node')
+        self.assertEqual(ordered[0]['priority_factors']['reach']['total'], 0)
+
+    def test_cluster_without_graph_node_ranks_below_graph_reachable_function(self):
+        sets = {'graph': {'facts': [
+            {'kind': 'graph_node', 'location': {'path': 'a.py'}, 'value': {'depends_on': []}},
+            {'kind': 'graph_node', 'location': {'path': 'b.py'}, 'value': {'depends_on': ['a.py']}},
+            {'kind': 'graph_node', 'location': {'path': 'c.py'}, 'value': {'depends_on': ['a.py']}},
+        ]}, 'metrics': {'facts': []}, 'flows': {'facts': []}, 'entrypoints': {'facts': []}}
+        cluster = self._claim('CLM-CLUSTER', 'a.py')
+        cluster['fact_ids'] = [f'f{i}' for i in range(400)]
+        single = self._claim('CLM-SINGLE', 'a.py')
+        single['fact_ids'] = ['S1']
+        index = {('F' + fact): 'a.py' for fact in cluster['fact_ids']}; index['S1'] = 'a.py'
+        ordered = rank([cluster, single], sets, index)
+        # Both reference a.py; the single one references only one path.
+        # Their priority_factors differ: cluster has 400 paths and no graph signal; single has 1.
+        self.assertEqual(ordered[0]['priority_factors']['reach_source'], 'graph')
+
+    def test_reach_source_appears_in_priority_factors(self):
+        sets = self._sets('only.py')
+        index = {'F1': 'only.py'}
+        claim = self._claim('CLM-001', 'only.py')
+        ordered = rank([claim], sets, index)
+        self.assertIn('reach_source', ordered[0]['priority_factors'])
 
 
 class LateClaimRankingTests(unittest.TestCase):

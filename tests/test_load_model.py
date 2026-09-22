@@ -364,3 +364,84 @@ class ProjectionDeterminismTests(unittest.TestCase):
         second = load_model.project(record)
         self.assertEqual(first['entry_points'][0]['projection']['cost_score'],
                           second['entry_points'][0]['projection']['cost_score'])
+
+
+class EvidenceOnlyTests(unittest.TestCase):
+    """The load model reads facts; it never measures anything itself."""
+
+    def test_every_answer_cites_a_fact_that_exists_in_the_report(self):
+        """eaos/load_model.py:compute — this module only reads the facts."""
+        import json as _json
+        import tempfile as _tempfile
+        from pathlib import Path as _Path
+        from eaos.facts.run import collect
+        from eaos.dossier import assemble
+        from eaos.load_model import compute
+        fixture = _Path(__file__).resolve().parent / 'fixtures/sustainability'
+        with _tempfile.TemporaryDirectory() as out:
+            collect(fixture, out)
+            assemble(fixture, out, language='en')
+            record = compute(out)
+            known = set()
+            for path in (_Path(out) / 'facts').glob('*.json'):
+                try:
+                    payload = _json.loads(path.read_text(encoding='utf-8'))
+                except ValueError:
+                    continue
+                known.update(fact['id'] for fact in payload.get('facts', []))
+        for entry in record['entry_points']:
+            for question, answer in entry['answers'].items():
+                for reference in answer.get('evidence', []):
+                    self.assertIn(reference, known,
+                                  f'{entry.get("id")}/{question} cites a fact that is not in the report')
+
+    def test_no_answer_is_produced_without_either_evidence_or_a_reason(self):
+        from eaos.load_model import QUESTIONS
+        import tempfile as _tempfile
+        from pathlib import Path as _Path
+        from eaos.facts.run import collect
+        from eaos.dossier import assemble
+        from eaos.load_model import compute
+        fixture = _Path(__file__).resolve().parent / 'fixtures/sustainability'
+        with _tempfile.TemporaryDirectory() as out:
+            collect(fixture, out)
+            assemble(fixture, out, language='en')
+            record = compute(out)
+        for entry in record['entry_points']:
+            self.assertEqual(sorted(entry['answers']), sorted(QUESTIONS))
+            for question, answer in entry['answers'].items():
+                if answer['status'] == 'answered':
+                    self.assertTrue(answer.get('evidence'), f'{question} answered with no evidence')
+                elif answer['status'] == 'undetectable':
+                    self.assertTrue(answer.get('reason'), f'{question} undetectable with no reason')
+
+
+class DocumentBudgetTests(unittest.TestCase):
+    """The load document must stay readable on a real project, not only on a fixture."""
+
+    def _record(self, entries):
+        return {'entry_points': entries, 'projection': {'multiplier': 1000, 'method': 'structural'},
+                'limits': 'structural projection'}
+
+    def test_a_project_with_many_unanswered_questions_still_fits_the_budget(self):
+        from eaos.load_report import render
+        from eaos.load_model import QUESTIONS
+        entries = [{'id': f'E{index}', 'entry': {'route': f'/r{index}', 'surface': 'http'},
+                    'answers': {question: {'status': 'undetectable',
+                                           'reason': 'the flow could not be traced'}
+                                for question in QUESTIONS},
+                    'projection': {'incomplete': True, 'unanswered_questions': list(QUESTIONS)}}
+                   for index in range(60)]
+        text = render(self._record(entries), language='en')
+        self.assertLessEqual(text.count('\n'), 200,
+                             'the document grows with the project instead of pointing at the record')
+
+    def test_the_repeated_reasons_are_counted_rather_than_repeated(self):
+        from eaos.load_report import render
+        from eaos.load_model import QUESTIONS
+        entries = [{'id': f'E{index}', 'entry': {'route': f'/r{index}', 'surface': 'http'},
+                    'answers': {QUESTIONS[0]: {'status': 'undetectable', 'reason': 'one shared reason'}},
+                    'projection': {}} for index in range(20)]
+        text = render(self._record(entries), language='en')
+        self.assertEqual(text.count('one shared reason'), 1, 'the same reason was printed twenty times')
+        self.assertIn('20:', text, 'the count of affected entry points is not stated')

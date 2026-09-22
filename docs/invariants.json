@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "c4ecc22",
+  "extracted_at_commit": "4dced45",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -118,6 +118,24 @@
       "kind": "invariant",
       "enforced_by": "tests/test_engines.py::DegradationTests::test_health_reports_every_adapter_whether_installed_or_not",
       "note": ""
+    },
+    {
+      "id": "INV-c2746cdaee",
+      "file": "eaos/engines/codegraph.py",
+      "symbol": "<module>",
+      "statement": "The wrapper never guesses what the tool would have returned; if the payload is empty or it failed, the tool is recorded as DECLINED with a measured reason.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_engine_contracts.py::CodegraphWrapperContracts::test_run_with_a_missing_tool_records_decline_not_silence",
+      "note": "N3.T2: wrapper never hides a tool failure"
+    },
+    {
+      "id": "INV-6339b5c228",
+      "file": "eaos/engines/codegraph.py",
+      "symbol": "_run",
+      "statement": "Never raise: return (payload_str_or_None, error_str_or_None).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_engine_contracts.py::CodegraphWrapperContracts::test_run_does_not_raise_when_binary_is_missing",
+      "note": "N3.T2: wrapper never raises"
     },
     {
       "id": "INV-30c763c99a",
@@ -282,6 +300,51 @@
       "note": ""
     },
     {
+      "id": "INV-7faea2f89a",
+      "file": "eaos/facts/runtime.py",
+      "symbol": "_detect_query_bounds",
+      "statement": "Unknown facts: neither pattern matched; we cannot say either way.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_runtime.py::QueryBoundDetectorTests::test_query_bound_unknowable_recorded_as_unknown",
+      "note": ""
+    },
+    {
+      "id": "INV-11ed34fd5c",
+      "file": "eaos/facts/runtime.py",
+      "symbol": "_has_timeout",
+      "statement": "True if any timeout pattern appears anywhere; we cannot cheaply localise to a call.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_runtime.py::HonestUnknownTests::test_a_timeout_anywhere_in_the_file_marks_the_integration_as_protected",
+      "note": ""
+    },
+    {
+      "id": "INV-ba058f0d13",
+      "file": "eaos/facts/runtime.py",
+      "symbol": "_detect_resilience_for_integration",
+      "statement": "Unknown is the honest answer when we cannot detect: a language whose guard vocabulary these patterns do not cover returns unknown, never False, because False would claim we looked.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_runtime.py::HonestUnknownTests::test_resilience_reports_unknown_rather_than_false_when_it_cannot_tell",
+      "note": ""
+    },
+    {
+      "id": "INV-65f020b587",
+      "file": "eaos/facts/runtime.py",
+      "symbol": "_detect_cache_policies",
+      "statement": "scope is one of process | shared | http; we report what we observed, never the absence of other scopes.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_runtime.py::HonestUnknownTests::test_a_cache_of_one_scope_never_asserts_the_absence_of_another",
+      "note": ""
+    },
+    {
+      "id": "INV-7be84df296",
+      "file": "eaos/facts/scope.py",
+      "symbol": "exclusion_reasons",
+      "statement": "Used by the summary that must surface every exclusion; never returns an entry without a reason attached.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_scope.py::ExclusionReasonsTests::test_reasons_carry_a_nonempty_string_for_every_pattern",
+      "note": "N2.T1: every entry carries a reason; tested in test_facts_scope.py"
+    },
+    {
       "id": "INV-2626091d7a",
       "file": "eaos/facts/source.py",
       "symbol": "Source",
@@ -333,6 +396,24 @@
       "statement": "Reported for a human to judge, never used to match.",
       "kind": "invariant",
       "enforced_by": "tests/test_identity_migration.py::LookAlikeTests::test_similar_wording_is_reported_and_never_merged",
+      "note": ""
+    },
+    {
+      "id": "INV-e62792ace4",
+      "file": "eaos/load_model.py",
+      "symbol": "compute",
+      "statement": "This module only reads the facts; it never makes a measurement of its own.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_load_model.py::EvidenceOnlyTests::test_every_answer_cites_a_fact_that_exists_in_the_report",
+      "note": ""
+    },
+    {
+      "id": "INV-ac8bce2503",
+      "file": "eaos/load_model.py",
+      "symbol": "project",
+      "statement": "The cost ceiling is a multiplicative score, not a number of seconds: -1.0 per undetectable answer (the projection cannot say), +m per answered query (the query runs m times), +m*100 per answered n+1 (each iteration triggers another query), +0 per bounded cache (free, modulo m), +1.0 per unbounded query (grows with data, not with m), +1.0 per missing rate limit (no protection against burst).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_load_model.py::ProjectionTests::test_an_incomplete_record_marks_incomplete_and_lists_missing",
       "note": ""
     },
     {
