@@ -47,6 +47,7 @@
         "redundancy",
         "security_surface",
         "query_bound",
+        "rate_limit",
         "resilience_policy",
         "cache_policy",
         "deployment_target",

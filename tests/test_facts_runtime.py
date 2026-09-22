@@ -384,3 +384,74 @@ class CachePolicyDetectorTests(unittest.TestCase):
                 self.assertIn('mechanism', fact['value'])
                 self.assertIn('scope', fact['value'])
                 self.assertIn('ttl_declared', fact['value'])
+
+
+class RateLimitDetectorTests(unittest.TestCase):
+    """An entry point without a rate limit is recorded as one with no limit."""
+
+    def test_a_limiter_decorator_is_a_rate_limit(self):
+        body = "@limiter.limit('100/minute')\ndef api():\n    return 'ok'\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
+            self.assertGreater(len(limits), 0)
+            self.assertEqual(limits[0]['value']['source'], 'code')
+
+    def test_a_semaphore_is_a_rate_limit(self):
+        body = "import asyncio\nsem = asyncio.Semaphore(10)\nasync def f():\n    async with sem: pass\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
+            sem_limits = [l for l in limits if 'semaphore' in l['value']['mechanism']]
+            self.assertGreater(len(sem_limits), 0)
+
+    def test_threadpoolexecutor_max_workers_is_a_concurrency_bound(self):
+        body = "from concurrent.futures import ThreadPoolExecutor\npool = ThreadPoolExecutor(max_workers=8)\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
+            workers = [l for l in limits if 'worker' in l['value']['mechanism']]
+            self.assertGreater(len(workers), 0)
+
+    def test_nginx_limit_req_zone_is_a_config_rate_limit(self):
+        body = 'http {\n  limit_req_zone $binary_remote_addr zone=api:10m rate=100r/s;\n}\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body, name='nginx.conf')
+            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
+            nginx = [l for l in limits if l['value']['source'] == 'config']
+            self.assertGreater(len(nginx), 0)
+
+    def test_kubernetes_resources_limits_is_a_config_rate_limit(self):
+        body = 'apiVersion: apps/v1\nkind: Deployment\nspec:\n  containers:\n  - name: app\n    resources:\n      limits:\n        cpu: "1"\n        memory: "1Gi"\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body, name='deployment.yaml')
+            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
+            k8s = [l for l in limits if 'resources' in l['value']['mechanism'] or 'hpa' in l['value']['mechanism']]
+            self.assertGreater(len(k8s), 0)
+
+    def test_no_rate_limit_fact_when_nothing_matches(self):
+        body = "def f():\n    return 1 + 1\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
+            self.assertEqual(limits, [])
+
+    def test_declared_limit_is_captured_when_numeric_value_present(self):
+        body = "@limiter.limit(limit=100, per=60)\ndef f():\n    pass\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
+            self.assertTrue(any(l['value']['declared_limit'] is not None for l in limits),
+                            f'expected a numeric declared_limit somewhere, got {limits}')
+
+    def test_each_rate_limit_fact_carries_scope_mechanism_and_source(self):
+        body = "import asyncio\nsem = asyncio.Semaphore(10)\nasync def f():\n    async with sem: pass\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, body=body)
+            limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
+            for fact in limits:
+                self.assertIn('scope', fact['value'])
+                self.assertIn('mechanism', fact['value'])
+                self.assertIn('source', fact['value'])
+                self.assertIn('declared_limit', fact['value'])
+                self.assertIn(fact['value']['source'], ('code', 'config'))

@@ -21,8 +21,8 @@ from .entrypoints import MODULES, applicable
 
 
 KINDS = ('cache_policy', 'ci_step', 'data_model', 'deployment_target', 'integration_target',
-         'migration_step', 'observability_signal', 'query_bound', 'resilience_policy',
-         'security_surface')
+         'migration_step', 'observability_signal', 'query_bound', 'rate_limit',
+         'resilience_policy', 'security_surface')
 
 NAME = 'runtime'
 VERSION = '1'
@@ -449,6 +449,96 @@ def _detect_cache_policies(text):
     return facts
 
 
+# Rate limit / concurrency bound detection.
+# A 1000-RPS endpoint with no limiter is a single point of total failure.
+_CODE_LIMIT_PATTERNS = [
+    ('limiter', re.compile(r'@limiter|@throttle', re.IGNORECASE)),
+    ('RateLimiter', re.compile(r'RateLimiter', re.IGNORECASE)),
+    ('TokenBucket', re.compile(r'TokenBucket')),
+    ('SlowAPI', re.compile(r'slowapi|limits\.rate', re.IGNORECASE)),
+    ('semaphore', re.compile(r'\.Semaphore\s*\(|asyncio\.Semaphore|threading\.Semaphore')),
+    ('bounded_sem', re.compile(r'BoundedSemaphore\s*\(')),
+    ('semaphores', re.compile(r'asyncio\.Semaphore\s*\(')),
+    ('max_concurrent', re.compile(r'max_concurrent|maxConcurrent', re.IGNORECASE)),
+    ('concurrency_limit', re.compile(r'concurrency_limit|concurrency-limit', re.IGNORECASE)),
+    ('worker_threads', re.compile(r'max_workers|ThreadPoolExecutor\s*\(\s*max_workers')),
+    ('worker_processes', re.compile(r'ProcessPoolExecutor\s*\(\s*max_workers')),
+]
+_DECLARED_LIMIT_RE = re.compile(r'(?:limit|rps|qps|per_second|rate|permits|burst|max)\s*[=:]\s*(\d+)', re.IGNORECASE)
+
+_CONFIG_LIMIT_PATTERNS = {
+    'nginx': [
+        ('limit_req_zone', re.compile(r'limit_req_zone', re.IGNORECASE)),
+        ('limit_req', re.compile(r'limit_req\s+(?:zone|burst)', re.IGNORECASE)),
+    ],
+    'kubernetes': [
+        ('resources_limits', re.compile(r'resources\s*:.*?limits\s*:', re.DOTALL)),
+        ('hpa', re.compile(r'HorizontalPodAutoscaler')),
+    ],
+    'gateway': [
+        ('rate_limit', re.compile(r'rate\s*limit', re.IGNORECASE)),
+        ('throttle', re.compile(r'\bthrottle\b', re.IGNORECASE)),
+    ],
+}
+_CONFIG_NAMES = {
+    'Dockerfile': ('dockerfile', 'code'),
+    'docker-compose.yml': ('compose', 'config'),
+    'docker-compose.yaml': ('compose', 'config'),
+    'compose.yml': ('compose', 'config'),
+    'nginx.conf': ('nginx', 'config'),
+}
+_CONFIG_BY_FILENAME = {
+    'Dockerfile': 'dockerfile',
+    'docker-compose.yml': 'compose',
+    'docker-compose.yaml': 'compose',
+    'compose.yml': 'compose',
+    'nginx.conf': 'nginx',
+    # files with .yaml/.yml extension are scanned for kubernetes patterns
+}
+
+
+def _config_kind_for(name, text):
+    """Decide which config-flavour patterns apply to this file, by content and extension."""
+    if name in _CONFIG_BY_FILENAME:
+        return _CONFIG_BY_FILENAME[name]
+    if name.endswith('.yaml') or name.endswith('.yml'):
+        # Loose heuristic: deployment/manifest-shaped YAML
+        if ('HorizontalPodAutoscaler' in text or 'apiVersion:' in text
+                or ('kind: Deployment' in text and 'containers:' in text)):
+            return 'kubernetes'
+    if name.endswith('.conf'):
+        if 'limit_req_zone' in text:
+            return 'nginx'
+    return None
+
+
+def _detect_rate_limits(text, rel, name):
+    """Find every place a rate limit or concurrency bound is declared.
+
+    Source distinguishes code (in-repo Python/JS/Go/etc.) from config (manifests).
+    """
+    rows = []
+    config_kind = _config_kind_for(name, text)
+    if config_kind:
+        config_patterns = _CONFIG_LIMIT_PATTERNS.get(config_kind, [])
+        for kind, regex in config_patterns:
+            for match in regex.finditer(text):
+                line = text.count('\n', 0, match.start()) + 1
+                rows.append({'scope': 'global', 'mechanism': kind, 'declared_limit': None,
+                              'source': 'config', 'line': line})
+    # Always scan code patterns too (they may appear in source files that contain config too)
+    for kind, regex in _CODE_LIMIT_PATTERNS:
+        for match in regex.finditer(text):
+            line = text.count('\n', 0, match.start()) + 1
+            # Try to find a declared limit on the same line or next 80 chars
+            nearby = text[match.start():match.start() + 200]
+            limit_match = _DECLARED_LIMIT_RE.search(nearby)
+            declared = int(limit_match.group(1)) if limit_match else None
+            rows.append({'scope': 'global', 'mechanism': kind,
+                          'declared_limit': declared, 'source': 'code', 'line': line})
+    return rows
+
+
 def run(target, source, symbols=None, **options):
     facts, fingerprints = [], []
     seen = set()
@@ -523,6 +613,13 @@ def run(target, source, symbols=None, **options):
                                    {'bounded': bound['bounded'], 'mechanism': bound['mechanism'],
                                     'kind': bound['kind'], 'snippet': bound['snippet']},
                                    limitations=LIMITATIONS))
+        for limit in _detect_rate_limits(text, rel, name):
+            facts.append(make('rate_limit', NAME, VERSION, item['sha256'],
+                               {'path': rel, 'start_line': limit['line']},
+                               {'scope': limit['scope'], 'mechanism': limit['mechanism'],
+                                'declared_limit': limit['declared_limit'],
+                                'source': limit['source']},
+                               limitations=LIMITATIONS))
         if _migration_files(name):
             facts.append(make('migration_step', NAME, VERSION, item['sha256'],
                                {'path': rel}, {'name': name},

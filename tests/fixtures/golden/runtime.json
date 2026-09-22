@@ -22,6 +22,7 @@
       "migration_step": 0,
       "observability_signal": 0,
       "query_bound": 10,
+      "rate_limit": 0,
       "resilience_policy": 0,
       "security_surface": 0
     },
