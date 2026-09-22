@@ -34,8 +34,8 @@ DETECTOR_LANGUAGES = {
     # parsers support. We list the same set syntax extracts; when no fact arrives it is
     # because the engine could not measure, not because the function has no complexity.
     'complexity_class': frozenset({'python', 'javascript', 'typescript', 'tsx', 'go', 'java', 'kotlin', 'scala', 'c', 'cpp', 'csharp', 'php', 'ruby'}),
-    # mutable_global/external_state_write are emitted by domain.py, which targets Python.
-    'shared_mutable_state': frozenset({'python'}),
+    # mutable_global/external_state_write are emitted by domain.py for Python and Go.
+    'shared_mutable_state': frozenset({'python', 'go'}),
     # resilience_policy runs over python/js/ts/go; integration_target is python/js/ts.
     'outbound_calls_protected': frozenset({'python', 'javascript', 'typescript', 'tsx', 'go'}),
     # cache_policy and rate_limit: runtime.py emits across python/js/ts/go + yaml manifests.
@@ -190,6 +190,7 @@ def compute(record_root):
         'execute', 'executemany', 'fetchone', 'fetchall', 'fetchmany',
         'query', 'save', 'create', 'update', 'delete', 'insert', 'get', 'find', 'findOne', 'findMany',
         'select', 'all', 'one',
+        'Exec', 'Query', 'QueryRow', 'Scan', 'Find', 'First',
     }
 
     def _paths_for(entry):

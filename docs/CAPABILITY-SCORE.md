@@ -2,7 +2,7 @@
 
 > Measured from 2 report(s). An unmeasured indicator is not a pass. Target for every domain: 0.8.
 
-**Overall 0.8083** · 6 of 9 domains at target.
+**Overall 0.8125** · 6 of 9 domains at target.
 
 | Domain | Score | Target | Met | Unmeasured |
 | --- | --- | --- | --- | --- |
@@ -10,7 +10,7 @@
 | structure_python | 0.9732 | 0.8 | yes | 0 |
 | structure_polyglot | 0.9228 | 0.8 | yes | 0 |
 | runtime_surface | 0.8334 | 0.8 | yes | 0 |
-| load_model | 0.8782 | 0.8 | yes | 0 |
+| load_model | 0.9167 | 0.8 | yes | 0 |
 | target_architecture | 0.6667 | 0.8 | no | 0 |
 | transformation_plan | 1.0 | 0.8 | no | 1 |
 | report_clarity | 1.0 | 0.8 | yes | 0 |
@@ -57,7 +57,7 @@
 | --- | --- |
 | entry_points_with_a_cost_record | 1.0 |
 | projection_recorded | 1.0 |
-| questions_answered | 0.6346 |
+| questions_answered | 0.75 |
 
 ## target_architecture
 

@@ -896,6 +896,34 @@
       },
       "overall_at_this_point": 0.8083,
       "note": "Added pasteable command beside argv; real-report indicator reached 1.0; fixed stale ADR regression and English load-blocker rendering found by the full gate."
+    },
+    {
+      "task": "N11.T4",
+      "title": "نفس الأسئلة على Go بعد أن صار له تدفّق",
+      "recorded_at": "2026-09-22T21:37:50+00:00",
+      "commit": "1747a33",
+      "acceptance_command": "eaos audit /workspace/upstream-src/enola --out /tmp/n11t4 --skip site && python3 -c \"import sys;sys.path.insert(0,'.');from eaos import capability;v=capability.load_model('/tmp/n11t4')['questions_answered'];assert v is not None and v>=0.5, v\"",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "load_model.questions_answered",
+        "from": 0.0192,
+        "to": 0.5
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.9167,
+        "target_architecture": 0.6667,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8125,
+      "note": "Added Go load vocabularies with positive/negative tests; Enola acceptance passed and load_model rose to 0.9167."
     }
   ]
 }

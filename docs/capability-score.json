@@ -60,11 +60,11 @@
       "indicators": {
         "entry_points_with_a_cost_record": 1.0,
         "projection_recorded": 1.0,
-        "questions_answered": 0.6346
+        "questions_answered": 0.75
       },
       "measured_indicators": 3,
       "unmeasured_indicators": 0,
-      "score": 0.8782,
+      "score": 0.9167,
       "target": 0.8,
       "meets_target": true
     },
@@ -118,7 +118,7 @@
       "meets_target": false
     }
   },
-  "overall": 0.8083,
+  "overall": 0.8125,
   "domains_meeting_target": 6,
   "domains_total": 9,
   "target": 0.8,

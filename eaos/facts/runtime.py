@@ -328,7 +328,8 @@ _TIMEOUT_PATTERNS = [
     re.compile(r'\bctx\s+with\s+timeout', re.IGNORECASE),     # context with timeout
     re.compile(r'\.with_timeout\s*\('),                       # tokio .with_timeout()
     re.compile(r'context\s+with\s+timeout', re.IGNORECASE),    # asyncio ctx with timeout
-    re.compile(r'\bhttp\.Client\([^)]*Timeout'),              # Go http.Client{Timeout: ...}
+    re.compile(r'\bhttp\.Client\s*\{[^}]*Timeout\s*:'),       # Go http.Client{Timeout: ...}
+    re.compile(r'\bcontext\.With(?:Timeout|Deadline)\s*\('),  # Go bounded contexts
 ]
 _RETRY_PATTERNS = [
     re.compile(r'\bretry\b', re.IGNORECASE),
@@ -396,6 +397,9 @@ _PROCESS_CACHE = [
     ('functools_cache', re.compile(r'functools\.cache\s*\(')),
     ('functools_lru_cache', re.compile(r'functools\.lru_cache')),
     ('cache_decorator', re.compile(r'@cache\b')),
+    ('go_cache', re.compile(r'patrickmn/go-cache|\bcache\.New\s*\(')),
+    ('go_lru', re.compile(r'hashicorp/golang-lru|\blru\.New\s*\(')),
+    ('go_sync_map', re.compile(r'\bsync\.Map\b')),
 ]
 _SHARED_CACHE = [
     ('redis', re.compile(r'redis', re.IGNORECASE)),
@@ -474,6 +478,8 @@ _CODE_LIMIT_PATTERNS = [
     ('concurrency_limit', re.compile(r'concurrency_limit|concurrency-limit', re.IGNORECASE)),
     ('worker_threads', re.compile(r'max_workers|ThreadPoolExecutor\s*\(\s*max_workers')),
     ('worker_processes', re.compile(r'ProcessPoolExecutor\s*\(\s*max_workers')),
+    ('go_time_rate', re.compile(r'golang\.org/x/time/rate|\brate\.NewLimiter\s*\(')),
+    ('go_ulule_limiter', re.compile(r'ulule/limiter|\blimiter\.New\s*\(')),
 ]
 _DECLARED_LIMIT_RE = re.compile(r'(?:limit|rps|qps|per_second|rate|permits|burst|max)\s*[=:]\s*(\d+)', re.IGNORECASE)
 

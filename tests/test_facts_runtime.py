@@ -436,6 +436,47 @@ class RateLimitDetectorTests(unittest.TestCase):
             limits = [f for f in data['facts'] if f['kind'] == 'rate_limit']
             self.assertEqual(limits, [])
 
+    def test_go_cache_and_rate_limit_vocabularies_have_positive_and_negative_cases(self):
+        positive = ('package api\nimport ("sync"; "github.com/patrickmn/go-cache"; '
+                    '"golang.org/x/time/rate")\nvar values sync.Map\n'
+                    'var local = cache.New(cache.DefaultExpiration, 0)\n'
+                    'var limit = rate.NewLimiter(10, 20)\n')
+        negative = 'package api\nfunc Handle() int { return 1 }\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            yes = _collect(tmp, body=positive, name='positive.go')
+        with tempfile.TemporaryDirectory() as tmp:
+            no = _collect(tmp, body=negative, name='negative.go')
+        self.assertTrue([f for f in yes['facts'] if f['kind'] == 'cache_policy'])
+        self.assertTrue([f for f in yes['facts'] if f['kind'] == 'rate_limit'])
+        self.assertFalse([f for f in no['facts'] if f['kind'] in {'cache_policy', 'rate_limit'}])
+
+    def test_go_timeout_vocabularies_have_positive_and_negative_cases(self):
+        positive = ('package api\nimport ("context"; "net/http"; "time")\n'
+                    'var client = http.Client{Timeout: 2 * time.Second}\n'
+                    'func Call(ctx context.Context) { ctx, cancel := context.WithTimeout(ctx, time.Second); '
+                    'defer cancel(); client.Get("https://api.example.com") }\n')
+        negative = ('package api\nimport "net/http"\n'
+                    'func Call() { http.Get("https://api.example.com") }\n')
+        with tempfile.TemporaryDirectory() as tmp:
+            yes = _collect(tmp, body=positive, name='positive.go')
+        with tempfile.TemporaryDirectory() as tmp:
+            no = _collect(tmp, body=negative, name='negative.go')
+        yes_policy = next(f for f in yes['facts'] if f['kind'] == 'resilience_policy')
+        no_policy = next(f for f in no['facts'] if f['kind'] == 'resilience_policy')
+        self.assertTrue(yes_policy['value']['has_timeout'])
+        self.assertFalse(no_policy['value']['has_timeout'])
+
+
+class GoSharedStateDetectorTests(unittest.TestCase):
+    def test_go_package_state_has_positive_and_negative_cases(self):
+        from eaos.facts.domain import go_mutable_globals
+        positive = ('package api\nimport "sync"\nvar mu sync.RWMutex\nvar count int\n'
+                    'func Add() { mu.Lock(); count++; mu.Unlock() }\n')
+        negative = 'package api\nconst maximum = 10\nfunc Value() int { return maximum }\n'
+        names = {row[0] for row in go_mutable_globals(positive)}
+        self.assertEqual(names, {'mu', 'count'})
+        self.assertEqual(go_mutable_globals(negative), [])
+
     def test_declared_limit_is_captured_when_numeric_value_present(self):
         body = "@limiter.limit(limit=100, per=60)\ndef f():\n    pass\n"
         with tempfile.TemporaryDirectory() as tmp:

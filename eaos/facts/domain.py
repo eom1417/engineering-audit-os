@@ -110,6 +110,26 @@ def python_external_writes(text, owned=None):
     return found
 
 
+GO_GLOBAL = re.compile(r'^var\s+(?P<name>[A-Za-z_]\w*)\s+(?P<shape>[^\n=]+)?(?:=.*)?$', re.M)
+
+
+def go_mutable_globals(text):
+    """Package variables that are guarded or changed after declaration."""
+    found = []
+    for match in GO_GLOBAL.finditer(text):
+        name = match.group('name')
+        shape = (match.group('shape') or 'inferred').strip()
+        tail = text[match.end():]
+        guarded = bool(re.search(r'\bsync\.(?:RW)?Mutex\b', shape))
+        changed = bool(re.search(rf'(?:\b{re.escape(name)}\s*(?:=|\+\+|--)|'
+                                 rf'{re.escape(name)}\s*\[[^]]+\]\s*=|'
+                                 rf'{re.escape(name)}\.(?:Lock|RLock|Store|Delete)\s*\()', tail))
+        if not guarded and not changed: continue
+        line = text.count('\n', 0, match.start()) + 1
+        found.append((name, shape, line, 'guarded' if guarded else 'assignment', line, 'function'))
+    return found
+
+
 def python_constants(text):
     try: tree = ast.parse(text)
     except (SyntaxError, ValueError, RecursionError): return []
@@ -151,6 +171,9 @@ def run(target, source, **options):
                 external_writes.append((rel, module, attribute, line))
             for match in ORM_MODEL.finditer(text):
                 models.append((match.group('name'), rel, text.count('\n', 0, match.start()) + 1, 'python_class'))
+        elif language == 'go':
+            for name, shape, line, how, where, scope in go_mutable_globals(text):
+                mutable_globals.append((rel, name, shape, line, how, where, scope))
         elif language in {'javascript', 'typescript', 'tsx'}:
             for match in JS_CONST.finditer(text):
                 raw = match.group('value').strip().rstrip(',')
