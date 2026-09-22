@@ -77,7 +77,7 @@ python -m unittest discover -s tests -q && python tools/validate.py && python to
 | N8 | تقرير يفهمه أي نموذج وينفّذه | N5, N6, N7 | 0/3 | ⬜ |
 | N9 | الحكم المستقل | N8 | 1/2 | ⬜ |
 | N10 | إعادة القياس وقرار الإصدار | N2, N3, N4, N5, N6, N7, N8 | 0/2 | ⬜ |
-| N11 | إصلاح ما كشفته المراجعة البعدية | N3, N5, N6, N7 | 2/9 | ⬜ |
+| N11 | إصلاح ما كشفته المراجعة البعدية | N3, N5, N6, N7 | 3/9 | ⬜ |
 
 ## N1 — أداة القياس وبوابة عدم التراجع
 
@@ -1157,7 +1157,7 @@ eaos audit /workspace/upstream-src/enola --out /tmp/n11t2 --skip site && python3
 
 **التراجع:** git checkout eaos/facts/entrypoints.py eaos/facts/flows.py
 
-### N11.T3 — البحث الذي لم يجد هو جواب، لا عجز ⬜
+### N11.T3 — البحث الذي لم يجد هو جواب، لا عجز ✅
 
 **لماذا:** خمسة أسئلة تُسجَّل undetectable وسببها المكتوب «لا موقع تخزين مؤقت على هذا المسار»؛ هذا جواب قيمته False، وتسجيله عجزًا يبخس الأداة ويضلّل القارئ.
 **يحرّك:** `load_model.questions_answered` من `0.2165` إلى `0.7`

@@ -1267,7 +1267,7 @@
           "rollback": "git checkout eaos/load_model.py",
           "depends_on": [],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N11.T4",

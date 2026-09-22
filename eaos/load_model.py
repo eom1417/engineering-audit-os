@@ -22,12 +22,66 @@ QUESTIONS = ('data_access_calls', 'repeats_per_iteration', 'result_is_bounded',
              'complexity_class', 'shared_mutable_state', 'outbound_calls_protected',
              'cached', 'rate_limited')
 
+# The languages whose vocabulary each detector has. When the path is in one of these
+# languages, the flow was traced, and the detector found nothing, the answer is "no"
+# (answered with value=False); "undetectable" is reserved for paths we could not parse or
+# whose language is outside the detector's vocabulary.
+DETECTOR_LANGUAGES = {
+    'data_access_calls': frozenset({'python', 'javascript', 'typescript', 'tsx', 'go', 'java', 'kotlin', 'scala'}),
+    'repeats_per_iteration': frozenset({'python', 'javascript', 'typescript', 'tsx', 'go', 'java', 'kotlin', 'scala'}),
+    'result_is_bounded': frozenset({'python', 'javascript', 'typescript', 'tsx', 'go', 'java', 'kotlin', 'scala'}),
+    # `complexity_class` is driven by external engines; they only cover languages their
+    # parsers support. We list the same set syntax extracts; when no fact arrives it is
+    # because the engine could not measure, not because the function has no complexity.
+    'complexity_class': frozenset({'python', 'javascript', 'typescript', 'tsx', 'go', 'java', 'kotlin', 'scala', 'c', 'cpp', 'csharp', 'php', 'ruby'}),
+    # mutable_global/external_state_write are emitted by domain.py, which targets Python.
+    'shared_mutable_state': frozenset({'python'}),
+    # resilience_policy runs over python/js/ts/go; integration_target is python/js/ts.
+    'outbound_calls_protected': frozenset({'python', 'javascript', 'typescript', 'tsx', 'go'}),
+    # cache_policy and rate_limit: runtime.py emits across python/js/ts/go + yaml manifests.
+    'cached': frozenset({'python', 'javascript', 'typescript', 'tsx', 'go'}),
+    'rate_limited': frozenset({'python', 'javascript', 'typescript', 'tsx', 'go'}),
+}
+
 ANSWER_STATUSES = ('answered', 'not_applicable', 'undetectable')
+
+
+# When a detector looked and did not find anything, the answer is still "answered" with
+# value=False — provided the flow was traced AND every file in the path is in the
+# detector's vocabulary. "undetectable" stays reserved for paths we could not trace or
+# whose language the detector has no vocabulary for. The evidence is the trace's fact
+# IDs so the reader can audit exactly what was searched.
+
+
+def _supported(question, files):
+    """True when every file in the path is in the detector's vocabulary."""
+    supported = DETECTOR_LANGUAGES.get(question, frozenset())
+    if not supported: return False
+    from .facts.source import language_of as _language_of
+    for path in files:
+        if _language_of(path) not in supported: return False
+    return True
+
+
+def _no_answer(question, evidence_ids, reason):
+    return {'status': 'answered', 'value': False, 'evidence': evidence_ids,
+            'reason': reason}
+
+
+def _trace_evidence(flow_id):
+    """Pull the traced flow's fact ID so an answered-False answer has something to cite."""
+    if not flow_id: return []
+    return [flow_id]
+
 
 LIMITATIONS = (
     'A load model is a structured guess. It cannot replace a real load test.',
     '`undetectable` answers must carry a non-empty reason; silence is not allowed here.',
     'Each answer references the fact IDs that justify it. A claim without evidence is not an answer.',
+    'An answered `value=False` means the detector looked and found nothing in its vocabulary. '
+    'It does not prove the behaviour is absent in production: it proves the static evidence '
+    'the detector covers is absent. A path whose language is outside `DETECTOR_LANGUAGES` '
+    'stays undetectable, not answered-False, for that question.',
 )
 
 
@@ -181,10 +235,14 @@ def compute(record_root):
                 'status': 'answered', 'value': access_count, 'evidence': data_access_ids,
                 'reason': f'{access_count} data-access call sites in {path}',
             }
+        elif _supported('data_access_calls', files):
+            answers['data_access_calls'] = _no_answer(
+                'data_access_calls', [entry.get('id') or f'EP-{path}'],
+                'no data-access call sites recorded in this entry path; the detector looked, the path is in a language whose vocabulary it covers')
         else:
             answers['data_access_calls'] = blank_answer(
                 'data_access_calls', status='undetectable',
-                reason='no data-access call sites recorded in this entry path')
+                reason='no data-access call sites recorded in this entry path and the path is outside the detectors vocabulary')
 
         # repeats_per_iteration: any n_plus_one fact on the entry path -> True; False otherwise
         n1 = n_plus_one_by_path.get(path, [])
@@ -194,10 +252,14 @@ def compute(record_root):
                 'evidence': [f['id'] for f in n1],
                 'reason': f'{len(n1)} n+1 redundancy site(s) in this entry',
             }
+        elif _supported('repeats_per_iteration', files):
+            answers['repeats_per_iteration'] = _no_answer(
+                'repeats_per_iteration', [entry.get('id') or f'EP-{path}'],
+                'no n+1 redundancy observation in this entry path; the detector looked, the path is in a language whose vocabulary it covers')
         else:
             answers['repeats_per_iteration'] = blank_answer(
                 'repeats_per_iteration', status='undetectable',
-                reason='no n+1 redundancy observation in this entry path; cannot confirm or deny')
+                reason='no n+1 redundancy observation in this entry path and the path is outside the detectors vocabulary')
 
         # result_is_bounded: any query_bound with bounded=True on path -> True; bounded=False -> False; unknown -> unknown
         bounds = [query_bound_by_path[p] for p in files if p in query_bound_by_path]
@@ -251,11 +313,14 @@ def compute(record_root):
                 'evidence': [f['id'] for f in mut + ext_w],
                 'reason': f'{len(mut)} mutable global(s), {len(ext_w)} external-state write(s)',
             }
+        elif _supported('shared_mutable_state', files):
+            answers['shared_mutable_state'] = _no_answer(
+                'shared_mutable_state', [entry.get('id') or f'EP-{path}'],
+                'no mutable_global or external_state_write on this path; the detector looked, the path is in a language whose vocabulary it covers')
         else:
             answers['shared_mutable_state'] = blank_answer(
-                'shared_mutable_state',
-                status='undetectable',
-                reason='no mutable_global or external_state_write on this path')
+                'shared_mutable_state', status='undetectable',
+                reason='no mutable_global or external_state_write on this path and the path is outside the detectors vocabulary')
 
         # outbound_calls_protected
         protections = [resilience_by_path[p] for p in files if p in resilience_by_path]
@@ -269,11 +334,14 @@ def compute(record_root):
                 'evidence': [f['id'] for f in protections],
                 'reason': 'resilience policy observed for at least one outbound call on the path',
             }
+        elif _supported('outbound_calls_protected', files):
+            answers['outbound_calls_protected'] = _no_answer(
+                'outbound_calls_protected', [entry.get('id') or f'EP-{path}'],
+                'no integration_target on this path; the detector looked, the path is in a language whose vocabulary it covers')
         else:
             answers['outbound_calls_protected'] = blank_answer(
-                'outbound_calls_protected',
-                status='undetectable',
-                reason='no integration_target on this path; nothing to protect')
+                'outbound_calls_protected', status='undetectable',
+                reason='no integration_target on this path and the path is outside the detectors vocabulary')
 
         # cached
         caches = [cache_by_path[p] for p in files if p in cache_by_path]
@@ -283,9 +351,14 @@ def compute(record_root):
                 'evidence': [f['id'] for f in caches],
                 'reason': f'{len(caches)} cache site(s) on the path',
             }
+        elif _supported('cached', files):
+            answers['cached'] = _no_answer(
+                'cached', [entry.get('id') or f'EP-{path}'],
+                'no cache site found on this path; the detector looked, the path is in a language whose vocabulary it covers')
         else:
             answers['cached'] = blank_answer(
-                'cached', status='undetectable', reason='no cache site on this path')
+                'cached', status='undetectable',
+                reason='no cache site on this path and the path is outside the detectors vocabulary')
 
         # rate_limited
         limits = [rate_limit_by_path[p] for p in files if p in rate_limit_by_path]
@@ -295,10 +368,14 @@ def compute(record_root):
                 'evidence': [f['id'] for f in limits],
                 'reason': f'{len(limits)} rate-limit site(s) on the path',
             }
+        elif _supported('rate_limited', files):
+            answers['rate_limited'] = _no_answer(
+                'rate_limited', [entry.get('id') or f'EP-{path}'],
+                'no rate-limit or concurrency bound on this path; the detector looked, the path is in a language whose vocabulary it covers')
         else:
             answers['rate_limited'] = blank_answer(
                 'rate_limited', status='undetectable',
-                reason='no rate-limit or concurrency bound on this path')
+                reason='no rate-limit or concurrency bound on this path and the path is outside the detectors vocabulary')
 
         out_entries.append({
             'id': entry.get('id', f'EP-{path}:{handler}'),

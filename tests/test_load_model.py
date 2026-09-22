@@ -1,7 +1,10 @@
 """The eight load-model questions, their shape, and what counts as evidence."""
+import json
+import tempfile
 import unittest
 from pathlib import Path
 from eaos import load_model
+from shared_fixture import TemporaryWorkspace
 
 
 class QuestionSetTests(unittest.TestCase):
@@ -520,3 +523,123 @@ class BlockerToCardTests(unittest.TestCase):
         for card in cards:
             self.assertTrue(card['options'])
             self.assertTrue(card['rollback'].strip())
+
+
+class NegativeAnswerTests(TemporaryWorkspace):
+    """When the detector looked and the path is in a supported language, the answer is
+    `answered, value=False` (negative result), not `undetectable`. The path's language
+    and the detector's vocabulary are the boundary: outside the vocabulary, undetectable
+    remains the honest answer.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = cls.workspace()
+
+    def test_a_python_path_with_no_cache_becomes_answered_false(self):
+        import json
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            facts_dir = Path(tmp) / 'facts'
+            facts_dir.mkdir(parents=True, exist_ok=True)
+            for name, payload in {
+                'entrypoints': {'facts': [{
+                    'kind': 'entry_point', 'id': 'E1',
+                    'location': {'path': 'a.py', 'symbol': 'handle'},
+                    'value': {'category': 'http', 'handler': 'handle'}}]},
+                'flows': {'facts': [{
+                    'kind': 'flow',
+                    'location': {'path': 'a.py', 'symbol': 'handle'},
+                    'value': {'flow_id': 'F-E1', 'steps': [], 'in_codebase_steps': 0,
+                                'unresolved_steps': 0, 'handler_found': True}}]},
+                'structure': {'facts': [
+                    {'id': 'sf1', 'kind': 'source_file',
+                     'location': {'path': 'a.py'},
+                     'value': {'language': 'python', 'parse_status': 'PARSED'}}]},
+            }.items():
+                (facts_dir / f'{name}.json').write_text(json.dumps(payload))
+            record = load_model.compute(tmp)
+        cached = record['entry_points'][0]['answers']['cached']
+        self.assertEqual(cached['status'], 'answered')
+        self.assertEqual(cached['value'], False)
+        self.assertTrue(cached['evidence'])
+
+    def test_a_go_path_with_no_cache_becomes_answered_false(self):
+        # Go is in the cache detector's vocabulary; absence is an answered "no".
+        import json
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            facts_dir = Path(tmp) / 'facts'
+            facts_dir.mkdir(parents=True, exist_ok=True)
+            for name, payload in {
+                'entrypoints': {'facts': [{
+                    'kind': 'entry_point', 'id': 'E1',
+                    'location': {'path': 'main.go', 'symbol': 'main'},
+                    'value': {'category': 'cli', 'handler': 'main', 'framework': 'go_main'}}]},
+                'flows': {'facts': [{
+                    'kind': 'flow',
+                    'location': {'path': 'main.go', 'symbol': 'main'},
+                    'value': {'flow_id': 'F-E1', 'steps': [], 'in_codebase_steps': 0,
+                                'unresolved_steps': 0, 'handler_found': True}}]},
+                'structure': {'facts': [
+                    {'id': 'sf1', 'kind': 'source_file',
+                     'location': {'path': 'main.go'},
+                     'value': {'language': 'go', 'parse_status': 'PARSED'}}]},
+            }.items():
+                (facts_dir / f'{name}.json').write_text(json.dumps(payload))
+            record = load_model.compute(tmp)
+        cached = record['entry_points'][0]['answers']['cached']
+        self.assertEqual(cached['status'], 'answered')
+        self.assertEqual(cached['value'], False)
+
+    def test_a_ruby_path_keeps_undetectable(self):
+        # The shared_mutable_state detector targets Python only; Ruby stays undetectable.
+        import json
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            facts_dir = Path(tmp) / 'facts'
+            facts_dir.mkdir(parents=True, exist_ok=True)
+            for name, payload in {
+                'entrypoints': {'facts': [{
+                    'kind': 'entry_point', 'id': 'E1',
+                    'location': {'path': 'a.rb', 'symbol': 'handle'},
+                    'value': {'category': 'http', 'handler': 'handle'}}]},
+                'flows': {'facts': [{
+                    'kind': 'flow',
+                    'location': {'path': 'a.rb', 'symbol': 'handle'},
+                    'value': {'flow_id': 'F-E1', 'steps': [], 'in_codebase_steps': 0,
+                                'unresolved_steps': 0, 'handler_found': True}}]},
+                'structure': {'facts': [
+                    {'id': 'sf1', 'kind': 'source_file',
+                     'location': {'path': 'a.rb'},
+                     'value': {'language': 'ruby', 'parse_status': 'PARSED'}}]},
+            }.items():
+                (facts_dir / f'{name}.json').write_text(json.dumps(payload))
+            record = load_model.compute(tmp)
+        sms = record['entry_points'][0]['answers']['shared_mutable_state']
+        self.assertEqual(sms['status'], 'undetectable')
+        self.assertIn('vocabulary', sms['reason'])
+
+    def test_a_path_we_could_not_trace_keeps_undetectable(self):
+        # If the flow is missing, the answer stays undetectable even in a supported language.
+        import json
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as tmp:
+            facts_dir = Path(tmp) / 'facts'
+            facts_dir.mkdir(parents=True, exist_ok=True)
+            for name, payload in {
+                'entrypoints': {'facts': [{
+                    'kind': 'entry_point', 'id': 'E1',
+                    'location': {'path': 'a.py', 'symbol': 'handle'},
+                    'value': {'category': 'http', 'handler': 'handle'}}]},
+                'flows': {'facts': []},
+                'structure': {'facts': [
+                    {'id': 'sf1', 'kind': 'source_file',
+                     'location': {'path': 'a.py'},
+                     'value': {'language': 'python', 'parse_status': 'PARSED'}}]},
+            }.items():
+                (facts_dir / f'{name}.json').write_text(json.dumps(payload))
+            record = load_model.compute(tmp)
+        cached = record['entry_points'][0]['answers']['cached']
+        self.assertEqual(cached['status'], 'undetectable')
+        self.assertIn('flow', cached['reason'].lower())
