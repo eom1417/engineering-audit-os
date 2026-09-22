@@ -783,7 +783,7 @@ python -m unittest tests.test_target_architecture -q
 
 **التراجع:** إرجاع الكل إلى unassessed
 
-### N6.T3 — قرار معماري ببدائله ⬜
+### N6.T3 — قرار معماري ببدائله ⛔
 
 **لماذا:** قرار بلا بديل مرفوض ليس قرارًا؛ هو تفضيل.
 **يحرّك:** `target_architecture.decisions_with_alternatives` من `0.0` إلى `0.85`

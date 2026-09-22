@@ -136,52 +136,80 @@ def assess(component, sets, claims=None, load_record=None):
                       'the evidence for keeping it is the absence of each'), sorted(component['evidence_ids'])
 
 
-def decisions(sets, components_list):
-    """One ADR per fingerprint cluster and per dependency cycle."""
-    decisions = []
-    for fact in sets.get('fingerprint', {}).get('facts', []):
-        if fact['kind'] != 'duplicate_cluster': continue
-        occs = fact['value']['occurrences']
-        if len(occs) < 2: continue
-        decisions.append({
-            'id': 'ADR-FP-' + fact['value']['shape_sha'][:8],
-            'problem': 'Symbols share an AST pattern; equivalence of their business rules is not established.',
-            'options': ['Canonicalize at the most-imported site.',
-                         'Introduce a shared module both sites import from.',
-                         'Keep both, document the divergence.'],
-            'chosen': None, 'status': 'investigate',
-            'tradeoffs': 'Smallest cut; the chosen site must satisfy the layering policy.',
-            'migration_steps': ['Add a public name at the chosen site.',
-                                'Replace each duplicate body with an import-and-call.',
-                                'Add an equivalence test that holds both call sites.'],
-            'compatibility': 'Unknown until equivalence and contract checks are completed.',
-            'rollback': 'Revert one commit; nothing else depends on the move.',
-            'success_measures': ['single_source indicator falls to 0 for this cluster.',
-                                  'All call sites still produce the same outputs.'],
-            'finding_ids': [f['id'] for f in [fact]],
-            'evidence_ids': [f['id'] for f in [fact]],
-        })
-    for fact in sets.get('graph', {}).get('facts', []):
-        if fact['kind'] != 'graph_cycle': continue
-        decisions.append({
-            'id': 'ADR-CYCLE-' + str(fact.get('id', ''))[-8:],
-            'problem': 'Files form a dependency cycle.',
-            'options': ['Lift shared code into a common module.',
-                         'Invert one edge with an interface.',
-                         'Accept the cycle and document the boundary.'],
-            'chosen': None, 'status': 'investigate',
-            'tradeoffs': 'Lift is invasive; inversion keeps the boundary but adds indirection.',
-            'migration_steps': ['Identify the smallest shared symbol on the cycle.',
-                                 'Move it to a new module that both sides import.',
-                                 'Run policy check to confirm the new edges are allowed.'],
-            'compatibility': 'Unknown until public import contracts are checked.',
-            'rollback': 'Revert one commit; the cycle returns and the policy check fails.',
-            'success_measures': ['policy check passes.',
-                                  'honest_boundaries stays at 0.'],
-            'finding_ids': [f['id'] for f in [fact]],
-            'evidence_ids': [f['id'] for f in [fact]],
-        })
-    return decisions
+def _adr(component, number):
+    relation = component['relation']
+    action = {
+        'modify': 'Change the component at its existing boundary.',
+        'introduce': 'Introduce the proposed component behind its declared contracts.',
+        'retire': 'Retire the component after its callers have moved.',
+    }[relation]
+    alternatives = {
+        'modify': ['Do nothing and accept the evidenced problem.', action],
+        'introduce': ['Do nothing and leave the capability without an owner.', action],
+        'retire': ['Do nothing and keep maintaining the component.', action],
+    }[relation]
+    decision = {
+        'id': f'ADR-{number:03d}',
+        'component_id': component['id'],
+        'problem': component.get('reason') or f'The component is assessed as {relation}.',
+        'evidence': sorted(set(component.get('evidence_ids') or [])),
+        'options': alternatives,
+        'chosen': action,
+        'tradeoffs': ('The chosen option follows the assessed relation and keeps the change at the '
+                      'component boundary; it costs migration work and must preserve its contracts.'),
+        'consequences': [f'The component remains traceable as {relation}.',
+                         'The cited evidence must be rechecked after migration.'],
+        'migration': ['Record the current contract and its acceptance check.',
+                      action, 'Run the acceptance check and update the evidence ledger.'],
+    }
+    validate_decision(decision)
+    return decision
+
+
+def validate_decision(decision):
+    required = ('id', 'problem', 'evidence', 'options', 'chosen', 'tradeoffs',
+                'consequences', 'migration')
+    missing = [name for name in required if not decision.get(name)]
+    if missing:
+        raise ValueError('ADR is missing: ' + ', '.join(missing))
+    options = decision['options']
+    if not isinstance(options, list) or len(options) < 2:
+        raise ValueError('ADR needs at least two options')
+    if not any('do nothing' in str(option).lower() for option in options):
+        raise ValueError('ADR options must include doing nothing')
+    if decision['chosen'] not in options:
+        raise ValueError('ADR chosen option must be one of its options')
+    return decision
+
+
+def decisions(components_list):
+    candidates = [component for component in components_list
+                  if component.get('relation') in {'modify', 'introduce', 'retire'}]
+    return [_adr(component, number) for number, component in enumerate(candidates, 1)]
+
+
+def render_decisions(out, records):
+    directory = Path(out) / 'docs' / 'adr'
+    directory.mkdir(parents=True, exist_ok=True)
+    expected = set()
+    for decision in records:
+        validate_decision(decision)
+        path = directory / f"{decision['id']}.md"
+        expected.add(path.name)
+        lines = [f"# {decision['id']}: {decision['problem']}", '',
+                 f"Component: `{decision['component_id']}`", '', '## Evidence', '']
+        lines += [f'- `{item}`' for item in decision['evidence']]
+        lines += ['', '## Options', '']
+        lines += [f'{index}. {option}' for index, option in enumerate(decision['options'], 1)]
+        lines += ['', '## Chosen', '', decision['chosen'], '', '## Tradeoffs', '',
+                  decision['tradeoffs'], '', '## Consequences', '']
+        lines += [f'- {item}' for item in decision['consequences']]
+        lines += ['', '## Migration', '']
+        lines += [f'{index}. {step}' for index, step in enumerate(decision['migration'], 1)]
+        path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+    for path in directory.glob('ADR-*.md'):
+        if path.name not in expected:
+            path.unlink()
 
 
 def gap_matrix(current_components, target_components):
@@ -236,11 +264,12 @@ def build(out, contracts_by_path=None, target_components=None):
             raise ValueError('Target component refers to an unknown source component')
         if not component.get('evidence_ids'): raise ValueError('Target component needs evidence')
     matrix = gap_matrix(current, target_components)
+    architectural_decisions = decisions([*current, *target_components])
     return {'schema_version': 2, 'status': 'REVIEW_REQUIRED',
             'retained_structure': 'Source inventory is shown below. Missing target decisions remain explicit gaps.',
             'current_components': current, 'components': target_components or current,
             'target_components': target_components,
-            'decisions': decisions(sets, current), 'gap_matrix': matrix,
+            'decisions': architectural_decisions, 'gap_matrix': matrix,
             'limits': ' '.join(LIMITATIONS)}
 
 
@@ -252,6 +281,7 @@ SHOWN_DECISIONS = 12
 def render(out, target, language='ar'):
     """Render the target architecture as a Markdown document."""
     ar = language == 'ar'
+    render_decisions(out, target['decisions'])
     lines = []
     if ar:
         lines += ['# البنية المستهدفة', '',

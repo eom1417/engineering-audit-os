@@ -841,7 +841,8 @@
             "N6.T2"
           ],
           "references": [],
-          "status": "todo"
+          "status": "blocked",
+          "blocked_reason": "full gate fails because the sandbox denies the runtime HTTP test a localhost socket (PermissionError)"
         },
         {
           "id": "N6.T4",

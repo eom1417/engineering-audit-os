@@ -1,6 +1,51 @@
 """The target architecture is a judgement about this codebase, with evidence for each verdict."""
 import unittest
 
+
+class ArchitecturalDecisionTests(unittest.TestCase):
+    def component(self, relation='modify'):
+        return {'id': 'T-app', 'relation': relation, 'reason': 'FACT-c1 shows a cycle',
+                'evidence_ids': ['FACT-c1']}
+
+    def test_every_changed_component_gets_a_complete_adr(self):
+        from eaos.target_architecture import decisions
+        records = decisions([self.component('modify'), self.component('introduce'),
+                             self.component('retire'), self.component('retain')])
+        self.assertEqual(len(records), 3)
+        for record in records:
+            self.assertGreaterEqual(len(record['options']), 2)
+            self.assertTrue(any('do nothing' in option.lower() for option in record['options']))
+            self.assertIn(record['chosen'], record['options'])
+            self.assertTrue(record['tradeoffs'])
+            self.assertEqual(record['evidence'], ['FACT-c1'])
+
+    def test_an_adr_with_one_option_is_rejected(self):
+        from eaos.target_architecture import validate_decision
+        record = {'id': 'ADR-001', 'problem': 'problem', 'evidence': ['FACT-c1'],
+                  'options': ['Do nothing.'], 'chosen': 'Do nothing.', 'tradeoffs': 'cost',
+                  'consequences': ['persists'], 'migration': ['stop']}
+        with self.assertRaisesRegex(ValueError, 'at least two'):
+            validate_decision(record)
+
+    def test_an_adr_without_tradeoffs_is_rejected(self):
+        from eaos.target_architecture import validate_decision
+        record = {'id': 'ADR-001', 'problem': 'problem', 'evidence': ['FACT-c1'],
+                  'options': ['Do nothing.', 'Change it.'], 'chosen': 'Change it.',
+                  'tradeoffs': '', 'consequences': ['changes'], 'migration': ['change']}
+        with self.assertRaisesRegex(ValueError, 'tradeoffs'):
+            validate_decision(record)
+
+    def test_render_writes_one_numbered_file_per_decision(self):
+        import tempfile
+        from pathlib import Path
+        from eaos.target_architecture import decisions, render_decisions
+        records = decisions([self.component()])
+        with tempfile.TemporaryDirectory() as out:
+            render_decisions(out, records)
+            text = Path(out, 'docs/adr/ADR-001.md').read_text(encoding='utf-8')
+        self.assertIn('Do nothing', text)
+        self.assertIn('FACT-c1', text)
+
 class ComponentGranularityTests(unittest.TestCase):
     """A component is an architectural unit, and every one carries a verdict with its evidence."""
 
