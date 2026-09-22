@@ -62,5 +62,107 @@
       }
     },
     "limits": "Detection on planted cases, measured. The volume column is not a false-positive count: an extra finding may be correct and simply unplanted."
+  },
+  "load_rows": [
+    {
+      "case": "q1-data-access-calls",
+      "planted": "GT-1",
+      "question": "data_access_calls",
+      "answered": true,
+      "value": 4,
+      "became_a_blocker": false,
+      "entry_points": 1,
+      "why": "a reader cannot reason about load without knowing how many stores a request touches"
+    },
+    {
+      "case": "q2-repeats-per-iteration",
+      "planted": "GT-1",
+      "question": "repeats_per_iteration",
+      "answered": true,
+      "value": true,
+      "became_a_blocker": true,
+      "entry_points": 1,
+      "why": "one query per item is the classic reason a page that works at ten rows dies at ten thousand"
+    },
+    {
+      "case": "q3-result-is-bounded",
+      "planted": "GT-1",
+      "question": "result_is_bounded",
+      "answered": true,
+      "value": false,
+      "became_a_blocker": true,
+      "entry_points": 1,
+      "why": "a response whose size follows the table grows without anyone changing the code"
+    },
+    {
+      "case": "q4-complexity-class",
+      "planted": "GT-1",
+      "question": "complexity_class",
+      "answered": true,
+      "value": "complexity",
+      "became_a_blocker": false,
+      "entry_points": 1,
+      "why": "three nested loops over the same result set: the handler is cubic in the row count, and a relative measure needs a population of simple functions to be an outlier in"
+    },
+    {
+      "case": "q5-shared-mutable-state",
+      "planted": "GT-1",
+      "question": "shared_mutable_state",
+      "answered": true,
+      "value": true,
+      "became_a_blocker": true,
+      "entry_points": 1,
+      "why": "two instances disagree about module state, which blocks horizontal scaling before the database does"
+    },
+    {
+      "case": "q6-outbound-calls-protected",
+      "planted": "GT-1",
+      "question": "outbound_calls_protected",
+      "answered": true,
+      "value": {
+        "timeout": false,
+        "retry": false,
+        "circuit_breaker": false
+      },
+      "became_a_blocker": true,
+      "entry_points": 1,
+      "why": "a slow dependency becomes an outage here when no timeout bounds the wait"
+    },
+    {
+      "case": "q7-cached",
+      "planted": "GT-1",
+      "question": "cached",
+      "answered": true,
+      "value": true,
+      "became_a_blocker": false,
+      "entry_points": 1,
+      "why": "without knowing what is cached, every projection of load is wrong by an unknown factor"
+    },
+    {
+      "case": "q8-rate-limited",
+      "planted": "GT-1",
+      "question": "rate_limited",
+      "answered": true,
+      "value": true,
+      "became_a_blocker": false,
+      "entry_points": 1,
+      "why": "an entry point with no limit takes the whole system down at the first spike"
+    }
+  ],
+  "load_summary": {
+    "cases": 8,
+    "planted": 8,
+    "answered": 8,
+    "questions_covered": [
+      "cached",
+      "complexity_class",
+      "data_access_calls",
+      "outbound_calls_protected",
+      "rate_limited",
+      "repeats_per_iteration",
+      "result_is_bounded",
+      "shared_mutable_state"
+    ],
+    "limits": "Answered means the question produced a value with evidence on a planted case. It does not mean the value is right on code nobody planted."
   }
 }

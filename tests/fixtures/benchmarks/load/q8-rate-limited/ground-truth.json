@@ -1,0 +1,13 @@
+{
+  "name": "q8-rate-limited",
+  "load_case": true,
+  "planted": [
+    {
+      "id": "GT-1",
+      "question": "rate_limited",
+      "expected": "a declared limit",
+      "path": "app.py",
+      "why": "an entry point with no limit takes the whole system down at the first spike"
+    }
+  ]
+}

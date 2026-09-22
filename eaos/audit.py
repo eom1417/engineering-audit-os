@@ -2,9 +2,10 @@
 from pathlib import Path
 
 
-def run(target, out, max_files=100000, max_bytes=2_000_000, exclude=None, language='ar', policy_path=None):
+def run(target, out, max_files=100000, max_bytes=2_000_000, exclude=None, language='ar',
+        policy_path=None, engines=None):
     from .pipeline import execute
-    manifest = execute(target, out, language=language, exclude=exclude or (),
+    manifest = execute(target, out, language=language, exclude=exclude or (), engines=engines,
                        max_files=max_files, max_bytes=max_bytes, policy_path=policy_path)
     out = Path(out).resolve()
     return {'target': str(Path(target).resolve()), 'out': str(out), 'status': manifest['status'],

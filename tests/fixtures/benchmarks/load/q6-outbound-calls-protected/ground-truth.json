@@ -1,0 +1,15 @@
+{
+  "name": "q6-outbound-calls-protected",
+  "load_case": true,
+  "planted": [
+    {
+      "id": "GT-1",
+      "question": "outbound_calls_protected",
+      "expected": {
+        "timeout": false
+      },
+      "path": "app.py",
+      "why": "a slow dependency becomes an outage here when no timeout bounds the wait"
+    }
+  ]
+}

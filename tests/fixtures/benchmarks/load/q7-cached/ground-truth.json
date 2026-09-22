@@ -1,0 +1,13 @@
+{
+  "name": "q7-cached",
+  "load_case": true,
+  "planted": [
+    {
+      "id": "GT-1",
+      "question": "cached",
+      "expected": "a process-scoped cache",
+      "path": "app.py",
+      "why": "without knowing what is cached, every projection of load is wrong by an unknown factor"
+    }
+  ]
+}

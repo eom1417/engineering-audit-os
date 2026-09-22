@@ -1,0 +1,13 @@
+{
+  "name": "q1-data-access-calls",
+  "load_case": true,
+  "planted": [
+    {
+      "id": "GT-1",
+      "question": "data_access_calls",
+      "expected": "a positive count",
+      "path": "app.py",
+      "why": "a reader cannot reason about load without knowing how many stores a request touches"
+    }
+  ]
+}

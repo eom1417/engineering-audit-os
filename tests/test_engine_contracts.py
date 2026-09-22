@@ -269,3 +269,40 @@ class CodegraphWrapperContracts(unittest.TestCase):
         self.assertNotIn('codegraph_get_dependency_graph', result['summary']['tools'])
         self.assertNotIn('codegraph_get_call_graph', result['summary']['tools'])
         self.assertNotIn('codegraph_analyze_complexity', result['summary']['tools'])
+
+
+class LoadCorpusTests(unittest.TestCase):
+    """Every one of the eight load questions must be answerable on a case built to answer it."""
+
+    def _cases(self):
+        from tools.engine_precision import LOAD_CORPUS, cases
+        return list(cases(LOAD_CORPUS))
+
+    def test_there_is_a_case_for_every_question(self):
+        from eaos.load_model import QUESTIONS
+        planted = {row['question'] for _, truth in self._cases() for row in truth['planted']}
+        self.assertEqual(sorted(planted), sorted(QUESTIONS),
+                         'a load question has no case proving it can be answered')
+
+    def test_every_case_names_the_expected_answer_and_why_it_matters(self):
+        for path, truth in self._cases():
+            self.assertTrue(truth.get('load_case'), path.name)
+            for planted in truth['planted']:
+                for field in ('id', 'question', 'expected', 'why'):
+                    self.assertIn(field, planted, path.name)
+                self.assertGreater(len(planted['why']), 30,
+                                   f'{path.name}: say why this matters, not just what it is')
+
+    def test_the_recorded_measurement_answers_every_question(self):
+        record = Path(__file__).resolve().parents[1] / 'docs/engine-precision.json'
+        self.assertTrue(record.is_file(), 'run tools/engine_precision.py --write')
+        payload = json.loads(record.read_text(encoding='utf-8'))
+        summary = payload.get('load_summary')
+        self.assertIsNotNone(summary, 'the load corpus was never measured')
+        self.assertEqual(summary['answered'], summary['planted'],
+                         'a planted load question is no longer answered')
+
+    def test_a_case_whose_engine_dependency_is_recorded_says_so(self):
+        limitations = [line for _, truth in self._cases() for line in truth.get('known_limitations', [])]
+        self.assertTrue(any('engine' in line for line in limitations),
+                        'complexity_class depends on an engine and the corpus should record that')

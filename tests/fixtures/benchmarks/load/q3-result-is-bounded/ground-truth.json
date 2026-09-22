@@ -1,0 +1,13 @@
+{
+  "name": "q3-result-is-bounded",
+  "load_case": true,
+  "planted": [
+    {
+      "id": "GT-1",
+      "question": "result_is_bounded",
+      "expected": false,
+      "path": "app.py",
+      "why": "a response whose size follows the table grows without anyone changing the code"
+    }
+  ]
+}

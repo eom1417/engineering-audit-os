@@ -553,7 +553,7 @@
     {
       "id": "N5",
       "title": "نموذج الحمل — قلب الاستشارة",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "N3",
         "N4"
@@ -747,7 +747,7 @@
             "N5.T5"
           ],
           "references": [],
-          "status": "todo"
+          "status": "done"
         }
       ]
     },
@@ -1171,6 +1171,6 @@
   "totals": {
     "milestones": 10,
     "tasks": 35,
-    "done": 21
+    "done": 22
   }
 }

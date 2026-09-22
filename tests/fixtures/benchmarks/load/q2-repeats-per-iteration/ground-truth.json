@@ -1,0 +1,13 @@
+{
+  "name": "q2-repeats-per-iteration",
+  "load_case": true,
+  "planted": [
+    {
+      "id": "GT-1",
+      "question": "repeats_per_iteration",
+      "expected": true,
+      "path": "app.py",
+      "why": "one query per item is the classic reason a page that works at ten rows dies at ten thousand"
+    }
+  ]
+}

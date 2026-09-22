@@ -1,0 +1,16 @@
+{
+  "name": "q4-complexity-class",
+  "load_case": true,
+  "planted": [
+    {
+      "id": "GT-1",
+      "question": "complexity_class",
+      "expected": "a superlinear class",
+      "path": "app.py",
+      "why": "three nested loops over the same result set: the handler is cubic in the row count, and a relative measure needs a population of simple functions to be an outlier in"
+    }
+  ],
+  "known_limitations": [
+    "complexity_class is answered by the enola engine, so this case is only measurable where that engine is installed; measured on 2026-09-22."
+  ]
+}

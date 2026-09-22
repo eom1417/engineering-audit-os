@@ -532,6 +532,34 @@
       },
       "overall_at_this_point": 0.6617,
       "note": "load blockers become claims, probes and cards; fixed two joins that made two of the eight questions always undetectable"
+    },
+    {
+      "task": "N5.T6",
+      "title": "حالات معنونة تثبت كل سؤال",
+      "recorded_at": "2026-09-22T12:50:01+00:00",
+      "commit": "3e19ca7",
+      "acceptance_command": "python tools/engine_precision.py --write",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "load_model.questions_answered",
+        "from": 0.8,
+        "to": 0.9
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9583,
+        "structure_polyglot": 0.5115,
+        "runtime_surface": 0.8334,
+        "load_model": 0.6731,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.9788,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.6617,
+      "note": "eight labelled load cases; all eight questions answered and measured"
     }
   ]
 }

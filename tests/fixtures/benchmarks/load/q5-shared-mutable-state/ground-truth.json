@@ -1,0 +1,13 @@
+{
+  "name": "q5-shared-mutable-state",
+  "load_case": true,
+  "planted": [
+    {
+      "id": "GT-1",
+      "question": "shared_mutable_state",
+      "expected": true,
+      "path": "app.py",
+      "why": "two instances disagree about module state, which blocks horizontal scaling before the database does"
+    }
+  ]
+}
