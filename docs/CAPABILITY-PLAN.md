@@ -35,7 +35,7 @@
 **بوابة العبور بعد كل مهمة:**
 
 ```bash
-python -m unittest discover -s tests -q && python tools/validate.py && python tools/invariants.py && eaos policy check . --out /tmp/gate && bash tests/gate/self_audit.sh
+python -m unittest discover -s tests -q && python tools/validate.py && python tools/invariants.py && python tools/render_capability_plan.py --check && bash tests/gate/self_audit.sh
 ```
 
 ## قواعد غير قابلة للتفاوض

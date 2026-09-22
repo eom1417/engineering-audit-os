@@ -30,7 +30,7 @@
     "٨. لا تضف عملًا خارج steps. ما ينقص يُسجَّل مهمة جديدة في نهاية نفس المعلم.",
     "٩. مهمة فشلت مرتين: status=blocked مع سطر واحد يشرح السبب، ثم انتقل إلى مهمة لا تعتمد عليها."
   ],
-  "gate": "python -m unittest discover -s tests -q && python tools/validate.py && python tools/invariants.py && eaos policy check . --out /tmp/gate && bash tests/gate/self_audit.sh",
+  "gate": "python -m unittest discover -s tests -q && python tools/validate.py && python tools/invariants.py && python tools/render_capability_plan.py --check && bash tests/gate/self_audit.sh",
   "rules": [
     "لا مهمة تُغلق بوصف نصي؛ معيار القبول أمر يرجع 0.",
     "كل كاشف جديد يأتي معه fixture فيه الحالة الموجبة والحالة السالبة.",

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "task": "N1.T3",
+      "title": "بوابة عدم التراجع",
+      "recorded_at": "2026-09-22T09:01:45+00:00",
+      "commit": "c4ecc22",
+      "acceptance_command": "bash tests/gate/capability_no_regression.sh",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "n/a",
+        "from": null,
+        "to": null
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9592,
+        "structure_polyglot": 0.3027,
+        "runtime_surface": 0.4583,
+        "load_model": 0.0,
+        "target_architecture": 0.0,
+        "transformation_plan": 0.6667,
+        "report_clarity": 0.92,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.4785,
+      "note": "the instrument, the baseline and the no-regression gate were built and verified"
+    }
+  ]
+}
