@@ -35,34 +35,105 @@ def _gather(out):
     return sets
 
 
-def components(sets, contracts_by_path=None):
-    """A target component per source symbol, with the smallest useful metadata.
+# An architectural component is a package, not a symbol. Building one per symbol produced 10,938
+# "components" on a 1,031-file repository, which is a symbol listing rather than an architecture.
+PACKAGE_ROOT = ''
 
-    `contracts_by_path` lets the engagement declare contracts for known files; a
-    file absent from the contract map gets an empty contract the reviewer fills in.
+
+def package_of(path):
+    """The architectural unit a file belongs to: its directory, or the root for a top-level file."""
+    parent = str(Path(path).parent)
+    return PACKAGE_ROOT if parent in ('.', '') else parent
+
+
+def components(sets, contracts_by_path=None):
+    """One target component per package, carrying the files and symbols inside it.
+
+    `contracts_by_path` lets the engagement declare contracts for known files; a package with no
+    declared contract carries an empty list the reviewer fills in.
     """
     contracts_by_path = contracts_by_path or {}
-    out = []
-    seen = set()
+    nodes = {fact['location']['path']: fact['value']
+             for fact in sets.get('graph', {}).get('facts', []) if fact['kind'] == 'graph_node'}
+    evidence = {fact['location']['path']: fact['id']
+                for fact in sets.get('graph', {}).get('facts', []) if fact['kind'] == 'graph_node'}
+    symbols = {}
     for fact in sets.get('syntax', {}).get('facts', []):
-        if fact['kind'] != 'symbol': continue
-        loc = fact['location']
-        key = (loc['path'], loc.get('start_line'))
-        if key in seen: continue
-        seen.add(key)
-        value = fact['value']
+        if fact['kind'] == 'symbol':
+            symbols.setdefault(fact['location']['path'], []).append(fact)
+    paths = sorted(set(nodes) | set(symbols))
+    grouped = {}
+    for path in paths:
+        grouped.setdefault(package_of(path), []).append(path)
+    out = []
+    for package, members in sorted(grouped.items()):
+        node_values = [nodes[path] for path in members if path in nodes]
+        depends = sorted({package_of(target)
+                          for value in node_values for target in (value.get('depends_on') or [])
+                          if package_of(target) != package})
         out.append({
-            'id': f"T-{loc['path'].replace('/', '.').replace('.py', '')}-{loc.get('start_line', 0)}",
-            'name': value.get('name', ''), 'kind': value.get('kind', 'function'),
-            'origin': loc['path'],
+            'id': 'T-' + (package.replace('/', '.') if package else 'root'),
+            'name': package or '(root)',
+            'kind': 'package',
+            'origin': package or '.',
             'relation': 'unassessed',
+            'reason': 'no rule has been applied to this component yet',
             'responsibility': '',
             'owner': '',
-            'paths': [loc['path']],
-            'contracts': contracts_by_path.get(loc['path'], []),
-            'depends_on': [], 'evidence_ids': [fact['id']], 'source_component_id': None,
+            'paths': members,
+            'files': len(members),
+            'symbols': sum(len(symbols.get(path, [])) for path in members),
+            'fan_in': sum(value.get('fan_in', 0) for value in node_values),
+            'fan_out': sum(value.get('fan_out', 0) for value in node_values),
+            'contracts': sorted({contract for path in members
+                                 for contract in contracts_by_path.get(path, [])}),
+            'depends_on': depends,
+            'evidence_ids': sorted({evidence[path] for path in members if path in evidence}),
+            'source_component_id': None,
         })
     return out
+
+
+def assess(component, sets, claims=None, load_record=None):
+    """Give a component a relation, and the evidence for it.
+
+    Every rule reads facts that already exist. "unassessed" survives only for a component no
+    extraction reached, and it carries the reason. A verdict with no evidence is refused by
+    the tests, because a target architecture whose every entry is a guess is worse than none.
+    """
+    claims = claims or []
+    paths = set(component['paths'])
+    touching = [claim for claim in claims
+                if paths & set((claim.get('priority_factors') or {}).get('paths') or [])]
+    live = [claim for claim in touching
+            if claim.get('confidence') in ('CONFIRMED', 'LIKELY') and claim.get('status') != 'withdrawn']
+    cycles = [fact for fact in sets.get('graph', {}).get('facts', [])
+              if fact['kind'] == 'graph_cycle' and paths & set(fact['value'].get('members') or [])]
+    violations = [fact for fact in sets.get('policy', {}).get('facts', [])
+                  if fact['kind'] == 'policy_violation' and fact['location']['path'] in paths]
+    blockers = []
+    if load_record:
+        from .load_model import blockers as load_blockers
+        blockers = [row for row in load_blockers(load_record) if row.get('path') in paths]
+    if not component['symbols'] and not component['files']:
+        return 'unassessed', 'no extractor reached this component', []
+    reasons, evidence = [], []
+    if cycles:
+        reasons.append(f'{len(cycles)} dependency cycle(s) pass through it')
+        evidence += [fact['id'] for fact in cycles]
+    if violations:
+        reasons.append(f'{len(violations)} declared policy violation(s)')
+        evidence += [fact['id'] for fact in violations]
+    if blockers:
+        reasons.append(f'{len(blockers)} load blocker(s) on its entry points')
+        evidence += [reference for row in blockers for reference in row['evidence']]
+    if live:
+        reasons.append(f'{len(live)} live claim(s) about it')
+        evidence += [claim['id'] for claim in live]
+    if reasons:
+        return 'modify', '; '.join(reasons), sorted(set(evidence))
+    return 'retain', ('no cycle, no policy violation, no load blocker and no live claim touches it; '
+                      'the evidence for keeping it is the absence of each'), sorted(component['evidence_ids'])
 
 
 def decisions(sets, components_list):
@@ -135,6 +206,18 @@ def build(out, contracts_by_path=None, target_components=None):
     import json
     sets = _gather(out)
     current = components(sets, contracts_by_path)
+    # Every component gets a verdict from the evidence already collected, so the target is a
+    # judgement about this codebase rather than a list of things nobody looked at.
+    dossier_path = Path(out) / 'dossier.json'
+    claims = json.loads(dossier_path.read_text(encoding='utf-8')).get('claims', []) \
+        if dossier_path.is_file() else []
+    load_path = Path(out) / 'load-model.json'
+    load_record = json.loads(load_path.read_text(encoding='utf-8')) if load_path.is_file() else None
+    for component in current:
+        relation, reason, evidence = assess(component, sets, claims, load_record)
+        component['relation'] = relation
+        component['reason'] = reason
+        component['evidence_ids'] = sorted(set(component['evidence_ids']) | set(evidence))
     proposal = Path(out) / 'target-design.json'
     if target_components is None and proposal.is_file():
         data = json.loads(proposal.read_text())

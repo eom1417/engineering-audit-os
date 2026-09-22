@@ -784,7 +784,7 @@
           "rollback": "إرجاع التعريف السابق",
           "depends_on": [],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N6.T2",
@@ -813,7 +813,7 @@
             "N6.T1"
           ],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N6.T3",
@@ -1171,6 +1171,6 @@
   "totals": {
     "milestones": 10,
     "tasks": 35,
-    "done": 22
+    "done": 24
   }
 }

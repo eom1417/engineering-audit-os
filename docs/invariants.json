@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "f64a4f0",
+  "extracted_at_commit": "3f662d9",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -568,6 +568,15 @@
       "kind": "rationale",
       "enforced_by": null,
       "note": "History: what an earlier version of the indicator computed."
+    },
+    {
+      "id": "INV-551e1363f5",
+      "file": "eaos/target_architecture.py",
+      "symbol": "assess",
+      "statement": "A verdict with no evidence is refused by the tests, because a target architecture whose every entry is a guess is worse than none.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_target_architecture.py::ComponentGranularityTests::test_every_component_in_a_real_report_carries_a_relation_and_a_reason",
+      "note": ""
     },
     {
       "id": "INV-68ea99553c",
