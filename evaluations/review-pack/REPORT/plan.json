@@ -1,0 +1,2220 @@
+{
+  "contract_version": 1,
+  "tasks": [
+    {
+      "id": "TASK-001",
+      "claim_id": "CLM-007",
+      "title": "421 functions perform the same ordered sequence of calls (cmd/enola/flags_documented_test.go:None, cmd/enola/main.go:Non",
+      "render": {
+        "key": "sequence_duplicate",
+        "params": {
+          "count": 421,
+          "where": "cmd/enola/flags_documented_test.go:None, cmd/enola/main.go:None, internal/diff/attribution_test.go:None, internal/diff/constraintattribution_test.go:None"
+        }
+      },
+      "kind": "investigate",
+      "contract_version": 1,
+      "decision": {
+        "contract_version": 1,
+        "observation_uid": "OBS-820c67eeabd4df90f9dc9f98",
+        "kind": "investigate",
+        "reason": "Establish the requirement and consequence before proposing a code change.",
+        "readiness": "needs_review",
+        "blockers": [],
+        "checks": [],
+        "allowed_outcomes": [
+          "repair",
+          "retain",
+          "blocked_missing_requirement"
+        ]
+      },
+      "prerequisites": [],
+      "before": null,
+      "after": null,
+      "status": "planned",
+      "priority": 0.2333,
+      "pattern": "canonicalize",
+      "paths": [
+        "cmd/enola/flags_documented_test.go",
+        "cmd/enola/main.go",
+        "internal/diff/attribution_test.go",
+        "internal/diff/constraintattribution_test.go",
+        "internal/diff/constraintcredit_test.go",
+        "internal/diff/diff_test.go",
+        "internal/docslint/commands_test.go",
+        "internal/docslint/links_test.go",
+        "internal/docslint/shape_test.go",
+        "internal/engine/cache_build_test.go",
+        "internal/engine/cache_stream_test.go",
+        "internal/engine/conceptedgematrix_test.go",
+        "internal/engine/defer_linking_test.go",
+        "internal/engine/engine_test.go",
+        "internal/engine/history_e2e_test.go",
+        "internal/engine/loadsnapshot_test.go",
+        "internal/eslintscaffold/scaffold_test.go",
+        "internal/estateref/estateref_test.go",
+        "internal/explainers/common/cap_test.go",
+        "internal/explainers/complexity/complexity_test.go",
+        "internal/explainers/constraints/conceptcontract_test.go",
+        "internal/explainers/constraints/constraints_test.go",
+        "internal/explainers/constraints/contract_test.go",
+        "internal/explainers/constraints/declared_test.go",
+        "internal/explainers/constraints/existential_test.go",
+        "internal/explainers/constraints/predicate_test.go",
+        "internal/explainers/constraints/property_test.go",
+        "internal/explainers/constraints/protocol_test.go",
+        "internal/explainers/constraints/radius_test.go",
+        "internal/explainers/constraints/reach_test.go",
+        "internal/explainers/constraints/recipe_test.go",
+        "internal/explainers/constraints/requireedge_antecedent_test.go",
+        "internal/explainers/constraints/runtime_test.go",
+        "internal/explainers/constraints/toname_test.go",
+        "internal/explainers/coverage/coverage_test.go",
+        "internal/explainers/crossrepo/crossrepo_test.go",
+        "internal/explainers/cycles/cycles_test.go",
+        "internal/explainers/depth/depth_test.go",
+        "internal/explainers/godclass/determinism_test.go",
+        "internal/explainers/godclass/godclass_test.go",
+        "internal/explainers/hotspots/hotspots_test.go",
+        "internal/explainers/layers/layers_test.go",
+        "internal/explainers/messagingcoverage/messagingcoverage_test.go",
+        "internal/explainers/queryloops/claims_test.go",
+        "internal/explainers/queryloops/queryloops_test.go",
+        "internal/explainers/registry_test.go",
+        "internal/explainers/surface/surface_test.go",
+        "internal/explainers/unusedroutes/unusedroutes_test.go",
+        "internal/explainers/vendoredcandidates/vendoredcandidates_test.go",
+        "internal/extractors/asyncapiextractor/asyncapi_test.go",
+        "internal/extractors/dartextractor/dart_test.go",
+        "internal/extractors/dartextractor/pubspec_test.go",
+        "internal/extractors/dotnetextractor/conventional_test.go",
+        "internal/extractors/dotnetextractor/csharp_test.go",
+        "internal/extractors/dotnetextractor/msbuild_test.go",
+        "internal/extractors/dotnetextractor/testrefs_test.go",
+        "internal/extractors/goextractor/go_test.go",
+        "internal/extractors/goextractor/grpcclient_test.go",
+        "internal/extractors/goextractor/kafka_test.go",
+        "internal/extractors/goextractor/routeprefix_test.go",
+        "internal/extractors/goextractor/routes_test.go",
+        "internal/extractors/goextractor/testrefs_test.go",
+        "internal/extractors/grpcextractor/grpc_test.go",
+        "internal/extractors/javaextractor/spring_test.go",
+        "internal/extractors/kotlinextractor/kotlin_ast_test.go",
+        "internal/extractors/kotlinextractor/retrofit_test.go",
+        "internal/extractors/kotlinextractor/servletroute_test.go",
+        "internal/extractors/manifestextractor/manifest_test.go",
+        "internal/extractors/mdintent/mdintent_test.go",
+        "internal/extractors/openapiextractor/openapi_test.go",
+        "internal/extractors/phpextractor/httpclient_test.go",
+        "internal/extractors/pythonextractor/python_ast_test.go",
+        "internal/extractors/pythonextractor/python_test.go",
+        "internal/extractors/pythonextractor/testrefs_test.go",
+        "internal/extractors/registry_test.go",
+        "internal/extractors/rubyextractor/grape_test.go",
+        "internal/extractors/rubyextractor/graphqlruby_test.go",
+        "internal/extractors/rubyextractor/httpclient_test.go",
+        "internal/extractors/rubyextractor/renders_test.go",
+        "internal/extractors/rubyextractor/routefiles_test.go",
+        "internal/extractors/rubyextractor/routehandler_test.go",
+        "internal/extractors/rubyextractor/schemarb_test.go",
+        "internal/extractors/rubyextractor/stimulus_test.go",
+        "internal/extractors/rubyextractor/structuresql_test.go",
+        "internal/extractors/rubyextractor/turbo_test.go",
+        "internal/extractors/rustextractor/axum_test.go",
+        "internal/extractors/rustextractor/rust_ast_test.go",
+        "internal/extractors/rustextractor/utoipa_test.go",
+        "internal/extractors/scalaextractor/resolve_test.go",
+        "internal/extractors/scalaextractor/testrefs_test.go",
+        "internal/extractors/swiftextractor/httpclient_test.go",
+        "internal/extractors/swiftextractor/swift_conditional_test.go",
+        "internal/extractors/swiftextractor/swift_test.go",
+        "internal/extractors/tsextractor/ember_test.go",
+        "internal/extractors/tsextractor/grpcclient_test.go",
+        "internal/extractors/tsextractor/httpclient_test.go",
+        "internal/extractors/tsextractor/svelte_test.go",
+        "internal/extractors/tsextractor/testrefs_test.go",
+        "internal/extractors/tsextractor/vue_test.go",
+        "internal/facts/conditional_test.go",
+        "internal/facts/endpoint_test.go",
+        "internal/facts/freeze_test.go",
+        "internal/facts/graph_equivalence_test.go",
+        "internal/facts/graph_test.go",
+        "internal/facts/id_test.go",
+        "internal/facts/memory_test.go",
+        "internal/facts/store_test.go",
+        "internal/facts/storepath_test.go",
+        "internal/facts/wireformat_test.go",
+        "internal/facts/writejsonl_test.go",
+        "internal/gqlscan/gqlscan_test.go",
+        "internal/history/blame_test.go",
+        "internal/history/blobs_test.go",
+        "internal/history/gc_test.go",
+        "internal/history/retention_test.go",
+        "internal/history/share_test.go",
+        "internal/history/write_test.go",
+        "internal/intent/graphlaws_test.go",
+        "internal/intent/intent_test.go",
+        "internal/intent/recipes_test.go",
+        "internal/intent/rubysurface_docs_test.go",
+        "internal/intent/rubysurface_full_test.go",
+        "internal/intent/rubysurface_lastfive_test.go",
+        "internal/intent/rubysurface_test.go",
+        "internal/intent/where_test.go",
+        "internal/linkers/binders/clientseam/clientseam_test.go",
+        "internal/linkers/binders/grpcimpl/grpcimpl_test.go",
+        "internal/linkers/crossrepo/contract_test.go",
+        "internal/linkers/crossrepo/crossrepo_test.go",
+        "internal/metrics/metrics_test.go",
+        "internal/mining/identity_test.go",
+        "internal/mining/roundtrip_test.go",
+        "internal/mining/tautology_test.go",
+        "internal/orphans/adapter_test.go",
+        "internal/parallel/parallel_test.go",
+        "internal/perf/annotate_test.go",
+        "internal/perf/perf_test.go",
+        "internal/providers/agreement_test.go",
+        "internal/providers/cache_test.go",
+        "internal/providers/errorpaths_test.go",
+        "internal/providers/eslint_test.go",
+        "internal/providers/overlap_test.go",
+        "internal/providers/prism_test.go",
+        "internal/providers/providers_test.go",
+        "internal/providers/rubydex/provider_test.go",
+        "internal/providers/rubydex_index_test.go",
+        "internal/providers/rubydex_test.go",
+        "internal/providers/runtime_test.go",
+        "internal/providers/zeitwerk_test.go",
+        "internal/renderers/llmcontext/llm_test.go",
+        "internal/renderers/registry_test.go",
+        "internal/server/server_test.go",
+        "pkg/bootstrap/bootstrap_test.go",
+        "pkg/bootstrap/docs_extractors_test.go",
+        "pkg/check/advisorynote_test.go",
+        "pkg/check/check_test.go",
+        "pkg/check/exemptions_test.go",
+        "pkg/check/format_test.go",
+        "pkg/check/guidance_test.go",
+        "pkg/check/suppressions_test.go",
+        "pkg/check/time_test.go",
+        "pkg/command/log_test.go",
+        "pkg/command/update_test.go",
+        "pkg/dashboard/dashboard_test.go",
+        "pkg/dashboard/modulegraph_test.go",
+        "pkg/dashboard/packagemetrics_test.go",
+        "pkg/explain/explain_test.go",
+        "pkg/history/format_test.go",
+        "pkg/history/graph_test.go",
+        "pkg/history/patch_test.go",
+        "pkg/history/read_test.go",
+        "pkg/install/hooks_shape_test.go",
+        "pkg/install/install_test.go",
+        "pkg/mcputil/scoped_test.go",
+        "pkg/plan/e2e_test.go",
+        "pkg/plan/patch_test.go",
+        "pkg/plan/plan_test.go",
+        "pkg/status/aggregate_test.go",
+        "pkg/status/instance_test.go",
+        "pkg/status/value_test.go"
+      ],
+      "origin": "test_and_source",
+      "impact": "The orchestration is maintained in several places at once.",
+      "impact_render": {
+        "key": "sequence_duplicate",
+        "params": {
+          "count": 421,
+          "where": "cmd/enola/flags_documented_test.go:None, cmd/enola/main.go:None, internal/diff/attribution_test.go:None, internal/diff/constraintattribution_test.go:None"
+        }
+      },
+      "evidence": {
+        "fact_ids": [
+          "FACT-6185a4c88f40018c"
+        ],
+        "evidence_ids": [],
+        "probe_ids": [
+          "PRB-001"
+        ],
+        "falsifier": "Evidence that the shared order is coincidental rather than one orchestration copied."
+      },
+      "blast_radius": {
+        "direct_dependents": [],
+        "transitive_dependents": [],
+        "flows": [],
+        "entry_points": [
+          {
+            "surface": "http",
+            "route": "",
+            "location": "internal/extractors/goextractor/routes_test.go:351"
+          },
+          {
+            "surface": "http",
+            "route": "/a",
+            "location": "internal/extractors/goextractor/routeprefix_test.go:287"
+          },
+          {
+            "surface": "http",
+            "route": "/api/feature",
+            "location": "internal/extractors/goextractor/routes_test.go:280"
+          },
+          {
+            "surface": "http",
+            "route": "/api/users",
+            "location": "internal/extractors/goextractor/routes_test.go:20"
+          },
+          {
+            "surface": "http",
+            "route": "/api/users",
+            "location": "internal/extractors/goextractor/routes_test.go:21"
+          },
+          {
+            "surface": "http",
+            "route": "/api/users/{id}",
+            "location": "internal/extractors/goextractor/routes_test.go:22"
+          },
+          {
+            "surface": "http",
+            "route": "/b",
+            "location": "internal/extractors/goextractor/routeprefix_test.go:292"
+          },
+          {
+            "surface": "http",
+            "route": "/courses",
+            "location": "internal/extractors/goextractor/routeprefix_test.go:45"
+          },
+          {
+            "surface": "http",
+            "route": "/courses/{id}",
+            "location": "internal/extractors/goextractor/routeprefix_test.go:46"
+          },
+          {
+            "surface": "http",
+            "route": "/courses/{id}",
+            "location": "internal/extractors/goextractor/routeprefix_test.go:203"
+          },
+          {
+            "surface": "http",
+            "route": "/health",
+            "location": "internal/extractors/goextractor/routes_test.go:164"
+          },
+          {
+            "surface": "http",
+            "route": "/health",
+            "location": "internal/extractors/goextractor/routes_test.go:230"
+          },
+          {
+            "surface": "http",
+            "route": "/orphan",
+            "location": "internal/extractors/goextractor/routeprefix_test.go:176"
+          },
+          {
+            "surface": "http",
+            "route": "/rules/{id}",
+            "location": "internal/extractors/goextractor/routeprefix_test.go:241"
+          },
+          {
+            "surface": "http",
+            "route": "/things",
+            "location": "internal/extractors/goextractor/routeprefix_test.go:121"
+          },
+          {
+            "surface": "http",
+            "route": "/things",
+            "location": "internal/extractors/goextractor/routeprefix_test.go:323"
+          },
+          {
+            "surface": "http",
+            "route": "/things/{id}",
+            "location": "internal/extractors/goextractor/routeprefix_test.go:324"
+          }
+        ],
+        "covering_tests": [],
+        "coverage": {},
+        "change_partners": [],
+        "total": 0
+      },
+      "change": "أثبت هذا الادعاء أو انقضه قبل أي تغيير: Evidence that the shared order is coincidental rather than one orchestration copied.",
+      "options": [
+        {
+          "option": "تشغيل مجسّ يحسم الادعاء",
+          "cost": "منخفضة",
+          "verdict": "مختار: لا تغيير قبل الحسم"
+        },
+        {
+          "option": "قبول الادعاء بلا إثبات",
+          "cost": "صفر الآن",
+          "verdict": "مرفوض: يخالف قاعدة الإسناد"
+        },
+        {
+          "option": "تعريف واحد في الموضع المرجعي + إحالات + اختبار تكافؤ",
+          "cost": "متوسطة",
+          "verdict": "مختار افتراضيًا حين تكون المواضع قاعدة واحدة فعلًا"
+        },
+        {
+          "option": "إبقاء النسخ مع اختبار تكافؤ يربطها",
+          "cost": "منخفضة",
+          "verdict": "أنسب عبر حدود اللغات أو الخدمات حين يتعذّر الاستيراد"
+        },
+        {
+          "option": "إبقاء موثّق بعد إثبات اختلاف السببين",
+          "cost": "صفر",
+          "verdict": "نتيجة صحيحة لا فشل: التشابه اليوم لا يعني قاعدة واحدة غدًا"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "صفر الآن",
+          "cost_en": "zero now",
+          "verdict": "يبقى المعنى الواحد مكتوبًا في مواضع متعددة، وأول تعديل يجعلها تختلف"
+        }
+      ],
+      "rollback": "لا تغيير في الكود خلال التحقيق.",
+      "acceptance": [
+        {
+          "command": "human review / مراجعة هندسية",
+          "expect": "CLM-007: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. Evidence that the shared order is coincidental rather than one orchestration copied."
+        }
+      ],
+      "verify_command": [],
+      "effort": "unknown",
+      "effort_confidence": "Not measured / لم يُقَس",
+      "invariants": [
+        {
+          "invariant": "Evidence that the shared order is coincidental rather than one orchestration copied.",
+          "source": "falsifier",
+          "must_hold_after": false,
+          "note": "the observation that would show this claim is wrong; after a repair it should hold"
+        }
+      ],
+      "harm": {
+        "business": {
+          "value": "unknown",
+          "basis": "not established: no requirement or incident evidences a business cost"
+        },
+        "reach": {
+          "value": 0,
+          "basis": "measured from the dependency graph",
+          "direct_dependents": 0,
+          "flows": 0
+        },
+        "effort": {
+          "value": "كبير",
+          "basis": "منخفضة: لم يُقَس عمل مشابه بعد"
+        }
+      },
+      "finding_ids": [
+        "CLM-007"
+      ]
+    },
+    {
+      "id": "TASK-002",
+      "claim_id": "CLM-004",
+      "title": "236 functions perform the same ordered sequence of calls (internal/config/output_dir_test.go:None, internal/diff/attribu",
+      "render": {
+        "key": "sequence_duplicate",
+        "params": {
+          "count": 236,
+          "where": "internal/config/output_dir_test.go:None, internal/diff/attribution_test.go:None, internal/diff/attribution_test.go:None, internal/diff/changedprops_test.go:None"
+        }
+      },
+      "kind": "investigate",
+      "contract_version": 1,
+      "decision": {
+        "contract_version": 1,
+        "observation_uid": "OBS-820c67eeabd4df90f9dc9f98",
+        "kind": "investigate",
+        "reason": "Establish the requirement and consequence before proposing a code change.",
+        "readiness": "needs_review",
+        "blockers": [],
+        "checks": [],
+        "allowed_outcomes": [
+          "repair",
+          "retain",
+          "blocked_missing_requirement"
+        ]
+      },
+      "prerequisites": [],
+      "before": null,
+      "after": null,
+      "status": "planned",
+      "priority": 0.0961,
+      "pattern": "canonicalize",
+      "paths": [
+        "internal/config/output_dir_test.go",
+        "internal/diff/attribution_test.go",
+        "internal/diff/changedprops_test.go",
+        "internal/diff/constraintattribution_test.go",
+        "internal/diff/constraintcredit_test.go",
+        "internal/diff/counts_test.go",
+        "internal/diff/diff_test.go",
+        "internal/engine/cache_build_test.go",
+        "internal/engine/cache_stream_test.go",
+        "internal/engine/clientspec_test.go",
+        "internal/engine/engine_test.go",
+        "internal/engine/restore_test.go",
+        "internal/engine/walk_test.go",
+        "internal/explainers/common/cap_test.go",
+        "internal/explainers/common/common_test.go",
+        "internal/explainers/complexity/complexity_test.go",
+        "internal/explainers/coverage/coverage_test.go",
+        "internal/explainers/crossrepo/crossrepo_test.go",
+        "internal/explainers/cycles/cycles_test.go",
+        "internal/explainers/depth/depth_test.go",
+        "internal/explainers/godclass/godclass_test.go",
+        "internal/explainers/hotspots/hotspots_test.go",
+        "internal/explainers/importclosure/graph_test.go",
+        "internal/explainers/importclosure/importclosure_test.go",
+        "internal/explainers/layers/layers_test.go",
+        "internal/explainers/surface/surface_test.go",
+        "internal/explainers/unusedroutes/unusedroutes_test.go",
+        "internal/explainers/vendoredcandidates/vendoredcandidates_test.go",
+        "internal/extractors/dartextractor/dart_test.go",
+        "internal/extractors/dotnetextractor/csharp_test.go",
+        "internal/extractors/goextractor/httpclient_test.go",
+        "internal/extractors/goextractor/routes_test.go",
+        "internal/extractors/goextractor/storage_test.go",
+        "internal/extractors/javaextractor/httpclient_test.go",
+        "internal/extractors/kotlinextractor/kotlin_ast_test.go",
+        "internal/extractors/pythonextractor/python_ast_test.go",
+        "internal/extractors/pythonextractor/python_test.go",
+        "internal/extractors/rubyextractor/renders_test.go",
+        "internal/extractors/rubyextractor/routefiles_test.go",
+        "internal/extractors/rubyextractor/routehandler_test.go",
+        "internal/extractors/rubyextractor/ruby_test.go",
+        "internal/extractors/rubyextractor/stimulus_test.go",
+        "internal/extractors/scalaextractor/routes_test.go",
+        "internal/extractors/swiftextractor/swift_test.go",
+        "internal/extractors/tsextractor/storage_test.go",
+        "internal/facts/contract_test.go",
+        "internal/facts/endpoint_test.go",
+        "internal/facts/graph_test.go",
+        "internal/facts/intern_test.go",
+        "internal/facts/memory_test.go",
+        "internal/facts/performance_test.go",
+        "internal/facts/store_test.go",
+        "internal/history/blame_test.go",
+        "internal/history/blobs_test.go",
+        "internal/history/gc_test.go",
+        "internal/history/share_test.go",
+        "internal/intent/exemptions_test.go",
+        "internal/intent/recipes_builtin_test.go",
+        "internal/intent/whenedgeto_test.go",
+        "internal/linkers/binders/grpcclientfqn/grpcclientfqn_test.go",
+        "internal/linkers/binders/messagingcontract/messagingcontract_test.go",
+        "internal/linkers/crossrepo/contract_test.go",
+        "internal/linkers/crossrepo/crossrepo_test.go",
+        "internal/linkers/crossrepo/signals/http/param_test.go",
+        "internal/metrics/metrics_test.go",
+        "internal/mining/roundtrip_test.go",
+        "internal/orphans/adapter_test.go",
+        "internal/orphans/annotate_test.go",
+        "internal/orphans/orphans_test.go",
+        "internal/perf/perf_test.go",
+        "internal/providers/agreement_test.go",
+        "internal/providers/providers.go",
+        "internal/providers/rbs_test.go",
+        "internal/providers/rubydex/provider_test.go",
+        "internal/renderers/llmcontext/llm_test.go",
+        "internal/server/insights_test.go",
+        "internal/server/server_test.go",
+        "internal/server/tokenecon_test.go",
+        "pkg/check/check_test.go",
+        "pkg/check/explainerset_test.go",
+        "pkg/check/guidance_test.go",
+        "pkg/check/intersection_test.go",
+        "pkg/check/measurement_test.go",
+        "pkg/check/reviewers_test.go",
+        "pkg/check/time_test.go",
+        "pkg/command/backfill_test.go",
+        "pkg/command/help_consistency_test.go",
+        "pkg/command/update_test.go",
+        "pkg/dashboard/dashboard_test.go",
+        "pkg/dashboard/packagemetrics_test.go",
+        "pkg/explain/explain_test.go",
+        "pkg/history/graph_test.go",
+        "pkg/history/patch_test.go",
+        "pkg/history/read.go",
+        "pkg/history/topology_test.go",
+        "pkg/install/hooks_codex_test.go",
+        "pkg/install/hooks_shape_test.go",
+        "pkg/install/install_test.go",
+        "pkg/mcputil/scoped_test.go",
+        "pkg/plan/e2e_test.go",
+        "pkg/plan/patch.go",
+        "pkg/plan/plan.go",
+        "pkg/plan/plan_test.go",
+        "pkg/status/aggregate_test.go",
+        "pkg/status/instance_test.go"
+      ],
+      "origin": "test_and_source",
+      "impact": "The orchestration is maintained in several places at once.",
+      "impact_render": {
+        "key": "sequence_duplicate",
+        "params": {
+          "count": 236,
+          "where": "internal/config/output_dir_test.go:None, internal/diff/attribution_test.go:None, internal/diff/attribution_test.go:None, internal/diff/changedprops_test.go:None"
+        }
+      },
+      "evidence": {
+        "fact_ids": [
+          "FACT-93c30188b414942d"
+        ],
+        "evidence_ids": [],
+        "probe_ids": [
+          "PRB-002"
+        ],
+        "falsifier": "Evidence that the shared order is coincidental rather than one orchestration copied."
+      },
+      "blast_radius": {
+        "direct_dependents": [],
+        "transitive_dependents": [],
+        "flows": [],
+        "entry_points": [
+          {
+            "surface": "http",
+            "route": "",
+            "location": "internal/extractors/goextractor/routes_test.go:351"
+          },
+          {
+            "surface": "http",
+            "route": "/api/feature",
+            "location": "internal/extractors/goextractor/routes_test.go:280"
+          },
+          {
+            "surface": "http",
+            "route": "/api/users",
+            "location": "internal/extractors/goextractor/routes_test.go:20"
+          },
+          {
+            "surface": "http",
+            "route": "/api/users",
+            "location": "internal/extractors/goextractor/routes_test.go:21"
+          },
+          {
+            "surface": "http",
+            "route": "/api/users/{id}",
+            "location": "internal/extractors/goextractor/routes_test.go:22"
+          },
+          {
+            "surface": "http",
+            "route": "/health",
+            "location": "internal/extractors/goextractor/routes_test.go:164"
+          },
+          {
+            "surface": "http",
+            "route": "/health",
+            "location": "internal/extractors/goextractor/routes_test.go:230"
+          }
+        ],
+        "covering_tests": [],
+        "coverage": {},
+        "change_partners": [],
+        "total": 0
+      },
+      "change": "أثبت هذا الادعاء أو انقضه قبل أي تغيير: Evidence that the shared order is coincidental rather than one orchestration copied.",
+      "options": [
+        {
+          "option": "تشغيل مجسّ يحسم الادعاء",
+          "cost": "منخفضة",
+          "verdict": "مختار: لا تغيير قبل الحسم"
+        },
+        {
+          "option": "قبول الادعاء بلا إثبات",
+          "cost": "صفر الآن",
+          "verdict": "مرفوض: يخالف قاعدة الإسناد"
+        },
+        {
+          "option": "تعريف واحد في الموضع المرجعي + إحالات + اختبار تكافؤ",
+          "cost": "متوسطة",
+          "verdict": "مختار افتراضيًا حين تكون المواضع قاعدة واحدة فعلًا"
+        },
+        {
+          "option": "إبقاء النسخ مع اختبار تكافؤ يربطها",
+          "cost": "منخفضة",
+          "verdict": "أنسب عبر حدود اللغات أو الخدمات حين يتعذّر الاستيراد"
+        },
+        {
+          "option": "إبقاء موثّق بعد إثبات اختلاف السببين",
+          "cost": "صفر",
+          "verdict": "نتيجة صحيحة لا فشل: التشابه اليوم لا يعني قاعدة واحدة غدًا"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "صفر الآن",
+          "cost_en": "zero now",
+          "verdict": "يبقى المعنى الواحد مكتوبًا في مواضع متعددة، وأول تعديل يجعلها تختلف"
+        }
+      ],
+      "rollback": "لا تغيير في الكود خلال التحقيق.",
+      "acceptance": [
+        {
+          "command": "human review / مراجعة هندسية",
+          "expect": "CLM-004: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. Evidence that the shared order is coincidental rather than one orchestration copied."
+        }
+      ],
+      "verify_command": [],
+      "effort": "unknown",
+      "effort_confidence": "Not measured / لم يُقَس",
+      "invariants": [
+        {
+          "invariant": "Evidence that the shared order is coincidental rather than one orchestration copied.",
+          "source": "falsifier",
+          "must_hold_after": false,
+          "note": "the observation that would show this claim is wrong; after a repair it should hold"
+        }
+      ],
+      "harm": {
+        "business": {
+          "value": "unknown",
+          "basis": "not established: no requirement or incident evidences a business cost"
+        },
+        "reach": {
+          "value": 0,
+          "basis": "measured from the dependency graph",
+          "direct_dependents": 0,
+          "flows": 0
+        },
+        "effort": {
+          "value": "كبير",
+          "basis": "منخفضة: لم يُقَس عمل مشابه بعد"
+        }
+      },
+      "finding_ids": [
+        "CLM-004"
+      ]
+    },
+    {
+      "id": "TASK-003",
+      "claim_id": "CLM-001",
+      "title": "packaging/pypi/build_wheel.py: ينادي خدمة خارجية بلا مهلة أو إعادة محاولة",
+      "render": {
+        "key": "load_blocker",
+        "params": {
+          "where": "packaging/pypi/build_wheel.py",
+          "kind": "unprotected_dependency",
+          "statement": "ينادي خدمة خارجية بلا مهلة أو إعادة محاولة"
+        }
+      },
+      "kind": "investigate",
+      "contract_version": 1,
+      "decision": {
+        "contract_version": 1,
+        "observation_uid": "OBS-757d191080a94e0af754533e",
+        "kind": "investigate",
+        "reason": "Establish the requirement and consequence before proposing a code change.",
+        "readiness": "needs_review",
+        "blockers": [],
+        "checks": [],
+        "allowed_outcomes": [
+          "repair",
+          "retain",
+          "blocked_missing_requirement"
+        ]
+      },
+      "prerequisites": [],
+      "before": null,
+      "after": null,
+      "status": "planned",
+      "priority": 0.0784,
+      "pattern": "load_blocker",
+      "paths": [
+        "packaging/pypi/build_wheel.py"
+      ],
+      "origin": "source",
+      "impact": "بطء الخدمة الأخرى يصير توقفًا عندك؛ الطلبات تتراكم حتى ينفد التجمّع.",
+      "impact_render": {
+        "key": "load_blocker",
+        "params": {
+          "where": "packaging/pypi/build_wheel.py",
+          "kind": "unprotected_dependency",
+          "statement": "ينادي خدمة خارجية بلا مهلة أو إعادة محاولة"
+        }
+      },
+      "evidence": {
+        "fact_ids": [
+          "FACT-d5a64c417a3710df"
+        ],
+        "evidence_ids": [],
+        "probe_ids": [
+          "PRB-003"
+        ],
+        "falsifier": "A timeout, retry policy or circuit breaker on the call, or evidence the call is local."
+      },
+      "blast_radius": {
+        "direct_dependents": [],
+        "transitive_dependents": [],
+        "flows": [
+          {
+            "flow_id": "FLOW-005",
+            "surface": "cli",
+            "route": "build_wheel",
+            "entry": "packaging/pypi/build_wheel.py:176"
+          }
+        ],
+        "entry_points": [
+          {
+            "surface": "cli",
+            "route": "build_wheel",
+            "location": "packaging/pypi/build_wheel.py:176"
+          },
+          {
+            "surface": "cli",
+            "route": "build_wheel",
+            "location": "packaging/pypi/build_wheel.py:254"
+          }
+        ],
+        "covering_tests": [],
+        "coverage": {},
+        "change_partners": [],
+        "total": 0
+      },
+      "change": "أثبت هذا الادعاء أو انقضه قبل أي تغيير: A timeout, retry policy or circuit breaker on the call, or evidence the call is local.",
+      "options": [
+        {
+          "option": "تشغيل مجسّ يحسم الادعاء",
+          "cost": "منخفضة",
+          "verdict": "مختار: لا تغيير قبل الحسم"
+        },
+        {
+          "option": "قبول الادعاء بلا إثبات",
+          "cost": "صفر الآن",
+          "verdict": "مرفوض: يخالف قاعدة الإسناد"
+        },
+        {
+          "option": "جلب مجمَّع بدل استعلام لكل عنصر",
+          "cost": "منخفضة",
+          "verdict": "مختار افتراضيًا حين يكون العائق استعلامًا داخل حلقة"
+        },
+        {
+          "option": "حد أعلى وترقيم صفحات على الرد",
+          "cost": "منخفضة",
+          "verdict": "مختار حين ينمو الرد مع حجم الجدول"
+        },
+        {
+          "option": "نقل الحالة إلى مخزن مشترك",
+          "cost": "متوسطة",
+          "verdict": "لازم قبل تشغيل أكثر من نسخة"
+        },
+        {
+          "option": "مهلة وإعادة محاولة وقاطع دائرة على النداء الخارج",
+          "cost": "منخفضة",
+          "verdict": "مختار حين يكون العائق تبعية غير محمية"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "صفر الآن",
+          "cost_en": "zero now",
+          "verdict": "تبقى الكلفة تنمو مع الحركة أو البيانات، فتظهر المشكلة عند حمل لا يمكن اختباره بعد وقوعه"
+        }
+      ],
+      "rollback": "لا تغيير في الكود خلال التحقيق.",
+      "acceptance": [
+        {
+          "command": "human review / مراجعة هندسية",
+          "expect": "CLM-001: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. A timeout, retry policy or circuit breaker on the call, or evidence the call is local."
+        }
+      ],
+      "verify_command": [],
+      "effort": "unknown",
+      "effort_confidence": "Not measured / لم يُقَس",
+      "invariants": [
+        {
+          "invariant": "A timeout, retry policy or circuit breaker on the call, or evidence the call is local.",
+          "source": "falsifier",
+          "must_hold_after": false,
+          "note": "the observation that would show this claim is wrong; after a repair it should hold"
+        }
+      ],
+      "harm": {
+        "business": {
+          "value": "unknown",
+          "basis": "not established: no requirement or incident evidences a business cost"
+        },
+        "reach": {
+          "value": 0,
+          "basis": "measured from the dependency graph",
+          "direct_dependents": 0,
+          "flows": 1
+        },
+        "effort": {
+          "value": "متوسط",
+          "basis": "متوسطة: مبني على حجم الكود ونطاق الأثر"
+        }
+      },
+      "finding_ids": [
+        "CLM-001"
+      ]
+    },
+    {
+      "id": "TASK-004",
+      "claim_id": "CLM-002",
+      "title": "packaging/pypi/build_wheel.py: ينادي خدمة خارجية بلا مهلة أو إعادة محاولة",
+      "render": {
+        "key": "load_blocker",
+        "params": {
+          "where": "packaging/pypi/build_wheel.py",
+          "kind": "unprotected_dependency",
+          "statement": "ينادي خدمة خارجية بلا مهلة أو إعادة محاولة"
+        }
+      },
+      "kind": "investigate",
+      "contract_version": 1,
+      "decision": {
+        "contract_version": 1,
+        "observation_uid": "OBS-a9a48c1e1fded0a5e52f887d",
+        "kind": "investigate",
+        "reason": "Establish the requirement and consequence before proposing a code change.",
+        "readiness": "needs_review",
+        "blockers": [],
+        "checks": [],
+        "allowed_outcomes": [
+          "repair",
+          "retain",
+          "blocked_missing_requirement"
+        ]
+      },
+      "prerequisites": [],
+      "before": null,
+      "after": null,
+      "status": "planned",
+      "priority": 0.0784,
+      "pattern": "load_blocker",
+      "paths": [
+        "packaging/pypi/build_wheel.py"
+      ],
+      "origin": "source",
+      "impact": "بطء الخدمة الأخرى يصير توقفًا عندك؛ الطلبات تتراكم حتى ينفد التجمّع.",
+      "impact_render": {
+        "key": "load_blocker",
+        "params": {
+          "where": "packaging/pypi/build_wheel.py",
+          "kind": "unprotected_dependency",
+          "statement": "ينادي خدمة خارجية بلا مهلة أو إعادة محاولة"
+        }
+      },
+      "evidence": {
+        "fact_ids": [
+          "FACT-d5a64c417a3710df"
+        ],
+        "evidence_ids": [],
+        "probe_ids": [
+          "PRB-004"
+        ],
+        "falsifier": "A timeout, retry policy or circuit breaker on the call, or evidence the call is local."
+      },
+      "blast_radius": {
+        "direct_dependents": [],
+        "transitive_dependents": [],
+        "flows": [
+          {
+            "flow_id": "FLOW-005",
+            "surface": "cli",
+            "route": "build_wheel",
+            "entry": "packaging/pypi/build_wheel.py:176"
+          }
+        ],
+        "entry_points": [
+          {
+            "surface": "cli",
+            "route": "build_wheel",
+            "location": "packaging/pypi/build_wheel.py:176"
+          },
+          {
+            "surface": "cli",
+            "route": "build_wheel",
+            "location": "packaging/pypi/build_wheel.py:254"
+          }
+        ],
+        "covering_tests": [],
+        "coverage": {},
+        "change_partners": [],
+        "total": 0
+      },
+      "change": "أثبت هذا الادعاء أو انقضه قبل أي تغيير: A timeout, retry policy or circuit breaker on the call, or evidence the call is local.",
+      "options": [
+        {
+          "option": "تشغيل مجسّ يحسم الادعاء",
+          "cost": "منخفضة",
+          "verdict": "مختار: لا تغيير قبل الحسم"
+        },
+        {
+          "option": "قبول الادعاء بلا إثبات",
+          "cost": "صفر الآن",
+          "verdict": "مرفوض: يخالف قاعدة الإسناد"
+        },
+        {
+          "option": "جلب مجمَّع بدل استعلام لكل عنصر",
+          "cost": "منخفضة",
+          "verdict": "مختار افتراضيًا حين يكون العائق استعلامًا داخل حلقة"
+        },
+        {
+          "option": "حد أعلى وترقيم صفحات على الرد",
+          "cost": "منخفضة",
+          "verdict": "مختار حين ينمو الرد مع حجم الجدول"
+        },
+        {
+          "option": "نقل الحالة إلى مخزن مشترك",
+          "cost": "متوسطة",
+          "verdict": "لازم قبل تشغيل أكثر من نسخة"
+        },
+        {
+          "option": "مهلة وإعادة محاولة وقاطع دائرة على النداء الخارج",
+          "cost": "منخفضة",
+          "verdict": "مختار حين يكون العائق تبعية غير محمية"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "صفر الآن",
+          "cost_en": "zero now",
+          "verdict": "تبقى الكلفة تنمو مع الحركة أو البيانات، فتظهر المشكلة عند حمل لا يمكن اختباره بعد وقوعه"
+        }
+      ],
+      "rollback": "لا تغيير في الكود خلال التحقيق.",
+      "acceptance": [
+        {
+          "command": "human review / مراجعة هندسية",
+          "expect": "CLM-002: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. A timeout, retry policy or circuit breaker on the call, or evidence the call is local."
+        }
+      ],
+      "verify_command": [],
+      "effort": "unknown",
+      "effort_confidence": "Not measured / لم يُقَس",
+      "invariants": [
+        {
+          "invariant": "A timeout, retry policy or circuit breaker on the call, or evidence the call is local.",
+          "source": "falsifier",
+          "must_hold_after": false,
+          "note": "the observation that would show this claim is wrong; after a repair it should hold"
+        }
+      ],
+      "harm": {
+        "business": {
+          "value": "unknown",
+          "basis": "not established: no requirement or incident evidences a business cost"
+        },
+        "reach": {
+          "value": 0,
+          "basis": "measured from the dependency graph",
+          "direct_dependents": 0,
+          "flows": 1
+        },
+        "effort": {
+          "value": "متوسط",
+          "basis": "متوسطة: مبني على حجم الكود ونطاق الأثر"
+        }
+      },
+      "finding_ids": [
+        "CLM-002"
+      ]
+    },
+    {
+      "id": "TASK-005",
+      "claim_id": "CLM-006",
+      "title": "328 functions perform the same ordered sequence of calls (internal/clientspec/clientspec.go:None, internal/conformance/c",
+      "render": {
+        "key": "sequence_duplicate",
+        "params": {
+          "count": 328,
+          "where": "internal/clientspec/clientspec.go:None, internal/conformance/conformance.go:None, internal/diff/constraintcredit_test.go:None, internal/diff/diff.go:None"
+        }
+      },
+      "kind": "investigate",
+      "contract_version": 1,
+      "decision": {
+        "contract_version": 1,
+        "observation_uid": "OBS-820c67eeabd4df90f9dc9f98",
+        "kind": "investigate",
+        "reason": "Establish the requirement and consequence before proposing a code change.",
+        "readiness": "needs_review",
+        "blockers": [],
+        "checks": [],
+        "allowed_outcomes": [
+          "repair",
+          "retain",
+          "blocked_missing_requirement"
+        ]
+      },
+      "prerequisites": [],
+      "before": null,
+      "after": null,
+      "status": "planned",
+      "priority": 0.0458,
+      "pattern": "canonicalize",
+      "paths": [
+        "internal/clientspec/clientspec.go",
+        "internal/conformance/conformance.go",
+        "internal/diff/constraintcredit_test.go",
+        "internal/diff/diff.go",
+        "internal/diff/render.go",
+        "internal/docslint/inventory.go",
+        "internal/engine/cache_test.go",
+        "internal/engine/conceptedgematrix_test.go",
+        "internal/engine/coverage_invariant_test.go",
+        "internal/engine/custom_client_example_test.go",
+        "internal/engine/drift.go",
+        "internal/engine/engine.go",
+        "internal/engine/filecensus.go",
+        "internal/engine/global_receipt.go",
+        "internal/engine/golden_test.go",
+        "internal/engine/receipt.go",
+        "internal/eslintscaffold/scaffold.go",
+        "internal/explainers/common/common.go",
+        "internal/explainers/constraints/constraints.go",
+        "internal/explainers/constraints/contract.go",
+        "internal/explainers/constraints/cut.go",
+        "internal/explainers/constraints/explainfile.go",
+        "internal/explainers/constraints/graphlaws.go",
+        "internal/explainers/constraints/grounding.go",
+        "internal/explainers/constraints/independentform.go",
+        "internal/explainers/constraints/membership.go",
+        "internal/explainers/constraints/predicate.go",
+        "internal/explainers/constraints/radius_test.go",
+        "internal/explainers/coverage/coverage.go",
+        "internal/explainers/crossrepo/crossrepo.go",
+        "internal/explainers/cycles/cycles.go",
+        "internal/explainers/deadmethods/deadmethods.go",
+        "internal/explainers/deadmethods/deadmethods_test.go",
+        "internal/explainers/depth/depth.go",
+        "internal/explainers/domain/domain.go",
+        "internal/explainers/godclass/godclass.go",
+        "internal/explainers/hotspots/hotspots.go",
+        "internal/explainers/importclosure/importclosure.go",
+        "internal/explainers/intentcheck/dependencies.go",
+        "internal/explainers/intentcheck/intentcheck.go",
+        "internal/explainers/layers/contract.go",
+        "internal/explainers/layers/declared.go",
+        "internal/explainers/layers/layers.go",
+        "internal/explainers/messagingcoverage/messagingcoverage.go",
+        "internal/explainers/queryloops/queryloops.go",
+        "internal/explainers/unusedroutes/unusedroutes.go",
+        "internal/explainers/vendoredcandidates/vendoredcandidates.go",
+        "internal/extractors/ansibleextractor/ansible.go",
+        "internal/extractors/cppextractor/complexity_test.go",
+        "internal/extractors/cppextractor/cpp.go",
+        "internal/extractors/dartextractor/bodywalk.go",
+        "internal/extractors/dartextractor/dart.go",
+        "internal/extractors/dartextractor/dart_test.go",
+        "internal/extractors/dartextractor/resolve.go",
+        "internal/extractors/dartextractor/testrefs.go",
+        "internal/extractors/dotnetextractor/aspnet_test.go",
+        "internal/extractors/dotnetextractor/conventional_test.go",
+        "internal/extractors/dotnetextractor/csharp.go",
+        "internal/extractors/dotnetextractor/di_test.go",
+        "internal/extractors/dotnetextractor/efcore.go",
+        "internal/extractors/dotnetextractor/efcore_test.go",
+        "internal/extractors/dotnetextractor/fsharp.go",
+        "internal/extractors/dotnetextractor/httpclient.go",
+        "internal/extractors/dotnetextractor/httpclient_test.go",
+        "internal/extractors/dotnetextractor/minimalapi.go",
+        "internal/extractors/dotnetextractor/msbuild.go",
+        "internal/extractors/dotnetextractor/razor.go",
+        "internal/extractors/dotnetextractor/resolve.go",
+        "internal/extractors/dotnetextractor/testrefs.go",
+        "internal/extractors/extcoverage/extcoverage.go",
+        "internal/extractors/goextractor/complexity_test.go",
+        "internal/extractors/goextractor/go.go",
+        "internal/extractors/goextractor/go_test.go",
+        "internal/extractors/goextractor/kafka_test.go",
+        "internal/extractors/goextractor/routeprefix.go",
+        "internal/extractors/hclextractor/hcl.go",
+        "internal/extractors/javaextractor/complexity_test.go",
+        "internal/extractors/javaextractor/httpclient_test.go",
+        "internal/extractors/kotlinextractor/complexity_test.go",
+        "internal/extractors/manifestextractor/manifest.go",
+        "internal/extractors/openapiextractor/openapi.go",
+        "internal/extractors/phpextractor/hooks_test.go",
+        "internal/extractors/phpextractor/php_test.go",
+        "internal/extractors/phpextractor/resolve.go",
+        "internal/extractors/phpextractor/resolve_test.go",
+        "internal/extractors/phpextractor/symfony_config.go",
+        "internal/extractors/pythonextractor/complexity_test.go",
+        "internal/extractors/pythonextractor/grpcpy_test.go",
+        "internal/extractors/pythonextractor/python.go",
+        "internal/extractors/pythonextractor/python_test.go",
+        "internal/extractors/pythonextractor/resolve.go",
+        "internal/extractors/pythonextractor/resolve_test.go",
+        "internal/extractors/pythonextractor/routerprefix.go",
+        "internal/extractors/rubyextractor/complexity_test.go",
+        "internal/extractors/rubyextractor/grape.go",
+        "internal/extractors/rubyextractor/grape_test.go",
+        "internal/extractors/rubyextractor/renders.go",
+        "internal/extractors/rubyextractor/resolve.go",
+        "internal/extractors/rubyextractor/resolve_test.go",
+        "internal/extractors/rubyextractor/routefiles.go",
+        "internal/extractors/rubyextractor/routefiles_test.go",
+        "internal/extractors/rubyextractor/routehandler_test.go",
+        "internal/extractors/rubyextractor/routes.go",
+        "internal/extractors/rubyextractor/ruby_ast.go",
+        "internal/extractors/rubyextractor/ruby_test.go",
+        "internal/extractors/rubyextractor/stimulus.go",
+        "internal/extractors/rubyextractor/structuresql.go",
+        "internal/extractors/rubyextractor/turbo.go",
+        "internal/extractors/rustextractor/axum.go",
+        "internal/extractors/rustextractor/axum_test.go",
+        "internal/extractors/rustextractor/resolve.go",
+        "internal/extractors/rustextractor/rust_ast.go",
+        "internal/extractors/rustextractor/utoipa_test.go",
+        "internal/extractors/scalaextractor/resolve_test.go",
+        "internal/extractors/scalaextractor/scala.go",
+        "internal/extractors/scalaextractor/scala_ast.go",
+        "internal/extractors/scalaextractor/testrefs.go",
+        "internal/extractors/scalaextractor/testrefs_test.go",
+        "internal/extractors/swiftextractor/complexity_test.go",
+        "internal/extractors/swiftextractor/swift_xcodegen.go",
+        "internal/extractors/swiftextractor/swift_xcodegen_test.go",
+        "internal/extractors/tsextractor/angular.go",
+        "internal/extractors/tsextractor/angular_probe_test.go",
+        "internal/extractors/tsextractor/angular_test.go",
+        "internal/extractors/tsextractor/angularroutes.go",
+        "internal/extractors/tsextractor/angulartemplates.go",
+        "internal/extractors/tsextractor/complexity_test.go",
+        "internal/extractors/tsextractor/configuredclient.go",
+        "internal/extractors/tsextractor/configuredclient_test.go",
+        "internal/extractors/tsextractor/ember.go",
+        "internal/extractors/tsextractor/reactnav.go",
+        "internal/extractors/tsextractor/routermount.go",
+        "internal/extractors/tsextractor/stimulus_test.go",
+        "internal/extractors/tsextractor/svelte.go",
+        "internal/extractors/tsextractor/ts.go",
+        "internal/extractors/tsextractor/vue.go",
+        "internal/facts/accessors.go",
+        "internal/facts/conditional.go",
+        "internal/facts/endpoint.go",
+        "internal/facts/freeze.go",
+        "internal/facts/graph.go",
+        "internal/facts/store.go",
+        "internal/history/share.go",
+        "internal/history/write.go",
+        "internal/intent/constraints.go",
+        "internal/intent/graphlaws.go",
+        "internal/intent/intent.go",
+        "internal/intent/ownership.go",
+        "internal/intent/recipes.go",
+        "internal/intent/ruleforms.go",
+        "internal/intent/where.go",
+        "internal/linkers/binders/clientseam/clientseam.go",
+        "internal/linkers/binders/emberresolver/emberresolver.go",
+        "internal/linkers/binders/frameworkroots/frameworkroots.go",
+        "internal/linkers/binders/messagingcontract/messagingcontract.go",
+        "internal/linkers/binders/mixinowner/mixinowner.go",
+        "internal/linkers/binders/moduleedges/moduleedges.go",
+        "internal/linkers/binders/moduleedges/moduleedges_test.go",
+        "internal/linkers/crossrepo/contract_test.go",
+        "internal/linkers/crossrepo/evidence.go",
+        "internal/linkers/crossrepo/input.go",
+        "internal/linkers/crossrepo/signals/http/http.go",
+        "internal/linkers/crossrepo/signals/imports/imports.go",
+        "internal/linkers/crossrepo/signals/sharedcode/sharedcode.go",
+        "internal/linkers/vocab/vocab.go",
+        "internal/metrics/metrics.go",
+        "internal/metrics/metrics_test.go",
+        "internal/mining/edges.go",
+        "internal/mining/mining.go",
+        "internal/mining/props.go",
+        "internal/mining/tautology.go",
+        "internal/orphans/orphans.go",
+        "internal/perf/perf.go",
+        "internal/providers/agreement.go",
+        "internal/providers/builtin.go",
+        "internal/providers/overlap.go",
+        "internal/providers/providers.go",
+        "internal/providers/rbs.go",
+        "internal/providers/rubydex/library.go",
+        "internal/providers/runtime.go",
+        "internal/renderers/llmcontext/llm.go",
+        "internal/server/e2e_test.go",
+        "internal/server/scopedquery.go",
+        "internal/server/server.go",
+        "pkg/check/authorship.go",
+        "pkg/check/census.go",
+        "pkg/check/intersection.go",
+        "pkg/check/render.go",
+        "pkg/check/reviewers.go",
+        "pkg/check/sarif.go",
+        "pkg/command/constraints.go",
+        "pkg/command/endpoint.go",
+        "pkg/command/show.go",
+        "pkg/coverage/clients.go",
+        "pkg/coverage/coverage.go",
+        "pkg/dashboard/dashboard.go",
+        "pkg/dashboard/dashboard_test.go",
+        "pkg/dashboard/edgediagram.go",
+        "pkg/dashboard/modulegraph.go",
+        "pkg/dashboard/packagemetrics.go",
+        "pkg/explain/explain.go",
+        "pkg/explain/render.go",
+        "pkg/history/graph.go",
+        "pkg/history/share.go",
+        "pkg/history/topology.go",
+        "pkg/history/union.go",
+        "pkg/install/hooks.go",
+        "pkg/install/opencode.go",
+        "pkg/plan/plan.go",
+        "pkg/status/instance.go",
+        "pkg/status/status.go",
+        "pkg/status/value.go"
+      ],
+      "origin": "test_and_source",
+      "impact": "The orchestration is maintained in several places at once.",
+      "impact_render": {
+        "key": "sequence_duplicate",
+        "params": {
+          "count": 328,
+          "where": "internal/clientspec/clientspec.go:None, internal/conformance/conformance.go:None, internal/diff/constraintcredit_test.go:None, internal/diff/diff.go:None"
+        }
+      },
+      "evidence": {
+        "fact_ids": [
+          "FACT-7e54d5a9d107f7c5"
+        ],
+        "evidence_ids": [],
+        "probe_ids": [
+          "PRB-005"
+        ],
+        "falsifier": "Evidence that the shared order is coincidental rather than one orchestration copied."
+      },
+      "blast_radius": {
+        "direct_dependents": [
+          "internal/engine/engine_test.go",
+          "internal/extractors/mdintent/mdintent.go",
+          "internal/extractors/rubyextractor/ruby.go",
+          "internal/linkers/binders/stimulusresolver/stimulusresolver.go",
+          "internal/linkers/crossrepo/crossrepo_test.go",
+          "internal/linkers/crossrepo/ownscopes_test.go",
+          "pkg/bootstrap/bootstrap.go"
+        ],
+        "transitive_dependents": [],
+        "flows": [],
+        "entry_points": [
+          {
+            "surface": "http",
+            "route": "/",
+            "location": "pkg/dashboard/dashboard.go:140"
+          }
+        ],
+        "covering_tests": [
+          "internal/engine/engine_test.go",
+          "internal/linkers/crossrepo/crossrepo_test.go",
+          "internal/linkers/crossrepo/ownscopes_test.go"
+        ],
+        "coverage": {},
+        "change_partners": [],
+        "total": 7
+      },
+      "change": "أثبت هذا الادعاء أو انقضه قبل أي تغيير: Evidence that the shared order is coincidental rather than one orchestration copied.",
+      "options": [
+        {
+          "option": "تشغيل مجسّ يحسم الادعاء",
+          "cost": "منخفضة",
+          "verdict": "مختار: لا تغيير قبل الحسم"
+        },
+        {
+          "option": "قبول الادعاء بلا إثبات",
+          "cost": "صفر الآن",
+          "verdict": "مرفوض: يخالف قاعدة الإسناد"
+        },
+        {
+          "option": "تعريف واحد في الموضع المرجعي + إحالات + اختبار تكافؤ",
+          "cost": "متوسطة",
+          "verdict": "مختار افتراضيًا حين تكون المواضع قاعدة واحدة فعلًا"
+        },
+        {
+          "option": "إبقاء النسخ مع اختبار تكافؤ يربطها",
+          "cost": "منخفضة",
+          "verdict": "أنسب عبر حدود اللغات أو الخدمات حين يتعذّر الاستيراد"
+        },
+        {
+          "option": "إبقاء موثّق بعد إثبات اختلاف السببين",
+          "cost": "صفر",
+          "verdict": "نتيجة صحيحة لا فشل: التشابه اليوم لا يعني قاعدة واحدة غدًا"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "صفر الآن",
+          "cost_en": "zero now",
+          "verdict": "يبقى المعنى الواحد مكتوبًا في مواضع متعددة، وأول تعديل يجعلها تختلف"
+        }
+      ],
+      "rollback": "لا تغيير في الكود خلال التحقيق.",
+      "acceptance": [
+        {
+          "command": "human review / مراجعة هندسية",
+          "expect": "CLM-006: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. Evidence that the shared order is coincidental rather than one orchestration copied."
+        }
+      ],
+      "verify_command": [],
+      "effort": "unknown",
+      "effort_confidence": "Not measured / لم يُقَس",
+      "invariants": [
+        {
+          "invariant": "Evidence that the shared order is coincidental rather than one orchestration copied.",
+          "source": "falsifier",
+          "must_hold_after": false,
+          "note": "the observation that would show this claim is wrong; after a repair it should hold"
+        }
+      ],
+      "harm": {
+        "business": {
+          "value": "unknown",
+          "basis": "not established: no requirement or incident evidences a business cost"
+        },
+        "reach": {
+          "value": 7,
+          "basis": "measured from the dependency graph",
+          "direct_dependents": 7,
+          "flows": 0
+        },
+        "effort": {
+          "value": "كبير",
+          "basis": "منخفضة: لم يُقَس عمل مشابه بعد"
+        }
+      },
+      "finding_ids": [
+        "CLM-006"
+      ]
+    },
+    {
+      "id": "TASK-006",
+      "claim_id": "CLM-003",
+      "title": "149 functions perform the same ordered sequence of calls (cmd/enola/main_test.go:None, internal/config/clients_test.go:N",
+      "render": {
+        "key": "sequence_duplicate",
+        "params": {
+          "count": 149,
+          "where": "cmd/enola/main_test.go:None, internal/config/clients_test.go:None, internal/docslint/links_test.go:None, internal/engine/coverage_summary_test.go:None"
+        }
+      },
+      "kind": "investigate",
+      "contract_version": 1,
+      "decision": {
+        "contract_version": 1,
+        "observation_uid": "OBS-820c67eeabd4df90f9dc9f98",
+        "kind": "investigate",
+        "reason": "Establish the requirement and consequence before proposing a code change.",
+        "readiness": "needs_review",
+        "blockers": [],
+        "checks": [],
+        "allowed_outcomes": [
+          "repair",
+          "retain",
+          "blocked_missing_requirement"
+        ]
+      },
+      "prerequisites": [],
+      "before": null,
+      "after": null,
+      "status": "planned",
+      "priority": 0.0,
+      "pattern": "canonicalize",
+      "paths": [
+        "cmd/enola/main_test.go",
+        "internal/config/clients_test.go",
+        "internal/docslint/links_test.go",
+        "internal/engine/coverage_summary_test.go",
+        "internal/engine/filecensus_test.go",
+        "internal/engine/global_receipt_test.go",
+        "internal/explainers/common/cap_test.go",
+        "internal/explainers/constraints/constraints_test.go",
+        "internal/explainers/coverage/coverage_test.go",
+        "internal/explainers/godclass/godclass_test.go",
+        "internal/extractors/cppextractor/c_test.go",
+        "internal/extractors/cppextractor/cpp_test.go",
+        "internal/extractors/dartextractor/dart_test.go",
+        "internal/extractors/dartextractor/metrics_test.go",
+        "internal/extractors/dotnetextractor/conventional_test.go",
+        "internal/extractors/dotnetextractor/csharp_test.go",
+        "internal/extractors/dotnetextractor/minimalapi_test.go",
+        "internal/extractors/dotnetextractor/msbuild_test.go",
+        "internal/extractors/dotnetextractor/xaml_test.go",
+        "internal/extractors/goextractor/go_test.go",
+        "internal/extractors/goextractor/grpcclient_test.go",
+        "internal/extractors/goextractor/httpclient_test.go",
+        "internal/extractors/grpcextractor/grpc_test.go",
+        "internal/extractors/javaextractor/httpclient_test.go",
+        "internal/extractors/javaextractor/java_ast_test.go",
+        "internal/extractors/javaextractor/spring_test.go",
+        "internal/extractors/kotlinextractor/retrofit_test.go",
+        "internal/extractors/kotlinextractor/servletroute_test.go",
+        "internal/extractors/openapiextractor/openapi_test.go",
+        "internal/extractors/phpextractor/complexity_test.go",
+        "internal/extractors/phpextractor/hooks_test.go",
+        "internal/extractors/phpextractor/httpclient_test.go",
+        "internal/extractors/phpextractor/php_ast_test.go",
+        "internal/extractors/phpextractor/php_test.go",
+        "internal/extractors/pythonextractor/complexity_test.go",
+        "internal/extractors/pythonextractor/python_ast_test.go",
+        "internal/extractors/pythonextractor/python_test.go",
+        "internal/extractors/rubyextractor/httpclient_test.go",
+        "internal/extractors/rubyextractor/renders_test.go",
+        "internal/extractors/rubyextractor/routefiles_test.go",
+        "internal/extractors/rubyextractor/ruby_test.go",
+        "internal/extractors/rubyextractor/stimulus_test.go",
+        "internal/extractors/rubyextractor/storage_test.go",
+        "internal/extractors/rubyextractor/turbo_test.go",
+        "internal/extractors/rustextractor/axum_test.go",
+        "internal/extractors/rustextractor/utoipa_test.go",
+        "internal/extractors/scalaextractor/complexity_test.go",
+        "internal/extractors/scalaextractor/resolve_test.go",
+        "internal/extractors/scalaextractor/scala_ast_test.go",
+        "internal/extractors/scalaextractor/testrefs_test.go",
+        "internal/extractors/swiftextractor/httpclient_test.go",
+        "internal/extractors/swiftextractor/swift_test.go",
+        "internal/extractors/swiftextractor/swift_xcodegen_test.go",
+        "internal/extractors/tsextractor/ember_test.go",
+        "internal/extractors/tsextractor/grpcclient_test.go",
+        "internal/extractors/tsextractor/httpclient_test.go",
+        "internal/extractors/tsextractor/serverroutes_test.go",
+        "internal/extractors/tsextractor/superclass_test.go",
+        "internal/extractors/tsextractor/svelte_test.go",
+        "internal/extractors/tsextractor/ts_test.go",
+        "internal/extractors/tsextractor/vue_test.go",
+        "internal/facts/graph_equivalence_test.go",
+        "internal/facts/graph_test.go",
+        "internal/facts/store_test.go",
+        "internal/facts/storepath_test.go",
+        "internal/intent/recipes_builtin_test.go",
+        "internal/linkers/binders/unmatchedroutes/unmatchedroutes_test.go",
+        "internal/linkers/crossrepo/resolution_invariant_test.go",
+        "internal/metrics/adapter_test.go",
+        "internal/metrics/metrics_test.go",
+        "internal/mining/mining_test.go",
+        "internal/orphans/adapter_test.go",
+        "internal/orphans/orphans_test.go",
+        "internal/perf/adapter_test.go",
+        "internal/providers/agreement_test.go",
+        "internal/providers/providers.go",
+        "internal/providers/rbs_test.go",
+        "internal/providers/rubydex/provider_test.go",
+        "internal/providers/rubydex_test.go",
+        "internal/providers/runtime_test.go",
+        "internal/providers/zeitwerk_test.go",
+        "internal/server/e2e_test.go",
+        "internal/server/server_test.go",
+        "internal/upgrade/upgrade_test.go",
+        "pkg/check/authorship_test.go",
+        "pkg/check/intersection_test.go",
+        "pkg/dashboard/dashboard_test.go",
+        "pkg/dashboard/packagemetrics_test.go",
+        "pkg/explain/explain_test.go",
+        "pkg/install/install.go",
+        "pkg/install/install_test.go",
+        "pkg/plan/patch.go",
+        "pkg/status/persist_test.go",
+        "pkg/status/server_test.go",
+        "pkg/status/value_test.go"
+      ],
+      "origin": "test_and_source",
+      "impact": "The orchestration is maintained in several places at once.",
+      "impact_render": {
+        "key": "sequence_duplicate",
+        "params": {
+          "count": 149,
+          "where": "cmd/enola/main_test.go:None, internal/config/clients_test.go:None, internal/docslint/links_test.go:None, internal/engine/coverage_summary_test.go:None"
+        }
+      },
+      "evidence": {
+        "fact_ids": [
+          "FACT-94be405a6d87ef17"
+        ],
+        "evidence_ids": [],
+        "probe_ids": [
+          "PRB-006"
+        ],
+        "falsifier": "Evidence that the shared order is coincidental rather than one orchestration copied."
+      },
+      "blast_radius": {
+        "direct_dependents": [],
+        "transitive_dependents": [],
+        "flows": [],
+        "entry_points": [],
+        "covering_tests": [],
+        "coverage": {},
+        "change_partners": [],
+        "total": 0
+      },
+      "change": "أثبت هذا الادعاء أو انقضه قبل أي تغيير: Evidence that the shared order is coincidental rather than one orchestration copied.",
+      "options": [
+        {
+          "option": "تشغيل مجسّ يحسم الادعاء",
+          "cost": "منخفضة",
+          "verdict": "مختار: لا تغيير قبل الحسم"
+        },
+        {
+          "option": "قبول الادعاء بلا إثبات",
+          "cost": "صفر الآن",
+          "verdict": "مرفوض: يخالف قاعدة الإسناد"
+        },
+        {
+          "option": "تعريف واحد في الموضع المرجعي + إحالات + اختبار تكافؤ",
+          "cost": "متوسطة",
+          "verdict": "مختار افتراضيًا حين تكون المواضع قاعدة واحدة فعلًا"
+        },
+        {
+          "option": "إبقاء النسخ مع اختبار تكافؤ يربطها",
+          "cost": "منخفضة",
+          "verdict": "أنسب عبر حدود اللغات أو الخدمات حين يتعذّر الاستيراد"
+        },
+        {
+          "option": "إبقاء موثّق بعد إثبات اختلاف السببين",
+          "cost": "صفر",
+          "verdict": "نتيجة صحيحة لا فشل: التشابه اليوم لا يعني قاعدة واحدة غدًا"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "صفر الآن",
+          "cost_en": "zero now",
+          "verdict": "يبقى المعنى الواحد مكتوبًا في مواضع متعددة، وأول تعديل يجعلها تختلف"
+        }
+      ],
+      "rollback": "لا تغيير في الكود خلال التحقيق.",
+      "acceptance": [
+        {
+          "command": "human review / مراجعة هندسية",
+          "expect": "CLM-003: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. Evidence that the shared order is coincidental rather than one orchestration copied."
+        }
+      ],
+      "verify_command": [],
+      "effort": "unknown",
+      "effort_confidence": "Not measured / لم يُقَس",
+      "invariants": [
+        {
+          "invariant": "Evidence that the shared order is coincidental rather than one orchestration copied.",
+          "source": "falsifier",
+          "must_hold_after": false,
+          "note": "the observation that would show this claim is wrong; after a repair it should hold"
+        }
+      ],
+      "harm": {
+        "business": {
+          "value": "unknown",
+          "basis": "not established: no requirement or incident evidences a business cost"
+        },
+        "reach": {
+          "value": 0,
+          "basis": "measured from the dependency graph",
+          "direct_dependents": 0,
+          "flows": 0
+        },
+        "effort": {
+          "value": "كبير",
+          "basis": "منخفضة: لم يُقَس عمل مشابه بعد"
+        }
+      },
+      "finding_ids": [
+        "CLM-003"
+      ]
+    },
+    {
+      "id": "TASK-007",
+      "claim_id": "CLM-008",
+      "title": "handleCall in internal/extractors/rubyextractor/routes_ast.go carries 109 branches over 541 lines, in a file ranked 48 f",
+      "render": {
+        "key": "hotspot",
+        "params": {
+          "symbol": "handleCall",
+          "path": "internal/extractors/rubyextractor/routes_ast.go",
+          "branches": 109,
+          "lines": 541,
+          "rank": 48
+        }
+      },
+      "kind": "investigate",
+      "contract_version": 1,
+      "decision": {
+        "contract_version": 1,
+        "observation_uid": "OBS-58ed7300f7afb39fbb1c5bca",
+        "kind": "investigate",
+        "reason": "Establish the requirement and consequence before proposing a code change.",
+        "readiness": "needs_review",
+        "blockers": [],
+        "checks": [],
+        "allowed_outcomes": [
+          "repair",
+          "retain",
+          "blocked_missing_requirement"
+        ]
+      },
+      "prerequisites": [],
+      "before": null,
+      "after": null,
+      "status": "planned",
+      "priority": 0.0,
+      "pattern": "hotspot",
+      "paths": [
+        "internal/extractors/rubyextractor/routes_ast.go"
+      ],
+      "origin": "source",
+      "impact": "Every change to this path passes through one dense function; it is the most concentrated maintenance risk in the module. It is among the most branching functions in the project.",
+      "impact_render": {
+        "key": "hotspot",
+        "params": {
+          "symbol": "handleCall",
+          "path": "internal/extractors/rubyextractor/routes_ast.go",
+          "branches": 109,
+          "lines": 541,
+          "rank": 48
+        }
+      },
+      "evidence": {
+        "fact_ids": [
+          "FACT-e8bc1411229b1465"
+        ],
+        "evidence_ids": [],
+        "probe_ids": [
+          "PRB-008"
+        ],
+        "falsifier": "A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract."
+      },
+      "blast_radius": {
+        "direct_dependents": [],
+        "transitive_dependents": [],
+        "flows": [],
+        "entry_points": [],
+        "covering_tests": [],
+        "coverage": {},
+        "change_partners": [],
+        "total": 0
+      },
+      "change": "أثبت هذا الادعاء أو انقضه قبل أي تغيير: A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract.",
+      "options": [
+        {
+          "option": "تشغيل مجسّ يحسم الادعاء",
+          "cost": "منخفضة",
+          "verdict": "مختار: لا تغيير قبل الحسم"
+        },
+        {
+          "option": "قبول الادعاء بلا إثبات",
+          "cost": "صفر الآن",
+          "verdict": "مرفوض: يخالف قاعدة الإسناد"
+        },
+        {
+          "option": "استخراج المراحل إلى دوال بعقود صريحة",
+          "cost": "متوسطة",
+          "verdict": "مختار افتراضيًا: يخفض التفرّع ويجعل كل مرحلة قابلة للاختبار وحدها"
+        },
+        {
+          "option": "جدول قرارات أو سجل قابل للتوسعة بدل سلسلة الشروط",
+          "cost": "متوسطة",
+          "verdict": "أنسب حين تكون الفروع متجانسة"
+        },
+        {
+          "option": "رفع التغطية على الفروع غير المنفَّذة أولًا ثم إعادة الهيكلة",
+          "cost": "منخفضة",
+          "verdict": "مقدمة ضرورية إن كانت التغطية منخفضة"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "صفر الآن",
+          "cost_en": "zero now",
+          "verdict": "يبقى كل تغيير في هذا المسار مارًّا بدالة واحدة كثيفة، وتزداد كلفتها مع كل إضافة"
+        }
+      ],
+      "rollback": "لا تغيير في الكود خلال التحقيق.",
+      "acceptance": [
+        {
+          "command": "human review / مراجعة هندسية",
+          "expect": "CLM-008: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract."
+        }
+      ],
+      "verify_command": [],
+      "effort": "unknown",
+      "effort_confidence": "Not measured / لم يُقَس",
+      "invariants": [
+        {
+          "invariant": "A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract.",
+          "source": "falsifier",
+          "must_hold_after": false,
+          "note": "the observation that would show this claim is wrong; after a repair it should hold"
+        }
+      ],
+      "harm": {
+        "business": {
+          "value": "unknown",
+          "basis": "not established: no requirement or incident evidences a business cost"
+        },
+        "reach": {
+          "value": 0,
+          "basis": "measured from the dependency graph",
+          "direct_dependents": 0,
+          "flows": 0
+        },
+        "effort": {
+          "value": "كبير",
+          "basis": "منخفضة: لم يُقَس عمل مشابه بعد"
+        }
+      },
+      "finding_ids": [
+        "CLM-008"
+      ]
+    },
+    {
+      "id": "TASK-008",
+      "claim_id": "CLM-009",
+      "title": "registerTools in internal/server/server.go carries 189 branches over 1117 lines, in a file ranked 12 for attention",
+      "render": {
+        "key": "hotspot",
+        "params": {
+          "symbol": "registerTools",
+          "path": "internal/server/server.go",
+          "branches": 189,
+          "lines": 1117,
+          "rank": 12
+        }
+      },
+      "kind": "investigate",
+      "contract_version": 1,
+      "decision": {
+        "contract_version": 1,
+        "observation_uid": "OBS-01690531a5eca809af40da38",
+        "kind": "investigate",
+        "reason": "Establish the requirement and consequence before proposing a code change.",
+        "readiness": "needs_review",
+        "blockers": [],
+        "checks": [],
+        "allowed_outcomes": [
+          "repair",
+          "retain",
+          "blocked_missing_requirement"
+        ]
+      },
+      "prerequisites": [],
+      "before": null,
+      "after": null,
+      "status": "planned",
+      "priority": 0.0,
+      "pattern": "hotspot",
+      "paths": [
+        "internal/server/server.go"
+      ],
+      "origin": "source",
+      "impact": "Every change to this path passes through one dense function; it is the most concentrated maintenance risk in the module. It is among the most branching functions in the project.",
+      "impact_render": {
+        "key": "hotspot",
+        "params": {
+          "symbol": "registerTools",
+          "path": "internal/server/server.go",
+          "branches": 189,
+          "lines": 1117,
+          "rank": 12
+        }
+      },
+      "evidence": {
+        "fact_ids": [
+          "FACT-315aae552043ef54"
+        ],
+        "evidence_ids": [],
+        "probe_ids": [
+          "PRB-009"
+        ],
+        "falsifier": "A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract."
+      },
+      "blast_radius": {
+        "direct_dependents": [],
+        "transitive_dependents": [],
+        "flows": [],
+        "entry_points": [],
+        "covering_tests": [],
+        "coverage": {},
+        "change_partners": [],
+        "total": 0
+      },
+      "change": "أثبت هذا الادعاء أو انقضه قبل أي تغيير: A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract.",
+      "options": [
+        {
+          "option": "تشغيل مجسّ يحسم الادعاء",
+          "cost": "منخفضة",
+          "verdict": "مختار: لا تغيير قبل الحسم"
+        },
+        {
+          "option": "قبول الادعاء بلا إثبات",
+          "cost": "صفر الآن",
+          "verdict": "مرفوض: يخالف قاعدة الإسناد"
+        },
+        {
+          "option": "استخراج المراحل إلى دوال بعقود صريحة",
+          "cost": "متوسطة",
+          "verdict": "مختار افتراضيًا: يخفض التفرّع ويجعل كل مرحلة قابلة للاختبار وحدها"
+        },
+        {
+          "option": "جدول قرارات أو سجل قابل للتوسعة بدل سلسلة الشروط",
+          "cost": "متوسطة",
+          "verdict": "أنسب حين تكون الفروع متجانسة"
+        },
+        {
+          "option": "رفع التغطية على الفروع غير المنفَّذة أولًا ثم إعادة الهيكلة",
+          "cost": "منخفضة",
+          "verdict": "مقدمة ضرورية إن كانت التغطية منخفضة"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "صفر الآن",
+          "cost_en": "zero now",
+          "verdict": "يبقى كل تغيير في هذا المسار مارًّا بدالة واحدة كثيفة، وتزداد كلفتها مع كل إضافة"
+        }
+      ],
+      "rollback": "لا تغيير في الكود خلال التحقيق.",
+      "acceptance": [
+        {
+          "command": "human review / مراجعة هندسية",
+          "expect": "CLM-009: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract."
+        }
+      ],
+      "verify_command": [],
+      "effort": "unknown",
+      "effort_confidence": "Not measured / لم يُقَس",
+      "invariants": [
+        {
+          "invariant": "A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract.",
+          "source": "falsifier",
+          "must_hold_after": false,
+          "note": "the observation that would show this claim is wrong; after a repair it should hold"
+        }
+      ],
+      "harm": {
+        "business": {
+          "value": "unknown",
+          "basis": "not established: no requirement or incident evidences a business cost"
+        },
+        "reach": {
+          "value": 0,
+          "basis": "measured from the dependency graph",
+          "direct_dependents": 0,
+          "flows": 0
+        },
+        "effort": {
+          "value": "كبير",
+          "basis": "منخفضة: لم يُقَس عمل مشابه بعد"
+        }
+      },
+      "finding_ids": [
+        "CLM-009"
+      ]
+    },
+    {
+      "id": "TASK-009",
+      "claim_id": "CLM-010",
+      "title": "walkForCalls in internal/extractors/rubyextractor/ruby_ast.go carries 102 branches over 380 lines, in a file ranked 15 f",
+      "render": {
+        "key": "hotspot",
+        "params": {
+          "symbol": "walkForCalls",
+          "path": "internal/extractors/rubyextractor/ruby_ast.go",
+          "branches": 102,
+          "lines": 380,
+          "rank": 15
+        }
+      },
+      "kind": "investigate",
+      "contract_version": 1,
+      "decision": {
+        "contract_version": 1,
+        "observation_uid": "OBS-86bb5a309e504117ba7d6f90",
+        "kind": "investigate",
+        "reason": "Establish the requirement and consequence before proposing a code change.",
+        "readiness": "needs_review",
+        "blockers": [],
+        "checks": [],
+        "allowed_outcomes": [
+          "repair",
+          "retain",
+          "blocked_missing_requirement"
+        ]
+      },
+      "prerequisites": [],
+      "before": null,
+      "after": null,
+      "status": "planned",
+      "priority": 0.0,
+      "pattern": "hotspot",
+      "paths": [
+        "internal/extractors/rubyextractor/ruby_ast.go"
+      ],
+      "origin": "source",
+      "impact": "Every change to this path passes through one dense function; it is the most concentrated maintenance risk in the module. It is among the most branching functions in the project.",
+      "impact_render": {
+        "key": "hotspot",
+        "params": {
+          "symbol": "walkForCalls",
+          "path": "internal/extractors/rubyextractor/ruby_ast.go",
+          "branches": 102,
+          "lines": 380,
+          "rank": 15
+        }
+      },
+      "evidence": {
+        "fact_ids": [
+          "FACT-fed46b1da3e7665c"
+        ],
+        "evidence_ids": [],
+        "probe_ids": [
+          "PRB-010"
+        ],
+        "falsifier": "A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract."
+      },
+      "blast_radius": {
+        "direct_dependents": [],
+        "transitive_dependents": [],
+        "flows": [],
+        "entry_points": [],
+        "covering_tests": [],
+        "coverage": {},
+        "change_partners": [],
+        "total": 0
+      },
+      "change": "أثبت هذا الادعاء أو انقضه قبل أي تغيير: A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract.",
+      "options": [
+        {
+          "option": "تشغيل مجسّ يحسم الادعاء",
+          "cost": "منخفضة",
+          "verdict": "مختار: لا تغيير قبل الحسم"
+        },
+        {
+          "option": "قبول الادعاء بلا إثبات",
+          "cost": "صفر الآن",
+          "verdict": "مرفوض: يخالف قاعدة الإسناد"
+        },
+        {
+          "option": "استخراج المراحل إلى دوال بعقود صريحة",
+          "cost": "متوسطة",
+          "verdict": "مختار افتراضيًا: يخفض التفرّع ويجعل كل مرحلة قابلة للاختبار وحدها"
+        },
+        {
+          "option": "جدول قرارات أو سجل قابل للتوسعة بدل سلسلة الشروط",
+          "cost": "متوسطة",
+          "verdict": "أنسب حين تكون الفروع متجانسة"
+        },
+        {
+          "option": "رفع التغطية على الفروع غير المنفَّذة أولًا ثم إعادة الهيكلة",
+          "cost": "منخفضة",
+          "verdict": "مقدمة ضرورية إن كانت التغطية منخفضة"
+        },
+        {
+          "option": "لا نفعل شيئًا",
+          "option_en": "Do nothing",
+          "cost": "صفر الآن",
+          "cost_en": "zero now",
+          "verdict": "يبقى كل تغيير في هذا المسار مارًّا بدالة واحدة كثيفة، وتزداد كلفتها مع كل إضافة"
+        }
+      ],
+      "rollback": "لا تغيير في الكود خلال التحقيق.",
+      "acceptance": [
+        {
+          "command": "human review / مراجعة هندسية",
+          "expect": "CLM-010: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract."
+        }
+      ],
+      "verify_command": [],
+      "effort": "unknown",
+      "effort_confidence": "Not measured / لم يُقَس",
+      "invariants": [
+        {
+          "invariant": "A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract.",
+          "source": "falsifier",
+          "must_hold_after": false,
+          "note": "the observation that would show this claim is wrong; after a repair it should hold"
+        }
+      ],
+      "harm": {
+        "business": {
+          "value": "unknown",
+          "basis": "not established: no requirement or incident evidences a business cost"
+        },
+        "reach": {
+          "value": 0,
+          "basis": "measured from the dependency graph",
+          "direct_dependents": 0,
+          "flows": 0
+        },
+        "effort": {
+          "value": "كبير",
+          "basis": "منخفضة: لم يُقَس عمل مشابه بعد"
+        }
+      },
+      "finding_ids": [
+        "CLM-010"
+      ]
+    }
+  ],
+  "waves": [
+    {
+      "wave": 1,
+      "tasks": [
+        "TASK-001",
+        "TASK-003",
+        "TASK-007",
+        "TASK-008",
+        "TASK-009"
+      ],
+      "entry_condition": "Required predecessor decisions accepted; file conflicts serialized.",
+      "exit_condition": "Record check outcomes or an evidenced investigation decision."
+    },
+    {
+      "wave": 2,
+      "tasks": [
+        "TASK-002",
+        "TASK-004"
+      ],
+      "entry_condition": "Required predecessor decisions accepted; file conflicts serialized.",
+      "exit_condition": "Record check outcomes or an evidenced investigation decision."
+    },
+    {
+      "wave": 3,
+      "tasks": [
+        "TASK-005"
+      ],
+      "entry_condition": "Required predecessor decisions accepted; file conflicts serialized.",
+      "exit_condition": "Record check outcomes or an evidenced investigation decision."
+    },
+    {
+      "wave": 4,
+      "tasks": [
+        "TASK-006"
+      ],
+      "entry_condition": "Required predecessor decisions accepted; file conflicts serialized.",
+      "exit_condition": "Record check outcomes or an evidenced investigation decision."
+    }
+  ],
+  "decisions": [
+    {
+      "contract_version": 1,
+      "observation_uid": "OBS-820c67eeabd4df90f9dc9f98",
+      "kind": "investigate",
+      "reason": "Establish the requirement and consequence before proposing a code change.",
+      "readiness": "needs_review",
+      "blockers": [],
+      "checks": [],
+      "allowed_outcomes": [
+        "repair",
+        "retain",
+        "blocked_missing_requirement"
+      ]
+    },
+    {
+      "contract_version": 1,
+      "observation_uid": "OBS-820c67eeabd4df90f9dc9f98",
+      "kind": "investigate",
+      "reason": "Establish the requirement and consequence before proposing a code change.",
+      "readiness": "needs_review",
+      "blockers": [],
+      "checks": [],
+      "allowed_outcomes": [
+        "repair",
+        "retain",
+        "blocked_missing_requirement"
+      ]
+    },
+    {
+      "contract_version": 1,
+      "observation_uid": "OBS-757d191080a94e0af754533e",
+      "kind": "investigate",
+      "reason": "Establish the requirement and consequence before proposing a code change.",
+      "readiness": "needs_review",
+      "blockers": [],
+      "checks": [],
+      "allowed_outcomes": [
+        "repair",
+        "retain",
+        "blocked_missing_requirement"
+      ]
+    },
+    {
+      "contract_version": 1,
+      "observation_uid": "OBS-a9a48c1e1fded0a5e52f887d",
+      "kind": "investigate",
+      "reason": "Establish the requirement and consequence before proposing a code change.",
+      "readiness": "needs_review",
+      "blockers": [],
+      "checks": [],
+      "allowed_outcomes": [
+        "repair",
+        "retain",
+        "blocked_missing_requirement"
+      ]
+    },
+    {
+      "contract_version": 1,
+      "observation_uid": "OBS-820c67eeabd4df90f9dc9f98",
+      "kind": "investigate",
+      "reason": "Establish the requirement and consequence before proposing a code change.",
+      "readiness": "needs_review",
+      "blockers": [],
+      "checks": [],
+      "allowed_outcomes": [
+        "repair",
+        "retain",
+        "blocked_missing_requirement"
+      ]
+    },
+    {
+      "contract_version": 1,
+      "observation_uid": "OBS-820c67eeabd4df90f9dc9f98",
+      "kind": "investigate",
+      "reason": "Establish the requirement and consequence before proposing a code change.",
+      "readiness": "needs_review",
+      "blockers": [],
+      "checks": [],
+      "allowed_outcomes": [
+        "repair",
+        "retain",
+        "blocked_missing_requirement"
+      ]
+    },
+    {
+      "contract_version": 1,
+      "observation_uid": "OBS-820c67eeabd4df90f9dc9f98",
+      "kind": "retain",
+      "reason": "Test or fixture observation: no product violation established; retain for review.",
+      "readiness": "no_change",
+      "blockers": [],
+      "checks": [],
+      "allowed_outcomes": []
+    },
+    {
+      "contract_version": 1,
+      "observation_uid": "OBS-58ed7300f7afb39fbb1c5bca",
+      "kind": "investigate",
+      "reason": "Establish the requirement and consequence before proposing a code change.",
+      "readiness": "needs_review",
+      "blockers": [],
+      "checks": [],
+      "allowed_outcomes": [
+        "repair",
+        "retain",
+        "blocked_missing_requirement"
+      ]
+    },
+    {
+      "contract_version": 1,
+      "observation_uid": "OBS-01690531a5eca809af40da38",
+      "kind": "investigate",
+      "reason": "Establish the requirement and consequence before proposing a code change.",
+      "readiness": "needs_review",
+      "blockers": [],
+      "checks": [],
+      "allowed_outcomes": [
+        "repair",
+        "retain",
+        "blocked_missing_requirement"
+      ]
+    },
+    {
+      "contract_version": 1,
+      "observation_uid": "OBS-86bb5a309e504117ba7d6f90",
+      "kind": "investigate",
+      "reason": "Establish the requirement and consequence before proposing a code change.",
+      "readiness": "needs_review",
+      "blockers": [],
+      "checks": [],
+      "allowed_outcomes": [
+        "repair",
+        "retain",
+        "blocked_missing_requirement"
+      ]
+    }
+  ]
+}

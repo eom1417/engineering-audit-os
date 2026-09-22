@@ -1072,7 +1072,8 @@
           "rollback": "حذف الحزمة",
           "depends_on": [],
           "references": [],
-          "status": "todo"
+          "status": "blocked",
+          "blocked_reason": "full gate fails because the sandbox denies the runtime HTTP test a localhost socket (PermissionError)"
         },
         {
           "id": "N9.T2",

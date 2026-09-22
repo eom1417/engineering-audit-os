@@ -1,0 +1,1111 @@
+{
+  "schema_version": 1,
+  "entry_points": [
+    {
+      "id": "FACT-4ab7f1d5c5c9fbd9",
+      "path": "packaging/pypi/build_wheel.py",
+      "answers": {
+        "data_access_calls": {
+          "question": "data_access_calls",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no data-access call sites recorded in this entry path"
+        },
+        "repeats_per_iteration": {
+          "question": "repeats_per_iteration",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no n+1 redundancy observation in this entry path; cannot confirm or deny"
+        },
+        "result_is_bounded": {
+          "status": "undetectable",
+          "value": null,
+          "evidence": [
+            "FACT-d550f2524311b59a"
+          ],
+          "reason": "some queries are bounded, others are not; mixed result"
+        },
+        "complexity_class": {
+          "question": "complexity_class",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no engine performance observation on this path"
+        },
+        "shared_mutable_state": {
+          "question": "shared_mutable_state",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no mutable_global or external_state_write on this path"
+        },
+        "outbound_calls_protected": {
+          "status": "answered",
+          "value": {
+            "timeout": false,
+            "retry": false,
+            "circuit_breaker": false
+          },
+          "evidence": [
+            "FACT-d5a64c417a3710df"
+          ],
+          "reason": "resilience policy observed for at least one outbound call on the path"
+        },
+        "cached": {
+          "question": "cached",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no cache site on this path"
+        },
+        "rate_limited": {
+          "question": "rate_limited",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no rate-limit or concurrency bound on this path"
+        }
+      },
+      "projection": {
+        "multiplier": 1000,
+        "cost_score": 0.0,
+        "interpretation": "projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)",
+        "bottlenecks": [],
+        "caveats": [
+          "This is a structural projection, not a performance measurement.",
+          "Cost is in arbitrary units that rank entries, not seconds or RPS.",
+          "An undetectable answer becomes a caveat: the entry is \"incomplete\" in the projection."
+        ],
+        "incomplete": true,
+        "unanswered_questions": [
+          "cached",
+          "complexity_class",
+          "data_access_calls",
+          "rate_limited",
+          "repeats_per_iteration",
+          "result_is_bounded",
+          "shared_mutable_state"
+        ]
+      }
+    },
+    {
+      "id": "FACT-de174e9b06853330",
+      "path": "packaging/pypi/build_wheel.py",
+      "answers": {
+        "data_access_calls": {
+          "question": "data_access_calls",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no data-access call sites recorded in this entry path"
+        },
+        "repeats_per_iteration": {
+          "question": "repeats_per_iteration",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no n+1 redundancy observation in this entry path; cannot confirm or deny"
+        },
+        "result_is_bounded": {
+          "status": "undetectable",
+          "value": null,
+          "evidence": [
+            "FACT-d550f2524311b59a"
+          ],
+          "reason": "some queries are bounded, others are not; mixed result"
+        },
+        "complexity_class": {
+          "question": "complexity_class",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no engine performance observation on this path"
+        },
+        "shared_mutable_state": {
+          "question": "shared_mutable_state",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no mutable_global or external_state_write on this path"
+        },
+        "outbound_calls_protected": {
+          "status": "answered",
+          "value": {
+            "timeout": false,
+            "retry": false,
+            "circuit_breaker": false
+          },
+          "evidence": [
+            "FACT-d5a64c417a3710df"
+          ],
+          "reason": "resilience policy observed for at least one outbound call on the path"
+        },
+        "cached": {
+          "question": "cached",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no cache site on this path"
+        },
+        "rate_limited": {
+          "question": "rate_limited",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "no rate-limit or concurrency bound on this path"
+        }
+      },
+      "projection": {
+        "multiplier": 1000,
+        "cost_score": 0.0,
+        "interpretation": "projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)",
+        "bottlenecks": [],
+        "caveats": [
+          "This is a structural projection, not a performance measurement.",
+          "Cost is in arbitrary units that rank entries, not seconds or RPS.",
+          "An undetectable answer becomes a caveat: the entry is \"incomplete\" in the projection."
+        ],
+        "incomplete": true,
+        "unanswered_questions": [
+          "cached",
+          "complexity_class",
+          "data_access_calls",
+          "rate_limited",
+          "repeats_per_iteration",
+          "result_is_bounded",
+          "shared_mutable_state"
+        ]
+      }
+    },
+    {
+      "id": "FACT-d3f797d291f88fc5",
+      "path": "pkg/dashboard/dashboard.go",
+      "answers": {
+        "data_access_calls": {
+          "question": "data_access_calls",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "repeats_per_iteration": {
+          "question": "repeats_per_iteration",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "result_is_bounded": {
+          "question": "result_is_bounded",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "complexity_class": {
+          "question": "complexity_class",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "shared_mutable_state": {
+          "question": "shared_mutable_state",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "outbound_calls_protected": {
+          "question": "outbound_calls_protected",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "cached": {
+          "question": "cached",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "rate_limited": {
+          "question": "rate_limited",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        }
+      },
+      "projection": {
+        "multiplier": 1000,
+        "cost_score": 0.0,
+        "interpretation": "projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)",
+        "bottlenecks": [],
+        "caveats": [
+          "This is a structural projection, not a performance measurement.",
+          "Cost is in arbitrary units that rank entries, not seconds or RPS.",
+          "An undetectable answer becomes a caveat: the entry is \"incomplete\" in the projection."
+        ],
+        "incomplete": true,
+        "unanswered_questions": [
+          "cached",
+          "complexity_class",
+          "data_access_calls",
+          "outbound_calls_protected",
+          "rate_limited",
+          "repeats_per_iteration",
+          "result_is_bounded",
+          "shared_mutable_state"
+        ]
+      }
+    },
+    {
+      "id": "FACT-15de3868f6371e28",
+      "path": "internal/engine/cache.go",
+      "answers": {
+        "data_access_calls": {
+          "question": "data_access_calls",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "repeats_per_iteration": {
+          "question": "repeats_per_iteration",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "result_is_bounded": {
+          "question": "result_is_bounded",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "complexity_class": {
+          "question": "complexity_class",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "shared_mutable_state": {
+          "question": "shared_mutable_state",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "outbound_calls_protected": {
+          "question": "outbound_calls_protected",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "cached": {
+          "question": "cached",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "rate_limited": {
+          "question": "rate_limited",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        }
+      },
+      "projection": {
+        "multiplier": 1000,
+        "cost_score": 0.0,
+        "interpretation": "projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)",
+        "bottlenecks": [],
+        "caveats": [
+          "This is a structural projection, not a performance measurement.",
+          "Cost is in arbitrary units that rank entries, not seconds or RPS.",
+          "An undetectable answer becomes a caveat: the entry is \"incomplete\" in the projection."
+        ],
+        "incomplete": true,
+        "unanswered_questions": [
+          "cached",
+          "complexity_class",
+          "data_access_calls",
+          "outbound_calls_protected",
+          "rate_limited",
+          "repeats_per_iteration",
+          "result_is_bounded",
+          "shared_mutable_state"
+        ]
+      }
+    },
+    {
+      "id": "FACT-62eceba39cb16dfb",
+      "path": "examples/cross-repo/api/server.go",
+      "answers": {
+        "data_access_calls": {
+          "question": "data_access_calls",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "repeats_per_iteration": {
+          "question": "repeats_per_iteration",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "result_is_bounded": {
+          "question": "result_is_bounded",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "complexity_class": {
+          "question": "complexity_class",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "shared_mutable_state": {
+          "question": "shared_mutable_state",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "outbound_calls_protected": {
+          "question": "outbound_calls_protected",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "cached": {
+          "question": "cached",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "rate_limited": {
+          "question": "rate_limited",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        }
+      },
+      "projection": {
+        "multiplier": 1000,
+        "cost_score": 0.0,
+        "interpretation": "projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)",
+        "bottlenecks": [],
+        "caveats": [
+          "This is a structural projection, not a performance measurement.",
+          "Cost is in arbitrary units that rank entries, not seconds or RPS.",
+          "An undetectable answer becomes a caveat: the entry is \"incomplete\" in the projection."
+        ],
+        "incomplete": true,
+        "unanswered_questions": [
+          "cached",
+          "complexity_class",
+          "data_access_calls",
+          "outbound_calls_protected",
+          "rate_limited",
+          "repeats_per_iteration",
+          "result_is_bounded",
+          "shared_mutable_state"
+        ]
+      }
+    },
+    {
+      "id": "FACT-6295ade1bd16b6e2",
+      "path": "examples/cross-repo/api/server.go",
+      "answers": {
+        "data_access_calls": {
+          "question": "data_access_calls",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "repeats_per_iteration": {
+          "question": "repeats_per_iteration",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "result_is_bounded": {
+          "question": "result_is_bounded",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "complexity_class": {
+          "question": "complexity_class",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "shared_mutable_state": {
+          "question": "shared_mutable_state",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "outbound_calls_protected": {
+          "question": "outbound_calls_protected",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "cached": {
+          "question": "cached",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "rate_limited": {
+          "question": "rate_limited",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        }
+      },
+      "projection": {
+        "multiplier": 1000,
+        "cost_score": 0.0,
+        "interpretation": "projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)",
+        "bottlenecks": [],
+        "caveats": [
+          "This is a structural projection, not a performance measurement.",
+          "Cost is in arbitrary units that rank entries, not seconds or RPS.",
+          "An undetectable answer becomes a caveat: the entry is \"incomplete\" in the projection."
+        ],
+        "incomplete": true,
+        "unanswered_questions": [
+          "cached",
+          "complexity_class",
+          "data_access_calls",
+          "outbound_calls_protected",
+          "rate_limited",
+          "repeats_per_iteration",
+          "result_is_bounded",
+          "shared_mutable_state"
+        ]
+      }
+    },
+    {
+      "id": "FACT-79ccf4edd176820a",
+      "path": "internal/extractors/goextractor/routes.go",
+      "answers": {
+        "data_access_calls": {
+          "question": "data_access_calls",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "repeats_per_iteration": {
+          "question": "repeats_per_iteration",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "result_is_bounded": {
+          "question": "result_is_bounded",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "complexity_class": {
+          "question": "complexity_class",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "shared_mutable_state": {
+          "question": "shared_mutable_state",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "outbound_calls_protected": {
+          "question": "outbound_calls_protected",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "cached": {
+          "question": "cached",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "rate_limited": {
+          "question": "rate_limited",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        }
+      },
+      "projection": {
+        "multiplier": 1000,
+        "cost_score": 0.0,
+        "interpretation": "projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)",
+        "bottlenecks": [],
+        "caveats": [
+          "This is a structural projection, not a performance measurement.",
+          "Cost is in arbitrary units that rank entries, not seconds or RPS.",
+          "An undetectable answer becomes a caveat: the entry is \"incomplete\" in the projection."
+        ],
+        "incomplete": true,
+        "unanswered_questions": [
+          "cached",
+          "complexity_class",
+          "data_access_calls",
+          "outbound_calls_protected",
+          "rate_limited",
+          "repeats_per_iteration",
+          "result_is_bounded",
+          "shared_mutable_state"
+        ]
+      }
+    },
+    {
+      "id": "FACT-74a86ebe751d1835",
+      "path": "internal/extractors/goextractor/routes.go",
+      "answers": {
+        "data_access_calls": {
+          "question": "data_access_calls",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "repeats_per_iteration": {
+          "question": "repeats_per_iteration",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "result_is_bounded": {
+          "question": "result_is_bounded",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "complexity_class": {
+          "question": "complexity_class",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "shared_mutable_state": {
+          "question": "shared_mutable_state",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "outbound_calls_protected": {
+          "question": "outbound_calls_protected",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "cached": {
+          "question": "cached",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "rate_limited": {
+          "question": "rate_limited",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        }
+      },
+      "projection": {
+        "multiplier": 1000,
+        "cost_score": 0.0,
+        "interpretation": "projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)",
+        "bottlenecks": [],
+        "caveats": [
+          "This is a structural projection, not a performance measurement.",
+          "Cost is in arbitrary units that rank entries, not seconds or RPS.",
+          "An undetectable answer becomes a caveat: the entry is \"incomplete\" in the projection."
+        ],
+        "incomplete": true,
+        "unanswered_questions": [
+          "cached",
+          "complexity_class",
+          "data_access_calls",
+          "outbound_calls_protected",
+          "rate_limited",
+          "repeats_per_iteration",
+          "result_is_bounded",
+          "shared_mutable_state"
+        ]
+      }
+    },
+    {
+      "id": "FACT-0f003d5d080ed527",
+      "path": "internal/extractors/goextractor/routes.go",
+      "answers": {
+        "data_access_calls": {
+          "question": "data_access_calls",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "repeats_per_iteration": {
+          "question": "repeats_per_iteration",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "result_is_bounded": {
+          "question": "result_is_bounded",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "complexity_class": {
+          "question": "complexity_class",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "shared_mutable_state": {
+          "question": "shared_mutable_state",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "outbound_calls_protected": {
+          "question": "outbound_calls_protected",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "cached": {
+          "question": "cached",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "rate_limited": {
+          "question": "rate_limited",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        }
+      },
+      "projection": {
+        "multiplier": 1000,
+        "cost_score": 0.0,
+        "interpretation": "projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)",
+        "bottlenecks": [],
+        "caveats": [
+          "This is a structural projection, not a performance measurement.",
+          "Cost is in arbitrary units that rank entries, not seconds or RPS.",
+          "An undetectable answer becomes a caveat: the entry is \"incomplete\" in the projection."
+        ],
+        "incomplete": true,
+        "unanswered_questions": [
+          "cached",
+          "complexity_class",
+          "data_access_calls",
+          "outbound_calls_protected",
+          "rate_limited",
+          "repeats_per_iteration",
+          "result_is_bounded",
+          "shared_mutable_state"
+        ]
+      }
+    },
+    {
+      "id": "FACT-69a06621f788fe34",
+      "path": "internal/extractors/goextractor/routes.go",
+      "answers": {
+        "data_access_calls": {
+          "question": "data_access_calls",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "repeats_per_iteration": {
+          "question": "repeats_per_iteration",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "result_is_bounded": {
+          "question": "result_is_bounded",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "complexity_class": {
+          "question": "complexity_class",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "shared_mutable_state": {
+          "question": "shared_mutable_state",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "outbound_calls_protected": {
+          "question": "outbound_calls_protected",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "cached": {
+          "question": "cached",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "rate_limited": {
+          "question": "rate_limited",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        }
+      },
+      "projection": {
+        "multiplier": 1000,
+        "cost_score": 0.0,
+        "interpretation": "projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)",
+        "bottlenecks": [],
+        "caveats": [
+          "This is a structural projection, not a performance measurement.",
+          "Cost is in arbitrary units that rank entries, not seconds or RPS.",
+          "An undetectable answer becomes a caveat: the entry is \"incomplete\" in the projection."
+        ],
+        "incomplete": true,
+        "unanswered_questions": [
+          "cached",
+          "complexity_class",
+          "data_access_calls",
+          "outbound_calls_protected",
+          "rate_limited",
+          "repeats_per_iteration",
+          "result_is_bounded",
+          "shared_mutable_state"
+        ]
+      }
+    },
+    {
+      "id": "FACT-9f1dfd15208f4ef8",
+      "path": "internal/engine/cache.go",
+      "answers": {
+        "data_access_calls": {
+          "question": "data_access_calls",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "repeats_per_iteration": {
+          "question": "repeats_per_iteration",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "result_is_bounded": {
+          "question": "result_is_bounded",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "complexity_class": {
+          "question": "complexity_class",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "shared_mutable_state": {
+          "question": "shared_mutable_state",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "outbound_calls_protected": {
+          "question": "outbound_calls_protected",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "cached": {
+          "question": "cached",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "rate_limited": {
+          "question": "rate_limited",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        }
+      },
+      "projection": {
+        "multiplier": 1000,
+        "cost_score": 0.0,
+        "interpretation": "projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)",
+        "bottlenecks": [],
+        "caveats": [
+          "This is a structural projection, not a performance measurement.",
+          "Cost is in arbitrary units that rank entries, not seconds or RPS.",
+          "An undetectable answer becomes a caveat: the entry is \"incomplete\" in the projection."
+        ],
+        "incomplete": true,
+        "unanswered_questions": [
+          "cached",
+          "complexity_class",
+          "data_access_calls",
+          "outbound_calls_protected",
+          "rate_limited",
+          "repeats_per_iteration",
+          "result_is_bounded",
+          "shared_mutable_state"
+        ]
+      }
+    },
+    {
+      "id": "FACT-df07f86d5636ae00",
+      "path": "internal/extractors/goextractor/routes.go",
+      "answers": {
+        "data_access_calls": {
+          "question": "data_access_calls",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "repeats_per_iteration": {
+          "question": "repeats_per_iteration",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "result_is_bounded": {
+          "question": "result_is_bounded",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "complexity_class": {
+          "question": "complexity_class",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "shared_mutable_state": {
+          "question": "shared_mutable_state",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "outbound_calls_protected": {
+          "question": "outbound_calls_protected",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "cached": {
+          "question": "cached",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "rate_limited": {
+          "question": "rate_limited",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        }
+      },
+      "projection": {
+        "multiplier": 1000,
+        "cost_score": 0.0,
+        "interpretation": "projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)",
+        "bottlenecks": [],
+        "caveats": [
+          "This is a structural projection, not a performance measurement.",
+          "Cost is in arbitrary units that rank entries, not seconds or RPS.",
+          "An undetectable answer becomes a caveat: the entry is \"incomplete\" in the projection."
+        ],
+        "incomplete": true,
+        "unanswered_questions": [
+          "cached",
+          "complexity_class",
+          "data_access_calls",
+          "outbound_calls_protected",
+          "rate_limited",
+          "repeats_per_iteration",
+          "result_is_bounded",
+          "shared_mutable_state"
+        ]
+      }
+    },
+    {
+      "id": "FACT-365733f62015fda1",
+      "path": "internal/extractors/goextractor/routes.go",
+      "answers": {
+        "data_access_calls": {
+          "question": "data_access_calls",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "repeats_per_iteration": {
+          "question": "repeats_per_iteration",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "result_is_bounded": {
+          "question": "result_is_bounded",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "complexity_class": {
+          "question": "complexity_class",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "shared_mutable_state": {
+          "question": "shared_mutable_state",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "outbound_calls_protected": {
+          "question": "outbound_calls_protected",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "cached": {
+          "question": "cached",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        },
+        "rate_limited": {
+          "question": "rate_limited",
+          "status": "undetectable",
+          "value": null,
+          "evidence": [],
+          "reason": "the flow could not be traced from this entry point"
+        }
+      },
+      "projection": {
+        "multiplier": 1000,
+        "cost_score": 0.0,
+        "interpretation": "projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)",
+        "bottlenecks": [],
+        "caveats": [
+          "This is a structural projection, not a performance measurement.",
+          "Cost is in arbitrary units that rank entries, not seconds or RPS.",
+          "An undetectable answer becomes a caveat: the entry is \"incomplete\" in the projection."
+        ],
+        "incomplete": true,
+        "unanswered_questions": [
+          "cached",
+          "complexity_class",
+          "data_access_calls",
+          "outbound_calls_protected",
+          "rate_limited",
+          "repeats_per_iteration",
+          "result_is_bounded",
+          "shared_mutable_state"
+        ]
+      }
+    }
+  ],
+  "projection": {
+    "multiplier": 1000,
+    "method": "multiplier=1000; cost per data_access_call, ×100 per n+1, ×1000 per unbounded query, ×10 per shared-state mutation, ×50 per missing rate limit"
+  }
+}

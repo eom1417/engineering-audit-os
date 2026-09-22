@@ -1,0 +1,397 @@
+{
+ "contract_version": 1,
+ "target": "/workspace/upstream-src/enola",
+ "out": "/tmp/eaos-review-2d0m2wlh/report",
+ "started_at": "2026-09-22T14:14:51+00:00",
+ "seconds": 71.0,
+ "requested": [
+  "facts",
+  "engines",
+  "verify",
+  "policy",
+  "load",
+  "claims",
+  "probe",
+  "semantic",
+  "sustainability",
+  "transform",
+  "plan",
+  "target",
+  "executive",
+  "compose",
+  "bundles",
+  "site",
+  "validate"
+ ],
+ "stages": {
+  "facts": {
+   "stage": "facts",
+   "status": "ok",
+   "reason": "",
+   "seconds": 38.16,
+   "necessity": "required",
+   "produces": [
+    "facts/index.json"
+   ],
+   "artifacts": [
+    "facts/index.json"
+   ],
+   "detail": {
+    "facts": 181628,
+    "sets": 14,
+    "exclude": [
+     ".venv",
+     "build",
+     "dist",
+     "fixtures",
+     "generated",
+     "node_modules",
+     "testdata",
+     "third_party",
+     "vendor"
+    ]
+   }
+  },
+  "engines": {
+   "stage": "engines",
+   "status": "unavailable",
+   "reason": "external engines were not requested for this run",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "facts/external.json",
+    "ENGINES.md"
+   ],
+   "artifacts": [],
+   "detail": {}
+  },
+  "verify": {
+   "stage": "verify",
+   "status": "unavailable",
+   "reason": "no test command was given, so nothing was executed",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "verification.json"
+   ],
+   "artifacts": [],
+   "detail": {}
+  },
+  "policy": {
+   "stage": "policy",
+   "status": "unavailable",
+   "reason": "the project declares no eaos.policy.json",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "facts/policy.json",
+    "POLICY.md"
+   ],
+   "artifacts": [],
+   "detail": {}
+  },
+  "load": {
+   "stage": "load",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.44,
+   "necessity": "required",
+   "produces": [
+    "load-model.json",
+    "LOAD-MODEL.md"
+   ],
+   "artifacts": [
+    "LOAD-MODEL.md",
+    "load-model.json"
+   ],
+   "detail": {
+    "entry_points": 13,
+    "incomplete": 13
+   }
+  },
+  "claims": {
+   "stage": "claims",
+   "status": "ok",
+   "reason": "",
+   "seconds": 2.43,
+   "necessity": "required",
+   "produces": [
+    "dossier.json",
+    "DECISION-BRIEF.md",
+    "README.md"
+   ],
+   "artifacts": [
+    "DECISION-BRIEF.md",
+    "README.md",
+    "dossier.json"
+   ],
+   "detail": {
+    "claims": 10,
+    "counts": {
+     "CONFIRMED": 10
+    }
+   }
+  },
+  "probe": {
+   "stage": "probe",
+   "status": "ok",
+   "reason": "",
+   "seconds": 1.77,
+   "necessity": "required",
+   "produces": [
+    "probes.json"
+   ],
+   "artifacts": [
+    "probes.json"
+   ],
+   "detail": {
+    "target": "/workspace/upstream-src/enola",
+    "out": "/tmp/eaos-review-2d0m2wlh/report",
+    "probes": 10,
+    "by_status": {
+     "CONFIRMED": 8,
+     "REFUTED": 0,
+     "PARTIAL": 0,
+     "INCONCLUSIVE": 2,
+     "blocked": 0
+    },
+    "confirmed_claims": 10,
+    "claims": 10,
+    "limits": "A probe decides only what it checks. Execution probes stay disabled unless explicitly allowed, and an isolated copy is not an OS sandbox."
+   }
+  },
+  "semantic": {
+   "stage": "semantic",
+   "status": "unavailable",
+   "reason": "no model provider was configured, so no interpretation was attempted",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "SEMANTIC.md"
+   ],
+   "artifacts": [],
+   "detail": {}
+  },
+  "sustainability": {
+   "stage": "sustainability",
+   "status": "ok",
+   "reason": "",
+   "seconds": 3.19,
+   "necessity": "required",
+   "produces": [
+    "SUSTAINABILITY.md",
+    "sustainability.json"
+   ],
+   "artifacts": [
+    "SUSTAINABILITY.md",
+    "sustainability.json"
+   ],
+   "detail": {}
+  },
+  "transform": {
+   "stage": "transform",
+   "status": "ok",
+   "reason": "",
+   "seconds": 5.75,
+   "necessity": "required",
+   "produces": [
+    "transform-plan.md",
+    "transform-plan.json"
+   ],
+   "artifacts": [
+    "transform-plan.json",
+    "transform-plan.md"
+   ],
+   "detail": {
+    "moves": 0
+   }
+  },
+  "plan": {
+   "stage": "plan",
+   "status": "ok",
+   "reason": "",
+   "seconds": 3.57,
+   "necessity": "required",
+   "produces": [
+    "plan.json",
+    "PLAN/WAVES.md"
+   ],
+   "artifacts": [
+    "PLAN/WAVES.md",
+    "plan.json"
+   ],
+   "detail": {
+    "tasks": 9,
+    "waves": 4
+   }
+  },
+  "target": {
+   "stage": "target",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.97,
+   "necessity": "required",
+   "produces": [
+    "TARGET-ARCHITECTURE.md",
+    "target-architecture.json"
+   ],
+   "artifacts": [
+    "TARGET-ARCHITECTURE.md",
+    "target-architecture.json"
+   ],
+   "detail": {
+    "components": 153,
+    "status": "REVIEW_REQUIRED"
+   }
+  },
+  "executive": {
+   "stage": "executive",
+   "status": "ok",
+   "reason": "",
+   "seconds": 11.17,
+   "necessity": "required",
+   "produces": [
+    "EXECUTIVE.md"
+   ],
+   "artifacts": [
+    "EXECUTIVE.md"
+   ],
+   "detail": {
+    "artifact": "/tmp/eaos-review-2d0m2wlh/report/EXECUTIVE.md",
+    "indicators": {
+     "single_source": 0.0,
+     "minimal_path": 0.0,
+     "data_owners": 0,
+     "honest_boundaries": 0,
+     "verifiable_paths": 0.0,
+     "understandable_units": 242
+    },
+    "moves": 0,
+    "stages": 0,
+    "limits": "The executive page is a single screen; it cites the underlying artifacts, not their detail. Risks are sorted by the priority formula declared in the engagement contract; with no contract, the page falls back to the highest single_source / minimal_path gap. The \"what if nothing\" cost is the predicted delta × a stated engineering rate, not a quote. The page is regenerated whenever the underlying artifacts change; it is never the source of truth."
+   }
+  },
+  "compose": {
+   "stage": "compose",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.01,
+   "necessity": "required",
+   "produces": [
+    "PRODUCT-REPORT.md",
+    "BLOCKERS.md"
+   ],
+   "artifacts": [
+    "BLOCKERS.md",
+    "PRODUCT-REPORT.md"
+   ],
+   "detail": {}
+  },
+  "bundles": {
+   "stage": "bundles",
+   "status": "ok",
+   "reason": "",
+   "seconds": 3.53,
+   "necessity": "required",
+   "produces": [
+    "bundles/manifest.json",
+    "CANONICAL-HOMES.md",
+    "canonical-homes.json",
+    "STAGES.md",
+    "WAVES.md",
+    "KPI.md",
+    "gap-matrix.json",
+    "DATA-MODEL.md",
+    "DEPLOYMENT.md",
+    "OBSERVABILITY.md",
+    "SECURITY-SURFACE.md",
+    "INTEGRATIONS.md"
+   ],
+   "artifacts": [
+    "CANONICAL-HOMES.md",
+    "DATA-MODEL.md",
+    "DEPLOYMENT.md",
+    "INTEGRATIONS.md",
+    "KPI.md",
+    "OBSERVABILITY.md",
+    "SECURITY-SURFACE.md",
+    "STAGES.md",
+    "WAVES.md",
+    "bundles/manifest.json",
+    "canonical-homes.json",
+    "gap-matrix.json"
+   ],
+   "detail": {
+    "bundles_dir": "/tmp/eaos-review-2d0m2wlh/report/bundles",
+    "bundles": [
+     "00-ENGAGEMENT",
+     "01-DISCOVERY",
+     "02-ASSESSMENT",
+     "03-TARGET",
+     "04-TRANSFORM",
+     "SUMMARY"
+    ],
+    "missing_artifacts": [
+     {
+      "bundle": "02-ASSESSMENT",
+      "artifact": "DUPLICATION-ATLAS.md",
+      "reason": "not produced in this run"
+     },
+     {
+      "bundle": "02-ASSESSMENT",
+      "artifact": "POLICY.md",
+      "reason": "not produced in this run"
+     }
+    ],
+    "limits": "A bundle is a view; if the underlying artifact is regenerated, the bundle changes. The five bundles are a reading order, not the only way to consume the dossier. A bundle contains what the engine can produce; missing artifacts stay gaps, never guesses."
+   }
+  },
+  "site": {
+   "stage": "site",
+   "status": "unavailable",
+   "reason": "the site was turned off for this run",
+   "seconds": 0.0,
+   "necessity": "optional",
+   "produces": [
+    "index.html"
+   ],
+   "artifacts": [],
+   "detail": {}
+  },
+  "validate": {
+   "stage": "validate",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.01,
+   "necessity": "required",
+   "produces": [
+    "report-result.json",
+    "RUN.md"
+   ],
+   "artifacts": [
+    "RUN.md",
+    "report-result.json"
+   ],
+   "detail": {
+    "violations": 0
+   }
+  }
+ },
+ "counts": {
+  "ok": 12,
+  "skipped": 0,
+  "unavailable": 5,
+  "failed": 0,
+  "not_reached": 0
+ },
+ "status": "COMPLETE",
+ "limits": "A stage that did not run proves nothing. Read the skipped and unavailable rows before reading the findings: they are the shape of what this run could not see.",
+ "options": {
+  "language": "en",
+  "exclude": [],
+  "max_files": 100000,
+  "max_bytes": 2000000,
+  "policy_path": null
+ },
+ "source_fingerprint": "e970f0824aa6a6c6d0819cc162149b3ae965d1d96957faecb0fa755aa0299448"
+}
