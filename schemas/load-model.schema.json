@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Load Model Record",
+  "type": "object",
+  "required": ["schema_version", "entry_points"],
+  "properties": {
+    "schema_version": {"type": "integer"},
+    "projection": {
+      "type": "object",
+      "properties": {
+        "at_1000x": {
+          "type": "object",
+          "required": ["total_cost_score"],
+          "properties": {
+            "total_cost_score": {"type": "number"}
+          }
+        }
+      }
+    },
+    "entry_points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "answers"],
+        "properties": {
+          "id": {"type": "string"},
+          "path": {"type": "string"},
+          "answers": {
+            "type": "object",
+            "additionalProperties": {"$ref": "#/definitions/answer"}
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "answer": {
+      "type": "object",
+      "required": ["status"],
+      "properties": {
+        "status": {"enum": ["answered", "not_applicable", "undetectable"]},
+        "value": {"type": ["string", "number", "boolean", "null", "array", "object"]},
+        "evidence": {"type": "array", "items": {"type": "string"}},
+        "reason": {"type": "string"}
+      }
+    }
+  }
+}
