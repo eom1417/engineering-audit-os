@@ -107,18 +107,33 @@ def structure_python(report, extra=None, minimum_share=0.4):
     }
 
 
-def structure_polyglot(report, extra=None, minimum_files=5):
+def structure_polyglot(report, extra=None, minimum_files=5, depth_threshold=TARGET, thirdmost_floor=3):
+    """Per-language depth with two guards: a threshold pass-rate and a floor on the weakest third.
+
+    The fraction-of-languages indicator is a hero metric: it inflates when most languages are
+    ignored. We pair it with `thirdmost_language_depth`: the depth of the third-weakest language
+    we have any evidence for. A corpus with one strong language and four dead ones satisfies
+    the first indicator but fails the second, because the third-weakest is undefined or zero.
+    """
     rows = {name: row for name, row in _language_rows(report).items()
             if name != 'python' and row['files'] >= minimum_files}
     if not rows:
-        return {'languages_with_depth': None, 'imports_resolved_outside_python': None}
+        return {'languages_with_depth': None, 'imports_resolved_outside_python': None,
+                'thirdmost_language_depth': None}
     depths = {name: _depth(row) for name, row in rows.items()}
-    measured = [value for value in depths.values() if value is not None]
+    measured = sorted(value for value in depths.values() if value is not None)
     resolved = _ratio(sum(row['resolved'] for row in rows.values()),
                       sum(row['imports'] for row in rows.values()))
+    # Third-weakest measured language: 1.0 when we have fewer than three measured languages
+    # (the floor is not the right judge there), otherwise the value at index [-3].
+    if len(measured) < thirdmost_floor:
+        thirdmost = 1.0
+    else:
+        thirdmost = measured[-thirdmost_floor]
     return {
-        'languages_with_depth': _ratio(sum(1 for value in measured if value >= TARGET), len(rows)),
+        'languages_with_depth': _ratio(sum(1 for value in measured if value >= depth_threshold), len(rows)),
         'imports_resolved_outside_python': resolved,
+        'thirdmost_language_depth': thirdmost,
         'languages_seen': len(rows),
     }
 

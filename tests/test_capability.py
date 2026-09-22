@@ -186,3 +186,97 @@ class PlanTests(unittest.TestCase):
         for task in self.renderer.ready(self.plan):
             for reference in task.get('depends_on', []):
                 self.assertIn(reference, done, task['id'])
+
+
+class PolyglotDepthThresholdTests(unittest.TestCase):
+    """structure_polyglot counts a language only when its measured depth meets the target."""
+
+    def _rows(self, languages):
+        """Build a minimal report dict that lets structure_polyglot find each language's stats.
+
+        Files are marked UNSUPPORTED when they were not parsed; only OBSERVED/PARSED counts.
+        """
+        facts = []
+        resolve = []
+        for lang, files_count, parsed, resolved, imports in languages:
+            for i in range(files_count):
+                facts.append({'kind': 'source_file',
+                               'location': {'path': f'{lang}{i}.x'},
+                               'value': {'language': lang, 'parse_status': 'PARSED' if i < parsed else 'UNSUPPORTED'}})
+            for i in range(imports):
+                resolve.append({'kind': 'module_edge',
+                                 'location': {'path': f'{lang}{i % files_count}.x'},
+                                 'resolution': 'RESOLVED' if i < resolved else 'UNRESOLVED'})
+        return {'facts__syntax': {'facts': facts}, 'facts__resolve': {'facts': resolve}}
+
+    def test_one_strong_and_four_dead_languages_yield_low_score(self):
+        """Five languages with >=5 files: one meets depth, four are dead -> score < 0.5."""
+        with tempfile.TemporaryDirectory() as directory:
+            # 'rust' has full depth: 10 files parsed, 5 imports all resolved
+            # others: 10 files but 0 imports -> depth is parse-only (1.0)
+            #         BUT we want them dead: parse=0 so depth is None
+            rows = [
+                ('rust', 10, 10, 5, 5),    # depth = (1.0 + 1.0)/2 = 1.0
+                ('dart', 10, 0, 0, 0),     # depth = None
+                ('ruby', 10, 0, 0, 0),     # depth = None
+                ('scala', 10, 0, 0, 0),    # depth = None
+                ('swift', 10, 0, 0, 0),    # depth = None
+            ]
+            root = report(directory, **self._rows(rows))
+            result = capability.structure_polyglot(root)
+            # 1 of 5 languages meets depth (>=0.80); denominator is len(rows)=5
+            self.assertEqual(result['languages_with_depth'], 0.2)
+            # thirdmost = third weakest of the five measured depths = 0.0 (one of the dead ones)
+            self.assertEqual(result['thirdmost_language_depth'], 0.0)
+
+    def test_all_languages_meet_the_target(self):
+        """Every language with full depth => languages_with_depth == 1.0."""
+        with tempfile.TemporaryDirectory() as directory:
+            rows = [
+                ('rust', 10, 10, 5, 5),
+                ('dart', 10, 10, 5, 5),
+                ('ruby', 10, 10, 5, 5),
+            ]
+            root = report(directory, **self._rows(rows))
+            result = capability.structure_polyglot(root)
+            self.assertEqual(result['languages_with_depth'], 1.0)
+            self.assertEqual(result['thirdmost_language_depth'], 1.0)
+
+    def test_thirdmost_language_depth_drops_when_one_is_weak(self):
+        """Three languages with depths 1.0, 1.0, 0.3 -> thirdmost = 0.3 (the worst)."""
+        with tempfile.TemporaryDirectory() as directory:
+            rows = [
+                ('rust', 10, 10, 5, 5),   # depth 1.0
+                ('dart', 10, 10, 5, 5),   # depth 1.0
+                ('ruby', 10, 2, 1, 10),   # parse 0.2, resolve 0.1 -> depth 0.15
+            ]
+            root = report(directory, **self._rows(rows))
+            result = capability.structure_polyglot(root)
+            self.assertLess(result['thirdmost_language_depth'], 0.5)
+
+    def test_thirdmost_language_depth_is_one_when_fewer_than_three_languages_are_measured(self):
+        """With only one measured language, the floor cannot be applied: it returns 1.0."""
+        with tempfile.TemporaryDirectory() as directory:
+            rows = [('rust', 10, 10, 5, 5)]
+            root = report(directory, **self._rows(rows))
+            result = capability.structure_polyglot(root)
+            self.assertEqual(result['thirdmost_language_depth'], 1.0)
+
+    def test_polyglot_domain_score_reflects_thirdmost_floor(self):
+        """The aggregated domain score for polyglot pulls the floor into the average."""
+        with tempfile.TemporaryDirectory() as directory:
+            # One strong language, four dead ones -> languages_with_depth = 0.2 but thirdmost = 1.0
+            # Mean is (0.2 + resolved + 1.0) / 3 -> not great
+            rows = [
+                ('rust', 10, 10, 5, 5),
+                ('dart', 10, 0, 0, 0),
+                ('ruby', 10, 0, 0, 0),
+                ('scala', 10, 0, 0, 0),
+                ('swift', 10, 0, 0, 0),
+            ]
+            root = report(directory, **self._rows(rows))
+            card = capability.score([root])
+            score = card['domains']['structure_polyglot']['score']
+            # 0.2 + 0.0 (resolved=0/0 -> None? actually _ratio with 0 is 0)
+            # + 1.0 = 1.2/3 = 0.4 -> below target
+            self.assertLess(score, 0.5)
