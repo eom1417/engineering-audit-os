@@ -77,7 +77,7 @@ python -m unittest discover -s tests -q && python tools/validate.py && python to
 | N8 | تقرير يفهمه أي نموذج وينفّذه | N5, N6, N7 | 0/3 | ⬜ |
 | N9 | الحكم المستقل | N8 | 1/2 | ⬜ |
 | N10 | إعادة القياس وقرار الإصدار | N2, N3, N4, N5, N6, N7, N8 | 0/2 | ⬜ |
-| N11 | إصلاح ما كشفته المراجعة البعدية | N3, N5, N6, N7 | 0/8 | ⬜ |
+| N11 | إصلاح ما كشفته المراجعة البعدية | N3, N5, N6, N7 | 0/9 | ⬜ |
 
 ## N1 — أداة القياس وبوابة عدم التراجع
 
@@ -1098,39 +1098,150 @@ python tools/check_release_evidence.py evaluations/release-evidence.json && pyth
 
 **الهدف:** كل عيب أثبتته المراجعة على مستودع حقيقي يُغلق بقياس على مستودع حقيقي، لا على عيّنة اختبار.
 
-**المشكلة المقيسة:** المحرّكات الأربعة تُنتج 3023 نتيجة على enola ولا تغيّر أي مؤشر: import_edge يساوي 5691 بالمحرّكات وبدونها. CodeGraph يفهرس 18241 عقدة و66477 حافة ثم يُستخرج منها صفر. على مستودعنا البايثوني يُجاب سؤالان من ثمانية، وعلى enola لا يُجاب أي سؤال عمليًا.
+**المشكلة المقيسة:** على enola: 1336 استيرادًا من 1430 مسجّل AMBIGUOUS رغم أن 1326 منها مرشّحاته كلها في مجلد واحد؛ و8 نقاط دخول من 9 بلا معالج قابل للتتبّع فينتج تدفّق واحد على مستودع من 985 ملف Go؛ و79251 حافة استدعاء و10495 رمزًا لا تُستعمل. وعلى مستودعنا: خمسة أسئلة من ثمانية تُسجَّل undetectable بينما السبب المكتوب هو «بحثنا فلم نجد» وهذا جواب لا عجز.
 
-### N11.T1 — استخراج حواف CodeGraph بسؤال الملف لا المجلد ⬜
+### N11.T1 — استيراد الحزمة في Go يُحلّ إلى مجلد الحزمة ⬜
 
-**لماذا:** الأداة تُجيب عن ملف واحد وتُرجع صفرًا عن مجلد؛ نحن نسألها عن المجلد، فنخسر 66477 حافة مفهرسة.
-**يحرّك:** `structure_polyglot.imports_resolved_outside_python` من `0.0594` إلى `0.5`
+**لماذا:** في Go الاستيراد يشير إلى حزمة أي مجلد، ومحلّلنا يطلب ملفًا واحدًا فيعلن الالتباس حيث لا التباس.
+**يحرّك:** `structure_polyglot.imports_resolved_outside_python` من `0.0594` إلى `0.85`
 
 **الملفات:**
 
-- `eaos/engines/codegraph.py`
-- `eaos/facts/external.py`
-- `tests/test_engine_contracts.py`
+- `eaos/facts/resolve.py`
+- `tests/test_facts_resolve.py`
 
 **الخطوات:**
 
-1. شغّل codegraph-server --graph-only -w <repo> --run-tool codegraph_get_dependency_graph --tool-args {"uri":"file://<ملف>"} على ملف واحد وسجّل شكل الحمولة الراجعة
-2. في eaos/engines/codegraph.py مرّر uri لكل ملف مصدري مشمول في الجرد بدل تمرير جذر المستودع مرة واحدة
-3. مرّر uri أيضًا إلى codegraph_analyze_complexity فهو يرفض الطلب اليوم برسالة Missing uri parameter
-4. احذف probe_paths المكتوبة يدويًا لملفات enola واستبدلها بنقاط الدخول المسجّلة في facts/entrypoints.json
-5. اربط node id بمسار الملف من مصفوفة nodes في نفس الحمولة قبل بناء import_edge
-6. أضف اختبار عقد يثبت أن حافة واحدة على الأقل تحمل source=codegraph و resolution=RESOLVED_BY_ENGINE
+1. شغّل التقرير المرجعي للغو واطبع الحقائق module_edge ذات resolution=AMBIGUOUS وعُدّ كم منها مرشّحاته كلها تحت مجلد واحد؛ الرقم المقيس اليوم 1326 من 1336
+2. في resolve.py أضف قاعدة للّغات ذات الحزم المجلّدية: إذا كان كل مرشّح تحت مجلد واحد فالهدف هو المجلد
+3. سجّل to_path بمسار المجلد و value["target_kind"]="package" و resolution="RESOLVED"
+4. أبقِ المرشّحات في السجل كما هي حتى يبقى الدليل مرئيًا للقارئ
+5. أبقِ AMBIGUOUS حيث تتوزّع المرشّحات على أكثر من مجلد، فذلك التباس حقيقي
+6. لا تغيّر سلوك بايثون: الاستيراد فيها يشير إلى وحدة أي ملف
+7. أضف حالة اختبار موجبة لمجلد واحد وحالة سالبة لمجلدين
 
 **معيار القبول:**
 
 ```bash
-eaos audit /workspace/upstream-src/enola --out /tmp/n11t1 --skip site --engines codegraph enola jscpd reforge && python3 -c "import sys;sys.path.insert(0,'.');from eaos import capability;v=capability.structure_polyglot('/tmp/n11t1')['imports_resolved_outside_python'];assert v>=0.5, v"
+eaos audit /workspace/upstream-src/enola --out /tmp/n11t1 --skip site && python3 -c "import sys;sys.path.insert(0,'.');from eaos import capability;v=capability.structure_polyglot('/tmp/n11t1')['imports_resolved_outside_python'];assert v is not None and v>=0.85, v" && eaos audit . --out /tmp/n11t1s --skip site && python3 -c "import sys;sys.path.insert(0,'.');from eaos import capability;v=capability.structure_python('/tmp/n11t1s')['python_imports_resolved'];assert v is not None and v>=0.99, v"
 ```
 
-**التراجع:** git checkout eaos/engines/codegraph.py eaos/facts/external.py
+**التراجع:** git checkout eaos/facts/resolve.py
 
-### N11.T2 — منع ابتلاع فشل المحرّك بصمت ⬜
+### N11.T2 — نقطة دخول Go وربط المعالج بالرمز ⬜
 
-**لماذا:** دمج حواف CodeGraph ملفوف بـ except Exception: pass، فلا يظهر فشله في أي تقرير ولا في أي مقياس.
+**لماذا:** تسع نقاط دخول ينتج عنها تدفّق واحد، وهو تدفّق ملف بايثون داخل مستودع Go؛ ثمانٍ بلا معالج قابل للتتبّع، و func main غير معدود نقطة دخول أصلًا.
+**يحرّك:** `structure_polyglot.thirdmost_language_depth` من `0.875` إلى `0.875`
+
+**الملفات:**
+
+- `eaos/facts/entrypoints.py`
+- `eaos/facts/flows.py`
+- `tests/test_facts_entrypoints.py`
+- `tests/test_facts_flows.py`
+
+**الخطوات:**
+
+1. أضف كاشف نقطة دخول لثنائيات Go: ملف يعلن package main ويحوي func main هو نقطة دخول surface=cli و framework=go_main و handler=main
+2. اطبع من ملخّص flows.json القيمة entry_points_without_traceable_handler وهي 8 اليوم على enola
+3. لكل واحدة اطبع اسم المعالج والمسار وابحث عنه في حقائق symbol لتعرف سبب فشل الربط
+4. أصلح الربط: طابق المعالج داخل ملفه أولًا بالاسم ثم بالاسم المؤهّل بالمستقبِل لدوال Go ذات المستقبِل
+5. أبقِ الخطوة غير المحلولة مسجّلة بسببها، فالتدفّق القصير الظاهر أصدق من تدفّق مبتور صامت
+6. أضف حالة اختبار Go فيها cmd/x/main.go و معالج HTTP بمستقبِل
+
+**معيار القبول:**
+
+```bash
+eaos audit /workspace/upstream-src/enola --out /tmp/n11t2 --skip site && python3 -c "import json;s=json.load(open('/tmp/n11t2/facts/flows.json'))['summary'];assert s['flows']>=8, s;assert s['entry_points_without_traceable_handler']<=2, s"
+```
+
+**التراجع:** git checkout eaos/facts/entrypoints.py eaos/facts/flows.py
+
+### N11.T3 — البحث الذي لم يجد هو جواب، لا عجز ⬜
+
+**لماذا:** خمسة أسئلة تُسجَّل undetectable وسببها المكتوب «لا موقع تخزين مؤقت على هذا المسار»؛ هذا جواب قيمته False، وتسجيله عجزًا يبخس الأداة ويضلّل القارئ.
+**يحرّك:** `load_model.questions_answered` من `0.2165` إلى `0.7`
+
+**الملفات:**
+
+- `eaos/load_model.py`
+- `tests/test_load_model.py`
+
+**الخطوات:**
+
+1. عرّف في load_model.py مجموعة DETECTOR_LANGUAGES لكل سؤال: اللغات التي يملك كاشفه مفرداتها
+2. اجعل الجواب answered بقيمة False حين يتحقق شرطان معًا: التدفّق تُتبّع فعلًا، ولغة كل ملف في المسار داخل DETECTOR_LANGUAGES لذلك السؤال
+3. اجعل الدليل في هذه الحالة معرّفات حقائق التدفّق التي فُحصت، فالجواب السالب يحتاج دليلًا على أن البحث جرى
+4. أبقِ undetectable حين يتعذّر تتبّع التدفّق أو حين تكون لغة المسار خارج DETECTOR_LANGUAGES، مع السبب مكتوبًا
+5. أضف سطر limitation يقول إن الجواب السالب يعني غياب الدليل ضمن مفردات الكاشف لا غياب السلوك
+6. أضف اختبارًا يثبت أن مسارًا بلغة غير مدعومة يبقى undetectable وأن مسارًا مدعومًا متتبّعًا يصير answered
+
+**معيار القبول:**
+
+```bash
+python -m unittest tests.test_load_model -q && eaos audit . --out /tmp/n11t3 --skip site && python3 -c "import sys;sys.path.insert(0,'.');from eaos import capability;v=capability.load_model('/tmp/n11t3')['questions_answered'];assert v is not None and v>=0.7, v"
+```
+
+**التراجع:** git checkout eaos/load_model.py
+
+### N11.T4 — نفس الأسئلة على Go بعد أن صار له تدفّق ⬜
+
+**لماذا:** لا يمكن الإجابة عن سؤال مسار قبل وجود مسار؛ بعد N11.T2 صار للغو تدفّقات فتلزمه مفردات الكواشف.
+**يحرّك:** `load_model.questions_answered` من `0.0192` إلى `0.5`
+**يعتمد على:** N11.T2, N11.T3
+
+**الملفات:**
+
+- `eaos/facts/runtime.py`
+- `eaos/facts/domain.py`
+- `eaos/load_model.py`
+- `tests/test_facts_runtime.py`
+
+**الخطوات:**
+
+1. أضف مفردات Go لكل كاشف: database/sql و gorm.io/gorm و jmoiron/sqlx لاستدعاء البيانات
+2. أضف sync.Mutex و sync.RWMutex و المتغيّرات المعلنة على مستوى الحزمة والقابلة للتعديل للحالة المشتركة
+3. أضف context.WithTimeout و context.WithDeadline و http.Client ذي Timeout لحماية الاستدعاء الخارجي
+4. أضف golang.org/x/time/rate و ulule/limiter لتحديد المعدّل
+5. أضف patrickmn/go-cache و hashicorp/golang-lru و sync.Map للتخزين المؤقت
+6. أضف go إلى DETECTOR_LANGUAGES لكل سؤال أضفت مفرداته وحدها
+7. أضف لكل كاشف جديد حالة Go موجبة وحالة سالبة تحت tests/fixtures/benchmarks/load
+
+**معيار القبول:**
+
+```bash
+eaos audit /workspace/upstream-src/enola --out /tmp/n11t4 --skip site && python3 -c "import sys;sys.path.insert(0,'.');from eaos import capability;v=capability.load_model('/tmp/n11t4')['questions_answered'];assert v is not None and v>=0.5, v"
+```
+
+**التراجع:** git checkout eaos/facts/runtime.py eaos/facts/domain.py eaos/load_model.py
+
+### N11.T5 — أمر قبول قابل للّصق في كل مرحلة تحويل ⬜
+
+**لماذا:** N7.T1 كتب argv والمقياس يقرأ acceptance.command، فهبط المؤشر من 0.9365 إلى صفر بينما نجح اختباره.
+**يحرّك:** `transformation_plan.stages_with_runnable_acceptance` من `0.0` إلى `0.9`
+
+**الملفات:**
+
+- `eaos/transform_plan.py`
+- `tests/test_transformation_handoff.py`
+
+**الخطوات:**
+
+1. أضف مفتاح command إلى سجل قبول المرحلة يحمل نفس argv مجموعًا بمسافات وجاهزًا للّصق في صدفة
+2. أبقِ argv كما هو فهو الشكل الذي يستهلكه المنفّذ الآلي
+3. أضف اختبارًا يقرأ transform-plan.json من تقرير حقيقي ويثبت أن كل مرحلة تحمل command غير فارغ
+
+**معيار القبول:**
+
+```bash
+python -m unittest tests.test_transformation_handoff -q && eaos audit . --out /tmp/n11t5 --skip site && python3 -c "import sys;sys.path.insert(0,'.');from eaos import capability;v=capability.transformation_plan('/tmp/n11t5')['stages_with_runnable_acceptance'];assert v is not None and v>=0.9, v"
+```
+
+**التراجع:** git checkout eaos/transform_plan.py
+
+### N11.T7 — منع ابتلاع فشل المحرّك بصمت ⬜
+
+**لماذا:** دمج حواف CodeGraph ملفوف بـ except Exception: pass وفوقه شرط ميت or True، فأي فشل هنا غير مرئي في أي تقرير.
 **يحرّك:** `layered_engineering.tests_pass` من `1.0` إلى `1.0`
 
 **الملفات:**
@@ -1153,89 +1264,38 @@ python -m unittest tests.test_engine_contracts -q && python3 -c "import ast;t=as
 
 **التراجع:** git checkout eaos/facts/external.py
 
-### N11.T3 — إعادة أمر القبول القابل للتشغيل إلى كل مرحلة تحويل ⬜
+### N11.T6 — سؤال CodeGraph عن ملف لا عن مجلد ⬜
 
-**لماذا:** N7.T1 كتب argv والمقياس يقرأ acceptance.command، فهبط المؤشر من 0.9365 إلى صفر بينما نجح اختباره.
-**يحرّك:** `transformation_plan.stages_with_runnable_acceptance` من `0.0` إلى `0.9`
-
-**الملفات:**
-
-- `eaos/transform_plan.py`
-- `tests/test_transformation_handoff.py`
-
-**الخطوات:**
-
-1. أضف مفتاح command إلى سجل قبول المرحلة يحمل نفس argv مجموعًا بمسافات وجاهزًا للّصق في صدفة
-2. أبقِ argv كما هو فهو الشكل الذي يستهلكه المنفّذ الآلي
-3. أضف اختبارًا يقرأ transform-plan.json من تقرير حقيقي ويثبت أن كل مرحلة تحمل command غير فارغ
-
-**معيار القبول:**
-
-```bash
-python -m unittest tests.test_transformation_handoff -q && eaos audit . --out /tmp/n11t3 --skip site && python3 -c "import sys;sys.path.insert(0,'.');from eaos import capability;v=capability.transformation_plan('/tmp/n11t3')['stages_with_runnable_acceptance'];assert v>=0.9, v"
-```
-
-**التراجع:** git checkout eaos/transform_plan.py
-
-### N11.T4 — الأسئلة العمياء الأربعة على كود بايثون حقيقي ⬜
-
-**لماذا:** على مستودعنا نفسه تُصنَّف cached و complexity_class و repeats_per_iteration و shared_mutable_state غير قابلة للكشف في 56 نقطة دخول من 56.
-**يحرّك:** `load_model.questions_answered` من `0.2165` إلى `0.6`
+**لماذا:** الأداة ترجع صفرًا عن مجلد وحواف حقيقية عن ملف، وتفهرس 66477 حافة نستخرج منها صفرًا؛ و analyze_complexity مرفوضة اليوم برسالة Missing uri parameter.
+**يحرّك:** `load_model.questions_answered` من `0.5` إلى `0.6`
+**يعتمد على:** N11.T3, N11.T7
 
 **الملفات:**
 
-- `eaos/load_model.py`
-- `eaos/facts/runtime.py`
-- `eaos/facts/domain.py`
-- `tests/test_load_model.py`
-
-**الخطوات:**
-
-1. اطبع لكل سؤال من الأربعة سبب undetectable الحالي على تقرير /tmp/selfr وصنّف الأسباب
-2. لكل سبب قرّر: الحقيقة غائبة من المستخرج، أو موجودة ولا يصلها الربط
-3. أصلح الربط حيث تكون الحقيقة موجودة، وأضف الاستخراج الناقص حيث تكون غائبة
-4. أبقِ undetectable مع سبب مقيس حيث يتعذّر الكشف فعلًا، فالصمت المعلن أصدق من تخمين
-5. أضف اختبارًا يثبت لكل سؤال حالة موجبة وحالة سالبة من tests/fixtures/benchmarks/load
-
-**معيار القبول:**
-
-```bash
-python -m unittest tests.test_load_model -q && eaos audit . --out /tmp/n11t4 --skip site && python3 -c "import sys;sys.path.insert(0,'.');from eaos import capability;v=capability.load_model('/tmp/n11t4')['questions_answered'];assert v>=0.6, v"
-```
-
-**التراجع:** git checkout eaos/load_model.py eaos/facts/runtime.py eaos/facts/domain.py
-
-### N11.T5 — نفس الأسئلة الثمانية على كود Go حقيقي ⬜
-
-**لماذا:** على enola تُجاب 1.9% من الأسئلة؛ نموذج الحمل هو قلب الاستشارة وهو أعمى خارج بايثون.
-**يحرّك:** `load_model.questions_answered` من `0.0192` إلى `0.5`
-**يعتمد على:** N11.T4
-
-**الملفات:**
-
-- `eaos/facts/runtime.py`
-- `eaos/facts/domain.py`
-- `eaos/load_model.py`
+- `eaos/engines/codegraph.py`
+- `eaos/facts/external.py`
 - `tests/test_engine_contracts.py`
 
 **الخطوات:**
 
-1. شغّل eaos audit /workspace/upstream-src/enola --out /tmp/n11t5 --skip site واطبع سبب undetectable لكل سؤال
-2. أضف مفردات Go لكل كاشف ينقصه: database/sql و gorm و sqlx لاستدعاء البيانات، و sync.Mutex و المتغيّرات العامة للحالة المشتركة، و context.WithTimeout للحماية الخارجية، و golang.org/x/time/rate لتحديد المعدّل
-3. أضف حالة اختبار Go موجبة وأخرى سالبة لكل كاشف جديد تحت tests/fixtures/benchmarks/load
-4. تأكد أن المستخرج يُبقي unknown مع سبب في اللغات التي لا نملك مفرداتها
+1. مرّر uri=file://<مسار الملف المطلق> إلى codegraph_get_dependency_graph و codegraph_analyze_complexity لكل ملف مصدري في الجرد
+2. اقرأ الحمولة كما هي: nodes فيها type=codefile ومعها path حقيقي، و type=module ومعها name فقط و path فارغ، و edges فيها from و to و type=import
+3. حوّل كل عنصر functions من analyze_complexity إلى حقيقة symbol_metric_external تحمل complexity و grade و lines_of_code ومسار الملف
+4. احذف probe_paths المكتوبة يدويًا لملفات enola واستبدلها بمسارات نقاط الدخول المسجّلة في facts/entrypoints.json
+5. في find_hot_paths استبعد المسارات التي تطابق NOT_THE_READER_S_CODE فالنتيجة الأولى اليوم داخل testdata
+6. تأكد أن complexity_class يصير answered لأن perf_facts صارت تحمل مسارات ملفات المسار
 
 **معيار القبول:**
 
 ```bash
-eaos audit /workspace/upstream-src/enola --out /tmp/n11t5 --skip site && python3 -c "import sys;sys.path.insert(0,'.');from eaos import capability;v=capability.load_model('/tmp/n11t5')['questions_answered'];assert v>=0.5, v"
+eaos audit . --out /tmp/n11t6 --skip site --engines codegraph enola jscpd reforge && python3 -c "import json,collections;d=json.load(open('/tmp/n11t6/facts/external.json'));k=collections.Counter(f['kind'] for f in d['facts']);assert k.get('symbol_metric_external',0)>0, k" && python3 -c "import sys;sys.path.insert(0,'.');from eaos import capability;v=capability.load_model('/tmp/n11t6')['questions_answered'];assert v is not None and v>=0.6, v"
 ```
 
-**التراجع:** git checkout eaos/facts/runtime.py eaos/facts/domain.py eaos/load_model.py
+**التراجع:** git checkout eaos/engines/codegraph.py eaos/facts/external.py
 
-### N11.T6 — بدائل معمارية تخص المكوّن لا قالبًا مكرّرًا ⬜
+### N11.T8 — بدائل معمارية تخص المكوّن لا قالبًا مكرّرًا ⬜
 
-**لماذا:** تسعة قرارات تحمل نفس الخيارين ونفس المقايضة ونفس خطوات الهجرة؛ المؤشر يقرأ 1.0 والمحتوى فارغ.
+**لماذا:** تسعة قرارات على تسعة مكوّنات تحمل نفس الخيارين ونفس جملة المقايضة ونفس خطوات الهجرة، و«لا تفعل شيئًا» ليس بديلًا هندسيًا.
 **يحرّك:** `target_architecture.decisions_with_alternatives` من `1.0` إلى `1.0`
 
 **الملفات:**
@@ -1245,67 +1305,43 @@ eaos audit /workspace/upstream-src/enola --out /tmp/n11t5 --skip site && python3
 
 **الخطوات:**
 
-1. اشتق الخيارات من نوع الدليل: دورة تُقابَل بكسر الاعتماد أو بإدخال واجهة، وعائق حمل يُقابَل بتحديد المعدّل أو بالتخزين المؤقت أو بترقيم النتائج
-2. اكتب المقايضة بالأرقام المقيسة للمكوّن: عدد الادعاءات الحيّة وعدد المخالفات وعدد عوائق الحمل
+1. اشتق الخيارات من نوع الدليل: الدورة تُقابَل بكسر الاعتماد أو بإدخال واجهة، وعائق الحمل يُقابَل بتحديد المعدّل أو بالتخزين المؤقت أو بترقيم النتائج، ومخالفة السياسة تُقابَل بنقل الملف أو بتعديل السياسة
+2. اكتب المقايضة بأرقام المكوّن المقيسة: عدد الادعاءات الحيّة وعدد المخالفات وعدد عوائق الحمل
 3. اجعل خطوات الهجرة تسمّي ملفات المكوّن الفعلية المأخوذة من الدليل
-4. احصر قائمة evidence في خمسة معرّفات على الأكثر مع عدّاد للباقي حتى يبقى القرار مقروءًا
+4. احصر قائمة evidence في خمسة معرّفات مع عدّاد للباقي حتى يبقى القرار مقروءًا
 5. أضف اختبارًا يثبت أن مجموعات الخيارات ليست كلها متطابقة
 
 **معيار القبول:**
 
 ```bash
-python -m unittest tests.test_target_architecture -q && eaos audit . --out /tmp/n11t6 --skip site && python3 -c "import json;d=json.load(open('/tmp/n11t6/target-architecture.json'));o=[tuple(x['options']) for x in d['decisions']];assert len(set(o))>=2, len(set(o))"
+python -m unittest tests.test_target_architecture -q && eaos audit . --out /tmp/n11t8 --skip site && python3 -c "import json;d=json.load(open('/tmp/n11t8/target-architecture.json'));o=[tuple(x['options']) for x in d['decisions']];assert len(set(o))>=2, len(set(o));assert all(len(x['evidence'])<=6 for x in d['decisions'])"
 ```
 
 **التراجع:** git checkout eaos/target_architecture.py
 
-### N11.T7 — بوابة عدم التراجع تقيس على علامة مثبّتة لا على آخر قياس ⬜
+### N11.T9 — المحرّكات تعمل وقت الحكم والعلامة لا تُخفَض ⬜
 
-**لماذا:** الدرجة المسجّلة تُكتب فوق نفسها، فانخفاض transformation_plan من 0.9788 إلى 0.6667 عبر البوابة دون إنذار.
-**يعتمد على:** N11.T3
+**لماذا:** القياس يجري بلا engines فالمحرّكات مطفأة وقت الحكم؛ والبوابة تقارن بالملف الذي تكتبه كل إعادة قياس فوق نفسها، فمرّ هبوط 0.9788 إلى 0.6667 بلا إنذار.
+**يعتمد على:** N11.T5
 
 **الملفات:**
 
+- `tools/capability_score.py`
 - `tests/gate/capability_no_regression.sh`
 - `docs/capability-high-water.json`
-- `tools/capability_score.py`
 
 **الخطوات:**
 
-1. أنشئ docs/capability-high-water.json يحمل أعلى درجة بلغها كل مجال مع الالتزام الذي بلغها
-2. اجعل tools/capability_score.py --write يرفع العلامة عند التحسّن ولا يخفضها أبدًا
-3. اجعل البوابة تقارن بالعلامة المثبّتة لا بـ docs/capability-score.json
-4. شغّل البوابة على الحالة الحالية وتأكد أنها ترفض أي مجال أقل من علامته
-
-**معيار القبول:**
-
-```bash
-bash tests/gate/capability_no_regression.sh && python3 -c "import json;h=json.load(open('docs/capability-high-water.json'));assert h['domains']['transformation_plan']>=0.9788, h['domains']"
-```
-
-**التراجع:** git checkout tests/gate/capability_no_regression.sh tools/capability_score.py && rm -f docs/capability-high-water.json
-
-### N11.T8 — المحرّكات الأربعة تعمل في كل قياس ⬜
-
-**لماذا:** القياس يجري بلا --engines، فالمحرّكات الأربعة التي بُني عليها المشروع مُطفأة وقت الحكم.
-**يعتمد على:** N11.T1
-
-**الملفات:**
-
-- `tools/capability_score.py`
-- `tests/gate/capability_no_regression.sh`
-- `docs/capability-plan.json`
-
-**الخطوات:**
-
-1. أضف --engines codegraph enola jscpd reforge إلى كل أمر audit في بوابة عدم التراجع
+1. أضف --engines codegraph enola jscpd reforge إلى كل أمر audit داخل بوابة عدم التراجع
 2. اجعل tools/capability_score.py يرفض تقريرًا حالة مرحلة engines فيه unavailable بسبب أن المحرّكات لم تُطلب
-3. حدّث خطوات كل مهمة في الخطة تستدعي audit لتشمل المحرّكات
+3. أنشئ docs/capability-high-water.json يحمل أعلى درجة بلغها كل مجال مع الالتزام الذي بلغها
+4. اجعل الكتابة ترفع العلامة عند التحسّن ولا تخفضها أبدًا
+5. اجعل البوابة تقارن بالعلامة المثبّتة لا بـ docs/capability-score.json
 
 **معيار القبول:**
 
 ```bash
-bash tests/gate/capability_no_regression.sh && python3 -c "import json;m=json.load(open('/tmp/n11t1/run-manifest.json'));s=m['stages']['engines'];assert s['status']=='ok', s"
+bash tests/gate/capability_no_regression.sh && python3 -c "import json;h=json.load(open('docs/capability-high-water.json'));d=h['domains'];assert d['transformation_plan']>=0.9788, d;assert d['layered_engineering']>=1.0, d"
 ```
 
-**التراجع:** git checkout tools/capability_score.py tests/gate/capability_no_regression.sh
+**التراجع:** git checkout tools/capability_score.py tests/gate/capability_no_regression.sh && rm -f docs/capability-high-water.json
