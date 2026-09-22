@@ -1349,7 +1349,7 @@
           "rollback": "git checkout eaos/facts/external.py",
           "depends_on": [],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N11.T6",

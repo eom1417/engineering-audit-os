@@ -77,7 +77,7 @@ python -m unittest discover -s tests -q && python tools/validate.py && python to
 | N8 | تقرير يفهمه أي نموذج وينفّذه | N5, N6, N7 | 0/3 | ⬜ |
 | N9 | الحكم المستقل | N8 | 1/2 | ⬜ |
 | N10 | إعادة القياس وقرار الإصدار | N2, N3, N4, N5, N6, N7, N8 | 0/2 | ⬜ |
-| N11 | إصلاح ما كشفته المراجعة البعدية | N3, N5, N6, N7 | 5/9 | ⬜ |
+| N11 | إصلاح ما كشفته المراجعة البعدية | N3, N5, N6, N7 | 6/9 | ⬜ |
 
 ## N1 — أداة القياس وبوابة عدم التراجع
 
@@ -1239,7 +1239,7 @@ python -m unittest tests.test_transformation_handoff -q && eaos audit . --out /t
 
 **التراجع:** git checkout eaos/transform_plan.py
 
-### N11.T7 — منع ابتلاع فشل المحرّك بصمت ⬜
+### N11.T7 — منع ابتلاع فشل المحرّك بصمت ✅
 
 **لماذا:** دمج حواف CodeGraph ملفوف بـ except Exception: pass وفوقه شرط ميت or True، فأي فشل هنا غير مرئي في أي تقرير.
 **يحرّك:** `layered_engineering.tests_pass` من `1.0` إلى `1.0`

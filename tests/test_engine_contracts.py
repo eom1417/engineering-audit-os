@@ -270,6 +270,17 @@ class CodegraphWrapperContracts(unittest.TestCase):
         self.assertNotIn('codegraph_get_call_graph', result['summary']['tools'])
         self.assertNotIn('codegraph_analyze_complexity', result['summary']['tools'])
 
+    def test_external_merge_has_no_silent_exception_handler_or_dead_true_branch(self):
+        import ast
+        source = (Path(__file__).resolve().parents[1] / 'eaos/facts/external.py').read_text()
+        tree = ast.parse(source)
+        silent = [node.lineno for node in ast.walk(tree) if isinstance(node, ast.ExceptHandler)
+                  and len(node.body) == 1 and isinstance(node.body[0], ast.Pass)]
+        self.assertEqual(silent, [])
+        self.assertNotIn('or True', source)
+        self.assertIn("'edge_merge'", source)
+        self.assertIn("'zero_findings'", source)
+
 
 class LoadCorpusTests(unittest.TestCase):
     """Every one of the eight load questions must be answerable on a case built to answer it."""

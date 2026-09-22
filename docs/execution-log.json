@@ -924,6 +924,34 @@
       },
       "overall_at_this_point": 0.8125,
       "note": "Added Go load vocabularies with positive/negative tests; Enola acceptance passed and load_model rose to 0.9167."
+    },
+    {
+      "task": "N11.T7",
+      "title": "منع ابتلاع فشل المحرّك بصمت",
+      "recorded_at": "2026-09-22T21:46:03+00:00",
+      "commit": "a359752",
+      "acceptance_command": "python -m unittest tests.test_engine_contracts -q && python3 -c \"import ast;t=ast.parse(open('eaos/facts/external.py').read());bad=[n.lineno for n in ast.walk(t) if isinstance(n,ast.ExceptHandler) and len(n.body)==1 and isinstance(n.body[0],ast.Pass)];assert not bad, bad\"",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "layered_engineering.tests_pass",
+        "from": 1.0,
+        "to": 1.0
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.9167,
+        "target_architecture": 0.6667,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8125,
+      "note": "CodeGraph edge merge now reports merged, empty, failed, or unavailable; zero normalized facts carry a reason."
     }
   ]
 }

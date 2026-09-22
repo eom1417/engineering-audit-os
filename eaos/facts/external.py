@@ -7,6 +7,7 @@ tree produce the same bytes.
 """
 from . import digest, make
 from .source import LANGUAGE_BY_SUFFIX
+from pathlib import Path
 
 NAME = 'external'
 VERSION = '1'
@@ -34,19 +35,27 @@ def run(target, source, out=None, only=None):
     versions = ''.join(f"{name}={detail.get('version')};" for name, detail in sorted(manifest['coverage'].items()))
     input_sha = digest((source.fingerprint + '|' + versions).encode('utf-8'))
     facts = []
+    present, absent = observed(manifest), missing(manifest)
+    edge_merge = {'status': 'not_available', 'reason': 'codegraph was not observed in this run',
+                  'call_edges': 0, 'module_edges': 0}
     # CodeGraph edges are facts at a different layer than findings; they belong in our graph.
-    try:
-        from ..engines import codegraph as codegraph_engine
-        if Path(workdir + '/engines').exists() or True:
-            workdir_path = Path(workdir) if workdir else None
-            if workdir_path is not None:
-                edges = codegraph_engine.run(target, workdir_path / 'codegraph', tools=None)
-                facts.extend(_from_external_call_edges(target, [f for f in edges['facts']
-                                                                if f['kind'] == 'call_edge_external']))
-                facts.extend(_from_external_module_edges(target, [f for f in edges['facts']
-                                                                  if f['kind'] == 'module_edge_external']))
-    except Exception:
-        pass
+    if 'codegraph' in present:
+        try:
+            from ..engines import codegraph as codegraph_engine
+            edges = codegraph_engine.run(target, Path(workdir) / 'codegraph', tools=None)
+            call_edges = [f for f in edges['facts'] if f['kind'] == 'call_edge_external']
+            module_edges = [f for f in edges['facts'] if f['kind'] == 'module_edge_external']
+            facts.extend(_from_external_call_edges(target, call_edges))
+            facts.extend(_from_external_module_edges(target, module_edges))
+            total = len(call_edges) + len(module_edges)
+            edge_merge = {'status': 'merged' if total else 'empty',
+                          'reason': ('CodeGraph returned no call or module edges.' if not total else
+                                     'CodeGraph edges were normalized into the external fact set.'),
+                          'call_edges': len(call_edges), 'module_edges': len(module_edges)}
+        except Exception as error:
+            edge_merge = {'status': 'failed',
+                          'reason': f'{type(error).__name__}: {error}'[:300],
+                          'call_edges': 0, 'module_edges': 0}
     for item in manifest['findings']:
         subject = item['subject']
         facts.append(make('engine_finding', NAME, VERSION, input_sha,
@@ -57,12 +66,15 @@ def run(target, source, out=None, only=None):
                            'subject_kind': subject.get('kind'),
                            'sites': [{'path': path, 'line': line} for path, line in item.get('sites', [])]},
                           limitations=LIMITATIONS[:1]))
-    present, absent = observed(manifest), missing(manifest)
+    counts = {name: len([f for f in facts if f['value']['engine'] == name]) for name in present}
     summary = {'engines_observed': present, 'engines_unavailable': absent,
                # What each engine actually looked for, so silence can be told from absence.
                'evaluated_kinds': {name: manifest['coverage'][name]['evaluated_kinds'] for name in present},
                'findings': len(facts), 'target_unchanged': manifest['target_unchanged'],
-               'by_engine': {name: len([f for f in facts if f['value']['engine'] == name]) for name in present},
+               'by_engine': counts,
+               'zero_findings': {name: 'engine completed but normalized zero facts'
+                                 for name, count in counts.items() if count == 0},
+               'edge_merge': edge_merge,
                'by_kind': {kind: len([f for f in facts if f['value']['kind'] == kind])
                            for kind in sorted({f['value']['kind'] for f in facts})},
                'unmapped_rules': {name: manifest['engines'][name].get('unmapped_rules', {}) for name in present}}
