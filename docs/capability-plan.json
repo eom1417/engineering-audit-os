@@ -908,8 +908,7 @@
           "rollback": "إرجاع المعيار الوصفي",
           "depends_on": [],
           "references": [],
-          "status": "blocked",
-          "blocked_reason": "measured on a real report the indicator it was meant to raise fell 0.9365 to 0.0: the stage acceptance carries argv but the scorer reads acceptance.command; N11.T3 restores it"
+          "status": "done"
         },
         {
           "id": "N7.T2",
@@ -1008,7 +1007,7 @@
             "N8.T1"
           ],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N8.T3",
@@ -1379,7 +1378,7 @@
             "N11.T7"
           ],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N11.T8",
@@ -1442,8 +1441,8 @@
   "totals": {
     "milestones": 11,
     "tasks": 44,
-    "done": 25,
-    "todo": 15,
-    "blocked": 4
+    "done": 38,
+    "todo": 4,
+    "blocked": 2
   }
 }

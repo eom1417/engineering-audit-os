@@ -11,6 +11,7 @@ from pathlib import Path
 
 NAME = 'external'
 VERSION = '1'
+PINNED_CODEGRAPH = 'v0.20.1'
 LIMITATIONS = [
     'Every finding here comes from an engine whose rules we did not implement and cannot vouch for; '
     'it is heuristic evidence, and one engine agreeing with itself is not corroboration.',
@@ -42,16 +43,25 @@ def run(target, source, out=None, only=None):
     if 'codegraph' in present:
         try:
             from ..engines import codegraph as codegraph_engine
-            edges = codegraph_engine.run(target, Path(workdir) / 'codegraph', tools=None)
+            # The adapter already ran the tools during `analyze` and wrote what it found beside
+            # its report. Reading that file keeps this to one pass over the files.
+            edges = codegraph_engine.read_graph_facts(Path(workdir) / 'engines')
             call_edges = [f for f in edges['facts'] if f['kind'] == 'call_edge_external']
             module_edges = [f for f in edges['facts'] if f['kind'] == 'module_edge_external']
+            metrics = [f for f in edges['facts'] if f['kind'] == 'symbol_metric_external']
             facts.extend(_from_external_call_edges(target, call_edges))
             facts.extend(_from_external_module_edges(target, module_edges))
-            total = len(call_edges) + len(module_edges)
+            facts.extend(_from_external_symbol_metrics(input_sha, metrics))
+            facts.extend(_as_symbol_metrics(input_sha, metrics))
+            total = len(call_edges) + len(module_edges) + len(metrics)
             edge_merge = {'status': 'merged' if total else 'empty',
-                          'reason': ('CodeGraph returned no call or module edges.' if not total else
-                                     'CodeGraph edges were normalized into the external fact set.'),
-                          'call_edges': len(call_edges), 'module_edges': len(module_edges)}
+                          'reason': ('CodeGraph returned no call edge, module edge or symbol metric.'
+                                     if not total else
+                                     'CodeGraph output was normalized into the external fact set.'),
+                          'call_edges': len(call_edges), 'module_edges': len(module_edges),
+                          'symbol_metrics': len(metrics),
+                          'files_asked': edges['summary'].get('files_asked', 0),
+                          'tools': dict(edges['summary'].get('tools') or {})}
         except Exception as error:
             edge_merge = {'status': 'failed',
                           'reason': f'{type(error).__name__}: {error}'[:300],
@@ -66,7 +76,10 @@ def run(target, source, out=None, only=None):
                            'subject_kind': subject.get('kind'),
                            'sites': [{'path': path, 'line': line} for path, line in item.get('sites', [])]},
                           limitations=LIMITATIONS[:1]))
-    counts = {name: len([f for f in facts if f['value']['engine'] == name]) for name in present}
+    # A merged graph edge is an engine fact too, but it carries no finding `kind`: it is an edge,
+    # not a judgement. Counting over `.get` keeps it in the engine tallies without inventing a
+    # kind for it, and keeps one missing key from taking the whole stage down.
+    counts = {name: len([f for f in facts if f['value'].get('engine') == name]) for name in present}
     summary = {'engines_observed': present, 'engines_unavailable': absent,
                # What each engine actually looked for, so silence can be told from absence.
                'evaluated_kinds': {name: manifest['coverage'][name]['evaluated_kinds'] for name in present},
@@ -75,11 +88,61 @@ def run(target, source, out=None, only=None):
                'zero_findings': {name: 'engine completed but normalized zero facts'
                                  for name, count in counts.items() if count == 0},
                'edge_merge': edge_merge,
-               'by_kind': {kind: len([f for f in facts if f['value']['kind'] == kind])
-                           for kind in sorted({f['value']['kind'] for f in facts})},
+               'by_kind': {kind: len([f for f in facts if f['value'].get('kind') == kind])
+                           for kind in sorted({f['value'].get('kind') for f in facts if f['value'].get('kind')})},
+               'graph_edges_without_a_finding_kind': len([f for f in facts if not f['value'].get('kind')]),
                'unmapped_rules': {name: manifest['engines'][name].get('unmapped_rules', {}) for name in present}}
     return {'facts': facts, 'input_sha': input_sha, 'summary': summary, 'available': bool(present),
             'reason': None if present else 'no external engine is installed'}
+
+
+def _from_external_symbol_metrics(input_sha, metric_facts):
+    """Per-symbol complexity becomes a performance finding, because that is how it is read.
+
+    `load_model` answers `complexity_class` from findings whose rule is `performance`. A metric
+    recorded under any other rule is a measurement nobody reads, so the engine's complexity grade
+    enters under the name its only consumer looks for, carrying the file it was measured in.
+    """
+    out = []
+    for fact in metric_facts:
+        value = fact.get('value', {})
+        out.append(make('engine_finding', NAME, VERSION, input_sha,
+                        {'path': fact['location']['path'], 'line': fact['location'].get('line'),
+                         'symbol': value.get('name')},
+                        {'engine': 'codegraph', 'engine_version': PINNED_CODEGRAPH, 'rule': 'performance',
+                         'kind': 'complexity', 'method': 'measured',
+                         'message': (f"{value.get('name', 'symbol')}: cyclomatic complexity "
+                                     f"{value.get('complexity')} (grade {value.get('grade') or 'n/a'})"),
+                         'measurements': [{'name': 'complexity', 'value': value.get('complexity')},
+                                          {'name': 'lines_of_code', 'value': value.get('lines')},
+                                          {'name': 'branches', 'value': value.get('branches')},
+                                          {'name': 'loops', 'value': value.get('loops')},
+                                          {'name': 'nesting', 'value': value.get('nesting')}],
+                         'engine_confidence': None, 'subject_kind': 'symbol',
+                         'complexity': value.get('complexity'), 'grade': value.get('grade'),
+                         'sites': []},
+                        limitations=LIMITATIONS[:1]))
+    return out
+
+
+def _as_symbol_metrics(input_sha, metric_facts):
+    """Keep the measurement in the vocabulary the engine contract declares for it.
+
+    `symbol_metric_external` is one of the kinds an engine is allowed to produce, and it carries a
+    granularity and a set of measurements that a `performance` finding flattens into prose. Both
+    are stored: the finding is what `load_model` reads, and this is what a reader auditing the
+    engine layer's own vocabulary finds when they look for it.
+    """
+    out = []
+    for fact in metric_facts:
+        value = dict(fact.get('value') or {})
+        value['engine'] = 'codegraph'
+        value['engine_version'] = PINNED_CODEGRAPH
+        out.append(make('symbol_metric_external', NAME, VERSION, input_sha,
+                        {'path': fact['location']['path'], 'line': fact['location'].get('line'),
+                         'symbol': value.get('name')},
+                        value, limitations=LIMITATIONS[:1]))
+    return out
 
 def _from_external_call_edges(target, codegraph_facts):
     """Convert codegraph's call_edge_external facts into our call_edge facts.

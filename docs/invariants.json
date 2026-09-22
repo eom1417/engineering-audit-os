@@ -138,6 +138,24 @@
       "note": "N3.T2: wrapper never hides a tool failure"
     },
     {
+      "id": "INV-297c0deaea",
+      "file": "eaos/engines/codegraph.py",
+      "symbol": "_module_edges_from_dep_graph",
+      "statement": "Emitting the raw ids would hand the reader a number it cannot resolve, so an edge whose ends we cannot name is dropped rather than recorded as an edge between unknowns.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_engine_contracts.py::CodeGraphAdapterContractTests::test_a_dependency_edge_whose_ends_have_no_name_is_dropped_not_numbered",
+      "note": ""
+    },
+    {
+      "id": "INV-24dc042618",
+      "file": "eaos/engines/codegraph.py",
+      "symbol": "_relative",
+      "statement": "A path the reader can open: relative to the scanned tree, never the engine's absolute path.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_engine_contracts.py::CodeGraphAdapterContractTests::test_an_absolute_engine_path_is_recorded_relative_to_the_scanned_tree",
+      "note": ""
+    },
+    {
       "id": "INV-6339b5c228",
       "file": "eaos/engines/codegraph.py",
       "symbol": "_run",
@@ -145,6 +163,15 @@
       "kind": "invariant",
       "enforced_by": "tests/test_engine_contracts.py::CodegraphWrapperContracts::test_run_does_not_raise_when_binary_is_missing",
       "note": "N3.T2: wrapper never raises"
+    },
+    {
+      "id": "INV-3434c23371",
+      "file": "eaos/engines/codegraph.py",
+      "symbol": "analyze",
+      "statement": "Without it `engines.analyze` raised AttributeError on every run, the error was recorded as a status nobody reads, and the engine was absent from `engines_observed`.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_engine_contracts.py::CodeGraphAdapterContractTests::test_codegraph_implements_the_adapter_interface_every_engine_is_called_through",
+      "note": ""
     },
     {
       "id": "INV-30c763c99a",

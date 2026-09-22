@@ -317,3 +317,39 @@ class LoadCorpusTests(unittest.TestCase):
         limitations = [line for _, truth in self._cases() for line in truth.get('known_limitations', [])]
         self.assertTrue(any('engine' in line for line in limitations),
                         'complexity_class depends on an engine and the corpus should record that')
+
+
+class CodeGraphAdapterContractTests(unittest.TestCase):
+    """The adapter interface every engine implements, and the shapes CodeGraph answers in."""
+
+    def test_codegraph_implements_the_adapter_interface_every_engine_is_called_through(self):
+        # Without `analyze` the registry raised AttributeError on every run, the error was stored
+        # as a status nobody reads, and the engine never appeared in `engines_observed` -- so a
+        # working binary indexing tens of thousands of edges contributed nothing.
+        from eaos.engines import ADAPTERS
+        for name, adapter in ADAPTERS.items():
+            with self.subTest(engine=name):
+                self.assertTrue(callable(getattr(adapter, 'analyze', None)),
+                                f'{name} cannot be reached through the engine registry')
+                self.assertTrue(callable(getattr(adapter, 'capabilities', None)))
+                self.assertTrue(callable(getattr(adapter, 'version', None)))
+
+    def test_an_absolute_engine_path_is_recorded_relative_to_the_scanned_tree(self):
+        from eaos.engines.codegraph import _relative
+        self.assertEqual(_relative('/repo/pkg/a.go', '/repo'), 'pkg/a.go')
+        # A path outside the tree is kept as given rather than mangled into a wrong relative one.
+        self.assertEqual(_relative('/elsewhere/b.go', '/repo'), '/elsewhere/b.go')
+        self.assertEqual(_relative('', '/repo'), '')
+
+    def test_a_dependency_edge_whose_ends_have_no_name_is_dropped_not_numbered(self):
+        from eaos.engines.codegraph import _module_edges_from_dep_graph
+        payload = {'nodes': [{'id': '1', 'type': 'codefile', 'path': '/repo/pkg/a.go', 'language': 'go'},
+                             {'id': '2', 'type': 'module', 'name': 'strings', 'path': ''}],
+                   'edges': [{'from': '1', 'to': '2', 'type': 'import'},
+                             {'from': '1', 'to': '99', 'type': 'import'},
+                             {'from': '404', 'to': '2', 'type': 'import'}]}
+        facts = _module_edges_from_dep_graph(payload, '/repo')
+        self.assertEqual(len(facts), 1, 'edges pointing at an unknown node id must be dropped')
+        self.assertEqual(facts[0]['value']['from'], 'pkg/a.go')
+        self.assertEqual(facts[0]['value']['to'], 'strings')
+        self.assertNotIn('99', json.dumps(facts))

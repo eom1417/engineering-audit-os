@@ -1092,6 +1092,34 @@
       },
       "overall_at_this_point": 0.8496,
       "note": "FORBIDDEN_TOKENS covers omission, approximation and placeholders in both languages; real cards asserted executable"
+    },
+    {
+      "task": "N11.T6",
+      "title": "سؤال CodeGraph عن ملف لا عن مجلد",
+      "recorded_at": "2026-09-22T23:11:36+00:00",
+      "commit": "22094e5",
+      "acceptance_command": "eaos audit . --out /tmp/n11t6 --skip site --engines codegraph enola jscpd reforge && python3 -c \"import json,collections;d=json.load(open('/tmp/n11t6/facts/external.json'));k=collections.Counter(f['kind'] for f in d['facts']);assert k.get('symbol_metric_external',0)>0, k\" && python3 -c \"import sys;sys.path.insert(0,'.');from eaos import capability;v=capability.load_model('/tmp/n11t6')['questions_answered'];assert v is not None and v>=0.6, v\"",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "load_model.questions_answered",
+        "from": 0.5,
+        "to": 0.6
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.9167,
+        "target_architecture": 1.0,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8496,
+      "note": "codegraph had no analyze(): never an adapter. Now observed; 108 module edges, 98 symbol metrics; questions_answered 0.75 -> 0.9107 on self"
     }
   ]
 }
