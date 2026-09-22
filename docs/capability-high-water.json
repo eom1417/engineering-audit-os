@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "note": "The best each domain has measured. Written only upward.",
+  "domains": {
+    "independent_proof": 0.0,
+    "layered_engineering": 1.0,
+    "load_model": 0.9535,
+    "report_clarity": 1.0,
+    "runtime_surface": 0.8334,
+    "structure_polyglot": 0.9228,
+    "structure_python": 0.9732,
+    "target_architecture": 1.0,
+    "transformation_plan": 1.0
+  },
+  "reached_at": {
+    "independent_proof": "95900b6",
+    "layered_engineering": "95900b6",
+    "load_model": "95900b6",
+    "report_clarity": "95900b6",
+    "runtime_surface": "95900b6",
+    "structure_polyglot": "95900b6",
+    "structure_python": "95900b6",
+    "target_architecture": "95900b6",
+    "transformation_plan": "95900b6"
+  }
+}

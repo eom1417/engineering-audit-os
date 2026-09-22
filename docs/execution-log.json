@@ -1120,6 +1120,34 @@
       },
       "overall_at_this_point": 0.8496,
       "note": "codegraph had no analyze(): never an adapter. Now observed; 108 module edges, 98 symbol metrics; questions_answered 0.75 -> 0.9107 on self"
+    },
+    {
+      "task": "N11.T9",
+      "title": "المحرّكات تعمل وقت الحكم والعلامة لا تُخفَض",
+      "recorded_at": "2026-09-22T23:36:52+00:00",
+      "commit": "95900b6",
+      "acceptance_command": "bash tests/gate/capability_no_regression.sh && python3 -c \"import json;h=json.load(open('docs/capability-high-water.json'));d=h['domains'];assert d['transformation_plan']>=0.9788, d;assert d['layered_engineering']>=1.0, d\"",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "n/a",
+        "from": null,
+        "to": null
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.9535,
+        "target_architecture": 1.0,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8537,
+      "note": "gate compares against a write-only-upward high-water mark and runs the reference audits with the engines on; scoring refuses an engines-off report"
     }
   ]
 }

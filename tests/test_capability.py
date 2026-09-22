@@ -280,3 +280,52 @@ class PolyglotDepthThresholdTests(unittest.TestCase):
             # 0.2 + 0.0 (resolved=0/0 -> None? actually _ratio with 0 is 0)
             # + 1.0 = 1.2/3 = 0.4 -> below target
             self.assertLess(score, 0.5)
+
+
+class HighWaterTests(unittest.TestCase):
+    """The bar a domain has already cleared must survive the run that fails to clear it."""
+
+    def _card(self, **scores):
+        return {'domains': {name: {'score': value} for name, value in scores.items()}}
+
+    def test_a_mark_goes_up_and_never_comes_back_down(self):
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+        from capability_score import raise_high_water
+        with tempfile.TemporaryDirectory() as tmp:
+            record = Path(tmp) / 'high-water.json'
+            raise_high_water(self._card(alpha=0.5, beta=0.9), record)
+            self.assertEqual(json.loads(record.read_text())['domains'], {'alpha': 0.5, 'beta': 0.9})
+            # A better run raises alpha; a worse one must leave beta where it was.
+            raised = raise_high_water(self._card(alpha=0.8, beta=0.1), record)
+            stored = json.loads(record.read_text())
+            self.assertEqual(stored['domains'], {'alpha': 0.8, 'beta': 0.9})
+            self.assertEqual(raised, ['alpha: 0.5 -> 0.8'])
+            self.assertIn('beta', stored['reached_at'])
+
+    def test_an_unmeasured_domain_neither_sets_nor_erases_a_mark(self):
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+        from capability_score import raise_high_water
+        with tempfile.TemporaryDirectory() as tmp:
+            record = Path(tmp) / 'high-water.json'
+            raise_high_water(self._card(alpha=0.7), record)
+            raise_high_water(self._card(alpha=None), record)
+            self.assertEqual(json.loads(record.read_text())['domains'], {'alpha': 0.7})
+
+    def test_a_report_built_without_the_engines_is_refused_rather_than_scored(self):
+        import sys
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+        from capability_score import engines_were_off
+        with tempfile.TemporaryDirectory() as tmp:
+            off, on = Path(tmp) / 'off', Path(tmp) / 'on'
+            for folder, stage in ((off, {'status': 'unavailable',
+                                         'reason': 'external engines were not requested for this run'}),
+                                  (on, {'status': 'ok', 'reason': ''})):
+                folder.mkdir()
+                (folder / 'run-manifest.json').write_text(json.dumps({'stages': {'engines': stage}}))
+            self.assertEqual(engines_were_off([off, on]), [str(off)])
+            # A binary that is simply absent is a different situation and must not be refused.
+            (off / 'run-manifest.json').write_text(json.dumps(
+                {'stages': {'engines': {'status': 'unavailable', 'reason': 'no external engine is installed'}}}))
+            self.assertEqual(engines_were_off([off, on]), [])

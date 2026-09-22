@@ -1433,7 +1433,7 @@
             "N11.T5"
           ],
           "references": [],
-          "status": "todo"
+          "status": "done"
         }
       ]
     }
@@ -1441,8 +1441,8 @@
   "totals": {
     "milestones": 11,
     "tasks": 44,
-    "done": 38,
-    "todo": 4,
+    "done": 39,
+    "todo": 3,
     "blocked": 2
   }
 }

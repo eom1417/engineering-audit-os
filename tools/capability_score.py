@@ -4,6 +4,11 @@ Usage:  python tools/capability_score.py <report-dir> [<report-dir> ...] [--writ
 
 Every number comes from the reports given. A domain whose evidence is missing is reported as
 unmeasured, and an unmeasured domain never meets its target.
+
+`--write` also raises the high-water mark in docs/capability-high-water.json, and never lowers
+it. The no-regression gate compares against that file rather than against the scorecard, because
+the scorecard is overwritten by every remeasurement: comparing a run to a record it just wrote is
+not a comparison, and a real fall from 0.9788 to 0.6667 passed through it unremarked.
 """
 import json
 import subprocess
@@ -34,6 +39,57 @@ def environment():
     }
 
 
+HIGH_WATER = 'docs/capability-high-water.json'
+
+
+def raise_high_water(card, path=None):
+    """Record the best each domain has ever measured. A mark goes up or stays; it never comes down.
+
+    The commit that reached a level is stored beside it, so a regression can be read back to the
+    run that set the bar rather than to an anonymous number.
+    """
+    path = Path(path) if path else ROOT / HIGH_WATER
+    previous = {}
+    if path.is_file():
+        try: previous = json.loads(path.read_text(encoding='utf-8'))
+        except ValueError: previous = {}
+    domains = dict(previous.get('domains') or {})
+    commits = dict(previous.get('reached_at') or {})
+    head = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], cwd=ROOT,
+                          capture_output=True, text=True).stdout.strip() or 'unknown'
+    raised = []
+    for name, row in card['domains'].items():
+        value = row['score']
+        if value is None: continue
+        if name not in domains or value > domains[name]:
+            if name in domains: raised.append(f"{name}: {domains[name]} -> {value}")
+            domains[name], commits[name] = value, head
+    record = {'schema_version': 1, 'note': 'The best each domain has measured. Written only upward.',
+              'domains': dict(sorted(domains.items())), 'reached_at': dict(sorted(commits.items()))}
+    path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    return raised
+
+
+def engines_were_off(reports):
+    """Report directories whose engines stage says nobody asked for the engines.
+
+    The whole product is an argument for using these four engines. Judging it with them switched
+    off measures a different tool, so a scorecard built on such a report is refused rather than
+    quietly printed.
+    """
+    off = []
+    for report in reports:
+        manifest = Path(report) / 'run-manifest.json'
+        if not manifest.is_file(): continue
+        try: stages = json.loads(manifest.read_text(encoding='utf-8')).get('stages') or {}
+        except ValueError: continue
+        stage = stages.get('engines')
+        if isinstance(stage, dict) and stage.get('status') == 'unavailable' \
+           and 'not requested' in (stage.get('reason') or ''):
+            off.append(str(report))
+    return off
+
+
 def render(card):
     lines = ['# Capability scorecard', '',
              f"> Measured from {len(card['reports'])} report(s). An unmeasured indicator is not a pass. "
@@ -62,8 +118,17 @@ def main(argv):
     if missing:
         print(f'not a report directory: {missing}', file=sys.stderr)
         return 2
+    off = engines_were_off(reports)
+    if off and '--allow-engines-off' not in argv:
+        print(f'refusing to score reports produced without the engines: {off}\n'
+              f'rerun the audit with --engines codegraph enola jscpd reforge, '
+              f'or pass --allow-engines-off to record a partial measurement deliberately',
+              file=sys.stderr)
+        return 2
     card = score(reports, environment())
     if '--write' in argv:
+        for line in raise_high_water(card):
+            print('  high-water raised ' + line, file=sys.stderr)
         (ROOT / 'docs/capability-score.json').write_text(
             json.dumps(card, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         (ROOT / 'docs/CAPABILITY-SCORE.md').write_text(render(card), encoding='utf-8')
