@@ -79,6 +79,7 @@
       "eaos/command_groups.py",
       "eaos/discovery.py",
       "eaos/engagement.py",
+      "eaos/policy_assessment.py",
       "eaos/sessions.py",
       "eaos/snapshots.py",
       "eaos/surface_records.py",

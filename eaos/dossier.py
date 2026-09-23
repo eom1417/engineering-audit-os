@@ -159,8 +159,8 @@ def fact_index_of(sets):
     return index
 
 
-def build_claims(sets, records, load_record=None):
-    rows = ledger.from_facts(sets)
+def build_claims(sets, records, load_record=None, target=None):
+    rows = ledger.from_facts(sets, target=target)
     if load_record:
         rows += ledger.from_load_model({'load_model': load_record}, len(rows))
     if records['findings'] or records['architecture']:
@@ -630,7 +630,7 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=(), 
     # The load record lives beside the fact sets, not among them: it has a different shape, so it
     # is handed over separately rather than pushed into a map every consumer expects to be uniform.
     load_record = read(out / 'load-model.json') if (out / 'load-model.json').is_file() else None
-    rows, fact_index = build_claims(sets, records, load_record=load_record)
+    rows, fact_index = build_claims(sets, records, load_record=load_record, target=target)
     from fnmatch import fnmatch
     patterns = [p.strip('/') for p in (exclude or []) if p.strip('/')]
     def source_filter(path): return any(path == p or path.startswith(p + '/') or fnmatch(path, p) for p in patterns)

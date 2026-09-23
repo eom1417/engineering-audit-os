@@ -127,8 +127,13 @@ def naming(members, limit=NAMED_IN_A_STATEMENT):
     return ', '.join(members[:limit]) + f' and {len(members) - limit} more'
 
 
-def from_facts(fact_sets):
-    """Deterministic facts promoted to claims keep CONFIRMED status and name their own refutation."""
+def from_facts(fact_sets, target=None):
+    """Deterministic facts promoted to claims keep CONFIRMED status and name their own refutation.
+
+    ``target`` is the audited root, used to bind a runnable acceptance check to
+    a declared-policy violation. It is optional so test fixtures can build a
+    claim ledger without a real directory.
+    """
     claims, index = [], 0
     graph = fact_sets.get('graph', {})
     for fact in [f for f in graph.get('facts', []) if f['kind'] == 'graph_cycle']:
@@ -309,24 +314,31 @@ def from_facts(fact_sets):
                                                          'callee': fact['value']['callee'],
                                                          'expected': 'The redundant work is still present at that location.'}},
                            impact={'scenario': 'The path does more work than its result requires, on every execution.'}))
+    from .policy_assessment import build_assessment
     for fact in fact_sets.get('policy', {}).get('facts', []):
         if fact['kind'] != 'policy_violation': continue
         index += 1
-        claims.append(make(index, f"{fact['location']['path']} imports {fact['value']['to_path']}, which the declared "
-                                  f"policy forbids ({fact['value']['from_layer']} → {fact['value']['to_layer']})",
-                           'structure', 'CONFIRMED', ['static_fact'], [],
-                           'The edge disappearing from the resolved graph, or the policy being changed deliberately with a reason.',
-                           fact_ids=[fact['id']],
-                           render={'key': 'policy', 'params': {'path': fact['location']['path'],
-                                                               'to': fact['value']['to_path'],
-                                                               'from_layer': fact['value']['from_layer'],
-                                                               'to_layer': fact['value']['to_layer']}},
-                           probe_spec={'probe_type': 'graph_query',
-                                       'specification': {'query': 'policy_violation_present',
-                                                         'path': fact['location']['path'],
-                                                         'to_path': fact['value']['to_path'],
-                                                         'expected': 'The forbidden edge is still present in the resolved graph.'}},
-                           impact={'scenario': fact['value']['reason']}))
+        claim = make(index, f"{fact['location']['path']} imports {fact['value']['to_path']}, which the declared "
+                             f"policy forbids ({fact['value']['from_layer']} → {fact['value']['to_layer']})",
+                     'structure', 'CONFIRMED', ['static_fact'], [],
+                     'The edge disappearing from the resolved graph, or the policy being changed deliberately with a reason.',
+                     fact_ids=[fact['id']],
+                     render={'key': 'policy', 'params': {'path': fact['location']['path'],
+                                                         'to': fact['value']['to_path'],
+                                                         'from_layer': fact['value']['from_layer'],
+                                                         'to_layer': fact['value']['to_layer']}},
+                     probe_spec={'probe_type': 'graph_query',
+                                 'specification': {'query': 'policy_violation_present',
+                                                   'path': fact['location']['path'],
+                                                   'to_path': fact['value']['to_path'],
+                                                   'expected': 'The forbidden edge is still present in the resolved graph.'}},
+                     impact={'scenario': fact['value']['reason']})
+        if target is not None:
+            built = build_assessment(claim, fact_sets, target)
+            if built:
+                claim['assessment'] = built['assessment']
+                claim['checks'] = built['checks']
+        claims.append(claim)
     flows = fact_sets.get('flows', {})
     for fact in [f for f in flows.get('facts', []) if f['value']['unresolved_steps'] > 2][:10]:
         index += 1

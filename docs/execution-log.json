@@ -1260,6 +1260,34 @@
       },
       "overall_at_this_point": 0.8537,
       "note": "edge_fact_id قبل: None | بعد: FACT-7bf8e5e85c6cfda4 (معرّف module_edge حقيقي في resolve.json) · 13 اختبار policy يمر"
+    },
+    {
+      "task": "N12.T2",
+      "title": "مخالفة السياسة المعلنة تصير إصلاحًا بأمر قبول قابل للتشغيل",
+      "recorded_at": "2026-09-23T07:12:31+00:00",
+      "commit": "d4209e7",
+      "acceptance_command": "eaos audit tests/fixtures/benchmarks/policy-violation --out /tmp/n12t2 --skip site && python3 -c \"import json;p=json.load(open('/tmp/n12t2/plan.json'));c=[t for t in p['tasks'] if (t.get('render') or {}).get('key')=='policy'];assert c, 'no policy card';t=c[0];assert t['kind']=='remediate', t['kind'];assert t['decision']['kind']=='repair', t['decision'];assert t['decision']['readiness']=='ready', t['decision'];a=t['acceptance'][0]['command'];assert 'human review' not in a, a\"",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "n/a",
+        "from": null,
+        "to": null
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.9535,
+        "target_architecture": 1.0,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8537,
+      "note": "policy violation card: kind=investigate → kind=remediate | decision=investigate → decision=repair/readiness=ready | acceptance: 'human review' → runnable inline python (eaos facts + eaos policy check) | 934 tests pass; gate clean; capability score 0.8537 unchanged"
     }
   ]
 }

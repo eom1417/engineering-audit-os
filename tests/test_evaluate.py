@@ -90,10 +90,22 @@ class EvaluationV2Tests(TemporaryWorkspace):
         self.assertEqual(row['mode'], 'api_break')
         self.assertEqual(row['framework']['detected'], 1)
 
-    def test_investigations_are_complete_but_not_counted_as_executable_repairs(self):
+    def test_investigations_are_complete_but_only_a_declared_policy_prescribes(self):
+        # Every investigation must be complete (paths, options, acceptance, rollback, effort, blast_radius).
+        # Only a declared policy violation has the project-authored requirement the tool needs to prescribe
+        # a runnable acceptance. Other claim classes remain investigate-only until their requirements are
+        # authored and reviewed.
         totals = self.result['totals']
         self.assertEqual(totals['complete_cards'], totals['cards'])
-        self.assertEqual(totals['runnable_acceptance'], 0)
+        cases = self.details['cases']
+        policy = next(case for case in cases if case['case'] == 'policy-violation')
+        others = [case for case in cases if case['case'] != 'policy-violation']
+        self.assertEqual(policy['plan']['runnable_acceptance'], 1,
+                         'declared policy violations have a runnable acceptance check')
+        for case in others:
+            self.assertEqual(case['plan']['runnable_acceptance'], 0,
+                             case['case'] + ' must not invent a runnable check')
+        self.assertEqual(totals['runnable_acceptance'], 1)
         self.assertGreater(totals['cards'], 0)
 
     def test_the_clean_project_still_produces_nothing(self):
