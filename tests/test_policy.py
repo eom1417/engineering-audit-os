@@ -120,6 +120,35 @@ class PolicyTests(unittest.TestCase):
             self.assertEqual(result['status'], 'OK', 'the project must obey the layering it declares')
 
 
+
+class EdgeFactIdTests(unittest.TestCase):
+    """A policy violation must cite the module_edge fact it was derived from."""
+
+    def test_violation_carries_the_resolve_edge_fact_id(self):
+        import json
+        import subprocess
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'out'
+            cmd = ['eaos', 'audit',
+                   'tests/fixtures/benchmarks/policy-violation',
+                   '--out', str(out), '--skip', 'site']
+            subprocess.run(cmd, check=True)
+            resolve = json.loads((out / 'facts/resolve.json').read_text())
+            known_ids = {f['id'] for f in resolve['facts']}
+            policy = json.loads((out / 'facts/policy.json').read_text())
+            violations = [f for f in policy['facts'] if f['kind'] == 'policy_violation']
+            self.assertTrue(violations, 'the fixture must produce a violation')
+            for f in violations:
+                eid = f['value'].get('edge_fact_id')
+                self.assertIsNotNone(eid, 'edge_fact_id missing on policy_violation')
+                self.assertIn(eid, known_ids, eid)
+            self.assertTrue(any(
+                any(edge['id'] == f['value']['edge_fact_id'] and edge['kind'] == 'module_edge'
+                    for edge in resolve['facts'])
+                for f in violations), 'edge_fact_id must point to a module_edge fact')
+
+
 class DeclaredExclusionTests(unittest.TestCase):
     """What counts as the system under review is the project's decision, declared in its policy."""
 

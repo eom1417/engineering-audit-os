@@ -1470,7 +1470,7 @@
           "rollback": "git checkout eaos/policy.py",
           "depends_on": [],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N12.T2",

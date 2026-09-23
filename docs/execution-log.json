@@ -1232,6 +1232,34 @@
       },
       "overall_at_this_point": 0.8537,
       "note": "release decision stays pilot on the new evidence: 0.8537 overall, 7 of 9 at target, the two remaining need an executed stage and a human reviewer"
+    },
+    {
+      "task": "N12.T1",
+      "title": "مخالفة السياسة تحمل معرّف الحافة التي أثبتتها",
+      "recorded_at": "2026-09-23T06:31:18+00:00",
+      "commit": "643ef89",
+      "acceptance_command": "eaos audit tests/fixtures/benchmarks/policy-violation --out /tmp/n12t1 --skip site && python3 -c \"import json;p=json.load(open('/tmp/n12t1/facts/policy.json'));r={f['id'] for f in json.load(open('/tmp/n12t1/facts/resolve.json'))['facts']};v=[f for f in p['facts'] if f['kind']=='policy_violation'];assert v, 'the fixture must produce a violation';assert all(f['value'].get('edge_fact_id') in r for f in v), [f['value'].get('edge_fact_id') for f in v]\"",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "n/a",
+        "from": null,
+        "to": null
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.9535,
+        "target_architecture": 1.0,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8537,
+      "note": "edge_fact_id قبل: None | بعد: FACT-7bf8e5e85c6cfda4 (معرّف module_edge حقيقي في resolve.json) · 13 اختبار policy يمر"
     }
   ]
 }

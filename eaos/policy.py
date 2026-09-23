@@ -86,7 +86,7 @@ def violations(policy, sets):
                 found.append({'from_path': source_path, 'to_path': target_path,
                               'from_layer': source_layer, 'to_layer': target_layer,
                               'reason': rule['reason'], 'line': edge['location'].get('start_line'),
-                              'module': edge['value']['module']})
+                              'module': edge['value']['module'], 'edge_fact_id': edge['id']})
     return found, sorted(unmatched)
 
 
@@ -104,7 +104,7 @@ def run(target, out, policy_path=None, **options):
     facts = [make('policy_violation', NAME, VERSION, digest(json.dumps(policy, sort_keys=True).encode()),
                   {'path': row['from_path'], 'start_line': row['line']},
                   {'to_path': row['to_path'], 'from_layer': row['from_layer'], 'to_layer': row['to_layer'],
-                   'module': row['module'], 'reason': row['reason']}, limitations=LIMITATIONS)
+                   'module': row['module'], 'reason': row['reason'], 'edge_fact_id': row['edge_fact_id']}, limitations=LIMITATIONS)
              for row in sorted(found, key=lambda row: (row['from_path'], row['to_path']))]
     summary = {'declared': True, 'policy_file': location, 'layers': sorted(policy['layers']),
                'rules': len(policy.get('rules', [])), 'violations': len(facts),
