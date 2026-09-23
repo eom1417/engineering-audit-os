@@ -125,13 +125,13 @@ class EdgeFactIdTests(unittest.TestCase):
     """A policy violation must cite the module_edge fact it was derived from."""
 
     def test_violation_carries_the_resolve_edge_fact_id(self):
-        import json
         import subprocess
-        import tempfile
+        import sys
+        fixture = Path(__file__).resolve().parent / 'fixtures/benchmarks/policy-violation'
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'out'
-            cmd = ['eaos', 'audit',
-                   'tests/fixtures/benchmarks/policy-violation',
+            # The interpreter running the tests, not whatever `eaos` happens to be on PATH.
+            cmd = [sys.executable, '-m', 'eaos', 'audit', str(fixture),
                    '--out', str(out), '--skip', 'site']
             subprocess.run(cmd, check=True)
             resolve = json.loads((out / 'facts/resolve.json').read_text())

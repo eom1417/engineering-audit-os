@@ -94,7 +94,7 @@ TASK-003 — التعقيد 83 (العتبة 15) في eaos/sustainability.py
 ```bash
 # من جذر هذا المستودع
 python3 -m venv .venv && . .venv/bin/activate
-pip install -e ".[facts]"            # facts: محللات tree-sitter للغات غير Python
+pip install -e ".[facts,runtime]"    # facts: محللات tree-sitter للغات غير Python · runtime: coverage لمرحلة التحقق
 
 # تدقيق كامل بلا نموذج
 eaos audit /path/to/project --out /path/to/report

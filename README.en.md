@@ -94,7 +94,7 @@ TASK-003 — complexity 83 (threshold 15) in eaos/sustainability.py
 ```bash
 # from the root of this repository
 python3 -m venv .venv && . .venv/bin/activate
-pip install -e ".[facts]"            # facts: tree-sitter parsers for non-Python code
+pip install -e ".[facts,runtime]"    # facts: tree-sitter parsers for non-Python code · runtime: coverage for the verify stage
 
 # full audit, no model
 eaos audit /path/to/project --out /path/to/report
