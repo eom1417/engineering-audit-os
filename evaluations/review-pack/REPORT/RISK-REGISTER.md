@@ -5,16 +5,38 @@
 
 | # | Priority | Claim | Reach | Cost | Origin | Disposition |
 |---|---|---|---|---|---|---|
-| CLM-007 | 0.2333 | 421 functions perform the same ordered sequence of calls (cmd/enola/flags_documented_test.go:None… | 51 | large | test_and_source | investigate |
-| CLM-004 | 0.0961 | 236 functions perform the same ordered sequence of calls (internal/config/output_dir_test.go:None… | 21 | large | test_and_source | investigate |
-| CLM-001 | 0.0784 | packaging/pypi/build_wheel.py: ينادي خدمة خارجية بلا مهلة أو إعادة محاولة | 8 | medium | source | investigate |
-| CLM-002 | 0.0784 | packaging/pypi/build_wheel.py: ينادي خدمة خارجية بلا مهلة أو إعادة محاولة | 8 | medium | source | investigate |
-| CLM-006 | 0.0458 | 328 functions perform the same ordered sequence of calls (internal/clientspec/clientspec.go:None… | 10 | large | test_and_source | investigate |
-| CLM-003 | 0.0 | 149 functions perform the same ordered sequence of calls (cmd/enola/main_test.go:None… | 0 | large | test_and_source | investigate |
-| CLM-005 | 0.0 | 270 functions perform the same ordered sequence of calls (internal/engine/conceptedgematrix_test.go:None… | 0 | large | test | investigate |
-| CLM-008 | 0.0 | handleCall in internal/extractors/rubyextractor/routes_ast.go carries 109 branches over 541 lines, in a file… | 0 | large | source | investigate |
-| CLM-009 | 0.0 | registerTools in internal/server/server.go carries 189 branches over 1117 lines, in a file ranked 12 for… | 0 | large | source | investigate |
-| CLM-010 | 0.0 | walkForCalls in internal/extractors/rubyextractor/ruby_ast.go carries 102 branches over 380 lines, in a file… | 0 | large | source | investigate |
+| CLM-271 | 0.5 | 2 symbols share the same structure up to identifier names (internal/facts/accessors.go:81… | 638 | medium | source | investigate |
+| CLM-012 | 0.3265 | 16 symbols share the same structure up to identifier names (internal/explainers/deadmethods/deadmethods.go:349… | 625 | large | source | investigate |
+| CLM-569 | 0.1818 | 328 functions perform the same ordered sequence of calls (internal/clientspec/clientspec.go:None… | 497 | large | test_and_source | investigate |
+| CLM-477 | 0.1348 | 4 symbols share the same structure up to identifier names (internal/factpath/factpath.go:46… | 86 | small | source | investigate |
+| CLM-531 | 0.0729 | Flow FLOW-004 (cli baseline) stops at 4 unresolvable calls | 93 | medium | source | investigate |
+| CLM-532 | 0.0729 | Flow FLOW-005 (cli blame) stops at 3 unresolvable calls | 93 | medium | source | investigate |
+| CLM-533 | 0.0729 | Flow FLOW-008 (cli check) stops at 3 unresolvable calls | 93 | medium | source | investigate |
+| CLM-544 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-545 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-546 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-547 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-548 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-549 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-550 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-551 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-552 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-553 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-554 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-555 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-556 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-557 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-558 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-559 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-560 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-561 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-562 | 0.0729 | pkg/command/command.go: calls an external service with no timeout or retry — load blocker… | 93 | medium | source | investigate |
+| CLM-054 | 0.0721 | 2 symbols share the same structure up to identifier names (internal/explainers/constraints/basis.go:36… | 46 | small | source | investigate |
+| CLM-082 | 0.0627 | 2 symbols share the same structure up to identifier names (internal/explainers/queryloops/queryloops.go:329… | 120 | large | source | investigate |
+| CLM-450 | 0.0543 | 3 symbols share the same structure up to identifier names (internal/linkers/vocab/overlay.go:44… | 104 | large | source | investigate |
+| CLM-004 | 0.053 | 11 symbols share the same structure up to identifier names (internal/extractors/goextractor/storage.go:129… | 145 | large | test_and_source | investigate |
+
+Showing 30 of 573; the rest stays in the fact records.
 
 ## How to read the priority
 

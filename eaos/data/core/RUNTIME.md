@@ -151,6 +151,6 @@ Commands/providers may fail. Jobs persist before subsequent work; a malformed re
 
 The test suite exercises the full engine, real subprocess transport, a local HTTP protocol server, source retrieval, corrupt/missing output, cache resumption, source drift, design revision, actual baseline/post-change checks, an isolated root-cause repair fixture and a multi-snapshot campaign. Model judgments in those automated integration tests are SCRIPTED fixtures, not live external-model evaluations.
 
-Separately, the host coding agent applied EAOS to its own source, discovered defects, wrote failing regressions, fixed the implementations and recorded before/after evidence. That is a substantive self-review, not an independent security certification. Exact results and remaining operational limits are in VALIDATION.md and the delivered self-audit report.
+Separately, the host coding agent applied EAOS to its own source, discovered defects, wrote failing regressions, fixed the implementations and recorded before/after evidence. That is a substantive self-review, not an independent security certification. Current measurements and remaining limits are in docs/CAPABILITY-SCORE.md and evaluations/release-evidence.json.
 
 Provider protocol reference: [OpenAI Chat Completions API](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create). The adapter uses model/messages/JSON response format and optional max_completion_tokens; it does not hardcode model availability or pricing.

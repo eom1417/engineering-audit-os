@@ -2,7 +2,8 @@
 
 Security boundaries depend on the command:
 
-- `audit`, `discover`, `next` and local record/graph commands do not invoke a model or execute target scripts. A host agent can use their outputs to conduct a review.
+- `audit`, `facts`, `dossier`, `tasks` and the local record and graph commands do not invoke a model or execute target scripts.
+- `audit --test-command` and `verify --execute` do run the target's test suite, in a separate copy. That copy is not an operating-system sandbox: use them only on trusted projects, or inside an isolated environment.
 - `run` and `continue` send eligible, heuristically redacted source ranges and audit records to the explicitly configured provider. An HTTP provider opens network connections; a command provider executes the configured adapter without a shell, in an empty working directory. That adapter inherits the invoking process environment and is trusted code, not a sandboxed plugin.
 - `implement` and `improve` invoke the provider, create separate candidate copies, apply planned edits, and execute explicitly configured verification commands. Checks receive a minimal environment plus names explicitly listed in `inherit_env`. Their working directory is not an OS security boundary; commands can access resources outside the candidate copy. Target dependencies are not installed automatically.
 

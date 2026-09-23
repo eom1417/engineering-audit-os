@@ -1,6 +1,6 @@
-# TASK-007 — handleCall in internal/extractors/rubyextractor/routes_ast.go carries 109 branches over 541 lines, in a file ranked 48 f
+# TASK-007 — Flow FLOW-008 (cli check) stops at 3 unresolvable calls
 
-> claim: CLM-008 · pattern: hotspot · priority: 0.0
+> claim: CLM-533 · pattern: trace_gap · priority: 0.0729
 
 > investigate · needs_review
 
@@ -8,22 +8,22 @@ No data for this section in this snapshot.
 
 ## The problem
 
-handleCall in internal/extractors/rubyextractor/routes_ast.go carries 109 branches over 541 lines, in a file ranked 48 f
+Flow FLOW-008 (cli check) stops at 3 unresolvable calls
 
-Every change to this path passes through one dense function; it is the most concentrated maintenance risk in the module. It is among the most branching functions in the project.
+The behavior of this entry point is not fully visible from source alone.
 
 ## Evidence
 
-- facts: FACT-e8bc1411229b1465
-- probes: PRB-008
-- falsifier: A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract.
+- facts: FACT-b9db540679bac7f7
+- probes: PRB-007
+- falsifier: A resolver or runtime trace that follows those calls to their targets.
 
 ## Blast radius
 
-- files: internal/extractors/rubyextractor/routes_ast.go
+- files: pkg/command/command.go
 - مستوردون مباشرون (0): —
 - غير مباشرين (0): —
-- تدفقات مارّة: —
+- تدفقات مارّة: FLOW-004 baseline, FLOW-005 blame, FLOW-008 check, FLOW-009 cluster, FLOW-010 constraints, FLOW-011 coverage, FLOW-012 dashboard, FLOW-013 diff … (+10)
 - اختبارات مغطية: —
 - executed coverage: —
 - شركاء التغيير: —
@@ -37,13 +37,13 @@ Every change to this path passes through one dense function; it is the most conc
 
 ## Proposed change
 
-Establish or refute this observation before changing code: A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract.
+Establish or refute this observation before changing code: A resolver or runtime trace that follows those calls to their targets.
 
 ## Acceptance criterion
 
 | Command | Expected |
 |---|---|
-| human review / مراجعة هندسية | CLM-008: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract. |
+| human review / مراجعة هندسية | CLM-533: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. A resolver or runtime trace that follows those calls to their targets. |
 
 ## Rollback
 

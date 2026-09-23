@@ -1,6 +1,6 @@
-# TASK-003 — packaging/pypi/build_wheel.py: ينادي خدمة خارجية بلا مهلة أو إعادة محاولة — load blocker (unprotected_dependency)
+# TASK-003 — 328 functions perform the same ordered sequence of calls (internal/clientspec/clientspec.go:None, internal/conformance/c
 
-> claim: CLM-001 · pattern: load_blocker · priority: 0.0784
+> claim: CLM-569 · pattern: canonicalize · priority: 0.1818
 
 > investigate · needs_review
 
@@ -8,23 +8,23 @@ No data for this section in this snapshot.
 
 ## The problem
 
-packaging/pypi/build_wheel.py: ينادي خدمة خارجية بلا مهلة أو إعادة محاولة — load blocker (unprotected_dependency)
+328 functions perform the same ordered sequence of calls (internal/clientspec/clientspec.go:None, internal/conformance/c
 
-بطء الخدمة الأخرى يصير توقفًا عندك؛ الطلبات تتراكم حتى ينفد التجمّع.
+The same orchestration is maintained in several places at once.
 
 ## Evidence
 
-- facts: FACT-d5a64c417a3710df
+- facts: FACT-7e54d5a9d107f7c5
 - probes: PRB-003
-- falsifier: A timeout, retry policy or circuit breaker on the call, or evidence the call is local.
+- falsifier: Evidence that the shared order is coincidental rather than one orchestration copied.
 
 ## Blast radius
 
-- files: packaging/pypi/build_wheel.py
-- مستوردون مباشرون (0): —
-- غير مباشرين (0): —
-- تدفقات مارّة: FLOW-005 build_wheel
-- اختبارات مغطية: —
+- files: internal/clientspec/clientspec.go, internal/conformance/conformance.go, internal/diff/constraintcredit_test.go, internal/diff/diff.go, internal/diff/render.go, internal/docslint/inventory.go, internal/engine/cache_test.go, internal/engine/conceptedgematrix_test.go … (+204)
+- مستوردون مباشرون (427): cmd/enola/autocluster.go, cmd/enola/autocluster_test.go, cmd/enola/main.go, internal/config/config.go, internal/config/config_test.go, internal/config/scalaglobs_test.go, internal/conformance/conformance_test.go, internal/diff/attribution_test.go … (+419)
+- غير مباشرين (10): internal/drift/drift.go, internal/engine/append_version_test.go, internal/engine/linkvocab_test.go, internal/engine/output_dir_test.go, internal/engine/provider_cache_test.go, internal/engine/shadowed_extractors_test.go, internal/engine/walk_test.go, internal/explainers/messagingcoverage/integration_test.go … (+2)
+- تدفقات مارّة: FLOW-001 /, FLOW-010 constraints, FLOW-011 coverage, FLOW-012 dashboard, FLOW-013 diff, FLOW-015 endpoint, FLOW-025 show
+- اختبارات مغطية: cmd/enola/autocluster_test.go, internal/config/config_test.go, internal/config/scalaglobs_test.go, internal/conformance/conformance_test.go, internal/diff/attribution_test.go, internal/diff/changedprops_test.go, internal/diff/constraintattribution_test.go, internal/diff/counts_test.go … (+314)
 - executed coverage: —
 - شركاء التغيير: —
 
@@ -37,13 +37,13 @@ packaging/pypi/build_wheel.py: ينادي خدمة خارجية بلا مهلة 
 
 ## Proposed change
 
-Establish or refute this observation before changing code: A timeout, retry policy or circuit breaker on the call, or evidence the call is local.
+Establish or refute this observation before changing code: Evidence that the shared order is coincidental rather than one orchestration copied.
 
 ## Acceptance criterion
 
 | Command | Expected |
 |---|---|
-| human review / مراجعة هندسية | CLM-001: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. A timeout, retry policy or circuit breaker on the call, or evidence the call is local. |
+| human review / مراجعة هندسية | CLM-569: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. Evidence that the shared order is coincidental rather than one orchestration copied. |
 
 ## Rollback
 

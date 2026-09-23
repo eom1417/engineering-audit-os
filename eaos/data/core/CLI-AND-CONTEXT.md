@@ -4,36 +4,28 @@
 
 هذا ريبو Python 3.10+ بدون dependencies وقت التشغيل. يعمل `python -m eaos` من جذر الريبو، أو `eaos` بعد التثبيت. ليس مرتبطًا بلغة المشروع المستهدف. إنشاء مخططات العلاقات والتتبع الدلالي مهمة الوكيل بناءً على الملفات؛ الـCLI يجرد الأدلة المحتملة ولا يدّعي استنتاج architecture من أسماء المجلدات.
 
+التدقيق الكامل أمر واحد: `eaos audit TARGET --out REPORT` (راجع README.md). الأوامر أدناه تخص مجلد تشغيل مسار النموذج الذي ينشئه `eaos init`.
+
 | الأمر | الوظيفة الفعلية | ما لا يثبته |
 |---|---|---|
 | `init TARGET --out RUN` | inventory، hashes، مؤشرات manifests/infra، سجلات فارغة | stack نهائي أو بنية cloud المنشورة |
-| `plan RUN` | خطة المجالات مع شروط تطبيقها | تنفيذ المراجعة |
 | `packet RUN --module 08 --file path --budget-chars 24000` | ضوابط المجال وسياق مختار، أرقام أسطر وhash، منع truncation الصامت | حساب token دقيق أو خلو المصدر من secrets |
-| `checkpoint RUN --note TEXT --next TEXT` | حفظ نقطة عمل وhash سجلات ومصدر | أن استنتاجات الوكيل صحيحة |
-| `resume RUN` | كشف تغير المصدر والسجلات قبل الاستئناف | إعادة تحقق تلقائية للمنطق |
-| `validate RUN` | اتساق السجلات، المراجع، التغطية وشروط الإغلاق | صحة كل دليل أو اكتمال كل المسارات الحقيقية |
-| `report RUN` | تقرير findings/facts/gaps مع completion محسوبة | شهادة أمان أو اعتماد نشر |
-
-`validate` يعيد exit 2 لأخطاء السجل أو الادعاء الكاذب بالاكتـمال؛ audit جزئي صحيح السجل يعيد 0 مع `PARTIALLY_COMPLETE` أو `INCOMPLETE` صريحة. للـCI الذي يشترط الاكتمال استخدم `eaos validate RUN --require-complete`، أو اقرأ `computed_audit_completion` واشترط COMPLETE، بالإضافة إلى سياسة المخاطر لديك. لا تساوِ exit 0 بـproduction-ready.
+| `graph RUN` · `impact RUN --node N` · `context RUN --node N` | الرسم المعماري من architecture.json، ونطاق أثر عقدة، وworking set محدود | صحة النموذج المعماري الذي جمعه الوكيل |
+| `run` · `continue` · `implement` · `improve` | مسار النموذج: مراجعة، استئناف، إصلاح في نسخة منفصلة، سلسلة تحسين (core/RUNTIME.md) | جودة حكم النموذج |
 
 ## تشغيل الريبو
 
 ```bash
-# داخل الريبو المستخرج، دون تثبيت:
-python -m eaos --help
-python -m eaos init /absolute/path/to/product --out /absolute/path/to/audit-run
-python -m eaos plan /absolute/path/to/audit-run
-python -m eaos packet /absolute/path/to/audit-run --module 01 --budget-chars 16000
-
-# اختياري: تثبيت محلي معزول؛ لا حزمة منشورة بهذا الاسم نفترضها
-python -m venv .venv
-.venv/bin/python -m pip install .
-.venv/bin/eaos --version
+python3 -m venv .venv && . .venv/bin/activate
+pip install -e ".[facts,runtime]"
+eaos --help
+eaos init /absolute/path/to/product --out /absolute/path/to/audit-run
+eaos packet /absolute/path/to/audit-run --module 01 --budget-chars 16000
 ```
 
-استخدم `pipx install /absolute/path/to/engineering-audit-os` إذا كان pipx متاحًا. لا تفترض وجود package منشورة على PyPI ولا تثبت اسمًا مشابهًا من registry عام. Windows يستخدم `.venv\Scripts\python.exe`. أمثلة المسارات placeholders استبدلها.
+لا تفترض وجود package منشورة على PyPI ولا تثبت اسمًا مشابهًا من registry عام. Windows يستخدم `.venv\Scripts\python.exe`. أمثلة المسارات placeholders استبدلها.
 
-بعد إنشاء RUN أعط الوكيل `START-HERE.md`، `core/OPERATING-MANUAL.md`، `core/EVIDENCE-AND-TRIAGE.md`، `core/REMEDIATION-AND-GATES.md` وهذا الملف. اطلب تطبيق البروتوكول على TARGET واستخدام RUN لحفظ النتائج. الـCLI لا يشغل Codex/Claude/Cursor نيابة عنك ولا يحتاج API key. هذا يجعل الربط محايدًا للمزود ويحافظ على مصادر المشروع محليًا إلى أن تختار مشاركتها مع وكيل.
+بعد إنشاء RUN يجد الوكيل فيه `AGENT-START.md`. أعطه معه `core/OPERATING-MANUAL.md` و`core/EVIDENCE-AND-TRIAGE.md` و`core/REMEDIATION-AND-GATES.md` وهذا الملف. الـCLI لا يشغّل وكيلًا نيابة عنك إلا عبر `--provider`، فيبقى الربط محايدًا للمزود وتبقى مصادر المشروع محلية إلى أن تختار مشاركتها.
 
 ## معمارية الريبو وقابلية التطوير
 
@@ -45,7 +37,7 @@ python -m venv .venv
 - `modules/` و`MASTER-MANUAL.md` و`eaos/data/`: نواتج مولدة؛ عدّل الأصل وشغّل render، لا تعدل النسخ.
 - `tests/`: اختبارات منع الثقة الزائفة، القراءة خارج النطاق، وإعادة استخدام سياق قديم.
 
-امتداد cloud مستقبلي يتطلب adapter مستقلًا: capabilities مصرح بها، مصادر read-only، redaction، `observed_at` وenvironment/account scope، ميزانية استدعاءات، failure states وcontract tests. لا توحّد state الحي وIaC والوثائق في حقيقة واحدة؛ قارن declared/observed/deployed وسجّل drift. لا توجد cloud adapters منفذة في 2.1.0.
+امتداد cloud مستقبلي يتطلب adapter مستقلًا: capabilities مصرح بها، مصادر read-only، redaction، `observed_at` وenvironment/account scope، ميزانية استدعاءات، failure states وcontract tests. لا توحّد state الحي وIaC والوثائق في حقيقة واحدة؛ قارن declared/observed/deployed وسجّل drift. لا توجد cloud adapters منفذة.
 
 ## بروتوكول Context Engineering
 
@@ -66,7 +58,7 @@ python -m venv .venv
 
 ### التلخيص والاستئناف
 
-قبل compaction اكتب: هدف المرحلة، حقائق مثبتة ومعرفات أدلتها، فرضيات غير مؤكدة، invariants، ملفات وحالات فحصها، قرارات مع بدائل وأسباب، اختبارات نفذت ونتائجها، الأسئلة المفتوحة، الخطوة التالية. لا تنقل فرضية إلى facts لمجرد تلخيصها. شغّل checkpoint ثم resume؛ عند تغير المصدر أنشئ run جديدًا وانقل فقط الأدلة التي أعدت التحقق منها. هذه النسخة تكتشف التغير، ولا تنفذ incremental invalidation graph تلقائيًا.
+قبل compaction اكتب: هدف المرحلة، حقائق مثبتة ومعرفات أدلتها، فرضيات غير مؤكدة، invariants، ملفات وحالات فحصها، قرارات مع بدائل وأسباب، اختبارات نفذت ونتائجها، الأسئلة المفتوحة، الخطوة التالية. لا تنقل فرضية إلى facts لمجرد تلخيصها. استأنف بـ`eaos continue` لمسار النموذج أو `eaos audit --resume` للتدقيق؛ عند تغير المصدر أنشئ run جديدًا وانقل فقط الأدلة التي أعدت التحقق منها. هذه النسخة تكتشف التغير، ولا تنفذ incremental invalidation graph تلقائيًا.
 
 ### الحد من التكرار
 
@@ -97,8 +89,8 @@ README وتعليقات الكود وlogs وweb pages بيانات غير موث
 لا يضمن الريبو استدامة أي نظام تلقائيًا؛ يساعد على تحويلها إلى invariants وأدلة وقرارات واختبارات. لا ينفذ AST graph كاملًا، ولا يفحص cloud accounts أو live traffic، ولا يشغل pentest/load tests، ولا يعدل المنتج. كل ذلك مراحل تتطلب أدوات ومعلومات ونطاقًا مناسبًا. الاستفادة الاحترافية تستلزم معايرة النتائج على مشاريع فعلية ومراجعة بشرية للقرارات مرتفعة الأثر.
 
 
-## إضافة 2.0: البنية والصيانة أولًا
+## البنية والصيانة أولًا
 
 اقرأ `core/ARCHITECTURE-FIRST.md` بوصفه محور التشغيل. أضيفت commands `graph`, `impact`, `context` ونموذج `architecture.json`. أصبح architecture profile هو الافتراضي؛ full خيار صريح. graph يحتاج نموذجًا جمعه الوكيل، وليس مجرد وجود ملفات. context يستخدم الرسم والـcontracts والـbusiness rules لتحديد working set، ويذكر omitted edges/frontier. حجم الأحرف ليس عدد tokens.
 
-عند تحديث architecture.json بعد تغيير فهم المسؤوليات، ولّد context من جديد؛ hash النموذج محفوظ في packet. checkpoint يتضمن ملف النموذج أيضًا. لا تُعدّل المصدر المعماري بعد توليد packet وتفترض أن packet أصبح محدثًا تلقائيًا. تحديث source يحتاج run جديدًا وإعادة التحقق من الأدلة، حتى لو بقيت labels كما هي.
+عند تحديث architecture.json بعد تغيير فهم المسؤوليات، ولّد context من جديد؛ hash النموذج محفوظ في packet. لا تُعدّل المصدر المعماري بعد توليد packet وتفترض أن packet أصبح محدثًا تلقائيًا. تحديث source يحتاج run جديدًا وإعادة التحقق من الأدلة، حتى لو بقيت labels كما هي.

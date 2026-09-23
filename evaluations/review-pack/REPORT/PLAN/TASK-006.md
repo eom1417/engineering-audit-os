@@ -1,6 +1,6 @@
-# TASK-006 — 149 functions perform the same ordered sequence of calls (cmd/enola/main_test.go:None, internal/config/clients_test.go:N
+# TASK-006 — Flow FLOW-005 (cli blame) stops at 3 unresolvable calls
 
-> claim: CLM-003 · pattern: canonicalize · priority: 0.0
+> claim: CLM-532 · pattern: trace_gap · priority: 0.0729
 
 > investigate · needs_review
 
@@ -8,22 +8,22 @@ No data for this section in this snapshot.
 
 ## The problem
 
-149 functions perform the same ordered sequence of calls (cmd/enola/main_test.go:None, internal/config/clients_test.go:N
+Flow FLOW-005 (cli blame) stops at 3 unresolvable calls
 
-The orchestration is maintained in several places at once.
+The behavior of this entry point is not fully visible from source alone.
 
 ## Evidence
 
-- facts: FACT-94be405a6d87ef17
+- facts: FACT-0c427b35ff6b1223
 - probes: PRB-006
-- falsifier: Evidence that the shared order is coincidental rather than one orchestration copied.
+- falsifier: A resolver or runtime trace that follows those calls to their targets.
 
 ## Blast radius
 
-- files: cmd/enola/main_test.go, internal/config/clients_test.go, internal/docslint/links_test.go, internal/engine/coverage_summary_test.go, internal/engine/filecensus_test.go, internal/engine/global_receipt_test.go, internal/explainers/common/cap_test.go, internal/explainers/constraints/constraints_test.go … (+87)
+- files: pkg/command/command.go
 - مستوردون مباشرون (0): —
 - غير مباشرين (0): —
-- تدفقات مارّة: —
+- تدفقات مارّة: FLOW-004 baseline, FLOW-005 blame, FLOW-008 check, FLOW-009 cluster, FLOW-010 constraints, FLOW-011 coverage, FLOW-012 dashboard, FLOW-013 diff … (+10)
 - اختبارات مغطية: —
 - executed coverage: —
 - شركاء التغيير: —
@@ -37,13 +37,13 @@ The orchestration is maintained in several places at once.
 
 ## Proposed change
 
-Establish or refute this observation before changing code: Evidence that the shared order is coincidental rather than one orchestration copied.
+Establish or refute this observation before changing code: A resolver or runtime trace that follows those calls to their targets.
 
 ## Acceptance criterion
 
 | Command | Expected |
 |---|---|
-| human review / مراجعة هندسية | CLM-003: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. Evidence that the shared order is coincidental rather than one orchestration copied. |
+| human review / مراجعة هندسية | CLM-532: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. A resolver or runtime trace that follows those calls to their targets. |
 
 ## Rollback
 

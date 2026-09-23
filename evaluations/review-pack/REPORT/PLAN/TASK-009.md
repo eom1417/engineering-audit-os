@@ -1,6 +1,6 @@
-# TASK-009 — walkForCalls in internal/extractors/rubyextractor/ruby_ast.go carries 102 branches over 380 lines, in a file ranked 15 f
+# TASK-009 — pkg/command/command.go: calls an external service with no timeout or retry — load blocker (unprotected_dependency)
 
-> claim: CLM-010 · pattern: hotspot · priority: 0.0
+> claim: CLM-545 · pattern: load_blocker · priority: 0.0729
 
 > investigate · needs_review
 
@@ -8,22 +8,22 @@ No data for this section in this snapshot.
 
 ## The problem
 
-walkForCalls in internal/extractors/rubyextractor/ruby_ast.go carries 102 branches over 380 lines, in a file ranked 15 f
+pkg/command/command.go: calls an external service with no timeout or retry — load blocker (unprotected_dependency)
 
-Every change to this path passes through one dense function; it is the most concentrated maintenance risk in the module. It is among the most branching functions in the project.
+Cost grows with traffic or data at this entry point; current behavior may not survive higher load.
 
 ## Evidence
 
-- facts: FACT-fed46b1da3e7665c
-- probes: PRB-010
-- falsifier: A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract.
+- facts: FACT-1cde92bcd9e35f9f
+- probes: PRB-009
+- falsifier: A timeout, retry policy or circuit breaker on the call, or evidence the call is local.
 
 ## Blast radius
 
-- files: internal/extractors/rubyextractor/ruby_ast.go
+- files: pkg/command/command.go
 - مستوردون مباشرون (0): —
 - غير مباشرين (0): —
-- تدفقات مارّة: —
+- تدفقات مارّة: FLOW-004 baseline, FLOW-005 blame, FLOW-008 check, FLOW-009 cluster, FLOW-010 constraints, FLOW-011 coverage, FLOW-012 dashboard, FLOW-013 diff … (+10)
 - اختبارات مغطية: —
 - executed coverage: —
 - شركاء التغيير: —
@@ -37,13 +37,13 @@ Every change to this path passes through one dense function; it is the most conc
 
 ## Proposed change
 
-Establish or refute this observation before changing code: A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract.
+Establish or refute this observation before changing code: A timeout, retry policy or circuit breaker on the call, or evidence the call is local.
 
 ## Acceptance criterion
 
 | Command | Expected |
 |---|---|
-| human review / مراجعة هندسية | CLM-010: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. A measurement showing the branching is below the declared threshold, or evidence that the complexity is inherent to the problem and isolated behind a tested contract. |
+| human review / مراجعة هندسية | CLM-545: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. A timeout, retry policy or circuit breaker on the call, or evidence the call is local. |
 
 ## Rollback
 

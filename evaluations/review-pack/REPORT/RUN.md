@@ -1,23 +1,24 @@
 # What this run did
 
 > A stage that did not run proves nothing. Read the absences first.
-> Total: 70.99s · RUNNING
+> Total: 429.97s · RUNNING
 
 ## Examined
 
 | Stage | Seconds | Produced |
 |---|---|---|
-| facts | 38.16 | facts/index.json |
-| load | 0.44 | LOAD-MODEL.md, load-model.json |
-| claims | 2.43 | DECISION-BRIEF.md, README.md, dossier.json |
-| probe | 1.77 | probes.json |
-| sustainability | 3.19 | SUSTAINABILITY.md, sustainability.json |
-| transform | 5.75 | transform-plan.json, transform-plan.md |
-| plan | 3.57 | PLAN/WAVES.md, plan.json |
-| target | 0.97 | TARGET-ARCHITECTURE.md, target-architecture.json |
-| executive | 11.17 | EXECUTIVE.md |
-| compose | 0.01 | BLOCKERS.md, PRODUCT-REPORT.md |
-| bundles | 3.53 | CANONICAL-HOMES.md, DATA-MODEL.md, DEPLOYMENT.md, INTEGRATIONS.md, KPI.md, OBSERVABILITY.md, SECURITY-SURFACE.md, STAGES.md, WAVES.md, bundles/manifest.json, canonical-homes.json, gap-matrix.json |
+| facts | 40.63 | facts/index.json |
+| load | 0.45 | LOAD-MODEL.md, load-model.json |
+| claims | 4.51 | DECISION-BRIEF.md, README.md, dossier.json |
+| probe | 2.15 | probes.json |
+| sustainability | 3.56 | SUSTAINABILITY.md, sustainability.json |
+| transform | 185.80 | transform-plan.json, transform-plan.md |
+| plan | 10.83 | PLAN/WAVES.md, plan.json |
+| target | 1.09 | TARGET-ARCHITECTURE.md, target-architecture.json |
+| execution_guide | 0.12 | EXECUTION-GUIDE.md |
+| executive | 96.19 | EXECUTIVE.md |
+| compose | 0.03 | BLOCKERS.md, PRODUCT-REPORT.md |
+| bundles | 84.60 | CANONICAL-HOMES.md, DATA-MODEL.md, DEPLOYMENT.md, INTEGRATIONS.md, KPI.md, OBSERVABILITY.md, SECURITY-SURFACE.md, STAGES.md, WAVES.md, bundles/manifest.json, canonical-homes.json, gap-matrix.json |
 
 ## Not examined, and why
 

@@ -1,8 +1,8 @@
 # Index and reading order
 
-> /workspace/upstream-src/enola · eaos 3.0.0 · 2026-09-22 14:15 UTC · model calls 0
-> Coverage: 1021/1021 · claims 10 (0 semantic)
-> tasks 9 · waves 4
+> /workspace/upstream-src/enola · eaos 3.0.0 · 2026-09-23 15:44 UTC · model calls 0
+> Coverage: 1021/1021 · claims 573 (0 semantic)
+> tasks 308 · waves 25
 
 ## Read in this order
 
@@ -19,7 +19,7 @@
 |---|---|---|---|
 | SYSTEM-MAP.md | deterministic extractors | ⬤ | reproducible byte for byte from the same snapshot |
 | CONTRACTS.md | resolved imports and entry points | ⬤ |  |
-| FLOWS.md | static trace | ◐ | 0 unresolved steps declared |
+| FLOWS.md | static trace | ◐ | 27 unresolved steps declared |
 | DOMAIN-AND-DATA.md | parsed definitions | ⬤ |  |
 | COUPLING-ATLAS.md | graph and metrics | ⬤ | attention order is a declared convention, not a measured predictor |
 | EVOLUTION.md | git history | ◐ | 1 commits in scope |
@@ -29,7 +29,7 @@
 ## Not examined
 
 - unparsed source files: 0
-- unresolved or ambiguous imports: 1345
+- unresolved or ambiguous imports: 33
 - invocation surfaces with no detector: 18 files
 - runtime behaviour: no execution evidence in this run
 - semantic review: not performed in this run (facts only)
@@ -67,11 +67,12 @@
 | 27 | [STAGES.md](STAGES.md) | Each transform stage with its acceptance check |
 | 28 | [WAVES.md](WAVES.md) | Execution waves over the task cards |
 | 29 | [KPI.md](KPI.md) | What to measure to know the transformation worked |
-| 30 | [BASELINE.md](BASELINE.md) | The debt accepted when the baseline was pinned, and what has closed since — absent when: no baseline is pinned in this report directory |
-| 31 | [PROVENANCE.md](PROVENANCE.md) | Which tool, which version, which commit produced this |
-| 32 | [SEMANTIC.md](SEMANTIC.md) | Model interpretation, every line still a hypothesis — absent when: no model provider was configured |
-| 33 | [LOAD-MODEL.md](LOAD-MODEL.md) | Per-entry-point cost record and 1000x projection, ranked |
-| 34 | [index.html](index.html) | The same records, browsable — absent when: the site was turned off |
+| 30 | [EXECUTION-GUIDE.md](EXECUTION-GUIDE.md) | Literal task-by-task instructions for an independent implementer |
+| 31 | [BASELINE.md](BASELINE.md) | The debt accepted when the baseline was pinned, and what has closed since — absent when: no baseline is pinned in this report directory |
+| 32 | [PROVENANCE.md](PROVENANCE.md) | Which tool, which version, which commit produced this |
+| 33 | [SEMANTIC.md](SEMANTIC.md) | Model interpretation, every line still a hypothesis — absent when: no model provider was configured |
+| 34 | [LOAD-MODEL.md](LOAD-MODEL.md) | Per-entry-point cost record and 1000x projection, ranked |
+| 35 | [index.html](index.html) | The same records, browsable — absent when: the site was turned off |
 
 ## Reproduce
 

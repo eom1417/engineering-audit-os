@@ -1,6 +1,6 @@
-# TASK-001 — 421 functions perform the same ordered sequence of calls (cmd/enola/flags_documented_test.go:None, cmd/enola/main.go:Non
+# TASK-001 — 2 symbols share the same structure up to identifier names (internal/facts/accessors.go:81 .method_declaration, internal/
 
-> claim: CLM-007 · pattern: canonicalize · priority: 0.2333
+> claim: CLM-271 · pattern: canonicalize · priority: 0.5
 
 > investigate · needs_review
 
@@ -8,23 +8,23 @@ No data for this section in this snapshot.
 
 ## The problem
 
-421 functions perform the same ordered sequence of calls (cmd/enola/flags_documented_test.go:None, cmd/enola/main.go:Non
+2 symbols share the same structure up to identifier names (internal/facts/accessors.go:81 .method_declaration, internal/
 
-The orchestration is maintained in several places at once.
+Editing the rule in one copy and not the other makes the paths disagree, and nothing in the code links them.
 
 ## Evidence
 
-- facts: FACT-6185a4c88f40018c
+- facts: FACT-60c213f8b1486d6c
 - probes: PRB-001
-- falsifier: Evidence that the shared order is coincidental rather than one orchestration copied.
+- falsifier: Evidence that the occurrences encode different rules that evolve for different reasons, which would make a single definition wrong rather than missing.
 
 ## Blast radius
 
-- files: cmd/enola/flags_documented_test.go, cmd/enola/main.go, internal/diff/attribution_test.go, internal/diff/constraintattribution_test.go, internal/diff/constraintcredit_test.go, internal/diff/diff_test.go, internal/docslint/commands_test.go, internal/docslint/links_test.go … (+172)
-- مستوردون مباشرون (0): —
-- غير مباشرين (0): —
+- files: internal/facts/accessors.go
+- مستوردون مباشرون (578): cmd/enola/main.go, internal/config/config_test.go, internal/config/scalaglobs_test.go, internal/conformance/conformance.go, internal/conformance/conformance_test.go, internal/diff/attribution_test.go, internal/diff/changedprops_test.go, internal/diff/constraintattribution_test.go … (+570)
+- غير مباشرين (10): internal/docslint/inventory.go, internal/drift/drift.go, internal/engine/append_version_test.go, internal/engine/defer_linking_test.go, internal/engine/detect_test.go, internal/engine/freeze_publication_test.go, internal/engine/history_e2e_test.go, internal/engine/intent_test.go … (+2)
 - تدفقات مارّة: —
-- اختبارات مغطية: —
+- اختبارات مغطية: internal/config/config_test.go, internal/config/scalaglobs_test.go, internal/conformance/conformance_test.go, internal/diff/attribution_test.go, internal/diff/changedprops_test.go, internal/diff/constraintattribution_test.go, internal/diff/constraintcredit_test.go, internal/diff/counts_test.go … (+349)
 - executed coverage: —
 - شركاء التغيير: —
 
@@ -37,13 +37,13 @@ The orchestration is maintained in several places at once.
 
 ## Proposed change
 
-Establish or refute this observation before changing code: Evidence that the shared order is coincidental rather than one orchestration copied.
+Establish or refute this observation before changing code: Evidence that the occurrences encode different rules that evolve for different reasons, which would make a single definition wrong rather than missing.
 
 ## Acceptance criterion
 
 | Command | Expected |
 |---|---|
-| human review / مراجعة هندسية | CLM-007: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. Evidence that the shared order is coincidental rather than one orchestration copied. |
+| human review / مراجعة هندسية | CLM-271: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. Evidence that the occurrences encode different rules that evolve for different reasons, which would make a single definition wrong rather than missing. |
 
 ## Rollback
 

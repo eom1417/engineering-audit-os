@@ -76,10 +76,9 @@ eaos facts /absolute/project --out /absolute/facts --history
 
 ```bash
 eaos audit /absolute/project --out /absolute/audit
-eaos next /absolute/audit
 ```
 
-أعط الوكيل `START-HERE.md` و`core/AGENT-WORKFLOW.md`. الوكيل المستضيف يقرأ ويحلل، والـCLI يدير الأدلة والسجلات والبوابات. هذا نمط مختلف عن run الذي يستدعي النموذج بنفسه.
+أعط الوكيل `START-HERE.md` ومجلد التقرير. الوكيل المستضيف يقرأ البطاقات وينفّذها، والتقرير يحمل الأدلة وأوامر القبول. هذا نمط مختلف عن `eaos run` الذي يستدعي النموذج بنفسه.
 
 ## كيف يحافظ على العمق
 
@@ -108,7 +107,7 @@ python tools/validate.py
 python -m unittest discover -s tests -v
 ```
 
-راجع `VALIDATION.md` للأدلة الفعلية و`ACCEPTANCE.md` لحدود الاستنتاج. اختبارات المحرك تستخدم مزودًا تجريبيًا مبرمجًا وخادم HTTP محليًا؛ ليست تقييمًا حيًا لنموذج خارجي. المراجعة الذاتية المنفذة بواسطة الوكيل موثقة بنتائج واختبارات فاشلة قبل الإصلاح وناجحة بعده.
+راجع [`CAPABILITY-SCORE.md`](CAPABILITY-SCORE.md) للقياس الحالي و[`release-evidence.json`](../evaluations/release-evidence.json) لحدود الاستنتاج. اختبارات المحرك تستخدم مزودًا تجريبيًا مبرمجًا وخادم HTTP محليًا؛ ليست تقييمًا حيًا لنموذج خارجي. المراجعة الذاتية المنفذة بواسطة الوكيل موثقة بنتائج واختبارات فاشلة قبل الإصلاح وناجحة بعده.
 
 لا يعني COMPLETE ضمان اكتشاف جميع الأخطاء أو الجاهزية للإنتاج. النطاق غير المتاح يظهر صراحة. لم يتم نشر هذا المستودع أو package خارجيًا ضمن التسليم المحلي. تشغيل المصادر والفيديوهات موثق في research؛ قرئت التفريغات الآلية الثلاثة، ولا تُدّعى مشاهدة مرئية متصلة أو مراجعة مستقلة لمستودعات الفيديوهات.
 
@@ -120,7 +119,7 @@ eaos review-project /path/to/repository --out /path/outside/repository --goal ev
 
 Generates `PRODUCT-REPORT.md`, a typed decision ledger, investigation/repair cards and a browsable `index.html`. Without `--provider`, the result is explicitly facts-only. Confirmed structural observations do not automatically authorize repairs. `decision-review` records sourced engineering judgments; `acceptance` runs explicitly authorized checks bound to a candidate fingerprint. Disappearing observations are unobserved, not automatically repaired.
 
-See [implementation status and remaining release gates](../design/output-first/IMPLEMENTATION-STATUS.md) and the measured [capability scorecard](CAPABILITY-SCORE.md).
+See the [target output specification](../design/output-first/OUTPUT-SPEC.md) and the measured [capability scorecard](CAPABILITY-SCORE.md).
 
 **Status: pilot, not a release.** Measured on two real repositories with all four engines on, seven of nine capability domains are at target (overall 0.8537). The two that are not cannot be closed by any amount of further coding:
 

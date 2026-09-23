@@ -1,6 +1,6 @@
-# TASK-005 — 328 functions perform the same ordered sequence of calls (internal/clientspec/clientspec.go:None, internal/conformance/c
+# TASK-005 — Flow FLOW-004 (cli baseline) stops at 4 unresolvable calls
 
-> claim: CLM-006 · pattern: canonicalize · priority: 0.0458
+> claim: CLM-531 · pattern: trace_gap · priority: 0.0729
 
 > investigate · needs_review
 
@@ -8,23 +8,23 @@ No data for this section in this snapshot.
 
 ## The problem
 
-328 functions perform the same ordered sequence of calls (internal/clientspec/clientspec.go:None, internal/conformance/c
+Flow FLOW-004 (cli baseline) stops at 4 unresolvable calls
 
-The orchestration is maintained in several places at once.
+The behavior of this entry point is not fully visible from source alone.
 
 ## Evidence
 
-- facts: FACT-7e54d5a9d107f7c5
+- facts: FACT-d8348682ea77ab14
 - probes: PRB-005
-- falsifier: Evidence that the shared order is coincidental rather than one orchestration copied.
+- falsifier: A resolver or runtime trace that follows those calls to their targets.
 
 ## Blast radius
 
-- files: internal/clientspec/clientspec.go, internal/conformance/conformance.go, internal/diff/constraintcredit_test.go, internal/diff/diff.go, internal/diff/render.go, internal/docslint/inventory.go, internal/engine/cache_test.go, internal/engine/conceptedgematrix_test.go … (+204)
-- مستوردون مباشرون (7): internal/engine/engine_test.go, internal/extractors/mdintent/mdintent.go, internal/extractors/rubyextractor/ruby.go, internal/linkers/binders/stimulusresolver/stimulusresolver.go, internal/linkers/crossrepo/crossrepo_test.go, internal/linkers/crossrepo/ownscopes_test.go, pkg/bootstrap/bootstrap.go
+- files: pkg/command/command.go
+- مستوردون مباشرون (0): —
 - غير مباشرين (0): —
-- تدفقات مارّة: —
-- اختبارات مغطية: internal/engine/engine_test.go, internal/linkers/crossrepo/crossrepo_test.go, internal/linkers/crossrepo/ownscopes_test.go
+- تدفقات مارّة: FLOW-004 baseline, FLOW-005 blame, FLOW-008 check, FLOW-009 cluster, FLOW-010 constraints, FLOW-011 coverage, FLOW-012 dashboard, FLOW-013 diff … (+10)
+- اختبارات مغطية: —
 - executed coverage: —
 - شركاء التغيير: —
 
@@ -37,13 +37,13 @@ The orchestration is maintained in several places at once.
 
 ## Proposed change
 
-Establish or refute this observation before changing code: Evidence that the shared order is coincidental rather than one orchestration copied.
+Establish or refute this observation before changing code: A resolver or runtime trace that follows those calls to their targets.
 
 ## Acceptance criterion
 
 | Command | Expected |
 |---|---|
-| human review / مراجعة هندسية | CLM-006: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. Evidence that the shared order is coincidental rather than one orchestration copied. |
+| human review / مراجعة هندسية | CLM-531: CONFIRMED or REFUTED concerns the observation only; record requirement evidence and decide repair, retain, or blocked_missing_requirement. A resolver or runtime trace that follows those calls to their targets. |
 
 ## Rollback
 

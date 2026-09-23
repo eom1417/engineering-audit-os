@@ -1,9 +1,9 @@
 {
  "contract_version": 1,
  "target": "/workspace/upstream-src/enola",
- "out": "/tmp/eaos-review-2d0m2wlh/report",
- "started_at": "2026-09-22T14:14:51+00:00",
- "seconds": 71.0,
+ "out": "/tmp/eaos-review-0qbdxm93/report",
+ "started_at": "2026-09-23T15:44:04+00:00",
+ "seconds": 430.06,
  "requested": [
   "facts",
   "engines",
@@ -17,6 +17,7 @@
   "transform",
   "plan",
   "target",
+  "execution_guide",
   "executive",
   "compose",
   "bundles",
@@ -28,7 +29,7 @@
    "stage": "facts",
    "status": "ok",
    "reason": "",
-   "seconds": 38.16,
+   "seconds": 40.63,
    "necessity": "required",
    "produces": [
     "facts/index.json"
@@ -37,7 +38,7 @@
     "facts/index.json"
    ],
    "detail": {
-    "facts": 181628,
+    "facts": 192633,
     "sets": 14,
     "exclude": [
      ".venv",
@@ -94,7 +95,7 @@
    "stage": "load",
    "status": "ok",
    "reason": "",
-   "seconds": 0.44,
+   "seconds": 0.45,
    "necessity": "required",
    "produces": [
     "load-model.json",
@@ -105,15 +106,15 @@
     "load-model.json"
    ],
    "detail": {
-    "entry_points": 13,
-    "incomplete": 13
+    "entry_points": 26,
+    "incomplete": 26
    }
   },
   "claims": {
    "stage": "claims",
    "status": "ok",
    "reason": "",
-   "seconds": 2.43,
+   "seconds": 4.51,
    "necessity": "required",
    "produces": [
     "dossier.json",
@@ -126,9 +127,9 @@
     "dossier.json"
    ],
    "detail": {
-    "claims": 10,
+    "claims": 573,
     "counts": {
-     "CONFIRMED": 10
+     "CONFIRMED": 573
     }
    }
   },
@@ -136,7 +137,7 @@
    "stage": "probe",
    "status": "ok",
    "reason": "",
-   "seconds": 1.77,
+   "seconds": 2.15,
    "necessity": "required",
    "produces": [
     "probes.json"
@@ -146,17 +147,17 @@
    ],
    "detail": {
     "target": "/workspace/upstream-src/enola",
-    "out": "/tmp/eaos-review-2d0m2wlh/report",
-    "probes": 10,
+    "out": "/tmp/eaos-review-0qbdxm93/report",
+    "probes": 573,
     "by_status": {
-     "CONFIRMED": 8,
+     "CONFIRMED": 547,
      "REFUTED": 0,
      "PARTIAL": 0,
-     "INCONCLUSIVE": 2,
+     "INCONCLUSIVE": 26,
      "blocked": 0
     },
-    "confirmed_claims": 10,
-    "claims": 10,
+    "confirmed_claims": 573,
+    "claims": 573,
     "limits": "A probe decides only what it checks. Execution probes stay disabled unless explicitly allowed, and an isolated copy is not an OS sandbox."
    }
   },
@@ -176,7 +177,7 @@
    "stage": "sustainability",
    "status": "ok",
    "reason": "",
-   "seconds": 3.19,
+   "seconds": 3.56,
    "necessity": "required",
    "produces": [
     "SUSTAINABILITY.md",
@@ -192,7 +193,7 @@
    "stage": "transform",
    "status": "ok",
    "reason": "",
-   "seconds": 5.75,
+   "seconds": 185.8,
    "necessity": "required",
    "produces": [
     "transform-plan.md",
@@ -203,14 +204,16 @@
     "transform-plan.md"
    ],
    "detail": {
-    "moves": 0
+    "moves": 530,
+    "predictions": 0,
+    "predictions_skipped": 21
    }
   },
   "plan": {
    "stage": "plan",
    "status": "ok",
    "reason": "",
-   "seconds": 3.57,
+   "seconds": 10.83,
    "necessity": "required",
    "produces": [
     "plan.json",
@@ -221,15 +224,15 @@
     "plan.json"
    ],
    "detail": {
-    "tasks": 9,
-    "waves": 4
+    "tasks": 308,
+    "waves": 25
    }
   },
   "target": {
    "stage": "target",
    "status": "ok",
    "reason": "",
-   "seconds": 0.97,
+   "seconds": 1.09,
    "necessity": "required",
    "produces": [
     "TARGET-ARCHITECTURE.md",
@@ -244,11 +247,28 @@
     "status": "REVIEW_REQUIRED"
    }
   },
+  "execution_guide": {
+   "stage": "execution_guide",
+   "status": "ok",
+   "reason": "",
+   "seconds": 0.12,
+   "necessity": "required",
+   "produces": [
+    "EXECUTION-GUIDE.md"
+   ],
+   "artifacts": [
+    "EXECUTION-GUIDE.md"
+   ],
+   "detail": {
+    "tasks": 286,
+    "lines": 300
+   }
+  },
   "executive": {
    "stage": "executive",
    "status": "ok",
    "reason": "",
-   "seconds": 11.17,
+   "seconds": 96.19,
    "necessity": "required",
    "produces": [
     "EXECUTIVE.md"
@@ -257,25 +277,27 @@
     "EXECUTIVE.md"
    ],
    "detail": {
-    "artifact": "/tmp/eaos-review-2d0m2wlh/report/EXECUTIVE.md",
+    "artifact": "/tmp/eaos-review-0qbdxm93/report/EXECUTIVE.md",
     "indicators": {
-     "single_source": 0.0,
-     "minimal_path": 0.0,
+     "single_source": 0.111,
+     "minimal_path": null,
      "data_owners": 0,
      "honest_boundaries": 0,
-     "verifiable_paths": 0.0,
+     "verifiable_paths": 0.08,
      "understandable_units": 242
     },
-    "moves": 0,
-    "stages": 0,
-    "limits": "The executive page is a single screen; it cites the underlying artifacts, not their detail. Risks are sorted by the priority formula declared in the engagement contract; with no contract, the page falls back to the highest single_source / minimal_path gap. The \"what if nothing\" cost is the predicted delta × a stated engineering rate, not a quote. The page is regenerated whenever the underlying artifacts change; it is never the source of truth."
+    "moves": 530,
+    "stages": 530,
+    "live_claims": 573,
+    "cards": 308,
+    "limits": "The executive page is a single screen; it cites the underlying artifacts, not their detail. Risks are the claim ledger's top-ranked live claims, in the ledger's own order; where the ledger is empty the page falls back to the largest duplication moves and says so. The \"what if nothing\" cost is the predicted delta × a stated engineering rate, not a quote. The page is regenerated whenever the underlying artifacts change; it is never the source of truth."
    }
   },
   "compose": {
    "stage": "compose",
    "status": "ok",
    "reason": "",
-   "seconds": 0.01,
+   "seconds": 0.03,
    "necessity": "required",
    "produces": [
     "PRODUCT-REPORT.md",
@@ -291,7 +313,7 @@
    "stage": "bundles",
    "status": "ok",
    "reason": "",
-   "seconds": 3.53,
+   "seconds": 84.6,
    "necessity": "required",
    "produces": [
     "bundles/manifest.json",
@@ -322,7 +344,7 @@
     "gap-matrix.json"
    ],
    "detail": {
-    "bundles_dir": "/tmp/eaos-review-2d0m2wlh/report/bundles",
+    "bundles_dir": "/tmp/eaos-review-0qbdxm93/report/bundles",
     "bundles": [
      "00-ENGAGEMENT",
      "01-DISCOVERY",
@@ -362,7 +384,7 @@
    "stage": "validate",
    "status": "ok",
    "reason": "",
-   "seconds": 0.01,
+   "seconds": 0.09,
    "necessity": "required",
    "produces": [
     "report-result.json",
@@ -378,7 +400,7 @@
   }
  },
  "counts": {
-  "ok": 12,
+  "ok": 13,
   "skipped": 0,
   "unavailable": 5,
   "failed": 0,

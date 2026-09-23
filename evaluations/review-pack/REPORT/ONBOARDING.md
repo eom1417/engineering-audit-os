@@ -14,30 +14,38 @@ No data for this section in this snapshot.
 
 | Surface | Route | Handler | Location |
 |---|---|---|---|
+| cli | baseline | Baseline | pkg/command/command.go:175 |
+| cli | blame | Blame | pkg/command/command.go:186 |
 | cli | build_wheel | main | packaging/pypi/build_wheel.py:176 |
 | cli | build_wheel | main | packaging/pypi/build_wheel.py:254 |
-| http | / | s.handleIndex | pkg/dashboard/dashboard.go:140 |
-| http | /orders | listOrders | examples/cross-repo/api/server.go:28 |
-| http | /orders/{id} | getOrder | examples/cross-repo/api/server.go:27 |
-| http | /path | handler | internal/extractors/goextractor/routes.go:158 |
-| http | /path | handler | internal/extractors/goextractor/routes.go:173 |
-| http | /path | handler | internal/extractors/goextractor/routes.go:296 |
-| http | /path | handler | internal/extractors/goextractor/routes.go:393 |
+| cli | check | Check | pkg/command/command.go:141 |
+| cli | cluster | Cluster | pkg/command/command.go:146 |
+| cli | constraints | Constraints | pkg/command/command.go:147 |
+| cli | coverage | Coverage | pkg/command/command.go:159 |
+| cli | dashboard | Dashboard | pkg/command/command.go:172 |
+| cli | diff | Diff | pkg/command/command.go:183 |
+| cli | doctor | Doctor | pkg/command/command.go:166 |
+| cli | endpoint | Endpoint | pkg/command/command.go:163 |
+| cli | gc | GC | pkg/command/command.go:189 |
+| cli | history | History | pkg/command/command.go:192 |
+| cli | hook | Hook | pkg/command/command.go:195 |
+
+Showing 15 of 26; the rest stays in the fact records.
 
 ## The first ten files to read
 
 | File | Score | Why |
 |---|---|---|
-| pkg/facts/facts.go | 0.7 | centrality 1.0 · change 1.0 |
-| internal/version/version.go | 0.5667 | centrality 0.556 · change 1.0 |
-| internal/extractors/goextractor/routes.go | 0.5367 | centrality 0.0 · change 1.0 |
-| pkg/dashboard/dashboard.go | 0.5264 | centrality 0.0 · change 1.0 |
-| internal/engine/cache.go | 0.5207 | centrality 0.0 · change 1.0 |
+| internal/facts/accessors.go | 0.7075 | centrality 1.0 · change 1.0 |
+| pkg/dashboard/dashboard.go | 0.5274 | centrality 0.003 · change 1.0 |
+| cmd/enola/main.go | 0.527 | centrality 0.0 · change 1.0 |
+| pkg/command/command.go | 0.511 | centrality 0.0 · change 1.0 |
 | packaging/pypi/build_wheel.py | 0.5044 | centrality 0.0 · change 1.0 |
 | examples/cross-repo/api/server.go | 0.5 | centrality 0.0 · change 1.0 |
 | internal/server/server.go | 0.5 | centrality 0.0 · change 1.0 |
-| internal/extractors/detectnames/detectnames.go | 0.4812 | centrality 0.593 · change 1.0 |
 | internal/extractors/tsextractor/ts.go | 0.4793 | centrality 0.0 · change 1.0 |
+| internal/config/config.go | 0.4379 | centrality 0.092 · change 1.0 |
+| pkg/bootstrap/bootstrap.go | 0.4373 | centrality 0.055 · change 1.0 |
 
 ## Project vocabulary
 
@@ -68,6 +76,6 @@ Showing 20 of 31; the rest stays in the fact records.
 
 ## Known traps
 
-- 5 entry points are registered dynamically and cannot be traced statically
+- 1 entry points are registered dynamically and cannot be traced statically
 - 0 sensitive config files are listed but never read
-- 0 steps in the traced flows stop at calls the resolver cannot follow
+- 27 steps in the traced flows stop at calls the resolver cannot follow

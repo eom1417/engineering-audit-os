@@ -8,128 +8,129 @@ multiplier=1000; cost per data_access_call, ×100 per n+1, ×1000 per unbounded 
 
 ## Entry points ranked by load risk
 
-| Rank | Entry | Path | Cost | Incomplete | Bottlenecks |
-| --- | --- | --- | --- | --- | --- |
-| 1 | FACT-4ab7f1d5c5c9fbd9 | `packaging/pypi/build_wheel.py` | 0.00 | yes | — |
-| 2 | FACT-de174e9b06853330 | `packaging/pypi/build_wheel.py` | 0.00 | yes | — |
-| 3 | FACT-d3f797d291f88fc5 | `pkg/dashboard/dashboard.go` | 0.00 | yes | — |
-| 4 | FACT-15de3868f6371e28 | `internal/engine/cache.go` | 0.00 | yes | — |
-| 5 | FACT-62eceba39cb16dfb | `examples/cross-repo/api/server.go` | 0.00 | yes | — |
-| 6 | FACT-6295ade1bd16b6e2 | `examples/cross-repo/api/server.go` | 0.00 | yes | — |
-| 7 | FACT-79ccf4edd176820a | `internal/extractors/goextractor/routes.go` | 0.00 | yes | — |
-| 8 | FACT-74a86ebe751d1835 | `internal/extractors/goextractor/routes.go` | 0.00 | yes | — |
-| 9 | FACT-0f003d5d080ed527 | `internal/extractors/goextractor/routes.go` | 0.00 | yes | — |
-| 10 | FACT-69a06621f788fe34 | `internal/extractors/goextractor/routes.go` | 0.00 | yes | — |
-| 11 | FACT-9f1dfd15208f4ef8 | `internal/engine/cache.go` | 0.00 | yes | — |
-| 12 | FACT-df07f86d5636ae00 | `internal/extractors/goextractor/routes.go` | 0.00 | yes | — |
-| 13 | FACT-365733f62015fda1 | `internal/extractors/goextractor/routes.go` | 0.00 | yes | — |
+| Rank | Entry | Surface | Path | Cost | Incomplete | Bottlenecks |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | / | http | `pkg/dashboard/dashboard.go` | 50000.00 | yes | no_rate_limit |
+| 2 | /orders | http | `examples/cross-repo/api/server.go` | 50000.00 | yes | no_rate_limit |
+| 3 | /orders/{id} | http | `examples/cross-repo/api/server.go` | 50000.00 | yes | no_rate_limit |
+| 4 | baseline | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 5 | blame | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 6 | build_wheel | cli | `packaging/pypi/build_wheel.py` | 0.00 | yes | — |
+| 7 | build_wheel | cli | `packaging/pypi/build_wheel.py` | 0.00 | yes | — |
+| 8 | check | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 9 | cluster | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 10 | constraints | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 11 | coverage | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 12 | dashboard | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 13 | diff | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 14 | doctor | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 15 | endpoint | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 16 | gc | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 17 | history | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 18 | hook | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 19 | install | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 20 | log | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 21 | main | cli | `cmd/enola/main.go` | 0.00 | yes | — |
+| 22 | plan | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 23 | providers | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 24 | server | cli | `examples/cross-repo/api/server.go` | 0.00 | yes | — |
+| 25 | show | cli | `pkg/command/command.go` | 0.00 | yes | — |
+| 26 | uninstall | cli | `pkg/command/command.go` | 0.00 | yes | — |
 
 ## Worst five in detail
 
-### FACT-4ab7f1d5c5c9fbd9 — `packaging/pypi/build_wheel.py`
+### FACT-2dded790a385b007 — `pkg/dashboard/dashboard.go`
 
-projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)
+projected ceiling of 50000.0 cost units at 1000x traffic (data_access_calls=False, n_plus_one=False, unbounded=False, shared_state=False, rate_limited=False)
 
-**This entry's projection is incomplete.** Unanswered questions: cached, complexity_class, data_access_calls, rate_limited, repeats_per_iteration, result_is_bounded, shared_mutable_state
-
-| Question | Status | Value | Evidence |
-| --- | --- | --- | --- |
-| data_access_calls | undetectable | None | — |
-| repeats_per_iteration | undetectable | None | — |
-| result_is_bounded | undetectable | None | FACT-d550f2524311b59a |
-| complexity_class | undetectable | None | — |
-| shared_mutable_state | undetectable | None | — |
-| outbound_calls_protected | answered | timeout=False, retry=False, circuit_breaker=False | FACT-d5a64c417a3710df |
-| cached | undetectable | None | — |
-| rate_limited | undetectable | None | — |
-
-### FACT-de174e9b06853330 — `packaging/pypi/build_wheel.py`
-
-projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)
-
-**This entry's projection is incomplete.** Unanswered questions: cached, complexity_class, data_access_calls, rate_limited, repeats_per_iteration, result_is_bounded, shared_mutable_state
+**This entry's projection is incomplete.** Unanswered questions: complexity_class, result_is_bounded
 
 | Question | Status | Value | Evidence |
 | --- | --- | --- | --- |
-| data_access_calls | undetectable | None | — |
-| repeats_per_iteration | undetectable | None | — |
-| result_is_bounded | undetectable | None | FACT-d550f2524311b59a |
+| data_access_calls | answered | False | FACT-2dded790a385b007 |
+| repeats_per_iteration | answered | False | FACT-2dded790a385b007 |
+| result_is_bounded | undetectable | None | FACT-203690207df7a08d |
 | complexity_class | undetectable | None | — |
-| shared_mutable_state | undetectable | None | — |
-| outbound_calls_protected | answered | timeout=False, retry=False, circuit_breaker=False | FACT-d5a64c417a3710df |
-| cached | undetectable | None | — |
-| rate_limited | undetectable | None | — |
+| shared_mutable_state | answered | False | FACT-2dded790a385b007 |
+| outbound_calls_protected | answered | False | FACT-2dded790a385b007 |
+| cached | answered | False | FACT-2dded790a385b007 |
+| rate_limited | answered | False | FACT-2dded790a385b007 |
 
-### FACT-d3f797d291f88fc5 — `pkg/dashboard/dashboard.go`
+### FACT-40f0e2171ef948e4 — `examples/cross-repo/api/server.go`
 
-projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)
+projected ceiling of 50000.0 cost units at 1000x traffic (data_access_calls=False, n_plus_one=False, unbounded=False, shared_state=False, rate_limited=False)
 
-**This entry's projection is incomplete.** Unanswered questions: cached, complexity_class, data_access_calls, outbound_calls_protected, rate_limited, repeats_per_iteration, result_is_bounded, shared_mutable_state
+**This entry's projection is incomplete.** Unanswered questions: complexity_class, result_is_bounded
 
 | Question | Status | Value | Evidence |
 | --- | --- | --- | --- |
-| data_access_calls | undetectable | None | — |
-| repeats_per_iteration | undetectable | None | — |
-| result_is_bounded | undetectable | None | — |
+| data_access_calls | answered | False | FACT-40f0e2171ef948e4 |
+| repeats_per_iteration | answered | False | FACT-40f0e2171ef948e4 |
+| result_is_bounded | undetectable | None | FACT-840eef306261bb74 |
 | complexity_class | undetectable | None | — |
-| shared_mutable_state | undetectable | None | — |
-| outbound_calls_protected | undetectable | None | — |
-| cached | undetectable | None | — |
-| rate_limited | undetectable | None | — |
+| shared_mutable_state | answered | False | FACT-40f0e2171ef948e4 |
+| outbound_calls_protected | answered | False | FACT-40f0e2171ef948e4 |
+| cached | answered | False | FACT-40f0e2171ef948e4 |
+| rate_limited | answered | False | FACT-40f0e2171ef948e4 |
 
-### FACT-15de3868f6371e28 — `internal/engine/cache.go`
+### FACT-b26941a671e075b9 — `examples/cross-repo/api/server.go`
 
-projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)
+projected ceiling of 50000.0 cost units at 1000x traffic (data_access_calls=False, n_plus_one=False, unbounded=False, shared_state=False, rate_limited=False)
 
-**This entry's projection is incomplete.** Unanswered questions: cached, complexity_class, data_access_calls, outbound_calls_protected, rate_limited, repeats_per_iteration, result_is_bounded, shared_mutable_state
+**This entry's projection is incomplete.** Unanswered questions: complexity_class, result_is_bounded
 
 | Question | Status | Value | Evidence |
 | --- | --- | --- | --- |
-| data_access_calls | undetectable | None | — |
-| repeats_per_iteration | undetectable | None | — |
-| result_is_bounded | undetectable | None | — |
+| data_access_calls | answered | False | FACT-b26941a671e075b9 |
+| repeats_per_iteration | answered | False | FACT-b26941a671e075b9 |
+| result_is_bounded | undetectable | None | FACT-840eef306261bb74 |
 | complexity_class | undetectable | None | — |
-| shared_mutable_state | undetectable | None | — |
-| outbound_calls_protected | undetectable | None | — |
-| cached | undetectable | None | — |
-| rate_limited | undetectable | None | — |
+| shared_mutable_state | answered | False | FACT-b26941a671e075b9 |
+| outbound_calls_protected | answered | False | FACT-b26941a671e075b9 |
+| cached | answered | False | FACT-b26941a671e075b9 |
+| rate_limited | answered | False | FACT-b26941a671e075b9 |
 
-### FACT-62eceba39cb16dfb — `examples/cross-repo/api/server.go`
+### FACT-d144a2fb6c5db267 — `pkg/command/command.go`
 
-projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=0, n_plus_one=?, unbounded=False, shared_state=False, rate_limited=True)
+projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=False, n_plus_one=False, unbounded=False, shared_state=False, rate_limited=True)
 
-**This entry's projection is incomplete.** Unanswered questions: cached, complexity_class, data_access_calls, outbound_calls_protected, rate_limited, repeats_per_iteration, result_is_bounded, shared_mutable_state
+**This entry's projection is incomplete.** Unanswered questions: complexity_class, result_is_bounded
 
 | Question | Status | Value | Evidence |
 | --- | --- | --- | --- |
-| data_access_calls | undetectable | None | — |
-| repeats_per_iteration | undetectable | None | — |
-| result_is_bounded | undetectable | None | — |
+| data_access_calls | answered | False | FACT-d144a2fb6c5db267 |
+| repeats_per_iteration | answered | False | FACT-d144a2fb6c5db267 |
+| result_is_bounded | undetectable | None | FACT-7161923731948bdd |
 | complexity_class | undetectable | None | — |
-| shared_mutable_state | undetectable | None | — |
-| outbound_calls_protected | undetectable | None | — |
-| cached | undetectable | None | — |
-| rate_limited | undetectable | None | — |
+| shared_mutable_state | answered | False | FACT-d144a2fb6c5db267 |
+| outbound_calls_protected | answered | False | FACT-d144a2fb6c5db267 |
+| cached | answered | False | FACT-d144a2fb6c5db267 |
+| rate_limited | not_applicable | None | FACT-d144a2fb6c5db267 |
+
+### FACT-2c0b2441fccfc229 — `pkg/command/command.go`
+
+projected ceiling of 0.0 cost units at 1000x traffic (data_access_calls=False, n_plus_one=False, unbounded=False, shared_state=False, rate_limited=True)
+
+**This entry's projection is incomplete.** Unanswered questions: complexity_class, result_is_bounded
+
+| Question | Status | Value | Evidence |
+| --- | --- | --- | --- |
+| data_access_calls | answered | False | FACT-2c0b2441fccfc229 |
+| repeats_per_iteration | answered | False | FACT-2c0b2441fccfc229 |
+| result_is_bounded | undetectable | None | FACT-7161923731948bdd |
+| complexity_class | undetectable | None | — |
+| shared_mutable_state | answered | False | FACT-2c0b2441fccfc229 |
+| outbound_calls_protected | answered | False | FACT-2c0b2441fccfc229 |
+| cached | answered | False | FACT-2c0b2441fccfc229 |
+| rate_limited | not_applicable | None | FACT-2c0b2441fccfc229 |
 
 ## What we could not measure and why
 
 | Question | Reason | Entry points |
 | --- | --- | --- |
-| cached | the flow could not be traced from this entry point | 11: FACT-d3f797d291f88fc5, FACT-15de3868f6371e28, FACT-62eceba39cb16dfb and 8 more |
-| complexity_class | the flow could not be traced from this entry point | 11: FACT-d3f797d291f88fc5, FACT-15de3868f6371e28, FACT-62eceba39cb16dfb and 8 more |
-| data_access_calls | the flow could not be traced from this entry point | 11: FACT-d3f797d291f88fc5, FACT-15de3868f6371e28, FACT-62eceba39cb16dfb and 8 more |
-| outbound_calls_protected | the flow could not be traced from this entry point | 11: FACT-d3f797d291f88fc5, FACT-15de3868f6371e28, FACT-62eceba39cb16dfb and 8 more |
-| rate_limited | the flow could not be traced from this entry point | 11: FACT-d3f797d291f88fc5, FACT-15de3868f6371e28, FACT-62eceba39cb16dfb and 8 more |
-| repeats_per_iteration | the flow could not be traced from this entry point | 11: FACT-d3f797d291f88fc5, FACT-15de3868f6371e28, FACT-62eceba39cb16dfb and 8 more |
-| result_is_bounded | the flow could not be traced from this entry point | 11: FACT-d3f797d291f88fc5, FACT-15de3868f6371e28, FACT-62eceba39cb16dfb and 8 more |
-| shared_mutable_state | the flow could not be traced from this entry point | 11: FACT-d3f797d291f88fc5, FACT-15de3868f6371e28, FACT-62eceba39cb16dfb and 8 more |
-| cached | no cache site on this path | 2: FACT-4ab7f1d5c5c9fbd9, FACT-de174e9b06853330 |
-| complexity_class | no engine performance observation on this path | 2: FACT-4ab7f1d5c5c9fbd9, FACT-de174e9b06853330 |
-| data_access_calls | no data-access call sites recorded in this entry path | 2: FACT-4ab7f1d5c5c9fbd9, FACT-de174e9b06853330 |
-| rate_limited | no rate-limit or concurrency bound on this path | 2: FACT-4ab7f1d5c5c9fbd9, FACT-de174e9b06853330 |
-| repeats_per_iteration | no n+1 redundancy observation in this entry path; cannot confirm or deny | 2: FACT-4ab7f1d5c5c9fbd9, FACT-de174e9b06853330 |
-| result_is_bounded | some queries are bounded, others are not; mixed result | 2: FACT-4ab7f1d5c5c9fbd9, FACT-de174e9b06853330 |
-| shared_mutable_state | no mutable_global or external_state_write on this path | 2: FACT-4ab7f1d5c5c9fbd9, FACT-de174e9b06853330 |
+| complexity_class | no engine performance observation on this path | 26: FACT-2dded790a385b007, FACT-40f0e2171ef948e4, FACT-b26941a671e075b9 and 23 more |
+| result_is_bounded | some queries are bounded, others are not; mixed result | 26: FACT-2dded790a385b007, FACT-40f0e2171ef948e4, FACT-b26941a671e075b9 and 23 more |
+| rate_limited | a cli entry point has no inbound request rate to bound | 23: FACT-d144a2fb6c5db267, FACT-2c0b2441fccfc229, FACT-4ab7f1d5c5c9fbd9 and 20 more |
 
 Every entry point and every reason is in `load-model.json`.
 

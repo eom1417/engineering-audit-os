@@ -1,35 +1,35 @@
 # Execution waves
 
 > Two tasks touching the same file never share a wave; an investigation precedes the change it informs.
+> 25 waves · the detail is in the PLAN/ cards
 
 - entry: Required predecessor decisions accepted; file conflicts serialized.
 - exit: Record check outcomes or an evidenced investigation decision.
 
-## Wave 1
-
-| # | Task | Kind | Priority |
+| # | Tasks | Kinds | Top priority |
 |---|---|---|---|
-| TASK-001 | 421 functions perform the same ordered sequence of calls (cmd/enola/flags_documented_test. | investigate | 0.2333 |
-| TASK-003 | packaging/pypi/build_wheel.py: ينادي خدمة خارجية بلا مهلة أو إعادة محاولة — load blocker ( | investigate | 0.0784 |
-| TASK-007 | handleCall in internal/extractors/rubyextractor/routes_ast.go carries 109 branches over 54 | investigate | 0.0 |
-| TASK-008 | registerTools in internal/server/server.go carries 189 branches over 1117 lines, in a file | investigate | 0.0 |
-| TASK-009 | walkForCalls in internal/extractors/rubyextractor/ruby_ast.go carries 102 branches over 38 | investigate | 0.0 |
-
-## Wave 2
-
-| # | Task | Kind | Priority |
-|---|---|---|---|
-| TASK-002 | 236 functions perform the same ordered sequence of calls (internal/config/output_dir_test. | investigate | 0.0961 |
-| TASK-004 | packaging/pypi/build_wheel.py: ينادي خدمة خارجية بلا مهلة أو إعادة محاولة — load blocker ( | investigate | 0.0784 |
-
-## Wave 3
-
-| # | Task | Kind | Priority |
-|---|---|---|---|
-| TASK-005 | 328 functions perform the same ordered sequence of calls (internal/clientspec/clientspec.g | investigate | 0.0458 |
-
-## Wave 4
-
-| # | Task | Kind | Priority |
-|---|---|---|---|
-| TASK-006 | 149 functions perform the same ordered sequence of calls (cmd/enola/main_test.go:None, int | investigate | 0.0 |
+| 1 | TASK-001 TASK-004 TASK-005 TASK-027 TASK-028 TASK-029 TASK-036 TASK-038 TASK-040 TASK-041 TASK-042 TASK-043 TASK-044 TASK-046 TASK-050 TASK-051 TASK-053 TASK-054 TASK-058 TASK-059 TASK-060 TASK-069 TASK-070 TASK-072 TASK-078 TASK-079 TASK-083 TASK-087 TASK-088 TASK-089 TASK-091 TASK-101 TASK-103 TASK-105 TASK-106 TASK-108 TASK-110 TASK-113 TASK-114 TASK-115 TASK-119 TASK-123 TASK-124 TASK-125 TASK-130 TASK-133 TASK-135 TASK-136 TASK-140 TASK-145 TASK-146 TASK-150 TASK-152 TASK-161 TASK-164 TASK-167 TASK-169 TASK-176 TASK-177 TASK-179 TASK-185 TASK-188 TASK-190 TASK-202 TASK-205 TASK-206 TASK-207 TASK-212 TASK-216 TASK-217 TASK-219 TASK-221 TASK-224 TASK-229 TASK-231 TASK-232 TASK-233 TASK-234 TASK-235 TASK-236 TASK-237 TASK-243 TASK-246 TASK-248 TASK-250 TASK-253 TASK-255 TASK-256 TASK-257 TASK-258 TASK-281 TASK-290 TASK-304 TASK-305 TASK-306 | investigate | 0.5 |
+| 2 | TASK-002 TASK-006 TASK-031 TASK-037 TASK-047 TASK-048 TASK-052 TASK-055 TASK-061 TASK-071 TASK-074 TASK-084 TASK-086 TASK-094 TASK-096 TASK-099 TASK-102 TASK-107 TASK-109 TASK-116 TASK-126 TASK-127 TASK-128 TASK-129 TASK-134 TASK-137 TASK-141 TASK-147 TASK-151 TASK-155 TASK-159 TASK-163 TASK-168 TASK-170 TASK-181 TASK-183 TASK-192 TASK-199 TASK-213 TASK-223 TASK-226 TASK-239 TASK-240 TASK-247 TASK-251 TASK-259 TASK-277 TASK-280 TASK-282 TASK-298 TASK-303 | investigate | 0.3265 |
+| 3 | TASK-003 TASK-007 TASK-049 TASK-056 TASK-062 TASK-112 TASK-117 TASK-120 TASK-121 TASK-131 TASK-171 TASK-191 TASK-203 TASK-222 TASK-260 | investigate | 0.1818 |
+| 4 | TASK-008 TASK-030 TASK-032 TASK-039 TASK-057 TASK-063 TASK-076 TASK-077 TASK-080 TASK-085 TASK-104 TASK-122 TASK-132 TASK-138 TASK-148 TASK-153 TASK-156 TASK-160 TASK-172 TASK-178 TASK-182 TASK-184 TASK-187 TASK-193 TASK-204 TASK-241 TASK-252 TASK-254 TASK-261 TASK-262 TASK-283 TASK-291 TASK-297 | investigate | 0.0729 |
+| 5 | TASK-009 TASK-045 TASK-064 TASK-098 TASK-111 TASK-118 TASK-139 TASK-162 TASK-173 TASK-180 TASK-200 TASK-208 TASK-211 TASK-214 TASK-225 TASK-227 TASK-242 TASK-263 TASK-264 TASK-271 TASK-284 | investigate | 0.0729 |
+| 6 | TASK-010 TASK-065 TASK-067 TASK-075 TASK-090 TASK-100 TASK-142 TASK-157 TASK-165 TASK-174 TASK-189 TASK-194 TASK-230 TASK-275 TASK-285 TASK-295 | investigate | 0.0729 |
+| 7 | TASK-011 TASK-066 TASK-068 TASK-081 TASK-143 TASK-166 TASK-175 TASK-196 TASK-209 TASK-218 TASK-238 TASK-289 | investigate | 0.0729 |
+| 8 | TASK-012 TASK-073 TASK-082 TASK-092 TASK-097 TASK-144 TASK-158 TASK-195 TASK-201 TASK-220 TASK-265 TASK-276 | investigate | 0.0729 |
+| 9 | TASK-013 TASK-093 TASK-149 TASK-154 TASK-197 TASK-198 TASK-210 TASK-215 TASK-270 | investigate | 0.0729 |
+| 10 | TASK-014 TASK-095 TASK-186 TASK-244 TASK-266 TASK-269 TASK-287 TASK-296 | investigate | 0.0729 |
+| 11 | TASK-015 TASK-228 TASK-245 TASK-267 TASK-272 TASK-308 | investigate | 0.0729 |
+| 12 | TASK-016 TASK-249 TASK-268 TASK-273 TASK-279 TASK-288 | investigate | 0.0729 |
+| 13 | TASK-017 TASK-274 TASK-294 TASK-307 | investigate | 0.0729 |
+| 14 | TASK-018 TASK-278 | investigate | 0.0729 |
+| 15 | TASK-019 TASK-286 | investigate | 0.0729 |
+| 16 | TASK-020 TASK-292 | investigate | 0.0729 |
+| 17 | TASK-021 TASK-293 | investigate | 0.0729 |
+| 18 | TASK-022 TASK-299 | investigate | 0.0729 |
+| 19 | TASK-023 TASK-300 | investigate | 0.0729 |
+| 20 | TASK-024 TASK-301 | investigate | 0.0729 |
+| 21 | TASK-025 TASK-302 | investigate | 0.0729 |
+| 22 | TASK-026 | investigate | 0.0729 |
+| 23 | TASK-033 | investigate | 0.0486 |
+| 24 | TASK-034 | investigate | 0.0486 |
+| 25 | TASK-035 | investigate | 0.0486 |

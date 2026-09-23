@@ -15,7 +15,7 @@ def render():
         content='\n'.join(lines)+'\n'; (R/'modules'/f"{m['id']}.md").write_text(content);outputs.append(content)
     (R/'TAXONOMY.md').write_text('\n'.join(taxonomy)+'\n')
     parts=['# Engineering Audit OS — Master Manual\n\nVersion 3.0.0. Generated from canonical core, registry and research.\n']
-    for name in ['START-HERE.md','core/ARCHITECTURE-FIRST.md','core/AGENT-WORKFLOW.md','core/RUNTIME.md','core/OPERATING-MANUAL.md','core/EVIDENCE-AND-TRIAGE.md','core/REMEDIATION-AND-GATES.md','core/CLI-AND-CONTEXT.md','TAXONOMY.md']:
+    for name in ['START-HERE.md','core/ARCHITECTURE-FIRST.md','core/RUNTIME.md','core/OPERATING-MANUAL.md','core/EVIDENCE-AND-TRIAGE.md','core/REMEDIATION-AND-GATES.md','core/CLI-AND-CONTEXT.md','TAXONOMY.md']:
         parts.append((R/name).read_text())
     parts+=outputs
     for name in ['templates/RECORDS.md','examples/SCENARIOS.md','core/EXTENSION-PROTOCOL.md','research/RESEARCH.md','research/ARCHITECTURE-SEED.md','research/SOURCES.md']:
