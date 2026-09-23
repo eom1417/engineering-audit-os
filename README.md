@@ -1,128 +1,203 @@
-# Engineering Audit OS
+# Engineering Audit OS — نظام التدقيق الهندسي
 
-نظام مراجعة **Architecture / Structure / Maintainability / Evolvability**: اكتشاف المشروع، إعادة بناء البنية، مراجعة الأسباب الجذرية، تصميم البنية المستهدفة وخطة الانتقال، ثم إصلاحات قابلة للتحقق في نسخة مستقلة.
+**[English](README.en.md)** · الإصدار 3.0.0 · الحالة: **Pilot** (7 من 9 مجالات قدرة بلغت هدفها؛ [التفاصيل](#-أين-نحن-من-الوجهة))
 
-## التشغيل المتصل بالنموذج
-
-```bash
-python -m pip install .
-eaos run /absolute/project --out /absolute/audit --provider /absolute/provider.json
-```
-
-هذا الأمر ينفذ مراحل التحليل فعلًا باستدعاء النموذج المحدد. يحتاج إعداد مزود مرة واحدة؛ لا توجد حزمة منشورة على registry مفترضة ولا مفتاح API مضمّن. راجع [دليل التشغيل الكامل](core/RUNTIME.md) لإعداد HTTP أو adapter لوكيلك الحالي، وحدود البيانات والتكلفة والصلاحيات.
+> **فريق مراجعة هندسية كامل في أمر واحد.**
+> يقرأ مشروعك كما يقرؤه مهندس معماري ومراجع كود ومهندس أداء وقائد تقني معًا. يسلّمك صورة موثّقة للوضع الراهن، والشكل الاحترافي الذي يجب أن يصل إليه المشروع، وخطة مهام مرتّبة يستطيع أي مهندس أو نموذج ذكاء اصطناعي تنفيذها وإثبات أنها نجحت.
 
 ```bash
-# استكمال العمل المحفوظ
-eaos continue /absolute/audit --provider /absolute/provider.json
-
-# تنفيذ مهمة محددة في نسخة منفصلة، مع اختبارات فعلية
-eaos implement /absolute/audit --task TASK_ID --out /absolute/candidate \
-  --checks /absolute/checks.json --provider /absolute/provider.json
-
-# سلسلة تحسينات: تنفيذ → اختبارات → إعادة مراجعة المصدر الجديد → المهمة التالية
-eaos improve /absolute/audit --out /absolute/campaign \
-  --checks /absolute/checks.json --provider /absolute/provider.json --max-steps 10
+eaos audit /path/to/project --out /path/to/report
 ```
 
-استبدل TASK_ID وgate IDs بمعرفات الخطة الفعلية. run لا يعدل المشروع. implement/improve ينشئان نسخة جديدة وpatch وأدلة تحقق؛ لا ينشران ولا يدمجان التغييرات في مستودعك الأصلي.
+---
 
-## المخرجات
+## 🎯 لماذا هذا المشروع
 
-- `EXECUTIVE.md`: النتائج وأسبابها وأولوياتها.
-- `ARCHITECTURE.md` و`architecture.mmd`: البنية الفعلية والعقود وملكية القواعد.
-- `TARGET-ARCHITECTURE.md` و`target-architecture.mmd`: المكوّنات المستهدفة، قرارات التصميم، البدائل وخطة الهجرة.
-- `IMPLEMENTATION-PLAN.md`: مهام مرتبة بالاعتماديات، مع invariants والاختبارات والتراجع.
-- `report.md`: التقرير الكامل؛ `findings/evidence/coverage/roadmap.json`: سجلات قابلة للمعالجة.
-- `diagnosis-challenge.json` و`plan-challenge.json`: مراجعة مضادة للتشخيص والتصميم.
-- `engine-state.json` و`usage.json` و`jobs/`: حالة التنفيذ وميزانية السياق والاستئناف.
+المراجعة الهندسية الجادة تكلّف أسابيع من وقت كبار المهندسين، وتنتهي غالبًا بأحد أمرين:
 
-## المسار الحتمي: خريطة وملف مراجعة بلا نموذج
+- **تقرير آراء** لا يستطيع أحد التحقق منه.
+- **خطة عامة**، مثل «حسّنوا البنية»، لا يعرف أحد من أين يبدأ تنفيذها ولا متى تنتهي.
+
+EAOS يعالج الأمرين بقاعدة واحدة: **لا رأي بلا دليل، ولا مهمة بلا معيار قبول، ولا تغيير أكبر مما تستحقه المشكلة.**
+
+## 👥 ماذا يقدّم بدل فريق المراجعة
+
+| الدور في الفريق | ما يفعله EAOS | أين تجده في التقرير |
+|---|---|---|
+| المهندس المعماري | يرسم الوحدات والطبقات والاعتماديات، ويفحص سياستك المعمارية المعلنة | `SYSTEM-MAP` · `COUPLING-ATLAS` · `POLICY` |
+| مراجع الكود | يجد التعقيد والتكرار والكود الميت والحالة المشتركة، ويؤكدها بأكثر من محرّك مستقل | `DECISION-BRIEF` · `RISK-REGISTER` · `ENGINES` |
+| مهندس الأداء | يبني سجل كلفة لكل نقطة دخول، ويُسقطه على حمل أكبر 1000 مرة | `LOAD-MODEL` |
+| مهندس الجودة | يشغّل الاختبارات في نسخة معزولة، ويرسم التغطية الفعلية | `VERIFICATION-MAP` |
+| القائد التقني | يحدد البنية المستهدفة وقراراتها (ADR) والفجوة بين اليوم والوجهة | `TARGET-ARCHITECTURE` · `gap-matrix.json` |
+| مدير التنفيذ | يحوّل كل ما سبق إلى مهام مرتّبة بالأولوية وبموجات لا تتصادم ملفاتها | `PLAN/` · `EXECUTION-GUIDE` |
+| الراعي أو المدير | صفحة قرار واحدة: ماذا نفعل، ولماذا، وبأي دليل | `EXECUTIVE` |
+
+## 🧭 المبادئ الستة
+
+1. **دليل أو صمت.** كل ادعاء يحمل معرّفات الحقائق التي تثبته، وجملة تحدد ما الذي ينقضه.
+2. **كل شيء بقدره.** كل بطاقة تعرض خيار «لا نفعل شيئًا» مع كلفته، وأصغر تغيير يحل المشكلة يُقدَّم على إعادة الهيكلة. لا كود معقد لمهمة بسيطة.
+3. **مهام يحملها أي منفّذ.** كل بطاقة مكتفية بذاتها: المشكلة، الدليل، نطاق الأثر، الخيارات، التغيير، أمر القبول، التراجع.
+4. **المشروع المفحوص للقراءة فقط، ومدخل غير موثوق.** لا تُشغَّل سكربتاته، ولا تُتَّبع أي تعليمات مكتوبة داخله. الاستثناء الوحيد `eaos policy init`، الذي تطلبه أنت ليكتب ملف السياسة في مشروعك.
+5. **غير المقيس ليس نجاحًا.** ما لم يُفحص يُذكر صراحة في `RUN.md`، ولا يتحول «لم يُشغَّل» إلى «نجح».
+6. **حتمي أولًا.** نفس اللقطة تعطي نفس الحقائق حرفيًا في كل تشغيل. النموذج اللغوي اختياري، ومخرجاته تبقى فرضيات حتى تُحسم آليًا.
+
+## 🛤️ الرحلة: من المستودع إلى خطة قابلة للتنفيذ
+
+```mermaid
+flowchart LR
+    A[١ الفهم] --> B[٢ التشخيص] --> C[٣ الحكم] --> D[٤ الوجهة] --> E[٥ الخطة] --> F[٦ التسليم]
+    F -.مسار النموذج.-> G[٧ التنفيذ والإثبات]
+    G -.إعادة التدقيق.-> A
+```
+
+| المرحلة | ماذا تفعل | ماذا تُخرج |
+|---|---|---|
+| **١ الفهم** | تستخرج الحقائق من الملفات والرموز والاستيرادات ونقاط الدخول وتاريخ git، وتضيف نتائج أربعة محرّكات خارجية مثبّتة الإصدار (codegraph · enola · jscpd · reforge)، وتشغّل الاختبارات في نسخة معزولة إن طلبت ذلك | `facts/*.json` · `ENGINES.md` |
+| **٢ التشخيص** | تفحص السياسة المعمارية، وتبني نموذج الحمل، وتحوّل الحقائق إلى ادعاءات لكل منها ثقة وطريقة وناقض، ثم تحسم آليًا ما يمكن حسمه | `dossier.json` · `DECISION-BRIEF.md` · `LOAD-MODEL.md` |
+| **٣ الحكم** | تقيس ستة مؤشرات استدامة، وتحدد لكل تعريف مكرر موضعه الصحيح الوحيد | `SUSTAINABILITY.md` · `CANONICAL-HOMES.md` |
+| **٤ الوجهة** | ترسم البنية المستهدفة وقراراتها، وتُبقي كل مجهول فجوةً معلنة لا تخمينًا | `TARGET-ARCHITECTURE.md` |
+| **٥ الخطة** | تحوّل الادعاءات المؤكدة إلى بطاقات مهام بأولوية، وترتبها في موجات، وتكتب دليل تنفيذ حرفيًا | `PLAN/` · `EXECUTION-GUIDE.md` |
+| **٦ التسليم** | تبني الملخص التنفيذي وتقرير المنتج وصفحة HTML واحدة، ثم تحكم على التشغيل نفسه بعقد المخرج | `EXECUTIVE.md` · `index.html` · `RUN.md` |
+| **٧ التنفيذ والإثبات** *(اختياري، يحتاج نموذجًا)* | ينفّذ مهمة في نسخة منفصلة، ويشغّل أمر قبولها، ثم يعيد التدقيق ليقارن ما تنبأت به الخطة بما حدث فعلًا | patch · أدلة تحقق |
+
+اعرض المراحل كما يعرّفها الكود: `eaos stages`
+
+## 📦 ماذا تستلم
+
+كل تقرير يبدأ بـ`README.md` خاص به، يوجّه كل قارئ إلى ما يعنيه:
+
+| إن كنت… | ابدأ بـ | الوقت |
+|---|---|---|
+| تقرّر أين يذهب الجهد | `DECISION-BRIEF` ← `RISK-REGISTER` ← `PLAN/WAVES` | 5 دقائق |
+| تنضم للمشروع اليوم | `ONBOARDING` ← `SYSTEM-MAP` ← `FLOWS` | 45 دقيقة |
+| تراجع البنية | `POLICY` ← `COUPLING-ATLAS` ← `CONTRACTS` | 30 دقيقة |
+| ستغيّر ملفًا محددًا | `eaos impact-of <path> --out <report>` | دقيقة |
+
+كل وثيقة لها مالك واحد وميزانية أسطر لا تتجاوزها، ولكل وثيقة بشرية توأم JSON يقرؤه النموذج، أو سبب مكتوب لغيابه.
+
+### تشريح بطاقة مهمة
+
+```text
+TASK-003 — التعقيد 83 (العتبة 15) في eaos/sustainability.py
+├─ النوع        investigate (أثبِت قبل أن تلمس) | remediate (غيّر ثم تحقق)
+├─ الدليل        معرّفات الحقائق + المجسّ + ما الذي ينقض الادعاء
+├─ نطاق الأثر    الملفات، المستوردون المباشرون وغير المباشرين، التدفقات، الاختبارات
+├─ الخيارات      أصغر تغيير ← إعادة هيكلة ← «لا نفعل شيئًا» مع كلفة كل خيار
+├─ القبول        أمر قابل للتشغيل ونتيجته المتوقعة
+└─ التراجع       كيف تعود خطوة واحدة إلى الوراء
+```
+
+## 🚀 البدء السريع
+
+**المتطلبات:** Python 3.10 أو أحدث. المحرّكات الخارجية اختيارية؛ إصداراتها المثبّتة ومصادرها ورخصها في [`upstreams/registry.yaml`](upstreams/registry.yaml). غيابها يُعلن في التقرير ولا يوقفه.
 
 ```bash
-eaos map /absolute/project --out /absolute/out          # خريطة النظام والاقتران والتطور
-eaos dossier /absolute/project --out /absolute/out      # ملف المراجعة الكامل + موجز القرار
-eaos verify /absolute/project --out /absolute/out --execute   # تشغيل الاختبارات بتغطية في نسخة معزولة
-eaos probe /absolute/project --out /absolute/out        # إعادة حسم الادعاءات آليًا
-eaos ask "أين تُحسب قاعدة الخصم" --out /absolute/out     # إجابة من السجلات باستشهاد
-eaos site --out /absolute/out                           # صفحة HTML واحدة بالبحث
-eaos delta /absolute/old /absolute/new --fail-on-new-severe   # بوابة انحراف في CI
-eaos evaluate /absolute/benchmarks --out /absolute/eval # قياس الاكتشاف مقابل حقيقة أرضية
-eaos tasks /absolute/project --out /absolute/out        # بطاقات مهام وموجات تنفيذ من الادعاءات المؤكدة
-eaos impact-of <path|symbol> --out /absolute/out        # ما الذي يمسّه تغيير هذا الملف أو الرمز
-eaos policy check /absolute/project --out /absolute/out # فحص السياسة المعمارية المعلنة (بوابة CI)
-eaos api-diff /absolute/old /absolute/new               # سطح الكسر بين لقطتين
-eaos semantic /absolute/project --out /absolute/out --provider p.json   # طبقة دلالية فوق الحقائق
+# من جذر هذا المستودع
+python3 -m venv .venv && . .venv/bin/activate
+pip install -e ".[facts]"            # facts: محللات tree-sitter للغات غير Python
+
+# تدقيق كامل بلا نموذج
+eaos audit /path/to/project --out /path/to/report
+
+# مع المحرّكات الأربعة، وبتقرير إنجليزي، وبهدف محدد
+eaos audit /path/to/project --out /path/to/report \
+  --engines codegraph enola jscpd reforge --lang en --goal evolution
 ```
 
-`eaos tasks` ينتج لكل ادعاء مؤكد بطاقة مكتفية بذاتها: المشكلة وموضعها، الدليل، **نطاق الأثر محسوبًا من الرسم**، خيارات معالجة تتضمن دائمًا «لا نفعل شيئًا» وكلفتها، **معيار قبول مشتق من المجسّ الذي أكد الادعاء**، التراجع، وتقدير يعلن ثقته. والبطاقات مرتبة في موجات: مهمتان تتشاركان ملفًا لا تقعان في موجة واحدة.
+افتح `report/README.md`، أو `report/index.html` للبحث والتنقل.
 
-`eaos policy check` يقرأ `eaos.policy.json` من المشروع الهدف: الطبقات والاعتماديات الممنوعة بسبب مكتوب. كل حافة مخالفة تصير ادعاءً بموضعها، والأمر يخرج بغير صفر فتصلح بوابةً في CI.
+> ⚠️ `--test-command` يشغّل اختبارات المشروع في نسخة معزولة. النسخة ليست sandbox لنظام التشغيل، فاستخدمه مع المشاريع الموثوقة فقط، أو داخل بيئة معزولة.
 
-`dossier` ينتج `dossier.json` كمصدر وحيد، ويشتق منه: `README.md` (فهرس وترتيب قراءة ودرجة إسناد لكل قسم)، `DECISION-BRIEF.md` (صفحتان)، `RISK-REGISTER.md` (ترتيب بمعيار: مدى × ثقة ÷ كلفة)، `ONBOARDING.md`، `SYSTEM-MAP.md` (نقاط الدخول والتجمعات)، `FLOWS.md` (تتبع كل نقطة دخول بـ`file:line`)، `DOMAIN-AND-DATA.md` (مصدر الحقيقة والقواعد المكررة)، `CONTRACTS.md`، `COUPLING-ATLAS.md`، `EVOLUTION.md`، `VERIFICATION-MAP.md`، `PROVENANCE.md`. كل ادعاء يحمل ثقته وطريقته ودليله وما ينقضه؛ وعقد المخرج يرفض البناء عند مخالفته.
+### أوامر العمل اليومي
 
-`--audit-run <dir>` يدمج سجلات مراجعة نموذجية سابقة داخل نفس الملف.
+| الغرض | الأمر |
+|---|---|
+| ما الذي يمسّه تغيير ملف أو رمز | `eaos impact-of eaos/claims.py --out report` |
+| سؤال يُجاب من السجلات مع الاستشهاد | `eaos ask "أين تُحسب قاعدة الخصم" --out report` |
+| إنشاء سياسة معمارية ثم فحصها | `eaos facts . --out report` ← `eaos policy init . --out report` (يكتب `eaos.policy.json` في مشروعك، فأضف إليه قواعدك وأسبابها) ← `eaos policy check . --out report` |
+| تجميد الدَّين الحالي وإفشال CI على الجديد فقط | `eaos audit . --out report` ← `eaos baseline pin --out report` ← وفي CI: `eaos audit . --out report --gate new` |
+| مقارنة تدقيقين (بوابة انحراف) | `eaos delta old-report new-report --fail-on-new-severe` |
+| سطح الكسر بين نسختين (مجلدا حقائق من `eaos facts`) | `eaos api-diff old-facts new-facts --fail-on-breaking` |
+| المحرّكات المثبّتة وإصداراتها | `eaos engines list` |
 
-## حقائق حتمية بلا نموذج
+### مسار النموذج (متقدم)
+
+يحتاج ملف مزوّد نموذج، ويُعد مرة واحدة كما في [`core/RUNTIME.md`](core/RUNTIME.md):
 
 ```bash
-eaos facts /absolute/project --out /absolute/facts --history
+eaos run /path/to/project --out audit --provider provider.json        # مراجعة يقودها النموذج
+eaos implement audit --task TASK_ID --out candidate \
+  --checks checks.json --provider provider.json                        # تنفيذ مهمة في نسخة منفصلة
+eaos improve audit --out campaign --checks checks.json \
+  --provider provider.json --max-steps 10                              # تنفيذ ← تحقق ← إعادة تدقيق ← التالية
 ```
 
-مُستخرِجات برمجية حتمية لا تستدعي أي نموذج: معدل التغيير، الاقتران بالتغيير المشترك، توزيع الملكية، عمر آخر تغيير، كثافة الإصلاحات. نفس المدخل يعطي نفس الملف بايت-بايت؛ الطوابع الزمنية في `facts/run.json` وحده. رسائل الـcommit تُصنَّف ثم تُهمل ولا تُخزَّن. غياب `.git` يُعلَن في المخرج ولا يُعد خطأ. هذه إشارات انتباه، وليست أحكامًا على جودة التصميم.
+لا يعدّل أي أمر المشروع الأصلي، ولا ينشر شيئًا، ولا يدمج شيئًا.
 
-## الاستخدام داخل وكيل برمجي دون adapter مستقل
+---
+
+## 📊 أين نحن من الوجهة
+
+هذا القسم هو ما يجعل الوعود أعلاه قابلة للمحاسبة. كل وعد له مقياس، وكل مقياس له رقم اليوم. **إذا لم يطابق النظام وعدًا، فالفجوة مكتوبة هنا بالرقم.**
+
+قيس في 2026-09-23 على الالتزام `4ca317d`، على مستودعين حقيقيين مع المحرّكات الأربعة: هذا المستودع (Python، ‏215 ملفًا) وenola (Go، ‏1021 ملفًا).
+
+| # | الوعد | المقياس | اليوم (self · enola) | الهدف | الحالة |
+|---|---|---|---|---|---|
+| 1 | يفهم المشروع | الملفات المحللة | 211/215 · 1021/1021 | الكل أو إعلان السبب | ✅ |
+| 2 | يفهم لغات متعددة | لغات عمقها مقيس | Python وGo فقط | كل لغة يدّعيها | 🟡 |
+| 3 | دليل أو صمت | ادعاءات بدليل وناقض | 100% (عقد مفروض) | 100% | ✅ |
+| 4 | حتمي | تطابق الحقائق بين تشغيلين | متطابقة حرفيًا | متطابقة | ✅ |
+| 5 | كل شيء بقدره | بطاقات فيها «لا نفعل شيئًا» وكلفته | 194/194 · 522/522 | 100% | ✅ |
+| 6 | كل مهمة بحجمها | بطاقات بتقدير جهد معروف | **0/194 · 0/522** | 100% | 🔴 |
+| 7 | خطة إصلاح لا ملاحظات | بطاقات `remediate` جاهزة | **0% · 0%** | كل ادعاء مؤكد: إصلاح جاهز أو قرار موثق بعدم التغيير | 🔴 |
+| 8 | ينفّذها أي نموذج | بطاقات بأمر قبول قابل للتشغيل | **0% · 0%** (الأمر اليوم «مراجعة بشرية») | 100% للبطاقات الجاهزة | 🔴 |
+| 9 | معالم واضحة | تجميع المهام في milestones | 0؛ يوجد ترتيب موجات فقط (87 · 114 موجة) | معالم بأهداف قابلة للقياس | 🔴 |
+| 10 | مفيد لمهندس حقيقي | قرّاء مستقلون يحددون العمل التالي خلال 3 دقائق | **0 قرّاء** | 4 من 5 | 🔴 |
+| 11 | بطاقات عالية الجودة | بطاقات تنال 3 أو 4 من 4 من مقيّم بشري | **0 مقيّمة** | 80% | 🔴 |
+| 12 | يثبت أن التحسين تحقق | تنبؤات تحققت بعد تنفيذ | غير مقيس (0 مراحل منفّذة) | مقيس | 🔴 |
+| 13 | أفضل من وكيل عادي | طرق المقارنة المشغّلة | 1 من 3 | 3 من 3 | 🔴 |
+| 14 | يعمل على كود لم يره | حالات holdout مقابل حالات التطوير | 1 · 9 (recall على التطوير 1.0، والأساس 0.125) | مجموعة من 12 نوعًا مع holdout | 🟡 |
+| 15 | سريع بما يكفي | زمن التدقيق بالمحرّكات | 148 ث · 681 ث | يُعلن ولا يُخفى | ✅ |
+
+**مجالات القدرة التسعة** (المصدر [`docs/CAPABILITY-SCORE.md`](docs/CAPABILITY-SCORE.md)): الإجمالي **0.8537**، وكان **0.4874** عند بدء خطة القدرات، و7 من 9 مجالات عند الهدف 0.80. المجالان الباقيان: `independent_proof = 0.0` لأنه يحتاج مراجعًا بشريًا مستقلًا، و`transformation_plan` فيه مؤشر غير مقيس (`predictions_verified`) لأنه يحتاج تنفيذًا فعليًا.
+
+**أعد القياس بنفسك:**
 
 ```bash
-eaos audit /absolute/project --out /absolute/audit
-eaos next /absolute/audit
+eaos audit . --out /tmp/selfr --skip site --engines codegraph enola jscpd reforge
+eaos audit /path/to/enola --out /tmp/gor --skip site --engines codegraph enola jscpd reforge
+python tools/capability_score.py /tmp/selfr /tmp/gor        # المجالات التسعة
+# الصفوف 5 إلى 9: من /tmp/*/plan.json (kind · effort · options · acceptance)
 ```
 
-أعط الوكيل `START-HERE.md` و`core/AGENT-WORKFLOW.md`. الوكيل المستضيف يقرأ ويحلل، والـCLI يدير الأدلة والسجلات والبوابات. هذا نمط مختلف عن run الذي يستدعي النموذج بنفسه.
+## 🗺️ الطريق إلى الوجهة
 
-## كيف يحافظ على العمق
+مرتبة من الأقرب أثرًا. كل خطوة تحرّك صفًّا محددًا من اللوحة أعلاه:
 
-حصر الملفات لا يساوي فهم البنية. المحرك يراجع المسؤوليات والحدود ومصادر الحقيقة وتدفقات العمل وسيناريوهات التغيير. يحدد نطاق الفحوص قبل تنفيذها، ثم يتحدى التشخيص والتصميم ويعيدهما للتصحيح عند الحاجة. لا تُمحى الأسئلة غير المحسومة بالاختصار. الخطة تربط الإصلاح بسبب مثبت وبنية مستهدفة، ولا تفرض تقسيم ملفات أو خدمات بلا داعٍ.
+1. **حجم لكل مهمة:** تقدير جهد مشتق من نطاق الأثر والنمط (صف 6: من 0% إلى 100%).
+2. **إصلاحات جاهزة لأكثر من السياسة:** اليوم فئة واحدة فقط تصل إلى `remediate`، هي مخالفة السياسة المعلنة. التالي التكرار والتعقيد والكود الميت (صفّا 7 و8).
+3. **معالم لا موجات:** تجميع البطاقات تحت أهداف قابلة للقياس (صف 9).
+4. **مراجع مستقل:** إكمال [`evaluations/review-pack/`](evaluations/review-pack/) (صفّا 10 و11، و`independent_proof`).
+5. **مزوّد نموذج:** تشغيل الطريقتين الباقيتين من المقارنة، وتنفيذ مرحلة واحدة ثم قياسها (صفّا 12 و13).
+6. **مجموعة اختبار حقيقية:** 12 نوع حالة من [`QUALITY-AND-EVALUATION`](design/output-first/QUALITY-AND-EVALUATION.md) مع holdout منفصل (صف 14)، ثم عمق لغات إضافية (صف 2).
 
-اختبارات الإصلاح تعمل فعليًا قبل التغيير وبعده، ويتحقق النظام من بقاء المصدر خارج الخطة دون تعديل ومن عدم تغيير أوامر الفحص للمصدر بعد إعداد الإصلاح. النسخة المنفصلة ليست sandbox لنظام التشغيل؛ شغّل المشاريع غير الموثوقة داخل بيئة عزل مناسبة.
-
-## البنية الداخلية
-
-- `sessions.py` و`workspace.py`: إنشاء الجلسة والوصول المقيد إلى الملفات.
-- `architecture.py` و`surface_records.py` و`audit_records.py`: نموذج العلاقات وعقود الأدلة والاكتمال.
-- `workflow.py`: سير العمل لوكيل مستضيف.
-- `runtime/provider.py`: النقل إلى نموذج HTTP أو adapter صريح.
-- `runtime/context.py` و`jobs.py`: قراءة الأسطر، التنقيح، السياق، التحقق والاستئناف.
-- `runtime/contracts.py` و`pipeline.py`: عقود المراحل وتنفيذ المراجعة والتصميم.
-- `runtime/remediate.py` و`campaign.py`: تنفيذ الإصلاحات والتحقق وإعادة المراجعة.
-- `runtime/reporting.py`: المخرجات المقروءة والرسوم.
-
-## المعرفة والتطوير
-
-27 مجالًا و165 قاعدة و41 سجل مصدر، منها الفيديوهات الثلاثة كبذور مفاهيمية. `controls.json` و`sources.json` و`core/` و`schemas/` هي المصادر canonical؛ `modules/` و`eaos/data/` و`MASTER-MANUAL.md` مولدة.
+## 🛠️ للمطوّرين
 
 ```bash
-python tools/render.py
-python tools/validate.py
-python -m unittest discover -s tests -v
+python -m unittest discover -s tests -q \
+  && python tools/validate.py && python tools/invariants.py \
+  && python tools/render_capability_plan.py --check \
+  && bash tests/gate/self_audit.sh
 ```
 
-راجع `VALIDATION.md` للأدلة الفعلية و`ACCEPTANCE.md` لحدود الاستنتاج. اختبارات المحرك تستخدم مزودًا تجريبيًا مبرمجًا وخادم HTTP محليًا؛ ليست تقييمًا حيًا لنموذج خارجي. المراجعة الذاتية المنفذة بواسطة الوكيل موثقة بنتائج واختبارات فاشلة قبل الإصلاح وناجحة بعده.
+| الوثيقة | ماذا فيها |
+|---|---|
+| [`docs/REFERENCE.md`](docs/REFERENCE.md) | المرجع التفصيلي لكل الأوامر والبنية الداخلية |
+| [`docs/CAPABILITY-PLAN.md`](docs/CAPABILITY-PLAN.md) | خطة القدرات: 49 مهمة، منها 46 منجزة و3 محجوبة بأسباب مقيسة |
+| [`docs/CAPABILITY-SCORE.md`](docs/CAPABILITY-SCORE.md) | القياس الحالي للمجالات التسعة |
+| [`evaluations/release-evidence.json`](evaluations/release-evidence.json) | ما تدعمه الأدلة وما لا تدعمه |
+| [`design/output-first/OUTPUT-SPEC.md`](design/output-first/OUTPUT-SPEC.md) | مواصفة المخرج المستهدف |
+| [`MASTER-MANUAL.md`](MASTER-MANUAL.md) | 27 مجالًا و165 قاعدة هندسية يستند إليها التحليل |
 
-لا يعني COMPLETE ضمان اكتشاف جميع الأخطاء أو الجاهزية للإنتاج. النطاق غير المتاح يظهر صراحة. لم يتم نشر هذا المستودع أو package خارجيًا ضمن التسليم المحلي. تشغيل المصادر والفيديوهات موثق في research؛ قرئت التفريغات الآلية الثلاثة، ولا تُدّعى مشاهدة مرئية متصلة أو مراجعة مستقلة لمستودعات الفيديوهات.
-
-## Output-first project review (development preview)
-
-```bash
-eaos review-project /path/to/repository --out /path/outside/repository --goal evolution --lang ar
-```
-
-Generates `PRODUCT-REPORT.md`, a typed decision ledger, investigation/repair cards and a browsable `index.html`. Without `--provider`, the result is explicitly facts-only. Confirmed structural observations do not automatically authorize repairs. `decision-review` records sourced engineering judgments; `acceptance` runs explicitly authorized checks bound to a candidate fingerprint. Disappearing observations are unobserved, not automatically repaired.
-
-See [implementation status and remaining release gates](design/output-first/IMPLEMENTATION-STATUS.md) and the measured [capability scorecard](docs/CAPABILITY-SCORE.md).
-
-**Status: pilot, not a release.** Measured on two real repositories with all four engines on, seven of nine capability domains are at target (overall 0.8537). The two that are not cannot be closed by any amount of further coding:
-
-- `transformation_plan` scores 1.0 on its three measurable indicators, and `predictions_verified` stays unmeasured because verifying a prediction needs a report taken *after* the change, and this engine never writes code.
-- `independent_proof` is 0.0 until somebody outside this project works through `evaluations/review-pack/` and returns the form.
-
-Live-model evaluation and independent usefulness judgement remain outstanding. `evaluations/release-evidence.json` records what the evidence does and does not support.
+**الحالة بصراحة:** هذا pilot، لا إصدار. الأرقام أعلاه من مستودعين، أحدهما هذا المستودع نفسه. أي ادعاء عن مستودعات لم تُقس يبقى خارج ما تدعمه الأدلة، كما يوضح `release-evidence.json`.

@@ -108,6 +108,7 @@ class SupportScopeTests(unittest.TestCase):
     def test_the_readme_does_not_promise_a_scope_the_evidence_excludes(self):
         payload = json.loads(EVIDENCE.read_text(encoding='utf-8'))
         self.assertTrue(payload['supported_scope'])
-        text = (ROOT / 'README.md').read_text(encoding='utf-8').lower()
-        for overclaim in ('works on any repository', 'guarantees', 'production ready', 'any language'):
-            self.assertNotIn(overclaim, text, f'the README promises more than the evidence: {overclaim}')
+        for name in ('README.md', 'README.en.md'):
+            text = (ROOT / name).read_text(encoding='utf-8').lower()
+            for overclaim in ('works on any repository', 'guarantees', 'production ready', 'any language'):
+                self.assertNotIn(overclaim, text, f'{name} promises more than the evidence: {overclaim}')
