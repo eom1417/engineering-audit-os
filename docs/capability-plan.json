@@ -1139,7 +1139,7 @@
           "depends_on": [],
           "references": [],
           "status": "blocked",
-          "blocked_reason": "measured below 0.80 on the two reference reports: structure_polyglot=0.5115, load_model=0.6731, target_architecture=0.6667, transformation_plan=0.6667"
+          "blocked_reason": "measured on the two reference reports with the engines on: seven of nine domains at target, overall 0.8537. Every domain the plan could move is above 0.80 by score. Two do not meet: transformation_plan scores 1.0 on its three measurable indicators but carries one unmeasured (predictions_verified, see N7.T2), and independent_proof is 0.0 until a human reviewer completes the pack (N9.T2). Neither is closeable by a model"
         },
         {
           "id": "N10.T2",
@@ -1167,7 +1167,7 @@
             "N10.T1"
           ],
           "references": [],
-          "status": "todo"
+          "status": "done"
         }
       ]
     },
@@ -1442,8 +1442,8 @@
   "totals": {
     "milestones": 11,
     "tasks": 44,
-    "done": 40,
-    "todo": 1,
+    "done": 41,
+    "todo": 0,
     "blocked": 3
   }
 }

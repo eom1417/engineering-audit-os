@@ -1,5 +1,5 @@
 {
-  "recorded_at": "2026-09-21",
+  "recorded_at": "2026-09-23",
   "protocol": {
     "contract_version": 1,
     "declared_at": "2026-09-21T22:20:26+00:00",
@@ -131,17 +131,51 @@
   ],
   "decision": "pilot",
   "supported_scope": [
-    "Python repositories of a few hundred files, facts-only mode, run by someone who can read the limits.",
     "Detection of the nine planted defect classes in tests/fixtures/benchmarks, measured at recall 1.0 against a baseline of 0.125.",
-    "Reproducibility: the fact sets are byte-identical across runs of an unchanged tree."
+    "Reproducibility: the fact sets are byte-identical across runs of an unchanged tree.",
+    "Structural depth on Python and on Go, measured on two real repositories: 97.3% of Python imports and 97.7% of non-Python imports resolve, and 95.4% of the eight load questions are answered.",
+    "Every claim carries evidence and a falsifier, every document stays inside a declared line budget, and every declared invariant has a test enforcing it: 71 of 71.",
+    "The four pinned engines are exercised during measurement, and a report produced without them is refused rather than scored."
   ],
   "unsupported_scope": [
-    "Any claim about unseen repositories: every measured case is one this tool was developed against.",
+    "Any claim about unseen repositories: the two measured cases are this tool and one Go project it was tuned against.",
     "Usefulness to a reader: no independent person has judged a claim or a card.",
+    "Whether the transformation plan's predictions come true: nothing has executed a stage and measured the result.",
     "The semantic arm: no model provider ran, so nothing is known about interpretation quality.",
     "Comparison against a plain agent: never performed.",
-    "Languages other than Python beyond parsing; non-Python detection depth is unmeasured.",
+    "Languages beyond Python and Go: parsed, but detection depth is unmeasured.",
     "Repositories above a few thousand files: performance and precision at that size are unmeasured."
   ],
-  "limits": "This record exists to stop a pilot being described as a release. It supports the former only."
+  "limits": "This record exists to stop a pilot being described as a release. Seven of nine capability domains are at target and the two that are not cannot be closed by a model: one needs a stage actually executed, the other needs a human reviewer. It supports a pilot only.",
+  "measured_capability": {
+    "measured_at_commit": "ffd2140",
+    "reports": [
+      "this repository (python)",
+      "/workspace/upstream-src/enola (go)"
+    ],
+    "engines": [
+      "codegraph",
+      "enola",
+      "jscpd",
+      "reforge"
+    ],
+    "overall": 0.8537,
+    "domains_at_target": 7,
+    "domains_total": 9,
+    "domains": {
+      "layered_engineering": 1.0,
+      "structure_python": 0.9732,
+      "structure_polyglot": 0.9228,
+      "runtime_surface": 0.8334,
+      "load_model": 0.9535,
+      "target_architecture": 1.0,
+      "transformation_plan": 1.0,
+      "report_clarity": 1.0,
+      "independent_proof": 0.0
+    },
+    "not_at_target": {
+      "transformation_plan": "scores 1.0 on its three measurable indicators; predictions_verified is unmeasured because a guarantee needs a report taken after the change, and the engine never writes code",
+      "independent_proof": "0.0 until a reviewer outside this project completes evaluations/review-pack; no model can close it"
+    }
+  }
 }

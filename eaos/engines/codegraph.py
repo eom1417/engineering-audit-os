@@ -33,12 +33,24 @@ TOOLS = {
 BINARY = '/workspace/engine-tools/bin/codegraph-server'
 
 
-def _run(tool, args, workspace, timeout=600):
-    """One tool, one payload. Never raise: return (payload_str_or_None, error_str_or_None)."""
+def _run(tool, args, workspace, timeout=600, index_home=None):
+    """One tool, one payload. Never raise: return (payload_str_or_None, error_str_or_None).
+
+    `index_home` becomes the process HOME, and the engine keeps its index under it. Left to its
+    own default the engine shares one index across every run on the machine, and a single bad
+    build poisons it: it persisted zero nodes for this repository, then declined to rebuild
+    ("No files changed and no persisted data"), so every tool answered with an empty payload and
+    the run recorded an engine that had seen nothing. A per-run home costs one cold index and
+    makes the answer depend on the tree instead of on what some earlier run left behind.
+    """
     cmd = [BINARY, '--graph-only', '-w', str(workspace),
            '--run-tool', tool, '--tool-args', json.dumps(args or {})]
+    environment = None
+    if index_home is not None:
+        import os
+        environment = dict(os.environ, HOME=str(index_home))
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=environment)
         out = result.stdout.strip()
         err = result.stderr.strip()
         if 'Tool ' in err and ' failed: ' in err:
@@ -208,6 +220,9 @@ def run(target, out, tools=None, files=None, **options):
                 'input_sha': '', 'reason': f'CodeGraph binary not installed at {BINARY}'}
     facts = []
     tool_selection = tools or {}
+    index_home = Path(out) / 'index-home'
+    index_home.mkdir(parents=True, exist_ok=True)
+    summary['index_home'] = str(index_home)
 
     asked = [path for path in (files or []) if (target / path).is_file() and _is_the_reader_s_code(path)]
     summary['files_offered'] = len(files or [])
@@ -227,7 +242,8 @@ def run(target, out, tools=None, files=None, **options):
         errors, produced = [], 0
         for path in asked:
             text, err = _run('codegraph_get_dependency_graph',
-                             {'uri': f'file://{target / path}', 'direction': 'both', 'depth': 1}, target)
+                             {'uri': f'file://{target / path}', 'direction': 'both', 'depth': 1}, target,
+                             index_home=index_home)
             if err: errors.append(err); continue
             payload = _parse_payload(text)
             if payload:
@@ -239,7 +255,7 @@ def run(target, out, tools=None, files=None, **options):
     if asked and tool_selection.get('analyze_complexity', True):
         errors, produced = [], 0
         for path in asked:
-            text, err = _run('codegraph_analyze_complexity', {'uri': f'file://{target / path}'}, target)
+            text, err = _run('codegraph_analyze_complexity', {'uri': f'file://{target / path}'}, target, index_home=index_home)
             if err: errors.append(err); continue
             payload = _parse_payload(text)
             if payload:
@@ -249,7 +265,7 @@ def run(target, out, tools=None, files=None, **options):
         _record_many(summary, 'codegraph_analyze_complexity', produced, errors, len(asked))
 
     if tool_selection.get('find_hot_paths', True):
-        text, err = _run('codegraph_find_hot_paths', {'limit': 20, 'depth': 3}, target)
+        text, err = _run('codegraph_find_hot_paths', {'limit': 20, 'depth': 3}, target, index_home=index_home)
         _record(summary, 'codegraph_find_hot_paths', text, err)
         payload = _parse_payload(text)
         if payload:
@@ -266,7 +282,8 @@ def run(target, out, tools=None, files=None, **options):
         landed, diagnostics = 0, []
         for path in asked[:10]:
             text, err = _run('codegraph_get_call_graph',
-                             {'uri': f'file://{target / path}', 'name': Path(path).stem, 'depth': 2}, target)
+                             {'uri': f'file://{target / path}', 'name': Path(path).stem, 'depth': 2}, target,
+                             index_home=index_home)
             if err: diagnostics.append(err); continue
             payload = _parse_payload(text)
             if not payload: continue
@@ -416,7 +433,11 @@ def files_of_interest(workdir):
                 if fact['value'].get('category') == 'test': continue
                 paths.append(fact['location']['path'])
             else:
-                paths.extend(fact['value'].get('files') or [])
+                # The flow fact names its path set `touched_files`. Reading `files` here returned
+                # an empty list on every project, so the engine was only ever asked about entry
+                # points -- the same producer/reader name mismatch this module was fixed for.
+                paths.extend(fact['value'].get('touched_files') or [])
+                paths.append(((fact['value'].get('entry') or {}).get('path')) or '')
     return list(dict.fromkeys(path for path in paths if path))
 
 

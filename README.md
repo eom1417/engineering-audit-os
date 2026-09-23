@@ -118,4 +118,11 @@ eaos review-project /path/to/repository --out /path/outside/repository --goal ev
 
 Generates `PRODUCT-REPORT.md`, a typed decision ledger, investigation/repair cards and a browsable `index.html`. Without `--provider`, the result is explicitly facts-only. Confirmed structural observations do not automatically authorize repairs. `decision-review` records sourced engineering judgments; `acceptance` runs explicitly authorized checks bound to a candidate fingerprint. Disappearing observations are unobserved, not automatically repaired.
 
-See [implementation status and remaining release gates](design/output-first/IMPLEMENTATION-STATUS.md). This is a development preview; live-model and independent usefulness evaluation remain outstanding.
+See [implementation status and remaining release gates](design/output-first/IMPLEMENTATION-STATUS.md) and the measured [capability scorecard](docs/CAPABILITY-SCORE.md).
+
+**Status: pilot, not a release.** Measured on two real repositories with all four engines on, seven of nine capability domains are at target (overall 0.8537). The two that are not cannot be closed by any amount of further coding:
+
+- `transformation_plan` scores 1.0 on its three measurable indicators, and `predictions_verified` stays unmeasured because verifying a prediction needs a report taken *after* the change, and this engine never writes code.
+- `independent_proof` is 0.0 until somebody outside this project works through `evaluations/review-pack/` and returns the form.
+
+Live-model evaluation and independent usefulness judgement remain outstanding. `evaluations/release-evidence.json` records what the evidence does and does not support.

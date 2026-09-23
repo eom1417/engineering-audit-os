@@ -353,3 +353,25 @@ class CodeGraphAdapterContractTests(unittest.TestCase):
         self.assertEqual(facts[0]['value']['from'], 'pkg/a.go')
         self.assertEqual(facts[0]['value']['to'], 'strings')
         self.assertNotIn('99', json.dumps(facts))
+
+    def test_the_files_asked_about_include_the_ones_the_flows_touch(self):
+        # The flow fact names its path set `touched_files`. Reading `files` returned an empty list
+        # on every project, so the engine saw entry points only and never the paths behind them.
+        import tempfile
+        from eaos.engines.codegraph import files_of_interest
+        with tempfile.TemporaryDirectory() as tmp:
+            facts = Path(tmp) / 'report' / 'facts'
+            facts.mkdir(parents=True)
+            (facts / 'entrypoints.json').write_text(json.dumps({'facts': [
+                {'kind': 'entry_point', 'location': {'path': 'cmd/main.go'}, 'value': {'category': 'source'}},
+                {'kind': 'entry_point', 'location': {'path': 'cmd/main_test.go'}, 'value': {'category': 'test'}},
+            ]}))
+            (facts / 'flows.json').write_text(json.dumps({'facts': [
+                {'kind': 'flow', 'location': {'path': 'cmd/main.go'},
+                 'value': {'entry': {'path': 'cmd/main.go'},
+                           'touched_files': ['cmd/main.go', 'internal/store/store.go']}},
+            ]}))
+            found = files_of_interest(Path(tmp) / 'report' / 'engines' / 'codegraph')
+        self.assertIn('internal/store/store.go', found, 'a file only a flow reaches must still be asked about')
+        self.assertIn('cmd/main.go', found)
+        self.assertNotIn('cmd/main_test.go', found, 'a test entry point is not the reader\'s entry point')
