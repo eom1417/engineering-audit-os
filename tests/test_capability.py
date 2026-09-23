@@ -178,6 +178,20 @@ class PlanTests(unittest.TestCase):
         task['depends_on'].append(task['id'])
         self.assertTrue(any('itself' in problem for problem in self.renderer.validate(broken)))
 
+    def test_a_milestone_status_its_tasks_contradict_is_rejected(self):
+        # The rendered plan showed N2..N12 as todo after every task in them was done or blocked.
+        import copy
+        broken = copy.deepcopy(self.plan)
+        broken['milestones'][0]['status'] = 'todo'
+        self.assertTrue(any(problem.startswith(broken['milestones'][0]['id'] + ': status')
+                            for problem in self.renderer.validate(broken)))
+
+    def test_totals_the_tasks_contradict_are_rejected(self):
+        import copy
+        broken = copy.deepcopy(self.plan)
+        broken['totals']['done'] -= 1
+        self.assertTrue(any(problem.startswith('totals') for problem in self.renderer.validate(broken)))
+
     def test_the_rendered_plan_is_not_stale(self):
         self.assertEqual(self.renderer.main(['--check']), 0)
 

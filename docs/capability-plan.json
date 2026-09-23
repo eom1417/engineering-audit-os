@@ -139,7 +139,7 @@
     {
       "id": "N2",
       "title": "الإشارة فوق الضجيج",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "N1"
       ],
@@ -265,7 +265,7 @@
     {
       "id": "N3",
       "title": "عمق اللغات غير Python",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "N2"
       ],
@@ -390,7 +390,7 @@
     {
       "id": "N4",
       "title": "الكواشف التشغيلية الخمسة الناقصة",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "N1"
       ],
@@ -754,7 +754,7 @@
     {
       "id": "N6",
       "title": "الصورة المثالية بمحتوى",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "N3",
         "N5"
@@ -877,7 +877,7 @@
     {
       "id": "N7",
       "title": "خطة تنفيذها مضمون",
-      "status": "todo",
+      "status": "blocked",
       "depends_on": [
         "N6"
       ],
@@ -945,7 +945,7 @@
     {
       "id": "N8",
       "title": "تقرير يفهمه أي نموذج وينفّذه",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "N5",
         "N6",
@@ -1041,7 +1041,7 @@
     {
       "id": "N9",
       "title": "الحكم المستقل",
-      "status": "todo",
+      "status": "blocked",
       "depends_on": [
         "N8"
       ],
@@ -1104,7 +1104,7 @@
     {
       "id": "N10",
       "title": "إعادة القياس وقرار الإصدار",
-      "status": "todo",
+      "status": "blocked",
       "depends_on": [
         "N2",
         "N3",
@@ -1173,7 +1173,7 @@
     },
     {
       "id": "N11",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "N3",
         "N5",
@@ -1440,7 +1440,7 @@
     },
     {
       "id": "N12",
-      "status": "todo",
+      "status": "done",
       "depends_on": [
         "N11"
       ],
@@ -1598,8 +1598,8 @@
   "totals": {
     "milestones": 12,
     "tasks": 49,
-    "done": 41,
-    "todo": 5,
+    "done": 46,
+    "todo": 0,
     "blocked": 3
   }
 }

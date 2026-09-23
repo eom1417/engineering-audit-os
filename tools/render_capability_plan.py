@@ -21,9 +21,31 @@ def tasks(plan):
     return [task for milestone in plan['milestones'] for task in milestone['tasks']]
 
 
+def milestone_status(milestone):
+    """A milestone's status is what its tasks say: done when all are done, blocked when only blocked ones remain."""
+    states = {task['status'] for task in milestone['tasks']}
+    if states <= {'done'}:
+        return 'done'
+    if states <= {'done', 'blocked'}:
+        return 'blocked'
+    return 'in_progress' if states & {'done', 'in_progress'} else 'todo'
+
+
+def counted(plan):
+    statuses = [task['status'] for task in tasks(plan)]
+    return {'milestones': len(plan['milestones']), 'tasks': len(statuses),
+            **{name: statuses.count(name) for name in ('done', 'todo', 'blocked')}}
+
+
 def validate(plan):
     from eaos.capability import DOMAINS
     problems = []
+    for milestone in plan['milestones']:
+        if milestone['status'] != milestone_status(milestone):
+            problems.append(f"{milestone['id']}: status {milestone['status']!r} but its tasks say "
+                            f"{milestone_status(milestone)!r}")
+    if plan.get('totals') != counted(plan):
+        problems.append(f"totals {plan.get('totals')} disagree with the tasks {counted(plan)}")
     known = {task['id'] for task in tasks(plan)}
     milestones = {milestone['id'] for milestone in plan['milestones']}
     seen = set()
@@ -78,7 +100,9 @@ def render(plan):
            f"> مولَّد من `docs/capability-plan.json` — لا تحرّره يدويًا. "
            f"الأساس: `{plan['baseline_commit']}` · {plan['recorded_at']}.", '',
            f"**الهدف:** {plan['goal']}", '',
-           '## الوضع المقيس اليوم', '', '| المجال | الدرجة | الهدف |', '| --- | --- | --- |']
+           '## الأساس المقيس عند بدء الخطة', '',
+           '> هذه أرقام نقطة البداية، لا اليوم. القياس الحالي في `docs/CAPABILITY-SCORE.md`.', '',
+           '| المجال | الدرجة | الهدف |', '| --- | --- | --- |']
     base = plan['measured_baseline']
     for name, value in base.items():
         if name in ('overall', 'domains_at_target', 'domains_total'):
@@ -127,6 +151,11 @@ def render(plan):
 
 def main(argv):
     plan = json.loads(SOURCE.read_text(encoding='utf-8'))
+    if '--check' not in argv:
+        for milestone in plan['milestones']:
+            milestone['status'] = milestone_status(milestone)
+        plan['totals'] = counted(plan)
+        SOURCE.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     problems = validate(plan)
     if problems:
         for problem in problems:
