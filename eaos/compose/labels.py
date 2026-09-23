@@ -119,8 +119,24 @@ IMPACTS = {
         'sequence_duplicate': 'التنسيق نفسه يُصان في أكثر من موضع في آن واحد.',
         'redundant_work': 'المسار ينفّذ عملًا أكثر مما تحتاجه نتيجته، في كل تنفيذ.',
     },
+    # Every key Arabic carries needs an English twin. With only one of them filled, an English
+    # report fell back to the stored Arabic sentence for fourteen of fifteen claim kinds, so the
+    # reader who asked for English got Arabic wherever an impact was shown.
     'en': {
         'load_blocker': 'Cost grows with traffic or data at this entry point; current behavior may not survive higher load.',
+        'engine_cluster': 'More than one engine points at the same place: a review candidate, not a verdict that a defect exists.',
+        'cycle': 'Changing any member can force the rest to change with it, and the group cannot be tested or replaced on its own.',
+        'cochange': 'Changing one usually calls for a matching change in the other, with nothing in the code to say so.',
+        'duplicated_rule': 'Editing the rule in one place and not the other makes two paths disagree.',
+        'duplicated_rule_differs': 'Editing the rule in one place and not the other makes two paths disagree, and they already differ.',
+        'trace_gap': 'The behavior of this entry point is not fully visible from source alone.',
+        'hotspot': 'Every change on this path runs through one dense function, concentrating maintenance risk in a single unit.',
+        'mutable_global': 'Two callers may see different values depending on order, and tests can pass alone and fail together.',
+        'external_write': 'The owning module cannot guarantee its own invariant, because another module writes into it directly.',
+        'untested': 'A change in these files can ship without any test having executed it.',
+        'structural_duplicate': 'Editing the rule in one copy and not the other makes the paths disagree, and nothing in the code links them.',
+        'sequence_duplicate': 'The same orchestration is maintained in several places at once.',
+        'redundant_work': 'The path performs more work than its result requires, on every execution.',
     },
 }
 
@@ -132,6 +148,37 @@ def impact_of(claim, language):
     translated = IMPACTS.get(language, {}).get(key)
     return translated or (claim.get('impact') or {}).get('scenario') or '—'
 
+
+
+# A falsifier tells the reader what would prove the claim wrong. It is stored once in the ledger,
+# in English, and an Arabic report showed it untranslated in every claim it printed -- the same
+# gap IMPACTS had. Keyed by render key so both catalogues are checked the same way.
+FALSIFIERS = {
+    'ar': {
+        'structural_duplicate': 'دليل على أن النسختين تُرمّزان قاعدتين مختلفتين تتطوّران لسببين مختلفين، فيكون التعريف الواحد خطأً لا نقصًا.',
+        'sequence_duplicate': 'دليل على أن الترتيب المشترك مصادفة لا تنسيقًا واحدًا منسوخًا.',
+        'trace_gap': 'محلِّل أو تتبّع زمن تشغيل يتبع تلك النداءات إلى أهدافها.',
+        'load_blocker': 'مهلة أو سياسة إعادة محاولة أو قاطع دائرة على النداء، أو دليل على أن النداء محلي.',
+        'engine_cluster': 'إظهار أن القياس الذي يبلّغ عنه كل محرك دون العتبة التي يعلنها، أو أن المحركات تتشارك تنفيذًا واحدًا فهي شاهد واحد.',
+        'mutable_global': 'أن تصير القيمة غير قابلة للتعديل، أو أن ينتقل التعديل خلف مالك ينظّم الوصول إليه.',
+        'hotspot': 'قياس يُظهر أن التفرّع دون العتبة المعلنة، أو دليل على أن التعقيد أصيل في المشكلة لا في الوحدة.',
+        'redundant_work': 'دليل على أن التكرار لازم — نتيجة مختلفة لكل نداء، أو اعتماد على حالة تتغيّر بينها.',
+        'duplicated_rule': 'تعريف واحد تستورده بقية المواضع، أو دليل على أن الاسم المكرر يُرمّز قواعد غير مترابطة.',
+        'external_write': 'أن تنتقل الكتابة إلى الوحدة المالكة خلف عملية مسمّاة.',
+    },
+    'en': {},
+}
+# The ledger already stores the English sentence, so the English side is filled from the Arabic
+# keys rather than written twice: a key present in one language must be present in the other.
+FALSIFIERS['en'] = {key: None for key in FALSIFIERS['ar']}
+
+
+def falsifier_of(claim, language):
+    """The falsifier in the reader's language, falling back to the stored sentence."""
+    stored = claim.get('falsifier') or ''
+    key = (claim.get('render') or {}).get('key')
+    translated = FALSIFIERS.get(language, {}).get(key)
+    return translated or stored or '—'
 
 # Which artifact carries the detail behind each kind of claim, so a reader is never left searching.
 DETAIL_ARTIFACT = {

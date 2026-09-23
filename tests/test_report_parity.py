@@ -118,3 +118,29 @@ class RecordDrivenTests(Workspace):
         declared = {artifact.name for artifact in DOCUMENTS if not artifact.required}
         surprising = [target for target in missing if target not in declared]
         self.assertEqual(surprising, [], 'the index points at documents that were never produced')
+
+
+class LabelCatalogueTests(unittest.TestCase):
+    """Both languages describe the same claim, or the reader gets the other one's words."""
+
+    def test_every_impact_and_statement_key_exists_in_both_languages(self):
+        from eaos.compose.labels import FALSIFIERS, IMPACTS, TEMPLATES
+        for catalogue, name in ((IMPACTS, 'IMPACTS'), (TEMPLATES, 'TEMPLATES'),
+                                (FALSIFIERS, 'FALSIFIERS')):
+            arabic, english = set(catalogue['ar']), set(catalogue['en'])
+            with self.subTest(catalogue=name):
+                self.assertEqual(arabic - english, set(),
+                                 f'{name}: these keys fall back to Arabic in an English report')
+
+    def test_an_arabic_report_does_not_print_an_english_falsifier(self):
+        # The ledger stores one English sentence per claim kind. Printing it under an Arabic
+        # heading gave the reader half a line in each language.
+        from eaos.compose.labels import FALSIFIERS, falsifier_of
+        for key in FALSIFIERS['ar']:
+            with self.subTest(key=key):
+                claim = {'falsifier': 'An English sentence.', 'render': {'key': key}}
+                self.assertNotEqual(falsifier_of(claim, 'ar'), 'An English sentence.')
+                self.assertEqual(falsifier_of(claim, 'en'), 'An English sentence.')
+        # A kind with no entry keeps the stored sentence rather than losing it.
+        unknown = {'falsifier': 'Stored.', 'render': {'key': 'not-a-key'}}
+        self.assertEqual(falsifier_of(unknown, 'ar'), 'Stored.')

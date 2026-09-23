@@ -163,7 +163,16 @@ def build(out, policy_path=None, targets=None):
 
 
 # A 1,065-line plan is a record, not a document: the first stages are what anyone reads.
-SHOWN_STAGES = 6
+# A ceiling on how many stages are even considered for rendering; what actually fits is decided
+# against the declared budget, because one stage may print twenty sites and another three.
+SHOWN_STAGES = 24
+
+
+def _budget():
+    """The line budget the artifact contract declares for transform-plan.md."""
+    from .compose.artifacts import BY_NAME
+    declared = BY_NAME.get('transform-plan.md')
+    return declared.budget_lines if declared else 200
 
 
 def render(out, plan, language='ar'):
@@ -184,7 +193,10 @@ def render(out, plan, language='ar'):
     lines += [f"- " + ('عدد المراحل' if ar else 'stages') + f": {plan['summary']['stages']}"]
     lines += [f"- " + ('حركات بلا موضع مرجحي' if ar else 'moves with no viable candidate')
               + f": {plan['summary']['moves_with_no_viable_candidate']}"]
+    header = lines
+    blocks = []
     for stage in plan['stages'][:SHOWN_STAGES]:
+        lines = []
         lines += ['', '## ' + ('مرحلة' if ar else 'Stage') + f" {stage['stage']}: {stage['move']}"]
         if 'rule' in stage:
             lines += [f"- " + ('القاعدة' if ar else 'rule') + f": {stage['rule'][:16]}"]
@@ -210,10 +222,19 @@ def render(out, plan, language='ar'):
             lines += ["- " + ('التأثير المتوقع' if ar else 'predicted') + ":"]
             for k, v in stage['predicted'].items():
                 lines += [f"  - {k}: {v}"]
-    if len(plan['stages']) > SHOWN_STAGES:
-        lines += ['', (f"عُرضت {SHOWN_STAGES} مرحلة من {len(plan['stages'])}؛ البقية في `transform-plan.json`."
+        blocks.append(lines)
+    # A stage is shown whole or not at all: half a stage is a step list with no acceptance under
+    # it. A fixed count of stages cannot hold a budget, because one stage may print twenty sites.
+    lines = header
+    shown = 0
+    for block in blocks:
+        if len(lines) + len(block) > _budget() - 4: break
+        lines += block
+        shown += 1
+    if shown < len(plan['stages']):
+        lines += ['', (f"عُرضت {shown} مرحلة من {len(plan['stages'])}؛ البقية في `transform-plan.json`."
                        if ar else
-                       f"Showing {SHOWN_STAGES} of {len(plan['stages'])} stages; the rest are in "
+                       f"Showing {shown} of {len(plan['stages'])} stages; the rest are in "
                        f"`transform-plan.json`.")]
     lines += ['', '## ' + ('الحدود' if ar else 'Limits'), '']
     for line in LIMITATIONS: lines += [f"- {line}"]

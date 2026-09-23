@@ -51,21 +51,62 @@ def _read_sets(out):
     return read_available(out)
 
 
+
+# A detector that reached a small corner of the snapshot cannot speak for the whole of it. The
+# floor is declared rather than tuned: below it the indicator reports what it did not cover
+# instead of a number, because one Python file out of 1021 produced a clean 0.0 and a green tick
+# over a Go repository the detector never read.
+COVERAGE_FLOOR = 0.2
+
+
+def _too_little_coverage(what, summary):
+    """None when the detector saw enough of the snapshot to speak for it; an unmeasured row if not."""
+    analysed = summary.get('files_observed')
+    blocked = summary.get('files_blocked', 0)
+    if analysed is None: return None
+    total = analysed + blocked
+    if not total: return None
+    share = analysed / total
+    if share >= COVERAGE_FLOOR: return None
+    return {'value': None, 'measured': False, 'files_analysed': analysed, 'files_blocked': blocked,
+            'reason': f'{what} analysed {analysed} of {total} file(s) ({share:.1%}), below the '
+                      f'declared floor of {COVERAGE_FLOOR:.0%}; this is a statement about coverage, '
+                      f'not a clean result'}
+
+
 def _indicator_single_source(sets):
-    """P1: the smaller the duplicate-cluster count, the closer to one source of truth."""
+    """P1: the smaller the duplicate-cluster count, the closer to one source of truth.
+
+    Guarded the same way as P2: a fingerprinter that analysed nothing has found nothing to report,
+    not nothing to find.
+    """
+    summary = sets.get('fingerprint', {}).get('summary') or {}
+    unmeasured = _too_little_coverage('fingerprinting', summary)
+    if unmeasured: return unmeasured
     clusters = [f for f in sets.get('fingerprint', {}).get('facts', []) if f['kind'] == 'duplicate_cluster']
     duplicates = sum(len(c['value']['occurrences']) - 1 for c in clusters)
     symbols = max(1, sum(1 for f in sets.get('syntax', {}).get('facts', []) if f['kind'] == 'symbol'))
-    return {'value': round(duplicates / symbols, 3), 'duplicates': duplicates, 'symbols': symbols}
+    return {'value': round(duplicates / symbols, 3), 'measured': True,
+            'duplicates': duplicates, 'symbols': symbols}
 
 
 def _indicator_minimal_path(sets):
-    """P2: the lower the redundant-work count per flow, the closer to a minimal path."""
+    """P2: the lower the redundant-work count per flow, the closer to a minimal path.
+
+    A detector that analysed no file cannot report a clean result. Dividing zero findings by every
+    function in the snapshot produced 0.0 and a green tick on a project whose language the
+    detector does not read, which is the most confident way to say nothing.
+    """
+    summary = sets.get('redundancy', {}).get('summary') or {}
+    unmeasured = _too_little_coverage('redundancy detection', summary)
+    if unmeasured: return unmeasured
     redundant = sum(f['value']['kind'] in {'repeated_call', 'hoistable_call', 'n_plus_one', 'pass_through'}
                      for f in sets.get('redundancy', {}).get('facts', []))
     flows = max(1, sum(1 for f in sets.get('syntax', {}).get('facts', [])
                         if f['kind'] == 'symbol' and f['value'].get('kind') == 'function'))
-    return {'value': round(redundant / flows, 3), 'redundant': redundant, 'functions': flows}
+    return {'value': round(redundant / flows, 3), 'measured': True,
+            'redundant': redundant, 'functions': flows,
+            'files_analysed': summary.get('files_observed')}
 
 
 def _indicator_data_owners(sets):
@@ -155,7 +196,7 @@ def _transformations(out, dashboard):
     fingerprint_clusters = [f for f in sets.get('fingerprint', {}).get('facts', [])
                               if f['kind'] == 'duplicate_cluster']
     redundancy = sets.get('redundancy', {}).get('facts', [])
-    if by_indicator['single_source']['gap'] > 0:
+    if (by_indicator['single_source']['gap'] or 0) > 0:
         for cluster in fingerprint_clusters:
             occs = cluster['value']['occurrences']
             if len(occs) < 2: continue
@@ -168,7 +209,7 @@ def _transformations(out, dashboard):
                                                                   - 1.0 / max(1, by_indicator['single_source']['details'].get('symbols', 1)), 3)},
                           'falsifier': 'Demonstrate the two occurrences compute a different rule (different units, '
                                        'ranges, or business meanings).'})
-    if by_indicator['minimal_path']['gap'] > 0:
+    if (by_indicator['minimal_path']['gap'] or 0) > 0:
         by_kind = defaultdict(list)
         for fact in redundancy:
             by_kind[fact['value']['kind']].append(fact)

@@ -22,6 +22,8 @@ LIMITATIONS = [
     'N+1 detection is structural: any data access in a loop is flagged, even when the loop iterates once.',
     'A pass-through layer is one-call-forwarding; layers with hidden side effects are not detected.',
     'Only parsed languages produce redundancy facts; unparsed files stay out of the denominator.',
+    'Redundancy detection is implemented for Python only. A file in any other language is counted '
+    'as blocked, never as analysed-and-clean.',
 ]
 
 # Names that plausibly reach a store. 'get', 'all', 'first' and 'find' were here and matched
@@ -297,17 +299,14 @@ def _python_redundancies(text, rel):
 
 
 def _tree_sitter_redundancies(text, language):
-    """Structural redundancy detection for tree-sitter languages (limited to a few useful cases)."""
-    try:
-        from tree_sitter_language_pack import get_parser
-    except ImportError: return None
-    try: parser = get_parser('c_sharp' if language == 'csharp' else language)
-    except Exception: return None
-    try: tree = parser.parse(text.encode('utf-8'))
-    except Exception: return None
-    # We use only repeated-call and pass-through heuristics for non-Python languages.
-    rows = []
-    return rows
+    """Not implemented for tree-sitter languages, and it says so instead of returning nothing found.
+
+    This returned an empty list, which the caller reads as "analysed, nothing here". Every
+    non-Python file then counted as observed, so 1021 Go files produced zero redundancy facts and
+    the dashboard reported a perfect minimal path. Returning None puts those files in
+    `files_blocked`, which is the bucket for what we could not look at.
+    """
+    return None
 
 
 def run(target, source, symbols=None, **options):

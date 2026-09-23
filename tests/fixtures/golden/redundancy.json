@@ -9,11 +9,12 @@
     "A hoistable call is detected by syntactic independence from the loop variable; runtime may still require it.",
     "N+1 detection is structural: any data access in a loop is flagged, even when the loop iterates once.",
     "A pass-through layer is one-call-forwarding; layers with hidden side effects are not detected.",
-    "Only parsed languages produce redundancy facts; unparsed files stay out of the denominator."
+    "Only parsed languages produce redundancy facts; unparsed files stay out of the denominator.",
+    "Redundancy detection is implemented for Python only. A file in any other language is counted as blocked, never as analysed-and-clean."
   ],
   "summary": {
-    "files_observed": 10,
-    "files_blocked": 0,
+    "files_observed": 5,
+    "files_blocked": 5,
     "repeated_calls": 0,
     "hoistable_calls": 0,
     "n_plus_one": 0,
@@ -42,7 +43,8 @@
         "A hoistable call is detected by syntactic independence from the loop variable; runtime may still require it.",
         "N+1 detection is structural: any data access in a loop is flagged, even when the loop iterates once.",
         "A pass-through layer is one-call-forwarding; layers with hidden side effects are not detected.",
-        "Only parsed languages produce redundancy facts; unparsed files stay out of the denominator."
+        "Only parsed languages produce redundancy facts; unparsed files stay out of the denominator.",
+        "Redundancy detection is implemented for Python only. A file in any other language is counted as blocked, never as analysed-and-clean."
       ]
     },
     {
@@ -66,7 +68,8 @@
         "A hoistable call is detected by syntactic independence from the loop variable; runtime may still require it.",
         "N+1 detection is structural: any data access in a loop is flagged, even when the loop iterates once.",
         "A pass-through layer is one-call-forwarding; layers with hidden side effects are not detected.",
-        "Only parsed languages produce redundancy facts; unparsed files stay out of the denominator."
+        "Only parsed languages produce redundancy facts; unparsed files stay out of the denominator.",
+        "Redundancy detection is implemented for Python only. A file in any other language is counted as blocked, never as analysed-and-clean."
       ]
     }
   ]

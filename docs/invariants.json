@@ -201,6 +201,15 @@
       "note": ""
     },
     {
+      "id": "INV-c77f33b72f",
+      "file": "eaos/execution_guide.py",
+      "symbol": "document",
+      "statement": "Cards are cut from the end of the execution order, never from the middle: what remains is the work that comes first, and the tail is named with a count.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_execution_guide.py::BudgetTests::test_a_plan_larger_than_the_budget_keeps_the_cards_that_come_first",
+      "note": ""
+    },
+    {
       "id": "INV-200db9b77b",
       "file": "eaos/executive.py",
       "symbol": "<module>",
@@ -594,6 +603,15 @@
       "statement": "Indicators are computed from facts only, never from the model.",
       "kind": "invariant",
       "enforced_by": "tests/test_sustainability.py::SustainabilityLimitationsTests::test_indicators_are_pure_functions_of_facts",
+      "note": ""
+    },
+    {
+      "id": "INV-d9b2bca177",
+      "file": "eaos/sustainability.py",
+      "symbol": "_indicator_minimal_path",
+      "statement": "A detector that analysed no file cannot report a clean result.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_capability.py::CoverageFloorTests::test_a_detector_that_analysed_almost_nothing_reports_coverage_not_a_score",
       "note": ""
     },
     {

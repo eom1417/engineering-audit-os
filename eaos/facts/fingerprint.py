@@ -134,6 +134,24 @@ def _tree_sitter_shape_subtree(node, parser, depth=0, max_depth=60):
     return (node.type, tuple(children_shapes))
 
 
+
+def _subtree_size(node):
+    """How many nodes the symbol's whole body holds, the same quantity the Python path reports.
+
+    `_MIN_SIZE` is one threshold applied to both paths, so both have to be the same measurement.
+    Counting only a node's direct children made every Go function score 5 against a threshold of
+    8: 1021 Go files produced 7 fingerprints and no duplicate cluster, and the dashboard read that
+    silence as a perfect "one source of truth". A threshold is only meaningful over one scale.
+    """
+    total = 0
+    stack = [node]
+    while stack:
+        current = stack.pop()
+        total += 1
+        stack.extend(current.children)
+    return total
+
+
 def _tree_sitter_fingerprints(text, rel, language):
     """Fingerprint every function-shaped node in a tree-sitter file."""
     try:
@@ -160,7 +178,7 @@ def _tree_sitter_fingerprints(text, rel, language):
         if node.type in function_types:
             shape = _tree_sitter_shape_subtree(node, parser)
             shape_str = repr(shape)
-            size = sum(1 for _ in node.children)
+            size = _subtree_size(node)
             rows.append({'qualified': '.'.join(scope + [node.type]),
                           'name': node.type, 'start': node.start_point[0] + 1,
                           'end': node.end_point[0] + 1, 'size': size,

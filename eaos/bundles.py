@@ -157,6 +157,29 @@ def _generate_stages(out, language):
     return '\n'.join(lines) + '\n'
 
 
+
+def _budget_for(name, fallback=200):
+    """The line budget the artifact contract declares for this document."""
+    from .compose.artifacts import BY_NAME
+    declared = BY_NAME.get(name)
+    return declared.budget_lines if declared else fallback
+
+
+def _trimmed(rows, room, record, language):
+    """The first `room` rows, plus a line naming what was left out and where it lives in full.
+
+    A list that silently stops reads as a complete list. These documents are indexes over a record
+    that holds every entry, so the honest short form names the count and points at the record.
+    """
+    if len(rows) <= room: return rows, []
+    kept, dropped = rows[:room], rows[room:]
+    note = (f'- … {len(dropped)} أخرى غير معروضة هنا لتبقى الوثيقة داخل ميزانيتها؛ كلها في `{record}`.'
+            if language == 'ar' else
+            f'- … {len(dropped)} more not shown here so the document stays inside its budget; '
+            f'all of them are in `{record}`.')
+    return kept, [note]
+
+
 def _generate_waves(out, language):
     out = Path(out); ar = language == 'ar'
     plan_path = out / 'transform-plan.json'
@@ -166,16 +189,22 @@ def _generate_waves(out, language):
     canonicalize = [s for s in stages if s['move'] == 'canonicalize']
     eliminate = [s for s in stages if s['move'] == 'eliminate_redundancy']
     lines = ['# ' + ('موجات التنفيذ' if ar else 'Waves'), '']
+    # Two headed sections, a blank line each, and a tail note per section.
+    room = max(2, (_budget_for('WAVES.md') - 10) // max(1, bool(canonicalize) + bool(eliminate)))
     if canonicalize:
         lines += ['', '## ' + ('موجة 1: التجميع' if ar else 'Wave 1: canonicalize')]
-        for stage in canonicalize:
+        kept, note = _trimmed(canonicalize, room, 'transform-plan.json', language)
+        for stage in kept:
             rule = stage.get('rule', '')[:12]
             lines += ['- Stage ' + str(stage['stage']) + ': ' + rule + '...']
+        lines += note
     if eliminate:
         lines += ['', '## ' + ('موجة 2: إزالة التكرار' if ar else 'Wave 2: eliminate redundancy')]
-        for stage in eliminate:
+        kept, note = _trimmed(eliminate, room, 'transform-plan.json', language)
+        for stage in kept:
             lines += ['- Stage ' + str(stage['stage']) + ': '
                        + str(stage.get('redundancy_kind', ''))]
+        lines += note
     return '\n'.join(lines) + '\n'
 
 

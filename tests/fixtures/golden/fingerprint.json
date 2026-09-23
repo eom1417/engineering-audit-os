@@ -3,7 +3,7 @@
   "extractor": "fingerprint",
   "extractor_version": "1",
   "available": true,
-  "input_sha": "4e5e29cc6636fb5f0b7e5fe3ca7f7a3e2459533500a283a704a18f38f7565891",
+  "input_sha": "e7e3121a9362ddef450cdcfb954766bcd1e256894dbbce270f428abb4e25c4d8",
   "limitations": [
     "Identifier renames are normalised; literal renames are not.",
     "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
@@ -13,7 +13,7 @@
   "summary": {
     "files_observed": 10,
     "files_blocked": 0,
-    "fingerprints": 7,
+    "fingerprints": 17,
     "clusters": 0,
     "interpretation": "A cluster contains symbols whose AST shape is identical up to identifier names. Membership is structural; the cluster itself is a hypothesis, not a defect."
   },
@@ -58,6 +58,198 @@
         "name": "main",
         "size": 83,
         "shape_sha": "3337f354512ca6c2b6574d7cc0cef2750bfe9ce40b70c1b8a9e374224e94fcfc"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-2894d9df0d9b4e1e",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "81e45473c219e0a3b21668a1e9a540fc0bbbbf9dbaf6978f5fdc782059dab145",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 11,
+        "end_line": 14,
+        "symbol": ".arrow_function"
+      },
+      "value": {
+        "name": "arrow_function",
+        "size": 51,
+        "shape_sha": "81e45473c219e0a3b21668a1e9a540fc0bbbbf9dbaf6978f5fdc782059dab145"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-3a0695374bed4933",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "cdc86c62294df3f2bef9ccce1d0ec27ae2c4f93bf7d16c523e41a3c4b737c1c2",
+      "location": {
+        "path": "api/server.ts",
+        "start_line": 16,
+        "end_line": 18,
+        "symbol": ".function_declaration"
+      },
+      "value": {
+        "name": "function_declaration",
+        "size": 20,
+        "shape_sha": "cdc86c62294df3f2bef9ccce1d0ec27ae2c4f93bf7d16c523e41a3c4b737c1c2"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-aa2275040410ef84",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "33dcfb07e9665f826487ea33a6fdbafbe312e0988668451e1d8069993e2f2a8f",
+      "location": {
+        "path": "api/handlers/orders.ts",
+        "start_line": 5,
+        "end_line": 7,
+        "symbol": ".function_declaration"
+      },
+      "value": {
+        "name": "function_declaration",
+        "size": 34,
+        "shape_sha": "33dcfb07e9665f826487ea33a6fdbafbe312e0988668451e1d8069993e2f2a8f"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-aebfc8e61737644d",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "03b940da03e1ede473d0dec17a64257358e882dd838516a7cf1832b074843a22",
+      "location": {
+        "path": "api/handlers/orders.ts",
+        "start_line": 9,
+        "end_line": 14,
+        "symbol": ".function_declaration"
+      },
+      "value": {
+        "name": "function_declaration",
+        "size": 81,
+        "shape_sha": "03b940da03e1ede473d0dec17a64257358e882dd838516a7cf1832b074843a22"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-63c613b8a7e952f8",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "3e6d62a59b1ee878a81e3e5cab7a9ce129609eb0c6660f65fb20547c3a762e2e",
+      "location": {
+        "path": "api/lib/audit.ts",
+        "start_line": 1,
+        "end_line": 3,
+        "symbol": ".function_declaration"
+      },
+      "value": {
+        "name": "function_declaration",
+        "size": 48,
+        "shape_sha": "3e6d62a59b1ee878a81e3e5cab7a9ce129609eb0c6660f65fb20547c3a762e2e"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-326943f18d5b1be4",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "ce703f81b5c324c1c2cb0a5da1d189ec1da81825a5eec5066d5cf6818e5114ae",
+      "location": {
+        "path": "api/lib/pricing.ts",
+        "start_line": 3,
+        "end_line": 5,
+        "symbol": ".function_declaration"
+      },
+      "value": {
+        "name": "function_declaration",
+        "size": 47,
+        "shape_sha": "ce703f81b5c324c1c2cb0a5da1d189ec1da81825a5eec5066d5cf6818e5114ae"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-2d427c3e78189758",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "af609713c40de530230ae5a163fe69f7a60592a02513488f7e3e905cb5cf47fc",
+      "location": {
+        "path": "api/lib/pricing.ts",
+        "start_line": 4,
+        "end_line": 4,
+        "symbol": "..arrow_function"
+      },
+      "value": {
+        "name": "arrow_function",
+        "size": 23,
+        "shape_sha": "af609713c40de530230ae5a163fe69f7a60592a02513488f7e3e905cb5cf47fc"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-9c5cc93192135065",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "38305ce9658eb484f81b04989646e03b19896e4f46264781554a36a96b9fe236",
+      "location": {
+        "path": "api/lib/pricing.ts",
+        "start_line": 7,
+        "end_line": 10,
+        "symbol": ".function_declaration"
+      },
+      "value": {
+        "name": "function_declaration",
+        "size": 55,
+        "shape_sha": "38305ce9658eb484f81b04989646e03b19896e4f46264781554a36a96b9fe236"
       },
       "limitations": [
         "Identifier renames are normalised; literal renames are not.",
@@ -154,6 +346,54 @@
         "name": "price_for",
         "size": 45,
         "shape_sha": "ae9a699ed3d0b9a68427d74a92c8433b7d457e6dad5e3e0c8fab793f57ce1e14"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-6f8e879228802287",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "b9f43c2f65c32ee16bc808ab164d987a37545c98a0fce539a56c05646abacafd",
+      "location": {
+        "path": "svc/main.go",
+        "start_line": 8,
+        "end_line": 10,
+        "symbol": ".function_declaration"
+      },
+      "value": {
+        "name": "function_declaration",
+        "size": 40,
+        "shape_sha": "b9f43c2f65c32ee16bc808ab164d987a37545c98a0fce539a56c05646abacafd"
+      },
+      "limitations": [
+        "Identifier renames are normalised; literal renames are not.",
+        "A fingerprint is a syntactic observation; two functions with identical fingerprints can still behave differently when their parameters carry different units, ranges or business meanings.",
+        "Larger syntactic trees give longer fingerprints; the cluster size threshold keeps noise down.",
+        "Only parsed languages produce fingerprints; unparsed files stay out of the denominator."
+      ]
+    },
+    {
+      "id": "FACT-5d00b3d4dad75894",
+      "kind": "fingerprint",
+      "extractor": "fingerprint",
+      "extractor_version": "1",
+      "input_sha": "2d8681ba827d128e1b1fbe57f31a90d534770fe052f69b84ebf737cbd5002e56",
+      "location": {
+        "path": "svc/main.go",
+        "start_line": 12,
+        "end_line": 15,
+        "symbol": ".function_declaration"
+      },
+      "value": {
+        "name": "function_declaration",
+        "size": 40,
+        "shape_sha": "2d8681ba827d128e1b1fbe57f31a90d534770fe052f69b84ebf737cbd5002e56"
       },
       "limitations": [
         "Identifier renames are normalised; literal renames are not.",

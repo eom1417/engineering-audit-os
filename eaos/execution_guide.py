@@ -100,8 +100,17 @@ def _dependencies(task):
     return ', '.join(rendered) or 'none'
 
 
-def document(plan, transform_plan, load_model, language='ar'):
-    """Return one complete execution-guide Markdown document."""
+def document(plan, transform_plan, load_model, language='ar', budget_lines=None):
+    """Return one execution-guide Markdown document, inside its declared line budget.
+
+    Cards are cut from the end of the execution order, never from the middle: what remains is the
+    work that comes first, and the tail is named with a count and the record that holds it. A
+    guide that silently dropped a card would send an implementer past it.
+    """
+    if budget_lines is None:
+        from .compose.artifacts import BY_NAME
+        declared = BY_NAME.get('EXECUTION-GUIDE.md')
+        budget_lines = declared.budget_lines if declared else 300
     if language == 'ar':
         lines = [
             '# دليل التنفيذ', '', '## اقرأ هذا أولًا', '',
@@ -129,7 +138,10 @@ def document(plan, transform_plan, load_model, language='ar'):
     entries = load_model.get('entry_points', [])
     tasks = sorted(plan.get('tasks', []),
                    key=lambda task: (*positions.get(task.get('id'), (10**9, 10**9)), task.get('id', '')))
-    for task in tasks:
+    # One card is one line; the header is already written. Leave room for the closing note.
+    room = max(1, budget_lines - len(lines) - 4)
+    shown, omitted = tasks[:room], tasks[room:]
+    for task in shown:
         task_id = task.get('id', '?')
         wave = positions.get(task_id, ('unassigned', 0))[0]
         transform = _transform_for(task, stages)
@@ -148,6 +160,16 @@ def document(plan, transform_plan, load_model, language='ar'):
             f"Rollback: {_one_line(rollback)}<br>Dependencies: {_dependencies(task)}<br>"
             f"Load constraint: {_one_line(_load_for(task, entries))}"
         )
+    if omitted:
+        last_wave = positions.get(shown[-1].get('id'), ('?', 0))[0] if shown else '?'
+        lines += ['', ('## ما لم يُعرض هنا' if language == 'ar' else '## Not shown here'), '',
+                  (f'{len(omitted)} بطاقة بعد الموجة {last_wave} لم تُعرض حتى تبقى هذه الوثيقة داخل '
+                   f'ميزانيتها البالغة {budget_lines} سطرًا. هي كاملة في `plan.json` بنفس الترتيب؛ '
+                   f'أعد توليد الدليل بعد إنجاز المعروض.'
+                   if language == 'ar' else
+                   f'{len(omitted)} card(s) after wave {last_wave} are not shown, so this document '
+                   f'stays inside its budget of {budget_lines} lines. They are complete in '
+                   f'`plan.json` in the same order; regenerate the guide once the shown cards are done.')]
     return '\n'.join(lines) + '\n'
 
 

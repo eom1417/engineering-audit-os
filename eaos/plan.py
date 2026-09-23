@@ -5,7 +5,7 @@ review and independent acceptance; investigations may conclude no change.
 """
 from pathlib import Path
 from .compose import Document
-from .compose.labels import impact_of, statement_of
+from .compose.labels import falsifier_of, impact_of, statement_of
 from .impact import assess, load
 from .ranking import claim_paths
 from .remediation_patterns import pattern_for
@@ -78,7 +78,7 @@ def build_tasks(target, out, dossier, sets):
                              'covering_tests': radius['covering_tests'],
                              'coverage': radius['coverage'], 'change_partners': radius['change_partners'],
                              'total': radius['blast_radius']},
-            'change': ('أثبت هذا الادعاء أو انقضه قبل أي تغيير: ' + claim['falsifier']) if unproven else (claim.get('assessment') or {}).get('proposed_change', pattern['change']),
+            'change': ('أثبت هذا الادعاء أو انقضه قبل أي تغيير: ' + falsifier_of(claim, 'ar')) if unproven else (claim.get('assessment') or {}).get('proposed_change', pattern['change']),
             'options': ([{'option': 'تشغيل مجسّ يحسم الادعاء', 'cost': 'منخفضة', 'verdict': 'مختار: لا تغيير قبل الحسم'},
                          {'option': 'قبول الادعاء بلا إثبات', 'cost': 'صفر الآن', 'verdict': 'مرفوض: يخالف قاعدة الإسناد'},
                          *pattern['options']] if unproven else pattern['options']),
@@ -212,7 +212,8 @@ def card(task, language):
     document.section('الدليل' if language == 'ar' else 'Evidence')
     document.bullets([f"facts: {', '.join(task['evidence']['fact_ids']) or '—'}",
                       f"probes: {', '.join(task['evidence']['probe_ids']) or '—'}",
-                      f"falsifier: {task['evidence']['falsifier']}"])
+                      f"falsifier: {falsifier_of({'falsifier': task['evidence']['falsifier'],
+                                                  'render': task.get('render')}, language)}"])
     document.section('نطاق الأثر' if language == 'ar' else 'Blast radius')
     radius = task['blast_radius']
     if not task['paths']:
@@ -241,8 +242,12 @@ def card(task, language):
         document.section('قبل وبعد' if language == 'ar' else 'Before and after')
         document.bullets([str(task.get('before')), str(task.get('after'))])
     document.section('التغيير المقترح' if language == 'ar' else 'Proposed change')
-    document.text(('Establish or refute this observation before changing code: ' + task['evidence']['falsifier'])
-                  if language == 'en' and task['kind'] == 'investigate' else task['change'])
+    localized = falsifier_of({'falsifier': task['evidence']['falsifier'],
+                              'render': task.get('render')}, language)
+    document.text(('Establish or refute this observation before changing code: ' + localized)
+                  if language == 'en' and task['kind'] == 'investigate'
+                  else (('أثبت هذا الادعاء أو انقضه قبل أي تغيير: ' + localized)
+                        if task['kind'] == 'investigate' else task['change']))
     document.section('معيار القبول' if language == 'ar' else 'Acceptance criterion')
     document.table(['الأمر' if language == 'ar' else 'Command', 'المتوقع' if language == 'ar' else 'Expected'],
                    [[step['command'], step['expect']] for step in task['acceptance']])

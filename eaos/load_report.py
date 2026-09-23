@@ -35,15 +35,18 @@ def render(record, language='en'):
         return '\n'.join(lines) + '\n'
 
     lines += ['## Entry points ranked by load risk', '',
-              '| Rank | Entry | Path | Cost | Incomplete | Bottlenecks |',
-              '| --- | --- | --- | --- | --- | --- |']
+              '| Rank | Entry | Surface | Path | Cost | Incomplete | Bottlenecks |',
+              '| --- | --- | --- | --- | --- | --- | --- |']
     for index, entry in enumerate(ranked, start=1):
         projection = entry.get('projection') or {}
         cost = projection.get('cost_score')
         cost_str = f'{cost:.2f}' if isinstance(cost, (int, float)) else '—'
         incomplete = 'yes' if projection.get('incomplete') else 'no'
         bottlenecks = ', '.join(projection.get('bottlenecks') or []) or '—'
-        lines.append(f'| {index} | {entry.get("id", "?")} | `{entry.get("path", "?")}` '
+        # The label names the entry point. The fact id named the record, which told a reader
+        # ranking their riskiest entry points nothing about which entry point it was.
+        label = entry.get('label') or entry.get('handler') or entry.get('id', '?')
+        lines.append(f'| {index} | {label} | {entry.get("surface", "—")} | `{entry.get("path", "?")}` '
                      f'| {cost_str} | {incomplete} | {bottlenecks} |')
     lines.append('')
 

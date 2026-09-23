@@ -45,6 +45,10 @@ DETECTOR_LANGUAGES = {
 
 ANSWER_STATUSES = ('answered', 'not_applicable', 'undetectable')
 
+# Surfaces nobody can send a request to faster. A rate limit is a property of inbound traffic,
+# and a surface with no inbound traffic has none to bound.
+UNTHROTTLED_SURFACES = frozenset({'cli', 'cron', 'job', 'script', 'batch'})
+
 
 # When a detector looked and did not find anything, the answer is still "answered" with
 # value=False — provided the flow was traced AND every file in the path is in the
@@ -208,11 +212,15 @@ def compute(record_root):
     out_entries = []
     for entry in entries:
         handler = entry['location'].get('symbol') or entry['value'].get('handler') or entry.get('id', '?')
+        surface = entry['value'].get('surface') or 'unknown'
         path = entry['location']['path']
         files, steps = _paths_for(entry)
         if not files:
             out_entries.append({
                 'id': entry.get('id', f'EP-{path}:{handler}'),
+                'label': entry['value'].get('route') or handler or path,
+                'surface': surface,
+                'handler': handler,
                 'path': path,
                 'answers': {q: blank_answer(q, status='undetectable',
                                               reason='the flow could not be traced from this entry point')
@@ -369,6 +377,16 @@ def compute(record_root):
                 'evidence': [f['id'] for f in limits],
                 'reason': f'{len(limits)} rate-limit site(s) on the path',
             }
+        elif surface in UNTHROTTLED_SURFACES:
+            # A command-line program answers one invocation from one operator. Reporting "no rate
+            # limit" for it produced a bottleneck on every row of a CLI project's load table and
+            # recommended throttling a script. The question does not apply, and saying so is an
+            # answer rather than a finding.
+            answers['rate_limited'] = {
+                'question': 'rate_limited', 'status': 'not_applicable', 'value': None,
+                'evidence': [entry.get('id') or f'EP-{path}'],
+                'reason': f'a {surface} entry point has no inbound request rate to bound',
+            }
         elif _supported('rate_limited', files):
             answers['rate_limited'] = _no_answer(
                 'rate_limited', [entry.get('id') or f'EP-{path}'],
@@ -380,6 +398,10 @@ def compute(record_root):
 
         out_entries.append({
             'id': entry.get('id', f'EP-{path}:{handler}'),
+            # A reader ranking entry points needs to know which entry point, not which fact.
+            'label': entry['value'].get('route') or handler or path,
+            'surface': surface,
+            'handler': handler,
             'path': path,
             'answers': answers,
         })

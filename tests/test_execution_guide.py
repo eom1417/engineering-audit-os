@@ -106,3 +106,29 @@ class ExecutionGuideTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class BudgetTests(unittest.TestCase):
+    """The guide stays inside its declared budget by dropping the tail, never the middle."""
+
+    def _plan(self, count):
+        return {'tasks': [{'id': f'TASK-{i:03d}', 'kind': 'investigate', 'paths': ['a.py'],
+                           'impact': f'goal {i}', 'title': f'card {i}'} for i in range(1, count + 1)],
+                'waves': [{'wave': 1, 'tasks': [f'TASK-{i:03d}' for i in range(1, count + 1)]}]}
+
+    def test_a_plan_larger_than_the_budget_keeps_the_cards_that_come_first(self):
+        from eaos.execution_guide import document
+        body = document(self._plan(400), {}, {}, language='en', budget_lines=60)
+        self.assertLessEqual(len(body.splitlines()), 60)
+        # The work that comes first is what survives; the tail is named, not silently dropped.
+        self.assertIn('TASK-001', body)
+        self.assertNotIn('TASK-400', body)
+        self.assertIn('not shown', body.lower())
+        self.assertIn('plan.json', body)
+
+    def test_a_plan_inside_the_budget_shows_every_card_and_adds_no_note(self):
+        from eaos.execution_guide import document
+        body = document(self._plan(3), {}, {}, language='en', budget_lines=200)
+        for identifier in ('TASK-001', 'TASK-002', 'TASK-003'):
+            self.assertIn(identifier, body)
+        self.assertNotIn('not shown', body.lower())

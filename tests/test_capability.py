@@ -329,3 +329,40 @@ class HighWaterTests(unittest.TestCase):
             (off / 'run-manifest.json').write_text(json.dumps(
                 {'stages': {'engines': {'status': 'unavailable', 'reason': 'no external engine is installed'}}}))
             self.assertEqual(engines_were_off([off, on]), [])
+
+
+class CoverageFloorTests(unittest.TestCase):
+    """A detector that read a corner of the snapshot must not report a clean result for all of it."""
+
+    def _sets(self, observed, blocked):
+        return {'redundancy': {'facts': [], 'summary': {'files_observed': observed,
+                                                        'files_blocked': blocked}},
+                'syntax': {'facts': [{'kind': 'symbol', 'value': {'kind': 'function'}}] * 50},
+                'fingerprint': {'facts': [], 'summary': {'files_observed': observed,
+                                                         'files_blocked': blocked}}}
+
+    def test_a_detector_that_analysed_almost_nothing_reports_coverage_not_a_score(self):
+        from eaos.sustainability import _indicator_minimal_path, _indicator_single_source
+        # One Python file out of 1021 produced 0.0 and a green tick over a Go repository whose
+        # language the detector cannot read.
+        for compute in (_indicator_minimal_path, _indicator_single_source):
+            with self.subTest(indicator=compute.__name__):
+                row = compute(self._sets(observed=1, blocked=1020))
+                self.assertIs(row['measured'], False)
+                self.assertIsNone(row['value'])
+                self.assertIn('1 of 1021', row['reason'])
+
+    def test_a_detector_that_covered_the_snapshot_still_reports_its_number(self):
+        from eaos.sustainability import _indicator_minimal_path
+        row = _indicator_minimal_path(self._sets(observed=200, blocked=8))
+        self.assertIs(row['measured'], True)
+        self.assertEqual(row['value'], 0.0)
+
+    def test_an_unmeasured_indicator_proposes_no_move_to_close_a_gap_nobody_measured(self):
+        from eaos.sustainability import compute
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            # No facts at all: every indicator is unmeasured, and nothing may be proposed.
+            (Path(tmp) / 'facts').mkdir()
+            result = compute(tmp)
+        self.assertEqual(result['moves'], [])
