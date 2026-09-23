@@ -6,6 +6,7 @@
 python -m unittest discover -s tests -q \
   && python tools/validate.py && python tools/invariants.py \
   && python tools/render_capability_plan.py --check \
+  && python tools/north_star.py --check \
   && bash tests/gate/self_audit.sh
 ```
 
@@ -13,6 +14,7 @@ python -m unittest discover -s tests -q \
 
 ## قواعد الكود
 
+0. **كل تغيير في المنتج يسمّي مؤشر الوجهة الذي يحرّكه** في `docs/north-star.json`، أو يثبت أنه لا يهبط بأي مؤشر.
 1. **كل وحدة `.py` جديدة تُعلن في `eaos.policy.json`** في طبقتها، وإلا فشلت بوابة السياسة.
 2. **كل جملة docstring تدّعي ثابتًا تُربط باختبار** (`python tools/invariants.py --list`). إن وعد الـdocstring بسلوك لا يفعله الكود، فأصلح الكود لا الجملة.
 3. **كل نص يظهر للقارئ يُضاف للغتين معًا** في `eaos/compose/labels.py`، ويفشل `test_report_parity.py` إن وُجد مفتاح في لغة دون الأخرى.

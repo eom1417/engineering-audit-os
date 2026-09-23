@@ -1,6 +1,6 @@
 # Engineering Audit OS
 
-**[العربية](README.md)** · version 3.0.0 · status: **Pilot** (7 of 9 capability domains at target; [details](#-where-we-stand))
+**[العربية](README.md)** · version 3.0.0 · status: **Pilot** · distance covered to the destination: **23.0%** ([destination record](docs/NORTH-STAR.md), Arabic)
 
 > **A full engineering review team in one command.**
 > EAOS reads your project the way an architect, a code reviewer, a performance engineer and a tech lead would, together. It hands you an evidenced picture of where the project stands today, the professional shape it should reach, and an ordered task plan that any engineer or AI model can execute and prove done.
@@ -19,6 +19,19 @@ A serious engineering review costs weeks of senior time, and it usually ends in 
 - **A generic plan** such as "improve the architecture", with no clear first step and no clear finish line.
 
 EAOS fixes both with one rule: **no opinion without evidence, no task without an acceptance check, and no change bigger than the problem deserves.**
+
+## 🏢 The idea: what a software company does, in one command
+
+You built a program by vibe coding. It works, but you do not know how it is built, what goes in and out, where its limits are, or how complex and repetitive it is. A software company asked to rebuild it as a professional product would hand you four things, in order. That is what EAOS must deliver:
+
+| # | Report | What it holds |
+|---|---|---|
+| 1 | **Current state** | What the program does, its inputs, outputs and limits, its structure, complexity and duplication, its dead code and leftovers, its risks |
+| 2 | **Ideal state** | The same program with the same functions, on a structure and infrastructure fit for a product. Every part gets a decision: reuse, restructure, rebuild or delete |
+| 3 | **Gap and transformation** | The measured distance between the two, and the strategy that closes it |
+| 4 | **Execution plan** | Small tasks split into team sections, each with a size, an acceptance command and a rollback, executable by any developer or model |
+
+This is the only measure of the project's success, recorded with its indicators and plan in [`docs/NORTH-STAR.md`](docs/NORTH-STAR.md) (Arabic). Distance covered today: **23.0%**.
 
 ## 👥 What it does in place of a review team
 
@@ -138,6 +151,8 @@ No command modifies the original project, publishes anything or merges anything.
 
 ## 📊 Where we stand
 
+> **The full destination record:** [`docs/NORTH-STAR.md`](docs/NORTH-STAR.md) (Arabic): 10 weighted capabilities and 35 indicators, measured on 3 real vibe-coded projects, and a 31-task transformation plan. Today: **23.0%**. The numbers below measure the tool's machinery on two repositories it was tuned on; the record measures the promise itself on its audience.
+
 This section is what makes the promises above accountable. Every promise has a measure, and every measure has today's number. **Where the system does not live up to a promise, the gap is written here as a number.**
 
 Measured on 2026-09-23 at commit `4ca317d`, on two real repositories with all four engines: this repository (Python, 215 files) and enola (Go, 1021 files).
@@ -188,6 +203,7 @@ Ordered by nearest impact. Each step moves a specific row of the table above:
 python -m unittest discover -s tests -q \
   && python tools/validate.py && python tools/invariants.py \
   && python tools/render_capability_plan.py --check \
+  && python tools/north_star.py --check \
   && bash tests/gate/self_audit.sh
 ```
 
