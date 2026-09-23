@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "73c5ca4",
+  "extracted_at_commit": "1af38cf",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -75,15 +75,6 @@
       "note": ""
     },
     {
-      "id": "INV-afde8bbc9d",
-      "file": "eaos/compose/rules.py",
-      "symbol": "documents_without_a_record_twin",
-      "statement": "A document with no machine-readable twin is a dead end for anything that has to act on what it says; silence is the only answer this rule refuses.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_artifact_contract.py::RecordTwinTests::test_a_document_declared_without_either_is_caught",
-      "note": ""
-    },
-    {
       "id": "INV-5b7af3e98b",
       "file": "eaos/compose/rules.py",
       "symbol": "missing_required",
@@ -99,6 +90,15 @@
       "statement": "With no manifest there was no pipeline run — a single command wrote part of a report — and we cannot call an artifact missing when nothing claimed it would be produced.",
       "kind": "invariant",
       "enforced_by": "tests/test_artifact_contract.py::PartialRunTests::test_without_a_manifest_no_artifact_is_declared_missing",
+      "note": ""
+    },
+    {
+      "id": "INV-afde8bbc9d",
+      "file": "eaos/compose/rules.py",
+      "symbol": "documents_without_a_record_twin",
+      "statement": "A document with no machine-readable twin is a dead end for anything that has to act on what it says: the reader can see the conclusion and cannot reach the detail behind it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_artifact_contract.py::RecordTwinTests::test_a_document_declared_without_either_is_caught",
       "note": ""
     },
     {
@@ -120,21 +120,21 @@
       "note": ""
     },
     {
-      "id": "INV-1a0698fc2d",
-      "file": "eaos/engines/__init__.py",
-      "symbol": "<module>",
-      "statement": "Every engine's version is discovered by running it, never assumed, and a version that does not match its pin is reported as such and still recorded — so a reader can tell \"we did not look\" apart from \"we looked and found nothing\".",
-      "kind": "invariant",
-      "enforced_by": "tests/test_engines.py::DegradationTests::test_health_reports_every_adapter_whether_installed_or_not",
-      "note": ""
-    },
-    {
       "id": "INV-8e76009ca0",
       "file": "eaos/engines/__init__.py",
       "symbol": "<module>",
       "statement": "A missing engine reduces coverage; it never fails the run.",
       "kind": "invariant",
       "enforced_by": "tests/test_engines.py::DegradationTests::test_an_uninstalled_engine_reports_unavailable_rather_than_silence",
+      "note": ""
+    },
+    {
+      "id": "INV-1a0698fc2d",
+      "file": "eaos/engines/__init__.py",
+      "symbol": "<module>",
+      "statement": "Every engine's version is discovered by running it, never assumed, and a version that does not match its pin is reported as such and still recorded — so a reader can tell \"we did not look\" apart from \"we looked and found nothing\".",
+      "kind": "invariant",
+      "enforced_by": "tests/test_engines.py::DegradationTests::test_health_reports_every_adapter_whether_installed_or_not",
       "note": ""
     },
     {
@@ -145,6 +145,15 @@
       "kind": "invariant",
       "enforced_by": "tests/test_engine_contracts.py::CodegraphWrapperContracts::test_run_with_a_missing_tool_records_decline_not_silence",
       "note": "N3.T2: wrapper never hides a tool failure"
+    },
+    {
+      "id": "INV-6339b5c228",
+      "file": "eaos/engines/codegraph.py",
+      "symbol": "_run",
+      "statement": "Never raise: return (payload_str_or_None, error_str_or_None).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_engine_contracts.py::CodegraphWrapperContracts::test_run_does_not_raise_when_binary_is_missing",
+      "note": "N3.T2: wrapper never raises"
     },
     {
       "id": "INV-297c0deaea",
@@ -163,15 +172,6 @@
       "kind": "invariant",
       "enforced_by": "tests/test_engine_contracts.py::CodeGraphAdapterContractTests::test_an_absolute_engine_path_is_recorded_relative_to_the_scanned_tree",
       "note": ""
-    },
-    {
-      "id": "INV-6339b5c228",
-      "file": "eaos/engines/codegraph.py",
-      "symbol": "_run",
-      "statement": "Never raise: return (payload_str_or_None, error_str_or_None).",
-      "kind": "invariant",
-      "enforced_by": "tests/test_engine_contracts.py::CodegraphWrapperContracts::test_run_does_not_raise_when_binary_is_missing",
-      "note": "N3.T2: wrapper never raises"
     },
     {
       "id": "INV-3434c23371",
@@ -204,7 +204,7 @@
       "id": "INV-c77f33b72f",
       "file": "eaos/execution_guide.py",
       "symbol": "document",
-      "statement": "Cards are cut from the end of the execution order, never from the middle: what remains is the work that comes first, and the tail is named with a count.",
+      "statement": "Cards are cut from the end of the execution order, never from the middle: what remains is the work that comes first, and the tail is named with a count and the record that holds it.",
       "kind": "invariant",
       "enforced_by": "tests/test_execution_guide.py::BudgetTests::test_a_plan_larger_than_the_budget_keeps_the_cards_that_come_first",
       "note": ""
@@ -255,21 +255,21 @@
       "note": ""
     },
     {
-      "id": "INV-9f494aaa0c",
-      "file": "eaos/facts/frameworks/__init__.py",
-      "symbol": "<module>",
-      "statement": "A detector must never emit an entry point it has not actually matched in the text; a missed entry point is a declared gap, an invented one is a defect.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_facts_entrypoints.py::EntryPointTests::test_runtime_registered_commands_are_declared_as_gaps_not_hidden",
-      "note": ""
-    },
-    {
       "id": "INV-cb50a3567d",
       "file": "eaos/facts/frameworks/__init__.py",
       "symbol": "<module>",
       "statement": "Adding a framework means adding one module here, never touching the core.",
       "kind": "invariant",
       "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_a_framework_detector_is_self_contained",
+      "note": ""
+    },
+    {
+      "id": "INV-9f494aaa0c",
+      "file": "eaos/facts/frameworks/__init__.py",
+      "symbol": "<module>",
+      "statement": "A detector must never emit an entry point it has not actually matched in the text; a missed entry point is a declared gap, an invented one is a defect.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_entrypoints.py::EntryPointTests::test_runtime_registered_commands_are_declared_as_gaps_not_hidden",
       "note": ""
     },
     {
@@ -345,39 +345,12 @@
       "note": ""
     },
     {
-      "id": "INV-65f020b587",
+      "id": "INV-ec8d708876",
       "file": "eaos/facts/runtime.py",
-      "symbol": "_detect_cache_policies",
-      "statement": "scope is one of process | shared | http; we report what we observed, never the absence of other scopes.",
+      "symbol": "yaml_load",
+      "statement": "We never rely on it for completeness; the parser raises on the rest and we leave it as unparsed in the output.",
       "kind": "invariant",
-      "enforced_by": "tests/test_facts_runtime.py::HonestUnknownTests::test_a_cache_of_one_scope_never_asserts_the_absence_of_another",
-      "note": ""
-    },
-    {
-      "id": "INV-7faea2f89a",
-      "file": "eaos/facts/runtime.py",
-      "symbol": "_detect_query_bounds",
-      "statement": "Unknown facts: neither pattern matched; we cannot say either way.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_facts_runtime.py::QueryBoundDetectorTests::test_query_bound_unknowable_recorded_as_unknown",
-      "note": ""
-    },
-    {
-      "id": "INV-ba058f0d13",
-      "file": "eaos/facts/runtime.py",
-      "symbol": "_detect_resilience_for_integration",
-      "statement": "Unknown is the honest answer when we cannot detect: a language whose guard vocabulary these patterns do not cover returns unknown, never False, because False would claim we looked.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_facts_runtime.py::HonestUnknownTests::test_resilience_reports_unknown_rather_than_false_when_it_cannot_tell",
-      "note": ""
-    },
-    {
-      "id": "INV-11ed34fd5c",
-      "file": "eaos/facts/runtime.py",
-      "symbol": "_has_timeout",
-      "statement": "True if any timeout pattern appears anywhere; we cannot cheaply localise to a call.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_facts_runtime.py::HonestUnknownTests::test_a_timeout_anywhere_in_the_file_marks_the_integration_as_protected",
+      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_unparsed_yaml_is_declared_not_guessed",
       "note": ""
     },
     {
@@ -390,12 +363,39 @@
       "note": ""
     },
     {
-      "id": "INV-ec8d708876",
+      "id": "INV-7faea2f89a",
       "file": "eaos/facts/runtime.py",
-      "symbol": "yaml_load",
-      "statement": "We never rely on it for completeness; the parser raises on the rest and we leave it as unparsed in the output.",
+      "symbol": "_detect_query_bounds",
+      "statement": "Unknown facts: neither pattern matched; we cannot say either way.",
       "kind": "invariant",
-      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_unparsed_yaml_is_declared_not_guessed",
+      "enforced_by": "tests/test_facts_runtime.py::QueryBoundDetectorTests::test_query_bound_unknowable_recorded_as_unknown",
+      "note": ""
+    },
+    {
+      "id": "INV-11ed34fd5c",
+      "file": "eaos/facts/runtime.py",
+      "symbol": "_has_timeout",
+      "statement": "True if any timeout pattern appears anywhere; we cannot cheaply localise to a call.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_runtime.py::HonestUnknownTests::test_a_timeout_anywhere_in_the_file_marks_the_integration_as_protected",
+      "note": ""
+    },
+    {
+      "id": "INV-ba058f0d13",
+      "file": "eaos/facts/runtime.py",
+      "symbol": "_detect_resilience_for_integration",
+      "statement": "Unknown is the honest answer when we cannot detect: a language whose guard vocabulary these patterns do not cover returns unknown, never False, because False would claim we looked.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_runtime.py::HonestUnknownTests::test_resilience_reports_unknown_rather_than_false_when_it_cannot_tell",
+      "note": ""
+    },
+    {
+      "id": "INV-65f020b587",
+      "file": "eaos/facts/runtime.py",
+      "symbol": "_detect_cache_policies",
+      "statement": "scope is one of process | shared | http; we report what we observed, never the absence of other scopes.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_runtime.py::HonestUnknownTests::test_a_cache_of_one_scope_never_asserts_the_absence_of_another",
       "note": ""
     },
     {
@@ -543,19 +543,19 @@
       "note": ""
     },
     {
-      "id": "INV-ac084a831e",
+      "id": "INV-da137248c8",
       "file": "eaos/probes.py",
       "symbol": "_apply_ceiling",
-      "statement": "An external engine asked the same question twice gives the same answer twice; that is repetition, not corroboration, and it must not read as proof.",
+      "statement": "A claim may declare a confidence it must never exceed, however well its probe runs.",
       "kind": "invariant",
       "enforced_by": "tests/test_engines.py::EngineClaimTests::test_a_probe_cannot_raise_an_external_claim_to_confirmed",
       "note": ""
     },
     {
-      "id": "INV-da137248c8",
+      "id": "INV-ac084a831e",
       "file": "eaos/probes.py",
       "symbol": "_apply_ceiling",
-      "statement": "A claim may declare a confidence it must never exceed, however well its probe runs.",
+      "statement": "An external engine asked the same question twice gives the same answer twice; that is repetition, not corroboration, and it must not read as proof.",
       "kind": "invariant",
       "enforced_by": "tests/test_engines.py::EngineClaimTests::test_a_probe_cannot_raise_an_external_claim_to_confirmed",
       "note": ""
@@ -606,6 +606,15 @@
       "note": ""
     },
     {
+      "id": "INV-e4c7004fd6",
+      "file": "eaos/sustainability.py",
+      "symbol": "_read_sets",
+      "statement": "This module kept its own copy and it omitted flows, policy and verification, so P4 reported \"no policy declared\" on a project that declares one and P5 never measured anything.",
+      "kind": "rationale",
+      "enforced_by": null,
+      "note": "History: the duplicate list this module used to keep. The fix is enforced elsewhere by the single fact-set registry."
+    },
+    {
       "id": "INV-d9b2bca177",
       "file": "eaos/sustainability.py",
       "symbol": "_indicator_minimal_path",
@@ -622,15 +631,6 @@
       "kind": "rationale",
       "enforced_by": null,
       "note": "History: what an earlier version of the indicator computed."
-    },
-    {
-      "id": "INV-e4c7004fd6",
-      "file": "eaos/sustainability.py",
-      "symbol": "_read_sets",
-      "statement": "This module kept its own copy and it omitted flows, policy and verification, so P4 reported \"no policy declared\" on a project that declares one and P5 never measured anything.",
-      "kind": "rationale",
-      "enforced_by": null,
-      "note": "History: the duplicate list this module used to keep. The fix is enforced elsewhere by the single fact-set registry."
     },
     {
       "id": "INV-551e1363f5",

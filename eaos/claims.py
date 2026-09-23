@@ -390,6 +390,81 @@ def from_load_model(fact_sets, offset=0):
     return made
 
 
+def _measurement_lookup(fact_sets):
+    facts = (fact_sets.get('external') or {}).get('facts', [])
+    return {fact['id']: fact for fact in facts}
+
+
+def _extract_measurement(fact, name):
+    for m in fact.get('value', {}).get('measurements', []) or []:
+        if m.get('name') == name:
+            return m
+    return None
+
+
+def _impact_for_engine_cluster(kind, cluster, fact_sets):
+    """Return a kind-specific impact scenario for a corroborated engine-cluster claim."""
+    import re as _re
+    facts = [_measurement_lookup(fact_sets).get(fid) for fid in cluster.get('fact_ids', [])]
+    facts = [fact for fact in facts if fact and (fact.get('value') or {}).get('kind') == kind]
+    if not facts:
+        return ('أدلة متعددة المصدر على موضع واحد؛ مرشّح أول للمراجعة، لا حكم بوجود عيب. '
+                'المحرّك لم يبلّغ عن قياس.')
+    if kind == 'complexity':
+        chosen = None
+        for name in ('cyclomatic_complexity', 'complexity'):
+            for fact in facts:
+                m = _extract_measurement(fact, name)
+                if m is not None:
+                    chosen = (fact, m)
+                    break
+            if chosen:
+                break
+        if chosen:
+            _, m = chosen
+            threshold = m.get('threshold')
+            threshold_part = (' (العتبة ' + str(threshold) + ')') if threshold is not None else ''
+            return ('التعقيد ' + str(m.get('value')) + threshold_part +
+                    ' في هذا الموضع حسب قياس المحرك.')
+        return ('أدلة متعددة على تعقيد هنا؛ المحرّك لم يبلّغ عن قيمة قياس.')
+    if kind == 'literal_duplication':
+        site_counts = [len(fact.get('value', {}).get('sites') or []) for fact in facts]
+        site_counts = [c for c in site_counts if c]
+        if site_counts:
+            return ('تكرار حرفي في ' + str(max(site_counts)) + ' مواضع متطابقة على الأقل.')
+        return ('أدلة متعددة على تكرار حرفي هنا؛ المحرّك لم يبلّغ عن عدد المواضع.')
+    if kind == 'coupling':
+        fan_in = fan_out = None
+        for fact in facts:
+            message = (fact.get('value') or {}).get('message') or ''
+            mi = _re.search(r'fan-in\s+(\d+)', message)
+            mo = _re.search(r'fan-out\s+(\d+)', message)
+            if mi: fan_in = int(mi.group(1))
+            if mo: fan_out = int(mo.group(1))
+            if fan_in is not None or fan_out is not None:
+                break
+        if fan_in is not None or fan_out is not None:
+            parts = []
+            if fan_in is not None: parts.append('fan-in ' + str(fan_in))
+            if fan_out is not None: parts.append('fan-out ' + str(fan_out))
+            return ('اقتران: ' + ' و'.join(parts) + ' حسب قياس المحرك.')
+        return ('أدلة متعددة على اقتران هنا؛ المحرّك لم يبلّغ عن عدد الأطراف.')
+    if kind == 'dead_code':
+        for fact in facts:
+            message = (fact.get('value') or {}).get('message') or ''
+            symbol = (fact.get('location') or {}).get('symbol')
+            if symbol and symbol != fact.get('location', {}).get('path'):
+                return ('كود ميت: المرشّح ' + symbol + ' حسب المحرك.')
+            m = _re.search(r'(?:function|method|class)\s+([\w./]+)', message)
+            if m:
+                return ('كود ميت: المرشّح ' + m.group(1) + ' حسب المحرك.')
+            sites = (fact.get('value') or {}).get('sites') or []
+            if sites:
+                return ('كود ميت في ' + (sites[0].get('path') or 'موضع غير مسمى') + '.')
+        return ('أدلة متعددة على كود ميت هنا؛ المحرك لم يسمّ الرمز.')
+    return 'أدلة متعددة المصدر على موضع واحد؛ مرشّح أول للمراجعة، لا حكم بوجود عيب.'
+
+
 ENGINE_KIND_WORDS = {'complexity': 'تعقيد', 'coupling': 'ترابط', 'cycle': 'دورة اعتماد',
                      'duplication': 'تكرار بنيوي', 'literal_duplication': 'تكرار حرفي',
                      'dead_code': 'كود ميت', 'dataflow': 'تدفق بيانات', 'surface': 'سطح عام',
@@ -420,7 +495,7 @@ def from_engines(fact_sets, offset=0):
                 confidence = ceiling = 'LIKELY'
                 falsifier = ('Show the measurement each engine reports is below the threshold it declares, '
                              'or that the engines share one implementation and are therefore one witness.')
-                impact = {'scenario': 'أدلة متعددة المصدر على موضع واحد؛ مرشّح أول للمراجعة، لا حكم بوجود عيب.'}
+                impact = {'scenario': _impact_for_engine_cluster(kind, cluster, fact_sets)}
             elif detail['verdict'] == GRANULARITY_GAP:
                 elsewhere = ', '.join(detail['silent_at_another_resolution'])
                 level = ', '.join(detail['asserted_at']) or 'unknown'

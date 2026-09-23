@@ -1560,7 +1560,7 @@
           "rollback": "git checkout eaos/claims.py eaos/compose/labels.py",
           "depends_on": [],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N12.T5",
