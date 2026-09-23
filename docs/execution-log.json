@@ -1344,6 +1344,34 @@
       },
       "overall_at_this_point": 0.8537,
       "note": "engine_cluster impact scenarios قبل: جملة واحدة لكل البطاقات (96 متطابقة) | بعد: 49 جملة متمايزة، 39 تحوي أرقامًا (تعقيد/اقتران/تكرار) | parity IMPACTS: 4 مفاتيح جديدة لكل لغة | 950 اختبارًا تمر · بوابة نظيفة"
+    },
+    {
+      "task": "N12.T5",
+      "title": "الوصفة تُقاس على المستودعين لا على العيّنة",
+      "recorded_at": "2026-09-23T11:24:33+00:00",
+      "commit": "6f039a2",
+      "acceptance_command": "eaos audit . --out /tmp/n12self --skip site --engines codegraph enola jscpd reforge && eaos audit /workspace/upstream-src/enola --out /tmp/n12go --skip site --engines codegraph enola jscpd reforge && python tools/capability_score.py /tmp/n12self /tmp/n12go --write && bash tests/gate/capability_no_regression.sh",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "n/a",
+        "from": null,
+        "to": null
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.9535,
+        "target_architecture": 1.0,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8537,
+      "note": "self remediate: 0/194 (0%) → 0/194 (0%); generic: 96/194 (49.48%) → 0/194 (0%). enola remediate: 0/522 (0%) → 0/522 (0%); generic: 214/522 (41.00%) → 0/522 (0%). overall 0.8537; 7/9 domains at target; no domain regressed."
     }
   ]
 }
