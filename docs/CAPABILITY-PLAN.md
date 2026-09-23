@@ -78,6 +78,7 @@ python -m unittest discover -s tests -q && python tools/validate.py && python to
 | N9 | الحكم المستقل | N8 | 1/2 | ⬜ |
 | N10 | إعادة القياس وقرار الإصدار | N2, N3, N4, N5, N6, N7, N8 | 1/2 | ⬜ |
 | N11 | إصلاح ما كشفته المراجعة البعدية | N3, N5, N6, N7 | 9/9 | ⬜ |
+| N12 | من الملاحظة إلى الوصفة | N11 | 0/5 | ⬜ |
 
 ## N1 — أداة القياس وبوابة عدم التراجع
 
@@ -1345,3 +1346,144 @@ bash tests/gate/capability_no_regression.sh && python3 -c "import json;h=json.lo
 ```
 
 **التراجع:** git checkout tools/capability_score.py tests/gate/capability_no_regression.sh && rm -f docs/capability-high-water.json
+
+## N12 — من الملاحظة إلى الوصفة
+
+**الهدف:** الأداة اليوم تلاحظ وتسأل ولا تصف علاجًا. هذا المعلم يجعلها تصف العلاج حيث يملك المشروع متطلبًا موثّقًا فعلًا، ويعطي كل نتيجة محرّك نمط علاج وأثرًا مقيسًا بدل جملة واحدة مكرّرة.
+
+**المشكلة المقيسة:** قِيس على /tmp/w_self و /tmp/w_go بتاريخ 2026-09-23: 190 بطاقة من 190 نوعها investigate وصفر repair، وكل أمر قبولها «مراجعة بشرية». و96 ادعاءً من 240 على مستودعنا (214 من 787 على enola) نوعها engine_cluster، وكلها تتشارك جملة أثر واحدة حرفيًا، وكلها تسقط إلى النمط generic لأن classify() في eaos/remediation_patterns.py لا تعرف الاستعلام engine_cluster_present.
+
+### N12.T1 — مخالفة السياسة تحمل معرّف الحافة التي أثبتتها ⬜
+
+**لماذا:** الإصلاح يحتاج مرجعين متمايزين: المتطلب والدليل. حقيقة المخالفة تحمل سبب القاعدة ولا تحمل معرّف حقيقة الاستيراد.
+
+**الملفات:**
+
+- `eaos/policy.py`
+- `tests/test_policy.py`
+
+**الخطوات:**
+
+1. في eaos/policy.py الدالة violations تمرّ على edge من sets["resolve"]["facts"]؛ أضف edge_fact_id بقيمة edge["id"] إلى القاموس المضاف في found
+2. مرّر edge_fact_id إلى قيمة حقيقة policy_violation في الدالة run بجانب to_path و from_layer
+3. أضف اختبارًا يشغّل الكاشف على tests/fixtures/benchmarks/policy-violation ويثبت أن edge_fact_id موجود وأنه معرّف حقيقة module_edge حقيقية في facts/resolve.json
+
+**معيار القبول:**
+
+```bash
+eaos audit tests/fixtures/benchmarks/policy-violation --out /tmp/n12t1 --skip site && python3 -c "import json;p=json.load(open('/tmp/n12t1/facts/policy.json'));r={f['id'] for f in json.load(open('/tmp/n12t1/facts/resolve.json'))['facts']};v=[f for f in p['facts'] if f['kind']=='policy_violation'];assert v, 'the fixture must produce a violation';assert all(f['value'].get('edge_fact_id') in r for f in v), [f['value'].get('edge_fact_id') for f in v]"
+```
+
+**التراجع:** git checkout eaos/policy.py
+
+### N12.T2 — مخالفة السياسة المعلنة تصير إصلاحًا بأمر قبول قابل للتشغيل ⬜
+
+**لماذا:** المشروع كتب eaos.policy.json بيده، فالمتطلب موثّق ومؤلَّف من صاحبه. هذه هي الحالة الوحيدة التي يملك فيها المحرّك متطلبًا دون أن يخترعه.
+**يعتمد على:** N12.T1
+
+**الملفات:**
+
+- `eaos/claims.py`
+- `eaos/policy_assessment.py`
+- `eaos/acceptance.py`
+- `tests/test_decisions.py`
+
+**الخطوات:**
+
+1. اقرأ eaos/decision_review.py: هو المسار الوحيد الذي يكتب assessment اليوم، وشروطه هي المرجع الملزم لشكل ما ستبنيه
+2. اقرأ eaos/decisions.py الدالة decide: repair تتطلب confidence=CONFIRMED مع violated_invariant و requirement_refs و evidence_refs، والجاهزية تتطلب checks و reviewed_by و before و after
+3. أنشئ eaos/policy_assessment.py يبني assessment لادعاء مخالفة سياسة من حقائقه وحدها
+4. violated_invariant: نص القاعدة المعلنة مع سببها المأخوذ من value["reason"]
+5. requirement_refs: معرّف حقيقة policy_violation، فهي التي تحمل القاعدة التي أعلنها المشروع
+6. evidence_refs: معرّف edge_fact_id، فهو حافة الاستيراد التي خالفتها
+7. reviewed_by: مسار ملف السياسة مع بصمته، لأن من كتب الملف هو من أقرّ المتطلب؛ لا تخترع اسم مراجع
+8. before و after: وصف الحافة القائمة، ووصف غيابها من الرسم المحلول
+9. proposed_change: خذه من نمط policy_violation في eaos/remediation_patterns.py ولا تكتب نصًا ثانيًا
+10. checks: فحص واحد kind=command يعيد تشغيل فحص السياسة ويتوقع خروجًا صفريًا؛ اقرأ check_errors في eaos/decisions.py فهو يرفض argv فارغًا أو cwd غير النقطة أو expected_exit غير عدد، ويرفض أن يبدأ argv بـ dossier أو facts أو tasks
+11. source_revision في الفحص يساوي eaos.acceptance.fingerprint للمستودع المفحوص، وإلا رفضه العقد
+12. في eaos/claims.py أرفق هذا assessment مع ادعاء السياسة عند بنائه
+13. لا تلمس decide ولا check_errors: العقد هو الحَكَم ولا يُليَّن ليقبل ما نبنيه
+
+**معيار القبول:**
+
+```bash
+eaos audit tests/fixtures/benchmarks/policy-violation --out /tmp/n12t2 --skip site && python3 -c "import json;p=json.load(open('/tmp/n12t2/plan.json'));c=[t for t in p['tasks'] if (t.get('render') or {}).get('key')=='policy'];assert c, 'no policy card';t=c[0];assert t['kind']=='remediate', t['kind'];assert t['decision']['kind']=='repair', t['decision'];assert t['decision']['readiness']=='ready', t['decision'];a=t['acceptance'][0]['command'];assert 'human review' not in a, a"
+```
+
+**التراجع:** git checkout eaos/claims.py && rm -f eaos/policy_assessment.py
+
+### N12.T3 — نتيجة المحرّك تُصنَّف إلى نمط علاج حقيقي ⬜
+
+**لماذا:** classify() لا تعرف engine_cluster_present، فتسقط 96 بطاقة من 240 إلى النمط generic الذي لا يحمل علاجًا ولا كلفة تقاعس.
+
+**الملفات:**
+
+- `eaos/remediation_patterns.py`
+- `tests/test_remediation_patterns.py`
+
+**الخطوات:**
+
+1. الأنواع المقيسة أربعة فقط: complexity و literal_duplication و coupling و dead_code، وهي في claim["render"]["params"]["kind"]
+2. في classify() أضف فرعًا للاستعلام engine_cluster_present يقرأ هذا النوع ويعيد: complexity إلى hotspot، و coupling إلى hidden_coupling، و literal_duplication إلى canonicalize
+3. أضف نمط dead_code جديدًا في PATTERNS بخطوة تغيير وخيارين وكلفة تقاعس في cost_of_inaction، فالحذف قرار لا ملاحظة
+4. أي نوع محرّك غير معروف يبقى generic، وسجّل في النمط سبب السقوط حتى لا يكون صمتًا
+5. أضف اختبارًا لكل نوع من الأربعة يثبت النمط المُختار، واختبارًا يثبت أن نوعًا مجهولًا يبقى generic
+
+**معيار القبول:**
+
+```bash
+eaos audit . --out /tmp/n12t3 --skip site --engines codegraph enola jscpd reforge && python3 -c "import json,collections;d=json.load(open('/tmp/n12t3/dossier.json'));p=json.load(open('/tmp/n12t3/plan.json'));byid={c['id']:c for c in d['claims']};ec=[t for t in p['tasks'] if (byid.get(t['claim_id'],{}).get('render') or {}).get('key')=='engine_cluster'];assert ec, 'no engine cluster card';bad=[t['id'] for t in ec if t.get('pattern')=='generic'];assert not bad, bad;gen=[t for t in p['tasks'] if t.get('pattern')=='generic'];assert len(gen)/len(p['tasks'])<=0.1, (len(gen),len(p['tasks']))"
+```
+
+**التراجع:** git checkout eaos/remediation_patterns.py
+
+### N12.T4 — أثر نتيجة المحرّك يذكر القياس الذي وجده ⬜
+
+**لماذا:** ستة وتسعون ادعاءً تتشارك جملة أثر واحدة حرفيًا؛ هذا يخالف قاعدة المنتَج نفسه أن كل ادعاء يذكر أثره، ويجعل أضعف ما نملك يتصدّر موجز القرار.
+
+**الملفات:**
+
+- `eaos/claims.py`
+- `eaos/compose/labels.py`
+- `tests/test_claims.py`
+
+**الخطوات:**
+
+1. حقائق المحرّك تحمل measurements قائمةَ قواميس فيها name و value و threshold؛ اطبع واحدة من facts/external.json قبل أن تكتب أي ربط
+2. اجعل جملة الأثر تختلف بنوع النتيجة وتذكر القياس: التعقيد يذكر القيمة والعتبة، والتكرار الحرفي يذكر عدد المواضع، والاقتران يذكر عدد الأطراف، والكود الميت يذكر الرمز
+3. أضف مفاتيح الأثر الجديدة إلى IMPACTS بالعربية والإنجليزية معًا؛ اختبار التكافؤ يفشل إن وُجد مفتاح في لغة دون الأخرى
+4. حين تغيب المقاييس أبقِ الجملة العامة واذكر أن المحرّك لم يُبلّغ قياسًا، فالصمت المعلن أصدق من رقم مخترع
+
+**معيار القبول:**
+
+```bash
+eaos audit . --out /tmp/n12t4 --skip site --engines codegraph enola jscpd reforge && python3 -c "import json,re;d=json.load(open('/tmp/n12t4/dossier.json'));ec=[c for c in d['claims'] if (c.get('render') or {}).get('key')=='engine_cluster'];assert ec, 'no engine cluster claim';s={(c.get('impact') or {}).get('scenario') for c in ec};assert len(s)>=3, len(s);assert sum(1 for x in s if re.search(r'[0-9]', x or ''))>=2, s" && python -m unittest discover -s tests -p "test_report_parity.py" -q
+```
+
+**التراجع:** git checkout eaos/claims.py eaos/compose/labels.py
+
+### N12.T5 — الوصفة تُقاس على المستودعين لا على العيّنة ⬜
+
+**لماذا:** كل مهمة سابقة في هذا المشروع نجحت على عيّنة وفشلت على مستودع حقيقي؛ هذه المهمة تمنع تكرار ذلك.
+**يعتمد على:** N12.T2, N12.T3, N12.T4
+
+**الملفات:**
+
+- `docs/capability-score.json`
+- `docs/CAPABILITY-SCORE.md`
+- `docs/capability-high-water.json`
+
+**الخطوات:**
+
+1. أعد إنتاج التقريرين بالمحرّكات: eaos audit . و eaos audit /workspace/upstream-src/enola
+2. اطبع نسبة البطاقات من نوع remediate ونسبة النمط generic على كل تقرير وسجّلها في ملاحظة المهمة
+3. شغّل python tools/capability_score.py /tmp/n12self /tmp/n12go --write
+4. شغّل bash tests/gate/capability_no_regression.sh وتأكد أن لا مجال هبط
+
+**معيار القبول:**
+
+```bash
+eaos audit . --out /tmp/n12self --skip site --engines codegraph enola jscpd reforge && eaos audit /workspace/upstream-src/enola --out /tmp/n12go --skip site --engines codegraph enola jscpd reforge && python tools/capability_score.py /tmp/n12self /tmp/n12go --write && bash tests/gate/capability_no_regression.sh
+```
+
+**التراجع:** git checkout docs/capability-score.json docs/CAPABILITY-SCORE.md docs/capability-high-water.json
