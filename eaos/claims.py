@@ -5,6 +5,7 @@ what would disprove it. A question is an admitted gap. Nothing rendered may exis
 """
 from datetime import datetime, timezone
 import json
+from .compose.labels import IMPACTS
 from .vocabulary import schema_errors
 from .workspace import DATA, read, write
 
@@ -390,11 +391,6 @@ def from_load_model(fact_sets, offset=0):
     return made
 
 
-def _measurement_lookup(fact_sets):
-    facts = (fact_sets.get('external') or {}).get('facts', [])
-    return {fact['id']: fact for fact in facts}
-
-
 def _extract_measurement(fact, name):
     for m in fact.get('value', {}).get('measurements', []) or []:
         if m.get('name') == name:
@@ -402,67 +398,66 @@ def _extract_measurement(fact, name):
     return None
 
 
-def _impact_for_engine_cluster(kind, cluster, fact_sets):
-    """Return a kind-specific impact scenario for a corroborated engine-cluster claim."""
+def _number(value):
+    return int(value) if isinstance(value, float) and value.is_integer() else value
+
+
+def _engine_cluster_measurement(kind, cluster, fact_sets):
+    """Return ``(impact_key, params)`` naming the measurement a corroborated finding was earned by.
+
+    The key selects a template in ``compose.labels.IMPACTS`` for every language, so the report reads
+    the same measurement the claim carries. With no measurement the key says so rather than guessing.
+    """
     import re as _re
-    facts = [_measurement_lookup(fact_sets).get(fid) for fid in cluster.get('fact_ids', [])]
+    by_id = {fact['id']: fact for fact in (fact_sets.get('external') or {}).get('facts', [])}
+    facts = [by_id.get(fid) for fid in cluster.get('fact_ids', [])]
     facts = [fact for fact in facts if fact and (fact.get('value') or {}).get('kind') == kind]
-    if not facts:
-        return ('أدلة متعددة المصدر على موضع واحد؛ مرشّح أول للمراجعة، لا حكم بوجود عيب. '
-                'المحرّك لم يبلّغ عن قياس.')
+    unmeasured = ('engine_cluster_unmeasured', {})
     if kind == 'complexity':
-        chosen = None
-        for name in ('cyclomatic_complexity', 'complexity'):
-            for fact in facts:
-                m = _extract_measurement(fact, name)
-                if m is not None:
-                    chosen = (fact, m)
-                    break
-            if chosen:
-                break
-        if chosen:
-            _, m = chosen
-            threshold = m.get('threshold')
-            threshold_part = (' (العتبة ' + str(threshold) + ')') if threshold is not None else ''
-            return ('التعقيد ' + str(m.get('value')) + threshold_part +
-                    ' في هذا الموضع حسب قياس المحرك.')
-        return ('أدلة متعددة على تعقيد هنا؛ المحرّك لم يبلّغ عن قيمة قياس.')
-    if kind == 'literal_duplication':
-        site_counts = [len(fact.get('value', {}).get('sites') or []) for fact in facts]
-        site_counts = [c for c in site_counts if c]
-        if site_counts:
-            return ('تكرار حرفي في ' + str(max(site_counts)) + ' مواضع متطابقة على الأقل.')
-        return ('أدلة متعددة على تكرار حرفي هنا؛ المحرّك لم يبلّغ عن عدد المواضع.')
-    if kind == 'coupling':
-        fan_in = fan_out = None
+        # reforge names it function.complexity and declares a threshold; codegraph names it complexity
+        # without one. A measurement that carries its threshold is preferred over one that does not.
+        found = [m for fact in facts for name in ('function.complexity', 'cyclomatic_complexity', 'complexity')
+                 for m in [_extract_measurement(fact, name)] if m is not None and m.get('value') is not None]
+        found.sort(key=lambda m: m.get('threshold') is None)
+        if found and found[0].get('threshold') is not None:
+            return 'engine_cluster_complexity', {'value': _number(found[0]['value']),
+                                                 'threshold': _number(found[0]['threshold'])}
+        if found:
+            return 'engine_cluster_complexity_value', {'value': _number(found[0]['value'])}
+    elif kind == 'literal_duplication':
+        # reforge reports the occurrence count as group.size; its sites list also carries file-level
+        # entries, so counting sites overstates it. jscpd reports one site per copy.
+        sizes = [m['value'] for fact in facts for m in [_extract_measurement(fact, 'group.size')]
+                 if m is not None and m.get('value') is not None]
+        counts = sizes or [len((fact.get('value') or {}).get('sites') or []) for fact in facts]
+        if any(counts):
+            return 'engine_cluster_literal_duplication', {'sites': _number(max(counts))}
+    elif kind == 'coupling':
         for fact in facts:
             message = (fact.get('value') or {}).get('message') or ''
-            mi = _re.search(r'fan-in\s+(\d+)', message)
-            mo = _re.search(r'fan-out\s+(\d+)', message)
-            if mi: fan_in = int(mi.group(1))
-            if mo: fan_out = int(mo.group(1))
-            if fan_in is not None or fan_out is not None:
-                break
-        if fan_in is not None or fan_out is not None:
-            parts = []
-            if fan_in is not None: parts.append('fan-in ' + str(fan_in))
-            if fan_out is not None: parts.append('fan-out ' + str(fan_out))
-            return ('اقتران: ' + ' و'.join(parts) + ' حسب قياس المحرك.')
-        return ('أدلة متعددة على اقتران هنا؛ المحرّك لم يبلّغ عن عدد الأطراف.')
-    if kind == 'dead_code':
+            parts = [label + ' ' + found.group(1) for label in ('fan-in', 'fan-out')
+                     for found in [_re.search(label + r'\s+(\d+)', message)] if found]
+            if parts:
+                return 'engine_cluster_coupling', {'measure': ', '.join(parts)}
+    elif kind == 'dead_code':
         for fact in facts:
-            message = (fact.get('value') or {}).get('message') or ''
-            symbol = (fact.get('location') or {}).get('symbol')
-            if symbol and symbol != fact.get('location', {}).get('path'):
-                return ('كود ميت: المرشّح ' + symbol + ' حسب المحرك.')
-            m = _re.search(r'(?:function|method|class)\s+([\w./]+)', message)
-            if m:
-                return ('كود ميت: المرشّح ' + m.group(1) + ' حسب المحرك.')
+            location = fact.get('location') or {}
+            symbol = location.get('symbol')
+            if symbol and symbol != location.get('path'):
+                return 'engine_cluster_dead_code', {'symbol': symbol}
+            found = _re.search(r'(?:function|method|class)\s+([\w./]+)', (fact.get('value') or {}).get('message') or '')
+            if found:
+                return 'engine_cluster_dead_code', {'symbol': found.group(1)}
             sites = (fact.get('value') or {}).get('sites') or []
-            if sites:
-                return ('كود ميت في ' + (sites[0].get('path') or 'موضع غير مسمى') + '.')
-        return ('أدلة متعددة على كود ميت هنا؛ المحرك لم يسمّ الرمز.')
-    return 'أدلة متعددة المصدر على موضع واحد؛ مرشّح أول للمراجعة، لا حكم بوجود عيب.'
+            if sites and sites[0].get('path'):
+                return 'engine_cluster_dead_code', {'symbol': sites[0]['path']}
+    return unmeasured
+
+
+def _impact_for_engine_cluster(kind, cluster, fact_sets):
+    """Return the Arabic impact scenario for a corroborated engine-cluster claim."""
+    key, params = _engine_cluster_measurement(kind, cluster, fact_sets)
+    return IMPACTS['ar'][key].format(**params)
 
 
 ENGINE_KIND_WORDS = {'complexity': 'تعقيد', 'coupling': 'ترابط', 'cycle': 'دورة اعتماد',
@@ -490,12 +485,14 @@ def from_engines(fact_sets, offset=0):
             index += 1
             engines = ', '.join(detail['asserted_by'])
             word = ENGINE_KIND_WORDS.get(kind, kind)
+            impact_key, measured = None, {}
             if detail['verdict'] == CORROBORATED:
                 statement = f"{len(detail['asserted_by'])} محركات مستقلة ({engines}) تبلّغ عن {word} في {cluster['place']}"
                 confidence = ceiling = 'LIKELY'
                 falsifier = ('Show the measurement each engine reports is below the threshold it declares, '
                              'or that the engines share one implementation and are therefore one witness.')
-                impact = {'scenario': _impact_for_engine_cluster(kind, cluster, fact_sets)}
+                impact_key, measured = _engine_cluster_measurement(kind, cluster, fact_sets)
+                impact = {'scenario': IMPACTS['ar'][impact_key].format(**measured)}
             elif detail['verdict'] == GRANULARITY_GAP:
                 elsewhere = ', '.join(detail['silent_at_another_resolution'])
                 level = ', '.join(detail['asserted_at']) or 'unknown'
@@ -517,7 +514,8 @@ def from_engines(fact_sets, offset=0):
                              falsifier, fact_ids=cluster['fact_ids'], confidence_ceiling=ceiling,
                              render={'key': 'engine_cluster',
                                      'params': {'place': cluster['place'], 'kind': kind,
-                                                'engines': engines, 'verdict': detail['verdict']}},
+                                                'engines': engines, 'verdict': detail['verdict'],
+                                                **measured, **({'impact_key': impact_key} if impact_key else {})}},
                              probe_spec={'probe_type': 'graph_query',
                                          'specification': {'query': 'engine_cluster_present',
                                                            'place': cluster['place'], 'kind': kind,

@@ -44,8 +44,9 @@ def build_assessment(claim, fact_sets, target):
         return None
     if (claim.get('render') or {}).get('key') != 'policy':
         return None
+    own = set(claim.get('fact_ids') or [])
     facts = [fact for fact in (fact_sets.get('policy') or {}).get('facts', [])
-             if fact.get('kind') == 'policy_violation']
+             if fact.get('kind') == 'policy_violation' and fact.get('id') in own]
     if not facts:
         return None
     fact = facts[0]

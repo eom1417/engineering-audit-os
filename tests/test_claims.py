@@ -180,3 +180,39 @@ class EngineClusterImpactTests(unittest.TestCase):
         from eaos.claims import _impact_for_engine_cluster
         scenario = _impact_for_engine_cluster('complexity', self._cluster([]), {})
         self.assertIn('لم يبلّغ', scenario)
+
+    def test_the_rendered_impact_carries_the_measurement_in_both_languages(self):
+        # The reader, not the producer: cards and reports render through impact_of, which used to
+        # return the one shared engine_cluster sentence and never reached the measured scenario.
+        from eaos.claims import _engine_cluster_measurement
+        from eaos.compose.labels import impact_of
+        fact = self._fact('complexity', {'measurements': [{'name': 'cyclomatic_complexity',
+                                                          'value': 27, 'threshold': 15}]})
+        key, params = _engine_cluster_measurement('complexity', self._cluster([fact]),
+                                                  {'external': {'facts': [fact]}})
+        render = {'key': 'engine_cluster', 'params': {'place': 'a.py', 'kind': 'complexity',
+                                                      'engines': 'x, y', 'verdict': 'corroborated',
+                                                      **params, 'impact_key': key}}
+        for language in ('ar', 'en'):
+            rendered = impact_of({'impact': {'scenario': ''}, 'render': render}, language)
+            self.assertIn('27', rendered, language)
+            self.assertIn('15', rendered, language)
+        self.assertFalse(any('؀' <= c <= 'ۿ' for c in impact_of({'render': render}, 'en')))
+
+    def test_reforge_measurement_names_are_read_as_the_engine_writes_them(self):
+        # Printed from a real run: reforge writes function.complexity with a threshold and group.size
+        # for repeated literals; its sites list is longer than the occurrence count.
+        from eaos.claims import _engine_cluster_measurement
+        complex_fact = self._fact('complexity', {'measurements': [
+            {'name': 'function.complexity', 'value': 40.0, 'threshold': 15.0, 'unit': 'complexity'}]})
+        plain = dict(self._fact('complexity', {'measurements': [{'name': 'complexity', 'value': 9}]}),
+                     id='FACT-plain')
+        sets = {'external': {'facts': [plain, complex_fact]}}
+        self.assertEqual(_engine_cluster_measurement('complexity', self._cluster([plain, complex_fact]), sets),
+                         ('engine_cluster_complexity', {'value': 40, 'threshold': 15}))
+        literal = self._fact('literal_duplication', {
+            'measurements': [{'name': 'group.size', 'value': 24.0, 'threshold': 12.0}],
+            'sites': [{'path': 'a.py', 'line': None}] + [{'path': 'a.py', 'line': n} for n in range(34)]})
+        self.assertEqual(_engine_cluster_measurement('literal_duplication', self._cluster([literal]),
+                                                     {'external': {'facts': [literal]}}),
+                         ('engine_cluster_literal_duplication', {'sites': 24}))

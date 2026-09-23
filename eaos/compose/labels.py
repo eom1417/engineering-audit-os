@@ -106,10 +106,12 @@ IMPACTS = {
     'ar': {
         'load_blocker': 'الكلفة تنمو مع الحركة أو مع البيانات عند هذه النقطة؛ ما يعمل اليوم قد لا يعمل عند مضاعفة الحمل.',
         'engine_cluster': 'أدلة من أكثر من محرك على موضع واحد؛ مرشّح للمراجعة، لا حكم بوجود عيب.',
-        'engine_cluster_complexity': 'تعقيد بقيمة وعتبة محددتين حسب المحرك؛ تغيير التفريعات يخفض الرقم.',
-        'engine_cluster_literal_duplication': 'تكرار حرفي بعدد مواضع محدد حسب المحرك؛ الكلفة تنمو مع كل موضع.',
-        'engine_cluster_coupling': 'اقتران بعدد أطراف محدد حسب المحرك؛ تغيير أحدهم قد يضرب البقية.',
-        'engine_cluster_dead_code': 'كود ميت مسمّى برمز محدد؛ الحذف قرار يحتاج دليلًا على عدم الوصول.',
+        'engine_cluster_complexity': 'التعقيد {value} (العتبة {threshold}) في هذا الموضع حسب قياس المحرك؛ كل تغيير هنا يمرّ بهذه التفريعات كلها.',
+        'engine_cluster_complexity_value': 'التعقيد {value} في هذا الموضع حسب قياس المحرك، ولم يعلن المحرك عتبته؛ كل تغيير هنا يمرّ بهذه التفريعات كلها.',
+        'engine_cluster_literal_duplication': 'تكرار حرفي في {sites} مواضع متطابقة على الأقل؛ أول تعديل في أحدها دون البقية يجعلها تختلف.',
+        'engine_cluster_coupling': 'اقتران: {measure} حسب قياس المحرك؛ تغيير أحد الأطراف قد يفرض تغيير البقية.',
+        'engine_cluster_dead_code': 'كود ميت: المرشّح {symbol} حسب المحرك؛ الحذف قرار يحتاج دليلًا على أن لا نقطة دخول تصل إليه.',
+        'engine_cluster_unmeasured': 'أدلة متعددة المصدر على موضع واحد، والمحرّك لم يبلّغ عن قياس؛ مرشّح للمراجعة، لا حكم بوجود عيب.',
         'cycle': 'تغيير أي عضو قد يفرض تغيير البقية معه؛ ولا يمكن اختبار المجموعة أو استبدالها منفردة.',
         'cochange': 'تغيير أحدهما يستدعي غالبًا تغييرًا مقابلًا في الآخر، بلا أي إشارة في الكود.',
         'duplicated_rule': 'تعديل القاعدة في موضع دون الآخر يجعل مسارين يختلفان.',
@@ -129,10 +131,12 @@ IMPACTS = {
     'en': {
         'load_blocker': 'Cost grows with traffic or data at this entry point; current behavior may not survive higher load.',
         'engine_cluster': 'More than one engine points at the same place: a review candidate, not a verdict that a defect exists.',
-        'engine_cluster_complexity': 'Complexity with a measured value and threshold; refactoring the branches lowers the number.',
-        'engine_cluster_literal_duplication': 'Literal duplication with a measured site count; cost grows with every new copy.',
-        'engine_cluster_coupling': 'Coupling with a measured party count; changing one party may break the others.',
-        'engine_cluster_dead_code': 'Dead code named by a specific symbol; deletion is a decision that needs proof of no entry point reaching it.',
+        'engine_cluster_complexity': 'Complexity {value} (threshold {threshold}) at this place as the engine measured it; every change here runs through all of these branches.',
+        'engine_cluster_complexity_value': 'Complexity {value} at this place as the engine measured it, with no threshold declared; every change here runs through all of these branches.',
+        'engine_cluster_literal_duplication': 'The same literal text at {sites} sites at least; the first edit to one and not the others makes them disagree.',
+        'engine_cluster_coupling': 'Coupling: {measure} as the engine measured it; changing one party may force the others to change.',
+        'engine_cluster_dead_code': 'Dead code: the candidate {symbol} as the engine named it; deleting it is a decision that needs proof no entry point reaches it.',
+        'engine_cluster_unmeasured': 'Evidence from more than one source at one place, and the engine reported no measurement: a review candidate, not a verdict that a defect exists.',
         'cycle': 'Changing any member can force the rest to change with it, and the group cannot be tested or replaced on its own.',
         'cochange': 'Changing one usually calls for a matching change in the other, with nothing in the code to say so.',
         'duplicated_rule': 'Editing the rule in one place and not the other makes two paths disagree.',
@@ -153,6 +157,10 @@ def impact_of(claim, language):
     render = claim.get('render') or {}
     key = render.get('key')
     if key == 'duplicated_rule' and (render.get('params') or {}).get('differs') == 'yes': key = 'duplicated_rule_differs'
+    params = render.get('params') or {}
+    if key == 'engine_cluster' and params.get('impact_key') in IMPACTS.get(language, {}):
+        try: return IMPACTS[language][params['impact_key']].format(**params)
+        except (KeyError, IndexError, ValueError): pass
     translated = IMPACTS.get(language, {}).get(key)
     return translated or (claim.get('impact') or {}).get('scenario') or '—'
 

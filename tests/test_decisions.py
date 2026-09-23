@@ -120,3 +120,22 @@ class PolicyAssessmentTests(unittest.TestCase):
             for claim in claims:
                 if (claim.get('render') or {}).get('key') == 'policy':
                     self.fail('a clean project must not produce a policy claim')
+
+    def test_each_policy_claim_is_assessed_against_its_own_violation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = _policy_repo(tmp, violating=True)
+            (repo / 'app/facts/second.py').write_text(
+                'from app.runtime.engine import start\n\n\ndef again():\n    return start()\n')
+            out = Path(tmp) / 'out'
+            collect(repo, out, SETS)
+            from eaos.policy import check as check_policy
+            check_policy(repo, out)
+            policy = json.loads((out / 'facts/policy.json').read_text())
+            resolve = json.loads((out / 'facts/resolve.json').read_text())
+            claims = from_facts({'policy': policy, 'resolve': resolve}, target=repo)
+            policy_claims = [c for c in claims if (c.get('render') or {}).get('key') == 'policy']
+            self.assertEqual(len(policy_claims), 2)
+            for claim in policy_claims:
+                self.assertEqual(claim['assessment']['requirement_refs'], claim['fact_ids'])
+                self.assertIn(claim['render']['params']['path'], claim['assessment']['before'])
+            self.assertEqual(len({c['checks'][0]['id'] for c in policy_claims}), 2)
