@@ -6,7 +6,6 @@ direction reduces the indicator value when the target is 0; the report
 labels the direction correctly per indicator.
 """
 from pathlib import Path
-from .facts.store import read_set
 from .sustainability import compute as dashboard
 
 

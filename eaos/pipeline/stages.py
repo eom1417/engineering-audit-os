@@ -4,7 +4,7 @@ The order used to live inside one function as a sequence of calls, which meant n
 what the pipeline does, skip a step, resume one, or report what never ran. Here each stage names
 what it needs, what it produces, and whether the run may continue without it.
 """
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 REQUIRED, OPTIONAL = 'required', 'optional'
 

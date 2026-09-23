@@ -6,8 +6,8 @@ states its schema version; an unknown one is refused rather than guessed at.
 import json
 from pathlib import Path
 
-from .contract import (Capability, Report, OBSERVED, UNAVAILABLE, ERROR, SCHEMA_MISMATCH, FILE, SYMBOL,
-                       finding, measurement, subject)
+from .contract import (Capability, Report, OBSERVED, UNAVAILABLE, ERROR, SCHEMA_MISMATCH, FILE, finding,
+                       measurement, subject)
 from .process import run, which
 
 NAME, BINARY, PINNED, SCHEMA = 'reforge', 'reforge', '0.3.0', 27

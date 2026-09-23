@@ -41,7 +41,7 @@ def _write_if_present(out, name, content, json_mode=False):
 
 def _generate_engagement(out, language):
     """Default engagement contract for the bundle."""
-    out = Path(out); ar = language == 'ar'
+    out = Path(out)
     from .engagement import read_contract, render_contract
     destination = out / 'engagement.json'
     if destination.exists(): return read_contract(destination)
@@ -104,7 +104,7 @@ def _generate_canonical_homes(out, language):
 
 
 def _generate_gap_matrix(out, language):
-    out = Path(out); ar = language == 'ar'
+    out = Path(out)
     target_path = out / 'target-architecture.json'
     if not target_path.is_file(): return None
     target = json.loads(target_path.read_text())

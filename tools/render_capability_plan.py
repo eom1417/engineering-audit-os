@@ -5,7 +5,6 @@ dependency that does not exist, an indicator nobody measures — is caught here 
 model that tries to run it.
 """
 import json
-import re
 import sys
 from pathlib import Path
 

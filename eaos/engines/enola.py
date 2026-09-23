@@ -8,8 +8,8 @@ import json
 import re
 from pathlib import Path
 
-from .contract import (Capability, Report, OBSERVED, UNAVAILABLE, ERROR, FILE, PACKAGE, SYMBOL,
-                       finding, measurement, subject)
+from .contract import (Capability, Report, OBSERVED, UNAVAILABLE, ERROR, PACKAGE, SYMBOL, finding,
+                       measurement, subject)
 from .process import mirror, run, which
 
 NAME, BINARY, PINNED = 'enola', 'enola', '0.4.21'

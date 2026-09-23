@@ -14,10 +14,8 @@ the system. Nothing here proves the deployment actually works.
 import json
 import re
 from pathlib import Path
-from collections import defaultdict
 from . import digest, make
 from .source import language_of
-from .entrypoints import MODULES, applicable
 
 
 KINDS = ('cache_policy', 'ci_step', 'connection_pool', 'data_model', 'deployment_target',
@@ -351,7 +349,7 @@ _CIRCUIT_BREAKER_PATTERNS = [
 ]
 
 
-def _has_timeout(text, around_line=None):
+def _has_timeout(text):
     """True if any timeout pattern appears anywhere; we cannot cheaply localise to a call."""
     return any(p.search(text) for p in _TIMEOUT_PATTERNS)
 

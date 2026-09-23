@@ -13,7 +13,6 @@ SPLITS = ('train', 'development', 'holdout')
 ARMS = ('facts_only', 'eaos_with_model', 'plain_agent')
 # A case is one of these. A corpus of only healthy projects proves nothing about detection.
 CASE_KINDS = ('healthy', 'defective', 'ambiguous', 'planted_fixture', 'non_python', 'large')
-VERDICTS = ('supported', 'not_supported', 'blocked')
 LIMITATIONS = [
     'A protocol fixes the question; it does not make the answer generalise beyond the corpus.',
     'Scripted fixtures measure detection, never usefulness to a reader.',

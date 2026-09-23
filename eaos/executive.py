@@ -94,7 +94,6 @@ def render(out, language='ar'):
         status = 'REVIEW_REQUIRED · ' + (' · '.join(parts))
     lines += [f"- {status}"]
     # Indicators where a higher value is better (the closer to 1.0, the better).
-    higher_is_better = {'verifiable_paths'}
     for indicator in ['single_source', 'minimal_path', 'honest_boundaries',
                        'data_owners', 'verifiable_paths', 'understandable_units']:
         row = indicators.get(indicator)

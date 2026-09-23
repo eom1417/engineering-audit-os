@@ -262,7 +262,7 @@ def _python_walk_functions(tree):
         if isinstance(node, ast.ClassDef):
             scope.append(node.name)
             for child in ast.iter_child_nodes(node):
-                yield from visit(child, qualified if False else None)
+                yield from visit(child, None)
             scope.pop()
             return
         for child in ast.iter_child_nodes(node):

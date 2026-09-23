@@ -9,7 +9,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .stages import BY_NAME, OPTIONAL, ORDER, STAGES, SkipStage, dependents
+from .stages import BY_NAME, ORDER, STAGES, SkipStage, dependents
 
 OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED = 'ok', 'skipped', 'unavailable', 'failed', 'not_reached'
 MANIFEST = 'run-manifest.json'

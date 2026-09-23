@@ -18,7 +18,7 @@ from .facts.store import read_set, write_set
 
 NAME = 'verification'
 VERSION = '1'
-from .workspace import SKIP_DIRS, read, write
+from .workspace import SKIP_DIRS, write
 
 LIMITATIONS = [
     'An isolated copy is not an operating-system sandbox; do not run untrusted projects here.',

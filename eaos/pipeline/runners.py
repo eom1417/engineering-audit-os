@@ -148,7 +148,7 @@ def site(context):
 
 def validate(context):
     from ..compose.rules import validate as check
-    from ..workspace import read, write
+    from ..workspace import read
     from .report import document
     # RUN.md is written first so the contract checker judges it like any other artifact.
     manifest = read(context.out / 'run-manifest.json') if (context.out / 'run-manifest.json').is_file() else None

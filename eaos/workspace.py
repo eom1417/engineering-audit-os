@@ -7,7 +7,6 @@ import json
 import os
 from pathlib import Path
 import re
-import sys
 from datetime import datetime, timezone
 from . import __version__
 

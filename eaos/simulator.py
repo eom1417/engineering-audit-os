@@ -10,7 +10,6 @@ code.
 from collections import defaultdict
 from pathlib import Path
 from .facts.store import read_set
-from .facts import digest
 from .sustainability import compute, _indicator_single_source, _indicator_minimal_path, \
     _indicator_data_owners, _indicator_honest_boundaries, _indicator_understandable_units
 
@@ -104,7 +103,7 @@ def _redundancy_after(sets, eliminate_stages):
     return {'facts': kept}
 
 
-def simulate(out, stage, all_stages=None):
+def simulate(out, stage):
     """Project the state after applying the given stage (and all prior stages)."""
     out = Path(out)
     sets = {name: read_set(out, name) for name in ['graph', 'resolve', 'fingerprint', 'redundancy',

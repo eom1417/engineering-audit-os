@@ -6,7 +6,6 @@ from .artifacts import BY_NAME, BUDGETS, DOCUMENT
 
 # One source for what may be produced and how long it may be; rules.py used to keep its own list,
 # and sixteen documents were outside it and therefore never checked at all.
-HUMAN_ARTIFACTS = set(BUDGETS)
 CLAIM_REFERENCE = re.compile(r'\bCLM-\d{3,}\b')
 MARKERS = {'⬤', '◐', '○', '؟'}
 COVERAGE_MARKERS = ('التغطية', 'Coverage')

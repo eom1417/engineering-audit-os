@@ -50,7 +50,6 @@ def _python_shape(node, depth=0):
 
 def _python_walk_function(tree, rel):
     """Yield (qualified_name, start, end, sha, shape) for every top-level function and method."""
-    items = []
     scope = []
 
     def visit(node, parent_qual):

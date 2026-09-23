@@ -4,7 +4,6 @@ from collections import OrderedDict
 import re
 from pathlib import Path
 from ..workspace import read,write,safe_file,digest,now
-from ..discovery import classify
 
 # Preserve line numbering; obvious credential values are removed before provider access.
 SECRET=re.compile(r'''(?i)(\b[\w-]*(?:api[_-]?key|secret|password|access[_-]?token|authorization)[\w-]*["']?\s*[=:]\s*)("(?:\\.|[^"\\\r\n])*"|'(?:\\.|[^'\\\r\n])*'|[^\r\n,;}]+)''')

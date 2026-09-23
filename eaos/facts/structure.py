@@ -42,15 +42,6 @@ _BRANCH_KINDS = {
 }
 
 
-def _scope_chain(call_chain, call_index):
-    """The enclosing-symbol stack for a call at the given index."""
-    chain = []
-    for entry in call_chain:
-        if entry['start'] <= call_index <= entry['end']:
-            chain.append(entry['qualified'])
-    return chain
-
-
 def _python_parse(text, rel):
     """Return (tree, scopes, calls, loops, branches, call_sites) for a Python file or None on failure."""
     try:

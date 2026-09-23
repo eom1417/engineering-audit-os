@@ -1,8 +1,7 @@
 """Full discovery → reconstruction → scoped audit → diagnosis challenge → design → report."""
 import json
-import os
 from pathlib import Path
-from ..workspace import read,write,load_run,fresh,registry,DATA,now,run_lock
+from ..workspace import read, write, load_run, fresh, registry, now, run_lock
 from ..architecture import CORE_MODULES,validate_model
 from ..discovery import classify,scan
 from ..audit_records import check

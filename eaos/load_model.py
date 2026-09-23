@@ -72,12 +72,6 @@ def _no_answer(question, evidence_ids, reason):
             'reason': reason}
 
 
-def _trace_evidence(flow_id):
-    """Pull the traced flow's fact ID so an answered-False answer has something to cite."""
-    if not flow_id: return []
-    return [flow_id]
-
-
 LIMITATIONS = (
     'A load model is a structured guess. It cannot replace a real load test.',
     '`undetectable` answers must carry a non-empty reason; silence is not allowed here.',

@@ -11,8 +11,6 @@ predicted indicator delta, and the falsifier a human would use to reject it.
 from collections import defaultdict
 import json
 from pathlib import Path
-from .facts import digest
-from .facts.store import read_set
 
 
 NAME = 'sustainability'
@@ -263,7 +261,7 @@ def render(out, targets=None, language='ar'):
         # Printing 60 moves produced a 664-line document nobody reads and the contract never checked.
         for index, move in enumerate(moves[:SHOWN_MOVES], start=1):
             lines += [f"### Move {index}: {move['move']}",
-                       f"- " + ('مؤشر' if ar else 'indicator') + f": {move['indicator']}"]
+                       "- " + ('مؤشر' if ar else 'indicator') + f": {move['indicator']}"]
             if 'rule' in move:
                 lines += [f"- cluster: {move['rule'][:16]}"]
                 lines += ["- " + ('المواضع' if ar else 'sites') + ":"]

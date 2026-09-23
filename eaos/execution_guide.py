@@ -68,12 +68,6 @@ def _acceptance(task, transform):
     return check.get('command', ''), check.get('expected', '')
 
 
-def _steps(task, transform):
-    steps = [_one_line(task.get('change'))]
-    steps.extend(_one_line(step) for step in (transform or {}).get('steps', []))
-    return [step for step in steps if step]
-
-
 def _localized_task(task, language):
     if language == 'ar':
         return task.get('impact') or task.get('title') or task.get('change'), task.get('change'), task.get('rollback')

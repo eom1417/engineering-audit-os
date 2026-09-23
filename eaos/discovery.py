@@ -5,8 +5,8 @@ from collections import Counter
 import json
 from pathlib import Path
 import re
-from .workspace import read, write, load_run, fresh, safe_file, digest, now, INFRA, STACKS
-from .vocabulary import CONFIG, SOURCE, classify
+from .workspace import read, write, load_run, fresh, safe_file, digest, now
+from .vocabulary import classify
 
 
 

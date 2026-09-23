@@ -5,7 +5,6 @@ Other languages use tree-sitter when the optional extra is installed; without it
 as unparsed rather than guessed at, and a file we cannot parse stays visible in the denominator.
 """
 import ast
-from pathlib import Path
 from . import digest, make
 from .source import language_of
 

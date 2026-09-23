@@ -13,7 +13,6 @@ The matrix is a fact about plans, not a claim about the future.
 from collections import defaultdict
 from pathlib import Path
 from .facts.store import read_set
-from .facts import digest
 
 
 NAME = 'target-architecture'

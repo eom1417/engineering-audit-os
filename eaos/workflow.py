@@ -1,8 +1,7 @@
 """Agent-led workflow: deterministic gates and next actions, never an autonomous LLM."""
 from __future__ import annotations
-from collections import Counter
 from pathlib import Path
-from .workspace import read, write, load_run, fresh, digest
+from .workspace import read, write, load_run, fresh
 from .audit_records import check
 from .surface_records import meaningful, surface_check
 from . import architecture as arch
@@ -94,20 +93,6 @@ def roadmap_check(run,state):
     return {'errors':errors,'gaps':gaps,'order':order,'ready':not errors and not gaps,'task_count':len(tasks),'limits':'Readiness means a structurally complete plan; feasibility, effort and engineering judgment still require review. No execution authorization is inferred.'}
 
 
-def seed_roadmap(path):
-    run,state=load_run(path)
-    if not fresh(state,read(run/'inventory.json'))[0]:raise ValueError('Snapshot changed; create a new run')
-    doc=read(run/'roadmap.json')
-    if doc['tasks'] or doc['dispositions']:raise ValueError('Roadmap already contains work; edit it without overwriting')
-    for f in read(run/'findings.json'):
-        if f.get('status') in {'false_positive','duplicate','verified_closed'}:continue
-        task={k:'' for k in TEXT_FIELDS};task.update({k:[] for k in LIST_FIELDS})
-        task.update(id='TASK-'+f['id'],title=f['id']+' — '+f.get('subcategory',''),kind='remediate' if f.get('claim_status')=='CONFIRMED' else 'investigate',status='planned',priority=f.get('priority','P2'),priority_rationale=f.get('priority_rationale',''),finding_ids=[f['id']],evidence_ids=f.get('evidence_ids',[]),files=f.get('affected_files',[]),objective=f.get('expected_behavior',''),root_cause=f.get('root_cause',''),approach=f.get('implementation_strategy',''),risk=f.get('regression_risks',''),tests=f.get('required_tests',[]),depends_on=[],required_gate_ids=f.get('required_gate_ids',[]))
-        doc['tasks'].append(task)
-    write(run/'roadmap.json',doc)
-    return roadmap_check(run,state)
-
-
 def status(path):
     run,state=load_run(path);inv=read(run/'inventory.json')
     base={'run':str(run),'revision':state['revision'],'mode':'AGENT_LED','production_readiness':'NOT_ASSESSED','target_modified_by_cli':False}
@@ -135,11 +120,6 @@ def status(path):
     roadmap=roadmap_check(run,state)
     if not roadmap['ready']:return action('DESIGN_PLAN','Design minimal changes tied to findings and change scenarios. Compare alternatives, specify invariants, rollback, ordered steps and verification.',['roadmap.json','gates.json'],roadmap['errors']+roadmap['gaps'])
     return dict(base,stage='AUDIT_AND_PLAN_READY',goal='Deliver the evidence-backed audit and ordered plan. Implementation requires user authorization; a ready plan is not a repaired product.',artifacts=['report.md','roadmap.json','architecture.json'],blockers=[],next_files=[],task_order=roadmap['order'],audit_completion='COMPLETE',remediation_completion=state.get('remediation_completion','NOT_REQUESTED'),limits='Gates validate records, not independent truth or exhaustive engineering quality.')
-
-
-def write_next(path):
-    run,_=load_run(path);result=status(path);write(run/'next.json',result)
-    return result
 
 
 def render_report(path):

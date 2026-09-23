@@ -6,7 +6,7 @@ modules it rebuilds — otherwise the dependency runs both ways and nothing can 
 """
 from pathlib import Path
 from .dossier import refresh_views
-from .workspace import read, write
+from .workspace import read
 
 
 def refresh(out, language='ar', target=None):

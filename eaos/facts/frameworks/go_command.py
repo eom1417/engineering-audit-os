@@ -16,7 +16,6 @@ ARGS_INDEX = re.compile(r'args\[\s*(?P<idx>\d+)\s*\]')
 # One case label + (optional body) until the next case/default/close-brace.
 CASE_LABEL = re.compile(r'case\s+(?P<quote>[\'"])(?P<name>[^\'"]+)(?P=quote)', re.M)
 # The body we want is the line(s) after the label until the next case/default/}.
-CASE_BODY = re.compile(r'case\s+(?:[\'"][^\'"]+[\'"])\s*:\s*(?P<body>.*?)(?=case\s|default\s|\n\})', re.S)
 METHOD_CALL = re.compile(r'\b(?P<receiver>r|runner|app|cmd|s|self|cli|h|router|mux)\.(?P<method>[A-Za-z_]\w*)\s*\(')
 
 
@@ -45,7 +44,7 @@ def detect(context):
             if not name or name in seen: continue
             seen.add(name)
             # The body of this case starts just after the colon.
-            tail = body[case.end():body.find('\n}', case.start()) + 1 if False else len(body)]
+            tail = body[case.end():len(body)]
             method_match = METHOD_CALL.search(tail)
             handler = method_match.group('method').lower() if method_match and method_match.group('method').lower() == name else name
             # Prefer the receiver method when its lower-case name matches the case.

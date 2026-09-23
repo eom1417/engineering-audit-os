@@ -4,7 +4,7 @@ import json
 import shutil
 R=Path(__file__).resolve().parents[1]
 def render():
-    registry=json.loads((R/'controls.json').read_text());sources=json.loads((R/'sources.json').read_text())
+    registry=json.loads((R/'controls.json').read_text())
     taxonomy=['# Taxonomy','', '| ID | Domain | Applies when | Controls |','|---|---|---|---|']
     outputs=[]
     for m in registry['modules']:

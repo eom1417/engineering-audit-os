@@ -4,7 +4,6 @@ A tool that reports several hundred pre-existing findings and fails the first pu
 switched off, and then it reports nothing at all. A pinned baseline separates the debt that was
 already there from the debt this change created; only the second can fail a build.
 """
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 

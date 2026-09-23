@@ -454,12 +454,6 @@ def _engine_cluster_measurement(kind, cluster, fact_sets):
     return unmeasured
 
 
-def _impact_for_engine_cluster(kind, cluster, fact_sets):
-    """Return the Arabic impact scenario for a corroborated engine-cluster claim."""
-    key, params = _engine_cluster_measurement(kind, cluster, fact_sets)
-    return IMPACTS['ar'][key].format(**params)
-
-
 ENGINE_KIND_WORDS = {'complexity': 'تعقيد', 'coupling': 'ترابط', 'cycle': 'دورة اعتماد',
                      'duplication': 'تكرار بنيوي', 'literal_duplication': 'تكرار حرفي',
                      'dead_code': 'كود ميت', 'dataflow': 'تدفق بيانات', 'surface': 'سطح عام',

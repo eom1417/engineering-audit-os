@@ -7,14 +7,6 @@ import unittest
 from eaos import audit_records, cli, discovery, workflow
 
 
-def roadmap_seed(run):
-    """What `eaos roadmap --seed` used to return: the seeded roadmap's readiness, or 2 on refusal."""
-    try:
-        return 0 if workflow.seed_roadmap(run)['ready'] else 2
-    except ValueError:
-        return 2
-
-
 def roadmap_exit(run):
     """What `eaos roadmap` used to return: 0 when ready, 2 when not ready or refused."""
     try:
@@ -124,13 +116,6 @@ class WorkflowTests(unittest.TestCase):
     def test_missing_finding_disposition_prevents_ready(self):
         self.complete();self.add_finding()
         self.assertEqual(workflow.status(self.run)['stage'],'DESIGN_PLAN')
-
-    def test_seed_is_draft_and_preserves_existing_plan(self):
-        self.complete();self.add_finding()
-        self.assertEqual(roadmap_seed(self.run),2)
-        doc=(self.run/'roadmap.json').read_bytes()
-        self.assertEqual(roadmap_seed(self.run),2)
-        self.assertEqual(doc,(self.run/'roadmap.json').read_bytes())
 
     def test_task_dependency_cycle_rejected(self):
         self.prepare_plan();doc=cli.read(self.run/'roadmap.json')

@@ -137,7 +137,6 @@ def integrations(out, language='ar'):
 # A document that grows with the project outgrows its budget on a real one.
 SHOWN_PER_FRAMEWORK = 25
 
-OWNED = ('DATA-MODEL.md', 'DEPLOYMENT.md', 'OBSERVABILITY.md', 'SECURITY-SURFACE.md', 'INTEGRATIONS.md')
 
 
 def write_all(out, language='ar'):

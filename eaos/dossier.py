@@ -14,7 +14,6 @@ from .map import ARTIFACTS, generate
 from .workspace import read, write
 
 MARKER = {'CONFIRMED': '⬤', 'LIKELY': '◐', 'HYPOTHESIS': '○', 'REFUTED': '⊘'}
-ORIGIN_RANK = {'source': 0, 'test_and_source': 1, 'unknown': 2, 'test': 3}
 
 
 def shorten(text, limit):
@@ -304,7 +303,6 @@ def onboarding_document(target, dossier, sets, verification, language):
                      f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"]
                     for fact in domain], limit=20)
     document.section('مصائد معروفة' if language == 'ar' else 'Known traps')
-    entry_summary = sets['entrypoints']['summary']
     document.bullets([
         f"{sum(1 for fact in sets['entrypoints']['facts'] if fact['resolution'] == 'UNRESOLVED')} نقطة دخول تُسجَّل ديناميكيًا ولا يمكن تتبعها ساكنًا"
         if language == 'ar' else
@@ -355,7 +353,7 @@ def index_document(target, dossier, sets, verification, language):
     document.section('إعادة الإنتاج' if language == 'ar' else 'Reproduce')
     document.bullets([f'eaos audit {target} --out <dir> --engines',
                       f'eaos audit {target} --out <dir> --resume',
-                      f'eaos impact-of <path> --out <dir>'])
+                      'eaos impact-of <path> --out <dir>'])
     return document
 
 
@@ -377,7 +375,6 @@ def inventory_rows(language):
 
 
 def risk_register(dossier, language):
-    words = Document('', language).words
     document = Document('سجل المخاطر' if language == 'ar' else 'Risk register', language, budget_lines=200)
     from .ranking import WEIGHTS
     document.header([WEIGHTS['formula'],

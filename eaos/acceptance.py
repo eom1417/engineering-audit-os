@@ -3,7 +3,6 @@
 This is a process runner, not a sandbox. Stored commands never authorize themselves.
 """
 import hashlib
-import json
 from pathlib import Path
 import subprocess
 import tempfile

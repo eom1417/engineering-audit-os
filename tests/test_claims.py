@@ -134,51 +134,52 @@ class EngineClusterImpactTests(unittest.TestCase):
     def _cluster(self, facts):
         return {'place': 'a.py', 'fact_ids': [f['id'] for f in facts]}
 
+    def _scenario(self, kind, cluster, fact_sets):
+        # What the claim records as its scenario: the Arabic template filled with the measurement.
+        from eaos.claims import _engine_cluster_measurement
+        from eaos.compose.labels import IMPACTS
+        key, params = _engine_cluster_measurement(kind, cluster, fact_sets)
+        return IMPACTS['ar'][key].format(**params)
+
     def test_complexity_cites_value_and_threshold_when_present(self):
-        from eaos.claims import _impact_for_engine_cluster
         fact = self._fact('complexity', {'measurements': [{'name': 'cyclomatic_complexity',
                                                           'value': 27, 'threshold': 15}]})
-        scenario = _impact_for_engine_cluster('complexity', self._cluster([fact]),
+        scenario = self._scenario('complexity', self._cluster([fact]),
                                               {'external': {'facts': [fact]}})
         self.assertIn('27', scenario)
         self.assertIn('العتبة', scenario)
         self.assertIn('15', scenario)
 
     def test_literal_duplication_cites_site_count(self):
-        from eaos.claims import _impact_for_engine_cluster
         fact = self._fact('literal_duplication', {'sites': [{'path': 'a.py'}, {'path': 'b.py'}]})
-        scenario = _impact_for_engine_cluster('literal_duplication', self._cluster([fact]),
+        scenario = self._scenario('literal_duplication', self._cluster([fact]),
                                               {'external': {'facts': [fact]}})
         self.assertIn('2', scenario)
         self.assertIn('مواضع', scenario)
 
     def test_coupling_cites_party_count(self):
-        from eaos.claims import _impact_for_engine_cluster
         fact = self._fact('coupling', {'message': 'fan-in 14, fan-out 10'})
-        scenario = _impact_for_engine_cluster('coupling', self._cluster([fact]),
+        scenario = self._scenario('coupling', self._cluster([fact]),
                                               {'external': {'facts': [fact]}})
         self.assertIn('14', scenario)
         self.assertIn('10', scenario)
 
     def test_dead_code_names_the_symbol(self):
-        from eaos.claims import _impact_for_engine_cluster
         fact = self._fact('dead_code', {'message': 'Dead code candidate: function eaos/foo.bar'},
                           symbol='eaos/foo.bar')
-        scenario = _impact_for_engine_cluster('dead_code', self._cluster([fact]),
+        scenario = self._scenario('dead_code', self._cluster([fact]),
                                               {'external': {'facts': [fact]}})
         self.assertIn('eaos/foo.bar', scenario)
 
     def test_missing_measurement_says_so_instead_of_inventing_one(self):
-        from eaos.claims import _impact_for_engine_cluster
         fact = self._fact('complexity', {})  # no measurements, no sites, no message
-        scenario = _impact_for_engine_cluster('complexity', self._cluster([fact]),
+        scenario = self._scenario('complexity', self._cluster([fact]),
                                               {'external': {'facts': [fact]}})
         self.assertIn('لم يبلّغ', scenario)
         self.assertNotIn('العتبة', scenario)
 
     def test_missing_fact_set_returns_generic_with_reason(self):
-        from eaos.claims import _impact_for_engine_cluster
-        scenario = _impact_for_engine_cluster('complexity', self._cluster([]), {})
+        scenario = self._scenario('complexity', self._cluster([]), {})
         self.assertIn('لم يبلّغ', scenario)
 
     def test_the_rendered_impact_carries_the_measurement_in_both_languages(self):

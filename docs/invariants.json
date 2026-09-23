@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "1af38cf",
+  "extracted_at_commit": "879b562",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -441,24 +441,6 @@
       "statement": "Other languages use tree-sitter when the optional extra is installed; without it they are reported as unparsed rather than guessed at, and a file we cannot parse stays visible in the denominator.",
       "kind": "invariant",
       "enforced_by": "tests/test_facts_syntax.py::SyntaxFactTests::test_parser_absence_is_declared_rather_than_approximated",
-      "note": ""
-    },
-    {
-      "id": "INV-c73970a551",
-      "file": "eaos/identity.py",
-      "symbol": "migrate",
-      "statement": "It is never inferred from how alike two statements look.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_identity_migration.py::LookAlikeTests::test_similarity_never_appears_as_a_match_reason",
-      "note": ""
-    },
-    {
-      "id": "INV-794f9e8c41",
-      "file": "eaos/identity.py",
-      "symbol": "similarity",
-      "statement": "Reported for a human to judge, never used to match.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_identity_migration.py::LookAlikeTests::test_similar_wording_is_reported_and_never_merged",
       "note": ""
     },
     {

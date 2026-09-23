@@ -6,8 +6,8 @@ from pathlib import Path
 import sys
 from . import __version__
 from . import architecture as arch
-from . import discovery, workflow
-from .workspace import DATA, bounded_int, now, digest, read, write, registry, controls, inventory, load_run, fresh, safe_file, run_lock
+from . import workflow
+from .workspace import bounded_int, now, digest, read, write, registry, inventory, load_run, fresh, safe_file, run_lock
 from .audit_records import check, schema_errors
 
 def init(args):
@@ -132,7 +132,7 @@ def improve_command(args):
 
 
 def facts_command(args):
-    from .facts.run import collect, ORDER as ALL_SETS
+    from .facts.run import collect
     selected=[name for name,flag in [('history',args.history)] if flag] or None
     print(json.dumps(collect(args.target,args.out,selected,args.max_commits,exclude=args.exclude,
                              engines=args.engines),ensure_ascii=False,indent=2))
@@ -353,7 +353,7 @@ def review_command(args):
 
 
 def target_architecture_command(args):
-    from .facts.run import collect
+    from .facts.run import ORDER as ALL_SETS
     from .target_architecture import build as build_target, render as render_target
     out = Path(args.out).resolve()
     collect_path(args.target, out, args, ALL_SETS)
@@ -367,7 +367,7 @@ def target_architecture_command(args):
 
 
 def executive_command(args):
-    from .facts.run import collect
+    from .facts.run import ORDER as ALL_SETS
     from .executive import render
     out = Path(args.out).resolve()
     collect_path(args.target, out, args, ALL_SETS)
@@ -377,7 +377,7 @@ def executive_command(args):
 
 
 def bundles_command(args):
-    from .facts.run import collect
+    from .facts.run import ORDER as ALL_SETS
     from .bundles import build
     out = Path(args.out).resolve()
     collect_path(args.target, out, args, ALL_SETS)

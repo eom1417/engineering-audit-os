@@ -83,8 +83,6 @@ TEMPLATES = {
         'load_blocker': '{where}: {statement} — عائق حمل ({kind})',
     },
     'en': {
-        'load_blocker': 'Cost at this entry point grows with traffic or with data; what works today may not at scale.',
-        'engine_cluster': 'Evidence from more than one engine about one place: a review candidate, not a verdict.',
         'cycle': 'Import cycle between: {members}',
         'cochange': '{left} and {right} change together in {support} commits with no visible code dependency',
         'duplicated_rule': '{name} is defined in {count} places ({places})',

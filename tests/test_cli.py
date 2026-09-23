@@ -179,3 +179,19 @@ class CommandSurfaceTests(unittest.TestCase):
         for artifact in ARTIFACTS:
             self.assertNotIn(artifact.name, owners)
             owners[artifact.name] = artifact.owner
+
+
+class StandaloneCommandTests(unittest.TestCase):
+    """Commands that `eaos audit` bypasses must still run on their own.
+
+    target-architecture, executive and bundles raised NameError for as long as nobody called them
+    directly: the pipeline reaches their logic without passing through these functions.
+    """
+
+    def test_each_standalone_stage_command_completes(self):
+        fixture = Path(__file__).resolve().parent / 'fixtures/benchmarks/hotspot'
+        for command in ('target-architecture', 'executive', 'bundles', 'sustainability', 'transform-plan'):
+            with self.subTest(command=command), tempfile.TemporaryDirectory() as tmp:
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    code = cli.main([command, str(fixture), '--out', tmp])
+                self.assertEqual(code, 0, command)

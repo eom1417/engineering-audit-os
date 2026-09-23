@@ -1,9 +1,8 @@
 """Audit-record consistency and completion gates, separate from CLI dispatch."""
 from pathlib import Path
-import re
 from .workspace import read, load_run, registry, controls, DATA, fresh, safe_file, digest
 from . import architecture as arch
-from .vocabulary import SUPPORTED_KEYWORDS, schema_errors
+from .vocabulary import schema_errors
 
 GATE_STATES = {'pass','fail','blocked','not_run','not_applicable'}
 COVER_STATES = {'pass','fail','blocked','not_run','not_applicable'}

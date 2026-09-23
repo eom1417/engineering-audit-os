@@ -150,7 +150,6 @@ def _from_external_call_edges(target, codegraph_facts):
     Each input fact carries the caller's path and the callee's path (from the engine).
     The resolution is RESOLVED_BY_ENGINE: our resolver could not produce this edge on its own.
     """
-    import json
     from . import digest, make
     out = []
     inventory_sha = digest(target.read_bytes() if target.is_file() else b'')
@@ -174,7 +173,6 @@ def _from_external_call_edges(target, codegraph_facts):
 
 def _from_external_module_edges(target, codegraph_facts):
     """Convert codegraph's module_edge_external facts into our import_edge facts."""
-    import json
     from . import digest, make
     out = []
     inventory_sha = digest(target.read_bytes() if target.is_file() else b'')

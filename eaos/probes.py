@@ -6,7 +6,6 @@ that fails turns its claim into REFUTED instead of quietly disappearing.
 from datetime import datetime, timezone
 from pathlib import Path
 import re
-from .facts.source import Source
 from .workspace import read, write
 
 KINDS = ['absence_search', 'graph_query', 'execution', 'coverage', 'falsification']
@@ -203,32 +202,18 @@ def run_graph_query(specification, sets):
         if specification.get('direction') == 'one_way':
             return ('REFUTED', f"{specification['left']} imports {specification['right']}") if forward \
                 else ('CONFIRMED', f"no resolved import from {specification['left']} to {specification['right']}"
-                                   + (f" (the reverse edge exists and is allowed)" if backward else ''))
+                                   + (" (the reverse edge exists and is allowed)" if backward else ''))
         linked = forward or backward
         return ('REFUTED', 'a resolved import links them') if linked else ('CONFIRMED', 'no resolved import between them')
     return 'INCONCLUSIVE', 'unknown query'
-
-
-def run_absence_search(specification, source):
-    hits = []
-    for item in source.readable():
-        text = source.text(item['path'])
-        if text is None: continue
-        for pattern in specification['patterns']:
-            for match in re.finditer(pattern, text):
-                hits.append(f"{item['path']}:{text.count(chr(10), 0, match.start()) + 1}")
-                break
-    return hits
 
 
 def run_all(target, out, allow_execution=False):
     """Run every derived probe, update the ledger, and record what each probe decided."""
     out = Path(out)
     dossier = read(out / 'dossier.json')
-    from .facts.store import read_set
     from .facts.run import read_available
     sets = read_available(out)
-    source = Source(target)
     probes = derive(dossier['claims'], sets)
     by_claim = {claim['id']: claim for claim in dossier['claims']}
     counts = {'CONFIRMED': 0, 'REFUTED': 0, 'PARTIAL': 0, 'INCONCLUSIVE': 0, 'blocked': 0}
@@ -252,7 +237,6 @@ def run_all(target, out, allow_execution=False):
         else:
             status, detail = 'INCONCLUSIVE', 'no runner for this probe type'
         row['status'], row['result'], row['ran_at'] = status, detail, now()
-        original_status = status
         row['searched'] = sorted(constant_sites(re.sub(r'^\\b|\\b$', '', row['specification']['patterns'][0]).replace('\\', ''), sets)) \
             if row['probe_type'] == 'absence_search' else None
         claim = by_claim.get(row['claim_id'])

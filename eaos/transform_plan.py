@@ -8,7 +8,6 @@ plan stage by stage; nothing requires running the engine again.
 from pathlib import Path
 import json
 import sys
-from .facts import digest
 from .facts.store import read_set
 from .sustainability import compute, _transformations
 
@@ -190,8 +189,8 @@ def render(out, plan, language='ar'):
                   '> Each stage is a self-contained spec. The acceptance criterion is behavioral; '
                   'movements are simulated before execution. A stage with no viable canonical home stays open.', '']
     lines += ['## ' + ('ملخص' if ar else 'Summary'), '']
-    lines += [f"- " + ('عدد المراحل' if ar else 'stages') + f": {plan['summary']['stages']}"]
-    lines += [f"- " + ('حركات بلا موضع مرجحي' if ar else 'moves with no viable candidate')
+    lines += ["- " + ('عدد المراحل' if ar else 'stages') + f": {plan['summary']['stages']}"]
+    lines += ["- " + ('حركات بلا موضع مرجحي' if ar else 'moves with no viable candidate')
               + f": {plan['summary']['moves_with_no_viable_candidate']}"]
     header = lines
     blocks = []
@@ -199,11 +198,11 @@ def render(out, plan, language='ar'):
         lines = []
         lines += ['', '## ' + ('مرحلة' if ar else 'Stage') + f" {stage['stage']}: {stage['move']}"]
         if 'rule' in stage:
-            lines += [f"- " + ('القاعدة' if ar else 'rule') + f": {stage['rule'][:16]}"]
+            lines += ["- " + ('القاعدة' if ar else 'rule') + f": {stage['rule'][:16]}"]
         if 'redundancy_kind' in stage:
-            lines += [f"- " + ('نوع التكرار' if ar else 'redundancy kind') + f": {stage['redundancy_kind']}"]
+            lines += ["- " + ('نوع التكرار' if ar else 'redundancy kind') + f": {stage['redundancy_kind']}"]
         if stage.get('canonical_home') is not None:
-            lines += [f"- " + ('الموضع المرجعي' if ar else 'canonical home') + f": {stage['canonical_home']}"]
+            lines += ["- " + ('الموضع المرجعي' if ar else 'canonical home') + f": {stage['canonical_home']}"]
         lines += ["- " + ('المواضع' if ar else 'sites') + ":"]
         for site in stage['sites'][:20]:
             lines += [f"  - {site.get('path')}:{site.get('line') or site.get('start_line')} {site.get('symbol', '')}"]
@@ -215,9 +214,9 @@ def render(out, plan, language='ar'):
             for k, v in stage['acceptance'].items():
                 lines += [f"  - {k}: {v}"]
         if stage.get('rollback'):
-            lines += [f"- " + ('التراجع' if ar else 'rollback') + f": {stage['rollback']}"]
+            lines += ["- " + ('التراجع' if ar else 'rollback') + f": {stage['rollback']}"]
         if stage.get('falsifier'):
-            lines += [f"- " + ('ناقض' if ar else 'falsifier') + f": {stage['falsifier']}"]
+            lines += ["- " + ('ناقض' if ar else 'falsifier') + f": {stage['falsifier']}"]
         if stage.get('predicted'):
             lines += ["- " + ('التأثير المتوقع' if ar else 'predicted') + ":"]
             for k, v in stage['predicted'].items():

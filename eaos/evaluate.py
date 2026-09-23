@@ -14,7 +14,6 @@ from .compose import Document
 from .dossier import assemble
 from .facts.run import collect
 from .plan import build as build_plan
-from .policy import check as check_policy
 from .verify import run as verify_run
 from .workspace import write
 
@@ -43,7 +42,7 @@ def score(statements, truth):
         (detected if hit else missed).append({**item, 'matched_statement': hit})
     forbidden = [statement for statement in statements
                  if any(pattern.lower() in statement.lower() for pattern in truth.get('must_not_claim', []))]
-    true_positives, false_positives = len(detected), len(forbidden)
+    true_positives = len(detected)
     adjudications = truth.get('adjudications', {})
     judgments = [{'statement': statement, 'verdict': adjudications.get(statement, 'not_adjudicated')} for statement in statements]
     correct = sum(row['verdict'] == 'correct' for row in judgments)
@@ -112,7 +111,6 @@ def evaluate_case(case, workspace, execute=True):
 
 
 def document(results, language):
-    words = Document('', language).words
     heading = 'تقييم مُقاس على حالات معروفة' if language == 'ar' else 'Measured evaluation on known cases'
     doc = Document(heading, language, budget_lines=120)
     totals = results['totals']
