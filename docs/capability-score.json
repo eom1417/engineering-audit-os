@@ -1,8 +1,8 @@
 {
   "contract_version": 1,
   "reports": [
-    "/tmp/n12self",
-    "/tmp/n12go"
+    "/tmp/selfr",
+    "/tmp/gor"
   ],
   "domains": {
     "layered_engineering": {
