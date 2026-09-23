@@ -6,3 +6,4 @@ dist/
 .venv/
 .eaos-runs/
 .cache/
+evaluations/review-pack/

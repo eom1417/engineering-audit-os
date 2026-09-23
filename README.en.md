@@ -178,7 +178,7 @@ Ordered by nearest impact. Each step moves a specific row of the table above:
 1. **A size for every task:** an effort estimate derived from blast radius and pattern (row 6: from 0% to 100%).
 2. **Ready repairs beyond policy:** today only one class reaches `remediate`, the declared-policy violation. Next come duplication, complexity and dead code (rows 7 and 8).
 3. **Milestones, not waves:** cards grouped under measurable goals (row 9).
-4. **An independent reviewer:** complete [`evaluations/review-pack/`](evaluations/review-pack/) (rows 10 and 11, and `independent_proof`).
+4. **An independent reviewer:** build the pack with `python tools/build_review_pack.py --out evaluations/review-pack` and hand it to someone outside the project to complete its form (rows 10 and 11, and `independent_proof`).
 5. **A model provider:** run the two remaining comparison arms, then execute one stage and measure it (rows 12 and 13).
 6. **A real corpus:** the 12 case kinds from [`QUALITY-AND-EVALUATION`](design/output-first/QUALITY-AND-EVALUATION.md), with a separate holdout (row 14), then depth for more languages (row 2).
 

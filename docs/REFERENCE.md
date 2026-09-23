@@ -124,6 +124,6 @@ See the [target output specification](../design/output-first/OUTPUT-SPEC.md) and
 **Status: pilot, not a release.** Measured on two real repositories with all four engines on, seven of nine capability domains are at target (overall 0.8537). The two that are not cannot be closed by any amount of further coding:
 
 - `transformation_plan` scores 1.0 on its three measurable indicators, and `predictions_verified` stays unmeasured because verifying a prediction needs a report taken *after* the change, and this engine never writes code.
-- `independent_proof` is 0.0 until somebody outside this project works through `evaluations/review-pack/` and returns the form.
+- `independent_proof` is 0.0 until somebody outside this project works through a pack built by `python tools/build_review_pack.py --out evaluations/review-pack` and returns the form.
 
 Live-model evaluation and independent usefulness judgement remain outstanding. `evaluations/release-evidence.json` records what the evidence does and does not support.

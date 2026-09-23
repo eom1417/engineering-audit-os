@@ -60,6 +60,15 @@ class ExecutionGuideTests(unittest.TestCase):
         transform = json.loads((out / 'transform-plan.json').read_text(encoding='utf-8'))
         run = json.loads((out / 'facts/run.json').read_text(encoding='utf-8'))
         target = Path(run['target'])
+        # The same check resume makes: cards describe the tree they were audited from, and a file
+        # deleted since then is a stale report, not a card that cannot be executed.
+        from eaos.workspace import inventory
+        manifest = json.loads((out / 'run-manifest.json').read_text(encoding='utf-8'))
+        stored = manifest.get('options', {})
+        current = inventory(target, max_files=stored.get('max_files', 100000),
+                            max_bytes=stored.get('max_bytes', 2_000_000))['fingerprint']
+        if current != manifest.get('source_fingerprint'):
+            self.skipTest('/tmp/eg was audited from a different tree; rerun eaos audit . --out /tmp/eg')
         order = {}
         for wave in plan['waves']:
             for position, task_id in enumerate(wave['tasks']):
