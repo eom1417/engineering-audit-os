@@ -1288,6 +1288,34 @@
       },
       "overall_at_this_point": 0.8537,
       "note": "policy violation card: kind=investigate → kind=remediate | decision=investigate → decision=repair/readiness=ready | acceptance: 'human review' → runnable inline python (eaos facts + eaos policy check) | 934 tests pass; gate clean; capability score 0.8537 unchanged"
+    },
+    {
+      "task": "N12.T3",
+      "title": "نتيجة المحرّك تُصنَّف إلى نمط علاج حقيقي",
+      "recorded_at": "2026-09-23T07:26:46+00:00",
+      "commit": "26c950a",
+      "acceptance_command": "eaos audit . --out /tmp/n12t3 --skip site --engines codegraph enola jscpd reforge && python3 -c \"import json,collections;d=json.load(open('/tmp/n12t3/dossier.json'));p=json.load(open('/tmp/n12t3/plan.json'));byid={c['id']:c for c in d['claims']};ec=[t for t in p['tasks'] if (byid.get(t['claim_id'],{}).get('render') or {}).get('key')=='engine_cluster'];assert ec, 'no engine cluster card';bad=[t['id'] for t in ec if t.get('pattern')=='generic'];assert not bad, bad;gen=[t for t in p['tasks'] if t.get('pattern')=='generic'];assert len(gen)/len(p['tasks'])<=0.1, (len(gen),len(p['tasks']))\"",
+      "acceptance_exit_code": 0,
+      "acceptance_passed": true,
+      "status_recorded_in_plan": "done",
+      "moves": {
+        "indicator": "n/a",
+        "from": null,
+        "to": null
+      },
+      "scores_at_this_point": {
+        "layered_engineering": 1.0,
+        "structure_python": 0.9732,
+        "structure_polyglot": 0.9228,
+        "runtime_surface": 0.8334,
+        "load_model": 0.9535,
+        "target_architecture": 1.0,
+        "transformation_plan": 1.0,
+        "report_clarity": 1.0,
+        "independent_proof": 0.0
+      },
+      "overall_at_this_point": 0.8537,
+      "note": "engine_cluster 96 بطاقة قبل: 96 generic | بعد: 66 hotspot + 12 hidden_coupling + 15 canonicalize + 3 dead_code = 0 generic | النسبة: 49.5% → 0% (194 بطاقة) | البوابة تمر · 944 اختبارًا"
     }
   ]
 }

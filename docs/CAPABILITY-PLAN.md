@@ -78,7 +78,7 @@ python -m unittest discover -s tests -q && python tools/validate.py && python to
 | N9 | الحكم المستقل | N8 | 1/2 | ⬜ |
 | N10 | إعادة القياس وقرار الإصدار | N2, N3, N4, N5, N6, N7, N8 | 1/2 | ⬜ |
 | N11 | إصلاح ما كشفته المراجعة البعدية | N3, N5, N6, N7 | 9/9 | ⬜ |
-| N12 | من الملاحظة إلى الوصفة | N11 | 2/5 | ⬜ |
+| N12 | من الملاحظة إلى الوصفة | N11 | 3/5 | ⬜ |
 
 ## N1 — أداة القياس وبوابة عدم التراجع
 
@@ -1412,7 +1412,7 @@ eaos audit tests/fixtures/benchmarks/policy-violation --out /tmp/n12t2 --skip si
 
 **التراجع:** git checkout eaos/claims.py && rm -f eaos/policy_assessment.py
 
-### N12.T3 — نتيجة المحرّك تُصنَّف إلى نمط علاج حقيقي ⬜
+### N12.T3 — نتيجة المحرّك تُصنَّف إلى نمط علاج حقيقي ✅
 
 **لماذا:** classify() لا تعرف engine_cluster_present، فتسقط 96 بطاقة من 240 إلى النمط generic الذي لا يحمل علاجًا ولا كلفة تقاعس.
 

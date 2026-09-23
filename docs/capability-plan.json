@@ -1534,7 +1534,7 @@
           "rollback": "git checkout eaos/remediation_patterns.py",
           "depends_on": [],
           "references": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "N12.T4",

@@ -7,6 +7,16 @@ must be designed by hand, and still requires a runnable acceptance criterion.
 DO_NOTHING = {'option': 'لا نفعل شيئًا', 'option_en': 'Do nothing',
               'cost': 'صفر الآن', 'cost_en': 'zero now'}
 
+# Each engine-cluster kind maps to the remediation pattern that already exists for its
+# single-engine counterpart. Unknown kinds stay generic; the reason is recorded on the returned
+# pattern by pattern_for so the fall-through is not silent.
+_ENGINE_CLUSTER_KINDS = {
+    'complexity': 'hotspot',
+    'coupling': 'hidden_coupling',
+    'literal_duplication': 'canonicalize',
+    'dead_code': 'dead_code',
+}
+
 
 def classify(claim):
     """Map a claim to a remediation pattern using how it was proven, not how it was worded."""
@@ -24,6 +34,8 @@ def classify(claim):
     if query == 'sequence_cluster_present': return 'canonicalize'
     if query == 'redundancy_present': return 'redundant_work'
     if query == 'load_blocker_present': return 'load_blocker'
+    if query == 'engine_cluster_present':
+        return _ENGINE_CLUSTER_KINDS.get(specification.get('kind'), 'generic')
     if probe_type == 'absence_search': return 'duplicated_rule'
     if claim.get('claim_type') == 'risk' and 'never executed' in claim['statement']: return 'untested_path'
     if claim.get('claim_type') == 'capability_gap': return 'trace_gap'
@@ -148,6 +160,15 @@ PATTERNS = {
         ],
         'rollback': 'تغيير محصور داخل الدالة؛ الإرجاع بـrevert واحد.',
     },
+    'dead_code': {
+        'change': 'احذف المسار أو أضف اختبارًا ينفّـذه: الكود الميت غير ضارّـر بذاته، والخطر في تركه لا في حذفه· حذف دون ثبوت يضرب الاختبار الموجودة، وإبقاؤه يجمّـد التغييرات التي تلمس عبثًا.',
+        'options': [
+            {'option': 'حذف بعد ثبوت عدم الوصول من أي نقطة دخول', 'cost': 'منخفضة', 'verdict': 'مختار افتراضيًا، لكن فقط بعد دليل'},
+            {'option': 'اختبار موجود ينفّـذ المسار فعلًا', 'cost': 'متوسطة', 'verdict': 'مفضّل حين يكون المسار ملتقطًا بالتغييرات القادمة'},
+            {'option': 'قبول موثّـق بمالك وتاريخ إن ثبت أنّـه تجريبي', 'cost': 'صفر', 'verdict': 'للمسارات التجريبية أو المؤقتة'},
+        ],
+        'rollback': 'الحذف يُسترد بـrevert، وإضافة اختبار لا تحتاج تراجعًا.',
+    },
     'generic': {
         'change': '⧗ لا نمط معالجة معروف لهذه الفئة: صمّم التغيير يدويًا، واذكر البديل «لا نفعل شيئًا» صراحة قبل الاعتماد.',
         'options': [{'option': 'تصميم يدوي بعد قراءة الدليل', 'cost': 'غير محددة', 'verdict': 'مطلوب'}],
@@ -161,7 +182,20 @@ def pattern_for(claim):
     pattern = dict(PATTERNS[name])
     pattern['name'] = name
     pattern['options'] = [*pattern['options'], dict(DO_NOTHING, verdict=cost_of_inaction(name))]
+    if name == 'generic':
+        reason = _generic_fallback_reason(claim)
+        if reason:
+            pattern['fallback_reason'] = reason
     return pattern
+
+
+def _generic_fallback_reason(claim):
+    specification = (claim.get('probe_spec') or {}).get('specification') or {}
+    query = specification.get('query')
+    if query == 'engine_cluster_present':
+        kind = specification.get('kind')
+        return 'unknown engine-cluster kind: ' + repr(kind) + ' (' + ('absent' if not kind else 'no pattern mapped') + ')'
+    return ''
 
 
 def cost_of_inaction(name):
@@ -178,5 +212,6 @@ def cost_of_inaction(name):
         'canonicalize': 'يبقى المعنى الواحد مكتوبًا في مواضع متعددة، وأول تعديل يجعلها تختلف',
         'redundant_work': 'يبقى المسار ينفّذ عملًا لا تحتاجه نتيجته في كل تنفيذ',
         'load_blocker': 'تبقى الكلفة تنمو مع الحركة أو البيانات، فتظهر المشكلة عند حمل لا يمكن اختباره بعد وقوعه',
+        'dead_code': 'يبقى الكود الميت فـّـتـحـور للقراءة ويصّـعِّب تغييراتٌ لا تعرف أنّـه وجودها، وقد يُعاد تفعيلها بغير تحذير',
         'generic': '⧗ غير محددة',
     }[name]
