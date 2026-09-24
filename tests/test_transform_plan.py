@@ -110,3 +110,27 @@ class TransformPlanLimitationsTests(unittest.TestCase):
     def test_plan_does_not_run_changes(self):
         self.assertIn('proposal, not an executed edit',
                       ' '.join(transform_plan.LIMITATIONS))
+
+
+class TransformPlanBudgetTests(unittest.TestCase):
+    """The document fits its declared budget however large the stages are; the record keeps the rest."""
+
+    def _stage(self, number, sites):
+        return {'stage': number, 'move': 'canonicalize', 'rule': 'r' * 16, 'canonical_home': 'core/ports.py',
+                'sites': [{'path': 'core/ports.py', 'line': line, 'symbol': f's{line}'} for line in range(sites)],
+                'steps': ['Place the canonical definition.', 'Replace every duplicate.', 'Run the equivalence tests.'],
+                'acceptance': {key: 'value' for key in ('id', 'kind', 'invariant', 'expected', 'argv', 'cwd', 'expected_exit')},
+                'rollback': 'revert', 'falsifier': 'a site that differs', 'predicted': {'single_source': 0.1}}
+
+    def test_every_stage_size_stays_inside_the_budget(self):
+        # The stop point depends on stage size; one size lands the last stage right under the limit,
+        # which is where a tail that was not reserved in full pushed the document over (206 > 200).
+        for sites in range(1, 21):
+            plan = {'stages': [self._stage(n, sites) for n in range(1, 59)],
+                    'summary': {'stages': 58, 'moves_with_no_viable_candidate': 0}}
+            for language in ('ar', 'en'):
+                with self.subTest(sites=sites, language=language), tempfile.TemporaryDirectory() as tmp:
+                    transform_plan.render(tmp, plan, language=language)
+                    text = (Path(tmp) / 'transform-plan.md').read_text(encoding='utf-8')
+                    self.assertLessEqual(len(text.splitlines()), transform_plan._budget())
+                    self.assertIn('58', text)

@@ -281,7 +281,7 @@ def onboarding_document(target, dossier, sets, verification, language):
                           f"no command has been executed in this run (eaos verify --execute)"])
     document.section('نقاط الدخول لتجربتها' if language == 'ar' else 'Entry points to try')
     production = [fact for fact in sets.get('entrypoints', {}).get('facts', [])
-                  if fact['value'].get('category') != 'test' and fact['value']['surface'] in {'http', 'cli', 'job'}
+                  if fact['value'].get('category') != 'test' and fact['value']['surface'] in {'http', 'page', 'cli', 'job'}
                   and fact['value']['route'] and fact['value']['handler']]
     document.table([words['surface'], words['route'], words['handler'], words['location']],
                    [[fact['value']['surface'], fact['value']['route'] or '—', fact['value']['handler'] or '—',

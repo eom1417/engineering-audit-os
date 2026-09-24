@@ -22,6 +22,11 @@ def facts(context):
                                max_files=context.max_files, max_bytes=context.max_bytes)
     context['collected'] = collect(context.target, context.out, None, source=context['source'],
                                    exclude=context['exclude'])
+    # A tree with no source file to read is not an audited project, whatever its history says:
+    # an empty checkout used to be reported COMPLETE, with claims drawn from git history alone.
+    from ..vocabulary import classify
+    if not any(classify(item['path']) == 'source' for item in context['source'].readable()):
+        raise SkipStage('the target holds no source file this tool reads, so no project was audited')
     return {'facts': context['collected']['facts'], 'sets': len(context['collected']['sets']),
             'exclude': context['exclude']}
 

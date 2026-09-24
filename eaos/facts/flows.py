@@ -167,7 +167,7 @@ def run(target, source, symbols=None, calls=None, edges=None, entry_points=None,
         if fact['kind'] == 'env_read': env_by_file[fact['location']['path']].add(fact['value']['name'])
     external_names = external_name_index(imports, edges)
     facts = []
-    order = {'http': 0, 'job': 1, 'queue': 2, 'cli': 3, 'container': 4, 'library': 5}
+    order = {'http': 0, 'page': 0, 'job': 1, 'queue': 2, 'cli': 3, 'container': 4, 'library': 5}
     # Routes declared inside a test suite are fixtures for the tests, not the product's own surface.
     ranked = sorted([f for f in entry_points or [] if f['value'].get('handler') and f['value'].get('category') != 'test'],
                     key=lambda f: (order.get(f['value']['surface'], 9), str(f['value']['route']), f['location']['path']))

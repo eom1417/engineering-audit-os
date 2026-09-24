@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-24",
-  "measured_at_commit": "12d1fb7",
+  "measured_at_commit": "3247ad9",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -32,8 +32,8 @@
       "commit": "e0e257609658e5110023d5b81650ef2d17c4cb59",
       "stack": "React + Vite + TypeScript (Lovable)",
       "truth": {
-        "user_surfaces": 46,
-        "user_surfaces_how": "grep -rho '<Route[^>]*path=' src | wc -l",
+        "user_surfaces": 43,
+        "user_surfaces_how": "grep -rho '<Route[^>]*path=\"[^\"]*\"' src | grep -o 'path=\"[^\"]*\"' | sort -u | wc -l  (distinct paths; 46 declarations, three paths declared twice)",
         "tables": 0,
         "policies": 0,
         "leftovers": [
@@ -200,8 +200,8 @@
           "name": "تدقيقات العيّنة المكتملة بلا فشل",
           "definition": "عدد مشاريع العيّنة التي ينتهي فيها eaos audit برمز خروج 0 ÷ عدد مشاريع العيّنة",
           "target": 1.0,
-          "value": 0.667,
-          "evidence": "exit codes: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 2",
+          "value": 1.0,
+          "evidence": "exit codes: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0",
           "reads": "exit code of `eaos audit` on each corpus project",
           "measured": "automated"
         },
@@ -210,8 +210,8 @@
           "name": "الأطر المفهومة",
           "definition": "مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع",
           "target": 1.0,
-          "value": 0.333,
-          "evidence": "user surfaces found: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 3",
+          "value": 1.0,
+          "evidence": "user surfaces found: FleetManageWeb 43 · finance-os-a0192b7b 29 · RendaPerene 3",
           "reads": "facts/entrypoints.json: facts of kind `entry_point` whose value.framework is not npm_script or public_api",
           "measured": "automated"
         }
@@ -238,8 +238,8 @@
           "name": "أسطح المستخدم المكتشفة",
           "definition": "متوسط (الأسطح المكتشفة ÷ الأسطح الحقيقية في truth.user_surfaces) لكل مشروع",
           "target": 0.9,
-          "value": 0.333,
-          "evidence": "found/true surfaces: FleetManageWeb 0/46 · finance-os-a0192b7b 0/29 · RendaPerene 3/3",
+          "value": 1.0,
+          "evidence": "found/true surfaces: FleetManageWeb 43/43 · finance-os-a0192b7b 29/29 · RendaPerene 3/3",
           "reads": "facts/entrypoints.json: distinct (surface, route, path) of `entry_point` facts, framework not npm_script/public_api, compared with truth.user_surfaces",
           "measured": "automated"
         },
@@ -268,8 +268,8 @@
           "name": "المداخل والمخارج والحدود",
           "definition": "متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع",
           "target": 0.8,
-          "value": 0.25,
-          "evidence": "answered load questions: FleetManageWeb 0/40 · finance-os-a0192b7b 0/336 · RendaPerene 18/24",
+          "value": 0.562,
+          "evidence": "answered load questions: FleetManageWeb 270/408 · finance-os-a0192b7b 156/568 · RendaPerene 18/24",
           "reads": "load-model.json → entry_points[].answers[].status == \"answered\"",
           "measured": "automated"
         }
@@ -286,8 +286,8 @@
           "name": "الادعاءات غير الضجيجية",
           "definition": "متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع",
           "target": 0.8,
-          "value": 0.261,
-          "evidence": "claims that are not structural clones: FleetManageWeb 20/357 · finance-os-a0192b7b 98/373 · RendaPerene 47/101",
+          "value": 0.339,
+          "evidence": "claims that are not structural clones: FleetManageWeb 83/420 · finance-os-a0192b7b 151/426 · RendaPerene 47/101",
           "reads": "dossier.json → claims[].statement not containing \"share the same structure up to identifier names\"",
           "measured": "automated"
         },
@@ -448,8 +448,8 @@
           "name": "مؤشرات الاستدامة المقيسة",
           "definition": "متوسط (مؤشرات الاستدامة الستة ذات القيمة ÷ 6) لكل مشروع",
           "target": 1.0,
-          "value": 0.778,
-          "evidence": "sustainability indicators with a value: FleetManageWeb 4/6 · finance-os-a0192b7b 4/6 · RendaPerene 6/6",
+          "value": 0.889,
+          "evidence": "sustainability indicators with a value: FleetManageWeb 5/6 · finance-os-a0192b7b 5/6 · RendaPerene 6/6",
           "reads": "sustainability.json → indicators[].value not null",
           "measured": "automated"
         }
@@ -467,7 +467,7 @@
           "definition": "بطاقات effort معروف ÷ كل البطاقات في العيّنة",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "cards with a known effort: 0/777",
+          "evidence": "cards with a known effort: 0/893",
           "reads": "plan.json → tasks[].effort not \"unknown\"",
           "measured": "automated"
         },
@@ -477,7 +477,7 @@
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
           "value": 0.0,
-          "evidence": "ready remediate cards: 0/777",
+          "evidence": "ready remediate cards: 0/893",
           "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
           "measured": "automated"
         },
@@ -487,7 +487,7 @@
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "cards with a runnable acceptance command: 0/777",
+          "evidence": "cards with a runnable acceptance command: 0/893",
           "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
           "measured": "automated"
         },
@@ -507,7 +507,7 @@
           "definition": "بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with options, do-nothing and rollback: 777/777",
+          "evidence": "cards with options, do-nothing and rollback: 893/893",
           "reads": "plan.json → tasks[].options (≥ 2, one \"Do nothing\") and rollback",
           "measured": "automated"
         },
@@ -755,7 +755,29 @@
           ],
           "acceptance": "python tools/north_star.py measure --only R1 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
+        },
+        {
+          "id": "NS2.T2",
+          "title": "شجرة بلا ملف مصدر ليست تدقيقًا مكتملًا",
+          "moves": [
+            "R1"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS1.T2"
+          ],
+          "files": [
+            "eaos/pipeline/runners.py",
+            "tests/test_completion_regressions.py"
+          ],
+          "steps": [
+            "وُجد أثناء بناء القياس: استنساخ بلا checkout ترك .git وحده، فأعلن التدقيق COMPLETE بخروج 0 وثمانية ادعاءات من سجل git.",
+            "مرحلة facts ترفع SkipStage حين لا تجد ملف مصدر مقروءًا، فيصير التدقيق INCOMPLETE والسبب مكتوب."
+          ],
+          "acceptance": "python -m unittest tests.test_completion_regressions -q",
+          "rollback": "revert الالتزام.",
+          "status": "done"
         }
       ]
     },
@@ -776,8 +798,11 @@
             "NS1.T2"
           ],
           "files": [
-            "eaos/facts/frameworks/js_web.py",
-            "tests/test_entrypoints.py"
+            "eaos/facts/frameworks/js_routes.py",
+            "eaos/facts/frameworks/__init__.py",
+            "eaos/dossier.py",
+            "eaos/facts/flows.py",
+            "tests/test_js_routes.py"
           ],
           "steps": [
             "اكتشف مسارات React Router (<Route path>، createBrowserRouter) و TanStack Router (src/routes) و Next.js (app/ و pages/) كأسطح مستخدم.",
@@ -785,7 +810,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only U2 --min 0.9",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS3.T2",

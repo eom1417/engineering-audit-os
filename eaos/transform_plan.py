@@ -224,10 +224,13 @@ def render(out, plan, language='ar'):
         blocks.append(lines)
     # A stage is shown whole or not at all: half a stage is a step list with no acceptance under
     # it. A fixed count of stages cannot hold a budget, because one stage may print twenty sites.
+    # The tail is built first, so the stages fill exactly what it leaves.
+    limits = ['', '## ' + ('الحدود' if ar else 'Limits'), ''] + [f"- {line}" for line in LIMITATIONS]
+    note = 2
     lines = header
     shown = 0
     for block in blocks:
-        if len(lines) + len(block) > _budget() - 4: break
+        if len(lines) + len(block) + note + len(limits) > _budget(): break
         lines += block
         shown += 1
     if shown < len(plan['stages']):
@@ -235,8 +238,7 @@ def render(out, plan, language='ar'):
                        if ar else
                        f"Showing {shown} of {len(plan['stages'])} stages; the rest are in "
                        f"`transform-plan.json`.")]
-    lines += ['', '## ' + ('الحدود' if ar else 'Limits'), '']
-    for line in LIMITATIONS: lines += [f"- {line}"]
+    lines += limits
     Path(out, 'transform-plan.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
     return {'json': str(Path(out, 'transform-plan.json')),
             'markdown': str(Path(out, 'transform-plan.md'))}

@@ -22,6 +22,17 @@ class CompletionRegressions(unittest.TestCase):
                          'TARGET-ARCHITECTURE.md', 'EXECUTIVE.md', 'bundles/manifest.json']:
                 self.assertTrue((Path(tmp) / name).is_file(), name)
 
+    def test_a_tree_with_no_source_file_is_not_complete(self):
+        # Found measuring the corpus: a clone left without a checkout held only .git, and the audit
+        # reported COMPLETE with exit 0 and eight claims drawn from history.
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / 'empty'
+            target.mkdir()
+            (target / 'README.md').write_text('# nothing to audit\n')
+            result = execute(target, Path(tmp) / 'out')
+            self.assertEqual(result['status'], 'INCOMPLETE')
+            self.assertIn('no source file', json.dumps(result['stages']['facts']))
+
     def test_required_unavailable_cannot_be_complete(self):
         def fail(context): raise SkipStage('facts unavailable')
         with tempfile.TemporaryDirectory() as tmp:
