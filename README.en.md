@@ -1,6 +1,6 @@
 # Engineering Audit OS
 
-**[العربية](README.md)** · version 3.0.0 · status: **Pilot** · distance covered to the destination: **39.2%** ([destination record](docs/NORTH-STAR.md), Arabic)
+**[العربية](README.md)** · version 3.0.0 · status: **Pilot** · distance covered to the destination: **34.0%** ([destination record](docs/NORTH-STAR.md), Arabic)
 
 > **A full engineering review team in one command.**
 > EAOS reads your project the way an architect, a code reviewer, a performance engineer and a tech lead would, together. It hands you an evidenced picture of where the project stands today, the professional shape it should reach, and an ordered task plan that any engineer or AI model can execute and prove done.
@@ -31,7 +31,7 @@ You built a program by vibe coding. It works, but you do not know how it is buil
 | 3 | **Gap and transformation** | The measured distance between the two, and the strategy that closes it |
 | 4 | **Execution plan** | Small tasks split into team sections, each with a size, an acceptance command and a rollback, executable by any developer or model |
 
-This is the only measure of the project's success. The full workflow, its nine stages, tools and gates, is in [`docs/MASTER-BLUEPRINT.md`](docs/MASTER-BLUEPRINT.md); the measurement, its indicators and plan, in [`docs/NORTH-STAR.md`](docs/NORTH-STAR.md) (both Arabic). Distance covered today: **39.2%**.
+This is the only measure of the project's success. The full workflow, its fifteen stages, tools and gates, is in [`docs/MASTER-BLUEPRINT.md`](docs/MASTER-BLUEPRINT.md); the measurement, its indicators and plan, in [`docs/NORTH-STAR.md`](docs/NORTH-STAR.md) (both Arabic). Distance covered today: **34.0%**.
 
 ## 👥 What it does in place of a review team
 
@@ -151,7 +151,7 @@ No command modifies the original project, publishes anything or merges anything.
 
 ## 📊 Where we stand
 
-> **The full destination record:** [`docs/NORTH-STAR.md`](docs/NORTH-STAR.md) (Arabic): 10 weighted capabilities and 44 indicators, measured on 3 real vibe-coded projects, and a 52-task transformation plan. Today: **39.2%**. The numbers below measure the tool's machinery on two repositories it was tuned on; the record measures the promise itself on its audience.
+> **The full destination record:** [`docs/NORTH-STAR.md`](docs/NORTH-STAR.md) (Arabic): 10 weighted capabilities and 54 indicators, measured on 3 real vibe-coded projects, and a 74-task transformation plan in 8 phases. Today: **34.0%**; the finish line is 93.3% (`python tools/north_star.py --finished`). The numbers below measure the tool's machinery on two repositories it was tuned on; the record measures the promise itself on its audience.
 
 This section is what makes the promises above accountable. Every promise has a measure, and every measure has today's number. **Where the system does not live up to a promise, the gap is written here as a number.**
 
