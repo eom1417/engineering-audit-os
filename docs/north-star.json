@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-24",
-  "measured_at_commit": "aed038b",
+  "measured_at_commit": "12a61d1",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -843,7 +843,7 @@
           ],
           "acceptance": "python -m unittest tests.test_supabase_access -q",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS3.T3",

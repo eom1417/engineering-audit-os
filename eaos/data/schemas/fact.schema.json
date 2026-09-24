@@ -60,7 +60,8 @@
         "data_relation",
         "migration_step",
         "move",
-        "stage"
+        "stage",
+        "data_access"
       ]
     },
     "extractor": {
