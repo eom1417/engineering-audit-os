@@ -27,6 +27,9 @@ class Artifact:
 
 
 ARTIFACTS = (
+    Artifact('features.json', 'features', RECORD, 'Each feature tied to the surfaces that expose it and the data it touches', 7, 200),
+    Artifact('FEATURES.md', 'features', DOCUMENT, 'What the program does for a user, named by the routes that deliver it', 7, 200,
+             record='features.json'),
     Artifact('README.md', 'claims', DOCUMENT, 'What this report holds and in what order to read it', 1, 120,
              record='dossier.json'),
     Artifact('RUN.md', 'validate', DOCUMENT, 'What this run examined, and what it could not', 2, 120,

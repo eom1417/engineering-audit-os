@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "42dc3c7",
+  "extracted_at_commit": "cedcdfa",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -441,6 +441,15 @@
       "statement": "Other languages use tree-sitter when the optional extra is installed; without it they are reported as unparsed rather than guessed at, and a file we cannot parse stays visible in the denominator.",
       "kind": "invariant",
       "enforced_by": "tests/test_facts_syntax.py::SyntaxFactTests::test_parser_absence_is_declared_rather_than_approximated",
+      "note": ""
+    },
+    {
+      "id": "INV-9c9942e90f",
+      "file": "eaos/features.py",
+      "symbol": "<module>",
+      "statement": "Surfaces that did not enter any feature are recorded in ``unassigned_surfaces``; they are never dropped silently.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_features.py::BuildTests::test_all_surfaces_appear_in_some_feature_or_in_unassigned",
       "note": ""
     },
     {

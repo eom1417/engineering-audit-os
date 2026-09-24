@@ -11,7 +11,8 @@
   },
   "layers": {
     "facts": [
-      "eaos/facts/**"
+      "eaos/facts/**",
+      "eaos/correlate.py"
     ],
     "compose": [
       "eaos/compose/**"
@@ -25,7 +26,6 @@
       "eaos/baseline.py",
       "eaos/capability.py",
       "eaos/claims.py",
-      "eaos/correlate.py",
       "eaos/decisions.py",
       "eaos/delta.py",
       "eaos/discover.py",
@@ -33,6 +33,7 @@
       "eaos/engines_report.py",
       "eaos/evaluation_protocol.py",
       "eaos/execution_guide.py",
+      "eaos/features.py",
       "eaos/impact.py",
       "eaos/load_model.py",
       "eaos/load_report.py",

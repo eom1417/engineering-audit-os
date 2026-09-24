@@ -28,6 +28,8 @@ class Stage:
 
 STAGES = (
     Stage('facts', produces=('facts/index.json',), description='Deterministic extraction over one snapshot'),
+    Stage('features', produces=('features.json', 'FEATURES.md'), requires=('facts',),
+          description='Group entry points and data accesses into what the program does for a user'),
     Stage('engines', produces=('facts/external.json', 'ENGINES.md'), requires=('facts',), necessity=OPTIONAL,
           absent_when='no external engine is installed, or --engines was not asked for',
           description='Pinned external analyzers, normalised into one fact set'),

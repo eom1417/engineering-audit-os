@@ -166,7 +166,51 @@ def validate(context):
     return {'violations': len(violations)}
 
 
-RUNNERS = {'facts': facts, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
+
+def features(context):
+    """Group user-facing surfaces into the program's features and bind them to data.
+
+    The ``facts`` stage records a count, not the flat list, in ``context['collected']``;
+    the list is read back from the persisted fact sets the facts stage has just written
+    to disk. Doing it this way keeps the in-memory payload of the Context small while
+    the disk keeps the source of truth.
+    """
+    from ..features import build
+    from ..workspace import write
+    from ..facts.store import read_set
+    collected = context.get('collected') or {}
+    set_names = collected.get('sets') or []
+    facts = []
+    for entry in set_names:
+        name = entry.get('set') if isinstance(entry, dict) else entry
+        try:
+            facts.extend(read_set(context.out, name).get('facts') or [])
+        except (OSError, ValueError):
+            continue
+    record = build(facts)
+    write(context.out / 'features.json', record)
+    md_lines = ['# Features', '']
+    for feature in record['features']:
+        md_lines.append(f"## {feature['name']}")
+        if feature['critical']: md_lines.append('**critical**')
+        md_lines.append(feature['description'])
+        md_lines.append('Surfaces: ' + ', '.join(f"`{s}`" for s in feature['surfaces']))
+        if feature['tables']:
+            md_lines.append('Tables: ' + ', '.join(f"`{t}`" for t in feature['tables']))
+        if feature['files']:
+            md_lines.append('Files: ' + ', '.join(f"`{f}`" for f in feature['files']))
+        md_lines.append('')
+    if record['unassigned_surfaces']:
+        md_lines.append('## Surfaces not assigned to a feature')
+        for s in record['unassigned_surfaces']:
+            md_lines.append(f"- `{s}`")
+    (context.out / 'FEATURES.md').write_text('\n'.join(md_lines), encoding='utf-8')
+    return {'features': len(record['features']),
+            'unassigned': len(record['unassigned_surfaces']),
+            'critical': sum(1 for f in record['features'] if f['critical'])}
+
+
+RUNNERS = {'facts': facts, 'features': features, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
            'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,
            'transform': transform, 'plan': plan, 'execution_guide': execution_guide,
            'compose': compose, 'site': site, 'validate': validate}

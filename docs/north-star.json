@@ -286,8 +286,8 @@
           "name": "جرد الوظائف",
           "definition": "مشاريع العيّنة التي يسرد تقريرها وظائف البرنامج (ماذا يفعل للمستخدم) مربوطة بأسطحها وبياناتها ÷ عدد المشاريع",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "features in features.json: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0",
+          "value": 1.0,
+          "evidence": "features in features.json: FleetManageWeb 31 · finance-os-a0192b7b 21 · RendaPerene 3",
           "reads": "features.json → features[] (non-empty)",
           "measured": "automated"
         },
@@ -1127,7 +1127,8 @@
           ],
           "acceptance": "python tools/north_star.py measure --only U4 --min 1.0 && python tools/acceptance.py contract features",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done",
+          "done": "NS3.T4 done by MiniMax on 2026-09-24: eaos/features.py groups entry-point, flow, and data-access facts into named features; pipeline writes features.json + FEATURES.md; 21/31/3 features across the three corpus projects; U4=1.0; contract features passes"
         },
         {
           "id": "NS3.T5",
