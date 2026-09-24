@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {"driver": {"name": "Semgrep OSS", "version": "1.90.0", "rules": [
+        {"id": "eaos.supabase-call-without-error-handling"},
+        {"id": "eaos.string-built-sql", "properties": {"security-severity": "8.1"}},
+        {"id": "vendor.unknown-rule"}]}},
+      "results": [
+        {"ruleId": "eaos.supabase-call-without-error-handling", "level": "warning",
+         "message": {"text": "supabase call result is used without checking error"},
+         "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/api/vehicles.ts"}, "region": {"startLine": 12}}}]},
+        {"ruleId": "eaos.string-built-sql", "level": "error",
+         "message": {"text": "SQL built by string concatenation"},
+         "properties": {"security-severity": "8.1"},
+         "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/db/query.ts"}, "region": {"startLine": 40}}},
+                       {"physicalLocation": {"artifactLocation": {"uri": "src/db/report.ts"}, "region": {"startLine": 7}}}]},
+        {"ruleId": "vendor.unknown-rule", "level": "note",
+         "message": {"text": "something no row maps"},
+         "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/x.ts"}, "region": {"startLine": 3}}}]}
+      ]
+    }
+  ]
+}

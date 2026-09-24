@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "report-quality.json",
+  "description": "Style and structure errors in each of the four reports. A tool that did not run is `null`, never 0.",
+  "x-artifact": "report-quality.json",
+  "x-owner": "NS14.T2",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "reports"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "reports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "vale_errors",
+          "markdownlint_errors"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "CURRENT-STATE.md",
+              "TARGET-STATE.md",
+              "GAP-AND-STRATEGY.md",
+              "EXECUTION-PLAN.md"
+            ]
+          },
+          "vale_errors": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "markdownlint_errors": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

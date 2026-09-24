@@ -10,8 +10,10 @@ Usage:  python tools/north_star.py                       # write docs/NORTH-STAR
         python tools/north_star.py measure               # audit the corpus, write every automated value
         python tools/north_star.py measure --only U2 --min 0.9   # check one indicator; writes nothing
         python tools/north_star.py --no-regression       # fail if an indicator fell below its best
+        python tools/north_star.py --finished            # exit 0 only when every task is done and every indicator is at its target
 """
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -22,6 +24,10 @@ TARGET = ROOT / 'docs/NORTH-STAR.md'
 HIGH_WATER = ROOT / 'docs/north-star-high-water.json'
 TOLERANCE = 0.02
 MARK = {'todo': '⬜', 'done': '✅', 'blocked': '⛔'}
+SIZES = ('S', 'M', 'L')
+# The acceptance of a task still to do is owned by the planner: the measurement, or a check under
+# tools/acceptance.py. A unit test the executor writes itself can be written to pass, so it never suffices.
+OWNED_ACCEPTANCE = ('tools/north_star.py measure', 'tools/acceptance.py')
 NEEDS = {'none': 'نموذج أو مطوّر', 'model_provider': 'يحتاج مزوّد نموذج', 'human': 'يحتاج إنسانًا من خارج المشروع',
          'sandbox': 'يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع'}
 
@@ -58,6 +64,7 @@ def validate(record):
         for reference in task.get('depends_on', []):
             if reference not in order: problems.append(f"{task['id']}: depends on unknown task {reference}")
             elif order.index(reference) > order.index(task['id']): problems.append(f"{task['id']}: listed before {reference}")
+    problems += card_problems(record, known)
     # The pipeline and the roadmap are the plan's two axes: every stage is served by a milestone, and every
     # milestone sits in exactly one phase, listed in phase order, so reading the record top-down is executing it.
     stages = [stage['id'] for stage in record.get('pipeline', [])]
@@ -75,6 +82,47 @@ def validate(record):
         if [name for name in placed if name in milestones] != milestones:
             problems.append('milestones must be listed in roadmap phase order')
     return problems
+
+
+def card_problems(record, known):
+    """A task still to do must be executable by any model: why, what it writes, when it is done, what trips it."""
+    import sys as _sys
+    _sys.path.insert(0, str(ROOT / 'tools'))
+    from contracts import contracts
+    names, problems = set(contracts()), []
+    open_tasks = [task for task in tasks(record) if task['status'] != 'done']
+    for task in open_tasks:
+        where = task['id']
+        if not str(task.get('why') or '').strip(): problems.append(f'{where}: no why')
+        if task.get('size') not in SIZES: problems.append(f'{where}: size must be one of {SIZES}')
+        if not task.get('done_when'): problems.append(f'{where}: no done_when checklist')
+        if not isinstance(task.get('pitfalls'), list): problems.append(f'{where}: pitfalls must be a list')
+        if not isinstance(task.get('writes'), list): problems.append(f'{where}: writes must be a list')
+        for item in task.get('writes') or []:
+            if item.startswith('contract:') and item[len('contract:'):] not in names:
+                problems.append(f'{where}: writes unknown contract {item}')
+        if not any(owned in task['acceptance'] for owned in OWNED_ACCEPTANCE):
+            problems.append(f'{where}: acceptance must run the measurement or tools/acceptance.py, not only a test the executor writes')
+        for name in re.findall(r'tools/acceptance\.py test (\w+)', task['acceptance']):
+            if not (ROOT / f'acceptance/test_{name}.py').is_file(): problems.append(f'{where}: acceptance/test_{name}.py does not exist')
+    # Every indicator short of its target must have a task that moves it, or the plan cannot end.
+    moving = {moved for task in open_tasks for moved in task['moves']}
+    for row in indicators(record):
+        if (row.get('value') or 0) < row['target'] and row['id'] not in moving:
+            problems.append(f"{row['id']}: below its target and no open task moves it")
+    if (ROOT / 'acceptance').is_dir():
+        from acceptance import digests, LOCK
+        recorded = json.loads(LOCK.read_text(encoding='utf-8')) if LOCK.is_file() else {}
+        if digests() != recorded: problems.append('acceptance/ differs from acceptance/LOCK.json: only the planner changes acceptance tests')
+    return problems
+
+
+def remaining(record):
+    """What stands between the record and the destination: open tasks and indicators short of their target."""
+    open_tasks = [f"{task['id']} {task['title']} ({task['status']}, {NEEDS[task['needs']]})" for task in tasks(record) if task['status'] != 'done']
+    short = [f"{row['id']} {row['name']}: {percent(row.get('value'))} < {percent(row['target'])}"
+             for row in indicators(record) if (row.get('value') or 0) < row['target']]
+    return open_tasks, short
 
 
 def score(record):
@@ -165,12 +213,22 @@ def render(record):
         out += ['', f"### {milestone['id']} — {milestone['title']}", '', f"**الهدف:** {milestone['goal']}"
                 + (f" · **المراحل:** {', '.join(milestone['stages'])}" if milestone.get('stages') else '')]
         for task in milestone['tasks']:
-            out += ['', f"#### {task['id']} — {task['title']} {MARK[task['status']]}", '',
-                    f"**يحرّك:** {', '.join(task['moves'])} · **ينفّذه:** {NEEDS[task['needs']]}"
-                    + (f" · **يعتمد على:** {', '.join(task['depends_on'])}" if task['depends_on'] else ''), '',
-                    '**الملفات:** ' + ' · '.join(f'`{name}`' for name in task['files']), '']
-            out += [f'{index}. {step}' for index, step in enumerate(task['steps'], 1)]
-            out += ['', '```bash', task['acceptance'], '```', '', f"**التراجع:** {task['rollback']}"]
+            out += ['', f"#### {task['id']} — {task['title']} {MARK[task['status']]}", '']
+            if task.get('why'): out += [f"**لماذا:** {task['why']}", '']
+            out += [f"**يحرّك:** {', '.join(task['moves']) or '—'} · **ينفّذه:** {NEEDS[task['needs']]}"
+                    + (f" · **يعتمد على:** {', '.join(task['depends_on'])}" if task['depends_on'] else '')
+                    + (f" · **الحجم:** {task['size']}" if task.get('size') else ''), '',
+                    '**الملفات:** ' + ' · '.join(f'`{name}`' for name in task['files'])]
+            if task.get('writes'):
+                out += ['', '**يكتب:** ' + ' · '.join(
+                    f"`{item}` (العقد: `schemas/artifacts/{item[9:]}.schema.json`)" if item.startswith('contract:') else f'`{item}`'
+                    for item in task['writes'])]
+            out += ['', '**الخطوات:**', ''] + [f'{index}. {step}' for index, step in enumerate(task['steps'], 1)]
+            if task.get('done_when'):
+                out += ['', '**تنتهي حين:**', ''] + [f'- [ ] {item}' for item in task['done_when']]
+            if task.get('pitfalls'):
+                out += ['', '**فخاخ معروفة:**', ''] + [f'- {item}' for item in task['pitfalls']]
+            out += ['', '**أمر القبول:**', '', '```bash', task['acceptance'], '```', '', f"**التراجع:** {task['rollback']}"]
     out += ['', '## قواعد التطوير نحو الوجهة', ''] + [f'{index}. {rule}' for index, rule in enumerate(record['rules'], 1)]
     return '\n'.join(out).rstrip() + '\n'
 
@@ -213,7 +271,7 @@ def main(argv):
     record = json.loads(SOURCE.read_text(encoding='utf-8'))
     command = argv[0] if argv and not argv[0].startswith('--') else None
     options = argv[1:] if command else argv
-    if command not in (None, 'fetch', 'measure') or any(o not in ('--check', '--score', '--only', '--min', '--no-regression') and
+    if command not in (None, 'fetch', 'measure') or any(o not in ('--check', '--score', '--only', '--min', '--no-regression', '--finished') and
                                                          not (i and options[i - 1] in ('--only', '--min'))
                                                          for i, o in enumerate(options)):
         print(f"unknown command: {' '.join(argv)}", file=sys.stderr)
@@ -244,7 +302,9 @@ def main(argv):
             for key in sorted(values): print(f'{key:3} {values[key][0]!s:6} {values[key][1]}')
             print(f"north star: {score(record)['overall_percent']}%")
             return 0
-        value, evidence = values.get(only, (None, 'recorded by hand; not measured automatically'))
+        # An indicator recorded by hand (a human review, for instance) is read from the record, not re-measured.
+        recorded = next((row['value'], row['evidence']) for row in indicators(record) if row['id'] == only)
+        value, evidence = values.get(only) or recorded
         floor = float(options[options.index('--min') + 1]) if '--min' in options else None
         print(f'{only} {value} (min {floor}) · {evidence}')
         return 0 if value is not None and (floor is None or value >= floor) else 1
@@ -253,6 +313,17 @@ def main(argv):
         for line in fallen: print('REGRESSION ' + line, file=sys.stderr)
         if not fallen: print('no indicator fell below its high-water mark')
         return 1 if fallen else 0
+    if '--finished' in options:
+        open_tasks, short = remaining(record)
+        for line in open_tasks: print('OPEN  ' + line)
+        for line in short: print('SHORT ' + line)
+        fallen = regressions(record)
+        for line in fallen: print('REGRESSION ' + line)
+        if open_tasks or short or fallen:
+            print(f'not finished: {len(open_tasks)} open task(s), {len(short)} indicator(s) short of target; north star {score(record)["overall_percent"]}%')
+            return 1
+        print(f'FINISHED: every task done, every indicator at its target; north star {score(record)["overall_percent"]}%')
+        return 0
     if '--score' in options:
         print(json.dumps(score(record), ensure_ascii=False, indent=2))
         return 0

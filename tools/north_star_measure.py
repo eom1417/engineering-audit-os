@@ -15,6 +15,9 @@ ROOT = Path(__file__).resolve().parent.parent
 ENGINES = ['codegraph', 'enola', 'jscpd', 'reforge']
 CORPUS = Path(os.environ.get('EAOS_CORPUS', '/tmp/eaos-corpus'))
 REPORTS = Path(os.environ.get('EAOS_MEASURE', '/tmp/eaos-measure'))
+# Artifacts from runs of a project's own code. The audit report is deleted whenever the tool changes;
+# these are not, because re-running a project needs the owner's authorization, not a new commit.
+RUNTIME = REPORTS / 'runtime'
 # The two sentences the tool writes today for a structural clone and for a decision that changes nothing.
 CLONE = 'share the same structure up to identifier names'
 STRUCTURAL = ('move', 'split', 'merge', 'extract', 'introduce', 'layer', 'break the cycle', 'delete', 'rebuild')
@@ -96,6 +99,12 @@ class Project:
         self.plan = load(out, 'plan.json', {'tasks': []})
         self.target = load(out, 'target-architecture.json', {})
         self.claim_text = json.dumps(self.dossier.get('claims', []), ensure_ascii=False)
+        self.runtime = RUNTIME / self.name
+
+    def artifact(self, contract):
+        """A plan artifact, only if it keeps its contract in schemas/artifacts/; otherwise it counts as absent."""
+        from contracts import load_valid
+        return load_valid(contract, self.out, self.runtime)
 
     def surfaces(self):
         rows = [row for row in facts(self.out, 'entry_point')
@@ -143,7 +152,7 @@ def indicator_values(projects, record):
                                    len(facts(p.out, 'db_policy')), p.truth['policies']))
     values['U3'] = (ratio(sum(t >= 0.9 * tt and q >= 0.9 * qq for _, (t, tt, q, qq) in rows), len(rows)),
                     'data_table facts with RLS state, and db_policy facts, vs truth: ' + text(rows, lambda v: f'{v[0]}/{v[1]} tables, {v[2]}/{v[3]} policies'))
-    rows = per(projects, lambda p: len((load(p.out, 'features.json', {}) or {}).get('features') or []))
+    rows = per(projects, lambda p: len((p.artifact('features') or {}).get('features') or []))
     values['U4'] = (ratio(sum(count > 0 for _, count in rows), len(rows)), 'features in features.json: ' + text(rows))
 
     def answered(project):
@@ -197,7 +206,7 @@ def indicator_values(projects, record):
                     f"components with a disposition and reason: {text(rows, lambda v: f'{v[0]}/{v[1]}')}; dispositions the tool produced: {sorted(seen)} of 4")
 
     def mapped(project):
-        features = (load(project.out, 'features.json', {}) or {}).get('features') or []
+        features = (project.artifact('features') or {}).get('features') or []
         return sum(bool(f.get('target_component')) for f in features), len(features)
     rows = per(projects, mapped)
     values['T5'] = (pooled([v for _, v in rows]) or 0.0, 'features placed in a target component: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
@@ -248,6 +257,7 @@ def indicator_values(projects, record):
     counted = min(len(record['corpus']), 10 if holdout >= 3 else 7)
     values['V4'] = (ratio(counted, 10), f"{len(record['corpus'])} real projects, {holdout} held out")
     values.update(orchestration_values(projects, record))
+    values['R4'] = toolchain_value()
     return values
 
 
@@ -314,24 +324,151 @@ def orchestration_values(projects, record):
     values['P8'] = (mean([n / 4 for _, n in rows]), 'of the four reports passing Vale and markdownlint: ' + text(rows, lambda v: f'{v}/4'))
 
     def locked(project):
-        features = [f.get('name') for f in (load(project.out, 'features.json', {}) or {}).get('features') or []]
-        specs = (load(project.out, 'behavior-lock/plan.json', {}) or {}).get('specs') or []
+        features = [f.get('name') for f in (project.artifact('features') or {}).get('features') or []]
+        specs = (project.artifact('behavior-lock-plan') or {}).get('specs') or []
         covered = {s.get('feature') for s in specs if s.get('path') and (project.out / 'behavior-lock' / s['path']).exists()}
         return sum(name in covered for name in features), len(features)
     rows = per(projects, locked)
     values['E4'] = (pooled([v for _, v in rows]) or 0.0, 'features with a behavior-lock spec: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
 
     def passing(project):
-        results = (load(project.out, 'behavior-lock/results.json', {}) or {}).get('results') or []
+        results = (project.artifact('behavior-lock-results') or {}).get('results') or []
         return sum(r.get('status') == 'passed' for r in results), len(results)
     rows = per(projects, passing)
     values['E5'] = (pooled([v for _, v in rows]) or 0.0, 'behavior-lock specs passing on current code: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+    values.update(runtime_values(projects))
+    values.update(plan_values(projects))
+    return values
 
-    def verified(project):
-        scenarios = (load(project.out, 'runtime-verification.json', {}) or {}).get('scenarios') or []
-        return sum(sc.get('measured') is not None for sc in scenarios), len(scenarios)
-    rows = per(projects, verified)
-    values['E6'] = (pooled([v for _, v in rows]) or 0.0, 'quality scenarios measured on a running copy: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+
+# The handover kit every project should receive, and when each file applies (see adopted_adapters rules).
+# A trailing slash is a directory: at least one validated file under it is expected.
+KIT = (('handover/.github/workflows/eaos.yml', 'all'), ('handover/.pre-commit-config.yaml', 'all'),
+       ('handover/renovate.json', 'all'), ('handover/.dependency-cruiser.cjs', 'js'), ('handover/semgrep/', 'all'),
+       ('handover/otel/collector.yaml', 'all'), ('handover/slo/', 'all'), ('handover/readiness/goss.yaml', 'all'),
+       ('handover/mkdocs.yml', 'all'), ('nfr/k6/', 'all'), ('nfr/toxiproxy.json', 'all'), ('nfr/zap.yaml', 'all'))
+MECHANICAL = ('remove_dead', 'dead_code', 'leftover', 'move_module', 'upgrade_dependency')
+
+
+def plan_values(projects):
+    """Indicators of the assessment stages added with the 15-stage pipeline: M1, S3, P9, K1."""
+    values = {}
+
+    def measured_files(project):
+        rows = (project.artifact('measurements') or {}).get('files') or []
+        complete = sum(all(row.get(field) is not None for field in ('loc', 'complexity_max', 'churn', 'fan_in')) for row in rows)
+        # The denominator is what the audit parsed, so a short table cannot score well.
+        parsed = (project.dossier.get('coverage') or {}).get('files_parsed') or 0
+        return complete, max(parsed, len(rows))
+    rows = per(projects, measured_files)
+    values['M1'] = (mean([ratio(a, b) or 0 for _, (a, b) in rows]) or 0.0,
+                    'source files with size, complexity, churn and fan-in: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+
+    def corroborated(project):
+        register = project.artifact('debt-register')
+        if register is None: return None
+        high = [item for item in register['items'] if item['severity'] in ('high', 'critical')]
+        ok = sum(any(w['kind'] == 'deterministic' for w in item['witnesses'])
+                 or len({w['tool'] for w in item['witnesses']}) >= 2 for item in high)
+        return ok, len(high)
+    rows = per(projects, corroborated)
+    values['S3'] = (mean([0.0 if v is None else (ratio(*v) if v[1] else 1.0) for _, v in rows]) or 0.0,
+                    'high and critical debt items with two independent witnesses: '
+                    + text(rows, lambda v: 'no register' if v is None else f'{v[0]}/{v[1]}'))
+
+    def codemods(project):
+        cards = [t for t in project.plan.get('tasks', []) if t.get('pattern') in MECHANICAL]
+        ok = sum(((t.get('codemod') or {}).get('dry_run') or {}).get('exit') == 0
+                 and ((t.get('codemod') or {}).get('dry_run') or {}).get('files_changed', 0) > 0 for t in cards)
+        return ok, len(cards)
+    rows = per(projects, codemods)
+    values['P9'] = (pooled([v for _, v in rows]) or 0.0, 'mechanical cards whose codemod ran dry without error: '
+                    + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+
+    def kit(project):
+        files = (project.artifact('handover-validation') or {}).get('files') or []
+        expected = [path for path, rule in KIT if applies(project, rule)]
+        def satisfied(path):
+            rows_ = [f for f in files if (f['path'].startswith(path) if path.endswith('/') else f['path'] == path)]
+            return bool(rows_) and all(f['ok'] for f in rows_)
+        return sum(satisfied(path) for path in expected), len(expected)
+    rows = per(projects, kit)
+    values['K1'] = (mean([ratio(a, b) for _, (a, b) in rows]) or 0.0, 'handover kit files accepted by their own tool: '
+                    + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+    return values
+
+
+def runtime_values(projects):
+    """Indicators of the execution contract (E6-E11). Their artifacts live under RUNTIME/<project>, written
+    only by runs in an isolated environment the owner authorized; a project never run counts as zero."""
+    from contracts import contracts, validate
+    values = {}
+
+    def load_after(project):
+        path = project.runtime / 'behavior-lock/results-after.json'
+        try: data = json.loads(path.read_text(encoding='utf-8'))
+        except (OSError, ValueError): return None
+        return data if not validate(data, contracts()['behavior-lock-results']) else None
+
+    def load_test(project):
+        scenarios = (project.artifact('runtime-performance') or {}).get('scenarios') or []
+        return sum(bool(s.get('before')) and bool(s.get('after')) for s in scenarios), len(scenarios)
+    rows = per(projects, load_test)
+    values['E6'] = (pooled([v for _, v in rows]) or 0.0, 'load scenarios measured before and after: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+
+    def parity(project):
+        before = {r['path'] for r in (project.artifact('behavior-lock-results') or {}).get('results') or [] if r['status'] == 'passed'}
+        after = {r['path'] for r in (load_after(project) or {}).get('results') or [] if r['status'] == 'passed'}
+        return len(before & after), len(before)
+    rows = per(projects, parity)
+    values['E7'] = (pooled([v for _, v in rows]) or 0.0, 'specs passing before that still pass after: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+
+    def executed_by_model(project):
+        tasks = (project.artifact('execution-log') or {}).get('tasks') or []
+        return any(t['tool'] == 'model' and t['status'] == 'VERIFIED_IN_ISOLATED_COPY' and t['acceptance_exit'] == 0 for t in tasks)
+    rows = per(projects, executed_by_model)
+    values['E1'] = (1.0 if any(ok for _, ok in rows) else 0.0, 'a card executed by a model, verified in an isolated copy, acceptance passing: ' + text(rows))
+
+    def honest(project):
+        report = project.artifact('runtime-guarantee')
+        if not report or report['status'] != 'COMPARED': return 0, 0
+        return sum(row['verdict'] == 'HONEST' for row in report['rows']), len(report['rows'])
+    rows = per(projects, honest)
+    values['E2'] = (pooled([v for _, v in rows]) or 0.0, 'predicted indicator deltas the change actually produced: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+
+    executed = [p for p in projects if load_after(p) is not None]
+    def secure(project):
+        report = project.artifact('runtime-security')
+        return report is not None and report['static']['critical'] == 0 and report['static']['high'] == 0 and report['dast']['high'] == 0
+    rows = per(executed, secure)
+    values['E8'] = (ratio(sum(ok for _, ok in rows), len(rows)) or 0.0,
+                    ('executed projects with no open critical or high finding: ' + text(rows)) if rows else 'no project executed yet')
+
+    def share(contract, key, test):
+        def count(project):
+            items = (project.artifact(contract) or {}).get(key) or []
+            chosen = [item for item in items if test(item) is not None]
+            return sum(bool(test(item)) for item in chosen), len(chosen)
+        return count
+    for indicator, contract, key, test, label in (
+            ('E9', 'runtime-resilience', 'experiments', lambda e: e['ok'], 'fault experiments where the application behaved as expected'),
+            ('E10', 'runtime-telemetry', 'surfaces', lambda s: s['spans'] > 0 if s['critical'] else None, 'critical surfaces with at least one span'),
+            ('E11', 'production-readiness', 'items', lambda i: i['ok'], 'readiness items whose command passed')):
+        rows = per(projects, share(contract, key, test))
+        values[indicator] = (pooled([v for _, v in rows]) or 0.0, f'{label}: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+    return values
+
+
+def toolchain_value():
+    """R4: adopted assessment tools present at their pinned version, from `eaos tools doctor --json`."""
+    done = subprocess.run([sys.executable, '-m', 'eaos', 'tools', 'doctor', '--json'], capture_output=True, text=True, cwd=ROOT)
+    try: tools = json.loads(done.stdout)['tools']
+    except (ValueError, KeyError, TypeError): return 0.0, 'eaos tools doctor --json gave no tool list (the command does not exist yet, or failed)'
+    from contracts import contracts, validate
+    if validate({'tools': tools}, contracts()['tools-doctor']): return 0.0, 'eaos tools doctor --json breaks schemas/artifacts/tools-doctor.schema.json'
+    wanted = [t for t in tools if t['role'] in ('read', 'validate') and any(s <= 'S07' for s in t.get('stages', []))]
+    missing = [t['name'] for t in wanted if not t['ok']]
+    return ratio(len(wanted) - len(missing), len(wanted)) or 0.0, f"{len(wanted) - len(missing)}/{len(wanted)} assessment tools at their pinned version" + (f"; missing: {', '.join(missing)}" if missing else '')
     return values
 
 

@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "target-architecture.json",
+  "description": "Only the fields the north-star plan adds to target-architecture.json.",
+  "x-artifact": "target-architecture.json",
+  "x-owner": "NS7",
+  "type": "object",
+  "required": [],
+  "properties": {
+    "target_components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "responsibility",
+          "layer"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "responsibility": {
+            "type": "string"
+          },
+          "layer": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "infrastructure": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "area",
+          "present",
+          "decision",
+          "evidence"
+        ],
+        "properties": {
+          "area": {
+            "type": "string",
+            "enum": [
+              "hosting",
+              "data",
+              "identity",
+              "configuration",
+              "ci",
+              "dependencies",
+              "observability",
+              "slo",
+              "iac",
+              "rollout",
+              "routing",
+              "migrations",
+              "backup",
+              "secrets",
+              "tests"
+            ]
+          },
+          "present": {
+            "type": "boolean"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "tool": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "alternative": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "current_components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "relation",
+          "reason"
+        ],
+        "properties": {
+          "relation": {
+            "type": "string",
+            "enum": [
+              "retain",
+              "modify",
+              "rebuild",
+              "delete"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "target_component": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

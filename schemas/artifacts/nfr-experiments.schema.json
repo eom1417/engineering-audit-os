@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "nfr/experiments.json",
+  "description": "Fault experiments for Toxiproxy, one per critical dependency and toxic.",
+  "x-artifact": "nfr/experiments.json",
+  "x-owner": "NS15.T2",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "experiments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "experiments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "dependency",
+          "proxy",
+          "toxic",
+          "expected"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "dependency": {
+            "type": "string"
+          },
+          "proxy": {
+            "type": "string"
+          },
+          "toxic": {
+            "type": "string",
+            "enum": [
+              "latency",
+              "timeout",
+              "down"
+            ]
+          },
+          "params": {
+            "type": "object"
+          },
+          "expected": {
+            "type": "string"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

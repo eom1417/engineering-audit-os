@@ -206,8 +206,8 @@
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| E1 تنفيذ حقيقي بنموذج على مشروع من العيّنة | 1 إن نُفّذت مهمة واحدة على الأقل بـeaos implement أو improve على مشروع من العيّنة ومرت أوامر قبولها، وإلا 0 | 100% | 0% | لم يُضبط مزوّد نموذج في هذه البيئة قط. |
-| E2 تنبؤات تحققت | predictions_verified من guarantee.json بعد تنفيذ حقيقي | 80% | — | غير مقيس: لا تنفيذ حقيقي. |
+| E1 تنفيذ حقيقي بنموذج على مشروع من العيّنة | 1 إن نُفّذت بطاقة واحدة على الأقل بنموذج (لا بأداة تحويل) على مشروع من العيّنة في نسخة معزولة، وحالتها VERIFIED_IN_ISOLATED_COPY، ومرّ أمر قبولها؛ وإلا 0 | 100% | 0% | لا تنفيذ بعد: يحتاج مزوّد نموذج وتفويضًا. |
+| E2 تنبؤات تحققت | فروق المؤشرات التي تنبأت بها الخطة وحكم عليها eaos guarantee بأنها HONEST ÷ كل الفروق المقارنة، بعد تنفيذ حقيقي | 80% | 0% | لا تنفيذ بعد. |
 | E3 حارس التراجع مثبت | 1 إن كانت baseline و delta وبوابة عدم التراجع تعمل وتختبر على هذا المستودع | 100% | 100% | tests/gate/capability_no_regression.sh و no_new_debt.sh تمر. |
 | E4 مواصفات تثبيت السلوك | وظائف features.json التي لها مواصفة اختبار واحدة على الأقل (Playwright أو Schemathesis أو Pact أو ApprovalTests) في behavior-lock/plan.json وملفها موجود ÷ الوظائف | 100% | 0% | لا خطة تثبيت سلوك. |
 | E5 شبكة الأمان تمر على الكود الحالي | مواصفات behavior-lock التي شُغّلت في بيئة معزولة ومرّت على الكود الحالي ÷ المواصفات | 100% | 0% | لم تُشغَّل أي مواصفة. |
@@ -246,9 +246,9 @@
 
 | المرحلة | العنوان | المعالم | المنجز | شرط الخروج |
 | --- | --- | --- | --- | --- |
-| R1 | الأساس: الوصول والرؤية والإشارة | NS1, NS2, NS3, NS4, NS5, NS6 | 13/19 | U2، U3، U4، U5، S1، S2، D1–D3، H1، H2 عند أهدافها |
+| R1 | الأساس: الوصول والرؤية والإشارة | NS1, NS2, NS3, NS4, NS5, NS6 | 12/19 | U2، U3، U4، U5، S1، S2، D1–D3، H1، H2 عند أهدافها |
 | R2 | منصة الأدوات: تثبيت، وقراءة، وتوليد، ومراحل، وعزل | NS17 | 0/5 | R4 = 1، وقارئ SARIF وإطار التوليد ومراحل engage والبيئة المعزولة مختبرة |
-| R3 | الأدلة الكاملة من الأدوات الجاهزة | NS11, NS12, NS18 | 0/14 | بوابات S01 وS03 وS04 كاملة: U6، R3، H3، M1، S3 |
+| R3 | الأدلة الكاملة من الأدوات الجاهزة | NS11, NS12, NS18 | 0/15 | بوابات S01 وS03 وS04 كاملة: U6، R3، H3، M1، S3 |
 | R4 | تثبيت السلوك والصورة المثالية | NS15, NS7, NS13 | 0/10 | البوابة أ لـS05، وبوابة S06 مع موافقة بشرية |
 | R5 | الخطة والتقارير وعدّة التسليم | NS8, NS14, NS25 | 0/14 | بوابة S07 و K1 = 1: اكتمل عقد التقييم (EAOS 1.0) |
 | R6 | التنفيذ المثبت | NS26, NS9, NS20 | 0/4 | البوابة ب لـS05، وبوابتا S08 وS09: E5، E1، E7، E2 |
@@ -263,14 +263,14 @@
 | --- | --- | --- |
 | NS1 القياس آليًا: النسبة تُحسب بأمر لا باليد | كل مؤشر قابل للأتمتة يُحسب من تقارير العيّنة بأمر واحد، ويُرفض أي تراجع. | 4/4 |
 | NS2 لا يفشل على مشروع حقيقي | R1 = 1.0: كل تدقيق على العيّنة يكتمل. | 2/2 |
-| NS3 تقرير الوضع الراهن: رؤية البرنامج كله | U2 ≥ 0.9 و U3 = 1.0 و U4 = 1.0 و U5 ≥ 0.8 على العيّنة. | 3/5 |
+| NS3 تقرير الوضع الراهن: رؤية البرنامج كله | U2 ≥ 0.9 و U3 = 1.0 و U4 = 1.0 و U5 ≥ 0.8 على العيّنة. | 2/5 |
 | NS4 الإشارة لا الضجيج | S1 ≥ 0.8 و S2 ≥ 0.8. | 1/2 |
 | NS5 الكود الميت والمخلفات: كشف وحذف آمن | D1 ≥ 0.8 و D2 ≥ 0.9 و D3 ≥ 0.9. | 1/4 |
 | NS6 نظافة الأمن الأساسية | H1 = 1.0 و H2 = 1.0. | 2/2 |
 | NS17 منصة الأدوات: كل أداة تدخل بطريقة واحدة | R4 = 1، وقارئ SARIF، وإطار التوليد، والمراحل كبيانات، والبيئة المعزولة مختبرة. | 0/5 |
 | NS11 الاستلام: ماذا يجب أن يُحمى، وإلى أين | U6 = 1.0. | 0/2 |
 | NS12 محوّلات الفحص الساكن: أدوات جاهزة بدل كود نكتبه | R3 = 1.0 و H3 = 1.0. | 0/10 |
-| NS18 القياس وسجل الدَّين: الأرقام لكل ملف، والخطر حين تجتمع الأدلة | M1 ≥ 0.95 و S3 ≥ 0.8. | 0/2 |
+| NS18 القياس وسجل الدَّين: الأرقام لكل ملف، والخطر حين تجتمع الأدلة | M1 ≥ 0.95 و S3 ≥ 0.8 و G2 = 1.0. | 0/3 |
 | NS15 تثبيت السلوك: المواصفات قبل أي تغيير (ساكن) | E4 = 1، ومواصفات الحمل والأعطال والفحص الحي مولّدة ومقبولة من أدواتها. | 0/2 |
 | NS7 تقرير الصورة المثالية | T1 = 1.0 و T2 = 1.0 و T3 ≥ 0.6 و T4 = 1.0 و T5 = 1.0 و G1 = 1.0. | 0/5 |
 | NS13 نموذج العمارة وقراراتها | T6 = 1.0 و T7 = 1.0. | 0/3 |
@@ -297,8 +297,12 @@
 
 **الملفات:** `tools/north_star.py`
 
+**الخطوات:**
+
 1. أضف الأمر fetch: يستنسخ كل مشروع في corpus عند commit المثبّت إلى ${EAOS_CORPUS:-/tmp/eaos-corpus}، للقراءة فقط، ولا يشغّل شيئًا منه.
 2. إن وُجد المشروع عند commit آخر أعد تثبيته؛ إن فشل الجلب اطبع السبب واخرج بغير صفر.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py fetch && test -d "${EAOS_CORPUS:-/tmp/eaos-corpus}/finance-os-a0192b7b/.git"
@@ -312,9 +316,13 @@ python tools/north_star.py fetch && test -d "${EAOS_CORPUS:-/tmp/eaos-corpus}/fi
 
 **الملفات:** `tools/north_star.py` · `docs/north-star.json` · `tests/test_north_star.py`
 
+**الخطوات:**
+
 1. أضف الأمر measure: يدقق كل مشروع بالمحرّكات الأربعة ويحسب كل مؤشر من تعريفه المكتوب، ويكتب القيمة ودليلها في docs/north-star.json.
 2. أضف --only ID و--min X: يخرج بغير صفر إن كانت قيمة المؤشر أقل من X. هذه صيغة أوامر القبول في المعالم التالية.
 3. علّم المؤشرات التي لا تُحسب آليًا (E1, E3, V1, V2, V3) بـ'recorded' ولا تغيّرها.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure && python tools/north_star.py --check
@@ -328,8 +336,12 @@ python tools/north_star.py measure && python tools/north_star.py --check
 
 **الملفات:** `tools/north_star.py` · `docs/north-star.json`
 
+**الخطوات:**
+
 1. ادقق self_truth.commit في git worktree مؤقت، واحسب D1 و S2 من مرشحات الكود الميت والادعاءات مقابل self_truth.defects.
 2. أضف لكل عيب في self_truth نمط مطابقة (مسار ورمز) بدل النص الحر.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only D1 && python tools/north_star.py measure --only S2
@@ -343,9 +355,13 @@ python tools/north_star.py measure --only D1 && python tools/north_star.py measu
 
 **الملفات:** `tools/north_star.py` · `docs/north-star-high-water.json` · `CONTRIBUTING.md`
 
+**الخطوات:**
+
 1. سجّل أعلى قيمة بلغها كل مؤشر في docs/north-star-high-water.json، ولا تكتب فيه إلا صعودًا.
 2. أضف --no-regression: يفشل إن هبط مؤشر عن حده الأعلى بأكثر من 0.02.
 3. أضفه إلى بوابة CONTRIBUTING.md لأي تغيير يمس ما يقيسه المنتج.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure && python tools/north_star.py --no-regression
@@ -363,8 +379,12 @@ python tools/north_star.py measure && python tools/north_star.py --no-regression
 
 **الملفات:** `eaos/transform_plan.py` · `tests/test_transform_plan.py`
 
+**الخطوات:**
+
 1. اجعل transform-plan.md يقص الجداول إلى ميزانيته ويذكر العدد الحقيقي والسجل الذي يحمل الباقي، كما تفعل بقية الوثائق.
 2. اختبار: خطة تحويل أطول من الميزانية تُقص ولا تخالف R2.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only R1 --min 1.0
@@ -378,8 +398,12 @@ python tools/north_star.py measure --only R1 --min 1.0
 
 **الملفات:** `eaos/pipeline/runners.py` · `tests/test_completion_regressions.py`
 
+**الخطوات:**
+
 1. وُجد أثناء بناء القياس: استنساخ بلا checkout ترك .git وحده، فأعلن التدقيق COMPLETE بخروج 0 وثمانية ادعاءات من سجل git.
 2. مرحلة facts ترفع SkipStage حين لا تجد ملف مصدر مقروءًا، فيصير التدقيق INCOMPLETE والسبب مكتوب.
+
+**أمر القبول:**
 
 ```bash
 python -m unittest tests.test_completion_regressions -q
@@ -397,8 +421,12 @@ python -m unittest tests.test_completion_regressions -q
 
 **الملفات:** `eaos/facts/frameworks/js_routes.py` · `eaos/facts/frameworks/__init__.py` · `eaos/dossier.py` · `eaos/facts/flows.py` · `tests/test_js_routes.py`
 
+**الخطوات:**
+
 1. اكتشف مسارات React Router (<Route path>، createBrowserRouter) و TanStack Router (src/routes) و Next.js (app/ و pages/) كأسطح مستخدم.
 2. كل مسار يربط بمكوّنه ليتتبعه FLOWS.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only U2 --min 0.9
@@ -406,19 +434,37 @@ python tools/north_star.py measure --only U2 --min 0.9
 
 **التراجع:** revert الالتزام.
 
-#### NS3.T2 — Supabase كطبقة وصول للبيانات ✅
+#### NS3.T2 — Supabase كطبقة وصول للبيانات ⬜
 
-**يحرّك:** U2, U3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T1
+**لماذا:** المستخرج موجود ومختبر، لكن التدقيق لا يستدعيه: eaos/facts/frameworks/__init__.py لا يستورده، فلا يصل إلى أي مشروع في العيّنة حقيقة data_access واحدة. عُلّمت المهمة done سابقًا لأن قبولها كان اختبارًا يستدعي الدالة مباشرة.
+
+**يحرّك:** U2, U3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T1 · **الحجم:** S
 
 **الملفات:** `eaos/facts/frameworks/supabase_access.py` · `eaos/facts/run.py` · `schemas/fact.schema.json` · `tests/test_supabase_access.py`
 
-1. اقرأ في ملفات TS/JS كل نداء Supabase: supabase.from("t").select|insert|update|upsert|delete، و rpc("fn")، و storage.from("b")، و auth.*.
-2. اكتب كل نداء كحقيقة kind="data_access" في مجموعة حقائق قائمة (مثل domain أو runtime)، قيمتها {client: "supabase", target: اسم الجدول أو الدالة أو الحاوية, operation, symbol} وموضعها path و start_line. أضف data_access إلى schemas/fact.schema.json ثم python tools/render.py.
-3. الاختبار tests/test_supabase_access.py يبني عيّنة فيها select و insert و rpc و storage ونداء لا علاقة له بـSupabase، ويثبت أن الحقائق الأربع فقط تظهر بقيمها الصحيحة.
-4. U2 بلغ 1.0 قبل هذه المهمة (NS3.T1)، فلا يصلح أمر قبول لها؛ أمر قبولها الاختبار.
+**الخطوات:**
+
+1. افتح eaos/facts/frameworks/__init__.py: السطر 7 يستورد كل مستخرجات الأطر عدا supabase_access. اقرأ كيف تُستدعى هذه الوحدات (ابحث عن أسمائها في eaos/facts/entrypoints.py).
+2. صِل supabase_access بالمسار نفسه الذي تُكتب منه حقائق الملفات المصدرية. لا تكتب حلقة قراءة ملفات ثانية: إن كانت واجهته مختلفة (يرجع data_access لا entry_point)، فاستدعه من الحلقة الموجودة.
+3. وسّع TABLE_CALL ليقبل السلسلة المقسومة على أسطر: `.from("x")` في سطر و`.select()` في السطر التالي. في finance-os 19 نداء في سطر واحد، وأغلب السلاسل الأخرى مقسومة.
+4. اكتب اختبارًا يشغّل eaos facts على مجلد مؤقت فيه ملف TypeScript بنداءين (سطر واحد وسطران)، ويقرأ الحقائق من الملف المكتوب، لا من استدعاء الدالة.
+
+**تنتهي حين:**
+
+- [ ] تقرير finance-os بعد القياس فيه 20 حقيقة data_access على الأقل، لكل منها الجدول والعملية.
+- [ ] الاختبار الجديد يمر عبر مسار التدقيق نفسه.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- `Array.from(` ليست نداء Supabase: المطابقة تحتاج اسمًا ينتهي بـsupabase في السلسلة (SB_NAME).
+- الاختبار القديم tests/test_supabase_access.py يبقى، لكنه لا يثبت الوصل.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python -m unittest tests.test_supabase_access -q
+python tools/north_star.py measure --only U3 && python tools/acceptance.py facts data_access finance-os-a0192b7b --min 20
 ```
 
 **التراجع:** revert الالتزام.
@@ -429,9 +475,13 @@ python -m unittest tests.test_supabase_access -q
 
 **الملفات:** `eaos/facts/domain.py` · `schemas/fact.schema.json` · `tests/test_domain_sql.py`
 
+**الخطوات:**
+
 1. حلّل CREATE TABLE و ALTER TABLE و ENABLE ROW LEVEL SECURITY و CREATE POLICY من ملفات الهجرة إلى حقائق جداول وأعمدة وسياسات.
 2. اربط كل جدول بمن يقرؤه ويكتبه (من NS3.T2).
 3. العقد مع القياس: الجداول تبقى حقائق kind="data_table" (ينتجها domain.py أصلًا) مع value.rls_enabled و value.policies، والسياسات حقائق kind="db_policy".
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only U3 --min 1.0
@@ -441,28 +491,75 @@ python tools/north_star.py measure --only U3 --min 1.0
 
 #### NS3.T4 — جرد الوظائف ⬜
 
-**يحرّك:** U4 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T2, NS3.T3
+**لماذا:** الوظيفة (ماذا يفعل البرنامج لمستخدمه) هي الوحدة التي يُثبَّت بها السلوك ويُنقل إلى الصورة المثالية. بدونها لا مواصفات تثبيت (E4) ولا حفظ للوظائف (T5).
+
+**يحرّك:** U4 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T2, NS3.T3 · **الحجم:** M
 
 **الملفات:** `eaos/features.py` · `eaos.policy.json` · `tests/test_features.py`
 
-1. اجمع كل مسار وصفحة ودالة خادم مع الجداول التي يقرؤها ويكتبها في وظيفة باسم مجالها (مثل: المركبات، السائقون، الصيانة).
-2. الوظيفة تحمل أسطحها وبياناتها ودليل كل ربط؛ ما لا يُنسب لوظيفة يُعلن.
-3. العقد مع القياس: اكتب الجرد في features.json بالحقل features[]، ولكل وظيفة name و surfaces و tables و evidence.
+**يكتب:** `contract:features` (العقد: `schemas/artifacts/features.schema.json`) · `FEATURES.md`
+
+**الخطوات:**
+
+1. اكتب eaos/features.py بدالة build(facts) تعيد dict بعقد schemas/artifacts/features.schema.json، وأضف مرحلة features في eaos/pipeline/stages.py بعد facts تكتب features.json و FEATURES.md. أعلن الوحدة في طبقتها في eaos.policy.json.
+2. الأسطح: حقائق entry_point بـsurface = page أو http أو cli، عدا framework = npm_script أو public_api، وعدا value.test_only.
+3. التجميع بالمسار: احذف من route مقاطع التخطيط (تبدأ بـ_ مثل /_authenticated) والمعاملات ($id و :id و [id])، وأول مقطع متبقٍّ اسم الوظيفة. مثال: /_authenticated/cartoes و/_authenticated/cartoes/$id كلاهما في وظيفة cartoes، والجذر / وحده في home. أسطح cli تُجمّع حسب الوحدة (location.path) التي تعرّفها.
+4. لكل وظيفة: files هي ملفات أسطحها مع touched_files من حقائق flow لتلك الأسطح؛ tables هي الجداول في حقائق data_access لتلك الملفات (NS3.T2)؛ evidence هي معرّفات حقائق entry_point و data_access التي بُني منها الربط.
+5. critical = true إن كتبت الوظيفة في جدول (insert أو update أو upsert أو delete)، أو احتوى مسارها auth أو login أو signup أو payment أو checkout أو billing؛ وإلا false. اكتب القاعدة في رأس الملف.
+6. description جملة مولّدة من البيانات لا إنشائية: «4 صفحات، تقرأ accounts و transactions، وتكتب transactions».
+7. كل سطح لم يدخل وظيفة يُكتب في unassigned_surfaces، ولا يُسقط.
+
+**تنتهي حين:**
+
+- [ ] features.json في تقارير المشاريع الثلاثة يمر عقده.
+- [ ] كل سطح مستخدم إما في وظيفة أو في unassigned_surfaces.
+- [ ] U4 = 1.0.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- لا تجعل كل صفحة وظيفة: تطبيق من 30 صفحة جرده الجيد 5 إلى 15 وظيفة.
+- في TanStack Router المسار مشتق من اسم الملف؛ اعتمد value.route لا المسار.
+- اطبع الحقائق الحقيقية من /tmp/eaos-measure/<مشروع>/facts/ قبل كتابة أي ربط؛ أغلب عيوب هذا المستودع جاءت من منتج وقارئ اختلفا على اسم حقل.
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
 
 ```bash
-python tools/north_star.py measure --only U4 --min 1.0
+python tools/north_star.py measure --only U4 --min 1.0 && python tools/acceptance.py contract features
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS3.T5 — المداخل والمخارج والحدود على أسطح المستخدم ⬜
 
-**يحرّك:** U5 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T1, NS3.T2
+**لماذا:** حدود كل سطح (كم نداء بيانات، وهل النداءات الخارجية محمية، وهل النتيجة محدودة) هي ما تُبنى منه سيناريوهات الحمل وسكربتات k6 لاحقًا. اليوم 56% فقط مجاب.
+
+**يحرّك:** U5 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T1, NS3.T2 · **الحجم:** M
 
 **الملفات:** `eaos/load_model.py` · `tests/test_load_model.py`
 
-1. ابنِ نموذج الحمل على المسارات ودوال الخادم لا على npm scripts.
-2. أجب لكل سطح: نداءات البيانات، والنداءات الخارجية وحمايتها، وحد المعدّل، وحدود النتيجة.
+**الخطوات:**
+
+1. شغّل التدقيق على finance-os واطبع من load-model.json لكل entry_point الأسئلة التي حالتها ليست answered، مع السبب. اكتب جدولًا بأكثر الأسباب تكرارًا قبل تعديل أي شيء.
+2. ابنِ النموذج على أسطح page و http و cli، لا على npm scripts.
+3. data_access_calls: عُدّ حقائق data_access في ملف السطح وملفات تدفقه (touched_files)، بعد وصل NS3.T2.
+4. outbound_calls_protected: نداء fetch أو axios أو supabase داخل try/catch، أو متبوع بـ.catch، أو يُفحص error من نتيجته، يُعدّ protected. غير ذلك unprotected بموضعه. الإجابة answered بالعدد في الحالتين.
+5. rate_limited في مشروع بلا خادم خاص به (واجهة فقط): answered بقيمة "no server of its own" ودليلها غياب ملفات الخادم. الإجابة تكون بالدليل لا بالافتراض.
+6. أي سؤال يبقى unknown يحمل reason يسمّي ما ينقص بالضبط.
+
+**تنتهي حين:**
+
+- [ ] U5 ≥ 0.8.
+- [ ] لا جواب answered بلا evidence.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- رفع U5 بتحويل unknown إلى answered بلا دليل يُرد عند المراجعة.
+- اطبع الحقائق الحقيقية من /tmp/eaos-measure/<مشروع>/facts/ قبل كتابة أي ربط؛ أغلب عيوب هذا المستودع جاءت من منتج وقارئ اختلفا على اسم حقل.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only U5 --min 0.8
@@ -480,8 +577,12 @@ python tools/north_star.py measure --only U5 --min 0.8
 
 **الملفات:** `eaos/claims.py` · `eaos/facts/scope.py` · `tests/test_claims.py`
 
+**الخطوات:**
+
 1. استثنِ مكتبات الواجهة المضمّنة (components/ui من shadcn وما يشبهها) كما يُستثنى vendored.
 2. تشابه البنية بين مكوّنات JSX لا يصير ادعاء قاعدة أعمال إلا إذا تجاوز حجمًا معلنًا وتكرر منطق غير عرضي.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only S1 --min 0.8
@@ -491,15 +592,34 @@ python tools/north_star.py measure --only S1 --min 0.8
 
 #### NS4.T2 — المرشح الميت لا يُتهم إن أشار إليه سجل ⬜
 
-**يحرّك:** S2 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T3
+**لماذا:** دقة الكود الميت (S2) 22%: أغلب المرشحات تبدو ميتة لأن سجلًا يشير إليها بالاسم (قاموس، أو getattr، أو entry point)، فيُتهم كود حي.
+
+**يحرّك:** S2 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T3 · **الحجم:** M
 
 **الملفات:** `eaos/correlate.py` · `tests/test_correlate.py`
 
-1. قبل قبول مرشح كود ميت من محرّك، ابحث عن اسمه في سجلات التوزيع (قواميس، قوائم وحدات، getattr بنص، entry points في pyproject).
-2. مرشح يشير إليه سجل يبقى حقيقة لا ادعاء.
+**الخطوات:**
+
+1. على الشجرة عمل غير ملتزم لهذه المهمة (eaos/correlate.py، و eaos/facts/run.py، و tests/test_correlate_dead_code.py، و eaos.policy.json، و docs/invariants.json). اقرأه بـgit diff أولًا وأكمله، لا تبدأ من جديد.
+2. مصادر الإشارة بالاسم التي تُسقط الاتهام: قيم قاموس هي دوال أو أصناف، و __all__، و getattr(obj, "name")، و importlib.import_module("x")، و [project.scripts] في pyproject.toml، وأسماء نصية في ملفات JSON تحت eaos/data.
+3. مرشح تشير إليه إحدى هذه المصادر يبقى حقيقة engine_finding، ولا يصير ادعاء dead_code.
+4. قِس على self_truth: اطبع كل مرشح وحكمه (ميت فعلًا أم لا) مقابل self_truth.true_dead_symbols قبل الالتزام.
+
+**تنتهي حين:**
+
+- [ ] S2 ≥ 0.8.
+- [ ] D1 لم يهبط (--no-regression).
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- إسقاط كل المرشحات يرفع الدقة ويُسقط D1، والقياس يفحص الاثنين.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python tools/north_star.py measure --only S2 --min 0.8
+python tools/north_star.py measure --only S2 --min 0.8 && python tools/north_star.py --no-regression
 ```
 
 **التراجع:** revert الالتزام.
@@ -510,13 +630,33 @@ python tools/north_star.py measure --only S2 --min 0.8
 
 #### NS5.T1 — قابلية الوصول من نقاط الدخول الحقيقية ⬜
 
-**يحرّك:** D1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T1
+**لماذا:** الكشف (D1) 33%: EAOS يجد 5 من 15 عيبًا معروفًا، لأنه لا يعرف ما الذي يصل إليه المستخدم فعلًا من نقاط الدخول.
+
+**يحرّك:** D1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T1 · **الحجم:** L
 
 **الملفات:** `eaos/reachability.py` · `eaos.policy.json` · `tests/test_reachability.py`
 
-1. من كل نقطة دخول إنتاجية (أوامر، مسارات، دوال خادم) امشِ رسم الاستيراد؛ كل وحدة لا يصلها إلا الاختبارات ميتة للمنتج.
-2. الرمز الذي لا يُشار إليه ولا يُصدَّر لسطح عام مرشح، ويُحسم بالبحث عن الاسم نصيًا.
-3. العقد مع القياس: كل عنصر ميت يصير ادعاءً render.key="dead_code" (هذا ما يقسم عليه D3).
+**الخطوات:**
+
+1. اكتب eaos/reachability.py: نقاط البداية حقائق entry_point الإنتاجية (ليست test_only، ولا framework = npm_script).
+2. امشِ حقائق module_edge (من location.path إلى value.to_path) من كل نقطة بداية. الوحدة (source_file) التي لا تُبلغ، وليست اختبارًا ولا ملف إعداد (*.config.*، و conftest.py، و setup.py)، غير قابلة للوصول.
+3. الاستيراد الديناميكي (import() بنص ثابت، و lazy(() => import(...))، و importlib بنص) حافة مثل غيره.
+4. الرمز: symbol لا تصله أي call_edge ولا يُصدَّر لسطح عام مرشح. يُحسم بالبحث النصي عن اسمه في المستودع خارج تعريفه: وجوده في أي مكان يُسقط الاتهام.
+5. كل وحدة أو رمز ميت يصير ادعاءً render.key = "dead_code"، بجملة تحتوي unreachable أو unused (القياس يطابق هذه الكلمات)، ودليله مسار البحث.
+
+**تنتهي حين:**
+
+- [ ] D1 ≥ 0.8.
+- [ ] S2 لم يهبط.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- ملفات الإعداد والاختبارات ليست كودًا ميتًا.
+- في مشاريع Vite، ملفات src/main.tsx و index.html نقطة بداية حتى لو لم تكن entry_point.
+- اطبع الحقائق الحقيقية من /tmp/eaos-measure/<مشروع>/facts/ قبل كتابة أي ربط؛ أغلب عيوب هذا المستودع جاءت من منتج وقارئ اختلفا على اسم حقل.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only D1 --min 0.8
@@ -526,13 +666,31 @@ python tools/north_star.py measure --only D1 --min 0.8
 
 #### NS5.T2 — الكود المعطّل: أسماء غير معرّفة ومفاتيح مكررة ⬜
 
-**يحرّك:** D1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T3
+**لماذا:** الكود المعطّل (اسم غير معرّف، ومفتاح مكرر، واستيراد اسم غير موجود) ينهار عند التشغيل، وهو من العيوب المعروفة التي لا يجدها EAOS اليوم.
+
+**يحرّك:** D1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T3 · **الحجم:** M
 
 **الملفات:** `eaos/facts/broken.py` · `eaos.policy.json` · `tests/test_broken.py`
 
-1. Python: اسم يُقرأ في دالة ولا يُعرَّف في نطاقها ولا في الوحدة ولا في builtins = ادعاء CONFIRMED بانهيار حتمي، مع موضعه.
-2. مفتاح يتكرر في literal قاموس واحد بقيمتين مختلفتين = ادعاء.
-3. TypeScript: استيراد اسم غير مصدَّر من الملف المستهدف.
+**الخطوات:**
+
+1. Python: بـast و symtable من المكتبة القياسية. اسم يُقرأ في دالة، ولا يُعرَّف في نطاقها ولا في الوحدة ولا في builtins، ادعاء CONFIRMED بموضعه. star import يُسقط الحكم على تلك الوحدة ويُعلَن.
+2. مفتاح يتكرر في literal قاموس واحد بقيمتين مختلفتين ادعاء بموضعي المفتاحين.
+3. TypeScript: استيراد { X } من ملف داخلي لا تصدّره حقائق symbol فيه. استيراد النوع وحده (import type) يُعامل مثل غيره.
+4. الجملة تحتوي undefined أو duplicate key (القياس يطابقها).
+
+**تنتهي حين:**
+
+- [ ] D1 ≥ 0.8 (بالاشتراك مع NS5.T1).
+- [ ] لا ادعاء على ملفات الاختبار.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- الأسماء المعرّفة شرطيًا (داخل try/except ImportError) معرّفة.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only D1 --min 0.8
@@ -546,10 +704,14 @@ python tools/north_star.py measure --only D1 --min 0.8
 
 **الملفات:** `eaos/facts/leftovers.py` · `eaos.policy.json` · `tests/test_leftovers.py`
 
+**الخطوات:**
+
 1. ملفات مؤقتة ونسخ احتياطية (temp_ و _old و copy و backup)، ومخرجات بناء ملتزمة، وثنائيات، ومجلدات أرشيف غير مستوردة، و.env ملتزم.
 2. كل عنصر يُثبت بأنه لا يستورده شيء قبل أن يصير مرشح حذف.
 3. العقد مع القياس: اكتب كل عنصر كحقيقة kind="leftover" ومسارها في location.path (هذا ما يقرؤه D2).
 4. وكل عنصر مخلفات يصير ادعاءً render.key="leftover" إلى جانب الحقيقة.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only D2 --min 0.9
@@ -559,13 +721,33 @@ python tools/north_star.py measure --only D2 --min 0.9
 
 #### NS5.T4 — بطاقة حذف آمن جاهزة ⬜
 
-**يحرّك:** D3, P2, P3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS5.T1, NS5.T3
+**لماذا:** الكود الميت والمخلفات دليلها آلي بالكامل، فبطاقتها يجب أن تكون جاهزة للتنفيذ دون مراجعة بشرية (D3 = 0 اليوم).
+
+**يحرّك:** D3, P2, P3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS5.T1, NS5.T3 · **الحجم:** S
 
 **الملفات:** `eaos/remediation_patterns.py` · `eaos/dead_code_assessment.py` · `eaos.policy.json` · `tests/test_decisions.py`
 
-1. نمط remove_dead: التغيير حذف الملف أو الرمز، وأمر القبول يعيد التدقيق ويتحقق أن لا استيراد جديدًا غير محلول وأن الاختبارات المعلنة تمر.
-2. الحجم S، والتراجع revert واحد، والقرار ready لأن الدليل آلي بالكامل.
-3. العقد مع القياس: pattern="remove_dead"، kind="remediate"، decision.readiness="ready"، و acceptance[].command لا يحتوي "human review".
+**يكتب:** `contract:plan-fragment` (العقد: `schemas/artifacts/plan-fragment.schema.json`)
+
+**الخطوات:**
+
+1. في eaos/remediation_patterns.py أضف النمط remove_dead بجانب dead_code القائم (لا تعد تسمية القائم): التغيير حذف الملف أو الرمز.
+2. أمر القبول: python -m eaos audit <المشروع> ثم التحقق أن لا استيراد جديدًا غير محلول، وأن الاختبارات المعلنة تمر. لا يحتوي "human review".
+3. البطاقة: kind = "remediate"، و decision.readiness = "ready"، و effort = "S"، والتراجع revert واحد.
+4. لكل ادعاء render.key = dead_code أو leftover بطاقة واحدة.
+
+**تنتهي حين:**
+
+- [ ] D3 ≥ 0.9.
+- [ ] plan.json يمر عقد plan-fragment في الحقول التي كتبتها.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- القياس يقرأ pattern == "remove_dead" حرفيًا.
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only D3 --min 0.9
@@ -583,10 +765,14 @@ python tools/north_star.py measure --only D3 --min 0.9
 
 **الملفات:** `eaos/facts/secrets.py` · `eaos.policy.json` · `tests/test_secrets.py`
 
+**الخطوات:**
+
 1. اكتب حقيقة kind="committed_credential" لكل ملف .env* متتبَّع (عدا .env.example و .env.sample و .env.template)، ولكل مفتاح مضمّن في الكود (JWT، sk_live_، sb_secret_، مفاتيح خاصة PEM).
 2. الخطورة من المفتاح نفسه لا من اسم الملف: فك حمولة JWT واقرأ role؛ anon أو publishable = "public"، service_role أو sb_secret_ أو مفتاح خاص = "secret". لا تطبع القيمة ولا تخزنها أبدًا؛ الدليل اسم المتغير وموضعه والدور.
 3. secret → ادعاء risk مؤكد. public داخل ملف .env متتبَّع → ملاحظة نظافة منخفضة الخطورة في SECURITY-SURFACE.md، لا ادعاء تسريب.
 4. العقد مع القياس: kind="committed_credential"، location.path، value.severity ∈ {public, secret}.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only H1 --min 1.0
@@ -600,8 +786,12 @@ python tools/north_star.py measure --only H1 --min 1.0
 
 **الملفات:** `eaos/claims.py` · `eaos/probes.py` · `eaos/remediation_patterns.py` · `eaos/compose/labels.py` · `eaos/discover.py` · `tests/test_access_gaps.py`
 
+**الخطوات:**
+
 1. جدول بلا ENABLE ROW LEVEL SECURITY أو بلا سياسة، وسياسة using (true) على جدول يُكتب من الواجهة: ادعاء بموضعه.
 2. قراءة السياسات وحدها (NS3.T3) تكمل H2؛ عمل هذه المهمة الادعاء، ولذلك أمر قبولها اختبار على عيّنة فيها جدول بلا RLS وسياسة كتابة مفتوحة، لا المؤشر.
+
+**أمر القبول:**
 
 ```bash
 python -m unittest tests.test_access_gaps -q
@@ -615,9 +805,15 @@ python -m unittest tests.test_access_gaps -q
 
 #### NS17.T1 — سجل الأدوات ومثبّتها: أمر واحد يثبّت كل أداة بإصدارها ⬜
 
-**يحرّك:** R4 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T2
+**لماذا:** كل أداة خارجية تدخل من باب واحد بإصدار مثبّت، فيعرف كل نموذج وكل مستخدم ما المثبّت وما الناقص بأمر واحد، ولا يعمل EAOS بنسخة غير التي اختُبر عليها.
+
+**يحرّك:** R4 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T2 · **الحجم:** M
 
 **الملفات:** `upstreams/registry.yaml` · `eaos/toolchain.py` · `eaos/cli.py` · `eaos/engines/process.py` · `tools/north_star_measure.py` · `tests/test_toolchain.py` · `/workspace/setup.sh`
+
+**يكتب:** `contract:tools-doctor` (العقد: `schemas/artifacts/tools-doctor.schema.json`)
+
+**الخطوات:**
 
 1. وسّع كل عنصر في upstreams/registry.yaml بثلاثة حقول: role (read أو emit أو run أو validate)، و stages (معرّفات pipeline في docs/north-star.json مثل S01)، و install {method: release | pip | npm, source, version, sha256 للـrelease, binary}.
 2. أضف عناصر لأدوات عقد التقييم بآخر release مستقر يوم التنفيذ، والرخصة والمستودع من docs/TOOLCHAIN.md: syft، و osv-scanner، و scc، و semgrep، و trivy، و checkov، و dependency-cruiser، و sqlfluff، و spectral، و oasdiff، و gitnexus (role = read)، و vale، و markdownlint-cli2 (role = validate).
@@ -626,6 +822,24 @@ python -m unittest tests.test_access_gaps -q
 5. تأكد أن which() في eaos/engines/process.py يبحث في /workspace/engine-tools/bin قبل PATH، حتى لا تُستخدم نسخة بإصدار آخر.
 6. اجعل /workspace/setup.sh يستدعي python -m eaos tools install --stage assessment، واحذف منه أسطر التثبيت اليدوية للمحرّكات الأربعة بعد أن يثبّتها الأمر.
 7. أضف قياس R4 إلى tools/north_star_measure.py من eaos tools doctor --json (تعديل مسموح بنص هذه المهمة). الاختبار يثبت أن أداة بإصدار غير المثبّت تُحسب ناقصة.
+8. which() في eaos/engines/process.py يقرأ مجلد الأدوات من المتغير EAOS_ENGINE_TOOLS (الافتراضي /workspace/engine-tools)، ويبحث في bin/ فيه أولًا ثم PATH. اختبارات القبول تعتمد على هذا المتغير.
+9. eaos tools doctor --json يكتب إلى stdout كائنًا بعقد schemas/artifacts/tools-doctor.schema.json بالضبط.
+
+**تنتهي حين:**
+
+- [ ] eaos tools install --stage assessment ينهي بـ0 على حاوية نظيفة.
+- [ ] R4 = 1.0.
+- [ ] setup.sh لا يحوي أسطر تثبيت يدوية للمحرّكات.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- sha256 مختلف يوقف التثبيت ولا يُتجاوز.
+- GitNexus رخصتها غير تجارية: التثبيت يطبع تنبيهًا، و--skip gitnexus مسموح.
+- لا sudo ولا apt من داخل الأمر.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
 python -m eaos tools install --stage assessment && python tools/north_star.py measure --only R4 --min 1.0
@@ -635,62 +849,125 @@ python -m eaos tools install --stage assessment && python tools/north_star.py me
 
 #### NS17.T2 — قارئ SARIF واحد لست أدوات ⬜
 
-**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1
+**لماذا:** ست أدوات تكتب SARIF؛ قارئ واحد مختبر يجعل محوّل كل منها نحو 20 سطرًا، بدل ست قرّاءات JSON مختلفة.
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1 · **الحجم:** S
 
 **الملفات:** `eaos/engines/sarif.py` · `eaos/data/sarif-rules.json` · `eaos/engines/contract.py` · `tests/test_sarif.py` · `tests/contracts/sarif-sample.json`
+
+**الخطوات:**
 
 1. SARIF 2.1.0 هو المخرج المشترك لـSemgrep و Trivy و Checkov و OSV-Scanner و Spectral و OWASP ZAP. اكتب eaos/engines/sarif.py: read(path, engine, version) يحوّل runs[].results[] إلى finding() الموجودة في contract.py: ruleId ← rule، و locations[].physicalLocation ← sites، و message.text ← الرسالة، و level أو properties.security-severity ← measurement("severity").
 2. الترجمة إلى مفردات EAOS بيانات لا كود: eaos/data/sarif-rules.json → {engine: [{match: نمط ruleId بـfnmatch, kind, severity_floor}]}. نتيجة بلا صف مطابق تُعدّ في unmapped ولا تُسقط.
 3. أضف إلى KINDS في contract.py: vulnerability، و misconfiguration، و secret، و sql_quality، و api_contract. لا تضف نوعًا لا تنتجه أداة معتمدة.
 4. بعدها يصير محوّل أي أداة تُخرج SARIF دالة analyze() من نحو 20 سطرًا: تبني الأمر، وتشغّله بـprocess.run، وتستدعي sarif.read.
 5. الاختبار يقرأ عيّنة SARIF حقيقية فيها ثلاث نتائج: اثنتان مطابقتان وواحدة unmapped، ويثبت أن الثالثة معدودة لا مسقطة.
+6. الواجهة وسلّم الخطورة مكتوبان بالضبط في رأس acceptance/test_ns17_t2_sarif.py. اقرأه قبل أن تكتب سطرًا.
+
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py test ns17_t2_sarif يمر (7 اختبارات).
+- [ ] eaos/data/sarif-rules.json فيه صفوف للأدوات الست.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- contract.finding يرفض kind خارج KINDS: أضف الأنواع الخمسة أولًا.
+- sites في finding() قائمة tuples مرتبة؛ مرّر كل المواضع.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python -m unittest tests.test_sarif -q
+python tools/acceptance.py test ns17_t2_sarif
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS17.T3 — التوليد بصيغ الأدوات الأصلية، والأداة نفسها هي المدقق ⬜
 
-**يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1
+**لماذا:** الأدوات التي تعمل على نسخة حية لا نعيد كتابتها: نكتب لها ملف إدخالها بصيغتها، والأداة نفسها تحكم عليه. هذا الإطار تستعمله كل مهام العدّة بعده.
+
+**يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1 · **الحجم:** M
 
 **الملفات:** `eaos/emit/__init__.py` · `eaos/emit/validate.py` · `templates/emit/` · `eaos/cli.py` · `eaos/pipeline/stages.py` · `tools/north_star_measure.py` · `tests/test_emit.py`
+
+**يكتب:** `contract:handover-validation` (العقد: `schemas/artifacts/handover-validation.schema.json`) · `handover/README.md`
+
+**الخطوات:**
 
 1. المبدأ: لا يعيد EAOS كتابة أداة تشغيل؛ يكتب لها ملف إدخالها (سكربت k6، مواصفة Playwright، إعداد Collector، …) من الحقائق، ثم يطلب من الأداة نفسها أن تقبله.
 2. eaos/emit/__init__.py: سجل EMITTERS {name: (function(workspace, out_dir) → [paths], validator)}. القوالب في templates/emit/<tool>/ بـstring.Template من المكتبة القياسية؛ لا تضف محرّك قوالب. JSON و YAML يُكتبان من dict مباشرة، لا بدمج نصوص.
 3. eaos/emit/validate.py: لكل ملف مولَّد يشغّل مدقق أداته (من registry.yaml، role = validate) ويكتب handover/validation.json → files[] {path, tool, ok, output}. أداة غير مثبتة ← ok = false و reason "validator unavailable"؛ لا تُحسب نجاحًا.
 4. أمر eaos emit <workspace> [--only NAME] [--validate]، ومرحلة اختيارية emit في eaos/pipeline/stages.py بعد compose، و absent_when: no emitter applies.
 5. أول مولّد يثبت الإطار: handover/README.md فهرسًا للعدّة، ومدققه markdownlint-cli2. أضف قياس K1 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة).
+6. الواجهة مكتوبة في رأس acceptance/test_ns17_t3_emit.py: اسم المولّد الأول handover-readme، ونص السبب "validator unavailable: <binary>".
+
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py test ns17_t3_emit يمر.
+- [ ] handover/validation.json يمر عقده.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- مدقق غير مثبت يُكتب ok = false، ولا يُحسب نجاحًا.
+- لا تضف محرّك قوالب؛ string.Template يكفي.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python -m unittest tests.test_emit -q
+python tools/acceptance.py test ns17_t3_emit
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS17.T4 — المراحل الخمس عشرة كبيانات، وبوابة كل مرحلة بأمر ⬜
 
-**يحرّك:**  · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1
+**لماذا:** المراحل الخمس عشرة يجب أن تكون قابلة للفحص بأمر، لا وصفًا فقط: أين وصل هذا المشروع، وما الذي يمنعه من المرحلة التالية.
+
+**يحرّك:** — · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1 · **الحجم:** M
 
 **الملفات:** `eaos/engage.py` · `eaos/cli.py` · `tests/test_engage.py`
+
+**الخطوات:**
 
 1. اكتب eaos/engage.py: STAGES كبيانات بنمط eaos/pipeline/stages.py، بالمعرّفات والمفاتيح نفسها في docs/north-star.json → pipeline (من S01 DISCOVER إلى S15 CONTINUOUS GOVERNANCE)، ولكل مرحلة: contract (assessment أو execution)، و requires، و artifacts، و gate: فحوص {artifact, field, predicate} تقرأ JSON التقرير.
 2. البوابات تحسب بالمنطق نفسه لمؤشرات القياس: انقل دوال الحساب المشتركة من tools/north_star_measure.py إلى eaos/ واجعل القياس يستوردها. لا يُكتب حساب مرتين.
 3. eaos engage status <workspace>: جدول لكل مرحلة (المخرجات موجودة؟ البوابة تمر؟ ولماذا لا). eaos engage gate <Sxx> <workspace>: يخرج 0 فقط إن مرت بوابتها وبوابات ما قبلها. مراحل execution ترفض دون authorization.json صالح (NS17.T5).
 4. لا يحرّك مؤشرًا؛ يثبت عدم الهبوط بأمر القبول. الاختبار يثبت: بوابة S04 تفشل إن فشلت S02، ومرحلة تنفيذ بلا تفويض ترفض، ومعرّفات STAGES تطابق pipeline في docs/north-star.json.
+5. شكل المخرج ورموز الخروج (0 و1 و3) وقيم contract (assessment و execution و mixed) مكتوبة بالضبط في رأس acceptance/test_ns17_t4_engage.py.
+
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py test ns17_t4_engage يمر.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- لا تكرر حساب المؤشرات: البوابة تستورد الدوال نفسها التي يستعملها القياس.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python -m unittest tests.test_engage -q && python tools/north_star.py --no-regression
+python tools/acceptance.py test ns17_t4_engage
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS17.T5 — البيئة المعزولة: تشغيل كود المشروع بتفويض وبلا أسرار ⬜
 
-**يحرّك:**  · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T4
+**لماذا:** كل مراحل التنفيذ (S05-ب إلى S14) تشغّل كود المشروع. هذا لا يحدث إلا بتفويض مكتوب، وفي نسخة، وبلا أسرار. تُبنى الآن وتُختبر على تطبيق تجريبي، فلا تحتاج تفويض أحد.
+
+**يحرّك:** — · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T4 · **الحجم:** M
 
 **الملفات:** `eaos/sandbox.py` · `eaos/verify.py` · `tests/fixtures/sandbox-app/` · `tests/test_sandbox.py`
+
+**يكتب:** `contract:sandbox-run` (العقد: `schemas/artifacts/sandbox-run.schema.json`) · `contract:authorization` (العقد: `schemas/artifacts/authorization.schema.json`)
+
+**الخطوات:**
 
 1. authorization.json في مساحة العمل شرط لأي تشغيل: {project, commit, granted_by, stages, env_allow, expires}. غيابه أو انتهاؤه أو اختلاف commit ← رفض برسالة تسمّي الناقص.
 2. Sandbox(target, authorization): نسخة معزولة بإعادة استخدام isolated_copy في eaos/verify.py (لا نسخة ثانية)، وبيئة نظيفة فيها PATH و HOME مؤقت و LANG فقط، ومتغيرات env_allow بالاسم. قبل التشغيل تحقق أن لا متغير ينتهي بـ_TOKEN أو _KEY أو _SECRET أو _PASSWORD وصل إلى العملية.
@@ -698,9 +975,24 @@ python -m unittest tests.test_engage -q && python tools/north_star.py --no-regre
 4. start(command, port, health_path) يشغّل التطبيق في مجموعة عمليات وينتظر health حتى مهلة؛ stop() يقتل المجموعة؛ run(argv, timeout) يشغّل أداة ضد التطبيق. كل تشغيل في sandbox-run.json {backend, commands[], exit, seconds, limitations[]}.
 5. أمر التشغيل من intake.json → run_command إن وُجد، وإلا من package.json (preview ثم start ثم dev) بقيمة افتراضية معلنة.
 6. الاختبار على tests/fixtures/sandbox-app (خادم http.server من سطرين): يرفض بلا تفويض، ويشغّل ويتحقق من health، ويثبت أن متغيرًا سريًا في بيئة الاختبار لم يصل، ولا يترك عملية بعد stop().
+7. الواجهة مكتوبة بالضبط في رأس acceptance/test_ns17_t5_sandbox.py: Sandbox(target, authorization, workdir, stage)، و AuthorizationError، والبيئة PATH و HOME و LANG ومتغيرات env_allow فقط.
+
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py test ns17_t5_sandbox يمر (3 اختبارات).
+- [ ] لا عملية تبقى بعد stop().
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- start_new_session=True ثم os.killpg، وإلا تبقى عمليات أبناء.
+- backend = process يسجّل "network not isolated" في limitations، ولا يُكتم.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python -m unittest tests.test_sandbox -q
+python tools/acceptance.py test ns17_t5_sandbox
 ```
 
 **التراجع:** revert الالتزام.
@@ -711,33 +1003,75 @@ python -m unittest tests.test_sandbox -q
 
 #### NS11.T1 — استبيان الاستلام بقيم افتراضية معلنة ⬜
 
-**يحرّك:** U6 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T2
+**لماذا:** ما يجب حمايته وأين يريد المالك أن يصل لا يُستنتج من الكود. يُسأل، وكل سؤال بلا جواب يأخذ قيمة افتراضية معلنة بسببها.
+
+**يحرّك:** U6 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T2 · **الحجم:** M
 
 **الملفات:** `eaos/intake.py` · `eaos/data/intake-questions.json` · `eaos/cli.py` · `eaos.policy.json` · `tests/test_intake.py`
+
+**يكتب:** `contract:intake` (العقد: `schemas/artifacts/intake.schema.json`)
+
+**الخطوات:**
 
 1. أسئلة ثابتة في eaos/data/intake-questions.json: الوظائف التي لا يجوز أن تضيع، وتوقع النمو (مستخدمون متزامنون)، ومتطلبات الأمن والخصوصية، والمشاكل المعروفة، والقيود (الفريق، الميزانية، المنصة). لكل سؤال قيمة افتراضية معلنة.
 2. eaos audit --intake FILE يقرأ إجابات المالك؛ بدونه تُستخدم الافتراضيات. اكتب intake.json في التقرير: questions[] لكل سؤال {id, answer, status: answered | default}.
 3. امتد من عقد التكليف في eaos/engagement.py ولا تكرره: ما يعرفه العقد (الأهداف، والنطاق) يُقرأ منه.
 4. العقد مع القياس: intake.json → questions[].status ∈ {answered, default}.
+5. الأسئلة في eaos/data/intake-questions.json، ولكل سؤال id و question و default و default_reason، بهذه القيم الافتراضية بالضبط: critical_features = الوظائف critical في features.json؛ و concurrent_users = 100؛ و personal_data = نعم إن وُجد جدول أو نموذج فيه email أو phone أو cpf أو name؛ و payments = لا؛ و hosting = كما هو (vercel.json ← Vercel، وإلا غير معروف)؛ و team_size = 1؛ و availability_target = 99.5؛ و known_problems = [].
+6. ملف الإجابات لـ--intake هو JSON {id: answer}. سؤال أجاب عنه المالك status = answered، وغيره default ومعه default_reason.
+7. run_command من package.json: preview إن وُجد، ثم start، ثم dev. وإلا null.
+
+**تنتهي حين:**
+
+- [ ] intake.json في المشاريع الثلاثة يمر عقده، وكل سؤال answered أو default.
+- [ ] U6 = 1.0.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- لا تسأل عما يعرفه عقد التكليف في eaos/engagement.py: اقرأه منه.
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
 
 ```bash
-python tools/north_star.py measure --only U6 --min 1.0
+python tools/north_star.py measure --only U6 --min 1.0 && python tools/acceptance.py contract intake
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS11.T2 — سيناريوهات الجودة من الاستلام ⬜
 
-**يحرّك:** U6 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS11.T1
+**لماذا:** سيناريوهات الجودة هي ما تقيسه k6 وToxiproxy وSLO لاحقًا. كل رقم فيها يجب أن يأتي من إجابة أو من قيمة افتراضية معلنة.
+
+**يحرّك:** U6 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS11.T1 · **الحجم:** S
 
 **الملفات:** `eaos/engagement.py` · `tests/test_intake.py`
+
+**يكتب:** `contract:intake` (العقد: `schemas/artifacts/intake.schema.json`)
+
+**الخطوات:**
 
 1. حوّل إجابات الاستلام إلى سيناريوهات جودة مرقّمة بأسلوب ATAM المختصر (مثير، استجابة، مقياس)، مثل: توقع 10 آلاف مستخدم ← سيناريو حمل؛ بيانات شخصية ← سيناريو خصوصية.
 2. كل سيناريو يذكر مصدره: إجابة المالك أو قيمة افتراضية. لا رقم بلا مصدر.
 3. الاختبار يثبت: إجابة نمو صريحة تنتج سيناريو حمل برقمها؛ وسؤال على قيمته الافتراضية ينتج سيناريو معلّمًا default.
+4. الاشتقاق: concurrent_users ← سيناريو load (المقياس p95_ms بعتبة 800 ms) وسيناريو latency (نسبة الخطأ بعتبة 0.01)؛ و personal_data = نعم ← privacy؛ و availability_target ← availability بالنسبة نفسها. المعرّفات QS-001 فما فوق.
+5. اكتب السيناريوهات في intake.json → scenarios (بالعقد)، وانسخها إلى engagement.json → scenarios بالحقول الموجودة هناك (name و stimulus و response و measure)، ولا تنشئ مكانًا ثالثًا.
+
+**تنتهي حين:**
+
+- [ ] في كل مشروع سيناريو load واحد على الأقل مصدره answer أو default.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- لا رقم بلا source.
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
 
 ```bash
-python -m unittest tests.test_intake -q
+python tools/north_star.py measure --only U6 && python tools/acceptance.py contract intake --where "any(s['kind'] == 'load' for s in data['scenarios'])"
 ```
 
 **التراجع:** revert الالتزام.
@@ -748,9 +1082,15 @@ python -m unittest tests.test_intake -q
 
 #### NS12.T1 — Syft و OSV-Scanner: قائمة الاعتماديات وثغراتها ⬜
 
-**يحرّك:** H3, R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1
+**لماذا:** قائمة الاعتماديات (SBOM) وثغراتها هي نصف أمن المشروع، ولا يراها EAOS اليوم (H3 = 0).
+
+**يحرّك:** H3, R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1 · **الحجم:** M
 
 **الملفات:** `eaos/engines/syft.py` · `eaos/engines/osv_scanner.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/syft.json` · `tests/contracts/osv-scanner.json` · `tests/test_engine_contracts.py`
+
+**يكتب:** `contract:sbom` (العقد: `schemas/artifacts/sbom.schema.json`)
+
+**الخطوات:**
 
 1. اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل syft كعملية منفصلة، واقرأ مخرجه المنظم (CycloneDX JSON).
 2. ترجم مخرجه إلى مفردات EAOS: اكتب sbom.cdx.json في التقرير كما هو. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
@@ -758,34 +1098,73 @@ python -m unittest tests.test_intake -q
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 5. OSV-Scanner يقرأ sbom.cdx.json (--sbom) ويعطي حقائق kind="vulnerable_dependency" (أضفها للمخطط ثم python tools/render.py): الحزمة، والإصدار، والمعرّف، والخطورة. كل ثغرة معروفة الإصلاح تصير ادعاء risk بنمط علاج "ترقية الاعتمادية".
 
+**تنتهي حين:**
+
+- [ ] sbom.cdx.json في المشاريع الثلاثة يمر عقده.
+- [ ] H3 = 1.0.
+- [ ] لا ملف كُتب داخل مشروع المالك (target_unchanged = true).
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.
+- أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.
+- لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
+
 ```bash
-python tools/north_star.py measure --only H3 --min 1.0
+python tools/north_star.py measure --only H3 --min 1.0 && python tools/acceptance.py adapter syft && python tools/acceptance.py adapter osv-scanner && python tools/acceptance.py contract sbom
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS12.T2 — scc: الحجم واللغات ⬜
 
-**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1, NS12.T1
+**لماذا:** scc: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1, NS12.T1 · **الحجم:** S
 
 **الملفات:** `eaos/engines/scc.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/scc.json` · `tests/test_engine_contracts.py`
+
+**الخطوات:**
 
 1. اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل scc كعملية منفصلة، واقرأ مخرجه المنظم (scc --format json).
 2. ترجم مخرجه إلى مفردات EAOS: قياسات symbol_metric_external لكل ملف (أسطر، وتعقيد)؛ شاهد مستقل على الحجم. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
 3. احفظ مخرجًا حقيقيًا في tests/contracts/scc.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py adapter scc يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.
+- [ ] لا ملف كُتب داخل مشروع المالك (target_unchanged = true).
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.
+- أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.
+- لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
+
 ```bash
-python -m unittest tests.test_engine_contracts -q
+python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter scc
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS12.T3 — Semgrep بقواعد EAOS ⬜
 
-**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1, NS12.T1, NS17.T2
+**لماذا:** semgrep: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1, NS12.T1, NS17.T2 · **الحجم:** M
 
 **الملفات:** `eaos/engines/semgrep.py` · `eaos/data/semgrep/` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/semgrep.json` · `tests/test_engine_contracts.py` · `eaos/data/sarif-rules.json`
+
+**الخطوات:**
 
 1. المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (semgrep --config eaos/data/semgrep --sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.
 2. الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. كل قاعدة تحمل في metadata نوعها من KINDS في eaos/engines/contract.py. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
@@ -793,17 +1172,37 @@ python -m unittest tests.test_engine_contracts -q
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 5. مصدران للقواعد: (1) قواعد EAOS في eaos/data/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة، وكل قاعدة معها مثال يطابقها ومثال لا يطابقها. (2) مكتبة semgrep-rules الرسمية: رخصتها تمنع توزيعها، فلا تُنسخ إلى هذا المستودع أبدًا؛ eaos tools install يجلبها إلى /workspace/engine-tools/semgrep-rules عند التزام مثبّت على جهاز المستخدم، ويشغّل المحوّل منها مجموعات بعينها (javascript و typescript و python و secrets) إن وُجدت، ويسجّل في التقرير أيها استُخدم.
 
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py adapter semgrep يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.
+- [ ] لا ملف كُتب داخل مشروع المالك (target_unchanged = true).
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.
+- أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.
+- لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+- قواعد semgrep-rules الرسمية تُجلب إلى /workspace/engine-tools ولا تُنسخ إلى المستودع أبدًا: رخصتها تمنع التوزيع.
+
+**أمر القبول:**
+
 ```bash
-python -m unittest tests.test_engine_contracts -q
+python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter semgrep
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS12.T4 — Trivy: الأسرار وIaC وDocker ⬜
 
-**يحرّك:** R3, H1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1, NS12.T1, NS17.T2
+**لماذا:** trivy: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
+
+**يحرّك:** R3, H1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1, NS12.T1, NS17.T2 · **الحجم:** S
 
 **الملفات:** `eaos/engines/trivy.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/trivy.json` · `tests/test_engine_contracts.py` · `eaos/data/sarif-rules.json`
+
+**الخطوات:**
 
 1. المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (trivy fs --format sarif --scanners vuln,secret,misconfig)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.
 2. الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. ثغرات، وإعدادات خاطئة (boundary)، وأسرار: الأسرار شاهد ثانٍ على committed_credential، لا ادعاء جديد إن طابقت الموضع نفسه. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
@@ -811,17 +1210,36 @@ python -m unittest tests.test_engine_contracts -q
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 5. لا تطبع قيمة أي سر؛ خذ نوع القاعدة وموضعها فقط.
 
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py adapter trivy يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.
+- [ ] لا ملف كُتب داخل مشروع المالك (target_unchanged = true).
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.
+- أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.
+- لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
+
 ```bash
-python -m unittest tests.test_engine_contracts -q
+python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter trivy
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS12.T5 — Checkov: GitHub Actions وIaC ⬜
 
-**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1, NS12.T1, NS17.T2
+**لماذا:** checkov: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1, NS12.T1, NS17.T2 · **الحجم:** S
 
 **الملفات:** `eaos/engines/checkov.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/checkov.json` · `tests/test_engine_contracts.py` · `eaos/data/sarif-rules.json`
+
+**الخطوات:**
 
 1. المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (checkov -d TARGET -o sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.
 2. الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. إعدادات خاطئة في CI وIaC بخطورتها. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
@@ -829,17 +1247,36 @@ python -m unittest tests.test_engine_contracts -q
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 5. ينطبق فقط إن وُجد .github/workflows أو Dockerfile أو ملفات IaC؛ وإلا يُسجَّل غير منطبق لا غائبًا.
 
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py adapter checkov يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.
+- [ ] لا ملف كُتب داخل مشروع المالك (target_unchanged = true).
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.
+- أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.
+- لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
+
 ```bash
-python -m unittest tests.test_engine_contracts -q
+python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter checkov
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS12.T6 — dependency-cruiser: الحدود كقواعد لـJS/TS ⬜
 
-**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1, NS12.T1
+**لماذا:** dependency-cruiser: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1, NS12.T1 · **الحجم:** S
 
 **الملفات:** `eaos/engines/dependency_cruiser.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/dependency-cruiser.json` · `tests/test_engine_contracts.py`
+
+**الخطوات:**
 
 1. اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل dependency-cruiser كعملية منفصلة، واقرأ مخرجه المنظم (depcruise --output-type json).
 2. ترجم مخرجه إلى مفردات EAOS: module_edge_external، ودورات (cycle)، وخرق قواعد (boundary). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
@@ -847,17 +1284,36 @@ python -m unittest tests.test_engine_contracts -q
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 5. ولّد إعداد القواعد من eaos.policy.json في مشروع المالك إن وُجد؛ وإلا شغّله بقاعدة no-circular وحدها. لا تكتب أي ملف داخل مشروع المالك: الإعداد في workdir.
 
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py adapter dependency-cruiser يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.
+- [ ] لا ملف كُتب داخل مشروع المالك (target_unchanged = true).
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.
+- أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.
+- لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
+
 ```bash
-python -m unittest tests.test_engine_contracts -q
+python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter dependency-cruiser
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS12.T7 — SQLFluff: جودة SQL والهجرات ⬜
 
-**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1, NS12.T1
+**لماذا:** sqlfluff: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1, NS12.T1 · **الحجم:** S
 
 **الملفات:** `eaos/engines/sqlfluff.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/sqlfluff.json` · `tests/test_engine_contracts.py`
+
+**الخطوات:**
 
 1. اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل sqlfluff كعملية منفصلة، واقرأ مخرجه المنظم (sqlfluff lint --format json --dialect postgres).
 2. ترجم مخرجه إلى مفردات EAOS: مخالفات بنمطها وموضعها؛ لا تتحول إلى ادعاءات إلا فئات الخطر (مثل غياب WHERE في UPDATE أو DELETE). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
@@ -865,17 +1321,36 @@ python -m unittest tests.test_engine_contracts -q
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 5. ينطبق فقط إن وُجدت ملفات .sql.
 
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py adapter sqlfluff يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.
+- [ ] لا ملف كُتب داخل مشروع المالك (target_unchanged = true).
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.
+- أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.
+- لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
+
 ```bash
-python -m unittest tests.test_engine_contracts -q
+python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter sqlfluff
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS12.T8 — Spectral و oasdiff عند وجود OpenAPI ⬜
 
-**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1, NS12.T1, NS17.T2
+**لماذا:** spectral وoasdiff: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1, NS12.T1, NS17.T2 · **الحجم:** S
 
 **الملفات:** `eaos/engines/spectral.py` · `eaos/engines/oasdiff.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/spectral.json` · `tests/test_engine_contracts.py` · `eaos/data/sarif-rules.json`
+
+**الخطوات:**
 
 1. المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (spectral lint -f sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.
 2. الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. مخالفات أسلوب الـAPI (surface). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
@@ -883,17 +1358,36 @@ python -m unittest tests.test_engine_contracts -q
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 5. العيّنة الحالية بلا OpenAPI؛ اكتب عيّنة اختبار فيها مواصفة. غياب المواصفة في مشروع له مسارات http يصير بند فجوة لا صمتًا.
 
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py adapter spectral / oasdiff يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.
+- [ ] لا ملف كُتب داخل مشروع المالك (target_unchanged = true).
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.
+- أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.
+- لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
+
 ```bash
-python -m unittest tests.test_engine_contracts -q
+python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter spectral && python tools/acceptance.py adapter oasdiff
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS12.T10 — GitNexus: رسم المعرفة ونطاق الأثر كشاهد ثالث ⬜
 
-**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1
+**لماذا:** gitnexus: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1 · **الحجم:** M
 
 **الملفات:** `eaos/engines/gitnexus.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/gitnexus.json` · `tests/test_engine_contracts.py` · `tools/north_star_measure.py`
+
+**الخطوات:**
 
 1. التثبيت: npm install -g gitnexus@<إصدار مثبّت> داخل engine-tools عبر eaos tools install (NS17.T1)، مع GITNEXUS_SKIP_OPTIONAL_GRAMMARS=1 إن لم يوجد مترجم C++. الرخصة PolyForm Noncommercial: سجّلها في registry.yaml بحقل license_note، واطبع تنبيهًا عند التثبيت أن استخدامها للأغراض غير التجارية فقط.
 2. gitnexus analyze يكتب في المستودع الذي يحلله (AGENTS.md و CLAUDE.md وskills وhooks). لذلك لا يُشغَّل على مشروع المالك أبدًا: شغّله على نسخة من process.mirror() في eaos/engines/process.py، مع --skip-agents-md و --skip-skills و --skip-embeddings، و GITNEXUS_HOME داخل workdir حتى لا يلمس ~/.gitnexus. الاختبار يثبت أن مشروع المالك لم يتغير (state_digest قبل وبعد).
@@ -902,20 +1396,52 @@ python -m unittest tests.test_engine_contracts -q
 5. المجتمعات (Leiden) التي يكتشفها مرشح أولي لحدود المكوّنات الحالية في S02، ومدخل لإسقاط الصورة المثالية في NS7.T2: تُكتب في facts/external.json → communities[] {name, files}.
 6. أضف gitnexus إلى adopted_adapters وإلى ENGINES في tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة).
 
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py adapter gitnexus يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.
+- [ ] لا ملف كُتب داخل مشروع المالك (target_unchanged = true).
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.
+- أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.
+- لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+- gitnexus analyze يكتب في المستودع الذي يحلله: على نسخة process.mirror() فقط، و state_digest للمشروع قبل وبعد متساويان.
+
+**أمر القبول:**
+
 ```bash
-python -m unittest tests.test_engine_contracts -q
+python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter gitnexus
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS12.T9 — كل المحوّلات المنطبقة تعمل على العيّنة ⬜
 
-**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS12.T2, NS12.T3, NS12.T4, NS12.T5, NS12.T6, NS12.T7, NS12.T8, NS12.T10
+**لماذا:** كل محوّل مقبول وحده؛ هذه المهمة تثبت أنها تعمل معًا على كل مشروع تنطبق عليه.
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS12.T2, NS12.T3, NS12.T4, NS12.T5, NS12.T6, NS12.T7, NS12.T8, NS12.T10 · **الحجم:** S
 
 **الملفات:** `tools/north_star_measure.py` · `upstreams/registry.yaml`
 
+**الخطوات:**
+
 1. ثبّت الأدوات بـpython -m eaos tools install --stage assessment، وتأكد أن eaos tools doctor و eaos engines list يريانها، وأعد القياس.
 2. أي محوّل منطبق لم يعمل على مشروع: أصلح السبب (تثبيت أو مسار أو صيغة)، لا القائمة.
+
+**تنتهي حين:**
+
+- [ ] R3 = 1.0.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- أصلح سبب المحوّل الذي لم يعمل (تثبيت، أو مسار، أو صيغة)، لا القائمة.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only R3 --min 1.0
@@ -925,30 +1451,57 @@ python tools/north_star.py measure --only R3 --min 1.0
 
 ### NS18 — القياس وسجل الدَّين: الأرقام لكل ملف، والخطر حين تجتمع الأدلة
 
-**الهدف:** M1 ≥ 0.95 و S3 ≥ 0.8. · **المراحل:** S03, S04
+**الهدف:** M1 ≥ 0.95 و S3 ≥ 0.8 و G2 = 1.0. · **المراحل:** S03, S04
 
 #### NS18.T1 — جدول القياس لكل ملف ⬜
 
-**يحرّك:** M1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS12.T2
+**لماذا:** الأرقام موجودة لكنها موزعة بين خمسة مصادر. جدول واحد لكل ملف هو خط الأساس الذي يُقارن به «قبل/بعد»، والمدخل الذي يحسب منه سجل الدَّين النقاط الساخنة.
+
+**يحرّك:** M1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS12.T2 · **الحجم:** M
 
 **الملفات:** `eaos/measurements.py` · `eaos/pipeline/stages.py` · `tools/north_star_measure.py` · `tests/test_measurements.py`
+
+**يكتب:** `contract:measurements` (العقد: `schemas/artifacts/measurements.schema.json`) · `MEASUREMENTS.md`
+
+**الخطوات:**
 
 1. مرحلة measure بعد engines تكتب measurements.json → files[] {path, language, loc, complexity_max, duplicated_lines, churn, authors, last_changed, fan_in, fan_out, coverage}، و MEASUREMENTS.md بأعلى 20 ملفًا.
 2. المصادر موجودة ولا يُكتب محلل جديد: loc واللغة من scc (وإلا من حقائق metrics)، و complexity_max من symbol_metric_external (reforge و CodeGraph)، و duplicated_lines من مواقع jscpd، و churn و authors و last_changed من حقائق history، و fan_in و fan_out من graph، و coverage من verification.json إن وُجد.
 3. حقل بلا مصدر يبقى null ومعه السبب في files[].missing؛ لا صفر بدل المجهول.
 4. أضف قياس M1 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة). coverage خارج تعريف M1 لأنه يحتاج تشغيل الاختبارات.
 
+**تنتهي حين:**
+
+- [ ] measurements.json يمر عقده في المشاريع الثلاثة.
+- [ ] M1 ≥ 0.95.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- المجهول null ومعه سبب في missing، لا صفر.
+- مقام M1 هو files_parsed في dossier: جدول مقتطع لا ينجح.
+- اطبع الحقائق الحقيقية من /tmp/eaos-measure/<مشروع>/facts/ قبل كتابة أي ربط؛ أغلب عيوب هذا المستودع جاءت من منتج وقارئ اختلفا على اسم حقل.
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
+
 ```bash
-python tools/north_star.py measure --only M1 --min 0.95
+python tools/north_star.py measure --only M1 --min 0.95 && python tools/acceptance.py contract measurements
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS18.T2 — سجل الدَّين التقني: كل خطر عالٍ بشاهدين ⬜
 
-**يحرّك:** S3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS18.T1, NS12.T3, NS12.T4
+**لماذا:** أداة واحدة تخطئ؛ خطر عالٍ يؤكده شاهدان من أداتين مستقلتين هو ما يثق به المالك ويبني عليه قراره. هذا قلب قيمة EAOS.
+
+**يحرّك:** S3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS18.T1, NS12.T3, NS12.T4 · **الحجم:** M
 
 **الملفات:** `eaos/debt_register.py` · `eaos/pipeline/stages.py` · `eaos/compose/artifacts.py` · `tools/north_star_measure.py` · `tests/test_debt_register.py`
+
+**يكتب:** `contract:debt-register` (العقد: `schemas/artifacts/debt-register.schema.json`) · `RISK-REGISTER.md`
+
+**الخطوات:**
 
 1. مرحلة debt بعد probe تكتب debt-register.json → items[] {id, title, category, severity, witnesses[] {tool, finding_id, kind}, files, hotspot, impact, recommendation, claim_id}. category من: security، reliability، maintainability، architecture، data، supply_chain، dead_code.
 2. RISK-REGISTER.md موجود (eaos/compose/artifacts.py): يُكتب من debt-register.json بدل مصدره الحالي، فلا يوجد سجلان.
@@ -956,8 +1509,58 @@ python tools/north_star.py measure --only M1 --min 0.95
 4. خطورة high أو critical تحتاج شاهدين مستقلين من أداتين مختلفتين (مثلًا Semgrep مع CodeGraph، أو Trivy مع حقائق secrets)، أو شاهدًا حتميًا واحدًا (kind = deterministic: مفتاح مرفوع، أو RLS معطّل). بدون ذلك تنزل إلى medium ويُضاف مجسّ يقرر.
 5. أضف قياس S3 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة).
 
+**تنتهي حين:**
+
+- [ ] debt-register.json يمر عقده في المشاريع الثلاثة.
+- [ ] S3 ≥ 0.8.
+- [ ] RISK-REGISTER.md يُكتب من السجل، ولا يوجد سجلان.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- رفع S3 بخفض كل شيء إلى medium يُرد: الخطورة من الدليل.
+- witness.kind = deterministic فقط لدليل لا يحتمل التأويل (مفتاح مرفوع، و RLS معطّل، واسم غير معرّف).
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
+
 ```bash
-python tools/north_star.py measure --only S3 --min 0.8
+python tools/north_star.py measure --only S3 --min 0.8 && python tools/acceptance.py contract debt-register
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS18.T3 — كشف العمل المكرر في TypeScript و JavaScript ⬜
+
+**لماذا:** مؤشر الاستدامة minimal_path غير مقيس في finance-os (0 من 339 ملفًا)، لأن كشف العمل المكرر مكتوب لـPython وحده، وأغلب مشاريع الهواة TypeScript. لهذا G2 تحت هدفه.
+
+**يحرّك:** G2 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T2 · **الحجم:** M
+
+**الملفات:** `eaos/facts/redundancy.py` · `tests/test_redundancy_js.py`
+
+**الخطوات:**
+
+1. اقرأ eaos/facts/redundancy.py: _tree_sitter_redundancies تعلن أنها غير منفذة.
+2. نفّذها لـjavascript و typescript و tsx من الحقائق الموجودة، لا بمحلل جديد: حقائق loop (المدى)، و call_site (الاسم والسطر)، و data_access (NS3.T2).
+3. n_plus_one: نداء بيانات (data_access، أو fetch، أو axios) داخل مدى حلقة (for، أو while، أو forEach، أو map).
+4. repeated_call: النداء نفسه بالمعاملات النصية نفسها مرتين في الدالة نفسها، في فرعين غير متنافيين.
+5. بعدها يُحسب analysed لملفات TS، فيصير minimal_path مقيسًا في sustainability.json.
+
+**تنتهي حين:**
+
+- [ ] sustainability.json في finance-os فيه minimal_path بقيمة لا null.
+- [ ] G2 = 1.0.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- map على مصفوفة ثابتة في JSX ليست حلقة بيانات إلا إن كان داخلها نداء بيانات.
+- اطبع الحقائق الحقيقية من /tmp/eaos-measure/<مشروع>/facts/ قبل كتابة أي ربط؛ أغلب عيوب هذا المستودع جاءت من منتج وقارئ اختلفا على اسم حقل.
+
+**أمر القبول:**
+
+```bash
+python tools/north_star.py measure --only G2 --min 1.0
 ```
 
 **التراجع:** revert الالتزام.
@@ -968,25 +1571,56 @@ python tools/north_star.py measure --only S3 --min 0.8
 
 #### NS15.T1 — توليد مواصفات تثبيت السلوك ⬜
 
-**يحرّك:** E4 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T4
+**لماذا:** قبل تغيير سطر، نثبّت ما يفعله النظام اليوم باختبارات تمر عليه. هي شبكة الأمان التي تمنع التحول من كسر وظيفة دون أن نعرف.
+
+**يحرّك:** E4 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T4 · **الحجم:** L
 
 **الملفات:** `eaos/behavior_lock.py` · `eaos.policy.json` · `tests/test_behavior_lock.py`
 
-1. لكل وظيفة في features.json: مسارات page ← مواصفة Playwright تزور الصفحة وتتحقق من عناصرها الظاهرة؛ مسارات http مع OpenAPI ← إعداد Schemathesis؛ دوال منطق Python ← هيكل ApprovalTests يلتقط المخرج الحالي.
-2. اكتب المواصفات في behavior-lock/ وفهرسها في behavior-lock/plan.json → specs[] {feature, tool, path}. المواصفة تثبّت ما يفعله النظام اليوم، لا ما يجب أن يفعله.
-3. التوليد ساكن ولا يشغّل شيئًا من المشروع.
+**يكتب:** `contract:behavior-lock-plan` (العقد: `schemas/artifacts/behavior-lock-plan.schema.json`) · `behavior-lock/`
+
+**الخطوات:**
+
+1. اكتب eaos/behavior_lock.py ومرحلة lock بعد features تكتب behavior-lock/plan.json (العقد) والمواصفات تحت behavior-lock/.
+2. وظيفة لها أسطح page: ملف behavior-lock/playwright/<وظيفة>.spec.ts، فيه اختبار لكل سطح: page.goto(process.env.BASE_URL + route)، ثم لا أخطاء في console، ثم expect(page).toHaveScreenshot(). اللقطة الأولى تُسجَّل عند أول تشغيل على الكود الأصلي (NS26)، وهذا هو تثبيت السلوك.
+3. المسار ذو المعامل ($id و :id): قيمة من متغير بيئة E2E_<معامل> إن وُجد، وإلا يُسجل في plan.json → specs[].surfaces بعلامة needs_fixture ولا يُحذف.
+4. الأسطح خلف تسجيل دخول: ملف behavior-lock/playwright/auth.setup.ts يسجّل الدخول بـE2E_USER و E2E_PASSWORD (تُمرَّر عبر env_allow في التفويض)، ولا تُكتب قيم.
+5. سطح http مع مواصفة OpenAPI: إعداد Schemathesis في behavior-lock/schemathesis.toml. نداءات الواجهة إلى خادم للمشروع نفسه: عقد Pact في behavior-lock/pact/.
+6. وظيفة Python: behavior-lock/approvals/test_<وظيفة>.py بـApprovalTests، يستورد وحدات الوظيفة ويستدعي دوالها العامة الخالصة (بلا IO) بمدخلات من ملفات البيانات في المستودع إن وُجدت. وإلا فاختبار استيراد يثبت أنها تُحمَّل.
+7. behavior-lock/playwright.config.ts: baseURL من BASE_URL، ومجلد اللقطات behavior-lock/__screenshots__.
+8. التوليد ساكن: لا يشغّل شيئًا من المشروع.
+
+**تنتهي حين:**
+
+- [ ] E4 = 1.0: كل وظيفة لها مواصفة وملفها موجود.
+- [ ] plan.json يمر عقده.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- المواصفة تصف ما يفعله النظام اليوم، لا ما يجب أن يفعله.
+- لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
 
 ```bash
-python tools/north_star.py measure --only E4 --min 1.0
+python tools/north_star.py measure --only E4 --min 1.0 && python tools/acceptance.py contract behavior-lock-plan
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS15.T2 — مواصفات الحمل والأعطال والفحص الحي (ساكنة) ⬜
 
-**يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS15.T1, NS11.T2, NS17.T3
+**لماذا:** سكربتات الحمل وتجارب الأعطال وخطة الفحص الحي تُكتب الآن من الحقائق، فتكون جاهزة ومقبولة من أدواتها قبل أي تفويض.
+
+**يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS15.T1, NS11.T2, NS17.T3 · **الحجم:** M
 
 **الملفات:** `eaos/emit/nfr.py` · `templates/emit/k6/` · `templates/emit/toxiproxy/` · `templates/emit/zap/` · `upstreams/registry.yaml` · `tests/test_emit_nfr.py`
+
+**يكتب:** `contract:nfr-experiments` (العقد: `schemas/artifacts/nfr-experiments.schema.json`) · `nfr/k6/` · `nfr/toxiproxy.json` · `nfr/zap.yaml` · `contract:handover-validation` (العقد: `schemas/artifacts/handover-validation.schema.json`)
+
+**الخطوات:**
 
 1. k6: لكل سيناريو جودة من نوع حمل في intake.json (NS11.T2)، ولكل سطح في load-model.json بكلفة معروفة: nfr/k6/<scenario>.js بسيناريو ramping-vus، و thresholds من السيناريو (http_req_duration p(95) و http_req_failed rate)، وعنوان الأساس من متغير BASE_URL. المدقق: k6 inspect. أضف k6 إلى registry.yaml بدوري validate و run.
 2. Toxiproxy: لكل اعتمادية خارجية في الحقائق (قاعدة البيانات، وعنوان Supabase، ومضيفات integration_target): proxy في nfr/toxiproxy.json بصيغة toxiproxy-server -config، وتجارب في nfr/experiments.json {dependency, toxic: latency 2000ms | timeout | down, expected}. expected من سيناريو الجودة، وإلا القيمة الافتراضية المعلنة: «رسالة خطأ للمستخدم خلال 5 ثوانٍ، ولا صفحة بيضاء».
@@ -994,8 +1628,23 @@ python tools/north_star.py measure --only E4 --min 1.0
 4. Toxiproxy و ZAP بلا مدقق يعمل دون تشغيل: الاختبار يتحقق من شكلهما بمخطط JSON مكتوب فيه، و validation.json يسجل tool = "schema".
 5. التوليد ساكن: لا يشغّل شيئًا من المشروع. كل ملف يمر عبر eaos/emit/validate.py (NS17.T3).
 
+**تنتهي حين:**
+
+- [ ] كل ملف تحت nfr/ مسجل في handover/validation.json بحكم ok = true.
+- [ ] nfr/experiments.json يمر عقده.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- BASE_URL من متغير البيئة، ولا يُكتب عنوان.
+- k6 inspect يحتاج k6 مثبتًا عبر eaos tools install.
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
+
 ```bash
-python -m unittest tests.test_emit_nfr -q
+python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted nfr/k6/ nfr/toxiproxy.json nfr/zap.yaml && python tools/acceptance.py contract nfr-experiments
 ```
 
 **التراجع:** revert الالتزام.
@@ -1006,30 +1655,74 @@ python -m unittest tests.test_emit_nfr -q
 
 #### NS7.T1 — كتالوج بنى مرجعية لكل نوع مشروع ⬜
 
-**يحرّك:** T1, T2 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T2
+**لماذا:** الصورة المثالية تبدأ من بنية مرجعية معروفة لنوع المشروع، لا من ذوق النموذج. هذا الكتالوج هو المعرفة التي تحملها شركة محترفة.
+
+**يحرّك:** T1, T2 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T2 · **الحجم:** M
 
 **الملفات:** `eaos/data/reference-architectures.json` · `eaos/reference_architecture.py` · `eaos.policy.json` · `tests/test_reference_architecture.py`
+
+**يكتب:** `eaos/data/reference-architectures.json`
+
+**الخطوات:**
 
 1. لكل نوع (React+Vite+Supabase، Next.js، TanStack Start، Python CLI، Streamlit/Flask): الطبقات والاعتماديات المسموحة وخط الأساس للبنية التحتية (إعدادات البيئة، أنواع قاعدة البيانات، RLS، CI، الاختبارات، تتبع الأخطاء).
 2. كل عنصر يحمل سببه ومقياس نجاحه، لا ذوقًا.
 3. الاختبار يثبت على الأقل: الكتالوج يغطي أنواع العيّنة الثلاثة (React+Vite+Supabase، React+TanStack+Supabase، Python CLI)؛ لكل نوع طبقات مسماة واعتماديات مسموحة بينها؛ وخط أساس للبنية التحتية من 6 بنود على الأقل (إعدادات البيئة، عميل قاعدة بيانات بأنواع، RLS أو ما يعادله، CI، اختبارات، تتبع أخطاء)، لكل بند سبب ومقياس نجاح مكتوب. ومنتقي النوع يختار النوع الصحيح لكل مشروع في /tmp/eaos-corpus.
+4. المعرّفات وشكل الملف ودالة choose(project_dir) مكتوبة بالضبط في رأس acceptance/test_ns7_t1_reference.py.
+5. لكل نوع ثلاث طبقات على الأقل، مثل: routes/pages، و features (وحدة لكل مجال)، و shared/ui، و data-access، و config. خط الأساس للبنية التحتية يغطي على الأقل: configuration و data و ci و tests و observability و secrets، ولكل بند reason و success_measure.
+
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py test ns7_t1_reference يمر.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- choose يقرأ ملفات المشروع ولا يشغّل شيئًا.
+- الطبقة لا تعتمد على نفسها في allowed_dependencies.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python -m unittest tests.test_reference_architecture -q
+python tools/acceptance.py test ns7_t1_reference
 ```
 
 **التراجع:** احذف الكتالوج.
 
 #### NS7.T2 — إسقاط المشروع على البنية المرجعية ⬜
 
-**يحرّك:** T1, T3, G1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T1
+**لماذا:** أكبر فجوة وأعلى وزن: EAOS لا ينتج اليوم مكوّنًا مستهدفًا واحدًا (T1 = 0)، فلا صورة مثالية ولا فجوة مربوطة بها.
+
+**يحرّك:** T1, T3, G1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T1 · **الحجم:** L
 
 **الملفات:** `eaos/target_architecture.py` · `tests/test_target_architecture.py`
+
+**يكتب:** `contract:target-fragment` (العقد: `schemas/artifacts/target-fragment.schema.json`)
+
+**الخطوات:**
 
 1. اكتشف نوع المشروع واختر مرجعه؛ ضع كل ملف في طبقته المستهدفة.
 2. target_components غير فارغة: المكوّن، مسؤوليته، الملفات التي تنتقل إليه، الحواف الممنوعة التي تزول.
 3. كل صف في gap_matrix مربوط بمكوّن مستهدف وفرقه عدد ملفات ونقل وحواف.
 4. العقد مع القياس: اكتب المكوّنات في target-architecture.json → target_components[]، وكل صف في gap_matrix يحمل target_component.
+5. القاعدة الافتراضية Modular Monolith: مكوّن مستهدف لكل وظيفة في features.json (أو لكل مجموعة وظائف متقاربة البيانات)، ومكوّن لكل طبقة مشتركة في النوع المرجعي (مثل ui و data-access و auth و config).
+6. لكل مكوّن: name و responsibility و layer (من طبقات النوع المرجعي) و reference (معرّف النوع).
+7. كل ملف حالي يُنسب إلى مكوّن مستهدف: ملفات الوظيفة إلى مكوّنها، والباقي بطبقته. صف gap_matrix لكل مكوّن حالي فيه target_component وعدد الملفات التي تنتقل.
+
+**تنتهي حين:**
+
+- [ ] T1 = 1.0 و G1 = 1.0.
+- [ ] target-architecture.json يمر عقد target-fragment.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- الخدمات المصغّرة ليست افتراضًا: أي تقسيم خارج الوحدة الواحدة يحتاج سيناريو جودة يبرره.
+- اطبع الحقائق الحقيقية من /tmp/eaos-measure/<مشروع>/facts/ قبل كتابة أي ربط؛ أغلب عيوب هذا المستودع جاءت من منتج وقارئ اختلفا على اسم حقل.
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only T1 --min 1.0 && python tools/north_star.py measure --only G1 --min 1.0
@@ -1039,13 +1732,33 @@ python tools/north_star.py measure --only T1 --min 1.0 && python tools/north_sta
 
 #### NS7.T3 — قرارات البنية التحتية ⬜
 
-**يحرّك:** T2 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T2
+**لماذا:** المنتج الاحترافي بنية تحتية أيضًا: CI، ورصد، وأسرار، ونسخ احتياطي. لكل بند قرار مسبَّب، و«لا حاجة» قرار مقبول بسببه.
+
+**يحرّك:** T2 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T2 · **الحجم:** M
 
 **الملفات:** `eaos/target_architecture.py` · `tests/test_target_architecture.py`
+
+**يكتب:** `contract:target-fragment` (العقد: `schemas/artifacts/target-fragment.schema.json`)
+
+**الخطوات:**
 
 1. لكل بند في خط الأساس: موجود أم غائب بدليل، والقرار وبديله وكلفة 'لا نفعل شيئًا'.
 2. العقد مع القياس: اكتب القرارات في target-architecture.json → infrastructure[]، لكل بند area و present و decision و evidence.
 3. مرشحات كل بند من docs/TOOLCHAIN.md (الدور «يوصي»): CI ← GitHub Actions مع pre-commit؛ الاعتماديات ← Renovate؛ الرصد ← OpenTelemetry مع SigNoz؛ SLO ← Sloth؛ IaC ← OpenTofu (و Ansible للخوادم)؛ الإطلاق التدريجي ← Unleash؛ التوجيه أثناء Strangler ← Traefik؛ الهجرات ← أداة المكدّس الأصلية (Supabase CLI أو Prisma أو Alembic)، و Liquibase لـJVM فقط. لكل مرشح سبب من الحقائق أو سيناريو جودة، و«لا حاجة» مقبول بسببه.
+4. area من قيم العقد فقط. present من الحقائق: ci ← حقائق ci_step، و configuration ← env_read و config_key، و observability ← observability_signal، و hosting ← vercel.json أو netlify.toml أو Dockerfile.
+
+**تنتهي حين:**
+
+- [ ] T2 = 1.0.
+- [ ] كل بند في خط أساس النوع المرجعي له قرار.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- tool يسمّي أداة من docs/TOOLCHAIN.md أو null مع سبب.
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only T2 --min 1.0
@@ -1055,13 +1768,34 @@ python tools/north_star.py measure --only T2 --min 1.0
 
 #### NS7.T4 — قرار لكل مكوّن: إعادة استخدام، هيكلة، إعادة بناء، حذف ⬜
 
-**يحرّك:** T4 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T2, NS5.T1
+**لماذا:** لكل جزء من الكود قرار واحد بدليله: يبقى، أو يُعاد تنظيمه، أو يُعاد بناؤه، أو يُحذف. اليوم ينتج EAOS قرارين فقط من أربعة.
+
+**يحرّك:** T4 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T2, NS5.T1 · **الحجم:** M
 
 **الملفات:** `eaos/target_architecture.py` · `tests/test_target_architecture.py`
 
-1. قاعدة مكتوبة لكل قرار: حذف إن لم يصله شيء؛ إعادة استخدام إن وافق طبقته المستهدفة بلا حواف ممنوعة؛ هيكلة إن كان في المكان الخطأ أو كثيف التعقيد؛ إعادة بناء إن تجاوزت كلفة الهيكلة حدًا معلنًا.
-2. كل قرار بأرقامه ودليله وبديله.
-3. العقد مع القياس: اكتب القرار في current_components[].relation بإحدى القيم: retain أو modify أو rebuild أو delete، ومعه reason.
+**يكتب:** `contract:target-fragment` (العقد: `schemas/artifacts/target-fragment.schema.json`) · `eaos/data/disposition-rules.json`
+
+**الخطوات:**
+
+1. العتبات في eaos/data/disposition-rules.json لا في الكود.
+2. delete: كل ملفات المكوّن غير قابلة للوصول (ادعاءات NS5.T1).
+3. retain: في طبقته المستهدفة، وبلا حافة ممنوعة، و complexity_max < 15، و duplicated_lines < 20 (من measurements.json).
+4. rebuild: أكثر من 40% من ملفاته تحتاج نقلًا أو تعديلًا، أو complexity_max > 40، أو عليه عنصر critical في سجل الدَّين.
+5. modify: ما سوى ذلك.
+6. reason يذكر الأرقام التي قررت، و target_component مكانه المستهدف.
+
+**تنتهي حين:**
+
+- [ ] T4 = 1.0: كل مكوّن له قرار وسبب، والقرارات الأربعة ظاهرة في العيّنة.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- لا تفتعل قرارًا ليظهر: إن لم يظهر rebuild في العيّنة بالعتبات المعلنة، فعلّم المهمة blocked واكتب الأرقام.
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only T4 --min 1.0
@@ -1071,15 +1805,34 @@ python tools/north_star.py measure --only T4 --min 1.0
 
 #### NS7.T5 — الصورة المثالية تحفظ الوظائف ⬜
 
-**يحرّك:** T5 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T4, NS3.T4
+**لماذا:** الصورة المثالية تحفظ الوظائف نفسها: كل وظيفة يجب أن تجد بيتًا في مكوّن مستهدف، وإلا ضاعت أثناء التحول.
+
+**يحرّك:** T5 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T4, NS3.T4 · **الحجم:** S
 
 **الملفات:** `eaos/target_architecture.py` · `tests/test_target_architecture.py`
+
+**يكتب:** `contract:features` (العقد: `schemas/artifacts/features.schema.json`)
+
+**الخطوات:**
 
 1. كل وظيفة من جرد U4 لها مكوّن مستهدف يحملها؛ الوظيفة بلا مكان في الصورة المثالية فجوة معلنة.
 2. العقد مع القياس: اكتب مكان كل وظيفة في features.json → features[].target_component.
 
+**تنتهي حين:**
+
+- [ ] T5 = 1.0.
+- [ ] features.json يمر عقده بعد إضافة target_component.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- وظيفة بلا مكان فجوة معلنة في TARGET-STATE، لا null صامت.
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
+
 ```bash
-python tools/north_star.py measure --only T5 --min 1.0
+python tools/north_star.py measure --only T5 --min 1.0 && python tools/acceptance.py contract features --where "all(f.get('target_component') for f in data['features'])"
 ```
 
 **التراجع:** revert الالتزام.
@@ -1090,43 +1843,118 @@ python tools/north_star.py measure --only T5 --min 1.0
 
 #### NS13.T1 — نموذج C4 للوضع الحالي من الحقائق ⬜
 
-**يحرّك:** T6 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T4
+**لماذا:** نموذج C4 مكتوب نصًا يراه المالك رسمًا ويقرؤه أي نموذج بيانات: هو الخريطة المشتركة للوضع الحالي.
+
+**يحرّك:** T6 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T4 · **الحجم:** M
 
 **الملفات:** `eaos/c4.py` · `eaos.policy.json` · `tests/test_c4.py`
+
+**يكتب:** `architecture/current/workspace.dsl`
+
+**الخطوات:**
 
 1. اكتب architecture/current/workspace.dsl بصيغة Structurizr DSL من الحقائق: السياق (المستخدمون والأنظمة الخارجية من data_access و integration_target)، والحاويات (الواجهة، والخادم، وقاعدة البيانات، والتخزين)، والمكوّنات (current_components).
 2. واكتب النسخة نفسها Mermaid في CURRENT-STATE.md لتُعرض على GitHub. النموذج نص يكتبه EAOS؛ لا تعتمد على مكتبة Structurizr (structurizr/java مؤرشفة).
 3. الاختبار يثبت أن DSL المولَّد صالح نحويًا (عناصر workspace و model و views متوازنة الأقواس) وأن كل مكوّن حالي فيه.
+4. الهيكل الإلزامي، والأسماء بين علامتي تنصيص كما في current_components[].name حرفيًا:
+workspace "<مشروع>" {
+  model {
+    user = person "User"
+    system = softwareSystem "<مشروع>" {
+      app = container "Application" "<stack>" {
+        c1 = component "<name>"
+      }
+    }
+    ext1 = softwareSystem "<host>"
+    user -> app "uses"
+  }
+  views {
+    systemContext system { include * autolayout }
+    container system { include * autolayout }
+    component app { include * autolayout }
+  }
+}
+5. المعرّفات (c1 و ext1…) حروف وأرقام و_ فقط. الأنظمة الخارجية من integration_target و data_access.
+
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py dsl architecture/current/workspace.dsl --names current_components يمر.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- اسم مكوّن فيه علامة تنصيص يُهرَّب (\").
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python -m unittest tests.test_c4 -q
+python tools/north_star.py measure --only T6 && python tools/acceptance.py dsl architecture/current/workspace.dsl --names current_components
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS13.T2 — نموذج C4 للصورة المثالية ⬜
 
-**يحرّك:** T6 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS13.T1, NS7.T2
+**لماذا:** الصورة المثالية بالشكل نفسه للحالية، فيرى المالك الفرق بين رسمين.
+
+**يحرّك:** T6 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS13.T1, NS7.T2 · **الحجم:** S
 
 **الملفات:** `eaos/c4.py` · `tests/test_c4.py`
+
+**يكتب:** `architecture/target/workspace.dsl`
+
+**الخطوات:**
 
 1. اكتب architecture/target/workspace.dsl من target_components وحدودها المسموحة، بالطريقة نفسها.
 2. العقد مع القياس: اسم كل عنصر في target_components[].name يظهر في DSL المستهدف.
 
+**تنتهي حين:**
+
+- [ ] T6 = 1.0.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- الأسماء من target_components[].name حرفيًا بين علامتي تنصيص.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
+
 ```bash
-python tools/north_star.py measure --only T6 --min 1.0
+python tools/north_star.py measure --only T6 --min 1.0 && python tools/acceptance.py dsl architecture/target/workspace.dsl --names target_components
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS13.T3 — قرارات العمارة بصيغة MADR ⬜
 
-**يحرّك:** T7 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T4
+**لماذا:** كل قرار عمارة يُسجَّل مع بدائله وسببه، فلا يُعاد النقاش فيه بلا دليل جديد.
+
+**يحرّك:** T7 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T4 · **الحجم:** S
 
 **الملفات:** `eaos/adr.py` · `eaos.policy.json` · `tests/test_adr.py`
 
+**يكتب:** `adr/ADR-NNN.md`
+
+**الخطوات:**
+
 1. لكل قرار في target-architecture.json → decisions[] اكتب adr/ADR-NNN.md بأقسام MADR: Context and Problem Statement، و Considered Options (كل البدائل بأدلتها)، و Decision Outcome (القرار وسببه وعواقبه ومتى يُعاد النظر فيه).
 2. لا تستخدم Log4brains (متوقف منذ 2024-12)؛ الصيغة وحدها تكفي.
+3. العناوين حرفيًا: "## Context and Problem Statement" و "## Considered Options" و "## Decision Outcome"، ثم "### Consequences". الرقم NNN هو رقم decisions[].id.
+
+**تنتهي حين:**
+
+- [ ] T7 = 1.0.
+- [ ] كل ملف ADR يمر markdownlint.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- ADR واحد لكل قرار، لا ملف يجمعها.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only T7 --min 1.0
@@ -1140,12 +1968,30 @@ python tools/north_star.py measure --only T7 --min 1.0
 
 #### NS8.T1 — حجم لكل مهمة ⬜
 
-**يحرّك:** P1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T2
+**لماذا:** مهمة بلا حجم لا تُخطَّط ولا تُوزَّع على فريق. اليوم كل البطاقات effort = unknown.
+
+**يحرّك:** P1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T2 · **الحجم:** S
 
 **الملفات:** `eaos/plan.py` · `tests/test_plan.py`
 
-1. S/M/L مشتق من نطاق الأثر (ملفات ومستوردون) والنمط، مع ثقته المعلنة.
-2. العقد مع القياس: اكتب الحجم في plan.json → tasks[].effort بإحدى القيم S أو M أو L.
+**يكتب:** `contract:plan-fragment` (العقد: `schemas/artifacts/plan-fragment.schema.json`)
+
+**الخطوات:**
+
+1. القاعدة: S إن لمست البطاقة ملفين أو أقل و blast_radius.total ≤ 5؛ و M إن لمست 8 ملفات أو أقل أو total ≤ 20؛ و L غير ذلك. اكتبها في رأس الدالة.
+2. effort بإحدى القيم S أو M أو L فقط (العقد)، ومعه effort_basis {files, dependents}.
+
+**تنتهي حين:**
+
+- [ ] P1 = 1.0.
+- [ ] plan.json يمر عقد plan-fragment.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only P1 --min 1.0
@@ -1155,14 +2001,33 @@ python tools/north_star.py measure --only P1 --min 1.0
 
 #### NS8.T2 — معالم لا موجات ⬜
 
-**يحرّك:** P4 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T2
+**لماذا:** الموجات تُرتب حسب تعارض الملفات؛ الشركات ترتب بمعالم لها أهداف (تثبيت، ثم شبكة أمان، ثم حدود…). هذا ما يفهمه المالك ويتابعه.
+
+**يحرّك:** P4 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T2 · **الحجم:** M
 
 **الملفات:** `eaos/plan.py` · `eaos/compose/artifacts.py` · `tests/test_plan.py`
+
+**يكتب:** `contract:plan-fragment` (العقد: `schemas/artifacts/plan-fragment.schema.json`) · `ROADMAP.md`
+
+**الخطوات:**
 
 1. اجمع البطاقات في معالم حسب المكوّن المستهدف والهدف: التنظيف، ثم الأمن، ثم الطبقات، ثم التحسين.
 2. لكل معلم هدف وشرط خروج مقيس، وROADMAP.md بأقل من 10 معالم وأهم البطاقات في كل معلم.
 3. العقد مع القياس: اكتب المعالم في plan.json → milestones[]، لكل معلم id و goal و exit و tasks.
 4. مكوّن قراره rebuild أو replace ويخدم أسطحًا حية: معلم بنمط Strangler Fig. المسار الجديد خلف علم (Unleash، أو متغير بيئة إن لم تُعتمد Unleash)، والتوجيه عبر Traefik إن كان للمشروع خادم، وإزالة القديم معلم مستقل لا يبدأ قبل تكافؤ السلوك (E7).
+5. ترتيب المعالم ثابت كما في docs/MASTER-BLUEPRINT.md §٧: التثبيت، ثم شبكة الأمان، ثم الحدود، ثم البناء، ثم التصليب، ثم الإزالة، ثم الجاهزية. المعلم الفارغ لا يُكتب.
+
+**تنتهي حين:**
+
+- [ ] P4 = 1.0.
+- [ ] كل بطاقة في معلم واحد بالضبط.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only P4 --min 1.0
@@ -1172,11 +2037,30 @@ python tools/north_star.py measure --only P4 --min 1.0
 
 #### NS8.T3 — أوامر قبول قابلة للتشغيل للفئات الآلية ⬜
 
-**يحرّك:** P2, P3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS5.T4, NS6.T1
+**لماذا:** البطاقة التي دليلها آلي يجب أن يكون قبولها أمرًا يُشغَّل، لا «مراجعة بشرية».
+
+**يحرّك:** P2, P3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS5.T4, NS6.T1 · **الحجم:** M
 
 **الملفات:** `eaos/remediation_patterns.py` · `eaos/plan.py` · `tests/test_decisions.py`
 
+**يكتب:** `contract:plan-fragment` (العقد: `schemas/artifacts/plan-fragment.schema.json`)
+
+**الخطوات:**
+
 1. كل فئة يكون دليلها آليًا (كود ميت، مخلفات، أسرار، تكرار حرفي، مخالفة سياسة) تصدر بطاقة remediate بأمر قبول يعيد التدقيق ويتحقق من زوال الحقيقة.
+2. لكل فئة أمرها: كود ميت ومخلفات ← إعادة التدقيق مع التحقق من زوال الحقيقة بمعرّفها؛ أسرار ← trivy fs على المسار؛ تكرار حرفي ← jscpd على الملفين؛ مخالفة سياسة ← python -m eaos policy check.
+
+**تنتهي حين:**
+
+- [ ] P3 ≥ 0.8.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- الأمر يُشغَّل على نسخة المشروع، لا على الأصل.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only P3 --min 0.8
@@ -1186,13 +2070,29 @@ python tools/north_star.py measure --only P3 --min 0.8
 
 #### NS8.T4 — أقسام الفريق ⬜
 
-**يحرّك:** P6 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS8.T2
+**لماذا:** الفريق يعمل بالتوازي حين يعرف كل قسم مهامه وما ينتظره من الأقسام الأخرى.
+
+**يحرّك:** P6 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS8.T2 · **الحجم:** S
 
 **الملفات:** `eaos/plan.py` · `tests/test_plan.py`
 
-1. صنّف كل مهمة في قسم (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) من طبقتها المستهدفة وملفاتها.
-2. لكل قسم ترتيب داخلي وما يعتمد عليه من الأقسام الأخرى، ليعمل أكثر من مبرمج بالتوازي.
-3. العقد مع القياس: اكتب القسم في plan.json → tasks[].section.
+**يكتب:** `contract:plan-fragment` (العقد: `schemas/artifacts/plan-fragment.schema.json`)
+
+**الخطوات:**
+
+1. section من قيم العقد فقط (frontend و backend و data و infrastructure و security و quality)، بهذه القاعدة بالترتيب: pattern = access_gap، أو ادعاء committed_credential، أو ثغرة ← security؛ ملفات .github/ أو Dockerfile أو vercel.json ← infrastructure؛ ملفات .sql أو supabase/ ← data؛ مسارات server/ أو api/ أو functions/ ← backend؛ pattern = trace_gap أو untested_path ← quality؛ غير ذلك frontend.
+2. لكل قسم في plan.json → sections[] ترتيب داخلي، وما يعتمد عليه من الأقسام الأخرى (من depends_on البطاقات).
+
+**تنتهي حين:**
+
+- [ ] P6 = 1.0.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only P6 --min 1.0
@@ -1202,13 +2102,32 @@ python tools/north_star.py measure --only P6 --min 1.0
 
 #### NS8.T5 — التقارير الأربعة مدخلًا للتقرير ⬜
 
-**يحرّك:** P7 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T5, NS8.T4
+**لماذا:** التقارير الأربعة هي ما يستلمه المالك، وكل ما عداها ملاحق.
+
+**يحرّك:** P7 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T5, NS8.T4 · **الحجم:** M
 
 **الملفات:** `eaos/compose/artifacts.py` · `eaos/compose/four_reports.py` · `eaos.policy.json` · `tests/test_artifact_contract.py`
+
+**يكتب:** `CURRENT-STATE.md` · `TARGET-STATE.md` · `GAP-AND-STRATEGY.md` · `EXECUTION-PLAN.md`
+
+**الخطوات:**
 
 1. CURRENT-STATE.md و TARGET-STATE.md و GAP-AND-STRATEGY.md و EXECUTION-PLAN.md، لكل منها مالك وميزانية وتوأم JSON.
 2. README التقرير يبدأ بها بالترتيب، وتصير بقية الوثائق ملاحق مرجعية.
 3. العقد مع القياس: أسماء الملفات بالضبط: CURRENT-STATE.md و TARGET-STATE.md و GAP-AND-STRATEGY.md و EXECUTION-PLAN.md.
+4. قالب كل تقرير (docs/MASTER-BLUEPRINT.md §٦): الخلاصة في صفحة (القرار المطلوب، وأهم 3 أرقام، وأكبر 3 مخاطر)، ثم دليل ← استنتاج ← أثر ← توصية، ثم ما لم يُفحص، ثم الملاحق. كل رقم معه معرّف دليله.
+
+**تنتهي حين:**
+
+- [ ] P7 = 1.0.
+- [ ] كل تقرير داخل ميزانية أسطره في eaos/compose/artifacts.py.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- لا تكرر محتوى الملاحق في المتن؛ اربطه.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only P7 --min 1.0
@@ -1218,14 +2137,33 @@ python tools/north_star.py measure --only P7 --min 1.0
 
 #### NS8.T6 — أداة تحويل لكل مهمة آلية ⬜
 
-**يحرّك:** P9 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS8.T3
+**لماذا:** البطاقة الآلية تُنفَّذ بأداة تحويل حتمية، لا بنموذج: أرخص، وأسرع، ولا تخطئ بطريقة جديدة.
+
+**يحرّك:** P9 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS8.T3 · **الحجم:** M
 
 **الملفات:** `eaos/codemods.py` · `eaos/data/codemods.json` · `templates/codemods/` · `upstreams/registry.yaml` · `tools/north_star_measure.py` · `tests/test_codemods.py`
+
+**يكتب:** `contract:plan-fragment` (العقد: `schemas/artifacts/plan-fragment.schema.json`)
+
+**الخطوات:**
 
 1. الفئات الآلية وأداتها في eaos/data/codemods.json: حذف مخلفات أو كود ميت ← git rm للمسارات مع فحص dependency-cruiser أن لا شيء يستوردها؛ نقل وحدة وتحديث استيراداتها (JS/TS) ← jscodeshift؛ ترقية اعتمادية ← npm install pkg@version أو pip في النسخة؛ Java ← وصفة OpenRewrite منشورة بالاسم.
 2. لكل بطاقة من هذه الفئات: codemod {tool, command, dry_run}. dry_run يُملأ بتشغيل الأمر على isolated_copy بوضعه التجريبي (jscodeshift --dry): exit وعدد الملفات المتغيرة. التحويل يعدّل نص المشروع ولا يشغّل كوده.
 3. استخدم تحويلات jscodeshift المنشورة إن طابقت الفئة؛ لا تكتب تحويلًا في templates/codemods/ إلا لفئة بلا مقابل، ومعه اختبار على مثال. أضف jscodeshift إلى registry.yaml بدور run.
 4. أضف قياس P9 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة).
+
+**تنتهي حين:**
+
+- [ ] P9 ≥ 0.8.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- dry run على isolated_copy؛ لا تلمس الأصل.
+- files_changed = 0 يعني أن الأداة لم تفعل شيئًا، فلا تُحسب.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only P9 --min 0.8
@@ -1239,47 +2177,102 @@ python tools/north_star.py measure --only P9 --min 0.8
 
 #### NS14.T1 — حزمة أسلوب EAOS لـVale وإعداد markdownlint ⬜
 
-**يحرّك:** P8 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS8.T5
+**لماذا:** جودة التقرير تُفحص آليًا مثل الكود: الكلام المبهم يُرفض قبل أن يصل إلى المالك.
+
+**يحرّك:** P8 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS8.T5 · **الحجم:** S
 
 **الملفات:** `eaos/data/vale/` · `eaos/data/markdownlint.json` · `tests/test_report_style.py`
 
-1. قواعد Vale: ترفض الكلمات المبهمة (ربما، تحسين عام، إلخ، ونظائرها الإنجليزية)، وتنبّه على رقم لا يتبعه معرّف دليل، وعلى جملة أطول من حد معلن.
-2. إعداد markdownlint-cli2: عناوين متدرجة، وجداول سليمة، وروابط داخلية موجودة.
-3. الاختبار يثبت أن فقرة فيها كلمة مبهمة تُرفض وأن فقرة سليمة تمر.
+**يكتب:** `eaos/data/vale/` · `eaos/data/.markdownlint-cli2.jsonc`
+
+**الخطوات:**
+
+1. المسارات والأوامر مكتوبة بالضبط في رأس acceptance/test_ns14_t1_style.py، ومعها مثالان تحت acceptance/fixtures/style/.
+2. قواعد EAOS بمستوى error: كلمات مبهمة بالعربية (ربما، إلخ، بشكل عام، تحسين عام) وبالإنجليزية (maybe، etc.، generally، various).
+3. إعداد markdownlint: عناوين متدرجة، وجداول سليمة، ولا أسطر طويلة في الجداول تُكسر.
+
+**تنتهي حين:**
+
+- [ ] python tools/acceptance.py test ns14_t1_style يمر.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- vale يحتاج التثبيت عبر eaos tools install (NS17.T1).
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python -m unittest tests.test_report_style -q
+python tools/acceptance.py test ns14_t1_style
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS14.T2 — مرحلة فحص التقارير في الـpipeline ⬜
 
-**يحرّك:** P8 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS14.T1
+**لماذا:** الفحص يعمل داخل التدقيق نفسه على التقارير الأربعة، وتُصلح المولّدات حتى تمر.
+
+**يحرّك:** P8 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS14.T1 · **الحجم:** M
 
 **الملفات:** `eaos/report_quality.py` · `eaos/pipeline/stages.py` · `eaos/pipeline/runners.py` · `eaos.policy.json` · `tests/test_report_quality.py`
+
+**يكتب:** `contract:report-quality` (العقد: `schemas/artifacts/report-quality.schema.json`)
+
+**الخطوات:**
 
 1. مرحلة اختيارية بعد compose: تشغّل vale و markdownlint-cli2 إن كانا مثبتين على التقارير الأربعة، وتكتب report-quality.json → reports[] {name, vale_errors, markdownlint_errors}. غياب الأداة يُعلن unavailable لا نجاحًا.
 2. أصلح مولّدات التقارير حتى تمر الفحصين، لا القواعد.
 
+**تنتهي حين:**
+
+- [ ] P8 = 1.0.
+- [ ] report-quality.json يمر عقده.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- أداة لم تعمل تُكتب null لا 0.
+- أصلح المولّد، لا القاعدة.
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+
+**أمر القبول:**
+
 ```bash
-python tools/north_star.py measure --only P8 --min 1.0
+python tools/north_star.py measure --only P8 --min 1.0 && python tools/acceptance.py contract report-quality
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS14.T3 — ملخص تنفيذي PDF بصفحة واحدة ⬜
 
-**يحرّك:**  · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS14.T2
+**لماذا:** صاحب القرار يقرأ صفحة واحدة. PDF من البيانات نفسها لا من نص يُكتب مرتين.
+
+**يحرّك:** — · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS14.T2 · **الحجم:** S
 
 **الملفات:** `eaos/compose/pdf.py` · `templates/typst/executive.typ` · `upstreams/registry.yaml` · `tests/test_pdf.py`
+
+**يكتب:** `EXECUTIVE.pdf`
+
+**الخطوات:**
 
 1. قالب Typst واحد يقرأ JSON التقرير (json() في Typst) ويكتب EXECUTIVE.pdf: القرار المطلوب، وأهم 3 أرقام بدليلها، وأكبر 3 مخاطر، والمعالم.
 2. مرحلة اختيارية بعد compose، و absent_when: typst غير مثبت. أضف typst إلى registry.yaml بدور emit.
 3. لا يحرّك مؤشرًا؛ الاختبار يثبت أن الملف يُنتج وأن كل رقم فيه موجود في JSON المصدر، وأمر القبول يثبت عدم الهبوط.
 
+**تنتهي حين:**
+
+- [ ] EXECUTIVE.pdf في تقارير المشاريع الثلاثة.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- كل رقم في الملف موجود في JSON المصدر.
+
+**أمر القبول:**
+
 ```bash
-python -m unittest tests.test_pdf -q && python tools/north_star.py --no-regression
+python tools/north_star.py measure --only P8 && python tools/acceptance.py file EXECUTIVE.pdf
 ```
 
 **التراجع:** revert الالتزام.
@@ -1290,78 +2283,167 @@ python -m unittest tests.test_pdf -q && python tools/north_star.py --no-regressi
 
 #### NS25.T1 — عدّة الحوكمة: CI و pre-commit و Renovate وقواعد الحدود ⬜
 
-**يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T3, NS7.T3, NS12.T3, NS12.T6
+**لماذا:** الاحترافية تبقى بعد مغادرتنا فقط إن فرضها المستودع على كل تغيير: CI، وفحوص قبل الالتزام، وترقيات آلية، وحدود مكتوبة كقواعد.
+
+**يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T3, NS7.T3, NS12.T3, NS12.T6 · **الحجم:** M
 
 **الملفات:** `eaos/emit/governance.py` · `templates/emit/github-actions/` · `templates/emit/pre-commit/` · `templates/emit/renovate/` · `upstreams/registry.yaml` · `tests/test_emit_governance.py`
+
+**يكتب:** `handover/.github/workflows/eaos.yml` · `handover/.pre-commit-config.yaml` · `handover/renovate.json` · `handover/.dependency-cruiser.cjs` · `handover/semgrep/` · `contract:handover-validation` (العقد: `schemas/artifacts/handover-validation.schema.json`)
+
+**الخطوات:**
 
 1. handover/.github/workflows/eaos.yml بخطوات مشروطة بما ينطبق على المشروع: الاختبارات، و eaos audit --gate new مقابل خط أساس مثبّت، و dependency-cruiser بقواعد الحدود المستهدفة، و semgrep بقواعد EAOS، و trivy fs، و osv-scanner، و checkov (إن وُجد IaC أو CI)، و spectral و oasdiff (إن وُجد OpenAPI)، و playwright لشبكة الأمان. كل action مثبّت بـSHA لا بوسم.
 2. handover/.pre-commit-config.yaml بفحوص سريعة فقط (أسرار عبر trivy، و semgrep على الملفات المتغيرة، و markdownlint). handover/renovate.json: تجميع الترقيات الصغيرة، وجدول أسبوعي، وترقيات الأمن فورية.
 3. قواعد الحدود من target-architecture.json (المكوّنات المستهدفة وما يُمنع بينها): .dependency-cruiser.cjs لـJS/TS، وقواعد Semgrep تمنع الاستيراد عبر الحدود لـPython، واختبار ArchUnit لـJava.
 4. أضف إلى registry.yaml بدور validate: actionlint، و pre-commit، و renovate (لـrenovate-config-validator). كل ملف يمر عبر eaos/emit/validate.py.
+5. قواعد Semgrep للحدود تُكتب في handover/semgrep/boundaries.yml (هذا المسار يقيسه K1).
+
+**تنتهي حين:**
+
+- [ ] الملفات الخمسة مسجلة في handover/validation.json بحكم ok = true (dependency-cruiser لمشاريع JS/TS فقط).
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- كل action في سير العمل مثبّت بـSHA كامل، لا بوسم.
+- شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python -m unittest tests.test_emit_governance -q
+python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/.github/workflows/eaos.yml handover/.pre-commit-config.yaml handover/renovate.json handover/semgrep/
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS25.T2 — عدّة الرصد: OpenTelemetry و SLO ⬜
 
-**يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS25.T1, NS11.T2
+**لماذا:** الرصد وأهداف الخدمة (SLO) تُكتب الآن من سيناريوهات الجودة، وتُثبت لاحقًا على نسخة تعمل (NS24).
+
+**يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS25.T1, NS11.T2 · **الحجم:** M
 
 **الملفات:** `eaos/emit/observability.py` · `templates/emit/otel/` · `templates/emit/sloth/` · `upstreams/registry.yaml` · `tests/test_emit_observability.py`
+
+**يكتب:** `handover/otel/collector.yaml` · `handover/otel/INSTRUMENTATION.md` · `handover/slo/` · `contract:handover-validation` (العقد: `schemas/artifacts/handover-validation.schema.json`)
+
+**الخطوات:**
 
 1. handover/otel/collector.yaml: receiver otlp (grpc و http)، و processor batch، و exporters: file للبيئة المعزولة (يقرؤه NS24) و otlp إلى عنوان من متغير بيئة للإنتاج (SigNoz أو غيره). المدقق: otelcol-contrib validate --config.
 2. handover/otel/INSTRUMENTATION.md لكل مكدّس مكتشف: حزمة OpenTelemetry الرسمية وسطر تهيئتها، والأسطح الحرجة التي يجب أن تحمل span باسم المسار. كل سطر فيه يصير مهمة بقسم البنية التحتية في الخطة.
 3. handover/slo/<service>.yaml بصيغة Sloth (prometheus/v1): SLO توفر و SLO زمن استجابة لكل سيناريو جودة بأهدافه. المدقق: sloth validate -i handover/slo.
 4. أضف otelcol-contrib و sloth إلى registry.yaml بدور validate.
 
+**تنتهي حين:**
+
+- [ ] otel و slo مسجلة في validation.json بحكم ok = true.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- عنوان الإنتاج من متغير بيئة؛ لا عنوان مكتوب.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
+
 ```bash
-python -m unittest tests.test_emit_observability -q
+python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/otel/collector.yaml handover/slo/
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS25.T3 — عدّة الجاهزية: Goss وقائمة فحص كل بند فيها أمر ⬜
 
-**يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS25.T2
+**لماذا:** الجاهزية قائمة كل بند فيها أمر يُشغَّل، لا تصريح.
+
+**يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS25.T2 · **الحجم:** S
 
 **الملفات:** `eaos/emit/readiness.py` · `templates/emit/goss/` · `eaos/data/readiness-checklist.json` · `upstreams/registry.yaml` · `tests/test_emit_readiness.py`
+
+**يكتب:** `handover/readiness/goss.yaml` · `handover/readiness/checklist.json` · `contract:handover-validation` (العقد: `schemas/artifacts/handover-validation.schema.json`)
+
+**الخطوات:**
 
 1. handover/readiness/goss.yaml من الصورة المثالية: المنفذ الذي يستمع عليه التطبيق، و http لمسار الصحة بحالة 200، والعمليات، وملفات الإعداد المطلوبة. المدقق: goss -g handover/readiness/goss.yaml render.
 2. handover/readiness/checklist.json من eaos/data/readiness-checklist.json، ولكل بند command يشغّله NS16: goss validate، وشبكة الأمان، والاستعادة من نسخة احتياطية (إن كانت قاعدة بيانات)، والتراجع إلى الالتزام السابق مع مرور شبكة الأمان، و pre-commit run --all-files، و act إن توفر Docker.
 3. بند بلا command يُرفض عند التوليد. أضف goss إلى registry.yaml بدوري validate و run.
 
+**تنتهي حين:**
+
+- [ ] goss.yaml مسجل في validation.json بحكم ok = true.
+- [ ] كل بند في checklist.json له command.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
+
 ```bash
-python -m unittest tests.test_emit_readiness -q
+python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/readiness/goss.yaml
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS25.T4 — موقع التسليم: التقارير وقرارات العمارة والرسوم في مكان واحد ⬜
 
-**يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS25.T3, NS13.T3, NS14.T2
+**لماذا:** المالك يستلم موقع توثيق واحدًا فيه التقارير والقرارات والرسوم ودلائل التشغيل.
+
+**يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS25.T3, NS13.T3, NS14.T2 · **الحجم:** S
 
 **الملفات:** `eaos/emit/handover_site.py` · `templates/emit/site/` · `upstreams/registry.yaml` · `tests/test_emit_site.py`
+
+**يكتب:** `handover/mkdocs.yml` · `handover/docs/` · `contract:handover-validation` (العقد: `schemas/artifacts/handover-validation.schema.json`)
+
+**الخطوات:**
 
 1. handover/docs/: التقارير الأربعة، و adr/، و architecture/ (Mermaid مضمّن)، و runbooks/ (التشغيل، والتراجع، والاستعادة من الحوادث)، و handover/mkdocs.yml بقائمة التنقل. الصيغة mkdocs.yml يقرؤها Zensical و MkDocs معًا.
 2. المدقق: zensical build بلا تحذير رابط مكسور. أضف zensical إلى registry.yaml بدور validate.
 3. موقع EAOS الحالي (index.html) يبقى أداة القراءة الداخلية؛ هذا الموقع يُسلَّم للمالك ويُنشر من مستودعه.
 
+**تنتهي حين:**
+
+- [ ] mkdocs.yml مسجل في validation.json بحكم ok = true (zensical build بلا تحذير رابط مكسور).
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
+
 ```bash
-python -m unittest tests.test_emit_site -q
+python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/mkdocs.yml
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS25.T5 — كل العدّة مقبولة من أدواتها على العيّنة ⬜
 
-**يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS25.T4, NS15.T2
+**لماذا:** كل مهمة عدّة مقبولة وحدها؛ هذه تثبت أن العدّة كاملة لكل مشروع بما ينطبق عليه.
+
+**يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS25.T4, NS15.T2 · **الحجم:** S
 
 **الملفات:** `tools/north_star_measure.py` · `docs/north-star.json`
 
+**الخطوات:**
+
 1. ثبّت المدققات بـeaos tools install --stage assessment، وولّد العدّة لكل مشروع في العيّنة، وأعد القياس.
 2. أي ملف يرفضه مدققه: أصلح المولّد، لا المدقق ولا القائمة.
+
+**تنتهي حين:**
+
+- [ ] K1 = 1.0.
+- [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
+
+**فخاخ معروفة:**
+
+- أصلح المولّد، لا المدقق ولا قائمة KIT.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only K1 --min 1.0
@@ -1375,32 +2457,72 @@ python tools/north_star.py measure --only K1 --min 1.0
 
 #### NS26.T1 — تشغيل شبكة الأمان على الكود الأصلي ⬜
 
-**يحرّك:** E5 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS15.T1, NS17.T5
+**لماذا:** أول خطوة بعد التفويض: تشغيل شبكة الأمان على الكود الأصلي وتسجيل ما يفعله اليوم. بدونها لا يبدأ أي تغيير.
+
+**يحرّك:** E5 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS15.T1, NS17.T5 · **الحجم:** M
 
 **الملفات:** `eaos/behavior_lock.py` · `tests/test_behavior_lock.py`
+
+**يكتب:** `contract:behavior-lock-results` (العقد: `schemas/artifacts/behavior-lock-results.schema.json`)
+
+**الخطوات:**
 
 1. بتفويض المالك (authorization.json، NS17.T5) وداخل Sandbox: ثبّت اعتماديات المشروع (npm ci أو pip install)، وشغّله بـstart، ثم شغّل مواصفات behavior-lock بأدواتها: npx playwright test --reporter=json، و schemathesis run، و pact، و pytest لـApprovalTests.
 2. اكتب behavior-lock/results.json → results[] {path, status}. مواصفة فشلت على الكود الأصلي تُصحَّح لتصف ما يفعله النظام فعلًا، أو تُعلَّم quarantined بسبب مكتوب؛ لا تُحذف.
 3. بلا تفويض تبقى المهمة blocked بسبب مكتوب.
+4. التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب "no authorization for <مشروع>"، ولا تشغّل شيئًا.
+5. المخرج behavior-lock/results.json تحت مجلد التشغيل، بعقده. commit فيه هو commit المشروع.
+
+**تنتهي حين:**
+
+- [ ] E5 ≥ 0.8.
+- [ ] results.json يمر عقده.
+
+**فخاخ معروفة:**
+
+- لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).
+- مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python tools/north_star.py measure --only E5 --min 0.8
+python tools/north_star.py measure --only E5 --min 0.8 && python tools/acceptance.py contract behavior-lock-results
 ```
 
 **التراجع:** revert الالتزام.
 
 #### NS26.T2 — خط أساس الحمل قبل أي تغيير ⬜
 
-**يحرّك:** E6 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS26.T1, NS15.T2
+**لماذا:** الرقم «بعد» بلا رقم «قبل» بالشروط نفسها لا يثبت شيئًا.
+
+**يحرّك:** E6 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS26.T1, NS15.T2 · **الحجم:** S
 
 **الملفات:** `eaos/runtime_baseline.py` · `tests/test_runtime_baseline.py`
+
+**يكتب:** `contract:runtime-performance` (العقد: `schemas/artifacts/runtime-performance.schema.json`)
+
+**الخطوات:**
 
 1. في Sandbox نفسه: k6 run --summary-export لكل سكربت في nfr/k6 على الكود الأصلي. اكتب runtime/performance.json → scenarios[] {id, before {p95_ms, error_rate}}، وهو الطرف «قبل» لمؤشر E6.
 2. الشروط في الملف نفسه: نسخة build لا خادم التطوير، ومدة الإحماء، وعدد المستخدمين الافتراضيين، والجهاز. رقم بلا شروطه لا يقارَن.
 3. الاختبار يثبت أن سيناريو بلا شروط مكتوبة يُرفض، وأن طرف «بعد» لا يُكتب دون طرف «قبل».
+4. التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب "no authorization for <مشروع>"، ولا تشغّل شيئًا.
+
+**تنتهي حين:**
+
+- [ ] runtime/performance.json يمر عقده، ولكل سيناريو before.
+
+**فخاخ معروفة:**
+
+- لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).
+- مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python -m unittest tests.test_runtime_baseline -q
+python tools/acceptance.py contract runtime-performance --where "all(s['before'] for s in data['scenarios'])"
 ```
 
 **التراجع:** revert الالتزام.
@@ -1411,17 +2533,37 @@ python -m unittest tests.test_runtime_baseline -q
 
 #### NS9.T1 — تنفيذ حقيقي على مشروع من العيّنة ⬜
 
-**يحرّك:** E1, E2 · **ينفّذه:** يحتاج مزوّد نموذج · **يعتمد على:** NS8.T3, NS26.T1, NS8.T6
+**لماذا:** الإثبات أن الخطة قابلة للتنفيذ: بطاقات حقيقية تُنفَّذ على مشروع حقيقي، ويمر قبولها في نسخة معزولة.
+
+**يحرّك:** E1, E2 · **ينفّذه:** يحتاج مزوّد نموذج · **يعتمد على:** NS8.T3, NS26.T1, NS8.T6 · **الحجم:** L
 
 **الملفات:** `docs/north-star.json`
 
-1. اضبط مزوّد نموذج، وشغّل eaos improve على نسخة من مشروع في العيّنة بخطوات محدودة.
-2. سجّل: المهام المنفذة، وأوامر القبول ونتائجها، و predictions_verified من guarantee.json.
-3. كل مهمة خلف بوابة: أمر قبولها، وشبكة الأمان (NS26) داخل Sandbox، وإعادة تدقيق بلا ادعاء حرج جديد. أي فشل يعيد المهمة ولا يمر.
-4. البطاقات التي تحمل codemod (NS8.T6) تُنفَّذ بأداتها لا بالنموذج؛ النموذج للمهام التي تحتاج حكمًا.
+**يكتب:** `contract:execution-log` (العقد: `schemas/artifacts/execution-log.schema.json`)
+
+**الخطوات:**
+
+1. ما يوفره المالك: ملف provider.json (نوع chat_completions مع endpoint و model و api_key_env، أو نوع command مع argv لأداة محلية)، ومتغير المفتاح في البيئة، والتفويض. القالب في docs/MASTER-BLUEPRINT.md §١٠.
+2. البطاقات التي تحمل codemod (NS8.T6) تُنفَّذ بأداتها أولًا. ثم بطاقة واحدة على الأقل بالنموذج: python -m eaos implement --out <مساحة العمل> --checks <checks.json> --task TASK-NNN --provider provider.json run.
+3. كل بطاقة خلف بوابة: أمر قبولها، وشبكة الأمان (NS26) في Sandbox، وإعادة التدقيق بلا ادعاء حرج جديد.
+4. اكتب runtime/execution.json (العقد): لكل بطاقة id و tool (codemod أو model) و status كما كتبه eaos implement في result.json، و acceptance_exit.
+
+**تنتهي حين:**
+
+- [ ] E1 = 1.0.
+- [ ] execution.json يمر عقده.
+
+**فخاخ معروفة:**
+
+- status يُنسخ من result.json كما هو؛ NEEDS_REVIEW ليس نجاحًا.
+- لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).
+- مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python tools/north_star.py measure --only E1 --min 1.0
+python tools/north_star.py measure --only E1 --min 1.0 && python tools/acceptance.py contract execution-log
 ```
 
 **التراجع:** لا تغيير في الكود.
@@ -1432,17 +2574,36 @@ python tools/north_star.py measure --only E1 --min 1.0
 
 #### NS20.T1 — شبكة الأمان وإعادة التدقيق بعد كل معلم ⬜
 
-**يحرّك:** E7, E2 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS9.T1
+**لماذا:** التحول ينجح فقط إن بقيت الوظائف نفسها تعمل، وحدث ما تنبأت به الخطة.
+
+**يحرّك:** E7, E2 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS9.T1 · **الحجم:** M
 
 **الملفات:** `eaos/verify_change.py` · `tests/test_verify_change.py`
+
+**يكتب:** `behavior-lock/results-after.json` · `contract:runtime-guarantee` (العقد: `schemas/artifacts/runtime-guarantee.schema.json`) · `VERIFICATION.md`
+
+**الخطوات:**
 
 1. بعد كل معلم من NS9، وداخل Sandbox على النسخة المتغيرة: شغّل شبكة الأمان نفسها واكتب behavior-lock/results-after.json.
 2. أعد التدقيق بـeaos audit، ثم eaos delta مقابل خط الأساس، ثم eaos guarantee لمقارنة التنبؤ بالمقاس (E2).
 3. إن وُجدت مواصفة OpenAPI قبل وبعد: oasdiff breaking. أي كسر لم تذكره الخطة يُفشل البوابة.
 4. VERIFICATION.md: جدول قبل وبعد لكل مؤشر، وكل مواصفة تغيّرت حالتها وسببه.
+5. انسخ guarantee.json الذي يكتبه eaos guarantee إلى runtime/guarantee.json كما هو (العقد runtime-guarantee).
+
+**تنتهي حين:**
+
+- [ ] E7 = 1.0 و E2 ≥ 0.8.
+
+**فخاخ معروفة:**
+
+- لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).
+- مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python tools/north_star.py measure --only E7 --min 1.0
+python tools/north_star.py measure --only E7 --min 1.0 && python tools/north_star.py measure --only E2 --min 0.8
 ```
 
 **التراجع:** revert الالتزام.
@@ -1453,17 +2614,37 @@ python tools/north_star.py measure --only E7 --min 1.0
 
 #### NS21.T1 — فحص ساكن وحي بلا خطر عالٍ مفتوح ⬜
 
-**يحرّك:** E8 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS20.T1, NS15.T2
+**لماذا:** لا يُسلَّم نظام فيه خطر عالٍ مفتوح، لا في الكود ولا وهو يعمل.
+
+**يحرّك:** E8 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS20.T1, NS15.T2 · **الحجم:** M
 
 **الملفات:** `eaos/runtime_security.py` · `upstreams/registry.yaml` · `tests/test_runtime_security.py`
+
+**يكتب:** `contract:runtime-security` (العقد: `schemas/artifacts/runtime-security.schema.json`)
+
+**الخطوات:**
 
 1. ساكن: أعد تشغيل محوّلات Semgrep و Trivy و OSV-Scanner و Checkov (NS12) على النسخة المتغيرة.
 2. حي: داخل Sandbox والتطبيق يعمل: zap.sh -cmd -autorun nfr/zap.yaml (خطة NS15.T2). يحتاج Java 17: eaos tools install يطبع سطر تثبيته. اقرأ تقرير JSON: التنبيهات بخطورتها.
 3. Trivy image إن بنى المشروع صورة Docker. OpenSSF Scorecard إن كان المستودع على GitHub و GITHUB_TOKEN متاح: يُسجَّل في التقرير ولا يدخل البوابة.
 4. runtime/security.json → {static {critical, high}, dast {tool, high, medium}}. E8 للمشروع = 1 فقط إن كانت critical و high صفرًا في الاثنين.
+5. التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب "no authorization for <مشروع>"، ولا تشغّل شيئًا.
+
+**تنتهي حين:**
+
+- [ ] E8 = 1.0.
+
+**فخاخ معروفة:**
+
+- ZAP يحتاج Java 17؛ غيابه سبب blocked مكتوب، لا تخطٍّ.
+- لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).
+- مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python tools/north_star.py measure --only E8 --min 1.0
+python tools/north_star.py measure --only E8 --min 1.0 && python tools/acceptance.py contract runtime-security
 ```
 
 **التراجع:** revert الالتزام.
@@ -1474,13 +2655,33 @@ python tools/north_star.py measure --only E8 --min 1.0
 
 #### NS22.T1 — k6 بعد التحول مقابل خط الأساس ⬜
 
-**يحرّك:** E6 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS20.T1, NS26.T2
+**لماذا:** الحمل يُقاس قبل وبعد بالشروط نفسها، ويُقارن بعتبة سيناريو الجودة.
+
+**يحرّك:** E6 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS20.T1, NS26.T2 · **الحجم:** S
 
 **الملفات:** `eaos/runtime_baseline.py` · `tests/test_runtime_baseline.py`
+
+**يكتب:** `contract:runtime-performance` (العقد: `schemas/artifacts/runtime-performance.schema.json`) · `PERFORMANCE.md`
+
+**الخطوات:**
 
 1. شغّل سكربتات nfr/k6 نفسها بالشروط المكتوبة في runtime/performance.json على النسخة المتغيرة، واملأ after.
 2. PERFORMANCE.md: p95 ونسبة الخطأ قبل وبعد لكل سيناريو، ومقابل عتبة سيناريو الجودة.
 3. اختياري للخوادم (Node أو Python أو Go أو Java): Grafana Pyroscope أثناء التشغيل لمعرفة أين يذهب المعالج. يُرفق ولا يدخل البوابة.
+4. التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب "no authorization for <مشروع>"، ولا تشغّل شيئًا.
+
+**تنتهي حين:**
+
+- [ ] E6 ≥ 0.8.
+
+**فخاخ معروفة:**
+
+- شروط التشغيل (build و vus و duration) هي نفسها المسجلة في before، وإلا فالمقارنة باطلة.
+- لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).
+- مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only E6 --min 0.8
@@ -1494,17 +2695,36 @@ python tools/north_star.py measure --only E6 --min 0.8
 
 #### NS23.T1 — تجارب Toxiproxy على كل اعتمادية حرجة ⬜
 
-**يحرّك:** E9 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS20.T1, NS15.T2
+**لماذا:** المنتج الاحترافي يفشل بلطف حين تبطؤ قاعدة البيانات أو تسقط خدمة خارجية. نعرف ذلك بالتجربة، لا بالظن.
+
+**يحرّك:** E9 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS20.T1, NS15.T2 · **الحجم:** M
 
 **الملفات:** `eaos/resilience.py` · `tests/test_resilience.py`
+
+**يكتب:** `contract:runtime-resilience` (العقد: `schemas/artifacts/runtime-resilience.schema.json`) · `RESILIENCE.md`
+
+**الخطوات:**
 
 1. داخل Sandbox: toxiproxy-server -config nfr/toxiproxy.json، ووجّه التطبيق إلى الوكيل بمتغيرات البيئة (مثل VITE_SUPABASE_URL أو DATABASE_URL). تطبيق يكتب العنوان في الكود لا في متغير: هذه نتيجة بحد ذاتها تُسجَّل ادعاءً ومهمة، ولا تُتجاوز.
 2. لكل تجربة في nfr/experiments.json: فعّل toxic عبر toxiproxy-cli، وشغّل مواصفات شبكة الأمان للوظائف التي تستخدم الاعتمادية، وسجّل observed (رسالة خطأ؟ مهلة؟ صفحة بيضاء؟ إعادة محاولة؟) مقابل expected.
 3. Pumba لعطل الحاوية والمعالج والذاكرة إن كان backend = docker؛ وإلا يُسجَّل غير منطبق بسببه.
 4. runtime/resilience.json → experiments[] {dependency, toxic, expected, observed, ok}، و RESILIENCE.md.
+5. التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب "no authorization for <مشروع>"، ولا تشغّل شيئًا.
+
+**تنتهي حين:**
+
+- [ ] E9 ≥ 0.8.
+
+**فخاخ معروفة:**
+
+- لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).
+- مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python tools/north_star.py measure --only E9 --min 0.8
+python tools/north_star.py measure --only E9 --min 0.8 && python tools/acceptance.py contract runtime-resilience
 ```
 
 **التراجع:** revert الالتزام.
@@ -1515,17 +2735,37 @@ python tools/north_star.py measure --only E9 --min 0.8
 
 #### NS24.T1 — التحقق من الرصد أثناء شبكة الأمان والحمل ⬜
 
-**يحرّك:** E10 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS25.T2, NS22.T1
+**لماذا:** الرصد المكتوب في الإعداد لا يكفي؛ نثبت أن كل سطح حرج يظهر فعلًا في التتبع.
+
+**يحرّك:** E10 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS25.T2, NS22.T1 · **الحجم:** M
 
 **الملفات:** `eaos/telemetry_check.py` · `tests/test_telemetry_check.py`
+
+**يكتب:** `contract:runtime-telemetry` (العقد: `schemas/artifacts/runtime-telemetry.schema.json`)
+
+**الخطوات:**
 
 1. داخل Sandbox: otelcol-contrib --config handover/otel/collector.yaml بمصدّر file، ووجّه التطبيق إليه بـOTEL_EXPORTER_OTLP_ENDPOINT.
 2. شغّل شبكة الأمان وسكربتات k6، ثم اقرأ ملف المصدّر: اربط كل span بسطح (http.route أو url.path)، واكتب runtime/telemetry.json → surfaces[] {surface, spans}.
 3. سطح حرج بلا span يصير مهمة في قسم البنية التحتية وفق INSTRUMENTATION.md، لا استثناء.
 4. تحقق أن قواعد Prometheus التي يولّدها sloth generate من handover/slo تشير إلى مقاييس ظهرت فعلًا.
+5. التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب "no authorization for <مشروع>"، ولا تشغّل شيئًا.
+6. السطح الحرج هو سطح وظيفة critical = true في features.json.
+
+**تنتهي حين:**
+
+- [ ] E10 ≥ 0.9.
+
+**فخاخ معروفة:**
+
+- لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).
+- مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python tools/north_star.py measure --only E10 --min 0.9
+python tools/north_star.py measure --only E10 --min 0.9 && python tools/acceptance.py contract runtime-telemetry
 ```
 
 **التراجع:** revert الالتزام.
@@ -1536,16 +2776,36 @@ python tools/north_star.py measure --only E10 --min 0.9
 
 #### NS16.T1 — تشغيل قائمة الجاهزية ⬜
 
-**يحرّك:** E11 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS25.T3, NS21.T1, NS22.T1, NS23.T1, NS24.T1
+**لماذا:** شهادة الإنتاج: كل بند جاهزية يمر بأمره، والنتيجة جدول قبل/بعد بالأرقام.
+
+**يحرّك:** E11 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS25.T3, NS21.T1, NS22.T1, NS23.T1, NS24.T1 · **الحجم:** M
 
 **الملفات:** `eaos/readiness.py` · `tests/test_readiness.py`
+
+**يكتب:** `contract:production-readiness` (العقد: `schemas/artifacts/production-readiness.schema.json`) · `PRODUCTION-READINESS.md`
+
+**الخطوات:**
 
 1. شغّل كل بند من handover/readiness/checklist.json (NS25.T3) بأمره داخل Sandbox: goss -g handover/readiness/goss.yaml validate --format json، والاستعادة، والتراجع، و pre-commit run --all-files، و act إن توفر Docker.
 2. اكتب PRODUCTION-READINESS.json → items[] {id, command, ok, output}، و PRODUCTION-READINESS.md بجدول قبل وبعد لكل مؤشر من E5 إلى E10.
 3. الاختبار يثبت أن بندًا بلا أمر يُرفض، وأن بندًا فشل أمره لا يُكتب ناجحًا.
+4. التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب "no authorization for <مشروع>"، ولا تشغّل شيئًا.
+
+**تنتهي حين:**
+
+- [ ] E11 = 1.0.
+- [ ] PRODUCTION-READINESS.md فيه جدول قبل/بعد لكل مؤشر من E5 إلى E10.
+
+**فخاخ معروفة:**
+
+- لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).
+- مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.
+- لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.
+
+**أمر القبول:**
 
 ```bash
-python tools/north_star.py measure --only E11 --min 1.0
+python tools/north_star.py measure --only E11 --min 1.0 && python tools/acceptance.py contract production-readiness
 ```
 
 **التراجع:** revert الالتزام.
@@ -1556,12 +2816,30 @@ python tools/north_star.py measure --only E11 --min 1.0
 
 #### NS10.T1 — عيّنة من 10 مشاريع منها 3 holdout ⬜
 
-**يحرّك:** V4 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T2
+**لماذا:** نتيجة على 3 مشاريع ضُبطت عليها الأداة لا تثبت شيئًا عن مشروع جديد. عشرة مشاريع، ثلاثة منها لا تُقرأ تقاريرها أثناء التطوير.
+
+**يحرّك:** V4 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T2 · **الحجم:** M
 
 **الملفات:** `docs/north-star.json`
 
+**الخطوات:**
+
 1. أضف 7 مشاريع حقيقية متنوعة، وضع 3 منها في holdout لا تُقرأ تقاريرها أثناء التطوير.
 2. لكل مشروع truth مكتوبة قبل تشغيل الأداة عليه.
+3. المشاريع: مستودعات عامة مبنية بأدوات vibe coding (Lovable، Bolt، v0، Cursor) بأنواع مختلفة: React و Next.js و Python، وواحد على الأقل بخادم خاص به.
+4. لكل مشروع truth مكتوبة قبل تشغيل الأداة عليه: user_surfaces بأمر عدّ مكتوب في user_surfaces_how، و tables، و policies، و leftovers، و credentials.
+5. ثلاثة منها holdout: true. لا تُقرأ تقاريرها ولا يُضبط عليها شيء.
+
+**تنتهي حين:**
+
+- [ ] V4 = 1.0.
+- [ ] كل مشروع مثبّت بـcommit كامل.
+
+**فخاخ معروفة:**
+
+- الحقيقة الأرضية تُكتب قبل التشغيل؛ كتابتها بعد قراءة التقرير تُبطل القياس.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only V4 --min 1.0
@@ -1571,11 +2849,26 @@ python tools/north_star.py measure --only V4 --min 1.0
 
 #### NS10.T2 — مراجع بشري مستقل ⬜
 
-**يحرّك:** V3 · **ينفّذه:** يحتاج إنسانًا من خارج المشروع · **يعتمد على:** NS8.T2
+**لماذا:** الحكم النهائي على جودة التقارير لإنسان محترف من خارج المشروع.
+
+**يحرّك:** V3 · **ينفّذه:** يحتاج إنسانًا من خارج المشروع · **يعتمد على:** NS8.T2 · **الحجم:** S
 
 **الملفات:** `docs/north-star.json`
 
+**الخطوات:**
+
 1. ابنِ حزمة مراجعة لمشروع من العيّنة وسلّمها لمراجع من خارج المشروع، وسجّل النموذج المكتمل كما هو.
+2. المراجع يملأ نموذج المراجعة الموجود (eaos evaluate) على التقارير الأربعة لمشروع من العيّنة. تُسجل V3 = 1 مع رابط النموذج المكتمل في evidence.
+
+**تنتهي حين:**
+
+- [ ] V3 = 1.0 مسجلة بدليلها.
+
+**فخاخ معروفة:**
+
+- لا يراجع من شارك في التطوير.
+
+**أمر القبول:**
 
 ```bash
 python tools/north_star.py measure --only V3 --min 1.0

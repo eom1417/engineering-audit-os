@@ -1,0 +1,103 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "plan.json",
+  "description": "Only the fields the north-star plan adds to plan.json; the rest of the file keeps its existing contract.",
+  "x-artifact": "plan.json",
+  "x-owner": "NS8",
+  "type": "object",
+  "required": [],
+  "properties": {
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "effort": {
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "L"
+            ]
+          },
+          "section": {
+            "type": "string",
+            "enum": [
+              "frontend",
+              "backend",
+              "data",
+              "infrastructure",
+              "security",
+              "quality"
+            ]
+          },
+          "codemod": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "required": [
+              "tool",
+              "command",
+              "dry_run"
+            ],
+            "properties": {
+              "tool": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              },
+              "dry_run": {
+                "type": "object",
+                "required": [
+                  "exit",
+                  "files_changed"
+                ],
+                "properties": {
+                  "exit": {
+                    "type": "integer"
+                  },
+                  "files_changed": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "milestones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "goal",
+          "exit",
+          "tasks"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "goal": {
+            "type": "string"
+          },
+          "exit": {
+            "type": "string"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          }
+        }
+      }
+    }
+  }
+}

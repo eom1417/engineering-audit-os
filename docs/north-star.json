@@ -660,20 +660,22 @@
         {
           "id": "E1",
           "name": "تنفيذ حقيقي بنموذج على مشروع من العيّنة",
-          "definition": "1 إن نُفّذت مهمة واحدة على الأقل بـeaos implement أو improve على مشروع من العيّنة ومرت أوامر قبولها، وإلا 0",
+          "definition": "1 إن نُفّذت بطاقة واحدة على الأقل بنموذج (لا بأداة تحويل) على مشروع من العيّنة في نسخة معزولة، وحالتها VERIFIED_IN_ISOLATED_COPY، ومرّ أمر قبولها؛ وإلا 0",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لم يُضبط مزوّد نموذج في هذه البيئة قط.",
-          "measured": "recorded"
+          "evidence": "لا تنفيذ بعد: يحتاج مزوّد نموذج وتفويضًا.",
+          "measured": "automated",
+          "reads": "runtime/<project>/runtime/execution.json → tasks[] {tool, status, acceptance_exit} (schemas/artifacts/execution-log.schema.json)"
         },
         {
           "id": "E2",
           "name": "تنبؤات تحققت",
-          "definition": "predictions_verified من guarantee.json بعد تنفيذ حقيقي",
+          "definition": "فروق المؤشرات التي تنبأت بها الخطة وحكم عليها eaos guarantee بأنها HONEST ÷ كل الفروق المقارنة، بعد تنفيذ حقيقي",
           "target": 0.8,
-          "value": null,
-          "evidence": "غير مقيس: لا تنفيذ حقيقي.",
-          "measured": "recorded"
+          "value": 0.0,
+          "evidence": "لا تنفيذ بعد.",
+          "measured": "automated",
+          "reads": "runtime/<project>/runtime/guarantee.json → rows[] {indicator, verdict} (schemas/artifacts/runtime-guarantee.schema.json)"
         },
         {
           "id": "E3",
@@ -1017,6 +1019,7 @@
         {
           "id": "NS3.T2",
           "title": "Supabase كطبقة وصول للبيانات",
+          "why": "المستخرج موجود ومختبر، لكن التدقيق لا يستدعيه: eaos/facts/frameworks/__init__.py لا يستورده، فلا يصل إلى أي مشروع في العيّنة حقيقة data_access واحدة. عُلّمت المهمة done سابقًا لأن قبولها كان اختبارًا يستدعي الدالة مباشرة.",
           "moves": [
             "U2",
             "U3"
@@ -1025,21 +1028,33 @@
           "depends_on": [
             "NS3.T1"
           ],
+          "size": "S",
           "files": [
             "eaos/facts/frameworks/supabase_access.py",
             "eaos/facts/run.py",
             "schemas/fact.schema.json",
             "tests/test_supabase_access.py"
           ],
+          "writes": [],
           "steps": [
-            "اقرأ في ملفات TS/JS كل نداء Supabase: supabase.from(\"t\").select|insert|update|upsert|delete، و rpc(\"fn\")، و storage.from(\"b\")، و auth.*.",
-            "اكتب كل نداء كحقيقة kind=\"data_access\" في مجموعة حقائق قائمة (مثل domain أو runtime)، قيمتها {client: \"supabase\", target: اسم الجدول أو الدالة أو الحاوية, operation, symbol} وموضعها path و start_line. أضف data_access إلى schemas/fact.schema.json ثم python tools/render.py.",
-            "الاختبار tests/test_supabase_access.py يبني عيّنة فيها select و insert و rpc و storage ونداء لا علاقة له بـSupabase، ويثبت أن الحقائق الأربع فقط تظهر بقيمها الصحيحة.",
-            "U2 بلغ 1.0 قبل هذه المهمة (NS3.T1)، فلا يصلح أمر قبول لها؛ أمر قبولها الاختبار."
+            "افتح eaos/facts/frameworks/__init__.py: السطر 7 يستورد كل مستخرجات الأطر عدا supabase_access. اقرأ كيف تُستدعى هذه الوحدات (ابحث عن أسمائها في eaos/facts/entrypoints.py).",
+            "صِل supabase_access بالمسار نفسه الذي تُكتب منه حقائق الملفات المصدرية. لا تكتب حلقة قراءة ملفات ثانية: إن كانت واجهته مختلفة (يرجع data_access لا entry_point)، فاستدعه من الحلقة الموجودة.",
+            "وسّع TABLE_CALL ليقبل السلسلة المقسومة على أسطر: `.from(\"x\")` في سطر و`.select()` في السطر التالي. في finance-os 19 نداء في سطر واحد، وأغلب السلاسل الأخرى مقسومة.",
+            "اكتب اختبارًا يشغّل eaos facts على مجلد مؤقت فيه ملف TypeScript بنداءين (سطر واحد وسطران)، ويقرأ الحقائق من الملف المكتوب، لا من استدعاء الدالة."
           ],
-          "acceptance": "python -m unittest tests.test_supabase_access -q",
+          "done_when": [
+            "تقرير finance-os بعد القياس فيه 20 حقيقة data_access على الأقل، لكل منها الجدول والعملية.",
+            "الاختبار الجديد يمر عبر مسار التدقيق نفسه.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "`Array.from(` ليست نداء Supabase: المطابقة تحتاج اسمًا ينتهي بـsupabase في السلسلة (SB_NAME).",
+            "الاختبار القديم tests/test_supabase_access.py يبقى، لكنه لا يثبت الوصل.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only U3 && python tools/acceptance.py facts data_access finance-os-a0192b7b --min 20",
           "rollback": "revert الالتزام.",
-          "status": "done"
+          "status": "todo"
         },
         {
           "id": "NS3.T3",
@@ -1069,6 +1084,7 @@
         {
           "id": "NS3.T4",
           "title": "جرد الوظائف",
+          "why": "الوظيفة (ماذا يفعل البرنامج لمستخدمه) هي الوحدة التي يُثبَّت بها السلوك ويُنقل إلى الصورة المثالية. بدونها لا مواصفات تثبيت (E4) ولا حفظ للوظائف (T5).",
           "moves": [
             "U4"
           ],
@@ -1077,23 +1093,45 @@
             "NS3.T2",
             "NS3.T3"
           ],
+          "size": "M",
           "files": [
             "eaos/features.py",
             "eaos.policy.json",
             "tests/test_features.py"
           ],
-          "steps": [
-            "اجمع كل مسار وصفحة ودالة خادم مع الجداول التي يقرؤها ويكتبها في وظيفة باسم مجالها (مثل: المركبات، السائقون، الصيانة).",
-            "الوظيفة تحمل أسطحها وبياناتها ودليل كل ربط؛ ما لا يُنسب لوظيفة يُعلن.",
-            "العقد مع القياس: اكتب الجرد في features.json بالحقل features[]، ولكل وظيفة name و surfaces و tables و evidence."
+          "writes": [
+            "contract:features",
+            "FEATURES.md"
           ],
-          "acceptance": "python tools/north_star.py measure --only U4 --min 1.0",
+          "steps": [
+            "اكتب eaos/features.py بدالة build(facts) تعيد dict بعقد schemas/artifacts/features.schema.json، وأضف مرحلة features في eaos/pipeline/stages.py بعد facts تكتب features.json و FEATURES.md. أعلن الوحدة في طبقتها في eaos.policy.json.",
+            "الأسطح: حقائق entry_point بـsurface = page أو http أو cli، عدا framework = npm_script أو public_api، وعدا value.test_only.",
+            "التجميع بالمسار: احذف من route مقاطع التخطيط (تبدأ بـ_ مثل /_authenticated) والمعاملات ($id و :id و [id])، وأول مقطع متبقٍّ اسم الوظيفة. مثال: /_authenticated/cartoes و/_authenticated/cartoes/$id كلاهما في وظيفة cartoes، والجذر / وحده في home. أسطح cli تُجمّع حسب الوحدة (location.path) التي تعرّفها.",
+            "لكل وظيفة: files هي ملفات أسطحها مع touched_files من حقائق flow لتلك الأسطح؛ tables هي الجداول في حقائق data_access لتلك الملفات (NS3.T2)؛ evidence هي معرّفات حقائق entry_point و data_access التي بُني منها الربط.",
+            "critical = true إن كتبت الوظيفة في جدول (insert أو update أو upsert أو delete)، أو احتوى مسارها auth أو login أو signup أو payment أو checkout أو billing؛ وإلا false. اكتب القاعدة في رأس الملف.",
+            "description جملة مولّدة من البيانات لا إنشائية: «4 صفحات، تقرأ accounts و transactions، وتكتب transactions».",
+            "كل سطح لم يدخل وظيفة يُكتب في unassigned_surfaces، ولا يُسقط."
+          ],
+          "done_when": [
+            "features.json في تقارير المشاريع الثلاثة يمر عقده.",
+            "كل سطح مستخدم إما في وظيفة أو في unassigned_surfaces.",
+            "U4 = 1.0.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "لا تجعل كل صفحة وظيفة: تطبيق من 30 صفحة جرده الجيد 5 إلى 15 وظيفة.",
+            "في TanStack Router المسار مشتق من اسم الملف؛ اعتمد value.route لا المسار.",
+            "اطبع الحقائق الحقيقية من /tmp/eaos-measure/<مشروع>/facts/ قبل كتابة أي ربط؛ أغلب عيوب هذا المستودع جاءت من منتج وقارئ اختلفا على اسم حقل.",
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only U4 --min 1.0 && python tools/acceptance.py contract features",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS3.T5",
           "title": "المداخل والمخارج والحدود على أسطح المستخدم",
+          "why": "حدود كل سطح (كم نداء بيانات، وهل النداءات الخارجية محمية، وهل النتيجة محدودة) هي ما تُبنى منه سيناريوهات الحمل وسكربتات k6 لاحقًا. اليوم 56% فقط مجاب.",
           "moves": [
             "U5"
           ],
@@ -1102,13 +1140,28 @@
             "NS3.T1",
             "NS3.T2"
           ],
+          "size": "M",
           "files": [
             "eaos/load_model.py",
             "tests/test_load_model.py"
           ],
+          "writes": [],
           "steps": [
-            "ابنِ نموذج الحمل على المسارات ودوال الخادم لا على npm scripts.",
-            "أجب لكل سطح: نداءات البيانات، والنداءات الخارجية وحمايتها، وحد المعدّل، وحدود النتيجة."
+            "شغّل التدقيق على finance-os واطبع من load-model.json لكل entry_point الأسئلة التي حالتها ليست answered، مع السبب. اكتب جدولًا بأكثر الأسباب تكرارًا قبل تعديل أي شيء.",
+            "ابنِ النموذج على أسطح page و http و cli، لا على npm scripts.",
+            "data_access_calls: عُدّ حقائق data_access في ملف السطح وملفات تدفقه (touched_files)، بعد وصل NS3.T2.",
+            "outbound_calls_protected: نداء fetch أو axios أو supabase داخل try/catch، أو متبوع بـ.catch، أو يُفحص error من نتيجته، يُعدّ protected. غير ذلك unprotected بموضعه. الإجابة answered بالعدد في الحالتين.",
+            "rate_limited في مشروع بلا خادم خاص به (واجهة فقط): answered بقيمة \"no server of its own\" ودليلها غياب ملفات الخادم. الإجابة تكون بالدليل لا بالافتراض.",
+            "أي سؤال يبقى unknown يحمل reason يسمّي ما ينقص بالضبط."
+          ],
+          "done_when": [
+            "U5 ≥ 0.8.",
+            "لا جواب answered بلا evidence.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "رفع U5 بتحويل unknown إلى answered بلا دليل يُرد عند المراجعة.",
+            "اطبع الحقائق الحقيقية من /tmp/eaos-measure/<مشروع>/facts/ قبل كتابة أي ربط؛ أغلب عيوب هذا المستودع جاءت من منتج وقارئ اختلفا على اسم حقل."
           ],
           "acceptance": "python tools/north_star.py measure --only U5 --min 0.8",
           "rollback": "revert الالتزام.",
@@ -1150,6 +1203,7 @@
         {
           "id": "NS4.T2",
           "title": "المرشح الميت لا يُتهم إن أشار إليه سجل",
+          "why": "دقة الكود الميت (S2) 22%: أغلب المرشحات تبدو ميتة لأن سجلًا يشير إليها بالاسم (قاموس، أو getattr، أو entry point)، فيُتهم كود حي.",
           "moves": [
             "S2"
           ],
@@ -1157,15 +1211,28 @@
           "depends_on": [
             "NS1.T3"
           ],
+          "size": "M",
           "files": [
             "eaos/correlate.py",
             "tests/test_correlate.py"
           ],
+          "writes": [],
           "steps": [
-            "قبل قبول مرشح كود ميت من محرّك، ابحث عن اسمه في سجلات التوزيع (قواميس، قوائم وحدات، getattr بنص، entry points في pyproject).",
-            "مرشح يشير إليه سجل يبقى حقيقة لا ادعاء."
+            "على الشجرة عمل غير ملتزم لهذه المهمة (eaos/correlate.py، و eaos/facts/run.py، و tests/test_correlate_dead_code.py، و eaos.policy.json، و docs/invariants.json). اقرأه بـgit diff أولًا وأكمله، لا تبدأ من جديد.",
+            "مصادر الإشارة بالاسم التي تُسقط الاتهام: قيم قاموس هي دوال أو أصناف، و __all__، و getattr(obj, \"name\")، و importlib.import_module(\"x\")، و [project.scripts] في pyproject.toml، وأسماء نصية في ملفات JSON تحت eaos/data.",
+            "مرشح تشير إليه إحدى هذه المصادر يبقى حقيقة engine_finding، ولا يصير ادعاء dead_code.",
+            "قِس على self_truth: اطبع كل مرشح وحكمه (ميت فعلًا أم لا) مقابل self_truth.true_dead_symbols قبل الالتزام."
           ],
-          "acceptance": "python tools/north_star.py measure --only S2 --min 0.8",
+          "done_when": [
+            "S2 ≥ 0.8.",
+            "D1 لم يهبط (--no-regression).",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "إسقاط كل المرشحات يرفع الدقة ويُسقط D1، والقياس يفحص الاثنين.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only S2 --min 0.8 && python tools/north_star.py --no-regression",
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
@@ -1182,6 +1249,7 @@
         {
           "id": "NS5.T1",
           "title": "قابلية الوصول من نقاط الدخول الحقيقية",
+          "why": "الكشف (D1) 33%: EAOS يجد 5 من 15 عيبًا معروفًا، لأنه لا يعرف ما الذي يصل إليه المستخدم فعلًا من نقاط الدخول.",
           "moves": [
             "D1"
           ],
@@ -1189,15 +1257,29 @@
           "depends_on": [
             "NS3.T1"
           ],
+          "size": "L",
           "files": [
             "eaos/reachability.py",
             "eaos.policy.json",
             "tests/test_reachability.py"
           ],
+          "writes": [],
           "steps": [
-            "من كل نقطة دخول إنتاجية (أوامر، مسارات، دوال خادم) امشِ رسم الاستيراد؛ كل وحدة لا يصلها إلا الاختبارات ميتة للمنتج.",
-            "الرمز الذي لا يُشار إليه ولا يُصدَّر لسطح عام مرشح، ويُحسم بالبحث عن الاسم نصيًا.",
-            "العقد مع القياس: كل عنصر ميت يصير ادعاءً render.key=\"dead_code\" (هذا ما يقسم عليه D3)."
+            "اكتب eaos/reachability.py: نقاط البداية حقائق entry_point الإنتاجية (ليست test_only، ولا framework = npm_script).",
+            "امشِ حقائق module_edge (من location.path إلى value.to_path) من كل نقطة بداية. الوحدة (source_file) التي لا تُبلغ، وليست اختبارًا ولا ملف إعداد (*.config.*، و conftest.py، و setup.py)، غير قابلة للوصول.",
+            "الاستيراد الديناميكي (import() بنص ثابت، و lazy(() => import(...))، و importlib بنص) حافة مثل غيره.",
+            "الرمز: symbol لا تصله أي call_edge ولا يُصدَّر لسطح عام مرشح. يُحسم بالبحث النصي عن اسمه في المستودع خارج تعريفه: وجوده في أي مكان يُسقط الاتهام.",
+            "كل وحدة أو رمز ميت يصير ادعاءً render.key = \"dead_code\"، بجملة تحتوي unreachable أو unused (القياس يطابق هذه الكلمات)، ودليله مسار البحث."
+          ],
+          "done_when": [
+            "D1 ≥ 0.8.",
+            "S2 لم يهبط.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "ملفات الإعداد والاختبارات ليست كودًا ميتًا.",
+            "في مشاريع Vite، ملفات src/main.tsx و index.html نقطة بداية حتى لو لم تكن entry_point.",
+            "اطبع الحقائق الحقيقية من /tmp/eaos-measure/<مشروع>/facts/ قبل كتابة أي ربط؛ أغلب عيوب هذا المستودع جاءت من منتج وقارئ اختلفا على اسم حقل."
           ],
           "acceptance": "python tools/north_star.py measure --only D1 --min 0.8",
           "rollback": "revert الالتزام.",
@@ -1206,6 +1288,7 @@
         {
           "id": "NS5.T2",
           "title": "الكود المعطّل: أسماء غير معرّفة ومفاتيح مكررة",
+          "why": "الكود المعطّل (اسم غير معرّف، ومفتاح مكرر، واستيراد اسم غير موجود) ينهار عند التشغيل، وهو من العيوب المعروفة التي لا يجدها EAOS اليوم.",
           "moves": [
             "D1"
           ],
@@ -1213,15 +1296,27 @@
           "depends_on": [
             "NS1.T3"
           ],
+          "size": "M",
           "files": [
             "eaos/facts/broken.py",
             "eaos.policy.json",
             "tests/test_broken.py"
           ],
+          "writes": [],
           "steps": [
-            "Python: اسم يُقرأ في دالة ولا يُعرَّف في نطاقها ولا في الوحدة ولا في builtins = ادعاء CONFIRMED بانهيار حتمي، مع موضعه.",
-            "مفتاح يتكرر في literal قاموس واحد بقيمتين مختلفتين = ادعاء.",
-            "TypeScript: استيراد اسم غير مصدَّر من الملف المستهدف."
+            "Python: بـast و symtable من المكتبة القياسية. اسم يُقرأ في دالة، ولا يُعرَّف في نطاقها ولا في الوحدة ولا في builtins، ادعاء CONFIRMED بموضعه. star import يُسقط الحكم على تلك الوحدة ويُعلَن.",
+            "مفتاح يتكرر في literal قاموس واحد بقيمتين مختلفتين ادعاء بموضعي المفتاحين.",
+            "TypeScript: استيراد { X } من ملف داخلي لا تصدّره حقائق symbol فيه. استيراد النوع وحده (import type) يُعامل مثل غيره.",
+            "الجملة تحتوي undefined أو duplicate key (القياس يطابقها)."
+          ],
+          "done_when": [
+            "D1 ≥ 0.8 (بالاشتراك مع NS5.T1).",
+            "لا ادعاء على ملفات الاختبار.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "الأسماء المعرّفة شرطيًا (داخل try/except ImportError) معرّفة.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
           ],
           "acceptance": "python tools/north_star.py measure --only D1 --min 0.8",
           "rollback": "revert الالتزام.",
@@ -1256,6 +1351,7 @@
         {
           "id": "NS5.T4",
           "title": "بطاقة حذف آمن جاهزة",
+          "why": "الكود الميت والمخلفات دليلها آلي بالكامل، فبطاقتها يجب أن تكون جاهزة للتنفيذ دون مراجعة بشرية (D3 = 0 اليوم).",
           "moves": [
             "D3",
             "P2",
@@ -1266,16 +1362,30 @@
             "NS5.T1",
             "NS5.T3"
           ],
+          "size": "S",
           "files": [
             "eaos/remediation_patterns.py",
             "eaos/dead_code_assessment.py",
             "eaos.policy.json",
             "tests/test_decisions.py"
           ],
+          "writes": [
+            "contract:plan-fragment"
+          ],
           "steps": [
-            "نمط remove_dead: التغيير حذف الملف أو الرمز، وأمر القبول يعيد التدقيق ويتحقق أن لا استيراد جديدًا غير محلول وأن الاختبارات المعلنة تمر.",
-            "الحجم S، والتراجع revert واحد، والقرار ready لأن الدليل آلي بالكامل.",
-            "العقد مع القياس: pattern=\"remove_dead\"، kind=\"remediate\"، decision.readiness=\"ready\"، و acceptance[].command لا يحتوي \"human review\"."
+            "في eaos/remediation_patterns.py أضف النمط remove_dead بجانب dead_code القائم (لا تعد تسمية القائم): التغيير حذف الملف أو الرمز.",
+            "أمر القبول: python -m eaos audit <المشروع> ثم التحقق أن لا استيراد جديدًا غير محلول، وأن الاختبارات المعلنة تمر. لا يحتوي \"human review\".",
+            "البطاقة: kind = \"remediate\"، و decision.readiness = \"ready\"، و effort = \"S\"، والتراجع revert واحد.",
+            "لكل ادعاء render.key = dead_code أو leftover بطاقة واحدة."
+          ],
+          "done_when": [
+            "D3 ≥ 0.9.",
+            "plan.json يمر عقد plan-fragment في الحقول التي كتبتها.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "القياس يقرأ pattern == \"remove_dead\" حرفيًا.",
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
           ],
           "acceptance": "python tools/north_star.py measure --only D3 --min 0.9",
           "rollback": "revert الالتزام.",
@@ -1355,6 +1465,7 @@
         {
           "id": "NS17.T1",
           "title": "سجل الأدوات ومثبّتها: أمر واحد يثبّت كل أداة بإصدارها",
+          "why": "كل أداة خارجية تدخل من باب واحد بإصدار مثبّت، فيعرف كل نموذج وكل مستخدم ما المثبّت وما الناقص بأمر واحد، ولا يعمل EAOS بنسخة غير التي اختُبر عليها.",
           "moves": [
             "R4"
           ],
@@ -1362,6 +1473,7 @@
           "depends_on": [
             "NS1.T2"
           ],
+          "size": "M",
           "files": [
             "upstreams/registry.yaml",
             "eaos/toolchain.py",
@@ -1371,6 +1483,9 @@
             "tests/test_toolchain.py",
             "/workspace/setup.sh"
           ],
+          "writes": [
+            "contract:tools-doctor"
+          ],
           "steps": [
             "وسّع كل عنصر في upstreams/registry.yaml بثلاثة حقول: role (read أو emit أو run أو validate)، و stages (معرّفات pipeline في docs/north-star.json مثل S01)، و install {method: release | pip | npm, source, version, sha256 للـrelease, binary}.",
             "أضف عناصر لأدوات عقد التقييم بآخر release مستقر يوم التنفيذ، والرخصة والمستودع من docs/TOOLCHAIN.md: syft، و osv-scanner، و scc، و semgrep، و trivy، و checkov، و dependency-cruiser، و sqlfluff، و spectral، و oasdiff، و gitnexus (role = read)، و vale، و markdownlint-cli2 (role = validate).",
@@ -1378,7 +1493,21 @@
             "doctor: لكل أداة {name, role, pinned, found, ok, reason}، ويخرج بغير صفر إن نقصت أداة read أو validate لعقد التقييم. سجّل في eaos/cli.py: eaos tools install [--stage assessment|execution] [--only NAME[,NAME]] و eaos tools doctor [--json].",
             "تأكد أن which() في eaos/engines/process.py يبحث في /workspace/engine-tools/bin قبل PATH، حتى لا تُستخدم نسخة بإصدار آخر.",
             "اجعل /workspace/setup.sh يستدعي python -m eaos tools install --stage assessment، واحذف منه أسطر التثبيت اليدوية للمحرّكات الأربعة بعد أن يثبّتها الأمر.",
-            "أضف قياس R4 إلى tools/north_star_measure.py من eaos tools doctor --json (تعديل مسموح بنص هذه المهمة). الاختبار يثبت أن أداة بإصدار غير المثبّت تُحسب ناقصة."
+            "أضف قياس R4 إلى tools/north_star_measure.py من eaos tools doctor --json (تعديل مسموح بنص هذه المهمة). الاختبار يثبت أن أداة بإصدار غير المثبّت تُحسب ناقصة.",
+            "which() في eaos/engines/process.py يقرأ مجلد الأدوات من المتغير EAOS_ENGINE_TOOLS (الافتراضي /workspace/engine-tools)، ويبحث في bin/ فيه أولًا ثم PATH. اختبارات القبول تعتمد على هذا المتغير.",
+            "eaos tools doctor --json يكتب إلى stdout كائنًا بعقد schemas/artifacts/tools-doctor.schema.json بالضبط."
+          ],
+          "done_when": [
+            "eaos tools install --stage assessment ينهي بـ0 على حاوية نظيفة.",
+            "R4 = 1.0.",
+            "setup.sh لا يحوي أسطر تثبيت يدوية للمحرّكات.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "sha256 مختلف يوقف التثبيت ولا يُتجاوز.",
+            "GitNexus رخصتها غير تجارية: التثبيت يطبع تنبيهًا، و--skip gitnexus مسموح.",
+            "لا sudo ولا apt من داخل الأمر.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
           ],
           "acceptance": "python -m eaos tools install --stage assessment && python tools/north_star.py measure --only R4 --min 1.0",
           "rollback": "revert الالتزام.",
@@ -1387,6 +1516,7 @@
         {
           "id": "NS17.T2",
           "title": "قارئ SARIF واحد لست أدوات",
+          "why": "ست أدوات تكتب SARIF؛ قارئ واحد مختبر يجعل محوّل كل منها نحو 20 سطرًا، بدل ست قرّاءات JSON مختلفة.",
           "moves": [
             "R3"
           ],
@@ -1394,6 +1524,7 @@
           "depends_on": [
             "NS17.T1"
           ],
+          "size": "S",
           "files": [
             "eaos/engines/sarif.py",
             "eaos/data/sarif-rules.json",
@@ -1401,20 +1532,33 @@
             "tests/test_sarif.py",
             "tests/contracts/sarif-sample.json"
           ],
+          "writes": [],
           "steps": [
             "SARIF 2.1.0 هو المخرج المشترك لـSemgrep و Trivy و Checkov و OSV-Scanner و Spectral و OWASP ZAP. اكتب eaos/engines/sarif.py: read(path, engine, version) يحوّل runs[].results[] إلى finding() الموجودة في contract.py: ruleId ← rule، و locations[].physicalLocation ← sites، و message.text ← الرسالة، و level أو properties.security-severity ← measurement(\"severity\").",
             "الترجمة إلى مفردات EAOS بيانات لا كود: eaos/data/sarif-rules.json → {engine: [{match: نمط ruleId بـfnmatch, kind, severity_floor}]}. نتيجة بلا صف مطابق تُعدّ في unmapped ولا تُسقط.",
             "أضف إلى KINDS في contract.py: vulnerability، و misconfiguration، و secret، و sql_quality، و api_contract. لا تضف نوعًا لا تنتجه أداة معتمدة.",
             "بعدها يصير محوّل أي أداة تُخرج SARIF دالة analyze() من نحو 20 سطرًا: تبني الأمر، وتشغّله بـprocess.run، وتستدعي sarif.read.",
-            "الاختبار يقرأ عيّنة SARIF حقيقية فيها ثلاث نتائج: اثنتان مطابقتان وواحدة unmapped، ويثبت أن الثالثة معدودة لا مسقطة."
+            "الاختبار يقرأ عيّنة SARIF حقيقية فيها ثلاث نتائج: اثنتان مطابقتان وواحدة unmapped، ويثبت أن الثالثة معدودة لا مسقطة.",
+            "الواجهة وسلّم الخطورة مكتوبان بالضبط في رأس acceptance/test_ns17_t2_sarif.py. اقرأه قبل أن تكتب سطرًا."
           ],
-          "acceptance": "python -m unittest tests.test_sarif -q",
+          "done_when": [
+            "python tools/acceptance.py test ns17_t2_sarif يمر (7 اختبارات).",
+            "eaos/data/sarif-rules.json فيه صفوف للأدوات الست.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "contract.finding يرفض kind خارج KINDS: أضف الأنواع الخمسة أولًا.",
+            "sites في finding() قائمة tuples مرتبة؛ مرّر كل المواضع.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/acceptance.py test ns17_t2_sarif",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS17.T3",
           "title": "التوليد بصيغ الأدوات الأصلية، والأداة نفسها هي المدقق",
+          "why": "الأدوات التي تعمل على نسخة حية لا نعيد كتابتها: نكتب لها ملف إدخالها بصيغتها، والأداة نفسها تحكم عليه. هذا الإطار تستعمله كل مهام العدّة بعده.",
           "moves": [
             "K1"
           ],
@@ -1422,6 +1566,7 @@
           "depends_on": [
             "NS17.T1"
           ],
+          "size": "M",
           "files": [
             "eaos/emit/__init__.py",
             "eaos/emit/validate.py",
@@ -1431,53 +1576,86 @@
             "tools/north_star_measure.py",
             "tests/test_emit.py"
           ],
+          "writes": [
+            "contract:handover-validation",
+            "handover/README.md"
+          ],
           "steps": [
             "المبدأ: لا يعيد EAOS كتابة أداة تشغيل؛ يكتب لها ملف إدخالها (سكربت k6، مواصفة Playwright، إعداد Collector، …) من الحقائق، ثم يطلب من الأداة نفسها أن تقبله.",
             "eaos/emit/__init__.py: سجل EMITTERS {name: (function(workspace, out_dir) → [paths], validator)}. القوالب في templates/emit/<tool>/ بـstring.Template من المكتبة القياسية؛ لا تضف محرّك قوالب. JSON و YAML يُكتبان من dict مباشرة، لا بدمج نصوص.",
             "eaos/emit/validate.py: لكل ملف مولَّد يشغّل مدقق أداته (من registry.yaml، role = validate) ويكتب handover/validation.json → files[] {path, tool, ok, output}. أداة غير مثبتة ← ok = false و reason \"validator unavailable\"؛ لا تُحسب نجاحًا.",
             "أمر eaos emit <workspace> [--only NAME] [--validate]، ومرحلة اختيارية emit في eaos/pipeline/stages.py بعد compose، و absent_when: no emitter applies.",
-            "أول مولّد يثبت الإطار: handover/README.md فهرسًا للعدّة، ومدققه markdownlint-cli2. أضف قياس K1 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة)."
+            "أول مولّد يثبت الإطار: handover/README.md فهرسًا للعدّة، ومدققه markdownlint-cli2. أضف قياس K1 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة).",
+            "الواجهة مكتوبة في رأس acceptance/test_ns17_t3_emit.py: اسم المولّد الأول handover-readme، ونص السبب \"validator unavailable: <binary>\"."
           ],
-          "acceptance": "python -m unittest tests.test_emit -q",
+          "done_when": [
+            "python tools/acceptance.py test ns17_t3_emit يمر.",
+            "handover/validation.json يمر عقده.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "مدقق غير مثبت يُكتب ok = false، ولا يُحسب نجاحًا.",
+            "لا تضف محرّك قوالب؛ string.Template يكفي.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/acceptance.py test ns17_t3_emit",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS17.T4",
           "title": "المراحل الخمس عشرة كبيانات، وبوابة كل مرحلة بأمر",
+          "why": "المراحل الخمس عشرة يجب أن تكون قابلة للفحص بأمر، لا وصفًا فقط: أين وصل هذا المشروع، وما الذي يمنعه من المرحلة التالية.",
           "moves": [],
           "needs": "none",
           "depends_on": [
             "NS17.T1"
           ],
+          "size": "M",
           "files": [
             "eaos/engage.py",
             "eaos/cli.py",
             "tests/test_engage.py"
           ],
+          "writes": [],
           "steps": [
             "اكتب eaos/engage.py: STAGES كبيانات بنمط eaos/pipeline/stages.py، بالمعرّفات والمفاتيح نفسها في docs/north-star.json → pipeline (من S01 DISCOVER إلى S15 CONTINUOUS GOVERNANCE)، ولكل مرحلة: contract (assessment أو execution)، و requires، و artifacts، و gate: فحوص {artifact, field, predicate} تقرأ JSON التقرير.",
             "البوابات تحسب بالمنطق نفسه لمؤشرات القياس: انقل دوال الحساب المشتركة من tools/north_star_measure.py إلى eaos/ واجعل القياس يستوردها. لا يُكتب حساب مرتين.",
             "eaos engage status <workspace>: جدول لكل مرحلة (المخرجات موجودة؟ البوابة تمر؟ ولماذا لا). eaos engage gate <Sxx> <workspace>: يخرج 0 فقط إن مرت بوابتها وبوابات ما قبلها. مراحل execution ترفض دون authorization.json صالح (NS17.T5).",
-            "لا يحرّك مؤشرًا؛ يثبت عدم الهبوط بأمر القبول. الاختبار يثبت: بوابة S04 تفشل إن فشلت S02، ومرحلة تنفيذ بلا تفويض ترفض، ومعرّفات STAGES تطابق pipeline في docs/north-star.json."
+            "لا يحرّك مؤشرًا؛ يثبت عدم الهبوط بأمر القبول. الاختبار يثبت: بوابة S04 تفشل إن فشلت S02، ومرحلة تنفيذ بلا تفويض ترفض، ومعرّفات STAGES تطابق pipeline في docs/north-star.json.",
+            "شكل المخرج ورموز الخروج (0 و1 و3) وقيم contract (assessment و execution و mixed) مكتوبة بالضبط في رأس acceptance/test_ns17_t4_engage.py."
           ],
-          "acceptance": "python -m unittest tests.test_engage -q && python tools/north_star.py --no-regression",
+          "done_when": [
+            "python tools/acceptance.py test ns17_t4_engage يمر.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "لا تكرر حساب المؤشرات: البوابة تستورد الدوال نفسها التي يستعملها القياس.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/acceptance.py test ns17_t4_engage",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS17.T5",
           "title": "البيئة المعزولة: تشغيل كود المشروع بتفويض وبلا أسرار",
+          "why": "كل مراحل التنفيذ (S05-ب إلى S14) تشغّل كود المشروع. هذا لا يحدث إلا بتفويض مكتوب، وفي نسخة، وبلا أسرار. تُبنى الآن وتُختبر على تطبيق تجريبي، فلا تحتاج تفويض أحد.",
           "moves": [],
           "needs": "none",
           "depends_on": [
             "NS17.T4"
           ],
+          "size": "M",
           "files": [
             "eaos/sandbox.py",
             "eaos/verify.py",
             "tests/fixtures/sandbox-app/",
             "tests/test_sandbox.py"
+          ],
+          "writes": [
+            "contract:sandbox-run",
+            "contract:authorization"
           ],
           "steps": [
             "authorization.json في مساحة العمل شرط لأي تشغيل: {project, commit, granted_by, stages, env_allow, expires}. غيابه أو انتهاؤه أو اختلاف commit ← رفض برسالة تسمّي الناقص.",
@@ -1485,9 +1663,20 @@
             "backend بالترتيب: docker إن وُجد (--network none ومنفذ منشور)، ثم unshare -rn إن سُمح، ثم process مع تسجيل القيد \"network not isolated\". لا يُكتم القيد.",
             "start(command, port, health_path) يشغّل التطبيق في مجموعة عمليات وينتظر health حتى مهلة؛ stop() يقتل المجموعة؛ run(argv, timeout) يشغّل أداة ضد التطبيق. كل تشغيل في sandbox-run.json {backend, commands[], exit, seconds, limitations[]}.",
             "أمر التشغيل من intake.json → run_command إن وُجد، وإلا من package.json (preview ثم start ثم dev) بقيمة افتراضية معلنة.",
-            "الاختبار على tests/fixtures/sandbox-app (خادم http.server من سطرين): يرفض بلا تفويض، ويشغّل ويتحقق من health، ويثبت أن متغيرًا سريًا في بيئة الاختبار لم يصل، ولا يترك عملية بعد stop()."
+            "الاختبار على tests/fixtures/sandbox-app (خادم http.server من سطرين): يرفض بلا تفويض، ويشغّل ويتحقق من health، ويثبت أن متغيرًا سريًا في بيئة الاختبار لم يصل، ولا يترك عملية بعد stop().",
+            "الواجهة مكتوبة بالضبط في رأس acceptance/test_ns17_t5_sandbox.py: Sandbox(target, authorization, workdir, stage)، و AuthorizationError، والبيئة PATH و HOME و LANG ومتغيرات env_allow فقط."
           ],
-          "acceptance": "python -m unittest tests.test_sandbox -q",
+          "done_when": [
+            "python tools/acceptance.py test ns17_t5_sandbox يمر (3 اختبارات).",
+            "لا عملية تبقى بعد stop().",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "start_new_session=True ثم os.killpg، وإلا تبقى عمليات أبناء.",
+            "backend = process يسجّل \"network not isolated\" في limitations، ولا يُكتم.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/acceptance.py test ns17_t5_sandbox",
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
@@ -1502,6 +1691,7 @@
         {
           "id": "NS11.T1",
           "title": "استبيان الاستلام بقيم افتراضية معلنة",
+          "why": "ما يجب حمايته وأين يريد المالك أن يصل لا يُستنتج من الكود. يُسأل، وكل سؤال بلا جواب يأخذ قيمة افتراضية معلنة بسببها.",
           "moves": [
             "U6"
           ],
@@ -1509,6 +1699,7 @@
           "depends_on": [
             "NS1.T2"
           ],
+          "size": "M",
           "files": [
             "eaos/intake.py",
             "eaos/data/intake-questions.json",
@@ -1516,19 +1707,35 @@
             "eaos.policy.json",
             "tests/test_intake.py"
           ],
+          "writes": [
+            "contract:intake"
+          ],
           "steps": [
             "أسئلة ثابتة في eaos/data/intake-questions.json: الوظائف التي لا يجوز أن تضيع، وتوقع النمو (مستخدمون متزامنون)، ومتطلبات الأمن والخصوصية، والمشاكل المعروفة، والقيود (الفريق، الميزانية، المنصة). لكل سؤال قيمة افتراضية معلنة.",
             "eaos audit --intake FILE يقرأ إجابات المالك؛ بدونه تُستخدم الافتراضيات. اكتب intake.json في التقرير: questions[] لكل سؤال {id, answer, status: answered | default}.",
             "امتد من عقد التكليف في eaos/engagement.py ولا تكرره: ما يعرفه العقد (الأهداف، والنطاق) يُقرأ منه.",
-            "العقد مع القياس: intake.json → questions[].status ∈ {answered, default}."
+            "العقد مع القياس: intake.json → questions[].status ∈ {answered, default}.",
+            "الأسئلة في eaos/data/intake-questions.json، ولكل سؤال id و question و default و default_reason، بهذه القيم الافتراضية بالضبط: critical_features = الوظائف critical في features.json؛ و concurrent_users = 100؛ و personal_data = نعم إن وُجد جدول أو نموذج فيه email أو phone أو cpf أو name؛ و payments = لا؛ و hosting = كما هو (vercel.json ← Vercel، وإلا غير معروف)؛ و team_size = 1؛ و availability_target = 99.5؛ و known_problems = [].",
+            "ملف الإجابات لـ--intake هو JSON {id: answer}. سؤال أجاب عنه المالك status = answered، وغيره default ومعه default_reason.",
+            "run_command من package.json: preview إن وُجد، ثم start، ثم dev. وإلا null."
           ],
-          "acceptance": "python tools/north_star.py measure --only U6 --min 1.0",
+          "done_when": [
+            "intake.json في المشاريع الثلاثة يمر عقده، وكل سؤال answered أو default.",
+            "U6 = 1.0.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "لا تسأل عما يعرفه عقد التكليف في eaos/engagement.py: اقرأه منه.",
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only U6 --min 1.0 && python tools/acceptance.py contract intake",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS11.T2",
           "title": "سيناريوهات الجودة من الاستلام",
+          "why": "سيناريوهات الجودة هي ما تقيسه k6 وToxiproxy وSLO لاحقًا. كل رقم فيها يجب أن يأتي من إجابة أو من قيمة افتراضية معلنة.",
           "moves": [
             "U6"
           ],
@@ -1536,16 +1743,30 @@
           "depends_on": [
             "NS11.T1"
           ],
+          "size": "S",
           "files": [
             "eaos/engagement.py",
             "tests/test_intake.py"
           ],
+          "writes": [
+            "contract:intake"
+          ],
           "steps": [
             "حوّل إجابات الاستلام إلى سيناريوهات جودة مرقّمة بأسلوب ATAM المختصر (مثير، استجابة، مقياس)، مثل: توقع 10 آلاف مستخدم ← سيناريو حمل؛ بيانات شخصية ← سيناريو خصوصية.",
             "كل سيناريو يذكر مصدره: إجابة المالك أو قيمة افتراضية. لا رقم بلا مصدر.",
-            "الاختبار يثبت: إجابة نمو صريحة تنتج سيناريو حمل برقمها؛ وسؤال على قيمته الافتراضية ينتج سيناريو معلّمًا default."
+            "الاختبار يثبت: إجابة نمو صريحة تنتج سيناريو حمل برقمها؛ وسؤال على قيمته الافتراضية ينتج سيناريو معلّمًا default.",
+            "الاشتقاق: concurrent_users ← سيناريو load (المقياس p95_ms بعتبة 800 ms) وسيناريو latency (نسبة الخطأ بعتبة 0.01)؛ و personal_data = نعم ← privacy؛ و availability_target ← availability بالنسبة نفسها. المعرّفات QS-001 فما فوق.",
+            "اكتب السيناريوهات في intake.json → scenarios (بالعقد)، وانسخها إلى engagement.json → scenarios بالحقول الموجودة هناك (name و stimulus و response و measure)، ولا تنشئ مكانًا ثالثًا."
           ],
-          "acceptance": "python -m unittest tests.test_intake -q",
+          "done_when": [
+            "في كل مشروع سيناريو load واحد على الأقل مصدره answer أو default.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "لا رقم بلا source.",
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only U6 && python tools/acceptance.py contract intake --where \"any(s['kind'] == 'load' for s in data['scenarios'])\"",
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
@@ -1562,6 +1783,7 @@
         {
           "id": "NS12.T1",
           "title": "Syft و OSV-Scanner: قائمة الاعتماديات وثغراتها",
+          "why": "قائمة الاعتماديات (SBOM) وثغراتها هي نصف أمن المشروع، ولا يراها EAOS اليوم (H3 = 0).",
           "moves": [
             "H3",
             "R3"
@@ -1570,6 +1792,7 @@
           "depends_on": [
             "NS17.T1"
           ],
+          "size": "M",
           "files": [
             "eaos/engines/syft.py",
             "eaos/engines/osv_scanner.py",
@@ -1579,6 +1802,9 @@
             "tests/contracts/osv-scanner.json",
             "tests/test_engine_contracts.py"
           ],
+          "writes": [
+            "contract:sbom"
+          ],
           "steps": [
             "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل syft كعملية منفصلة، واقرأ مخرجه المنظم (CycloneDX JSON).",
             "ترجم مخرجه إلى مفردات EAOS: اكتب sbom.cdx.json في التقرير كما هو. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
@@ -1586,13 +1812,26 @@
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "OSV-Scanner يقرأ sbom.cdx.json (--sbom) ويعطي حقائق kind=\"vulnerable_dependency\" (أضفها للمخطط ثم python tools/render.py): الحزمة، والإصدار، والمعرّف، والخطورة. كل ثغرة معروفة الإصلاح تصير ادعاء risk بنمط علاج \"ترقية الاعتمادية\"."
           ],
-          "acceptance": "python tools/north_star.py measure --only H3 --min 1.0",
+          "done_when": [
+            "sbom.cdx.json في المشاريع الثلاثة يمر عقده.",
+            "H3 = 1.0.",
+            "لا ملف كُتب داخل مشروع المالك (target_unchanged = true).",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.",
+            "أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.",
+            "لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only H3 --min 1.0 && python tools/acceptance.py adapter syft && python tools/acceptance.py adapter osv-scanner && python tools/acceptance.py contract sbom",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS12.T2",
           "title": "scc: الحجم واللغات",
+          "why": "scc: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.",
           "moves": [
             "R3"
           ],
@@ -1601,6 +1840,7 @@
             "NS17.T1",
             "NS12.T1"
           ],
+          "size": "S",
           "files": [
             "eaos/engines/scc.py",
             "eaos/engines/__init__.py",
@@ -1608,19 +1848,32 @@
             "tests/contracts/scc.json",
             "tests/test_engine_contracts.py"
           ],
+          "writes": [],
           "steps": [
             "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل scc كعملية منفصلة، واقرأ مخرجه المنظم (scc --format json).",
             "ترجم مخرجه إلى مفردات EAOS: قياسات symbol_metric_external لكل ملف (أسطر، وتعقيد)؛ شاهد مستقل على الحجم. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
             "احفظ مخرجًا حقيقيًا في tests/contracts/scc.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة)."
           ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "done_when": [
+            "python tools/acceptance.py adapter scc يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
+            "لا ملف كُتب داخل مشروع المالك (target_unchanged = true).",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.",
+            "أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.",
+            "لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter scc",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS12.T3",
           "title": "Semgrep بقواعد EAOS",
+          "why": "semgrep: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.",
           "moves": [
             "R3"
           ],
@@ -1630,6 +1883,7 @@
             "NS12.T1",
             "NS17.T2"
           ],
+          "size": "M",
           "files": [
             "eaos/engines/semgrep.py",
             "eaos/data/semgrep/",
@@ -1639,6 +1893,7 @@
             "tests/test_engine_contracts.py",
             "eaos/data/sarif-rules.json"
           ],
+          "writes": [],
           "steps": [
             "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (semgrep --config eaos/data/semgrep --sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
             "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. كل قاعدة تحمل في metadata نوعها من KINDS في eaos/engines/contract.py. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
@@ -1646,13 +1901,26 @@
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "مصدران للقواعد: (1) قواعد EAOS في eaos/data/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة، وكل قاعدة معها مثال يطابقها ومثال لا يطابقها. (2) مكتبة semgrep-rules الرسمية: رخصتها تمنع توزيعها، فلا تُنسخ إلى هذا المستودع أبدًا؛ eaos tools install يجلبها إلى /workspace/engine-tools/semgrep-rules عند التزام مثبّت على جهاز المستخدم، ويشغّل المحوّل منها مجموعات بعينها (javascript و typescript و python و secrets) إن وُجدت، ويسجّل في التقرير أيها استُخدم."
           ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "done_when": [
+            "python tools/acceptance.py adapter semgrep يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
+            "لا ملف كُتب داخل مشروع المالك (target_unchanged = true).",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.",
+            "أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.",
+            "لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.",
+            "قواعد semgrep-rules الرسمية تُجلب إلى /workspace/engine-tools ولا تُنسخ إلى المستودع أبدًا: رخصتها تمنع التوزيع."
+          ],
+          "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter semgrep",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS12.T4",
           "title": "Trivy: الأسرار وIaC وDocker",
+          "why": "trivy: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.",
           "moves": [
             "R3",
             "H1"
@@ -1663,6 +1931,7 @@
             "NS12.T1",
             "NS17.T2"
           ],
+          "size": "S",
           "files": [
             "eaos/engines/trivy.py",
             "eaos/engines/__init__.py",
@@ -1671,6 +1940,7 @@
             "tests/test_engine_contracts.py",
             "eaos/data/sarif-rules.json"
           ],
+          "writes": [],
           "steps": [
             "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (trivy fs --format sarif --scanners vuln,secret,misconfig)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
             "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. ثغرات، وإعدادات خاطئة (boundary)، وأسرار: الأسرار شاهد ثانٍ على committed_credential، لا ادعاء جديد إن طابقت الموضع نفسه. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
@@ -1678,13 +1948,25 @@
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "لا تطبع قيمة أي سر؛ خذ نوع القاعدة وموضعها فقط."
           ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "done_when": [
+            "python tools/acceptance.py adapter trivy يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
+            "لا ملف كُتب داخل مشروع المالك (target_unchanged = true).",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.",
+            "أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.",
+            "لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter trivy",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS12.T5",
           "title": "Checkov: GitHub Actions وIaC",
+          "why": "checkov: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.",
           "moves": [
             "R3"
           ],
@@ -1694,6 +1976,7 @@
             "NS12.T1",
             "NS17.T2"
           ],
+          "size": "S",
           "files": [
             "eaos/engines/checkov.py",
             "eaos/engines/__init__.py",
@@ -1702,6 +1985,7 @@
             "tests/test_engine_contracts.py",
             "eaos/data/sarif-rules.json"
           ],
+          "writes": [],
           "steps": [
             "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (checkov -d TARGET -o sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
             "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. إعدادات خاطئة في CI وIaC بخطورتها. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
@@ -1709,13 +1993,25 @@
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "ينطبق فقط إن وُجد .github/workflows أو Dockerfile أو ملفات IaC؛ وإلا يُسجَّل غير منطبق لا غائبًا."
           ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "done_when": [
+            "python tools/acceptance.py adapter checkov يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
+            "لا ملف كُتب داخل مشروع المالك (target_unchanged = true).",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.",
+            "أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.",
+            "لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter checkov",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS12.T6",
           "title": "dependency-cruiser: الحدود كقواعد لـJS/TS",
+          "why": "dependency-cruiser: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.",
           "moves": [
             "R3"
           ],
@@ -1724,6 +2020,7 @@
             "NS17.T1",
             "NS12.T1"
           ],
+          "size": "S",
           "files": [
             "eaos/engines/dependency_cruiser.py",
             "eaos/engines/__init__.py",
@@ -1731,6 +2028,7 @@
             "tests/contracts/dependency-cruiser.json",
             "tests/test_engine_contracts.py"
           ],
+          "writes": [],
           "steps": [
             "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل dependency-cruiser كعملية منفصلة، واقرأ مخرجه المنظم (depcruise --output-type json).",
             "ترجم مخرجه إلى مفردات EAOS: module_edge_external، ودورات (cycle)، وخرق قواعد (boundary). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
@@ -1738,13 +2036,25 @@
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "ولّد إعداد القواعد من eaos.policy.json في مشروع المالك إن وُجد؛ وإلا شغّله بقاعدة no-circular وحدها. لا تكتب أي ملف داخل مشروع المالك: الإعداد في workdir."
           ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "done_when": [
+            "python tools/acceptance.py adapter dependency-cruiser يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
+            "لا ملف كُتب داخل مشروع المالك (target_unchanged = true).",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.",
+            "أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.",
+            "لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter dependency-cruiser",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS12.T7",
           "title": "SQLFluff: جودة SQL والهجرات",
+          "why": "sqlfluff: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.",
           "moves": [
             "R3"
           ],
@@ -1753,6 +2063,7 @@
             "NS17.T1",
             "NS12.T1"
           ],
+          "size": "S",
           "files": [
             "eaos/engines/sqlfluff.py",
             "eaos/engines/__init__.py",
@@ -1760,6 +2071,7 @@
             "tests/contracts/sqlfluff.json",
             "tests/test_engine_contracts.py"
           ],
+          "writes": [],
           "steps": [
             "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل sqlfluff كعملية منفصلة، واقرأ مخرجه المنظم (sqlfluff lint --format json --dialect postgres).",
             "ترجم مخرجه إلى مفردات EAOS: مخالفات بنمطها وموضعها؛ لا تتحول إلى ادعاءات إلا فئات الخطر (مثل غياب WHERE في UPDATE أو DELETE). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
@@ -1767,13 +2079,25 @@
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "ينطبق فقط إن وُجدت ملفات .sql."
           ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "done_when": [
+            "python tools/acceptance.py adapter sqlfluff يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
+            "لا ملف كُتب داخل مشروع المالك (target_unchanged = true).",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.",
+            "أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.",
+            "لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter sqlfluff",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS12.T8",
           "title": "Spectral و oasdiff عند وجود OpenAPI",
+          "why": "spectral وoasdiff: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.",
           "moves": [
             "R3"
           ],
@@ -1783,6 +2107,7 @@
             "NS12.T1",
             "NS17.T2"
           ],
+          "size": "S",
           "files": [
             "eaos/engines/spectral.py",
             "eaos/engines/oasdiff.py",
@@ -1792,6 +2117,7 @@
             "tests/test_engine_contracts.py",
             "eaos/data/sarif-rules.json"
           ],
+          "writes": [],
           "steps": [
             "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (spectral lint -f sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
             "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. مخالفات أسلوب الـAPI (surface). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
@@ -1799,13 +2125,25 @@
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "العيّنة الحالية بلا OpenAPI؛ اكتب عيّنة اختبار فيها مواصفة. غياب المواصفة في مشروع له مسارات http يصير بند فجوة لا صمتًا."
           ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "done_when": [
+            "python tools/acceptance.py adapter spectral / oasdiff يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
+            "لا ملف كُتب داخل مشروع المالك (target_unchanged = true).",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.",
+            "أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.",
+            "لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter spectral && python tools/acceptance.py adapter oasdiff",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS12.T10",
           "title": "GitNexus: رسم المعرفة ونطاق الأثر كشاهد ثالث",
+          "why": "gitnexus: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.",
           "moves": [
             "R3"
           ],
@@ -1813,6 +2151,7 @@
           "depends_on": [
             "NS17.T1"
           ],
+          "size": "M",
           "files": [
             "eaos/engines/gitnexus.py",
             "eaos/engines/__init__.py",
@@ -1821,6 +2160,7 @@
             "tests/test_engine_contracts.py",
             "tools/north_star_measure.py"
           ],
+          "writes": [],
           "steps": [
             "التثبيت: npm install -g gitnexus@<إصدار مثبّت> داخل engine-tools عبر eaos tools install (NS17.T1)، مع GITNEXUS_SKIP_OPTIONAL_GRAMMARS=1 إن لم يوجد مترجم C++. الرخصة PolyForm Noncommercial: سجّلها في registry.yaml بحقل license_note، واطبع تنبيهًا عند التثبيت أن استخدامها للأغراض غير التجارية فقط.",
             "gitnexus analyze يكتب في المستودع الذي يحلله (AGENTS.md و CLAUDE.md وskills وhooks). لذلك لا يُشغَّل على مشروع المالك أبدًا: شغّله على نسخة من process.mirror() في eaos/engines/process.py، مع --skip-agents-md و --skip-skills و --skip-embeddings، و GITNEXUS_HOME داخل workdir حتى لا يلمس ~/.gitnexus. الاختبار يثبت أن مشروع المالك لم يتغير (state_digest قبل وبعد).",
@@ -1829,13 +2169,26 @@
             "المجتمعات (Leiden) التي يكتشفها مرشح أولي لحدود المكوّنات الحالية في S02، ومدخل لإسقاط الصورة المثالية في NS7.T2: تُكتب في facts/external.json → communities[] {name, files}.",
             "أضف gitnexus إلى adopted_adapters وإلى ENGINES في tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة)."
           ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "done_when": [
+            "python tools/acceptance.py adapter gitnexus يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
+            "لا ملف كُتب داخل مشروع المالك (target_unchanged = true).",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "المحوّل لا يُسقط ما لا يفهمه: كل قاعدة بلا ترجمة تُعدّ في unmapped.",
+            "أداة غير مثبتة تُسجَّل unavailable ولا تُفشل التدقيق.",
+            "لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.",
+            "gitnexus analyze يكتب في المستودع الذي يحلله: على نسخة process.mirror() فقط، و state_digest للمشروع قبل وبعد متساويان."
+          ],
+          "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter gitnexus",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS12.T9",
           "title": "كل المحوّلات المنطبقة تعمل على العيّنة",
+          "why": "كل محوّل مقبول وحده؛ هذه المهمة تثبت أنها تعمل معًا على كل مشروع تنطبق عليه.",
           "moves": [
             "R3"
           ],
@@ -1850,13 +2203,23 @@
             "NS12.T8",
             "NS12.T10"
           ],
+          "size": "S",
           "files": [
             "tools/north_star_measure.py",
             "upstreams/registry.yaml"
           ],
+          "writes": [],
           "steps": [
             "ثبّت الأدوات بـpython -m eaos tools install --stage assessment، وتأكد أن eaos tools doctor و eaos engines list يريانها، وأعد القياس.",
             "أي محوّل منطبق لم يعمل على مشروع: أصلح السبب (تثبيت أو مسار أو صيغة)، لا القائمة."
+          ],
+          "done_when": [
+            "R3 = 1.0.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "أصلح سبب المحوّل الذي لم يعمل (تثبيت، أو مسار، أو صيغة)، لا القائمة.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
           ],
           "acceptance": "python tools/north_star.py measure --only R3 --min 1.0",
           "rollback": "revert الالتزام.",
@@ -1871,11 +2234,12 @@
     {
       "id": "NS18",
       "title": "القياس وسجل الدَّين: الأرقام لكل ملف، والخطر حين تجتمع الأدلة",
-      "goal": "M1 ≥ 0.95 و S3 ≥ 0.8.",
+      "goal": "M1 ≥ 0.95 و S3 ≥ 0.8 و G2 = 1.0.",
       "tasks": [
         {
           "id": "NS18.T1",
           "title": "جدول القياس لكل ملف",
+          "why": "الأرقام موجودة لكنها موزعة بين خمسة مصادر. جدول واحد لكل ملف هو خط الأساس الذي يُقارن به «قبل/بعد»، والمدخل الذي يحسب منه سجل الدَّين النقاط الساخنة.",
           "moves": [
             "M1"
           ],
@@ -1883,11 +2247,16 @@
           "depends_on": [
             "NS12.T2"
           ],
+          "size": "M",
           "files": [
             "eaos/measurements.py",
             "eaos/pipeline/stages.py",
             "tools/north_star_measure.py",
             "tests/test_measurements.py"
+          ],
+          "writes": [
+            "contract:measurements",
+            "MEASUREMENTS.md"
           ],
           "steps": [
             "مرحلة measure بعد engines تكتب measurements.json → files[] {path, language, loc, complexity_max, duplicated_lines, churn, authors, last_changed, fan_in, fan_out, coverage}، و MEASUREMENTS.md بأعلى 20 ملفًا.",
@@ -1895,13 +2264,25 @@
             "حقل بلا مصدر يبقى null ومعه السبب في files[].missing؛ لا صفر بدل المجهول.",
             "أضف قياس M1 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة). coverage خارج تعريف M1 لأنه يحتاج تشغيل الاختبارات."
           ],
-          "acceptance": "python tools/north_star.py measure --only M1 --min 0.95",
+          "done_when": [
+            "measurements.json يمر عقده في المشاريع الثلاثة.",
+            "M1 ≥ 0.95.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "المجهول null ومعه سبب في missing، لا صفر.",
+            "مقام M1 هو files_parsed في dossier: جدول مقتطع لا ينجح.",
+            "اطبع الحقائق الحقيقية من /tmp/eaos-measure/<مشروع>/facts/ قبل كتابة أي ربط؛ أغلب عيوب هذا المستودع جاءت من منتج وقارئ اختلفا على اسم حقل.",
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only M1 --min 0.95 && python tools/acceptance.py contract measurements",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS18.T2",
           "title": "سجل الدَّين التقني: كل خطر عالٍ بشاهدين",
+          "why": "أداة واحدة تخطئ؛ خطر عالٍ يؤكده شاهدان من أداتين مستقلتين هو ما يثق به المالك ويبني عليه قراره. هذا قلب قيمة EAOS.",
           "moves": [
             "S3"
           ],
@@ -1911,12 +2292,17 @@
             "NS12.T3",
             "NS12.T4"
           ],
+          "size": "M",
           "files": [
             "eaos/debt_register.py",
             "eaos/pipeline/stages.py",
             "eaos/compose/artifacts.py",
             "tools/north_star_measure.py",
             "tests/test_debt_register.py"
+          ],
+          "writes": [
+            "contract:debt-register",
+            "RISK-REGISTER.md"
           ],
           "steps": [
             "مرحلة debt بعد probe تكتب debt-register.json → items[] {id, title, category, severity, witnesses[] {tool, finding_id, kind}, files, hotspot, impact, recommendation, claim_id}. category من: security، reliability، maintainability، architecture، data، supply_chain، dead_code.",
@@ -1925,7 +2311,55 @@
             "خطورة high أو critical تحتاج شاهدين مستقلين من أداتين مختلفتين (مثلًا Semgrep مع CodeGraph، أو Trivy مع حقائق secrets)، أو شاهدًا حتميًا واحدًا (kind = deterministic: مفتاح مرفوع، أو RLS معطّل). بدون ذلك تنزل إلى medium ويُضاف مجسّ يقرر.",
             "أضف قياس S3 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة)."
           ],
-          "acceptance": "python tools/north_star.py measure --only S3 --min 0.8",
+          "done_when": [
+            "debt-register.json يمر عقده في المشاريع الثلاثة.",
+            "S3 ≥ 0.8.",
+            "RISK-REGISTER.md يُكتب من السجل، ولا يوجد سجلان.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "رفع S3 بخفض كل شيء إلى medium يُرد: الخطورة من الدليل.",
+            "witness.kind = deterministic فقط لدليل لا يحتمل التأويل (مفتاح مرفوع، و RLS معطّل، واسم غير معرّف).",
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only S3 --min 0.8 && python tools/acceptance.py contract debt-register",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS18.T3",
+          "title": "كشف العمل المكرر في TypeScript و JavaScript",
+          "why": "مؤشر الاستدامة minimal_path غير مقيس في finance-os (0 من 339 ملفًا)، لأن كشف العمل المكرر مكتوب لـPython وحده، وأغلب مشاريع الهواة TypeScript. لهذا G2 تحت هدفه.",
+          "moves": [
+            "G2"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS3.T2"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/facts/redundancy.py",
+            "tests/test_redundancy_js.py"
+          ],
+          "writes": [],
+          "steps": [
+            "اقرأ eaos/facts/redundancy.py: _tree_sitter_redundancies تعلن أنها غير منفذة.",
+            "نفّذها لـjavascript و typescript و tsx من الحقائق الموجودة، لا بمحلل جديد: حقائق loop (المدى)، و call_site (الاسم والسطر)، و data_access (NS3.T2).",
+            "n_plus_one: نداء بيانات (data_access، أو fetch، أو axios) داخل مدى حلقة (for، أو while، أو forEach، أو map).",
+            "repeated_call: النداء نفسه بالمعاملات النصية نفسها مرتين في الدالة نفسها، في فرعين غير متنافيين.",
+            "بعدها يُحسب analysed لملفات TS، فيصير minimal_path مقيسًا في sustainability.json."
+          ],
+          "done_when": [
+            "sustainability.json في finance-os فيه minimal_path بقيمة لا null.",
+            "G2 = 1.0.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "map على مصفوفة ثابتة في JSX ليست حلقة بيانات إلا إن كان داخلها نداء بيانات.",
+            "اطبع الحقائق الحقيقية من /tmp/eaos-measure/<مشروع>/facts/ قبل كتابة أي ربط؛ أغلب عيوب هذا المستودع جاءت من منتج وقارئ اختلفا على اسم حقل."
+          ],
+          "acceptance": "python tools/north_star.py measure --only G2 --min 1.0",
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
@@ -1943,6 +2377,7 @@
         {
           "id": "NS15.T1",
           "title": "توليد مواصفات تثبيت السلوك",
+          "why": "قبل تغيير سطر، نثبّت ما يفعله النظام اليوم باختبارات تمر عليه. هي شبكة الأمان التي تمنع التحول من كسر وظيفة دون أن نعرف.",
           "moves": [
             "E4"
           ],
@@ -1950,23 +2385,44 @@
           "depends_on": [
             "NS3.T4"
           ],
+          "size": "L",
           "files": [
             "eaos/behavior_lock.py",
             "eaos.policy.json",
             "tests/test_behavior_lock.py"
           ],
-          "steps": [
-            "لكل وظيفة في features.json: مسارات page ← مواصفة Playwright تزور الصفحة وتتحقق من عناصرها الظاهرة؛ مسارات http مع OpenAPI ← إعداد Schemathesis؛ دوال منطق Python ← هيكل ApprovalTests يلتقط المخرج الحالي.",
-            "اكتب المواصفات في behavior-lock/ وفهرسها في behavior-lock/plan.json → specs[] {feature, tool, path}. المواصفة تثبّت ما يفعله النظام اليوم، لا ما يجب أن يفعله.",
-            "التوليد ساكن ولا يشغّل شيئًا من المشروع."
+          "writes": [
+            "contract:behavior-lock-plan",
+            "behavior-lock/"
           ],
-          "acceptance": "python tools/north_star.py measure --only E4 --min 1.0",
+          "steps": [
+            "اكتب eaos/behavior_lock.py ومرحلة lock بعد features تكتب behavior-lock/plan.json (العقد) والمواصفات تحت behavior-lock/.",
+            "وظيفة لها أسطح page: ملف behavior-lock/playwright/<وظيفة>.spec.ts، فيه اختبار لكل سطح: page.goto(process.env.BASE_URL + route)، ثم لا أخطاء في console، ثم expect(page).toHaveScreenshot(). اللقطة الأولى تُسجَّل عند أول تشغيل على الكود الأصلي (NS26)، وهذا هو تثبيت السلوك.",
+            "المسار ذو المعامل ($id و :id): قيمة من متغير بيئة E2E_<معامل> إن وُجد، وإلا يُسجل في plan.json → specs[].surfaces بعلامة needs_fixture ولا يُحذف.",
+            "الأسطح خلف تسجيل دخول: ملف behavior-lock/playwright/auth.setup.ts يسجّل الدخول بـE2E_USER و E2E_PASSWORD (تُمرَّر عبر env_allow في التفويض)، ولا تُكتب قيم.",
+            "سطح http مع مواصفة OpenAPI: إعداد Schemathesis في behavior-lock/schemathesis.toml. نداءات الواجهة إلى خادم للمشروع نفسه: عقد Pact في behavior-lock/pact/.",
+            "وظيفة Python: behavior-lock/approvals/test_<وظيفة>.py بـApprovalTests، يستورد وحدات الوظيفة ويستدعي دوالها العامة الخالصة (بلا IO) بمدخلات من ملفات البيانات في المستودع إن وُجدت. وإلا فاختبار استيراد يثبت أنها تُحمَّل.",
+            "behavior-lock/playwright.config.ts: baseURL من BASE_URL، ومجلد اللقطات behavior-lock/__screenshots__.",
+            "التوليد ساكن: لا يشغّل شيئًا من المشروع."
+          ],
+          "done_when": [
+            "E4 = 1.0: كل وظيفة لها مواصفة وملفها موجود.",
+            "plan.json يمر عقده.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "المواصفة تصف ما يفعله النظام اليوم، لا ما يجب أن يفعله.",
+            "لا تشغّل شيئًا من مشاريع العيّنة ولا تكتب داخلها؛ هي مدخل غير موثوق.",
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E4 --min 1.0 && python tools/acceptance.py contract behavior-lock-plan",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS15.T2",
           "title": "مواصفات الحمل والأعطال والفحص الحي (ساكنة)",
+          "why": "سكربتات الحمل وتجارب الأعطال وخطة الفحص الحي تُكتب الآن من الحقائق، فتكون جاهزة ومقبولة من أدواتها قبل أي تفويض.",
           "moves": [
             "K1"
           ],
@@ -1976,6 +2432,7 @@
             "NS11.T2",
             "NS17.T3"
           ],
+          "size": "M",
           "files": [
             "eaos/emit/nfr.py",
             "templates/emit/k6/",
@@ -1984,6 +2441,13 @@
             "upstreams/registry.yaml",
             "tests/test_emit_nfr.py"
           ],
+          "writes": [
+            "contract:nfr-experiments",
+            "nfr/k6/",
+            "nfr/toxiproxy.json",
+            "nfr/zap.yaml",
+            "contract:handover-validation"
+          ],
           "steps": [
             "k6: لكل سيناريو جودة من نوع حمل في intake.json (NS11.T2)، ولكل سطح في load-model.json بكلفة معروفة: nfr/k6/<scenario>.js بسيناريو ramping-vus، و thresholds من السيناريو (http_req_duration p(95) و http_req_failed rate)، وعنوان الأساس من متغير BASE_URL. المدقق: k6 inspect. أضف k6 إلى registry.yaml بدوري validate و run.",
             "Toxiproxy: لكل اعتمادية خارجية في الحقائق (قاعدة البيانات، وعنوان Supabase، ومضيفات integration_target): proxy في nfr/toxiproxy.json بصيغة toxiproxy-server -config، وتجارب في nfr/experiments.json {dependency, toxic: latency 2000ms | timeout | down, expected}. expected من سيناريو الجودة، وإلا القيمة الافتراضية المعلنة: «رسالة خطأ للمستخدم خلال 5 ثوانٍ، ولا صفحة بيضاء».",
@@ -1991,7 +2455,18 @@
             "Toxiproxy و ZAP بلا مدقق يعمل دون تشغيل: الاختبار يتحقق من شكلهما بمخطط JSON مكتوب فيه، و validation.json يسجل tool = \"schema\".",
             "التوليد ساكن: لا يشغّل شيئًا من المشروع. كل ملف يمر عبر eaos/emit/validate.py (NS17.T3)."
           ],
-          "acceptance": "python -m unittest tests.test_emit_nfr -q",
+          "done_when": [
+            "كل ملف تحت nfr/ مسجل في handover/validation.json بحكم ok = true.",
+            "nfr/experiments.json يمر عقده.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "BASE_URL من متغير البيئة، ولا يُكتب عنوان.",
+            "k6 inspect يحتاج k6 مثبتًا عبر eaos tools install.",
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted nfr/k6/ nfr/toxiproxy.json nfr/zap.yaml && python tools/acceptance.py contract nfr-experiments",
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
@@ -2008,6 +2483,7 @@
         {
           "id": "NS7.T1",
           "title": "كتالوج بنى مرجعية لكل نوع مشروع",
+          "why": "الصورة المثالية تبدأ من بنية مرجعية معروفة لنوع المشروع، لا من ذوق النموذج. هذا الكتالوج هو المعرفة التي تحملها شركة محترفة.",
           "moves": [
             "T1",
             "T2"
@@ -2016,24 +2492,40 @@
           "depends_on": [
             "NS3.T2"
           ],
+          "size": "M",
           "files": [
             "eaos/data/reference-architectures.json",
             "eaos/reference_architecture.py",
             "eaos.policy.json",
             "tests/test_reference_architecture.py"
           ],
+          "writes": [
+            "eaos/data/reference-architectures.json"
+          ],
           "steps": [
             "لكل نوع (React+Vite+Supabase، Next.js، TanStack Start، Python CLI، Streamlit/Flask): الطبقات والاعتماديات المسموحة وخط الأساس للبنية التحتية (إعدادات البيئة، أنواع قاعدة البيانات، RLS، CI، الاختبارات، تتبع الأخطاء).",
             "كل عنصر يحمل سببه ومقياس نجاحه، لا ذوقًا.",
-            "الاختبار يثبت على الأقل: الكتالوج يغطي أنواع العيّنة الثلاثة (React+Vite+Supabase، React+TanStack+Supabase، Python CLI)؛ لكل نوع طبقات مسماة واعتماديات مسموحة بينها؛ وخط أساس للبنية التحتية من 6 بنود على الأقل (إعدادات البيئة، عميل قاعدة بيانات بأنواع، RLS أو ما يعادله، CI، اختبارات، تتبع أخطاء)، لكل بند سبب ومقياس نجاح مكتوب. ومنتقي النوع يختار النوع الصحيح لكل مشروع في /tmp/eaos-corpus."
+            "الاختبار يثبت على الأقل: الكتالوج يغطي أنواع العيّنة الثلاثة (React+Vite+Supabase، React+TanStack+Supabase، Python CLI)؛ لكل نوع طبقات مسماة واعتماديات مسموحة بينها؛ وخط أساس للبنية التحتية من 6 بنود على الأقل (إعدادات البيئة، عميل قاعدة بيانات بأنواع، RLS أو ما يعادله، CI، اختبارات، تتبع أخطاء)، لكل بند سبب ومقياس نجاح مكتوب. ومنتقي النوع يختار النوع الصحيح لكل مشروع في /tmp/eaos-corpus.",
+            "المعرّفات وشكل الملف ودالة choose(project_dir) مكتوبة بالضبط في رأس acceptance/test_ns7_t1_reference.py.",
+            "لكل نوع ثلاث طبقات على الأقل، مثل: routes/pages، و features (وحدة لكل مجال)، و shared/ui، و data-access، و config. خط الأساس للبنية التحتية يغطي على الأقل: configuration و data و ci و tests و observability و secrets، ولكل بند reason و success_measure."
           ],
-          "acceptance": "python -m unittest tests.test_reference_architecture -q",
+          "done_when": [
+            "python tools/acceptance.py test ns7_t1_reference يمر.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "choose يقرأ ملفات المشروع ولا يشغّل شيئًا.",
+            "الطبقة لا تعتمد على نفسها في allowed_dependencies.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/acceptance.py test ns7_t1_reference",
           "rollback": "احذف الكتالوج.",
           "status": "todo"
         },
         {
           "id": "NS7.T2",
           "title": "إسقاط المشروع على البنية المرجعية",
+          "why": "أكبر فجوة وأعلى وزن: EAOS لا ينتج اليوم مكوّنًا مستهدفًا واحدًا (T1 = 0)، فلا صورة مثالية ولا فجوة مربوطة بها.",
           "moves": [
             "T1",
             "T3",
@@ -2043,15 +2535,32 @@
           "depends_on": [
             "NS7.T1"
           ],
+          "size": "L",
           "files": [
             "eaos/target_architecture.py",
             "tests/test_target_architecture.py"
+          ],
+          "writes": [
+            "contract:target-fragment"
           ],
           "steps": [
             "اكتشف نوع المشروع واختر مرجعه؛ ضع كل ملف في طبقته المستهدفة.",
             "target_components غير فارغة: المكوّن، مسؤوليته، الملفات التي تنتقل إليه، الحواف الممنوعة التي تزول.",
             "كل صف في gap_matrix مربوط بمكوّن مستهدف وفرقه عدد ملفات ونقل وحواف.",
-            "العقد مع القياس: اكتب المكوّنات في target-architecture.json → target_components[]، وكل صف في gap_matrix يحمل target_component."
+            "العقد مع القياس: اكتب المكوّنات في target-architecture.json → target_components[]، وكل صف في gap_matrix يحمل target_component.",
+            "القاعدة الافتراضية Modular Monolith: مكوّن مستهدف لكل وظيفة في features.json (أو لكل مجموعة وظائف متقاربة البيانات)، ومكوّن لكل طبقة مشتركة في النوع المرجعي (مثل ui و data-access و auth و config).",
+            "لكل مكوّن: name و responsibility و layer (من طبقات النوع المرجعي) و reference (معرّف النوع).",
+            "كل ملف حالي يُنسب إلى مكوّن مستهدف: ملفات الوظيفة إلى مكوّنها، والباقي بطبقته. صف gap_matrix لكل مكوّن حالي فيه target_component وعدد الملفات التي تنتقل."
+          ],
+          "done_when": [
+            "T1 = 1.0 و G1 = 1.0.",
+            "target-architecture.json يمر عقد target-fragment.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "الخدمات المصغّرة ليست افتراضًا: أي تقسيم خارج الوحدة الواحدة يحتاج سيناريو جودة يبرره.",
+            "اطبع الحقائق الحقيقية من /tmp/eaos-measure/<مشروع>/facts/ قبل كتابة أي ربط؛ أغلب عيوب هذا المستودع جاءت من منتج وقارئ اختلفا على اسم حقل.",
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
           ],
           "acceptance": "python tools/north_star.py measure --only T1 --min 1.0 && python tools/north_star.py measure --only G1 --min 1.0",
           "rollback": "revert الالتزام.",
@@ -2060,6 +2569,7 @@
         {
           "id": "NS7.T3",
           "title": "قرارات البنية التحتية",
+          "why": "المنتج الاحترافي بنية تحتية أيضًا: CI، ورصد، وأسرار، ونسخ احتياطي. لكل بند قرار مسبَّب، و«لا حاجة» قرار مقبول بسببه.",
           "moves": [
             "T2"
           ],
@@ -2067,14 +2577,28 @@
           "depends_on": [
             "NS7.T2"
           ],
+          "size": "M",
           "files": [
             "eaos/target_architecture.py",
             "tests/test_target_architecture.py"
           ],
+          "writes": [
+            "contract:target-fragment"
+          ],
           "steps": [
             "لكل بند في خط الأساس: موجود أم غائب بدليل، والقرار وبديله وكلفة 'لا نفعل شيئًا'.",
             "العقد مع القياس: اكتب القرارات في target-architecture.json → infrastructure[]، لكل بند area و present و decision و evidence.",
-            "مرشحات كل بند من docs/TOOLCHAIN.md (الدور «يوصي»): CI ← GitHub Actions مع pre-commit؛ الاعتماديات ← Renovate؛ الرصد ← OpenTelemetry مع SigNoz؛ SLO ← Sloth؛ IaC ← OpenTofu (و Ansible للخوادم)؛ الإطلاق التدريجي ← Unleash؛ التوجيه أثناء Strangler ← Traefik؛ الهجرات ← أداة المكدّس الأصلية (Supabase CLI أو Prisma أو Alembic)، و Liquibase لـJVM فقط. لكل مرشح سبب من الحقائق أو سيناريو جودة، و«لا حاجة» مقبول بسببه."
+            "مرشحات كل بند من docs/TOOLCHAIN.md (الدور «يوصي»): CI ← GitHub Actions مع pre-commit؛ الاعتماديات ← Renovate؛ الرصد ← OpenTelemetry مع SigNoz؛ SLO ← Sloth؛ IaC ← OpenTofu (و Ansible للخوادم)؛ الإطلاق التدريجي ← Unleash؛ التوجيه أثناء Strangler ← Traefik؛ الهجرات ← أداة المكدّس الأصلية (Supabase CLI أو Prisma أو Alembic)، و Liquibase لـJVM فقط. لكل مرشح سبب من الحقائق أو سيناريو جودة، و«لا حاجة» مقبول بسببه.",
+            "area من قيم العقد فقط. present من الحقائق: ci ← حقائق ci_step، و configuration ← env_read و config_key، و observability ← observability_signal، و hosting ← vercel.json أو netlify.toml أو Dockerfile."
+          ],
+          "done_when": [
+            "T2 = 1.0.",
+            "كل بند في خط أساس النوع المرجعي له قرار.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "tool يسمّي أداة من docs/TOOLCHAIN.md أو null مع سبب.",
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
           ],
           "acceptance": "python tools/north_star.py measure --only T2 --min 1.0",
           "rollback": "revert الالتزام.",
@@ -2083,6 +2607,7 @@
         {
           "id": "NS7.T4",
           "title": "قرار لكل مكوّن: إعادة استخدام، هيكلة، إعادة بناء، حذف",
+          "why": "لكل جزء من الكود قرار واحد بدليله: يبقى، أو يُعاد تنظيمه، أو يُعاد بناؤه، أو يُحذف. اليوم ينتج EAOS قرارين فقط من أربعة.",
           "moves": [
             "T4"
           ],
@@ -2091,14 +2616,30 @@
             "NS7.T2",
             "NS5.T1"
           ],
+          "size": "M",
           "files": [
             "eaos/target_architecture.py",
             "tests/test_target_architecture.py"
           ],
+          "writes": [
+            "contract:target-fragment",
+            "eaos/data/disposition-rules.json"
+          ],
           "steps": [
-            "قاعدة مكتوبة لكل قرار: حذف إن لم يصله شيء؛ إعادة استخدام إن وافق طبقته المستهدفة بلا حواف ممنوعة؛ هيكلة إن كان في المكان الخطأ أو كثيف التعقيد؛ إعادة بناء إن تجاوزت كلفة الهيكلة حدًا معلنًا.",
-            "كل قرار بأرقامه ودليله وبديله.",
-            "العقد مع القياس: اكتب القرار في current_components[].relation بإحدى القيم: retain أو modify أو rebuild أو delete، ومعه reason."
+            "العتبات في eaos/data/disposition-rules.json لا في الكود.",
+            "delete: كل ملفات المكوّن غير قابلة للوصول (ادعاءات NS5.T1).",
+            "retain: في طبقته المستهدفة، وبلا حافة ممنوعة، و complexity_max < 15، و duplicated_lines < 20 (من measurements.json).",
+            "rebuild: أكثر من 40% من ملفاته تحتاج نقلًا أو تعديلًا، أو complexity_max > 40، أو عليه عنصر critical في سجل الدَّين.",
+            "modify: ما سوى ذلك.",
+            "reason يذكر الأرقام التي قررت، و target_component مكانه المستهدف."
+          ],
+          "done_when": [
+            "T4 = 1.0: كل مكوّن له قرار وسبب، والقرارات الأربعة ظاهرة في العيّنة.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "لا تفتعل قرارًا ليظهر: إن لم يظهر rebuild في العيّنة بالعتبات المعلنة، فعلّم المهمة blocked واكتب الأرقام.",
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
           ],
           "acceptance": "python tools/north_star.py measure --only T4 --min 1.0",
           "rollback": "revert الالتزام.",
@@ -2107,6 +2648,7 @@
         {
           "id": "NS7.T5",
           "title": "الصورة المثالية تحفظ الوظائف",
+          "why": "الصورة المثالية تحفظ الوظائف نفسها: كل وظيفة يجب أن تجد بيتًا في مكوّن مستهدف، وإلا ضاعت أثناء التحول.",
           "moves": [
             "T5"
           ],
@@ -2115,15 +2657,28 @@
             "NS7.T4",
             "NS3.T4"
           ],
+          "size": "S",
           "files": [
             "eaos/target_architecture.py",
             "tests/test_target_architecture.py"
+          ],
+          "writes": [
+            "contract:features"
           ],
           "steps": [
             "كل وظيفة من جرد U4 لها مكوّن مستهدف يحملها؛ الوظيفة بلا مكان في الصورة المثالية فجوة معلنة.",
             "العقد مع القياس: اكتب مكان كل وظيفة في features.json → features[].target_component."
           ],
-          "acceptance": "python tools/north_star.py measure --only T5 --min 1.0",
+          "done_when": [
+            "T5 = 1.0.",
+            "features.json يمر عقده بعد إضافة target_component.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "وظيفة بلا مكان فجوة معلنة في TARGET-STATE، لا null صامت.",
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only T5 --min 1.0 && python tools/acceptance.py contract features --where \"all(f.get('target_component') for f in data['features'])\"",
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
@@ -2140,6 +2695,7 @@
         {
           "id": "NS13.T1",
           "title": "نموذج C4 للوضع الحالي من الحقائق",
+          "why": "نموذج C4 مكتوب نصًا يراه المالك رسمًا ويقرؤه أي نموذج بيانات: هو الخريطة المشتركة للوضع الحالي.",
           "moves": [
             "T6"
           ],
@@ -2147,23 +2703,38 @@
           "depends_on": [
             "NS3.T4"
           ],
+          "size": "M",
           "files": [
             "eaos/c4.py",
             "eaos.policy.json",
             "tests/test_c4.py"
           ],
+          "writes": [
+            "architecture/current/workspace.dsl"
+          ],
           "steps": [
             "اكتب architecture/current/workspace.dsl بصيغة Structurizr DSL من الحقائق: السياق (المستخدمون والأنظمة الخارجية من data_access و integration_target)، والحاويات (الواجهة، والخادم، وقاعدة البيانات، والتخزين)، والمكوّنات (current_components).",
             "واكتب النسخة نفسها Mermaid في CURRENT-STATE.md لتُعرض على GitHub. النموذج نص يكتبه EAOS؛ لا تعتمد على مكتبة Structurizr (structurizr/java مؤرشفة).",
-            "الاختبار يثبت أن DSL المولَّد صالح نحويًا (عناصر workspace و model و views متوازنة الأقواس) وأن كل مكوّن حالي فيه."
+            "الاختبار يثبت أن DSL المولَّد صالح نحويًا (عناصر workspace و model و views متوازنة الأقواس) وأن كل مكوّن حالي فيه.",
+            "الهيكل الإلزامي، والأسماء بين علامتي تنصيص كما في current_components[].name حرفيًا:\nworkspace \"<مشروع>\" {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"<مشروع>\" {\n      app = container \"Application\" \"<stack>\" {\n        c1 = component \"<name>\"\n      }\n    }\n    ext1 = softwareSystem \"<host>\"\n    user -> app \"uses\"\n  }\n  views {\n    systemContext system { include * autolayout }\n    container system { include * autolayout }\n    component app { include * autolayout }\n  }\n}",
+            "المعرّفات (c1 و ext1…) حروف وأرقام و_ فقط. الأنظمة الخارجية من integration_target و data_access."
           ],
-          "acceptance": "python -m unittest tests.test_c4 -q",
+          "done_when": [
+            "python tools/acceptance.py dsl architecture/current/workspace.dsl --names current_components يمر.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "اسم مكوّن فيه علامة تنصيص يُهرَّب (\\\").",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only T6 && python tools/acceptance.py dsl architecture/current/workspace.dsl --names current_components",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS13.T2",
           "title": "نموذج C4 للصورة المثالية",
+          "why": "الصورة المثالية بالشكل نفسه للحالية، فيرى المالك الفرق بين رسمين.",
           "moves": [
             "T6"
           ],
@@ -2172,21 +2743,34 @@
             "NS13.T1",
             "NS7.T2"
           ],
+          "size": "S",
           "files": [
             "eaos/c4.py",
             "tests/test_c4.py"
+          ],
+          "writes": [
+            "architecture/target/workspace.dsl"
           ],
           "steps": [
             "اكتب architecture/target/workspace.dsl من target_components وحدودها المسموحة، بالطريقة نفسها.",
             "العقد مع القياس: اسم كل عنصر في target_components[].name يظهر في DSL المستهدف."
           ],
-          "acceptance": "python tools/north_star.py measure --only T6 --min 1.0",
+          "done_when": [
+            "T6 = 1.0.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "الأسماء من target_components[].name حرفيًا بين علامتي تنصيص.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only T6 --min 1.0 && python tools/acceptance.py dsl architecture/target/workspace.dsl --names target_components",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS13.T3",
           "title": "قرارات العمارة بصيغة MADR",
+          "why": "كل قرار عمارة يُسجَّل مع بدائله وسببه، فلا يُعاد النقاش فيه بلا دليل جديد.",
           "moves": [
             "T7"
           ],
@@ -2194,14 +2778,28 @@
           "depends_on": [
             "NS7.T4"
           ],
+          "size": "S",
           "files": [
             "eaos/adr.py",
             "eaos.policy.json",
             "tests/test_adr.py"
           ],
+          "writes": [
+            "adr/ADR-NNN.md"
+          ],
           "steps": [
             "لكل قرار في target-architecture.json → decisions[] اكتب adr/ADR-NNN.md بأقسام MADR: Context and Problem Statement، و Considered Options (كل البدائل بأدلتها)، و Decision Outcome (القرار وسببه وعواقبه ومتى يُعاد النظر فيه).",
-            "لا تستخدم Log4brains (متوقف منذ 2024-12)؛ الصيغة وحدها تكفي."
+            "لا تستخدم Log4brains (متوقف منذ 2024-12)؛ الصيغة وحدها تكفي.",
+            "العناوين حرفيًا: \"## Context and Problem Statement\" و \"## Considered Options\" و \"## Decision Outcome\"، ثم \"### Consequences\". الرقم NNN هو رقم decisions[].id."
+          ],
+          "done_when": [
+            "T7 = 1.0.",
+            "كل ملف ADR يمر markdownlint.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "ADR واحد لكل قرار، لا ملف يجمعها.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
           ],
           "acceptance": "python tools/north_star.py measure --only T7 --min 1.0",
           "rollback": "revert الالتزام.",
@@ -2221,6 +2819,7 @@
         {
           "id": "NS8.T1",
           "title": "حجم لكل مهمة",
+          "why": "مهمة بلا حجم لا تُخطَّط ولا تُوزَّع على فريق. اليوم كل البطاقات effort = unknown.",
           "moves": [
             "P1"
           ],
@@ -2228,13 +2827,25 @@
           "depends_on": [
             "NS1.T2"
           ],
+          "size": "S",
           "files": [
             "eaos/plan.py",
             "tests/test_plan.py"
           ],
+          "writes": [
+            "contract:plan-fragment"
+          ],
           "steps": [
-            "S/M/L مشتق من نطاق الأثر (ملفات ومستوردون) والنمط، مع ثقته المعلنة.",
-            "العقد مع القياس: اكتب الحجم في plan.json → tasks[].effort بإحدى القيم S أو M أو L."
+            "القاعدة: S إن لمست البطاقة ملفين أو أقل و blast_radius.total ≤ 5؛ و M إن لمست 8 ملفات أو أقل أو total ≤ 20؛ و L غير ذلك. اكتبها في رأس الدالة.",
+            "effort بإحدى القيم S أو M أو L فقط (العقد)، ومعه effort_basis {files, dependents}."
+          ],
+          "done_when": [
+            "P1 = 1.0.",
+            "plan.json يمر عقد plan-fragment.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
           ],
           "acceptance": "python tools/north_star.py measure --only P1 --min 1.0",
           "rollback": "revert الالتزام.",
@@ -2243,6 +2854,7 @@
         {
           "id": "NS8.T2",
           "title": "معالم لا موجات",
+          "why": "الموجات تُرتب حسب تعارض الملفات؛ الشركات ترتب بمعالم لها أهداف (تثبيت، ثم شبكة أمان، ثم حدود…). هذا ما يفهمه المالك ويتابعه.",
           "moves": [
             "P4"
           ],
@@ -2250,16 +2862,30 @@
           "depends_on": [
             "NS7.T2"
           ],
+          "size": "M",
           "files": [
             "eaos/plan.py",
             "eaos/compose/artifacts.py",
             "tests/test_plan.py"
           ],
+          "writes": [
+            "contract:plan-fragment",
+            "ROADMAP.md"
+          ],
           "steps": [
             "اجمع البطاقات في معالم حسب المكوّن المستهدف والهدف: التنظيف، ثم الأمن، ثم الطبقات، ثم التحسين.",
             "لكل معلم هدف وشرط خروج مقيس، وROADMAP.md بأقل من 10 معالم وأهم البطاقات في كل معلم.",
             "العقد مع القياس: اكتب المعالم في plan.json → milestones[]، لكل معلم id و goal و exit و tasks.",
-            "مكوّن قراره rebuild أو replace ويخدم أسطحًا حية: معلم بنمط Strangler Fig. المسار الجديد خلف علم (Unleash، أو متغير بيئة إن لم تُعتمد Unleash)، والتوجيه عبر Traefik إن كان للمشروع خادم، وإزالة القديم معلم مستقل لا يبدأ قبل تكافؤ السلوك (E7)."
+            "مكوّن قراره rebuild أو replace ويخدم أسطحًا حية: معلم بنمط Strangler Fig. المسار الجديد خلف علم (Unleash، أو متغير بيئة إن لم تُعتمد Unleash)، والتوجيه عبر Traefik إن كان للمشروع خادم، وإزالة القديم معلم مستقل لا يبدأ قبل تكافؤ السلوك (E7).",
+            "ترتيب المعالم ثابت كما في docs/MASTER-BLUEPRINT.md §٧: التثبيت، ثم شبكة الأمان، ثم الحدود، ثم البناء، ثم التصليب، ثم الإزالة، ثم الجاهزية. المعلم الفارغ لا يُكتب."
+          ],
+          "done_when": [
+            "P4 = 1.0.",
+            "كل بطاقة في معلم واحد بالضبط.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
           ],
           "acceptance": "python tools/north_star.py measure --only P4 --min 1.0",
           "rollback": "revert الالتزام.",
@@ -2268,6 +2894,7 @@
         {
           "id": "NS8.T3",
           "title": "أوامر قبول قابلة للتشغيل للفئات الآلية",
+          "why": "البطاقة التي دليلها آلي يجب أن يكون قبولها أمرًا يُشغَّل، لا «مراجعة بشرية».",
           "moves": [
             "P2",
             "P3"
@@ -2277,13 +2904,26 @@
             "NS5.T4",
             "NS6.T1"
           ],
+          "size": "M",
           "files": [
             "eaos/remediation_patterns.py",
             "eaos/plan.py",
             "tests/test_decisions.py"
           ],
+          "writes": [
+            "contract:plan-fragment"
+          ],
           "steps": [
-            "كل فئة يكون دليلها آليًا (كود ميت، مخلفات، أسرار، تكرار حرفي، مخالفة سياسة) تصدر بطاقة remediate بأمر قبول يعيد التدقيق ويتحقق من زوال الحقيقة."
+            "كل فئة يكون دليلها آليًا (كود ميت، مخلفات، أسرار، تكرار حرفي، مخالفة سياسة) تصدر بطاقة remediate بأمر قبول يعيد التدقيق ويتحقق من زوال الحقيقة.",
+            "لكل فئة أمرها: كود ميت ومخلفات ← إعادة التدقيق مع التحقق من زوال الحقيقة بمعرّفها؛ أسرار ← trivy fs على المسار؛ تكرار حرفي ← jscpd على الملفين؛ مخالفة سياسة ← python -m eaos policy check."
+          ],
+          "done_when": [
+            "P3 ≥ 0.8.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "الأمر يُشغَّل على نسخة المشروع، لا على الأصل.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
           ],
           "acceptance": "python tools/north_star.py measure --only P3 --min 0.8",
           "rollback": "revert الالتزام.",
@@ -2292,6 +2932,7 @@
         {
           "id": "NS8.T4",
           "title": "أقسام الفريق",
+          "why": "الفريق يعمل بالتوازي حين يعرف كل قسم مهامه وما ينتظره من الأقسام الأخرى.",
           "moves": [
             "P6"
           ],
@@ -2299,14 +2940,24 @@
           "depends_on": [
             "NS8.T2"
           ],
+          "size": "S",
           "files": [
             "eaos/plan.py",
             "tests/test_plan.py"
           ],
+          "writes": [
+            "contract:plan-fragment"
+          ],
           "steps": [
-            "صنّف كل مهمة في قسم (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) من طبقتها المستهدفة وملفاتها.",
-            "لكل قسم ترتيب داخلي وما يعتمد عليه من الأقسام الأخرى، ليعمل أكثر من مبرمج بالتوازي.",
-            "العقد مع القياس: اكتب القسم في plan.json → tasks[].section."
+            "section من قيم العقد فقط (frontend و backend و data و infrastructure و security و quality)، بهذه القاعدة بالترتيب: pattern = access_gap، أو ادعاء committed_credential، أو ثغرة ← security؛ ملفات .github/ أو Dockerfile أو vercel.json ← infrastructure؛ ملفات .sql أو supabase/ ← data؛ مسارات server/ أو api/ أو functions/ ← backend؛ pattern = trace_gap أو untested_path ← quality؛ غير ذلك frontend.",
+            "لكل قسم في plan.json → sections[] ترتيب داخلي، وما يعتمد عليه من الأقسام الأخرى (من depends_on البطاقات)."
+          ],
+          "done_when": [
+            "P6 = 1.0.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
           ],
           "acceptance": "python tools/north_star.py measure --only P6 --min 1.0",
           "rollback": "revert الالتزام.",
@@ -2315,6 +2966,7 @@
         {
           "id": "NS8.T5",
           "title": "التقارير الأربعة مدخلًا للتقرير",
+          "why": "التقارير الأربعة هي ما يستلمه المالك، وكل ما عداها ملاحق.",
           "moves": [
             "P7"
           ],
@@ -2323,16 +2975,32 @@
             "NS7.T5",
             "NS8.T4"
           ],
+          "size": "M",
           "files": [
             "eaos/compose/artifacts.py",
             "eaos/compose/four_reports.py",
             "eaos.policy.json",
             "tests/test_artifact_contract.py"
           ],
+          "writes": [
+            "CURRENT-STATE.md",
+            "TARGET-STATE.md",
+            "GAP-AND-STRATEGY.md",
+            "EXECUTION-PLAN.md"
+          ],
           "steps": [
             "CURRENT-STATE.md و TARGET-STATE.md و GAP-AND-STRATEGY.md و EXECUTION-PLAN.md، لكل منها مالك وميزانية وتوأم JSON.",
             "README التقرير يبدأ بها بالترتيب، وتصير بقية الوثائق ملاحق مرجعية.",
-            "العقد مع القياس: أسماء الملفات بالضبط: CURRENT-STATE.md و TARGET-STATE.md و GAP-AND-STRATEGY.md و EXECUTION-PLAN.md."
+            "العقد مع القياس: أسماء الملفات بالضبط: CURRENT-STATE.md و TARGET-STATE.md و GAP-AND-STRATEGY.md و EXECUTION-PLAN.md.",
+            "قالب كل تقرير (docs/MASTER-BLUEPRINT.md §٦): الخلاصة في صفحة (القرار المطلوب، وأهم 3 أرقام، وأكبر 3 مخاطر)، ثم دليل ← استنتاج ← أثر ← توصية، ثم ما لم يُفحص، ثم الملاحق. كل رقم معه معرّف دليله."
+          ],
+          "done_when": [
+            "P7 = 1.0.",
+            "كل تقرير داخل ميزانية أسطره في eaos/compose/artifacts.py.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "لا تكرر محتوى الملاحق في المتن؛ اربطه."
           ],
           "acceptance": "python tools/north_star.py measure --only P7 --min 1.0",
           "rollback": "revert الالتزام.",
@@ -2341,6 +3009,7 @@
         {
           "id": "NS8.T6",
           "title": "أداة تحويل لكل مهمة آلية",
+          "why": "البطاقة الآلية تُنفَّذ بأداة تحويل حتمية، لا بنموذج: أرخص، وأسرع، ولا تخطئ بطريقة جديدة.",
           "moves": [
             "P9"
           ],
@@ -2348,6 +3017,7 @@
           "depends_on": [
             "NS8.T3"
           ],
+          "size": "M",
           "files": [
             "eaos/codemods.py",
             "eaos/data/codemods.json",
@@ -2356,11 +3026,23 @@
             "tools/north_star_measure.py",
             "tests/test_codemods.py"
           ],
+          "writes": [
+            "contract:plan-fragment"
+          ],
           "steps": [
             "الفئات الآلية وأداتها في eaos/data/codemods.json: حذف مخلفات أو كود ميت ← git rm للمسارات مع فحص dependency-cruiser أن لا شيء يستوردها؛ نقل وحدة وتحديث استيراداتها (JS/TS) ← jscodeshift؛ ترقية اعتمادية ← npm install pkg@version أو pip في النسخة؛ Java ← وصفة OpenRewrite منشورة بالاسم.",
             "لكل بطاقة من هذه الفئات: codemod {tool, command, dry_run}. dry_run يُملأ بتشغيل الأمر على isolated_copy بوضعه التجريبي (jscodeshift --dry): exit وعدد الملفات المتغيرة. التحويل يعدّل نص المشروع ولا يشغّل كوده.",
             "استخدم تحويلات jscodeshift المنشورة إن طابقت الفئة؛ لا تكتب تحويلًا في templates/codemods/ إلا لفئة بلا مقابل، ومعه اختبار على مثال. أضف jscodeshift إلى registry.yaml بدور run.",
             "أضف قياس P9 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة)."
+          ],
+          "done_when": [
+            "P9 ≥ 0.8.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "dry run على isolated_copy؛ لا تلمس الأصل.",
+            "files_changed = 0 يعني أن الأداة لم تفعل شيئًا، فلا تُحسب.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
           ],
           "acceptance": "python tools/north_star.py measure --only P9 --min 0.8",
           "rollback": "revert الالتزام.",
@@ -2379,6 +3061,7 @@
         {
           "id": "NS14.T1",
           "title": "حزمة أسلوب EAOS لـVale وإعداد markdownlint",
+          "why": "جودة التقرير تُفحص آليًا مثل الكود: الكلام المبهم يُرفض قبل أن يصل إلى المالك.",
           "moves": [
             "P8"
           ],
@@ -2386,23 +3069,37 @@
           "depends_on": [
             "NS8.T5"
           ],
+          "size": "S",
           "files": [
             "eaos/data/vale/",
             "eaos/data/markdownlint.json",
             "tests/test_report_style.py"
           ],
-          "steps": [
-            "قواعد Vale: ترفض الكلمات المبهمة (ربما، تحسين عام، إلخ، ونظائرها الإنجليزية)، وتنبّه على رقم لا يتبعه معرّف دليل، وعلى جملة أطول من حد معلن.",
-            "إعداد markdownlint-cli2: عناوين متدرجة، وجداول سليمة، وروابط داخلية موجودة.",
-            "الاختبار يثبت أن فقرة فيها كلمة مبهمة تُرفض وأن فقرة سليمة تمر."
+          "writes": [
+            "eaos/data/vale/",
+            "eaos/data/.markdownlint-cli2.jsonc"
           ],
-          "acceptance": "python -m unittest tests.test_report_style -q",
+          "steps": [
+            "المسارات والأوامر مكتوبة بالضبط في رأس acceptance/test_ns14_t1_style.py، ومعها مثالان تحت acceptance/fixtures/style/.",
+            "قواعد EAOS بمستوى error: كلمات مبهمة بالعربية (ربما، إلخ، بشكل عام، تحسين عام) وبالإنجليزية (maybe، etc.، generally، various).",
+            "إعداد markdownlint: عناوين متدرجة، وجداول سليمة، ولا أسطر طويلة في الجداول تُكسر."
+          ],
+          "done_when": [
+            "python tools/acceptance.py test ns14_t1_style يمر.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "vale يحتاج التثبيت عبر eaos tools install (NS17.T1).",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/acceptance.py test ns14_t1_style",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS14.T2",
           "title": "مرحلة فحص التقارير في الـpipeline",
+          "why": "الفحص يعمل داخل التدقيق نفسه على التقارير الأربعة، وتُصلح المولّدات حتى تمر.",
           "moves": [
             "P8"
           ],
@@ -2410,6 +3107,7 @@
           "depends_on": [
             "NS14.T1"
           ],
+          "size": "M",
           "files": [
             "eaos/report_quality.py",
             "eaos/pipeline/stages.py",
@@ -2417,34 +3115,59 @@
             "eaos.policy.json",
             "tests/test_report_quality.py"
           ],
+          "writes": [
+            "contract:report-quality"
+          ],
           "steps": [
             "مرحلة اختيارية بعد compose: تشغّل vale و markdownlint-cli2 إن كانا مثبتين على التقارير الأربعة، وتكتب report-quality.json → reports[] {name, vale_errors, markdownlint_errors}. غياب الأداة يُعلن unavailable لا نجاحًا.",
             "أصلح مولّدات التقارير حتى تمر الفحصين، لا القواعد."
           ],
-          "acceptance": "python tools/north_star.py measure --only P8 --min 1.0",
+          "done_when": [
+            "P8 = 1.0.",
+            "report-quality.json يمر عقده.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "أداة لم تعمل تُكتب null لا 0.",
+            "أصلح المولّد، لا القاعدة.",
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only P8 --min 1.0 && python tools/acceptance.py contract report-quality",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS14.T3",
           "title": "ملخص تنفيذي PDF بصفحة واحدة",
+          "why": "صاحب القرار يقرأ صفحة واحدة. PDF من البيانات نفسها لا من نص يُكتب مرتين.",
           "moves": [],
           "needs": "none",
           "depends_on": [
             "NS14.T2"
           ],
+          "size": "S",
           "files": [
             "eaos/compose/pdf.py",
             "templates/typst/executive.typ",
             "upstreams/registry.yaml",
             "tests/test_pdf.py"
           ],
+          "writes": [
+            "EXECUTIVE.pdf"
+          ],
           "steps": [
             "قالب Typst واحد يقرأ JSON التقرير (json() في Typst) ويكتب EXECUTIVE.pdf: القرار المطلوب، وأهم 3 أرقام بدليلها، وأكبر 3 مخاطر، والمعالم.",
             "مرحلة اختيارية بعد compose، و absent_when: typst غير مثبت. أضف typst إلى registry.yaml بدور emit.",
             "لا يحرّك مؤشرًا؛ الاختبار يثبت أن الملف يُنتج وأن كل رقم فيه موجود في JSON المصدر، وأمر القبول يثبت عدم الهبوط."
           ],
-          "acceptance": "python -m unittest tests.test_pdf -q && python tools/north_star.py --no-regression",
+          "done_when": [
+            "EXECUTIVE.pdf في تقارير المشاريع الثلاثة.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "كل رقم في الملف موجود في JSON المصدر."
+          ],
+          "acceptance": "python tools/north_star.py measure --only P8 && python tools/acceptance.py file EXECUTIVE.pdf",
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
@@ -2461,6 +3184,7 @@
         {
           "id": "NS25.T1",
           "title": "عدّة الحوكمة: CI و pre-commit و Renovate وقواعد الحدود",
+          "why": "الاحترافية تبقى بعد مغادرتنا فقط إن فرضها المستودع على كل تغيير: CI، وفحوص قبل الالتزام، وترقيات آلية، وحدود مكتوبة كقواعد.",
           "moves": [
             "K1"
           ],
@@ -2471,6 +3195,7 @@
             "NS12.T3",
             "NS12.T6"
           ],
+          "size": "M",
           "files": [
             "eaos/emit/governance.py",
             "templates/emit/github-actions/",
@@ -2479,19 +3204,38 @@
             "upstreams/registry.yaml",
             "tests/test_emit_governance.py"
           ],
+          "writes": [
+            "handover/.github/workflows/eaos.yml",
+            "handover/.pre-commit-config.yaml",
+            "handover/renovate.json",
+            "handover/.dependency-cruiser.cjs",
+            "handover/semgrep/",
+            "contract:handover-validation"
+          ],
           "steps": [
             "handover/.github/workflows/eaos.yml بخطوات مشروطة بما ينطبق على المشروع: الاختبارات، و eaos audit --gate new مقابل خط أساس مثبّت، و dependency-cruiser بقواعد الحدود المستهدفة، و semgrep بقواعد EAOS، و trivy fs، و osv-scanner، و checkov (إن وُجد IaC أو CI)، و spectral و oasdiff (إن وُجد OpenAPI)، و playwright لشبكة الأمان. كل action مثبّت بـSHA لا بوسم.",
             "handover/.pre-commit-config.yaml بفحوص سريعة فقط (أسرار عبر trivy، و semgrep على الملفات المتغيرة، و markdownlint). handover/renovate.json: تجميع الترقيات الصغيرة، وجدول أسبوعي، وترقيات الأمن فورية.",
             "قواعد الحدود من target-architecture.json (المكوّنات المستهدفة وما يُمنع بينها): .dependency-cruiser.cjs لـJS/TS، وقواعد Semgrep تمنع الاستيراد عبر الحدود لـPython، واختبار ArchUnit لـJava.",
-            "أضف إلى registry.yaml بدور validate: actionlint، و pre-commit، و renovate (لـrenovate-config-validator). كل ملف يمر عبر eaos/emit/validate.py."
+            "أضف إلى registry.yaml بدور validate: actionlint، و pre-commit، و renovate (لـrenovate-config-validator). كل ملف يمر عبر eaos/emit/validate.py.",
+            "قواعد Semgrep للحدود تُكتب في handover/semgrep/boundaries.yml (هذا المسار يقيسه K1)."
           ],
-          "acceptance": "python -m unittest tests.test_emit_governance -q",
+          "done_when": [
+            "الملفات الخمسة مسجلة في handover/validation.json بحكم ok = true (dependency-cruiser لمشاريع JS/TS فقط).",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "كل action في سير العمل مثبّت بـSHA كامل، لا بوسم.",
+            "شغّل python tools/contracts.py /tmp/eaos-measure/<مشروع> على مخرجك؛ ملف يخالف عقده يُقاس غائبًا.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/.github/workflows/eaos.yml handover/.pre-commit-config.yaml handover/renovate.json handover/semgrep/",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS25.T2",
           "title": "عدّة الرصد: OpenTelemetry و SLO",
+          "why": "الرصد وأهداف الخدمة (SLO) تُكتب الآن من سيناريوهات الجودة، وتُثبت لاحقًا على نسخة تعمل (NS24).",
           "moves": [
             "K1"
           ],
@@ -2500,6 +3244,7 @@
             "NS25.T1",
             "NS11.T2"
           ],
+          "size": "M",
           "files": [
             "eaos/emit/observability.py",
             "templates/emit/otel/",
@@ -2507,19 +3252,34 @@
             "upstreams/registry.yaml",
             "tests/test_emit_observability.py"
           ],
+          "writes": [
+            "handover/otel/collector.yaml",
+            "handover/otel/INSTRUMENTATION.md",
+            "handover/slo/",
+            "contract:handover-validation"
+          ],
           "steps": [
             "handover/otel/collector.yaml: receiver otlp (grpc و http)، و processor batch، و exporters: file للبيئة المعزولة (يقرؤه NS24) و otlp إلى عنوان من متغير بيئة للإنتاج (SigNoz أو غيره). المدقق: otelcol-contrib validate --config.",
             "handover/otel/INSTRUMENTATION.md لكل مكدّس مكتشف: حزمة OpenTelemetry الرسمية وسطر تهيئتها، والأسطح الحرجة التي يجب أن تحمل span باسم المسار. كل سطر فيه يصير مهمة بقسم البنية التحتية في الخطة.",
             "handover/slo/<service>.yaml بصيغة Sloth (prometheus/v1): SLO توفر و SLO زمن استجابة لكل سيناريو جودة بأهدافه. المدقق: sloth validate -i handover/slo.",
             "أضف otelcol-contrib و sloth إلى registry.yaml بدور validate."
           ],
-          "acceptance": "python -m unittest tests.test_emit_observability -q",
+          "done_when": [
+            "otel و slo مسجلة في validation.json بحكم ok = true.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "عنوان الإنتاج من متغير بيئة؛ لا عنوان مكتوب.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/otel/collector.yaml handover/slo/",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS25.T3",
           "title": "عدّة الجاهزية: Goss وقائمة فحص كل بند فيها أمر",
+          "why": "الجاهزية قائمة كل بند فيها أمر يُشغَّل، لا تصريح.",
           "moves": [
             "K1"
           ],
@@ -2527,6 +3287,7 @@
           "depends_on": [
             "NS25.T2"
           ],
+          "size": "S",
           "files": [
             "eaos/emit/readiness.py",
             "templates/emit/goss/",
@@ -2534,18 +3295,32 @@
             "upstreams/registry.yaml",
             "tests/test_emit_readiness.py"
           ],
+          "writes": [
+            "handover/readiness/goss.yaml",
+            "handover/readiness/checklist.json",
+            "contract:handover-validation"
+          ],
           "steps": [
             "handover/readiness/goss.yaml من الصورة المثالية: المنفذ الذي يستمع عليه التطبيق، و http لمسار الصحة بحالة 200، والعمليات، وملفات الإعداد المطلوبة. المدقق: goss -g handover/readiness/goss.yaml render.",
             "handover/readiness/checklist.json من eaos/data/readiness-checklist.json، ولكل بند command يشغّله NS16: goss validate، وشبكة الأمان، والاستعادة من نسخة احتياطية (إن كانت قاعدة بيانات)، والتراجع إلى الالتزام السابق مع مرور شبكة الأمان، و pre-commit run --all-files، و act إن توفر Docker.",
             "بند بلا command يُرفض عند التوليد. أضف goss إلى registry.yaml بدوري validate و run."
           ],
-          "acceptance": "python -m unittest tests.test_emit_readiness -q",
+          "done_when": [
+            "goss.yaml مسجل في validation.json بحكم ok = true.",
+            "كل بند في checklist.json له command.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/readiness/goss.yaml",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS25.T4",
           "title": "موقع التسليم: التقارير وقرارات العمارة والرسوم في مكان واحد",
+          "why": "المالك يستلم موقع توثيق واحدًا فيه التقارير والقرارات والرسوم ودلائل التشغيل.",
           "moves": [
             "K1"
           ],
@@ -2555,24 +3330,38 @@
             "NS13.T3",
             "NS14.T2"
           ],
+          "size": "S",
           "files": [
             "eaos/emit/handover_site.py",
             "templates/emit/site/",
             "upstreams/registry.yaml",
             "tests/test_emit_site.py"
           ],
+          "writes": [
+            "handover/mkdocs.yml",
+            "handover/docs/",
+            "contract:handover-validation"
+          ],
           "steps": [
             "handover/docs/: التقارير الأربعة، و adr/، و architecture/ (Mermaid مضمّن)، و runbooks/ (التشغيل، والتراجع، والاستعادة من الحوادث)، و handover/mkdocs.yml بقائمة التنقل. الصيغة mkdocs.yml يقرؤها Zensical و MkDocs معًا.",
             "المدقق: zensical build بلا تحذير رابط مكسور. أضف zensical إلى registry.yaml بدور validate.",
             "موقع EAOS الحالي (index.html) يبقى أداة القراءة الداخلية؛ هذا الموقع يُسلَّم للمالك ويُنشر من مستودعه."
           ],
-          "acceptance": "python -m unittest tests.test_emit_site -q",
+          "done_when": [
+            "mkdocs.yml مسجل في validation.json بحكم ok = true (zensical build بلا تحذير رابط مكسور).",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/mkdocs.yml",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS25.T5",
           "title": "كل العدّة مقبولة من أدواتها على العيّنة",
+          "why": "كل مهمة عدّة مقبولة وحدها؛ هذه تثبت أن العدّة كاملة لكل مشروع بما ينطبق عليه.",
           "moves": [
             "K1"
           ],
@@ -2581,13 +3370,23 @@
             "NS25.T4",
             "NS15.T2"
           ],
+          "size": "S",
           "files": [
             "tools/north_star_measure.py",
             "docs/north-star.json"
           ],
+          "writes": [],
           "steps": [
             "ثبّت المدققات بـeaos tools install --stage assessment، وولّد العدّة لكل مشروع في العيّنة، وأعد القياس.",
             "أي ملف يرفضه مدققه: أصلح المولّد، لا المدقق ولا القائمة."
+          ],
+          "done_when": [
+            "K1 = 1.0.",
+            "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
+          ],
+          "pitfalls": [
+            "أصلح المولّد، لا المدقق ولا قائمة KIT.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
           ],
           "acceptance": "python tools/north_star.py measure --only K1 --min 1.0",
           "rollback": "revert الالتزام.",
@@ -2608,6 +3407,7 @@
         {
           "id": "NS26.T1",
           "title": "تشغيل شبكة الأمان على الكود الأصلي",
+          "why": "أول خطوة بعد التفويض: تشغيل شبكة الأمان على الكود الأصلي وتسجيل ما يفعله اليوم. بدونها لا يبدأ أي تغيير.",
           "moves": [
             "E5"
           ],
@@ -2616,22 +3416,38 @@
             "NS15.T1",
             "NS17.T5"
           ],
+          "size": "M",
           "files": [
             "eaos/behavior_lock.py",
             "tests/test_behavior_lock.py"
           ],
+          "writes": [
+            "contract:behavior-lock-results"
+          ],
           "steps": [
             "بتفويض المالك (authorization.json، NS17.T5) وداخل Sandbox: ثبّت اعتماديات المشروع (npm ci أو pip install)، وشغّله بـstart، ثم شغّل مواصفات behavior-lock بأدواتها: npx playwright test --reporter=json، و schemathesis run، و pact، و pytest لـApprovalTests.",
             "اكتب behavior-lock/results.json → results[] {path, status}. مواصفة فشلت على الكود الأصلي تُصحَّح لتصف ما يفعله النظام فعلًا، أو تُعلَّم quarantined بسبب مكتوب؛ لا تُحذف.",
-            "بلا تفويض تبقى المهمة blocked بسبب مكتوب."
+            "بلا تفويض تبقى المهمة blocked بسبب مكتوب.",
+            "التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب \"no authorization for <مشروع>\"، ولا تشغّل شيئًا.",
+            "المخرج behavior-lock/results.json تحت مجلد التشغيل، بعقده. commit فيه هو commit المشروع."
           ],
-          "acceptance": "python tools/north_star.py measure --only E5 --min 0.8",
+          "done_when": [
+            "E5 ≥ 0.8.",
+            "results.json يمر عقده."
+          ],
+          "pitfalls": [
+            "لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).",
+            "مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E5 --min 0.8 && python tools/acceptance.py contract behavior-lock-results",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
           "id": "NS26.T2",
           "title": "خط أساس الحمل قبل أي تغيير",
+          "why": "الرقم «بعد» بلا رقم «قبل» بالشروط نفسها لا يثبت شيئًا.",
           "moves": [
             "E6"
           ],
@@ -2640,16 +3456,29 @@
             "NS26.T1",
             "NS15.T2"
           ],
+          "size": "S",
           "files": [
             "eaos/runtime_baseline.py",
             "tests/test_runtime_baseline.py"
           ],
+          "writes": [
+            "contract:runtime-performance"
+          ],
           "steps": [
             "في Sandbox نفسه: k6 run --summary-export لكل سكربت في nfr/k6 على الكود الأصلي. اكتب runtime/performance.json → scenarios[] {id, before {p95_ms, error_rate}}، وهو الطرف «قبل» لمؤشر E6.",
             "الشروط في الملف نفسه: نسخة build لا خادم التطوير، ومدة الإحماء، وعدد المستخدمين الافتراضيين، والجهاز. رقم بلا شروطه لا يقارَن.",
-            "الاختبار يثبت أن سيناريو بلا شروط مكتوبة يُرفض، وأن طرف «بعد» لا يُكتب دون طرف «قبل»."
+            "الاختبار يثبت أن سيناريو بلا شروط مكتوبة يُرفض، وأن طرف «بعد» لا يُكتب دون طرف «قبل».",
+            "التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب \"no authorization for <مشروع>\"، ولا تشغّل شيئًا."
           ],
-          "acceptance": "python -m unittest tests.test_runtime_baseline -q",
+          "done_when": [
+            "runtime/performance.json يمر عقده، ولكل سيناريو before."
+          ],
+          "pitfalls": [
+            "لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).",
+            "مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/acceptance.py contract runtime-performance --where \"all(s['before'] for s in data['scenarios'])\"",
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
@@ -2666,6 +3495,7 @@
         {
           "id": "NS9.T1",
           "title": "تنفيذ حقيقي على مشروع من العيّنة",
+          "why": "الإثبات أن الخطة قابلة للتنفيذ: بطاقات حقيقية تُنفَّذ على مشروع حقيقي، ويمر قبولها في نسخة معزولة.",
           "moves": [
             "E1",
             "E2"
@@ -2676,16 +3506,30 @@
             "NS26.T1",
             "NS8.T6"
           ],
+          "size": "L",
           "files": [
             "docs/north-star.json"
           ],
-          "steps": [
-            "اضبط مزوّد نموذج، وشغّل eaos improve على نسخة من مشروع في العيّنة بخطوات محدودة.",
-            "سجّل: المهام المنفذة، وأوامر القبول ونتائجها، و predictions_verified من guarantee.json.",
-            "كل مهمة خلف بوابة: أمر قبولها، وشبكة الأمان (NS26) داخل Sandbox، وإعادة تدقيق بلا ادعاء حرج جديد. أي فشل يعيد المهمة ولا يمر.",
-            "البطاقات التي تحمل codemod (NS8.T6) تُنفَّذ بأداتها لا بالنموذج؛ النموذج للمهام التي تحتاج حكمًا."
+          "writes": [
+            "contract:execution-log"
           ],
-          "acceptance": "python tools/north_star.py measure --only E1 --min 1.0",
+          "steps": [
+            "ما يوفره المالك: ملف provider.json (نوع chat_completions مع endpoint و model و api_key_env، أو نوع command مع argv لأداة محلية)، ومتغير المفتاح في البيئة، والتفويض. القالب في docs/MASTER-BLUEPRINT.md §١٠.",
+            "البطاقات التي تحمل codemod (NS8.T6) تُنفَّذ بأداتها أولًا. ثم بطاقة واحدة على الأقل بالنموذج: python -m eaos implement --out <مساحة العمل> --checks <checks.json> --task TASK-NNN --provider provider.json run.",
+            "كل بطاقة خلف بوابة: أمر قبولها، وشبكة الأمان (NS26) في Sandbox، وإعادة التدقيق بلا ادعاء حرج جديد.",
+            "اكتب runtime/execution.json (العقد): لكل بطاقة id و tool (codemod أو model) و status كما كتبه eaos implement في result.json، و acceptance_exit."
+          ],
+          "done_when": [
+            "E1 = 1.0.",
+            "execution.json يمر عقده."
+          ],
+          "pitfalls": [
+            "status يُنسخ من result.json كما هو؛ NEEDS_REVIEW ليس نجاحًا.",
+            "لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).",
+            "مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E1 --min 1.0 && python tools/acceptance.py contract execution-log",
           "rollback": "لا تغيير في الكود.",
           "status": "todo"
         }
@@ -2702,6 +3546,7 @@
         {
           "id": "NS20.T1",
           "title": "شبكة الأمان وإعادة التدقيق بعد كل معلم",
+          "why": "التحول ينجح فقط إن بقيت الوظائف نفسها تعمل، وحدث ما تنبأت به الخطة.",
           "moves": [
             "E7",
             "E2"
@@ -2710,17 +3555,32 @@
           "depends_on": [
             "NS9.T1"
           ],
+          "size": "M",
           "files": [
             "eaos/verify_change.py",
             "tests/test_verify_change.py"
+          ],
+          "writes": [
+            "behavior-lock/results-after.json",
+            "contract:runtime-guarantee",
+            "VERIFICATION.md"
           ],
           "steps": [
             "بعد كل معلم من NS9، وداخل Sandbox على النسخة المتغيرة: شغّل شبكة الأمان نفسها واكتب behavior-lock/results-after.json.",
             "أعد التدقيق بـeaos audit، ثم eaos delta مقابل خط الأساس، ثم eaos guarantee لمقارنة التنبؤ بالمقاس (E2).",
             "إن وُجدت مواصفة OpenAPI قبل وبعد: oasdiff breaking. أي كسر لم تذكره الخطة يُفشل البوابة.",
-            "VERIFICATION.md: جدول قبل وبعد لكل مؤشر، وكل مواصفة تغيّرت حالتها وسببه."
+            "VERIFICATION.md: جدول قبل وبعد لكل مؤشر، وكل مواصفة تغيّرت حالتها وسببه.",
+            "انسخ guarantee.json الذي يكتبه eaos guarantee إلى runtime/guarantee.json كما هو (العقد runtime-guarantee)."
           ],
-          "acceptance": "python tools/north_star.py measure --only E7 --min 1.0",
+          "done_when": [
+            "E7 = 1.0 و E2 ≥ 0.8."
+          ],
+          "pitfalls": [
+            "لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).",
+            "مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E7 --min 1.0 && python tools/north_star.py measure --only E2 --min 0.8",
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
@@ -2737,6 +3597,7 @@
         {
           "id": "NS21.T1",
           "title": "فحص ساكن وحي بلا خطر عالٍ مفتوح",
+          "why": "لا يُسلَّم نظام فيه خطر عالٍ مفتوح، لا في الكود ولا وهو يعمل.",
           "moves": [
             "E8"
           ],
@@ -2745,18 +3606,32 @@
             "NS20.T1",
             "NS15.T2"
           ],
+          "size": "M",
           "files": [
             "eaos/runtime_security.py",
             "upstreams/registry.yaml",
             "tests/test_runtime_security.py"
           ],
+          "writes": [
+            "contract:runtime-security"
+          ],
           "steps": [
             "ساكن: أعد تشغيل محوّلات Semgrep و Trivy و OSV-Scanner و Checkov (NS12) على النسخة المتغيرة.",
             "حي: داخل Sandbox والتطبيق يعمل: zap.sh -cmd -autorun nfr/zap.yaml (خطة NS15.T2). يحتاج Java 17: eaos tools install يطبع سطر تثبيته. اقرأ تقرير JSON: التنبيهات بخطورتها.",
             "Trivy image إن بنى المشروع صورة Docker. OpenSSF Scorecard إن كان المستودع على GitHub و GITHUB_TOKEN متاح: يُسجَّل في التقرير ولا يدخل البوابة.",
-            "runtime/security.json → {static {critical, high}, dast {tool, high, medium}}. E8 للمشروع = 1 فقط إن كانت critical و high صفرًا في الاثنين."
+            "runtime/security.json → {static {critical, high}, dast {tool, high, medium}}. E8 للمشروع = 1 فقط إن كانت critical و high صفرًا في الاثنين.",
+            "التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب \"no authorization for <مشروع>\"، ولا تشغّل شيئًا."
           ],
-          "acceptance": "python tools/north_star.py measure --only E8 --min 1.0",
+          "done_when": [
+            "E8 = 1.0."
+          ],
+          "pitfalls": [
+            "ZAP يحتاج Java 17؛ غيابه سبب blocked مكتوب، لا تخطٍّ.",
+            "لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).",
+            "مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E8 --min 1.0 && python tools/acceptance.py contract runtime-security",
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
@@ -2773,6 +3648,7 @@
         {
           "id": "NS22.T1",
           "title": "k6 بعد التحول مقابل خط الأساس",
+          "why": "الحمل يُقاس قبل وبعد بالشروط نفسها، ويُقارن بعتبة سيناريو الجودة.",
           "moves": [
             "E6"
           ],
@@ -2781,14 +3657,29 @@
             "NS20.T1",
             "NS26.T2"
           ],
+          "size": "S",
           "files": [
             "eaos/runtime_baseline.py",
             "tests/test_runtime_baseline.py"
           ],
+          "writes": [
+            "contract:runtime-performance",
+            "PERFORMANCE.md"
+          ],
           "steps": [
             "شغّل سكربتات nfr/k6 نفسها بالشروط المكتوبة في runtime/performance.json على النسخة المتغيرة، واملأ after.",
             "PERFORMANCE.md: p95 ونسبة الخطأ قبل وبعد لكل سيناريو، ومقابل عتبة سيناريو الجودة.",
-            "اختياري للخوادم (Node أو Python أو Go أو Java): Grafana Pyroscope أثناء التشغيل لمعرفة أين يذهب المعالج. يُرفق ولا يدخل البوابة."
+            "اختياري للخوادم (Node أو Python أو Go أو Java): Grafana Pyroscope أثناء التشغيل لمعرفة أين يذهب المعالج. يُرفق ولا يدخل البوابة.",
+            "التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب \"no authorization for <مشروع>\"، ولا تشغّل شيئًا."
+          ],
+          "done_when": [
+            "E6 ≥ 0.8."
+          ],
+          "pitfalls": [
+            "شروط التشغيل (build و vus و duration) هي نفسها المسجلة في before، وإلا فالمقارنة باطلة.",
+            "لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).",
+            "مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
           ],
           "acceptance": "python tools/north_star.py measure --only E6 --min 0.8",
           "rollback": "revert الالتزام.",
@@ -2807,6 +3698,7 @@
         {
           "id": "NS23.T1",
           "title": "تجارب Toxiproxy على كل اعتمادية حرجة",
+          "why": "المنتج الاحترافي يفشل بلطف حين تبطؤ قاعدة البيانات أو تسقط خدمة خارجية. نعرف ذلك بالتجربة، لا بالظن.",
           "moves": [
             "E9"
           ],
@@ -2815,17 +3707,31 @@
             "NS20.T1",
             "NS15.T2"
           ],
+          "size": "M",
           "files": [
             "eaos/resilience.py",
             "tests/test_resilience.py"
+          ],
+          "writes": [
+            "contract:runtime-resilience",
+            "RESILIENCE.md"
           ],
           "steps": [
             "داخل Sandbox: toxiproxy-server -config nfr/toxiproxy.json، ووجّه التطبيق إلى الوكيل بمتغيرات البيئة (مثل VITE_SUPABASE_URL أو DATABASE_URL). تطبيق يكتب العنوان في الكود لا في متغير: هذه نتيجة بحد ذاتها تُسجَّل ادعاءً ومهمة، ولا تُتجاوز.",
             "لكل تجربة في nfr/experiments.json: فعّل toxic عبر toxiproxy-cli، وشغّل مواصفات شبكة الأمان للوظائف التي تستخدم الاعتمادية، وسجّل observed (رسالة خطأ؟ مهلة؟ صفحة بيضاء؟ إعادة محاولة؟) مقابل expected.",
             "Pumba لعطل الحاوية والمعالج والذاكرة إن كان backend = docker؛ وإلا يُسجَّل غير منطبق بسببه.",
-            "runtime/resilience.json → experiments[] {dependency, toxic, expected, observed, ok}، و RESILIENCE.md."
+            "runtime/resilience.json → experiments[] {dependency, toxic, expected, observed, ok}، و RESILIENCE.md.",
+            "التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب \"no authorization for <مشروع>\"، ولا تشغّل شيئًا."
           ],
-          "acceptance": "python tools/north_star.py measure --only E9 --min 0.8",
+          "done_when": [
+            "E9 ≥ 0.8."
+          ],
+          "pitfalls": [
+            "لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).",
+            "مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E9 --min 0.8 && python tools/acceptance.py contract runtime-resilience",
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
@@ -2842,6 +3748,7 @@
         {
           "id": "NS24.T1",
           "title": "التحقق من الرصد أثناء شبكة الأمان والحمل",
+          "why": "الرصد المكتوب في الإعداد لا يكفي؛ نثبت أن كل سطح حرج يظهر فعلًا في التتبع.",
           "moves": [
             "E10"
           ],
@@ -2850,17 +3757,31 @@
             "NS25.T2",
             "NS22.T1"
           ],
+          "size": "M",
           "files": [
             "eaos/telemetry_check.py",
             "tests/test_telemetry_check.py"
+          ],
+          "writes": [
+            "contract:runtime-telemetry"
           ],
           "steps": [
             "داخل Sandbox: otelcol-contrib --config handover/otel/collector.yaml بمصدّر file، ووجّه التطبيق إليه بـOTEL_EXPORTER_OTLP_ENDPOINT.",
             "شغّل شبكة الأمان وسكربتات k6، ثم اقرأ ملف المصدّر: اربط كل span بسطح (http.route أو url.path)، واكتب runtime/telemetry.json → surfaces[] {surface, spans}.",
             "سطح حرج بلا span يصير مهمة في قسم البنية التحتية وفق INSTRUMENTATION.md، لا استثناء.",
-            "تحقق أن قواعد Prometheus التي يولّدها sloth generate من handover/slo تشير إلى مقاييس ظهرت فعلًا."
+            "تحقق أن قواعد Prometheus التي يولّدها sloth generate من handover/slo تشير إلى مقاييس ظهرت فعلًا.",
+            "التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب \"no authorization for <مشروع>\"، ولا تشغّل شيئًا.",
+            "السطح الحرج هو سطح وظيفة critical = true في features.json."
           ],
-          "acceptance": "python tools/north_star.py measure --only E10 --min 0.9",
+          "done_when": [
+            "E10 ≥ 0.9."
+          ],
+          "pitfalls": [
+            "لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).",
+            "مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E10 --min 0.9 && python tools/acceptance.py contract runtime-telemetry",
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
@@ -2877,6 +3798,7 @@
         {
           "id": "NS16.T1",
           "title": "تشغيل قائمة الجاهزية",
+          "why": "شهادة الإنتاج: كل بند جاهزية يمر بأمره، والنتيجة جدول قبل/بعد بالأرقام.",
           "moves": [
             "E11"
           ],
@@ -2888,16 +3810,31 @@
             "NS23.T1",
             "NS24.T1"
           ],
+          "size": "M",
           "files": [
             "eaos/readiness.py",
             "tests/test_readiness.py"
           ],
+          "writes": [
+            "contract:production-readiness",
+            "PRODUCTION-READINESS.md"
+          ],
           "steps": [
             "شغّل كل بند من handover/readiness/checklist.json (NS25.T3) بأمره داخل Sandbox: goss -g handover/readiness/goss.yaml validate --format json، والاستعادة، والتراجع، و pre-commit run --all-files، و act إن توفر Docker.",
             "اكتب PRODUCTION-READINESS.json → items[] {id, command, ok, output}، و PRODUCTION-READINESS.md بجدول قبل وبعد لكل مؤشر من E5 إلى E10.",
-            "الاختبار يثبت أن بندًا بلا أمر يُرفض، وأن بندًا فشل أمره لا يُكتب ناجحًا."
+            "الاختبار يثبت أن بندًا بلا أمر يُرفض، وأن بندًا فشل أمره لا يُكتب ناجحًا.",
+            "التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب \"no authorization for <مشروع>\"، ولا تشغّل شيئًا."
           ],
-          "acceptance": "python tools/north_star.py measure --only E11 --min 1.0",
+          "done_when": [
+            "E11 = 1.0.",
+            "PRODUCTION-READINESS.md فيه جدول قبل/بعد لكل مؤشر من E5 إلى E10."
+          ],
+          "pitfalls": [
+            "لا تشغّل كود المشروع خارج eaos.sandbox.Sandbox (NS17.T5).",
+            "مخرجات التشغيل تُكتب في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، لا في تقرير التدقيق: التقرير يُحذف كلما تغيّر كود الأداة.",
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E11 --min 1.0 && python tools/acceptance.py contract production-readiness",
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
@@ -2914,6 +3851,7 @@
         {
           "id": "NS10.T1",
           "title": "عيّنة من 10 مشاريع منها 3 holdout",
+          "why": "نتيجة على 3 مشاريع ضُبطت عليها الأداة لا تثبت شيئًا عن مشروع جديد. عشرة مشاريع، ثلاثة منها لا تُقرأ تقاريرها أثناء التطوير.",
           "moves": [
             "V4"
           ],
@@ -2921,12 +3859,24 @@
           "depends_on": [
             "NS1.T2"
           ],
+          "size": "M",
           "files": [
             "docs/north-star.json"
           ],
+          "writes": [],
           "steps": [
             "أضف 7 مشاريع حقيقية متنوعة، وضع 3 منها في holdout لا تُقرأ تقاريرها أثناء التطوير.",
-            "لكل مشروع truth مكتوبة قبل تشغيل الأداة عليه."
+            "لكل مشروع truth مكتوبة قبل تشغيل الأداة عليه.",
+            "المشاريع: مستودعات عامة مبنية بأدوات vibe coding (Lovable، Bolt، v0، Cursor) بأنواع مختلفة: React و Next.js و Python، وواحد على الأقل بخادم خاص به.",
+            "لكل مشروع truth مكتوبة قبل تشغيل الأداة عليه: user_surfaces بأمر عدّ مكتوب في user_surfaces_how، و tables، و policies، و leftovers، و credentials.",
+            "ثلاثة منها holdout: true. لا تُقرأ تقاريرها ولا يُضبط عليها شيء."
+          ],
+          "done_when": [
+            "V4 = 1.0.",
+            "كل مشروع مثبّت بـcommit كامل."
+          ],
+          "pitfalls": [
+            "الحقيقة الأرضية تُكتب قبل التشغيل؛ كتابتها بعد قراءة التقرير تُبطل القياس."
           ],
           "acceptance": "python tools/north_star.py measure --only V4 --min 1.0",
           "rollback": "احذف المشاريع المضافة.",
@@ -2935,6 +3885,7 @@
         {
           "id": "NS10.T2",
           "title": "مراجع بشري مستقل",
+          "why": "الحكم النهائي على جودة التقارير لإنسان محترف من خارج المشروع.",
           "moves": [
             "V3"
           ],
@@ -2942,11 +3893,20 @@
           "depends_on": [
             "NS8.T2"
           ],
+          "size": "S",
           "files": [
             "docs/north-star.json"
           ],
+          "writes": [],
           "steps": [
-            "ابنِ حزمة مراجعة لمشروع من العيّنة وسلّمها لمراجع من خارج المشروع، وسجّل النموذج المكتمل كما هو."
+            "ابنِ حزمة مراجعة لمشروع من العيّنة وسلّمها لمراجع من خارج المشروع، وسجّل النموذج المكتمل كما هو.",
+            "المراجع يملأ نموذج المراجعة الموجود (eaos evaluate) على التقارير الأربعة لمشروع من العيّنة. تُسجل V3 = 1 مع رابط النموذج المكتمل في evidence."
+          ],
+          "done_when": [
+            "V3 = 1.0 مسجلة بدليلها."
+          ],
+          "pitfalls": [
+            "لا يراجع من شارك في التطوير."
           ],
           "acceptance": "python tools/north_star.py measure --only V3 --min 1.0",
           "rollback": "لا تغيير في الكود.",

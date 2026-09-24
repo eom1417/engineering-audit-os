@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "runtime/guarantee.json",
+  "description": "Runtime artifact: the output of eaos guarantee after the change, copied as written: predicted against observed indicator deltas.",
+  "x-artifact": "runtime/guarantee.json",
+  "x-owner": "NS20.T1",
+  "type": "object",
+  "required": [
+    "status",
+    "rows"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "COMPARED",
+        "UNAVAILABLE"
+      ]
+    },
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "indicator",
+          "verdict"
+        ],
+        "properties": {
+          "indicator": {
+            "type": "string"
+          },
+          "predicted": {
+            "type": "number"
+          },
+          "observed": {
+            "type": "number"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "HONEST",
+              "OVERSTATED",
+              "UNDERSTATED"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -70,6 +70,38 @@ class NorthStarTests(unittest.TestCase):
         record['roadmap'][-1]['milestones'].remove('NS10')
         self.assertIn('NS10: must appear in exactly one roadmap phase', self.tool.validate(record))
 
+    def _open_task(self, record):
+        return next(t for t in self.tool.tasks(record) if t['status'] != 'done')
+
+    def test_an_open_task_without_its_card_is_rejected(self):
+        record = copy.deepcopy(self.record)
+        task = self._open_task(record)
+        for field in ('why', 'size', 'done_when'): task.pop(field)
+        problems = self.tool.validate(record)
+        for expected in ('no why', 'size must be one of', 'no done_when checklist'):
+            self.assertTrue(any(task['id'] in p and expected in p for p in problems), expected)
+
+    def test_an_acceptance_the_executor_writes_itself_is_rejected(self):
+        record = copy.deepcopy(self.record)
+        task = self._open_task(record)
+        task['acceptance'] = 'python -m unittest tests.test_something -q'
+        self.assertTrue(any(task['id'] in p and 'acceptance must run the measurement' in p for p in self.tool.validate(record)))
+
+    def test_an_indicator_short_of_target_needs_an_open_task(self):
+        record = copy.deepcopy(self.record)
+        for task in self.tool.tasks(record):
+            task['moves'] = [m for m in task['moves'] if m != 'G2']
+        self.assertIn('G2: below its target and no open task moves it', self.tool.validate(record))
+
+    def test_a_contract_that_does_not_exist_is_rejected(self):
+        record = copy.deepcopy(self.record)
+        task = self._open_task(record)
+        task['writes'] = ['contract:nonexistent']
+        self.assertTrue(any('writes unknown contract contract:nonexistent' in p for p in self.tool.validate(record)))
+
+    def test_the_plan_is_not_finished_while_tasks_are_open(self):
+        self.assertEqual(self.tool.main(['--finished']), 1)
+
     def test_milestones_listed_out_of_phase_order_are_rejected(self):
         record = copy.deepcopy(self.record)
         record['milestones'].append(record['milestones'].pop(0))
@@ -206,6 +238,87 @@ class MeasurementTests(unittest.TestCase):
         self.assertEqual(self._orchestration(**sbom)['H3'][0], 0.0)
         scanned = dict(sbom, **{'facts/external.json': {'summary': {'engines_observed': ['osv-scanner']}}})
         self.assertEqual(self._orchestration(**scanned)['H3'][0], 1.0)
+
+    def _stage(self, report=None, runtime=None, plan_tasks=(), coverage=None):
+        """Measure the 15-stage indicators over one report and its runtime directory."""
+        import tempfile
+        measure = load_measure()
+        with tempfile.TemporaryDirectory() as tmp:
+            out = self._report(Path(tmp) / 'r', tasks=plan_tasks)
+            if coverage:
+                (out / 'dossier.json').write_text(json.dumps({'claims': [], 'coverage': coverage}))
+            previous = measure.RUNTIME, measure.CORPUS
+            measure.RUNTIME, measure.CORPUS = Path(tmp) / 'runtime', Path(tmp) / 'corpus'
+            (measure.CORPUS / 'p').mkdir(parents=True)
+            (measure.CORPUS / 'p' / 'app.ts').write_text('x')
+            try:
+                for base, artifacts in ((out, report or {}), (measure.RUNTIME / 'p', runtime or {})):
+                    for name, content in artifacts.items():
+                        (base / name).parent.mkdir(parents=True, exist_ok=True)
+                        (base / name).write_text(json.dumps(content))
+                spec = {'name': 'p', 'truth': {'user_surfaces': 1}}
+                project = measure.Project(spec, out, 0)
+                return {**measure.plan_values([project]), **measure.runtime_values([project])}
+            finally:
+                measure.RUNTIME, measure.CORPUS = previous
+
+    def test_an_artifact_that_breaks_its_contract_counts_as_absent(self):
+        good = {'schema_version': 1, 'files': [{'path': 'a.ts', 'language': 'typescript', 'loc': 10, 'complexity_max': 3,
+                                                'churn': 2, 'fan_in': 1, 'missing': []}]}
+        self.assertEqual(self._stage({'measurements.json': good}, coverage={'files_parsed': 2})['M1'][0], 0.5)
+        bad = {'schema_version': 1, 'files': [{'path': 'a.ts', 'loc': 10}]}
+        self.assertEqual(self._stage({'measurements.json': bad}, coverage={'files_parsed': 2})['M1'][0], 0.0)
+
+    def test_high_risk_needs_two_tools_or_one_deterministic_witness(self):
+        def item(id_, witnesses, severity='high'):
+            return {'id': id_, 'title': 't', 'category': 'security', 'severity': severity, 'files': ['a.ts'],
+                    'impact': 'i', 'recommendation': 'r', 'witnesses': [{'tool': t, 'finding_id': 'f', 'kind': k} for t, k in witnesses]}
+        register = {'schema_version': 1, 'formula': 'f', 'items': [
+            item('DEBT-001', [('semgrep', 'heuristic'), ('codegraph', 'heuristic')]),
+            item('DEBT-002', [('secrets', 'deterministic')]),
+            item('DEBT-003', [('semgrep', 'heuristic'), ('semgrep', 'heuristic')]),
+            item('DEBT-004', [('semgrep', 'heuristic')], severity='medium')]}
+        self.assertAlmostEqual(self._stage({'debt-register.json': register})['S3'][0], 0.667, places=3)
+        self.assertEqual(self._stage()['S3'][0], 0.0)
+
+    def test_a_kit_file_counts_only_when_its_own_tool_accepted_it(self):
+        rows = [{'path': path, 'tool': 't', 'ok': True} for path, _ in load_measure().KIT if not path.endswith('/')]
+        rows += [{'path': path + 'x.yaml', 'tool': 't', 'ok': True} for path, _ in load_measure().KIT if path.endswith('/')]
+        full = self._stage({'handover/validation.json': {'schema_version': 1, 'files': rows}})['K1'][0]
+        self.assertEqual(full, 1.0)
+        rows[0]['ok'] = False
+        self.assertLess(self._stage({'handover/validation.json': {'schema_version': 1, 'files': rows}})['K1'][0], 1.0)
+
+    def test_a_mechanical_card_counts_only_when_its_codemod_changed_files(self):
+        tasks = [{'pattern': 'remove_dead', 'codemod': {'tool': 'git', 'command': 'git rm a.ts', 'dry_run': {'exit': 0, 'files_changed': 1}}},
+                 {'pattern': 'remove_dead', 'codemod': {'tool': 'git', 'command': 'git rm b.ts', 'dry_run': {'exit': 0, 'files_changed': 0}}},
+                 {'pattern': 'canonicalize'}]
+        self.assertEqual(self._stage(plan_tasks=tasks)['P9'][0], 0.5)
+
+    def test_load_counts_only_with_both_sides_and_parity_only_for_what_passed_before(self):
+        perf = {'schema_version': 1, 'conditions': {'build': 'vite build', 'warmup_s': 10, 'vus': 20, 'duration_s': 60, 'machine': 'm'},
+                'scenarios': [{'id': 'QS-001', 'script': 'nfr/k6/a.js', 'threshold': {'p95_ms': 500, 'error_rate': 0.01},
+                               'before': {'p95_ms': 400, 'error_rate': 0}, 'after': {'p95_ms': 300, 'error_rate': 0}},
+                              {'id': 'QS-002', 'script': 'nfr/k6/b.js', 'threshold': {'p95_ms': 500, 'error_rate': 0.01},
+                               'before': {'p95_ms': 400, 'error_rate': 0}, 'after': None}]}
+        lock = lambda statuses: {'schema_version': 1, 'commit': 'c', 'backend': 'process',
+                                 'results': [{'path': f's{i}.spec.ts', 'status': s} for i, s in enumerate(statuses)]}
+        values = self._stage(runtime={'runtime/performance.json': perf,
+                                      'behavior-lock/results.json': lock(['passed', 'passed', 'failed']),
+                                      'behavior-lock/results-after.json': lock(['passed', 'failed', 'passed'])})
+        self.assertEqual(values['E6'][0], 0.5)
+        self.assertEqual(values['E7'][0], 0.5)
+
+    def test_runtime_indicators_are_zero_for_a_project_never_run(self):
+        values = self._stage()
+        for indicator in ('E6', 'E7', 'E8', 'E9', 'E10', 'E11'):
+            self.assertEqual(values[indicator][0], 0.0, indicator)
+
+    def test_telemetry_counts_only_critical_surfaces(self):
+        telemetry = {'schema_version': 1, 'surfaces': [{'surface': '/a', 'critical': True, 'spans': 3},
+                                                        {'surface': '/b', 'critical': True, 'spans': 0},
+                                                        {'surface': '/c', 'critical': False, 'spans': 0}]}
+        self.assertEqual(self._stage(runtime={'runtime/telemetry.json': telemetry})['E10'][0], 0.5)
 
     def test_an_unknown_indicator_is_refused(self):
         self.assertEqual(load_tool().main(['measure', '--only', 'ZZ9']), 2)

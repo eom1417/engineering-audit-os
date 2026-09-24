@@ -91,6 +91,7 @@
     ],
     "tests": [
       "tests/**",
+      "acceptance/**",
       "examples/**"
     ],
     "engines": [

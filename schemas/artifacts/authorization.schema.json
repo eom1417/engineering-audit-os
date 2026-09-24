@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "authorization.json",
+  "description": "The owner's written permission to run his project's code. Without it no execution-contract stage starts.",
+  "x-artifact": "authorization.json",
+  "x-owner": "NS17.T5",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "project",
+    "commit",
+    "granted_by",
+    "stages",
+    "env_allow",
+    "expires"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "project": {
+      "type": "string"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "granted_by": {
+      "type": "string"
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^S(0[1-9]|1[0-5])$"
+      },
+      "minItems": 1
+    },
+    "env_allow": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "expires": {
+      "type": "string"
+    }
+  }
+}

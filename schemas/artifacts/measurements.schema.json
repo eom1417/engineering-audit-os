@@ -1,0 +1,113 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "measurements.json",
+  "description": "One row per analysed source file. A field without a source is null and its reason is in `missing`; never zero for unknown.",
+  "x-artifact": "measurements.json",
+  "x-owner": "NS18.T1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "files"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "language",
+          "loc",
+          "complexity_max",
+          "churn",
+          "fan_in",
+          "missing"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string"
+          },
+          "loc": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "complexity_max": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "duplicated_lines": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "churn": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "authors": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "last_changed": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fan_in": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "fan_out": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "coverage": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "field",
+                "reason"
+              ],
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

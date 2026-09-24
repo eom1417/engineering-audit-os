@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "runtime/performance.json",
+  "description": "Runtime artifact. `after` exists only once `before` does, under the same conditions.",
+  "x-artifact": "runtime/performance.json",
+  "x-owner": "NS26.T2, NS22.T1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "conditions",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "conditions": {
+      "type": "object",
+      "required": [
+        "build",
+        "warmup_s",
+        "vus",
+        "duration_s",
+        "machine"
+      ],
+      "properties": {
+        "build": {
+          "type": "string"
+        },
+        "warmup_s": {
+          "type": "number"
+        },
+        "vus": {
+          "type": "integer"
+        },
+        "duration_s": {
+          "type": "number"
+        },
+        "machine": {
+          "type": "string"
+        }
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "script",
+          "threshold",
+          "before"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "script": {
+            "type": "string"
+          },
+          "threshold": {
+            "type": "object",
+            "required": [
+              "p95_ms",
+              "error_rate"
+            ],
+            "properties": {
+              "p95_ms": {
+                "type": "number"
+              },
+              "error_rate": {
+                "type": "number"
+              }
+            }
+          },
+          "before": {
+            "type": "object",
+            "required": [
+              "p95_ms",
+              "error_rate"
+            ],
+            "properties": {
+              "p95_ms": {
+                "type": "number"
+              },
+              "error_rate": {
+                "type": "number"
+              }
+            }
+          },
+          "after": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "required": [
+              "p95_ms",
+              "error_rate"
+            ],
+            "properties": {
+              "p95_ms": {
+                "type": "number"
+              },
+              "error_rate": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

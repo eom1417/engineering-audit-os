@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "features.json",
+  "description": "What the program does for its user: each feature tied to the surfaces that expose it and the data it touches.",
+  "x-artifact": "features.json",
+  "x-owner": "NS3.T4",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "features",
+    "unassigned_surfaces"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "surfaces",
+          "tables",
+          "evidence",
+          "critical"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "tables": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "critical": {
+            "type": "boolean"
+          },
+          "target_component": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "unassigned_surfaces": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

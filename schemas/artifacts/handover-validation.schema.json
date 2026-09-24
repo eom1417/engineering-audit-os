@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "handover/validation.json",
+  "description": "Every file EAOS generated in a tool's own format, and that tool's verdict on it.",
+  "x-artifact": "handover/validation.json",
+  "x-owner": "NS17.T3",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "files"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "tool",
+          "ok"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "tool": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "output": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}
