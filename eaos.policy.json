@@ -12,7 +12,8 @@
   "layers": {
     "facts": [
       "eaos/facts/**",
-      "eaos/correlate.py"
+      "eaos/correlate.py",
+      "eaos/reachability.py"
     ],
     "compose": [
       "eaos/compose/**"
