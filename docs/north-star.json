@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-24",
-  "measured_at_commit": "031f1d6",
+  "measured_at_commit": "71ff874",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -230,7 +230,7 @@
           "reads": "facts/external.json → summary.engines_observed، مقابل adopted_adapters المنطبقة على ملفات المشروع في /tmp/eaos-corpus",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا محوّل من القائمة المعتمدة (Syft، OSV-Scanner، scc، Semgrep، Trivy، Checkov، dependency-cruiser، SQLFluff، GitNexus) مدمج بعد.",
+          "evidence": "adopted adapters that ran / applicable: FleetManageWeb 0/7 · finance-os-a0192b7b 0/8 · RendaPerene 0/7",
           "measured": "automated"
         },
         {
@@ -239,7 +239,7 @@
           "definition": "الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "الأمر eaos tools doctor غير موجود بعد، ولا أداة من العشر المعتمدة مثبّتة (2026-09-24).",
+          "evidence": "eaos tools doctor --json gave no tool list (the command does not exist yet, or failed)",
           "reads": "eaos tools doctor --json → tools[] {name, role, pinned, found, ok}",
           "measured": "automated"
         }
@@ -308,7 +308,7 @@
           "reads": "intake.json → questions[] وكل عنصر status ∈ {answered, default}",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا ملف intake.json في أي تقرير؛ الموجود عقد تكليف (engagement) بلا أسئلة للمالك.",
+          "evidence": "intake.json complete: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False",
           "measured": "automated"
         },
         {
@@ -317,7 +317,7 @@
           "definition": "متوسط (ملفات المصدر المحلَّلة التي لها في measurements.json الحجم وأعلى تعقيد وعدد التغييرات وعدد المعتمِدين عليها ÷ ملفات المصدر المحلَّلة)، لكل مشروع",
           "target": 0.95,
           "value": 0.0,
-          "evidence": "measurements.json لا يُنتَج بعد؛ الأرقام موزعة بين المحرّكات وhistory ولا جدول يجمعها لكل ملف.",
+          "evidence": "source files with size, complexity, churn and fan-in: FleetManageWeb 0/273 · finance-os-a0192b7b 0/301 · RendaPerene 0/74",
           "reads": "measurements.json → files[] {path, loc, complexity_max, churn, fan_in}، كل حقل ليس null",
           "measured": "automated"
         }
@@ -344,8 +344,8 @@
           "name": "دقة مرشحات الكود الميت",
           "definition": "المرشحات الميتة فعلًا ÷ كل الرموز المرشحة، على self_truth",
           "target": 0.8,
-          "value": 0.217,
-          "evidence": "5 dead of 23 distinct candidates (by path and symbol): _scope_chain, _steps, _trace_evidence, run_absence_search, write_next",
+          "value": 0.625,
+          "evidence": "5 dead of 8 distinct candidates (by path and symbol): _scope_chain, _steps, _trace_evidence, run_absence_search, write_next",
           "reads": "self_truth report: facts with value.kind == \"dead_code\", symbol names compared with self_truth.true_dead_symbols",
           "measured": "automated"
         },
@@ -355,7 +355,7 @@
           "definition": "متوسط (عناصر debt-register.json بخطورة high أو critical التي يدعمها شاهدان مستقلان من أداتين مختلفتين، أو دليل حتمي واحد ÷ تلك العناصر)، لكل مشروع. مشروع بلا سجل يُحسب صفرًا.",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "debt-register.json لا يُنتَج بعد.",
+          "evidence": "high and critical debt items with two independent witnesses: FleetManageWeb no register · finance-os-a0192b7b no register · RendaPerene no register",
           "reads": "debt-register.json → items[] {severity, witnesses[] {tool, kind}}؛ شاهد kind == \"deterministic\" يكفي وحده",
           "measured": "automated"
         }
@@ -432,7 +432,7 @@
           "reads": "sbom.cdx.json → components[] غير فارغة، و\"osv-scanner\" في facts/external.json → summary.engines_observed",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا SBOM ولا فحص ثغرات للاعتماديات في أي تقرير.",
+          "evidence": "SBOM with components and OSV-Scanner observed: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False",
           "measured": "automated"
         }
       ]
@@ -489,7 +489,7 @@
           "definition": "وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "features placed in a target component: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
+          "evidence": "features placed in a target component: FleetManageWeb 0/31 · finance-os-a0192b7b 0/21 · RendaPerene 0/3",
           "reads": "features.json → features[].target_component",
           "measured": "automated"
         },
@@ -500,7 +500,7 @@
           "reads": "architecture/current/workspace.dsl و architecture/target/workspace.dsl (Structurizr DSL)، مقابل target-architecture.json → target_components[].name",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا نموذج C4 في أي تقرير.",
+          "evidence": "current and target C4 models naming every target component: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False",
           "measured": "automated"
         },
         {
@@ -510,7 +510,7 @@
           "reads": "adr/ADR-*.md في التقرير، مقابل target-architecture.json → decisions[]",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا ملفات ADR؛ القرارات في JSON فقط.",
+          "evidence": "MADR files for decisions: FleetManageWeb 0/28 · finance-os-a0192b7b 0/30 · RendaPerene 0/9",
           "measured": "automated"
         }
       ]
@@ -555,7 +555,7 @@
           "definition": "بطاقات effort معروف ÷ كل البطاقات في العيّنة",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "cards with a known effort: 0/345",
+          "evidence": "cards with a known effort: 0/225",
           "reads": "plan.json → tasks[].effort not \"unknown\"",
           "measured": "automated"
         },
@@ -565,7 +565,7 @@
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
           "value": 0.0,
-          "evidence": "ready remediate cards: 0/345",
+          "evidence": "ready remediate cards: 0/225",
           "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
           "measured": "automated"
         },
@@ -575,7 +575,7 @@
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "cards with a runnable acceptance command: 0/345",
+          "evidence": "cards with a runnable acceptance command: 0/225",
           "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
           "measured": "automated"
         },
@@ -595,7 +595,7 @@
           "definition": "بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with options, do-nothing and rollback: 345/345",
+          "evidence": "cards with options, do-nothing and rollback: 225/225",
           "reads": "plan.json → tasks[].options (≥ 2, one \"Do nothing\") and rollback",
           "measured": "automated"
         },
@@ -626,7 +626,7 @@
           "reads": "report-quality.json → reports[] لكل تقرير {name, vale_errors, markdownlint_errors}",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا فحص أسلوب ولا بنية للتقارير، والتقارير الأربعة غير موجودة بعد.",
+          "evidence": "of the four reports passing Vale and markdownlint: FleetManageWeb 0/4 · finance-os-a0192b7b 0/4 · RendaPerene 0/4",
           "measured": "automated"
         },
         {
@@ -635,7 +635,7 @@
           "definition": "بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "لا بطاقة تحمل codemod بعد.",
+          "evidence": "mechanical cards whose codemod ran dry without error: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
           "reads": "plan.json → tasks[].codemod {tool, command, dry_run {exit, files_changed}}",
           "measured": "automated"
         },
@@ -645,7 +645,7 @@
           "definition": "متوسط (الملفات التي يولّدها EAOS بصيغ الأدوات الأصلية ويقبلها مدقق الأداة نفسها ÷ الملفات المتوقعة للمشروع)، لكل مشروع. الملفات: سير GitHub Actions (actionlint)، و.pre-commit-config.yaml (pre-commit validate-config)، وrenovate.json (renovate-config-validator)، وقواعد dependency-cruiser، وقواعد Semgrep (semgrep --validate)، وسكربتات k6 (k6 inspect)، وتجارب Toxiproxy وخطة ZAP (مخطط JSON)، وإعداد OpenTelemetry Collector (otelcol validate)، ومواصفات Sloth (sloth validate)، وgoss.yaml (goss render)، وموقع التسليم (zensical build). ملف لم يُدقَّق لغياب أداته يُحسب فاشلًا.",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا يولّد EAOS أي ملف بصيغة أداة أخرى بعد (2026-09-24).",
+          "evidence": "handover kit files accepted by their own tool: FleetManageWeb 0/12 · finance-os-a0192b7b 0/12 · RendaPerene 0/11",
           "reads": "handover/validation.json → files[] {path, tool, ok}",
           "measured": "automated"
         }
@@ -663,7 +663,7 @@
           "definition": "1 إن نُفّذت بطاقة واحدة على الأقل بنموذج (لا بأداة تحويل) على مشروع من العيّنة في نسخة معزولة، وحالتها VERIFIED_IN_ISOLATED_COPY، ومرّ أمر قبولها؛ وإلا 0",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا تنفيذ بعد: يحتاج مزوّد نموذج وتفويضًا.",
+          "evidence": "a card executed by a model, verified in an isolated copy, acceptance passing: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False",
           "measured": "automated",
           "reads": "runtime/<project>/runtime/execution.json → tasks[] {tool, status, acceptance_exit} (schemas/artifacts/execution-log.schema.json)"
         },
@@ -673,7 +673,7 @@
           "definition": "فروق المؤشرات التي تنبأت بها الخطة وحكم عليها eaos guarantee بأنها HONEST ÷ كل الفروق المقارنة، بعد تنفيذ حقيقي",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "لا تنفيذ بعد.",
+          "evidence": "predicted indicator deltas the change actually produced: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
           "measured": "automated",
           "reads": "runtime/<project>/runtime/guarantee.json → rows[] {indicator, verdict} (schemas/artifacts/runtime-guarantee.schema.json)"
         },
@@ -693,7 +693,7 @@
           "reads": "behavior-lock/plan.json → specs[] {feature, tool, path}، مقابل features.json → features[].name",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا خطة تثبيت سلوك.",
+          "evidence": "features with a behavior-lock spec: FleetManageWeb 0/31 · finance-os-a0192b7b 0/21 · RendaPerene 0/3",
           "measured": "automated"
         },
         {
@@ -703,7 +703,7 @@
           "reads": "behavior-lock/results.json → results[] {path, status}، والناجح status == \"passed\"",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لم تُشغَّل أي مواصفة.",
+          "evidence": "behavior-lock specs passing on current code: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
           "measured": "automated"
         },
         {
@@ -713,7 +713,7 @@
           "reads": "runtime/performance.json → scenarios[] {id, before {p95_ms, error_rate}, after {p95_ms, error_rate}}",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا قياس حي بعد: يحتاج بيئة معزولة وتفويضًا.",
+          "evidence": "load scenarios measured before and after: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
           "measured": "automated"
         },
         {
@@ -722,7 +722,7 @@
           "definition": "مواصفات تثبيت السلوك التي مرّت على الكود الأصلي ومرّت أيضًا بعد التحول ÷ التي مرّت على الأصلي",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا تنفيذ بعد: يحتاج بيئة معزولة ومزوّد نموذج.",
+          "evidence": "specs passing before that still pass after: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
           "reads": "behavior-lock/results.json و behavior-lock/results-after.json → results[] {path, status}",
           "measured": "automated"
         },
@@ -732,7 +732,7 @@
           "definition": "مشاريع نُفّذ فيها التحول وفُحصت ساكنًا (Semgrep وTrivy وOSV-Scanner وCheckov) وحيًا (OWASP ZAP) بلا نتيجة critical أو high مفتوحة ÷ المشاريع المنفّذة",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا فحص حي بعد: يحتاج بيئة معزولة.",
+          "evidence": "no project executed yet",
           "reads": "runtime/security.json → {static {critical, high}, dast {tool, high, medium}}",
           "measured": "automated"
         },
@@ -742,7 +742,7 @@
           "definition": "الاعتماديات الخارجية الحرجة (قاعدة البيانات والخدمات في الحقائق) التي جُرّب عليها عطل بـToxiproxy وطابق سلوك التطبيق المتوقع ÷ تلك الاعتماديات",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "لا تجربة أعطال بعد: يحتاج بيئة معزولة.",
+          "evidence": "fault experiments where the application behaved as expected: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
           "reads": "runtime/resilience.json → experiments[] {dependency, toxic, expected, observed, ok}",
           "measured": "automated"
         },
@@ -752,7 +752,7 @@
           "definition": "الأسطح الحرجة التي ظهر لها span في مخرج OpenTelemetry Collector أثناء تشغيل شبكة الأمان والحمل ÷ الأسطح الحرجة",
           "target": 0.9,
           "value": 0.0,
-          "evidence": "لا رصد بعد: يحتاج بيئة معزولة.",
+          "evidence": "critical surfaces with at least one span: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
           "reads": "runtime/telemetry.json → surfaces[] {surface, spans}",
           "measured": "automated"
         },
@@ -762,7 +762,7 @@
           "definition": "بنود قائمة الجاهزية التي يمر أمر فحصها (Goss، والاستعادة من النسخة الاحتياطية، والتراجع، وتشغيل عدّة الحوكمة) ÷ البنود",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا قائمة جاهزية بعد.",
+          "evidence": "readiness items whose command passed: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
           "reads": "PRODUCTION-READINESS.json → items[] {id, command, ok}",
           "measured": "automated"
         }
