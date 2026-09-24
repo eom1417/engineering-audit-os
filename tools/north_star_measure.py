@@ -247,6 +247,91 @@ def indicator_values(projects, record):
     # Ten real projects, three of them never read during development; without the three, at most 0.7.
     counted = min(len(record['corpus']), 10 if holdout >= 3 else 7)
     values['V4'] = (ratio(counted, 10), f"{len(record['corpus'])} real projects, {holdout} held out")
+    values.update(orchestration_values(projects, record))
+    return values
+
+
+def applies(project, rule):
+    """Whether an adopted adapter applies to a project, read from the project's own files."""
+    root = CORPUS / project.name
+    files = [p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_file() and '.git' not in p.parts]
+    if rule == 'all': return True
+    if rule == 'js': return any(f.endswith(('.ts', '.tsx', '.js', '.jsx')) for f in files)
+    if rule == 'sql': return any(f.endswith('.sql') for f in files)
+    if rule == 'ci_or_iac': return any(f.startswith('.github/workflows/') or f.endswith(('Dockerfile', '.tf')) for f in files)
+    if rule == 'openapi': return any(f.split('/')[-1].startswith(('openapi.', 'swagger.')) for f in files)
+    return False
+
+
+def orchestration_values(projects, record):
+    """Indicators for the stages the workflow blueprint adds: intake, supply chain, adapters, C4, ADR,
+    report quality, behavior lock and runtime verification. Each reads one artifact by its contract."""
+    values = {}
+    adapters = record.get('adopted_adapters') or []
+
+    def adapters_observed(project):
+        observed = set(((load(project.out, 'facts/external.json', {}) or {}).get('summary') or {}).get('engines_observed') or [])
+        wanted = [a['name'] for a in adapters if applies(project, a['applies'])]
+        return sum(name in observed for name in wanted), len(wanted)
+    rows = per(projects, adapters_observed)
+    values['R3'] = (mean([ratio(a, b) for _, (a, b) in rows]) or 0.0, 'adopted adapters that ran / applicable: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+
+    def intake(project):
+        questions = (load(project.out, 'intake.json', {}) or {}).get('questions') or []
+        return bool(questions) and all(q.get('status') in ('answered', 'default') for q in questions)
+    rows = per(projects, intake)
+    values['U6'] = (ratio(sum(ok for _, ok in rows), len(rows)), 'intake.json complete: ' + text(rows))
+
+    def supply_chain(project):
+        sbom = (load(project.out, 'sbom.cdx.json', {}) or {}).get('components') or []
+        observed = ((load(project.out, 'facts/external.json', {}) or {}).get('summary') or {}).get('engines_observed') or []
+        return bool(sbom) and 'osv-scanner' in observed
+    rows = per(projects, supply_chain)
+    values['H3'] = (ratio(sum(ok for _, ok in rows), len(rows)), 'SBOM with components and OSV-Scanner observed: ' + text(rows))
+
+    def c4(project):
+        current, target = project.out / 'architecture/current/workspace.dsl', project.out / 'architecture/target/workspace.dsl'
+        if not (current.is_file() and target.is_file()): return False
+        names = [c.get('name') for c in project.target.get('target_components') or [] if c.get('name')]
+        text_ = target.read_text(encoding='utf-8')
+        return bool(names) and all(name in text_ for name in names)
+    rows = per(projects, c4)
+    values['T6'] = (ratio(sum(ok for _, ok in rows), len(rows)), 'current and target C4 models naming every target component: ' + text(rows))
+
+    def adr(project):
+        sections = ('Context and Problem Statement', 'Considered Options', 'Decision Outcome')
+        files = sorted((project.out / 'adr').glob('ADR-*.md')) if (project.out / 'adr').is_dir() else []
+        valid = sum(all(section in f.read_text(encoding='utf-8') for section in sections) for f in files)
+        return min(valid, len(project.target.get('decisions') or [])), len(project.target.get('decisions') or [])
+    rows = per(projects, adr)
+    values['T7'] = (pooled([v for _, v in rows]) or 0.0, 'MADR files for decisions: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+
+    def quality(project):
+        reports = (load(project.out, 'report-quality.json', {}) or {}).get('reports') or []
+        four = {'CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md'}
+        return sum(r.get('name') in four and r.get('vale_errors') == 0 and r.get('markdownlint_errors') == 0 for r in reports)
+    rows = per(projects, quality)
+    values['P8'] = (mean([n / 4 for _, n in rows]), 'of the four reports passing Vale and markdownlint: ' + text(rows, lambda v: f'{v}/4'))
+
+    def locked(project):
+        features = [f.get('name') for f in (load(project.out, 'features.json', {}) or {}).get('features') or []]
+        specs = (load(project.out, 'behavior-lock/plan.json', {}) or {}).get('specs') or []
+        covered = {s.get('feature') for s in specs if s.get('path') and (project.out / 'behavior-lock' / s['path']).exists()}
+        return sum(name in covered for name in features), len(features)
+    rows = per(projects, locked)
+    values['E4'] = (pooled([v for _, v in rows]) or 0.0, 'features with a behavior-lock spec: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+
+    def passing(project):
+        results = (load(project.out, 'behavior-lock/results.json', {}) or {}).get('results') or []
+        return sum(r.get('status') == 'passed' for r in results), len(results)
+    rows = per(projects, passing)
+    values['E5'] = (pooled([v for _, v in rows]) or 0.0, 'behavior-lock specs passing on current code: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+
+    def verified(project):
+        scenarios = (load(project.out, 'runtime-verification.json', {}) or {}).get('scenarios') or []
+        return sum(sc.get('measured') is not None for sc in scenarios), len(scenarios)
+    rows = per(projects, verified)
+    values['E6'] = (pooled([v for _, v in rows]) or 0.0, 'quality scenarios measured on a running copy: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
     return values
 
 

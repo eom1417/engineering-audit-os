@@ -2,23 +2,23 @@
 
 > مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-24 على الالتزام `031f1d6`.
 
-## أين نحن: **48.0%** من الوجهة
+## أين نحن: **39.2%** من الوجهة
 
 هذه ليست درجة القدرات في docs/CAPABILITY-SCORE.md. تلك تقيس اكتمال آلية الأداة على مستودعين ضُبطت عليهما، وهذه تقيس الوعد نفسه على الجمهور الذي بُنيت له.
 
 | # | القدرة | الوزن | الدرجة | المساهمة |
 | --- | --- | --- | --- | --- |
-| C1 | الوصول: يعمل على مشاريع الهواة الحقيقية | 8 | 100% | 8.0 |
-| C2 | تقرير الوضع الراهن: يرى البرنامج كله | 12 | 70% | 8.4 |
+| C1 | الوصول: يعمل على مشاريع الهواة الحقيقية | 8 | 67% | 5.3 |
+| C2 | تقرير الوضع الراهن: يرى البرنامج كله | 12 | 59% | 7.0 |
 | C3 | الإشارة: كل ادعاء مشكلة حقيقية | 10 | 52% | 5.2 |
 | C4 | الكود الميت والمخلفات: يجدها ويحذفها بأمان | 10 | 44% | 4.4 |
-| C5 | نظافة الأمن الأساسية | 8 | 100% | 8.0 |
-| C6 | تقرير الصورة المثالية | 16 | 10% | 1.6 |
+| C5 | نظافة الأمن الأساسية | 8 | 67% | 5.3 |
+| C6 | تقرير الصورة المثالية | 16 | 7% | 1.2 |
 | C7 | تقرير الفجوة والتحول الاستراتيجي | 8 | 44% | 3.6 |
-| C8 | خطة التنفيذ للفريق | 16 | 21% | 3.4 |
-| C9 | ضمان التنفيذ: يثبت أن التحول حدث | 7 | 33% | 2.3 |
+| C8 | خطة التنفيذ للفريق | 16 | 19% | 3.0 |
+| C9 | ضمان التنفيذ: يثبت أن التحول حدث | 7 | 17% | 1.2 |
 | C10 | الثقة والإثبات المستقل | 5 | 57% | 2.9 |
-| | **المجموع** | **100** | | **48.0** |
+| | **المجموع** | **100** | | **39.2** |
 
 ## الرؤية
 
@@ -44,22 +44,22 @@
 
 | القدرة | الفجوة المرجّحة |
 | --- | --- |
-| C6 تقرير الصورة المثالية | 14.4 |
-| C8 خطة التنفيذ للفريق | 12.6 |
+| C6 تقرير الصورة المثالية | 14.8 |
+| C8 خطة التنفيذ للفريق | 13.0 |
+| C9 ضمان التنفيذ: يثبت أن التحول حدث | 5.8 |
 | C4 الكود الميت والمخلفات: يجدها ويحذفها بأمان | 5.6 |
+| C2 تقرير الوضع الراهن: يرى البرنامج كله | 5.0 |
 | C3 الإشارة: كل ادعاء مشكلة حقيقية | 4.8 |
-| C9 ضمان التنفيذ: يثبت أن التحول حدث | 4.7 |
 | C7 تقرير الفجوة والتحول الاستراتيجي | 4.4 |
-| C2 تقرير الوضع الراهن: يرى البرنامج كله | 3.6 |
+| C1 الوصول: يعمل على مشاريع الهواة الحقيقية | 2.7 |
+| C5 نظافة الأمن الأساسية | 2.7 |
 | C10 الثقة والإثبات المستقل | 2.1 |
-| C1 الوصول: يعمل على مشاريع الهواة الحقيقية | 0.0 |
-| C5 نظافة الأمن الأساسية | 0.0 |
 
 ## القدرات ومؤشراتها
 
 **طريقة الحساب:** قيمة بين 0 و1، تُحسب بتعريفها المكتوب على عيّنة المشاريع أو الحقيقة الأرضية المسجلة. القيمة null تعني غير مقيس، وتُحسب صفرًا. متوسط مؤشراتها. مجموع (الوزن × درجة القدرة) ÷ 100، معروضًا كنسبة مئوية.
 
-### C1 — الوصول: يعمل على مشاريع الهواة الحقيقية (100%، الوزن 8)
+### C1 — الوصول: يعمل على مشاريع الهواة الحقيقية (67%، الوزن 8)
 
 **الصورة المثالية:** يكتمل التدقيق على أي مشروع من العيّنة دون أن يفشل أو يخالف عقده، ويتعرّف على إطار كل مشروع.
 
@@ -67,8 +67,9 @@
 | --- | --- | --- | --- | --- |
 | R1 تدقيقات العيّنة المكتملة بلا فشل | عدد مشاريع العيّنة التي ينتهي فيها eaos audit برمز خروج 0 ÷ عدد مشاريع العيّنة | 100% | 100% | exit codes: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
 | R2 الأطر المفهومة | مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع | 100% | 100% | user surfaces found: FleetManageWeb 43 · finance-os-a0192b7b 29 · RendaPerene 3 |
+| R3 محوّلات الفحص الساكن تعمل | متوسط (المحوّلات المعتمدة المنطبقة على المشروع التي عملت فعلًا ÷ المنطبقة)، لكل مشروع. قائمة المحوّلات وشروط انطباقها في adopted_adapters. | 100% | 0% | لا محوّل من القائمة المعتمدة (Syft، OSV-Scanner، scc، Semgrep، Trivy، Checkov، dependency-cruiser، SQLFluff) مدمج بعد. |
 
-### C2 — تقرير الوضع الراهن: يرى البرنامج كله (70%، الوزن 12)
+### C2 — تقرير الوضع الراهن: يرى البرنامج كله (59%، الوزن 12)
 
 **الصورة المثالية:** كل ملف محلَّل، وكل وظيفة وسطح يصل إليه المستخدم مكتشف، ونموذج البيانات مقروء، والمداخل والمخارج والحدود معروفة.
 
@@ -79,6 +80,7 @@
 | U3 نموذج البيانات مقروء | مشاريع العيّنة ذات قاعدة بيانات التي قُرئت جداولها بحالة RLS لكل جدول، وسياساتها ÷ عدد تلك المشاريع | 100% | 100% | data_table facts with RLS state, and db_policy facts, vs truth: finance-os-a0192b7b 31/31 tables, 108/108 policies |
 | U4 جرد الوظائف | مشاريع العيّنة التي يسرد تقريرها وظائف البرنامج (ماذا يفعل للمستخدم) مربوطة بأسطحها وبياناتها ÷ عدد المشاريع | 100% | 0% | features in features.json: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
 | U5 المداخل والمخارج والحدود | متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع | 80% | 56% | answered load questions: FleetManageWeb 270/408 · finance-os-a0192b7b 156/568 · RendaPerene 18/24 |
+| U6 الاستلام | مشاريع العيّنة التي في تقريرها intake.json وكل أسئلته إما مجابة أو معلّمة افتراضية ÷ عدد المشاريع | 100% | 0% | لا ملف intake.json في أي تقرير؛ الموجود عقد تكليف (engagement) بلا أسئلة للمالك. |
 
 ### C3 — الإشارة: كل ادعاء مشكلة حقيقية (52%، الوزن 10)
 
@@ -99,7 +101,7 @@
 | D2 المخلفات المكتشفة | عناصر truth.leftovers المذكورة في التقرير ÷ مجموعها | 90% | 100% | leftovers reported: FleetManageWeb 4/4 |
 | D3 بطاقات حذف آمن جاهزة | بطاقات remediate جاهزة (ready) بنمط remove_dead وأمر قبول قابل للتشغيل ÷ ادعاءات الكود الميت والمخلفات (render.key = dead_code أو leftover) | 90% | 0% | ready remove_dead cards: 0 for 0 dead-code and leftover claims |
 
-### C5 — نظافة الأمن الأساسية (100%، الوزن 8)
+### C5 — نظافة الأمن الأساسية (67%، الوزن 8)
 
 **الصورة المثالية:** يلتقط الأخطاء القاتلة الشائعة في تطبيقات الهواة: أسرار مرفوعة، وجداول بلا سياسات وصول، ومسارات خادم بلا تحقق.
 
@@ -107,8 +109,9 @@
 | --- | --- | --- | --- | --- |
 | H1 مواد الاعتماد المرفوعة بخطورتها الصحيحة | عناصر truth.credentials التي ذكرها التقرير كحقيقة committed_credential بالخطورة الصحيحة (public أو secret) ÷ مجموعها. مفتاح anon/publishable عام بطبيعته: تصنيفه secret إنذار كاذب ولا يُحتسب. | 100% | 100% | committed credentials reported with the right severity: FleetManageWeb 1/1 · finance-os-a0192b7b 1/1 |
 | H2 تغطية سياسات الوصول مقروءة | مشاريع ذات قاعدة بيانات قُرئت فيها سياسات RLS وحُدد كل جدول بلا سياسة ÷ عدد تلك المشاريع | 100% | 100% | db_policy facts vs truth: finance-os-a0192b7b 108/108 |
+| H3 سلسلة الإمداد | مشاريع العيّنة التي في تقريرها قائمة اعتماديات (SBOM) فيها مكوّن واحد على الأقل، وفُحصت ثغراتها بـOSV-Scanner ÷ عدد المشاريع | 100% | 0% | لا SBOM ولا فحص ثغرات للاعتماديات في أي تقرير. |
 
-### C6 — تقرير الصورة المثالية (10%، الوزن 16)
+### C6 — تقرير الصورة المثالية (7%، الوزن 16)
 
 **الصورة المثالية:** البرنامج نفسه بوظائفه نفسها، ببنية وبنية تحتية تصلح منتجًا: مكوّنات مستهدفة، وحدود، وقرارات بنية تحتية، وقرار لكل مكوّن حالي، كل قرار بدليله وبديله.
 
@@ -119,6 +122,8 @@
 | T3 قرارات تغيّر البنية | القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات | 60% | 2% | decisions that change structure: FleetManageWeb 0/28 · finance-os-a0192b7b 1/30 · RendaPerene 0/9 |
 | T4 قرار لكل مكوّن حالي | (المكوّنات الحالية التي لها قرار صريح بدليله ÷ المكوّنات الحالية) × (عدد القرارات الأربعة التي ينتجها المنتج فعلًا: إعادة استخدام، هيكلة، إعادة بناء، حذف ÷ 4) | 100% | 50% | components with a disposition and reason: FleetManageWeb 47/47 · finance-os-a0192b7b 36/36 · RendaPerene 9/9; dispositions the tool produced: ['restructure', 'reuse'] of 4 |
 | T5 الوظائف نفسها في الصورة المثالية | وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد | 100% | 0% | features placed in a target component: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0 |
+| T6 نموذج C4 حالي ومستهدف | مشاريع العيّنة التي في تقريرها architecture/current/workspace.dsl و architecture/target/workspace.dsl، ويذكر النموذج المستهدف اسم كل مكوّن في target_components ÷ عدد المشاريع | 100% | 0% | لا نموذج C4 في أي تقرير. |
+| T7 قرارات العمارة بصيغة MADR | ملفات adr/ADR-*.md التي فيها أقسام MADR الثلاثة (Context and Problem Statement، Considered Options، Decision Outcome) ÷ قرارات target-architecture.json | 100% | 0% | لا ملفات ADR؛ القرارات في JSON فقط. |
 
 ### C7 — تقرير الفجوة والتحول الاستراتيجي (44%، الوزن 8)
 
@@ -129,7 +134,7 @@
 | G1 فجوة مربوطة بالمكوّنات المستهدفة | صفوف gap_matrix المربوطة بمكوّن مستهدف ومعها فرق قابل للقياس ÷ صفوفها | 100% | 0% | gap rows tied to a target component: FleetManageWeb 0/47 · finance-os-a0192b7b 0/36 · RendaPerene 0/9 |
 | G2 مؤشرات الاستدامة المقيسة | متوسط (مؤشرات الاستدامة الستة ذات القيمة ÷ 6) لكل مشروع | 100% | 89% | sustainability indicators with a value: FleetManageWeb 5/6 · finance-os-a0192b7b 5/6 · RendaPerene 6/6 |
 
-### C8 — خطة التنفيذ للفريق (21%، الوزن 16)
+### C8 — خطة التنفيذ للفريق (19%، الوزن 16)
 
 **الصورة المثالية:** مهام صغيرة محددة الحجم ومرتبة ومتناسبة، مجمعة في معالم وأقسام فريق، لكل منها أمر قبول قابل للتشغيل وطريقة تراجع، ضمن أربعة تقارير واضحة.
 
@@ -142,8 +147,9 @@
 | P5 التناسب | بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات | 100% | 100% | cards with options, do-nothing and rollback: 345/345 |
 | P6 أقسام الفريق | مشاريع العيّنة التي توزّع خطتها المهام على أقسام (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) مع الاعتماديات بينها ÷ عدد المشاريع | 100% | 0% | every card carries a team section: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False |
 | P7 التقارير الأربعة | من التقارير الأربعة (الوضع الراهن، الصورة المثالية، الفجوة والتحول، خطة التنفيذ)، عدد ما له وثيقة مخصصة ÷ 4. جودة محتواها تقيسها المؤشرات الأخرى. | 100% | 50% | of the four reports present: FleetManageWeb 2/4 · finance-os-a0192b7b 2/4 · RendaPerene 2/4 |
+| P8 جودة التقارير الأربعة | متوسط (التقارير الأربعة التي مرّت فحص Vale بحزمة EAOS وفحص markdownlint بلا أخطاء ÷ 4)، لكل مشروع | 100% | 0% | لا فحص أسلوب ولا بنية للتقارير، والتقارير الأربعة غير موجودة بعد. |
 
-### C9 — ضمان التنفيذ: يثبت أن التحول حدث (33%، الوزن 7)
+### C9 — ضمان التنفيذ: يثبت أن التحول حدث (17%، الوزن 7)
 
 **الصورة المثالية:** مهمة تُنفَّذ بنموذج في نسخة منفصلة، وتمر أوامر قبولها، وتُظهر إعادة التدقيق أن التنبؤ تحقق ولم ينكسر شيء.
 
@@ -152,6 +158,9 @@
 | E1 تنفيذ حقيقي بنموذج على مشروع من العيّنة | 1 إن نُفّذت مهمة واحدة على الأقل بـeaos implement أو improve على مشروع من العيّنة ومرت أوامر قبولها، وإلا 0 | 100% | 0% | لم يُضبط مزوّد نموذج في هذه البيئة قط. |
 | E2 تنبؤات تحققت | predictions_verified من guarantee.json بعد تنفيذ حقيقي | 80% | — | غير مقيس: لا تنفيذ حقيقي. |
 | E3 حارس التراجع مثبت | 1 إن كانت baseline و delta وبوابة عدم التراجع تعمل وتختبر على هذا المستودع | 100% | 100% | tests/gate/capability_no_regression.sh و no_new_debt.sh تمر. |
+| E4 مواصفات تثبيت السلوك | وظائف features.json التي لها مواصفة اختبار واحدة على الأقل (Playwright أو Schemathesis أو Pact أو ApprovalTests) في behavior-lock/plan.json وملفها موجود ÷ الوظائف | 100% | 0% | لا خطة تثبيت سلوك. |
+| E5 شبكة الأمان تمر على الكود الحالي | مواصفات behavior-lock التي شُغّلت في بيئة معزولة ومرّت على الكود الحالي ÷ المواصفات | 100% | 0% | لم تُشغَّل أي مواصفة. |
+| E6 سيناريوهات الجودة مقيسة تشغيليًا | سيناريوهات الجودة التي قيست على نسخة تعمل (k6 أو ZAP أو Toxiproxy) بقيمة مقيسة ÷ السيناريوهات | 100% | 0% | لا قياس تشغيلي. |
 
 ### C10 — الثقة والإثبات المستقل (57%، الوزن 5)
 
@@ -191,6 +200,12 @@
 | NS8 خطة التنفيذ للفريق والتقارير الأربعة | P1 = 1.0 و P2 ≥ 0.5 و P3 ≥ 0.8 و P4 = 1.0 و P6 = 1.0 و P7 = 1.0. | 0/5 |
 | NS9 إثبات التنفيذ | E1 = 1.0 و E2 ≥ 0.8. | 0/1 |
 | NS10 الإثبات المستقل | V3 = 1.0 و V4 = 1.0. | 0/2 |
+| NS11 الاستلام: ماذا يجب أن يُحمى، وإلى أين | U6 = 1.0. | 0/2 |
+| NS12 محوّلات الفحص الساكن: أدوات جاهزة بدل كود نكتبه | R3 = 1.0 و H3 = 1.0. | 0/9 |
+| NS13 نموذج العمارة وقراراتها | T6 = 1.0 و T7 = 1.0. | 0/3 |
+| NS14 جودة التقرير تُفحص آليًا | P8 = 1.0. | 0/2 |
+| NS15 تثبيت السلوك قبل إعادة البناء | E4 = 1.0 و E5 ≥ 0.8. | 0/2 |
+| NS16 التحقق التشغيلي والجاهزية | E6 ≥ 0.8. | 0/2 |
 
 ### NS1 — القياس آليًا: النسبة تُحسب بأمر لا باليد
 
@@ -729,6 +744,360 @@ python tools/north_star.py measure --only V3 --min 1.0
 ```
 
 **التراجع:** لا تغيير في الكود.
+
+### NS11 — الاستلام: ماذا يجب أن يُحمى، وإلى أين
+
+**الهدف:** U6 = 1.0.
+
+#### NS11.T1 — استبيان الاستلام بقيم افتراضية معلنة ⬜
+
+**يحرّك:** U6 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T2
+
+**الملفات:** `eaos/intake.py` · `eaos/data/intake-questions.json` · `eaos/cli.py` · `eaos.policy.json` · `tests/test_intake.py`
+
+1. أسئلة ثابتة في eaos/data/intake-questions.json: الوظائف التي لا يجوز أن تضيع، وتوقع النمو (مستخدمون متزامنون)، ومتطلبات الأمن والخصوصية، والمشاكل المعروفة، والقيود (الفريق، الميزانية، المنصة). لكل سؤال قيمة افتراضية معلنة.
+2. eaos audit --intake FILE يقرأ إجابات المالك؛ بدونه تُستخدم الافتراضيات. اكتب intake.json في التقرير: questions[] لكل سؤال {id, answer, status: answered | default}.
+3. امتد من عقد التكليف في eaos/engagement.py ولا تكرره: ما يعرفه العقد (الأهداف، والنطاق) يُقرأ منه.
+4. العقد مع القياس: intake.json → questions[].status ∈ {answered, default}.
+
+```bash
+python tools/north_star.py measure --only U6 --min 1.0
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS11.T2 — سيناريوهات الجودة من الاستلام ⬜
+
+**يحرّك:** U6 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS11.T1
+
+**الملفات:** `eaos/engagement.py` · `tests/test_intake.py`
+
+1. حوّل إجابات الاستلام إلى سيناريوهات جودة مرقّمة بأسلوب ATAM المختصر (مثير، استجابة، مقياس)، مثل: توقع 10 آلاف مستخدم ← سيناريو حمل؛ بيانات شخصية ← سيناريو خصوصية.
+2. كل سيناريو يذكر مصدره: إجابة المالك أو قيمة افتراضية. لا رقم بلا مصدر.
+3. الاختبار يثبت: إجابة نمو صريحة تنتج سيناريو حمل برقمها؛ وسؤال على قيمته الافتراضية ينتج سيناريو معلّمًا default.
+
+```bash
+python -m unittest tests.test_intake -q
+```
+
+**التراجع:** revert الالتزام.
+
+### NS12 — محوّلات الفحص الساكن: أدوات جاهزة بدل كود نكتبه
+
+**الهدف:** R3 = 1.0 و H3 = 1.0.
+
+#### NS12.T1 — Syft و OSV-Scanner: قائمة الاعتماديات وثغراتها ⬜
+
+**يحرّك:** H3, R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T2
+
+**الملفات:** `eaos/engines/syft.py` · `eaos/engines/osv_scanner.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/syft.json` · `tests/contracts/osv-scanner.json` · `tests/test_engine_contracts.py`
+
+1. اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل syft كعملية منفصلة، واقرأ مخرجه المنظم (CycloneDX JSON).
+2. ترجم مخرجه إلى مفردات EAOS: اكتب sbom.cdx.json في التقرير كما هو. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
+3. احفظ مخرجًا حقيقيًا في tests/contracts/syft.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.
+4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
+5. OSV-Scanner يقرأ sbom.cdx.json (--sbom) ويعطي حقائق kind="vulnerable_dependency" (أضفها للمخطط ثم python tools/render.py): الحزمة، والإصدار، والمعرّف، والخطورة. كل ثغرة معروفة الإصلاح تصير ادعاء risk بنمط علاج "ترقية الاعتمادية".
+
+```bash
+python tools/north_star.py measure --only H3 --min 1.0
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS12.T2 — scc: الحجم واللغات ⬜
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS12.T1
+
+**الملفات:** `eaos/engines/scc.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/scc.json` · `tests/test_engine_contracts.py`
+
+1. اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل scc كعملية منفصلة، واقرأ مخرجه المنظم (scc --format json).
+2. ترجم مخرجه إلى مفردات EAOS: قياسات symbol_metric_external لكل ملف (أسطر، وتعقيد)؛ شاهد مستقل على الحجم. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
+3. احفظ مخرجًا حقيقيًا في tests/contracts/scc.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.
+4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
+
+```bash
+python -m unittest tests.test_engine_contracts -q
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS12.T3 — Semgrep بقواعد EAOS ⬜
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS12.T1
+
+**الملفات:** `eaos/engines/semgrep.py` · `eaos/data/semgrep/` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/semgrep.json` · `tests/test_engine_contracts.py`
+
+1. اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل semgrep كعملية منفصلة، واقرأ مخرجه المنظم (semgrep --config eaos/data/semgrep --json).
+2. ترجم مخرجه إلى مفردات EAOS: كل قاعدة تحمل في metadata نوعها من KINDS في eaos/engines/contract.py. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
+3. احفظ مخرجًا حقيقيًا في tests/contracts/semgrep.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.
+4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
+5. لا تستخدم مكتبة القواعد الرسمية (رخصتها Semgrep Rules License مقيِّدة). اكتب قواعد EAOS في eaos/data/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة. كل قاعدة معها مثال يطابقها ومثال لا يطابقها.
+
+```bash
+python -m unittest tests.test_engine_contracts -q
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS12.T4 — Trivy: الأسرار وIaC وDocker ⬜
+
+**يحرّك:** R3, H1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS12.T1
+
+**الملفات:** `eaos/engines/trivy.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/trivy.json` · `tests/test_engine_contracts.py`
+
+1. اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل trivy كعملية منفصلة، واقرأ مخرجه المنظم (trivy fs --format json --scanners vuln,secret,misconfig).
+2. ترجم مخرجه إلى مفردات EAOS: ثغرات، وإعدادات خاطئة (boundary)، وأسرار: الأسرار شاهد ثانٍ على committed_credential، لا ادعاء جديد إن طابقت الموضع نفسه. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
+3. احفظ مخرجًا حقيقيًا في tests/contracts/trivy.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.
+4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
+5. لا تطبع قيمة أي سر؛ خذ نوع القاعدة وموضعها فقط.
+
+```bash
+python -m unittest tests.test_engine_contracts -q
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS12.T5 — Checkov: GitHub Actions وIaC ⬜
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS12.T1
+
+**الملفات:** `eaos/engines/checkov.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/checkov.json` · `tests/test_engine_contracts.py`
+
+1. اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل checkov كعملية منفصلة، واقرأ مخرجه المنظم (checkov -d TARGET -o json).
+2. ترجم مخرجه إلى مفردات EAOS: إعدادات خاطئة في CI وIaC بخطورتها. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
+3. احفظ مخرجًا حقيقيًا في tests/contracts/checkov.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.
+4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
+5. ينطبق فقط إن وُجد .github/workflows أو Dockerfile أو ملفات IaC؛ وإلا يُسجَّل غير منطبق لا غائبًا.
+
+```bash
+python -m unittest tests.test_engine_contracts -q
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS12.T6 — dependency-cruiser: الحدود كقواعد لـJS/TS ⬜
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS12.T1
+
+**الملفات:** `eaos/engines/dependency_cruiser.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/dependency-cruiser.json` · `tests/test_engine_contracts.py`
+
+1. اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل dependency-cruiser كعملية منفصلة، واقرأ مخرجه المنظم (depcruise --output-type json).
+2. ترجم مخرجه إلى مفردات EAOS: module_edge_external، ودورات (cycle)، وخرق قواعد (boundary). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
+3. احفظ مخرجًا حقيقيًا في tests/contracts/dependency-cruiser.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.
+4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
+5. ولّد إعداد القواعد من eaos.policy.json في مشروع المالك إن وُجد؛ وإلا شغّله بقاعدة no-circular وحدها. لا تكتب أي ملف داخل مشروع المالك: الإعداد في workdir.
+
+```bash
+python -m unittest tests.test_engine_contracts -q
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS12.T7 — SQLFluff: جودة SQL والهجرات ⬜
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS12.T1
+
+**الملفات:** `eaos/engines/sqlfluff.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/sqlfluff.json` · `tests/test_engine_contracts.py`
+
+1. اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل sqlfluff كعملية منفصلة، واقرأ مخرجه المنظم (sqlfluff lint --format json --dialect postgres).
+2. ترجم مخرجه إلى مفردات EAOS: مخالفات بنمطها وموضعها؛ لا تتحول إلى ادعاءات إلا فئات الخطر (مثل غياب WHERE في UPDATE أو DELETE). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
+3. احفظ مخرجًا حقيقيًا في tests/contracts/sqlfluff.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.
+4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
+5. ينطبق فقط إن وُجدت ملفات .sql.
+
+```bash
+python -m unittest tests.test_engine_contracts -q
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS12.T8 — Spectral و oasdiff عند وجود OpenAPI ⬜
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS12.T1
+
+**الملفات:** `eaos/engines/spectral.py` · `eaos/engines/oasdiff.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/spectral.json` · `tests/test_engine_contracts.py`
+
+1. اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل spectral كعملية منفصلة، واقرأ مخرجه المنظم (spectral lint -f json).
+2. ترجم مخرجه إلى مفردات EAOS: مخالفات أسلوب الـAPI (surface). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
+3. احفظ مخرجًا حقيقيًا في tests/contracts/spectral.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.
+4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
+5. العيّنة الحالية بلا OpenAPI؛ اكتب عيّنة اختبار فيها مواصفة. غياب المواصفة في مشروع له مسارات http يصير بند فجوة لا صمتًا.
+
+```bash
+python -m unittest tests.test_engine_contracts -q
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS12.T9 — كل المحوّلات المنطبقة تعمل على العيّنة ⬜
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS12.T2, NS12.T3, NS12.T4, NS12.T5, NS12.T6, NS12.T7, NS12.T8
+
+**الملفات:** `tools/north_star_measure.py` · `/workspace/setup.sh`
+
+1. ثبّت كل أداة بإصدارها المثبّت، وتأكد أن eaos engines list يراها، وأعد القياس.
+2. أي محوّل منطبق لم يعمل على مشروع: أصلح السبب (تثبيت أو مسار أو صيغة)، لا القائمة.
+
+```bash
+python tools/north_star.py measure --only R3 --min 1.0
+```
+
+**التراجع:** revert الالتزام.
+
+### NS13 — نموذج العمارة وقراراتها
+
+**الهدف:** T6 = 1.0 و T7 = 1.0.
+
+#### NS13.T1 — نموذج C4 للوضع الحالي من الحقائق ⬜
+
+**يحرّك:** T6 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T4
+
+**الملفات:** `eaos/c4.py` · `eaos.policy.json` · `tests/test_c4.py`
+
+1. اكتب architecture/current/workspace.dsl بصيغة Structurizr DSL من الحقائق: السياق (المستخدمون والأنظمة الخارجية من data_access و integration_target)، والحاويات (الواجهة، والخادم، وقاعدة البيانات، والتخزين)، والمكوّنات (current_components).
+2. واكتب النسخة نفسها Mermaid في CURRENT-STATE.md لتُعرض على GitHub. النموذج نص يكتبه EAOS؛ لا تعتمد على مكتبة Structurizr (structurizr/java مؤرشفة).
+3. الاختبار يثبت أن DSL المولَّد صالح نحويًا (عناصر workspace و model و views متوازنة الأقواس) وأن كل مكوّن حالي فيه.
+
+```bash
+python -m unittest tests.test_c4 -q
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS13.T2 — نموذج C4 للصورة المثالية ⬜
+
+**يحرّك:** T6 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS13.T1, NS7.T2
+
+**الملفات:** `eaos/c4.py` · `tests/test_c4.py`
+
+1. اكتب architecture/target/workspace.dsl من target_components وحدودها المسموحة، بالطريقة نفسها.
+2. العقد مع القياس: اسم كل عنصر في target_components[].name يظهر في DSL المستهدف.
+
+```bash
+python tools/north_star.py measure --only T6 --min 1.0
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS13.T3 — قرارات العمارة بصيغة MADR ⬜
+
+**يحرّك:** T7 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T4
+
+**الملفات:** `eaos/adr.py` · `eaos.policy.json` · `tests/test_adr.py`
+
+1. لكل قرار في target-architecture.json → decisions[] اكتب adr/ADR-NNN.md بأقسام MADR: Context and Problem Statement، و Considered Options (كل البدائل بأدلتها)، و Decision Outcome (القرار وسببه وعواقبه ومتى يُعاد النظر فيه).
+2. لا تستخدم Log4brains (متوقف منذ 2024-12)؛ الصيغة وحدها تكفي.
+
+```bash
+python tools/north_star.py measure --only T7 --min 1.0
+```
+
+**التراجع:** revert الالتزام.
+
+### NS14 — جودة التقرير تُفحص آليًا
+
+**الهدف:** P8 = 1.0.
+
+#### NS14.T1 — حزمة أسلوب EAOS لـVale وإعداد markdownlint ⬜
+
+**يحرّك:** P8 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS8.T5
+
+**الملفات:** `eaos/data/vale/` · `eaos/data/markdownlint.json` · `tests/test_report_style.py`
+
+1. قواعد Vale: ترفض الكلمات المبهمة (ربما، تحسين عام، إلخ، ونظائرها الإنجليزية)، وتنبّه على رقم لا يتبعه معرّف دليل، وعلى جملة أطول من حد معلن.
+2. إعداد markdownlint-cli2: عناوين متدرجة، وجداول سليمة، وروابط داخلية موجودة.
+3. الاختبار يثبت أن فقرة فيها كلمة مبهمة تُرفض وأن فقرة سليمة تمر.
+
+```bash
+python -m unittest tests.test_report_style -q
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS14.T2 — مرحلة فحص التقارير في الـpipeline ⬜
+
+**يحرّك:** P8 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS14.T1
+
+**الملفات:** `eaos/report_quality.py` · `eaos/pipeline/stages.py` · `eaos/pipeline/runners.py` · `eaos.policy.json` · `tests/test_report_quality.py`
+
+1. مرحلة اختيارية بعد compose: تشغّل vale و markdownlint-cli2 إن كانا مثبتين على التقارير الأربعة، وتكتب report-quality.json → reports[] {name, vale_errors, markdownlint_errors}. غياب الأداة يُعلن unavailable لا نجاحًا.
+2. أصلح مولّدات التقارير حتى تمر الفحصين، لا القواعد.
+
+```bash
+python tools/north_star.py measure --only P8 --min 1.0
+```
+
+**التراجع:** revert الالتزام.
+
+### NS15 — تثبيت السلوك قبل إعادة البناء
+
+**الهدف:** E4 = 1.0 و E5 ≥ 0.8.
+
+#### NS15.T1 — توليد مواصفات تثبيت السلوك ⬜
+
+**يحرّك:** E4 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T4
+
+**الملفات:** `eaos/behavior_lock.py` · `eaos.policy.json` · `tests/test_behavior_lock.py`
+
+1. لكل وظيفة في features.json: مسارات page ← مواصفة Playwright تزور الصفحة وتتحقق من عناصرها الظاهرة؛ مسارات http مع OpenAPI ← إعداد Schemathesis؛ دوال منطق Python ← هيكل ApprovalTests يلتقط المخرج الحالي.
+2. اكتب المواصفات في behavior-lock/ وفهرسها في behavior-lock/plan.json → specs[] {feature, tool, path}. المواصفة تثبّت ما يفعله النظام اليوم، لا ما يجب أن يفعله.
+3. التوليد ساكن ولا يشغّل شيئًا من المشروع.
+
+```bash
+python tools/north_star.py measure --only E4 --min 1.0
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS15.T2 — تشغيل شبكة الأمان في بيئة معزولة ⬜
+
+**يحرّك:** E5 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS15.T1
+
+**الملفات:** `eaos/behavior_lock.py` · `tests/test_behavior_lock.py`
+
+1. في حاوية بلا شبكة إنتاج ولا أسرار: ثبّت اعتماديات المشروع، وشغّله، وشغّل المواصفات، واكتب behavior-lock/results.json → results[] {path, status}.
+2. يحتاج تفويضًا صريحًا من المالك؛ بدونه تبقى المهمة blocked بسبب مكتوب.
+
+```bash
+python tools/north_star.py measure --only E5 --min 0.8
+```
+
+**التراجع:** revert الالتزام.
+
+### NS16 — التحقق التشغيلي والجاهزية
+
+**الهدف:** E6 ≥ 0.8.
+
+#### NS16.T1 — قياس سيناريوهات الجودة على نسخة تعمل ⬜
+
+**يحرّك:** E6 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS11.T2, NS15.T2
+
+**الملفات:** `eaos/runtime_verification.py` · `eaos.policy.json` · `tests/test_runtime_verification.py`
+
+1. لكل سيناريو جودة: حمل ← سكربت k6 مولَّد؛ أمن حي ← ZAP baseline؛ عطل ← Toxiproxy (تأخير أو انقطاع قاعدة البيانات أو خدمة خارجية).
+2. اكتب runtime-verification.json → scenarios[] {id, tool, measured, before, after}. كل رقم مقيس لا مقدّر.
+
+```bash
+python tools/north_star.py measure --only E6 --min 0.8
+```
+
+**التراجع:** revert الالتزام.
+
+#### NS16.T2 — قائمة الجاهزية للإنتاج ⬜
+
+**يحرّك:** E6 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS16.T1
+
+**الملفات:** `eaos/readiness.py` · `eaos.policy.json` · `tests/test_readiness.py`
+
+1. قائمة فحص كل بند فيها أمر: الحدود مفروضة في CI، ولا ثغرة حرجة، والاستعادة من النسخة الاحتياطية مجرّبة، والتنبيهات تعمل (Goss لحال الخادم)، والنشر والتراجع آليان.
+2. اكتب PRODUCTION-READINESS.md بجدول قبل وبعد بالأرقام.
+3. الاختبار يثبت أن بندًا بلا أمر فحص يُرفض.
+
+```bash
+python -m unittest tests.test_readiness -q
+```
+
+**التراجع:** revert الالتزام.
 
 ## قواعد التطوير نحو الوجهة
 

@@ -141,6 +141,51 @@ class MeasurementTests(unittest.TestCase):
             (repo / 'a.py').unlink()
             self.assertFalse(measure.checked_out(repo, commit))
 
+    def _orchestration(self, files=(), **artifacts):
+        """Measure the blueprint's stages over a report holding the given artifacts."""
+        import tempfile
+        measure = load_measure()
+        with tempfile.TemporaryDirectory() as tmp:
+            out = self._report(Path(tmp) / 'r')
+            for name, content in artifacts.items():
+                path = out / name.replace('__', '/')
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps(content))
+            corpus = Path(tmp) / 'corpus'
+            for name in files:
+                (corpus / 'p' / name).parent.mkdir(parents=True, exist_ok=True)
+                (corpus / 'p' / name).write_text('x')
+            previous, measure.CORPUS = measure.CORPUS, corpus
+            try:
+                spec = {'name': 'p', 'truth': {'user_surfaces': 1}}
+                record = {'corpus': [spec], 'adopted_adapters': [{'name': 'syft', 'applies': 'all'},
+                                                                 {'name': 'sqlfluff', 'applies': 'sql'}]}
+                return measure.orchestration_values([measure.Project(spec, out, 0)], record)
+            finally:
+                measure.CORPUS = previous
+
+    def test_an_intake_counts_only_when_every_question_is_answered_or_defaulted(self):
+        done = {'questions': [{'id': 'growth', 'status': 'answered'}, {'id': 'privacy', 'status': 'default'}]}
+        open_ = {'questions': [{'id': 'growth', 'status': 'answered'}, {'id': 'privacy', 'status': 'unknown'}]}
+        self.assertEqual(self._orchestration(**{'intake.json': done})['U6'][0], 1.0)
+        self.assertEqual(self._orchestration(**{'intake.json': open_})['U6'][0], 0.0)
+
+    def test_an_adapter_is_expected_only_where_it_applies(self):
+        external = {'facts/external.json': {'summary': {'engines_observed': ['syft']}}}
+        self.assertEqual(self._orchestration(files=['app.py'], **external)['R3'][0], 1.0)
+        self.assertEqual(self._orchestration(files=['app.py', 'db/schema.sql'], **external)['R3'][0], 0.5)
+
+    def test_a_report_counts_only_with_zero_style_and_structure_errors(self):
+        quality = {'reports': [{'name': 'CURRENT-STATE.md', 'vale_errors': 0, 'markdownlint_errors': 0},
+                               {'name': 'TARGET-STATE.md', 'vale_errors': 2, 'markdownlint_errors': 0}]}
+        self.assertEqual(self._orchestration(**{'report-quality.json': quality})['P8'][0], 0.25)
+
+    def test_supply_chain_needs_both_an_sbom_and_a_vulnerability_scan(self):
+        sbom = {'sbom.cdx.json': {'components': [{'name': 'react'}]}}
+        self.assertEqual(self._orchestration(**sbom)['H3'][0], 0.0)
+        scanned = dict(sbom, **{'facts/external.json': {'summary': {'engines_observed': ['osv-scanner']}}})
+        self.assertEqual(self._orchestration(**scanned)['H3'][0], 1.0)
+
     def test_an_unknown_indicator_is_refused(self):
         self.assertEqual(load_tool().main(['measure', '--only', 'ZZ9']), 2)
 

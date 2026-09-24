@@ -22,7 +22,8 @@ TARGET = ROOT / 'docs/NORTH-STAR.md'
 HIGH_WATER = ROOT / 'docs/north-star-high-water.json'
 TOLERANCE = 0.02
 MARK = {'todo': '⬜', 'done': '✅', 'blocked': '⛔'}
-NEEDS = {'none': 'نموذج أو مطوّر', 'model_provider': 'يحتاج مزوّد نموذج', 'human': 'يحتاج إنسانًا من خارج المشروع'}
+NEEDS = {'none': 'نموذج أو مطوّر', 'model_provider': 'يحتاج مزوّد نموذج', 'human': 'يحتاج إنسانًا من خارج المشروع',
+         'sandbox': 'يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع'}
 
 
 def indicators(record):
