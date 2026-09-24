@@ -50,6 +50,15 @@ class Source:
 
     def category(self, rel): return classify(rel)
 
+    def readable_including_sensitive(self):
+        """Every readable file plus the files flagged as sensitive (metadata-only) by the inventory.
+
+        The secrets extractor is the only caller that may read a sensitive file's contents;
+        every other extractor must use ``readable()`` and never see ``.env`` or PEM keys.
+        """
+        return [item for item in self.inventory['files']
+                if item.get('capture') in ('hashed', 'sensitive_metadata_only')]
+
     def text(self, rel):
         """UTF-8 text of an in-target file, or None when it is binary, oversize or excluded."""
         if rel in self._text: return self._text[rel]

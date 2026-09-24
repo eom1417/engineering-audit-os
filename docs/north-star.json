@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-24",
-  "measured_at_commit": "d6fefc6",
+  "measured_at_commit": "6889878",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -358,8 +358,8 @@
           "name": "مواد الاعتماد المرفوعة بخطورتها الصحيحة",
           "definition": "عناصر truth.credentials التي ذكرها التقرير كحقيقة committed_credential بالخطورة الصحيحة (public أو secret) ÷ مجموعها. مفتاح anon/publishable عام بطبيعته: تصنيفه secret إنذار كاذب ولا يُحتسب.",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "committed credentials reported with the right severity: FleetManageWeb 0/1 · finance-os-a0192b7b 0/1",
+          "value": 1.0,
+          "evidence": "committed credentials reported with the right severity: FleetManageWeb 1/1 · finance-os-a0192b7b 1/1",
           "reads": "facts of kind `committed_credential` whose location.path contains the truth path and whose value.severity equals truth severity (public | secret)",
           "measured": "automated"
         },
@@ -1109,7 +1109,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only H1 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS6.T2",
