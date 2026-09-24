@@ -14,6 +14,8 @@
     "entry_points": 11,
     "production_entry_points": 11,
     "test_only_entry_points": 0,
+    "data_access": 0,
+    "data_access_by_client": {},
     "by_surface": {
       "cli": 6,
       "http": 4,

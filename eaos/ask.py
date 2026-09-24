@@ -68,7 +68,7 @@ def candidates(dossier, sets):
     for question in dossier.get('questions', []):
         rows.append({'kind': 'open question', 'id': question['id'], 'text': question['question'],
                      'detail': question['source'], 'citation': ''})
-    for fact in sets.get('entrypoints', {}).get('facts', []):
+    for fact in [f for f in sets.get('entrypoints', {}).get('facts', []) if f['kind'] == 'entry_point']:
         value = fact['value']
         rows.append({'kind': 'entry point', 'id': fact['id'][:12], 'detail': f"{value['surface']} {value['http_method'] or ''}".strip(),
                      'text': f"{value['route']} → {value['handler']} [{value['framework']}]",

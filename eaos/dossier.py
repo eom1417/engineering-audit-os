@@ -267,7 +267,8 @@ def onboarding_document(target, dossier, sets, verification, language):
                      if language == 'ar' else
                      'Generated from facts: commands come from declared manifests, reading order from the graph.'])
     commands = [fact for fact in sets.get('entrypoints', {}).get('facts', [])
-                if fact['value']['framework'] in {'npm_script', 'make', 'console_script', 'docker_cmd', 'docker_entrypoint'}]
+                if fact.get('kind') == 'entry_point'
+                and fact['value']['framework'] in {'npm_script', 'make', 'console_script', 'docker_cmd', 'docker_entrypoint'}]
     document.section('ابنِ وشغّل' if language == 'ar' else 'Build and run')
     document.table(['الأمر' if language == 'ar' else 'Command', 'المصدر' if language == 'ar' else 'Declared in'],
                    [[fact['value']['route'], f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"]
@@ -281,7 +282,8 @@ def onboarding_document(target, dossier, sets, verification, language):
                           f"no command has been executed in this run (eaos verify --execute)"])
     document.section('نقاط الدخول لتجربتها' if language == 'ar' else 'Entry points to try')
     production = [fact for fact in sets.get('entrypoints', {}).get('facts', [])
-                  if fact['value'].get('category') != 'test' and fact['value']['surface'] in {'http', 'page', 'cli', 'job'}
+                  if fact.get('kind') == 'entry_point'
+                  and fact['value'].get('category') != 'test' and fact['value']['surface'] in {'http', 'page', 'cli', 'job'}
                   and fact['value']['route'] and fact['value']['handler']]
     document.table([words['surface'], words['route'], words['handler'], words['location']],
                    [[fact['value']['surface'], fact['value']['route'] or '—', fact['value']['handler'] or '—',
@@ -304,9 +306,9 @@ def onboarding_document(target, dossier, sets, verification, language):
                     for fact in domain], limit=20)
     document.section('مصائد معروفة' if language == 'ar' else 'Known traps')
     document.bullets([
-        f"{sum(1 for fact in sets['entrypoints']['facts'] if fact['resolution'] == 'UNRESOLVED')} نقطة دخول تُسجَّل ديناميكيًا ولا يمكن تتبعها ساكنًا"
+        f"{sum(1 for fact in sets['entrypoints']['facts'] if fact.get('kind') == 'entry_point' and fact.get('resolution') == 'UNRESOLVED')} نقطة دخول تُسجَّل ديناميكيًا ولا يمكن تتبعها ساكنًا"
         if language == 'ar' else
-        f"{sum(1 for fact in sets['entrypoints']['facts'] if fact['resolution'] == 'UNRESOLVED')} entry points are registered dynamically and cannot be traced statically",
+        f"{sum(1 for fact in sets['entrypoints']['facts'] if fact.get('kind') == 'entry_point' and fact.get('resolution') == 'UNRESOLVED')} entry points are registered dynamically and cannot be traced statically",
         f"{len(sets['config']['summary']['unread_sensitive_config_files'])} sensitive config files are listed but never read",
         f"{sets['flows']['summary'].get('unresolved_steps', 0)} steps in the traced flows stop at calls the resolver cannot follow",
     ])
@@ -532,7 +534,7 @@ def contracts_document(dossier, sets, language):
     document.table([words['surface'], words['method'], words['route'], words['location']],
                    [[f['value']['surface'], f['value']['http_method'] or '—', f['value']['route'] or '—',
                      f"{f['location']['path']}:{f['location'].get('start_line') or 1}"]
-                    for f in sets['entrypoints']['facts']], limit=30)
+                    for f in sets['entrypoints']['facts'] if f.get('kind') == 'entry_point'], limit=30)
     return document
 
 

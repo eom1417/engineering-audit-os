@@ -2,10 +2,15 @@
 
 This is the objective skeleton of a system. A detector reports only what it matched in the text;
 an unsupported framework becomes a declared gap, never an invented route.
+
+The same loop also emits ``data_access`` facts produced by framework detectors that declare
+``FACT_KIND = 'data_access'``. Reading the file once and letting each detector contribute the
+fact kind it owns keeps the persisted ledger a single observation per source, not two parallel
+scans that could disagree about the file contents.
 """
 from bisect import bisect_right
 from . import digest, make
-from .frameworks import MODULES, applicable
+from .frameworks import MODULES, applicable, fact_kind
 from .source import language_of
 
 NAME = 'entrypoints'
@@ -53,40 +58,68 @@ def symbol_map(symbol_facts):
     return table
 
 
+def _entry_point_fact(item, rel, language, entry, category):
+    return make('entry_point', NAME, VERSION, item['sha256'],
+                {'path': rel, 'start_line': entry['line'], 'symbol': entry['handler']},
+                {'surface': entry['surface'], 'route': entry['route'], 'http_method': entry['http_method'],
+                 'handler': entry['handler'], 'framework': entry['framework'], 'language': language,
+                 'category': category, 'note': entry.get('note')},
+                resolution='UNRESOLVED' if entry['route'] is None or entry['handler'] is None else 'RESOLVED',
+                limitations=LIMITATIONS)
+
+
+def _data_access_fact(item, rel, line, call, category):
+    return make('data_access', NAME, VERSION, item['sha256'],
+                {'path': rel, 'start_line': line, 'symbol': call.get('symbol') or 'data_access'},
+                {'client': call['client'], 'target': call['target'], 'operation': call['operation'],
+                 'category': category},
+                limitations=LIMITATIONS)
+
+
 def run(target, source, symbols=None, **options):
     from . import syntax
     if symbols is None:
         symbols = [f for f in syntax.run(target, source)['facts'] if f['kind'] == 'symbol']
     table = symbol_map(symbols)
-    facts, fingerprints, surfaces, frameworks = [], [], {}, {}
+    facts, fingerprints, surfaces, frameworks, data_access_by_client = [], [], {}, {}, {}
     covered_languages, uncovered = set(), {}
     for item in source.readable():
         rel = item['path']
         text = source.text(rel)
         if text is None: continue
         language = language_of(rel)
+        category = source.category(rel)
         context = Context(rel, text, language, table.get(rel, []))
-        matched = False
+        any_match = False
         for module in MODULES:
             if not applicable(module, rel, language): continue
-            matched = True
-            for entry in module.detect(context):
-                fingerprints.append(item['sha256'])
-                surfaces[entry['surface']] = surfaces.get(entry['surface'], 0) + 1
-                frameworks[entry['framework']] = frameworks.get(entry['framework'], 0) + 1
-                covered_languages.add(language or 'manifest')
-                facts.append(make('entry_point', NAME, VERSION, item['sha256'],
-                                  {'path': rel, 'start_line': entry['line'], 'symbol': entry['handler']},
-                                  {'surface': entry['surface'], 'route': entry['route'], 'http_method': entry['http_method'],
-                                   'handler': entry['handler'], 'framework': entry['framework'], 'language': language,
-                                   'category': source.category(rel), 'note': entry.get('note')},
-                                  resolution='UNRESOLVED' if entry['route'] is None or entry['handler'] is None else 'RESOLVED', limitations=LIMITATIONS))
-        if not matched and language and source.category(rel) == 'source':
+            any_match = True
+            kind = fact_kind(module)
+            if kind == 'entry_point':
+                for entry in module.detect(context):
+                    fingerprints.append(item['sha256'])
+                    surfaces[entry['surface']] = surfaces.get(entry['surface'], 0) + 1
+                    frameworks[entry['framework']] = frameworks.get(entry['framework'], 0) + 1
+                    covered_languages.add(language or 'manifest')
+                    facts.append(_entry_point_fact(item, rel, language, entry, category))
+            elif kind == 'data_access':
+                for _offset, line, call in module.detect(context):
+                    fingerprints.append(item['sha256'])
+                    data_access_by_client[call['client']] = data_access_by_client.get(call['client'], 0) + 1
+                    facts.append(_data_access_fact(item, rel, line, call, category))
+        if not any_match and language and category == 'source':
             uncovered[language] = uncovered.get(language, 0) + 1
-    facts.sort(key=lambda f: (f['value']['surface'], str(f['value']['route']), f['location']['path'], f['location'].get('start_line') or 0))
-    production = [f for f in facts if f['value']['category'] != 'test']
-    summary = {'entry_points': len(facts), 'production_entry_points': len(production),
-               'test_only_entry_points': len(facts) - len(production),
+    facts.sort(key=lambda f: (f['value'].get('surface') or f['value'].get('client') or '',
+                              str(f['value'].get('route') or f['value'].get('target') or ''),
+                              f['location']['path'], f['location'].get('start_line') or 0))
+    entry_point_facts = [f for f in facts if f['kind'] == 'entry_point']
+    data_access_facts = [f for f in facts if f['kind'] == 'data_access']
+    production = [f for f in entry_point_facts if f['value'].get('category') != 'test']
+    summary = {'entry_points': len(entry_point_facts),
+               'production_entry_points': len(production),
+               'test_only_entry_points': len(entry_point_facts) - len(production),
+               'data_access': len(data_access_facts),
+               'data_access_by_client': dict(sorted(data_access_by_client.items())),
                'by_surface': dict(sorted(surfaces.items())),
                'by_framework': dict(sorted(frameworks.items())),
                'languages_with_detections': sorted(covered_languages),

@@ -44,7 +44,7 @@ def _execute(run,state,provider,budget,max_rounds,max_inspect_files=None):
         facts_summary={name:{'available':data['available'],'summary':data['summary'],'limitations':data['limitations']} for name,data in sets.items()}
         attention=[row['path'] for row in sets['graph']['summary']['attention_order']]
         expose('facts-summary.json',facts_summary)
-        expose('entry-points.json',[f['value']|{'location':f['location']} for f in sets['entrypoints']['facts']])
+        expose('entry-points.json',[f['value']|{'location':f['location']} for f in sets['entrypoints']['facts'] if f['kind']=='entry_point'])
         expose('attention.json',{'order':attention,'weights':sets['graph']['summary']['weights'],
                                  'interpretation':'Reading order derived from deterministic facts; not a severity ranking.'})
     except (ValueError,OSError,KeyError) as exc:

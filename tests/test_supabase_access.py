@@ -87,3 +87,25 @@ class SupabaseAccessDetectionTests(unittest.TestCase):
         source = 'const x = 1;\nawait supabase.from("t").select("*");'
         calls = list(supabase_access.extract_calls(source))
         self.assertEqual(calls[0][1], 2)
+
+
+    def test_a_supabase_mention_in_an_unrelated_statement_does_not_make_a_non_supabase_chain_match(self):
+        # The earlier change made the prefix walk back only as far as the previous `;` (or
+        # `{`, `}`, `=`). A `supabase = setup();` declaration that ended at `;` cannot leak the
+        # name forward into the next statement, so `myClient.from(...)` following it stays
+        # a non-Supabase chain.
+        source = ('const supabase = setup();\n'
+                  'myClient.from("x").select("*");\n')
+        calls = list(supabase_access.extract_calls(source))
+        self.assertEqual(calls, [])
+
+    def test_a_supabase_mention_in_an_unrelated_braced_block_does_not_make_a_non_supabase_chain_match(self):
+        # The same boundary principle inside a block: the brace that closes the block isolates
+        # a Supabase identifier from a later chain.
+        source = ('function unrelated() {\n'
+                  '  const supabase = setup();\n'
+                  '  return 1;\n'
+                  '}\n'
+                  'myClient.from("x").select("*");\n')
+        calls = list(supabase_access.extract_calls(source))
+        self.assertEqual(calls, [])

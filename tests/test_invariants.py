@@ -131,6 +131,26 @@ class DeclaredInvariantTests(unittest.TestCase):
             self.assertNotIn(invented, text, 'a command the project never declared was invented')
 
 
+
+    def test_a_framework_detector_does_not_invent_facts_on_a_clean_text(self):
+        """eaos/facts/frameworks — a detector must never emit a fact it has not actually matched.
+
+        The framework registry declares what each module owns; the contract is that running
+        detect on text containing none of the patterns it is supposed to recognise must come
+        back empty. A detector that returns anything on a clean TypeScript file is fabricating."""
+        from eaos.facts.frameworks import MODULES, applicable
+        from eaos.facts.entrypoints import Context
+        clean = ("// a clean file with no framework calls and no data-access clients\n"
+                 "const greeting = 'hello';\n"
+                 "function add(a, b) { return a + b; }\n"
+                 "export default add;\n")
+        for module in MODULES:
+            if not applicable(module, 'app.ts', 'typescript'): continue
+            context = Context('app.ts', clean, 'typescript', [])
+            result = list(module.detect(context))
+            self.assertEqual(result, [], f'{module.__name__} returned matches on a clean text: {result}')
+
+
 class RegisterTests(unittest.TestCase):
     """The register itself must stay honest: current, complete, and pointing at real tests."""
 
@@ -151,3 +171,4 @@ class RegisterTests(unittest.TestCase):
         for row in load_register()['invariants']:
             if row.get('kind') == 'rationale':
                 self.assertTrue((row.get('note') or '').strip(), row['id'])
+

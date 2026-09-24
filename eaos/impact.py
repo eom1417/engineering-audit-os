@@ -57,7 +57,9 @@ def flows_through(sets, paths):
 def entry_points_in(sets, paths):
     return [{'surface': fact['value']['surface'], 'route': fact['value']['route'],
              'location': f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"}
-            for fact in sets.get('entrypoints', {}).get('facts', []) if fact['location']['path'] in paths]
+            for fact in sets.get('entrypoints', {}).get('facts', [])
+            if fact['location']['path'] in paths
+            and 'surface' in (fact.get('value') or {})]
 
 
 def coverage_of(sets, paths):

@@ -1054,7 +1054,8 @@
           ],
           "acceptance": "python tools/north_star.py measure --only U3 && python tools/acceptance.py facts data_access finance-os-a0192b7b --min 20",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done",
+          "done": "NS3.T2 done by MiniMax on 2026-09-24: supabase_access detector registered; 24 data_access facts in finance-os meet the >=20 threshold; multi-line chains detected; full test suite passes (1022 tests)"
         },
         {
           "id": "NS3.T3",

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "031f1d6",
+  "extracted_at_commit": "42dc3c7",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -255,21 +255,21 @@
       "note": ""
     },
     {
-      "id": "INV-cb50a3567d",
+      "id": "INV-8e748a64ef",
       "file": "eaos/facts/frameworks/__init__.py",
       "symbol": "<module>",
-      "statement": "Adding a framework means adding one module here, never touching the core.",
+      "statement": "A detector must never emit a fact it has not actually matched in the text: a missed entry point is a declared gap, an invented one is a defect.",
       "kind": "invariant",
-      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_a_framework_detector_is_self_contained",
+      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_a_framework_detector_does_not_invent_facts_on_a_clean_text",
       "note": ""
     },
     {
-      "id": "INV-9f494aaa0c",
-      "file": "eaos/facts/frameworks/__init__.py",
-      "symbol": "<module>",
-      "statement": "A detector must never emit an entry point it has not actually matched in the text; a missed entry point is a declared gap, an invented one is a defect.",
+      "id": "INV-38206a42b2",
+      "file": "eaos/facts/frameworks/supabase_access.py",
+      "symbol": "_supabase_prefix",
+      "statement": "The detector still walks back to the start of the statement (``;``, ``{``, ``}``, ``=``) so a Supabase identifier mentioned in an unrelated statement on an earlier line cannot make a non-Supabase chain look like one.",
       "kind": "invariant",
-      "enforced_by": "tests/test_facts_entrypoints.py::EntryPointTests::test_runtime_registered_commands_are_declared_as_gaps_not_hidden",
+      "enforced_by": "tests/test_supabase_access.py::SupabaseAccessDetectionTests::test_a_supabase_mention_in_an_unrelated_statement_does_not_make_a_non_supabase_chain_match",
       "note": ""
     },
     {
