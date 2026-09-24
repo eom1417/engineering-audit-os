@@ -38,20 +38,27 @@ def engines(context):
     if 'source' not in context:
         from ..facts.source import Source
         context['source'] = Source(context.target, exclude=context.exclude, max_files=context.max_files, max_bytes=context.max_bytes)
-    entry = collect_external(context.target, context.out, context['source'], only=context.engines or None)
-    add_to_index(context.out, context.target, entry)
-    if not entry['available']:
+    entries = collect_external(context.target, context.out, context['source'], only=context.engines or None)
+    if not isinstance(entries, list):
+        entries = [entries]
+    external_entry = None
+    for entry in entries:
+        add_to_index(context.out, context.target, entry)
+        if entry['set'] == 'external':
+            external_entry = entry
+    if external_entry is None or not external_entry['available']:
         raise SkipStage('no external engine is installed')
     # The facts stage handed us its set list; a later stage rebuilding the dossier reads that list,
     # so the set we just added has to join it or the evidence is on disk and invisible.
     collected = context.get('collected')
     if collected is not None:
-        collected['sets'] = [row for row in collected['sets'] if row['set'] != 'external'] + [entry]
+        collected['sets'] = ([row for row in collected['sets'] if row['set'] not in {e['set'] for e in entries}]
+                              + entries)
     from ..engines_report import document
     from ..facts.store import read_set
     (context.out / 'ENGINES.md').write_text(
         document({'external': read_set(context.out, 'external')}, context.language).render(), encoding='utf-8')
-    return {'findings': entry['facts']}
+    return {'findings': external_entry['facts']}
 
 
 def verify(context):

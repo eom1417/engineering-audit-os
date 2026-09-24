@@ -82,7 +82,10 @@ def run(target, source, out=None, only=None):
     counts = {name: len([f for f in facts if f['value'].get('engine') == name]) for name in present}
     summary = {'engines_observed': present, 'engines_unavailable': absent,
                # What each engine actually looked for, so silence can be told from absence.
-               'evaluated_kinds': {name: manifest['coverage'][name]['evaluated_kinds'] for name in present},
+               'evaluated_kinds': ({name: manifest['coverage'][name]['evaluated_kinds']
+                                   for name in present}
+                                   if isinstance(manifest.get('coverage'), dict)
+                                   else {}),
                'findings': len(facts), 'target_unchanged': manifest['target_unchanged'],
                'by_engine': counts,
                'zero_findings': {name: 'engine completed but normalized zero facts'

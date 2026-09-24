@@ -41,8 +41,9 @@ def document(sets, language='ar'):
                                 for kind, detail in sorted(evaluated.get(name, {}).items())) or '—',
                 str(summary.get('by_engine', {}).get(name, 0))]
                for name in summary.get('engines_observed', [])])
-    if summary.get('engines_unavailable'):
-        doc.bullets([f"{name}: {words['status']} unavailable" for name in summary['engines_unavailable']])
+    _unavailable = summary.get('engines_unavailable') or []
+    if isinstance(_unavailable, (list, tuple)) and _unavailable:
+        doc.bullets([f"{name}: {words['status']} unavailable" for name in _unavailable])
     built = clusters(sets)
     contested = [(cluster, kind, detail) for cluster in built
                  for kind, detail in sorted(cluster['corroboration'].items())

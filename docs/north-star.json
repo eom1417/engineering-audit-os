@@ -296,8 +296,8 @@
           "name": "المداخل والمخارج والحدود",
           "definition": "متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع",
           "target": 0.8,
-          "value": 0.613,
-          "evidence": "answered load questions: FleetManageWeb 225/368 · finance-os-a0192b7b 130/232 · RendaPerene 16/24",
+          "value": 0.719,
+          "evidence": "answered load questions: FleetManageWeb 270/368 · finance-os-a0192b7b 156/232 · RendaPerene 18/24",
           "reads": "load-model.json → entry_points[].answers[].status == \"answered\"",
           "measured": "automated"
         },
@@ -334,8 +334,8 @@
           "name": "الادعاءات غير الضجيجية",
           "definition": "متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع",
           "target": 0.8,
-          "value": 0.832,
-          "evidence": "claims that are not structural clones: FleetManageWeb 83/103 · finance-os-a0192b7b 151/201 · RendaPerene 47/50",
+          "value": 0.834,
+          "evidence": "claims that are not structural clones: FleetManageWeb 84/104 · finance-os-a0192b7b 151/201 · RendaPerene 50/53",
           "reads": "dossier.json → claims[].statement not containing \"share the same structure up to identifier names\"",
           "measured": "automated"
         },
@@ -344,8 +344,8 @@
           "name": "دقة مرشحات الكود الميت",
           "definition": "المرشحات الميتة فعلًا ÷ كل الرموز المرشحة، على self_truth",
           "target": 0.8,
-          "value": 0.625,
-          "evidence": "5 dead of 8 distinct candidates (by path and symbol): _scope_chain, _steps, _trace_evidence, run_absence_search, write_next",
+          "value": 0.208,
+          "evidence": "5 dead of 24 distinct candidates (by path and symbol): _scope_chain, _steps, _trace_evidence, run_absence_search, write_next",
           "reads": "self_truth report: facts with value.kind == \"dead_code\", symbol names compared with self_truth.true_dead_symbols",
           "measured": "automated"
         },

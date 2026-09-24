@@ -44,21 +44,22 @@ def ordered(selected):
 def collect_external(target, out, source, only=None):
     """Run the pinned external engines over the same snapshot and persist their fact set.
 
-    A dead-code finding whose symbol is held in a distribution registry is filtered
-    out before the facts are written, so the corpus measure and the ledger agree
-    that those candidates are not dead. The filter runs after the engines report
-    and before the fact set is persisted: the registry is part of the codebase
-    itself and so lives in the snapshot. The reachability-based dead-code finder
-    (NS5.T1) is run alongside the engines and its findings written to a separate
-    ``reachability.json`` fact set, so downstream stages see the reachable modules
-    and symbols without the registry-noise the engine output carries.
+    Registry-referenced dead-code candidates are tagged ``value.referenced_by_registry``
+    but stay on disk so the S2 measure and downstream stages still see them; the
+    clusters() pass in correlate.py reads the tag and excludes tagged facts from any
+    dead_code claim, which is the contract the spec phrases as 'a candidate referenced
+    by one of these sources stays as engine_finding and does not become a dead_code
+    claim'. The reachability-based dead-code finder (NS5.T1) is run alongside the
+    engines and its findings written to a separate ``reachability.json`` fact set.
     """
     result = external.run(target, source, out=out, only=only)
     from ..correlate import filter_dead_code_references as _filter_dead_code_references
-    facts, dropped = _filter_dead_code_references(result['facts'], source)
-    if dropped:
+    facts, _dropped = _filter_dead_code_references(result['facts'], source)
+    referenced = sum(1 for f in facts
+                     if (f.get('value') or {}).get('referenced_by_registry'))
+    if referenced:
         result['summary'] = dict(result.get('summary') or {})
-        result['summary']['registry_referenced_dead_code_dropped'] = dropped
+        result['summary']['registry_referenced_dead_code_marked'] = referenced
     external_entry = write_set(out, 'external', external.NAME, external.VERSION, facts, result['input_sha'],
                                 external.LIMITATIONS, result['summary'], result['available'], result['reason'])
     reachability_entry = _run_reachability(target, out, source)
