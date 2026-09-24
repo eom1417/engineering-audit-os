@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
-  "measured_at": "2026-09-23",
-  "measured_at_commit": "0c056e3",
+  "measured_at": "2026-09-24",
+  "measured_at_commit": "12d1fb7",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -39,12 +39,13 @@
         "leftovers": [
           "temp_original.tsx",
           "build_output.txt",
-          "DbTest/ (23 .dll files)",
+          "DbTest/",
           "unused-archive/"
         ],
         "secrets": [
-          "unused-archive/supabase-integrations/client.ts (Supabase URL and key in source)"
-        ]
+          "unused-archive/supabase-integrations/client.ts"
+        ],
+        "notes": "DbTest/ holds 23 committed .dll files; the client.ts under unused-archive/ carries a Supabase URL and key in source."
       }
     },
     {
@@ -59,8 +60,9 @@
         "policies": 108,
         "leftovers": [],
         "secrets": [
-          ".env committed to the repository"
-        ]
+          ".env"
+        ],
+        "notes": ".env is tracked by git."
       }
     },
     {
@@ -83,21 +85,107 @@
     "commit": "879b5625e216568c30ee7fe8b179a1e841886fe6",
     "how": "Found by hand during the 2026-09-23 cleanup (vulture, pyflakes, import reachability from eaos.cli, running every command). Each item was confirmed and removed in be6f28a, d24d514 and 0c056e3.",
     "defects": [
-      "eaos/identity.py: unreachable module (imported only by its own test)",
-      "eaos/outcomes.py: unreachable module (imported only by its own test)",
-      "execution_guide._steps: unreferenced function",
-      "structure._scope_chain: unreferenced function",
-      "load_model._trace_evidence: unreferenced function",
-      "probes.run_absence_search: unreferenced function",
-      "workflow.seed_roadmap: reachable only from a test of a retired command",
-      "workflow.write_next: served the retired `eaos next`",
-      "compose/rules.HUMAN_ARTIFACTS: constant never read",
-      "discover.OWNED: constant never read",
-      "dossier.ORIGIN_RANK: constant never read",
-      "go_command.CASE_BODY: constant never read",
-      "cli ALL_SETS undefined in three commands: target-architecture, executive and bundles crashed on every run",
-      "compose/labels.py: two dictionary keys defined twice, the first value silently discarded",
-      "START-HERE.md and three core documents instructed commands that no longer exist"
+      {
+        "text": "eaos/identity.py: unreachable module (imported only by its own test)",
+        "match": [
+          "eaos/identity.py",
+          "eaos.identity"
+        ]
+      },
+      {
+        "text": "eaos/outcomes.py: unreachable module (imported only by its own test)",
+        "match": [
+          "eaos/outcomes.py",
+          "eaos.outcomes"
+        ]
+      },
+      {
+        "text": "execution_guide._steps: unreferenced function",
+        "match": [
+          "_steps"
+        ]
+      },
+      {
+        "text": "structure._scope_chain: unreferenced function",
+        "match": [
+          "_scope_chain"
+        ]
+      },
+      {
+        "text": "load_model._trace_evidence: unreferenced function",
+        "match": [
+          "_trace_evidence"
+        ]
+      },
+      {
+        "text": "probes.run_absence_search: unreferenced function",
+        "match": [
+          "run_absence_search"
+        ]
+      },
+      {
+        "text": "workflow.seed_roadmap: reachable only from a test of a retired command",
+        "match": [
+          "seed_roadmap"
+        ]
+      },
+      {
+        "text": "workflow.write_next: served the retired `eaos next`",
+        "match": [
+          "write_next"
+        ]
+      },
+      {
+        "text": "compose/rules.HUMAN_ARTIFACTS: constant never read",
+        "match": [
+          "HUMAN_ARTIFACTS"
+        ]
+      },
+      {
+        "text": "discover.OWNED: constant never read",
+        "match": [
+          "OWNED"
+        ]
+      },
+      {
+        "text": "dossier.ORIGIN_RANK: constant never read",
+        "match": [
+          "ORIGIN_RANK"
+        ]
+      },
+      {
+        "text": "go_command.CASE_BODY: constant never read",
+        "match": [
+          "CASE_BODY"
+        ]
+      },
+      {
+        "text": "cli ALL_SETS undefined in three commands: target-architecture, executive and bundles crashed on every run",
+        "match": [
+          "ALL_SETS"
+        ]
+      },
+      {
+        "text": "compose/labels.py: two dictionary keys defined twice, the first value silently discarded",
+        "match": [
+          "compose/labels.py"
+        ]
+      },
+      {
+        "text": "START-HERE.md and three core documents instructed commands that no longer exist",
+        "match": [
+          "START-HERE.md",
+          "AGENT-WORKFLOW.md"
+        ]
+      }
+    ],
+    "true_dead_symbols": [
+      "_steps",
+      "_scope_chain",
+      "_trace_evidence",
+      "run_absence_search",
+      "write_next",
+      "seed_roadmap"
     ]
   },
   "capabilities": [
@@ -113,7 +201,9 @@
           "definition": "عدد مشاريع العيّنة التي ينتهي فيها eaos audit برمز خروج 0 ÷ عدد مشاريع العيّنة",
           "target": 1.0,
           "value": 0.667,
-          "evidence": "FleetManageWeb و finance-os خرجا بـ0. RendaPerene خرج بـ2: 'R2 transform-plan.md: 206 lines exceeds the budget of 200'."
+          "evidence": "exit codes: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 2",
+          "reads": "exit code of `eaos audit` on each corpus project",
+          "measured": "automated"
         },
         {
           "id": "R2",
@@ -121,7 +211,9 @@
           "definition": "مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع",
           "target": 1.0,
           "value": 0.333,
-          "evidence": "Python: نعم. React Router في FleetManageWeb: لا. TanStack Router في finance-os: لا."
+          "evidence": "user surfaces found: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 3",
+          "reads": "facts/entrypoints.json: facts of kind `entry_point` whose value.framework is not npm_script or public_api",
+          "measured": "automated"
         }
       ]
     },
@@ -137,7 +229,9 @@
           "definition": "متوسط parse_coverage على مشاريع العيّنة",
           "target": 0.95,
           "value": 0.957,
-          "evidence": "0.982 · 0.902 · 0.987 (dossier.json coverage)"
+          "evidence": "parse_coverage: FleetManageWeb 0.982 · finance-os-a0192b7b 0.902 · RendaPerene 0.987",
+          "reads": "dossier.json → coverage.parse_coverage",
+          "measured": "automated"
         },
         {
           "id": "U2",
@@ -145,7 +239,9 @@
           "definition": "متوسط (الأسطح المكتشفة ÷ الأسطح الحقيقية في truth.user_surfaces) لكل مشروع",
           "target": 0.9,
           "value": 0.333,
-          "evidence": "0/46 مسارًا · 0/29 مسارًا · 3/3 سكربتات. نقاط الدخول المكتشفة في مشروعي React كانت npm scripts وتصديرات مكتبية."
+          "evidence": "found/true surfaces: FleetManageWeb 0/46 · finance-os-a0192b7b 0/29 · RendaPerene 3/3",
+          "reads": "facts/entrypoints.json: distinct (surface, route, path) of `entry_point` facts, framework not npm_script/public_api, compared with truth.user_surfaces",
+          "measured": "automated"
         },
         {
           "id": "U3",
@@ -153,7 +249,9 @@
           "definition": "مشاريع العيّنة ذات قاعدة بيانات التي قُرئت جداولها وسياساتها ÷ عدد تلك المشاريع",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "finance-os: 31 جدولًا و108 سياسة في 38 ملف SQL؛ التقرير: files_without_any_detector: {sql: 38}."
+          "evidence": "db_table/db_policy facts vs truth: finance-os-a0192b7b 0/31 tables, 0/108 policies",
+          "reads": "facts of kind `db_table` and `db_policy` in any facts/*.json, compared with truth.tables and truth.policies (≥ 90%)",
+          "measured": "automated"
         },
         {
           "id": "U4",
@@ -161,7 +259,9 @@
           "definition": "مشاريع العيّنة التي يسرد تقريرها وظائف البرنامج (ماذا يفعل للمستخدم) مربوطة بأسطحها وبياناتها ÷ عدد المشاريع",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا جرد في أي مشروع. PRODUCT-REPORT لـFleetManageWeb يصفه بـ\"331 source files … Invocation surfaces: cli (5)\"، ولا يذكر المركبات والسائقين والصيانة."
+          "evidence": "features in features.json: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0",
+          "reads": "features.json → features[] (non-empty)",
+          "measured": "automated"
         },
         {
           "id": "U5",
@@ -169,7 +269,9 @@
           "definition": "متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع",
           "target": 0.8,
           "value": 0.25,
-          "evidence": "FleetManageWeb 0/40 · finance-os 0/336 · RendaPerene 18/24. في مشروعي React بُني النموذج على npm scripts مثل \"npm run build\"."
+          "evidence": "answered load questions: FleetManageWeb 0/40 · finance-os-a0192b7b 0/336 · RendaPerene 18/24",
+          "reads": "load-model.json → entry_points[].answers[].status == \"answered\"",
+          "measured": "automated"
         }
       ]
     },
@@ -184,16 +286,20 @@
           "name": "الادعاءات غير الضجيجية",
           "definition": "متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع",
           "target": 0.8,
-          "value": 0.248,
-          "evidence": "FleetManageWeb 13/350 · finance-os 92/367 · RendaPerene 45/99. الضجيج مكوّنات React متشابهة الشكل؛ 40 فقط من 612 ادعاء تشابه تمس مكتبة components/ui المضمّنة، والباقي مكوّنات التطبيق نفسه."
+          "value": 0.261,
+          "evidence": "claims that are not structural clones: FleetManageWeb 20/357 · finance-os-a0192b7b 98/373 · RendaPerene 47/101",
+          "reads": "dossier.json → claims[].statement not containing \"share the same structure up to identifier names\"",
+          "measured": "automated"
         },
         {
           "id": "S2",
           "name": "دقة مرشحات الكود الميت",
           "definition": "المرشحات الميتة فعلًا ÷ كل الرموز المرشحة، على self_truth",
           "target": 0.8,
-          "value": 0.227,
-          "evidence": "5 من 22 رمزًا مختلفًا. الكاذبة: دوال detect العشر ودوال capabilities الأربع وغيرها، تُستدعى عبر سجل ديناميكي."
+          "value": 0.217,
+          "evidence": "5 dead of 23 distinct candidates (by path and symbol): _scope_chain, _steps, _trace_evidence, run_absence_search, write_next",
+          "reads": "self_truth report: facts with value.kind == \"dead_code\", symbol names compared with self_truth.true_dead_symbols",
+          "measured": "automated"
         }
       ]
     },
@@ -209,7 +315,9 @@
           "definition": "العيوب المكتشفة من self_truth.defects ÷ 15",
           "target": 0.8,
           "value": 0.333,
-          "evidence": "وُجدت 5 دوال. فاتته: الوحدتان، والثوابت الأربعة، و3 أوامر معطّلة باسم غير معرّف، والمفاتيح المكررة، والوثائق التي تأمر بأوامر غير موجودة."
+          "evidence": "5 of 15 known defects found: execution_guide._steps; structure._scope_chain; load_model._trace_evidence; probes.run_absence_search; workflow.write_next",
+          "reads": "self_truth report: facts and claims whose text says dead/unused/unreachable/undefined/never read/duplicate key, matched against self_truth.defects[].match",
+          "measured": "automated"
         },
         {
           "id": "D2",
@@ -217,7 +325,9 @@
           "definition": "عناصر truth.leftovers المذكورة في التقرير ÷ مجموعها",
           "target": 0.9,
           "value": 0.0,
-          "evidence": "0/4 في FleetManageWeb: temp_original.tsx و build_output.txt و DbTest/*.dll و unused-archive/ لم تُذكر."
+          "evidence": "leftovers reported: FleetManageWeb 0/4",
+          "reads": "truth.leftovers paths appearing in dossier.json claims or in facts of kind `leftover`",
+          "measured": "automated"
         },
         {
           "id": "D3",
@@ -225,7 +335,9 @@
           "definition": "عناصر الكود الميت الحقيقية التي وصلت إلى بطاقة remediate بأمر قبول قابل للتشغيل ÷ عناصر الكود الميت الحقيقية المكتشفة",
           "target": 0.9,
           "value": 0.0,
-          "evidence": "لا يوجد نمط حذف آمن؛ كل البطاقات investigate."
+          "evidence": "لا يوجد نمط حذف آمن؛ كل البطاقات investigate.",
+          "reads": "recorded until NS5.T4 defines the remove_dead card",
+          "measured": "recorded"
         }
       ]
     },
@@ -241,7 +353,9 @@
           "definition": "عناصر truth.secrets المذكورة كخطر ÷ مجموعها",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "0/2. SECURITY-SURFACE.md في finance-os: 'لا تلميحات أمان'، و.env مذكور فقط كإعداد غير مقروء."
+          "evidence": "committed secrets reported: FleetManageWeb 0/1 · finance-os-a0192b7b 0/1",
+          "reads": "truth.secrets paths appearing in dossier.json claims or in facts of kind `committed_secret`",
+          "measured": "automated"
         },
         {
           "id": "H2",
@@ -249,7 +363,9 @@
           "definition": "مشاريع ذات قاعدة بيانات قُرئت فيها سياسات RLS وحُدد كل جدول بلا سياسة ÷ عدد تلك المشاريع",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "108 سياسة و31 جدولًا في finance-os؛ لا شيء منها في التقرير."
+          "evidence": "db_policy facts vs truth: finance-os-a0192b7b 0/108",
+          "reads": "facts of kind `db_policy` compared with truth.policies (≥ 90%)",
+          "measured": "automated"
         }
       ]
     },
@@ -265,7 +381,9 @@
           "definition": "مشاريع العيّنة التي فيها target_components غير فارغة ÷ عدد المشاريع",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "target_components = [] في المشاريع الثلاثة، والحالة REVIEW_REQUIRED."
+          "evidence": "target_components: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0",
+          "reads": "target-architecture.json → target_components[] (non-empty)",
+          "measured": "automated"
         },
         {
           "id": "T2",
@@ -273,23 +391,29 @@
           "definition": "مشاريع العيّنة التي تحمل قرارات مسبّبة في الاستضافة والبيانات والهوية والإعدادات وCI والمراقبة ÷ عدد المشاريع",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا قرار بنية تحتية في أي مشروع."
+          "evidence": "infrastructure decisions: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0",
+          "reads": "target-architecture.json → infrastructure[] (non-empty)",
+          "measured": "automated"
         },
         {
           "id": "T3",
           "name": "قرارات تغيّر البنية",
-          "definition": "القرارات التي تنقل أو تقسم أو تدمج أو تضيف طبقة ÷ كل القرارات",
+          "definition": "القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات",
           "target": 0.6,
-          "value": 0.039,
-          "evidence": "3 من 76. البقية 'Resolve the live claims inside the existing component boundary'."
+          "value": 0.013,
+          "evidence": "decisions that change structure: FleetManageWeb 0/37 · finance-os-a0192b7b 1/31 · RendaPerene 0/9",
+          "reads": "target-architecture.json → decisions[].chosen containing move/split/merge/extract/introduce/layer/break the cycle/delete/rebuild",
+          "measured": "automated"
         },
         {
           "id": "T4",
           "name": "قرار لكل مكوّن حالي",
-          "definition": "المكوّنات الحالية التي لها قرار صريح (إعادة استخدام، هيكلة، إعادة بناء، حذف) بدليله ÷ المكوّنات الحالية",
+          "definition": "(المكوّنات الحالية التي لها قرار صريح بدليله ÷ المكوّنات الحالية) × (عدد القرارات الأربعة التي ينتجها المنتج فعلًا: إعادة استخدام، هيكلة، إعادة بناء، حذف ÷ 4)",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "لا قرار من هذا النوع؛ كل القرارات \"Resolve the live claims inside the existing component boundary\"."
+          "value": 0.5,
+          "evidence": "components with a disposition and reason: FleetManageWeb 48/48 · finance-os-a0192b7b 37/37 · RendaPerene 9/9; dispositions the tool produced: ['restructure', 'reuse'] of 4",
+          "reads": "target-architecture.json → current_components[].relation (retain→reuse, modify→restructure, rebuild, delete) with a reason; times the share of the four dispositions the corpus reports actually use",
+          "measured": "automated"
         },
         {
           "id": "T5",
@@ -297,7 +421,9 @@
           "definition": "وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا جرد وظائف ولا مكوّنات مستهدفة."
+          "evidence": "features placed in a target component: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
+          "reads": "features.json → features[].target_component",
+          "measured": "automated"
         }
       ]
     },
@@ -313,7 +439,9 @@
           "definition": "صفوف gap_matrix المربوطة بمكوّن مستهدف ومعها فرق قابل للقياس ÷ صفوفها",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "الصفوف موجودة لكنها مبنية على عدد الادعاءات لكل مجلد، ولا مكوّن مستهدف تقاس المسافة إليه."
+          "evidence": "gap rows tied to a target component: FleetManageWeb 0/48 · finance-os-a0192b7b 0/37 · RendaPerene 0/9",
+          "reads": "target-architecture.json → gap_matrix[].target_component",
+          "measured": "automated"
         },
         {
           "id": "G2",
@@ -321,7 +449,9 @@
           "definition": "متوسط (مؤشرات الاستدامة الستة ذات القيمة ÷ 6) لكل مشروع",
           "target": 1.0,
           "value": 0.778,
-          "evidence": "4/6 · 4/6 · 6/6. minimal_path و verifiable_paths بلا قيمة في مشروعي React."
+          "evidence": "sustainability indicators with a value: FleetManageWeb 4/6 · finance-os-a0192b7b 4/6 · RendaPerene 6/6",
+          "reads": "sustainability.json → indicators[].value not null",
+          "measured": "automated"
         }
       ]
     },
@@ -337,7 +467,9 @@
           "definition": "بطاقات effort معروف ÷ كل البطاقات في العيّنة",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "0 من 762 بطاقة."
+          "evidence": "cards with a known effort: 0/777",
+          "reads": "plan.json → tasks[].effort not \"unknown\"",
+          "measured": "automated"
         },
         {
           "id": "P2",
@@ -345,7 +477,9 @@
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
           "value": 0.0,
-          "evidence": "0 من 762؛ كلها investigate."
+          "evidence": "ready remediate cards: 0/777",
+          "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
+          "measured": "automated"
         },
         {
           "id": "P3",
@@ -353,7 +487,9 @@
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "كل البطاقات: 'human review / مراجعة هندسية'."
+          "evidence": "cards with a runnable acceptance command: 0/777",
+          "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
+          "measured": "automated"
         },
         {
           "id": "P4",
@@ -361,7 +497,9 @@
           "definition": "مشاريع العيّنة التي تجمع خطتها البطاقات في معالم لكل منها هدف وشرط خروج ÷ عدد المشاريع",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "موجات فقط: 62 · 33 · 15 موجة."
+          "evidence": "milestones with a goal and exit criterion: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0",
+          "reads": "plan.json → milestones[] each with goal and exit",
+          "measured": "automated"
         },
         {
           "id": "P5",
@@ -369,7 +507,9 @@
           "definition": "بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "762 من 762."
+          "evidence": "cards with options, do-nothing and rollback: 777/777",
+          "reads": "plan.json → tasks[].options (≥ 2, one \"Do nothing\") and rollback",
+          "measured": "automated"
         },
         {
           "id": "P6",
@@ -377,7 +517,9 @@
           "definition": "مشاريع العيّنة التي توزّع خطتها المهام على أقسام (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) مع الاعتماديات بينها ÷ عدد المشاريع",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا أقسام؛ المهام مرتبة في موجات حسب تعارض الملفات فقط."
+          "evidence": "every card carries a team section: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False",
+          "reads": "plan.json → every tasks[].section set",
+          "measured": "automated"
         },
         {
           "id": "P7",
@@ -385,7 +527,9 @@
           "definition": "من التقارير الأربعة (الوضع الراهن، الصورة المثالية، الفجوة والتحول، خطة التنفيذ)، عدد ما له وثيقة مخصصة ÷ 4. جودة محتواها تقيسها المؤشرات الأخرى.",
           "target": 1.0,
           "value": 0.5,
-          "evidence": "موجودة: TARGET-ARCHITECTURE.md، و PLAN/ مع EXECUTION-GUIDE.md. غائبة: وثيقة للوضع الراهن (موزع على 12 وثيقة)، ووثيقة للفجوة والتحول (gap-matrix.json و transform-plan.md فقط)."
+          "evidence": "of the four reports present: FleetManageWeb 2/4 · finance-os-a0192b7b 2/4 · RendaPerene 2/4",
+          "reads": "report files: CURRENT-STATE.md; TARGET-STATE.md or TARGET-ARCHITECTURE.md; GAP-AND-STRATEGY.md; EXECUTION-PLAN.md or PLAN/WAVES.md",
+          "measured": "automated"
         }
       ]
     },
@@ -401,7 +545,8 @@
           "definition": "1 إن نُفّذت مهمة واحدة على الأقل بـeaos implement أو improve على مشروع من العيّنة ومرت أوامر قبولها، وإلا 0",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لم يُضبط مزوّد نموذج في هذه البيئة قط."
+          "evidence": "لم يُضبط مزوّد نموذج في هذه البيئة قط.",
+          "measured": "recorded"
         },
         {
           "id": "E2",
@@ -409,7 +554,8 @@
           "definition": "predictions_verified من guarantee.json بعد تنفيذ حقيقي",
           "target": 0.8,
           "value": null,
-          "evidence": "غير مقيس: لا تنفيذ حقيقي."
+          "evidence": "غير مقيس: لا تنفيذ حقيقي.",
+          "measured": "recorded"
         },
         {
           "id": "E3",
@@ -417,7 +563,8 @@
           "definition": "1 إن كانت baseline و delta وبوابة عدم التراجع تعمل وتختبر على هذا المستودع",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "tests/gate/capability_no_regression.sh و no_new_debt.sh تمر."
+          "evidence": "tests/gate/capability_no_regression.sh و no_new_debt.sh تمر.",
+          "measured": "recorded"
         }
       ]
     },
@@ -433,7 +580,8 @@
           "definition": "1 إن تطابقت الحقائق حرفيًا بين تشغيلين لنفس اللقطة",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "evaluations/release-evidence.json supported_scope."
+          "evidence": "evaluations/release-evidence.json supported_scope.",
+          "measured": "recorded"
         },
         {
           "id": "V2",
@@ -441,7 +589,8 @@
           "definition": "ادعاءات تحمل دليلًا وجملة نقض ÷ كل الادعاءات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "عقد المخرج يرفض غير ذلك."
+          "evidence": "عقد المخرج يرفض غير ذلك.",
+          "measured": "recorded"
         },
         {
           "id": "V3",
@@ -449,7 +598,8 @@
           "definition": "1 إن أكمل مراجع من خارج المشروع نموذج المراجعة على تقرير لمشروع من العيّنة",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "N9.T2 محجوبة: لا مراجع."
+          "evidence": "N9.T2 محجوبة: لا مراجع.",
+          "measured": "recorded"
         },
         {
           "id": "V4",
@@ -457,7 +607,9 @@
           "definition": "مشاريع حقيقية مقيسة ÷ 10، ومنها 3 holdout لم تُستخدم في الضبط",
           "target": 1.0,
           "value": 0.3,
-          "evidence": "3 مشاريع، ولا holdout منفصل بعد."
+          "evidence": "3 real projects, 0 held out",
+          "reads": "docs/north-star.json → corpus[] count and corpus[].holdout",
+          "measured": "automated"
         }
       ]
     }
@@ -484,7 +636,8 @@
             "إن وُجد المشروع عند commit آخر أعد تثبيته؛ إن فشل الجلب اطبع السبب واخرج بغير صفر."
           ],
           "acceptance": "python tools/north_star.py fetch && test -d \"${EAOS_CORPUS:-/tmp/eaos-corpus}/finance-os-a0192b7b/.git\"",
-          "rollback": "احذف الأمر fetch."
+          "rollback": "احذف الأمر fetch.",
+          "status": "done"
         },
         {
           "id": "NS1.T2",
@@ -525,7 +678,8 @@
             "علّم المؤشرات التي لا تُحسب آليًا (E1, E3, V1, V2, V3) بـ'recorded' ولا تغيّرها."
           ],
           "acceptance": "python tools/north_star.py measure && python tools/north_star.py --check",
-          "rollback": "أعد docs/north-star.json إلى نسخته السابقة."
+          "rollback": "أعد docs/north-star.json إلى نسخته السابقة.",
+          "status": "done"
         },
         {
           "id": "NS1.T3",
@@ -547,7 +701,8 @@
             "أضف لكل عيب في self_truth نمط مطابقة (مسار ورمز) بدل النص الحر."
           ],
           "acceptance": "python tools/north_star.py measure --only D1 && python tools/north_star.py measure --only S2",
-          "rollback": "احذف الحقول الجديدة من self_truth."
+          "rollback": "احذف الحقول الجديدة من self_truth.",
+          "status": "done"
         },
         {
           "id": "NS1.T4",
@@ -570,7 +725,8 @@
             "أضفه إلى بوابة CONTRIBUTING.md لأي تغيير يمس ما يقيسه المنتج."
           ],
           "acceptance": "python tools/north_star.py measure && python tools/north_star.py --no-regression",
-          "rollback": "احذف ملف الحد الأعلى والخيار."
+          "rollback": "احذف ملف الحد الأعلى والخيار.",
+          "status": "done"
         }
       ]
     },
@@ -598,7 +754,8 @@
             "اختبار: خطة تحويل أطول من الميزانية تُقص ولا تخالف R2."
           ],
           "acceptance": "python tools/north_star.py measure --only R1 --min 1.0",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         }
       ]
     },
@@ -627,7 +784,8 @@
             "كل مسار يربط بمكوّنه ليتتبعه FLOWS."
           ],
           "acceptance": "python tools/north_star.py measure --only U2 --min 0.9",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS3.T2",
@@ -650,7 +808,8 @@
             "supabase/functions/* نقاط دخول خادم."
           ],
           "acceptance": "python tools/north_star.py measure --only U2 --min 0.9",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS3.T3",
@@ -670,10 +829,12 @@
           ],
           "steps": [
             "حلّل CREATE TABLE و ALTER TABLE و ENABLE ROW LEVEL SECURITY و CREATE POLICY من ملفات الهجرة إلى حقائق جداول وأعمدة وسياسات.",
-            "اربط كل جدول بمن يقرؤه ويكتبه (من NS3.T2)."
+            "اربط كل جدول بمن يقرؤه ويكتبه (من NS3.T2).",
+            "العقد مع القياس: اكتب الجداول كحقائق kind=\"db_table\" والسياسات كحقائق kind=\"db_policy\" (هذان الاسمان هما ما يقرؤه U3 و H2)."
           ],
           "acceptance": "python tools/north_star.py measure --only U3 --min 1.0",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS3.T4",
@@ -693,10 +854,12 @@
           ],
           "steps": [
             "اجمع كل مسار وصفحة ودالة خادم مع الجداول التي يقرؤها ويكتبها في وظيفة باسم مجالها (مثل: المركبات، السائقون، الصيانة).",
-            "الوظيفة تحمل أسطحها وبياناتها ودليل كل ربط؛ ما لا يُنسب لوظيفة يُعلن."
+            "الوظيفة تحمل أسطحها وبياناتها ودليل كل ربط؛ ما لا يُنسب لوظيفة يُعلن.",
+            "العقد مع القياس: اكتب الجرد في features.json بالحقل features[]، ولكل وظيفة name و surfaces و tables و evidence."
           ],
           "acceptance": "python tools/north_star.py measure --only U4 --min 1.0",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS3.T5",
@@ -718,7 +881,8 @@
             "أجب لكل سطح: نداءات البيانات، والنداءات الخارجية وحمايتها، وحد المعدّل، وحدود النتيجة."
           ],
           "acceptance": "python tools/north_star.py measure --only U5 --min 0.8",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         }
       ]
     },
@@ -747,7 +911,8 @@
             "تشابه البنية بين مكوّنات JSX لا يصير ادعاء قاعدة أعمال إلا إذا تجاوز حجمًا معلنًا وتكرر منطق غير عرضي."
           ],
           "acceptance": "python tools/north_star.py measure --only S1 --min 0.8",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS4.T2",
@@ -768,7 +933,8 @@
             "مرشح يشير إليه سجل يبقى حقيقة لا ادعاء."
           ],
           "acceptance": "python tools/north_star.py measure --only S2 --min 0.8",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         }
       ]
     },
@@ -797,7 +963,8 @@
             "الرمز الذي لا يُشار إليه ولا يُصدَّر لسطح عام مرشح، ويُحسم بالبحث عن الاسم نصيًا."
           ],
           "acceptance": "python tools/north_star.py measure --only D1 --min 0.8",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS5.T2",
@@ -820,7 +987,8 @@
             "TypeScript: استيراد اسم غير مصدَّر من الملف المستهدف."
           ],
           "acceptance": "python tools/north_star.py measure --only D1 --min 0.8",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS5.T3",
@@ -840,10 +1008,12 @@
           ],
           "steps": [
             "ملفات مؤقتة ونسخ احتياطية (temp_ و _old و copy و backup)، ومخرجات بناء ملتزمة، وثنائيات، ومجلدات أرشيف غير مستوردة، و.env ملتزم.",
-            "كل عنصر يُثبت بأنه لا يستورده شيء قبل أن يصير مرشح حذف."
+            "كل عنصر يُثبت بأنه لا يستورده شيء قبل أن يصير مرشح حذف.",
+            "العقد مع القياس: اكتب كل عنصر كحقيقة kind=\"leftover\" ومسارها في location.path (هذا ما يقرؤه D2)."
           ],
           "acceptance": "python tools/north_star.py measure --only D2 --min 0.9",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS5.T4",
@@ -869,7 +1039,8 @@
             "الحجم S، والتراجع revert واحد، والقرار ready لأن الدليل آلي بالكامل."
           ],
           "acceptance": "python tools/north_star.py measure --only D3 --min 0.9",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         }
       ]
     },
@@ -895,10 +1066,12 @@
           ],
           "steps": [
             "ملفات .env ملتزمة، ومفاتيح service_role وخاصة في المصدر، وتمييز المفتاح العام المقصود (anon/publishable) عن السري.",
-            "لا تطبع القيمة أبدًا؛ الدليل اسم المتغير وموضعه."
+            "لا تطبع القيمة أبدًا؛ الدليل اسم المتغير وموضعه.",
+            "العقد مع القياس: اكتب كل سر كحقيقة kind=\"committed_secret\" ومسارها في location.path (هذا ما يقرؤه H1)."
           ],
           "acceptance": "python tools/north_star.py measure --only H1 --min 1.0",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS6.T2",
@@ -918,7 +1091,8 @@
             "جدول بلا ENABLE ROW LEVEL SECURITY أو بلا سياسة، وسياسة using (true) على جدول يُكتب من الواجهة: ادعاء بموضعه."
           ],
           "acceptance": "python tools/north_star.py measure --only H2 --min 1.0",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         }
       ]
     },
@@ -949,7 +1123,8 @@
             "كل عنصر يحمل سببه ومقياس نجاحه، لا ذوقًا."
           ],
           "acceptance": "python -m unittest tests.test_reference_architecture -q",
-          "rollback": "احذف الكتالوج."
+          "rollback": "احذف الكتالوج.",
+          "status": "todo"
         },
         {
           "id": "NS7.T2",
@@ -970,10 +1145,12 @@
           "steps": [
             "اكتشف نوع المشروع واختر مرجعه؛ ضع كل ملف في طبقته المستهدفة.",
             "target_components غير فارغة: المكوّن، مسؤوليته، الملفات التي تنتقل إليه، الحواف الممنوعة التي تزول.",
-            "كل صف في gap_matrix مربوط بمكوّن مستهدف وفرقه عدد ملفات ونقل وحواف."
+            "كل صف في gap_matrix مربوط بمكوّن مستهدف وفرقه عدد ملفات ونقل وحواف.",
+            "العقد مع القياس: اكتب المكوّنات في target-architecture.json → target_components[]، وكل صف في gap_matrix يحمل target_component."
           ],
           "acceptance": "python tools/north_star.py measure --only T1 --min 1.0 && python tools/north_star.py measure --only G1 --min 1.0",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS7.T3",
@@ -990,10 +1167,12 @@
             "tests/test_target_architecture.py"
           ],
           "steps": [
-            "لكل بند في خط الأساس: موجود أم غائب بدليل، والقرار وبديله وكلفة 'لا نفعل شيئًا'."
+            "لكل بند في خط الأساس: موجود أم غائب بدليل، والقرار وبديله وكلفة 'لا نفعل شيئًا'.",
+            "العقد مع القياس: اكتب القرارات في target-architecture.json → infrastructure[]، لكل بند area و present و decision و evidence."
           ],
           "acceptance": "python tools/north_star.py measure --only T2 --min 1.0",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS7.T4",
@@ -1012,10 +1191,12 @@
           ],
           "steps": [
             "قاعدة مكتوبة لكل قرار: حذف إن لم يصله شيء؛ إعادة استخدام إن وافق طبقته المستهدفة بلا حواف ممنوعة؛ هيكلة إن كان في المكان الخطأ أو كثيف التعقيد؛ إعادة بناء إن تجاوزت كلفة الهيكلة حدًا معلنًا.",
-            "كل قرار بأرقامه ودليله وبديله."
+            "كل قرار بأرقامه ودليله وبديله.",
+            "العقد مع القياس: اكتب القرار في current_components[].relation بإحدى القيم: retain أو modify أو rebuild أو delete، ومعه reason."
           ],
           "acceptance": "python tools/north_star.py measure --only T4 --min 1.0",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS7.T5",
@@ -1033,10 +1214,12 @@
             "tests/test_target_architecture.py"
           ],
           "steps": [
-            "كل وظيفة من جرد U4 لها مكوّن مستهدف يحملها؛ الوظيفة بلا مكان في الصورة المثالية فجوة معلنة."
+            "كل وظيفة من جرد U4 لها مكوّن مستهدف يحملها؛ الوظيفة بلا مكان في الصورة المثالية فجوة معلنة.",
+            "العقد مع القياس: اكتب مكان كل وظيفة في features.json → features[].target_component."
           ],
           "acceptance": "python tools/north_star.py measure --only T5 --min 1.0",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         }
       ]
     },
@@ -1060,10 +1243,12 @@
             "tests/test_plan.py"
           ],
           "steps": [
-            "S/M/L مشتق من نطاق الأثر (ملفات ومستوردون) والنمط، مع ثقته المعلنة."
+            "S/M/L مشتق من نطاق الأثر (ملفات ومستوردون) والنمط، مع ثقته المعلنة.",
+            "العقد مع القياس: اكتب الحجم في plan.json → tasks[].effort بإحدى القيم S أو M أو L."
           ],
           "acceptance": "python tools/north_star.py measure --only P1 --min 1.0",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS8.T2",
@@ -1082,10 +1267,12 @@
           ],
           "steps": [
             "اجمع البطاقات في معالم حسب المكوّن المستهدف والهدف: التنظيف، ثم الأمن، ثم الطبقات، ثم التحسين.",
-            "لكل معلم هدف وشرط خروج مقيس، وROADMAP.md بأقل من 10 معالم وأهم البطاقات في كل معلم."
+            "لكل معلم هدف وشرط خروج مقيس، وROADMAP.md بأقل من 10 معالم وأهم البطاقات في كل معلم.",
+            "العقد مع القياس: اكتب المعالم في plan.json → milestones[]، لكل معلم id و goal و exit و tasks."
           ],
           "acceptance": "python tools/north_star.py measure --only P4 --min 1.0",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS8.T3",
@@ -1108,7 +1295,8 @@
             "كل فئة يكون دليلها آليًا (كود ميت، مخلفات، أسرار، تكرار حرفي، مخالفة سياسة) تصدر بطاقة remediate بأمر قبول يعيد التدقيق ويتحقق من زوال الحقيقة."
           ],
           "acceptance": "python tools/north_star.py measure --only P3 --min 0.8",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS8.T4",
@@ -1126,10 +1314,12 @@
           ],
           "steps": [
             "صنّف كل مهمة في قسم (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) من طبقتها المستهدفة وملفاتها.",
-            "لكل قسم ترتيب داخلي وما يعتمد عليه من الأقسام الأخرى، ليعمل أكثر من مبرمج بالتوازي."
+            "لكل قسم ترتيب داخلي وما يعتمد عليه من الأقسام الأخرى، ليعمل أكثر من مبرمج بالتوازي.",
+            "العقد مع القياس: اكتب القسم في plan.json → tasks[].section."
           ],
           "acceptance": "python tools/north_star.py measure --only P6 --min 1.0",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         },
         {
           "id": "NS8.T5",
@@ -1150,10 +1340,12 @@
           ],
           "steps": [
             "CURRENT-STATE.md و TARGET-STATE.md و GAP-AND-STRATEGY.md و EXECUTION-PLAN.md، لكل منها مالك وميزانية وتوأم JSON.",
-            "README التقرير يبدأ بها بالترتيب، وتصير بقية الوثائق ملاحق مرجعية."
+            "README التقرير يبدأ بها بالترتيب، وتصير بقية الوثائق ملاحق مرجعية.",
+            "العقد مع القياس: أسماء الملفات بالضبط: CURRENT-STATE.md و TARGET-STATE.md و GAP-AND-STRATEGY.md و EXECUTION-PLAN.md."
           ],
           "acceptance": "python tools/north_star.py measure --only P7 --min 1.0",
-          "rollback": "revert الالتزام."
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         }
       ]
     },
@@ -1181,7 +1373,8 @@
             "سجّل: المهام المنفذة، وأوامر القبول ونتائجها، و predictions_verified من guarantee.json."
           ],
           "acceptance": "python tools/north_star.py measure --only E1 --min 1.0",
-          "rollback": "لا تغيير في الكود."
+          "rollback": "لا تغيير في الكود.",
+          "status": "todo"
         }
       ]
     },
@@ -1208,7 +1401,8 @@
             "لكل مشروع truth مكتوبة قبل تشغيل الأداة عليه."
           ],
           "acceptance": "python tools/north_star.py measure --only V4 --min 1.0",
-          "rollback": "احذف المشاريع المضافة."
+          "rollback": "احذف المشاريع المضافة.",
+          "status": "todo"
         },
         {
           "id": "NS10.T2",
@@ -1227,7 +1421,8 @@
             "ابنِ حزمة مراجعة لمشروع من العيّنة وسلّمها لمراجع من خارج المشروع، وسجّل النموذج المكتمل كما هو."
           ],
           "acceptance": "python tools/north_star.py measure --only V3 --min 1.0",
-          "rollback": "لا تغيير في الكود."
+          "rollback": "لا تغيير في الكود.",
+          "status": "todo"
         }
       ]
     }

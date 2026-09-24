@@ -6,7 +6,7 @@
 python -m unittest discover -s tests -q \
   && python tools/validate.py && python tools/invariants.py \
   && python tools/render_capability_plan.py --check \
-  && python tools/north_star.py --check \
+  && python tools/north_star.py --check && python tools/north_star.py --no-regression \
   && bash tests/gate/self_audit.sh
 ```
 
