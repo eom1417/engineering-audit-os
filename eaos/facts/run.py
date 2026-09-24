@@ -4,6 +4,8 @@ from pathlib import Path
 from . import config, domain, entrypoints, external, fingerprint, flows, graph, history, leftovers, metrics, redundancy, resolve, runtime, secrets, sequences, structure, syntax
 from .source import Source
 from .store import facts_dir, write_index, write_set
+from hashlib import sha256 as _sha256
+def digest(data): return _sha256(data).hexdigest()
 
 EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,
               'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain,
@@ -42,12 +44,56 @@ def ordered(selected):
 def collect_external(target, out, source, only=None):
     """Run the pinned external engines over the same snapshot and persist their fact set.
 
-    One implementation, two callers: `collect(..., engines=...)` for the single-shot command, and
-    the pipeline's own engines stage, so neither can drift from the other.
+    A dead-code finding whose symbol is held in a distribution registry is filtered
+    out before the facts are written, so the corpus measure and the ledger agree
+    that those candidates are not dead. The filter runs after the engines report
+    and before the fact set is persisted: the registry is part of the codebase
+    itself and so lives in the snapshot. The reachability-based dead-code finder
+    (NS5.T1) is run alongside the engines and its findings written to a separate
+    ``reachability.json`` fact set, so downstream stages see the reachable modules
+    and symbols without the registry-noise the engine output carries.
     """
     result = external.run(target, source, out=out, only=only)
-    return write_set(out, 'external', external.NAME, external.VERSION, result['facts'], result['input_sha'],
-                     external.LIMITATIONS, result['summary'], result['available'], result['reason'])
+    from ..correlate import filter_dead_code_references as _filter_dead_code_references
+    facts, dropped = _filter_dead_code_references(result['facts'], source)
+    if dropped:
+        result['summary'] = dict(result.get('summary') or {})
+        result['summary']['registry_referenced_dead_code_dropped'] = dropped
+    external_entry = write_set(out, 'external', external.NAME, external.VERSION, facts, result['input_sha'],
+                                external.LIMITATIONS, result['summary'], result['available'], result['reason'])
+    reachability_entry = _run_reachability(target, out, source)
+    return [external_entry, reachability_entry]
+
+
+def _run_reachability(target, out, source):
+    """Read the deterministic fact sets the static extractor produced and persist
+    reachability's engine_finding-shaped output as a separate fact set.
+
+    The run is computed from already-persisted facts so a cached or partial run
+    still gets a reachability scan over whatever facts the previous run left.
+    """
+    from pathlib import Path
+    from .store import facts_dir, write_set, read_set
+    from ..reachability import NAME as _rname, VERSION as _rversion, LIMITATIONS as _rlimits, build as _rbuild
+    fd = facts_dir(out)
+    if not fd.is_dir():
+        return {'set': 'reachability', 'facts': 0}
+    gathered = []
+    for child in sorted(fd.glob('*.json')):
+        if child.name == 'index.json' or child.name == 'run.json': continue
+        if child.name in {'external.json', 'reachability.json'}: continue
+        try:
+            data = read_set(out, child.stem)
+            gathered.extend(data.get('facts') or [])
+        except (OSError, ValueError):
+            continue
+    findings = [f for f in _rbuild(gathered) if f]
+    return write_set(out, 'reachability', _rname, _rversion, findings,
+                     digest(''.join(sorted(f.get('id', '') for f in findings)).encode('utf-8')) or ('0' * 64),
+                     _rlimits, {'findings': len(findings),
+                                'unreachable_modules': sum(1 for f in findings if f.get('value', {}).get('rule') == 'unreachable-module'),
+                                'unreachable_symbols': sum(1 for f in findings if f.get('value', {}).get('rule') == 'unreachable-symbol')},
+                     True, None)
 
 
 def add_to_index(out, target, entry):
@@ -105,7 +151,8 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
         entries.append(write_set(out, name, module.NAME, module.VERSION, result['facts'], result['input_sha'],
                                  module.LIMITATIONS, result['summary'], result['available'], result['reason']))
     if engines is not None:
-        entries.append(collect_external(target, out, source, only=engines or None))
+        for entry in collect_external(target, out, source, only=engines or None):
+            entries.append(entry)
     cache_path.write_text(json.dumps(cache, ensure_ascii=False), encoding='utf-8')
     index = write_index(out, target, entries)
     return {'target': str(target), 'out': str(out), 'fingerprint': source.fingerprint, 'sets': index['sets'],

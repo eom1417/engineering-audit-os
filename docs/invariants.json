@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "cedcdfa",
+  "extracted_at_commit": "09cc147",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -558,6 +558,15 @@
       "statement": "A text search cannot tell a definition from the same words inside a string literal in a test, and acting on that difference is how a true finding gets wrongly withdrawn.",
       "kind": "invariant",
       "enforced_by": "tests/test_probes_and_verify.py::ProbeTests::test_a_mention_inside_a_test_string_cannot_withdraw_a_true_finding",
+      "note": ""
+    },
+    {
+      "id": "INV-bcf2e277c6",
+      "file": "eaos/reachability.py",
+      "symbol": "<module>",
+      "statement": "``build(facts)`` returns the list of dead_code facts the reachability scan found, using only facts already produced for the project; it never re-parses source.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_reachability.py::BuildTests::test_output_is_engine_finding_shape_for_pipeline_integration",
       "note": ""
     },
     {
