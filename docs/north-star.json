@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-24",
-  "measured_at_commit": "6889878",
+  "measured_at_commit": "031f1d6",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -234,8 +234,8 @@
           "name": "تغطية التحليل",
           "definition": "متوسط parse_coverage على مشاريع العيّنة",
           "target": 0.95,
-          "value": 0.957,
-          "evidence": "parse_coverage: FleetManageWeb 0.982 · finance-os-a0192b7b 0.902 · RendaPerene 0.987",
+          "value": 0.951,
+          "evidence": "parse_coverage: FleetManageWeb 0.978 · finance-os-a0192b7b 0.888 · RendaPerene 0.987",
           "reads": "dossier.json → coverage.parse_coverage",
           "measured": "automated"
         },
@@ -292,8 +292,8 @@
           "name": "الادعاءات غير الضجيجية",
           "definition": "متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع",
           "target": 0.8,
-          "value": 0.339,
-          "evidence": "claims that are not structural clones: FleetManageWeb 83/420 · finance-os-a0192b7b 151/426 · RendaPerene 47/101",
+          "value": 0.832,
+          "evidence": "claims that are not structural clones: FleetManageWeb 83/103 · finance-os-a0192b7b 151/201 · RendaPerene 47/50",
           "reads": "dossier.json → claims[].statement not containing \"share the same structure up to identifier names\"",
           "measured": "automated"
         },
@@ -406,8 +406,8 @@
           "name": "قرارات تغيّر البنية",
           "definition": "القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات",
           "target": 0.6,
-          "value": 0.013,
-          "evidence": "decisions that change structure: FleetManageWeb 0/37 · finance-os-a0192b7b 1/31 · RendaPerene 0/9",
+          "value": 0.015,
+          "evidence": "decisions that change structure: FleetManageWeb 0/28 · finance-os-a0192b7b 1/30 · RendaPerene 0/9",
           "reads": "target-architecture.json → decisions[].chosen containing move/split/merge/extract/introduce/layer/break the cycle/delete/rebuild",
           "measured": "automated"
         },
@@ -417,7 +417,7 @@
           "definition": "(المكوّنات الحالية التي لها قرار صريح بدليله ÷ المكوّنات الحالية) × (عدد القرارات الأربعة التي ينتجها المنتج فعلًا: إعادة استخدام، هيكلة، إعادة بناء، حذف ÷ 4)",
           "target": 1.0,
           "value": 0.5,
-          "evidence": "components with a disposition and reason: FleetManageWeb 48/48 · finance-os-a0192b7b 37/37 · RendaPerene 9/9; dispositions the tool produced: ['restructure', 'reuse'] of 4",
+          "evidence": "components with a disposition and reason: FleetManageWeb 47/47 · finance-os-a0192b7b 36/36 · RendaPerene 9/9; dispositions the tool produced: ['restructure', 'reuse'] of 4",
           "reads": "target-architecture.json → current_components[].relation (retain→reuse, modify→restructure, rebuild, delete) with a reason; times the share of the four dispositions the corpus reports actually use",
           "measured": "automated"
         },
@@ -445,7 +445,7 @@
           "definition": "صفوف gap_matrix المربوطة بمكوّن مستهدف ومعها فرق قابل للقياس ÷ صفوفها",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "gap rows tied to a target component: FleetManageWeb 0/48 · finance-os-a0192b7b 0/37 · RendaPerene 0/9",
+          "evidence": "gap rows tied to a target component: FleetManageWeb 0/47 · finance-os-a0192b7b 0/36 · RendaPerene 0/9",
           "reads": "target-architecture.json → gap_matrix[].target_component",
           "measured": "automated"
         },
@@ -473,7 +473,7 @@
           "definition": "بطاقات effort معروف ÷ كل البطاقات في العيّنة",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "cards with a known effort: 0/893",
+          "evidence": "cards with a known effort: 0/345",
           "reads": "plan.json → tasks[].effort not \"unknown\"",
           "measured": "automated"
         },
@@ -483,7 +483,7 @@
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
           "value": 0.0,
-          "evidence": "ready remediate cards: 0/893",
+          "evidence": "ready remediate cards: 0/345",
           "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
           "measured": "automated"
         },
@@ -493,7 +493,7 @@
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "cards with a runnable acceptance command: 0/893",
+          "evidence": "cards with a runnable acceptance command: 0/345",
           "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
           "measured": "automated"
         },
@@ -513,7 +513,7 @@
           "definition": "بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with options, do-nothing and rollback: 893/893",
+          "evidence": "cards with options, do-nothing and rollback: 345/345",
           "reads": "plan.json → tasks[].options (≥ 2, one \"Do nothing\") and rollback",
           "measured": "automated"
         },
@@ -946,7 +946,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only S1 --min 0.8",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS4.T2",

@@ -14,7 +14,7 @@ from pathlib import Path
 
 FILENAME = 'eaos.policy.json'
 VENDORED = ("testdata", "fixtures", "vendor", "node_modules", "third_party",
-            "generated", ".venv", "dist", "build")
+            "generated", ".venv", "dist", "build", "components/ui")
 
 
 def _include_vendored(target, path=None):

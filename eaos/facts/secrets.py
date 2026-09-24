@@ -1,10 +1,4 @@
-"""Committed credentials: .env files, JWT keys, embedded private keys, service-role tokens.
-
-The severity is read from the key, never from its filename: a `service_role` JWT and an `anon`
-JWT look identical in source but carry very different blast radius. The fact records only
-the path, the key family and the severity; the secret value itself is never copied into the
-fact, so a printed report cannot leak the key.
-"""
+"""Committed credentials."""
 import base64
 import json
 import re
@@ -30,7 +24,7 @@ SB_SECRET = re.compile(r'\bsb_secret_[A-Za-z0-9_-]{16,}\b')
 
 
 def _decode_jwt_role(token):
-    """Return the JWT payload's role claim, or None when the payload cannot be parsed."""
+    """Return the JWT payload role claim."""
     parts = token.split('.')
     if len(parts) != 3: return None
     payload = parts[1]
@@ -49,7 +43,7 @@ def _decode_jwt_role(token):
 
 
 def _classify_jwt(token):
-    """A JWT's role names its blast radius."""
+    """A JWT role names its blast radius."""
     role = _decode_jwt_role(token)
     if role in {'anon', 'authenticated', 'publishable', 'public'}:
         return 'public'
@@ -86,13 +80,7 @@ def _env_severity(path, text):
 
 
 def _read_text(source, rel):
-    """Read a file's text even when it is flagged sensitive.
-
-    The secrets extractor is the only one allowed to read ``.env`` and PEM keys: the
-    rest of the codebase must call ``source.text()`` and never see them. We read the
-    file directly from the target and refuse on symlinks or traversal to mirror the
-    safety of ``safe_file``.
-    """
+    """Read a file text even when it is flagged sensitive."""
     from pathlib import PurePosixPath
     if PurePosixPath(rel).is_absolute() or '..' in PurePosixPath(rel).parts:
         return None
@@ -106,11 +94,7 @@ def _read_text(source, rel):
 
 
 def collect(source):
-    """Walk every readable file and yield fact-ready records for every credential.
-
-    The secrets extractor is the only one allowed to read sensitive files: ``.env``
-    files and PEM keys. Other extractors must use ``readable()`` and never see them.
-    """
+    """Walk every readable file and yield fact-ready records for every credential."""
     findings = []
     items = list(source.inventory['files'])
     for item in items:

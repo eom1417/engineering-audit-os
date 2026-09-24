@@ -286,11 +286,30 @@ def from_facts(fact_sets, target=None):
                            impact={'scenario': 'The owning module cannot guarantee its own invariant, because another '
                                                'module assigns into it directly.'}))
     # Sustainability observations reach the same ledger as everything else: one record, one decision.
-    DUPLICATE_MIN, REDUNDANCY_MAX = 2, 10
+    DUPLICATE_MIN, REDUNDANCY_MAX = 6, 10  # structural duplicates below 6 are common noise in shared-method code
+    # UI components share boilerplate by construction: an arrow function that calls setState
+    # and renders a button is not a duplicated business rule, it is a duplicated idiom.
+    # The detector runs on every duplicate cluster; only large clusters of code that is not
+    # pure JSX reach the ledger as a business-rule claim. JSX files whose shared shape is
+    # small stay as facts but do not produce a CONFIRMED rule-duplication claim.
+    UI_LANGUAGES = {'typescript', 'tsx', 'javascript', 'jsx'}
+    UI_PATH_PARTS = {'components', 'pages', 'views', 'screens'}
+    SHARED_SIZE_FOR_UI = 30  # tokens of shared shape, not occurrence count
+    UI_MIN_OCCURRENCES = 4
     for fact in fact_sets.get('fingerprint', {}).get('facts', []):
         if fact['kind'] != 'duplicate_cluster': continue
         places = fact['value']['occurrences']
         if len(places) < DUPLICATE_MIN: continue
+        shared_size = fact['value'].get('shared_size', 0)
+        occurrences = len(places)
+        languages = {(p.get('path') or '').rsplit('.', 1)[-1] for p in places}
+        in_ui = all(any(part in UI_PATH_PARTS for part in (p.get('path') or '').split('/'))
+                     for p in places)
+        all_ui_lang = languages <= UI_LANGUAGES
+        ui_noise = in_ui and all_ui_lang
+        # UI noise stays a fact: the cluster is recorded, the claim is not.
+        if ui_noise and (shared_size < SHARED_SIZE_FOR_UI or occurrences < UI_MIN_OCCURRENCES):
+            continue
         index += 1
         where = ', '.join(f"{row['path']}:{row['start_line']} {row['symbol']}" for row in places[:4])
         claims.append(make(index, f"{len(places)} symbols share the same structure up to identifier names ({where})",

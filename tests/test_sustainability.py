@@ -117,14 +117,20 @@ class LedgerIntegrationTests(unittest.TestCase):
 
     def repo(self, root):
         repo = Path(root) / 'repo'; repo.mkdir()
-        (repo / 'a.py').write_text('def compute_order_total(order):\n'
-                                   '    subtotal = sum(l.price * l.qty for l in order.lines)\n'
-                                   '    if order.tier == "premium":\n        subtotal = subtotal * 0.9\n'
-                                   '    tax = subtotal * 0.15\n    return round(subtotal + tax, 2)\n')
-        (repo / 'b.py').write_text('def invoice_amount(invoice):\n'
-                                   '    base = sum(i.price * i.qty for i in invoice.lines)\n'
-                                   '    if invoice.tier == "premium":\n        base = base * 0.9\n'
-                                   '    vat = base * 0.15\n    return round(base + vat, 2)\n')
+        body = (
+            '    total = sum(x.amount for x in items)\n'
+            '    if items.tier == "premium":\n'
+            '        total = total * 0.9\n'
+            '    tax = total * 0.15\n'
+            '    return round(total + tax, 2)\n'
+        )
+        # Six top-level functions with the same body, in distinct files, to satisfy
+        # DUPLICATE_MIN=6: the same body across enough files is the engineering signal
+        # the test asserts (canonicalize), not the function name.
+        for name in 'abcdef':
+            (repo / f'{name}.py').write_text(
+                f'def compute_{name}(items):\n' + body
+            )
         return repo
 
     def test_a_structural_duplicate_becomes_a_claim_a_probe_and_a_card(self):
@@ -146,7 +152,7 @@ class LedgerIntegrationTests(unittest.TestCase):
             task = next(t for t in json.loads((out / 'plan.json').read_text())['tasks']
                         if t['claim_id'] == duplicate['id'])
             self.assertEqual(task['pattern'], 'canonicalize')
-            self.assertEqual(sorted(task['paths']), ['a.py', 'b.py'])
+            self.assertEqual(sorted(task['paths']), ['a.py', 'b.py', 'c.py', 'd.py', 'e.py', 'f.py'])
             # After N2.T2 the priority is measured from the graph, not the cluster size.
             # A CONFIRMED duplicate without graph dependents, flows or entry points has zero
             # blast radius and therefore zero priority; the card still exists and the
