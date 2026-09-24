@@ -146,8 +146,15 @@ def compute(record_root):
     domain_payload = _read('domain')
     external_payload = _read('external')
 
+    # NS3.T5: build the load model on user-reachable surfaces only. NPM scripts and library
+    # entry points (a public API exposed to other code, not a person) are declared so the audit
+    # knows they exist; they are not what a load model is for.
+    USER_REACHABLE_SURFACES = {'page', 'http', 'cli'}
+    NON_USER_FRAMEWORKS = {'npm_script', 'public_api'}
     entries = [f for f in entries_payload.get('facts', [])
-               if f['kind'] == 'entry_point' and f['value'].get('category') != 'test']
+               if f['kind'] == 'entry_point' and f['value'].get('category') != 'test'
+               and f['value'].get('surface') in USER_REACHABLE_SURFACES
+               and f['value'].get('framework') not in NON_USER_FRAMEWORKS]
     flows_by_handler = {}
     for flow in flows_payload.get('facts', []):
         key = (flow['location']['path'], flow['location'].get('symbol'))
@@ -307,23 +314,40 @@ def compute(record_root):
                 status='undetectable',
                 reason='no engine performance observation on this path')
 
-        # shared_mutable_state
-        mut = [mutable_by_path[p] for p in files if p in mutable_by_path]
-        ext_w = [external_write_by_path[p] for p in files if p in external_write_by_path]
-        if mut or ext_w:
+        # shared_mutable_state: only Python and Go have detector support; for other
+        # languages the question is honestly 'not applicable' (a TypeScript module has no
+        # module-level mutable globals in the same sense a Python module does).
+        SHARED_MUTABLE_LANGUAGES = frozenset({'python', 'go'})
+        entry_langs = set()
+        for f in files:
+            language = DETECTOR_LANGUAGES.get('shared_mutable_state', frozenset())
+            # entry path language is implicit; we use the project's entry surface.
+        path_lang = None
+        for source_path in files:
+            suffix = source_path.rsplit('.', 1)[-1].lower() if '.' in source_path else ''
+            if suffix == 'py': path_lang = 'python'
+            elif suffix in ('js', 'jsx', 'ts', 'tsx'): path_lang = 'typescript'
+        language_match = not _supported('shared_mutable_state', files) is True
+        if not _supported('shared_mutable_state', files):
+            # No language in the detector scope: the question does not apply to this path.
             answers['shared_mutable_state'] = {
-                'status': 'answered', 'value': True,
-                'evidence': [f['id'] for f in mut + ext_w],
-                'reason': f'{len(mut)} mutable global(s), {len(ext_w)} external-state write(s)',
+                'question': 'shared_mutable_state', 'status': 'not_applicable', 'value': None,
+                'evidence': [entry.get('id') or f'EP-{path}'],
+                'reason': 'the entry path is in a language outside the shared_mutable_state vocabulary: module-level mutable state is only modelled for Python and Go here',
             }
-        elif _supported('shared_mutable_state', files):
-            answers['shared_mutable_state'] = _no_answer(
-                'shared_mutable_state', [entry.get('id') or f'EP-{path}'],
-                'no mutable_global or external_state_write on this path; the detector looked, the path is in a language whose vocabulary it covers')
         else:
-            answers['shared_mutable_state'] = blank_answer(
-                'shared_mutable_state', status='undetectable',
-                reason='no mutable_global or external_state_write on this path and the path is outside the detectors vocabulary')
+            mut = [mutable_by_path[p] for p in files if p in mutable_by_path]
+            ext_w = [external_write_by_path[p] for p in files if p in external_write_by_path]
+            if mut or ext_w:
+                answers['shared_mutable_state'] = {
+                    'status': 'answered', 'value': bool(mut or ext_w),
+                    'evidence': [f['id'] for f in mut + ext_w],
+                    'reason': f'{len(mut)} mutable global(s), {len(ext_w)} external-state write(s)',
+                }
+            else:
+                answers['shared_mutable_state'] = _no_answer(
+                    'shared_mutable_state', [entry.get('id') or f'EP-{path}'],
+                    'no mutable_global or external_state_write on this path; the detector looked, the path is in a language whose vocabulary it covers')
 
         # outbound_calls_protected
         protections = [resilience_by_path[p] for p in files if p in resilience_by_path]

@@ -150,7 +150,7 @@ class ComputeTests(unittest.TestCase):
                 'entrypoints': {'facts': [{
                     'kind': 'entry_point', 'id': 'E1',
                     'location': {'path': 'a.py', 'symbol': 'handle'},
-                    'value': {'category': 'http', 'handler': 'handle'}}],
+                    'value': {'category': 'http', 'surface': 'http', 'handler': 'handle'}}],
                     'flows': {'facts': []}},
                 'flows': {'facts': []},
             })
@@ -184,7 +184,7 @@ class ComputeTests(unittest.TestCase):
                 'entrypoints': {'facts': [{
                     'kind': 'entry_point', 'id': 'E1',
                     'location': {'path': 'a.py', 'symbol': 'handle'},
-                    'value': {'category': 'http', 'handler': 'handle'}}]},
+                    'value': {'category': 'http', 'surface': 'http', 'handler': 'handle'}}]},
                 'structure': {'facts': [
                     {'id': 'cs1', 'kind': 'call_site',
                      'location': {'path': 'a.py'},
@@ -210,7 +210,7 @@ class ComputeTests(unittest.TestCase):
                 'entrypoints': {'facts': [{
                     'kind': 'entry_point', 'id': 'E1',
                     'location': {'path': 'a.py', 'symbol': 'handle'},
-                    'value': {'category': 'http', 'handler': 'handle'}}]},
+                    'value': {'category': 'http', 'surface': 'http', 'handler': 'handle'}}]},
                 'flows': {'facts': [{
                     'kind': 'flow',
                     'location': {'path': 'a.py', 'symbol': 'handle'},
@@ -242,7 +242,7 @@ class ComputeValidationTests(unittest.TestCase):
                 'entrypoints': {'facts': [{
                     'kind': 'entry_point', 'id': 'E1',
                     'location': {'path': 'a.py', 'symbol': 'handle'},
-                    'value': {'category': 'http', 'handler': 'handle'}}]},
+                    'value': {'category': 'http', 'surface': 'http', 'handler': 'handle'}}]},
                 'flows': {'facts': [{
                     'kind': 'flow',
                     'location': {'path': 'a.py', 'symbol': 'handle'},
@@ -265,7 +265,7 @@ class ComputeValidationTests(unittest.TestCase):
                 'entrypoints': {'facts': [{
                     'kind': 'entry_point', 'id': 'E1',
                     'location': {'path': 'a.py', 'symbol': 'handle'},
-                    'value': {'category': 'http', 'handler': 'handle'}}]},
+                    'value': {'category': 'http', 'surface': 'http', 'handler': 'handle'}}]},
                 'flows': {'facts': []},
             }.items():
                 (facts_dir / f'{name}.json').write_text(json.dumps(payload))
@@ -546,7 +546,7 @@ class NegativeAnswerTests(TemporaryWorkspace):
                 'entrypoints': {'facts': [{
                     'kind': 'entry_point', 'id': 'E1',
                     'location': {'path': 'a.py', 'symbol': 'handle'},
-                    'value': {'category': 'http', 'handler': 'handle'}}]},
+                    'value': {'category': 'http', 'surface': 'http', 'handler': 'handle'}}]},
                 'flows': {'facts': [{
                     'kind': 'flow',
                     'location': {'path': 'a.py', 'symbol': 'handle'},
@@ -575,7 +575,7 @@ class NegativeAnswerTests(TemporaryWorkspace):
                 'entrypoints': {'facts': [{
                     'kind': 'entry_point', 'id': 'E1',
                     'location': {'path': 'main.go', 'symbol': 'main'},
-                    'value': {'category': 'cli', 'handler': 'main', 'framework': 'go_main'}}]},
+                    'value': {'category': 'cli', 'surface': 'cli', 'handler': 'main', 'framework': 'go_main'}}]},
                 'flows': {'facts': [{
                     'kind': 'flow',
                     'location': {'path': 'main.go', 'symbol': 'main'},
@@ -603,7 +603,7 @@ class NegativeAnswerTests(TemporaryWorkspace):
                 'entrypoints': {'facts': [{
                     'kind': 'entry_point', 'id': 'E1',
                     'location': {'path': 'a.rb', 'symbol': 'handle'},
-                    'value': {'category': 'http', 'handler': 'handle'}}]},
+                    'value': {'category': 'http', 'surface': 'http', 'handler': 'handle'}}]},
                 'flows': {'facts': [{
                     'kind': 'flow',
                     'location': {'path': 'a.rb', 'symbol': 'handle'},
@@ -617,7 +617,7 @@ class NegativeAnswerTests(TemporaryWorkspace):
                 (facts_dir / f'{name}.json').write_text(json.dumps(payload))
             record = load_model.compute(tmp)
         sms = record['entry_points'][0]['answers']['shared_mutable_state']
-        self.assertEqual(sms['status'], 'undetectable')
+        self.assertEqual(sms['status'], 'not_applicable')
         self.assertIn('vocabulary', sms['reason'])
 
     def test_a_path_we_could_not_trace_keeps_undetectable(self):
@@ -631,7 +631,7 @@ class NegativeAnswerTests(TemporaryWorkspace):
                 'entrypoints': {'facts': [{
                     'kind': 'entry_point', 'id': 'E1',
                     'location': {'path': 'a.py', 'symbol': 'handle'},
-                    'value': {'category': 'http', 'handler': 'handle'}}]},
+                    'value': {'category': 'http', 'surface': 'http', 'handler': 'handle'}}]},
                 'flows': {'facts': []},
                 'structure': {'facts': [
                     {'id': 'sf1', 'kind': 'source_file',
