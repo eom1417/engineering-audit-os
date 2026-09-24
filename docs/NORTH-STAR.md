@@ -69,9 +69,9 @@
 | # | تقرأ | يولّد لها | تُشغَّل | يوصي |
 | --- | --- | --- | --- | --- |
 | S01 DISCOVER | حقائق EAOS, Syft, OSV-Scanner, scc | — | — | — |
-| S02 MAP | CodeGraph, enola, dependency-cruiser | Structurizr DSL, Mermaid | — | — |
+| S02 MAP | GitNexus, CodeGraph, enola, dependency-cruiser | Structurizr DSL, Mermaid | — | — |
 | S03 MEASURE | scc, reforge, CodeGraph, jscpd, تاريخ git في EAOS, Lizard (اختياري) | — | — | — |
-| S04 DIAGNOSE | Semgrep بقواعد EAOS, Trivy, OSV-Scanner, Checkov, SQLFluff, Spectral, oasdiff, jscpd, reforge | — | — | SonarQube إن كان للمالك خادم |
+| S04 DIAGNOSE | GitNexus, Semgrep بقواعد EAOS, Trivy, OSV-Scanner, Checkov, SQLFluff, Spectral, oasdiff, jscpd, reforge | — | — | SonarQube إن كان للمالك خادم |
 | S05 LOCK CURRENT BEHAVIOR | تقارير Playwright و k6 بصيغة JSON | Playwright, Schemathesis, Pact, ApprovalTests, k6, Toxiproxy, OWASP ZAP | Playwright, Schemathesis, Pact, ApprovalTests, k6 | — |
 | S06 DESIGN TARGET ARCHITECTURE | — | Structurizr DSL, MADR, قواعد dependency-cruiser, قواعد Semgrep, ArchUnit (Java) | — | GitHub Actions, pre-commit, Renovate, OpenTelemetry, SigNoz, Sloth, OpenTofu, Ansible, Unleash, Traefik, أداة الهجرات الأصلية أو Liquibase, Bytebase |
 | S07 PLAN TRANSFORMATION | Vale, markdownlint-cli2 | jscodeshift, OpenRewrite (Java), Typst | — | — |
@@ -113,7 +113,7 @@
 | --- | --- | --- | --- | --- |
 | R1 تدقيقات العيّنة المكتملة بلا فشل | عدد مشاريع العيّنة التي ينتهي فيها eaos audit برمز خروج 0 ÷ عدد مشاريع العيّنة | 100% | 100% | exit codes: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
 | R2 الأطر المفهومة | مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع | 100% | 100% | user surfaces found: FleetManageWeb 43 · finance-os-a0192b7b 29 · RendaPerene 3 |
-| R3 محوّلات الفحص الساكن تعمل | متوسط (المحوّلات المعتمدة المنطبقة على المشروع التي عملت فعلًا ÷ المنطبقة)، لكل مشروع. قائمة المحوّلات وشروط انطباقها في adopted_adapters. | 100% | 0% | لا محوّل من القائمة المعتمدة (Syft، OSV-Scanner، scc، Semgrep، Trivy، Checkov، dependency-cruiser، SQLFluff) مدمج بعد. |
+| R3 محوّلات الفحص الساكن تعمل | متوسط (المحوّلات المعتمدة المنطبقة على المشروع التي عملت فعلًا ÷ المنطبقة)، لكل مشروع. قائمة المحوّلات وشروط انطباقها في adopted_adapters. | 100% | 0% | لا محوّل من القائمة المعتمدة (Syft، OSV-Scanner، scc، Semgrep، Trivy، Checkov، dependency-cruiser، SQLFluff، GitNexus) مدمج بعد. |
 | R4 الأدوات المعتمدة مثبّتة بإصداراتها | الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات | 100% | 0% | الأمر eaos tools doctor غير موجود بعد، ولا أداة من العشر المعتمدة مثبّتة (2026-09-24). |
 
 ### C2 — تقرير الوضع الراهن: يرى البرنامج كله (50%، الوزن 12)
@@ -248,7 +248,7 @@
 | --- | --- | --- | --- | --- |
 | R1 | الأساس: الوصول والرؤية والإشارة | NS1, NS2, NS3, NS4, NS5, NS6 | 13/19 | U2، U3، U4، U5، S1، S2، D1–D3، H1، H2 عند أهدافها |
 | R2 | منصة الأدوات: تثبيت، وقراءة، وتوليد، ومراحل، وعزل | NS17 | 0/5 | R4 = 1، وقارئ SARIF وإطار التوليد ومراحل engage والبيئة المعزولة مختبرة |
-| R3 | الأدلة الكاملة من الأدوات الجاهزة | NS11, NS12, NS18 | 0/13 | بوابات S01 وS03 وS04 كاملة: U6، R3، H3، M1، S3 |
+| R3 | الأدلة الكاملة من الأدوات الجاهزة | NS11, NS12, NS18 | 0/14 | بوابات S01 وS03 وS04 كاملة: U6، R3، H3، M1، S3 |
 | R4 | تثبيت السلوك والصورة المثالية | NS15, NS7, NS13 | 0/10 | البوابة أ لـS05، وبوابة S06 مع موافقة بشرية |
 | R5 | الخطة والتقارير وعدّة التسليم | NS8, NS14, NS25 | 0/14 | بوابة S07 و K1 = 1: اكتمل عقد التقييم (EAOS 1.0) |
 | R6 | التنفيذ المثبت | NS26, NS9, NS20 | 0/4 | البوابة ب لـS05، وبوابتا S08 وS09: E5، E1، E7، E2 |
@@ -269,7 +269,7 @@
 | NS6 نظافة الأمن الأساسية | H1 = 1.0 و H2 = 1.0. | 2/2 |
 | NS17 منصة الأدوات: كل أداة تدخل بطريقة واحدة | R4 = 1، وقارئ SARIF، وإطار التوليد، والمراحل كبيانات، والبيئة المعزولة مختبرة. | 0/5 |
 | NS11 الاستلام: ماذا يجب أن يُحمى، وإلى أين | U6 = 1.0. | 0/2 |
-| NS12 محوّلات الفحص الساكن: أدوات جاهزة بدل كود نكتبه | R3 = 1.0 و H3 = 1.0. | 0/9 |
+| NS12 محوّلات الفحص الساكن: أدوات جاهزة بدل كود نكتبه | R3 = 1.0 و H3 = 1.0. | 0/10 |
 | NS18 القياس وسجل الدَّين: الأرقام لكل ملف، والخطر حين تجتمع الأدلة | M1 ≥ 0.95 و S3 ≥ 0.8. | 0/2 |
 | NS15 تثبيت السلوك: المواصفات قبل أي تغيير (ساكن) | E4 = 1، ومواصفات الحمل والأعطال والفحص الحي مولّدة ومقبولة من أدواتها. | 0/2 |
 | NS7 تقرير الصورة المثالية | T1 = 1.0 و T2 = 1.0 و T3 ≥ 0.6 و T4 = 1.0 و T5 = 1.0 و G1 = 1.0. | 0/5 |
@@ -620,7 +620,7 @@ python -m unittest tests.test_access_gaps -q
 **الملفات:** `upstreams/registry.yaml` · `eaos/toolchain.py` · `eaos/cli.py` · `eaos/engines/process.py` · `tools/north_star_measure.py` · `tests/test_toolchain.py` · `/workspace/setup.sh`
 
 1. وسّع كل عنصر في upstreams/registry.yaml بثلاثة حقول: role (read أو emit أو run أو validate)، و stages (معرّفات pipeline في docs/north-star.json مثل S01)، و install {method: release | pip | npm, source, version, sha256 للـrelease, binary}.
-2. أضف عناصر لأدوات عقد التقييم بآخر release مستقر يوم التنفيذ، والرخصة والمستودع من docs/TOOLCHAIN.md: syft، و osv-scanner، و scc، و semgrep، و trivy، و checkov، و dependency-cruiser، و sqlfluff، و spectral، و oasdiff (role = read)، و vale، و markdownlint-cli2 (role = validate).
+2. أضف عناصر لأدوات عقد التقييم بآخر release مستقر يوم التنفيذ، والرخصة والمستودع من docs/TOOLCHAIN.md: syft، و osv-scanner، و scc، و semgrep، و trivy، و checkov، و dependency-cruiser، و sqlfluff، و spectral، و oasdiff، و gitnexus (role = read)، و vale، و markdownlint-cli2 (role = validate).
 3. اكتب eaos/toolchain.py. install(names أو stage) يثبّت في /workspace/engine-tools فقط: release ← تنزيل ثم تحقق sha256 ثم bin/؛ pip ← engine-tools/venv؛ npm ← npm install --prefix engine-tools/node ثم رابط في bin/. لا apt ولا sudo: أداة تحتاج حزمة نظام (Java لـZAP) تطبع السطر المطلوب وتخرج بغير صفر.
 4. doctor: لكل أداة {name, role, pinned, found, ok, reason}، ويخرج بغير صفر إن نقصت أداة read أو validate لعقد التقييم. سجّل في eaos/cli.py: eaos tools install [--stage assessment|execution] [--only NAME[,NAME]] و eaos tools doctor [--json].
 5. تأكد أن which() في eaos/engines/process.py يبحث في /workspace/engine-tools/bin قبل PATH، حتى لا تُستخدم نسخة بإصدار آخر.
@@ -791,7 +791,7 @@ python -m unittest tests.test_engine_contracts -q
 2. الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. كل قاعدة تحمل في metadata نوعها من KINDS في eaos/engines/contract.py. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
 3. احفظ مخرجًا حقيقيًا في tests/contracts/semgrep.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
-5. لا تستخدم مكتبة القواعد الرسمية (رخصتها Semgrep Rules License مقيِّدة). اكتب قواعد EAOS في eaos/data/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة. كل قاعدة معها مثال يطابقها ومثال لا يطابقها.
+5. مصدران للقواعد: (1) قواعد EAOS في eaos/data/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة، وكل قاعدة معها مثال يطابقها ومثال لا يطابقها. (2) مكتبة semgrep-rules الرسمية: رخصتها تمنع توزيعها، فلا تُنسخ إلى هذا المستودع أبدًا؛ eaos tools install يجلبها إلى /workspace/engine-tools/semgrep-rules عند التزام مثبّت على جهاز المستخدم، ويشغّل المحوّل منها مجموعات بعينها (javascript و typescript و python و secrets) إن وُجدت، ويسجّل في التقرير أيها استُخدم.
 
 ```bash
 python -m unittest tests.test_engine_contracts -q
@@ -889,9 +889,28 @@ python -m unittest tests.test_engine_contracts -q
 
 **التراجع:** revert الالتزام.
 
+#### NS12.T10 — GitNexus: رسم المعرفة ونطاق الأثر كشاهد ثالث ⬜
+
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1
+
+**الملفات:** `eaos/engines/gitnexus.py` · `eaos/engines/__init__.py` · `upstreams/registry.yaml` · `tests/contracts/gitnexus.json` · `tests/test_engine_contracts.py` · `tools/north_star_measure.py`
+
+1. التثبيت: npm install -g gitnexus@<إصدار مثبّت> داخل engine-tools عبر eaos tools install (NS17.T1)، مع GITNEXUS_SKIP_OPTIONAL_GRAMMARS=1 إن لم يوجد مترجم C++. الرخصة PolyForm Noncommercial: سجّلها في registry.yaml بحقل license_note، واطبع تنبيهًا عند التثبيت أن استخدامها للأغراض غير التجارية فقط.
+2. gitnexus analyze يكتب في المستودع الذي يحلله (AGENTS.md و CLAUDE.md وskills وhooks). لذلك لا يُشغَّل على مشروع المالك أبدًا: شغّله على نسخة من process.mirror() في eaos/engines/process.py، مع --skip-agents-md و --skip-skills و --skip-embeddings، و GITNEXUS_HOME داخل workdir حتى لا يلمس ~/.gitnexus. الاختبار يثبت أن مشروع المالك لم يتغير (state_digest قبل وبعد).
+3. اقرأ الرسم بأوامر الاستعلام لا بالـMCP: gitnexus cypher لاستخراج علاقات CALLS و IMPORTS والمجتمعات (Community) والعمليات (Process)، و gitnexus impact للرموز الأعلى اعتمادًا. اطبع المخرج الحقيقي أولًا واحفظه في tests/contracts/gitnexus.json، ثم اكتب المحوّل على شكله الفعلي.
+4. الترجمة إلى مفردات EAOS: call_edge_external و module_edge_external، و coupling من حجم نطاق الأثر، و surface من نقاط الدخول. GitNexus شاهد ثالث بجانب CodeGraph و dependency-cruiser: اتفاقهم يرفع الثقة، واختلافهم يُسجَّل ولا يُحسم لصالح أحد.
+5. المجتمعات (Leiden) التي يكتشفها مرشح أولي لحدود المكوّنات الحالية في S02، ومدخل لإسقاط الصورة المثالية في NS7.T2: تُكتب في facts/external.json → communities[] {name, files}.
+6. أضف gitnexus إلى adopted_adapters وإلى ENGINES في tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة).
+
+```bash
+python -m unittest tests.test_engine_contracts -q
+```
+
+**التراجع:** revert الالتزام.
+
 #### NS12.T9 — كل المحوّلات المنطبقة تعمل على العيّنة ⬜
 
-**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS12.T2, NS12.T3, NS12.T4, NS12.T5, NS12.T6, NS12.T7, NS12.T8
+**يحرّك:** R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS12.T2, NS12.T3, NS12.T4, NS12.T5, NS12.T6, NS12.T7, NS12.T8, NS12.T10
 
 **الملفات:** `tools/north_star_measure.py` · `upstreams/registry.yaml`
 

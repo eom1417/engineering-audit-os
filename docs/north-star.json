@@ -230,7 +230,7 @@
           "reads": "facts/external.json → summary.engines_observed، مقابل adopted_adapters المنطبقة على ملفات المشروع في /tmp/eaos-corpus",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا محوّل من القائمة المعتمدة (Syft، OSV-Scanner، scc، Semgrep، Trivy، Checkov، dependency-cruiser، SQLFluff) مدمج بعد.",
+          "evidence": "لا محوّل من القائمة المعتمدة (Syft، OSV-Scanner، scc، Semgrep، Trivy، Checkov، dependency-cruiser، SQLFluff، GitNexus) مدمج بعد.",
           "measured": "automated"
         },
         {
@@ -1373,7 +1373,7 @@
           ],
           "steps": [
             "وسّع كل عنصر في upstreams/registry.yaml بثلاثة حقول: role (read أو emit أو run أو validate)، و stages (معرّفات pipeline في docs/north-star.json مثل S01)، و install {method: release | pip | npm, source, version, sha256 للـrelease, binary}.",
-            "أضف عناصر لأدوات عقد التقييم بآخر release مستقر يوم التنفيذ، والرخصة والمستودع من docs/TOOLCHAIN.md: syft، و osv-scanner، و scc، و semgrep، و trivy، و checkov، و dependency-cruiser، و sqlfluff، و spectral، و oasdiff (role = read)، و vale، و markdownlint-cli2 (role = validate).",
+            "أضف عناصر لأدوات عقد التقييم بآخر release مستقر يوم التنفيذ، والرخصة والمستودع من docs/TOOLCHAIN.md: syft، و osv-scanner، و scc، و semgrep، و trivy، و checkov، و dependency-cruiser، و sqlfluff، و spectral، و oasdiff، و gitnexus (role = read)، و vale، و markdownlint-cli2 (role = validate).",
             "اكتب eaos/toolchain.py. install(names أو stage) يثبّت في /workspace/engine-tools فقط: release ← تنزيل ثم تحقق sha256 ثم bin/؛ pip ← engine-tools/venv؛ npm ← npm install --prefix engine-tools/node ثم رابط في bin/. لا apt ولا sudo: أداة تحتاج حزمة نظام (Java لـZAP) تطبع السطر المطلوب وتخرج بغير صفر.",
             "doctor: لكل أداة {name, role, pinned, found, ok, reason}، ويخرج بغير صفر إن نقصت أداة read أو validate لعقد التقييم. سجّل في eaos/cli.py: eaos tools install [--stage assessment|execution] [--only NAME[,NAME]] و eaos tools doctor [--json].",
             "تأكد أن which() في eaos/engines/process.py يبحث في /workspace/engine-tools/bin قبل PATH، حتى لا تُستخدم نسخة بإصدار آخر.",
@@ -1644,7 +1644,7 @@
             "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. كل قاعدة تحمل في metadata نوعها من KINDS في eaos/engines/contract.py. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
             "احفظ مخرجًا حقيقيًا في tests/contracts/semgrep.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "لا تستخدم مكتبة القواعد الرسمية (رخصتها Semgrep Rules License مقيِّدة). اكتب قواعد EAOS في eaos/data/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة. كل قاعدة معها مثال يطابقها ومثال لا يطابقها."
+            "مصدران للقواعد: (1) قواعد EAOS في eaos/data/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة، وكل قاعدة معها مثال يطابقها ومثال لا يطابقها. (2) مكتبة semgrep-rules الرسمية: رخصتها تمنع توزيعها، فلا تُنسخ إلى هذا المستودع أبدًا؛ eaos tools install يجلبها إلى /workspace/engine-tools/semgrep-rules عند التزام مثبّت على جهاز المستخدم، ويشغّل المحوّل منها مجموعات بعينها (javascript و typescript و python و secrets) إن وُجدت، ويسجّل في التقرير أيها استُخدم."
           ],
           "acceptance": "python -m unittest tests.test_engine_contracts -q",
           "rollback": "revert الالتزام.",
@@ -1804,6 +1804,36 @@
           "status": "todo"
         },
         {
+          "id": "NS12.T10",
+          "title": "GitNexus: رسم المعرفة ونطاق الأثر كشاهد ثالث",
+          "moves": [
+            "R3"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS17.T1"
+          ],
+          "files": [
+            "eaos/engines/gitnexus.py",
+            "eaos/engines/__init__.py",
+            "upstreams/registry.yaml",
+            "tests/contracts/gitnexus.json",
+            "tests/test_engine_contracts.py",
+            "tools/north_star_measure.py"
+          ],
+          "steps": [
+            "التثبيت: npm install -g gitnexus@<إصدار مثبّت> داخل engine-tools عبر eaos tools install (NS17.T1)، مع GITNEXUS_SKIP_OPTIONAL_GRAMMARS=1 إن لم يوجد مترجم C++. الرخصة PolyForm Noncommercial: سجّلها في registry.yaml بحقل license_note، واطبع تنبيهًا عند التثبيت أن استخدامها للأغراض غير التجارية فقط.",
+            "gitnexus analyze يكتب في المستودع الذي يحلله (AGENTS.md و CLAUDE.md وskills وhooks). لذلك لا يُشغَّل على مشروع المالك أبدًا: شغّله على نسخة من process.mirror() في eaos/engines/process.py، مع --skip-agents-md و --skip-skills و --skip-embeddings، و GITNEXUS_HOME داخل workdir حتى لا يلمس ~/.gitnexus. الاختبار يثبت أن مشروع المالك لم يتغير (state_digest قبل وبعد).",
+            "اقرأ الرسم بأوامر الاستعلام لا بالـMCP: gitnexus cypher لاستخراج علاقات CALLS و IMPORTS والمجتمعات (Community) والعمليات (Process)، و gitnexus impact للرموز الأعلى اعتمادًا. اطبع المخرج الحقيقي أولًا واحفظه في tests/contracts/gitnexus.json، ثم اكتب المحوّل على شكله الفعلي.",
+            "الترجمة إلى مفردات EAOS: call_edge_external و module_edge_external، و coupling من حجم نطاق الأثر، و surface من نقاط الدخول. GitNexus شاهد ثالث بجانب CodeGraph و dependency-cruiser: اتفاقهم يرفع الثقة، واختلافهم يُسجَّل ولا يُحسم لصالح أحد.",
+            "المجتمعات (Leiden) التي يكتشفها مرشح أولي لحدود المكوّنات الحالية في S02، ومدخل لإسقاط الصورة المثالية في NS7.T2: تُكتب في facts/external.json → communities[] {name, files}.",
+            "أضف gitnexus إلى adopted_adapters وإلى ENGINES في tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة)."
+          ],
+          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
           "id": "NS12.T9",
           "title": "كل المحوّلات المنطبقة تعمل على العيّنة",
           "moves": [
@@ -1817,7 +1847,8 @@
             "NS12.T5",
             "NS12.T6",
             "NS12.T7",
-            "NS12.T8"
+            "NS12.T8",
+            "NS12.T10"
           ],
           "files": [
             "tools/north_star_measure.py",
@@ -2975,6 +3006,10 @@
     {
       "name": "oasdiff",
       "applies": "openapi"
+    },
+    {
+      "name": "gitnexus",
+      "applies": "all"
     }
   ],
   "pipeline": [
@@ -3011,6 +3046,7 @@
       "question": "ما العمارة الحقيقية الآن: الوظائف والأسطح والبيانات والحدود والتدفقات؟",
       "tools": {
         "read": [
+          "GitNexus",
           "CodeGraph",
           "enola",
           "dependency-cruiser"
@@ -3062,6 +3098,7 @@
       "question": "ما المشكلات الحقيقية، وأيها الأخطر حين تجتمع الأدلة؟",
       "tools": {
         "read": [
+          "GitNexus",
           "Semgrep بقواعد EAOS",
           "Trivy",
           "OSV-Scanner",

@@ -29,7 +29,7 @@
 
 لا تدخل أداة إلا إذا اجتازت الشروط الستة:
 
-1. **رخصة تسمح بتشغيلها كعملية منفصلة** داخل منتج قد يصبح تجاريًا. رخص AGPL (k6 وRenovate وUnleash وPyroscope) مقبولة **كعملية منفصلة فقط**، ولا يُضمَّن كودها ولا يُربط.
+1. **رخصة تسمح بتشغيلها كعملية منفصلة في مشروع مفتوح المصدر مجاني وغير تجاري** (قرار المالك في 2026-09-24). الأداة تبقى عملية منفصلة ولا يُضمَّن كودها، فرخص AGPL (k6 وRenovate وUnleash وPyroscope) ورخصة PolyForm Noncommercial (GitNexus) مقبولة. **وما تمنع رخصته التوزيع لا يُنسخ إلى مستودع EAOS**، بل يجلبه `eaos tools install` إلى جهاز المستخدم (مكتبة قواعد Semgrep الرسمية).
 2. **نشطة:** التزام خلال آخر 12 شهرًا، وغير مؤرشفة.
 3. **مخرج أو إدخال منظم:** JSON أو SARIF أو CycloneDX أو YAML موثّق.
 4. **تعمل دون اتصال** في عقد التقييم. الاستثناء: قواعد بيانات الثغرات، وتُحدَّث قبل التشغيل وتُسجَّل نسختها.
@@ -50,7 +50,7 @@
 
 | # | الأداة | الرخصة | آخر التزام | القرار | الدور | المرحلة | المعلم |
 |---|---|---|---|---|---|---|---|
-| 1 | GitNexus | **PolyForm Noncommercial 1.0.0** | 2026-09-24 | **مرفوضة كأساس** (§٥) | — | — | — |
+| 1 | GitNexus | PolyForm Noncommercial 1.0.0 (مقبولة: EAOS غير تجاري) | 2026-09-24 | أساسية، على نسخة لا على المشروع | تقرأ | S02، S04 | NS12.T10 |
 | 2 | Syft | Apache-2.0 | 2026-09-23 | أساسية | تقرأ | S01 | NS12.T1 |
 | 3 | scc | MIT | 2026-09-24 | أساسية | تقرأ | S01، S03 | NS12.T2 |
 | 4 | Stratify | MIT | 2026-02-15 | مرفوضة (§٥) | — | — | — |
@@ -83,7 +83,7 @@
 | 31 | Spectral | Apache-2.0 | 2026-09-17 | مشروطة: OpenAPI | تقرأ (SARIF) | S04 | NS12.T8 |
 | 32 | Schemathesis | MIT | 2026-09-23 | مشروطة: OpenAPI | يولّد لها، تُشغَّل | S05، S09 | NS15.T1 |
 | 33 | oasdiff | Apache-2.0 | 2026-09-16 | مشروطة: OpenAPI | تقرأ | S04، S09، S15 | NS12.T8، NS20 |
-| 34 | Semgrep (المحرّك) | LGPL-2.1 | 2026-09-23 | أساسية **بقواعدنا** | تقرأ (SARIF)، يولّد لها | S04، S10، S15 | NS12.T3، NS25.T1 |
+| 34 | Semgrep (المحرّك، والقواعد الرسمية تُجلب لجهاز المستخدم) | LGPL-2.1 | 2026-09-23 | أساسية: قواعدنا والرسمية | تقرأ (SARIF)، يولّد لها | S04، S10، S15 | NS12.T3، NS25.T1 |
 | 35 | Trivy | Apache-2.0 | 2026-09-23 | أساسية | تقرأ (SARIF) | S04، S10 | NS12.T4، NS21 |
 | 36 | OWASP ZAP | Apache-2.0 | 2026-09-24 | تنفيذ | يولّد لها، تُشغَّل | S10 | NS15.T2، NS21 |
 | 37 | GitHub Actions Runner | MIT | 2026-09-22 | لا تكامل | — | S15 | — (EAOS يولّد سير العمل الذي يشغّله) |
@@ -104,10 +104,10 @@
 | 52 | MkDocs | BSD-2-Clause | 2025-10-20 | يُستبدل بـ**Zensical** | — | S15 | NS25.T4 |
 
 **الحصيلة:**
-- **أساسية لعقد التقييم (10):** Syft، وscc، وOSV-Scanner، وSemgrep، وTrivy، وCheckov، وdependency-cruiser، وSQLFluff، وSpectral، وoasdiff. تُضاف إلى 4 محرّكات مدمجة: CodeGraph، وenola، وjscpd، وreforge.
+- **أساسية لعقد التقييم (11):** Syft، وscc، وOSV-Scanner، وSemgrep، وTrivy، وCheckov، وdependency-cruiser، وSQLFluff، وSpectral، وoasdiff، وGitNexus. تُضاف إلى 4 محرّكات مدمجة: CodeGraph، وenola، وjscpd، وreforge.
 - **تنفيذ (9، منها مشروطة):** Playwright، وApprovalTests، وPact، وSchemathesis، وk6، وZAP، وToxiproxy، وGoss، وOpenTelemetry Collector. يولّد EAOS إدخالها في عقد التقييم، وتُشغَّل في عقد التنفيذ.
 - **توصية:** Renovate، وpre-commit، وSloth، وSigNoz، وOpenTofu، وAnsible، وUnleash، وTraefik، وLiquibase، وBytebase، وChaos Mesh، وDevLake، وSonarQube. تدخل الصورة المثالية بقرار مسبَّب، و«لا حاجة» قرار مقبول بسببه.
-- **مرفوضة (6):** GitNexus، وStratify، وCode Maat، وLog4brains، وadr-tools، ومعها MkDocs نفسها، إذ يحل محلها Zensical.
+- **مرفوضة (5):** Stratify، وCode Maat، وLog4brains، وadr-tools، وMkDocs (يحل محلها Zensical). **لا شيء منها رُفض لرخصته**: الأسباب تكرار القدرة أو توقف التطوير.
 
 ---
 
@@ -122,7 +122,8 @@
 | Syft | release (ملف ثنائي) | `syft dir:TARGET -o cyclonedx-json=sbom.cdx.json` | CycloneDX | `sbom.cdx.json` كما هو، وعدد المكوّنات |
 | OSV-Scanner | release | `osv-scanner scan --sbom sbom.cdx.json --format sarif` | SARIF | `vulnerable_dependency`، وادعاء risk بعلاج «ترقية» |
 | scc | release | `scc --format json --by-file TARGET` | JSON | `loc` واللغة لكل ملف في `measurements.json` |
-| Semgrep | pip | `semgrep scan --config eaos/data/semgrep --sarif --metrics off TARGET` | SARIF | `vulnerability` و`boundary` و`dataflow` |
+| Semgrep | pip، والقواعد الرسمية `git clone` عند التزام مثبّت إلى `engine-tools/semgrep-rules` | `semgrep scan --config eaos/data/semgrep --config engine-tools/semgrep-rules/<لغة> --sarif --metrics off TARGET` | SARIF | `vulnerability` و`boundary` و`dataflow` |
+| GitNexus | npm | على نسخة من المشروع: `gitnexus analyze COPY --skip-agents-md --skip-skills --skip-embeddings` مع `GITNEXUS_HOME` في workdir، ثم `gitnexus cypher` و`gitnexus impact` | مخرج الاستعلام (يُثبَّت شكله في عيّنة العقد) | `call_edge_external` و`module_edge_external` و`coupling` والمجتمعات مرشحةً لحدود المكوّنات |
 | Trivy | release | `trivy fs --scanners vuln,secret,misconfig --format sarif TARGET` | SARIF | `vulnerability` و`misconfiguration` و`secret` (شاهد ثانٍ على المفاتيح) |
 | Checkov | pip | `checkov -d TARGET -o sarif --quiet` | SARIF | `misconfiguration` في CI وIaC وDocker |
 | dependency-cruiser | npm | `depcruise TARGET --config <workdir>/rules.cjs --output-type json` | JSON | `module_edge_external` و`cycle` و`boundary` |
@@ -172,7 +173,6 @@
 
 | الأداة | السبب | ما يغطي قدرتها |
 |---|---|---|
-| **GitNexus** | رخصة PolyForm Noncommercial تمنع أي استخدام تجاري. الأداة نشطة وقوية، والمشكلة في الرخصة فقط | رسم EAOS (`graph` و`impact-of`)، مع CodeGraph (Apache-2.0) وdependency-cruiser. **يُعاد القرار فقط** إن قرر المالك أن EAOS غير تجاري، أو حصل على رخصة تجارية. وحتى حينها تبقى محوّلًا اختياريًا خارج التثبيت الافتراضي |
 | **Stratify** | تكرر الرسم والتصوير، وتركيزها على Clojure | CodeGraph وdependency-cruiser وMermaid |
 | **Code Maat** | آخر التزام 2025-07-03، ويحتاج JVM | `eaos/facts/history.py`: التقلّب، والاقتران الزمني، والملكية |
 | **Log4brains** | آخر التزام 2024-12-17 | EAOS يكتب MADR مباشرة، ويعرضها موقع التسليم (Zensical) |
@@ -182,7 +182,9 @@
 **ملاحظات على رخص المقبولة:**
 - **Liquibase** صارت FSL: تتحول إلى Apache بعد سنتين، وتمنع المنافسة التجارية. لذلك توصي بها الصورة المثالية لمشاريع JVM فقط، وتفضّل أداة المكدّس الأصلية (Supabase CLI، أو Prisma، أو Alembic).
 - **OpenRewrite:** المحرّك Apache-2.0، لكن بعض وحدات الوصفات برخصة Moderne الخاصة. تُفحص رخصة كل وحدة قبل استخدامها.
-- **Semgrep:** المحرّك LGPL-2.1، أما مكتبة القواعد الرسمية فرخصتها مقيِّدة. نكتب قواعدنا في `eaos/data/semgrep/`.
+- **Semgrep:** المحرّك LGPL-2.1. مكتبة القواعد الرسمية رخصتها (Semgrep Rules License v1.0) **تمنع توزيعها**، ولا علاقة لها بالتجاري: تُجلب إلى جهاز كل مستخدم ولا تُنسخ إلى مستودع EAOS. قواعدنا في `eaos/data/semgrep/` تُوزَّع معه.
+- **GitNexus:** رخصتها PolyForm Noncommercial، وهي مقبولة لأن EAOS مفتوح المصدر وغير تجاري. لكن **مستخدم EAOS الذي يشغّله داخل شركة تجارية ملزم برخصتها**، لذلك يطبع `eaos tools install` تنبيهًا عند تثبيتها، ويستطيع المستخدم استبعادها بـ`--skip gitnexus` دون أن تفشل البوابات، لأن CodeGraph وdependency-cruiser يغطيان قدرتها الأساسية.
+- **`gitnexus analyze` يكتب في المستودع** (AGENTS.md وCLAUDE.md وskills وhooks)، فلا يُشغَّل إلا على نسخة من المشروع.
 
 ---
 
