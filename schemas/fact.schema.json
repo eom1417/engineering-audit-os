@@ -29,6 +29,7 @@
         "env_read",
         "data_model",
         "migration",
+        "db_policy",
         "metric",
         "clone_cluster",
         "history_churn",

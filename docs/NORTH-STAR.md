@@ -1,24 +1,24 @@
 # الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي
 
-> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-24 على الالتزام `3247ad9`.
+> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-24 على الالتزام `aed038b`.
 
-## أين نحن: **31.8%** من الوجهة
+## أين نحن: **38.2%** من الوجهة
 
 هذه ليست درجة القدرات في docs/CAPABILITY-SCORE.md. تلك تقيس اكتمال آلية الأداة على مستودعين ضُبطت عليهما، وهذه تقيس الوعد نفسه على الجمهور الذي بُنيت له.
 
 | # | القدرة | الوزن | الدرجة | المساهمة |
 | --- | --- | --- | --- | --- |
 | C1 | الوصول: يعمل على مشاريع الهواة الحقيقية | 8 | 100% | 8.0 |
-| C2 | تقرير الوضع الراهن: يرى البرنامج كله | 12 | 50% | 6.0 |
+| C2 | تقرير الوضع الراهن: يرى البرنامج كله | 12 | 70% | 8.4 |
 | C3 | الإشارة: كل ادعاء مشكلة حقيقية | 10 | 28% | 2.8 |
 | C4 | الكود الميت والمخلفات: يجدها ويحذفها بأمان | 10 | 11% | 1.1 |
-| C5 | نظافة الأمن الأساسية | 8 | 0% | 0.0 |
+| C5 | نظافة الأمن الأساسية | 8 | 50% | 4.0 |
 | C6 | تقرير الصورة المثالية | 16 | 10% | 1.6 |
 | C7 | تقرير الفجوة والتحول الاستراتيجي | 8 | 44% | 3.6 |
 | C8 | خطة التنفيذ للفريق | 16 | 21% | 3.4 |
 | C9 | ضمان التنفيذ: يثبت أن التحول حدث | 7 | 33% | 2.3 |
 | C10 | الثقة والإثبات المستقل | 5 | 57% | 2.9 |
-| | **المجموع** | **100** | | **31.8** |
+| | **المجموع** | **100** | | **38.2** |
 
 ## الرؤية
 
@@ -47,11 +47,11 @@
 | C6 تقرير الصورة المثالية | 14.4 |
 | C8 خطة التنفيذ للفريق | 12.6 |
 | C4 الكود الميت والمخلفات: يجدها ويحذفها بأمان | 8.9 |
-| C5 نظافة الأمن الأساسية | 8.0 |
 | C3 الإشارة: كل ادعاء مشكلة حقيقية | 7.2 |
-| C2 تقرير الوضع الراهن: يرى البرنامج كله | 6.0 |
 | C9 ضمان التنفيذ: يثبت أن التحول حدث | 4.7 |
 | C7 تقرير الفجوة والتحول الاستراتيجي | 4.4 |
+| C5 نظافة الأمن الأساسية | 4.0 |
+| C2 تقرير الوضع الراهن: يرى البرنامج كله | 3.6 |
 | C10 الثقة والإثبات المستقل | 2.1 |
 | C1 الوصول: يعمل على مشاريع الهواة الحقيقية | 0.0 |
 
@@ -68,7 +68,7 @@
 | R1 تدقيقات العيّنة المكتملة بلا فشل | عدد مشاريع العيّنة التي ينتهي فيها eaos audit برمز خروج 0 ÷ عدد مشاريع العيّنة | 100% | 100% | exit codes: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
 | R2 الأطر المفهومة | مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع | 100% | 100% | user surfaces found: FleetManageWeb 43 · finance-os-a0192b7b 29 · RendaPerene 3 |
 
-### C2 — تقرير الوضع الراهن: يرى البرنامج كله (50%، الوزن 12)
+### C2 — تقرير الوضع الراهن: يرى البرنامج كله (70%، الوزن 12)
 
 **الصورة المثالية:** كل ملف محلَّل، وكل وظيفة وسطح يصل إليه المستخدم مكتشف، ونموذج البيانات مقروء، والمداخل والمخارج والحدود معروفة.
 
@@ -76,7 +76,7 @@
 | --- | --- | --- | --- | --- |
 | U1 تغطية التحليل | متوسط parse_coverage على مشاريع العيّنة | 95% | 96% | parse_coverage: FleetManageWeb 0.982 · finance-os-a0192b7b 0.902 · RendaPerene 0.987 |
 | U2 أسطح المستخدم المكتشفة | متوسط (الأسطح المكتشفة ÷ الأسطح الحقيقية في truth.user_surfaces) لكل مشروع | 90% | 100% | found/true surfaces: FleetManageWeb 43/43 · finance-os-a0192b7b 29/29 · RendaPerene 3/3 |
-| U3 نموذج البيانات مقروء | مشاريع العيّنة ذات قاعدة بيانات التي قُرئت جداولها وسياساتها ÷ عدد تلك المشاريع | 100% | 0% | db_table/db_policy facts vs truth: finance-os-a0192b7b 0/31 tables, 0/108 policies |
+| U3 نموذج البيانات مقروء | مشاريع العيّنة ذات قاعدة بيانات التي قُرئت جداولها بحالة RLS لكل جدول، وسياساتها ÷ عدد تلك المشاريع | 100% | 100% | data_table facts with RLS state, and db_policy facts, vs truth: finance-os-a0192b7b 31/31 tables, 108/108 policies |
 | U4 جرد الوظائف | مشاريع العيّنة التي يسرد تقريرها وظائف البرنامج (ماذا يفعل للمستخدم) مربوطة بأسطحها وبياناتها ÷ عدد المشاريع | 100% | 0% | features in features.json: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
 | U5 المداخل والمخارج والحدود | متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع | 80% | 56% | answered load questions: FleetManageWeb 270/408 · finance-os-a0192b7b 156/568 · RendaPerene 18/24 |
 
@@ -97,16 +97,16 @@
 | --- | --- | --- | --- | --- |
 | D1 استدعاء العيوب المعروفة | العيوب المكتشفة من self_truth.defects ÷ 15 | 80% | 33% | 5 of 15 known defects found: execution_guide._steps; structure._scope_chain; load_model._trace_evidence; probes.run_absence_search; workflow.write_next |
 | D2 المخلفات المكتشفة | عناصر truth.leftovers المذكورة في التقرير ÷ مجموعها | 90% | 0% | leftovers reported: FleetManageWeb 0/4 |
-| D3 بطاقات حذف آمن جاهزة | عناصر الكود الميت الحقيقية التي وصلت إلى بطاقة remediate بأمر قبول قابل للتشغيل ÷ عناصر الكود الميت الحقيقية المكتشفة | 90% | 0% | لا يوجد نمط حذف آمن؛ كل البطاقات investigate. |
+| D3 بطاقات حذف آمن جاهزة | بطاقات remediate جاهزة (ready) بنمط remove_dead وأمر قبول قابل للتشغيل ÷ ادعاءات الكود الميت والمخلفات (render.key = dead_code أو leftover) | 90% | 0% | ready remove_dead cards: 0 for 0 dead-code and leftover claims |
 
-### C5 — نظافة الأمن الأساسية (0%، الوزن 8)
+### C5 — نظافة الأمن الأساسية (50%، الوزن 8)
 
 **الصورة المثالية:** يلتقط الأخطاء القاتلة الشائعة في تطبيقات الهواة: أسرار مرفوعة، وجداول بلا سياسات وصول، ومسارات خادم بلا تحقق.
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| H1 الأسرار المرفوعة المكتشفة | عناصر truth.secrets المذكورة كخطر ÷ مجموعها | 100% | 0% | committed secrets reported: FleetManageWeb 0/1 · finance-os-a0192b7b 0/1 |
-| H2 تغطية سياسات الوصول مقروءة | مشاريع ذات قاعدة بيانات قُرئت فيها سياسات RLS وحُدد كل جدول بلا سياسة ÷ عدد تلك المشاريع | 100% | 0% | db_policy facts vs truth: finance-os-a0192b7b 0/108 |
+| H1 مواد الاعتماد المرفوعة بخطورتها الصحيحة | عناصر truth.credentials التي ذكرها التقرير كحقيقة committed_credential بالخطورة الصحيحة (public أو secret) ÷ مجموعها. مفتاح anon/publishable عام بطبيعته: تصنيفه secret إنذار كاذب ولا يُحتسب. | 100% | 0% | committed credentials reported with the right severity: FleetManageWeb 0/1 · finance-os-a0192b7b 0/1 |
+| H2 تغطية سياسات الوصول مقروءة | مشاريع ذات قاعدة بيانات قُرئت فيها سياسات RLS وحُدد كل جدول بلا سياسة ÷ عدد تلك المشاريع | 100% | 100% | db_policy facts vs truth: finance-os-a0192b7b 108/108 |
 
 ### C6 — تقرير الصورة المثالية (10%، الوزن 16)
 
@@ -183,10 +183,10 @@
 | --- | --- | --- |
 | NS1 القياس آليًا: النسبة تُحسب بأمر لا باليد | كل مؤشر قابل للأتمتة يُحسب من تقارير العيّنة بأمر واحد، ويُرفض أي تراجع. | 4/4 |
 | NS2 لا يفشل على مشروع حقيقي | R1 = 1.0: كل تدقيق على العيّنة يكتمل. | 2/2 |
-| NS3 تقرير الوضع الراهن: رؤية البرنامج كله | U2 ≥ 0.9 و U3 = 1.0 و U4 = 1.0 و U5 ≥ 0.8 على العيّنة. | 1/5 |
+| NS3 تقرير الوضع الراهن: رؤية البرنامج كله | U2 ≥ 0.9 و U3 = 1.0 و U4 = 1.0 و U5 ≥ 0.8 على العيّنة. | 2/5 |
 | NS4 الإشارة لا الضجيج | S1 ≥ 0.8 و S2 ≥ 0.8. | 0/2 |
 | NS5 الكود الميت والمخلفات: كشف وحذف آمن | D1 ≥ 0.8 و D2 ≥ 0.9 و D3 ≥ 0.9. | 0/4 |
-| NS6 نظافة الأمن الأساسية | H1 = 1.0 و H2 = 1.0. | 0/2 |
+| NS6 نظافة الأمن الأساسية | H1 = 1.0 و H2 = 1.0. | 1/2 |
 | NS7 تقرير الصورة المثالية | T1 = 1.0 و T2 = 1.0 و T3 ≥ 0.6 و T4 = 1.0 و T5 = 1.0 و G1 = 1.0. | 0/5 |
 | NS8 خطة التنفيذ للفريق والتقارير الأربعة | P1 = 1.0 و P2 ≥ 0.5 و P3 ≥ 0.8 و P4 = 1.0 و P6 = 1.0 و P7 = 1.0. | 0/5 |
 | NS9 إثبات التنفيذ | E1 = 1.0 و E2 ≥ 0.8. | 0/1 |
@@ -315,26 +315,28 @@ python tools/north_star.py measure --only U2 --min 0.9
 
 **يحرّك:** U2, U3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T1
 
-**الملفات:** `eaos/facts/frameworks/supabase.py` · `eaos.policy.json` · `tests/test_supabase.py`
+**الملفات:** `eaos/facts/frameworks/supabase_access.py` · `eaos/facts/run.py` · `schemas/fact.schema.json` · `tests/test_supabase_access.py`
 
-1. اقرأ supabase.from('t') و rpc و auth و storage كحواف من الملف إلى الجدول أو الخدمة.
-2. supabase/functions/* نقاط دخول خادم.
+1. اقرأ في ملفات TS/JS كل نداء Supabase: supabase.from("t").select|insert|update|upsert|delete، و rpc("fn")، و storage.from("b")، و auth.*.
+2. اكتب كل نداء كحقيقة kind="data_access" في مجموعة حقائق قائمة (مثل domain أو runtime)، قيمتها {client: "supabase", target: اسم الجدول أو الدالة أو الحاوية, operation, symbol} وموضعها path و start_line. أضف data_access إلى schemas/fact.schema.json ثم python tools/render.py.
+3. الاختبار tests/test_supabase_access.py يبني عيّنة فيها select و insert و rpc و storage ونداء لا علاقة له بـSupabase، ويثبت أن الحقائق الأربع فقط تظهر بقيمها الصحيحة.
+4. U2 بلغ 1.0 قبل هذه المهمة (NS3.T1)، فلا يصلح أمر قبول لها؛ أمر قبولها الاختبار.
 
 ```bash
-python tools/north_star.py measure --only U2 --min 0.9
+python -m unittest tests.test_supabase_access -q
 ```
 
 **التراجع:** revert الالتزام.
 
-#### NS3.T3 — قراءة نموذج البيانات من SQL ⬜
+#### NS3.T3 — قراءة نموذج البيانات من SQL ✅
 
 **يحرّك:** U3, H2 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS1.T2
 
-**الملفات:** `eaos/facts/sql_schema.py` · `eaos.policy.json` · `tests/test_sql_schema.py`
+**الملفات:** `eaos/facts/domain.py` · `schemas/fact.schema.json` · `tests/test_domain_sql.py`
 
 1. حلّل CREATE TABLE و ALTER TABLE و ENABLE ROW LEVEL SECURITY و CREATE POLICY من ملفات الهجرة إلى حقائق جداول وأعمدة وسياسات.
 2. اربط كل جدول بمن يقرؤه ويكتبه (من NS3.T2).
-3. العقد مع القياس: اكتب الجداول كحقائق kind="db_table" والسياسات كحقائق kind="db_policy" (هذان الاسمان هما ما يقرؤه U3 و H2).
+3. العقد مع القياس: الجداول تبقى حقائق kind="data_table" (ينتجها domain.py أصلًا) مع value.rls_enabled و value.policies، والسياسات حقائق kind="db_policy".
 
 ```bash
 python tools/north_star.py measure --only U3 --min 1.0
@@ -419,6 +421,7 @@ python tools/north_star.py measure --only S2 --min 0.8
 
 1. من كل نقطة دخول إنتاجية (أوامر، مسارات، دوال خادم) امشِ رسم الاستيراد؛ كل وحدة لا يصلها إلا الاختبارات ميتة للمنتج.
 2. الرمز الذي لا يُشار إليه ولا يُصدَّر لسطح عام مرشح، ويُحسم بالبحث عن الاسم نصيًا.
+3. العقد مع القياس: كل عنصر ميت يصير ادعاءً render.key="dead_code" (هذا ما يقسم عليه D3).
 
 ```bash
 python tools/north_star.py measure --only D1 --min 0.8
@@ -451,6 +454,7 @@ python tools/north_star.py measure --only D1 --min 0.8
 1. ملفات مؤقتة ونسخ احتياطية (temp_ و _old و copy و backup)، ومخرجات بناء ملتزمة، وثنائيات، ومجلدات أرشيف غير مستوردة، و.env ملتزم.
 2. كل عنصر يُثبت بأنه لا يستورده شيء قبل أن يصير مرشح حذف.
 3. العقد مع القياس: اكتب كل عنصر كحقيقة kind="leftover" ومسارها في location.path (هذا ما يقرؤه D2).
+4. وكل عنصر مخلفات يصير ادعاءً render.key="leftover" إلى جانب الحقيقة.
 
 ```bash
 python tools/north_star.py measure --only D2 --min 0.9
@@ -466,6 +470,7 @@ python tools/north_star.py measure --only D2 --min 0.9
 
 1. نمط remove_dead: التغيير حذف الملف أو الرمز، وأمر القبول يعيد التدقيق ويتحقق أن لا استيراد جديدًا غير محلول وأن الاختبارات المعلنة تمر.
 2. الحجم S، والتراجع revert واحد، والقرار ready لأن الدليل آلي بالكامل.
+3. العقد مع القياس: pattern="remove_dead"، kind="remediate"، decision.readiness="ready"، و acceptance[].command لا يحتوي "human review".
 
 ```bash
 python tools/north_star.py measure --only D3 --min 0.9
@@ -483,9 +488,10 @@ python tools/north_star.py measure --only D3 --min 0.9
 
 **الملفات:** `eaos/facts/secrets.py` · `eaos.policy.json` · `tests/test_secrets.py`
 
-1. ملفات .env ملتزمة، ومفاتيح service_role وخاصة في المصدر، وتمييز المفتاح العام المقصود (anon/publishable) عن السري.
-2. لا تطبع القيمة أبدًا؛ الدليل اسم المتغير وموضعه.
-3. العقد مع القياس: اكتب كل سر كحقيقة kind="committed_secret" ومسارها في location.path (هذا ما يقرؤه H1).
+1. اكتب حقيقة kind="committed_credential" لكل ملف .env* متتبَّع (عدا .env.example و .env.sample و .env.template)، ولكل مفتاح مضمّن في الكود (JWT، sk_live_، sb_secret_، مفاتيح خاصة PEM).
+2. الخطورة من المفتاح نفسه لا من اسم الملف: فك حمولة JWT واقرأ role؛ anon أو publishable = "public"، service_role أو sb_secret_ أو مفتاح خاص = "secret". لا تطبع القيمة ولا تخزنها أبدًا؛ الدليل اسم المتغير وموضعه والدور.
+3. secret → ادعاء risk مؤكد. public داخل ملف .env متتبَّع → ملاحظة نظافة منخفضة الخطورة في SECURITY-SURFACE.md، لا ادعاء تسريب.
+4. العقد مع القياس: kind="committed_credential"، location.path، value.severity ∈ {public, secret}.
 
 ```bash
 python tools/north_star.py measure --only H1 --min 1.0
@@ -493,16 +499,17 @@ python tools/north_star.py measure --only H1 --min 1.0
 
 **التراجع:** revert الالتزام.
 
-#### NS6.T2 — تغطية سياسات الوصول ⬜
+#### NS6.T2 — تغطية سياسات الوصول ✅
 
 **يحرّك:** H2 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS3.T3
 
-**الملفات:** `eaos/claims.py` · `tests/test_sql_schema.py`
+**الملفات:** `eaos/claims.py` · `eaos/probes.py` · `eaos/remediation_patterns.py` · `eaos/compose/labels.py` · `eaos/discover.py` · `tests/test_access_gaps.py`
 
 1. جدول بلا ENABLE ROW LEVEL SECURITY أو بلا سياسة، وسياسة using (true) على جدول يُكتب من الواجهة: ادعاء بموضعه.
+2. قراءة السياسات وحدها (NS3.T3) تكمل H2؛ عمل هذه المهمة الادعاء، ولذلك أمر قبولها اختبار على عيّنة فيها جدول بلا RLS وسياسة كتابة مفتوحة، لا المؤشر.
 
 ```bash
-python tools/north_star.py measure --only H2 --min 1.0
+python -m unittest tests.test_access_gaps -q
 ```
 
 **التراجع:** revert الالتزام.
@@ -519,6 +526,7 @@ python tools/north_star.py measure --only H2 --min 1.0
 
 1. لكل نوع (React+Vite+Supabase، Next.js، TanStack Start، Python CLI، Streamlit/Flask): الطبقات والاعتماديات المسموحة وخط الأساس للبنية التحتية (إعدادات البيئة، أنواع قاعدة البيانات، RLS، CI، الاختبارات، تتبع الأخطاء).
 2. كل عنصر يحمل سببه ومقياس نجاحه، لا ذوقًا.
+3. الاختبار يثبت على الأقل: الكتالوج يغطي أنواع العيّنة الثلاثة (React+Vite+Supabase، React+TanStack+Supabase، Python CLI)؛ لكل نوع طبقات مسماة واعتماديات مسموحة بينها؛ وخط أساس للبنية التحتية من 6 بنود على الأقل (إعدادات البيئة، عميل قاعدة بيانات بأنواع، RLS أو ما يعادله، CI، اختبارات، تتبع أخطاء)، لكل بند سبب ومقياس نجاح مكتوب. ومنتقي النوع يختار النوع الصحيح لكل مشروع في /tmp/eaos-corpus.
 
 ```bash
 python -m unittest tests.test_reference_architecture -q

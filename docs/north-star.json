@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-24",
-  "measured_at_commit": "3247ad9",
+  "measured_at_commit": "aed038b",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -42,10 +42,13 @@
           "DbTest/",
           "unused-archive/"
         ],
-        "secrets": [
-          "unused-archive/supabase-integrations/client.ts"
-        ],
-        "notes": "DbTest/ holds 23 committed .dll files; the client.ts under unused-archive/ carries a Supabase URL and key in source."
+        "notes": "DbTest/ holds 23 committed .dll files. unused-archive/supabase-integrations/client.ts hardcodes the Supabase URL and an anon (public by design) JWT; no service_role key.",
+        "credentials": [
+          {
+            "path": "unused-archive/supabase-integrations/client.ts",
+            "severity": "public"
+          }
+        ]
       }
     },
     {
@@ -59,10 +62,13 @@
         "tables": 31,
         "policies": 108,
         "leftovers": [],
-        "secrets": [
-          ".env"
-        ],
-        "notes": ".env is tracked by git."
+        "notes": ".env is tracked by git and holds only SUPABASE_URL, project id and publishable (anon) keys; no secret is exposed today.",
+        "credentials": [
+          {
+            "path": ".env",
+            "severity": "public"
+          }
+        ]
       }
     },
     {
@@ -76,7 +82,7 @@
         "tables": 0,
         "policies": 0,
         "leftovers": [],
-        "secrets": []
+        "credentials": []
       }
     }
   ],
@@ -246,11 +252,11 @@
         {
           "id": "U3",
           "name": "نموذج البيانات مقروء",
-          "definition": "مشاريع العيّنة ذات قاعدة بيانات التي قُرئت جداولها وسياساتها ÷ عدد تلك المشاريع",
+          "definition": "مشاريع العيّنة ذات قاعدة بيانات التي قُرئت جداولها بحالة RLS لكل جدول، وسياساتها ÷ عدد تلك المشاريع",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "db_table/db_policy facts vs truth: finance-os-a0192b7b 0/31 tables, 0/108 policies",
-          "reads": "facts of kind `db_table` and `db_policy` in any facts/*.json, compared with truth.tables and truth.policies (≥ 90%)",
+          "value": 1.0,
+          "evidence": "data_table facts with RLS state, and db_policy facts, vs truth: finance-os-a0192b7b 31/31 tables, 108/108 policies",
+          "reads": "facts of kind `data_table` carrying value.rls_enabled, and facts of kind `db_policy`, compared with truth.tables and truth.policies (≥ 90%)",
           "measured": "automated"
         },
         {
@@ -332,12 +338,12 @@
         {
           "id": "D3",
           "name": "بطاقات حذف آمن جاهزة",
-          "definition": "عناصر الكود الميت الحقيقية التي وصلت إلى بطاقة remediate بأمر قبول قابل للتشغيل ÷ عناصر الكود الميت الحقيقية المكتشفة",
+          "definition": "بطاقات remediate جاهزة (ready) بنمط remove_dead وأمر قبول قابل للتشغيل ÷ ادعاءات الكود الميت والمخلفات (render.key = dead_code أو leftover)",
           "target": 0.9,
           "value": 0.0,
-          "evidence": "لا يوجد نمط حذف آمن؛ كل البطاقات investigate.",
-          "reads": "recorded until NS5.T4 defines the remove_dead card",
-          "measured": "recorded"
+          "evidence": "ready remove_dead cards: 0 for 0 dead-code and leftover claims",
+          "reads": "plan.json → tasks[] with pattern \"remove_dead\", kind \"remediate\", decision.readiness \"ready\", runnable acceptance; divided by dossier.json claims whose render.key is \"dead_code\" or \"leftover\"",
+          "measured": "automated"
         }
       ]
     },
@@ -349,12 +355,12 @@
       "indicators": [
         {
           "id": "H1",
-          "name": "الأسرار المرفوعة المكتشفة",
-          "definition": "عناصر truth.secrets المذكورة كخطر ÷ مجموعها",
+          "name": "مواد الاعتماد المرفوعة بخطورتها الصحيحة",
+          "definition": "عناصر truth.credentials التي ذكرها التقرير كحقيقة committed_credential بالخطورة الصحيحة (public أو secret) ÷ مجموعها. مفتاح anon/publishable عام بطبيعته: تصنيفه secret إنذار كاذب ولا يُحتسب.",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "committed secrets reported: FleetManageWeb 0/1 · finance-os-a0192b7b 0/1",
-          "reads": "truth.secrets paths appearing in dossier.json claims or in facts of kind `committed_secret`",
+          "evidence": "committed credentials reported with the right severity: FleetManageWeb 0/1 · finance-os-a0192b7b 0/1",
+          "reads": "facts of kind `committed_credential` whose location.path contains the truth path and whose value.severity equals truth severity (public | secret)",
           "measured": "automated"
         },
         {
@@ -362,8 +368,8 @@
           "name": "تغطية سياسات الوصول مقروءة",
           "definition": "مشاريع ذات قاعدة بيانات قُرئت فيها سياسات RLS وحُدد كل جدول بلا سياسة ÷ عدد تلك المشاريع",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "db_policy facts vs truth: finance-os-a0192b7b 0/108",
+          "value": 1.0,
+          "evidence": "db_policy facts vs truth: finance-os-a0192b7b 108/108",
           "reads": "facts of kind `db_policy` compared with truth.policies (≥ 90%)",
           "measured": "automated"
         }
@@ -824,15 +830,18 @@
             "NS3.T1"
           ],
           "files": [
-            "eaos/facts/frameworks/supabase.py",
-            "eaos.policy.json",
-            "tests/test_supabase.py"
+            "eaos/facts/frameworks/supabase_access.py",
+            "eaos/facts/run.py",
+            "schemas/fact.schema.json",
+            "tests/test_supabase_access.py"
           ],
           "steps": [
-            "اقرأ supabase.from('t') و rpc و auth و storage كحواف من الملف إلى الجدول أو الخدمة.",
-            "supabase/functions/* نقاط دخول خادم."
+            "اقرأ في ملفات TS/JS كل نداء Supabase: supabase.from(\"t\").select|insert|update|upsert|delete، و rpc(\"fn\")، و storage.from(\"b\")، و auth.*.",
+            "اكتب كل نداء كحقيقة kind=\"data_access\" في مجموعة حقائق قائمة (مثل domain أو runtime)، قيمتها {client: \"supabase\", target: اسم الجدول أو الدالة أو الحاوية, operation, symbol} وموضعها path و start_line. أضف data_access إلى schemas/fact.schema.json ثم python tools/render.py.",
+            "الاختبار tests/test_supabase_access.py يبني عيّنة فيها select و insert و rpc و storage ونداء لا علاقة له بـSupabase، ويثبت أن الحقائق الأربع فقط تظهر بقيمها الصحيحة.",
+            "U2 بلغ 1.0 قبل هذه المهمة (NS3.T1)، فلا يصلح أمر قبول لها؛ أمر قبولها الاختبار."
           ],
-          "acceptance": "python tools/north_star.py measure --only U2 --min 0.9",
+          "acceptance": "python -m unittest tests.test_supabase_access -q",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
@@ -848,18 +857,18 @@
             "NS1.T2"
           ],
           "files": [
-            "eaos/facts/sql_schema.py",
-            "eaos.policy.json",
-            "tests/test_sql_schema.py"
+            "eaos/facts/domain.py",
+            "schemas/fact.schema.json",
+            "tests/test_domain_sql.py"
           ],
           "steps": [
             "حلّل CREATE TABLE و ALTER TABLE و ENABLE ROW LEVEL SECURITY و CREATE POLICY من ملفات الهجرة إلى حقائق جداول وأعمدة وسياسات.",
             "اربط كل جدول بمن يقرؤه ويكتبه (من NS3.T2).",
-            "العقد مع القياس: اكتب الجداول كحقائق kind=\"db_table\" والسياسات كحقائق kind=\"db_policy\" (هذان الاسمان هما ما يقرؤه U3 و H2)."
+            "العقد مع القياس: الجداول تبقى حقائق kind=\"data_table\" (ينتجها domain.py أصلًا) مع value.rls_enabled و value.policies، والسياسات حقائق kind=\"db_policy\"."
           ],
           "acceptance": "python tools/north_star.py measure --only U3 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS3.T4",
@@ -985,7 +994,8 @@
           ],
           "steps": [
             "من كل نقطة دخول إنتاجية (أوامر، مسارات، دوال خادم) امشِ رسم الاستيراد؛ كل وحدة لا يصلها إلا الاختبارات ميتة للمنتج.",
-            "الرمز الذي لا يُشار إليه ولا يُصدَّر لسطح عام مرشح، ويُحسم بالبحث عن الاسم نصيًا."
+            "الرمز الذي لا يُشار إليه ولا يُصدَّر لسطح عام مرشح، ويُحسم بالبحث عن الاسم نصيًا.",
+            "العقد مع القياس: كل عنصر ميت يصير ادعاءً render.key=\"dead_code\" (هذا ما يقسم عليه D3)."
           ],
           "acceptance": "python tools/north_star.py measure --only D1 --min 0.8",
           "rollback": "revert الالتزام.",
@@ -1034,7 +1044,8 @@
           "steps": [
             "ملفات مؤقتة ونسخ احتياطية (temp_ و _old و copy و backup)، ومخرجات بناء ملتزمة، وثنائيات، ومجلدات أرشيف غير مستوردة، و.env ملتزم.",
             "كل عنصر يُثبت بأنه لا يستورده شيء قبل أن يصير مرشح حذف.",
-            "العقد مع القياس: اكتب كل عنصر كحقيقة kind=\"leftover\" ومسارها في location.path (هذا ما يقرؤه D2)."
+            "العقد مع القياس: اكتب كل عنصر كحقيقة kind=\"leftover\" ومسارها في location.path (هذا ما يقرؤه D2).",
+            "وكل عنصر مخلفات يصير ادعاءً render.key=\"leftover\" إلى جانب الحقيقة."
           ],
           "acceptance": "python tools/north_star.py measure --only D2 --min 0.9",
           "rollback": "revert الالتزام.",
@@ -1061,7 +1072,8 @@
           ],
           "steps": [
             "نمط remove_dead: التغيير حذف الملف أو الرمز، وأمر القبول يعيد التدقيق ويتحقق أن لا استيراد جديدًا غير محلول وأن الاختبارات المعلنة تمر.",
-            "الحجم S، والتراجع revert واحد، والقرار ready لأن الدليل آلي بالكامل."
+            "الحجم S، والتراجع revert واحد، والقرار ready لأن الدليل آلي بالكامل.",
+            "العقد مع القياس: pattern=\"remove_dead\"، kind=\"remediate\"، decision.readiness=\"ready\"، و acceptance[].command لا يحتوي \"human review\"."
           ],
           "acceptance": "python tools/north_star.py measure --only D3 --min 0.9",
           "rollback": "revert الالتزام.",
@@ -1090,9 +1102,10 @@
             "tests/test_secrets.py"
           ],
           "steps": [
-            "ملفات .env ملتزمة، ومفاتيح service_role وخاصة في المصدر، وتمييز المفتاح العام المقصود (anon/publishable) عن السري.",
-            "لا تطبع القيمة أبدًا؛ الدليل اسم المتغير وموضعه.",
-            "العقد مع القياس: اكتب كل سر كحقيقة kind=\"committed_secret\" ومسارها في location.path (هذا ما يقرؤه H1)."
+            "اكتب حقيقة kind=\"committed_credential\" لكل ملف .env* متتبَّع (عدا .env.example و .env.sample و .env.template)، ولكل مفتاح مضمّن في الكود (JWT، sk_live_، sb_secret_، مفاتيح خاصة PEM).",
+            "الخطورة من المفتاح نفسه لا من اسم الملف: فك حمولة JWT واقرأ role؛ anon أو publishable = \"public\"، service_role أو sb_secret_ أو مفتاح خاص = \"secret\". لا تطبع القيمة ولا تخزنها أبدًا؛ الدليل اسم المتغير وموضعه والدور.",
+            "secret → ادعاء risk مؤكد. public داخل ملف .env متتبَّع → ملاحظة نظافة منخفضة الخطورة في SECURITY-SURFACE.md، لا ادعاء تسريب.",
+            "العقد مع القياس: kind=\"committed_credential\"، location.path، value.severity ∈ {public, secret}."
           ],
           "acceptance": "python tools/north_star.py measure --only H1 --min 1.0",
           "rollback": "revert الالتزام.",
@@ -1110,14 +1123,19 @@
           ],
           "files": [
             "eaos/claims.py",
-            "tests/test_sql_schema.py"
+            "eaos/probes.py",
+            "eaos/remediation_patterns.py",
+            "eaos/compose/labels.py",
+            "eaos/discover.py",
+            "tests/test_access_gaps.py"
           ],
           "steps": [
-            "جدول بلا ENABLE ROW LEVEL SECURITY أو بلا سياسة، وسياسة using (true) على جدول يُكتب من الواجهة: ادعاء بموضعه."
+            "جدول بلا ENABLE ROW LEVEL SECURITY أو بلا سياسة، وسياسة using (true) على جدول يُكتب من الواجهة: ادعاء بموضعه.",
+            "قراءة السياسات وحدها (NS3.T3) تكمل H2؛ عمل هذه المهمة الادعاء، ولذلك أمر قبولها اختبار على عيّنة فيها جدول بلا RLS وسياسة كتابة مفتوحة، لا المؤشر."
           ],
-          "acceptance": "python tools/north_star.py measure --only H2 --min 1.0",
+          "acceptance": "python -m unittest tests.test_access_gaps -q",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         }
       ]
     },
@@ -1145,7 +1163,8 @@
           ],
           "steps": [
             "لكل نوع (React+Vite+Supabase، Next.js، TanStack Start، Python CLI، Streamlit/Flask): الطبقات والاعتماديات المسموحة وخط الأساس للبنية التحتية (إعدادات البيئة، أنواع قاعدة البيانات، RLS، CI، الاختبارات، تتبع الأخطاء).",
-            "كل عنصر يحمل سببه ومقياس نجاحه، لا ذوقًا."
+            "كل عنصر يحمل سببه ومقياس نجاحه، لا ذوقًا.",
+            "الاختبار يثبت على الأقل: الكتالوج يغطي أنواع العيّنة الثلاثة (React+Vite+Supabase، React+TanStack+Supabase، Python CLI)؛ لكل نوع طبقات مسماة واعتماديات مسموحة بينها؛ وخط أساس للبنية التحتية من 6 بنود على الأقل (إعدادات البيئة، عميل قاعدة بيانات بأنواع، RLS أو ما يعادله، CI، اختبارات، تتبع أخطاء)، لكل بند سبب ومقياس نجاح مكتوب. ومنتقي النوع يختار النوع الصحيح لكل مشروع في /tmp/eaos-corpus."
           ],
           "acceptance": "python -m unittest tests.test_reference_architecture -q",
           "rollback": "احذف الكتالوج.",

@@ -138,9 +138,11 @@ def indicator_values(projects, record):
     rows = per(projects, lambda p: (min(p.surfaces(), p.truth['user_surfaces']), p.truth['user_surfaces']))
     values['U2'] = (mean([ratio(a, b) for _, (a, b) in rows]), 'found/true surfaces: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
     with_db = [p for p in projects if p.truth.get('tables')]
-    rows = per(with_db, lambda p: (len(facts(p.out, 'db_table')), p.truth['tables'], len(facts(p.out, 'db_policy')), p.truth['policies']))
+    # A table counts as read when its row-level security state is known, not merely its name.
+    rows = per(with_db, lambda p: (sum('rls_enabled' in (f.get('value') or {}) for f in facts(p.out, 'data_table')), p.truth['tables'],
+                                   len(facts(p.out, 'db_policy')), p.truth['policies']))
     values['U3'] = (ratio(sum(t >= 0.9 * tt and q >= 0.9 * qq for _, (t, tt, q, qq) in rows), len(rows)),
-                    'db_table/db_policy facts vs truth: ' + text(rows, lambda v: f'{v[0]}/{v[1]} tables, {v[2]}/{v[3]} policies'))
+                    'data_table facts with RLS state, and db_policy facts, vs truth: ' + text(rows, lambda v: f'{v[0]}/{v[1]} tables, {v[2]}/{v[3]} policies'))
     rows = per(projects, lambda p: len((load(p.out, 'features.json', {}) or {}).get('features') or []))
     values['U4'] = (ratio(sum(count > 0 for _, count in rows), len(rows)), 'features in features.json: ' + text(rows))
 
@@ -163,8 +165,13 @@ def indicator_values(projects, record):
         return sum(item in project.claim_text or item in kinded for item in items), len(items)
     rows = [(p.name, mentioned(p, 'leftovers', 'leftover')) for p in projects if p.truth.get('leftovers')]
     values['D2'] = (pooled([v for _, v in rows]), 'leftovers reported: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
-    rows = [(p.name, mentioned(p, 'secrets', 'committed_secret')) for p in projects if p.truth.get('secrets')]
-    values['H1'] = (pooled([v for _, v in rows]), 'committed secrets reported: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+    def credentials(project):
+        items = project.truth.get('credentials') or []
+        found = facts(project.out, 'committed_credential')
+        return sum(any(item['path'] in ((f.get('location') or {}).get('path') or '')
+                       and (f.get('value') or {}).get('severity') == item['severity'] for f in found) for item in items), len(items)
+    rows = [(p.name, credentials(p)) for p in projects if p.truth.get('credentials')]
+    values['H1'] = (pooled([v for _, v in rows]), 'committed credentials reported with the right severity: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
     rows = per([p for p in projects if p.truth.get('policies')], lambda p: (len(facts(p.out, 'db_policy')), p.truth['policies']))
     values['H2'] = (ratio(sum(a >= 0.9 * b for _, (a, b) in rows), len(rows)), 'db_policy facts vs truth: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
 
@@ -210,6 +217,12 @@ def indicator_values(projects, record):
     values['G2'] = (mean([ratio(a, b) for _, (a, b) in rows]), 'sustainability indicators with a value: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
 
     tasks = [task for p in projects for task in p.plan.get('tasks', [])]
+    runnable_card = lambda task: bool(task.get('acceptance')) and all('human review' not in str(row.get('command', ''))
+                                                                   for row in task.get('acceptance', []))
+    removals = sum(t.get('pattern') == 'remove_dead' and t.get('kind') == 'remediate'
+                   and (t.get('decision') or {}).get('readiness') == 'ready' and runnable_card(t) for t in tasks)
+    dead = sum((c.get('render') or {}).get('key') in ('dead_code', 'leftover') for p in projects for c in p.dossier.get('claims', []))
+    values['D3'] = (ratio(removals, dead) if dead else 0.0, f'ready remove_dead cards: {removals} for {dead} dead-code and leftover claims')
     count = len(tasks)
     sized = sum(str(task.get('effort')) not in ('unknown', 'None', '') for task in tasks)
     ready = sum(task.get('kind') == 'remediate' and (task.get('decision') or {}).get('readiness') == 'ready' for task in tasks)

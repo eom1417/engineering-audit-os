@@ -19,12 +19,20 @@ LIMITATIONS = [
     'Ownership of a rule is not asserted here; that requires semantic review.',
     'A mutable module-level value is a shared-state signal, not proof of a concurrency defect.',
     'Writes into third-party or standard-library modules are not reported; only modules this snapshot defines.',
+    'Row-level security and access policies are read from .sql files in path order, which is migration order when '
+    'names carry a timestamp; a policy created from a dashboard and never written to SQL is not seen.',
 ]
 JS_CONST = re.compile(r'^\s*(?:export\s+)?(?:const|let|var)\s+(?P<name>[A-Z][A-Z0-9_]{2,})\s*=\s*(?P<value>[^;\n]+)', re.M)
 SQL_TABLE = re.compile(r'CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"\[]?(?P<name>[\w.]+)', re.I)
 ORM_MODEL = re.compile(r'^\s*class\s+(?P<name>\w+)\s*\(([^)]*(?:Model|Base|Document|Entity)[^)]*)\)', re.M)
 TS_MODEL = re.compile(r'^\s*(?:export\s+)?(?:interface|type)\s+(?P<name>\w+)\s*[={]', re.M)
 MIGRATION = re.compile(r'(migrations?|alembic|flyway|liquibase)/', re.I)
+SQL_NAME = r'(?P<table>(?:"?\w+"?\.)?"?\w+"?)'
+SQL_RLS = re.compile(r'ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:ONLY\s+)?' + SQL_NAME + r'\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY', re.I)
+SQL_POLICY = re.compile(r'CREATE\s+POLICY\s+(?P<quote>"?)(?P<name>.+?)(?P=quote)\s+ON\s+' + SQL_NAME + r'(?P<body>[^;]*)', re.I | re.S)
+SQL_DROP_POLICY = re.compile(r'DROP\s+POLICY\s+(?:IF\s+EXISTS\s+)?(?P<quote>"?)(?P<name>.+?)(?P=quote)\s+ON\s+' + SQL_NAME, re.I)
+SQL_DROP_TABLE = re.compile(r'DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?' + SQL_NAME, re.I)
+SQL_OPEN = re.compile(r'\b(USING|WITH\s+CHECK)\s*\(\s*true\s*\)', re.I)
 # Per-module metadata, not shared domain rules: repeating these names says nothing about rule ownership.
 CONVENTIONAL = {'NAME', 'VERSION', 'SCHEMA_VERSION', 'LIMITATIONS', 'LOGGER', 'LOG', 'DEBUG', 'TAG', 'AUTHOR',
                 'LICENSE', 'ORDER', 'DEFAULT', 'PREFIX', 'SUFFIX', 'ENCODING', 'TIMEOUT_DEFAULT'}
@@ -146,10 +154,45 @@ def python_constants(text):
     return found
 
 
+def table_key(name):
+    """One spelling per table: quotes dropped, lower case, and the default schema made explicit."""
+    name = name.replace('"', '').replace('`', '').lower()
+    return name if '.' in name else 'public.' + name
+
+
+def sql_access(files):
+    """Net row-level security and policies after every migration has run, in path order.
+
+    A policy dropped and created again counts once; one dropped and not recreated does not count.
+    """
+    rls, dropped, policies = set(), set(), {}
+    for rel, text in sorted(files):
+        events = [(m.start(), 'rls', m) for m in SQL_RLS.finditer(text)]
+        events += [(m.start(), 'policy', m) for m in SQL_POLICY.finditer(text)]
+        events += [(m.start(), 'drop_policy', m) for m in SQL_DROP_POLICY.finditer(text)]
+        events += [(m.start(), 'drop_table', m) for m in SQL_DROP_TABLE.finditer(text)]
+        for offset, kind, match in sorted(events, key=lambda event: event[0]):
+            table = table_key(match.group('table'))
+            if kind == 'rls': rls.add(table); dropped.discard(table)
+            elif kind == 'drop_table': dropped.add(table); rls.discard(table)
+            elif kind == 'drop_policy': policies.pop((table, match.group('name')), None)
+            else:
+                body = ' '.join(match.group('body').split())
+                command = re.search(r'\bFOR\s+(ALL|SELECT|INSERT|UPDATE|DELETE)\b', body, re.I)
+                roles = re.search(r'\bTO\s+([\w\s,]+?)(?:\s+USING|\s+WITH|$)', body, re.I)
+                policies[(table, match.group('name'))] = {
+                    'path': rel, 'line': text.count('\n', 0, offset) + 1,
+                    'command': (command.group(1).upper() if command else 'ALL'),
+                    'roles': [role.strip() for role in roles.group(1).split(',')] if roles else ['public'],
+                    'open': bool(SQL_OPEN.search(body))}
+    policies = {key: value for key, value in policies.items() if key[0] not in dropped}
+    return {'rls': rls, 'dropped': dropped, 'policies': policies}
+
+
 def run(target, source, **options):
     facts, fingerprints = [], []
     constants = defaultdict(list)
-    models, tables, migrations = [], [], []
+    models, tables, migrations, sql_files = [], [], [], []
     mutable_globals, external_writes = [], []
     # A module is "ours" when a file in the snapshot defines it.
     owned_modules = set()
@@ -186,6 +229,7 @@ def run(target, source, **options):
             for match in SQL_TABLE.finditer(text):
                 tables.append((match.group('name'), rel, text.count('\n', 0, match.start()) + 1))
         if MIGRATION.search(rel): migrations.append(rel)
+        if rel.endswith('.sql'): sql_files.append((rel, text))
     duplicated = 0
     for name in sorted(constants):
         places = sorted(constants[name])
@@ -208,9 +252,20 @@ def run(target, source, **options):
     for name, rel, line, kind in sorted(models):
         facts.append(make('data_model', NAME, VERSION, digest((name + rel).encode('utf-8')), {'path': rel, 'start_line': line},
                           {'name': name, 'kind': kind}, limitations=LIMITATIONS))
+    access = sql_access(sql_files)
     for name, rel, line in sorted(tables):
+        key = table_key(name)
+        value = {'name': name}
+        if rel.endswith('.sql'):
+            value.update(rls_enabled=key in access['rls'], policies=sum(table == key for table, _ in access['policies']),
+                         dropped=key in access['dropped'])
         facts.append(make('data_table', NAME, VERSION, digest((name + rel).encode('utf-8')), {'path': rel, 'start_line': line},
-                          {'name': name}, limitations=LIMITATIONS))
+                          value, limitations=LIMITATIONS))
+    for (table, name), policy in sorted(access['policies'].items()):
+        facts.append(make('db_policy', NAME, VERSION, digest((table + '/' + name).encode('utf-8')),
+                          {'path': policy['path'], 'start_line': policy['line']},
+                          {'table': table, 'name': name, 'command': policy['command'], 'roles': policy['roles'],
+                           'open': policy['open']}, limitations=LIMITATIONS))
     for rel, name, shape, line, how, where, scope in sorted(mutable_globals):
         facts.append(make('mutable_global', NAME, VERSION, digest((rel + name).encode('utf-8')),
                           {'path': rel, 'start_line': line},

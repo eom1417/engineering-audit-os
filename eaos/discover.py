@@ -92,13 +92,34 @@ def observability(out, language='ar'):
     return '\n'.join(lines) + '\n'
 
 
+def row_level_security(domain_facts, ar):
+    """What the migrations say about who may read and write each table, stated even when nothing is wrong."""
+    tables = [f['value'] for f in domain_facts if f['kind'] == 'data_table' and 'rls_enabled' in f['value']
+              and not f['value'].get('dropped')]
+    if not tables: return []
+    policies = [f['value'] for f in domain_facts if f['kind'] == 'db_policy']
+    unprotected = sorted(t['name'] for t in tables if not t['rls_enabled'])
+    open_writes = sorted(f"{p['table']} ({p['command']}: {p['name']})" for p in policies
+                         if p.get('open') and p['command'] in {'ALL', 'INSERT', 'UPDATE', 'DELETE'})
+    lines = ['## ' + ('أمان الصفوف في قاعدة البيانات' if ar else 'Row-level security'), '',
+             ('- جداول عليها RLS: ' if ar else '- tables with RLS: ') + f"{len(tables) - len(unprotected)}/{len(tables)}",
+             ('- سياسات وصول: ' if ar else '- access policies: ') + str(len(policies)),
+             ('- جداول بلا RLS: ' if ar else '- tables without RLS: ') + (', '.join(unprotected[:20]) or ('لا شيء' if ar else 'none')),
+             ('- سياسات كتابة لا تتحقق من شيء: ' if ar else '- write policies that check nothing: ')
+             + (', '.join(open_writes[:20]) or ('لا شيء' if ar else 'none')), '']
+    return lines
+
+
 def security_surface(out, language='ar'):
     out = Path(out); sets = _read_sets(out); ar = language == 'ar'
     facts = [f for f in sets.get('runtime', {}).get('facts', []) if f['kind'] == 'security_surface']
     title = 'سطح الأمن' if ar else 'Security surface'
-    if not facts:
+    access = row_level_security(sets.get('domain', {}).get('facts', []), ar)
+    if not facts and not access:
         return '# ' + title + '\n\n*' + ('لا تلميحات أمان' if ar else 'No security hints') + '*\n'
-    lines = ['# ' + title, '']
+    lines = ['# ' + title, ''] + access
+    if not facts:
+        return '\n'.join(lines) + '\n'
     note = ('> تلميحات تحليل ثابت فقط.' if ar else '> Static analysis hints only.')
     lines += [note, '']
     by_hint = defaultdict(list)

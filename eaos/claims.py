@@ -243,6 +243,32 @@ def from_facts(fact_sets, target=None):
                                                          'expected': 'The module-level value is still mutated at runtime.'}},
                            impact={'scenario': 'Two callers can observe different values depending on order, and tests '
                                                'can pass in isolation while failing together.'}))
+    # A Supabase table is served to the browser through its API; without row-level security, or with a
+    # write policy that checks nothing, whoever holds the public key reads or writes every row.
+    exposed = [f for f in domain_facts if f['kind'] == 'data_table' and '/supabase/' in '/' + f['location']['path']
+               and f['value'].get('rls_enabled') is False and not f['value'].get('dropped')]
+    open_writes = [f for f in domain_facts if f['kind'] == 'db_policy' and f['value'].get('open')
+                   and f['value'].get('command') in {'ALL', 'INSERT', 'UPDATE', 'DELETE'}]
+    for fact, gap in [(f, 'no_rls') for f in exposed] + [(f, 'open_write') for f in open_writes]:
+        index += 1
+        table = fact['value']['name'] if gap == 'no_rls' else fact['value']['table']
+        policy = fact['value'].get('name') if gap == 'open_write' else None
+        what = ('has row-level security disabled' if gap == 'no_rls'
+                else f"has a {fact['value']['command']} policy \"{policy}\" that checks nothing (true)")
+        claims.append(make(index, f"Table {table} ({fact['location']['path']}:{fact['location']['start_line']}) {what}",
+                           'risk', 'CONFIRMED', ['static_fact'], [],
+                           'A later migration enabling row-level security on the table, or replacing the policy '
+                           'condition with one that ties each row to its owner.',
+                           fact_ids=[fact['id']],
+                           render={'key': 'access_gap_' + gap, 'params': {'table': table, 'path': fact['location']['path'],
+                                                                   'line': fact['location']['start_line'],
+                                                                   'gap': gap, 'policy': policy or '—'}},
+                           probe_spec={'probe_type': 'graph_query',
+                                       'specification': {'query': 'access_gap_present', 'table': table, 'gap': gap,
+                                                         'policy': policy,
+                                                         'expected': 'The table is still exposed in the net migration state.'}},
+                           impact={'scenario': 'Anyone holding the public API key can read or change rows of this '
+                                               'table that belong to other users.'}))
     for fact in [f for f in domain_facts if f['kind'] == 'external_state_write']:
         index += 1
         claims.append(make(index, f"{fact['location']['path']} writes into {fact['value']['module']}."

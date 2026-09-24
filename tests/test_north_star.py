@@ -84,7 +84,7 @@ class MeasurementTests(unittest.TestCase):
         measure = load_measure()
         with tempfile.TemporaryDirectory() as tmp:
             out = self._report(Path(tmp) / 'r', **report)
-            spec = {'name': 'p', 'truth': {'user_surfaces': 4, 'leftovers': ['temp_old.tsx'], 'secrets': ['.env']}}
+            spec = {'name': 'p', 'truth': {'user_surfaces': 4, 'leftovers': ['temp_old.tsx'], 'credentials': [{'path': '.env', 'severity': 'public'}]}}
             record = {'corpus': [spec]}
             return measure.indicator_values([measure.Project(spec, out, report.get('exit_code', 0))], record)
 
@@ -103,6 +103,18 @@ class MeasurementTests(unittest.TestCase):
     def test_a_leftover_counts_only_when_the_report_names_it(self):
         self.assertEqual(self._values()['D2'][0], 0.0)
         self.assertEqual(self._values(claims=[{'statement': 'temp_old.tsx is a leftover nothing imports'}])['D2'][0], 1.0)
+
+    def test_a_public_key_reported_as_secret_does_not_count(self):
+        import tempfile
+        measure = load_measure()
+        for severity, expected in (('public', 1.0), ('secret', 0.0)):
+            with tempfile.TemporaryDirectory() as tmp:
+                out = self._report(Path(tmp) / 'r')
+                (out / 'facts/credentials.json').write_text(json.dumps({'facts': [
+                    {'kind': 'committed_credential', 'location': {'path': '.env'}, 'value': {'severity': severity}}]}))
+                spec = {'name': 'p', 'truth': {'user_surfaces': 1, 'credentials': [{'path': '.env', 'severity': 'public'}]}}
+                values = measure.indicator_values([measure.Project(spec, out, 0)], {'corpus': [spec]})
+                self.assertEqual(values['H1'][0], expected, severity)
 
     def test_two_of_four_dispositions_halve_the_decision_score(self):
         self.assertEqual(self._values(relations=['retain', 'modify'])['T4'][0], 0.5)

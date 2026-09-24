@@ -118,7 +118,7 @@ QUERY_REQUIRES = {
     'metric_threshold': 'metrics', 'mutable_global_present': 'domain', 'external_write_present': 'domain',
     'policy_violation_present': 'graph', 'duplicate_cluster_present': 'fingerprint',
     'sequence_cluster_present': 'sequences', 'redundancy_present': 'redundancy',
-    'engine_cluster_present': 'external', 'load_blocker_present': 'load_model',
+    'engine_cluster_present': 'external', 'load_blocker_present': 'load_model', 'access_gap_present': 'domain',
 }
 
 
@@ -168,6 +168,15 @@ def run_graph_query(specification, sets):
                 and fact['value']['name'] == specification['name']
                 and fact['value'].get('mutation_scope') == 'function']
         return ('CONFIRMED', 'still mutated at runtime') if rows else ('REFUTED', 'no runtime mutation of this value remains')
+    if query == 'access_gap_present':
+        rows = sets.get('domain', {}).get('facts', [])
+        if specification['gap'] == 'no_rls':
+            still = [f for f in rows if f['kind'] == 'data_table' and f['value'].get('name') == specification['table']
+                     and f['value'].get('rls_enabled') is False and not f['value'].get('dropped')]
+        else:
+            still = [f for f in rows if f['kind'] == 'db_policy' and f['value'].get('table') == specification['table']
+                     and f['value'].get('name') == specification['policy'] and f['value'].get('open')]
+        return ('CONFIRMED', 'still exposed after every migration') if still else ('REFUTED', 'no longer exposed')
     if query == 'external_write_present':
         rows = [fact for fact in sets.get('domain', {}).get('facts', [])
                 if fact['kind'] == 'external_state_write' and fact['location']['path'] == specification['path']

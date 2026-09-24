@@ -10,7 +10,8 @@
     "Table and model detection is pattern-based; an unrecognised ORM is missed, not absent.",
     "Ownership of a rule is not asserted here; that requires semantic review.",
     "A mutable module-level value is a shared-state signal, not proof of a concurrency defect.",
-    "Writes into third-party or standard-library modules are not reported; only modules this snapshot defines."
+    "Writes into third-party or standard-library modules are not reported; only modules this snapshot defines.",
+    "Row-level security and access policies are read from .sql files in path order, which is migration order when names carry a timestamp; a policy created from a dashboard and never written to SQL is not seen."
   ],
   "summary": {
     "constants": 2,
@@ -58,7 +59,8 @@
         "Table and model detection is pattern-based; an unrecognised ORM is missed, not absent.",
         "Ownership of a rule is not asserted here; that requires semantic review.",
         "A mutable module-level value is a shared-state signal, not proof of a concurrency defect.",
-        "Writes into third-party or standard-library modules are not reported; only modules this snapshot defines."
+        "Writes into third-party or standard-library modules are not reported; only modules this snapshot defines.",
+        "Row-level security and access policies are read from .sql files in path order, which is migration order when names carry a timestamp; a policy created from a dashboard and never written to SQL is not seen."
       ]
     },
     {
@@ -98,7 +100,8 @@
         "Table and model detection is pattern-based; an unrecognised ORM is missed, not absent.",
         "Ownership of a rule is not asserted here; that requires semantic review.",
         "A mutable module-level value is a shared-state signal, not proof of a concurrency defect.",
-        "Writes into third-party or standard-library modules are not reported; only modules this snapshot defines."
+        "Writes into third-party or standard-library modules are not reported; only modules this snapshot defines.",
+        "Row-level security and access policies are read from .sql files in path order, which is migration order when names carry a timestamp; a policy created from a dashboard and never written to SQL is not seen."
       ]
     }
   ]

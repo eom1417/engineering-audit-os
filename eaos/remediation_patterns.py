@@ -34,6 +34,7 @@ def classify(claim):
     if query == 'sequence_cluster_present': return 'canonicalize'
     if query == 'redundancy_present': return 'redundant_work'
     if query == 'load_blocker_present': return 'load_blocker'
+    if query == 'access_gap_present': return 'access_gap'
     if query == 'engine_cluster_present':
         return _ENGINE_CLUSTER_KINDS.get(specification.get('kind'), 'generic')
     if probe_type == 'absence_search': return 'duplicated_rule'
@@ -169,6 +170,14 @@ PATTERNS = {
         ],
         'rollback': 'الحذف يُسترد بـrevert واحد، وإضافة اختبار لا تحتاج تراجعًا.',
     },
+    'access_gap': {
+        'change': 'هجرة جديدة تفعّل أمان الصفوف على الجدول وتضيف سياسة لكل عملية تربط الصف بصاحبه (مثل auth.uid() = owner_id)، أو تستبدل شرط true في السياسة المفتوحة.',
+        'options': [
+            {'option': 'تفعيل RLS مع سياسة ملكية لكل عملية', 'cost': 'منخفضة', 'verdict': 'مختار افتراضيًا: يغلق الوصول ويبقي صاحب الصف قادرًا على العمل'},
+            {'option': 'نقل الكتابة إلى دالة خادم بمفتاح الخدمة وإغلاق الجدول أمام الواجهة', 'cost': 'متوسطة', 'verdict': 'أنسب حين تحتاج الكتابة تحققًا لا تعبّر عنه سياسة'},
+        ],
+        'rollback': 'هجرة عكسية تعيد الحالة السابقة؛ لا بيانات تُحذف.',
+    },
     'generic': {
         'change': '⧗ لا نمط معالجة معروف لهذه الفئة: صمّم التغيير يدويًا، واذكر البديل «لا نفعل شيئًا» صراحة قبل الاعتماد.',
         'options': [{'option': 'تصميم يدوي بعد قراءة الدليل', 'cost': 'غير محددة', 'verdict': 'مطلوب'}],
@@ -213,5 +222,6 @@ def cost_of_inaction(name):
         'redundant_work': 'يبقى المسار ينفّذ عملًا لا تحتاجه نتيجته في كل تنفيذ',
         'load_blocker': 'تبقى الكلفة تنمو مع الحركة أو البيانات، فتظهر المشكلة عند حمل لا يمكن اختباره بعد وقوعه',
         'dead_code': 'يبقى الكود الميت عبئًا على القراءة والصيانة، ويصعّب تغييرات لا تعرف بوجوده، وقد يُعاد تفعيله دون تحذير',
+        'access_gap': 'تبقى صفوف المستخدمين مقروءة أو قابلة للتعديل لكل من يملك المفتاح العام للتطبيق',
         'generic': '⧗ غير محددة',
     }[name]
