@@ -17,7 +17,9 @@
     "TARGET-STATE: البنية المثالية لهذا المشروع بالوظائف نفسها: طبقات ومكوّنات وحدود وقرارات بنية تحتية، وقرار لكل مكوّن حالي (إعادة استخدام، هيكلة، إعادة بناء، حذف) بدليله وبديله.",
     "GAP-AND-STRATEGY: فرق مقيس بين كل مكوّن اليوم ومكانه في الصورة المثالية، ومراحل التحول وترتيبها وسببه.",
     "EXECUTION-PLAN: معالم بأهداف قابلة للقياس، ومهام صغيرة محددة الحجم مجمعة في أقسام فريق، لكل منها أمر قبول قابل للتشغيل وطريقة تراجع.",
-    "إثبات بعد التنفيذ: إعادة تدقيق تُظهر أن ما تنبأت به الخطة حدث فعلًا، ولا شيء انكسر، والوظائف نفسها باقية."
+    "إثبات بعد التنفيذ: إعادة تدقيق تُظهر أن ما تنبأت به الخطة حدث فعلًا، ولا شيء انكسر، والوظائف نفسها باقية.",
+    "عدّة التشغيل والتسليم: ملفات بصيغ الأدوات الأصلية (CI، و pre-commit، و Renovate، وقواعد الحدود، وسكربتات k6، وتجارب الأعطال، وخطة الفحص الحي، وإعداد الرصد، و SLO، و Goss، وموقع التسليم) تقبلها أدواتها كما هي.",
+    "التصليب التشغيلي بعد التنفيذ: الأمن والحمل والأعطال والرصد والجاهزية مقيسة قبل وبعد على نسخة تعمل في بيئة معزولة."
   ],
   "scoring": {
     "indicator": "قيمة بين 0 و1، تُحسب بتعريفها المكتوب على عيّنة المشاريع أو الحقيقة الأرضية المسجلة. القيمة null تعني غير مقيس، وتُحسب صفرًا.",
@@ -230,6 +232,16 @@
           "value": 0.0,
           "evidence": "لا محوّل من القائمة المعتمدة (Syft، OSV-Scanner، scc، Semgrep، Trivy، Checkov، dependency-cruiser، SQLFluff) مدمج بعد.",
           "measured": "automated"
+        },
+        {
+          "id": "R4",
+          "name": "الأدوات المعتمدة مثبّتة بإصداراتها",
+          "definition": "الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات",
+          "target": 1.0,
+          "value": 0.0,
+          "evidence": "الأمر eaos tools doctor غير موجود بعد، ولا أداة من العشر المعتمدة مثبّتة (2026-09-24).",
+          "reads": "eaos tools doctor --json → tools[] {name, role, pinned, found, ok}",
+          "measured": "automated"
         }
       ]
     },
@@ -298,6 +310,16 @@
           "value": 0.0,
           "evidence": "لا ملف intake.json في أي تقرير؛ الموجود عقد تكليف (engagement) بلا أسئلة للمالك.",
           "measured": "automated"
+        },
+        {
+          "id": "M1",
+          "name": "القياس لكل ملف مصدر",
+          "definition": "متوسط (ملفات المصدر المحلَّلة التي لها في measurements.json الحجم وأعلى تعقيد وعدد التغييرات وعدد المعتمِدين عليها ÷ ملفات المصدر المحلَّلة)، لكل مشروع",
+          "target": 0.95,
+          "value": 0.0,
+          "evidence": "measurements.json لا يُنتَج بعد؛ الأرقام موزعة بين المحرّكات وhistory ولا جدول يجمعها لكل ملف.",
+          "reads": "measurements.json → files[] {path, loc, complexity_max, churn, fan_in}، كل حقل ليس null",
+          "measured": "automated"
         }
       ]
     },
@@ -325,6 +347,16 @@
           "value": 0.217,
           "evidence": "5 dead of 23 distinct candidates (by path and symbol): _scope_chain, _steps, _trace_evidence, run_absence_search, write_next",
           "reads": "self_truth report: facts with value.kind == \"dead_code\", symbol names compared with self_truth.true_dead_symbols",
+          "measured": "automated"
+        },
+        {
+          "id": "S3",
+          "name": "الخطر العالي مؤكد بشاهدين",
+          "definition": "متوسط (عناصر debt-register.json بخطورة high أو critical التي يدعمها شاهدان مستقلان من أداتين مختلفتين، أو دليل حتمي واحد ÷ تلك العناصر)، لكل مشروع. مشروع بلا سجل يُحسب صفرًا.",
+          "target": 0.8,
+          "value": 0.0,
+          "evidence": "debt-register.json لا يُنتَج بعد.",
+          "reads": "debt-register.json → items[] {severity, witnesses[] {tool, kind}}؛ شاهد kind == \"deterministic\" يكفي وحده",
           "measured": "automated"
         }
       ]
@@ -596,6 +628,26 @@
           "value": 0.0,
           "evidence": "لا فحص أسلوب ولا بنية للتقارير، والتقارير الأربعة غير موجودة بعد.",
           "measured": "automated"
+        },
+        {
+          "id": "P9",
+          "name": "المهام الآلية معها أداة تحويل",
+          "definition": "بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات",
+          "target": 0.8,
+          "value": 0.0,
+          "evidence": "لا بطاقة تحمل codemod بعد.",
+          "reads": "plan.json → tasks[].codemod {tool, command, dry_run {exit, files_changed}}",
+          "measured": "automated"
+        },
+        {
+          "id": "K1",
+          "name": "عدّة التشغيل والتسليم تقبلها أدواتها",
+          "definition": "متوسط (الملفات التي يولّدها EAOS بصيغ الأدوات الأصلية ويقبلها مدقق الأداة نفسها ÷ الملفات المتوقعة للمشروع)، لكل مشروع. الملفات: سير GitHub Actions (actionlint)، و.pre-commit-config.yaml (pre-commit validate-config)، وrenovate.json (renovate-config-validator)، وقواعد dependency-cruiser، وقواعد Semgrep (semgrep --validate)، وسكربتات k6 (k6 inspect)، وتجارب Toxiproxy وخطة ZAP (مخطط JSON)، وإعداد OpenTelemetry Collector (otelcol validate)، ومواصفات Sloth (sloth validate)، وgoss.yaml (goss render)، وموقع التسليم (zensical build). ملف لم يُدقَّق لغياب أداته يُحسب فاشلًا.",
+          "target": 1.0,
+          "value": 0.0,
+          "evidence": "لا يولّد EAOS أي ملف بصيغة أداة أخرى بعد (2026-09-24).",
+          "reads": "handover/validation.json → files[] {path, tool, ok}",
+          "measured": "automated"
         }
       ]
     },
@@ -654,12 +706,62 @@
         },
         {
           "id": "E6",
-          "name": "سيناريوهات الجودة مقيسة تشغيليًا",
-          "definition": "سيناريوهات الجودة التي قيست على نسخة تعمل (k6 أو ZAP أو Toxiproxy) بقيمة مقيسة ÷ السيناريوهات",
-          "reads": "runtime-verification.json → scenarios[] {id, tool, measured}",
+          "name": "الحمل مقيس قبل وبعد",
+          "definition": "سيناريوهات الحمل في nfr/k6 التي لها p95 ونسبة خطأ مقيستان بـk6 على الكود الأصلي وبعد التحول، في بيئة معزولة وبالشروط نفسها ÷ سيناريوهات الحمل",
+          "reads": "runtime/performance.json → scenarios[] {id, before {p95_ms, error_rate}, after {p95_ms, error_rate}}",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "لا قياس تشغيلي.",
+          "evidence": "لا قياس حي بعد: يحتاج بيئة معزولة وتفويضًا.",
+          "measured": "automated"
+        },
+        {
+          "id": "E7",
+          "name": "تكافؤ السلوك بعد التحول",
+          "definition": "مواصفات تثبيت السلوك التي مرّت على الكود الأصلي ومرّت أيضًا بعد التحول ÷ التي مرّت على الأصلي",
+          "target": 1.0,
+          "value": 0.0,
+          "evidence": "لا تنفيذ بعد: يحتاج بيئة معزولة ومزوّد نموذج.",
+          "reads": "behavior-lock/results.json و behavior-lock/results-after.json → results[] {path, status}",
+          "measured": "automated"
+        },
+        {
+          "id": "E8",
+          "name": "لا خطر عالٍ مفتوح بعد التحول",
+          "definition": "مشاريع نُفّذ فيها التحول وفُحصت ساكنًا (Semgrep وTrivy وOSV-Scanner وCheckov) وحيًا (OWASP ZAP) بلا نتيجة critical أو high مفتوحة ÷ المشاريع المنفّذة",
+          "target": 1.0,
+          "value": 0.0,
+          "evidence": "لا فحص حي بعد: يحتاج بيئة معزولة.",
+          "reads": "runtime/security.json → {static {critical, high}, dast {tool, high, medium}}",
+          "measured": "automated"
+        },
+        {
+          "id": "E9",
+          "name": "المرونة مجرّبة",
+          "definition": "الاعتماديات الخارجية الحرجة (قاعدة البيانات والخدمات في الحقائق) التي جُرّب عليها عطل بـToxiproxy وطابق سلوك التطبيق المتوقع ÷ تلك الاعتماديات",
+          "target": 0.8,
+          "value": 0.0,
+          "evidence": "لا تجربة أعطال بعد: يحتاج بيئة معزولة.",
+          "reads": "runtime/resilience.json → experiments[] {dependency, toxic, expected, observed, ok}",
+          "measured": "automated"
+        },
+        {
+          "id": "E10",
+          "name": "تغطية الرصد",
+          "definition": "الأسطح الحرجة التي ظهر لها span في مخرج OpenTelemetry Collector أثناء تشغيل شبكة الأمان والحمل ÷ الأسطح الحرجة",
+          "target": 0.9,
+          "value": 0.0,
+          "evidence": "لا رصد بعد: يحتاج بيئة معزولة.",
+          "reads": "runtime/telemetry.json → surfaces[] {surface, spans}",
+          "measured": "automated"
+        },
+        {
+          "id": "E11",
+          "name": "الجاهزية للإنتاج",
+          "definition": "بنود قائمة الجاهزية التي يمر أمر فحصها (Goss، والاستعادة من النسخة الاحتياطية، والتراجع، وتشغيل عدّة الحوكمة) ÷ البنود",
+          "target": 1.0,
+          "value": 0.0,
+          "evidence": "لا قائمة جاهزية بعد.",
+          "reads": "PRODUCTION-READINESS.json → items[] {id, command, ok}",
           "measured": "automated"
         }
       ]
@@ -824,7 +926,8 @@
           "rollback": "احذف ملف الحد الأعلى والخيار.",
           "status": "done"
         }
-      ]
+      ],
+      "stages": []
     },
     {
       "id": "NS2",
@@ -875,6 +978,9 @@
           "rollback": "revert الالتزام.",
           "status": "done"
         }
+      ],
+      "stages": [
+        "S01"
       ]
     },
     {
@@ -1008,6 +1114,9 @@
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
+      ],
+      "stages": [
+        "S02"
       ]
     },
     {
@@ -1060,6 +1169,9 @@
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
+      ],
+      "stages": [
+        "S04"
       ]
     },
     {
@@ -1169,6 +1281,9 @@
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
+      ],
+      "stages": [
+        "S04"
       ]
     },
     {
@@ -1227,6 +1342,631 @@
           "rollback": "revert الالتزام.",
           "status": "done"
         }
+      ],
+      "stages": [
+        "S04"
+      ]
+    },
+    {
+      "id": "NS17",
+      "title": "منصة الأدوات: كل أداة تدخل بطريقة واحدة",
+      "goal": "R4 = 1، وقارئ SARIF، وإطار التوليد، والمراحل كبيانات، والبيئة المعزولة مختبرة.",
+      "tasks": [
+        {
+          "id": "NS17.T1",
+          "title": "سجل الأدوات ومثبّتها: أمر واحد يثبّت كل أداة بإصدارها",
+          "moves": [
+            "R4"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS1.T2"
+          ],
+          "files": [
+            "upstreams/registry.yaml",
+            "eaos/toolchain.py",
+            "eaos/cli.py",
+            "eaos/engines/process.py",
+            "tools/north_star_measure.py",
+            "tests/test_toolchain.py",
+            "/workspace/setup.sh"
+          ],
+          "steps": [
+            "وسّع كل عنصر في upstreams/registry.yaml بثلاثة حقول: role (read أو emit أو run أو validate)، و stages (معرّفات pipeline في docs/north-star.json مثل S01)، و install {method: release | pip | npm, source, version, sha256 للـrelease, binary}.",
+            "أضف عناصر لأدوات عقد التقييم بآخر release مستقر يوم التنفيذ، والرخصة والمستودع من docs/TOOLCHAIN.md: syft، و osv-scanner، و scc، و semgrep، و trivy، و checkov، و dependency-cruiser، و sqlfluff، و spectral، و oasdiff (role = read)، و vale، و markdownlint-cli2 (role = validate).",
+            "اكتب eaos/toolchain.py. install(names أو stage) يثبّت في /workspace/engine-tools فقط: release ← تنزيل ثم تحقق sha256 ثم bin/؛ pip ← engine-tools/venv؛ npm ← npm install --prefix engine-tools/node ثم رابط في bin/. لا apt ولا sudo: أداة تحتاج حزمة نظام (Java لـZAP) تطبع السطر المطلوب وتخرج بغير صفر.",
+            "doctor: لكل أداة {name, role, pinned, found, ok, reason}، ويخرج بغير صفر إن نقصت أداة read أو validate لعقد التقييم. سجّل في eaos/cli.py: eaos tools install [--stage assessment|execution] [--only NAME[,NAME]] و eaos tools doctor [--json].",
+            "تأكد أن which() في eaos/engines/process.py يبحث في /workspace/engine-tools/bin قبل PATH، حتى لا تُستخدم نسخة بإصدار آخر.",
+            "اجعل /workspace/setup.sh يستدعي python -m eaos tools install --stage assessment، واحذف منه أسطر التثبيت اليدوية للمحرّكات الأربعة بعد أن يثبّتها الأمر.",
+            "أضف قياس R4 إلى tools/north_star_measure.py من eaos tools doctor --json (تعديل مسموح بنص هذه المهمة). الاختبار يثبت أن أداة بإصدار غير المثبّت تُحسب ناقصة."
+          ],
+          "acceptance": "python -m eaos tools install --stage assessment && python tools/north_star.py measure --only R4 --min 1.0",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS17.T2",
+          "title": "قارئ SARIF واحد لست أدوات",
+          "moves": [
+            "R3"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS17.T1"
+          ],
+          "files": [
+            "eaos/engines/sarif.py",
+            "eaos/data/sarif-rules.json",
+            "eaos/engines/contract.py",
+            "tests/test_sarif.py",
+            "tests/contracts/sarif-sample.json"
+          ],
+          "steps": [
+            "SARIF 2.1.0 هو المخرج المشترك لـSemgrep و Trivy و Checkov و OSV-Scanner و Spectral و OWASP ZAP. اكتب eaos/engines/sarif.py: read(path, engine, version) يحوّل runs[].results[] إلى finding() الموجودة في contract.py: ruleId ← rule، و locations[].physicalLocation ← sites، و message.text ← الرسالة، و level أو properties.security-severity ← measurement(\"severity\").",
+            "الترجمة إلى مفردات EAOS بيانات لا كود: eaos/data/sarif-rules.json → {engine: [{match: نمط ruleId بـfnmatch, kind, severity_floor}]}. نتيجة بلا صف مطابق تُعدّ في unmapped ولا تُسقط.",
+            "أضف إلى KINDS في contract.py: vulnerability، و misconfiguration، و secret، و sql_quality، و api_contract. لا تضف نوعًا لا تنتجه أداة معتمدة.",
+            "بعدها يصير محوّل أي أداة تُخرج SARIF دالة analyze() من نحو 20 سطرًا: تبني الأمر، وتشغّله بـprocess.run، وتستدعي sarif.read.",
+            "الاختبار يقرأ عيّنة SARIF حقيقية فيها ثلاث نتائج: اثنتان مطابقتان وواحدة unmapped، ويثبت أن الثالثة معدودة لا مسقطة."
+          ],
+          "acceptance": "python -m unittest tests.test_sarif -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS17.T3",
+          "title": "التوليد بصيغ الأدوات الأصلية، والأداة نفسها هي المدقق",
+          "moves": [
+            "K1"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS17.T1"
+          ],
+          "files": [
+            "eaos/emit/__init__.py",
+            "eaos/emit/validate.py",
+            "templates/emit/",
+            "eaos/cli.py",
+            "eaos/pipeline/stages.py",
+            "tools/north_star_measure.py",
+            "tests/test_emit.py"
+          ],
+          "steps": [
+            "المبدأ: لا يعيد EAOS كتابة أداة تشغيل؛ يكتب لها ملف إدخالها (سكربت k6، مواصفة Playwright، إعداد Collector، …) من الحقائق، ثم يطلب من الأداة نفسها أن تقبله.",
+            "eaos/emit/__init__.py: سجل EMITTERS {name: (function(workspace, out_dir) → [paths], validator)}. القوالب في templates/emit/<tool>/ بـstring.Template من المكتبة القياسية؛ لا تضف محرّك قوالب. JSON و YAML يُكتبان من dict مباشرة، لا بدمج نصوص.",
+            "eaos/emit/validate.py: لكل ملف مولَّد يشغّل مدقق أداته (من registry.yaml، role = validate) ويكتب handover/validation.json → files[] {path, tool, ok, output}. أداة غير مثبتة ← ok = false و reason \"validator unavailable\"؛ لا تُحسب نجاحًا.",
+            "أمر eaos emit <workspace> [--only NAME] [--validate]، ومرحلة اختيارية emit في eaos/pipeline/stages.py بعد compose، و absent_when: no emitter applies.",
+            "أول مولّد يثبت الإطار: handover/README.md فهرسًا للعدّة، ومدققه markdownlint-cli2. أضف قياس K1 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة)."
+          ],
+          "acceptance": "python -m unittest tests.test_emit -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS17.T4",
+          "title": "المراحل الخمس عشرة كبيانات، وبوابة كل مرحلة بأمر",
+          "moves": [],
+          "needs": "none",
+          "depends_on": [
+            "NS17.T1"
+          ],
+          "files": [
+            "eaos/engage.py",
+            "eaos/cli.py",
+            "tests/test_engage.py"
+          ],
+          "steps": [
+            "اكتب eaos/engage.py: STAGES كبيانات بنمط eaos/pipeline/stages.py، بالمعرّفات والمفاتيح نفسها في docs/north-star.json → pipeline (من S01 DISCOVER إلى S15 CONTINUOUS GOVERNANCE)، ولكل مرحلة: contract (assessment أو execution)، و requires، و artifacts، و gate: فحوص {artifact, field, predicate} تقرأ JSON التقرير.",
+            "البوابات تحسب بالمنطق نفسه لمؤشرات القياس: انقل دوال الحساب المشتركة من tools/north_star_measure.py إلى eaos/ واجعل القياس يستوردها. لا يُكتب حساب مرتين.",
+            "eaos engage status <workspace>: جدول لكل مرحلة (المخرجات موجودة؟ البوابة تمر؟ ولماذا لا). eaos engage gate <Sxx> <workspace>: يخرج 0 فقط إن مرت بوابتها وبوابات ما قبلها. مراحل execution ترفض دون authorization.json صالح (NS17.T5).",
+            "لا يحرّك مؤشرًا؛ يثبت عدم الهبوط بأمر القبول. الاختبار يثبت: بوابة S04 تفشل إن فشلت S02، ومرحلة تنفيذ بلا تفويض ترفض، ومعرّفات STAGES تطابق pipeline في docs/north-star.json."
+          ],
+          "acceptance": "python -m unittest tests.test_engage -q && python tools/north_star.py --no-regression",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS17.T5",
+          "title": "البيئة المعزولة: تشغيل كود المشروع بتفويض وبلا أسرار",
+          "moves": [],
+          "needs": "none",
+          "depends_on": [
+            "NS17.T4"
+          ],
+          "files": [
+            "eaos/sandbox.py",
+            "eaos/verify.py",
+            "tests/fixtures/sandbox-app/",
+            "tests/test_sandbox.py"
+          ],
+          "steps": [
+            "authorization.json في مساحة العمل شرط لأي تشغيل: {project, commit, granted_by, stages, env_allow, expires}. غيابه أو انتهاؤه أو اختلاف commit ← رفض برسالة تسمّي الناقص.",
+            "Sandbox(target, authorization): نسخة معزولة بإعادة استخدام isolated_copy في eaos/verify.py (لا نسخة ثانية)، وبيئة نظيفة فيها PATH و HOME مؤقت و LANG فقط، ومتغيرات env_allow بالاسم. قبل التشغيل تحقق أن لا متغير ينتهي بـ_TOKEN أو _KEY أو _SECRET أو _PASSWORD وصل إلى العملية.",
+            "backend بالترتيب: docker إن وُجد (--network none ومنفذ منشور)، ثم unshare -rn إن سُمح، ثم process مع تسجيل القيد \"network not isolated\". لا يُكتم القيد.",
+            "start(command, port, health_path) يشغّل التطبيق في مجموعة عمليات وينتظر health حتى مهلة؛ stop() يقتل المجموعة؛ run(argv, timeout) يشغّل أداة ضد التطبيق. كل تشغيل في sandbox-run.json {backend, commands[], exit, seconds, limitations[]}.",
+            "أمر التشغيل من intake.json → run_command إن وُجد، وإلا من package.json (preview ثم start ثم dev) بقيمة افتراضية معلنة.",
+            "الاختبار على tests/fixtures/sandbox-app (خادم http.server من سطرين): يرفض بلا تفويض، ويشغّل ويتحقق من health، ويثبت أن متغيرًا سريًا في بيئة الاختبار لم يصل، ولا يترك عملية بعد stop()."
+          ],
+          "acceptance": "python -m unittest tests.test_sandbox -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        }
+      ],
+      "stages": []
+    },
+    {
+      "id": "NS11",
+      "title": "الاستلام: ماذا يجب أن يُحمى، وإلى أين",
+      "goal": "U6 = 1.0.",
+      "tasks": [
+        {
+          "id": "NS11.T1",
+          "title": "استبيان الاستلام بقيم افتراضية معلنة",
+          "moves": [
+            "U6"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS1.T2"
+          ],
+          "files": [
+            "eaos/intake.py",
+            "eaos/data/intake-questions.json",
+            "eaos/cli.py",
+            "eaos.policy.json",
+            "tests/test_intake.py"
+          ],
+          "steps": [
+            "أسئلة ثابتة في eaos/data/intake-questions.json: الوظائف التي لا يجوز أن تضيع، وتوقع النمو (مستخدمون متزامنون)، ومتطلبات الأمن والخصوصية، والمشاكل المعروفة، والقيود (الفريق، الميزانية، المنصة). لكل سؤال قيمة افتراضية معلنة.",
+            "eaos audit --intake FILE يقرأ إجابات المالك؛ بدونه تُستخدم الافتراضيات. اكتب intake.json في التقرير: questions[] لكل سؤال {id, answer, status: answered | default}.",
+            "امتد من عقد التكليف في eaos/engagement.py ولا تكرره: ما يعرفه العقد (الأهداف، والنطاق) يُقرأ منه.",
+            "العقد مع القياس: intake.json → questions[].status ∈ {answered, default}."
+          ],
+          "acceptance": "python tools/north_star.py measure --only U6 --min 1.0",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS11.T2",
+          "title": "سيناريوهات الجودة من الاستلام",
+          "moves": [
+            "U6"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS11.T1"
+          ],
+          "files": [
+            "eaos/engagement.py",
+            "tests/test_intake.py"
+          ],
+          "steps": [
+            "حوّل إجابات الاستلام إلى سيناريوهات جودة مرقّمة بأسلوب ATAM المختصر (مثير، استجابة، مقياس)، مثل: توقع 10 آلاف مستخدم ← سيناريو حمل؛ بيانات شخصية ← سيناريو خصوصية.",
+            "كل سيناريو يذكر مصدره: إجابة المالك أو قيمة افتراضية. لا رقم بلا مصدر.",
+            "الاختبار يثبت: إجابة نمو صريحة تنتج سيناريو حمل برقمها؛ وسؤال على قيمته الافتراضية ينتج سيناريو معلّمًا default."
+          ],
+          "acceptance": "python -m unittest tests.test_intake -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        }
+      ],
+      "stages": [
+        "S01"
+      ]
+    },
+    {
+      "id": "NS12",
+      "title": "محوّلات الفحص الساكن: أدوات جاهزة بدل كود نكتبه",
+      "goal": "R3 = 1.0 و H3 = 1.0.",
+      "tasks": [
+        {
+          "id": "NS12.T1",
+          "title": "Syft و OSV-Scanner: قائمة الاعتماديات وثغراتها",
+          "moves": [
+            "H3",
+            "R3"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS17.T1"
+          ],
+          "files": [
+            "eaos/engines/syft.py",
+            "eaos/engines/osv_scanner.py",
+            "eaos/engines/__init__.py",
+            "upstreams/registry.yaml",
+            "tests/contracts/syft.json",
+            "tests/contracts/osv-scanner.json",
+            "tests/test_engine_contracts.py"
+          ],
+          "steps": [
+            "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل syft كعملية منفصلة، واقرأ مخرجه المنظم (CycloneDX JSON).",
+            "ترجم مخرجه إلى مفردات EAOS: اكتب sbom.cdx.json في التقرير كما هو. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/syft.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
+            "OSV-Scanner يقرأ sbom.cdx.json (--sbom) ويعطي حقائق kind=\"vulnerable_dependency\" (أضفها للمخطط ثم python tools/render.py): الحزمة، والإصدار، والمعرّف، والخطورة. كل ثغرة معروفة الإصلاح تصير ادعاء risk بنمط علاج \"ترقية الاعتمادية\"."
+          ],
+          "acceptance": "python tools/north_star.py measure --only H3 --min 1.0",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS12.T2",
+          "title": "scc: الحجم واللغات",
+          "moves": [
+            "R3"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS17.T1",
+            "NS12.T1"
+          ],
+          "files": [
+            "eaos/engines/scc.py",
+            "eaos/engines/__init__.py",
+            "upstreams/registry.yaml",
+            "tests/contracts/scc.json",
+            "tests/test_engine_contracts.py"
+          ],
+          "steps": [
+            "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل scc كعملية منفصلة، واقرأ مخرجه المنظم (scc --format json).",
+            "ترجم مخرجه إلى مفردات EAOS: قياسات symbol_metric_external لكل ملف (أسطر، وتعقيد)؛ شاهد مستقل على الحجم. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/scc.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة)."
+          ],
+          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS12.T3",
+          "title": "Semgrep بقواعد EAOS",
+          "moves": [
+            "R3"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS17.T1",
+            "NS12.T1",
+            "NS17.T2"
+          ],
+          "files": [
+            "eaos/engines/semgrep.py",
+            "eaos/data/semgrep/",
+            "eaos/engines/__init__.py",
+            "upstreams/registry.yaml",
+            "tests/contracts/semgrep.json",
+            "tests/test_engine_contracts.py",
+            "eaos/data/sarif-rules.json"
+          ],
+          "steps": [
+            "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (semgrep --config eaos/data/semgrep --sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
+            "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. كل قاعدة تحمل في metadata نوعها من KINDS في eaos/engines/contract.py. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/semgrep.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
+            "لا تستخدم مكتبة القواعد الرسمية (رخصتها Semgrep Rules License مقيِّدة). اكتب قواعد EAOS في eaos/data/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة. كل قاعدة معها مثال يطابقها ومثال لا يطابقها."
+          ],
+          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS12.T4",
+          "title": "Trivy: الأسرار وIaC وDocker",
+          "moves": [
+            "R3",
+            "H1"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS17.T1",
+            "NS12.T1",
+            "NS17.T2"
+          ],
+          "files": [
+            "eaos/engines/trivy.py",
+            "eaos/engines/__init__.py",
+            "upstreams/registry.yaml",
+            "tests/contracts/trivy.json",
+            "tests/test_engine_contracts.py",
+            "eaos/data/sarif-rules.json"
+          ],
+          "steps": [
+            "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (trivy fs --format sarif --scanners vuln,secret,misconfig)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
+            "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. ثغرات، وإعدادات خاطئة (boundary)، وأسرار: الأسرار شاهد ثانٍ على committed_credential، لا ادعاء جديد إن طابقت الموضع نفسه. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/trivy.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
+            "لا تطبع قيمة أي سر؛ خذ نوع القاعدة وموضعها فقط."
+          ],
+          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS12.T5",
+          "title": "Checkov: GitHub Actions وIaC",
+          "moves": [
+            "R3"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS17.T1",
+            "NS12.T1",
+            "NS17.T2"
+          ],
+          "files": [
+            "eaos/engines/checkov.py",
+            "eaos/engines/__init__.py",
+            "upstreams/registry.yaml",
+            "tests/contracts/checkov.json",
+            "tests/test_engine_contracts.py",
+            "eaos/data/sarif-rules.json"
+          ],
+          "steps": [
+            "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (checkov -d TARGET -o sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
+            "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. إعدادات خاطئة في CI وIaC بخطورتها. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/checkov.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
+            "ينطبق فقط إن وُجد .github/workflows أو Dockerfile أو ملفات IaC؛ وإلا يُسجَّل غير منطبق لا غائبًا."
+          ],
+          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS12.T6",
+          "title": "dependency-cruiser: الحدود كقواعد لـJS/TS",
+          "moves": [
+            "R3"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS17.T1",
+            "NS12.T1"
+          ],
+          "files": [
+            "eaos/engines/dependency_cruiser.py",
+            "eaos/engines/__init__.py",
+            "upstreams/registry.yaml",
+            "tests/contracts/dependency-cruiser.json",
+            "tests/test_engine_contracts.py"
+          ],
+          "steps": [
+            "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل dependency-cruiser كعملية منفصلة، واقرأ مخرجه المنظم (depcruise --output-type json).",
+            "ترجم مخرجه إلى مفردات EAOS: module_edge_external، ودورات (cycle)، وخرق قواعد (boundary). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/dependency-cruiser.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
+            "ولّد إعداد القواعد من eaos.policy.json في مشروع المالك إن وُجد؛ وإلا شغّله بقاعدة no-circular وحدها. لا تكتب أي ملف داخل مشروع المالك: الإعداد في workdir."
+          ],
+          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS12.T7",
+          "title": "SQLFluff: جودة SQL والهجرات",
+          "moves": [
+            "R3"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS17.T1",
+            "NS12.T1"
+          ],
+          "files": [
+            "eaos/engines/sqlfluff.py",
+            "eaos/engines/__init__.py",
+            "upstreams/registry.yaml",
+            "tests/contracts/sqlfluff.json",
+            "tests/test_engine_contracts.py"
+          ],
+          "steps": [
+            "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل sqlfluff كعملية منفصلة، واقرأ مخرجه المنظم (sqlfluff lint --format json --dialect postgres).",
+            "ترجم مخرجه إلى مفردات EAOS: مخالفات بنمطها وموضعها؛ لا تتحول إلى ادعاءات إلا فئات الخطر (مثل غياب WHERE في UPDATE أو DELETE). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/sqlfluff.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
+            "ينطبق فقط إن وُجدت ملفات .sql."
+          ],
+          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS12.T8",
+          "title": "Spectral و oasdiff عند وجود OpenAPI",
+          "moves": [
+            "R3"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS17.T1",
+            "NS12.T1",
+            "NS17.T2"
+          ],
+          "files": [
+            "eaos/engines/spectral.py",
+            "eaos/engines/oasdiff.py",
+            "eaos/engines/__init__.py",
+            "upstreams/registry.yaml",
+            "tests/contracts/spectral.json",
+            "tests/test_engine_contracts.py",
+            "eaos/data/sarif-rules.json"
+          ],
+          "steps": [
+            "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (spectral lint -f sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
+            "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. مخالفات أسلوب الـAPI (surface). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/spectral.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
+            "العيّنة الحالية بلا OpenAPI؛ اكتب عيّنة اختبار فيها مواصفة. غياب المواصفة في مشروع له مسارات http يصير بند فجوة لا صمتًا."
+          ],
+          "acceptance": "python -m unittest tests.test_engine_contracts -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS12.T9",
+          "title": "كل المحوّلات المنطبقة تعمل على العيّنة",
+          "moves": [
+            "R3"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS12.T2",
+            "NS12.T3",
+            "NS12.T4",
+            "NS12.T5",
+            "NS12.T6",
+            "NS12.T7",
+            "NS12.T8"
+          ],
+          "files": [
+            "tools/north_star_measure.py",
+            "upstreams/registry.yaml"
+          ],
+          "steps": [
+            "ثبّت الأدوات بـpython -m eaos tools install --stage assessment، وتأكد أن eaos tools doctor و eaos engines list يريانها، وأعد القياس.",
+            "أي محوّل منطبق لم يعمل على مشروع: أصلح السبب (تثبيت أو مسار أو صيغة)، لا القائمة."
+          ],
+          "acceptance": "python tools/north_star.py measure --only R3 --min 1.0",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        }
+      ],
+      "stages": [
+        "S01",
+        "S04"
+      ]
+    },
+    {
+      "id": "NS18",
+      "title": "القياس وسجل الدَّين: الأرقام لكل ملف، والخطر حين تجتمع الأدلة",
+      "goal": "M1 ≥ 0.95 و S3 ≥ 0.8.",
+      "tasks": [
+        {
+          "id": "NS18.T1",
+          "title": "جدول القياس لكل ملف",
+          "moves": [
+            "M1"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS12.T2"
+          ],
+          "files": [
+            "eaos/measurements.py",
+            "eaos/pipeline/stages.py",
+            "tools/north_star_measure.py",
+            "tests/test_measurements.py"
+          ],
+          "steps": [
+            "مرحلة measure بعد engines تكتب measurements.json → files[] {path, language, loc, complexity_max, duplicated_lines, churn, authors, last_changed, fan_in, fan_out, coverage}، و MEASUREMENTS.md بأعلى 20 ملفًا.",
+            "المصادر موجودة ولا يُكتب محلل جديد: loc واللغة من scc (وإلا من حقائق metrics)، و complexity_max من symbol_metric_external (reforge و CodeGraph)، و duplicated_lines من مواقع jscpd، و churn و authors و last_changed من حقائق history، و fan_in و fan_out من graph، و coverage من verification.json إن وُجد.",
+            "حقل بلا مصدر يبقى null ومعه السبب في files[].missing؛ لا صفر بدل المجهول.",
+            "أضف قياس M1 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة). coverage خارج تعريف M1 لأنه يحتاج تشغيل الاختبارات."
+          ],
+          "acceptance": "python tools/north_star.py measure --only M1 --min 0.95",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS18.T2",
+          "title": "سجل الدَّين التقني: كل خطر عالٍ بشاهدين",
+          "moves": [
+            "S3"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS18.T1",
+            "NS12.T3",
+            "NS12.T4"
+          ],
+          "files": [
+            "eaos/debt_register.py",
+            "eaos/pipeline/stages.py",
+            "eaos/compose/artifacts.py",
+            "tools/north_star_measure.py",
+            "tests/test_debt_register.py"
+          ],
+          "steps": [
+            "مرحلة debt بعد probe تكتب debt-register.json → items[] {id, title, category, severity, witnesses[] {tool, finding_id, kind}, files, hotspot, impact, recommendation, claim_id}. category من: security، reliability، maintainability، architecture، data، supply_chain، dead_code.",
+            "RISK-REGISTER.md موجود (eaos/compose/artifacts.py): يُكتب من debt-register.json بدل مصدره الحالي، فلا يوجد سجلان.",
+            "hotspot لكل ملف = ترتيب مئيني لـcomplexity_max × ترتيب لـchurn × (1 + ترتيب لـfan_in)، من measurements.json. الصيغة مكتوبة في رأس الملف، والعنصر يذكر مكوّناتها الثلاثة لا الناتج وحده.",
+            "خطورة high أو critical تحتاج شاهدين مستقلين من أداتين مختلفتين (مثلًا Semgrep مع CodeGraph، أو Trivy مع حقائق secrets)، أو شاهدًا حتميًا واحدًا (kind = deterministic: مفتاح مرفوع، أو RLS معطّل). بدون ذلك تنزل إلى medium ويُضاف مجسّ يقرر.",
+            "أضف قياس S3 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة)."
+          ],
+          "acceptance": "python tools/north_star.py measure --only S3 --min 0.8",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        }
+      ],
+      "stages": [
+        "S03",
+        "S04"
+      ]
+    },
+    {
+      "id": "NS15",
+      "title": "تثبيت السلوك: المواصفات قبل أي تغيير (ساكن)",
+      "goal": "E4 = 1، ومواصفات الحمل والأعطال والفحص الحي مولّدة ومقبولة من أدواتها.",
+      "tasks": [
+        {
+          "id": "NS15.T1",
+          "title": "توليد مواصفات تثبيت السلوك",
+          "moves": [
+            "E4"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS3.T4"
+          ],
+          "files": [
+            "eaos/behavior_lock.py",
+            "eaos.policy.json",
+            "tests/test_behavior_lock.py"
+          ],
+          "steps": [
+            "لكل وظيفة في features.json: مسارات page ← مواصفة Playwright تزور الصفحة وتتحقق من عناصرها الظاهرة؛ مسارات http مع OpenAPI ← إعداد Schemathesis؛ دوال منطق Python ← هيكل ApprovalTests يلتقط المخرج الحالي.",
+            "اكتب المواصفات في behavior-lock/ وفهرسها في behavior-lock/plan.json → specs[] {feature, tool, path}. المواصفة تثبّت ما يفعله النظام اليوم، لا ما يجب أن يفعله.",
+            "التوليد ساكن ولا يشغّل شيئًا من المشروع."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E4 --min 1.0",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS15.T2",
+          "title": "مواصفات الحمل والأعطال والفحص الحي (ساكنة)",
+          "moves": [
+            "K1"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS15.T1",
+            "NS11.T2",
+            "NS17.T3"
+          ],
+          "files": [
+            "eaos/emit/nfr.py",
+            "templates/emit/k6/",
+            "templates/emit/toxiproxy/",
+            "templates/emit/zap/",
+            "upstreams/registry.yaml",
+            "tests/test_emit_nfr.py"
+          ],
+          "steps": [
+            "k6: لكل سيناريو جودة من نوع حمل في intake.json (NS11.T2)، ولكل سطح في load-model.json بكلفة معروفة: nfr/k6/<scenario>.js بسيناريو ramping-vus، و thresholds من السيناريو (http_req_duration p(95) و http_req_failed rate)، وعنوان الأساس من متغير BASE_URL. المدقق: k6 inspect. أضف k6 إلى registry.yaml بدوري validate و run.",
+            "Toxiproxy: لكل اعتمادية خارجية في الحقائق (قاعدة البيانات، وعنوان Supabase، ومضيفات integration_target): proxy في nfr/toxiproxy.json بصيغة toxiproxy-server -config، وتجارب في nfr/experiments.json {dependency, toxic: latency 2000ms | timeout | down, expected}. expected من سيناريو الجودة، وإلا القيمة الافتراضية المعلنة: «رسالة خطأ للمستخدم خلال 5 ثوانٍ، ولا صفحة بيضاء».",
+            "OWASP ZAP: nfr/zap.yaml بصيغة Automation Framework: spider ثم passiveScan-wait ثم report بصيغة JSON، والهدف من BASE_URL، والمسارات من الأسطح.",
+            "Toxiproxy و ZAP بلا مدقق يعمل دون تشغيل: الاختبار يتحقق من شكلهما بمخطط JSON مكتوب فيه، و validation.json يسجل tool = \"schema\".",
+            "التوليد ساكن: لا يشغّل شيئًا من المشروع. كل ملف يمر عبر eaos/emit/validate.py (NS17.T3)."
+          ],
+          "acceptance": "python -m unittest tests.test_emit_nfr -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        }
+      ],
+      "stages": [
+        "S05"
       ]
     },
     {
@@ -1302,7 +2042,8 @@
           ],
           "steps": [
             "لكل بند في خط الأساس: موجود أم غائب بدليل، والقرار وبديله وكلفة 'لا نفعل شيئًا'.",
-            "العقد مع القياس: اكتب القرارات في target-architecture.json → infrastructure[]، لكل بند area و present و decision و evidence."
+            "العقد مع القياس: اكتب القرارات في target-architecture.json → infrastructure[]، لكل بند area و present و decision و evidence.",
+            "مرشحات كل بند من docs/TOOLCHAIN.md (الدور «يوصي»): CI ← GitHub Actions مع pre-commit؛ الاعتماديات ← Renovate؛ الرصد ← OpenTelemetry مع SigNoz؛ SLO ← Sloth؛ IaC ← OpenTofu (و Ansible للخوادم)؛ الإطلاق التدريجي ← Unleash؛ التوجيه أثناء Strangler ← Traefik؛ الهجرات ← أداة المكدّس الأصلية (Supabase CLI أو Prisma أو Alembic)، و Liquibase لـJVM فقط. لكل مرشح سبب من الحقائق أو سيناريو جودة، و«لا حاجة» مقبول بسببه."
           ],
           "acceptance": "python tools/north_star.py measure --only T2 --min 1.0",
           "rollback": "revert الالتزام.",
@@ -1355,530 +2096,9 @@
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
-      ]
-    },
-    {
-      "id": "NS8",
-      "title": "خطة التنفيذ للفريق والتقارير الأربعة",
-      "goal": "P1 = 1.0 و P2 ≥ 0.5 و P3 ≥ 0.8 و P4 = 1.0 و P6 = 1.0 و P7 = 1.0.",
-      "tasks": [
-        {
-          "id": "NS8.T1",
-          "title": "حجم لكل مهمة",
-          "moves": [
-            "P1"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS1.T2"
-          ],
-          "files": [
-            "eaos/plan.py",
-            "tests/test_plan.py"
-          ],
-          "steps": [
-            "S/M/L مشتق من نطاق الأثر (ملفات ومستوردون) والنمط، مع ثقته المعلنة.",
-            "العقد مع القياس: اكتب الحجم في plan.json → tasks[].effort بإحدى القيم S أو M أو L."
-          ],
-          "acceptance": "python tools/north_star.py measure --only P1 --min 1.0",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        },
-        {
-          "id": "NS8.T2",
-          "title": "معالم لا موجات",
-          "moves": [
-            "P4"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS7.T2"
-          ],
-          "files": [
-            "eaos/plan.py",
-            "eaos/compose/artifacts.py",
-            "tests/test_plan.py"
-          ],
-          "steps": [
-            "اجمع البطاقات في معالم حسب المكوّن المستهدف والهدف: التنظيف، ثم الأمن، ثم الطبقات، ثم التحسين.",
-            "لكل معلم هدف وشرط خروج مقيس، وROADMAP.md بأقل من 10 معالم وأهم البطاقات في كل معلم.",
-            "العقد مع القياس: اكتب المعالم في plan.json → milestones[]، لكل معلم id و goal و exit و tasks."
-          ],
-          "acceptance": "python tools/north_star.py measure --only P4 --min 1.0",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        },
-        {
-          "id": "NS8.T3",
-          "title": "أوامر قبول قابلة للتشغيل للفئات الآلية",
-          "moves": [
-            "P2",
-            "P3"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS5.T4",
-            "NS6.T1"
-          ],
-          "files": [
-            "eaos/remediation_patterns.py",
-            "eaos/plan.py",
-            "tests/test_decisions.py"
-          ],
-          "steps": [
-            "كل فئة يكون دليلها آليًا (كود ميت، مخلفات، أسرار، تكرار حرفي، مخالفة سياسة) تصدر بطاقة remediate بأمر قبول يعيد التدقيق ويتحقق من زوال الحقيقة."
-          ],
-          "acceptance": "python tools/north_star.py measure --only P3 --min 0.8",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        },
-        {
-          "id": "NS8.T4",
-          "title": "أقسام الفريق",
-          "moves": [
-            "P6"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS8.T2"
-          ],
-          "files": [
-            "eaos/plan.py",
-            "tests/test_plan.py"
-          ],
-          "steps": [
-            "صنّف كل مهمة في قسم (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) من طبقتها المستهدفة وملفاتها.",
-            "لكل قسم ترتيب داخلي وما يعتمد عليه من الأقسام الأخرى، ليعمل أكثر من مبرمج بالتوازي.",
-            "العقد مع القياس: اكتب القسم في plan.json → tasks[].section."
-          ],
-          "acceptance": "python tools/north_star.py measure --only P6 --min 1.0",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        },
-        {
-          "id": "NS8.T5",
-          "title": "التقارير الأربعة مدخلًا للتقرير",
-          "moves": [
-            "P7"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS7.T5",
-            "NS8.T4"
-          ],
-          "files": [
-            "eaos/compose/artifacts.py",
-            "eaos/compose/four_reports.py",
-            "eaos.policy.json",
-            "tests/test_artifact_contract.py"
-          ],
-          "steps": [
-            "CURRENT-STATE.md و TARGET-STATE.md و GAP-AND-STRATEGY.md و EXECUTION-PLAN.md، لكل منها مالك وميزانية وتوأم JSON.",
-            "README التقرير يبدأ بها بالترتيب، وتصير بقية الوثائق ملاحق مرجعية.",
-            "العقد مع القياس: أسماء الملفات بالضبط: CURRENT-STATE.md و TARGET-STATE.md و GAP-AND-STRATEGY.md و EXECUTION-PLAN.md."
-          ],
-          "acceptance": "python tools/north_star.py measure --only P7 --min 1.0",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        }
-      ]
-    },
-    {
-      "id": "NS9",
-      "title": "إثبات التنفيذ",
-      "goal": "E1 = 1.0 و E2 ≥ 0.8.",
-      "tasks": [
-        {
-          "id": "NS9.T1",
-          "title": "تنفيذ حقيقي على مشروع من العيّنة",
-          "moves": [
-            "E1",
-            "E2"
-          ],
-          "needs": "model_provider",
-          "depends_on": [
-            "NS8.T3"
-          ],
-          "files": [
-            "docs/north-star.json"
-          ],
-          "steps": [
-            "اضبط مزوّد نموذج، وشغّل eaos improve على نسخة من مشروع في العيّنة بخطوات محدودة.",
-            "سجّل: المهام المنفذة، وأوامر القبول ونتائجها، و predictions_verified من guarantee.json."
-          ],
-          "acceptance": "python tools/north_star.py measure --only E1 --min 1.0",
-          "rollback": "لا تغيير في الكود.",
-          "status": "todo"
-        }
-      ]
-    },
-    {
-      "id": "NS10",
-      "title": "الإثبات المستقل",
-      "goal": "V3 = 1.0 و V4 = 1.0.",
-      "tasks": [
-        {
-          "id": "NS10.T1",
-          "title": "عيّنة من 10 مشاريع منها 3 holdout",
-          "moves": [
-            "V4"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS1.T2"
-          ],
-          "files": [
-            "docs/north-star.json"
-          ],
-          "steps": [
-            "أضف 7 مشاريع حقيقية متنوعة، وضع 3 منها في holdout لا تُقرأ تقاريرها أثناء التطوير.",
-            "لكل مشروع truth مكتوبة قبل تشغيل الأداة عليه."
-          ],
-          "acceptance": "python tools/north_star.py measure --only V4 --min 1.0",
-          "rollback": "احذف المشاريع المضافة.",
-          "status": "todo"
-        },
-        {
-          "id": "NS10.T2",
-          "title": "مراجع بشري مستقل",
-          "moves": [
-            "V3"
-          ],
-          "needs": "human",
-          "depends_on": [
-            "NS8.T2"
-          ],
-          "files": [
-            "docs/north-star.json"
-          ],
-          "steps": [
-            "ابنِ حزمة مراجعة لمشروع من العيّنة وسلّمها لمراجع من خارج المشروع، وسجّل النموذج المكتمل كما هو."
-          ],
-          "acceptance": "python tools/north_star.py measure --only V3 --min 1.0",
-          "rollback": "لا تغيير في الكود.",
-          "status": "todo"
-        }
-      ]
-    },
-    {
-      "id": "NS11",
-      "title": "الاستلام: ماذا يجب أن يُحمى، وإلى أين",
-      "goal": "U6 = 1.0.",
-      "tasks": [
-        {
-          "id": "NS11.T1",
-          "title": "استبيان الاستلام بقيم افتراضية معلنة",
-          "moves": [
-            "U6"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS1.T2"
-          ],
-          "files": [
-            "eaos/intake.py",
-            "eaos/data/intake-questions.json",
-            "eaos/cli.py",
-            "eaos.policy.json",
-            "tests/test_intake.py"
-          ],
-          "steps": [
-            "أسئلة ثابتة في eaos/data/intake-questions.json: الوظائف التي لا يجوز أن تضيع، وتوقع النمو (مستخدمون متزامنون)، ومتطلبات الأمن والخصوصية، والمشاكل المعروفة، والقيود (الفريق، الميزانية، المنصة). لكل سؤال قيمة افتراضية معلنة.",
-            "eaos audit --intake FILE يقرأ إجابات المالك؛ بدونه تُستخدم الافتراضيات. اكتب intake.json في التقرير: questions[] لكل سؤال {id, answer, status: answered | default}.",
-            "امتد من عقد التكليف في eaos/engagement.py ولا تكرره: ما يعرفه العقد (الأهداف، والنطاق) يُقرأ منه.",
-            "العقد مع القياس: intake.json → questions[].status ∈ {answered, default}."
-          ],
-          "acceptance": "python tools/north_star.py measure --only U6 --min 1.0",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        },
-        {
-          "id": "NS11.T2",
-          "title": "سيناريوهات الجودة من الاستلام",
-          "moves": [
-            "U6"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS11.T1"
-          ],
-          "files": [
-            "eaos/engagement.py",
-            "tests/test_intake.py"
-          ],
-          "steps": [
-            "حوّل إجابات الاستلام إلى سيناريوهات جودة مرقّمة بأسلوب ATAM المختصر (مثير، استجابة، مقياس)، مثل: توقع 10 آلاف مستخدم ← سيناريو حمل؛ بيانات شخصية ← سيناريو خصوصية.",
-            "كل سيناريو يذكر مصدره: إجابة المالك أو قيمة افتراضية. لا رقم بلا مصدر.",
-            "الاختبار يثبت: إجابة نمو صريحة تنتج سيناريو حمل برقمها؛ وسؤال على قيمته الافتراضية ينتج سيناريو معلّمًا default."
-          ],
-          "acceptance": "python -m unittest tests.test_intake -q",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        }
-      ]
-    },
-    {
-      "id": "NS12",
-      "title": "محوّلات الفحص الساكن: أدوات جاهزة بدل كود نكتبه",
-      "goal": "R3 = 1.0 و H3 = 1.0.",
-      "tasks": [
-        {
-          "id": "NS12.T1",
-          "title": "Syft و OSV-Scanner: قائمة الاعتماديات وثغراتها",
-          "moves": [
-            "H3",
-            "R3"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS1.T2"
-          ],
-          "files": [
-            "eaos/engines/syft.py",
-            "eaos/engines/osv_scanner.py",
-            "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
-            "tests/contracts/syft.json",
-            "tests/contracts/osv-scanner.json",
-            "tests/test_engine_contracts.py"
-          ],
-          "steps": [
-            "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل syft كعملية منفصلة، واقرأ مخرجه المنظم (CycloneDX JSON).",
-            "ترجم مخرجه إلى مفردات EAOS: اكتب sbom.cdx.json في التقرير كما هو. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/syft.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.",
-            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "OSV-Scanner يقرأ sbom.cdx.json (--sbom) ويعطي حقائق kind=\"vulnerable_dependency\" (أضفها للمخطط ثم python tools/render.py): الحزمة، والإصدار، والمعرّف، والخطورة. كل ثغرة معروفة الإصلاح تصير ادعاء risk بنمط علاج \"ترقية الاعتمادية\"."
-          ],
-          "acceptance": "python tools/north_star.py measure --only H3 --min 1.0",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        },
-        {
-          "id": "NS12.T2",
-          "title": "scc: الحجم واللغات",
-          "moves": [
-            "R3"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS12.T1"
-          ],
-          "files": [
-            "eaos/engines/scc.py",
-            "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
-            "tests/contracts/scc.json",
-            "tests/test_engine_contracts.py"
-          ],
-          "steps": [
-            "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل scc كعملية منفصلة، واقرأ مخرجه المنظم (scc --format json).",
-            "ترجم مخرجه إلى مفردات EAOS: قياسات symbol_metric_external لكل ملف (أسطر، وتعقيد)؛ شاهد مستقل على الحجم. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/scc.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.",
-            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة)."
-          ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        },
-        {
-          "id": "NS12.T3",
-          "title": "Semgrep بقواعد EAOS",
-          "moves": [
-            "R3"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS12.T1"
-          ],
-          "files": [
-            "eaos/engines/semgrep.py",
-            "eaos/data/semgrep/",
-            "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
-            "tests/contracts/semgrep.json",
-            "tests/test_engine_contracts.py"
-          ],
-          "steps": [
-            "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل semgrep كعملية منفصلة، واقرأ مخرجه المنظم (semgrep --config eaos/data/semgrep --json).",
-            "ترجم مخرجه إلى مفردات EAOS: كل قاعدة تحمل في metadata نوعها من KINDS في eaos/engines/contract.py. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/semgrep.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.",
-            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "لا تستخدم مكتبة القواعد الرسمية (رخصتها Semgrep Rules License مقيِّدة). اكتب قواعد EAOS في eaos/data/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة. كل قاعدة معها مثال يطابقها ومثال لا يطابقها."
-          ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        },
-        {
-          "id": "NS12.T4",
-          "title": "Trivy: الأسرار وIaC وDocker",
-          "moves": [
-            "R3",
-            "H1"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS12.T1"
-          ],
-          "files": [
-            "eaos/engines/trivy.py",
-            "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
-            "tests/contracts/trivy.json",
-            "tests/test_engine_contracts.py"
-          ],
-          "steps": [
-            "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل trivy كعملية منفصلة، واقرأ مخرجه المنظم (trivy fs --format json --scanners vuln,secret,misconfig).",
-            "ترجم مخرجه إلى مفردات EAOS: ثغرات، وإعدادات خاطئة (boundary)، وأسرار: الأسرار شاهد ثانٍ على committed_credential، لا ادعاء جديد إن طابقت الموضع نفسه. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/trivy.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.",
-            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "لا تطبع قيمة أي سر؛ خذ نوع القاعدة وموضعها فقط."
-          ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        },
-        {
-          "id": "NS12.T5",
-          "title": "Checkov: GitHub Actions وIaC",
-          "moves": [
-            "R3"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS12.T1"
-          ],
-          "files": [
-            "eaos/engines/checkov.py",
-            "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
-            "tests/contracts/checkov.json",
-            "tests/test_engine_contracts.py"
-          ],
-          "steps": [
-            "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل checkov كعملية منفصلة، واقرأ مخرجه المنظم (checkov -d TARGET -o json).",
-            "ترجم مخرجه إلى مفردات EAOS: إعدادات خاطئة في CI وIaC بخطورتها. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/checkov.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.",
-            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "ينطبق فقط إن وُجد .github/workflows أو Dockerfile أو ملفات IaC؛ وإلا يُسجَّل غير منطبق لا غائبًا."
-          ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        },
-        {
-          "id": "NS12.T6",
-          "title": "dependency-cruiser: الحدود كقواعد لـJS/TS",
-          "moves": [
-            "R3"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS12.T1"
-          ],
-          "files": [
-            "eaos/engines/dependency_cruiser.py",
-            "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
-            "tests/contracts/dependency-cruiser.json",
-            "tests/test_engine_contracts.py"
-          ],
-          "steps": [
-            "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل dependency-cruiser كعملية منفصلة، واقرأ مخرجه المنظم (depcruise --output-type json).",
-            "ترجم مخرجه إلى مفردات EAOS: module_edge_external، ودورات (cycle)، وخرق قواعد (boundary). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/dependency-cruiser.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.",
-            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "ولّد إعداد القواعد من eaos.policy.json في مشروع المالك إن وُجد؛ وإلا شغّله بقاعدة no-circular وحدها. لا تكتب أي ملف داخل مشروع المالك: الإعداد في workdir."
-          ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        },
-        {
-          "id": "NS12.T7",
-          "title": "SQLFluff: جودة SQL والهجرات",
-          "moves": [
-            "R3"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS12.T1"
-          ],
-          "files": [
-            "eaos/engines/sqlfluff.py",
-            "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
-            "tests/contracts/sqlfluff.json",
-            "tests/test_engine_contracts.py"
-          ],
-          "steps": [
-            "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل sqlfluff كعملية منفصلة، واقرأ مخرجه المنظم (sqlfluff lint --format json --dialect postgres).",
-            "ترجم مخرجه إلى مفردات EAOS: مخالفات بنمطها وموضعها؛ لا تتحول إلى ادعاءات إلا فئات الخطر (مثل غياب WHERE في UPDATE أو DELETE). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/sqlfluff.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.",
-            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "ينطبق فقط إن وُجدت ملفات .sql."
-          ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        },
-        {
-          "id": "NS12.T8",
-          "title": "Spectral و oasdiff عند وجود OpenAPI",
-          "moves": [
-            "R3"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS12.T1"
-          ],
-          "files": [
-            "eaos/engines/spectral.py",
-            "eaos/engines/oasdiff.py",
-            "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
-            "tests/contracts/spectral.json",
-            "tests/test_engine_contracts.py"
-          ],
-          "steps": [
-            "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل spectral كعملية منفصلة، واقرأ مخرجه المنظم (spectral lint -f json).",
-            "ترجم مخرجه إلى مفردات EAOS: مخالفات أسلوب الـAPI (surface). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/spectral.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، وسطر تثبيت بإصدار مثبّت في /workspace/setup.sh.",
-            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "العيّنة الحالية بلا OpenAPI؛ اكتب عيّنة اختبار فيها مواصفة. غياب المواصفة في مشروع له مسارات http يصير بند فجوة لا صمتًا."
-          ],
-          "acceptance": "python -m unittest tests.test_engine_contracts -q",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        },
-        {
-          "id": "NS12.T9",
-          "title": "كل المحوّلات المنطبقة تعمل على العيّنة",
-          "moves": [
-            "R3"
-          ],
-          "needs": "none",
-          "depends_on": [
-            "NS12.T2",
-            "NS12.T3",
-            "NS12.T4",
-            "NS12.T5",
-            "NS12.T6",
-            "NS12.T7",
-            "NS12.T8"
-          ],
-          "files": [
-            "tools/north_star_measure.py",
-            "/workspace/setup.sh"
-          ],
-          "steps": [
-            "ثبّت كل أداة بإصدارها المثبّت، وتأكد أن eaos engines list يراها، وأعد القياس.",
-            "أي محوّل منطبق لم يعمل على مشروع: أصلح السبب (تثبيت أو مسار أو صيغة)، لا القائمة."
-          ],
-          "acceptance": "python tools/north_star.py measure --only R3 --min 1.0",
-          "rollback": "revert الالتزام.",
-          "status": "todo"
-        }
+      ],
+      "stages": [
+        "S06"
       ]
     },
     {
@@ -1956,6 +2176,168 @@
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
+      ],
+      "stages": [
+        "S02",
+        "S06"
+      ]
+    },
+    {
+      "id": "NS8",
+      "title": "خطة التنفيذ للفريق والتقارير الأربعة",
+      "goal": "P1 = 1.0 و P2 ≥ 0.5 و P3 ≥ 0.8 و P4 = 1.0 و P6 = 1.0 و P7 = 1.0 و P9 ≥ 0.8.",
+      "tasks": [
+        {
+          "id": "NS8.T1",
+          "title": "حجم لكل مهمة",
+          "moves": [
+            "P1"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS1.T2"
+          ],
+          "files": [
+            "eaos/plan.py",
+            "tests/test_plan.py"
+          ],
+          "steps": [
+            "S/M/L مشتق من نطاق الأثر (ملفات ومستوردون) والنمط، مع ثقته المعلنة.",
+            "العقد مع القياس: اكتب الحجم في plan.json → tasks[].effort بإحدى القيم S أو M أو L."
+          ],
+          "acceptance": "python tools/north_star.py measure --only P1 --min 1.0",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS8.T2",
+          "title": "معالم لا موجات",
+          "moves": [
+            "P4"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS7.T2"
+          ],
+          "files": [
+            "eaos/plan.py",
+            "eaos/compose/artifacts.py",
+            "tests/test_plan.py"
+          ],
+          "steps": [
+            "اجمع البطاقات في معالم حسب المكوّن المستهدف والهدف: التنظيف، ثم الأمن، ثم الطبقات، ثم التحسين.",
+            "لكل معلم هدف وشرط خروج مقيس، وROADMAP.md بأقل من 10 معالم وأهم البطاقات في كل معلم.",
+            "العقد مع القياس: اكتب المعالم في plan.json → milestones[]، لكل معلم id و goal و exit و tasks.",
+            "مكوّن قراره rebuild أو replace ويخدم أسطحًا حية: معلم بنمط Strangler Fig. المسار الجديد خلف علم (Unleash، أو متغير بيئة إن لم تُعتمد Unleash)، والتوجيه عبر Traefik إن كان للمشروع خادم، وإزالة القديم معلم مستقل لا يبدأ قبل تكافؤ السلوك (E7)."
+          ],
+          "acceptance": "python tools/north_star.py measure --only P4 --min 1.0",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS8.T3",
+          "title": "أوامر قبول قابلة للتشغيل للفئات الآلية",
+          "moves": [
+            "P2",
+            "P3"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS5.T4",
+            "NS6.T1"
+          ],
+          "files": [
+            "eaos/remediation_patterns.py",
+            "eaos/plan.py",
+            "tests/test_decisions.py"
+          ],
+          "steps": [
+            "كل فئة يكون دليلها آليًا (كود ميت، مخلفات، أسرار، تكرار حرفي، مخالفة سياسة) تصدر بطاقة remediate بأمر قبول يعيد التدقيق ويتحقق من زوال الحقيقة."
+          ],
+          "acceptance": "python tools/north_star.py measure --only P3 --min 0.8",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS8.T4",
+          "title": "أقسام الفريق",
+          "moves": [
+            "P6"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS8.T2"
+          ],
+          "files": [
+            "eaos/plan.py",
+            "tests/test_plan.py"
+          ],
+          "steps": [
+            "صنّف كل مهمة في قسم (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) من طبقتها المستهدفة وملفاتها.",
+            "لكل قسم ترتيب داخلي وما يعتمد عليه من الأقسام الأخرى، ليعمل أكثر من مبرمج بالتوازي.",
+            "العقد مع القياس: اكتب القسم في plan.json → tasks[].section."
+          ],
+          "acceptance": "python tools/north_star.py measure --only P6 --min 1.0",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS8.T5",
+          "title": "التقارير الأربعة مدخلًا للتقرير",
+          "moves": [
+            "P7"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS7.T5",
+            "NS8.T4"
+          ],
+          "files": [
+            "eaos/compose/artifacts.py",
+            "eaos/compose/four_reports.py",
+            "eaos.policy.json",
+            "tests/test_artifact_contract.py"
+          ],
+          "steps": [
+            "CURRENT-STATE.md و TARGET-STATE.md و GAP-AND-STRATEGY.md و EXECUTION-PLAN.md، لكل منها مالك وميزانية وتوأم JSON.",
+            "README التقرير يبدأ بها بالترتيب، وتصير بقية الوثائق ملاحق مرجعية.",
+            "العقد مع القياس: أسماء الملفات بالضبط: CURRENT-STATE.md و TARGET-STATE.md و GAP-AND-STRATEGY.md و EXECUTION-PLAN.md."
+          ],
+          "acceptance": "python tools/north_star.py measure --only P7 --min 1.0",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS8.T6",
+          "title": "أداة تحويل لكل مهمة آلية",
+          "moves": [
+            "P9"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS8.T3"
+          ],
+          "files": [
+            "eaos/codemods.py",
+            "eaos/data/codemods.json",
+            "templates/codemods/",
+            "upstreams/registry.yaml",
+            "tools/north_star_measure.py",
+            "tests/test_codemods.py"
+          ],
+          "steps": [
+            "الفئات الآلية وأداتها في eaos/data/codemods.json: حذف مخلفات أو كود ميت ← git rm للمسارات مع فحص dependency-cruiser أن لا شيء يستوردها؛ نقل وحدة وتحديث استيراداتها (JS/TS) ← jscodeshift؛ ترقية اعتمادية ← npm install pkg@version أو pip في النسخة؛ Java ← وصفة OpenRewrite منشورة بالاسم.",
+            "لكل بطاقة من هذه الفئات: codemod {tool, command, dry_run}. dry_run يُملأ بتشغيل الأمر على isolated_copy بوضعه التجريبي (jscodeshift --dry): exit وعدد الملفات المتغيرة. التحويل يعدّل نص المشروع ولا يشغّل كوده.",
+            "استخدم تحويلات jscodeshift المنشورة إن طابقت الفئة؛ لا تكتب تحويلًا في templates/codemods/ إلا لفئة بلا مقابل، ومعه اختبار على مثال. أضف jscodeshift إلى registry.yaml بدور run.",
+            "أضف قياس P9 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة)."
+          ],
+          "acceptance": "python tools/north_star.py measure --only P9 --min 0.8",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        }
+      ],
+      "stages": [
+        "S07"
       ]
     },
     {
@@ -2011,116 +2393,536 @@
           "acceptance": "python tools/north_star.py measure --only P8 --min 1.0",
           "rollback": "revert الالتزام.",
           "status": "todo"
+        },
+        {
+          "id": "NS14.T3",
+          "title": "ملخص تنفيذي PDF بصفحة واحدة",
+          "moves": [],
+          "needs": "none",
+          "depends_on": [
+            "NS14.T2"
+          ],
+          "files": [
+            "eaos/compose/pdf.py",
+            "templates/typst/executive.typ",
+            "upstreams/registry.yaml",
+            "tests/test_pdf.py"
+          ],
+          "steps": [
+            "قالب Typst واحد يقرأ JSON التقرير (json() في Typst) ويكتب EXECUTIVE.pdf: القرار المطلوب، وأهم 3 أرقام بدليلها، وأكبر 3 مخاطر، والمعالم.",
+            "مرحلة اختيارية بعد compose، و absent_when: typst غير مثبت. أضف typst إلى registry.yaml بدور emit.",
+            "لا يحرّك مؤشرًا؛ الاختبار يثبت أن الملف يُنتج وأن كل رقم فيه موجود في JSON المصدر، وأمر القبول يثبت عدم الهبوط."
+          ],
+          "acceptance": "python -m unittest tests.test_pdf -q && python tools/north_star.py --no-regression",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
         }
+      ],
+      "stages": [
+        "S07"
       ]
     },
     {
-      "id": "NS15",
-      "title": "تثبيت السلوك قبل إعادة البناء",
-      "goal": "E4 = 1.0 و E5 ≥ 0.8.",
+      "id": "NS25",
+      "title": "عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي",
+      "goal": "K1 = 1.",
       "tasks": [
         {
-          "id": "NS15.T1",
-          "title": "توليد مواصفات تثبيت السلوك",
+          "id": "NS25.T1",
+          "title": "عدّة الحوكمة: CI و pre-commit و Renovate وقواعد الحدود",
           "moves": [
-            "E4"
+            "K1"
           ],
           "needs": "none",
           "depends_on": [
-            "NS3.T4"
+            "NS17.T3",
+            "NS7.T3",
+            "NS12.T3",
+            "NS12.T6"
           ],
           "files": [
-            "eaos/behavior_lock.py",
-            "eaos.policy.json",
-            "tests/test_behavior_lock.py"
+            "eaos/emit/governance.py",
+            "templates/emit/github-actions/",
+            "templates/emit/pre-commit/",
+            "templates/emit/renovate/",
+            "upstreams/registry.yaml",
+            "tests/test_emit_governance.py"
           ],
           "steps": [
-            "لكل وظيفة في features.json: مسارات page ← مواصفة Playwright تزور الصفحة وتتحقق من عناصرها الظاهرة؛ مسارات http مع OpenAPI ← إعداد Schemathesis؛ دوال منطق Python ← هيكل ApprovalTests يلتقط المخرج الحالي.",
-            "اكتب المواصفات في behavior-lock/ وفهرسها في behavior-lock/plan.json → specs[] {feature, tool, path}. المواصفة تثبّت ما يفعله النظام اليوم، لا ما يجب أن يفعله.",
-            "التوليد ساكن ولا يشغّل شيئًا من المشروع."
+            "handover/.github/workflows/eaos.yml بخطوات مشروطة بما ينطبق على المشروع: الاختبارات، و eaos audit --gate new مقابل خط أساس مثبّت، و dependency-cruiser بقواعد الحدود المستهدفة، و semgrep بقواعد EAOS، و trivy fs، و osv-scanner، و checkov (إن وُجد IaC أو CI)، و spectral و oasdiff (إن وُجد OpenAPI)، و playwright لشبكة الأمان. كل action مثبّت بـSHA لا بوسم.",
+            "handover/.pre-commit-config.yaml بفحوص سريعة فقط (أسرار عبر trivy، و semgrep على الملفات المتغيرة، و markdownlint). handover/renovate.json: تجميع الترقيات الصغيرة، وجدول أسبوعي، وترقيات الأمن فورية.",
+            "قواعد الحدود من target-architecture.json (المكوّنات المستهدفة وما يُمنع بينها): .dependency-cruiser.cjs لـJS/TS، وقواعد Semgrep تمنع الاستيراد عبر الحدود لـPython، واختبار ArchUnit لـJava.",
+            "أضف إلى registry.yaml بدور validate: actionlint، و pre-commit، و renovate (لـrenovate-config-validator). كل ملف يمر عبر eaos/emit/validate.py."
           ],
-          "acceptance": "python tools/north_star.py measure --only E4 --min 1.0",
+          "acceptance": "python -m unittest tests.test_emit_governance -q",
           "rollback": "revert الالتزام.",
           "status": "todo"
         },
         {
-          "id": "NS15.T2",
-          "title": "تشغيل شبكة الأمان في بيئة معزولة",
+          "id": "NS25.T2",
+          "title": "عدّة الرصد: OpenTelemetry و SLO",
+          "moves": [
+            "K1"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS25.T1",
+            "NS11.T2"
+          ],
+          "files": [
+            "eaos/emit/observability.py",
+            "templates/emit/otel/",
+            "templates/emit/sloth/",
+            "upstreams/registry.yaml",
+            "tests/test_emit_observability.py"
+          ],
+          "steps": [
+            "handover/otel/collector.yaml: receiver otlp (grpc و http)، و processor batch، و exporters: file للبيئة المعزولة (يقرؤه NS24) و otlp إلى عنوان من متغير بيئة للإنتاج (SigNoz أو غيره). المدقق: otelcol-contrib validate --config.",
+            "handover/otel/INSTRUMENTATION.md لكل مكدّس مكتشف: حزمة OpenTelemetry الرسمية وسطر تهيئتها، والأسطح الحرجة التي يجب أن تحمل span باسم المسار. كل سطر فيه يصير مهمة بقسم البنية التحتية في الخطة.",
+            "handover/slo/<service>.yaml بصيغة Sloth (prometheus/v1): SLO توفر و SLO زمن استجابة لكل سيناريو جودة بأهدافه. المدقق: sloth validate -i handover/slo.",
+            "أضف otelcol-contrib و sloth إلى registry.yaml بدور validate."
+          ],
+          "acceptance": "python -m unittest tests.test_emit_observability -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS25.T3",
+          "title": "عدّة الجاهزية: Goss وقائمة فحص كل بند فيها أمر",
+          "moves": [
+            "K1"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS25.T2"
+          ],
+          "files": [
+            "eaos/emit/readiness.py",
+            "templates/emit/goss/",
+            "eaos/data/readiness-checklist.json",
+            "upstreams/registry.yaml",
+            "tests/test_emit_readiness.py"
+          ],
+          "steps": [
+            "handover/readiness/goss.yaml من الصورة المثالية: المنفذ الذي يستمع عليه التطبيق، و http لمسار الصحة بحالة 200، والعمليات، وملفات الإعداد المطلوبة. المدقق: goss -g handover/readiness/goss.yaml render.",
+            "handover/readiness/checklist.json من eaos/data/readiness-checklist.json، ولكل بند command يشغّله NS16: goss validate، وشبكة الأمان، والاستعادة من نسخة احتياطية (إن كانت قاعدة بيانات)، والتراجع إلى الالتزام السابق مع مرور شبكة الأمان، و pre-commit run --all-files، و act إن توفر Docker.",
+            "بند بلا command يُرفض عند التوليد. أضف goss إلى registry.yaml بدوري validate و run."
+          ],
+          "acceptance": "python -m unittest tests.test_emit_readiness -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS25.T4",
+          "title": "موقع التسليم: التقارير وقرارات العمارة والرسوم في مكان واحد",
+          "moves": [
+            "K1"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS25.T3",
+            "NS13.T3",
+            "NS14.T2"
+          ],
+          "files": [
+            "eaos/emit/handover_site.py",
+            "templates/emit/site/",
+            "upstreams/registry.yaml",
+            "tests/test_emit_site.py"
+          ],
+          "steps": [
+            "handover/docs/: التقارير الأربعة، و adr/، و architecture/ (Mermaid مضمّن)، و runbooks/ (التشغيل، والتراجع، والاستعادة من الحوادث)، و handover/mkdocs.yml بقائمة التنقل. الصيغة mkdocs.yml يقرؤها Zensical و MkDocs معًا.",
+            "المدقق: zensical build بلا تحذير رابط مكسور. أضف zensical إلى registry.yaml بدور validate.",
+            "موقع EAOS الحالي (index.html) يبقى أداة القراءة الداخلية؛ هذا الموقع يُسلَّم للمالك ويُنشر من مستودعه."
+          ],
+          "acceptance": "python -m unittest tests.test_emit_site -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        },
+        {
+          "id": "NS25.T5",
+          "title": "كل العدّة مقبولة من أدواتها على العيّنة",
+          "moves": [
+            "K1"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS25.T4",
+            "NS15.T2"
+          ],
+          "files": [
+            "tools/north_star_measure.py",
+            "docs/north-star.json"
+          ],
+          "steps": [
+            "ثبّت المدققات بـeaos tools install --stage assessment، وولّد العدّة لكل مشروع في العيّنة، وأعد القياس.",
+            "أي ملف يرفضه مدققه: أصلح المولّد، لا المدقق ولا القائمة."
+          ],
+          "acceptance": "python tools/north_star.py measure --only K1 --min 1.0",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        }
+      ],
+      "stages": [
+        "S13",
+        "S14",
+        "S15"
+      ]
+    },
+    {
+      "id": "NS26",
+      "title": "خط الأساس الحي: السلوك والأرقام قبل أي تغيير",
+      "goal": "E5 ≥ 0.8، وخط أساس k6 مسجل لكل سيناريو حمل.",
+      "tasks": [
+        {
+          "id": "NS26.T1",
+          "title": "تشغيل شبكة الأمان على الكود الأصلي",
           "moves": [
             "E5"
           ],
           "needs": "sandbox",
           "depends_on": [
-            "NS15.T1"
+            "NS15.T1",
+            "NS17.T5"
           ],
           "files": [
             "eaos/behavior_lock.py",
             "tests/test_behavior_lock.py"
           ],
           "steps": [
-            "في حاوية بلا شبكة إنتاج ولا أسرار: ثبّت اعتماديات المشروع، وشغّله، وشغّل المواصفات، واكتب behavior-lock/results.json → results[] {path, status}.",
-            "يحتاج تفويضًا صريحًا من المالك؛ بدونه تبقى المهمة blocked بسبب مكتوب."
+            "بتفويض المالك (authorization.json، NS17.T5) وداخل Sandbox: ثبّت اعتماديات المشروع (npm ci أو pip install)، وشغّله بـstart، ثم شغّل مواصفات behavior-lock بأدواتها: npx playwright test --reporter=json، و schemathesis run، و pact، و pytest لـApprovalTests.",
+            "اكتب behavior-lock/results.json → results[] {path, status}. مواصفة فشلت على الكود الأصلي تُصحَّح لتصف ما يفعله النظام فعلًا، أو تُعلَّم quarantined بسبب مكتوب؛ لا تُحذف.",
+            "بلا تفويض تبقى المهمة blocked بسبب مكتوب."
           ],
           "acceptance": "python tools/north_star.py measure --only E5 --min 0.8",
           "rollback": "revert الالتزام.",
           "status": "todo"
-        }
-      ]
-    },
-    {
-      "id": "NS16",
-      "title": "التحقق التشغيلي والجاهزية",
-      "goal": "E6 ≥ 0.8.",
-      "tasks": [
+        },
         {
-          "id": "NS16.T1",
-          "title": "قياس سيناريوهات الجودة على نسخة تعمل",
+          "id": "NS26.T2",
+          "title": "خط أساس الحمل قبل أي تغيير",
           "moves": [
             "E6"
           ],
           "needs": "sandbox",
           "depends_on": [
-            "NS11.T2",
+            "NS26.T1",
             "NS15.T2"
           ],
           "files": [
-            "eaos/runtime_verification.py",
-            "eaos.policy.json",
-            "tests/test_runtime_verification.py"
+            "eaos/runtime_baseline.py",
+            "tests/test_runtime_baseline.py"
           ],
           "steps": [
-            "لكل سيناريو جودة: حمل ← سكربت k6 مولَّد؛ أمن حي ← ZAP baseline؛ عطل ← Toxiproxy (تأخير أو انقطاع قاعدة البيانات أو خدمة خارجية).",
-            "اكتب runtime-verification.json → scenarios[] {id, tool, measured, before, after}. كل رقم مقيس لا مقدّر."
+            "في Sandbox نفسه: k6 run --summary-export لكل سكربت في nfr/k6 على الكود الأصلي. اكتب runtime/performance.json → scenarios[] {id, before {p95_ms, error_rate}}، وهو الطرف «قبل» لمؤشر E6.",
+            "الشروط في الملف نفسه: نسخة build لا خادم التطوير، ومدة الإحماء، وعدد المستخدمين الافتراضيين، والجهاز. رقم بلا شروطه لا يقارَن.",
+            "الاختبار يثبت أن سيناريو بلا شروط مكتوبة يُرفض، وأن طرف «بعد» لا يُكتب دون طرف «قبل»."
+          ],
+          "acceptance": "python -m unittest tests.test_runtime_baseline -q",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        }
+      ],
+      "stages": [
+        "S05"
+      ]
+    },
+    {
+      "id": "NS9",
+      "title": "إثبات التنفيذ",
+      "goal": "E1 = 1.0 و E2 ≥ 0.8.",
+      "tasks": [
+        {
+          "id": "NS9.T1",
+          "title": "تنفيذ حقيقي على مشروع من العيّنة",
+          "moves": [
+            "E1",
+            "E2"
+          ],
+          "needs": "model_provider",
+          "depends_on": [
+            "NS8.T3",
+            "NS26.T1",
+            "NS8.T6"
+          ],
+          "files": [
+            "docs/north-star.json"
+          ],
+          "steps": [
+            "اضبط مزوّد نموذج، وشغّل eaos improve على نسخة من مشروع في العيّنة بخطوات محدودة.",
+            "سجّل: المهام المنفذة، وأوامر القبول ونتائجها، و predictions_verified من guarantee.json.",
+            "كل مهمة خلف بوابة: أمر قبولها، وشبكة الأمان (NS26) داخل Sandbox، وإعادة تدقيق بلا ادعاء حرج جديد. أي فشل يعيد المهمة ولا يمر.",
+            "البطاقات التي تحمل codemod (NS8.T6) تُنفَّذ بأداتها لا بالنموذج؛ النموذج للمهام التي تحتاج حكمًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E1 --min 1.0",
+          "rollback": "لا تغيير في الكود.",
+          "status": "todo"
+        }
+      ],
+      "stages": [
+        "S08"
+      ]
+    },
+    {
+      "id": "NS20",
+      "title": "التحقق الوظيفي: الوظائف نفسها باقية، والتنبؤ حدث",
+      "goal": "E7 = 1 و E2 ≥ 0.8.",
+      "tasks": [
+        {
+          "id": "NS20.T1",
+          "title": "شبكة الأمان وإعادة التدقيق بعد كل معلم",
+          "moves": [
+            "E7",
+            "E2"
+          ],
+          "needs": "sandbox",
+          "depends_on": [
+            "NS9.T1"
+          ],
+          "files": [
+            "eaos/verify_change.py",
+            "tests/test_verify_change.py"
+          ],
+          "steps": [
+            "بعد كل معلم من NS9، وداخل Sandbox على النسخة المتغيرة: شغّل شبكة الأمان نفسها واكتب behavior-lock/results-after.json.",
+            "أعد التدقيق بـeaos audit، ثم eaos delta مقابل خط الأساس، ثم eaos guarantee لمقارنة التنبؤ بالمقاس (E2).",
+            "إن وُجدت مواصفة OpenAPI قبل وبعد: oasdiff breaking. أي كسر لم تذكره الخطة يُفشل البوابة.",
+            "VERIFICATION.md: جدول قبل وبعد لكل مؤشر، وكل مواصفة تغيّرت حالتها وسببه."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E7 --min 1.0",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        }
+      ],
+      "stages": [
+        "S09"
+      ]
+    },
+    {
+      "id": "NS21",
+      "title": "الأمن بعد التحول: ساكنًا وحيًا",
+      "goal": "E8 = 1.",
+      "tasks": [
+        {
+          "id": "NS21.T1",
+          "title": "فحص ساكن وحي بلا خطر عالٍ مفتوح",
+          "moves": [
+            "E8"
+          ],
+          "needs": "sandbox",
+          "depends_on": [
+            "NS20.T1",
+            "NS15.T2"
+          ],
+          "files": [
+            "eaos/runtime_security.py",
+            "upstreams/registry.yaml",
+            "tests/test_runtime_security.py"
+          ],
+          "steps": [
+            "ساكن: أعد تشغيل محوّلات Semgrep و Trivy و OSV-Scanner و Checkov (NS12) على النسخة المتغيرة.",
+            "حي: داخل Sandbox والتطبيق يعمل: zap.sh -cmd -autorun nfr/zap.yaml (خطة NS15.T2). يحتاج Java 17: eaos tools install يطبع سطر تثبيته. اقرأ تقرير JSON: التنبيهات بخطورتها.",
+            "Trivy image إن بنى المشروع صورة Docker. OpenSSF Scorecard إن كان المستودع على GitHub و GITHUB_TOKEN متاح: يُسجَّل في التقرير ولا يدخل البوابة.",
+            "runtime/security.json → {static {critical, high}, dast {tool, high, medium}}. E8 للمشروع = 1 فقط إن كانت critical و high صفرًا في الاثنين."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E8 --min 1.0",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        }
+      ],
+      "stages": [
+        "S10"
+      ]
+    },
+    {
+      "id": "NS22",
+      "title": "الحمل: قبل وبعد بالشروط نفسها",
+      "goal": "E6 ≥ 0.8.",
+      "tasks": [
+        {
+          "id": "NS22.T1",
+          "title": "k6 بعد التحول مقابل خط الأساس",
+          "moves": [
+            "E6"
+          ],
+          "needs": "sandbox",
+          "depends_on": [
+            "NS20.T1",
+            "NS26.T2"
+          ],
+          "files": [
+            "eaos/runtime_baseline.py",
+            "tests/test_runtime_baseline.py"
+          ],
+          "steps": [
+            "شغّل سكربتات nfr/k6 نفسها بالشروط المكتوبة في runtime/performance.json على النسخة المتغيرة، واملأ after.",
+            "PERFORMANCE.md: p95 ونسبة الخطأ قبل وبعد لكل سيناريو، ومقابل عتبة سيناريو الجودة.",
+            "اختياري للخوادم (Node أو Python أو Go أو Java): Grafana Pyroscope أثناء التشغيل لمعرفة أين يذهب المعالج. يُرفق ولا يدخل البوابة."
           ],
           "acceptance": "python tools/north_star.py measure --only E6 --min 0.8",
           "rollback": "revert الالتزام.",
           "status": "todo"
-        },
+        }
+      ],
+      "stages": [
+        "S11"
+      ]
+    },
+    {
+      "id": "NS23",
+      "title": "الأعطال المتعمدة: ماذا يحدث حين يسقط ما نعتمد عليه",
+      "goal": "E9 ≥ 0.8.",
+      "tasks": [
         {
-          "id": "NS16.T2",
-          "title": "قائمة الجاهزية للإنتاج",
+          "id": "NS23.T1",
+          "title": "تجارب Toxiproxy على كل اعتمادية حرجة",
           "moves": [
-            "E6"
+            "E9"
           ],
           "needs": "sandbox",
           "depends_on": [
-            "NS16.T1"
+            "NS20.T1",
+            "NS15.T2"
           ],
           "files": [
-            "eaos/readiness.py",
-            "eaos.policy.json",
-            "tests/test_readiness.py"
+            "eaos/resilience.py",
+            "tests/test_resilience.py"
           ],
           "steps": [
-            "قائمة فحص كل بند فيها أمر: الحدود مفروضة في CI، ولا ثغرة حرجة، والاستعادة من النسخة الاحتياطية مجرّبة، والتنبيهات تعمل (Goss لحال الخادم)، والنشر والتراجع آليان.",
-            "اكتب PRODUCTION-READINESS.md بجدول قبل وبعد بالأرقام.",
-            "الاختبار يثبت أن بندًا بلا أمر فحص يُرفض."
+            "داخل Sandbox: toxiproxy-server -config nfr/toxiproxy.json، ووجّه التطبيق إلى الوكيل بمتغيرات البيئة (مثل VITE_SUPABASE_URL أو DATABASE_URL). تطبيق يكتب العنوان في الكود لا في متغير: هذه نتيجة بحد ذاتها تُسجَّل ادعاءً ومهمة، ولا تُتجاوز.",
+            "لكل تجربة في nfr/experiments.json: فعّل toxic عبر toxiproxy-cli، وشغّل مواصفات شبكة الأمان للوظائف التي تستخدم الاعتمادية، وسجّل observed (رسالة خطأ؟ مهلة؟ صفحة بيضاء؟ إعادة محاولة؟) مقابل expected.",
+            "Pumba لعطل الحاوية والمعالج والذاكرة إن كان backend = docker؛ وإلا يُسجَّل غير منطبق بسببه.",
+            "runtime/resilience.json → experiments[] {dependency, toxic, expected, observed, ok}، و RESILIENCE.md."
           ],
-          "acceptance": "python -m unittest tests.test_readiness -q",
+          "acceptance": "python tools/north_star.py measure --only E9 --min 0.8",
           "rollback": "revert الالتزام.",
           "status": "todo"
         }
+      ],
+      "stages": [
+        "S12"
       ]
+    },
+    {
+      "id": "NS24",
+      "title": "الرصد: كل سطح حرج مرئي",
+      "goal": "E10 ≥ 0.9.",
+      "tasks": [
+        {
+          "id": "NS24.T1",
+          "title": "التحقق من الرصد أثناء شبكة الأمان والحمل",
+          "moves": [
+            "E10"
+          ],
+          "needs": "sandbox",
+          "depends_on": [
+            "NS25.T2",
+            "NS22.T1"
+          ],
+          "files": [
+            "eaos/telemetry_check.py",
+            "tests/test_telemetry_check.py"
+          ],
+          "steps": [
+            "داخل Sandbox: otelcol-contrib --config handover/otel/collector.yaml بمصدّر file، ووجّه التطبيق إليه بـOTEL_EXPORTER_OTLP_ENDPOINT.",
+            "شغّل شبكة الأمان وسكربتات k6، ثم اقرأ ملف المصدّر: اربط كل span بسطح (http.route أو url.path)، واكتب runtime/telemetry.json → surfaces[] {surface, spans}.",
+            "سطح حرج بلا span يصير مهمة في قسم البنية التحتية وفق INSTRUMENTATION.md، لا استثناء.",
+            "تحقق أن قواعد Prometheus التي يولّدها sloth generate من handover/slo تشير إلى مقاييس ظهرت فعلًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E10 --min 0.9",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        }
+      ],
+      "stages": [
+        "S13"
+      ]
+    },
+    {
+      "id": "NS16",
+      "title": "الجاهزية للإنتاج: كل بند بأمر",
+      "goal": "E11 = 1.",
+      "tasks": [
+        {
+          "id": "NS16.T1",
+          "title": "تشغيل قائمة الجاهزية",
+          "moves": [
+            "E11"
+          ],
+          "needs": "sandbox",
+          "depends_on": [
+            "NS25.T3",
+            "NS21.T1",
+            "NS22.T1",
+            "NS23.T1",
+            "NS24.T1"
+          ],
+          "files": [
+            "eaos/readiness.py",
+            "tests/test_readiness.py"
+          ],
+          "steps": [
+            "شغّل كل بند من handover/readiness/checklist.json (NS25.T3) بأمره داخل Sandbox: goss -g handover/readiness/goss.yaml validate --format json، والاستعادة، والتراجع، و pre-commit run --all-files، و act إن توفر Docker.",
+            "اكتب PRODUCTION-READINESS.json → items[] {id, command, ok, output}، و PRODUCTION-READINESS.md بجدول قبل وبعد لكل مؤشر من E5 إلى E10.",
+            "الاختبار يثبت أن بندًا بلا أمر يُرفض، وأن بندًا فشل أمره لا يُكتب ناجحًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E11 --min 1.0",
+          "rollback": "revert الالتزام.",
+          "status": "todo"
+        }
+      ],
+      "stages": [
+        "S14"
+      ]
+    },
+    {
+      "id": "NS10",
+      "title": "الإثبات المستقل",
+      "goal": "V3 = 1.0 و V4 = 1.0.",
+      "tasks": [
+        {
+          "id": "NS10.T1",
+          "title": "عيّنة من 10 مشاريع منها 3 holdout",
+          "moves": [
+            "V4"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS1.T2"
+          ],
+          "files": [
+            "docs/north-star.json"
+          ],
+          "steps": [
+            "أضف 7 مشاريع حقيقية متنوعة، وضع 3 منها في holdout لا تُقرأ تقاريرها أثناء التطوير.",
+            "لكل مشروع truth مكتوبة قبل تشغيل الأداة عليه."
+          ],
+          "acceptance": "python tools/north_star.py measure --only V4 --min 1.0",
+          "rollback": "احذف المشاريع المضافة.",
+          "status": "todo"
+        },
+        {
+          "id": "NS10.T2",
+          "title": "مراجع بشري مستقل",
+          "moves": [
+            "V3"
+          ],
+          "needs": "human",
+          "depends_on": [
+            "NS8.T2"
+          ],
+          "files": [
+            "docs/north-star.json"
+          ],
+          "steps": [
+            "ابنِ حزمة مراجعة لمشروع من العيّنة وسلّمها لمراجع من خارج المشروع، وسجّل النموذج المكتمل كما هو."
+          ],
+          "acceptance": "python tools/north_star.py measure --only V3 --min 1.0",
+          "rollback": "لا تغيير في الكود.",
+          "status": "todo"
+        }
+      ],
+      "stages": []
     }
   ],
   "rules": [
@@ -2129,7 +2931,9 @@
     "القيمة تُكتب من قياس بتعريفها المكتوب ومعها دليلها؛ رقم بلا دليل يُرفض.",
     "غير المقيس صفر. لا تُرفع قيمة لأن الآلية موجودة؛ تُرفع لأن المخرج على العيّنة تحسّن.",
     "الحقيقة الأرضية لمشروع جديد تُكتب قبل تشغيل الأداة عليه، لا بعد قراءة تقريره.",
-    "مشاريع holdout لا تُقرأ تقاريرها أثناء التطوير."
+    "مشاريع holdout لا تُقرأ تقاريرها أثناء التطوير.",
+    "كل أداة خارجية تدخل عبر upstreams/registry.yaml ومحوّل يقرأ مخرجها أو مولّد يكتب إدخالها؛ لا كود يعيد ما تفعله أداة معتمدة.",
+    "المراحل تُعبر بالترتيب في pipeline. مرحلة من عقد التنفيذ لا تبدأ دون authorization.json صالح وبيئة معزولة."
   ],
   "adopted_adapters": [
     {
@@ -2171,6 +2975,510 @@
     {
       "name": "oasdiff",
       "applies": "openapi"
+    }
+  ],
+  "pipeline": [
+    {
+      "id": "S01",
+      "key": "DISCOVER",
+      "name": "الاستلام والجرد",
+      "contract": "تقييم: قراءة فقط",
+      "question": "مما يتكون النظام، وماذا يجب أن يُحمى، وإلى أين يريد المالك أن يصل؟",
+      "tools": {
+        "read": [
+          "حقائق EAOS",
+          "Syft",
+          "OSV-Scanner",
+          "scc"
+        ],
+        "emit": [],
+        "run": [],
+        "recommend": []
+      },
+      "outputs": [
+        "intake.json",
+        "facts/index.json",
+        "sbom.cdx.json",
+        "facts/external.json"
+      ],
+      "gate": "U6 = 1، U1 ≥ 0.95، H3 = 1، R4 = 1"
+    },
+    {
+      "id": "S02",
+      "key": "MAP",
+      "name": "رسم العمارة الحالية",
+      "contract": "تقييم: قراءة فقط",
+      "question": "ما العمارة الحقيقية الآن: الوظائف والأسطح والبيانات والحدود والتدفقات؟",
+      "tools": {
+        "read": [
+          "CodeGraph",
+          "enola",
+          "dependency-cruiser"
+        ],
+        "emit": [
+          "Structurizr DSL",
+          "Mermaid"
+        ],
+        "run": [],
+        "recommend": []
+      },
+      "outputs": [
+        "features.json",
+        "load-model.json",
+        "architecture/current/workspace.dsl"
+      ],
+      "gate": "U2 ≥ 0.9، U3 = U4 = 1، U5 ≥ 0.8، ونموذج C4 الحالي"
+    },
+    {
+      "id": "S03",
+      "key": "MEASURE",
+      "name": "القياس",
+      "contract": "تقييم: قراءة فقط",
+      "question": "ما حجم كل ملف وتعقيده وتكراره وتقلّبه ومن يعتمد عليه، بالأرقام؟",
+      "tools": {
+        "read": [
+          "scc",
+          "reforge",
+          "CodeGraph",
+          "jscpd",
+          "تاريخ git في EAOS",
+          "Lizard (اختياري)"
+        ],
+        "emit": [],
+        "run": [],
+        "recommend": []
+      },
+      "outputs": [
+        "measurements.json",
+        "خط الأساس المثبّت"
+      ],
+      "gate": "M1 ≥ 0.95، وخط الأساس مثبّت"
+    },
+    {
+      "id": "S04",
+      "key": "DIAGNOSE",
+      "name": "التشخيص وسجل الدَّين",
+      "contract": "تقييم: قراءة فقط",
+      "question": "ما المشكلات الحقيقية، وأيها الأخطر حين تجتمع الأدلة؟",
+      "tools": {
+        "read": [
+          "Semgrep بقواعد EAOS",
+          "Trivy",
+          "OSV-Scanner",
+          "Checkov",
+          "SQLFluff",
+          "Spectral",
+          "oasdiff",
+          "jscpd",
+          "reforge"
+        ],
+        "emit": [],
+        "run": [],
+        "recommend": [
+          "SonarQube إن كان للمالك خادم"
+        ]
+      },
+      "outputs": [
+        "CURRENT-STATE.md",
+        "debt-register.json",
+        "SECURITY-SURFACE.md"
+      ],
+      "gate": "S1 ≥ 0.8، S2 ≥ 0.8، S3 ≥ 0.8، D1 ≥ 0.8، H1 = H2 = H3 = 1، R3 = 1"
+    },
+    {
+      "id": "S05",
+      "key": "LOCK CURRENT BEHAVIOR",
+      "name": "تثبيت السلوك الحالي",
+      "contract": "تقييم ثم تنفيذ",
+      "question": "ما الذي يفعله النظام اليوم ويجب ألا ينكسر، وما أرقامه قبل أي تغيير؟",
+      "tools": {
+        "read": [
+          "تقارير Playwright و k6 بصيغة JSON"
+        ],
+        "emit": [
+          "Playwright",
+          "Schemathesis",
+          "Pact",
+          "ApprovalTests",
+          "k6",
+          "Toxiproxy",
+          "OWASP ZAP"
+        ],
+        "run": [
+          "Playwright",
+          "Schemathesis",
+          "Pact",
+          "ApprovalTests",
+          "k6"
+        ],
+        "recommend": []
+      },
+      "outputs": [
+        "behavior-lock/plan.json",
+        "nfr/",
+        "behavior-lock/results.json",
+        "runtime/performance.json (قبل)"
+      ],
+      "gate": "أ (ساكن): E4 = 1 · ب (معزول): E5 ≥ 0.8 وخط أساس k6"
+    },
+    {
+      "id": "S06",
+      "key": "DESIGN TARGET ARCHITECTURE",
+      "name": "الصورة المثالية",
+      "contract": "تقييم: قراءة فقط",
+      "question": "كيف يجب أن يكون هذا النظام نفسه بوظائفه نفسها، وما القرار في كل جزء منه؟",
+      "tools": {
+        "read": [],
+        "emit": [
+          "Structurizr DSL",
+          "MADR",
+          "قواعد dependency-cruiser",
+          "قواعد Semgrep",
+          "ArchUnit (Java)"
+        ],
+        "run": [],
+        "recommend": [
+          "GitHub Actions",
+          "pre-commit",
+          "Renovate",
+          "OpenTelemetry",
+          "SigNoz",
+          "Sloth",
+          "OpenTofu",
+          "Ansible",
+          "Unleash",
+          "Traefik",
+          "أداة الهجرات الأصلية أو Liquibase",
+          "Bytebase"
+        ]
+      },
+      "outputs": [
+        "TARGET-STATE.md",
+        "target-architecture.json",
+        "architecture/target/workspace.dsl",
+        "adr/ADR-*.md"
+      ],
+      "gate": "T1–T7 عند أهدافها، وموافقة بشرية مسجلة"
+    },
+    {
+      "id": "S07",
+      "key": "PLAN TRANSFORMATION",
+      "name": "الفجوة وخطة التحول",
+      "contract": "تقييم: قراءة فقط",
+      "question": "ما المسافة المقيسة، وبأي معالم ومهام وفريق تُقطع؟",
+      "tools": {
+        "read": [
+          "Vale",
+          "markdownlint-cli2"
+        ],
+        "emit": [
+          "jscodeshift",
+          "OpenRewrite (Java)",
+          "Typst"
+        ],
+        "run": [],
+        "recommend": []
+      },
+      "outputs": [
+        "GAP-AND-STRATEGY.md",
+        "EXECUTION-PLAN.md",
+        "plan.json",
+        "report-quality.json"
+      ],
+      "gate": "G1 = 1، P1–P9 عند أهدافها. هنا ينتهي عقد التقييم"
+    },
+    {
+      "id": "S08",
+      "key": "REBUILD / REFACTOR",
+      "name": "التنفيذ",
+      "contract": "تنفيذ: عزل وتفويض",
+      "question": "هل نُفذت كل مهمة كما وُصفت دون كسر ما ثُبّت؟",
+      "tools": {
+        "read": [
+          "تدقيق EAOS بعد كل مهمة"
+        ],
+        "emit": [],
+        "run": [
+          "jscodeshift",
+          "OpenRewrite",
+          "Renovate",
+          "مزوّد النموذج"
+        ],
+        "recommend": [
+          "Unleash",
+          "Traefik"
+        ]
+      },
+      "outputs": [
+        "التزامات في نسخة منفصلة",
+        "سجل التنفيذ"
+      ],
+      "gate": "لكل مهمة: قبولها يمر، وشبكة الأمان تمر، ولا ادعاء حرج جديد. E1 = 1"
+    },
+    {
+      "id": "S09",
+      "key": "VERIFY",
+      "name": "التحقق الوظيفي",
+      "contract": "تنفيذ: عزل وتفويض",
+      "question": "هل الوظائف نفسها باقية، وهل حدث ما تنبأت به الخطة؟",
+      "tools": {
+        "read": [
+          "oasdiff",
+          "delta و guarantee في EAOS"
+        ],
+        "emit": [],
+        "run": [
+          "Playwright",
+          "Schemathesis",
+          "Pact",
+          "ApprovalTests"
+        ],
+        "recommend": []
+      },
+      "outputs": [
+        "VERIFICATION.md",
+        "behavior-lock/results-after.json",
+        "guarantee.json"
+      ],
+      "gate": "E7 = 1، E2 ≥ 0.8"
+    },
+    {
+      "id": "S10",
+      "key": "SECURE",
+      "name": "الأمن",
+      "contract": "تنفيذ: عزل وتفويض",
+      "question": "هل بقي خطر عالٍ، في الكود أو في التطبيق وهو يعمل؟",
+      "tools": {
+        "read": [
+          "Semgrep",
+          "Trivy",
+          "OSV-Scanner",
+          "Checkov",
+          "OpenSSF Scorecard"
+        ],
+        "emit": [],
+        "run": [
+          "OWASP ZAP"
+        ],
+        "recommend": []
+      },
+      "outputs": [
+        "runtime/security.json"
+      ],
+      "gate": "E8 = 1"
+    },
+    {
+      "id": "S11",
+      "key": "LOAD TEST",
+      "name": "الحمل",
+      "contract": "تنفيذ: عزل وتفويض",
+      "question": "هل يتحمل النظام الحمل المتوقع، وكم تغيّر عن خط الأساس؟",
+      "tools": {
+        "read": [
+          "ملخص k6"
+        ],
+        "emit": [],
+        "run": [
+          "k6",
+          "Grafana Pyroscope (اختياري)"
+        ],
+        "recommend": []
+      },
+      "outputs": [
+        "runtime/performance.json (قبل وبعد)",
+        "PERFORMANCE.md"
+      ],
+      "gate": "E6 ≥ 0.8"
+    },
+    {
+      "id": "S12",
+      "key": "BREAK IT DELIBERATELY",
+      "name": "الأعطال المتعمدة",
+      "contract": "تنفيذ: عزل وتفويض",
+      "question": "ماذا يحدث حين تبطؤ قاعدة البيانات أو تسقط خدمة خارجية؟",
+      "tools": {
+        "read": [],
+        "emit": [],
+        "run": [
+          "Toxiproxy",
+          "Pumba (إن توفر Docker)"
+        ],
+        "recommend": [
+          "Chaos Mesh (Kubernetes فقط)"
+        ]
+      },
+      "outputs": [
+        "runtime/resilience.json",
+        "RESILIENCE.md"
+      ],
+      "gate": "E9 ≥ 0.8"
+    },
+    {
+      "id": "S13",
+      "key": "OBSERVE",
+      "name": "الرصد",
+      "contract": "تنفيذ: عزل وتفويض",
+      "question": "هل يرى المالك ما يحدث داخل النظام، ولكل وعد جودة هدف SLO؟",
+      "tools": {
+        "read": [],
+        "emit": [
+          "OpenTelemetry Collector",
+          "Sloth"
+        ],
+        "run": [
+          "OpenTelemetry Collector"
+        ],
+        "recommend": [
+          "SigNoz",
+          "Grafana Pyroscope"
+        ]
+      },
+      "outputs": [
+        "otel/collector.yaml",
+        "slo/*.yaml",
+        "runtime/telemetry.json"
+      ],
+      "gate": "E10 ≥ 0.9"
+    },
+    {
+      "id": "S14",
+      "key": "PRODUCTION READINESS",
+      "name": "الجاهزية للإنتاج",
+      "contract": "تنفيذ: عزل وتفويض",
+      "question": "هل كل بند جاهزية يمر بأمر، لا بتصريح؟",
+      "tools": {
+        "read": [],
+        "emit": [
+          "Goss"
+        ],
+        "run": [
+          "Goss",
+          "pre-commit",
+          "act (إن توفر Docker)"
+        ],
+        "recommend": []
+      },
+      "outputs": [
+        "PRODUCTION-READINESS.md",
+        "PRODUCTION-READINESS.json"
+      ],
+      "gate": "E11 = 1"
+    },
+    {
+      "id": "S15",
+      "key": "CONTINUOUS GOVERNANCE",
+      "name": "الحوكمة المستمرة والتسليم",
+      "contract": "تقييم ثم تنفيذ",
+      "question": "كيف يبقى النظام احترافيًا بعد أن نغادر؟",
+      "tools": {
+        "read": [
+          "actionlint",
+          "مدققات العدّة"
+        ],
+        "emit": [
+          "GitHub Actions",
+          "pre-commit",
+          "Renovate",
+          "قواعد dependency-cruiser",
+          "قواعد Semgrep",
+          "Zensical أو MkDocs"
+        ],
+        "run": [],
+        "recommend": [
+          "Apache DevLake",
+          "SonarQube",
+          "OpenSSF Scorecard"
+        ]
+      },
+      "outputs": [
+        "handover/",
+        "handover/validation.json",
+        "GOVERNANCE.md"
+      ],
+      "gate": "K1 = 1، وخط الأساس مثبّت، وبوابة الدَّين الجديد في CI"
+    }
+  ],
+  "roadmap": [
+    {
+      "id": "R1",
+      "title": "الأساس: الوصول والرؤية والإشارة",
+      "milestones": [
+        "NS1",
+        "NS2",
+        "NS3",
+        "NS4",
+        "NS5",
+        "NS6"
+      ],
+      "exit": "U2، U3، U4، U5، S1، S2، D1–D3، H1، H2 عند أهدافها"
+    },
+    {
+      "id": "R2",
+      "title": "منصة الأدوات: تثبيت، وقراءة، وتوليد، ومراحل، وعزل",
+      "milestones": [
+        "NS17"
+      ],
+      "exit": "R4 = 1، وقارئ SARIF وإطار التوليد ومراحل engage والبيئة المعزولة مختبرة"
+    },
+    {
+      "id": "R3",
+      "title": "الأدلة الكاملة من الأدوات الجاهزة",
+      "milestones": [
+        "NS11",
+        "NS12",
+        "NS18"
+      ],
+      "exit": "بوابات S01 وS03 وS04 كاملة: U6، R3، H3، M1، S3"
+    },
+    {
+      "id": "R4",
+      "title": "تثبيت السلوك والصورة المثالية",
+      "milestones": [
+        "NS15",
+        "NS7",
+        "NS13"
+      ],
+      "exit": "البوابة أ لـS05، وبوابة S06 مع موافقة بشرية"
+    },
+    {
+      "id": "R5",
+      "title": "الخطة والتقارير وعدّة التسليم",
+      "milestones": [
+        "NS8",
+        "NS14",
+        "NS25"
+      ],
+      "exit": "بوابة S07 و K1 = 1: اكتمل عقد التقييم (EAOS 1.0)"
+    },
+    {
+      "id": "R6",
+      "title": "التنفيذ المثبت",
+      "milestones": [
+        "NS26",
+        "NS9",
+        "NS20"
+      ],
+      "exit": "البوابة ب لـS05، وبوابتا S08 وS09: E5، E1، E7، E2"
+    },
+    {
+      "id": "R7",
+      "title": "التصليب التشغيلي",
+      "milestones": [
+        "NS21",
+        "NS22",
+        "NS23",
+        "NS24",
+        "NS16"
+      ],
+      "exit": "بوابات S10 إلى S14: E8، E6، E9، E10، E11"
+    },
+    {
+      "id": "R8",
+      "title": "الإثبات المستقل",
+      "milestones": [
+        "NS10"
+      ],
+      "exit": "V3 = V4 = 1"
     }
   ]
 }

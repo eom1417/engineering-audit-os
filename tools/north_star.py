@@ -58,6 +58,22 @@ def validate(record):
         for reference in task.get('depends_on', []):
             if reference not in order: problems.append(f"{task['id']}: depends on unknown task {reference}")
             elif order.index(reference) > order.index(task['id']): problems.append(f"{task['id']}: listed before {reference}")
+    # The pipeline and the roadmap are the plan's two axes: every stage is served by a milestone, and every
+    # milestone sits in exactly one phase, listed in phase order, so reading the record top-down is executing it.
+    stages = [stage['id'] for stage in record.get('pipeline', [])]
+    milestones = [milestone['id'] for milestone in record['milestones']]
+    for milestone in record['milestones']:
+        for stage in milestone.get('stages', []):
+            if stage not in stages: problems.append(f"{milestone['id']}: unknown stage {stage}")
+    for stage in stages:
+        if not any(stage in milestone.get('stages', []) for milestone in record['milestones']):
+            problems.append(f'{stage}: no milestone serves this stage')
+    placed = [name for phase in record.get('roadmap', []) for name in phase['milestones']]
+    if record.get('roadmap'):
+        for name in milestones:
+            if placed.count(name) != 1: problems.append(f'{name}: must appear in exactly one roadmap phase')
+        if [name for name in placed if name in milestones] != milestones:
+            problems.append('milestones must be listed in roadmap phase order')
     return problems
 
 
@@ -98,6 +114,21 @@ def render(record):
             '## الرؤية', ''] + [f'- {line}' for line in record['vision']]
     out += ['', '## تعريف «وصلنا»: ما يجب أن يسلّمه EAOS لأي مشروع', '']
     out += [f'{index}. {line}' for index, line in enumerate(record['definition_of_done'], 1)]
+    if record.get('pipeline'):
+        out += ['', '## خط الإنتاج: المراحل بالتسلسل', '', 'لا تبدأ مرحلة قبل أن تمر بوابة سابقتها. '
+                'التفصيل الكامل لكل مرحلة وأداة في `docs/MASTER-BLUEPRINT.md` و`docs/TOOLCHAIN.md`.', '',
+                '| # | المرحلة | العقد | السؤال | المخرج | البوابة | المعالم |', '| --- | --- | --- | --- | --- | --- | --- |']
+        for stage in record['pipeline']:
+            served = [m['id'] for m in record['milestones'] if stage['id'] in m.get('stages', [])]
+            out.append(f"| {stage['id']} | **{stage['key']}** {stage['name']} | {stage['contract']} | {stage['question']} | "
+                       f"{' · '.join(f'`{name}`' for name in stage['outputs'])} | {stage['gate']} | {', '.join(served)} |")
+        out += ['', '### الأدوات في كل مرحلة', '', '**تقرأ:** يشغّلها EAOS ويقرأ مخرجها. **يولّد لها:** يكتب EAOS ملف إدخالها '
+                'بصيغتها الأصلية وتقبله الأداة نفسها. **تُشغَّل:** في بيئة معزولة بتفويض. **يوصي:** تدخل الصورة المثالية للمشروع.', '',
+                '| # | تقرأ | يولّد لها | تُشغَّل | يوصي |', '| --- | --- | --- | --- | --- |']
+        for stage in record['pipeline']:
+            tools = stage['tools']
+            out.append(f"| {stage['id']} {stage['key']} | " + ' | '.join(', '.join(tools.get(role, [])) or '—'
+                                                                   for role in ('read', 'emit', 'run', 'recommend')) + ' |')
     out += ['', '## أين المسافة المتبقية', '', 'مرتبة بـ الوزن × (1 − الدرجة): أين يحرّك العمل النسبة أكثر.', '',
             '| القدرة | الفجوة المرجّحة |', '| --- | --- |']
     out += [f"| {capability['id']} {capability['name']} | {gap} |" for gap, capability in gaps(record, scores)]
@@ -115,6 +146,15 @@ def render(record):
     out += [f"| [{row['name']}]({row['repo']}) | {row['stack']} | `{row['commit'][:10]}` |" for row in record['corpus']]
     out += [f"| هذا المستودع (حقيقة ذاتية: {len(record['self_truth']['defects'])} عيبًا معروفًا) | Python | "
             f"`{record['self_truth']['commit'][:10]}` |"]
+    if record.get('roadmap'):
+        by_id = {milestone['id']: milestone for milestone in record['milestones']}
+        out += ['', '## خارطة الطريق: المراحل التنفيذية حتى الوجهة', '',
+                'تُنفَّذ بالترتيب. لا تبدأ مرحلة تنفيذية قبل أن يتحقق شرط خروج سابقتها.', '',
+                '| المرحلة | العنوان | المعالم | المنجز | شرط الخروج |', '| --- | --- | --- | --- | --- |']
+        for phase in record['roadmap']:
+            owned = [task for name in phase['milestones'] for task in by_id[name]['tasks']]
+            out.append(f"| {phase['id']} | {phase['title']} | {', '.join(phase['milestones'])} | "
+                       f"{sum(t['status'] == 'done' for t in owned)}/{len(owned)} | {phase['exit']} |")
     out += ['', '## خطة التحول', '', 'كل مهمة لها أمر قبول يفشل اليوم وينجح حين تكتمل. '
             'أوامر `measure` يبنيها المعلم NS1 أولًا، ولذلك يسبق كل ما بعده.', '',
             '| المعلم | الهدف | المنجز |', '| --- | --- | --- |']
@@ -122,7 +162,8 @@ def render(record):
             f"{sum(t['status'] == 'done' for t in milestone['tasks'])}/{len(milestone['tasks'])} |"
             for milestone in record['milestones']]
     for milestone in record['milestones']:
-        out += ['', f"### {milestone['id']} — {milestone['title']}", '', f"**الهدف:** {milestone['goal']}"]
+        out += ['', f"### {milestone['id']} — {milestone['title']}", '', f"**الهدف:** {milestone['goal']}"
+                + (f" · **المراحل:** {', '.join(milestone['stages'])}" if milestone.get('stages') else '')]
         for task in milestone['tasks']:
             out += ['', f"#### {task['id']} — {task['title']} {MARK[task['status']]}", '',
                     f"**يحرّك:** {', '.join(task['moves'])} · **ينفّذه:** {NEEDS[task['needs']]}"

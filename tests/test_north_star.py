@@ -54,6 +54,27 @@ class NorthStarTests(unittest.TestCase):
     def test_an_unknown_command_fails_instead_of_passing_an_acceptance_check(self):
         self.assertEqual(self.tool.main(['frobnicate', '--min', '1.0']), 2)
 
+    def test_a_stage_no_milestone_serves_is_rejected(self):
+        record = copy.deepcopy(self.record)
+        for milestone in record['milestones']:
+            milestone['stages'] = [stage for stage in milestone.get('stages', []) if stage != 'S12']
+        self.assertIn('S12: no milestone serves this stage', self.tool.validate(record))
+
+    def test_a_milestone_naming_an_unknown_stage_is_rejected(self):
+        record = copy.deepcopy(self.record)
+        record['milestones'][1]['stages'].append('S99')
+        self.assertTrue(any('unknown stage S99' in problem for problem in self.tool.validate(record)))
+
+    def test_a_milestone_outside_the_roadmap_is_rejected(self):
+        record = copy.deepcopy(self.record)
+        record['roadmap'][-1]['milestones'].remove('NS10')
+        self.assertIn('NS10: must appear in exactly one roadmap phase', self.tool.validate(record))
+
+    def test_milestones_listed_out_of_phase_order_are_rejected(self):
+        record = copy.deepcopy(self.record)
+        record['milestones'].append(record['milestones'].pop(0))
+        self.assertIn('milestones must be listed in roadmap phase order', self.tool.validate(record))
+
 
 
 def load_measure():
