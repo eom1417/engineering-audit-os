@@ -1169,7 +1169,7 @@
           "rollback": "revert الالتزام.",
           "status": "todo",
           "done": null,
-          "comment": "Implementation completed: U5 moved from 0.482 to 0.613 via filter to user-reachable surfaces, data_access_calls joined with data_access facts, rate_limited no-server case, shared_mutable_state as not_applicable for unsupported languages. Target U5 ≥ 0.8 still blocked on: query_bound detector, complexity_class engines, TS mutable_global detection. Marked todo because the target threshold is not met."
+          "comment": "U5 = 0.719. Target 0.8 still requires query_bound detection (for result_is_bounded) and engine perf data (for complexity_class). The NS3.T2-driven data_access join and the surface filter pushed U5 from 0.482 to 0.719; the remaining 0.081 sits behind fact extractors this commit does not own."
         }
       ],
       "stages": [
