@@ -1,14 +1,15 @@
 """Run deterministic extractors over one shared snapshot and persist their fact sets."""
 import json
 from pathlib import Path
-from . import config, domain, entrypoints, external, fingerprint, flows, graph, history, metrics, redundancy, resolve, runtime, sequences, structure, syntax
+from . import config, domain, entrypoints, external, fingerprint, flows, graph, history, leftovers, metrics, redundancy, resolve, runtime, sequences, structure, syntax
 from .source import Source
 from .store import facts_dir, write_index, write_set
 
 EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,
               'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain,
-              'fingerprint': fingerprint, 'sequences': sequences, 'redundancy': redundancy, 'runtime': runtime}
-ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'redundancy', 'runtime', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows']
+              'fingerprint': fingerprint, 'sequences': sequences, 'redundancy': redundancy, 'runtime': runtime,
+              'leftovers': leftovers}
+ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'redundancy', 'runtime', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers']
 
 
 # Every fact set the tool can read, in one place. Three modules used to keep their own copy of
@@ -95,6 +96,7 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
                                                    imports=[f for f in produced.get('syntax', []) if f['kind'] == 'import_edge'])
         elif name == 'graph': result = module.run(target, source, edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), metrics=produced.get('metrics', []), history=produced.get('history', []))
         elif name == 'syntax': result = module.run(target, source, cache=cache)
+        elif name == 'leftovers': result = module.run(target, source, resolve_facts=produced.get('resolve', []))
         else: result = module.run(target, source)
         produced[name] = result['facts']
         if result.get('reused_from_cache'): reuse[name] = result['reused_from_cache']

@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "extractor": "leftovers",
+  "extractor_version": "1",
+  "available": true,
+  "input_sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "limitations": [
+    "Filename patterns cannot catch every intent; a \"scratch.tsx\" with no pattern match stays in the tree.",
+    "A leftover is reported only after the import graph is available; the resolver must have run first.",
+    "A leftover .env may be the only source of environment configuration for the project; the tool records it, the operator decides.",
+    "Binary artifacts committed by mistake are listed by path only; their contents are not opened."
+  ],
+  "summary": {
+    "candidates": 0,
+    "by_reason": {},
+    "interpretation": "A leftover is reported only after it has been verified as unreachable from any import edge."
+  },
+  "facts": []
+}

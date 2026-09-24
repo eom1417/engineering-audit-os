@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-24",
-  "measured_at_commit": "12a61d1",
+  "measured_at_commit": "d6fefc6",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -330,8 +330,8 @@
           "name": "المخلفات المكتشفة",
           "definition": "عناصر truth.leftovers المذكورة في التقرير ÷ مجموعها",
           "target": 0.9,
-          "value": 0.0,
-          "evidence": "leftovers reported: FleetManageWeb 0/4",
+          "value": 1.0,
+          "evidence": "leftovers reported: FleetManageWeb 4/4",
           "reads": "truth.leftovers paths appearing in dossier.json claims or in facts of kind `leftover`",
           "measured": "automated"
         },
@@ -1049,7 +1049,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only D2 --min 0.9",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS5.T4",
