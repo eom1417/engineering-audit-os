@@ -133,6 +133,7 @@ ARTIFACTS = (
              absent_when='no test command was given'),
     Artifact('semantic.json', 'semantic', RECORD, 'Raw model output', required=False,
              absent_when='no model provider was configured'),
+    Artifact('intake.json', 'intake', RECORD, 'What the owner must protect: every question answered or on a declared default, and the quality scenarios'),
     Artifact('handover/README.md', 'emit', DOCUMENT, 'The files handed to other tools, and which tool accepted each',
              45, 120, record='handover/validation.json', required=False, absent_when='no emitter applies'),
     Artifact('handover/validation.json', 'emit', RECORD, 'Each emitted file with its own tool\'s verdict',

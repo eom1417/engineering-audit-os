@@ -4,9 +4,9 @@ import re
 LANGUAGES = ('python', 'javascript', 'typescript', 'tsx')
 FILENAMES = ('__init__.py', 'index.js', 'index.ts')
 PY_ALL = re.compile(r'__all__\s*=\s*\[(?P<body>[^\]]*)\]', re.S)
-PY_REEXPORT = re.compile(r'^\s*from\s+(?!__future__)(?P<module>[.\w]+)\s+import\s+(?P<names>[^\n(]+)$', re.M)
-JS_EXPORT = re.compile(r'^\s*export\s+(?:const|function|class|default)\s+(?P<name>\w+)', re.M)
-JS_REEXPORT = re.compile(r'^\s*export\s*\{(?P<names>[^}]*)\}', re.M)
+PY_REEXPORT = re.compile(r'^[ \t]*from\s+(?!__future__)(?P<module>[.\w]+)\s+import\s+(?P<names>[^\n(]+)$', re.M)
+JS_EXPORT = re.compile(r'^[ \t]*export\s+(?:const|function|class|default)\s+(?P<name>\w+)', re.M)
+JS_REEXPORT = re.compile(r'^[ \t]*export\s*\{(?P<names>[^}]*)\}', re.M)
 
 
 SOURCE_ROOTS = {'src', 'lib', 'app', 'packages'}

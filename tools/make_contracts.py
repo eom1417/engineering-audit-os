@@ -30,7 +30,7 @@ def enum(*values): return {'type': 'string', 'enum': list(values)}
 
 
 CONTRACTS = {
- 'intake': ('intake.json', 'NS11', 'What the owner must protect and where he is going: every question answered or on a declared default, and the quality scenarios derived from them.',
+ 'intake': ('intake.json', 'NS11', 'What the owner must protect and where they are going: every question answered or on a declared default, and the quality scenarios derived from them.',
   obj({'schema_version': {'const': 1},
        'questions': arr(obj({'id': S, 'question': S, 'answer': {}, 'status': enum('answered', 'default'),
                              'default_reason': S}, ['id', 'question', 'answer', 'status']), 1),
@@ -123,7 +123,7 @@ CONTRACTS = {
   obj({'status': enum('COMPARED', 'UNAVAILABLE'),
        'rows': arr(obj({'indicator': S, 'predicted': N, 'observed': N, 'verdict': enum('HONEST', 'OVERSTATED', 'UNDERSTATED')},
                        ['indicator', 'verdict']))}, ['status', 'rows'])),
- 'authorization': ('authorization.json', 'NS17.T5', 'The owner\'s written permission to run his project\'s code. Without it no execution-contract stage starts.',
+ 'authorization': ('authorization.json', 'NS17.T5', 'The owner\'s written permission to run their project\'s code. Without it no execution-contract stage starts.',
   obj({'schema_version': {'const': 1}, 'project': S, 'commit': {'type': 'string', 'pattern': '^[0-9a-f]{40}$'},
        'granted_by': S, 'stages': arr(STAGE, 1), 'env_allow': arr(S), 'expires': S})),
  'approvals': ('approvals.json', 'NS17.T4', 'A person\'s recorded approval of a stage whose gate needs a human (S06: the target architecture). EAOS never writes it; eaos engage approve does, on the owner\'s command.',

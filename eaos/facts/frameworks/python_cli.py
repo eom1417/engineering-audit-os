@@ -9,7 +9,7 @@ HANDLER = re.compile(r'set_defaults\(\s*func\s*=\s*(?P<handler>[A-Za-z_]\w*)')
 LOOP_PAIRS = re.compile(r'for\s+\w+\s*,\s*(?P<variable>\w+)\s+in\s*\[(?P<pairs>[^\]]*)\]')
 PAIR = re.compile(r'\(\s*[\'"](?P<name>[^\'"]+)[\'"]\s*,\s*(?P<handler>[A-Za-z_]\w*)\s*\)')
 DYNAMIC = re.compile(r'add_parser\(\s*(?P<expr>[A-Za-z_][\w.\[\]]*)\s*[,)]', re.M)
-CLICK = re.compile(r'^\s*@(?:click|typer|app)\.(?:command|group)\((?:\s*(?P<quote>[\'"])(?P<name>[^\'"]*)(?P=quote))?', re.M)
+CLICK = re.compile(r'^[ \t]*@(?:click|typer|app)\.(?:command|group)\((?:\s*(?P<quote>[\'"])(?P<name>[^\'"]*)(?P=quote))?', re.M)
 PARSER = re.compile(r'ArgumentParser\(\s*(?:prog\s*=\s*(?P<quote>[\'"])(?P<prog>[^\'"]+)(?P=quote))?')
 # A script guarded by __main__ is an invocation surface; without it the file looks unreachable.
 MAIN_GUARD = re.compile(r'^if\s+__name__\s*==\s*[\'"]__main__[\'"]\s*:(?P<body>(?:\n[ \t]+.*)*)', re.M)

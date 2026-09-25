@@ -46,6 +46,13 @@ def _generate_engagement(out, language):
     destination = out / 'engagement.json'
     if destination.exists(): return read_contract(destination)
     contract = render_contract()
+    # The quality scenarios come from the intake (eaos/intake.py), the one place they are written.
+    intake = out / 'intake.json'
+    if intake.is_file():
+        contract['scenarios'] = [{'id': row['id'], 'name': row['kind'], 'stimulus': row['stimulus'],
+                                  'response': row['response'], 'measure': row['measure'], 'source': row['source'],
+                                  'question_id': row['question_id']}
+                                 for row in json.loads(intake.read_text(encoding='utf-8')).get('scenarios') or []]
     destination.write_text(json.dumps(contract, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     return contract
 

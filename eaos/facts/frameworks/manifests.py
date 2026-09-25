@@ -4,7 +4,7 @@ import re
 
 FILENAMES = ('package.json', 'pyproject.toml', 'Dockerfile', 'docker-compose.yml', 'docker-compose.yaml', 'Makefile')
 SCRIPT = re.compile(r'^(?P<name>[\w.-]+)\s*=\s*[\'"](?P<target>[^\'"]+)[\'"]', re.M)
-DOCKER = re.compile(r'^\s*(?P<kind>CMD|ENTRYPOINT)\s+(?P<value>.+)$', re.M | re.I)
+DOCKER = re.compile(r'^[ \t]*(?P<kind>CMD|ENTRYPOINT)\s+(?P<value>.+)$', re.M | re.I)
 MAKE = re.compile(r'^(?P<name>[A-Za-z][\w.-]*):(?!=)', re.M)
 
 

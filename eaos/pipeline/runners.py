@@ -138,6 +138,12 @@ def plan(context):
     return {'tasks': result['tasks'], 'waves': result['waves']}
 
 
+def intake(context):
+    from ..intake import write
+    record = write(context.target, context.out, context.get('intake'))
+    return {'answered': sum(q['status'] == 'answered' for q in record['questions']), 'scenarios': len(record['scenarios'])}
+
+
 def compose(context):
     from ..compose.product_report import render
     from ..workspace import read
@@ -225,7 +231,7 @@ def features(context):
             'critical': sum(1 for f in record['features'] if f['critical'])}
 
 
-RUNNERS = {'facts': facts, 'features': features, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
+RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
            'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,
            'transform': transform, 'plan': plan, 'execution_guide': execution_guide,
            'compose': compose, 'emit': emit, 'site': site, 'validate': validate}

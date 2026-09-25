@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "extractor": "domain",
-  "extractor_version": "1",
+  "extractor_version": "2",
   "available": true,
   "input_sha": "3bf0e04af967a054f27e7de625443b386da687df35719f3b5e3d57f8b3fbc292",
   "limitations": [
@@ -31,10 +31,10 @@
   },
   "facts": [
     {
-      "id": "FACT-1096a493a930cbb3",
+      "id": "FACT-4f81544147914432",
       "kind": "domain_constant",
       "extractor": "domain",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "6acc99af99f6b3a1dcc5bbe7d00be59f947cbe8cda444c34fa2f90f1c0d92693",
       "location": {
         "path": "api/server.ts",
@@ -64,21 +64,21 @@
       ]
     },
     {
-      "id": "FACT-b9ea8040d02bb098",
+      "id": "FACT-65dbf172cff3fc82",
       "kind": "domain_constant",
       "extractor": "domain",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "c65ca2cc0829d69b89a8f34db6ca22fda0697083e22cfea01a7a6589677bf34f",
       "location": {
         "path": "api/handlers/orders.ts",
-        "start_line": 2
+        "start_line": 3
       },
       "value": {
         "name": "PREMIUM_DISCOUNT",
         "definitions": [
           {
             "path": "api/handlers/orders.ts",
-            "line": 2
+            "line": 3
           },
           {
             "path": "api/lib/pricing.ts",

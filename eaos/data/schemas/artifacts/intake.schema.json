@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "intake.json",
-  "description": "What the owner must protect and where he is going: every question answered or on a declared default, and the quality scenarios derived from them.",
+  "description": "What the owner must protect and where they are going: every question answered or on a declared default, and the quality scenarios derived from them.",
   "x-artifact": "intake.json",
   "x-owner": "NS11",
   "type": "object",

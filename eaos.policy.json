@@ -92,7 +92,8 @@
       "eaos/engage.py",
       "eaos/indicators.py",
       "eaos/artifact_contracts.py",
-      "eaos/sandbox.py"
+      "eaos/sandbox.py",
+      "eaos/intake.py"
     ],
     "tools": [
       "tools/**",

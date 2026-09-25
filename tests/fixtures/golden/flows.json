@@ -3,7 +3,7 @@
   "extractor": "flows",
   "extractor_version": "1",
   "available": true,
-  "input_sha": "ae6aeabc38e506e15da258dc9c58ef9c1aec19486ebf9d3bd01e1e6fe6a28312",
+  "input_sha": "4866db3c8e5acb0946c67acf6ce9a8477387908a720b150d18adc33541f1a9ce",
   "limitations": [
     "A trace follows statically resolvable calls; dispatch through variables, callbacks or DI is not followed.",
     "Order inside a function is source order, not proof of runtime order or of the branch actually taken.",
@@ -228,14 +228,14 @@
       ]
     },
     {
-      "id": "FACT-7b9cfd9864f3a7ef",
+      "id": "FACT-7d47ae7c1c28b786",
       "kind": "flow",
       "extractor": "flows",
       "extractor_version": "1",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py",
-        "start_line": 4,
+        "start_line": 6,
         "symbol": "recalculate"
       },
       "value": {
@@ -246,7 +246,7 @@
           "http_method": null,
           "framework": "celery",
           "path": "worker/tasks.py",
-          "line": 4,
+          "line": 6,
           "handler": "recalculate"
         },
         "handler_found": true,
@@ -415,14 +415,14 @@
       ]
     },
     {
-      "id": "FACT-cb21db26bcd31b49",
+      "id": "FACT-8beb26e0f35bbdef",
       "kind": "flow",
       "extractor": "flows",
       "extractor_version": "1",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
-        "start_line": 11,
+        "start_line": 12,
         "symbol": "main"
       },
       "value": {
@@ -433,7 +433,7 @@
           "http_method": null,
           "framework": "go_main",
           "path": "svc/main.go",
-          "line": 11,
+          "line": 12,
           "handler": "main"
         },
         "handler_found": true,

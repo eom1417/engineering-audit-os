@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "ecce28a",
+  "extracted_at_commit": "aa9978a",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -522,6 +522,15 @@
       "statement": "Surfaces that did not enter any feature are recorded in ``unassigned_surfaces``; they are never dropped silently.",
       "kind": "invariant",
       "enforced_by": "tests/test_features.py::BuildTests::test_all_surfaces_appear_in_some_feature_or_in_unassigned",
+      "note": ""
+    },
+    {
+      "id": "INV-f1d2e0c867",
+      "file": "eaos/intake.py",
+      "symbol": "<module>",
+      "statement": "What must not break, how many users are coming, whether personal data is held: none of it can be read from the code with certainty.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_intake.py::IntakeTests::test_without_answers_every_question_is_a_declared_default_and_the_record_keeps_its_contract",
       "note": ""
     },
     {

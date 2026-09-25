@@ -32,7 +32,7 @@ def _runners():
 
 
 def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines=None, provider=None,
-            test_command=None, site=True, goal=None, audit_run=None, runners=None,
+            test_command=None, site=True, goal=None, audit_run=None, runners=None, intake=None,
             max_files=100000, max_bytes=2_000_000, policy_path=None, _completed=None):
     target, out = Path(target).resolve(), Path(out).resolve()
     if out == target or target in out.parents:
@@ -44,7 +44,8 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
         raise ValueError('Unknown stage: ' + ', '.join(unknown))
     context = Context(target=target, out=out, language=language, exclude=list(exclude), engines=engines,
                       provider=provider, test_command=test_command, site=site, goal=goal,
-                      audit_run=audit_run, max_files=max_files, max_bytes=max_bytes, policy_path=policy_path)
+                      audit_run=audit_run, max_files=max_files, max_bytes=max_bytes, policy_path=policy_path,
+                      intake=str(Path(intake).resolve()) if intake else None)
     requested = [name for name in ORDER if (not only or name in set(only)) and name not in set(skip)]
     results, blocked = {}, {}
     completed = _completed or {}
@@ -80,7 +81,8 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
                   'reading the findings: they are the shape of what this run could not see.',
     }
     manifest['options'] = {'language': language, 'exclude': list(exclude), 'max_files': max_files,
-                           'max_bytes': max_bytes, 'policy_path': str(policy_path) if policy_path else None}
+                           'max_bytes': max_bytes, 'policy_path': str(policy_path) if policy_path else None,
+                           'intake': str(Path(intake).resolve()) if intake else None}
     from ..workspace import inventory
     manifest['source_fingerprint'] = inventory(target, max_files=max_files, max_bytes=max_bytes)['fingerprint']
     (out / MANIFEST).write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding='utf-8')

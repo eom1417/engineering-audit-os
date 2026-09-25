@@ -2,8 +2,8 @@
 import re
 
 LANGUAGES = ('python',)
-DECORATOR = re.compile(r'^\s*@(?P<object>[\w.]+)\.(?P<method>get|post|put|patch|delete|head|options|route|websocket)\(\s*(?P<quote>[\'"])(?P<route>[^\'"]*)(?P=quote)(?P<rest>[^\n]*)', re.M)
-DJANGO = re.compile(r'^\s*(?:re_)?path\(\s*(?P<quote>[\'"])(?P<route>[^\'"]*)(?P=quote)\s*,\s*(?P<handler>[\w.]+)', re.M)
+DECORATOR = re.compile(r'^[ \t]*@(?P<object>[\w.]+)\.(?P<method>get|post|put|patch|delete|head|options|route|websocket)\(\s*(?P<quote>[\'"])(?P<route>[^\'"]*)(?P=quote)(?P<rest>[^\n]*)', re.M)
+DJANGO = re.compile(r'^[ \t]*(?:re_)?path\(\s*(?P<quote>[\'"])(?P<route>[^\'"]*)(?P=quote)\s*,\s*(?P<handler>[\w.]+)', re.M)
 METHODS = re.compile(r'methods\s*=\s*\[([^\]]*)\]')
 
 

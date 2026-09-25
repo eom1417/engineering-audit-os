@@ -7,8 +7,8 @@ files are invisible to the report.
 import re
 
 LANGUAGES = ('go',)
-PACKAGE_MAIN = re.compile(r'^\s*package\s+main\b', re.M)
-FUNC_MAIN = re.compile(r'^\s*func\s+main\s*\(\s*\)\s*\{', re.M)
+PACKAGE_MAIN = re.compile(r'^[ \t]*package\s+main\b', re.M)
+FUNC_MAIN = re.compile(r'^[ \t]*func\s+main\s*\(\s*\)\s*\{', re.M)
 
 
 def detect(context):

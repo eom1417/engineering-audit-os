@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "authorization.json",
-  "description": "The owner's written permission to run his project's code. Without it no execution-contract stage starts.",
+  "description": "The owner's written permission to run their project's code. Without it no execution-contract stage starts.",
   "x-artifact": "authorization.json",
   "x-owner": "NS17.T5",
   "type": "object",

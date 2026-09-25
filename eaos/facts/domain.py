@@ -11,7 +11,7 @@ from . import digest, make
 from .source import language_of
 
 NAME = 'domain'
-VERSION = '1'
+VERSION = '2'
 LIMITATIONS = [
     'Only literal module-level constants are captured; values computed at runtime are not.',
     'Two identical values are a duplication signal, not proof that they encode the same rule.',
@@ -22,10 +22,10 @@ LIMITATIONS = [
     'Row-level security and access policies are read from .sql files in path order, which is migration order when '
     'names carry a timestamp; a policy created from a dashboard and never written to SQL is not seen.',
 ]
-JS_CONST = re.compile(r'^\s*(?:export\s+)?(?:const|let|var)\s+(?P<name>[A-Z][A-Z0-9_]{2,})\s*=\s*(?P<value>[^;\n]+)', re.M)
+JS_CONST = re.compile(r'^[ \t]*(?:export\s+)?(?:const|let|var)\s+(?P<name>[A-Z][A-Z0-9_]{2,})\s*=\s*(?P<value>[^;\n]+)', re.M)
 SQL_TABLE = re.compile(r'CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"\[]?(?P<name>[\w.]+)', re.I)
-ORM_MODEL = re.compile(r'^\s*class\s+(?P<name>\w+)\s*\(([^)]*(?:Model|Base|Document|Entity)[^)]*)\)', re.M)
-TS_MODEL = re.compile(r'^\s*(?:export\s+)?(?:interface|type)\s+(?P<name>\w+)\s*[={]', re.M)
+ORM_MODEL = re.compile(r'^[ \t]*class\s+(?P<name>\w+)\s*\(([^)]*(?:Model|Base|Document|Entity)[^)]*)\)', re.M)
+TS_MODEL = re.compile(r'^[ \t]*(?:export\s+)?(?:interface|type)\s+(?P<name>\w+)\s*[={]', re.M)
 MIGRATION = re.compile(r'(migrations?|alembic|flyway|liquibase)/', re.I)
 SQL_NAME = r'(?P<table>(?:"?\w+"?\.)?"?\w+"?)'
 SQL_RLS = re.compile(r'ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(?:ONLY\s+)?' + SQL_NAME + r'\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY', re.I)

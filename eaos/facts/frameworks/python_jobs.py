@@ -3,8 +3,8 @@ import re
 
 LANGUAGES = ('python',)
 FILENAMES = ('crontab', 'Crontab')
-TASK = re.compile(r'^\s*@(?:shared_task|celery\.task|app\.task|task)\b', re.M)
-SCHEDULE = re.compile(r'^\s*@(?:scheduler\.scheduled_job|repeat_every|cron)\b', re.M)
+TASK = re.compile(r'^[ \t]*@(?:shared_task|celery\.task|app\.task|task)\b', re.M)
+SCHEDULE = re.compile(r'^[ \t]*@(?:scheduler\.scheduled_job|repeat_every|cron)\b', re.M)
 LAMBDA = re.compile(r'^def\s+(lambda_handler|handler)\s*\(', re.M)
 
 

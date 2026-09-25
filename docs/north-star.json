@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-25",
-  "measured_at_commit": "ecce28a",
+  "measured_at_commit": "aa9978a",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -344,8 +344,8 @@
           "definition": "مشاريع العيّنة التي في تقريرها intake.json وكل أسئلته إما مجابة أو معلّمة افتراضية ÷ عدد المشاريع",
           "reads": "intake.json → questions[] وكل عنصر status ∈ {answered, default}",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "intake.json complete: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False",
+          "value": 1.0,
+          "evidence": "intake.json complete: FleetManageWeb True · finance-os-a0192b7b True · RendaPerene True",
           "measured": "automated"
         },
         {
@@ -1779,7 +1779,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only U6 --min 1.0 && python tools/acceptance.py contract intake",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS11.T2",
@@ -1817,7 +1817,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only U6 && python tools/acceptance.py contract intake --where \"any(s['kind'] == 'load' for s in data['scenarios'])\"",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "stages": [
