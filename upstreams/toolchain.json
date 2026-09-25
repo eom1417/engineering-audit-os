@@ -38,9 +38,11 @@
       "version": "0.4.21",
       "binary": "enola",
       "install": {
-        "method": "script",
-        "url": "https://raw.githubusercontent.com/enola-labs/enola/main/install.sh",
-        "installs_to": "~/.local/bin/enola"
+        "method": "release",
+        "url": "https://github.com/enola-labs/enola/releases/download/v0.4.21/enola-0.4.21-linux-amd64.tar.gz",
+        "sha256": "002f7d199e3461ba114e619608e38c9fa67d34089b9fc6423214943e146f322c",
+        "archive": "tar.gz",
+        "member": "enola-0.4.21-linux-amd64"
       }
     },
     {
@@ -55,9 +57,11 @@
       "version": "0.3.0",
       "binary": "reforge",
       "install": {
-        "method": "script",
-        "url": "https://raw.githubusercontent.com/LyleMi/Reforge/main/scripts/install.sh",
-        "installs_to": "~/.local/bin/reforge"
+        "method": "release",
+        "url": "https://github.com/LyleMi/Reforge/releases/download/v0.3.0/reforge-linux-x86_64.tar.gz",
+        "sha256": "1ec4e7228d0c9a56dbd09dfcc743f0aa38234428829a84eb0f02466f76a6cdc0",
+        "archive": "tar.gz",
+        "member": "reforge"
       }
     },
     {

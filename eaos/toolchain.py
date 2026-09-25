@@ -119,11 +119,6 @@ def _npm(tool):
     _link(prefix / 'node_modules/.bin' / tool['binary'], tool['binary'])
 
 
-def _script(tool):
-    raise RuntimeError(f"{tool['name']} installs through its own script: curl -fsSL {tool['install']['url']} | sh, "
-                       f"then copy {tool['install']['installs_to']} to {home() / 'bin'}")
-
-
 def install(names=None, stage=None, skip=(), echo=print):
     """Install what is missing or at another version. Returns the tools that could not be installed."""
     failed = []
@@ -134,7 +129,7 @@ def install(names=None, stage=None, skip=(), echo=print):
             continue
         if tool.get('license_note'): echo(f"note    {tool['name']}: {tool['license_note']}")
         try:
-            {'release': _release, 'pip': _pip, 'npm': _npm, 'script': _script}[tool['install']['method']](tool)
+            {'release': _release, 'pip': _pip, 'npm': _npm}[tool['install']['method']](tool)
             found, reason = found_version(tool)
             if found != tool['version']: raise RuntimeError(reason or f'installed {found}, pinned {tool["version"]}')
             echo(f"install {tool['name']} {found}")
