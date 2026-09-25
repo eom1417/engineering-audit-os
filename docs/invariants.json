@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "2787b37",
+  "extracted_at_commit": "81b9be3",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -207,6 +207,24 @@
       "statement": "Never raises on a bad exit.",
       "kind": "invariant",
       "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_running_a_missing_binary_returns_a_code_rather_than_raising",
+      "note": ""
+    },
+    {
+      "id": "INV-ce7a11f982",
+      "file": "eaos/engines/sarif.py",
+      "symbol": "<module>",
+      "statement": "A result no row matches is counted in `unmapped` by ruleId, never dropped silently.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_sarif.py::SarifTests::test_a_result_no_row_matches_is_counted_not_dropped",
+      "note": ""
+    },
+    {
+      "id": "INV-0a0cc97704",
+      "file": "eaos/engines/sarif.py",
+      "symbol": "<module>",
+      "statement": "A row's severity_floor raises it and never lowers it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_sarif.py::SarifTests::test_a_severity_floor_raises_and_never_lowers",
       "note": ""
     },
     {

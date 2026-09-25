@@ -1,7 +1,7 @@
 """NS7.T1 — a catalogue of reference architectures, and a chooser that picks the right one per project.
 
 Interface this task must provide:
-    eaos/data/reference-architectures.json
+    eaos/rules/reference-architectures.json
       {"schema_version": 1, "types": [{"id", "name", "detect": {...},
         "layers": [{"name", "responsibility", "allowed_dependencies": [layer names of the same type]}],
         "infrastructure_baseline": [{"area", "item", "reason", "success_measure"}]}]}
@@ -27,7 +27,7 @@ BASELINE = {'configuration', 'data', 'ci', 'tests', 'observability', 'secrets'}
 
 class Reference(unittest.TestCase):
     def catalogue(self):
-        return json.loads((ROOT / 'eaos/data/reference-architectures.json').read_text(encoding='utf-8'))
+        return json.loads((ROOT / 'eaos/rules/reference-architectures.json').read_text(encoding='utf-8'))
 
     def test_every_type_is_complete_and_reasoned(self):
         types = self.catalogue()['types']

@@ -5,7 +5,7 @@ Interface this task must provide:
     findings, unmapped = read(path, engine, version, rules=None)
       path     a SARIF 2.1.0 file
       rules    [{"match": fnmatch pattern on ruleId, "kind": a KINDS value, "severity_floor": optional}];
-               None loads eaos/data/sarif-rules.json[engine]
+               None loads eaos/rules/sarif-rules.json[engine]
       findings a list of eaos.engines.contract.finding() dicts, one per SARIF result that a rule matches;
                every location of the result is a site; measurements hold {"name": "severity", "value": ...}
       unmapped {ruleId: count} for results no rule matches; never silently dropped
@@ -53,10 +53,10 @@ class SarifReader(unittest.TestCase):
         self.assertEqual([f['id'] for f in self.read()[0]], [f['id'] for f in self.read()[0]])
 
     def test_the_rules_file_covers_every_sarif_tool(self):
-        path = Path(__file__).resolve().parent.parent / 'eaos/data/sarif-rules.json'
+        path = Path(__file__).resolve().parent.parent / 'eaos/rules/sarif-rules.json'
         rules = json.loads(path.read_text(encoding='utf-8'))
         for engine in ('semgrep', 'trivy', 'checkov', 'osv-scanner', 'spectral', 'zap'):
-            self.assertTrue(rules.get(engine), f'{engine} has no rows in eaos/data/sarif-rules.json')
+            self.assertTrue(rules.get(engine), f'{engine} has no rows in eaos/rules/sarif-rules.json')
             for row in rules[engine]:
                 self.assertEqual(set(row) - {'match', 'kind', 'severity_floor'}, set(), row)
 

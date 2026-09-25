@@ -1,0 +1,75 @@
+{
+  "semgrep": [
+    {
+      "match": "eaos.security.*",
+      "kind": "vulnerability"
+    },
+    {
+      "match": "eaos.boundary.*",
+      "kind": "boundary"
+    },
+    {
+      "match": "eaos.dataflow.*",
+      "kind": "dataflow"
+    },
+    {
+      "match": "eaos.*",
+      "kind": "dataflow"
+    },
+    {
+      "match": "*.security.*",
+      "kind": "vulnerability"
+    }
+  ],
+  "trivy": [
+    {
+      "match": "CVE-*",
+      "kind": "vulnerability"
+    },
+    {
+      "match": "GHSA-*",
+      "kind": "vulnerability"
+    },
+    {
+      "match": "AVD-*",
+      "kind": "misconfiguration"
+    },
+    {
+      "match": "DS*",
+      "kind": "misconfiguration"
+    },
+    {
+      "match": "KSV*",
+      "kind": "misconfiguration"
+    },
+    {
+      "match": "[a-z]*",
+      "kind": "secret",
+      "severity_floor": "high"
+    }
+  ],
+  "checkov": [
+    {
+      "match": "CKV*",
+      "kind": "misconfiguration"
+    }
+  ],
+  "osv-scanner": [
+    {
+      "match": "*",
+      "kind": "vulnerability"
+    }
+  ],
+  "spectral": [
+    {
+      "match": "*",
+      "kind": "api_contract"
+    }
+  ],
+  "zap": [
+    {
+      "match": "*",
+      "kind": "vulnerability"
+    }
+  ]
+}

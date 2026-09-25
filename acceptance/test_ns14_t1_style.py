@@ -1,12 +1,12 @@
 """NS14.T1 — the reports' style and structure are checked by tools, like code.
 
 Interface this task must provide:
-    eaos/data/vale/.vale.ini            StylesPath pointing to eaos/data/vale/styles, with the EAOS package on *.md
-    eaos/data/vale/styles/EAOS/*.yml    rules at level error; at least: vague words in Arabic and English
+    eaos/rules/vale/.vale.ini            StylesPath pointing to eaos/rules/vale/styles, with the EAOS package on *.md
+    eaos/rules/vale/styles/EAOS/*.yml    rules at level error; at least: vague words in Arabic and English
                                         (ربما، إلخ، بشكل عام، تحسين عام; maybe, etc., generally, various)
-    eaos/data/.markdownlint-cli2.jsonc  the structure rules the four reports follow
-    `vale --config eaos/data/vale/.vale.ini --output JSON FILE` reports EAOS.* errors on vague text and none on
-    evidenced text; `markdownlint-cli2 --config eaos/data/.markdownlint-cli2.jsonc FILE` passes evidenced text.
+    eaos/rules/.markdownlint-cli2.jsonc  the structure rules the four reports follow
+    `vale --config eaos/rules/vale/.vale.ini --output JSON FILE` reports EAOS.* errors on vague text and none on
+    evidenced text; `markdownlint-cli2 --config eaos/rules/.markdownlint-cli2.jsonc FILE` passes evidenced text.
 """
 import json
 import os
@@ -28,7 +28,7 @@ def binary(name):
 
 class Style(unittest.TestCase):
     def vale(self, name):
-        done = subprocess.run([binary('vale'), '--config', str(ROOT / 'eaos/data/vale/.vale.ini'), '--output', 'JSON',
+        done = subprocess.run([binary('vale'), '--config', str(ROOT / 'eaos/rules/vale/.vale.ini'), '--output', 'JSON',
                                str(STYLE / name)], capture_output=True, text=True)
         alerts = [a for rows in json.loads(done.stdout or '{}').values() for a in rows]
         return [a for a in alerts if a['Check'].startswith('EAOS.') and a['Severity'] == 'error']
@@ -41,7 +41,7 @@ class Style(unittest.TestCase):
 
     def test_evidenced_text_passes_both_checks(self):
         self.assertEqual(self.vale('clear.md'), [])
-        done = subprocess.run([binary('markdownlint-cli2'), '--config', str(ROOT / 'eaos/data/.markdownlint-cli2.jsonc'),
+        done = subprocess.run([binary('markdownlint-cli2'), '--config', str(ROOT / 'eaos/rules/.markdownlint-cli2.jsonc'),
                                str(STYLE / 'clear.md')], capture_output=True, text=True)
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
 

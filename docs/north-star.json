@@ -1571,7 +1571,7 @@
           "size": "S",
           "files": [
             "eaos/engines/sarif.py",
-            "eaos/data/sarif-rules.json",
+            "eaos/rules/sarif-rules.json",
             "eaos/engines/contract.py",
             "tests/test_sarif.py",
             "tests/contracts/sarif-sample.json"
@@ -1579,7 +1579,7 @@
           "writes": [],
           "steps": [
             "SARIF 2.1.0 هو المخرج المشترك لـSemgrep و Trivy و Checkov و OSV-Scanner و Spectral و OWASP ZAP. اكتب eaos/engines/sarif.py: read(path, engine, version) يحوّل runs[].results[] إلى finding() الموجودة في contract.py: ruleId ← rule، و locations[].physicalLocation ← sites، و message.text ← الرسالة، و level أو properties.security-severity ← measurement(\"severity\").",
-            "الترجمة إلى مفردات EAOS بيانات لا كود: eaos/data/sarif-rules.json → {engine: [{match: نمط ruleId بـfnmatch, kind, severity_floor}]}. نتيجة بلا صف مطابق تُعدّ في unmapped ولا تُسقط.",
+            "الترجمة إلى مفردات EAOS بيانات لا كود: eaos/rules/sarif-rules.json → {engine: [{match: نمط ruleId بـfnmatch, kind, severity_floor}]}. نتيجة بلا صف مطابق تُعدّ في unmapped ولا تُسقط.",
             "أضف إلى KINDS في contract.py: vulnerability، و misconfiguration، و secret، و sql_quality، و api_contract. لا تضف نوعًا لا تنتجه أداة معتمدة.",
             "بعدها يصير محوّل أي أداة تُخرج SARIF دالة analyze() من نحو 20 سطرًا: تبني الأمر، وتشغّله بـprocess.run، وتستدعي sarif.read.",
             "الاختبار يقرأ عيّنة SARIF حقيقية فيها ثلاث نتائج: اثنتان مطابقتان وواحدة unmapped، ويثبت أن الثالثة معدودة لا مسقطة.",
@@ -1587,7 +1587,7 @@
           ],
           "done_when": [
             "python tools/acceptance.py test ns17_t2_sarif يمر (7 اختبارات).",
-            "eaos/data/sarif-rules.json فيه صفوف للأدوات الست.",
+            "eaos/rules/sarif-rules.json فيه صفوف للأدوات الست.",
             "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
           ],
           "pitfalls": [
@@ -1597,7 +1597,7 @@
           ],
           "acceptance": "python tools/acceptance.py test ns17_t2_sarif",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS17.T3",
@@ -1746,7 +1746,7 @@
           "size": "M",
           "files": [
             "eaos/intake.py",
-            "eaos/data/intake-questions.json",
+            "eaos/rules/intake-questions.json",
             "eaos/cli.py",
             "eaos.policy.json",
             "tests/test_intake.py"
@@ -1755,11 +1755,11 @@
             "contract:intake"
           ],
           "steps": [
-            "أسئلة ثابتة في eaos/data/intake-questions.json: الوظائف التي لا يجوز أن تضيع، وتوقع النمو (مستخدمون متزامنون)، ومتطلبات الأمن والخصوصية، والمشاكل المعروفة، والقيود (الفريق، الميزانية، المنصة). لكل سؤال قيمة افتراضية معلنة.",
+            "أسئلة ثابتة في eaos/rules/intake-questions.json: الوظائف التي لا يجوز أن تضيع، وتوقع النمو (مستخدمون متزامنون)، ومتطلبات الأمن والخصوصية، والمشاكل المعروفة، والقيود (الفريق، الميزانية، المنصة). لكل سؤال قيمة افتراضية معلنة.",
             "eaos audit --intake FILE يقرأ إجابات المالك؛ بدونه تُستخدم الافتراضيات. اكتب intake.json في التقرير: questions[] لكل سؤال {id, answer, status: answered | default}.",
             "امتد من عقد التكليف في eaos/engagement.py ولا تكرره: ما يعرفه العقد (الأهداف، والنطاق) يُقرأ منه.",
             "العقد مع القياس: intake.json → questions[].status ∈ {answered, default}.",
-            "الأسئلة في eaos/data/intake-questions.json، ولكل سؤال id و question و default و default_reason، بهذه القيم الافتراضية بالضبط: critical_features = الوظائف critical في features.json؛ و concurrent_users = 100؛ و personal_data = نعم إن وُجد جدول أو نموذج فيه email أو phone أو cpf أو name؛ و payments = لا؛ و hosting = كما هو (vercel.json ← Vercel، وإلا غير معروف)؛ و team_size = 1؛ و availability_target = 99.5؛ و known_problems = [].",
+            "الأسئلة في eaos/rules/intake-questions.json، ولكل سؤال id و question و default و default_reason، بهذه القيم الافتراضية بالضبط: critical_features = الوظائف critical في features.json؛ و concurrent_users = 100؛ و personal_data = نعم إن وُجد جدول أو نموذج فيه email أو phone أو cpf أو name؛ و payments = لا؛ و hosting = كما هو (vercel.json ← Vercel، وإلا غير معروف)؛ و team_size = 1؛ و availability_target = 99.5؛ و known_problems = [].",
             "ملف الإجابات لـ--intake هو JSON {id: answer}. سؤال أجاب عنه المالك status = answered، وغيره default ومعه default_reason.",
             "run_command من package.json: preview إن وُجد، ثم start، ثم dev. وإلا null."
           ],
@@ -1930,20 +1930,20 @@
           "size": "M",
           "files": [
             "eaos/engines/semgrep.py",
-            "eaos/data/semgrep/",
+            "eaos/rules/semgrep/",
             "eaos/engines/__init__.py",
             "upstreams/toolchain.json",
             "tests/contracts/semgrep.json",
             "tests/test_engine_contracts.py",
-            "eaos/data/sarif-rules.json"
+            "eaos/rules/sarif-rules.json"
           ],
           "writes": [],
           "steps": [
-            "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (semgrep --config eaos/data/semgrep --sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
-            "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. كل قاعدة تحمل في metadata نوعها من KINDS في eaos/engines/contract.py. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
+            "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (semgrep --config eaos/rules/semgrep --sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
+            "الترجمة إلى مفردات EAOS صفوف في eaos/rules/sarif-rules.json لا كود. كل قاعدة تحمل في metadata نوعها من KINDS في eaos/engines/contract.py. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
             "احفظ مخرجًا حقيقيًا في tests/contracts/semgrep.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "مصدران للقواعد: (1) قواعد EAOS في eaos/data/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة، وكل قاعدة معها مثال يطابقها ومثال لا يطابقها. (2) مكتبة semgrep-rules الرسمية: رخصتها تمنع توزيعها، فلا تُنسخ إلى هذا المستودع أبدًا؛ eaos tools install يجلبها إلى /workspace/engine-tools/semgrep-rules عند التزام مثبّت على جهاز المستخدم، ويشغّل المحوّل منها مجموعات بعينها (javascript و typescript و python و secrets) إن وُجدت، ويسجّل في التقرير أيها استُخدم."
+            "مصدران للقواعد: (1) قواعد EAOS في eaos/rules/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة، وكل قاعدة معها مثال يطابقها ومثال لا يطابقها. (2) مكتبة semgrep-rules الرسمية: رخصتها تمنع توزيعها، فلا تُنسخ إلى هذا المستودع أبدًا؛ eaos tools install يجلبها إلى /workspace/engine-tools/semgrep-rules عند التزام مثبّت على جهاز المستخدم، ويشغّل المحوّل منها مجموعات بعينها (javascript و typescript و python و secrets) إن وُجدت، ويسجّل في التقرير أيها استُخدم."
           ],
           "done_when": [
             "python tools/acceptance.py adapter semgrep يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
@@ -1982,12 +1982,12 @@
             "upstreams/toolchain.json",
             "tests/contracts/trivy.json",
             "tests/test_engine_contracts.py",
-            "eaos/data/sarif-rules.json"
+            "eaos/rules/sarif-rules.json"
           ],
           "writes": [],
           "steps": [
             "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (trivy fs --format sarif --scanners vuln,secret,misconfig)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
-            "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. ثغرات، وإعدادات خاطئة (boundary)، وأسرار: الأسرار شاهد ثانٍ على committed_credential، لا ادعاء جديد إن طابقت الموضع نفسه. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
+            "الترجمة إلى مفردات EAOS صفوف في eaos/rules/sarif-rules.json لا كود. ثغرات، وإعدادات خاطئة (boundary)، وأسرار: الأسرار شاهد ثانٍ على committed_credential، لا ادعاء جديد إن طابقت الموضع نفسه. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
             "احفظ مخرجًا حقيقيًا في tests/contracts/trivy.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "لا تطبع قيمة أي سر؛ خذ نوع القاعدة وموضعها فقط."
@@ -2027,12 +2027,12 @@
             "upstreams/toolchain.json",
             "tests/contracts/checkov.json",
             "tests/test_engine_contracts.py",
-            "eaos/data/sarif-rules.json"
+            "eaos/rules/sarif-rules.json"
           ],
           "writes": [],
           "steps": [
             "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (checkov -d TARGET -o sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
-            "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. إعدادات خاطئة في CI وIaC بخطورتها. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
+            "الترجمة إلى مفردات EAOS صفوف في eaos/rules/sarif-rules.json لا كود. إعدادات خاطئة في CI وIaC بخطورتها. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
             "احفظ مخرجًا حقيقيًا في tests/contracts/checkov.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "ينطبق فقط إن وُجد .github/workflows أو Dockerfile أو ملفات IaC؛ وإلا يُسجَّل غير منطبق لا غائبًا."
@@ -2159,12 +2159,12 @@
             "upstreams/toolchain.json",
             "tests/contracts/spectral.json",
             "tests/test_engine_contracts.py",
-            "eaos/data/sarif-rules.json"
+            "eaos/rules/sarif-rules.json"
           ],
           "writes": [],
           "steps": [
             "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (spectral lint -f sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
-            "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. مخالفات أسلوب الـAPI (surface). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
+            "الترجمة إلى مفردات EAOS صفوف في eaos/rules/sarif-rules.json لا كود. مخالفات أسلوب الـAPI (surface). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
             "احفظ مخرجًا حقيقيًا في tests/contracts/spectral.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "العيّنة الحالية بلا OpenAPI؛ اكتب عيّنة اختبار فيها مواصفة. غياب المواصفة في مشروع له مسارات http يصير بند فجوة لا صمتًا."
@@ -2538,13 +2538,13 @@
           ],
           "size": "M",
           "files": [
-            "eaos/data/reference-architectures.json",
+            "eaos/rules/reference-architectures.json",
             "eaos/reference_architecture.py",
             "eaos.policy.json",
             "tests/test_reference_architecture.py"
           ],
           "writes": [
-            "eaos/data/reference-architectures.json"
+            "eaos/rules/reference-architectures.json"
           ],
           "steps": [
             "لكل نوع (React+Vite+Supabase، Next.js، TanStack Start، Python CLI، Streamlit/Flask): الطبقات والاعتماديات المسموحة وخط الأساس للبنية التحتية (إعدادات البيئة، أنواع قاعدة البيانات، RLS، CI، الاختبارات، تتبع الأخطاء).",
@@ -2667,10 +2667,10 @@
           ],
           "writes": [
             "contract:target-fragment",
-            "eaos/data/disposition-rules.json"
+            "eaos/rules/disposition-rules.json"
           ],
           "steps": [
-            "العتبات في eaos/data/disposition-rules.json لا في الكود.",
+            "العتبات في eaos/rules/disposition-rules.json لا في الكود.",
             "delete: كل ملفات المكوّن غير قابلة للوصول (ادعاءات NS5.T1).",
             "retain: في طبقته المستهدفة، وبلا حافة ممنوعة، و complexity_max < 15، و duplicated_lines < 20 (من measurements.json).",
             "rebuild: أكثر من 40% من ملفاته تحتاج نقلًا أو تعديلًا، أو complexity_max > 40، أو عليه عنصر critical في سجل الدَّين.",
@@ -3064,7 +3064,7 @@
           "size": "M",
           "files": [
             "eaos/codemods.py",
-            "eaos/data/codemods.json",
+            "eaos/rules/codemods.json",
             "templates/codemods/",
             "upstreams/toolchain.json",
             "tools/north_star_measure.py",
@@ -3074,7 +3074,7 @@
             "contract:plan-fragment"
           ],
           "steps": [
-            "الفئات الآلية وأداتها في eaos/data/codemods.json: حذف مخلفات أو كود ميت ← git rm للمسارات مع فحص dependency-cruiser أن لا شيء يستوردها؛ نقل وحدة وتحديث استيراداتها (JS/TS) ← jscodeshift؛ ترقية اعتمادية ← npm install pkg@version أو pip في النسخة؛ Java ← وصفة OpenRewrite منشورة بالاسم.",
+            "الفئات الآلية وأداتها في eaos/rules/codemods.json: حذف مخلفات أو كود ميت ← git rm للمسارات مع فحص dependency-cruiser أن لا شيء يستوردها؛ نقل وحدة وتحديث استيراداتها (JS/TS) ← jscodeshift؛ ترقية اعتمادية ← npm install pkg@version أو pip في النسخة؛ Java ← وصفة OpenRewrite منشورة بالاسم.",
             "لكل بطاقة من هذه الفئات: codemod {tool, command, dry_run}. dry_run يُملأ بتشغيل الأمر على isolated_copy بوضعه التجريبي (jscodeshift --dry): exit وعدد الملفات المتغيرة. التحويل يعدّل نص المشروع ولا يشغّل كوده.",
             "استخدم تحويلات jscodeshift المنشورة إن طابقت الفئة؛ لا تكتب تحويلًا في templates/codemods/ إلا لفئة بلا مقابل، ومعه اختبار على مثال. أضف jscodeshift إلى registry.yaml بدور run.",
             "أضف قياس P9 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة)."
@@ -3115,13 +3115,13 @@
           ],
           "size": "S",
           "files": [
-            "eaos/data/vale/",
-            "eaos/data/markdownlint.json",
+            "eaos/rules/vale/",
+            "eaos/rules/markdownlint.json",
             "tests/test_report_style.py"
           ],
           "writes": [
-            "eaos/data/vale/",
-            "eaos/data/.markdownlint-cli2.jsonc"
+            "eaos/rules/vale/",
+            "eaos/rules/.markdownlint-cli2.jsonc"
           ],
           "steps": [
             "المسارات والأوامر مكتوبة بالضبط في رأس acceptance/test_ns14_t1_style.py، ومعها مثالان تحت acceptance/fixtures/style/.",
@@ -3335,7 +3335,7 @@
           "files": [
             "eaos/emit/readiness.py",
             "templates/emit/goss/",
-            "eaos/data/readiness-checklist.json",
+            "eaos/rules/readiness-checklist.json",
             "upstreams/toolchain.json",
             "tests/test_emit_readiness.py"
           ],
@@ -3346,7 +3346,7 @@
           ],
           "steps": [
             "handover/readiness/goss.yaml من الصورة المثالية: المنفذ الذي يستمع عليه التطبيق، و http لمسار الصحة بحالة 200، والعمليات، وملفات الإعداد المطلوبة. المدقق: goss -g handover/readiness/goss.yaml render.",
-            "handover/readiness/checklist.json من eaos/data/readiness-checklist.json، ولكل بند command يشغّله NS16: goss validate، وشبكة الأمان، والاستعادة من نسخة احتياطية (إن كانت قاعدة بيانات)، والتراجع إلى الالتزام السابق مع مرور شبكة الأمان، و pre-commit run --all-files، و act إن توفر Docker.",
+            "handover/readiness/checklist.json من eaos/rules/readiness-checklist.json، ولكل بند command يشغّله NS16: goss validate، وشبكة الأمان، والاستعادة من نسخة احتياطية (إن كانت قاعدة بيانات)، والتراجع إلى الالتزام السابق مع مرور شبكة الأمان، و pre-commit run --all-files، و act إن توفر Docker.",
             "بند بلا command يُرفض عند التوليد. أضف goss إلى registry.yaml بدوري validate و run."
           ],
           "done_when": [
@@ -3968,7 +3968,8 @@
     "الحقيقة الأرضية لمشروع جديد تُكتب قبل تشغيل الأداة عليه، لا بعد قراءة تقريره.",
     "مشاريع holdout لا تُقرأ تقاريرها أثناء التطوير.",
     "كل أداة خارجية تدخل عبر upstreams/registry.yaml ومحوّل يقرأ مخرجها أو مولّد يكتب إدخالها؛ لا كود يعيد ما تفعله أداة معتمدة.",
-    "المراحل تُعبر بالترتيب في pipeline. مرحلة من عقد التنفيذ لا تبدأ دون authorization.json صالح وبيئة معزولة."
+    "المراحل تُعبر بالترتيب في pipeline. مرحلة من عقد التنفيذ لا تبدأ دون authorization.json صالح وبيئة معزولة.",
+    "قواعد المنتج وبياناته (ترجمة SARIF، وقواعد Semgrep، والكتالوج المرجعي، وقواعد الأسلوب، وقوائم الفحص) في eaos/rules/. أما eaos/data/ فنسخة معبأة من وثائق الجذر، يفرض tools/validate.py أن يكون لكل ملف فيها أصل."
   ],
   "adopted_adapters": [
     {
