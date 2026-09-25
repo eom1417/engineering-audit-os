@@ -93,7 +93,8 @@
       "eaos/indicators.py",
       "eaos/artifact_contracts.py",
       "eaos/sandbox.py",
-      "eaos/intake.py"
+      "eaos/intake.py",
+      "eaos/dependency_assessment.py"
     ],
     "tools": [
       "tools/**",

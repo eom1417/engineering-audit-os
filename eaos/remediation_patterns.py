@@ -38,6 +38,7 @@ def classify(claim):
     if query == 'dead_code_present':
         return 'remove_dead' if (claim.get('render') or {}).get('key') == 'dead_code' else 'dead_code'
     if query == 'broken_code_present': return 'broken_code'
+    if query == 'vulnerable_dependency_present': return 'upgrade_dependency'
     if query == 'engine_cluster_present':
         return _ENGINE_CLUSTER_KINDS.get(specification.get('kind'), 'generic')
     if probe_type == 'absence_search': return 'duplicated_rule'
@@ -190,6 +191,15 @@ PATTERNS = {
         ],
         'rollback': 'تغيير في موضع واحد؛ الإرجاع بـrevert واحد.',
     },
+    'upgrade_dependency': {
+        'change': 'رقِّ {name} من {installed} إلى {fixed} أو أحدث في ملف الاعتماديات، وأعد توليد ملف القفل بأداة الحزم نفسها، ثم شغّل الاختبارات.',
+        'options': [
+            {'option': 'ترقية إلى أقل إصدار يصلح كل الثغرات', 'cost': 'منخفضة', 'verdict': 'مختار افتراضيًا: أصغر تغيير يغلق الخطر'},
+            {'option': 'ترقية إلى أحدث إصدار', 'cost': 'متوسطة', 'verdict': 'حين يكون الإصدار متأخرًا كثيرًا؛ قد يغيّر الواجهة'},
+            {'option': 'استبدال الحزمة', 'cost': 'مرتفعة', 'verdict': 'حين تكون متروكة بلا صيانة'},
+        ],
+        'rollback': 'revert واحد يعيد ملف الاعتماديات وملف القفل.',
+    },
     'access_gap': {
         'change': 'هجرة جديدة تفعّل أمان الصفوف على الجدول وتضيف سياسة لكل عملية تربط الصف بصاحبه (مثل auth.uid() = owner_id)، أو تستبدل شرط true في السياسة المفتوحة.',
         'options': [
@@ -243,6 +253,7 @@ def cost_of_inaction(name):
         'load_blocker': 'تبقى الكلفة تنمو مع الحركة أو البيانات، فتظهر المشكلة عند حمل لا يمكن اختباره بعد وقوعه',
         'dead_code': 'يبقى الكود الميت عبئًا على القراءة والصيانة، ويصعّب تغييرات لا تعرف بوجوده، وقد يُعاد تفعيله دون تحذير',
         'broken_code': 'يفشل المسار أول مرة يُنفَّذ فيها عند المستخدم، أو تضلّل الوثيقة من يتبعها',
+        'upgrade_dependency': 'تبقى ثغرة منشورة، بإصلاح منشور، في إصدار يشحنه المشروع لكل مستخدم',
         'remove_dead': 'يبقى الكود الميت عبئًا على القراءة والصيانة، ويصعّب تغييرات لا تعرف بوجوده، وقد يُعاد تفعيله دون تحذير',
         'access_gap': 'تبقى صفوف المستخدمين مقروءة أو قابلة للتعديل لكل من يملك المفتاح العام للتطبيق',
         'generic': '⧗ غير محددة',

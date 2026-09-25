@@ -42,6 +42,10 @@ DEFAULT_RULES = {
         'value': True, 'source': 'default',
         'why': 'Code no production path reaches and no text names is read, maintained and reviewed for nothing; '
                'the evidence is mechanical and the removal reverts in one commit.'},
+    'upgrade_vulnerable_dependencies': {
+        'value': True, 'source': 'default',
+        'why': 'A locked version with a published, fixed vulnerability is a known risk with a known repair; '
+               'the evidence is a database lookup and the upgrade reverts in one commit.'},
 }
 PROJECT_FILENAME = 'eaos.engagement.json'
 

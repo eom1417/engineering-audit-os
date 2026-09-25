@@ -27,6 +27,34 @@ def registry():
     return json.loads(REGISTRY.read_text(encoding='utf-8'))
 
 
+SKIP = {'.git', 'node_modules', '.venv', 'venv', '__pycache__', 'dist', 'build', '.next', 'vendor'}
+
+
+def project_files(target):
+    """The project's files, relative to its root, without dependency and build directories."""
+    target, found = Path(target), []
+    for base, directories, names in os.walk(target):
+        directories[:] = [d for d in directories if d not in SKIP]
+        found += [(Path(base) / name).relative_to(target).as_posix() for name in names]
+    return found
+
+
+def rule_applies(rule, files):
+    """Whether a tool's `applies` rule (upstreams/toolchain.json) holds for a project's files."""
+    if rule == 'all': return True
+    if rule == 'js': return any(f.endswith(('.ts', '.tsx', '.js', '.jsx')) for f in files)
+    if rule == 'sql': return any(f.endswith('.sql') for f in files)
+    if rule == 'ci_or_iac': return any(f.startswith('.github/workflows/') or f.endswith(('Dockerfile', '.tf')) for f in files)
+    if rule == 'openapi': return any(f.split('/')[-1].startswith(('openapi.', 'swagger.')) for f in files)
+    return False
+
+
+def applies(name, target):
+    """(applies, rule) for the named tool on a project."""
+    rule = next((t.get('applies', 'all') for t in registry()['tools'] if t['name'] == name), 'all')
+    return rule_applies(rule, project_files(target)), rule
+
+
 def home():
     record = registry()['home']
     return Path(os.environ.get(record['env']) or record['default'])

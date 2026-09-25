@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "aa9978a",
+  "extracted_at_commit": "6fa3b64",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -120,6 +120,15 @@
       "note": ""
     },
     {
+      "id": "INV-41f782b3b3",
+      "file": "eaos/dependency_assessment.py",
+      "symbol": "<module>",
+      "statement": "Its reviewer of record is that rule, never an invented person.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_supply_chain.py::ClaimTests::test_a_fixable_vulnerable_dependency_is_a_claim_whose_reviewer_is_the_rule",
+      "note": ""
+    },
+    {
       "id": "INV-b6310ed161",
       "file": "eaos/dossier.py",
       "symbol": "origin_of",
@@ -219,6 +228,15 @@
       "note": ""
     },
     {
+      "id": "INV-742d92b588",
+      "file": "eaos/engines/osv_scanner.py",
+      "symbol": "<module>",
+      "statement": "What it cannot say is whether the vulnerable code is reachable from this project; the claim says that too.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_supply_chain.py::ClaimTests::test_the_claim_says_reachability_is_not_shown",
+      "note": ""
+    },
+    {
       "id": "INV-06bea61c36",
       "file": "eaos/engines/process.py",
       "symbol": "run",
@@ -243,6 +261,24 @@
       "statement": "A row's severity_floor raises it and never lowers it.",
       "kind": "invariant",
       "enforced_by": "tests/test_sarif.py::SarifTests::test_a_severity_floor_raises_and_never_lowers",
+      "note": ""
+    },
+    {
+      "id": "INV-58c8b5c4a6",
+      "file": "eaos/engines/tool.py",
+      "symbol": "declined",
+      "statement": "A Report when the tool cannot or need not run here, else None.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_supply_chain.py::RegistryTests::test_a_tool_with_nothing_to_read_is_not_applicable_not_absent",
+      "note": ""
+    },
+    {
+      "id": "INV-5a8e42bda8",
+      "file": "eaos/engines/tool.py",
+      "symbol": "declined",
+      "statement": "Checked in that order: a tool that is not installed is reported as absent even where it would not apply, so an install gap is never hidden.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_supply_chain.py::RegistryTests::test_a_tool_with_nothing_to_read_is_not_applicable_not_absent",
       "note": ""
     },
     {

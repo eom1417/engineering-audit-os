@@ -445,6 +445,31 @@ def from_facts(fact_sets, target=None):
                                                          'symbol': location.get('symbol'), 'rule': value['rule'],
                                                          'expected': 'The same broken reference is still in the current snapshot.'}},
                            impact={'scenario': en[0].upper() + en[1:] + '.'}))
+    # A locked version the advisory database lists as affected is a deterministic finding: one engine suffices.
+    for fact in (fact_sets.get('external') or {}).get('facts', []):
+        value = fact.get('value') or {}
+        if fact.get('kind') != 'engine_finding' or value.get('kind') != 'vulnerability' or value.get('engine') != 'osv-scanner':
+            continue
+        numbers = {m['name']: m['value'] for m in value.get('measurements') or []}
+        ecosystem, _, rest = str(fact['location'].get('symbol')).partition(':')
+        package, _, installed = rest.rpartition('@')
+        ids = numbers.get('advisory_ids') or []
+        index += 1
+        claims.append(make(index, value['message'], 'risk', 'CONFIRMED', ['static_fact'], [],
+                           'The locked version being another, or the OSV database withdrawing the advisory.',
+                           fact_ids=[fact['id']],
+                           render={'key': 'vulnerable_dependency',
+                                   'params': {'package': package, 'installed': installed, 'count': len(ids),
+                                              'ids': ', '.join(ids[:3]) + (' …' if len(ids) > 3 else ''),
+                                              'severity': numbers.get('severity'), 'fixed': numbers.get('fixed_in') or '—'}},
+                           probe_spec={'probe_type': 'graph_query',
+                                       'specification': {'query': 'vulnerable_dependency_present', 'package': fact['location'].get('symbol'),
+                                                         'expected': 'The same package version is still reported vulnerable.'}},
+                           impact={'scenario': 'Every user runs a version with a published vulnerability; the fix is published too.'}))
+        if target is not None:
+            from .dependency_assessment import build_assessment as dependency_assessment
+            built = dependency_assessment(claims[-1], fact_sets, target)
+            if built: claims[-1]['assessment'], claims[-1]['checks'] = built['assessment'], built['checks']
     claims += from_engines(fact_sets, len(claims))
     return claims
 
@@ -564,7 +589,8 @@ def from_engines(fact_sets, offset=0):
     made, index = [], offset
     for cluster in clusters(fact_sets):
         for kind, detail in sorted(cluster['corroboration'].items()):
-            if detail['verdict'] not in (CORROBORATED, CONTESTED, GRANULARITY_GAP):
+            # A vulnerable dependency already has its own claim (from_facts); a second scanner is a witness, not a claim.
+            if kind == 'vulnerability' or detail['verdict'] not in (CORROBORATED, CONTESTED, GRANULARITY_GAP):
                 continue
             index += 1
             engines = ', '.join(detail['asserted_by'])

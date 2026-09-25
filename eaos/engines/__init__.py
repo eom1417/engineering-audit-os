@@ -8,11 +8,11 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import codegraph, enola, jscpd, reforge
-from .contract import OBSERVED, UNAVAILABLE
+from . import codegraph, enola, jscpd, osv_scanner, reforge, syft
+from .contract import NOT_APPLICABLE, OBSERVED, UNAVAILABLE
 from .process import state_digest
 
-ADAPTERS = {module.NAME: module for module in (enola, codegraph, reforge, jscpd)}
+ADAPTERS = {module.NAME: module for module in (enola, codegraph, reforge, jscpd, syft, osv_scanner)}
 
 
 def health():
@@ -27,11 +27,20 @@ def health():
     return report
 
 
+def ordered(names):
+    """Engines in name order, except that an engine runs after the ones it reads (its AFTER)."""
+    names, done = sorted(names), []
+    while names:
+        ready = next(name for name in names if not set(getattr(ADAPTERS[name], 'AFTER', ())) & set(names) - {name})
+        names.remove(ready); done.append(ready)
+    return done
+
+
 def analyze(target, workdir, exclude=(), only=None, formats=None):
     """Run every requested engine and return one manifest. The target is proven unchanged afterwards."""
     target, workdir = Path(target).resolve(), Path(workdir).resolve()
     workdir.mkdir(parents=True, exist_ok=True)
-    selected = sorted(ADAPTERS) if not only else [name for name in sorted(ADAPTERS) if name in set(only)]
+    selected = ordered(ADAPTERS if not only else [name for name in ADAPTERS if name in set(only)])
     unknown = sorted(set(only or ()) - set(ADAPTERS))
     before = state_digest(target)
     reports = {}
@@ -69,3 +78,8 @@ def observed(manifest):
 
 def missing(manifest):
     return sorted(name for name, detail in manifest.get('coverage', {}).items() if detail['status'] == UNAVAILABLE)
+
+
+def not_applicable(manifest):
+    """Engines with nothing to read in this project: neither absent nor a clean result."""
+    return sorted(name for name, detail in manifest.get('coverage', {}).items() if detail['status'] == NOT_APPLICABLE)

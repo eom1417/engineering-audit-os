@@ -1,0 +1,2054 @@
+{
+ "engine": "osv-scanner",
+ "pinned_version": "2.6.0",
+ "captured_from": "osv-scanner scan source -r -L sbom.cdx.json --format json FleetManageWeb (first 2 packages per source)",
+ "osv.json": {
+  "experimental_config": {
+   "licenses": {
+    "summary": false,
+    "allowlist": null
+   }
+  },
+  "results": [
+   {
+    "source": {
+     "path": "/project/DbTest/bin/Debug/net8.0/DbTest.deps.json",
+     "type": "lockfile"
+    },
+    "packages": [
+     {
+      "package": {
+       "name": "System.Security.Cryptography.Xml",
+       "version": "10.0.7",
+       "ecosystem": "NuGet"
+      },
+      "groups": [
+       {
+        "ids": [
+         "GHSA-23rf-6693-g89p"
+        ],
+        "aliases": [
+         "BIT-dotnet-2026-50648",
+         "BIT-dotnet-sdk-2026-50648",
+         "CVE-2026-50648",
+         "GHSA-23rf-6693-g89p"
+        ],
+        "max_severity": "7.5"
+       },
+       {
+        "ids": [
+         "GHSA-8q5v-6pqq-x66h"
+        ],
+        "aliases": [
+         "BIT-dotnet-2026-50525",
+         "BIT-dotnet-sdk-2026-50525",
+         "CVE-2026-50525",
+         "GHSA-8q5v-6pqq-x66h"
+        ],
+        "max_severity": "7.5"
+       },
+       {
+        "ids": [
+         "GHSA-cvvh-rhrc-wg4q"
+        ],
+        "aliases": [
+         "BIT-dotnet-2026-47302",
+         "BIT-dotnet-sdk-2026-47302",
+         "CVE-2026-47302",
+         "GHSA-cvvh-rhrc-wg4q"
+        ],
+        "max_severity": "7.5"
+       },
+       {
+        "ids": [
+         "GHSA-g8r8-53c2-pm3f"
+        ],
+        "aliases": [
+         "BIT-dotnet-2026-47304",
+         "BIT-dotnet-sdk-2026-47304",
+         "CVE-2026-47304",
+         "GHSA-g8r8-53c2-pm3f"
+        ],
+        "max_severity": "8.1"
+       },
+       {
+        "ids": [
+         "GHSA-mmjf-rqrv-855v"
+        ],
+        "aliases": [
+         "BIT-dotnet-2026-50527",
+         "BIT-dotnet-sdk-2026-50527",
+         "CVE-2026-50527",
+         "GHSA-mmjf-rqrv-855v"
+        ],
+        "max_severity": "7.5"
+       }
+      ],
+      "vulnerabilities": [
+       {
+        "affected": [
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.4"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         }
+        ],
+        "aliases": [
+         "BIT-dotnet-2026-50648",
+         "BIT-dotnet-sdk-2026-50648",
+         "CVE-2026-50648"
+        ],
+        "database_specific": {
+         "cwe_ids": [
+          "CWE-770"
+         ],
+         "github_reviewed": true,
+         "github_reviewed_at": "2026-07-20T22:49:32Z",
+         "nvd_published_at": "2026-07-14T20:17:37Z",
+         "severity": "HIGH"
+        },
+        "details": "## Executive summary\n\nMicrosoft is releasing this security advisory to provide information about a vulnerability in .NET XML Encryption (System.Security.Cryptography.Xml). This advisory also provides ",
+        "id": "GHSA-23rf-6693-g89p",
+        "modified": "2026-09-10T03:51:10.258179980Z",
+        "published": "2026-07-20T22:49:32Z",
+        "references": [
+         {
+          "type": "WEB",
+          "url": "https://github.com/dotnet/runtime/security/advisories/GHSA-23rf-6693-g89p"
+         },
+         {
+          "type": "ADVISORY",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-50648"
+         }
+        ],
+        "schema_version": "1.9.0",
+        "severity": [
+         {
+          "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "type": "CVSS_V3"
+         }
+        ],
+        "summary": "Microsoft Security Advisory CVE-2026-50648 \u2013 .NET Denial of Service Vulnerability"
+       },
+       {
+        "affected": [
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.4"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         }
+        ],
+        "aliases": [
+         "BIT-dotnet-2026-50525",
+         "BIT-dotnet-sdk-2026-50525",
+         "CVE-2026-50525"
+        ],
+        "database_specific": {
+         "cwe_ids": [
+          "CWE-770"
+         ],
+         "github_reviewed": true,
+         "github_reviewed_at": "2026-07-20T23:02:07Z",
+         "nvd_published_at": "2026-07-14T20:17:37Z",
+         "severity": "HIGH"
+        },
+        "details": "## Executive summary\n\nMicrosoft is releasing this security advisory to provide information about a vulnerability in .NET XML Encryption (System.Security.Cryptography.Xml). This advisory also provides ",
+        "id": "GHSA-8q5v-6pqq-x66h",
+        "modified": "2026-09-10T03:51:11.294376466Z",
+        "published": "2026-07-20T23:02:07Z",
+        "references": [
+         {
+          "type": "WEB",
+          "url": "https://github.com/dotnet/runtime/security/advisories/GHSA-8q5v-6pqq-x66h"
+         },
+         {
+          "type": "ADVISORY",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-50525"
+         }
+        ],
+        "schema_version": "1.9.0",
+        "severity": [
+         {
+          "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "type": "CVSS_V3"
+         }
+        ],
+        "summary": "Microsoft Security Advisory CVE-2026-50525 \u2013 .NET Denial of Service Vulnerability"
+       },
+       {
+        "affected": [
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-arm",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-arm"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-arm64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-arm64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-musl-arm",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-musl-arm"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-musl-arm64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-musl-arm64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-musl-x64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-musl-x64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-x64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-x64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.osx-arm64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.osx-arm64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.osx-x64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.osx-x64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.win-arm",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.win-arm"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.win-arm64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.win-arm64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.win-x64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.win-x64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.win-x86",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.win-x86"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-arm",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-arm"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-arm64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-arm64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-musl-arm",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-musl-arm"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-musl-arm64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-musl-arm64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-musl-x64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-musl-x64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-x64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-x64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.osx-arm64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.osx-arm64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.osx-x64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.osx-x64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.win-arm",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.win-arm"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.win-arm64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.win-arm64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.win-x64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.win-x64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.win-x86",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.win-x86"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.4"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-arm",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-arm"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.29"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-arm64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-arm64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.29"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-musl-arm",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-musl-arm"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.29"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-musl-arm64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-musl-arm64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.29"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-musl-x64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-musl-x64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.29"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.linux-x64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.linux-x64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.29"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.osx-arm64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.osx-arm64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.29"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.osx-x64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.osx-x64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.29"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.win-arm",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.win-arm"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.29"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.win-arm64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.win-arm64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.29"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.win-x64",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.win-x64"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.29"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "Microsoft.NetCore.App.Runtime.win-x86",
+           "purl": "pkg:nuget/Microsoft.NetCore.App.Runtime.win-x86"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.29"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         }
+        ],
+        "aliases": [
+         "BIT-dotnet-2026-47302",
+         "BIT-dotnet-sdk-2026-47302",
+         "CVE-2026-47302"
+        ],
+        "database_specific": {
+         "cwe_ids": [
+          "CWE-770"
+         ],
+         "github_reviewed": true,
+         "github_reviewed_at": "2026-07-20T22:42:04Z",
+         "nvd_published_at": "2026-07-14T19:17:08Z",
+         "severity": "HIGH"
+        },
+        "details": "## Executive summary\n\nMicrosoft is releasing this security advisory to provide information about a vulnerability in .NET XML processing (System.Security.Cryptography.Xml, System.Xml). This advisory al",
+        "id": "GHSA-cvvh-rhrc-wg4q",
+        "modified": "2026-09-10T03:51:21.160064899Z",
+        "published": "2026-07-20T22:42:04Z",
+        "references": [
+         {
+          "type": "WEB",
+          "url": "https://github.com/dotnet/runtime/security/advisories/GHSA-cvvh-rhrc-wg4q"
+         },
+         {
+          "type": "ADVISORY",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-47302"
+         }
+        ],
+        "schema_version": "1.9.0",
+        "severity": [
+         {
+          "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "type": "CVSS_V3"
+         }
+        ],
+        "summary": "Microsoft Security Advisory CVE-2026-47302 \u2013 .NET Denial of Service Vulnerability"
+       },
+       {
+        "affected": [
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.4"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         }
+        ],
+        "aliases": [
+         "BIT-dotnet-2026-47304",
+         "BIT-dotnet-sdk-2026-47304",
+         "CVE-2026-47304"
+        ],
+        "database_specific": {
+         "cwe_ids": [
+          "CWE-345",
+          "CWE-347"
+         ],
+         "github_reviewed": true,
+         "github_reviewed_at": "2026-07-20T22:44:42Z",
+         "nvd_published_at": "2026-07-14T19:17:08Z",
+         "severity": "HIGH"
+        },
+        "details": "## Executive summary\n\nMicrosoft is releasing this security advisory to provide information about a vulnerability in .NET XML Encryption (System.Security.Cryptography.Xml). This advisory also provides ",
+        "id": "GHSA-g8r8-53c2-pm3f",
+        "modified": "2026-09-10T03:50:52.331299568Z",
+        "published": "2026-07-20T22:44:42Z",
+        "references": [
+         {
+          "type": "WEB",
+          "url": "https://github.com/dotnet/runtime/security/advisories/GHSA-g8r8-53c2-pm3f"
+         },
+         {
+          "type": "ADVISORY",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-47304"
+         }
+        ],
+        "schema_version": "1.9.0",
+        "severity": [
+         {
+          "score": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+          "type": "CVSS_V3"
+         }
+        ],
+        "summary": "Microsoft Security Advisory CVE-2026-47304 \u2013 .NET Security Feature Bypass Vulnerability"
+       },
+       {
+        "affected": [
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "10.0.0"
+             },
+             {
+              "fixed": "10.0.10"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "9.0.0"
+             },
+             {
+              "fixed": "9.0.18"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "NuGet",
+           "name": "System.Security.Cryptography.Xml",
+           "purl": "pkg:nuget/System.Security.Cryptography.Xml"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0"
+             },
+             {
+              "fixed": "8.0.4"
+             }
+            ],
+            "type": "ECOSYSTEM"
+           }
+          ]
+         }
+        ],
+        "aliases": [
+         "BIT-dotnet-2026-50527",
+         "BIT-dotnet-sdk-2026-50527",
+         "CVE-2026-50527"
+        ],
+        "database_specific": {
+         "cwe_ids": [
+          "CWE-121"
+         ],
+         "github_reviewed": true,
+         "github_reviewed_at": "2026-07-21T16:06:59Z",
+         "nvd_published_at": "2026-07-14T20:17:37Z",
+         "severity": "HIGH"
+        },
+        "details": "## Executive summary\n\nMicrosoft is releasing this security advisory to provide information about a vulnerability in .NET XML Encryption (System.Security.Cryptography.Xml). This advisory also provides ",
+        "id": "GHSA-mmjf-rqrv-855v",
+        "modified": "2026-09-10T03:50:52.956248471Z",
+        "published": "2026-07-21T16:06:59Z",
+        "references": [
+         {
+          "type": "WEB",
+          "url": "https://github.com/dotnet/runtime/security/advisories/GHSA-mmjf-rqrv-855v"
+         },
+         {
+          "type": "ADVISORY",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-50527"
+         }
+        ],
+        "schema_version": "1.9.0",
+        "severity": [
+         {
+          "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "type": "CVSS_V3"
+         }
+        ],
+        "summary": "Microsoft Security Advisory CVE-2026-50527 \u2013 .NET Denial of Service Vulnerability"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "source": {
+     "path": "/project/package-lock.json",
+     "type": "lockfile"
+    },
+    "packages": [
+     {
+      "package": {
+       "name": "@babel/runtime",
+       "version": "7.25.9",
+       "ecosystem": "npm"
+      },
+      "groups": [
+       {
+        "ids": [
+         "GHSA-968p-4wvh-cqc8"
+        ],
+        "aliases": [
+         "CVE-2025-27789",
+         "GHSA-968p-4wvh-cqc8"
+        ],
+        "max_severity": "6.2"
+       }
+      ],
+      "vulnerabilities": [
+       {
+        "affected": [
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/helpers",
+           "purl": "pkg:npm/%40babel/helpers"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "0"
+             },
+             {
+              "fixed": "7.26.10"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/runtime",
+           "purl": "pkg:npm/%40babel/runtime"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "0"
+             },
+             {
+              "fixed": "7.26.10"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/runtime-corejs2",
+           "purl": "pkg:npm/%40babel/runtime-corejs2"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "0"
+             },
+             {
+              "fixed": "7.26.10"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/runtime-corejs3",
+           "purl": "pkg:npm/%40babel/runtime-corejs3"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "0"
+             },
+             {
+              "fixed": "7.26.10"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/helpers",
+           "purl": "pkg:npm/%40babel/helpers"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0-alpha.0"
+             },
+             {
+              "fixed": "8.0.0-alpha.17"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/runtime",
+           "purl": "pkg:npm/%40babel/runtime"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0-alpha.0"
+             },
+             {
+              "fixed": "8.0.0-alpha.17"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/runtime-corejs2",
+           "purl": "pkg:npm/%40babel/runtime-corejs2"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0-alpha.0"
+             },
+             {
+              "fixed": "8.0.0-alpha.17"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/runtime-corejs3",
+           "purl": "pkg:npm/%40babel/runtime-corejs3"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0-alpha.0"
+             },
+             {
+              "fixed": "8.0.0-alpha.17"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         }
+        ],
+        "aliases": [
+         "CVE-2025-27789"
+        ],
+        "database_specific": {
+         "cwe_ids": [
+          "CWE-1333"
+         ],
+         "github_reviewed": true,
+         "github_reviewed_at": "2025-03-11T20:30:18Z",
+         "nvd_published_at": "2025-03-11T20:15:18Z",
+         "severity": "MODERATE"
+        },
+        "details": "### Impact\n\nWhen using Babel to compile [regular expression named capturing groups](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Named_capturing_group), Babel ",
+        "id": "GHSA-968p-4wvh-cqc8",
+        "modified": "2026-09-10T03:50:22.971593530Z",
+        "published": "2025-03-11T20:30:18Z",
+        "references": [
+         {
+          "type": "WEB",
+          "url": "https://github.com/babel/babel/security/advisories/GHSA-968p-4wvh-cqc8"
+         },
+         {
+          "type": "ADVISORY",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-27789"
+         }
+        ],
+        "schema_version": "1.9.0",
+        "severity": [
+         {
+          "score": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "type": "CVSS_V3"
+         }
+        ],
+        "summary": "Babel has inefficient RegExp complexity in generated code with .replace when transpiling named capturing groups"
+       }
+      ]
+     },
+     {
+      "package": {
+       "name": "@eslint/plugin-kit",
+       "version": "0.2.3",
+       "ecosystem": "npm"
+      },
+      "dependency_groups": [
+       "dev"
+      ],
+      "groups": [
+       {
+        "ids": [
+         "GHSA-xffm-g5w8-qvg7"
+        ],
+        "aliases": [
+         "GHSA-xffm-g5w8-qvg7"
+        ],
+        "max_severity": "2.3"
+       }
+      ],
+      "vulnerabilities": [
+       {
+        "affected": [
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@eslint/plugin-kit",
+           "purl": "pkg:npm/%40eslint/plugin-kit"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "0"
+             },
+             {
+              "fixed": "0.3.4"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         }
+        ],
+        "database_specific": {
+         "cwe_ids": [
+          "CWE-1333"
+         ],
+         "github_reviewed": true,
+         "github_reviewed_at": "2025-07-18T20:39:12Z",
+         "nvd_published_at": null,
+         "severity": "LOW"
+        },
+        "details": "### Summary\n\nThe `ConfigCommentParser#parseJSONLikeConfig` API is vulnerable to a Regular Expression Denial of Service (ReDoS) attack in its only argument.\n\n### Details\n\nThe regular expression at [pac",
+        "id": "GHSA-xffm-g5w8-qvg7",
+        "modified": "2026-09-10T03:50:26.394042480Z",
+        "published": "2025-07-18T20:39:12Z",
+        "references": [
+         {
+          "type": "WEB",
+          "url": "https://github.com/eslint/rewrite/security/advisories/GHSA-xffm-g5w8-qvg7"
+         },
+         {
+          "type": "WEB",
+          "url": "https://github.com/eslint/rewrite/commit/b283f64099ad6c6b5043387c091691d21b387805"
+         }
+        ],
+        "schema_version": "1.9.0",
+        "severity": [
+         {
+          "score": "CVSS:4.0/AV:N/AC:L/AT:P/PR:L/UI:N/VC:N/VI:N/VA:L/SC:N/SI:N/SA:N",
+          "type": "CVSS_V4"
+         }
+        ],
+        "summary": "@eslint/plugin-kit is vulnerable to Regular Expression Denial of Service attacks through ConfigCommentParser"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "source": {
+     "path": "/report/engines/syft/sbom.cdx.json",
+     "type": "sbom"
+    },
+    "packages": [
+     {
+      "package": {
+       "name": "@babel/runtime",
+       "version": "7.25.9",
+       "ecosystem": "npm"
+      },
+      "groups": [
+       {
+        "ids": [
+         "GHSA-968p-4wvh-cqc8"
+        ],
+        "aliases": [
+         "CVE-2025-27789",
+         "GHSA-968p-4wvh-cqc8"
+        ],
+        "max_severity": "6.2"
+       }
+      ],
+      "vulnerabilities": [
+       {
+        "affected": [
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/helpers",
+           "purl": "pkg:npm/%40babel/helpers"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "0"
+             },
+             {
+              "fixed": "7.26.10"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/runtime",
+           "purl": "pkg:npm/%40babel/runtime"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "0"
+             },
+             {
+              "fixed": "7.26.10"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/runtime-corejs2",
+           "purl": "pkg:npm/%40babel/runtime-corejs2"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "0"
+             },
+             {
+              "fixed": "7.26.10"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/runtime-corejs3",
+           "purl": "pkg:npm/%40babel/runtime-corejs3"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "0"
+             },
+             {
+              "fixed": "7.26.10"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/helpers",
+           "purl": "pkg:npm/%40babel/helpers"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0-alpha.0"
+             },
+             {
+              "fixed": "8.0.0-alpha.17"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/runtime",
+           "purl": "pkg:npm/%40babel/runtime"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0-alpha.0"
+             },
+             {
+              "fixed": "8.0.0-alpha.17"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/runtime-corejs2",
+           "purl": "pkg:npm/%40babel/runtime-corejs2"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0-alpha.0"
+             },
+             {
+              "fixed": "8.0.0-alpha.17"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@babel/runtime-corejs3",
+           "purl": "pkg:npm/%40babel/runtime-corejs3"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "8.0.0-alpha.0"
+             },
+             {
+              "fixed": "8.0.0-alpha.17"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         }
+        ],
+        "aliases": [
+         "CVE-2025-27789"
+        ],
+        "database_specific": {
+         "cwe_ids": [
+          "CWE-1333"
+         ],
+         "github_reviewed": true,
+         "github_reviewed_at": "2025-03-11T20:30:18Z",
+         "nvd_published_at": "2025-03-11T20:15:18Z",
+         "severity": "MODERATE"
+        },
+        "details": "### Impact\n\nWhen using Babel to compile [regular expression named capturing groups](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Regular_expressions/Named_capturing_group), Babel ",
+        "id": "GHSA-968p-4wvh-cqc8",
+        "modified": "2026-09-10T03:50:22.971593530Z",
+        "published": "2025-03-11T20:30:18Z",
+        "references": [
+         {
+          "type": "WEB",
+          "url": "https://github.com/babel/babel/security/advisories/GHSA-968p-4wvh-cqc8"
+         },
+         {
+          "type": "ADVISORY",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-27789"
+         }
+        ],
+        "schema_version": "1.9.0",
+        "severity": [
+         {
+          "score": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "type": "CVSS_V3"
+         }
+        ],
+        "summary": "Babel has inefficient RegExp complexity in generated code with .replace when transpiling named capturing groups"
+       }
+      ]
+     },
+     {
+      "package": {
+       "name": "@remix-run/router",
+       "version": "1.20.0",
+       "ecosystem": "npm"
+      },
+      "groups": [
+       {
+        "ids": [
+         "GHSA-2j2x-hqr9-3h42"
+        ],
+        "aliases": [
+         "CVE-2026-40181",
+         "GHSA-2j2x-hqr9-3h42"
+        ],
+        "max_severity": "6.6"
+       },
+       {
+        "ids": [
+         "GHSA-2w69-qvjg-hvjx"
+        ],
+        "aliases": [
+         "CVE-2026-22029",
+         "GHSA-2w69-qvjg-hvjx"
+        ],
+        "max_severity": "8.0"
+       }
+      ],
+      "vulnerabilities": [
+       {
+        "affected": [
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "react-router",
+           "purl": "pkg:npm/react-router"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "7.0.0"
+             },
+             {
+              "fixed": "7.14.1"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "react-router",
+           "purl": "pkg:npm/react-router"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "6.7.0"
+             },
+             {
+              "fixed": "6.30.4"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@remix-run/router",
+           "purl": "pkg:npm/%40remix-run/router"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "1.3.0"
+             },
+             {
+              "fixed": "1.23.3"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         }
+        ],
+        "aliases": [
+         "CVE-2026-40181"
+        ],
+        "database_specific": {
+         "cwe_ids": [
+          "CWE-601"
+         ],
+         "github_reviewed": true,
+         "github_reviewed_at": "2026-06-03T20:58:01Z",
+         "nvd_published_at": "2026-06-02T20:16:35Z",
+         "severity": "MODERATE"
+        },
+        "details": "Certain URLs passed to the `redirect` function can trigger an open redirect to an external domain depending on the level of validation done by the application prior to returning the `redirect`.\n\n> [!N",
+        "id": "GHSA-2j2x-hqr9-3h42",
+        "modified": "2026-09-10T03:50:55.348600076Z",
+        "published": "2026-06-03T20:58:01Z",
+        "references": [
+         {
+          "type": "WEB",
+          "url": "https://github.com/remix-run/react-router/security/advisories/GHSA-2j2x-hqr9-3h42"
+         },
+         {
+          "type": "ADVISORY",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-40181"
+         }
+        ],
+        "schema_version": "1.9.0",
+        "severity": [
+         {
+          "score": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:H/VA:N/SC:N/SI:N/SA:N/E:U",
+          "type": "CVSS_V4"
+         }
+        ],
+        "summary": "React Router's same-origin redirect with path starting // causes open redirect via protocol-relative URL reinterpretation"
+       },
+       {
+        "affected": [
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "react-router",
+           "purl": "pkg:npm/react-router"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "7.0.0"
+             },
+             {
+              "fixed": "7.12.0"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         },
+         {
+          "package": {
+           "ecosystem": "npm",
+           "name": "@remix-run/router",
+           "purl": "pkg:npm/%40remix-run/router"
+          },
+          "ranges": [
+           {
+            "events": [
+             {
+              "introduced": "0"
+             },
+             {
+              "fixed": "1.23.2"
+             }
+            ],
+            "type": "SEMVER"
+           }
+          ]
+         }
+        ],
+        "aliases": [
+         "CVE-2026-22029"
+        ],
+        "database_specific": {
+         "cwe_ids": [
+          "CWE-79"
+         ],
+         "github_reviewed": true,
+         "github_reviewed_at": "2026-01-08T20:54:18Z",
+         "nvd_published_at": "2026-01-10T03:15:48Z",
+         "severity": "HIGH"
+        },
+        "details": "React Router (and Remix v1/v2) SPA open navigation redirects originating from loaders or actions in [Framework Mode](https://reactrouter.com/start/modes#framework), [Data Mode](https://reactrouter.com",
+        "id": "GHSA-2w69-qvjg-hvjx",
+        "modified": "2026-02-03T03:15:00.320749Z",
+        "published": "2026-01-08T20:54:18Z",
+        "references": [
+         {
+          "type": "WEB",
+          "url": "https://github.com/remix-run/react-router/security/advisories/GHSA-2w69-qvjg-hvjx"
+         },
+         {
+          "type": "ADVISORY",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-22029"
+         }
+        ],
+        "schema_version": "1.9.0",
+        "severity": [
+         {
+          "score": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:H/I:H/A:N",
+          "type": "CVSS_V3"
+         }
+        ],
+        "summary": "React Router vulnerable to XSS via Open Redirects"
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

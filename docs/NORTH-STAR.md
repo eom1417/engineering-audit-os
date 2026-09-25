@@ -1,24 +1,24 @@
 # الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي
 
-> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-25 على الالتزام `aa9978a`.
+> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-25 على الالتزام `6fa3b64`.
 
-## أين نحن: **49.3%** من الوجهة
+## أين نحن: **52.7%** من الوجهة
 
 هذه ليست درجة القدرات في docs/CAPABILITY-SCORE.md. تلك تقيس اكتمال آلية الأداة على مستودعين ضُبطت عليهما، وهذه تقيس الوعد نفسه على الجمهور الذي بُنيت له.
 
 | # | القدرة | الوزن | الدرجة | المساهمة |
 | --- | --- | --- | --- | --- |
-| C1 | الوصول: يعمل على مشاريع الهواة الحقيقية | 8 | 75% | 6.0 |
+| C1 | الوصول: يعمل على مشاريع الهواة الحقيقية | 8 | 82% | 6.6 |
 | C2 | تقرير الوضع الراهن: يرى البرنامج كله | 12 | 83% | 10.0 |
 | C3 | الإشارة: كل ادعاء مشكلة حقيقية | 10 | 63% | 6.3 |
 | C4 | الكود الميت والمخلفات: يجدها ويحذفها بأمان | 10 | 100% | 10.0 |
-| C5 | نظافة الأمن الأساسية | 8 | 67% | 5.3 |
+| C5 | نظافة الأمن الأساسية | 8 | 100% | 8.0 |
 | C6 | تقرير الصورة المثالية | 16 | 8% | 1.3 |
 | C7 | تقرير الفجوة والتحول الاستراتيجي | 8 | 44% | 3.6 |
-| C8 | خطة التنفيذ للفريق | 16 | 21% | 3.3 |
+| C8 | خطة التنفيذ للفريق | 16 | 22% | 3.5 |
 | C9 | ضمان التنفيذ: يثبت أن التحول حدث | 7 | 9% | 0.6 |
 | C10 | الثقة والإثبات المستقل | 5 | 57% | 2.9 |
-| | **المجموع** | **100** | | **49.3** |
+| | **المجموع** | **100** | | **52.7** |
 
 ## الرؤية
 
@@ -91,21 +91,21 @@
 | القدرة | الفجوة المرجّحة |
 | --- | --- |
 | C6 تقرير الصورة المثالية | 14.7 |
-| C8 خطة التنفيذ للفريق | 12.7 |
+| C8 خطة التنفيذ للفريق | 12.5 |
 | C9 ضمان التنفيذ: يثبت أن التحول حدث | 6.4 |
 | C7 تقرير الفجوة والتحول الاستراتيجي | 4.4 |
 | C3 الإشارة: كل ادعاء مشكلة حقيقية | 3.7 |
-| C5 نظافة الأمن الأساسية | 2.7 |
 | C10 الثقة والإثبات المستقل | 2.1 |
-| C1 الوصول: يعمل على مشاريع الهواة الحقيقية | 2.0 |
 | C2 تقرير الوضع الراهن: يرى البرنامج كله | 2.0 |
+| C1 الوصول: يعمل على مشاريع الهواة الحقيقية | 1.4 |
 | C4 الكود الميت والمخلفات: يجدها ويحذفها بأمان | 0.0 |
+| C5 نظافة الأمن الأساسية | 0.0 |
 
 ## القدرات ومؤشراتها
 
 **طريقة الحساب:** قيمة بين 0 و1، تُحسب بتعريفها المكتوب على عيّنة المشاريع أو الحقيقة الأرضية المسجلة. القيمة null تعني غير مقيس، وتُحسب صفرًا. متوسط مؤشراتها. مجموع (الوزن × درجة القدرة) ÷ 100، معروضًا كنسبة مئوية.
 
-### C1 — الوصول: يعمل على مشاريع الهواة الحقيقية (75%، الوزن 8)
+### C1 — الوصول: يعمل على مشاريع الهواة الحقيقية (82%، الوزن 8)
 
 **الصورة المثالية:** يكتمل التدقيق على أي مشروع من العيّنة دون أن يفشل أو يخالف عقده، ويتعرّف على إطار كل مشروع.
 
@@ -113,7 +113,7 @@
 | --- | --- | --- | --- | --- |
 | R1 تدقيقات العيّنة المكتملة بلا فشل | عدد مشاريع العيّنة التي ينتهي فيها eaos audit برمز خروج 0 ÷ عدد مشاريع العيّنة | 100% | 100% | exit codes: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
 | R2 الأطر المفهومة | مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع | 100% | 100% | user surfaces found: FleetManageWeb 43 · finance-os-a0192b7b 29 · RendaPerene 3 |
-| R3 محوّلات الفحص الساكن تعمل | متوسط (المحوّلات المعتمدة المنطبقة على المشروع التي عملت فعلًا ÷ المنطبقة)، لكل مشروع. قائمة المحوّلات وشروط انطباقها في adopted_adapters. | 100% | 0% | adopted adapters that ran / applicable: FleetManageWeb 0/7 · finance-os-a0192b7b 0/8 · RendaPerene 0/7 |
+| R3 محوّلات الفحص الساكن تعمل | متوسط (المحوّلات المعتمدة المنطبقة على المشروع التي عملت فعلًا ÷ المنطبقة)، لكل مشروع. قائمة المحوّلات وشروط انطباقها في adopted_adapters. | 100% | 27% | adopted adapters that ran / applicable: FleetManageWeb 2/7 · finance-os-a0192b7b 2/8 · RendaPerene 2/7 |
 | R4 الأدوات المعتمدة مثبّتة بإصداراتها | الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات | 100% | 100% | 17/17 assessment tools at their pinned version |
 
 ### C2 — تقرير الوضع الراهن: يرى البرنامج كله (83%، الوزن 12)
@@ -136,7 +136,7 @@
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| S1 الادعاءات غير الضجيجية | متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع | 80% | 89% | claims that are not structural clones: FleetManageWeb 203/223 · finance-os-a0192b7b 201/251 · RendaPerene 59/62 |
+| S1 الادعاءات غير الضجيجية | متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع | 80% | 90% | claims that are not structural clones: FleetManageWeb 230/250 · finance-os-a0192b7b 218/268 · RendaPerene 59/62 |
 | S2 دقة مرشحات الكود الميت | المرشحات الميتة فعلًا ÷ كل الرموز التي يؤكدها EAOS مرشحةً، على self_truth. المرشح الذي نقضه التحكيم (refuted) أو لا يسمّي رمزًا (not_a_symbol) ليس ادعاءً، والوحدة الكاملة يحكم عليها D1. والاسم الذي لا تقرؤه إلا الاختبارات (test_only) مرشح مراجعة لا ادعاء، فلا يُحسب. | 80% | 100% | 12 dead of 12 distinct candidates (by path and symbol): CASE_BODY, HUMAN_ARTIFACTS, ORIGIN_RANK, OWNED, VERDICTS, _CONFIG_NAMES, _scope_chain, _steps, _trace_evidence, _walk_tree_sitter, run_absence_search, write_next |
 | S3 الخطر العالي مؤكد بشاهدين | متوسط (عناصر debt-register.json بخطورة high أو critical التي يدعمها شاهدان مستقلان من أداتين مختلفتين، أو دليل حتمي واحد ÷ تلك العناصر)، لكل مشروع. مشروع بلا سجل يُحسب صفرًا. | 80% | 0% | high and critical debt items with two independent witnesses: FleetManageWeb no register · finance-os-a0192b7b no register · RendaPerene no register |
 
@@ -150,7 +150,7 @@
 | D2 المخلفات المكتشفة | عناصر truth.leftovers المذكورة في التقرير ÷ مجموعها | 90% | 100% | leftovers reported: FleetManageWeb 4/4 |
 | D3 بطاقات حذف آمن جاهزة | بطاقات remediate جاهزة (ready) بنمط remove_dead وأمر قبول قابل للتشغيل ÷ ادعاءات الكود الميت والمخلفات (render.key = dead_code أو leftover) | 90% | 100% | ready remove_dead cards: 155 for 155 dead-code and leftover claims |
 
-### C5 — نظافة الأمن الأساسية (67%، الوزن 8)
+### C5 — نظافة الأمن الأساسية (100%، الوزن 8)
 
 **الصورة المثالية:** يلتقط الأخطاء القاتلة الشائعة في تطبيقات الهواة: أسرار مرفوعة، وجداول بلا سياسات وصول، ومسارات خادم بلا تحقق.
 
@@ -158,7 +158,7 @@
 | --- | --- | --- | --- | --- |
 | H1 مواد الاعتماد المرفوعة بخطورتها الصحيحة | عناصر truth.credentials التي ذكرها التقرير كحقيقة committed_credential بالخطورة الصحيحة (public أو secret) ÷ مجموعها. مفتاح anon/publishable عام بطبيعته: تصنيفه secret إنذار كاذب ولا يُحتسب. | 100% | 100% | committed credentials reported with the right severity: FleetManageWeb 1/1 · finance-os-a0192b7b 1/1 |
 | H2 تغطية سياسات الوصول مقروءة | مشاريع ذات قاعدة بيانات قُرئت فيها سياسات RLS وحُدد كل جدول بلا سياسة ÷ عدد تلك المشاريع | 100% | 100% | db_policy facts vs truth: finance-os-a0192b7b 108/108 |
-| H3 سلسلة الإمداد | مشاريع العيّنة التي في تقريرها قائمة اعتماديات (SBOM) فيها مكوّن واحد على الأقل، وفُحصت ثغراتها بـOSV-Scanner ÷ عدد المشاريع | 100% | 0% | SBOM with components and OSV-Scanner observed: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False |
+| H3 سلسلة الإمداد | مشاريع العيّنة التي في تقريرها قائمة اعتماديات (SBOM) فيها مكوّن واحد على الأقل، وفُحصت ثغراتها بـOSV-Scanner ÷ عدد المشاريع | 100% | 100% | SBOM with components and OSV-Scanner observed: FleetManageWeb True · finance-os-a0192b7b True · RendaPerene True |
 
 ### C6 — تقرير الصورة المثالية (8%، الوزن 16)
 
@@ -183,21 +183,21 @@
 | G1 فجوة مربوطة بالمكوّنات المستهدفة | صفوف gap_matrix المربوطة بمكوّن مستهدف ومعها فرق قابل للقياس ÷ صفوفها | 100% | 0% | gap rows tied to a target component: FleetManageWeb 0/47 · finance-os-a0192b7b 0/36 · RendaPerene 0/9 |
 | G2 مؤشرات الاستدامة المقيسة | متوسط (مؤشرات الاستدامة الستة ذات القيمة ÷ 6) لكل مشروع | 100% | 89% | sustainability indicators with a value: FleetManageWeb 5/6 · finance-os-a0192b7b 5/6 · RendaPerene 6/6 |
 
-### C8 — خطة التنفيذ للفريق (21%، الوزن 16)
+### C8 — خطة التنفيذ للفريق (22%، الوزن 16)
 
 **الصورة المثالية:** مهام صغيرة محددة الحجم ومرتبة ومتناسبة، مجمعة في معالم وأقسام فريق، لكل منها أمر قبول قابل للتشغيل وطريقة تراجع، ضمن أربعة تقارير واضحة.
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| P1 مهام محددة الحجم | بطاقات effort معروف ÷ كل البطاقات في العيّنة | 100% | 0% | cards with a known effort: 0/527 |
-| P2 إصلاحات جاهزة | بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة | 50% | 29% | ready remediate cards: 155/527 |
-| P3 أوامر قبول قابلة للتشغيل | بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات | 80% | 29% | cards with a runnable acceptance command: 155/527 |
+| P1 مهام محددة الحجم | بطاقات effort معروف ÷ كل البطاقات في العيّنة | 100% | 0% | cards with a known effort: 0/571 |
+| P2 إصلاحات جاهزة | بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة | 50% | 35% | ready remediate cards: 198/571 |
+| P3 أوامر قبول قابلة للتشغيل | بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات | 80% | 35% | cards with a runnable acceptance command: 198/571 |
 | P4 معالم بأهداف مقيسة | مشاريع العيّنة التي تجمع خطتها البطاقات في معالم لكل منها هدف وشرط خروج ÷ عدد المشاريع | 100% | 0% | milestones with a goal and exit criterion: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
-| P5 التناسب | بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات | 100% | 100% | cards with options, do-nothing and rollback: 527/527 |
+| P5 التناسب | بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات | 100% | 100% | cards with options, do-nothing and rollback: 571/571 |
 | P6 أقسام الفريق | مشاريع العيّنة التي توزّع خطتها المهام على أقسام (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) مع الاعتماديات بينها ÷ عدد المشاريع | 100% | 0% | every card carries a team section: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False |
 | P7 التقارير الأربعة | من التقارير الأربعة (الوضع الراهن، الصورة المثالية، الفجوة والتحول، خطة التنفيذ)، عدد ما له وثيقة مخصصة ÷ 4. جودة محتواها تقيسها المؤشرات الأخرى. | 100% | 50% | of the four reports present: FleetManageWeb 2/4 · finance-os-a0192b7b 2/4 · RendaPerene 2/4 |
 | P8 جودة التقارير الأربعة | متوسط (التقارير الأربعة التي مرّت فحص Vale بحزمة EAOS وفحص markdownlint بلا أخطاء ÷ 4)، لكل مشروع | 100% | 0% | of the four reports passing Vale and markdownlint: FleetManageWeb 0/4 · finance-os-a0192b7b 0/4 · RendaPerene 0/4 |
-| P9 المهام الآلية معها أداة تحويل | بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات | 80% | 0% | mechanical cards whose codemod ran dry without error: FleetManageWeb 0/111 · finance-os-a0192b7b 0/38 · RendaPerene 0/12 |
+| P9 المهام الآلية معها أداة تحويل | بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات | 80% | 0% | mechanical cards whose codemod ran dry without error: FleetManageWeb 0/138 · finance-os-a0192b7b 0/55 · RendaPerene 0/12 |
 | K1 عدّة التشغيل والتسليم تقبلها أدواتها | متوسط (الملفات التي يولّدها EAOS بصيغ الأدوات الأصلية ويقبلها مدقق الأداة نفسها ÷ الملفات المتوقعة للمشروع)، لكل مشروع. الملفات: سير GitHub Actions (actionlint)، و.pre-commit-config.yaml (pre-commit validate-config)، وrenovate.json (renovate-config-validator)، وقواعد dependency-cruiser، وقواعد Semgrep (semgrep --validate)، وسكربتات k6 (k6 inspect)، وتجارب Toxiproxy وخطة ZAP (مخطط JSON)، وإعداد OpenTelemetry Collector (otelcol validate)، ومواصفات Sloth (sloth validate)، وgoss.yaml (goss render)، وموقع التسليم (zensical build). ملف لم يُدقَّق لغياب أداته يُحسب فاشلًا. | 100% | 0% | handover kit files accepted by their own tool: FleetManageWeb 0/12 · finance-os-a0192b7b 0/12 · RendaPerene 0/11 |
 
 ### C9 — ضمان التنفيذ: يثبت أن التحول حدث (9%، الوزن 7)
@@ -248,7 +248,7 @@
 | --- | --- | --- | --- | --- |
 | R1 | الأساس: الوصول والرؤية والإشارة | NS1, NS2, NS3, NS4, NS5, NS6 | 19/19 | U2، U3، U4، U5، S1، S2، D1–D3، H1، H2 عند أهدافها |
 | R2 | منصة الأدوات: تثبيت، وقراءة، وتوليد، ومراحل، وعزل | NS17 | 5/5 | R4 = 1، وقارئ SARIF وإطار التوليد ومراحل engage والبيئة المعزولة مختبرة |
-| R3 | الأدلة الكاملة من الأدوات الجاهزة | NS11, NS12, NS18 | 2/15 | بوابات S01 وS03 وS04 كاملة: U6، R3، H3، M1، S3 |
+| R3 | الأدلة الكاملة من الأدوات الجاهزة | NS11, NS12, NS18 | 3/15 | بوابات S01 وS03 وS04 كاملة: U6، R3، H3، M1، S3 |
 | R4 | تثبيت السلوك والصورة المثالية | NS15, NS7, NS13 | 0/10 | البوابة أ لـS05، وبوابة S06 مع موافقة بشرية |
 | R5 | الخطة والتقارير وعدّة التسليم | NS8, NS14, NS25 | 0/14 | بوابة S07 و K1 = 1: اكتمل عقد التقييم (EAOS 1.0) |
 | R6 | التنفيذ المثبت | NS26, NS9, NS20 | 0/4 | البوابة ب لـS05، وبوابتا S08 وS09: E5، E1، E7، E2 |
@@ -269,7 +269,7 @@
 | NS6 نظافة الأمن الأساسية | H1 = 1.0 و H2 = 1.0. | 2/2 |
 | NS17 منصة الأدوات: كل أداة تدخل بطريقة واحدة | R4 = 1، وقارئ SARIF، وإطار التوليد، والمراحل كبيانات، والبيئة المعزولة مختبرة. | 5/5 |
 | NS11 الاستلام: ماذا يجب أن يُحمى، وإلى أين | U6 = 1.0. | 2/2 |
-| NS12 محوّلات الفحص الساكن: أدوات جاهزة بدل كود نكتبه | R3 = 1.0 و H3 = 1.0. | 0/10 |
+| NS12 محوّلات الفحص الساكن: أدوات جاهزة بدل كود نكتبه | R3 = 1.0 و H3 = 1.0. | 1/10 |
 | NS18 القياس وسجل الدَّين: الأرقام لكل ملف، والخطر حين تجتمع الأدلة | M1 ≥ 0.95 و S3 ≥ 0.8 و G2 = 1.0. | 0/3 |
 | NS15 تثبيت السلوك: المواصفات قبل أي تغيير (ساكن) | E4 = 1، ومواصفات الحمل والأعطال والفحص الحي مولّدة ومقبولة من أدواتها. | 0/2 |
 | NS7 تقرير الصورة المثالية | T1 = 1.0 و T2 = 1.0 و T3 ≥ 0.6 و T4 = 1.0 و T5 = 1.0 و G1 = 1.0. | 0/5 |
@@ -1084,13 +1084,13 @@ python tools/north_star.py measure --only U6 && python tools/acceptance.py contr
 
 **الهدف:** R3 = 1.0 و H3 = 1.0. · **المراحل:** S01, S04
 
-#### NS12.T1 — Syft و OSV-Scanner: قائمة الاعتماديات وثغراتها ⬜
+#### NS12.T1 — Syft و OSV-Scanner: قائمة الاعتماديات وثغراتها ✅
 
 **لماذا:** قائمة الاعتماديات (SBOM) وثغراتها هي نصف أمن المشروع، ولا يراها EAOS اليوم (H3 = 0).
 
 **يحرّك:** H3, R3 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1 · **الحجم:** M
 
-**الملفات:** `eaos/engines/syft.py` · `eaos/engines/osv_scanner.py` · `eaos/engines/__init__.py` · `upstreams/toolchain.json` · `tests/contracts/syft.json` · `tests/contracts/osv-scanner.json` · `tests/test_engine_contracts.py`
+**الملفات:** `eaos/engines/syft.py` · `eaos/engines/osv_scanner.py` · `eaos/engines/__init__.py` · `upstreams/toolchain.json` · `tests/contracts/syft.json` · `tests/contracts/osv-scanner.json` · `tests/test_engine_contracts.py` · `eaos/engines/tool.py` · `eaos/dependency_assessment.py` · `eaos/claims.py` · `eaos/engagement.py` · `eaos/remediation_patterns.py` · `eaos/compose/labels.py` · `eaos/probes.py` · `eaos/facts/external.py` · `eaos/toolchain.py` · `tests/test_supply_chain.py`
 
 **يكتب:** `contract:sbom` (العقد: `schemas/artifacts/sbom.schema.json`)
 
@@ -1101,6 +1101,7 @@ python tools/north_star.py measure --only U6 && python tools/acceptance.py contr
 3. احفظ مخرجًا حقيقيًا في tests/contracts/syft.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 5. OSV-Scanner يقرأ sbom.cdx.json (--sbom) ويعطي حقائق kind="vulnerable_dependency" (أضفها للمخطط ثم python tools/render.py): الحزمة، والإصدار، والمعرّف، والخطورة. كل ثغرة معروفة الإصلاح تصير ادعاء risk بنمط علاج "ترقية الاعتمادية".
+6. كما نُفّذ (2026-09-25): OSV-Scanner يقرأ ملفات القفل بنفسه (scan source -r) لأنها الأدق: 17 حزمة مصابة في finance-os مقابل 7 عبر SBOM وحده، ويقرأ SBOM من Syft للمكوّنات التي لا يذكرها ملف قفل؛ الحزمة الواحدة من عدة مصادر شاهد واحد. النتائج engine_finding بنوع vulnerability و method deterministic، لا نوع حقيقة جديد. Syft لا يقرأ نطاقات pyproject؛ المحوّل يكمل SBOM التقرير بها مع eaos:declared، فيظهر أن إصداراتها غير مقفلة. كل حزمة لها إصلاح تصير ادعاء vulnerable_dependency وبطاقة upgrade_dependency جاهزة تحت قاعدة upgrade_vulnerable_dependencies، وفحصها يعيد الفحص ويفشل قبل الترقية وينجح بعدها.
 
 **تنتهي حين:**
 

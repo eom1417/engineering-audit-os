@@ -9,6 +9,9 @@ from hashlib import sha1
 
 HEURISTIC = 'heuristic'
 OBSERVED, UNAVAILABLE, ERROR, SCHEMA_MISMATCH = 'observed', 'unavailable', 'error', 'schema_mismatch'
+# The project has nothing this engine reads (no SQL for SQLFluff, no CI for Checkov): not absence, not a clean result.
+NOT_APPLICABLE = 'not_applicable'
+DETERMINISTIC = 'deterministic'
 
 # The vocabulary every engine is normalised into. Anything an engine reports outside it is dropped
 # and counted, so an unmapped rule shows up as reduced coverage instead of silently disappearing.
@@ -50,13 +53,15 @@ class Report:
     # one that looked partially, or at another resolution, is weaker still. All must read apart.
     # Shape: {kind: {'status': 'observed'|'partial'|..., 'granularity': 'package'|'file'|'symbol'}}
     evaluated: dict = field(default_factory=dict)
+    # Files the engine produced that belong in the report itself, {name in the report: path}: the SBOM.
+    artifacts: dict = field(default_factory=dict)
 
     def as_dict(self):
         return {'engine': self.engine, 'version': self.version, 'pinned_version': self.pinned_version,
                 'status': self.status, 'seconds': round(self.seconds, 3), 'reason': self.reason,
                 'findings': self.findings, 'coverage': self.coverage, 'provenance': self.provenance,
                 'raw': self.raw, 'unmapped_rules': self.unmapped, 'evaluated_kinds': dict(sorted(self.evaluated.items())),
-                'version_matches_pin': self.version == self.pinned_version}
+                'version_matches_pin': self.version == self.pinned_version, 'artifacts': self.artifacts}
 
 
 def subject(kind, key, path=None, line=None):

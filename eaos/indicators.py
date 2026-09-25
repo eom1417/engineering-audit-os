@@ -58,9 +58,8 @@ class Report:
     def files(self):
         """The audited project's files, relative to its root; empty when the project is not on this machine."""
         if not hasattr(self, '_files'):
-            root = self.root
-            self._files = [p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_file() and '.git' not in p.parts] \
-                if root and root.is_dir() else []
+            from .toolchain import project_files
+            self._files = project_files(self.root) if self.root and self.root.is_dir() else []
         return self._files
 
     def surfaces(self):
@@ -191,13 +190,8 @@ def values(reports, adapters=()):
 
 def applies(project, rule):
     """Whether an adopted adapter applies to a project, read from the project's own files."""
-    if rule == 'all': return True
-    files = project.files()
-    if rule == 'js': return any(f.endswith(('.ts', '.tsx', '.js', '.jsx')) for f in files)
-    if rule == 'sql': return any(f.endswith('.sql') for f in files)
-    if rule == 'ci_or_iac': return any(f.startswith('.github/workflows/') or f.endswith(('Dockerfile', '.tf')) for f in files)
-    if rule == 'openapi': return any(f.split('/')[-1].startswith(('openapi.', 'swagger.')) for f in files)
-    return False
+    from .toolchain import rule_applies
+    return rule_applies(rule, project.files()) if rule != 'all' else True
 
 
 def orchestration_values(projects, adapters=()):

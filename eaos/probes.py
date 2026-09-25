@@ -119,7 +119,7 @@ QUERY_REQUIRES = {
     'policy_violation_present': 'graph', 'duplicate_cluster_present': 'fingerprint',
     'sequence_cluster_present': 'sequences', 'redundancy_present': 'redundancy',
     'engine_cluster_present': 'external', 'load_blocker_present': 'load_model', 'access_gap_present': 'domain',
-    'dead_code_present': 'deadcode', 'broken_code_present': 'broken',
+    'dead_code_present': 'deadcode', 'broken_code_present': 'broken', 'vulnerable_dependency_present': 'external',
 }
 
 
@@ -143,6 +143,12 @@ def run_graph_query(specification, sets):
                     and blocker['question'] == specification['question']):
                 return 'CONFIRMED', f"{blocker['question']} still answers {blocker['value']!r}"
         return 'REFUTED', 'the question no longer answers that way for this entry point'
+    if query == 'vulnerable_dependency_present':
+        for fact in sets['external']['facts']:
+            if fact['kind'] == 'engine_finding' and fact['location'].get('symbol') == specification['package'] \
+                    and (fact['value'] or {}).get('kind') == 'vulnerability':
+                return 'CONFIRMED', fact['value']['message']
+        return 'REFUTED', 'the scan no longer reports this package version as vulnerable'
     if query == 'broken_code_present':
         for fact in sets['broken']['facts']:
             location, value = fact['location'], fact['value']

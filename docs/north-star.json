@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-25",
-  "measured_at_commit": "aa9978a",
+  "measured_at_commit": "6fa3b64",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -266,8 +266,8 @@
           "definition": "متوسط (المحوّلات المعتمدة المنطبقة على المشروع التي عملت فعلًا ÷ المنطبقة)، لكل مشروع. قائمة المحوّلات وشروط انطباقها في adopted_adapters.",
           "reads": "facts/external.json → summary.engines_observed، مقابل adopted_adapters المنطبقة على ملفات المشروع في /tmp/eaos-corpus",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "adopted adapters that ran / applicable: FleetManageWeb 0/7 · finance-os-a0192b7b 0/8 · RendaPerene 0/7",
+          "value": 0.274,
+          "evidence": "adopted adapters that ran / applicable: FleetManageWeb 2/7 · finance-os-a0192b7b 2/8 · RendaPerene 2/7",
           "measured": "automated"
         },
         {
@@ -371,8 +371,8 @@
           "name": "الادعاءات غير الضجيجية",
           "definition": "متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع",
           "target": 0.8,
-          "value": 0.888,
-          "evidence": "claims that are not structural clones: FleetManageWeb 203/223 · finance-os-a0192b7b 201/251 · RendaPerene 59/62",
+          "value": 0.895,
+          "evidence": "claims that are not structural clones: FleetManageWeb 230/250 · finance-os-a0192b7b 218/268 · RendaPerene 59/62",
           "reads": "dossier.json → claims[].statement not containing \"share the same structure up to identifier names\"",
           "measured": "automated"
         },
@@ -468,8 +468,8 @@
           "definition": "مشاريع العيّنة التي في تقريرها قائمة اعتماديات (SBOM) فيها مكوّن واحد على الأقل، وفُحصت ثغراتها بـOSV-Scanner ÷ عدد المشاريع",
           "reads": "sbom.cdx.json → components[] غير فارغة، و\"osv-scanner\" في facts/external.json → summary.engines_observed",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "SBOM with components and OSV-Scanner observed: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False",
+          "value": 1.0,
+          "evidence": "SBOM with components and OSV-Scanner observed: FleetManageWeb True · finance-os-a0192b7b True · RendaPerene True",
           "measured": "automated"
         }
       ]
@@ -592,7 +592,7 @@
           "definition": "بطاقات effort معروف ÷ كل البطاقات في العيّنة",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "cards with a known effort: 0/527",
+          "evidence": "cards with a known effort: 0/571",
           "reads": "plan.json → tasks[].effort not \"unknown\"",
           "measured": "automated"
         },
@@ -601,8 +601,8 @@
           "name": "إصلاحات جاهزة",
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
-          "value": 0.294,
-          "evidence": "ready remediate cards: 155/527",
+          "value": 0.347,
+          "evidence": "ready remediate cards: 198/571",
           "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
           "measured": "automated"
         },
@@ -611,8 +611,8 @@
           "name": "أوامر قبول قابلة للتشغيل",
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
-          "value": 0.294,
-          "evidence": "cards with a runnable acceptance command: 155/527",
+          "value": 0.347,
+          "evidence": "cards with a runnable acceptance command: 198/571",
           "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
           "measured": "automated"
         },
@@ -632,7 +632,7 @@
           "definition": "بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with options, do-nothing and rollback: 527/527",
+          "evidence": "cards with options, do-nothing and rollback: 571/571",
           "reads": "plan.json → tasks[].options (≥ 2, one \"Do nothing\") and rollback",
           "measured": "automated"
         },
@@ -672,7 +672,7 @@
           "definition": "بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "mechanical cards whose codemod ran dry without error: FleetManageWeb 0/111 · finance-os-a0192b7b 0/38 · RendaPerene 0/12",
+          "evidence": "mechanical cards whose codemod ran dry without error: FleetManageWeb 0/138 · finance-os-a0192b7b 0/55 · RendaPerene 0/12",
           "reads": "plan.json → tasks[].codemod {tool, command, dry_run {exit, files_changed}}",
           "measured": "automated"
         },
@@ -1849,7 +1849,17 @@
             "upstreams/toolchain.json",
             "tests/contracts/syft.json",
             "tests/contracts/osv-scanner.json",
-            "tests/test_engine_contracts.py"
+            "tests/test_engine_contracts.py",
+            "eaos/engines/tool.py",
+            "eaos/dependency_assessment.py",
+            "eaos/claims.py",
+            "eaos/engagement.py",
+            "eaos/remediation_patterns.py",
+            "eaos/compose/labels.py",
+            "eaos/probes.py",
+            "eaos/facts/external.py",
+            "eaos/toolchain.py",
+            "tests/test_supply_chain.py"
           ],
           "writes": [
             "contract:sbom"
@@ -1859,7 +1869,8 @@
             "ترجم مخرجه إلى مفردات EAOS: اكتب sbom.cdx.json في التقرير كما هو. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
             "احفظ مخرجًا حقيقيًا في tests/contracts/syft.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "OSV-Scanner يقرأ sbom.cdx.json (--sbom) ويعطي حقائق kind=\"vulnerable_dependency\" (أضفها للمخطط ثم python tools/render.py): الحزمة، والإصدار، والمعرّف، والخطورة. كل ثغرة معروفة الإصلاح تصير ادعاء risk بنمط علاج \"ترقية الاعتمادية\"."
+            "OSV-Scanner يقرأ sbom.cdx.json (--sbom) ويعطي حقائق kind=\"vulnerable_dependency\" (أضفها للمخطط ثم python tools/render.py): الحزمة، والإصدار، والمعرّف، والخطورة. كل ثغرة معروفة الإصلاح تصير ادعاء risk بنمط علاج \"ترقية الاعتمادية\".",
+            "كما نُفّذ (2026-09-25): OSV-Scanner يقرأ ملفات القفل بنفسه (scan source -r) لأنها الأدق: 17 حزمة مصابة في finance-os مقابل 7 عبر SBOM وحده، ويقرأ SBOM من Syft للمكوّنات التي لا يذكرها ملف قفل؛ الحزمة الواحدة من عدة مصادر شاهد واحد. النتائج engine_finding بنوع vulnerability و method deterministic، لا نوع حقيقة جديد. Syft لا يقرأ نطاقات pyproject؛ المحوّل يكمل SBOM التقرير بها مع eaos:declared، فيظهر أن إصداراتها غير مقفلة. كل حزمة لها إصلاح تصير ادعاء vulnerable_dependency وبطاقة upgrade_dependency جاهزة تحت قاعدة upgrade_vulnerable_dependencies، وفحصها يعيد الفحص ويفشل قبل الترقية وينجح بعدها."
           ],
           "done_when": [
             "sbom.cdx.json في المشاريع الثلاثة يمر عقده.",
@@ -1875,7 +1886,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only H3 --min 1.0 && python tools/acceptance.py adapter syft && python tools/acceptance.py adapter osv-scanner && python tools/acceptance.py contract sbom",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS12.T2",

@@ -16,7 +16,7 @@ from eaos.indicators import Report, facts, load, mean, per, pooled, ratio, text 
 from eaos.indicators import values as shared_values  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-ENGINES = ['codegraph', 'enola', 'jscpd', 'reforge']
+ENGINES = ['codegraph', 'enola', 'jscpd', 'reforge', 'syft', 'osv-scanner']
 CORPUS = Path(os.environ.get('EAOS_CORPUS', '/tmp/eaos-corpus'))
 REPORTS = Path(os.environ.get('EAOS_MEASURE', '/tmp/eaos-measure'))
 # Artifacts from runs of a project's own code. The audit report is deleted whenever the tool changes;

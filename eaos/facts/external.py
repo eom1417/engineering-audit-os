@@ -27,12 +27,17 @@ def source_formats():
 
 
 def run(target, source, out=None, only=None):
-    from ..engines import analyze, missing, observed
+    from ..engines import analyze, missing, not_applicable, observed
     workdir = str(out) if out else None
     if workdir is None:
         return {'facts': [], 'input_sha': digest(b'external:no-workdir'), 'summary': {}, 'available': False,
                 'reason': 'external engines need a report directory to write their raw artifacts into'}
     manifest = analyze(target, workdir + '/engines', exclude=source.exclude, only=only, formats=source_formats())
+    # What an engine produced for the report itself (Syft's SBOM) is copied in under its declared name.
+    import shutil
+    for name, report in manifest['engines'].items():
+        for artifact, path in (report.get('artifacts') or {}).items():
+            if Path(path).is_file(): shutil.copyfile(path, Path(out) / artifact)
     versions = ''.join(f"{name}={detail.get('version')};" for name, detail in sorted(manifest['coverage'].items()))
     input_sha = digest((source.fingerprint + '|' + versions).encode('utf-8'))
     facts = []
@@ -81,6 +86,7 @@ def run(target, source, out=None, only=None):
     # kind for it, and keeps one missing key from taking the whole stage down.
     counts = {name: len([f for f in facts if f['value'].get('engine') == name]) for name in present}
     summary = {'engines_observed': present, 'engines_unavailable': absent,
+               'engines_not_applicable': not_applicable(manifest),
                # What each engine actually looked for, so silence can be told from absence.
                'evaluated_kinds': ({name: manifest['coverage'][name]['evaluated_kinds']
                                    for name in present}
