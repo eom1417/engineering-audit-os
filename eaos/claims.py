@@ -422,6 +422,11 @@ def from_facts(fact_sets, target=None):
                                                          'symbol': location.get('symbol'), 'rule': value['rule'],
                                                          'expected': 'The candidate is still unreached and unreferenced in the current snapshot.'}},
                            impact={'scenario': 'Code nobody runs is still read, maintained and reviewed, and can be switched back on without anyone noticing.'}))
+        if test_only: claims[-1]['render']['key'] = 'dead_code_review'
+        elif target is not None:
+            from .dead_code_assessment import build_assessment as dead_code_assessment
+            built = dead_code_assessment(claims[-1], fact_sets, target)
+            if built: claims[-1]['assessment'], claims[-1]['checks'] = built['assessment'], built['checks']
     broken_reasons = {'undefined-name': ('اسم غير معرّف يرفع NameError عند تشغيل السطر', 'an undefined name that raises NameError when the line runs'),
                       'duplicate-key': ('مفتاح مكرر في قاموس واحد تضيع قيمته الأولى بصمت', 'a key written twice in one dictionary; the first value is silently lost'),
                       'missing-import': ('استيراد ملف غير موجود فتفشل الوحدة عند تحميلها', 'an import of a file that does not exist; the module fails to load'),

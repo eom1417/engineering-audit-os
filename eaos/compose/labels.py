@@ -69,6 +69,7 @@ TEMPLATES = {
         'cycle': 'دورة استيراد بين: {members}',
         'cochange': '{left} و{right} يتغيّران معًا في {support} تغييرات بلا اعتماد ظاهر في الكود',
         'dead_code': 'كود ميت: {subject} ({reason_ar})',
+        'dead_code_review': 'مرشح للمراجعة: {subject} ({reason_ar})',
         'broken_code': 'كود معطّل في {path}:{line}: `{subject}` ({reason_ar})',
         'duplicated_rule': '{name} معرّف في {count} مواضع ({places})' ,
         'duplicated_rule_differs': '{name} معرّف في {count} مواضع **بقيم مختلفة** ({places})',
@@ -90,6 +91,7 @@ TEMPLATES = {
         'cycle': 'Import cycle between: {members}',
         'cochange': '{left} and {right} change together in {support} commits with no visible code dependency',
         'dead_code': 'Dead code: {subject} ({reason_en})',
+        'dead_code_review': 'Review candidate: {subject} ({reason_en})',
         'broken_code': 'Broken code at {path}:{line}: `{subject}` ({reason_en})',
         'duplicated_rule': '{name} is defined in {count} places ({places})',
         'duplicated_rule_differs': '{name} is defined in {count} places **with different values** ({places})',
@@ -121,6 +123,7 @@ IMPACTS = {
         'cycle': 'تغيير أي عضو قد يفرض تغيير البقية معه؛ ولا يمكن اختبار المجموعة أو استبدالها منفردة.',
         'cochange': 'تغيير أحدهما يستدعي غالبًا تغييرًا مقابلًا في الآخر، بلا أي إشارة في الكود.',
         'dead_code': 'كود لا يشغّله أحد يبقى يُقرأ ويُصان ويُراجع، ويمكن أن يعود للعمل دون أن ينتبه أحد.',
+        'dead_code_review': 'لا يستخدمه المنتج؛ الاختبارات وحدها تذكره: إما يُحذف معها، أو هو عقد تثبّته عمدًا.',
         'broken_code': 'يفشل هذا السطر أول مرة يُنفَّذ فيها، أو يضلّل قارئ الوثيقة؛ لم يلتقطه أي اختبار.',
         'duplicated_rule': 'تعديل القاعدة في موضع دون الآخر يجعل مسارين يختلفان.',
         'duplicated_rule_differs': 'تعديل القاعدة في موضع دون الآخر يجعل مسارين يختلفان — وهما مختلفان أصلًا.',
@@ -150,6 +153,7 @@ IMPACTS = {
         'cycle': 'Changing any member can force the rest to change with it, and the group cannot be tested or replaced on its own.',
         'cochange': 'Changing one usually calls for a matching change in the other, with nothing in the code to say so.',
         'dead_code': 'Code nobody runs is still read, maintained and reviewed, and can be switched back on without anyone noticing.',
+        'dead_code_review': 'The product does not use it; only tests name it: delete it with them, or it is a contract they pin on purpose.',
         'broken_code': 'This fails the first time it runs, or misleads the reader of the document; no test caught it.',
         'duplicated_rule': 'Editing the rule in one place and not the other makes two paths disagree.',
         'duplicated_rule_differs': 'Editing the rule in one place and not the other makes two paths disagree, and they already differ.',
@@ -198,6 +202,7 @@ FALSIFIERS = {
         'duplicated_rule': 'تعريف واحد تستورده بقية المواضع، أو دليل على أن الاسم المكرر يُرمّز قواعد غير مترابطة.',
         'external_write': 'أن تنتقل الكتابة إلى الوحدة المالكة خلف عملية مسمّاة.',
         'dead_code': 'مسار إنتاجي يصل إليه: استيراد، أو نداء، أو سجل يذكر اسمه فات البحث النصي.',
+        'dead_code_review': 'اختبار يثبّته عقدًا يعتمد عليه المنتج، أو مسار إنتاجي فات البحث النصي.',
         'broken_code': 'أن يكون الاسم أو الملف أو الأمر موجودًا فعلًا: تعريف، أو ملف، أو أمر فرعي فات القراءة النصية.',
     },
     'en': {},
@@ -221,7 +226,7 @@ DETAIL_ARTIFACT = {
     'external_write': 'DOMAIN-AND-DATA.md', 'untested': 'VERIFICATION-MAP.md', 'policy': 'POLICY.md',
     'structural_duplicate': 'SUSTAINABILITY.md', 'sequence_duplicate': 'SUSTAINABILITY.md',
     'redundant_work': 'SUSTAINABILITY.md', 'engine_cluster': 'ENGINES.md', 'load_blocker': 'LOAD-MODEL.md',
-    'dead_code': 'SYSTEM-MAP.md', 'broken_code': 'SYSTEM-MAP.md',
+    'dead_code': 'SYSTEM-MAP.md', 'dead_code_review': 'SYSTEM-MAP.md', 'broken_code': 'SYSTEM-MAP.md',
 }
 
 

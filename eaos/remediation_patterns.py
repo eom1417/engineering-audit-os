@@ -35,7 +35,8 @@ def classify(claim):
     if query == 'redundancy_present': return 'redundant_work'
     if query == 'load_blocker_present': return 'load_blocker'
     if query == 'access_gap_present': return 'access_gap'
-    if query == 'dead_code_present': return 'dead_code'
+    if query == 'dead_code_present':
+        return 'remove_dead' if (claim.get('render') or {}).get('key') == 'dead_code' else 'dead_code'
     if query == 'broken_code_present': return 'broken_code'
     if query == 'engine_cluster_present':
         return _ENGINE_CLUSTER_KINDS.get(specification.get('kind'), 'generic')
@@ -172,6 +173,15 @@ PATTERNS = {
         ],
         'rollback': 'الحذف يُسترد بـrevert واحد، وإضافة اختبار لا تحتاج تراجعًا.',
     },
+    'remove_dead': {
+        'change': 'احذف الملف أو الرمز، ثم احذف ما لا يستورده إلا هو، وشغّل الاختبارات: لا مسار إنتاجي يصل إليه ولا نص يذكر اسمه.',
+        'options': [
+            {'option': 'الحذف الآن مع إعادة التدقيق', 'cost': 'منخفضة', 'verdict': 'مختار: الدليل آلي بالكامل'},
+            {'option': 'إبقاؤه بمالك وسبب مكتوب في eaos.engagement.json', 'cost': 'صفر', 'verdict': 'حين يكون تجريبيًا أو قادمًا'},
+            {'option': 'لا نفعل شيئًا', 'option_en': 'Do nothing', 'cost': 'يبقى عبئًا على القراءة والمراجعة', 'cost_en': 'stays a reading and review cost', 'verdict': 'مرفوض ما دامت القاعدة قائمة'},
+        ],
+        'rollback': 'revert واحد يعيد الملف أو الرمز كما كان.',
+    },
     'broken_code': {
         'change': 'أصلح المرجع المعطّل: عرّف الاسم في النطاق الذي يقرؤه، أو احذف المفتاح المكرر بعد اختيار قيمته الصحيحة، أو صحّح مسار الاستيراد، أو حدّث الوثيقة إلى الأمر الموجود.',
         'options': [
@@ -233,6 +243,7 @@ def cost_of_inaction(name):
         'load_blocker': 'تبقى الكلفة تنمو مع الحركة أو البيانات، فتظهر المشكلة عند حمل لا يمكن اختباره بعد وقوعه',
         'dead_code': 'يبقى الكود الميت عبئًا على القراءة والصيانة، ويصعّب تغييرات لا تعرف بوجوده، وقد يُعاد تفعيله دون تحذير',
         'broken_code': 'يفشل المسار أول مرة يُنفَّذ فيها عند المستخدم، أو تضلّل الوثيقة من يتبعها',
+        'remove_dead': 'يبقى الكود الميت عبئًا على القراءة والصيانة، ويصعّب تغييرات لا تعرف بوجوده، وقد يُعاد تفعيله دون تحذير',
         'access_gap': 'تبقى صفوف المستخدمين مقروءة أو قابلة للتعديل لكل من يملك المفتاح العام للتطبيق',
         'generic': '⧗ غير محددة',
     }[name]

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-25",
-  "measured_at_commit": "2ed20ee",
+  "measured_at_commit": "2787b37",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -429,8 +429,8 @@
           "name": "بطاقات حذف آمن جاهزة",
           "definition": "بطاقات remediate جاهزة (ready) بنمط remove_dead وأمر قبول قابل للتشغيل ÷ ادعاءات الكود الميت والمخلفات (render.key = dead_code أو leftover)",
           "target": 0.9,
-          "value": 0.0,
-          "evidence": "ready remove_dead cards: 0 for 156 dead-code and leftover claims",
+          "value": 1.0,
+          "evidence": "ready remove_dead cards: 155 for 155 dead-code and leftover claims",
           "reads": "plan.json → tasks[] with pattern \"remove_dead\", kind \"remediate\", decision.readiness \"ready\", runnable acceptance; divided by dossier.json claims whose render.key is \"dead_code\" or \"leftover\"",
           "measured": "automated"
         }
@@ -601,8 +601,8 @@
           "name": "إصلاحات جاهزة",
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
-          "value": 0.0,
-          "evidence": "ready remediate cards: 0/514",
+          "value": 0.302,
+          "evidence": "ready remediate cards: 155/514",
           "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
           "measured": "automated"
         },
@@ -611,8 +611,8 @@
           "name": "أوامر قبول قابلة للتشغيل",
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
-          "value": 0.0,
-          "evidence": "cards with a runnable acceptance command: 0/514",
+          "value": 0.302,
+          "evidence": "cards with a runnable acceptance command: 155/514",
           "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
           "measured": "automated"
         },
@@ -1419,7 +1419,8 @@
             "في eaos/remediation_patterns.py أضف النمط remove_dead بجانب dead_code القائم (لا تعد تسمية القائم): التغيير حذف الملف أو الرمز.",
             "أمر القبول: python -m eaos audit <المشروع> ثم التحقق أن لا استيراد جديدًا غير محلول، وأن الاختبارات المعلنة تمر. لا يحتوي \"human review\".",
             "البطاقة: kind = \"remediate\"، و decision.readiness = \"ready\"، و effort = \"S\"، والتراجع revert واحد.",
-            "لكل ادعاء render.key = dead_code أو leftover بطاقة واحدة."
+            "لكل ادعاء render.key = dead_code أو leftover بطاقة واحدة.",
+            "تنفيذ 2026-09-25: القاعدة remove_dead_code في eaos.engagement.json (افتراضية معلنة، والمالك يطفئها) هي المتطلب ومراجع السجل؛ أمر القبول يعيد المستخرج على النسخة ويخرج 0 حين يختفي المرشح، وثبت ذلك باختبار ينفّذه قبل الحذف وبعده. المرشح الذي تذكره الاختبارات وحدها مفتاحه dead_code_review ويبقى تحقيقًا."
           ],
           "done_when": [
             "D3 ≥ 0.9.",
@@ -1432,7 +1433,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only D3 --min 0.9",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "stages": [

@@ -35,6 +35,29 @@ DEFAULT_TARGETS = {
 }
 
 
+# Rules the audit applies unless the project says otherwise in eaos.engagement.json at its root. Each is a
+# declared default, not a judgement about this project: the owner turns one off by writing it as false.
+DEFAULT_RULES = {
+    'remove_dead_code': {
+        'value': True, 'source': 'default',
+        'why': 'Code no production path reaches and no text names is read, maintained and reviewed for nothing; '
+               'the evidence is mechanical and the removal reverts in one commit.'},
+}
+PROJECT_FILENAME = 'eaos.engagement.json'
+
+
+def rules_for(target):
+    """(rules, where they came from): the project's eaos.engagement.json rules over the defaults."""
+    rules = {name: dict(rule) for name, rule in DEFAULT_RULES.items()}
+    location = Path(target) / PROJECT_FILENAME if target else None
+    if location is not None and location.is_file():
+        declared = (json.loads(location.read_text(encoding='utf-8')) or {}).get('rules') or {}
+        for name, value in declared.items():
+            if name in rules: rules[name].update(value=bool(value), source=str(location))
+        return rules, str(location)
+    return rules, 'default'
+
+
 def read_contract(path):
     """Read an engagement contract from a JSON file, or return sensible defaults."""
     path = Path(path) if path else None
@@ -52,7 +75,8 @@ def read_contract(path):
 
 def _default_contract():
     return {'schema_version': 1, 'name': 'default', 'targets': dict(DEFAULT_TARGETS),
-            'scenarios': [], 'priority': _default_priority(), 'scope': {'in': [], 'out': []}}
+            'scenarios': [], 'priority': _default_priority(), 'scope': {'in': [], 'out': []},
+            'rules': {name: dict(rule) for name, rule in DEFAULT_RULES.items()}}
 
 
 def _default_priority():

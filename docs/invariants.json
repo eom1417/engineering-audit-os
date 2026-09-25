@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "2ed20ee",
+  "extracted_at_commit": "2787b37",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -99,6 +99,15 @@
       "statement": "A document with no machine-readable twin is a dead end for anything that has to act on what it says: the reader can see the conclusion and cannot reach the detail behind it.",
       "kind": "invariant",
       "enforced_by": "tests/test_artifact_contract.py::RecordTwinTests::test_a_document_declared_without_either_is_caught",
+      "note": ""
+    },
+    {
+      "id": "INV-d505b52098",
+      "file": "eaos/dead_code_assessment.py",
+      "symbol": "<module>",
+      "statement": "Its reviewer of record is that rule and its source, never an invented person.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_dead_code_assessment.py::RemoveDeadTests::test_a_confirmed_dead_function_gets_a_ready_card_whose_check_decides",
       "note": ""
     },
     {
