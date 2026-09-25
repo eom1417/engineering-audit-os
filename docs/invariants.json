@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "09cc147",
+  "extracted_at_commit": "f8575c8",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -324,6 +324,15 @@
       "statement": "A package's stand-in file must not be a test: an import of `internal/engine` that points at `append_replace_test.go` puts a fixture on the dependency graph.",
       "kind": "invariant",
       "enforced_by": "tests/test_facts_resolve.py::GoPackageFolderResolutionTests::test_the_package_stand_in_file_is_never_a_test_file",
+      "note": ""
+    },
+    {
+      "id": "INV-a4735836ff",
+      "file": "eaos/facts/resolve.py",
+      "symbol": "js_aliases",
+      "statement": "Without either, `@/` and `~/` still point at src/ when it exists: no npm package can be named with an empty scope, so they are never external.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_facts_resolve.py::PathAliasTests::test_at_slash_points_at_src_without_any_config",
       "note": ""
     },
     {

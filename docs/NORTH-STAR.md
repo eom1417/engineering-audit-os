@@ -1,8 +1,8 @@
 # الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي
 
-> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-25 على الالتزام `42795c8`.
+> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-25 على الالتزام `f8575c8`.
 
-## أين نحن: **35.9%** من الوجهة
+## أين نحن: **36.0%** من الوجهة
 
 هذه ليست درجة القدرات في docs/CAPABILITY-SCORE.md. تلك تقيس اكتمال آلية الأداة على مستودعين ضُبطت عليهما، وهذه تقيس الوعد نفسه على الجمهور الذي بُنيت له.
 
@@ -13,12 +13,12 @@
 | C3 | الإشارة: كل ادعاء مشكلة حقيقية | 10 | 35% | 3.5 |
 | C4 | الكود الميت والمخلفات: يجدها ويحذفها بأمان | 10 | 44% | 4.4 |
 | C5 | نظافة الأمن الأساسية | 8 | 67% | 5.3 |
-| C6 | تقرير الصورة المثالية | 16 | 7% | 1.2 |
+| C6 | تقرير الصورة المثالية | 16 | 8% | 1.2 |
 | C7 | تقرير الفجوة والتحول الاستراتيجي | 8 | 44% | 3.6 |
 | C8 | خطة التنفيذ للفريق | 16 | 15% | 2.4 |
 | C9 | ضمان التنفيذ: يثبت أن التحول حدث | 7 | 9% | 0.6 |
 | C10 | الثقة والإثبات المستقل | 5 | 57% | 2.9 |
-| | **المجموع** | **100** | | **35.9** |
+| | **المجموع** | **100** | | **36.0** |
 
 ## الرؤية
 
@@ -125,8 +125,8 @@
 | U1 تغطية التحليل | متوسط parse_coverage على مشاريع العيّنة | 95% | 95% | parse_coverage: FleetManageWeb 0.978 · finance-os-a0192b7b 0.888 · RendaPerene 0.987 |
 | U2 أسطح المستخدم المكتشفة | متوسط (الأسطح المكتشفة ÷ الأسطح الحقيقية في truth.user_surfaces) لكل مشروع | 90% | 100% | found/true surfaces: FleetManageWeb 43/43 · finance-os-a0192b7b 29/29 · RendaPerene 3/3 |
 | U3 نموذج البيانات مقروء | مشاريع العيّنة ذات قاعدة بيانات التي قُرئت جداولها بحالة RLS لكل جدول، وسياساتها ÷ عدد تلك المشاريع | 100% | 100% | data_table facts with RLS state, and db_policy facts, vs truth: finance-os-a0192b7b 31/31 tables, 108/108 policies |
-| U4 جرد الوظائف | مشاريع العيّنة التي يسرد تقريرها وظائف البرنامج (ماذا يفعل للمستخدم) مربوطة بأسطحها وبياناتها ÷ عدد المشاريع | 100% | 100% | features in features.json: FleetManageWeb 31 · finance-os-a0192b7b 21 · RendaPerene 3 |
-| U5 المداخل والمخارج والحدود | متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع | 80% | 72% | answered load questions: FleetManageWeb 270/368 · finance-os-a0192b7b 156/232 · RendaPerene 18/24 |
+| U4 جرد الوظائف | مشاريع العيّنة التي يسرد تقريرها وظائف البرنامج (ماذا يفعل للمستخدم) مربوطة بأسطحها وبياناتها ÷ عدد المشاريع | 100% | 100% | features in features.json: FleetManageWeb 24 · finance-os-a0192b7b 21 · RendaPerene 3 |
+| U5 المداخل والمخارج والحدود | متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع | 80% | 72% | answered load questions: FleetManageWeb 270/368 · finance-os-a0192b7b 159/232 · RendaPerene 18/24 |
 | U6 الاستلام | مشاريع العيّنة التي في تقريرها intake.json وكل أسئلته إما مجابة أو معلّمة افتراضية ÷ عدد المشاريع | 100% | 0% | intake.json complete: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False |
 | M1 القياس لكل ملف مصدر | متوسط (ملفات المصدر المحلَّلة التي لها في measurements.json الحجم وأعلى تعقيد وعدد التغييرات وعدد المعتمِدين عليها ÷ ملفات المصدر المحلَّلة)، لكل مشروع | 95% | 0% | source files with size, complexity, churn and fan-in: FleetManageWeb 0/273 · finance-os-a0192b7b 0/301 · RendaPerene 0/74 |
 
@@ -136,7 +136,7 @@
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| S1 الادعاءات غير الضجيجية | متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع | 80% | 83% | claims that are not structural clones: FleetManageWeb 84/104 · finance-os-a0192b7b 151/201 · RendaPerene 50/53 |
+| S1 الادعاءات غير الضجيجية | متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع | 80% | 83% | claims that are not structural clones: FleetManageWeb 80/100 · finance-os-a0192b7b 156/206 · RendaPerene 50/53 |
 | S2 دقة مرشحات الكود الميت | المرشحات الميتة فعلًا ÷ كل الرموز المرشحة، على self_truth | 80% | 21% | 5 dead of 24 distinct candidates (by path and symbol): _scope_chain, _steps, _trace_evidence, run_absence_search, write_next |
 | S3 الخطر العالي مؤكد بشاهدين | متوسط (عناصر debt-register.json بخطورة high أو critical التي يدعمها شاهدان مستقلان من أداتين مختلفتين، أو دليل حتمي واحد ÷ تلك العناصر)، لكل مشروع. مشروع بلا سجل يُحسب صفرًا. | 80% | 0% | high and critical debt items with two independent witnesses: FleetManageWeb no register · finance-os-a0192b7b no register · RendaPerene no register |
 
@@ -160,7 +160,7 @@
 | H2 تغطية سياسات الوصول مقروءة | مشاريع ذات قاعدة بيانات قُرئت فيها سياسات RLS وحُدد كل جدول بلا سياسة ÷ عدد تلك المشاريع | 100% | 100% | db_policy facts vs truth: finance-os-a0192b7b 108/108 |
 | H3 سلسلة الإمداد | مشاريع العيّنة التي في تقريرها قائمة اعتماديات (SBOM) فيها مكوّن واحد على الأقل، وفُحصت ثغراتها بـOSV-Scanner ÷ عدد المشاريع | 100% | 0% | SBOM with components and OSV-Scanner observed: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False |
 
-### C6 — تقرير الصورة المثالية (7%، الوزن 16)
+### C6 — تقرير الصورة المثالية (8%، الوزن 16)
 
 **الصورة المثالية:** البرنامج نفسه بوظائفه نفسها، ببنية وبنية تحتية تصلح منتجًا: مكوّنات مستهدفة، وحدود، وقرارات بنية تحتية، وقرار لكل مكوّن حالي، كل قرار بدليله وبديله.
 
@@ -168,11 +168,11 @@
 | --- | --- | --- | --- | --- |
 | T1 مكوّنات مستهدفة ملموسة | مشاريع العيّنة التي فيها target_components غير فارغة ÷ عدد المشاريع | 100% | 0% | target_components: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
 | T2 قرارات البنية التحتية | مشاريع العيّنة التي تحمل قرارات مسبّبة في الاستضافة والبيانات والهوية والإعدادات وCI والمراقبة ÷ عدد المشاريع | 100% | 0% | infrastructure decisions: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
-| T3 قرارات تغيّر البنية | القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات | 60% | 2% | decisions that change structure: FleetManageWeb 0/29 · finance-os-a0192b7b 1/30 · RendaPerene 0/9 |
+| T3 قرارات تغيّر البنية | القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات | 60% | 4% | decisions that change structure: FleetManageWeb 2/30 · finance-os-a0192b7b 1/30 · RendaPerene 0/9 |
 | T4 قرار لكل مكوّن حالي | (المكوّنات الحالية التي لها قرار صريح بدليله ÷ المكوّنات الحالية) × (عدد القرارات الأربعة التي ينتجها المنتج فعلًا: إعادة استخدام، هيكلة، إعادة بناء، حذف ÷ 4) | 100% | 50% | components with a disposition and reason: FleetManageWeb 47/47 · finance-os-a0192b7b 36/36 · RendaPerene 9/9; dispositions the tool produced: ['restructure', 'reuse'] of 4 |
-| T5 الوظائف نفسها في الصورة المثالية | وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد | 100% | 0% | features placed in a target component: FleetManageWeb 0/31 · finance-os-a0192b7b 0/21 · RendaPerene 0/3 |
+| T5 الوظائف نفسها في الصورة المثالية | وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد | 100% | 0% | features placed in a target component: FleetManageWeb 0/24 · finance-os-a0192b7b 0/21 · RendaPerene 0/3 |
 | T6 نموذج C4 حالي ومستهدف | مشاريع العيّنة التي في تقريرها architecture/current/workspace.dsl و architecture/target/workspace.dsl، ويذكر النموذج المستهدف اسم كل مكوّن في target_components ÷ عدد المشاريع | 100% | 0% | current and target C4 models naming every target component: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False |
-| T7 قرارات العمارة بصيغة MADR | ملفات adr/ADR-*.md التي فيها أقسام MADR الثلاثة (Context and Problem Statement، Considered Options، Decision Outcome) ÷ قرارات target-architecture.json | 100% | 0% | MADR files for decisions: FleetManageWeb 0/29 · finance-os-a0192b7b 0/30 · RendaPerene 0/9 |
+| T7 قرارات العمارة بصيغة MADR | ملفات adr/ADR-*.md التي فيها أقسام MADR الثلاثة (Context and Problem Statement، Considered Options، Decision Outcome) ÷ قرارات target-architecture.json | 100% | 0% | MADR files for decisions: FleetManageWeb 0/30 · finance-os-a0192b7b 0/30 · RendaPerene 0/9 |
 
 ### C7 — تقرير الفجوة والتحول الاستراتيجي (44%، الوزن 8)
 
@@ -189,11 +189,11 @@
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| P1 مهام محددة الحجم | بطاقات effort معروف ÷ كل البطاقات في العيّنة | 100% | 0% | cards with a known effort: 0/349 |
-| P2 إصلاحات جاهزة | بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة | 50% | 0% | ready remediate cards: 0/349 |
-| P3 أوامر قبول قابلة للتشغيل | بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات | 80% | 0% | cards with a runnable acceptance command: 0/349 |
+| P1 مهام محددة الحجم | بطاقات effort معروف ÷ كل البطاقات في العيّنة | 100% | 0% | cards with a known effort: 0/350 |
+| P2 إصلاحات جاهزة | بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة | 50% | 0% | ready remediate cards: 0/350 |
+| P3 أوامر قبول قابلة للتشغيل | بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات | 80% | 0% | cards with a runnable acceptance command: 0/350 |
 | P4 معالم بأهداف مقيسة | مشاريع العيّنة التي تجمع خطتها البطاقات في معالم لكل منها هدف وشرط خروج ÷ عدد المشاريع | 100% | 0% | milestones with a goal and exit criterion: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
-| P5 التناسب | بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات | 100% | 100% | cards with options, do-nothing and rollback: 349/349 |
+| P5 التناسب | بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات | 100% | 100% | cards with options, do-nothing and rollback: 350/350 |
 | P6 أقسام الفريق | مشاريع العيّنة التي توزّع خطتها المهام على أقسام (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) مع الاعتماديات بينها ÷ عدد المشاريع | 100% | 0% | every card carries a team section: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False |
 | P7 التقارير الأربعة | من التقارير الأربعة (الوضع الراهن، الصورة المثالية، الفجوة والتحول، خطة التنفيذ)، عدد ما له وثيقة مخصصة ÷ 4. جودة محتواها تقيسها المؤشرات الأخرى. | 100% | 50% | of the four reports present: FleetManageWeb 2/4 · finance-os-a0192b7b 2/4 · RendaPerene 2/4 |
 | P8 جودة التقارير الأربعة | متوسط (التقارير الأربعة التي مرّت فحص Vale بحزمة EAOS وفحص markdownlint بلا أخطاء ÷ 4)، لكل مشروع | 100% | 0% | of the four reports passing Vale and markdownlint: FleetManageWeb 0/4 · finance-os-a0192b7b 0/4 · RendaPerene 0/4 |
@@ -209,7 +209,7 @@
 | E1 تنفيذ حقيقي بنموذج على مشروع من العيّنة | 1 إن نُفّذت بطاقة واحدة على الأقل بنموذج (لا بأداة تحويل) على مشروع من العيّنة في نسخة معزولة، وحالتها VERIFIED_IN_ISOLATED_COPY، ومرّ أمر قبولها؛ وإلا 0 | 100% | 0% | a card executed by a model, verified in an isolated copy, acceptance passing: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False |
 | E2 تنبؤات تحققت | فروق المؤشرات التي تنبأت بها الخطة وحكم عليها eaos guarantee بأنها HONEST ÷ كل الفروق المقارنة، بعد تنفيذ حقيقي | 80% | 0% | predicted indicator deltas the change actually produced: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0 |
 | E3 حارس التراجع مثبت | 1 إن كانت baseline و delta وبوابة عدم التراجع تعمل وتختبر على هذا المستودع | 100% | 100% | tests/gate/capability_no_regression.sh و no_new_debt.sh تمر. |
-| E4 مواصفات تثبيت السلوك | وظائف features.json التي لها مواصفة اختبار واحدة على الأقل (Playwright أو Schemathesis أو Pact أو ApprovalTests) في behavior-lock/plan.json وملفها موجود ÷ الوظائف | 100% | 0% | features with a behavior-lock spec: FleetManageWeb 0/31 · finance-os-a0192b7b 0/21 · RendaPerene 0/3 |
+| E4 مواصفات تثبيت السلوك | وظائف features.json التي لها مواصفة اختبار واحدة على الأقل (Playwright أو Schemathesis أو Pact أو ApprovalTests) في behavior-lock/plan.json وملفها موجود ÷ الوظائف | 100% | 0% | features with a behavior-lock spec: FleetManageWeb 0/24 · finance-os-a0192b7b 0/21 · RendaPerene 0/3 |
 | E5 شبكة الأمان تمر على الكود الحالي | مواصفات behavior-lock التي شُغّلت في بيئة معزولة ومرّت على الكود الحالي ÷ المواصفات | 100% | 0% | behavior-lock specs passing on current code: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0 |
 | E6 الحمل مقيس قبل وبعد | سيناريوهات الحمل في nfr/k6 التي لها p95 ونسبة خطأ مقيستان بـk6 على الكود الأصلي وبعد التحول، في بيئة معزولة وبالشروط نفسها ÷ سيناريوهات الحمل | 100% | 0% | load scenarios measured before and after: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0 |
 | E7 تكافؤ السلوك بعد التحول | مواصفات تثبيت السلوك التي مرّت على الكود الأصلي ومرّت أيضًا بعد التحول ÷ التي مرّت على الأصلي | 100% | 0% | specs passing before that still pass after: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0 |

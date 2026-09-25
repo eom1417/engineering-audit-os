@@ -44,7 +44,7 @@ CONTRACTS = {
   obj({'schema_version': {'const': 1},
        'features': arr(obj({'name': S, 'description': S,
                             'surfaces': arr(S, 1), 'tables': arr(S), 'files': arr(S),
-                            'evidence': arr(S, 1), 'critical': B, 'target_component': NS},
+                            'writes': arr(S), 'endpoints': arr(S), 'evidence': arr(S, 1), 'critical': B, 'target_component': NS},
                            ['name', 'description', 'surfaces', 'tables', 'evidence', 'critical']), 1),
        'unassigned_surfaces': arr(S)}, ['schema_version', 'features', 'unassigned_surfaces'])),
  'sbom': ('sbom.cdx.json', 'NS12.T1', 'CycloneDX written by Syft, kept as Syft wrote it. Only the fields EAOS reads are constrained.',

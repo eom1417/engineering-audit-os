@@ -65,7 +65,66 @@ def js_directory(importer, module):
     return '/'.join(stack)
 
 
-def js_candidates(importer, module):
+def _jsonc(text):
+    """tsconfig.json allows comments and trailing commas; strip both before json.loads."""
+    import json as json_module
+    text = re.sub(r'"(?:\\.|[^"\\])*"|//[^\n]*|/\*.*?\*/', lambda m: m.group(0) if m.group(0)[0] == '"' else '', text, flags=re.S)
+    text = re.sub(r',\s*([}\]])', r'\1', text)
+    try: return json_module.loads(text)
+    except ValueError: return {}
+
+
+VITE_ALIAS = re.compile(r'''["']?([@~][\w-]*)["']?\s*:\s*(?:path\.)?resolve\(\s*__dirname\s*,\s*["']\.?/?([^"']*)["']\s*\)''')
+
+
+def js_aliases(source, known):
+    """Path aliases, as (prefix, [directories]) longest prefix first: `@/` -> `src/`.
+
+    Read from compilerOptions.paths in every tsconfig*.json and jsconfig.json (relative to that file
+    and its baseUrl), then from `alias` entries in vite.config.*. Without either, `@/` and `~/` still
+    point at src/ when it exists: no npm package can be named with an empty scope, so they are never
+    external.
+    """
+    aliases = {}
+    for path in sorted(known):
+        name = PurePosixPath(path).name
+        if '/node_modules/' in '/' + path: continue
+        if name.startswith(('tsconfig', 'jsconfig')) and name.endswith('.json'):
+            options = (_jsonc(source.text(path) or '') or {}).get('compilerOptions') or {}
+            base = PurePosixPath(path).parent / (options.get('baseUrl') or '.')
+            for pattern, targets in (options.get('paths') or {}).items():
+                if not isinstance(targets, list): continue
+                prefix = pattern.rstrip('*')
+                for target in targets:
+                    folder = js_directory((base / 'x').as_posix(), './' + str(target).rstrip('*'))
+                    aliases.setdefault(prefix, []).append((folder + '/') if folder and str(target).endswith('/*') else folder)
+        elif name.startswith('vite.config.'):
+            for prefix, folder in VITE_ALIAS.findall(source.text(path) or ''):
+                folder = js_directory(path, './' + folder)
+                aliases.setdefault(prefix + '/', []).append(folder + '/' if folder else '')
+    has_src = any(p.startswith('src/') for p in known)
+    for prefix in ('@/', '~/'):
+        if prefix not in aliases and has_src: aliases[prefix] = ['src/']
+    return sorted(((prefix, list(dict.fromkeys(folders))) for prefix, folders in aliases.items()), key=lambda row: -len(row[0]))
+
+
+def alias_of(module, aliases):
+    """The alias prefix a specifier starts with, or None."""
+    return next((prefix for prefix, _ in aliases if module == prefix.rstrip('/') or module.startswith(prefix)), None)
+
+
+def js_candidates(importer, module, aliases=()):
+    # A bundler query (`./styles.css?url`, `./worker?raw`) names the same file.
+    module = module.split('?', 1)[0]
+    prefix = alias_of(module, aliases) if not module.startswith('.') else None
+    if prefix is not None:
+        rest = module[len(prefix):] if module.startswith(prefix) else ''
+        out = []
+        for _, folders in (row for row in aliases if row[0] == prefix):
+            for folder in folders:
+                target = (folder + rest).strip('/') if folder.endswith('/') or not rest else (folder + '/' + rest).strip('/')
+                out += [target] + [target + suffix for suffix in JS_SUFFIXES] + [target + index for index in JS_INDEX]
+        return out
     if not module.startswith('.'): return []
     target = js_directory(importer, module)
     if not target: return ['index.js', 'index.ts', 'index.mjs']
@@ -126,6 +185,8 @@ def run(target, source, imports=None, external_edges=None, **options):
     known = {item['path'] for item in source.readable()}
     directories = {PurePosixPath(p).parent.as_posix() for p in known}
     go_module = go_module_name(source)
+    aliases = js_aliases(source, known)
+    out_of_scope = set(getattr(source, 'excluded_files', ()))
     rows = imports if imports is not None else [f for f in syntax.run(target, source)['facts'] if f['kind'] == 'import_edge']
     counts = {'RESOLVED': 0, 'EXTERNAL': 0, 'AMBIGUOUS': 0, 'UNRESOLVED': 0,
                 'RESOLVED_BY_ENGINE': 0}
@@ -151,7 +212,7 @@ def run(target, source, imports=None, external_edges=None, **options):
         language = row['value'].get('language') or language_of(importer)
         level = row['value'].get('level', 0)
         if language == 'python': candidates = python_candidates(importer, module, level)
-        elif language in {'javascript', 'typescript', 'tsx'}: candidates = js_candidates(importer, module)
+        elif language in {'javascript', 'typescript', 'tsx'}: candidates = js_candidates(importer, module, aliases)
         elif language == 'go': candidates = go_candidates(module, go_module)
         elif language in {'java', 'kotlin', 'scala'}: candidates = jvm_candidates(module)
         elif language in {'c', 'cpp'}: candidates = js_candidates(importer, './' + module) if not module.startswith('<') else []
@@ -183,8 +244,13 @@ def run(target, source, imports=None, external_edges=None, **options):
                 resolution, value = 'AMBIGUOUS', None
                 target_kind = None
         elif len(matches) == 1: resolution, value, target_kind = 'RESOLVED', matches[0], None
+        elif not matches and any(c in out_of_scope for c in candidates):
+            # The target exists but sits in an excluded vendored directory (components/ui): outside the
+            # analysed system like a package, not an unresolved import. package_path keeps where it points.
+            resolution, value, target_kind = 'EXTERNAL', None, 'excluded'
+            package_path = next(c for c in dict.fromkeys(candidates) if c in out_of_scope)
         elif len(matches) > 1: resolution, value, target_kind = 'AMBIGUOUS', None, None
-        elif not candidates or (language in {'javascript', 'typescript', 'tsx'} and not module.startswith('.')) or (language == 'python' and not level and module.split('.')[0] not in {PurePosixPath(p).parts[0] for p in known} | {d.split('/')[0] for d in directories}):
+        elif not candidates or (language in {'javascript', 'typescript', 'tsx'} and not module.startswith('.') and alias_of(module, aliases) is None) or (language == 'python' and not level and module.split('.')[0] not in {PurePosixPath(p).parts[0] for p in known} | {d.split('/')[0] for d in directories}):
             resolution, value, target_kind = 'EXTERNAL', None, None
         else: resolution, value, target_kind = 'UNRESOLVED', None, None
         counts[resolution] += 1

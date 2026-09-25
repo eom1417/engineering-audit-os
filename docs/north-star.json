@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-25",
-  "measured_at_commit": "42795c8",
+  "measured_at_commit": "f8575c8",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -293,7 +293,7 @@
           "definition": "مشاريع العيّنة التي يسرد تقريرها وظائف البرنامج (ماذا يفعل للمستخدم) مربوطة بأسطحها وبياناتها ÷ عدد المشاريع",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "features in features.json: FleetManageWeb 31 · finance-os-a0192b7b 21 · RendaPerene 3",
+          "evidence": "features in features.json: FleetManageWeb 24 · finance-os-a0192b7b 21 · RendaPerene 3",
           "reads": "features.json → features[] (non-empty)",
           "measured": "automated"
         },
@@ -302,8 +302,8 @@
           "name": "المداخل والمخارج والحدود",
           "definition": "متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع",
           "target": 0.8,
-          "value": 0.719,
-          "evidence": "answered load questions: FleetManageWeb 270/368 · finance-os-a0192b7b 156/232 · RendaPerene 18/24",
+          "value": 0.723,
+          "evidence": "answered load questions: FleetManageWeb 270/368 · finance-os-a0192b7b 159/232 · RendaPerene 18/24",
           "reads": "load-model.json → entry_points[].answers[].status == \"answered\"",
           "measured": "automated"
         },
@@ -340,8 +340,8 @@
           "name": "الادعاءات غير الضجيجية",
           "definition": "متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع",
           "target": 0.8,
-          "value": 0.834,
-          "evidence": "claims that are not structural clones: FleetManageWeb 84/104 · finance-os-a0192b7b 151/201 · RendaPerene 50/53",
+          "value": 0.833,
+          "evidence": "claims that are not structural clones: FleetManageWeb 80/100 · finance-os-a0192b7b 156/206 · RendaPerene 50/53",
           "reads": "dossier.json → claims[].statement not containing \"share the same structure up to identifier names\"",
           "measured": "automated"
         },
@@ -474,8 +474,8 @@
           "name": "قرارات تغيّر البنية",
           "definition": "القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات",
           "target": 0.6,
-          "value": 0.015,
-          "evidence": "decisions that change structure: FleetManageWeb 0/29 · finance-os-a0192b7b 1/30 · RendaPerene 0/9",
+          "value": 0.043,
+          "evidence": "decisions that change structure: FleetManageWeb 2/30 · finance-os-a0192b7b 1/30 · RendaPerene 0/9",
           "reads": "target-architecture.json → decisions[].chosen containing move/split/merge/extract/introduce/layer/break the cycle/delete/rebuild",
           "measured": "automated"
         },
@@ -495,7 +495,7 @@
           "definition": "وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "features placed in a target component: FleetManageWeb 0/31 · finance-os-a0192b7b 0/21 · RendaPerene 0/3",
+          "evidence": "features placed in a target component: FleetManageWeb 0/24 · finance-os-a0192b7b 0/21 · RendaPerene 0/3",
           "reads": "features.json → features[].target_component",
           "measured": "automated"
         },
@@ -516,7 +516,7 @@
           "reads": "adr/ADR-*.md في التقرير، مقابل target-architecture.json → decisions[]",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "MADR files for decisions: FleetManageWeb 0/29 · finance-os-a0192b7b 0/30 · RendaPerene 0/9",
+          "evidence": "MADR files for decisions: FleetManageWeb 0/30 · finance-os-a0192b7b 0/30 · RendaPerene 0/9",
           "measured": "automated"
         }
       ]
@@ -561,7 +561,7 @@
           "definition": "بطاقات effort معروف ÷ كل البطاقات في العيّنة",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "cards with a known effort: 0/349",
+          "evidence": "cards with a known effort: 0/350",
           "reads": "plan.json → tasks[].effort not \"unknown\"",
           "measured": "automated"
         },
@@ -571,7 +571,7 @@
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
           "value": 0.0,
-          "evidence": "ready remediate cards: 0/349",
+          "evidence": "ready remediate cards: 0/350",
           "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
           "measured": "automated"
         },
@@ -581,7 +581,7 @@
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "cards with a runnable acceptance command: 0/349",
+          "evidence": "cards with a runnable acceptance command: 0/350",
           "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
           "measured": "automated"
         },
@@ -601,7 +601,7 @@
           "definition": "بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with options, do-nothing and rollback: 349/349",
+          "evidence": "cards with options, do-nothing and rollback: 350/350",
           "reads": "plan.json → tasks[].options (≥ 2, one \"Do nothing\") and rollback",
           "measured": "automated"
         },
@@ -699,7 +699,7 @@
           "reads": "behavior-lock/plan.json → specs[] {feature, tool, path}، مقابل features.json → features[].name",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "features with a behavior-lock spec: FleetManageWeb 0/31 · finance-os-a0192b7b 0/21 · RendaPerene 0/3",
+          "evidence": "features with a behavior-lock spec: FleetManageWeb 0/24 · finance-os-a0192b7b 0/21 · RendaPerene 0/3",
           "measured": "automated"
         },
         {

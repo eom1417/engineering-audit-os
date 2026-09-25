@@ -22,6 +22,19 @@ _PARAMETER_SEGMENT = re.compile(r'^\$|^:')    # TanStack `$id`, Next.js `[id]`, 
 _WRITE_OPERATION = frozenset({'insert', 'update', 'upsert', 'delete'})
 _AUTH_KEYWORD = frozenset({'auth', 'login', 'signup', 'signin', 'signout', 'payment',
                            'checkout', 'billing'})
+# Pages a person reaches on the way in, or to read about the product, are one feature each, not one
+# feature per page: a vibe-coded app has login, reset, reset-password and confirm-email as four routes
+# of the same thing.
+_GROUPS = {'auth': frozenset({'auth', 'login', 'logout', 'signin', 'signup', 'signout', 'register', 'reset',
+                              'reset-password', 'forgot-password', 'confirm-email', 'verify', 'verify-email',
+                              'callback', 'oauth', 'magic-link'}),
+           'info': frozenset({'privacy', 'privacy-policy', 'terms', 'tos', 'terms-of-service', 'contact', 'support',
+                              'about', 'faq', 'help', 'legal', 'cookies', 'pricing', '*', '404', 'not-found'})}
+_TABLE_OPERATIONS = frozenset({'select', 'insert', 'update', 'upsert', 'delete'})
+# How far a page's imports are followed to find the data it touches (page, hook, service), and above what
+# share of features a file counts as shared infrastructure whose data belongs to no single feature.
+_IMPORT_DEPTH = 3
+_PROVIDER = re.compile(r'(Context|Provider)\.[jt]sx?$')
 
 
 def _feature_name(route):
@@ -37,7 +50,10 @@ def _feature_name(route):
              if segment and not _LAYOUT_SEGMENT.match(segment) and not _PARAMETER_SEGMENT.match(segment)]
     if not parts:
         return 'home'
-    return parts[0].rstrip('_')
+    name = parts[0].rstrip('_')
+    for group, words in _GROUPS.items():
+        if name.lower() in words: return group
+    return name
 
 
 def _is_critical(surfaces):
@@ -62,25 +78,65 @@ def _caller_files_for(route, flow_by_route):
     return list(OrderedDict.fromkeys([flow['entry']['path'], *flow.get('touched_files', [])]))
 
 
-def _data_access_targets(files, data_access_by_path):
-    """Tables the feature's files touch: union over the files of data_access.target names."""
-    targets = []
-    seen = set()
+def _table_access(files, data_access_by_path):
+    """(tables read, tables written, endpoints called) by the feature's files.
+
+    Tables come from table operations only, not rpc, auth or storage. Endpoints are the app's own HTTP
+    back end, as `METHOD /path`; a POST, PUT, PATCH or DELETE writes like a table insert does.
+    """
+    reads, writes, endpoints = OrderedDict(), OrderedDict(), OrderedDict()
     for f in files:
         for access in data_access_by_path.get(f, []):
-            target = access.get('target')
-            if not target or target in seen: continue
-            seen.add(target)
-            targets.append(target)
-    return targets
+            target, operation = access.get('target'), access.get('operation')
+            if not target: continue
+            if access.get('client') == 'http':
+                endpoints[f'{operation.upper()} {target}'] = operation != 'get'
+            elif operation in _TABLE_OPERATIONS:
+                (reads if operation == 'select' else writes)[target] = True
+    return list(reads), list(writes), endpoints
 
 
-def _writes_to_table(files, data_access_by_path):
-    """True if any of the feature's files performs an insert/update/upsert/delete."""
-    for f in files:
-        for access in data_access_by_path.get(f, []):
-            if access.get('operation') in _WRITE_OPERATION: return True
-    return False
+def _import_graph(facts):
+    """path -> the internal files it imports, from resolved module_edge facts."""
+    graph = {}
+    for fact in facts:
+        if fact.get('kind') != 'module_edge': continue
+        to_path = (fact.get('value') or {}).get('to_path')
+        path = (fact.get('location') or {}).get('path')
+        if path and to_path: graph.setdefault(path, set()).add(to_path)
+    return graph
+
+
+def _component_files(facts):
+    """(file, imported name) -> the file it comes from, from import_edge names joined to resolved module_edges.
+
+    A router that declares every route in one file (React Router in App.tsx) names each page by its
+    component; that component's file, not App.tsx, is where the page's own code starts.
+    """
+    names = {f.get('id'): (f['location'].get('path'), (f.get('value') or {}).get('names') or [])
+             for f in facts if f.get('kind') == 'import_edge'}
+    table, by_stem = {}, {}
+    for fact in facts:
+        if fact.get('kind') != 'module_edge': continue
+        value = fact.get('value') or {}
+        to_path = value.get('to_path')
+        if not to_path: continue
+        importer, imported = names.get(value.get('import_fact_id'), (fact['location'].get('path'), []))
+        for name in imported: table[(importer, name)] = to_path
+        stem = to_path.rsplit('/', 1)[-1].split('.')[0]
+        by_stem.setdefault((importer, stem), to_path)   # lazy(() => import("./pages/Drivers"))
+    return table, by_stem
+
+
+def _reach(seeds, graph, depth=_IMPORT_DEPTH):
+    """{file: hops} for every file the seeds import, up to `depth` hops: a page, its hooks, their services."""
+    seen = {path: 0 for path in seeds}
+    frontier = set(seeds)
+    for hop in range(1, depth + 1):
+        frontier = {child for path in frontier for child in graph.get(path, ())} - set(seen)
+        if not frontier: break
+        seen.update({path: hop for path in frontier})
+    return seen
 
 
 def _index_data_access(facts):
@@ -154,6 +210,7 @@ def build(facts):
     by_feature = OrderedDict()
     unassigned = []
     consumed = set()
+    kinds_by_feature = {}
     for fact in surface_facts:
         identifier = _surface_identifier(fact)
         if not identifier:
@@ -167,8 +224,11 @@ def build(facts):
                                                 'tables': [], 'writes': False})
         record['surfaces'].append(identifier)
         record['evidence'].append(fact.get('id'))
+        kinds = kinds_by_feature.setdefault(feature, {})
+        kinds[fact_value.get('surface')] = kinds.get(fact_value.get('surface'), 0) + 1
         consumed.add(fact.get('id'))
     feature_paths = {}
+    components, by_stem = _component_files(facts)
     for fact in surface_facts:
         if fact.get('id') not in consumed: continue
         value = fact.get('value') or {}
@@ -177,25 +237,53 @@ def build(facts):
         else:
             feature = _feature_name(_surface_identifier(fact))
         location_path = (fact.get('location') or {}).get('path')
-        if location_path: feature_paths.setdefault(feature, []).append(location_path)
+        handler = value.get('handler')
+        component = components.get((location_path, handler)) or by_stem.get((location_path, handler))
+        if component or location_path: feature_paths.setdefault(feature, []).append(component or location_path)
+    graph = _import_graph(facts)
+    reached = {}
     for feature, record in by_feature.items():
-        surface_paths = list(feature_paths.get(feature, []))
+        # Only the surface files are the feature's own; what their flows touch and what they import is
+        # reached, and goes through the shared-file rule below like any other reached file.
+        seeds = list(feature_paths.get(feature, []))
+        touched = []
         for identifier in record['surfaces']:
             flow = flow_index.get(identifier) or {}
             entry = flow.get('entry') or {}
             entry_path = entry.get('path') if isinstance(entry, dict) else None
-            if entry_path: surface_paths.append(entry_path)
-            for touched in flow.get('touched_files', []) or []: surface_paths.append(touched)
-        files = list(OrderedDict.fromkeys(surface_paths))
+            if entry_path: seeds.append(entry_path)
+            touched += flow.get('touched_files', []) or []
+        seeds = list(OrderedDict.fromkeys(seeds))
+        hops = _reach(seeds + touched, graph)
+        for path in touched: hops[path] = min(hops.get(path, 1), 1)
+        for path in seeds: hops[path] = 0
+        reached[feature] = (seeds, hops)
+    # A file's data belongs to the features that reach it most directly. A page that imports operatorsApi
+    # owns what it calls; a page that meets it three imports deep through a shared component does not.
+    # A context or provider (AuthContext.tsx) wraps the whole app and every page reaches it through a hook:
+    # its data goes only to the feature its own path names (components/auth/ belongs to `auth`).
+    nearest = {}
+    for _, hops in reached.values():
+        for path, hop in hops.items(): nearest[path] = min(nearest.get(path, hop), hop)
+    def owned(feature, path):
+        return feature.lower() in {part.lower() for part in path.split('/')[:-1]}
+    for feature, record in by_feature.items():
+        seeds, hops = reached[feature]
+        kept = {path for path, hop in hops.items() if path not in seeds and hop == nearest[path]
+                and (not _PROVIDER.search(path.rsplit('/', 1)[-1]) or owned(feature, path))}
+        files = list(OrderedDict.fromkeys(seeds + sorted(kept)))
         record['files'] = files
-        record['tables'] = _data_access_targets(files, data_access_index)
-        if _writes_to_table(files, data_access_index):
-            record['writes'] = True
+        record['tables'], record['writes_tables'], endpoints = _table_access(files, data_access_index)
+        # Its own endpoints first (/operators for drivers is not guessable, /settlements for settlements is).
+        stem = feature.lower().rstrip('s')
+        record['endpoints'] = sorted(endpoints, key=lambda e: (stem not in e.lower(), list(endpoints).index(e)))
+        record['writes'] = bool(record['writes_tables']) or any(endpoints.values())
+        record['kinds'] = kinds_by_feature.get(feature, {})
         for path in files:
             for access in data_access_index.get(path, []):
                 if access.get('fact_id') and access['fact_id'] not in record['evidence']:
                     record['evidence'].append(access['fact_id'])
-        record['critical'] = record['writes'] or _is_critical(record['surfaces'])
+        record['critical'] = record['writes'] or feature == 'auth' or _is_critical(record['surfaces'])
     for fact in surface_facts:
         if fact.get('id') not in consumed:
             unassigned.append((fact.get('location') or {}).get('path') or '')
@@ -203,7 +291,9 @@ def build(facts):
             'features': [{'name': feature,
                           'description': _describe(record),
                           'surfaces': sorted(set(record['surfaces'])),
-                          'tables': sorted(set(record['tables'])),
+                          'tables': sorted(set(record['tables']) | set(record['writes_tables'])),
+                          'writes': sorted(set(record['writes_tables'])),
+                          'endpoints': record['endpoints'],
                           'files': sorted(set(record['files'])),
                           'evidence': sorted(set(record['evidence'])),
                           'critical': bool(record['critical'])}
@@ -211,15 +301,29 @@ def build(facts):
             'unassigned_surfaces': sorted(set([s for s in unassigned if s]))}
 
 
+_NOUNS = {'page': ('صفحة', 'صفحتان', 'صفحات'), 'http': ('مسار', 'مساران', 'مسارات'),
+          'cli': ('أمر', 'أمران', 'أوامر')}
+
+
+def _count(n, nouns):
+    """Arabic counting: one, two, three to ten, eleven and above."""
+    one, two, few = nouns
+    if n == 1: return f'{one} واحدة' if one in ('صفحة', 'نقطة API') else f'{one} واحد'
+    if n == 2: return two if one != 'نقطة API' else 'نقطتا API'
+    return f'{n} {few}' if 3 <= n <= 10 else f'{n} {one}'
+
+
 def _describe(record):
-    """A factual sentence from the data: how many surfaces, what they read, what they write."""
-    surf = len(record['surfaces'])
-    reads = sorted({t for t in record['tables']
-                    if not record['writes'] or t not in record['tables'] or True})
-    writes = sorted(record['tables']) if record['writes'] else []
-    parts = [f"{surf} سطح" if surf != 1 else "سطح واحد"]
-    parts.append(f"يقرأ {', '.join(record['tables'])}" if record['tables']
-                 else "لا يقرأ جداول")
-    if writes:
-        parts.append(f"يكتب {', '.join(record['tables'])}")
-    return '، '.join(parts)
+    """A factual sentence from the data: what the user reaches, what it reads, what it writes."""
+    reach = ' و'.join(_count(n, _NOUNS.get(kind, _NOUNS['page'])) for kind, n in sorted(record.get('kinds', {}).items())) \
+        or _count(len(record['surfaces']), _NOUNS['page'])
+    reads = [t for t in record['tables'] if t not in record['writes_tables']]
+    parts = [reach]
+    if reads: parts.append('تقرأ ' + '، '.join(reads))
+    if record['writes_tables']: parts.append('وتكتب ' + '، '.join(record['writes_tables']))
+    endpoints = record.get('endpoints') or []
+    if endpoints:
+        shown = '، '.join(endpoints[:3]) + ('…' if len(endpoints) > 3 else '')
+        parts.append(f'وتستدعي {_count(len(endpoints), ("نقطة API", "نقطتي API", "نقاط API"))} ({shown})')
+    if len(parts) == 1: parts.append('لا تلمس بيانات')
+    return parts[0] + '، ' + ' '.join(parts[1:])

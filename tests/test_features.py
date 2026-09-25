@@ -9,6 +9,7 @@ import sys
 import unittest
 from pathlib import Path
 
+from eaos import features
 from eaos.features import build, _feature_name, _is_critical
 
 
@@ -128,3 +129,65 @@ class BuildTests(unittest.TestCase):
                  data_access('accounts', path='src/x.tsx')]
         result = build(facts)
         self.assertEqual(validate(result, contracts()['features']), [])
+
+
+class FeatureDataTests(unittest.TestCase):
+    """A feature is tied to the data its own pages reach, through a router file, imports and an HTTP client."""
+
+    def facts(self):
+        edge = lambda i, path, to, names: [
+            {'kind': 'import_edge', 'id': f'I{i}', 'location': {'path': path}, 'value': {'module': to, 'names': names}},
+            {'kind': 'module_edge', 'id': f'M{i}', 'location': {'path': path}, 'value': {'to_path': to, 'import_fact_id': f'I{i}'}}]
+        page = lambda i, route, handler: {'kind': 'entry_point', 'id': f'E{i}', 'location': {'path': 'src/App.tsx'},
+                                          'value': {'surface': 'page', 'route': route, 'handler': handler, 'framework': 'react_router'}}
+        access = lambda i, path, client, target, op: {'kind': 'data_access', 'id': f'D{i}', 'location': {'path': path},
+                                                      'value': {'client': client, 'target': target, 'operation': op}}
+        return ([page(1, '/drivers', 'DriversPage'), page(2, '/tolls', 'TollsPage'), page(3, '/login', 'Login'),
+                 page(4, '/reset-password', 'Reset'), page(5, '/terms', 'Terms'), page(6, '*', 'NotFound')]
+                + edge(1, 'src/App.tsx', 'src/pages/DriversPage.tsx', ['DriversPage'])
+                + edge(2, 'src/App.tsx', 'src/pages/TollsPage.tsx', ['TollsPage'])
+                + edge(3, 'src/App.tsx', 'src/pages/Login.tsx', ['Login'])
+                + edge(4, 'src/pages/DriversPage.tsx', 'src/lib/operatorsApi.ts', ['operatorsApi'])
+                + edge(5, 'src/pages/TollsPage.tsx', 'src/components/Widget.tsx', ['Widget'])
+                + edge(6, 'src/components/Widget.tsx', 'src/lib/operatorsApi.ts', ['operatorsApi'])
+                + edge(7, 'src/pages/DriversPage.tsx', 'src/components/auth/AuthContext.tsx', ['useAuth'])
+                + edge(8, 'src/pages/TollsPage.tsx', 'src/components/auth/AuthContext.tsx', ['useAuth'])
+                + edge(9, 'src/pages/Login.tsx', 'src/components/auth/AuthContext.tsx', ['useAuth'])
+                + [access(1, 'src/lib/operatorsApi.ts', 'http', '/operators', 'post'),
+                   access(2, 'src/components/auth/AuthContext.tsx', 'http', '/Auth/login', 'post'),
+                   access(3, 'src/pages/TollsPage.tsx', 'supabase', 'tolls', 'select')])
+
+    def features(self):
+        return {f['name']: f for f in features.build(self.facts())['features']}
+
+    def test_pages_on_the_way_in_or_about_the_product_are_one_feature_each(self):
+        names = set(self.features())
+        self.assertIn('auth', names)
+        self.assertIn('info', names)
+        self.assertFalse({'login', 'reset-password', 'terms', '*'} & names)
+
+    def test_a_route_declared_in_the_router_file_starts_from_its_component_file(self):
+        self.assertIn('src/pages/DriversPage.tsx', self.features()['drivers']['files'])
+
+    def test_data_goes_to_the_feature_that_reaches_it_most_directly(self):
+        found = self.features()
+        self.assertEqual(found['drivers']['endpoints'], ['POST /operators'])
+        self.assertEqual(found['tolls']['endpoints'], [])
+        self.assertEqual(found['tolls']['tables'], ['tolls'])
+
+    def test_a_context_file_belongs_only_to_the_feature_its_path_names(self):
+        found = self.features()
+        self.assertEqual(found['auth']['endpoints'], ['POST /Auth/login'])
+        self.assertNotIn('POST /Auth/login', found['drivers']['endpoints'])
+
+    def test_an_http_write_makes_a_feature_critical_and_reads_stay_apart_from_writes(self):
+        found = self.features()
+        self.assertTrue(found['drivers']['critical'])
+        self.assertEqual(found['tolls']['writes'], [])
+        self.assertFalse(found['tolls']['critical'])
+
+    def test_the_description_counts_in_arabic(self):
+        self.assertEqual(features._count(1, features._NOUNS['page']), 'صفحة واحدة')
+        self.assertEqual(features._count(2, features._NOUNS['page']), 'صفحتان')
+        self.assertEqual(features._count(4, features._NOUNS['page']), '4 صفحات')
+        self.assertEqual(features._count(12, features._NOUNS['page']), '12 صفحة')

@@ -52,6 +52,18 @@
               "type": "string"
             }
           },
+          "writes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "evidence": {
             "type": "array",
             "items": {

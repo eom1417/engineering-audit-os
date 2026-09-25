@@ -209,3 +209,43 @@ class GoPackageFolderResolutionTests(TemporaryWorkspace):
         self.assertTrue(ambiguous,
                           f'expected at least one AMBIGUOUS across folders, got: '
                           f'{[(e["resolution"], e["value"].get("candidates")) for e in edges_amb]}')
+
+
+class PathAliasTests(unittest.TestCase):
+    """`@/x` in a Vite or Next project is the project's own src/x, never an npm package."""
+
+    def resolve(self, files):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, out = Path(tmp) / 'repo', Path(tmp) / 'out'
+            for name, text in files.items():
+                (repo / name).parent.mkdir(parents=True, exist_ok=True)
+                (repo / name).write_text(text)
+            collect(repo, out, ['syntax', 'resolve'])
+            rows = json.loads((out / 'facts/resolve.json').read_text())['facts']
+            return {(r['location']['path'], r['value']['module']): (r['resolution'], r['value']['to_path'], r['value'].get('target_kind'))
+                    for r in rows if r['kind'] == 'module_edge'}
+
+    def test_a_tsconfig_path_alias_resolves_to_the_file(self):
+        edges = self.resolve({'tsconfig.json': '{\n  // comments are allowed here\n  "compilerOptions": {"baseUrl": ".", "paths": {"@app/*": ["./src/app/*"],},},\n}\n',
+                              'src/app/orders.ts': 'export const x = 1;\n',
+                              'src/main.ts': 'import { x } from "@app/orders";\nimport React from "react";\n'})
+        self.assertEqual(edges[('src/main.ts', '@app/orders')][:2], ('RESOLVED', 'src/app/orders.ts'))
+        self.assertEqual(edges[('src/main.ts', 'react')][0], 'EXTERNAL')
+
+    def test_at_slash_points_at_src_without_any_config(self):
+        edges = self.resolve({'src/services/Orders.ts': 'export class Orders {}\n',
+                              'src/hooks/index.ts': 'export const h = 1;\n',
+                              'src/pages/Home.tsx': 'import { Orders } from "@/services/Orders";\nimport { h } from "@/hooks";\n'
+                                                    'import raw from "@/services/Orders?raw";\n'})
+        self.assertEqual(edges[('src/pages/Home.tsx', '@/services/Orders')][:2], ('RESOLVED', 'src/services/Orders.ts'))
+        self.assertEqual(edges[('src/pages/Home.tsx', '@/hooks')][:2], ('RESOLVED', 'src/hooks/index.ts'))
+        self.assertEqual(edges[('src/pages/Home.tsx', '@/services/Orders?raw')][:2], ('RESOLVED', 'src/services/Orders.ts'))
+
+    def test_a_missing_aliased_file_is_unresolved_not_external(self):
+        edges = self.resolve({'src/pages/Old.tsx': 'import { api } from "@/lib/serviceHistoryApi";\n', 'src/lib/other.ts': 'export {};\n'})
+        self.assertEqual(edges[('src/pages/Old.tsx', '@/lib/serviceHistoryApi')][0], 'UNRESOLVED')
+
+    def test_an_import_into_an_excluded_vendored_directory_is_external_with_its_path(self):
+        edges = self.resolve({'src/components/ui/button.tsx': 'export const Button = 1;\n',
+                              'src/pages/Home.tsx': 'import { Button } from "@/components/ui/button";\n'})
+        self.assertEqual(edges[('src/pages/Home.tsx', '@/components/ui/button')], ('EXTERNAL', None, 'excluded'))
