@@ -19,7 +19,6 @@ VERSION = '1'
 
 _LAYOUT_SEGMENT = re.compile(r'^_')           # `_authenticated`, `_app`, ...
 _PARAMETER_SEGMENT = re.compile(r'^\$|^:')    # TanStack `$id`, Next.js `[id]`, Express `:id`
-_WRITE_OPERATION = frozenset({'insert', 'update', 'upsert', 'delete'})
 _AUTH_KEYWORD = frozenset({'auth', 'login', 'signup', 'signin', 'signout', 'payment',
                            'checkout', 'billing'})
 # Pages a person reaches on the way in, or to read about the product, are one feature each, not one
@@ -68,14 +67,6 @@ def _is_critical(surfaces):
         clean = surface.strip('/').lower() if isinstance(surface, str) else ''
         if boundary.search(clean): return True
     return False
-
-
-def _caller_files_for(route, flow_by_route):
-    """The files a feature's flow touches, joined with the entry-point path itself."""
-    flow = flow_by_route.get(route)
-    if not flow:
-        return []
-    return list(OrderedDict.fromkeys([flow['entry']['path'], *flow.get('touched_files', [])]))
 
 
 def _table_access(files, data_access_by_path):

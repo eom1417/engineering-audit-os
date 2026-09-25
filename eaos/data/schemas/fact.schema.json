@@ -61,7 +61,8 @@
         "migration_step",
         "move",
         "stage",
-        "data_access"
+        "data_access",
+        "broken_code"
       ]
     },
     "extractor": {

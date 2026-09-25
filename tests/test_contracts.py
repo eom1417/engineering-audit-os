@@ -29,7 +29,7 @@ class ContractTests(unittest.TestCase):
 
     def test_the_schemas_are_what_the_generator_writes(self):
         before = {p.name: p.read_text(encoding='utf-8') for p in (ROOT / 'schemas/artifacts').glob('*.json')}
-        tool('make_contracts')
+        tool('make_contracts').main()
         after = {p.name: p.read_text(encoding='utf-8') for p in (ROOT / 'schemas/artifacts').glob('*.json')}
         self.assertEqual(before, after, 'schemas/artifacts was edited by hand; edit tools/make_contracts.py instead')
 

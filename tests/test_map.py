@@ -89,7 +89,10 @@ class ExclusionTests(unittest.TestCase):
             without = assemble(repo, Path(tmp) / 'filtered', exclude=['thirdparty'])
             self.assertGreater(json.loads((Path(tmp) / 'all/dossier.json').read_text())['claims'].__len__(), 0)
             filtered = json.loads((Path(tmp) / 'filtered/dossier.json').read_text())
-            self.assertEqual(filtered['claims'], [])
+            # What exclusion promises: nothing from the excluded directory, and so no duplicate across it.
+            # A claim about app.py alone (its `total` is never called) is not the exclusion's business.
+            self.assertEqual([c['statement'] for c in filtered['claims'] if 'thirdparty' in json.dumps(c)], [])
+            self.assertEqual([c['statement'] for c in filtered['claims'] if (c.get('render') or {}).get('key') != 'dead_code'], [])
             # After N2.T1, the vendored defaults are always excluded unless opted in.
             # The test directory 'thirdparty' is therefore in excluded_patterns along with
             # the engine's defaults; the project did not add anything of its own.

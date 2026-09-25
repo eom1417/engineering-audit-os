@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "extractor": "broken",
+  "extractor_version": "1",
+  "available": true,
+  "input_sha": "e6636132b6c9f4d6acc6e67dc97bda10f588d424fdbf8f0e266eba5ef227f0c8",
+  "limitations": [
+    "Undefined names are judged for Python only; a module with a star import is skipped, since any name may come from it.",
+    "Names injected at runtime (exec, globals() writes, module __getattr__) are invisible and would be reported; none is assumed.",
+    "Documented commands are checked against the CLI subcommands the code declares with argparse, the npm scripts in package.json, and the files in the snapshot; a command another tool provides is not judged."
+  ],
+  "summary": {
+    "undefined-name": 0,
+    "duplicate-key": 0,
+    "missing-import": 0,
+    "stale-instruction": 0
+  },
+  "facts": []
+}

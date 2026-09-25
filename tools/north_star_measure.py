@@ -469,7 +469,6 @@ def toolchain_value():
     wanted = [t for t in tools if t['role'] in ('read', 'validate') and any(s <= 'S07' for s in t.get('stages', []))]
     missing = [t['name'] for t in wanted if not t['ok']]
     return ratio(len(wanted) - len(missing), len(wanted)) or 0.0, f"{len(wanted) - len(missing)}/{len(wanted)} assessment tools at their pinned version" + (f"; missing: {', '.join(missing)}" if missing else '')
-    return values
 
 
 def self_truth(record):
@@ -483,7 +482,10 @@ def self_truth(record):
             raise SystemExit('could not check out self_truth.commit')
     out, _ = audit('self-truth', where, truth['commit'])
     words = ('dead', 'unused', 'unreachable', 'undefined', 'never read', 'duplicate key', 'retired', 'no longer exist')
-    findings = [json.dumps(row, ensure_ascii=False) for row in facts(out)
+    # A candidate adjudication refuted, or found to name no symbol, is not something EAOS asserts
+    # (facts/deadcode.adjudicate): it neither finds a defect (D1) nor counts as a candidate (S2).
+    asserted = lambda row: ((row.get('value') or {}).get('adjudication') or {}).get('verdict') not in ('refuted', 'not_a_symbol')
+    findings = [json.dumps(row, ensure_ascii=False) for row in facts(out) if asserted(row)
                 if any(word in ((row.get('value') or {}).get('message') or '').lower() + str((row.get('value') or {}).get('kind'))
                        for word in words + ('dead_code',))]
     findings += [json.dumps(c, ensure_ascii=False) for c in load(out, 'dossier.json', {}).get('claims', [])
@@ -492,7 +494,10 @@ def self_truth(record):
     candidates = set()
     for row in facts(out):
         value = row.get('value') or {}
-        if value.get('kind') == 'dead_code':
+        # S2 judges symbols: a module candidate is judged by D1, and a refuted candidate is not asserted.
+        # A name only tests read is a review candidate (test_only), not something EAOS asserts is dead.
+        if (value.get('kind') == 'dead_code' and asserted(row) and value.get('subject_kind') != 'module'
+                and (value.get('adjudication') or {}).get('verdict') != 'test_only'):
             message = value.get('message') or ''
             # One candidate is one place: ten functions named `detect` in ten modules are ten candidates.
             qualified = message.split('`')[1] if '`' in message else message.rsplit(' ', 1)[-1].strip()

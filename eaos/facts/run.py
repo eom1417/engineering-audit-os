@@ -1,7 +1,7 @@
 """Run deterministic extractors over one shared snapshot and persist their fact sets."""
 import json
 from pathlib import Path
-from . import config, domain, entrypoints, external, fingerprint, flows, graph, history, leftovers, metrics, redundancy, resolve, runtime, secrets, sequences, structure, syntax
+from . import broken, config, deadcode, domain, entrypoints, external, fingerprint, flows, graph, history, leftovers, metrics, redundancy, resolve, runtime, secrets, sequences, structure, syntax
 from .source import Source
 from .store import facts_dir, write_index, write_set
 from hashlib import sha256 as _sha256
@@ -10,9 +10,9 @@ def digest(data): return _sha256(data).hexdigest()
 EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,
               'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain,
               'fingerprint': fingerprint, 'sequences': sequences, 'redundancy': redundancy, 'runtime': runtime,
-              'leftovers': leftovers,
+              'leftovers': leftovers, 'deadcode': deadcode, 'broken': broken,
               'secrets': secrets}
-ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'redundancy', 'runtime', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers', 'secrets']
+ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'redundancy', 'runtime', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets']
 
 
 # Every fact set the tool can read, in one place. Three modules used to keep their own copy of
@@ -44,17 +44,19 @@ def ordered(selected):
 def collect_external(target, out, source, only=None):
     """Run the pinned external engines over the same snapshot and persist their fact set.
 
-    Registry-referenced dead-code candidates are tagged ``value.referenced_by_registry``
-    but stay on disk so the S2 measure and downstream stages still see them; the
-    clusters() pass in correlate.py reads the tag and excludes tagged facts from any
-    dead_code claim, which is the contract the spec phrases as 'a candidate referenced
-    by one of these sources stays as engine_finding and does not become a dead_code
-    claim'. The reachability-based dead-code finder (NS5.T1) is run alongside the
-    engines and its findings written to a separate ``reachability.json`` fact set.
+    Registry-referenced dead-code candidates are tagged ``value.referenced_by_registry``, then every
+    dead-code candidate is adjudicated against EAOS's own detector (facts/deadcode): the engine's fields
+    stay as written, and value.adjudication says whether EAOS asserts it.
     """
     result = external.run(target, source, out=out, only=only)
     from ..correlate import filter_dead_code_references as _filter_dead_code_references
     facts, _dropped = _filter_dead_code_references(result['facts'], source)
+    # One verdict per dead-code candidate, whichever engine raised it: EAOS's own detector and the same
+    # textual reference test decide what the report asserts (see facts/deadcode.adjudicate).
+    from .store import read_set
+    try: own = read_set(out, 'deadcode').get('facts') or []
+    except (OSError, ValueError): own = []
+    facts = deadcode.adjudicate(facts, source, own)
     referenced = sum(1 for f in facts
                      if (f.get('value') or {}).get('referenced_by_registry'))
     if referenced:
@@ -62,39 +64,7 @@ def collect_external(target, out, source, only=None):
         result['summary']['registry_referenced_dead_code_marked'] = referenced
     external_entry = write_set(out, 'external', external.NAME, external.VERSION, facts, result['input_sha'],
                                 external.LIMITATIONS, result['summary'], result['available'], result['reason'])
-    reachability_entry = _run_reachability(target, out, source)
-    return [external_entry, reachability_entry]
-
-
-def _run_reachability(target, out, source):
-    """Read the deterministic fact sets the static extractor produced and persist
-    reachability's engine_finding-shaped output as a separate fact set.
-
-    The run is computed from already-persisted facts so a cached or partial run
-    still gets a reachability scan over whatever facts the previous run left.
-    """
-    from pathlib import Path
-    from .store import facts_dir, write_set, read_set
-    from ..reachability import NAME as _rname, VERSION as _rversion, LIMITATIONS as _rlimits, build as _rbuild
-    fd = facts_dir(out)
-    if not fd.is_dir():
-        return {'set': 'reachability', 'facts': 0}
-    gathered = []
-    for child in sorted(fd.glob('*.json')):
-        if child.name == 'index.json' or child.name == 'run.json': continue
-        if child.name in {'external.json', 'reachability.json'}: continue
-        try:
-            data = read_set(out, child.stem)
-            gathered.extend(data.get('facts') or [])
-        except (OSError, ValueError):
-            continue
-    findings = [f for f in _rbuild(gathered) if f]
-    return write_set(out, 'reachability', _rname, _rversion, findings,
-                     digest(''.join(sorted(f.get('id', '') for f in findings)).encode('utf-8')) or ('0' * 64),
-                     _rlimits, {'findings': len(findings),
-                                'unreachable_modules': sum(1 for f in findings if f.get('value', {}).get('rule') == 'unreachable-module'),
-                                'unreachable_symbols': sum(1 for f in findings if f.get('value', {}).get('rule') == 'unreachable-symbol')},
-                     True, None)
+    return [external_entry]
 
 
 def add_to_index(out, target, entry):
@@ -146,6 +116,9 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
         elif name == 'syntax': result = module.run(target, source, cache=cache)
         elif name == 'leftovers': result = module.run(target, source, resolve_facts=produced.get('resolve', []))
         elif name == 'secrets': result = module.run(target, source)
+        elif name == 'broken': result = module.run(target, source, resolved=produced.get('resolve', []))
+        elif name == 'deadcode': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'],
+                                                      resolved=produced.get('resolve', []), entry_points=produced.get('entrypoints', []))
         else: result = module.run(target, source)
         produced[name] = result['facts']
         if result.get('reused_from_cache'): reuse[name] = result['reused_from_cache']

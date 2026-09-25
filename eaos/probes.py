@@ -119,6 +119,7 @@ QUERY_REQUIRES = {
     'policy_violation_present': 'graph', 'duplicate_cluster_present': 'fingerprint',
     'sequence_cluster_present': 'sequences', 'redundancy_present': 'redundancy',
     'engine_cluster_present': 'external', 'load_blocker_present': 'load_model', 'access_gap_present': 'domain',
+    'dead_code_present': 'deadcode', 'broken_code_present': 'broken',
 }
 
 
@@ -142,6 +143,21 @@ def run_graph_query(specification, sets):
                     and blocker['question'] == specification['question']):
                 return 'CONFIRMED', f"{blocker['question']} still answers {blocker['value']!r}"
         return 'REFUTED', 'the question no longer answers that way for this entry point'
+    if query == 'broken_code_present':
+        for fact in sets['broken']['facts']:
+            location, value = fact['location'], fact['value']
+            if (location.get('path'), location.get('symbol'), value.get('rule')) == (
+                    specification['path'], specification.get('symbol'), specification['rule']):
+                return 'CONFIRMED', value['message']
+        return 'REFUTED', 'the reference resolves in the current snapshot'
+    if query == 'dead_code_present':
+        # The detector is deterministic: running it again over this snapshot is the probe.
+        for fact in sets['deadcode']['facts']:
+            location, value = fact['location'], fact['value']
+            if (location.get('path'), location.get('symbol'), value.get('rule')) == (
+                    specification['path'], specification.get('symbol'), specification['rule']):
+                return 'CONFIRMED', value['message']
+        return 'REFUTED', 'the candidate is reached or referenced in the current snapshot'
     if query == 'engine_cluster_present':
         # Re-running the engines is the probe: the claim is about what they report, so it is settled
         # by asking them again, not by re-reading a graph we built ourselves.

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-25",
-  "measured_at_commit": "f8575c8",
+  "measured_at_commit": "2ed20ee",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -199,8 +199,39 @@
       "_trace_evidence",
       "run_absence_search",
       "write_next",
-      "seed_roadmap"
-    ]
+      "seed_roadmap",
+      "_impact_for_engine_cluster",
+      "_walk_tree_sitter",
+      "VERDICTS",
+      "HUMAN_ARTIFACTS",
+      "OWNED",
+      "ORIGIN_RANK",
+      "CASE_BODY",
+      "_CONFIG_NAMES"
+    ],
+    "true_dead_symbols_added": {
+      "on": "2026-09-25",
+      "symbols": [
+        "_impact_for_engine_cluster",
+        "_walk_tree_sitter",
+        "VERDICTS",
+        "HUMAN_ARTIFACTS",
+        "OWNED",
+        "ORIGIN_RANK",
+        "CASE_BODY",
+        "_CONFIG_NAMES"
+      ],
+      "how": "Reported by eaos/facts/deadcode.py on the self_truth commit, then confirmed by hand: `grep -rnw NAME eaos tools` at 879b562 shows only the definition (and, for _walk_tree_sitter, its own recursive call); tests are not product users. The 2026-09-23 cleanup missed them; they are dead code, so the ground truth was incomplete, not the detector wrong. HUMAN_ARTIFACTS, OWNED, ORIGIN_RANK and CASE_BODY were already in self_truth.defects as \"constant never read\" but missing from this list, which held functions only. _CONFIG_NAMES: `grep -rnw _CONFIG_NAMES eaos tools tests` at 879b562 shows only its definition (eaos/facts/runtime.py:500).",
+      "not_added": {
+        "symbols": [
+          "group_of",
+          "load_schema",
+          "DECLINED_SOURCES",
+          "INDICATORS"
+        ],
+        "why": "Only tests read them, and commit be6f28a kept them on purpose: \"names tests read through eaos.cli, and contract constants the tests enforce\". A human decision stands; the detector reports such names as test_only review candidates, which S2 does not count."
+      }
+    }
   },
   "capabilities": [
     {
@@ -340,19 +371,19 @@
           "name": "الادعاءات غير الضجيجية",
           "definition": "متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع",
           "target": 0.8,
-          "value": 0.833,
-          "evidence": "claims that are not structural clones: FleetManageWeb 80/100 · finance-os-a0192b7b 156/206 · RendaPerene 50/53",
+          "value": 0.885,
+          "evidence": "claims that are not structural clones: FleetManageWeb 196/216 · finance-os-a0192b7b 195/245 · RendaPerene 59/62",
           "reads": "dossier.json → claims[].statement not containing \"share the same structure up to identifier names\"",
           "measured": "automated"
         },
         {
           "id": "S2",
           "name": "دقة مرشحات الكود الميت",
-          "definition": "المرشحات الميتة فعلًا ÷ كل الرموز المرشحة، على self_truth",
+          "definition": "المرشحات الميتة فعلًا ÷ كل الرموز التي يؤكدها EAOS مرشحةً، على self_truth. المرشح الذي نقضه التحكيم (refuted) أو لا يسمّي رمزًا (not_a_symbol) ليس ادعاءً، والوحدة الكاملة يحكم عليها D1. والاسم الذي لا تقرؤه إلا الاختبارات (test_only) مرشح مراجعة لا ادعاء، فلا يُحسب.",
           "target": 0.8,
-          "value": 0.208,
-          "evidence": "5 dead of 24 distinct candidates (by path and symbol): _scope_chain, _steps, _trace_evidence, run_absence_search, write_next",
-          "reads": "self_truth report: facts with value.kind == \"dead_code\", symbol names compared with self_truth.true_dead_symbols",
+          "value": 1.0,
+          "evidence": "12 dead of 12 distinct candidates (by path and symbol): CASE_BODY, HUMAN_ARTIFACTS, ORIGIN_RANK, OWNED, VERDICTS, _CONFIG_NAMES, _scope_chain, _steps, _trace_evidence, _walk_tree_sitter, run_absence_search, write_next",
+          "reads": "self_truth report: facts with value.kind == \"dead_code\", value.subject_kind != \"module\", value.adjudication.verdict not in (refuted, not_a_symbol); symbol names compared with self_truth.true_dead_symbols; value.adjudication.verdict != test_only",
           "measured": "automated"
         },
         {
@@ -378,9 +409,9 @@
           "name": "استدعاء العيوب المعروفة",
           "definition": "العيوب المكتشفة من self_truth.defects ÷ 15",
           "target": 0.8,
-          "value": 0.333,
-          "evidence": "5 of 15 known defects found: execution_guide._steps; structure._scope_chain; load_model._trace_evidence; probes.run_absence_search; workflow.write_next",
-          "reads": "self_truth report: facts and claims whose text says dead/unused/unreachable/undefined/never read/duplicate key, matched against self_truth.defects[].match",
+          "value": 1.0,
+          "evidence": "15 of 15 known defects found: eaos/identity.py; eaos/outcomes.py; execution_guide._steps; structure._scope_chain; load_model._trace_evidence; probes.run_absence_search; workflow.seed_roadmap; workflow.write_next; compose/rules.HUMAN_ARTIFACTS; discover.OWNED; dossier.ORIGIN_RANK; go_command.CASE_BODY; cli ALL_SETS undefined in three commands; compose/labels.py; START-HERE.md and three core documents instructed commands that no longer exist",
+          "reads": "self_truth report: facts and claims whose text says dead/unused/unreachable/undefined/never read/duplicate key, matched against self_truth.defects[].match; facts whose value.adjudication.verdict is refuted or not_a_symbol are not counted",
           "measured": "automated"
         },
         {
@@ -399,7 +430,7 @@
           "definition": "بطاقات remediate جاهزة (ready) بنمط remove_dead وأمر قبول قابل للتشغيل ÷ ادعاءات الكود الميت والمخلفات (render.key = dead_code أو leftover)",
           "target": 0.9,
           "value": 0.0,
-          "evidence": "ready remove_dead cards: 0 for 0 dead-code and leftover claims",
+          "evidence": "ready remove_dead cards: 0 for 156 dead-code and leftover claims",
           "reads": "plan.json → tasks[] with pattern \"remove_dead\", kind \"remediate\", decision.readiness \"ready\", runnable acceptance; divided by dossier.json claims whose render.key is \"dead_code\" or \"leftover\"",
           "measured": "automated"
         }
@@ -474,8 +505,8 @@
           "name": "قرارات تغيّر البنية",
           "definition": "القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات",
           "target": 0.6,
-          "value": 0.043,
-          "evidence": "decisions that change structure: FleetManageWeb 2/30 · finance-os-a0192b7b 1/30 · RendaPerene 0/9",
+          "value": 0.051,
+          "evidence": "decisions that change structure: FleetManageWeb 2/39 · finance-os-a0192b7b 2/31 · RendaPerene 0/9",
           "reads": "target-architecture.json → decisions[].chosen containing move/split/merge/extract/introduce/layer/break the cycle/delete/rebuild",
           "measured": "automated"
         },
@@ -516,7 +547,7 @@
           "reads": "adr/ADR-*.md في التقرير، مقابل target-architecture.json → decisions[]",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "MADR files for decisions: FleetManageWeb 0/30 · finance-os-a0192b7b 0/30 · RendaPerene 0/9",
+          "evidence": "MADR files for decisions: FleetManageWeb 0/39 · finance-os-a0192b7b 0/31 · RendaPerene 0/9",
           "measured": "automated"
         }
       ]
@@ -561,7 +592,7 @@
           "definition": "بطاقات effort معروف ÷ كل البطاقات في العيّنة",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "cards with a known effort: 0/350",
+          "evidence": "cards with a known effort: 0/514",
           "reads": "plan.json → tasks[].effort not \"unknown\"",
           "measured": "automated"
         },
@@ -571,7 +602,7 @@
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
           "value": 0.0,
-          "evidence": "ready remediate cards: 0/350",
+          "evidence": "ready remediate cards: 0/514",
           "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
           "measured": "automated"
         },
@@ -581,7 +612,7 @@
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "cards with a runnable acceptance command: 0/350",
+          "evidence": "cards with a runnable acceptance command: 0/514",
           "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
           "measured": "automated"
         },
@@ -601,7 +632,7 @@
           "definition": "بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with options, do-nothing and rollback: 350/350",
+          "evidence": "cards with options, do-nothing and rollback: 514/514",
           "reads": "plan.json → tasks[].options (≥ 2, one \"Do nothing\") and rollback",
           "measured": "automated"
         },
@@ -641,7 +672,7 @@
           "definition": "بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "mechanical cards whose codemod ran dry without error: FleetManageWeb 0/1 · finance-os-a0192b7b 0/0 · RendaPerene 0/3",
+          "evidence": "mechanical cards whose codemod ran dry without error: FleetManageWeb 0/111 · finance-os-a0192b7b 0/38 · RendaPerene 0/12",
           "reads": "plan.json → tasks[].codemod {tool, command, dry_run {exit, files_changed}}",
           "measured": "automated"
         },
@@ -1246,7 +1277,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only S2 --min 0.8 && python tools/north_star.py --no-regression",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "stages": [
@@ -1295,7 +1326,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only D1 --min 0.8",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS5.T2",
@@ -1332,7 +1363,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only D1 --min 0.8",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS5.T3",

@@ -23,17 +23,18 @@ DENIABLE = ('cycle',)
 
 
 def _findings(sets):
-    external = sets.get('external') or {}
-    reachability = sets.get('reachability') or {}
-    out = [fact for fact in external.get('facts', []) if fact['kind'] == 'engine_finding']
-    out.extend(fact for fact in reachability.get('facts', []) if fact.get('kind') == 'engine_finding')
-    return out
+    """Engine findings from every engine, EAOS's own dead-code detector included, minus the dead-code
+    candidates adjudication refuted or found to name no symbol (facts/deadcode.adjudicate)."""
+    out = [fact for name in ('external', 'deadcode') for fact in (sets.get(name) or {}).get('facts', [])
+           if fact.get('kind') == 'engine_finding']
+    return [fact for fact in out
+            if ((fact.get('value') or {}).get('adjudication') or {}).get('verdict') not in ('refuted', 'not_a_symbol')]
 
 
 def _evaluated(sets):
     out = ((sets.get('external') or {}).get('summary') or {}).get('evaluated_kinds', {})
     out = dict(out)
-    extra = ((sets.get('reachability') or {}).get('summary') or {}).get('evaluated_kinds', {})
+    extra = ((sets.get('deadcode') or {}).get('summary') or {}).get('evaluated_kinds', {})
     out.update(extra)
     return out
 

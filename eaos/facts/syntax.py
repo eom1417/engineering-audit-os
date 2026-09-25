@@ -4,12 +4,13 @@ Python uses the standard library parser so the core keeps working with no extra 
 Other languages use tree-sitter when the optional extra is installed; without it they are reported
 as unparsed rather than guessed at, and a file we cannot parse stays visible in the denominator.
 """
+import re
 import ast
 from . import digest, make
 from .source import language_of
 
 NAME = 'syntax'
-VERSION = '1'
+VERSION = '2'
 LIMITATIONS = [
     'Syntax only: a parsed import or call is not proof that the code runs at runtime.',
     'Dynamic imports, reflection, dependency injection and framework routing are invisible here.',
@@ -187,6 +188,15 @@ def tree_sitter_units(language, text, config):
                 imports.append({'module': module, 'names': imported_names(node, blob), 'level': 0,
                                 'line': node.start_point[0] + 1,
                                 'style': 'relative' if module.startswith('.') else 'absolute'})
+        elif node.type == 'export_statement' and node.child_by_field_name('source') is not None:
+            # A re-export (`export { Dialog } from "./Dialog"`, `export * from "./types"`) depends on its source
+            # exactly as an import does. A barrel index.ts made only of these was a file with no edges, and every
+            # module behind it looked unreachable.
+            module = node_text(node.child_by_field_name('source'), blob).strip('\'"`')
+            clause = re.search(r'\{([^}]*)\}', node_text(node, blob))
+            names = [part.split(' as ')[0].strip() for part in clause.group(1).split(',') if part.strip()] if clause else ['*']
+            imports.append({'module': module, 'names': [n for n in names if n == '*' or n.isidentifier()], 'level': 0,
+                            'line': node.start_point[0] + 1, 'style': 'relative' if module.startswith('.') else 'absolute'})
         elif node.type in config['calls']:
             target = node.child_by_field_name('function') or node.child_by_field_name('method') or (node.named_children[0] if node.named_children else None)
             if target is not None:

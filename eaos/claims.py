@@ -400,6 +400,46 @@ def from_facts(fact_sets, target=None):
                            probe_spec={'probe_type': 'graph_query', 'specification': {'query': 'flow_has_unresolved_steps', 'flow_id': fact['value']['flow_id'],
                                                                                       'expected': 'The traced flow still stops at calls the resolver cannot follow.'}},
                            impact={'scenario': 'The end-to-end behaviour of this entry point is not fully visible from source alone.'}))
+    reasons = {'unreachable-module': ('لا تصله أي نقطة دخول إنتاجية', 'no production entry point reaches it'),
+               'unused-symbol': ('لا يُذكر اسمه خارج تعريفه', 'its name appears nowhere outside its definition'),
+               'unread-constant': ('لا يقرؤه شيء', 'nothing reads it')}
+    for fact in (fact_sets.get('deadcode') or {}).get('facts', []):
+        value, location = fact['value'], fact['location']
+        verdict = (value.get('adjudication') or {}).get('verdict')
+        if verdict not in ('confirmed', 'test_only'): continue
+        index += 1
+        test_only = verdict == 'test_only'
+        ar, en = reasons[value['rule']]
+        if test_only: ar, en = 'تذكره الاختبارات وحدها', 'only tests name it'
+        subject = value['message'].split('`')[1]
+        claims.append(make(index, value['message'], 'structure', 'LIKELY' if test_only else 'CONFIRMED', ['static_fact'], [],
+                           ('A test that pins it as a contract the product relies on, or a production path the text search missed.' if test_only else
+                            'A production path that reaches it: an import, a call, or a registry entry naming it that the text search missed.'),
+                           fact_ids=[fact['id']],
+                           render={'key': 'dead_code', 'params': {'subject': subject, 'reason_ar': ar, 'reason_en': en}},
+                           probe_spec={'probe_type': 'graph_query',
+                                       'specification': {'query': 'dead_code_present', 'path': location['path'],
+                                                         'symbol': location.get('symbol'), 'rule': value['rule'],
+                                                         'expected': 'The candidate is still unreached and unreferenced in the current snapshot.'}},
+                           impact={'scenario': 'Code nobody runs is still read, maintained and reviewed, and can be switched back on without anyone noticing.'}))
+    broken_reasons = {'undefined-name': ('اسم غير معرّف يرفع NameError عند تشغيل السطر', 'an undefined name that raises NameError when the line runs'),
+                      'duplicate-key': ('مفتاح مكرر في قاموس واحد تضيع قيمته الأولى بصمت', 'a key written twice in one dictionary; the first value is silently lost'),
+                      'missing-import': ('استيراد ملف غير موجود فتفشل الوحدة عند تحميلها', 'an import of a file that does not exist; the module fails to load'),
+                      'stale-instruction': ('وثيقة تأمر بأمر لم يعد موجودًا', 'a document instructing a command that no longer exists')}
+    for fact in (fact_sets.get('broken') or {}).get('facts', []):
+        value, location = fact['value'], fact['location']
+        index += 1
+        ar, en = broken_reasons[value['rule']]
+        claims.append(make(index, value['message'], 'risk' if value['severity'] == 'high' else 'structure', 'CONFIRMED', ['static_fact'], [],
+                           'The name, key, file or command existing after all: a definition, a file or a subcommand the text reading missed.',
+                           fact_ids=[fact['id']],
+                           render={'key': 'broken_code', 'params': {'path': location['path'], 'line': location.get('start_line'),
+                                                                    'subject': str(location.get('symbol')), 'reason_ar': ar, 'reason_en': en}},
+                           probe_spec={'probe_type': 'graph_query',
+                                       'specification': {'query': 'broken_code_present', 'path': location['path'],
+                                                         'symbol': location.get('symbol'), 'rule': value['rule'],
+                                                         'expected': 'The same broken reference is still in the current snapshot.'}},
+                           impact={'scenario': en[0].upper() + en[1:] + '.'}))
     claims += from_engines(fact_sets, len(claims))
     return claims
 

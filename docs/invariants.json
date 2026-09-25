@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "f8575c8",
+  "extracted_at_commit": "2ed20ee",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -228,12 +228,30 @@
       "note": ""
     },
     {
+      "id": "INV-b295368e1d",
+      "file": "eaos/facts/broken.py",
+      "symbol": "<module>",
+      "statement": "Scopes are resolved by the standard library's symtable, the way the interpreter itself resolves them, so a name a function assigns, a closure captures, or a module defines under a condition is never reported.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_broken.py::UndefinedNameTests::test_closures_conditional_definitions_builtins_and_star_imports_are_not_reported",
+      "note": ""
+    },
+    {
       "id": "INV-6fed6c4354",
       "file": "eaos/facts/config.py",
       "symbol": "<module>",
       "statement": "No value is ever recorded — not from source, not from a .env file, not from a default — so this extractor cannot become a way to copy secrets out of a repository.",
       "kind": "invariant",
       "enforced_by": "tests/test_facts_config_metrics.py::ConfigFactTests::test_defaults_are_flagged_without_capturing_the_value",
+      "note": ""
+    },
+    {
+      "id": "INV-495552da8c",
+      "file": "eaos/facts/deadcode.py",
+      "symbol": "<module>",
+      "statement": "A name held in a registry dictionary, passed to getattr as a string, or listed in a JSON file is a reference an import graph cannot see; counting any occurrence as a reference trades a few missed candidates for no false accusation.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_deadcode.py::DeadCodeTests::test_a_name_held_in_a_registry_string_is_referenced",
       "note": ""
     },
     {
@@ -567,15 +585,6 @@
       "statement": "A text search cannot tell a definition from the same words inside a string literal in a test, and acting on that difference is how a true finding gets wrongly withdrawn.",
       "kind": "invariant",
       "enforced_by": "tests/test_probes_and_verify.py::ProbeTests::test_a_mention_inside_a_test_string_cannot_withdraw_a_true_finding",
-      "note": ""
-    },
-    {
-      "id": "INV-bcf2e277c6",
-      "file": "eaos/reachability.py",
-      "symbol": "<module>",
-      "statement": "``build(facts)`` returns the list of dead_code facts the reachability scan found, using only facts already produced for the project; it never re-parses source.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_reachability.py::BuildTests::test_output_is_engine_finding_shape_for_pipeline_integration",
       "note": ""
     },
     {

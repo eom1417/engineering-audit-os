@@ -495,13 +495,6 @@ _CONFIG_LIMIT_PATTERNS = {
         ('throttle', re.compile(r'\bthrottle\b', re.IGNORECASE)),
     ],
 }
-_CONFIG_NAMES = {
-    'Dockerfile': ('dockerfile', 'code'),
-    'docker-compose.yml': ('compose', 'config'),
-    'docker-compose.yaml': ('compose', 'config'),
-    'compose.yml': ('compose', 'config'),
-    'nginx.conf': ('nginx', 'config'),
-}
 _CONFIG_BY_FILENAME = {
     'Dockerfile': 'dockerfile',
     'docker-compose.yml': 'compose',

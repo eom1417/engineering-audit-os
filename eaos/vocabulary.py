@@ -24,7 +24,9 @@ SUPPORTED_KEYWORDS={'type','enum','const','properties','required','additionalPro
 def classify(path):
     p=Path(path);name=p.name.lower();parts={s.lower() for s in p.parts}
     if p.name in STACKS or p.suffix in {'.csproj','.fsproj'}:return 'manifest'
-    if INFRA.search(path):return 'infrastructure'
+    # A deployment word in the path (docker, compose, helm) makes a manifest infrastructure, not code:
+    # eaos/compose/labels.py and src/components/DockerStatus.tsx are source files like any other.
+    if INFRA.search(path) and p.suffix not in SOURCE:return 'infrastructure'
     if parts & {'tests','test','__tests__','spec'} or re.search(r'(^test_|[._](test|spec)\.)',name):return 'test'
     if p.suffix in SOURCE:return 'source'
     if p.suffix in CONFIG or name in {'dockerfile','makefile'}:return 'configuration'

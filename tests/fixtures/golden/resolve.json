@@ -3,7 +3,7 @@
   "extractor": "resolve",
   "extractor_version": "1",
   "available": true,
-  "input_sha": "ecaa0e75b0be5af2ba3b082c6b17f887dfcf6c5a75aadce1c93602113827a779",
+  "input_sha": "f89fac5f286c8b9cc523625c8c5fb56b910c7a792e35845ea49d314353f74780",
   "limitations": [
     "Only statically written imports are resolved; dynamic loading and injection are invisible.",
     "EXTERNAL means \"not a file in this snapshot\", not \"third-party package\" in every case.",
@@ -28,7 +28,7 @@
   },
   "facts": [
     {
-      "id": "FACT-8390e3899658c5bd",
+      "id": "FACT-3218d51a4899b4c0",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -46,7 +46,7 @@
         "candidates": [
           "api/lib/pricing.ts"
         ],
-        "import_fact_id": "FACT-0aef082e214fe682"
+        "import_fact_id": "FACT-eee2d6b8c7bb1100"
       },
       "resolution": "RESOLVED",
       "limitations": [
@@ -58,7 +58,7 @@
       ]
     },
     {
-      "id": "FACT-8cd92696a28c3f61",
+      "id": "FACT-d331f2c8685e3f13",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -74,7 +74,7 @@
         "target_kind": null,
         "package_path": null,
         "candidates": [],
-        "import_fact_id": "FACT-297199c12bea0b3e"
+        "import_fact_id": "FACT-033bb22bd2c6a5eb"
       },
       "resolution": "EXTERNAL",
       "limitations": [
@@ -86,7 +86,7 @@
       ]
     },
     {
-      "id": "FACT-439cdf134cf78b93",
+      "id": "FACT-7351b0002d22abbe",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -104,7 +104,7 @@
         "candidates": [
           "api/handlers/orders.ts"
         ],
-        "import_fact_id": "FACT-03e82f5206858b4e"
+        "import_fact_id": "FACT-124b1feaf95e178a"
       },
       "resolution": "RESOLVED",
       "limitations": [
@@ -116,7 +116,7 @@
       ]
     },
     {
-      "id": "FACT-2b697f677903f717",
+      "id": "FACT-79ac9252938e5c59",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -134,7 +134,7 @@
         "candidates": [
           "api/lib/audit.ts"
         ],
-        "import_fact_id": "FACT-e0518f59ad2e1062"
+        "import_fact_id": "FACT-612437560ce12986"
       },
       "resolution": "RESOLVED",
       "limitations": [
@@ -146,7 +146,7 @@
       ]
     },
     {
-      "id": "FACT-56abf7fec6dab799",
+      "id": "FACT-fc72b3f2c1d732d2",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -162,7 +162,7 @@
         "target_kind": null,
         "package_path": null,
         "candidates": [],
-        "import_fact_id": "FACT-1ec5d776cb07a066"
+        "import_fact_id": "FACT-245ce6efa2d0390b"
       },
       "resolution": "EXTERNAL",
       "limitations": [
@@ -174,7 +174,7 @@
       ]
     },
     {
-      "id": "FACT-f5dad94026a89ef5",
+      "id": "FACT-e063249c699ad86e",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -192,7 +192,7 @@
         "candidates": [
           "core/pricing.py"
         ],
-        "import_fact_id": "FACT-ba9c495f1bc92661"
+        "import_fact_id": "FACT-86fc1033bf69bbbf"
       },
       "resolution": "RESOLVED",
       "limitations": [
@@ -204,7 +204,7 @@
       ]
     },
     {
-      "id": "FACT-e3c50cc23e476597",
+      "id": "FACT-c8ce89866e42a653",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -220,7 +220,7 @@
         "target_kind": null,
         "package_path": null,
         "candidates": [],
-        "import_fact_id": "FACT-60d8b065f7c59829"
+        "import_fact_id": "FACT-1322051c185b738d"
       },
       "resolution": "EXTERNAL",
       "limitations": [
@@ -232,7 +232,7 @@
       ]
     },
     {
-      "id": "FACT-8fec9e41d13776c2",
+      "id": "FACT-724be1b4dc33533f",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -250,7 +250,7 @@
         "candidates": [
           "core/pricing.py"
         ],
-        "import_fact_id": "FACT-4ff31815756fc782"
+        "import_fact_id": "FACT-ea0ed5875de8efb2"
       },
       "resolution": "RESOLVED",
       "limitations": [
@@ -262,7 +262,7 @@
       ]
     },
     {
-      "id": "FACT-ab846d69f9a27747",
+      "id": "FACT-cb8cf11475de282d",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -278,7 +278,7 @@
         "target_kind": null,
         "package_path": null,
         "candidates": [],
-        "import_fact_id": "FACT-2de3d3244863f1d4"
+        "import_fact_id": "FACT-6b919aa59e011f6a"
       },
       "resolution": "EXTERNAL",
       "limitations": [
@@ -290,7 +290,7 @@
       ]
     },
     {
-      "id": "FACT-4c484e82ac883ce5",
+      "id": "FACT-fcf64f9a85cc8000",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -306,7 +306,7 @@
         "target_kind": null,
         "package_path": null,
         "candidates": [],
-        "import_fact_id": "FACT-d274d76a600f4789"
+        "import_fact_id": "FACT-1a1480325f5c8274"
       },
       "resolution": "EXTERNAL",
       "limitations": [
@@ -318,7 +318,7 @@
       ]
     },
     {
-      "id": "FACT-1a5ea50b9df66489",
+      "id": "FACT-1f1b1882799b66cd",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -334,7 +334,7 @@
         "target_kind": null,
         "package_path": null,
         "candidates": [],
-        "import_fact_id": "FACT-989c1b58d838373b"
+        "import_fact_id": "FACT-05052f1acf64ac5a"
       },
       "resolution": "EXTERNAL",
       "limitations": [
@@ -346,7 +346,7 @@
       ]
     },
     {
-      "id": "FACT-59306b0e95771f1b",
+      "id": "FACT-a490d3314c4f5c3a",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -362,7 +362,7 @@
         "target_kind": null,
         "package_path": null,
         "candidates": [],
-        "import_fact_id": "FACT-a5a8c174b9e9ed56"
+        "import_fact_id": "FACT-b127559702ffaea3"
       },
       "resolution": "EXTERNAL",
       "limitations": [
@@ -374,7 +374,7 @@
       ]
     },
     {
-      "id": "FACT-76990efd4a904c2c",
+      "id": "FACT-b1d8e0f72fb57ac5",
       "kind": "module_edge",
       "extractor": "resolve",
       "extractor_version": "1",
@@ -392,7 +392,7 @@
         "candidates": [
           "core/pricing.py"
         ],
-        "import_fact_id": "FACT-965471b3ae476582"
+        "import_fact_id": "FACT-241975eacf616ed2"
       },
       "resolution": "RESOLVED",
       "limitations": [

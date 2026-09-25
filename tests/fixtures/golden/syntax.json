@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "extractor": "syntax",
-  "extractor_version": "1",
+  "extractor_version": "2",
   "available": true,
   "input_sha": "3bf0e04af967a054f27e7de625443b386da687df35719f3b5e3d57f8b3fbc292",
   "limitations": [
@@ -33,10 +33,10 @@
   },
   "facts": [
     {
-      "id": "FACT-ac687be393858c60",
+      "id": "FACT-d234c6962e373507",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
       "location": {
         "path": "api/handlers/orders.ts"
@@ -56,10 +56,10 @@
       ]
     },
     {
-      "id": "FACT-0aef082e214fe682",
+      "id": "FACT-eee2d6b8c7bb1100",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
       "location": {
         "path": "api/handlers/orders.ts",
@@ -83,10 +83,10 @@
       ]
     },
     {
-      "id": "FACT-3c12a0dd6ecc191c",
+      "id": "FACT-4c6ff0b1712bab01",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
       "location": {
         "path": "api/handlers/orders.ts",
@@ -117,10 +117,10 @@
       ]
     },
     {
-      "id": "FACT-ffa3fc79cde19b5e",
+      "id": "FACT-35445186b3cbc889",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
       "location": {
         "path": "api/handlers/orders.ts",
@@ -141,10 +141,10 @@
       ]
     },
     {
-      "id": "FACT-9b18790261c33e17",
+      "id": "FACT-ab172a93a05edf79",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
       "location": {
         "path": "api/handlers/orders.ts",
@@ -175,10 +175,10 @@
       ]
     },
     {
-      "id": "FACT-20c215fbc1d85169",
+      "id": "FACT-c1366f491af14612",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
       "location": {
         "path": "api/handlers/orders.ts",
@@ -199,10 +199,10 @@
       ]
     },
     {
-      "id": "FACT-73764e4a73f45136",
+      "id": "FACT-250a74a600be6354",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
       "location": {
         "path": "api/handlers/orders.ts",
@@ -223,10 +223,10 @@
       ]
     },
     {
-      "id": "FACT-c39dca1e64b6bbcd",
+      "id": "FACT-355c78c2ff8fe144",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "3c11f430c4a6cb315259fb6f905bc6f0a2cf0e1ee476f16123d33aae2f63c6c1",
       "location": {
         "path": "api/lib/audit.ts"
@@ -246,10 +246,10 @@
       ]
     },
     {
-      "id": "FACT-b256151900e43228",
+      "id": "FACT-71822025a49fa2cc",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "3c11f430c4a6cb315259fb6f905bc6f0a2cf0e1ee476f16123d33aae2f63c6c1",
       "location": {
         "path": "api/lib/audit.ts",
@@ -280,10 +280,10 @@
       ]
     },
     {
-      "id": "FACT-632403eb75961237",
+      "id": "FACT-3faf1bced53ca7a7",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
       "location": {
         "path": "api/lib/pricing.ts"
@@ -303,10 +303,10 @@
       ]
     },
     {
-      "id": "FACT-507d409143b98f13",
+      "id": "FACT-f88fd9953e5336cd",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
       "location": {
         "path": "api/lib/pricing.ts",
@@ -336,10 +336,10 @@
       ]
     },
     {
-      "id": "FACT-9a4ee4a4d845a295",
+      "id": "FACT-6e1c36421740c147",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
       "location": {
         "path": "api/lib/pricing.ts",
@@ -360,10 +360,10 @@
       ]
     },
     {
-      "id": "FACT-b50dad2ed113abb4",
+      "id": "FACT-9a6bf1a905f05673",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
       "location": {
         "path": "api/lib/pricing.ts",
@@ -394,10 +394,10 @@
       ]
     },
     {
-      "id": "FACT-9857d393479e4fa6",
+      "id": "FACT-4a5ce4da13e9b182",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
       "location": {
         "path": "api/lib/pricing.ts",
@@ -418,10 +418,10 @@
       ]
     },
     {
-      "id": "FACT-74143eb5c0375b45",
+      "id": "FACT-290892fa0d94a85c",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts"
@@ -441,10 +441,10 @@
       ]
     },
     {
-      "id": "FACT-297199c12bea0b3e",
+      "id": "FACT-033bb22bd2c6a5eb",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -468,10 +468,10 @@
       ]
     },
     {
-      "id": "FACT-03e82f5206858b4e",
+      "id": "FACT-124b1feaf95e178a",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -496,10 +496,10 @@
       ]
     },
     {
-      "id": "FACT-e0518f59ad2e1062",
+      "id": "FACT-612437560ce12986",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -523,10 +523,10 @@
       ]
     },
     {
-      "id": "FACT-74d7b327b4267809",
+      "id": "FACT-8c3001305c6495e5",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -547,10 +547,10 @@
       ]
     },
     {
-      "id": "FACT-a67a41140a6a5fa1",
+      "id": "FACT-299ad5554c797c7c",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -571,10 +571,10 @@
       ]
     },
     {
-      "id": "FACT-27221b2ba97dab2e",
+      "id": "FACT-85572afc5260060b",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -595,10 +595,10 @@
       ]
     },
     {
-      "id": "FACT-bb2e8d0c1d2d0842",
+      "id": "FACT-e0545fc552c4a186",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -619,10 +619,10 @@
       ]
     },
     {
-      "id": "FACT-ed0ff10fd9b95005",
+      "id": "FACT-7366e28d080c7ada",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -643,10 +643,10 @@
       ]
     },
     {
-      "id": "FACT-82fb991ba3c04256",
+      "id": "FACT-c2bd49055e755440",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -667,10 +667,10 @@
       ]
     },
     {
-      "id": "FACT-82fb991ba3c04256",
+      "id": "FACT-c2bd49055e755440",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -691,10 +691,10 @@
       ]
     },
     {
-      "id": "FACT-5fa0c76b2f354942",
+      "id": "FACT-a4c4d86990f1701b",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -722,10 +722,10 @@
       ]
     },
     {
-      "id": "FACT-cd173d7982b89724",
+      "id": "FACT-d76725fac8ea4f90",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -746,10 +746,10 @@
       ]
     },
     {
-      "id": "FACT-c285d9716f39dd73",
+      "id": "FACT-407b8eea874076fa",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py"
@@ -769,10 +769,10 @@
       ]
     },
     {
-      "id": "FACT-1ec5d776cb07a066",
+      "id": "FACT-245ce6efa2d0390b",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -794,10 +794,10 @@
       ]
     },
     {
-      "id": "FACT-ba9c495f1bc92661",
+      "id": "FACT-86fc1033bf69bbbf",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -821,10 +821,10 @@
       ]
     },
     {
-      "id": "FACT-1c54ea4330b7ef31",
+      "id": "FACT-abbb23619cc58c5a",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -854,10 +854,10 @@
       ]
     },
     {
-      "id": "FACT-0f1dafde9f7b82e3",
+      "id": "FACT-8c07a21a1bb3810d",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -878,10 +878,10 @@
       ]
     },
     {
-      "id": "FACT-7c2a42cb0bc34416",
+      "id": "FACT-c5fa5a9ae1b19798",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -902,10 +902,10 @@
       ]
     },
     {
-      "id": "FACT-2d775097125cd342",
+      "id": "FACT-c830176758507da8",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -935,10 +935,10 @@
       ]
     },
     {
-      "id": "FACT-f4a809cb97b747c3",
+      "id": "FACT-bfebe3e95efa0c73",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -959,10 +959,10 @@
       ]
     },
     {
-      "id": "FACT-69848bea23b5c36d",
+      "id": "FACT-82e5b194cd9d776d",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -983,10 +983,10 @@
       ]
     },
     {
-      "id": "FACT-6903dc08c72ab33b",
+      "id": "FACT-5342152bc8efff4d",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1007,10 +1007,10 @@
       ]
     },
     {
-      "id": "FACT-49d85d2682521d9b",
+      "id": "FACT-d295892ef6035d9f",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1031,10 +1031,10 @@
       ]
     },
     {
-      "id": "FACT-ff1e94fa809aead1",
+      "id": "FACT-3ba9153c29fa5f92",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1055,10 +1055,10 @@
       ]
     },
     {
-      "id": "FACT-a0320e32d10f29d1",
+      "id": "FACT-b58a9b1362177334",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1079,10 +1079,10 @@
       ]
     },
     {
-      "id": "FACT-204b2cd9b9532433",
+      "id": "FACT-42eb73c46a02ab00",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1103,10 +1103,10 @@
       ]
     },
     {
-      "id": "FACT-e7bb254e1741f4c7",
+      "id": "FACT-c487cbc835b13bb5",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1127,10 +1127,10 @@
       ]
     },
     {
-      "id": "FACT-2b075e062d2b3b0e",
+      "id": "FACT-462e50d3c91ea0ee",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1151,10 +1151,10 @@
       ]
     },
     {
-      "id": "FACT-737fe20afea5c59f",
+      "id": "FACT-e05fb159649f67d8",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1175,10 +1175,10 @@
       ]
     },
     {
-      "id": "FACT-21567bcc417429b5",
+      "id": "FACT-7f04743dce8d0d6c",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "location": {
         "path": "core/__init__.py"
@@ -1198,10 +1198,10 @@
       ]
     },
     {
-      "id": "FACT-1c26c36b60b26eaa",
+      "id": "FACT-cb77fb2c03f74368",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py"
@@ -1221,10 +1221,10 @@
       ]
     },
     {
-      "id": "FACT-60d8b065f7c59829",
+      "id": "FACT-1322051c185b738d",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py",
@@ -1246,10 +1246,10 @@
       ]
     },
     {
-      "id": "FACT-4ff31815756fc782",
+      "id": "FACT-ea0ed5875de8efb2",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py",
@@ -1273,10 +1273,10 @@
       ]
     },
     {
-      "id": "FACT-dfc2c50d1e90ddeb",
+      "id": "FACT-d381a23e9067b10d",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py",
@@ -1297,10 +1297,10 @@
       ]
     },
     {
-      "id": "FACT-cd88fb55b9ccabcf",
+      "id": "FACT-74b4686b00ac9754",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py",
@@ -1331,10 +1331,10 @@
       ]
     },
     {
-      "id": "FACT-e1c64c1150f66bbe",
+      "id": "FACT-febfead64a7a7bfa",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py",
@@ -1364,10 +1364,10 @@
       ]
     },
     {
-      "id": "FACT-0b1b6f617b4dda40",
+      "id": "FACT-3f45841c1d9d1754",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py",
@@ -1388,10 +1388,10 @@
       ]
     },
     {
-      "id": "FACT-6b024cb2e3a9f778",
+      "id": "FACT-db92481647aabf58",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py",
@@ -1412,10 +1412,10 @@
       ]
     },
     {
-      "id": "FACT-5f43b27350dc3ca3",
+      "id": "FACT-4ff30d9ca5000a74",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py"
@@ -1435,10 +1435,10 @@
       ]
     },
     {
-      "id": "FACT-2de3d3244863f1d4",
+      "id": "FACT-6b919aa59e011f6a",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1460,10 +1460,10 @@
       ]
     },
     {
-      "id": "FACT-c4d0a4dc6991edae",
+      "id": "FACT-8d9d4a285a62fd17",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1484,10 +1484,10 @@
       ]
     },
     {
-      "id": "FACT-eb686d1a5dfeb347",
+      "id": "FACT-d178dd93ee141e36",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1508,10 +1508,10 @@
       ]
     },
     {
-      "id": "FACT-ec5e443b8a3f3597",
+      "id": "FACT-d1b23a10270bd3cd",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1541,10 +1541,10 @@
       ]
     },
     {
-      "id": "FACT-12db4a411864d984",
+      "id": "FACT-0c00b8f3ae46e265",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1565,10 +1565,10 @@
       ]
     },
     {
-      "id": "FACT-ecf5a92fe93b4308",
+      "id": "FACT-d29f3228b693401b",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1599,10 +1599,10 @@
       ]
     },
     {
-      "id": "FACT-a9c08c665ce02604",
+      "id": "FACT-5df8016c4eb05498",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1623,10 +1623,10 @@
       ]
     },
     {
-      "id": "FACT-acbc4fbaf32eb2da",
+      "id": "FACT-4a3edbb83a34b817",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1647,10 +1647,10 @@
       ]
     },
     {
-      "id": "FACT-1ffbf9f4e4ca5f96",
+      "id": "FACT-28e8454f9254f27f",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "1b3ce6ce6859ccd2be87b349098a4067a13a975f2b66ec887e22a2ba6fc8f948",
       "location": {
         "path": "package.json"
@@ -1670,10 +1670,10 @@
       ]
     },
     {
-      "id": "FACT-96f8d3506e14069e",
+      "id": "FACT-1c8b937586fb45de",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "284d878720b91449560cdb315389a28f2484637a909c1a419b12056533147273",
       "location": {
         "path": "pyproject.toml"
@@ -1693,10 +1693,10 @@
       ]
     },
     {
-      "id": "FACT-677059f32e533639",
+      "id": "FACT-f15639e32deb7357",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go"
@@ -1716,10 +1716,10 @@
       ]
     },
     {
-      "id": "FACT-d274d76a600f4789",
+      "id": "FACT-1a1480325f5c8274",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -1741,10 +1741,10 @@
       ]
     },
     {
-      "id": "FACT-989c1b58d838373b",
+      "id": "FACT-05052f1acf64ac5a",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -1766,10 +1766,10 @@
       ]
     },
     {
-      "id": "FACT-8baeaa2dafb96027",
+      "id": "FACT-f5d28404319f986e",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -1800,10 +1800,10 @@
       ]
     },
     {
-      "id": "FACT-4519fdca7fe0c1f7",
+      "id": "FACT-3fb464a0f014eb30",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -1824,10 +1824,10 @@
       ]
     },
     {
-      "id": "FACT-741ff3b9e4d1bab5",
+      "id": "FACT-a040371e32ff4379",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -1855,10 +1855,10 @@
       ]
     },
     {
-      "id": "FACT-779973ea01643a63",
+      "id": "FACT-94a917c9fb013e43",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -1879,10 +1879,10 @@
       ]
     },
     {
-      "id": "FACT-8c1c7180d782ce3c",
+      "id": "FACT-4da5e8f1c3aa1294",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -1903,10 +1903,10 @@
       ]
     },
     {
-      "id": "FACT-101e3230f6d059bc",
+      "id": "FACT-07292e85003d2b34",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py"
@@ -1926,10 +1926,10 @@
       ]
     },
     {
-      "id": "FACT-a5a8c174b9e9ed56",
+      "id": "FACT-b127559702ffaea3",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py",
@@ -1953,10 +1953,10 @@
       ]
     },
     {
-      "id": "FACT-965471b3ae476582",
+      "id": "FACT-241975eacf616ed2",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py",
@@ -1980,10 +1980,10 @@
       ]
     },
     {
-      "id": "FACT-efdebf86cba22939",
+      "id": "FACT-76b46a376213c704",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py",
@@ -2017,10 +2017,10 @@
       ]
     },
     {
-      "id": "FACT-71a05059487d0153",
+      "id": "FACT-7359a826ace52924",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py",

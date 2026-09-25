@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "extractor": "deadcode",
+  "extractor_version": "1",
+  "available": true,
+  "input_sha": "e6636132b6c9f4d6acc6e67dc97bda10f588d424fdbf8f0e266eba5ef227f0c8",
+  "limitations": [
+    "A reference is any occurrence of the name in code or configuration text outside its definition; a name reused for something else keeps a dead symbol alive, so misses are possible and false accusations rare.",
+    "Reachability follows resolved imports from production entry points; a module loaded by a computed path counts as reached only when its dotted or slashed path appears as text somewhere reached.",
+    "Methods are not judged: a method is called through an object whose type is not resolved here."
+  ],
+  "summary": {
+    "production_entry_points": 4,
+    "modules_reached": 7,
+    "code_modules": 9,
+    "unreachable_modules": 1,
+    "unused_symbols": 0,
+    "unread_constants": 0,
+    "evaluated_kinds": {
+      "eaos": {
+        "dead_code": {
+          "status": "observed",
+          "granularity": "symbol"
+        }
+      }
+    }
+  },
+  "facts": [
+    {
+      "id": "FACT-9eeac1923d97e2a4",
+      "kind": "engine_finding",
+      "extractor": "deadcode",
+      "extractor_version": "1",
+      "input_sha": "e6636132b6c9f4d6acc6e67dc97bda10f588d424fdbf8f0e266eba5ef227f0c8",
+      "location": {
+        "path": "core/audit.py",
+        "start_line": 1,
+        "symbol": "core/audit.py"
+      },
+      "value": {
+        "engine": "eaos",
+        "engine_version": "1",
+        "rule": "unreachable-module",
+        "kind": "dead_code",
+        "method": "deterministic",
+        "message": "unreachable module `core/audit.py`: no production entry point imports it",
+        "subject_kind": "module",
+        "measurements": [],
+        "engine_confidence": null,
+        "sites": [
+          {
+            "path": "core/audit.py",
+            "line": 1
+          }
+        ],
+        "evidence": "4 production entry points and the resolved import graph do not reach it",
+        "tests": [],
+        "adjudication": {
+          "verdict": "confirmed",
+          "reason": "4 production entry points and the resolved import graph do not reach it"
+        }
+      },
+      "limitations": [
+        "A reference is any occurrence of the name in code or configuration text outside its definition; a name reused for something else keeps a dead symbol alive, so misses are possible and false accusations rare.",
+        "Reachability follows resolved imports from production entry points; a module loaded by a computed path counts as reached only when its dotted or slashed path appears as text somewhere reached.",
+        "Methods are not judged: a method is called through an object whose type is not resolved here."
+      ]
+    }
+  ]
+}

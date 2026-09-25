@@ -35,6 +35,8 @@ def classify(claim):
     if query == 'redundancy_present': return 'redundant_work'
     if query == 'load_blocker_present': return 'load_blocker'
     if query == 'access_gap_present': return 'access_gap'
+    if query == 'dead_code_present': return 'dead_code'
+    if query == 'broken_code_present': return 'broken_code'
     if query == 'engine_cluster_present':
         return _ENGINE_CLUSTER_KINDS.get(specification.get('kind'), 'generic')
     if probe_type == 'absence_search': return 'duplicated_rule'
@@ -170,6 +172,14 @@ PATTERNS = {
         ],
         'rollback': 'الحذف يُسترد بـrevert واحد، وإضافة اختبار لا تحتاج تراجعًا.',
     },
+    'broken_code': {
+        'change': 'أصلح المرجع المعطّل: عرّف الاسم في النطاق الذي يقرؤه، أو احذف المفتاح المكرر بعد اختيار قيمته الصحيحة، أو صحّح مسار الاستيراد، أو حدّث الوثيقة إلى الأمر الموجود.',
+        'options': [
+            {'option': 'إصلاح المرجع مع اختبار يشغّل السطر', 'cost': 'منخفضة', 'verdict': 'مختار افتراضيًا'},
+            {'option': 'حذف الكود أو الوثيقة إن ثبت أن لا أحد يستخدمها', 'cost': 'منخفضة', 'verdict': 'حين يكون المسار ميتًا أيضًا'},
+        ],
+        'rollback': 'تغيير في موضع واحد؛ الإرجاع بـrevert واحد.',
+    },
     'access_gap': {
         'change': 'هجرة جديدة تفعّل أمان الصفوف على الجدول وتضيف سياسة لكل عملية تربط الصف بصاحبه (مثل auth.uid() = owner_id)، أو تستبدل شرط true في السياسة المفتوحة.',
         'options': [
@@ -222,6 +232,7 @@ def cost_of_inaction(name):
         'redundant_work': 'يبقى المسار ينفّذ عملًا لا تحتاجه نتيجته في كل تنفيذ',
         'load_blocker': 'تبقى الكلفة تنمو مع الحركة أو البيانات، فتظهر المشكلة عند حمل لا يمكن اختباره بعد وقوعه',
         'dead_code': 'يبقى الكود الميت عبئًا على القراءة والصيانة، ويصعّب تغييرات لا تعرف بوجوده، وقد يُعاد تفعيله دون تحذير',
+        'broken_code': 'يفشل المسار أول مرة يُنفَّذ فيها عند المستخدم، أو تضلّل الوثيقة من يتبعها',
         'access_gap': 'تبقى صفوف المستخدمين مقروءة أو قابلة للتعديل لكل من يملك المفتاح العام للتطبيق',
         'generic': '⧗ غير محددة',
     }[name]

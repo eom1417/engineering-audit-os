@@ -146,8 +146,13 @@ CONTRACTS = {
                                       'target_component': NS}, ['relation', 'reason']))}, [])),
 }
 
-for name, (artifact, owner, description, schema) in CONTRACTS.items():
-    schema = {'$schema': 'http://json-schema.org/draft-07/schema#', 'title': artifact, 'description': description,
-              'x-artifact': artifact, 'x-owner': owner, **schema}
-    (OUT / f'{name}.schema.json').write_text(json.dumps(schema, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
-print(len(CONTRACTS), 'contracts')
+def main():
+    for name, (artifact, owner, description, schema) in CONTRACTS.items():
+        schema = {'$schema': 'http://json-schema.org/draft-07/schema#', 'title': artifact, 'description': description,
+                  'x-artifact': artifact, 'x-owner': owner, **schema}
+        (OUT / f'{name}.schema.json').write_text(json.dumps(schema, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    print(len(CONTRACTS), 'contracts')
+
+
+if __name__ == '__main__':
+    main()
