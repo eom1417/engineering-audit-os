@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "runtime/resilience.json",
+  "description": "Runtime artifact: what the application did under each injected fault.",
+  "x-artifact": "runtime/resilience.json",
+  "x-owner": "NS23.T1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "experiments"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "experiments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "dependency",
+          "toxic",
+          "expected",
+          "observed",
+          "ok"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "dependency": {
+            "type": "string"
+          },
+          "toxic": {
+            "type": "string"
+          },
+          "expected": {
+            "type": "string"
+          },
+          "observed": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

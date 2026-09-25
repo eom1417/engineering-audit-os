@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "tools-doctor.json",
+  "description": "Standard output of `eaos tools doctor --json`.",
+  "x-artifact": "tools-doctor.json",
+  "x-owner": "NS17.T1",
+  "type": "object",
+  "required": [
+    "tools"
+  ],
+  "properties": {
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "role",
+          "pinned",
+          "found",
+          "ok"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "read",
+              "emit",
+              "run",
+              "validate"
+            ]
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^S(0[1-9]|1[0-5])$"
+            }
+          },
+          "pinned": {
+            "type": "string"
+          },
+          "found": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "license_note": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

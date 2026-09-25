@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "behavior-lock/plan.json",
+  "description": "Which spec locks which feature. `path` is relative to behavior-lock/.",
+  "x-artifact": "behavior-lock/plan.json",
+  "x-owner": "NS15.T1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "specs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "specs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "feature",
+          "tool",
+          "path"
+        ],
+        "properties": {
+          "feature": {
+            "type": "string"
+          },
+          "tool": {
+            "type": "string",
+            "enum": [
+              "playwright",
+              "schemathesis",
+              "pact",
+              "approvaltests"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "surfaces": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

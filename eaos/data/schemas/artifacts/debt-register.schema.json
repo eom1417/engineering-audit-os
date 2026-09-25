@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "debt-register.json",
+  "description": "The technical debt register. high and critical need two witnesses from different tools, or one deterministic witness.",
+  "x-artifact": "debt-register.json",
+  "x-owner": "NS18.T2",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "formula",
+    "items"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "formula": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "category",
+          "severity",
+          "witnesses",
+          "files",
+          "impact",
+          "recommendation"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^DEBT-[0-9]{3}$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "security",
+              "reliability",
+              "maintainability",
+              "architecture",
+              "data",
+              "supply_chain",
+              "dead_code"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          },
+          "witnesses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "tool",
+                "finding_id",
+                "kind"
+              ],
+              "properties": {
+                "tool": {
+                  "type": "string"
+                },
+                "finding_id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "heuristic",
+                    "deterministic",
+                    "probe"
+                  ]
+                }
+              }
+            },
+            "minItems": 1
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hotspot": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "impact": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          },
+          "claim_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

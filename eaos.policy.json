@@ -88,7 +88,11 @@
       "eaos/workspace.py",
       "eaos/toolchain.py",
       "eaos/emit/__init__.py",
-      "eaos/emit/validate.py"
+      "eaos/emit/validate.py",
+      "eaos/engage.py",
+      "eaos/indicators.py",
+      "eaos/artifact_contracts.py",
+      "eaos/sandbox.py"
     ],
     "tools": [
       "tools/**",

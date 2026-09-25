@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "sandbox-run.json",
+  "description": "What an isolated run did, and what it could not isolate.",
+  "x-artifact": "sandbox-run.json",
+  "x-owner": "NS17.T5",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "backend",
+    "commands",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "backend": {
+      "type": "string",
+      "enum": [
+        "docker",
+        "unshare",
+        "process"
+      ]
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "argv",
+          "exit",
+          "seconds"
+        ],
+        "properties": {
+          "argv": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "exit": {
+            "type": "integer"
+          },
+          "seconds": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

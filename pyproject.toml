@@ -16,4 +16,4 @@ eaos = "eaos.cli:main"
 [tool.setuptools.packages.find]
 include = ["eaos*"]
 [tool.setuptools.package-data]
-eaos = ["data/*.json", "data/*.md", "data/core/*.md", "data/modules/*.md", "data/schemas/*.json", "rules/*.json", "rules/**/*", "templates/**/*"]
+eaos = ["data/*.json", "data/*.md", "data/core/*.md", "data/modules/*.md", "data/schemas/*.json", "data/schemas/artifacts/*.json", "rules/*.json", "rules/**/*", "templates/**/*"]

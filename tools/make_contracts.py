@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 OUT = Path(__file__).resolve().parent.parent / 'schemas/artifacts'
+MIRROR = Path(__file__).resolve().parent.parent / 'eaos/data/schemas/artifacts'
 S, I, N, B = {'type': 'string'}, {'type': 'integer'}, {'type': 'number'}, {'type': 'boolean'}
 NS = {'type': ['string', 'null']}
 NN = {'type': ['number', 'null']}
@@ -125,6 +126,9 @@ CONTRACTS = {
  'authorization': ('authorization.json', 'NS17.T5', 'The owner\'s written permission to run his project\'s code. Without it no execution-contract stage starts.',
   obj({'schema_version': {'const': 1}, 'project': S, 'commit': {'type': 'string', 'pattern': '^[0-9a-f]{40}$'},
        'granted_by': S, 'stages': arr(STAGE, 1), 'env_allow': arr(S), 'expires': S})),
+ 'approvals': ('approvals.json', 'NS17.T4', 'A person\'s recorded approval of a stage whose gate needs a human (S06: the target architecture). EAOS never writes it; eaos engage approve does, on the owner\'s command.',
+  obj({'schema_version': {'const': 1},
+       'approvals': arr(obj({'stage': STAGE, 'by': {'type': 'string', 'minLength': 1}, 'at': S, 'note': S}, ['stage', 'by', 'at']), 1)})),
  'sandbox-run': ('sandbox-run.json', 'NS17.T5', 'What an isolated run did, and what it could not isolate.',
   obj({'schema_version': {'const': 1}, 'backend': enum('docker', 'unshare', 'process'),
        'commands': arr(obj({'argv': arr(S, 1), 'exit': I, 'seconds': N})),
@@ -150,7 +154,11 @@ def main():
     for name, (artifact, owner, description, schema) in CONTRACTS.items():
         schema = {'$schema': 'http://json-schema.org/draft-07/schema#', 'title': artifact, 'description': description,
                   'x-artifact': artifact, 'x-owner': owner, **schema}
-        (OUT / f'{name}.schema.json').write_text(json.dumps(schema, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+        text = json.dumps(schema, indent=2, ensure_ascii=False) + '\n'
+        (OUT / f'{name}.schema.json').write_text(text, encoding='utf-8')
+        # The packaged mirror an installed eaos reads (eaos/artifact_contracts.py); tools/validate.py keeps them equal.
+        MIRROR.mkdir(parents=True, exist_ok=True)
+        (MIRROR / f'{name}.schema.json').write_text(text, encoding='utf-8')
     print(len(CONTRACTS), 'contracts')
 
 

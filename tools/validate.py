@@ -8,7 +8,7 @@ R=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(R))
 from eaos.cli import check
 
-PACKAGED_ROOTS=['core','modules','schemas']
+PACKAGED_ROOTS=['core','modules','schemas','schemas/artifacts']
 PACKAGED_TOP=['controls.json','sources.json','START-HERE.md']
 
 

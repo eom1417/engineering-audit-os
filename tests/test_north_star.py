@@ -213,7 +213,8 @@ class MeasurementTests(unittest.TestCase):
                 spec = {'name': 'p', 'truth': {'user_surfaces': 1}}
                 record = {'corpus': [spec], 'adopted_adapters': [{'name': 'syft', 'applies': 'all'},
                                                                  {'name': 'sqlfluff', 'applies': 'sql'}]}
-                return measure.orchestration_values([measure.Project(spec, out, 0)], record)
+                from eaos.indicators import orchestration_values
+                return orchestration_values([measure.Project(spec, out, 0)], record.get('adopted_adapters') or [])
             finally:
                 measure.CORPUS = previous
 
@@ -258,7 +259,8 @@ class MeasurementTests(unittest.TestCase):
                         (base / name).write_text(json.dumps(content))
                 spec = {'name': 'p', 'truth': {'user_surfaces': 1}}
                 project = measure.Project(spec, out, 0)
-                return {**measure.plan_values([project]), **measure.runtime_values([project])}
+                from eaos.indicators import plan_values, runtime_values
+                return {**plan_values([project]), **runtime_values([project])}
             finally:
                 measure.RUNTIME, measure.CORPUS = previous
 
@@ -282,8 +284,8 @@ class MeasurementTests(unittest.TestCase):
         self.assertEqual(self._stage()['S3'][0], 0.0)
 
     def test_a_kit_file_counts_only_when_its_own_tool_accepted_it(self):
-        rows = [{'path': path, 'tool': 't', 'ok': True} for path, _ in load_measure().KIT if not path.endswith('/')]
-        rows += [{'path': path + 'x.yaml', 'tool': 't', 'ok': True} for path, _ in load_measure().KIT if path.endswith('/')]
+        rows = [{'path': path, 'tool': 't', 'ok': True} for path, _ in __import__('eaos.indicators', fromlist=['KIT']).KIT if not path.endswith('/')]
+        rows += [{'path': path + 'x.yaml', 'tool': 't', 'ok': True} for path, _ in __import__('eaos.indicators', fromlist=['KIT']).KIT if path.endswith('/')]
         full = self._stage({'handover/validation.json': {'schema_version': 1, 'files': rows}})['K1'][0]
         self.assertEqual(full, 1.0)
         rows[0]['ok'] = False

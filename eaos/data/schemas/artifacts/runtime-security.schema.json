@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "runtime/security.json",
+  "description": "Runtime artifact: open findings after the change, static and live.",
+  "x-artifact": "runtime/security.json",
+  "x-owner": "NS21.T1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "static",
+    "dast"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "static": {
+      "type": "object",
+      "required": [
+        "critical",
+        "high",
+        "tools"
+      ],
+      "properties": {
+        "critical": {
+          "type": "integer"
+        },
+        "high": {
+          "type": "integer"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "dast": {
+      "type": "object",
+      "required": [
+        "tool",
+        "high",
+        "medium"
+      ],
+      "properties": {
+        "tool": {
+          "type": "string"
+        },
+        "high": {
+          "type": "integer"
+        },
+        "medium": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

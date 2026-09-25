@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "approvals.json",
+  "description": "A person's recorded approval of a stage whose gate needs a human (S06: the target architecture). EAOS never writes it; eaos engage approve does, on the owner's command.",
+  "x-artifact": "approvals.json",
+  "x-owner": "NS17.T4",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "approvals"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "approvals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "stage",
+          "by",
+          "at"
+        ],
+        "properties": {
+          "stage": {
+            "type": "string",
+            "pattern": "^S(0[1-9]|1[0-5])$"
+          },
+          "by": {
+            "type": "string",
+            "minLength": 1
+          },
+          "at": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

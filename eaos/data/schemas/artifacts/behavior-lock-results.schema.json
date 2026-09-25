@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "behavior-lock/results.json",
+  "description": "Runtime artifact: the lock suite on the original code. results-after.json (NS20.T1) has the same shape.",
+  "x-artifact": "behavior-lock/results.json",
+  "x-owner": "NS26.T1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "commit",
+    "backend",
+    "results"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "commit": {
+      "type": "string"
+    },
+    "backend": {
+      "type": "string",
+      "enum": [
+        "docker",
+        "unshare",
+        "process"
+      ]
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "status"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "passed",
+              "failed",
+              "quarantined",
+              "error"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

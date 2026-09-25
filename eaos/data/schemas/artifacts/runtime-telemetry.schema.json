@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "runtime/telemetry.json",
+  "description": "Runtime artifact: spans seen per surface while the lock suite and k6 ran.",
+  "x-artifact": "runtime/telemetry.json",
+  "x-owner": "NS24.T1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "surfaces"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "surfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "surface",
+          "critical",
+          "spans"
+        ],
+        "properties": {
+          "surface": {
+            "type": "string"
+          },
+          "critical": {
+            "type": "boolean"
+          },
+          "spans": {
+            "type": "integer"
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

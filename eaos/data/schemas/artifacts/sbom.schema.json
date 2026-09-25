@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "sbom.cdx.json",
+  "description": "CycloneDX written by Syft, kept as Syft wrote it. Only the fields EAOS reads are constrained.",
+  "x-artifact": "sbom.cdx.json",
+  "x-owner": "NS12.T1",
+  "type": "object",
+  "required": [
+    "bomFormat",
+    "components"
+  ],
+  "properties": {
+    "bomFormat": {
+      "const": "CycloneDX"
+    },
+    "specVersion": {
+      "type": "string"
+    },
+    "components": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "purl": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

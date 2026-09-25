@@ -193,6 +193,11 @@ def baseline_command(args):
     return 0
 
 
+def engage_command(args):
+    from .engage import main
+    return main(args)
+
+
 def emit_command(args):
     from .emit import emit
     written, rows = emit(args.report, args.only.split(',') if args.only else None, args.validate)
@@ -612,6 +617,15 @@ def main(argv=None):
     q.add_argument('--engine',action='append',default=[])
     q.add_argument('--exclude',action='append',default=[])
     q.set_defaults(func=engines_command)
+    q=s.add_parser('engage',help='The fifteen engagement stages: where this project stands, and whether a stage may start')
+    e=q.add_subparsers(dest='action',required=True)
+    r=e.add_parser('status',help='Every stage: its artifacts, and whether its gate passes and why not')
+    r.add_argument('report'); r.add_argument('--runtime',default=None); r.add_argument('--json',action='store_true')
+    r=e.add_parser('gate',help='Exit 0 when the stage and every earlier one pass, 1 otherwise, 3 without authorization')
+    r.add_argument('stage'); r.add_argument('report'); r.add_argument('--runtime',default=None)
+    r=e.add_parser('approve',help='Record a person\'s approval of a stage (S06 needs one)')
+    r.add_argument('stage'); r.add_argument('report'); r.add_argument('--by',required=True); r.add_argument('--note',default='')
+    q.set_defaults(func=engage_command)
     q=s.add_parser('emit',help='Write files in other tools\' own formats from an audit, and let each tool judge its file')
     q.add_argument('report')
     q.add_argument('--only',default=None,help='comma-separated emitter names')

@@ -1,93 +1,16 @@
 """Check a report's artifacts against the contracts in schemas/artifacts/.
 
-Each contract names one artifact, its owning task, and the exact shape the measurement reads. An executor
-runs this on its own output before claiming a task: the measurement treats an artifact that breaks its
-contract as absent, so a file with the right name and the wrong shape moves nothing.
-
-Only the JSON Schema subset the contracts use is implemented, to keep the tool free of dependencies:
-type, const, enum, required, properties, additionalProperties: false, items, minItems, minLength, pattern.
+The validator lives in eaos/artifact_contracts.py, shared with the stage gates; this is its command line.
+An executor runs this on its own output before claiming a task.
 
 Usage:  python tools/contracts.py <report-dir> [--runtime <runtime-dir>]   # exit 1 if any present artifact is invalid
         python tools/contracts.py --list                                    # every contract and its artifact
 """
-import json
-import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-SCHEMAS = ROOT / 'schemas/artifacts'
-# Artifacts written by runs of the project's own code. They live outside the audit report, which the
-# measurement deletes whenever the tool changes, under ${EAOS_MEASURE}/runtime/<project>/.
-RUNTIME = {'behavior-lock-results', 'runtime-performance', 'runtime-security', 'runtime-resilience',
-           'runtime-telemetry', 'production-readiness', 'authorization', 'sandbox-run',
-           'execution-log', 'runtime-guarantee'}
-TYPES = {'object': dict, 'array': list, 'string': str, 'boolean': bool, 'null': type(None)}
-
-
-def _is(value, kind):
-    if kind == 'integer': return isinstance(value, int) and not isinstance(value, bool)
-    if kind == 'number': return isinstance(value, (int, float)) and not isinstance(value, bool)
-    return isinstance(value, TYPES[kind])
-
-
-def validate(value, schema, where='$'):
-    """Every way `value` breaks `schema`, as readable lines; empty when it conforms."""
-    problems = []
-    kinds = schema.get('type')
-    if kinds is not None:
-        kinds = [kinds] if isinstance(kinds, str) else kinds
-        if not any(_is(value, kind) for kind in kinds):
-            return [f'{where}: expected {"/".join(kinds)}, got {type(value).__name__}']
-    if 'const' in schema and value != schema['const']: problems.append(f'{where}: must be {schema["const"]!r}')
-    if 'enum' in schema and value not in schema['enum']: problems.append(f'{where}: {value!r} not in {schema["enum"]}')
-    if isinstance(value, str):
-        if len(value) < schema.get('minLength', 0): problems.append(f'{where}: shorter than {schema["minLength"]}')
-        if 'pattern' in schema and not re.search(schema['pattern'], value): problems.append(f'{where}: {value!r} does not match {schema["pattern"]}')
-    if isinstance(value, dict):
-        for key in schema.get('required', []):
-            if key not in value: problems.append(f'{where}: missing required field {key!r}')
-        properties = schema.get('properties', {})
-        for key, item in value.items():
-            if key in properties: problems += validate(item, properties[key], f'{where}.{key}')
-            elif schema.get('additionalProperties') is False: problems.append(f'{where}: unexpected field {key!r}')
-    if isinstance(value, list):
-        if len(value) < schema.get('minItems', 0): problems.append(f'{where}: fewer than {schema["minItems"]} item(s)')
-        if 'items' in schema:
-            for index, item in enumerate(value): problems += validate(item, schema['items'], f'{where}[{index}]')
-    return problems
-
-
-def contracts():
-    """name -> schema, for every contract file."""
-    return {path.name[:-len('.schema.json')]: json.loads(path.read_text(encoding='utf-8'))
-            for path in sorted(SCHEMAS.glob('*.schema.json'))}
-
-
-def location(name, report, runtime):
-    return (runtime if name in RUNTIME else report) / contracts()[name]['x-artifact']
-
-
-def load_valid(name, report, runtime=None):
-    """The artifact if present and conforming, else None. The measurement reads artifacts only through this."""
-    path = location(name, Path(report), Path(runtime) if runtime else Path(report))
-    try: data = json.loads(path.read_text(encoding='utf-8'))
-    except (OSError, ValueError): return None
-    return data if not validate(data, contracts()[name]) else None
-
-
-def check(report, runtime=None):
-    """{name: problems} for every contract whose artifact is present; absent artifacts are not errors here."""
-    report, runtime = Path(report), Path(runtime) if runtime else Path(report)
-    results = {}
-    for name, schema in contracts().items():
-        if schema['x-artifact'] == 'tools-doctor.json': continue  # standard output of a command, not a file
-        path = location(name, report, runtime)
-        if not path.is_file(): continue
-        try: data = json.loads(path.read_text(encoding='utf-8'))
-        except ValueError as error: results[name] = [f'not valid JSON: {error}']; continue
-        results[name] = validate(data, schema)
-    return results
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+from eaos.artifact_contracts import RUNTIME, SCHEMAS, check, contracts, load_valid, location, validate  # noqa: E402,F401
 
 
 def main(argv):

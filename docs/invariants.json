@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "81b9be3",
+  "extracted_at_commit": "ecce28a",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -126,6 +126,24 @@
       "statement": "Whether a claim is about product code or about test and fixture code; a reader must not confuse them.",
       "kind": "invariant",
       "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_a_claim_about_test_code_is_marked_as_such",
+      "note": ""
+    },
+    {
+      "id": "INV-a287169bc3",
+      "file": "eaos/engage.py",
+      "symbol": "<module>",
+      "statement": "A gate is a list of checks read from the report: an indicator of eaos/indicators.py at a minimum (the same computation the corpus measurement uses), an artifact that must be present and keep its contract, or a person's recorded approval.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_engage.py::GateTests::test_a_gate_fails_on_the_first_earlier_stage_that_fails",
+      "note": ""
+    },
+    {
+      "id": "INV-4290854f27",
+      "file": "eaos/engage.py",
+      "symbol": "approve",
+      "statement": "Only a person runs this; EAOS never approves its own work.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_engage.py::ApprovalTests::test_only_the_engage_command_records_an_approval",
       "note": ""
     },
     {
@@ -621,6 +639,33 @@
       "statement": "A pattern never invents a fix for a claim class it does not know; it says plainly that the change must be designed by hand, and still requires a runnable acceptance criterion.",
       "kind": "invariant",
       "enforced_by": "tests/test_plan.py::PatternTests::test_an_unknown_class_says_so_instead_of_inventing_a_fix",
+      "note": ""
+    },
+    {
+      "id": "INV-76eb0fcf2d",
+      "file": "eaos/sandbox.py",
+      "symbol": "<module>",
+      "statement": "The project itself is never touched: every command runs in a copy made by eaos.verify.isolated_copy, as its own process group, with an environment of PATH, a temporary HOME, LANG, and the names the owner listed in env_allow.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_sandbox.py::SandboxTests::test_commands_run_in_a_copy_and_leave_the_project_as_it_was",
+      "note": ""
+    },
+    {
+      "id": "INV-0d617b9872",
+      "file": "eaos/sandbox.py",
+      "symbol": "<module>",
+      "statement": "Where the kernel allows it (unshare -rn), a command runs with no network, so a test suite cannot reach anything outside.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_sandbox.py::SandboxTests::test_a_command_has_no_network_where_the_kernel_allows_it",
+      "note": ""
+    },
+    {
+      "id": "INV-268b432ec9",
+      "file": "eaos/sandbox.py",
+      "symbol": "<module>",
+      "statement": "A started service must answer the host, so it keeps the network; that, and every other thing this sandbox could not isolate, is written to sandbox-run.json -> limitations, never implied.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_sandbox.py::SandboxTests::test_a_started_service_keeps_the_network_and_the_record_says_so",
       "note": ""
     },
     {

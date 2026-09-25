@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-25",
-  "measured_at_commit": "17f60d8",
+  "measured_at_commit": "ecce28a",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -1659,7 +1659,11 @@
           "files": [
             "eaos/engage.py",
             "eaos/cli.py",
-            "tests/test_engage.py"
+            "tests/test_engage.py",
+            "eaos/indicators.py",
+            "eaos/artifact_contracts.py",
+            "tools/north_star_measure.py",
+            "tools/contracts.py"
           ],
           "writes": [],
           "steps": [
@@ -1679,7 +1683,7 @@
           ],
           "acceptance": "python tools/acceptance.py test ns17_t4_engage",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS17.T5",
@@ -1718,11 +1722,12 @@
           "pitfalls": [
             "start_new_session=True ثم os.killpg، وإلا تبقى عمليات أبناء.",
             "backend = process يسجّل \"network not isolated\" في limitations، ولا يُكتم.",
-            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
+            "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason.",
+            "من NS17.T4: بوابة engage تتحقق من صلاحية authorization.json وانتهائه والمرحلة الممنوحة، لكن التقرير لا يسجّل commit المشروع المدقَّق. البيئة المعزولة يجب أن تتحقق أن HEAD للنسخة التي تشغّلها يساوي authorization.commit قبل أي أمر، وإلا ترفض."
           ],
           "acceptance": "python tools/acceptance.py test ns17_t5_sandbox",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "stages": []

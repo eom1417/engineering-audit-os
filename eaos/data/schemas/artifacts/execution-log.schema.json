@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "runtime/execution.json",
+  "description": "Runtime artifact: every plan card executed in an isolated copy, by its codemod or by a model, and what came of it.",
+  "x-artifact": "runtime/execution.json",
+  "x-owner": "NS9.T1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "tasks"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "tool",
+          "status",
+          "acceptance_exit"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tool": {
+            "type": "string",
+            "enum": [
+              "codemod",
+              "model"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "VERIFIED_IN_ISOLATED_COPY",
+              "NEEDS_REVIEW",
+              "BASELINE_FAILED",
+              "FAILED"
+            ]
+          },
+          "acceptance_exit": {
+            "type": "integer"
+          },
+          "result": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 1
+    }
+  }
+}

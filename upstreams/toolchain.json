@@ -86,6 +86,7 @@
       "stages": [
         "S01"
       ],
+      "applies": "all",
       "license": "Apache-2.0",
       "repository": "https://github.com/anchore/syft",
       "version": "1.52.0",
@@ -106,6 +107,7 @@
         "S04",
         "S10"
       ],
+      "applies": "all",
       "license": "Apache-2.0",
       "repository": "https://github.com/google/osv-scanner",
       "version": "2.6.0",
@@ -125,6 +127,7 @@
         "S01",
         "S03"
       ],
+      "applies": "all",
       "license": "MIT",
       "repository": "https://github.com/boyter/scc",
       "version": "4.1.0",
@@ -145,6 +148,7 @@
         "S10",
         "S15"
       ],
+      "applies": "all",
       "license": "LGPL-2.1",
       "repository": "https://github.com/semgrep/semgrep",
       "version": "1.178.0",
@@ -161,6 +165,7 @@
         "S04",
         "S10"
       ],
+      "applies": "all",
       "license": "Apache-2.0",
       "repository": "https://github.com/aquasecurity/trivy",
       "version": "0.74.0",
@@ -180,6 +185,7 @@
         "S04",
         "S10"
       ],
+      "applies": "ci_or_iac",
       "license": "Apache-2.0",
       "repository": "https://github.com/bridgecrewio/checkov",
       "version": "3.3.19",
@@ -197,6 +203,7 @@
         "S04",
         "S15"
       ],
+      "applies": "js",
       "license": "MIT",
       "repository": "https://github.com/sverweij/dependency-cruiser",
       "version": "18.4.0",
@@ -212,6 +219,7 @@
       "stages": [
         "S04"
       ],
+      "applies": "sql",
       "license": "MIT",
       "repository": "https://github.com/sqlfluff/sqlfluff",
       "version": "4.3.0",
@@ -227,6 +235,7 @@
       "stages": [
         "S04"
       ],
+      "applies": "openapi",
       "license": "Apache-2.0",
       "repository": "https://github.com/stoplightio/spectral",
       "version": "6.16.3",
@@ -243,6 +252,7 @@
         "S04",
         "S09"
       ],
+      "applies": "openapi",
       "license": "Apache-2.0",
       "repository": "https://github.com/oasdiff/oasdiff",
       "version": "1.32.1",
@@ -262,6 +272,7 @@
         "S02",
         "S04"
       ],
+      "applies": "all",
       "license": "PolyForm-Noncommercial-1.0.0",
       "repository": "https://github.com/abhigyanpatwari/GitNexus",
       "version": "1.6.12",
