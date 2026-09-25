@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-25",
-  "measured_at_commit": "87d9963",
+  "measured_at_commit": "17f60d8",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -276,7 +276,7 @@
           "definition": "الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "17/17 assessment tools at their pinned version (eaos tools doctor, 2026-09-25)",
+          "evidence": "17/17 assessment tools at their pinned version",
           "reads": "eaos tools doctor --json → tools[] {name, role, pinned, found, ok}",
           "measured": "automated"
         }

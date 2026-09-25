@@ -1,6 +1,6 @@
 # الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي
 
-> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-25 على الالتزام `87d9963`.
+> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-25 على الالتزام `17f60d8`.
 
 ## أين نحن: **47.6%** من الوجهة
 
@@ -114,7 +114,7 @@
 | R1 تدقيقات العيّنة المكتملة بلا فشل | عدد مشاريع العيّنة التي ينتهي فيها eaos audit برمز خروج 0 ÷ عدد مشاريع العيّنة | 100% | 100% | exit codes: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
 | R2 الأطر المفهومة | مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع | 100% | 100% | user surfaces found: FleetManageWeb 43 · finance-os-a0192b7b 29 · RendaPerene 3 |
 | R3 محوّلات الفحص الساكن تعمل | متوسط (المحوّلات المعتمدة المنطبقة على المشروع التي عملت فعلًا ÷ المنطبقة)، لكل مشروع. قائمة المحوّلات وشروط انطباقها في adopted_adapters. | 100% | 0% | adopted adapters that ran / applicable: FleetManageWeb 0/7 · finance-os-a0192b7b 0/8 · RendaPerene 0/7 |
-| R4 الأدوات المعتمدة مثبّتة بإصداراتها | الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات | 100% | 100% | 17/17 assessment tools at their pinned version (eaos tools doctor, 2026-09-25) |
+| R4 الأدوات المعتمدة مثبّتة بإصداراتها | الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات | 100% | 100% | 17/17 assessment tools at their pinned version |
 
 ### C2 — تقرير الوضع الراهن: يرى البرنامج كله (69%، الوزن 12)
 
