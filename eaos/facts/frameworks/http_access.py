@@ -64,6 +64,14 @@ def endpoint(raw):
     return path.rstrip('/') or '/'
 
 
+def bounded(method, url):
+    """A GET of one resource (`/operators/{}`) or with paging parameters is bounded; a collection GET is not
+    known to be, since the server may page by default; writes are not the question."""
+    if method != 'get': return None
+    if re.search(r'[?&](?:limit|page|pageSize|per_page|take|top|size)=', url): return True
+    return True if endpoint(url).endswith('/{}') else None
+
+
 def _value_of(name, text, before):
     """The string last assigned to `name` before `before` (`const DRIVERS_ENDPOINT = "/drivers"`), or None."""
     found = None
@@ -80,7 +88,8 @@ def extract_calls(text, names=()):
         # A literal absolute URL is a third-party host (an integration target), not the app's own back end.
         if receiver not in names or re.match(r'https?://', url): continue
         yield match.start(), text.count('\n', 0, match.start()) + 1, \
-            {'client': 'http', 'target': endpoint(url), 'operation': method.lower(), 'symbol': receiver}
+            {'client': 'http', 'target': endpoint(url), 'operation': method.lower(), 'symbol': receiver,
+             'bounded': bounded(method.lower(), url)}
     for match in METHOD_CALL_BY_NAME.finditer(text):
         receiver, method, variable = match.groups()
         if receiver not in names: continue
@@ -88,7 +97,7 @@ def extract_calls(text, names=()):
         if value is not None and re.match(r'https?://', value): continue
         yield match.start(), text.count('\n', 0, match.start()) + 1, \
             {'client': 'http', 'target': endpoint(value) if value is not None else '{dynamic}', 'operation': method.lower(),
-             'symbol': receiver}
+             'symbol': receiver, 'bounded': bounded(method.lower(), value or '')}
     for match in FETCH_CALL.finditer(text):
         window = text[match.end():match.end() + 300]
         method = FETCH_METHOD.search(window.split(');', 1)[0])

@@ -138,6 +138,29 @@ def go_mutable_globals(text):
     return found
 
 
+JS_TOP_LET = re.compile(r'^(?:export\s+)?(?:let|var)\s+(?P<name>[A-Za-z_$][\w$]*)', re.M)
+JS_TOP_CONTAINER = re.compile(r'^(?:export\s+)?const\s+(?P<name>[A-Za-z_$][\w$]*)\s*(?::[^=]+)?=\s*(?P<shape>\[|\{|new\s+(?:Map|Set|WeakMap)\b)', re.M)
+
+
+def js_mutable_globals(text):
+    """Module-level state a function changes: a top-level let/var reassigned later, or a top-level const
+    array, object, Map or Set mutated later. In a server it is shared by every request; in a browser, by
+    every component of the tab."""
+    found = []
+    for match in JS_TOP_LET.finditer(text):
+        name, tail = match.group('name'), text[match.end():]
+        if re.search(rf'(?<![\w$.]){re.escape(name)}\s*(?:[-+*/]?=(?!=)|\+\+|--)', tail):
+            line = text.count('\n', 0, match.start()) + 1
+            found.append((name, 'let', line, 'assignment', line, 'function'))
+    for match in JS_TOP_CONTAINER.finditer(text):
+        name, tail = match.group('name'), text[match.end():]
+        body = tail.split('\n', 1)[1] if '\n' in tail else ''
+        if re.search(rf'(?<![\w$.]){re.escape(name)}\s*(?:\.(?:push|pop|shift|unshift|splice|set|add|delete|clear)\s*\(|\[[^\]]+\]\s*=(?!=)|\.[A-Za-z_$][\w$]*\s*=(?!=))', body):
+            line = text.count('\n', 0, match.start()) + 1
+            found.append((name, match.group('shape').split()[0].replace('new', 'collection'), line, 'mutation', line, 'function'))
+    return found
+
+
 def python_constants(text):
     try: tree = ast.parse(text)
     except (SyntaxError, ValueError, RecursionError): return []
@@ -218,6 +241,8 @@ def run(target, source, **options):
             for name, shape, line, how, where, scope in go_mutable_globals(text):
                 mutable_globals.append((rel, name, shape, line, how, where, scope))
         elif language in {'javascript', 'typescript', 'tsx'}:
+            for name, shape, line, how, where, scope in js_mutable_globals(text):
+                mutable_globals.append((rel, name, shape, line, how, where, scope))
             for match in JS_CONST.finditer(text):
                 raw = match.group('value').strip().rstrip(',')
                 try: value = ast.literal_eval(raw)

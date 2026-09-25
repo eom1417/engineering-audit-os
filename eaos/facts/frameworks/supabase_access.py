@@ -105,9 +105,14 @@ def extract_calls(text, names=()):
         # is not a Supabase call, and `this.client.from("t")` in a service holding one is.
         receiver = RECEIVER.search(text[max(0, match.start() - 200):match.start()])
         if not receiver or not (SB_NAME.fullmatch(receiver.group(1)) or receiver.group(1) in names): continue
+        # A read is bounded when its chain limits the rows: .limit, .range, .single or .maybeSingle before the
+        # statement ends. None for writes, whose result size is not the question.
+        chain = re.split(r';|\n\s*\n', text[match.end():match.end() + 600], maxsplit=1)[0]
+        bounded = (bool(re.search(r'\.(?:limit|range|single|maybeSingle)\s*\(', chain))
+                   if match.group('op') == 'select' else None)
         yield match.start(), _line_of(text, match.start()), \
             {'client': 'supabase', 'target': match.group('target'),
-             'operation': match.group('op'), 'symbol': 'from'}
+             'operation': match.group('op'), 'symbol': 'from', 'bounded': bounded}
     for match in RPC_CALL.finditer(text):
         if _supabase_prefix(text, match.start()) is None: continue
         yield match.start(), _line_of(text, match.start()), \

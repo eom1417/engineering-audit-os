@@ -73,7 +73,7 @@ def _data_access_fact(item, rel, line, call, category):
     return make('data_access', NAME, VERSION, item['sha256'],
                 {'path': rel, 'start_line': line, 'symbol': call.get('symbol') or 'data_access'},
                 {'client': call['client'], 'target': call['target'], 'operation': call['operation'],
-                 'category': category},
+                 'bounded': call.get('bounded'), 'category': category},
                 limitations=LIMITATIONS)
 
 

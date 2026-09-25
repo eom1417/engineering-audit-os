@@ -34,8 +34,8 @@ DETECTOR_LANGUAGES = {
     # parsers support. We list the same set syntax extracts; when no fact arrives it is
     # because the engine could not measure, not because the function has no complexity.
     'complexity_class': frozenset({'python', 'javascript', 'typescript', 'tsx', 'go', 'java', 'kotlin', 'scala', 'c', 'cpp', 'csharp', 'php', 'ruby'}),
-    # mutable_global/external_state_write are emitted by domain.py for Python and Go.
-    'shared_mutable_state': frozenset({'python', 'go'}),
+    # mutable_global/external_state_write are emitted by domain.py for Python, Go, JavaScript and TypeScript.
+    'shared_mutable_state': frozenset({'python', 'go', 'javascript', 'typescript', 'tsx'}),
     # resilience_policy runs over python/js/ts/go; integration_target is python/js/ts.
     'outbound_calls_protected': frozenset({'python', 'javascript', 'typescript', 'tsx', 'go'}),
     # cache_policy and rate_limit: runtime.py emits across python/js/ts/go + yaml manifests.
@@ -166,6 +166,12 @@ def compute(record_root):
                 if f['kind'] == name}
 
     query_bound_by_path = _by_path('query_bound')
+    # Reads through Supabase or the app's own HTTP client carry whether their result is bounded
+    # (entrypoints.py, from facts/frameworks): a select with .limit/.range/.single, a GET of one resource.
+    reads_by_path = {}
+    for fact in entries_payload.get('facts', []):
+        if fact['kind'] == 'data_access' and fact['value'].get('operation') in ('select', 'get'):
+            reads_by_path.setdefault(fact['location']['path'], []).append(fact)
     resilience_by_path = _by_path('resilience_policy')
     cache_by_path = _by_path('cache_policy')
     rate_limit_by_path = _by_path('rate_limit')
@@ -271,34 +277,31 @@ def compute(record_root):
                 'repeats_per_iteration', status='undetectable',
                 reason='no n+1 redundancy observation in this entry path and the path is outside the detectors vocabulary')
 
-        # result_is_bounded: any query_bound with bounded=True on path -> True; bounded=False -> False; unknown -> unknown
+        # result_is_bounded: every read on the path, from SQL query_bound facts and from Supabase and HTTP
+        # reads. One unbounded read answers no: that read is the risk. All bounded answers yes. A read whose
+        # bound only the server knows (a collection GET) leaves it undetectable. No read at all, on a path the
+        # detectors cover, answers yes: there is nothing to bound, and the evidence is the searched path.
         bounds = [query_bound_by_path[p] for p in files if p in query_bound_by_path]
-        if bounds:
-            all_bounded = all(f['value']['bounded'] is True for f in bounds)
-            all_unbounded = all(f['value']['bounded'] is False for f in bounds)
-            if all_bounded:
-                answers['result_is_bounded'] = {
-                    'status': 'answered', 'value': True,
-                    'evidence': [f['id'] for f in bounds],
-                    'reason': 'every query in this entry is bounded',
-                }
-            elif all_unbounded:
-                answers['result_is_bounded'] = {
-                    'status': 'answered', 'value': False,
-                    'evidence': [f['id'] for f in bounds],
-                    'reason': 'at least one query in this entry is unbounded',
-                }
-            else:
-                answers['result_is_bounded'] = {
-                    'status': 'undetectable', 'value': None,
-                    'evidence': [f['id'] for f in bounds],
-                    'reason': 'some queries are bounded, others are not; mixed result',
-                }
+        reads = [f for p in files for f in reads_by_path.get(p, [])]
+        verdicts = [f['value'].get('bounded') for f in bounds] + [f['value'].get('bounded') for f in reads]
+        evidence = [f['id'] for f in bounds + reads]
+        if False in verdicts:
+            unbounded = sum(v is False for v in verdicts)
+            answers['result_is_bounded'] = {'status': 'answered', 'value': False, 'evidence': evidence,
+                                            'reason': f'{unbounded} of {len(verdicts)} read(s) on this path return every matching row'}
+        elif verdicts and all(v is True for v in verdicts):
+            answers['result_is_bounded'] = {'status': 'answered', 'value': True, 'evidence': evidence,
+                                            'reason': f'every read on this path ({len(verdicts)}) is limited or fetches one row'}
+        elif verdicts:
+            answers['result_is_bounded'] = {'status': 'undetectable', 'value': None, 'evidence': evidence,
+                                            'reason': 'a collection read whose size only the server decides'}
+        elif _supported('result_is_bounded', files):
+            answers['result_is_bounded'] = {'status': 'answered', 'value': True, 'evidence': [entry.get('id') or f'EP-{path}'],
+                                            'reason': 'no data read on this path: the SQL, Supabase and HTTP-client detectors covered every file'}
         else:
             answers['result_is_bounded'] = blank_answer(
-                'result_is_bounded',
-                status='undetectable',
-                reason='no query_bound fact on the path; this entry does not appear to query')
+                'result_is_bounded', status='undetectable',
+                reason='the path is in a language outside the read detectors')
 
         # complexity_class: any perf fact on the path
         perf = [f for f in perf_facts if f['location']['path'] in files]
@@ -314,26 +317,14 @@ def compute(record_root):
                 status='undetectable',
                 reason='no engine performance observation on this path')
 
-        # shared_mutable_state: only Python and Go have detector support; for other
-        # languages the question is honestly 'not applicable' (a TypeScript module has no
-        # module-level mutable globals in the same sense a Python module does).
-        SHARED_MUTABLE_LANGUAGES = frozenset({'python', 'go'})
-        entry_langs = set()
-        for f in files:
-            language = DETECTOR_LANGUAGES.get('shared_mutable_state', frozenset())
-            # entry path language is implicit; we use the project's entry surface.
-        path_lang = None
-        for source_path in files:
-            suffix = source_path.rsplit('.', 1)[-1].lower() if '.' in source_path else ''
-            if suffix == 'py': path_lang = 'python'
-            elif suffix in ('js', 'jsx', 'ts', 'tsx'): path_lang = 'typescript'
-        language_match = not _supported('shared_mutable_state', files) is True
+        # shared_mutable_state: domain.py models module-level state for Python, Go, JavaScript and TypeScript;
+        # for other languages the question is honestly 'not applicable'.
         if not _supported('shared_mutable_state', files):
             # No language in the detector scope: the question does not apply to this path.
             answers['shared_mutable_state'] = {
                 'question': 'shared_mutable_state', 'status': 'not_applicable', 'value': None,
                 'evidence': [entry.get('id') or f'EP-{path}'],
-                'reason': 'the entry path is in a language outside the shared_mutable_state vocabulary: module-level mutable state is only modelled for Python and Go here',
+                'reason': 'the entry path is in a language outside the shared_mutable_state vocabulary (Python, Go, JavaScript, TypeScript)',
             }
         else:
             mut = [mutable_by_path[p] for p in files if p in mutable_by_path]

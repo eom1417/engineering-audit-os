@@ -643,3 +643,27 @@ class NegativeAnswerTests(TemporaryWorkspace):
         cached = record['entry_points'][0]['answers']['cached']
         self.assertEqual(cached['status'], 'undetectable')
         self.assertIn('flow', cached['reason'].lower())
+
+
+class BoundedReadAndSharedStateTests(unittest.TestCase):
+    """Supabase and HTTP reads say whether their result is bounded; TypeScript module state is shared state."""
+
+    def test_a_supabase_select_is_bounded_only_with_a_limit_range_or_single_row(self):
+        from eaos.facts.frameworks.supabase_access import extract_calls
+        text = ('const a = await supabase.from("items").select("*");\n'
+                'const b = await supabase.from("items").select("*").range(0, 49);\n'
+                'const c = await supabase\n  .from("items")\n  .select("*")\n  .eq("id", id)\n  .single();\n'
+                'await supabase.from("items").insert(row);\n')
+        self.assertEqual([r['bounded'] for _, _, r in extract_calls(text)], [False, True, True, None])
+
+    def test_an_http_get_of_one_resource_or_a_page_is_bounded_and_a_collection_is_unknown(self):
+        from eaos.facts.frameworks.http_access import bounded
+        self.assertEqual([bounded('get', '/operators/${id}'), bounded('get', '/operators?page=2'),
+                          bounded('get', '/operators'), bounded('post', '/operators')], [True, True, None, None])
+
+    def test_module_level_state_a_function_changes_is_found_in_typescript(self):
+        from eaos.facts.domain import js_mutable_globals
+        text = ('let token = null;\nconst cache = new Map();\nconst ROUTES = ["/a"];\nlet stable = 1;\n'
+                'export function login(t) { token = t; cache.set(t, 1); }\n'
+                'export const read = () => stable + ROUTES.length;\n')
+        self.assertEqual(sorted(name for name, *_ in js_mutable_globals(text)), ['cache', 'token'])
