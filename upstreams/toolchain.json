@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "home": {
+    "env": "EAOS_ENGINE_TOOLS",
+    "default": "/workspace/engine-tools"
+  },
+  "description": "Every external tool EAOS runs or validates with, at its pinned version, and how to install it without root. upstreams/registry.yaml keeps the provenance narrative; this file is what eaos tools install and doctor read. A release is accepted only if its sha256 matches the one pinned here, copied from the checksums the project publishes.",
+  "tools": [
+    {
+      "name": "codegraph",
+      "role": "read",
+      "stages": [
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/codegraph-ai/CodeGraph",
+      "version": "0.20.1",
+      "binary": "codegraph-server",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/codegraph-ai/CodeGraph/releases/download/v0.20.1/codegraph-server-linux-x64",
+        "sha256": "32b26422fa5ffe0a130955b7f7df771f722b2d427d67f53f104d9907bdfb24a6",
+        "archive": "binary",
+        "member": "codegraph-server"
+      }
+    },
+    {
+      "name": "enola",
+      "role": "read",
+      "stages": [
+        "S02",
+        "S04"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/enola-labs/enola",
+      "version": "0.4.21",
+      "binary": "enola",
+      "install": {
+        "method": "script",
+        "url": "https://raw.githubusercontent.com/enola-labs/enola/main/install.sh",
+        "installs_to": "~/.local/bin/enola"
+      }
+    },
+    {
+      "name": "reforge",
+      "role": "read",
+      "stages": [
+        "S03",
+        "S04"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/LyleMi/Reforge",
+      "version": "0.3.0",
+      "binary": "reforge",
+      "install": {
+        "method": "script",
+        "url": "https://raw.githubusercontent.com/LyleMi/Reforge/main/scripts/install.sh",
+        "installs_to": "~/.local/bin/reforge"
+      }
+    },
+    {
+      "name": "jscpd",
+      "role": "read",
+      "stages": [
+        "S03",
+        "S04"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/kucherenko/jscpd",
+      "version": "5.3.0",
+      "binary": "jscpd",
+      "install": {
+        "method": "pip",
+        "package": "jscpd"
+      }
+    },
+    {
+      "name": "syft",
+      "role": "read",
+      "stages": [
+        "S01"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/anchore/syft",
+      "version": "1.52.0",
+      "binary": "syft",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/anchore/syft/releases/download/v1.52.0/syft_1.52.0_linux_amd64.tar.gz",
+        "sha256": "caeedb81fb0491615f1ebd1761e4145d41ee86dd2cc7bf80669f9f5ad9d6133d",
+        "archive": "tar.gz",
+        "member": "syft"
+      }
+    },
+    {
+      "name": "osv-scanner",
+      "role": "read",
+      "stages": [
+        "S01",
+        "S04",
+        "S10"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/google/osv-scanner",
+      "version": "2.6.0",
+      "binary": "osv-scanner",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/google/osv-scanner/releases/download/v2.6.0/osv-scanner_linux_amd64",
+        "sha256": "ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108",
+        "archive": "binary",
+        "member": "osv-scanner"
+      }
+    },
+    {
+      "name": "scc",
+      "role": "read",
+      "stages": [
+        "S01",
+        "S03"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/boyter/scc",
+      "version": "4.1.0",
+      "binary": "scc",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/boyter/scc/releases/download/v4.1.0/scc_Linux_x86_64.tar.gz",
+        "sha256": "c7328436d3027f4357d3d7853f7dc3ac2bbcb4ca08f1adad91a27c593884079b",
+        "archive": "tar.gz",
+        "member": "scc"
+      }
+    },
+    {
+      "name": "semgrep",
+      "role": "read",
+      "stages": [
+        "S04",
+        "S10",
+        "S15"
+      ],
+      "license": "LGPL-2.1",
+      "repository": "https://github.com/semgrep/semgrep",
+      "version": "1.178.0",
+      "binary": "semgrep",
+      "install": {
+        "method": "pip",
+        "package": "semgrep"
+      }
+    },
+    {
+      "name": "trivy",
+      "role": "read",
+      "stages": [
+        "S04",
+        "S10"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/aquasecurity/trivy",
+      "version": "0.74.0",
+      "binary": "trivy",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz",
+        "sha256": "2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a",
+        "archive": "tar.gz",
+        "member": "trivy"
+      }
+    },
+    {
+      "name": "checkov",
+      "role": "read",
+      "stages": [
+        "S04",
+        "S10"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/bridgecrewio/checkov",
+      "version": "3.3.19",
+      "binary": "checkov",
+      "install": {
+        "method": "pip",
+        "package": "checkov"
+      }
+    },
+    {
+      "name": "dependency-cruiser",
+      "role": "read",
+      "stages": [
+        "S02",
+        "S04",
+        "S15"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/sverweij/dependency-cruiser",
+      "version": "18.4.0",
+      "binary": "depcruise",
+      "install": {
+        "method": "npm",
+        "package": "dependency-cruiser"
+      }
+    },
+    {
+      "name": "sqlfluff",
+      "role": "read",
+      "stages": [
+        "S04"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/sqlfluff/sqlfluff",
+      "version": "4.3.0",
+      "binary": "sqlfluff",
+      "install": {
+        "method": "pip",
+        "package": "sqlfluff"
+      }
+    },
+    {
+      "name": "spectral",
+      "role": "read",
+      "stages": [
+        "S04"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/stoplightio/spectral",
+      "version": "6.16.3",
+      "binary": "spectral",
+      "install": {
+        "method": "npm",
+        "package": "@stoplight/spectral-cli"
+      }
+    },
+    {
+      "name": "oasdiff",
+      "role": "read",
+      "stages": [
+        "S04",
+        "S09"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/oasdiff/oasdiff",
+      "version": "1.32.1",
+      "binary": "oasdiff",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/oasdiff/oasdiff/releases/download/v1.32.1/oasdiff_1.32.1_linux_amd64.tar.gz",
+        "sha256": "7c8939fc49b75ee11fec66a5b83b37a2fca6aee109fed85013b1ba2ac2a1ee7f",
+        "archive": "tar.gz",
+        "member": "oasdiff"
+      }
+    },
+    {
+      "name": "gitnexus",
+      "role": "read",
+      "stages": [
+        "S02",
+        "S04"
+      ],
+      "license": "PolyForm-Noncommercial-1.0.0",
+      "repository": "https://github.com/abhigyanpatwari/GitNexus",
+      "version": "1.6.12",
+      "binary": "gitnexus",
+      "install": {
+        "method": "npm",
+        "package": "gitnexus",
+        "env": {
+          "GITNEXUS_SKIP_OPTIONAL_GRAMMARS": "1"
+        }
+      },
+      "license_note": "Non-commercial use only. EAOS is free and non-commercial; a commercial user of EAOS is bound by this license and may skip it (--skip gitnexus): CodeGraph and dependency-cruiser cover its core capability."
+    },
+    {
+      "name": "vale",
+      "role": "validate",
+      "stages": [
+        "S07"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/errata-ai/vale",
+      "version": "3.22.0",
+      "binary": "vale",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/errata-ai/vale/releases/download/v3.22.0/vale_3.22.0_Linux_64-bit.tar.gz",
+        "sha256": "52f5cd0314a1b7384cac6aa102a68193977312f6ba9c9f3ae001b5deec8e3a10",
+        "archive": "tar.gz",
+        "member": "vale"
+      }
+    },
+    {
+      "name": "markdownlint-cli2",
+      "role": "validate",
+      "stages": [
+        "S07",
+        "S15"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/DavidAnson/markdownlint-cli2",
+      "version": "0.23.3",
+      "binary": "markdownlint-cli2",
+      "install": {
+        "method": "npm",
+        "package": "markdownlint-cli2"
+      }
+    }
+  ]
+}

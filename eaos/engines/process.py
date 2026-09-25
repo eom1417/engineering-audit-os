@@ -17,7 +17,7 @@ SKIP_DIRECTORIES = {'.git', '.venv', 'venv', 'node_modules', '__pycache__', 'dis
 
 def which(binary):
     """The pinned engine directory first, then the ambient PATH."""
-    pinned = Path('/workspace/engine-tools/bin') / binary
+    pinned = Path(os.environ.get('EAOS_ENGINE_TOOLS') or '/workspace/engine-tools') / 'bin' / binary
     if pinned.is_file() and os.access(pinned, os.X_OK):
         return str(pinned)
     return shutil.which(binary)

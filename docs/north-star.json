@@ -275,8 +275,8 @@
           "name": "الأدوات المعتمدة مثبّتة بإصداراتها",
           "definition": "الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "eaos tools doctor --json gave no tool list (the command does not exist yet, or failed)",
+          "value": 1.0,
+          "evidence": "17/17 assessment tools at their pinned version (eaos tools doctor, 2026-09-25)",
           "reads": "eaos tools doctor --json → tools[] {name, role, pinned, found, ok}",
           "measured": "automated"
         }
@@ -1519,7 +1519,7 @@
           ],
           "size": "M",
           "files": [
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "eaos/toolchain.py",
             "eaos/cli.py",
             "eaos/engines/process.py",
@@ -1531,7 +1531,7 @@
             "contract:tools-doctor"
           ],
           "steps": [
-            "وسّع كل عنصر في upstreams/registry.yaml بثلاثة حقول: role (read أو emit أو run أو validate)، و stages (معرّفات pipeline في docs/north-star.json مثل S01)، و install {method: release | pip | npm, source, version, sha256 للـrelease, binary}.",
+            "السجل الآلي upstreams/toolchain.json (JSON لأن المستودع بلا مكتبات خارجية؛ upstreams/registry.yaml يبقى سجل المصدر): لكل أداة name و role (read أو emit أو run أو validate) و stages و license و version و binary و install {method: release | pip | npm | script, url, sha256 منسوخ من ملف checksums الذي ينشره المشروع, archive, member, package}.",
             "أضف عناصر لأدوات عقد التقييم بآخر release مستقر يوم التنفيذ، والرخصة والمستودع من docs/TOOLCHAIN.md: syft، و osv-scanner، و scc، و semgrep، و trivy، و checkov، و dependency-cruiser، و sqlfluff، و spectral، و oasdiff، و gitnexus (role = read)، و vale، و markdownlint-cli2 (role = validate).",
             "اكتب eaos/toolchain.py. install(names أو stage) يثبّت في /workspace/engine-tools فقط: release ← تنزيل ثم تحقق sha256 ثم bin/؛ pip ← engine-tools/venv؛ npm ← npm install --prefix engine-tools/node ثم رابط في bin/. لا apt ولا sudo: أداة تحتاج حزمة نظام (Java لـZAP) تطبع السطر المطلوب وتخرج بغير صفر.",
             "doctor: لكل أداة {name, role, pinned, found, ok, reason}، ويخرج بغير صفر إن نقصت أداة read أو validate لعقد التقييم. سجّل في eaos/cli.py: eaos tools install [--stage assessment|execution] [--only NAME[,NAME]] و eaos tools doctor [--json].",
@@ -1555,7 +1555,7 @@
           ],
           "acceptance": "python -m eaos tools install --stage assessment && python tools/north_star.py measure --only R4 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS17.T2",
@@ -1841,7 +1841,7 @@
             "eaos/engines/syft.py",
             "eaos/engines/osv_scanner.py",
             "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/contracts/syft.json",
             "tests/contracts/osv-scanner.json",
             "tests/test_engine_contracts.py"
@@ -1852,7 +1852,7 @@
           "steps": [
             "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل syft كعملية منفصلة، واقرأ مخرجه المنظم (CycloneDX JSON).",
             "ترجم مخرجه إلى مفردات EAOS: اكتب sbom.cdx.json في التقرير كما هو. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/syft.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/syft.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "OSV-Scanner يقرأ sbom.cdx.json (--sbom) ويعطي حقائق kind=\"vulnerable_dependency\" (أضفها للمخطط ثم python tools/render.py): الحزمة، والإصدار، والمعرّف، والخطورة. كل ثغرة معروفة الإصلاح تصير ادعاء risk بنمط علاج \"ترقية الاعتمادية\"."
           ],
@@ -1888,7 +1888,7 @@
           "files": [
             "eaos/engines/scc.py",
             "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/contracts/scc.json",
             "tests/test_engine_contracts.py"
           ],
@@ -1896,7 +1896,7 @@
           "steps": [
             "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل scc كعملية منفصلة، واقرأ مخرجه المنظم (scc --format json).",
             "ترجم مخرجه إلى مفردات EAOS: قياسات symbol_metric_external لكل ملف (أسطر، وتعقيد)؛ شاهد مستقل على الحجم. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/scc.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/scc.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة)."
           ],
           "done_when": [
@@ -1932,7 +1932,7 @@
             "eaos/engines/semgrep.py",
             "eaos/data/semgrep/",
             "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/contracts/semgrep.json",
             "tests/test_engine_contracts.py",
             "eaos/data/sarif-rules.json"
@@ -1941,7 +1941,7 @@
           "steps": [
             "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (semgrep --config eaos/data/semgrep --sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
             "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. كل قاعدة تحمل في metadata نوعها من KINDS في eaos/engines/contract.py. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/semgrep.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/semgrep.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "مصدران للقواعد: (1) قواعد EAOS في eaos/data/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة، وكل قاعدة معها مثال يطابقها ومثال لا يطابقها. (2) مكتبة semgrep-rules الرسمية: رخصتها تمنع توزيعها، فلا تُنسخ إلى هذا المستودع أبدًا؛ eaos tools install يجلبها إلى /workspace/engine-tools/semgrep-rules عند التزام مثبّت على جهاز المستخدم، ويشغّل المحوّل منها مجموعات بعينها (javascript و typescript و python و secrets) إن وُجدت، ويسجّل في التقرير أيها استُخدم."
           ],
@@ -1979,7 +1979,7 @@
           "files": [
             "eaos/engines/trivy.py",
             "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/contracts/trivy.json",
             "tests/test_engine_contracts.py",
             "eaos/data/sarif-rules.json"
@@ -1988,7 +1988,7 @@
           "steps": [
             "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (trivy fs --format sarif --scanners vuln,secret,misconfig)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
             "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. ثغرات، وإعدادات خاطئة (boundary)، وأسرار: الأسرار شاهد ثانٍ على committed_credential، لا ادعاء جديد إن طابقت الموضع نفسه. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/trivy.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/trivy.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "لا تطبع قيمة أي سر؛ خذ نوع القاعدة وموضعها فقط."
           ],
@@ -2024,7 +2024,7 @@
           "files": [
             "eaos/engines/checkov.py",
             "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/contracts/checkov.json",
             "tests/test_engine_contracts.py",
             "eaos/data/sarif-rules.json"
@@ -2033,7 +2033,7 @@
           "steps": [
             "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (checkov -d TARGET -o sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
             "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. إعدادات خاطئة في CI وIaC بخطورتها. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/checkov.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/checkov.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "ينطبق فقط إن وُجد .github/workflows أو Dockerfile أو ملفات IaC؛ وإلا يُسجَّل غير منطبق لا غائبًا."
           ],
@@ -2068,7 +2068,7 @@
           "files": [
             "eaos/engines/dependency_cruiser.py",
             "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/contracts/dependency-cruiser.json",
             "tests/test_engine_contracts.py"
           ],
@@ -2076,7 +2076,7 @@
           "steps": [
             "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل dependency-cruiser كعملية منفصلة، واقرأ مخرجه المنظم (depcruise --output-type json).",
             "ترجم مخرجه إلى مفردات EAOS: module_edge_external، ودورات (cycle)، وخرق قواعد (boundary). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/dependency-cruiser.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/dependency-cruiser.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "ولّد إعداد القواعد من eaos.policy.json في مشروع المالك إن وُجد؛ وإلا شغّله بقاعدة no-circular وحدها. لا تكتب أي ملف داخل مشروع المالك: الإعداد في workdir."
           ],
@@ -2111,7 +2111,7 @@
           "files": [
             "eaos/engines/sqlfluff.py",
             "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/contracts/sqlfluff.json",
             "tests/test_engine_contracts.py"
           ],
@@ -2119,7 +2119,7 @@
           "steps": [
             "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل sqlfluff كعملية منفصلة، واقرأ مخرجه المنظم (sqlfluff lint --format json --dialect postgres).",
             "ترجم مخرجه إلى مفردات EAOS: مخالفات بنمطها وموضعها؛ لا تتحول إلى ادعاءات إلا فئات الخطر (مثل غياب WHERE في UPDATE أو DELETE). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/sqlfluff.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/sqlfluff.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "ينطبق فقط إن وُجدت ملفات .sql."
           ],
@@ -2156,7 +2156,7 @@
             "eaos/engines/spectral.py",
             "eaos/engines/oasdiff.py",
             "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/contracts/spectral.json",
             "tests/test_engine_contracts.py",
             "eaos/data/sarif-rules.json"
@@ -2165,7 +2165,7 @@
           "steps": [
             "المحوّل نحو 20 سطرًا فوق eaos/engines/sarif.py (NS17.T2): يبني الأمر (spectral lint -f sarif)، ويشغّله بـprocess.run، ويعيد sarif.read(...). لا تكتب قارئ JSON خاصًا بالأداة.",
             "الترجمة إلى مفردات EAOS صفوف في eaos/data/sarif-rules.json لا كود. مخالفات أسلوب الـAPI (surface). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
-            "احفظ مخرجًا حقيقيًا في tests/contracts/spectral.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/registry.yaml (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
+            "احفظ مخرجًا حقيقيًا في tests/contracts/spectral.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
             "العيّنة الحالية بلا OpenAPI؛ اكتب عيّنة اختبار فيها مواصفة. غياب المواصفة في مشروع له مسارات http يصير بند فجوة لا صمتًا."
           ],
@@ -2199,7 +2199,7 @@
           "files": [
             "eaos/engines/gitnexus.py",
             "eaos/engines/__init__.py",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/contracts/gitnexus.json",
             "tests/test_engine_contracts.py",
             "tools/north_star_measure.py"
@@ -2250,7 +2250,7 @@
           "size": "S",
           "files": [
             "tools/north_star_measure.py",
-            "upstreams/registry.yaml"
+            "upstreams/toolchain.json"
           ],
           "writes": [],
           "steps": [
@@ -2482,7 +2482,7 @@
             "templates/emit/k6/",
             "templates/emit/toxiproxy/",
             "templates/emit/zap/",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/test_emit_nfr.py"
           ],
           "writes": [
@@ -3066,7 +3066,7 @@
             "eaos/codemods.py",
             "eaos/data/codemods.json",
             "templates/codemods/",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tools/north_star_measure.py",
             "tests/test_codemods.py"
           ],
@@ -3193,7 +3193,7 @@
           "files": [
             "eaos/compose/pdf.py",
             "templates/typst/executive.typ",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/test_pdf.py"
           ],
           "writes": [
@@ -3245,7 +3245,7 @@
             "templates/emit/github-actions/",
             "templates/emit/pre-commit/",
             "templates/emit/renovate/",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/test_emit_governance.py"
           ],
           "writes": [
@@ -3293,7 +3293,7 @@
             "eaos/emit/observability.py",
             "templates/emit/otel/",
             "templates/emit/sloth/",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/test_emit_observability.py"
           ],
           "writes": [
@@ -3336,7 +3336,7 @@
             "eaos/emit/readiness.py",
             "templates/emit/goss/",
             "eaos/data/readiness-checklist.json",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/test_emit_readiness.py"
           ],
           "writes": [
@@ -3378,7 +3378,7 @@
           "files": [
             "eaos/emit/handover_site.py",
             "templates/emit/site/",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/test_emit_site.py"
           ],
           "writes": [
@@ -3653,7 +3653,7 @@
           "size": "M",
           "files": [
             "eaos/runtime_security.py",
-            "upstreams/registry.yaml",
+            "upstreams/toolchain.json",
             "tests/test_runtime_security.py"
           ],
           "writes": [

@@ -5,7 +5,7 @@
 > **علاقتها بالوثائق الأخرى:**
 > - `docs/MASTER-BLUEPRINT.md`: المراحل والتسلسل.
 > - `docs/north-star.json`: المهام وأوامر قبولها.
-> - `upstreams/registry.yaml`: الإصدار المثبّت لكل أداة **بعد** دمجها (المهمة NS17.T1).
+> - `upstreams/toolchain.json`: الإصدار المثبّت لكل أداة وبصمة ملفها وطريقة تثبيتها، يقرؤه `eaos tools install` و`eaos tools doctor` (المهمة NS17.T1)؛ و`upstreams/registry.yaml` سجل المصدر.
 
 ---
 

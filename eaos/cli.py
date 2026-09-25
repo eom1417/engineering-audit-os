@@ -193,6 +193,11 @@ def baseline_command(args):
     return 0
 
 
+def tools_command(args):
+    from .toolchain import main as toolchain_main
+    return toolchain_main(args)
+
+
 def engines_command(args):
     from . import engines as engine_layer
     if args.action=='list':
@@ -597,6 +602,13 @@ def main(argv=None):
     q.add_argument('--engine',action='append',default=[])
     q.add_argument('--exclude',action='append',default=[])
     q.set_defaults(func=engines_command)
+    q=s.add_parser('tools',help='Install every external tool at its pinned version, or check what is installed')
+    q.add_argument('action',choices=['install','doctor'])
+    q.add_argument('--stage',choices=['assessment','execution'],default=None)
+    q.add_argument('--only',default=None,help='comma-separated tool names')
+    q.add_argument('--skip',default=None,help='comma-separated tool names to leave out')
+    q.add_argument('--json',action='store_true')
+    q.set_defaults(func=tools_command)
     q=s.add_parser('packet');q.add_argument('run');q.add_argument('--module',required=True);q.add_argument('--file',action='append',default=[]);q.add_argument('--budget-chars',type=bounded_int,default=24000);q.set_defaults(func=packet)
     q=s.add_parser('graph');q.add_argument('run');q.set_defaults(func=graph_command)
     for command,fn in [('impact',impact_command),('context',context_command)]:
