@@ -1614,7 +1614,7 @@
           "files": [
             "eaos/emit/__init__.py",
             "eaos/emit/validate.py",
-            "templates/emit/",
+            "eaos/templates/emit/",
             "eaos/cli.py",
             "eaos/pipeline/stages.py",
             "tools/north_star_measure.py",
@@ -1626,7 +1626,7 @@
           ],
           "steps": [
             "المبدأ: لا يعيد EAOS كتابة أداة تشغيل؛ يكتب لها ملف إدخالها (سكربت k6، مواصفة Playwright، إعداد Collector، …) من الحقائق، ثم يطلب من الأداة نفسها أن تقبله.",
-            "eaos/emit/__init__.py: سجل EMITTERS {name: (function(workspace, out_dir) → [paths], validator)}. القوالب في templates/emit/<tool>/ بـstring.Template من المكتبة القياسية؛ لا تضف محرّك قوالب. JSON و YAML يُكتبان من dict مباشرة، لا بدمج نصوص.",
+            "eaos/emit/__init__.py: سجل EMITTERS {name: (function(workspace, out_dir) → [paths], validator)}. القوالب في eaos/templates/emit/<tool>/ (داخل الحزمة كي تُشحن مع pip install) بـstring.Template من المكتبة القياسية؛ لا تضف محرّك قوالب. JSON و YAML يُكتبان من dict مباشرة، لا بدمج نصوص.",
             "eaos/emit/validate.py: لكل ملف مولَّد يشغّل مدقق أداته (من registry.yaml، role = validate) ويكتب handover/validation.json → files[] {path, tool, ok, output}. أداة غير مثبتة ← ok = false و reason \"validator unavailable\"؛ لا تُحسب نجاحًا.",
             "أمر eaos emit <workspace> [--only NAME] [--validate]، ومرحلة اختيارية emit في eaos/pipeline/stages.py بعد compose، و absent_when: no emitter applies.",
             "أول مولّد يثبت الإطار: handover/README.md فهرسًا للعدّة، ومدققه markdownlint-cli2. أضف قياس K1 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة).",
@@ -1644,7 +1644,7 @@
           ],
           "acceptance": "python tools/acceptance.py test ns17_t3_emit",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS17.T4",
@@ -2479,9 +2479,9 @@
           "size": "M",
           "files": [
             "eaos/emit/nfr.py",
-            "templates/emit/k6/",
-            "templates/emit/toxiproxy/",
-            "templates/emit/zap/",
+            "eaos/templates/emit/k6/",
+            "eaos/templates/emit/toxiproxy/",
+            "eaos/templates/emit/zap/",
             "upstreams/toolchain.json",
             "tests/test_emit_nfr.py"
           ],
@@ -3242,9 +3242,9 @@
           "size": "M",
           "files": [
             "eaos/emit/governance.py",
-            "templates/emit/github-actions/",
-            "templates/emit/pre-commit/",
-            "templates/emit/renovate/",
+            "eaos/templates/emit/github-actions/",
+            "eaos/templates/emit/pre-commit/",
+            "eaos/templates/emit/renovate/",
             "upstreams/toolchain.json",
             "tests/test_emit_governance.py"
           ],
@@ -3291,8 +3291,8 @@
           "size": "M",
           "files": [
             "eaos/emit/observability.py",
-            "templates/emit/otel/",
-            "templates/emit/sloth/",
+            "eaos/templates/emit/otel/",
+            "eaos/templates/emit/sloth/",
             "upstreams/toolchain.json",
             "tests/test_emit_observability.py"
           ],
@@ -3334,7 +3334,7 @@
           "size": "S",
           "files": [
             "eaos/emit/readiness.py",
-            "templates/emit/goss/",
+            "eaos/templates/emit/goss/",
             "eaos/rules/readiness-checklist.json",
             "upstreams/toolchain.json",
             "tests/test_emit_readiness.py"
@@ -3377,7 +3377,7 @@
           "size": "S",
           "files": [
             "eaos/emit/handover_site.py",
-            "templates/emit/site/",
+            "eaos/templates/emit/site/",
             "upstreams/toolchain.json",
             "tests/test_emit_site.py"
           ],

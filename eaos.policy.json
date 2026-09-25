@@ -86,7 +86,9 @@
       "eaos/vocabulary.py",
       "eaos/workflow.py",
       "eaos/workspace.py",
-      "eaos/toolchain.py"
+      "eaos/toolchain.py",
+      "eaos/emit/__init__.py",
+      "eaos/emit/validate.py"
     ],
     "tools": [
       "tools/**",

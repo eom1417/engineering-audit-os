@@ -193,6 +193,16 @@ def baseline_command(args):
     return 0
 
 
+def emit_command(args):
+    from .emit import emit
+    written, rows = emit(args.report, args.only.split(',') if args.only else None, args.validate)
+    for item in written:
+        row = next((r for r in rows if r['path'] == item.path), None)
+        state = '' if row is None else ('  accepted by ' + item.tool if row['ok'] else '  REJECTED: ' + (row.get('reason') or row.get('output', ''))[:200])
+        print(item.path + state)
+    return 0
+
+
 def tools_command(args):
     from .toolchain import main as toolchain_main
     return toolchain_main(args)
@@ -602,6 +612,11 @@ def main(argv=None):
     q.add_argument('--engine',action='append',default=[])
     q.add_argument('--exclude',action='append',default=[])
     q.set_defaults(func=engines_command)
+    q=s.add_parser('emit',help='Write files in other tools\' own formats from an audit, and let each tool judge its file')
+    q.add_argument('report')
+    q.add_argument('--only',default=None,help='comma-separated emitter names')
+    q.add_argument('--validate',action='store_true')
+    q.set_defaults(func=emit_command)
     q=s.add_parser('tools',help='Install every external tool at its pinned version, or check what is installed')
     q.add_argument('action',choices=['install','doctor'])
     q.add_argument('--stage',choices=['assessment','execution'],default=None)

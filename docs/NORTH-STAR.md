@@ -247,7 +247,7 @@
 | المرحلة | العنوان | المعالم | المنجز | شرط الخروج |
 | --- | --- | --- | --- | --- |
 | R1 | الأساس: الوصول والرؤية والإشارة | NS1, NS2, NS3, NS4, NS5, NS6 | 19/19 | U2، U3، U4، U5، S1، S2، D1–D3، H1، H2 عند أهدافها |
-| R2 | منصة الأدوات: تثبيت، وقراءة، وتوليد، ومراحل، وعزل | NS17 | 2/5 | R4 = 1، وقارئ SARIF وإطار التوليد ومراحل engage والبيئة المعزولة مختبرة |
+| R2 | منصة الأدوات: تثبيت، وقراءة، وتوليد، ومراحل، وعزل | NS17 | 3/5 | R4 = 1، وقارئ SARIF وإطار التوليد ومراحل engage والبيئة المعزولة مختبرة |
 | R3 | الأدلة الكاملة من الأدوات الجاهزة | NS11, NS12, NS18 | 0/15 | بوابات S01 وS03 وS04 كاملة: U6، R3، H3، M1، S3 |
 | R4 | تثبيت السلوك والصورة المثالية | NS15, NS7, NS13 | 0/10 | البوابة أ لـS05، وبوابة S06 مع موافقة بشرية |
 | R5 | الخطة والتقارير وعدّة التسليم | NS8, NS14, NS25 | 0/14 | بوابة S07 و K1 = 1: اكتمل عقد التقييم (EAOS 1.0) |
@@ -267,7 +267,7 @@
 | NS4 الإشارة لا الضجيج | S1 ≥ 0.8 و S2 ≥ 0.8. | 2/2 |
 | NS5 الكود الميت والمخلفات: كشف وحذف آمن | D1 ≥ 0.8 و D2 ≥ 0.9 و D3 ≥ 0.9. | 4/4 |
 | NS6 نظافة الأمن الأساسية | H1 = 1.0 و H2 = 1.0. | 2/2 |
-| NS17 منصة الأدوات: كل أداة تدخل بطريقة واحدة | R4 = 1، وقارئ SARIF، وإطار التوليد، والمراحل كبيانات، والبيئة المعزولة مختبرة. | 2/5 |
+| NS17 منصة الأدوات: كل أداة تدخل بطريقة واحدة | R4 = 1، وقارئ SARIF، وإطار التوليد، والمراحل كبيانات، والبيئة المعزولة مختبرة. | 3/5 |
 | NS11 الاستلام: ماذا يجب أن يُحمى، وإلى أين | U6 = 1.0. | 0/2 |
 | NS12 محوّلات الفحص الساكن: أدوات جاهزة بدل كود نكتبه | R3 = 1.0 و H3 = 1.0. | 0/10 |
 | NS18 القياس وسجل الدَّين: الأرقام لكل ملف، والخطر حين تجتمع الأدلة | M1 ≥ 0.95 و S3 ≥ 0.8 و G2 = 1.0. | 0/3 |
@@ -887,20 +887,20 @@ python tools/acceptance.py test ns17_t2_sarif
 
 **التراجع:** revert الالتزام.
 
-#### NS17.T3 — التوليد بصيغ الأدوات الأصلية، والأداة نفسها هي المدقق ⬜
+#### NS17.T3 — التوليد بصيغ الأدوات الأصلية، والأداة نفسها هي المدقق ✅
 
 **لماذا:** الأدوات التي تعمل على نسخة حية لا نعيد كتابتها: نكتب لها ملف إدخالها بصيغتها، والأداة نفسها تحكم عليه. هذا الإطار تستعمله كل مهام العدّة بعده.
 
 **يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T1 · **الحجم:** M
 
-**الملفات:** `eaos/emit/__init__.py` · `eaos/emit/validate.py` · `templates/emit/` · `eaos/cli.py` · `eaos/pipeline/stages.py` · `tools/north_star_measure.py` · `tests/test_emit.py`
+**الملفات:** `eaos/emit/__init__.py` · `eaos/emit/validate.py` · `eaos/templates/emit/` · `eaos/cli.py` · `eaos/pipeline/stages.py` · `tools/north_star_measure.py` · `tests/test_emit.py`
 
 **يكتب:** `contract:handover-validation` (العقد: `schemas/artifacts/handover-validation.schema.json`) · `handover/README.md`
 
 **الخطوات:**
 
 1. المبدأ: لا يعيد EAOS كتابة أداة تشغيل؛ يكتب لها ملف إدخالها (سكربت k6، مواصفة Playwright، إعداد Collector، …) من الحقائق، ثم يطلب من الأداة نفسها أن تقبله.
-2. eaos/emit/__init__.py: سجل EMITTERS {name: (function(workspace, out_dir) → [paths], validator)}. القوالب في templates/emit/<tool>/ بـstring.Template من المكتبة القياسية؛ لا تضف محرّك قوالب. JSON و YAML يُكتبان من dict مباشرة، لا بدمج نصوص.
+2. eaos/emit/__init__.py: سجل EMITTERS {name: (function(workspace, out_dir) → [paths], validator)}. القوالب في eaos/templates/emit/<tool>/ (داخل الحزمة كي تُشحن مع pip install) بـstring.Template من المكتبة القياسية؛ لا تضف محرّك قوالب. JSON و YAML يُكتبان من dict مباشرة، لا بدمج نصوص.
 3. eaos/emit/validate.py: لكل ملف مولَّد يشغّل مدقق أداته (من registry.yaml، role = validate) ويكتب handover/validation.json → files[] {path, tool, ok, output}. أداة غير مثبتة ← ok = false و reason "validator unavailable"؛ لا تُحسب نجاحًا.
 4. أمر eaos emit <workspace> [--only NAME] [--validate]، ومرحلة اختيارية emit في eaos/pipeline/stages.py بعد compose، و absent_when: no emitter applies.
 5. أول مولّد يثبت الإطار: handover/README.md فهرسًا للعدّة، ومدققه markdownlint-cli2. أضف قياس K1 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة).
@@ -1619,7 +1619,7 @@ python tools/north_star.py measure --only E4 --min 1.0 && python tools/acceptanc
 
 **يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS15.T1, NS11.T2, NS17.T3 · **الحجم:** M
 
-**الملفات:** `eaos/emit/nfr.py` · `templates/emit/k6/` · `templates/emit/toxiproxy/` · `templates/emit/zap/` · `upstreams/toolchain.json` · `tests/test_emit_nfr.py`
+**الملفات:** `eaos/emit/nfr.py` · `eaos/templates/emit/k6/` · `eaos/templates/emit/toxiproxy/` · `eaos/templates/emit/zap/` · `upstreams/toolchain.json` · `tests/test_emit_nfr.py`
 
 **يكتب:** `contract:nfr-experiments` (العقد: `schemas/artifacts/nfr-experiments.schema.json`) · `nfr/k6/` · `nfr/toxiproxy.json` · `nfr/zap.yaml` · `contract:handover-validation` (العقد: `schemas/artifacts/handover-validation.schema.json`)
 
@@ -2290,7 +2290,7 @@ python tools/north_star.py measure --only P8 && python tools/acceptance.py file 
 
 **يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS17.T3, NS7.T3, NS12.T3, NS12.T6 · **الحجم:** M
 
-**الملفات:** `eaos/emit/governance.py` · `templates/emit/github-actions/` · `templates/emit/pre-commit/` · `templates/emit/renovate/` · `upstreams/toolchain.json` · `tests/test_emit_governance.py`
+**الملفات:** `eaos/emit/governance.py` · `eaos/templates/emit/github-actions/` · `eaos/templates/emit/pre-commit/` · `eaos/templates/emit/renovate/` · `upstreams/toolchain.json` · `tests/test_emit_governance.py`
 
 **يكتب:** `handover/.github/workflows/eaos.yml` · `handover/.pre-commit-config.yaml` · `handover/renovate.json` · `handover/.dependency-cruiser.cjs` · `handover/semgrep/` · `contract:handover-validation` (العقد: `schemas/artifacts/handover-validation.schema.json`)
 
@@ -2327,7 +2327,7 @@ python tools/north_star.py measure --only K1 && python tools/acceptance.py emitt
 
 **يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS25.T1, NS11.T2 · **الحجم:** M
 
-**الملفات:** `eaos/emit/observability.py` · `templates/emit/otel/` · `templates/emit/sloth/` · `upstreams/toolchain.json` · `tests/test_emit_observability.py`
+**الملفات:** `eaos/emit/observability.py` · `eaos/templates/emit/otel/` · `eaos/templates/emit/sloth/` · `upstreams/toolchain.json` · `tests/test_emit_observability.py`
 
 **يكتب:** `handover/otel/collector.yaml` · `handover/otel/INSTRUMENTATION.md` · `handover/slo/` · `contract:handover-validation` (العقد: `schemas/artifacts/handover-validation.schema.json`)
 
@@ -2362,7 +2362,7 @@ python tools/north_star.py measure --only K1 && python tools/acceptance.py emitt
 
 **يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS25.T2 · **الحجم:** S
 
-**الملفات:** `eaos/emit/readiness.py` · `templates/emit/goss/` · `eaos/rules/readiness-checklist.json` · `upstreams/toolchain.json` · `tests/test_emit_readiness.py`
+**الملفات:** `eaos/emit/readiness.py` · `eaos/templates/emit/goss/` · `eaos/rules/readiness-checklist.json` · `upstreams/toolchain.json` · `tests/test_emit_readiness.py`
 
 **يكتب:** `handover/readiness/goss.yaml` · `handover/readiness/checklist.json` · `contract:handover-validation` (العقد: `schemas/artifacts/handover-validation.schema.json`)
 
@@ -2396,7 +2396,7 @@ python tools/north_star.py measure --only K1 && python tools/acceptance.py emitt
 
 **يحرّك:** K1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS25.T3, NS13.T3, NS14.T2 · **الحجم:** S
 
-**الملفات:** `eaos/emit/handover_site.py` · `templates/emit/site/` · `upstreams/toolchain.json` · `tests/test_emit_site.py`
+**الملفات:** `eaos/emit/handover_site.py` · `eaos/templates/emit/site/` · `upstreams/toolchain.json` · `tests/test_emit_site.py`
 
 **يكتب:** `handover/mkdocs.yml` · `handover/docs/` · `contract:handover-validation` (العقد: `schemas/artifacts/handover-validation.schema.json`)
 

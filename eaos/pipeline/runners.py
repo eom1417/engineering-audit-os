@@ -158,6 +158,14 @@ def site(context):
     return {'bytes': result.get('bytes')}
 
 
+def emit(context):
+    from ..emit import emit as run
+    written, rows = run(context.out, validate=True)
+    if not written:
+        raise SkipStage('no emitter applies')
+    return {'files': len(written), 'accepted': sum(1 for row in rows if row['ok'])}
+
+
 def validate(context):
     from ..compose.rules import validate as check
     from ..workspace import read
@@ -220,7 +228,7 @@ def features(context):
 RUNNERS = {'facts': facts, 'features': features, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
            'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,
            'transform': transform, 'plan': plan, 'execution_guide': execution_guide,
-           'compose': compose, 'site': site, 'validate': validate}
+           'compose': compose, 'emit': emit, 'site': site, 'validate': validate}
 
 
 def target(context):
