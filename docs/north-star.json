@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
-  "measured_at": "2026-09-24",
-  "measured_at_commit": "71ff874",
+  "measured_at": "2026-09-25",
+  "measured_at_commit": "42795c8",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -50,7 +50,9 @@
             "path": "unused-archive/supabase-integrations/client.ts",
             "severity": "public"
           }
-        ]
+        ],
+        "supabase_table_calls": 18,
+        "supabase_table_calls_how": "grep -rEc \"\\.from\\(\\s*['\\\"\\`][a-z_0-9]+['\\\"\\`]\\s*\\)\\s*\\.\\s*(select|insert|update|upsert|delete)\" -z over src/**/*.ts* (chains split across lines counted; verified by hand on 2026-09-25)"
       }
     },
     {
@@ -70,7 +72,9 @@
             "path": ".env",
             "severity": "public"
           }
-        ]
+        ],
+        "supabase_table_calls": 86,
+        "supabase_table_calls_how": "grep -rEc \"\\.from\\(\\s*['\\\"\\`][a-z_0-9]+['\\\"\\`]\\s*\\)\\s*\\.\\s*(select|insert|update|upsert|delete)\" -z over src/**/*.ts* (chains split across lines counted; verified by hand on 2026-09-25)"
       }
     },
     {
@@ -84,7 +88,9 @@
         "tables": 0,
         "policies": 0,
         "leftovers": [],
-        "credentials": []
+        "credentials": [],
+        "supabase_table_calls": 0,
+        "supabase_table_calls_how": "grep -rEc \"\\.from\\(\\s*['\\\"\\`][a-z_0-9]+['\\\"\\`]\\s*\\)\\s*\\.\\s*(select|insert|update|upsert|delete)\" -z over src/**/*.ts* (chains split across lines counted; verified by hand on 2026-09-25)"
       }
     }
   ],
@@ -469,7 +475,7 @@
           "definition": "القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات",
           "target": 0.6,
           "value": 0.015,
-          "evidence": "decisions that change structure: FleetManageWeb 0/28 · finance-os-a0192b7b 1/30 · RendaPerene 0/9",
+          "evidence": "decisions that change structure: FleetManageWeb 0/29 · finance-os-a0192b7b 1/30 · RendaPerene 0/9",
           "reads": "target-architecture.json → decisions[].chosen containing move/split/merge/extract/introduce/layer/break the cycle/delete/rebuild",
           "measured": "automated"
         },
@@ -510,7 +516,7 @@
           "reads": "adr/ADR-*.md في التقرير، مقابل target-architecture.json → decisions[]",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "MADR files for decisions: FleetManageWeb 0/28 · finance-os-a0192b7b 0/30 · RendaPerene 0/9",
+          "evidence": "MADR files for decisions: FleetManageWeb 0/29 · finance-os-a0192b7b 0/30 · RendaPerene 0/9",
           "measured": "automated"
         }
       ]
@@ -555,7 +561,7 @@
           "definition": "بطاقات effort معروف ÷ كل البطاقات في العيّنة",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "cards with a known effort: 0/225",
+          "evidence": "cards with a known effort: 0/349",
           "reads": "plan.json → tasks[].effort not \"unknown\"",
           "measured": "automated"
         },
@@ -565,7 +571,7 @@
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
           "value": 0.0,
-          "evidence": "ready remediate cards: 0/225",
+          "evidence": "ready remediate cards: 0/349",
           "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
           "measured": "automated"
         },
@@ -575,7 +581,7 @@
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "cards with a runnable acceptance command: 0/225",
+          "evidence": "cards with a runnable acceptance command: 0/349",
           "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
           "measured": "automated"
         },
@@ -595,7 +601,7 @@
           "definition": "بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with options, do-nothing and rollback: 225/225",
+          "evidence": "cards with options, do-nothing and rollback: 349/349",
           "reads": "plan.json → tasks[].options (≥ 2, one \"Do nothing\") and rollback",
           "measured": "automated"
         },
@@ -635,7 +641,7 @@
           "definition": "بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "mechanical cards whose codemod ran dry without error: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
+          "evidence": "mechanical cards whose codemod ran dry without error: FleetManageWeb 0/1 · finance-os-a0192b7b 0/0 · RendaPerene 0/3",
           "reads": "plan.json → tasks[].codemod {tool, command, dry_run {exit, files_changed}}",
           "measured": "automated"
         },
@@ -1040,11 +1046,13 @@
             "افتح eaos/facts/frameworks/__init__.py: السطر 7 يستورد كل مستخرجات الأطر عدا supabase_access. اقرأ كيف تُستدعى هذه الوحدات (ابحث عن أسمائها في eaos/facts/entrypoints.py).",
             "صِل supabase_access بالمسار نفسه الذي تُكتب منه حقائق الملفات المصدرية. لا تكتب حلقة قراءة ملفات ثانية: إن كانت واجهته مختلفة (يرجع data_access لا entry_point)، فاستدعه من الحلقة الموجودة.",
             "وسّع TABLE_CALL ليقبل السلسلة المقسومة على أسطر: `.from(\"x\")` في سطر و`.select()` في السطر التالي. في finance-os 19 نداء في سطر واحد، وأغلب السلاسل الأخرى مقسومة.",
-            "اكتب اختبارًا يشغّل eaos facts على مجلد مؤقت فيه ملف TypeScript بنداءين (سطر واحد وسطران)، ويقرأ الحقائق من الملف المكتوب، لا من استدعاء الدالة."
+            "اكتب اختبارًا يشغّل eaos facts على مجلد مؤقت فيه ملف TypeScript بنداءين (سطر واحد وسطران)، ويقرأ الحقائق من الملف المكتوب، لا من استدعاء الدالة.",
+            "مراجعة 2026-09-25: القبول الأول (20 حقيقة) كان أقل من الواقع؛ الكاشف كان يجد 24 من 86 نداء في finance-os، لأن الخدمات ترث العميل من BaseService وتناديه this.client. الحل: bound_files يحل أسماء العملاء عبر الاستيرادات، والمستقبِل (receiver) هو الذي يقرر، لا أي ذكر لـSupabase قريب منه."
           ],
           "done_when": [
-            "تقرير finance-os بعد القياس فيه 20 حقيقة data_access على الأقل، لكل منها الجدول والعملية.",
-            "الاختبار الجديد يمر عبر مسار التدقيق نفسه.",
+            "كل نداءات جداول Supabase في العيّنة مكتشفة: 86 في finance-os و18 في FleetManageWeb (truth.supabase_table_calls)، بما فيها السلاسل المقسومة على أسطر، والعميل المحقون (this.client)، والمستورد باسم آخر (supabaseAdmin).",
+            "لا نداء من عميل آخر بالشكل نفسه (myClient.from(...).select()).",
+            "اختبار عبر مسار التدقيق نفسه يمر.",
             "python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر."
           ],
           "pitfalls": [
@@ -1052,7 +1060,7 @@
             "الاختبار القديم tests/test_supabase_access.py يبقى، لكنه لا يثبت الوصل.",
             "لا تعدّل tools/acceptance.py ولا acceptance/ ولا تعريف أي مؤشر لتمر المهمة؛ يملكها المخطِّط. عيب فيها يُكتب في blocked_reason."
           ],
-          "acceptance": "python tools/north_star.py measure --only U3 && python tools/acceptance.py facts data_access finance-os-a0192b7b --min 20",
+          "acceptance": "python tools/north_star.py measure --only U3 && python tools/acceptance.py facts data_access finance-os-a0192b7b --min 86 && python tools/acceptance.py facts data_access FleetManageWeb --min 18",
           "rollback": "revert الالتزام.",
           "status": "done",
           "done": "NS3.T2 done by MiniMax on 2026-09-24: supabase_access detector registered; 24 data_access facts in finance-os meet the >=20 threshold; multi-line chains detected; full test suite passes (1022 tests)"

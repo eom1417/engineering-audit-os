@@ -1,6 +1,6 @@
 # الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي
 
-> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-24 على الالتزام `71ff874`.
+> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-25 على الالتزام `42795c8`.
 
 ## أين نحن: **35.9%** من الوجهة
 
@@ -168,11 +168,11 @@
 | --- | --- | --- | --- | --- |
 | T1 مكوّنات مستهدفة ملموسة | مشاريع العيّنة التي فيها target_components غير فارغة ÷ عدد المشاريع | 100% | 0% | target_components: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
 | T2 قرارات البنية التحتية | مشاريع العيّنة التي تحمل قرارات مسبّبة في الاستضافة والبيانات والهوية والإعدادات وCI والمراقبة ÷ عدد المشاريع | 100% | 0% | infrastructure decisions: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
-| T3 قرارات تغيّر البنية | القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات | 60% | 2% | decisions that change structure: FleetManageWeb 0/28 · finance-os-a0192b7b 1/30 · RendaPerene 0/9 |
+| T3 قرارات تغيّر البنية | القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات | 60% | 2% | decisions that change structure: FleetManageWeb 0/29 · finance-os-a0192b7b 1/30 · RendaPerene 0/9 |
 | T4 قرار لكل مكوّن حالي | (المكوّنات الحالية التي لها قرار صريح بدليله ÷ المكوّنات الحالية) × (عدد القرارات الأربعة التي ينتجها المنتج فعلًا: إعادة استخدام، هيكلة، إعادة بناء، حذف ÷ 4) | 100% | 50% | components with a disposition and reason: FleetManageWeb 47/47 · finance-os-a0192b7b 36/36 · RendaPerene 9/9; dispositions the tool produced: ['restructure', 'reuse'] of 4 |
 | T5 الوظائف نفسها في الصورة المثالية | وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد | 100% | 0% | features placed in a target component: FleetManageWeb 0/31 · finance-os-a0192b7b 0/21 · RendaPerene 0/3 |
 | T6 نموذج C4 حالي ومستهدف | مشاريع العيّنة التي في تقريرها architecture/current/workspace.dsl و architecture/target/workspace.dsl، ويذكر النموذج المستهدف اسم كل مكوّن في target_components ÷ عدد المشاريع | 100% | 0% | current and target C4 models naming every target component: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False |
-| T7 قرارات العمارة بصيغة MADR | ملفات adr/ADR-*.md التي فيها أقسام MADR الثلاثة (Context and Problem Statement، Considered Options، Decision Outcome) ÷ قرارات target-architecture.json | 100% | 0% | MADR files for decisions: FleetManageWeb 0/28 · finance-os-a0192b7b 0/30 · RendaPerene 0/9 |
+| T7 قرارات العمارة بصيغة MADR | ملفات adr/ADR-*.md التي فيها أقسام MADR الثلاثة (Context and Problem Statement، Considered Options، Decision Outcome) ÷ قرارات target-architecture.json | 100% | 0% | MADR files for decisions: FleetManageWeb 0/29 · finance-os-a0192b7b 0/30 · RendaPerene 0/9 |
 
 ### C7 — تقرير الفجوة والتحول الاستراتيجي (44%، الوزن 8)
 
@@ -189,15 +189,15 @@
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| P1 مهام محددة الحجم | بطاقات effort معروف ÷ كل البطاقات في العيّنة | 100% | 0% | cards with a known effort: 0/225 |
-| P2 إصلاحات جاهزة | بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة | 50% | 0% | ready remediate cards: 0/225 |
-| P3 أوامر قبول قابلة للتشغيل | بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات | 80% | 0% | cards with a runnable acceptance command: 0/225 |
+| P1 مهام محددة الحجم | بطاقات effort معروف ÷ كل البطاقات في العيّنة | 100% | 0% | cards with a known effort: 0/349 |
+| P2 إصلاحات جاهزة | بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة | 50% | 0% | ready remediate cards: 0/349 |
+| P3 أوامر قبول قابلة للتشغيل | بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات | 80% | 0% | cards with a runnable acceptance command: 0/349 |
 | P4 معالم بأهداف مقيسة | مشاريع العيّنة التي تجمع خطتها البطاقات في معالم لكل منها هدف وشرط خروج ÷ عدد المشاريع | 100% | 0% | milestones with a goal and exit criterion: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
-| P5 التناسب | بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات | 100% | 100% | cards with options, do-nothing and rollback: 225/225 |
+| P5 التناسب | بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات | 100% | 100% | cards with options, do-nothing and rollback: 349/349 |
 | P6 أقسام الفريق | مشاريع العيّنة التي توزّع خطتها المهام على أقسام (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) مع الاعتماديات بينها ÷ عدد المشاريع | 100% | 0% | every card carries a team section: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False |
 | P7 التقارير الأربعة | من التقارير الأربعة (الوضع الراهن، الصورة المثالية، الفجوة والتحول، خطة التنفيذ)، عدد ما له وثيقة مخصصة ÷ 4. جودة محتواها تقيسها المؤشرات الأخرى. | 100% | 50% | of the four reports present: FleetManageWeb 2/4 · finance-os-a0192b7b 2/4 · RendaPerene 2/4 |
 | P8 جودة التقارير الأربعة | متوسط (التقارير الأربعة التي مرّت فحص Vale بحزمة EAOS وفحص markdownlint بلا أخطاء ÷ 4)، لكل مشروع | 100% | 0% | of the four reports passing Vale and markdownlint: FleetManageWeb 0/4 · finance-os-a0192b7b 0/4 · RendaPerene 0/4 |
-| P9 المهام الآلية معها أداة تحويل | بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات | 80% | 0% | mechanical cards whose codemod ran dry without error: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0 |
+| P9 المهام الآلية معها أداة تحويل | بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات | 80% | 0% | mechanical cards whose codemod ran dry without error: FleetManageWeb 0/1 · finance-os-a0192b7b 0/0 · RendaPerene 0/3 |
 | K1 عدّة التشغيل والتسليم تقبلها أدواتها | متوسط (الملفات التي يولّدها EAOS بصيغ الأدوات الأصلية ويقبلها مدقق الأداة نفسها ÷ الملفات المتوقعة للمشروع)، لكل مشروع. الملفات: سير GitHub Actions (actionlint)، و.pre-commit-config.yaml (pre-commit validate-config)، وrenovate.json (renovate-config-validator)، وقواعد dependency-cruiser، وقواعد Semgrep (semgrep --validate)، وسكربتات k6 (k6 inspect)، وتجارب Toxiproxy وخطة ZAP (مخطط JSON)، وإعداد OpenTelemetry Collector (otelcol validate)، ومواصفات Sloth (sloth validate)، وgoss.yaml (goss render)، وموقع التسليم (zensical build). ملف لم يُدقَّق لغياب أداته يُحسب فاشلًا. | 100% | 0% | handover kit files accepted by their own tool: FleetManageWeb 0/12 · finance-os-a0192b7b 0/12 · RendaPerene 0/11 |
 
 ### C9 — ضمان التنفيذ: يثبت أن التحول حدث (9%، الوزن 7)
@@ -448,11 +448,13 @@ python tools/north_star.py measure --only U2 --min 0.9
 2. صِل supabase_access بالمسار نفسه الذي تُكتب منه حقائق الملفات المصدرية. لا تكتب حلقة قراءة ملفات ثانية: إن كانت واجهته مختلفة (يرجع data_access لا entry_point)، فاستدعه من الحلقة الموجودة.
 3. وسّع TABLE_CALL ليقبل السلسلة المقسومة على أسطر: `.from("x")` في سطر و`.select()` في السطر التالي. في finance-os 19 نداء في سطر واحد، وأغلب السلاسل الأخرى مقسومة.
 4. اكتب اختبارًا يشغّل eaos facts على مجلد مؤقت فيه ملف TypeScript بنداءين (سطر واحد وسطران)، ويقرأ الحقائق من الملف المكتوب، لا من استدعاء الدالة.
+5. مراجعة 2026-09-25: القبول الأول (20 حقيقة) كان أقل من الواقع؛ الكاشف كان يجد 24 من 86 نداء في finance-os، لأن الخدمات ترث العميل من BaseService وتناديه this.client. الحل: bound_files يحل أسماء العملاء عبر الاستيرادات، والمستقبِل (receiver) هو الذي يقرر، لا أي ذكر لـSupabase قريب منه.
 
 **تنتهي حين:**
 
-- [ ] تقرير finance-os بعد القياس فيه 20 حقيقة data_access على الأقل، لكل منها الجدول والعملية.
-- [ ] الاختبار الجديد يمر عبر مسار التدقيق نفسه.
+- [ ] كل نداءات جداول Supabase في العيّنة مكتشفة: 86 في finance-os و18 في FleetManageWeb (truth.supabase_table_calls)، بما فيها السلاسل المقسومة على أسطر، والعميل المحقون (this.client)، والمستورد باسم آخر (supabaseAdmin).
+- [ ] لا نداء من عميل آخر بالشكل نفسه (myClient.from(...).select()).
+- [ ] اختبار عبر مسار التدقيق نفسه يمر.
 - [ ] python -m unittest discover -s tests -q يمر، و python tools/north_star.py --no-regression يمر.
 
 **فخاخ معروفة:**
@@ -464,7 +466,7 @@ python tools/north_star.py measure --only U2 --min 0.9
 **أمر القبول:**
 
 ```bash
-python tools/north_star.py measure --only U3 && python tools/acceptance.py facts data_access finance-os-a0192b7b --min 20
+python tools/north_star.py measure --only U3 && python tools/acceptance.py facts data_access finance-os-a0192b7b --min 86 && python tools/acceptance.py facts data_access FleetManageWeb --min 18
 ```
 
 **التراجع:** revert الالتزام.

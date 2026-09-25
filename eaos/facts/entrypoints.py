@@ -28,6 +28,7 @@ class Context:
 
     def __init__(self, rel, text, language, symbols):
         self.rel, self.text, self.language = rel, text, language
+        self.prepared = {}
         self.symbols = sorted(symbols, key=lambda s: s['start'])
         self._starts = [s['start'] for s in self.symbols]
         self._offsets = [0]
@@ -83,6 +84,14 @@ def run(target, source, symbols=None, **options):
     table = symbol_map(symbols)
     facts, fingerprints, surfaces, frameworks, data_access_by_client = [], [], {}, {}, {}
     covered_languages, uncovered = set(), {}
+    # A detector that needs the whole project before reading one file (which names reach a database
+    # client across imports, say) declares prepare(texts); what it returns per file reaches it as
+    # context.prepared[its module name]. The core never names a detector.
+    prepared = {}
+    for module in MODULES:
+        if hasattr(module, 'prepare'):
+            prepared[module.__name__] = module.prepare({item['path']: source.text(item['path']) or '' for item in source.readable()
+                                                        if applicable(module, item['path'], language_of(item['path']))})
     for item in source.readable():
         rel = item['path']
         text = source.text(rel)
@@ -90,6 +99,7 @@ def run(target, source, symbols=None, **options):
         language = language_of(rel)
         category = source.category(rel)
         context = Context(rel, text, language, table.get(rel, []))
+        context.prepared = {name: per_file.get(rel) for name, per_file in prepared.items()}
         any_match = False
         for module in MODULES:
             if not applicable(module, rel, language): continue

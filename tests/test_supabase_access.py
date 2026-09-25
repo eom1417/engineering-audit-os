@@ -109,3 +109,36 @@ class SupabaseAccessDetectionTests(unittest.TestCase):
                   'myClient.from("x").select("*");\n')
         calls = list(supabase_access.extract_calls(source))
         self.assertEqual(calls, [])
+
+
+class SupabaseBindingThroughTheAuditTests(unittest.TestCase):
+    """A service that inherits its client calls it `this.client`; the audit must still see its table calls."""
+
+    def test_a_service_extending_a_base_that_holds_the_client_is_bound(self):
+        texts = {'src/services/BaseService.ts': 'import type { SupabaseClient } from "@supabase/supabase-js";\n'
+                                                'export class BaseService { constructor(protected client: SupabaseClient) {} }\n',
+                 'src/services/Orders.ts': 'import { BaseService } from "./BaseService";\n'
+                                           'export class Orders extends BaseService {\n'
+                                           '  list() { return this.client\n    .from("orders")\n    .select("*"); }\n}\n',
+                 'src/lib/types.ts': 'export type X = 1;\n',
+                 'src/lib/arrays.ts': 'import { X } from "./types";\nconst y = Array.from(z);\n'}
+        self.assertEqual(supabase_access.bound_files(texts), {'src/services/BaseService.ts': {'client'}, 'src/services/Orders.ts': {'client'}})
+
+    def test_the_audit_writes_data_access_facts_for_an_injected_client(self):
+        import json, tempfile
+        from pathlib import Path
+        from eaos.facts.run import collect
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, out = Path(tmp) / 'repo', Path(tmp) / 'out'
+            (repo / 'src/services').mkdir(parents=True)
+            (repo / 'src/services/BaseService.ts').write_text(
+                'import type { SupabaseClient } from "@supabase/supabase-js";\n'
+                'export class BaseService { constructor(protected client: SupabaseClient) {} }\n')
+            (repo / 'src/services/Orders.ts').write_text(
+                'import { BaseService } from "./BaseService";\nexport class Orders extends BaseService {\n'
+                '  list() { return this.client\n    .from("orders")\n    .select("*"); }\n'
+                '  add(o) { return this.client.from("orders").insert(o); }\n}\n')
+            collect(repo, out, ['syntax', 'entrypoints'])
+            facts = [f for f in json.loads((out / 'facts/entrypoints.json').read_text())['facts'] if f['kind'] == 'data_access']
+            self.assertEqual(sorted((f['value']['target'], f['value']['operation'], f['location']['start_line']) for f in facts),
+                             [('orders', 'insert', 6), ('orders', 'select', 4)])
