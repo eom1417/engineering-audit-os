@@ -66,7 +66,7 @@ flowchart TB
         direction LR
         S05["<b>S05 · تثبيت السلوك الحالي</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 50%"]:::current
         S06["<b>S06 · الصورة المثالية</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 100%"]:::done
-        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 78%"]:::current
+        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 100%"]:::done
         S05 -->|"✔ أ (ساكن): E4 = 1 · ب (معزول): E5 ≥ 0.8 وخط أساس k6"| S06
         S06 -->|"✔ T1–T7 عند أهدافها، وموافقة بشرية مسجلة"| S07
     end
@@ -194,13 +194,13 @@ eaos improve audit --out campaign --checks checks.json \
 <!-- north-star:progress:start -->
 <!-- مولَّد من docs/north-star.json بالأمر python tools/north_star.py؛ لا تحرّره يدويًا -->
 
-### التقدم: **60.0 من 100 نقطة**
+### التقدم: **62.0 من 100 نقطة**
 
-`███████████████░░░░░░░░░░` 60.0%
+`████████████████░░░░░░░░░` 62.0%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 14 من 25 | 15 · NS14 جودة التقرير تُفحص آليًا | 40.0 | 35 | 2026-09-26 · `f48d997+` |
+| 15 من 25 | 16 · NS25 عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي | 38.0 | 35 | 2026-09-26 · `acdadb9+` |
 
 `+`: قيس على تغييرات فوق هذا الالتزام، حُفظت في الالتزام التالي.
 
@@ -256,8 +256,8 @@ flowchart TB
     subgraph R5_1["R5 · الخطة والتقارير وعدّة التسليم"]
         direction LR
         NS8["<b>14 · NS8</b><br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports<br/>⚖ 7 · ▰ 100%"]:::done
-        NS14["<b>15 · NS14</b><br/>جودة التقرير تُفحص آليًا<br/>Report quality checked automatically<br/>⚖ 2 · ▰ 0%"]:::current
-        NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 4 · ▰ 3%"]:::next
+        NS14["<b>15 · NS14</b><br/>جودة التقرير تُفحص آليًا<br/>Report quality checked automatically<br/>⚖ 2 · ▰ 100%"]:::done
+        NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 4 · ▰ 3%"]:::current
         NS8 -->|"✔ P1=1 · P4=1 · P3≥0.8 · …"| NS14
         NS14 -->|"✔ P8=1 · +3 اختبار قبول"| NS25
     end

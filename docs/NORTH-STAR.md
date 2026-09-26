@@ -4,13 +4,13 @@
 
 ## أين نحن
 
-### التقدم: **60.0 من 100 نقطة**
+### التقدم: **62.0 من 100 نقطة**
 
-`███████████████░░░░░░░░░░` 60.0%
+`████████████████░░░░░░░░░` 62.0%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 14 من 25 | 15 · NS14 جودة التقرير تُفحص آليًا | 40.0 | 35 | 2026-09-26 · `f48d997+` |
+| 15 من 25 | 16 · NS25 عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي | 38.0 | 35 | 2026-09-26 · `acdadb9+` |
 
 `+`: قيس على تغييرات فوق هذا الالتزام، حُفظت في الالتزام التالي.
 
@@ -68,8 +68,8 @@ flowchart TB
     subgraph R5_1["R5 · الخطة والتقارير وعدّة التسليم"]
         direction LR
         NS8["<b>14 · NS8</b><br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports<br/>⚖ 7 · ▰ 100%"]:::done
-        NS14["<b>15 · NS14</b><br/>جودة التقرير تُفحص آليًا<br/>Report quality checked automatically<br/>⚖ 2 · ▰ 0%"]:::current
-        NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 4 · ▰ 3%"]:::next
+        NS14["<b>15 · NS14</b><br/>جودة التقرير تُفحص آليًا<br/>Report quality checked automatically<br/>⚖ 2 · ▰ 100%"]:::done
+        NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 4 · ▰ 3%"]:::current
         NS8 -->|"✔ P1=1 · P4=1 · P3≥0.8 · …"| NS14
         NS14 -->|"✔ P8=1 · +3 اختبار قبول"| NS25
     end
@@ -135,8 +135,8 @@ flowchart TB
 | 12 | [**NS7** تقرير الصورة المثالية](#step-12) | R4 | 7 | 100% | 7 | 100% | ✅ مكتملة | T1=1 · G1=1 · T2=1 · T4=1 · T5=1 · +2 اختبار قبول |
 | 13 | [**NS13** نموذج العمارة وقراراتها](#step-13) | R4 | 3 | 100% | 3 | 100% | ✅ مكتملة | T6=1 · T7=1 · +2 اختبار قبول |
 | 14 | [**NS8** خطة التنفيذ للفريق والتقارير الأربعة](#step-14) | R5 | 7 | 100% | 7 | 100% | ✅ مكتملة | P1=1 · P4=1 · P3≥0.8 · P6=1 · P7=1 · P9≥0.8 |
-| 15 | [**NS14** جودة التقرير تُفحص آليًا](#step-15) | R5 | 2 | 0% | 0 | 0% | 🟡 قيد العمل | P8=1 · +3 اختبار قبول |
-| 16 | [**NS25** عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي](#step-16) | R5 | 4 | 3% | 0.13 | 26% | ⬜ التالية | K1=1 · +4 اختبار قبول |
+| 15 | [**NS14** جودة التقرير تُفحص آليًا](#step-15) | R5 | 2 | 100% | 2 | 100% | ✅ مكتملة | P8=1 · +3 اختبار قبول |
+| 16 | [**NS25** عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي](#step-16) | R5 | 4 | 3% | 0.13 | 26% | 🟡 قيد العمل | K1=1 · +4 اختبار قبول |
 | 17 | [**NS26** خط الأساس الحي: السلوك والأرقام قبل أي تغيير](#step-17) | R6 | 4 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E5≥0.8 · +2 اختبار قبول |
 | 18 | [**NS9** إثبات التنفيذ](#step-18) | R6 | 8 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E1=1 · +1 اختبار قبول |
 | 19 | [**NS20** التحقق الوظيفي: الوظائف نفسها باقية، والتنبؤ حدث](#step-19) | R6 | 5 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E7=1 · E2≥0.8 |
@@ -146,7 +146,7 @@ flowchart TB
 | 23 | [**NS24** الرصد: كل سطح حرج مرئي](#step-23) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E10≥0.9 · +1 اختبار قبول |
 | 24 | [**NS16** الجاهزية للإنتاج: كل بند بأمر](#step-24) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E11=1 · +1 اختبار قبول |
 | 25 | [**NS10** الإثبات المستقل](#step-25) | R8 | 5 | 18% | 0.9 | 15% | 🔴 تحتاج مدخلًا منك | V4=1 · V3=1 |
-| | **المجموع** | | **100** | | **60.0** | | | |
+| | **المجموع** | | **100** | | **62.0** | | | |
 
 ## الخطوات بالتفصيل
 
@@ -721,11 +721,11 @@ flowchart TB
 
 <a id="step-15"></a>
 
-### الخطوة 15 · NS14 — جودة التقرير تُفحص آليًا 🟡 قيد العمل
+### الخطوة 15 · NS14 — جودة التقرير تُفحص آليًا ✅ مكتملة
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 2 | 0% | 0 من 2 | 0% | R5 | S07 |
+| 2 | 100% | 2 من 2 | 100% | R5 | S07 |
 
 **الهدف:** P8 = 1.0.
 
@@ -745,22 +745,22 @@ flowchart TB
 
 | المعيار | الشرط | اليوم | الحال |
 | --- | --- | --- | --- |
-| جودة التقارير الأربعة | `P8 = 1` | 0.0 | ❌ |
-| اختبار قبول | `test ns14_t1_style` | — | ⬜ |
-| اختبار قبول | `contract report-quality` | — | ⬜ |
-| اختبار قبول | `file EXECUTIVE.pdf` | — | ⬜ |
+| جودة التقارير الأربعة | `P8 = 1` | 1.0 | ✅ |
+| اختبار قبول | `test ns14_t1_style` | — | ✅ |
+| اختبار قبول | `contract report-quality` | — | ✅ |
+| اختبار قبول | `file EXECUTIVE.pdf` | — | ✅ |
 
 **المهام:**
 
 | المهمة | الحجم | الحالة | الإنجاز | أمر القبول |
 | --- | --- | --- | --- | --- |
-| [NS14.T1](#ns14t1) حزمة أسلوب EAOS لـVale وإعداد markdownlint | S | ⬜ | 0% | `python tools/acceptance.py test ns14_t1_style` |
-| [NS14.T2](#ns14t2) مرحلة فحص التقارير في الـpipeline | M | ⬜ | 0% | `python tools/north_star.py measure --only P8 --min 1.0 && python tools/acceptance.py contract report-quality` |
-| [NS14.T3](#ns14t3) ملخص تنفيذي PDF بصفحة واحدة | S | ⬜ | 0% | `python tools/north_star.py measure --only P8 && python tools/acceptance.py file EXECUTIVE.pdf` |
+| [NS14.T1](#ns14t1) حزمة أسلوب EAOS لـVale وإعداد markdownlint | S | ✅ | 100% | `python tools/acceptance.py test ns14_t1_style` |
+| [NS14.T2](#ns14t2) مرحلة فحص التقارير في الـpipeline | M | ✅ | 100% | `python tools/north_star.py measure --only P8 --min 1.0 && python tools/acceptance.py contract report-quality` |
+| [NS14.T3](#ns14t3) ملخص تنفيذي PDF بصفحة واحدة | S | ✅ | 100% | `python tools/north_star.py measure --only P8 && python tools/acceptance.py file EXECUTIVE.pdf` |
 
 <a id="step-16"></a>
 
-### الخطوة 16 · NS25 — عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي ⬜ التالية
+### الخطوة 16 · NS25 — عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي 🟡 قيد العمل
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
@@ -1147,7 +1147,7 @@ flowchart TB
         direction LR
         S05["<b>S05 · تثبيت السلوك الحالي</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 50%"]:::current
         S06["<b>S06 · الصورة المثالية</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 100%"]:::done
-        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 78%"]:::current
+        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 100%"]:::done
         S05 -->|"✔ أ (ساكن): E4 = 1 · ب (معزول): E5 ≥ 0.8 وخط أساس k6"| S06
         S06 -->|"✔ T1–T7 عند أهدافها، وموافقة بشرية مسجلة"| S07
     end
@@ -1322,7 +1322,7 @@ flowchart TB
 | P5 التناسب | بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات | 100% | 100% | cards with options, do-nothing and rollback: 586/586 |
 | P6 أقسام الفريق | مشاريع العيّنة التي توزّع خطتها المهام على أقسام (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) مع الاعتماديات بينها ÷ عدد المشاريع | 100% | 100% | every card carries a team section: FleetManageWeb True · finance-os-a0192b7b True · RendaPerene True |
 | P7 التقارير الأربعة | من التقارير الأربعة (الوضع الراهن، الصورة المثالية، الفجوة والتحول، خطة التنفيذ)، عدد ما له وثيقة مخصصة ÷ 4. جودة محتواها تقيسها المؤشرات الأخرى. | 100% | 100% | of the four reports present: FleetManageWeb 4/4 · finance-os-a0192b7b 4/4 · RendaPerene 4/4 |
-| P8 جودة التقارير الأربعة | متوسط (التقارير الأربعة التي مرّت فحص Vale بحزمة EAOS وفحص markdownlint بلا أخطاء ÷ 4)، لكل مشروع | 100% | 0% | of the four reports passing Vale and markdownlint: FleetManageWeb 0/4 · finance-os-a0192b7b 0/4 · RendaPerene 0/4 |
+| P8 جودة التقارير الأربعة | متوسط (التقارير الأربعة التي مرّت فحص Vale بحزمة EAOS وفحص markdownlint بلا أخطاء ÷ 4)، لكل مشروع | 100% | 100% | of the four reports passing Vale and markdownlint: FleetManageWeb 4/4 · finance-os-a0192b7b 4/4 · RendaPerene 4/4 |
 | P9 المهام الآلية معها أداة تحويل | بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات | 80% | 84% | mechanical cards whose codemod ran dry without error: FleetManageWeb 125/138 · finance-os-a0192b7b 36/55 · RendaPerene 12/12 |
 | K1 عدّة التشغيل والتسليم تقبلها أدواتها | متوسط (الملفات التي يولّدها EAOS بصيغ الأدوات الأصلية ويقبلها مدقق الأداة نفسها ÷ الملفات المتوقعة للمشروع)، لكل مشروع. الملفات: سير GitHub Actions (actionlint)، و.pre-commit-config.yaml (pre-commit validate-config)، وrenovate.json (renovate-config-validator)، وقواعد dependency-cruiser، وقواعد Semgrep (semgrep --validate)، وسكربتات k6 (k6 inspect)، وتجارب Toxiproxy وخطة ZAP (مخطط JSON)، وإعداد OpenTelemetry Collector (otelcol validate)، ومواصفات Sloth (sloth validate)، وgoss.yaml (goss render)، وموقع التسليم (zensical build). ملف لم يُدقَّق لغياب أداته يُحسب فاشلًا. | 100% | 26% | handover kit files accepted by their own tool: FleetManageWeb 3/12 · finance-os-a0192b7b 3/12 · RendaPerene 3/11 |
 
@@ -3390,11 +3390,11 @@ python tools/north_star.py measure --only P9 --min 0.8
 
 **التراجع:** revert الالتزام.
 
-### الخطوة 15 · NS14 — جودة التقرير تُفحص آليًا 🟡 قيد العمل
+### الخطوة 15 · NS14 — جودة التقرير تُفحص آليًا ✅ مكتملة
 
 <a id="ns14t1"></a>
 
-#### NS14.T1 — حزمة أسلوب EAOS لـVale وإعداد markdownlint ⬜
+#### NS14.T1 — حزمة أسلوب EAOS لـVale وإعداد markdownlint ✅
 
 **لماذا:** جودة التقرير تُفحص آليًا مثل الكود: الكلام المبهم يُرفض قبل أن يصل إلى المالك.
 
@@ -3409,6 +3409,7 @@ python tools/north_star.py measure --only P9 --min 0.8
 1. المسارات والأوامر مكتوبة بالضبط في رأس acceptance/test_ns14_t1_style.py، ومعها مثالان تحت acceptance/fixtures/style/.
 2. قواعد EAOS بمستوى error: كلمات مبهمة بالعربية (ربما، إلخ، بشكل عام، تحسين عام) وبالإنجليزية (maybe، etc.، generally، various).
 3. إعداد markdownlint: عناوين متدرجة، وجداول سليمة، ولا أسطر طويلة في الجداول تُكسر.
+4. كما نُفّذ: eaos/rules/vale/.vale.ini وحزمة EAOS (VagueArabic وVagueEnglish بمستوى error). العربية بـnonword لأن \b في تعابير Go لا يعرف الحروف العربية. eaos/rules/.markdownlint-cli2.jsonc: عنوان واحد، وعناوين متدرجة، وجداول بعدد أعمدة ثابت، ولا حد لطول السطر حتى لا يُكسر صف جدول. الملفان مضمّنان في حزمة Python.
 
 **تنتهي حين:**
 
@@ -3430,7 +3431,7 @@ python tools/acceptance.py test ns14_t1_style
 
 <a id="ns14t2"></a>
 
-#### NS14.T2 — مرحلة فحص التقارير في الـpipeline ⬜
+#### NS14.T2 — مرحلة فحص التقارير في الـpipeline ✅
 
 **لماذا:** الفحص يعمل داخل التدقيق نفسه على التقارير الأربعة، وتُصلح المولّدات حتى تمر.
 
@@ -3444,6 +3445,7 @@ python tools/acceptance.py test ns14_t1_style
 
 1. مرحلة اختيارية بعد compose: تشغّل vale و markdownlint-cli2 إن كانا مثبتين على التقارير الأربعة، وتكتب report-quality.json → reports[] {name, vale_errors, markdownlint_errors}. غياب الأداة يُعلن unavailable لا نجاحًا.
 2. أصلح مولّدات التقارير حتى تمر الفحصين، لا القواعد.
+3. كما نُفّذ: eaos/report_quality.py ومرحلة quality اختيارية بعد reports تكتب report-quality.json؛ الأداة الغائبة null لا 0. الخطأ الوحيد على العيّنة كان في المولّد لا في القاعدة: معرّفات المشروع مثل _exclusive_file_lock تُقرأ كتنسيق مائل. الإصلاح في four_reports.Page: كل نص من المشروع يُهرَّب خارج مقاطع الكود، والسطر الملفوف لا يبدأ بعلامة عنوان أو قائمة. P8 = 1.0 (12/12 تقريرًا، بالعربية والإنجليزية).
 
 **تنتهي حين:**
 
@@ -3467,7 +3469,7 @@ python tools/north_star.py measure --only P8 --min 1.0 && python tools/acceptanc
 
 <a id="ns14t3"></a>
 
-#### NS14.T3 — ملخص تنفيذي PDF بصفحة واحدة ⬜
+#### NS14.T3 — ملخص تنفيذي PDF بصفحة واحدة ✅
 
 **لماذا:** صاحب القرار يقرأ صفحة واحدة. PDF من البيانات نفسها لا من نص يُكتب مرتين.
 
@@ -3482,6 +3484,7 @@ python tools/north_star.py measure --only P8 --min 1.0 && python tools/acceptanc
 1. قالب Typst واحد يقرأ JSON التقرير (json() في Typst) ويكتب EXECUTIVE.pdf: القرار المطلوب، وأهم 3 أرقام بدليلها، وأكبر 3 مخاطر، والمعالم.
 2. مرحلة اختيارية بعد compose، و absent_when: typst غير مثبت. أضف typst إلى registry.yaml بدور emit.
 3. لا يحرّك مؤشرًا؛ الاختبار يثبت أن الملف يُنتج وأن كل رقم فيه موجود في JSON المصدر، وأمر القبول يثبت عدم الهبوط.
+4. كما نُفّذ: eaos/compose/pdf.py وقالب eaos/templates/typst/executive.typ (داخل الحزمة بدل templates/ في الجذر) ومرحلة pdf اختيارية. Typst 0.15.1 في upstreams/toolchain.json بصمته متحققة (المثبّت صار يقرأ tar.xz)؛ registry.yaml قائمة قديمة لم يعد المثبّت يقرؤها. خط Noto Naskh Arabic من fonts-noto-core في setup.sh؛ غيابه يُعلن سببًا. الصفحة: القرار، و3 أرقام بمصادرها من reports.json، وأكبر 3 مخاطر، والمعالم؛ صفحة واحدة على المشاريع الثلاثة، والقالب لا يحمل رقمًا ولا كلمة من عنده (مختبر).
 
 **تنتهي حين:**
 
@@ -3500,7 +3503,7 @@ python tools/north_star.py measure --only P8 && python tools/acceptance.py file 
 
 **التراجع:** revert الالتزام.
 
-### الخطوة 16 · NS25 — عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي ⬜ التالية
+### الخطوة 16 · NS25 — عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي 🟡 قيد العمل
 
 <a id="ns25t1"></a>
 

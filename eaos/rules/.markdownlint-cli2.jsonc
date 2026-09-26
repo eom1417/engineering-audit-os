@@ -1,0 +1,18 @@
+// The structure every EAOS report follows. Checked by markdownlint-cli2 itself (NS14).
+{
+  "config": {
+    "default": true,
+    // Arabic prose and evidence tables run long; a wrapped table row is a broken table.
+    "MD013": false,
+    // One title per report, and headings that step down one level at a time.
+    "MD001": true,
+    "MD025": true,
+    // Tables: every row has the header's column count and consistent pipes.
+    "MD055": { "style": "leading_and_trailing" },
+    "MD056": true,
+    // Reports link their appendices by relative path; bare URLs are fine inside evidence.
+    "MD034": false,
+    // Duplicate section names are allowed across sibling sections (for example "Evidence" under each milestone).
+    "MD024": { "siblings_only": true }
+  }
+}

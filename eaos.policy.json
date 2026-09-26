@@ -106,6 +106,7 @@
       "eaos/recheck.py",
       "eaos/decided.py",
       "eaos/measurements.py",
+      "eaos/report_quality.py",
       "eaos/behavior_lock.py",
       "eaos/reference_architecture.py",
       "eaos/c4.py",

@@ -134,6 +134,9 @@ def _link(source, name):
     target.symlink_to(source)
 
 
+TAR_MODES = {'tar.gz': 'r:gz', 'tar.xz': 'r:xz'}
+
+
 def _release(tool):
     spec = tool['install']
     with urllib.request.urlopen(spec['url'], timeout=300) as response: blob = response.read()
@@ -152,7 +155,7 @@ def _release(tool):
                         raise RuntimeError(f"{tool['name']}: unsafe path {name!r} in the archive; nothing installed")
                 archive.extractall(folder)
         else:
-            with tarfile.open(fileobj=io.BytesIO(blob), mode='r:gz') as archive:
+            with tarfile.open(fileobj=io.BytesIO(blob), mode=TAR_MODES[spec['archive']]) as archive:
                 archive.extractall(folder, filter='data')
         target = folder / spec['entry']
         if not target.is_file(): raise RuntimeError(f"{tool['name']}: {spec['entry']} is not in the archive")
@@ -163,7 +166,7 @@ def _release(tool):
         target = folder / spec['member']
         target.write_bytes(blob)
     else:
-        with tarfile.open(fileobj=io.BytesIO(blob), mode='r:gz') as archive:
+        with tarfile.open(fileobj=io.BytesIO(blob), mode=TAR_MODES[spec['archive']]) as archive:
             member = next((m for m in archive.getmembers() if m.name.rsplit('/', 1)[-1] == spec['member'] and m.isfile()), None)
             if member is None: raise RuntimeError(f"{tool['name']}: {spec['member']} is not in the archive")
             target = folder / spec['member']

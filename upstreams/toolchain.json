@@ -442,6 +442,27 @@
         "package": "jscodeshift"
       },
       "install_note": "Runs the codemods of mechanical cards on an isolated copy (their dry run) and on the execution copy; it parses code, it never runs it."
+    },
+    {
+      "name": "typst",
+      "role": "emit",
+      "stages": [
+        "S07"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/typst/typst",
+      "version": "0.15.1",
+      "binary": "typst",
+      "version_args": [
+        "--version"
+      ],
+      "install": {
+        "method": "release",
+        "url": "https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz",
+        "sha256": "a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c",
+        "archive": "tar.xz",
+        "member": "typst"
+      }
     }
   ]
 }

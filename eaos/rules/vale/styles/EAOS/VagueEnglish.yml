@@ -1,0 +1,14 @@
+# A claim needs a number, a file or a fact id; these words stand in for one.
+extends: existence
+message: "'%s' is vague: state the measured fact, the file, or the evidence id instead."
+level: error
+ignorecase: true
+tokens:
+  - maybe
+  - perhaps
+  - etc
+  - and so on
+  - generally
+  - various
+  - somewhat
+  - general improvements?

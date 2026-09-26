@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-26",
-  "measured_at_commit": "f48d997+",
+  "measured_at_commit": "acdadb9+",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -665,8 +665,8 @@
           "definition": "متوسط (التقارير الأربعة التي مرّت فحص Vale بحزمة EAOS وفحص markdownlint بلا أخطاء ÷ 4)، لكل مشروع",
           "reads": "report-quality.json → reports[] لكل تقرير {name, vale_errors, markdownlint_errors}",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "of the four reports passing Vale and markdownlint: FleetManageWeb 0/4 · finance-os-a0192b7b 0/4 · RendaPerene 0/4",
+          "value": 1.0,
+          "evidence": "of the four reports passing Vale and markdownlint: FleetManageWeb 4/4 · finance-os-a0192b7b 4/4 · RendaPerene 4/4",
           "measured": "automated"
         },
         {
@@ -3447,7 +3447,8 @@
           "steps": [
             "المسارات والأوامر مكتوبة بالضبط في رأس acceptance/test_ns14_t1_style.py، ومعها مثالان تحت acceptance/fixtures/style/.",
             "قواعد EAOS بمستوى error: كلمات مبهمة بالعربية (ربما، إلخ، بشكل عام، تحسين عام) وبالإنجليزية (maybe، etc.، generally، various).",
-            "إعداد markdownlint: عناوين متدرجة، وجداول سليمة، ولا أسطر طويلة في الجداول تُكسر."
+            "إعداد markdownlint: عناوين متدرجة، وجداول سليمة، ولا أسطر طويلة في الجداول تُكسر.",
+            "كما نُفّذ: eaos/rules/vale/.vale.ini وحزمة EAOS (VagueArabic وVagueEnglish بمستوى error). العربية بـnonword لأن \\b في تعابير Go لا يعرف الحروف العربية. eaos/rules/.markdownlint-cli2.jsonc: عنوان واحد، وعناوين متدرجة، وجداول بعدد أعمدة ثابت، ولا حد لطول السطر حتى لا يُكسر صف جدول. الملفان مضمّنان في حزمة Python."
           ],
           "done_when": [
             "python tools/acceptance.py test ns14_t1_style يمر.",
@@ -3459,7 +3460,7 @@
           ],
           "acceptance": "python tools/acceptance.py test ns14_t1_style",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS14.T2",
@@ -3485,7 +3486,8 @@
           ],
           "steps": [
             "مرحلة اختيارية بعد compose: تشغّل vale و markdownlint-cli2 إن كانا مثبتين على التقارير الأربعة، وتكتب report-quality.json → reports[] {name, vale_errors, markdownlint_errors}. غياب الأداة يُعلن unavailable لا نجاحًا.",
-            "أصلح مولّدات التقارير حتى تمر الفحصين، لا القواعد."
+            "أصلح مولّدات التقارير حتى تمر الفحصين، لا القواعد.",
+            "كما نُفّذ: eaos/report_quality.py ومرحلة quality اختيارية بعد reports تكتب report-quality.json؛ الأداة الغائبة null لا 0. الخطأ الوحيد على العيّنة كان في المولّد لا في القاعدة: معرّفات المشروع مثل _exclusive_file_lock تُقرأ كتنسيق مائل. الإصلاح في four_reports.Page: كل نص من المشروع يُهرَّب خارج مقاطع الكود، والسطر الملفوف لا يبدأ بعلامة عنوان أو قائمة. P8 = 1.0 (12/12 تقريرًا، بالعربية والإنجليزية)."
           ],
           "done_when": [
             "P8 = 1.0.",
@@ -3499,7 +3501,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only P8 --min 1.0 && python tools/acceptance.py contract report-quality",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS14.T3",
@@ -3523,7 +3525,8 @@
           "steps": [
             "قالب Typst واحد يقرأ JSON التقرير (json() في Typst) ويكتب EXECUTIVE.pdf: القرار المطلوب، وأهم 3 أرقام بدليلها، وأكبر 3 مخاطر، والمعالم.",
             "مرحلة اختيارية بعد compose، و absent_when: typst غير مثبت. أضف typst إلى registry.yaml بدور emit.",
-            "لا يحرّك مؤشرًا؛ الاختبار يثبت أن الملف يُنتج وأن كل رقم فيه موجود في JSON المصدر، وأمر القبول يثبت عدم الهبوط."
+            "لا يحرّك مؤشرًا؛ الاختبار يثبت أن الملف يُنتج وأن كل رقم فيه موجود في JSON المصدر، وأمر القبول يثبت عدم الهبوط.",
+            "كما نُفّذ: eaos/compose/pdf.py وقالب eaos/templates/typst/executive.typ (داخل الحزمة بدل templates/ في الجذر) ومرحلة pdf اختيارية. Typst 0.15.1 في upstreams/toolchain.json بصمته متحققة (المثبّت صار يقرأ tar.xz)؛ registry.yaml قائمة قديمة لم يعد المثبّت يقرؤها. خط Noto Naskh Arabic من fonts-noto-core في setup.sh؛ غيابه يُعلن سببًا. الصفحة: القرار، و3 أرقام بمصادرها من reports.json، وأكبر 3 مخاطر، والمعالم؛ صفحة واحدة على المشاريع الثلاثة، والقالب لا يحمل رقمًا ولا كلمة من عنده (مختبر)."
           ],
           "done_when": [
             "EXECUTIVE.pdf في تقارير المشاريع الثلاثة.",
@@ -3534,7 +3537,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only P8 && python tools/acceptance.py file EXECUTIVE.pdf",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "stages": [

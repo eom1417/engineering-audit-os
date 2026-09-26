@@ -54,6 +54,20 @@ class ToolchainTests(Workspace):
         self.assertEqual(toolchain.install(echo=lambda line: None), ['fake'])
         self.assertFalse((self.home / 'bin/fake').exists())
 
+    def test_a_tar_xz_release_is_installed_like_a_tar_gz(self):
+        script = b'#!/bin/sh\necho "fake 1.2.3"\n'
+        buffer = io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode='w:xz') as archive:
+            info = tarfile.TarInfo('dist/fake'); info.size = len(script); info.mode = 0o755
+            archive.addfile(info, io.BytesIO(script))
+        archive_path = Path(self.tmp) / 'fake.tar.xz'
+        archive_path.write_bytes(buffer.getvalue())
+        spec = tool('fake', '1.2.3', archive_path.as_uri(), hashlib.sha256(buffer.getvalue()).hexdigest())
+        spec['install']['archive'] = 'tar.xz'
+        self.write(spec)
+        self.assertEqual(toolchain.install(echo=lambda line: None), [])
+        self.assertEqual(toolchain.doctor()['tools'][0]['found'], '1.2.3')
+
     def test_a_tool_at_another_version_is_not_ok(self):
         self.write(tool('fake', '9.9.9', self.archive.as_uri(), self.sha))
         toolchain._release(tool('fake', '9.9.9', self.archive.as_uri(), self.sha))

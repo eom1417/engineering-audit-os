@@ -66,7 +66,7 @@ flowchart TB
         direction LR
         S05["<b>S05 · Lock current behaviour</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 50%"]:::current
         S06["<b>S06 · Target architecture</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 100%"]:::done
-        S07["<b>S07 · Gap and transformation plan</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 78%"]:::current
+        S07["<b>S07 · Gap and transformation plan</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 100%"]:::done
         S05 -->|"✔ A (static): E4 = 1 · B (isolated): E5 ≥ 0.8 and a k6 baseline"| S06
         S06 -->|"✔ T1–T7 at target, and a recorded human approval"| S07
     end
@@ -194,13 +194,13 @@ No command modifies the original project, publishes anything or merges anything.
 <!-- north-star:progress:start -->
 <!-- generated from docs/north-star.json by python tools/north_star.py; do not edit by hand -->
 
-### Progress: **60.0 of 100 points**
+### Progress: **62.0 of 100 points**
 
-`███████████████░░░░░░░░░░` 60.0%
+`████████████████░░░░░░░░░` 62.0%
 
 | Steps done | Current step | Points left | Of which wait on the owner | Last measured |
 |---|---|---|---|---|
-| 14 of 25 | 15 · NS14 Report quality checked automatically | 40.0 | 35 | 2026-09-26 · `f48d997+` |
+| 15 of 25 | 16 · NS25 Operations and handover kit | 38.0 | 35 | 2026-09-26 · `acdadb9+` |
 
 `+`: measured on changes over this commit, saved in the next one.
 
@@ -256,8 +256,8 @@ flowchart TB
     subgraph R5_1["R5 · Plan, reports and handover kit"]
         direction LR
         NS8["<b>14 · NS8</b><br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports<br/>⚖ 7 · ▰ 100%"]:::done
-        NS14["<b>15 · NS14</b><br/>جودة التقرير تُفحص آليًا<br/>Report quality checked automatically<br/>⚖ 2 · ▰ 0%"]:::current
-        NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 4 · ▰ 3%"]:::next
+        NS14["<b>15 · NS14</b><br/>جودة التقرير تُفحص آليًا<br/>Report quality checked automatically<br/>⚖ 2 · ▰ 100%"]:::done
+        NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 4 · ▰ 3%"]:::current
         NS8 -->|"✔ P1=1 · P4=1 · P3≥0.8 · …"| NS14
         NS14 -->|"✔ P8=1 · +3 acceptance tests"| NS25
     end

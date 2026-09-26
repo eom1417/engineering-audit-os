@@ -151,6 +151,22 @@ def reports(context):
     return write(context.out, context.language)
 
 
+def quality(context):
+    from ..report_quality import check
+    from ..engines.process import which
+    if not (which('vale') or which('markdownlint-cli2')):
+        raise SkipStage('neither Vale nor markdownlint-cli2 is installed')
+    record = check(context.out)
+    return {'reports': len(record['reports']), 'passing': record['passing']}
+
+
+def pdf(context):
+    from ..compose.pdf import available, write
+    reason = available(context.language)
+    if reason: raise SkipStage(reason)
+    return {'pages': write(context.out, context.language)}
+
+
 def measure(context):
     from ..measurements import run
     return run(context.out, context.language)
@@ -249,7 +265,7 @@ def features(context):
             'critical': sum(1 for f in record['features'] if f['critical'])}
 
 
-RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
+RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
            'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,
            'transform': transform, 'plan': plan, 'execution_guide': execution_guide,
            'compose': compose, 'emit': emit, 'site': site, 'validate': validate}

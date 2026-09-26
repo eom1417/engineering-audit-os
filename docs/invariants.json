@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "f48d997",
+  "extracted_at_commit": "acdadb9",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -108,6 +108,24 @@
       "statement": "Keep the 'showing N of M' line beside its own table, so trimming never loses the real total.",
       "kind": "invariant",
       "enforced_by": "tests/test_compose_budget.py::BudgetTrimmingTests::test_a_large_table_is_trimmed_to_the_budget_with_the_real_total_reported",
+      "note": ""
+    },
+    {
+      "id": "INV-a18185d426",
+      "file": "eaos/compose/pdf.py",
+      "symbol": "<module>",
+      "statement": "The template adds layout only: every word and number on the page is a value of the JSON built here, and every number in that JSON is read from a record, never computed for the page.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_pdf.py::TemplateTests::test_the_template_holds_no_word_or_number_of_its_own",
+      "note": ""
+    },
+    {
+      "id": "INV-9ec6b4f924",
+      "file": "eaos/compose/pdf.py",
+      "symbol": "available",
+      "statement": "None when Typst and a font for the language are installed, else the reason the PDF cannot be made.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_pdf.py::TypesetTests::test_without_typst_the_reason_is_stated",
       "note": ""
     },
     {
@@ -873,6 +891,24 @@
       "statement": "A pattern never invents a fix for a claim class it does not know; it says plainly that the change must be designed by hand, and still requires a runnable acceptance criterion.",
       "kind": "invariant",
       "enforced_by": "tests/test_plan.py::PatternTests::test_an_unknown_class_says_so_instead_of_inventing_a_fix",
+      "note": ""
+    },
+    {
+      "id": "INV-d733c39488",
+      "file": "eaos/report_quality.py",
+      "symbol": "<module>",
+      "statement": "A tool that is not installed, or did not produce a readable result, is recorded as null: never 0, because an unrun check is not a pass.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_report_quality.py::RecordTests::test_a_tool_that_is_not_installed_is_null_never_zero",
+      "note": ""
+    },
+    {
+      "id": "INV-c5174f2cea",
+      "file": "eaos/report_quality.py",
+      "symbol": "vale_errors",
+      "statement": "EAOS.* alerts at error level, or None when Vale is absent or its output cannot be read.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_report_style.py::ValeStyleTests::test_vague_wording_is_an_error_in_arabic_and_english",
       "note": ""
     },
     {
