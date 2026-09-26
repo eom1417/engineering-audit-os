@@ -2596,7 +2596,8 @@
             "كل عنصر يحمل سببه ومقياس نجاحه، لا ذوقًا.",
             "الاختبار يثبت على الأقل: الكتالوج يغطي أنواع العيّنة الثلاثة (React+Vite+Supabase، React+TanStack+Supabase، Python CLI)؛ لكل نوع طبقات مسماة واعتماديات مسموحة بينها؛ وخط أساس للبنية التحتية من 6 بنود على الأقل (إعدادات البيئة، عميل قاعدة بيانات بأنواع، RLS أو ما يعادله، CI، اختبارات، تتبع أخطاء)، لكل بند سبب ومقياس نجاح مكتوب. ومنتقي النوع يختار النوع الصحيح لكل مشروع في /tmp/eaos-corpus.",
             "المعرّفات وشكل الملف ودالة choose(project_dir) مكتوبة بالضبط في رأس acceptance/test_ns7_t1_reference.py.",
-            "لكل نوع ثلاث طبقات على الأقل، مثل: routes/pages، و features (وحدة لكل مجال)، و shared/ui، و data-access، و config. خط الأساس للبنية التحتية يغطي على الأقل: configuration و data و ci و tests و observability و secrets، ولكل بند reason و success_measure."
+            "لكل نوع ثلاث طبقات على الأقل، مثل: routes/pages، و features (وحدة لكل مجال)، و shared/ui، و data-access، و config. خط الأساس للبنية التحتية يغطي على الأقل: configuration و data و ci و tests و observability و secrets، ولكل بند reason و success_measure.",
+            "كما نُفّذ: سبعة أنواع (TanStack+Supabase، و Vite+Supabase، و Vite+REST، و Next.js، و Python desktop، و Python web، و Python CLI). قواعد الكشف بيانات تُقيَّم بالترتيب، ولكل طبقة أنماط مسارات تضع ملفات اليوم فيها (الأخص يفوز: components/ui → ui). RendaPerene «desktop» لأنه Streamlit مغلّف بـPyInstaller (ملف .spec)."
           ],
           "done_when": [
             "python tools/acceptance.py test ns7_t1_reference يمر.",
@@ -2609,7 +2610,7 @@
           ],
           "acceptance": "python tools/acceptance.py test ns7_t1_reference",
           "rollback": "احذف الكتالوج.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS7.T2",

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "61abfb5",
+  "extracted_at_commit": "c6885d3",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -828,6 +828,15 @@
       "statement": "A text search cannot tell a definition from the same words inside a string literal in a test, and acting on that difference is how a true finding gets wrongly withdrawn.",
       "kind": "invariant",
       "enforced_by": "tests/test_probes_and_verify.py::ProbeTests::test_a_mention_inside_a_test_string_cannot_withdraw_a_true_finding",
+      "note": ""
+    },
+    {
+      "id": "INV-a4c7fcff24",
+      "file": "eaos/reference_architecture.py",
+      "symbol": "<module>",
+      "statement": "choose() picks the type from the project's own files (package.json, pyproject.toml, requirements*.txt, and the names of a few files), in catalogue order; it never runs anything.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_reference_architecture.py::ChooserTests::test_each_kind_of_project_gets_its_own_type",
       "note": ""
     },
     {

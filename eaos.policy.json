@@ -100,7 +100,8 @@
       "eaos/intake.py",
       "eaos/dependency_assessment.py",
       "eaos/measurements.py",
-      "eaos/behavior_lock.py"
+      "eaos/behavior_lock.py",
+      "eaos/reference_architecture.py"
     ],
     "tools": [
       "tools/**",

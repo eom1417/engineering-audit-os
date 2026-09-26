@@ -1,0 +1,910 @@
+{
+ "schema_version": 1,
+ "types": [
+  {
+   "id": "react-tanstack-start-supabase",
+   "name": "React + TanStack Start/Router + Supabase",
+   "detect": {
+    "package_json_any": [
+     "@tanstack/react-start",
+     "@tanstack/react-router"
+    ],
+    "package_json_all": [
+     "react",
+     "@supabase/supabase-js"
+    ]
+   },
+   "layers": [
+    {
+     "name": "routes",
+     "responsibility": "File routes: read params, compose a feature, nothing else",
+     "allowed_dependencies": [
+      "features",
+      "ui",
+      "lib"
+     ],
+     "paths": [
+      "src/routes/**",
+      "src/routeTree.gen.ts",
+      "src/router.tsx"
+     ]
+    },
+    {
+     "name": "features",
+     "responsibility": "One module per domain: its components, hooks and use cases",
+     "allowed_dependencies": [
+      "data-access",
+      "ui",
+      "lib",
+      "config"
+     ],
+     "paths": [
+      "src/features/**",
+      "src/hooks/**",
+      "src/components/**",
+      "src/pages/**"
+     ]
+    },
+    {
+     "name": "data-access",
+     "responsibility": "Typed queries and mutations against Supabase; the only code that knows table names",
+     "allowed_dependencies": [
+      "config",
+      "lib"
+     ],
+     "paths": [
+      "src/services/**",
+      "src/integrations/**",
+      "src/data/**",
+      "src/models/**",
+      "src/api/**"
+     ]
+    },
+    {
+     "name": "server",
+     "responsibility": "Server functions and API routes that need a secret or run privileged work",
+     "allowed_dependencies": [
+      "data-access",
+      "config",
+      "lib"
+     ],
+     "paths": [
+      "src/server/**",
+      "src/routes/api/**",
+      "supabase/functions/**",
+      "**/*.server.ts",
+      "**/*.functions.ts"
+     ]
+    },
+    {
+     "name": "ui",
+     "responsibility": "Presentational components with no data access",
+     "allowed_dependencies": [
+      "lib"
+     ],
+     "paths": [
+      "src/components/ui/**"
+     ]
+    },
+    {
+     "name": "lib",
+     "responsibility": "Pure helpers: formatting, dates, money; no I/O",
+     "allowed_dependencies": [],
+     "paths": [
+      "src/lib/**",
+      "src/utils/**",
+      "src/constants/**",
+      "src/types/**"
+     ]
+    },
+    {
+     "name": "config",
+     "responsibility": "Environment and constants read once, typed",
+     "allowed_dependencies": [],
+     "paths": [
+      "src/config/**",
+      "src/env.ts"
+     ]
+    }
+   ],
+   "infrastructure_baseline": [
+    {
+     "area": "configuration",
+     "item": "One typed module reads every environment variable once and fails at start on a missing one",
+     "reason": "Scattered import.meta.env reads fail at runtime, on the screen that first needs the value.",
+     "success_measure": "No file outside the config module reads the environment; a missing variable stops the build or start with its name."
+    },
+    {
+     "area": "data",
+     "item": "A generated, typed Supabase client (supabase gen types) used only by data-access",
+     "reason": "Hand-written table names and shapes drift from the schema silently.",
+     "success_measure": "types.ts regenerates with no diff; no table name outside data-access."
+    },
+    {
+     "area": "ci",
+     "item": "Every push runs lint, type check, tests and the EAOS debt gate",
+     "reason": "Without a gate each change can reintroduce what the audit removed.",
+     "success_measure": "The default branch cannot receive a change whose checks fail."
+    },
+    {
+     "area": "tests",
+     "item": "Behaviour-lock specs for every feature plus unit tests for domain logic",
+     "reason": "The lock catches what users would notice; unit tests catch the rule that broke it.",
+     "success_measure": "E4 = 1 and every feature spec passes on the default branch."
+    },
+    {
+     "area": "observability",
+     "item": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker)",
+     "reason": "A vibe-coded app fails silently in the user's browser; nobody learns of it.",
+     "success_measure": "Every uncaught error reaches the tracker within a minute, tagged with the release."
+    },
+    {
+     "area": "secrets",
+     "item": "Only publishable keys reach the browser; every secret lives in the host's secret store",
+     "reason": "Anything bundled into the frontend is public.",
+     "success_measure": "No secret-class credential in the repository or the bundle (EAOS H1 finds none)."
+    },
+    {
+     "area": "dependencies",
+     "item": "Automated, grouped dependency updates with the vulnerability scan in CI",
+     "reason": "A locked vulnerable version stays until someone looks.",
+     "success_measure": "No locked version with a fixed high or critical advisory older than 14 days."
+    },
+    {
+     "area": "identity",
+     "item": "Supabase Auth with row-level security on every table the browser reaches",
+     "reason": "The publishable key is public; RLS is the only thing between it and every row.",
+     "success_measure": "Every table has RLS on and a policy per operation that binds the row to its owner."
+    },
+    {
+     "area": "migrations",
+     "item": "Schema changes only as Supabase CLI migrations, applied by CI",
+     "reason": "A table edited in the dashboard is a change nobody can review or repeat.",
+     "success_measure": "The database equals the migrations folder (supabase db diff is empty)."
+    }
+   ]
+  },
+  {
+   "id": "react-vite-supabase",
+   "name": "React + Vite SPA + Supabase",
+   "detect": {
+    "package_json_all": [
+     "react",
+     "vite",
+     "@supabase/supabase-js"
+    ],
+    "package_json_none": [
+     "@tanstack/react-start",
+     "next"
+    ]
+   },
+   "layers": [
+    {
+     "name": "pages",
+     "responsibility": "Route components: compose features",
+     "allowed_dependencies": [
+      "features",
+      "ui",
+      "lib"
+     ],
+     "paths": [
+      "src/pages/**",
+      "src/App.tsx",
+      "src/main.tsx"
+     ]
+    },
+    {
+     "name": "features",
+     "responsibility": "One module per domain: components, hooks, use cases",
+     "allowed_dependencies": [
+      "data-access",
+      "ui",
+      "lib",
+      "config"
+     ],
+     "paths": [
+      "src/features/**",
+      "src/hooks/**",
+      "src/components/**"
+     ]
+    },
+    {
+     "name": "data-access",
+     "responsibility": "Typed Supabase queries; the only code that knows tables",
+     "allowed_dependencies": [
+      "config",
+      "lib"
+     ],
+     "paths": [
+      "src/services/**",
+      "src/integrations/**",
+      "src/api/**",
+      "src/data/**"
+     ]
+    },
+    {
+     "name": "ui",
+     "responsibility": "Presentational components",
+     "allowed_dependencies": [
+      "lib"
+     ],
+     "paths": [
+      "src/components/ui/**"
+     ]
+    },
+    {
+     "name": "lib",
+     "responsibility": "Pure helpers",
+     "allowed_dependencies": [],
+     "paths": [
+      "src/lib/**",
+      "src/utils/**",
+      "src/types/**"
+     ]
+    },
+    {
+     "name": "config",
+     "responsibility": "Environment read once",
+     "allowed_dependencies": [],
+     "paths": [
+      "src/config/**"
+     ]
+    }
+   ],
+   "infrastructure_baseline": [
+    {
+     "area": "configuration",
+     "item": "One typed module reads every environment variable once and fails at start on a missing one",
+     "reason": "Scattered import.meta.env reads fail at runtime, on the screen that first needs the value.",
+     "success_measure": "No file outside the config module reads the environment; a missing variable stops the build or start with its name."
+    },
+    {
+     "area": "data",
+     "item": "A generated, typed Supabase client used only by data-access",
+     "reason": "Hand-written shapes drift from the schema.",
+     "success_measure": "Types regenerate with no diff; no table name outside data-access."
+    },
+    {
+     "area": "ci",
+     "item": "Every push runs lint, type check, tests and the EAOS debt gate",
+     "reason": "Without a gate each change can reintroduce what the audit removed.",
+     "success_measure": "The default branch cannot receive a change whose checks fail."
+    },
+    {
+     "area": "tests",
+     "item": "Behaviour-lock specs for every feature plus unit tests for domain logic",
+     "reason": "The lock catches what users would notice; unit tests catch the rule that broke it.",
+     "success_measure": "E4 = 1 and every feature spec passes on the default branch."
+    },
+    {
+     "area": "observability",
+     "item": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker)",
+     "reason": "A vibe-coded app fails silently in the user's browser; nobody learns of it.",
+     "success_measure": "Every uncaught error reaches the tracker within a minute, tagged with the release."
+    },
+    {
+     "area": "secrets",
+     "item": "Only publishable keys reach the browser; every secret lives in the host's secret store",
+     "reason": "Anything bundled into the frontend is public.",
+     "success_measure": "No secret-class credential in the repository or the bundle (EAOS H1 finds none)."
+    },
+    {
+     "area": "dependencies",
+     "item": "Automated, grouped dependency updates with the vulnerability scan in CI",
+     "reason": "A locked vulnerable version stays until someone looks.",
+     "success_measure": "No locked version with a fixed high or critical advisory older than 14 days."
+    },
+    {
+     "area": "identity",
+     "item": "Supabase Auth with row-level security on every table the browser reaches",
+     "reason": "The publishable key is public; RLS is the only thing between it and every row.",
+     "success_measure": "Every table has RLS on and a policy per operation that binds the row to its owner."
+    },
+    {
+     "area": "migrations",
+     "item": "Schema changes only as Supabase CLI migrations, applied by CI",
+     "reason": "A table edited in the dashboard is a change nobody can review or repeat.",
+     "success_measure": "The database equals the migrations folder (supabase db diff is empty)."
+    }
+   ]
+  },
+  {
+   "id": "react-vite-spa-rest",
+   "name": "React + Vite SPA calling its own HTTP API",
+   "detect": {
+    "package_json_all": [
+     "react",
+     "vite"
+    ],
+    "package_json_none": [
+     "@supabase/supabase-js",
+     "@tanstack/react-start",
+     "next"
+    ]
+   },
+   "layers": [
+    {
+     "name": "pages",
+     "responsibility": "Route components: read params, compose features",
+     "allowed_dependencies": [
+      "features",
+      "ui",
+      "lib"
+     ],
+     "paths": [
+      "src/pages/**",
+      "src/App.tsx",
+      "src/main.tsx"
+     ]
+    },
+    {
+     "name": "features",
+     "responsibility": "One module per domain: components, hooks, use cases",
+     "allowed_dependencies": [
+      "api-client",
+      "ui",
+      "lib",
+      "config"
+     ],
+     "paths": [
+      "src/features/**",
+      "src/hooks/**",
+      "src/components/**",
+      "src/context/**",
+      "src/contexts/**"
+     ]
+    },
+    {
+     "name": "api-client",
+     "responsibility": "One typed HTTP client and one module per backend resource; the only code that knows endpoints",
+     "allowed_dependencies": [
+      "config",
+      "lib"
+     ],
+     "paths": [
+      "src/lib/Api.ts",
+      "src/lib/*Api.ts",
+      "src/lib/api/**",
+      "src/services/**",
+      "src/Service/**",
+      "src/api/**"
+     ]
+    },
+    {
+     "name": "ui",
+     "responsibility": "Presentational components",
+     "allowed_dependencies": [
+      "lib"
+     ],
+     "paths": [
+      "src/components/ui/**"
+     ]
+    },
+    {
+     "name": "lib",
+     "responsibility": "Pure helpers and shared types",
+     "allowed_dependencies": [],
+     "paths": [
+      "src/lib/**",
+      "src/utils/**",
+      "src/types/**"
+     ]
+    },
+    {
+     "name": "config",
+     "responsibility": "Environment read once (VITE_API_URL and the rest)",
+     "allowed_dependencies": [],
+     "paths": [
+      "src/config/**"
+     ]
+    }
+   ],
+   "infrastructure_baseline": [
+    {
+     "area": "configuration",
+     "item": "One typed module reads every environment variable once and fails at start on a missing one",
+     "reason": "Scattered import.meta.env reads fail at runtime, on the screen that first needs the value.",
+     "success_measure": "No file outside the config module reads the environment; a missing variable stops the build or start with its name."
+    },
+    {
+     "area": "data",
+     "item": "A typed API contract (OpenAPI) the client is generated or checked from",
+     "reason": "Without a contract, a backend change breaks screens at runtime.",
+     "success_measure": "The client compiles against the published specification; oasdiff reports no unannounced breaking change."
+    },
+    {
+     "area": "ci",
+     "item": "Every push runs lint, type check, tests and the EAOS debt gate",
+     "reason": "Without a gate each change can reintroduce what the audit removed.",
+     "success_measure": "The default branch cannot receive a change whose checks fail."
+    },
+    {
+     "area": "tests",
+     "item": "Behaviour-lock specs for every feature plus unit tests for domain logic",
+     "reason": "The lock catches what users would notice; unit tests catch the rule that broke it.",
+     "success_measure": "E4 = 1 and every feature spec passes on the default branch."
+    },
+    {
+     "area": "observability",
+     "item": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker)",
+     "reason": "A vibe-coded app fails silently in the user's browser; nobody learns of it.",
+     "success_measure": "Every uncaught error reaches the tracker within a minute, tagged with the release."
+    },
+    {
+     "area": "secrets",
+     "item": "Only publishable keys reach the browser; every secret lives in the host's secret store",
+     "reason": "Anything bundled into the frontend is public.",
+     "success_measure": "No secret-class credential in the repository or the bundle (EAOS H1 finds none)."
+    },
+    {
+     "area": "dependencies",
+     "item": "Automated, grouped dependency updates with the vulnerability scan in CI",
+     "reason": "A locked vulnerable version stays until someone looks.",
+     "success_measure": "No locked version with a fixed high or critical advisory older than 14 days."
+    },
+    {
+     "area": "identity",
+     "item": "Token handling in one module, refreshed and cleared in one place",
+     "reason": "Tokens copied between components leak or go stale.",
+     "success_measure": "Only the api-client reads or writes the token."
+    }
+   ]
+  },
+  {
+   "id": "nextjs-app",
+   "name": "Next.js application",
+   "detect": {
+    "package_json_all": [
+     "next",
+     "react"
+    ]
+   },
+   "layers": [
+    {
+     "name": "app",
+     "responsibility": "Routes, layouts and server components",
+     "allowed_dependencies": [
+      "features",
+      "ui",
+      "lib",
+      "data-access"
+     ],
+     "paths": [
+      "app/**",
+      "src/app/**",
+      "pages/**",
+      "src/pages/**"
+     ]
+    },
+    {
+     "name": "features",
+     "responsibility": "One module per domain",
+     "allowed_dependencies": [
+      "data-access",
+      "ui",
+      "lib",
+      "config"
+     ],
+     "paths": [
+      "src/features/**",
+      "components/**",
+      "src/components/**",
+      "hooks/**"
+     ]
+    },
+    {
+     "name": "data-access",
+     "responsibility": "Queries and external calls; server-only",
+     "allowed_dependencies": [
+      "config",
+      "lib"
+     ],
+     "paths": [
+      "lib/db/**",
+      "src/server/**",
+      "server/**",
+      "src/services/**"
+     ]
+    },
+    {
+     "name": "ui",
+     "responsibility": "Presentational components",
+     "allowed_dependencies": [
+      "lib"
+     ],
+     "paths": [
+      "components/ui/**",
+      "src/components/ui/**"
+     ]
+    },
+    {
+     "name": "lib",
+     "responsibility": "Pure helpers",
+     "allowed_dependencies": [],
+     "paths": [
+      "lib/**",
+      "src/lib/**",
+      "utils/**"
+     ]
+    },
+    {
+     "name": "config",
+     "responsibility": "Environment read once",
+     "allowed_dependencies": [],
+     "paths": [
+      "config/**",
+      "src/config/**",
+      "env.ts"
+     ]
+    }
+   ],
+   "infrastructure_baseline": [
+    {
+     "area": "configuration",
+     "item": "One typed module reads every environment variable once and fails at start on a missing one",
+     "reason": "Scattered import.meta.env reads fail at runtime, on the screen that first needs the value.",
+     "success_measure": "No file outside the config module reads the environment; a missing variable stops the build or start with its name."
+    },
+    {
+     "area": "data",
+     "item": "A typed data client (Prisma, Drizzle or a generated client) used only server-side",
+     "reason": "Queries in components cross the server boundary.",
+     "success_measure": "No database import in a client component."
+    },
+    {
+     "area": "ci",
+     "item": "Every push runs lint, type check, tests and the EAOS debt gate",
+     "reason": "Without a gate each change can reintroduce what the audit removed.",
+     "success_measure": "The default branch cannot receive a change whose checks fail."
+    },
+    {
+     "area": "tests",
+     "item": "Behaviour-lock specs for every feature plus unit tests for domain logic",
+     "reason": "The lock catches what users would notice; unit tests catch the rule that broke it.",
+     "success_measure": "E4 = 1 and every feature spec passes on the default branch."
+    },
+    {
+     "area": "observability",
+     "item": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker)",
+     "reason": "A vibe-coded app fails silently in the user's browser; nobody learns of it.",
+     "success_measure": "Every uncaught error reaches the tracker within a minute, tagged with the release."
+    },
+    {
+     "area": "secrets",
+     "item": "Only publishable keys reach the browser; every secret lives in the host's secret store",
+     "reason": "Anything bundled into the frontend is public.",
+     "success_measure": "No secret-class credential in the repository or the bundle (EAOS H1 finds none)."
+    },
+    {
+     "area": "dependencies",
+     "item": "Automated, grouped dependency updates with the vulnerability scan in CI",
+     "reason": "A locked vulnerable version stays until someone looks.",
+     "success_measure": "No locked version with a fixed high or critical advisory older than 14 days."
+    }
+   ]
+  },
+  {
+   "id": "python-desktop",
+   "name": "Python desktop application (a local UI packaged into an executable)",
+   "detect": {
+    "python_deps_any": [
+     "pyinstaller",
+     "briefcase",
+     "py2app",
+     "cx-freeze"
+    ],
+    "files_any": [
+     "*.spec",
+     "build_*exe*"
+    ]
+   },
+   "layers": [
+    {
+     "name": "ui",
+     "responsibility": "Screens and widgets (Streamlit views, Qt windows): read state, call services, render",
+     "allowed_dependencies": [
+      "services",
+      "domain",
+      "infrastructure"
+     ],
+     "paths": [
+      "app.py",
+      "views/**",
+      "ui/**",
+      "pages/**"
+     ]
+    },
+    {
+     "name": "services",
+     "responsibility": "Use cases the UI calls; orchestrate domain and infrastructure",
+     "allowed_dependencies": [
+      "domain",
+      "infrastructure"
+     ],
+     "paths": [
+      "services/**",
+      "core/services/**"
+     ]
+    },
+    {
+     "name": "domain",
+     "responsibility": "Rules and calculations with no I/O",
+     "allowed_dependencies": [],
+     "paths": [
+      "core/**",
+      "domain/**",
+      "models/**"
+     ]
+    },
+    {
+     "name": "infrastructure",
+     "responsibility": "Database, files, network, market data",
+     "allowed_dependencies": [
+      "domain"
+     ],
+     "paths": [
+      "core/database.py",
+      "core/*repository*",
+      "core/utils/**",
+      "infrastructure/**",
+      "adapters/**"
+     ]
+    },
+    {
+     "name": "entry",
+     "responsibility": "Launchers and packaging",
+     "allowed_dependencies": [
+      "ui",
+      "services"
+     ],
+     "paths": [
+      "run_app.py",
+      "scripts/**",
+      "*.spec",
+      "build_*"
+     ]
+    }
+   ],
+   "infrastructure_baseline": [
+    {
+     "area": "configuration",
+     "item": "Settings in the user's data directory (platformdirs), read once at start",
+     "reason": "Writing next to the executable fails when it is installed read-only.",
+     "success_measure": "The app starts from a read-only install location."
+    },
+    {
+     "area": "data",
+     "item": "One schema owner with versioned migrations for the local database",
+     "reason": "An upgrade that changes a table silently corrupts old data files.",
+     "success_measure": "Opening a data file from any earlier release upgrades it or refuses with a message."
+    },
+    {
+     "area": "ci",
+     "item": "CI runs the tests and builds the executable on every push",
+     "reason": "A packaging break is found by the user who downloads it.",
+     "success_measure": "Every release artefact is built by CI from a tagged commit."
+    },
+    {
+     "area": "tests",
+     "item": "Unit tests for domain calculations and approval tests for services",
+     "reason": "Money and retirement maths must not change silently.",
+     "success_measure": "Every public domain function is covered; the approval tests pass on the default branch."
+    },
+    {
+     "area": "observability",
+     "item": "A rotating local log with an export for support",
+     "reason": "On a user's machine there is nothing else to look at.",
+     "success_measure": "Every crash leaves a log with the version and the stack."
+    },
+    {
+     "area": "secrets",
+     "item": "Any API token in the operating system keychain, never in the bundle",
+     "reason": "A token in the executable belongs to everyone who has it.",
+     "success_measure": "No credential in the repository or the built executable."
+    },
+    {
+     "area": "backup",
+     "item": "User data exported and restorable from the UI",
+     "reason": "The only copy of a user's portfolio is on their disk.",
+     "success_measure": "A backup restores into a clean install with identical totals."
+    }
+   ]
+  },
+  {
+   "id": "python-web",
+   "name": "Python web application (Streamlit, Flask, FastAPI, Django)",
+   "detect": {
+    "python_deps_any": [
+     "streamlit",
+     "flask",
+     "fastapi",
+     "django"
+    ]
+   },
+   "layers": [
+    {
+     "name": "web",
+     "responsibility": "Routes or pages: parse input, call services, render",
+     "allowed_dependencies": [
+      "services",
+      "domain"
+     ],
+     "paths": [
+      "app.py",
+      "main.py",
+      "views/**",
+      "pages/**",
+      "routes/**",
+      "api/**"
+     ]
+    },
+    {
+     "name": "services",
+     "responsibility": "Use cases",
+     "allowed_dependencies": [
+      "domain",
+      "infrastructure"
+     ],
+     "paths": [
+      "services/**"
+     ]
+    },
+    {
+     "name": "domain",
+     "responsibility": "Rules with no I/O",
+     "allowed_dependencies": [],
+     "paths": [
+      "core/**",
+      "domain/**",
+      "models/**"
+     ]
+    },
+    {
+     "name": "infrastructure",
+     "responsibility": "Database and external calls",
+     "allowed_dependencies": [
+      "domain"
+     ],
+     "paths": [
+      "db/**",
+      "infrastructure/**",
+      "adapters/**",
+      "repositories/**"
+     ]
+    }
+   ],
+   "infrastructure_baseline": [
+    {
+     "area": "configuration",
+     "item": "Settings object (pydantic-settings or equivalent) read once",
+     "reason": "os.environ reads scattered through handlers fail late.",
+     "success_measure": "No os.environ outside the settings module."
+    },
+    {
+     "area": "data",
+     "item": "Migrations with Alembic or the framework's own",
+     "reason": "Schema changes by hand cannot be repeated.",
+     "success_measure": "The database equals the migrations head."
+    },
+    {
+     "area": "ci",
+     "item": "Lint, types, tests and the EAOS gate on every push",
+     "reason": "Changes regress silently otherwise.",
+     "success_measure": "The default branch cannot receive failing checks."
+    },
+    {
+     "area": "tests",
+     "item": "Behaviour lock plus unit tests for services",
+     "reason": "Handlers change behaviour without anyone noticing.",
+     "success_measure": "E4 = 1 and the suite passes on the default branch."
+    },
+    {
+     "area": "observability",
+     "item": "Structured logs and traces (OpenTelemetry) with request ids",
+     "reason": "A failing request cannot be followed without them.",
+     "success_measure": "Every error log carries a request id and a release."
+    },
+    {
+     "area": "secrets",
+     "item": "Secrets from the host's store, never committed",
+     "reason": "A committed key is a public key.",
+     "success_measure": "No secret-class credential in the repository."
+    }
+   ]
+  },
+  {
+   "id": "python-cli",
+   "name": "Python command-line tool",
+   "detect": {
+    "python_files": true
+   },
+   "layers": [
+    {
+     "name": "cli",
+     "responsibility": "Argument parsing and output only",
+     "allowed_dependencies": [
+      "services"
+     ],
+     "paths": [
+      "cli.py",
+      "__main__.py",
+      "scripts/**",
+      "bin/**"
+     ]
+    },
+    {
+     "name": "services",
+     "responsibility": "Use cases",
+     "allowed_dependencies": [
+      "domain",
+      "infrastructure"
+     ],
+     "paths": [
+      "services/**"
+     ]
+    },
+    {
+     "name": "domain",
+     "responsibility": "Rules with no I/O",
+     "allowed_dependencies": [],
+     "paths": [
+      "core/**",
+      "domain/**",
+      "models/**",
+      "**/*.py"
+     ]
+    },
+    {
+     "name": "infrastructure",
+     "responsibility": "Files, network, database",
+     "allowed_dependencies": [
+      "domain"
+     ],
+     "paths": [
+      "io/**",
+      "adapters/**",
+      "infrastructure/**"
+     ]
+    }
+   ],
+   "infrastructure_baseline": [
+    {
+     "area": "configuration",
+     "item": "Flags and one config file, validated at start",
+     "reason": "A bad value should fail before work starts.",
+     "success_measure": "Every invalid setting exits with code 2 and its name."
+    },
+    {
+     "area": "data",
+     "item": "Inputs and outputs in documented formats with versions",
+     "reason": "A format change breaks scripts that call the tool.",
+     "success_measure": "Every output format has a schema version."
+    },
+    {
+     "area": "ci",
+     "item": "Tests on every push, on every supported Python",
+     "reason": "A change breaks an older interpreter unseen.",
+     "success_measure": "The matrix passes on the default branch."
+    },
+    {
+     "area": "tests",
+     "item": "Unit tests plus approval tests of command output",
+     "reason": "Output is the tool's interface.",
+     "success_measure": "Every command has an approved output."
+    },
+    {
+     "area": "observability",
+     "item": "Exit codes that mean something, and --verbose logging",
+     "reason": "A script calling the tool needs to know what failed.",
+     "success_measure": "Every failure exits non-zero with a message on stderr."
+    },
+    {
+     "area": "secrets",
+     "item": "Tokens from the environment or keychain only",
+     "reason": "A token in a config file is committed sooner or later.",
+     "success_measure": "No credential in the repository."
+    }
+   ]
+  }
+ ]
+}
