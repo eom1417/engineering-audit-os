@@ -30,7 +30,7 @@ def behavior_lock(report):
     root = Path(report) / 'behavior-lock'
     items = []
     if (root / 'playwright.config.ts').is_file():
-        items.append(Emitted('behavior-lock/playwright.config.ts', 'playwright', ('playwright', 'test', '--list', '--config', '{path}')))
+        items.append(Emitted('behavior-lock/playwright.config.ts', 'playwright', ('playwright', 'test', '--list', '--reporter=list', '--config', '{path}')))
     for path in sorted((root / 'approvals').glob('test_*.py')) if (root / 'approvals').is_dir() else []:
         items.append(Emitted(path.relative_to(report).as_posix(), 'python', (sys.executable, '-m', 'py_compile', '{path}')))
     return items

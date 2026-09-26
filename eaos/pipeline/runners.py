@@ -252,7 +252,7 @@ RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': me
 
 def target(context):
     from ..target_architecture import build, render
-    result = build(context.out)
+    result = build(context.out, target=context.target)
     render(context.out, result, language=context.language)
     return {'components': len(result['components']), 'status': result['status']}
 

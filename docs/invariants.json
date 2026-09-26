@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "c6885d3",
+  "extracted_at_commit": "ca719cd",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -936,6 +936,24 @@
       "statement": "A verdict with no evidence is refused by the tests, because a target architecture whose every entry is a guess is worse than none.",
       "kind": "invariant",
       "enforced_by": "tests/test_target_architecture.py::ComponentGranularityTests::test_every_component_in_a_real_report_carries_a_relation_and_a_reason",
+      "note": ""
+    },
+    {
+      "id": "INV-6d408bf280",
+      "file": "eaos/target_projection.py",
+      "symbol": "<module>",
+      "statement": "An import is forbidden when the importing file's target layer may not depend on the imported file's layer.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_target_projection.py::PlacementTests::test_an_import_the_layer_rules_do_not_allow_is_forbidden",
+      "note": ""
+    },
+    {
+      "id": "INV-94f1855b26",
+      "file": "eaos/target_projection.py",
+      "symbol": "forbidden",
+      "statement": "Imports whose importing file's target layer may not depend on the imported file's target layer.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_target_projection.py::PlacementTests::test_an_import_the_layer_rules_do_not_allow_is_forbidden",
       "note": ""
     },
     {

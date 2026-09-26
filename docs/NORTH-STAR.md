@@ -1,8 +1,8 @@
 # الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي
 
-> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-26 على الالتزام `61abfb5`.
+> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-26 على الالتزام `ca719cd`.
 
-## أين نحن: **60.7%** من الوجهة
+## أين نحن: **74.5%** من الوجهة
 
 هذه ليست درجة القدرات في docs/CAPABILITY-SCORE.md. تلك تقيس اكتمال آلية الأداة على مستودعين ضُبطت عليهما، وهذه تقيس الوعد نفسه على الجمهور الذي بُنيت له.
 
@@ -13,12 +13,12 @@
 | C3 | الإشارة: كل ادعاء مشكلة حقيقية | 10 | 97% | 9.7 |
 | C4 | الكود الميت والمخلفات: يجدها ويحذفها بأمان | 10 | 100% | 10.0 |
 | C5 | نظافة الأمن الأساسية | 8 | 100% | 8.0 |
-| C6 | تقرير الصورة المثالية | 16 | 8% | 1.3 |
-| C7 | تقرير الفجوة والتحول الاستراتيجي | 8 | 50% | 4.0 |
+| C6 | تقرير الصورة المثالية | 16 | 69% | 11.0 |
+| C7 | تقرير الفجوة والتحول الاستراتيجي | 8 | 100% | 8.0 |
 | C8 | خطة التنفيذ للفريق | 16 | 24% | 3.9 |
 | C9 | ضمان التنفيذ: يثبت أن التحول حدث | 7 | 18% | 1.3 |
 | C10 | الثقة والإثبات المستقل | 5 | 57% | 2.9 |
-| | **المجموع** | **100** | | **60.7** |
+| | **المجموع** | **100** | | **74.5** |
 
 ## الرؤية
 
@@ -90,16 +90,16 @@
 
 | القدرة | الفجوة المرجّحة |
 | --- | --- |
-| C6 تقرير الصورة المثالية | 14.7 |
 | C8 خطة التنفيذ للفريق | 12.1 |
 | C9 ضمان التنفيذ: يثبت أن التحول حدث | 5.7 |
-| C7 تقرير الفجوة والتحول الاستراتيجي | 4.0 |
+| C6 تقرير الصورة المثالية | 5.0 |
 | C10 الثقة والإثبات المستقل | 2.1 |
 | C3 الإشارة: كل ادعاء مشكلة حقيقية | 0.3 |
 | C2 تقرير الوضع الراهن: يرى البرنامج كله | 0.2 |
 | C1 الوصول: يعمل على مشاريع الهواة الحقيقية | 0.0 |
 | C4 الكود الميت والمخلفات: يجدها ويحذفها بأمان | 0.0 |
 | C5 نظافة الأمن الأساسية | 0.0 |
+| C7 تقرير الفجوة والتحول الاستراتيجي | 0.0 |
 
 ## القدرات ومؤشراتها
 
@@ -123,7 +123,7 @@
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
 | U1 تغطية التحليل | متوسط parse_coverage على مشاريع العيّنة | 95% | 95% | parse_coverage: FleetManageWeb 0.978 · finance-os-a0192b7b 0.888 · RendaPerene 0.987 |
-| U2 أسطح المستخدم المكتشفة | متوسط (الأسطح المكتشفة ÷ الأسطح الحقيقية في truth.user_surfaces) لكل مشروع | 90% | 100% | found/true surfaces: FleetManageWeb 43/43 · finance-os-a0192b7b 29/29 · RendaPerene 3/3 |
+| U2 أسطح المستخدم المكتشفة | متوسط (الأسطح المكتشفة ÷ الأسطح الحقيقية في truth.user_surfaces) لكل مشروع | 90% | 100% | found/true surfaces: FleetManageWeb 43/43 · finance-os-a0192b7b 29/29 · RendaPerene 4/4 |
 | U3 نموذج البيانات مقروء | مشاريع العيّنة ذات قاعدة بيانات التي قُرئت جداولها بحالة RLS لكل جدول، وسياساتها ÷ عدد تلك المشاريع | 100% | 100% | data_table facts with RLS state, and db_policy facts, vs truth: finance-os-a0192b7b 31/31 tables, 108/108 policies |
 | U4 جرد الوظائف | مشاريع العيّنة التي يسرد تقريرها وظائف البرنامج (ماذا يفعل للمستخدم) مربوطة بأسطحها وبياناتها ÷ عدد المشاريع | 100% | 100% | features in features.json: FleetManageWeb 24 · finance-os-a0192b7b 21 · RendaPerene 4 |
 | U5 المداخل والمخارج والحدود | متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع | 80% | 92% | answered load questions: FleetManageWeb 360/368 · finance-os-a0192b7b 216/232 · RendaPerene 27/32 |
@@ -160,27 +160,27 @@
 | H2 تغطية سياسات الوصول مقروءة | مشاريع ذات قاعدة بيانات قُرئت فيها سياسات RLS وحُدد كل جدول بلا سياسة ÷ عدد تلك المشاريع | 100% | 100% | db_policy facts vs truth: finance-os-a0192b7b 108/108 |
 | H3 سلسلة الإمداد | مشاريع العيّنة التي في تقريرها قائمة اعتماديات (SBOM) فيها مكوّن واحد على الأقل، وفُحصت ثغراتها بـOSV-Scanner ÷ عدد المشاريع | 100% | 100% | SBOM with components and OSV-Scanner observed: FleetManageWeb True · finance-os-a0192b7b True · RendaPerene True |
 
-### C6 — تقرير الصورة المثالية (8%، الوزن 16)
+### C6 — تقرير الصورة المثالية (69%، الوزن 16)
 
 **الصورة المثالية:** البرنامج نفسه بوظائفه نفسها، ببنية وبنية تحتية تصلح منتجًا: مكوّنات مستهدفة، وحدود، وقرارات بنية تحتية، وقرار لكل مكوّن حالي، كل قرار بدليله وبديله.
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| T1 مكوّنات مستهدفة ملموسة | مشاريع العيّنة التي فيها target_components غير فارغة ÷ عدد المشاريع | 100% | 0% | target_components: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
-| T2 قرارات البنية التحتية | مشاريع العيّنة التي تحمل قرارات مسبّبة في الاستضافة والبيانات والهوية والإعدادات وCI والمراقبة ÷ عدد المشاريع | 100% | 0% | infrastructure decisions: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
-| T3 قرارات تغيّر البنية | القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات | 60% | 5% | decisions that change structure: FleetManageWeb 2/39 · finance-os-a0192b7b 2/31 · RendaPerene 0/9 |
-| T4 قرار لكل مكوّن حالي | (المكوّنات الحالية التي لها قرار صريح بدليله ÷ المكوّنات الحالية) × (عدد القرارات الأربعة التي ينتجها المنتج فعلًا: إعادة استخدام، هيكلة، إعادة بناء، حذف ÷ 4) | 100% | 50% | components with a disposition and reason: FleetManageWeb 47/47 · finance-os-a0192b7b 36/36 · RendaPerene 9/9; dispositions the tool produced: ['restructure', 'reuse'] of 4 |
-| T5 الوظائف نفسها في الصورة المثالية | وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد | 100% | 0% | features placed in a target component: FleetManageWeb 0/24 · finance-os-a0192b7b 0/21 · RendaPerene 0/4 |
+| T1 مكوّنات مستهدفة ملموسة | مشاريع العيّنة التي فيها target_components غير فارغة ÷ عدد المشاريع | 100% | 100% | target_components: FleetManageWeb 29 · finance-os-a0192b7b 27 · RendaPerene 9 |
+| T2 قرارات البنية التحتية | مشاريع العيّنة التي تحمل قرارات مسبّبة في الاستضافة والبيانات والهوية والإعدادات وCI والمراقبة ÷ عدد المشاريع | 100% | 100% | infrastructure decisions: FleetManageWeb 9 · finance-os-a0192b7b 10 · RendaPerene 7 |
+| T3 قرارات تغيّر البنية | القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات | 60% | 81% | decisions that change structure: FleetManageWeb 33/35 · finance-os-a0192b7b 21/29 · RendaPerene 5/9 |
+| T4 قرار لكل مكوّن حالي | (المكوّنات الحالية التي لها قرار صريح بدليله ÷ المكوّنات الحالية) × (عدد القرارات الأربعة التي ينتجها المنتج فعلًا: إعادة استخدام، هيكلة، إعادة بناء، حذف ÷ 4) | 100% | 100% | components with a disposition and reason: FleetManageWeb 47/47 · finance-os-a0192b7b 36/36 · RendaPerene 9/9; dispositions the tool produced: ['delete', 'rebuild', 'restructure', 'reuse'] of 4 |
+| T5 الوظائف نفسها في الصورة المثالية | وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد | 100% | 100% | features placed in a target component: FleetManageWeb 24/24 · finance-os-a0192b7b 21/21 · RendaPerene 4/4 |
 | T6 نموذج C4 حالي ومستهدف | مشاريع العيّنة التي في تقريرها architecture/current/workspace.dsl و architecture/target/workspace.dsl، ويذكر النموذج المستهدف اسم كل مكوّن في target_components ÷ عدد المشاريع | 100% | 0% | current and target C4 models naming every target component: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False |
-| T7 قرارات العمارة بصيغة MADR | ملفات adr/ADR-*.md التي فيها أقسام MADR الثلاثة (Context and Problem Statement، Considered Options، Decision Outcome) ÷ قرارات target-architecture.json | 100% | 0% | MADR files for decisions: FleetManageWeb 0/39 · finance-os-a0192b7b 0/31 · RendaPerene 0/9 |
+| T7 قرارات العمارة بصيغة MADR | ملفات adr/ADR-*.md التي فيها أقسام MADR الثلاثة (Context and Problem Statement، Considered Options، Decision Outcome) ÷ قرارات target-architecture.json | 100% | 0% | MADR files for decisions: FleetManageWeb 0/35 · finance-os-a0192b7b 0/29 · RendaPerene 0/9 |
 
-### C7 — تقرير الفجوة والتحول الاستراتيجي (50%، الوزن 8)
+### C7 — تقرير الفجوة والتحول الاستراتيجي (100%، الوزن 8)
 
 **الصورة المثالية:** لكل مكوّن مستهدف فرق مقيس بين اليوم والوجهة، ولكل مؤشر استدامة قيمة وهدف.
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| G1 فجوة مربوطة بالمكوّنات المستهدفة | صفوف gap_matrix المربوطة بمكوّن مستهدف ومعها فرق قابل للقياس ÷ صفوفها | 100% | 0% | gap rows tied to a target component: FleetManageWeb 0/47 · finance-os-a0192b7b 0/36 · RendaPerene 0/9 |
+| G1 فجوة مربوطة بالمكوّنات المستهدفة | صفوف gap_matrix المربوطة بمكوّن مستهدف ومعها فرق قابل للقياس ÷ صفوفها | 100% | 100% | gap rows tied to a target component: FleetManageWeb 47/47 · finance-os-a0192b7b 36/36 · RendaPerene 9/9 |
 | G2 مؤشرات الاستدامة المقيسة | متوسط (مؤشرات الاستدامة الستة ذات القيمة ÷ 6) لكل مشروع | 100% | 100% | sustainability indicators with a value: FleetManageWeb 6/6 · finance-os-a0192b7b 6/6 · RendaPerene 6/6 |
 
 ### C8 — خطة التنفيذ للفريق (24%، الوزن 16)
@@ -249,7 +249,7 @@
 | R1 | الأساس: الوصول والرؤية والإشارة | NS1, NS2, NS3, NS4, NS5, NS6 | 19/19 | U2، U3، U4، U5، S1، S2، D1–D3، H1، H2 عند أهدافها |
 | R2 | منصة الأدوات: تثبيت، وقراءة، وتوليد، ومراحل، وعزل | NS17 | 5/5 | R4 = 1، وقارئ SARIF وإطار التوليد ومراحل engage والبيئة المعزولة مختبرة |
 | R3 | الأدلة الكاملة من الأدوات الجاهزة | NS11, NS12, NS18 | 15/15 | بوابات S01 وS03 وS04 كاملة: U6، R3، H3، M1، S3 |
-| R4 | تثبيت السلوك والصورة المثالية | NS15, NS7, NS13 | 3/10 | البوابة أ لـS05، وبوابة S06 مع موافقة بشرية |
+| R4 | تثبيت السلوك والصورة المثالية | NS15, NS7, NS13 | 7/10 | البوابة أ لـS05، وبوابة S06 مع موافقة بشرية |
 | R5 | الخطة والتقارير وعدّة التسليم | NS8, NS14, NS25 | 0/14 | بوابة S07 و K1 = 1: اكتمل عقد التقييم (EAOS 1.0) |
 | R6 | التنفيذ المثبت | NS26, NS9, NS20 | 0/4 | البوابة ب لـS05، وبوابتا S08 وS09: E5، E1، E7، E2 |
 | R7 | التصليب التشغيلي | NS21, NS22, NS23, NS24, NS16 | 0/5 | بوابات S10 إلى S14: E8، E6، E9، E10، E11 |
@@ -272,7 +272,7 @@
 | NS12 محوّلات الفحص الساكن: أدوات جاهزة بدل كود نكتبه | R3 = 1.0 و H3 = 1.0. | 10/10 |
 | NS18 القياس وسجل الدَّين: الأرقام لكل ملف، والخطر حين تجتمع الأدلة | M1 ≥ 0.95 و S3 ≥ 0.8 و G2 = 1.0. | 3/3 |
 | NS15 تثبيت السلوك: المواصفات قبل أي تغيير (ساكن) | E4 = 1، ومواصفات الحمل والأعطال والفحص الحي مولّدة ومقبولة من أدواتها. | 2/2 |
-| NS7 تقرير الصورة المثالية | T1 = 1.0 و T2 = 1.0 و T3 ≥ 0.6 و T4 = 1.0 و T5 = 1.0 و G1 = 1.0. | 1/5 |
+| NS7 تقرير الصورة المثالية | T1 = 1.0 و T2 = 1.0 و T3 ≥ 0.6 و T4 = 1.0 و T5 = 1.0 و G1 = 1.0. | 5/5 |
 | NS13 نموذج العمارة وقراراتها | T6 = 1.0 و T7 = 1.0. | 0/3 |
 | NS8 خطة التنفيذ للفريق والتقارير الأربعة | P1 = 1.0 و P2 ≥ 0.5 و P3 ≥ 0.8 و P4 = 1.0 و P6 = 1.0 و P7 = 1.0 و P9 ≥ 0.8. | 0/6 |
 | NS14 جودة التقرير تُفحص آليًا | P8 = 1.0. | 0/3 |
@@ -1711,13 +1711,13 @@ python tools/acceptance.py test ns7_t1_reference
 
 **التراجع:** احذف الكتالوج.
 
-#### NS7.T2 — إسقاط المشروع على البنية المرجعية ⬜
+#### NS7.T2 — إسقاط المشروع على البنية المرجعية ✅
 
 **لماذا:** أكبر فجوة وأعلى وزن: EAOS لا ينتج اليوم مكوّنًا مستهدفًا واحدًا (T1 = 0)، فلا صورة مثالية ولا فجوة مربوطة بها.
 
 **يحرّك:** T1, T3, G1 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T1 · **الحجم:** L
 
-**الملفات:** `eaos/target_architecture.py` · `tests/test_target_architecture.py`
+**الملفات:** `eaos/target_architecture.py` · `tests/test_target_architecture.py` · `eaos/target_projection.py`
 
 **يكتب:** `contract:target-fragment` (العقد: `schemas/artifacts/target-fragment.schema.json`)
 
@@ -1730,6 +1730,7 @@ python tools/acceptance.py test ns7_t1_reference
 5. القاعدة الافتراضية Modular Monolith: مكوّن مستهدف لكل وظيفة في features.json (أو لكل مجموعة وظائف متقاربة البيانات)، ومكوّن لكل طبقة مشتركة في النوع المرجعي (مثل ui و data-access و auth و config).
 6. لكل مكوّن: name و responsibility و layer (من طبقات النوع المرجعي) و reference (معرّف النوع).
 7. كل ملف حالي يُنسب إلى مكوّن مستهدف: ملفات الوظيفة إلى مكوّنها، والباقي بطبقته. صف gap_matrix لكل مكوّن حالي فيه target_component وعدد الملفات التي تنتقل.
+8. كما نُفّذ: eaos/target_projection.py. وحدة واحدة معيارية: مكوّن لكل وظيفة، ومكوّن لكل طبقة مشتركة، و platform لما لا تحمله طبقة كود. الملف الذي تستعمله وظيفة واحدة لها، والمشترك لطبقته. النقل: المسار الحالي ليس مكان المكوّن. الاستيراد الممنوع: طبقة لا تُسمح لها. finance-os: 27 مكوّنًا و 45 استيرادًا ممنوعًا؛ FleetManageWeb: 29 و 53؛ RendaPerene: 9 و 8. القرارات (ADR) صارت هيكلية: انقل N ملفًا إلى X وأزل K استيرادًا ممنوعًا. T3 = 0.808.
 
 **تنتهي حين:**
 
@@ -1751,13 +1752,13 @@ python tools/north_star.py measure --only T1 --min 1.0 && python tools/north_sta
 
 **التراجع:** revert الالتزام.
 
-#### NS7.T3 — قرارات البنية التحتية ⬜
+#### NS7.T3 — قرارات البنية التحتية ✅
 
 **لماذا:** المنتج الاحترافي بنية تحتية أيضًا: CI، ورصد، وأسرار، ونسخ احتياطي. لكل بند قرار مسبَّب، و«لا حاجة» قرار مقبول بسببه.
 
 **يحرّك:** T2 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T2 · **الحجم:** M
 
-**الملفات:** `eaos/target_architecture.py` · `tests/test_target_architecture.py`
+**الملفات:** `eaos/target_architecture.py` · `tests/test_target_architecture.py` · `eaos/target_projection.py`
 
 **يكتب:** `contract:target-fragment` (العقد: `schemas/artifacts/target-fragment.schema.json`)
 
@@ -1767,6 +1768,7 @@ python tools/north_star.py measure --only T1 --min 1.0 && python tools/north_sta
 2. العقد مع القياس: اكتب القرارات في target-architecture.json → infrastructure[]، لكل بند area و present و decision و evidence.
 3. مرشحات كل بند من docs/TOOLCHAIN.md (الدور «يوصي»): CI ← GitHub Actions مع pre-commit؛ الاعتماديات ← Renovate؛ الرصد ← OpenTelemetry مع SigNoz؛ SLO ← Sloth؛ IaC ← OpenTofu (و Ansible للخوادم)؛ الإطلاق التدريجي ← Unleash؛ التوجيه أثناء Strangler ← Traefik؛ الهجرات ← أداة المكدّس الأصلية (Supabase CLI أو Prisma أو Alembic)، و Liquibase لـJVM فقط. لكل مرشح سبب من الحقائق أو سيناريو جودة، و«لا حاجة» مقبول بسببه.
 4. area من قيم العقد فقط. present من الحقائق: ci ← حقائق ci_step، و configuration ← env_read و config_key، و observability ← observability_signal، و hosting ← vercel.json أو netlify.toml أو Dockerfile.
+5. كما نُفّذ: لكل بند في خط أساس النوع: موجود أو غائب بدليل من الحقائق، والقرار، والأداة أو لا أداة بسببها، وكلفة لا نفعل شيئًا. البرنامج المكتبي لا يُستضاف ولا يحتاج خادم رصد (سجل محلي).
 
 **تنتهي حين:**
 
@@ -1787,13 +1789,13 @@ python tools/north_star.py measure --only T2 --min 1.0
 
 **التراجع:** revert الالتزام.
 
-#### NS7.T4 — قرار لكل مكوّن: إعادة استخدام، هيكلة، إعادة بناء، حذف ⬜
+#### NS7.T4 — قرار لكل مكوّن: إعادة استخدام، هيكلة، إعادة بناء، حذف ✅
 
 **لماذا:** لكل جزء من الكود قرار واحد بدليله: يبقى، أو يُعاد تنظيمه، أو يُعاد بناؤه، أو يُحذف. اليوم ينتج EAOS قرارين فقط من أربعة.
 
 **يحرّك:** T4 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T2, NS5.T1 · **الحجم:** M
 
-**الملفات:** `eaos/target_architecture.py` · `tests/test_target_architecture.py`
+**الملفات:** `eaos/target_architecture.py` · `tests/test_target_architecture.py` · `eaos/target_projection.py`
 
 **يكتب:** `contract:target-fragment` (العقد: `schemas/artifacts/target-fragment.schema.json`) · `eaos/rules/disposition-rules.json`
 
@@ -1805,6 +1807,7 @@ python tools/north_star.py measure --only T2 --min 1.0
 4. rebuild: أكثر من 40% من ملفاته تحتاج نقلًا أو تعديلًا، أو complexity_max > 40، أو عليه عنصر critical في سجل الدَّين.
 5. modify: ما سوى ذلك.
 6. reason يذكر الأرقام التي قررت، و target_component مكانه المستهدف.
+7. كما نُفّذ: eaos/rules/disposition-rules.json بالترتيب delete ثم rebuild ثم retain ثم modify، والسبب يذكر الأرقام. القرارات الأربعة ظهرت من العتبات المعلنة دون افتعال: FleetManageWeb فيه 7 delete.
 
 **تنتهي حين:**
 
@@ -1824,13 +1827,13 @@ python tools/north_star.py measure --only T4 --min 1.0
 
 **التراجع:** revert الالتزام.
 
-#### NS7.T5 — الصورة المثالية تحفظ الوظائف ⬜
+#### NS7.T5 — الصورة المثالية تحفظ الوظائف ✅
 
 **لماذا:** الصورة المثالية تحفظ الوظائف نفسها: كل وظيفة يجب أن تجد بيتًا في مكوّن مستهدف، وإلا ضاعت أثناء التحول.
 
 **يحرّك:** T5 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS7.T4, NS3.T4 · **الحجم:** S
 
-**الملفات:** `eaos/target_architecture.py` · `tests/test_target_architecture.py`
+**الملفات:** `eaos/target_architecture.py` · `tests/test_target_architecture.py` · `eaos/target_projection.py`
 
 **يكتب:** `contract:features` (العقد: `schemas/artifacts/features.schema.json`)
 
@@ -1838,6 +1841,7 @@ python tools/north_star.py measure --only T4 --min 1.0
 
 1. كل وظيفة من جرد U4 لها مكوّن مستهدف يحملها؛ الوظيفة بلا مكان في الصورة المثالية فجوة معلنة.
 2. العقد مع القياس: اكتب مكان كل وظيفة في features.json → features[].target_component.
+3. كما نُفّذ: features.json → features[].target_component يكتبه target (مُعلن mutated_by)؛ 24/24 و 21/21 و 4/4.
 
 **تنتهي حين:**
 

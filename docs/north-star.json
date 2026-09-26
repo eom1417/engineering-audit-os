@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-26",
-  "measured_at_commit": "61abfb5",
+  "measured_at_commit": "ca719cd",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -307,7 +307,7 @@
           "definition": "متوسط (الأسطح المكتشفة ÷ الأسطح الحقيقية في truth.user_surfaces) لكل مشروع",
           "target": 0.9,
           "value": 1.0,
-          "evidence": "found/true surfaces: FleetManageWeb 43/43 · finance-os-a0192b7b 29/29 · RendaPerene 3/3",
+          "evidence": "found/true surfaces: FleetManageWeb 43/43 · finance-os-a0192b7b 29/29 · RendaPerene 4/4",
           "reads": "facts/entrypoints.json: distinct (surface, route, path) of `entry_point` facts, framework not npm_script/public_api, compared with truth.user_surfaces",
           "measured": "automated"
         },
@@ -488,8 +488,8 @@
           "name": "مكوّنات مستهدفة ملموسة",
           "definition": "مشاريع العيّنة التي فيها target_components غير فارغة ÷ عدد المشاريع",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "target_components: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0",
+          "value": 1.0,
+          "evidence": "target_components: FleetManageWeb 29 · finance-os-a0192b7b 27 · RendaPerene 9",
           "reads": "target-architecture.json → target_components[] (non-empty)",
           "measured": "automated"
         },
@@ -498,8 +498,8 @@
           "name": "قرارات البنية التحتية",
           "definition": "مشاريع العيّنة التي تحمل قرارات مسبّبة في الاستضافة والبيانات والهوية والإعدادات وCI والمراقبة ÷ عدد المشاريع",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "infrastructure decisions: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0",
+          "value": 1.0,
+          "evidence": "infrastructure decisions: FleetManageWeb 9 · finance-os-a0192b7b 10 · RendaPerene 7",
           "reads": "target-architecture.json → infrastructure[] (non-empty)",
           "measured": "automated"
         },
@@ -508,8 +508,8 @@
           "name": "قرارات تغيّر البنية",
           "definition": "القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات",
           "target": 0.6,
-          "value": 0.051,
-          "evidence": "decisions that change structure: FleetManageWeb 2/39 · finance-os-a0192b7b 2/31 · RendaPerene 0/9",
+          "value": 0.808,
+          "evidence": "decisions that change structure: FleetManageWeb 33/35 · finance-os-a0192b7b 21/29 · RendaPerene 5/9",
           "reads": "target-architecture.json → decisions[].chosen containing move/split/merge/extract/introduce/layer/break the cycle/delete/rebuild",
           "measured": "automated"
         },
@@ -518,8 +518,8 @@
           "name": "قرار لكل مكوّن حالي",
           "definition": "(المكوّنات الحالية التي لها قرار صريح بدليله ÷ المكوّنات الحالية) × (عدد القرارات الأربعة التي ينتجها المنتج فعلًا: إعادة استخدام، هيكلة، إعادة بناء، حذف ÷ 4)",
           "target": 1.0,
-          "value": 0.5,
-          "evidence": "components with a disposition and reason: FleetManageWeb 47/47 · finance-os-a0192b7b 36/36 · RendaPerene 9/9; dispositions the tool produced: ['restructure', 'reuse'] of 4",
+          "value": 1.0,
+          "evidence": "components with a disposition and reason: FleetManageWeb 47/47 · finance-os-a0192b7b 36/36 · RendaPerene 9/9; dispositions the tool produced: ['delete', 'rebuild', 'restructure', 'reuse'] of 4",
           "reads": "target-architecture.json → current_components[].relation (retain→reuse, modify→restructure, rebuild, delete) with a reason; times the share of the four dispositions the corpus reports actually use",
           "measured": "automated"
         },
@@ -528,8 +528,8 @@
           "name": "الوظائف نفسها في الصورة المثالية",
           "definition": "وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "features placed in a target component: FleetManageWeb 0/24 · finance-os-a0192b7b 0/21 · RendaPerene 0/4",
+          "value": 1.0,
+          "evidence": "features placed in a target component: FleetManageWeb 24/24 · finance-os-a0192b7b 21/21 · RendaPerene 4/4",
           "reads": "features.json → features[].target_component",
           "measured": "automated"
         },
@@ -550,7 +550,7 @@
           "reads": "adr/ADR-*.md في التقرير، مقابل target-architecture.json → decisions[]",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "MADR files for decisions: FleetManageWeb 0/39 · finance-os-a0192b7b 0/31 · RendaPerene 0/9",
+          "evidence": "MADR files for decisions: FleetManageWeb 0/35 · finance-os-a0192b7b 0/29 · RendaPerene 0/9",
           "measured": "automated"
         }
       ]
@@ -566,8 +566,8 @@
           "name": "فجوة مربوطة بالمكوّنات المستهدفة",
           "definition": "صفوف gap_matrix المربوطة بمكوّن مستهدف ومعها فرق قابل للقياس ÷ صفوفها",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "gap rows tied to a target component: FleetManageWeb 0/47 · finance-os-a0192b7b 0/36 · RendaPerene 0/9",
+          "value": 1.0,
+          "evidence": "gap rows tied to a target component: FleetManageWeb 47/47 · finance-os-a0192b7b 36/36 · RendaPerene 9/9",
           "reads": "target-architecture.json → gap_matrix[].target_component",
           "measured": "automated"
         },
@@ -2628,7 +2628,8 @@
           "size": "L",
           "files": [
             "eaos/target_architecture.py",
-            "tests/test_target_architecture.py"
+            "tests/test_target_architecture.py",
+            "eaos/target_projection.py"
           ],
           "writes": [
             "contract:target-fragment"
@@ -2640,7 +2641,8 @@
             "العقد مع القياس: اكتب المكوّنات في target-architecture.json → target_components[]، وكل صف في gap_matrix يحمل target_component.",
             "القاعدة الافتراضية Modular Monolith: مكوّن مستهدف لكل وظيفة في features.json (أو لكل مجموعة وظائف متقاربة البيانات)، ومكوّن لكل طبقة مشتركة في النوع المرجعي (مثل ui و data-access و auth و config).",
             "لكل مكوّن: name و responsibility و layer (من طبقات النوع المرجعي) و reference (معرّف النوع).",
-            "كل ملف حالي يُنسب إلى مكوّن مستهدف: ملفات الوظيفة إلى مكوّنها، والباقي بطبقته. صف gap_matrix لكل مكوّن حالي فيه target_component وعدد الملفات التي تنتقل."
+            "كل ملف حالي يُنسب إلى مكوّن مستهدف: ملفات الوظيفة إلى مكوّنها، والباقي بطبقته. صف gap_matrix لكل مكوّن حالي فيه target_component وعدد الملفات التي تنتقل.",
+            "كما نُفّذ: eaos/target_projection.py. وحدة واحدة معيارية: مكوّن لكل وظيفة، ومكوّن لكل طبقة مشتركة، و platform لما لا تحمله طبقة كود. الملف الذي تستعمله وظيفة واحدة لها، والمشترك لطبقته. النقل: المسار الحالي ليس مكان المكوّن. الاستيراد الممنوع: طبقة لا تُسمح لها. finance-os: 27 مكوّنًا و 45 استيرادًا ممنوعًا؛ FleetManageWeb: 29 و 53؛ RendaPerene: 9 و 8. القرارات (ADR) صارت هيكلية: انقل N ملفًا إلى X وأزل K استيرادًا ممنوعًا. T3 = 0.808."
           ],
           "done_when": [
             "T1 = 1.0 و G1 = 1.0.",
@@ -2654,7 +2656,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only T1 --min 1.0 && python tools/north_star.py measure --only G1 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS7.T3",
@@ -2670,7 +2672,8 @@
           "size": "M",
           "files": [
             "eaos/target_architecture.py",
-            "tests/test_target_architecture.py"
+            "tests/test_target_architecture.py",
+            "eaos/target_projection.py"
           ],
           "writes": [
             "contract:target-fragment"
@@ -2679,7 +2682,8 @@
             "لكل بند في خط الأساس: موجود أم غائب بدليل، والقرار وبديله وكلفة 'لا نفعل شيئًا'.",
             "العقد مع القياس: اكتب القرارات في target-architecture.json → infrastructure[]، لكل بند area و present و decision و evidence.",
             "مرشحات كل بند من docs/TOOLCHAIN.md (الدور «يوصي»): CI ← GitHub Actions مع pre-commit؛ الاعتماديات ← Renovate؛ الرصد ← OpenTelemetry مع SigNoz؛ SLO ← Sloth؛ IaC ← OpenTofu (و Ansible للخوادم)؛ الإطلاق التدريجي ← Unleash؛ التوجيه أثناء Strangler ← Traefik؛ الهجرات ← أداة المكدّس الأصلية (Supabase CLI أو Prisma أو Alembic)، و Liquibase لـJVM فقط. لكل مرشح سبب من الحقائق أو سيناريو جودة، و«لا حاجة» مقبول بسببه.",
-            "area من قيم العقد فقط. present من الحقائق: ci ← حقائق ci_step، و configuration ← env_read و config_key، و observability ← observability_signal، و hosting ← vercel.json أو netlify.toml أو Dockerfile."
+            "area من قيم العقد فقط. present من الحقائق: ci ← حقائق ci_step، و configuration ← env_read و config_key، و observability ← observability_signal، و hosting ← vercel.json أو netlify.toml أو Dockerfile.",
+            "كما نُفّذ: لكل بند في خط أساس النوع: موجود أو غائب بدليل من الحقائق، والقرار، والأداة أو لا أداة بسببها، وكلفة لا نفعل شيئًا. البرنامج المكتبي لا يُستضاف ولا يحتاج خادم رصد (سجل محلي)."
           ],
           "done_when": [
             "T2 = 1.0.",
@@ -2692,7 +2696,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only T2 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS7.T4",
@@ -2709,7 +2713,8 @@
           "size": "M",
           "files": [
             "eaos/target_architecture.py",
-            "tests/test_target_architecture.py"
+            "tests/test_target_architecture.py",
+            "eaos/target_projection.py"
           ],
           "writes": [
             "contract:target-fragment",
@@ -2721,7 +2726,8 @@
             "retain: في طبقته المستهدفة، وبلا حافة ممنوعة، و complexity_max < 15، و duplicated_lines < 20 (من measurements.json).",
             "rebuild: أكثر من 40% من ملفاته تحتاج نقلًا أو تعديلًا، أو complexity_max > 40، أو عليه عنصر critical في سجل الدَّين.",
             "modify: ما سوى ذلك.",
-            "reason يذكر الأرقام التي قررت، و target_component مكانه المستهدف."
+            "reason يذكر الأرقام التي قررت، و target_component مكانه المستهدف.",
+            "كما نُفّذ: eaos/rules/disposition-rules.json بالترتيب delete ثم rebuild ثم retain ثم modify، والسبب يذكر الأرقام. القرارات الأربعة ظهرت من العتبات المعلنة دون افتعال: FleetManageWeb فيه 7 delete."
           ],
           "done_when": [
             "T4 = 1.0: كل مكوّن له قرار وسبب، والقرارات الأربعة ظاهرة في العيّنة.",
@@ -2733,7 +2739,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only T4 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS7.T5",
@@ -2750,14 +2756,16 @@
           "size": "S",
           "files": [
             "eaos/target_architecture.py",
-            "tests/test_target_architecture.py"
+            "tests/test_target_architecture.py",
+            "eaos/target_projection.py"
           ],
           "writes": [
             "contract:features"
           ],
           "steps": [
             "كل وظيفة من جرد U4 لها مكوّن مستهدف يحملها؛ الوظيفة بلا مكان في الصورة المثالية فجوة معلنة.",
-            "العقد مع القياس: اكتب مكان كل وظيفة في features.json → features[].target_component."
+            "العقد مع القياس: اكتب مكان كل وظيفة في features.json → features[].target_component.",
+            "كما نُفّذ: features.json → features[].target_component يكتبه target (مُعلن mutated_by)؛ 24/24 و 21/21 و 4/4."
           ],
           "done_when": [
             "T5 = 1.0.",
@@ -2770,7 +2778,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only T5 --min 1.0 && python tools/acceptance.py contract features --where \"all(f.get('target_component') for f in data['features'])\"",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "stages": [

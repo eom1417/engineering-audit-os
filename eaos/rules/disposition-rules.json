@@ -1,0 +1,11 @@
+{
+ "schema_version": 1,
+ "order": ["delete", "rebuild", "retain", "modify"],
+ "delete": {"unreachable_share_at_least": 1.0,
+            "why": "Nothing a user can reach runs this code: every file is an unreachable module."},
+ "rebuild": {"moved_share_above": 0.4, "complexity_max_above": 40, "critical_debt": true,
+             "why": "Most of it must move, or one function is past the point where it can be changed safely, or it carries a critical risk."},
+ "retain": {"moved_share_at_most": 0.0, "forbidden_edges_at_most": 0, "complexity_max_below": 15, "duplicated_lines_below": 20,
+            "why": "It is already where the target puts it, breaks no layer rule, and is simple and unduplicated."},
+ "modify": {"why": "Everything else: it stays, with the named changes."}
+}

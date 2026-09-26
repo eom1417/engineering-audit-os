@@ -58,7 +58,8 @@
       "eaos/remediation_patterns.py",
       "eaos/simulator.py",
       "eaos/target_architecture.py",
-      "eaos/transform_plan.py"
+      "eaos/transform_plan.py",
+      "eaos/target_projection.py"
     ],
     "orchestration": [
       "eaos/__main__.py",

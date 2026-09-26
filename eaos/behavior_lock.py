@@ -34,7 +34,8 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './playwright',
   snapshotPathTemplate: '{testDir}/../__screenshots__/{testFilePath}/{arg}{ext}',
-  reporter: [['json', { outputFile: 'results.json' }]],
+  // The raw Playwright report; NS26 turns a run into behavior-lock/results.json, the contract artifact.
+  reporter: [['json', { outputFile: 'playwright-report.json' }]],
   use: { baseURL: process.env.BASE_URL, storageState: path.join(__dirname, '.auth', 'user.json') },
   projects: [
     { name: 'setup', testMatch: /auth\\.setup\\.ts/ },

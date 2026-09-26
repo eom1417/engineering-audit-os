@@ -34,15 +34,8 @@ def _gather(out):
     return sets
 
 
-# An architectural component is a package, not a symbol. Building one per symbol produced 10,938
-# "components" on a 1,031-file repository, which is a symbol listing rather than an architecture.
-PACKAGE_ROOT = ''
-
-
-def package_of(path):
-    """The architectural unit a file belongs to: its directory, or the root for a top-level file."""
-    parent = str(Path(path).parent)
-    return PACKAGE_ROOT if parent in ('.', '') else parent
+# An architectural component is a package, not a symbol (eaos/target_projection.py holds the rule).
+from .target_projection import PACKAGE_ROOT, package_of  # noqa: E402,F401
 
 
 def components(sets, contracts_by_path=None):
@@ -157,7 +150,23 @@ def _adr(component, number):
     relation = component['relation']
     measured = component.get('assessment') or {}
     paths = component.get('paths') or [component.get('origin') or component['id']]
-    if relation == 'introduce':
+    moved = (component.get('projection') or {})
+    destination = component.get('target_component')
+    if relation == 'delete':
+        alternatives = [f"Delete the {moved.get('files', len(paths))} unreachable file(s) of `{component['origin']}` in one commit.",
+                        'Keep them with an owner and a reason in eaos.engagement.json.',
+                        'Do nothing and keep maintaining code no user reaches.']
+    elif relation == 'rebuild' and destination:
+        alternatives = [f"Rebuild `{component['origin']}` as `{destination}`: move {moved.get('moved', 0)} file(s) into it, "
+                        f"remove {moved.get('forbidden', 0)} forbidden import(s), behind the behaviour lock.",
+                        'Refactor it in place, one file at a time, without moving it.',
+                        'Do nothing and keep the measured complexity, placement and risk.']
+    elif relation == 'modify' and destination and (moved.get('moved') or moved.get('forbidden')):
+        alternatives = [f"Move {moved.get('moved', 0)} file(s) of `{component['origin']}` into `{destination}` and "
+                        f"break {moved.get('forbidden', 0)} forbidden import(s); the rest stays where it is.",
+                        'Keep the files in place and add an adapter at the layer boundary.',
+                        'Do nothing and keep the layer rules broken.']
+    elif relation == 'introduce':
         alternatives = ['Introduce the component behind its declared contracts.',
                         'Extend the closest existing owner instead of adding a component.',
                         'Do nothing and leave the capability without an owner.']
@@ -225,7 +234,7 @@ def validate_decision(decision):
 
 def decisions(components_list):
     candidates = [component for component in components_list
-                  if component.get('relation') in {'modify', 'introduce', 'retire'}]
+                  if component.get('relation') in {'modify', 'rebuild', 'delete', 'introduce', 'retire'}]
     return [_adr(component, number) for number, component in enumerate(candidates, 1)]
 
 
@@ -301,7 +310,7 @@ def gap_matrix(current_components, target_components, claims=None, tasks=None, s
     return rows
 
 
-def build(out, contracts_by_path=None, target_components=None):
+def build(out, contracts_by_path=None, target_components=None, target=None):
     """A source inventory is not a target design. Only explicit proposals enter the matrix."""
     import json
     sets = _gather(out)
@@ -319,6 +328,18 @@ def build(out, contracts_by_path=None, target_components=None):
         component['reason'] = reason
         component['evidence_ids'] = sorted(set(component['evidence_ids']) | set(evidence))
         component['assessment'] = assessment_details(component, sets, claims, load_record)
+    # The projection onto the project's reference type (eaos/target_projection.py) decides each component's
+    # disposition and destination; the evidence-based reasons above stay beside the numbers.
+    from .target_projection import project
+    projection = project(out, target)
+    if projection:
+        for component in current:
+            judged = projection['current'].get('' if component['origin'] == '.' else component['origin'])
+            if not judged: continue
+            earlier = component['reason'] if component['relation'] == 'modify' else ''
+            component['relation'], component['target_component'] = judged['relation'], judged['target_component']
+            component['reason'] = judged['reason'] + (f'; also: {earlier}' if earlier else '')
+            component['projection'] = judged['stats']
     proposal = Path(out) / 'target-design.json'
     if target_components is None and proposal.is_file():
         data = json.loads(proposal.read_text())
@@ -343,18 +364,40 @@ def build(out, contracts_by_path=None, target_components=None):
     transform_stages = json.loads(transform_path.read_text(encoding='utf-8')).get('stages', []) \
         if transform_path.is_file() else []
     matrix = gap_matrix(current, target_components, claims, plan_tasks, transform_stages)
+    for row in matrix:
+        source = next((c for c in current if c['id'] == row['component']), None)
+        if source and source.get('target_component'):
+            row['target_component'] = source['target_component']
+            row['files_to_move'] = (source.get('projection') or {}).get('moved', 0)
+            row['forbidden_imports'] = (source.get('projection') or {}).get('forbidden', 0)
     architectural_decisions = decisions([*current, *target_components])
-    return {'schema_version': 2, 'status': 'REVIEW_REQUIRED',
-            'retained_structure': 'Source inventory is shown below. Missing target decisions remain explicit gaps.',
-            'current_components': current, 'components': target_components or current,
-            'target_components': target_components,
-            'decisions': architectural_decisions, 'gap_matrix': matrix,
-            'limits': ' '.join(LIMITATIONS)}
+    result = {'schema_version': 2, 'status': 'REVIEW_REQUIRED',
+              'retained_structure': 'Source inventory is shown below. Missing target decisions remain explicit gaps.',
+              'current_components': current, 'components': target_components or current,
+              'target_components': target_components,
+              'decisions': architectural_decisions, 'gap_matrix': matrix,
+              'limits': ' '.join(LIMITATIONS)}
+    if projection:
+        result.update(reference=projection['reference'], target_components=projection['target_components'],
+                      infrastructure=projection['infrastructure'], forbidden_edges=len(projection['forbidden_edges']))
+        place_features(out, projection['features'])
+    return result
+
+
+def place_features(out, placement):
+    """Write each feature's target component into features.json: the same features, in the target."""
+    import json
+    path = Path(out) / 'features.json'
+    if not path.is_file(): return
+    record = json.loads(path.read_text(encoding='utf-8'))
+    for feature in record.get('features') or []:
+        feature['target_component'] = placement.get(feature['name'])
+    path.write_text(json.dumps(record, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
 # The component inventory belongs in the record; the document names the shape of the target.
 SHOWN_COMPONENTS = 12
-SHOWN_DECISIONS = 12
+SHOWN_DECISIONS = 8
 
 
 def render(out, target, language='ar'):
@@ -368,18 +411,42 @@ def render(out, target, language='ar'):
     else:
         lines += ['# Target architecture', '',
                   '> Source inventory and reviewed target proposals are separate. Unspecified targets remain gaps.', '']
+    if target.get('reference'):
+        lines += ['## ' + ('النوع المرجعي والمكوّنات المستهدفة' if ar else 'Reference type and target components'), '',
+                  (f"النوع: `{target['reference']}` (وحدة واحدة معيارية). {len(target['target_components'])} مكوّنًا مستهدفًا، "
+                   f"و{target.get('forbidden_edges', 0)} استيرادًا ممنوعًا تزيله الخطة." if ar else
+                   f"Type: `{target['reference']}` (a modular monolith). {len(target['target_components'])} target components; "
+                   f"{target.get('forbidden_edges', 0)} forbidden imports the plan removes."), '',
+                  '| ' + (' | '.join(['المكوّن', 'الطبقة', 'الملفات', 'تنتقل إليه', 'استيرادات ممنوعة']) if ar else
+                         ' | '.join(['Component', 'Layer', 'Files', 'Moving in', 'Forbidden imports'])) + ' |',
+                  '|---|---|---:|---:|---:|']
+        shown = sorted(target['target_components'], key=lambda c: (-c.get('moves_in', 0), -c.get('files', 0), c['name']))[:15]
+        for component in shown:
+            lines.append(f"| `{component['name']}` | {component['layer']} | {component.get('files', 0)} | "
+                         f"{component.get('moves_in', 0)} | {component.get('forbidden_edges_removed', 0)} |")
+        if len(target['target_components']) > len(shown):
+            lines += ['', (f"عُرض {len(shown)} من {len(target['target_components'])}؛ البقية في `target-architecture.json`." if ar else
+                           f"Showing {len(shown)} of {len(target['target_components'])}; the rest are in `target-architecture.json`.")]
+        lines += ['', '## ' + ('قرارات البنية التحتية' if ar else 'Infrastructure decisions'), '']
+        for item in target.get('infrastructure') or []:
+            mark = '✅' if item['present'] else '⬜'
+            tool = item['tool'] or (('بلا أداة: ' if ar else 'no tool: ') + (item.get('tool_reason') or ''))
+            lines.append(f"- {mark} **{item['area']}**: {item['decision']} ({tool}). "
+                         + ('الدليل: ' if ar else 'Evidence: ') + item['evidence'])
+        lines.append('')
     lines += ['## ' + ('البنية المحفوظة' if ar else 'Retained structure'), '']
     lines += [target['retained_structure']]
     lines += ['', '## ' + ('المكوّنات' if ar else 'Components')]
     by_relation = defaultdict(list)
     for component in target['components']:
         by_relation[component['relation']].append(component)
-    for relation in ['unassessed', 'retain', 'modify', 'introduce', 'retire']:
+    for relation in ['unassessed', 'delete', 'rebuild', 'modify', 'retain', 'introduce', 'retire']:
         rows = by_relation.get(relation, [])
         if not rows: continue
         lines += ['', '### ' + relation.capitalize() + f' ({len(rows)})']
         for component in rows[:SHOWN_COMPONENTS]:
-            lines += [f"- `{component['id']}` ← `{component['origin']}`: {component['name']}"]
+            where = f" → `{component['target_component']}`" if component.get('target_component') else ''
+            lines += [f"- `{component['id']}` ← `{component['origin']}`{where}: {component['name']}"]
         if len(rows) > SHOWN_COMPONENTS:
             lines += [('- … البقية في `target-architecture.json`' if ar
                        else '- … the rest are in `target-architecture.json`')]
