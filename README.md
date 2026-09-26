@@ -33,18 +33,6 @@ EAOS يعالج الأمرين بقاعدة واحدة: **لا رأي بلا د�
 
 هذا هو المقياس الوحيد لنجاح المشروع. سير العمل الكامل بمراحله الخمس عشرة وأدواته وبواباته في [`docs/MASTER-BLUEPRINT.md`](docs/MASTER-BLUEPRINT.md)، والقياس بمؤشراته وخطته في [`docs/NORTH-STAR.md`](docs/NORTH-STAR.md).
 
-## 👥 ماذا يقدّم بدل فريق المراجعة
-
-| الدور في الفريق | ما يفعله EAOS | أين تجده في التقرير |
-|---|---|---|
-| المهندس المعماري | يرسم الوحدات والطبقات والاعتماديات والتدفقات، ويفحص سياستك المعمارية المعلنة، ويرسم نموذج C4 الحالي | `CURRENT-STATE` · `SYSTEM-MAP` · `COUPLING-ATLAS` · `POLICY` |
-| مراجع الكود | يجد التعقيد والتكرار والكود الميت والحالة المشتركة، ويؤكدها بأكثر من أداة مستقلة، ويجمعها في سجل دَين واحد | `DECISION-BRIEF` · `RISK-REGISTER` · `debt-register.json` |
-| مهندس الأداء | يبني سجل كلفة لكل نقطة دخول، ويُسقطه على حمل أكبر 1000 مرة | `LOAD-MODEL` |
-| مهندس الجودة | يثبّت سلوك كل ميزة قبل أي تغيير، ويشغّل الاختبارات في نسخة معزولة عند الطلب، ويرسم التغطية الفعلية | `behavior-lock/` · `VERIFICATION-MAP` |
-| القائد التقني | يحدد البنية المستهدفة وقراراتها (C4 وADR)، وقرارًا لكل مكوّن، والفجوة بين اليوم والوجهة | `TARGET-STATE` · `GAP-AND-STRATEGY` · `adr/` |
-| مدير التنفيذ | يحوّل كل ما سبق إلى بطاقات بحجم (S/M/L) وقسم فريق وأمر قبول، مرتبة في معالم | `EXECUTION-PLAN` · `ROADMAP` · `PLAN/` |
-| الراعي أو المدير | صفحة قرار واحدة: ماذا نفعل، ولماذا، وبأي دليل | `EXECUTIVE` |
-
 ## 🧭 المبادئ الستة
 
 1. **دليل أو صمت.** كل ادعاء يحمل معرّفات الحقائق التي تثبته، وجملة تحدد ما الذي ينقضه.
@@ -54,55 +42,71 @@ EAOS يعالج الأمرين بقاعدة واحدة: **لا رأي بلا د�
 5. **غير المقيس ليس نجاحًا.** ما لم يُفحص يُذكر صراحة في `RUN.md`، ولا يتحول «لم يُشغَّل» إلى «نجح».
 6. **حتمي أولًا.** نفس اللقطة تعطي نفس الحقائق حرفيًا في كل تشغيل. النموذج اللغوي اختياري، ومخرجاته تبقى فرضيات حتى تُحسم آليًا.
 
-## 🛤️ كيف يعمل: من المستودع إلى التقارير الأربعة
+## 🛤️ كيف يعمل: المراحل ومخرجاتها وبوابات الانتقال
+
+<!-- north-star:pipeline:start -->
+<!-- مولَّد من docs/north-star.json بالأمر python tools/north_star.py؛ لا تحرّره يدويًا -->
+
+كل صندوق مرحلة ومخرجها، وكل سهم بوابة: لا ينتقل العمل إلى المرحلة التالية إلا إذا تحققت معاييرها. المراحل S01 إلى S07 تقرأ المشروع فقط وتنتهي بالتقارير الأربعة؛ S08 إلى S14 تشغّله في بيئة معزولة بتفويض مالكه.
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 260, 'nodeSpacing': 40, 'rankSpacing': 60}}}%%
 flowchart TB
-    P[("مشروعك · your project<br/>للقراءة فقط · read-only")]
-    subgraph E1["١ الأدلة · Evidence"]
+    subgraph P1["التقييم: يقرأ المشروع فقط (1/2)"]
         direction LR
-        F["الحقائق من الكود<br/>facts from code"]
-        T["أدوات مثبّتة الإصدار<br/>pinned open-source tools<br/>Semgrep · Syft · OSV · jscpd …"]
-        I["أسئلة الاستلام<br/>intake answers"]
+        S01["<b>S01 · الاستلام والجرد</b><br/>📄 intake.json · facts/index.json …<br/>▰ 100%"]:::done
+        S02["<b>S02 · رسم العمارة الحالية</b><br/>📄 features.json · load-model.json …<br/>▰ 100%"]:::done
+        S03["<b>S03 · القياس</b><br/>📄 measurements.json · خط الأساس المثبّت<br/>▰ 100%"]:::done
+        S04["<b>S04 · التشخيص وسجل الدَّين</b><br/>📄 CURRENT-STATE.md · debt-register.json …<br/>▰ 100%"]:::done
+        S01 -->|"✔ U6 = 1، U1 ≥ 0.95، H3 = 1، R4 = 1"| S02
+        S02 -->|"✔ U2 ≥ 0.9، U3 = U4 = 1، U5 ≥ 0.8، ونموذج C4 الحالي"| S03
+        S03 -->|"✔ M1 ≥ 0.95، وخط الأساس مثبّت"| S04
     end
-    subgraph E2["٢ التشخيص · Diagnosis"]
+    subgraph P2["التقييم: يقرأ المشروع فقط (2/2)"]
         direction LR
-        C["ادعاءات بدليل وناقض<br/>claims with evidence"]
-        PR["مجسّات تحسمها آليًا<br/>probes decide them"]
-        C --> PR
+        S05["<b>S05 · تثبيت السلوك الحالي</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 50%"]:::current
+        S06["<b>S06 · الصورة المثالية</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 100%"]:::done
+        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 78%"]:::current
+        S05 -->|"✔ أ (ساكن): E4 = 1 · ب (معزول): E5 ≥ 0.8 وخط أساس k6"| S06
+        S06 -->|"✔ T1–T7 عند أهدافها، وموافقة بشرية مسجلة"| S07
     end
-    subgraph E3["٣ التصميم · Design"]
+    subgraph P3["التنفيذ: بيئة معزولة بتفويض المالك (1/2)"]
         direction LR
-        L["تثبيت السلوك<br/>behaviour lock"]
-        TA["الصورة المثالية + C4 + ADR<br/>target architecture"]
-        L --> TA
+        S08["<b>S08 · التنفيذ</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 0%"]:::next
+        S09["<b>S09 · التحقق الوظيفي</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 0%"]:::next
+        S10["<b>S10 · الأمن</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
+        S11["<b>S11 · الحمل</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
+        S08 -->|"✔ لكل مهمة: قبولها يمر، وشبكة الأمان تمر، ولا ادعاء حرج جديد. E1 = 1"| S09
+        S09 -->|"✔ E7 = 1، E2 ≥ 0.8"| S10
+        S10 -->|"✔ E8 = 1"| S11
     end
-    subgraph E4["٤ الخطة · Plan"]
+    subgraph P4["التنفيذ: بيئة معزولة بتفويض المالك (2/2)"]
         direction LR
-        PL["بطاقات بحجم وأمر قبول وتراجع<br/>cards: size, acceptance, rollback"]
-        RM["معالم وأقسام فريق<br/>milestones and team sections"]
-        PL --> RM
+        S12["<b>S12 · الأعطال المتعمدة</b><br/>📄 runtime/resilience.json · RESILIENCE.md<br/>▰ 0%"]:::next
+        S13["<b>S13 · الرصد</b><br/>📄 otel/collector.yaml · slo/*.yaml …<br/>▰ 2%"]:::current
+        S14["<b>S14 · الجاهزية للإنتاج</b><br/>📄 PRODUCTION-READINESS.md · PRODUCTION-READINESS.json<br/>▰ 2%"]:::current
+        S12 -->|"✔ E9 ≥ 0.8"| S13
+        S13 -->|"✔ E10 ≥ 0.9"| S14
     end
-    subgraph OUT["التقارير الأربعة · The four reports"]
+    subgraph P5["الحوكمة والتسليم"]
         direction LR
-        R1["CURRENT-STATE<br/>الوضع الراهن"] --> R2["TARGET-STATE<br/>الصورة المثالية"] --> R3["GAP-AND-STRATEGY<br/>الفجوة والتحول"] --> R4["EXECUTION-PLAN<br/>خطة التنفيذ"]
+        S15["<b>S15 · الحوكمة المستمرة والتسليم</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 3%"]:::current
+        LOOP["↺ إعادة التدقيق بعد كل تغيير: يعود إلى S01"]:::next
+        S15 -->|"✔ K1 = 1، وخط الأساس مثبّت، وبوابة الدَّين الجديد في CI"| LOOP
     end
-    P --> E1 --> E2 --> E3 --> E4 --> OUT
-    OUT -. "تفويض المالك · owner authorization" .-> X["التنفيذ والإثبات في بيئة معزولة<br/>execution and proof, isolated"]
-    X -. "إعادة التدقيق · re-audit" .-> E1
-    classDef out fill:#dbeafe,stroke:#1d4ed8,color:#1e3a8a,stroke-width:2px
-    class R1,R2,R3,R4 out
+    P1 ==>|"✔ S1 ≥ 0.8، S2 ≥ 0.8، S3 ≥ 0.8، D1 ≥ 0.8، H1 = H2 = H3 = 1، R3 = 1"| P2
+    P2 ==>|"✔ G1 = 1، P1–P9 عند أهدافها. هنا ينتهي عقد التقييم + تفويض المالك"| P3
+    P3 ==>|"✔ E6 ≥ 0.8"| P4
+    P4 ==>|"✔ E11 = 1"| P5
+    classDef done fill:#dcfce7,stroke:#15803d,color:#14532d,stroke-width:2px
+    classDef current fill:#fef9c3,stroke:#ca8a04,color:#713f12,stroke-width:3px
+    classDef next fill:#f1f5f9,stroke:#64748b,color:#1e293b
+    classDef owner fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:5 3
 ```
 
-| الخطوة | ماذا تفعل | ماذا تُخرج |
-|---|---|---|
-| **١ الأدلة** | تستخرج الحقائق من الملفات والرموز والاستيرادات ونقاط الدخول وتاريخ git، وتشغّل أدوات خارجية مثبّتة الإصدار ومتحقَّقًا من بصمتها (`upstreams/toolchain.json`)، وتقرأ إجابات المالك عن أسئلة الاستلام | `facts/*.json` · `sbom.cdx.json` · `intake.json` |
-| **٢ التشخيص** | تحوّل الحقائق إلى ادعاءات لكل منها ثقة ودليل وجملة تنقضه، وتحسم ما يمكن حسمه بمجسّات آلية، وتجمع الأدلة في سجل دَين واحد | `dossier.json` · `debt-register.json` · `measurements.json` |
-| **٣ التصميم** | تثبّت سلوك كل ميزة قبل أي تغيير، ثم تختار المعمارية المستهدفة من سبع معماريات مرجعية بحسب ملفات المشروع نفسه، وتقرر لكل مكوّن: يُستخدم، أو يُعاد هيكلته، أو يُعاد بناؤه، أو يُحذف | `behavior-lock/` · `target-architecture.json` · `architecture/*/workspace.dsl` · `adr/` |
-| **٤ الخطة** | تحوّل كل ادعاء إلى بطاقة: إصلاح جاهز بأمر قبول يعيد فحص المشكلة نفسها، أو تحقيق ينتظر قرارًا مسجلًا. ثم ترتّب البطاقات في معالم وأقسام فريق | `plan.json` · `ROADMAP.md` · `PLAN/` |
-| **التقارير الأربعة** | ما تسلّمه شركة برمجية: الوضع الراهن، والصورة المثالية، والفجوة والاستراتيجية، وخطة التنفيذ | `CURRENT-STATE.md` · `TARGET-STATE.md` · `GAP-AND-STRATEGY.md` · `EXECUTION-PLAN.md` |
+<!-- north-star:pipeline:end -->
 
-اعرض المراحل كما يعرّفها الكود: `eaos stages` · وحالة بوابة كل مرحلة: `eaos engage status`
+اعرض المراحل كما يعرّفها الكود: `eaos stages` · وهل تمر بوابة كل مرحلة ولماذا لا: `eaos engage status report`
 
 ---
 
@@ -187,144 +191,123 @@ eaos improve audit --out campaign --checks checks.json \
 
 ## 📊 أين نحن من الوجهة
 
-هذا القسم مولَّد آليًا من [`docs/north-star.json`](docs/north-star.json)، ويفشل فحص `python tools/north_star.py --check` إن تأخر عن السجل. التفصيل الكامل لكل قدرة ومؤشر ومهمة في [`docs/NORTH-STAR.md`](docs/NORTH-STAR.md).
-
-<!-- north-star:start -->
+<!-- north-star:progress:start -->
 <!-- مولَّد من docs/north-star.json بالأمر python tools/north_star.py؛ لا تحرّره يدويًا -->
 
-### التقدم الفعلي: **14 من 25 معلمًا (56.0%)**
+### التقدم: **60.0 من 100 نقطة**
 
-`██████████████░░░░░░░░░░░` 56.0%
+`███████████████░░░░░░░░░░` 60.0%
 
-| المعلم الحالي | جودة المخرج المقيسة (ليست نسبة إنجاز) | آخر قياس |
-|---|---|---|
-| 15 · NS14 — جودة التقرير تُفحص آليًا | 87.6% | 2026-09-26 · `f48d997+` |
+| الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
+|---|---|---|---|---|
+| 14 من 25 | 15 · NS14 جودة التقرير تُفحص آليًا | 40.0 | 35 | 2026-09-26 · `f48d997+` |
 
-> **رقم التقدم هو عدد المعالم المكتملة.** المعلم لا يُحسب إلا حين تمر أوامر قبول كل مهامه، والمنتج مكتمل عند 25 من 25. أما «جودة المخرج» فتقيس جودة ما يسلّمه الجزء المبني حتى الآن على 3 مشاريع حقيقية (54 مؤشرًا على 10 قدرات)، وترتفع أسرع لأن أول المعالم بنت القدرات الأثقل وزنًا. التفصيل الكامل، معلمًا معلمًا ومهمة مهمة، في [docs/NORTH-STAR.md](docs/NORTH-STAR.md).
+`+`: قيس على تغييرات فوق هذا الالتزام، حُفظت في الالتزام التالي.
 
-(`+`: على تغييرات فوق هذا الالتزام تُحفظ في الالتزام التالي)
+**كيف يُحسب:**
 
-**تحتاج مدخلًا من المالك قبل أن تكتمل:** 17 NS26, 18 NS9, 19 NS20, 20 NS21, 21 NS22, 22 NS23, 23 NS24, 24 NS16, 25 NS10
+- لكل خطوة **وزن** بالنقاط، مجموعها 100، ومكتوب سبب كل وزن.
+- **إنجاز الخطوة** = متوسط إنجاز مهامها موزونًا بحجمها (S = 1، M = 2، L = 3). المهمة المغلقة 100%. المفتوحة = تقدم مؤشراتها نحو حد بوابتها (القيمة ÷ الحد)، بسقف 90% حتى يمر أمر قبولها وتُغلق.
+- **نقاط الخطوة** = الوزن × الإنجاز. **التقدم** = مجموع نقاط الخطوات من 100.
+- **جودة المخرج** = متوسط (القيمة ÷ الحد) لمعايير بوابة الخطوة كما تُقاس اليوم على 3 مشاريع حقيقية.
+- **بوابة الانتقال:** لا تبدأ الخطوة التالية قبل أن تتحقق كل معايير بوابة الخطوة الحالية. و`python tools/north_star.py --check` يفشل إن أُغلقت خطوة قبل سابقتها، أو سقط معيار من بوابة خطوة مغلقة.
 
-### خط الإنتاج: المراحل الخمس عشرة
-
-كل مرحلة تمر ببوابتها قبل التي تليها. المراحل S01 إلى S07 تقرأ المشروع فقط وتنتهي بالتقارير الأربعة؛ المراحل S08 إلى S14 تشغّل كود المشروع في بيئة معزولة، ولا تبدأ إلا بتفويض مالكه.
+الخطوات الخمس والعشرون بترتيب التنفيذ. على كل سهم بوابة الخطوة التي قبله. التفصيل الكامل لكل خطوة (ماذا تفعل، وأدواتها، ومخرجها، وقيم بوابتها اليوم) في [docs/NORTH-STAR.md](docs/NORTH-STAR.md).
 
 ```mermaid
+%%{init: {'flowchart': {'wrappingWidth': 260, 'nodeSpacing': 40, 'rankSpacing': 60}}}%%
 flowchart TB
-    subgraph ASSESS["التقييم: قراءة فقط · Assessment: read-only"]
+    subgraph R1_1["R1 · الأساس: الوصول والرؤية والإشارة (1/2)"]
         direction LR
-        S01["S01 · DISCOVER<br/>الاستلام والجرد"]:::done
-        S02["S02 · MAP<br/>رسم العمارة الحالية"]:::done
-        S03["S03 · MEASURE<br/>القياس"]:::done
-        S04["S04 · DIAGNOSE<br/>التشخيص وسجل الدَّين"]:::done
-        S05["S05 · LOCK CURRENT BEHAVIOR<br/>تثبيت السلوك الحالي"]:::current
-        S06["S06 · DESIGN TARGET ARCHITECTURE<br/>الصورة المثالية"]:::done
-        S07["S07 · PLAN TRANSFORMATION<br/>الفجوة وخطة التحول"]:::current
-        S01 --> S02 --> S03 --> S04 --> S05 --> S06 --> S07
+        NS1["<b>1 · NS1</b><br/>القياس آليًا<br/>Automated measurement<br/>⚖ 3 · ▰ 100%"]:::done
+        NS2["<b>2 · NS2</b><br/>لا يفشل على مشروع حقيقي<br/>Never fails on a real project<br/>⚖ 3 · ▰ 100%"]:::done
+        NS3["<b>3 · NS3</b><br/>تقرير الوضع الراهن<br/>Current state<br/>⚖ 6 · ▰ 100%"]:::done
+        NS4["<b>4 · NS4</b><br/>الإشارة لا الضجيج<br/>Signal, not noise<br/>⚖ 3 · ▰ 100%"]:::done
+        NS1 -->|"✔ +2 اختبار قبول"| NS2
+        NS2 -->|"✔ R1=1 · +1 اختبار قبول"| NS3
+        NS3 -->|"✔ U2≥0.9 · U3=1 · U4=1 · … · +2 اختبار قبول"| NS4
     end
-    subgraph EXECUTE["التنفيذ: عزل وتفويض · Execution: isolated, authorized"]
+    subgraph R1_2["R1 · الأساس: الوصول والرؤية والإشارة (2/2)"]
         direction LR
-        S08["S08 · REBUILD / REFACTOR<br/>التنفيذ"]:::next
-        S09["S09 · VERIFY<br/>التحقق الوظيفي"]:::next
-        S10["S10 · SECURE<br/>الأمن"]:::next
-        S11["S11 · LOAD TEST<br/>الحمل"]:::next
-        S12["S12 · BREAK IT DELIBERATELY<br/>الأعطال المتعمدة"]:::next
-        S13["S13 · OBSERVE<br/>الرصد"]:::next
-        S14["S14 · PRODUCTION READINESS<br/>الجاهزية للإنتاج"]:::next
-        S08 --> S09 --> S10 --> S11 --> S12 --> S13 --> S14
+        NS5["<b>5 · NS5</b><br/>الكود الميت والمخلفات<br/>Dead code and leftovers<br/>⚖ 4 · ▰ 100%"]:::done
+        NS6["<b>6 · NS6</b><br/>نظافة الأمن الأساسية<br/>Basic security hygiene<br/>⚖ 3 · ▰ 100%"]:::done
+        NS5 -->|"✔ D1≥0.8 · D2≥0.9 · D3≥0.9"| NS6
     end
-    subgraph GOVERN["الحوكمة والتسليم · Governance and handover"]
+    subgraph R2_1["R2 · منصة الأدوات: تثبيت، وقراءة، وتوليد، ومراحل، وعزل"]
         direction LR
-        S15["S15 · CONTINUOUS GOVERNANCE<br/>الحوكمة المستمرة والتسليم"]:::next
+        NS17["<b>7 · NS17</b><br/>منصة الأدوات<br/>Tool platform<br/>⚖ 5 · ▰ 100%"]:::done
     end
-    ASSESS ==>|تفويض المالك · owner authorization| EXECUTE
-    EXECUTE ==> GOVERN
-    LOOP["↺ إعادة التدقيق بعد كل تغيير<br/>re-audit after every change"]:::next
-    GOVERN -.-> LOOP
+    subgraph R3_1["R3 · الأدلة الكاملة من الأدوات الجاهزة"]
+        direction LR
+        NS11["<b>8 · NS11</b><br/>الاستلام<br/>Intake<br/>⚖ 2 · ▰ 100%"]:::done
+        NS12["<b>9 · NS12</b><br/>محوّلات الفحص الساكن<br/>Static-analysis adapters<br/>⚖ 5 · ▰ 100%"]:::done
+        NS18["<b>10 · NS18</b><br/>القياس وسجل الدَّين<br/>Measurement and debt register<br/>⚖ 4 · ▰ 100%"]:::done
+        NS11 -->|"✔ U6=1 · +1 اختبار قبول"| NS12
+        NS12 -->|"✔ H3=1 · R3=1 · +12 اختبار قبول"| NS18
+    end
+    subgraph R4_1["R4 · تثبيت السلوك والصورة المثالية"]
+        direction LR
+        NS15["<b>11 · NS15</b><br/>تثبيت السلوك<br/>Behaviour lock<br/>⚖ 4 · ▰ 100%"]:::done
+        NS7["<b>12 · NS7</b><br/>تقرير الصورة المثالية<br/>Target-state report<br/>⚖ 7 · ▰ 100%"]:::done
+        NS13["<b>13 · NS13</b><br/>نموذج العمارة وقراراتها<br/>Architecture model and decisions (C4, ADR)<br/>⚖ 3 · ▰ 100%"]:::done
+        NS15 -->|"✔ E4=1 · +4 اختبار قبول"| NS7
+        NS7 -->|"✔ T1=1 · G1=1 · T2=1 · … · +2 اختبار قبول"| NS13
+    end
+    subgraph R5_1["R5 · الخطة والتقارير وعدّة التسليم"]
+        direction LR
+        NS8["<b>14 · NS8</b><br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports<br/>⚖ 7 · ▰ 100%"]:::done
+        NS14["<b>15 · NS14</b><br/>جودة التقرير تُفحص آليًا<br/>Report quality checked automatically<br/>⚖ 2 · ▰ 0%"]:::current
+        NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 4 · ▰ 3%"]:::next
+        NS8 -->|"✔ P1=1 · P4=1 · P3≥0.8 · …"| NS14
+        NS14 -->|"✔ P8=1 · +3 اختبار قبول"| NS25
+    end
+    subgraph R6_1["R6 · التنفيذ المثبت"]
+        direction LR
+        NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 0%"]:::owner
+        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 0%"]:::owner
+        NS20["<b>19 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
+        NS26 -->|"✔ E5≥0.8 · +2 اختبار قبول"| NS9
+        NS9 -->|"✔ E1=1 · +1 اختبار قبول"| NS20
+    end
+    subgraph R7_1["R7 · التصليب التشغيلي (1/2)"]
+        direction LR
+        NS21["<b>20 · NS21</b><br/>الأمن بعد التحول<br/>Security after the transformation<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS22["<b>21 · NS22</b><br/>الحمل<br/>Load<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS23["<b>22 · NS23</b><br/>الأعطال المتعمدة<br/>Deliberate failures (chaos)<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS24["<b>23 · NS24</b><br/>الرصد<br/>Observability<br/>⚖ 2 · ▰ 0%"]:::owner
+        NS21 -->|"✔ E8=1 · +1 اختبار قبول"| NS22
+        NS22 -->|"✔ E6≥0.8"| NS23
+        NS23 -->|"✔ E9≥0.8 · +1 اختبار قبول"| NS24
+    end
+    subgraph R7_2["R7 · التصليب التشغيلي (2/2)"]
+        direction LR
+        NS16["<b>24 · NS16</b><br/>الجاهزية للإنتاج<br/>Production readiness<br/>⚖ 2 · ▰ 0%"]:::owner
+    end
+    subgraph R8_1["R8 · الإثبات المستقل"]
+        direction LR
+        NS10["<b>25 · NS10</b><br/>الإثبات المستقل<br/>Independent proof<br/>⚖ 5 · ▰ 18%"]:::owner
+    end
+    R1_1 ==>|"✔ S1≥0.8 · S2≥0.8"| R1_2
+    R1_2 ==>|"✔ H1=1 · +1 اختبار قبول"| R2_1
+    R2_1 ==>|"✔ R4=1 · +4 اختبار قبول"| R3_1
+    R3_1 ==>|"✔ M1≥0.95 · S3≥0.8 · G2=1 · +2 اختبار قبول"| R4_1
+    R4_1 ==>|"✔ T6=1 · T7=1 · +2 اختبار قبول"| R5_1
+    R5_1 ==>|"✔ K1=1 · +4 اختبار قبول"| R6_1
+    R6_1 ==>|"✔ E7=1 · E2≥0.8"| R7_1
+    R7_1 ==>|"✔ E10≥0.9 · +1 اختبار قبول"| R7_2
+    R7_2 ==>|"✔ E11=1 · +1 اختبار قبول"| R8_1
     classDef done fill:#dcfce7,stroke:#15803d,color:#14532d,stroke-width:2px
     classDef current fill:#fef9c3,stroke:#ca8a04,color:#713f12,stroke-width:3px
     classDef next fill:#f1f5f9,stroke:#64748b,color:#1e293b
     classDef owner fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:5 3
 ```
 
-### خارطة الطريق: المعالم الخمسة والعشرون بترتيب التنفيذ
+✅ مكتملة · 🟡 قيد العمل · ⬜ التالية · 🔴 تحتاج مدخلًا منك  
+⚖ الوزن بالنقاط (من 100) · ▰ نسبة الإنجاز · ✔ على السهم: بوابة الانتقال، أي المعايير التي يجب أن تتحقق قبل الخطوة التالية
 
-```mermaid
-flowchart TB
-    subgraph R1["R1 · الأساس: الوصول والرؤية والإشارة<br/>Foundation: reach, visibility, signal"]
-        direction LR
-        NS1["1 · NS1<br/>القياس آليًا<br/>Automated measurement"]:::done
-        NS2["2 · NS2<br/>لا يفشل على مشروع حقيقي<br/>Never fails on a real project"]:::done
-        NS3["3 · NS3<br/>تقرير الوضع الراهن<br/>Current state"]:::done
-        NS4["4 · NS4<br/>الإشارة لا الضجيج<br/>Signal, not noise"]:::done
-        NS5["5 · NS5<br/>الكود الميت والمخلفات<br/>Dead code and leftovers"]:::done
-        NS6["6 · NS6<br/>نظافة الأمن الأساسية<br/>Basic security hygiene"]:::done
-        NS1 --> NS2 --> NS3 --> NS4 --> NS5 --> NS6
-    end
-    subgraph R2["R2 · منصة الأدوات: تثبيت، وقراءة، وتوليد، ومراحل، وعزل<br/>Tool platform"]
-        direction LR
-        NS17["7 · NS17<br/>منصة الأدوات<br/>Tool platform"]:::done
-    end
-    R1 --> R2
-    subgraph R3["R3 · الأدلة الكاملة من الأدوات الجاهزة<br/>Full evidence from proven tools"]
-        direction LR
-        NS11["8 · NS11<br/>الاستلام<br/>Intake"]:::done
-        NS12["9 · NS12<br/>محوّلات الفحص الساكن<br/>Static-analysis adapters"]:::done
-        NS18["10 · NS18<br/>القياس وسجل الدَّين<br/>Measurement and debt register"]:::done
-        NS11 --> NS12 --> NS18
-    end
-    R2 --> R3
-    subgraph R4["R4 · تثبيت السلوك والصورة المثالية<br/>Behaviour lock and target state"]
-        direction LR
-        NS15["11 · NS15<br/>تثبيت السلوك<br/>Behaviour lock"]:::done
-        NS7["12 · NS7<br/>تقرير الصورة المثالية<br/>Target-state report"]:::done
-        NS13["13 · NS13<br/>نموذج العمارة وقراراتها<br/>Architecture model and decisions (C4, ADR)"]:::done
-        NS15 --> NS7 --> NS13
-    end
-    R3 --> R4
-    subgraph R5["R5 · الخطة والتقارير وعدّة التسليم<br/>Plan, reports and handover kit"]
-        direction LR
-        NS8["14 · NS8<br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports"]:::done
-        NS14["15 · NS14<br/>جودة التقرير تُفحص آليًا<br/>Report quality checked automatically"]:::current
-        NS25["16 · NS25<br/>عدّة التشغيل والتسليم<br/>Operations and handover kit"]:::next
-        NS8 --> NS14 --> NS25
-    end
-    R4 --> R5
-    subgraph R6["R6 · التنفيذ المثبت<br/>Proven execution"]
-        direction LR
-        NS26["17 · NS26<br/>خط الأساس الحي<br/>Live baseline"]:::owner
-        NS9["18 · NS9<br/>إثبات التنفيذ<br/>Proven execution"]:::owner
-        NS20["19 · NS20<br/>التحقق الوظيفي<br/>Functional verification"]:::owner
-        NS26 --> NS9 --> NS20
-    end
-    R5 --> R6
-    subgraph R7["R7 · التصليب التشغيلي<br/>Operational hardening"]
-        direction LR
-        NS21["20 · NS21<br/>الأمن بعد التحول<br/>Security after the transformation"]:::owner
-        NS22["21 · NS22<br/>الحمل<br/>Load"]:::owner
-        NS23["22 · NS23<br/>الأعطال المتعمدة<br/>Deliberate failures (chaos)"]:::owner
-        NS24["23 · NS24<br/>الرصد<br/>Observability"]:::owner
-        NS16["24 · NS16<br/>الجاهزية للإنتاج<br/>Production readiness"]:::owner
-        NS21 --> NS22 --> NS23 --> NS24 --> NS16
-    end
-    R6 --> R7
-    subgraph R8["R8 · الإثبات المستقل<br/>Independent proof"]
-        direction LR
-        NS10["25 · NS10<br/>الإثبات المستقل<br/>Independent proof"]:::owner
-    end
-    R7 --> R8
-    classDef done fill:#dcfce7,stroke:#15803d,color:#14532d,stroke-width:2px
-    classDef current fill:#fef9c3,stroke:#ca8a04,color:#713f12,stroke-width:3px
-    classDef next fill:#f1f5f9,stroke:#64748b,color:#1e293b
-    classDef owner fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-dasharray:5 3
-```
+<!-- north-star:progress:end -->
 
-✅ مكتمل · 🟡 قيد العمل الآن (المرحلة في خط الإنتاج: مبنية جزئيًا) · ⬜ التالي، ينفّذه نموذج أو مطوّر · 🔴 يحتاج مدخلًا من المالك (بيئة معزولة وتفويض، أو مزوّد نموذج، أو مراجع بشري)
-
-<!-- north-star:end -->
-
-**الحالة بصراحة:** هذا pilot، لا إصدار. الأرقام مقيسة على 3 مشاريع هواة حقيقية مثبّتة بالتزامها، وعلى هذا المستودع نفسه. ما لم يُقس لا يُحسب نجاحًا، والمعالم التي تحتاج تشغيل كود مشروع حقيقي لا تُغلق إلا بتشغيله فعلًا.
+**الحالة بصراحة:** هذا pilot، لا إصدار. الأرقام مقيسة على 3 مشاريع هواة حقيقية مثبّتة بالتزامها، وعلى هذا المستودع نفسه. ما لم يُقس لا يحقق أي شرط، والخطوات التي تحتاج تشغيل كود مشروع حقيقي لا تُغلق إلا بتشغيله فعلًا.
 
 ## 🛠️ للمطوّرين
 

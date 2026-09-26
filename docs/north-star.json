@@ -23,8 +23,8 @@
   ],
   "scoring": {
     "indicator": "قيمة بين 0 و1، تُحسب بتعريفها المكتوب على عيّنة المشاريع أو الحقيقة الأرضية المسجلة. القيمة null تعني غير مقيس، وتُحسب صفرًا.",
-    "capability": "متوسط مؤشراتها.",
-    "overall": "مجموع (الوزن × درجة القدرة) ÷ 100، معروضًا كنسبة مئوية.",
+    "capability": "متوسط مؤشراتها، للقراءة فقط.",
+    "overall": "التقدم = مجموع (وزن الخطوة × إنجازها) على الخطوات الخمس والعشرين، من 100 (tools/north_star_steps.py). القدرات تجميع للمؤشرات للقراءة فقط.",
     "not_this": "هذه ليست درجة القدرات في docs/CAPABILITY-SCORE.md. تلك تقيس اكتمال آلية الأداة على مستودعين ضُبطت عليهما، وهذه تقيس الوعد نفسه على الجمهور الذي بُنيت له."
   },
   "corpus": [
@@ -970,7 +970,23 @@
         }
       ],
       "stages": [],
-      "title_en": "Automated measurement"
+      "title_en": "Automated measurement",
+      "weight": 3,
+      "weight_why": "أساس القياس: بدونه لا رقم يُصدَّق، لكنه صغير الحجم.",
+      "does": [
+        "يجلب عيّنة المشاريع الحقيقية مثبّتة بالتزامها",
+        "يحسب كل مؤشر آليًا من تقارير العيّنة بأمر واحد",
+        "يرفض أي تراجع عن أفضل قيمة وصلها مؤشر"
+      ],
+      "tools": [
+        "north_star.py measure",
+        "git"
+      ],
+      "outputs": [
+        "docs/north-star.json",
+        "docs/NORTH-STAR.md",
+        "docs/north-star-high-water.json"
+      ]
     },
     {
       "id": "NS2",
@@ -1025,7 +1041,20 @@
       "stages": [
         "S01"
       ],
-      "title_en": "Never fails on a real project"
+      "title_en": "Never fails on a real project",
+      "weight": 3,
+      "weight_why": "شرط دخول: الأداة التي تفشل على مشروع حقيقي لا تنفع، والإصلاح محدود.",
+      "does": [
+        "يكمل التدقيق على كل مشروع في العيّنة دون انهيار",
+        "يقص الوثائق إلى ميزانيتها بدل أن يفشل"
+      ],
+      "tools": [
+        "eaos audit"
+      ],
+      "outputs": [
+        "RUN.md",
+        "dossier.json"
+      ]
     },
     {
       "id": "NS3",
@@ -1219,7 +1248,26 @@
       "stages": [
         "S02"
       ],
-      "title_en": "Current state: see the whole program"
+      "title_en": "Current state: see the whole program",
+      "weight": 6,
+      "weight_why": "أول التقارير الأربعة وأساس كل ما بعده: الوظائف والمداخل والبيانات.",
+      "does": [
+        "يجد كل صفحة ومسار ودالة خادم كنقطة دخول",
+        "يقرأ نموذج البيانات وسياسات الوصول من SQL وSupabase",
+        "يجرد الوظائف ويحدد مداخل كل سطح ومخارجه وحدوده"
+      ],
+      "tools": [
+        "حقائق EAOS (tree-sitter)",
+        "GitNexus",
+        "CodeGraph",
+        "dependency-cruiser"
+      ],
+      "outputs": [
+        "features.json",
+        "FEATURES.md",
+        "load-model.json",
+        "SYSTEM-MAP.md"
+      ]
     },
     {
       "id": "NS4",
@@ -1289,7 +1337,21 @@
       "stages": [
         "S04"
       ],
-      "title_en": "Signal, not noise"
+      "title_en": "Signal, not noise",
+      "weight": 3,
+      "weight_why": "يمنع الضجيج من إغراق الخطة؛ عمل مركّز.",
+      "does": [
+        "يستبعد التشابه الشكلي الذي ليس قاعدة أعمال",
+        "لا يتهم ملفًا بالموت إن أشار إليه سجل"
+      ],
+      "tools": [
+        "jscpd",
+        "reforge",
+        "Semgrep"
+      ],
+      "outputs": [
+        "dossier.json (claims)"
+      ]
     },
     {
       "id": "NS5",
@@ -1446,7 +1508,23 @@
       "stages": [
         "S04"
       ],
-      "title_en": "Dead code and leftovers: found and safely removed"
+      "title_en": "Dead code and leftovers: found and safely removed",
+      "weight": 4,
+      "weight_why": "قيمة مباشرة للمالك: حذف آمن للكود الميت والمعطّل.",
+      "does": [
+        "يحسب قابلية الوصول من نقاط الدخول الحقيقية",
+        "يكشف الأسماء غير المعرّفة والمفاتيح المكررة",
+        "يجد مخلفات الهواة ويكتب لكل منها بطاقة حذف جاهزة"
+      ],
+      "tools": [
+        "حقائق EAOS",
+        "CodeGraph",
+        "reforge"
+      ],
+      "outputs": [
+        "DEAD-CODE.md",
+        "plan.json (remove_dead)"
+      ]
     },
     {
       "id": "NS6",
@@ -1508,7 +1586,21 @@
       "stages": [
         "S04"
       ],
-      "title_en": "Basic security hygiene"
+      "title_en": "Basic security hygiene",
+      "weight": 3,
+      "weight_why": "أمن أساسي: أسرار مرفوعة وسياسات وصول.",
+      "does": [
+        "يجد الأسرار المرفوعة بخطورتها الصحيحة",
+        "يتحقق من تغطية سياسات الوصول لكل جدول"
+      ],
+      "tools": [
+        "Trivy",
+        "Semgrep",
+        "حقائق Supabase"
+      ],
+      "outputs": [
+        "SECURITY-SURFACE.md"
+      ]
     },
     {
       "id": "NS17",
@@ -1740,7 +1832,27 @@
         }
       ],
       "stages": [],
-      "title_en": "Tool platform: every tool enters one way"
+      "title_en": "Tool platform: every tool enters one way",
+      "weight": 5,
+      "weight_why": "منصة كل الأدوات: تثبيت موحد، وقراءة SARIF، وتوليد، وبوابات، وعزل.",
+      "does": [
+        "يثبّت كل أداة بإصدارها المثبّت وبصمتها بأمر واحد",
+        "يقرأ نتائج ست أدوات بقارئ SARIF واحد",
+        "يولّد ملفات بصيغ الأدوات وتحكم عليها الأداة نفسها",
+        "يعرّف المراحل الخمس عشرة كبيانات ببوابة لكل منها",
+        "يشغّل كود المشروع في بيئة معزولة بتفويض وبلا أسرار"
+      ],
+      "tools": [
+        "eaos tools",
+        "eaos emit",
+        "eaos engage",
+        "upstreams/toolchain.json"
+      ],
+      "outputs": [
+        "tools-doctor.json",
+        "handover-validation.json",
+        "authorization.json"
+      ]
     },
     {
       "id": "NS11",
@@ -1833,7 +1945,19 @@
       "stages": [
         "S01"
       ],
-      "title_en": "Intake: what must be protected, and where to go"
+      "title_en": "Intake: what must be protected, and where to go",
+      "weight": 2,
+      "weight_why": "استبيان قصير يحدد ما يجب حمايته وإلى أين.",
+      "does": [
+        "يسأل المالك أسئلة الاستلام بقيم افتراضية معلنة",
+        "يحوّل الإجابات إلى سيناريوهات جودة قابلة للقياس"
+      ],
+      "tools": [
+        "eaos audit --intake"
+      ],
+      "outputs": [
+        "intake.json"
+      ]
     },
     {
       "id": "NS12",
@@ -2310,7 +2434,32 @@
         "S01",
         "S04"
       ],
-      "title_en": "Static-analysis adapters: proven tools, not our own code"
+      "title_en": "Static-analysis adapters: proven tools, not our own code",
+      "weight": 5,
+      "weight_why": "عشرة محوّلات لأدوات جاهزة بدل كود نكتبه: أدلة مستقلة.",
+      "does": [
+        "يبني قائمة الاعتماديات وثغراتها",
+        "يشغّل Semgrep وTrivy وCheckov وSQLFluff وSpectral وoasdiff",
+        "يرسم حدود JS/TS بقواعد dependency-cruiser",
+        "يضيف GitNexus شاهدًا ثالثًا لنطاق الأثر"
+      ],
+      "tools": [
+        "Syft",
+        "OSV-Scanner",
+        "scc",
+        "Semgrep",
+        "Trivy",
+        "Checkov",
+        "dependency-cruiser",
+        "SQLFluff",
+        "Spectral",
+        "oasdiff",
+        "GitNexus"
+      ],
+      "outputs": [
+        "sbom.cdx.json",
+        "facts/external.json"
+      ]
     },
     {
       "id": "NS18",
@@ -2464,7 +2613,27 @@
         "S03",
         "S04"
       ],
-      "title_en": "Measurement and debt register"
+      "title_en": "Measurement and debt register",
+      "weight": 4,
+      "weight_why": "الأرقام لكل ملف وسجل دَين واحد يجمع الأدلة.",
+      "does": [
+        "يقيس الحجم والتعقيد والتقلّب والاعتمادية لكل ملف",
+        "يسجل كل خطر عالٍ بشاهدين مستقلين",
+        "يكشف العمل المكرر في TypeScript وJavaScript"
+      ],
+      "tools": [
+        "scc",
+        "reforge",
+        "CodeGraph",
+        "jscpd",
+        "git"
+      ],
+      "outputs": [
+        "measurements.json",
+        "MEASUREMENTS.md",
+        "debt-register.json",
+        "RISK-REGISTER.md"
+      ]
     },
     {
       "id": "NS15",
@@ -2573,7 +2742,26 @@
       "stages": [
         "S05"
       ],
-      "title_en": "Behaviour lock: specifications before any change"
+      "title_en": "Behaviour lock: specifications before any change",
+      "weight": 4,
+      "weight_why": "شبكة الأمان قبل أي تغيير: لا تحول بدونها.",
+      "does": [
+        "يكتب مواصفة سلوك لكل ميزة",
+        "يولّد سيناريوهات الحمل والأعطال والفحص الحي بصيغ أدواتها"
+      ],
+      "tools": [
+        "Playwright",
+        "Schemathesis",
+        "k6",
+        "Toxiproxy",
+        "OWASP ZAP"
+      ],
+      "outputs": [
+        "behavior-lock/plan.json",
+        "nfr/k6/",
+        "nfr/toxiproxy.json",
+        "nfr/zap.yaml"
+      ]
     },
     {
       "id": "NS7",
@@ -2795,7 +2983,23 @@
       "stages": [
         "S06"
       ],
-      "title_en": "Target-state report"
+      "title_en": "Target-state report",
+      "weight": 7,
+      "weight_why": "قلب الوعد: الصورة المثالية بالوظائف نفسها وقرار لكل مكوّن.",
+      "does": [
+        "يختار المعمارية المرجعية من سبع بحسب ملفات المشروع",
+        "يضع كل ملف في مكوّن مستهدف ويقرر قرارات البنية التحتية",
+        "يقرر لكل مكوّن: إعادة استخدام أو هيكلة أو إعادة بناء أو حذف، بدليله",
+        "يثبت أن كل وظيفة لها مكان في الصورة المثالية"
+      ],
+      "tools": [
+        "eaos/rules/reference-architectures.json",
+        "eaos/rules/disposition-rules.json"
+      ],
+      "outputs": [
+        "target-architecture.json",
+        "TARGET-STATE.md"
+      ]
     },
     {
       "id": "NS13",
@@ -2923,7 +3127,23 @@
         "S02",
         "S06"
       ],
-      "title_en": "Architecture model and decisions (C4, ADR)"
+      "title_en": "Architecture model and decisions (C4, ADR)",
+      "weight": 3,
+      "weight_why": "رسم العمارة وقراراتها بصيغ معيارية تتحقق منها أدواتها.",
+      "does": [
+        "يرسم نموذج C4 للوضع الحالي من الحقائق",
+        "يرسم نموذج C4 للصورة المثالية",
+        "يكتب كل قرار عمارة بصيغة MADR"
+      ],
+      "tools": [
+        "Structurizr CLI",
+        "MADR"
+      ],
+      "outputs": [
+        "architecture/current/workspace.dsl",
+        "architecture/target/workspace.dsl",
+        "adr/ADR-NNN.md"
+      ]
     },
     {
       "id": "NS8",
@@ -3172,7 +3392,31 @@
       "stages": [
         "S07"
       ],
-      "title_en": "Team execution plan and the four reports"
+      "title_en": "Team execution plan and the four reports",
+      "weight": 7,
+      "weight_why": "ما يستلمه الفريق فعلًا: الخطة والتقارير الأربعة.",
+      "does": [
+        "يحدد حجم كل بطاقة وقسمها في الفريق",
+        "يجمع البطاقات في معالم بأهداف وشروط خروج",
+        "يعطي كل بطاقة أمر قبول قابلًا للتشغيل",
+        "يجرب أداة التحويل الآلي لكل بطاقة آلية على نسخة معزولة",
+        "يكتب التقارير الأربعة"
+      ],
+      "tools": [
+        "jscodeshift",
+        "npm",
+        "Python AST",
+        "eaos recheck",
+        "eaos decided"
+      ],
+      "outputs": [
+        "plan.json",
+        "ROADMAP.md",
+        "CURRENT-STATE.md",
+        "TARGET-STATE.md",
+        "GAP-AND-STRATEGY.md",
+        "EXECUTION-PLAN.md"
+      ]
     },
     {
       "id": "NS14",
@@ -3296,7 +3540,23 @@
       "stages": [
         "S07"
       ],
-      "title_en": "Report quality checked automatically"
+      "title_en": "Report quality checked automatically",
+      "weight": 2,
+      "weight_why": "فحص آلي لجودة كتابة التقارير.",
+      "does": [
+        "يفحص التقارير الأربعة بأسلوب EAOS في Vale وقواعد markdownlint",
+        "يضيف مرحلة فحص التقارير إلى خط الإنتاج",
+        "يولّد ملخصًا تنفيذيًا PDF بصفحة واحدة"
+      ],
+      "tools": [
+        "Vale",
+        "markdownlint-cli2",
+        "Typst"
+      ],
+      "outputs": [
+        "report-quality.json",
+        "EXECUTIVE.pdf"
+      ]
     },
     {
       "id": "NS25",
@@ -3520,7 +3780,27 @@
         "S14",
         "S15"
       ],
-      "title_en": "Operations and handover kit"
+      "title_en": "Operations and handover kit",
+      "weight": 4,
+      "weight_why": "ما يبقى مع الفريق بعد التسليم: ملفات تعمل كما هي.",
+      "does": [
+        "يولّد CI وpre-commit وRenovate وقواعد الحدود",
+        "يولّد إعداد الرصد OpenTelemetry وأهداف SLO",
+        "يولّد قائمة الجاهزية Goss وموقع التسليم",
+        "يتحقق أن كل ملف تقبله أداته"
+      ],
+      "tools": [
+        "actionlint",
+        "pre-commit",
+        "Renovate",
+        "OpenTelemetry Collector",
+        "Sloth",
+        "Goss",
+        "MkDocs"
+      ],
+      "outputs": [
+        "handover/"
+      ]
     },
     {
       "id": "NS26",
@@ -3609,7 +3889,23 @@
       "stages": [
         "S05"
       ],
-      "title_en": "Live baseline: behaviour and numbers before any change"
+      "title_en": "Live baseline: behaviour and numbers before any change",
+      "weight": 4,
+      "weight_why": "أرقام قبل التغيير: بدونها لا يُقاس أي تحسن.",
+      "does": [
+        "يشغّل شبكة الأمان على الكود الأصلي في بيئة معزولة",
+        "يسجل خط أساس الحمل بـk6 لكل سيناريو"
+      ],
+      "tools": [
+        "Playwright",
+        "Schemathesis",
+        "k6",
+        "البيئة المعزولة"
+      ],
+      "outputs": [
+        "behavior-lock/results.json",
+        "runtime/performance.json (قبل)"
+      ]
     },
     {
       "id": "NS9",
@@ -3661,7 +3957,24 @@
       "stages": [
         "S08"
       ],
-      "title_en": "Proven execution"
+      "title_en": "Proven execution",
+      "weight": 8,
+      "weight_why": "أثقل خطوة: تنفيذ فعلي لبطاقات الخطة على مشروع حقيقي.",
+      "does": [
+        "ينفّذ بطاقات الخطة بنموذج في نسخة منفصلة",
+        "يشغّل أمر قبول كل بطاقة وشبكة الأمان بعدها",
+        "يسجل كل تنفيذ في سجل التنفيذ"
+      ],
+      "tools": [
+        "مزوّد النموذج",
+        "jscodeshift",
+        "Renovate",
+        "eaos implement"
+      ],
+      "outputs": [
+        "execution-log.json",
+        "التزامات في نسخة منفصلة"
+      ]
     },
     {
       "id": "NS20",
@@ -3713,7 +4026,25 @@
       "stages": [
         "S09"
       ],
-      "title_en": "Functional verification: same features, predictions came true"
+      "title_en": "Functional verification: same features, predictions came true",
+      "weight": 5,
+      "weight_why": "يثبت أن الوظائف باقية وأن ما تنبأت به الخطة حدث.",
+      "does": [
+        "يعيد شبكة الأمان بعد كل معلم",
+        "يعيد التدقيق ويقارن التنبؤ بالنتيجة"
+      ],
+      "tools": [
+        "Playwright",
+        "Schemathesis",
+        "oasdiff",
+        "eaos delta",
+        "eaos guarantee"
+      ],
+      "outputs": [
+        "behavior-lock/results-after.json",
+        "guarantee.json",
+        "VERIFICATION.md"
+      ]
     },
     {
       "id": "NS21",
@@ -3765,7 +4096,23 @@
       "stages": [
         "S10"
       ],
-      "title_en": "Security after the transformation"
+      "title_en": "Security after the transformation",
+      "weight": 3,
+      "weight_why": "لا خطر عالٍ مفتوح، ساكنًا وحيًا.",
+      "does": [
+        "يعيد الفحص الساكن بعد التحول",
+        "يشغّل فحصًا حيًا على التطبيق وهو يعمل"
+      ],
+      "tools": [
+        "Semgrep",
+        "Trivy",
+        "OSV-Scanner",
+        "Checkov",
+        "OWASP ZAP"
+      ],
+      "outputs": [
+        "runtime/security.json"
+      ]
     },
     {
       "id": "NS22",
@@ -3816,7 +4163,20 @@
       "stages": [
         "S11"
       ],
-      "title_en": "Load: before and after, same conditions"
+      "title_en": "Load: before and after, same conditions",
+      "weight": 3,
+      "weight_why": "الحمل قبل وبعد بالشروط نفسها.",
+      "does": [
+        "يشغّل سيناريوهات k6 بعد التحول",
+        "يقارنها بخط الأساس"
+      ],
+      "tools": [
+        "k6"
+      ],
+      "outputs": [
+        "runtime/performance.json (بعد)",
+        "PERFORMANCE.md"
+      ]
     },
     {
       "id": "NS23",
@@ -3867,7 +4227,21 @@
       "stages": [
         "S12"
       ],
-      "title_en": "Deliberate failures (chaos)"
+      "title_en": "Deliberate failures (chaos)",
+      "weight": 3,
+      "weight_why": "ماذا يحدث حين يسقط ما نعتمد عليه.",
+      "does": [
+        "يحقن بطئًا وانقطاعًا في كل اعتمادية حرجة",
+        "يتحقق أن التطبيق يتصرف كما هو متوقع"
+      ],
+      "tools": [
+        "Toxiproxy",
+        "Pumba"
+      ],
+      "outputs": [
+        "runtime/resilience.json",
+        "RESILIENCE.md"
+      ]
     },
     {
       "id": "NS24",
@@ -3918,7 +4292,18 @@
       "stages": [
         "S13"
       ],
-      "title_en": "Observability: every critical surface visible"
+      "title_en": "Observability: every critical surface visible",
+      "weight": 2,
+      "weight_why": "كل سطح حرج مرئي في الرصد.",
+      "does": [
+        "يتحقق من وجود span لكل سطح حرج أثناء شبكة الأمان والحمل"
+      ],
+      "tools": [
+        "OpenTelemetry Collector"
+      ],
+      "outputs": [
+        "runtime/telemetry.json"
+      ]
     },
     {
       "id": "NS16",
@@ -3972,7 +4357,21 @@
       "stages": [
         "S14"
       ],
-      "title_en": "Production readiness: every item a command"
+      "title_en": "Production readiness: every item a command",
+      "weight": 2,
+      "weight_why": "قائمة الجاهزية للإنتاج، كل بند بأمر ينجح.",
+      "does": [
+        "يشغّل كل بند في قائمة الجاهزية ويسجل نتيجته"
+      ],
+      "tools": [
+        "Goss",
+        "pre-commit",
+        "act"
+      ],
+      "outputs": [
+        "production-readiness.json",
+        "PRODUCTION-READINESS.md"
+      ]
     },
     {
       "id": "NS10",
@@ -4045,7 +4444,20 @@
         }
       ],
       "stages": [],
-      "title_en": "Independent proof"
+      "title_en": "Independent proof",
+      "weight": 5,
+      "weight_why": "الحكم النهائي: عيّنة أوسع ومراجع مستقل.",
+      "does": [
+        "يوسّع العيّنة إلى 10 مشاريع منها 3 محجوزة لم تُضبط عليها الأداة",
+        "يسلّم حزمة المراجعة لمراجع بشري مستقل"
+      ],
+      "tools": [
+        "north_star.py",
+        "tools/build_review_pack.py"
+      ],
+      "outputs": [
+        "evaluations/review-pack/"
+      ]
     }
   ],
   "rules": [
@@ -4129,7 +4541,9 @@
         "sbom.cdx.json",
         "facts/external.json"
       ],
-      "gate": "U6 = 1، U1 ≥ 0.95، H3 = 1، R4 = 1"
+      "gate": "U6 = 1، U1 ≥ 0.95، H3 = 1، R4 = 1",
+      "gate_en": "U6 = 1, U1 ≥ 0.95, H3 = 1, R4 = 1",
+      "name_en": "Intake and inventory"
     },
     {
       "id": "S02",
@@ -4156,7 +4570,9 @@
         "load-model.json",
         "architecture/current/workspace.dsl"
       ],
-      "gate": "U2 ≥ 0.9، U3 = U4 = 1، U5 ≥ 0.8، ونموذج C4 الحالي"
+      "gate": "U2 ≥ 0.9، U3 = U4 = 1، U5 ≥ 0.8، ونموذج C4 الحالي",
+      "gate_en": "U2 ≥ 0.9, U3 = U4 = 1, U5 ≥ 0.8, and the current C4 model",
+      "name_en": "Map the current architecture"
     },
     {
       "id": "S03",
@@ -4181,7 +4597,9 @@
         "measurements.json",
         "خط الأساس المثبّت"
       ],
-      "gate": "M1 ≥ 0.95، وخط الأساس مثبّت"
+      "gate": "M1 ≥ 0.95، وخط الأساس مثبّت",
+      "gate_en": "M1 ≥ 0.95, and the baseline pinned",
+      "name_en": "Measure"
     },
     {
       "id": "S04",
@@ -4213,7 +4631,9 @@
         "debt-register.json",
         "SECURITY-SURFACE.md"
       ],
-      "gate": "S1 ≥ 0.8، S2 ≥ 0.8، S3 ≥ 0.8، D1 ≥ 0.8، H1 = H2 = H3 = 1، R3 = 1"
+      "gate": "S1 ≥ 0.8، S2 ≥ 0.8، S3 ≥ 0.8، D1 ≥ 0.8، H1 = H2 = H3 = 1، R3 = 1",
+      "gate_en": "S1 ≥ 0.8, S2 ≥ 0.8, S3 ≥ 0.8, D1 ≥ 0.8, H1 = H2 = H3 = 1, R3 = 1",
+      "name_en": "Diagnose and debt register"
     },
     {
       "id": "S05",
@@ -4249,7 +4669,9 @@
         "behavior-lock/results.json",
         "runtime/performance.json (قبل)"
       ],
-      "gate": "أ (ساكن): E4 = 1 · ب (معزول): E5 ≥ 0.8 وخط أساس k6"
+      "gate": "أ (ساكن): E4 = 1 · ب (معزول): E5 ≥ 0.8 وخط أساس k6",
+      "gate_en": "A (static): E4 = 1 · B (isolated): E5 ≥ 0.8 and a k6 baseline",
+      "name_en": "Lock current behaviour"
     },
     {
       "id": "S06",
@@ -4288,7 +4710,9 @@
         "architecture/target/workspace.dsl",
         "adr/ADR-*.md"
       ],
-      "gate": "T1–T7 عند أهدافها، وموافقة بشرية مسجلة"
+      "gate": "T1–T7 عند أهدافها، وموافقة بشرية مسجلة",
+      "gate_en": "T1–T7 at target, and a recorded human approval",
+      "name_en": "Target architecture"
     },
     {
       "id": "S07",
@@ -4315,7 +4739,9 @@
         "plan.json",
         "report-quality.json"
       ],
-      "gate": "G1 = 1، P1–P9 عند أهدافها. هنا ينتهي عقد التقييم"
+      "gate": "G1 = 1، P1–P9 عند أهدافها. هنا ينتهي عقد التقييم",
+      "gate_en": "G1 = 1, P1–P9 at target. The assessment contract ends here",
+      "name_en": "Gap and transformation plan"
     },
     {
       "id": "S08",
@@ -4343,7 +4769,9 @@
         "التزامات في نسخة منفصلة",
         "سجل التنفيذ"
       ],
-      "gate": "لكل مهمة: قبولها يمر، وشبكة الأمان تمر، ولا ادعاء حرج جديد. E1 = 1"
+      "gate": "لكل مهمة: قبولها يمر، وشبكة الأمان تمر، ولا ادعاء حرج جديد. E1 = 1",
+      "gate_en": "Per task: its acceptance passes, the safety net passes, no new critical claim. E1 = 1",
+      "name_en": "Rebuild / refactor"
     },
     {
       "id": "S09",
@@ -4370,7 +4798,9 @@
         "behavior-lock/results-after.json",
         "guarantee.json"
       ],
-      "gate": "E7 = 1، E2 ≥ 0.8"
+      "gate": "E7 = 1، E2 ≥ 0.8",
+      "gate_en": "E7 = 1, E2 ≥ 0.8",
+      "name_en": "Functional verification"
     },
     {
       "id": "S10",
@@ -4395,7 +4825,9 @@
       "outputs": [
         "runtime/security.json"
       ],
-      "gate": "E8 = 1"
+      "gate": "E8 = 1",
+      "gate_en": "E8 = 1",
+      "name_en": "Security"
     },
     {
       "id": "S11",
@@ -4418,7 +4850,9 @@
         "runtime/performance.json (قبل وبعد)",
         "PERFORMANCE.md"
       ],
-      "gate": "E6 ≥ 0.8"
+      "gate": "E6 ≥ 0.8",
+      "gate_en": "E6 ≥ 0.8",
+      "name_en": "Load"
     },
     {
       "id": "S12",
@@ -4441,7 +4875,9 @@
         "runtime/resilience.json",
         "RESILIENCE.md"
       ],
-      "gate": "E9 ≥ 0.8"
+      "gate": "E9 ≥ 0.8",
+      "gate_en": "E9 ≥ 0.8",
+      "name_en": "Deliberate failures"
     },
     {
       "id": "S13",
@@ -4468,7 +4904,9 @@
         "slo/*.yaml",
         "runtime/telemetry.json"
       ],
-      "gate": "E10 ≥ 0.9"
+      "gate": "E10 ≥ 0.9",
+      "gate_en": "E10 ≥ 0.9",
+      "name_en": "Observability"
     },
     {
       "id": "S14",
@@ -4492,7 +4930,9 @@
         "PRODUCTION-READINESS.md",
         "PRODUCTION-READINESS.json"
       ],
-      "gate": "E11 = 1"
+      "gate": "E11 = 1",
+      "gate_en": "E11 = 1",
+      "name_en": "Production readiness"
     },
     {
       "id": "S15",
@@ -4525,7 +4965,9 @@
         "handover/validation.json",
         "GOVERNANCE.md"
       ],
-      "gate": "K1 = 1، وخط الأساس مثبّت، وبوابة الدَّين الجديد في CI"
+      "gate": "K1 = 1، وخط الأساس مثبّت، وبوابة الدَّين الجديد في CI",
+      "gate_en": "K1 = 1, the baseline pinned, and the new-debt gate in CI",
+      "name_en": "Continuous governance and handover"
     }
   ],
   "roadmap": [

@@ -46,35 +46,114 @@ class NorthStarTests(unittest.TestCase):
         self.assertTrue(waiting)
         self.assertTrue(all(states[name] == 'owner' for name in waiting))
 
-    def test_both_readmes_carry_the_current_status_block(self):
+    def test_both_readmes_carry_the_current_generated_blocks(self):
+        done = self.tool.completion(self.record)
         for language, path in self.tool.READMES.items():
             text = path.read_text(encoding='utf-8')
-            block = self.tool.readme_block(self.record, language)
-            self.assertEqual(self.tool.with_block(text, block), text, f'{path.name} is stale')
-            done = sum(state == 'done' for _, _, state in self.tool.progress(self.record))
-            self.assertIn(f"{done} {'من' if language == 'ar' else 'of'} {len(self.record['milestones'])}", block)
-            self.assertIn(f"{self.tool.score(self.record)['overall_percent']}%", block)
-            self.assertEqual(block.count('```mermaid'), 2)
-
-    def test_the_headline_is_closed_milestones_and_output_quality_is_labelled_as_not_progress(self):
-        text = self.tool.render(self.record)
-        done = self.tool.completion(self.record)
-        headline = next(line for line in text.splitlines() if line.startswith('## '))
-        self.assertIn(f"{done['milestones_done']} من {done['milestones']} معلمًا", headline)
-        self.assertIn('ليست نسبة إنجاز', text)
-        self.assertEqual(text.count('| **NS'), len(self.record['milestones']))
+            for name in self.tool.BLOCKS:
+                block = self.tool.readme_block(self.record, name, language)
+                self.assertEqual(self.tool.with_block(text, name, block), text, f'{path.name} {name} is stale')
+                self.assertIn('```mermaid', block)
+            progress = self.tool.readme_block(self.record, 'progress', language)
+            self.assertIn(f"{done['points']} {'من' if language == 'ar' else 'of'} 100", progress)
 
     def test_a_stale_readme_block_fails_the_check(self):
         record = copy.deepcopy(self.record)
         for milestone in record['milestones']:
             for task in milestone['tasks']: task['status'] = 'done'
         text = self.tool.READMES['ar'].read_text(encoding='utf-8')
-        self.assertNotEqual(self.tool.with_block(text, self.tool.readme_block(record, 'ar')), text)
+        self.assertNotEqual(self.tool.with_block(text, 'progress', self.tool.readme_block(record, 'progress', 'ar')), text)
 
     def test_every_milestone_and_phase_has_an_english_title(self):
         record = copy.deepcopy(self.record)
         del record['milestones'][0]['title_en']
         self.assertIn(f"{record['milestones'][0]['id']}: no title_en (the READMEs are bilingual)", self.tool.validate(record))
+
+    def test_the_headline_is_points_out_of_100_and_every_step_has_a_card(self):
+        text = self.tool.render(self.record)
+        done = self.tool.completion(self.record)
+        self.assertIn(f"### التقدم: **{done['points']} من 100 نقطة**", text)
+        for sequence, milestone, _ in done['rows']:
+            self.assertIn(f"### الخطوة {sequence} · {milestone['id']} — {milestone['title']}", text)
+        self.assertEqual(text.count('**بوابة الانتقال إلى الخطوة التالية**'), len(self.record['milestones']))
+
+
+class StepTests(unittest.TestCase):
+    """The progress model: declared weights, measured completion, and a gate that is enforced."""
+
+    def setUp(self):
+        self.tool = load_tool()
+        import north_star_steps
+        self.steps = north_star_steps
+        self.record = json.loads((ROOT / 'docs/north-star.json').read_text(encoding='utf-8'))
+
+    def test_weights_sum_to_100_and_progress_is_the_sum_of_step_points(self):
+        self.assertEqual(sum(m['weight'] for m in self.record['milestones']), 100)
+        total = sum(self.steps.step(m, self.record)['points'] for m in self.record['milestones'])
+        self.assertAlmostEqual(self.steps.overall(self.record), round(total, 1))
+
+    def test_weights_that_do_not_sum_to_100_are_rejected(self):
+        record = copy.deepcopy(self.record)
+        record['milestones'][0]['weight'] += 1
+        self.assertIn('step weights must sum to 100', self.tool.validate(record))
+
+    def test_a_step_without_its_tools_or_output_is_rejected(self):
+        record = copy.deepcopy(self.record)
+        record['milestones'][0]['tools'] = []
+        self.assertIn(f"{record['milestones'][0]['id']}: no tools", self.tool.validate(record))
+
+    def test_a_closed_task_counts_whole_and_an_open_one_is_capped_below_it(self):
+        task = {'status': 'todo', 'acceptance': 'python tools/north_star.py measure --only P1 --min 0.5'}
+        self.assertEqual(self.steps.task_completion(dict(task, status='done'), self.record), 1.0)
+        open_value = self.steps.task_completion(task, self.record)
+        self.assertLessEqual(open_value, self.steps.OPEN_CAP)
+        record = copy.deepcopy(self.record)
+        for capability in record['capabilities']:
+            for row in capability['indicators']:
+                if row['id'] == 'P1': row['value'] = 0.25
+        self.assertAlmostEqual(self.steps.task_completion(task, record), round(self.steps.OPEN_CAP * 0.5, 3))
+
+    def test_measure_without_a_floor_is_a_condition_not_a_threshold(self):
+        items = self.steps.criteria({'status': 'todo', 'acceptance': 'python tools/north_star.py measure --only K1'}, self.record)
+        self.assertEqual([item['kind'] for item in items], ['measured'])
+
+    def test_a_step_cannot_close_before_the_one_before_it(self):
+        record = copy.deepcopy(self.record)
+        first = self.tool.step_order(record)[0]
+        milestone = next(m for m in record['milestones'] if m['id'] == first)
+        milestone['tasks'][0]['status'] = 'todo'
+        self.assertTrue(any('while an earlier step is open' in problem for problem in self.tool.validate(record)))
+
+    def test_a_closed_step_whose_gate_fell_is_rejected(self):
+        record = copy.deepcopy(self.record)
+        closed = next(t for m in record['milestones'] for t in m['tasks']
+                      if t['status'] == 'done' and '--min' in t['acceptance'])
+        indicator = self.steps.MEASURE.search(closed['acceptance']).group(1)
+        for capability in record['capabilities']:
+            for row in capability['indicators']:
+                if row['id'] == indicator: row['value'] = 0.0
+        self.assertTrue(any(f"{closed['id']}: closed, but its gate no longer holds" in problem for problem in self.tool.validate(record)))
+
+    def test_the_gate_on_an_arrow_names_every_threshold(self):
+        milestone = next(m for m in self.record['milestones'] if m['id'] == 'NS8')
+        text = self.steps.gate_text(self.steps.step(milestone, self.record)['gate'], 'en', limit=10)
+        for indicator in ('P1=1', 'P3≥0.8', 'P9≥0.8'):
+            self.assertIn(indicator, text)
+
+    def test_the_charts_draw_every_step_and_stage_once(self):
+        for language in ('ar', 'en'):
+            chart = '\n'.join(self.tool.readme_block(self.record, 'progress', language).splitlines())
+            for milestone in self.record['milestones']:
+                self.assertEqual(chart.count(f"        {milestone['id']}["), 1)
+            pipeline = self.tool.readme_block(self.record, 'pipeline', language)
+            for stage in self.record['pipeline']:
+                self.assertEqual(pipeline.count(f"        {stage['id']}["), 1)
+
+
+class NorthStarScoreTests(unittest.TestCase):
+    def setUp(self):
+        self.tool = load_tool()
+        self.record = json.loads((ROOT / 'docs/north-star.json').read_text(encoding='utf-8'))
 
     def test_an_unmeasured_indicator_counts_as_zero(self):
         record = copy.deepcopy(self.record)
