@@ -90,13 +90,17 @@
       "eaos/toolchain.py",
       "eaos/emit/__init__.py",
       "eaos/emit/validate.py",
+      "eaos/emit/base.py",
+      "eaos/emit/nfr.py",
+      "eaos/emit/shape.py",
       "eaos/engage.py",
       "eaos/indicators.py",
       "eaos/artifact_contracts.py",
       "eaos/sandbox.py",
       "eaos/intake.py",
       "eaos/dependency_assessment.py",
-      "eaos/measurements.py"
+      "eaos/measurements.py",
+      "eaos/behavior_lock.py"
     ],
     "tools": [
       "tools/**",
@@ -104,6 +108,9 @@
     ],
     "rule_examples": [
       "eaos/rules/semgrep/**"
+    ],
+    "templates": [
+      "eaos/templates/**"
     ],
     "tests": [
       "tests/**",

@@ -138,6 +138,8 @@ ARTIFACTS = (
     Artifact('MEASUREMENTS.md', 'measure', DOCUMENT, 'Which files are largest, most complex, most changed and most depended on',
              26, 80, record='measurements.json'),
     Artifact('measurements.json', 'measure', RECORD, 'Every analysed file with its measurements, each field naming its source'),
+    Artifact('behavior-lock/plan.json', 'lock', RECORD, 'The spec of every feature, its tool and the surfaces it locks',
+             required=False, absent_when='the program has no feature to lock'),
     Artifact('intake.json', 'intake', RECORD, 'What the owner must protect: every question answered or on a declared default, and the quality scenarios'),
     Artifact('handover/README.md', 'emit', DOCUMENT, 'The files handed to other tools, and which tool accepted each',
              45, 120, record='handover/validation.json', required=False, absent_when='no emitter applies'),

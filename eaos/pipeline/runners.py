@@ -138,6 +138,14 @@ def plan(context):
     return {'tasks': result['tasks'], 'waves': result['waves']}
 
 
+def lock(context):
+    from ..behavior_lock import build
+    plan = build(context.out, context.target)
+    if not plan['specs']:
+        raise SkipStage('the program has no feature to lock')
+    return {'specs': len(plan['specs']), 'without_spec': sum(1 for s in plan['specs'] if not s['path'])}
+
+
 def measure(context):
     from ..measurements import run
     return run(context.out, context.language)
@@ -236,7 +244,7 @@ def features(context):
             'critical': sum(1 for f in record['features'] if f['critical'])}
 
 
-RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
+RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
            'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,
            'transform': transform, 'plan': plan, 'execution_guide': execution_guide,
            'compose': compose, 'emit': emit, 'site': site, 'validate': validate}

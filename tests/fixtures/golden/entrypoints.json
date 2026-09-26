@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "extractor": "entrypoints",
-  "extractor_version": "2",
+  "extractor_version": "3",
   "available": true,
   "input_sha": "7e38072d89a625b92f7f4d6f2487f59a250e2c83b4540e22aee50d09200ea453",
   "limitations": [
@@ -41,10 +41,10 @@
   },
   "facts": [
     {
-      "id": "FACT-9dfba79634e92ca2",
+      "id": "FACT-662a020088ce5fca",
       "kind": "entry_point",
       "extractor": "entrypoints",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -70,10 +70,10 @@
       ]
     },
     {
-      "id": "FACT-352656b98504fbae",
+      "id": "FACT-948281925432b704",
       "kind": "entry_point",
       "extractor": "entrypoints",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -99,10 +99,10 @@
       ]
     },
     {
-      "id": "FACT-1407cb1b6606aba7",
+      "id": "FACT-bf0be38e35f645e7",
       "kind": "entry_point",
       "extractor": "entrypoints",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "1b3ce6ce6859ccd2be87b349098a4067a13a975f2b66ec887e22a2ba6fc8f948",
       "location": {
         "path": "package.json",
@@ -128,10 +128,10 @@
       ]
     },
     {
-      "id": "FACT-0e1a19789621370e",
+      "id": "FACT-84d77bf60034851d",
       "kind": "entry_point",
       "extractor": "entrypoints",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "1b3ce6ce6859ccd2be87b349098a4067a13a975f2b66ec887e22a2ba6fc8f948",
       "location": {
         "path": "package.json",
@@ -157,10 +157,10 @@
       ]
     },
     {
-      "id": "FACT-f4e53f2496eb90db",
+      "id": "FACT-05f1dd9dc297d131",
       "kind": "entry_point",
       "extractor": "entrypoints",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -186,10 +186,10 @@
       ]
     },
     {
-      "id": "FACT-3a11e343af4fd4fd",
+      "id": "FACT-7bdbceb44a01548f",
       "kind": "entry_point",
       "extractor": "entrypoints",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -215,10 +215,10 @@
       ]
     },
     {
-      "id": "FACT-28b8f143de70f9a3",
+      "id": "FACT-50660ae20216b3c2",
       "kind": "entry_point",
       "extractor": "entrypoints",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -244,10 +244,10 @@
       ]
     },
     {
-      "id": "FACT-c14fb150abda4b54",
+      "id": "FACT-c8aeba0b4c6bf5af",
       "kind": "entry_point",
       "extractor": "entrypoints",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -273,10 +273,10 @@
       ]
     },
     {
-      "id": "FACT-a443589e245f70f6",
+      "id": "FACT-d7aa0eed31ed8c56",
       "kind": "entry_point",
       "extractor": "entrypoints",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -302,10 +302,10 @@
       ]
     },
     {
-      "id": "FACT-b0c412995e441cc8",
+      "id": "FACT-df3b25133e0af6a7",
       "kind": "entry_point",
       "extractor": "entrypoints",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -331,10 +331,10 @@
       ]
     },
     {
-      "id": "FACT-bbbd6f7250294b23",
+      "id": "FACT-20da610f3fbf081d",
       "kind": "entry_point",
       "extractor": "entrypoints",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py",

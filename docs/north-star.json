@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-26",
-  "measured_at_commit": "059818b",
+  "measured_at_commit": "61abfb5",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -83,14 +83,17 @@
       "commit": "1e8aea406d453fba1ba40fb289476163713034bc",
       "stack": "Python desktop/CLI application",
       "truth": {
-        "user_surfaces": 3,
+        "user_surfaces": 4,
         "user_surfaces_how": "the three python entry scripts",
         "tables": 0,
         "policies": 0,
         "leftovers": [],
         "credentials": [],
         "supabase_table_calls": 0,
-        "supabase_table_calls_how": "grep -rEc \"\\.from\\(\\s*['\\\"\\`][a-z_0-9]+['\\\"\\`]\\s*\\)\\s*\\.\\s*(select|insert|update|upsert|delete)\" -z over src/**/*.ts* (chains split across lines counted; verified by hand on 2026-09-25)"
+        "supabase_table_calls_how": "grep -rEc \"\\.from\\(\\s*['\\\"\\`][a-z_0-9]+['\\\"\\`]\\s*\\)\\s*\\.\\s*(select|insert|update|upsert|delete)\" -z over src/**/*.ts* (chains split across lines counted; verified by hand on 2026-09-25)",
+        "notes": [
+          "2026-09-26: 4, not 3. The Streamlit page app.py (served at / by run_app.py) is a user surface; the hand count missed it until EAOS learned to read Streamlit (NS15 stage review)."
+        ]
       }
     }
   ],
@@ -256,7 +259,7 @@
           "definition": "مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "user surfaces found: FleetManageWeb 43 · finance-os-a0192b7b 29 · RendaPerene 3",
+          "evidence": "user surfaces found: FleetManageWeb 43 · finance-os-a0192b7b 29 · RendaPerene 4",
           "reads": "facts/entrypoints.json: facts of kind `entry_point` whose value.framework is not npm_script or public_api",
           "measured": "automated"
         },
@@ -276,7 +279,7 @@
           "definition": "الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "18/18 assessment tools at their pinned version",
+          "evidence": "20/20 assessment tools at their pinned version",
           "reads": "eaos tools doctor --json → tools[] {name, role, pinned, found, ok}",
           "measured": "automated"
         }
@@ -324,7 +327,7 @@
           "definition": "مشاريع العيّنة التي يسرد تقريرها وظائف البرنامج (ماذا يفعل للمستخدم) مربوطة بأسطحها وبياناتها ÷ عدد المشاريع",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "features in features.json: FleetManageWeb 24 · finance-os-a0192b7b 21 · RendaPerene 3",
+          "evidence": "features in features.json: FleetManageWeb 24 · finance-os-a0192b7b 21 · RendaPerene 4",
           "reads": "features.json → features[] (non-empty)",
           "measured": "automated"
         },
@@ -333,8 +336,8 @@
           "name": "المداخل والمخارج والحدود",
           "definition": "متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع",
           "target": 0.8,
-          "value": 0.9,
-          "evidence": "answered load questions: FleetManageWeb 360/368 · finance-os-a0192b7b 216/232 · RendaPerene 19/24",
+          "value": 0.918,
+          "evidence": "answered load questions: FleetManageWeb 360/368 · finance-os-a0192b7b 216/232 · RendaPerene 27/32",
           "reads": "load-model.json → entry_points[].answers[].status == \"answered\"",
           "measured": "automated"
         },
@@ -372,7 +375,7 @@
           "definition": "متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع",
           "target": 0.8,
           "value": 0.897,
-          "evidence": "claims that are not structural clones: FleetManageWeb 239/259 · finance-os-a0192b7b 223/273 · RendaPerene 59/62",
+          "evidence": "claims that are not structural clones: FleetManageWeb 239/259 · finance-os-a0192b7b 223/273 · RendaPerene 60/63",
           "reads": "dossier.json → claims[].statement not containing \"share the same structure up to identifier names\"",
           "measured": "automated"
         },
@@ -526,7 +529,7 @@
           "definition": "وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "features placed in a target component: FleetManageWeb 0/24 · finance-os-a0192b7b 0/21 · RendaPerene 0/3",
+          "evidence": "features placed in a target component: FleetManageWeb 0/24 · finance-os-a0192b7b 0/21 · RendaPerene 0/4",
           "reads": "features.json → features[].target_component",
           "measured": "automated"
         },
@@ -592,7 +595,7 @@
           "definition": "بطاقات effort معروف ÷ كل البطاقات في العيّنة",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "cards with a known effort: 0/585",
+          "evidence": "cards with a known effort: 0/586",
           "reads": "plan.json → tasks[].effort not \"unknown\"",
           "measured": "automated"
         },
@@ -602,7 +605,7 @@
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
           "value": 0.338,
-          "evidence": "ready remediate cards: 198/585",
+          "evidence": "ready remediate cards: 198/586",
           "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
           "measured": "automated"
         },
@@ -612,7 +615,7 @@
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
           "value": 0.338,
-          "evidence": "cards with a runnable acceptance command: 198/585",
+          "evidence": "cards with a runnable acceptance command: 198/586",
           "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
           "measured": "automated"
         },
@@ -632,7 +635,7 @@
           "definition": "بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with options, do-nothing and rollback: 585/585",
+          "evidence": "cards with options, do-nothing and rollback: 586/586",
           "reads": "plan.json → tasks[].options (≥ 2, one \"Do nothing\") and rollback",
           "measured": "automated"
         },
@@ -681,8 +684,8 @@
           "name": "عدّة التشغيل والتسليم تقبلها أدواتها",
           "definition": "متوسط (الملفات التي يولّدها EAOS بصيغ الأدوات الأصلية ويقبلها مدقق الأداة نفسها ÷ الملفات المتوقعة للمشروع)، لكل مشروع. الملفات: سير GitHub Actions (actionlint)، و.pre-commit-config.yaml (pre-commit validate-config)، وrenovate.json (renovate-config-validator)، وقواعد dependency-cruiser، وقواعد Semgrep (semgrep --validate)، وسكربتات k6 (k6 inspect)، وتجارب Toxiproxy وخطة ZAP (مخطط JSON)، وإعداد OpenTelemetry Collector (otelcol validate)، ومواصفات Sloth (sloth validate)، وgoss.yaml (goss render)، وموقع التسليم (zensical build). ملف لم يُدقَّق لغياب أداته يُحسب فاشلًا.",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "handover kit files accepted by their own tool: FleetManageWeb 0/12 · finance-os-a0192b7b 0/12 · RendaPerene 0/11",
+          "value": 0.258,
+          "evidence": "handover kit files accepted by their own tool: FleetManageWeb 3/12 · finance-os-a0192b7b 3/12 · RendaPerene 3/11",
           "reads": "handover/validation.json → files[] {path, tool, ok}",
           "measured": "automated"
         }
@@ -729,8 +732,8 @@
           "definition": "وظائف features.json التي لها مواصفة اختبار واحدة على الأقل (Playwright أو Schemathesis أو Pact أو ApprovalTests) في behavior-lock/plan.json وملفها موجود ÷ الوظائف",
           "reads": "behavior-lock/plan.json → specs[] {feature, tool, path}، مقابل features.json → features[].name",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "features with a behavior-lock spec: FleetManageWeb 0/24 · finance-os-a0192b7b 0/21 · RendaPerene 0/3",
+          "value": 1.0,
+          "evidence": "features with a behavior-lock spec: FleetManageWeb 24/24 · finance-os-a0192b7b 21/21 · RendaPerene 4/4",
           "measured": "automated"
         },
         {
@@ -2487,7 +2490,8 @@
             "سطح http مع مواصفة OpenAPI: إعداد Schemathesis في behavior-lock/schemathesis.toml. نداءات الواجهة إلى خادم للمشروع نفسه: عقد Pact في behavior-lock/pact/.",
             "وظيفة Python: behavior-lock/approvals/test_<وظيفة>.py بـApprovalTests، يستورد وحدات الوظيفة ويستدعي دوالها العامة الخالصة (بلا IO) بمدخلات من ملفات البيانات في المستودع إن وُجدت. وإلا فاختبار استيراد يثبت أنها تُحمَّل.",
             "behavior-lock/playwright.config.ts: baseURL من BASE_URL، ومجلد اللقطات behavior-lock/__screenshots__.",
-            "التوليد ساكن: لا يشغّل شيئًا من المشروع."
+            "التوليد ساكن: لا يشغّل شيئًا من المشروع.",
+            "كما نُفّذ: مرحلة lock بعد features. معرّفات TanStack تُحوَّل إلى عناوينها (/_authenticated/cartoes_/faturas → /cartoes/faturas، والتخطيط بلا عنوان يُذكر ولا يُختبر). الصفحة: لقطة شاشة ولقطة نصية لأخطاء console، فتُسجَّل أخطاء اليوم لا تُصلح. GET لـhttp يُسجَّل رمزه؛ الكتابة لا تُنادى. Python: واجهة الوحدات الآمنة للاستيراد بـApprovalTests (فحص AST يمنع استيراد ما يشغّل كودًا في أعلاه). playwright test --list (بلا متصفح، NODE_PATH من عدّة الأدوات) يقبل كل مواصفة. اكتُشف أن EAOS لا يرى تطبيقات Streamlit: كاشف streamlit جديد و<module> كنقطة بدء للتتبع؛ RendaPerene صار له سطح صفحة، وتصحّحت حقيقته إلى 4 أسطح، و U5 ارتفع إلى 0.918."
           ],
           "done_when": [
             "E4 = 1.0: كل وظيفة لها مواصفة وملفها موجود.",
@@ -2501,7 +2505,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only E4 --min 1.0 && python tools/acceptance.py contract behavior-lock-plan",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS15.T2",
@@ -2537,7 +2541,8 @@
             "Toxiproxy: لكل اعتمادية خارجية في الحقائق (قاعدة البيانات، وعنوان Supabase، ومضيفات integration_target): proxy في nfr/toxiproxy.json بصيغة toxiproxy-server -config، وتجارب في nfr/experiments.json {dependency, toxic: latency 2000ms | timeout | down, expected}. expected من سيناريو الجودة، وإلا القيمة الافتراضية المعلنة: «رسالة خطأ للمستخدم خلال 5 ثوانٍ، ولا صفحة بيضاء».",
             "OWASP ZAP: nfr/zap.yaml بصيغة Automation Framework: spider ثم passiveScan-wait ثم report بصيغة JSON، والهدف من BASE_URL، والمسارات من الأسطح.",
             "Toxiproxy و ZAP بلا مدقق يعمل دون تشغيل: الاختبار يتحقق من شكلهما بمخطط JSON مكتوب فيه، و validation.json يسجل tool = \"schema\".",
-            "التوليد ساكن: لا يشغّل شيئًا من المشروع. كل ملف يمر عبر eaos/emit/validate.py (NS17.T3)."
+            "التوليد ساكن: لا يشغّل شيئًا من المشروع. كل ملف يمر عبر eaos/emit/validate.py (NS17.T3).",
+            "كما نُفّذ: eaos/emit/nfr.py عبر المولّد nfr. k6 لكل سيناريو حمل على مسارات GET بلا fixture، يقبله k6 inspect. Toxiproxy لكل اعتمادية (Supabase، و API المشروع، ومضيفات التكامل بعد استبعاد الاختبارات والمساحات الاسمية والملفات التي لا يصلها شيء)، والعنوان متغير بيئة. ZAP بصيغة Automation Framework مكتوبًا JSON. التحقق من الشكل في eaos/emit/shape.py ويسجل tool = schema. Emitted و render انتقلا إلى eaos/emit/base.py لكسر دورة استيراد."
           ],
           "done_when": [
             "كل ملف تحت nfr/ مسجل في handover/validation.json بحكم ok = true.",
@@ -2552,7 +2557,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted nfr/k6/ nfr/toxiproxy.json nfr/zap.yaml && python tools/acceptance.py contract nfr-experiments",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "stages": [

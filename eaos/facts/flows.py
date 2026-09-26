@@ -10,7 +10,7 @@ from . import digest, make
 BUILTINS = set(dir(builtins)) | {'console', 'print', 'require', 'super', 'len', 'range'}
 
 NAME = 'flows'
-VERSION = '1'
+VERSION = '2'
 MAX_DEPTH = 6
 MAX_STEPS = 40
 LIMITATIONS = [
@@ -86,6 +86,9 @@ def _resolve_handler(handler, path, by_file, by_name, imports):
     """Locate the symbol a handler points at. Accepts bare names, receiver-qualified calls
     like `s.handleIndex`, and cross-file imports."""
     if not handler: return None
+    # A script page (Streamlit) is its module: the flow starts at the calls made at the top level.
+    if handler == '<module>': return {'path': path, 'symbol': None, 'name': '<module>'}
+    if handler.endswith('.py') and handler in by_file: return {'path': handler, 'symbol': None, 'name': '<module>'}
     for row in by_file.get(path, []):
         if row['symbol'] == handler or row['name'] == handler: return row
     if '.' in handler:

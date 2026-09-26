@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "059818b",
+  "extracted_at_commit": "61abfb5",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -18,6 +18,33 @@
       "statement": "It never writes prose about code it has not indexed, so an empty answer is a real answer: the records do not cover the question yet.",
       "kind": "invariant",
       "enforced_by": "tests/test_delta_ask_site.py::AskTests::test_a_real_question_is_answered_with_locations",
+      "note": ""
+    },
+    {
+      "id": "INV-09f4ac1581",
+      "file": "eaos/behavior_lock.py",
+      "symbol": "<module>",
+      "statement": "A module whose top level runs code (a Streamlit page, a script) is never imported.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_behavior_lock.py::BuildTests::test_a_python_feature_locks_the_interface_of_its_import_safe_modules_only",
+      "note": ""
+    },
+    {
+      "id": "INV-493856d194",
+      "file": "eaos/behavior_lock.py",
+      "symbol": "<module>",
+      "statement": "A route with a parameter ($id, :id) reads it from E2E_<PARAM>; without it the test is skipped and the surface is marked needs_fixture in plan.json, never dropped.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_behavior_lock.py::BuildTests::test_every_feature_has_a_spec_and_the_plan_keeps_its_contract",
+      "note": ""
+    },
+    {
+      "id": "INV-a6837c2c4c",
+      "file": "eaos/behavior_lock.py",
+      "symbol": "<module>",
+      "statement": "Sign-in, when the owner grants E2E_USER and E2E_PASSWORD (authorization.json -> env_allow), happens once in auth.setup.ts; no value is written here.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_behavior_lock.py::BuildTests::test_every_feature_has_a_spec_and_the_plan_keeps_its_contract",
       "note": ""
     },
     {
@@ -144,6 +171,33 @@
       "statement": "Whether a claim is about product code or about test and fixture code; a reader must not confuse them.",
       "kind": "invariant",
       "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_a_claim_about_test_code_is_marked_as_such",
+      "note": ""
+    },
+    {
+      "id": "INV-f7cbaa21c0",
+      "file": "eaos/emit/nfr.py",
+      "symbol": "<module>",
+      "statement": "The upstream is an environment variable the run stage resolves (${SUPABASE_UPSTREAM}); no host is written.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_emit_nfr.py::NfrTests::test_every_dependency_is_a_proxy_whose_upstream_is_a_variable",
+      "note": ""
+    },
+    {
+      "id": "INV-23b3bc97be",
+      "file": "eaos/emit/nfr.py",
+      "symbol": "<module>",
+      "statement": "Toxiproxy and ZAP cannot check a file without running; their shape is checked instead (eaos/emit/shape.py), and validation.json says so with tool = \"schema\".",
+      "kind": "invariant",
+      "enforced_by": "tests/test_emit_nfr.py::NfrTests::test_every_file_is_put_to_its_tool_and_k6_accepts_its_script",
+      "note": ""
+    },
+    {
+      "id": "INV-c3a8bb2123",
+      "file": "eaos/emit/shape.py",
+      "symbol": "<module>",
+      "statement": "The shape of the files whose own tools cannot check them without running: Toxiproxy's proxy list, the fault experiments and the ZAP automation plan.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_emit_nfr.py::NfrTests::test_the_zap_plan_has_its_automation_shape",
       "note": ""
     },
     {

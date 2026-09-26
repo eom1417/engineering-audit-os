@@ -18,8 +18,12 @@ def verdict(report, emitted):
         return {**row, 'ok': False, 'reason': f'validator unavailable: {emitted.argv[0]}'}
     argv = [binary] + [str(path) if part == '{path}' else part for part in emitted.argv[1:]]
     try:
+        # Node validators load their packages (@playwright/test) from the pinned tools prefix, not the project.
+        from ..toolchain import home
+        node = str(home() / 'node/node_modules')
         done = subprocess.run(argv, cwd=path.parent, capture_output=True, text=True, timeout=300,
-                              env={**os.environ, 'NO_COLOR': '1'})
+                              env={**os.environ, 'NO_COLOR': '1',
+                                   'NODE_PATH': os.pathsep.join(p for p in (node, os.environ.get('NODE_PATH')) if p)})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return {**row, 'command': ' '.join(argv), 'ok': False, 'reason': str(problem)}
     return {**row, 'command': ' '.join(argv), 'ok': done.returncode == 0,
