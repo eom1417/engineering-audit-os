@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-26",
-  "measured_at_commit": "ca719cd",
+  "measured_at_commit": "9205ef1",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -279,7 +279,7 @@
           "definition": "الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "20/20 assessment tools at their pinned version",
+          "evidence": "22/22 assessment tools at their pinned version",
           "reads": "eaos tools doctor --json → tools[] {name, role, pinned, found, ok}",
           "measured": "automated"
         }
@@ -539,8 +539,8 @@
           "definition": "مشاريع العيّنة التي في تقريرها architecture/current/workspace.dsl و architecture/target/workspace.dsl، ويذكر النموذج المستهدف اسم كل مكوّن في target_components ÷ عدد المشاريع",
           "reads": "architecture/current/workspace.dsl و architecture/target/workspace.dsl (Structurizr DSL)، مقابل target-architecture.json → target_components[].name",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "current and target C4 models naming every target component: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False",
+          "value": 1.0,
+          "evidence": "current and target C4 models naming every target component: FleetManageWeb True · finance-os-a0192b7b True · RendaPerene True",
           "measured": "automated"
         },
         {
@@ -549,8 +549,8 @@
           "definition": "ملفات adr/ADR-*.md التي فيها أقسام MADR الثلاثة (Context and Problem Statement، Considered Options، Decision Outcome) ÷ قرارات target-architecture.json",
           "reads": "adr/ADR-*.md في التقرير، مقابل target-architecture.json → decisions[]",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "MADR files for decisions: FleetManageWeb 0/35 · finance-os-a0192b7b 0/29 · RendaPerene 0/9",
+          "value": 1.0,
+          "evidence": "MADR files for decisions: FleetManageWeb 35/35 · finance-os-a0192b7b 29/29 · RendaPerene 9/9",
           "measured": "automated"
         }
       ]
@@ -2815,7 +2815,8 @@
             "واكتب النسخة نفسها Mermaid في CURRENT-STATE.md لتُعرض على GitHub. النموذج نص يكتبه EAOS؛ لا تعتمد على مكتبة Structurizr (structurizr/java مؤرشفة).",
             "الاختبار يثبت أن DSL المولَّد صالح نحويًا (عناصر workspace و model و views متوازنة الأقواس) وأن كل مكوّن حالي فيه.",
             "الهيكل الإلزامي، والأسماء بين علامتي تنصيص كما في current_components[].name حرفيًا:\nworkspace \"<مشروع>\" {\n  model {\n    user = person \"User\"\n    system = softwareSystem \"<مشروع>\" {\n      app = container \"Application\" \"<stack>\" {\n        c1 = component \"<name>\"\n      }\n    }\n    ext1 = softwareSystem \"<host>\"\n    user -> app \"uses\"\n  }\n  views {\n    systemContext system { include * autolayout }\n    container system { include * autolayout }\n    component app { include * autolayout }\n  }\n}",
-            "المعرّفات (c1 و ext1…) حروف وأرقام و_ فقط. الأنظمة الخارجية من integration_target و data_access."
+            "المعرّفات (c1 و ext1…) حروف وأرقام و_ فقط. الأنظمة الخارجية من integration_target و data_access.",
+            "كما نُفّذ: eaos/c4.py عبر المولّد c4. النموذج نص يكتبه EAOS، ويحكم عليه Structurizr CLI نفسه (structurizr validate) على JRE مثبّت: temurin-jre 21.0.12 (بالبصمة التي تنشرها Adoptium) و structurizr-cli 2025.11.09 (آخر إصدار للمستودع المؤرشف؛ المشروع انتقل إلى structurizr/structurizr بلا بناء CLI؛ البصمة ثُبّتت عند الاعتماد). المثبّت صار يفك أرشيفًا كاملًا (tree) مع zip ويمنع المسارات الهاربة. Mermaid في architecture/*/diagram.mmd لتضمّنه التقارير الأربعة (NS8.T5)."
           ],
           "done_when": [
             "python tools/acceptance.py dsl architecture/current/workspace.dsl --names current_components يمر.",
@@ -2827,7 +2828,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only T6 && python tools/acceptance.py dsl architecture/current/workspace.dsl --names current_components",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS13.T2",
@@ -2851,7 +2852,8 @@
           ],
           "steps": [
             "اكتب architecture/target/workspace.dsl من target_components وحدودها المسموحة، بالطريقة نفسها.",
-            "العقد مع القياس: اسم كل عنصر في target_components[].name يظهر في DSL المستهدف."
+            "العقد مع القياس: اسم كل عنصر في target_components[].name يظهر في DSL المستهدف.",
+            "كما نُفّذ: النموذج المستهدف من target_components ومن target_edges (الاستيرادات بين مكوّنات مختلفة التي تسمح بها قواعد الطبقات)."
           ],
           "done_when": [
             "T6 = 1.0.",
@@ -2863,7 +2865,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only T6 --min 1.0 && python tools/acceptance.py dsl architecture/target/workspace.dsl --names target_components",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS13.T3",
@@ -2888,7 +2890,8 @@
           "steps": [
             "لكل قرار في target-architecture.json → decisions[] اكتب adr/ADR-NNN.md بأقسام MADR: Context and Problem Statement، و Considered Options (كل البدائل بأدلتها)، و Decision Outcome (القرار وسببه وعواقبه ومتى يُعاد النظر فيه).",
             "لا تستخدم Log4brains (متوقف منذ 2024-12)؛ الصيغة وحدها تكفي.",
-            "العناوين حرفيًا: \"## Context and Problem Statement\" و \"## Considered Options\" و \"## Decision Outcome\"، ثم \"### Consequences\". الرقم NNN هو رقم decisions[].id."
+            "العناوين حرفيًا: \"## Context and Problem Statement\" و \"## Considered Options\" و \"## Decision Outcome\"، ثم \"### Consequences\". الرقم NNN هو رقم decisions[].id.",
+            "كما نُفّذ: eaos/adr.py يكتب adr/ADR-NNN.md بأقسام MADR ملفوفة على 80 عمودًا، ويحكم عليها markdownlint-cli2 (المولّد adr). حلّ محل docs/adr القديم بصيغة غير MADR."
           ],
           "done_when": [
             "T7 = 1.0.",
@@ -2901,7 +2904,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only T7 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "stages": [

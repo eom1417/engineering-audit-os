@@ -79,14 +79,20 @@ def found_version(tool):
     path = binary_path(tool)
     if not path: return None, 'not installed'
     try:
-        done = subprocess.run([path, '--version'], capture_output=True, text=True, timeout=120,
-                              env={**os.environ, 'NO_COLOR': '1'})
+        # A tool that runs on another (the Structurizr CLI on the JRE) finds it in the pinned bin first.
+        done = subprocess.run([path, *tool.get('version_args', ['--version'])], capture_output=True, text=True, timeout=120,
+                              env={**os.environ, 'NO_COLOR': '1', 'PATH': str(home() / 'bin') + os.pathsep + os.environ.get('PATH', '')})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return None, f'{path} --version failed: {problem}'
     match = VERSION.search(done.stdout + done.stderr)
     if not match: return None, f'{path} --version printed no version'
     missing = _companions_missing(tool)
-    return (None, missing) if missing else (match.group(1), '')
+    if missing: return None, missing
+    # A release numbered one way may report another (the Structurizr CLI reports its parser's version):
+    # `version_reports` names what the pinned release prints, and the pinned version stands for it.
+    if tool.get('version_reports'):
+        return (tool['version'], '') if match.group(1) == tool['version_reports'] else (match.group(1), '')
+    return match.group(1), ''
 
 
 def _companions_missing(tool):
@@ -136,6 +142,23 @@ def _release(tool):
         raise RuntimeError(f"{tool['name']}: sha256 {digest} does not match the pinned {spec['sha256']}; nothing installed")
     folder = home() / 'releases' / f"{tool['name']}-{tool['version']}"
     folder.mkdir(parents=True, exist_ok=True)
+    if spec.get('tree'):
+        # A whole directory (a JRE, a CLI with its jars): extracted with no path escaping the folder.
+        if spec['archive'] == 'zip':
+            import zipfile
+            with zipfile.ZipFile(io.BytesIO(blob)) as archive:
+                for name in archive.namelist():
+                    if name.startswith('/') or '..' in Path(name).parts:
+                        raise RuntimeError(f"{tool['name']}: unsafe path {name!r} in the archive; nothing installed")
+                archive.extractall(folder)
+        else:
+            with tarfile.open(fileobj=io.BytesIO(blob), mode='r:gz') as archive:
+                archive.extractall(folder, filter='data')
+        target = folder / spec['entry']
+        if not target.is_file(): raise RuntimeError(f"{tool['name']}: {spec['entry']} is not in the archive")
+        target.chmod(0o755)
+        _link(target, tool['binary'])
+        return
     if spec['archive'] == 'binary':
         target = folder / spec['member']
         target.write_bytes(blob)

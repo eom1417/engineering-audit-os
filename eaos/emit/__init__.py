@@ -37,12 +37,24 @@ def behavior_lock(report):
 
 
 # name -> function(report_dir) -> [Emitted]. An emitter that does not apply returns [].
+def adr_files(report):
+    """The MADR files the target stage wrote (eaos/adr.py), each put to markdownlint; this writes nothing."""
+    folder = Path(report) / 'adr'
+    return [Emitted(path.relative_to(report).as_posix(), 'markdownlint-cli2', ('markdownlint-cli2', '{path}'))
+            for path in sorted(folder.glob('ADR-*.md'))] if folder.is_dir() else []
+
+
+def c4_models(report):
+    from ..c4 import write
+    return write(report)
+
+
 def nfr_plans(report):
     from .nfr import write
     return write(report)
 
 
-EMITTERS = {'handover-readme': handover_readme, 'behavior-lock': behavior_lock, 'nfr': nfr_plans}
+EMITTERS = {'handover-readme': handover_readme, 'behavior-lock': behavior_lock, 'nfr': nfr_plans, 'c4': c4_models, 'adr': adr_files}
 
 
 def emit(report, only=None, validate=False):

@@ -376,6 +376,55 @@
         "archive": "tar.gz",
         "member": "k6"
       }
+    },
+    {
+      "name": "temurin-jre",
+      "role": "validate",
+      "stages": [
+        "S02",
+        "S06"
+      ],
+      "license": "GPL-2.0-with-classpath-exception",
+      "repository": "https://github.com/adoptium/temurin21-binaries",
+      "version": "21.0.12",
+      "version_args": [
+        "-version"
+      ],
+      "binary": "java",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_linux_hotspot_21.0.12.1_1.tar.gz",
+        "sha256": "2413149700df0f7d440500a84a8f764c535f21e5a5e87d38328b64eec2c5b500",
+        "archive": "tar.gz",
+        "tree": true,
+        "entry": "jdk-21.0.12.1+1-jre/bin/java"
+      },
+      "install_note": "Only the Structurizr CLI needs it; the checksum is the one Adoptium publishes."
+    },
+    {
+      "name": "structurizr-cli",
+      "role": "validate",
+      "stages": [
+        "S02",
+        "S06"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/structurizr/cli",
+      "version": "2025.11.09",
+      "version_args": [
+        "version"
+      ],
+      "version_reports": "5.0.2",
+      "binary": "structurizr",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/structurizr/cli/releases/download/v2025.11.09/structurizr-cli.zip",
+        "sha256": "f5365a463fc44d539ed19bec00c48ba1e1ecda0ccfd1ba40d2e7472d264eb79a",
+        "archive": "zip",
+        "tree": true,
+        "entry": "structurizr.sh"
+      },
+      "install_note": "The last release of the archived structurizr/cli (the project moved to structurizr/structurizr, which ships no CLI build); it parses and validates Structurizr DSL. No upstream checksum is published: the sha256 was pinned when it was adopted. Needs temurin-jre."
     }
   ]
 }

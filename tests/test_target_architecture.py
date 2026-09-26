@@ -44,7 +44,7 @@ class ArchitecturalDecisionTests(unittest.TestCase):
         records = decisions([self.component()])
         with tempfile.TemporaryDirectory() as out:
             render_decisions(out, records)
-            text = Path(out, 'docs/adr/ADR-001.md').read_text(encoding='utf-8')
+            text = Path(out, 'adr/ADR-001.md').read_text(encoding='utf-8')
         self.assertIn('Do nothing', text)
         self.assertIn('FACT-c1', text)
 

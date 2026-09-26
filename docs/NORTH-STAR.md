@@ -1,8 +1,8 @@
 # الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي
 
-> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-26 على الالتزام `ca719cd`.
+> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-26 على الالتزام `9205ef1`.
 
-## أين نحن: **74.5%** من الوجهة
+## أين نحن: **79.0%** من الوجهة
 
 هذه ليست درجة القدرات في docs/CAPABILITY-SCORE.md. تلك تقيس اكتمال آلية الأداة على مستودعين ضُبطت عليهما، وهذه تقيس الوعد نفسه على الجمهور الذي بُنيت له.
 
@@ -13,12 +13,12 @@
 | C3 | الإشارة: كل ادعاء مشكلة حقيقية | 10 | 97% | 9.7 |
 | C4 | الكود الميت والمخلفات: يجدها ويحذفها بأمان | 10 | 100% | 10.0 |
 | C5 | نظافة الأمن الأساسية | 8 | 100% | 8.0 |
-| C6 | تقرير الصورة المثالية | 16 | 69% | 11.0 |
+| C6 | تقرير الصورة المثالية | 16 | 97% | 15.6 |
 | C7 | تقرير الفجوة والتحول الاستراتيجي | 8 | 100% | 8.0 |
 | C8 | خطة التنفيذ للفريق | 16 | 24% | 3.9 |
 | C9 | ضمان التنفيذ: يثبت أن التحول حدث | 7 | 18% | 1.3 |
 | C10 | الثقة والإثبات المستقل | 5 | 57% | 2.9 |
-| | **المجموع** | **100** | | **74.5** |
+| | **المجموع** | **100** | | **79.0** |
 
 ## الرؤية
 
@@ -92,8 +92,8 @@
 | --- | --- |
 | C8 خطة التنفيذ للفريق | 12.1 |
 | C9 ضمان التنفيذ: يثبت أن التحول حدث | 5.7 |
-| C6 تقرير الصورة المثالية | 5.0 |
 | C10 الثقة والإثبات المستقل | 2.1 |
+| C6 تقرير الصورة المثالية | 0.4 |
 | C3 الإشارة: كل ادعاء مشكلة حقيقية | 0.3 |
 | C2 تقرير الوضع الراهن: يرى البرنامج كله | 0.2 |
 | C1 الوصول: يعمل على مشاريع الهواة الحقيقية | 0.0 |
@@ -114,7 +114,7 @@
 | R1 تدقيقات العيّنة المكتملة بلا فشل | عدد مشاريع العيّنة التي ينتهي فيها eaos audit برمز خروج 0 ÷ عدد مشاريع العيّنة | 100% | 100% | exit codes: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
 | R2 الأطر المفهومة | مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع | 100% | 100% | user surfaces found: FleetManageWeb 43 · finance-os-a0192b7b 29 · RendaPerene 4 |
 | R3 محوّلات الفحص الساكن تعمل | متوسط (المحوّلات المعتمدة المنطبقة على المشروع التي عملت فعلًا ÷ المنطبقة)، لكل مشروع. قائمة المحوّلات وشروط انطباقها في adopted_adapters. | 100% | 100% | adopted adapters that ran / applicable: FleetManageWeb 7/7 · finance-os-a0192b7b 8/8 · RendaPerene 7/7 |
-| R4 الأدوات المعتمدة مثبّتة بإصداراتها | الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات | 100% | 100% | 20/20 assessment tools at their pinned version |
+| R4 الأدوات المعتمدة مثبّتة بإصداراتها | الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات | 100% | 100% | 22/22 assessment tools at their pinned version |
 
 ### C2 — تقرير الوضع الراهن: يرى البرنامج كله (98%، الوزن 12)
 
@@ -160,7 +160,7 @@
 | H2 تغطية سياسات الوصول مقروءة | مشاريع ذات قاعدة بيانات قُرئت فيها سياسات RLS وحُدد كل جدول بلا سياسة ÷ عدد تلك المشاريع | 100% | 100% | db_policy facts vs truth: finance-os-a0192b7b 108/108 |
 | H3 سلسلة الإمداد | مشاريع العيّنة التي في تقريرها قائمة اعتماديات (SBOM) فيها مكوّن واحد على الأقل، وفُحصت ثغراتها بـOSV-Scanner ÷ عدد المشاريع | 100% | 100% | SBOM with components and OSV-Scanner observed: FleetManageWeb True · finance-os-a0192b7b True · RendaPerene True |
 
-### C6 — تقرير الصورة المثالية (69%، الوزن 16)
+### C6 — تقرير الصورة المثالية (97%، الوزن 16)
 
 **الصورة المثالية:** البرنامج نفسه بوظائفه نفسها، ببنية وبنية تحتية تصلح منتجًا: مكوّنات مستهدفة، وحدود، وقرارات بنية تحتية، وقرار لكل مكوّن حالي، كل قرار بدليله وبديله.
 
@@ -171,8 +171,8 @@
 | T3 قرارات تغيّر البنية | القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات | 60% | 81% | decisions that change structure: FleetManageWeb 33/35 · finance-os-a0192b7b 21/29 · RendaPerene 5/9 |
 | T4 قرار لكل مكوّن حالي | (المكوّنات الحالية التي لها قرار صريح بدليله ÷ المكوّنات الحالية) × (عدد القرارات الأربعة التي ينتجها المنتج فعلًا: إعادة استخدام، هيكلة، إعادة بناء، حذف ÷ 4) | 100% | 100% | components with a disposition and reason: FleetManageWeb 47/47 · finance-os-a0192b7b 36/36 · RendaPerene 9/9; dispositions the tool produced: ['delete', 'rebuild', 'restructure', 'reuse'] of 4 |
 | T5 الوظائف نفسها في الصورة المثالية | وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد | 100% | 100% | features placed in a target component: FleetManageWeb 24/24 · finance-os-a0192b7b 21/21 · RendaPerene 4/4 |
-| T6 نموذج C4 حالي ومستهدف | مشاريع العيّنة التي في تقريرها architecture/current/workspace.dsl و architecture/target/workspace.dsl، ويذكر النموذج المستهدف اسم كل مكوّن في target_components ÷ عدد المشاريع | 100% | 0% | current and target C4 models naming every target component: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False |
-| T7 قرارات العمارة بصيغة MADR | ملفات adr/ADR-*.md التي فيها أقسام MADR الثلاثة (Context and Problem Statement، Considered Options، Decision Outcome) ÷ قرارات target-architecture.json | 100% | 0% | MADR files for decisions: FleetManageWeb 0/35 · finance-os-a0192b7b 0/29 · RendaPerene 0/9 |
+| T6 نموذج C4 حالي ومستهدف | مشاريع العيّنة التي في تقريرها architecture/current/workspace.dsl و architecture/target/workspace.dsl، ويذكر النموذج المستهدف اسم كل مكوّن في target_components ÷ عدد المشاريع | 100% | 100% | current and target C4 models naming every target component: FleetManageWeb True · finance-os-a0192b7b True · RendaPerene True |
+| T7 قرارات العمارة بصيغة MADR | ملفات adr/ADR-*.md التي فيها أقسام MADR الثلاثة (Context and Problem Statement، Considered Options، Decision Outcome) ÷ قرارات target-architecture.json | 100% | 100% | MADR files for decisions: FleetManageWeb 35/35 · finance-os-a0192b7b 29/29 · RendaPerene 9/9 |
 
 ### C7 — تقرير الفجوة والتحول الاستراتيجي (100%، الوزن 8)
 
@@ -249,7 +249,7 @@
 | R1 | الأساس: الوصول والرؤية والإشارة | NS1, NS2, NS3, NS4, NS5, NS6 | 19/19 | U2، U3، U4، U5، S1، S2، D1–D3، H1، H2 عند أهدافها |
 | R2 | منصة الأدوات: تثبيت، وقراءة، وتوليد، ومراحل، وعزل | NS17 | 5/5 | R4 = 1، وقارئ SARIF وإطار التوليد ومراحل engage والبيئة المعزولة مختبرة |
 | R3 | الأدلة الكاملة من الأدوات الجاهزة | NS11, NS12, NS18 | 15/15 | بوابات S01 وS03 وS04 كاملة: U6، R3، H3، M1، S3 |
-| R4 | تثبيت السلوك والصورة المثالية | NS15, NS7, NS13 | 7/10 | البوابة أ لـS05، وبوابة S06 مع موافقة بشرية |
+| R4 | تثبيت السلوك والصورة المثالية | NS15, NS7, NS13 | 10/10 | البوابة أ لـS05، وبوابة S06 مع موافقة بشرية |
 | R5 | الخطة والتقارير وعدّة التسليم | NS8, NS14, NS25 | 0/14 | بوابة S07 و K1 = 1: اكتمل عقد التقييم (EAOS 1.0) |
 | R6 | التنفيذ المثبت | NS26, NS9, NS20 | 0/4 | البوابة ب لـS05، وبوابتا S08 وS09: E5، E1، E7، E2 |
 | R7 | التصليب التشغيلي | NS21, NS22, NS23, NS24, NS16 | 0/5 | بوابات S10 إلى S14: E8، E6، E9، E10، E11 |
@@ -273,7 +273,7 @@
 | NS18 القياس وسجل الدَّين: الأرقام لكل ملف، والخطر حين تجتمع الأدلة | M1 ≥ 0.95 و S3 ≥ 0.8 و G2 = 1.0. | 3/3 |
 | NS15 تثبيت السلوك: المواصفات قبل أي تغيير (ساكن) | E4 = 1، ومواصفات الحمل والأعطال والفحص الحي مولّدة ومقبولة من أدواتها. | 2/2 |
 | NS7 تقرير الصورة المثالية | T1 = 1.0 و T2 = 1.0 و T3 ≥ 0.6 و T4 = 1.0 و T5 = 1.0 و G1 = 1.0. | 5/5 |
-| NS13 نموذج العمارة وقراراتها | T6 = 1.0 و T7 = 1.0. | 0/3 |
+| NS13 نموذج العمارة وقراراتها | T6 = 1.0 و T7 = 1.0. | 3/3 |
 | NS8 خطة التنفيذ للفريق والتقارير الأربعة | P1 = 1.0 و P2 ≥ 0.5 و P3 ≥ 0.8 و P4 = 1.0 و P6 = 1.0 و P7 = 1.0 و P9 ≥ 0.8. | 0/6 |
 | NS14 جودة التقرير تُفحص آليًا | P8 = 1.0. | 0/3 |
 | NS25 عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي | K1 = 1. | 0/5 |
@@ -1866,7 +1866,7 @@ python tools/north_star.py measure --only T5 --min 1.0 && python tools/acceptanc
 
 **الهدف:** T6 = 1.0 و T7 = 1.0. · **المراحل:** S02, S06
 
-#### NS13.T1 — نموذج C4 للوضع الحالي من الحقائق ⬜
+#### NS13.T1 — نموذج C4 للوضع الحالي من الحقائق ✅
 
 **لماذا:** نموذج C4 مكتوب نصًا يراه المالك رسمًا ويقرؤه أي نموذج بيانات: هو الخريطة المشتركة للوضع الحالي.
 
@@ -1900,6 +1900,7 @@ workspace "<مشروع>" {
   }
 }
 5. المعرّفات (c1 و ext1…) حروف وأرقام و_ فقط. الأنظمة الخارجية من integration_target و data_access.
+6. كما نُفّذ: eaos/c4.py عبر المولّد c4. النموذج نص يكتبه EAOS، ويحكم عليه Structurizr CLI نفسه (structurizr validate) على JRE مثبّت: temurin-jre 21.0.12 (بالبصمة التي تنشرها Adoptium) و structurizr-cli 2025.11.09 (آخر إصدار للمستودع المؤرشف؛ المشروع انتقل إلى structurizr/structurizr بلا بناء CLI؛ البصمة ثُبّتت عند الاعتماد). المثبّت صار يفك أرشيفًا كاملًا (tree) مع zip ويمنع المسارات الهاربة. Mermaid في architecture/*/diagram.mmd لتضمّنه التقارير الأربعة (NS8.T5).
 
 **تنتهي حين:**
 
@@ -1919,7 +1920,7 @@ python tools/north_star.py measure --only T6 && python tools/acceptance.py dsl a
 
 **التراجع:** revert الالتزام.
 
-#### NS13.T2 — نموذج C4 للصورة المثالية ⬜
+#### NS13.T2 — نموذج C4 للصورة المثالية ✅
 
 **لماذا:** الصورة المثالية بالشكل نفسه للحالية، فيرى المالك الفرق بين رسمين.
 
@@ -1933,6 +1934,7 @@ python tools/north_star.py measure --only T6 && python tools/acceptance.py dsl a
 
 1. اكتب architecture/target/workspace.dsl من target_components وحدودها المسموحة، بالطريقة نفسها.
 2. العقد مع القياس: اسم كل عنصر في target_components[].name يظهر في DSL المستهدف.
+3. كما نُفّذ: النموذج المستهدف من target_components ومن target_edges (الاستيرادات بين مكوّنات مختلفة التي تسمح بها قواعد الطبقات).
 
 **تنتهي حين:**
 
@@ -1952,7 +1954,7 @@ python tools/north_star.py measure --only T6 --min 1.0 && python tools/acceptanc
 
 **التراجع:** revert الالتزام.
 
-#### NS13.T3 — قرارات العمارة بصيغة MADR ⬜
+#### NS13.T3 — قرارات العمارة بصيغة MADR ✅
 
 **لماذا:** كل قرار عمارة يُسجَّل مع بدائله وسببه، فلا يُعاد النقاش فيه بلا دليل جديد.
 
@@ -1967,6 +1969,7 @@ python tools/north_star.py measure --only T6 --min 1.0 && python tools/acceptanc
 1. لكل قرار في target-architecture.json → decisions[] اكتب adr/ADR-NNN.md بأقسام MADR: Context and Problem Statement، و Considered Options (كل البدائل بأدلتها)، و Decision Outcome (القرار وسببه وعواقبه ومتى يُعاد النظر فيه).
 2. لا تستخدم Log4brains (متوقف منذ 2024-12)؛ الصيغة وحدها تكفي.
 3. العناوين حرفيًا: "## Context and Problem Statement" و "## Considered Options" و "## Decision Outcome"، ثم "### Consequences". الرقم NNN هو رقم decisions[].id.
+4. كما نُفّذ: eaos/adr.py يكتب adr/ADR-NNN.md بأقسام MADR ملفوفة على 80 عمودًا، ويحكم عليها markdownlint-cli2 (المولّد adr). حلّ محل docs/adr القديم بصيغة غير MADR.
 
 **تنتهي حين:**
 

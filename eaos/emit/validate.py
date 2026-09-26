@@ -21,8 +21,9 @@ def verdict(report, emitted):
         # Node validators load their packages (@playwright/test) from the pinned tools prefix, not the project.
         from ..toolchain import home
         node = str(home() / 'node/node_modules')
+        # A validator running on another pinned tool (Structurizr on the JRE) finds it in the tools bin first.
         done = subprocess.run(argv, cwd=path.parent, capture_output=True, text=True, timeout=300,
-                              env={**os.environ, 'NO_COLOR': '1',
+                              env={**os.environ, 'NO_COLOR': '1', 'PATH': str(home() / 'bin') + os.pathsep + os.environ.get('PATH', ''),
                                    'NODE_PATH': os.pathsep.join(p for p in (node, os.environ.get('NODE_PATH')) if p)})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return {**row, 'command': ' '.join(argv), 'ok': False, 'reason': str(problem)}

@@ -239,27 +239,10 @@ def decisions(components_list):
 
 
 def render_decisions(out, records):
-    directory = Path(out) / 'docs' / 'adr'
-    directory.mkdir(parents=True, exist_ok=True)
-    expected = set()
-    for decision in records:
-        validate_decision(decision)
-        path = directory / f"{decision['id']}.md"
-        expected.add(path.name)
-        lines = [f"# {decision['id']}: {decision['problem']}", '',
-                 f"Component: `{decision['component_id']}`", '', '## Evidence', '']
-        lines += [f'- `{item}`' for item in decision['evidence']]
-        lines += ['', '## Options', '']
-        lines += [f'{index}. {option}' for index, option in enumerate(decision['options'], 1)]
-        lines += ['', '## Chosen', '', decision['chosen'], '', '## Tradeoffs', '',
-                  decision['tradeoffs'], '', '## Consequences', '']
-        lines += [f'- {item}' for item in decision['consequences']]
-        lines += ['', '## Migration', '']
-        lines += [f'{index}. {step}' for index, step in enumerate(decision['migration'], 1)]
-        path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
-    for path in directory.glob('ADR-*.md'):
-        if path.name not in expected:
-            path.unlink()
+    """Every decision as a MADR file under adr/ (eaos/adr.py); stale files are removed."""
+    from .adr import write_all
+    for decision in records: validate_decision(decision)
+    return write_all(out, records)
 
 
 def gap_matrix(current_components, target_components, claims=None, tasks=None, stages=None):
@@ -379,7 +362,8 @@ def build(out, contracts_by_path=None, target_components=None, target=None):
               'limits': ' '.join(LIMITATIONS)}
     if projection:
         result.update(reference=projection['reference'], target_components=projection['target_components'],
-                      infrastructure=projection['infrastructure'], forbidden_edges=len(projection['forbidden_edges']))
+                      infrastructure=projection['infrastructure'], forbidden_edges=len(projection['forbidden_edges']),
+                      target_edges=projection['target_edges'])
         place_features(out, projection['features'])
     return result
 

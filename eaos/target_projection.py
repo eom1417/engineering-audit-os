@@ -250,7 +250,12 @@ def project(out, target=None):
         relation, reason = disposition(stats, rules)
         home = Counter(placed[p][0] for p in members).most_common(1)[0][0]
         current[package] = {'relation': relation, 'reason': reason, 'target_component': home, 'stats': stats}
+    # The target's own dependencies: imports between different target components that the layer rules allow.
+    flows = Counter((placed[a][0], placed[b][0]) for a, b in edges
+                    if a in placed and b in placed and placed[a][0] != placed[b][0] and (a, b) not in set(bad))
+    target_edges = [{'from': a, 'to': b, 'imports': n} for (a, b), n in sorted(flows.items())]
     return {'reference': reference_id, 'target_components': sorted(components.values(), key=lambda c: c['name']),
+            'target_edges': target_edges,
             'placements': {p: c for p, (c, _) in placed.items()}, 'forbidden_edges': bad, 'current': current,
             'features': {f['name']: f"feature:{slug(f['name'])}" for f in features},
             'infrastructure': infrastructure(reference, facts, target, files)}
