@@ -83,14 +83,14 @@ flowchart TB
     subgraph P4["Execution: isolated, with the owner's authorization (2/2)"]
         direction LR
         S12["<b>S12 · Deliberate failures</b><br/>📄 runtime/resilience.json · RESILIENCE.md<br/>▰ 0%"]:::next
-        S13["<b>S13 · Observability</b><br/>📄 otel/collector.yaml · slo/*.yaml …<br/>▰ 2%"]:::current
-        S14["<b>S14 · Production readiness</b><br/>📄 PRODUCTION-READINESS.md · PRODUCTION-READINESS.json<br/>▰ 2%"]:::current
+        S13["<b>S13 · Observability</b><br/>📄 otel/collector.yaml · slo/*.yaml …<br/>▰ 67%"]:::current
+        S14["<b>S14 · Production readiness</b><br/>📄 PRODUCTION-READINESS.md · PRODUCTION-READINESS.json<br/>▰ 67%"]:::current
         S12 -->|"✔ E9 ≥ 0.8"| S13
         S13 -->|"✔ E10 ≥ 0.9"| S14
     end
     subgraph P5["Governance and handover"]
         direction LR
-        S15["<b>S15 · Continuous governance and handover</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 3%"]:::current
+        S15["<b>S15 · Continuous governance and handover</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 100%"]:::done
         LOOP["↺ re-audit after every change: back to S01"]:::next
         S15 -->|"✔ K1 = 1, the baseline pinned, and the new-debt gate in CI"| LOOP
     end
@@ -194,13 +194,13 @@ No command modifies the original project, publishes anything or merges anything.
 <!-- north-star:progress:start -->
 <!-- generated from docs/north-star.json by python tools/north_star.py; do not edit by hand -->
 
-### Progress: **62.0 of 100 points**
+### Progress: **65.9 of 100 points**
 
-`████████████████░░░░░░░░░` 62.0%
+`████████████████░░░░░░░░░` 65.9%
 
 | Steps done | Current step | Points left | Of which wait on the owner | Last measured |
 |---|---|---|---|---|
-| 15 of 25 | 16 · NS25 Operations and handover kit | 38.0 | 35 | 2026-09-26 · `acdadb9+` |
+| 16 of 25 | 17 · NS26 Live baseline: behaviour and numbers before any change | 34.1 | 31 | 2026-09-26 · `22d2884+` |
 
 `+`: measured on changes over this commit, saved in the next one.
 
@@ -257,13 +257,13 @@ flowchart TB
         direction LR
         NS8["<b>14 · NS8</b><br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports<br/>⚖ 7 · ▰ 100%"]:::done
         NS14["<b>15 · NS14</b><br/>جودة التقرير تُفحص آليًا<br/>Report quality checked automatically<br/>⚖ 2 · ▰ 100%"]:::done
-        NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 4 · ▰ 3%"]:::current
+        NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 4 · ▰ 100%"]:::done
         NS8 -->|"✔ P1=1 · P4=1 · P3≥0.8 · …"| NS14
         NS14 -->|"✔ P8=1 · +3 acceptance tests"| NS25
     end
     subgraph R6_1["R6 · Proven execution"]
         direction LR
-        NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 0%"]:::owner
+        NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 0%"]:::current
         NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 0%"]:::owner
         NS20["<b>19 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
         NS26 -->|"✔ E5≥0.8 · +2 acceptance tests"| NS9

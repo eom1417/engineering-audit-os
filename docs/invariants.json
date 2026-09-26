@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "acdadb9",
+  "extracted_at_commit": "22d2884",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -201,6 +201,33 @@
       "note": ""
     },
     {
+      "id": "INV-5271f1c915",
+      "file": "eaos/emit/governance.py",
+      "symbol": "<module>",
+      "statement": "handover/.dependency-cruiser.cjs JS/TS: one rule per pair of target layers that may not depend on each other (the reference type's allowed_dependencies).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_emit_governance.py::BoundaryRuleTests::test_every_pair_the_reference_does_not_allow_is_a_rule_and_no_allowed_pair_is",
+      "note": ""
+    },
+    {
+      "id": "INV-5b0193f885",
+      "file": "eaos/emit/handover_site.py",
+      "symbol": "<module>",
+      "statement": "Judged by `zensical build --strict`, which fails on a broken link: a link to a document the site does not carry becomes the document's name in code, never a dead link.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_emit_site.py::SiteTests::test_zensical_builds_it_in_strict_mode",
+      "note": ""
+    },
+    {
+      "id": "INV-1e60fc1cb2",
+      "file": "eaos/emit/handover_site.py",
+      "symbol": "relink",
+      "statement": "Links resolved from the report's layout to the site's; a link the site cannot follow becomes plain code.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_emit_site.py::SiteTests::test_links_follow_the_site_and_a_document_it_does_not_carry_becomes_code",
+      "note": ""
+    },
+    {
       "id": "INV-f7cbaa21c0",
       "file": "eaos/emit/nfr.py",
       "symbol": "<module>",
@@ -219,10 +246,19 @@
       "note": ""
     },
     {
-      "id": "INV-c3a8bb2123",
+      "id": "INV-1c76816a34",
+      "file": "eaos/emit/observability.py",
+      "symbol": "<module>",
+      "statement": "No address is written.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_emit_observability.py::ObservabilityTests::test_production_is_an_environment_variable_never_a_written_address",
+      "note": ""
+    },
+    {
+      "id": "INV-10d2fa35c2",
       "file": "eaos/emit/shape.py",
       "symbol": "<module>",
-      "statement": "The shape of the files whose own tools cannot check them without running: Toxiproxy's proxy list, the fault experiments and the ZAP automation plan.",
+      "statement": "The shape of the files whose own tools cannot check them without running: Toxiproxy's proxy list, the fault experiments, the ZAP automation plan and the readiness checklist.",
       "kind": "invariant",
       "enforced_by": "tests/test_emit_nfr.py::NfrTests::test_the_zap_plan_has_its_automation_shape",
       "note": ""

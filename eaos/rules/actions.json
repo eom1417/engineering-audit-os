@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "note": "GitHub Actions the handover workflow uses, each pinned to the full commit of a release tag. Resolved from the GitHub API on 2026-09-26; update both fields together.",
+  "actions": {
+    "actions/checkout": {"tag": "v7.0.1", "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1"},
+    "actions/setup-node": {"tag": "v7.0.0", "sha": "820762786026740c76f36085b0efc47a31fe5020"},
+    "actions/setup-python": {"tag": "v7.0.0", "sha": "5fda3b95a4ea91299a34e894583c3862153e4b97"},
+    "oven-sh/setup-bun": {"tag": "v2.2.0", "sha": "0c5077e51419868618aeaa5fe8019c62421857d6"},
+    "pnpm/action-setup": {"tag": "v6.1.0", "sha": "ea17c68df8912ef543352723c149a84f56e3d413"}
+  },
+  "hooks": {
+    "https://github.com/pre-commit/pre-commit-hooks": "v6.0.0",
+    "https://github.com/semgrep/pre-commit": "v1.178.0",
+    "https://github.com/DavidAnson/markdownlint-cli2": "v0.23.3"
+  }
+}

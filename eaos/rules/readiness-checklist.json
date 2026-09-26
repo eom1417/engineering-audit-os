@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "note": "Every production-readiness item, each with the command that decides it. NS16 runs them in the sandbox; an item without a command is refused when the checklist is written. {placeholders} are filled from the project; $VARIABLES are the owner's, never written here.",
+  "items": [
+    {"id": "RDY-01", "title": "The application starts and answers on its port and health route", "applies": "all",
+     "command": "goss -g readiness/goss.yaml validate --retry-timeout 60s --sleep 2s",
+     "why": "A release that does not start, or starts on the wrong port, is caught before a user finds it."},
+    {"id": "RDY-02", "title": "It builds from a clean checkout", "applies": "all",
+     "command": "{build}",
+     "why": "A release is only as reproducible as its build from the repository alone."},
+    {"id": "RDY-03", "title": "The behaviour lock passes: the features still do what they did", "applies": "all",
+     "command": "{safety_net}",
+     "why": "The safety net EAOS wrote before any change is the definition of 'nothing broke'."},
+    {"id": "RDY-04", "title": "No known high or critical vulnerability, and no committed secret", "applies": "all",
+     "command": "trivy fs --scanners vuln,secret --severity HIGH,CRITICAL --exit-code 1 .",
+     "why": "A release carrying a published vulnerability is an incident waiting for a date."},
+    {"id": "RDY-05", "title": "The fast checks pass on every file", "applies": "all",
+     "command": "pre-commit run --all-files",
+     "why": "The checks every commit runs must also hold for the whole tree."},
+    {"id": "RDY-06", "title": "Rolling back one commit leaves a working application", "applies": "all",
+     "command": "git checkout --detach HEAD~1 && {build} && {safety_net}; status=$?; git checkout -; exit $status",
+     "why": "A rollback that has never been tried is a hope, not a plan."},
+    {"id": "RDY-07", "title": "The database can be backed up and the backup restores", "applies": "postgres",
+     "command": "pg_dump \"$DATABASE_URL\" -Fc -f readiness.dump && pg_restore --list readiness.dump > /dev/null && pg_restore -d \"$RESTORE_DATABASE_URL\" --clean --if-exists readiness.dump",
+     "why": "A backup is proven only by a restore."},
+    {"id": "RDY-08", "title": "The database file can be backed up and the copy is intact", "applies": "sqlite",
+     "command": "sqlite3 \"$DATABASE_PATH\" \".backup readiness-backup.db\" && sqlite3 readiness-backup.db \"PRAGMA integrity_check\" | grep -qx ok",
+     "why": "A backup is proven only by reading it back."},
+    {"id": "RDY-09", "title": "The CI workflow runs locally", "applies": "docker",
+     "command": "act pull_request -W .github/workflows/eaos.yml",
+     "why": "A pipeline that only runs on the server is debugged on the server."}
+  ]
+}

@@ -463,6 +463,136 @@
         "archive": "tar.xz",
         "member": "typst"
       }
+    },
+    {
+      "name": "actionlint",
+      "role": "validate",
+      "stages": [
+        "S07",
+        "S15"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/rhysd/actionlint",
+      "version": "1.7.12",
+      "binary": "actionlint",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz",
+        "sha256": "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8",
+        "archive": "tar.gz",
+        "member": "actionlint"
+      }
+    },
+    {
+      "name": "pre-commit",
+      "role": "validate",
+      "stages": [
+        "S07",
+        "S14",
+        "S15"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/pre-commit/pre-commit",
+      "version": "4.6.2",
+      "binary": "pre-commit",
+      "install": {
+        "method": "pip",
+        "package": "pre-commit"
+      }
+    },
+    {
+      "name": "renovate",
+      "role": "validate",
+      "stages": [
+        "S07",
+        "S15"
+      ],
+      "license": "AGPL-3.0",
+      "repository": "https://github.com/renovatebot/renovate",
+      "version": "44.115.10",
+      "binary": "renovate-config-validator",
+      "install": {
+        "method": "npm",
+        "package": "renovate"
+      },
+      "install_note": "only its renovate-config-validator is used, on the emitted renovate.json; EAOS never runs Renovate itself."
+    },
+    {
+      "name": "otelcol-contrib",
+      "role": "validate",
+      "stages": [
+        "S07",
+        "S13"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/open-telemetry/opentelemetry-collector-releases",
+      "version": "0.161.0",
+      "binary": "otelcol-contrib",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.161.0/otelcol-contrib_0.161.0_linux_amd64.tar.gz",
+        "sha256": "778c689efa681ff6e4722ce9f66b9b7f57c3ba009ab2e2b43dc2e0315862c731",
+        "archive": "tar.gz",
+        "member": "otelcol-contrib"
+      },
+      "install_note": "the contrib distribution: the sandbox exporter (file) is not in the core one."
+    },
+    {
+      "name": "sloth",
+      "role": "validate",
+      "stages": [
+        "S07",
+        "S13"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/slok/sloth",
+      "version": "0.16.0",
+      "binary": "sloth",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/slok/sloth/releases/download/v0.16.0/sloth-linux-amd64",
+        "sha256": "1cecaa50853abbb3669a928612b523df8174d258ea6f2a3c8f048e5fc5af90b2",
+        "archive": "binary",
+        "member": "sloth"
+      },
+      "version_args": [
+        "version"
+      ]
+    },
+    {
+      "name": "goss",
+      "role": "validate",
+      "stages": [
+        "S07",
+        "S14"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/goss-org/goss",
+      "version": "0.4.10",
+      "binary": "goss",
+      "install": {
+        "method": "release",
+        "url": "https://github.com/goss-org/goss/releases/download/v0.4.10/goss_0.4.10_linux_x86_64.tar.gz",
+        "sha256": "26e365428946294bcec0c61d867bb3c8349f39feb3d0e6f59084e98632785cc7",
+        "archive": "tar.gz",
+        "member": "goss"
+      }
+    },
+    {
+      "name": "zensical",
+      "role": "validate",
+      "stages": [
+        "S07",
+        "S15"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/zensical/zensical",
+      "version": "0.0.65",
+      "binary": "zensical",
+      "install": {
+        "method": "pip",
+        "package": "zensical"
+      }
     }
   ]
 }

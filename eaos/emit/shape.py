@@ -1,5 +1,5 @@
 """The shape of the files whose own tools cannot check them without running: Toxiproxy's proxy list, the
-fault experiments and the ZAP automation plan. `python -m eaos.emit.shape KIND FILE` exits 0 when the file
+fault experiments, the ZAP automation plan and the readiness checklist. `python -m eaos.emit.shape KIND FILE` exits 0 when the file
 has the shape its tool reads, and prints every way it does not."""
 import json
 import sys
@@ -16,6 +16,9 @@ SHAPES = {
             'type': 'object', 'required': ['name', 'urls'], 'properties': {'name': S, 'urls': {'type': 'array', 'minItems': 1}}}}}},
         'jobs': {'type': 'array', 'minItems': 1, 'items': {'type': 'object', 'required': ['type'], 'properties': {
             'type': {'type': 'string', 'enum': ['spider', 'requestor', 'passiveScan-wait', 'report']}}}}}},
+    'checklist': {'type': 'object', 'required': ['schema_version', 'items'], 'properties': {'items': {
+        'type': 'array', 'minItems': 1, 'items': {'type': 'object', 'required': ['id', 'title', 'command', 'why'],
+                                                  'properties': {'id': S, 'title': S, 'command': S, 'why': S}}}}},
 }
 
 

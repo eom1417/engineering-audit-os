@@ -4,13 +4,13 @@
 
 ## أين نحن
 
-### التقدم: **62.0 من 100 نقطة**
+### التقدم: **65.9 من 100 نقطة**
 
-`████████████████░░░░░░░░░` 62.0%
+`████████████████░░░░░░░░░` 65.9%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 15 من 25 | 16 · NS25 عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي | 38.0 | 35 | 2026-09-26 · `acdadb9+` |
+| 16 من 25 | 17 · NS26 خط الأساس الحي: السلوك والأرقام قبل أي تغيير | 34.1 | 31 | 2026-09-26 · `22d2884+` |
 
 `+`: قيس على تغييرات فوق هذا الالتزام، حُفظت في الالتزام التالي.
 
@@ -69,13 +69,13 @@ flowchart TB
         direction LR
         NS8["<b>14 · NS8</b><br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports<br/>⚖ 7 · ▰ 100%"]:::done
         NS14["<b>15 · NS14</b><br/>جودة التقرير تُفحص آليًا<br/>Report quality checked automatically<br/>⚖ 2 · ▰ 100%"]:::done
-        NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 4 · ▰ 3%"]:::current
+        NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 4 · ▰ 100%"]:::done
         NS8 -->|"✔ P1=1 · P4=1 · P3≥0.8 · …"| NS14
         NS14 -->|"✔ P8=1 · +3 اختبار قبول"| NS25
     end
     subgraph R6_1["R6 · التنفيذ المثبت"]
         direction LR
-        NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 0%"]:::owner
+        NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 0%"]:::current
         NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 0%"]:::owner
         NS20["<b>19 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
         NS26 -->|"✔ E5≥0.8 · +2 اختبار قبول"| NS9
@@ -136,8 +136,8 @@ flowchart TB
 | 13 | [**NS13** نموذج العمارة وقراراتها](#step-13) | R4 | 3 | 100% | 3 | 100% | ✅ مكتملة | T6=1 · T7=1 · +2 اختبار قبول |
 | 14 | [**NS8** خطة التنفيذ للفريق والتقارير الأربعة](#step-14) | R5 | 7 | 100% | 7 | 100% | ✅ مكتملة | P1=1 · P4=1 · P3≥0.8 · P6=1 · P7=1 · P9≥0.8 |
 | 15 | [**NS14** جودة التقرير تُفحص آليًا](#step-15) | R5 | 2 | 100% | 2 | 100% | ✅ مكتملة | P8=1 · +3 اختبار قبول |
-| 16 | [**NS25** عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي](#step-16) | R5 | 4 | 3% | 0.13 | 26% | 🟡 قيد العمل | K1=1 · +4 اختبار قبول |
-| 17 | [**NS26** خط الأساس الحي: السلوك والأرقام قبل أي تغيير](#step-17) | R6 | 4 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E5≥0.8 · +2 اختبار قبول |
+| 16 | [**NS25** عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي](#step-16) | R5 | 4 | 100% | 4 | 100% | ✅ مكتملة | K1=1 · +4 اختبار قبول |
+| 17 | [**NS26** خط الأساس الحي: السلوك والأرقام قبل أي تغيير](#step-17) | R6 | 4 | 0% | 0 | 0% | 🟡 قيد العمل | E5≥0.8 · +2 اختبار قبول |
 | 18 | [**NS9** إثبات التنفيذ](#step-18) | R6 | 8 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E1=1 · +1 اختبار قبول |
 | 19 | [**NS20** التحقق الوظيفي: الوظائف نفسها باقية، والتنبؤ حدث](#step-19) | R6 | 5 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E7=1 · E2≥0.8 |
 | 20 | [**NS21** الأمن بعد التحول: ساكنًا وحيًا](#step-20) | R7 | 3 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E8=1 · +1 اختبار قبول |
@@ -146,7 +146,7 @@ flowchart TB
 | 23 | [**NS24** الرصد: كل سطح حرج مرئي](#step-23) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E10≥0.9 · +1 اختبار قبول |
 | 24 | [**NS16** الجاهزية للإنتاج: كل بند بأمر](#step-24) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E11=1 · +1 اختبار قبول |
 | 25 | [**NS10** الإثبات المستقل](#step-25) | R8 | 5 | 18% | 0.9 | 15% | 🔴 تحتاج مدخلًا منك | V4=1 · V3=1 |
-| | **المجموع** | | **100** | | **62.0** | | | |
+| | **المجموع** | | **100** | | **65.9** | | | |
 
 ## الخطوات بالتفصيل
 
@@ -578,7 +578,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | مواصفات تثبيت السلوك | `E4 = 1` | 1.0 | ✅ |
 | اختبار قبول | `contract behavior-lock-plan` | — | ✅ |
-| عدّة التشغيل والتسليم تقبلها أدواتها | `K1` مقيس | 0.258 | ✅ |
+| عدّة التشغيل والتسليم تقبلها أدواتها | `K1` مقيس | 1.0 | ✅ |
 | اختبار قبول | `emitted nfr/k6/` | — | ✅ |
 | اختبار قبول | `contract nfr-experiments` | — | ✅ |
 
@@ -760,11 +760,11 @@ flowchart TB
 
 <a id="step-16"></a>
 
-### الخطوة 16 · NS25 — عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي 🟡 قيد العمل
+### الخطوة 16 · NS25 — عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي ✅ مكتملة
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 4 | 3% | 0.13 من 4 | 26% | R5 | S13, S14, S15 |
+| 4 | 100% | 4 من 4 | 100% | R5 | S13, S14, S15 |
 
 **الهدف:** K1 = 1.
 
@@ -785,25 +785,25 @@ flowchart TB
 
 | المعيار | الشرط | اليوم | الحال |
 | --- | --- | --- | --- |
-| عدّة التشغيل والتسليم تقبلها أدواتها | `K1 = 1` | 0.258 | ❌ |
-| اختبار قبول | `emitted handover/.github/workflows/eaos.yml` | — | ⬜ |
-| اختبار قبول | `emitted handover/otel/collector.yaml` | — | ⬜ |
-| اختبار قبول | `emitted handover/readiness/goss.yaml` | — | ⬜ |
-| اختبار قبول | `emitted handover/mkdocs.yml` | — | ⬜ |
+| عدّة التشغيل والتسليم تقبلها أدواتها | `K1 = 1` | 1.0 | ✅ |
+| اختبار قبول | `emitted handover/.github/workflows/eaos.yml` | — | ✅ |
+| اختبار قبول | `emitted handover/otel/collector.yaml` | — | ✅ |
+| اختبار قبول | `emitted handover/readiness/goss.yaml` | — | ✅ |
+| اختبار قبول | `emitted handover/mkdocs.yml` | — | ✅ |
 
 **المهام:**
 
 | المهمة | الحجم | الحالة | الإنجاز | أمر القبول |
 | --- | --- | --- | --- | --- |
-| [NS25.T1](#ns25t1) عدّة الحوكمة: CI و pre-commit و Renovate وقواعد الحدود | M | ⬜ | 0% | `python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/.github/workflows/eaos.yml handover/.pre-commit-config.yaml handover/renovate.json handover/semgrep/` |
-| [NS25.T2](#ns25t2) عدّة الرصد: OpenTelemetry و SLO | M | ⬜ | 0% | `python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/otel/collector.yaml handover/slo/` |
-| [NS25.T3](#ns25t3) عدّة الجاهزية: Goss وقائمة فحص كل بند فيها أمر | S | ⬜ | 0% | `python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/readiness/goss.yaml` |
-| [NS25.T4](#ns25t4) موقع التسليم: التقارير وقرارات العمارة والرسوم في مكان واحد | S | ⬜ | 0% | `python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/mkdocs.yml` |
-| [NS25.T5](#ns25t5) كل العدّة مقبولة من أدواتها على العيّنة | S | ⬜ | 23% | `python tools/north_star.py measure --only K1 --min 1.0` |
+| [NS25.T1](#ns25t1) عدّة الحوكمة: CI و pre-commit و Renovate وقواعد الحدود | M | ✅ | 100% | `python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/.github/workflows/eaos.yml handover/.pre-commit-config.yaml handover/renovate.json handover/semgrep/` |
+| [NS25.T2](#ns25t2) عدّة الرصد: OpenTelemetry و SLO | M | ✅ | 100% | `python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/otel/collector.yaml handover/slo/` |
+| [NS25.T3](#ns25t3) عدّة الجاهزية: Goss وقائمة فحص كل بند فيها أمر | S | ✅ | 100% | `python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/readiness/goss.yaml` |
+| [NS25.T4](#ns25t4) موقع التسليم: التقارير وقرارات العمارة والرسوم في مكان واحد | S | ✅ | 100% | `python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/mkdocs.yml` |
+| [NS25.T5](#ns25t5) كل العدّة مقبولة من أدواتها على العيّنة | S | ✅ | 100% | `python tools/north_star.py measure --only K1 --min 1.0` |
 
 <a id="step-17"></a>
 
-### الخطوة 17 · NS26 — خط الأساس الحي: السلوك والأرقام قبل أي تغيير 🔴 تحتاج مدخلًا منك
+### الخطوة 17 · NS26 — خط الأساس الحي: السلوك والأرقام قبل أي تغيير 🟡 قيد العمل
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
@@ -1164,14 +1164,14 @@ flowchart TB
     subgraph P4["التنفيذ: بيئة معزولة بتفويض المالك (2/2)"]
         direction LR
         S12["<b>S12 · الأعطال المتعمدة</b><br/>📄 runtime/resilience.json · RESILIENCE.md<br/>▰ 0%"]:::next
-        S13["<b>S13 · الرصد</b><br/>📄 otel/collector.yaml · slo/*.yaml …<br/>▰ 2%"]:::current
-        S14["<b>S14 · الجاهزية للإنتاج</b><br/>📄 PRODUCTION-READINESS.md · PRODUCTION-READINESS.json<br/>▰ 2%"]:::current
+        S13["<b>S13 · الرصد</b><br/>📄 otel/collector.yaml · slo/*.yaml …<br/>▰ 67%"]:::current
+        S14["<b>S14 · الجاهزية للإنتاج</b><br/>📄 PRODUCTION-READINESS.md · PRODUCTION-READINESS.json<br/>▰ 67%"]:::current
         S12 -->|"✔ E9 ≥ 0.8"| S13
         S13 -->|"✔ E10 ≥ 0.9"| S14
     end
     subgraph P5["الحوكمة والتسليم"]
         direction LR
-        S15["<b>S15 · الحوكمة المستمرة والتسليم</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 3%"]:::current
+        S15["<b>S15 · الحوكمة المستمرة والتسليم</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 100%"]:::done
         LOOP["↺ إعادة التدقيق بعد كل تغيير: يعود إلى S01"]:::next
         S15 -->|"✔ K1 = 1، وخط الأساس مثبّت، وبوابة الدَّين الجديد في CI"| LOOP
     end
@@ -1324,7 +1324,7 @@ flowchart TB
 | P7 التقارير الأربعة | من التقارير الأربعة (الوضع الراهن، الصورة المثالية، الفجوة والتحول، خطة التنفيذ)، عدد ما له وثيقة مخصصة ÷ 4. جودة محتواها تقيسها المؤشرات الأخرى. | 100% | 100% | of the four reports present: FleetManageWeb 4/4 · finance-os-a0192b7b 4/4 · RendaPerene 4/4 |
 | P8 جودة التقارير الأربعة | متوسط (التقارير الأربعة التي مرّت فحص Vale بحزمة EAOS وفحص markdownlint بلا أخطاء ÷ 4)، لكل مشروع | 100% | 100% | of the four reports passing Vale and markdownlint: FleetManageWeb 4/4 · finance-os-a0192b7b 4/4 · RendaPerene 4/4 |
 | P9 المهام الآلية معها أداة تحويل | بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات | 80% | 84% | mechanical cards whose codemod ran dry without error: FleetManageWeb 125/138 · finance-os-a0192b7b 36/55 · RendaPerene 12/12 |
-| K1 عدّة التشغيل والتسليم تقبلها أدواتها | متوسط (الملفات التي يولّدها EAOS بصيغ الأدوات الأصلية ويقبلها مدقق الأداة نفسها ÷ الملفات المتوقعة للمشروع)، لكل مشروع. الملفات: سير GitHub Actions (actionlint)، و.pre-commit-config.yaml (pre-commit validate-config)، وrenovate.json (renovate-config-validator)، وقواعد dependency-cruiser، وقواعد Semgrep (semgrep --validate)، وسكربتات k6 (k6 inspect)، وتجارب Toxiproxy وخطة ZAP (مخطط JSON)، وإعداد OpenTelemetry Collector (otelcol validate)، ومواصفات Sloth (sloth validate)، وgoss.yaml (goss render)، وموقع التسليم (zensical build). ملف لم يُدقَّق لغياب أداته يُحسب فاشلًا. | 100% | 26% | handover kit files accepted by their own tool: FleetManageWeb 3/12 · finance-os-a0192b7b 3/12 · RendaPerene 3/11 |
+| K1 عدّة التشغيل والتسليم تقبلها أدواتها | متوسط (الملفات التي يولّدها EAOS بصيغ الأدوات الأصلية ويقبلها مدقق الأداة نفسها ÷ الملفات المتوقعة للمشروع)، لكل مشروع. الملفات: سير GitHub Actions (actionlint)، و.pre-commit-config.yaml (pre-commit validate-config)، وrenovate.json (renovate-config-validator)، وقواعد dependency-cruiser، وقواعد Semgrep (semgrep --validate)، وسكربتات k6 (k6 inspect)، وتجارب Toxiproxy وخطة ZAP (مخطط JSON)، وإعداد OpenTelemetry Collector (otelcol validate)، ومواصفات Sloth (sloth validate)، وgoss.yaml (goss render)، وموقع التسليم (zensical build). ملف لم يُدقَّق لغياب أداته يُحسب فاشلًا. | 100% | 100% | handover kit files accepted by their own tool: FleetManageWeb 12/12 · finance-os-a0192b7b 12/12 · RendaPerene 11/11 |
 
 ### C9 — ضمان التنفيذ: يثبت أن التحول حدث
 
@@ -3503,11 +3503,11 @@ python tools/north_star.py measure --only P8 && python tools/acceptance.py file 
 
 **التراجع:** revert الالتزام.
 
-### الخطوة 16 · NS25 — عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي 🟡 قيد العمل
+### الخطوة 16 · NS25 — عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي ✅ مكتملة
 
 <a id="ns25t1"></a>
 
-#### NS25.T1 — عدّة الحوكمة: CI و pre-commit و Renovate وقواعد الحدود ⬜
+#### NS25.T1 — عدّة الحوكمة: CI و pre-commit و Renovate وقواعد الحدود ✅
 
 **لماذا:** الاحترافية تبقى بعد مغادرتنا فقط إن فرضها المستودع على كل تغيير: CI، وفحوص قبل الالتزام، وترقيات آلية، وحدود مكتوبة كقواعد.
 
@@ -3524,6 +3524,7 @@ python tools/north_star.py measure --only P8 && python tools/acceptance.py file 
 3. قواعد الحدود من target-architecture.json (المكوّنات المستهدفة وما يُمنع بينها): .dependency-cruiser.cjs لـJS/TS، وقواعد Semgrep تمنع الاستيراد عبر الحدود لـPython، واختبار ArchUnit لـJava.
 4. أضف إلى registry.yaml بدور validate: actionlint، و pre-commit، و renovate (لـrenovate-config-validator). كل ملف يمر عبر eaos/emit/validate.py.
 5. قواعد Semgrep للحدود تُكتب في handover/semgrep/boundaries.yml (هذا المسار يقيسه K1).
+6. كما نُفّذ: eaos/emit/governance.py. سير GitHub Actions بثلاث مهام (البناء والاختبار وشبكة الأمان، والأمن، والعمارة)، كل action مثبّت بـSHA كامل (eaos/rules/actions.json)، وكل أداة بإصدار toolchain.json، والإصدارات المنزّلة تُفحص بـsha256. الحدود من النوع المرجعي: قاعدة dependency-cruiser لكل زوج طبقات ممنوع، وقواعد Semgrep للاستيراد في Python؛ أدق نمط يفوز كما في الإسقاط (خطأ وُجد على FleetManageWeb وأُصلح: src/lib/*Api.ts). على الكود الحقيقي: Semgrep وجد 8 مخالفات = العدد الذي تسجله الصورة المثالية. CI يفشل على الجديد فقط (ملف المخالفات المعروفة، و--baseline-commit، وبوابة EAOS على خط أساس مثبّت). المدققات actionlint وpre-commit وrenovate-config-validator في toolchain.json (لا registry.yaml القديم). ArchUnit لـJava لم يُنفَّذ: لا مشروع Java في العيّنة.
 
 **تنتهي حين:**
 
@@ -3546,7 +3547,7 @@ python tools/north_star.py measure --only K1 && python tools/acceptance.py emitt
 
 <a id="ns25t2"></a>
 
-#### NS25.T2 — عدّة الرصد: OpenTelemetry و SLO ⬜
+#### NS25.T2 — عدّة الرصد: OpenTelemetry و SLO ✅
 
 **لماذا:** الرصد وأهداف الخدمة (SLO) تُكتب الآن من سيناريوهات الجودة، وتُثبت لاحقًا على نسخة تعمل (NS24).
 
@@ -3562,6 +3563,7 @@ python tools/north_star.py measure --only K1 && python tools/acceptance.py emitt
 2. handover/otel/INSTRUMENTATION.md لكل مكدّس مكتشف: حزمة OpenTelemetry الرسمية وسطر تهيئتها، والأسطح الحرجة التي يجب أن تحمل span باسم المسار. كل سطر فيه يصير مهمة بقسم البنية التحتية في الخطة.
 3. handover/slo/<service>.yaml بصيغة Sloth (prometheus/v1): SLO توفر و SLO زمن استجابة لكل سيناريو جودة بأهدافه. المدقق: sloth validate -i handover/slo.
 4. أضف otelcol-contrib و sloth إلى registry.yaml بدور validate.
+5. كما نُفّذ: eaos/emit/observability.py. Collector بمستقبل OTLP، ومصدّر ملف للبيئة المعزولة ومصدّر OTLP لعنوان من OTEL_EXPORTER_OTLP_ENDPOINT (لا عنوان مكتوب، مختبر)؛ يقبله otelcol-contrib validate 0.161.0. SLO بصيغة Sloth لكل سيناريو جودة قابل للقياس (التوفر، وزمن p95، ونسبة الأخطاء) بهدفه من intake.json؛ يقبله sloth validate. INSTRUMENTATION.md لكل مكدّس مع الأسطح الحرجة. ما لم يُنفَّذ: تحويل كل سطر فيه إلى بطاقة في الخطة، لأن الخطة تُبنى قبل مرحلة التوليد؛ يبقى للمعلم التالي الذي يمسّ الخطة.
 
 **تنتهي حين:**
 
@@ -3583,7 +3585,7 @@ python tools/north_star.py measure --only K1 && python tools/acceptance.py emitt
 
 <a id="ns25t3"></a>
 
-#### NS25.T3 — عدّة الجاهزية: Goss وقائمة فحص كل بند فيها أمر ⬜
+#### NS25.T3 — عدّة الجاهزية: Goss وقائمة فحص كل بند فيها أمر ✅
 
 **لماذا:** الجاهزية قائمة كل بند فيها أمر يُشغَّل، لا تصريح.
 
@@ -3598,6 +3600,7 @@ python tools/north_star.py measure --only K1 && python tools/acceptance.py emitt
 1. handover/readiness/goss.yaml من الصورة المثالية: المنفذ الذي يستمع عليه التطبيق، و http لمسار الصحة بحالة 200، والعمليات، وملفات الإعداد المطلوبة. المدقق: goss -g handover/readiness/goss.yaml render.
 2. handover/readiness/checklist.json من eaos/rules/readiness-checklist.json، ولكل بند command يشغّله NS16: goss validate، وشبكة الأمان، والاستعادة من نسخة احتياطية (إن كانت قاعدة بيانات)، والتراجع إلى الالتزام السابق مع مرور شبكة الأمان، و pre-commit run --all-files، و act إن توفر Docker.
 3. بند بلا command يُرفض عند التوليد. أضف goss إلى registry.yaml بدوري validate و run.
+4. كما نُفّذ: eaos/emit/readiness.py وeaos/rules/readiness-checklist.json. goss.yaml: المنفذ من أمر التشغيل (vite preview 4173، streamlit 8501)، ومسار الصحة من الوظائف، والعملية، والملفات؛ يقبله goss render. checklist.json: البنود التي تنطبق بالحقائق (Postgres من عميل Supabase، وsqlite من import sqlite3، وDocker من ملفاته)، لكل بند command، والبند بلا command يُرفض عند الكتابة (مختبر).
 
 **تنتهي حين:**
 
@@ -3619,7 +3622,7 @@ python tools/north_star.py measure --only K1 && python tools/acceptance.py emitt
 
 <a id="ns25t4"></a>
 
-#### NS25.T4 — موقع التسليم: التقارير وقرارات العمارة والرسوم في مكان واحد ⬜
+#### NS25.T4 — موقع التسليم: التقارير وقرارات العمارة والرسوم في مكان واحد ✅
 
 **لماذا:** المالك يستلم موقع توثيق واحدًا فيه التقارير والقرارات والرسوم ودلائل التشغيل.
 
@@ -3634,6 +3637,7 @@ python tools/north_star.py measure --only K1 && python tools/acceptance.py emitt
 1. handover/docs/: التقارير الأربعة، و adr/، و architecture/ (Mermaid مضمّن)، و runbooks/ (التشغيل، والتراجع، والاستعادة من الحوادث)، و handover/mkdocs.yml بقائمة التنقل. الصيغة mkdocs.yml يقرؤها Zensical و MkDocs معًا.
 2. المدقق: zensical build بلا تحذير رابط مكسور. أضف zensical إلى registry.yaml بدور validate.
 3. موقع EAOS الحالي (index.html) يبقى أداة القراءة الداخلية؛ هذا الموقع يُسلَّم للمالك ويُنشر من مستودعه.
+4. كما نُفّذ: eaos/emit/handover_site.py. handover/docs: التقارير الأربعة وROADMAP، وكل ADR، والعمارة المستهدفة Mermaid (مرسومة ومتحقق منها) ونموذجا Structurizr، وثلاثة runbooks من أوامر المشروع وقائمة جاهزيته. الروابط تُعاد إلى تخطيط الموقع، والرابط إلى وثيقة لا يحملها الموقع يصير اسمها في code لا رابطًا مكسورًا. zensical 0.0.65 build --strict يبنيه بلا تحذير على المشاريع الثلاثة.
 
 **تنتهي حين:**
 
@@ -3654,7 +3658,7 @@ python tools/north_star.py measure --only K1 && python tools/acceptance.py emitt
 
 <a id="ns25t5"></a>
 
-#### NS25.T5 — كل العدّة مقبولة من أدواتها على العيّنة ⬜
+#### NS25.T5 — كل العدّة مقبولة من أدواتها على العيّنة ✅
 
 **لماذا:** كل مهمة عدّة مقبولة وحدها؛ هذه تثبت أن العدّة كاملة لكل مشروع بما ينطبق عليه.
 
@@ -3666,6 +3670,7 @@ python tools/north_star.py measure --only K1 && python tools/acceptance.py emitt
 
 1. ثبّت المدققات بـeaos tools install --stage assessment، وولّد العدّة لكل مشروع في العيّنة، وأعد القياس.
 2. أي ملف يرفضه مدققه: أصلح المولّد، لا المدقق ولا القائمة.
+3. كما نُفّذ: كل المدققات مثبّتة بـeaos tools install (سبعة جديدة، ودعم tar.xz). K1 = 1.0: FleetManageWeb 12/12، وfinance-os 12/12، وRendaPerene 11/11. Semgrep يُدقَّق مجلدًا واحدًا بتشغيل واحد (ملف فاسد واحد يُفشله) بعد أن ضاعف التدقيق لكل ملف زمن الاختبارات.
 
 **تنتهي حين:**
 
@@ -3685,7 +3690,7 @@ python tools/north_star.py measure --only K1 --min 1.0
 
 **التراجع:** revert الالتزام.
 
-### الخطوة 17 · NS26 — خط الأساس الحي: السلوك والأرقام قبل أي تغيير 🔴 تحتاج مدخلًا منك
+### الخطوة 17 · NS26 — خط الأساس الحي: السلوك والأرقام قبل أي تغيير 🟡 قيد العمل
 
 <a id="ns26t1"></a>
 

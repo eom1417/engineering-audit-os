@@ -16,8 +16,9 @@ def handover_readme(report):
     target = Path(report) / 'handover/README.md'
     folder = target.parent
     folder.mkdir(parents=True, exist_ok=True)
+    # site/ is the built handover site (zensical build), not a file of the kit
     files = sorted(p.relative_to(folder).as_posix() for p in folder.rglob('*')
-                   if p.is_file() and p.name not in ('README.md', 'validation.json'))
+                   if p.is_file() and p.name not in ('README.md', 'validation.json') and not p.relative_to(folder).as_posix().startswith('site/'))
     listing = '\n'.join(f'- `{name}`' for name in files) or '- (no generated file yet)'
     target.write_text(render('handover/README.md', listing=listing), encoding='utf-8')
     return [Emitted('handover/README.md', 'markdownlint-cli2', ('markdownlint-cli2', '{path}'))]
@@ -54,7 +55,28 @@ def nfr_plans(report):
     return write(report)
 
 
-EMITTERS = {'handover-readme': handover_readme, 'behavior-lock': behavior_lock, 'nfr': nfr_plans, 'c4': c4_models, 'adr': adr_files}
+def governance_kit(report):
+    from .governance import write
+    return write(report)
+
+
+def observability_kit(report):
+    from .observability import write
+    return write(report)
+
+
+def readiness_kit(report):
+    from .readiness import write
+    return write(report)
+
+
+def handover_site_kit(report):
+    from .handover_site import write
+    return write(report)
+
+
+EMITTERS = {'handover-readme': handover_readme, 'behavior-lock': behavior_lock, 'nfr': nfr_plans, 'c4': c4_models, 'adr': adr_files,
+            'governance': governance_kit, 'observability': observability_kit, 'readiness': readiness_kit, 'site': handover_site_kit}
 
 
 def emit(report, only=None, validate=False):
@@ -62,7 +84,7 @@ def emit(report, only=None, validate=False):
     from .validate import record, verdict
     written = []
     # The handover index runs last, so it lists what every other emitter wrote.
-    for name in sorted(EMITTERS, key=lambda name: name == 'handover-readme'):
+    for name in sorted(EMITTERS, key=lambda name: (name == 'handover-readme', name == 'site')):
         if only and name not in only: continue
         written += EMITTERS[name](report)
     rows = [verdict(report, item) for item in written] if validate else []

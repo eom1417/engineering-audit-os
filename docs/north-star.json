@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-26",
-  "measured_at_commit": "acdadb9+",
+  "measured_at_commit": "22d2884+",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -684,8 +684,8 @@
           "name": "عدّة التشغيل والتسليم تقبلها أدواتها",
           "definition": "متوسط (الملفات التي يولّدها EAOS بصيغ الأدوات الأصلية ويقبلها مدقق الأداة نفسها ÷ الملفات المتوقعة للمشروع)، لكل مشروع. الملفات: سير GitHub Actions (actionlint)، و.pre-commit-config.yaml (pre-commit validate-config)، وrenovate.json (renovate-config-validator)، وقواعد dependency-cruiser، وقواعد Semgrep (semgrep --validate)، وسكربتات k6 (k6 inspect)، وتجارب Toxiproxy وخطة ZAP (مخطط JSON)، وإعداد OpenTelemetry Collector (otelcol validate)، ومواصفات Sloth (sloth validate)، وgoss.yaml (goss render)، وموقع التسليم (zensical build). ملف لم يُدقَّق لغياب أداته يُحسب فاشلًا.",
           "target": 1.0,
-          "value": 0.258,
-          "evidence": "handover kit files accepted by their own tool: FleetManageWeb 3/12 · finance-os-a0192b7b 3/12 · RendaPerene 3/11",
+          "value": 1.0,
+          "evidence": "handover kit files accepted by their own tool: FleetManageWeb 12/12 · finance-os-a0192b7b 12/12 · RendaPerene 11/11",
           "reads": "handover/validation.json → files[] {path, tool, ok}",
           "measured": "automated"
         }
@@ -3602,7 +3602,8 @@
             "handover/.pre-commit-config.yaml بفحوص سريعة فقط (أسرار عبر trivy، و semgrep على الملفات المتغيرة، و markdownlint). handover/renovate.json: تجميع الترقيات الصغيرة، وجدول أسبوعي، وترقيات الأمن فورية.",
             "قواعد الحدود من target-architecture.json (المكوّنات المستهدفة وما يُمنع بينها): .dependency-cruiser.cjs لـJS/TS، وقواعد Semgrep تمنع الاستيراد عبر الحدود لـPython، واختبار ArchUnit لـJava.",
             "أضف إلى registry.yaml بدور validate: actionlint، و pre-commit، و renovate (لـrenovate-config-validator). كل ملف يمر عبر eaos/emit/validate.py.",
-            "قواعد Semgrep للحدود تُكتب في handover/semgrep/boundaries.yml (هذا المسار يقيسه K1)."
+            "قواعد Semgrep للحدود تُكتب في handover/semgrep/boundaries.yml (هذا المسار يقيسه K1).",
+            "كما نُفّذ: eaos/emit/governance.py. سير GitHub Actions بثلاث مهام (البناء والاختبار وشبكة الأمان، والأمن، والعمارة)، كل action مثبّت بـSHA كامل (eaos/rules/actions.json)، وكل أداة بإصدار toolchain.json، والإصدارات المنزّلة تُفحص بـsha256. الحدود من النوع المرجعي: قاعدة dependency-cruiser لكل زوج طبقات ممنوع، وقواعد Semgrep للاستيراد في Python؛ أدق نمط يفوز كما في الإسقاط (خطأ وُجد على FleetManageWeb وأُصلح: src/lib/*Api.ts). على الكود الحقيقي: Semgrep وجد 8 مخالفات = العدد الذي تسجله الصورة المثالية. CI يفشل على الجديد فقط (ملف المخالفات المعروفة، و--baseline-commit، وبوابة EAOS على خط أساس مثبّت). المدققات actionlint وpre-commit وrenovate-config-validator في toolchain.json (لا registry.yaml القديم). ArchUnit لـJava لم يُنفَّذ: لا مشروع Java في العيّنة."
           ],
           "done_when": [
             "الملفات الخمسة مسجلة في handover/validation.json بحكم ok = true (dependency-cruiser لمشاريع JS/TS فقط).",
@@ -3615,7 +3616,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/.github/workflows/eaos.yml handover/.pre-commit-config.yaml handover/renovate.json handover/semgrep/",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS25.T2",
@@ -3647,7 +3648,8 @@
             "handover/otel/collector.yaml: receiver otlp (grpc و http)، و processor batch، و exporters: file للبيئة المعزولة (يقرؤه NS24) و otlp إلى عنوان من متغير بيئة للإنتاج (SigNoz أو غيره). المدقق: otelcol-contrib validate --config.",
             "handover/otel/INSTRUMENTATION.md لكل مكدّس مكتشف: حزمة OpenTelemetry الرسمية وسطر تهيئتها، والأسطح الحرجة التي يجب أن تحمل span باسم المسار. كل سطر فيه يصير مهمة بقسم البنية التحتية في الخطة.",
             "handover/slo/<service>.yaml بصيغة Sloth (prometheus/v1): SLO توفر و SLO زمن استجابة لكل سيناريو جودة بأهدافه. المدقق: sloth validate -i handover/slo.",
-            "أضف otelcol-contrib و sloth إلى registry.yaml بدور validate."
+            "أضف otelcol-contrib و sloth إلى registry.yaml بدور validate.",
+            "كما نُفّذ: eaos/emit/observability.py. Collector بمستقبل OTLP، ومصدّر ملف للبيئة المعزولة ومصدّر OTLP لعنوان من OTEL_EXPORTER_OTLP_ENDPOINT (لا عنوان مكتوب، مختبر)؛ يقبله otelcol-contrib validate 0.161.0. SLO بصيغة Sloth لكل سيناريو جودة قابل للقياس (التوفر، وزمن p95، ونسبة الأخطاء) بهدفه من intake.json؛ يقبله sloth validate. INSTRUMENTATION.md لكل مكدّس مع الأسطح الحرجة. ما لم يُنفَّذ: تحويل كل سطر فيه إلى بطاقة في الخطة، لأن الخطة تُبنى قبل مرحلة التوليد؛ يبقى للمعلم التالي الذي يمسّ الخطة."
           ],
           "done_when": [
             "otel و slo مسجلة في validation.json بحكم ok = true.",
@@ -3659,7 +3661,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/otel/collector.yaml handover/slo/",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS25.T3",
@@ -3688,7 +3690,8 @@
           "steps": [
             "handover/readiness/goss.yaml من الصورة المثالية: المنفذ الذي يستمع عليه التطبيق، و http لمسار الصحة بحالة 200، والعمليات، وملفات الإعداد المطلوبة. المدقق: goss -g handover/readiness/goss.yaml render.",
             "handover/readiness/checklist.json من eaos/rules/readiness-checklist.json، ولكل بند command يشغّله NS16: goss validate، وشبكة الأمان، والاستعادة من نسخة احتياطية (إن كانت قاعدة بيانات)، والتراجع إلى الالتزام السابق مع مرور شبكة الأمان، و pre-commit run --all-files، و act إن توفر Docker.",
-            "بند بلا command يُرفض عند التوليد. أضف goss إلى registry.yaml بدوري validate و run."
+            "بند بلا command يُرفض عند التوليد. أضف goss إلى registry.yaml بدوري validate و run.",
+            "كما نُفّذ: eaos/emit/readiness.py وeaos/rules/readiness-checklist.json. goss.yaml: المنفذ من أمر التشغيل (vite preview 4173، streamlit 8501)، ومسار الصحة من الوظائف، والعملية، والملفات؛ يقبله goss render. checklist.json: البنود التي تنطبق بالحقائق (Postgres من عميل Supabase، وsqlite من import sqlite3، وDocker من ملفاته)، لكل بند command، والبند بلا command يُرفض عند الكتابة (مختبر)."
           ],
           "done_when": [
             "goss.yaml مسجل في validation.json بحكم ok = true.",
@@ -3700,7 +3703,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/readiness/goss.yaml",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS25.T4",
@@ -3730,7 +3733,8 @@
           "steps": [
             "handover/docs/: التقارير الأربعة، و adr/، و architecture/ (Mermaid مضمّن)، و runbooks/ (التشغيل، والتراجع، والاستعادة من الحوادث)، و handover/mkdocs.yml بقائمة التنقل. الصيغة mkdocs.yml يقرؤها Zensical و MkDocs معًا.",
             "المدقق: zensical build بلا تحذير رابط مكسور. أضف zensical إلى registry.yaml بدور validate.",
-            "موقع EAOS الحالي (index.html) يبقى أداة القراءة الداخلية؛ هذا الموقع يُسلَّم للمالك ويُنشر من مستودعه."
+            "موقع EAOS الحالي (index.html) يبقى أداة القراءة الداخلية؛ هذا الموقع يُسلَّم للمالك ويُنشر من مستودعه.",
+            "كما نُفّذ: eaos/emit/handover_site.py. handover/docs: التقارير الأربعة وROADMAP، وكل ADR، والعمارة المستهدفة Mermaid (مرسومة ومتحقق منها) ونموذجا Structurizr، وثلاثة runbooks من أوامر المشروع وقائمة جاهزيته. الروابط تُعاد إلى تخطيط الموقع، والرابط إلى وثيقة لا يحملها الموقع يصير اسمها في code لا رابطًا مكسورًا. zensical 0.0.65 build --strict يبنيه بلا تحذير على المشاريع الثلاثة."
           ],
           "done_when": [
             "mkdocs.yml مسجل في validation.json بحكم ok = true (zensical build بلا تحذير رابط مكسور).",
@@ -3741,7 +3745,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only K1 && python tools/acceptance.py emitted handover/mkdocs.yml",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS25.T5",
@@ -3763,7 +3767,8 @@
           "writes": [],
           "steps": [
             "ثبّت المدققات بـeaos tools install --stage assessment، وولّد العدّة لكل مشروع في العيّنة، وأعد القياس.",
-            "أي ملف يرفضه مدققه: أصلح المولّد، لا المدقق ولا القائمة."
+            "أي ملف يرفضه مدققه: أصلح المولّد، لا المدقق ولا القائمة.",
+            "كما نُفّذ: كل المدققات مثبّتة بـeaos tools install (سبعة جديدة، ودعم tar.xz). K1 = 1.0: FleetManageWeb 12/12، وfinance-os 12/12، وRendaPerene 11/11. Semgrep يُدقَّق مجلدًا واحدًا بتشغيل واحد (ملف فاسد واحد يُفشله) بعد أن ضاعف التدقيق لكل ملف زمن الاختبارات."
           ],
           "done_when": [
             "K1 = 1.0.",
@@ -3775,7 +3780,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only K1 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "stages": [
