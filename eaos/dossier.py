@@ -376,27 +376,12 @@ def inventory_rows(language):
     return rows
 
 
-def risk_register(dossier, language):
-    document = Document('سجل المخاطر' if language == 'ar' else 'Risk register', language, budget_lines=200)
-    from .ranking import WEIGHTS
-    document.header([WEIGHTS['formula'],
-                     ('الترتيب معيار معلن بمدخلات ظاهرة، وليس تصنيف خطورة.' if language == 'ar'
-                      else 'A declared ordering with visible inputs, not a severity classification.')])
-    rows = sorted(dossier['claims'], key=lambda claim: (-claim.get('priority', 0), claim['id']))
-    document.table(['#', 'الأولوية' if language == 'ar' else 'Priority',
-                    'الادعاء' if language == 'ar' else 'Claim',
-                    'المدى' if language == 'ar' else 'Reach',
-                    'الكلفة' if language == 'ar' else 'Cost',
-                    'الأصل' if language == 'ar' else 'Origin',
-                    'التصرف' if language == 'ar' else 'Disposition'],
-                   [[claim['id'], claim.get('priority', 0), shorten(statement_of(claim, language), 110),
-                     (claim.get('priority_factors') or {}).get('reach', {}).get('total', '—'),
-                     (claim.get('priority_factors') or {}).get('cost', {}).get('bucket', '—'),
-                     claim.get('origin', '—'),
-                     (claim.get('disposition') or {}).get('kind', '—')] for claim in rows], limit=30)
-    document.section('كيف تُقرأ الأولوية' if language == 'ar' else 'How to read the priority')
-    document.bullets([f'{key}: {value}' for key, value in sorted(WEIGHTS.items()) if key != 'formula'])
-    return document
+def write_register(out, dossier, language):
+    """debt-register.json, and RISK-REGISTER.md rendered from it: one register (eaos/debt_register.py)."""
+    from .debt_register import build, render
+    record = build(out, dossier)
+    write(Path(out) / 'debt-register.json', record)
+    (Path(out) / 'RISK-REGISTER.md').write_text(render(record, language).render(), encoding='utf-8')
 
 
 def provenance_document(target, dossier, language):
@@ -609,7 +594,7 @@ def refresh_views(out, language='ar'):
     dossier['decisions'] = [decide(claim) for claim in dossier['claims']]
     write(dossier_path, dossier)
     (out / BRIEF).write_text(brief(target, dossier, language).render(), encoding='utf-8')
-    (out / 'RISK-REGISTER.md').write_text(risk_register(dossier, language).render(), encoding='utf-8')
+    write_register(out, dossier, language)
     (out / 'README.md').write_text(index_document(target, dossier, sets, verification, language).render(), encoding='utf-8')
     return {'out': str(out), 'claims': len(dossier['claims']), 'tasks': len(dossier.get('tasks', [])),
             'refreshed': [BRIEF, 'RISK-REGISTER.md', 'README.md']}
@@ -692,7 +677,7 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=(), 
     for name, builder in [('FLOWS.md', flows_document), ('DOMAIN-AND-DATA.md', domain_document), ('CONTRACTS.md', contracts_document)]:
         (out / name).write_text(builder(dossier, sets, language).render(), encoding='utf-8')
     (out / 'VERIFICATION-MAP.md').write_text(verification_document(verification, language).render(), encoding='utf-8')
-    (out / 'RISK-REGISTER.md').write_text(risk_register(dossier, language).render(), encoding='utf-8')
+    write_register(out, dossier, language)
     (out / 'README.md').write_text(index_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')
     (out / 'ONBOARDING.md').write_text(onboarding_document(str(target), dossier, sets, verification, language).render(), encoding='utf-8')
     (out / PROVENANCE).write_text(provenance_document(str(target), dossier, language).render(), encoding='utf-8')

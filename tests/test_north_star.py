@@ -89,9 +89,13 @@ class NorthStarTests(unittest.TestCase):
 
     def test_an_indicator_short_of_target_needs_an_open_task(self):
         record = copy.deepcopy(self.record)
+        # Any indicator still short of its target will do; which one changes as the plan is executed.
+        short = next(row['id'] for row in self.tool.indicators(record)
+                     if row.get('value') is not None and row['value'] < row['target']
+                     and any(row['id'] in task['moves'] for task in self.tool.tasks(record) if task.get('status') != 'done'))
         for task in self.tool.tasks(record):
-            task['moves'] = [m for m in task['moves'] if m != 'G2']
-        self.assertIn('G2: below its target and no open task moves it', self.tool.validate(record))
+            task['moves'] = [m for m in task['moves'] if m != short]
+        self.assertIn(f'{short}: below its target and no open task moves it', self.tool.validate(record))
 
     def test_a_contract_that_does_not_exist_is_rejected(self):
         record = copy.deepcopy(self.record)

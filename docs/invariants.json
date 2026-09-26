@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "26717d3",
+  "extracted_at_commit": "059818b",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -108,6 +108,15 @@
       "statement": "Its reviewer of record is that rule and its source, never an invented person.",
       "kind": "invariant",
       "enforced_by": "tests/test_dead_code_assessment.py::RemoveDeadTests::test_a_confirmed_dead_function_gets_a_ready_card_whose_check_decides",
+      "note": ""
+    },
+    {
+      "id": "INV-9d3c1d34ef",
+      "file": "eaos/debt_register.py",
+      "symbol": "<module>",
+      "statement": "Severity comes from the evidence, never from a wish to look calm.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_debt_register.py::RegisterTests::test_high_on_one_heuristic_witness_is_written_medium_and_asks_for_a_probe",
       "note": ""
     },
     {
@@ -666,6 +675,15 @@
       "statement": "The cost ceiling is a multiplicative score, not a number of seconds: -1.0 per undetectable answer (the projection cannot say), +m per answered query (the query runs m times), +m*100 per answered n+1 (each iteration triggers another query), +0 per bounded cache (free, modulo m), +1.0 per unbounded query (grows with data, not with m), +1.0 per missing rate limit (no protection against burst).",
       "kind": "invariant",
       "enforced_by": "tests/test_load_model.py::ProjectionTests::test_an_incomplete_record_marks_incomplete_and_lists_missing",
+      "note": ""
+    },
+    {
+      "id": "INV-d69b53a1b8",
+      "file": "eaos/measurements.py",
+      "symbol": "<module>",
+      "statement": "A field with no source stays null and its reason is written in `missing`: an unknown is never a zero.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_measurements.py::MeasurementTests::test_an_unknown_is_null_with_a_reason_never_zero",
       "note": ""
     },
     {

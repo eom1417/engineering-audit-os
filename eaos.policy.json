@@ -30,6 +30,7 @@
       "eaos/delta.py",
       "eaos/discover.py",
       "eaos/dossier.py",
+      "eaos/debt_register.py",
       "eaos/engines_report.py",
       "eaos/evaluation_protocol.py",
       "eaos/execution_guide.py",
@@ -94,7 +95,8 @@
       "eaos/artifact_contracts.py",
       "eaos/sandbox.py",
       "eaos/intake.py",
-      "eaos/dependency_assessment.py"
+      "eaos/dependency_assessment.py",
+      "eaos/measurements.py"
     ],
     "tools": [
       "tools/**",

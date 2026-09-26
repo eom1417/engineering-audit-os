@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "extractor": "redundancy",
-  "extractor_version": "1",
+  "extractor_version": "2",
   "available": true,
   "input_sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "limitations": [
@@ -10,11 +10,12 @@
     "N+1 detection is structural: any data access in a loop is flagged, even when the loop iterates once.",
     "A pass-through layer is one-call-forwarding; layers with hidden side effects are not detected.",
     "Only parsed languages produce redundancy facts; unparsed files stay out of the denominator.",
-    "Redundancy detection is implemented for Python only. A file in any other language is counted as blocked, never as analysed-and-clean."
+    "Redundancy detection reads Python by its syntax tree, and JavaScript and TypeScript from the recorded loops, calls, branches and data accesses; a file in any other language is counted as blocked, never as analysed-and-clean.",
+    "For JavaScript and TypeScript only data access is judged: a query or request inside a loop or an iterating call (n_plus_one), and the same query twice on one unconditional path of a function (repeated_call). Hoistable and pass-through work is not looked for there."
   ],
   "summary": {
-    "files_observed": 5,
-    "files_blocked": 5,
+    "files_observed": 9,
+    "files_blocked": 1,
     "repeated_calls": 0,
     "hoistable_calls": 0,
     "n_plus_one": 0,
@@ -23,10 +24,10 @@
   },
   "facts": [
     {
-      "id": "FACT-4d88bf1a16e61a51",
+      "id": "FACT-0b93e19a715168fc",
       "kind": "redundancy",
       "extractor": "redundancy",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "5b34256285041a624a910a0ad94cfb8a37cd81d74ceab38d1d3fe3e4bdcc3638",
       "location": {
         "path": "core/audit.py",
@@ -44,14 +45,15 @@
         "N+1 detection is structural: any data access in a loop is flagged, even when the loop iterates once.",
         "A pass-through layer is one-call-forwarding; layers with hidden side effects are not detected.",
         "Only parsed languages produce redundancy facts; unparsed files stay out of the denominator.",
-        "Redundancy detection is implemented for Python only. A file in any other language is counted as blocked, never as analysed-and-clean."
+        "Redundancy detection reads Python by its syntax tree, and JavaScript and TypeScript from the recorded loops, calls, branches and data accesses; a file in any other language is counted as blocked, never as analysed-and-clean.",
+        "For JavaScript and TypeScript only data access is judged: a query or request inside a loop or an iterating call (n_plus_one), and the same query twice on one unconditional path of a function (repeated_call). Hoistable and pass-through work is not looked for there."
       ]
     },
     {
-      "id": "FACT-64b123b475792926",
+      "id": "FACT-91141929a4d6feb7",
       "kind": "redundancy",
       "extractor": "redundancy",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "ac38ab7361e4bfec5be654fdafee3f3cfa6a55c601c97d18c25d070d1d0e5381",
       "location": {
         "path": "core/pricing.py",
@@ -69,7 +71,8 @@
         "N+1 detection is structural: any data access in a loop is flagged, even when the loop iterates once.",
         "A pass-through layer is one-call-forwarding; layers with hidden side effects are not detected.",
         "Only parsed languages produce redundancy facts; unparsed files stay out of the denominator.",
-        "Redundancy detection is implemented for Python only. A file in any other language is counted as blocked, never as analysed-and-clean."
+        "Redundancy detection reads Python by its syntax tree, and JavaScript and TypeScript from the recorded loops, calls, branches and data accesses; a file in any other language is counted as blocked, never as analysed-and-clean.",
+        "For JavaScript and TypeScript only data access is judged: a query or request inside a loop or an iterating call (n_plus_one), and the same query twice on one unconditional path of a function (repeated_call). Hoistable and pass-through work is not looked for there."
       ]
     }
   ]

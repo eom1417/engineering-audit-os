@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-26",
-  "measured_at_commit": "26717d3",
+  "measured_at_commit": "059818b",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -353,8 +353,8 @@
           "name": "القياس لكل ملف مصدر",
           "definition": "متوسط (ملفات المصدر المحلَّلة التي لها في measurements.json الحجم وأعلى تعقيد وعدد التغييرات وعدد المعتمِدين عليها ÷ ملفات المصدر المحلَّلة)، لكل مشروع",
           "target": 0.95,
-          "value": 0.0,
-          "evidence": "source files with size, complexity, churn and fan-in: FleetManageWeb 0/273 · finance-os-a0192b7b 0/301 · RendaPerene 0/74",
+          "value": 1.0,
+          "evidence": "source files with size, complexity, churn and fan-in: FleetManageWeb 273/273 · finance-os-a0192b7b 301/301 · RendaPerene 74/74",
           "reads": "measurements.json → files[] {path, loc, complexity_max, churn, fan_in}، كل حقل ليس null",
           "measured": "automated"
         }
@@ -391,8 +391,8 @@
           "name": "الخطر العالي مؤكد بشاهدين",
           "definition": "متوسط (عناصر debt-register.json بخطورة high أو critical التي يدعمها شاهدان مستقلان من أداتين مختلفتين، أو دليل حتمي واحد ÷ تلك العناصر)، لكل مشروع. مشروع بلا سجل يُحسب صفرًا.",
           "target": 0.8,
-          "value": 0.0,
-          "evidence": "high and critical debt items with two independent witnesses: FleetManageWeb no register · finance-os-a0192b7b no register · RendaPerene no register",
+          "value": 1.0,
+          "evidence": "high and critical debt items with two independent witnesses: FleetManageWeb 24/24 · finance-os-a0192b7b 11/11 · RendaPerene 0/0",
           "reads": "debt-register.json → items[] {severity, witnesses[] {tool, kind}}؛ شاهد kind == \"deterministic\" يكفي وحده",
           "measured": "automated"
         }
@@ -573,8 +573,8 @@
           "name": "مؤشرات الاستدامة المقيسة",
           "definition": "متوسط (مؤشرات الاستدامة الستة ذات القيمة ÷ 6) لكل مشروع",
           "target": 1.0,
-          "value": 0.889,
-          "evidence": "sustainability indicators with a value: FleetManageWeb 5/6 · finance-os-a0192b7b 5/6 · RendaPerene 6/6",
+          "value": 1.0,
+          "evidence": "sustainability indicators with a value: FleetManageWeb 6/6 · finance-os-a0192b7b 6/6 · RendaPerene 6/6",
           "reads": "sustainability.json → indicators[].value not null",
           "measured": "automated"
         }
@@ -2321,7 +2321,11 @@
             "eaos/measurements.py",
             "eaos/pipeline/stages.py",
             "tools/north_star_measure.py",
-            "tests/test_measurements.py"
+            "tests/test_measurements.py",
+            "eaos/debt_register.py",
+            "eaos/dossier.py",
+            "eaos/compose/artifacts.py",
+            "eaos/pipeline/runners.py"
           ],
           "writes": [
             "contract:measurements",
@@ -2331,7 +2335,8 @@
             "مرحلة measure بعد engines تكتب measurements.json → files[] {path, language, loc, complexity_max, duplicated_lines, churn, authors, last_changed, fan_in, fan_out, coverage}، و MEASUREMENTS.md بأعلى 20 ملفًا.",
             "المصادر موجودة ولا يُكتب محلل جديد: loc واللغة من scc (وإلا من حقائق metrics)، و complexity_max من symbol_metric_external (reforge و CodeGraph)، و duplicated_lines من مواقع jscpd، و churn و authors و last_changed من حقائق history، و fan_in و fan_out من graph، و coverage من verification.json إن وُجد.",
             "حقل بلا مصدر يبقى null ومعه السبب في files[].missing؛ لا صفر بدل المجهول.",
-            "أضف قياس M1 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة). coverage خارج تعريف M1 لأنه يحتاج تشغيل الاختبارات."
+            "أضف قياس M1 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة). coverage خارج تعريف M1 لأنه يحتاج تشغيل الاختبارات.",
+            "كما نُفّذ: مرحلة measure بعد engines؛ الصفوف هي الملفات المحللة (301 = files_parsed في finance-os) وما لم يُحلَّل في not_measured بسببه. كل صف يذكر مصدر كل حقل (sources). complexity_max من CodeGraph وإلا العدّ المعجمي لـEAOS (فروع + 1، أو جسم الملف إن لم تكن فيه دالة). coverage يُقرأ من verification.json → coverage[path].percent كما يكتبه eaos.verify. M1 = 1.0 في المشاريع الثلاثة."
           ],
           "done_when": [
             "measurements.json يمر عقده في المشاريع الثلاثة.",
@@ -2346,7 +2351,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only M1 --min 0.95 && python tools/acceptance.py contract measurements",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS18.T2",
@@ -2367,7 +2372,9 @@
             "eaos/pipeline/stages.py",
             "eaos/compose/artifacts.py",
             "tools/north_star_measure.py",
-            "tests/test_debt_register.py"
+            "tests/test_debt_register.py",
+            "eaos/dossier.py",
+            "eaos/pipeline/runners.py"
           ],
           "writes": [
             "contract:debt-register",
@@ -2378,7 +2385,8 @@
             "RISK-REGISTER.md موجود (eaos/compose/artifacts.py): يُكتب من debt-register.json بدل مصدره الحالي، فلا يوجد سجلان.",
             "hotspot لكل ملف = ترتيب مئيني لـcomplexity_max × ترتيب لـchurn × (1 + ترتيب لـfan_in)، من measurements.json. الصيغة مكتوبة في رأس الملف، والعنصر يذكر مكوّناتها الثلاثة لا الناتج وحده.",
             "خطورة high أو critical تحتاج شاهدين مستقلين من أداتين مختلفتين (مثلًا Semgrep مع CodeGraph، أو Trivy مع حقائق secrets)، أو شاهدًا حتميًا واحدًا (kind = deterministic: مفتاح مرفوع، أو RLS معطّل). بدون ذلك تنزل إلى medium ويُضاف مجسّ يقرر.",
-            "أضف قياس S3 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة)."
+            "أضف قياس S3 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة).",
+            "كما نُفّذ: السجل يُبنى في dossier.py (عند التجميع وبعد المجسّات في refresh_views) و RISK-REGISTER.md يُرسم منه: سجل واحد. عنقود المحركات يشهد له فقط ما كان من نوعه؛ السر يُحكم بعائلة المفتاح من detector الأسرار (المفتاح المنشور low، والسري critical)، والمفتاح الذي يشهد لبند لا يصير بندًا ثانيًا. الترتيب: الخطورة، ثم أولوية الادعاء المعلنة، ثم السخونة. S3 = 1.0: كل بند عالٍ ثغرة بشاهد OSV حتمي ومجسّ مؤكد."
           ],
           "done_when": [
             "debt-register.json يمر عقده في المشاريع الثلاثة.",
@@ -2393,7 +2401,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only S3 --min 0.8 && python tools/acceptance.py contract debt-register",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS18.T3",
@@ -2409,7 +2417,12 @@
           "size": "M",
           "files": [
             "eaos/facts/redundancy.py",
-            "tests/test_redundancy_js.py"
+            "tests/test_redundancy_js.py",
+            "eaos/debt_register.py",
+            "eaos/dossier.py",
+            "eaos/compose/artifacts.py",
+            "eaos/pipeline/runners.py",
+            "eaos/facts/run.py"
           ],
           "writes": [],
           "steps": [
@@ -2417,7 +2430,8 @@
             "نفّذها لـjavascript و typescript و tsx من الحقائق الموجودة، لا بمحلل جديد: حقائق loop (المدى)، و call_site (الاسم والسطر)، و data_access (NS3.T2).",
             "n_plus_one: نداء بيانات (data_access، أو fetch، أو axios) داخل مدى حلقة (for، أو while، أو forEach، أو map).",
             "repeated_call: النداء نفسه بالمعاملات النصية نفسها مرتين في الدالة نفسها، في فرعين غير متنافيين.",
-            "بعدها يُحسب analysed لملفات TS، فيصير minimal_path مقيسًا في sustainability.json."
+            "بعدها يُحسب analysed لملفات TS، فيصير minimal_path مقيسًا في sustainability.json.",
+            "كما نُفّذ: redundancy بعد entrypoints ويقرأ loop و call_site (map/forEach بمداها) و scope و data_access و fetch. repeated_call يتطلب مسارًا واحدًا: else أو case أو catch أو return أو throw بين القراءتين يجعلهما بديلين (حقائق branch تحمل سطر الشرط فقط؛ الاختبار كشف إيجابيين كاذبين في FleetManageWeb قبل هذا). النتيجة على العيّنة صفر، وتحقق يدوي لم يجد N+1 حقيقيًا. G2 = 1.0. تصحيح لملاحظة مراجعة المرحلة 1–6: قياس التداخل أظهر أن عناقيد finance-os الخمسين أشكال مختلفة على مجموعات ملفات مختلفة (التجميع بـJaccard ≥ 0.6 ينزل بها إلى 47 فقط)، ففرضية العائلة الواحدة خاطئة ولم يُجمع شيء."
           ],
           "done_when": [
             "sustainability.json في finance-os فيه minimal_path بقيمة لا null.",
@@ -2431,7 +2445,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only G2 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "stages": [

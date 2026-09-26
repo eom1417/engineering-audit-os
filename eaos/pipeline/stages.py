@@ -38,6 +38,8 @@ STAGES = (
     Stage('verify', produces=('verification.json',), requires=('facts',), necessity=OPTIONAL,
           absent_when='no test command was given, or execution was not authorised',
           description='Run the test suite in an isolated copy and map real coverage'),
+    Stage('measure', produces=('measurements.json', 'MEASUREMENTS.md'), requires=('facts',),
+          description='One row per analysed file: size, complexity, duplication, change and dependency, each with its source'),
     Stage('policy', produces=('facts/policy.json', 'POLICY.md'), requires=('facts',), necessity=OPTIONAL,
           absent_when='the project declares no eaos.policy.json',
           description='Enforce the declared architecture policy'),

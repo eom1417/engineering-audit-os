@@ -138,6 +138,11 @@ def plan(context):
     return {'tasks': result['tasks'], 'waves': result['waves']}
 
 
+def measure(context):
+    from ..measurements import run
+    return run(context.out, context.language)
+
+
 def intake(context):
     from ..intake import write
     record = write(context.target, context.out, context.get('intake'))
@@ -231,7 +236,7 @@ def features(context):
             'critical': sum(1 for f in record['features'] if f['critical'])}
 
 
-RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
+RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
            'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,
            'transform': transform, 'plan': plan, 'execution_guide': execution_guide,
            'compose': compose, 'emit': emit, 'site': site, 'validate': validate}

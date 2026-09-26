@@ -10,20 +10,25 @@ All four are syntactic observations: they show where a profiler should look.
 None of them proves a problem exists at runtime.
 """
 import ast
+import re
 from collections import defaultdict
 from . import digest, make
 from .source import language_of
 
 NAME = 'redundancy'
-VERSION = '1'
+VERSION = '2'
 LIMITATIONS = [
     'A repeated call is detected by signature equality; this is a structural hypothesis, not runtime proof.',
     'A hoistable call is detected by syntactic independence from the loop variable; runtime may still require it.',
     'N+1 detection is structural: any data access in a loop is flagged, even when the loop iterates once.',
     'A pass-through layer is one-call-forwarding; layers with hidden side effects are not detected.',
     'Only parsed languages produce redundancy facts; unparsed files stay out of the denominator.',
-    'Redundancy detection is implemented for Python only. A file in any other language is counted '
-    'as blocked, never as analysed-and-clean.',
+    'Redundancy detection reads Python by its syntax tree, and JavaScript and TypeScript from the recorded '
+    'loops, calls, branches and data accesses; a file in any other language is counted as blocked, never '
+    'as analysed-and-clean.',
+    'For JavaScript and TypeScript only data access is judged: a query or request inside a loop or an '
+    'iterating call (n_plus_one), and the same query twice on one unconditional path of a function '
+    '(repeated_call). Hoistable and pass-through work is not looked for there.',
 ]
 
 # Names that plausibly reach a store. 'get', 'all', 'first' and 'find' were here and matched
@@ -298,6 +303,77 @@ def _python_redundancies(text, rel):
     return rows
 
 
+ITERATORS = {'map', 'forEach', 'flatMap', 'reduce', 'filter', 'some', 'every', 'find', 'findIndex'}
+JS_LANGUAGES = {'javascript', 'typescript', 'tsx', 'jsx'}
+
+
+def _index_js(structure, entrypoints):
+    """{path: {'loops', 'branches', 'scopes', 'data'}} from the structure and entry-point facts."""
+    index = defaultdict(lambda: {'loops': [], 'branches': [], 'scopes': [], 'data': []})
+    span = lambda fact: ((fact['location'].get('start_line') or 0), (fact['location'].get('end_line') or fact['location'].get('start_line') or 0))
+    for fact in structure or []:
+        path, value = fact['location']['path'], fact.get('value') or {}
+        if fact['kind'] == 'loop': index[path]['loops'].append(span(fact))
+        elif fact['kind'] == 'branch': index[path]['branches'].append(span(fact))
+        elif fact['kind'] == 'scope' and value.get('kind') == 'function':
+            index[path]['scopes'].append((*span(fact), fact['location'].get('symbol') or value.get('name')))
+        elif fact['kind'] == 'call_site':
+            if value.get('callee') in ITERATORS and span(fact)[1] > span(fact)[0]: index[path]['loops'].append(span(fact))
+            elif value.get('callee') == 'fetch':
+                index[path]['data'].append((span(fact)[0], 'http', 'get', 'fetch'))
+    for fact in entrypoints or []:
+        if fact['kind'] != 'data_access': continue
+        value = fact.get('value') or {}
+        index[fact['location']['path']]['data'].append(
+            (fact['location'].get('start_line') or 0, value.get('client', 'data'), value.get('operation', ''), value.get('target', '')))
+    return index
+
+
+# Between two reads, any of these puts them on different paths: another arm of a condition, a fallback
+# after a failure, or an exit. The branch facts carry only the condition's line, not the arm's extent.
+EXCLUSIVE = re.compile(r'^\s*(\}\s*)?(else\b|case\b|default\s*:)|\bcatch\b|\breturn\b|\bthrow\b')
+
+
+def _one_path(lines, first, second):
+    return not any(EXCLUSIVE.search(lines[n - 1]) for n in range(first + 1, second) if 0 < n <= len(lines))
+
+
+def _innermost(spans, line):
+    inside = [s for s in spans if s[0] <= line <= s[1]]
+    return min(inside, key=lambda s: s[1] - s[0]) if inside else None
+
+
+def _js_redundancies(rel, facts, text=''):
+    """n_plus_one and repeated_call for one JavaScript or TypeScript file, from its recorded facts."""
+    rows, seen = [], set()
+    for line, client, operation, target in sorted(set(facts['data'])):
+        scope = _innermost(facts['scopes'], line)
+        symbol = scope[2] if scope else '<module>'
+        loop = _innermost(facts['loops'], line)
+        # An iterating call on the same line as the data call is the data call's own chain (`.select().filter()`)
+        # unless it spans further lines: a loop must enclose the call, not be it.
+        if loop and not (loop[0] == loop[1] == line):
+            key = ('n_plus_one', line)
+            if key not in seen:
+                seen.add(key)
+                rows.append({'kind': 'n_plus_one', 'path': rel, 'symbol': symbol, 'start_line': line, 'end_line': line,
+                             'callee': f'{client}.{operation} {target}'.strip()})
+    by_place = defaultdict(list)
+    for line, client, operation, target in sorted(set(facts['data'])):
+        if operation not in ('select', 'get', 'rpc') or target in ('{dynamic}', 'fetch'): continue
+        scope = _innermost(facts['scopes'], line)
+        # Same function, same loop (or none): a read in a loop is already n_plus_one, not a repeat of one outside it.
+        by_place[(scope, _innermost(facts['loops'], line), client, operation, target)].append(line)
+    for (scope, _, client, operation, target), lines in sorted(by_place.items(), key=lambda item: str(item[0])):
+        # Two reads count only on one path: nothing between them that makes them alternatives.
+        source_lines = text.splitlines()
+        for first, second in zip(lines, lines[1:]):
+            if _one_path(source_lines, first, second):
+                rows.append({'kind': 'repeated_call', 'path': rel, 'symbol': scope[2] if scope else '<module>',
+                             'start_line': first, 'end_line': second, 'callee': f'{client}.{operation} {target}'})
+    return rows
+
+
 def _tree_sitter_redundancies(text, language):
     """Not implemented for tree-sitter languages, and it says so instead of returning nothing found.
 
@@ -309,11 +385,12 @@ def _tree_sitter_redundancies(text, language):
     return None
 
 
-def run(target, source, symbols=None, **options):
+def run(target, source, symbols=None, structure=None, entrypoints=None, **options):
     from . import syntax as syntax_module
     if symbols is None:
         syntax_result = syntax_module.run(target, source)
         symbols = [f for f in syntax_result['facts'] if f['kind'] == 'symbol']
+    js = _index_js(structure, entrypoints) if structure is not None and entrypoints is not None else None
     facts = []
     counts = defaultdict(int)
     files_observed = 0; files_blocked = 0
@@ -324,6 +401,8 @@ def run(target, source, symbols=None, **options):
         if text is None: continue
         rows = None
         if language == 'python': rows = _python_redundancies(text, rel)
+        # JavaScript and TypeScript are judged from the facts; without them the file is blocked, not clean.
+        elif language in JS_LANGUAGES and js is not None: rows = _js_redundancies(rel, js[rel], text)
         else: rows = _tree_sitter_redundancies(text, language)
         if rows is None: files_blocked += 1; continue
         files_observed += 1

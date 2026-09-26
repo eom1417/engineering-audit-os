@@ -12,7 +12,7 @@ EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'res
               'fingerprint': fingerprint, 'sequences': sequences, 'redundancy': redundancy, 'runtime': runtime,
               'leftovers': leftovers, 'deadcode': deadcode, 'broken': broken,
               'secrets': secrets}
-ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'redundancy', 'runtime', 'entrypoints', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets']
+ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'runtime', 'entrypoints', 'redundancy', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets']
 
 
 # Every fact set the tool can read, in one place. Three modules used to keep their own copy of
@@ -106,7 +106,9 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
                 ext = [f for f in produced['external'] if f.get('resolution') == 'RESOLVED_BY_ENGINE']
             result = module.run(target, source, imports=[f for f in produced.get('syntax', []) if f['kind'] == 'import_edge'] or None,
                                 external_edges=ext or None)
-        elif name in {'structure', 'fingerprint', 'sequences', 'redundancy', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)
+        elif name == 'redundancy': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None,
+                                                         structure=produced.get('structure'), entrypoints=produced.get('entrypoints'))
+        elif name in {'structure', 'fingerprint', 'sequences', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)
         elif name in {'entrypoints', 'metrics'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)
         elif name == 'flows': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'],
                                                    calls=[f for f in produced.get('syntax', []) if f['kind'] == 'call_edge'],
