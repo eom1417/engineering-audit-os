@@ -138,9 +138,12 @@ def run_graph_query(specification, sets):
     if query == 'load_blocker_present':
         # Re-derive the blocker from the load model: the claim is about what the questions answer.
         from .load_model import blockers
+        # A recheck of a changed copy names the entry by its path and route: an entry fact's id changes with its file.
+        by_place = 'entry_path' in specification
         for blocker in blockers(sets['load_model']):
-            if (blocker['entry_point'] == specification['entry_point']
-                    and blocker['question'] == specification['question']):
+            same = ((blocker['path'], blocker['route']) == (specification['entry_path'], specification.get('entry_route'))
+                    if by_place else blocker['entry_point'] == specification['entry_point'])
+            if same and blocker['question'] == specification['question']:
                 return 'CONFIRMED', f"{blocker['question']} still answers {blocker['value']!r}"
         return 'REFUTED', 'the question no longer answers that way for this entry point'
     if query == 'vulnerable_dependency_present':
@@ -239,6 +242,28 @@ def run_graph_query(specification, sets):
     return 'INCONCLUSIVE', 'unknown query'
 
 
+def decide_probe(row, sets, allow_execution=False):
+    """(status, detail) of one probe over one snapshot's fact sets: the audit's probe stage and the
+    acceptance recheck of a repaired copy (eaos/recheck.py) decide with this same function."""
+    if row['probe_type'] == 'graph_query':
+        return run_graph_query(row['specification'], sets)
+    if row['probe_type'] == 'absence_search':
+        name = re.sub(r'^\\b|\\b$', '', row['specification']['patterns'][0]).replace('\\', '')
+        sites = constant_sites(name, sets)
+        link = linking_import(name, sites, sets) if len(sites) > 1 else None
+        if len(sites) > 1 and not link:
+            return 'CONFIRMED', f"parsed as a definition in {len(sites)} files with no import linking them: " + ', '.join(sites)
+        if link and link.startswith('UNKNOWN: '):
+            return 'INCONCLUSIVE', link[len('UNKNOWN: '):] + '; a claim is not withdrawn on weaker evidence than confirmed it'
+        if link: return 'REFUTED', f'a single owner exists: {link}'
+        # One definition left is the repair; none at all may be a file the parser could not read, so it decides nothing.
+        if len(sites) == 1: return 'REFUTED', f'the name is defined in one file now: {sites[0]}'
+        return 'INCONCLUSIVE', 'the current snapshot no longer parses more than one definition of this name'
+    if row['probe_type'] in {'execution', 'coverage'} and not allow_execution:
+        return 'blocked', 'execution probes are disabled; rerun with execution explicitly allowed'
+    return 'INCONCLUSIVE', 'no runner for this probe type'
+
+
 def run_all(target, out, allow_execution=False):
     """Run every derived probe, update the ledger, and record what each probe decided."""
     out = Path(out)
@@ -249,24 +274,7 @@ def run_all(target, out, allow_execution=False):
     by_claim = {claim['id']: claim for claim in dossier['claims']}
     counts = {'CONFIRMED': 0, 'REFUTED': 0, 'PARTIAL': 0, 'INCONCLUSIVE': 0, 'blocked': 0}
     for row in probes:
-        if row['probe_type'] == 'graph_query':
-            status, detail = run_graph_query(row['specification'], sets)
-        elif row['probe_type'] == 'absence_search':
-            name = re.sub(r'^\\b|\\b$', '', row['specification']['patterns'][0]).replace('\\', '')
-            sites = constant_sites(name, sets)
-            link = linking_import(name, sites, sets) if len(sites) > 1 else None
-            if len(sites) > 1 and not link:
-                status, detail = 'CONFIRMED', f"parsed as a definition in {len(sites)} files with no import linking them: " + ', '.join(sites)
-            elif link and link.startswith('UNKNOWN: '):
-                status, detail = 'INCONCLUSIVE', link[len('UNKNOWN: '):] + '; a claim is not withdrawn on weaker evidence than confirmed it'
-            elif link:
-                status, detail = 'REFUTED', f'a single owner exists: {link}'
-            else:
-                status, detail = 'INCONCLUSIVE', 'the current snapshot no longer parses more than one definition of this name'
-        elif row['probe_type'] in {'execution', 'coverage'} and not allow_execution:
-            status, detail = 'blocked', 'execution probes are disabled; rerun with execution explicitly allowed'
-        else:
-            status, detail = 'INCONCLUSIVE', 'no runner for this probe type'
+        status, detail = decide_probe(row, sets, allow_execution)
         row['status'], row['result'], row['ran_at'] = status, detail, now()
         row['searched'] = sorted(constant_sites(re.sub(r'^\\b|\\b$', '', row['specification']['patterns'][0]).replace('\\', ''), sets)) \
             if row['probe_type'] == 'absence_search' else None

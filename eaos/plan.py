@@ -22,9 +22,14 @@ def acceptance_for(claim, target, out):
         import shlex
         return [{'command': shlex.join(check['argv']) if check.get('kind') == 'command' else 'human review',
                  'expect': check.get('expected', '')} for check in decision['checks']]
-    return [{'command': 'human review / مراجعة هندسية',
-             'expect': claim['id'] + ': CONFIRMED or REFUTED concerns the observation only; '
-                       'record requirement evidence and decide repair, retain, or blocked_missing_requirement. ' + claim['falsifier']}]
+    # An investigation changes no code: it is done when its decision is recorded (eaos decision-review), which
+    # `eaos decided` checks. The decision itself stays a person's; the command only shows it was made.
+    import shlex, sys
+    from .decisions import identity
+    uid = claim.get('uid') or identity(claim)
+    return [{'command': shlex.join([sys.executable, '-m', 'eaos', 'decided', str(Path(out).resolve()), uid]),
+             'expect': claim['id'] + ': a recorded decision (repair with its check, retain with an owner and a reason, or '
+                       'the claim refuted) after weighing: ' + claim['falsifier']}]
 
 
 def verify_command_for(claim, target, out):
@@ -38,6 +43,25 @@ def effort_for(radius, cost_bucket):
     if cost_bucket == 'large' or radius > 20: return 'كبير', 'منخفضة: لم يُقَس عمل مشابه بعد'
     if cost_bucket == 'medium' or radius > 5: return 'متوسط', 'متوسطة: مبني على حجم الكود ونطاق الأثر'
     return 'صغير', 'متوسطة: تغيير محصور في ملفات قليلة'
+
+
+def size_of(paths, dependents):
+    from .roadmap import effort
+    return effort(paths, dependents)
+
+
+def schedule(out, target, tasks, language):
+    """Milestones and sections for the cards, and ROADMAP.md: the build milestones follow the target projection."""
+    from .roadmap import milestones, render, sections
+    from .target_projection import project
+    projection = project(out, target)
+    placements = (projection or {}).get('placements') or {}
+    rebuilt = {}
+    for judged in ((projection or {}).get('current') or {}).values():
+        if judged['relation'] == 'rebuild': rebuilt[judged['target_component']] = 'rebuild'
+    plan_milestones = milestones(tasks, placements, rebuilt)
+    (Path(out) / 'ROADMAP.md').write_text(render(plan_milestones, tasks, language).render(), encoding='utf-8')
+    return plan_milestones, sections(tasks)
 
 
 def build_tasks(target, out, dossier, sets):
@@ -65,6 +89,7 @@ def build_tasks(target, out, dossier, sets):
             'contract_version': 1, 'decision': decision,
             'prerequisites': [], 'before': (claim.get('assessment') or {}).get('before'),
             'after': (claim.get('assessment') or {}).get('after'),
+            'requirement_refs': list((claim.get('assessment') or {}).get('requirement_refs') or []),
             'status': 'planned', 'priority': claim.get('priority', 0),
             'pattern': 'investigation' if claim['confidence'] == 'HYPOTHESIS' else pattern['name'], 'paths': paths,
             'origin': claim.get('origin', 'unknown'),
@@ -85,11 +110,14 @@ def build_tasks(target, out, dossier, sets):
             'rollback': 'لا تغيير في الكود خلال التحقيق.' if unproven else pattern['rollback'],
             'acceptance': acceptance_for(claim, target, out),
             'verify_command': verify_command_for(claim, target, out),
-            'effort': 'unknown', 'effort_confidence': 'Not measured / لم يُقَس',
+            'effort': size_of(paths, radius['blast_radius'])[0], 'effort_basis': size_of(paths, radius['blast_radius'])[1],
+            'effort_confidence': 'A rule on the files it touches and its dependents (eaos/roadmap.py), not a measured duration.',
             'invariants': invariants_of(claim),
             'harm': harm_of(claim, radius, effort, effort_confidence),
             'finding_ids': [claim['id']],
         })
+    from .roadmap import section
+    for task in tasks: task['section'] = section(task)
     by_claim = {task['claim_id']: task['id'] for task in tasks}
     source_claims = {claim['id']: claim for claim in dossier['claims']}
     for task in tasks:
@@ -338,8 +366,11 @@ def rebuild(out, dossier, language='ar', target=None):
     publish(directory, tasks, plan, language)
     dossier['tasks'], dossier['waves'], dossier['plan_contract_version'] = tasks, plan, 1
     write(out / 'dossier.json', dossier)
-    write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan,
-                              'decisions': dossier.get('decisions', [])})
+    from .codemods import attach
+    attach(tasks, out, source)
+    plan_milestones, plan_sections = schedule(out, source, tasks, language)
+    write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan, 'milestones': plan_milestones,
+                              'sections': plan_sections, 'decisions': dossier.get('decisions', [])})
     return len(tasks)
 
 
@@ -358,8 +389,11 @@ def build(target, out, language='ar'):
     dossier['waves'] = plan
     write(dossier_path, dossier)
     from .decisions import decide
-    write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan,
-                             'decisions': [decide(claim) for claim in dossier['claims']]})
+    from .codemods import attach
+    attach(tasks, out, target)
+    plan_milestones, plan_sections = schedule(out, target, tasks, language)
+    write(out / 'plan.json', {'contract_version': 1, 'tasks': tasks, 'waves': plan, 'milestones': plan_milestones,
+                             'sections': plan_sections, 'decisions': [decide(claim) for claim in dossier['claims']]})
     from .dossier import refresh_views
     refresh_views(out, language)
     return {'target': str(target), 'out': str(out), 'tasks': len(tasks), 'waves': len(plan),

@@ -425,6 +425,23 @@
         "entry": "structurizr.sh"
       },
       "install_note": "The last release of the archived structurizr/cli (the project moved to structurizr/structurizr, which ships no CLI build); it parses and validates Structurizr DSL. No upstream checksum is published: the sha256 was pinned when it was adopted. Needs temurin-jre."
+    },
+    {
+      "name": "jscodeshift",
+      "role": "run",
+      "stages": [
+        "S07",
+        "S08"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/facebook/jscodeshift",
+      "version": "17.4.0",
+      "binary": "jscodeshift",
+      "install": {
+        "method": "npm",
+        "package": "jscodeshift"
+      },
+      "install_note": "Runs the codemods of mechanical cards on an isolated copy (their dry run) and on the execution copy; it parses code, it never runs it."
     }
   ]
 }

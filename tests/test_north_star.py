@@ -26,6 +26,56 @@ class NorthStarTests(unittest.TestCase):
     def test_the_rendered_document_is_not_stale(self):
         self.assertEqual(self.tool.main(['--check']), 0)
 
+    def test_milestones_progress_in_roadmap_order_and_the_first_open_one_is_current(self):
+        rows = self.tool.progress(self.record)
+        states = [state for _, _, state in rows]
+        self.assertEqual(len(rows), len(self.record['milestones']))
+        self.assertLessEqual(states.count('current'), 1)
+        if 'current' in states:
+            self.assertTrue(all(state == 'done' for state in states[:states.index('current')]))
+            self.assertNotIn('done', states[states.index('current'):])
+
+    def test_a_milestone_needing_a_sandbox_waits_on_the_owner(self):
+        record = copy.deepcopy(self.record)
+        for milestone in record['milestones']:
+            for task in milestone['tasks']: task['status'] = 'todo'
+        states = {milestone['id']: state for _, milestone, state in self.tool.progress(record)}
+        first = record['roadmap'][0]['milestones'][0]
+        self.assertEqual(states[first], 'current')
+        waiting = [m['id'] for m in record['milestones'] if m['id'] != first and any(t['needs'] != 'none' for t in m['tasks'])]
+        self.assertTrue(waiting)
+        self.assertTrue(all(states[name] == 'owner' for name in waiting))
+
+    def test_both_readmes_carry_the_current_status_block(self):
+        for language, path in self.tool.READMES.items():
+            text = path.read_text(encoding='utf-8')
+            block = self.tool.readme_block(self.record, language)
+            self.assertEqual(self.tool.with_block(text, block), text, f'{path.name} is stale')
+            done = sum(state == 'done' for _, _, state in self.tool.progress(self.record))
+            self.assertIn(f"{done} {'من' if language == 'ar' else 'of'} {len(self.record['milestones'])}", block)
+            self.assertIn(f"{self.tool.score(self.record)['overall_percent']}%", block)
+            self.assertEqual(block.count('```mermaid'), 2)
+
+    def test_the_headline_is_closed_milestones_and_output_quality_is_labelled_as_not_progress(self):
+        text = self.tool.render(self.record)
+        done = self.tool.completion(self.record)
+        headline = next(line for line in text.splitlines() if line.startswith('## '))
+        self.assertIn(f"{done['milestones_done']} من {done['milestones']} معلمًا", headline)
+        self.assertIn('ليست نسبة إنجاز', text)
+        self.assertEqual(text.count('| **NS'), len(self.record['milestones']))
+
+    def test_a_stale_readme_block_fails_the_check(self):
+        record = copy.deepcopy(self.record)
+        for milestone in record['milestones']:
+            for task in milestone['tasks']: task['status'] = 'done'
+        text = self.tool.READMES['ar'].read_text(encoding='utf-8')
+        self.assertNotEqual(self.tool.with_block(text, self.tool.readme_block(record, 'ar')), text)
+
+    def test_every_milestone_and_phase_has_an_english_title(self):
+        record = copy.deepcopy(self.record)
+        del record['milestones'][0]['title_en']
+        self.assertIn(f"{record['milestones'][0]['id']}: no title_en (the READMEs are bilingual)", self.tool.validate(record))
+
     def test_an_unmeasured_indicator_counts_as_zero(self):
         record = copy.deepcopy(self.record)
         capability = record['capabilities'][0]

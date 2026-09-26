@@ -194,6 +194,16 @@ def baseline_command(args):
     return 0
 
 
+def decided_command(args):
+    from .decided import main
+    return main(args)
+
+
+def recheck_command(args):
+    from .recheck import main
+    return main(args)
+
+
 def engage_command(args):
     from .engage import main
     return main(args)
@@ -619,6 +629,13 @@ def main(argv=None):
     q.add_argument('--engine',action='append',default=[])
     q.add_argument('--exclude',action='append',default=[])
     q.set_defaults(func=engines_command)
+    q=s.add_parser('decided',help='Exit 0 once an observation carries a recorded decision (the acceptance of an investigation)')
+    q.add_argument('report'); q.add_argument('uid')
+    q.set_defaults(func=decided_command)
+    q=s.add_parser('recheck',help='Collect facts on a changed copy and let one claim\'s probe decide; exit 0 when the observation is gone')
+    q.add_argument('root',nargs='?',default='.')
+    q.add_argument('--spec',required=True,help='the probe as JSON: {"probe_type": ..., "specification": {...}}')
+    q.set_defaults(func=recheck_command)
     q=s.add_parser('engage',help='The fifteen engagement stages: where this project stands, and whether a stage may start')
     e=q.add_subparsers(dest='action',required=True)
     r=e.add_parser('status',help='Every stage: its artifacts, and whether its gate passes and why not')

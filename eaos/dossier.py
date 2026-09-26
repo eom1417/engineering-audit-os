@@ -172,6 +172,13 @@ def build_claims(sets, records, load_record=None, target=None):
         row.setdefault('artifacts', [BRIEF if asserts_a_problem(row) else (detail_artifact(row) or 'SYSTEM-MAP.md')])
         if asserts_a_problem(row) and (row.get('disposition') or {}).get('kind') in (None, 'none_yet'):
             row['disposition'] = {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'}
+    # After numbering and origin are settled: a confirmed product observation whose evidence is mechanical
+    # carries a ready repair under its family's engagement rule (eaos/mechanical_assessment.py).
+    if target is not None:
+        from .mechanical_assessment import build_assessment as mechanical
+        for row in rows:
+            built = mechanical(row, sets, target)
+            if built: row['assessment'], row['checks'] = built['assessment'], built['checks']
     return rows, fact_index
 
 
@@ -331,6 +338,10 @@ def index_document(target, dossier, sets, verification, language):
                      f"tasks {len(dossier.get('tasks', []))} · waves {len(dossier.get('waves', []))}"])
     document.section('اقرأ بهذا الترتيب' if language == 'ar' else 'Read in this order')
     rows = [
+        ('تريد الصورة كاملة: التقارير الأربعة، وبقية الوثائق ملاحق لها' if language == 'ar' else
+         'wanting the whole picture: the four reports; every other document is an appendix to them',
+         '[CURRENT-STATE.md](CURRENT-STATE.md) → [TARGET-STATE.md](TARGET-STATE.md) → '
+         '[GAP-AND-STRATEGY.md](GAP-AND-STRATEGY.md) → [EXECUTION-PLAN.md](EXECUTION-PLAN.md)', '20 min'),
         ('تقرّر أين يذهب الجهد' if language == 'ar' else 'deciding where effort goes',
          '[DECISION-BRIEF.md](DECISION-BRIEF.md) → [RISK-REGISTER.md](RISK-REGISTER.md) → [PLAN/WAVES.md](PLAN/WAVES.md)', '5 min'),
         ('تنضم للمشروع اليوم' if language == 'ar' else 'joining the project today',

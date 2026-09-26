@@ -146,6 +146,11 @@ def lock(context):
     return {'specs': len(plan['specs']), 'without_spec': sum(1 for s in plan['specs'] if not s['path'])}
 
 
+def reports(context):
+    from ..compose.four_reports import write
+    return write(context.out, context.language)
+
+
 def measure(context):
     from ..measurements import run
     return run(context.out, context.language)
@@ -244,7 +249,7 @@ def features(context):
             'critical': sum(1 for f in record['features'] if f['critical'])}
 
 
-RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
+RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
            'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,
            'transform': transform, 'plan': plan, 'execution_guide': execution_guide,
            'compose': compose, 'emit': emit, 'site': site, 'validate': validate}

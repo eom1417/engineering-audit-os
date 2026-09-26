@@ -44,10 +44,12 @@ class TaskCardTests(TemporaryWorkspace):
             nothing = next(option for option in task['options'] if option['option'] == 'لا نفعل شيئًا')
             self.assertTrue(nothing['verdict'])
 
-    def test_observation_only_card_requires_review_not_a_fake_check(self):
+    def test_observation_only_card_requires_a_recorded_decision_not_a_fake_check(self):
+        # PREMIUM_DISCOUNT is repeated across TypeScript and Python: where its one home lives is a design decision
         task = next(task for task in self.plan['tasks'] if task['pattern'] == 'duplicated_rule')
         commands = ' '.join(step['command'] for step in task['acceptance'])
-        self.assertIn('human review', commands)
+        self.assertIn('-m eaos decided', commands)
+        self.assertIn(task['claim_id'], ' '.join(step['expect'] for step in task['acceptance']))
         self.assertIn(task['claim_id'], ' '.join(step['expect'] for step in task['acceptance']))
         self.assertEqual(task['verify_command'], [])
         self.assertEqual(task['kind'], 'investigate')
@@ -59,7 +61,8 @@ class TaskCardTests(TemporaryWorkspace):
 
     def test_effort_states_its_own_confidence(self):
         for task in self.plan['tasks']:
-            self.assertEqual(task['effort'], 'unknown')
+            self.assertIn(task['effort'], {'S', 'M', 'L'})
+            self.assertEqual(set(task['effort_basis']), {'files', 'dependents'})
             self.assertTrue(task['effort_confidence'])
 
     def test_the_output_contract_accepts_the_generated_plan(self):
@@ -194,7 +197,7 @@ class HypothesisTaskTests(unittest.TestCase):
             self.assertEqual(investigation['kind'], 'investigate')
             self.assertEqual(investigation['pattern'], 'investigation')
             self.assertIn('أثبت هذا الادعاء أو انقضه', investigation['change'])
-            self.assertIn('CONFIRMED or REFUTED', ' '.join(step['expect'] for step in investigation['acceptance']))
+            self.assertIn('a recorded decision', ' '.join(step['expect'] for step in investigation['acceptance']))
             self.assertIn('لا تغيير في الكود', investigation['rollback'])
 
     def test_a_card_with_no_named_file_says_so_instead_of_an_empty_radius(self):

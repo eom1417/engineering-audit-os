@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-26",
-  "measured_at_commit": "9205ef1",
+  "measured_at_commit": "f48d997+",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -594,8 +594,8 @@
           "name": "مهام محددة الحجم",
           "definition": "بطاقات effort معروف ÷ كل البطاقات في العيّنة",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "cards with a known effort: 0/586",
+          "value": 1.0,
+          "evidence": "cards with a known effort: 586/586",
           "reads": "plan.json → tasks[].effort not \"unknown\"",
           "measured": "automated"
         },
@@ -604,8 +604,8 @@
           "name": "إصلاحات جاهزة",
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
-          "value": 0.338,
-          "evidence": "ready remediate cards: 198/586",
+          "value": 0.677,
+          "evidence": "ready remediate cards: 397/586",
           "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
           "measured": "automated"
         },
@@ -614,8 +614,8 @@
           "name": "أوامر قبول قابلة للتشغيل",
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
-          "value": 0.338,
-          "evidence": "cards with a runnable acceptance command: 198/586",
+          "value": 1.0,
+          "evidence": "cards with a runnable acceptance command: 586/586",
           "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
           "measured": "automated"
         },
@@ -624,8 +624,8 @@
           "name": "معالم بأهداف مقيسة",
           "definition": "مشاريع العيّنة التي تجمع خطتها البطاقات في معالم لكل منها هدف وشرط خروج ÷ عدد المشاريع",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "milestones with a goal and exit criterion: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0",
+          "value": 1.0,
+          "evidence": "milestones with a goal and exit criterion: FleetManageWeb 8 · finance-os-a0192b7b 8 · RendaPerene 7",
           "reads": "plan.json → milestones[] each with goal and exit",
           "measured": "automated"
         },
@@ -644,8 +644,8 @@
           "name": "أقسام الفريق",
           "definition": "مشاريع العيّنة التي توزّع خطتها المهام على أقسام (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) مع الاعتماديات بينها ÷ عدد المشاريع",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "every card carries a team section: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False",
+          "value": 1.0,
+          "evidence": "every card carries a team section: FleetManageWeb True · finance-os-a0192b7b True · RendaPerene True",
           "reads": "plan.json → every tasks[].section set",
           "measured": "automated"
         },
@@ -654,8 +654,8 @@
           "name": "التقارير الأربعة",
           "definition": "من التقارير الأربعة (الوضع الراهن، الصورة المثالية، الفجوة والتحول، خطة التنفيذ)، عدد ما له وثيقة مخصصة ÷ 4. جودة محتواها تقيسها المؤشرات الأخرى.",
           "target": 1.0,
-          "value": 0.5,
-          "evidence": "of the four reports present: FleetManageWeb 2/4 · finance-os-a0192b7b 2/4 · RendaPerene 2/4",
+          "value": 1.0,
+          "evidence": "of the four reports present: FleetManageWeb 4/4 · finance-os-a0192b7b 4/4 · RendaPerene 4/4",
           "reads": "report files: CURRENT-STATE.md; TARGET-STATE.md or TARGET-ARCHITECTURE.md; GAP-AND-STRATEGY.md; EXECUTION-PLAN.md or PLAN/WAVES.md",
           "measured": "automated"
         },
@@ -674,8 +674,8 @@
           "name": "المهام الآلية معها أداة تحويل",
           "definition": "بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات",
           "target": 0.8,
-          "value": 0.0,
-          "evidence": "mechanical cards whose codemod ran dry without error: FleetManageWeb 0/138 · finance-os-a0192b7b 0/55 · RendaPerene 0/12",
+          "value": 0.844,
+          "evidence": "mechanical cards whose codemod ran dry without error: FleetManageWeb 125/138 · finance-os-a0192b7b 36/55 · RendaPerene 12/12",
           "reads": "plan.json → tasks[].codemod {tool, command, dry_run {exit, files_changed}}",
           "measured": "automated"
         },
@@ -969,7 +969,8 @@
           "status": "done"
         }
       ],
-      "stages": []
+      "stages": [],
+      "title_en": "Automated measurement"
     },
     {
       "id": "NS2",
@@ -1023,7 +1024,8 @@
       ],
       "stages": [
         "S01"
-      ]
+      ],
+      "title_en": "Never fails on a real project"
     },
     {
       "id": "NS3",
@@ -1216,7 +1218,8 @@
       ],
       "stages": [
         "S02"
-      ]
+      ],
+      "title_en": "Current state: see the whole program"
     },
     {
       "id": "NS4",
@@ -1285,7 +1288,8 @@
       ],
       "stages": [
         "S04"
-      ]
+      ],
+      "title_en": "Signal, not noise"
     },
     {
       "id": "NS5",
@@ -1441,7 +1445,8 @@
       ],
       "stages": [
         "S04"
-      ]
+      ],
+      "title_en": "Dead code and leftovers: found and safely removed"
     },
     {
       "id": "NS6",
@@ -1502,7 +1507,8 @@
       ],
       "stages": [
         "S04"
-      ]
+      ],
+      "title_en": "Basic security hygiene"
     },
     {
       "id": "NS17",
@@ -1733,7 +1739,8 @@
           "status": "done"
         }
       ],
-      "stages": []
+      "stages": [],
+      "title_en": "Tool platform: every tool enters one way"
     },
     {
       "id": "NS11",
@@ -1825,7 +1832,8 @@
       ],
       "stages": [
         "S01"
-      ]
+      ],
+      "title_en": "Intake: what must be protected, and where to go"
     },
     {
       "id": "NS12",
@@ -2301,7 +2309,8 @@
       "stages": [
         "S01",
         "S04"
-      ]
+      ],
+      "title_en": "Static-analysis adapters: proven tools, not our own code"
     },
     {
       "id": "NS18",
@@ -2454,7 +2463,8 @@
       "stages": [
         "S03",
         "S04"
-      ]
+      ],
+      "title_en": "Measurement and debt register"
     },
     {
       "id": "NS15",
@@ -2562,7 +2572,8 @@
       ],
       "stages": [
         "S05"
-      ]
+      ],
+      "title_en": "Behaviour lock: specifications before any change"
     },
     {
       "id": "NS7",
@@ -2783,7 +2794,8 @@
       ],
       "stages": [
         "S06"
-      ]
+      ],
+      "title_en": "Target-state report"
     },
     {
       "id": "NS13",
@@ -2910,7 +2922,8 @@
       "stages": [
         "S02",
         "S06"
-      ]
+      ],
+      "title_en": "Architecture model and decisions (C4, ADR)"
     },
     {
       "id": "NS8",
@@ -2938,7 +2951,8 @@
           ],
           "steps": [
             "القاعدة: S إن لمست البطاقة ملفين أو أقل و blast_radius.total ≤ 5؛ و M إن لمست 8 ملفات أو أقل أو total ≤ 20؛ و L غير ذلك. اكتبها في رأس الدالة.",
-            "effort بإحدى القيم S أو M أو L فقط (العقد)، ومعه effort_basis {files, dependents}."
+            "effort بإحدى القيم S أو M أو L فقط (العقد)، ومعه effort_basis {files, dependents}.",
+            "كما نُفّذ: eaos/roadmap.py يحسب الحجم من عدد الملفات ونطاق الأثر (S: ملفان فأقل و5 معتمدين فأقل؛ M: حتى 8 ملفات أو 20 معتمدًا؛ L: ما فوق ذلك)، ويحفظ الرقمين في effort_basis. P1 = 586/586."
           ],
           "done_when": [
             "P1 = 1.0.",
@@ -2950,7 +2964,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only P1 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS8.T2",
@@ -2978,7 +2992,8 @@
             "لكل معلم هدف وشرط خروج مقيس، وROADMAP.md بأقل من 10 معالم وأهم البطاقات في كل معلم.",
             "العقد مع القياس: اكتب المعالم في plan.json → milestones[]، لكل معلم id و goal و exit و tasks.",
             "مكوّن قراره rebuild أو replace ويخدم أسطحًا حية: معلم بنمط Strangler Fig. المسار الجديد خلف علم (Unleash، أو متغير بيئة إن لم تُعتمد Unleash)، والتوجيه عبر Traefik إن كان للمشروع خادم، وإزالة القديم معلم مستقل لا يبدأ قبل تكافؤ السلوك (E7).",
-            "ترتيب المعالم ثابت كما في docs/MASTER-BLUEPRINT.md §٧: التثبيت، ثم شبكة الأمان، ثم الحدود، ثم البناء، ثم التصليب، ثم الإزالة، ثم الجاهزية. المعلم الفارغ لا يُكتب."
+            "ترتيب المعالم ثابت كما في docs/MASTER-BLUEPRINT.md §٧: التثبيت، ثم شبكة الأمان، ثم الحدود، ثم البناء، ثم التصليب، ثم الإزالة، ثم الجاهزية. المعلم الفارغ لا يُكتب.",
+            "كما نُفّذ: كل بطاقة في معلم واحد بترتيب ثابت (تثبيت، شبكة أمان، حدود، بناء لكل مكوّن مستهدف حتى ثلاثة ثم «أخرى»، تصليب)، ولكل معلم هدف وشرط خروج بالعربية والإنجليزية، ومكوّن «إعادة بناء» يُنفّذ Strangler Fig. يكتب ROADMAP.md. P4 = 1."
           ],
           "done_when": [
             "P4 = 1.0.",
@@ -2990,7 +3005,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only P4 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS8.T3",
@@ -3016,7 +3031,8 @@
           ],
           "steps": [
             "كل فئة يكون دليلها آليًا (كود ميت، مخلفات، أسرار، تكرار حرفي، مخالفة سياسة) تصدر بطاقة remediate بأمر قبول يعيد التدقيق ويتحقق من زوال الحقيقة.",
-            "لكل فئة أمرها: كود ميت ومخلفات ← إعادة التدقيق مع التحقق من زوال الحقيقة بمعرّفها؛ أسرار ← trivy fs على المسار؛ تكرار حرفي ← jscpd على الملفين؛ مخالفة سياسة ← python -m eaos policy check."
+            "لكل فئة أمرها: كود ميت ومخلفات ← إعادة التدقيق مع التحقق من زوال الحقيقة بمعرّفها؛ أسرار ← trivy fs على المسار؛ تكرار حرفي ← jscpd على الملفين؛ مخالفة سياسة ← python -m eaos policy check.",
+            "كما نُفّذ: الملاحظة المؤكدة من فئة آلية (تكرار بنيوي، قاعدة مكررة بقيمة واحدة في لغة واحدة، تعقيد فوق العتبة، معيق حمل، عمل مكرر، كود معطّل، حالة مشتركة، دورة) تصير إصلاحًا جاهزًا تحت قاعدة تعاقد معلنة يطفئها المالك في eaos.engagement.json؛ أمر قبولها eaos recheck يعيد مجسّها على النسخة المعدّلة. التحقيق أمر قبوله eaos decided وينجح فقط بقرار مسجل. القاعدة المكررة بقيم مختلفة أو بين لغتين تبقى قرارًا للمالك. P3 = 586/586، منها 397 إصلاحًا جاهزًا (P2 = 0.677) والباقي تحقيقات بقرار مسجل."
           ],
           "done_when": [
             "P3 ≥ 0.8.",
@@ -3028,7 +3044,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only P3 --min 0.8",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS8.T4",
@@ -3051,7 +3067,8 @@
           ],
           "steps": [
             "section من قيم العقد فقط (frontend و backend و data و infrastructure و security و quality)، بهذه القاعدة بالترتيب: pattern = access_gap، أو ادعاء committed_credential، أو ثغرة ← security؛ ملفات .github/ أو Dockerfile أو vercel.json ← infrastructure؛ ملفات .sql أو supabase/ ← data؛ مسارات server/ أو api/ أو functions/ ← backend؛ pattern = trace_gap أو untested_path ← quality؛ غير ذلك frontend.",
-            "لكل قسم في plan.json → sections[] ترتيب داخلي، وما يعتمد عليه من الأقسام الأخرى (من depends_on البطاقات)."
+            "لكل قسم في plan.json → sections[] ترتيب داخلي، وما يعتمد عليه من الأقسام الأخرى (من depends_on البطاقات).",
+            "كما نُفّذ: القسم أول قاعدة تصدق بالترتيب: أمن، بنية تحتية، بيانات، خلفية، جودة، ثم واجهة؛ والأقسام مرتبة بما تنتظره من غيرها. P6 = 1."
           ],
           "done_when": [
             "P6 = 1.0.",
@@ -3062,7 +3079,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only P6 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS8.T5",
@@ -3093,7 +3110,8 @@
             "CURRENT-STATE.md و TARGET-STATE.md و GAP-AND-STRATEGY.md و EXECUTION-PLAN.md، لكل منها مالك وميزانية وتوأم JSON.",
             "README التقرير يبدأ بها بالترتيب، وتصير بقية الوثائق ملاحق مرجعية.",
             "العقد مع القياس: أسماء الملفات بالضبط: CURRENT-STATE.md و TARGET-STATE.md و GAP-AND-STRATEGY.md و EXECUTION-PLAN.md.",
-            "قالب كل تقرير (docs/MASTER-BLUEPRINT.md §٦): الخلاصة في صفحة (القرار المطلوب، وأهم 3 أرقام، وأكبر 3 مخاطر)، ثم دليل ← استنتاج ← أثر ← توصية، ثم ما لم يُفحص، ثم الملاحق. كل رقم معه معرّف دليله."
+            "قالب كل تقرير (docs/MASTER-BLUEPRINT.md §٦): الخلاصة في صفحة (القرار المطلوب، وأهم 3 أرقام، وأكبر 3 مخاطر)، ثم دليل ← استنتاج ← أثر ← توصية، ثم ما لم يُفحص، ثم الملاحق. كل رقم معه معرّف دليله.",
+            "كما نُفّذ: eaos/compose/four_reports.py يكتب CURRENT-STATE.md وTARGET-STATE.md وGAP-AND-STRATEGY.md وEXECUTION-PLAN.md وreports.json، وREADME التقرير يبدأ بها وبقية الوثائق ملاحق. P7 = 1."
           ],
           "done_when": [
             "P7 = 1.0.",
@@ -3105,7 +3123,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only P7 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS8.T6",
@@ -3134,7 +3152,8 @@
             "الفئات الآلية وأداتها في eaos/rules/codemods.json: حذف مخلفات أو كود ميت ← git rm للمسارات مع فحص dependency-cruiser أن لا شيء يستوردها؛ نقل وحدة وتحديث استيراداتها (JS/TS) ← jscodeshift؛ ترقية اعتمادية ← npm install pkg@version أو pip في النسخة؛ Java ← وصفة OpenRewrite منشورة بالاسم.",
             "لكل بطاقة من هذه الفئات: codemod {tool, command, dry_run}. dry_run يُملأ بتشغيل الأمر على isolated_copy بوضعه التجريبي (jscodeshift --dry): exit وعدد الملفات المتغيرة. التحويل يعدّل نص المشروع ولا يشغّل كوده.",
             "استخدم تحويلات jscodeshift المنشورة إن طابقت الفئة؛ لا تكتب تحويلًا في templates/codemods/ إلا لفئة بلا مقابل، ومعه اختبار على مثال. أضف jscodeshift إلى registry.yaml بدور run.",
-            "أضف قياس P9 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة)."
+            "أضف قياس P9 إلى tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة).",
+            "كما نُفّذ: eaos/codemods.py يربط كل بطاقة آلية بأداتها (حذف ملف، تحويل Python AST، jscodeshift، npm install أو overrides لتبعية ضعيفة) ويجربها جافًا على نسخة معزولة ويسجل الملفات التي تغيرت. P9 = 0.844 (173/205)؛ ما لم يغيّر شيئًا مسجل ولا يُحسب نجاحًا."
           ],
           "done_when": [
             "P9 ≥ 0.8.",
@@ -3147,12 +3166,13 @@
           ],
           "acceptance": "python tools/north_star.py measure --only P9 --min 0.8",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "stages": [
         "S07"
-      ]
+      ],
+      "title_en": "Team execution plan and the four reports"
     },
     {
       "id": "NS14",
@@ -3275,7 +3295,8 @@
       ],
       "stages": [
         "S07"
-      ]
+      ],
+      "title_en": "Report quality checked automatically"
     },
     {
       "id": "NS25",
@@ -3498,7 +3519,8 @@
         "S13",
         "S14",
         "S15"
-      ]
+      ],
+      "title_en": "Operations and handover kit"
     },
     {
       "id": "NS26",
@@ -3586,7 +3608,8 @@
       ],
       "stages": [
         "S05"
-      ]
+      ],
+      "title_en": "Live baseline: behaviour and numbers before any change"
     },
     {
       "id": "NS9",
@@ -3637,7 +3660,8 @@
       ],
       "stages": [
         "S08"
-      ]
+      ],
+      "title_en": "Proven execution"
     },
     {
       "id": "NS20",
@@ -3688,7 +3712,8 @@
       ],
       "stages": [
         "S09"
-      ]
+      ],
+      "title_en": "Functional verification: same features, predictions came true"
     },
     {
       "id": "NS21",
@@ -3739,7 +3764,8 @@
       ],
       "stages": [
         "S10"
-      ]
+      ],
+      "title_en": "Security after the transformation"
     },
     {
       "id": "NS22",
@@ -3789,7 +3815,8 @@
       ],
       "stages": [
         "S11"
-      ]
+      ],
+      "title_en": "Load: before and after, same conditions"
     },
     {
       "id": "NS23",
@@ -3839,7 +3866,8 @@
       ],
       "stages": [
         "S12"
-      ]
+      ],
+      "title_en": "Deliberate failures (chaos)"
     },
     {
       "id": "NS24",
@@ -3889,7 +3917,8 @@
       ],
       "stages": [
         "S13"
-      ]
+      ],
+      "title_en": "Observability: every critical surface visible"
     },
     {
       "id": "NS16",
@@ -3942,7 +3971,8 @@
       ],
       "stages": [
         "S14"
-      ]
+      ],
+      "title_en": "Production readiness: every item a command"
     },
     {
       "id": "NS10",
@@ -4014,7 +4044,8 @@
           "status": "todo"
         }
       ],
-      "stages": []
+      "stages": [],
+      "title_en": "Independent proof"
     }
   ],
   "rules": [
@@ -4509,7 +4540,8 @@
         "NS5",
         "NS6"
       ],
-      "exit": "U2، U3، U4، U5، S1، S2، D1–D3، H1، H2 عند أهدافها"
+      "exit": "U2، U3، U4، U5، S1، S2، D1–D3، H1، H2 عند أهدافها",
+      "title_en": "Foundation: reach, visibility, signal"
     },
     {
       "id": "R2",
@@ -4517,7 +4549,8 @@
       "milestones": [
         "NS17"
       ],
-      "exit": "R4 = 1، وقارئ SARIF وإطار التوليد ومراحل engage والبيئة المعزولة مختبرة"
+      "exit": "R4 = 1، وقارئ SARIF وإطار التوليد ومراحل engage والبيئة المعزولة مختبرة",
+      "title_en": "Tool platform"
     },
     {
       "id": "R3",
@@ -4527,7 +4560,8 @@
         "NS12",
         "NS18"
       ],
-      "exit": "بوابات S01 وS03 وS04 كاملة: U6، R3، H3، M1، S3"
+      "exit": "بوابات S01 وS03 وS04 كاملة: U6، R3، H3، M1، S3",
+      "title_en": "Full evidence from proven tools"
     },
     {
       "id": "R4",
@@ -4537,7 +4571,8 @@
         "NS7",
         "NS13"
       ],
-      "exit": "البوابة أ لـS05، وبوابة S06 مع موافقة بشرية"
+      "exit": "البوابة أ لـS05، وبوابة S06 مع موافقة بشرية",
+      "title_en": "Behaviour lock and target state"
     },
     {
       "id": "R5",
@@ -4547,7 +4582,8 @@
         "NS14",
         "NS25"
       ],
-      "exit": "بوابة S07 و K1 = 1: اكتمل عقد التقييم (EAOS 1.0)"
+      "exit": "بوابة S07 و K1 = 1: اكتمل عقد التقييم (EAOS 1.0)",
+      "title_en": "Plan, reports and handover kit"
     },
     {
       "id": "R6",
@@ -4557,7 +4593,8 @@
         "NS9",
         "NS20"
       ],
-      "exit": "البوابة ب لـS05، وبوابتا S08 وS09: E5، E1، E7، E2"
+      "exit": "البوابة ب لـS05، وبوابتا S08 وS09: E5، E1، E7، E2",
+      "title_en": "Proven execution"
     },
     {
       "id": "R7",
@@ -4569,7 +4606,8 @@
         "NS24",
         "NS16"
       ],
-      "exit": "بوابات S10 إلى S14: E8، E6، E9، E10، E11"
+      "exit": "بوابات S10 إلى S14: E8، E6، E9، E10، E11",
+      "title_en": "Operational hardening"
     },
     {
       "id": "R8",
@@ -4577,7 +4615,8 @@
       "milestones": [
         "NS10"
       ],
-      "exit": "V3 = V4 = 1"
+      "exit": "V3 = V4 = 1",
+      "title_en": "Independent proof"
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "ca719cd",
+  "extracted_at_commit": "f48d997",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -90,6 +90,15 @@
       "statement": "An unanswered one is never a claim: we do not know, and a risk we invented is worse than a risk we missed.",
       "kind": "invariant",
       "enforced_by": "tests/test_load_model.py::BlockerTests::test_an_unanswered_question_is_never_a_blocker",
+      "note": ""
+    },
+    {
+      "id": "INV-aa0f9db1b1",
+      "file": "eaos/codemods.py",
+      "symbol": "<module>",
+      "statement": "The project is never written.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_codemods.py::CodemodTests::test_a_dead_symbol_in_typescript_is_removed_by_jscodeshift_on_a_copy",
       "note": ""
     },
     {
@@ -741,6 +750,15 @@
       "note": ""
     },
     {
+      "id": "INV-973b6b6e2d",
+      "file": "eaos/mechanical_assessment.py",
+      "symbol": "<module>",
+      "statement": "Its reviewer of record is that rule, never an invented person; its check is `eaos recheck` with the claim's own probe, which passes only when the probe refutes the observation on the candidate copy.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_mechanical_assessment.py::AssessmentTests::test_a_confirmed_product_claim_of_a_mechanical_family_is_ready_under_its_rule",
+      "note": ""
+    },
+    {
       "id": "INV-904a0dce25",
       "file": "eaos/pipeline/report.py",
       "symbol": "<module>",
@@ -831,6 +849,15 @@
       "note": ""
     },
     {
+      "id": "INV-2282961cf7",
+      "file": "eaos/recheck.py",
+      "symbol": "<module>",
+      "statement": "Exit 2: the probe could not decide, which is never a pass.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_mechanical_assessment.py::UndecidedTests::test_a_probe_that_cannot_decide_exits_2_never_0",
+      "note": ""
+    },
+    {
       "id": "INV-a4c7fcff24",
       "file": "eaos/reference_architecture.py",
       "symbol": "<module>",
@@ -846,6 +873,15 @@
       "statement": "A pattern never invents a fix for a claim class it does not know; it says plainly that the change must be designed by hand, and still requires a runnable acceptance criterion.",
       "kind": "invariant",
       "enforced_by": "tests/test_plan.py::PatternTests::test_an_unknown_class_says_so_instead_of_inventing_a_fix",
+      "note": ""
+    },
+    {
+      "id": "INV-df1bd5410e",
+      "file": "eaos/roadmap.py",
+      "symbol": "<module>",
+      "statement": "Milestones, in the order of docs/MASTER-BLUEPRINT.md §7, an empty one never written: stabilize vulnerable versions, broken code, dead code and leftovers, access gaps safety net untested paths and flows that cannot be traced boundaries cycles, hidden coupling, policy breaches, one definition per rule, shared state build one milestone per target component (NS7), the highest total priority first; a component whose disposition is rebuild is done Strangler Fig: the new path behind a flag, the old one removed only after behaviour parity (E7) hardening load blockers and redundant work Fewer than ten milestones: builds past the third share one milestone.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_roadmap.py::RoadmapTests::test_milestones_keep_the_blueprint_order_and_each_card_is_in_exactly_one",
       "note": ""
     },
     {

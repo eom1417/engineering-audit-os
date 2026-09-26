@@ -42,6 +42,23 @@ DEFAULT_RULES = {
         'value': True, 'source': 'default',
         'why': 'Code no production path reaches and no text names is read, maintained and reviewed for nothing; '
                'the evidence is mechanical and the removal reverts in one commit.'},
+    'consolidate_duplicates': {
+        'value': True, 'source': 'default',
+        'why': 'The same behaviour or rule written in several places changes in one and not the others; '
+               'one definition is checked by the audit that found the copies.'},
+    'reduce_hotspots': {
+        'value': True, 'source': 'default',
+        'why': 'A function past its declared branch threshold is where change breaks things; the threshold is the check.'},
+    'bound_load_paths': {
+        'value': True, 'source': 'default',
+        'why': 'An unbounded read, an unprotected call or repeated work fails first under load; the load model re-answers the question.'},
+    'fix_broken_code': {
+        'value': True, 'source': 'default',
+        'why': 'A reference that does not resolve fails the first time it runs; the audit re-resolves it.'},
+    'untangle_dependencies': {
+        'value': True, 'source': 'default',
+        'why': 'Import cycles and module state changed at runtime make parts impossible to test or change alone; '
+               'the resolved graph shows when they are gone.'},
     'upgrade_vulnerable_dependencies': {
         'value': True, 'source': 'default',
         'why': 'A locked version with a published, fixed vulnerability is a known risk with a known repair; '

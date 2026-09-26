@@ -93,8 +93,8 @@ class EvaluationV2Tests(TemporaryWorkspace):
     def test_investigations_are_complete_but_only_a_declared_policy_prescribes(self):
         # Every investigation must be complete (paths, options, acceptance, rollback, effort, blast_radius).
         # Only a declared policy violation has the project-authored requirement the tool needs to prescribe
-        # a runnable acceptance. Other claim classes remain investigate-only until their requirements are
-        # authored and reviewed.
+        # a runnable acceptance of its own. Any other ready repair stands on a named engagement rule (a declared
+        # default the owner can turn off), and is counted apart so a rule-based check never passes as a policy.
         totals = self.result['totals']
         self.assertEqual(totals['complete_cards'], totals['cards'])
         cases = self.details['cases']
@@ -104,7 +104,7 @@ class EvaluationV2Tests(TemporaryWorkspace):
                          'declared policy violations have a runnable acceptance check')
         for case in others:
             self.assertEqual(case['plan']['runnable_acceptance'], 0,
-                             case['case'] + ' must not invent a runnable check')
+                             case['case'] + ' must not invent a runnable check without a named rule')
         self.assertEqual(totals['runnable_acceptance'], 1)
         self.assertGreater(totals['cards'], 0)
 

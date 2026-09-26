@@ -59,7 +59,9 @@
       "eaos/simulator.py",
       "eaos/target_architecture.py",
       "eaos/transform_plan.py",
-      "eaos/target_projection.py"
+      "eaos/target_projection.py",
+      "eaos/roadmap.py",
+      "eaos/codemods.py"
     ],
     "orchestration": [
       "eaos/__main__.py",
@@ -100,6 +102,9 @@
       "eaos/sandbox.py",
       "eaos/intake.py",
       "eaos/dependency_assessment.py",
+      "eaos/mechanical_assessment.py",
+      "eaos/recheck.py",
+      "eaos/decided.py",
       "eaos/measurements.py",
       "eaos/behavior_lock.py",
       "eaos/reference_architecture.py",

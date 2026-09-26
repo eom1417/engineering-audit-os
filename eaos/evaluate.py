@@ -57,13 +57,16 @@ def score(statements, truth):
 def plan_quality(out, detected_count):
     """Detection is half the job: was each finding turned into work someone can pick up?"""
     plan_path = Path(out) / 'plan.json'
-    if not plan_path.is_file(): return {'cards': 0, 'complete_cards': 0, 'runnable_acceptance': 0}
+    if not plan_path.is_file(): return {'cards': 0, 'complete_cards': 0, 'runnable_acceptance': 0, 'runnable_by_engagement_rule': 0}
     tasks = json.loads(plan_path.read_text())['tasks']
     complete = [task for task in tasks
                 if task['paths'] is not None and task['options'] and task['acceptance']
                 and task['rollback'] and task['effort'] and task['blast_radius']]
     runnable = [task for task in tasks if task.get('decision', {}).get('readiness') == 'ready' and task.get('verify_command')]
-    return {'cards': len(tasks), 'complete_cards': len(complete), 'runnable_acceptance': len(runnable),
+    # a runnable check prescribed without a project-declared policy must name the engagement rule it stands on
+    by_rule = [task for task in runnable if any(ref.startswith('engagement.rules.') for ref in task.get('requirement_refs') or [])]
+    return {'cards': len(tasks), 'complete_cards': len(complete), 'runnable_acceptance': len(runnable) - len(by_rule),
+            'runnable_by_engagement_rule': len(by_rule),
             'cards_for_detected': min(len(tasks), detected_count or 0)}
 
 
@@ -81,7 +84,7 @@ def evaluate_api_break(case, workspace, truth):
     return {'case': case.name, 'seconds': round(time.monotonic() - started, 2), 'model_calls': 0,
             'claims': len(statements), 'framework': score(statements, truth),
             'baseline': score([], truth), 'confirmed_claims': len(statements), 'runtime_confirmed': 0,
-            'output_spec_violations': [], 'plan': {'cards': 0, 'complete_cards': 0, 'runnable_acceptance': 0},
+            'output_spec_violations': [], 'plan': {'cards': 0, 'complete_cards': 0, 'runnable_acceptance': 0, 'runnable_by_engagement_rule': 0},
             'mode': 'api_break'}
 
 
@@ -145,6 +148,7 @@ def run(corpus, out, language='ar', execute=True):
               'cards': sum(row.get('plan', {}).get('cards', 0) for row in rows),
               'complete_cards': sum(row.get('plan', {}).get('complete_cards', 0) for row in rows),
               'runnable_acceptance': sum(row.get('plan', {}).get('runnable_acceptance', 0) for row in rows),
+              'runnable_by_engagement_rule': sum(row.get('plan', {}).get('runnable_by_engagement_rule', 0) for row in rows),
               'seconds': round(sum(row['seconds'] for row in rows), 2)}
     totals['recall'] = round(totals['detected'] / totals['planted'], 3) if totals['planted'] else None
     totals['baseline_recall'] = round(totals['baseline_detected'] / totals['planted'], 3) if totals['planted'] else None

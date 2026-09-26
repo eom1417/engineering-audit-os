@@ -1,0 +1,8 @@
+{
+ "schema_version": 1,
+ "remove_dead": {"unreachable-module": "delete-file", "unused-symbol": {"python": "python-ast", "javascript": "jscodeshift", "typescript": "jscodeshift", "tsx": "jscodeshift"},
+                 "unread-constant": {"python": "python-ast", "javascript": "jscodeshift", "typescript": "jscodeshift", "tsx": "jscodeshift"}},
+ "leftover": {"*": "delete-file"},
+ "upgrade_dependency": {"npm": "npm"},
+ "why": "Each mechanical card carries the tool that makes its change, run first on an isolated copy: the exit code and the files it changed are recorded, and the project itself is never touched."
+}
