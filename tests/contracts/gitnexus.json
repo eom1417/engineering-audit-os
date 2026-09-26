@@ -1,0 +1,32 @@
+{
+ "engine": "gitnexus",
+ "pinned_version": "1.6.12",
+ "captured_from": "gitnexus check --cycles --json and gitnexus cypher (IMPORTS, first 5 rows) on a copy of FleetManageWeb",
+ "check-cycles.json": {
+  "status": "cycles_found",
+  "enumeration": "complete",
+  "cycleCount": 2,
+  "componentCount": 1,
+  "cycles": [
+   {
+    "files": [
+     "src/components/chat/ChatMessage.tsx",
+     "src/pages/AIChatPage.tsx",
+     "src/components/chat/MessageList.tsx",
+     "src/components/chat/ChatMessage.tsx"
+    ]
+   },
+   {
+    "files": [
+     "src/components/chat/MessageList.tsx",
+     "src/pages/AIChatPage.tsx",
+     "src/components/chat/MessageList.tsx"
+    ]
+   }
+  ]
+ },
+ "cypher-imports.json": {
+  "markdown": "| source | sink |\n| --- | --- |\n| src/App.tsx | src/components/AppSidebar.tsx |\n| src/App.tsx | src/components/auth/AuthContext.tsx |\n| src/App.tsx | src/components/ui/dropdown-menu.tsx |\n| src/App.tsx | src/components/ui/sidebar.tsx |\n| src/App.tsx | src/components/ui/sonner.tsx |",
+  "row_count": 5
+ }
+}

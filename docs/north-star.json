@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
-  "measured_at": "2026-09-25",
-  "measured_at_commit": "6fa3b64",
+  "measured_at": "2026-09-26",
+  "measured_at_commit": "26717d3",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -266,8 +266,8 @@
           "definition": "متوسط (المحوّلات المعتمدة المنطبقة على المشروع التي عملت فعلًا ÷ المنطبقة)، لكل مشروع. قائمة المحوّلات وشروط انطباقها في adopted_adapters.",
           "reads": "facts/external.json → summary.engines_observed، مقابل adopted_adapters المنطبقة على ملفات المشروع في /tmp/eaos-corpus",
           "target": 1.0,
-          "value": 0.274,
-          "evidence": "adopted adapters that ran / applicable: FleetManageWeb 2/7 · finance-os-a0192b7b 2/8 · RendaPerene 2/7",
+          "value": 1.0,
+          "evidence": "adopted adapters that ran / applicable: FleetManageWeb 7/7 · finance-os-a0192b7b 8/8 · RendaPerene 7/7",
           "measured": "automated"
         },
         {
@@ -276,7 +276,7 @@
           "definition": "الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "17/17 assessment tools at their pinned version",
+          "evidence": "18/18 assessment tools at their pinned version",
           "reads": "eaos tools doctor --json → tools[] {name, role, pinned, found, ok}",
           "measured": "automated"
         }
@@ -333,8 +333,8 @@
           "name": "المداخل والمخارج والحدود",
           "definition": "متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع",
           "target": 0.8,
-          "value": 0.882,
-          "evidence": "answered load questions: FleetManageWeb 360/368 · finance-os-a0192b7b 213/232 · RendaPerene 18/24",
+          "value": 0.9,
+          "evidence": "answered load questions: FleetManageWeb 360/368 · finance-os-a0192b7b 216/232 · RendaPerene 19/24",
           "reads": "load-model.json → entry_points[].answers[].status == \"answered\"",
           "measured": "automated"
         },
@@ -371,8 +371,8 @@
           "name": "الادعاءات غير الضجيجية",
           "definition": "متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع",
           "target": 0.8,
-          "value": 0.895,
-          "evidence": "claims that are not structural clones: FleetManageWeb 230/250 · finance-os-a0192b7b 218/268 · RendaPerene 59/62",
+          "value": 0.897,
+          "evidence": "claims that are not structural clones: FleetManageWeb 239/259 · finance-os-a0192b7b 223/273 · RendaPerene 59/62",
           "reads": "dossier.json → claims[].statement not containing \"share the same structure up to identifier names\"",
           "measured": "automated"
         },
@@ -592,7 +592,7 @@
           "definition": "بطاقات effort معروف ÷ كل البطاقات في العيّنة",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "cards with a known effort: 0/571",
+          "evidence": "cards with a known effort: 0/585",
           "reads": "plan.json → tasks[].effort not \"unknown\"",
           "measured": "automated"
         },
@@ -601,8 +601,8 @@
           "name": "إصلاحات جاهزة",
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
-          "value": 0.347,
-          "evidence": "ready remediate cards: 198/571",
+          "value": 0.338,
+          "evidence": "ready remediate cards: 198/585",
           "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
           "measured": "automated"
         },
@@ -611,8 +611,8 @@
           "name": "أوامر قبول قابلة للتشغيل",
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
-          "value": 0.347,
-          "evidence": "cards with a runnable acceptance command: 198/571",
+          "value": 0.338,
+          "evidence": "cards with a runnable acceptance command: 198/585",
           "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
           "measured": "automated"
         },
@@ -632,7 +632,7 @@
           "definition": "بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with options, do-nothing and rollback: 571/571",
+          "evidence": "cards with options, do-nothing and rollback: 585/585",
           "reads": "plan.json → tasks[].options (≥ 2, one \"Do nothing\") and rollback",
           "measured": "automated"
         },
@@ -1913,7 +1913,8 @@
             "اتبع نمط المحوّل الموجود (eaos/engines/jscpd.py، 66 سطرًا): capabilities() و version() و analyze(target, workdir) تعيد Report موحّدًا. شغّل scc كعملية منفصلة، واقرأ مخرجه المنظم (scc --format json).",
             "ترجم مخرجه إلى مفردات EAOS: قياسات symbol_metric_external لكل ملف (أسطر، وتعقيد)؛ شاهد مستقل على الحجم. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
             "احفظ مخرجًا حقيقيًا في tests/contracts/scc.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
-            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة)."
+            "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
+            "كما نُفّذ: قياسات scc لكل ملف تُكتب حقائق symbol_metric_external عبر قناة metrics العامة في Report، لا engine_finding، فلا تدخل الربط ولا تصنع ادعاءات."
           ],
           "done_when": [
             "python tools/acceptance.py adapter scc يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
@@ -1928,7 +1929,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter scc",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS12.T3",
@@ -1959,7 +1960,8 @@
             "الترجمة إلى مفردات EAOS صفوف في eaos/rules/sarif-rules.json لا كود. كل قاعدة تحمل في metadata نوعها من KINDS في eaos/engines/contract.py. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
             "احفظ مخرجًا حقيقيًا في tests/contracts/semgrep.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "مصدران للقواعد: (1) قواعد EAOS في eaos/rules/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة، وكل قاعدة معها مثال يطابقها ومثال لا يطابقها. (2) مكتبة semgrep-rules الرسمية: رخصتها تمنع توزيعها، فلا تُنسخ إلى هذا المستودع أبدًا؛ eaos tools install يجلبها إلى /workspace/engine-tools/semgrep-rules عند التزام مثبّت على جهاز المستخدم، ويشغّل المحوّل منها مجموعات بعينها (javascript و typescript و python و secrets) إن وُجدت، ويسجّل في التقرير أيها استُخدم."
+            "مصدران للقواعد: (1) قواعد EAOS في eaos/rules/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة، وكل قاعدة معها مثال يطابقها ومثال لا يطابقها. (2) مكتبة semgrep-rules الرسمية: رخصتها تمنع توزيعها، فلا تُنسخ إلى هذا المستودع أبدًا؛ eaos tools install يجلبها إلى /workspace/engine-tools/semgrep-rules عند التزام مثبّت على جهاز المستخدم، ويشغّل المحوّل منها مجموعات بعينها (javascript و typescript و python و secrets) إن وُجدت، ويسجّل في التقرير أيها استُخدم.",
+            "كما نُفّذ: خمس قواعد EAOS في eaos/rules/semgrep مع أمثلة ruleid/ok يثبتها semgrep --test (7/7). المكتبة الرسمية تُجلب بطريقة git عند التزام مثبّت في toolchain.json (semgrep-rules) ولا تُنسخ للمستودع، ويُقرأ منها الأمن والأسرار فقط (أنماطها الأسلوبية أعطت 1000 نتيجة بلا خطر). القواعد تُجمع في تخطيط ثابت وتُزال بادئة المسار والمسارات تصير نسبية قبل حساب المعرّف."
           ],
           "done_when": [
             "python tools/acceptance.py adapter semgrep يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
@@ -1975,7 +1977,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter semgrep",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS12.T4",
@@ -2006,7 +2008,8 @@
             "الترجمة إلى مفردات EAOS صفوف في eaos/rules/sarif-rules.json لا كود. ثغرات، وإعدادات خاطئة (boundary)، وأسرار: الأسرار شاهد ثانٍ على committed_credential، لا ادعاء جديد إن طابقت الموضع نفسه. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
             "احفظ مخرجًا حقيقيًا في tests/contracts/trivy.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "لا تطبع قيمة أي سر؛ خذ نوع القاعدة وموضعها فقط."
+            "لا تطبع قيمة أي سر؛ خذ نوع القاعدة وموضعها فقط.",
+            "كما نُفّذ: سطر Match ووصف قاعدة السر يُحذفان من SARIF في مكانه قبل أي حقيقة؛ الملف الخام في التقرير لا يحمل قيمة ولا اسم متغير. الثغرات لا تصير engine_cluster: شاهد ثانٍ بجانب OSV."
           ],
           "done_when": [
             "python tools/acceptance.py adapter trivy يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
@@ -2021,7 +2024,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter trivy",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS12.T5",
@@ -2051,7 +2054,8 @@
             "الترجمة إلى مفردات EAOS صفوف في eaos/rules/sarif-rules.json لا كود. إعدادات خاطئة في CI وIaC بخطورتها. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
             "احفظ مخرجًا حقيقيًا في tests/contracts/checkov.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "ينطبق فقط إن وُجد .github/workflows أو Dockerfile أو ملفات IaC؛ وإلا يُسجَّل غير منطبق لا غائبًا."
+            "ينطبق فقط إن وُجد .github/workflows أو Dockerfile أو ملفات IaC؛ وإلا يُسجَّل غير منطبق لا غائبًا.",
+            "كما نُفّذ: JSON بجانب SARIF لتسجيل عدد الفحوص الناجحة لكل إطار (RendaPerene: 116 ناجحًا، 0 فاشلًا)، فالنتيجة النظيفة دليل لا صمت."
           ],
           "done_when": [
             "python tools/acceptance.py adapter checkov يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
@@ -2066,7 +2070,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter checkov",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS12.T6",
@@ -2094,7 +2098,8 @@
             "ترجم مخرجه إلى مفردات EAOS: module_edge_external، ودورات (cycle)، وخرق قواعد (boundary). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
             "احفظ مخرجًا حقيقيًا في tests/contracts/dependency-cruiser.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "ولّد إعداد القواعد من eaos.policy.json في مشروع المالك إن وُجد؛ وإلا شغّله بقاعدة no-circular وحدها. لا تكتب أي ملف داخل مشروع المالك: الإعداد في workdir."
+            "ولّد إعداد القواعد من eaos.policy.json في مشروع المالك إن وُجد؛ وإلا شغّله بقاعدة no-circular وحدها. لا تكتب أي ملف داخل مشروع المالك: الإعداد في workdir.",
+            "كما نُفّذ: typescript 6.0.3 يُثبَّت بجانبه (install.with، ويتحقق منه doctor)؛ بدونه يفحص 0 ملف ويخرج 0. تشغيلتان: الرسم وقت التشغيل للنتائج، ورسم المصدر يسجّل الدورات التي تُغلق عبر import type فقط في coverage.type_only_cycles (finance-os: 15 عبر barrel؛ FleetManageWeb: 2)."
           ],
           "done_when": [
             "python tools/acceptance.py adapter dependency-cruiser يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
@@ -2109,7 +2114,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter dependency-cruiser",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS12.T7",
@@ -2137,7 +2142,8 @@
             "ترجم مخرجه إلى مفردات EAOS: مخالفات بنمطها وموضعها؛ لا تتحول إلى ادعاءات إلا فئات الخطر (مثل غياب WHERE في UPDATE أو DELETE). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
             "احفظ مخرجًا حقيقيًا في tests/contracts/sqlfluff.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "ينطبق فقط إن وُجدت ملفات .sql."
+            "ينطبق فقط إن وُجدت ملفات .sql.",
+            "كما نُفّذ: عائلات الأسلوب (LT, CP, AL, JJ, RF03/05/06) تُعدّ في coverage ولا تصير نتائج (1762 من 1790 في finance-os). SQLFluff لا يملك قاعدة UPDATE/DELETE بلا WHERE؛ لا ادعاءات منه."
           ],
           "done_when": [
             "python tools/acceptance.py adapter sqlfluff يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
@@ -2152,7 +2158,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter sqlfluff",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS12.T8",
@@ -2183,7 +2189,8 @@
             "الترجمة إلى مفردات EAOS صفوف في eaos/rules/sarif-rules.json لا كود. مخالفات أسلوب الـAPI (surface). ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.",
             "احفظ مخرجًا حقيقيًا في tests/contracts/spectral.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.",
             "أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).",
-            "العيّنة الحالية بلا OpenAPI؛ اكتب عيّنة اختبار فيها مواصفة. غياب المواصفة في مشروع له مسارات http يصير بند فجوة لا صمتًا."
+            "العيّنة الحالية بلا OpenAPI؛ اكتب عيّنة اختبار فيها مواصفة. غياب المواصفة في مشروع له مسارات http يصير بند فجوة لا صمتًا.",
+            "كما نُفّذ: oasdiff يقارن المواصفة بنسختها قبل آخر التزام غيّرها (git show، قراءة فقط). غياب مواصفة في مشروع له مسارات http يُسمّى في NS7."
           ],
           "done_when": [
             "python tools/acceptance.py adapter spectral / oasdiff يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
@@ -2198,7 +2205,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter spectral && python tools/acceptance.py adapter oasdiff",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS12.T10",
@@ -2227,7 +2234,8 @@
             "اقرأ الرسم بأوامر الاستعلام لا بالـMCP: gitnexus cypher لاستخراج علاقات CALLS و IMPORTS والمجتمعات (Community) والعمليات (Process)، و gitnexus impact للرموز الأعلى اعتمادًا. اطبع المخرج الحقيقي أولًا واحفظه في tests/contracts/gitnexus.json، ثم اكتب المحوّل على شكله الفعلي.",
             "الترجمة إلى مفردات EAOS: call_edge_external و module_edge_external، و coupling من حجم نطاق الأثر، و surface من نقاط الدخول. GitNexus شاهد ثالث بجانب CodeGraph و dependency-cruiser: اتفاقهم يرفع الثقة، واختلافهم يُسجَّل ولا يُحسم لصالح أحد.",
             "المجتمعات (Leiden) التي يكتشفها مرشح أولي لحدود المكوّنات الحالية في S02، ومدخل لإسقاط الصورة المثالية في NS7.T2: تُكتب في facts/external.json → communities[] {name, files}.",
-            "أضف gitnexus إلى adopted_adapters وإلى ENGINES في tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة)."
+            "أضف gitnexus إلى adopted_adapters وإلى ENGINES في tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة).",
+            "كما نُفّذ: نسخة حقيقية بلا روابط صلبة وبلا .git و--index-only و GITNEXUS_HOME داخل workdir (الاختبار يثبت أن AGENTS.md لم يتغير و~/.gitnexus لم يُنشأ). CLI يقطع المخرج المنقول عند 64KiB: الاستعلامات مقسمة بصفحات ORDER BY/SKIP/LIMIT، وصفحة تبلغ الحد خطأ. نتائج: دورات، و coupling لملف يستورده 20 ملفًا أو أكثر، و communities في summary."
           ],
           "done_when": [
             "python tools/acceptance.py adapter gitnexus يمر: الأداة ظاهرة في engines_observed لكل مشروع تنطبق عليه، وعيّنة عقدها محفوظة.",
@@ -2243,7 +2251,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only R3 && python tools/acceptance.py adapter gitnexus",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS12.T9",
@@ -2271,7 +2279,8 @@
           "writes": [],
           "steps": [
             "ثبّت الأدوات بـpython -m eaos tools install --stage assessment، وتأكد أن eaos tools doctor و eaos engines list يريانها، وأعد القياس.",
-            "أي محوّل منطبق لم يعمل على مشروع: أصلح السبب (تثبيت أو مسار أو صيغة)، لا القائمة."
+            "أي محوّل منطبق لم يعمل على مشروع: أصلح السبب (تثبيت أو مسار أو صيغة)، لا القائمة.",
+            "كما نُفّذ: R3 = 1.0 (7/7، 8/8، 7/7)، و R4 = 18/18 مع semgrep-rules."
           ],
           "done_when": [
             "R3 = 1.0.",
@@ -2283,7 +2292,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only R3 --min 1.0",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "stages": [

@@ -1,0 +1,36 @@
+rules:
+  - id: eaos.security.string-built-sql-python
+    languages: [python]
+    severity: ERROR
+    message: >-
+      SQL is built by pasting values into the text. A value with a quote in it changes the query.
+      Pass the values as parameters: cursor.execute("... WHERE id = ?", (value,)).
+    metadata:
+      kind: vulnerability
+      category: security
+      cwe: 'CWE-89'
+    pattern-either:
+      - pattern: $C.execute(f"...", ...)
+      - pattern: $C.execute("..." + $X, ...)
+      - pattern: $C.execute("..." % $X, ...)
+      - pattern: $C.execute("...".format(...), ...)
+      - pattern: $C.executemany(f"...", ...)
+      - pattern: pandas.read_sql(f"...", ...)
+      - pattern: pd.read_sql(f"...", ...)
+  - id: eaos.security.string-built-sql-js
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      SQL is built by pasting values into a template string. Pass the values as parameters.
+    metadata:
+      kind: vulnerability
+      category: security
+      cwe: 'CWE-89'
+    patterns:
+      - pattern-either:
+          - pattern: $DB.query(`...${$X}...`, ...)
+          - pattern: $DB.execute(`...${$X}...`, ...)
+          - pattern: $DB.raw(`...${$X}...`, ...)
+      - metavariable-regex:
+          metavariable: $DB
+          regex: (?i).*(db|pool|client|conn|knex|sql|pg|mysql|sequelize|prisma).*

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "6fa3b64",
+  "extracted_at_commit": "26717d3",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -174,6 +174,15 @@
       "note": ""
     },
     {
+      "id": "INV-cca08ed361",
+      "file": "eaos/engines/checkov.py",
+      "symbol": "<module>",
+      "statement": "A run that finds nothing is still evidence: the coverage records how many checks passed per framework, so a clean result reads apart from a check that never ran.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_adapters.py::CheckovCoverageTests::test_a_clean_run_records_how_many_checks_passed",
+      "note": ""
+    },
+    {
       "id": "INV-c2746cdaee",
       "file": "eaos/engines/codegraph.py",
       "symbol": "<module>",
@@ -228,6 +237,42 @@
       "note": ""
     },
     {
+      "id": "INV-710ee0ab7d",
+      "file": "eaos/engines/dependency_cruiser.py",
+      "symbol": "<module>",
+      "statement": "The rules are written into the work directory, never into the project: `no-circular` always, and one `forbidden` rule per `deny` in the project's own eaos.policy.json when it declares layers.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_adapters.py::DependencyCruiserTests::test_a_cycle_closed_only_by_import_type_is_coupling_not_a_runtime_cycle",
+      "note": ""
+    },
+    {
+      "id": "INV-22598d36bc",
+      "file": "eaos/engines/dependency_cruiser.py",
+      "symbol": "<module>",
+      "statement": "`eaos tools install` puts one there; a run that examined no module in a project that has JavaScript or TypeScript is an error with the tool's own warning, never a clean result.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_adapters.py::DependencyCruiserTests::test_a_run_that_examined_nothing_is_an_error_not_a_clean_graph",
+      "note": ""
+    },
+    {
+      "id": "INV-6212370d35",
+      "file": "eaos/engines/gitnexus.py",
+      "symbol": "<module>",
+      "statement": "So it never runs on the project.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_adapters.py::GitNexusTests::test_it_runs_on_a_copy_and_leaves_the_project_and_the_home_untouched",
+      "note": ""
+    },
+    {
+      "id": "INV-8b4ca04b97",
+      "file": "eaos/engines/gitnexus.py",
+      "symbol": "cypher",
+      "statement": "All rows of a query, a page at a time: piped, the CLI stops writing at 64 KiB, so a page that reaches that size is an error, never a silently shorter answer.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_adapters.py::GitNexusPagingTests::test_a_page_at_the_output_limit_is_an_error_not_a_shorter_answer",
+      "note": ""
+    },
+    {
       "id": "INV-742d92b588",
       "file": "eaos/engines/osv_scanner.py",
       "symbol": "<module>",
@@ -246,6 +291,15 @@
       "note": ""
     },
     {
+      "id": "INV-67f499daff",
+      "file": "eaos/engines/process.py",
+      "symbol": "mirror",
+      "statement": "Such an engine asks for hardlink=False and gets a copy it cannot reach the project through.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_adapters.py::MirrorTests::test_a_copy_without_hardlinks_cannot_reach_the_project",
+      "note": ""
+    },
+    {
       "id": "INV-ce7a11f982",
       "file": "eaos/engines/sarif.py",
       "symbol": "<module>",
@@ -261,6 +315,33 @@
       "statement": "A row's severity_floor raises it and never lowers it.",
       "kind": "invariant",
       "enforced_by": "tests/test_sarif.py::SarifTests::test_a_severity_floor_raises_and_never_lowers",
+      "note": ""
+    },
+    {
+      "id": "INV-6aed4e79f8",
+      "file": "eaos/engines/sarif.py",
+      "symbol": "relativise",
+      "statement": "Rewrite every result location in a SARIF file to a project-relative path, in place, before any finding id is derived from it, so an id never depends on where the project was checked out.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_adapters.py::SemgrepTests::test_rule_ids_and_paths_do_not_depend_on_where_things_are_installed",
+      "note": ""
+    },
+    {
+      "id": "INV-622b5f590b",
+      "file": "eaos/engines/semgrep.py",
+      "symbol": "<module>",
+      "statement": "The official library (semgrep-rules) may not be redistributed, so it is never in this repository: `eaos tools install` fetches it at a pinned commit to this machine, and only its security and secrets rules are read (its style and i18n rules put 1,000 findings on one project and say nothing about risk).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_adapters.py::SemgrepTests::test_the_official_library_is_never_in_this_repository",
+      "note": ""
+    },
+    {
+      "id": "INV-cc6f89fca4",
+      "file": "eaos/engines/sqlfluff.py",
+      "symbol": "<module>",
+      "statement": "Those families (LT, CP, AL, JJ, and RF03/RF05/RF06, which are quoting and consistency) are counted in the coverage by code, never dropped silently, but only the rest become findings: ambiguity, structure, convention, references that can break (a keyword used as a name, an unqualified column in a join), and files the dialect cannot parse.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_adapters.py::SqlfluffTests::test_style_is_counted_but_only_risk_families_become_findings",
       "note": ""
     },
     {

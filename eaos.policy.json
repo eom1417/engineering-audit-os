@@ -100,6 +100,9 @@
       "tools/**",
       "design/**"
     ],
+    "rule_examples": [
+      "eaos/rules/semgrep/**"
+    ],
     "tests": [
       "tests/**",
       "acceptance/**",

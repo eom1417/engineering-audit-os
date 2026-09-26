@@ -55,13 +55,17 @@ class Report:
     evaluated: dict = field(default_factory=dict)
     # Files the engine produced that belong in the report itself, {name in the report: path}: the SBOM.
     artifacts: dict = field(default_factory=dict)
+    # Measurements, not judgements: [{'path', 'granularity', 'measurements': {name: value}}]. They become
+    # symbol_metric_external facts and never enter correlation, so two engines sizing one file make no claim.
+    metrics: list = field(default_factory=list)
 
     def as_dict(self):
         return {'engine': self.engine, 'version': self.version, 'pinned_version': self.pinned_version,
                 'status': self.status, 'seconds': round(self.seconds, 3), 'reason': self.reason,
                 'findings': self.findings, 'coverage': self.coverage, 'provenance': self.provenance,
                 'raw': self.raw, 'unmapped_rules': self.unmapped, 'evaluated_kinds': dict(sorted(self.evaluated.items())),
-                'version_matches_pin': self.version == self.pinned_version, 'artifacts': self.artifacts}
+                'version_matches_pin': self.version == self.pinned_version, 'artifacts': self.artifacts,
+                'metrics': self.metrics}
 
 
 def subject(kind, key, path=None, line=None):

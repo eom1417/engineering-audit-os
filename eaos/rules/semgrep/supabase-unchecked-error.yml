@@ -1,0 +1,20 @@
+rules:
+  - id: eaos.dataflow.supabase-unchecked-error
+    languages: [typescript, javascript]
+    severity: WARNING
+    message: >-
+      The Supabase result is read without its `error`: a failed query returns data = null and the
+      screen shows nothing, or crashes, with no trace of why. Destructure `error` and handle it.
+    metadata:
+      kind: dataflow
+      category: reliability
+    patterns:
+      - pattern-either:
+          - pattern: 'const { data } = await <... $SB.from(...) ...>;'
+          - pattern: 'const { data: $D } = await <... $SB.from(...) ...>;'
+          - pattern: 'const { data } = await <... $SB.rpc(...) ...>;'
+          - pattern: 'const { data: $D } = await <... $SB.rpc(...) ...>;'
+      - pattern-not: 'const { data, error } = await $CALL;'
+      - pattern-not: 'const { data: $D, error } = await $CALL;'
+      - pattern-not: 'const { data, error: $E } = await $CALL;'
+      - pattern-not: 'const { data: $D, error: $E } = await $CALL;'

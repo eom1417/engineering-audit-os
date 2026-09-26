@@ -1,0 +1,189 @@
+{
+ "engine": "checkov",
+ "pinned_version": "3.3.19",
+ "captured_from": "checkov -d fixture (a root Dockerfile on ubuntu:latest, a pull_request_target workflow with write-all) -o sarif, first 4 results",
+ "results_sarif.sarif": {
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+   {
+    "tool": {
+     "driver": {
+      "name": "Checkov",
+      "version": "3.3.19",
+      "informationUri": "https://checkov.io",
+      "rules": [
+       {
+        "id": "CKV_DOCKER_7",
+        "name": "Ensure the base image uses a non latest version tag",
+        "shortDescription": {
+         "text": "Ensure the base image uses a non latest version tag"
+        },
+        "fullDescription": {
+         "text": "Ensure the base image uses a non latest version tag"
+        },
+        "help": {
+         "text": "Ensure the base image uses a non latest version tag\nResource: /Dockerfile.FROM"
+        },
+        "defaultConfiguration": {
+         "level": "error"
+        }
+       },
+       {
+        "id": "CKV_DOCKER_2",
+        "name": "Ensure that HEALTHCHECK instructions have been added to container images",
+        "shortDescription": {
+         "text": "Ensure that HEALTHCHECK instructions have been added to container images"
+        },
+        "fullDescription": {
+         "text": "Ensure that HEALTHCHECK instructions have been added to container images"
+        },
+        "help": {
+         "text": "Ensure that HEALTHCHECK instructions have been added to container images\nResource: /Dockerfile."
+        },
+        "defaultConfiguration": {
+         "level": "error"
+        }
+       },
+       {
+        "id": "CKV_DOCKER_3",
+        "name": "Ensure that a user for the container has been created",
+        "shortDescription": {
+         "text": "Ensure that a user for the container has been created"
+        },
+        "fullDescription": {
+         "text": "Ensure that a user for the container has been created"
+        },
+        "help": {
+         "text": "Ensure that a user for the container has been created\nResource: /Dockerfile."
+        },
+        "defaultConfiguration": {
+         "level": "error"
+        }
+       },
+       {
+        "id": "CKV_GHA_2",
+        "name": "Ensure run commands are not vulnerable to shell injection",
+        "shortDescription": {
+         "text": "Ensure run commands are not vulnerable to shell injection"
+        },
+        "fullDescription": {
+         "text": "Ensure run commands are not vulnerable to shell injection"
+        },
+        "help": {
+         "text": "Ensure run commands are not vulnerable to shell injection\nResource: jobs(build).steps[2]"
+        },
+        "defaultConfiguration": {
+         "level": "error"
+        }
+       }
+      ],
+      "organization": "bridgecrew"
+     }
+    },
+    "results": [
+     {
+      "ruleId": "CKV_DOCKER_7",
+      "ruleIndex": 0,
+      "level": "error",
+      "attachments": [],
+      "message": {
+       "text": "Ensure the base image uses a non latest version tag"
+      },
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "ckfx/Dockerfile"
+         },
+         "region": {
+          "startLine": 1,
+          "endLine": 1,
+          "snippet": {
+           "text": "FROM ubuntu:latest\n"
+          }
+         }
+        }
+       }
+      ]
+     },
+     {
+      "ruleId": "CKV_DOCKER_2",
+      "ruleIndex": 1,
+      "level": "error",
+      "attachments": [],
+      "message": {
+       "text": "Ensure that HEALTHCHECK instructions have been added to container images"
+      },
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "ckfx/Dockerfile"
+         },
+         "region": {
+          "startLine": 1,
+          "endLine": 3,
+          "snippet": {
+           "text": "FROM ubuntu:latest\nRUN apt-get update && apt-get install -y curl\nCMD [\"bash\"]"
+          }
+         }
+        }
+       }
+      ]
+     },
+     {
+      "ruleId": "CKV_DOCKER_3",
+      "ruleIndex": 2,
+      "level": "error",
+      "attachments": [],
+      "message": {
+       "text": "Ensure that a user for the container has been created"
+      },
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "ckfx/Dockerfile"
+         },
+         "region": {
+          "startLine": 1,
+          "endLine": 3,
+          "snippet": {
+           "text": "FROM ubuntu:latest\nRUN apt-get update && apt-get install -y curl\nCMD [\"bash\"]"
+          }
+         }
+        }
+       }
+      ]
+     },
+     {
+      "ruleId": "CKV_GHA_2",
+      "ruleIndex": 3,
+      "level": "error",
+      "attachments": [],
+      "message": {
+       "text": "Ensure run commands are not vulnerable to shell injection"
+      },
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "ckfx/.github/workflows/ci.yml"
+         },
+         "region": {
+          "startLine": 11,
+          "endLine": 13,
+          "snippet": {
+           "text": "      - run: echo \"${{ github.event.pull_request.title }}\"\n"
+          }
+         }
+        }
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ }
+}

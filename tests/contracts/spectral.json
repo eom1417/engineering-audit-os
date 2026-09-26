@@ -1,0 +1,640 @@
+{
+ "engine": "spectral",
+ "pinned_version": "6.16.3",
+ "captured_from": "spectral lint openapi.yaml --ruleset (extends spectral:oas) -f sarif on a fixture spec",
+ "spectral.sarif": {
+  "$schema": "http://json.schemastore.org/sarif-2.1.0-rtm.6.json",
+  "version": "2.1.0",
+  "runs": [
+   {
+    "tool": {
+     "driver": {
+      "name": "spectral",
+      "rules": [
+       {
+        "id": "operation-success-response",
+        "shortDescription": {
+         "text": "Operation must have at least one \"2xx\" or \"3xx\" response."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#operation-success-response"
+       },
+       {
+        "id": "oas2-operation-formData-consume-check",
+        "shortDescription": {
+         "text": "Operations with \"in: formData\" parameter must include \"application/x-www-form-urlencoded\" or \"multipart/form-data\" in their \"consumes\" property."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas2-operation-formData-consume-check"
+       },
+       {
+        "id": "operation-operationId-unique",
+        "shortDescription": {
+         "text": "Every operation must have unique \"operationId\"."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#operation-operationId-unique"
+       },
+       {
+        "id": "operation-parameters",
+        "shortDescription": {
+         "text": "Operation parameters are unique and non-repeating."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#operation-parameters"
+       },
+       {
+        "id": "operation-tag-defined",
+        "shortDescription": {
+         "text": "Operation tags must be defined in global tags."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#operation-tag-defined"
+       },
+       {
+        "id": "path-params",
+        "shortDescription": {
+         "text": "Path parameters must be defined and valid."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#path-params"
+       },
+       {
+        "id": "contact-properties",
+        "shortDescription": {
+         "text": "Contact object must have \"name\", \"url\" and \"email\"."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#contact-properties"
+       },
+       {
+        "id": "duplicated-entry-in-enum",
+        "shortDescription": {
+         "text": "Enum values must not have duplicate entry."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#duplicated-entry-in-enum"
+       },
+       {
+        "id": "info-contact",
+        "shortDescription": {
+         "text": "Info object must have \"contact\" object."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#info-contact"
+       },
+       {
+        "id": "info-description",
+        "shortDescription": {
+         "text": "Info \"description\" must be present and non-empty string."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#info-description"
+       },
+       {
+        "id": "info-license",
+        "shortDescription": {
+         "text": "Info object must have \"license\" object."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#info-license"
+       },
+       {
+        "id": "license-url",
+        "shortDescription": {
+         "text": "License object must include \"url\"."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#license-url"
+       },
+       {
+        "id": "no-eval-in-markdown",
+        "shortDescription": {
+         "text": "Markdown descriptions must not have \"eval(\"."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#no-eval-in-markdown"
+       },
+       {
+        "id": "no-script-tags-in-markdown",
+        "shortDescription": {
+         "text": "Markdown descriptions must not have \"<script>\" tags."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#no-script-tags-in-markdown"
+       },
+       {
+        "id": "openapi-tags-alphabetical",
+        "shortDescription": {
+         "text": "OpenAPI object must have alphabetical \"tags\"."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#openapi-tags-alphabetical"
+       },
+       {
+        "id": "openapi-tags-uniqueness",
+        "shortDescription": {
+         "text": "Each tag must have a unique name."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#openapi-tags-uniqueness"
+       },
+       {
+        "id": "openapi-tags",
+        "shortDescription": {
+         "text": "OpenAPI object must have non-empty \"tags\" array."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#openapi-tags"
+       },
+       {
+        "id": "operation-description",
+        "shortDescription": {
+         "text": "Operation \"description\" must be present and non-empty string."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#operation-description"
+       },
+       {
+        "id": "operation-operationId",
+        "shortDescription": {
+         "text": "Operation must have \"operationId\"."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#operation-operationId"
+       },
+       {
+        "id": "operation-operationId-valid-in-url",
+        "shortDescription": {
+         "text": "No description."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#operation-operationId-valid-in-url"
+       },
+       {
+        "id": "operation-singular-tag",
+        "shortDescription": {
+         "text": "Operation must not have more than a single tag."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#operation-singular-tag"
+       },
+       {
+        "id": "operation-tags",
+        "shortDescription": {
+         "text": "Operation must have non-empty \"tags\" array."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#operation-tags"
+       },
+       {
+        "id": "path-declarations-must-exist",
+        "shortDescription": {
+         "text": "No description."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#path-declarations-must-exist"
+       },
+       {
+        "id": "path-keys-no-trailing-slash",
+        "shortDescription": {
+         "text": "No description."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#path-keys-no-trailing-slash"
+       },
+       {
+        "id": "path-not-include-query",
+        "shortDescription": {
+         "text": "Path must not include query string."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#path-not-include-query"
+       },
+       {
+        "id": "tag-description",
+        "shortDescription": {
+         "text": "Tag object must have \"description\"."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#tag-description"
+       },
+       {
+        "id": "no-$ref-siblings",
+        "shortDescription": {
+         "text": "Property must not be placed among $ref"
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#no-$ref-siblings"
+       },
+       {
+        "id": "array-items",
+        "shortDescription": {
+         "text": "No description."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#array-items"
+       },
+       {
+        "id": "typed-enum",
+        "shortDescription": {
+         "text": "Enum values must respect the specified type."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#typed-enum"
+       },
+       {
+        "id": "oas2-api-host",
+        "shortDescription": {
+         "text": "OpenAPI \"host\" must be present and non-empty string."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas2-api-host"
+       },
+       {
+        "id": "oas2-api-schemes",
+        "shortDescription": {
+         "text": "OpenAPI host \"schemes\" must be present and non-empty array."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas2-api-schemes"
+       },
+       {
+        "id": "oas2-discriminator",
+        "shortDescription": {
+         "text": "discriminator property must be defined and required"
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas2-discriminator"
+       },
+       {
+        "id": "oas2-host-not-example",
+        "shortDescription": {
+         "text": "Host URL must not point at example.com."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas2-host-not-example"
+       },
+       {
+        "id": "oas2-host-trailing-slash",
+        "shortDescription": {
+         "text": "Server URL must not have trailing slash."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas2-host-trailing-slash"
+       },
+       {
+        "id": "oas2-parameter-description",
+        "shortDescription": {
+         "text": "Parameter objects must have \"description\"."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas2-parameter-description"
+       },
+       {
+        "id": "oas2-operation-security-defined",
+        "shortDescription": {
+         "text": "Operation \"security\" values must match a scheme defined in the \"securityDefinitions\" object."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas2-operation-security-defined"
+       },
+       {
+        "id": "oas2-valid-schema-example",
+        "shortDescription": {
+         "text": "Examples must be valid against their defined schema."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas2-valid-schema-example"
+       },
+       {
+        "id": "oas2-valid-media-example",
+        "shortDescription": {
+         "text": "Examples must be valid against their defined schema."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas2-valid-media-example"
+       },
+       {
+        "id": "oas2-anyOf",
+        "shortDescription": {
+         "text": "anyOf is not available in OpenAPI v2, it was added in OpenAPI v3"
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas2-anyOf"
+       },
+       {
+        "id": "oas2-oneOf",
+        "shortDescription": {
+         "text": "oneOf is not available in OpenAPI v2, it was added in OpenAPI v3"
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas2-oneOf"
+       },
+       {
+        "id": "oas2-schema",
+        "shortDescription": {
+         "text": "Validate structure of OpenAPI v2 specification."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas2-schema"
+       },
+       {
+        "id": "oas2-unused-definition",
+        "shortDescription": {
+         "text": "Potentially unused definition has been detected."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas2-unused-definition"
+       },
+       {
+        "id": "oas3-api-servers",
+        "shortDescription": {
+         "text": "OpenAPI \"servers\" must be present and non-empty array."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas3-api-servers"
+       },
+       {
+        "id": "oas3-examples-value-or-externalValue",
+        "shortDescription": {
+         "text": "Examples must have either \"value\" or \"externalValue\" field."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas3-examples-value-or-externalValue"
+       },
+       {
+        "id": "oas3-operation-security-defined",
+        "shortDescription": {
+         "text": "Operation \"security\" values must match a scheme defined in the \"components.securitySchemes\" object."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas3-operation-security-defined"
+       },
+       {
+        "id": "oas3-parameter-description",
+        "shortDescription": {
+         "text": "Parameter objects must have \"description\"."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas3-parameter-description"
+       },
+       {
+        "id": "oas3-server-not-example.com",
+        "shortDescription": {
+         "text": "Server URL must not point at example.com."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas3-server-not-example.com"
+       },
+       {
+        "id": "oas3-server-trailing-slash",
+        "shortDescription": {
+         "text": "Server URL must not have trailing slash."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas3-server-trailing-slash"
+       },
+       {
+        "id": "oas3-valid-media-example",
+        "shortDescription": {
+         "text": "Examples must be valid against their defined schema."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas3-valid-media-example"
+       },
+       {
+        "id": "oas3-valid-schema-example",
+        "shortDescription": {
+         "text": "Examples must be valid against their defined schema."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas3-valid-schema-example"
+       },
+       {
+        "id": "oas3-schema",
+        "shortDescription": {
+         "text": "Validate structure of OpenAPI v3 specification."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas3-schema"
+       },
+       {
+        "id": "oas3-unused-component",
+        "shortDescription": {
+         "text": "No description."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas3-unused-component"
+       },
+       {
+        "id": "oas3-server-variables",
+        "shortDescription": {
+         "text": "Server variables must be defined and valid and there must be no unused variables."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas3-server-variables"
+       },
+       {
+        "id": "oas3-callbacks-in-callbacks",
+        "shortDescription": {
+         "text": "No description."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas3-callbacks-in-callbacks"
+       },
+       {
+        "id": "oas3_1-servers-in-webhook",
+        "shortDescription": {
+         "text": "No description."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas3_1-servers-in-webhook"
+       },
+       {
+        "id": "oas3_1-callbacks-in-webhook",
+        "shortDescription": {
+         "text": "No description."
+        },
+        "helpUri": "https://meta.stoplight.io/docs/spectral/docs/reference/openapi-rules.md#oas3_1-callbacks-in-webhook"
+       }
+      ],
+      "version": "6.16.2",
+      "informationUri": "https://github.com/stoplightio/spectral"
+     }
+    },
+    "results": [
+     {
+      "level": "warning",
+      "message": {
+       "text": "OpenAPI \"servers\" must be present and non-empty array."
+      },
+      "ruleId": "oas3-api-servers",
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "openapi.yaml",
+          "index": 0
+         },
+         "region": {
+          "startLine": 1,
+          "startColumn": 1,
+          "endLine": 21,
+          "endColumn": 26
+         }
+        }
+       }
+      ],
+      "ruleIndex": 42
+     },
+     {
+      "level": "warning",
+      "message": {
+       "text": "Info object must have \"contact\" object."
+      },
+      "ruleId": "info-contact",
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "openapi.yaml",
+          "index": 0
+         },
+         "region": {
+          "startLine": 2,
+          "startColumn": 6,
+          "endLine": 4,
+          "endColumn": 17
+         }
+        }
+       }
+      ],
+      "ruleIndex": 8
+     },
+     {
+      "level": "warning",
+      "message": {
+       "text": "Info \"description\" must be present and non-empty string."
+      },
+      "ruleId": "info-description",
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "openapi.yaml",
+          "index": 0
+         },
+         "region": {
+          "startLine": 2,
+          "startColumn": 6,
+          "endLine": 4,
+          "endColumn": 17
+         }
+        }
+       }
+      ],
+      "ruleIndex": 9
+     },
+     {
+      "level": "warning",
+      "message": {
+       "text": "Operation \"description\" must be present and non-empty string."
+      },
+      "ruleId": "operation-description",
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "openapi.yaml",
+          "index": 0
+         },
+         "region": {
+          "startLine": 7,
+          "startColumn": 9,
+          "endLine": 10,
+          "endColumn": 26
+         }
+        }
+       }
+      ],
+      "ruleIndex": 17
+     },
+     {
+      "level": "warning",
+      "message": {
+       "text": "Operation must have \"operationId\"."
+      },
+      "ruleId": "operation-operationId",
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "openapi.yaml",
+          "index": 0
+         },
+         "region": {
+          "startLine": 7,
+          "startColumn": 9,
+          "endLine": 10,
+          "endColumn": 26
+         }
+        }
+       }
+      ],
+      "ruleIndex": 18
+     },
+     {
+      "level": "warning",
+      "message": {
+       "text": "Operation must have non-empty \"tags\" array."
+      },
+      "ruleId": "operation-tags",
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "openapi.yaml",
+          "index": 0
+         },
+         "region": {
+          "startLine": 7,
+          "startColumn": 9,
+          "endLine": 10,
+          "endColumn": 26
+         }
+        }
+       }
+      ],
+      "ruleIndex": 21
+     },
+     {
+      "level": "warning",
+      "message": {
+       "text": "Operation \"description\" must be present and non-empty string."
+      },
+      "ruleId": "operation-description",
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "openapi.yaml",
+          "index": 0
+         },
+         "region": {
+          "startLine": 12,
+          "startColumn": 9,
+          "endLine": 21,
+          "endColumn": 26
+         }
+        }
+       }
+      ],
+      "ruleIndex": 17
+     },
+     {
+      "level": "warning",
+      "message": {
+       "text": "Operation must have \"operationId\"."
+      },
+      "ruleId": "operation-operationId",
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "openapi.yaml",
+          "index": 0
+         },
+         "region": {
+          "startLine": 12,
+          "startColumn": 9,
+          "endLine": 21,
+          "endColumn": 26
+         }
+        }
+       }
+      ],
+      "ruleIndex": 18
+     },
+     {
+      "level": "warning",
+      "message": {
+       "text": "Operation must have non-empty \"tags\" array."
+      },
+      "ruleId": "operation-tags",
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "openapi.yaml",
+          "index": 0
+         },
+         "region": {
+          "startLine": 12,
+          "startColumn": 9,
+          "endLine": 21,
+          "endColumn": 26
+         }
+        }
+       }
+      ],
+      "ruleIndex": 21
+     }
+    ],
+    "artifacts": [
+     {
+      "sourceLanguage": "YAML",
+      "location": {
+       "uri": "openapi.yaml"
+      }
+     }
+    ]
+   }
+  ]
+ }
+}

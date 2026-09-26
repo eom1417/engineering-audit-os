@@ -61,3 +61,27 @@ def read(path, engine, version, rules=None):
                                     ((result.get('message') or {}).get('text') or rule_id)[:500],
                                     measurements=[measurement('severity', severity)], sites=sites))
     return findings, unmapped
+
+
+def relative(uri, target):
+    """A SARIF location as a project-relative path. Tools differ: absolute, file://, or relative to the
+    target's parent (Checkov writes `project/Dockerfile`); the last is stripped only when the file exists."""
+    text, root = str(uri or ''), Path(target).resolve()
+    for prefix in ('file://' + str(root) + '/', str(root) + '/'):
+        if text.startswith(prefix): return text[len(prefix):]
+    head, _, rest = text.partition('/')
+    if head == root.name and rest and (root / rest).exists(): return rest
+    return text
+
+
+def relativise(path, target):
+    """Rewrite every result location in a SARIF file to a project-relative path, in place, before any
+    finding id is derived from it, so an id never depends on where the project was checked out."""
+    data = json.loads(Path(path).read_text(encoding='utf-8'))
+    for run_ in data.get('runs') or []:
+        for result in run_.get('results') or []:
+            for location in result.get('locations') or []:
+                artifact = (location.get('physicalLocation') or {}).get('artifactLocation') or {}
+                if 'uri' in artifact: artifact['uri'] = relative(artifact['uri'], target)
+    Path(path).write_text(json.dumps(data), encoding='utf-8')
+

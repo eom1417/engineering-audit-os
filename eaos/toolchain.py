@@ -67,7 +67,15 @@ def binary_path(tool):
     return shutil.which(tool['binary'])
 
 
+def _checkout(tool):
+    return home() / tool['install']['dir']
+
+
 def found_version(tool):
+    if tool['install']['method'] == 'git':
+        # A pinned repository of data (rules), not a program: its version is the commit it is at.
+        done = subprocess.run(['git', '-C', str(_checkout(tool)), 'rev-parse', 'HEAD'], capture_output=True, text=True)
+        return (done.stdout.strip(), '') if done.returncode == 0 else (None, 'not installed')
     path = binary_path(tool)
     if not path: return None, 'not installed'
     try:
@@ -76,7 +84,20 @@ def found_version(tool):
     except (OSError, subprocess.TimeoutExpired) as problem:
         return None, f'{path} --version failed: {problem}'
     match = VERSION.search(done.stdout + done.stderr)
-    return (match.group(1), '') if match else (None, f'{path} --version printed no version')
+    if not match: return None, f'{path} --version printed no version'
+    missing = _companions_missing(tool)
+    return (None, missing) if missing else (match.group(1), '')
+
+
+def _companions_missing(tool):
+    """An npm tool's companion packages (install.with) at their pinned versions, or what is not."""
+    for spec in tool['install'].get('with', []):
+        name, _, wanted = spec.rpartition('@')
+        manifest = home() / 'node/node_modules' / name / 'package.json'
+        try: found = json.loads(manifest.read_text(encoding='utf-8')).get('version')
+        except (OSError, ValueError): found = None
+        if found != wanted: return f'{name} {wanted} is not installed beside it (found {found})'
+    return ''
 
 
 def selected(names=None, stage=None, skip=()):
@@ -143,8 +164,19 @@ def _npm(tool):
     if not npm: raise RuntimeError(f"{tool['name']}: npm is not installed; install Node.js 18 or newer, then run this again")
     env = {**os.environ, **tool['install'].get('env', {})}
     subprocess.run([npm, 'install', '--prefix', str(prefix), '--no-audit', '--no-fund', '--loglevel=error',
-                    f"{tool['install']['package']}@{tool['version']}"], check=True, env=env)
+                    f"{tool['install']['package']}@{tool['version']}", *tool['install'].get('with', [])], check=True, env=env)
     _link(prefix / 'node_modules/.bin' / tool['binary'], tool['binary'])
+
+
+def _git(tool):
+    """Fetch exactly the pinned commit of a repository into its own directory under the tools home."""
+    folder, spec = _checkout(tool), tool['install']
+    folder.mkdir(parents=True, exist_ok=True)
+    for argv in (['init', '-q'], ['remote', 'remove', 'origin'], ['remote', 'add', 'origin', spec['repository']],
+                 ['fetch', '-q', '--depth', '1', 'origin', tool['version']], ['checkout', '-q', '--force', 'FETCH_HEAD']):
+        done = subprocess.run(['git', '-C', str(folder), *argv], capture_output=True, text=True)
+        if done.returncode and argv[:2] != ['remote', 'remove']:
+            raise RuntimeError(f"{tool['name']}: git {' '.join(argv)} failed: {done.stderr.strip()[-200:]}")
 
 
 def install(names=None, stage=None, skip=(), echo=print):
@@ -157,7 +189,7 @@ def install(names=None, stage=None, skip=(), echo=print):
             continue
         if tool.get('license_note'): echo(f"note    {tool['name']}: {tool['license_note']}")
         try:
-            {'release': _release, 'pip': _pip, 'npm': _npm}[tool['install']['method']](tool)
+            {'release': _release, 'pip': _pip, 'npm': _npm, 'git': _git}[tool['install']['method']](tool)
             found, reason = found_version(tool)
             if found != tool['version']: raise RuntimeError(reason or f'installed {found}, pinned {tool["version"]}')
             echo(f"install {tool['name']} {found}")

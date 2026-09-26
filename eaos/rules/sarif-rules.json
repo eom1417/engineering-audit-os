@@ -1,6 +1,16 @@
 {
   "semgrep": [
     {
+      "match": "generic.secrets.*",
+      "kind": "secret",
+      "severity_floor": "high"
+    },
+    {
+      "match": "eaos.security.service-role-in-frontend",
+      "kind": "secret",
+      "severity_floor": "critical"
+    },
+    {
       "match": "eaos.security.*",
       "kind": "vulnerability"
     },

@@ -1,0 +1,197 @@
+{
+ "engine": "trivy",
+ "pinned_version": "0.74.0",
+ "captured_from": "trivy fs --format sarif --scanners vuln,secret,misconfig finance-os, redacted by the adapter, one result per rule family",
+ "trivy.sarif": {
+  "version": "2.1.0",
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/main/sarif-2.1/schema/sarif-schema-2.1.0.json",
+  "runs": [
+   {
+    "tool": {
+     "driver": {
+      "fullName": "Trivy Vulnerability Scanner",
+      "informationUri": "https://github.com/aquasecurity/trivy",
+      "name": "Trivy",
+      "rules": [
+       {
+        "id": "CVE-2026-49356",
+        "name": "LanguageSpecificPackageVulnerability",
+        "shortDescription": {
+         "text": "@babel/core: @babel/core: Arbitrary file read via sourceMappingURL comment"
+        },
+        "fullDescription": {
+         "text": "Babel is a compiler for writing next generation JavaScript. Prior to 8.0.0-rc.6 and 7.29.6, @babel/core affected by an arbitrary file read via a sourceMappingURL comment. Using @babel/core to compile "
+        },
+        "defaultConfiguration": {
+         "level": "note"
+        },
+        "helpUri": "https://avd.aquasec.com/nvd/cve-2026-49356",
+        "help": {
+         "text": "Vulnerability CVE-2026-49356\nSeverity: LOW\nPackage: @babel/core\nFixed Version: 8.0.0-rc.6, 7.29.6\nLink: [CVE-2026-49356](https://avd.aquasec.com/nvd/cve-2026-49356)\nBabel is a compiler for writing nex",
+         "markdown": "**Vulnerability CVE-2026-49356**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|LOW|@babel/core|8.0.0-rc.6, 7.29.6|[CVE-2026-49356](https://avd.aquasec.com/nvd/cve-2026-49356"
+        },
+        "properties": {
+         "cvssv3_baseScore": 3.2,
+         "cvssv3_vector": "CVSS:3.1/AV:L/AC:H/PR:N/UI:N/S:C/C:L/I:N/A:N",
+         "precision": "very-high",
+         "security-severity": "3.2",
+         "tags": [
+          "vulnerability",
+          "security",
+          "LOW"
+         ]
+        }
+       },
+       {
+        "id": "GHSA-5p4m-2wfm-xmqj",
+        "name": "LanguageSpecificPackageVulnerability",
+        "shortDescription": {
+         "text": "JS-YAML: Quadratic CPU consumption in !!omap resolution (3.x and 4.x) \u2014 CVE-2026-59870 fix not backported"
+        },
+        "fullDescription": {
+         "text": "# Quadratic CPU consumption in `!!omap` resolution (js-yaml 3.x and 4.x)\n\n## Summary\n\n`resolveYamlOmap()` enforces key uniqueness for `!!omap` sequences with a linear\nscan (`objectKeys.indexOf(...)`) "
+        },
+        "defaultConfiguration": {
+         "level": "error"
+        },
+        "helpUri": "https://github.com/advisories/GHSA-5p4m-2wfm-xmqj",
+        "help": {
+         "text": "Vulnerability GHSA-5p4m-2wfm-xmqj\nSeverity: HIGH\nPackage: js-yaml\nFixed Version: 4.3.1, 3.15.1\nLink: [GHSA-5p4m-2wfm-xmqj](https://github.com/advisories/GHSA-5p4m-2wfm-xmqj)\n# Quadratic CPU consumptio",
+         "markdown": "**Vulnerability GHSA-5p4m-2wfm-xmqj**\n| Severity | Package | Fixed Version | Link |\n| --- | --- | --- | --- |\n|HIGH|js-yaml|4.3.1, 3.15.1|[GHSA-5p4m-2wfm-xmqj](https://github.com/advisories/GHSA-5p4m-"
+        },
+        "properties": {
+         "cvssv3_baseScore": 7.5,
+         "cvssv3_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+         "precision": "very-high",
+         "security-severity": "7.5",
+         "tags": [
+          "vulnerability",
+          "security",
+          "HIGH"
+         ]
+        }
+       },
+       {
+        "id": "jwt-token",
+        "name": "Secret",
+        "shortDescription": {
+         "text": "JWT token"
+        },
+        "fullDescription": {
+         "text": "JWT token"
+        },
+        "defaultConfiguration": {
+         "level": "warning"
+        },
+        "helpUri": "https://github.com/aquasecurity/trivy/blob/main/pkg/fanal/secret/builtin-rules.go",
+        "help": {
+         "text": "JWT token",
+         "markdown": "JWT token"
+        },
+        "properties": {
+         "precision": "very-high",
+         "security-severity": "5.5",
+         "tags": [
+          "secret",
+          "security",
+          "MEDIUM"
+         ]
+        }
+       }
+      ],
+      "version": "0.74.0"
+     }
+    },
+    "results": [
+     {
+      "ruleId": "CVE-2026-49356",
+      "ruleIndex": 0,
+      "level": "note",
+      "message": {
+       "text": "Package: @babel/core\nInstalled Version: 7.29.0\nVulnerability CVE-2026-49356\nSeverity: LOW\nFixed Version: 8.0.0-rc.6, 7.29.6\nLink: [CVE-2026-49356](https://avd.aquasec.com/nvd/cve-2026-49356)"
+      },
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "bun.lock",
+          "uriBaseId": "ROOTPATH"
+         },
+         "region": {
+          "startLine": 103,
+          "startColumn": 1,
+          "endLine": 103,
+          "endColumn": 1
+         }
+        },
+        "message": {
+         "text": "bun.lock: @babel/core@7.29.0"
+        }
+       }
+      ]
+     },
+     {
+      "ruleId": "GHSA-5p4m-2wfm-xmqj",
+      "ruleIndex": 7,
+      "level": "error",
+      "message": {
+       "text": "Package: js-yaml\nInstalled Version: 4.3.0\nVulnerability GHSA-5p4m-2wfm-xmqj\nSeverity: HIGH\nFixed Version: 4.3.1, 3.15.1\nLink: [GHSA-5p4m-2wfm-xmqj](https://github.com/advisories/GHSA-5p4m-2wfm-xmqj)"
+      },
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": "package-lock.json",
+          "uriBaseId": "ROOTPATH"
+         },
+         "region": {
+          "startLine": 5878,
+          "startColumn": 1,
+          "endLine": 5899,
+          "endColumn": 1
+         }
+        },
+        "message": {
+         "text": "package-lock.json: js-yaml@4.3.0"
+        }
+       }
+      ]
+     },
+     {
+      "ruleId": "jwt-token",
+      "ruleIndex": 8,
+      "level": "warning",
+      "message": {
+       "text": "Artifact: .env\nType: \nSecret JWT token\nSeverity: MEDIUM\nMatch: [not recorded]"
+      },
+      "locations": [
+       {
+        "physicalLocation": {
+         "artifactLocation": {
+          "uri": ".env",
+          "uriBaseId": "ROOTPATH"
+         },
+         "region": {
+          "startLine": 2,
+          "startColumn": 1,
+          "endLine": 2,
+          "endColumn": 1
+         }
+        },
+        "message": {
+         "text": ".env"
+        }
+       }
+      ]
+     }
+    ],
+    "columnKind": "utf16CodeUnits",
+    "originalUriBaseIds": {
+     "ROOTPATH": {
+      "uri": "file:///tmp/eaos-corpus/finance-os-a0192b7b/"
+     }
+    }
+   }
+  ]
+ }
+}

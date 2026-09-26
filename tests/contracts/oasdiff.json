@@ -1,0 +1,23 @@
+{
+ "engine": "oasdiff",
+ "pinned_version": "1.32.1",
+ "captured_from": "oasdiff breaking base.yaml openapi.yaml -f json on a fixture where /drivers was removed",
+ "breaking.json": [
+  {
+   "id": "api-path-removed-without-deprecation",
+   "text": "api path removed without deprecation",
+   "level": 3,
+   "operation": "GET",
+   "path": "/drivers",
+   "section": "paths",
+   "baseSource": {
+    "file": "base.yaml",
+    "line": 12,
+    "column": 5,
+    "endLine": 15,
+    "endColumn": 26
+   },
+   "fingerprint": "af996aedaeaa"
+  }
+ ]
+}

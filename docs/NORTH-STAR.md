@@ -1,15 +1,15 @@
 # الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي
 
-> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-25 على الالتزام `6fa3b64`.
+> مولَّد من `docs/north-star.json` — لا تحرّره يدويًا. أعد توليده بـ`python tools/north_star.py`. القياس: 2026-09-26 على الالتزام `26717d3`.
 
-## أين نحن: **52.7%** من الوجهة
+## أين نحن: **54.2%** من الوجهة
 
 هذه ليست درجة القدرات في docs/CAPABILITY-SCORE.md. تلك تقيس اكتمال آلية الأداة على مستودعين ضُبطت عليهما، وهذه تقيس الوعد نفسه على الجمهور الذي بُنيت له.
 
 | # | القدرة | الوزن | الدرجة | المساهمة |
 | --- | --- | --- | --- | --- |
-| C1 | الوصول: يعمل على مشاريع الهواة الحقيقية | 8 | 82% | 6.6 |
-| C2 | تقرير الوضع الراهن: يرى البرنامج كله | 12 | 83% | 10.0 |
+| C1 | الوصول: يعمل على مشاريع الهواة الحقيقية | 8 | 100% | 8.0 |
+| C2 | تقرير الوضع الراهن: يرى البرنامج كله | 12 | 84% | 10.0 |
 | C3 | الإشارة: كل ادعاء مشكلة حقيقية | 10 | 63% | 6.3 |
 | C4 | الكود الميت والمخلفات: يجدها ويحذفها بأمان | 10 | 100% | 10.0 |
 | C5 | نظافة الأمن الأساسية | 8 | 100% | 8.0 |
@@ -18,7 +18,7 @@
 | C8 | خطة التنفيذ للفريق | 16 | 22% | 3.5 |
 | C9 | ضمان التنفيذ: يثبت أن التحول حدث | 7 | 9% | 0.6 |
 | C10 | الثقة والإثبات المستقل | 5 | 57% | 2.9 |
-| | **المجموع** | **100** | | **52.7** |
+| | **المجموع** | **100** | | **54.2** |
 
 ## الرؤية
 
@@ -97,7 +97,7 @@
 | C3 الإشارة: كل ادعاء مشكلة حقيقية | 3.7 |
 | C10 الثقة والإثبات المستقل | 2.1 |
 | C2 تقرير الوضع الراهن: يرى البرنامج كله | 2.0 |
-| C1 الوصول: يعمل على مشاريع الهواة الحقيقية | 1.4 |
+| C1 الوصول: يعمل على مشاريع الهواة الحقيقية | 0.0 |
 | C4 الكود الميت والمخلفات: يجدها ويحذفها بأمان | 0.0 |
 | C5 نظافة الأمن الأساسية | 0.0 |
 
@@ -105,7 +105,7 @@
 
 **طريقة الحساب:** قيمة بين 0 و1، تُحسب بتعريفها المكتوب على عيّنة المشاريع أو الحقيقة الأرضية المسجلة. القيمة null تعني غير مقيس، وتُحسب صفرًا. متوسط مؤشراتها. مجموع (الوزن × درجة القدرة) ÷ 100، معروضًا كنسبة مئوية.
 
-### C1 — الوصول: يعمل على مشاريع الهواة الحقيقية (82%، الوزن 8)
+### C1 — الوصول: يعمل على مشاريع الهواة الحقيقية (100%، الوزن 8)
 
 **الصورة المثالية:** يكتمل التدقيق على أي مشروع من العيّنة دون أن يفشل أو يخالف عقده، ويتعرّف على إطار كل مشروع.
 
@@ -113,10 +113,10 @@
 | --- | --- | --- | --- | --- |
 | R1 تدقيقات العيّنة المكتملة بلا فشل | عدد مشاريع العيّنة التي ينتهي فيها eaos audit برمز خروج 0 ÷ عدد مشاريع العيّنة | 100% | 100% | exit codes: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
 | R2 الأطر المفهومة | مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع | 100% | 100% | user surfaces found: FleetManageWeb 43 · finance-os-a0192b7b 29 · RendaPerene 3 |
-| R3 محوّلات الفحص الساكن تعمل | متوسط (المحوّلات المعتمدة المنطبقة على المشروع التي عملت فعلًا ÷ المنطبقة)، لكل مشروع. قائمة المحوّلات وشروط انطباقها في adopted_adapters. | 100% | 27% | adopted adapters that ran / applicable: FleetManageWeb 2/7 · finance-os-a0192b7b 2/8 · RendaPerene 2/7 |
-| R4 الأدوات المعتمدة مثبّتة بإصداراتها | الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات | 100% | 100% | 17/17 assessment tools at their pinned version |
+| R3 محوّلات الفحص الساكن تعمل | متوسط (المحوّلات المعتمدة المنطبقة على المشروع التي عملت فعلًا ÷ المنطبقة)، لكل مشروع. قائمة المحوّلات وشروط انطباقها في adopted_adapters. | 100% | 100% | adopted adapters that ran / applicable: FleetManageWeb 7/7 · finance-os-a0192b7b 8/8 · RendaPerene 7/7 |
+| R4 الأدوات المعتمدة مثبّتة بإصداراتها | الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات | 100% | 100% | 18/18 assessment tools at their pinned version |
 
-### C2 — تقرير الوضع الراهن: يرى البرنامج كله (83%، الوزن 12)
+### C2 — تقرير الوضع الراهن: يرى البرنامج كله (84%، الوزن 12)
 
 **الصورة المثالية:** كل ملف محلَّل، وكل وظيفة وسطح يصل إليه المستخدم مكتشف، ونموذج البيانات مقروء، والمداخل والمخارج والحدود معروفة.
 
@@ -126,7 +126,7 @@
 | U2 أسطح المستخدم المكتشفة | متوسط (الأسطح المكتشفة ÷ الأسطح الحقيقية في truth.user_surfaces) لكل مشروع | 90% | 100% | found/true surfaces: FleetManageWeb 43/43 · finance-os-a0192b7b 29/29 · RendaPerene 3/3 |
 | U3 نموذج البيانات مقروء | مشاريع العيّنة ذات قاعدة بيانات التي قُرئت جداولها بحالة RLS لكل جدول، وسياساتها ÷ عدد تلك المشاريع | 100% | 100% | data_table facts with RLS state, and db_policy facts, vs truth: finance-os-a0192b7b 31/31 tables, 108/108 policies |
 | U4 جرد الوظائف | مشاريع العيّنة التي يسرد تقريرها وظائف البرنامج (ماذا يفعل للمستخدم) مربوطة بأسطحها وبياناتها ÷ عدد المشاريع | 100% | 100% | features in features.json: FleetManageWeb 24 · finance-os-a0192b7b 21 · RendaPerene 3 |
-| U5 المداخل والمخارج والحدود | متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع | 80% | 88% | answered load questions: FleetManageWeb 360/368 · finance-os-a0192b7b 213/232 · RendaPerene 18/24 |
+| U5 المداخل والمخارج والحدود | متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع | 80% | 90% | answered load questions: FleetManageWeb 360/368 · finance-os-a0192b7b 216/232 · RendaPerene 19/24 |
 | U6 الاستلام | مشاريع العيّنة التي في تقريرها intake.json وكل أسئلته إما مجابة أو معلّمة افتراضية ÷ عدد المشاريع | 100% | 100% | intake.json complete: FleetManageWeb True · finance-os-a0192b7b True · RendaPerene True |
 | M1 القياس لكل ملف مصدر | متوسط (ملفات المصدر المحلَّلة التي لها في measurements.json الحجم وأعلى تعقيد وعدد التغييرات وعدد المعتمِدين عليها ÷ ملفات المصدر المحلَّلة)، لكل مشروع | 95% | 0% | source files with size, complexity, churn and fan-in: FleetManageWeb 0/273 · finance-os-a0192b7b 0/301 · RendaPerene 0/74 |
 
@@ -136,7 +136,7 @@
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| S1 الادعاءات غير الضجيجية | متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع | 80% | 90% | claims that are not structural clones: FleetManageWeb 230/250 · finance-os-a0192b7b 218/268 · RendaPerene 59/62 |
+| S1 الادعاءات غير الضجيجية | متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع | 80% | 90% | claims that are not structural clones: FleetManageWeb 239/259 · finance-os-a0192b7b 223/273 · RendaPerene 59/62 |
 | S2 دقة مرشحات الكود الميت | المرشحات الميتة فعلًا ÷ كل الرموز التي يؤكدها EAOS مرشحةً، على self_truth. المرشح الذي نقضه التحكيم (refuted) أو لا يسمّي رمزًا (not_a_symbol) ليس ادعاءً، والوحدة الكاملة يحكم عليها D1. والاسم الذي لا تقرؤه إلا الاختبارات (test_only) مرشح مراجعة لا ادعاء، فلا يُحسب. | 80% | 100% | 12 dead of 12 distinct candidates (by path and symbol): CASE_BODY, HUMAN_ARTIFACTS, ORIGIN_RANK, OWNED, VERDICTS, _CONFIG_NAMES, _scope_chain, _steps, _trace_evidence, _walk_tree_sitter, run_absence_search, write_next |
 | S3 الخطر العالي مؤكد بشاهدين | متوسط (عناصر debt-register.json بخطورة high أو critical التي يدعمها شاهدان مستقلان من أداتين مختلفتين، أو دليل حتمي واحد ÷ تلك العناصر)، لكل مشروع. مشروع بلا سجل يُحسب صفرًا. | 80% | 0% | high and critical debt items with two independent witnesses: FleetManageWeb no register · finance-os-a0192b7b no register · RendaPerene no register |
 
@@ -189,11 +189,11 @@
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| P1 مهام محددة الحجم | بطاقات effort معروف ÷ كل البطاقات في العيّنة | 100% | 0% | cards with a known effort: 0/571 |
-| P2 إصلاحات جاهزة | بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة | 50% | 35% | ready remediate cards: 198/571 |
-| P3 أوامر قبول قابلة للتشغيل | بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات | 80% | 35% | cards with a runnable acceptance command: 198/571 |
+| P1 مهام محددة الحجم | بطاقات effort معروف ÷ كل البطاقات في العيّنة | 100% | 0% | cards with a known effort: 0/585 |
+| P2 إصلاحات جاهزة | بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة | 50% | 34% | ready remediate cards: 198/585 |
+| P3 أوامر قبول قابلة للتشغيل | بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات | 80% | 34% | cards with a runnable acceptance command: 198/585 |
 | P4 معالم بأهداف مقيسة | مشاريع العيّنة التي تجمع خطتها البطاقات في معالم لكل منها هدف وشرط خروج ÷ عدد المشاريع | 100% | 0% | milestones with a goal and exit criterion: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
-| P5 التناسب | بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات | 100% | 100% | cards with options, do-nothing and rollback: 571/571 |
+| P5 التناسب | بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات | 100% | 100% | cards with options, do-nothing and rollback: 585/585 |
 | P6 أقسام الفريق | مشاريع العيّنة التي توزّع خطتها المهام على أقسام (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) مع الاعتماديات بينها ÷ عدد المشاريع | 100% | 0% | every card carries a team section: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False |
 | P7 التقارير الأربعة | من التقارير الأربعة (الوضع الراهن، الصورة المثالية، الفجوة والتحول، خطة التنفيذ)، عدد ما له وثيقة مخصصة ÷ 4. جودة محتواها تقيسها المؤشرات الأخرى. | 100% | 50% | of the four reports present: FleetManageWeb 2/4 · finance-os-a0192b7b 2/4 · RendaPerene 2/4 |
 | P8 جودة التقارير الأربعة | متوسط (التقارير الأربعة التي مرّت فحص Vale بحزمة EAOS وفحص markdownlint بلا أخطاء ÷ 4)، لكل مشروع | 100% | 0% | of the four reports passing Vale and markdownlint: FleetManageWeb 0/4 · finance-os-a0192b7b 0/4 · RendaPerene 0/4 |
@@ -248,7 +248,7 @@
 | --- | --- | --- | --- | --- |
 | R1 | الأساس: الوصول والرؤية والإشارة | NS1, NS2, NS3, NS4, NS5, NS6 | 19/19 | U2، U3، U4، U5، S1، S2، D1–D3، H1، H2 عند أهدافها |
 | R2 | منصة الأدوات: تثبيت، وقراءة، وتوليد، ومراحل، وعزل | NS17 | 5/5 | R4 = 1، وقارئ SARIF وإطار التوليد ومراحل engage والبيئة المعزولة مختبرة |
-| R3 | الأدلة الكاملة من الأدوات الجاهزة | NS11, NS12, NS18 | 3/15 | بوابات S01 وS03 وS04 كاملة: U6، R3، H3، M1، S3 |
+| R3 | الأدلة الكاملة من الأدوات الجاهزة | NS11, NS12, NS18 | 12/15 | بوابات S01 وS03 وS04 كاملة: U6، R3، H3، M1، S3 |
 | R4 | تثبيت السلوك والصورة المثالية | NS15, NS7, NS13 | 0/10 | البوابة أ لـS05، وبوابة S06 مع موافقة بشرية |
 | R5 | الخطة والتقارير وعدّة التسليم | NS8, NS14, NS25 | 0/14 | بوابة S07 و K1 = 1: اكتمل عقد التقييم (EAOS 1.0) |
 | R6 | التنفيذ المثبت | NS26, NS9, NS20 | 0/4 | البوابة ب لـS05، وبوابتا S08 وS09: E5، E1، E7، E2 |
@@ -269,7 +269,7 @@
 | NS6 نظافة الأمن الأساسية | H1 = 1.0 و H2 = 1.0. | 2/2 |
 | NS17 منصة الأدوات: كل أداة تدخل بطريقة واحدة | R4 = 1، وقارئ SARIF، وإطار التوليد، والمراحل كبيانات، والبيئة المعزولة مختبرة. | 5/5 |
 | NS11 الاستلام: ماذا يجب أن يُحمى، وإلى أين | U6 = 1.0. | 2/2 |
-| NS12 محوّلات الفحص الساكن: أدوات جاهزة بدل كود نكتبه | R3 = 1.0 و H3 = 1.0. | 1/10 |
+| NS12 محوّلات الفحص الساكن: أدوات جاهزة بدل كود نكتبه | R3 = 1.0 و H3 = 1.0. | 10/10 |
 | NS18 القياس وسجل الدَّين: الأرقام لكل ملف، والخطر حين تجتمع الأدلة | M1 ≥ 0.95 و S3 ≥ 0.8 و G2 = 1.0. | 0/3 |
 | NS15 تثبيت السلوك: المواصفات قبل أي تغيير (ساكن) | E4 = 1، ومواصفات الحمل والأعطال والفحص الحي مولّدة ومقبولة من أدواتها. | 0/2 |
 | NS7 تقرير الصورة المثالية | T1 = 1.0 و T2 = 1.0 و T3 ≥ 0.6 و T4 = 1.0 و T5 = 1.0 و G1 = 1.0. | 0/5 |
@@ -1125,7 +1125,7 @@ python tools/north_star.py measure --only H3 --min 1.0 && python tools/acceptanc
 
 **التراجع:** revert الالتزام.
 
-#### NS12.T2 — scc: الحجم واللغات ⬜
+#### NS12.T2 — scc: الحجم واللغات ✅
 
 **لماذا:** scc: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
 
@@ -1139,6 +1139,7 @@ python tools/north_star.py measure --only H3 --min 1.0 && python tools/acceptanc
 2. ترجم مخرجه إلى مفردات EAOS: قياسات symbol_metric_external لكل ملف (أسطر، وتعقيد)؛ شاهد مستقل على الحجم. ما لا يقابل مفردة يُعدّ في unmapped ولا يُسقط بصمت.
 3. احفظ مخرجًا حقيقيًا في tests/contracts/scc.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
+5. كما نُفّذ: قياسات scc لكل ملف تُكتب حقائق symbol_metric_external عبر قناة metrics العامة في Report، لا engine_finding، فلا تدخل الربط ولا تصنع ادعاءات.
 
 **تنتهي حين:**
 
@@ -1161,7 +1162,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 
 **التراجع:** revert الالتزام.
 
-#### NS12.T3 — Semgrep بقواعد EAOS ⬜
+#### NS12.T3 — Semgrep بقواعد EAOS ✅
 
 **لماذا:** semgrep: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
 
@@ -1176,6 +1177,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 3. احفظ مخرجًا حقيقيًا في tests/contracts/semgrep.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 5. مصدران للقواعد: (1) قواعد EAOS في eaos/rules/semgrep/*.yml: نداء fetch أو supabase بلا معالجة خطأ، و eval، وSQL مبني بدمج نصوص، وأسرار service_role في كود الواجهة، وكل قاعدة معها مثال يطابقها ومثال لا يطابقها. (2) مكتبة semgrep-rules الرسمية: رخصتها تمنع توزيعها، فلا تُنسخ إلى هذا المستودع أبدًا؛ eaos tools install يجلبها إلى /workspace/engine-tools/semgrep-rules عند التزام مثبّت على جهاز المستخدم، ويشغّل المحوّل منها مجموعات بعينها (javascript و typescript و python و secrets) إن وُجدت، ويسجّل في التقرير أيها استُخدم.
+6. كما نُفّذ: خمس قواعد EAOS في eaos/rules/semgrep مع أمثلة ruleid/ok يثبتها semgrep --test (7/7). المكتبة الرسمية تُجلب بطريقة git عند التزام مثبّت في toolchain.json (semgrep-rules) ولا تُنسخ للمستودع، ويُقرأ منها الأمن والأسرار فقط (أنماطها الأسلوبية أعطت 1000 نتيجة بلا خطر). القواعد تُجمع في تخطيط ثابت وتُزال بادئة المسار والمسارات تصير نسبية قبل حساب المعرّف.
 
 **تنتهي حين:**
 
@@ -1199,7 +1201,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 
 **التراجع:** revert الالتزام.
 
-#### NS12.T4 — Trivy: الأسرار وIaC وDocker ⬜
+#### NS12.T4 — Trivy: الأسرار وIaC وDocker ✅
 
 **لماذا:** trivy: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
 
@@ -1214,6 +1216,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 3. احفظ مخرجًا حقيقيًا في tests/contracts/trivy.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 5. لا تطبع قيمة أي سر؛ خذ نوع القاعدة وموضعها فقط.
+6. كما نُفّذ: سطر Match ووصف قاعدة السر يُحذفان من SARIF في مكانه قبل أي حقيقة؛ الملف الخام في التقرير لا يحمل قيمة ولا اسم متغير. الثغرات لا تصير engine_cluster: شاهد ثانٍ بجانب OSV.
 
 **تنتهي حين:**
 
@@ -1236,7 +1239,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 
 **التراجع:** revert الالتزام.
 
-#### NS12.T5 — Checkov: GitHub Actions وIaC ⬜
+#### NS12.T5 — Checkov: GitHub Actions وIaC ✅
 
 **لماذا:** checkov: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
 
@@ -1251,6 +1254,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 3. احفظ مخرجًا حقيقيًا في tests/contracts/checkov.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 5. ينطبق فقط إن وُجد .github/workflows أو Dockerfile أو ملفات IaC؛ وإلا يُسجَّل غير منطبق لا غائبًا.
+6. كما نُفّذ: JSON بجانب SARIF لتسجيل عدد الفحوص الناجحة لكل إطار (RendaPerene: 116 ناجحًا، 0 فاشلًا)، فالنتيجة النظيفة دليل لا صمت.
 
 **تنتهي حين:**
 
@@ -1273,7 +1277,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 
 **التراجع:** revert الالتزام.
 
-#### NS12.T6 — dependency-cruiser: الحدود كقواعد لـJS/TS ⬜
+#### NS12.T6 — dependency-cruiser: الحدود كقواعد لـJS/TS ✅
 
 **لماذا:** dependency-cruiser: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
 
@@ -1288,6 +1292,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 3. احفظ مخرجًا حقيقيًا في tests/contracts/dependency-cruiser.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 5. ولّد إعداد القواعد من eaos.policy.json في مشروع المالك إن وُجد؛ وإلا شغّله بقاعدة no-circular وحدها. لا تكتب أي ملف داخل مشروع المالك: الإعداد في workdir.
+6. كما نُفّذ: typescript 6.0.3 يُثبَّت بجانبه (install.with، ويتحقق منه doctor)؛ بدونه يفحص 0 ملف ويخرج 0. تشغيلتان: الرسم وقت التشغيل للنتائج، ورسم المصدر يسجّل الدورات التي تُغلق عبر import type فقط في coverage.type_only_cycles (finance-os: 15 عبر barrel؛ FleetManageWeb: 2).
 
 **تنتهي حين:**
 
@@ -1310,7 +1315,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 
 **التراجع:** revert الالتزام.
 
-#### NS12.T7 — SQLFluff: جودة SQL والهجرات ⬜
+#### NS12.T7 — SQLFluff: جودة SQL والهجرات ✅
 
 **لماذا:** sqlfluff: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
 
@@ -1325,6 +1330,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 3. احفظ مخرجًا حقيقيًا في tests/contracts/sqlfluff.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 5. ينطبق فقط إن وُجدت ملفات .sql.
+6. كما نُفّذ: عائلات الأسلوب (LT, CP, AL, JJ, RF03/05/06) تُعدّ في coverage ولا تصير نتائج (1762 من 1790 في finance-os). SQLFluff لا يملك قاعدة UPDATE/DELETE بلا WHERE؛ لا ادعاءات منه.
 
 **تنتهي حين:**
 
@@ -1347,7 +1353,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 
 **التراجع:** revert الالتزام.
 
-#### NS12.T8 — Spectral و oasdiff عند وجود OpenAPI ⬜
+#### NS12.T8 — Spectral و oasdiff عند وجود OpenAPI ✅
 
 **لماذا:** spectral وoasdiff: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
 
@@ -1362,6 +1368,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 3. احفظ مخرجًا حقيقيًا في tests/contracts/spectral.json، واكتب اختبار عقد يفشل إن تغيّر شكله. أضف سطرًا في upstreams/toolchain.json (الإصدار والرخصة والمستودع)، مع حقل install ليثبّتها eaos tools install (NS17.T1)؛ لا سطر يدوي في setup.sh.
 4. أضف الاسم إلى ENGINES في tools/north_star_measure.py ليعمل في القياس (هذا تعديل مسموح بنص هذه المهمة).
 5. العيّنة الحالية بلا OpenAPI؛ اكتب عيّنة اختبار فيها مواصفة. غياب المواصفة في مشروع له مسارات http يصير بند فجوة لا صمتًا.
+6. كما نُفّذ: oasdiff يقارن المواصفة بنسختها قبل آخر التزام غيّرها (git show، قراءة فقط). غياب مواصفة في مشروع له مسارات http يُسمّى في NS7.
 
 **تنتهي حين:**
 
@@ -1384,7 +1391,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 
 **التراجع:** revert الالتزام.
 
-#### NS12.T10 — GitNexus: رسم المعرفة ونطاق الأثر كشاهد ثالث ⬜
+#### NS12.T10 — GitNexus: رسم المعرفة ونطاق الأثر كشاهد ثالث ✅
 
 **لماذا:** gitnexus: شاهد إضافي من أداة ناضجة بدل كود نكتبه، يدخل الربط والادعاءات تلقائيًا.
 
@@ -1400,6 +1407,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 4. الترجمة إلى مفردات EAOS: call_edge_external و module_edge_external، و coupling من حجم نطاق الأثر، و surface من نقاط الدخول. GitNexus شاهد ثالث بجانب CodeGraph و dependency-cruiser: اتفاقهم يرفع الثقة، واختلافهم يُسجَّل ولا يُحسم لصالح أحد.
 5. المجتمعات (Leiden) التي يكتشفها مرشح أولي لحدود المكوّنات الحالية في S02، ومدخل لإسقاط الصورة المثالية في NS7.T2: تُكتب في facts/external.json → communities[] {name, files}.
 6. أضف gitnexus إلى adopted_adapters وإلى ENGINES في tools/north_star_measure.py (تعديل مسموح بنص هذه المهمة).
+7. كما نُفّذ: نسخة حقيقية بلا روابط صلبة وبلا .git و--index-only و GITNEXUS_HOME داخل workdir (الاختبار يثبت أن AGENTS.md لم يتغير و~/.gitnexus لم يُنشأ). CLI يقطع المخرج المنقول عند 64KiB: الاستعلامات مقسمة بصفحات ORDER BY/SKIP/LIMIT، وصفحة تبلغ الحد خطأ. نتائج: دورات، و coupling لملف يستورده 20 ملفًا أو أكثر، و communities في summary.
 
 **تنتهي حين:**
 
@@ -1423,7 +1431,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 
 **التراجع:** revert الالتزام.
 
-#### NS12.T9 — كل المحوّلات المنطبقة تعمل على العيّنة ⬜
+#### NS12.T9 — كل المحوّلات المنطبقة تعمل على العيّنة ✅
 
 **لماذا:** كل محوّل مقبول وحده؛ هذه المهمة تثبت أنها تعمل معًا على كل مشروع تنطبق عليه.
 
@@ -1435,6 +1443,7 @@ python tools/north_star.py measure --only R3 && python tools/acceptance.py adapt
 
 1. ثبّت الأدوات بـpython -m eaos tools install --stage assessment، وتأكد أن eaos tools doctor و eaos engines list يريانها، وأعد القياس.
 2. أي محوّل منطبق لم يعمل على مشروع: أصلح السبب (تثبيت أو مسار أو صيغة)، لا القائمة.
+3. كما نُفّذ: R3 = 1.0 (7/7، 8/8، 7/7)، و R4 = 18/18 مع semgrep-rules.
 
 **تنتهي حين:**
 

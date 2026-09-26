@@ -71,6 +71,13 @@ def run(target, source, out=None, only=None):
             edge_merge = {'status': 'failed',
                           'reason': f'{type(error).__name__}: {error}'[:300],
                           'call_edges': 0, 'module_edges': 0}
+    for name, report in sorted(manifest['engines'].items()):
+        for row in report.get('metrics') or []:
+            facts.append(make('symbol_metric_external', NAME, VERSION, input_sha,
+                              {'path': row['path'], 'line': row.get('line'), 'symbol': row.get('symbol')},
+                              {'engine': name, 'engine_version': report.get('version'),
+                               'granularity': row.get('granularity', 'file'), **row['measurements']},
+                              limitations=LIMITATIONS[:1]))
     for item in manifest['findings']:
         subject = item['subject']
         facts.append(make('engine_finding', NAME, VERSION, input_sha,
@@ -87,6 +94,8 @@ def run(target, source, out=None, only=None):
     counts = {name: len([f for f in facts if f['value'].get('engine') == name]) for name in present}
     summary = {'engines_observed': present, 'engines_unavailable': absent,
                'engines_not_applicable': not_applicable(manifest),
+               # Candidate boundaries of today's components (GitNexus communities), for the map and the target.
+               'communities': ((manifest['coverage'].get('gitnexus') or {}).get('detail') or {}).get('communities') or [],
                # What each engine actually looked for, so silence can be told from absence.
                'evaluated_kinds': ({name: manifest['coverage'][name]['evaluated_kinds']
                                    for name in present}

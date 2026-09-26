@@ -52,13 +52,17 @@ def state_digest(target):
     return digest.hexdigest()
 
 
-def mirror(target, workdir):
-    """A throwaway copy of the target an engine may write into. Hardlinks when it can, copies when not."""
+def mirror(target, workdir, hardlink=True):
+    """A throwaway copy of the target an engine may write into. Hardlinks when it can, copies when not.
+
+    A hardlinked file is the original: an engine that rewrites an existing file in place would change the
+    project too. Such an engine asks for hardlink=False and gets a copy it cannot reach the project through.
+    """
     target, destination = Path(target).resolve(), Path(workdir) / 'mirror'
     if destination.exists():
         shutil.rmtree(destination, ignore_errors=True)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    code, _, error, _ = run(['cp', '-al', str(target), str(destination)])
+    code, _, error, _ = run(['cp', '-al', str(target), str(destination)]) if hardlink else (1, '', '', 0)
     if code == 0:
         return destination, 'hardlink'
     shutil.rmtree(destination, ignore_errors=True)

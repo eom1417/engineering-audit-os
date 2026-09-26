@@ -1,0 +1,25 @@
+rules:
+  - id: eaos.security.dynamic-code-js
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      Text is executed as code. Anything that reaches it runs with the application's rights.
+    metadata:
+      kind: vulnerability
+      category: security
+      cwe: 'CWE-95'
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+  - id: eaos.security.dynamic-code-python
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Text is executed as code. Anything that reaches it runs with the application's rights.
+    metadata:
+      kind: vulnerability
+      category: security
+      cwe: 'CWE-95'
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: exec(...)

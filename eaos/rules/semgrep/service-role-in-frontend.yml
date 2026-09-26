@@ -1,0 +1,22 @@
+rules:
+  - id: eaos.security.service-role-in-frontend
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      The Supabase service-role key is referenced in code that ships to the browser. That key bypasses
+      every row-level security policy; anyone who opens the page can read and change every row.
+      Keep it on a server or in an edge function.
+    metadata:
+      kind: secret
+      category: security
+      cwe: 'CWE-798'
+    paths:
+      exclude:
+        - 'supabase/functions/**'
+        - 'server/**'
+        - 'api/**'
+        - '*.server.ts'
+    pattern-either:
+      - pattern-regex: (?i)import\.meta\.env\.\w*SERVICE_ROLE\w*
+      - pattern-regex: (?i)process\.env\.(NEXT_PUBLIC|VITE|REACT_APP)_\w*SERVICE_ROLE\w*
+      - pattern-regex: (?i)["']service_role["']

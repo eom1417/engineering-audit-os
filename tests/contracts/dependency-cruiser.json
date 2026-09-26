@@ -1,0 +1,191 @@
+{
+ "engine": "dependency-cruiser",
+ "pinned_version": "18.4.0",
+ "captured_from": "depcruise src --output-type json on FleetManageWeb, source graph with no-circular (2 violations, 2 modules kept)",
+ "depcruise.json": {
+  "modules": [
+   {
+    "source": "src/App.tsx",
+    "dependencies": [
+     {
+      "dynamic": false,
+      "module": "./components/AppSidebar",
+      "moduleSystem": "es6",
+      "exoticallyRequired": false,
+      "dependencyTypes": [
+       "local",
+       "import"
+      ],
+      "resolved": "src/components/AppSidebar.tsx",
+      "coreModule": false,
+      "followable": true,
+      "couldNotResolve": false,
+      "matchesDoNotFollow": false,
+      "circular": false,
+      "valid": true
+     },
+     {
+      "dynamic": false,
+      "module": "./components/auth/AuthContext",
+      "moduleSystem": "es6",
+      "exoticallyRequired": false,
+      "dependencyTypes": [
+       "local",
+       "import"
+      ],
+      "resolved": "src/components/auth/AuthContext.tsx",
+      "coreModule": false,
+      "followable": true,
+      "couldNotResolve": false,
+      "matchesDoNotFollow": false,
+      "circular": false,
+      "valid": true
+     }
+    ],
+    "dependents": [
+     "src/main.tsx"
+    ],
+    "orphan": false,
+    "valid": true
+   },
+   {
+    "source": "src/components/AppSidebar.tsx",
+    "dependencies": [
+     {
+      "dynamic": false,
+      "module": "./sidebar/SidebarFooterSection",
+      "moduleSystem": "es6",
+      "exoticallyRequired": false,
+      "dependencyTypes": [
+       "local",
+       "import"
+      ],
+      "resolved": "src/components/sidebar/SidebarFooterSection.tsx",
+      "coreModule": false,
+      "followable": true,
+      "couldNotResolve": false,
+      "matchesDoNotFollow": false,
+      "circular": false,
+      "valid": true
+     },
+     {
+      "dynamic": false,
+      "module": "./sidebar/SidebarNavigation",
+      "moduleSystem": "es6",
+      "exoticallyRequired": false,
+      "dependencyTypes": [
+       "local",
+       "import"
+      ],
+      "resolved": "src/components/sidebar/SidebarNavigation.tsx",
+      "coreModule": false,
+      "followable": true,
+      "couldNotResolve": false,
+      "matchesDoNotFollow": false,
+      "circular": false,
+      "valid": true
+     }
+    ],
+    "dependents": [
+     "src/App.tsx"
+    ],
+    "orphan": false,
+    "valid": true
+   }
+  ],
+  "summary": {
+   "violations": [
+    {
+     "type": "cycle",
+     "from": "src/components/chat/ChatMessage.tsx",
+     "to": "src/pages/AIChatPage.tsx",
+     "unresolvedTo": "@/pages/AIChatPage",
+     "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+     ],
+     "rule": {
+      "severity": "error",
+      "name": "no-circular"
+     },
+     "cycle": [
+      {
+       "name": "src/pages/AIChatPage.tsx",
+       "dependencyTypes": [
+        "aliased",
+        "aliased-tsconfig",
+        "aliased-tsconfig-paths",
+        "local",
+        "import"
+       ]
+      },
+      {
+       "name": "src/components/chat/MessageList.tsx",
+       "dependencyTypes": [
+        "aliased",
+        "aliased-tsconfig",
+        "aliased-tsconfig-paths",
+        "local",
+        "import"
+       ]
+      },
+      {
+       "name": "src/components/chat/ChatMessage.tsx",
+       "dependencyTypes": [
+        "local",
+        "import"
+       ]
+      }
+     ]
+    },
+    {
+     "type": "cycle",
+     "from": "src/components/chat/MessageList.tsx",
+     "to": "src/pages/AIChatPage.tsx",
+     "unresolvedTo": "@/pages/AIChatPage",
+     "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+     ],
+     "rule": {
+      "severity": "error",
+      "name": "no-circular"
+     },
+     "cycle": [
+      {
+       "name": "src/pages/AIChatPage.tsx",
+       "dependencyTypes": [
+        "aliased",
+        "aliased-tsconfig",
+        "aliased-tsconfig-paths",
+        "local",
+        "import"
+       ]
+      },
+      {
+       "name": "src/components/chat/MessageList.tsx",
+       "dependencyTypes": [
+        "aliased",
+        "aliased-tsconfig",
+        "aliased-tsconfig-paths",
+        "local",
+        "import"
+       ]
+      }
+     ]
+    }
+   ],
+   "error": 2,
+   "warn": 0,
+   "info": 0,
+   "totalCruised": 377,
+   "totalDependenciesCruised": 1930
+  }
+ }
+}

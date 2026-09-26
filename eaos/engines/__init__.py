@@ -8,11 +8,11 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import codegraph, enola, jscpd, osv_scanner, reforge, syft
+from . import checkov, codegraph, dependency_cruiser, enola, gitnexus, jscpd, oasdiff, osv_scanner, reforge, scc, semgrep, spectral, sqlfluff, syft, trivy
 from .contract import NOT_APPLICABLE, OBSERVED, UNAVAILABLE
 from .process import state_digest
 
-ADAPTERS = {module.NAME: module for module in (enola, codegraph, reforge, jscpd, syft, osv_scanner)}
+ADAPTERS = {module.NAME: module for module in (enola, codegraph, reforge, jscpd, syft, osv_scanner, scc, semgrep, trivy, checkov, dependency_cruiser, sqlfluff, spectral, oasdiff, gitnexus)}
 
 
 def health():

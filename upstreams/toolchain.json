@@ -159,6 +159,23 @@
       }
     },
     {
+      "name": "semgrep-rules",
+      "role": "read",
+      "stages": [
+        "S04",
+        "S10"
+      ],
+      "license": "Semgrep Rules License v1.0",
+      "repository": "https://github.com/semgrep/semgrep-rules",
+      "version": "a84ff9cc2453ca91d581380de4b8b3f272f6f4be",
+      "install": {
+        "method": "git",
+        "repository": "https://github.com/semgrep/semgrep-rules",
+        "dir": "semgrep-rules"
+      },
+      "license_note": "Semgrep Rules License v1.0: fetched to this machine for non-commercial use and read by the semgrep adapter; never copied into the EAOS repository or redistributed."
+    },
+    {
       "name": "trivy",
       "role": "read",
       "stages": [
@@ -210,8 +227,12 @@
       "binary": "depcruise",
       "install": {
         "method": "npm",
-        "package": "dependency-cruiser"
-      }
+        "package": "dependency-cruiser",
+        "with": [
+          "typescript@6.0.3"
+        ]
+      },
+      "install_note": "typescript 6 is installed beside it: without a compiler it reads no .ts file and reports an empty graph (TypeScript 7 is not yet supported by its API)."
     },
     {
       "name": "sqlfluff",

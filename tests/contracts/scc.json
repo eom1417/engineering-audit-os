@@ -1,0 +1,530 @@
+{
+ "engine": "scc",
+ "pinned_version": "4.1.0",
+ "captured_from": "scc --by-file --format json --no-cocomo RendaPerene (first 2 files per language)",
+ "scc.json": [
+  {
+   "Name": "Python",
+   "Bytes": 969306,
+   "CodeBytes": 0,
+   "Lines": 24085,
+   "Code": 19433,
+   "Comment": 1389,
+   "Blank": 3263,
+   "Complexity": 2853,
+   "Count": 73,
+   "WeightedComplexity": 0,
+   "Files": [
+    {
+     "Language": "Python",
+     "PossibleLanguages": [
+      "Python"
+     ],
+     "Filename": "market_view.py",
+     "Extension": "py",
+     "Location": "/project/views/market_view.py",
+     "Symlocation": "",
+     "Bytes": 806,
+     "Lines": 22,
+     "Code": 16,
+     "Comment": 2,
+     "Blank": 4,
+     "Complexity": 2,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    },
+    {
+     "Language": "Python",
+     "PossibleLanguages": [
+      "Python"
+     ],
+     "Filename": "assets_view.py",
+     "Extension": "py",
+     "Location": "/project/views/assets_view.py",
+     "Symlocation": "",
+     "Bytes": 927,
+     "Lines": 28,
+     "Code": 21,
+     "Comment": 1,
+     "Blank": 6,
+     "Complexity": 4,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    }
+   ],
+   "LineLength": null,
+   "ULOC": 0
+  },
+  {
+   "Name": "Markdown",
+   "Bytes": 78299,
+   "CodeBytes": 0,
+   "Lines": 1086,
+   "Code": 820,
+   "Comment": 0,
+   "Blank": 266,
+   "Complexity": 0,
+   "Count": 12,
+   "WeightedComplexity": 0,
+   "Files": [
+    {
+     "Language": "Markdown",
+     "PossibleLanguages": [
+      "Markdown"
+     ],
+     "Filename": "README.md",
+     "Extension": "md",
+     "Location": "/project/README.md",
+     "Symlocation": "",
+     "Bytes": 19796,
+     "Lines": 294,
+     "Code": 229,
+     "Comment": 0,
+     "Blank": 65,
+     "Complexity": 0,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    },
+    {
+     "Language": "Markdown",
+     "PossibleLanguages": [
+      "Markdown"
+     ],
+     "Filename": "release-notes.md",
+     "Extension": "md",
+     "Location": "/project/.github/release-notes.md",
+     "Symlocation": "",
+     "Bytes": 1765,
+     "Lines": 41,
+     "Code": 29,
+     "Comment": 0,
+     "Blank": 12,
+     "Complexity": 0,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    }
+   ],
+   "LineLength": null,
+   "ULOC": 0
+  },
+  {
+   "Name": "TOML",
+   "Bytes": 3439,
+   "CodeBytes": 0,
+   "Lines": 108,
+   "Code": 71,
+   "Comment": 25,
+   "Blank": 12,
+   "Complexity": 0,
+   "Count": 2,
+   "WeightedComplexity": 0,
+   "Files": [
+    {
+     "Language": "TOML",
+     "PossibleLanguages": [
+      "TOML"
+     ],
+     "Filename": "pyproject.toml",
+     "Extension": "toml",
+     "Location": "/project/pyproject.toml",
+     "Symlocation": "",
+     "Bytes": 3338,
+     "Lines": 103,
+     "Code": 67,
+     "Comment": 24,
+     "Blank": 12,
+     "Complexity": 0,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    },
+    {
+     "Language": "TOML",
+     "PossibleLanguages": [
+      "TOML"
+     ],
+     "Filename": "config.toml",
+     "Extension": "toml",
+     "Location": "/project/.streamlit/config.toml",
+     "Symlocation": "",
+     "Bytes": 101,
+     "Lines": 5,
+     "Code": 4,
+     "Comment": 1,
+     "Blank": 0,
+     "Complexity": 0,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    }
+   ],
+   "LineLength": null,
+   "ULOC": 0
+  },
+  {
+   "Name": "YAML",
+   "Bytes": 6762,
+   "CodeBytes": 0,
+   "Lines": 217,
+   "Code": 200,
+   "Comment": 0,
+   "Blank": 17,
+   "Complexity": 0,
+   "Count": 2,
+   "WeightedComplexity": 0,
+   "Files": [
+    {
+     "Language": "YAML",
+     "PossibleLanguages": [
+      "CloudFormation (YAML)",
+      "YAML"
+     ],
+     "Filename": "package.yml",
+     "Extension": "yml",
+     "Location": "/project/.github/workflows/package.yml",
+     "Symlocation": "",
+     "Bytes": 4998,
+     "Lines": 147,
+     "Code": 138,
+     "Comment": 0,
+     "Blank": 9,
+     "Complexity": 0,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    },
+    {
+     "Language": "YAML",
+     "PossibleLanguages": [
+      "CloudFormation (YAML)",
+      "YAML"
+     ],
+     "Filename": "ci.yml",
+     "Extension": "yml",
+     "Location": "/project/.github/workflows/ci.yml",
+     "Symlocation": "",
+     "Bytes": 1764,
+     "Lines": 70,
+     "Code": 62,
+     "Comment": 0,
+     "Blank": 8,
+     "Complexity": 0,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    }
+   ],
+   "LineLength": null,
+   "ULOC": 0
+  },
+  {
+   "Name": "Batch",
+   "Bytes": 125,
+   "CodeBytes": 0,
+   "Lines": 4,
+   "Code": 4,
+   "Comment": 0,
+   "Blank": 0,
+   "Complexity": 0,
+   "Count": 1,
+   "WeightedComplexity": 0,
+   "Files": [
+    {
+     "Language": "Batch",
+     "PossibleLanguages": [
+      "Batch"
+     ],
+     "Filename": "build_windows_exe.bat",
+     "Extension": "bat",
+     "Location": "/project/build_windows_exe.bat",
+     "Symlocation": "",
+     "Bytes": 125,
+     "Lines": 4,
+     "Code": 4,
+     "Comment": 0,
+     "Blank": 0,
+     "Complexity": 0,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    }
+   ],
+   "LineLength": null,
+   "ULOC": 0
+  },
+  {
+   "Name": "CSV",
+   "Bytes": 431086,
+   "CodeBytes": 0,
+   "Lines": 6663,
+   "Code": 6663,
+   "Comment": 0,
+   "Blank": 0,
+   "Complexity": 0,
+   "Count": 1,
+   "WeightedComplexity": 0,
+   "Files": [
+    {
+     "Language": "CSV",
+     "PossibleLanguages": [
+      "CSV"
+     ],
+     "Filename": "assets.csv",
+     "Extension": "csv",
+     "Location": "/project/assets.csv",
+     "Symlocation": "",
+     "Bytes": 431086,
+     "Lines": 6663,
+     "Code": 6663,
+     "Comment": 0,
+     "Blank": 0,
+     "Complexity": 0,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    }
+   ],
+   "LineLength": null,
+   "ULOC": 0
+  },
+  {
+   "Name": "INI",
+   "Bytes": 24,
+   "CodeBytes": 0,
+   "Lines": 2,
+   "Code": 2,
+   "Comment": 0,
+   "Blank": 0,
+   "Complexity": 0,
+   "Count": 1,
+   "WeightedComplexity": 0,
+   "Files": [
+    {
+     "Language": "INI",
+     "PossibleLanguages": [
+      "INI"
+     ],
+     "Filename": "pytest.ini",
+     "Extension": "ini",
+     "Location": "/project/pytest.ini",
+     "Symlocation": "",
+     "Bytes": 24,
+     "Lines": 2,
+     "Code": 2,
+     "Comment": 0,
+     "Blank": 0,
+     "Complexity": 0,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    }
+   ],
+   "LineLength": null,
+   "ULOC": 0
+  },
+  {
+   "Name": "License",
+   "Bytes": 34517,
+   "CodeBytes": 0,
+   "Lines": 660,
+   "Code": 544,
+   "Comment": 0,
+   "Blank": 116,
+   "Complexity": 0,
+   "Count": 1,
+   "WeightedComplexity": 0,
+   "Files": [
+    {
+     "Language": "License",
+     "PossibleLanguages": [
+      "License"
+     ],
+     "Filename": "LICENSE",
+     "Extension": "LICENSE",
+     "Location": "/project/LICENSE",
+     "Symlocation": "",
+     "Bytes": 34517,
+     "Lines": 660,
+     "Code": 544,
+     "Comment": 0,
+     "Blank": 116,
+     "Complexity": 0,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    }
+   ],
+   "LineLength": null,
+   "ULOC": 0
+  },
+  {
+   "Name": "Plain Text",
+   "Bytes": 6,
+   "CodeBytes": 0,
+   "Lines": 1,
+   "Code": 1,
+   "Comment": 0,
+   "Blank": 0,
+   "Complexity": 0,
+   "Count": 1,
+   "WeightedComplexity": 0,
+   "Files": [
+    {
+     "Language": "Plain Text",
+     "PossibleLanguages": [
+      "Plain Text"
+     ],
+     "Filename": "version.txt",
+     "Extension": "txt",
+     "Location": "/project/version.txt",
+     "Symlocation": "",
+     "Bytes": 6,
+     "Lines": 1,
+     "Code": 1,
+     "Comment": 0,
+     "Blank": 0,
+     "Complexity": 0,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    }
+   ],
+   "LineLength": null,
+   "ULOC": 0
+  },
+  {
+   "Name": "Powershell",
+   "Bytes": 1411,
+   "CodeBytes": 0,
+   "Lines": 31,
+   "Code": 27,
+   "Comment": 0,
+   "Blank": 4,
+   "Complexity": 10,
+   "Count": 1,
+   "WeightedComplexity": 0,
+   "Files": [
+    {
+     "Language": "Powershell",
+     "PossibleLanguages": [
+      "Powershell"
+     ],
+     "Filename": "build_windows.ps1",
+     "Extension": "ps1",
+     "Location": "/project/scripts/build_windows.ps1",
+     "Symlocation": "",
+     "Bytes": 1411,
+     "Lines": 31,
+     "Code": 27,
+     "Comment": 0,
+     "Blank": 4,
+     "Complexity": 10,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    }
+   ],
+   "LineLength": null,
+   "ULOC": 0
+  },
+  {
+   "Name": "Shell",
+   "Bytes": 945,
+   "CodeBytes": 0,
+   "Lines": 24,
+   "Code": 20,
+   "Comment": 1,
+   "Blank": 3,
+   "Complexity": 5,
+   "Count": 1,
+   "WeightedComplexity": 0,
+   "Files": [
+    {
+     "Language": "Shell",
+     "PossibleLanguages": [
+      "Shell"
+     ],
+     "Filename": "build_linux.sh",
+     "Extension": "sh",
+     "Location": "/project/scripts/build_linux.sh",
+     "Symlocation": "",
+     "Bytes": 945,
+     "Lines": 24,
+     "Code": 20,
+     "Comment": 1,
+     "Blank": 3,
+     "Complexity": 5,
+     "WeightedComplexity": 0,
+     "Hash": null,
+     "Binary": false,
+     "Minified": false,
+     "Generated": false,
+     "EndPoint": 0,
+     "Uloc": 0
+    }
+   ],
+   "LineLength": null,
+   "ULOC": 0
+  }
+ ]
+}

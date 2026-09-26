@@ -1,0 +1,27 @@
+rules:
+  - id: eaos.dataflow.fetch-unchecked-status
+    languages: [typescript, javascript]
+    severity: WARNING
+    message: >-
+      The response body is read without checking the status: a 404 or 500 is parsed as if it were
+      the answer. Check `response.ok` (or the status) before reading the body.
+    metadata:
+      kind: dataflow
+      category: reliability
+    patterns:
+      - pattern-either:
+          - pattern: '(await fetch(...)).json()'
+          - pattern: 'fetch(...).then(($R) => $R.json())'
+          - patterns:
+              - pattern-inside: |
+                  const $R = await fetch(...);
+                  ...
+              - pattern: '$R.json()'
+              - pattern-not-inside: |
+                  if (<... $R.ok ...>) { ... }
+                  ...
+              - pattern-not-inside: |
+                  if (<... $R.status ...>) { ... }
+                  ...
+              - pattern-not-inside: |
+                  if (<... $R.ok ...>) { ... }
