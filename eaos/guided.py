@@ -186,7 +186,8 @@ def doctor_rows(project=None):
                      'fix': 'git init && git add -A && git commit -m "first save"'})
     scan = [t for t in tools(stage='assessment')['tools'] if t['role'] in ('read', 'validate') and not t.get('unavailable')]
     missing = [t['name'] for t in scan if not t['ok']]
-    rows.append({'id': 'scan_tools', 'ok': not missing, 'when': 'now',
+    # The check runs without any of them, and the report names what it could not look at: missing ones warn.
+    rows.append({'id': 'scan_tools', 'ok': not missing, 'when': 'optional',
                  'ar': 'أدوات الفحص' + (f" (ناقص: {', '.join(missing)})" if missing else ''),
                  'en': 'Checking tools' + (f" (missing: {', '.join(missing)})" if missing else ''), 'fix': 'eaos doctor --fix'})
     run = [t for t in tools(stage='execution')['tools'] if t['name'] in ('playwright', 'k6', 'jscodeshift') and not t.get('unavailable')]
@@ -224,8 +225,10 @@ def doctor(args):
     project = Path(args.project).resolve() if args.project else None
     rows = doctor_rows(project)
     for row in rows:
-        mark = '✅' if row['ok'] else ('❌' if row['when'] == 'now' else '⬜')
-        later = '' if row['ok'] or row['when'] == 'now' else (' (لاحقًا)' if lang == 'ar' else ' (later)')
+        mark = '✅' if row['ok'] else {'now': '❌', 'optional': '⚠️'}.get(row['when'], '⬜')
+        later = ('' if row['ok'] or row['when'] == 'now' else
+                 (' (الفحص يعمل بدونها، والتقرير يذكر ما لم يُفحص)' if lang == 'ar' else ' (the check runs without them; the report names what was not checked)')
+                 if row['when'] == 'optional' else (' (لاحقًا)' if lang == 'ar' else ' (later)'))
         say(f"{mark} {row[lang]}{later}" + ('' if row['ok'] else f"\n     → {row['fix']}"))
     tools_missing = [row for row in rows if not row['ok'] and row['fix'] == 'eaos doctor --fix']
     if args.fix and tools_missing:
@@ -246,8 +249,9 @@ def doctor(args):
         return 1
     box(lang, ('جهازك جاهز للفحص' if lang == 'ar' else 'Your computer is ready to check a project'),
         commands=[_start_command(args.project)], status='ok',
-        note=None if all(row['ok'] for row in rows) else ('⬜ = تحتاجه لاحقًا عند الإصلاح، لا الآن' if lang == 'ar'
-                                                          else '⬜ = needed later, when fixing, not now'))
+        note=None if all(row['ok'] for row in rows) else (
+            ('ما تبقى لا يمنع الفحص. لتثبيته: eaos doctor --fix' if lang == 'ar'
+             else 'What is left does not stop the check. To install it: eaos doctor --fix')))
     return 0
 
 
@@ -618,10 +622,9 @@ def start(args):
             box(lang, 'ينقص جهازك شيء قبل الفحص' if lang == 'ar' else 'Your computer is missing something first',
                 commands=[blocking[0]['fix'], 'eaos start .'], status='fail')
             return 1
-        ask(state, 'install_tools', 'أدوات الفحص غير مثبّتة. أثبّتها الآن؟ (تحتاج إنترنت، بضع دقائق)' if lang == 'ar'
-            else 'The checking tools are not installed. Install them now? (needs internet, a few minutes)', args.yes)
-        from .toolchain import install
-        install(stage='assessment', echo=lambda line: say('   ' + str(line)))
+    if any(row['id'] == 'scan_tools' and not row['ok'] for row in doctor_rows(project)):
+        say(('   ⚠️ بعض أدوات الفحص غير مثبّتة؛ أفحص بدونها، والتقرير يذكر ما لم يُفحص (لتثبيتها: eaos doctor --fix)' if lang == 'ar'
+             else '   ⚠️ Some checking tools are not installed; I check without them, and the report names what was not checked (to install them: eaos doctor --fix)'))
     return advance(state, args)
 
 
