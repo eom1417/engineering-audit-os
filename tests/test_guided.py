@@ -96,6 +96,17 @@ class JourneyTests(unittest.TestCase):
         code, printed = run('status', self.project)
         self.assertIn('✅', printed)
 
+    def test_start_refuses_the_home_folder_and_a_folder_that_is_not_a_project(self):
+        empty = Path(self.tmp.name) / 'Downloads'; empty.mkdir()
+        (empty / 'notes.txt').write_text('x')
+        for folder in (empty, Path.home()):
+            code, printed = run('start', folder)
+            self.assertEqual(code, 1)
+            self.assertIn('not a project', printed)
+            self.assertIn('eaos start .', printed)
+            self.assertIsNone(guided.load(folder))
+        self.assertTrue(guided.looks_like_project(self.project))
+
     def test_a_command_before_start_says_how_to_start_without_a_log(self):
         code, printed = run('next', self.project)
         self.assertEqual(code, 6)

@@ -24,6 +24,26 @@
    }
   },
   {
+   "id": "not_a_project",
+   "match": [
+    "not a project folder"
+   ],
+   "ar": {
+    "message": "هذا المجلد ليس مشروعًا (قد يكون مجلدك الشخصي). لم أفحص شيئًا.",
+    "fix": "اكتب cd ثم مسافة، واسحب مجلد مشروعك من Finder إلى الطرفية، واضغط Enter. ثم اكتب:",
+    "commands": [
+     "eaos start ."
+    ]
+   },
+   "en": {
+    "message": "This folder is not a project (it may be your home folder). I checked nothing.",
+    "fix": "Type cd and a space, drag your project folder from Finder into the terminal, and press Enter. Then type:",
+    "commands": [
+     "eaos start ."
+    ]
+   }
+  },
+  {
    "id": "not_git",
    "match": [
     "not a git repository",
@@ -346,7 +366,7 @@
    "match": [],
    "ar": {
     "message": "حدث خطأ لم أتوقعه.",
-    "fix": "اكتب:",
+    "fix": "جرّب مرة أخرى:",
     "commands": [
      "eaos next"
     ],
@@ -354,7 +374,7 @@
    },
    "en": {
     "message": "Something went wrong that I did not expect.",
-    "fix": "Type:",
+    "fix": "Try once more:",
     "commands": [
      "eaos next"
     ],

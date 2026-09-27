@@ -616,9 +616,21 @@ def next_step(state):
 
 # ---------------------------------------------------------------- the user commands
 
+# What a project folder holds at its top; the home folder, the disk's root, or Downloads never is one.
+PROJECT_MARKERS = ('.git', 'package.json', 'pyproject.toml', 'requirements.txt', 'go.mod', 'Cargo.toml', 'composer.json',
+                   'Gemfile', 'pom.xml', 'build.gradle', 'deno.json', 'index.html')
+
+
+def looks_like_project(folder):
+    folder = Path(folder).resolve()
+    if folder in (Path.home().resolve(), Path(folder.anchor)): return False
+    return any((folder / marker).exists() for marker in PROJECT_MARKERS)
+
+
 def start(args):
     project = Path(args.project).resolve()
     if not project.is_dir(): raise ValueError(f'project folder not found: {project}')
+    if not looks_like_project(project): raise ValueError(f'not a project folder: {project}')
     state = load(project) or {'schema_version': 1, 'project': str(project), 'workspace': str(workspace(project)),
                               'started': datetime.now(timezone.utc).isoformat(timespec='seconds'), 'questions': []}
     state['lang'] = language(args.lang, state if not args.lang else None)
