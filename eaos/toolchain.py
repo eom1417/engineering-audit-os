@@ -19,7 +19,10 @@ import tempfile
 import urllib.request
 from pathlib import Path
 
-REGISTRY = Path(__file__).resolve().parent.parent / 'upstreams/toolchain.json'
+# The source is upstreams/toolchain.json; an installed package reads its packaged mirror, which
+# tools/validate.py keeps identical (an installed EAOS has no upstreams/ folder beside it).
+_SOURCE = Path(__file__).resolve().parent.parent / 'upstreams/toolchain.json'
+REGISTRY = _SOURCE if _SOURCE.is_file() else Path(__file__).resolve().parent / 'data/toolchain.json'
 VERSION = re.compile(r'(\d+\.\d+\.\d+)')
 
 
@@ -57,7 +60,7 @@ def applies(name, target):
 
 def home():
     record = registry()['home']
-    return Path(os.environ.get(record['env']) or record['default'])
+    return Path(os.environ.get(record['env']) or record['default']).expanduser()
 
 
 def binary_path(tool):
@@ -120,8 +123,15 @@ def doctor(names=None, stage=None, skip=()):
         found, reason = found_version(tool)
         ok = found == tool['version']
         if found and not ok: reason = f'found {found}, pinned {tool["version"]}'
+        if ok and tool['name'] == 'playwright':
+            missing = browser_missing()
+            if missing: ok, reason = False, missing
+        unavailable = False
+        if not ok and tool['install']['method'] == 'release':
+            try: release_spec(tool)
+            except Unavailable as problem: reason, unavailable = str(problem), True
         row = {'name': tool['name'], 'role': tool['role'], 'stages': tool['stages'], 'pinned': tool['version'],
-               'found': found, 'ok': ok, 'reason': reason}
+               'found': found, 'ok': ok, 'reason': reason, 'unavailable': unavailable}
         if tool.get('license_note'): row['license_note'] = tool['license_note']
         rows.append(row)
     return {'tools': rows}
@@ -137,8 +147,58 @@ def _link(source, name):
 TAR_MODES = {'tar.gz': 'r:gz', 'tar.xz': 'r:xz'}
 
 
-def _release(tool):
+def browsers():
+    """Where the pinned Playwright keeps its browser: EAOS's own tools folder, the same on Linux and on a Mac
+    (Playwright's default differs between them, and a restart or a cache clean-up must not take it away)."""
+    return Path(os.environ.get('PLAYWRIGHT_BROWSERS_PATH') or home() / 'browsers')
+
+
+def browser_missing():
+    """'' when the pinned Playwright's Chromium is in browsers(), else what is missing."""
+    manifest = home() / 'node/node_modules/playwright-core/browsers.json'
+    try: wanted = {b['name']: b['revision'] for b in json.loads(manifest.read_text(encoding='utf-8'))['browsers']}
+    except (OSError, ValueError, KeyError): return 'Playwright is not installed'
+    for name, folder in (('chromium', 'chromium'), ('chromium-headless-shell', 'chromium_headless_shell')):
+        if name in wanted and not (browsers() / f'{folder}-{wanted[name]}').is_dir(): return f'{name} {wanted[name]} is not installed'
+    return ''
+
+
+def install_browsers(echo=print):
+    """Download the browser the pinned Playwright drives (no administrator rights; the system libraries a
+    Linux computer may lack are named in the error, and `playwright install-deps` needs an administrator)."""
+    if not browser_missing(): return
+    playwright = home() / 'bin/playwright'
+    done = subprocess.run([str(playwright), 'install', 'chromium', 'chromium-headless-shell'], capture_output=True, text=True,
+                          env={**os.environ, 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())}, timeout=1800)
+    if done.returncode: raise RuntimeError('the browser did not install: ' + (done.stdout + done.stderr)[-400:])
+    echo(f"install chromium for playwright in {browsers()}")
+
+
+class Unavailable(RuntimeError):
+    """The tool publishes no build for this computer: EAOS goes on without it and says so."""
+
+
+def platform_key():
+    import platform
+    system = {'darwin': 'darwin', 'linux': 'linux'}.get(sys.platform, sys.platform)
+    machine = {'aarch64': 'arm64', 'amd64': 'x86_64'}.get(platform.machine().lower(), platform.machine().lower())
+    return f'{system}-{machine}'
+
+
+def release_spec(tool):
+    """The pinned build of a released tool for this computer (install.platforms), or Unavailable."""
     spec = tool['install']
+    platforms = spec.get('platforms')
+    if not platforms: return spec if platform_key() == 'linux-x86_64' else _unavailable(tool)
+    return platforms.get(platform_key()) or _unavailable(tool)
+
+
+def _unavailable(tool):
+    raise Unavailable(f"{tool['name']} publishes no build for this computer ({platform_key()})")
+
+
+def _release(tool):
+    spec = release_spec(tool)
     with urllib.request.urlopen(spec['url'], timeout=300) as response: blob = response.read()
     digest = hashlib.sha256(blob).hexdigest()
     if digest != spec['sha256']:
@@ -175,11 +235,24 @@ def _release(tool):
     _link(target, tool['binary'])
 
 
+def uv():
+    """The uv the installer brought (~/.eaos/app/uv/uv), or one on PATH, or None."""
+    brought = Path.home() / '.eaos/app/uv/uv'
+    return str(brought) if brought.exists() else shutil.which('uv')
+
+
 def _pip(tool):
-    venv = home() / 'venv'
+    """A Python tool in its own environment under the tools home. With uv when there is one: the environments
+    the installer makes have no pip, and some Pythons have no ensurepip to make one."""
+    venv, wanted = home() / 'venv', f"{tool['install']['package']}=={tool['version']}"
+    runner = uv()
     if not (venv / 'bin/python').exists():
-        subprocess.run([sys.executable, '-m', 'venv', str(venv)], check=True)
-    subprocess.run([str(venv / 'bin/pip'), 'install', '-q', f"{tool['install']['package']}=={tool['version']}"], check=True)
+        if runner: subprocess.run([runner, 'venv', '--quiet', '--python', sys.executable, str(venv)], check=True)
+        else: subprocess.run([sys.executable, '-m', 'venv', str(venv)], check=True)
+    if runner and not (venv / 'bin/pip').exists():
+        subprocess.run([runner, 'pip', 'install', '--quiet', '--python', str(venv / 'bin/python'), wanted], check=True)
+    else:
+        subprocess.run([str(venv / 'bin/pip'), 'install', '-q', wanted], check=True)
     _link(venv / 'bin' / tool['binary'], tool['binary'])
 
 
@@ -212,6 +285,10 @@ def install(names=None, stage=None, skip=(), echo=print):
         found, _ = found_version(tool)
         if found == tool['version']:
             echo(f"ok      {tool['name']} {found}")
+            if tool['name'] == 'playwright':
+                try: install_browsers(echo)
+                except (RuntimeError, OSError, subprocess.SubprocessError) as problem:
+                    echo(f"FAILED  playwright browser: {problem}"); failed.append('playwright-browser')
             continue
         if tool.get('license_note'): echo(f"note    {tool['name']}: {tool['license_note']}")
         try:
@@ -219,6 +296,9 @@ def install(names=None, stage=None, skip=(), echo=print):
             found, reason = found_version(tool)
             if found != tool['version']: raise RuntimeError(reason or f'installed {found}, pinned {tool["version"]}')
             echo(f"install {tool['name']} {found}")
+            if tool['name'] == 'playwright': install_browsers(echo)
+        except Unavailable as problem:
+            echo(f"skip    {problem}")
         except (RuntimeError, OSError, subprocess.CalledProcessError) as problem:
             echo(f"FAILED  {tool['name']}: {problem}")
             failed.append(tool['name'])

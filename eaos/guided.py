@@ -184,12 +184,12 @@ def doctor_rows(project=None):
         rows.append({'id': 'project_git', 'ok': (Path(project) / '.git').exists(), 'when': 'later',
                      'ar': 'المشروع محفوظ في git (للإصلاح فقط)', 'en': 'The project is saved in git (only for fixing)',
                      'fix': 'git init && git add -A && git commit -m "first save"'})
-    scan = [t for t in tools(stage='assessment')['tools'] if t['role'] in ('read', 'validate')]
+    scan = [t for t in tools(stage='assessment')['tools'] if t['role'] in ('read', 'validate') and not t.get('unavailable')]
     missing = [t['name'] for t in scan if not t['ok']]
     rows.append({'id': 'scan_tools', 'ok': not missing, 'when': 'now',
                  'ar': 'أدوات الفحص' + (f" (ناقص: {', '.join(missing)})" if missing else ''),
                  'en': 'Checking tools' + (f" (missing: {', '.join(missing)})" if missing else ''), 'fix': 'eaos doctor --fix'})
-    run = [t for t in tools(stage='execution')['tools'] if t['name'] in ('playwright', 'k6', 'jscodeshift')]
+    run = [t for t in tools(stage='execution')['tools'] if t['name'] in ('playwright', 'k6', 'jscodeshift') and not t.get('unavailable')]
     missing = [t['name'] for t in run if not t['ok']]
     rows.append({'id': 'fix_tools', 'ok': not missing, 'when': 'later',
                  'ar': 'أدوات تشغيل برنامجك وإصلاحه' + (f" (ناقص: {', '.join(missing)})" if missing else ''),
@@ -210,6 +210,15 @@ def doctor_rows(project=None):
     return rows
 
 
+def _pip_install(*packages):
+    """Install into EAOS's own environment: with pip, or with uv (the installer's environments have no pip)."""
+    import subprocess
+    uv = shutil.which('uv') or next((str(p) for p in [home() / 'app/uv/uv'] if p.exists()), None)
+    has_pip = subprocess.run([sys.executable, '-m', 'pip', '--version'], capture_output=True).returncode == 0
+    argv = ([sys.executable, '-m', 'pip', 'install', '--quiet'] if has_pip or not uv else [uv, 'pip', 'install', '--quiet', '--python', sys.executable])
+    subprocess.run(argv + list(packages), check=True)
+
+
 def doctor(args):
     lang = language(args.lang)
     project = Path(args.project).resolve() if args.project else None
@@ -224,7 +233,7 @@ def doctor(args):
         if any(row['id'] == 'database' for row in tools_missing):
             import subprocess
             say('…' + ('أثبّت PostgreSQL المؤقت' if lang == 'ar' else 'Installing the temporary PostgreSQL'))
-            subprocess.run([sys.executable, '-m', 'pip', 'install', '--quiet', 'pgserver>=0.1.4'], check=True)
+            _pip_install('pgserver>=0.1.4')
         stages = ['assessment'] + (['execution'] if any(row['id'] == 'fix_tools' for row in tools_missing) else [])
         say('…' + ('أثبّت الأدوات الناقصة' if lang == 'ar' else 'Installing the missing tools'))
         for stage in stages: install(stage=stage, echo=lambda line: say('   ' + str(line)))
@@ -593,7 +602,7 @@ def next_step(state):
 
 def start(args):
     project = Path(args.project).resolve()
-    if not project.is_dir(): raise FileNotFoundError(f'No such file or directory: {project}')
+    if not project.is_dir(): raise ValueError(f'project folder not found: {project}')
     state = load(project) or {'schema_version': 1, 'project': str(project), 'workspace': str(workspace(project)),
                               'started': datetime.now(timezone.utc).isoformat(timespec='seconds'), 'questions': []}
     state['lang'] = language(args.lang, state if not args.lang else None)

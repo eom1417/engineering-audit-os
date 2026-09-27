@@ -1,0 +1,71 @@
+"""EAOS installs and runs on the computer it is on (a Mac as well as Linux), from its installed package alone."""
+import json
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+from eaos import toolchain
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+class PlatformTests(unittest.TestCase):
+    def test_every_released_tool_has_a_build_for_linux_and_both_kinds_of_mac(self):
+        for tool in toolchain.registry()['tools']:
+            if tool['install']['method'] != 'release': continue
+            platforms = tool['install'].get('platforms') or {}
+            for key in ('linux-x86_64', 'darwin-arm64', 'darwin-x86_64'):
+                self.assertIn(key, platforms, f"{tool['name']} has no {key} build")
+                self.assertRegex(platforms[key]['sha256'], r'^[0-9a-f]{64}$', f"{tool['name']} {key}")
+
+    def test_the_build_is_the_one_for_this_computer_and_none_is_a_skip_not_a_broken_install(self):
+        syft = next(t for t in toolchain.registry()['tools'] if t['name'] == 'syft')
+        with mock.patch.object(toolchain, 'platform_key', return_value='darwin-arm64'):
+            self.assertIn('darwin_arm64', toolchain.release_spec(syft)['url'])
+        with mock.patch.object(toolchain, 'platform_key', return_value='windows-arm64'):
+            with self.assertRaises(toolchain.Unavailable):
+                toolchain.release_spec(syft)
+            with mock.patch.object(toolchain, 'found_version', return_value=(None, 'not installed')):
+                self.assertEqual(toolchain.install(names=['syft'], echo=lambda line: None), [], 'skipped, not failed')
+
+    def test_tools_live_in_the_persons_home_not_a_fixed_folder(self):
+        self.assertTrue(toolchain.registry()['home']['default'].startswith('~/'))
+        with mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': ''}):
+            self.assertEqual(toolchain.home(), Path.home() / '.eaos/tools')
+
+
+    def test_the_browser_lives_in_eaos_tools_folder_on_every_computer(self):
+        with mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': '/opt/eaos-tools', 'PLAYWRIGHT_BROWSERS_PATH': ''}):
+            self.assertEqual(toolchain.browsers(), Path('/opt/eaos-tools/browsers'))
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': tmp, 'PLAYWRIGHT_BROWSERS_PATH': ''}):
+            core = Path(tmp) / 'node/node_modules/playwright-core'
+            core.mkdir(parents=True)
+            (core / 'browsers.json').write_text(json.dumps({'browsers': [{'name': 'chromium', 'revision': '1243'}]}))
+            self.assertEqual(toolchain.browser_missing(), 'chromium 1243 is not installed')
+            (Path(tmp) / 'browsers/chromium-1243').mkdir(parents=True)
+            self.assertEqual(toolchain.browser_missing(), '')
+
+class InstalledPackageTests(unittest.TestCase):
+    def test_an_installed_eaos_finds_everything_it_reads_without_the_repository(self):
+        """Installed from a wheel into a fresh environment, away from this checkout: the tools list, the
+        schemas and the error catalog all come from the package."""
+        with tempfile.TemporaryDirectory() as tmp:
+            venv = Path(tmp) / 'venv'
+            # Without pip inside (ensurepip is not everywhere), filled by this pip with --python.
+            subprocess.run([sys.executable, '-m', 'venv', '--without-pip', str(venv)], check=True)
+            done = subprocess.run([sys.executable, '-m', 'pip', '--python', str(venv / 'bin/python'), 'install', '--quiet',
+                                   '--no-deps', str(ROOT)], capture_output=True, text=True)
+            if done.returncode: self.skipTest('pip could not build the package here: ' + done.stderr[-200:])
+            probe = ('import json, eaos.toolchain as t, eaos.load_model as l, eaos.guided as g, eaos.artifact_contracts as a;'
+                     'assert "site-packages" in str(t.REGISTRY), t.REGISTRY; print(len(t.registry()["tools"]));'
+                     'l.load_schema(); g.catalog(); a.contracts()')
+            ran = subprocess.run([str(venv / 'bin/python'), '-c', probe], capture_output=True, text=True, cwd=tmp)
+            self.assertEqual(ran.returncode, 0, ran.stderr[-600:])
+            self.assertGreater(int(ran.stdout.strip()), 20)
+
+
+if __name__ == '__main__':
+    unittest.main()

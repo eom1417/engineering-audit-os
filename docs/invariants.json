@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "e87f613",
+  "extracted_at_commit": "8d3b0b0",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -912,6 +912,15 @@
       "note": ""
     },
     {
+      "id": "INV-0bd76a76cd",
+      "file": "eaos/live_setup.py",
+      "symbol": "runner",
+      "statement": "How to call a package manager here: itself, or through corepack (shipped with Node) when pnpm or yarn is not installed, so a project on pnpm runs on a computer that never installed pnpm.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_setup.py::DetectTests::test_a_pnpm_project_runs_through_corepack_on_a_computer_without_pnpm",
+      "note": ""
+    },
+    {
       "id": "INV-d7217f19c3",
       "file": "eaos/live_setup.py",
       "symbol": "production_commands",
@@ -1314,6 +1323,15 @@
       "statement": "Imports whose importing file's target layer may not depend on the imported file's target layer.",
       "kind": "invariant",
       "enforced_by": "tests/test_target_projection.py::PlacementTests::test_an_import_the_layer_rules_do_not_allow_is_forbidden",
+      "note": ""
+    },
+    {
+      "id": "INV-ed7de1e862",
+      "file": "eaos/toolchain.py",
+      "symbol": "browsers",
+      "statement": "Where the pinned Playwright keeps its browser: EAOS's own tools folder, the same on Linux and on a Mac (Playwright's default differs between them, and a restart or a cache clean-up must not take it away).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_platforms.py::PlatformTests::test_the_browser_lives_in_eaos_tools_folder_on_every_computer",
       "note": ""
     },
     {

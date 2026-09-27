@@ -29,7 +29,6 @@ from pathlib import Path
 
 from .sandbox import AuthorizationError, Sandbox, head
 
-BROWSERS = Path(os.environ.get('PLAYWRIGHT_BROWSERS_PATH') or Path.home() / '.cache/ms-playwright')
 
 
 def load_profile(runtime):
@@ -79,7 +78,7 @@ class LiveRun:
     def extra(self):
         """The run's own values and the tools' locations; never an owner secret (those pass by name only).
         `{database_url}` in a value is the run's own database."""
-        from .toolchain import home
+        from .toolchain import browsers, home
         if not hasattr(self, '_extra'):
             url = self.database_url()
             env = self.profile.get('env') or {}
@@ -90,7 +89,7 @@ class LiveRun:
             fill = lambda value: (str(value).replace('{database_url}', url) if url else str(value)).replace('{run_dir}', str(folder))
             self._extra = {**{k: fill(v) for k, v in (self.profile.get('env') or {}).items()},
                            'PATH': f"{home() / 'bin'}{os.pathsep}{os.environ.get('PATH', '/usr/bin:/bin')}",
-                           'NODE_PATH': str(home() / 'node/node_modules'), 'PLAYWRIGHT_BROWSERS_PATH': str(BROWSERS)}
+                           'NODE_PATH': str(home() / 'node/node_modules'), 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())}
             self._extra.setdefault('AUTH_SECRET', secrets.token_urlsafe(48))   # generated for this run, never the owner's
         return self._extra
 

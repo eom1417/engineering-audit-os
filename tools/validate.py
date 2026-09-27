@@ -11,7 +11,9 @@ from eaos.cli import check
 PACKAGED_ROOTS=['core','modules','schemas','schemas/artifacts']
 PACKAGED_TOP=['controls.json','sources.json','START-HERE.md']
 # Files whose only home is the package itself: there is no canonical copy elsewhere to go stale against.
-PACKAGED_OWN=['errors.json','intents.json']
+PACKAGED_OWN=['errors.json','intents.json','toolchain.json']
+# Packaged copies of files kept elsewhere in the repository: (packaged name, source).
+PACKAGED_COPIES=[('toolchain.json','upstreams/toolchain.json')]
 
 
 def expected_package_files(root):
@@ -39,6 +41,8 @@ def packaged_errors(root,data=None):
     present={path.relative_to(data).as_posix() for path in data.rglob('*') if path.is_file()}
     errors+=['Missing packaged file '+rel for rel in sorted(expected-present)]
     errors+=['Unexpected packaged file '+rel for rel in sorted(present-expected)]
+    errors+=['Stale packaged copy '+name+' of '+source for name,source in PACKAGED_COPIES
+             if (root/source).is_file() and (data/name).is_file() and (root/source).read_bytes()!=(data/name).read_bytes()]
     errors+=['Stale packaged copy '+rel for rel in sorted(expected&present-set(PACKAGED_OWN)) if (root/rel).read_bytes()!=(data/rel).read_bytes()]
     patterns=package_data_patterns(root)
     if patterns is not None:

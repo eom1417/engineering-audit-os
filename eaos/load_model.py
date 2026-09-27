@@ -117,6 +117,7 @@ def validate(record):
 def load_schema():
     """The JSON Schema the load-model record must satisfy."""
     path = Path(__file__).resolve().parents[1] / 'schemas' / 'load-model.schema.json'
+    if not path.is_file(): path = Path(__file__).resolve().parent / 'data/schemas/load-model.schema.json'   # installed
     return json.loads(path.read_text(encoding='utf-8'))
 def compute(record_root):
     """Build a load-model record by reading facts already produced for this project.

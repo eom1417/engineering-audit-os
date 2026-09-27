@@ -5,8 +5,7 @@
   {
    "id": "not_a_folder",
    "match": [
-    "No such file or directory",
-    "not a directory",
+    "project folder not found",
     "Target must be an existing directory"
    ],
    "ar": {
