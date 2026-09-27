@@ -139,6 +139,35 @@ TASK-003 — التعقيد 83 (العتبة 15) في eaos/sustainability.py
 
 ## 🚀 البدء السريع
 
+### الطريقة الأسهل (بلا خبرة تقنية)
+
+**١. ثبّت EAOS** (مرة واحدة). انسخ هذا السطر في الطرفية:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/main/install.sh | bash
+```
+
+**٢. افحص مشروعك.** افتح مجلد مشروعك في الطرفية، ثم:
+
+```bash
+eaos start .
+```
+
+يأخذ الفحص من 5 إلى 30 دقيقة، ولا يغيّر شيئًا في مشروعك. في النهاية تجد صفحة **«ابدأ هنا»** بكلام بسيط:
+كم مشكلة وجدت، وأيها يُصلح آليًا، وما أنصح به.
+
+**٣. تابع.** كل أمر ينتهي بمربع فيه الخطوة التالية. انسخها والصقها:
+
+```bash
+eaos next      # الخطوة التالية
+eaos status    # أين وصلنا
+eaos doctor    # هل جهازك جاهز؟ وما الناقص وكيف تصلحه
+```
+
+> خطة جعل كل الخطوات بهذه السهولة، حتى الإصلاح: [`docs/USER-EXPERIENCE.md`](docs/USER-EXPERIENCE.md).
+
+### للمطوّرين: الأوامر المباشرة
+
 **المتطلبات:** Python 3.10 أو أحدث. الأدوات الخارجية (Semgrep وSyft وOSV-Scanner وjscpd وdependency-cruiser وStructurizr وغيرها) تُثبَّت بأمر واحد بإصدارها المثبّت وبصمتها المتحقَّقة، ومصادرها ورخصها في [`upstreams/toolchain.json`](upstreams/toolchain.json) و[`docs/TOOLCHAIN.md`](docs/TOOLCHAIN.md). غياب أداة يُعلن في التقرير ولا يوقفه.
 
 ```bash

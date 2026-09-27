@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "9b816bb",
+  "extracted_at_commit": "d19ca59",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -813,6 +813,33 @@
       "note": ""
     },
     {
+      "id": "INV-2741e2c571",
+      "file": "eaos/guided.py",
+      "symbol": "<module>",
+      "statement": "The project folder is never written.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_guided.py::JourneyTests::test_the_project_folder_is_never_written",
+      "note": ""
+    },
+    {
+      "id": "INV-5ad077bd63",
+      "file": "eaos/guided.py",
+      "symbol": "<module>",
+      "statement": "A failure is shown in plain words with its fix (eaos/data/errors.json); the technical detail goes to a log file whose path is shown, never to the screen.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_guided.py::JourneyTests::test_a_failure_reads_in_plain_words_and_the_detail_goes_to_a_log",
+      "note": ""
+    },
+    {
+      "id": "INV-3ea6365058",
+      "file": "eaos/guided.py",
+      "symbol": "workspace",
+      "statement": "~/.eaos/projects/<name>-<id>: one per project folder, never inside it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_guided.py::JourneyTests::test_the_project_folder_is_never_written",
+      "note": ""
+    },
+    {
       "id": "INV-f1d2e0c867",
       "file": "eaos/intake.py",
       "symbol": "<module>",
@@ -909,6 +936,15 @@
       "statement": "Imported lazily: a pipeline declaration must be readable without importing the whole product.",
       "kind": "invariant",
       "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_the_stage_declaration_imports_nothing_but_the_standard_library",
+      "note": ""
+    },
+    {
+      "id": "INV-07b3adf3e8",
+      "file": "eaos/pipeline/run.py",
+      "symbol": "execute",
+      "statement": "`progress(done, total, stage)` is called before each stage that will run, so a person waiting sees where the run is; it never changes what runs.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_guided.py::ProgressTests::test_the_pipeline_says_which_stage_it_is_on",
       "note": ""
     },
     {

@@ -39,8 +39,13 @@
       ],
       "what_it_does": "Print the next workflow stage for an agent to perform",
       "modern_equivalent": "RUN.md and PLAN/ cards",
-      "verdict": "replaced",
-      "evidence": "fails without workflow.json, which only legacy-audit writes; RUN.md states stage status for every run"
+      "verdict": "reused",
+      "evidence": "fails without workflow.json, which only legacy-audit writes; RUN.md states stage status for every run",
+      "reused_by": {
+        "handler": "guided_command",
+        "module": "eaos/guided.py",
+        "what_it_does": "Does the next step of the guided journey itself, for a person, and ends with the command to copy after it (docs/USER-EXPERIENCE.md)"
+      }
     },
     {
       "command": "observe",

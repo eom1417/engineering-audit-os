@@ -110,6 +110,8 @@
       "eaos/live_run.py",
       "eaos/runtime_baseline.py",
       "eaos/execute.py",
+      "eaos/guided.py",
+      "eaos/plain.py",
       "eaos/intake.py",
       "eaos/dependency_assessment.py",
       "eaos/mechanical_assessment.py",
@@ -124,7 +126,8 @@
     ],
     "tools": [
       "tools/**",
-      "design/**"
+      "design/**",
+      "install.sh"
     ],
     "rule_examples": [
       "eaos/rules/semgrep/**"

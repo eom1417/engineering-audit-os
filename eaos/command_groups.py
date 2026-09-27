@@ -4,6 +4,8 @@ Thirty-eight commands in one alphabetical block tell a reader nothing about whic
 one to run. These groups say what each surface is for and which workspace it operates in.
 """
 GROUPS = (
+    ('start', 'ابدأ من هنا: أوامر موجِّهة بكلام بسيط', 'Start here: guided commands in plain words',
+     ('start', 'next', 'status', 'doctor', 'clean')),
     ('run', 'تشغيل التدقيق', 'Run an audit',
      ('audit', 'review-project', 'stages', 'engines', 'tools', 'emit', 'engage', 'live')),
     ('inspect', 'استعلام عن مشروع', 'Ask a question about a project',

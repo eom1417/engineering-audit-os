@@ -168,6 +168,15 @@ class CommandSurfaceTests(unittest.TestCase):
             if row['verdict'] == 'replaced':
                 self.assertTrue(row['modern_equivalent'], row['command'])
 
+    def test_a_reused_name_belongs_to_its_new_command_not_the_retired_one(self):
+        from eaos import cli
+        inventory = json.loads(Path('docs/legacy-inventory.json').read_text(encoding='utf-8'))
+        for row in [r for r in inventory['commands'] if r['verdict'] == 'reused']:
+            self.assertIn(row['command'], self._commands())
+            self.assertTrue(row['reused_by']['what_it_does'], row['command'])
+            self.assertTrue(hasattr(cli, row['reused_by']['handler']), row['command'])
+            self.assertFalse(hasattr(cli, row['handler']), f"{row['command']}: the retired handler is still there")
+
     def test_every_kept_legacy_command_still_works(self):
         inventory = json.loads(Path('docs/legacy-inventory.json').read_text(encoding='utf-8'))
         kept = {row['command'] for row in inventory['commands'] if row['verdict'] == 'keep'}

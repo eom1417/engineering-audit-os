@@ -1,0 +1,366 @@
+{
+ "schema_version": 1,
+ "description": "Every known failure a user can meet, in plain words, with a fix to copy. eaos/guided.py matches an error against `match` (regular expressions over the error type and text) in order; the first match is shown: `message` says what happened, `fix` what to do, `commands` what to copy, and `after` what to do if it happens again. An unknown error falls back to `unknown`, and the technical detail always goes to a log file, never to the screen.",
+ "errors": [
+  {
+   "id": "not_a_folder",
+   "match": [
+    "No such file or directory",
+    "not a directory",
+    "Target must be an existing directory"
+   ],
+   "ar": {
+    "message": "لم أجد مجلد المشروع في المسار الذي كتبته.",
+    "fix": "افتح مجلد مشروعك في الطرفية، ثم اكتب:",
+    "commands": [
+     "eaos start ."
+    ]
+   },
+   "en": {
+    "message": "I could not find the project folder at the path you gave.",
+    "fix": "Open your project folder in the terminal, then type:",
+    "commands": [
+     "eaos start ."
+    ]
+   }
+  },
+  {
+   "id": "not_git",
+   "match": [
+    "not a git repository",
+    "NotGitRepository"
+   ],
+   "ar": {
+    "message": "مشروعك غير محفوظ في git بعد. أحتاج git لأعرف نسخة مشروعك بالضبط، ولأضع الإصلاحات في فرع مستقل.",
+    "fix": "من مجلد مشروعك اكتب هذين الأمرين بالترتيب:",
+    "commands": [
+     "git init && git add -A && git commit -m \"first save\"",
+     "eaos next"
+    ]
+   },
+   "en": {
+    "message": "Your project is not saved in git yet. I need git to know exactly which version to check, and to put fixes on a separate branch.",
+    "fix": "In your project folder, type these two, in order:",
+    "commands": [
+     "git init && git add -A && git commit -m \"first save\"",
+     "eaos next"
+    ]
+   }
+  },
+  {
+   "id": "uncommitted_changes",
+   "match": [
+    "uncommitted changes",
+    "working tree is not clean",
+    "clean tree"
+   ],
+   "ar": {
+    "message": "عندك تعديلات لم تُحفظ في git. أعمل على آخر نسخة محفوظة فقط، فلن تدخل هذه التعديلات.",
+    "fix": "احفظها أولًا، ثم تابع:",
+    "commands": [
+     "git add -A && git commit -m \"save\"",
+     "eaos next"
+    ]
+   },
+   "en": {
+    "message": "You have changes that are not saved in git. I only work on the last saved version, so they would be left out.",
+    "fix": "Save them first, then go on:",
+    "commands": [
+     "git add -A && git commit -m \"save\"",
+     "eaos next"
+    ]
+   }
+  },
+  {
+   "id": "port_busy",
+   "match": [
+    "[Aa]ddress already in use",
+    "EADDRINUSE",
+    "port .* (is )?(busy|in use)"
+   ],
+   "ar": {
+    "message": "لم أستطع تشغيل برنامجك لأن المنفذ الذي يحتاجه مشغول ببرنامج آخر.",
+    "fix": "أغلق البرنامج الآخر (مثل خادم تطوير يعمل في نافذة أخرى)، ثم اكتب:",
+    "commands": [
+     "eaos next"
+    ]
+   },
+   "en": {
+    "message": "I could not start your app because the port it needs is used by another program.",
+    "fix": "Close the other program (a dev server in another window, for example), then type:",
+    "commands": [
+     "eaos next"
+    ]
+   }
+  },
+  {
+   "id": "node_missing",
+   "match": [
+    "\\bnpm\\b.*not found",
+    "\\bnode\\b.*not found",
+    "No such file or directory: 'npm'",
+    "No such file or directory: 'node'"
+   ],
+   "ar": {
+    "message": "Node.js غير مثبّت على جهازك، ومشروعك يحتاجه.",
+    "fix": "ثبّته من https://nodejs.org (النسخة LTS)، ثم اكتب:",
+    "commands": [
+     "eaos next"
+    ]
+   },
+   "en": {
+    "message": "Node.js is not installed, and your project needs it.",
+    "fix": "Install it from https://nodejs.org (the LTS version), then type:",
+    "commands": [
+     "eaos next"
+    ]
+   }
+  },
+  {
+   "id": "tool_missing",
+   "match": [
+    "is not installed",
+    "tool .* missing",
+    "No such file or directory: '(playwright|k6|jscodeshift|semgrep|jscpd)'"
+   ],
+   "ar": {
+    "message": "أداة فحص أحتاجها غير مثبّتة.",
+    "fix": "اكتب:",
+    "commands": [
+     "eaos doctor --fix"
+    ]
+   },
+   "en": {
+    "message": "A checking tool I need is not installed.",
+    "fix": "Type:",
+    "commands": [
+     "eaos doctor --fix"
+    ]
+   }
+  },
+  {
+   "id": "install_failed",
+   "match": [
+    "install failed",
+    "npm ERR!",
+    "ERESOLVE",
+    "pip.*error"
+   ],
+   "ar": {
+    "message": "فشل تثبيت مكتبات مشروعك داخل النسخة المعزولة.",
+    "fix": "تأكد أن مشروعك يعمل عندك (npm install ثم npm run dev)، ثم اكتب:",
+    "commands": [
+     "eaos next"
+    ],
+    "after": "وإن تكرر، أرسل ملف السجل المذكور في المربع لمن يساعدك."
+   },
+   "en": {
+    "message": "Installing your project's libraries failed inside the isolated copy.",
+    "fix": "Check that your project runs for you (npm install, then npm run dev), then type:",
+    "commands": [
+     "eaos next"
+    ],
+    "after": "If it happens again, send the log file named in the box to whoever helps you."
+   }
+  },
+  {
+   "id": "no_space",
+   "match": [
+    "No space left on device",
+    "ENOSPC"
+   ],
+   "ar": {
+    "message": "مساحة القرص امتلأت.",
+    "fix": "احذف ملفات لا تحتاجها (أو نسخًا قديمة بـ: eaos clean)، ثم اكتب:",
+    "commands": [
+     "eaos next"
+    ]
+   },
+   "en": {
+    "message": "The disk is full.",
+    "fix": "Delete files you do not need (or old copies with: eaos clean), then type:",
+    "commands": [
+     "eaos next"
+    ]
+   }
+  },
+  {
+   "id": "network_down",
+   "match": [
+    "Temporary failure in name resolution",
+    "Network is unreachable",
+    "getaddrinfo",
+    "ECONNREFUSED.*registry",
+    "Could not resolve host"
+   ],
+   "ar": {
+    "message": "لا يوجد اتصال بالإنترنت، وأحتاجه لتنزيل الأدوات أو المكتبات.",
+    "fix": "تأكد من الاتصال، ثم اكتب:",
+    "commands": [
+     "eaos next"
+    ]
+   },
+   "en": {
+    "message": "There is no internet connection, and I need it to download tools or libraries.",
+    "fix": "Check your connection, then type:",
+    "commands": [
+     "eaos next"
+    ]
+   }
+  },
+  {
+   "id": "no_assistant",
+   "match": [
+    "model provider is needed",
+    "no assistant",
+    "claude.*not found",
+    "codex.*not found"
+   ],
+   "ar": {
+    "message": "لإصلاح الكود أحتاج مساعدك الذكي (Claude Code أو Codex) مثبتًا ومسجّل الدخول على هذا الجهاز.",
+    "fix": "ثبّت أحدهما وسجّل الدخول، ثم تابع:",
+    "commands": [
+     "Claude Code: https://claude.com/claude-code",
+     "Codex: https://github.com/openai/codex",
+     "eaos next"
+    ]
+   },
+   "en": {
+    "message": "To fix code I need your AI assistant (Claude Code or Codex) installed and signed in on this computer.",
+    "fix": "Install one and sign in, then go on:",
+    "commands": [
+     "Claude Code: https://claude.com/claude-code",
+     "Codex: https://github.com/openai/codex",
+     "eaos next"
+    ]
+   }
+  },
+  {
+   "id": "permission_denied",
+   "match": [
+    "Permission denied",
+    "EACCES",
+    "Operation not permitted"
+   ],
+   "ar": {
+    "message": "ليس عندي إذن للقراءة أو الكتابة في مجلد مطلوب.",
+    "fix": "تأكد أن المجلد لك وليس محميًا، ثم اكتب:",
+    "commands": [
+     "eaos next"
+    ]
+   },
+   "en": {
+    "message": "I do not have permission to read or write a folder I need.",
+    "fix": "Check that the folder is yours and not protected, then type:",
+    "commands": [
+     "eaos next"
+    ]
+   }
+  },
+  {
+   "id": "not_started",
+   "match": [
+    "no EAOS project here",
+    "run eaos start first"
+   ],
+   "ar": {
+    "message": "لم نبدأ مع هذا المشروع بعد.",
+    "fix": "من مجلد مشروعك اكتب:",
+    "commands": [
+     "eaos start ."
+    ]
+   },
+   "en": {
+    "message": "We have not started with this project yet.",
+    "fix": "In your project folder, type:",
+    "commands": [
+     "eaos start ."
+    ]
+   }
+  },
+  {
+   "id": "declined",
+   "match": [
+    "declined by the user",
+    "AuthorizationError",
+    "authorization"
+   ],
+   "ar": {
+    "message": "توقفت لأنك لم توافق على هذه الخطوة. لم يتغير شيء.",
+    "fix": "إن أردت المتابعة لاحقًا، اكتب:",
+    "commands": [
+     "eaos next"
+    ]
+   },
+   "en": {
+    "message": "I stopped because you did not agree to this step. Nothing changed.",
+    "fix": "If you want to go on later, type:",
+    "commands": [
+     "eaos next"
+    ]
+   }
+  },
+  {
+   "id": "interrupted",
+   "match": [
+    "KeyboardInterrupt"
+   ],
+   "ar": {
+    "message": "أوقفت العمل قبل أن ينتهي. ما اكتمل محفوظ.",
+    "fix": "لتكمل من حيث توقفت، اكتب:",
+    "commands": [
+     "eaos next"
+    ]
+   },
+   "en": {
+    "message": "You stopped the work before it finished. What was done is saved.",
+    "fix": "To go on from where it stopped, type:",
+    "commands": [
+     "eaos next"
+    ]
+   }
+  },
+  {
+   "id": "timeout",
+   "match": [
+    "TimeoutExpired",
+    "timed out",
+    "did not answer .* within"
+   ],
+   "ar": {
+    "message": "استغرقت خطوة وقتًا أطول من المسموح فأوقفتها.",
+    "fix": "أغلق البرامج الثقيلة الأخرى، ثم اكتب:",
+    "commands": [
+     "eaos next"
+    ]
+   },
+   "en": {
+    "message": "A step took longer than allowed, so I stopped it.",
+    "fix": "Close other heavy programs, then type:",
+    "commands": [
+     "eaos next"
+    ]
+   }
+  },
+  {
+   "id": "unknown",
+   "match": [],
+   "ar": {
+    "message": "حدث خطأ لم أتوقعه.",
+    "fix": "اكتب:",
+    "commands": [
+     "eaos next"
+    ],
+    "after": "وإن تكرر، أرسل ملف السجل المذكور في المربع لمن يساعدك."
+   },
+   "en": {
+    "message": "Something went wrong that I did not expect.",
+    "fix": "Type:",
+    "commands": [
+     "eaos next"
+    ],
+    "after": "If it happens again, send the log file named in the box to whoever helps you."
+   }
+  }
+ ]
+}

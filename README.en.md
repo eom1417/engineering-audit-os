@@ -139,6 +139,35 @@ TASK-003 — complexity 83 (threshold 15) in eaos/sustainability.py
 
 ## 🚀 Quick start
 
+### The easy way (no technical knowledge needed)
+
+**1. Install EAOS** (once). Copy this line into your terminal:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/main/install.sh | bash
+```
+
+**2. Check your project.** Open your project folder in the terminal, then:
+
+```bash
+eaos start .
+```
+
+The check takes 5 to 30 minutes and changes nothing in your project. At the end you get a **"Start here"** page in
+plain words: how many problems it found, which can be fixed automatically, and what it recommends.
+
+**3. Go on.** Every command ends with a box holding the next step. Copy and paste it:
+
+```bash
+eaos next      # the next step
+eaos status    # where we are
+eaos doctor    # is your computer ready? what is missing, and how to fix it
+```
+
+> The plan to make every step this easy, fixing included: [`docs/USER-EXPERIENCE.md`](docs/USER-EXPERIENCE.md).
+
+### For developers: the direct commands
+
 **Requirements:** Python 3.10 or newer. The external tools (Semgrep, Syft, OSV-Scanner, jscpd, dependency-cruiser, Structurizr and more) install with one command at their pinned versions and verified checksums; their sources and licences are in [`upstreams/toolchain.json`](upstreams/toolchain.json) and [`docs/TOOLCHAIN.md`](docs/TOOLCHAIN.md). When one is missing, the report says so and carries on.
 
 ```bash

@@ -33,7 +33,9 @@ def _runners():
 
 def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines=None, provider=None,
             test_command=None, site=True, goal=None, audit_run=None, runners=None, intake=None,
-            max_files=100000, max_bytes=2_000_000, policy_path=None, _completed=None):
+            max_files=100000, max_bytes=2_000_000, policy_path=None, _completed=None, progress=None):
+    """`progress(done, total, stage)` is called before each stage that will run, so a person waiting sees where
+    the run is; it never changes what runs."""
     target, out = Path(target).resolve(), Path(out).resolve()
     if out == target or target in out.parents:
         raise ValueError('Pipeline output must live outside the target; the target stays read-only')
@@ -51,6 +53,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     completed = _completed or {}
     started_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
     began = time.monotonic()
+    todo = [stage.name for stage in STAGES if stage.name in requested and stage.name not in completed]
     for stage in STAGES:
         if stage.name in completed:
             results[stage.name] = completed[stage.name]
@@ -63,6 +66,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
         if stage.name in blocked:
             results[stage.name] = _row(stage, NOT_REACHED, blocked[stage.name])
             continue
+        if progress: progress(todo.index(stage.name), len(todo), stage.name)
         context['manifest_so_far'] = {'stages': dict(results), 'seconds': round(time.monotonic() - began, 2),
                                       'status': 'RUNNING'}
         results[stage.name] = _one(stage, context, runners, results)

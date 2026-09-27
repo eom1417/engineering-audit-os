@@ -159,9 +159,19 @@ def audit_command(args):
                       'manifest': str(Path(args.out) / 'run-manifest.json'),
                       'report': summary['report'], 'site': summary['site']},
                      ensure_ascii=False, indent=2))
+    from .guided import box, start_here
+    page = start_here(Path(args.out).resolve(), args.lang, Path(args.target).resolve().name)
+    box(args.lang, 'اكتمل الفحص' if args.lang == 'ar' else 'The check is done', where=page,
+        commands=[f'eaos start {args.target}'], status='ok' if summary['status'] == 'REVIEW_REQUIRED' else 'warn',
+        note=('للمتابعة بخطوات موجِّهة' if args.lang == 'ar' else 'to go on with guided steps'), stream=sys.stderr)
     if verdict and verdict['status'] == 'FAIL' and not args.warn_only:
         return 1
     return 0 if summary['status'] == 'REVIEW_REQUIRED' else 2
+
+
+def guided_command(args):
+    from .guided import main as guided_main
+    return guided_main(args)
 
 
 def stages_command(args):
@@ -497,6 +507,17 @@ def main(argv=None):
     # Ten commands of the agent-led run workflow were retired here; docs/legacy-inventory.json
     # names each one and the declared stage that answers the same question. `init` stays because
     # the model-driven repair path below operates in the workspace it creates.
+    for name, text in (('start', 'Start here: check a project and get a plain report (nothing in it changes)'),
+                       ('next', 'Do the next step for the project in this folder'),
+                       ('status', 'Where this project stands, and what comes next'),
+                       ('doctor', 'Is this computer ready? Every missing piece, with its fix'),
+                       ('clean', 'Remove the temporary copies EAOS made; reports stay')):
+        q=s.add_parser(name,help=text)
+        q.add_argument('project',nargs='?',default='.' if name != 'doctor' else None)
+        q.add_argument('--lang',choices=['ar','en'],default=None)
+        q.add_argument('--yes',action='store_true',help='answer yes to the question this step asks')
+        if name == 'doctor': q.add_argument('--fix',action='store_true',help='install what is missing')
+        q.set_defaults(func=guided_command)
     q=s.add_parser('init',help='Create the workspace the model-driven repair commands operate in')
     q.add_argument('target');q.add_argument('--out',required=True)
     q.add_argument('--profile',choices=['architecture','full'],default='architecture')

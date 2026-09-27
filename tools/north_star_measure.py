@@ -183,7 +183,11 @@ def self_truth(record):
                    f'{len(dead)} dead of {len(dead) + len(false)} distinct candidates (by path and symbol): ' + ', '.join(dead))}
 
 
+USABILITY = ('X4', 'X5')
+
+
 def measure(record, only=None):
+    if only in USABILITY: return usability_values(only)   # read from this checkout, not from the corpus
     projects = []
     for spec in record['corpus']:
         target = CORPUS / spec['name']
@@ -194,6 +198,25 @@ def measure(record, only=None):
     values = indicator_values(projects, record)
     if only is None or only in ('D1', 'S2'): values.update(self_truth(record))
     values.update(live_values(record))
+    values.update(usability_values(only))
+    return values
+
+
+def usability_values(only=None):
+    """X4 and X5: the guided commands and the error catalog, checked on this checkout (docs/USER-EXPERIENCE.md).
+    X1-X3, X6 and X7 are added by the tasks that build what they measure."""
+    from eaos import guided
+    values = {}
+    if only in (None, 'X4'):
+        sys.path.insert(0, str(ROOT / 'tests'))
+        from test_guided import commands_ending_with_box
+        ended = commands_ending_with_box()
+        values['X4'] = (ratio(len(ended), len(guided.USER_COMMANDS)) or 0.0,
+                        f"user commands ending with the next-step box: {len(ended)}/{len(guided.USER_COMMANDS)}"
+                        + (f"; missing: {', '.join(sorted(set(guided.USER_COMMANDS) - ended))}" if set(guided.USER_COMMANDS) - ended else ''))
+    if only in (None, 'X5'):
+        done, total = guided.complete_entries()
+        values['X5'] = (ratio(done, total) or 0.0, f'known errors with a plain message, a fix and a command in Arabic and English: {done}/{total}')
     return values
 
 
