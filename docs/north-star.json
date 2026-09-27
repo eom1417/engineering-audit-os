@@ -282,6 +282,76 @@
           "evidence": "29/29 assessment tools at their pinned version",
           "reads": "eaos tools doctor --json → tools[] {name, role, pinned, found, ok}",
           "measured": "automated"
+        },
+        {
+          "id": "X1",
+          "name": "صفر ملفات يدوية",
+          "definition": "مشاريع التجربة التي وصلت من الصفر إلى أول إصلاح مطبّق بلا أي ملف كتبه المستخدم أو المطوّر باليد ÷ مشاريع التجربة",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet: docs/USER-EXPERIENCE.md",
+          "reads": "${EAOS_MEASURE:-/tmp/eaos-measure}/ux/<مشروع>/trial.json → manual_files == 0 و applied == true",
+          "measured": "recorded"
+        },
+        {
+          "id": "X2",
+          "name": "أسئلة قليلة وبسيطة",
+          "definition": "مشاريع التجربة التي سُئل فيها المستخدم 3 أسئلة أو أقل، كلها نعم/لا أو اختيار ÷ مشاريع التجربة",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet: docs/USER-EXPERIENCE.md",
+          "reads": "${EAOS_MEASURE:-/tmp/eaos-measure}/ux/<مشروع>/trial.json → questions[] {kind: yes_no|choice}",
+          "measured": "recorded"
+        },
+        {
+          "id": "X3",
+          "name": "أول تقرير خلال 30 دقيقة",
+          "definition": "مشاريع التجربة التي وصلت من التثبيت إلى أول تقرير في 30 دقيقة أو أقل ÷ مشاريع التجربة",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet: docs/USER-EXPERIENCE.md",
+          "reads": "${EAOS_MEASURE:-/tmp/eaos-measure}/ux/<مشروع>/trial.json → minutes_to_first_report",
+          "measured": "recorded"
+        },
+        {
+          "id": "X4",
+          "name": "الخطوة التالية دائمًا",
+          "definition": "أوامر المستخدم (start، next، status، doctor، audit، live …) التي تنتهي بمربع «الخطوة التالية» ÷ هذه الأوامر، بفحص آلي",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet: docs/USER-EXPERIENCE.md",
+          "reads": "tests/test_guided.py → كل أمر مستخدم يطبع مربع الخطوة التالية",
+          "measured": "recorded"
+        },
+        {
+          "id": "X5",
+          "name": "كل خطأ برسالة وحل",
+          "definition": "أخطاء كتالوج eaos/data/errors.json التي لها رسالة بسيطة بالعربية والإنجليزية وحل قابل للنسخ ÷ أخطاء الكتالوج",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet: docs/USER-EXPERIENCE.md",
+          "reads": "eaos/data/errors.json",
+          "measured": "recorded"
+        },
+        {
+          "id": "X6",
+          "name": "المساعد يفهم القصد",
+          "definition": "طلبات بلغة عادية (عربي وإنجليزي) في tests/fixtures/intents.json يختار لها جدول النوايا الأمر الصحيح ÷ الطلبات",
+          "target": 0.9,
+          "value": null,
+          "evidence": "not measured yet: docs/USER-EXPERIENCE.md",
+          "reads": "tests/fixtures/intents.json مقابل eaos/data/intents.json",
+          "measured": "recorded"
+        },
+        {
+          "id": "X7",
+          "name": "المالك غير التقني نجح وحده",
+          "definition": "المالك (غير تقني) أكمل من الصفر حتى أول إصلاح مطبّق باتباع الدليل وحده، بلا مساعدة",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet: docs/USER-EXPERIENCE.md",
+          "reads": "docs/ux-trials/owner.md: سجل التجربة كما جرت",
+          "measured": "recorded"
         }
       ]
     },
@@ -3963,6 +4033,202 @@
           "acceptance": "python tools/north_star.py measure --only E1 --min 1.0 && python tools/acceptance.py contract execution-log",
           "rollback": "لا تغيير في الكود.",
           "status": "done"
+        },
+        {
+          "id": "NS9.T2",
+          "title": "بداية سهلة: تثبيت بسطر واحد، وفحص جاهزية، وأوامر موجِّهة",
+          "why": "الأداة موجهة لمن بنى برنامجه بـVibe Coding. أداة لا يستخدمها إلا مبرمج لا تحقق وعدها (docs/USER-EXPERIENCE.md).",
+          "moves": [
+            "X4",
+            "X5"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS9.T1"
+          ],
+          "size": "L",
+          "files": [
+            "install.sh",
+            "eaos/guided.py",
+            "eaos/data/errors.json",
+            "eaos/cli.py",
+            "tests/test_guided.py"
+          ],
+          "writes": [],
+          "steps": [
+            "install.sh: سطر واحد يثبّت الأداة (pipx أو venv) وأدوات المرحلة الأولى، ويطبع الخطوة التالية.",
+            "eaos doctor: قائمة ✅/❌ لما تحتاجه كل مرحلة (Python، Node، git، Playwright، k6، قاعدة البيانات، مساعد ذكي)، ولكل ❌ أمر إصلاحه.",
+            "eaos start <مجلد المشروع> و eaos next و eaos status: حالة محفوظة في <المشروع>/.eaos/state.json (مجلد يُضاف إلى .gitignore تلقائيًا)، والأداة تختار الخطوة التالية بنفسها: فحص ← شبكة أمان ← دفعة ← تطبيق.",
+            "كل أمر مستخدم ينتهي بمربع ثابت: ما حدث، وأين النتائج، والأمر التالي للنسخ. مؤشر تقدم بالخطوات أثناء التشغيل الطويل.",
+            "eaos/data/errors.json: كتالوج أخطاء (منفذ مشغول، تثبيت فشل، git غير نظيف، لا مساعد ذكي، قاعدة بيانات لا تعمل …) لكل خطأ رسالة بسيطة عربية وإنجليزية وحل قابل للنسخ. خطأ غير معروف يُعرض بصياغة عامة وسجل تقني في ملف.",
+            "START-HERE.md في كل تقرير: صفحة واحدة بكلام بسيط: صحة المشروع، وأهم 5 مشاكل، والتوصية، والخطوة التالية."
+          ],
+          "done_when": [
+            "X4 = 1.0.",
+            "X5 = 1.0.",
+            "tests/test_guided.py يمر."
+          ],
+          "pitfalls": [
+            "لا يُعدّ الشيء سهلًا لأنه سهل على مطوّر: الحكم تجربة من الصفر بالدليل وحده.",
+            "لا يُطلب من المستخدم سرّ حقيقي أبدًا: القيم التي يحتاجها التشغيل المعزول تُولَّد محليًا."
+          ],
+          "acceptance": "python -m unittest tests.test_guided && python tools/north_star.py measure --only X4 --min 1.0 && python tools/north_star.py measure --only X5 --min 1.0",
+          "rollback": "احذف الأوامر الجديدة؛ الأوامر القديمة لم تتغير.",
+          "status": "todo"
+        },
+        {
+          "id": "NS9.T3",
+          "title": "إعداد تشغيل تلقائي: لا ملف يدوي ولا سكربت",
+          "why": "تشغيل chief-ops احتاج ملف تشغيل وقاعدة بيانات وسكربت بيانات وتفويضًا كُتبت كلها باليد. المستخدم غير التقني لا يستطيع ذلك.",
+          "moves": [
+            "X1",
+            "X2"
+          ],
+          "needs": "sandbox",
+          "depends_on": [
+            "NS9.T2"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/live_setup.py",
+            "eaos/live_run.py",
+            "eaos/cli.py",
+            "tests/test_live_setup.py"
+          ],
+          "writes": [],
+          "steps": [
+            "eaos live setup (يستدعيه eaos next): يكتشف مجلد التطبيق، وأوامر التثبيت والتشغيل والبناء، والمنفذ، ومسار الصحة، وأوامر الفحص (typecheck وlint وtest) من package.json وملفات الإطار، ويكتب run.json.",
+            "قاعدة البيانات: يكتشف نوعها (PostgreSQL، Supabase، SQLite، بلا قاعدة) ويجهّز نسخة محلية على loopback بكلمات سر مولَّدة محليًا (Supabase: supabase start). متغيرات البيئة الناقصة تُملأ بقيم وهمية آمنة مولَّدة، ولا يُسأل المستخدم عن سر أبدًا.",
+            "التفويض: سؤال واحد «هل تسمح بتشغيل مشروعك في نسخة معزولة على جهازك؟ (نعم/لا)»، و«نعم» تكتب authorization.json.",
+            "الدخول والبيانات: سكربت بيانات المشروع إن وُجد؛ وإلا يُفتح متصفح مرة واحدة يدخل فيه المستخدم ويضيف بيانات قليلة وتُحفظ الجلسة؛ وإن رفض، تُصوَّر الشاشات فارغة ويُكتب ذلك قيدًا في التقرير.",
+            "ما لا يُكتشف يُسأل عنه بسؤال نعم/لا أو اختيار، ويُسجَّل السؤال في trial.json."
+          ],
+          "done_when": [
+            "eaos live setup ثم lock ثم baseline تنجح على chief-ops من الصفر بلا ملف يدوي.",
+            "tests/test_live_setup.py يمر."
+          ],
+          "pitfalls": [
+            "لا يُعدّ الشيء سهلًا لأنه سهل على مطوّر: الحكم تجربة من الصفر بالدليل وحده.",
+            "لا يُطلب من المستخدم سرّ حقيقي أبدًا: القيم التي يحتاجها التشغيل المعزول تُولَّد محليًا."
+          ],
+          "acceptance": "python -m unittest tests.test_live_setup && python tools/north_star.py measure --only X2 --min 1.0",
+          "rollback": "احذف الأوامر الجديدة؛ الأوامر القديمة لم تتغير.",
+          "status": "todo"
+        },
+        {
+          "id": "NS9.T4",
+          "title": "تنفيذ بالدفعات، وتطبيق فرعًا، وتراجع",
+          "why": "بطاقة بطاقة برقمها لا تناسب المستخدم. يريد: أصلح الدفعة، واعرض لي، وطبّق، وتراجع.",
+          "moves": [
+            "X1"
+          ],
+          "needs": "sandbox",
+          "depends_on": [
+            "NS9.T3"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/execute.py",
+            "eaos/cli.py",
+            "tests/test_execute.py"
+          ],
+          "writes": [],
+          "steps": [
+            "eaos live cards: البطاقات الجاهزة بجملة مفهومة لكل واحدة ودفعتها.",
+            "eaos live execute --wave N: بطاقات الدفعة فوق بعضها في نسخة واحدة، كل بطاقة خلف بواباتها الأربع، والفاشلة تُتخطى بسببها بكلام بسيط.",
+            "eaos live apply: ما نجح يصير فرعًا جديدًا eaos/wave-N في مشروع المستخدم، وفرعه الحالي لا يُلمس؛ ثم مقارنة قبل وبعد.",
+            "eaos live undo: يحذف الفرع ويعيد الحال كما كان."
+          ],
+          "done_when": [
+            "دفعة كاملة على chief-ops تُطبَّق فرعًا وتُتراجع عنه، بلا ملف يدوي."
+          ],
+          "pitfalls": [
+            "لا يُعدّ الشيء سهلًا لأنه سهل على مطوّر: الحكم تجربة من الصفر بالدليل وحده.",
+            "لا يُطلب من المستخدم سرّ حقيقي أبدًا: القيم التي يحتاجها التشغيل المعزول تُولَّد محليًا."
+          ],
+          "acceptance": "python -m unittest tests.test_execute && python tools/north_star.py measure --only X1 --min 1.0",
+          "rollback": "احذف الأوامر الجديدة؛ الأوامر القديمة لم تتغير.",
+          "status": "todo"
+        },
+        {
+          "id": "NS9.T5",
+          "title": "المساعد الذكي يفهم الطلب العادي (Claude Code وCodex)",
+          "why": "الطريقة الأسهل: يكتب المستخدم لمساعده بكلامه، والمساعد يختار أمر الأداة الصحيح ويشرح النتيجة.",
+          "moves": [
+            "X6"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS9.T4"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/data/intents.json",
+            "integrations/claude-code/",
+            "integrations/codex/AGENTS.md",
+            "eaos/mcp_server.py",
+            "tests/fixtures/intents.json",
+            "tests/test_intents.py"
+          ],
+          "writes": [],
+          "steps": [
+            "جدول نوايا eaos/data/intents.json: طلبات عادية عربية وإنجليزية («افحص مشروعي»، «وش المشاكل»، «أصلح»، «وريني النتيجة»، «تراجع»، «وين وصلنا») ← الأمر الصحيح، ومتى يُسأل المستخدم قبل التنفيذ.",
+            "مهارة Claude Code (integrations/claude-code/) وتعليمات Codex (integrations/codex/AGENTS.md) تُثبَّت بأمر: eaos assistant install. تشرح للمساعد متى يستدعي أي أمر وكيف يعرض النتيجة بكلام بسيط.",
+            "خادم MCP (eaos mcp) يعرض الأوامر أدوات: start وnext وstatus وcards وexecute وapply وundo.",
+            "التنفيذ يستخدم المساعد المثبّت نفسه (Claude أو Codex) بلا مفتاح API، كما في eaos/runtime/claude_adapter.py."
+          ],
+          "done_when": [
+            "X6 ≥ 0.9 على tests/fixtures/intents.json."
+          ],
+          "pitfalls": [
+            "لا يُعدّ الشيء سهلًا لأنه سهل على مطوّر: الحكم تجربة من الصفر بالدليل وحده.",
+            "لا يُطلب من المستخدم سرّ حقيقي أبدًا: القيم التي يحتاجها التشغيل المعزول تُولَّد محليًا."
+          ],
+          "acceptance": "python -m unittest tests.test_intents && python tools/north_star.py measure --only X6 --min 0.9",
+          "rollback": "احذف الأوامر الجديدة؛ الأوامر القديمة لم تتغير.",
+          "status": "todo"
+        },
+        {
+          "id": "NS9.T6",
+          "title": "الدليل والإثبات: من الصفر إلى أول إصلاح",
+          "why": "لا يُعدّ شيء سهلًا حتى ينجح فيه من لم يبنه، بالدليل وحده.",
+          "moves": [
+            "X1",
+            "X2",
+            "X3",
+            "X7"
+          ],
+          "needs": "sandbox",
+          "depends_on": [
+            "NS9.T5"
+          ],
+          "size": "M",
+          "files": [
+            "README.md",
+            "docs/GUIDE.md",
+            "tools/ux_trial.py",
+            "docs/ux-trials/",
+            "LICENSE"
+          ],
+          "writes": [],
+          "steps": [
+            "docs/GUIDE.md وملخصه في README: «من الصفر إلى أول إصلاح». لكل خطوة: الأمر في مربع للنسخ، والمدة، والمخرج المتوقع، والخطوة التالية. وقسم «إذا ظهر لك هذا الخطأ». بلا مصطلحات، عربي وإنجليزي.",
+            "tools/ux_trial.py: تجربة من الصفر في حساب نظيف بالأوامر وحدها، تكتب trial.json {manual_files, questions[], minutes_to_first_report, applied}.",
+            "التجارب: chief-ops، وendomap، وقالب Supabase رسمي مفتوح المصدر. تجربة احتاجت تدخلًا يدويًا واحدًا لا تُحسب، وتصير مهمة.",
+            "تجربة المالك (غير تقني) من الدليل وحده، تُسجَّل في docs/ux-trials/owner.md كما جرت.",
+            "LICENSE برخصة MIT بموافقة المالك."
+          ],
+          "done_when": [
+            "X1 = X2 = X3 = 1.0 على التجارب الثلاث.",
+            "X7 = 1."
+          ],
+          "pitfalls": [
+            "لا يُعدّ الشيء سهلًا لأنه سهل على مطوّر: الحكم تجربة من الصفر بالدليل وحده.",
+            "لا يُطلب من المستخدم سرّ حقيقي أبدًا: القيم التي يحتاجها التشغيل المعزول تُولَّد محليًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only X1 --min 1.0 && python tools/north_star.py measure --only X3 --min 1.0 && python tools/north_star.py measure --only X7 --min 1.0",
+          "rollback": "احذف الأوامر الجديدة؛ الأوامر القديمة لم تتغير.",
+          "status": "todo"
         }
       ],
       "stages": [

@@ -72,7 +72,7 @@ flowchart TB
     end
     subgraph P3["التنفيذ: بيئة معزولة بتفويض المالك (1/2)"]
         direction LR
-        S08["<b>S08 · التنفيذ</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 100%"]:::done
+        S08["<b>S08 · التنفيذ</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 20%"]:::current
         S09["<b>S09 · التحقق الوظيفي</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 0%"]:::next
         S10["<b>S10 · الأمن</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
         S11["<b>S11 · الحمل</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
@@ -194,13 +194,13 @@ eaos improve audit --out campaign --checks checks.json \
 <!-- north-star:progress:start -->
 <!-- مولَّد من docs/north-star.json بالأمر python tools/north_star.py؛ لا تحرّره يدويًا -->
 
-### التقدم: **77.9 من 100 نقطة**
+### التقدم: **71.5 من 100 نقطة**
 
-`███████████████████░░░░░░` 77.9%
+`██████████████████░░░░░░░` 71.5%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 18 من 25 | 19 · NS20 التحقق الوظيفي: الوظائف نفسها باقية، والتنبؤ حدث | 22.1 | 18 | 2026-09-27 · `f4ae69d+` |
+| 17 من 25 | 18 · NS9 إثبات التنفيذ | 28.5 | 23 | 2026-09-27 · `f4ae69d+` |
 
 `+`: قيس على تغييرات فوق هذا الالتزام، حُفظت في الالتزام التالي.
 
@@ -264,10 +264,10 @@ flowchart TB
     subgraph R6_1["R6 · التنفيذ المثبت"]
         direction LR
         NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 100%"]:::done
-        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 100%"]:::done
-        NS20["<b>19 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::current
+        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 20%"]:::current
+        NS20["<b>19 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
         NS26 -->|"✔ E5≥0.8 · +2 اختبار قبول"| NS9
-        NS9 -->|"✔ E1=1 · +1 اختبار قبول"| NS20
+        NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +5 اختبار قبول"| NS20
     end
     subgraph R7_1["R7 · التصليب التشغيلي (1/2)"]
         direction LR
