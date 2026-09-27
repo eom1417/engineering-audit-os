@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-27",
-  "measured_at_commit": "f4ae69d+",
+  "measured_at_commit": "d59d178+",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -318,20 +318,20 @@
           "name": "الخطوة التالية دائمًا",
           "definition": "أوامر المستخدم (start، next، status، doctor، audit، live …) التي تنتهي بمربع «الخطوة التالية» ÷ هذه الأوامر، بفحص آلي",
           "target": 1.0,
-          "value": null,
-          "evidence": "not measured yet: docs/USER-EXPERIENCE.md",
+          "value": 1.0,
+          "evidence": "user commands ending with the next-step box: 5/5",
           "reads": "tests/test_guided.py → كل أمر مستخدم يطبع مربع الخطوة التالية",
-          "measured": "recorded"
+          "measured": "automated"
         },
         {
           "id": "X5",
           "name": "كل خطأ برسالة وحل",
           "definition": "أخطاء كتالوج eaos/data/errors.json التي لها رسالة بسيطة بالعربية والإنجليزية وحل قابل للنسخ ÷ أخطاء الكتالوج",
           "target": 1.0,
-          "value": null,
-          "evidence": "not measured yet: docs/USER-EXPERIENCE.md",
+          "value": 1.0,
+          "evidence": "known errors with a plain message, a fix and a command in Arabic and English: 16/16",
           "reads": "eaos/data/errors.json",
-          "measured": "recorded"
+          "measured": "automated"
         },
         {
           "id": "X6",
@@ -4061,7 +4061,8 @@
             "eaos start <مجلد المشروع> و eaos next و eaos status: حالة محفوظة في <المشروع>/.eaos/state.json (مجلد يُضاف إلى .gitignore تلقائيًا)، والأداة تختار الخطوة التالية بنفسها: فحص ← شبكة أمان ← دفعة ← تطبيق.",
             "كل أمر مستخدم ينتهي بمربع ثابت: ما حدث، وأين النتائج، والأمر التالي للنسخ. مؤشر تقدم بالخطوات أثناء التشغيل الطويل.",
             "eaos/data/errors.json: كتالوج أخطاء (منفذ مشغول، تثبيت فشل، git غير نظيف، لا مساعد ذكي، قاعدة بيانات لا تعمل …) لكل خطأ رسالة بسيطة عربية وإنجليزية وحل قابل للنسخ. خطأ غير معروف يُعرض بصياغة عامة وسجل تقني في ملف.",
-            "START-HERE.md في كل تقرير: صفحة واحدة بكلام بسيط: صحة المشروع، وأهم 5 مشاكل، والتوصية، والخطوة التالية."
+            "START-HERE.md في كل تقرير: صفحة واحدة بكلام بسيط: صحة المشروع، وأهم 5 مشاكل، والتوصية، والخطوة التالية.",
+            "كما نُفّذ: install.sh سطر واحد يثبّت EAOS في ~/.eaos/app ويربط الأمر eaos ويثبّت أدوات الفحص (جُرّب في حساب نظيف). eaos start/next/status/doctor/clean في eaos/guided.py: كل ما يخص المشروع في ~/.eaos/projects/ ولا يُكتب شيء في المشروع؛ state.json يتذكر أين وصل المستخدم؛ الأسئلة نعم/لا تُحفظ، وبلا طرفية تنتظر --yes. كل أمر ينتهي بمربع الخطوة التالية (X4 = 1.0، 5/5). eaos/data/errors.json فيه 16 خطأً معروفًا برسالة وحل وأمر بالعربية والإنجليزية (X5 = 1.0)، والتفاصيل التقنية في ملف سجل. START-HERE.md تنتجه مرحلة compose في كل تقرير، معلنًا في عقد المخرجات. التدقيق يطبع تقدّمه مرحلة مرحلة. README يبدأ بالطريقة الأسهل باللغتين. الاسم next أعيد استخدامه وسُجّل ذلك في docs/legacy-inventory.json."
           ],
           "done_when": [
             "X4 = 1.0.",
@@ -4074,7 +4075,7 @@
           ],
           "acceptance": "python -m unittest tests.test_guided && python tools/north_star.py measure --only X4 --min 1.0 && python tools/north_star.py measure --only X5 --min 1.0",
           "rollback": "احذف الأوامر الجديدة؛ الأوامر القديمة لم تتغير.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS9.T3",

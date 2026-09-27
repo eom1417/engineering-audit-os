@@ -159,8 +159,8 @@ def audit_command(args):
                       'manifest': str(Path(args.out) / 'run-manifest.json'),
                       'report': summary['report'], 'site': summary['site']},
                      ensure_ascii=False, indent=2))
-    from .guided import box, start_here
-    page = start_here(Path(args.out).resolve(), args.lang, Path(args.target).resolve().name)
+    from .guided import box
+    page = Path(args.out).resolve() / 'START-HERE.md'
     box(args.lang, 'اكتمل الفحص' if args.lang == 'ar' else 'The check is done', where=page,
         commands=[f'eaos start {args.target}'], status='ok' if summary['status'] == 'REVIEW_REQUIRED' else 'warn',
         note=('للمتابعة بخطوات موجِّهة' if args.lang == 'ar' else 'to go on with guided steps'), stream=sys.stderr)

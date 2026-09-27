@@ -263,7 +263,8 @@ def scan(state, args):
     except ValueError:                                  # the source changed since the partial run: start afresh
         shutil.rmtree(out, ignore_errors=True)
         manifest = execute(state['project'], out, **options)
-    page = start_here(out, lang, Path(state['project']).name)
+    page = out / 'START-HERE.md'
+    if not page.is_file(): start_here(out, lang, Path(state['project']).name)   # compose did not run: still one page
     state['scanned'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
     save(state)
     counts = summary_counts(out)

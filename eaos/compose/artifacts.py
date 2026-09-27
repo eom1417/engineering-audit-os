@@ -40,6 +40,8 @@ ARTIFACTS = (
              required=False, absent_when='neither Vale nor markdownlint-cli2 is installed'),
     Artifact('EXECUTIVE.pdf', 'pdf', DOCUMENT, 'One page for the decision maker: the decision, three numbers, three risks, the milestones',
              3, 1, record='reports.json', required=False, absent_when='Typst, or a font for the report language, is not installed'),
+    Artifact('START-HERE.md', 'compose', DOCUMENT, 'The first page, in plain words: how many problems, which are fixed automatically, the next step',
+             0, 80, record='plan.json'),
     Artifact('README.md', 'claims', DOCUMENT, 'What this report holds and in what order to read it', 1, 120,
              record='dossier.json'),
     Artifact('RUN.md', 'validate', DOCUMENT, 'What this run examined, and what it could not', 2, 120,
