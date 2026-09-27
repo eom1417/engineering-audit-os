@@ -169,6 +169,16 @@ def log_failure(where, problem):
 
 # ---------------------------------------------------------------- the readiness check
 
+def node_major():
+    """The major version of the Node.js on PATH, or 0 when there is none."""
+    import subprocess
+    if not (shutil.which('node') and shutil.which('npm')): return 0
+    try: out = subprocess.run(['node', '--version'], capture_output=True, text=True, timeout=30).stdout
+    except (OSError, subprocess.SubprocessError): return 0
+    found = re.match(r'v?(\d+)', out.strip())
+    return int(found.group(1)) if found else 0
+
+
 def doctor_rows(project=None):
     """What each part of the journey needs, and whether it is here: [{id, ok, when, ar, en, fix}]."""
     from .toolchain import doctor as tools
@@ -177,8 +187,10 @@ def doctor_rows(project=None):
         {'id': 'python', 'ok': sys.version_info >= (3, 10), 'when': 'now', 'ar': 'Python 3.10 أو أحدث', 'en': 'Python 3.10 or newer',
          'fix': 'https://www.python.org/downloads/'},
         {'id': 'git', 'ok': bool(shutil.which('git')), 'when': 'now', 'ar': 'git', 'en': 'git', 'fix': 'https://git-scm.com/downloads'},
-        {'id': 'node', 'ok': bool(shutil.which('node') and shutil.which('npm')), 'when': 'now' if js else 'later',
-         'ar': 'Node.js (لمشاريع JavaScript)', 'en': 'Node.js (for JavaScript projects)', 'fix': 'https://nodejs.org'},
+        {'id': 'node', 'ok': node_major() >= 22, 'when': 'now' if js and node_major() == 0 else 'optional' if js else 'later',
+         'ar': 'Node.js 22 أو أحدث' + (f' (عندك {node_major()}، وبعض الأدوات والمشاريع تحتاج 22)' if 0 < node_major() < 22 else ''),
+         'en': 'Node.js 22 or newer' + (f' (you have {node_major()}; some tools and projects need 22)' if 0 < node_major() < 22 else ''),
+         'fix': 'https://nodejs.org  (LTS)'},
     ]
     if project:
         rows.append({'id': 'project_git', 'ok': (Path(project) / '.git').exists(), 'when': 'later',

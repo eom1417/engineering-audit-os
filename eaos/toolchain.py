@@ -87,7 +87,15 @@ def found_version(tool):
                               env={**os.environ, 'NO_COLOR': '1', 'PATH': str(home() / 'bin') + os.pathsep + os.environ.get('PATH', '')})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return None, f'{path} --version failed: {problem}'
-    match = VERSION.search(done.stdout + done.stderr)
+    output = done.stdout + done.stderr
+    # A tool may print another program's version first (dependency-cruiser names the Node.js it refuses):
+    # the pinned version anywhere in the output is the tool's own; a refusal of Node.js is said as such.
+    if tool['version'] in VERSION.findall(output) and not tool.get('version_reports'):
+        match = re.search('(' + re.escape(tool['version']) + ')', output)
+    else:
+        match = VERSION.search(output)
+    if tool['version'] not in output and re.search(r'node', output, re.I) and re.search(r'not supported|unsupported|requires|engine', output, re.I):
+        return None, f"{tool['name']} needs a newer Node.js than this computer has ({output.strip()[:160]})"
     if not match: return None, f'{path} --version printed no version'
     missing = _companions_missing(tool)
     if missing: return None, missing

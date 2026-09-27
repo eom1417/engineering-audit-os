@@ -77,6 +77,18 @@ class PlatformTests(unittest.TestCase):
         self.assertNotEqual(toolchain.npm_prefix(cruiser), toolchain.npm_prefix({'name': 'renovate'}))
         self.assertEqual(toolchain.npm_prefix({'name': 'playwright'}), toolchain.home() / 'node')
 
+    def test_a_tool_that_refuses_this_node_says_so_and_is_not_read_as_another_version(self):
+        cruiser = next(t for t in toolchain.registry()['tools'] if t['name'] == 'dependency-cruiser')
+        refusal = mock.Mock(returncode=1, stdout='', stderr='ERROR: node 20.20.2 is not supported; it requires ^22||^24||>=26')
+        with mock.patch.object(toolchain, 'binary_path', return_value='/x/depcruise'), mock.patch.object(toolchain.subprocess, 'run', return_value=refusal):
+            found, reason = toolchain.found_version(cruiser)
+        self.assertIsNone(found)
+        self.assertIn('needs a newer Node.js', reason)
+        noisy = mock.Mock(returncode=0, stdout='node v20.20.2 detected\n18.4.0\n', stderr='')
+        with mock.patch.object(toolchain, 'binary_path', return_value='/x/depcruise'), mock.patch.object(toolchain.subprocess, 'run', return_value=noisy), \
+                mock.patch.object(toolchain, '_companions_missing', return_value=''):
+            self.assertEqual(toolchain.found_version(cruiser), ('18.4.0', ''), 'its own version, wherever it is printed')
+
 class InstalledPackageTests(unittest.TestCase):
     def test_an_installed_eaos_finds_everything_it_reads_without_the_repository(self):
         """Installed from a wheel into a fresh environment, away from this checkout: the tools list, the
