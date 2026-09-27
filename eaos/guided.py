@@ -28,7 +28,7 @@ from . import plain
 
 ERRORS = Path(__file__).resolve().parent / 'data/errors.json'
 # The commands a user types, each ending with the next-step box (X4 in docs/north-star.json).
-USER_COMMANDS = ('start', 'next', 'status', 'doctor', 'clean', 'accept', 'undo')
+USER_COMMANDS = ('start', 'next', 'status', 'doctor', 'clean', 'accept', 'undo', 'show', 'do', 'assistant')
 LINE = '─' * 60
 
 
@@ -526,6 +526,55 @@ def undo(args):
     return 0
 
 
+def show(args):
+    """The "Start here" page, printed: what was found, in plain words."""
+    state = current(args.project)
+    lang = language(args.lang, state)
+    page = report_of(state) / 'START-HERE.md'
+    if not page.is_file():
+        box(lang, 'لم أفحص المشروع بعد' if lang == 'ar' else 'I have not checked the project yet', commands=['eaos next'], status='warn')
+        return 0
+    say(page.read_text(encoding='utf-8'))
+    box(lang, 'هذه نتيجة الفحص' if lang == 'ar' else 'This is what the check found', where=page, commands=['eaos next'])
+    return 0
+
+
+def do(args):
+    """A request in plain words (`eaos do "افحص مشروعي"`), understood (eaos/intents.py) and done."""
+    from .intents import understand
+    lang = language(args.lang)
+    request = ' '.join(args.request or [])
+    intent, _ = understand(request)
+    if intent is None:
+        box(lang, ('لم أفهم الطلب. جرّب مثلًا: «افحص مشروعي»، «كمّل»، «وش المشاكل»، «وين وصلنا»' if lang == 'ar'
+                   else 'I did not understand. Try, for example: "check my project", "continue", "what is wrong", "where are we"'),
+            commands=['eaos do "افحص مشروعي"' if lang == 'ar' else 'eaos do "check my project"'], status='warn')
+        return 0
+    command = intent['command'][0]
+    say(('سأنفّذ: ' if lang == 'ar' else 'Doing: ') + 'eaos ' + ' '.join(intent['command']))
+    from argparse import Namespace
+    target = intent['command'][1] if len(intent['command']) > 1 else args.project
+    inner = Namespace(command=command, project=target if command != 'doctor' else None, lang=args.lang, yes=args.yes, fix=False)
+    return COMMANDS[command](inner)
+
+
+def assistant(args):
+    """Teach the person's AI assistant to use EAOS: the Claude Code skill and the Codex instructions, installed."""
+    from .assistant_setup import install
+    lang = language(args.lang)
+    done = install()
+    if not done:
+        box(lang, ('لم أجد Claude Code ولا Codex على جهازك' if lang == 'ar' else 'I found neither Claude Code nor Codex on this computer'),
+            commands=['eaos start .'], status='warn',
+            note=('ثبّت أحدهما لتكلّمه بكلامك، أو استخدم أوامر eaos مباشرة' if lang == 'ar'
+                  else 'Install one to talk to it in your own words, or use the eaos commands directly'))
+        return 0
+    box(lang, ('صار مساعدك يعرف EAOS: ' if lang == 'ar' else 'Your assistant now knows EAOS: ') + ', '.join(done),
+        commands=['«افحص مشروعي»' if lang == 'ar' else '"check my project"'],
+        note=('افتح مساعدك في مجلد مشروعك واكتب له بكلامك' if lang == 'ar' else 'Open your assistant in your project folder and ask in your own words'))
+    return 0
+
+
 # (id, Arabic title, English title, done(state), run(state, args)).
 STEPS = [
     ('scan', 'فحص المشروع وكتابة التقرير', 'Check the project and write the report', scan_done, scan),
@@ -613,7 +662,8 @@ def clean(args):
     return 0
 
 
-COMMANDS = {'start': start, 'next': next_command, 'status': status, 'doctor': doctor, 'clean': clean, 'accept': accept, 'undo': undo}
+COMMANDS = {'start': start, 'next': next_command, 'status': status, 'doctor': doctor, 'clean': clean, 'accept': accept, 'undo': undo,
+            'show': show, 'do': do, 'assistant': assistant}
 
 
 def main(args):

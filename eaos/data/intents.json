@@ -1,0 +1,471 @@
+{
+ "schema_version": 1,
+ "description": "What a person means, in their own words, and the EAOS command that does it. eaos/intents.py normalises the request (Arabic letter forms, diacritics, case) and picks the intent whose phrase it contains, the longest phrase winning. `eaos do \"<request>\"` runs the command; the assistant skills read this file to choose. `consent` marks the commands that change something the person owns: the assistant asks the person before adding --yes, never on their behalf. When no phrase matches whole, `keywords` score the words of the request (Arabic prefixes and suffixes removed); the highest score of at least 3 wins, and a tie is no answer.",
+ "intents": [
+  {
+   "id": "start",
+   "command": [
+    "start",
+    "."
+   ],
+   "consent": false,
+   "ar": [
+    "افحص مشروعي",
+    "افحص المشروع",
+    "افحص البرنامج",
+    "افحص الكود",
+    "حلل مشروعي",
+    "حلل المشروع",
+    "حلل الكود",
+    "راجع مشروعي",
+    "راجع المشروع",
+    "راجع الكود",
+    "دقق مشروعي",
+    "دقق المشروع",
+    "قيم مشروعي",
+    "قيم الكود",
+    "ابدا",
+    "ابدأ",
+    "افحص",
+    "حلل",
+    "دقق",
+    "تفحص",
+    "تفحصه",
+    "فحص",
+    "تحلل",
+    "تحليل",
+    "راجع لي",
+    "تراجع لي",
+    "تدقق",
+    "قيم لي"
+   ],
+   "en": [
+    "check my project",
+    "check the project",
+    "check my app",
+    "check my code",
+    "audit my project",
+    "audit the project",
+    "audit my code",
+    "analyze my project",
+    "analyse my project",
+    "review my project",
+    "review my code",
+    "scan my project",
+    "scan the code",
+    "start",
+    "audit",
+    "scan",
+    "analyze",
+    "analyse"
+   ],
+   "keywords": {
+    "افحص": 3,
+    "فحص": 3,
+    "تفحص": 3,
+    "حلل": 3,
+    "تحلل": 3,
+    "تحليل": 3,
+    "راجع": 2,
+    "دقق": 3,
+    "تدقق": 3,
+    "قيم": 2,
+    "شوف": 1,
+    "تشوف": 1,
+    "مشروع": 1,
+    "برنامج": 1,
+    "كود": 1,
+    "تطبيق": 1,
+    "check": 2,
+    "audit": 3,
+    "analyze": 3,
+    "analyse": 3,
+    "review": 2,
+    "scan": 3,
+    "inspect": 3,
+    "look": 1,
+    "project": 1,
+    "code": 1,
+    "app": 1,
+    "codebase": 1
+   }
+  },
+  {
+   "id": "next",
+   "command": [
+    "next"
+   ],
+   "consent": true,
+   "ar": [
+    "الخطوة التالية",
+    "الخطوه الجايه",
+    "الخطوة الجاية",
+    "كمل",
+    "كمّل",
+    "تابع",
+    "استمر",
+    "بعدين ايش",
+    "وبعدين",
+    "اللي بعده",
+    "امش",
+    "يلا"
+   ],
+   "en": [
+    "next step",
+    "go on",
+    "keep going",
+    "continue",
+    "carry on",
+    "what next",
+    "whats next",
+    "what now",
+    "next",
+    "proceed"
+   ],
+   "keywords": {
+    "كمل": 3,
+    "نكمل": 3,
+    "تابع": 3,
+    "نتابع": 3,
+    "استمر": 3,
+    "بعدين": 2,
+    "تالي": 2,
+    "تاليه": 2,
+    "جايه": 2,
+    "جاي": 1,
+    "يلا": 2,
+    "امش": 2,
+    "continue": 3,
+    "next": 3,
+    "proceed": 3,
+    "ahead": 2,
+    "keep": 1,
+    "going": 1,
+    "carry": 1
+   }
+  },
+  {
+   "id": "fix",
+   "command": [
+    "next"
+   ],
+   "consent": true,
+   "ar": [
+    "اصلح مشروعي",
+    "اصلح المشاكل",
+    "اصلح الكود",
+    "صلح المشاكل",
+    "صلح الكود",
+    "صلح مشروعي",
+    "حسن مشروعي",
+    "حسن الكود",
+    "نظف الكود",
+    "اصلحها",
+    "صلحها",
+    "اصلح",
+    "صلح",
+    "حسن",
+    "تصلح",
+    "تصلحها",
+    "تحسن"
+   ],
+   "en": [
+    "fix my project",
+    "fix the problems",
+    "fix the issues",
+    "fix my code",
+    "fix them",
+    "fix it",
+    "improve my code",
+    "clean up the code",
+    "repair",
+    "fix",
+    "improve"
+   ],
+   "keywords": {
+    "اصلح": 3,
+    "صلح": 3,
+    "تصلح": 3,
+    "حسن": 3,
+    "تحسن": 3,
+    "عدل": 2,
+    "نظف": 1,
+    "مشاكل": 1,
+    "اخطاء": 1,
+    "خطا": 1,
+    "fix": 3,
+    "repair": 3,
+    "improve": 3,
+    "correct": 2,
+    "issues": 1,
+    "bugs": 1,
+    "problems": 1
+   }
+  },
+  {
+   "id": "show",
+   "command": [
+    "show"
+   ],
+   "consent": false,
+   "ar": [
+    "وش المشاكل",
+    "ايش المشاكل",
+    "ما هي المشاكل",
+    "وريني المشاكل",
+    "اعرض المشاكل",
+    "وريني التقرير",
+    "اعرض التقرير",
+    "وش لقيت",
+    "ايش لقيت",
+    "ماذا وجدت",
+    "النتيجة",
+    "التقرير",
+    "المشاكل"
+   ],
+   "en": [
+    "what is wrong",
+    "whats wrong",
+    "what did you find",
+    "show the problems",
+    "show me the problems",
+    "show the report",
+    "show me the report",
+    "the problems",
+    "report",
+    "problems",
+    "findings"
+   ],
+   "keywords": {
+    "وريني": 2,
+    "اعرض": 2,
+    "لقيت": 3,
+    "وجدت": 3,
+    "طلعت": 2,
+    "نتيجه": 3,
+    "تقرير": 3,
+    "مشاكل": 2,
+    "show": 2,
+    "find": 2,
+    "found": 2,
+    "report": 3,
+    "results": 3,
+    "findings": 3,
+    "wrong": 2
+   }
+  },
+  {
+   "id": "status",
+   "command": [
+    "status"
+   ],
+   "consent": false,
+   "ar": [
+    "وين وصلنا",
+    "فين وصلنا",
+    "اين وصلنا",
+    "ايش الوضع",
+    "وش الوضع",
+    "كيف الحال",
+    "وضع المشروع",
+    "الحالة",
+    "التقدم"
+   ],
+   "en": [
+    "where are we",
+    "where am i",
+    "how far",
+    "status",
+    "progress",
+    "state"
+   ],
+   "keywords": {
+    "وصلنا": 3,
+    "وضع": 2,
+    "حال": 1,
+    "تقدم": 3,
+    "حاله": 2,
+    "status": 3,
+    "progress": 3,
+    "far": 2,
+    "where": 2
+   }
+  },
+  {
+   "id": "accept",
+   "command": [
+    "accept"
+   ],
+   "consent": true,
+   "ar": [
+    "اعتمد الاصلاحات",
+    "اعتمدها",
+    "اعتمد",
+    "ادمج الاصلاحات",
+    "ادمجها",
+    "ادمج",
+    "خذ الاصلاحات",
+    "موافق على الاصلاحات",
+    "طبقها في مشروعي",
+    "طبق الاصلاحات",
+    "طبقها",
+    "طبقه",
+    "اعتمده"
+   ],
+   "en": [
+    "accept the fixes",
+    "keep the fixes",
+    "merge the fixes",
+    "apply the fixes",
+    "take the fixes",
+    "accept",
+    "merge",
+    "keep them"
+   ],
+   "keywords": {
+    "اعتمد": 3,
+    "اعتمدها": 3,
+    "ادمج": 3,
+    "ادمجها": 3,
+    "طبق": 3,
+    "طبقها": 3,
+    "موافق": 2,
+    "خذ": 1,
+    "اقبل": 3,
+    "accept": 3,
+    "merge": 3,
+    "apply": 3,
+    "keep": 2,
+    "take": 1
+   }
+  },
+  {
+   "id": "undo",
+   "command": [
+    "undo"
+   ],
+   "consent": true,
+   "ar": [
+    "تراجع عن الاصلاحات",
+    "تراجع",
+    "الغ الاصلاحات",
+    "الغها",
+    "الغ",
+    "ارجع زي ما كان",
+    "رجعها",
+    "احذف الاصلاحات",
+    "لا اريدها",
+    "ما ابغاها"
+   ],
+   "en": [
+    "undo the fixes",
+    "throw them away",
+    "discard the fixes",
+    "revert",
+    "undo",
+    "discard",
+    "i do not want them",
+    "i dont want them"
+   ],
+   "keywords": {
+    "تراجع": 3,
+    "الغ": 3,
+    "الغها": 3,
+    "رجع": 3,
+    "رجعها": 3,
+    "ارجع": 2,
+    "احذف": 2,
+    "ابغاها": 1,
+    "ابغا": 0,
+    "اريدها": 1,
+    "تغييرات": 1,
+    "undo": 3,
+    "revert": 3,
+    "discard": 3,
+    "throw": 2,
+    "away": 1,
+    "remove": 1,
+    "changes": 1
+   }
+  },
+  {
+   "id": "doctor",
+   "command": [
+    "doctor",
+    "."
+   ],
+   "consent": false,
+   "ar": [
+    "جهازي جاهز",
+    "هل جهازي جاهز",
+    "وش ناقص",
+    "ايش ناقص",
+    "ماذا ينقص",
+    "ثبت الناقص",
+    "ثبت الادوات",
+    "افحص جهازي",
+    "مشكلة في التثبيت"
+   ],
+   "en": [
+    "is my computer ready",
+    "am i ready",
+    "what is missing",
+    "whats missing",
+    "install what is missing",
+    "check my computer",
+    "install the tools",
+    "doctor"
+   ],
+   "keywords": {
+    "جهازي": 3,
+    "جهاز": 3,
+    "ناقص": 3,
+    "ينقص": 3,
+    "ثبت": 2,
+    "تثبيت": 2,
+    "جاهز": 1,
+    "computer": 3,
+    "machine": 3,
+    "ready": 1,
+    "missing": 3,
+    "install": 2,
+    "doctor": 3
+   }
+  },
+  {
+   "id": "clean",
+   "command": [
+    "clean"
+   ],
+   "consent": false,
+   "ar": [
+    "نظف النسخ",
+    "وفر مساحة",
+    "احذف النسخ المؤقتة",
+    "المساحة امتلأت",
+    "نظف"
+   ],
+   "en": [
+    "free up space",
+    "free space",
+    "remove temporary copies",
+    "disk is full",
+    "clean up",
+    "clean"
+   ],
+   "keywords": {
+    "نظف": 2,
+    "وفر": 2,
+    "مساحه": 3,
+    "مساحة": 3,
+    "نسخ": 1,
+    "مؤقته": 1,
+    "space": 3,
+    "disk": 3,
+    "clean": 2,
+    "free": 1,
+    "temporary": 1
+   }
+  }
+ ]
+}

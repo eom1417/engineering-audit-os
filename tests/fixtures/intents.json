@@ -1,0 +1,349 @@
+{
+ "description": "Requests as people type them, with the command a person would expect. Written before the intent table was tuned, so X6 measures understanding, not memory. null means no command fits: the honest answer is to ask again. The first 47 cases came first; after the table was tuned on them (verb forms: تفحص، تحلل، راجع لي، طبقها), the cases from \"held_out\" on were written, and are kept apart so tuning cannot hide in them. \"untuned\" was written after the keyword scoring was added, and nothing was changed after measuring it.",
+ "cases": [
+  {
+   "say": "افحص مشروعي",
+   "expect": "start"
+  },
+  {
+   "say": "ممكن تفحص لي مشروعي؟",
+   "expect": "start"
+  },
+  {
+   "say": "ابغاك تحلل الكود حقي",
+   "expect": "start"
+  },
+  {
+   "say": "راجع لي البرنامج وقول لي وش فيه",
+   "expect": "start"
+  },
+  {
+   "say": "دقّق المشروع",
+   "expect": "start"
+  },
+  {
+   "say": "check my project please",
+   "expect": "start"
+  },
+  {
+   "say": "Can you audit my app?",
+   "expect": "start"
+  },
+  {
+   "say": "analyze this codebase",
+   "expect": "start"
+  },
+  {
+   "say": "كمل",
+   "expect": "next"
+  },
+  {
+   "say": "تمام كمّل",
+   "expect": "next"
+  },
+  {
+   "say": "ايش الخطوة الجاية؟",
+   "expect": "next"
+  },
+  {
+   "say": "طيب وبعدين؟",
+   "expect": "next"
+  },
+  {
+   "say": "continue",
+   "expect": "next"
+  },
+  {
+   "say": "ok what's next",
+   "expect": "next"
+  },
+  {
+   "say": "اصلح المشاكل",
+   "expect": "fix"
+  },
+  {
+   "say": "صلّح الأخطاء اللي لقيتها",
+   "expect": "fix"
+  },
+  {
+   "say": "حسّن الكود",
+   "expect": "fix"
+  },
+  {
+   "say": "fix the issues you found",
+   "expect": "fix"
+  },
+  {
+   "say": "please fix it",
+   "expect": "fix"
+  },
+  {
+   "say": "وش المشاكل؟",
+   "expect": "show"
+  },
+  {
+   "say": "ايش لقيت في المشروع",
+   "expect": "show"
+  },
+  {
+   "say": "وريني التقرير",
+   "expect": "show"
+  },
+  {
+   "say": "what did you find?",
+   "expect": "show"
+  },
+  {
+   "say": "show me the report",
+   "expect": "show"
+  },
+  {
+   "say": "وين وصلنا؟",
+   "expect": "status"
+  },
+  {
+   "say": "فين وصلنا بالضبط",
+   "expect": "status"
+  },
+  {
+   "say": "ايش الوضع الحين",
+   "expect": "status"
+  },
+  {
+   "say": "where are we?",
+   "expect": "status"
+  },
+  {
+   "say": "اعتمد الإصلاحات",
+   "expect": "accept"
+  },
+  {
+   "say": "ادمجها في مشروعي",
+   "expect": "accept"
+  },
+  {
+   "say": "خلاص موافق، طبقها",
+   "expect": "accept"
+  },
+  {
+   "say": "merge the fixes",
+   "expect": "accept"
+  },
+  {
+   "say": "keep them",
+   "expect": "accept"
+  },
+  {
+   "say": "تراجع",
+   "expect": "undo"
+  },
+  {
+   "say": "لا ما ابغاها، الغها",
+   "expect": "undo"
+  },
+  {
+   "say": "رجّعها زي ما كانت",
+   "expect": "undo"
+  },
+  {
+   "say": "undo that",
+   "expect": "undo"
+  },
+  {
+   "say": "throw them away",
+   "expect": "undo"
+  },
+  {
+   "say": "هل جهازي جاهز؟",
+   "expect": "doctor"
+  },
+  {
+   "say": "وش ناقص عندي؟",
+   "expect": "doctor"
+  },
+  {
+   "say": "افحص جهازي",
+   "expect": "doctor"
+  },
+  {
+   "say": "is my computer ready?",
+   "expect": "doctor"
+  },
+  {
+   "say": "وفّر مساحة",
+   "expect": "clean"
+  },
+  {
+   "say": "the disk is full",
+   "expect": "clean"
+  },
+  {
+   "say": "كيف حالك",
+   "expect": null
+  },
+  {
+   "say": "اكتب لي قصيدة",
+   "expect": null
+  },
+  {
+   "say": "what time is it",
+   "expect": null
+  }
+ ],
+ "held_out": [
+  {
+   "say": "تقدر تشوف مشروعي وتقول لي وش مشكلته؟",
+   "expect": "start"
+  },
+  {
+   "say": "فحص كامل للبرنامج لو سمحت",
+   "expect": "start"
+  },
+  {
+   "say": "review the code for me",
+   "expect": "start"
+  },
+  {
+   "say": "يلا نكمل",
+   "expect": "next"
+  },
+  {
+   "say": "go ahead and continue",
+   "expect": "next"
+  },
+  {
+   "say": "ابغاك تصلح اللي تقدر عليه",
+   "expect": "fix"
+  },
+  {
+   "say": "fix what you can",
+   "expect": "fix"
+  },
+  {
+   "say": "ايش المشاكل اللي طلعت؟",
+   "expect": "show"
+  },
+  {
+   "say": "وش النتيجة؟",
+   "expect": "show"
+  },
+  {
+   "say": "how far are we",
+   "expect": "status"
+  },
+  {
+   "say": "اعتمدها خلاص",
+   "expect": "accept"
+  },
+  {
+   "say": "apply the fixes to my project",
+   "expect": "accept"
+  },
+  {
+   "say": "ما ابغا التغييرات، رجعها",
+   "expect": "undo"
+  },
+  {
+   "say": "discard those changes",
+   "expect": "undo"
+  },
+  {
+   "say": "وش الناقص في جهازي؟",
+   "expect": "doctor"
+  },
+  {
+   "say": "free some space please",
+   "expect": "clean"
+  },
+  {
+   "say": "شكرا",
+   "expect": null
+  },
+  {
+   "say": "translate this to french",
+   "expect": null
+  }
+ ],
+ "untuned": [
+  {
+   "say": "ابي اعرف حالة الكود في مشروعي، افحصه",
+   "expect": "start"
+  },
+  {
+   "say": "حلّل التطبيق كله",
+   "expect": "start"
+  },
+  {
+   "say": "please inspect my repository",
+   "expect": "start"
+  },
+  {
+   "say": "okay proceed",
+   "expect": "next"
+  },
+  {
+   "say": "خلاص تابع للخطوة اللي بعدها",
+   "expect": "next"
+  },
+  {
+   "say": "صلّح اللي فيه مشاكل",
+   "expect": "fix"
+  },
+  {
+   "say": "can you repair the bugs",
+   "expect": "fix"
+  },
+  {
+   "say": "اعرض لي النتائج",
+   "expect": "show"
+  },
+  {
+   "say": "show me what you found",
+   "expect": "show"
+  },
+  {
+   "say": "وش وضع المشروع الحين؟",
+   "expect": "status"
+  },
+  {
+   "say": "what's the progress",
+   "expect": "status"
+  },
+  {
+   "say": "اقبل الإصلاحات وادمجها",
+   "expect": "accept"
+  },
+  {
+   "say": "yes merge them into my project",
+   "expect": "accept"
+  },
+  {
+   "say": "الغ كل التغييرات",
+   "expect": "undo"
+  },
+  {
+   "say": "revert everything you did",
+   "expect": "undo"
+  },
+  {
+   "say": "ثبّت الأدوات الناقصة",
+   "expect": "doctor"
+  },
+  {
+   "say": "my machine is missing something?",
+   "expect": "doctor"
+  },
+  {
+   "say": "احذف النسخ المؤقتة عشان المساحة",
+   "expect": "clean"
+  },
+  {
+   "say": "من انت؟",
+   "expect": null
+  },
+  {
+   "say": "tell me a joke",
+   "expect": null
+  }
+ ]
+}

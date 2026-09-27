@@ -11,7 +11,7 @@ from eaos.cli import check
 PACKAGED_ROOTS=['core','modules','schemas','schemas/artifacts']
 PACKAGED_TOP=['controls.json','sources.json','START-HERE.md']
 # Files whose only home is the package itself: there is no canonical copy elsewhere to go stale against.
-PACKAGED_OWN=['errors.json']
+PACKAGED_OWN=['errors.json','intents.json']
 
 
 def expected_package_files(root):

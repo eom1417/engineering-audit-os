@@ -148,6 +148,9 @@ class References:
         return count, tests
 
 
+GLOBAL_OBJECTS = {'window', 'globalThis', 'self', 'global', 'document', 'navigator', 'console', 'process'}
+
+
 def run(target, source, symbols=None, resolved=None, entry_points=None, **options):
     symbols = [f for f in (symbols or []) if f.get('kind') == 'symbol']
     known = {item['path'] for item in source.readable()}
@@ -176,6 +179,8 @@ def run(target, source, symbols=None, resolved=None, entry_points=None, **option
                 or any(rule.search(path) for rule in NOT_CANDIDATES)): continue
         if value.get('kind') not in ('function', 'class') or value.get('parent') or value.get('decorators'): continue
         if not name or name.startswith('__') or name in ('main', 'default') or not judged(name): continue
+        # `window.alert = ...` replaces a platform global: every bare `alert()` reaches it, and none names it.
+        if name.split('.', 1)[0] in GLOBAL_OBJECTS and '.' in name: continue
         # `declare global { interface Window {...} }` extends a type the platform owns; nothing names it to use it.
         start = location.get('start_line') or 1
         if 'declare ' in '\n'.join((refs.texts.get(path) or '').split('\n')[max(0, start - 4):start]): continue

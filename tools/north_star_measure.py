@@ -183,7 +183,7 @@ def self_truth(record):
                    f'{len(dead)} dead of {len(dead) + len(false)} distinct candidates (by path and symbol): ' + ', '.join(dead))}
 
 
-USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5')
+USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6')
 
 
 def measure(record, only=None):
@@ -226,6 +226,13 @@ def usability_values(only=None):
         values['X4'] = (ratio(len(ended), len(guided.USER_COMMANDS)) or 0.0,
                         f"user commands ending with the next-step box: {len(ended)}/{len(guided.USER_COMMANDS)}"
                         + (f"; missing: {', '.join(sorted(set(guided.USER_COMMANDS) - ended))}" if set(guided.USER_COMMANDS) - ended else ''))
+    if only in (None, 'X6'):
+        sys.path.insert(0, str(ROOT / 'tests'))
+        from test_intents import accuracy
+        rows = accuracy()
+        right, total = sum(r for r, _ in rows.values()), sum(t for _, t in rows.values())
+        values['X6'] = (ratio(right, total) or 0.0, 'plain requests the intent table maps to the right command: '
+                        + ', '.join(f'{name} {r}/{t}' for name, (r, t) in rows.items()) + f' ({right}/{total})')
     if only in (None, 'X5'):
         done, total = guided.complete_entries()
         values['X5'] = (ratio(done, total) or 0.0, f'known errors with a plain message, a fix and a command in Arabic and English: {done}/{total}')

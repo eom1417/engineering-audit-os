@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "d59d178",
+  "extracted_at_commit": "258aa30",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -858,6 +858,15 @@
       "note": ""
     },
     {
+      "id": "INV-b2fcf43858",
+      "file": "eaos/intents.py",
+      "symbol": "<module>",
+      "statement": "No match is an honest answer: the person is asked to say it differently.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_intents.py::DoTests::test_a_request_it_does_not_understand_says_how_to_ask",
+      "note": ""
+    },
+    {
       "id": "INV-b150db52d1",
       "file": "eaos/live_run.py",
       "symbol": "<module>",
@@ -918,6 +927,15 @@
       "statement": "A real .env is never read.",
       "kind": "invariant",
       "enforced_by": "tests/test_live_setup.py::DetectTests::test_values_are_the_runs_own_and_a_real_env_is_never_read",
+      "note": ""
+    },
+    {
+      "id": "INV-183db81141",
+      "file": "eaos/live_setup.py",
+      "symbol": "relevant_source",
+      "statement": "The code that raised the failure: each distinctive phrase of the error, looked up in the project's own source (never its build output or libraries), with the lines around it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_setup.py::SourceTests::test_the_assistant_sees_the_code_that_raised_the_error_not_the_build",
       "note": ""
     },
     {

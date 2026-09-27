@@ -5,7 +5,7 @@ one to run. These groups say what each surface is for and which workspace it ope
 """
 GROUPS = (
     ('start', 'ابدأ من هنا: أوامر موجِّهة بكلام بسيط', 'Start here: guided commands in plain words',
-     ('start', 'next', 'status', 'doctor', 'clean', 'accept', 'undo')),
+     ('start', 'next', 'status', 'show', 'do', 'accept', 'undo', 'doctor', 'clean', 'assistant', 'mcp')),
     ('run', 'تشغيل التدقيق', 'Run an audit',
      ('audit', 'review-project', 'stages', 'engines', 'tools', 'emit', 'engage', 'live')),
     ('inspect', 'استعلام عن مشروع', 'Ask a question about a project',

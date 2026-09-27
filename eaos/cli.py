@@ -513,13 +513,21 @@ def main(argv=None):
                        ('doctor', 'Is this computer ready? Every missing piece, with its fix'),
                        ('clean', 'Remove the temporary copies EAOS made; reports stay'),
                        ('accept', 'Take the latest batch of fixes into your project (its branch, merged)'),
-                       ('undo', 'Throw the latest batch of fixes away (its branch, deleted)')):
+                       ('undo', 'Throw the latest batch of fixes away (its branch, deleted)'),
+                       ('show', 'Print what the check found, in plain words'),
+                       ('do', 'Ask in your own words: eaos do "check my project"'),
+                       ('assistant', 'Teach your AI assistant (Claude Code, Codex) to use EAOS: eaos assistant install')):
         q=s.add_parser(name,help=text)
-        q.add_argument('project',nargs='?',default='.' if name != 'doctor' else None)
+        if name == 'do': q.add_argument('request',nargs='*')
+        elif name == 'assistant': q.add_argument('action',nargs='?',choices=['install'],default='install')
+        if name in ('do', 'assistant'): q.add_argument('--project',default='.')
+        else: q.add_argument('project',nargs='?',default='.' if name != 'doctor' else None)
         q.add_argument('--lang',choices=['ar','en'],default=None)
         q.add_argument('--yes',action='store_true',help='answer yes to the question this step asks')
         if name == 'doctor': q.add_argument('--fix',action='store_true',help='install what is missing')
         q.set_defaults(func=guided_command)
+    q=s.add_parser('mcp',help='EAOS as MCP tools for an AI assistant (stdio); eaos assistant install registers it')
+    q.set_defaults(func=lambda args: __import__('eaos.mcp_server', fromlist=['main']).main())
     q=s.add_parser('init',help='Create the workspace the model-driven repair commands operate in')
     q.add_argument('target');q.add_argument('--out',required=True)
     q.add_argument('--profile',choices=['architecture','full'],default='architecture')

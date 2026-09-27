@@ -52,6 +52,13 @@ class DeadCodeTests(unittest.TestCase):
         self.assertIn('referenced only by tests', found[('unused-symbol', 'only_tested')])
         self.assertIn(('unused-symbol', '_loop'), found)
 
+    def test_replacing_a_platform_global_is_not_dead_code(self):
+        found = run({'package.json': '{"name": "web", "main": "src/main.js"}',
+                     'src/main.js': 'import "./host.js";\nalert("hi");\n',
+                     'src/host.js': 'window.alert = (m) => console.log(m);\nwindow.confirm = () => true;\n'
+                                    'export function forgotten() { return 1; }\n'})
+        self.assertFalse([key for key in found if key[1] and key[1].startswith('window.')], found)
+
     def test_a_name_held_in_a_registry_string_is_referenced(self):
         found = run(APP)
         self.assertNotIn(('unused-symbol', 'pretty'), found)
