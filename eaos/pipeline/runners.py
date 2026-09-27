@@ -182,7 +182,7 @@ def compose(context):
     from ..compose.product_report import render
     from ..workspace import read
     render(context.out, read(context.out / 'dossier.json'), context.language)
-    from ..guided import start_here
+    from ..start_here import start_here
     start_here(context.out, context.language, Path(context.target).name)
     return {}
 
