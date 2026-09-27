@@ -183,7 +183,7 @@ def self_truth(record):
                    f'{len(dead)} dead of {len(dead) + len(false)} distinct candidates (by path and symbol): ' + ', '.join(dead))}
 
 
-USABILITY = ('X4', 'X5')
+USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5')
 
 
 def measure(record, only=None):
@@ -203,10 +203,22 @@ def measure(record, only=None):
 
 
 def usability_values(only=None):
-    """X4 and X5: the guided commands and the error catalog, checked on this checkout (docs/USER-EXPERIENCE.md).
-    X1-X3, X6 and X7 are added by the tasks that build what they measure."""
+    """X1-X3 from the trials from nothing (tools/ux_trial.py -> $EAOS_MEASURE/ux/<project>/trial.json), X4 and X5
+    from the guided commands and the error catalog on this checkout (docs/USER-EXPERIENCE.md)."""
     from eaos import guided
     values = {}
+    trials = [json.loads(p.read_text(encoding='utf-8')) for p in sorted((REPORTS / 'ux').glob('*/trial.json'))]
+    names = ', '.join(t['project'] for t in trials) or 'no trial run yet'
+    for key, test, label in (
+            ('X1', lambda t: t['manual_files'] == 0 and t['applied'], 'trials that reached an applied fix with no file written by hand'),
+            ('X2', lambda t: t['finished'] and len(t['questions']) <= 3 and all(q['kind'] in ('yes_no', 'choice') for q in t['questions']),
+             'trials finished with at most 3 yes/no or choice questions'),
+            ('X3', lambda t: t['minutes_to_first_report'] is not None and t['minutes_to_first_report'] <= 30,
+             'trials that reached the first report within 30 minutes')):
+        if only in (None, key):
+            ok = [t['project'] for t in trials if test(t)]
+            values[key] = (ratio(len(ok), len(trials)) if trials else None,
+                           f'{label}: {len(ok)}/{len(trials)} ({names})')
     if only in (None, 'X4'):
         sys.path.insert(0, str(ROOT / 'tests'))
         from test_guided import commands_ending_with_box
