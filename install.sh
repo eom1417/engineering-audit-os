@@ -76,7 +76,8 @@ ln -sf "$APP/venv/bin/eaos" "$BIN/eaos"
 case ":$PATH:" in
   *":$BIN:"*) ;;
   *) for rc in "$HOME/.bashrc" "$HOME/.zshrc"; do
-       if [ -f "$rc" ] || [ "$rc" = "$HOME/.bashrc" ]; then
+       # The file of the shell the person uses is made if missing (zsh is a Mac's default, often without a .zshrc).
+       if [ -f "$rc" ] || [ "$rc" = "$HOME/.bashrc" ] || { [ "$rc" = "$HOME/.zshrc" ] && case "${SHELL:-}" in *zsh) true ;; *) false ;; esac; }; then
          grep -qs 'EAOS: the eaos command' "$rc" || printf '\n# EAOS: the eaos command\nexport PATH="$HOME/.local/bin:$PATH"\n' >> "$rc"
        fi
      done
