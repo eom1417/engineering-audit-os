@@ -80,9 +80,15 @@ class ClassifyTextTests(unittest.TestCase):
         self.assertIn(('jwt', 'secret'), findings)
 
     def test_a_pem_private_key_is_secret(self):
-        text = 'const k = `-----BEGIN RSA PRIVATE KEY-----abc`;'
+        text = 'const k = `-----BEGIN RSA PRIVATE KEY-----\n' + 'MIIEowIBAAKCAQEAx' * 12 + '\n-----END RSA PRIVATE KEY-----`;'
         findings = list(_classify_text(text, 'src/k.ts'))
         self.assertIn(('private_key', 'secret'), findings)
+
+    def test_a_key_marker_too_short_to_be_a_key_is_not_a_credential(self):
+        # chief-ops tests its release scanner with this marker; no real private key is 4 characters long
+        text = '"a private key block": "-----BEGIN PRIVATE KEY-----\\nMIIE\\n-----END PRIVATE KEY-----",'
+        self.assertEqual(list(_classify_text(text, 'app/tests/release-artifact.test.mjs')), [])
+        self.assertEqual(list(_classify_text(text, 'src/config.ts')), [])   # the folder decides nothing
 
     def test_a_stripe_live_key_is_secret(self):
         # Built at runtime: a literal key-shaped string trips secret scanners on push (it is not a key).

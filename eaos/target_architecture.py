@@ -361,7 +361,7 @@ def build(out, contracts_by_path=None, target_components=None, target=None):
               'decisions': architectural_decisions, 'gap_matrix': matrix,
               'limits': ' '.join(LIMITATIONS)}
     if projection:
-        result.update(reference=projection['reference'], target_components=projection['target_components'],
+        result.update(reference=projection['reference'], root=projection.get('root', ''), target_components=projection['target_components'],
                       infrastructure=projection['infrastructure'], forbidden_edges=len(projection['forbidden_edges']),
                       target_edges=projection['target_edges'])
         place_features(out, projection['features'])

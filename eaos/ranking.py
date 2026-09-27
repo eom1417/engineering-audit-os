@@ -7,7 +7,7 @@ divided by what it would cost to act, and shows every input it used.
 from .impact import dependents, entry_points_in, flows_through
 
 CONFIDENCE_WEIGHT = {'CONFIRMED': 1.0, 'LIKELY': 0.7, 'HYPOTHESIS': 0.4, 'REFUTED': 0.0}
-ORIGIN_WEIGHT = {'source': 1.0, 'test_and_source': 0.7, 'unknown': 0.6, 'test': 0.3}
+ORIGIN_WEIGHT = {'source': 1.0, 'test_and_source': 0.7, 'unknown': 0.6, 'test': 0.3, 'archive': 0.2}
 COST_BUCKETS = [(120, 'small', 1.0), (600, 'medium', 2.0), (float('inf'), 'large', 3.0)]
 WEIGHTS = {'reach': 'dependents + flows + entry-point exposure',
            'confidence': 'CONFIRMED 1.0 · LIKELY 0.7 · HYPOTHESIS 0.4',

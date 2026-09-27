@@ -204,6 +204,24 @@ def recheck_command(args):
     return main(args)
 
 
+def live_command(args):
+    from .sandbox import AuthorizationError
+    try:
+        if args.action == 'lock':
+            from .behavior_lock import run_lock
+            record = run_lock(args.report, args.target, args.runtime)
+            passed = sum(r['status'] == 'passed' for r in record['results'])
+            print(json.dumps({'passed': passed, 'specs': len(record['results'])}))
+            return 0 if record['results'] else 1
+        from .runtime_baseline import run_baseline
+        record = run_baseline(args.report, args.target, args.runtime)
+        print(json.dumps({'scenarios': len(record['scenarios'])}))
+        return 0
+    except AuthorizationError as refusal:
+        print(str(refusal), file=sys.stderr)
+        return 3
+
+
 def engage_command(args):
     from .engage import main
     return main(args)
@@ -645,6 +663,13 @@ def main(argv=None):
     r=e.add_parser('approve',help='Record a person\'s approval of a stage (S06 needs one)')
     r.add_argument('stage'); r.add_argument('report'); r.add_argument('--by',required=True); r.add_argument('--note',default='')
     q.set_defaults(func=engage_command)
+    q=s.add_parser('live',help='Run the project, with its owner\'s authorization, in the sandbox: the lock and the load baseline')
+    e=q.add_subparsers(dest='action',required=True)
+    for name, text in (('lock','Run the behaviour-lock specs twice on the original code: behavior-lock/results.json'),
+                       ('baseline','Run every k6 scenario on the original code: runtime/performance.json (before)')):
+        r=e.add_parser(name,help=text)
+        r.add_argument('report'); r.add_argument('--target',required=True); r.add_argument('--runtime',required=True)
+    q.set_defaults(func=live_command)
     q=s.add_parser('emit',help='Write files in other tools\' own formats from an audit, and let each tool judge its file')
     q.add_argument('report')
     q.add_argument('--only',default=None,help='comma-separated emitter names')

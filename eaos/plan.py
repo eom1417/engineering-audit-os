@@ -227,7 +227,8 @@ def title_of(task, language):
 
 def card(task, language):
     document = Document(f"{task['id']} — {title_of(task, language)}", language, budget_lines=140)
-    marker = ' [كود اختبارات]' if language == 'ar' and task['origin'] == 'test' else ''
+    marker = (' [كود اختبارات]' if language == 'ar' and task['origin'] == 'test' else
+              ' [كود مؤرشف]' if language == 'ar' and task['origin'] == 'archive' else '')
     document.header([f"الادعاء: {task['claim_id']} · النمط: {task['pattern']} · الأولوية: {task['priority']}{marker}"
                      if language == 'ar' else
                      f"claim: {task['claim_id']} · pattern: {task['pattern']} · priority: {task['priority']}"])

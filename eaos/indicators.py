@@ -251,13 +251,20 @@ def orchestration_values(projects, adapters=()):
     rows = per(projects, locked)
     values['E4'] = (pooled([v for _, v in rows]) or 0.0, 'features with a behavior-lock spec: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
 
+    values.update(execution_values(projects))
+    values.update(plan_values(projects))
+    return values
+
+
+def execution_values(projects):
+    """E1, E2 and E5-E11: what running a project showed. The measurement computes them over the projects
+    whose owner authorised running them (docs/north-star.json live_corpus), the stage gates over one report."""
     def passing(project):
         results = (project.artifact('behavior-lock-results') or {}).get('results') or []
         return sum(r.get('status') == 'passed' for r in results), len(results)
     rows = per(projects, passing)
-    values['E5'] = (pooled([v for _, v in rows]) or 0.0, 'behavior-lock specs passing on current code: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))
+    values = {'E5': (pooled([v for _, v in rows]) or 0.0, 'behavior-lock specs passing on current code: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))}
     values.update(runtime_values(projects))
-    values.update(plan_values(projects))
     return values
 
 

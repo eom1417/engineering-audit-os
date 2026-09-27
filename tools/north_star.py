@@ -67,6 +67,10 @@ def validate(record):
             if reference not in order: problems.append(f"{task['id']}: depends on unknown task {reference}")
             elif order.index(reference) > order.index(task['id']): problems.append(f"{task['id']}: listed before {reference}")
     problems += card_problems(record, known)
+    for row in record.get('live_corpus') or []:
+        for field in ('name', 'source', 'commit', 'stack', 'owner', 'authorization'):
+            if not str(row.get(field) or '').strip(): problems.append(f"live_corpus {row.get('name', '?')}: no {field}")
+        if not re.fullmatch(r'[0-9a-f]{40}', str(row.get('commit', ''))): problems.append(f"live_corpus {row.get('name', '?')}: commit must be a full sha")
     if record.get('roadmap') and not any('roadmap phase' in problem for problem in problems):
         states = {milestone['id']: state for _, milestone, state in progress(record)}
         problems += step_problems(record, step_order(record), states)

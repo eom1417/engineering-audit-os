@@ -189,9 +189,10 @@
     "source",
     "test",
     "test_and_source",
+    "archive",
     "unknown"
    ],
-   "description": "Whether the claim is about product code, test and fixture code, or both. A reader must never confuse a finding in a fixture with a finding in the product."
+   "description": "Whether the claim is about product code, test and fixture code, both, or code the project archived (archive/): kept for reference, not part of the running product. A reader must never confuse a finding in a fixture with a finding in the product."
   },
   "priority": {
    "type": "number",

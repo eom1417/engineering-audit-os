@@ -42,6 +42,13 @@ def fetch(record):
                 if git('checkout', '--quiet', '--force', project['commit'], cwd=where).returncode:
                     raise SystemExit(f"{project['name']}: commit {project['commit']} is not reachable")
         print(f"{project['name']}: {project['commit'][:10]}")
+    for project in record.get('live_corpus') or []:
+        where = CORPUS / project['name']
+        if not (where / '.git').is_dir() and git('clone', '--quiet', '--no-checkout', project['source'], str(where)).returncode:
+            raise SystemExit(f"could not clone {project['source']}")
+        if not checked_out(where, project['commit']) and git('checkout', '--quiet', '--force', project['commit'], cwd=where).returncode:
+            raise SystemExit(f"{project['name']}: commit {project['commit']} is not reachable in {project['source']}")
+        print(f"{project['name']} (live): {project['commit'][:10]}")
 
 
 def checked_out(where, commit):
@@ -186,4 +193,19 @@ def measure(record, only=None):
         projects.append(Project(spec, out, code))
     values = indicator_values(projects, record)
     if only is None or only in ('D1', 'S2'): values.update(self_truth(record))
+    values.update(live_values(record))
     return values
+
+
+def live_values(record):
+    """E1, E2, E5-E11 over the live corpus: projects whose owner authorised running them. The public corpus
+    above is audited, never run: its owners gave no such authorisation."""
+    from eaos.indicators import execution_values
+    live = []
+    for spec in record.get('live_corpus') or []:
+        target = CORPUS / spec['name']
+        if not checked_out(target, spec['commit']):
+            raise SystemExit(f"{spec['name']} is not at {spec['commit'][:10]} with a clean tree; run python tools/north_star.py fetch")
+        out, _ = audit(spec['name'], target, spec['commit'])
+        live.append(Report(out, runtime=RUNTIME / spec['name'], root=target, name=spec['name']))
+    return execution_values(live) if live else {}

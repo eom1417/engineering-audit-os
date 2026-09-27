@@ -2,6 +2,124 @@
  "schema_version": 1,
  "types": [
   {
+   "id": "workspace-monorepo",
+   "name": "A workspace monorepo: applications in apps/, shared packages in packages/, a database package",
+   "detect": {
+    "workspace": true
+   },
+   "layers": [
+    {
+     "name": "server-apps",
+     "responsibility": "Deployable servers and workers: each owns its endpoints or jobs and reaches data only through the database package",
+     "allowed_dependencies": [
+      "database",
+      "packages",
+      "core-packages"
+     ],
+     "paths": [
+      "apps/api/**",
+      "apps/server/**",
+      "apps/backend/**",
+      "apps/workers/**",
+      "apps/worker/**",
+      "apps/*-api/**",
+      "apps/*-worker*/**",
+      "services/**"
+     ]
+    },
+    {
+     "name": "client-apps",
+     "responsibility": "Deployable clients (web, admin, mobile): screens and their state, calling the servers' contracts",
+     "allowed_dependencies": [
+      "database",
+      "packages",
+      "core-packages"
+     ],
+     "paths": [
+      "apps/**"
+     ]
+    },
+    {
+     "name": "database",
+     "responsibility": "The one package that owns the schema, the migrations and the queries",
+     "allowed_dependencies": [
+      "core-packages"
+     ],
+     "paths": [
+      "database/**",
+      "packages/database/**",
+      "packages/db/**"
+     ]
+    },
+    {
+     "name": "packages",
+     "responsibility": "Shared libraries (UI kits, players, brand, observability, secrets): used by applications, never using them",
+     "allowed_dependencies": [
+      "core-packages"
+     ],
+     "paths": [
+      "packages/**",
+      "libs/**"
+     ]
+    },
+    {
+     "name": "core-packages",
+     "responsibility": "The leaves every package may use: configuration and shared types, depending on nothing of the repository",
+     "allowed_dependencies": [],
+     "paths": [
+      "packages/config/**",
+      "packages/shared-types/**",
+      "packages/types/**",
+      "packages/tsconfig/**"
+     ]
+    }
+   ],
+   "infrastructure_baseline": [
+    {
+     "area": "ci",
+     "item": "Every push runs lint, type check, tests and the EAOS debt gate",
+     "reason": "Without a gate each change can reintroduce what the audit removed.",
+     "success_measure": "The default branch cannot receive a change whose checks fail."
+    },
+    {
+     "area": "tests",
+     "item": "Behaviour-lock specs for every feature plus unit tests for domain logic",
+     "reason": "The lock catches what users would notice; unit tests catch the rule that broke it.",
+     "success_measure": "E4 = 1 and every feature spec passes on the default branch."
+    },
+    {
+     "area": "observability",
+     "item": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker)",
+     "reason": "A vibe-coded app fails silently in the user's browser; nobody learns of it.",
+     "success_measure": "Every uncaught error reaches the tracker within a minute, tagged with the release."
+    },
+    {
+     "area": "secrets",
+     "item": "Only publishable keys reach the browser; every secret lives in the host's secret store",
+     "reason": "Anything bundled into the frontend is public.",
+     "success_measure": "No secret-class credential in the repository or the bundle (EAOS H1 finds none)."
+    },
+    {
+     "area": "dependencies",
+     "item": "Automated, grouped dependency updates with the vulnerability scan in CI",
+     "reason": "A locked vulnerable version stays until someone looks.",
+     "success_measure": "No locked version with a fixed high or critical advisory older than 14 days."
+    },
+    {
+     "area": "hosting",
+     "item": "Every deployable application declares its build and start in the repository (Dockerfile, railway.json, Procfile)",
+     "reason": "A host configured only in a dashboard cannot be rebuilt or reviewed.",
+     "success_measure": "A clean checkout deploys each application with one documented command."
+    },
+    {
+     "area": "migrations",
+     "item": "The database package owns every schema change as a versioned migration",
+     "reason": "Two applications changing one schema drift apart.",
+     "success_measure": "A clean database reaches production's schema from the migrations alone."
+    }
+   ]
+  },
+  {
    "id": "react-tanstack-start-supabase",
    "name": "React + TanStack Start/Router + Supabase",
    "detect": {
@@ -305,6 +423,332 @@
      "item": "Schema changes only as Supabase CLI migrations, applied by CI",
      "reason": "A table edited in the dashboard is a change nobody can review or repeat.",
      "success_measure": "The database equals the migrations folder (supabase db diff is empty)."
+    }
+   ]
+  },
+  {
+   "id": "react-vite-node-api",
+   "name": "React + Vite frontend with its own Node server and a relational database",
+   "detect": {
+    "package_json_all": [
+     "react",
+     "vite"
+    ],
+    "package_json_any": [
+     "pg",
+     "postgres",
+     "mysql2",
+     "drizzle-orm",
+     "@prisma/client",
+     "kysely",
+     "knex",
+     "better-sqlite3"
+    ],
+    "dirs_any": [
+     "server",
+     "api",
+     "backend"
+    ],
+    "package_json_none": [
+     "@supabase/supabase-js",
+     "@tanstack/react-start",
+     "next"
+    ]
+   },
+   "layers": [
+    {
+     "name": "pages",
+     "responsibility": "The shell and the route table: which screen answers which path; composes features, holds no logic",
+     "allowed_dependencies": [
+      "features",
+      "ui",
+      "lib",
+      "config"
+     ],
+     "paths": [
+      "src/pages/**",
+      "src/routes/**",
+      "src/App.tsx",
+      "src/main.tsx",
+      "src/Root.tsx",
+      "src/router.tsx",
+      "src/*.tsx",
+      "src/*.ts"
+     ]
+    },
+    {
+     "name": "features",
+     "responsibility": "One module per screen family, and the shared shell, stores and hooks every screen uses",
+     "allowed_dependencies": [
+      "engine",
+      "api-client",
+      "ui",
+      "lib",
+      "config"
+     ],
+     "paths": [
+      "src/features/**",
+      "src/components/**",
+      "src/hooks/**",
+      "src/context/**",
+      "src/contexts/**",
+      "src/screens/**",
+      "src/shared/**"
+     ]
+    },
+    {
+     "name": "engine",
+     "responsibility": "The domain rules as pure, deterministic code: same inputs, same output, no I/O; shared by browser and server",
+     "allowed_dependencies": [
+      "lib"
+     ],
+     "paths": [
+      "src/engine/**",
+      "src/domain/**",
+      "src/blueprint/**",
+      "src/core/**",
+      "src/logic/**",
+      "shared/**"
+     ]
+    },
+    {
+     "name": "api-client",
+     "responsibility": "The only browser code that knows the server's endpoints: one typed call per endpoint",
+     "allowed_dependencies": [
+      "lib",
+      "config"
+     ],
+     "paths": [
+      "src/api/**",
+      "src/services/**",
+      "src/lib/api/**",
+      "src/lib/*Api.ts",
+      "src/lib/http.ts"
+     ]
+    },
+    {
+     "name": "ui",
+     "responsibility": "Presentational components with no data access and no domain rule",
+     "allowed_dependencies": [
+      "lib"
+     ],
+     "paths": [
+      "src/components/ui/**",
+      "src/shared/ui/**",
+      "src/ui/**"
+     ]
+    },
+    {
+     "name": "lib",
+     "responsibility": "Pure helpers: formatting, dates, types; nothing that knows the domain or the network",
+     "allowed_dependencies": [],
+     "paths": [
+      "src/lib/**",
+      "src/utils/**",
+      "src/shared/lib/**",
+      "src/shared/i18n/**",
+      "src/types/**",
+      "src/styles/**"
+     ]
+    },
+    {
+     "name": "config",
+     "responsibility": "One typed module per side that reads the environment once and fails at start on a missing value",
+     "allowed_dependencies": [],
+     "paths": [
+      "src/config/**",
+      "src/env.ts",
+      "server/infrastructure/config.ts",
+      "server/config.ts",
+      "server/config/**"
+     ]
+    },
+    {
+     "name": "server-entry",
+     "responsibility": "Process start: HTTP server, static files, shutdown; wires routes and infrastructure, holds no rule",
+     "allowed_dependencies": [
+      "routes",
+      "security",
+      "infrastructure",
+      "data-access",
+      "config"
+     ],
+     "paths": [
+      "server/main.*",
+      "server/index.*",
+      "server/app.*",
+      "server/server.*"
+     ]
+    },
+    {
+     "name": "routes",
+     "responsibility": "HTTP endpoints: parse, authorise through security, call a service, shape the response; never SQL",
+     "allowed_dependencies": [
+      "services",
+      "security",
+      "server-domain",
+      "engine",
+      "infrastructure",
+      "config",
+      "lib"
+     ],
+     "paths": [
+      "server/routes/**",
+      "server/api/**",
+      "server/controllers/**",
+      "server/pages/**",
+      "server/handlers/**"
+     ]
+    },
+    {
+     "name": "services",
+     "responsibility": "Application use cases: one operation per function, transactions and domain rules, no HTTP",
+     "allowed_dependencies": [
+      "server-domain",
+      "engine",
+      "data-access",
+      "infrastructure",
+      "config",
+      "lib"
+     ],
+     "paths": [
+      "server/services/**",
+      "server/support/**",
+      "server/usecases/**",
+      "server/application/**"
+     ]
+    },
+    {
+     "name": "security",
+     "responsibility": "Authentication, sessions, authorisation policy, rate limits and headers",
+     "allowed_dependencies": [
+      "server-domain",
+      "data-access",
+      "infrastructure",
+      "config",
+      "lib"
+     ],
+     "paths": [
+      "server/security/**",
+      "server/auth/**",
+      "server/middleware/**"
+     ]
+    },
+    {
+     "name": "server-domain",
+     "responsibility": "Server-side domain types and rules (permissions, roles, tokens) with no I/O",
+     "allowed_dependencies": [
+      "engine",
+      "lib"
+     ],
+     "paths": [
+      "server/domain/**",
+      "server/types.d.ts"
+     ]
+    },
+    {
+     "name": "data-access",
+     "responsibility": "The only code that speaks SQL: connections, row-level security, queries and migrations",
+     "allowed_dependencies": [
+      "server-domain",
+      "infrastructure",
+      "config",
+      "lib"
+     ],
+     "paths": [
+      "server/infrastructure/postgres.*",
+      "server/infrastructure/*-db.*",
+      "server/infrastructure/rls.*",
+      "server/db/**",
+      "server/repositories/**",
+      "server/migrations/**",
+      "server/store.*",
+      "server/infrastructure/profiles.*",
+      "server/infrastructure/ownership.*"
+     ]
+    },
+    {
+     "name": "infrastructure",
+     "responsibility": "Cross-cutting services: HTTP transport, logging, telemetry, health, e-mail and calendar delivery, idempotency",
+     "allowed_dependencies": [
+      "server-domain",
+      "config",
+      "lib"
+     ],
+     "paths": [
+      "server/infrastructure/**",
+      "server/lib/**",
+      "server/http.*",
+      "server/transport/**"
+     ]
+    }
+   ],
+   "infrastructure_baseline": [
+    {
+     "area": "configuration",
+     "item": "One typed module reads every environment variable once and fails at start on a missing one",
+     "reason": "Scattered import.meta.env reads fail at runtime, on the screen that first needs the value.",
+     "success_measure": "No file outside the config module reads the environment; a missing variable stops the build or start with its name."
+    },
+    {
+     "area": "ci",
+     "item": "Every push runs lint, type check, tests and the EAOS debt gate",
+     "reason": "Without a gate each change can reintroduce what the audit removed.",
+     "success_measure": "The default branch cannot receive a change whose checks fail."
+    },
+    {
+     "area": "tests",
+     "item": "Behaviour-lock specs for every feature plus unit tests for domain logic",
+     "reason": "The lock catches what users would notice; unit tests catch the rule that broke it.",
+     "success_measure": "E4 = 1 and every feature spec passes on the default branch."
+    },
+    {
+     "area": "observability",
+     "item": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker)",
+     "reason": "A vibe-coded app fails silently in the user's browser; nobody learns of it.",
+     "success_measure": "Every uncaught error reaches the tracker within a minute, tagged with the release."
+    },
+    {
+     "area": "secrets",
+     "item": "Only publishable keys reach the browser; every secret lives in the host's secret store",
+     "reason": "Anything bundled into the frontend is public.",
+     "success_measure": "No secret-class credential in the repository or the bundle (EAOS H1 finds none)."
+    },
+    {
+     "area": "dependencies",
+     "item": "Automated, grouped dependency updates with the vulnerability scan in CI",
+     "reason": "A locked vulnerable version stays until someone looks.",
+     "success_measure": "No locked version with a fixed high or critical advisory older than 14 days."
+    },
+    {
+     "area": "data",
+     "item": "The database schema and every change to it live in versioned migrations the server applies at start",
+     "reason": "A schema changed by hand in production cannot be rebuilt, reviewed or rolled back.",
+     "success_measure": "A clean database reaches the production schema by running the migrations alone; no table is created outside them."
+    },
+    {
+     "area": "migrations",
+     "item": "One migration tool owns the schema (the project's own runner, or node-pg-migrate, Drizzle Kit or Prisma Migrate)",
+     "reason": "Two ways of changing the schema drift apart.",
+     "success_measure": "Every table and column is introduced by a numbered migration in the repository."
+    },
+    {
+     "area": "backup",
+     "item": "Automated database backups, and a restore rehearsed on a copy",
+     "reason": "A backup is proven only by a restore.",
+     "success_measure": "The last restore drill passed within 30 days, with its time recorded."
+    },
+    {
+     "area": "identity",
+     "item": "Every request is authorised on the server, per tenant, and the database enforces the same isolation (row-level security or scoped queries)",
+     "reason": "An isolation checked only in the interface is one crafted request away from a leak.",
+     "success_measure": "An isolation test reads nothing of another tenant through any endpoint; the database refuses a query without its scope."
+    },
+    {
+     "area": "hosting",
+     "item": "The deployment target and its start command are declared in the repository (Dockerfile, railway.json, Procfile)",
+     "reason": "A host configured only in a dashboard cannot be rebuilt or reviewed.",
+     "success_measure": "A clean checkout deploys with one documented command, and the server answers its health route."
     }
    ]
   },
@@ -903,6 +1347,221 @@
      "item": "Tokens from the environment or keychain only",
      "reason": "A token in a config file is committed sooner or later.",
      "success_measure": "No credential in the repository."
+    }
+   ]
+  },
+  {
+   "id": "generic-layered",
+   "name": "A layered application, read from the project's own folder names (no specific type fits)",
+   "detect": {
+    "any_source": true
+   },
+   "layers": [
+    {
+     "name": "features",
+     "responsibility": "One module per feature: what a user does, and its screens or commands",
+     "allowed_dependencies": [
+      "services",
+      "domain",
+      "data-access",
+      "infrastructure",
+      "lib",
+      "config"
+     ],
+     "paths": [
+      "features/**",
+      "**/features/**",
+      "modules/**",
+      "**/modules/**",
+      "screens/**",
+      "**/screens/**",
+      "pages/**",
+      "**/pages/**",
+      "views/**",
+      "**/views/**",
+      "components/**",
+      "**/components/**",
+      "ui/**",
+      "**/ui/**"
+     ]
+    },
+    {
+     "name": "interface",
+     "responsibility": "Entry points: HTTP routes, handlers, command lines; parse, authorise, delegate",
+     "allowed_dependencies": [
+      "services",
+      "domain",
+      "infrastructure",
+      "lib",
+      "config"
+     ],
+     "paths": [
+      "routes/**",
+      "**/routes/**",
+      "api/**",
+      "**/api/**",
+      "controllers/**",
+      "**/controllers/**",
+      "handlers/**",
+      "**/handlers/**",
+      "cli/**",
+      "**/cli/**",
+      "commands/**",
+      "**/commands/**"
+     ]
+    },
+    {
+     "name": "services",
+     "responsibility": "Use cases: one operation per function, transactions and rules, no transport",
+     "allowed_dependencies": [
+      "domain",
+      "data-access",
+      "infrastructure",
+      "lib",
+      "config"
+     ],
+     "paths": [
+      "services/**",
+      "**/services/**",
+      "usecases/**",
+      "**/usecases/**",
+      "application/**",
+      "**/application/**"
+     ]
+    },
+    {
+     "name": "domain",
+     "responsibility": "Domain types and rules with no I/O",
+     "allowed_dependencies": [
+      "lib"
+     ],
+     "paths": [
+      "domain/**",
+      "**/domain/**",
+      "models/**",
+      "**/models/**",
+      "entities/**",
+      "**/entities/**",
+      "core/**",
+      "**/core/**",
+      "engine/**",
+      "**/engine/**"
+     ]
+    },
+    {
+     "name": "data-access",
+     "responsibility": "The only code that reads and writes storage",
+     "allowed_dependencies": [
+      "domain",
+      "infrastructure",
+      "lib",
+      "config"
+     ],
+     "paths": [
+      "db/**",
+      "**/db/**",
+      "database/**",
+      "**/database/**",
+      "repositories/**",
+      "**/repositories/**",
+      "repository/**",
+      "**/repository/**",
+      "dao/**",
+      "**/dao/**",
+      "daos/**",
+      "**/daos/**",
+      "migrations/**",
+      "**/migrations/**",
+      "store/**",
+      "**/store/**"
+     ]
+    },
+    {
+     "name": "infrastructure",
+     "responsibility": "Adapters to the outside: network clients, queues, e-mail, logging",
+     "allowed_dependencies": [
+      "domain",
+      "lib",
+      "config"
+     ],
+     "paths": [
+      "infrastructure/**",
+      "**/infrastructure/**",
+      "infra/**",
+      "**/infra/**",
+      "adapters/**",
+      "**/adapters/**",
+      "integrations/**",
+      "**/integrations/**",
+      "clients/**",
+      "**/clients/**",
+      "sync/**",
+      "**/sync/**",
+      "media/**",
+      "**/media/**"
+     ]
+    },
+    {
+     "name": "lib",
+     "responsibility": "Pure helpers that know nothing of the domain",
+     "allowed_dependencies": [],
+     "paths": [
+      "lib/**",
+      "**/lib/**",
+      "utils/**",
+      "**/utils/**",
+      "helpers/**",
+      "**/helpers/**",
+      "shared/**",
+      "**/shared/**",
+      "common/**",
+      "**/common/**",
+      "types/**",
+      "**/types/**"
+     ]
+    },
+    {
+     "name": "config",
+     "responsibility": "Configuration read once, validated at start",
+     "allowed_dependencies": [],
+     "paths": [
+      "config/**",
+      "**/config/**",
+      "settings/**",
+      "**/settings/**"
+     ]
+    }
+   ],
+   "infrastructure_baseline": [
+    {
+     "area": "ci",
+     "item": "Every push runs lint, type check, tests and the EAOS debt gate",
+     "reason": "Without a gate each change can reintroduce what the audit removed.",
+     "success_measure": "The default branch cannot receive a change whose checks fail."
+    },
+    {
+     "area": "tests",
+     "item": "Behaviour-lock specs for every feature plus unit tests for domain logic",
+     "reason": "The lock catches what users would notice; unit tests catch the rule that broke it.",
+     "success_measure": "E4 = 1 and every feature spec passes on the default branch."
+    },
+    {
+     "area": "observability",
+     "item": "Browser errors and slow requests are reported with a release tag (OpenTelemetry, or an error tracker)",
+     "reason": "A vibe-coded app fails silently in the user's browser; nobody learns of it.",
+     "success_measure": "Every uncaught error reaches the tracker within a minute, tagged with the release."
+    },
+    {
+     "area": "secrets",
+     "item": "Only publishable keys reach the browser; every secret lives in the host's secret store",
+     "reason": "Anything bundled into the frontend is public.",
+     "success_measure": "No secret-class credential in the repository or the bundle (EAOS H1 finds none)."
+    },
+    {
+     "area": "dependencies",
+     "item": "Automated, grouped dependency updates with the vulnerability scan in CI",
+     "reason": "A locked vulnerable version stays until someone looks.",
+     "success_measure": "No locked version with a fixed high or critical advisory older than 14 days."
     }
    ]
   }

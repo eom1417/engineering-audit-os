@@ -23,7 +23,13 @@ def now(): return datetime.now(timezone.utc).isoformat()
 def claim_id(index): return 'CLM-%03d' % index
 
 
+STATEMENT_LIMIT = 600
+
+
 def make(index, statement, claim_type, confidence, method, evidence_ids, falsifier, **extra):
+    # The schema caps a statement at STATEMENT_LIMIT. Each builder names a bounded list (naming());
+    # this is the last guard: one long sentence on a large project must not reject the whole ledger.
+    if len(statement) > STATEMENT_LIMIT: statement = statement[:STATEMENT_LIMIT - 1].rstrip() + '…'
     row = {'id': claim_id(index), 'statement': statement, 'claim_type': claim_type, 'confidence': confidence,
            'method': list(method), 'evidence_ids': list(evidence_ids), 'falsifier': falsifier,
            'status': extra.pop('status', 'open'), 'created_at': extra.pop('created_at', now())}
@@ -170,7 +176,7 @@ def from_facts(fact_sets, target=None):
     domain = fact_sets.get('domain', {})
     for fact in [f for f in domain.get('facts', []) if f['kind'] == 'domain_constant' and f['value']['duplicated']]:
         index += 1
-        places = ', '.join(f"{d['path']}:{d['line']}" for d in fact['value']['definitions'])
+        places = naming(f"{d['path']}:{d['line']}" for d in fact['value']['definitions'])
         differs = fact['value']['distinct_values'] > 1
         claims.append(make(index, f"{fact['value']['name']} is defined in {len(fact['value']['definitions'])} places ({places})"
                            + (' with different values' if differs else ' with the same value'),

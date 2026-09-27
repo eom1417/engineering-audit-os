@@ -337,6 +337,13 @@ def render(record, indicators_by_capability):
     out += [f"| [{row['name']}]({row['repo']}) | {row['stack']} | `{row['commit'][:10]}` |" for row in record['corpus']]
     out += [f"| هذا المستودع (حقيقة ذاتية: {len(record['self_truth']['defects'])} عيبًا معروفًا) | Python | "
             f"`{record['self_truth']['commit'][:10]}` |"]
+    if record.get('live_corpus'):
+        out += ['', '### المشاريع التي تُشغَّل (الخطوات 17 إلى 24)', '',
+                'العيّنة أعلاه عامة: تُدقَّق ولا تُشغَّل، لأن أصحابها لم يفوّضوا تشغيلها. مؤشرات التشغيل (E1، E2، E5 إلى E11) '
+                'تُحسب من هذه المشاريع وحدها، وكلها بتفويض مالكها، وفي البيئة المعزولة فقط.', '',
+                '| المشروع | النوع | الالتزام | المالك | أساس التفويض |', '| --- | --- | --- | --- | --- |']
+        out += [f"| {row['name']} | {row['stack']} | `{row['commit'][:10]}` | {row['owner']} | {row['authorization']} |"
+                for row in record['live_corpus']]
     out += ['', '## ملحق هـ: كل مهمة بتفاصيلها', '', 'كل مهمة لها أمر قبول يفشل قبلها وينجح حين تكتمل. '
             'المهمة المنجزة تحمل في خطواتها ما نُفّذ فعلًا («كما نُفّذ»).']
     for sequence, milestone, state in done['rows']:

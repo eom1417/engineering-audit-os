@@ -126,14 +126,24 @@ def asserts_a_problem(claim):
     return needs_a_disposition(claim)
 
 
+ARCHIVE_PARTS = {'archive', 'archived', 'attic', '_archive'}
+
+
+def archived(path):
+    """Code the project set aside in an archive folder: kept for reference, not part of the running product."""
+    return bool({part.lower() for part in Path(path).parts[:-1]} & ARCHIVE_PARTS)
+
+
 def origin_of(claim, fact_index):
-    """Whether a claim is about product code or about test and fixture code; a reader must not confuse them."""
+    """Whether a claim is about product code, test and fixture code, or archived code; a reader must not confuse them."""
     from .vocabulary import classify
     paths = [fact_index[fact_id] for fact_id in claim.get('fact_ids', []) if fact_id in fact_index]
     extra = []
     for fact_id in claim.get('fact_ids', []):
         extra += fact_index.get(fact_id + ':paths', [])
-    categories = {classify(path) for path in paths + extra if path}
+    located = [path for path in paths + extra if path]
+    if located and all(archived(path) for path in located): return 'archive'
+    categories = {classify(path) for path in located if not archived(path)}
     if not categories: return 'unknown'
     if categories == {'test'}: return 'test'
     return 'test_and_source' if 'test' in categories else 'source'
@@ -209,7 +219,9 @@ def brief(target, dossier, language):
                     'الأثر' if language == 'ar' else 'Impact', 'التفصيل' if language == 'ar' else 'Detail'],
                    [[claim['id'], shorten(statement_of(claim, language), 150)
                      + (' [كود اختبارات]' if language == 'ar' and claim.get('origin') == 'test'
-                        else ' [test code]' if claim.get('origin') == 'test' else ''),
+                        else ' [test code]' if claim.get('origin') == 'test'
+                        else ' [كود مؤرشف]' if language == 'ar' and claim.get('origin') == 'archive'
+                        else ' [archived code]' if claim.get('origin') == 'archive' else ''),
                      MARKER[claim['confidence']] + ' ' + claim['confidence'],
                      shorten(impact_of(claim, language), 120),
                      f"[{detail_artifact(claim) or 'dossier.json'}]({detail_artifact(claim) or 'dossier.json'})"]

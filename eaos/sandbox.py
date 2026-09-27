@@ -87,10 +87,13 @@ class Sandbox:
         if not self.offline: self.limitations.append('network not isolated')
         self._record()
 
-    def environment(self):
+    def environment(self, extra=None):
+        """PATH, a temporary HOME, LANG, the names the owner allowed, and `extra`: values the run itself chose
+        (a local database address, tool locations), never taken from this process's environment."""
         env = {'PATH': os.environ.get('PATH', '/usr/bin:/bin'), 'HOME': str(self.home),
                'LANG': os.environ.get('LANG', 'C.UTF-8')}
         env.update({name: os.environ[name] for name in self.allowed if name in os.environ})
+        env.update({name: str(value) for name, value in (extra or {}).items()})
         return env
 
     def _record(self):
@@ -102,13 +105,20 @@ class Sandbox:
         if network and self.offline:
             self.limitations.append(f"network allowed for: {' '.join(map(str, argv))[:120]}")
 
-    def run(self, argv, timeout=60, network=False):
-        """(exit code, stdout, stderr) of argv run in the copy; with no network unless `network`."""
+    def _inside(self, cwd):
+        """A working folder inside the copy (cwd is relative to it); never outside."""
+        where = (self.copy / cwd).resolve() if cwd else self.copy
+        if where != self.copy.resolve() and self.copy.resolve() not in where.parents:
+            raise AuthorizationError(f'{cwd} is outside the copy')
+        return where
+
+    def run(self, argv, timeout=60, network=False, cwd=None, env=None):
+        """(exit code, stdout, stderr) of argv run in the copy (or `cwd` inside it); with no network unless `network`."""
         argv = [str(part) for part in argv]
         self._note(argv, network)
         full = argv if network or not self.offline else [*self.offline, *argv]
         started = time.monotonic()
-        process = subprocess.Popen(full, cwd=self.copy, env=self.environment(), stdout=subprocess.PIPE,
+        process = subprocess.Popen(full, cwd=self._inside(cwd), env=self.environment(env), stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, text=True, start_new_session=True)
         try:
             out, err = process.communicate(timeout=timeout)
@@ -120,12 +130,12 @@ class Sandbox:
         self._record()
         return process.returncode, out, err
 
-    def start(self, argv, port, health_path='/health', timeout=30):
+    def start(self, argv, port, health_path='/health', timeout=30, cwd=None, env=None):
         """Start a service in the copy and return once http://127.0.0.1:port<health_path> answers 200."""
         argv = [str(part) for part in argv]
         self.limitations.append(f"network not isolated for the started service: {' '.join(argv)[:120]}")
         log = open(self.workdir / f'service-{len(self.started)}.log', 'w', encoding='utf-8')
-        process = subprocess.Popen(argv, cwd=self.copy, env=self.environment(), stdout=log, stderr=subprocess.STDOUT,
+        process = subprocess.Popen(argv, cwd=self._inside(cwd), env=self.environment(env), stdout=log, stderr=subprocess.STDOUT,
                                    start_new_session=True)
         self.started.append((process, argv, time.monotonic(), log))
         deadline = time.monotonic() + timeout

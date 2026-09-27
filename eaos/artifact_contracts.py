@@ -19,7 +19,7 @@ SCHEMAS = _SOURCE if _SOURCE.is_dir() else Path(__file__).resolve().parent / 'da
 # measurement deletes whenever the tool changes, under ${EAOS_MEASURE}/runtime/<project>/.
 RUNTIME = {'behavior-lock-results', 'runtime-performance', 'runtime-security', 'runtime-resilience',
            'runtime-telemetry', 'production-readiness', 'authorization', 'sandbox-run',
-           'execution-log', 'runtime-guarantee'}
+           'execution-log', 'runtime-guarantee', 'run-profile'}
 TYPES = {'object': dict, 'array': list, 'string': str, 'boolean': bool, 'null': type(None)}
 
 

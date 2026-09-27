@@ -5068,5 +5068,15 @@
       "exit": "V3 = V4 = 1",
       "title_en": "Independent proof"
     }
+  ],
+  "live_corpus": [
+    {
+      "name": "chief-ops",
+      "source": "/workspace/owner-projects/chief-ops",
+      "commit": "29f3d8e4609406d9bf2701dc57f4457e8afb6bd6",
+      "stack": "React + Vite client, its own Node server, PostgreSQL with row-level security (app/)",
+      "owner": "eom1417",
+      "authorization": "The owner uploaded it for analysis and, on 2026-09-27, asked for steps 17 onward to be carried out on it («بخصوص الخطوات التالية ١٧ وبعدها ... فكمل»). Runs happen only in the EAOS sandbox on this machine, against a local PostgreSQL, with no secret of the owner and nothing sent to Railway or production."
+    }
   ]
 }

@@ -127,6 +127,8 @@ def _second_witnesses(facts, all_facts, category):
 
 def _severity(claim, key, default, facts):
     params = (claim.get('render') or {}).get('params') or {}
+    # Archived code does not run: whatever it breaks is a leftover to remove, not a product defect.
+    if claim.get('origin') == 'archive' and key != 'vulnerable_dependency': return 'low'
     if key == 'vulnerable_dependency': return params.get('severity') or 'medium'
     if key == 'broken_code': return 'high' if claim.get('claim_type') == 'risk' else 'medium'
     if key == 'engine_cluster':

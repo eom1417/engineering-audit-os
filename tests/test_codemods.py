@@ -57,3 +57,43 @@ class CodemodTests(Workspace):
         self.assertEqual(result['files_changed'], 2)
         self.assertIn('overrides.picomatch=2.3.1', command)
         self.assertEqual(state_digest(root), before)
+
+
+class CopyLifetimeTests(Workspace):
+    """A large project dry-runs hundreds of cards: one copy, restored between cards, and gone afterwards."""
+
+    def project(self, files):
+        root = Path(self.tmp) / 'project'
+        for name, text in files.items():
+            (root / name).parent.mkdir(parents=True, exist_ok=True)
+            (root / name).write_text(text)
+        return root
+
+    def leftovers(self):
+        import glob, tempfile
+        return set(glob.glob(str(Path(tempfile.gettempdir()) / 'eaos-codemod-*')))
+
+    def test_no_copy_outlives_a_dry_run(self):
+        root = self.project({'old.txt': 'x\n'})
+        before = self.leftovers()
+        result, _ = dry_run({'kind': 'delete-file', 'path': 'old.txt'}, root)
+        self.assertEqual(result, {'exit': 0, 'files_changed': 1})
+        self.assertEqual(self.leftovers(), before)
+        self.assertTrue((root / 'old.txt').exists())
+
+    def test_every_card_starts_from_the_untouched_project_on_the_shared_copy(self):
+        from eaos.codemods import attach
+        root = self.project({'a.py': 'def gone():\n    return 1\n\n\ndef kept():\n    return 2\n', 'old.txt': 'x\n'})
+        out = Path(self.tmp) / 'out'
+        (out / 'facts').mkdir(parents=True)
+        (out / 'facts/deadcode.json').write_text(json.dumps({'facts': [
+            {'id': 'F1', 'kind': 'dead', 'value': {'rule': 'unreferenced-symbol'}, 'location': {'path': 'a.py', 'symbol': 'gone'}},
+            {'id': 'F2', 'kind': 'leftover', 'value': {}, 'location': {'path': 'old.txt'}}]}))
+        tasks = [{'pattern': 'leftover', 'evidence': {'fact_ids': ['F2']}},
+                 {'pattern': 'leftover', 'evidence': {'fact_ids': ['F2']}}]
+        before = self.leftovers()
+        self.assertEqual(attach(tasks, out, root), 2)
+        # the second card deletes the same file again: it was restored after the first, so it changes one file too
+        self.assertEqual([t['codemod']['dry_run'] for t in tasks], [{'exit': 0, 'files_changed': 1}] * 2)
+        self.assertEqual(self.leftovers(), before)
+        self.assertTrue((root / 'old.txt').exists())

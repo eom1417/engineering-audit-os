@@ -238,3 +238,90 @@ def build(out, target):
         root.mkdir(parents=True, exist_ok=True)
         (root / 'plan.json').write_text(json.dumps(plan, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return plan
+
+
+# ── NS26: the lock, run on the original code ────────────────────────────────────────────────────────────
+# The browser reaches loopback only: Chromium sends every other host to a proxy nobody answers on, so a
+# page's call to production or a third party fails inside the run instead of leaving the machine.
+LOCK_CONFIG = """import base from './playwright.config';
+
+// Written by EAOS for a run in the sandbox: the generated config, with every non-loopback host refused.
+const offline = { launchOptions: { args: ['--proxy-server=http://127.0.0.1:9', '--proxy-bypass-list=<-loopback>'] } };
+export default {
+  ...base,
+  reporter: [['json', { outputFile: process.env.EAOS_LOCK_REPORT }]],
+  use: { ...base.use, ...offline },
+  projects: (base.projects ?? []).map((project) => ({ ...project, use: { ...project.use, ...offline } })),
+};
+"""
+
+
+def spec_statuses(report):
+    """{spec path: (status, reason)} from a Playwright JSON report: a spec passes when none of its tests failed
+    and at least one ran; one whose every test was skipped is quarantined with the skip's reason."""
+    found = {}
+
+    def walk(suite, file=None):
+        file = suite.get('file') or file
+        for spec in suite.get('specs') or []:
+            outcomes = [(result.get('status'), (result.get('error') or {}).get('message', ''))
+                        for test in spec.get('tests') or [] for result in test.get('results') or []] or \
+                       [('skipped', (test.get('annotations') or [{}])[0].get('description', '')) for test in spec.get('tests') or []]
+            found.setdefault(file, []).extend(outcomes)
+        for child in suite.get('suites') or []: walk(child, file)
+    for suite in report.get('suites') or []: walk(suite)
+    statuses = {}
+    for file, outcomes in found.items():
+        failed = [message for status, message in outcomes if status in ('failed', 'timedOut', 'interrupted')]
+        ran = [status for status, _ in outcomes if status == 'passed']
+        if failed: statuses[file] = ('failed', failed[0][:300])
+        elif ran: statuses[file] = ('passed', '')
+        else: statuses[file] = ('quarantined', 'every test was skipped: ' + (next((m for s, m in outcomes if m), '') or 'needs a fixture'))
+    return statuses
+
+
+def run_lock(report, target, runtime):
+    """behavior-lock/results.json in `runtime`: the report's specs, run twice on the original code in the sandbox.
+
+    The first pass records each screen as it is today (the snapshots); the second must match it. A spec
+    that passes the second pass locks today's behaviour; one that differs between two runs of the same code
+    is not deterministic and fails. Needs <runtime>/authorization.json granting S05 and <runtime>/run.json."""
+    import shutil
+    from .live_run import LiveRun
+    report, runtime = Path(report), Path(runtime)
+    live = LiveRun(target, runtime, 'S05')
+    lock = live.sandbox.copy / '.eaos-lock'
+    shutil.copytree(report / 'behavior-lock', lock)
+    (lock / 'lock.config.ts').write_text(LOCK_CONFIG, encoding='utf-8')
+    (lock / '.auth').mkdir(exist_ok=True)
+    (lock / '.auth/user.json').write_text(json.dumps({'cookies': [], 'origins': []}), encoding='utf-8')
+    results = []
+    try:
+        live.setup()
+        base = live.start()
+        for argv in live.profile.get('seed') or []:
+            code, out, err = live.run(argv, env={'BASE_URL': base})
+            if code: raise RuntimeError(f"seed failed ({' '.join(argv)}): {(out + err)[-1500:]}")
+        passes = []
+        for name, extra in (('record', ['--update-snapshots=all']), ('verify', [])):
+            output = runtime / f'behavior-lock/playwright-{name}.json'
+            output.parent.mkdir(parents=True, exist_ok=True)
+            live.sandbox.run(['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1', *extra],
+                             timeout=3600, network=True, cwd='.eaos-lock',
+                             env={**live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output)})
+            try: passes.append(json.loads(output.read_text(encoding='utf-8')))
+            except (OSError, ValueError): passes.append({})
+        statuses = spec_statuses(passes[-1])
+        for spec in json.loads((report / 'behavior-lock/plan.json').read_text(encoding='utf-8'))['specs']:
+            name = Path(spec['path']).name
+            status, reason = next(((s, r) for file, (s, r) in statuses.items() if Path(file).name == name),
+                                  ('error', 'the spec did not run: see behavior-lock/playwright-verify.json'))
+            results.append({'path': spec['path'], 'status': status, **({'reason': reason} if reason else {})})
+    finally:
+        live.stop()
+        live.record('behavior-lock/run-log.json' if (runtime / 'behavior-lock').is_dir() else 'run-log.json')
+    record = {'schema_version': 1, 'commit': live.commit, 'backend': 'unshare' if live.sandbox.offline else 'process',
+              'results': results, 'limitations': sorted(set(live.sandbox.limitations))}
+    (runtime / 'behavior-lock').mkdir(parents=True, exist_ok=True)
+    (runtime / 'behavior-lock/results.json').write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    return record

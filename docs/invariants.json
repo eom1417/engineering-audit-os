@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "22d2884",
+  "extracted_at_commit": "ac3abc0",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -9,6 +9,15 @@
       "statement": "Stored commands never authorize themselves.",
       "kind": "invariant",
       "enforced_by": "tests/test_probes_and_verify.py::ProbeTests::test_execution_probes_are_blocked_unless_explicitly_allowed",
+      "note": ""
+    },
+    {
+      "id": "INV-f3c03bfe0e",
+      "file": "eaos/acceptance.py",
+      "symbol": "fingerprint",
+      "statement": "Assessments bind hundreds of checks to one revision, so with `cached` the digest is reused while no file's size or modification time has moved; the acceptance runner, which compares before and after a command, always reads every byte (cached=False).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_acceptance_fingerprint.py::FingerprintTests::test_a_changed_file_changes_it_even_from_the_cache",
       "note": ""
     },
     {
@@ -192,12 +201,12 @@
       "note": ""
     },
     {
-      "id": "INV-b6310ed161",
+      "id": "INV-738c8970e9",
       "file": "eaos/dossier.py",
       "symbol": "origin_of",
-      "statement": "Whether a claim is about product code or about test and fixture code; a reader must not confuse them.",
+      "statement": "Whether a claim is about product code, test and fixture code, or archived code; a reader must not confuse them.",
       "kind": "invariant",
-      "enforced_by": "tests/test_invariants.py::DeclaredInvariantTests::test_a_claim_about_test_code_is_marked_as_such",
+      "enforced_by": "tests/test_archive_origin.py::ArchiveOriginTests::test_only_archived_paths_make_an_archived_claim",
       "note": ""
     },
     {
@@ -777,6 +786,33 @@
       "note": ""
     },
     {
+      "id": "INV-b150db52d1",
+      "file": "eaos/live_run.py",
+      "symbol": "<module>",
+      "statement": "`env` holds only values the run itself chooses (a local database address, a key generated for the run); the owner's secrets never appear in it, and the sandbox passes on nothing else but the names the authorization lists.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_runtime_baseline.py::LiveRunTests::test_the_run_environment_is_the_profile_and_the_tools_never_this_process",
+      "note": ""
+    },
+    {
+      "id": "INV-e0c1d2dc21",
+      "file": "eaos/live_run.py",
+      "symbol": "<module>",
+      "statement": "The browser the lock drives reaches loopback only: every other host is refused, so a run never touches production or a third party.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_runtime_baseline.py::LiveRunTests::test_the_lock_browser_refuses_every_host_but_loopback",
+      "note": ""
+    },
+    {
+      "id": "INV-318bbc4ffb",
+      "file": "eaos/live_run.py",
+      "symbol": "extra",
+      "statement": "The run's own values and the tools' locations; never an owner secret (those pass by name only).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_runtime_baseline.py::LiveRunTests::test_the_run_environment_is_the_profile_and_the_tools_never_this_process",
+      "note": ""
+    },
+    {
       "id": "INV-e62792ace4",
       "file": "eaos/load_model.py",
       "symbol": "compute",
@@ -957,6 +993,15 @@
       "note": ""
     },
     {
+      "id": "INV-9bb9757e37",
+      "file": "eaos/runtime_baseline.py",
+      "symbol": "<module>",
+      "statement": "A number without its conditions cannot be compared, so the file carries them: the build that ran (a build, never the development server), the warm-up, the virtual users, the duration and the machine.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_runtime_baseline.py::BaselineTests::test_after_needs_a_before_under_the_same_conditions",
+      "note": ""
+    },
+    {
       "id": "INV-76eb0fcf2d",
       "file": "eaos/sandbox.py",
       "symbol": "<module>",
@@ -981,6 +1026,24 @@
       "statement": "A started service must answer the host, so it keeps the network; that, and every other thing this sandbox could not isolate, is written to sandbox-run.json -> limitations, never implied.",
       "kind": "invariant",
       "enforced_by": "tests/test_sandbox.py::SandboxTests::test_a_started_service_keeps_the_network_and_the_record_says_so",
+      "note": ""
+    },
+    {
+      "id": "INV-192f8aa357",
+      "file": "eaos/sandbox.py",
+      "symbol": "environment",
+      "statement": "PATH, a temporary HOME, LANG, the names the owner allowed, and `extra`: values the run itself chose (a local database address, tool locations), never taken from this process's environment.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_sandbox.py::SandboxEnvironmentTests::test_extra_values_pass_and_an_unallowed_secret_does_not",
+      "note": ""
+    },
+    {
+      "id": "INV-53a741ea59",
+      "file": "eaos/sandbox.py",
+      "symbol": "_inside",
+      "statement": "A working folder inside the copy (cwd is relative to it); never outside.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_sandbox.py::SandboxEnvironmentTests::test_a_working_folder_outside_the_copy_is_refused",
       "note": ""
     },
     {

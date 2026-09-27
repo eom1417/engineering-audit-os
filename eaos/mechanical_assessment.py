@@ -72,7 +72,7 @@ def build_assessment(claim, fact_sets, target):
     """{'assessment', 'checks'} for a confirmed product claim of a mechanical family under its rule, else None."""
     name = family(claim)
     if (target is None or name is None or claim.get('confidence') != 'CONFIRMED' or claim.get('assessment')
-            or claim.get('origin', 'source') == 'test' or not claim.get('probe_spec')):
+            or claim.get('origin', 'source') in ('test', 'archive') or not claim.get('probe_spec')):
         return None
     if name == 'duplicated_rule' and not same_value(claim, fact_sets): return None
     rule_name, invariant, after = FAMILIES[name]

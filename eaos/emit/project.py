@@ -52,9 +52,9 @@ def pin(name):
 
 
 def reference(report_profile):
-    from ..reference_architecture import by_id
-    ref = (report_profile['target'] or {}).get('reference')
-    return by_id(ref) if ref else None
+    from ..reference_architecture import by_id, rooted
+    target = report_profile['target'] or {}
+    return rooted(by_id(target['reference']), target.get('root') or '') if target.get('reference') else None
 
 
 def slug(text):

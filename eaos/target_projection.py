@@ -21,7 +21,7 @@ import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from .reference_architecture import by_id, choose, layer_of
+from .reference_architecture import by_id, layer_of, locate, rooted
 
 RULES = Path(__file__).resolve().parent / 'rules/disposition-rules.json'
 FEATURE_LAYERS = ('features', 'services', 'web', 'cli')
@@ -146,10 +146,16 @@ def _tool(area, reference_id):
     return choice
 
 
-def infrastructure(reference, facts, target, files):
-    """One decision per baseline item (and hosting), each present or absent by evidence."""
+MIGRATIONS = ('supabase/migrations', 'migrations', 'alembic', 'prisma/migrations', 'drizzle', 'server/migrations', 'db/migrations')
+HOSTING = ('vercel.json', 'netlify.toml', 'Dockerfile', 'fly.toml', 'railway.json', 'railway.toml', 'Procfile', 'nixpacks.toml', 'render.yaml')
+
+
+def infrastructure(reference, facts, target, files, prefix=''):
+    """One decision per baseline item (and hosting), each present or absent by evidence. A file counts at the
+    repository root or under the app root (chief-ops keeps its app in app/ and its Dockerfile at the root)."""
     target = Path(target) if target else None
-    exists = lambda *names: [n for n in names if target and (target / n).exists()]
+    exists = lambda *names: [n for n in names for base in dict.fromkeys(('', prefix))
+                             if target and (target / base / n).exists()]
     tests = [f for f in facts['source_file'] if (f.get('value') or {}).get('category') == 'test']
     env_files = sorted({f['location']['path'] for f in facts['env_read']})
     secrets = [f for f in facts['committed_credential'] if (f.get('value') or {}).get('severity') not in ('public', 'test')]
@@ -163,15 +169,13 @@ def infrastructure(reference, facts, target, files):
         'secrets': (not secrets, f"{len(secrets)} secret-class credential(s) committed"),
         'dependencies': (bool(exists('renovate.json', '.github/renovate.json', '.github/dependabot.yml')),
                          'renovate or dependabot configuration: ' + (', '.join(exists('renovate.json', '.github/renovate.json', '.github/dependabot.yml')) or 'none')),
-        'migrations': (bool(exists('supabase/migrations', 'migrations', 'alembic', 'prisma/migrations')),
-                       'migrations folder: ' + (', '.join(exists('supabase/migrations', 'migrations', 'alembic', 'prisma/migrations')) or 'none')),
+        'migrations': (bool(exists(*MIGRATIONS)), 'migrations folder: ' + (', '.join(exists(*MIGRATIONS)) or 'none')),
         'identity': ((bool(tables) and all(f['value']['rls_enabled'] for f in tables)) if tables else False,
                      f"{sum(1 for f in tables if f['value']['rls_enabled'])} of {len(tables)} tables with row-level security"),
         'data': (any(re.search(r'(supabase/types\.ts|openapi\.(ya?ml|json)|schema\.prisma|alembic/)', p) for p in files),
                  'typed schema source: ' + (next((p for p in files if re.search(r'(supabase/types\.ts|openapi\.|schema\.prisma|alembic/)', p)), None) or 'none')),
         'backup': (any('backup' in p.lower() for p in files), 'backup code: ' + (next((p for p in files if 'backup' in p.lower()), None) or 'none')),
-        'hosting': (bool(exists('vercel.json', 'netlify.toml', 'Dockerfile', 'fly.toml')),
-                    'hosting configuration: ' + (', '.join(exists('vercel.json', 'netlify.toml', 'Dockerfile', 'fly.toml')) or 'none')),
+        'hosting': (bool(exists(*HOSTING)), 'hosting configuration: ' + (', '.join(exists(*HOSTING)) or 'none')),
     }
     rows = []
     items = list(reference['infrastructure_baseline'])
@@ -196,9 +200,9 @@ def project(out, target=None):
     """The whole projection for one report: reference, components, placements, dispositions, infrastructure."""
     out = Path(out)
     target = target or ((_load(out / 'dossier.json', {}) or {}).get('provenance') or {}).get('target')
-    reference_id = choose(target) if target and Path(target).is_dir() else None
+    reference_id, prefix = locate(target) if target and Path(target).is_dir() else (None, '')
     if reference_id is None: return None
-    reference = by_id(reference_id)
+    reference = rooted(by_id(reference_id), prefix)
     facts = _facts(out)
     features = (_load(out / 'features.json', {}) or {}).get('features') or []
     nodes = {f['location']['path']: f['value'] for f in facts['graph_node']}
@@ -254,8 +258,8 @@ def project(out, target=None):
     flows = Counter((placed[a][0], placed[b][0]) for a, b in edges
                     if a in placed and b in placed and placed[a][0] != placed[b][0] and (a, b) not in set(bad))
     target_edges = [{'from': a, 'to': b, 'imports': n} for (a, b), n in sorted(flows.items())]
-    return {'reference': reference_id, 'target_components': sorted(components.values(), key=lambda c: c['name']),
+    return {'reference': reference_id, 'root': prefix, 'target_components': sorted(components.values(), key=lambda c: c['name']),
             'target_edges': target_edges,
             'placements': {p: c for p, (c, _) in placed.items()}, 'forbidden_edges': bad, 'current': current,
             'features': {f['name']: f"feature:{slug(f['name'])}" for f in features},
-            'infrastructure': infrastructure(reference, facts, target, files)}
+            'infrastructure': infrastructure(reference, facts, target, files, prefix)}

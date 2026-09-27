@@ -1386,6 +1386,14 @@ flowchart TB
 | [RendaPerene](https://github.com/R-Mascarenhas/RendaPerene) | Python desktop/CLI application | `1e8aea406d` |
 | هذا المستودع (حقيقة ذاتية: 15 عيبًا معروفًا) | Python | `879b5625e2` |
 
+### المشاريع التي تُشغَّل (الخطوات 17 إلى 24)
+
+العيّنة أعلاه عامة: تُدقَّق ولا تُشغَّل، لأن أصحابها لم يفوّضوا تشغيلها. مؤشرات التشغيل (E1، E2، E5 إلى E11) تُحسب من هذه المشاريع وحدها، وكلها بتفويض مالكها، وفي البيئة المعزولة فقط.
+
+| المشروع | النوع | الالتزام | المالك | أساس التفويض |
+| --- | --- | --- | --- | --- |
+| chief-ops | React + Vite client, its own Node server, PostgreSQL with row-level security (app/) | `29f3d8e460` | eom1417 | The owner uploaded it for analysis and, on 2026-09-27, asked for steps 17 onward to be carried out on it («بخصوص الخطوات التالية ١٧ وبعدها ... فكمل»). Runs happen only in the EAOS sandbox on this machine, against a local PostgreSQL, with no secret of the owner and nothing sent to Railway or production. |
+
 ## ملحق هـ: كل مهمة بتفاصيلها
 
 كل مهمة لها أمر قبول يفشل قبلها وينجح حين تكتمل. المهمة المنجزة تحمل في خطواتها ما نُفّذ فعلًا («كما نُفّذ»).

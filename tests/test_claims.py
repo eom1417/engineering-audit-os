@@ -217,3 +217,24 @@ class EngineClusterImpactTests(unittest.TestCase):
         self.assertEqual(_engine_cluster_measurement('literal_duplication', self._cluster([literal]),
                                                      {'external': {'facts': [literal]}}),
                          ('engine_cluster_literal_duplication', {'sites': 24}))
+
+
+class StatementLengthTests(unittest.TestCase):
+    """A large project must not reject its own ledger: lisan defined TEST_PORT in 57 test files."""
+
+    def test_a_rule_defined_in_57_places_names_six_and_counts_the_rest(self):
+        from eaos.claims import from_facts
+        definitions = [{'path': f'apps/api/test/auth/case-{n:02d}.e2e.ts', 'line': 24} for n in range(57)]
+        sets = {'domain': {'facts': [{'id': 'FACT-1', 'kind': 'domain_constant', 'value': {
+            'name': 'TEST_PORT', 'duplicated': True, 'definitions': definitions, 'distinct_values': 1}}]}}
+        claim = next(c for c in from_facts(sets) if (c.get('render') or {}).get('key') == 'duplicated_rule')
+        self.assertLessEqual(len(claim['statement']), 600)
+        self.assertIn('and 51 more', claim['statement'])
+        self.assertIn('57 places', claim['statement'])
+
+    def test_any_statement_over_the_limit_is_cut_and_still_passes_the_ledger(self):
+        from eaos.claims import errors, make
+        claim = make(1, 'x' * 900, 'risk', 'CONFIRMED', ['static_fact'], ['E-1'], 'the fact disappears')
+        self.assertEqual(len(claim['statement']), 600)
+        self.assertTrue(claim['statement'].endswith('…'))
+        self.assertEqual([e for e in errors([claim]) if 'statement' in e], [])

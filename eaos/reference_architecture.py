@@ -5,7 +5,8 @@ responsibility, the layers each may depend on, and the path patterns that place 
 and an infrastructure baseline whose every item says why it matters and how success is measured.
 
 choose() picks the type from the project's own files (package.json, pyproject.toml, requirements*.txt, and
-the names of a few files), in catalogue order; it never runs anything. layer_of() places a path in the
+the names of a few files), in catalogue order; it never runs anything. locate() also finds an application kept
+in one conventional folder (app/, web/, client/, frontend/), and rooted() moves the layer paths under it. layer_of() places a path in the
 layer whose matching pattern is the most specific, so src/components/ui/button.tsx is ui, not features.
 """
 import json
@@ -46,8 +47,31 @@ def _python_names(root):
     return {m.group(1).lower().replace('_', '-') for line in names for m in [REQUIREMENT.match(line)] if m}
 
 
+SOURCE_SUFFIXES = {'.py', '.ts', '.tsx', '.js', '.jsx', '.mjs', '.go', '.java', '.rb', '.php', '.cs', '.kt', '.swift', '.rs'}
+
+
+def _workspace(root):
+    """A workspace monorepo: pnpm-workspace.yaml, turbo.json, or package.json workspaces."""
+    if (root / 'pnpm-workspace.yaml').is_file() or (root / 'turbo.json').is_file(): return True
+    try: return bool(json.loads((root / 'package.json').read_text(encoding='utf-8')).get('workspaces'))
+    except (OSError, ValueError): return False
+
+
+TEST_PARTS = {'tests', 'test', '__tests__', 'e2e', 'fixtures'}
+
+
+def _python_program(root):
+    """Python is the program, not a helper: a .py file outside test folders, and no package.json beside it
+    (a Node project with one Python end-to-end test is not a Python command-line tool)."""
+    if (root / 'package.json').is_file(): return False
+    return any(not set(path.relative_to(root).parts[:-1]) & TEST_PARTS for path in root.glob('**/*.py'))
+
+
 def matches(rule, root):
     packages, python = _package_names(root), _python_names(root)
+    # A server kept in its own folder declares its database driver in its own package.json.
+    for folder in rule.get('dirs_any') or ():
+        packages |= _package_names(root / folder)
     if rule.get('package_json_all') and not set(rule['package_json_all']) <= packages: return False
     if rule.get('package_json_any') and not set(rule['package_json_any']) & packages: return False
     if set(rule.get('package_json_none') or ()) & packages: return False
@@ -56,14 +80,48 @@ def matches(rule, root):
         by_deps = bool(set(rule.get('python_deps_any') or ()) & python)
         by_files = any(list(root.glob(pattern)) for pattern in rule.get('files_any') or ())
         if not (by_deps or by_files): return False
-    if rule.get('python_files') and not any(root.glob('**/*.py')): return False
+    if rule.get('python_files') and not _python_program(root): return False
+    if rule.get('dirs_any') and not any((root / name).is_dir() for name in rule['dirs_any']): return False
+    if rule.get('workspace') and not _workspace(root): return False
+    # The last type of the catalogue: any project with a source file gets a target, read from its folder names.
+    if rule.get('any_source') and not any(p.suffix in SOURCE_SUFFIXES for p in root.rglob('*') if 'node_modules' not in p.parts): return False
     return bool(rule)
+
+
+# Where an application may sit inside its repository: at the root, or in one conventional folder
+# (chief-ops keeps its package.json in app/). The first folder a catalogue type matches is the app root.
+APP_ROOTS = ('', 'app', 'web', 'client', 'frontend', 'src/app')
+
+
+def locate(project_dir):
+    """(type id, app root prefix such as 'app/' or '') of the first type that fits, or (None, '')."""
+    root = Path(project_dir)
+    types = catalogue()['types']
+    # Every specific type in every conventional folder first; the fallback (any_source) only when none fits,
+    # or an app kept in app/ would be read as a generic project from the repository root.
+    for fallback in (False, True):
+        for folder in APP_ROOTS:
+            base = root / folder if folder else root
+            if not base.is_dir(): continue
+            found = next((t['id'] for t in types if bool(t['detect'].get('any_source')) == fallback and matches(t['detect'], base)), None)
+            if found: return found, f'{folder}/' if folder else ''
+    return None, ''
 
 
 def choose(project_dir):
     """The id of the reference type that fits the project, read from its own files; None when none fits."""
-    root = Path(project_dir)
-    return next((t['id'] for t in catalogue()['types'] if matches(t['detect'], root)), None)
+    return locate(project_dir)[0]
+
+
+def rooted(reference, prefix):
+    """The reference with every layer path under the app root, so repository paths place directly."""
+    if not prefix: return reference
+    import copy
+    reference = copy.deepcopy(reference)
+    for layer in reference['layers']:
+        layer['paths'] = [prefix + pattern if not pattern.startswith('**') else pattern for pattern in layer.get('paths') or ()]
+    reference['root'] = prefix
+    return reference
 
 
 def layer_of(path, reference):

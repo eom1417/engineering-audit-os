@@ -13,9 +13,9 @@ copy made by eaos.verify.isolated_copy; files_changed counts files added, remove
 that changes nothing did nothing, and says so with files_changed 0. The project is never written.
 """
 import ast
-import hashlib
 import json
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -26,11 +26,39 @@ TRANSFORM = Path(__file__).resolve().parent / 'templates/codemods/remove-declara
 LANGUAGES = {'.py': 'python', '.js': 'javascript', '.jsx': 'javascript', '.ts': 'typescript', '.tsx': 'tsx', '.mjs': 'javascript'}
 
 
-def _hashes(root):
-    """Every project file's digest; tool caches (node_modules/.cache and the like) are not the project."""
+def _stats(root):
+    """{path: (size, mtime_ns)} of every project file; tool caches (node_modules/.cache and the like) are not the project.
+    A stat is cheap where reading every file is not: a large project dry-runs hundreds of cards."""
+    import os
     from .workspace import SKIP_DIRS
-    return {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
-            for p in Path(root).rglob('*') if p.is_file() and not set(p.relative_to(root).parts) & SKIP_DIRS}
+    root, found = Path(root), {}
+    for base, directories, names in os.walk(root):
+        directories[:] = [d for d in directories if d not in SKIP_DIRS]
+        for name in names:
+            path = Path(base) / name
+            try: stat = path.stat()
+            except OSError: continue
+            found[path.relative_to(root).as_posix()] = (stat.st_size, stat.st_mtime_ns)
+    return found
+
+
+def _changed(copy, pristine, before, after):
+    """Paths whose content the card changed: a stat that moved is confirmed against the untouched file."""
+    changed = []
+    for key in set(before) | set(after):
+        if before.get(key) == after.get(key): continue
+        if key not in before or key not in after: changed.append(key); continue
+        if (Path(copy) / key).read_bytes() != (Path(pristine) / key).read_bytes(): changed.append(key)
+    return changed
+
+
+def _restore(copy, pristine, before, after):
+    """Put the copy back as it was before the card: every path it touched, from the untouched project."""
+    for key in set(before) | set(after):
+        if before.get(key) == after.get(key): continue
+        target = Path(copy) / key
+        if key in before: shutil.copy2(Path(pristine) / key, target)
+        elif target.exists(): target.unlink()
 
 
 def remove_python(path, name):
@@ -73,28 +101,38 @@ def _commands(card, copy):
     return None
 
 
-def dry_run(card, target):
-    """{exit, files_changed} of the card's commands on an isolated copy of the target, and the command text."""
+def dry_run(card, target, copy=None):
+    """{exit, files_changed} of the card's commands on an isolated copy of the target, and the command text.
+
+    With `copy` (attach() makes one per run), the copy is restored after the card instead of copied anew; without
+    it, a copy is made and removed. Either way no copy outlives the call that made it."""
     from .verify import isolated_copy
-    copy = isolated_copy(Path(target), Path(tempfile.mkdtemp(prefix='eaos-codemod-')) / 'project')
-    steps = _commands(card, copy)
-    if steps is None: return None, None
-    before, code, shown = _hashes(copy), 0, []
-    for step, description in steps:
-        if callable(step):
-            try: step()
-            except (OSError, SyntaxError, ValueError): code = 1
-            shown.append(description)
-        else:
-            import os
-            done = subprocess.run(step, cwd=copy, capture_output=True, text=True, timeout=600,
-                                  env={**os.environ, 'BABEL_DISABLE_CACHE': '1'})
-            code = code or done.returncode
-            shown.append(shlex.join([Path(step[0]).name, *step[1:]]).replace(str(TRANSFORM), 'eaos/templates/codemods/remove-declaration.cjs'))
-        if code: break
-    after = _hashes(copy)
-    changed = sum(1 for k in set(before) | set(after) if before.get(k) != after.get(k))
-    return {'exit': code, 'files_changed': changed}, ' && '.join(shown)
+    owned = copy is None
+    if owned:
+        holder = Path(tempfile.mkdtemp(prefix='eaos-codemod-'))
+        copy = isolated_copy(Path(target), holder / 'project')
+    try:
+        steps = _commands(card, copy)
+        if steps is None: return None, None
+        before, code, shown = _stats(copy), 0, []
+        for step, description in steps:
+            if callable(step):
+                try: step()
+                except (OSError, SyntaxError, ValueError): code = 1
+                shown.append(description)
+            else:
+                import os
+                done = subprocess.run(step, cwd=copy, capture_output=True, text=True, timeout=600,
+                                      env={**os.environ, 'BABEL_DISABLE_CACHE': '1'})
+                code = code or done.returncode
+                shown.append(shlex.join([Path(step[0]).name, *step[1:]]).replace(str(TRANSFORM), 'eaos/templates/codemods/remove-declaration.cjs'))
+            if code: break
+        after = _stats(copy)
+        changed = _changed(copy, target, before, after)
+        if not owned: _restore(copy, target, before, after)
+        return {'exit': code, 'files_changed': len(changed)}, ' && '.join(shown)
+    finally:
+        if owned: shutil.rmtree(holder, ignore_errors=True)
 
 
 def card_for(task, facts_by_id, target):
@@ -137,13 +175,21 @@ def attach(tasks, out, target):
         except (OSError, ValueError): continue
         for fact in data.get('facts') or []:
             if isinstance(fact, dict) and fact.get('id'): facts_by_id[fact['id']] = fact
+    cards = [(task, card_for(task, facts_by_id, target)) for task in tasks if task.get('pattern') in MECHANICAL]
+    cards = [(task, card) for task, card in cards if card]
+    if not cards: return 0
+    from .verify import isolated_copy
+    holder = Path(tempfile.mkdtemp(prefix='eaos-codemod-'))
     attached = 0
-    for task in tasks:
-        if task.get('pattern') not in MECHANICAL: continue
-        card = card_for(task, facts_by_id, target)
-        if not card: continue
-        result, command = dry_run(card, target)
-        if result is None: continue
-        task['codemod'] = {'tool': card['kind'], 'command': command, 'dry_run': result}
-        attached += 1
+    try:
+        # One copy for the whole run, put back after every card: a copy per card on a large project was
+        # hundreds of full copies, and none of them was ever removed.
+        copy = isolated_copy(Path(target), holder / 'project')
+        for task, card in cards:
+            result, command = dry_run(card, target, copy)
+            if result is None: continue
+            task['codemod'] = {'tool': card['kind'], 'command': command, 'dry_run': result}
+            attached += 1
+    finally:
+        shutil.rmtree(holder, ignore_errors=True)
     return attached

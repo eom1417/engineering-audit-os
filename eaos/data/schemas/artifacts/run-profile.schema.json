@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "run.json",
+  "description": "How an authorised project runs in the sandbox: install, build, prepare, start, health route and sign-in, all declared, none guessed. env holds only values the run chooses, never an owner secret.",
+  "x-artifact": "run.json",
+  "x-owner": "NS26",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "install",
+    "start",
+    "port",
+    "health"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "app": {
+      "type": "string"
+    },
+    "install": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      }
+    },
+    "build": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      }
+    },
+    "prepare": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      }
+    },
+    "start": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "port": {
+      "type": "integer"
+    },
+    "health": {
+      "type": "string"
+    },
+    "start_timeout": {
+      "type": "integer"
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "seed": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      }
+    },
+    "sign_in": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "baseline": {
+      "type": "object"
+    }
+  }
+}

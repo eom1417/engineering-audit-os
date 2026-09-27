@@ -10,6 +10,7 @@ the engine excludes a small set of well-known vendored directory names; a projec
 genuinely wants them analysed declares `include_vendored: true` in `eaos.policy.json`.
 """
 import json
+import subprocess
 from pathlib import Path
 
 FILENAME = 'eaos.policy.json'
@@ -44,12 +45,28 @@ def declared_exclusions(target, path=None):
             raise ValueError('analysis.exclude must be an array of path patterns')
         declared = sorted({item.strip('/') for item in patterns if item.strip('/')})
     vendored = [] if _include_vendored(target, path) else list(VENDORED)
-    return sorted({*declared, *vendored})
+    return sorted({*declared, *vendored, *git_ignored(target)})
 
 
 def vendored_patterns():
     """The default vendored directory names the engine excludes unless the project opts in."""
     return list(VENDORED)
+
+
+def git_ignored(target):
+    """What the project's own .gitignore keeps out of its repository: build outputs, local data, copies.
+
+    A snapshot handed over as an archive carries them (chief-ops shipped release/, dist/ and .data/ beside
+    its source, 756 files, and release/ is a second copy of the server). They are not the project's code,
+    so analysing them counts every duplicate and dead symbol twice. Empty when the target is not a git
+    repository or git is absent: then nothing is excluded on this ground."""
+    try:
+        done = subprocess.run(['git', '-C', str(target), 'ls-files', '--others', '--ignored', '--exclude-standard', '--directory'],
+                              capture_output=True, text=True, timeout=120)
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    if done.returncode != 0: return []
+    return sorted({line.strip().rstrip('/') for line in done.stdout.splitlines() if line.strip().rstrip('/')})
 
 
 def exclusion_reasons(target, path=None):
@@ -72,4 +89,6 @@ def exclusion_reasons(target, path=None):
     if not _include_vendored(target, path):
         for pattern in VENDORED:
             reasons.setdefault(pattern, 'vendored directory name; opt in via analysis.include_vendored=true')
+    for pattern in git_ignored(target):
+        reasons.setdefault(pattern, "ignored by the project's .gitignore: not part of its repository")
     return reasons

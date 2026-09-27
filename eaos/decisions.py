@@ -48,6 +48,8 @@ def decide(claim):
         kind, reason = 'retain', disposition['reason']
     elif claim.get('origin') == 'test' and not assessment.get('violated_invariant'):
         kind, reason = 'retain', 'Test or fixture observation: no product violation established; retain for review.'
+    elif claim.get('origin') == 'archive' and not assessment.get('violated_invariant'):
+        kind, reason = 'retain', 'Archived code: not part of the running product; the owner keeps it for reference or removes it.'
     elif (claim.get('confidence') == 'CONFIRMED' and assessment.get('violated_invariant')
           and assessment.get('requirement_refs') and assessment.get('evidence_refs')):
         kind, reason = 'repair', 'A confirmed observation violates an explicitly evidenced requirement.'

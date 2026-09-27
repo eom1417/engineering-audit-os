@@ -7,6 +7,9 @@
   "type": "object",
   "required": [],
   "properties": {
+    "root": {
+      "type": "string"
+    },
     "target_components": {
       "type": "array",
       "items": {

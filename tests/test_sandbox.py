@@ -97,3 +97,21 @@ class SandboxTests(Workspace):
         record = json.loads((Path(self.tmp) / 'work/sandbox-run.json').read_text())
         self.assertTrue(any(line.startswith('network not isolated for the started service') for line in record['limitations']))
         self.assertEqual(record['commands'][-1]['exit'], 3)
+
+
+class SandboxEnvironmentTests(SandboxTests):
+    """What a run chose is passed; what this process holds, and was not allowed, never is."""
+
+    def test_extra_values_pass_and_an_unallowed_secret_does_not(self):
+        with mock.patch.dict(os.environ, {'OWNER_SECRET_TOKEN': 'do-not-leak'}):
+            env = self.box().environment({'DATABASE_URL': 'postgres://local'})
+        self.assertEqual(env['DATABASE_URL'], 'postgres://local')
+        self.assertNotIn('OWNER_SECRET_TOKEN', env)
+
+    def test_a_working_folder_outside_the_copy_is_refused(self):
+        box = self.box()
+        with self.assertRaises(sandbox.AuthorizationError):
+            box.run(['true'], cwd='../../')
+        code, out, _ = box.run([sys.executable, '-c', 'import os;print(os.getcwd())'], cwd='.')
+        self.assertEqual(code, 0)
+        self.assertEqual(Path(out.strip()).resolve(), box.copy.resolve())
