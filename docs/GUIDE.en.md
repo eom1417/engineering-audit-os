@@ -2,7 +2,8 @@
 
 For people who built their app with an AI assistant and do not know the details of programming. Copy each
 command exactly, paste it into the terminal, and press Enter. Every command ends with a box that says what
-happened, and what to type next.
+happened, and what to type next. Copy the command alone, with nothing before it: `eaos doctor`, not
+`bash eaos doctor`.
 
 > **Easiest:** if you use Claude Code or Codex, do step 1 and step 2, then talk to your assistant in your own
 > words: "check my project", "what is wrong?", "fix it", "where are we?". It runs the commands and explains.
