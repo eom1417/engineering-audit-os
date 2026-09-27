@@ -42,6 +42,14 @@ class AssessmentTests(Workspace):
     def test_a_rule_repeated_across_languages_is_a_design_decision_not_a_repair(self):
         self.assertIsNone(build_assessment(claim(), ACROSS, self.tmp))
 
+    def test_a_missing_file_is_a_decision_for_a_person_not_a_repair(self):
+        # Restore the file, or remove what uses it: removing it once deleted two admin routes to make a server compile.
+        def broken(rule):
+            return {**claim('broken_code'), 'probe_spec': {'probe_type': 'graph_query', 'specification': {
+                'query': 'broken_code_present', 'path': 'server/index.ts', 'symbol': './env.js', 'rule': rule}}}
+        self.assertIsNone(build_assessment(broken('missing-import'), {}, self.tmp))
+        self.assertIsNotNone(build_assessment(broken('stale-instruction'), {}, self.tmp))
+
     def test_every_family_names_a_rule_the_engagement_declares(self):
         from eaos.engagement import DEFAULT_RULES
         for name, (rule, invariant, after) in FAMILIES.items():

@@ -33,6 +33,8 @@ SYSTEM = """You are the engineer executing one card of an engineering plan in a 
 The card states the problem, the evidence, the change and the invariant to keep. You receive the full text of
 every file the card may change. Make the smallest change that removes the problem and keeps behaviour identical
 for users. Do not rename anything else, reformat, or touch code the card does not concern.
+Never remove a feature, a route, an endpoint, a check, an error handler or any behaviour a user or another
+system can reach, to make the problem go away: if that is the only way, make no edit and say why.
 
 Answer with one JSON object:
 {"action": "final", "result": {"summary": "<one sentence>", "edits": [{"path": "<one of the card's files>",
@@ -113,16 +115,29 @@ def acceptance(card, root):
     return subprocess.run(argv, cwd=root, capture_output=True, text=True, timeout=1800).returncode
 
 
+def surfaces(facts):
+    """The HTTP endpoints and mounts a set of entry-point facts names: (method, route)."""
+    return {(f['value'].get('http_method'), f['value'].get('route')) for f in facts
+            if f.get('kind') == 'entry_point' and (f.get('value') or {}).get('surface') == 'http'}
+
+
 def new_breakage(report, root):
-    """Broken-code findings of severity high on the candidate that the report did not have: what the change broke."""
+    """What the change broke: broken-code findings of severity high the report did not have, and any HTTP endpoint
+    or mount that is gone. A fix that makes a problem disappear by deleting what users reach is not a fix."""
     import tempfile
     from .facts.run import collect
     key = lambda f: (f['value']['rule'], f['location'].get('path'), f['location'].get('symbol'))
     before = {key(f) for f in json.loads((Path(report) / 'facts/broken.json').read_text(encoding='utf-8'))['facts']}
+    entry_file = Path(report) / 'facts/entrypoints.json'
+    had = surfaces(json.loads(entry_file.read_text(encoding='utf-8'))['facts']) if entry_file.is_file() else None
     with tempfile.TemporaryDirectory(prefix='eaos-breakage-') as out:
-        collect(root, out, ['syntax', 'resolve', 'broken'])
+        collect(root, out, ['syntax', 'resolve', 'broken'] + (['entrypoints'] if had is not None else []))
         after = json.loads((Path(out) / 'facts/broken.json').read_text(encoding='utf-8'))['facts']
-    return sorted(f['value']['message'] for f in after if f['value'].get('severity') == 'high' and key(f) not in before)
+        has = surfaces(json.loads((Path(out) / 'facts/entrypoints.json').read_text(encoding='utf-8'))['facts']) if had is not None else set()
+    broke = sorted(f['value']['message'] for f in after if f['value'].get('severity') == 'high' and key(f) not in before)
+    if had is not None:
+        broke += [f'the endpoint {method} {route} is gone' for method, route in sorted(had - has, key=str)]
+    return broke
 
 
 def project_checks(target, runtime, stage, name):

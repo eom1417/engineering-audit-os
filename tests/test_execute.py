@@ -133,3 +133,19 @@ class AdapterIsolationTests(Workspace):
         self.assertIn('--no-session-persistence', argv)
         self.assertNotIn('env', kwargs, 'no key is put in the environment: the CLI uses the sign-in it has')
         self.assertFalse(any('key' in a.lower() for a in argv if a.startswith('--')))
+
+
+class EndpointGuardTests(Workspace):
+    def test_a_fix_that_deletes_an_endpoint_is_breakage_even_when_it_compiles(self):
+        from eaos.execute import new_breakage
+        from eaos.facts.run import collect
+        repo, report = Path(self.tmp) / 'repo', Path(self.tmp) / 'report'
+        (repo / 'server').mkdir(parents=True)
+        (repo / 'package.json').write_text('{"name": "x"}')
+        (repo / 'server/admin.ts').write_text('export const admin = 1;\n')
+        (repo / 'server/index.ts').write_text("import { admin } from './admin';\nconst app = new Hono();\n"
+                                              "app.get('/api/me', me);\napp.route('/api/admin/secrets', admin);\n")
+        collect(repo, report, ['syntax', 'resolve', 'broken', 'entrypoints'])
+        self.assertEqual(new_breakage(report, repo), [])
+        (repo / 'server/index.ts').write_text("const app = new Hono();\napp.get('/api/me', me);\n")
+        self.assertEqual(new_breakage(report, repo), ['the endpoint MOUNT /api/admin/secrets is gone'])

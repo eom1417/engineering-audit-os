@@ -2,7 +2,8 @@
 import re
 
 LANGUAGES = ('javascript', 'typescript', 'tsx')
-ROUTE = re.compile(r'\b(?P<object>app|router|server|fastify)\.(?P<method>get|post|put|patch|delete|all|use)\(\s*(?P<quote>[\'"`])(?P<route>[^\'"`]*)(?P=quote)\s*,\s*(?P<handler>[\w.]+)?', re.M)
+# `route` is Hono's mount (app.route('/api/admin', adminRouter)): a whole group of endpoints under one path.
+ROUTE = re.compile(r'\b(?P<object>app|router|server|fastify|api|hono)\.(?P<method>get|post|put|patch|delete|all|use|route)\(\s*(?P<quote>[\'"`])(?P<route>[^\'"`]*)(?P=quote)\s*,\s*(?P<handler>[\w.]+)?', re.M)
 NEXT_HANDLER = re.compile(r'export\s+(?:default\s+)?(?:async\s+)?function\s+(?P<name>\w+)', re.M)
 NEXT_METHOD = re.compile(r'export\s+(?:async\s+)?function\s+(?P<method>GET|POST|PUT|PATCH|DELETE)\s*\(', re.M)
 
@@ -13,7 +14,8 @@ def detect(context):
         line = context.line_of(match.start())
         handler = match.group('handler')
         if handler in {'async', 'function', 'await', 'new'}: handler = None
-        found.append({'surface': 'http', 'route': match.group('route'), 'http_method': match.group('method').upper(),
+        method = 'MOUNT' if match.group('method') == 'route' else match.group('method').upper()
+        found.append({'surface': 'http', 'route': match.group('route'), 'http_method': method,
                       'handler': handler or context.symbol_at(line), 'framework': 'express_like', 'line': line})
     if re.search(r'(^|/)(pages/api|app)/', context.rel) and re.search(r'/route\.(t|j)sx?$|pages/api/', context.rel):
         route = '/' + context.rel.split('pages/api/')[-1].split('app/')[-1].rsplit('.', 1)[0].removesuffix('/route')

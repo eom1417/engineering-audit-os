@@ -39,6 +39,8 @@ def main(argv=None):
     where = MEASURE / 'ux' / name
     home = where / 'home'
     subprocess.run(['rm', '-rf', str(home)])
+    for stale in list(where.glob('out-*.txt')) + [where / 'trial.json']:   # a trial reads only its own outputs
+        if stale.exists(): stale.unlink()
     env = {**os.environ, 'EAOS_HOME': str(home), 'PYTHONPATH': str(ROOT)}
     commit = subprocess.run(['git', '-C', str(project), 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
     trial = {'schema_version': 1, 'project': name, 'commit': commit, 'manual_files': len(args.manual_file),
