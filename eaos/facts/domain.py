@@ -161,6 +161,22 @@ def js_mutable_globals(text):
     return found
 
 
+def encapsulated(name, text, language):
+    """Whether module state is private to its module: no other module can reach the variable itself, only the
+    module's own functions. JavaScript: never exported. Python: a leading underscore, not in __all__. Go: an
+    unexported name. Such state has an owner; whether it may stay per-process is a design decision."""
+    if language == 'python':
+        return name.startswith('_') and not re.search(rf'__all__[^\n]*[\'"]{re.escape(name)}[\'"]', text)
+    if language == 'go':
+        return name[:1].islower()
+    escaped = re.escape(name)
+    exported = (re.search(rf'\bexport\s+(?:let|var|const)\s+{escaped}\b', text)
+                or re.search(rf'\bexport\s*\{{[^}}]*\b{escaped}\b[^}}]*\}}', text)
+                or re.search(rf'\bexport\s+default\s+{escaped}\b', text)
+                or re.search(rf'\b(?:module\.)?exports\.{escaped}\b|\bmodule\.exports\s*=\s*\{{[^}}]*\b{escaped}\b', text))
+    return not exported
+
+
 def python_constants(text):
     try: tree = ast.parse(text)
     except (SyntaxError, ValueError, RecursionError): return []
@@ -232,17 +248,17 @@ def run(target, source, **options):
         if language == 'python':
             for name, value, line in python_constants(text): constants[name].append((rel, line, value))
             for name, shape, line, how, where, scope in python_mutable_globals(text):
-                mutable_globals.append((rel, name, shape, line, how, where, scope))
+                mutable_globals.append((rel, name, shape, line, how, where, scope, encapsulated(name, text, language)))
             for module, attribute, line in python_external_writes(text, owned_modules):
                 external_writes.append((rel, module, attribute, line))
             for match in ORM_MODEL.finditer(text):
                 models.append((match.group('name'), rel, text.count('\n', 0, match.start()) + 1, 'python_class'))
         elif language == 'go':
             for name, shape, line, how, where, scope in go_mutable_globals(text):
-                mutable_globals.append((rel, name, shape, line, how, where, scope))
+                mutable_globals.append((rel, name, shape, line, how, where, scope, encapsulated(name, text, language)))
         elif language in {'javascript', 'typescript', 'tsx'}:
             for name, shape, line, how, where, scope in js_mutable_globals(text):
-                mutable_globals.append((rel, name, shape, line, how, where, scope))
+                mutable_globals.append((rel, name, shape, line, how, where, scope, encapsulated(name, text, language)))
             for match in JS_CONST.finditer(text):
                 raw = match.group('value').strip().rstrip(',')
                 try: value = ast.literal_eval(raw)
@@ -291,11 +307,11 @@ def run(target, source, **options):
                           {'path': policy['path'], 'start_line': policy['line']},
                           {'table': table, 'name': name, 'command': policy['command'], 'roles': policy['roles'],
                            'open': policy['open']}, limitations=LIMITATIONS))
-    for rel, name, shape, line, how, where, scope in sorted(mutable_globals):
+    for rel, name, shape, line, how, where, scope, private in sorted(mutable_globals):
         facts.append(make('mutable_global', NAME, VERSION, digest((rel + name).encode('utf-8')),
                           {'path': rel, 'start_line': line},
                           {'name': name, 'shape': shape, 'mutated_by': how, 'mutated_at_line': where,
-                           'mutation_scope': scope,
+                           'mutation_scope': scope, 'encapsulated': private,
                            'note': 'Built at import time in its own module.' if scope == 'module'
                                    else 'Changed while the program runs.'},
                           limitations=LIMITATIONS))

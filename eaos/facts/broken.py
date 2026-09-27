@@ -14,6 +14,7 @@ Each is certain from the text: no heuristic score, no engine confidence.
 import ast
 import builtins
 import json
+import fnmatch
 import re
 import symtable
 from pathlib import PurePosixPath
@@ -32,7 +33,7 @@ LIMITATIONS = [
 BUILTINS = set(dir(builtins)) | {'__file__', '__name__', '__doc__', '__spec__', '__package__', '__loader__', '__builtins__',
                                  '__path__', '__annotations__', '__dict__', '__module__', '__qualname__', '__class__'}
 SUBPARSER = re.compile(r'''add_parser\(\s*['"]([a-z][\w-]*)['"]''')
-NPM_RUN = re.compile(r'''\b(?:npm|pnpm|yarn|bun)\s+run\s+([\w:.-]+)''')
+NPM_RUN = re.compile(r'''\b(?:npm|pnpm|yarn|bun)\s+run\s+([\w:.*-]+)''')
 RUN_FILE = re.compile(r'''\b(?:python3?|node|bash|sh|tsx|ts-node|deno\s+run)\s+((?:\./)?[\w./-]+\.(?:py|[cm]?[jt]s|sh))\b''')
 CODE_SPAN = re.compile(r'```[^\n]*\n(.*?)```|`([^`\n]+)`', re.S)
 
@@ -136,11 +137,15 @@ def stale_instructions(source, known, everything):
                         out.append((path, line, f'{found.group(1)} {found.group(2)}'))
             if scripts:
                 for found in NPM_RUN.finditer(span):
-                    if found.group(1) not in all_scripts: out.append((path, line, found.group(0)))
+                    # `npm run deploy:*` names a family of scripts: it exists when one of them does.
+                    if not any(fnmatch.fnmatchcase(name, found.group(1)) for name in all_scripts):
+                        out.append((path, line, found.group(0)))
             for found in RUN_FILE.finditer(span):
                 if found.group(1).startswith('/'): continue   # an absolute path is outside the project
                 file = found.group(1).lstrip('./')
-                if '/' in file and file not in everything and str(PurePosixPath(path).parent / file) not in everything:
+                # A command documented at the root is often run from the app's own folder (the one with package.json).
+                bases = [PurePosixPath(path).parent] + [PurePosixPath(folder) for folder in scripts]
+                if '/' in file and file not in everything and not any(str(base / file) in everything for base in bases):
                     out.append((path, line, found.group(0)))
     return sorted(set(out))
 

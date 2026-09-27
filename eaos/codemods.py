@@ -19,7 +19,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 RULES = Path(__file__).resolve().parent / 'rules/codemods.json'
 TRANSFORM = Path(__file__).resolve().parent / 'templates/codemods/remove-declaration.cjs'
@@ -95,9 +95,11 @@ def _commands(card, copy):
     if kind == 'npm':
         binary = which('npm') or 'npm'
         flags = ['--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund', '--loglevel=error']
+        if detail.get('folder', '.') != '.': flags += ['--prefix', detail['folder']]
         if detail['direct']:
             return [([binary, 'install', f"{detail['package']}@{detail['fixed']}", *flags], None)]
-        return [([binary, 'pkg', 'set', f"overrides.{detail['package']}={detail['fixed']}"], None), ([binary, 'install', *flags], None)]
+        prefix = flags[flags.index('--prefix'):] if '--prefix' in flags else []
+        return [([binary, 'pkg', 'set', f"overrides.{detail['package']}={detail['fixed']}", *prefix], None), ([binary, 'install', *flags], None)]
     return None
 
 
@@ -157,10 +159,12 @@ def card_for(task, facts_by_id, target):
         ecosystem, _, rest = str(fact['location'].get('symbol')).partition(':')
         package, _, _ = rest.rpartition('@')
         fixed = next((m['value'] for m in fact['value'].get('measurements') or [] if m['name'] == 'fixed_in'), None)
-        if ecosystem != 'npm' or not fixed or not (Path(target) / 'package-lock.json').is_file(): return None
-        manifest = json.loads((Path(target) / 'package.json').read_text(encoding='utf-8'))
+        # The lock file the scanner read names the folder: an app in app/ has its manifest there, not at the root.
+        folder = str(PurePosixPath(fact['location'].get('path') or 'package-lock.json').parent)
+        if ecosystem != 'npm' or not fixed or not (Path(target) / folder / 'package-lock.json').is_file(): return None
+        manifest = json.loads((Path(target) / folder / 'package.json').read_text(encoding='utf-8'))
         direct = package in (manifest.get('dependencies') or {}) or package in (manifest.get('devDependencies') or {})
-        return {'kind': 'npm', 'package': package, 'fixed': fixed, 'direct': direct}
+        return {'kind': 'npm', 'package': package, 'fixed': fixed, 'direct': direct, 'folder': folder}
     return None
 
 

@@ -32,6 +32,21 @@ class CodemodTests(Workspace):
         self.assertIn('--name=unused', command)
         self.assertEqual(state_digest(root), before)
 
+    def test_an_import_only_the_removed_code_used_goes_with_it_and_the_rest_stay(self):
+        import subprocess
+        from eaos.codemods import TRANSFORM
+        if not which('jscodeshift'): self.skipTest('jscodeshift is not installed')
+        root = self.project({'src/a.tsx': "import 'side-effect'\nimport { createContext, useContext } from 'react'\n"
+                                           "import { already } from 'x'\n"
+                                           "export const Ctx = createContext(1)\nexport const useCtx = () => useContext(Ctx)\n"})
+        subprocess.run([which('jscodeshift'), '-t', str(TRANSFORM), '--parser=tsx', '--name=useCtx', 'src/a.tsx'],
+                       cwd=root, capture_output=True, check=True)
+        text = (root / 'src/a.tsx').read_text()
+        self.assertNotIn('useContext', text)
+        self.assertIn("import { createContext } from 'react'", text)
+        self.assertIn("import 'side-effect'", text, 'a side-effect import is kept for its effect')
+        self.assertIn("import { already } from 'x'", text, 'an import unused before the change is not the change\'s to remove')
+
     def test_a_tool_that_changes_nothing_says_so(self):
         if not which('jscodeshift'): self.skipTest('jscodeshift is not installed')
         root = self.project({'src/a.ts': 'export function keep() { return 1; }\n'})
@@ -97,3 +112,20 @@ class CopyLifetimeTests(Workspace):
         self.assertEqual([t['codemod']['dry_run'] for t in tasks], [{'exit': 0, 'files_changed': 1}] * 2)
         self.assertEqual(self.leftovers(), before)
         self.assertTrue((root / 'old.txt').exists())
+
+
+class AppFolderTests(Workspace):
+    def test_an_upgrade_runs_in_the_folder_of_the_lock_file_the_scanner_read(self):
+        import tempfile
+        from eaos.codemods import _commands, card_for
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'app').mkdir()
+            (Path(tmp) / 'app/package.json').write_text('{"dependencies": {"sharp": "^0.35.3"}}')
+            (Path(tmp) / 'app/package-lock.json').write_text('{}')
+            fact = {'id': 'F', 'location': {'path': 'app/package-lock.json', 'symbol': 'npm:sharp@0.35.3'},
+                    'value': {'measurements': [{'name': 'fixed_in', 'value': '0.35.4'}]}}
+            card = card_for({'pattern': 'upgrade_dependency', 'evidence': {'fact_ids': ['F']}}, {'F': fact}, tmp)
+            self.assertEqual((card['folder'], card['direct']), ('app', True))
+            argv = _commands(card, Path(tmp))[0][0]
+            self.assertEqual(argv[1:3], ['install', 'sharp@0.35.4'])
+            self.assertEqual(argv[-2:], ['--prefix', 'app'])

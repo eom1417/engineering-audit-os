@@ -234,9 +234,14 @@ def from_facts(fact_sets, target=None):
     domain_facts = fact_sets.get('domain', {}).get('facts', [])
     for fact in [f for f in domain_facts if f['kind'] == 'mutable_global' and f['value'].get('mutation_scope') == 'function']:
         index += 1
+        # State private to its module has an owner: its own functions. Whether it may stay per-process (a
+        # shutdown flag) or must move out (an in-memory rate limit behind two instances) is a decision, not a
+        # mechanical repair; exposed state other modules change directly is the defect.
+        private = bool(fact['value'].get('encapsulated'))
         claims.append(make(index, f"{fact['value']['name']} in {fact['location']['path']} is module-level state changed "
-                                  f"at runtime ({fact['value']['mutated_by']}, line {fact['value']['mutated_at_line']})",
-                           'risk', 'CONFIRMED', ['static_fact'], [],
+                                  f"at runtime ({fact['value']['mutated_by']}, line {fact['value']['mutated_at_line']})"
+                                  + ('; private to its module, changed only through its own functions' if private else ''),
+                           'risk', 'LIKELY' if private else 'CONFIRMED', ['static_fact'], [],
                            'The value becoming immutable, or the mutation moving behind an owner that serialises access.',
                            fact_ids=[fact['id']],
                            render={'key': 'mutable_global', 'params': {'name': fact['value']['name'],

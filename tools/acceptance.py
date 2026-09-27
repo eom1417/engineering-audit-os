@@ -48,6 +48,19 @@ def projects():
     return rows
 
 
+def live_projects():
+    """(name, report dir, runtime dir) for every live-corpus project: a runtime artifact exists only where the owner
+    authorised running the project (docs/north-star.json live_corpus), as in measure.live_values."""
+    rows = []
+    for spec in record().get('live_corpus') or []:
+        out = measure.REPORTS / spec['name']
+        if not (out / '.north-star.json').is_file():
+            raise SystemExit(f"{spec['name']}: no audited report in {out}; run python tools/north_star.py measure first")
+        rows.append((spec['name'], out, measure.RUNTIME / spec['name']))
+    if not rows: raise SystemExit('no live_corpus in docs/north-star.json: no project is authorised to run')
+    return rows
+
+
 def verdict(failures, what):
     for line in failures: print('FAIL ' + line)
     if not failures: print('PASS ' + what)
@@ -69,9 +82,9 @@ def adapter(name):
 
 def contract(name, where=None):
     if name not in contracts(): return verdict([f'no contract named {name}; see python tools/contracts.py --list'], name)
-    failures = []
-    for project, out, runtime in projects():
-        path = (runtime if name in __import__('contracts').RUNTIME else out) / contracts()[name]['x-artifact']
+    failures, runtime_only = [], name in __import__('contracts').RUNTIME
+    for project, out, runtime in (live_projects() if runtime_only else projects()):
+        path = (runtime if runtime_only else out) / contracts()[name]['x-artifact']
         if not path.is_file(): failures.append(f'{project}: {path} does not exist'); continue
         try: data = json.loads(path.read_text(encoding='utf-8'))
         except ValueError as error: failures.append(f'{project}: {path} is not JSON: {error}'); continue

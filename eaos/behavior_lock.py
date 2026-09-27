@@ -246,7 +246,8 @@ def build(out, target):
 LOCK_CONFIG = """import base from './playwright.config';
 
 // Written by EAOS for a run in the sandbox: the generated config, with every non-loopback host refused.
-const offline = { launchOptions: { args: ['--proxy-server=http://127.0.0.1:9', '--proxy-bypass-list=<-loopback>'] } };
+// Loopback is named in the bypass list: every other host goes to a proxy nobody answers on.
+const offline = { launchOptions: { args: ['--proxy-server=http://127.0.0.1:9', '--proxy-bypass-list=127.0.0.1;localhost;[::1]'] } };
 export default {
   ...base,
   reporter: [['json', { outputFile: process.env.EAOS_LOCK_REPORT }]],
@@ -280,48 +281,103 @@ def spec_statuses(report):
     return statuses
 
 
+def _prepare(live, report, snapshots=None):
+    """The lock folder in the sandbox copy: the report's specs, the offline config, and recorded snapshots if given."""
+    import shutil
+    lock = live.sandbox.copy / '.eaos-lock'
+    shutil.rmtree(lock, ignore_errors=True)
+    shutil.copytree(Path(report) / 'behavior-lock', lock)
+    (lock / 'lock.config.ts').write_text(LOCK_CONFIG, encoding='utf-8')
+    (lock / '.auth').mkdir(exist_ok=True)
+    (lock / '.auth/user.json').write_text(json.dumps({'cookies': [], 'origins': []}), encoding='utf-8')
+    if snapshots is not None:
+        shutil.rmtree(lock / '__screenshots__', ignore_errors=True)
+        shutil.copytree(snapshots, lock / '__screenshots__')
+    return lock
+
+
+def _start(live, lock):
+    """Set up, start and seed the project; the address it answers on."""
+    live.setup()
+    base = live.start()
+    # A seed may sign the browser in or choose its workspace: it writes Playwright's storage state to
+    # EAOS_STORAGE_STATE, and the lock opens every screen with it.
+    for argv in live.profile.get('seed') or []:
+        code, out, err = live.run(argv, env={'BASE_URL': base, 'EAOS_STORAGE_STATE': str(lock / '.auth/user.json')})
+        if code: raise RuntimeError(f"seed failed ({' '.join(argv)}): {(out + err)[-1500:]}")
+    return base
+
+
+def _pass(live, lock, base, output, update):
+    output.parent.mkdir(parents=True, exist_ok=True)
+    live.sandbox.run(['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1',
+                      *(['--update-snapshots=all'] if update else [])],
+                     timeout=3600, network=True, cwd='.eaos-lock',
+                     env={**live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output)})
+    try: return json.loads(output.read_text(encoding='utf-8'))
+    except (OSError, ValueError): return {}
+
+
+def _results(report, statuses):
+    results = []
+    for spec in json.loads((Path(report) / 'behavior-lock/plan.json').read_text(encoding='utf-8'))['specs']:
+        name = Path(spec['path']).name
+        status, reason = next(((s, r) for file, (s, r) in statuses.items() if Path(file).name == name),
+                              ('error', 'the spec did not run'))
+        results.append({'path': spec['path'], 'status': status, **({'reason': reason} if reason else {})})
+    return results
+
+
+def _write(runtime, name, live, results):
+    record = {'schema_version': 1, 'commit': live.commit, 'backend': 'unshare' if live.sandbox.offline else 'process',
+              'results': results, 'limitations': sorted(set(live.sandbox.limitations))}
+    (Path(runtime) / 'behavior-lock').mkdir(parents=True, exist_ok=True)
+    (Path(runtime) / 'behavior-lock' / name).write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    return record
+
+
 def run_lock(report, target, runtime):
     """behavior-lock/results.json in `runtime`: the report's specs, run twice on the original code in the sandbox.
 
-    The first pass records each screen as it is today (the snapshots); the second must match it. A spec
-    that passes the second pass locks today's behaviour; one that differs between two runs of the same code
-    is not deterministic and fails. Needs <runtime>/authorization.json granting S05 and <runtime>/run.json."""
+    The first pass records each screen as it is today (the snapshots, kept in behavior-lock/snapshots for every
+    later run); the second must match it. A spec that passes the second pass locks today's behaviour; one that
+    differs between two runs of the same code is not deterministic and fails. Needs <runtime>/authorization.json
+    granting S05 and <runtime>/run.json."""
     import shutil
     from .live_run import LiveRun
     report, runtime = Path(report), Path(runtime)
     live = LiveRun(target, runtime, 'S05')
-    lock = live.sandbox.copy / '.eaos-lock'
-    shutil.copytree(report / 'behavior-lock', lock)
-    (lock / 'lock.config.ts').write_text(LOCK_CONFIG, encoding='utf-8')
-    (lock / '.auth').mkdir(exist_ok=True)
-    (lock / '.auth/user.json').write_text(json.dumps({'cookies': [], 'origins': []}), encoding='utf-8')
-    results = []
+    lock = _prepare(live, report)
     try:
-        live.setup()
-        base = live.start()
-        for argv in live.profile.get('seed') or []:
-            code, out, err = live.run(argv, env={'BASE_URL': base})
-            if code: raise RuntimeError(f"seed failed ({' '.join(argv)}): {(out + err)[-1500:]}")
-        passes = []
-        for name, extra in (('record', ['--update-snapshots=all']), ('verify', [])):
-            output = runtime / f'behavior-lock/playwright-{name}.json'
-            output.parent.mkdir(parents=True, exist_ok=True)
-            live.sandbox.run(['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1', *extra],
-                             timeout=3600, network=True, cwd='.eaos-lock',
-                             env={**live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output)})
-            try: passes.append(json.loads(output.read_text(encoding='utf-8')))
-            except (OSError, ValueError): passes.append({})
-        statuses = spec_statuses(passes[-1])
-        for spec in json.loads((report / 'behavior-lock/plan.json').read_text(encoding='utf-8'))['specs']:
-            name = Path(spec['path']).name
-            status, reason = next(((s, r) for file, (s, r) in statuses.items() if Path(file).name == name),
-                                  ('error', 'the spec did not run: see behavior-lock/playwright-verify.json'))
-            results.append({'path': spec['path'], 'status': status, **({'reason': reason} if reason else {})})
+        base = _start(live, lock)
+        _pass(live, lock, base, runtime / 'behavior-lock/playwright-record.json', update=True)
+        snapshots = runtime / 'behavior-lock/snapshots'
+        shutil.rmtree(snapshots, ignore_errors=True)
+        if (lock / '__screenshots__').is_dir(): shutil.copytree(lock / '__screenshots__', snapshots)
+        verify = _pass(live, lock, base, runtime / 'behavior-lock/playwright-verify.json', update=False)
+        results = _results(report, spec_statuses(verify))
     finally:
         live.stop()
-        live.record('behavior-lock/run-log.json' if (runtime / 'behavior-lock').is_dir() else 'run-log.json')
-    record = {'schema_version': 1, 'commit': live.commit, 'backend': 'unshare' if live.sandbox.offline else 'process',
-              'results': results, 'limitations': sorted(set(live.sandbox.limitations))}
-    (runtime / 'behavior-lock').mkdir(parents=True, exist_ok=True)
-    (runtime / 'behavior-lock/results.json').write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    return record
+        live.record('behavior-lock/run-log.json')
+    return _write(runtime, 'results.json', live, results)
+
+
+def verify_lock(report, target, runtime, name='results-after'):
+    """The lock recorded on the original, run once on `target` (a candidate EAOS committed on the granted commit):
+    behavior-lock/<name>.json, and {specs, passed, failed}. No snapshot is ever updated here."""
+    from .live_run import LiveRun
+    report, runtime = Path(report), Path(runtime)
+    snapshots = runtime / 'behavior-lock/snapshots'
+    if not snapshots.is_dir(): raise RuntimeError('no snapshots recorded on the original: run `eaos live lock` first')
+    live = LiveRun(target, runtime, 'S09')
+    lock = _prepare(live, report, snapshots)
+    try:
+        base = _start(live, lock)
+        verify = _pass(live, lock, base, runtime / f'behavior-lock/playwright-{name}.json', update=False)
+        results = _results(report, spec_statuses(verify))
+    finally:
+        live.stop()
+        live.record(f'behavior-lock/run-log-{name}.json')
+    _write(runtime, f'{name}.json', live, results)
+    return {'specs': len(results), 'passed': sum(r['status'] == 'passed' for r in results),
+            'failed': sum(r['status'] in ('failed', 'error') for r in results)}

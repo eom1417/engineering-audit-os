@@ -115,3 +115,31 @@ class SandboxEnvironmentTests(SandboxTests):
         code, out, _ = box.run([sys.executable, '-c', 'import os;print(os.getcwd())'], cwd='.')
         self.assertEqual(code, 0)
         self.assertEqual(Path(out.strip()).resolve(), box.copy.resolve())
+
+
+class SandboxDisposeTests(SandboxTests):
+    def test_a_disposed_run_leaves_its_record_but_not_its_copy(self):
+        box = self.box()
+        copy, home = box.copy, box.home
+        box.run([sys.executable, '-c', 'print(1)'])
+        box.dispose()
+        self.assertFalse(copy.exists())
+        self.assertFalse(home.exists())
+        self.assertTrue((Path(self.tmp) / 'work/sandbox-run.json').is_file())
+
+
+class DescendantTests(SandboxTests):
+    """A candidate EAOS committed on the granted commit runs from S08 on; an unrelated commit never does."""
+
+    def test_a_descendant_runs_for_execution_stages_only(self):
+        self.write_grant(stages=['S05', 'S08'])
+        (self.project / 'app.py').write_text('print("changed")\n')
+        git(self.project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qam', 'candidate')
+        head = git(self.project, 'rev-parse', 'HEAD')
+        self.assertEqual(sandbox.refusal(self.grant, 'S08', head, self.project), '')
+        self.assertIn('granted for commit', sandbox.refusal(self.grant, 'S05', head, self.project))
+
+    def test_an_unrelated_commit_is_refused(self):
+        self.write_grant(stages=['S08'], commit='0' * 40)
+        head = git(self.project, 'rev-parse', 'HEAD')
+        self.assertIn('granted for commit', sandbox.refusal(self.grant, 'S08', head, self.project))

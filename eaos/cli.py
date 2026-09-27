@@ -213,6 +213,13 @@ def live_command(args):
             passed = sum(r['status'] == 'passed' for r in record['results'])
             print(json.dumps({'passed': passed, 'specs': len(record['results'])}))
             return 0 if record['results'] else 1
+        if args.action == 'execute':
+            from .execute import execute
+            from .runtime.provider import load_provider
+            row = execute(args.report, args.target, args.runtime, args.card,
+                          load_provider(args.provider) if args.provider else None, lock=not args.no_lock)
+            print(json.dumps(row, ensure_ascii=False))
+            return 0 if row['status'] == 'VERIFIED_IN_ISOLATED_COPY' else 2
         from .runtime_baseline import run_baseline
         record = run_baseline(args.report, args.target, args.runtime)
         print(json.dumps({'scenarios': len(record['scenarios'])}))
@@ -666,9 +673,13 @@ def main(argv=None):
     q=s.add_parser('live',help='Run the project, with its owner\'s authorization, in the sandbox: the lock and the load baseline')
     e=q.add_subparsers(dest='action',required=True)
     for name, text in (('lock','Run the behaviour-lock specs twice on the original code: behavior-lock/results.json'),
-                       ('baseline','Run every k6 scenario on the original code: runtime/performance.json (before)')):
+                       ('baseline','Run every k6 scenario on the original code: runtime/performance.json (before)'),
+                       ('execute','Execute one ready card of the plan (its codemod, or a model) behind its acceptance and the lock')):
         r=e.add_parser(name,help=text)
         r.add_argument('report'); r.add_argument('--target',required=True); r.add_argument('--runtime',required=True)
+        if name == 'execute':
+            r.add_argument('--card',required=True); r.add_argument('--provider',default=None)
+            r.add_argument('--no-lock',action='store_true',help='skip the behaviour lock gate (recorded as such)')
     q.set_defaults(func=live_command)
     q=s.add_parser('emit',help='Write files in other tools\' own formats from an audit, and let each tool judge its file')
     q.add_argument('report')

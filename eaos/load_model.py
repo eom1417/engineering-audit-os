@@ -353,9 +353,11 @@ def compute(record_root):
                 'reason': 'resilience policy observed for at least one outbound call on the path',
             }
         elif _supported('outbound_calls_protected', files):
-            answers['outbound_calls_protected'] = _no_answer(
-                'outbound_calls_protected', [entry.get('id') or f'EP-{path}'],
-                'no integration_target on this path; the detector looked, the path is in a language whose vocabulary it covers')
+            # No outbound call on the path: nothing is left unprotected. Answering False here read as
+            # "an unprotected call" and made every page without a call a load blocker.
+            answers['outbound_calls_protected'] = {
+                'status': 'answered', 'value': True, 'evidence': [entry.get('id') or f'EP-{path}'],
+                'reason': 'no outbound call on this path, so none is unprotected; the detector looked, the path is in a language whose vocabulary it covers'}
         else:
             answers['outbound_calls_protected'] = blank_answer(
                 'outbound_calls_protected', status='undetectable',
@@ -562,8 +564,7 @@ BLOCKERS = {
         'kind': 'unprotected_dependency',
         # The answer is a guard-by-guard record. A missing timeout is the blocker: retries without
         # a timeout make the pile-up worse, not better.
-        'holds_when': lambda value: (value is False or
-                                     (isinstance(value, dict) and value.get('timeout') is False)),
+        'holds_when': lambda value: isinstance(value, dict) and value.get('timeout') is False,
         'statement': 'ينادي خدمة خارجية بلا مهلة أو إعادة محاولة',
         'statement_en': 'calls an external service with no timeout or retry',
         'falsifier': 'A timeout, retry policy or circuit breaker on the call, or evidence the call is local.',

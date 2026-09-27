@@ -343,16 +343,33 @@ def _innermost(spans, line):
     return min(inside, key=lambda s: s[1] - s[0]) if inside else None
 
 
+COUNTED = re.compile(r'^\s*(for\s*\(\s*(let|var)\s+\w+\s*=[^;]*;[^;]*;|while\s*\(|do\b)')
+EXITS = re.compile(r'\breturn\b|\bbreak\b')
+
+
+def _retry_loop(lines, loop):
+    """A loop that counts attempts and leaves on success: a retry or a poll, not one call per item of data.
+
+    Its header is a counter (`for (let i = 1; i <= N; i += 1)`), `while` or `do`, never an iteration over a
+    collection (`of`, `in`, `.length`, an iterating call); and its body can leave (`return`, `break`).
+    """
+    if not lines or not 0 < loop[0] <= len(lines): return False
+    header = lines[loop[0] - 1]
+    if not COUNTED.search(header) or '.length' in header or re.search(r'\b(of|in)\b', header.split(';')[0]): return False
+    return any(EXITS.search(lines[n - 1]) for n in range(loop[0] + 1, min(loop[1], len(lines)) + 1))
+
+
 def _js_redundancies(rel, facts, text=''):
     """n_plus_one and repeated_call for one JavaScript or TypeScript file, from its recorded facts."""
     rows, seen = [], set()
+    lines = text.splitlines()
     for line, client, operation, target in sorted(set(facts['data'])):
         scope = _innermost(facts['scopes'], line)
         symbol = scope[2] if scope else '<module>'
         loop = _innermost(facts['loops'], line)
         # An iterating call on the same line as the data call is the data call's own chain (`.select().filter()`)
         # unless it spans further lines: a loop must enclose the call, not be it.
-        if loop and not (loop[0] == loop[1] == line):
+        if loop and not (loop[0] == loop[1] == line) and not _retry_loop(lines, loop):
             key = ('n_plus_one', line)
             if key not in seen:
                 seen.add(key)

@@ -36,6 +36,21 @@ class JsRedundancyTests(Workspace):
         structure = [at('loop', 2, 4, kind='for'), at('call_site', 3, callee='fetch')]
         self.assertEqual([r['callee'] for r in self.rows(structure, [])], ['http.get fetch'])
 
+    def test_a_counted_loop_that_leaves_on_success_is_a_retry_not_n_plus_one(self):
+        retry = ['async function live(url) {', '  for (let attempt = 1; attempt <= 3; attempt += 1) {',
+                 '    const r = await fetch(url);', '    if (r.ok) return r;', '  }', '}']
+        structure = [at('loop', 2, 5, kind='for'), at('call_site', 3, callee='fetch')]
+        self.assertEqual(self.rows(structure, [], '\n'.join(retry)), [])
+        items = ['async function all(ids) {', '  for (let i = 0; i < ids.length; i += 1) {',
+                 '    const r = await fetch(ids[i]);', '    if (!r.ok) break;', '  }', '}']
+        self.assertEqual([r['kind'] for r in self.rows(structure, [], '\n'.join(items))], ['n_plus_one'],
+                         'a loop over a collection stays N+1 even when it can leave early')
+        each = ['async function all(ids) {', '  for (let attempt = 1; attempt <= 3; attempt += 1) {',
+                '    await fetch(ids[attempt]);', '  }', '  return 1;', '}']
+        structure = [at('loop', 2, 4, kind='for'), at('call_site', 3, callee='fetch')]
+        self.assertEqual([r['kind'] for r in self.rows(structure, [], '\n'.join(each))], ['n_plus_one'],
+                         'a counted loop that never leaves early repeats the call every time')
+
     def test_the_same_read_twice_on_one_path_is_repeated(self):
         structure = [at('scope', 1, 20, kind='function', symbol='load')]
         text = '\n'.join(['function load() {', '  const a = read();', '  log(a);', '  const b = read();', '}'])

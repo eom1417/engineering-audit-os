@@ -27,8 +27,15 @@ class AuthorizationError(Exception):
     """The owner's authorization does not allow this run."""
 
 
-def refusal(path, stage, commit=None):
-    """Why authorization.json at `path` does not allow `stage` (at `commit`), or '' when it does."""
+EXECUTION_STAGES = ('S08', 'S09', 'S10', 'S11', 'S12', 'S13', 'S14')
+
+
+def refusal(path, stage, commit=None, target=None):
+    """Why authorization.json at `path` does not allow `stage` (at `commit`), or '' when it does.
+
+    From S08 on, the project runs as changed by EAOS: a candidate committed on top of the granted commit. Such a
+    commit is allowed when `target` is a checkout in which the granted commit is its ancestor; any other commit,
+    or the same one in a repository without that history, is refused as before."""
     from .artifact_contracts import contracts, validate
     path = Path(path)
     if not path.is_file(): return f'authorization: {path} is missing; the owner writes it (docs/MASTER-BLUEPRINT.md, section 10)'
@@ -48,7 +55,10 @@ def refusal(path, stage, commit=None):
     if expired: return f'authorization: expired at {expires}'
     if stage not in grant['stages']: return f"authorization: {stage} is not among the granted stages {grant['stages']}"
     if commit is not None and grant['commit'] != commit:
-        return f"authorization: granted for commit {grant['commit'][:12]}, but the project is at {commit[:12]}"
+        descends = (stage in EXECUTION_STAGES and target is not None and subprocess.run(
+            ['git', '-C', str(target), 'merge-base', '--is-ancestor', grant['commit'], commit], capture_output=True).returncode == 0)
+        if not descends:
+            return f"authorization: granted for commit {grant['commit'][:12]}, but the project is at {commit[:12]}"
     return ''
 
 
@@ -74,7 +84,7 @@ class Sandbox:
         commit = head(self.target)
         if not commit:
             raise AuthorizationError(f'{self.target} is not a git checkout: an authorization names a commit')
-        reason = refusal(authorization, stage, commit)
+        reason = refusal(authorization, stage, commit, self.target)
         if reason: raise AuthorizationError(reason)
         self.allowed = json.loads(Path(authorization).read_text(encoding='utf-8'))['env_allow']
         self.workdir.mkdir(parents=True, exist_ok=True)
@@ -174,3 +184,11 @@ class Sandbox:
                                   'seconds': round(time.monotonic() - started, 2)})
         self.started = []
         self._record()
+
+    def dispose(self):
+        """Stop what runs and remove the copy and the temporary HOME: a run leaves its records, not its disk.
+        (A lock run's copy with installed packages is 600 MB; three runs had kept 1.9 GB.)"""
+        import shutil
+        self.stop()
+        for folder in (self.copy.parent, self.home):
+            shutil.rmtree(folder, ignore_errors=True)

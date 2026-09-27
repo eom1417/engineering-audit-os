@@ -9,7 +9,11 @@ and correct: how the project installs, builds, starts and signs a user in. Nothi
      "prepare": [["node", "scripts/provision-runtime-role.mjs"]],
      "start":   ["node", "dist-server/main.mjs"], "port": 5188, "health": "/api/health",
      "env": {"NODE_ENV": "development", "CO_LOCAL_ONLY": "1"},
-     "sign_in": ["node", "<runtime>/sign-in.mjs"]}
+     "sign_in": ["node", "<runtime>/sign-in.mjs"],
+     "checks":  [["npm", "run", "typecheck"], ["npm", "run", "lint"], ["npm", "test"]]}
+
+`checks` are the project's own gates: a card whose change makes one of them fail, where it passed on the
+original, is not done (eaos/execute.py).
 
 `env` holds only values the run itself chooses (a local database address, a key generated for the run); the
 owner's secrets never appear in it, and the sandbox passes on nothing else but the names the authorization
@@ -80,7 +84,8 @@ class LiveRun:
         return f"http://127.0.0.1:{self.profile['port']}"
 
     def stop(self):
-        self.sandbox.stop()
+        """Stop the project and remove its copy; the run's records stay in the runtime folder."""
+        self.sandbox.dispose()
 
     def record(self, name):
         (self.runtime / name).write_text(json.dumps({'commit': self.commit, 'commands': self.log}, ensure_ascii=False, indent=1) + '\n',

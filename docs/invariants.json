@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "ac3abc0",
+  "extracted_at_commit": "9b816bb",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -54,6 +54,15 @@
       "statement": "Sign-in, when the owner grants E2E_USER and E2E_PASSWORD (authorization.json -> env_allow), happens once in auth.setup.ts; no value is written here.",
       "kind": "invariant",
       "enforced_by": "tests/test_behavior_lock.py::BuildTests::test_every_feature_has_a_spec_and_the_plan_keeps_its_contract",
+      "note": ""
+    },
+    {
+      "id": "INV-21b43af617",
+      "file": "eaos/behavior_lock.py",
+      "symbol": "verify_lock",
+      "statement": "No snapshot is ever updated here.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_execute.py::VerifyLockTests::test_verifying_never_updates_a_snapshot",
       "note": ""
     },
     {
@@ -498,6 +507,15 @@
       "note": ""
     },
     {
+      "id": "INV-2e3e38eab0",
+      "file": "eaos/execute.py",
+      "symbol": "<module>",
+      "statement": "The change is committed in the candidate, a descendant of the authorised commit (the sandbox accepts it for stages S08 onward, never an unrelated commit).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_execute.py::CandidateTests::test_the_candidate_is_a_branch_on_the_authorised_commit_and_its_change_a_descendant",
+      "note": ""
+    },
+    {
       "id": "INV-c77f33b72f",
       "file": "eaos/execution_guide.py",
       "symbol": "document",
@@ -549,6 +567,15 @@
       "statement": "A name held in a registry dictionary, passed to getattr as a string, or listed in a JSON file is a reference an import graph cannot see; counting any occurrence as a reference trades a few missed candidates for no false accusation.",
       "kind": "invariant",
       "enforced_by": "tests/test_deadcode.py::DeadCodeTests::test_a_name_held_in_a_registry_string_is_referenced",
+      "note": ""
+    },
+    {
+      "id": "INV-a2610c7d53",
+      "file": "eaos/facts/domain.py",
+      "symbol": "encapsulated",
+      "statement": "JavaScript: never exported.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_encapsulated_state.py::EncapsulationTests::test_what_other_modules_cannot_reach_is_encapsulated",
       "note": ""
     },
     {
@@ -630,6 +657,15 @@
       "statement": "Only a computation whose value is stored can be hoisted, so only that is reported — a vocabulary of \"safe\" names could never cover every library.",
       "kind": "invariant",
       "enforced_by": "tests/test_facts_redundancy.py::RedundancyFactTests::test_call_independent_of_loop_variable_is_hoistable",
+      "note": ""
+    },
+    {
+      "id": "INV-3687c3c575",
+      "file": "eaos/facts/redundancy.py",
+      "symbol": "_retry_loop",
+      "statement": "Its header is a counter (`for (let i = 1; i <= N; i += 1)`), `while` or `do`, never an iteration over a collection (`of`, `in`, `.length`, an iterating call); and its body can leave (`return`, `break`).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_redundancy_js.py::JsRedundancyTests::test_a_counted_loop_that_leaves_on_success_is_a_retry_not_n_plus_one",
       "note": ""
     },
     {
@@ -990,6 +1026,24 @@
       "statement": "Milestones, in the order of docs/MASTER-BLUEPRINT.md §7, an empty one never written: stabilize vulnerable versions, broken code, dead code and leftovers, access gaps safety net untested paths and flows that cannot be traced boundaries cycles, hidden coupling, policy breaches, one definition per rule, shared state build one milestone per target component (NS7), the highest total priority first; a component whose disposition is rebuild is done Strangler Fig: the new path behind a flag, the old one removed only after behaviour parity (E7) hardening load blockers and redundant work Fewer than ten milestones: builds past the third share one milestone.",
       "kind": "invariant",
       "enforced_by": "tests/test_roadmap.py::RoadmapTests::test_milestones_keep_the_blueprint_order_and_each_card_is_in_exactly_one",
+      "note": ""
+    },
+    {
+      "id": "INV-3caed97181",
+      "file": "eaos/runtime/claude_adapter.py",
+      "symbol": "<module>",
+      "statement": "This adapter hands the conversation to `claude -p` as a plain model: every tool is turned off (--tools \"\"), the default system prompt is replaced by the conversation's own, and no session is kept.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_execute.py::AdapterIsolationTests::test_the_model_runs_with_every_tool_off_no_session_and_the_cli_s_own_sign_in",
+      "note": ""
+    },
+    {
+      "id": "INV-89b161c08b",
+      "file": "eaos/runtime/claude_adapter.py",
+      "symbol": "<module>",
+      "statement": "No key is read or written here: the CLI uses the sign-in it already has.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_execute.py::AdapterIsolationTests::test_the_model_runs_with_every_tool_off_no_session_and_the_cli_s_own_sign_in",
       "note": ""
     },
     {

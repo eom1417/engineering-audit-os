@@ -21,9 +21,18 @@ STAGES = re.compile(r"duration:\s*'(\d+)([sm])',\s*target:\s*(\d+)")
 
 
 def machine():
+    """What the run had, not what the host has: a container's cgroup limits win over the host's totals."""
     cpus = os.cpu_count() or 0
+    try:
+        quota, period = Path('/sys/fs/cgroup/cpu.max').read_text().split()
+        if quota != 'max': cpus = min(cpus, max(1, round(int(quota) / int(period))))
+    except (OSError, ValueError): pass
     try: memory = round(os.sysconf('SC_PAGE_SIZE') * os.sysconf('SC_PHYS_PAGES') / 2 ** 30, 1)
     except (ValueError, OSError, AttributeError): memory = None
+    try:
+        limit = Path('/sys/fs/cgroup/memory.max').read_text().strip()
+        if limit != 'max': memory = round(int(limit) / 2 ** 30, 1)
+    except (OSError, ValueError): pass
     return f'{cpus} CPU, {memory} GiB RAM, {os.uname().sysname} {os.uname().machine}'
 
 
@@ -71,7 +80,10 @@ def run_baseline(report, target, runtime):
     finally:
         live.stop()
         live.record('runtime/baseline-log.json')
-    record = {'schema_version': 1, 'conditions': conditions, 'scenarios': scenarios}
+    record = {'schema_version': 1, 'conditions': conditions, 'scenarios': scenarios,
+              'limitations': ["each scenario requests the paths its k6 script lists (the application's pages); an endpoint "
+                              'that needs a signed-in session answers what it answers without one, and is not loaded as a user would'],
+              'run': {'start': ' '.join(live.profile['start']), 'env': sorted(live.profile.get('env') or {})}}
     problems = validate(record, contracts()['runtime-performance'])
     if problems: raise RuntimeError(f'runtime/performance.json would break its contract: {problems[0]}')
     (out / 'performance.json').write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')

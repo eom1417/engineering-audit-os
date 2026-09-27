@@ -51,5 +51,13 @@ class BrokenProjectTests(unittest.TestCase):
         self.assertNotIn(('stale-instruction', 'npm run dev'), found)
 
 
+    def test_a_script_family_and_a_command_run_from_the_app_folder_are_not_stale(self):
+        found = self.run_on({
+            'app/package.json': '{"scripts": {"deploy:staging": "x", "deploy:production": "y"}}',
+            'app/scripts/baseline.mjs': 'export {};\n',
+            'README.md': '`npm run deploy:*` refuses; run `node scripts/baseline.mjs`, not `npm run release:*`.\n'})
+        stale = {symbol for rule, symbol in found if rule == 'stale-instruction'}
+        self.assertEqual(stale, {'npm run release:*'})
+
 if __name__ == '__main__':
     unittest.main()

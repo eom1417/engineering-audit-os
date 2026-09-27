@@ -89,6 +89,16 @@
     },
     "baseline": {
       "type": "object"
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1
+      }
     }
   }
 }

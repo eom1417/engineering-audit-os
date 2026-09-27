@@ -487,6 +487,11 @@ class BlockerTests(unittest.TestCase):
                          ['unprotected_dependency'],
                          'retries without a timeout make the pile-up worse, not better')
 
+    def test_a_path_with_no_outbound_call_is_not_an_unprotected_one(self):
+        from eaos.load_model import blockers
+        self.assertEqual(blockers(self._record('outbound_calls_protected', True)), [],
+                         'a page that calls nothing external has no call to protect')
+
     def test_every_blocker_states_what_would_disprove_it_and_what_it_costs(self):
         from eaos.load_model import BLOCKERS
         for question, rule in BLOCKERS.items():

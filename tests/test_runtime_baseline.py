@@ -66,7 +66,8 @@ class LiveRunTests(Workspace):
     def test_the_lock_browser_refuses_every_host_but_loopback(self):
         from eaos.behavior_lock import LOCK_CONFIG
         self.assertIn("--proxy-server=http://127.0.0.1:9", LOCK_CONFIG)
-        self.assertIn("--proxy-bypass-list=<-loopback>", LOCK_CONFIG)
+        self.assertIn("--proxy-bypass-list=127.0.0.1;localhost;[::1]", LOCK_CONFIG)
+        self.assertNotIn("<-loopback>", LOCK_CONFIG)   # that token REMOVES loopback from the bypass: nothing loads
         self.assertIn('projects: (base.projects ?? []).map', LOCK_CONFIG)   # every project gets it, not only the default
 
     def test_the_run_environment_is_the_profile_and_the_tools_never_this_process(self):
