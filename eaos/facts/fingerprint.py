@@ -15,7 +15,7 @@ from . import digest, make
 from .source import language_of
 
 NAME = 'fingerprint'
-VERSION = '1'
+VERSION = '2'
 LIMITATIONS = [
     'Identifier renames are normalised; literal renames are not.',
     'A fingerprint is a syntactic observation; two functions with identical fingerprints can still '
@@ -171,6 +171,9 @@ def _tree_sitter_fingerprints(text, rel, language):
                       'method_declaration', 'method_definition', 'function', 'function_expression',
                       'arrow_function', 'generator_function_declaration', 'singleton_method',
                       'function_signature', 'method_signature', 'local_function_statement'}
+    # In TypeScript a signature is a declaration with no body: an overload, an interface member, a .d.ts entry.
+    # Two signatures with the same parameter shape share no logic, so there is nothing to canonicalize.
+    if language in ('typescript', 'tsx'): function_types -= {'function_signature', 'method_signature'}
     rows = []
 
     def walk(node, scope):
@@ -207,6 +210,7 @@ def run(target, source, symbols=None, **options):
         rel = item['path']
         language = language_of(rel)
         if language is None: continue
+        if rel.endswith('.d.ts'): continue   # declarations only: types for code that lives elsewhere
         text = source.text(rel)
         if text is None: continue
         rows = None

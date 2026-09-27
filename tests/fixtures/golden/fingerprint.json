@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "extractor": "fingerprint",
-  "extractor_version": "1",
+  "extractor_version": "2",
   "available": true,
   "input_sha": "e7e3121a9362ddef450cdcfb954766bcd1e256894dbbce270f428abb4e25c4d8",
   "limitations": [
@@ -19,10 +19,10 @@
   },
   "facts": [
     {
-      "id": "FACT-126480ccc6681d6b",
+      "id": "FACT-b449326a85858563",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "d5284afe064106841427d717b69d2bec84f5b415c7882d108e5e6d4fae8d6aa6",
       "location": {
         "path": "cli.py",
@@ -43,10 +43,10 @@
       ]
     },
     {
-      "id": "FACT-e8eef59a6731c18d",
+      "id": "FACT-aa452e92f6dd6ba4",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "3337f354512ca6c2b6574d7cc0cef2750bfe9ce40b70c1b8a9e374224e94fcfc",
       "location": {
         "path": "cli.py",
@@ -67,10 +67,10 @@
       ]
     },
     {
-      "id": "FACT-2894d9df0d9b4e1e",
+      "id": "FACT-8182e85f37977806",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "81e45473c219e0a3b21668a1e9a540fc0bbbbf9dbaf6978f5fdc782059dab145",
       "location": {
         "path": "api/server.ts",
@@ -91,10 +91,10 @@
       ]
     },
     {
-      "id": "FACT-3a0695374bed4933",
+      "id": "FACT-e25b54da89c4261c",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "cdc86c62294df3f2bef9ccce1d0ec27ae2c4f93bf7d16c523e41a3c4b737c1c2",
       "location": {
         "path": "api/server.ts",
@@ -115,10 +115,10 @@
       ]
     },
     {
-      "id": "FACT-aa2275040410ef84",
+      "id": "FACT-17c9a3b77c8e2d4c",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "33dcfb07e9665f826487ea33a6fdbafbe312e0988668451e1d8069993e2f2a8f",
       "location": {
         "path": "api/handlers/orders.ts",
@@ -139,10 +139,10 @@
       ]
     },
     {
-      "id": "FACT-aebfc8e61737644d",
+      "id": "FACT-b3e44c2cd07cc9e9",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "03b940da03e1ede473d0dec17a64257358e882dd838516a7cf1832b074843a22",
       "location": {
         "path": "api/handlers/orders.ts",
@@ -163,10 +163,10 @@
       ]
     },
     {
-      "id": "FACT-63c613b8a7e952f8",
+      "id": "FACT-ed506c9217b951bd",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "3e6d62a59b1ee878a81e3e5cab7a9ce129609eb0c6660f65fb20547c3a762e2e",
       "location": {
         "path": "api/lib/audit.ts",
@@ -187,10 +187,10 @@
       ]
     },
     {
-      "id": "FACT-326943f18d5b1be4",
+      "id": "FACT-d29c507ae56ce9bd",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "ce703f81b5c324c1c2cb0a5da1d189ec1da81825a5eec5066d5cf6818e5114ae",
       "location": {
         "path": "api/lib/pricing.ts",
@@ -211,10 +211,10 @@
       ]
     },
     {
-      "id": "FACT-2d427c3e78189758",
+      "id": "FACT-0251988e0d6762b6",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "af609713c40de530230ae5a163fe69f7a60592a02513488f7e3e905cb5cf47fc",
       "location": {
         "path": "api/lib/pricing.ts",
@@ -235,10 +235,10 @@
       ]
     },
     {
-      "id": "FACT-9c5cc93192135065",
+      "id": "FACT-2824afbfb67807b8",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "38305ce9658eb484f81b04989646e03b19896e4f46264781554a36a96b9fe236",
       "location": {
         "path": "api/lib/pricing.ts",
@@ -259,10 +259,10 @@
       ]
     },
     {
-      "id": "FACT-41a58a2550a71acb",
+      "id": "FACT-503767cbff110d70",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "5acb2a869fb03573504cd963c9e18fc52e8a4fd3387e5b6d2b2b2b6a89557115",
       "location": {
         "path": "core/audit.py",
@@ -283,10 +283,10 @@
       ]
     },
     {
-      "id": "FACT-6dda211b8e3f5c4a",
+      "id": "FACT-c54bb00547633a87",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "b3e488d51ab4518da4f53220ff2b3292fe8da5fcbc78ef4c481a90cc2a5ad78c",
       "location": {
         "path": "core/audit.py",
@@ -307,10 +307,10 @@
       ]
     },
     {
-      "id": "FACT-3f3267f07483c061",
+      "id": "FACT-097b1c6a3e3ca2fe",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "e780b040c3fad731283e0aefe8d860eed6f1f8f855e6c35b666fc3334db73d01",
       "location": {
         "path": "core/pricing.py",
@@ -331,10 +331,10 @@
       ]
     },
     {
-      "id": "FACT-a2ce2771fbb398f5",
+      "id": "FACT-aeee8f8aa9378e78",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "ae9a699ed3d0b9a68427d74a92c8433b7d457e6dad5e3e0c8fab793f57ce1e14",
       "location": {
         "path": "core/pricing.py",
@@ -355,10 +355,10 @@
       ]
     },
     {
-      "id": "FACT-6f8e879228802287",
+      "id": "FACT-06a4fc011ccab094",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "b9f43c2f65c32ee16bc808ab164d987a37545c98a0fce539a56c05646abacafd",
       "location": {
         "path": "svc/main.go",
@@ -379,10 +379,10 @@
       ]
     },
     {
-      "id": "FACT-5d00b3d4dad75894",
+      "id": "FACT-afcebcd37b36da6b",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "2d8681ba827d128e1b1fbe57f31a90d534770fe052f69b84ebf737cbd5002e56",
       "location": {
         "path": "svc/main.go",
@@ -403,10 +403,10 @@
       ]
     },
     {
-      "id": "FACT-5b7b115315b1fab6",
+      "id": "FACT-6ec4b7cd77433ba2",
       "kind": "fingerprint",
       "extractor": "fingerprint",
-      "extractor_version": "1",
+      "extractor_version": "2",
       "input_sha": "35ffb45393fb3d402c363f5cb0c03cfe6303effe8b9829922e9b6d546426b9de",
       "location": {
         "path": "worker/tasks.py",

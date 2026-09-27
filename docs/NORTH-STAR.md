@@ -4,13 +4,13 @@
 
 ## أين نحن
 
-### التقدم: **65.9 من 100 نقطة**
+### التقدم: **77.9 من 100 نقطة**
 
-`████████████████░░░░░░░░░` 65.9%
+`███████████████████░░░░░░` 77.9%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 16 من 25 | 17 · NS26 خط الأساس الحي: السلوك والأرقام قبل أي تغيير | 34.1 | 31 | 2026-09-26 · `22d2884+` |
+| 18 من 25 | 19 · NS20 التحقق الوظيفي: الوظائف نفسها باقية، والتنبؤ حدث | 22.1 | 18 | 2026-09-27 · `f4ae69d+` |
 
 `+`: قيس على تغييرات فوق هذا الالتزام، حُفظت في الالتزام التالي.
 
@@ -75,9 +75,9 @@ flowchart TB
     end
     subgraph R6_1["R6 · التنفيذ المثبت"]
         direction LR
-        NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 0%"]:::current
-        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 0%"]:::owner
-        NS20["<b>19 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
+        NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 100%"]:::done
+        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 100%"]:::done
+        NS20["<b>19 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::current
         NS26 -->|"✔ E5≥0.8 · +2 اختبار قبول"| NS9
         NS9 -->|"✔ E1=1 · +1 اختبار قبول"| NS20
     end
@@ -137,16 +137,16 @@ flowchart TB
 | 14 | [**NS8** خطة التنفيذ للفريق والتقارير الأربعة](#step-14) | R5 | 7 | 100% | 7 | 100% | ✅ مكتملة | P1=1 · P4=1 · P3≥0.8 · P6=1 · P7=1 · P9≥0.8 |
 | 15 | [**NS14** جودة التقرير تُفحص آليًا](#step-15) | R5 | 2 | 100% | 2 | 100% | ✅ مكتملة | P8=1 · +3 اختبار قبول |
 | 16 | [**NS25** عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي](#step-16) | R5 | 4 | 100% | 4 | 100% | ✅ مكتملة | K1=1 · +4 اختبار قبول |
-| 17 | [**NS26** خط الأساس الحي: السلوك والأرقام قبل أي تغيير](#step-17) | R6 | 4 | 0% | 0 | 0% | 🟡 قيد العمل | E5≥0.8 · +2 اختبار قبول |
-| 18 | [**NS9** إثبات التنفيذ](#step-18) | R6 | 8 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E1=1 · +1 اختبار قبول |
-| 19 | [**NS20** التحقق الوظيفي: الوظائف نفسها باقية، والتنبؤ حدث](#step-19) | R6 | 5 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E7=1 · E2≥0.8 |
+| 17 | [**NS26** خط الأساس الحي: السلوك والأرقام قبل أي تغيير](#step-17) | R6 | 4 | 100% | 4 | 100% | ✅ مكتملة | E5≥0.8 · +2 اختبار قبول |
+| 18 | [**NS9** إثبات التنفيذ](#step-18) | R6 | 8 | 100% | 8 | 100% | ✅ مكتملة | E1=1 · +1 اختبار قبول |
+| 19 | [**NS20** التحقق الوظيفي: الوظائف نفسها باقية، والتنبؤ حدث](#step-19) | R6 | 5 | 0% | 0 | 0% | 🟡 قيد العمل | E7=1 · E2≥0.8 |
 | 20 | [**NS21** الأمن بعد التحول: ساكنًا وحيًا](#step-20) | R7 | 3 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E8=1 · +1 اختبار قبول |
 | 21 | [**NS22** الحمل: قبل وبعد بالشروط نفسها](#step-21) | R7 | 3 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E6≥0.8 |
 | 22 | [**NS23** الأعطال المتعمدة: ماذا يحدث حين يسقط ما نعتمد عليه](#step-22) | R7 | 3 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E9≥0.8 · +1 اختبار قبول |
 | 23 | [**NS24** الرصد: كل سطح حرج مرئي](#step-23) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E10≥0.9 · +1 اختبار قبول |
 | 24 | [**NS16** الجاهزية للإنتاج: كل بند بأمر](#step-24) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E11=1 · +1 اختبار قبول |
 | 25 | [**NS10** الإثبات المستقل](#step-25) | R8 | 5 | 18% | 0.9 | 15% | 🔴 تحتاج مدخلًا منك | V4=1 · V3=1 |
-| | **المجموع** | | **100** | | **65.9** | | | |
+| | **المجموع** | | **100** | | **77.9** | | | |
 
 ## الخطوات بالتفصيل
 
@@ -291,7 +291,7 @@ flowchart TB
 
 | المعيار | الشرط | اليوم | الحال |
 | --- | --- | --- | --- |
-| الادعاءات غير الضجيجية | `S1 ≥ 0.8` | 0.897 | ✅ |
+| الادعاءات غير الضجيجية | `S1 ≥ 0.8` | 0.884 | ✅ |
 | دقة مرشحات الكود الميت | `S2 ≥ 0.8` | 1.0 | ✅ |
 
 **المهام:**
@@ -803,11 +803,11 @@ flowchart TB
 
 <a id="step-17"></a>
 
-### الخطوة 17 · NS26 — خط الأساس الحي: السلوك والأرقام قبل أي تغيير 🟡 قيد العمل
+### الخطوة 17 · NS26 — خط الأساس الحي: السلوك والأرقام قبل أي تغيير ✅ مكتملة
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 4 | 0% | 0 من 4 | 0% | R6 | S05 |
+| 4 | 100% | 4 من 4 | 100% | R6 | S05 |
 
 **الهدف:** E5 ≥ 0.8، وخط أساس k6 مسجل لكل سيناريو حمل.
 
@@ -822,30 +822,28 @@ flowchart TB
 
 **المخرج:** `behavior-lock/results.json` · `runtime/performance.json (قبل)`
 
-**تحتاج منك قبل أن تكتمل:** بيئة معزولة وتفويض بتشغيل كود المشروع
-
 **بوابة الانتقال إلى الخطوة التالية** (تتحقق كلها، وإلا لا انتقال):
 
 | المعيار | الشرط | اليوم | الحال |
 | --- | --- | --- | --- |
-| شبكة الأمان تمر على الكود الحالي | `E5 ≥ 0.8` | 0.0 | ❌ |
-| اختبار قبول | `contract behavior-lock-results` | — | ⬜ |
-| اختبار قبول | `contract runtime-performance` | — | ⬜ |
+| شبكة الأمان تمر على الكود الحالي | `E5 ≥ 0.8` | 1.0 | ✅ |
+| اختبار قبول | `contract behavior-lock-results` | — | ✅ |
+| اختبار قبول | `contract runtime-performance` | — | ✅ |
 
 **المهام:**
 
 | المهمة | الحجم | الحالة | الإنجاز | أمر القبول |
 | --- | --- | --- | --- | --- |
-| [NS26.T1](#ns26t1) تشغيل شبكة الأمان على الكود الأصلي | M | ⬜ | 0% | `python tools/north_star.py measure --only E5 --min 0.8 && python tools/acceptance.py contract behavior-lock-results` |
-| [NS26.T2](#ns26t2) خط أساس الحمل قبل أي تغيير | S | ⬜ | 0% | `python tools/acceptance.py contract runtime-performance --where "all(s['before'] for s in data['scenarios'])"` |
+| [NS26.T1](#ns26t1) تشغيل شبكة الأمان على الكود الأصلي | M | ✅ | 100% | `python tools/north_star.py measure --only E5 --min 0.8 && python tools/acceptance.py contract behavior-lock-results` |
+| [NS26.T2](#ns26t2) خط أساس الحمل قبل أي تغيير | S | ✅ | 100% | `python tools/acceptance.py contract runtime-performance --where "all(s['before'] for s in data['scenarios'])"` |
 
 <a id="step-18"></a>
 
-### الخطوة 18 · NS9 — إثبات التنفيذ 🔴 تحتاج مدخلًا منك
+### الخطوة 18 · NS9 — إثبات التنفيذ ✅ مكتملة
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 8 | 0% | 0 من 8 | 0% | R6 | S08 |
+| 8 | 100% | 8 من 8 | 100% | R6 | S08 |
 
 **الهدف:** E1 = 1.0 و E2 ≥ 0.8.
 
@@ -861,24 +859,22 @@ flowchart TB
 
 **المخرج:** `execution-log.json` · `التزامات في نسخة منفصلة`
 
-**تحتاج منك قبل أن تكتمل:** مزوّد نموذج (مفتاح API)
-
 **بوابة الانتقال إلى الخطوة التالية** (تتحقق كلها، وإلا لا انتقال):
 
 | المعيار | الشرط | اليوم | الحال |
 | --- | --- | --- | --- |
-| تنفيذ حقيقي بنموذج على مشروع من العيّنة | `E1 = 1` | 0.0 | ❌ |
-| اختبار قبول | `contract execution-log` | — | ⬜ |
+| تنفيذ حقيقي بنموذج على مشروع من العيّنة | `E1 = 1` | 1.0 | ✅ |
+| اختبار قبول | `contract execution-log` | — | ✅ |
 
 **المهام:**
 
 | المهمة | الحجم | الحالة | الإنجاز | أمر القبول |
 | --- | --- | --- | --- | --- |
-| [NS9.T1](#ns9t1) تنفيذ حقيقي على مشروع من العيّنة | L | ⬜ | 0% | `python tools/north_star.py measure --only E1 --min 1.0 && python tools/acceptance.py contract execution-log` |
+| [NS9.T1](#ns9t1) تنفيذ حقيقي على مشروع من العيّنة | L | ✅ | 100% | `python tools/north_star.py measure --only E1 --min 1.0 && python tools/acceptance.py contract execution-log` |
 
 <a id="step-19"></a>
 
-### الخطوة 19 · NS20 — التحقق الوظيفي: الوظائف نفسها باقية، والتنبؤ حدث 🔴 تحتاج مدخلًا منك
+### الخطوة 19 · NS20 — التحقق الوظيفي: الوظائف نفسها باقية، والتنبؤ حدث 🟡 قيد العمل
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
@@ -1145,7 +1141,7 @@ flowchart TB
     end
     subgraph P2["التقييم: يقرأ المشروع فقط (2/2)"]
         direction LR
-        S05["<b>S05 · تثبيت السلوك الحالي</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 50%"]:::current
+        S05["<b>S05 · تثبيت السلوك الحالي</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 100%"]:::done
         S06["<b>S06 · الصورة المثالية</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 100%"]:::done
         S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 100%"]:::done
         S05 -->|"✔ أ (ساكن): E4 = 1 · ب (معزول): E5 ≥ 0.8 وخط أساس k6"| S06
@@ -1153,7 +1149,7 @@ flowchart TB
     end
     subgraph P3["التنفيذ: بيئة معزولة بتفويض المالك (1/2)"]
         direction LR
-        S08["<b>S08 · التنفيذ</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 0%"]:::next
+        S08["<b>S08 · التنفيذ</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 100%"]:::done
         S09["<b>S09 · التحقق الوظيفي</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 0%"]:::next
         S10["<b>S10 · الأمن</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
         S11["<b>S11 · الحمل</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
@@ -1240,7 +1236,7 @@ flowchart TB
 | R1 تدقيقات العيّنة المكتملة بلا فشل | عدد مشاريع العيّنة التي ينتهي فيها eaos audit برمز خروج 0 ÷ عدد مشاريع العيّنة | 100% | 100% | exit codes: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
 | R2 الأطر المفهومة | مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع | 100% | 100% | user surfaces found: FleetManageWeb 43 · finance-os-a0192b7b 29 · RendaPerene 4 |
 | R3 محوّلات الفحص الساكن تعمل | متوسط (المحوّلات المعتمدة المنطبقة على المشروع التي عملت فعلًا ÷ المنطبقة)، لكل مشروع. قائمة المحوّلات وشروط انطباقها في adopted_adapters. | 100% | 100% | adopted adapters that ran / applicable: FleetManageWeb 7/7 · finance-os-a0192b7b 8/8 · RendaPerene 7/7 |
-| R4 الأدوات المعتمدة مثبّتة بإصداراتها | الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات | 100% | 100% | 22/22 assessment tools at their pinned version |
+| R4 الأدوات المعتمدة مثبّتة بإصداراتها | الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات | 100% | 100% | 29/29 assessment tools at their pinned version |
 
 ### C2 — تقرير الوضع الراهن: يرى البرنامج كله
 
@@ -1262,7 +1258,7 @@ flowchart TB
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| S1 الادعاءات غير الضجيجية | متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع | 80% | 90% | claims that are not structural clones: FleetManageWeb 239/259 · finance-os-a0192b7b 223/273 · RendaPerene 60/63 |
+| S1 الادعاءات غير الضجيجية | متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع | 80% | 88% | claims that are not structural clones: FleetManageWeb 194/214 · finance-os-a0192b7b 196/246 · RendaPerene 56/59 |
 | S2 دقة مرشحات الكود الميت | المرشحات الميتة فعلًا ÷ كل الرموز التي يؤكدها EAOS مرشحةً، على self_truth. المرشح الذي نقضه التحكيم (refuted) أو لا يسمّي رمزًا (not_a_symbol) ليس ادعاءً، والوحدة الكاملة يحكم عليها D1. والاسم الذي لا تقرؤه إلا الاختبارات (test_only) مرشح مراجعة لا ادعاء، فلا يُحسب. | 80% | 100% | 12 dead of 12 distinct candidates (by path and symbol): CASE_BODY, HUMAN_ARTIFACTS, ORIGIN_RANK, OWNED, VERDICTS, _CONFIG_NAMES, _scope_chain, _steps, _trace_evidence, _walk_tree_sitter, run_absence_search, write_next |
 | S3 الخطر العالي مؤكد بشاهدين | متوسط (عناصر debt-register.json بخطورة high أو critical التي يدعمها شاهدان مستقلان من أداتين مختلفتين، أو دليل حتمي واحد ÷ تلك العناصر)، لكل مشروع. مشروع بلا سجل يُحسب صفرًا. | 80% | 100% | high and critical debt items with two independent witnesses: FleetManageWeb 24/24 · finance-os-a0192b7b 11/11 · RendaPerene 0/0 |
 
@@ -1315,11 +1311,11 @@ flowchart TB
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| P1 مهام محددة الحجم | بطاقات effort معروف ÷ كل البطاقات في العيّنة | 100% | 100% | cards with a known effort: 586/586 |
-| P2 إصلاحات جاهزة | بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة | 50% | 68% | ready remediate cards: 397/586 |
-| P3 أوامر قبول قابلة للتشغيل | بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات | 80% | 100% | cards with a runnable acceptance command: 586/586 |
-| P4 معالم بأهداف مقيسة | مشاريع العيّنة التي تجمع خطتها البطاقات في معالم لكل منها هدف وشرط خروج ÷ عدد المشاريع | 100% | 100% | milestones with a goal and exit criterion: FleetManageWeb 8 · finance-os-a0192b7b 8 · RendaPerene 7 |
-| P5 التناسب | بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات | 100% | 100% | cards with options, do-nothing and rollback: 586/586 |
+| P1 مهام محددة الحجم | بطاقات effort معروف ÷ كل البطاقات في العيّنة | 100% | 100% | cards with a known effort: 510/510 |
+| P2 إصلاحات جاهزة | بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة | 50% | 61% | ready remediate cards: 309/510 |
+| P3 أوامر قبول قابلة للتشغيل | بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات | 80% | 100% | cards with a runnable acceptance command: 510/510 |
+| P4 معالم بأهداف مقيسة | مشاريع العيّنة التي تجمع خطتها البطاقات في معالم لكل منها هدف وشرط خروج ÷ عدد المشاريع | 100% | 100% | milestones with a goal and exit criterion: FleetManageWeb 7 · finance-os-a0192b7b 8 · RendaPerene 7 |
+| P5 التناسب | بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات | 100% | 100% | cards with options, do-nothing and rollback: 510/510 |
 | P6 أقسام الفريق | مشاريع العيّنة التي توزّع خطتها المهام على أقسام (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) مع الاعتماديات بينها ÷ عدد المشاريع | 100% | 100% | every card carries a team section: FleetManageWeb True · finance-os-a0192b7b True · RendaPerene True |
 | P7 التقارير الأربعة | من التقارير الأربعة (الوضع الراهن، الصورة المثالية، الفجوة والتحول، خطة التنفيذ)، عدد ما له وثيقة مخصصة ÷ 4. جودة محتواها تقيسها المؤشرات الأخرى. | 100% | 100% | of the four reports present: FleetManageWeb 4/4 · finance-os-a0192b7b 4/4 · RendaPerene 4/4 |
 | P8 جودة التقارير الأربعة | متوسط (التقارير الأربعة التي مرّت فحص Vale بحزمة EAOS وفحص markdownlint بلا أخطاء ÷ 4)، لكل مشروع | 100% | 100% | of the four reports passing Vale and markdownlint: FleetManageWeb 4/4 · finance-os-a0192b7b 4/4 · RendaPerene 4/4 |
@@ -1332,17 +1328,17 @@ flowchart TB
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| E1 تنفيذ حقيقي بنموذج على مشروع من العيّنة | 1 إن نُفّذت بطاقة واحدة على الأقل بنموذج (لا بأداة تحويل) على مشروع من العيّنة في نسخة معزولة، وحالتها VERIFIED_IN_ISOLATED_COPY، ومرّ أمر قبولها؛ وإلا 0 | 100% | 0% | a card executed by a model, verified in an isolated copy, acceptance passing: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False |
-| E2 تنبؤات تحققت | فروق المؤشرات التي تنبأت بها الخطة وحكم عليها eaos guarantee بأنها HONEST ÷ كل الفروق المقارنة، بعد تنفيذ حقيقي | 80% | 0% | predicted indicator deltas the change actually produced: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0 |
+| E1 تنفيذ حقيقي بنموذج على مشروع من العيّنة | 1 إن نُفّذت بطاقة واحدة على الأقل بنموذج (لا بأداة تحويل) على مشروع من العيّنة في نسخة معزولة، وحالتها VERIFIED_IN_ISOLATED_COPY، ومرّ أمر قبولها؛ وإلا 0 | 100% | 100% | a card executed by a model, verified in an isolated copy, acceptance passing: chief-ops True |
+| E2 تنبؤات تحققت | فروق المؤشرات التي تنبأت بها الخطة وحكم عليها eaos guarantee بأنها HONEST ÷ كل الفروق المقارنة، بعد تنفيذ حقيقي | 80% | 0% | predicted indicator deltas the change actually produced: chief-ops 0/0 |
 | E3 حارس التراجع مثبت | 1 إن كانت baseline و delta وبوابة عدم التراجع تعمل وتختبر على هذا المستودع | 100% | 100% | tests/gate/capability_no_regression.sh و no_new_debt.sh تمر. |
 | E4 مواصفات تثبيت السلوك | وظائف features.json التي لها مواصفة اختبار واحدة على الأقل (Playwright أو Schemathesis أو Pact أو ApprovalTests) في behavior-lock/plan.json وملفها موجود ÷ الوظائف | 100% | 100% | features with a behavior-lock spec: FleetManageWeb 24/24 · finance-os-a0192b7b 21/21 · RendaPerene 4/4 |
-| E5 شبكة الأمان تمر على الكود الحالي | مواصفات behavior-lock التي شُغّلت في بيئة معزولة ومرّت على الكود الحالي ÷ المواصفات | 100% | 0% | behavior-lock specs passing on current code: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0 |
-| E6 الحمل مقيس قبل وبعد | سيناريوهات الحمل في nfr/k6 التي لها p95 ونسبة خطأ مقيستان بـk6 على الكود الأصلي وبعد التحول، في بيئة معزولة وبالشروط نفسها ÷ سيناريوهات الحمل | 100% | 0% | load scenarios measured before and after: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0 |
-| E7 تكافؤ السلوك بعد التحول | مواصفات تثبيت السلوك التي مرّت على الكود الأصلي ومرّت أيضًا بعد التحول ÷ التي مرّت على الأصلي | 100% | 0% | specs passing before that still pass after: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0 |
+| E5 شبكة الأمان تمر على الكود الحالي | مواصفات behavior-lock التي شُغّلت في بيئة معزولة ومرّت على الكود الحالي ÷ المواصفات | 100% | 100% | behavior-lock specs passing on current code: chief-ops 28/28 |
+| E6 الحمل مقيس قبل وبعد | سيناريوهات الحمل في nfr/k6 التي لها p95 ونسبة خطأ مقيستان بـk6 على الكود الأصلي وبعد التحول، في بيئة معزولة وبالشروط نفسها ÷ سيناريوهات الحمل | 100% | 0% | load scenarios measured before and after: chief-ops 0/1 |
+| E7 تكافؤ السلوك بعد التحول | مواصفات تثبيت السلوك التي مرّت على الكود الأصلي ومرّت أيضًا بعد التحول ÷ التي مرّت على الأصلي | 100% | 0% | specs passing before that still pass after: chief-ops 0/28 |
 | E8 لا خطر عالٍ مفتوح بعد التحول | مشاريع نُفّذ فيها التحول وفُحصت ساكنًا (Semgrep وTrivy وOSV-Scanner وCheckov) وحيًا (OWASP ZAP) بلا نتيجة critical أو high مفتوحة ÷ المشاريع المنفّذة | 100% | 0% | no project executed yet |
-| E9 المرونة مجرّبة | الاعتماديات الخارجية الحرجة (قاعدة البيانات والخدمات في الحقائق) التي جُرّب عليها عطل بـToxiproxy وطابق سلوك التطبيق المتوقع ÷ تلك الاعتماديات | 80% | 0% | fault experiments where the application behaved as expected: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0 |
-| E10 تغطية الرصد | الأسطح الحرجة التي ظهر لها span في مخرج OpenTelemetry Collector أثناء تشغيل شبكة الأمان والحمل ÷ الأسطح الحرجة | 90% | 0% | critical surfaces with at least one span: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0 |
-| E11 الجاهزية للإنتاج | بنود قائمة الجاهزية التي يمر أمر فحصها (Goss، والاستعادة من النسخة الاحتياطية، والتراجع، وتشغيل عدّة الحوكمة) ÷ البنود | 100% | 0% | readiness items whose command passed: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0 |
+| E9 المرونة مجرّبة | الاعتماديات الخارجية الحرجة (قاعدة البيانات والخدمات في الحقائق) التي جُرّب عليها عطل بـToxiproxy وطابق سلوك التطبيق المتوقع ÷ تلك الاعتماديات | 80% | 0% | fault experiments where the application behaved as expected: chief-ops 0/0 |
+| E10 تغطية الرصد | الأسطح الحرجة التي ظهر لها span في مخرج OpenTelemetry Collector أثناء تشغيل شبكة الأمان والحمل ÷ الأسطح الحرجة | 90% | 0% | critical surfaces with at least one span: chief-ops 0/0 |
+| E11 الجاهزية للإنتاج | بنود قائمة الجاهزية التي يمر أمر فحصها (Goss، والاستعادة من النسخة الاحتياطية، والتراجع، وتشغيل عدّة الحوكمة) ÷ البنود | 100% | 0% | readiness items whose command passed: chief-ops 0/0 |
 
 ### C10 — الثقة والإثبات المستقل
 
@@ -3698,11 +3694,11 @@ python tools/north_star.py measure --only K1 --min 1.0
 
 **التراجع:** revert الالتزام.
 
-### الخطوة 17 · NS26 — خط الأساس الحي: السلوك والأرقام قبل أي تغيير 🟡 قيد العمل
+### الخطوة 17 · NS26 — خط الأساس الحي: السلوك والأرقام قبل أي تغيير ✅ مكتملة
 
 <a id="ns26t1"></a>
 
-#### NS26.T1 — تشغيل شبكة الأمان على الكود الأصلي ⬜
+#### NS26.T1 — تشغيل شبكة الأمان على الكود الأصلي ✅
 
 **لماذا:** أول خطوة بعد التفويض: تشغيل شبكة الأمان على الكود الأصلي وتسجيل ما يفعله اليوم. بدونها لا يبدأ أي تغيير.
 
@@ -3719,6 +3715,7 @@ python tools/north_star.py measure --only K1 --min 1.0
 3. بلا تفويض تبقى المهمة blocked بسبب مكتوب.
 4. التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب "no authorization for <مشروع>"، ولا تشغّل شيئًا.
 5. المخرج behavior-lock/results.json تحت مجلد التشغيل، بعقده. commit فيه هو commit المشروع.
+6. كما نُفّذ: على chief-ops (العيّنة الحية، بتفويض المالك) في Sandbox مع PostgreSQL محلية: eaos live lock يثبّت التطبيق ويشغّله ويزرع برنامجًا تجريبيًا (seed في run.json)، ثم يسجل اللقطات ويتحقق منها في تمريرة ثانية. 28/28 مواصفة تمر (customers تحتاج E2E_PROFILEID، فيمررها run.json إلى البرنامج المزروع). E5 = 1.0. المتصفح لا يصل إلا إلى loopback (proxy صريح مع bypass لـ127.0.0.1 وlocalhost؛ `<-loopback>` كان يحجب loopback نفسه). اللقطات تُحفظ في مجلد التشغيل وverify_lock لا يحدّثها أبدًا.
 
 **تنتهي حين:**
 
@@ -3741,7 +3738,7 @@ python tools/north_star.py measure --only E5 --min 0.8 && python tools/acceptanc
 
 <a id="ns26t2"></a>
 
-#### NS26.T2 — خط أساس الحمل قبل أي تغيير ⬜
+#### NS26.T2 — خط أساس الحمل قبل أي تغيير ✅
 
 **لماذا:** الرقم «بعد» بلا رقم «قبل» بالشروط نفسها لا يثبت شيئًا.
 
@@ -3757,6 +3754,7 @@ python tools/north_star.py measure --only E5 --min 0.8 && python tools/acceptanc
 2. الشروط في الملف نفسه: نسخة build لا خادم التطوير، ومدة الإحماء، وعدد المستخدمين الافتراضيين، والجهاز. رقم بلا شروطه لا يقارَن.
 3. الاختبار يثبت أن سيناريو بلا شروط مكتوبة يُرفض، وأن طرف «بعد» لا يُكتب دون طرف «قبل».
 4. التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب "no authorization for <مشروع>"، ولا تشغّل شيئًا.
+5. كما نُفّذ: eaos live baseline على بناء chief-ops (npm run build ثم node dist-server/main.mjs، لا خادم التطوير) بقاعدة محلية ودور تشغيل خاص: QS-001، 100 مستخدم، 300 ثانية، p95 = 21.6ms، الخطأ 0.0، على 4 CPU و4.0 GiB (من حدود cgroup). الشروط مكتوبة في performance.json، وrecord_after يرفض after بلا before أو بشروط مختلفة.
 
 **تنتهي حين:**
 
@@ -3776,11 +3774,11 @@ python tools/acceptance.py contract runtime-performance --where "all(s['before']
 
 **التراجع:** revert الالتزام.
 
-### الخطوة 18 · NS9 — إثبات التنفيذ 🔴 تحتاج مدخلًا منك
+### الخطوة 18 · NS9 — إثبات التنفيذ ✅ مكتملة
 
 <a id="ns9t1"></a>
 
-#### NS9.T1 — تنفيذ حقيقي على مشروع من العيّنة ⬜
+#### NS9.T1 — تنفيذ حقيقي على مشروع من العيّنة ✅
 
 **لماذا:** الإثبات أن الخطة قابلة للتنفيذ: بطاقات حقيقية تُنفَّذ على مشروع حقيقي، ويمر قبولها في نسخة معزولة.
 
@@ -3796,6 +3794,7 @@ python tools/acceptance.py contract runtime-performance --where "all(s['before']
 2. البطاقات التي تحمل codemod (NS8.T6) تُنفَّذ بأداتها أولًا. ثم بطاقة واحدة على الأقل بالنموذج: python -m eaos implement --out <مساحة العمل> --checks <checks.json> --task TASK-NNN --provider provider.json run.
 3. كل بطاقة خلف بوابة: أمر قبولها، وشبكة الأمان (NS26) في Sandbox، وإعادة التدقيق بلا ادعاء حرج جديد.
 4. اكتب runtime/execution.json (العقد): لكل بطاقة id و tool (codemod أو model) و status كما كتبه eaos implement في result.json، و acceptance_exit.
+5. كما نُفّذ: eaos live execute على chief-ops. المزوّد أمر محلي (eaos.runtime.claude_adapter) فوق Claude Code CLI المسجّل في هذا الجهاز، بلا أدوات وبلا جلسة وبلا مفتاح. TASK-047 (حذف endorseMasterRota) بالنموذج، وTASK-010 (حذف useSheet) بـjscodeshift: كلاهما VERIFIED_IN_ISOLATED_COPY. البوابات بالترتيب: أمر القبول، ثم لا كسر جديد (broken-code على النسخة مقابل التقرير)، ثم فحوص المشروع من run.json (typecheck وlint، وnpm test الذي يفشل فيه 22 اختبارًا على الأصل يُقارن بأسماء الاختبارات الفاشلة)، ثم شبكة الأمان 28/28. أول محاولة لـTASK-010 رُفضت بحق (lint: useContext صار بلا استخدام)، فصار الـcodemod يحذف الاستيراد الذي لا يستخدمه إلا المحذوف. كلفة النموذج نحو 0.42 دولار. اختيار البطاقة كشف إيجابيات كاذبة أُصلحت: 76 بطاقة حمل كاذبة في العيّنة العامة (مسار بلا نداء خارجي كان «غير محمي»)، وحلقة إعادة محاولة تُعدّ N+1، وأوامر توثيق مثل npm run deploy:*؛ فانخفض P2 من 0.684 إلى 0.606، والتصحيح مسجل في docs/north-star-high-water.json → corrections.
 
 **تنتهي حين:**
 
@@ -3817,7 +3816,7 @@ python tools/north_star.py measure --only E1 --min 1.0 && python tools/acceptanc
 
 **التراجع:** لا تغيير في الكود.
 
-### الخطوة 19 · NS20 — التحقق الوظيفي: الوظائف نفسها باقية، والتنبؤ حدث 🔴 تحتاج مدخلًا منك
+### الخطوة 19 · NS20 — التحقق الوظيفي: الوظائف نفسها باقية، والتنبؤ حدث 🟡 قيد العمل
 
 <a id="ns20t1"></a>
 

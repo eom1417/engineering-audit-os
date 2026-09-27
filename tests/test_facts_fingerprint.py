@@ -66,6 +66,17 @@ class FingerprintFactTests(unittest.TestCase):
         self.assertEqual(len(clusters), 1)
         self.assertEqual(len(clusters[0]['value']['occurrences']), 3)
 
+    def test_typescript_signatures_and_declaration_files_share_no_logic_and_are_not_fingerprinted(self):
+        signatures = ''.join(f'export function f{i}(a: string, b: number, c: boolean, d: string[]): Promise<void>;\n' for i in range(4))
+        members = 'interface Api {\n' + ''.join(f'  m{i}(a: string, b: number, c: boolean, d: string[]): Promise<void>;\n' for i in range(4)) + '}\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'; repo.mkdir()
+            (repo / 'core.d.ts').write_text(signatures)
+            (repo / 'api.ts').write_text(members + signatures)
+            collect(repo, Path(tmp) / 'out', ['syntax', 'fingerprint'])
+            facts = json.loads((Path(tmp) / 'out/facts/fingerprint.json').read_text())['facts']
+        self.assertEqual(facts, [], 'a body-less declaration has nothing to canonicalize')
+
     def test_structurally_different_functions_do_not_cluster(self):
         body1 = ("def one(x):\n    return x + 1\n")
         body2 = ("def two(x):\n    return x * 2\n")

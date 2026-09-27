@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
-  "measured_at": "2026-09-26",
-  "measured_at_commit": "22d2884+",
+  "measured_at": "2026-09-27",
+  "measured_at_commit": "f4ae69d+",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -279,7 +279,7 @@
           "definition": "الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "22/22 assessment tools at their pinned version",
+          "evidence": "29/29 assessment tools at their pinned version",
           "reads": "eaos tools doctor --json → tools[] {name, role, pinned, found, ok}",
           "measured": "automated"
         }
@@ -374,8 +374,8 @@
           "name": "الادعاءات غير الضجيجية",
           "definition": "متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع",
           "target": 0.8,
-          "value": 0.897,
-          "evidence": "claims that are not structural clones: FleetManageWeb 239/259 · finance-os-a0192b7b 223/273 · RendaPerene 60/63",
+          "value": 0.884,
+          "evidence": "claims that are not structural clones: FleetManageWeb 194/214 · finance-os-a0192b7b 196/246 · RendaPerene 56/59",
           "reads": "dossier.json → claims[].statement not containing \"share the same structure up to identifier names\"",
           "measured": "automated"
         },
@@ -595,7 +595,7 @@
           "definition": "بطاقات effort معروف ÷ كل البطاقات في العيّنة",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with a known effort: 586/586",
+          "evidence": "cards with a known effort: 510/510",
           "reads": "plan.json → tasks[].effort not \"unknown\"",
           "measured": "automated"
         },
@@ -604,8 +604,8 @@
           "name": "إصلاحات جاهزة",
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
-          "value": 0.677,
-          "evidence": "ready remediate cards: 397/586",
+          "value": 0.606,
+          "evidence": "ready remediate cards: 309/510",
           "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
           "measured": "automated"
         },
@@ -615,7 +615,7 @@
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
           "value": 1.0,
-          "evidence": "cards with a runnable acceptance command: 586/586",
+          "evidence": "cards with a runnable acceptance command: 510/510",
           "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
           "measured": "automated"
         },
@@ -625,7 +625,7 @@
           "definition": "مشاريع العيّنة التي تجمع خطتها البطاقات في معالم لكل منها هدف وشرط خروج ÷ عدد المشاريع",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "milestones with a goal and exit criterion: FleetManageWeb 8 · finance-os-a0192b7b 8 · RendaPerene 7",
+          "evidence": "milestones with a goal and exit criterion: FleetManageWeb 7 · finance-os-a0192b7b 8 · RendaPerene 7",
           "reads": "plan.json → milestones[] each with goal and exit",
           "measured": "automated"
         },
@@ -635,7 +635,7 @@
           "definition": "بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with options, do-nothing and rollback: 586/586",
+          "evidence": "cards with options, do-nothing and rollback: 510/510",
           "reads": "plan.json → tasks[].options (≥ 2, one \"Do nothing\") and rollback",
           "measured": "automated"
         },
@@ -702,8 +702,8 @@
           "name": "تنفيذ حقيقي بنموذج على مشروع من العيّنة",
           "definition": "1 إن نُفّذت بطاقة واحدة على الأقل بنموذج (لا بأداة تحويل) على مشروع من العيّنة في نسخة معزولة، وحالتها VERIFIED_IN_ISOLATED_COPY، ومرّ أمر قبولها؛ وإلا 0",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "a card executed by a model, verified in an isolated copy, acceptance passing: FleetManageWeb False · finance-os-a0192b7b False · RendaPerene False",
+          "value": 1.0,
+          "evidence": "a card executed by a model, verified in an isolated copy, acceptance passing: chief-ops True",
           "measured": "automated",
           "reads": "runtime/<project>/runtime/execution.json → tasks[] {tool, status, acceptance_exit} (schemas/artifacts/execution-log.schema.json)"
         },
@@ -713,7 +713,7 @@
           "definition": "فروق المؤشرات التي تنبأت بها الخطة وحكم عليها eaos guarantee بأنها HONEST ÷ كل الفروق المقارنة، بعد تنفيذ حقيقي",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "predicted indicator deltas the change actually produced: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
+          "evidence": "predicted indicator deltas the change actually produced: chief-ops 0/0",
           "measured": "automated",
           "reads": "runtime/<project>/runtime/guarantee.json → rows[] {indicator, verdict} (schemas/artifacts/runtime-guarantee.schema.json)"
         },
@@ -742,8 +742,8 @@
           "definition": "مواصفات behavior-lock التي شُغّلت في بيئة معزولة ومرّت على الكود الحالي ÷ المواصفات",
           "reads": "behavior-lock/results.json → results[] {path, status}، والناجح status == \"passed\"",
           "target": 1.0,
-          "value": 0.0,
-          "evidence": "behavior-lock specs passing on current code: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
+          "value": 1.0,
+          "evidence": "behavior-lock specs passing on current code: chief-ops 28/28",
           "measured": "automated"
         },
         {
@@ -753,7 +753,7 @@
           "reads": "runtime/performance.json → scenarios[] {id, before {p95_ms, error_rate}, after {p95_ms, error_rate}}",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "load scenarios measured before and after: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
+          "evidence": "load scenarios measured before and after: chief-ops 0/1",
           "measured": "automated"
         },
         {
@@ -762,7 +762,7 @@
           "definition": "مواصفات تثبيت السلوك التي مرّت على الكود الأصلي ومرّت أيضًا بعد التحول ÷ التي مرّت على الأصلي",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "specs passing before that still pass after: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
+          "evidence": "specs passing before that still pass after: chief-ops 0/28",
           "reads": "behavior-lock/results.json و behavior-lock/results-after.json → results[] {path, status}",
           "measured": "automated"
         },
@@ -782,7 +782,7 @@
           "definition": "الاعتماديات الخارجية الحرجة (قاعدة البيانات والخدمات في الحقائق) التي جُرّب عليها عطل بـToxiproxy وطابق سلوك التطبيق المتوقع ÷ تلك الاعتماديات",
           "target": 0.8,
           "value": 0.0,
-          "evidence": "fault experiments where the application behaved as expected: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
+          "evidence": "fault experiments where the application behaved as expected: chief-ops 0/0",
           "reads": "runtime/resilience.json → experiments[] {dependency, toxic, expected, observed, ok}",
           "measured": "automated"
         },
@@ -792,7 +792,7 @@
           "definition": "الأسطح الحرجة التي ظهر لها span في مخرج OpenTelemetry Collector أثناء تشغيل شبكة الأمان والحمل ÷ الأسطح الحرجة",
           "target": 0.9,
           "value": 0.0,
-          "evidence": "critical surfaces with at least one span: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
+          "evidence": "critical surfaces with at least one span: chief-ops 0/0",
           "reads": "runtime/telemetry.json → surfaces[] {surface, spans}",
           "measured": "automated"
         },
@@ -802,7 +802,7 @@
           "definition": "بنود قائمة الجاهزية التي يمر أمر فحصها (Goss، والاستعادة من النسخة الاحتياطية، والتراجع، وتشغيل عدّة الحوكمة) ÷ البنود",
           "target": 1.0,
           "value": 0.0,
-          "evidence": "readiness items whose command passed: FleetManageWeb 0/0 · finance-os-a0192b7b 0/0 · RendaPerene 0/0",
+          "evidence": "readiness items whose command passed: chief-ops 0/0",
           "reads": "PRODUCTION-READINESS.json → items[] {id, command, ok}",
           "measured": "automated"
         }
@@ -3840,7 +3840,8 @@
             "اكتب behavior-lock/results.json → results[] {path, status}. مواصفة فشلت على الكود الأصلي تُصحَّح لتصف ما يفعله النظام فعلًا، أو تُعلَّم quarantined بسبب مكتوب؛ لا تُحذف.",
             "بلا تفويض تبقى المهمة blocked بسبب مكتوب.",
             "التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب \"no authorization for <مشروع>\"، ولا تشغّل شيئًا.",
-            "المخرج behavior-lock/results.json تحت مجلد التشغيل، بعقده. commit فيه هو commit المشروع."
+            "المخرج behavior-lock/results.json تحت مجلد التشغيل، بعقده. commit فيه هو commit المشروع.",
+            "كما نُفّذ: على chief-ops (العيّنة الحية، بتفويض المالك) في Sandbox مع PostgreSQL محلية: eaos live lock يثبّت التطبيق ويشغّله ويزرع برنامجًا تجريبيًا (seed في run.json)، ثم يسجل اللقطات ويتحقق منها في تمريرة ثانية. 28/28 مواصفة تمر (customers تحتاج E2E_PROFILEID، فيمررها run.json إلى البرنامج المزروع). E5 = 1.0. المتصفح لا يصل إلا إلى loopback (proxy صريح مع bypass لـ127.0.0.1 وlocalhost؛ `<-loopback>` كان يحجب loopback نفسه). اللقطات تُحفظ في مجلد التشغيل وverify_lock لا يحدّثها أبدًا."
           ],
           "done_when": [
             "E5 ≥ 0.8.",
@@ -3853,7 +3854,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only E5 --min 0.8 && python tools/acceptance.py contract behavior-lock-results",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS26.T2",
@@ -3879,7 +3880,8 @@
             "في Sandbox نفسه: k6 run --summary-export لكل سكربت في nfr/k6 على الكود الأصلي. اكتب runtime/performance.json → scenarios[] {id, before {p95_ms, error_rate}}، وهو الطرف «قبل» لمؤشر E6.",
             "الشروط في الملف نفسه: نسخة build لا خادم التطوير، ومدة الإحماء، وعدد المستخدمين الافتراضيين، والجهاز. رقم بلا شروطه لا يقارَن.",
             "الاختبار يثبت أن سيناريو بلا شروط مكتوبة يُرفض، وأن طرف «بعد» لا يُكتب دون طرف «قبل».",
-            "التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب \"no authorization for <مشروع>\"، ولا تشغّل شيئًا."
+            "التفويض: authorization.json بعقد schemas/artifacts/authorization.schema.json في ${EAOS_MEASURE:-/tmp/eaos-measure}/runtime/<مشروع>/، يكتبه المالك (القالب في docs/MASTER-BLUEPRINT.md §١٠). بدونه علّم المهمة blocked بسبب \"no authorization for <مشروع>\"، ولا تشغّل شيئًا.",
+            "كما نُفّذ: eaos live baseline على بناء chief-ops (npm run build ثم node dist-server/main.mjs، لا خادم التطوير) بقاعدة محلية ودور تشغيل خاص: QS-001، 100 مستخدم، 300 ثانية، p95 = 21.6ms، الخطأ 0.0، على 4 CPU و4.0 GiB (من حدود cgroup). الشروط مكتوبة في performance.json، وrecord_after يرفض after بلا before أو بشروط مختلفة."
           ],
           "done_when": [
             "runtime/performance.json يمر عقده، ولكل سيناريو before."
@@ -3891,7 +3893,7 @@
           ],
           "acceptance": "python tools/acceptance.py contract runtime-performance --where \"all(s['before'] for s in data['scenarios'])\"",
           "rollback": "revert الالتزام.",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "stages": [
@@ -3945,7 +3947,8 @@
             "ما يوفره المالك: ملف provider.json (نوع chat_completions مع endpoint و model و api_key_env، أو نوع command مع argv لأداة محلية)، ومتغير المفتاح في البيئة، والتفويض. القالب في docs/MASTER-BLUEPRINT.md §١٠.",
             "البطاقات التي تحمل codemod (NS8.T6) تُنفَّذ بأداتها أولًا. ثم بطاقة واحدة على الأقل بالنموذج: python -m eaos implement --out <مساحة العمل> --checks <checks.json> --task TASK-NNN --provider provider.json run.",
             "كل بطاقة خلف بوابة: أمر قبولها، وشبكة الأمان (NS26) في Sandbox، وإعادة التدقيق بلا ادعاء حرج جديد.",
-            "اكتب runtime/execution.json (العقد): لكل بطاقة id و tool (codemod أو model) و status كما كتبه eaos implement في result.json، و acceptance_exit."
+            "اكتب runtime/execution.json (العقد): لكل بطاقة id و tool (codemod أو model) و status كما كتبه eaos implement في result.json، و acceptance_exit.",
+            "كما نُفّذ: eaos live execute على chief-ops. المزوّد أمر محلي (eaos.runtime.claude_adapter) فوق Claude Code CLI المسجّل في هذا الجهاز، بلا أدوات وبلا جلسة وبلا مفتاح. TASK-047 (حذف endorseMasterRota) بالنموذج، وTASK-010 (حذف useSheet) بـjscodeshift: كلاهما VERIFIED_IN_ISOLATED_COPY. البوابات بالترتيب: أمر القبول، ثم لا كسر جديد (broken-code على النسخة مقابل التقرير)، ثم فحوص المشروع من run.json (typecheck وlint، وnpm test الذي يفشل فيه 22 اختبارًا على الأصل يُقارن بأسماء الاختبارات الفاشلة)، ثم شبكة الأمان 28/28. أول محاولة لـTASK-010 رُفضت بحق (lint: useContext صار بلا استخدام)، فصار الـcodemod يحذف الاستيراد الذي لا يستخدمه إلا المحذوف. كلفة النموذج نحو 0.42 دولار. اختيار البطاقة كشف إيجابيات كاذبة أُصلحت: 76 بطاقة حمل كاذبة في العيّنة العامة (مسار بلا نداء خارجي كان «غير محمي»)، وحلقة إعادة محاولة تُعدّ N+1، وأوامر توثيق مثل npm run deploy:*؛ فانخفض P2 من 0.684 إلى 0.606، والتصحيح مسجل في docs/north-star-high-water.json → corrections."
           ],
           "done_when": [
             "E1 = 1.0.",
@@ -3959,7 +3962,7 @@
           ],
           "acceptance": "python tools/north_star.py measure --only E1 --min 1.0 && python tools/acceptance.py contract execution-log",
           "rollback": "لا تغيير في الكود.",
-          "status": "todo"
+          "status": "done"
         }
       ],
       "stages": [
