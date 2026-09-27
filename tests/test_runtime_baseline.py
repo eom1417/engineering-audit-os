@@ -81,3 +81,21 @@ class LiveRunTests(Workspace):
         self.assertEqual(extra['NODE_ENV'], 'development')
         self.assertNotIn('OWNER_SECRET_TOKEN', extra)
         self.assertGreaterEqual(len(extra['AUTH_SECRET']), 48)   # generated for the run
+
+
+class LockFolderTests(Workspace):
+    def test_the_lock_runs_eaos_playwright_whatever_the_project_installs_or_declares(self):
+        from unittest import mock
+        from eaos import behavior_lock
+        report, copy, tools = Path(self.tmp) / 'report', Path(self.tmp) / 'copy', Path(self.tmp) / 'tools'
+        (report / 'behavior-lock/playwright').mkdir(parents=True)
+        (tools / 'node/node_modules/@playwright/test').mkdir(parents=True)
+        copy.mkdir()
+        (copy / 'package.json').write_text('{"type": "module"}')
+        live = mock.Mock()
+        live.sandbox.copy = copy
+        with mock.patch('eaos.toolchain.home', return_value=tools):
+            lock = behavior_lock._prepare(live, report)
+        self.assertTrue((lock / 'node_modules/@playwright/test').is_dir(), 'the specs import @playwright/test')
+        self.assertEqual(json.loads((lock / 'package.json').read_text())['type'], 'commonjs',
+                         'a project of ES modules does not change how the lock config loads')

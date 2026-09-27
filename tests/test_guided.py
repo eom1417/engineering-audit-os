@@ -43,11 +43,14 @@ def _fake_scan(state, args):
 def run(command, project=None, **options):
     """(exit, printed) of one guided command, in-process, answered by nobody at a terminal."""
     args = Namespace(command=command, project=str(project) if project else ('.' if command != 'doctor' else None),
-                     lang=options.get('lang', 'en'), yes=options.get('yes', False), fix=False)
+                     lang=options.get('lang', 'en'), yes=options.get('yes', False), fix=False,
+                     request=options.get('request', ['where', 'are', 'we']), action='install')
     printed = io.StringIO()
     steps = [(i, ar, en, done, _fake_scan if i == 'scan' else step) for i, ar, en, done, step in guided.STEPS]
+    # Never the person's real assistants: `eaos assistant install` writes into ~/.claude and ~/.codex.
     with redirect_stdout(printed), mock.patch.object(guided, 'STEPS', steps), \
-            mock.patch.object(guided.sys.stdin, 'isatty', return_value=False):
+            mock.patch.object(guided.sys.stdin, 'isatty', return_value=False), \
+            mock.patch('eaos.assistant_setup.install', return_value=['Claude Code', 'Codex']):
         code = guided.main(args)
     return code, printed.getvalue()
 

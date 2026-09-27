@@ -25,7 +25,7 @@ import subprocess
 from datetime import date, timedelta
 from pathlib import Path
 
-ATTEMPTS = 3
+ATTEMPTS = 5
 APP_FOLDERS = ('.', 'app', 'web', 'client', 'frontend', 'apps/web', 'apps/app', 'apps/frontend', 'packages/web')
 # A script that deploys, publishes or reaches a hosted environment never runs, whatever it is called.
 DANGER = re.compile(r'\b(deploy\w*|railway|vercel|netlify|flyctl|heroku|firebase|gh-pages|publish|wrangler|surge|'
@@ -310,6 +310,7 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
         state = runtime / 'setup' / 'storage-state.json'
         if state.exists(): state.unlink()
         record['fixtures'] = dict(live.seed(base, state))
+        record['seed_output'] = getattr(live, 'seed_output', '')
         script = live.sandbox.copy / '.eaos-probe.cjs'
         script.write_text(PROBE, encoding='utf-8')
         code, out, err = live.run(['node', str(script)], timeout=600, env={
@@ -321,13 +322,15 @@ def verify(project, runtime, attempt, report=None, mode='lock'):
         record['ok'] = not bad and not signed_out(page) and not stuck(page)
         if not record['ok']:
             record['failure'] = ('the first page asks for a sign-in' if signed_out(page) else
-                                 'every screen shows the same page, so something (a chooser, a gate) stands in front of the app: '
-                                 + ' '.join((page.get('text') or '').split())[:400] if stuck(page) else
+                                 'every screen shows the same page, so something (a chooser, a gate) stands in front of the app. '
+                                 'The page says:\n' + '\n'.join(l for l in (page.get('text') or '').splitlines() if l.strip())[:600] if stuck(page) else
                                  f"{bad[0].get('path', '/')} answered {bad[0].get('status')}: {'; '.join(page.get('errors') or [])[:600]}")
     except Exception as problem:            # a failed start is the evidence the assistant needs, not a crash
         record['ok'] = False
         record['failure'] = f'{type(problem).__name__}: {problem}'[-2500:]
     finally:
+        if not record.get('ok') and record.get('seed_output') and record.get('failure'):
+            record['failure'] += '\nThe seed script said:\n' + record['seed_output'][-1500:]
         live.stop()
         live.record(f"setup/{'baseline-' if mode == 'baseline' else ''}attempt-{attempt}.json")
     return record
@@ -386,7 +389,9 @@ def relevant_source(project, folder, failure, limit=3, context=60):
     """The code that raised the failure: each distinctive phrase of the error, looked up in the project's own
     source (never its build output or libraries), with the lines around it. The assistant fixes what it can see."""
     root = Path(project) / folder
-    phrases = [p.strip(' .:-') for p in re.split(r'[\n|]| - |: ', failure or '') if len(p.strip()) >= 24][:12]
+    # Error lines, and the page's own words ("Where are you working?"): both are written somewhere in the code.
+    phrases = sorted({p.strip(' .:-') for p in re.split(r'[\n|]| - |: |\s{2,}', failure or '') if len(p.strip()) >= 16},
+                     key=len, reverse=True)[:16]                    # the most distinctive first
     found, seen = [], set()
     files = [f for f in root.rglob('*') if f.suffix in SOURCE_SUFFIXES and f.is_file()
              and not any(part in ('node_modules', 'dist', 'dist-server', 'build', '.next', 'coverage') for part in f.parts)][:6000]

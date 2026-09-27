@@ -141,30 +141,33 @@ TASK-003 — complexity 83 (threshold 15) in eaos/sustainability.py
 
 ### The easy way (no technical knowledge needed)
 
+> The full guide, step by step with how long each takes, what you should see, and fixes for errors: **[`docs/GUIDE.en.md`](docs/GUIDE.en.md)**.
+
 **1. Install EAOS** (once). Copy this line into your terminal:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/main/install.sh | bash
 ```
 
-**2. Check your project.** Open your project folder in the terminal, then:
+**2. If you use Claude Code or Codex**, teach it EAOS once, then talk to it in your own words ("check my project", "what is wrong?", "fix it"):
 
 ```bash
-eaos start .
+eaos assistant install
 ```
 
-The check takes 5 to 30 minutes and changes nothing in your project. At the end you get a **"Start here"** page in
-plain words: how many problems it found, which can be fixed automatically, and what it recommends.
-
-**3. Go on.** Every command ends with a box holding the next step. Copy and paste it:
+**3. Or with commands:** open your project folder in the terminal, then:
 
 ```bash
-eaos next      # the next step
-eaos status    # where we are
-eaos doctor    # is your computer ready? what is missing, and how to fix it
+eaos start .   # checks your project (5-30 minutes) and changes nothing in it
+eaos next      # the next step: set up, record the screens, then fix a batch on a new branch
+eaos accept    # takes the fixes into your project (or eaos undo to throw them away)
 ```
 
-> The plan to make every step this easy, fixing included: [`docs/USER-EXPERIENCE.md`](docs/USER-EXPERIENCE.md).
+Every command ends with a box holding what happened and the next command. You can also ask in your own words:
+`eaos do "what is wrong"`. More: `eaos status` (where we are), `eaos show` (the result in plain words),
+`eaos doctor` (is your computer ready).
+
+> Why it is built this way: [`docs/USER-EXPERIENCE.md`](docs/USER-EXPERIENCE.md).
 
 ### For developers: the direct commands
 

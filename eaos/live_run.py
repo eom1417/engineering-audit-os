@@ -56,6 +56,8 @@ class LiveRun:
             override = self.profile.get('baseline') or {}
             for key in self.BASELINE_KEYS:
                 if key in override: self.profile[key] = override[key]
+            # The load test opens the pages without signing in: the lock's sign-in is not the production run's.
+            self.profile['seed'] = override.get('seed') or []
         self.sandbox = Sandbox(target, self.runtime / 'authorization.json', self.runtime / 'sandbox', stage)
         self.commit = head(target)
         self.log = []
@@ -80,8 +82,11 @@ class LiveRun:
         from .toolchain import home
         if not hasattr(self, '_extra'):
             url = self.database_url()
-            folder = self.runtime / 'run-data'          # the run's own folder outside the app: backups, uploads
-            folder.mkdir(parents=True, exist_ok=True)
+            env = self.profile.get('env') or {}
+            folder = None
+            if any('{run_dir}' in str(v) for v in env.values()):
+                folder = self.runtime / 'run-data'      # the run's own folder outside the app: backups, uploads
+                folder.mkdir(parents=True, exist_ok=True)
             fill = lambda value: (str(value).replace('{database_url}', url) if url else str(value)).replace('{run_dir}', str(folder))
             self._extra = {**{k: fill(v) for k, v in (self.profile.get('env') or {}).items()},
                            'PATH': f"{home() / 'bin'}{os.pathsep}{os.environ.get('PATH', '/usr/bin:/bin')}",
@@ -104,13 +109,16 @@ class LiveRun:
         for argv in self.profile.get('seed') or []:
             code, out, err = self.run(argv, env=env)
             if code: raise RuntimeError(f"seed failed ({' '.join(map(str, argv))}): {(out + err)[-1500:]}")
-            last = (out.strip().splitlines() or [''])[-1]
-            try: printed = json.loads(last)
-            except ValueError: printed = None
-            if isinstance(printed, dict):
+            self.seed_output = (out + err)[-3000:]
+            for line in reversed(out.strip().splitlines()):     # the last JSON object printed, wherever it is
+                try: printed = json.loads(line)
+                except ValueError: continue
+                if not isinstance(printed, dict): continue
                 fixtures = {k: str(v) for k, v in printed.items() if re.fullmatch(r'E2E_[A-Z0-9_]+', str(k))}
+                if not fixtures: continue
                 self.extra().update(fixtures)
                 self.fixtures.update(fixtures)
+                break
         return self.fixtures
 
     def setup(self):

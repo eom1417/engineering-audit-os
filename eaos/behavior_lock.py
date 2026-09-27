@@ -288,6 +288,13 @@ def _prepare(live, report, snapshots=None):
     shutil.rmtree(lock, ignore_errors=True)
     shutil.copytree(Path(report) / 'behavior-lock', lock)
     (lock / 'lock.config.ts').write_text(LOCK_CONFIG, encoding='utf-8')
+    # The specs import @playwright/test, which most projects do not install; ES modules ignore NODE_PATH. The
+    # lock always runs EAOS's pinned Playwright, the version its installed browsers belong to.
+    from .toolchain import home
+    modules = home() / 'node/node_modules'
+    if modules.is_dir() and not (lock / 'node_modules').exists(): (lock / 'node_modules').symlink_to(modules, target_is_directory=True)
+    # Its own package.json: a project declaring "type": "module" must not change how the lock's files load.
+    (lock / 'package.json').write_text('{"private": true, "type": "commonjs"}\n', encoding='utf-8')
     (lock / '.auth').mkdir(exist_ok=True)
     (lock / '.auth/user.json').write_text(json.dumps({'cookies': [], 'origins': []}), encoding='utf-8')
     if snapshots is not None:
@@ -308,10 +315,11 @@ def _start(live, lock):
 
 def _pass(live, lock, base, output, update):
     output.parent.mkdir(parents=True, exist_ok=True)
-    live.sandbox.run(['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1',
-                      *(['--update-snapshots=all'] if update else [])],
-                     timeout=3600, network=True, cwd='.eaos-lock',
-                     env={**live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output)})
+    argv = ['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1',
+            *(['--update-snapshots=all'] if update else [])]
+    code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock',
+                                      env={**live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output)})
+    live.log.append({'argv': argv, 'exit': code, 'tail': (out + err)[-3000:]})     # why a spec did not run
     try: return json.loads(output.read_text(encoding='utf-8'))
     except (OSError, ValueError): return {}
 

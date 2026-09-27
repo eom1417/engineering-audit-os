@@ -119,6 +119,15 @@ class ProposalTests(unittest.TestCase):
             self.assertEqual(live.database_url(), 'postgresql://postgres@127.0.0.1:5/app')
         database.return_value.create.assert_called_once_with('app')
 
+    def test_the_production_run_does_not_sign_in_with_the_locks_seed(self):
+        from eaos.live_run import LiveRun
+        runtime = Path(tempfile.mkdtemp())
+        live_setup.write_profile(runtime, {'schema_version': 1, 'install': [['npm', 'ci']], 'start': ['npx', 'vite'], 'port': 1,
+                                           'health': '/', 'seed': [['node', 'seed.cjs']], 'baseline': {'build': [['npm', 'run', 'build']]}})
+        with mock.patch('eaos.live_run.Sandbox'), mock.patch('eaos.live_run.head', return_value='c'):
+            self.assertEqual(LiveRun('p', runtime, 'S05', mode='baseline').profile['seed'], [])
+            self.assertEqual(LiveRun('p', runtime, 'S05').profile['seed'], [['node', 'seed.cjs']])
+
 class VerifyTests(unittest.TestCase):
     def test_a_gate_in_front_of_every_screen_is_not_a_working_app(self):
         page = {'text': 'Where are you working?', 'others': [{'text': 'Where are you  working?'}, {'text': 'Where are you working?'}]}
@@ -173,6 +182,24 @@ class SeedFixtureTests(unittest.TestCase):
         self.assertEqual(live.seed('http://127.0.0.1:5'), {'E2E_PROFILEID': 'p1'})
         self.assertEqual(live.extra()['E2E_PROFILEID'], 'p1')
 
+
+    def test_the_fixture_line_counts_wherever_the_seed_prints_it(self):
+        from eaos.live_run import LiveRun
+        live = LiveRun.__new__(LiveRun)
+        live.profile, live.fixtures, live._extra = {'seed': [['node', 'seed.cjs']]}, {}, {}
+        live.run = mock.Mock(return_value=(0, '{"E2E_PROFILEID": "p1"}\nsigned in: true\n{"debug": 1}\n', ''))
+        self.assertEqual(live.seed('http://127.0.0.1:5'), {'E2E_PROFILEID': 'p1'})
+        self.assertIn('signed in: true', live.seed_output)
+
+
+class ChooserSourceTests(unittest.TestCase):
+    def test_a_stuck_page_leads_to_the_component_that_shows_it(self):
+        root = project({'app/package.json': {'scripts': {'dev': 'vite'}},
+                        'app/vite.config.ts': '// Chief Operations dev server\n',
+                        'app/src/ChooseProfile.tsx': '<h1>Where are you working?</h1>\n<p>Each is a separate record, its own people.</p>\n'})
+        found = live_setup.relevant_source(root, 'app', 'The page says:\nChief Operations\nWhere are you working?\n'
+                                                        'Each is a separate record, its own people.')
+        self.assertTrue(found.startswith('=== app/src/ChooseProfile.tsx'), found[:80])
 
 class LocalDatabaseTests(unittest.TestCase):
     def test_a_database_of_the_runs_own_on_loopback(self):
