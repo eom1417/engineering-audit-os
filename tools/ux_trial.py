@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MEASURE = Path(os.environ.get('EAOS_MEASURE', '/tmp/eaos-measure'))
+MEASURE = Path(os.environ.get('EAOS_MEASURE', '/workspace/eaos-measure'))
 ORDER = ('scan', 'ready', 'safety', 'fix', 'review')
 
 

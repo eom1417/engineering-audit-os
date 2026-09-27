@@ -79,14 +79,21 @@ def package_manager(project, folder):
     return 'npm', None
 
 
+def runner(manager):
+    """How to call a package manager here: itself, or through corepack (shipped with Node) when pnpm or yarn is
+    not installed, so a project on pnpm runs on a computer that never installed pnpm."""
+    import shutil
+    if manager in ('pnpm', 'yarn') and not shutil.which(manager) and shutil.which('corepack'): return ['corepack', manager]
+    return [manager]
+
+
 def install_argv(manager, lockfile):
-    return {'npm': ['npm', 'ci', '--no-audit', '--no-fund'] if lockfile else ['npm', 'install', '--no-audit', '--no-fund'],
-            'pnpm': ['pnpm', 'install', '--frozen-lockfile'], 'yarn': ['yarn', 'install', '--frozen-lockfile'],
-            'bun': ['bun', 'install', '--frozen-lockfile']}[manager]
+    if manager == 'npm': return ['npm', 'ci', '--no-audit', '--no-fund'] if lockfile else ['npm', 'install', '--no-audit', '--no-fund']
+    return runner(manager) + ['install', '--frozen-lockfile']
 
 
 def run_script(manager, name, *extra):
-    base = ['npm', 'run', name] if manager == 'npm' else [manager, 'run', name]
+    base = ['npm', 'run', name] if manager == 'npm' else runner(manager) + ['run', name]
     return base + (['--', *extra] if extra else [])
 
 
@@ -436,7 +443,7 @@ def safe(proposal):
     for argv in [c for c in commands if c]:
         text = ' '.join(map(str, argv))
         if DANGER.search(text): problems.append(f'refused: {text[:120]}')
-        if argv and Path(str(argv[0])).name not in ('npm', 'npx', 'pnpm', 'yarn', 'bun', 'node', 'true'):
+        if argv and Path(str(argv[0])).name not in ('npm', 'npx', 'pnpm', 'yarn', 'bun', 'node', 'corepack', 'true'):
             problems.append(f'refused, not a package manager or node: {text[:120]}')
     script = proposal.get('seed_script') or ''
     if DANGER.search(script): problems.append(f"the seed script mentions {DANGER.search(script)[0]!r}, which a run never reaches")

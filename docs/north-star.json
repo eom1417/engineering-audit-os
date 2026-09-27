@@ -2,7 +2,7 @@
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
   "measured_at": "2026-09-27",
-  "measured_at_commit": "d59d178+",
+  "measured_at_commit": "1924f47+",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -259,7 +259,7 @@
           "definition": "مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "user surfaces found: FleetManageWeb 43 · finance-os-a0192b7b 29 · RendaPerene 4",
+          "evidence": "user surfaces found: FleetManageWeb 77 · finance-os-a0192b7b 29 · RendaPerene 4",
           "reads": "facts/entrypoints.json: facts of kind `entry_point` whose value.framework is not npm_script or public_api",
           "measured": "automated"
         },
@@ -288,30 +288,30 @@
           "name": "صفر ملفات يدوية",
           "definition": "مشاريع التجربة التي وصلت من الصفر إلى أول إصلاح مطبّق بلا أي ملف كتبه المستخدم أو المطوّر باليد ÷ مشاريع التجربة",
           "target": 1.0,
-          "value": null,
-          "evidence": "not measured yet: docs/USER-EXPERIENCE.md",
+          "value": 1.0,
+          "evidence": "trials that reached an applied fix with no file written by hand: 2/2 (chief-ops, endomap)",
           "reads": "${EAOS_MEASURE:-/tmp/eaos-measure}/ux/<مشروع>/trial.json → manual_files == 0 و applied == true",
-          "measured": "recorded"
+          "measured": "automated"
         },
         {
           "id": "X2",
           "name": "أسئلة قليلة وبسيطة",
           "definition": "مشاريع التجربة التي سُئل فيها المستخدم 3 أسئلة أو أقل، كلها نعم/لا أو اختيار ÷ مشاريع التجربة",
           "target": 1.0,
-          "value": null,
-          "evidence": "not measured yet: docs/USER-EXPERIENCE.md",
+          "value": 1.0,
+          "evidence": "trials finished with at most 3 yes/no or choice questions: 2/2 (chief-ops, endomap)",
           "reads": "${EAOS_MEASURE:-/tmp/eaos-measure}/ux/<مشروع>/trial.json → questions[] {kind: yes_no|choice}",
-          "measured": "recorded"
+          "measured": "automated"
         },
         {
           "id": "X3",
           "name": "أول تقرير خلال 30 دقيقة",
           "definition": "مشاريع التجربة التي وصلت من التثبيت إلى أول تقرير في 30 دقيقة أو أقل ÷ مشاريع التجربة",
           "target": 1.0,
-          "value": null,
-          "evidence": "not measured yet: docs/USER-EXPERIENCE.md",
+          "value": 1.0,
+          "evidence": "trials that reached the first report within 30 minutes: 2/2 (chief-ops, endomap)",
           "reads": "${EAOS_MEASURE:-/tmp/eaos-measure}/ux/<مشروع>/trial.json → minutes_to_first_report",
-          "measured": "recorded"
+          "measured": "automated"
         },
         {
           "id": "X4",
@@ -319,7 +319,7 @@
           "definition": "أوامر المستخدم (start، next، status، doctor، audit، live …) التي تنتهي بمربع «الخطوة التالية» ÷ هذه الأوامر، بفحص آلي",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "user commands ending with the next-step box: 5/5",
+          "evidence": "user commands ending with the next-step box: 10/10",
           "reads": "tests/test_guided.py → كل أمر مستخدم يطبع مربع الخطوة التالية",
           "measured": "automated"
         },
@@ -338,10 +338,10 @@
           "name": "المساعد يفهم القصد",
           "definition": "طلبات بلغة عادية (عربي وإنجليزي) في tests/fixtures/intents.json يختار لها جدول النوايا الأمر الصحيح ÷ الطلبات",
           "target": 0.9,
-          "value": null,
-          "evidence": "not measured yet: docs/USER-EXPERIENCE.md",
+          "value": 0.976,
+          "evidence": "plain requests the intent table maps to the right command: cases 47/47, held_out 17/18, untuned 19/20 (83/85)",
           "reads": "tests/fixtures/intents.json مقابل eaos/data/intents.json",
-          "measured": "recorded"
+          "measured": "automated"
         },
         {
           "id": "X7",
@@ -397,7 +397,7 @@
           "definition": "مشاريع العيّنة التي يسرد تقريرها وظائف البرنامج (ماذا يفعل للمستخدم) مربوطة بأسطحها وبياناتها ÷ عدد المشاريع",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "features in features.json: FleetManageWeb 24 · finance-os-a0192b7b 21 · RendaPerene 4",
+          "evidence": "features in features.json: FleetManageWeb 32 · finance-os-a0192b7b 21 · RendaPerene 4",
           "reads": "features.json → features[] (non-empty)",
           "measured": "automated"
         },
@@ -406,8 +406,8 @@
           "name": "المداخل والمخارج والحدود",
           "definition": "متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع",
           "target": 0.8,
-          "value": 0.918,
-          "evidence": "answered load questions: FleetManageWeb 360/368 · finance-os-a0192b7b 216/232 · RendaPerene 27/32",
+          "value": 0.845,
+          "evidence": "answered load questions: FleetManageWeb 493/648 · finance-os-a0192b7b 216/232 · RendaPerene 27/32",
           "reads": "load-model.json → entry_points[].answers[].status == \"answered\"",
           "measured": "automated"
         },
@@ -444,8 +444,8 @@
           "name": "الادعاءات غير الضجيجية",
           "definition": "متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع",
           "target": 0.8,
-          "value": 0.884,
-          "evidence": "claims that are not structural clones: FleetManageWeb 194/214 · finance-os-a0192b7b 196/246 · RendaPerene 56/59",
+          "value": 0.883,
+          "evidence": "claims that are not structural clones: FleetManageWeb 188/208 · finance-os-a0192b7b 196/246 · RendaPerene 56/59",
           "reads": "dossier.json → claims[].statement not containing \"share the same structure up to identifier names\"",
           "measured": "automated"
         },
@@ -503,7 +503,7 @@
           "definition": "بطاقات remediate جاهزة (ready) بنمط remove_dead وأمر قبول قابل للتشغيل ÷ ادعاءات الكود الميت والمخلفات (render.key = dead_code أو leftover)",
           "target": 0.9,
           "value": 1.0,
-          "evidence": "ready remove_dead cards: 155 for 155 dead-code and leftover claims",
+          "evidence": "ready remove_dead cards: 148 for 148 dead-code and leftover claims",
           "reads": "plan.json → tasks[] with pattern \"remove_dead\", kind \"remediate\", decision.readiness \"ready\", runnable acceptance; divided by dossier.json claims whose render.key is \"dead_code\" or \"leftover\"",
           "measured": "automated"
         }
@@ -559,7 +559,7 @@
           "definition": "مشاريع العيّنة التي فيها target_components غير فارغة ÷ عدد المشاريع",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "target_components: FleetManageWeb 29 · finance-os-a0192b7b 27 · RendaPerene 9",
+          "evidence": "target_components: FleetManageWeb 37 · finance-os-a0192b7b 27 · RendaPerene 9",
           "reads": "target-architecture.json → target_components[] (non-empty)",
           "measured": "automated"
         },
@@ -599,7 +599,7 @@
           "definition": "وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "features placed in a target component: FleetManageWeb 24/24 · finance-os-a0192b7b 21/21 · RendaPerene 4/4",
+          "evidence": "features placed in a target component: FleetManageWeb 32/32 · finance-os-a0192b7b 21/21 · RendaPerene 4/4",
           "reads": "features.json → features[].target_component",
           "measured": "automated"
         },
@@ -665,7 +665,7 @@
           "definition": "بطاقات effort معروف ÷ كل البطاقات في العيّنة",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with a known effort: 510/510",
+          "evidence": "cards with a known effort: 504/504",
           "reads": "plan.json → tasks[].effort not \"unknown\"",
           "measured": "automated"
         },
@@ -674,8 +674,8 @@
           "name": "إصلاحات جاهزة",
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
-          "value": 0.606,
-          "evidence": "ready remediate cards: 309/510",
+          "value": 0.587,
+          "evidence": "ready remediate cards: 296/504",
           "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
           "measured": "automated"
         },
@@ -685,7 +685,7 @@
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
           "value": 1.0,
-          "evidence": "cards with a runnable acceptance command: 510/510",
+          "evidence": "cards with a runnable acceptance command: 504/504",
           "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
           "measured": "automated"
         },
@@ -705,7 +705,7 @@
           "definition": "بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with options, do-nothing and rollback: 510/510",
+          "evidence": "cards with options, do-nothing and rollback: 504/504",
           "reads": "plan.json → tasks[].options (≥ 2, one \"Do nothing\") and rollback",
           "measured": "automated"
         },
@@ -744,8 +744,8 @@
           "name": "المهام الآلية معها أداة تحويل",
           "definition": "بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات",
           "target": 0.8,
-          "value": 0.844,
-          "evidence": "mechanical cards whose codemod ran dry without error: FleetManageWeb 125/138 · finance-os-a0192b7b 36/55 · RendaPerene 12/12",
+          "value": 0.838,
+          "evidence": "mechanical cards whose codemod ran dry without error: FleetManageWeb 118/131 · finance-os-a0192b7b 36/55 · RendaPerene 12/12",
           "reads": "plan.json → tasks[].codemod {tool, command, dry_run {exit, files_changed}}",
           "measured": "automated"
         },
@@ -803,7 +803,7 @@
           "reads": "behavior-lock/plan.json → specs[] {feature, tool, path}، مقابل features.json → features[].name",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "features with a behavior-lock spec: FleetManageWeb 24/24 · finance-os-a0192b7b 21/21 · RendaPerene 4/4",
+          "evidence": "features with a behavior-lock spec: FleetManageWeb 32/32 · finance-os-a0192b7b 21/21 · RendaPerene 4/4",
           "measured": "automated"
         },
         {

@@ -62,6 +62,15 @@ class DetectTests(unittest.TestCase):
         found = live_setup.detect(project({'package.json': {'scripts': {'dev': 'vercel dev', 'start': 'node s.js'}}}))
         self.assertEqual(found['profile']['start'], ['npm', 'run', 'start'])
 
+    def test_a_pnpm_project_runs_through_corepack_on_a_computer_without_pnpm(self):
+        found = project({'package.json': {'scripts': {'dev': 'vite', 'lint': 'eslint .'}, 'devDependencies': {'vite': '5'}},
+                         'pnpm-lock.yaml': 'lockfileVersion: 9\n'})
+        with mock.patch('shutil.which', side_effect=lambda name: None if name == 'pnpm' else f'/usr/bin/{name}'):
+            profile = live_setup.detect(found)['profile']
+        self.assertEqual(profile['install'], [['corepack', 'pnpm', 'install', '--frozen-lockfile']])
+        self.assertEqual(profile['checks'], [['corepack', 'pnpm', 'run', 'lint']])
+        self.assertEqual(live_setup.safe({'install': [['corepack', 'pnpm', 'install']]}), [])
+
     def test_a_project_it_cannot_start_says_so(self):
         found = live_setup.detect(project({'main.py': 'print(1)\n'}))
         self.assertIsNone(found['profile'])
