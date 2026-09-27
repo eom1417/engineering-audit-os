@@ -32,8 +32,8 @@ def _fake_scan(state, args):
     out = guided.report_of(state)
     out.mkdir(parents=True, exist_ok=True)
     (out / 'plan.json').write_text(json.dumps({'tasks': [
-        {'pattern': 'broken_code', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': ['src/a.ts']},
-        {'pattern': 'hotspot', 'kind': 'investigate', 'decision': {'readiness': 'blocked'}, 'paths': ['src/b.ts']}]}))
+        {'id': 'TASK-1', 'pattern': 'broken_code', 'kind': 'remediate', 'decision': {'readiness': 'ready'}, 'paths': ['src/a.ts']},
+        {'id': 'TASK-2', 'pattern': 'hotspot', 'kind': 'investigate', 'decision': {'readiness': 'blocked'}, 'paths': ['src/b.ts']}]}))
     (out / 'run-manifest.json').write_text(json.dumps({'status': 'COMPLETE', 'stages': {}}))
     page = guided.start_here(out, state['lang'], 'shop')
     guided.box(state['lang'], 'scanned', where=page, commands=['eaos next'])
@@ -57,7 +57,7 @@ def commands_ending_with_box():
     ended = set()
     with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(tmp) / 'home')}):
         project = _project(tmp)
-        for command in ('start', 'next', 'status', 'doctor', 'clean'):
+        for command in guided.USER_COMMANDS:
             _, printed = run(command, project)
             lines = printed.rstrip().splitlines()
             if len(lines) >= 2 and lines[-1] == BOX_END and any('copy and paste' in line for line in lines[-6:] + lines):

@@ -511,7 +511,9 @@ def main(argv=None):
                        ('next', 'Do the next step for the project in this folder'),
                        ('status', 'Where this project stands, and what comes next'),
                        ('doctor', 'Is this computer ready? Every missing piece, with its fix'),
-                       ('clean', 'Remove the temporary copies EAOS made; reports stay')):
+                       ('clean', 'Remove the temporary copies EAOS made; reports stay'),
+                       ('accept', 'Take the latest batch of fixes into your project (its branch, merged)'),
+                       ('undo', 'Throw the latest batch of fixes away (its branch, deleted)')):
         q=s.add_parser(name,help=text)
         q.add_argument('project',nargs='?',default='.' if name != 'doctor' else None)
         q.add_argument('--lang',choices=['ar','en'],default=None)

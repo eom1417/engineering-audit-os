@@ -28,7 +28,7 @@ from . import plain
 
 ERRORS = Path(__file__).resolve().parent / 'data/errors.json'
 # The commands a user types, each ending with the next-step box (X4 in docs/north-star.json).
-USER_COMMANDS = ('start', 'next', 'status', 'doctor', 'clean')
+USER_COMMANDS = ('start', 'next', 'status', 'doctor', 'clean', 'accept', 'undo')
 LINE = '─' * 60
 
 
@@ -288,9 +288,15 @@ def scan(state, args):
 
 def later_steps(state, args):
     lang = state['lang']
-    box(lang, ('انتهى الفحص. خطوة تجهيز الإصلاح تصل في التحديث القادم من EAOS' if lang == 'ar'
-               else 'The check is done. The fixing steps arrive in the next EAOS update'),
-        where=report_of(state) / 'START-HERE.md', commands=['eaos status'], status='warn')
+    waiting = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
+    if waiting:
+        box(lang, (f"الدفعة {waiting['number']} تنتظر قرارك في الفرع {waiting['branch']}" if lang == 'ar'
+                   else f"Batch {waiting['number']} is waiting for you on the branch {waiting['branch']}"),
+            commands=['eaos accept', 'eaos undo'])
+    else:
+        box(lang, ('لا توجد إصلاحات آلية أخرى لهذا المشروع الآن؛ ما تبقى يحتاج قرارك، وهو في صفحة «ابدأ هنا»' if lang == 'ar'
+                   else 'No more automatic fixes for this project now; what is left needs your decision, and it is on the "Start here" page'),
+            where=report_of(state) / 'START-HERE.md', commands=['eaos status'])
     return 0
 
 
@@ -408,11 +414,124 @@ def safety(state, args):
     return 0
 
 
-# (id, Arabic title, English title, done(state), run(state, args)). Later tasks add the fixing steps here.
+def _waves(state):
+    return [w for w in state.get('waves') or [] if w.get('base') == (state.get('setup') or {}).get('commit')]
+
+
+def fix_done(state):
+    """A wave of this commit is in the person's project as a branch, or no ready card is left to try."""
+    from .waves import next_batch
+    if any(w.get('status') == 'applied' for w in _waves(state)): return True
+    return not next_batch(report_of(state), state.get('tried') or [])
+
+
+def fix(state, args):
+    """Step 4: a wave of fixes, made by the codemods and the person's assistant, checked, then handed over as a
+    branch (eaos/waves.py). One question, the first time: may I fix, and put the result on a branch?"""
+    from . import waves
+    from .runtime.assistants import provider
+    lang = state['lang']
+    batch = waves.next_batch(report_of(state), state.get('tried') or [])
+    number = len(state.get('waves') or []) + 1
+    ask(state, 'fix_code',
+        (f'أصلح الآن دفعات من الإصلاحات الجاهزة (هذه الدفعة {len(batch)})، وأجرّب كلًّا منها في النسخة المنفصلة، '
+         f'ثم أضع ما ينجح في فرع جديد في مشروعك (eaos/wave-{number}) دون أن ألمس فرعك الحالي أو ملفاتك. أوافق؟')
+        if lang == 'ar' else
+        (f'Fix batches of the ready fixes now (this one: {len(batch)}), try each in the separate copy, and put what '
+         f'passes on a new branch in your project (eaos/wave-{number}) without touching your current branch or files. OK?'), args.yes)
+    say((f'أصلح الدفعة {number}: {len(batch)} إصلاحات. قد يأخذ هذا من 20 إلى 60 دقيقة.' if lang == 'ar'
+         else f'Fixing batch {number}: {len(batch)} fixes. This can take 20 to 60 minutes.'))
+
+    def progress(kind, *rest):
+        if kind == 'card':
+            index, total, card = rest
+            title, _ = plain.problem(card.get('pattern'), lang)
+            say(f"   [{index}/{total}] {title}: {(card.get('paths') or [''])[0]}")
+        elif kind == 'acceptance': say('   ' + ('أتحقق أن كل مشكلة اختفت…' if lang == 'ar' else 'Checking every problem is gone…'))
+        elif kind == 'gates': say('   ' + ('أشغّل فحوص مشروعك وأقارن الشاشات…' if lang == 'ar' else "Running your project's checks and comparing the screens…"))
+        elif kind == 'bisect': say('   ' + ('أبحث عن الإصلاح الذي سبّب مشكلة…' if lang == 'ar' else 'Looking for the fix that caused a problem…'))
+    _, model = provider()
+    summary = waves.run_batch(report_of(state), state['project'], runtime_of(state), number, batch, provider=model, say=progress)
+    wave = {'number': number, 'base': state['setup']['commit'], 'cards': batch, 'kept': summary['kept'],
+            'failed': summary['failed'], 'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty'}
+    state['tried'] = sorted(set(state.get('tried') or []) | set(batch))
+    if summary['kept']:
+        waves.apply(state['project'], summary)
+        wave['status'] = 'applied'
+        state['applied'] = True
+    state.setdefault('waves', []).append(wave)
+    save(state)
+    notes = []
+    if summary['failed']:
+        notes.append((f"{len(summary['failed'])} لم تنجح فتركتها، وأسبابها في {runtime_of(state) / 'runtime/execution.json'}" if lang == 'ar'
+                      else f"{len(summary['failed'])} did not pass and were left out; the reasons are in {runtime_of(state) / 'runtime/execution.json'}"))
+    if not summary['kept']:
+        box(lang, ('لم ينجح أي إصلاح في هذه الدفعة، فلم يتغير شيء في مشروعك' if lang == 'ar'
+                   else 'No fix in this batch passed, so nothing changed in your project'), commands=['eaos next'], status='warn', note=notes)
+        return 0
+    notes.insert(0, (f"التغييرات: {summary['stat']}. فرعك الحالي كما هو." if lang == 'ar'
+                     else f"The changes: {summary['stat']}. Your current branch is as it was."))
+    box(lang, (f"نجح {len(summary['kept'])} من {len(batch)} إصلاحًا، وهي الآن في الفرع {summary['branch']} في مشروعك" if lang == 'ar'
+               else f"{len(summary['kept'])} of {len(batch)} fixes passed; they are on the branch {summary['branch']} in your project"),
+        where=runtime_of(state) / 'waves' / f'wave-{number}', note=notes,
+        commands=['eaos accept   ' + ('# لاعتمادها في مشروعك' if lang == 'ar' else '# to take them into your project'),
+                  'eaos undo     ' + ('# للتخلي عنها' if lang == 'ar' else '# to throw them away')])
+    return 0
+
+
+def accept(args):
+    """Take the latest wave into the current branch: a fast-forward only, and only with no unsaved edits."""
+    state = current(args.project)
+    lang = state['lang']
+    wave = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
+    if wave is None:
+        box(lang, 'لا توجد دفعة إصلاحات تنتظر الاعتماد' if lang == 'ar' else 'No batch of fixes is waiting', commands=['eaos next'], status='warn')
+        return 0
+    if _git(state['project'], 'status', '--porcelain').stdout.strip():
+        raise RuntimeError('uncommitted changes: working tree is not clean')
+    done = _git(state['project'], 'merge', '--ff-only', wave['branch'])
+    if done.returncode:
+        box(lang, ('فرعك تغيّر منذ الإصلاح، فلا أدمج تلقائيًا' if lang == 'ar' else 'Your branch changed since the fixes, so I do not merge automatically'),
+            commands=[f"git merge {wave['branch']}"], status='warn',
+            note=('ادمجها بنفسك أو اطلب من مساعدك الذكي ذلك' if lang == 'ar' else 'Merge it yourself, or ask your AI assistant to'))
+        return 0
+    wave['status'] = 'accepted'
+    save(state)
+    box(lang, (f"اعتمدت الدفعة {wave['number']} في مشروعك" if lang == 'ar' else f"Batch {wave['number']} is now in your project"),
+        commands=['eaos next   ' + ('# للدفعة التالية' if lang == 'ar' else '# for the next batch')],
+        note=('إن أردت التراجع لاحقًا: git revert، أو اطلب من مساعدك الذكي' if lang == 'ar' else 'To go back later: git revert, or ask your AI assistant'))
+    return 0
+
+
+def undo(args):
+    """Throw the latest wave away: its branch goes, while it is not merged."""
+    from .waves import undo as drop
+    state = current(args.project)
+    lang = state['lang']
+    wave = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
+    if wave is None:
+        box(lang, 'لا يوجد ما أتراجع عنه' if lang == 'ar' else 'There is nothing to undo', commands=['eaos next'], status='warn')
+        return 0
+    outcome = drop(state['project'], wave['branch'])
+    if outcome == 'merged':
+        box(lang, ('هذه الدفعة مدموجة في فرعك، فلا أحذفها؛ التراجع عنها قرارك' if lang == 'ar'
+                   else 'This batch is merged into your branch, so I do not remove it; undoing it is your decision'),
+            commands=['git log --oneline -5'], status='warn', note=('اطلب من مساعدك الذكي: «تراجع عن دمج eaos/wave»' if lang == 'ar'
+                                                                      else 'Ask your AI assistant: "revert the eaos/wave merge"'))
+        return 0
+    wave['status'] = 'undone'
+    save(state)
+    box(lang, (f"حذفت الفرع {wave['branch']}؛ مشروعك كما كان" if lang == 'ar' else f"Removed the branch {wave['branch']}; your project is as it was"),
+        commands=['eaos next'])
+    return 0
+
+
+# (id, Arabic title, English title, done(state), run(state, args)).
 STEPS = [
     ('scan', 'فحص المشروع وكتابة التقرير', 'Check the project and write the report', scan_done, scan),
     ('ready', 'تجهيز تشغيل برنامجك في نسخة منفصلة', 'Set up your app to run in a separate copy', ready_done, ready),
     ('safety', 'تصوير برنامجك وقياس سرعته قبل أي تغيير', 'Record your app and measure its speed before any change', safety_done, safety),
+    ('fix', 'إصلاح دفعة وتسليمها فرعًا في مشروعك', 'Fix a batch and hand it over as a branch in your project', fix_done, fix),
 ]
 
 
@@ -494,7 +613,7 @@ def clean(args):
     return 0
 
 
-COMMANDS = {'start': start, 'next': next_command, 'status': status, 'doctor': doctor, 'clean': clean}
+COMMANDS = {'start': start, 'next': next_command, 'status': status, 'doctor': doctor, 'clean': clean, 'accept': accept, 'undo': undo}
 
 
 def main(args):
