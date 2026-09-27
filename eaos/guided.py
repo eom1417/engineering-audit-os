@@ -194,6 +194,10 @@ def doctor_rows(project=None):
                  'ar': 'أدوات تشغيل برنامجك وإصلاحه' + (f" (ناقص: {', '.join(missing)})" if missing else ''),
                  'en': 'Tools to run and fix your app' + (f" (missing: {', '.join(missing)})" if missing else ''),
                  'fix': 'eaos doctor --fix'})
+    from .local_db import binaries
+    rows.append({'id': 'database', 'ok': binaries() is not None, 'when': 'later',
+                 'ar': 'قاعدة بيانات مؤقتة لتشغيل برنامجك (PostgreSQL)', 'en': 'A temporary database to run your app (PostgreSQL)',
+                 'fix': 'eaos doctor --fix'})
     assistant = next((name for name in ('claude', 'codex') if shutil.which(name)), None)
     rows.append({'id': 'assistant', 'ok': bool(assistant), 'when': 'later',
                  'ar': 'مساعد ذكي للإصلاح' + (f' ({assistant})' if assistant else ' (Claude Code أو Codex)'),
@@ -216,6 +220,10 @@ def doctor(args):
     tools_missing = [row for row in rows if not row['ok'] and row['fix'] == 'eaos doctor --fix']
     if args.fix and tools_missing:
         from .toolchain import install
+        if any(row['id'] == 'database' for row in tools_missing):
+            import subprocess
+            say('…' + ('أثبّت PostgreSQL المؤقت' if lang == 'ar' else 'Installing the temporary PostgreSQL'))
+            subprocess.run([sys.executable, '-m', 'pip', 'install', '--quiet', 'pgserver>=0.1.4'], check=True)
         stages = ['assessment'] + (['execution'] if any(row['id'] == 'fix_tools' for row in tools_missing) else [])
         say('…' + ('أثبّت الأدوات الناقصة' if lang == 'ar' else 'Installing the missing tools'))
         for stage in stages: install(stage=stage, echo=lambda line: say('   ' + str(line)))
@@ -286,9 +294,125 @@ def later_steps(state, args):
     return 0
 
 
+def runtime_of(state):
+    return Path(state['workspace']) / 'runtime'
+
+
+def _git(project, *args):
+    import subprocess
+    return subprocess.run(['git', '-C', str(project), *args], capture_output=True, text=True)
+
+
+def _commit(state):
+    done = _git(state['project'], 'rev-parse', 'HEAD')
+    if done.returncode: raise RuntimeError(f"{state['project']}: fatal: not a git repository")
+    return done.stdout.strip()
+
+
+def _saved_note(state):
+    """Unsaved edits are not part of the run: said once, plainly, never a stop."""
+    if not _git(state['project'], 'status', '--porcelain').stdout.strip(): return None
+    return ('عندك تعديلات لم تُحفظ في git: أعمل على آخر نسخة محفوظة فقط' if state['lang'] == 'ar'
+            else 'You have edits not saved in git: I work on the last saved version only')
+
+
+def ready_done(state):
+    """The run is set up, for the commit the project is at now."""
+    setup = state.get('setup') or {}
+    return bool(setup.get('commit')) and setup['commit'] == _commit(state) and (runtime_of(state) / 'run.json').is_file()
+
+
+def ready(state, args):
+    """Step 2: consent, then a run profile nobody writes (eaos/live_setup.py)."""
+    from . import live_setup
+    from .runtime.assistants import available, provider
+    lang, commit = state['lang'], _commit(state)
+    assistant = (available() or [None])[0]
+    ask(state, 'run_app',
+        (f"لأصلح بأمان، أحتاج أن أشغّل برنامجك في نسخة منفصلة على جهازك، بقاعدة بيانات مؤقتة وبلا أسرارك"
+         + (f"، وقد أستعين بمساعدك الذكي ({assistant}) لأفهم طريقة تشغيله" if assistant else '') + '. أوافق؟')
+        if lang == 'ar' else
+        ("To fix safely I need to run your app in a separate copy on this computer, with a temporary database and none of your secrets"
+         + (f"; I may ask your AI assistant ({assistant}) how it runs" if assistant else '') + '. OK?'), args.yes)
+    runtime = runtime_of(state)
+    who = _git(state['project'], 'config', 'user.name').stdout.strip() or os.environ.get('USER') or 'the owner'
+    live_setup.authorize(state['project'], runtime, who)
+    say(('أجهّز تشغيل برنامجك. قد يأخذ هذا من 5 إلى 20 دقيقة.' if lang == 'ar'
+         else 'Setting up your app to run. This can take 5 to 20 minutes.'))
+    _, model = provider()
+    def progress(n):
+        if str(n).startswith('baseline'):
+            say('   ' + ('أجهّز نسخة الإنتاج من برنامجك لقياس سرعته…' if lang == 'ar' else 'Preparing the production build of your app, to measure its speed…'))
+        else:
+            say(f"   [{n}/{live_setup.ATTEMPTS}] " + ('أشغّل برنامجك وأفتح بعض شاشاته…' if lang == 'ar' else 'Starting your app and opening some of its screens…'))
+    result = live_setup.setup(state['project'], runtime, report=report_of(state), provider=model, say=progress)
+    state['setup'] = {'commit': commit, 'ok': result['ok'], 'attempts': result['attempts'], 'limitations': result['limitations']}
+    state.pop('safety', None)
+    save(state)
+    notes = [n for n in [_saved_note(state)] if n]
+    if result['limitations']:
+        notes.append((f"{len(result['limitations'])} ملاحظة عمّا لم يكتمل، مكتوبة في الملف أدناه (limitations)" if lang == 'ar'
+                      else f"{len(result['limitations'])} notes on what is incomplete, written in the file below (limitations)"))
+    if result['ok']:
+        box(lang, 'برنامجك يعمل في النسخة المنفصلة' if lang == 'ar' else 'Your app runs in the separate copy',
+            where=runtime / 'run.json', commands=['eaos next'], note=notes or None)
+    else:
+        box(lang, ('لم أستطع تشغيل برنامجك كاملًا؛ سأكمل بما أمكن، والقيود مكتوبة' if lang == 'ar'
+                   else 'I could not get your app fully running; I will go on with what works, and the limits are written down'),
+            where=runtime / 'run.json', commands=['eaos next'], status='warn', note=notes)
+    return 0
+
+
+def safety_done(state):
+    safety = state.get('safety') or {}
+    return bool(safety.get('commit')) and safety['commit'] == (state.get('setup') or {}).get('commit')
+
+
+def safety(state, args):
+    """Step 3: the safety net: every screen recorded on the original, and its speed under load."""
+    from .behavior_lock import run_lock
+    from .runtime_baseline import run_baseline
+    lang, runtime = state['lang'], runtime_of(state)
+    say(('أصوّر كل شاشات برنامجك كما هي الآن، ثم أقيس سرعته. هذا ما سأقارن به بعد كل إصلاح (15 إلى 30 دقيقة).' if lang == 'ar'
+         else 'Recording every screen of your app as it is now, then measuring its speed. Every fix is compared with this (15 to 30 minutes).'))
+    say('   [1/2] ' + ('أصوّر الشاشات…' if lang == 'ar' else 'Recording the screens…'))
+    record = run_lock(report_of(state), state['project'], runtime)
+    results = record['results']
+    passed = sum(r['status'] == 'passed' for r in results)
+    speed, notes = None, []
+    profile = json.loads((runtime / 'run.json').read_text(encoding='utf-8'))
+    baseline = profile.get('baseline') or {}
+    if baseline.get('build') and baseline.get('verified') and list((report_of(state) / 'nfr/k6').glob('*.js')):
+        say('   [2/2] ' + ('أقيس السرعة تحت ضغط مستخدمين كثيرين…' if lang == 'ar' else 'Measuring speed under many users…'))
+        try:
+            performance = run_baseline(report_of(state), state['project'], runtime)
+            speed = max((s['before']['p95_ms'] for s in performance['scenarios']), default=None)
+        except Exception as problem:            # speed is measured when it can be; the screens are the safety net
+            log = log_failure(state['workspace'], problem)
+            notes.append(('لم أستطع قياس السرعة: ' if lang == 'ar' else 'Could not measure speed: ')
+                         + explain(problem)[lang]['message'] + f' ({log})')
+    elif baseline.get('build'):
+        notes.append('لم تعمل نسخة الإنتاج من برنامجك هنا، فلم أقس السرعة؛ السبب في run.json' if lang == 'ar'
+                     else 'The production build of your app did not run here, so speed was not measured; the reason is in run.json')
+    else:
+        notes.append('لا يوجد أمر بناء للإنتاج، فلم أقس السرعة' if lang == 'ar' else 'No production build, so speed was not measured')
+    state['safety'] = {'commit': state['setup']['commit'], 'screens': len(results), 'passed': passed, 'p95_ms': speed}
+    save(state)
+    happened = (f"صوّرت {passed} من {len(results)} شاشة" + (f"، وأبطأ الطلبات تأخذ {speed:.0f} ملي ثانية" if speed else '')
+                if lang == 'ar' else f"Recorded {passed} of {len(results)} screens" + (f"; the slowest requests take {speed:.0f} ms" if speed else ''))
+    skipped = [r for r in results if r['status'] != 'passed']
+    if skipped: notes.append((f"{len(skipped)} شاشة لم تُصوَّر، وأسبابها في السجل" if lang == 'ar'
+                              else f"{len(skipped)} screens were not recorded; the reasons are in the record"))
+    box(lang, happened, where=runtime / 'behavior-lock/results.json', commands=['eaos next'],
+        status='ok' if passed else 'warn', note=notes or None)
+    return 0
+
+
 # (id, Arabic title, English title, done(state), run(state, args)). Later tasks add the fixing steps here.
 STEPS = [
     ('scan', 'فحص المشروع وكتابة التقرير', 'Check the project and write the report', scan_done, scan),
+    ('ready', 'تجهيز تشغيل برنامجك في نسخة منفصلة', 'Set up your app to run in a separate copy', ready_done, ready),
+    ('safety', 'تصوير برنامجك وقياس سرعته قبل أي تغيير', 'Record your app and measure its speed before any change', safety_done, safety),
 ]
 
 

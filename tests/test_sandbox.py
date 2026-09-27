@@ -55,6 +55,25 @@ class SandboxTests(Workspace):
         self.assertTrue((box.copy / 'written.txt').is_file())
         self.assertFalse((self.project / 'written.txt').exists())
 
+    def test_the_copy_is_the_authorised_commit_without_any_env_file(self):
+        (self.project / '.gitignore').write_text('.env\n')
+        (self.project / '.env.example').write_text('DATABASE_URL=\n')
+        (self.project / 'config').mkdir()
+        (self.project / 'config/.env.production').write_text('DATABASE_URL=postgres://prod\n')
+        git(self.project, 'add', '-A'); git(self.project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'env')
+        self.write_grant()
+        (self.project / '.env').write_text('DATABASE_URL=postgres://real-production\n')     # ignored, real
+        (self.project / 'app.py').write_text('print("unsaved edit")\n')                        # not committed
+        copy = self.box().copy
+        self.assertFalse((copy / '.env').exists(), 'the real .env never reaches the copy')
+        self.assertFalse((copy / 'config/.env.production').exists(), 'a committed .env is removed too')
+        self.assertTrue((copy / '.env.example').is_file())
+        self.assertEqual((copy / 'app.py').read_text(), 'print("app")\n', 'the copy is the commit, not the working folder')
+
+    def test_a_service_that_stops_says_why_in_the_error(self):
+        with self.assertRaisesRegex(RuntimeError, 'APP_URL must be an https'):
+            self.box().start([sys.executable, '-c', 'import sys; print("APP_URL must be an https address"); sys.exit(1)'], 9, '/')
+
     def test_a_command_has_no_network_where_the_kernel_allows_it(self):
         box = self.box()
         if not box.offline: self.skipTest('unshare -rn is not allowed here; the record says network not isolated')

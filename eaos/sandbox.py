@@ -3,7 +3,8 @@
 The execution stages (S05's run half, S08-S14) need the project running. Nothing here starts before
 refusal() finds nothing wrong with authorization.json: it must keep its contract, not be expired, name
 the stage, and, when a target is given, name the commit the target is at. The project itself is never
-touched: every command runs in a copy made by eaos.verify.isolated_copy, as its own process group, with
+touched: every command runs in a copy of the authorised commit (committed_copy: never the working folder,
+and never a .env file), as its own process group, with
 an environment of PATH, a temporary HOME, LANG, and the names the owner listed in env_allow.
 
 Where the kernel allows it (unshare -rn), a command runs with no network, so a test suite cannot reach
@@ -67,6 +68,29 @@ def head(target):
     return done.stdout.strip() if done.returncode == 0 else ''
 
 
+# A .env file holds the owner's real values (a production database, live keys). The copy never carries one:
+# the run's values come from the run profile, generated for it. Examples and templates hold no secret.
+ENV_EXAMPLES = ('.example', '.sample', '.template', '.dist', '.defaults')
+
+
+def committed_copy(target, commit, destination):
+    """The project exactly as committed at `commit`, without any .env file: not the working folder, whose
+    unsaved edits and ignored files (a real .env first of all) are not what the owner authorised."""
+    destination.mkdir(parents=True)
+    archive = subprocess.run(['git', '-C', str(target), 'archive', '--format=tar', commit], capture_output=True)
+    if archive.returncode: raise AuthorizationError(f'could not read commit {commit[:12]}: {archive.stderr.decode()[-200:]}')
+    subprocess.run(['tar', '-x', '-C', str(destination)], input=archive.stdout, check=True)
+    for path in destination.rglob('.env*'):
+        if path.is_file() and not path.name.endswith(ENV_EXAMPLES): path.unlink()
+    return destination
+
+
+def _tail(path, size=2000):
+    """The end of a service's log: what it said before it stopped, which is what anyone fixing it needs."""
+    try: return Path(path).read_text(encoding='utf-8', errors='replace')[-size:].strip()
+    except OSError: return ''
+
+
 def _network_isolation():
     """The prefix that runs a command with no network, or () where the kernel does not allow it."""
     unshare = shutil.which('unshare')
@@ -88,8 +112,7 @@ class Sandbox:
         if reason: raise AuthorizationError(reason)
         self.allowed = json.loads(Path(authorization).read_text(encoding='utf-8'))['env_allow']
         self.workdir.mkdir(parents=True, exist_ok=True)
-        from .verify import isolated_copy
-        self.copy = isolated_copy(self.target, Path(tempfile.mkdtemp(dir=self.workdir, prefix='copy-')) / 'project')
+        self.copy = committed_copy(self.target, commit, Path(tempfile.mkdtemp(dir=self.workdir, prefix='copy-')) / 'project')
         self.home = Path(tempfile.mkdtemp(dir=self.workdir, prefix='home-'))
         self.offline = _network_isolation()
         self.started, self.commands = [], []
@@ -152,7 +175,8 @@ class Sandbox:
         while time.monotonic() < deadline:
             if process.poll() is not None:
                 self.stop()
-                raise RuntimeError(f'{argv[0]} exited with {process.returncode} before answering; see {log.name}')
+                raise RuntimeError(f'{argv[0]} exited with {process.returncode} before answering; see {log.name}; '
+                                   f'it said: {_tail(log.name)}')
             try:
                 with urllib.request.urlopen(f'http://127.0.0.1:{port}{health_path}', timeout=2) as response:
                     if response.status == 200: return
@@ -160,7 +184,8 @@ class Sandbox:
                 pass
             time.sleep(0.3)
         self.stop()
-        raise RuntimeError(f'no 200 from http://127.0.0.1:{port}{health_path} within {timeout}s; see {log.name}')
+        raise RuntimeError(f'no 200 from http://127.0.0.1:{port}{health_path} within {timeout}s; see {log.name}; '
+                           f'it said: {_tail(log.name)}')
 
     @staticmethod
     def _kill(process):

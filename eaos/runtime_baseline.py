@@ -56,10 +56,7 @@ def run_baseline(report, target, runtime):
     report, runtime = Path(report), Path(runtime)
     scripts = sorted((report / 'nfr/k6').glob('*.js'))
     if not scripts: raise RuntimeError(f'{report}/nfr/k6 holds no scenario: the lock stage writes them')
-    live = LiveRun(target, runtime, 'S05')
-    override = live.profile.get('baseline') or {}
-    for key in ('install', 'build', 'prepare', 'start', 'port', 'health', 'env', 'seed', 'start_timeout'):
-        if key in override: live.profile[key] = override[key]
+    live = LiveRun(target, runtime, 'S05', mode='baseline')
     if not live.profile.get('build'): raise RuntimeError('the load baseline needs a build (run.json build or baseline.build): never the development server')
     scenarios, conditions = [], None
     out = runtime / 'runtime'
@@ -67,7 +64,7 @@ def run_baseline(report, target, runtime):
     try:
         live.setup()
         base = live.start()
-        for argv in live.profile.get('seed') or []: live.run(argv, env={'BASE_URL': base})
+        live.seed(base)
         for script in scripts:
             threshold, vus, duration, warmup = shape(script)
             conditions = conditions or {'build': ' && '.join(' '.join(argv) for argv in live.profile['build']),

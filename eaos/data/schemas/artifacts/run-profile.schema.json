@@ -99,6 +99,31 @@
         },
         "minItems": 1
       }
+    },
+    "database": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "postgres",
+            "sqlite"
+          ]
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   }
 }

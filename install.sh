@@ -37,8 +37,8 @@ mkdir -p "$APP"
 
 say "   [2/3] أنزّل EAOS…" "   [2/3] Downloading EAOS…"
 case "$SOURCE" in
-  git+*|http*) SPEC="engineering-audit-os[facts,runtime] @ $SOURCE" ;;
-  *) SPEC="$SOURCE[facts,runtime]" ;;
+  git+*|http*) SPEC="engineering-audit-os[facts,runtime,live] @ $SOURCE" ;;
+  *) SPEC="$SOURCE[facts,runtime,live]" ;;
 esac
 "$APP/venv/bin/python" -m pip install --quiet --upgrade "$SPEC" || stop "فشل تنزيل EAOS." "Downloading EAOS failed." \
   "تأكد من الاتصال بالإنترنت ثم أعد تشغيل هذا السطر." "Check your internet connection, then run this line again."

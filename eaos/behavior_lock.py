@@ -301,10 +301,8 @@ def _start(live, lock):
     live.setup()
     base = live.start()
     # A seed may sign the browser in or choose its workspace: it writes Playwright's storage state to
-    # EAOS_STORAGE_STATE, and the lock opens every screen with it.
-    for argv in live.profile.get('seed') or []:
-        code, out, err = live.run(argv, env={'BASE_URL': base, 'EAOS_STORAGE_STATE': str(lock / '.auth/user.json')})
-        if code: raise RuntimeError(f"seed failed ({' '.join(argv)}): {(out + err)[-1500:]}")
+    # EAOS_STORAGE_STATE, and the lock opens every screen with it; the fixtures it prints join the environment.
+    live.seed(base, lock / '.auth/user.json')
     return base
 
 

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "d19ca59",
+  "extracted_at_commit": "d59d178",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -840,6 +840,15 @@
       "note": ""
     },
     {
+      "id": "INV-96354a07d7",
+      "file": "eaos/guided.py",
+      "symbol": "_saved_note",
+      "statement": "Unsaved edits are not part of the run: said once, plainly, never a stop.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_setup.py::GuidedNoteTests::test_unsaved_edits_are_said_once_and_never_stop_the_run",
+      "note": ""
+    },
+    {
       "id": "INV-f1d2e0c867",
       "file": "eaos/intake.py",
       "symbol": "<module>",
@@ -876,6 +885,60 @@
       "note": ""
     },
     {
+      "id": "INV-015aec2d3c",
+      "file": "eaos/live_setup.py",
+      "symbol": "<module>",
+      "statement": "detect(): the app's folder, its package manager, how it installs, starts, builds and is checked, the environment names it reads (from .env.example files and the code; never from a real .env), and the database it needs.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_setup.py::DetectTests::test_a_vite_app_in_app_is_found_with_everything_it_needs",
+      "note": ""
+    },
+    {
+      "id": "INV-ef4e451910",
+      "file": "eaos/live_setup.py",
+      "symbol": "<module>",
+      "statement": "The project folder is never written; everything goes to the run's folder (the guided workspace's runtime/).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_setup.py::InvariantTests::test_setting_up_never_writes_the_project_folder",
+      "note": ""
+    },
+    {
+      "id": "INV-d7217f19c3",
+      "file": "eaos/live_setup.py",
+      "symbol": "production_commands",
+      "statement": "(build, start) for the load baseline: the built app, never the dev server; (None, None) if unclear.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_setup.py::InvariantTests::test_the_load_baseline_never_runs_the_dev_server",
+      "note": ""
+    },
+    {
+      "id": "INV-ba9889bb5d",
+      "file": "eaos/live_setup.py",
+      "symbol": "environment_names",
+      "statement": "A real .env is never read.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_setup.py::DetectTests::test_values_are_the_runs_own_and_a_real_env_is_never_read",
+      "note": ""
+    },
+    {
+      "id": "INV-c6d0135ce7",
+      "file": "eaos/live_setup.py",
+      "symbol": "safe",
+      "statement": "Reasons a proposal may not run; empty when it may.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_setup.py::ProposalTests::test_an_address_off_this_computer_or_a_deploy_is_refused",
+      "note": ""
+    },
+    {
+      "id": "INV-ef57701fb5",
+      "file": "eaos/live_setup.py",
+      "symbol": "apply",
+      "statement": "Merge a safe proposal into run.json (into its `baseline` for the production run); a seed script is written beside it, never into the project.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_setup.py::ProposalTests::test_a_production_proposal_changes_the_baseline_only",
+      "note": ""
+    },
+    {
       "id": "INV-e62792ace4",
       "file": "eaos/load_model.py",
       "symbol": "compute",
@@ -891,6 +954,15 @@
       "statement": "The cost ceiling is a multiplicative score, not a number of seconds: -1.0 per undetectable answer (the projection cannot say), +m per answered query (the query runs m times), +m*100 per answered n+1 (each iteration triggers another query), +0 per bounded cache (free, modulo m), +1.0 per unbounded query (grows with data, not with m), +1.0 per missing rate limit (no protection against burst).",
       "kind": "invariant",
       "enforced_by": "tests/test_load_model.py::ProjectionTests::test_an_incomplete_record_marks_incomplete_and_lists_missing",
+      "note": ""
+    },
+    {
+      "id": "INV-0f06a6fdcd",
+      "file": "eaos/local_db.py",
+      "symbol": "<module>",
+      "statement": "The owner's database is never used: a run gets an empty one here, created for it, and the project's own migrations fill it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_setup.py::InvariantTests::test_the_owners_database_address_is_never_used",
       "note": ""
     },
     {
@@ -1083,6 +1155,15 @@
       "note": ""
     },
     {
+      "id": "INV-7f3a51301c",
+      "file": "eaos/runtime/codex_adapter.py",
+      "symbol": "<module>",
+      "statement": "No key is read or written: the CLI uses the sign-in it has.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_setup.py::CodexAdapterTests::test_codex_reads_only_what_eaos_sends_changes_nothing_and_needs_no_key",
+      "note": ""
+    },
+    {
       "id": "INV-9bb9757e37",
       "file": "eaos/runtime_baseline.py",
       "symbol": "<module>",
@@ -1092,12 +1173,12 @@
       "note": ""
     },
     {
-      "id": "INV-76eb0fcf2d",
+      "id": "INV-77acf40126",
       "file": "eaos/sandbox.py",
       "symbol": "<module>",
-      "statement": "The project itself is never touched: every command runs in a copy made by eaos.verify.isolated_copy, as its own process group, with an environment of PATH, a temporary HOME, LANG, and the names the owner listed in env_allow.",
+      "statement": "The project itself is never touched: every command runs in a copy of the authorised commit (committed_copy: never the working folder, and never a .env file), as its own process group, with an environment of PATH, a temporary HOME, LANG, and the names the owner listed in env_allow.",
       "kind": "invariant",
-      "enforced_by": "tests/test_sandbox.py::SandboxTests::test_commands_run_in_a_copy_and_leave_the_project_as_it_was",
+      "enforced_by": "tests/test_sandbox.py::SandboxTests::test_the_copy_is_the_authorised_commit_without_any_env_file",
       "note": ""
     },
     {

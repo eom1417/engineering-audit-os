@@ -10,6 +10,7 @@ readme = "README.md"
 [project.optional-dependencies]
 facts = ["tree-sitter>=0.21", "tree-sitter-language-pack>=0.2"]
 runtime = ["coverage>=7.0"]
+live = ["pgserver>=0.1.4"]
 
 [project.scripts]
 eaos = "eaos.cli:main"

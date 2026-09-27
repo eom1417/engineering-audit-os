@@ -23,6 +23,7 @@ production or a third party.
 """
 import json
 import os
+import re
 import secrets
 from pathlib import Path
 
@@ -45,18 +46,44 @@ def load_profile(runtime):
 class LiveRun:
     """One authorised run: install, build, prepare and start the project in a sandbox copy, then stop it."""
 
-    def __init__(self, target, runtime, stage):
+    # The keys a profile's `baseline` may override: the load baseline runs the build, not the dev server.
+    BASELINE_KEYS = ('install', 'build', 'prepare', 'start', 'port', 'health', 'env', 'seed', 'start_timeout')
+
+    def __init__(self, target, runtime, stage, mode='lock'):
         self.runtime = Path(runtime)
         self.profile = load_profile(runtime)
+        if mode == 'baseline':
+            override = self.profile.get('baseline') or {}
+            for key in self.BASELINE_KEYS:
+                if key in override: self.profile[key] = override[key]
         self.sandbox = Sandbox(target, self.runtime / 'authorization.json', self.runtime / 'sandbox', stage)
         self.commit = head(target)
         self.log = []
+        self.fixtures = {}
+
+    def database_url(self):
+        """The run's own PostgreSQL (eaos/local_db.py), started on first use, when the profile declares one."""
+        database = self.profile.get('database') or {}
+        # A value naming {database_url} needs a database, declared or not.
+        if database.get('kind') != 'postgres' and any('{database_url}' in str(v) for v in (self.profile.get('env') or {}).values()):
+            database = {'kind': 'postgres', 'name': 'app'}
+        if database.get('kind') != 'postgres': return None
+        if not hasattr(self, '_database'):
+            from .local_db import LocalPostgres
+            self._database = LocalPostgres(self.runtime)
+            self._database_url = self._database.create(database['name'])
+        return self._database_url
 
     def extra(self):
-        """The run's own values and the tools' locations; never an owner secret (those pass by name only)."""
+        """The run's own values and the tools' locations; never an owner secret (those pass by name only).
+        `{database_url}` in a value is the run's own database."""
         from .toolchain import home
         if not hasattr(self, '_extra'):
-            self._extra = {**{k: str(v) for k, v in (self.profile.get('env') or {}).items()},
+            url = self.database_url()
+            folder = self.runtime / 'run-data'          # the run's own folder outside the app: backups, uploads
+            folder.mkdir(parents=True, exist_ok=True)
+            fill = lambda value: (str(value).replace('{database_url}', url) if url else str(value)).replace('{run_dir}', str(folder))
+            self._extra = {**{k: fill(v) for k, v in (self.profile.get('env') or {}).items()},
                            'PATH': f"{home() / 'bin'}{os.pathsep}{os.environ.get('PATH', '/usr/bin:/bin')}",
                            'NODE_PATH': str(home() / 'node/node_modules'), 'PLAYWRIGHT_BROWSERS_PATH': str(BROWSERS)}
             self._extra.setdefault('AUTH_SECRET', secrets.token_urlsafe(48))   # generated for this run, never the owner's
@@ -68,6 +95,23 @@ class LiveRun:
                                   env={**self.extra(), **(env or {})})
         self.log.append({'argv': [str(a) for a in argv], 'exit': result[0], 'tail': (result[1] + result[2])[-2000:]})
         return result
+
+    def seed(self, base, storage_state=None):
+        """Run the profile's seed commands against the started app. A seed may print, as its last line, a JSON
+        object of fixture values it created ({"E2E_PROFILEID": "..."}): they join the run's environment, so the
+        lock opens the screens that need them. Stops at the first seed that fails, with its output."""
+        env = {'BASE_URL': base, **({'EAOS_STORAGE_STATE': str(storage_state)} if storage_state else {})}
+        for argv in self.profile.get('seed') or []:
+            code, out, err = self.run(argv, env=env)
+            if code: raise RuntimeError(f"seed failed ({' '.join(map(str, argv))}): {(out + err)[-1500:]}")
+            last = (out.strip().splitlines() or [''])[-1]
+            try: printed = json.loads(last)
+            except ValueError: printed = None
+            if isinstance(printed, dict):
+                fixtures = {k: str(v) for k, v in printed.items() if re.fullmatch(r'E2E_[A-Z0-9_]+', str(k))}
+                self.extra().update(fixtures)
+                self.fixtures.update(fixtures)
+        return self.fixtures
 
     def setup(self):
         """Install, build and prepare; stops at the first command that fails, with its output."""
@@ -84,8 +128,10 @@ class LiveRun:
         return f"http://127.0.0.1:{self.profile['port']}"
 
     def stop(self):
-        """Stop the project and remove its copy; the run's records stay in the runtime folder."""
+        """Stop the project and remove its copy, and stop the run's database (its data stays for the next
+        step); the run's records stay in the runtime folder."""
         self.sandbox.dispose()
+        if hasattr(self, '_database'): self._database.stop()
 
     def record(self, name):
         (self.runtime / name).write_text(json.dumps({'commit': self.commit, 'commands': self.log}, ensure_ascii=False, indent=1) + '\n',

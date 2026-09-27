@@ -111,6 +111,8 @@
       "eaos/runtime_baseline.py",
       "eaos/execute.py",
       "eaos/guided.py",
+      "eaos/live_setup.py",
+      "eaos/local_db.py",
       "eaos/plain.py",
       "eaos/intake.py",
       "eaos/dependency_assessment.py",
