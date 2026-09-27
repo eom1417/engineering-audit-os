@@ -105,7 +105,16 @@ class JourneyTests(unittest.TestCase):
             self.assertIn('not a project', printed)
             self.assertIn('eaos start .', printed)
             self.assertIsNone(guided.load(folder))
+            self.assertNotIn('log', printed.lower())
         self.assertTrue(guided.looks_like_project(self.project))
+
+    def test_a_record_left_for_the_home_folder_is_not_gone_on_with(self):
+        home = Path(self.tmp.name) / 'person'; (home / 'Desktop').mkdir(parents=True)
+        with mock.patch.object(guided.Path, 'home', return_value=home):
+            guided.save({'project': str(home), 'workspace': str(guided.workspace(home)), 'lang': 'en'})
+            code, printed = run('next', home / 'Desktop')
+        self.assertEqual(code, 6)
+        self.assertIn('eaos start .', printed)
 
     def test_a_command_before_start_says_how_to_start_without_a_log(self):
         code, printed = run('next', self.project)

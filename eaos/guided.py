@@ -81,7 +81,8 @@ def current(project='.'):
     here = Path(project).resolve()
     for folder in (here, *here.parents):
         state = load(folder)
-        if state: return state
+        # A record left by an older EAOS that scanned the home folder is never a project to go on with.
+        if state and looks_like_project(folder): return state
     raise LookupError('no EAOS project here: run eaos start first')
 
 
@@ -727,6 +728,9 @@ def main(args):
         show_error(lang, 'not_started')
         return 6
     except (Exception, KeyboardInterrupt) as problem:
+        if explain(problem)['id'] in ('not_a_folder', 'not_a_project'):   # the person's slip, nothing to log
+            show_error(lang, problem=problem)
+            return 1
         where = Path(state['workspace']) if state else home()
         show_error(lang, problem=problem, log=log_failure(where, problem))
         return 1
