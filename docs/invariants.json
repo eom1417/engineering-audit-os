@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "8d3b0b0",
+  "extracted_at_commit": "04f1768",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -1332,6 +1332,15 @@
       "statement": "Where the pinned Playwright keeps its browser: EAOS's own tools folder, the same on Linux and on a Mac (Playwright's default differs between them, and a restart or a cache clean-up must not take it away).",
       "kind": "invariant",
       "enforced_by": "tests/test_platforms.py::PlatformTests::test_the_browser_lives_in_eaos_tools_folder_on_every_computer",
+      "note": ""
+    },
+    {
+      "id": "INV-e441657008",
+      "file": "eaos/toolchain.py",
+      "symbol": "npm_prefix",
+      "statement": "Where an npm tool is installed: its own folder, so two tools never share (and clash over) one dependency's version; Playwright stays in node/, where the lock and NODE_PATH find it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_platforms.py::PlatformTests::test_each_npm_tool_has_its_own_folder_so_versions_never_clash",
       "note": ""
     },
     {

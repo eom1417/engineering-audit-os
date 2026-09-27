@@ -102,7 +102,7 @@ def _companions_missing(tool):
     """An npm tool's companion packages (install.with) at their pinned versions, or what is not."""
     for spec in tool['install'].get('with', []):
         name, _, wanted = spec.rpartition('@')
-        manifest = home() / 'node/node_modules' / name / 'package.json'
+        manifest = npm_prefix(tool) / 'node_modules' / name / 'package.json'
         try: found = json.loads(manifest.read_text(encoding='utf-8')).get('version')
         except (OSError, ValueError): found = None
         if found != wanted: return f'{name} {wanted} is not installed beside it (found {found})'
@@ -222,17 +222,29 @@ def _release(tool):
         target.chmod(0o755)
         _link(target, tool['binary'])
         return
+    target = folder / tool['binary']
     if spec['archive'] == 'binary':
-        target = folder / spec['member']
         target.write_bytes(blob)
     else:
-        with tarfile.open(fileobj=io.BytesIO(blob), mode=TAR_MODES[spec['archive']]) as archive:
-            member = next((m for m in archive.getmembers() if m.name.rsplit('/', 1)[-1] == spec['member'] and m.isfile()), None)
-            if member is None: raise RuntimeError(f"{tool['name']}: {spec['member']} is not in the archive")
-            target = folder / spec['member']
-            target.write_bytes(archive.extractfile(member).read())
+        target.write_bytes(_member(tool, spec, blob))
     target.chmod(0o755)
     _link(target, tool['binary'])
+
+
+def _member(tool, spec, blob):
+    """The tool's file inside a tar or zip archive: the path the pin names, compared by its last part, so
+    `./reforge`, `k6-v2.3.0-macos-arm64/k6` and `reforge` all find the same file."""
+    wanted = spec['member'].rsplit('/', 1)[-1]
+    if spec['archive'] == 'zip':
+        import zipfile
+        with zipfile.ZipFile(io.BytesIO(blob)) as archive:
+            name = next((n for n in archive.namelist() if not n.endswith('/') and n.rsplit('/', 1)[-1] == wanted), None)
+            if name is None: raise RuntimeError(f"{tool['name']}: {spec['member']} is not in the archive")
+            return archive.read(name)
+    with tarfile.open(fileobj=io.BytesIO(blob), mode=TAR_MODES[spec['archive']]) as archive:
+        member = next((m for m in archive.getmembers() if m.isfile() and m.name.rsplit('/', 1)[-1] == wanted), None)
+        if member is None: raise RuntimeError(f"{tool['name']}: {spec['member']} is not in the archive")
+        return archive.extractfile(member).read()
 
 
 def uv():
@@ -256,8 +268,14 @@ def _pip(tool):
     _link(venv / 'bin' / tool['binary'], tool['binary'])
 
 
+def npm_prefix(tool):
+    """Where an npm tool is installed: its own folder, so two tools never share (and clash over) one dependency's
+    version; Playwright stays in node/, where the lock and NODE_PATH find it."""
+    return home() / 'node' if tool['name'] == 'playwright' else home() / 'npm' / tool['name']
+
+
 def _npm(tool):
-    prefix = home() / 'node'
+    prefix = npm_prefix(tool)
     prefix.mkdir(parents=True, exist_ok=True)
     npm = shutil.which('npm')
     if not npm: raise RuntimeError(f"{tool['name']}: npm is not installed; install Node.js 18 or newer, then run this again")
@@ -299,8 +317,8 @@ def install(names=None, stage=None, skip=(), echo=print):
             if tool['name'] == 'playwright': install_browsers(echo)
         except Unavailable as problem:
             echo(f"skip    {problem}")
-        except (RuntimeError, OSError, subprocess.CalledProcessError) as problem:
-            echo(f"FAILED  {tool['name']}: {problem}")
+        except Exception as problem:              # one tool that fails, however, never stops the others
+            echo(f"FAILED  {tool['name']}: {type(problem).__name__}: {problem}"[:300])
             failed.append(tool['name'])
     return failed
 

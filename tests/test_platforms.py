@@ -48,6 +48,35 @@ class PlatformTests(unittest.TestCase):
             (Path(tmp) / 'browsers/chromium-1243').mkdir(parents=True)
             self.assertEqual(toolchain.browser_missing(), '')
 
+    def test_the_tool_is_found_in_any_archive_however_its_path_is_written(self):
+        import io, tarfile, zipfile
+        tool = {'name': 'demo', 'binary': 'demo'}
+        buffer = io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode='w:gz') as archive:        # reforge's Mac archive: ./demo
+            info = tarfile.TarInfo('./demo'); data = b'binary'; info.size = len(data); archive.addfile(info, io.BytesIO(data))
+        self.assertEqual(toolchain._member(tool, {'archive': 'tar.gz', 'member': './demo'}, buffer.getvalue()), b'binary')
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, 'w') as archive:                      # k6's Mac build is a zip
+            archive.writestr('demo-v1-macos-arm64/demo', b'zipped')
+        self.assertEqual(toolchain._member(tool, {'archive': 'zip', 'member': 'demo-v1-macos-arm64/demo'}, buffer.getvalue()), b'zipped')
+
+    def test_one_tool_that_fails_never_stops_the_others(self):
+        tools = [{'name': 'first', 'version': '1', 'install': {'method': 'release'}},
+                 {'name': 'second', 'version': '1', 'install': {'method': 'pip'}}]
+        installed = []
+        with mock.patch.object(toolchain, 'selected', return_value=tools), \
+                mock.patch.object(toolchain, 'found_version', side_effect=lambda t: ('1', '') if t['name'] in installed else (None, '')), \
+                mock.patch.object(toolchain, '_release', side_effect=KeyError('zip')), \
+                mock.patch.object(toolchain, '_pip', side_effect=lambda t: installed.append(t['name'])):
+            self.assertEqual(toolchain.install(echo=lambda line: None), ['first'])
+        self.assertEqual(installed, ['second'])
+
+    def test_each_npm_tool_has_its_own_folder_so_versions_never_clash(self):
+        cruiser = {'name': 'dependency-cruiser'}
+        self.assertEqual(toolchain.npm_prefix(cruiser).name, 'dependency-cruiser')
+        self.assertNotEqual(toolchain.npm_prefix(cruiser), toolchain.npm_prefix({'name': 'renovate'}))
+        self.assertEqual(toolchain.npm_prefix({'name': 'playwright'}), toolchain.home() / 'node')
+
 class InstalledPackageTests(unittest.TestCase):
     def test_an_installed_eaos_finds_everything_it_reads_without_the_repository(self):
         """Installed from a wheel into a fresh environment, away from this checkout: the tools list, the
