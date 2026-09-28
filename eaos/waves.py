@@ -52,14 +52,14 @@ def next_batch(report, done, size=SIZE):
 
 # ---------------------------------------------------------------- one collection, every acceptance
 
-def batch_acceptance(report, cards, root):
-    """{card id: exit code} for every card's acceptance, from one collection of facts on `root`.
-    A `recheck --spec` acceptance and the dead-code check are read from that collection; anything else runs
-    as written."""
+def batch_acceptance(report, cards, root, collected=None):
+    """{card id: exit code} for every card's acceptance, from one collection of facts on `root` (`collected`,
+    when the caller already made it). A `recheck --spec` acceptance and the dead-code check are read from that
+    collection; anything else runs as written."""
     from .facts.run import collect, read_available
     from .probes import decide_probe
-    out = Path(tempfile.mkdtemp(prefix='eaos-wave-facts-'))
-    collect(Path(root).resolve(), out)
+    out = Path(collected) if collected else Path(tempfile.mkdtemp(prefix='eaos-wave-facts-'))
+    if not collected: collect(Path(root).resolve(), out)
     sets = read_available(out)
     dead = {(f['location'].get('path'), f['location'].get('symbol'), f['value'].get('rule'))
             for f in (sets.get('deadcode') or {}).get('facts', [])}
@@ -145,15 +145,26 @@ def culprits(report, root, runtime, base, commits, before, lock, name, say, foun
     return found
 
 
+def open_batch(target, runtime, number):
+    """The wave's candidate, cloned from the authorised commit: (root, base)."""
+    from .sandbox import head, refusal
+    reason = refusal(Path(runtime) / 'authorization.json', 'S08', head(target))
+    if reason: raise PermissionError(reason)
+    root = candidate(target, runtime, f'WAVE-{number}')
+    return root, git(root, 'rev-parse', 'HEAD').stdout.strip()
+
+
+def drop_last(root):
+    """Take back the change being tried: its commit, and anything it left behind."""
+    git(root, 'reset', '--hard', '--quiet', 'HEAD~1')
+    git(root, 'clean', '-fdq')
+
+
 def run_batch(report, target, runtime, number, card_ids, provider=None, lock=True, say=lambda *_: None):
     """Execute one wave; {'wave', 'branch', 'kept': [...], 'failed': {card: reason}, 'root', 'base'}."""
     report, runtime = Path(report), Path(runtime)
-    from .sandbox import head, refusal
-    reason = refusal(runtime / 'authorization.json', 'S08', head(target))
-    if reason: raise PermissionError(reason)
     cards = {card['id']: card for card in plan(report)['tasks'] if card['id'] in set(card_ids)}
-    root = candidate(target, runtime, f'WAVE-{number}')
-    base = git(root, 'rev-parse', 'HEAD').stdout.strip()
+    root, base = open_batch(target, runtime, number)
     kept, failed, tools = {}, {}, {}
     for index, card_id in enumerate(card_ids, 1):
         card = cards[card_id]
@@ -171,6 +182,16 @@ def run_batch(report, target, runtime, number, card_ids, provider=None, lock=Tru
             git(root, 'reset', '--hard', '--quiet', 'HEAD')
             git(root, 'clean', '-fdq')
             failed[card_id] = f'{type(problem).__name__}: {problem}'[:300]
+    return finish_batch(report, target, runtime, number, root, base, card_ids, kept, failed, tools, lock=lock, say=say)
+
+
+def finish_batch(report, target, runtime, number, root, base, card_ids, kept, failed, tools, lock=True, say=lambda *_: None):
+    """Every kept change together: the acceptances from one collection of facts, then the project's checks and
+    the behaviour lock once, halving to the culprit when they fail. The kept commits become the wave's branch
+    in the candidate, its patches and wave.json beside the run, and one execution.json row per card."""
+    report, runtime = Path(report), Path(runtime)
+    cards = {card['id']: card for card in plan(report)['tasks'] if card['id'] in set(card_ids)}
+    kept, failed = dict(kept), dict(failed)
     say('acceptance')
     if kept:
         exits = batch_acceptance(report, [cards[c] for c in kept], root)

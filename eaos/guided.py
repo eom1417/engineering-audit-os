@@ -401,41 +401,56 @@ def safety_done(state):
     return bool(safety.get('commit')) and safety['commit'] == (state.get('setup') or {}).get('commit')
 
 
-def safety(state, args):
-    """Step 3: the safety net: every screen recorded on the original, and its speed under load."""
+def safety_run(state, step=lambda n: None):
+    """The safety net's work, without words: every screen recorded on the original, then its speed under load
+    when a production run works. {'screens', 'passed', 'skipped': [...], 'p95_ms', 'speed', 'speed_error'}"""
     from .behavior_lock import run_lock
     from .runtime_baseline import run_baseline
+    runtime = runtime_of(state)
+    step(1)
+    results = run_lock(report_of(state), state['project'], runtime)['results']
+    passed = sum(r['status'] == 'passed' for r in results)
+    outcome = {'screens': len(results), 'passed': passed, 'p95_ms': None, 'speed_error': None,
+               'skipped': [{k: r.get(k) for k in ('path', 'status', 'reason') if r.get(k)} for r in results if r['status'] != 'passed']}
+    baseline = json.loads((runtime / 'run.json').read_text(encoding='utf-8')).get('baseline') or {}
+    if baseline.get('build') and baseline.get('verified') and list((report_of(state) / 'nfr/k6').glob('*.js')):
+        step(2)
+        try:
+            performance = run_baseline(report_of(state), state['project'], runtime)
+            outcome['p95_ms'] = max((s['before']['p95_ms'] for s in performance['scenarios']), default=None)
+            outcome['speed'] = 'measured'
+        except Exception as problem:            # speed is measured when it can be; the screens are the safety net
+            outcome.update(speed='failed', speed_error=f'{type(problem).__name__}: {problem}'[:600],
+                           speed_log=str(log_failure(state['workspace'], problem)))
+    else:
+        outcome['speed'] = 'no_production_run' if baseline.get('build') else 'no_build'
+    state['safety'] = {'commit': state['setup']['commit'], 'screens': len(results), 'passed': passed, 'p95_ms': outcome['p95_ms']}
+    save(state)
+    return outcome
+
+
+def safety(state, args):
+    """Step 3: the safety net: every screen recorded on the original, and its speed under load."""
     lang, runtime = state['lang'], runtime_of(state)
     say(('أصوّر كل شاشات برنامجك كما هي الآن، ثم أقيس سرعته. هذا ما سأقارن به بعد كل إصلاح (15 إلى 30 دقيقة).' if lang == 'ar'
          else 'Recording every screen of your app as it is now, then measuring its speed. Every fix is compared with this (15 to 30 minutes).'))
-    say('   [1/2] ' + ('أصوّر الشاشات…' if lang == 'ar' else 'Recording the screens…'))
-    record = run_lock(report_of(state), state['project'], runtime)
-    results = record['results']
-    passed = sum(r['status'] == 'passed' for r in results)
-    speed, notes = None, []
-    profile = json.loads((runtime / 'run.json').read_text(encoding='utf-8'))
-    baseline = profile.get('baseline') or {}
-    if baseline.get('build') and baseline.get('verified') and list((report_of(state) / 'nfr/k6').glob('*.js')):
-        say('   [2/2] ' + ('أقيس السرعة تحت ضغط مستخدمين كثيرين…' if lang == 'ar' else 'Measuring speed under many users…'))
-        try:
-            performance = run_baseline(report_of(state), state['project'], runtime)
-            speed = max((s['before']['p95_ms'] for s in performance['scenarios']), default=None)
-        except Exception as problem:            # speed is measured when it can be; the screens are the safety net
-            log = log_failure(state['workspace'], problem)
-            notes.append(('لم أستطع قياس السرعة: ' if lang == 'ar' else 'Could not measure speed: ')
-                         + explain(problem)[lang]['message'] + f' ({log})')
-    elif baseline.get('build'):
+    def step(n):
+        say(f'   [{n}/2] ' + (('أصوّر الشاشات…' if lang == 'ar' else 'Recording the screens…') if n == 1 else
+                              ('أقيس السرعة تحت ضغط مستخدمين كثيرين…' if lang == 'ar' else 'Measuring speed under many users…')))
+    outcome = safety_run(state, step)
+    passed, total, speed, notes = outcome['passed'], outcome['screens'], outcome['p95_ms'], []
+    if outcome['speed'] == 'failed':
+        notes.append(('لم أستطع قياس السرعة: ' if lang == 'ar' else 'Could not measure speed: ')
+                     + explain(RuntimeError(outcome['speed_error']))[lang]['message'] + f" ({outcome['speed_log']})")
+    elif outcome['speed'] == 'no_production_run':
         notes.append('لم تعمل نسخة الإنتاج من برنامجك هنا، فلم أقس السرعة؛ السبب في run.json' if lang == 'ar'
                      else 'The production build of your app did not run here, so speed was not measured; the reason is in run.json')
-    else:
+    elif outcome['speed'] == 'no_build':
         notes.append('لا يوجد أمر بناء للإنتاج، فلم أقس السرعة' if lang == 'ar' else 'No production build, so speed was not measured')
-    state['safety'] = {'commit': state['setup']['commit'], 'screens': len(results), 'passed': passed, 'p95_ms': speed}
-    save(state)
-    happened = (f"صوّرت {passed} من {len(results)} شاشة" + (f"، وأبطأ الطلبات تأخذ {speed:.0f} ملي ثانية" if speed else '')
-                if lang == 'ar' else f"Recorded {passed} of {len(results)} screens" + (f"; the slowest requests take {speed:.0f} ms" if speed else ''))
-    skipped = [r for r in results if r['status'] != 'passed']
-    if skipped: notes.append((f"{len(skipped)} شاشة لم تُصوَّر، وأسبابها في السجل" if lang == 'ar'
-                              else f"{len(skipped)} screens were not recorded; the reasons are in the record"))
+    happened = (f"صوّرت {passed} من {total} شاشة" + (f"، وأبطأ الطلبات تأخذ {speed:.0f} ملي ثانية" if speed else '')
+                if lang == 'ar' else f"Recorded {passed} of {total} screens" + (f"; the slowest requests take {speed:.0f} ms" if speed else ''))
+    if outcome['skipped']: notes.append((f"{len(outcome['skipped'])} شاشة لم تُصوَّر، وأسبابها في السجل" if lang == 'ar'
+                                         else f"{len(outcome['skipped'])} screens were not recorded; the reasons are in the record"))
     box(lang, happened, where=runtime / 'behavior-lock/results.json', commands=['eaos next'],
         status='ok' if passed else 'warn', note=notes or None)
     return 0

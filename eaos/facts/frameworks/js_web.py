@@ -4,13 +4,17 @@ import re
 LANGUAGES = ('javascript', 'typescript', 'tsx')
 # `route` is Hono's mount (app.route('/api/admin', adminRouter)): a whole group of endpoints under one path.
 ROUTE = re.compile(r'\b(?P<object>app|router|server|fastify|api|hono)\.(?P<method>get|post|put|patch|delete|all|use|route)\(\s*(?P<quote>[\'"`])(?P<route>[^\'"`]*)(?P=quote)\s*,\s*(?P<handler>[\w.]+)?', re.M)
+# `api.get('/x', …)` is a server route only where a server framework is in the file; in the browser it is an axios call.
+SERVER_FILE = re.compile(r'''from\s+['"](?:hono|express|fastify|koa|@hono/[\w-]+)['"]|require\(\s*['"](?:express|fastify|koa|hono)['"]\s*\)|new\s+Hono\b''')
 NEXT_HANDLER = re.compile(r'export\s+(?:default\s+)?(?:async\s+)?function\s+(?P<name>\w+)', re.M)
 NEXT_METHOD = re.compile(r'export\s+(?:async\s+)?function\s+(?P<method>GET|POST|PUT|PATCH|DELETE)\s*\(', re.M)
 
 
 def detect(context):
     found = []
+    server_file = bool(SERVER_FILE.search(context.text))
     for match in ROUTE.finditer(context.text):
+        if match.group('object') in ('api', 'hono') and not server_file: continue
         line = context.line_of(match.start())
         handler = match.group('handler')
         if handler in {'async', 'function', 'await', 'new'}: handler = None

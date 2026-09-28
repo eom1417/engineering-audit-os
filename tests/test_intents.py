@@ -83,41 +83,10 @@ class AssistantInstallTests(unittest.TestCase):
         agents = (home / '.codex/AGENTS.md').read_text()
         self.assertTrue(agents.startswith('# my own rules\nbe kind\n'))
         self.assertEqual(agents.count(assistant_setup.BEGIN), 1, 'installing twice replaces, never repeats')
-        self.assertIn('Never add `--yes` on your own', agents)
+        self.assertIn('Say yes for them', agents)
         config = (home / '.codex/config.toml').read_text()
         self.assertEqual((config.count('[mcp_servers.eaos]'), config.startswith('model = "x"')), (1, True))
         self.assertFalse(any('mcp' in c.args[0] and 'add' in c.args[0] for c in run.call_args_list), 'already registered: not added twice')
-
-
-class McpTests(unittest.TestCase):
-    def talk(self, *messages):
-        from eaos import mcp_server
-        out = io.StringIO()
-        mcp_server.main(io.StringIO(''.join(json.dumps(m) + '\n' for m in messages)), out)
-        return [json.loads(line) for line in out.getvalue().splitlines()]
-
-    def test_the_tools_are_listed_and_a_request_comes_back_as_eaos_said_it(self):
-        from eaos import mcp_server
-        with mock.patch.object(mcp_server, 'request', return_value='job-1 finished.\n✅ What happened: done') as request:
-            replies = self.talk({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {}},
-                                {'jsonrpc': '2.0', 'method': 'notifications/initialized'},
-                                {'jsonrpc': '2.0', 'id': 2, 'method': 'tools/list'},
-                                {'jsonrpc': '2.0', 'id': 3, 'method': 'tools/call', 'params': {'name': 'eaos_request',
-                                                                                             'arguments': {'request': 'where are we'}}})
-        self.assertEqual([r['id'] for r in replies], [1, 2, 3], 'a notification gets no answer')
-        self.assertEqual({t['name'] for t in replies[1]['result']['tools']}, {'eaos_request', 'eaos_job'})
-        self.assertIn('Never set agreed=true on your own', replies[1]['result']['tools'][0]['description'])
-        self.assertEqual(replies[2]['result']['content'][0]['text'], 'job-1 finished.\n✅ What happened: done')
-        request.assert_called_once_with({'request': 'where are we'})
-
-    def test_agreement_is_passed_only_when_the_assistant_says_the_person_agreed(self):
-        from eaos import mcp_server
-        seen = []
-        with mock.patch.object(mcp_server.subprocess, 'Popen', side_effect=lambda argv, **k: seen.append(argv) or mock.Mock(poll=lambda: 0)):
-            mcp_server.request({'request': 'continue'})
-            mcp_server.request({'request': 'continue', 'agreed': True})
-        self.assertNotIn('--yes', seen[0])
-        self.assertEqual(seen[1][-1], '--yes')
 
 
 if __name__ == '__main__':

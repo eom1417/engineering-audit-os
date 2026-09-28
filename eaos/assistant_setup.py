@@ -47,7 +47,9 @@ def codex(home):
         argv = eaos_command() + ['mcp']
         quoted = ', '.join(f'"{part}"' for part in argv[1:])
         config.write_text(current.rstrip('\n') + ('\n\n' if current.strip() else '')
-                          + f'[mcp_servers.eaos]\ncommand = "{argv[0]}"\nargs = [{quoted}]\n', encoding='utf-8')
+                          + f'[mcp_servers.eaos]\ncommand = "{argv[0]}"\nargs = [{quoted}]\n'
+                          # a tool call may wait up to a minute for a long job, and its first start imports the SDK
+                          + 'startup_timeout_sec = 30\ntool_timeout_sec = 120\n', encoding='utf-8')
     return agents
 
 

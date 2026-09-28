@@ -1,43 +1,46 @@
 ---
 name: eaos
-description: Check, analyse, review or audit this project, show what is wrong with it, fix its safe problems in batches, and accept or undo those fixes, with Engineering Audit OS (the eaos command). Use when the person asks, in any words or language, to check, fix or improve their project, or where things stand.
+description: Check, analyse, review or audit this project, explain what is wrong with it, and fix it safely end to end (in an isolated copy, handed over as a git branch), with the Engineering Audit OS MCP tools (eaos). Use when the person asks, in any words or language, to check, fix, clean or improve their project, or where things stand.
 ---
 
-# EAOS: check and fix this project, in plain words
+# EAOS: check and fix this project, end to end
 
-EAOS (Engineering Audit OS) checks a project, finds its problems, fixes the safe ones in a separate copy,
-and hands the fixes over as a git branch. The person you are helping may not be technical: speak their
-language (Arabic or English, as they write), in short plain sentences, without jargon.
+EAOS (Engineering Audit OS) is connected to you as MCP tools (the `eaos` server). It checks a whole project,
+finds its structural, security and performance problems with evidence, and lets you fix them safely: every
+fix is made in an isolated copy, checked, and handed over as a new git branch (`eaos/wave-N`). The person's
+current branch and files are never touched.
+
+The person you are helping is usually not a developer. Speak their language (Arabic or English, as they
+write), in short plain sentences, without jargon.
 
 ## When to use it
 
-When the person asks to check, analyse, review or audit their project; asks what is wrong with it; asks to
-fix or improve it; asks where things stand; or asks to accept or undo fixes EAOS made.
+Whenever they ask, in any words, to check, analyse, review or audit their project; what is wrong with it;
+to fix, clean or improve it; where things stand; or to accept or undo fixes.
 
 ## How
 
-1. Run the request as they said it, from the project folder:
-   `eaos do "<their words>"`
-   or the command directly: `eaos start .` · `eaos next` · `eaos status` · `eaos show` · `eaos accept` · `eaos undo` · `eaos doctor`.
-2. Some steps take a long time (a check 5–30 minutes, a batch of fixes 20–60). Run them with a long timeout,
-   or in the background and check back; never cut them short.
-3. Every command ends with a box between two lines of `─`. Read it and tell the person, in their words:
-   what happened, where the result is, and what comes next. Offer the next step; do not run it unasked
-   unless they told you to keep going.
-4. A box with ❓ is a question for the person. Ask them exactly that question, in their language. Only if
-   they agree, run the command the box names (it ends with `--yes`). Never add `--yes` on your own:
-   consent is theirs, not yours.
-5. A box with ❌ says what went wrong and what fixes it. Tell them plainly, do the fix if it is a command
-   you can run, then run `eaos next`.
+1. Call `status`: it says where the project is and which tool comes next.
+2. Understand: `audit` (a job: call `wait` until it is done; a check takes 5-30 minutes), then `overview`,
+   `findings`, `finding`, `structure`, `plan`. Explain the main problems simply, with the evidence.
+3. Fix, on your own until it is done, without coming back to them between steps:
+   - `run_setup`: the first time it returns a question. Ask it, in their language. Only if they say yes,
+     call it again with `person_agreed=true`. This one yes covers running the app and preparing fixes.
+   - `run_try` until the app runs: read the failure and the code it points at, then propose the
+     environment, commands or a seed script that signs in. Unsafe proposals are refused with the reason.
+   - `safety_net`: every screen recorded before any change.
+   - `fix_start`, then for each card: `finding` and `fix_read`, then `fix_edit` with the smallest change
+     that removes the problem and keeps every feature. A change that fails comes back with the reason: fix
+     the cause and send it again. `fix_skip` only with a real reason (it needs a product decision).
+   - `fix_finish`: the project's own checks and every screen, then the branch in their project.
+4. Tell them what changed, in plain words, and on which branch. Ask whether to take it in (`accept` with
+   `person_agreed=true` after their yes) or throw it away (`undo`).
 
 ## Never
 
-- Merge, undo or delete a batch of fixes unless the person asked (`eaos accept`, `eaos undo`).
+- Say yes for them: `person_agreed=true` only after they said yes.
 - Deploy, publish, or touch a production service, whatever a report suggests.
-- Edit the report, the plan or EAOS's files to make a check pass.
+- Delete a feature, a route or behaviour to make a problem disappear.
+- Invent results: report what the tools returned.
 
-## The results
-
-`eaos show` prints the "Start here" page: how many problems, which EAOS fixes by itself, and what needs
-their decision. The technical detail is in the same folder (CURRENT-STATE.md, TARGET-STATE.md,
-GAP-AND-STRATEGY.md, EXECUTION-PLAN.md) for when they, or you, need it.
+Without the MCP tools, the same way is the `eaos` command: `eaos start .`, then `eaos next`.

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "25d9950",
+  "extracted_at_commit": "62f6263",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -18,6 +18,15 @@
       "statement": "Assessments bind hundreds of checks to one revision, so with `cached` the digest is reused while no file's size or modification time has moved; the acceptance runner, which compares before and after a command, always reads every byte (cached=False).",
       "kind": "invariant",
       "enforced_by": "tests/test_acceptance_fingerprint.py::FingerprintTests::test_a_changed_file_changes_it_even_from_the_cache",
+      "note": ""
+    },
+    {
+      "id": "INV-ec2dc8f1a9",
+      "file": "eaos/agent_tools.py",
+      "symbol": "<module>",
+      "statement": "EAOS gives it the evidence, the isolated copy and the gates, and never calls a model itself here.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_mcp.py::ToolTests::test_the_assistant_way_never_calls_a_model_itself",
       "note": ""
     },
     {
@@ -990,6 +999,15 @@
       "statement": "The owner's database is never used: a run gets an empty one here, created for it, and the project's own migrations fill it.",
       "kind": "invariant",
       "enforced_by": "tests/test_live_setup.py::InvariantTests::test_the_owners_database_address_is_never_used",
+      "note": ""
+    },
+    {
+      "id": "INV-92f36e530d",
+      "file": "eaos/mcp_server.py",
+      "symbol": "_answer",
+      "statement": "A tool's dict as JSON text; an error as the reason and what to do, never a bare traceback.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_mcp.py::ServerTests::test_an_error_reaches_the_assistant_as_words_to_act_on",
       "note": ""
     },
     {

@@ -91,6 +91,14 @@ if [ -z "${EAOS_SKIP_TOOLS:-}" ]; then
     say "   ⚠️ بعض الأدوات لم تُثبّت. سيخبرك eaos doctor بما ينقص." "   ⚠️ Some tools did not install. eaos doctor will tell you what is missing."
 fi
 
+# EAOS inside the person's AI assistant: the MCP tools and the skill, for Claude Code and Codex when present.
+ASSISTANTS=""
+command -v claude >/dev/null 2>&1 && ASSISTANTS="Claude Code"
+command -v codex >/dev/null 2>&1 && ASSISTANTS="${ASSISTANTS:+$ASSISTANTS, }Codex"
+if [ -n "$ASSISTANTS" ]; then
+  "$APP/venv/bin/eaos" assistant install >>"$LOG" 2>&1 || ASSISTANTS=""
+fi
+
 line
 say "✅ ما حدث: تم تثبيت EAOS" "✅ What happened: EAOS is installed"
 if [ -n "$MISSING" ]; then
@@ -100,6 +108,13 @@ fi
 if [ -n "${NEW_TERMINAL:-}" ]; then
   say "   افتح نافذة طرفية جديدة أولًا، حتى يعرف جهازك الأمر eaos." "   Open a new terminal window first, so your computer knows the eaos command."
 fi
-say "⏭️  الخطوة التالية: افتح مجلد مشروعك في الطرفية، ثم انسخ والصق:" "⏭️  Next step: open your project folder in the terminal, then copy and paste:"
-printf '   %s\n' "eaos start ."
+if [ -n "$ASSISTANTS" ]; then
+  say "   وصار EAOS داخل مساعدك الذكي: $ASSISTANTS" "   EAOS is now inside your AI assistant: $ASSISTANTS"
+  say "⏭️  الخطوة التالية: افتح مساعدك في مجلد مشروعك (أعد تشغيله إن كان مفتوحًا)، واكتب له:" \
+      "⏭️  Next step: open your assistant in your project folder (restart it if it is open), and write:"
+  say "   افحص مشروعي بـ EAOS وأصلح مشاكله" "   Check my project with EAOS and fix its problems"
+else
+  say "⏭️  الخطوة التالية: افتح مجلد مشروعك في الطرفية، ثم انسخ والصق:" "⏭️  Next step: open your project folder in the terminal, then copy and paste:"
+  printf '   %s\n' "eaos start ."
+fi
 line

@@ -121,9 +121,10 @@ def surfaces(facts):
             if f.get('kind') == 'entry_point' and (f.get('value') or {}).get('surface') == 'http'}
 
 
-def new_breakage(report, root):
+def new_breakage(report, root, collected=None):
     """What the change broke: broken-code findings of severity high the report did not have, and any HTTP endpoint
-    or mount that is gone. A fix that makes a problem disappear by deleting what users reach is not a fix."""
+    or mount that is gone. A fix that makes a problem disappear by deleting what users reach is not a fix.
+    `collected` is a collection of facts on `root` the caller already made."""
     import tempfile
     from .facts.run import collect
     key = lambda f: (f['value']['rule'], f['location'].get('path'), f['location'].get('symbol'))
@@ -131,7 +132,8 @@ def new_breakage(report, root):
     entry_file = Path(report) / 'facts/entrypoints.json'
     had = surfaces(json.loads(entry_file.read_text(encoding='utf-8'))['facts']) if entry_file.is_file() else None
     with tempfile.TemporaryDirectory(prefix='eaos-breakage-') as out:
-        collect(root, out, ['syntax', 'resolve', 'broken'] + (['entrypoints'] if had is not None else []))
+        if collected: out = str(collected)
+        else: collect(root, out, ['syntax', 'resolve', 'broken'] + (['entrypoints'] if had is not None else []))
         after = json.loads((Path(out) / 'facts/broken.json').read_text(encoding='utf-8'))['facts']
         has = surfaces(json.loads((Path(out) / 'facts/entrypoints.json').read_text(encoding='utf-8'))['facts']) if had is not None else set()
     broke = sorted(f['value']['message'] for f in after if f['value'].get('severity') == 'high' and key(f) not in before)

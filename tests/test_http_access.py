@@ -31,5 +31,16 @@ class HttpAccessTests(unittest.TestCase):
         self.assertFalse(any('nhtsa' in t for t in targets))
 
 
+    def test_a_browser_call_through_a_client_named_api_is_not_a_server_route(self):
+        from types import SimpleNamespace
+        from eaos.facts.frameworks import js_web
+        def routes(text):
+            context = SimpleNamespace(text=text, rel='src/x.ts', line_of=lambda i: text[:i].count('\n') + 1, symbol_at=lambda line: None)
+            return [(r['http_method'], r['route']) for r in js_web.detect(context)]
+        self.assertEqual(routes(USER), [])
+        self.assertEqual(routes('import { Hono } from "hono";\nconst api = new Hono();\napi.get("/health", health);\n'), [('GET', '/health')])
+        self.assertEqual(routes('app.get("/x", handler);\n'), [('GET', '/x')])
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -183,7 +183,7 @@ def self_truth(record):
                    f'{len(dead)} dead of {len(dead) + len(false)} distinct candidates (by path and symbol): ' + ', '.join(dead))}
 
 
-USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6')
+USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9')
 
 
 def measure(record, only=None):
@@ -233,6 +233,21 @@ def usability_values(only=None):
         right, total = sum(r for r, _ in rows.values()), sum(t for _, t in rows.values())
         values['X6'] = (ratio(right, total) or 0.0, 'plain requests the intent table maps to the right command: '
                         + ', '.join(f'{name} {r}/{t}' for name, (r, t) in rows.items()) + f' ({right}/{total})')
+    if only in (None, 'X8'):
+        import asyncio
+        from eaos.mcp_server import CAPABILITIES, build
+        registered = {tool.name for tool in asyncio.run(build().list_tools())}
+        exercised = (ROOT / 'tests/test_mcp.py').read_text(encoding='utf-8')
+        ok = [c for c, tool in CAPABILITIES.items() if tool in registered and f"'{tool}'" in exercised]
+        missing = sorted(set(CAPABILITIES) - set(ok))
+        values['X8'] = (ratio(len(ok), len(CAPABILITIES)) or 0.0, f'capabilities of the guided way with a tested MCP tool: {len(ok)}/{len(CAPABILITIES)}'
+                        + (f"; missing: {', '.join(missing)}" if missing else ''))
+    if only in (None, 'X9'):
+        runs = [json.loads(p.read_text(encoding='utf-8')) for p in sorted((REPORTS / 'mcp').glob('*/trial.json'))]
+        ok = [t['project'] for t in runs if t['delivered'] and t['person_turns'] <= 2 and t['manual_files'] == 0]
+        values['X9'] = (ratio(len(ok), len(runs)) if runs else None,
+                        f"trials an assistant drove from a plain request to a delivered branch, with at most one agreement: {len(ok)}/{len(runs)} "
+                        f"({', '.join(t['project'] for t in runs) or 'no trial run yet'})")
     if only in (None, 'X5'):
         done, total = guided.complete_entries()
         values['X5'] = (ratio(done, total) or 0.0, f'known errors with a plain message, a fix and a command in Arabic and English: {done}/{total}')
