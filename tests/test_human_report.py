@@ -132,6 +132,16 @@ class HumanReportTests(unittest.TestCase):
         self.assertIn('Not available in this report.', page)
         self.assertEqual(readability_problems(page), [])
 
+    def test_broken_records_cost_a_section_not_the_page(self):
+        (self.out / 'plan.json').write_text('{"tasks": [1, {"id": "TASK-9"}], "milestones": "none"}', encoding='utf-8')
+        (self.out / 'target-architecture.json').write_text('{"current_components": [{"paths": 7}]', encoding='utf-8')
+        (self.out / 'dossier.json').write_text('[]', encoding='utf-8')
+        page = human_report.write(self.out, 'ar').read_text(encoding='utf-8')
+        for name in human_report.SECTIONS:
+            self.assertIn(f'data-report="{name}"', page)
+        self.assertIn('غير متاح في هذا التقرير.', page)
+        self.assertEqual(readability_problems(page), [])
+
 
 if __name__ == '__main__':
     unittest.main()

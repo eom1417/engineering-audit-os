@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "25d9950",
+  "extracted_at_commit": "82176ae",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -846,6 +846,18 @@
       "statement": "Unsaved edits are not part of the run: said once, plainly, never a stop.",
       "kind": "invariant",
       "enforced_by": "tests/test_live_setup.py::GuidedNoteTests::test_unsaved_edits_are_said_once_and_never_stop_the_run",
+      "note": ""
+    },
+    {
+      "id": "INV-358eedd4a6",
+      "file": "eaos/human_report.py",
+      "symbol": "write",
+      "statement": "Never raises for missing or broken records: a section it cannot build says \"not available\".",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_human_report.py::HumanReportTests::test_broken_records_cost_a_section_not_the_page",
+        "tests/test_human_report.py::HumanReportTests::test_a_report_with_no_records_still_gets_a_page_that_says_not_available"
+      ],
       "note": ""
     },
     {

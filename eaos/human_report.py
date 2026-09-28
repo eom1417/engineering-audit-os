@@ -244,7 +244,7 @@ def num(value, meaning, cls='n'):
 
 
 def lit(text):
-    """A file path or an identifier: shown as it is, left to right, never read as a score."""
+    """A file path or an identifier, shown as it is, left to right; the readability check does not read it as a score."""
     return f'<code class="lit" dir="ltr" data-literal="1">{esc(text)}</code>'
 
 
@@ -879,7 +879,8 @@ def decisions_block(rows):
     for pattern in sorted(groups, key=lambda p: -len(groups[p])):
         group = groups[pattern]
         (tar, why_ar), (ten, why_en) = plain.problem(pattern, 'ar'), plain.problem(pattern, 'en')
-        outcomes = sorted({o for r in group for o in r['outcomes']})
+        found = {o for r in group for o in r['outcomes']}
+        outcomes = [o for o in OUTCOME if o in found] + sorted(found - set(OUTCOME))
         answers = ''.join(f'<li>{T(*map(esc, OUTCOME.get(o, (o, o))))}</li>' for o in outcomes)
         sample = next((r for r in group if r['options']), None)
         options = ''
@@ -1032,11 +1033,11 @@ def readability_problems(html_text):
 CSS = r"""
 :root{color-scheme:light;--bg:#f6f6f3;--surface:#ffffff;--surface-2:#f0efeb;--ink:#141413;--ink-2:#52514e;--muted:#6f6d67;
 --line:#e3e1da;--accent:#2a5bd7;--accent-soft:#e8eefc;--good:#0a8a0a;--good-soft:#e6f4e6;--warn:#b77900;--warn-soft:#fff4dc;
---bad:#c73232;--bad-soft:#fbe9e9;--sev-critical:#d03b3b;--sev-high:#ec835a;--sev-medium:#fab219;--sev-low:#a9a79f;--tile-empty:#e9e8e3;
+--bad:#c73232;--bad-soft:#fbe9e9;--on-accent:#ffffff;--sev-critical:#d03b3b;--sev-high:#ec835a;--sev-medium:#fab219;--sev-low:#a9a79f;--tile-empty:#e9e8e3;
 --shadow:0 1px 2px rgba(20,20,19,.05),0 4px 16px rgba(20,20,19,.05);--radius:14px}
 @media (prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#111110;--surface:#1b1b1a;--surface-2:#242422;--ink:#f4f3ef;--ink-2:#c9c7bf;
 --muted:#9a978f;--line:#2f2f2c;--accent:#7ea2ff;--accent-soft:#1f2a45;--good:#3cc23c;--good-soft:#16301a;--warn:#f0b43a;--warn-soft:#352a12;
---bad:#ff7070;--bad-soft:#3a1c1c;--sev-low:#77756e;--tile-empty:#2b2b29;--shadow:none}}
+--bad:#ff7070;--bad-soft:#3a1c1c;--on-accent:#0b1020;--sev-low:#77756e;--tile-empty:#2b2b29;--shadow:none}}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 system-ui,-apple-system,"Segoe UI","Noto Sans Arabic",Tahoma,sans-serif}
 html[data-lang=ar] .l-en,html[data-lang=en] .l-ar{display:none!important}
@@ -1046,7 +1047,7 @@ html[data-lang=ar] .l-en,html[data-lang=en] .l-ar{display:none!important}
 .kicker{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);font-weight:700}
 h1{font-size:22px;margin:0;line-height:1.3}h1 .lit{font-size:20px;background:none;padding:0;color:var(--ink)}
 h2{font-size:26px;margin:0 0 4px}h3{font-size:19px;margin:36px 0 12px}h4{font-size:16px;margin:0 0 6px}
-.actions{display:flex;gap:8px}.btn{font:inherit;font-size:14px;border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:999px;padding:6px 16px;cursor:pointer}
+.actions{display:flex;gap:8px}.btn{font:inherit;font-size:14px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);border-radius:999px;padding:6px 16px;cursor:pointer}
 .btn.ghost{background:transparent;color:var(--accent)}.btn:focus-visible,.tabs a:focus-visible{outline:3px solid var(--accent-soft);outline-offset:2px}
 .tabs{display:flex;gap:4px;overflow-x:auto}.tabs a{padding:10px 14px;color:var(--ink-2);text-decoration:none;border-bottom:3px solid transparent;font-weight:600;white-space:nowrap}
 .tabs a.on{color:var(--accent);border-color:var(--accent)}.tabs a:hover{color:var(--ink)}
