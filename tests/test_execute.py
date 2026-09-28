@@ -120,6 +120,21 @@ class VerifyLockTests(Workspace):
             behavior_lock.verify_lock(self.tmp, self.tmp, runtime)
         self.assertIs(passed.call_args.kwargs['update'], False)
 
+    def test_a_screen_that_already_failed_on_the_original_is_not_counted_against_the_change(self):
+        from unittest import mock
+        from eaos import behavior_lock
+        runtime = Path(self.tmp)
+        (runtime / 'behavior-lock/snapshots').mkdir(parents=True)
+        (runtime / 'behavior-lock/results.json').write_text(json.dumps({'results': [
+            {'path': 'home.spec.ts', 'status': 'passed'}, {'path': 'sessions.spec.ts', 'status': 'failed'}]}))
+        now = [{'path': 'home.spec.ts', 'status': 'failed'}, {'path': 'sessions.spec.ts', 'status': 'failed'}]
+        with mock.patch('eaos.live_run.LiveRun'), mock.patch.object(behavior_lock, '_prepare'), \
+                mock.patch.object(behavior_lock, '_start'), mock.patch.object(behavior_lock, '_pass'), \
+                mock.patch.object(behavior_lock, 'spec_statuses'), mock.patch.object(behavior_lock, '_results', return_value=now), \
+                mock.patch.object(behavior_lock, '_write'):
+            verdict = behavior_lock.verify_lock(self.tmp, self.tmp, runtime)
+        self.assertEqual((verdict['failed'], verdict['already_failing']), (1, ['sessions.spec.ts']))
+
 
 class AdapterIsolationTests(Workspace):
     def test_the_model_runs_with_every_tool_off_no_session_and_the_cli_s_own_sign_in(self):

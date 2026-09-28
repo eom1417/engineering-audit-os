@@ -385,5 +385,12 @@ def verify_lock(report, target, runtime, name='results-after'):
         live.stop()
         live.record(f'behavior-lock/run-log-{name}.json')
     _write(runtime, f'{name}.json', live, results)
+    # A screen that did not pass on the original (its recording failed, or it never had a snapshot) cannot be broken
+    # by a change: only a screen that passed there and fails here counts against the change.
+    original = runtime / 'behavior-lock/results.json'
+    passed_before = ({r['path'] for r in json.loads(original.read_text(encoding='utf-8'))['results'] if r['status'] == 'passed'}
+                     if original.is_file() else {r['path'] for r in results})
+    failing = [r for r in results if r['status'] in ('failed', 'error')]
     return {'specs': len(results), 'passed': sum(r['status'] == 'passed' for r in results),
-            'failed': sum(r['status'] in ('failed', 'error') for r in results)}
+            'failed': sum(r['path'] in passed_before for r in failing),
+            'already_failing': sorted(r['path'] for r in failing if r['path'] not in passed_before)}
