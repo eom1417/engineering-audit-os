@@ -152,7 +152,7 @@ class JourneyTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn('port it needs is used by another program', printed.getvalue())
         self.assertNotIn('Traceback', printed.getvalue())
-        log = next((guided.workspace(self.project) / 'logs').glob('*.log'))
+        log = next((guided.outputs(guided.load(self.project)) / 'logs').glob('*.log'))
         self.assertIn('Traceback', log.read_text())
 
 

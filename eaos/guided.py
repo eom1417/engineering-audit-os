@@ -58,6 +58,63 @@ def workspace(project):
     return home() / 'projects' / f'{project.name}-{ident}'
 
 
+def outputs_root():
+    """~/EAOS: everything EAOS makes for a person, in one folder they can see and open (EAOS_OUTPUT moves it;
+    beside EAOS_HOME when that is set, so a trial or a test never writes into the real home)."""
+    if os.environ.get('EAOS_OUTPUT'): return Path(os.environ['EAOS_OUTPUT'])
+    return Path(os.environ['EAOS_HOME']).parent / 'EAOS' if os.environ.get('EAOS_HOME') else Path.home() / 'EAOS'
+
+
+OUTPUTS_README = {
+    'ar': """# مخرجات EAOS لمشروع «{name}»
+
+افتح **REPORT.html**: تقرير واحد بكلام بسيط (ملخص المشروع، والفجوات والمخاطر، وخريطة البنية، والخطة والتقدم).
+
+| المجلد | ما فيه |
+| --- | --- |
+| `REPORT.html` | التقرير للقراءة: افتحه في المتصفح |
+| `technical/` | التقرير الفني الكامل، لمساعدك الذكي وللمطوّرين. لا تحتاج أن تفتحه |
+| `fixes/` | كل دفعة إصلاحات: ما تغيّر وما لم ينجح، والفرع الذي وُضعت فيه |
+| `logs/` | سجلات تقنية، لمن يساعدك إذا ظهرت مشكلة |
+
+مشروعك نفسه ({project}) لا يُكتب فيه شيء إلا فرع الإصلاحات حين يُسلَّم.
+""",
+    'en': """# EAOS outputs for «{name}»
+
+Open **REPORT.html**: one report in plain words (project summary, gaps and risks, structure map, plan and progress).
+
+| Folder | What is in it |
+| --- | --- |
+| `REPORT.html` | The report to read: open it in your browser |
+| `technical/` | The full technical report, for your AI assistant and developers. You do not need to open it |
+| `fixes/` | Every batch of fixes: what changed, what did not pass, and the branch it is on |
+| `logs/` | Technical logs, for whoever helps you if something goes wrong |
+
+Nothing is written into your project itself ({project}) except the branch of fixes when it is handed over.
+"""}
+
+
+def outputs(state):
+    """The project's folder in ~/EAOS: named after the project (with -2, -3 when another project has the name),
+    made once and kept in the state, with a README that says what each part is."""
+    if state.get('outputs'):
+        folder = Path(state['outputs'])
+    else:
+        name = Path(state['project']).name
+        folder, number = outputs_root() / name, 1
+        while (folder / '.eaos-project').is_file() and (folder / '.eaos-project').read_text(encoding='utf-8').strip() != state['project']:
+            number += 1
+            folder = outputs_root() / f'{name}-{number}'
+        state['outputs'] = str(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / '.eaos-project').write_text(state['project'] + '\n', encoding='utf-8')
+    readme = folder / 'README.md'
+    if not readme.is_file():
+        lang = state.get('lang') if state.get('lang') in OUTPUTS_README else 'en'
+        readme.write_text(OUTPUTS_README[lang].format(name=Path(state['project']).name, project=state['project']), encoding='utf-8')
+    return folder
+
+
 def load(project):
     path = workspace(project) / 'state.json'
     return json.loads(path.read_text(encoding='utf-8')) if path.is_file() else None
@@ -275,7 +332,48 @@ def _start_command(project):
 # ---------------------------------------------------------------- the steps `next` walks through
 
 def report_of(state):
-    return Path(state['workspace']) / 'report'
+    """The technical report, in the outputs folder; one an older EAOS left in the workspace is moved there once."""
+    report = outputs(state) / 'technical'
+    old = Path(state['workspace']) / 'report'
+    if old.is_dir() and not report.exists(): shutil.move(str(old), str(report))
+    return report
+
+
+def publish(state, lang=None):
+    """REPORT.html in the outputs folder: the four reports for people, rebuilt with the fixes made so far.
+    Never a reason for a step to fail: without it, the technical report is still there."""
+    report, target = report_of(state), outputs(state) / 'REPORT.html'
+    try:
+        from .human_report import build
+        build(report, lang or state.get('lang') or 'en', Path(state['project']).name,
+              progress={'waves': state.get('waves') or []})
+    except Exception:                       # the page is extra; a missing piece of data must not stop the work
+        pass
+    page = report / 'human' / 'index.html'
+    if page.is_file(): shutil.copyfile(page, target)
+    return target if target.is_file() else report / 'START-HERE.md'
+
+
+def publish_fixes(state, wave):
+    """outputs/fixes/wave-N: the batch's patches, wave.json, and a summary a person can read."""
+    source = runtime_of(state) / 'waves' / f"wave-{wave['number']}"
+    target = outputs(state) / 'fixes' / f"wave-{wave['number']}"
+    shutil.rmtree(target, ignore_errors=True)
+    if source.is_dir(): shutil.copytree(source, target)
+    else: target.mkdir(parents=True)
+    ar = state.get('lang') == 'ar'
+    lines = [f"# {'الدفعة' if ar else 'Batch'} {wave['number']}", '',
+             (f"الفرع في مشروعك: `{wave.get('branch')}`" if ar else f"The branch in your project: `{wave.get('branch')}`") if wave.get('kept') else
+             ('لم ينجح أي إصلاح، فلم يتغير شيء في مشروعك.' if ar else 'No fix passed, so nothing changed in your project.'), '']
+    if wave.get('stat'): lines += [(f"التغييرات: {wave['stat']}" if ar else f"The changes: {wave['stat']}"), '']
+    if wave.get('kept'):
+        lines += ['## ' + ('ما أُصلح' if ar else 'Fixed'), ''] + [f'- {card}' for card in wave['kept']] + ['']
+    if wave.get('failed'):
+        lines += ['## ' + ('ما لم ينجح، ولماذا' if ar else 'Not fixed, and why'), ''] + [f'- {card}: {why}' for card, why in wave['failed'].items()] + ['']
+    lines += [('ملفات .patch هنا هي التغييرات نفسها، واحدًا لكل إصلاح.' if ar else 'The .patch files here are the changes themselves, one per fix.'), '']
+    (target / 'SUMMARY.md').write_text('\n'.join(lines), encoding='utf-8')
+    publish(state)
+    return target
 
 
 def scan_done(state):
@@ -298,9 +396,9 @@ def scan(state, args):
     except ValueError:                                  # the source changed since the partial run: start afresh
         shutil.rmtree(out, ignore_errors=True)
         manifest = execute(state['project'], out, **options)
-    page = out / 'START-HERE.md'
-    if not page.is_file(): start_here(out, lang, Path(state['project']).name)   # compose did not run: still one page
+    if not (out / 'START-HERE.md').is_file(): start_here(out, lang, Path(state['project']).name)   # compose did not run: still one page
     state['scanned'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    page = publish(state)
     save(state)
     counts = summary_counts(out)
     happened = (f"فحصت مشروعك: {counts['problems']} مشكلة، منها {counts['ready']} يمكن إصلاحها آليًا" if lang == 'ar' else
@@ -421,7 +519,7 @@ def safety_run(state, step=lambda n: None):
             outcome['speed'] = 'measured'
         except Exception as problem:            # speed is measured when it can be; the screens are the safety net
             outcome.update(speed='failed', speed_error=f'{type(problem).__name__}: {problem}'[:600],
-                           speed_log=str(log_failure(state['workspace'], problem)))
+                           speed_log=str(log_failure(outputs(state), problem)))
     else:
         outcome['speed'] = 'no_production_run' if baseline.get('build') else 'no_build'
     state['safety'] = {'commit': state['setup']['commit'], 'screens': len(results), 'passed': passed, 'p95_ms': outcome['p95_ms']}
@@ -503,6 +601,8 @@ def fix(state, args):
         state['applied'] = True
     state.setdefault('waves', []).append(wave)
     save(state)
+    publish_fixes(state, wave)
+    save(state)
     notes = []
     if summary['failed']:
         notes.append((f"{len(summary['failed'])} لم تنجح فتركتها، وأسبابها في {runtime_of(state) / 'runtime/execution.json'}" if lang == 'ar'
@@ -515,7 +615,7 @@ def fix(state, args):
                      else f"The changes: {summary['stat']}. Your current branch is as it was."))
     box(lang, (f"نجح {len(summary['kept'])} من {len(batch)} إصلاحًا، وهي الآن في الفرع {summary['branch']} في مشروعك" if lang == 'ar'
                else f"{len(summary['kept'])} of {len(batch)} fixes passed; they are on the branch {summary['branch']} in your project"),
-        where=runtime_of(state) / 'waves' / f'wave-{number}', note=notes,
+        where=outputs(state) / 'fixes' / f'wave-{number}', note=notes,
         commands=['eaos accept   ' + ('# لاعتمادها في مشروعك' if lang == 'ar' else '# to take them into your project'),
                   'eaos undo     ' + ('# للتخلي عنها' if lang == 'ar' else '# to throw them away')])
     return 0
@@ -746,6 +846,6 @@ def main(args):
         if explain(problem)['id'] in ('not_a_folder', 'not_a_project'):   # the person's slip, nothing to log
             show_error(lang, problem=problem)
             return 1
-        where = Path(state['workspace']) if state else home()
+        where = outputs(state) if state else home()
         show_error(lang, problem=problem, log=log_failure(where, problem))
         return 1

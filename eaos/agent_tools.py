@@ -93,7 +93,7 @@ def status(project=None):
     answer = {'project': state['project'], 'commit': head,
               'saved_in_git': not guided._git(state['project'], 'status', '--porcelain').stdout.strip(),
               'checked': checked, 'checked_commit': state.get('scanned_commit'),
-              'report': str(report) if checked else None,
+              'outputs_folder': str(guided.outputs(state)), 'report_for_people': str(guided.outputs(state) / 'REPORT.html') if checked else None,
               'app_runs': setup.get('ok') if setup.get('commit') == head else None,
               'safety_net': safety if safety.get('commit') == head else None,
               'open_batch': {k: wave[k] for k in ('number', 'cards', 'kept', 'failed')} if wave else None,
@@ -140,6 +140,7 @@ def _audit_job(project, arguments, progress):
     if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
     state = guided.load(project)
     state.update(scanned=_now(), scanned_commit=_head(state))
+    guided.publish(state)
     guided.save(state)
     return overview(project)
 
@@ -166,7 +167,8 @@ def overview(project=None):
             'milestones': [{'id': m['id'], 'name': m.get('name'), 'goal': m.get('goal'), 'cards': len(m['tasks']),
                             'fixable_automatically': sum(_ready(t) for t in tasks if t['id'] in set(m['tasks']))}
                            for m in plan.get('milestones') or []],
-            'report_folder': str(report), 'start_here': str(report / 'START-HERE.md'),
+            'report_for_people': str(guided.outputs(state) / 'REPORT.html') if (guided.outputs(state) / 'REPORT.html').is_file() else None,
+            'outputs_folder': str(guided.outputs(state)), 'technical_report': str(report),
             'next': 'Use `findings` and `finding` for the evidence, `structure` for the architecture, `plan` for the order of work.'}
 
 
@@ -295,6 +297,21 @@ def report_file(name='', project=None, offset=0, limit=20000):
     text = path.read_text(encoding='utf-8', errors='replace')
     offset, limit = max(int(offset), 0), min(max(int(limit), 1000), 100000)
     return {'file': str(path), 'size': len(text), 'offset': offset, 'text': text[offset:offset + limit], 'more': offset + limit < len(text)}
+
+
+def open_report(project=None, show=True):
+    """REPORT.html, the four reports for people, rebuilt with the fixes so far and opened in the person's browser."""
+    state = project_state(project)
+    _report(state)
+    page = guided.publish(state)
+    guided.save(state)
+    opened = False
+    if show and page.suffix == '.html':
+        import webbrowser
+        try: opened = webbrowser.open(page.resolve().as_uri())
+        except Exception: opened = False
+    return {'report_for_people': str(page), 'opened_in_browser': opened, 'outputs_folder': str(guided.outputs(state)),
+            'what_now': 'Tell the person where it is' + ('' if opened else ' and how to open it (double-click the file)') + '.'}
 
 
 # ---------------------------------------------------------------- running the app
@@ -629,6 +646,8 @@ def _fix_finish_job(project, arguments, progress):
     state.setdefault('waves', []).append(record)
     state['tried'] = sorted(set(state.get('tried') or []) | set(wave['cards']))
     state.pop('open_wave', None)
+    guided.save(state)
+    guided.publish_fixes(state, record)
     guided.save(state)
     files = guided._git(state['project'], 'diff', '--stat', f"{wave['base']}..{summary['branch']}").stdout.strip() if summary['kept'] else ''
     return {'batch': wave['number'], 'branch': summary['branch'] if summary['kept'] else None, 'kept': summary['kept'],
