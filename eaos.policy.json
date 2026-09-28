@@ -117,6 +117,8 @@
       "eaos/intents.py",
       "eaos/assistant_setup.py",
       "eaos/mcp_server.py",
+      "eaos/agent_tools.py",
+      "eaos/jobs.py",
       "eaos/plain.py",
       "eaos/start_here.py",
       "eaos/intake.py",

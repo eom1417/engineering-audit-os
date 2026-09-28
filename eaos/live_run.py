@@ -141,5 +141,6 @@ class LiveRun:
         if hasattr(self, '_database'): self._database.stop()
 
     def record(self, name):
+        (self.runtime / name).parent.mkdir(parents=True, exist_ok=True)
         (self.runtime / name).write_text(json.dumps({'commit': self.commit, 'commands': self.log}, ensure_ascii=False, indent=1) + '\n',
                                          encoding='utf-8')

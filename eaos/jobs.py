@@ -7,7 +7,8 @@ and writes what it has done to ~/.eaos/jobs/<id>.json:
   {"id", "kind", "project", "status": "running" | "done" | "failed", "progress": {"done", "total", "stage"},
    "result": {...} once done, "error": "..." once failed, "log": path, "started", "ended", "pid"}
 
-`start` launches one; `read` and `wait` follow it. The work itself is eaos/agent_tools.py:JOBS[kind].
+`start` launches one; `read` and `wait` follow it. The work itself is JOBS[kind] of the module the record names
+(`runner`, eaos.agent_tools by default), found by name so that it and this module do not import each other.
 """
 import json
 import os
@@ -75,10 +76,10 @@ def running(project, kind=None):
     return None
 
 
-def start(kind, project, arguments):
+def start(kind, project, arguments, runner='eaos.agent_tools'):
     job = f"{kind}-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{os.urandom(2).hex()}"
     log = folder() / f'{job}.log'
-    record = {'id': job, 'kind': kind, 'project': str(project), 'arguments': arguments, 'status': 'running',
+    record = {'id': job, 'kind': kind, 'runner': runner, 'project': str(project), 'arguments': arguments, 'status': 'running',
               'progress': None, 'result': None, 'error': None, 'log': str(log), 'started': _now(), 'ended': None, 'pid': None}
     _write(record)
     with log.open('w', encoding='utf-8') as out:
@@ -108,10 +109,11 @@ def progress(job, done, total, stage):
 
 def run(job):
     """The job process: the work, then its result or its error in the record."""
-    from .agent_tools import JOBS
+    import importlib
     record = json.loads(_path(job).read_text(encoding='utf-8'))
     try:
-        result = JOBS[record['kind']](record['project'], record['arguments'], lambda *step: progress(job, *step))
+        work = importlib.import_module(record.get('runner') or 'eaos.agent_tools').JOBS[record['kind']]
+        result = work(record['project'], record['arguments'], lambda *step: progress(job, *step))
         record = json.loads(_path(job).read_text(encoding='utf-8'))
         record.update(status='done', result=result, ended=_now())
     except BaseException as problem:        # every ending is written down, so the assistant is never left waiting

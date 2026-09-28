@@ -72,7 +72,7 @@ flowchart TB
     end
     subgraph P3["Execution: isolated, with the owner's authorization (1/2)"]
         direction LR
-        S08["<b>S08 · Rebuild / refactor</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 40%"]:::current
+        S08["<b>S08 · Rebuild / refactor</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 81%"]:::current
         S09["<b>S09 · Functional verification</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 0%"]:::next
         S10["<b>S10 · Security</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
         S11["<b>S11 · Load</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
@@ -226,13 +226,13 @@ No command modifies the original project, publishes anything or merges anything.
 <!-- north-star:progress:start -->
 <!-- generated from docs/north-star.json by python tools/north_star.py; do not edit by hand -->
 
-### Progress: **73.1 of 100 points**
+### Progress: **76.4 of 100 points**
 
-`██████████████████░░░░░░░` 73.1%
+`███████████████████░░░░░░` 76.4%
 
 | Steps done | Current step | Points left | Of which wait on the owner | Last measured |
 |---|---|---|---|---|
-| 17 of 25 | 18 · NS9 Proven execution | 26.9 | 23 | 2026-09-27 · `d59d178+` |
+| 17 of 25 | 18 · NS9 Proven execution | 23.6 | 23 | 2026-09-28 · `89ce178+` |
 
 `+`: measured on changes over this commit, saved in the next one.
 
@@ -296,10 +296,10 @@ flowchart TB
     subgraph R6_1["R6 · Proven execution"]
         direction LR
         NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 100%"]:::done
-        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 40%"]:::current
+        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 81%"]:::current
         NS20["<b>19 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
         NS26 -->|"✔ E5≥0.8 · +2 acceptance tests"| NS9
-        NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +5 acceptance tests"| NS20
+        NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +6 acceptance tests"| NS20
     end
     subgraph R7_1["R7 · Operational hardening (1/2)"]
         direction LR

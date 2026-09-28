@@ -235,6 +235,15 @@ class AssistantTests(unittest.TestCase):
             self.assertEqual(assistants.provider(), (None, None))
 
 
+class RunRecordTests(unittest.TestCase):
+    def test_a_run_is_recorded_in_a_folder_made_for_it(self):
+        from types import SimpleNamespace
+        from eaos.live_run import LiveRun
+        with tempfile.TemporaryDirectory() as tmp:
+            LiveRun.record(SimpleNamespace(runtime=Path(tmp), commit='abc', log=[]), 'runtime/checks-original-log.json')
+            self.assertEqual(json.loads((Path(tmp) / 'runtime/checks-original-log.json').read_text())['commit'], 'abc')
+
+
 if __name__ == '__main__':
     unittest.main()
 

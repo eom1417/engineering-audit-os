@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "title": "الوجهة: EAOS يعمل عمل شركة برمجية تعيد إنتاج مشروع هواة كمنتج احترافي",
-  "measured_at": "2026-09-27",
-  "measured_at_commit": "25d9950",
+  "measured_at": "2026-09-28",
+  "measured_at_commit": "89ce178+",
   "vision": [
     "صاحب مشروع بناه بالـvibe coding: البرنامج يعمل، لكنه لا يعرف كيف بُني، ولا مداخله ومخارجه، ولا حدوده، ولا تعقيده ولا تكراره.",
     "لو ذهب إلى شركة برمجية لإعادة إنتاجه، ستفعل أربعة أشياء بالترتيب، وهذا بالضبط ما يجب أن يفعله EAOS:",
@@ -259,7 +259,7 @@
           "definition": "مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "user surfaces found: FleetManageWeb 77 · finance-os-a0192b7b 29 · RendaPerene 4",
+          "evidence": "user surfaces found: FleetManageWeb 43 · finance-os-a0192b7b 29 · RendaPerene 4",
           "reads": "facts/entrypoints.json: facts of kind `entry_point` whose value.framework is not npm_script or public_api",
           "measured": "automated"
         },
@@ -278,8 +278,8 @@
           "name": "الأدوات المعتمدة مثبّتة بإصداراتها",
           "definition": "الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات",
           "target": 1.0,
-          "value": 0.966,
-          "evidence": "28/29 assessment tools at their pinned version; missing: dependency-cruiser",
+          "value": 1.0,
+          "evidence": "29/29 assessment tools at their pinned version",
           "reads": "eaos tools doctor --json → tools[] {name, role, pinned, found, ok}",
           "measured": "automated"
         },
@@ -329,7 +329,7 @@
           "definition": "أخطاء كتالوج eaos/data/errors.json التي لها رسالة بسيطة بالعربية والإنجليزية وحل قابل للنسخ ÷ أخطاء الكتالوج",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "known errors with a plain message, a fix and a command in Arabic and English: 16/16",
+          "evidence": "known errors with a plain message, a fix and a command in Arabic and English: 17/17",
           "reads": "eaos/data/errors.json",
           "measured": "automated"
         },
@@ -346,12 +346,32 @@
         {
           "id": "X7",
           "name": "المالك غير التقني نجح وحده",
-          "definition": "المالك (غير تقني) أكمل من الصفر حتى أول إصلاح مطبّق باتباع الدليل وحده، بلا مساعدة",
+          "definition": "المالك (غير تقني) أكمل حتى أول إصلاح مطبّق، بطلب عادي لمساعده الذكي (Claude Code أو Codex) وبالدليل وحده، بلا مساعدة",
           "target": 1.0,
           "value": null,
           "evidence": "not measured yet: docs/USER-EXPERIENCE.md",
           "reads": "docs/ux-trials/owner.md: سجل التجربة كما جرت",
           "measured": "recorded"
+        },
+        {
+          "id": "X8",
+          "name": "كل القدرات داخل المساعد",
+          "definition": "قدرات الطريق الموجَّه (الحال، الفحص، متابعة العمل الطويل، الأدلة، تشغيل البرنامج، تصوير الشاشات، إصلاح بطاقة، التسليم، الاعتماد، التراجع) التي لها أداة MCP مسجّلة ومختبرة ÷ هذه القدرات",
+          "target": 1.0,
+          "value": 1.0,
+          "evidence": "capabilities of the guided way with a tested MCP tool: 10/10",
+          "reads": "eaos/mcp_server.py → CAPABILITIES و build()، و tests/test_mcp.py",
+          "measured": "automated"
+        },
+        {
+          "id": "X9",
+          "name": "المساعد يُكمل وحده",
+          "definition": "مشاريع التجربة التي أوصلها مساعد حقيقي (Claude Code بلا تدخل بشري) من طلب عادي إلى فرع إصلاحات مسلّم في المشروع، بموافقة واحدة من الشخص (دورتان على الأكثر) وبلا ملف يدوي ÷ مشاريع التجربة",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet: docs/MCP.md",
+          "reads": "${EAOS_MEASURE:-/workspace/eaos-measure}/mcp/<مشروع>/trial.json → delivered و person_turns و manual_files",
+          "measured": "automated"
         }
       ]
     },
@@ -397,7 +417,7 @@
           "definition": "مشاريع العيّنة التي يسرد تقريرها وظائف البرنامج (ماذا يفعل للمستخدم) مربوطة بأسطحها وبياناتها ÷ عدد المشاريع",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "features in features.json: FleetManageWeb 32 · finance-os-a0192b7b 21 · RendaPerene 4",
+          "evidence": "features in features.json: FleetManageWeb 24 · finance-os-a0192b7b 21 · RendaPerene 4",
           "reads": "features.json → features[] (non-empty)",
           "measured": "automated"
         },
@@ -406,8 +426,8 @@
           "name": "المداخل والمخارج والحدود",
           "definition": "متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع",
           "target": 0.8,
-          "value": 0.845,
-          "evidence": "answered load questions: FleetManageWeb 493/648 · finance-os-a0192b7b 216/232 · RendaPerene 27/32",
+          "value": 0.918,
+          "evidence": "answered load questions: FleetManageWeb 360/368 · finance-os-a0192b7b 216/232 · RendaPerene 27/32",
           "reads": "load-model.json → entry_points[].answers[].status == \"answered\"",
           "measured": "automated"
         },
@@ -444,8 +464,8 @@
           "name": "الادعاءات غير الضجيجية",
           "definition": "متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع",
           "target": 0.8,
-          "value": 0.883,
-          "evidence": "claims that are not structural clones: FleetManageWeb 188/208 · finance-os-a0192b7b 196/246 · RendaPerene 56/59",
+          "value": 0.884,
+          "evidence": "claims that are not structural clones: FleetManageWeb 194/214 · finance-os-a0192b7b 196/246 · RendaPerene 56/59",
           "reads": "dossier.json → claims[].statement not containing \"share the same structure up to identifier names\"",
           "measured": "automated"
         },
@@ -503,7 +523,7 @@
           "definition": "بطاقات remediate جاهزة (ready) بنمط remove_dead وأمر قبول قابل للتشغيل ÷ ادعاءات الكود الميت والمخلفات (render.key = dead_code أو leftover)",
           "target": 0.9,
           "value": 1.0,
-          "evidence": "ready remove_dead cards: 148 for 148 dead-code and leftover claims",
+          "evidence": "ready remove_dead cards: 155 for 155 dead-code and leftover claims",
           "reads": "plan.json → tasks[] with pattern \"remove_dead\", kind \"remediate\", decision.readiness \"ready\", runnable acceptance; divided by dossier.json claims whose render.key is \"dead_code\" or \"leftover\"",
           "measured": "automated"
         }
@@ -559,7 +579,7 @@
           "definition": "مشاريع العيّنة التي فيها target_components غير فارغة ÷ عدد المشاريع",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "target_components: FleetManageWeb 37 · finance-os-a0192b7b 27 · RendaPerene 9",
+          "evidence": "target_components: FleetManageWeb 29 · finance-os-a0192b7b 27 · RendaPerene 9",
           "reads": "target-architecture.json → target_components[] (non-empty)",
           "measured": "automated"
         },
@@ -599,7 +619,7 @@
           "definition": "وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "features placed in a target component: FleetManageWeb 32/32 · finance-os-a0192b7b 21/21 · RendaPerene 4/4",
+          "evidence": "features placed in a target component: FleetManageWeb 24/24 · finance-os-a0192b7b 21/21 · RendaPerene 4/4",
           "reads": "features.json → features[].target_component",
           "measured": "automated"
         },
@@ -665,7 +685,7 @@
           "definition": "بطاقات effort معروف ÷ كل البطاقات في العيّنة",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with a known effort: 504/504",
+          "evidence": "cards with a known effort: 510/510",
           "reads": "plan.json → tasks[].effort not \"unknown\"",
           "measured": "automated"
         },
@@ -674,8 +694,8 @@
           "name": "إصلاحات جاهزة",
           "definition": "بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة",
           "target": 0.5,
-          "value": 0.587,
-          "evidence": "ready remediate cards: 296/504",
+          "value": 0.594,
+          "evidence": "ready remediate cards: 303/510",
           "reads": "plan.json → tasks[] with kind \"remediate\" and decision.readiness \"ready\"",
           "measured": "automated"
         },
@@ -685,7 +705,7 @@
           "definition": "بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات",
           "target": 0.8,
           "value": 1.0,
-          "evidence": "cards with a runnable acceptance command: 504/504",
+          "evidence": "cards with a runnable acceptance command: 510/510",
           "reads": "plan.json → tasks[].acceptance[].command, none containing \"human review\"",
           "measured": "automated"
         },
@@ -705,7 +725,7 @@
           "definition": "بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "cards with options, do-nothing and rollback: 504/504",
+          "evidence": "cards with options, do-nothing and rollback: 510/510",
           "reads": "plan.json → tasks[].options (≥ 2, one \"Do nothing\") and rollback",
           "measured": "automated"
         },
@@ -744,8 +764,8 @@
           "name": "المهام الآلية معها أداة تحويل",
           "definition": "بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات",
           "target": 0.8,
-          "value": 0.838,
-          "evidence": "mechanical cards whose codemod ran dry without error: FleetManageWeb 118/131 · finance-os-a0192b7b 36/55 · RendaPerene 12/12",
+          "value": 0.844,
+          "evidence": "mechanical cards whose codemod ran dry without error: FleetManageWeb 125/138 · finance-os-a0192b7b 36/55 · RendaPerene 12/12",
           "reads": "plan.json → tasks[].codemod {tool, command, dry_run {exit, files_changed}}",
           "measured": "automated"
         },
@@ -803,7 +823,7 @@
           "reads": "behavior-lock/plan.json → specs[] {feature, tool, path}، مقابل features.json → features[].name",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "features with a behavior-lock spec: FleetManageWeb 32/32 · finance-os-a0192b7b 21/21 · RendaPerene 4/4",
+          "evidence": "features with a behavior-lock spec: FleetManageWeb 24/24 · finance-os-a0192b7b 21/21 · RendaPerene 4/4",
           "measured": "automated"
         },
         {
@@ -4102,7 +4122,8 @@
             "قاعدة البيانات: يكتشف نوعها (PostgreSQL، Supabase، SQLite، بلا قاعدة) ويجهّز نسخة محلية على loopback بكلمات سر مولَّدة محليًا (Supabase: supabase start). متغيرات البيئة الناقصة تُملأ بقيم وهمية آمنة مولَّدة، ولا يُسأل المستخدم عن سر أبدًا.",
             "التفويض: سؤال واحد «هل تسمح بتشغيل مشروعك في نسخة معزولة على جهازك؟ (نعم/لا)»، و«نعم» تكتب authorization.json.",
             "الدخول والبيانات: سكربت بيانات المشروع إن وُجد؛ وإلا يُفتح متصفح مرة واحدة يدخل فيه المستخدم ويضيف بيانات قليلة وتُحفظ الجلسة؛ وإن رفض، تُصوَّر الشاشات فارغة ويُكتب ذلك قيدًا في التقرير.",
-            "ما لا يُكتشف يُسأل عنه بسؤال نعم/لا أو اختيار، ويُسجَّل السؤال في trial.json."
+            "ما لا يُكتشف يُسأل عنه بسؤال نعم/لا أو اختيار، ويُسجَّل السؤال في trial.json.",
+            "كما نُفّذ: eaos/live_setup.py يكتشف مجلد التطبيق وأوامر التثبيت والتشغيل والبناء والمنفذ والفحوص وقاعدة البيانات، ويكتب run.json بلا يد؛ قاعدة PostgreSQL محلية على loopback (eaos/local_db.py)؛ قيم وهمية مولّدة بدل الأسرار؛ التفويض بعد «نعم» واحدة. حين لا يكفي الاكتشاف يقترح المساعد (5 محاولات) ويُفحص الاقتراح بـ safe(). تجارب chief-ops وendomap من الصفر: سؤالان نعم/لا (X2 = 1.0)، وبلا ملف يدوي."
           ],
           "done_when": [
             "eaos live setup ثم lock ثم baseline تنجح على chief-ops من الصفر بلا ملف يدوي.",
@@ -4114,7 +4135,7 @@
           ],
           "acceptance": "python -m unittest tests.test_live_setup && python tools/north_star.py measure --only X2 --min 1.0",
           "rollback": "احذف الأوامر الجديدة؛ الأوامر القديمة لم تتغير.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS9.T4",
@@ -4138,7 +4159,8 @@
             "eaos live cards: البطاقات الجاهزة بجملة مفهومة لكل واحدة ودفعتها.",
             "eaos live execute --wave N: بطاقات الدفعة فوق بعضها في نسخة واحدة، كل بطاقة خلف بواباتها الأربع، والفاشلة تُتخطى بسببها بكلام بسيط.",
             "eaos live apply: ما نجح يصير فرعًا جديدًا eaos/wave-N في مشروع المستخدم، وفرعه الحالي لا يُلمس؛ ثم مقارنة قبل وبعد.",
-            "eaos live undo: يحذف الفرع ويعيد الحال كما كان."
+            "eaos live undo: يحذف الفرع ويعيد الحال كما كان.",
+            "كما نُفّذ: eaos/waves.py ينفّذ دفعات من 10 بطاقات في نسخة واحدة: كل بطاقة commit وحدها خلف فحص الكسر ونقاط الوصول، ثم القبول من جمع حقائق واحد، ثم فحوص المشروع وقفل السلوك مرة للدفعة مع البحث عن المسبب بالتنصيف. التسليم فرع eaos/wave-N يُجلب إلى المشروع دون لمس فرعه؛ eaos accept (ff-only) وeaos undo. chief-ops: 10/10 في eaos/wave-1 (X1 = 1.0)."
           ],
           "done_when": [
             "دفعة كاملة على chief-ops تُطبَّق فرعًا وتُتراجع عنه، بلا ملف يدوي."
@@ -4149,7 +4171,7 @@
           ],
           "acceptance": "python -m unittest tests.test_execute && python tools/north_star.py measure --only X1 --min 1.0",
           "rollback": "احذف الأوامر الجديدة؛ الأوامر القديمة لم تتغير.",
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS9.T5",
@@ -4176,7 +4198,8 @@
             "جدول نوايا eaos/data/intents.json: طلبات عادية عربية وإنجليزية («افحص مشروعي»، «وش المشاكل»، «أصلح»، «وريني النتيجة»، «تراجع»، «وين وصلنا») ← الأمر الصحيح، ومتى يُسأل المستخدم قبل التنفيذ.",
             "مهارة Claude Code (integrations/claude-code/) وتعليمات Codex (integrations/codex/AGENTS.md) تُثبَّت بأمر: eaos assistant install. تشرح للمساعد متى يستدعي أي أمر وكيف يعرض النتيجة بكلام بسيط.",
             "خادم MCP (eaos mcp) يعرض الأوامر أدوات: start وnext وstatus وcards وexecute وapply وundo.",
-            "التنفيذ يستخدم المساعد المثبّت نفسه (Claude أو Codex) بلا مفتاح API، كما في eaos/runtime/claude_adapter.py."
+            "التنفيذ يستخدم المساعد المثبّت نفسه (Claude أو Codex) بلا مفتاح API، كما في eaos/runtime/claude_adapter.py.",
+            "كما نُفّذ: eaos/data/intents.json وeaos/intents.py يربطان الطلب العادي بالأمر (X6 = 0.976: الحالات 47/47، المحجوزة 17/18، غير المضبوطة 19/20)؛ eaos do؛ مهارة Claude Code وتعليمات Codex بأمر eaos assistant install. تطوّر بعدها إلى الطريق الأساسي: خادم MCP (NS9.T7)."
           ],
           "done_when": [
             "X6 ≥ 0.9 على tests/fixtures/intents.json."
@@ -4187,6 +4210,114 @@
           ],
           "acceptance": "python -m unittest tests.test_intents && python tools/north_star.py measure --only X6 --min 0.9",
           "rollback": "احذف الأوامر الجديدة؛ الأوامر القديمة لم تتغير.",
+          "status": "done"
+        },
+        {
+          "id": "NS9.T7",
+          "title": "EAOS داخل المساعد: أدوات MCP للتشخيص والتشغيل",
+          "why": "قرار المالك (2026-09-28): الطريق الأساسي أن يضيف المستخدم EAOS إلى مساعده الذكي، والمساعد يدير العمل كله بقدراته الكاملة. الأوامر وحدها بلا ذكاء اصطناعي «بدائية وضعيفة» (docs/MCP.md).",
+          "moves": [
+            "X8"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS9.T5"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/mcp_server.py",
+            "eaos/agent_tools.py",
+            "eaos/jobs.py",
+            "tests/test_mcp.py",
+            "pyproject.toml"
+          ],
+          "steps": [
+            "خادم MCP بالحزمة الرسمية (mcp 2.x): تعليمات للمساعد، وأدوات، وأوامر جاهزة (audit وfix وstatus).",
+            "العمل الطويل مهمة مستقلة (eaos/jobs.py) تعيش بعد إغلاق المساعد، تُتابَع بـ wait مع التقدم.",
+            "أدوات التشخيص: status وaudit وoverview وfindings وfinding (بالدليل ومقتطف الكود) وstructure وplan وreport_file.",
+            "أدوات التشغيل: run_setup (موافقة الشخص مرة واحدة) وrun_try (اقتراح المساعد يمر على safe() ثم يُجرَّب) وsafety_net. EAOS لا يستدعي نموذجًا في هذا الطريق: المساعد هو من يفكر."
+          ],
+          "done_when": [
+            "X8 = 1.0.",
+            "tests/test_mcp.py يمر، ومنه اختبار عبر stdio بعميل MCP حقيقي."
+          ],
+          "pitfalls": [
+            "لا يُقال للمساعد «نعم» نيابة عن الشخص: person_agreed فقط بعد موافقته.",
+            "قواعد الأمان في EAOS لا في التعليمات: أي اقتراح غير آمن يُرفض بسببه."
+          ],
+          "acceptance": "python -m unittest tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0",
+          "rollback": "احذف الأدوات الجديدة؛ الأوامر كما هي.",
+          "writes": [],
+          "status": "todo"
+        },
+        {
+          "id": "NS9.T8",
+          "title": "EAOS داخل المساعد: الإصلاح والتسليم بالمساعد",
+          "why": "الإصلاح يكتبه مساعد المستخدم وهو يرى المشروع كله، لا نموذج يُرسل له ملف. EAOS يعطي النسخة المعزولة والبوابات والتسليم.",
+          "moves": [
+            "X8",
+            "X9"
+          ],
+          "needs": "sandbox",
+          "depends_on": [
+            "NS9.T7"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/agent_tools.py",
+            "eaos/waves.py",
+            "eaos/execute.py",
+            "tests/test_mcp.py",
+            "tools/mcp_trial.py"
+          ],
+          "steps": [
+            "fix_start يفتح دفعة في نسخة معزولة ويطبّق الإصلاحات الآلية (codemods) ويفحصها.",
+            "fix_read وfix_edit: المساعد يقرأ ويعدّل أي ملف في النسخة (استبدال مرة واحدة، أو ملف كامل، أو حذف)، وكل تعديل يُفحص فورًا: المشكلة اختفت، لا كسر جديد، لا نقطة وصول حُذفت؛ الفاشل يُرجع بسببه.",
+            "fix_finish: فحوص المشروع وقفل السلوك على الدفعة كلها (مع البحث عن المسبب)، ثم الفرع eaos/wave-N في المشروع؛ accept وundo.",
+            "tools/mcp_trial.py: تجربة حقيقية بـ Claude Code بلا تدخل: طلب عادي، ثم «نعم» واحدة، حتى فرع مسلّم؛ تكتب trial.json."
+          ],
+          "done_when": [
+            "X9 = 1.0 على chief-ops وendomap."
+          ],
+          "pitfalls": [
+            "التجربة تُحسب فقط إن لم يتدخل أحد بين الطلب والفرع إلا بالموافقة الواحدة."
+          ],
+          "acceptance": "python -m unittest tests.test_mcp && python tools/north_star.py measure --only X9 --min 1.0",
+          "rollback": "احذف أدوات الإصلاح؛ eaos next كما هو.",
+          "writes": [],
+          "status": "todo"
+        },
+        {
+          "id": "NS9.T9",
+          "title": "التثبيت يضع EAOS داخل المساعد تلقائيًا",
+          "why": "لا يكتب المستخدم إعدادًا: سطر التثبيت نفسه يسجّل EAOS في Claude Code وCodex.",
+          "moves": [
+            "X8"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS9.T8"
+          ],
+          "size": "S",
+          "files": [
+            "install.sh",
+            "eaos/assistant_setup.py",
+            "eaos/templates/assistants/",
+            "tests/test_intents.py"
+          ],
+          "steps": [
+            "install.sh يشغّل eaos assistant install حين يجد claude أو codex: الخادم مسجّل (claude mcp add --scope user، و[mcp_servers.eaos] بمهلة تكفي)، والمهارة والتعليمات تشرح الطريق كله.",
+            "الخطوة التالية بعد التثبيت: «افتح مساعدك في مجلد مشروعك واكتب: افحص مشروعي بـ EAOS وأصلح مشاكله»."
+          ],
+          "done_when": [
+            "تثبيت من حساب نظيف فيه claude يسجّل الخادم، ويستدعي claude -p أداة status منه."
+          ],
+          "pitfalls": [
+            "لا يُكتب في ملفات المستخدم إلا جزء EAOS، ويُستبدل عند إعادة التثبيت."
+          ],
+          "acceptance": "python -m unittest tests.test_intents tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0",
+          "rollback": "أعد install.sh السابق.",
+          "writes": [],
           "status": "todo"
         },
         {
@@ -4197,11 +4328,12 @@
             "X1",
             "X2",
             "X3",
-            "X7"
+            "X7",
+            "X9"
           ],
           "needs": "sandbox",
           "depends_on": [
-            "NS9.T5"
+            "NS9.T9"
           ],
           "size": "M",
           "files": [
@@ -4213,6 +4345,7 @@
           ],
           "writes": [],
           "steps": [
+            "الدليل يبدأ بالطريق الأساسي: التثبيت بسطر، ثم طلب عادي للمساعد الذكي (docs/MCP.md)؛ الأوامر طريق ثانٍ.",
             "docs/GUIDE.md وملخصه في README: «من الصفر إلى أول إصلاح». لكل خطوة: الأمر في مربع للنسخ، والمدة، والمخرج المتوقع، والخطوة التالية. وقسم «إذا ظهر لك هذا الخطأ». بلا مصطلحات، عربي وإنجليزي.",
             "tools/ux_trial.py: تجربة من الصفر في حساب نظيف بالأوامر وحدها، تكتب trial.json {manual_files, questions[], minutes_to_first_report, applied}.",
             "التجارب: chief-ops، وendomap، وقالب Supabase رسمي مفتوح المصدر. تجربة احتاجت تدخلًا يدويًا واحدًا لا تُحسب، وتصير مهمة.",

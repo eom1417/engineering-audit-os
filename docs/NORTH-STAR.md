@@ -4,13 +4,15 @@
 
 ## أين نحن
 
-### التقدم: **77.1 من 100 نقطة**
+### التقدم: **76.4 من 100 نقطة**
 
-`███████████████████░░░░░░` 77.1%
+`███████████████████░░░░░░` 76.4%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 17 من 25 | 18 · NS9 إثبات التنفيذ | 22.9 | 23 | 2026-09-27 · `25d9950` |
+| 17 من 25 | 18 · NS9 إثبات التنفيذ | 23.6 | 23 | 2026-09-28 · `89ce178+` |
+
+`+`: قيس على تغييرات فوق هذا الالتزام، حُفظت في الالتزام التالي.
 
 **كيف يُحسب:**
 
@@ -74,10 +76,10 @@ flowchart TB
     subgraph R6_1["R6 · التنفيذ المثبت"]
         direction LR
         NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 100%"]:::done
-        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 90%"]:::current
+        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 81%"]:::current
         NS20["<b>19 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
         NS26 -->|"✔ E5≥0.8 · +2 اختبار قبول"| NS9
-        NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +5 اختبار قبول"| NS20
+        NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +6 اختبار قبول"| NS20
     end
     subgraph R7_1["R7 · التصليب التشغيلي (1/2)"]
         direction LR
@@ -125,7 +127,7 @@ flowchart TB
 | 4 | [**NS4** الإشارة لا الضجيج](#step-4) | R1 | 3 | 100% | 3 | 100% | ✅ مكتملة | S1≥0.8 · S2≥0.8 |
 | 5 | [**NS5** الكود الميت والمخلفات: كشف وحذف آمن](#step-5) | R1 | 4 | 100% | 4 | 100% | ✅ مكتملة | D1≥0.8 · D2≥0.9 · D3≥0.9 |
 | 6 | [**NS6** نظافة الأمن الأساسية](#step-6) | R1 | 3 | 100% | 3 | 100% | ✅ مكتملة | H1=1 · +1 اختبار قبول |
-| 7 | [**NS17** منصة الأدوات: كل أداة تدخل بطريقة واحدة](#step-7) | R2 | 5 | 100% | 5 | 97% | ✅ مكتملة | R4=1 · +4 اختبار قبول |
+| 7 | [**NS17** منصة الأدوات: كل أداة تدخل بطريقة واحدة](#step-7) | R2 | 5 | 100% | 5 | 100% | ✅ مكتملة | R4=1 · +4 اختبار قبول |
 | 8 | [**NS11** الاستلام: ماذا يجب أن يُحمى، وإلى أين](#step-8) | R3 | 2 | 100% | 2 | 100% | ✅ مكتملة | U6=1 · +1 اختبار قبول |
 | 9 | [**NS12** محوّلات الفحص الساكن: أدوات جاهزة بدل كود نكتبه](#step-9) | R3 | 5 | 100% | 5 | 100% | ✅ مكتملة | H3=1 · R3=1 · +12 اختبار قبول |
 | 10 | [**NS18** القياس وسجل الدَّين: الأرقام لكل ملف، والخطر حين تجتمع الأدلة](#step-10) | R3 | 4 | 100% | 4 | 100% | ✅ مكتملة | M1≥0.95 · S3≥0.8 · G2=1 · +2 اختبار قبول |
@@ -136,7 +138,7 @@ flowchart TB
 | 15 | [**NS14** جودة التقرير تُفحص آليًا](#step-15) | R5 | 2 | 100% | 2 | 100% | ✅ مكتملة | P8=1 · +3 اختبار قبول |
 | 16 | [**NS25** عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي](#step-16) | R5 | 4 | 100% | 4 | 100% | ✅ مكتملة | K1=1 · +4 اختبار قبول |
 | 17 | [**NS26** خط الأساس الحي: السلوك والأرقام قبل أي تغيير](#step-17) | R6 | 4 | 100% | 4 | 100% | ✅ مكتملة | E5≥0.8 · +2 اختبار قبول |
-| 18 | [**NS9** إثبات التنفيذ](#step-18) | R6 | 8 | 90% | 7.2 | 88% | 🟡 قيد العمل | E1=1 · X4=1 · X5=1 · X2=1 · X1=1 · X6≥0.9 · … · +5 اختبار قبول |
+| 18 | [**NS9** إثبات التنفيذ](#step-18) | R6 | 8 | 81% | 6.47 | 80% | 🟡 قيد العمل | E1=1 · X4=1 · X5=1 · X2=1 · X1=1 · X6≥0.9 · … · +6 اختبار قبول |
 | 19 | [**NS20** التحقق الوظيفي: الوظائف نفسها باقية، والتنبؤ حدث](#step-19) | R6 | 5 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E7=1 · E2≥0.8 |
 | 20 | [**NS21** الأمن بعد التحول: ساكنًا وحيًا](#step-20) | R7 | 3 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E8=1 · +1 اختبار قبول |
 | 21 | [**NS22** الحمل: قبل وبعد بالشروط نفسها](#step-21) | R7 | 3 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E6≥0.8 |
@@ -144,7 +146,7 @@ flowchart TB
 | 23 | [**NS24** الرصد: كل سطح حرج مرئي](#step-23) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E10≥0.9 · +1 اختبار قبول |
 | 24 | [**NS16** الجاهزية للإنتاج: كل بند بأمر](#step-24) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E11=1 · +1 اختبار قبول |
 | 25 | [**NS10** الإثبات المستقل](#step-25) | R8 | 5 | 18% | 0.9 | 15% | 🔴 تحتاج مدخلًا منك | V4=1 · V3=1 |
-| | **المجموع** | | **100** | | **77.1** | | | |
+| | **المجموع** | | **100** | | **76.4** | | | |
 
 ## الخطوات بالتفصيل
 
@@ -250,7 +252,7 @@ flowchart TB
 | أسطح المستخدم المكتشفة | `U2 ≥ 0.9` | 1.0 | ✅ |
 | نموذج البيانات مقروء | `U3 = 1` | 1.0 | ✅ |
 | جرد الوظائف | `U4 = 1` | 1.0 | ✅ |
-| المداخل والمخارج والحدود | `U5 ≥ 0.8` | 0.845 | ✅ |
+| المداخل والمخارج والحدود | `U5 ≥ 0.8` | 0.918 | ✅ |
 | اختبار قبول | `facts data_access` | — | ✅ |
 | اختبار قبول | `contract features` | — | ✅ |
 
@@ -289,7 +291,7 @@ flowchart TB
 
 | المعيار | الشرط | اليوم | الحال |
 | --- | --- | --- | --- |
-| الادعاءات غير الضجيجية | `S1 ≥ 0.8` | 0.883 | ✅ |
+| الادعاءات غير الضجيجية | `S1 ≥ 0.8` | 0.884 | ✅ |
 | دقة مرشحات الكود الميت | `S2 ≥ 0.8` | 1.0 | ✅ |
 
 **المهام:**
@@ -379,7 +381,7 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 5 | 100% | 5 من 5 | 97% | R2 | — |
+| 5 | 100% | 5 من 5 | 100% | R2 | — |
 
 **الهدف:** R4 = 1، وقارئ SARIF، وإطار التوليد، والمراحل كبيانات، والبيئة المعزولة مختبرة.
 
@@ -401,7 +403,7 @@ flowchart TB
 
 | المعيار | الشرط | اليوم | الحال |
 | --- | --- | --- | --- |
-| الأدوات المعتمدة مثبّتة بإصداراتها | `R4 = 1` | 0.966 | ❌ |
+| الأدوات المعتمدة مثبّتة بإصداراتها | `R4 = 1` | 1.0 | ✅ |
 | اختبار قبول | `test ns17_t2_sarif` | — | ✅ |
 | اختبار قبول | `test ns17_t3_emit` | — | ✅ |
 | اختبار قبول | `test ns17_t4_engage` | — | ✅ |
@@ -704,7 +706,7 @@ flowchart TB
 | أوامر قبول قابلة للتشغيل | `P3 ≥ 0.8` | 1.0 | ✅ |
 | أقسام الفريق | `P6 = 1` | 1.0 | ✅ |
 | التقارير الأربعة | `P7 = 1` | 1.0 | ✅ |
-| المهام الآلية معها أداة تحويل | `P9 ≥ 0.8` | 0.838 | ✅ |
+| المهام الآلية معها أداة تحويل | `P9 ≥ 0.8` | 0.844 | ✅ |
 
 **المهام:**
 
@@ -841,7 +843,7 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 8 | 90% | 7.2 من 8 | 88% | R6 | S08 |
+| 8 | 81% | 6.47 من 8 | 80% | R6 | S08 |
 
 **الهدف:** E1 = 1.0 و E2 ≥ 0.8.
 
@@ -869,13 +871,16 @@ flowchart TB
 | أسئلة قليلة وبسيطة | `X2 = 1` | 1.0 | ✅ |
 | صفر ملفات يدوية | `X1 = 1` | 1.0 | ✅ |
 | المساعد يفهم القصد | `X6 ≥ 0.9` | 0.976 | ✅ |
+| كل القدرات داخل المساعد | `X8 = 1` | 1.0 | ✅ |
+| المساعد يُكمل وحده | `X9 = 1` | — | ❌ |
 | أول تقرير خلال 30 دقيقة | `X3 = 1` | 1.0 | ✅ |
 | المالك غير التقني نجح وحده | `X7 = 1` | — | ❌ |
 | اختبار قبول | `contract execution-log` | — | ✅ |
 | اختبار قبول | `unittest tests.test_guided` | — | ✅ |
-| اختبار قبول | `unittest tests.test_live_setup` | — | ⬜ |
-| اختبار قبول | `unittest tests.test_execute` | — | ⬜ |
-| اختبار قبول | `unittest tests.test_intents` | — | ⬜ |
+| اختبار قبول | `unittest tests.test_live_setup` | — | ✅ |
+| اختبار قبول | `unittest tests.test_execute` | — | ✅ |
+| اختبار قبول | `unittest tests.test_intents` | — | ✅ |
+| اختبار قبول | `unittest tests.test_mcp` | — | ⬜ |
 
 **المهام:**
 
@@ -883,9 +888,12 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | [NS9.T1](#ns9t1) تنفيذ حقيقي على مشروع من العيّنة | L | ✅ | 100% | `python tools/north_star.py measure --only E1 --min 1.0 && python tools/acceptance.py contract execution-log` |
 | [NS9.T2](#ns9t2) بداية سهلة: تثبيت بسطر واحد، وفحص جاهزية، وأوامر موجِّهة | L | ✅ | 100% | `python -m unittest tests.test_guided && python tools/north_star.py measure --only X4 --min 1.0 && python tools/north_star.py measure --only X5 --min 1.0` |
-| [NS9.T3](#ns9t3) إعداد تشغيل تلقائي: لا ملف يدوي ولا سكربت | L | ⬜ | 90% | `python -m unittest tests.test_live_setup && python tools/north_star.py measure --only X2 --min 1.0` |
-| [NS9.T4](#ns9t4) تنفيذ بالدفعات، وتطبيق فرعًا، وتراجع | M | ⬜ | 90% | `python -m unittest tests.test_execute && python tools/north_star.py measure --only X1 --min 1.0` |
-| [NS9.T5](#ns9t5) المساعد الذكي يفهم الطلب العادي (Claude Code وCodex) | M | ⬜ | 90% | `python -m unittest tests.test_intents && python tools/north_star.py measure --only X6 --min 0.9` |
+| [NS9.T3](#ns9t3) إعداد تشغيل تلقائي: لا ملف يدوي ولا سكربت | L | ✅ | 100% | `python -m unittest tests.test_live_setup && python tools/north_star.py measure --only X2 --min 1.0` |
+| [NS9.T4](#ns9t4) تنفيذ بالدفعات، وتطبيق فرعًا، وتراجع | M | ✅ | 100% | `python -m unittest tests.test_execute && python tools/north_star.py measure --only X1 --min 1.0` |
+| [NS9.T5](#ns9t5) المساعد الذكي يفهم الطلب العادي (Claude Code وCodex) | M | ✅ | 100% | `python -m unittest tests.test_intents && python tools/north_star.py measure --only X6 --min 0.9` |
+| [NS9.T7](#ns9t7) EAOS داخل المساعد: أدوات MCP للتشخيص والتشغيل | L | ⬜ | 90% | `python -m unittest tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0` |
+| [NS9.T8](#ns9t8) EAOS داخل المساعد: الإصلاح والتسليم بالمساعد | L | ⬜ | 0% | `python -m unittest tests.test_mcp && python tools/north_star.py measure --only X9 --min 1.0` |
+| [NS9.T9](#ns9t9) التثبيت يضع EAOS داخل المساعد تلقائيًا | S | ⬜ | 90% | `python -m unittest tests.test_intents tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0` |
 | [NS9.T6](#ns9t6) الدليل والإثبات: من الصفر إلى أول إصلاح | M | ⬜ | 60% | `python tools/north_star.py measure --only X1 --min 1.0 && python tools/north_star.py measure --only X3 --min 1.0 && python tools/north_star.py measure --only X7 --min 1.0` |
 
 <a id="step-19"></a>
@@ -1165,7 +1173,7 @@ flowchart TB
     end
     subgraph P3["التنفيذ: بيئة معزولة بتفويض المالك (1/2)"]
         direction LR
-        S08["<b>S08 · التنفيذ</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 90%"]:::current
+        S08["<b>S08 · التنفيذ</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 81%"]:::current
         S09["<b>S09 · التحقق الوظيفي</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 0%"]:::next
         S10["<b>S10 · الأمن</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
         S11["<b>S11 · الحمل</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
@@ -1250,16 +1258,18 @@ flowchart TB
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
 | R1 تدقيقات العيّنة المكتملة بلا فشل | عدد مشاريع العيّنة التي ينتهي فيها eaos audit برمز خروج 0 ÷ عدد مشاريع العيّنة | 100% | 100% | exit codes: FleetManageWeb 0 · finance-os-a0192b7b 0 · RendaPerene 0 |
-| R2 الأطر المفهومة | مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع | 100% | 100% | user surfaces found: FleetManageWeb 77 · finance-os-a0192b7b 29 · RendaPerene 4 |
+| R2 الأطر المفهومة | مشاريع العيّنة التي اكتشف فيها EAOS أسطح المستخدم عبر إطارها (مسارات، صفحات، سكربتات) ÷ عدد المشاريع | 100% | 100% | user surfaces found: FleetManageWeb 43 · finance-os-a0192b7b 29 · RendaPerene 4 |
 | R3 محوّلات الفحص الساكن تعمل | متوسط (المحوّلات المعتمدة المنطبقة على المشروع التي عملت فعلًا ÷ المنطبقة)، لكل مشروع. قائمة المحوّلات وشروط انطباقها في adopted_adapters. | 100% | 100% | adopted adapters that ran / applicable: FleetManageWeb 7/7 · finance-os-a0192b7b 8/8 · RendaPerene 7/7 |
-| R4 الأدوات المعتمدة مثبّتة بإصداراتها | الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات | 100% | 97% | 28/29 assessment tools at their pinned version; missing: dependency-cruiser |
+| R4 الأدوات المعتمدة مثبّتة بإصداراتها | الأدوات المعتمدة لعقد التقييم في upstreams/registry.yaml (role = read أو validate) التي يجدها eaos tools doctor بإصدارها المثبّت ÷ تلك الأدوات | 100% | 100% | 29/29 assessment tools at their pinned version |
 | X1 صفر ملفات يدوية | مشاريع التجربة التي وصلت من الصفر إلى أول إصلاح مطبّق بلا أي ملف كتبه المستخدم أو المطوّر باليد ÷ مشاريع التجربة | 100% | 100% | trials that reached an applied fix with no file written by hand: 2/2 (chief-ops, endomap) |
 | X2 أسئلة قليلة وبسيطة | مشاريع التجربة التي سُئل فيها المستخدم 3 أسئلة أو أقل، كلها نعم/لا أو اختيار ÷ مشاريع التجربة | 100% | 100% | trials finished with at most 3 yes/no or choice questions: 2/2 (chief-ops, endomap) |
 | X3 أول تقرير خلال 30 دقيقة | مشاريع التجربة التي وصلت من التثبيت إلى أول تقرير في 30 دقيقة أو أقل ÷ مشاريع التجربة | 100% | 100% | trials that reached the first report within 30 minutes: 2/2 (chief-ops, endomap) |
 | X4 الخطوة التالية دائمًا | أوامر المستخدم (start، next، status، doctor، audit، live …) التي تنتهي بمربع «الخطوة التالية» ÷ هذه الأوامر، بفحص آلي | 100% | 100% | user commands ending with the next-step box: 10/10 |
-| X5 كل خطأ برسالة وحل | أخطاء كتالوج eaos/data/errors.json التي لها رسالة بسيطة بالعربية والإنجليزية وحل قابل للنسخ ÷ أخطاء الكتالوج | 100% | 100% | known errors with a plain message, a fix and a command in Arabic and English: 16/16 |
+| X5 كل خطأ برسالة وحل | أخطاء كتالوج eaos/data/errors.json التي لها رسالة بسيطة بالعربية والإنجليزية وحل قابل للنسخ ÷ أخطاء الكتالوج | 100% | 100% | known errors with a plain message, a fix and a command in Arabic and English: 17/17 |
 | X6 المساعد يفهم القصد | طلبات بلغة عادية (عربي وإنجليزي) في tests/fixtures/intents.json يختار لها جدول النوايا الأمر الصحيح ÷ الطلبات | 90% | 98% | plain requests the intent table maps to the right command: cases 47/47, held_out 17/18, untuned 19/20 (83/85) |
-| X7 المالك غير التقني نجح وحده | المالك (غير تقني) أكمل من الصفر حتى أول إصلاح مطبّق باتباع الدليل وحده، بلا مساعدة | 100% | — | not measured yet: docs/USER-EXPERIENCE.md |
+| X7 المالك غير التقني نجح وحده | المالك (غير تقني) أكمل حتى أول إصلاح مطبّق، بطلب عادي لمساعده الذكي (Claude Code أو Codex) وبالدليل وحده، بلا مساعدة | 100% | — | not measured yet: docs/USER-EXPERIENCE.md |
+| X8 كل القدرات داخل المساعد | قدرات الطريق الموجَّه (الحال، الفحص، متابعة العمل الطويل، الأدلة، تشغيل البرنامج، تصوير الشاشات، إصلاح بطاقة، التسليم، الاعتماد، التراجع) التي لها أداة MCP مسجّلة ومختبرة ÷ هذه القدرات | 100% | 100% | capabilities of the guided way with a tested MCP tool: 10/10 |
+| X9 المساعد يُكمل وحده | مشاريع التجربة التي أوصلها مساعد حقيقي (Claude Code بلا تدخل بشري) من طلب عادي إلى فرع إصلاحات مسلّم في المشروع، بموافقة واحدة من الشخص (دورتان على الأكثر) وبلا ملف يدوي ÷ مشاريع التجربة | 100% | — | not measured yet: docs/MCP.md |
 
 ### C2 — تقرير الوضع الراهن: يرى البرنامج كله
 
@@ -1270,8 +1280,8 @@ flowchart TB
 | U1 تغطية التحليل | متوسط parse_coverage على مشاريع العيّنة | 95% | 95% | parse_coverage: FleetManageWeb 0.978 · finance-os-a0192b7b 0.888 · RendaPerene 0.987 |
 | U2 أسطح المستخدم المكتشفة | متوسط (الأسطح المكتشفة ÷ الأسطح الحقيقية في truth.user_surfaces) لكل مشروع | 90% | 100% | found/true surfaces: FleetManageWeb 43/43 · finance-os-a0192b7b 29/29 · RendaPerene 4/4 |
 | U3 نموذج البيانات مقروء | مشاريع العيّنة ذات قاعدة بيانات التي قُرئت جداولها بحالة RLS لكل جدول، وسياساتها ÷ عدد تلك المشاريع | 100% | 100% | data_table facts with RLS state, and db_policy facts, vs truth: finance-os-a0192b7b 31/31 tables, 108/108 policies |
-| U4 جرد الوظائف | مشاريع العيّنة التي يسرد تقريرها وظائف البرنامج (ماذا يفعل للمستخدم) مربوطة بأسطحها وبياناتها ÷ عدد المشاريع | 100% | 100% | features in features.json: FleetManageWeb 32 · finance-os-a0192b7b 21 · RendaPerene 4 |
-| U5 المداخل والمخارج والحدود | متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع | 80% | 84% | answered load questions: FleetManageWeb 493/648 · finance-os-a0192b7b 216/232 · RendaPerene 27/32 |
+| U4 جرد الوظائف | مشاريع العيّنة التي يسرد تقريرها وظائف البرنامج (ماذا يفعل للمستخدم) مربوطة بأسطحها وبياناتها ÷ عدد المشاريع | 100% | 100% | features in features.json: FleetManageWeb 24 · finance-os-a0192b7b 21 · RendaPerene 4 |
+| U5 المداخل والمخارج والحدود | متوسط الأسئلة المجابة في نموذج الحمل (منها rate_limited و data_access_calls و outbound_calls_protected) ÷ كل أسئلته، لكل مشروع | 80% | 92% | answered load questions: FleetManageWeb 360/368 · finance-os-a0192b7b 216/232 · RendaPerene 27/32 |
 | U6 الاستلام | مشاريع العيّنة التي في تقريرها intake.json وكل أسئلته إما مجابة أو معلّمة افتراضية ÷ عدد المشاريع | 100% | 100% | intake.json complete: FleetManageWeb True · finance-os-a0192b7b True · RendaPerene True |
 | M1 القياس لكل ملف مصدر | متوسط (ملفات المصدر المحلَّلة التي لها في measurements.json الحجم وأعلى تعقيد وعدد التغييرات وعدد المعتمِدين عليها ÷ ملفات المصدر المحلَّلة)، لكل مشروع | 95% | 100% | source files with size, complexity, churn and fan-in: FleetManageWeb 273/273 · finance-os-a0192b7b 301/301 · RendaPerene 74/74 |
 
@@ -1281,7 +1291,7 @@ flowchart TB
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| S1 الادعاءات غير الضجيجية | متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع | 80% | 88% | claims that are not structural clones: FleetManageWeb 188/208 · finance-os-a0192b7b 196/246 · RendaPerene 56/59 |
+| S1 الادعاءات غير الضجيجية | متوسط (الادعاءات − ادعاءات 'share the same structure up to identifier names') ÷ الادعاءات، لكل مشروع | 80% | 88% | claims that are not structural clones: FleetManageWeb 194/214 · finance-os-a0192b7b 196/246 · RendaPerene 56/59 |
 | S2 دقة مرشحات الكود الميت | المرشحات الميتة فعلًا ÷ كل الرموز التي يؤكدها EAOS مرشحةً، على self_truth. المرشح الذي نقضه التحكيم (refuted) أو لا يسمّي رمزًا (not_a_symbol) ليس ادعاءً، والوحدة الكاملة يحكم عليها D1. والاسم الذي لا تقرؤه إلا الاختبارات (test_only) مرشح مراجعة لا ادعاء، فلا يُحسب. | 80% | 100% | 12 dead of 12 distinct candidates (by path and symbol): CASE_BODY, HUMAN_ARTIFACTS, ORIGIN_RANK, OWNED, VERDICTS, _CONFIG_NAMES, _scope_chain, _steps, _trace_evidence, _walk_tree_sitter, run_absence_search, write_next |
 | S3 الخطر العالي مؤكد بشاهدين | متوسط (عناصر debt-register.json بخطورة high أو critical التي يدعمها شاهدان مستقلان من أداتين مختلفتين، أو دليل حتمي واحد ÷ تلك العناصر)، لكل مشروع. مشروع بلا سجل يُحسب صفرًا. | 80% | 100% | high and critical debt items with two independent witnesses: FleetManageWeb 24/24 · finance-os-a0192b7b 11/11 · RendaPerene 0/0 |
 
@@ -1293,7 +1303,7 @@ flowchart TB
 | --- | --- | --- | --- | --- |
 | D1 استدعاء العيوب المعروفة | العيوب المكتشفة من self_truth.defects ÷ 15 | 80% | 100% | 15 of 15 known defects found: eaos/identity.py; eaos/outcomes.py; execution_guide._steps; structure._scope_chain; load_model._trace_evidence; probes.run_absence_search; workflow.seed_roadmap; workflow.write_next; compose/rules.HUMAN_ARTIFACTS; discover.OWNED; dossier.ORIGIN_RANK; go_command.CASE_BODY; cli ALL_SETS undefined in three commands; compose/labels.py; START-HERE.md and three core documents instructed commands that no longer exist |
 | D2 المخلفات المكتشفة | عناصر truth.leftovers المذكورة في التقرير ÷ مجموعها | 90% | 100% | leftovers reported: FleetManageWeb 4/4 |
-| D3 بطاقات حذف آمن جاهزة | بطاقات remediate جاهزة (ready) بنمط remove_dead وأمر قبول قابل للتشغيل ÷ ادعاءات الكود الميت والمخلفات (render.key = dead_code أو leftover) | 90% | 100% | ready remove_dead cards: 148 for 148 dead-code and leftover claims |
+| D3 بطاقات حذف آمن جاهزة | بطاقات remediate جاهزة (ready) بنمط remove_dead وأمر قبول قابل للتشغيل ÷ ادعاءات الكود الميت والمخلفات (render.key = dead_code أو leftover) | 90% | 100% | ready remove_dead cards: 155 for 155 dead-code and leftover claims |
 
 ### C5 — نظافة الأمن الأساسية
 
@@ -1311,11 +1321,11 @@ flowchart TB
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| T1 مكوّنات مستهدفة ملموسة | مشاريع العيّنة التي فيها target_components غير فارغة ÷ عدد المشاريع | 100% | 100% | target_components: FleetManageWeb 37 · finance-os-a0192b7b 27 · RendaPerene 9 |
+| T1 مكوّنات مستهدفة ملموسة | مشاريع العيّنة التي فيها target_components غير فارغة ÷ عدد المشاريع | 100% | 100% | target_components: FleetManageWeb 29 · finance-os-a0192b7b 27 · RendaPerene 9 |
 | T2 قرارات البنية التحتية | مشاريع العيّنة التي تحمل قرارات مسبّبة في الاستضافة والبيانات والهوية والإعدادات وCI والمراقبة ÷ عدد المشاريع | 100% | 100% | infrastructure decisions: FleetManageWeb 9 · finance-os-a0192b7b 10 · RendaPerene 7 |
 | T3 قرارات تغيّر البنية | القرارات التي تنقل أو تقسم أو تدمج أو تستخرج أو تضيف طبقة أو تكسر دورة أو تحذف أو تعيد بناء ÷ كل القرارات | 60% | 81% | decisions that change structure: FleetManageWeb 33/35 · finance-os-a0192b7b 21/29 · RendaPerene 5/9 |
 | T4 قرار لكل مكوّن حالي | (المكوّنات الحالية التي لها قرار صريح بدليله ÷ المكوّنات الحالية) × (عدد القرارات الأربعة التي ينتجها المنتج فعلًا: إعادة استخدام، هيكلة، إعادة بناء، حذف ÷ 4) | 100% | 100% | components with a disposition and reason: FleetManageWeb 47/47 · finance-os-a0192b7b 36/36 · RendaPerene 9/9; dispositions the tool produced: ['delete', 'rebuild', 'restructure', 'reuse'] of 4 |
-| T5 الوظائف نفسها في الصورة المثالية | وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد | 100% | 100% | features placed in a target component: FleetManageWeb 32/32 · finance-os-a0192b7b 21/21 · RendaPerene 4/4 |
+| T5 الوظائف نفسها في الصورة المثالية | وظائف جرد U4 التي لها مكان في مكوّن مستهدف ÷ وظائف الجرد | 100% | 100% | features placed in a target component: FleetManageWeb 24/24 · finance-os-a0192b7b 21/21 · RendaPerene 4/4 |
 | T6 نموذج C4 حالي ومستهدف | مشاريع العيّنة التي في تقريرها architecture/current/workspace.dsl و architecture/target/workspace.dsl، ويذكر النموذج المستهدف اسم كل مكوّن في target_components ÷ عدد المشاريع | 100% | 100% | current and target C4 models naming every target component: FleetManageWeb True · finance-os-a0192b7b True · RendaPerene True |
 | T7 قرارات العمارة بصيغة MADR | ملفات adr/ADR-*.md التي فيها أقسام MADR الثلاثة (Context and Problem Statement، Considered Options، Decision Outcome) ÷ قرارات target-architecture.json | 100% | 100% | MADR files for decisions: FleetManageWeb 35/35 · finance-os-a0192b7b 29/29 · RendaPerene 9/9 |
 
@@ -1334,15 +1344,15 @@ flowchart TB
 
 | المؤشر | التعريف | الهدف | اليوم | الدليل |
 | --- | --- | --- | --- | --- |
-| P1 مهام محددة الحجم | بطاقات effort معروف ÷ كل البطاقات في العيّنة | 100% | 100% | cards with a known effort: 504/504 |
-| P2 إصلاحات جاهزة | بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة | 50% | 59% | ready remediate cards: 296/504 |
-| P3 أوامر قبول قابلة للتشغيل | بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات | 80% | 100% | cards with a runnable acceptance command: 504/504 |
+| P1 مهام محددة الحجم | بطاقات effort معروف ÷ كل البطاقات في العيّنة | 100% | 100% | cards with a known effort: 510/510 |
+| P2 إصلاحات جاهزة | بطاقات remediate بقرار ready ÷ كل البطاقات في العيّنة | 50% | 59% | ready remediate cards: 303/510 |
+| P3 أوامر قبول قابلة للتشغيل | بطاقات أمر قبولها قابل للتشغيل (ليس مراجعة بشرية) ÷ كل البطاقات | 80% | 100% | cards with a runnable acceptance command: 510/510 |
 | P4 معالم بأهداف مقيسة | مشاريع العيّنة التي تجمع خطتها البطاقات في معالم لكل منها هدف وشرط خروج ÷ عدد المشاريع | 100% | 100% | milestones with a goal and exit criterion: FleetManageWeb 7 · finance-os-a0192b7b 8 · RendaPerene 7 |
-| P5 التناسب | بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات | 100% | 100% | cards with options, do-nothing and rollback: 504/504 |
+| P5 التناسب | بطاقات فيها خياران على الأقل، منها 'لا نفعل شيئًا' بكلفته، وطريقة تراجع ÷ كل البطاقات | 100% | 100% | cards with options, do-nothing and rollback: 510/510 |
 | P6 أقسام الفريق | مشاريع العيّنة التي توزّع خطتها المهام على أقسام (واجهة، خادم، بيانات، بنية تحتية، أمن، جودة) مع الاعتماديات بينها ÷ عدد المشاريع | 100% | 100% | every card carries a team section: FleetManageWeb True · finance-os-a0192b7b True · RendaPerene True |
 | P7 التقارير الأربعة | من التقارير الأربعة (الوضع الراهن، الصورة المثالية، الفجوة والتحول، خطة التنفيذ)، عدد ما له وثيقة مخصصة ÷ 4. جودة محتواها تقيسها المؤشرات الأخرى. | 100% | 100% | of the four reports present: FleetManageWeb 4/4 · finance-os-a0192b7b 4/4 · RendaPerene 4/4 |
 | P8 جودة التقارير الأربعة | متوسط (التقارير الأربعة التي مرّت فحص Vale بحزمة EAOS وفحص markdownlint بلا أخطاء ÷ 4)، لكل مشروع | 100% | 100% | of the four reports passing Vale and markdownlint: FleetManageWeb 4/4 · finance-os-a0192b7b 4/4 · RendaPerene 4/4 |
-| P9 المهام الآلية معها أداة تحويل | بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات | 80% | 84% | mechanical cards whose codemod ran dry without error: FleetManageWeb 118/131 · finance-os-a0192b7b 36/55 · RendaPerene 12/12 |
+| P9 المهام الآلية معها أداة تحويل | بطاقات الفئات الآلية (حذف مخلفات أو كود ميت، نقل وحدة وتحديث استيراداتها، ترقية اعتمادية) التي تحمل codemod يعمل تجريبيًا على نسخة بلا خطأ ÷ بطاقات تلك الفئات | 80% | 84% | mechanical cards whose codemod ran dry without error: FleetManageWeb 125/138 · finance-os-a0192b7b 36/55 · RendaPerene 12/12 |
 | K1 عدّة التشغيل والتسليم تقبلها أدواتها | متوسط (الملفات التي يولّدها EAOS بصيغ الأدوات الأصلية ويقبلها مدقق الأداة نفسها ÷ الملفات المتوقعة للمشروع)، لكل مشروع. الملفات: سير GitHub Actions (actionlint)، و.pre-commit-config.yaml (pre-commit validate-config)، وrenovate.json (renovate-config-validator)، وقواعد dependency-cruiser، وقواعد Semgrep (semgrep --validate)، وسكربتات k6 (k6 inspect)، وتجارب Toxiproxy وخطة ZAP (مخطط JSON)، وإعداد OpenTelemetry Collector (otelcol validate)، ومواصفات Sloth (sloth validate)، وgoss.yaml (goss render)، وموقع التسليم (zensical build). ملف لم يُدقَّق لغياب أداته يُحسب فاشلًا. | 100% | 100% | handover kit files accepted by their own tool: FleetManageWeb 12/12 · finance-os-a0192b7b 12/12 · RendaPerene 11/11 |
 
 ### C9 — ضمان التنفيذ: يثبت أن التحول حدث
@@ -1354,7 +1364,7 @@ flowchart TB
 | E1 تنفيذ حقيقي بنموذج على مشروع من العيّنة | 1 إن نُفّذت بطاقة واحدة على الأقل بنموذج (لا بأداة تحويل) على مشروع من العيّنة في نسخة معزولة، وحالتها VERIFIED_IN_ISOLATED_COPY، ومرّ أمر قبولها؛ وإلا 0 | 100% | 100% | a card executed by a model, verified in an isolated copy, acceptance passing: chief-ops True |
 | E2 تنبؤات تحققت | فروق المؤشرات التي تنبأت بها الخطة وحكم عليها eaos guarantee بأنها HONEST ÷ كل الفروق المقارنة، بعد تنفيذ حقيقي | 80% | 0% | predicted indicator deltas the change actually produced: chief-ops 0/0 |
 | E3 حارس التراجع مثبت | 1 إن كانت baseline و delta وبوابة عدم التراجع تعمل وتختبر على هذا المستودع | 100% | 100% | tests/gate/capability_no_regression.sh و no_new_debt.sh تمر. |
-| E4 مواصفات تثبيت السلوك | وظائف features.json التي لها مواصفة اختبار واحدة على الأقل (Playwright أو Schemathesis أو Pact أو ApprovalTests) في behavior-lock/plan.json وملفها موجود ÷ الوظائف | 100% | 100% | features with a behavior-lock spec: FleetManageWeb 32/32 · finance-os-a0192b7b 21/21 · RendaPerene 4/4 |
+| E4 مواصفات تثبيت السلوك | وظائف features.json التي لها مواصفة اختبار واحدة على الأقل (Playwright أو Schemathesis أو Pact أو ApprovalTests) في behavior-lock/plan.json وملفها موجود ÷ الوظائف | 100% | 100% | features with a behavior-lock spec: FleetManageWeb 24/24 · finance-os-a0192b7b 21/21 · RendaPerene 4/4 |
 | E5 شبكة الأمان تمر على الكود الحالي | مواصفات behavior-lock التي شُغّلت في بيئة معزولة ومرّت على الكود الحالي ÷ المواصفات | 100% | 100% | behavior-lock specs passing on current code: chief-ops 28/28 |
 | E6 الحمل مقيس قبل وبعد | سيناريوهات الحمل في nfr/k6 التي لها p95 ونسبة خطأ مقيستان بـk6 على الكود الأصلي وبعد التحول، في بيئة معزولة وبالشروط نفسها ÷ سيناريوهات الحمل | 100% | 0% | load scenarios measured before and after: chief-ops 0/1 |
 | E7 تكافؤ السلوك بعد التحول | مواصفات تثبيت السلوك التي مرّت على الكود الأصلي ومرّت أيضًا بعد التحول ÷ التي مرّت على الأصلي | 100% | 0% | specs passing before that still pass after: chief-ops 0/28 |
@@ -3880,7 +3890,7 @@ python -m unittest tests.test_guided && python tools/north_star.py measure --onl
 
 <a id="ns9t3"></a>
 
-#### NS9.T3 — إعداد تشغيل تلقائي: لا ملف يدوي ولا سكربت ⬜
+#### NS9.T3 — إعداد تشغيل تلقائي: لا ملف يدوي ولا سكربت ✅
 
 **لماذا:** تشغيل chief-ops احتاج ملف تشغيل وقاعدة بيانات وسكربت بيانات وتفويضًا كُتبت كلها باليد. المستخدم غير التقني لا يستطيع ذلك.
 
@@ -3895,6 +3905,7 @@ python -m unittest tests.test_guided && python tools/north_star.py measure --onl
 3. التفويض: سؤال واحد «هل تسمح بتشغيل مشروعك في نسخة معزولة على جهازك؟ (نعم/لا)»، و«نعم» تكتب authorization.json.
 4. الدخول والبيانات: سكربت بيانات المشروع إن وُجد؛ وإلا يُفتح متصفح مرة واحدة يدخل فيه المستخدم ويضيف بيانات قليلة وتُحفظ الجلسة؛ وإن رفض، تُصوَّر الشاشات فارغة ويُكتب ذلك قيدًا في التقرير.
 5. ما لا يُكتشف يُسأل عنه بسؤال نعم/لا أو اختيار، ويُسجَّل السؤال في trial.json.
+6. كما نُفّذ: eaos/live_setup.py يكتشف مجلد التطبيق وأوامر التثبيت والتشغيل والبناء والمنفذ والفحوص وقاعدة البيانات، ويكتب run.json بلا يد؛ قاعدة PostgreSQL محلية على loopback (eaos/local_db.py)؛ قيم وهمية مولّدة بدل الأسرار؛ التفويض بعد «نعم» واحدة. حين لا يكفي الاكتشاف يقترح المساعد (5 محاولات) ويُفحص الاقتراح بـ safe(). تجارب chief-ops وendomap من الصفر: سؤالان نعم/لا (X2 = 1.0)، وبلا ملف يدوي.
 
 **تنتهي حين:**
 
@@ -3916,7 +3927,7 @@ python -m unittest tests.test_live_setup && python tools/north_star.py measure -
 
 <a id="ns9t4"></a>
 
-#### NS9.T4 — تنفيذ بالدفعات، وتطبيق فرعًا، وتراجع ⬜
+#### NS9.T4 — تنفيذ بالدفعات، وتطبيق فرعًا، وتراجع ✅
 
 **لماذا:** بطاقة بطاقة برقمها لا تناسب المستخدم. يريد: أصلح الدفعة، واعرض لي، وطبّق، وتراجع.
 
@@ -3930,6 +3941,7 @@ python -m unittest tests.test_live_setup && python tools/north_star.py measure -
 2. eaos live execute --wave N: بطاقات الدفعة فوق بعضها في نسخة واحدة، كل بطاقة خلف بواباتها الأربع، والفاشلة تُتخطى بسببها بكلام بسيط.
 3. eaos live apply: ما نجح يصير فرعًا جديدًا eaos/wave-N في مشروع المستخدم، وفرعه الحالي لا يُلمس؛ ثم مقارنة قبل وبعد.
 4. eaos live undo: يحذف الفرع ويعيد الحال كما كان.
+5. كما نُفّذ: eaos/waves.py ينفّذ دفعات من 10 بطاقات في نسخة واحدة: كل بطاقة commit وحدها خلف فحص الكسر ونقاط الوصول، ثم القبول من جمع حقائق واحد، ثم فحوص المشروع وقفل السلوك مرة للدفعة مع البحث عن المسبب بالتنصيف. التسليم فرع eaos/wave-N يُجلب إلى المشروع دون لمس فرعه؛ eaos accept (ff-only) وeaos undo. chief-ops: 10/10 في eaos/wave-1 (X1 = 1.0).
 
 **تنتهي حين:**
 
@@ -3950,7 +3962,7 @@ python -m unittest tests.test_execute && python tools/north_star.py measure --on
 
 <a id="ns9t5"></a>
 
-#### NS9.T5 — المساعد الذكي يفهم الطلب العادي (Claude Code وCodex) ⬜
+#### NS9.T5 — المساعد الذكي يفهم الطلب العادي (Claude Code وCodex) ✅
 
 **لماذا:** الطريقة الأسهل: يكتب المستخدم لمساعده بكلامه، والمساعد يختار أمر الأداة الصحيح ويشرح النتيجة.
 
@@ -3964,6 +3976,7 @@ python -m unittest tests.test_execute && python tools/north_star.py measure --on
 2. مهارة Claude Code (integrations/claude-code/) وتعليمات Codex (integrations/codex/AGENTS.md) تُثبَّت بأمر: eaos assistant install. تشرح للمساعد متى يستدعي أي أمر وكيف يعرض النتيجة بكلام بسيط.
 3. خادم MCP (eaos mcp) يعرض الأوامر أدوات: start وnext وstatus وcards وexecute وapply وundo.
 4. التنفيذ يستخدم المساعد المثبّت نفسه (Claude أو Codex) بلا مفتاح API، كما في eaos/runtime/claude_adapter.py.
+5. كما نُفّذ: eaos/data/intents.json وeaos/intents.py يربطان الطلب العادي بالأمر (X6 = 0.976: الحالات 47/47، المحجوزة 17/18، غير المضبوطة 19/20)؛ eaos do؛ مهارة Claude Code وتعليمات Codex بأمر eaos assistant install. تطوّر بعدها إلى الطريق الأساسي: خادم MCP (NS9.T7).
 
 **تنتهي حين:**
 
@@ -3982,23 +3995,123 @@ python -m unittest tests.test_intents && python tools/north_star.py measure --on
 
 **التراجع:** احذف الأوامر الجديدة؛ الأوامر القديمة لم تتغير.
 
+<a id="ns9t7"></a>
+
+#### NS9.T7 — EAOS داخل المساعد: أدوات MCP للتشخيص والتشغيل ⬜
+
+**لماذا:** قرار المالك (2026-09-28): الطريق الأساسي أن يضيف المستخدم EAOS إلى مساعده الذكي، والمساعد يدير العمل كله بقدراته الكاملة. الأوامر وحدها بلا ذكاء اصطناعي «بدائية وضعيفة» (docs/MCP.md).
+
+**يحرّك:** X8 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS9.T5 · **الحجم:** L
+
+**الملفات:** `eaos/mcp_server.py` · `eaos/agent_tools.py` · `eaos/jobs.py` · `tests/test_mcp.py` · `pyproject.toml`
+
+**الخطوات:**
+
+1. خادم MCP بالحزمة الرسمية (mcp 2.x): تعليمات للمساعد، وأدوات، وأوامر جاهزة (audit وfix وstatus).
+2. العمل الطويل مهمة مستقلة (eaos/jobs.py) تعيش بعد إغلاق المساعد، تُتابَع بـ wait مع التقدم.
+3. أدوات التشخيص: status وaudit وoverview وfindings وfinding (بالدليل ومقتطف الكود) وstructure وplan وreport_file.
+4. أدوات التشغيل: run_setup (موافقة الشخص مرة واحدة) وrun_try (اقتراح المساعد يمر على safe() ثم يُجرَّب) وsafety_net. EAOS لا يستدعي نموذجًا في هذا الطريق: المساعد هو من يفكر.
+
+**تنتهي حين:**
+
+- [ ] X8 = 1.0.
+- [ ] tests/test_mcp.py يمر، ومنه اختبار عبر stdio بعميل MCP حقيقي.
+
+**فخاخ معروفة:**
+
+- لا يُقال للمساعد «نعم» نيابة عن الشخص: person_agreed فقط بعد موافقته.
+- قواعد الأمان في EAOS لا في التعليمات: أي اقتراح غير آمن يُرفض بسببه.
+
+**أمر القبول:**
+
+```bash
+python -m unittest tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0
+```
+
+**التراجع:** احذف الأدوات الجديدة؛ الأوامر كما هي.
+
+<a id="ns9t8"></a>
+
+#### NS9.T8 — EAOS داخل المساعد: الإصلاح والتسليم بالمساعد ⬜
+
+**لماذا:** الإصلاح يكتبه مساعد المستخدم وهو يرى المشروع كله، لا نموذج يُرسل له ملف. EAOS يعطي النسخة المعزولة والبوابات والتسليم.
+
+**يحرّك:** X8, X9 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS9.T7 · **الحجم:** L
+
+**الملفات:** `eaos/agent_tools.py` · `eaos/waves.py` · `eaos/execute.py` · `tests/test_mcp.py` · `tools/mcp_trial.py`
+
+**الخطوات:**
+
+1. fix_start يفتح دفعة في نسخة معزولة ويطبّق الإصلاحات الآلية (codemods) ويفحصها.
+2. fix_read وfix_edit: المساعد يقرأ ويعدّل أي ملف في النسخة (استبدال مرة واحدة، أو ملف كامل، أو حذف)، وكل تعديل يُفحص فورًا: المشكلة اختفت، لا كسر جديد، لا نقطة وصول حُذفت؛ الفاشل يُرجع بسببه.
+3. fix_finish: فحوص المشروع وقفل السلوك على الدفعة كلها (مع البحث عن المسبب)، ثم الفرع eaos/wave-N في المشروع؛ accept وundo.
+4. tools/mcp_trial.py: تجربة حقيقية بـ Claude Code بلا تدخل: طلب عادي، ثم «نعم» واحدة، حتى فرع مسلّم؛ تكتب trial.json.
+
+**تنتهي حين:**
+
+- [ ] X9 = 1.0 على chief-ops وendomap.
+
+**فخاخ معروفة:**
+
+- التجربة تُحسب فقط إن لم يتدخل أحد بين الطلب والفرع إلا بالموافقة الواحدة.
+
+**أمر القبول:**
+
+```bash
+python -m unittest tests.test_mcp && python tools/north_star.py measure --only X9 --min 1.0
+```
+
+**التراجع:** احذف أدوات الإصلاح؛ eaos next كما هو.
+
+<a id="ns9t9"></a>
+
+#### NS9.T9 — التثبيت يضع EAOS داخل المساعد تلقائيًا ⬜
+
+**لماذا:** لا يكتب المستخدم إعدادًا: سطر التثبيت نفسه يسجّل EAOS في Claude Code وCodex.
+
+**يحرّك:** X8 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS9.T8 · **الحجم:** S
+
+**الملفات:** `install.sh` · `eaos/assistant_setup.py` · `eaos/templates/assistants/` · `tests/test_intents.py`
+
+**الخطوات:**
+
+1. install.sh يشغّل eaos assistant install حين يجد claude أو codex: الخادم مسجّل (claude mcp add --scope user، و[mcp_servers.eaos] بمهلة تكفي)، والمهارة والتعليمات تشرح الطريق كله.
+2. الخطوة التالية بعد التثبيت: «افتح مساعدك في مجلد مشروعك واكتب: افحص مشروعي بـ EAOS وأصلح مشاكله».
+
+**تنتهي حين:**
+
+- [ ] تثبيت من حساب نظيف فيه claude يسجّل الخادم، ويستدعي claude -p أداة status منه.
+
+**فخاخ معروفة:**
+
+- لا يُكتب في ملفات المستخدم إلا جزء EAOS، ويُستبدل عند إعادة التثبيت.
+
+**أمر القبول:**
+
+```bash
+python -m unittest tests.test_intents tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0
+```
+
+**التراجع:** أعد install.sh السابق.
+
 <a id="ns9t6"></a>
 
 #### NS9.T6 — الدليل والإثبات: من الصفر إلى أول إصلاح ⬜
 
 **لماذا:** لا يُعدّ شيء سهلًا حتى ينجح فيه من لم يبنه، بالدليل وحده.
 
-**يحرّك:** X1, X2, X3, X7 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS9.T5 · **الحجم:** M
+**يحرّك:** X1, X2, X3, X7, X9 · **ينفّذه:** يحتاج بيئة معزولة وتفويضًا لتشغيل كود المشروع · **يعتمد على:** NS9.T9 · **الحجم:** M
 
 **الملفات:** `README.md` · `docs/GUIDE.md` · `tools/ux_trial.py` · `docs/ux-trials/` · `LICENSE`
 
 **الخطوات:**
 
-1. docs/GUIDE.md وملخصه في README: «من الصفر إلى أول إصلاح». لكل خطوة: الأمر في مربع للنسخ، والمدة، والمخرج المتوقع، والخطوة التالية. وقسم «إذا ظهر لك هذا الخطأ». بلا مصطلحات، عربي وإنجليزي.
-2. tools/ux_trial.py: تجربة من الصفر في حساب نظيف بالأوامر وحدها، تكتب trial.json {manual_files, questions[], minutes_to_first_report, applied}.
-3. التجارب: chief-ops، وendomap، وقالب Supabase رسمي مفتوح المصدر. تجربة احتاجت تدخلًا يدويًا واحدًا لا تُحسب، وتصير مهمة.
-4. تجربة المالك (غير تقني) من الدليل وحده، تُسجَّل في docs/ux-trials/owner.md كما جرت.
-5. LICENSE برخصة MIT بموافقة المالك.
+1. الدليل يبدأ بالطريق الأساسي: التثبيت بسطر، ثم طلب عادي للمساعد الذكي (docs/MCP.md)؛ الأوامر طريق ثانٍ.
+2. docs/GUIDE.md وملخصه في README: «من الصفر إلى أول إصلاح». لكل خطوة: الأمر في مربع للنسخ، والمدة، والمخرج المتوقع، والخطوة التالية. وقسم «إذا ظهر لك هذا الخطأ». بلا مصطلحات، عربي وإنجليزي.
+3. tools/ux_trial.py: تجربة من الصفر في حساب نظيف بالأوامر وحدها، تكتب trial.json {manual_files, questions[], minutes_to_first_report, applied}.
+4. التجارب: chief-ops، وendomap، وقالب Supabase رسمي مفتوح المصدر. تجربة احتاجت تدخلًا يدويًا واحدًا لا تُحسب، وتصير مهمة.
+5. تجربة المالك (غير تقني) من الدليل وحده، تُسجَّل في docs/ux-trials/owner.md كما جرت.
+6. LICENSE برخصة MIT بموافقة المالك.
 
 **تنتهي حين:**
 
