@@ -33,7 +33,10 @@ LIMITATIONS = [
 BUILTINS = set(dir(builtins)) | {'__file__', '__name__', '__doc__', '__spec__', '__package__', '__loader__', '__builtins__',
                                  '__path__', '__annotations__', '__dict__', '__module__', '__qualname__', '__class__'}
 SUBPARSER = re.compile(r'''add_parser\(\s*['"]([a-z][\w-]*)['"]''')
-NPM_RUN = re.compile(r'''\b(?:npm|pnpm|yarn|bun)\s+run\s+([\w:.*-]+)''')
+NPM_RUN = re.compile(r'''\b(?:npm|pnpm|yarn|bun)\s+run\s+([\w:.*-]+(?:<[^<>\s`]*>|\{[^{}\s`]*\}|\[[^\[\]\s`]*\]|\$\{?\w+\}?|…)*)''')
+# A placeholder written after a script name (`deploy:<target>`, `deploy:{env}`, `deploy:$ENV`, `deploy:…`) stands
+# for any text: the command names a family of scripts, and is matched as a pattern, not as the literal prefix.
+PLACEHOLDER = re.compile(r'''<[^<>]*>|\{[^{}]*\}|\[[^\[\]]*\]|\$\{?\w+\}?|…|\.\.\.''')
 RUN_FILE = re.compile(r'''\b(?:python3?|node|bash|sh|tsx|ts-node|deno\s+run)\s+((?:\./)?[\w./-]+\.(?:py|[cm]?[jt]s|sh))\b''')
 CODE_SPAN = re.compile(r'```[^\n]*\n(.*?)```|`([^`\n]+)`', re.S)
 
@@ -137,8 +140,9 @@ def stale_instructions(source, known, everything):
                         out.append((path, line, f'{found.group(1)} {found.group(2)}'))
             if scripts:
                 for found in NPM_RUN.finditer(span):
-                    # `npm run deploy:*` names a family of scripts: it exists when one of them does.
-                    if not any(fnmatch.fnmatchcase(name, found.group(1)) for name in all_scripts):
+                    # `npm run deploy:*` or `npm run deploy:<target>` names a family of scripts: it exists when one does.
+                    pattern = PLACEHOLDER.sub('*', found.group(1))
+                    if not any(fnmatch.fnmatchcase(name, pattern) for name in all_scripts):
                         out.append((path, line, found.group(0)))
             for found in RUN_FILE.finditer(span):
                 if found.group(1).startswith('/'): continue   # an absolute path is outside the project

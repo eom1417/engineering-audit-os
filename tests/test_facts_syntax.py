@@ -39,6 +39,14 @@ class SyntaxFactTests(TemporaryWorkspace):
         self.assertEqual(relative['resolution'], 'UNRESOLVED')
         self.assertEqual(modules[('cli.py', 'core.pricing')]['value']['style'], 'absolute')
 
+    def test_a_dynamic_import_is_an_edge_only_when_its_specifier_is_a_literal(self):
+        units = syntax.parse_text('server/index.mjs', (
+            'const R = [["/h", () => import("./routes/health.ts")], { load: () => import(`./routes/up.ts`) }];\n'
+            'await import(new URL(spec, new URL("../server/", import.meta.url)).href);\n'
+            'await import(`./pages/${name}.ts`);\nconst c = require("./c.cjs");\n'))[0]
+        if units is None: self.skipTest('tree-sitter is not installed')
+        self.assertEqual([entry['module'] for entry in units[1]], ['./routes/health.ts', './routes/up.ts', './c.cjs'])
+
     def test_manifests_are_not_counted_as_unparsed_source(self):
         summary = self.data['summary']
         self.assertEqual(summary['parse_coverage'], 1.0)

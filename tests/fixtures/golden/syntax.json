@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "extractor": "syntax",
-  "extractor_version": "2",
+  "extractor_version": "3",
   "available": true,
   "input_sha": "3bf0e04af967a054f27e7de625443b386da687df35719f3b5e3d57f8b3fbc292",
   "limitations": [
@@ -33,10 +33,10 @@
   },
   "facts": [
     {
-      "id": "FACT-d234c6962e373507",
+      "id": "FACT-cb5b6a088367695e",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
       "location": {
         "path": "api/handlers/orders.ts"
@@ -56,10 +56,10 @@
       ]
     },
     {
-      "id": "FACT-eee2d6b8c7bb1100",
+      "id": "FACT-aff08064a928ec6f",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
       "location": {
         "path": "api/handlers/orders.ts",
@@ -83,10 +83,10 @@
       ]
     },
     {
-      "id": "FACT-4c6ff0b1712bab01",
+      "id": "FACT-72e8e842e2790734",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
       "location": {
         "path": "api/handlers/orders.ts",
@@ -117,10 +117,10 @@
       ]
     },
     {
-      "id": "FACT-35445186b3cbc889",
+      "id": "FACT-38887f0b146637b8",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
       "location": {
         "path": "api/handlers/orders.ts",
@@ -141,10 +141,10 @@
       ]
     },
     {
-      "id": "FACT-ab172a93a05edf79",
+      "id": "FACT-49c2f805d19ca197",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
       "location": {
         "path": "api/handlers/orders.ts",
@@ -175,10 +175,10 @@
       ]
     },
     {
-      "id": "FACT-c1366f491af14612",
+      "id": "FACT-724f8558e2167f63",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
       "location": {
         "path": "api/handlers/orders.ts",
@@ -199,10 +199,10 @@
       ]
     },
     {
-      "id": "FACT-250a74a600be6354",
+      "id": "FACT-acb6f957edb469ff",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "f508c58bc2f73a1d9bccc23ae41859057806ddc2788e6ca2ca2a28425a74da33",
       "location": {
         "path": "api/handlers/orders.ts",
@@ -223,10 +223,10 @@
       ]
     },
     {
-      "id": "FACT-355c78c2ff8fe144",
+      "id": "FACT-8f85e5dd0cf0f7b6",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "3c11f430c4a6cb315259fb6f905bc6f0a2cf0e1ee476f16123d33aae2f63c6c1",
       "location": {
         "path": "api/lib/audit.ts"
@@ -246,10 +246,10 @@
       ]
     },
     {
-      "id": "FACT-71822025a49fa2cc",
+      "id": "FACT-a4fc150dece9959c",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "3c11f430c4a6cb315259fb6f905bc6f0a2cf0e1ee476f16123d33aae2f63c6c1",
       "location": {
         "path": "api/lib/audit.ts",
@@ -280,10 +280,10 @@
       ]
     },
     {
-      "id": "FACT-3faf1bced53ca7a7",
+      "id": "FACT-2b65ccd56e93b1b5",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
       "location": {
         "path": "api/lib/pricing.ts"
@@ -303,10 +303,10 @@
       ]
     },
     {
-      "id": "FACT-f88fd9953e5336cd",
+      "id": "FACT-ab158440bfb3d951",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
       "location": {
         "path": "api/lib/pricing.ts",
@@ -336,10 +336,10 @@
       ]
     },
     {
-      "id": "FACT-6e1c36421740c147",
+      "id": "FACT-5b6b21a09315cca7",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
       "location": {
         "path": "api/lib/pricing.ts",
@@ -360,10 +360,10 @@
       ]
     },
     {
-      "id": "FACT-9a6bf1a905f05673",
+      "id": "FACT-ce5fc0667d5def77",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
       "location": {
         "path": "api/lib/pricing.ts",
@@ -394,10 +394,10 @@
       ]
     },
     {
-      "id": "FACT-4a5ce4da13e9b182",
+      "id": "FACT-d08f33447937b677",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "d17c46d713e216aee6642699d738cfb6f6f98cc3070a55bd278654735b56a62a",
       "location": {
         "path": "api/lib/pricing.ts",
@@ -418,10 +418,10 @@
       ]
     },
     {
-      "id": "FACT-290892fa0d94a85c",
+      "id": "FACT-30b6ccbcd5b64624",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts"
@@ -441,10 +441,10 @@
       ]
     },
     {
-      "id": "FACT-033bb22bd2c6a5eb",
+      "id": "FACT-ee6ab80623c1b523",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -468,10 +468,10 @@
       ]
     },
     {
-      "id": "FACT-124b1feaf95e178a",
+      "id": "FACT-ecf97f3d1b7488d7",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -496,10 +496,10 @@
       ]
     },
     {
-      "id": "FACT-612437560ce12986",
+      "id": "FACT-20ad35a1801d2e6a",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -523,10 +523,10 @@
       ]
     },
     {
-      "id": "FACT-8c3001305c6495e5",
+      "id": "FACT-eed5a9e3de6d1233",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -547,10 +547,10 @@
       ]
     },
     {
-      "id": "FACT-299ad5554c797c7c",
+      "id": "FACT-c7d7ad5da9679fa2",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -571,10 +571,10 @@
       ]
     },
     {
-      "id": "FACT-85572afc5260060b",
+      "id": "FACT-457c5db913146825",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -595,10 +595,10 @@
       ]
     },
     {
-      "id": "FACT-e0545fc552c4a186",
+      "id": "FACT-92c9dc8e48c91db7",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -619,10 +619,10 @@
       ]
     },
     {
-      "id": "FACT-7366e28d080c7ada",
+      "id": "FACT-afd1595769c825a5",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -643,10 +643,10 @@
       ]
     },
     {
-      "id": "FACT-c2bd49055e755440",
+      "id": "FACT-52a9bfd750e969e5",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -667,10 +667,10 @@
       ]
     },
     {
-      "id": "FACT-c2bd49055e755440",
+      "id": "FACT-52a9bfd750e969e5",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -691,10 +691,10 @@
       ]
     },
     {
-      "id": "FACT-a4c4d86990f1701b",
+      "id": "FACT-9a658edabbec906e",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -722,10 +722,10 @@
       ]
     },
     {
-      "id": "FACT-d76725fac8ea4f90",
+      "id": "FACT-502e4710170964c6",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -746,10 +746,10 @@
       ]
     },
     {
-      "id": "FACT-407b8eea874076fa",
+      "id": "FACT-e1b63d47789cf898",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py"
@@ -769,10 +769,10 @@
       ]
     },
     {
-      "id": "FACT-245ce6efa2d0390b",
+      "id": "FACT-e250b0b4a818241f",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -794,10 +794,10 @@
       ]
     },
     {
-      "id": "FACT-86fc1033bf69bbbf",
+      "id": "FACT-c0b7ca5006236d8d",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -821,10 +821,10 @@
       ]
     },
     {
-      "id": "FACT-abbb23619cc58c5a",
+      "id": "FACT-f0e211cd8c9752ad",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -854,34 +854,10 @@
       ]
     },
     {
-      "id": "FACT-8c07a21a1bb3810d",
+      "id": "FACT-121291a5a28bb428",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
-      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
-      "location": {
-        "path": "cli.py",
-        "start_line": 7,
-        "symbol": "quote"
-      },
-      "value": {
-        "callee": "print",
-        "attribute": false,
-        "language": "python"
-      },
-      "resolution": "UNRESOLVED",
-      "limitations": [
-        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
-        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
-        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
-        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
-      ]
-    },
-    {
-      "id": "FACT-c5fa5a9ae1b19798",
-      "kind": "call_edge",
-      "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -902,10 +878,34 @@
       ]
     },
     {
-      "id": "FACT-c830176758507da8",
+      "id": "FACT-27b41756133a4f2b",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "3",
+      "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
+      "location": {
+        "path": "cli.py",
+        "start_line": 7,
+        "symbol": "quote"
+      },
+      "value": {
+        "callee": "print",
+        "attribute": false,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-7c39882269e0d386",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -935,10 +935,10 @@
       ]
     },
     {
-      "id": "FACT-bfebe3e95efa0c73",
+      "id": "FACT-58dcca1e7c572d30",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -959,10 +959,10 @@
       ]
     },
     {
-      "id": "FACT-82e5b194cd9d776d",
+      "id": "FACT-c82f448b3c75c0d0",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -983,10 +983,10 @@
       ]
     },
     {
-      "id": "FACT-5342152bc8efff4d",
+      "id": "FACT-705d1c77e1c8dd6c",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1007,10 +1007,10 @@
       ]
     },
     {
-      "id": "FACT-d295892ef6035d9f",
+      "id": "FACT-9a93bf8a94fddffc",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1031,10 +1031,10 @@
       ]
     },
     {
-      "id": "FACT-3ba9153c29fa5f92",
+      "id": "FACT-6056e8cc81e4817f",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1055,10 +1055,10 @@
       ]
     },
     {
-      "id": "FACT-b58a9b1362177334",
+      "id": "FACT-fe497a9710832229",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1079,10 +1079,10 @@
       ]
     },
     {
-      "id": "FACT-42eb73c46a02ab00",
+      "id": "FACT-d31114d718ee462c",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1103,10 +1103,10 @@
       ]
     },
     {
-      "id": "FACT-c487cbc835b13bb5",
+      "id": "FACT-aa0da1496f6b4a63",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1127,10 +1127,10 @@
       ]
     },
     {
-      "id": "FACT-462e50d3c91ea0ee",
+      "id": "FACT-5fe026f593c05d62",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1151,10 +1151,10 @@
       ]
     },
     {
-      "id": "FACT-e05fb159649f67d8",
+      "id": "FACT-6f7a82df38077c42",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -1175,10 +1175,10 @@
       ]
     },
     {
-      "id": "FACT-7f04743dce8d0d6c",
+      "id": "FACT-a508ec91cb320679",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "location": {
         "path": "core/__init__.py"
@@ -1198,10 +1198,10 @@
       ]
     },
     {
-      "id": "FACT-cb77fb2c03f74368",
+      "id": "FACT-643be6c5825a825d",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py"
@@ -1221,10 +1221,10 @@
       ]
     },
     {
-      "id": "FACT-1322051c185b738d",
+      "id": "FACT-2ab681afaa6f1ee6",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py",
@@ -1246,10 +1246,10 @@
       ]
     },
     {
-      "id": "FACT-ea0ed5875de8efb2",
+      "id": "FACT-a84a0bc9018730a9",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py",
@@ -1273,10 +1273,10 @@
       ]
     },
     {
-      "id": "FACT-d381a23e9067b10d",
+      "id": "FACT-038138e4c30b817d",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py",
@@ -1297,10 +1297,10 @@
       ]
     },
     {
-      "id": "FACT-74b4686b00ac9754",
+      "id": "FACT-fc60fd2ba8ce68ac",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py",
@@ -1331,10 +1331,10 @@
       ]
     },
     {
-      "id": "FACT-febfead64a7a7bfa",
+      "id": "FACT-50ecd177cc7ab898",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py",
@@ -1364,10 +1364,10 @@
       ]
     },
     {
-      "id": "FACT-3f45841c1d9d1754",
+      "id": "FACT-21a5e3cb87ece110",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py",
@@ -1388,10 +1388,10 @@
       ]
     },
     {
-      "id": "FACT-db92481647aabf58",
+      "id": "FACT-8844bc1ebb30a526",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "312d4f3d8518c137dabb9982ca11a95d39d14acc417a37d2149e91c1d95e1bf2",
       "location": {
         "path": "core/audit.py",
@@ -1412,10 +1412,10 @@
       ]
     },
     {
-      "id": "FACT-4ff30d9ca5000a74",
+      "id": "FACT-4c30f0006069470b",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py"
@@ -1435,10 +1435,10 @@
       ]
     },
     {
-      "id": "FACT-6b919aa59e011f6a",
+      "id": "FACT-368ed4ee0e2fa4d7",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1460,34 +1460,10 @@
       ]
     },
     {
-      "id": "FACT-8d9d4a285a62fd17",
+      "id": "FACT-1fd227347e11cc79",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
-      "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
-      "location": {
-        "path": "core/pricing.py",
-        "start_line": 5,
-        "symbol": null
-      },
-      "value": {
-        "callee": "float",
-        "attribute": false,
-        "language": "python"
-      },
-      "resolution": "UNRESOLVED",
-      "limitations": [
-        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
-        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
-        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
-        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
-      ]
-    },
-    {
-      "id": "FACT-d178dd93ee141e36",
-      "kind": "call_edge",
-      "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1508,10 +1484,34 @@
       ]
     },
     {
-      "id": "FACT-d1b23a10270bd3cd",
+      "id": "FACT-ae3001f162a16e2b",
+      "kind": "call_edge",
+      "extractor": "syntax",
+      "extractor_version": "3",
+      "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
+      "location": {
+        "path": "core/pricing.py",
+        "start_line": 5,
+        "symbol": null
+      },
+      "value": {
+        "callee": "float",
+        "attribute": false,
+        "language": "python"
+      },
+      "resolution": "UNRESOLVED",
+      "limitations": [
+        "Syntax only: a parsed import or call is not proof that the code runs at runtime.",
+        "Dynamic imports, reflection, dependency injection and framework routing are invisible here.",
+        "Call facts are intra-file references by name; they are unresolved until the resolver links them.",
+        "Files reported as unparsed remain in the review denominator and are never treated as reviewed."
+      ]
+    },
+    {
+      "id": "FACT-6ade2718acb42d6b",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1541,10 +1541,10 @@
       ]
     },
     {
-      "id": "FACT-0c00b8f3ae46e265",
+      "id": "FACT-954faa1b4cc5faa8",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1565,10 +1565,10 @@
       ]
     },
     {
-      "id": "FACT-d29f3228b693401b",
+      "id": "FACT-60bcaf87f3037770",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1599,10 +1599,10 @@
       ]
     },
     {
-      "id": "FACT-5df8016c4eb05498",
+      "id": "FACT-11c5e387ff479254",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1623,10 +1623,10 @@
       ]
     },
     {
-      "id": "FACT-4a3edbb83a34b817",
+      "id": "FACT-77c1046a15f1d9b2",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "135b3f10d2dbeee5e6da70f019906c834da762c4d572372f9e744f66260bb64a",
       "location": {
         "path": "core/pricing.py",
@@ -1647,10 +1647,10 @@
       ]
     },
     {
-      "id": "FACT-28e8454f9254f27f",
+      "id": "FACT-360f3e63aade89f2",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "1b3ce6ce6859ccd2be87b349098a4067a13a975f2b66ec887e22a2ba6fc8f948",
       "location": {
         "path": "package.json"
@@ -1670,10 +1670,10 @@
       ]
     },
     {
-      "id": "FACT-1c8b937586fb45de",
+      "id": "FACT-732bbcfe038d0057",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "284d878720b91449560cdb315389a28f2484637a909c1a419b12056533147273",
       "location": {
         "path": "pyproject.toml"
@@ -1693,10 +1693,10 @@
       ]
     },
     {
-      "id": "FACT-f15639e32deb7357",
+      "id": "FACT-dfced3a1013d08ff",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go"
@@ -1716,10 +1716,10 @@
       ]
     },
     {
-      "id": "FACT-1a1480325f5c8274",
+      "id": "FACT-0f5c09651a3d6478",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -1741,10 +1741,10 @@
       ]
     },
     {
-      "id": "FACT-05052f1acf64ac5a",
+      "id": "FACT-a14958b639f55bdf",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -1766,10 +1766,10 @@
       ]
     },
     {
-      "id": "FACT-f5d28404319f986e",
+      "id": "FACT-a67e69dbfc80c6f4",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -1800,10 +1800,10 @@
       ]
     },
     {
-      "id": "FACT-3fb464a0f014eb30",
+      "id": "FACT-0bee5810fbd1d9c8",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -1824,10 +1824,10 @@
       ]
     },
     {
-      "id": "FACT-a040371e32ff4379",
+      "id": "FACT-6202615ce67a8f1c",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -1855,10 +1855,10 @@
       ]
     },
     {
-      "id": "FACT-94a917c9fb013e43",
+      "id": "FACT-90b2a60730c6acb3",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -1879,10 +1879,10 @@
       ]
     },
     {
-      "id": "FACT-4da5e8f1c3aa1294",
+      "id": "FACT-f67d74f244411ac5",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -1903,10 +1903,10 @@
       ]
     },
     {
-      "id": "FACT-07292e85003d2b34",
+      "id": "FACT-56d2c20eac4be400",
       "kind": "source_file",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py"
@@ -1926,10 +1926,10 @@
       ]
     },
     {
-      "id": "FACT-b127559702ffaea3",
+      "id": "FACT-45555b4d405a7cac",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py",
@@ -1953,10 +1953,10 @@
       ]
     },
     {
-      "id": "FACT-241975eacf616ed2",
+      "id": "FACT-77e6bbbd217324af",
       "kind": "import_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py",
@@ -1980,10 +1980,10 @@
       ]
     },
     {
-      "id": "FACT-76b46a376213c704",
+      "id": "FACT-2fc1c3107fb912b3",
       "kind": "symbol",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py",
@@ -2017,10 +2017,10 @@
       ]
     },
     {
-      "id": "FACT-7359a826ace52924",
+      "id": "FACT-11a593ba391de3ba",
       "kind": "call_edge",
       "extractor": "syntax",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py",
