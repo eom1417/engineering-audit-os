@@ -46,6 +46,20 @@ def _head(state):
     return head(state['project'])
 
 
+def tool_digest():
+    """This EAOS's own code, as a fingerprint: a report made by an older EAOS is checked again, not reused."""
+    import hashlib
+    digest = hashlib.sha256()
+    for path in sorted(Path(__file__).resolve().parent.rglob('*.py')):
+        if '__pycache__' not in path.parts: digest.update(path.read_bytes())
+    return digest.hexdigest()[:16]
+
+
+def _current(state, head):
+    """The check on record is for this commit, by this EAOS."""
+    return state.get('scanned_commit') == head and state.get('scanned_with') == tool_digest()
+
+
 def _report(state):
     report = guided.report_of(state)
     if not (report / 'plan.json').is_file():
@@ -101,7 +115,7 @@ def status(project=None):
               'running_job': busy['id'] if busy else None}
     if busy: step = ('wait', f"a {busy['kind']} is running")
     elif not checked: step = ('audit', 'the project has not been checked')
-    elif state.get('scanned_commit') and state['scanned_commit'] != head: step = ('audit', 'the project changed since it was checked: call audit with fresh=true')
+    elif not _current(state, head): step = ('audit', 'the project or EAOS changed since the last check: call audit with fresh=true')
     elif waiting: step = ('accept or undo', f"the fixes on {waiting['branch']} wait for the person's decision")
     elif wave: step = ('fix_edit, then fix_finish', f"batch {wave['number']} is open")
     elif setup.get('commit') != head: step = ('run_setup', "the app has not been run for this commit (ask the person's agreement first)")
@@ -117,7 +131,7 @@ def status(project=None):
 def audit(project=None, fresh=False):
     state = project_state(project)
     head = _head(state)
-    if guided.scan_done(state) and not fresh and state.get('scanned_commit') in (None, head):
+    if guided.scan_done(state) and not fresh and _current(state, head):
         return {'status': 'done', 'already_checked': True, **overview(project)}
     if fresh:
         import shutil
@@ -139,7 +153,7 @@ def _audit_job(project, arguments, progress):
         execute(state['project'], out, **options)
     if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
     state = guided.load(project)
-    state.update(scanned=_now(), scanned_commit=_head(state))
+    state.update(scanned=_now(), scanned_commit=_head(state), scanned_with=tool_digest())
     guided.publish(state)
     guided.save(state)
     return overview(project)

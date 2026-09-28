@@ -142,7 +142,9 @@ class ToolTests(Home):
         self.assertEqual(agent_tools.status(project)['next']['tool'], 'audit')
         state = guided.load(self.project)
         with mock.patch.object(guided, 'scan_done', return_value=True):
-            state['scanned_commit'] = agent_tools._head(state); guided.save(state)
+            state['scanned_commit'], state['scanned_with'] = agent_tools._head(state), 'an-older-eaos'; guided.save(state)
+            self.assertEqual(agent_tools.status(project)['next']['tool'], 'audit', 'a report by an older EAOS is checked again')
+            state['scanned_with'] = agent_tools.tool_digest(); guided.save(state)
             self.assertEqual(agent_tools.status(project)['next']['tool'], 'run_setup')
             state['setup'] = {'commit': state['scanned_commit'], 'ok': True}; guided.save(state)
             self.assertEqual(agent_tools.status(project)['next']['tool'], 'safety_net')
