@@ -61,6 +61,10 @@ def start_here(report, lang, name):
                       ('هذه الأجزاء من الفحص لم تكتمل، فما وجدته فيها قد يكون ناقصًا: ' if ar else
                        'These parts of the check did not complete, so what they would have found may be missing: ')
                       + ('، ' if ar else ', ').join(plain.stage(name, lang) for name in missing), '']
+    if (report / 'human' / 'index.html').is_file():
+        lines += ['## ' + ('التقرير في صفحة واحدة' if ar else 'The report on one page'), '',
+                  ('افتح `human/index.html` في المتصفح: الملخص، والفجوات والمخاطر، وخريطة البنية، والخطة، بالعربية والإنجليزية.' if ar else
+                   'Open `human/index.html` in a browser: the summary, gaps and risks, structure map and plan, in Arabic and English.'), '']
     lines += ['## ' + ('الخطوة التالية' if ar else 'Next step'), '', '```', 'eaos next', '```', '',
               '## ' + ('للتفاصيل التقنية' if ar else 'Technical detail'), '',
               ('للمطوّر أو لمساعدك الذكي: ' if ar else 'For a developer or your AI assistant: ')

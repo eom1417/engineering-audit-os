@@ -344,8 +344,8 @@ def publish(state, lang=None):
     Never a reason for a step to fail: without it, the technical report is still there."""
     report, target = report_of(state), outputs(state) / 'REPORT.html'
     try:
-        from .human_report import build
-        build(report, lang or state.get('lang') or 'en', Path(state['project']).name,
+        from .human_report import write
+        write(report, lang or state.get('lang') or 'en', Path(state['project']).name,
               progress={'waves': state.get('waves') or []})
     except Exception:                       # the page is extra; a missing piece of data must not stop the work
         pass

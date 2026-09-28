@@ -169,6 +169,13 @@ class OutputsTests(Home):
         self.assertEqual(guided.outputs(agent_tools.project_state(str(other))), guided.outputs_root() / 'shop-2',
                          'another project with the same name gets its own folder')
         self.assertNotIn(str(self.project), str(folder), 'nothing is written into the project')
+        self.assertFalse(str(folder).startswith(str(Path.home() / 'EAOS')), 'a test never writes into the real home')
+
+    def test_a_report_page_that_cannot_be_built_never_stops_the_step(self):
+        state = agent_tools.project_state(str(self.project))
+        guided.report_of(state).mkdir(parents=True)
+        with mock.patch('eaos.human_report.write', side_effect=RuntimeError('broken record')):
+            self.assertEqual(guided.publish(state), guided.report_of(state) / 'START-HERE.md')
 
     def test_a_report_an_older_eaos_left_is_moved_into_the_folder(self):
         state = agent_tools.project_state(str(self.project))
