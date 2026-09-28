@@ -417,11 +417,13 @@ def from_facts(fact_sets, target=None):
     for fact in (fact_sets.get('deadcode') or {}).get('facts', []):
         value, location = fact['value'], fact['location']
         verdict = (value.get('adjudication') or {}).get('verdict')
-        if verdict not in ('confirmed', 'test_only'): continue
+        if verdict not in ('confirmed', 'test_only', 'review'): continue
         index += 1
-        test_only = verdict == 'test_only'
+        # test_only and review are candidates to ask about, not defects to remove: they render as dead_code_review.
+        test_only = verdict in ('test_only', 'review')
         ar, en = reasons[value['rule']]
-        if test_only: ar, en = 'تذكره الاختبارات وحدها', 'only tests name it'
+        if verdict == 'test_only': ar, en = 'تذكره الاختبارات وحدها', 'only tests name it'
+        if verdict == 'review': ar, en = 'برنامج لا يشغّله شيء مسجّل، وقد يشغّله أحد بيده', 'a program nothing on record runs; someone may run it by hand'
         subject = value['message'].split('`')[1]
         claims.append(make(index, value['message'], 'structure', 'LIKELY' if test_only else 'CONFIRMED', ['static_fact'], [],
                            ('A test that pins it as a contract the product relies on, or a production path the text search missed.' if test_only else

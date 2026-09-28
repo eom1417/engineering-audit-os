@@ -128,4 +128,25 @@ class VerdictTests(unittest.TestCase):
                         for f in json.loads((out / 'facts/deadcode.json').read_text())['facts']}
         self.assertEqual(verdicts['only_tested'], 'test_only')
         self.assertEqual(verdicts['_loop'], 'confirmed')
-        self.assertEqual(verdicts['pkg/orphan.py'], 'confirmed')
+        self.assertEqual(verdicts['pkg/orphan.py'], 'test_only')
+
+    def test_a_module_nothing_imports_is_confirmed_and_a_program_nothing_runs_is_a_review_candidate(self):
+        files = {'package.json': '{"main": "src/main.js", "scripts": {"audit": "node scripts/audit.mjs"}}',
+                 'src/main.js': 'export const x = 1;\n', 'src/lost.js': 'export const y = 1;\n',
+                 'scripts/audit.mjs': 'console.log(1);\n', 'scripts/by-hand.mjs': 'console.log(2);\n',
+                 'scripts/in-ci.mjs': 'console.log(3);\n', 'scripts/documented.mjs': 'console.log(4);\n',
+                 '.github/workflows/ci.yml': 'jobs:\n  a:\n    steps:\n      - run: node scripts/in-ci.mjs\n',
+                 'README.md': 'Run `node --import tsx scripts/documented.mjs --write` after a change.\n'}
+        with tempfile.TemporaryDirectory() as tmp:
+            repo, out = Path(tmp) / 'repo', Path(tmp) / 'out'
+            for name, text in files.items():
+                (repo / name).parent.mkdir(parents=True, exist_ok=True)
+                (repo / name).write_text(text)
+            collect(repo, out, SETS)
+            data = json.loads((out / 'facts/deadcode.json').read_text())
+        verdicts = {f['location']['symbol']: f['value']['adjudication']['verdict'] for f in data['facts'] if f['value']['rule'] == 'unreachable-module'}
+        self.assertEqual(verdicts, {'src/lost.js': 'confirmed', 'scripts/by-hand.mjs': 'review'})
+        from eaos import claims
+        rendered = {row['render']['params']['subject']: (row['render']['key'], row['confidence']) for row in claims.from_facts({'deadcode': data})}
+        self.assertEqual(rendered['scripts/by-hand.mjs'], ('dead_code_review', 'LIKELY'))
+        self.assertEqual(rendered['src/lost.js'], ('dead_code', 'CONFIRMED'))
