@@ -52,7 +52,7 @@ class ServerTests(Home):
         self.assertIn('Work on your own until the job is done', started.instructions)
         names = {tool.name for tool in tools.tools}
         self.assertTrue({'status', 'audit', 'wait', 'finding', 'run_setup', 'run_try', 'safety_net', 'fix_start', 'fix_edit',
-                         'fix_finish', 'accept', 'undo'} <= names)
+                         'fix_finish', 'accept', 'undo', 'open_report'} <= names)
         self.assertEqual({p.name for p in prompts.prompts}, {'audit', 'fix', 'status'})
         answer = json.loads(called.content[0].text)
         self.assertEqual((answer['project'], answer['next']['tool']), (str(self.project.resolve()), 'audit'),

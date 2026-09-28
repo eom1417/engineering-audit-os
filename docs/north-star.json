@@ -359,7 +359,7 @@
           "definition": "قدرات الطريق الموجَّه (الحال، الفحص، متابعة العمل الطويل، الأدلة، تشغيل البرنامج، تصوير الشاشات، إصلاح بطاقة، التسليم، الاعتماد، التراجع) التي لها أداة MCP مسجّلة ومختبرة ÷ هذه القدرات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "capabilities of the guided way with a tested MCP tool: 10/10",
+          "evidence": "capabilities of the guided way with a tested MCP tool: 11/11",
           "reads": "eaos/mcp_server.py → CAPABILITIES و build()، و tests/test_mcp.py",
           "measured": "automated"
         },
@@ -4245,7 +4245,8 @@
             "خادم MCP بالحزمة الرسمية (mcp 2.x): تعليمات للمساعد، وأدوات، وأوامر جاهزة (audit وfix وstatus).",
             "العمل الطويل مهمة مستقلة (eaos/jobs.py) تعيش بعد إغلاق المساعد، تُتابَع بـ wait مع التقدم.",
             "أدوات التشخيص: status وaudit وoverview وfindings وfinding (بالدليل ومقتطف الكود) وstructure وplan وreport_file.",
-            "أدوات التشغيل: run_setup (موافقة الشخص مرة واحدة) وrun_try (اقتراح المساعد يمر على safe() ثم يُجرَّب) وsafety_net. EAOS لا يستدعي نموذجًا في هذا الطريق: المساعد هو من يفكر."
+            "أدوات التشغيل: run_setup (موافقة الشخص مرة واحدة) وrun_try (اقتراح المساعد يمر على safe() ثم يُجرَّب) وsafety_net. EAOS لا يستدعي نموذجًا في هذا الطريق: المساعد هو من يفكر.",
+            "كما نُفّذ: eaos/mcp_server.py على mcp 2.x (MCPServer) بعشرين أداة وثلاثة أوامر جاهزة وتعليمات للمساعد؛ eaos/agent_tools.py منطق الأدوات؛ eaos/jobs.py عمل طويل مستقل يعيش بعد إغلاق المساعد. جُرّب بعميل MCP حقيقي عبر stdio في الاختبارات، وبـ Claude Code وCodex فعليًا: كلاهما استدعى الأدوات وأجاب بعربي بسيط. X8 = 1.0 (11/11)."
           ],
           "done_when": [
             "X8 = 1.0.",
@@ -4258,7 +4259,7 @@
           "acceptance": "python -m unittest tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0",
           "rollback": "احذف الأدوات الجديدة؛ الأوامر كما هي.",
           "writes": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS9.T8",
