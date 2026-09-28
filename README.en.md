@@ -139,35 +139,30 @@ TASK-003 — complexity 83 (threshold 15) in eaos/sustainability.py
 
 ## 🚀 Quick start
 
-### The easy way (no technical knowledge needed)
+### The easy way: inside your AI assistant (no technical knowledge needed)
 
-> The full guide, step by step with how long each takes, what you should see, and fixes for errors: **[`docs/GUIDE.en.md`](docs/GUIDE.en.md)**.
+> The full guide, step by step with how long each takes, what you should see, and what to do if something goes wrong: **[`docs/GUIDE.en.md`](docs/GUIDE.en.md)**.
 
-**1. Install EAOS** (once). Copy this line into your terminal:
+**1. Install EAOS** (once). Paste this line into the Terminal. It installs EAOS and adds it to Claude Code and Codex by itself:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/main/install.sh | bash
 ```
 
-**2. If you use Claude Code or Codex**, teach it EAOS once, then talk to it in your own words ("check my project", "what is wrong?", "fix it"):
+**2. Open your assistant in your project folder, and write:**
 
-```bash
-eaos assistant install
-```
+> Check my project with EAOS and fix its problems
 
-**3. Or with commands:** open your project folder in the terminal, then:
+The assistant checks your project, explains the main problems, and asks you one question before running your app in a separate
+copy. Then it carries on alone: it runs the app, records its screens, writes the fixes, and EAOS checks each one. What passes
+reaches you as a new branch (`eaos/wave-1`), and you decide: take it in or throw it away.
 
-```bash
-eaos start .   # checks your project (5-30 minutes) and changes nothing in it
-eaos next      # the next step: set up, record the screens, then fix a batch on a new branch
-eaos accept    # takes the fixes into your project (or eaos undo to throw them away)
-```
+**3. Read the report:** say "open the report". Everything is in one folder, `~/EAOS/<your project>/`, with `REPORT.html`
+(project summary, gaps and risks, structure map, plan and progress) in plain words.
 
-Every command ends with a box holding what happened and the next command. You can also ask in your own words:
-`eaos do "what is wrong"`. More: `eaos status` (where we are), `eaos show` (the result in plain words),
-`eaos doctor` (is your computer ready).
+No AI assistant? The same way as commands in the Terminal: `eaos start .`, then `eaos next` after each step.
 
-> Why it is built this way: [`docs/USER-EXPERIENCE.md`](docs/USER-EXPERIENCE.md).
+> How it works inside the assistant: [`docs/MCP.md`](docs/MCP.md). Why it is designed this way: [`docs/USER-EXPERIENCE.md`](docs/USER-EXPERIENCE.md).
 
 ### For developers: the direct commands
 
