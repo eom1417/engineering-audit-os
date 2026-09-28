@@ -359,7 +359,7 @@
           "definition": "قدرات الطريق الموجَّه (الحال، الفحص، متابعة العمل الطويل، الأدلة، تشغيل البرنامج، تصوير الشاشات، إصلاح بطاقة، التسليم، الاعتماد، التراجع) التي لها أداة MCP مسجّلة ومختبرة ÷ هذه القدرات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "capabilities of the guided way with a tested MCP tool: 11/11",
+          "evidence": "capabilities of the guided way with a tested MCP tool: 16/16",
           "reads": "eaos/mcp_server.py → CAPABILITIES و build()، و tests/test_mcp.py",
           "measured": "automated"
         },
@@ -964,8 +964,8 @@
           "name": "أي خطة تُقرأ",
           "definition": "صيغ ملفات الخطة (Markdown ونص وHTML وWord وPDF) التي تُقرأ إلى نصها كاملًا ÷ الصيغ",
           "target": 1.0,
-          "value": null,
-          "evidence": "not measured yet: docs/BUILD-FROM-PLAN.md",
+          "value": 1.0,
+          "evidence": "plan formats read to their text: 5/5 (.docx, .html, .md, .pdf, .txt)",
           "reads": "tests/fixtures/plans/clinic.* → eaos/blueprint.read_source",
           "measured": "automated"
         },
@@ -974,8 +974,8 @@
           "name": "مخطط مكتمل",
           "definition": "فحوص المخطط التي تصح على مواصفات العيّنة (كل ميزة لها بطاقة بمعايير قبول واختبارات، وكل بيانات لها مالك واحد، وكل تقنية معزولة لها مكان واحد، وكل بطاقة بعد ما تحتاجه) ÷ الفحوص",
           "target": 1.0,
-          "value": null,
-          "evidence": "not measured yet: docs/BUILD-FROM-PLAN.md",
+          "value": 1.0,
+          "evidence": "blueprint checks held (every feature a card with acceptance and tests, every entity one owner, every vendor one home, every card after what it needs): 17/17",
           "reads": "tests/fixtures/plans/*.spec.json → eaos/blueprint.design",
           "measured": "automated"
         },
@@ -984,8 +984,8 @@
           "name": "مبني نظيفًا",
           "definition": "مشاريع التجربة المبنية من خطة التي يجدها فحص EAOS نفسه نظيفة (لا حلقات، ولا مخالفة طبقات أو هيكل أو تقنية خارج مكانها، ولا كود منسوخ، ولا كود ميت، ولا مرجع معطّل) ÷ مشاريع التجربة",
           "target": 1.0,
-          "value": null,
-          "evidence": "not measured yet: docs/BUILD-FROM-PLAN.md",
+          "value": 1.0,
+          "evidence": "projects built from a plan that their own audit finds clean (no cycle, layer break, copy, dead code, broken reference): 1/1 (clinic)",
           "reads": "${EAOS_MEASURE}/build/<مشروع>/trial.json → final_audit",
           "measured": "automated"
         },
@@ -994,8 +994,8 @@
           "name": "كل ميزة مبنية ومختبرة",
           "definition": "ميزات خطط التجربة المبنية عبر بواباتها باختباراتها ÷ ميزات الخطط",
           "target": 1.0,
-          "value": null,
-          "evidence": "not measured yet: docs/BUILD-FROM-PLAN.md",
+          "value": 1.0,
+          "evidence": "features of the plans built through their gates, with tests: 7/7 (clinic)",
           "reads": "${EAOS_MEASURE}/build/<مشروع>/trial.json → features_built",
           "measured": "automated"
         }
@@ -4494,7 +4494,8 @@
           "steps": [
             "read_source: Markdown ونص وHTML وWord (بلا مكتبة) وPDF (pypdf)، أو نص ملصوق.",
             "صيغة المواصفات (SPEC): الأجزاء بمسؤولية واحدة، والبيانات بمالك واحد، والميزات بمعايير قبول، والرحلات، والأدوار، والتكاملات، والمتطلبات غير الوظيفية، والقرارات المفتوحة بخياراتها وتوصيتها.",
-            "validate_spec يرجع ما ينقص وأسئلة اختيار بتوصية؛ المساعد يبحث ويوصي ويسأل الشخص الخيارات الحقيقية فقط، ومنها تفضيلات التقنية."
+            "validate_spec يرجع ما ينقص وأسئلة اختيار بتوصية؛ المساعد يبحث ويوصي ويسأل الشخص الخيارات الحقيقية فقط، ومنها تفضيلات التقنية.",
+            "كما نُفّذ: eaos/blueprint.read_source يقرأ Markdown ونصًا وHTML وWord (بلا مكتبة) وPDF (pypdf، صار من اعتماديات EAOS) أو نصًا ملصوقًا؛ validate_spec يرجع النواقص وأسئلة اختيار بتوصية؛ الأداتان blueprint_start وblueprint_spec. B1 = 1.0 (5/5)."
           ],
           "done_when": [
             "B1 = 1.0.",
@@ -4506,7 +4507,7 @@
           "acceptance": "python -m unittest tests.test_blueprint && python tools/north_star.py measure --only B1 --min 1.0",
           "rollback": "احذف أدوات المخطط؛ الفحص والإصلاح كما هما.",
           "writes": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS27.T2",
@@ -4528,7 +4529,8 @@
           "steps": [
             "eaos/data/stacks.json: لكل جانب (الواجهة، والخادم، والبيانات، والدخول، والشكل، والاختبار) توصية وبدائل، ولكل خيار لماذا وكيف يُغيَّر لاحقًا.",
             "choose_stack: اختيار الشخص، ثم تفضيل الخطة، ثم التوصية؛ وما لا تحتاجه الخطة لا يُضاف.",
-            "design: البنية المستهدفة بشكل تقرير الفحص نفسه (target-architecture.json)، وeaos.policy.json للمشروع (الطبقات وقواعدها، وكل تقنية معزولة في مجلد واحد)، وplan.json: الهيكل، ثم الأساسات المشتركة، ثم جزء بعد جزء بترتيب البيانات، ثم الرحلات."
+            "design: البنية المستهدفة بشكل تقرير الفحص نفسه (target-architecture.json)، وeaos.policy.json للمشروع (الطبقات وقواعدها، وكل تقنية معزولة في مجلد واحد)، وplan.json: الهيكل، ثم الأساسات المشتركة، ثم جزء بعد جزء بترتيب البيانات، ثم الرحلات.",
+            "كما نُفّذ: eaos/data/stacks.json بستة جوانب، لكل خيار لماذا وكيف يُغيَّر لاحقًا؛ choose_stack؛ design يرسم target-architecture.json بشكل تقرير الفحص، وeaos.policy.json للمشروع (طبقات بقواعد allow_only، وكل تقنية معزولة لها مكانان فقط: محوّلها وعميل الخادم)، وplan.json بالترتيب: الهيكل، والأساسات، وجزء بعد جزء بترتيب البيانات، والرحلات؛ BLUEPRINT.md وBLUEPRINT.html للبشر. B2 = 1.0 (17/17)."
           ],
           "done_when": [
             "B2 = 1.0."
@@ -4539,7 +4541,7 @@
           "acceptance": "python -m unittest tests.test_blueprint && python tools/north_star.py measure --only B2 --min 1.0",
           "rollback": "احذف التصميم؛ المواصفات باقية.",
           "writes": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS27.T3",
@@ -4564,7 +4566,8 @@
           "steps": [
             "build_start (موافقة واحدة) ينشئ git إن لم يوجد، ويفتح مرحلة في نسخة معزولة، ويضع المخطط والسياسة في المشروع نفسه.",
             "build_edit: البطاقة تُحفظ فقط إن مرّت: الطبقات، والمجلدات المخططة، والتقنية في مكانها، ولا حلقات، ولا مرجع معطّل، ولا نسخ، واختبار للبطاقة، وفحوص المشروع (typecheck وlint وtest)؛ وإلا تُرجع بأسبابها.",
-            "build_finish: الفحوص على المرحلة كلها (والكود الميت في المرحلة الأخيرة)، ثم فرع eaos/build-N فوق السابق، والمرحلة التالية بلا سؤال جديد."
+            "build_finish: الفحوص على المرحلة كلها (والكود الميت في المرحلة الأخيرة)، ثم فرع eaos/build-N فوق السابق، والمرحلة التالية بلا سؤال جديد.",
+            "كما نُفّذ: eaos/build_tools.py وتسع أدوات MCP (blueprint_* وbuild_*) وأمر build الجاهز؛ build_edit يحفظ البطاقة فقط إن مرّت: الطبقات، والمجلدات المخططة، ومكان التقنية، والحلقات، والمراجع، والنسخ، واختبار البطاقة، وtypecheck وlint وtest؛ والكود الميت عند إغلاق المرحلة الأخيرة؛ كل مرحلة فرع eaos/build-N فوق السابق. X8 = 1.0 (16/16)."
           ],
           "done_when": [
             "X8 = 1.0 بالأدوات الجديدة.",
@@ -4576,7 +4579,7 @@
           "acceptance": "python -m unittest tests.test_blueprint tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0",
           "rollback": "احذف أدوات البناء.",
           "writes": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS27.T4",
@@ -4598,7 +4601,8 @@
           ],
           "steps": [
             "tools/build_trial.py: Claude Code من «ابنِ مشروعي من هذه الخطة» إلى كل المراحل مسلّمة، ثم فحص EAOS للمشروع المبني.",
-            "تُسجَّل في docs/ux-trials/build.md كما جرت."
+            "تُسجَّل في docs/ux-trials/build.md كما جرت.",
+            "كما نُفّذ: tools/build_trial.py، ومشروع «عيادتي» من خطة عربية من صفحة: Claude Code وحده برسالتين (الطلب و«نعم»)، 7 مراحل في 74 دقيقة، 7/7 ميزات باختباراتها، 138 ملفًا (2,742 سطر كود و1,849 سطر اختبارات)، وفحص EAOS للناتج: صفر حلقات، وصفر مخالفات، وصفر نسخ، وصفر كود ميت، وصفر مراجع معطّلة (docs/ux-trials/build.md). B3 = 1.0، B4 = 1.0."
           ],
           "done_when": [
             "B3 = 1.0 وB4 = 1.0."
@@ -4609,7 +4613,7 @@
           "acceptance": "python tools/north_star.py measure --only B3 --min 1.0 && python tools/north_star.py measure --only B4 --min 1.0",
           "rollback": "لا شيء: قياس.",
           "writes": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS27.T5",

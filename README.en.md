@@ -65,14 +65,14 @@ flowchart TB
     subgraph P2["Assessment: reads the project only (2/2)"]
         direction LR
         S05["<b>S05 · Lock current behaviour</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 100%"]:::done
-        S06["<b>S06 · Target architecture</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 73%"]:::current
-        S07["<b>S07 · Gap and transformation plan</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 71%"]:::current
+        S06["<b>S06 · Target architecture</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 97%"]:::current
+        S07["<b>S07 · Gap and transformation plan</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 97%"]:::current
         S05 -->|"✔ A (static): E4 = 1 · B (isolated): E5 ≥ 0.8 and a k6 baseline"| S06
         S06 -->|"✔ T1–T7 at target, and a recorded human approval"| S07
     end
     subgraph P3["Execution: isolated, with the owner's authorization (1/2)"]
         direction LR
-        S08["<b>S08 · Rebuild / refactor</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 69%"]:::current
+        S08["<b>S08 · Rebuild / refactor</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 97%"]:::current
         S09["<b>S09 · Functional verification</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 0%"]:::next
         S10["<b>S10 · Security</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
         S11["<b>S11 · Load</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
@@ -226,13 +226,13 @@ No command modifies the original project, publishes anything or merges anything.
 <!-- north-star:progress:start -->
 <!-- generated from docs/north-star.json by python tools/north_star.py; do not edit by hand -->
 
-### Progress: **73.8 of 100 points**
+### Progress: **77.5 of 100 points**
 
-`██████████████████░░░░░░░` 73.8%
+`███████████████████░░░░░░` 77.5%
 
 | Steps done | Current step | Points left | Of which wait on the owner | Last measured |
 |---|---|---|---|---|
-| 18 of 26 | 19 · NS27 Build from a plan | 26.2 | 23 | 2026-09-28 · `0a8ea72+` |
+| 18 of 26 | 19 · NS27 Build from a plan | 22.5 | 23 | 2026-09-28 · `0a8ea72+` |
 
 `+`: measured on changes over this commit, saved in the next one.
 
@@ -297,7 +297,7 @@ flowchart TB
         direction LR
         NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 100%"]:::done
         NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 7 · ▰ 100%"]:::done
-        NS27["<b>19 · NS27</b><br/>البناء من خطة<br/>Build from a plan<br/>⚖ 6 · ▰ 32%"]:::current
+        NS27["<b>19 · NS27</b><br/>البناء من خطة<br/>Build from a plan<br/>⚖ 6 · ▰ 93%"]:::current
         NS20["<b>20 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
         NS26 -->|"✔ E5≥0.8 · +2 acceptance tests"| NS9
         NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +7 acceptance tests"| NS27
