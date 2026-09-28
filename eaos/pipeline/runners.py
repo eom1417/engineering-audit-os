@@ -182,6 +182,8 @@ def compose(context):
     from ..compose.product_report import render
     from ..workspace import read
     render(context.out, read(context.out / 'dossier.json'), context.language)
+    from ..human_report import write as human_page
+    human_page(context.out, context.language, Path(context.target).name)
     from ..start_here import start_here
     start_here(context.out, context.language, Path(context.target).name)
     return {}
