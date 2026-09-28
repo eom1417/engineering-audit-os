@@ -61,11 +61,9 @@ def section(page, name):
 class HumanReportTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
         self.out = report(self.tmp.name)
         self.page = human_report.write(self.out, 'ar').read_text(encoding='utf-8')
-
-    def tearDown(self):
-        self.tmp.cleanup()
 
     def test_the_page_is_one_self_contained_file_with_the_four_reports(self):
         self.assertTrue((self.out / 'human' / 'index.html').is_file())

@@ -3,6 +3,8 @@ from pathlib import Path
 import json
 
 
+TABLE_ROWS = 40
+
 def render(record, language='en'):
     """Return the markdown body for LOAD-MODEL.md.
 
@@ -37,7 +39,8 @@ def render(record, language='en'):
     lines += ['## Entry points ranked by load risk', '',
               '| Rank | Entry | Surface | Path | Cost | Incomplete | Bottlenecks |',
               '| --- | --- | --- | --- | --- | --- | --- |']
-    for index, entry in enumerate(ranked, start=1):
+    # The table grows with the project; the riskiest entry points are what a reader ranks, and the record keeps all.
+    for index, entry in enumerate(ranked[:TABLE_ROWS], start=1):
         projection = entry.get('projection') or {}
         cost = projection.get('cost_score')
         cost_str = f'{cost:.2f}' if isinstance(cost, (int, float)) else '—'
@@ -48,6 +51,8 @@ def render(record, language='en'):
         label = entry.get('label') or entry.get('handler') or entry.get('id', '?')
         lines.append(f'| {index} | {label} | {entry.get("surface", "—")} | `{entry.get("path", "?")}` '
                      f'| {cost_str} | {incomplete} | {bottlenecks} |')
+    if len(ranked) > TABLE_ROWS:
+        lines += ['', f'The {len(ranked) - TABLE_ROWS} entry points ranked below these are in `load-model.json`.']
     lines.append('')
 
     worst = ranked[:5]

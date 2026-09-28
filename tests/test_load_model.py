@@ -435,8 +435,9 @@ class DocumentBudgetTests(unittest.TestCase):
                                            'reason': 'the flow could not be traced'}
                                 for question in QUESTIONS},
                     'projection': {'incomplete': True, 'unanswered_questions': list(QUESTIONS)}}
-                   for index in range(60)]
+                   for index in range(300)]
         text = render(self._record(entries), language='en')
+        self.assertIn('The 260 entry points ranked below these are in `load-model.json`.', text)
         self.assertLessEqual(text.count('\n'), 200,
                              'the document grows with the project instead of pointing at the record')
 

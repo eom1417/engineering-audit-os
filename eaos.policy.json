@@ -121,6 +121,7 @@
       "eaos/jobs.py",
       "eaos/plain.py",
       "eaos/start_here.py",
+      "eaos/human_report.py",
       "eaos/intake.py",
       "eaos/dependency_assessment.py",
       "eaos/mechanical_assessment.py",
