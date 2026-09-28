@@ -32,4 +32,25 @@ folder existed (fixed in aee341a). With no other way to change files, the assist
 changing nothing. It also sampled EAOS's findings against the code and found real false positives: the server's own
 entry, its security headers, the rate limit and dynamically imported routes called dead code, and a documented
 `npm run deploy:<target>` template called missing. Those were fixed at their causes (ca6efe4; dead-code facts on
-chief-ops 150 → 74). The second run is recorded below when it ends.
+chief-ops 150 → 74).
+
+## chief-ops, 2026-09-28, third run: delivered
+
+| | |
+| --- | --- |
+| The person's turns | 2 (the request, then «نعم، موافق») |
+| Result | the branch `eaos/wave-1`, 7 fixes kept: two security upgrades (`fast-uri`, `sharp`) and five pieces of unused code removed; 6 files, the project's own typecheck, lint and tests and all 28 recorded screens passing |
+| Time | 63 minutes, from nothing to the delivered branch |
+| Files written by hand | 0 |
+
+It left four cards out on purpose, each with its reason: an import "cycle" that is only a type reference, erased at
+compile time and documented in the file; and three cycles inside the row-level-security layer and the new engine,
+which the project's own isolation plan is changing now, so untangling them is the owner's decision. It honoured the
+project's rules (nothing touching `core.js` or `archive/`) and asked, at the end, whether to take the branch in.
+
+It reported one EAOS fault plainly: the temporary PostgreSQL did not start, because its socket sat inside a data
+folder whose path is longer than a Unix socket allows (about 104 characters on macOS). The run went on with the app's
+local store. Fixed after the run: the socket gets a short folder of its own in /tmp; the test builds a database
+under a path deeper than that limit.
+
+X9 = 1.0 (2/2: chief-ops, endomap).

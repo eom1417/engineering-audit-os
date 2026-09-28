@@ -9,6 +9,7 @@ State lives in <runtime>/database/: data, log, and server.json {port, bin}. star
 already running for this runtime is reused; stop() stops it and keeps the data for the next step.
 """
 import glob
+import hashlib
 import json
 import os
 import shutil
@@ -55,6 +56,10 @@ class LocalPostgres:
         self.data = (Path(tempfile.gettempdir()) / 'eaos-pg' / self.root.resolve().as_posix().strip('/').replace('/', '_')
                      if self.owner else self.root / 'data')
         self.state = self.root / 'server.json'
+        # A Unix socket's path may not pass about 104 characters (macOS) or 107 (Linux), and the data folder under
+        # ~/.eaos/projects/<name>-<id>/... already does: the socket gets a short folder of its own in /tmp.
+        ident = hashlib.sha256(self.root.resolve().as_posix().encode('utf-8')).hexdigest()[:10]
+        self.sockets = Path('/tmp' if Path('/tmp').is_dir() else tempfile.gettempdir()) / f'eaos-pg-{ident}'
 
     def _run(self, bin_dir, name, *args, check=True):
         return subprocess.run([str(bin_dir / name), *args], capture_output=True, text=True, check=check, timeout=120,
@@ -84,8 +89,10 @@ class LocalPostgres:
             self._run(bin_dir, 'initdb', '-D', str(self.data), '-U', 'postgres', '--auth=trust', '-E', 'UTF8', '--no-instructions')
         port = _free_port()
         log = self.data / 'server.log'
+        self.sockets.mkdir(parents=True, exist_ok=True)
+        if self.owner: shutil.chown(self.sockets, self.owner)
         self._run(bin_dir, 'pg_ctl', '-D', str(self.data), '-w', '-t', '60', '-l', str(log), '-o',
-                  f"-h 127.0.0.1 -p {port} -k {self.data}", 'start')
+                  f"-h 127.0.0.1 -p {port} -k {self.sockets}", 'start')
         state = {'port': port, 'bin': str(bin_dir)}
         self.state.write_text(json.dumps(state))
         return self.url(state)

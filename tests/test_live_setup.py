@@ -223,6 +223,17 @@ class LocalDatabaseTests(unittest.TestCase):
             db.stop()
         self.assertIsNone(db.running())
 
+    def test_a_run_folder_deep_in_a_home_still_gets_its_database(self):
+        from eaos.local_db import LocalPostgres, binaries
+        if binaries() is None: self.skipTest('no PostgreSQL binaries')
+        deep = Path(tempfile.mkdtemp()) / ('.eaos/projects/chief-fellow-ops-spec-2b5adcc3/' + 'runtime/' * 6)
+        db = LocalPostgres(deep)
+        self.assertGreater(len(str(db.root)), 110, 'deeper than a Unix socket path may be')
+        try:
+            self.assertRegex(db.create('shop'), r'^postgresql://postgres@127\.0\.0\.1:\d+/shop$')
+        finally:
+            db.stop()
+
 
 class AssistantTests(unittest.TestCase):
     def test_the_installed_assistant_is_used_and_none_means_none(self):

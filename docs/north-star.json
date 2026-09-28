@@ -369,7 +369,7 @@
           "definition": "مشاريع التجربة التي أوصلها مساعد حقيقي (Claude Code بلا تدخل بشري) من طلب عادي إلى فرع إصلاحات مسلّم في المشروع، بموافقة واحدة من الشخص (دورتان على الأكثر) وبلا ملف يدوي ÷ مشاريع التجربة",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "trials an assistant drove from a plain request to a delivered branch, with at most one agreement: 1/1 (endomap)",
+          "evidence": "trials an assistant drove from a plain request to a delivered branch, with at most one agreement: 2/2 (chief-ops, endomap)",
           "reads": "${EAOS_MEASURE:-/workspace/eaos-measure}/mcp/<مشروع>/trial.json → delivered و person_turns و manual_files",
           "measured": "automated"
         },
@@ -4285,7 +4285,8 @@
             "fix_start يفتح دفعة في نسخة معزولة ويطبّق الإصلاحات الآلية (codemods) ويفحصها.",
             "fix_read وfix_edit: المساعد يقرأ ويعدّل أي ملف في النسخة (استبدال مرة واحدة، أو ملف كامل، أو حذف)، وكل تعديل يُفحص فورًا: المشكلة اختفت، لا كسر جديد، لا نقطة وصول حُذفت؛ الفاشل يُرجع بسببه.",
             "fix_finish: فحوص المشروع وقفل السلوك على الدفعة كلها (مع البحث عن المسبب)، ثم الفرع eaos/wave-N في المشروع؛ accept وundo.",
-            "tools/mcp_trial.py: تجربة حقيقية بـ Claude Code بلا تدخل: طلب عادي، ثم «نعم» واحدة، حتى فرع مسلّم؛ تكتب trial.json."
+            "tools/mcp_trial.py: تجربة حقيقية بـ Claude Code بلا تدخل: طلب عادي، ثم «نعم» واحدة، حتى فرع مسلّم؛ تكتب trial.json.",
+            "كما نُفّذ: fix_start وfix_read وfix_edit وfix_skip وfix_finish في eaos/agent_tools.py على أجزاء eaos/waves.py (open_batch وfinish_batch). تجربتان حقيقيتان بـ Claude Code بلا تدخل (docs/ux-trials/mcp.md): endomap في 19 دقيقة (8 إصلاحات) وchief-ops في 63 دقيقة (7 إصلاحات، 28 شاشة كما هي)، كلتاهما برسالتين فقط: الطلب و«نعم». كشفت التجارب أخطاء في EAOS أُصلحت: سجل تشغيل بلا مجلد، وكود ميت ليس ميتًا، واستيراد TypeScript بـ .js، وملفات كود بأسماء فيها secrets، وقفل ترقية لا يغطي كل ملفات القفل، وشاشة فشلت على الأصل تُحسب على الإصلاح، ومقبس PostgreSQL أطول من المسموح. X9 = 1.0 (2/2)."
           ],
           "done_when": [
             "X9 = 1.0 على chief-ops وendomap."
@@ -4296,7 +4297,7 @@
           "acceptance": "python -m unittest tests.test_mcp && python tools/north_star.py measure --only X9 --min 1.0",
           "rollback": "احذف أدوات الإصلاح؛ eaos next كما هو.",
           "writes": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS9.T9",
