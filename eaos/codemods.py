@@ -94,12 +94,16 @@ def _commands(card, copy):
         return [([binary, '-t', str(TRANSFORM), '--parser=tsx', f"--name={detail['symbol']}", detail['path']], None)]
     if kind == 'npm':
         binary = which('npm') or 'npm'
-        flags = ['--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund', '--loglevel=error']
-        if detail.get('folder', '.') != '.': flags += ['--prefix', detail['folder']]
-        if detail['direct']:
-            return [([binary, 'install', f"{detail['package']}@{detail['fixed']}", *flags], None)]
-        prefix = flags[flags.index('--prefix'):] if '--prefix' in flags else []
-        return [([binary, 'pkg', 'set', f"overrides.{detail['package']}={detail['fixed']}", *prefix], None), ([binary, 'install', *flags], None)]
+        steps = []
+        for folder, direct in detail.get('folders') or [(detail.get('folder', '.'), detail['direct'])]:
+            flags = ['--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund', '--loglevel=error']
+            prefix = ['--prefix', folder] if folder != '.' else []
+            if direct:
+                steps.append(([binary, 'install', f"{detail['package']}@{detail['fixed']}", *flags, *prefix], None))
+            else:
+                steps += [([binary, 'pkg', 'set', f"overrides.{detail['package']}={detail['fixed']}", *prefix], None),
+                          ([binary, 'install', *flags, *prefix], None)]
+        return steps
     return None
 
 
@@ -162,10 +166,28 @@ def card_for(task, facts_by_id, target):
         # The lock file the scanner read names the folder: an app in app/ has its manifest there, not at the root.
         folder = str(PurePosixPath(fact['location'].get('path') or 'package-lock.json').parent)
         if ecosystem != 'npm' or not fixed or not (Path(target) / folder / 'package-lock.json').is_file(): return None
-        manifest = json.loads((Path(target) / folder / 'package.json').read_text(encoding='utf-8'))
-        direct = package in (manifest.get('dependencies') or {}) or package in (manifest.get('devDependencies') or {})
-        return {'kind': 'npm', 'package': package, 'fixed': fixed, 'direct': direct, 'folder': folder}
+        def direct_in(where):
+            manifest = json.loads((Path(target) / where / 'package.json').read_text(encoding='utf-8'))
+            return package in (manifest.get('dependencies') or {}) or package in (manifest.get('devDependencies') or {})
+        # The same vulnerable version in another lock file of the project (a server/ beside the app) is the same
+        # problem: the card's acceptance scans the whole project, so every such lock file is upgraded with it.
+        folders = [folder] + [where for where in _lock_folders_with(target, package, rest.rpartition('@')[2]) if where != folder]
+        folders = [where for where in folders if (Path(target) / where / 'package.json').is_file()]
+        return {'kind': 'npm', 'package': package, 'fixed': fixed, 'direct': direct_in(folder), 'folder': folder,
+                'folders': [(where, direct_in(where)) for where in folders]}
     return None
+
+
+def _lock_folders_with(target, package, version):
+    """Folders (relative, '.' for the root) whose package-lock.json holds `package` at `version`."""
+    found = []
+    for lock in sorted(Path(target).rglob('package-lock.json')):
+        if 'node_modules' in lock.parts: continue
+        try: packages = json.loads(lock.read_text(encoding='utf-8')).get('packages') or {}
+        except (OSError, ValueError): continue
+        if any(key.split('node_modules/')[-1] == package and (row or {}).get('version') == version for key, row in packages.items()):
+            found.append(str(PurePosixPath(lock.relative_to(target).as_posix()).parent))
+    return found
 
 
 MECHANICAL = ('remove_dead', 'dead_code', 'leftover', 'upgrade_dependency')

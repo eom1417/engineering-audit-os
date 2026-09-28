@@ -129,3 +129,22 @@ class AppFolderTests(Workspace):
             argv = _commands(card, Path(tmp))[0][0]
             self.assertEqual(argv[1:3], ['install', 'sharp@0.35.4'])
             self.assertEqual(argv[-2:], ['--prefix', 'app'])
+
+    def test_the_same_vulnerable_version_in_another_lock_file_is_upgraded_too(self):
+        import tempfile
+        from eaos.codemods import _commands, card_for
+        with tempfile.TemporaryDirectory() as tmp:
+            lock = lambda version: json.dumps({'packages': {'node_modules/nanoid': {'version': version}}})
+            files = {'package.json': '{"dependencies": {"vite": "5"}}', 'package-lock.json': lock('3.3.15'),
+                     'server/package.json': '{"dependencies": {"nanoid": "^3"}}', 'server/package-lock.json': lock('3.3.15'),
+                     'docs/package.json': '{}', 'docs/package-lock.json': lock('3.3.18')}
+            for name, text in files.items():
+                (Path(tmp) / name).parent.mkdir(parents=True, exist_ok=True)
+                (Path(tmp) / name).write_text(text)
+            fact = {'id': 'F', 'location': {'path': 'package-lock.json', 'symbol': 'npm:nanoid@3.3.15'},
+                    'value': {'measurements': [{'name': 'fixed_in', 'value': '3.3.18'}]}}
+            card = card_for({'pattern': 'upgrade_dependency', 'evidence': {'fact_ids': ['F']}}, {'F': fact}, tmp)
+            self.assertEqual(card['folders'], [('.', False), ('server', True)], 'a lock file already fixed is left alone')
+            argv = [step[0] for step in _commands(card, Path(tmp))]
+            self.assertEqual(argv[-1][1:3], ['install', 'nanoid@3.3.18'])
+            self.assertEqual(argv[-1][-2:], ['--prefix', 'server'])
