@@ -59,6 +59,12 @@ class DeadCodeTests(unittest.TestCase):
                                     'export function forgotten() { return 1; }\n'})
         self.assertFalse([key for key in found if key[1] and key[1].startswith('window.')], found)
 
+    def test_a_function_under_a_quoted_key_is_reached_by_lookup_not_judged_by_name(self):
+        found = run({'package.json': '{"name": "web", "main": "src/main.js"}',
+                     'src/main.js': ('const SAY = {\n  \'past-empty\': (m) => `${m} passed`,\n  empty: (m) => `${m} empty`,\n};\n'
+                                     'export const say = (state, m) => SAY[state](m);\n')})
+        self.assertNotIn(('unused-symbol', "'past-empty'"), found)
+
     def test_a_name_held_in_a_registry_string_is_referenced(self):
         found = run(APP)
         self.assertNotIn(('unused-symbol', 'pretty'), found)

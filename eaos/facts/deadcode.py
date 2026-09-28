@@ -270,6 +270,9 @@ def run(target, source, symbols=None, resolved=None, entry_points=None, **option
                 or any(rule.search(path) for rule in NOT_CANDIDATES)): continue
         if value.get('kind') not in ('function', 'class') or value.get('parent') or value.get('decorators'): continue
         if not name or name.startswith('__') or name in ('main', 'default') or not judged(name): continue
+        # `{'past-empty': (m) => ...}` names a function by a quoted key: it is reached by a computed lookup
+        # (`MESSAGES[state]`), never by its name, so no text search can say it is unused.
+        if not TOKEN.fullmatch(name.rsplit('.', 1)[-1]): continue
         # `window.alert = ...` replaces a platform global: every bare `alert()` reaches it, and none names it.
         if name.split('.', 1)[0] in GLOBAL_OBJECTS and '.' in name: continue
         # `declare global { interface Window {...} }` extends a type the platform owns; nothing names it to use it.
