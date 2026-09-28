@@ -158,6 +158,48 @@ class ToolTests(Home):
         self.assertEqual(agent_tools.accept(str(self.project))['status'], 'needs_agreement')
 
 
+class OutputsTests(Home):
+    def test_every_output_is_in_one_folder_named_after_the_project(self):
+        state = agent_tools.project_state(str(self.project))
+        folder = guided.outputs(state)
+        self.assertEqual(folder, guided.outputs_root() / 'shop')
+        self.assertEqual(guided.report_of(state), folder / 'technical')
+        self.assertIn('REPORT.html', (folder / 'README.md').read_text())
+        other = git_project(Path(self.tmp.name) / 'elsewhere' / 'shop')
+        self.assertEqual(guided.outputs(agent_tools.project_state(str(other))), guided.outputs_root() / 'shop-2',
+                         'another project with the same name gets its own folder')
+        self.assertNotIn(str(self.project), str(folder), 'nothing is written into the project')
+        self.assertFalse(str(folder).startswith(str(Path.home() / 'EAOS')), 'a test never writes into the real home')
+
+    def test_a_report_page_that_cannot_be_built_never_stops_the_step(self):
+        state = agent_tools.project_state(str(self.project))
+        guided.report_of(state).mkdir(parents=True)
+        with mock.patch('eaos.human_report.write', side_effect=RuntimeError('broken record')):
+            self.assertEqual(guided.publish(state), guided.report_of(state) / 'START-HERE.md')
+
+    def test_a_report_an_older_eaos_left_is_moved_into_the_folder(self):
+        state = agent_tools.project_state(str(self.project))
+        old = Path(state['workspace']) / 'report'
+        old.mkdir(parents=True)
+        (old / 'plan.json').write_text('{"tasks": []}')
+        self.assertTrue((guided.report_of(state) / 'plan.json').is_file())
+        self.assertFalse(old.exists())
+
+    def test_a_batch_of_fixes_is_published_with_a_summary_and_the_report_opens(self):
+        state = agent_tools.project_state(str(self.project))
+        (guided.report_of(state)).mkdir(parents=True)
+        (guided.report_of(state) / 'plan.json').write_text('{"tasks": []}')
+        wave = {'number': 1, 'kept': ['TASK-001'], 'failed': {'TASK-002': 'its problem is still there'}, 'branch': 'eaos/wave-1',
+                'stat': '1 file changed'}
+        target = guided.publish_fixes(state, wave)
+        summary = (target / 'SUMMARY.md').read_text()
+        self.assertIn('eaos/wave-1', summary)
+        self.assertIn('TASK-002: its problem is still there', summary)
+        self.assertEqual(target, guided.outputs(state) / 'fixes' / 'wave-1')
+        answer = agent_tools.open_report(str(self.project), show=False)
+        self.assertEqual(answer['outputs_folder'], str(guided.outputs(state)))
+
+
 class JobTests(Home):
     def setUp(self):
         super().setUp()

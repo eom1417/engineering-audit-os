@@ -1,125 +1,104 @@
-# From zero to your first fix
+# From nothing to your first fix
 
-For people who built their app with an AI assistant and do not know the details of programming. Copy each
-command exactly, paste it into the terminal, and press Enter. Every command ends with a box that says what
-happened, and what to type next. Copy the command alone, with nothing before it: `eaos doctor`, not
-`bash eaos doctor`.
-
-> **Easiest:** if you use Claude Code or Codex, do step 1 and step 2, then talk to your assistant in your own
-> words: "check my project", "what is wrong?", "fix it", "where are we?". It runs the commands and explains.
+A guide for people who built their app with an AI assistant (Claude Code or Codex) and do not know the
+details of programming. You paste one line once, then talk to your assistant in your own words, and it does
+the rest.
 
 ---
 
 ## 1. Install EAOS (once)
+
+Open the Terminal, paste this line, and press Enter:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/main/install.sh | bash
 ```
 
 - **Takes:** 3 to 10 minutes.
-- **You should see:** ✅ "EAOS is installed".
-- **If it says "open a new terminal window":** close the terminal and open it again.
-- **Needs:** Python 3.10 or newer, and git. If one is missing, the command says where to get it.
+- **You should see:** ✅ "EAOS is installed", then "EAOS is now inside your AI assistant: Claude Code".
+- **Needs:** git, and Claude Code or Codex installed and signed in. If something is missing, the line says where to get it.
 
-## 2. Teach your AI assistant (optional, once)
+## 2. Open your assistant in your project folder
 
-```bash
-eaos assistant install
-```
+- **Claude Code:** open the Terminal in your project folder and type `claude` (or open the folder in the Claude app).
+- **Codex:** open the folder in Codex.
 
-- **You should see:** ✅ "Your assistant now knows EAOS: Claude Code, Codex".
-- Then open your assistant in your project folder and ask in your own words.
+If your assistant was open before the install, close it and open it again so it sees EAOS.
 
-## 3. Check your project
+> **How do I open the Terminal in my project folder?** Type `cd` and a space, drag the project folder from Finder into the Terminal window, and press Enter.
 
-Open your project folder in the terminal, then:
+## 3. Ask in your own words
 
-```bash
-eaos start .
-```
+Write to your assistant:
 
-- **Takes:** 5 to 30 minutes, depending on the project's size. You see each step as it runs: `[3/26] Running the checking tools…`.
-- **Nothing in your project changes.** Everything EAOS writes goes to a separate folder: `~/.eaos/projects/`.
-- **You should see:** ✅ "Checked your project: 584 problems, 312 of them can be fixed automatically" (your numbers will differ).
+> **Check my project with EAOS and fix its problems**
 
-To read the result in plain words:
+What happens next:
 
-```bash
-eaos show
-```
+| Step | What the assistant does | Takes |
+| --- | --- | --- |
+| Check | Checks the whole project, then explains the main problems in plain words | 5 to 30 minutes |
+| One question | Asks: "May I run your app in a separate copy, with a temporary database and none of your secrets, and prepare fixes there?" Answer: **yes** | — |
+| Run | Runs your app in the separate copy. If it needs a sign-in or data, it reads your code and prepares them itself | 5 to 20 minutes |
+| Record | Records every screen of your app before any change | 5 to 15 minutes |
+| Fix | Writes the fixes; EAOS checks each one: the problem is gone, nothing broke, every screen is the same. What fails is left out | 20 to 60 minutes |
+| Hand over | Puts what passed on a new branch in your project (`eaos/wave-1`) and tells you what changed | — |
 
-## 4. Get ready to fix
+At the end it asks: **take the fixes in, or throw them away?** Tell it what you want. Your current branch and
+files do not change until you agree.
 
-```bash
-eaos next
-```
+## 4. Read the report
 
-It asks one question: may it run your app in a separate copy on your computer, with a temporary database and none of your secrets?
+Say to your assistant: **"Open the report"**. It opens one page in your browser with four parts:
 
-- If you agree, type what the box says: `eaos next --yes`
-- **Takes:** 5 to 20 minutes. It may ask your AI assistant how your app runs.
-- **You should see:** ✅ "Your app runs in the separate copy".
+1. **Project summary:** its health out of 100, the main problems, what is fixed automatically and what needs you.
+2. **Gaps and risks:** where you are, where you should be, and how serious each gap is, in words.
+3. **Structure map:** the parts of your project, where the problems are, and the structure to aim for.
+4. **Plan and progress:** the stages of fixing, what is done, and the decisions that need you.
 
-## 5. Record your app before any change
+Everything EAOS makes is in one folder: **`~/EAOS/<your project name>/`**
 
-```bash
-eaos next
-```
+| In it | What it is |
+| --- | --- |
+| `REPORT.html` | The report for you: double-click to open |
+| `technical/` | The full technical report, for your assistant and developers. You do not need to open it |
+| `fixes/` | Every batch of fixes: what changed, what did not pass and why |
+| `logs/` | Technical logs, for whoever helps you if something goes wrong |
 
-- **Takes:** 15 to 30 minutes.
-- It records every screen of your app, and measures its speed. After each fix, the screens are compared with these recordings: if anything changed, the fix is refused.
-- **You should see:** ✅ "Recorded 28 of 28 screens; the slowest requests take 28 ms".
+## 5. The next batch
 
-## 6. Fix a first batch
-
-```bash
-eaos next
-```
-
-It asks once: may it fix batches of the ready fixes, and put what passes on a new branch in your project? If you agree:
-`eaos next --yes`
-
-- **Takes:** 20 to 60 minutes a batch (10 fixes).
-- Each fix is tried in the separate copy: your project's checks, the screens, and that the problem is gone. What fails is left out, with its reason written down.
-- **You should see:** ✅ "9 of 10 fixes passed; they are on the branch eaos/wave-1 in your project". Your current branch and files are as they were.
-
-## 7. Accept, or undo
-
-```bash
-eaos accept    # take the fixes into your project
-eaos undo      # throw them away
-```
-
-Then `eaos next` for the next batch.
+Say: **"Continue fixing"**. Each batch is a new branch (`eaos/wave-2`, …), and you decide every time.
 
 ---
 
-## Useful at any time
+## Requests that help at any time
 
-| Command | What it does |
+| Write to your assistant | What it does |
 | --- | --- |
-| `eaos status` | Where we are, and what comes next |
-| `eaos show` | What the check found, in plain words |
-| `eaos do "ask in your words"` | Understands your request and does it, like `eaos do "what is wrong"` |
-| `eaos doctor` | Is your computer ready? What is missing, and how to fix it |
-| `eaos clean` | Removes the temporary copies, to free space |
+| "Where are we?" | Where the project is and what comes next |
+| "Open the report" | Opens REPORT.html |
+| "What is the most important problem? Show me the evidence" | Explains one problem with its evidence and code |
+| "Take the fixes in" | Merges the branch of fixes into yours (after you agree) |
+| "Undo the fixes" | Deletes the branch of fixes; your project is as it was |
 
 ## If you see…
 
-| The message | What to do |
+| Situation | What to do |
 | --- | --- |
-| "We have not started with this project yet" | Open your project folder and type `eaos start .` |
-| "Your project is not saved in git yet" | `git init && git add -A && git commit -m "first save"`, then `eaos next` |
-| "You have edits not saved in git" | Not a problem: EAOS works on the last saved version. To include your edits: `git add -A && git commit -m "save"` |
-| "The port it needs is used by another program" | Close the dev server running in another window, then `eaos next` |
-| "A checking tool I need is not installed" | `eaos doctor --fix` |
-| "Node.js is not installed" | Install it from https://nodejs.org (LTS), then `eaos next` |
-| "The disk is full" | `eaos clean`, then `eaos next` |
-| "I need your AI assistant" | Install Claude Code or Codex and sign in, then `eaos next` |
-| Anything else | Type `eaos next`. If it happens again, send the log file named in the box to whoever helps you |
+| The assistant does not know EAOS | Close the assistant and open it again. If it still does not, run the install line again |
+| "This folder is not a project" | Open the assistant in your project folder (step 2) |
+| "Your project is not saved in git yet" | Tell your assistant: "save my project in git" |
+| "You have changes that are not saved" | Not a problem: EAOS works on the last saved version. To include them say: "save my changes in git" |
+| "Node.js is too old or not installed" | Install the LTS version from https://nodejs.org and ask again |
+| Anything else | Ask your assistant: "what happened?". If it happens again, send the `logs/` folder to whoever helps you |
+
+## No AI assistant?
+
+The same way works as commands in the Terminal: `eaos start .`, then `eaos next` after each step (`eaos status` says where you are).
 
 ## What EAOS never does
 
-- It does not change your project's files or your current branch. Fixes reach you as a separate branch; you decide.
-- It does not use your secrets or your `.env` file, and it never connects to your real database.
-- It does not deploy anything, and it never touches production (Railway, Vercel or any other).
+- It does not change your project's files or your current branch. Fixes reach you as a separate branch, and you decide.
+- It does not use your secrets or your `.env` file, and never connects to your real database.
+- It publishes nothing and never touches production (Railway, Vercel or any other).
+- It does not delete a feature or a screen to hide a problem: a fix that does is refused.

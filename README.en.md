@@ -72,7 +72,7 @@ flowchart TB
     end
     subgraph P3["Execution: isolated, with the owner's authorization (1/2)"]
         direction LR
-        S08["<b>S08 · Rebuild / refactor</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 81%"]:::current
+        S08["<b>S08 · Rebuild / refactor</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 74%"]:::current
         S09["<b>S09 · Functional verification</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 0%"]:::next
         S10["<b>S10 · Security</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
         S11["<b>S11 · Load</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
@@ -139,35 +139,30 @@ TASK-003 — complexity 83 (threshold 15) in eaos/sustainability.py
 
 ## 🚀 Quick start
 
-### The easy way (no technical knowledge needed)
+### The easy way: inside your AI assistant (no technical knowledge needed)
 
-> The full guide, step by step with how long each takes, what you should see, and fixes for errors: **[`docs/GUIDE.en.md`](docs/GUIDE.en.md)**.
+> The full guide, step by step with how long each takes, what you should see, and what to do if something goes wrong: **[`docs/GUIDE.en.md`](docs/GUIDE.en.md)**.
 
-**1. Install EAOS** (once). Copy this line into your terminal:
+**1. Install EAOS** (once). Paste this line into the Terminal. It installs EAOS and adds it to Claude Code and Codex by itself:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/main/install.sh | bash
 ```
 
-**2. If you use Claude Code or Codex**, teach it EAOS once, then talk to it in your own words ("check my project", "what is wrong?", "fix it"):
+**2. Open your assistant in your project folder, and write:**
 
-```bash
-eaos assistant install
-```
+> Check my project with EAOS and fix its problems
 
-**3. Or with commands:** open your project folder in the terminal, then:
+The assistant checks your project, explains the main problems, and asks you one question before running your app in a separate
+copy. Then it carries on alone: it runs the app, records its screens, writes the fixes, and EAOS checks each one. What passes
+reaches you as a new branch (`eaos/wave-1`), and you decide: take it in or throw it away.
 
-```bash
-eaos start .   # checks your project (5-30 minutes) and changes nothing in it
-eaos next      # the next step: set up, record the screens, then fix a batch on a new branch
-eaos accept    # takes the fixes into your project (or eaos undo to throw them away)
-```
+**3. Read the report:** say "open the report". Everything is in one folder, `~/EAOS/<your project>/`, with `REPORT.html`
+(project summary, gaps and risks, structure map, plan and progress) in plain words.
 
-Every command ends with a box holding what happened and the next command. You can also ask in your own words:
-`eaos do "what is wrong"`. More: `eaos status` (where we are), `eaos show` (the result in plain words),
-`eaos doctor` (is your computer ready).
+No AI assistant? The same way as commands in the Terminal: `eaos start .`, then `eaos next` after each step.
 
-> Why it is built this way: [`docs/USER-EXPERIENCE.md`](docs/USER-EXPERIENCE.md).
+> How it works inside the assistant: [`docs/MCP.md`](docs/MCP.md). Why it is designed this way: [`docs/USER-EXPERIENCE.md`](docs/USER-EXPERIENCE.md).
 
 ### For developers: the direct commands
 
@@ -226,13 +221,13 @@ No command modifies the original project, publishes anything or merges anything.
 <!-- north-star:progress:start -->
 <!-- generated from docs/north-star.json by python tools/north_star.py; do not edit by hand -->
 
-### Progress: **76.4 of 100 points**
+### Progress: **75.8 of 100 points**
 
-`███████████████████░░░░░░` 76.4%
+`███████████████████░░░░░░` 75.8%
 
 | Steps done | Current step | Points left | Of which wait on the owner | Last measured |
 |---|---|---|---|---|
-| 17 of 25 | 18 · NS9 Proven execution | 23.6 | 23 | 2026-09-28 · `89ce178+` |
+| 17 of 25 | 18 · NS9 Proven execution | 24.2 | 23 | 2026-09-28 · `89ce178+` |
 
 `+`: measured on changes over this commit, saved in the next one.
 
@@ -296,10 +291,10 @@ flowchart TB
     subgraph R6_1["R6 · Proven execution"]
         direction LR
         NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 100%"]:::done
-        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 81%"]:::current
+        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 74%"]:::current
         NS20["<b>19 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
         NS26 -->|"✔ E5≥0.8 · +2 acceptance tests"| NS9
-        NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +6 acceptance tests"| NS20
+        NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +7 acceptance tests"| NS20
     end
     subgraph R7_1["R7 · Operational hardening (1/2)"]
         direction LR

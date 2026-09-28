@@ -76,7 +76,7 @@ STAGES = (
           description='Literal, ordered execution instructions for every task card'),
     Stage('executive', produces=('EXECUTIVE.md',), requires=('sustainability',),
           description='Executive view of the measured indicators and their limits'),
-    Stage('compose', produces=('PRODUCT-REPORT.md', 'BLOCKERS.md', 'START-HERE.md'), requires=('plan', 'target', 'executive'),
+    Stage('compose', produces=('PRODUCT-REPORT.md', 'BLOCKERS.md', 'START-HERE.md', 'human/index.html'), requires=('plan', 'target', 'executive'),
           description='Human artifacts, each inside its declared line budget'),
     Stage('bundles', produces=('bundles/manifest.json', 'CANONICAL-HOMES.md', 'canonical-homes.json',
                               'STAGES.md', 'WAVES.md', 'KPI.md', 'gap-matrix.json', 'DATA-MODEL.md',

@@ -22,6 +22,7 @@ Work on your own until the job is done; do not come back to them between steps. 
 
 The whole way, in order (`status` always says the next tool):
   audit -> overview / findings / finding / structure / plan  (understand; explain the main problems simply)
+     and open_report (the report for people, in their browser: offer it after the check and after each batch)
   run_setup (after the person agrees) -> run_try until the app runs (you read the failure and the code, and
      propose the environment, commands, or a seed script that signs in; EAOS refuses anything unsafe)
   safety_net (records every screen before any change)
@@ -34,6 +35,7 @@ what the tools returned."""
 # Every capability of the guided way (eaos/guided.py STEPS and its commands), and the tool that gives it to the
 # assistant. X8 counts those registered and exercised by tests/test_mcp.py.
 CAPABILITIES = {'where things stand': 'status', 'check the project': 'audit', 'follow long work': 'wait',
+                'show the report for people': 'open_report',
                 'read the evidence': 'finding', 'run the app': 'run_try', 'record the screens': 'safety_net',
                 'fix a card': 'fix_edit', 'hand fixes over': 'fix_finish', 'accept': 'accept', 'undo': 'undo'}
 
@@ -119,6 +121,13 @@ def build():
     @_answer
     def report_file(name: str = '', offset: int = 0, limit: int = 20000, project: str | None = None) -> str:
         return tools.report_file(name, project, offset, limit)
+
+    @server.tool(annotations=reading, description='Open the report for people (REPORT.html: project summary, gaps and risks, structure '
+                 'map, plan and progress, in plain words) in the person\'s browser, rebuilt with the fixes so far. Offer it after '
+                 'the check and after each batch of fixes. All outputs are in one folder (~/EAOS/<project>).')
+    @_answer
+    def open_report(show: bool = True, project: str | None = None) -> str:
+        return tools.open_report(project, show)
 
     @server.tool(annotations=working, description='Run the app in an isolated copy (a temporary local database, no secrets, nothing '
                  'reaches the internet), found from its files. Needs the person\'s agreement once: without it, returns the question to '

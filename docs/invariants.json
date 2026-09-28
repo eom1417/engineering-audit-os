@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "62f6263",
+  "extracted_at_commit": "13876a6",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -858,12 +858,42 @@
       "note": ""
     },
     {
+      "id": "INV-8b6e0b94f0",
+      "file": "eaos/guided.py",
+      "symbol": "outputs_root",
+      "statement": "~/EAOS: everything EAOS makes for a person, in one folder they can see and open (EAOS_OUTPUT moves it; beside EAOS_HOME when that is set, so a trial or a test never writes into the real home).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_mcp.py::OutputsTests::test_every_output_is_in_one_folder_named_after_the_project",
+      "note": ""
+    },
+    {
+      "id": "INV-1288953568",
+      "file": "eaos/guided.py",
+      "symbol": "publish",
+      "statement": "Never a reason for a step to fail: without it, the technical report is still there.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_mcp.py::OutputsTests::test_a_report_page_that_cannot_be_built_never_stops_the_step",
+      "note": ""
+    },
+    {
       "id": "INV-96354a07d7",
       "file": "eaos/guided.py",
       "symbol": "_saved_note",
       "statement": "Unsaved edits are not part of the run: said once, plainly, never a stop.",
       "kind": "invariant",
       "enforced_by": "tests/test_live_setup.py::GuidedNoteTests::test_unsaved_edits_are_said_once_and_never_stop_the_run",
+      "note": ""
+    },
+    {
+      "id": "INV-358eedd4a6",
+      "file": "eaos/human_report.py",
+      "symbol": "write",
+      "statement": "Never raises for missing or broken records: a section it cannot build says \"not available\".",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_human_report.py::HumanReportTests::test_broken_records_cost_a_section_not_the_page",
+        "tests/test_human_report.py::HumanReportTests::test_a_report_with_no_records_still_gets_a_page_that_says_not_available"
+      ],
       "note": ""
     },
     {
