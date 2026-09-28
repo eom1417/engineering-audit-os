@@ -139,6 +139,11 @@ def build():
                  'the check and after each batch of fixes. All outputs are in one folder (~/EAOS/<project>).')
     @_answer
     def open_report(show: bool = True, project: str | None = None) -> str:
+        from . import build_tools, guided
+        from pathlib import Path
+        import os
+        state = guided.load(Path(project or os.getcwd()).expanduser().resolve())
+        if (state or {}).get('mode') == 'build' and not guided.scan_done(state): return build_tools.open_blueprint(project, show)
         return tools.open_report(project, show)
 
     @server.tool(annotations=working, description='Run the app in an isolated copy (a temporary local database, no secrets, nothing '

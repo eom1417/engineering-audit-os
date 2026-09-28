@@ -425,3 +425,44 @@ def document(spec, stack, built):
             lines.append(f"- {card_id}: {card['title']}")
         lines.append('')
     return '\n'.join(lines)
+
+
+def page(spec, stack, built, progress=None):
+    """BLUEPRINT.html: the blueprint for a person, in the look of the report for people (eaos/human_report.py),
+    with every milestone's progress when `progress` (the state's `built` list) is given."""
+    from html import escape
+    from .human_report import CSS
+    done = {card for record in progress or [] for card in record.get('kept') or []}
+    delivered = {record['milestone']: record.get('branch') for record in progress or []}
+    rtl = any('؀' <= ch <= 'ۿ' for ch in spec.get('name', '') + spec.get('summary', ''))
+    parts = ''.join(f'<div class="card"><h4>{escape(m["name"])}</h4><p class="muted small">{escape(m.get("responsibility") or "")}</p>'
+                    f'<p class="small">{escape(", ".join(f["name"] for f in spec["features"] if f.get("module") == m["id"]))}</p></div>'
+                    for m in spec['modules'])
+    rows = ''.join(f'<tr><td><b>{escape(row["title"])}</b></td><td>{escape(row["name"])}</td><td>{escape(row["why"])}</td>'
+                   f'<td class="small">{escape(row["switch"])}</td></tr>' for row in stack.values())
+    rules = ''.join(f'<li>{escape(rule["reason"])}</li>' for rule in built['policy']['rules'])
+    cards = {c['id']: c for c in built['plan']['tasks']}
+    stages = []
+    for milestone in built['plan']['milestones']:
+        ids = milestone['tasks']
+        share = round(100 * sum(c in done for c in ids) / len(ids)) if ids else 0
+        badge = ('✅ ' + escape(delivered[milestone['id']])) if milestone['id'] in delivered else f'{sum(c in done for c in ids)} / {len(ids)}'
+        items = ''.join(f'<li>{"✅" if c in done else "⬜"} {escape(cards[c]["title"])}</li>' for c in ids)
+        stages.append(f'<div class="card"><h4>{escape(milestone.get("name_ar") if rtl else milestone["name"])} '
+                      f'<span class="muted small" data-meaning="cards built of this milestone">{badge}</span></h4>'
+                      f'<div style="height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin:8px 0">'
+                      f'<div style="width:{share}%;height:100%;background:var(--good)"></div></div><ul class="small">{items}</ul></div>')
+    label = (lambda ar, en: ar if rtl else en)
+    return f"""<!doctype html><html lang="{'ar' if rtl else 'en'}" dir="{'rtl' if rtl else 'ltr'}" data-lang="{'ar' if rtl else 'en'}">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{escape(spec['name'])}</title>
+<style>{CSS} .grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}} table{{width:100%;border-collapse:collapse}}
+td,th{{border-bottom:1px solid var(--line);padding:10px;text-align:start;vertical-align:top}}</style></head>
+<body><header class="top"><div class="wrap top-in"><div><div class="kicker">EAOS · {label('مخطط البناء', 'Blueprint')}</div>
+<h1>{escape(spec['name'])}</h1></div></div></header><main class="wrap">
+<p>{escape(spec['summary'])}</p>
+<h3>{label('الأجزاء', 'The parts')}</h3><div class="grid">{parts}</div>
+<h3>{label('التقنيات، ولماذا، وكيف تُغيَّر لاحقًا', 'The technologies, why, and how to change each later')}</h3>
+<div class="card"><table><tr><th>{label('الجانب', 'Concern')}</th><th>{label('المختار', 'Chosen')}</th><th>{label('لماذا', 'Why')}</th><th>{label('لتغييره لاحقًا', 'To change it later')}</th></tr>{rows}</table></div>
+<h3>{label('القواعد التي يحفظها الهيكل', 'The rules the structure keeps')}</h3><div class="card"><ul>{rules}</ul></div>
+<h3>{label('البناء، مرحلة مرحلة', 'The build, milestone by milestone')}</h3><div class="grid">{''.join(stages)}</div>
+</main></body></html>"""

@@ -104,11 +104,12 @@ def blueprint_design(stack=None, project=None):
     _write(where / 'eaos.policy.json', built['policy'])
     _write(where / 'plan.json', built['plan'])
     (where / 'BLUEPRINT.md').write_text(blueprint.document(spec, chosen, built) + '\n', encoding='utf-8')
+    publish(state, spec, chosen, built)
     state['blueprint'] = {**(state.get('blueprint') or {}), 'designed': agent_tools._now(),
                           'cards': len(built['plan']['tasks']), 'milestones': [m['id'] for m in built['plan']['milestones']]}
     state.setdefault('built', [])
     guided.save(state)
-    return {'status': 'designed', 'blueprint': str(where / 'BLUEPRINT.md'),
+    return {'status': 'designed', 'blueprint': str(where / 'BLUEPRINT.md'), 'for_the_person': str(guided.outputs(state) / 'BLUEPRINT.html'),
             'stack': {concern: {'chosen': row['name'], 'why': row['why'], 'change_later': row['switch']} for concern, row in chosen.items()},
             'layers': sorted(built['policy']['layers']), 'rules': [r['reason'] for r in built['policy']['rules']],
             'vendors_kept_in_one_place': built['policy']['vendors'],
@@ -116,6 +117,30 @@ def blueprint_design(stack=None, project=None):
             'open_questions': questions,
             'what_now': 'Tell the person, simply, the parts, the technologies and why, and the order of the build. Then call '
                         'build_start (it asks their agreement once).'}
+
+
+def publish(state, spec=None, stack=None, built=None):
+    """BLUEPRINT.html in the outputs folder, beside README.md: the blueprint and the build's progress for a person."""
+    where = folder(state)
+    spec = spec or _read(where / 'product-spec.json')
+    stack = stack or _read(where / 'stack.json')
+    if not (spec and stack): return None
+    built = built or {'policy': _read(where / 'eaos.policy.json'), 'plan': _read(where / 'plan.json')}
+    target = guided.outputs(state) / 'BLUEPRINT.html'
+    target.write_text(blueprint.page(spec, stack, built, state.get('built')), encoding='utf-8')
+    return target
+
+
+def open_blueprint(project=None, show=True):
+    state = _state(project)
+    page = publish(state)
+    if page is None: return {'status': 'no_blueprint', 'what_now': 'Draw the blueprint first: blueprint_start, blueprint_spec, blueprint_design.'}
+    opened = False
+    if show:
+        import webbrowser
+        try: opened = webbrowser.open(page.resolve().as_uri())
+        except Exception: opened = False
+    return {'blueprint_for_people': str(page), 'opened_in_browser': opened, 'outputs_folder': str(guided.outputs(state))}
 
 
 # ---------------------------------------------------------------- the build
@@ -354,6 +379,7 @@ def _build_finish_job(project, arguments, progress):
         if older.get('via') == 'build' and older.get('status') == 'applied': older['status'] = 'superseded'
     state.pop('open_build', None)
     guided.save(state)
+    publish(state)
     remaining = [m['id'] for m in _plan(state)['milestones'] if m['id'] not in {r['milestone'] for r in state['built']}]
     return {'delivered': True, 'branch': branch, 'milestone': build['milestone'], 'changes': record['stat'], 'milestones_left': remaining,
             'what_now': ('Call build_start for the next milestone, without asking the person again.' if remaining else
