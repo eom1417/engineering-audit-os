@@ -4,13 +4,13 @@
 
 ## أين نحن
 
-### التقدم: **75.9 من 100 نقطة**
+### التقدم: **76.0 من 100 نقطة**
 
-`███████████████████░░░░░░` 75.9%
+`███████████████████░░░░░░` 76.0%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 17 من 25 | 18 · NS9 إثبات التنفيذ | 24.1 | 23 | 2026-09-28 · `89ce178+` |
+| 17 من 25 | 18 · NS9 إثبات التنفيذ | 24.0 | 23 | 2026-09-28 · `89ce178+` |
 
 `+`: قيس على تغييرات فوق هذا الالتزام، حُفظت في الالتزام التالي.
 
@@ -76,7 +76,7 @@ flowchart TB
     subgraph R6_1["R6 · التنفيذ المثبت"]
         direction LR
         NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 100%"]:::done
-        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 75%"]:::current
+        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 76%"]:::current
         NS20["<b>19 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
         NS26 -->|"✔ E5≥0.8 · +2 اختبار قبول"| NS9
         NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +7 اختبار قبول"| NS20
@@ -138,7 +138,7 @@ flowchart TB
 | 15 | [**NS14** جودة التقرير تُفحص آليًا](#step-15) | R5 | 2 | 100% | 2 | 100% | ✅ مكتملة | P8=1 · +3 اختبار قبول |
 | 16 | [**NS25** عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي](#step-16) | R5 | 4 | 100% | 4 | 100% | ✅ مكتملة | K1=1 · +4 اختبار قبول |
 | 17 | [**NS26** خط الأساس الحي: السلوك والأرقام قبل أي تغيير](#step-17) | R6 | 4 | 100% | 4 | 100% | ✅ مكتملة | E5≥0.8 · +2 اختبار قبول |
-| 18 | [**NS9** إثبات التنفيذ](#step-18) | R6 | 8 | 75% | 6.03 | 73% | 🟡 قيد العمل | E1=1 · X4=1 · X5=1 · X2=1 · X1=1 · X6≥0.9 · … · +7 اختبار قبول |
+| 18 | [**NS9** إثبات التنفيذ](#step-18) | R6 | 8 | 76% | 6.07 | 73% | 🟡 قيد العمل | E1=1 · X4=1 · X5=1 · X2=1 · X1=1 · X6≥0.9 · … · +7 اختبار قبول |
 | 19 | [**NS20** التحقق الوظيفي: الوظائف نفسها باقية، والتنبؤ حدث](#step-19) | R6 | 5 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E7=1 · E2≥0.8 |
 | 20 | [**NS21** الأمن بعد التحول: ساكنًا وحيًا](#step-20) | R7 | 3 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E8=1 · +1 اختبار قبول |
 | 21 | [**NS22** الحمل: قبل وبعد بالشروط نفسها](#step-21) | R7 | 3 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E6≥0.8 |
@@ -146,7 +146,7 @@ flowchart TB
 | 23 | [**NS24** الرصد: كل سطح حرج مرئي](#step-23) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E10≥0.9 · +1 اختبار قبول |
 | 24 | [**NS16** الجاهزية للإنتاج: كل بند بأمر](#step-24) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E11=1 · +1 اختبار قبول |
 | 25 | [**NS10** الإثبات المستقل](#step-25) | R8 | 5 | 18% | 0.9 | 15% | 🔴 تحتاج مدخلًا منك | V4=1 · V3=1 |
-| | **المجموع** | | **100** | | **75.9** | | | |
+| | **المجموع** | | **100** | | **76.0** | | | |
 
 ## الخطوات بالتفصيل
 
@@ -843,7 +843,7 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 8 | 75% | 6.03 من 8 | 73% | R6 | S08 |
+| 8 | 76% | 6.07 من 8 | 73% | R6 | S08 |
 
 **الهدف:** E1 = 1.0 و E2 ≥ 0.8.
 
@@ -895,7 +895,7 @@ flowchart TB
 | [NS9.T5](#ns9t5) المساعد الذكي يفهم الطلب العادي (Claude Code وCodex) | M | ✅ | 100% | `python -m unittest tests.test_intents && python tools/north_star.py measure --only X6 --min 0.9` |
 | [NS9.T7](#ns9t7) EAOS داخل المساعد: أدوات MCP للتشخيص والتشغيل | L | ✅ | 100% | `python -m unittest tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0` |
 | [NS9.T8](#ns9t8) EAOS داخل المساعد: الإصلاح والتسليم بالمساعد | L | ⬜ | 0% | `python -m unittest tests.test_mcp && python tools/north_star.py measure --only X9 --min 1.0` |
-| [NS9.T9](#ns9t9) التثبيت يضع EAOS داخل المساعد تلقائيًا | S | ⬜ | 90% | `python -m unittest tests.test_intents tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0` |
+| [NS9.T9](#ns9t9) التثبيت يضع EAOS داخل المساعد تلقائيًا | S | ✅ | 100% | `python -m unittest tests.test_intents tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0` |
 | [NS9.T10](#ns9t10) تقارير للبشر، ومخرجات في مجلد واحد | M | ⬜ | 0% | `python -m unittest tests.test_human_report tests.test_mcp && python tools/north_star.py measure --only X10 --min 1.0` |
 | [NS9.T6](#ns9t6) الدليل والإثبات: من الصفر إلى أول إصلاح | M | ⬜ | 60% | `python tools/north_star.py measure --only X1 --min 1.0 && python tools/north_star.py measure --only X3 --min 1.0 && python tools/north_star.py measure --only X7 --min 1.0` |
 
@@ -1176,7 +1176,7 @@ flowchart TB
     end
     subgraph P3["التنفيذ: بيئة معزولة بتفويض المالك (1/2)"]
         direction LR
-        S08["<b>S08 · التنفيذ</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 75%"]:::current
+        S08["<b>S08 · التنفيذ</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 76%"]:::current
         S09["<b>S09 · التحقق الوظيفي</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 0%"]:::next
         S10["<b>S10 · الأمن</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
         S11["<b>S11 · الحمل</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
@@ -4070,7 +4070,7 @@ python -m unittest tests.test_mcp && python tools/north_star.py measure --only X
 
 <a id="ns9t9"></a>
 
-#### NS9.T9 — التثبيت يضع EAOS داخل المساعد تلقائيًا ⬜
+#### NS9.T9 — التثبيت يضع EAOS داخل المساعد تلقائيًا ✅
 
 **لماذا:** لا يكتب المستخدم إعدادًا: سطر التثبيت نفسه يسجّل EAOS في Claude Code وCodex.
 
@@ -4082,6 +4082,7 @@ python -m unittest tests.test_mcp && python tools/north_star.py measure --only X
 
 1. install.sh يشغّل eaos assistant install حين يجد claude أو codex: الخادم مسجّل (claude mcp add --scope user، و[mcp_servers.eaos] بمهلة تكفي)، والمهارة والتعليمات تشرح الطريق كله.
 2. الخطوة التالية بعد التثبيت: «افتح مساعدك في مجلد مشروعك واكتب: افحص مشروعي بـ EAOS وأصلح مشاكله».
+3. كما نُفّذ: تثبيت من حساب نظيف (HOME فارغ، وclaude وcodex موجودان): install.sh يطبع «EAOS is now inside your AI assistant: Claude Code, Codex»، ويكتب المهارة وتعليمات Codex وخادم MCP في ~/.claude.json و~/.codex/config.toml (بمهلة 120 ثانية للأداة)؛ claude mcp list: «eaos ✔ Connected»؛ وclaude -p استدعى status من النسخة المثبّتة وأجاب بالخطوة التالية.
 
 **تنتهي حين:**
 

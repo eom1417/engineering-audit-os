@@ -4318,7 +4318,8 @@
           ],
           "steps": [
             "install.sh يشغّل eaos assistant install حين يجد claude أو codex: الخادم مسجّل (claude mcp add --scope user، و[mcp_servers.eaos] بمهلة تكفي)، والمهارة والتعليمات تشرح الطريق كله.",
-            "الخطوة التالية بعد التثبيت: «افتح مساعدك في مجلد مشروعك واكتب: افحص مشروعي بـ EAOS وأصلح مشاكله»."
+            "الخطوة التالية بعد التثبيت: «افتح مساعدك في مجلد مشروعك واكتب: افحص مشروعي بـ EAOS وأصلح مشاكله».",
+            "كما نُفّذ: تثبيت من حساب نظيف (HOME فارغ، وclaude وcodex موجودان): install.sh يطبع «EAOS is now inside your AI assistant: Claude Code, Codex»، ويكتب المهارة وتعليمات Codex وخادم MCP في ~/.claude.json و~/.codex/config.toml (بمهلة 120 ثانية للأداة)؛ claude mcp list: «eaos ✔ Connected»؛ وclaude -p استدعى status من النسخة المثبّتة وأجاب بالخطوة التالية."
           ],
           "done_when": [
             "تثبيت من حساب نظيف فيه claude يسجّل الخادم، ويستدعي claude -p أداة status منه."
@@ -4329,7 +4330,7 @@
           "acceptance": "python -m unittest tests.test_intents tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0",
           "rollback": "أعد install.sh السابق.",
           "writes": [],
-          "status": "todo"
+          "status": "done"
         },
         {
           "id": "NS9.T10",
