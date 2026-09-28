@@ -372,6 +372,16 @@
           "evidence": "not measured yet: docs/MCP.md",
           "reads": "${EAOS_MEASURE:-/workspace/eaos-measure}/mcp/<مشروع>/trial.json → delivered و person_turns و manual_files",
           "measured": "automated"
+        },
+        {
+          "id": "X10",
+          "name": "تقرير يفهمه أي إنسان",
+          "definition": "تقارير البشر (REPORT.html) لمشاريع العيّنة التي فيها الأقسام الأربعة (الملخص، والفجوات والمخاطر، وخريطة البنية، والخطة والتقدم)، ومفتاح لمستويات الخطورة، ولا رقم ظاهر بلا معناه ÷ هذه التقارير",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet: eaos/human_report.py",
+          "reads": "${EAOS_MEASURE}/<مشروع>/human/index.html → eaos/human_report.readability_problems",
+          "measured": "automated"
         }
       ]
     },
@@ -4321,6 +4331,45 @@
           "status": "todo"
         },
         {
+          "id": "NS9.T10",
+          "title": "تقارير للبشر، ومخرجات في مجلد واحد",
+          "why": "المالك فتح التقارير فوجد نحو 30 ملفًا مكتوبة للذكاء الاصطناعي، وأرقامًا مثل 0.79 بلا معنى. يحتاج أي إنسان صورة شاملة واضحة، والتقارير الفنية تبقى كما هي لجودة التنفيذ.",
+          "moves": [
+            "X10"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS9.T9"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/human_report.py",
+            "eaos/guided.py",
+            "eaos/agent_tools.py",
+            "tests/test_human_report.py",
+            "tests/test_mcp.py"
+          ],
+          "steps": [
+            "eaos/human_report.py: صفحة واحدة مستقلة (بلا شبكة) فيها أربعة تقارير: ملخص المشروع (درجة من 100 بمعادلة معلنة، وخمسة مجالات بإشارات ملونة)، والفجوات والمخاطر (الخطورة بالكلمات ومفتاحها)، وخريطة البنية (رسم لكثافة المشاكل والبنية المستهدفة)، والخطة والتقدم. عربي افتراضيًا مع الإنجليزية، قابلة للطباعة.",
+            "لا رقم وحده: الأولوية بالكلمات حسب الترتيب، والخطورة تغلب الترتيب؛ readability_problems يفحص ذلك آليًا.",
+            "كل المخرجات في مجلد واحد ظاهر ~/EAOS/<المشروع>/: REPORT.html، وtechnical/ (التقرير الفني كما هو)، وfixes/wave-N/ (SUMMARY.md والتعديلات)، وlogs/، وREADME.md؛ ما ليس مخرجًا يبقى في ~/.eaos.",
+            "أداة open_report في MCP تفتح التقرير، ويُعاد بناؤه بعد كل دفعة إصلاحات.",
+            "كما نُفّذ: الصفحة بناها وكيل فرعي وراجعتها بصور الشاشة؛ جُرّبت Chart.js وECharts وMermaid وuPlot ولم تُعتمد (الرسوم ثلاثة بسيطة بـSVG، والأرقام تبقى قابلة للفحص، والعربية من اليمين). على chief-ops: 63 من 100 «مقبول»."
+          ],
+          "done_when": [
+            "X10 = 1.0 على تقارير العيّنة.",
+            "tests/test_human_report.py وtests/test_mcp.py يمران."
+          ],
+          "pitfalls": [
+            "لا تُعدَّل التقارير الفنية لتناسب البشر: هي ما يعتمد عليه التنفيذ.",
+            "الدرجة من بيانات التقرير وحدها، بمعادلة مكتوبة في الصفحة."
+          ],
+          "acceptance": "python -m unittest tests.test_human_report tests.test_mcp && python tools/north_star.py measure --only X10 --min 1.0",
+          "rollback": "احذف الصفحة ومجلد المخرجات؛ التقرير الفني كما هو.",
+          "writes": [],
+          "status": "todo"
+        },
+        {
           "id": "NS9.T6",
           "title": "الدليل والإثبات: من الصفر إلى أول إصلاح",
           "why": "لا يُعدّ شيء سهلًا حتى ينجح فيه من لم يبنه، بالدليل وحده.",
@@ -4333,7 +4382,7 @@
           ],
           "needs": "sandbox",
           "depends_on": [
-            "NS9.T9"
+            "NS9.T10"
           ],
           "size": "M",
           "files": [

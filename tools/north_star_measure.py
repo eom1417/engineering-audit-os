@@ -183,7 +183,7 @@ def self_truth(record):
                    f'{len(dead)} dead of {len(dead) + len(false)} distinct candidates (by path and symbol): ' + ', '.join(dead))}
 
 
-USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9')
+USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10')
 
 
 def measure(record, only=None):
@@ -248,6 +248,13 @@ def usability_values(only=None):
         values['X9'] = (ratio(len(ok), len(runs)) if runs else None,
                         f"trials an assistant drove from a plain request to a delivered branch, with at most one agreement: {len(ok)}/{len(runs)} "
                         f"({', '.join(t['project'] for t in runs) or 'no trial run yet'})")
+    if only in (None, 'X10'):
+        from eaos.human_report import readability_problems
+        pages = sorted(p for p in REPORTS.glob('*/human/index.html') if p.parent.parent.name not in ('runtime', 'ux', 'mcp'))
+        clean = [p.parent.parent.name for p in pages if not readability_problems(p.read_text(encoding='utf-8'))]
+        values['X10'] = (ratio(len(clean), len(pages)) if pages else None,
+                         f"reports for people with the four reports, a severity legend and no number without its meaning: {len(clean)}/{len(pages)} "
+                         f"({', '.join(p.parent.parent.name for p in pages) or 'no report yet'})")
     if only in (None, 'X5'):
         done, total = guided.complete_entries()
         values['X5'] = (ratio(done, total) or 0.0, f'known errors with a plain message, a fix and a command in Arabic and English: {done}/{total}')
