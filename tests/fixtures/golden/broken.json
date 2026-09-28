@@ -3,7 +3,7 @@
   "extractor": "broken",
   "extractor_version": "1",
   "available": true,
-  "input_sha": "e6636132b6c9f4d6acc6e67dc97bda10f588d424fdbf8f0e266eba5ef227f0c8",
+  "input_sha": "2d2de26d3710eab7b364509f55121ee414b5800f76008cbaa1df2cf41e1e8796",
   "limitations": [
     "Undefined names are judged for Python only; a module with a star import is skipped, since any name may come from it.",
     "Names injected at runtime (exec, globals() writes, module __getattr__) are invisible and would be reported; none is assumed.",

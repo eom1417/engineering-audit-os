@@ -579,6 +579,15 @@
       "note": ""
     },
     {
+      "id": "INV-f4cf991fbe",
+      "file": "eaos/facts/deadcode.py",
+      "symbol": "_commanded",
+      "statement": "A program is run, not imported, so the import graph never reaches it; the command that runs it is its use.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_deadcode.py::VerdictTests::test_a_module_nothing_imports_is_confirmed_and_a_program_nothing_runs_is_a_review_candidate",
+      "note": ""
+    },
+    {
       "id": "INV-a2610c7d53",
       "file": "eaos/facts/domain.py",
       "symbol": "encapsulated",
