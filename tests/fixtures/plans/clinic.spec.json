@@ -1,0 +1,96 @@
+{
+ "name": "Clinic",
+ "summary": "Book clinic visits.",
+ "modules": [
+  {
+   "id": "appointments",
+   "name": "Appointments",
+   "responsibility": "booking visits"
+  },
+  {
+   "id": "patients",
+   "name": "Patients",
+   "responsibility": "who the patients are"
+  }
+ ],
+ "entities": [
+  {
+   "id": "patient",
+   "name": "Patient",
+   "module": "patients",
+   "fields": [
+    {
+     "name": "name",
+     "type": "text"
+    }
+   ]
+  },
+  {
+   "id": "appointment",
+   "name": "Appointment",
+   "module": "appointments",
+   "fields": [
+    {
+     "name": "at",
+     "type": "date"
+    }
+   ]
+  }
+ ],
+ "features": [
+  {
+   "id": "F1",
+   "name": "Register a patient",
+   "module": "patients",
+   "entities": [
+    "patient"
+   ],
+   "roles": [
+    "staff"
+   ],
+   "acceptance": [
+    "a saved patient appears in the list"
+   ]
+  },
+  {
+   "id": "F2",
+   "name": "Book a visit",
+   "module": "appointments",
+   "entities": [
+    "appointment",
+    "patient"
+   ],
+   "roles": [
+    "staff"
+   ],
+   "acceptance": [
+    "a booked visit shows on its day"
+   ]
+  }
+ ],
+ "roles": [
+  {
+   "id": "staff",
+   "name": "Staff",
+   "can": [
+    "F1",
+    "F2"
+   ]
+  }
+ ],
+ "flows": [
+  {
+   "id": "FL1",
+   "name": "First booking",
+   "actor": "staff",
+   "features": [
+    "F1",
+    "F2"
+   ],
+   "steps": [
+    "add",
+    "book"
+   ]
+  }
+ ]
+}

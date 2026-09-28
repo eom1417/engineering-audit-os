@@ -65,14 +65,14 @@ flowchart TB
     subgraph P2["Assessment: reads the project only (2/2)"]
         direction LR
         S05["<b>S05 · Lock current behaviour</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 100%"]:::done
-        S06["<b>S06 · Target architecture</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 100%"]:::done
-        S07["<b>S07 · Gap and transformation plan</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 100%"]:::done
+        S06["<b>S06 · Target architecture</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 73%"]:::current
+        S07["<b>S07 · Gap and transformation plan</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 71%"]:::current
         S05 -->|"✔ A (static): E4 = 1 · B (isolated): E5 ≥ 0.8 and a k6 baseline"| S06
         S06 -->|"✔ T1–T7 at target, and a recorded human approval"| S07
     end
     subgraph P3["Execution: isolated, with the owner's authorization (1/2)"]
         direction LR
-        S08["<b>S08 · Rebuild / refactor</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 97%"]:::current
+        S08["<b>S08 · Rebuild / refactor</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 69%"]:::current
         S09["<b>S09 · Functional verification</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 0%"]:::next
         S10["<b>S10 · Security</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
         S11["<b>S11 · Load</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
@@ -160,6 +160,11 @@ reaches you as a new branch (`eaos/wave-1`), and you decide: take it in or throw
 **3. Read the report:** say "open the report". Everything is in one folder, `~/EAOS/<your project>/`, with `REPORT.html`
 (project summary, gaps and risks, structure map, plan and progress) in plain words.
 
+**A new project from a plan?** Open your assistant in an empty folder and write: "I have my project's plan in this file, build
+it with EAOS with the best structure". It reads the plan in any format, draws the structure and the technologies, and
+builds milestone by milestone, every card through gates that keep out copies, dead code and tangles:
+[`docs/BUILD-FROM-PLAN.md`](docs/BUILD-FROM-PLAN.md).
+
 No AI assistant? The same way as commands in the Terminal: `eaos start .`, then `eaos next` after each step.
 
 > How it works inside the assistant: [`docs/MCP.md`](docs/MCP.md). Why it is designed this way: [`docs/USER-EXPERIENCE.md`](docs/USER-EXPERIENCE.md).
@@ -221,13 +226,13 @@ No command modifies the original project, publishes anything or merges anything.
 <!-- north-star:progress:start -->
 <!-- generated from docs/north-star.json by python tools/north_star.py; do not edit by hand -->
 
-### Progress: **77.6 of 100 points**
+### Progress: **73.8 of 100 points**
 
-`███████████████████░░░░░░` 77.6%
+`██████████████████░░░░░░░` 73.8%
 
 | Steps done | Current step | Points left | Of which wait on the owner | Last measured |
 |---|---|---|---|---|
-| 17 of 25 | 18 · NS9 Proven execution | 22.4 | 23 | 2026-09-28 · `0a8ea72+` |
+| 18 of 26 | 19 · NS27 Build from a plan | 26.2 | 23 | 2026-09-28 · `0a8ea72+` |
 
 `+`: measured on changes over this commit, saved in the next one.
 
@@ -248,7 +253,7 @@ flowchart TB
         direction LR
         NS1["<b>1 · NS1</b><br/>القياس آليًا<br/>Automated measurement<br/>⚖ 3 · ▰ 100%"]:::done
         NS2["<b>2 · NS2</b><br/>لا يفشل على مشروع حقيقي<br/>Never fails on a real project<br/>⚖ 3 · ▰ 100%"]:::done
-        NS3["<b>3 · NS3</b><br/>تقرير الوضع الراهن<br/>Current state<br/>⚖ 6 · ▰ 100%"]:::done
+        NS3["<b>3 · NS3</b><br/>تقرير الوضع الراهن<br/>Current state<br/>⚖ 5 · ▰ 100%"]:::done
         NS4["<b>4 · NS4</b><br/>الإشارة لا الضجيج<br/>Signal, not noise<br/>⚖ 3 · ▰ 100%"]:::done
         NS1 -->|"✔ +2 acceptance tests"| NS2
         NS2 -->|"✔ R1=1 · +1 acceptance test"| NS3
@@ -262,12 +267,12 @@ flowchart TB
     end
     subgraph R2_1["R2 · Tool platform"]
         direction LR
-        NS17["<b>7 · NS17</b><br/>منصة الأدوات<br/>Tool platform<br/>⚖ 5 · ▰ 100%"]:::done
+        NS17["<b>7 · NS17</b><br/>منصة الأدوات<br/>Tool platform<br/>⚖ 4 · ▰ 100%"]:::done
     end
     subgraph R3_1["R3 · Full evidence from proven tools"]
         direction LR
         NS11["<b>8 · NS11</b><br/>الاستلام<br/>Intake<br/>⚖ 2 · ▰ 100%"]:::done
-        NS12["<b>9 · NS12</b><br/>محوّلات الفحص الساكن<br/>Static-analysis adapters<br/>⚖ 5 · ▰ 100%"]:::done
+        NS12["<b>9 · NS12</b><br/>محوّلات الفحص الساكن<br/>Static-analysis adapters<br/>⚖ 4 · ▰ 100%"]:::done
         NS18["<b>10 · NS18</b><br/>القياس وسجل الدَّين<br/>Measurement and debt register<br/>⚖ 4 · ▰ 100%"]:::done
         NS11 -->|"✔ U6=1 · +1 acceptance test"| NS12
         NS12 -->|"✔ H3=1 · R3=1 · +12 acceptance tests"| NS18
@@ -275,14 +280,14 @@ flowchart TB
     subgraph R4_1["R4 · Behaviour lock and target state"]
         direction LR
         NS15["<b>11 · NS15</b><br/>تثبيت السلوك<br/>Behaviour lock<br/>⚖ 4 · ▰ 100%"]:::done
-        NS7["<b>12 · NS7</b><br/>تقرير الصورة المثالية<br/>Target-state report<br/>⚖ 7 · ▰ 100%"]:::done
+        NS7["<b>12 · NS7</b><br/>تقرير الصورة المثالية<br/>Target-state report<br/>⚖ 6 · ▰ 100%"]:::done
         NS13["<b>13 · NS13</b><br/>نموذج العمارة وقراراتها<br/>Architecture model and decisions (C4, ADR)<br/>⚖ 3 · ▰ 100%"]:::done
         NS15 -->|"✔ E4=1 · +4 acceptance tests"| NS7
         NS7 -->|"✔ T1=1 · G1=1 · T2=1 · … · +2 acceptance tests"| NS13
     end
     subgraph R5_1["R5 · Plan, reports and handover kit"]
         direction LR
-        NS8["<b>14 · NS8</b><br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports<br/>⚖ 7 · ▰ 100%"]:::done
+        NS8["<b>14 · NS8</b><br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports<br/>⚖ 6 · ▰ 100%"]:::done
         NS14["<b>15 · NS14</b><br/>جودة التقرير تُفحص آليًا<br/>Report quality checked automatically<br/>⚖ 2 · ▰ 100%"]:::done
         NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 4 · ▰ 100%"]:::done
         NS8 -->|"✔ P1=1 · P4=1 · P3≥0.8 · …"| NS14
@@ -291,28 +296,30 @@ flowchart TB
     subgraph R6_1["R6 · Proven execution"]
         direction LR
         NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 100%"]:::done
-        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 8 · ▰ 97%"]:::current
-        NS20["<b>19 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
+        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 7 · ▰ 100%"]:::done
+        NS27["<b>19 · NS27</b><br/>البناء من خطة<br/>Build from a plan<br/>⚖ 6 · ▰ 32%"]:::current
+        NS20["<b>20 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
         NS26 -->|"✔ E5≥0.8 · +2 acceptance tests"| NS9
-        NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +7 acceptance tests"| NS20
+        NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +7 acceptance tests"| NS27
+        NS27 -->|"✔ B1=1 · B2=1 · X8=1 · … · +1 acceptance test"| NS20
     end
     subgraph R7_1["R7 · Operational hardening (1/2)"]
         direction LR
-        NS21["<b>20 · NS21</b><br/>الأمن بعد التحول<br/>Security after the transformation<br/>⚖ 3 · ▰ 0%"]:::owner
-        NS22["<b>21 · NS22</b><br/>الحمل<br/>Load<br/>⚖ 3 · ▰ 0%"]:::owner
-        NS23["<b>22 · NS23</b><br/>الأعطال المتعمدة<br/>Deliberate failures (chaos)<br/>⚖ 3 · ▰ 0%"]:::owner
-        NS24["<b>23 · NS24</b><br/>الرصد<br/>Observability<br/>⚖ 2 · ▰ 0%"]:::owner
+        NS21["<b>21 · NS21</b><br/>الأمن بعد التحول<br/>Security after the transformation<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS22["<b>22 · NS22</b><br/>الحمل<br/>Load<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS23["<b>23 · NS23</b><br/>الأعطال المتعمدة<br/>Deliberate failures (chaos)<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS24["<b>24 · NS24</b><br/>الرصد<br/>Observability<br/>⚖ 2 · ▰ 0%"]:::owner
         NS21 -->|"✔ E8=1 · +1 acceptance test"| NS22
         NS22 -->|"✔ E6≥0.8"| NS23
         NS23 -->|"✔ E9≥0.8 · +1 acceptance test"| NS24
     end
     subgraph R7_2["R7 · Operational hardening (2/2)"]
         direction LR
-        NS16["<b>24 · NS16</b><br/>الجاهزية للإنتاج<br/>Production readiness<br/>⚖ 2 · ▰ 0%"]:::owner
+        NS16["<b>25 · NS16</b><br/>الجاهزية للإنتاج<br/>Production readiness<br/>⚖ 2 · ▰ 0%"]:::owner
     end
     subgraph R8_1["R8 · Independent proof"]
         direction LR
-        NS10["<b>25 · NS10</b><br/>الإثبات المستقل<br/>Independent proof<br/>⚖ 5 · ▰ 18%"]:::owner
+        NS10["<b>26 · NS10</b><br/>الإثبات المستقل<br/>Independent proof<br/>⚖ 5 · ▰ 18%"]:::owner
     end
     R1_1 ==>|"✔ S1≥0.8 · S2≥0.8"| R1_2
     R1_2 ==>|"✔ H1=1 · +1 acceptance test"| R2_1

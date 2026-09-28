@@ -45,7 +45,10 @@ EAOS لا يستدعي نموذجًا بنفسه في هذا الطريق: عق�
 | | `fix_finish` | فحوص المشروع وقفل السلوك على الدفعة كلها، ثم فرع `eaos/wave-N` في المشروع |
 | | `accept` و`undo` | يعتمد الفرع (بعد موافقة المستخدم) أو يحذفه |
 
-وأوامر جاهزة (prompts) تظهر في Claude Code: `/mcp__eaos__audit` و`/mcp__eaos__fix` و`/mcp__eaos__status`.
+| البناء من خطة | `blueprint_start` و`blueprint_spec` و`blueprint_design` | يقرأ أي خطة، ويفحص المواصفات، ويرسم البنية والتقنيات وخطة البناء ([`docs/BUILD-FROM-PLAN.md`](BUILD-FROM-PLAN.md)) |
+| | `build_start` و`build_read` و`build_edit` و`build_skip` و`build_finish` | يبني مرحلة مرحلة، وكل بطاقة خلف البوابات، وكل مرحلة فرع `eaos/build-N` |
+
+وأوامر جاهزة (prompts) تظهر في Claude Code: `/mcp__eaos__audit` و`/mcp__eaos__fix` و`/mcp__eaos__build` و`/mcp__eaos__status`.
 
 ## المخرجات: مجلد واحد لكل مشروع
 

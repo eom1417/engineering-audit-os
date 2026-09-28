@@ -31,6 +31,15 @@ to fix, clean or improve it; where things stand; or to accept or undo fixes.
 4. Tell them what changed, in plain words, and on which branch. Ask whether to take it in (`accept` with
    `person_agreed=true` after their yes) or throw it away (`undo`).
 
+## A new project from a plan
+
+When the person has a plan (any file, or pasted text) and nothing built yet, build it instead: `blueprint_start`
+with the file or text, write the product spec, research what the plan leaves thin and recommend, ask only real
+choices (technology preferences included; "take your recommendations" is an answer), `blueprint_spec` until it is
+complete, `blueprint_design`, explain the blueprint simply, then `build_start` (one agreement) and every milestone
+with `build_edit` and `build_finish`. Write the least code that meets each card, in the folder it names, reusing what
+exists. At the end ask whether to take the last branch in.
+
 ## Never
 
 - Say yes for them: `person_agreed=true` only after they said yes.

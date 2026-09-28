@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "13876a6",
+  "extracted_at_commit": "5c17552",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -27,6 +27,15 @@
       "statement": "EAOS gives it the evidence, the isolated copy and the gates, and never calls a model itself here.",
       "kind": "invariant",
       "enforced_by": "tests/test_mcp.py::ToolTests::test_the_assistant_way_never_calls_a_model_itself",
+      "note": ""
+    },
+    {
+      "id": "INV-f54a833a70",
+      "file": "eaos/agent_tools.py",
+      "symbol": "project_state",
+      "statement": "`new`: a project still to be built from its plan, whose folder may be empty or not there yet (it is made); never the home folder or the disk's root.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_blueprint.py::BuildTests::test_from_a_pasted_plan_to_a_designed_blueprint_in_an_empty_folder",
       "note": ""
     },
     {
@@ -72,6 +81,15 @@
       "statement": "No snapshot is ever updated here.",
       "kind": "invariant",
       "enforced_by": "tests/test_execute.py::VerifyLockTests::test_verifying_never_updates_a_snapshot",
+      "note": ""
+    },
+    {
+      "id": "INV-cf7d0ef6bd",
+      "file": "eaos/blueprint.py",
+      "symbol": "<module>",
+      "statement": "EAOS lays it out so that what its audits look for never gets in:",
+      "kind": "invariant",
+      "enforced_by": "tests/test_blueprint.py::GateTests::test_layer_breaks_stray_files_vendors_outside_their_adapter_cycles_and_copies_are_refused",
       "note": ""
     },
     {

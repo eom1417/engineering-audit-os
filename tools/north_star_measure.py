@@ -183,7 +183,7 @@ def self_truth(record):
                    f'{len(dead)} dead of {len(dead) + len(false)} distinct candidates (by path and symbol): ' + ', '.join(dead))}
 
 
-USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10')
+USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'B1', 'B2', 'B3', 'B4')
 
 
 def measure(record, only=None):
@@ -255,9 +255,50 @@ def usability_values(only=None):
         values['X10'] = (ratio(len(clean), len(pages)) if pages else None,
                          f"reports for people with the four reports, a severity legend and no number without its meaning: {len(clean)}/{len(pages)} "
                          f"({', '.join(p.parent.parent.name for p in pages) or 'no report yet'})")
+    values.update(blueprint_values(only))
     if only in (None, 'X5'):
         done, total = guided.complete_entries()
         values['X5'] = (ratio(done, total) or 0.0, f'known errors with a plain message, a fix and a command in Arabic and English: {done}/{total}')
+    return values
+
+
+def blueprint_values(only=None):
+    """B1-B4, building from a plan (docs/BUILD-FROM-PLAN.md): the plan fixtures read in every format, the fixture
+    specs laid out whole, and the build trials ($EAOS_MEASURE/build/<project>/trial.json) audited clean."""
+    from eaos import blueprint
+    values, plans = {}, ROOT / 'tests/fixtures/plans'
+    if only in (None, 'B1'):
+        files = sorted(plans.glob('clinic.*'))
+        files = [f for f in files if f.suffix in blueprint.SOURCE_SUFFIXES and not f.name.endswith('.spec.json')]
+        read = [f.suffix for f in files if 'Staff register patients and book their visits' in ' '.join(blueprint.read_source(f).split())]
+        values['B1'] = (ratio(len(read), len(files)) if files else None, f"plan formats read to their text: {len(read)}/{len(files)} ({', '.join(read)})")
+    if only in (None, 'B2'):
+        checks, passed = 0, 0
+        for path in sorted(plans.glob('*.spec.json')):
+            spec = json.loads(path.read_text(encoding='utf-8'))
+            stack = blueprint.choose_stack(spec)
+            built = blueprint.design(spec, stack)
+            cards = built['plan']['tasks']
+            order = {m['id']: index for index, m in enumerate(built['plan']['milestones'])}
+            by_id = {c['id']: c for c in cards}
+            rows = [any(c.get('feature') == f['id'] and c['acceptance'] and c['tests'] for c in cards) for f in spec['features']]
+            rows += [sum(e['module'] == m['id'] for m in spec['modules']) == 1 for e in spec.get('entities') or []]
+            rows += [concern in built['policy']['vendors'] for concern in blueprint.ISOLATED if stack[concern]['id'] != 'none']
+            rows += [all(order[by_id[d]['milestone']] <= order[c['milestone']] for d in c['depends_on']) for c in cards]
+            checks, passed = checks + len(rows), passed + sum(rows)
+        values['B2'] = (ratio(passed, checks) if checks else None, f'blueprint checks held (every feature a card with acceptance and tests, '
+                        f'every entity one owner, every vendor one home, every card after what it needs): {passed}/{checks}')
+    runs = [json.loads(p.read_text(encoding='utf-8')) for p in sorted((REPORTS / 'build').glob('*/trial.json'))]
+    names = ', '.join(t['project'] for t in runs) or 'no trial run yet'
+    if only in (None, 'B3'):
+        clean = [t['project'] for t in runs if t['delivered'] and t.get('final_audit') and
+                 not any(t['final_audit'][key] for key in ('cycles', 'policy_violations', 'copies', 'dead_code', 'broken'))]
+        values['B3'] = (ratio(len(clean), len(runs)) if runs else None,
+                        f'projects built from a plan that their own audit finds clean (no cycle, layer break, copy, dead code, broken reference): {len(clean)}/{len(runs)} ({names})')
+    if only in (None, 'B4'):
+        built = sum(len(t['features_built']) for t in runs)
+        total = sum(len(t['features']) for t in runs)
+        values['B4'] = (ratio(built, total) if total else None, f'features of the plans built through their gates, with tests: {built}/{total} ({names})')
     return values
 
 

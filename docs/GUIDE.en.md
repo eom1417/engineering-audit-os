@@ -69,6 +69,27 @@ Everything EAOS makes is in one folder: **`~/EAOS/<your project name>/`**
 
 Say: **"Continue fixing"**. Each batch is a new branch (`eaos/wave-2`, …), and you decide every time.
 
+## 6. A new project from a plan (optional)
+
+Have an idea and a written plan, but nothing built yet? Make an empty folder for the project, open your assistant in it,
+and write:
+
+> I have my project's plan in this file: `/path/to/plan.pdf`. Build it with EAOS, with the best structure
+
+(Any format works: Markdown, Word, PDF, text, or paste the plan's text straight into the message.)
+
+| Step | What the assistant does |
+| --- | --- |
+| Understand | Reads it, orders it into parts, data and features, and researches what apps of this kind need |
+| A few questions | Asks only choices, with its recommendation: "any preference for the database?". If none, say: "take your recommendations" |
+| The blueprint | Explains the parts, the technologies (why each, and how to change it later) and the order of the build. It is in `~/EAOS/<project>/blueprint/BLUEPRINT.md` |
+| One question | "May I build your project in a separate copy and hand it to you milestone by milestone?" Answer: **yes** |
+| The build | Builds card by card; EAOS refuses any card with copied code, dead code, tangled files, mixed layers or a missing test |
+| Hand-over | Each milestone is a branch (`eaos/build-1`, `eaos/build-2`, …). At the end you decide: take it in or throw it away |
+
+Changing a technology later (Supabase to PostgreSQL, say) is easy, because each one lives in one folder: tell your
+assistant "change the database to …" and it knows where.
+
 ---
 
 ## Requests that help at any time
@@ -80,6 +101,7 @@ Say: **"Continue fixing"**. Each batch is a new branch (`eaos/wave-2`, …), and
 | "What is the most important problem? Show me the evidence" | Explains one problem with its evidence and code |
 | "Take the fixes in" | Merges the branch of fixes into yours (after you agree) |
 | "Undo the fixes" | Deletes the branch of fixes; your project is as it was |
+| "Build my project from this plan" | Build from a plan (step 6) |
 
 ## If you see…
 

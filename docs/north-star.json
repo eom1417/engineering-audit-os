@@ -388,7 +388,7 @@
     {
       "id": "C2",
       "name": "تقرير الوضع الراهن: يرى البرنامج كله",
-      "weight": 12,
+      "weight": 10,
       "ideal": "كل ملف محلَّل، وكل وظيفة وسطح يصل إليه المستخدم مكتشف، ونموذج البيانات مقروء، والمداخل والمخارج والحدود معروفة.",
       "indicators": [
         {
@@ -580,7 +580,7 @@
     {
       "id": "C6",
       "name": "تقرير الصورة المثالية",
-      "weight": 16,
+      "weight": 14,
       "ideal": "البرنامج نفسه بوظائفه نفسها، ببنية وبنية تحتية تصلح منتجًا: مكوّنات مستهدفة، وحدود، وقرارات بنية تحتية، وقرار لكل مكوّن حالي، كل قرار بدليله وبديله.",
       "indicators": [
         {
@@ -686,7 +686,7 @@
     {
       "id": "C8",
       "name": "خطة التنفيذ للفريق",
-      "weight": 16,
+      "weight": 14,
       "ideal": "مهام صغيرة محددة الحجم ومرتبة ومتناسبة، مجمعة في معالم وأقسام فريق، لكل منها أمر قبول قابل للتشغيل وطريقة تراجع، ضمن أربعة تقارير واضحة.",
       "indicators": [
         {
@@ -949,6 +949,54 @@
           "value": 0.3,
           "evidence": "3 real projects, 0 held out",
           "reads": "docs/north-star.json → corpus[] count and corpus[].holdout",
+          "measured": "automated"
+        }
+      ]
+    },
+    {
+      "id": "C11",
+      "name": "البناء من خطة: مشروع جديد بأفضل هيكلة من أول سطر",
+      "weight": 6,
+      "ideal": "من خطة بأي صيغة إلى مشروع مبني بهيكلة مستدامة: لا تكرار، ولا كود ميت، ولا تشابك، ولا مخالفة طبقات، وكل تقنية في مكان واحد يمكن تغييرها، وكل ميزة باختبار.",
+      "indicators": [
+        {
+          "id": "B1",
+          "name": "أي خطة تُقرأ",
+          "definition": "صيغ ملفات الخطة (Markdown ونص وHTML وWord وPDF) التي تُقرأ إلى نصها كاملًا ÷ الصيغ",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet: docs/BUILD-FROM-PLAN.md",
+          "reads": "tests/fixtures/plans/clinic.* → eaos/blueprint.read_source",
+          "measured": "automated"
+        },
+        {
+          "id": "B2",
+          "name": "مخطط مكتمل",
+          "definition": "فحوص المخطط التي تصح على مواصفات العيّنة (كل ميزة لها بطاقة بمعايير قبول واختبارات، وكل بيانات لها مالك واحد، وكل تقنية معزولة لها مكان واحد، وكل بطاقة بعد ما تحتاجه) ÷ الفحوص",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet: docs/BUILD-FROM-PLAN.md",
+          "reads": "tests/fixtures/plans/*.spec.json → eaos/blueprint.design",
+          "measured": "automated"
+        },
+        {
+          "id": "B3",
+          "name": "مبني نظيفًا",
+          "definition": "مشاريع التجربة المبنية من خطة التي يجدها فحص EAOS نفسه نظيفة (لا حلقات، ولا مخالفة طبقات أو هيكل أو تقنية خارج مكانها، ولا كود منسوخ، ولا كود ميت، ولا مرجع معطّل) ÷ مشاريع التجربة",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet: docs/BUILD-FROM-PLAN.md",
+          "reads": "${EAOS_MEASURE}/build/<مشروع>/trial.json → final_audit",
+          "measured": "automated"
+        },
+        {
+          "id": "B4",
+          "name": "كل ميزة مبنية ومختبرة",
+          "definition": "ميزات خطط التجربة المبنية عبر بواباتها باختباراتها ÷ ميزات الخطط",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet: docs/BUILD-FROM-PLAN.md",
+          "reads": "${EAOS_MEASURE}/build/<مشروع>/trial.json → features_built",
           "measured": "automated"
         }
       ]
@@ -1349,7 +1397,7 @@
         "S02"
       ],
       "title_en": "Current state: see the whole program",
-      "weight": 6,
+      "weight": 5,
       "weight_why": "أول التقارير الأربعة وأساس كل ما بعده: الوظائف والمداخل والبيانات.",
       "does": [
         "يجد كل صفحة ومسار ودالة خادم كنقطة دخول",
@@ -1933,7 +1981,7 @@
       ],
       "stages": [],
       "title_en": "Tool platform: every tool enters one way",
-      "weight": 5,
+      "weight": 4,
       "weight_why": "منصة كل الأدوات: تثبيت موحد، وقراءة SARIF، وتوليد، وبوابات، وعزل.",
       "does": [
         "يثبّت كل أداة بإصدارها المثبّت وبصمتها بأمر واحد",
@@ -2535,7 +2583,7 @@
         "S04"
       ],
       "title_en": "Static-analysis adapters: proven tools, not our own code",
-      "weight": 5,
+      "weight": 4,
       "weight_why": "عشرة محوّلات لأدوات جاهزة بدل كود نكتبه: أدلة مستقلة.",
       "does": [
         "يبني قائمة الاعتماديات وثغراتها",
@@ -3084,7 +3132,7 @@
         "S06"
       ],
       "title_en": "Target-state report",
-      "weight": 7,
+      "weight": 6,
       "weight_why": "قلب الوعد: الصورة المثالية بالوظائف نفسها وقرار لكل مكوّن.",
       "does": [
         "يختار المعمارية المرجعية من سبع بحسب ملفات المشروع",
@@ -3493,7 +3541,7 @@
         "S07"
       ],
       "title_en": "Team execution plan and the four reports",
-      "weight": 7,
+      "weight": 6,
       "weight_why": "ما يستلمه الفريق فعلًا: الخطة والتقارير الأربعة.",
       "does": [
         "يحدد حجم كل بطاقة وقسمها في الفريق",
@@ -4372,10 +4420,200 @@
           "rollback": "احذف الصفحة ومجلد المخرجات؛ التقرير الفني كما هو.",
           "writes": [],
           "status": "done"
+        }
+      ],
+      "stages": [
+        "S08"
+      ],
+      "title_en": "Proven execution",
+      "weight": 7,
+      "weight_why": "أثقل خطوة: تنفيذ فعلي لبطاقات الخطة على مشروع حقيقي.",
+      "does": [
+        "ينفّذ بطاقات الخطة بنموذج في نسخة منفصلة",
+        "يشغّل أمر قبول كل بطاقة وشبكة الأمان بعدها",
+        "يسجل كل تنفيذ في سجل التنفيذ"
+      ],
+      "tools": [
+        "مزوّد النموذج",
+        "jscodeshift",
+        "Renovate",
+        "eaos implement"
+      ],
+      "outputs": [
+        "execution-log.json",
+        "التزامات في نسخة منفصلة"
+      ]
+    },
+    {
+      "id": "NS27",
+      "title": "البناء من خطة",
+      "title_en": "Build from a plan",
+      "goal": "B1 إلى B4 عند أهدافها: من خطة بأي صيغة إلى مشروع مبني يجده الفحص نظيفًا.",
+      "stages": [
+        "S06",
+        "S07",
+        "S08"
+      ],
+      "weight": 6,
+      "weight_why": "قدرة جديدة كاملة بطلب المالك (2026-09-28): الوقاية بدل العلاج، على أدوات الفحص والتنفيذ الموجودة.",
+      "does": [
+        "يقرأ أي خطة ويحوّلها لمواصفات مكتملة بأسئلة اختيار وتوصيات",
+        "يرسم البنية المستهدفة والتقنيات وخطة البناء",
+        "يبني بطاقة بطاقة خلف بوابات الفحص ويسلّم كل مرحلة فرعًا"
+      ],
+      "tools": [
+        "eaos/blueprint.py",
+        "eaos/build_tools.py",
+        "أدوات MCP: blueprint_* وbuild_*",
+        "المساعد الذكي"
+      ],
+      "outputs": [
+        "~/EAOS/<المشروع>/blueprint/",
+        "eaos.policy.json وdocs/blueprint/ في المشروع",
+        "فروع eaos/build-N"
+      ],
+      "tasks": [
+        {
+          "id": "NS27.T1",
+          "title": "أي خطة تُقرأ وتصير مواصفات مكتملة",
+          "why": "المستخدم عنده فكرة وخطة بأي شكل (ملف أو نص ملصوق). قبل أي بناء يجب أن تكون كل ميزة واضحة: جزؤها، وبياناتها، وكيف نعرف أنها تعمل.",
+          "moves": [
+            "B1"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS9.T8"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/blueprint.py",
+            "eaos/build_tools.py",
+            "tests/test_blueprint.py",
+            "tests/fixtures/plans/"
+          ],
+          "steps": [
+            "read_source: Markdown ونص وHTML وWord (بلا مكتبة) وPDF (pypdf)، أو نص ملصوق.",
+            "صيغة المواصفات (SPEC): الأجزاء بمسؤولية واحدة، والبيانات بمالك واحد، والميزات بمعايير قبول، والرحلات، والأدوار، والتكاملات، والمتطلبات غير الوظيفية، والقرارات المفتوحة بخياراتها وتوصيتها.",
+            "validate_spec يرجع ما ينقص وأسئلة اختيار بتوصية؛ المساعد يبحث ويوصي ويسأل الشخص الخيارات الحقيقية فقط، ومنها تفضيلات التقنية."
+          ],
+          "done_when": [
+            "B1 = 1.0.",
+            "tests/test_blueprint.py يمر."
+          ],
+          "pitfalls": [
+            "لا يُسأل الشخص سؤالًا تقنيًا مفتوحًا: خيارات مع توصية."
+          ],
+          "acceptance": "python -m unittest tests.test_blueprint && python tools/north_star.py measure --only B1 --min 1.0",
+          "rollback": "احذف أدوات المخطط؛ الفحص والإصلاح كما هما.",
+          "writes": [],
+          "status": "todo"
         },
         {
-          "id": "NS9.T6",
-          "title": "الدليل والإثبات: من الصفر إلى أول إصلاح",
+          "id": "NS27.T2",
+          "title": "البنية المستهدفة وخطة البناء من المواصفات",
+          "why": "البناء الجيد يبدأ من هيكل: مكان واحد لكل مفهوم، وطبقات معلنة، وكل تقنية خلف مكان واحد يسهل تغييرها لاحقًا.",
+          "moves": [
+            "B2"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS27.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/blueprint.py",
+            "eaos/data/stacks.json",
+            "tests/test_blueprint.py"
+          ],
+          "steps": [
+            "eaos/data/stacks.json: لكل جانب (الواجهة، والخادم، والبيانات، والدخول، والشكل، والاختبار) توصية وبدائل، ولكل خيار لماذا وكيف يُغيَّر لاحقًا.",
+            "choose_stack: اختيار الشخص، ثم تفضيل الخطة، ثم التوصية؛ وما لا تحتاجه الخطة لا يُضاف.",
+            "design: البنية المستهدفة بشكل تقرير الفحص نفسه (target-architecture.json)، وeaos.policy.json للمشروع (الطبقات وقواعدها، وكل تقنية معزولة في مجلد واحد)، وplan.json: الهيكل، ثم الأساسات المشتركة، ثم جزء بعد جزء بترتيب البيانات، ثم الرحلات."
+          ],
+          "done_when": [
+            "B2 = 1.0."
+          ],
+          "pitfalls": [
+            "التقنية المختارة لا تتسرب خارج مجلدها: هذا ما يجعل تغييرها سهلًا."
+          ],
+          "acceptance": "python -m unittest tests.test_blueprint && python tools/north_star.py measure --only B2 --min 1.0",
+          "rollback": "احذف التصميم؛ المواصفات باقية.",
+          "writes": [],
+          "status": "todo"
+        },
+        {
+          "id": "NS27.T3",
+          "title": "البناء بحراسة: كل بطاقة تمر من البوابات",
+          "why": "الوقاية أرخص من العلاج: ما تبحث عنه الفحوص في مشروع قائم يُمنع أثناء البناء.",
+          "moves": [
+            "B3",
+            "X8"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS27.T2"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/build_tools.py",
+            "eaos/blueprint.py",
+            "eaos/mcp_server.py",
+            "tests/test_blueprint.py",
+            "tests/test_mcp.py"
+          ],
+          "steps": [
+            "build_start (موافقة واحدة) ينشئ git إن لم يوجد، ويفتح مرحلة في نسخة معزولة، ويضع المخطط والسياسة في المشروع نفسه.",
+            "build_edit: البطاقة تُحفظ فقط إن مرّت: الطبقات، والمجلدات المخططة، والتقنية في مكانها، ولا حلقات، ولا مرجع معطّل، ولا نسخ، واختبار للبطاقة، وفحوص المشروع (typecheck وlint وtest)؛ وإلا تُرجع بأسبابها.",
+            "build_finish: الفحوص على المرحلة كلها (والكود الميت في المرحلة الأخيرة)، ثم فرع eaos/build-N فوق السابق، والمرحلة التالية بلا سؤال جديد."
+          ],
+          "done_when": [
+            "X8 = 1.0 بالأدوات الجديدة.",
+            "tests/test_blueprint.py وtests/test_mcp.py يمران."
+          ],
+          "pitfalls": [
+            "لا يكتب المساعد إلا عبر build_edit: كل ملف يمر من البوابات."
+          ],
+          "acceptance": "python -m unittest tests.test_blueprint tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0",
+          "rollback": "احذف أدوات البناء.",
+          "writes": [],
+          "status": "todo"
+        },
+        {
+          "id": "NS27.T4",
+          "title": "الإثبات: مشروع حقيقي من خطة إلى بناء يجده الفحص نظيفًا",
+          "why": "لا يُعدّ البناء جيدًا لأن الأداة تقول ذلك: يُبنى مشروع من خطة حقيقية بمساعد حقيقي، ثم يفحصه EAOS نفسه.",
+          "moves": [
+            "B3",
+            "B4"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS27.T3"
+          ],
+          "size": "M",
+          "files": [
+            "tools/build_trial.py",
+            "tests/fixtures/plans/clinic-prd.md",
+            "docs/ux-trials/build.md"
+          ],
+          "steps": [
+            "tools/build_trial.py: Claude Code من «ابنِ مشروعي من هذه الخطة» إلى كل المراحل مسلّمة، ثم فحص EAOS للمشروع المبني.",
+            "تُسجَّل في docs/ux-trials/build.md كما جرت."
+          ],
+          "done_when": [
+            "B3 = 1.0 وB4 = 1.0."
+          ],
+          "pitfalls": [
+            "تجربة احتاجت كتابة ملف يدويًا لا تُحسب."
+          ],
+          "acceptance": "python tools/north_star.py measure --only B3 --min 1.0 && python tools/north_star.py measure --only B4 --min 1.0",
+          "rollback": "لا شيء: قياس.",
+          "writes": [],
+          "status": "todo"
+        },
+        {
+          "id": "NS27.T5",
+          "title": "تجربة المالك: الطريقان بالدليل وحده (الفحص والإصلاح، والبناء من خطة)",
           "why": "لا يُعدّ شيء سهلًا حتى ينجح فيه من لم يبنه، بالدليل وحده.",
           "moves": [
             "X1",
@@ -4386,7 +4624,7 @@
           ],
           "needs": "sandbox",
           "depends_on": [
-            "NS9.T10"
+            "NS27.T4"
           ],
           "size": "M",
           "files": [
@@ -4398,6 +4636,7 @@
           ],
           "writes": [],
           "steps": [
+            "نُقلت من NS9.T6 (2026-09-28): تجربة المالك تشمل الطريقين، فمكانها بعد بناء الطريق الثاني.",
             "الدليل يبدأ بالطريق الأساسي: التثبيت بسطر، ثم طلب عادي للمساعد الذكي (docs/MCP.md)؛ الأوامر طريق ثانٍ.",
             "docs/GUIDE.md وملخصه في README: «من الصفر إلى أول إصلاح». لكل خطوة: الأمر في مربع للنسخ، والمدة، والمخرج المتوقع، والخطوة التالية. وقسم «إذا ظهر لك هذا الخطأ». بلا مصطلحات، عربي وإنجليزي.",
             "tools/ux_trial.py: تجربة من الصفر في حساب نظيف بالأوامر وحدها، تكتب trial.json {manual_files, questions[], minutes_to_first_report, applied}.",
@@ -4417,27 +4656,6 @@
           "rollback": "احذف الأوامر الجديدة؛ الأوامر القديمة لم تتغير.",
           "status": "todo"
         }
-      ],
-      "stages": [
-        "S08"
-      ],
-      "title_en": "Proven execution",
-      "weight": 8,
-      "weight_why": "أثقل خطوة: تنفيذ فعلي لبطاقات الخطة على مشروع حقيقي.",
-      "does": [
-        "ينفّذ بطاقات الخطة بنموذج في نسخة منفصلة",
-        "يشغّل أمر قبول كل بطاقة وشبكة الأمان بعدها",
-        "يسجل كل تنفيذ في سجل التنفيذ"
-      ],
-      "tools": [
-        "مزوّد النموذج",
-        "jscodeshift",
-        "Renovate",
-        "eaos implement"
-      ],
-      "outputs": [
-        "execution-log.json",
-        "التزامات في نسخة منفصلة"
       ]
     },
     {
@@ -5497,6 +5715,7 @@
       "milestones": [
         "NS26",
         "NS9",
+        "NS27",
         "NS20"
       ],
       "exit": "البوابة ب لـS05، وبوابتا S08 وS09: E5، E1، E7، E2",
