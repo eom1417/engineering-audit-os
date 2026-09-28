@@ -3,7 +3,7 @@
   "extractor": "deadcode",
   "extractor_version": "1",
   "available": true,
-  "input_sha": "2d2de26d3710eab7b364509f55121ee414b5800f76008cbaa1df2cf41e1e8796",
+  "input_sha": "e6636132b6c9f4d6acc6e67dc97bda10f588d424fdbf8f0e266eba5ef227f0c8",
   "limitations": [
     "A reference is any occurrence of the name in code or configuration text outside its definition; a name reused for something else keeps a dead symbol alive, so misses are possible and false accusations rare.",
     "Reachability follows resolved imports from production entry points; a module loaded by a computed path counts as reached only when its dotted or slashed path appears as text somewhere reached.",
@@ -28,11 +28,11 @@
   },
   "facts": [
     {
-      "id": "FACT-5f61b2c342ed3b54",
+      "id": "FACT-9eeac1923d97e2a4",
       "kind": "engine_finding",
       "extractor": "deadcode",
       "extractor_version": "1",
-      "input_sha": "2d2de26d3710eab7b364509f55121ee414b5800f76008cbaa1df2cf41e1e8796",
+      "input_sha": "e6636132b6c9f4d6acc6e67dc97bda10f588d424fdbf8f0e266eba5ef227f0c8",
       "location": {
         "path": "core/audit.py",
         "start_line": 1,
