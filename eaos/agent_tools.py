@@ -23,10 +23,17 @@ PAGE = 30
 
 # ---------------------------------------------------------------- the project and its state
 
-def project_state(project=None):
+def project_state(project=None, new=False):
+    """The project's state, made on first use. `new`: a project still to be built from its plan, whose folder may be
+    empty or not there yet (it is made); never the home folder or the disk's root."""
     folder = Path(project or os.getcwd()).expanduser().resolve()
-    if not folder.is_dir(): raise ValueError(f'project folder not found: {folder}')
-    if not guided.looks_like_project(folder):
+    state = guided.load(folder) if folder.is_dir() else None
+    if new or (state or {}).get('mode') == 'build':
+        if folder in (Path.home().resolve(), Path(folder.anchor)):
+            raise ValueError(f'not a project folder: {folder} (make an empty folder for the new project and open the assistant there)')
+        folder.mkdir(parents=True, exist_ok=True)
+    elif not folder.is_dir(): raise ValueError(f'project folder not found: {folder}')
+    elif not guided.looks_like_project(folder):
         raise ValueError(f'not a project folder: {folder} (no .git, package.json or other project file at its top; '
                          'pass the project folder as `project`)')
     state = guided.load(folder)
@@ -82,12 +89,12 @@ def _job_answer(job, seconds=WAIT):
             'what_now': f'Call `wait` with job="{job}" to follow it; keep going until it is done.'}
 
 
-def _start(kind, state, arguments, seconds=WAIT):
+def _start(kind, state, arguments, seconds=WAIT, runner='eaos.agent_tools'):
     busy = jobs.running(state['project'])
     if busy:
         return {'job': busy['id'], 'status': 'busy', 'kind': busy['kind'], 'progress': busy['progress'],
                 'what_now': f"Another piece of work is running for this project: call `wait` with job=\"{busy['id']}\" first."}
-    return _job_answer(jobs.start(kind, state['project'], arguments), seconds)
+    return _job_answer(jobs.start(kind, state['project'], arguments, runner=runner), seconds)
 
 
 def wait(job, seconds=WAIT):

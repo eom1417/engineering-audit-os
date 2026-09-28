@@ -20,7 +20,13 @@ Work on your own until the job is done; do not come back to them between steps. 
   1. once, before running their app and preparing fixes (run_setup gives the exact question);
   2. at the end, whether to take the branch in (accept) or throw it away (undo).
 
-The whole way, in order (`status` always says the next tool):
+For a project that exists only as a plan (a PRD, notes, any file or pasted text), build it instead:
+  blueprint_start -> blueprint_spec (until complete; research, recommend, ask only real choices) -> blueprint_design
+  -> build_start (one agreement) -> build_edit per card -> build_finish, milestone after milestone -> accept.
+  Write the least code that meets each card, in the folder it names, reusing what exists; the gates refuse copies,
+  cycles, layer breaks and a vendor outside its adapter.
+
+The whole way for an existing project, in order (`status` always says the next tool):
   audit -> overview / findings / finding / structure / plan  (understand; explain the main problems simply)
      and open_report (the report for people, in their browser: offer it after the check and after each batch)
   run_setup (after the person agrees) -> run_try until the app runs (you read the failure and the code, and
@@ -34,7 +40,9 @@ what the tools returned."""
 
 # Every capability of the guided way (eaos/guided.py STEPS and its commands), and the tool that gives it to the
 # assistant. X8 counts those registered and exercised by tests/test_mcp.py.
-CAPABILITIES = {'where things stand': 'status', 'check the project': 'audit', 'follow long work': 'wait',
+CAPABILITIES = {'where things stand': 'status', 'read any plan': 'blueprint_start', 'check the product spec': 'blueprint_spec',
+                'draw the target and the build plan': 'blueprint_design', 'build a milestone': 'build_edit',
+                'hand a milestone over': 'build_finish', 'check the project': 'audit', 'follow long work': 'wait',
                 'show the report for people': 'open_report',
                 'read the evidence': 'finding', 'run the app': 'run_try', 'record the screens': 'safety_net',
                 'fix a card': 'fix_edit', 'hand fixes over': 'fix_finish', 'accept': 'accept', 'undo': 'undo'}
@@ -70,7 +78,11 @@ def build():
     @server.tool(annotations=reading, description='Where this project is in the EAOS way, and the next tool to call. Call it first.')
     @_answer
     def status(project: str | None = None) -> str:
-        return tools.status(project)
+        from . import build_tools, guided
+        from pathlib import Path
+        import os
+        state = guided.load(Path(project or os.getcwd()).expanduser().resolve())
+        return build_tools.status(project) if (state or {}).get('mode') == 'build' else tools.status(project)
 
     @server.tool(annotations=working, description='Check the whole project (26 stages: files, features, tools, tests, structure, '
                  'security, load, plan). Returns a job to follow with `wait`; when the project was already checked at this commit, '
@@ -194,6 +206,68 @@ def build():
     @_answer
     def undo(project: str | None = None) -> str:
         return tools.undo(project)
+
+    from . import build_tools as build
+
+    @server.tool(annotations=working, description='Build a new project from its plan (a PRD, notes, any file: Markdown, text, PDF, '
+                 'Word, HTML; or the pasted text). Reads the plan and returns it with the product-spec format and the technology '
+                 'catalogue. The project folder may be empty or new. Then write the spec (research what the plan leaves thin, '
+                 'recommend, ask the person only real choices) and call blueprint_spec.')
+    @_answer
+    def blueprint_start(source: str | None = None, text: str | None = None, project: str | None = None) -> str:
+        return build.blueprint_start(source, text, project)
+
+    @server.tool(annotations=working, description='Check the product spec you wrote from the plan: returns what is missing (fix it) '
+                 'and the questions for the person (choices with your recommendation). Call again after each change.')
+    @_answer
+    def blueprint_spec(spec: dict, project: str | None = None) -> str:
+        return build.blueprint_spec(spec, project)
+
+    @server.tool(annotations=working, description='Draw the target from the checked spec: the technologies (the person\'s choices, '
+                 'else the recommendation; each kept in one adapter folder so it can be changed later), the layers and rules, and '
+                 'the build plan as milestones of cards. `stack` overrides choices, e.g. {"database": "supabase"}.')
+    @_answer
+    def blueprint_design(stack: dict | None = None, project: str | None = None) -> str:
+        return build.blueprint_design(stack, project)
+
+    @server.tool(annotations=working, description='Open the next milestone of the build in an isolated copy (the first time it asks '
+                 'the person\'s agreement: person_agreed=true only after their yes). Returns the cards to build.')
+    @_answer
+    def build_start(person_agreed: bool = False, project: str | None = None) -> str:
+        return build.build_start(project, person_agreed)
+
+    @server.tool(annotations=reading, description='Read a file (or list a folder) in the build\'s copy, with line numbers.')
+    @_answer
+    def build_read(path: str = '.', start: int = 1, end: int | None = None, project: str | None = None) -> str:
+        return build.build_read(path, project, start, end)
+
+    @server.tool(annotations=working, description='Write one build card: edits as in fix_edit ([{"path", "content"}] for new files, '
+                 '[{"path", "find", "replace"}], [{"path", "delete": true}]). Kept only if every gate passes: the planned folders '
+                 'and layers, each vendor only in its adapter, no import cycle, no broken reference, no copied code, a test for '
+                 'the card, and the project\'s typecheck, lint and tests. Otherwise taken back with the reasons. card="FIX" for a '
+                 'correction the milestone needs. Returns a job.')
+    @_answer
+    def build_edit(card: str, edits: list[dict], summary: str = '', project: str | None = None) -> str:
+        return build.build_edit(card, edits, summary, project)
+
+    @server.tool(annotations=working, description='Leave a build card out, with the reason (for example: the person decided against it).')
+    @_answer
+    def build_skip(card: str, reason: str, project: str | None = None) -> str:
+        return build.build_skip(card, reason, project)
+
+    @server.tool(annotations=working, description='Close the milestone (every gate on the whole copy; at the last milestone, no dead '
+                 'code either) and hand it to the project as the branch eaos/build-N, stacked on the previous one. Returns a job.')
+    @_answer
+    def build_finish(project: str | None = None) -> str:
+        return build.build_finish(project)
+
+    @server.prompt(name='build', description='Build a new project from its plan, with the best structure')
+    def build_prompt() -> str:
+        return ('Use the eaos tools to build my project from its plan, end to end: blueprint_start with my plan file (or the text '
+                'I paste), write the product spec, research what the plan leaves thin and recommend, ask me only real choices '
+                '(including technology preferences), blueprint_design, then build_start and every milestone with build_edit and '
+                'build_finish, without coming back to me between steps. At the end, tell me simply what was built and ask whether '
+                'to take it in.')
 
     @server.prompt(name='audit', description='Check this project and explain its problems simply')
     def audit_prompt() -> str:

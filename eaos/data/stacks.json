@@ -1,0 +1,99 @@
+{
+ "schema_version": 1,
+ "description": "The technologies EAOS knows how to lay out, by concern, for building a project from a plan (eaos/blueprint.py). Each concern has a recommended option and alternatives. Every option lives behind one adapter folder (its port): only that folder may import the option's packages, which eaos/blueprint.py checks after every build card, so changing an option later is replacing one folder. `switch` says, in plain words, what changing to that option involves.",
+ "concerns": {
+  "web": {
+   "title": "The screens (front end)",
+   "recommended": "react-vite",
+   "options": {
+    "react-vite": {"name": "React with Vite", "packages": ["react", "react-dom", "vite", "@vitejs/plugin-react"],
+                   "why": "The most used way to build web screens; fast, simple, and every AI assistant knows it well.",
+                   "switch": "Screens live in web/src; another framework replaces that folder, the server stays as it is."},
+    "next": {"name": "Next.js", "packages": ["next", "react", "react-dom"],
+             "why": "Screens and server in one project, with pages rendered on the server for search engines.",
+             "switch": "A bigger move: Next.js also hosts the server routes, so the api concern changes with it."}
+   }
+  },
+  "api": {
+   "title": "The server (back end)",
+   "recommended": "hono",
+   "options": {
+    "hono": {"name": "Hono", "packages": ["hono", "@hono/node-server"],
+             "why": "Small, fast and typed; runs on Node and on edge platforms alike.",
+             "switch": "Routes live in server/src/interface/http; another framework replaces that folder only."},
+    "express": {"name": "Express", "packages": ["express"],
+                "why": "The oldest and most known Node server; the most examples online.",
+                "switch": "Routes live in server/src/interface/http; another framework replaces that folder only."},
+    "fastify": {"name": "Fastify", "packages": ["fastify"],
+                "why": "Fast, with schemas for every request built in.",
+                "switch": "Routes live in server/src/interface/http; another framework replaces that folder only."},
+    "none": {"name": "No server of our own", "packages": [],
+             "why": "A site with no private data, or a hosted back end (Supabase) that the screens call directly.",
+             "switch": "Adding a server later adds the server/ folder; the screens keep calling the same client module."}
+   }
+  },
+  "database": {
+   "title": "Where the data is kept",
+   "recommended": "postgres-drizzle",
+   "options": {
+    "postgres-drizzle": {"name": "PostgreSQL with Drizzle", "packages": ["drizzle-orm", "drizzle-kit", "pg", "@types/pg"],
+                         "why": "PostgreSQL is the most trusted open database; Drizzle keeps the tables as typed code, with migrations.",
+                         "switch": "Only server/src/infrastructure/database uses it; another database replaces that folder, the rest calls the same repositories."},
+    "supabase": {"name": "Supabase (hosted PostgreSQL with sign-in and storage)", "packages": ["@supabase/supabase-js"],
+                 "why": "A hosted database, sign-in and file storage in one service; the least to run yourself.",
+                 "switch": "Only the database (and, if chosen, auth) adapter folder uses it; moving to your own PostgreSQL replaces that folder."},
+    "prisma-postgres": {"name": "PostgreSQL with Prisma", "packages": ["prisma", "@prisma/client"],
+                        "why": "A widely used typed database layer with a visual schema.",
+                        "switch": "Only server/src/infrastructure/database uses it; another database layer replaces that folder."},
+    "sqlite-drizzle": {"name": "SQLite with Drizzle", "packages": ["drizzle-orm", "drizzle-kit", "better-sqlite3"],
+                       "why": "One file, no server: good for a small app or a first version.",
+                       "switch": "Drizzle speaks PostgreSQL too: moving is changing the driver in the database folder and running the migrations."},
+    "none": {"name": "No database", "packages": [], "why": "The app keeps no data of its own.",
+             "switch": "Adding a database later adds its adapter folder; nothing else is rewritten."}
+   }
+  },
+  "auth": {
+   "title": "Sign-in and accounts",
+   "recommended": "better-auth",
+   "options": {
+    "better-auth": {"name": "Better Auth", "packages": ["better-auth"],
+                    "why": "Open-source sign-in kept in your own database: e-mail, social sign-in, sessions.",
+                    "switch": "Only server/src/infrastructure/auth uses it; the rest asks one function who the user is."},
+    "supabase-auth": {"name": "Supabase Auth", "packages": ["@supabase/supabase-js"],
+                      "why": "Sign-in from Supabase, natural when the data is there too.",
+                      "switch": "Only the auth adapter folder uses it; the rest asks one function who the user is."},
+    "clerk": {"name": "Clerk", "packages": ["@clerk/backend", "@clerk/clerk-react"],
+              "why": "Hosted sign-in with ready screens; the least to build.",
+              "switch": "Only the auth adapter folders use it; the rest asks one function who the user is."},
+    "none": {"name": "No sign-in", "packages": [], "why": "Everyone sees the same thing; nothing is private.",
+             "switch": "Adding sign-in later adds the auth adapter; routes ask the same function who the user is."}
+   }
+  },
+  "styling": {
+   "title": "How the screens look",
+   "recommended": "tailwind",
+   "options": {
+    "tailwind": {"name": "Tailwind CSS", "packages": ["tailwindcss", "@tailwindcss/vite"],
+                 "why": "One consistent design vocabulary; the style sits next to the screen it styles.",
+                 "switch": "Shared looks live in web/src/ui; a new style system replaces those components first."},
+    "css-modules": {"name": "Plain CSS modules", "packages": [],
+                    "why": "No extra tool: each screen has its own CSS file.",
+                    "switch": "Shared looks live in web/src/ui; a new style system replaces those components first."}
+   }
+  },
+  "testing": {
+   "title": "How it is checked",
+   "recommended": "vitest-playwright",
+   "options": {
+    "vitest-playwright": {"name": "Vitest for the logic, Playwright for the screens", "packages": ["vitest", "@playwright/test"],
+                          "why": "Fast tests for every rule, and real browser tests for every user flow.",
+                          "switch": "Tests are plain files next to what they test; another runner reads them with small changes."}
+   }
+  }
+ },
+ "always": {
+  "language": "TypeScript, strict: the types catch mistakes before anything runs, and every AI assistant writes it well.",
+  "tooling": ["typescript", "eslint", "prettier"],
+  "scripts": ["typecheck", "lint", "test"]
+ }
+}
