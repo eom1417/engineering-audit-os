@@ -59,5 +59,13 @@ class BrokenProjectTests(unittest.TestCase):
         stale = {symbol for rule, symbol in found if rule == 'stale-instruction'}
         self.assertEqual(stale, {'npm run release:*'})
 
+    def test_a_script_name_followed_by_a_placeholder_is_a_pattern_not_a_prefix(self):
+        found = self.run_on({
+            'app/package.json': '{"scripts": {"deploy:staging": "x", "deploy:production": "y"}}',
+            'CLAUDE.md': ('`npm run deploy:<target>` refuses; so do `npm run deploy:{env}`, `npm run deploy:$ENV`, '
+                          '`npm run deploy:[name]` and `npm run deploy:…`; `npm run release:<target>` is gone.\n')})
+        stale = {symbol for rule, symbol in found if rule == 'stale-instruction'}
+        self.assertEqual(stale, {'npm run release:<target>'})
+
 if __name__ == '__main__':
     unittest.main()
