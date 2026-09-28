@@ -10,7 +10,7 @@ from . import digest, make
 from .source import language_of
 
 NAME = 'syntax'
-VERSION = '2'
+VERSION = '3'
 LIMITATIONS = [
     'Syntax only: a parsed import or call is not proof that the code runs at runtime.',
     'Dynamic imports, reflection, dependency injection and framework routing are invisible here.',
@@ -154,6 +154,18 @@ def first_string(node, blob):
     return None
 
 
+def literal_argument(node, blob):
+    """The specifier of `import("./x")` or `require("./x")`: the first argument when it is a literal, else None.
+    `import(new URL("../server/", import.meta.url).href)` loads a computed path; the string inside it is a base
+    folder, not the module, and reading it as one reported a missing import."""
+    arguments = node.child_by_field_name('arguments')
+    first = arguments.named_children[0] if arguments is not None and arguments.named_children else None
+    if first is None: return None
+    if first.type == 'template_string' and any(child.type == 'template_substitution' for child in first.named_children): return None
+    if first.type not in {'string', 'template_string', 'string_literal', 'interpreted_string_literal', 'raw_string_literal'}: return None
+    return node_text(first, blob).strip('\'"`')
+
+
 def tree_sitter_units(language, text, config):
     parser = parser_for(language)
     if parser is None: return None
@@ -204,7 +216,7 @@ def tree_sitter_units(language, text, config):
                 callee = raw_callee.split('.')[-1].split('::')[-1].split('->')[-1].strip()
                 if callee and callee.isidentifier():
                     if callee in {'require', 'import'}:
-                        module = first_string(node, blob)
+                        module = literal_argument(node, blob)
                         if module: imports.append({'module': module, 'names': [], 'level': 0, 'line': node.start_point[0] + 1,
                                                    'style': 'relative' if module.startswith('.') else 'absolute'})
                     calls.append({'caller': current, 'callee': callee, 'line': node.start_point[0] + 1,

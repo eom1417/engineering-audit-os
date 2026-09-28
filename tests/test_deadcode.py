@@ -83,6 +83,30 @@ class DeadCodeTests(unittest.TestCase):
                      'src/global.d.ts': 'declare global {\n  interface Window { app: number }\n}\n'})
         self.assertFalse([key for key in found if key[0] == 'unreachable-module'], found)
 
+    def test_the_source_of_a_built_start_script_is_an_entry_and_its_ts_and_dynamic_imports_are_reached(self):
+        found = run({'app/package.json': '{"type": "module", "scripts": {"start": "node dist-server/main.mjs"}}',
+                     'app/server/main.mjs': 'import { handle } from "./index.mjs";\nhandle();\n',
+                     'app/server/index.mjs': ('import { claimAttempt } from "./security/rate-limit.ts";\n'
+                                              'const ROUTES = [\n  ["/api/health", () => import("./routes/health.ts")],\n'
+                                              '  { path: "/api/up", load: async () => await import(`./routes/up.ts`) },\n];\n'
+                                              'export function handle() { return claimAttempt(ROUTES); }\n'),
+                     'app/server/security/rate-limit.ts': 'export function claimAttempt(r) { return r; }\n',
+                     'app/server/routes/health.ts': 'export function GET() { return 1; }\n',
+                     'app/server/routes/up.ts': 'export function GET() { return 1; }\n',
+                     'app/server/routes/gone.ts': 'export function GET() { return 1; }\n',
+                     'app/tests/rate.test.mjs': 'import { claimAttempt } from "../server/security/rate-limit.ts";\n'})
+        self.assertEqual({key for key in found if key[0] == 'unreachable-module'}, {('unreachable-module', 'app/server/routes/gone.ts')})
+
+    def test_a_module_a_tool_config_loads_by_a_path_relative_to_itself_is_reached(self):
+        found = run({'app/package.json': '{"scripts": {"dev": "vite"}}',
+                     'app/index.html': '<script type="module" src="/src/main.ts"></script>',
+                     'app/src/main.ts': 'document.title = "x";\n',
+                     'app/vite.config.ts': ('const entry = new URL("./server/index.mjs", import.meta.url).href;\n'
+                                            'export default { plugins: [{ configureServer: async () => (await import(entry)).handle }] };\n'),
+                     'app/server/index.mjs': 'import { guard } from "./guard.ts";\nexport function handle() { return guard(); }\n',
+                     'app/server/guard.ts': 'export function guard() { return 1; }\n'})
+        self.assertFalse([key for key in found if key[0] == 'unreachable-module'], found)
+
     def test_without_an_entry_point_only_private_names_are_judged(self):
         found = run({'lib/api.py': 'def public():\n    return 1\n\ndef _private():\n    return 2\n'})
         self.assertEqual(set(found), {('unused-symbol', '_private')})

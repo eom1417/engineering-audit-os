@@ -51,6 +51,30 @@ def _tokens(text):
     return Counter(TOKEN.findall(text))
 
 
+BUILD_OUTPUT = re.compile(r'^(?:dist|build|out|lib|\.output)(?:[-_.](.+))?$')
+SOURCE_SUFFIXES = ('', '.ts', '.mts', '.cts', '.tsx', '.js', '.mjs', '.cjs', '.jsx')
+RELATIVE_LITERAL = re.compile(r'''['"`](\.{1,2}/[^'"`\s${}]+)['"`]''')
+
+
+def _source_of(base, file, known):
+    """The snapshot file a script runs: itself, or the source its build output is compiled from.
+
+    `node dist-server/main.mjs` runs what the build makes of `server/main.mjs`; `node dist/index.js` what it makes
+    of `src/index.ts` or `index.ts`. The output is not in the snapshot, so without this the production entry the
+    start script names is no seed, and everything only it imports looks dead."""
+    path = str(base / file).lstrip('./')
+    if path in known: return path
+    parts = PurePosixPath(file.lstrip('./')).parts
+    output = BUILD_OUTPUT.match(parts[0]) if len(parts) > 1 else None
+    if not output: return None
+    rest = PurePosixPath(*parts[1:])
+    for folder in ([output.group(1)] if output.group(1) else []) + ['src', '']:
+        stem = str((base / folder / rest).with_suffix('')).lstrip('./')
+        for suffix in SOURCE_SUFFIXES:
+            if stem + suffix in known: return stem + suffix
+    return None
+
+
 def _seeds(source, known, entry_points):
     """Production entry points, plus the files a runtime loads first: __main__.py, index.html scripts, manifests."""
     seeds = {(f.get('location') or {}).get('path') for f in entry_points
@@ -72,7 +96,7 @@ def _seeds(source, known, entry_points):
                 if isinstance(entry, str): seeds.add(str(base / entry).lstrip('./'))
             for script in (manifest.get('scripts') or {}).values():
                 for file in re.findall(r'[\w./-]+\.(?:[cm]?[jt]sx?|py)\b', str(script)):
-                    seeds.add(str(base / file).lstrip('./'))
+                    seeds.add(_source_of(base, file, known) or str(base / file).lstrip('./'))
     return {seed for seed in seeds if seed in known}
 
 
@@ -93,6 +117,23 @@ def _named(path, blob):
     return stem.replace('/', '.') in blob or stem in blob
 
 
+def _relative(path, text, texts):
+    """Files a module names by a literal path relative to itself: `new URL("./server/index.mjs", import.meta.url)`,
+    `new Worker("./worker.js")`. The import graph does not see these loads; the literal says what they load."""
+    base = PurePosixPath(path).parent
+    out = set()
+    for literal in RELATIVE_LITERAL.findall(text):
+        parts = []
+        for part in (base / literal).parts:
+            if part == '..':
+                if not parts: break
+                parts.pop()
+            elif part != '.': parts.append(part)
+        else:
+            if parts and '/'.join(parts) in texts: out.add('/'.join(parts))
+    return out
+
+
 def _reachable(seeds, graph, texts):
     reached, frontier = set(seeds), set(seeds)
     while True:
@@ -101,6 +142,7 @@ def _reachable(seeds, graph, texts):
             reached |= frontier
         blob = '\n'.join(texts[path] for path in reached if path in texts)
         named = {path for path in texts if path not in reached and _named(path, blob)}
+        named |= {found for path in reached if path in texts for found in _relative(path, texts[path], texts)} - reached
         if not named: return reached
         reached |= named
         frontier = named
@@ -158,7 +200,11 @@ def run(target, source, symbols=None, resolved=None, entry_points=None, **option
     refs = References(source)
     graph, test_importers = _edges(resolved or [])
     seeds = _seeds(source, known, entry_points or [])
-    reached = _reachable(seeds, graph, {p: refs.texts[p] for p in code if p in refs.texts})
+    # A tool configuration (vite.config.ts, next.config.mjs) is loaded by the tool itself whenever it runs; what it
+    # imports (a dev-server plugin, the API it mounts) is reached through it. It is a root to walk from, not an entry
+    # point: a library with only a test-runner config still has no production entry, and is judged as a library.
+    configs = {path for path in known if NOT_CANDIDATES[0].search(path) and not _is_test(path)}
+    reached = _reachable(seeds | configs if seeds else seeds, graph, {p: refs.texts[p] for p in code if p in refs.texts})
     sha = digest(str(source.fingerprint).encode('utf-8'))
     facts = []
     # With no production entry point, nothing says who uses the code: a library's public names serve callers
