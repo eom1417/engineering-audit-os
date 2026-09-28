@@ -113,6 +113,17 @@ def alias_of(module, aliases):
     return next((prefix for prefix, _ in aliases if module == prefix.rstrip('/') or module.startswith(prefix)), None)
 
 
+# TypeScript's own rule: `import './env.js'` in a .ts file names the source ./env.ts (and .jsx a .tsx, .mjs a .mts,
+# .cjs a .cts), because the import is written as it will be once compiled.
+TS_SOURCE_OF = {'.js': ('.ts', '.tsx'), '.jsx': ('.tsx',), '.mjs': ('.mts',), '.cjs': ('.cts',)}
+
+
+def js_expand(target):
+    stem, dot, extension = target.rpartition('.')
+    typed = [stem + suffix for suffix in TS_SOURCE_OF.get('.' + extension, ())] if dot and '/' not in extension else []
+    return [target] + typed + [target + suffix for suffix in JS_SUFFIXES] + [target + index for index in JS_INDEX]
+
+
 def js_candidates(importer, module, aliases=()):
     # A bundler query (`./styles.css?url`, `./worker?raw`) names the same file.
     module = module.split('?', 1)[0]
@@ -123,12 +134,12 @@ def js_candidates(importer, module, aliases=()):
         for _, folders in (row for row in aliases if row[0] == prefix):
             for folder in folders:
                 target = (folder + rest).strip('/') if folder.endswith('/') or not rest else (folder + '/' + rest).strip('/')
-                out += [target] + [target + suffix for suffix in JS_SUFFIXES] + [target + index for index in JS_INDEX]
+                out += js_expand(target)
         return out
     if not module.startswith('.'): return []
     target = js_directory(importer, module)
     if not target: return ['index.js', 'index.ts', 'index.mjs']
-    return [target] + [target + suffix for suffix in JS_SUFFIXES] + [target + index for index in JS_INDEX]
+    return js_expand(target)
 
 
 def package_main(directory, source, known):

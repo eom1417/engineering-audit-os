@@ -232,6 +232,14 @@ class PathAliasTests(unittest.TestCase):
         self.assertEqual(edges[('src/main.ts', '@app/orders')][:2], ('RESOLVED', 'src/app/orders.ts'))
         self.assertEqual(edges[('src/main.ts', 'react')][0], 'EXTERNAL')
 
+    def test_a_js_specifier_in_typescript_names_its_ts_source(self):
+        edges = self.resolve({'server/src/env.ts': 'export const env = {};\n', 'server/src/view.tsx': 'export const v = 1;\n',
+                              'server/src/index.ts': 'import { env } from "./env.js";\nimport { v } from "./view.jsx";\n'
+                                                     'import { gone } from "./gone.js";\n'})
+        self.assertEqual(edges[('server/src/index.ts', './env.js')][:2], ('RESOLVED', 'server/src/env.ts'))
+        self.assertEqual(edges[('server/src/index.ts', './view.jsx')][:2], ('RESOLVED', 'server/src/view.tsx'))
+        self.assertNotEqual(edges[('server/src/index.ts', './gone.js')][0], 'RESOLVED')
+
     def test_at_slash_points_at_src_without_any_config(self):
         edges = self.resolve({'src/services/Orders.ts': 'export class Orders {}\n',
                               'src/hooks/index.ts': 'export const h = 1;\n',

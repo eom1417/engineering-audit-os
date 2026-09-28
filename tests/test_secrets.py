@@ -146,3 +146,12 @@ class CollectTests(unittest.TestCase):
             self.assertEqual(len(result['facts']), 1)
             serialised = json.dumps(result['facts'][0], ensure_ascii=False)
             self.assertNotIn(token, serialised)
+
+
+class SensitiveNameTests(unittest.TestCase):
+    def test_a_secrets_file_is_never_read_but_code_named_after_secrets_is(self):
+        from eaos.workspace import SENSITIVE
+        for name in ('secrets.json', 'app-secrets.yaml', 'google-credentials.json', 'credentials', '.env.local', 'id_rsa'):
+            self.assertTrue(SENSITIVE.search(name), name)
+        for name in ('adminSecrets.ts', 'credentialsForm.tsx', 'secrets.ts'):
+            self.assertFalse(SENSITIVE.search(name), f'{name} is code: unread, its imports would be called missing')

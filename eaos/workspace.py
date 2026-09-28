@@ -14,7 +14,9 @@ DATA = Path(__file__).parent / 'data'
 SKIP_DIRS = {'.git', 'node_modules', '.venv', 'venv', '__pycache__', 'vendor', 'dist', 'build', '.next', '.nuxt', '.terraform'}
 STACKS = {'package.json':'JavaScript/TypeScript', 'pyproject.toml':'Python', 'requirements.txt':'Python', 'go.mod':'Go', 'Cargo.toml':'Rust', 'pom.xml':'JVM', 'build.gradle':'JVM', 'composer.json':'PHP', 'Gemfile':'Ruby', 'mix.exs':'Elixir', 'pubspec.yaml':'Dart'}
 INFRA = re.compile(r'(docker|compose|helm|kubernetes|k8s|terraform|serverless|pulumi|ansible|\.github/workflows|\.gitlab-ci|jenkins|cloudformation|\.tf$)', re.I)
-SENSITIVE = re.compile(r'(^\.env($|\.)|\.pem$|\.key$|^id_(rsa|ed25519)$|credentials|secrets?\.|\.tfstate($|\.)|\.p12$|\.pfx$|^\.npmrc$|^\.netrc$)',re.I)
+# A secrets or credentials file is data (secrets.json, app-credentials.yaml, a folder named secrets), never code:
+# adminSecrets.ts or credentialsForm.tsx are source the audit must read, or it calls their imports missing.
+SENSITIVE = re.compile(r'(^\.env($|\.)|\.pem$|\.key$|^id_(rsa|ed25519)$|(^|[._-])(credentials?|secrets?)(\.(json|ya?ml|toml|ini|txt|env|conf|cfg|properties|xml|csv)$|$)|\.tfstate($|\.)|\.p12$|\.pfx$|^\.npmrc$|^\.netrc$)',re.I)
 
 def now(): return datetime.now(timezone.utc).isoformat()
 def digest(b): return hashlib.sha256(b).hexdigest()
