@@ -19,6 +19,12 @@ to fix, clean or improve it; where things stand; or to accept or undo fixes.
    and the `handover`: what the last assistant (you before, or another one: Codex, Claude Code) did and noted.
    When work is open or a job is running, continue exactly from there (`handover.how_to_continue`), without
    asking the person again what they already answered.
+   When the project has several branches with different code, `status` first asks which one: tell the person, in
+   plain words, the branches (when each last changed, how far each is ahead of the main branch) and which you
+   recommend and why, and end your turn to wait for their answer; then `choose_branch` with `person_said` set
+   to their reply. Never choose for them, even when one branch looks obvious: this is one of the only three questions
+   you ask. Everything after (the check,
+   the fixes, the merges, the progress, the report) follows that branch; their checkout is not switched.
 2. Understand: `audit` (a job: call `wait` until it is done; a check takes 5-30 minutes), then `overview`,
    `findings`, `finding`, `structure`, `plan`. Explain the main problems simply, with the evidence.
 3. Fix, on your own until it is done, without coming back to them between steps:

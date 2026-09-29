@@ -21,7 +21,7 @@ from . import guided
 
 KEEP = 2000                  # journal lines kept
 READING = {'status', 'wait', 'overview', 'findings', 'finding', 'structure', 'plan', 'report_file', 'fix_read', 'build_read',
-           'open_report', 'open_blueprint', 'handover'}
+           'open_report', 'open_blueprint', 'handover', 'branches'}
 
 
 def _now():
@@ -88,25 +88,26 @@ def _state(project):
     return guided.load(folder) if folder.is_dir() else None
 
 
-def record(tool, arguments, result):
-    """One tool call in the journal, then HANDOVER.md rewritten. Never raises: the tool's answer matters more."""
+def record(tool, arguments, result, status=None):
+    """One tool call in the journal, then HANDOVER.md rewritten (`status`: the way's status tool, for its next step).
+    Never raises: the tool's answer matters more."""
     try:
         state = _state((arguments or {}).get('project'))
-        if not state: return
+        if not state or tool == 'note': return               # a note writes its own line
         _append(state, {'at': _now(), 'by': assistant(), 'tool': tool, 'card': (arguments or {}).get('card'),
                         'arguments': _arguments(arguments), 'outcome': _outcome(result)})
-        if tool not in READING or tool == 'wait': refresh(state)
+        if tool not in READING or tool == 'wait': refresh(state, status)
     except Exception:                       # the handover is extra: a failure here must not cost the tool its answer
         pass
 
 
-def note(text, card=None, project=None):
+def note(text, card=None, project=None, status=None):
     state = _state(project)
     if not state: raise LookupError('this project has no EAOS work yet: call `status` first')
     text = ' '.join(str(text or '').split())
     if not text: raise ValueError('the note is empty')
     _append(state, {'at': _now(), 'by': assistant(), 'tool': 'note', 'card': card, 'note': text[:1500]})
-    refresh(state)
+    refresh(state, status)
     return {'noted': True, 'handover': str(guided.outputs(state) / 'HANDOVER.md')}
 
 
@@ -139,7 +140,7 @@ def brief(state, steps=12, notes=8):
     waiting = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
     answered = [{'question': q.get('id'), 'answer': q.get('answer')} for q in state.get('questions') or [] if 'answer' in q]
     if (state.get('consent') or {}).get('run_and_fix'): answered.append({'question': 'run the app and prepare fixes', 'answer': True})
-    return {'mode': 'build from a plan' if state.get('mode') == 'build' else 'check and fix',
+    return {'mode': 'build from a plan' if state.get('mode') == 'build' else 'check and fix', 'branch': state.get('branch'),
             'last_assistant': last.get('by') if last else None, 'last_activity': last.get('at') if last else None,
             'running_job': {'id': busy['id'], 'kind': busy['kind'], 'progress': busy.get('progress')} if busy else None,
             'open_work': _open_work(state),
@@ -154,10 +155,10 @@ def brief(state, steps=12, notes=8):
                                 + 'follow `next` from `status`. Leave a `note` after each card and before you stop.')}
 
 
-def refresh(state):
-    """HANDOVER.md in the outputs folder, from the state, the journal and the ledger."""
-    from . import agent_tools, build_tools
-    try: now = (build_tools.status if state.get('mode') == 'build' else agent_tools.status)(state['project'])
+def refresh(state, status=None):
+    """HANDOVER.md in the outputs folder, from the state, the journal and the ledger; `status(project)` gives the next
+    step (the MCP server passes the status tool of the project's way)."""
+    try: now = status(state['project']) if status else {}
     except Exception: now = {}
     state = guided.load(state['project']) or state
     b = brief(state, steps=25, notes=15)
@@ -166,7 +167,7 @@ def refresh(state):
     lines = ['# HANDOVER: ' + Path(state['project']).name, '',
              ('> هذا الملف يُكتب تلقائيًا بعد كل خطوة، ليكمل أي مساعد ذكي (Claude Code أو Codex) من حيث توقف الآخر.' if ar else
               '> Written automatically after every step, so that any AI assistant (Claude Code or Codex) continues where the other stopped.'),
-             '', f"Updated: {_now()} · project: `{state['project']}` · mode: {b['mode']}", '',
+             '', f"Updated: {_now()} · project: `{state['project']}` · branch: `{b['branch'] or 'the one checked out'}` · mode: {b['mode']}", '',
              '## Continue from here', '',
              '1. Call the eaos `status` tool first: it is the live version of this page (this file is a snapshot).',
              f"2. Next tool: `{step.get('tool', 'status')}`: {step.get('why', '')}".rstrip(': '),

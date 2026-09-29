@@ -72,7 +72,7 @@ flowchart TB
     end
     subgraph P3["التنفيذ: بيئة معزولة بتفويض المالك (1/2)"]
         direction LR
-        S08["<b>S08 · التنفيذ</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 97%"]:::current
+        S08["<b>S08 · التنفيذ</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 68%"]:::current
         S09["<b>S09 · التحقق الوظيفي</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 0%"]:::next
         S10["<b>S10 · الأمن</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
         S11["<b>S11 · الحمل</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
@@ -90,7 +90,7 @@ flowchart TB
     end
     subgraph P5["الحوكمة والتسليم"]
         direction LR
-        S15["<b>S15 · الحوكمة المستمرة والتسليم</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 100%"]:::done
+        S15["<b>S15 · الحوكمة المستمرة والتسليم</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 44%"]:::current
         LOOP["↺ إعادة التدقيق بعد كل تغيير: يعود إلى S01"]:::next
         S15 -->|"✔ K1 = 1، وخط الأساس مثبّت، وبوابة الدَّين الجديد في CI"| LOOP
     end
@@ -224,13 +224,13 @@ eaos improve audit --out campaign --checks checks.json \
 <!-- north-star:progress:start -->
 <!-- مولَّد من docs/north-star.json بالأمر python tools/north_star.py؛ لا تحرّره يدويًا -->
 
-### التقدم: **77.5 من 100 نقطة**
+### التقدم: **72.5 من 100 نقطة**
 
-`███████████████████░░░░░░` 77.5%
+`██████████████████░░░░░░░` 72.5%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 18 من 26 | 19 · NS27 البناء من خطة | 22.5 | 23 | 2026-09-28 · `0a8ea72+` |
+| 18 من 27 | 19 · NS27 البناء من خطة | 27.5 | 23 | 2026-09-28 · `0a8ea72+` |
 
 `+`: قيس على تغييرات فوق هذا الالتزام، حُفظت في الالتزام التالي.
 
@@ -251,7 +251,7 @@ flowchart TB
         direction LR
         NS1["<b>1 · NS1</b><br/>القياس آليًا<br/>Automated measurement<br/>⚖ 3 · ▰ 100%"]:::done
         NS2["<b>2 · NS2</b><br/>لا يفشل على مشروع حقيقي<br/>Never fails on a real project<br/>⚖ 3 · ▰ 100%"]:::done
-        NS3["<b>3 · NS3</b><br/>تقرير الوضع الراهن<br/>Current state<br/>⚖ 5 · ▰ 100%"]:::done
+        NS3["<b>3 · NS3</b><br/>تقرير الوضع الراهن<br/>Current state<br/>⚖ 4 · ▰ 100%"]:::done
         NS4["<b>4 · NS4</b><br/>الإشارة لا الضجيج<br/>Signal, not noise<br/>⚖ 3 · ▰ 100%"]:::done
         NS1 -->|"✔ +2 اختبار قبول"| NS2
         NS2 -->|"✔ R1=1 · +1 اختبار قبول"| NS3
@@ -270,7 +270,7 @@ flowchart TB
     subgraph R3_1["R3 · الأدلة الكاملة من الأدوات الجاهزة"]
         direction LR
         NS11["<b>8 · NS11</b><br/>الاستلام<br/>Intake<br/>⚖ 2 · ▰ 100%"]:::done
-        NS12["<b>9 · NS12</b><br/>محوّلات الفحص الساكن<br/>Static-analysis adapters<br/>⚖ 4 · ▰ 100%"]:::done
+        NS12["<b>9 · NS12</b><br/>محوّلات الفحص الساكن<br/>Static-analysis adapters<br/>⚖ 3 · ▰ 100%"]:::done
         NS18["<b>10 · NS18</b><br/>القياس وسجل الدَّين<br/>Measurement and debt register<br/>⚖ 4 · ▰ 100%"]:::done
         NS11 -->|"✔ U6=1 · +1 اختبار قبول"| NS12
         NS12 -->|"✔ H3=1 · R3=1 · +12 اختبار قبول"| NS18
@@ -278,46 +278,50 @@ flowchart TB
     subgraph R4_1["R4 · تثبيت السلوك والصورة المثالية"]
         direction LR
         NS15["<b>11 · NS15</b><br/>تثبيت السلوك<br/>Behaviour lock<br/>⚖ 4 · ▰ 100%"]:::done
-        NS7["<b>12 · NS7</b><br/>تقرير الصورة المثالية<br/>Target-state report<br/>⚖ 6 · ▰ 100%"]:::done
+        NS7["<b>12 · NS7</b><br/>تقرير الصورة المثالية<br/>Target-state report<br/>⚖ 5 · ▰ 100%"]:::done
         NS13["<b>13 · NS13</b><br/>نموذج العمارة وقراراتها<br/>Architecture model and decisions (C4, ADR)<br/>⚖ 3 · ▰ 100%"]:::done
         NS15 -->|"✔ E4=1 · +4 اختبار قبول"| NS7
         NS7 -->|"✔ T1=1 · G1=1 · T2=1 · … · +2 اختبار قبول"| NS13
     end
     subgraph R5_1["R5 · الخطة والتقارير وعدّة التسليم"]
         direction LR
-        NS8["<b>14 · NS8</b><br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports<br/>⚖ 6 · ▰ 100%"]:::done
+        NS8["<b>14 · NS8</b><br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports<br/>⚖ 5 · ▰ 100%"]:::done
         NS14["<b>15 · NS14</b><br/>جودة التقرير تُفحص آليًا<br/>Report quality checked automatically<br/>⚖ 2 · ▰ 100%"]:::done
         NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 4 · ▰ 100%"]:::done
         NS8 -->|"✔ P1=1 · P4=1 · P3≥0.8 · …"| NS14
         NS14 -->|"✔ P8=1 · +3 اختبار قبول"| NS25
     end
-    subgraph R6_1["R6 · التنفيذ المثبت"]
+    subgraph R6_1["R6 · التنفيذ المثبت (1/2)"]
         direction LR
         NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 100%"]:::done
-        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 7 · ▰ 100%"]:::done
+        NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 6 · ▰ 100%"]:::done
         NS27["<b>19 · NS27</b><br/>البناء من خطة<br/>Build from a plan<br/>⚖ 6 · ▰ 93%"]:::current
-        NS20["<b>20 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
+        NS28["<b>20 · NS28</b><br/>الاستمرارية والتقدم الصادق<br/>Continuity and true progress<br/>⚖ 5 · ▰ 0%"]:::next
         NS26 -->|"✔ E5≥0.8 · +2 اختبار قبول"| NS9
         NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +7 اختبار قبول"| NS27
-        NS27 -->|"✔ B1=1 · B2=1 · X8=1 · … · +1 اختبار قبول"| NS20
+        NS27 -->|"✔ B1=1 · B2=1 · X8=1 · … · +1 اختبار قبول"| NS28
+    end
+    subgraph R6_2["R6 · التنفيذ المثبت (2/2)"]
+        direction LR
+        NS20["<b>21 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
     end
     subgraph R7_1["R7 · التصليب التشغيلي (1/2)"]
         direction LR
-        NS21["<b>21 · NS21</b><br/>الأمن بعد التحول<br/>Security after the transformation<br/>⚖ 3 · ▰ 0%"]:::owner
-        NS22["<b>22 · NS22</b><br/>الحمل<br/>Load<br/>⚖ 3 · ▰ 0%"]:::owner
-        NS23["<b>23 · NS23</b><br/>الأعطال المتعمدة<br/>Deliberate failures (chaos)<br/>⚖ 3 · ▰ 0%"]:::owner
-        NS24["<b>24 · NS24</b><br/>الرصد<br/>Observability<br/>⚖ 2 · ▰ 0%"]:::owner
+        NS21["<b>22 · NS21</b><br/>الأمن بعد التحول<br/>Security after the transformation<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS22["<b>23 · NS22</b><br/>الحمل<br/>Load<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS23["<b>24 · NS23</b><br/>الأعطال المتعمدة<br/>Deliberate failures (chaos)<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS24["<b>25 · NS24</b><br/>الرصد<br/>Observability<br/>⚖ 2 · ▰ 0%"]:::owner
         NS21 -->|"✔ E8=1 · +1 اختبار قبول"| NS22
         NS22 -->|"✔ E6≥0.8"| NS23
         NS23 -->|"✔ E9≥0.8 · +1 اختبار قبول"| NS24
     end
     subgraph R7_2["R7 · التصليب التشغيلي (2/2)"]
         direction LR
-        NS16["<b>25 · NS16</b><br/>الجاهزية للإنتاج<br/>Production readiness<br/>⚖ 2 · ▰ 0%"]:::owner
+        NS16["<b>26 · NS16</b><br/>الجاهزية للإنتاج<br/>Production readiness<br/>⚖ 2 · ▰ 0%"]:::owner
     end
     subgraph R8_1["R8 · الإثبات المستقل"]
         direction LR
-        NS10["<b>26 · NS10</b><br/>الإثبات المستقل<br/>Independent proof<br/>⚖ 5 · ▰ 18%"]:::owner
+        NS10["<b>27 · NS10</b><br/>الإثبات المستقل<br/>Independent proof<br/>⚖ 5 · ▰ 18%"]:::owner
     end
     R1_1 ==>|"✔ S1≥0.8 · S2≥0.8"| R1_2
     R1_2 ==>|"✔ H1=1 · +1 اختبار قبول"| R2_1
@@ -325,7 +329,8 @@ flowchart TB
     R3_1 ==>|"✔ M1≥0.95 · S3≥0.8 · G2=1 · +2 اختبار قبول"| R4_1
     R4_1 ==>|"✔ T6=1 · T7=1 · +2 اختبار قبول"| R5_1
     R5_1 ==>|"✔ K1=1 · +4 اختبار قبول"| R6_1
-    R6_1 ==>|"✔ E7=1 · E2≥0.8"| R7_1
+    R6_1 ==>|"✔ L1=1 · L2=1 · L3=1 · … · +3 اختبار قبول"| R6_2
+    R6_2 ==>|"✔ E7=1 · E2≥0.8"| R7_1
     R7_1 ==>|"✔ E10≥0.9 · +1 اختبار قبول"| R7_2
     R7_2 ==>|"✔ E11=1 · +1 اختبار قبول"| R8_1
     classDef done fill:#dcfce7,stroke:#15803d,color:#14532d,stroke-width:2px

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "5c17552",
+  "extracted_at_commit": "dad0b22",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -36,6 +36,51 @@
       "statement": "`new`: a project still to be built from its plan, whose folder may be empty or not there yet (it is made); never the home folder or the disk's root.",
       "kind": "invariant",
       "enforced_by": "tests/test_blueprint.py::BuildTests::test_from_a_pasted_plan_to_a_designed_blueprint_in_an_empty_folder",
+      "note": ""
+    },
+    {
+      "id": "INV-9ef40a7c04",
+      "file": "eaos/arch_map.py",
+      "symbol": "<module>",
+      "statement": "Reads only records the audit already wrote, and never raises for a missing or broken one (a missing piece is None): facts/graph.json graph_node: a file, the files it imports (depends_on), its cycle group; graph_cycle: a loop target-architecture.json current_components (today's parts and their files), target_components, target_edges facts/flows.json flow: a page or an endpoint and the chain of calls it starts facts/structure.json scope: the functions of a file; call_site: a call, inside the function that makes it",
+      "kind": "invariant",
+      "enforced_by": "tests/test_report_maps.py::MapTests::test_the_page_works_without_a_ledger_and_with_nothing",
+      "note": ""
+    },
+    {
+      "id": "INV-120d31c2fb",
+      "file": "eaos/arch_map.py",
+      "symbol": "strong_groups",
+      "statement": "{id: group number} of Tarjan's strongly connected groups, iteratively (a deep project must not hit recursion).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_report_maps.py::MapTests::test_the_parts_are_laid_out_without_overlap_and_the_loop_is_marked",
+      "note": ""
+    },
+    {
+      "id": "INV-f99c48dbc0",
+      "file": "eaos/arch_map.py",
+      "symbol": "allowed_layers",
+      "statement": "{layer: layers it may use} from the reference architecture the target names; {} when it cannot be read.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_report_maps.py::MapTests::test_the_parts_are_laid_out_without_overlap_and_the_loop_is_marked",
+      "note": ""
+    },
+    {
+      "id": "INV-c2a80bcc9e",
+      "file": "eaos/arch_map.py",
+      "symbol": "flow_charts",
+      "statement": "One vertical chart per page or endpoint: its route, its handler, then each called function by depth, grouped by file; where the trace cannot follow a call, a box says it stops there.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_report_maps.py::MapTests::test_a_flow_is_drawn_to_where_the_trace_stops",
+      "note": ""
+    },
+    {
+      "id": "INV-648e6acf6a",
+      "file": "eaos/arch_map.py",
+      "symbol": "json_script",
+      "statement": "Data for the page's script, safe inside <script>: '</' cannot end the element early.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_report_maps.py::MapTests::test_the_page_embeds_parseable_maps_and_every_card_collapsed",
       "note": ""
     },
     {
@@ -894,12 +939,30 @@
       "note": ""
     },
     {
+      "id": "INV-2e7f8585db",
+      "file": "eaos/guided.py",
+      "symbol": "source",
+      "statement": "A folder whose checkout is the branch EAOS works on, for everything that reads or runs the original: the project itself when that branch is the one checked out there, else EAOS's own copy of it beside state.json, brought to the branch's last commit (the project's own checkout is never switched).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_branches.py::Branches::test_the_chosen_branch_is_read_from_its_own_copy_and_the_checkout_is_not_switched",
+      "note": ""
+    },
+    {
       "id": "INV-96354a07d7",
       "file": "eaos/guided.py",
       "symbol": "_saved_note",
       "statement": "Unsaved edits are not part of the run: said once, plainly, never a stop.",
       "kind": "invariant",
       "enforced_by": "tests/test_live_setup.py::GuidedNoteTests::test_unsaved_edits_are_said_once_and_never_stop_the_run",
+      "note": ""
+    },
+    {
+      "id": "INV-b6454bb8ff",
+      "file": "eaos/handover.py",
+      "symbol": "record",
+      "statement": "Never raises: the tool's answer matters more.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_continuity.py::Handover::test_a_failing_handover_never_costs_the_tool_its_answer",
       "note": ""
     },
     {

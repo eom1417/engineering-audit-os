@@ -23,6 +23,8 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
+from . import branches
+
 TRAILER = 'EAOS-Card'
 NUMBERS = re.compile(r'\d+')
 CLOSED = ('done', 'resolved')
@@ -53,7 +55,7 @@ def keys(cards):
 
 
 def path(state):
-    return Path(state['workspace']) / 'ledger.json'
+    return Path(state['workspace']) / f'ledger{branches.suffix(state)}.json'
 
 
 def load(state):
@@ -69,9 +71,9 @@ def _save(state, ledger):
     temporary.replace(target)
 
 
-def merged_keys(project):
-    """{key: commit} for every EAOS card commit in the project's current branch; {subject: commit} for older ones."""
-    done = _git(project, 'log', '--format=%H%x00%ae%x00%B%x1e', 'HEAD')
+def merged_keys(project, ref='HEAD'):
+    """{key: commit} for every EAOS card commit in the branch `ref`; {subject: commit} for older ones."""
+    done = _git(project, 'log', '--format=%H%x00%ae%x00%B%x1e', ref)
     by_key, legacy = {}, {}
     if done.returncode: return by_key, legacy
     for entry in done.stdout.split('\x1e'):
@@ -85,9 +87,11 @@ def merged_keys(project):
     return by_key, legacy
 
 
-def _plan(state):
-    from .guided import report_of
-    try: return json.loads((report_of(state) / 'plan.json').read_text(encoding='utf-8'))
+def _plan(state, report=None):
+    """The plan of the check on record: `report`/plan.json (eaos/guided.report_of), by default in the branch's part of
+    the outputs folder."""
+    if report is None and not state.get('outputs'): return None
+    try: return json.loads((Path(report or branches.home(state) / 'technical') / 'plan.json').read_text(encoding='utf-8'))
     except (OSError, ValueError): return None
 
 
@@ -112,11 +116,11 @@ def _entry(card, k, milestone):
             'batch': None, 'at': None, 'why': '', 'commit': None}
 
 
-def sync(state, event=None):
+def sync(state, event=None, report=None):
     """The ledger brought up to date with the plan, the batches in the state and the project's git history; saved and
     returned. None while the project has no plan yet. A point is added to the history when what is closed changes,
     or on `event`."""
-    plan = _plan(state)
+    plan = _plan(state, report)
     if not plan or not isinstance(plan.get('tasks'), list): return load(state)
     ledger = load(state)
     stamp = f"{state.get('scanned_commit')}@{state.get('scanned')}"
@@ -143,7 +147,7 @@ def sync(state, event=None):
         ledger['plan_stamp'] = stamp
         event = event or 'recheck'
     project = state['project']
-    in_branch, legacy = merged_keys(project)
+    in_branch, legacy = merged_keys(project, branches.ref(state))
     by_id = {c['id']: c for c in cards.values() if c['id']}
     waves = state.get('waves') or []
     for wave in waves:                                                       # what each batch did, by key
@@ -183,9 +187,9 @@ def sync(state, event=None):
     last = history[-1] if history else None
     if first or event or not last or last['closed'] != totals['closed'] or last['total'] != totals['total']:
         history.append({'at': _now(), 'event': 'baseline' if first else event or 'merged', 'closed': totals['closed'],
-                        'total': totals['total'], 'percent': totals['percent'], 'commit': _git(project, 'rev-parse', 'HEAD').stdout.strip() or None})
+                        'total': totals['total'], 'percent': totals['percent'], 'commit': _git(project, 'rev-parse', branches.ref(state)).stdout.strip() or None})
         del history[:-200]
-    ledger.update(updated=_now(), commit=_git(project, 'rev-parse', 'HEAD').stdout.strip() or None, totals=totals)
+    ledger.update(updated=_now(), commit=_git(project, 'rev-parse', branches.ref(state)).stdout.strip() or None, totals=totals)
     _save(state, ledger)
     return ledger
 

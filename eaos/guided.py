@@ -24,7 +24,7 @@ import traceback
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import plain
+from . import branches, plain
 from .start_here import start_here, summary_counts  # noqa: F401  (one home: eaos/start_here.py)
 
 ERRORS = Path(__file__).resolve().parent / 'data/errors.json'
@@ -332,23 +332,37 @@ def _start_command(project):
 # ---------------------------------------------------------------- the steps `next` walks through
 
 def report_of(state):
-    """The technical report, in the outputs folder; one an older EAOS left in the workspace is moved there once."""
-    report = outputs(state) / 'technical'
+    """The technical report, in the branch's part of the outputs folder (eaos/branches.home); one an older EAOS left
+    in the workspace is moved there once."""
+    outputs(state)
+    report = branches.home(state) / 'technical'
     old = Path(state['workspace']) / 'report'
     if old.is_dir() and not report.exists(): shutil.move(str(old), str(report))
     return report
+
+
+def branch_links(state):
+    """The branch this report is for, and every other branch with a report, as paths from this one's REPORT.html."""
+    if not state.get('branch'): return None
+    here = branches.home(state)
+    others = []
+    for name in sorted({state.get('home_branch'), *(state.get('by_branch') or {})} - {state['branch'], None}):
+        page = branches.home({**state, 'branch': name}) / 'REPORT.html'
+        if page.is_file(): others.append({'name': name, 'href': os.path.relpath(page, here)})
+    return {'name': state['branch'], 'main': branches.default_branch(state['project']), 'others': others}
 
 
 def publish(state, lang=None, event=None):
     """REPORT.html in the outputs folder: the four reports for people, rebuilt from the ledger (eaos/ledger.py), so
     that it shows what is in the person's branch now. Never a reason for a step to fail: without it, the technical
     report is still there."""
-    report, target = report_of(state), outputs(state) / 'REPORT.html'
+    report = report_of(state)
+    target = branches.home(state) / 'REPORT.html'
     try:
         from .human_report import write
         from .ledger import for_report, sync
         write(report, lang or state.get('lang') or 'en', Path(state['project']).name,
-              progress={'waves': state.get('waves') or [], 'ledger': for_report(sync(state, event))})
+              progress={'waves': state.get('waves') or [], 'ledger': for_report(sync(state, event, report)), 'branch': branch_links(state)})
     except Exception:                       # the page is extra; a missing piece of data must not stop the work
         pass
     page = report / 'human' / 'index.html'
@@ -359,7 +373,7 @@ def publish(state, lang=None, event=None):
 def publish_fixes(state, wave):
     """outputs/fixes/wave-N: the batch's patches, wave.json, and a summary a person can read."""
     source = runtime_of(state) / 'waves' / f"wave-{wave['number']}"
-    target = outputs(state) / 'fixes' / f"wave-{wave['number']}"
+    target = branches.home(state) / 'fixes' / f"wave-{wave['number']}"
     shutil.rmtree(target, ignore_errors=True)
     if source.is_dir(): shutil.copytree(source, target)
     else: target.mkdir(parents=True)
@@ -394,10 +408,10 @@ def scan(state, args):
          'Checking your project now. This usually takes 5 to 30 minutes depending on its size; nothing in it changes.'))
     options = dict(language=lang, engines=[], site=True, progress=progress_printer(lang))
     try:
-        manifest = (resume if partial else execute)(state['project'], out, **options)
+        manifest = (resume if partial else execute)(str(source(state)), out, **options)
     except ValueError:                                  # the source changed since the partial run: start afresh
         shutil.rmtree(out, ignore_errors=True)
-        manifest = execute(state['project'], out, **options)
+        manifest = execute(str(source(state)), out, **options)
     if not (out / 'START-HERE.md').is_file(): start_here(out, lang, Path(state['project']).name)   # compose did not run: still one page
     state['scanned'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
     page = publish(state)
@@ -427,6 +441,11 @@ def later_steps(state, args):
     return 0
 
 
+# How a way of working other than fixing rebuilds its page for people: {'build': eaos.build_tools.publish}, registered
+# by that module itself, so that this one does not import it.
+PUBLISHERS = {}
+
+
 def same_code(state, commit, head=None):
     """`head` holds the code of `commit` plus EAOS's own fixes only (every commit between them made by EAOS, and merges):
     a check, a run and a safety net made at `commit` still hold, and a merged batch costs no new check."""
@@ -452,22 +471,20 @@ def reconcile(state):
         if not branch or status not in ('applied', 'superseded', 'accepted'): continue
         exists = _branch_exists(state, branch)
         tip = _git(state['project'], 'rev-parse', branch).stdout.strip() if exists else wave.get('tip')
-        inside = bool(tip) and not _git(state['project'], 'merge-base', '--is-ancestor', tip, 'HEAD').returncode
+        inside = bool(tip) and not _git(state['project'], 'merge-base', '--is-ancestor', tip, branches.ref(state)).returncode
         if status == 'accepted':
-            if exists and inside: _git(state['project'], 'branch', '-d', branch)
+            if exists and inside: _git(state['project'], 'branch', '-D', branch)
             continue
-        if inside:
+        if inside:                                          # merged into the branch EAOS works on: its branch goes
             wave.update(status='accepted', merged_at=datetime.now(timezone.utc).isoformat(timespec='seconds'), tip=tip)
-            if exists: _git(state['project'], 'branch', '-d', branch)
+            if exists: _git(state['project'], 'branch', '-D', branch)
             changed.append(wave)
         elif not exists and status == 'applied':
             wave['status'] = 'undone'
             changed.append(wave)
     if changed:
         save(state)
-        if state.get('mode') == 'build':
-            from .build_tools import publish as publish_blueprint
-            publish_blueprint(state)
+        if state.get('mode') in PUBLISHERS: PUBLISHERS[state['mode']](state)
         else:
             publish(state, event='merged')
         save(state)
@@ -479,6 +496,7 @@ def merge(state, wave):
     merges it cleanly (a conflict is taken back, and nothing changes); then reconcile deletes the branch and
     updates the ledger and the report. 'merged', 'unsaved_changes' or 'conflict'."""
     project = state['project']
+    if state.get('branch') and branches.checked_out(project) != state['branch']: return _merge_elsewhere(state, wave)
     if _git(project, 'status', '--porcelain', '--untracked-files=no').stdout.strip(): return 'unsaved_changes'
     if _git(project, 'merge', '--ff-only', '--quiet', wave['branch']).returncode:
         done = _git(project, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'merge', '--no-edit', '--quiet',
@@ -490,8 +508,82 @@ def merge(state, wave):
     return 'merged'
 
 
+def _merge_elsewhere(state, wave):
+    """The same merge into a branch that is not the one checked out: made in EAOS's copy of the branch, then the branch
+    moved to it only if nobody moved it meanwhile. The person's checkout and files are not touched."""
+    project, ref, before = state['project'], branches.ref(state), tip(state)
+    wave_tip = _git(project, 'rev-parse', wave['branch']).stdout.strip()
+    if not _git(project, 'merge-base', '--is-ancestor', before, wave_tip).returncode: after = wave_tip
+    else:
+        copy = source(state)
+        _git(copy, 'fetch', '--quiet', str(project), f"+refs/heads/{wave['branch']}:refs/remotes/source/{wave['branch']}")
+        done = _git(copy, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'merge', '--no-edit', '--quiet',
+                    '-m', f"Merge {wave['branch']}: EAOS batch {wave.get('number')}", f"refs/remotes/source/{wave['branch']}")
+        if done.returncode:
+            _git(copy, 'merge', '--abort')
+            return 'conflict'
+        after = _git(copy, 'rev-parse', 'HEAD').stdout.strip()
+        if _git(project, 'fetch', '--quiet', str(copy), after).returncode: return 'conflict'
+    if _git(project, 'update-ref', '-m', f"EAOS: merge {wave['branch']}", ref, after, before).returncode: return 'conflict'
+    reconcile(state)
+    return 'merged'
+
+
 def runtime_of(state):
-    return Path(state['workspace']) / 'runtime'
+    return Path(state['workspace']) / ('runtime' + branches.suffix(state))
+
+
+def tip(state):
+    """The commit of the branch EAOS works on (the one checked out, when none was chosen); '' without it."""
+    done = _git(state['project'], 'rev-parse', '--verify', '--quiet', branches.ref(state) + '^{commit}')
+    return done.stdout.strip() if done.returncode == 0 else ''
+
+
+def source(state):
+    """A folder whose checkout is the branch EAOS works on, for everything that reads or runs the original: the
+    project itself when that branch is the one checked out there, else EAOS's own copy of it beside state.json, brought
+    to the branch's last commit (the project's own checkout is never switched)."""
+    branch = state.get('branch')
+    if not branch or branches.checked_out(state['project']) == branch: return Path(state['project'])
+    copy = Path(state['workspace']) / ('checkout' + branches.suffix(state))
+    if not (copy / '.git').is_dir():
+        shutil.rmtree(copy, ignore_errors=True)
+        done = _git(state['project'], 'clone', '--quiet', '--no-checkout', '--no-hardlinks', '.', str(copy))
+        if done.returncode: raise RuntimeError(f'could not copy the branch {branch}: {done.stderr[-300:]}')
+    commit = tip(state)
+    if not commit: raise RuntimeError(f'the branch {branch} is not in the project any more: choose another one')
+    if _git(copy, 'rev-parse', 'HEAD').stdout.strip() != commit:
+        _git(copy, 'fetch', '--quiet', str(state['project']), f'+{branches.ref(state)}:refs/remotes/source/{branch}')
+        if _git(copy, 'checkout', '--quiet', '--force', '--detach', commit).returncode:
+            raise RuntimeError(f'could not bring the copy of {branch} to {commit[:12]}')
+        _git(copy, 'clean', '-fdqx')
+    return copy
+
+
+def choose(state, name):
+    """Work on the branch `name` from now on: what this branch had (its check, run, batches) is kept aside, and what
+    `name` had before comes back. A branch only on origin gets its local branch, at the same commit. The new state."""
+    if state.get('branch') == name: return state
+    project = state['project']
+    working_on = state.get('branch') or branches.checked_out(project)
+    if working_on != name and (state.get('open_wave') or any(w.get('status') == 'applied' for w in state.get('waves') or [])):
+        raise ValueError(f"the work on {working_on} is not finished: close the open batch, and accept or undo the "
+                         'waiting branch, before moving to another branch')
+    if _git(project, 'rev-parse', '--verify', '--quiet', f'refs/heads/{name}').returncode:
+        if _git(project, 'rev-parse', '--verify', '--quiet', f'refs/remotes/origin/{name}').returncode:
+            raise ValueError(f'no branch named {name} in this project')
+        _git(project, 'branch', '--quiet', '--track', name, f'origin/{name}')
+    if not state.get('branch'):                     # the first choice: work done before it was on the branch checked out then
+        had = any(k in state for k in branches.KEYS)
+        state['branch'] = state['home_branch'] = (branches.checked_out(project) if had else None) or name
+        if state['branch'] == name:
+            save(state)
+            return state
+    state.setdefault('by_branch', {})[state['branch']] = {k: state.pop(k) for k in branches.KEYS if k in state}
+    state.update(state['by_branch'].pop(name, {}))
+    state['branch'] = name
+    save(state)
+    return state
 
 
 def _git(project, *args):
@@ -500,9 +592,10 @@ def _git(project, *args):
 
 
 def _commit(state):
-    done = _git(state['project'], 'rev-parse', 'HEAD')
-    if done.returncode: raise RuntimeError(f"{state['project']}: fatal: not a git repository")
-    return done.stdout.strip()
+    if _git(state['project'], 'rev-parse', '--git-dir').returncode: raise RuntimeError(f"{state['project']}: fatal: not a git repository")
+    commit = tip(state)
+    if not commit: raise RuntimeError(f"{state['project']}: the branch {state.get('branch') or 'checked out'} has no commit")
+    return commit
 
 
 def _saved_note(state):
@@ -532,7 +625,7 @@ def ready(state, args):
          + (f"; I may ask your AI assistant ({assistant}) how it runs" if assistant else '') + '. OK?'), args.yes)
     runtime = runtime_of(state)
     who = _git(state['project'], 'config', 'user.name').stdout.strip() or os.environ.get('USER') or 'the owner'
-    live_setup.authorize(state['project'], runtime, who)
+    live_setup.authorize(source(state), runtime, who)
     say(('أجهّز تشغيل برنامجك. قد يأخذ هذا من 5 إلى 20 دقيقة.' if lang == 'ar'
          else 'Setting up your app to run. This can take 5 to 20 minutes.'))
     _, model = provider()
@@ -541,7 +634,7 @@ def ready(state, args):
             say('   ' + ('أجهّز نسخة الإنتاج من برنامجك لقياس سرعته…' if lang == 'ar' else 'Preparing the production build of your app, to measure its speed…'))
         else:
             say(f"   [{n}/{live_setup.ATTEMPTS}] " + ('أشغّل برنامجك وأفتح بعض شاشاته…' if lang == 'ar' else 'Starting your app and opening some of its screens…'))
-    result = live_setup.setup(state['project'], runtime, report=report_of(state), provider=model, say=progress)
+    result = live_setup.setup(source(state), runtime, report=report_of(state), provider=model, say=progress)
     state['setup'] = {'commit': commit, 'ok': result['ok'], 'attempts': result['attempts'], 'limitations': result['limitations']}
     state.pop('safety', None)
     save(state)
@@ -571,7 +664,7 @@ def safety_run(state, step=lambda n: None):
     from .runtime_baseline import run_baseline
     runtime = runtime_of(state)
     step(1)
-    results = run_lock(report_of(state), state['project'], runtime)['results']
+    results = run_lock(report_of(state), source(state), runtime)['results']
     passed = sum(r['status'] == 'passed' for r in results)
     outcome = {'screens': len(results), 'passed': passed, 'p95_ms': None, 'speed_error': None,
                'skipped': [{k: r.get(k) for k in ('path', 'status', 'reason') if r.get(k)} for r in results if r['status'] != 'passed']}
@@ -579,7 +672,7 @@ def safety_run(state, step=lambda n: None):
     if baseline.get('build') and baseline.get('verified') and list((report_of(state) / 'nfr/k6').glob('*.js')):
         step(2)
         try:
-            performance = run_baseline(report_of(state), state['project'], runtime)
+            performance = run_baseline(report_of(state), source(state), runtime)
             outcome['p95_ms'] = max((s['before']['p95_ms'] for s in performance['scenarios']), default=None)
             outcome['speed'] = 'measured'
         except Exception as problem:            # speed is measured when it can be; the screens are the safety net
@@ -656,7 +749,7 @@ def fix(state, args):
         elif kind == 'gates': say('   ' + ('أشغّل فحوص مشروعك وأقارن الشاشات…' if lang == 'ar' else "Running your project's checks and comparing the screens…"))
         elif kind == 'bisect': say('   ' + ('أبحث عن الإصلاح الذي سبّب مشكلة…' if lang == 'ar' else 'Looking for the fix that caused a problem…'))
     _, model = provider()
-    summary = waves.run_batch(report_of(state), state['project'], runtime_of(state), number, batch, provider=model, say=progress)
+    summary = waves.run_batch(report_of(state), source(state), runtime_of(state), number, batch, provider=model, say=progress)
     keys = {c['id']: c['key'] for c in waves.plan(report_of(state))['tasks'] if c['id'] in set(batch)}
     wave = {'number': number, 'base': state['setup']['commit'], 'cards': batch, 'kept': summary['kept'],
             'failed': summary['failed'], 'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty', 'keys': keys}

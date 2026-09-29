@@ -131,6 +131,9 @@ def publish(state, spec=None, stack=None, built=None):
     return target
 
 
+guided.PUBLISHERS['build'] = lambda state: publish(state)
+
+
 def open_blueprint(project=None, show=True):
     state = _state(project)
     page = publish(state)

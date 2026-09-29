@@ -1486,6 +1486,17 @@ def section_target(m):
 
 # ---------------------------------------------------------------- page
 
+def branch_line(branch):
+    """Which branch this report is for (the check, the fixes and the progress follow it), and the reports of the others."""
+    if not branch: return ''
+    main = (T(' (الفرع الرئيسي)', ' (the main branch)') if branch.get('main') == branch['name'] else
+            T(f' · الفرع الرئيسي: {lit(branch["main"])}', f' · main branch: {lit(branch["main"])}') if branch.get('main') else '')
+    others = ' '.join(f'<a href="{esc(o["href"])}">{lit(o["name"])}</a>' for o in branch.get('others') or [])
+    return (f'<div class="branch" data-part="branch">{T("الفرع:", "Branch:")} <b>{lit(branch["name"])}</b>{main}'
+            + (f' · {T("تقارير فروع أخرى:", "Other branches:")} {others}' if others else '') + '</div>')
+
+
+
 def render(m, name, lang='ar'):
     parts = {}
     try: m = dict(m, cards=task_cards(m))
@@ -1510,6 +1521,7 @@ def render(m, name, lang='ar'):
                    f'<p class="muted">{T(*map(esc, intro[s]))}</p></header>{parts[s]}</section>' for s in SECTIONS)
     generated = ((m['dossier'].get('provenance') or {}).get('generated_at') or '')[:10]
     date = (f'<span class="muted">{T("تاريخ الفحص:", "Audit date:")} {num(generated, "the date of the audit")}</span>' if generated else '')
+    date += branch_line((m.get('progress') or {}).get('branch'))
     direction = 'rtl' if lang == 'ar' else 'ltr'
     return (f'<!doctype html><html lang="{lang}" dir="{direction}" data-lang="{lang}"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width, initial-scale=1"><title>{esc(W["title"][0 if lang == "ar" else 1])}: {esc(name)}</title>'

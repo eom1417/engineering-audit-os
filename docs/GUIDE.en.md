@@ -49,12 +49,18 @@ files do not change until you agree.
 
 ## 4. Read the report
 
-Say to your assistant: **"Open the report"**. It opens one page in your browser with four parts:
+Say to your assistant: **"Open the report"**. It opens one page in your browser with five parts:
 
-1. **Project summary:** its health out of 100, the main problems, what is fixed automatically and what needs you.
+1. **Project summary:** its health out of 100, how much of the gap is closed with its curve over time, the main problems.
 2. **Gaps and risks:** where you are, where you should be, and how serious each gap is, in words.
-3. **Structure map:** the parts of your project, where the problems are, and the structure to aim for.
-4. **Plan and progress:** the stages of fixing, what is done, and the decisions that need you.
+3. **Structure map:** a drawing of your project's parts and how they depend on each other (thicker = stronger, red =
+   tangled in a loop). Pick a part to see its files, a file to see its functions and who calls them, and a page to see
+   its call path from the route to the last function.
+4. **Target structure:** the layers as they should be, where each part of today goes, and how much of each gap is closed.
+5. **Plan and progress:** the stages and what is done, the decisions that need you, and **every task card**, folded:
+   open one to see its state (fixed and merged, on a branch waiting for you, open, needs your decision) and details.
+
+The report updates itself after every merge, and counts only what is in your branch.
 
 Everything EAOS makes is in one folder: **`~/EAOS/<your project name>/`**
 
@@ -64,6 +70,13 @@ Everything EAOS makes is in one folder: **`~/EAOS/<your project name>/`**
 | `technical/` | The full technical report, for your assistant and developers. You do not need to open it |
 | `fixes/` | Every batch of fixes: what changed, what did not pass and why |
 | `logs/` | Technical logs, for whoever helps you if something goes wrong |
+
+**When your project has more than one branch** (say `main` in production, and a development branch ahead of it), it
+first asks: **which branch should I check and fix?**, listing when each branch last changed, how far each is ahead of
+the main branch, and which it recommends and why. Choose, or say "the one you recommend". From then on everything
+follows that branch: the check, the fixes, the merges, the progress and the report (whose top names the branch). The
+branch you have open is not switched: EAOS works on a copy of it. Each branch has its own report and progress; to move,
+say "work on the main branch".
 
 ## 5. The next batch
 

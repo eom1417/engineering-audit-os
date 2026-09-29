@@ -183,7 +183,7 @@ def self_truth(record):
                    f'{len(dead)} dead of {len(dead) + len(false)} distinct candidates (by path and symbol): ' + ', '.join(dead))}
 
 
-USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4')
+USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4', 'L5')
 
 
 def measure(record, only=None):
@@ -320,6 +320,13 @@ def continuity_values(only=None):
         if only in (None, key):
             ok = [t['project'] for t in runs if test(t)]
             values[key] = (ratio(len(ok), len(runs)) if runs else None, f'{label}: {len(ok)}/{len(runs)} ({names})')
+    if only in (None, 'L5'):
+        tries = [json.loads(p.read_text(encoding='utf-8')) for p in sorted((REPORTS / 'branch').glob('*/trial.json'))]
+        ok = [t['project'] for t in tries if all(t[k] for k in ('asked_branch', 'checked_on_branch', 'merged_into_branch', 'main_untouched',
+                                                                  'checkout_untouched', 'report_names_branch'))]
+        values['L5'] = (ratio(len(ok), len(tries)) if tries else None,
+                        f"trials on a project open on main with its work on a branch ahead: asked which branch, checked it, merged into it, "
+                        f"main and the checkout untouched, the report names it: {len(ok)}/{len(tries)} ({', '.join(t['project'] for t in tries) or 'no trial run yet'})")
     if only in (None, 'L4'):
         pages = sorted(p for p in REPORTS.glob('*/human/index.html') if p.parent.parent.name not in ('runtime', 'ux', 'mcp'))
         pages += sorted((REPORTS / 'handover').glob('*/EAOS/*/REPORT.html'))

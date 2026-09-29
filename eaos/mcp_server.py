@@ -18,8 +18,9 @@ pass) and handed over as a new git branch, eaos/wave-N. The person's current bra
 
 The person is usually not a developer. Speak to them in their language, in plain words, without jargon.
 Work on your own until the job is done; do not come back to them between steps. Ask them only:
-  1. once, before running their app and preparing fixes (run_setup gives the exact question);
-  2. at the end, whether to take the branch in (accept) or throw it away (undo).
+  1. which branch to work on, when the project has several (status asks it; choose_branch only with their answer);
+  2. once, before running their app and preparing fixes (run_setup gives the exact question);
+  3. at the end, whether to take the branch in (accept) or throw it away (undo).
 
 For a project that exists only as a plan (a PRD, notes, any file or pasted text), build it instead:
   blueprint_start -> blueprint_spec (until complete; research, recommend, ask only real choices) -> blueprint_design
@@ -28,6 +29,8 @@ For a project that exists only as a plan (a PRD, notes, any file or pasted text)
   cycles, layer breaks and a vendor outside its adapter.
 
 The whole way for an existing project, in order (`status` always says the next tool):
+  (when the project has several branches with different code, status first asks which one: ask the person, then
+   choose_branch; everything after follows that branch)
   audit -> overview / findings / finding / structure / plan  (understand; explain the main problems simply)
      and open_report (the report for people, in their browser: offer it after the check and after each batch)
   run_setup (after the person agrees) -> run_try until the app runs (you read the failure and the code, and
@@ -51,7 +54,16 @@ CAPABILITIES = {'where things stand': 'status', 'read any plan': 'blueprint_star
                 'show the report for people': 'open_report',
                 'read the evidence': 'finding', 'run the app': 'run_try', 'record the screens': 'safety_net',
                 'fix a card': 'fix_edit', 'hand fixes over': 'fix_finish', 'accept': 'accept', 'undo': 'undo',
-                'hand the work to another assistant': 'note'}
+                'hand the work to another assistant': 'note', 'choose the branch': 'choose_branch'}
+
+
+def _status(project=None):
+    """The status tool of the project's way: fixing, or building from a plan."""
+    from pathlib import Path
+    import os
+    from . import agent_tools, build_tools, guided
+    state = guided.load(Path(project or os.getcwd()).expanduser().resolve())
+    return build_tools.status(project) if (state or {}).get('mode') == 'build' else agent_tools.status(project)
 
 
 def _answer(function):
@@ -73,7 +85,7 @@ def _answer(function):
                       **({'what_now': known['en']['fix'] + ' ' + ' '.join(known['en']['commands'])} if known['id'] != 'unknown' else {})}
         try: arguments = dict(signature.bind_partial(*args, **kwargs).arguments)
         except TypeError: arguments = dict(kwargs)
-        record(function.__name__, arguments, result)
+        record(function.__name__, arguments, result, _status)
         return json.dumps(result, ensure_ascii=False, indent=1, default=str)
     return call
 
@@ -93,11 +105,22 @@ def build():
                  'first, every session.')
     @_answer
     def status(project: str | None = None) -> str:
-        from . import build_tools, guided
-        from pathlib import Path
-        import os
-        state = guided.load(Path(project or os.getcwd()).expanduser().resolve())
-        return build_tools.status(project) if (state or {}).get('mode') == 'build' else tools.status(project)
+        return _status(project)
+
+    @server.tool(annotations=reading, description='The project\'s branches (the person\'s own; bots\' and EAOS\'s are left out): '
+                 'when each last changed, how far each is ahead of and behind the main branch, which is checked out, which EAOS '
+                 'works on, and the recommendation.')
+    @_answer
+    def branches(project: str | None = None) -> str:
+        return tools.branches_of(project)
+
+    @server.tool(annotations=working, description='Work on this branch from now on: the check, the run, the fixes, the progress and '
+                 'every merge follow it; each branch keeps its own. person_said: the person\'s reply to which branch, as they wrote '
+                 'it; ask them first and wait for it (never choose for them, never write a reply they did not give). The '
+                 'person\'s checkout is not switched (EAOS uses its own copy of the branch).')
+    @_answer
+    def choose_branch(branch: str, person_said: str = '', project: str | None = None) -> str:
+        return tools.choose_branch(branch, project, person_said)
 
     @server.tool(annotations=working, description='Check the whole project (26 stages: files, features, tools, tests, structure, '
                  'security, load, plan). Returns a job to follow with `wait`; when the project was already checked at this commit, '
@@ -229,7 +252,7 @@ def build():
     @_answer
     def note(text: str, card: str | None = None, project: str | None = None) -> str:
         from . import handover
-        return handover.note(text, card, project)
+        return handover.note(text, card, project, _status)
 
     @server.tool(annotations=working, description='Throw the waiting branch away (while it is not merged): the project is as it was.')
     @_answer

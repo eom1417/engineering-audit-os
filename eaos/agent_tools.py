@@ -15,8 +15,10 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import guided, jobs, plain
+from . import branches, guided, jobs, plain
 
+# A person's answer comes at least this long after the question: sooner, nobody was asked (EAOS_ANSWER_SECONDS: tests).
+ANSWER_SECONDS = int(os.environ.get('EAOS_ANSWER_SECONDS') or 30)
 WAIT = 50                   # seconds a tool call waits for its job before answering with the job to follow
 PAGE = 30
 
@@ -49,8 +51,8 @@ def _now():
 
 
 def _head(state):
-    from .sandbox import head
-    return head(state['project'])
+    """The last commit of the branch EAOS works on (eaos/branches.py)."""
+    return guided.tip(state)
 
 
 def tool_digest():
@@ -107,9 +109,68 @@ def wait(job, seconds=WAIT):
 
 # ---------------------------------------------------------------- where things are
 
+def _branch(state):
+    """The branch EAOS works on, settled: None when it is (chosen before, or no real choice: then the branch checked
+    out, without a question); else the choice to put to the person (eaos/branches.py)."""
+    if state.get('branch'): return None
+    current = branches.checked_out(state['project'])
+    unfinished = state.get('open_wave') or any(w.get('status') == 'applied' for w in state.get('waves') or [])
+    options = None if unfinished else branches.choice(state['project'])     # work begun before: it is the checked out branch's
+    if options is None:
+        if current: guided.choose(state, current)
+        return None
+    if not (state.get('asked') or {}).get('branch'):
+        state.setdefault('asked', {})['branch'] = _now()
+        guided.save(state)
+    return {'status': 'needs_branch', 'branches': options['branches'][:15], 'recommended': options['recommended'],
+            'main_branch': options['main'], 'checked_out': current,
+            'ask_the_person': 'Which branch should EAOS check and fix? The check, the fixes, the progress and every merge '
+                              'will follow that branch.',
+            'what_now': 'Ask the person in their language, in plain words: list the branches with when each last changed and how '
+                        'far each is ahead of the main branch, and say which you recommend and why (the branch where the '
+                        'work goes on, usually the one furthest ahead). Then end your turn: do not call choose_branch until they answer, then call it with person_said = their reply. Their '
+                        'checkout is not switched.'}
+
+
+def branches_of(project=None):
+    state = project_state(project)
+    options = branches.choice(state['project'])
+    return {'working_branch': state.get('branch'), 'checked_out': branches.checked_out(state['project']),
+            'main_branch': branches.default_branch(state['project']),
+            'branches': (options or {}).get('branches') or branches.inventory(state['project']),
+            'recommended': (options or {}).get('recommended'),
+            'with_a_report': sorted({state.get('home_branch'), *(state.get('by_branch') or {})} - {None}),
+            'what_now': 'choose_branch moves the work to another branch; each branch keeps its own check, fixes and progress.'}
+
+
+def choose_branch(branch, project=None, person_said=''):
+    """`person_said`: the person's own words in answer to which branch (their reply, as they wrote it)."""
+    state = project_state(project)
+    before = state.get('branch')
+    asked = (state.get('asked') or {}).get('branch')
+    waited = asked and (datetime.now(timezone.utc) - datetime.fromisoformat(asked)).total_seconds() >= ANSWER_SECONDS
+    if branches.choice(state['project']) is not None and not (str(person_said or '').strip() and waited):
+        return {'status': 'needs_the_person', **{k: v for k, v in (_branch({**state, 'branch': None}) or {}).items() if k != 'status'},
+                'what_now': 'The person chooses the branch, not you: ask them (the branches, when each changed, how far ahead, '
+                            'your recommendation and why) and end your turn. Only after they answer, call choose_branch with '
+                            'person_said set to their reply, as they wrote it.'}
+    state.setdefault('questions', []).append({'id': 'branch', 'kind': 'choice', 'answer': branch, 'said': str(person_said)[:300] or None,
+                                              'via': 'assistant'})
+    state = guided.choose(state, branch)
+    checked = guided.scan_done(state)
+    return {'status': 'chosen', 'branch': branch, 'before': before, 'checked_before': checked,
+            'commit': _head(state), 'report_for_people': str(branches.home(state) / 'REPORT.html'),
+            'what_now': ('This branch was checked before: call status.' if checked else
+                         'Call audit: the check runs on this branch (its own copy; the person\'s checkout is not switched).')}
+
 def status(project=None):
     from . import handover, ledger
     state = project_state(project)
+    asking = _branch(state)
+    if asking:
+        return {'project': state['project'], 'branch': None, **asking, 'next': {'tool': 'choose_branch', 'why': 'the project has '
+                'more than one branch with different code: the person chooses which one EAOS works on'},
+                'handover': handover.brief(state)}
     guided.reconcile(state)
     head = _head(state)
     report = guided.report_of(state)
@@ -117,10 +178,10 @@ def status(project=None):
     setup, safety, wave = state.get('setup') or {}, state.get('safety') or {}, state.get('open_wave')
     waiting = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
     busy = jobs.running(state['project'])
-    answer = {'project': state['project'], 'commit': head,
+    answer = {'project': state['project'], 'branch': state.get('branch'), 'commit': head,
               'saved_in_git': not guided._git(state['project'], 'status', '--porcelain').stdout.strip(),
               'checked': checked, 'checked_commit': state.get('scanned_commit'),
-              'outputs_folder': str(guided.outputs(state)), 'report_for_people': str(guided.outputs(state) / 'REPORT.html') if checked else None,
+              'outputs_folder': str(guided.outputs(state)), 'report_for_people': str(branches.home(state) / 'REPORT.html') if checked else None,
               'app_runs': setup.get('ok') if _set_up(state, head) else None,
               'safety_net': safety if guided.same_code(state, safety.get('commit'), head) else None,
               'progress': ((ledger.load(state) or {}).get('totals') if checked else None),
@@ -145,6 +206,8 @@ def status(project=None):
 
 def audit(project=None, fresh=False):
     state = project_state(project)
+    asking = _branch(state)
+    if asking: return asking
     head = _head(state)
     if guided.scan_done(state) and not fresh and _current(state, head):
         return {'status': 'done', 'already_checked': True, **overview(project)}
@@ -161,11 +224,11 @@ def _audit_job(project, arguments, progress):
     out = guided.report_of(state)
     options = dict(language=state.get('lang') or 'en', engines=[], site=True, progress=progress)
     try:
-        (resume if (out / 'run-manifest.json').is_file() else execute)(state['project'], out, **options)
+        (resume if (out / 'run-manifest.json').is_file() else execute)(str(guided.source(state)), out, **options)
     except ValueError:                      # the source changed since a partial run: start afresh
         import shutil
         shutil.rmtree(out, ignore_errors=True)
-        execute(state['project'], out, **options)
+        execute(str(guided.source(state)), out, **options)
     if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
     state = guided.load(project)
     state.update(scanned=_now(), scanned_commit=_head(state), scanned_with=tool_digest())
@@ -196,7 +259,7 @@ def overview(project=None):
             'milestones': [{'id': m['id'], 'name': m.get('name'), 'goal': m.get('goal'), 'cards': len(m['tasks']),
                             'fixable_automatically': sum(_ready(t) for t in tasks if t['id'] in set(m['tasks']))}
                            for m in plan.get('milestones') or []],
-            'report_for_people': str(guided.outputs(state) / 'REPORT.html') if (guided.outputs(state) / 'REPORT.html').is_file() else None,
+            'report_for_people': str(branches.home(state) / 'REPORT.html') if (branches.home(state) / 'REPORT.html').is_file() else None,
             'outputs_folder': str(guided.outputs(state)), 'technical_report': str(report),
             'next': 'Use `findings` and `finding` for the evidence, `structure` for the architecture, `plan` for the order of work.'}
 
@@ -268,7 +331,7 @@ def finding(id, project=None):
         fact = facts.get(fact_id)
         if not fact: continue
         evidence.append({'fact': fact_id, 'kind': fact.get('kind'), 'value': fact.get('value'),
-                         'code': _excerpt(state['project'], fact.get('location') or {})})
+                         'code': _excerpt(guided.source(state), fact.get('location') or {})})
     assessment = claim.get('assessment') or {}
     card = task or {}
     return {'id': card.get('id') or claim.get('id'), 'claim': claim.get('id'), 'title': card.get('title') or claim.get('statement'),
@@ -307,7 +370,7 @@ def plan(project=None, milestone=None):
     data = _read(report / 'plan.json')
     tasks = {t['id']: t for t in data.get('tasks') or []}
     tried = set(state.get('tried') or [])
-    record = sync(state) or {}
+    record = sync(state, report=report) or {}
     where = {c['id']: c['state'] for c in (record.get('cards') or {}).values() if c.get('id')}
     out = []
     for m in data.get('milestones') or []:
@@ -373,8 +436,9 @@ def run_setup(project=None, person_agreed=False):
     guided.save(state)
     runtime = guided.runtime_of(state)
     who = guided._git(state['project'], 'config', 'user.name').stdout.strip() or os.environ.get('USER') or 'the owner'
-    live_setup.authorize(state['project'], runtime, who)
-    detected = live_setup.detect(state['project'])
+    source = guided.source(state)
+    live_setup.authorize(source, runtime, who)
+    detected = live_setup.detect(source)
     (runtime / 'setup').mkdir(parents=True, exist_ok=True)
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     if detected['profile'] is None:
@@ -406,7 +470,8 @@ def _run_job(project, arguments, progress):
     if proposal: live_setup.apply(runtime, proposal, mode=mode)
     attempt = len(list((runtime / 'setup').glob(f"{'baseline-' if mode == 'baseline' else ''}attempt-*.json"))) + 1
     progress(0, 1, 'installing and starting the app in the isolated copy')
-    record = live_setup.verify(state['project'], runtime, attempt, report if (report / 'plan.json').is_file() else None, mode=mode)
+    source = guided.source(state)
+    record = live_setup.verify(source, runtime, attempt, report if (report / 'plan.json').is_file() else None, mode=mode)
     profile = _read(runtime / 'run.json')
     answer = {'mode': mode, 'attempt': attempt, 'runs': record['ok']}
     if mode == 'baseline':
@@ -432,7 +497,7 @@ def _run_job(project, arguments, progress):
         answer['fixtures_missing'] = missing
         if record['ok'] and (profile.get('baseline') or {}).get('build') and 'verified' not in profile['baseline']:
             progress(1, 2, 'building and starting the production version, to measure speed later')
-            base = live_setup.verify(state['project'], runtime, 1, mode='baseline')
+            base = live_setup.verify(source, runtime, 1, mode='baseline')
             profile = _read(runtime / 'run.json')
             profile['baseline']['verified'] = base['ok']
             live_setup.write_profile(runtime, profile)
@@ -445,7 +510,7 @@ def _run_job(project, arguments, progress):
     if not record['ok']:
         answer['failure'] = (record.get('failure') or '')[-3000:]
         folder = profile.get('app') or '.'
-        answer['code_that_raised_it'] = live_setup.relevant_source(state['project'], folder, record.get('failure') or '', limit=2, context=30)[:8000]
+        answer['code_that_raised_it'] = live_setup.relevant_source(source, folder, record.get('failure') or '', limit=2, context=30)[:8000]
     if record.get('seed_output'): answer['seed_output'] = record['seed_output'][-1500:]
     answer['profile'] = {k: profile.get(k) for k in ('app', 'install', 'prepare', 'start', 'port', 'env', 'database', 'seed', 'checks', 'baseline', 'limitations')}
     answer['what_now'] = ('The app runs: call safety_net.' if record['ok'] and mode == 'lock' else
@@ -460,7 +525,7 @@ def _run_job(project, arguments, progress):
 def safety_net(project=None):
     state = project_state(project)
     setup = state.get('setup') or {}
-    if setup.get('commit') != _head(state): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
+    if not _set_up(state, _head(state)): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
     return _start('safety_net', state, {})
 
 
@@ -519,10 +584,11 @@ def _fix_start_job(project, arguments, progress):
     number = len(state.get('waves') or []) + 1
     grant = runtime / 'authorization.json'
     granted = _read(grant).get('commit') if grant.is_file() else None
-    if granted != head(state['project']) and guided.same_code(state, granted):     # a merged batch: the agreement still holds
-        live_setup.authorize(state['project'], runtime, _read(grant).get('granted_by') or 'the owner')
+    source = guided.source(state)
+    if granted != head(source) and guided.same_code(state, granted):     # a merged batch: the agreement still holds
+        live_setup.authorize(source, runtime, _read(grant).get('granted_by') or 'the owner')
     progress(0, 1, 'copying the project into the isolated copy')
-    root, base = open_batch(state['project'], runtime, number)
+    root, base = open_batch(source, runtime, number)
     cards = {t['id']: t for t in read_plan(report)['tasks'] if t['id'] in set(arguments['cards'])}
     wave = {'number': number, 'root': str(root), 'base': base, 'cards': arguments['cards'], 'kept': {}, 'failed': {}, 'tools': {},
             'opened': _now(), 'keys': {c: cards[c]['key'] for c in arguments['cards']}}
@@ -680,7 +746,7 @@ def _fix_finish_job(project, arguments, progress):
     report, runtime = guided.report_of(state), guided.runtime_of(state)
     steps = {'acceptance': (0, "every problem is gone, all changes together"), 'gates': (1, "the project's own checks and every screen"),
              'bisect': (2, 'finding the change that broke something')}
-    summary = finish_batch(report, state['project'], runtime, wave['number'], Path(wave['root']), wave['base'], wave['cards'],
+    summary = finish_batch(report, guided.source(state), runtime, wave['number'], Path(wave['root']), wave['base'], wave['cards'],
                            wave['kept'], wave['failed'], wave['tools'], lock=True,
                            say=lambda kind, *_: progress(steps[kind][0], 3, steps[kind][1]) if kind in steps else None)
     state = guided.load(project)
@@ -725,7 +791,7 @@ def accept(project=None, person_agreed=False):
                 'what_now': f"The person's branch changed in the same places since the fixes; nothing was merged. Ask whether to merge "
                             f"{wave['branch']} by hand, resolving the conflict; once it is merged, `status` records it and deletes the branch."}
     state = guided.load(state['project'])
-    page = guided.outputs(state) / 'REPORT.html'
+    page = branches.home(state) / 'REPORT.html'
     return {'status': 'accepted', 'branch': wave['branch'], 'branch_deleted': not guided._branch_exists(state, wave['branch']),
             'progress': (load(state) or {}).get('totals'), 'report_for_people': str(page),
             'what_now': 'Done: the branch is merged and deleted, and the report is up to date. Tell the person the progress in '

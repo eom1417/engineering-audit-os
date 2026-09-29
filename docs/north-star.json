@@ -1046,6 +1046,16 @@
           "evidence": "not measured yet",
           "reads": "${EAOS_MEASURE}/*/human/index.html → data-part",
           "measured": "automated"
+        },
+        {
+          "id": "L5",
+          "name": "العمل يتبع الفرع المختار",
+          "definition": "تجارب مشروع مفتوح على main وعمله في فرع متقدّم: سأل المساعد الشخص أي فرع، وفُحص الفرع المختار، ودُمجت الإصلاحات فيه، وبقي main ومجلد الشخص كما هما، والتقرير يسمّي الفرع ÷ التجارب",
+          "target": 1.0,
+          "value": null,
+          "evidence": "no trial run yet",
+          "reads": "${EAOS_MEASURE}/branch/<مشروع>/trial.json",
+          "measured": "automated"
         }
       ]
     }
@@ -4714,7 +4724,7 @@
       "id": "NS28",
       "title": "الاستمرارية والتقدم الصادق",
       "title_en": "Continuity and true progress",
-      "goal": "L1 إلى L4 عند أهدافها: التقدم يُحسب مما في فرع الشخص، والدمج يحذف الفرع ويحدّث التقرير، ومساعد يكمل عمل آخر، والتقرير يُري البطاقات والبنية الحالية والمستهدفة والتقدم.",
+      "goal": "L1 إلى L5 عند أهدافها: التقدم يُحسب مما في فرع الشخص، والدمج يحذف الفرع ويحدّث التقرير، ومساعد يكمل عمل آخر، والعمل يتبع الفرع الذي يختاره الشخص، والتقرير يُري البطاقات والبنية الحالية والمستهدفة والتقدم.",
       "stages": [
         "S08",
         "S09",
@@ -4726,14 +4736,16 @@
         "سجل للبطاقات بمفتاح ثابت يقرأ المنجز من git",
         "الدمج يحذف الفرع ويحدّث التقرير والتقدم في الخطوة نفسها",
         "تسليم تلقائي بين المساعدين: سجل لكل خطوة وHANDOVER.md",
-        "التقرير يعرض البطاقات والبنية الحالية والمستهدفة والتقدم عبر الزمن"
+        "التقرير يعرض البطاقات والبنية الحالية والمستهدفة والتقدم عبر الزمن",
+        "يسأل أي فرع حين يكون للمشروع أكثر من فرع، وكل شيء يتبعه"
       ],
       "tools": [
         "eaos/ledger.py",
         "eaos/guided.py (reconcile, merge)",
         "eaos/handover.py",
         "eaos/human_report.py",
-        "المساعد الذكي (Codex وClaude Code)"
+        "المساعد الذكي (Codex وClaude Code)",
+        "eaos/branches.py"
       ],
       "outputs": [
         "~/.eaos/projects/<المشروع>/ledger.json وjournal.jsonl",
@@ -4917,6 +4929,50 @@
           ],
           "acceptance": "python tools/north_star.py measure --only L3 --min 1.0 && python tools/north_star.py measure --only L2 --min 1.0",
           "rollback": "احذف أداة التجربة."
+        },
+        {
+          "id": "NS28.T6",
+          "title": "الفرع: يسأل أي فرع، وكل شيء يتبعه",
+          "why": "من تجربة المالك: مشروع عمله في فرع متقدّم كثيرًا على main فُحص على المفتوح، ولم يقل أي فرع. كثيرون عندهم فرع للإنتاج وفرع للتطوير.",
+          "moves": [
+            "L5",
+            "X8"
+          ],
+          "needs": "none",
+          "depends_on": [
+            "NS28.T2"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/branches.py",
+            "eaos/guided.py",
+            "eaos/agent_tools.py",
+            "eaos/ledger.py",
+            "eaos/human_report.py",
+            "eaos/mcp_server.py",
+            "tests/test_branches.py",
+            "tools/branch_trial.py"
+          ],
+          "steps": [
+            "branches.inventory: فروع الشخص محليًا وعلى origin (بلا dependabot وeaos وأمثالها) بتاريخ آخر تغيير والتقدّم والتأخر عن الفرع الرئيسي؛ والتوصية: الأكثر تقدّمًا.",
+            "status يسأل قبل أي شيء حين تختلف الفروع؛ وإلا الفرع المفتوح بلا سؤال؛ وعمل بدأ قبل التحديث يبقى لفرعه.",
+            "guided.source: نسخة EAOS للفرع المختار لكل ما يقرأ أو يشغّل الأصل؛ فرع الشخص لا يتبدّل.",
+            "الدمج في الفرع المختار ولو لم يكن مفتوحًا (update-ref بشرط ألا يكون تحرّك)؛ والسجل وreconcile على الفرع.",
+            "لكل فرع فحصه وتشغيله ودفعاته وسجله وتقريره، والتقرير يسمّي فرعه ويربط بالفروع الأخرى.",
+            "tools/branch_trial.py: chief-ops مفتوح على main وعمله في فرع متقدّم 435 commit."
+          ],
+          "done_when": [
+            "L5 = 1.0.",
+            "X8 = 1.0 مع choose_branch."
+          ],
+          "pitfalls": [
+            "لا يختار المساعد الفرع عن الشخص.",
+            "لا يُبدَّل الفرع المفتوح في مجلد الشخص."
+          ],
+          "acceptance": "python -m unittest tests.test_branches && python tools/north_star.py measure --only L5 --min 1.0",
+          "rollback": "احذف eaos/branches.py؛ يعود العمل على الفرع المفتوح.",
+          "writes": [],
+          "status": "todo"
         }
       ]
     },

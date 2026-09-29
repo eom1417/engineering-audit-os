@@ -71,6 +71,35 @@ class ServerTests(Home):
         self.assertEqual((answer['project'], answer['next']['tool']), (str(self.project.resolve()), 'audit'),
                          'the folder the assistant was opened in is the project')
 
+    def test_the_branch_is_chosen_and_a_note_left_over_stdio(self):
+        from mcp import ClientSession, StdioServerParameters, stdio_client
+        run = lambda *argv: subprocess.run(['git', '-C', str(self.project), '-c', 'user.name=t', '-c', 'user.email=t@t', *argv],
+                                           check=True, capture_output=True)
+        run('checkout', '-q', '-b', 'develop'); (self.project / 'src/a.js').write_text('export const a = 9;\n')
+        run('commit', '-qam', 'work'); run('checkout', '-q', '-')
+
+        async def talk():
+            server = StdioServerParameters(command=sys.executable, args=['-m', 'eaos', 'mcp'], cwd=str(self.project),
+                                           env={**os.environ, 'PYTHONPATH': str(ROOT), 'EAOS_ASSISTANT': 'Codex',
+                                                                        'EAOS_ANSWER_SECONDS': '0'})
+            async with stdio_client(server) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    asked = await session.call_tool('status', {})
+                    listed = await session.call_tool('branches', {})
+                    chosen = await session.call_tool('choose_branch', {'branch': 'develop', 'person_said': 'الفرع اللي تنصح فيه'})
+                    noted = await session.call_tool('note', {'text': 'develop is where the work goes on; checking it next.'})
+                    after = await session.call_tool('status', {})
+                    return [json.loads(r.content[0].text) for r in (asked, listed, chosen, noted, after)]
+
+        asked, listed, chosen, noted, after = asyncio.run(talk())
+        self.assertEqual((asked['next']['tool'], asked['recommended']), ('choose_branch', 'develop'))
+        self.assertEqual({b['name'] for b in listed['branches']}, {'develop', 'master'})
+        self.assertEqual((chosen['status'], after['branch'], after['next']['tool']), ('chosen', 'develop', 'audit'))
+        self.assertTrue(noted['noted'])
+        self.assertEqual(after['handover']['notes'][-1]['by'], 'Codex')
+        self.assertEqual([s['tool'] for s in after['handover']['last_steps']], ['choose_branch', 'note'])
+
     def test_an_error_reaches_the_assistant_as_words_to_act_on(self):
         from eaos.mcp_server import _answer
         answer = json.loads(_answer(lambda: agent_tools.status(str(Path(self.tmp.name))))())

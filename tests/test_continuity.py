@@ -44,6 +44,7 @@ class Base(unittest.TestCase):
     def check(self, cards):
         """A check of the project as it is now: its plan, as the audit would leave it."""
         report = guided.report_of(self.state)
+        guided.save(self.state)
         report.mkdir(parents=True, exist_ok=True)
         (report / 'plan.json').write_text(json.dumps({'tasks': cards, 'milestones': [{'id': 'M01', 'name': 'stabilize', 'tasks': [c['id'] for c in cards]}]}))
         (report / 'run-manifest.json').write_text('{"status": "COMPLETE"}')
