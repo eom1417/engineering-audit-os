@@ -22,6 +22,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .ledger import TRAILER, key, keys
 from .execute import apply_edits, candidate, git, model_messages, new_breakage, original_checks, project_checks, record, regressions, run_codemod
 
 SIZE = 10
@@ -29,7 +30,11 @@ DEADCODE = re.compile(r"== \('([^']+)', '([^']*)', '([\w-]+)'\)")
 
 
 def plan(report):
-    return json.loads((Path(report) / 'plan.json').read_text(encoding='utf-8'))
+    """plan.json, each card with its key (eaos/ledger.py), which its commit carries."""
+    data = json.loads((Path(report) / 'plan.json').read_text(encoding='utf-8'))
+    ids = keys(data.get('tasks') or [])
+    for card in data.get('tasks') or []: card['key'] = ids[card['id']]
+    return data
 
 
 def ready(card):
@@ -101,7 +106,7 @@ def change(card, root, report, provider):
 def commit(root, card, tool):
     git(root, 'add', '-A')
     done = git(root, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '--quiet', '-m',
-               f"{card['id']}: {card['title'][:70]}\n\nExecuted by EAOS ({tool}).")
+               f"{card['id']}: {card['title'][:70]}\n\nExecuted by EAOS ({tool}).\n\n{TRAILER}: {card.get('key') or key(card)}")
     if done.returncode: raise RuntimeError('the change left nothing to commit')
     return git(root, 'rev-parse', 'HEAD').stdout.strip()
 

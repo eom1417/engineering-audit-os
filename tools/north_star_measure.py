@@ -183,7 +183,7 @@ def self_truth(record):
                    f'{len(dead)} dead of {len(dead) + len(false)} distinct candidates (by path and symbol): ' + ', '.join(dead))}
 
 
-USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'B1', 'B2', 'B3', 'B4')
+USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4')
 
 
 def measure(record, only=None):
@@ -256,6 +256,7 @@ def usability_values(only=None):
                          f"reports for people with the four reports, a severity legend and no number without its meaning: {len(clean)}/{len(pages)} "
                          f"({', '.join(p.parent.parent.name for p in pages) or 'no report yet'})")
     values.update(blueprint_values(only))
+    values.update(continuity_values(only))
     if only in (None, 'X5'):
         done, total = guided.complete_entries()
         values['X5'] = (ratio(done, total) or 0.0, f'known errors with a plain message, a fix and a command in Arabic and English: {done}/{total}')
@@ -299,6 +300,33 @@ def blueprint_values(only=None):
         built = sum(len(t['features_built']) for t in runs)
         total = sum(len(t['features']) for t in runs)
         values['B4'] = (ratio(built, total) if total else None, f'features of the plans built through their gates, with tests: {built}/{total} ({names})')
+    return values
+
+
+PARTS = ('cards', 'arch-map', 'arch-drill', 'flows', 'target-map', 'target-mapping', 'progress-history')
+
+
+def continuity_values(only=None):
+    """L1-L3 from the handover trials (tools/handover_trial.py -> $EAOS_MEASURE/handover/<project>/trial.json), L4 from
+    the reports for people: every part a person asked for (the cards, the maps, the target, the progress) is there."""
+    values = {}
+    runs = [json.loads(p.read_text(encoding='utf-8')) for p in sorted((REPORTS / 'handover').glob('*/trial.json'))]
+    names = ', '.join(t['project'] for t in runs) or 'no trial run yet'
+    for key, test, label in (
+            ('L1', lambda t: t['progress_true'], "trials whose ledger counts exactly the cards merged into the person's branch, out of the plan's"),
+            ('L2', lambda t: t['merged'] and t['branch_deleted'] and t['report_updated'], 'trials where merging deleted the branch and rebuilt the report in the same step'),
+            ('L3', lambda t: t['cut'] and t['claude_first_tool'] == 'status' and not t['asked_again'] and not t['redone'] and t['delivered'],
+             'trials where Claude Code finished the batch Codex was cut off in: status first, no question asked again, no card redone')):
+        if only in (None, key):
+            ok = [t['project'] for t in runs if test(t)]
+            values[key] = (ratio(len(ok), len(runs)) if runs else None, f'{label}: {len(ok)}/{len(runs)} ({names})')
+    if only in (None, 'L4'):
+        pages = sorted(p for p in REPORTS.glob('*/human/index.html') if p.parent.parent.name not in ('runtime', 'ux', 'mcp'))
+        pages += sorted((REPORTS / 'handover').glob('*/EAOS/*/REPORT.html'))
+        whole = [p for p in pages if all(f'data-part="{part}"' in p.read_text(encoding='utf-8') for part in PARTS)]
+        values['L4'] = (ratio(len(whole), len(pages)) if pages else None,
+                        f"reports for people with every card, the current map, its drill-down and flows, the target and its mapping, and the progress over time: "
+                        f"{len(whole)}/{len(pages)} ({', '.join(p.relative_to(REPORTS).parts[0] if p.name == 'index.html' else p.parts[-4] for p in pages) or 'no report yet'})")
     return values
 
 

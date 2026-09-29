@@ -388,7 +388,7 @@
     {
       "id": "C2",
       "name": "تقرير الوضع الراهن: يرى البرنامج كله",
-      "weight": 10,
+      "weight": 9,
       "ideal": "كل ملف محلَّل، وكل وظيفة وسطح يصل إليه المستخدم مكتشف، ونموذج البيانات مقروء، والمداخل والمخارج والحدود معروفة.",
       "indicators": [
         {
@@ -580,7 +580,7 @@
     {
       "id": "C6",
       "name": "تقرير الصورة المثالية",
-      "weight": 14,
+      "weight": 12,
       "ideal": "البرنامج نفسه بوظائفه نفسها، ببنية وبنية تحتية تصلح منتجًا: مكوّنات مستهدفة، وحدود، وقرارات بنية تحتية، وقرار لكل مكوّن حالي، كل قرار بدليله وبديله.",
       "indicators": [
         {
@@ -686,7 +686,7 @@
     {
       "id": "C8",
       "name": "خطة التنفيذ للفريق",
-      "weight": 14,
+      "weight": 12,
       "ideal": "مهام صغيرة محددة الحجم ومرتبة ومتناسبة، مجمعة في معالم وأقسام فريق، لكل منها أمر قبول قابل للتشغيل وطريقة تراجع، ضمن أربعة تقارير واضحة.",
       "indicators": [
         {
@@ -997,6 +997,54 @@
           "value": 1.0,
           "evidence": "features of the plans built through their gates, with tests: 7/7 (clinic)",
           "reads": "${EAOS_MEASURE}/build/<مشروع>/trial.json → features_built",
+          "measured": "automated"
+        }
+      ]
+    },
+    {
+      "id": "C12",
+      "name": "الاستمرارية: تقدم صادق، ودمج يغلق الحلقة، وتسليم بين المساعدين",
+      "weight": 5,
+      "ideal": "ما في فرع الشخص هو وحده ما يُحسب منجزًا، بمفتاح ثابت لكل بطاقة مهما أعيد الفحص؛ الدمج يحذف الفرع ويحدّث التقرير فورًا؛ ومساعد يكمل من حيث توقف غيره دون أن يسأل الشخص من جديد؛ والتقرير يُري البطاقات والبنية الحالية والمستهدفة والتقدم عبر الزمن.",
+      "indicators": [
+        {
+          "id": "L1",
+          "name": "التقدم صادق",
+          "definition": "تجارب التسليم التي يساوي فيها المنجز في السجل البطاقاتِ المدموجة في فرع الشخص فعلًا (من git) ويساوي المجموع بطاقات الخطة ÷ التجارب",
+          "target": 1.0,
+          "value": null,
+          "evidence": "no trial run yet",
+          "reads": "${EAOS_MEASURE}/handover/<مشروع>/trial.json → progress_true",
+          "measured": "automated"
+        },
+        {
+          "id": "L2",
+          "name": "الدمج يغلق الحلقة",
+          "definition": "تجارب التسليم التي دُمج فيها الفرع بطلب الشخص فحُذف الفرع وأعيد بناء التقرير في الخطوة نفسها ÷ التجارب",
+          "target": 1.0,
+          "value": null,
+          "evidence": "no trial run yet",
+          "reads": "${EAOS_MEASURE}/handover/<مشروع>/trial.json → merged, branch_deleted, report_updated",
+          "measured": "automated"
+        },
+        {
+          "id": "L3",
+          "name": "مساعد يكمل عمل آخر",
+          "definition": "تجارب انقطع فيها Codex وسط دفعة فأكملها Claude Code: أول أداة status، ولم يسأل الشخص ما أجاب عنه، ولم يُعد بطاقة حُفظت، وسلّم الفرع ÷ التجارب",
+          "target": 1.0,
+          "value": null,
+          "evidence": "no trial run yet",
+          "reads": "${EAOS_MEASURE}/handover/<مشروع>/trial.json → claude_first_tool, asked_again, redone, delivered",
+          "measured": "automated"
+        },
+        {
+          "id": "L4",
+          "name": "التقرير يُري العمل",
+          "definition": "تقارير البشر التي فيها البطاقات كلها مطويةً، وخريطة البنية الحالية بعلاقاتها، والبنية المستهدفة وربطها بالحالية، والتقدم عبر الزمن ÷ التقارير",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "${EAOS_MEASURE}/*/human/index.html → data-part",
           "measured": "automated"
         }
       ]
@@ -1397,7 +1445,7 @@
         "S02"
       ],
       "title_en": "Current state: see the whole program",
-      "weight": 5,
+      "weight": 4,
       "weight_why": "أول التقارير الأربعة وأساس كل ما بعده: الوظائف والمداخل والبيانات.",
       "does": [
         "يجد كل صفحة ومسار ودالة خادم كنقطة دخول",
@@ -2583,7 +2631,7 @@
         "S04"
       ],
       "title_en": "Static-analysis adapters: proven tools, not our own code",
-      "weight": 4,
+      "weight": 3,
       "weight_why": "عشرة محوّلات لأدوات جاهزة بدل كود نكتبه: أدلة مستقلة.",
       "does": [
         "يبني قائمة الاعتماديات وثغراتها",
@@ -3132,7 +3180,7 @@
         "S06"
       ],
       "title_en": "Target-state report",
-      "weight": 6,
+      "weight": 5,
       "weight_why": "قلب الوعد: الصورة المثالية بالوظائف نفسها وقرار لكل مكوّن.",
       "does": [
         "يختار المعمارية المرجعية من سبع بحسب ملفات المشروع",
@@ -3541,7 +3589,7 @@
         "S07"
       ],
       "title_en": "Team execution plan and the four reports",
-      "weight": 6,
+      "weight": 5,
       "weight_why": "ما يستلمه الفريق فعلًا: الخطة والتقارير الأربعة.",
       "does": [
         "يحدد حجم كل بطاقة وقسمها في الفريق",
@@ -4426,7 +4474,7 @@
         "S08"
       ],
       "title_en": "Proven execution",
-      "weight": 7,
+      "weight": 6,
       "weight_why": "أثقل خطوة: تنفيذ فعلي لبطاقات الخطة على مشروع حقيقي.",
       "does": [
         "ينفّذ بطاقات الخطة بنموذج في نسخة منفصلة",
@@ -4659,6 +4707,216 @@
           "acceptance": "python tools/north_star.py measure --only X1 --min 1.0 && python tools/north_star.py measure --only X3 --min 1.0 && python tools/north_star.py measure --only X7 --min 1.0",
           "rollback": "احذف الأوامر الجديدة؛ الأوامر القديمة لم تتغير.",
           "status": "todo"
+        }
+      ]
+    },
+    {
+      "id": "NS28",
+      "title": "الاستمرارية والتقدم الصادق",
+      "title_en": "Continuity and true progress",
+      "goal": "L1 إلى L4 عند أهدافها: التقدم يُحسب مما في فرع الشخص، والدمج يحذف الفرع ويحدّث التقرير، ومساعد يكمل عمل آخر، والتقرير يُري البطاقات والبنية الحالية والمستهدفة والتقدم.",
+      "stages": [
+        "S08",
+        "S09",
+        "S15"
+      ],
+      "weight": 5,
+      "weight_why": "من تجربة المالك (2026-09-29): بعد أول دفعة بقي الفرع، ولم يتحدث التقرير، وسُجّلت ثلاث بطاقات منجزة والباقي كما هو؛ والعمل الطويل يتجاوز حد استخدام المساعد. بدون هذا لا يثق الشخص بأي رقم.",
+      "does": [
+        "سجل للبطاقات بمفتاح ثابت يقرأ المنجز من git",
+        "الدمج يحذف الفرع ويحدّث التقرير والتقدم في الخطوة نفسها",
+        "تسليم تلقائي بين المساعدين: سجل لكل خطوة وHANDOVER.md",
+        "التقرير يعرض البطاقات والبنية الحالية والمستهدفة والتقدم عبر الزمن"
+      ],
+      "tools": [
+        "eaos/ledger.py",
+        "eaos/guided.py (reconcile, merge)",
+        "eaos/handover.py",
+        "eaos/human_report.py",
+        "المساعد الذكي (Codex وClaude Code)"
+      ],
+      "outputs": [
+        "~/.eaos/projects/<المشروع>/ledger.json وjournal.jsonl",
+        "~/EAOS/<المشروع>/HANDOVER.md",
+        "~/EAOS/<المشروع>/REPORT.html"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS28.T1",
+          "title": "سجل تقدم صادق: مفتاح ثابت لكل بطاقة، والمنجز من git",
+          "why": "الفحص يرقّم بطاقاته من جديد كل مرة، فـTASK-008 بعد فحص جديد مشكلة أخرى؛ لذلك سُجّلت ثلاث بطاقات منجزة بلا أثر على الباقي.",
+          "moves": [
+            "L1"
+          ],
+          "depends_on": [
+            "NS9.T8"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/ledger.py",
+            "eaos/waves.py",
+            "eaos/guided.py",
+            "tests/test_continuity.py"
+          ],
+          "steps": [
+            "مفتاح البطاقة: نوعها وملفاتها وكلماتها بلا أرقام، وترتيبها بين المتشابهات.",
+            "كل commit من EAOS يحمل EAOS-Card: <المفتاح>، فالمنجز يُقرأ من فرع الشخص نفسه مهما كان طريق الدمج.",
+            "ledger.json: حالة كل بطاقة (مفتوحة، في الدفعة، على فرع، منجزة، زالت في فحص لاحق، تحتاج قرارًا) وتاريخ التقدم؛ والتقرير يقرأ منه وحده.",
+            "الدفعات السابقة بلا مفاتيح تُربط بعناوين commits."
+          ],
+          "done_when": [
+            "L1 = 1.0 في تجربة التسليم."
+          ],
+          "pitfalls": [
+            "فرع ينتظر القرار ليس منجزًا."
+          ],
+          "acceptance": "python -m unittest tests.test_continuity && python tools/north_star.py measure --only L1 --min 1.0",
+          "rollback": "احذف eaos/ledger.py؛ التقرير يعود إلى عدّ الدفعات."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS28.T2",
+          "title": "الدمج يغلق الحلقة: يحذف الفرع ويحدّث التقرير فورًا",
+          "why": "بعد «ادمج» بقي الفرع ولم يتحدث التقرير، فلم يعرف المالك ما تم.",
+          "moves": [
+            "L2"
+          ],
+          "depends_on": [
+            "NS28.T1"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/guided.py",
+            "eaos/agent_tools.py",
+            "eaos/build_tools.py",
+            "eaos/mcp_server.py",
+            "tests/test_continuity.py",
+            "tests/test_mcp.py"
+          ],
+          "steps": [
+            "accept: دمج سريع، وإلا دمج نظيف (والتعارض يُلغى فلا يتغير شيء)، ثم حذف الفرع وإعادة بناء التقرير في النداء نفسه.",
+            "reconcile عند كل status: فرع دُمج بـgit يدويًا يُسجّل ويُحذف، وفرع حُذف يُعدّ تراجعًا، وفرع بقي من EAOS أقدم يُحذف.",
+            "بعد دمج إصلاحات EAOS وحدها لا حاجة لفحص جديد ولا تشغيل جديد (same_code).",
+            "دفعة جديدة لا تُفتح وفرع ينتظر القرار."
+          ],
+          "done_when": [
+            "L2 = 1.0."
+          ],
+          "pitfalls": [
+            "لا يُحذف فرع لم يُدمج."
+          ],
+          "acceptance": "python -m unittest tests.test_continuity tests.test_mcp && python tools/north_star.py measure --only L2 --min 1.0",
+          "rollback": "ارجع accept إلى الدمج السريع فقط."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS28.T3",
+          "title": "التسليم بين المساعدين: يكمل أحدهما من حيث توقف الآخر",
+          "why": "العمل الطويل يتجاوز حد الخمس ساعات؛ المالك ينتقل من Codex إلى Claude Code ويجب ألا يضيع شيء ولا يُعاد.",
+          "moves": [
+            "L3",
+            "X8"
+          ],
+          "depends_on": [
+            "NS28.T2"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/handover.py",
+            "eaos/mcp_server.py",
+            "eaos/templates/assistants/",
+            "tests/test_continuity.py"
+          ],
+          "steps": [
+            "خادم MCP يكتب كل نداء في journal.jsonl: متى، وأي مساعد، وأي أداة، وأي بطاقة، وما النتيجة.",
+            "أداة note لسبب القرار؛ وHANDOVER.md في مجلد المخرجات يُعاد كتابته بعد كل خطوة.",
+            "status يرجع handover: العمل المفتوح، وما أجاب عنه الشخص، وآخر الخطوات، وكيف يكمل.",
+            "تعليمات المساعدين: status أولًا، ولا عمل خارج البطاقات، وaccept لا git."
+          ],
+          "done_when": [
+            "L3 = 1.0.",
+            "X8 = 1.0 مع أداة note."
+          ],
+          "pitfalls": [
+            "فشل التسليم لا يكلّف الأداة جوابها."
+          ],
+          "acceptance": "python -m unittest tests.test_continuity && python tools/north_star.py measure --only L3 --min 1.0",
+          "rollback": "احذف eaos/handover.py والأداة note."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS28.T4",
+          "title": "التقرير يُري العمل: البطاقات، والبنية الحالية والمستهدفة، والتقدم",
+          "why": "المالك لم يرَ البطاقات، ولا رسمًا للعلاقات بين الأجزاء والصفحات والدوال، ولا شكل البنية المستهدفة، ولا التقدم يتحرك.",
+          "moves": [
+            "L4",
+            "X10"
+          ],
+          "depends_on": [
+            "NS28.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/human_report.py",
+            "eaos/arch_map.py",
+            "eaos/blueprint.py",
+            "tests/test_report_maps.py"
+          ],
+          "steps": [
+            "كل البطاقات مطوية حسب المرحلة، لكل منها حالتها وتفاصيلها، مع بحث وتصفية.",
+            "خريطة البنية الحالية: الأجزاء وعلاقاتها بقوتها والحلقات، ثم الملفات، ثم الدوال، والصفحات ومسارات ندائها.",
+            "البنية المستهدفة بطبقاتها وعلاقاتها المسموحة، وربط كل جزء حالي بمكانه، وتقدم كل جزء.",
+            "كم أُغلق من الفجوة وتاريخه، من السجل، بعد كل دمج."
+          ],
+          "done_when": [
+            "L4 = 1.0 وX10 = 1.0."
+          ],
+          "pitfalls": [
+            "كل رقم ظاهر بمعناه."
+          ],
+          "acceptance": "python -m unittest tests.test_report_maps tests.test_human_report && python tools/north_star.py measure --only L4 --min 1.0",
+          "rollback": "احذف الأقسام الجديدة؛ التقرير كما كان."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS28.T5",
+          "title": "الإثبات: Codex ينقطع وسط دفعة، وClaude Code يكمل، ثم الدمج",
+          "why": "لا يكفي أن تمر الاختبارات: مساعدان حقيقيان على مشروع حقيقي.",
+          "moves": [
+            "L1",
+            "L2",
+            "L3"
+          ],
+          "depends_on": [
+            "NS28.T3"
+          ],
+          "size": "M",
+          "files": [
+            "tools/handover_trial.py"
+          ],
+          "steps": [
+            "tools/handover_trial.py: Codex بطلب المالك وموافقته، ويُقطع حين تُحفظ بطاقة وتبقى أخرى، ثم Claude Code بكلمة «كمّل الشغل»، ثم «ادمجها».",
+            "trial.json: نقطة القطع، وأول أداة، وهل سأل من جديد، وهل أعاد بطاقة، والدمج، وحذف الفرع، وتحديث التقرير، وصدق التقدم."
+          ],
+          "done_when": [
+            "L1 وL2 وL3 = 1.0."
+          ],
+          "pitfalls": [
+            "القطع قتل للعملية كما يفعل حد الاستخدام، لا إيقاف مهذب."
+          ],
+          "acceptance": "python tools/north_star.py measure --only L3 --min 1.0 && python tools/north_star.py measure --only L2 --min 1.0",
+          "rollback": "احذف أداة التجربة."
         }
       ]
     },
@@ -5720,6 +5978,7 @@
         "NS26",
         "NS9",
         "NS27",
+        "NS28",
         "NS20"
       ],
       "exit": "البوابة ب لـS05، وبوابتا S08 وS09: E5، E1، E7، E2",

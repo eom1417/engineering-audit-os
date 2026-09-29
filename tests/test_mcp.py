@@ -24,6 +24,18 @@ def git_project(where):
     return where
 
 
+def wave_branch(project, name='eaos/wave-1', file='src/a.js', text='export const a = 5;\nexport const b = 2;\n'):
+    """A batch's branch in the project, one EAOS commit ahead, as fix_finish leaves it; the project stays on its branch."""
+    run = lambda *argv: subprocess.run(['git', '-C', str(project), *argv], check=True, capture_output=True, text=True).stdout.strip()
+    here = run('rev-parse', '--abbrev-ref', 'HEAD')
+    run('checkout', '-q', '-b', name)
+    (Path(project) / file).write_text(text)
+    run('add', '-A')
+    run('-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'commit', '-qm', 'TASK-001: a fix\n\nExecuted by EAOS (assistant).\n\nEAOS-Card: 0123456789ab')
+    run('checkout', '-q', here)
+    return run('rev-parse', name)
+
+
 class Home(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -151,11 +163,13 @@ class ToolTests(Home):
             self.assertEqual(agent_tools.status(project)['next']['tool'], 'safety_net')
             state['safety'] = {'commit': state['scanned_commit']}; guided.save(state)
             self.assertEqual(agent_tools.status(project)['next']['tool'], 'fix_start')
+            wave_branch(self.project)
             state['waves'] = [{'number': 1, 'branch': 'eaos/wave-1', 'status': 'applied'}]; guided.save(state)
             self.assertEqual(agent_tools.status(project)['next']['tool'], 'accept or undo')
 
     def test_accept_waits_for_the_person(self):
         state = agent_tools.project_state(str(self.project))
+        wave_branch(self.project)
         state['waves'] = [{'number': 1, 'branch': 'eaos/wave-1', 'status': 'applied'}]
         guided.save(state)
         self.assertEqual(agent_tools.accept(str(self.project))['status'], 'needs_agreement')

@@ -63,8 +63,12 @@ def tool_digest():
 
 
 def _current(state, head):
-    """The check on record is for this commit, by this EAOS."""
-    return state.get('scanned_commit') == head and state.get('scanned_with') == tool_digest()
+    """The check on record is for this code (this commit, or it plus EAOS's own merged fixes), by this EAOS."""
+    return guided.same_code(state, state.get('scanned_commit'), head) and state.get('scanned_with') == tool_digest()
+
+
+def _set_up(state, head):
+    return guided.same_code(state, (state.get('setup') or {}).get('commit'), head)
 
 
 def _report(state):
@@ -104,7 +108,9 @@ def wait(job, seconds=WAIT):
 # ---------------------------------------------------------------- where things are
 
 def status(project=None):
+    from . import handover, ledger
     state = project_state(project)
+    guided.reconcile(state)
     head = _head(state)
     report = guided.report_of(state)
     checked = guided.scan_done(state)
@@ -115,8 +121,9 @@ def status(project=None):
               'saved_in_git': not guided._git(state['project'], 'status', '--porcelain').stdout.strip(),
               'checked': checked, 'checked_commit': state.get('scanned_commit'),
               'outputs_folder': str(guided.outputs(state)), 'report_for_people': str(guided.outputs(state) / 'REPORT.html') if checked else None,
-              'app_runs': setup.get('ok') if setup.get('commit') == head else None,
-              'safety_net': safety if safety.get('commit') == head else None,
+              'app_runs': setup.get('ok') if _set_up(state, head) else None,
+              'safety_net': safety if guided.same_code(state, safety.get('commit'), head) else None,
+              'progress': ((ledger.load(state) or {}).get('totals') if checked else None),
               'open_batch': {k: wave[k] for k in ('number', 'cards', 'kept', 'failed')} if wave else None,
               'waiting_branch': waiting['branch'] if waiting else None,
               'running_job': busy['id'] if busy else None}
@@ -125,11 +132,12 @@ def status(project=None):
     elif not _current(state, head): step = ('audit', 'the project or EAOS changed since the last check: call audit with fresh=true')
     elif waiting: step = ('accept or undo', f"the fixes on {waiting['branch']} wait for the person's decision")
     elif wave: step = ('fix_edit, then fix_finish', f"batch {wave['number']} is open")
-    elif setup.get('commit') != head: step = ('run_setup', "the app has not been run for this commit (ask the person's agreement first)")
+    elif not _set_up(state, head): step = ('run_setup', "the app has not been run for this commit (ask the person's agreement first)")
     elif not setup.get('ok'): step = ('run_try', 'the app does not run yet: read the last failure and propose a fix')
-    elif safety.get('commit') != head: step = ('safety_net', 'record the screens before any fix')
+    elif not guided.same_code(state, safety.get('commit'), head): step = ('safety_net', 'record the screens before any fix')
     else: step = ('fix_start', 'open the next batch of fixes')
     answer['next'] = {'tool': step[0], 'why': step[1]}
+    answer['handover'] = handover.brief(state)
     return answer
 
 
@@ -292,20 +300,26 @@ def structure(project=None):
 
 
 def plan(project=None, milestone=None):
+    from .ledger import sync
     state = project_state(project)
+    guided.reconcile(state)
     report = _report(state)
     data = _read(report / 'plan.json')
     tasks = {t['id']: t for t in data.get('tasks') or []}
     tried = set(state.get('tried') or [])
+    record = sync(state) or {}
+    where = {c['id']: c['state'] for c in (record.get('cards') or {}).values() if c.get('id')}
     out = []
     for m in data.get('milestones') or []:
         if milestone and m['id'] != milestone: continue
         cards = [tasks[i] for i in m['tasks'] if i in tasks]
         out.append({'id': m['id'], 'name': m.get('name'), 'goal': m.get('goal'), 'exit': m.get('exit'),
                     'cards': [{'id': c['id'], 'title': c.get('title'), 'kind': c.get('pattern'), 'fixable_automatically': _ready(c),
-                               'tried': c['id'] in tried} for c in (cards if milestone else cards[:25])],
+                               'tried': c['id'] in tried, 'state': where.get(c['id'], 'open')} for c in (cards if milestone else cards[:25])],
                     'more_cards': 0 if milestone else max(0, len(cards) - 25)})
-    return {'milestones': out, 'order': 'Fix in this order: milestone by milestone, the fixable cards first.'}
+    return {'milestones': out, 'progress': record.get('totals'),
+            'order': 'Fix in this order: milestone by milestone, the fixable cards first. Only these cards count as progress: '
+                     'work outside the plan is not recorded anywhere.'}
 
 
 def report_file(name='', project=None, offset=0, limit=20000):
@@ -324,6 +338,7 @@ def open_report(project=None, show=True):
     """REPORT.html, the four reports for people, rebuilt with the fixes so far and opened in the person's browser."""
     state = project_state(project)
     _report(state)
+    guided.reconcile(state)
     page = guided.publish(state)
     guided.save(state)
     opened = False
@@ -473,6 +488,7 @@ def _brief(card):
 def fix_start(project=None, cards=None, size=10):
     from .waves import next_batch, plan as read_plan
     state = project_state(project)
+    guided.reconcile(state)
     if state.get('open_wave'):
         wave = state['open_wave']
         return {'status': 'open', 'batch': wave['number'], 'kept': list(wave['kept']), 'failed': wave['failed'],
@@ -480,7 +496,10 @@ def fix_start(project=None, cards=None, size=10):
                 'what_now': 'This batch is already open: fix the cards left with fix_edit (or fix_skip), then fix_finish.'}
     if not _consented(state): return {'status': 'needs_agreement', 'ask_the_person': CONSENT,
                                       'what_now': 'Ask the person; if they agree, call run_setup with person_agreed=true.'}
-    if (state.get('setup') or {}).get('commit') != _head(state): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
+    if not _set_up(state, _head(state)): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
+    waiting = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
+    if waiting: return {'status': 'waiting_decision', 'branch': waiting['branch'],
+                        'what_now': f"The fixes on {waiting['branch']} wait for the person's decision: ask them, then accept or undo."}
     report = _report(state)
     known = {t['id']: t for t in read_plan(report)['tasks']}
     chosen = list(dict.fromkeys(cards)) if cards else next_batch(report, state.get('tried') or [], size=min(max(int(size), 1), 25))
@@ -493,14 +512,20 @@ def fix_start(project=None, cards=None, size=10):
 def _fix_start_job(project, arguments, progress):
     from .waves import change, commit, drop_last, open_batch, plan as read_plan
     from .execute import new_breakage
+    from . import live_setup
+    from .sandbox import head
     state = guided.load(project)
     report, runtime = guided.report_of(state), guided.runtime_of(state)
     number = len(state.get('waves') or []) + 1
+    grant = runtime / 'authorization.json'
+    granted = _read(grant).get('commit') if grant.is_file() else None
+    if granted != head(state['project']) and guided.same_code(state, granted):     # a merged batch: the agreement still holds
+        live_setup.authorize(state['project'], runtime, _read(grant).get('granted_by') or 'the owner')
     progress(0, 1, 'copying the project into the isolated copy')
     root, base = open_batch(state['project'], runtime, number)
     cards = {t['id']: t for t in read_plan(report)['tasks'] if t['id'] in set(arguments['cards'])}
     wave = {'number': number, 'root': str(root), 'base': base, 'cards': arguments['cards'], 'kept': {}, 'failed': {}, 'tools': {},
-            'opened': _now()}
+            'opened': _now(), 'keys': {c: cards[c]['key'] for c in arguments['cards']}}
     automatic = [c for c in arguments['cards'] if ((cards[c].get('codemod') or {}).get('dry_run') or {}).get('files_changed', 0) > 0]
     for index, card_id in enumerate(automatic, 1):
         progress(index, len(automatic) + 1, f'automatic fix of {card_id}')
@@ -520,6 +545,7 @@ def _fix_start_job(project, arguments, progress):
     state = guided.load(project)
     state['open_wave'] = wave
     guided.save(state)
+    guided.publish(state)
     return {'batch': number, 'copy': str(root), 'fixed_automatically': list(wave['kept']), 'failed': wave['failed'],
             'to_do': [_brief(cards[c]) for c in arguments['cards'] if c not in wave['kept'] and c not in wave['failed']],
             'what_now': 'For each card in to_do: read it with `finding`, read the code with fix_read, then send the change with '
@@ -659,10 +685,11 @@ def _fix_finish_job(project, arguments, progress):
                            say=lambda kind, *_: progress(steps[kind][0], 3, steps[kind][1]) if kind in steps else None)
     state = guided.load(project)
     record = {'number': wave['number'], 'base': wave['base'], 'cards': wave['cards'], 'kept': summary['kept'], 'failed': summary['failed'],
-              'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty', 'via': 'assistant'}
+              'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty', 'via': 'assistant', 'keys': wave.get('keys') or {}}
     if summary['kept']:
         hand_over(state['project'], summary)
         record['status'] = 'applied'
+        record['tip'] = guided._git(state['project'], 'rev-parse', summary['branch']).stdout.strip()
         state['applied'] = True
     state.setdefault('waves', []).append(record)
     state['tried'] = sorted(set(state.get('tried') or []) | set(wave['cards']))
@@ -674,37 +701,48 @@ def _fix_finish_job(project, arguments, progress):
     return {'batch': wave['number'], 'branch': summary['branch'] if summary['kept'] else None, 'kept': summary['kept'],
             'failed': summary['failed'], 'changes': summary['stat'], 'files': files[-4000:],
             'what_now': (f"Tell the person, in plain words, what was fixed and that it is on the branch {summary['branch']}; "
-                         "their current branch is unchanged. Ask whether to take it in (accept) or throw it away (undo)."
+                         "their current branch is unchanged. Ask whether to take it in (accept) or throw it away (undo). "
+                         "The report counts these fixes as done only once they are taken in."
                          if summary['kept'] else 'No change passed every gate; nothing reached the project.')}
 
 
 def accept(project=None, person_agreed=False):
+    """The waiting branch into the person's current branch; then its branch is deleted and the report brought up to
+    date, in the same call (eaos/guided.merge)."""
+    from .ledger import load
     state = project_state(project)
+    guided.reconcile(state)
     wave = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
-    if wave is None: return {'status': 'nothing_waiting'}
+    if wave is None: return {'status': 'nothing_waiting', 'progress': (load(state) or {}).get('totals')}
     if not person_agreed:
         return {'status': 'needs_agreement', 'ask_the_person': f"Take the fixes on {wave['branch']} into your current branch?",
                 'what_now': 'Only if the person says yes, call accept again with person_agreed=true.'}
-    if guided._git(state['project'], 'status', '--porcelain').stdout.strip():
+    outcome = guided.merge(state, wave)
+    if outcome == 'unsaved_changes':
         return {'status': 'unsaved_changes', 'what_now': 'The project has unsaved changes; ask the person to save (commit) them first.'}
-    done = guided._git(state['project'], 'merge', '--ff-only', wave['branch'])
-    if done.returncode:
-        return {'status': 'branch_moved', 'branch': wave['branch'],
-                'what_now': f"The person's branch changed since the fixes; merge {wave['branch']} with git if they want it (ask first)."}
-    wave['status'] = 'accepted'
-    guided.save(state)
-    return {'status': 'accepted', 'branch': wave['branch'], 'what_now': 'Done. fix_start opens the next batch.'}
+    if outcome == 'conflict':
+        return {'status': 'conflict', 'branch': wave['branch'],
+                'what_now': f"The person's branch changed in the same places since the fixes; nothing was merged. Ask whether to merge "
+                            f"{wave['branch']} by hand, resolving the conflict; once it is merged, `status` records it and deletes the branch."}
+    state = guided.load(state['project'])
+    page = guided.outputs(state) / 'REPORT.html'
+    return {'status': 'accepted', 'branch': wave['branch'], 'branch_deleted': not guided._branch_exists(state, wave['branch']),
+            'progress': (load(state) or {}).get('totals'), 'report_for_people': str(page),
+            'what_now': 'Done: the branch is merged and deleted, and the report is up to date. Tell the person the progress in '
+                        'plain words (closed of total, percent), then fix_start opens the next batch (no new check is needed).'}
 
 
 def undo(project=None):
     from .waves import undo as drop
     state = project_state(project)
+    guided.reconcile(state)
     wave = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
     if wave is None: return {'status': 'nothing_to_undo'}
     outcome = drop(state['project'], wave['branch'])
     if outcome == 'merged': return {'status': 'merged', 'what_now': 'It is merged already; undoing it is a git revert, the person\'s decision.'}
     wave['status'] = 'undone'
     guided.save(state)
+    guided.publish(state)
     return {'status': 'undone', 'branch': wave['branch']}
 
 

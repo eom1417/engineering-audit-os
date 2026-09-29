@@ -339,14 +339,16 @@ def report_of(state):
     return report
 
 
-def publish(state, lang=None):
-    """REPORT.html in the outputs folder: the four reports for people, rebuilt with the fixes made so far.
-    Never a reason for a step to fail: without it, the technical report is still there."""
+def publish(state, lang=None, event=None):
+    """REPORT.html in the outputs folder: the four reports for people, rebuilt from the ledger (eaos/ledger.py), so
+    that it shows what is in the person's branch now. Never a reason for a step to fail: without it, the technical
+    report is still there."""
     report, target = report_of(state), outputs(state) / 'REPORT.html'
     try:
         from .human_report import write
+        from .ledger import for_report, sync
         write(report, lang or state.get('lang') or 'en', Path(state['project']).name,
-              progress={'waves': state.get('waves') or []})
+              progress={'waves': state.get('waves') or [], 'ledger': for_report(sync(state, event))})
     except Exception:                       # the page is extra; a missing piece of data must not stop the work
         pass
     page = report / 'human' / 'index.html'
@@ -423,6 +425,69 @@ def later_steps(state, args):
                    else 'No more automatic fixes for this project now; what is left needs your decision, and it is on the "Start here" page'),
             where=report_of(state) / 'START-HERE.md', commands=['eaos status'])
     return 0
+
+
+def same_code(state, commit, head=None):
+    """`head` holds the code of `commit` plus EAOS's own fixes only (every commit between them made by EAOS, and merges):
+    a check, a run and a safety net made at `commit` still hold, and a merged batch costs no new check."""
+    head = head or _commit(state)
+    if not commit: return False
+    if commit == head: return True
+    if _git(state['project'], 'merge-base', '--is-ancestor', commit, head).returncode: return False
+    authors = _git(state['project'], 'log', '--no-merges', '--format=%ae', f'{commit}..{head}')
+    return authors.returncode == 0 and set(authors.stdout.split()) <= {'eaos@localhost'}
+
+
+def _branch_exists(state, branch):
+    return not _git(state['project'], 'rev-parse', '--verify', '--quiet', f'refs/heads/{branch}').returncode
+
+
+def reconcile(state):
+    """Bring the state up to what git says, however the person or their assistant merged: a batch whose branch (or
+    whose last commit) is in the current branch is accepted, and its branch deleted; one whose branch is gone without
+    that is undone. When something changed, the ledger and REPORT.html follow at once. The changed batches."""
+    changed = []
+    for wave in state.get('waves') or []:
+        branch, status = wave.get('branch'), wave.get('status')
+        if not branch or status not in ('applied', 'superseded', 'accepted'): continue
+        exists = _branch_exists(state, branch)
+        tip = _git(state['project'], 'rev-parse', branch).stdout.strip() if exists else wave.get('tip')
+        inside = bool(tip) and not _git(state['project'], 'merge-base', '--is-ancestor', tip, 'HEAD').returncode
+        if status == 'accepted':
+            if exists and inside: _git(state['project'], 'branch', '-d', branch)
+            continue
+        if inside:
+            wave.update(status='accepted', merged_at=datetime.now(timezone.utc).isoformat(timespec='seconds'), tip=tip)
+            if exists: _git(state['project'], 'branch', '-d', branch)
+            changed.append(wave)
+        elif not exists and status == 'applied':
+            wave['status'] = 'undone'
+            changed.append(wave)
+    if changed:
+        save(state)
+        if state.get('mode') == 'build':
+            from .build_tools import publish as publish_blueprint
+            publish_blueprint(state)
+        else:
+            publish(state, event='merged')
+        save(state)
+    return changed
+
+
+def merge(state, wave):
+    """The batch's branch into the person's current branch: a fast-forward when it can, else a merge commit when git
+    merges it cleanly (a conflict is taken back, and nothing changes); then reconcile deletes the branch and
+    updates the ledger and the report. 'merged', 'unsaved_changes' or 'conflict'."""
+    project = state['project']
+    if _git(project, 'status', '--porcelain', '--untracked-files=no').stdout.strip(): return 'unsaved_changes'
+    if _git(project, 'merge', '--ff-only', '--quiet', wave['branch']).returncode:
+        done = _git(project, '-c', 'user.name=EAOS', '-c', 'user.email=eaos@localhost', 'merge', '--no-edit', '--quiet',
+                    '-m', f"Merge {wave['branch']}: EAOS batch {wave.get('number')}", wave['branch'])
+        if done.returncode:
+            _git(project, 'merge', '--abort')
+            return 'conflict'
+    reconcile(state)
+    return 'merged'
 
 
 def runtime_of(state):
@@ -592,12 +657,13 @@ def fix(state, args):
         elif kind == 'bisect': say('   ' + ('أبحث عن الإصلاح الذي سبّب مشكلة…' if lang == 'ar' else 'Looking for the fix that caused a problem…'))
     _, model = provider()
     summary = waves.run_batch(report_of(state), state['project'], runtime_of(state), number, batch, provider=model, say=progress)
+    keys = {c['id']: c['key'] for c in waves.plan(report_of(state))['tasks'] if c['id'] in set(batch)}
     wave = {'number': number, 'base': state['setup']['commit'], 'cards': batch, 'kept': summary['kept'],
-            'failed': summary['failed'], 'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty'}
+            'failed': summary['failed'], 'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty', 'keys': keys}
     state['tried'] = sorted(set(state.get('tried') or []) | set(batch))
     if summary['kept']:
         waves.apply(state['project'], summary)
-        wave['status'] = 'applied'
+        wave.update(status='applied', tip=_git(state['project'], 'rev-parse', summary['branch']).stdout.strip())
         state['applied'] = True
     state.setdefault('waves', []).append(wave)
     save(state)
@@ -622,26 +688,29 @@ def fix(state, args):
 
 
 def accept(args):
-    """Take the latest wave into the current branch: a fast-forward only, and only with no unsaved edits."""
+    """Take the latest wave into the current branch, then delete its branch and bring the report up to date."""
     state = current(args.project)
     lang = state['lang']
+    reconcile(state)
     wave = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
     if wave is None:
         box(lang, 'لا توجد دفعة إصلاحات تنتظر الاعتماد' if lang == 'ar' else 'No batch of fixes is waiting', commands=['eaos next'], status='warn')
         return 0
-    if _git(state['project'], 'status', '--porcelain').stdout.strip():
-        raise RuntimeError('uncommitted changes: working tree is not clean')
-    done = _git(state['project'], 'merge', '--ff-only', wave['branch'])
-    if done.returncode:
-        box(lang, ('فرعك تغيّر منذ الإصلاح، فلا أدمج تلقائيًا' if lang == 'ar' else 'Your branch changed since the fixes, so I do not merge automatically'),
+    outcome = merge(state, wave)
+    if outcome == 'unsaved_changes': raise RuntimeError('uncommitted changes: working tree is not clean')
+    if outcome == 'conflict':
+        box(lang, ('فرعك تغيّر في نفس الأماكن منذ الإصلاح، فلم أدمج شيئًا' if lang == 'ar' else 'Your branch changed in the same places since the fixes, so nothing was merged'),
             commands=[f"git merge {wave['branch']}"], status='warn',
             note=('ادمجها بنفسك أو اطلب من مساعدك الذكي ذلك' if lang == 'ar' else 'Merge it yourself, or ask your AI assistant to'))
         return 0
-    wave['status'] = 'accepted'
-    save(state)
-    box(lang, (f"اعتمدت الدفعة {wave['number']} في مشروعك" if lang == 'ar' else f"Batch {wave['number']} is now in your project"),
+    from .ledger import load
+    totals = (load(state) or {}).get('totals') or {}
+    box(lang, (f"اعتمدت الدفعة {wave['number']} في مشروعك وحذفت فرعها" if lang == 'ar' else f"Batch {wave['number']} is now in your project, and its branch is deleted"),
+        where=outputs(state) / 'REPORT.html',
         commands=['eaos next   ' + ('# للدفعة التالية' if lang == 'ar' else '# for the next batch')],
-        note=('إن أردت التراجع لاحقًا: git revert، أو اطلب من مساعدك الذكي' if lang == 'ar' else 'To go back later: git revert, or ask your AI assistant'))
+        note=[(f"التقرير محدَّث: أُغلق {totals.get('closed', 0)} من {totals.get('total', 0)} ({totals.get('percent', 0)}%)" if lang == 'ar'
+               else f"The report is up to date: {totals.get('closed', 0)} of {totals.get('total', 0)} closed ({totals.get('percent', 0)}%)"),
+              ('إن أردت التراجع لاحقًا: git revert، أو اطلب من مساعدك الذكي' if lang == 'ar' else 'To go back later: git revert, or ask your AI assistant')])
     return 0
 
 
@@ -770,6 +839,7 @@ def start(args):
 
 def next_command(args):
     state = current(args.project)
+    reconcile(state)
     if args.lang: state['lang'] = args.lang; save(state)
     return advance(state, args)
 
@@ -782,6 +852,7 @@ def advance(state, args):
 
 def status(args):
     state = current(args.project)
+    reconcile(state)
     lang = language(args.lang, state)
     say(('مشروع' if lang == 'ar' else 'Project') + f": {state['project']}")
     upcoming = next_step(state)

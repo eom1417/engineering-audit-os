@@ -388,7 +388,9 @@ def _build_finish_job(project, arguments, progress):
 
 
 def status(project=None):
+    from . import handover
     state = _state(project)
+    guided.reconcile(state)
     plan, bp, build = _plan(state), state.get('blueprint') or {}, state.get('open_build')
     done = [r['milestone'] for r in state.get('built') or []]
     answer = {'project': state['project'], 'mode': 'build from a plan', 'outputs_folder': str(guided.outputs(state)),
@@ -399,8 +401,11 @@ def status(project=None):
     elif not bp.get('designed'): step = ('blueprint_design', 'the target and the build plan are not drawn yet')
     elif build: step = ('build_edit, then build_finish', f"milestone {build['milestone']} is open")
     elif plan and len(done) < len(plan['milestones']): step = ('build_start', 'the next milestone is waiting')
-    else: step = ('accept', 'everything is built: the person decides whether to take the last branch in')
+    elif any(w.get('status') == 'applied' for w in state.get('waves') or []):
+        step = ('accept', 'everything is built: the person decides whether to take the last branch in')
+    else: step = ('audit', 'everything is built and taken in: offer the check of the finished project')
     answer['next'] = {'tool': step[0], 'why': step[1]}
+    answer['handover'] = handover.brief(state)
     return answer
 
 

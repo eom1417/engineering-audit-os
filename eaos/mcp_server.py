@@ -6,6 +6,7 @@ gates (eaos/agent_tools.py). Long work is a job the assistant follows with `wait
 and Codex by `eaos assistant install`, which install.sh runs.
 """
 import functools
+import inspect
 import json
 
 from . import __version__
@@ -33,7 +34,11 @@ The whole way for an existing project, in order (`status` always says the next t
      propose the environment, commands, or a seed script that signs in; EAOS refuses anything unsafe)
   safety_net (records every screen before any change)
   fix_start -> for each card: finding + fix_read, then fix_edit (fix_skip only with a real reason) -> fix_finish
-  then tell the person what changed and ask: accept or undo.
+  then tell the person what changed and ask: accept or undo. `accept` merges, deletes the branch and updates the
+  report and the progress in one call: never merge or delete a branch with git yourself.
+Only the plan's cards count as progress: do not do work outside them. Call `status` first in every session: its
+`handover` says what the last assistant (you, or another one after a usage limit) did and how to continue; add the
+why with `note` after each card and before you stop.
 Long steps return a job: call `wait` with it until it is done (a check takes 5-30 minutes). Keep every feature,
 route and behaviour when fixing: a fix that deletes what users reach is refused. Never invent results: report
 what the tools returned."""
@@ -45,14 +50,19 @@ CAPABILITIES = {'where things stand': 'status', 'read any plan': 'blueprint_star
                 'hand a milestone over': 'build_finish', 'check the project': 'audit', 'follow long work': 'wait',
                 'show the report for people': 'open_report',
                 'read the evidence': 'finding', 'run the app': 'run_try', 'record the screens': 'safety_net',
-                'fix a card': 'fix_edit', 'hand fixes over': 'fix_finish', 'accept': 'accept', 'undo': 'undo'}
+                'fix a card': 'fix_edit', 'hand fixes over': 'fix_finish', 'accept': 'accept', 'undo': 'undo',
+                'hand the work to another assistant': 'note'}
 
 
 def _answer(function):
-    """A tool's dict as JSON text; an error as the reason and what to do, never a bare traceback."""
+    """A tool's dict as JSON text; an error as the reason and what to do, never a bare traceback. Every call is written
+    to the project's journal and its HANDOVER.md (eaos/handover.py), so another assistant can take over."""
+    signature = inspect.signature(function)
+
     @functools.wraps(function)
     def call(*args, **kwargs):
         from .guided import explain
+        from .handover import record
         try:
             result = function(*args, **kwargs)
         except LookupError as problem:
@@ -61,6 +71,9 @@ def _answer(function):
             known = explain(problem)
             result = {'error': f'{type(problem).__name__}: {problem}'[:2000],
                       **({'what_now': known['en']['fix'] + ' ' + ' '.join(known['en']['commands'])} if known['id'] != 'unknown' else {})}
+        try: arguments = dict(signature.bind_partial(*args, **kwargs).arguments)
+        except TypeError: arguments = dict(kwargs)
+        record(function.__name__, arguments, result)
         return json.dumps(result, ensure_ascii=False, indent=1, default=str)
     return call
 
@@ -75,7 +88,9 @@ def build():
     working = ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False)
     project_doc = 'The project folder (default: the folder the assistant was opened in).'
 
-    @server.tool(annotations=reading, description='Where this project is in the EAOS way, and the next tool to call. Call it first.')
+    @server.tool(annotations=reading, description='Where this project is in the EAOS way, the next tool to call, the progress, and the '
+                 'handover (what the last assistant did and noted, and how to continue without asking the person again). Call it '
+                 'first, every session.')
     @_answer
     def status(project: str | None = None) -> str:
         from . import build_tools, guided
@@ -201,11 +216,20 @@ def build():
     def fix_finish(project: str | None = None) -> str:
         return tools.fix_finish(project)
 
-    @server.tool(annotations=working, description='Take the waiting branch into the person\'s current branch (fast-forward only). Only after '
-                 'they said yes: person_agreed=true.')
+    @server.tool(annotations=working, description='Take the waiting branch into the person\'s current branch (whenever they say take it '
+                 'in, merge, or accept; never merge it with git yourself), then delete the branch and bring the report and the '
+                 'progress up to date, all in this call. Only after they said yes: person_agreed=true.')
     @_answer
     def accept(person_agreed: bool = False, project: str | None = None) -> str:
         return tools.accept(project, person_agreed)
+
+    @server.tool(annotations=working, description='Leave a note for whoever continues this work (you after a break, or another '
+                 'assistant when your usage limit runs out): what you found, what you decided, what you were about to do. One or '
+                 'two sentences, after each card and before you stop. Every tool call is already recorded; the note adds the why.')
+    @_answer
+    def note(text: str, card: str | None = None, project: str | None = None) -> str:
+        from . import handover
+        return handover.note(text, card, project)
 
     @server.tool(annotations=working, description='Throw the waiting branch away (while it is not merged): the project is as it was.')
     @_answer

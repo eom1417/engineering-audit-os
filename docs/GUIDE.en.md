@@ -67,7 +67,28 @@ Everything EAOS makes is in one folder: **`~/EAOS/<your project name>/`**
 
 ## 5. The next batch
 
-Say: **"Continue fixing"**. Each batch is a new branch (`eaos/wave-2`, …), and you decide every time.
+Say: **"Continue fixing"**. Each batch is a new branch (`eaos/wave-2`, …), and you decide every time. A new batch
+does not start while the last one's branch waits for you, and no new check is needed after EAOS's fixes are merged.
+
+When you say **"merge it"**, the assistant merges the fixes into your branch, deletes the branch of fixes, and brings
+the report and the progress up to date in the same step, then tells you how much of the total is closed.
+
+**The progress in the report is true:** a card counts as done only once it is in your branch (merged); one still on
+a branch waiting for you shows as "waiting for your decision". Every card has a key that does not change, so even
+when the project is checked again and the cards are numbered again, what is done stays done.
+
+## If your assistant's usage limit runs out in the middle
+
+Long work can outlast a usage limit (for example the five-hour one). Nothing is lost: everything EAOS does is saved as
+it happens, and every step is recorded with the name of the assistant that did it. Move to any other assistant you
+have installed (from Codex to Claude Code, or the other way):
+
+1. Open the other assistant in **the same project folder**.
+2. Write: **"Continue the EAOS work"**.
+
+It first reads what was handed over: where the first one stopped, which batch is open, what of it was kept and what
+is left, and what you already answered. Then it goes on from that point, without asking you again and without redoing
+what was kept. The same summary is written for you in `~/EAOS/<your project>/HANDOVER.md`.
 
 ## 6. A new project from a plan (optional)
 
@@ -99,7 +120,8 @@ assistant "change the database to …" and it knows where.
 | "Where are we?" | Where the project is and what comes next |
 | "Open the report" | Opens REPORT.html |
 | "What is the most important problem? Show me the evidence" | Explains one problem with its evidence and code |
-| "Take the fixes in" | Merges the branch of fixes into yours (after you agree) |
+| "Take the fixes in" or "Merge it" | Merges the branch of fixes into yours, deletes the branch, updates the report |
+| "Continue the EAOS work" | Goes on from where it, or another assistant, stopped |
 | "Undo the fixes" | Deletes the branch of fixes; your project is as it was |
 | "Build my project from this plan" | Build from a plan (step 6) |
 
