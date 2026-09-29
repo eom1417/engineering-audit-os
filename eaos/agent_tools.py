@@ -150,10 +150,14 @@ def choose_branch(branch, project=None, person_said=''):
     asked = (state.get('asked') or {}).get('branch')
     waited = asked and (datetime.now(timezone.utc) - datetime.fromisoformat(asked)).total_seconds() >= ANSWER_SECONDS
     if branches.choice(state['project']) is not None and not (str(person_said or '').strip() and waited):
-        return {'status': 'needs_the_person', **{k: v for k, v in (_branch({**state, 'branch': None}) or {}).items() if k != 'status'},
+        since = int((datetime.now(timezone.utc) - datetime.fromisoformat(asked)).total_seconds()) if asked else None
+        why = ('no reply from the person was given' if not str(person_said or '').strip() else
+               f'the question was put {since} seconds ago: nobody answers that fast, so the person has not answered yet')
+        return {'status': 'needs_the_person', 'why': why, **{k: v for k, v in (_branch({**state, 'branch': None}) or {}).items() if k != 'status'},
                 'what_now': 'The person chooses the branch, not you: ask them (the branches, when each changed, how far ahead, '
-                            'your recommendation and why) and end your turn. Only after they answer, call choose_branch with '
-                            'person_said set to their reply, as they wrote it.'}
+                            'your recommendation and why) and end your turn. When they reply, in any words (a name, or "the one '
+                            'you recommend"), call choose_branch again with the branch they meant and person_said = their reply: '
+                            'it is accepted then. Nothing else is wrong with the call.'}
     state.setdefault('questions', []).append({'id': 'branch', 'kind': 'choice', 'answer': branch, 'said': str(person_said)[:300] or None,
                                               'via': 'assistant'})
     state = guided.choose(state, branch)
