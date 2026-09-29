@@ -29,7 +29,7 @@ from .start_here import start_here, summary_counts  # noqa: F401  (one home: eao
 
 ERRORS = Path(__file__).resolve().parent / 'data/errors.json'
 # The commands a user types, each ending with the next-step box (X4 in docs/north-star.json).
-USER_COMMANDS = ('start', 'next', 'status', 'doctor', 'clean', 'accept', 'undo', 'show', 'do', 'assistant')
+USER_COMMANDS = ('start', 'next', 'status', 'doctor', 'clean', 'accept', 'undo', 'show', 'do', 'assistant', 'resume')
 LINE = '─' * 60
 
 
@@ -294,6 +294,9 @@ def doctor(args):
     lang = language(args.lang)
     project = Path(args.project).resolve() if args.project else None
     rows = doctor_rows(project)
+    from . import __version__
+    from .build_info import commit
+    say(f"ℹ️ EAOS {__version__} · {commit() or ('commit غير معروف' if lang == 'ar' else 'commit unknown')}")
     for row in rows:
         mark = '✅' if row['ok'] else {'now': '❌', 'optional': '⚠️'}.get(row['when'], '⬜')
         later = ('' if row['ok'] or row['when'] == 'now' else
@@ -352,21 +355,60 @@ def branch_links(state):
     return {'name': state['branch'], 'main': branches.default_branch(state['project']), 'others': others}
 
 
+# The parts of the page other modules give, registered by those modules so that this one does not import them:
+# {'handover': eaos.handover.brief}. Each takes the state and returns what the page shows.
+REPORT_PARTS = {}
+# What `eaos resume` tells the person, registered by eaos/handover.py the same way.
+RESUME = []
+
+
+def report_stamp(state):
+    """What the last REPORT.html of the branch was made from: {version, commit, digest, built, errors}; {} when none."""
+    try: return json.loads((branches.home(state) / '.report.json').read_text(encoding='utf-8'))
+    except (OSError, ValueError): return {}
+
+
 def publish(state, lang=None, event=None):
-    """REPORT.html in the outputs folder: the four reports for people, rebuilt from the ledger (eaos/ledger.py), so
-    that it shows what is in the person's branch now. Never a reason for a step to fail: without it, the technical
-    report is still there."""
-    report = report_of(state)
-    target = branches.home(state) / 'REPORT.html'
+    """REPORT.html in the branch's outputs folder, rebuilt from the ledger (eaos/ledger.py) so that it shows what is in
+    the person's branch now, stamped with the EAOS that made it. Nothing here fails in silence: a part that cannot be
+    built is named on the page, in .report.json beside it and in logs/, and the rest of the page is still made. It is
+    never a reason for a step to fail: without it, the technical report is still there."""
+    from .build_info import stamp
+    report, home_folder = report_of(state), branches.home(state)
+    target, made = home_folder / 'REPORT.html', datetime.now(timezone.utc).isoformat(timespec='seconds')
+    errors, progress = [], {'waves': state.get('waves') or []}
+
+    def part(name, build):
+        try: progress[name] = build()
+        except Exception as problem:
+            errors.append(f'{name}: {type(problem).__name__}: {problem}'[:300])
+            log_failure(outputs(state), problem)
+
+    from .ledger import for_report, sync
+    part('ledger', lambda: for_report(sync(state, event, report)))
+    part('branch', lambda: branch_links(state))
+    for name, build in REPORT_PARTS.items(): part(name, lambda build=build: build(state))
+    progress.update(eaos=stamp(made), report_errors=errors)
     try:
         from .human_report import write
-        from .ledger import for_report, sync
-        write(report, lang or state.get('lang') or 'en', Path(state['project']).name,
-              progress={'waves': state.get('waves') or [], 'ledger': for_report(sync(state, event, report)), 'branch': branch_links(state)})
-    except Exception:                       # the page is extra; a missing piece of data must not stop the work
-        pass
+        write(report, lang or state.get('lang') or 'en', Path(state['project']).name, progress=progress)
+        try: errors += [f"{e.get('section')}: {e.get('error')}"[:300] for e in json.loads((report / 'human/errors.json').read_text(encoding='utf-8'))]
+        except (OSError, ValueError): pass
+    except Exception as problem:            # the page itself could not be made: say so on it, never leave the old one
+        errors.append(f'page: {type(problem).__name__}: {problem}'[:300])
+        log_failure(outputs(state), problem)
+        page = report / 'human' / 'index.html'
+        page.parent.mkdir(parents=True, exist_ok=True)
+        import html
+        page.write_text('<!doctype html><meta charset="utf-8"><title>EAOS</title><body style="font:16px system-ui;padding:32px">'
+                        '<h1>تعذّر بناء التقرير · The report could not be built</h1><ul>'
+                        + ''.join(f'<li>{html.escape(e)}</li>' for e in errors)
+                        + f'</ul><p>{html.escape(str(outputs(state) / "logs"))}</p></body>', encoding='utf-8')
     page = report / 'human' / 'index.html'
+    home_folder.mkdir(parents=True, exist_ok=True)
     if page.is_file(): shutil.copyfile(page, target)
+    (home_folder / '.report.json').write_text(json.dumps({**stamp(made), 'errors': errors}, ensure_ascii=False, indent=1) + '\n',
+                                              encoding='utf-8')
     return target if target.is_file() else report / 'START-HERE.md'
 
 
@@ -979,8 +1021,26 @@ def clean(args):
     return 0
 
 
+def resume(args):
+    """Where the work stopped, for the person moving to another assistant (a usage limit ran out), and what to tell it.
+    The words come from eaos/handover.resume, registered in RESUME."""
+    state = current(args.project)
+    lang = language(args.lang, state)
+    found = RESUME[0](state['project'], lang) if RESUME else None
+    if not found or not found['rows']:
+        box(lang, 'لم يبدأ عمل EAOS في هذا المشروع بعد' if lang == 'ar' else 'No EAOS work has started in this project yet',
+            commands=['eaos start .'], status='warn')
+        return 0
+    for label, value in found['rows']: say(f'   {label}: {value}')
+    ar = lang == 'ar'
+    box(lang, ('هذا ما وصل إليه العمل. افتح أي مساعد (Claude Code أو Codex) في مجلد مشروعك واكتب له الجملة أدناه' if ar else
+               'This is where the work is. Open any assistant (Claude Code or Codex) in your project folder and write it the line below'),
+        where=found['handover'], commands=[found['say']], note=(None if found['open'] else ('لا يوجد عمل مفتوح الآن' if ar else 'Nothing is open now')))
+    return 0
+
+
 COMMANDS = {'start': start, 'next': next_command, 'status': status, 'doctor': doctor, 'clean': clean, 'accept': accept, 'undo': undo,
-            'show': show, 'do': do, 'assistant': assistant}
+            'show': show, 'do': do, 'assistant': assistant, 'resume': resume}
 
 
 def main(args):

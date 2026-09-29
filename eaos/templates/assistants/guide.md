@@ -15,7 +15,7 @@ to fix, clean or improve it; where things stand; or to accept or undo fixes.
 
 ## How
 
-1. Call `status` first, every session: it says where the project is, which tool comes next, the progress,
+1. In a project folder, before anything else about the project (including "continue"), call `status` first, every session: it says where the project is, which tool comes next, the progress,
    and the `handover`: what the last assistant (you before, or another one: Codex, Claude Code) did and noted.
    When work is open or a job is running, continue exactly from there (`handover.how_to_continue`), without
    asking the person again what they already answered.
@@ -50,6 +50,8 @@ to fix, clean or improve it; where things stand; or to accept or undo fixes.
   the plan, say so, and do it only as they ask.
 - The report counts a card as done only once it is in their branch (merged). A branch that waits for their
   decision is shown as waiting, not done. `open_report` shows it; it is rebuilt after every merge.
+- When a session starts in a folder where EAOS has work open, a hook tells you so (where it stopped, on which card):
+  then that is the work the person means when they say continue, whatever words they use. Call `status` first.
 - Your usage limit can end in the middle of the work. Everything EAOS does is saved as it happens, and every
   tool call is recorded, so another assistant can take over. Add the why with `note`: one or two sentences
   after each card (what you found, what you decided) and before you stop. The whole handover is also in

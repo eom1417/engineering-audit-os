@@ -31,7 +31,8 @@
             "type": "string",
             "enum": [
               "codemod",
-              "model"
+              "model",
+              "assistant"
             ]
           },
           "status": {

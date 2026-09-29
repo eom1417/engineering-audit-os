@@ -183,7 +183,7 @@ def self_truth(record):
                    f'{len(dead)} dead of {len(dead) + len(false)} distinct candidates (by path and symbol): ' + ', '.join(dead))}
 
 
-USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4', 'L5')
+USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6')
 
 
 def measure(record, only=None):
@@ -303,7 +303,7 @@ def blueprint_values(only=None):
     return values
 
 
-PARTS = ('cards', 'arch-map', 'arch-drill', 'flows', 'target-map', 'target-mapping', 'progress-history')
+PARTS = ('cards', 'arch-map', 'arch-drill', 'flows', 'system-map', 'target-map', 'target-mapping', 'progress-history', 'work-log', 'stamp')
 
 
 def continuity_values(only=None):
@@ -327,6 +327,17 @@ def continuity_values(only=None):
         values['L5'] = (ratio(len(ok), len(tries)) if tries else None,
                         f"trials on a project open on main with its work on a branch ahead: asked which branch, checked it, merged into it, "
                         f"main and the checkout untouched, the report names it: {len(ok)}/{len(tries)} ({', '.join(t['project'] for t in tries) or 'no trial run yet'})")
+    if only in (None, 'L6'):
+        stamps = sorted([*(REPORTS / 'handover').glob('*/EAOS/*/.report.json'), *(REPORTS / 'branch').glob('*/EAOS/*/.report.json')])
+        good = []
+        for path in stamps:
+            made, trial = json.loads(path.read_text(encoding='utf-8')), path.parents[2] / 'trial.json'
+            merged = json.loads(trial.read_text(encoding='utf-8')).get('merged_at') if trial.is_file() else None
+            if made.get('digest') and made.get('version') and not made.get('errors') and (not merged or made.get('built', '') >= merged):
+                good.append(path.parts[-4])
+        values['L6'] = (ratio(len(good), len(stamps)) if stamps else None,
+                        f"reports of the assistant trials stamped with the EAOS that made them, with no part that failed, built after the last merge: "
+                        f"{len(good)}/{len(stamps)} ({', '.join(p.parts[-4] for p in stamps) or 'no trial run yet'})")
     if only in (None, 'L4'):
         pages = sorted(p for p in REPORTS.glob('*/human/index.html') if p.parent.parent.name not in ('runtime', 'ux', 'mcp'))
         pages += sorted((REPORTS / 'handover').glob('*/EAOS/*/REPORT.html'))

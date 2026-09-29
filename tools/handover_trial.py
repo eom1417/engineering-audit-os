@@ -3,7 +3,8 @@ and Claude Code, opened fresh, goes on from there; then the person says merge.
 
     python tools/handover_trial.py endomap /workspace/owner-projects/endomap
 
-The person's part: «افحص مشروعي بـ EAOS وأصلح مشاكله» and «نعم» to Codex; then, to Claude Code, only «كمّل شغل EAOS»;
+The person's part: «افحص مشروعي بـ EAOS وأصلح مشاكله» and «نعم» to Codex; then, to Claude Code, only «كمّل» (its
+session-start hook, as `eaos assistant install` sets it, tells it EAOS work is open here);
 when it asks whether to take the branch in, «ادمجها». The cut: Codex's process is killed once the open batch has a card
 the assistant fixed and a card still to do (or, when it goes faster, once a branch waits), as a usage limit would.
 Both assistants have the EAOS tools and read-only tools only, so every change goes through EAOS's gates.
@@ -23,7 +24,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MEASURE = Path(os.environ.get('EAOS_MEASURE', '/workspace/eaos-measure')) / 'handover'
-REQUEST, YES, GO_ON, MERGE = 'افحص مشروعي بـ EAOS وأصلح مشاكله', 'نعم، موافق', 'كمّل شغل EAOS', 'ادمجها'
+REQUEST, YES, GO_ON, MERGE = 'افحص مشروعي بـ EAOS وأصلح مشاكله', 'نعم، موافق', 'كمّل', 'ادمجها'
 LIMIT = 3 * 3600
 
 
@@ -52,10 +53,11 @@ def codex(prompt, where, env, resume, log):
     return subprocess.Popen(argv, cwd=where, stdout=log, stderr=subprocess.STDOUT, text=True, start_new_session=True)
 
 
-def claude(prompt, where, config, session=None):
+def claude(prompt, where, config, session=None, settings=None):
     argv = ['claude', '-p', prompt, '--mcp-config', str(config), '--strict-mcp-config', '--output-format', 'stream-json',
             '--verbose', '--allowedTools', 'mcp__eaos', 'Read', 'Grep', 'Glob',
             '--disallowedTools', 'Bash', 'Edit', 'Write', 'NotebookEdit', 'WebFetch', 'WebSearch']
+    if settings: argv += ['--settings', str(settings)]
     if session: argv += ['--resume', session]
     done = subprocess.run(argv, cwd=where, capture_output=True, text=True, timeout=LIMIT)
     return [json.loads(line) for line in done.stdout.splitlines() if line.startswith('{')], done.stderr[-2000:]
@@ -97,11 +99,14 @@ def main(name, source):
     config = out / 'mcp.json'
     config.write_text(json.dumps({'mcpServers': {'eaos': {'command': sys.executable, 'args': ['-m', 'eaos', 'mcp'],
                                                           'env': {'EAOS_HOME': str(home), 'PYTHONPATH': str(ROOT), 'EAOS_ASSISTANT': 'Claude Code'}}}}))
+    settings = out / 'claude-settings.json'                     # the hook `eaos assistant install` puts in ~/.claude/settings.json
+    hook = f'EAOS_HOME={home} PYTHONPATH={ROOT} {sys.executable} -m eaos handover --hook'
+    settings.write_text(json.dumps({'hooks': {'SessionStart': [{'hooks': [{'type': 'command', 'command': hook, 'timeout': 20}]}]}}))
     session, calls, first, edited, answer, claude_turns, asked_again = None, {}, None, [], '', 0, False
     prompt = GO_ON
     while claude_turns < 4:
         messages.append({'to': 'Claude Code', 'text': prompt})
-        events, errors = claude(prompt, where, config, session)
+        events, errors = claude(prompt, where, config, session, settings)
         claude_turns += 1
         for event in events:
             session = event.get('session_id') or session

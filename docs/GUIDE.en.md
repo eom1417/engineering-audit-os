@@ -97,7 +97,14 @@ it happens, and every step is recorded with the name of the assistant that did i
 have installed (from Codex to Claude Code, or the other way):
 
 1. Open the other assistant in **the same project folder**.
-2. Write: **"Continue the EAOS work"**.
+2. Write: **"Continue"**. It knows by itself that EAOS work is open here: EAOS tells it the moment the session starts.
+
+**The first time you open Codex after installing**, it shows "New hook – review required": approve it once (Trust). It is
+what tells Codex where the work stopped. Claude Code does not ask.
+
+**Want to see for yourself where it stopped?** In the terminal, in your project folder: `eaos resume`. It tells you the
+branch, the batch, what was kept and what is left, the card the assistant was on, the last assistant and when, and the line
+to write to the other assistant. The same is in the report, in the "Work log" section.
 
 It first reads what was handed over: where the first one stopped, which batch is open, what of it was kept and what
 is left, and what you already answered. Then it goes on from that point, without asking you again and without redoing

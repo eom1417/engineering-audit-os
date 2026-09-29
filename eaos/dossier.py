@@ -5,6 +5,7 @@ that does not exist in the ledger, and no claim reaches a reader without its con
 """
 from datetime import datetime, timezone
 from pathlib import Path
+from . import __version__
 from . import claims as ledger
 from .compose import Document
 from .compose.labels import detail_artifact, impact_of, statement_of
@@ -623,7 +624,7 @@ def refresh_views(out, language='ar'):
             'refreshed': [BRIEF, 'RISK-REGISTER.md', 'README.md']}
 
 
-def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=(), engines=None, collected=None):
+def assemble(target, out, run=None, language='ar', version=None, exclude=(), engines=None, collected=None):
     target, out = Path(target).resolve(), Path(out).resolve()
     map_result, sets = generate(target, out, language, exclude=exclude, engines=engines, collected=collected)
     # A project that declares a policy gets it enforced as part of the dossier, not as a separate step.
@@ -661,7 +662,7 @@ def assemble(target, out, run=None, language='ar', version='3.0.0', exclude=(), 
     for row in rows: counts[row['confidence']] = counts.get(row['confidence'], 0) + 1
     dossier = {
         'schema_version': 1,
-        'provenance': {'target': str(target), 'tool_version': version,
+        'provenance': {'target': str(target), 'tool_version': version or __version__,
                        'generated_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'),
                        'snapshot_fingerprint': sets['syntax']['input_sha'],
                        'audit_run': str(run) if run else None,

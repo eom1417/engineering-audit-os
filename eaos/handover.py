@@ -94,7 +94,8 @@ def record(tool, arguments, result, status=None):
     try:
         state = _state((arguments or {}).get('project'))
         if not state or tool == 'note': return               # a note writes its own line
-        _append(state, {'at': _now(), 'by': assistant(), 'tool': tool, 'card': (arguments or {}).get('card'),
+        card = (arguments or {}).get('card') or ((arguments or {}).get('id') if tool == 'finding' else None)
+        _append(state, {'at': _now(), 'by': assistant(), 'tool': tool, 'card': card,
                         'arguments': _arguments(arguments), 'outcome': _outcome(result)})
         if tool not in READING or tool == 'wait': refresh(state, status)
     except Exception:                       # the handover is extra: a failure here must not cost the tool its answer
@@ -129,6 +130,23 @@ def _open_work(state):
     return None
 
 
+def in_progress(state, log=None):
+    """The card the last assistant was on when it stopped: an open card of the open batch it read or tried last, with
+    the files it read for it since, and how its last try ended. None when it was on none."""
+    work = _open_work(state)
+    if not work or not work.get('left'): return None
+    log = entries(state, 400) if log is None else log
+    at = None
+    for index in range(len(log) - 1, -1, -1):
+        if log[index].get('card') in work['left']: at = index; break
+    if at is None: return None
+    card = log[at]['card']
+    tries = [e for e in log if e.get('card') == card and e.get('tool') in ('fix_edit', 'build_edit')]
+    read = [e['arguments'].get('path') for e in log[at:] if e.get('tool') in ('fix_read', 'build_read') and (e.get('arguments') or {}).get('path')]
+    return {'card': card, 'since': log[at]['at'], 'by': log[at].get('by'), 'files_read': list(dict.fromkeys(read))[-12:],
+            'last_try': tries[-1].get('outcome') if tries else None}
+
+
 def brief(state, steps=12, notes=8):
     """What the next assistant needs, as a dict (status returns it; HANDOVER.md is it in words)."""
     from . import jobs
@@ -143,7 +161,7 @@ def brief(state, steps=12, notes=8):
     return {'mode': 'build from a plan' if state.get('mode') == 'build' else 'check and fix', 'branch': state.get('branch'),
             'last_assistant': last.get('by') if last else None, 'last_activity': last.get('at') if last else None,
             'running_job': {'id': busy['id'], 'kind': busy['kind'], 'progress': busy.get('progress')} if busy else None,
-            'open_work': _open_work(state),
+            'open_work': _open_work(state), 'in_progress': in_progress(state, log),
             'waiting_for_the_person': {'branch': waiting['branch'], 'decision': 'accept or undo'} if waiting else None,
             'progress': (load(state) or {}).get('totals'),
             'person_already_answered': answered,
@@ -152,6 +170,7 @@ def brief(state, steps=12, notes=8):
             'how_to_continue': ('Continue exactly where this stopped, without asking the person again what they already answered: '
                                 + ('first `wait` for the running job; ' if busy else '')
                                 + ('then ' + _open_work(state)['resume'] + '; ' if _open_work(state) else '')
+                                + (f"start with {in_progress(state, log)['card']}, the card it was on; " if in_progress(state, log) else '')
                                 + 'follow `next` from `status`. Leave a `note` after each card and before you stop.')}
 
 
@@ -194,3 +213,77 @@ def refresh(state, status=None):
     target = guided.outputs(state) / 'HANDOVER.md'
     target.write_text('\n'.join(lines), encoding='utf-8')
     return target
+
+
+
+# ---------------------------------------------------------------- when a new session starts, and for the person
+
+def _project_of(folder):
+    """The EAOS state of `folder` or of the git repository it is inside; None when EAOS has none."""
+    folder = Path(folder or os.getcwd()).expanduser().resolve()
+    for candidate in (folder, *folder.parents):
+        state = guided.load(candidate)
+        if state: return state
+        if (candidate / '.git').exists(): return None
+    return None
+
+
+def open_things(b):
+    """What is not finished, in a few words each (English, for an assistant)."""
+    things = []
+    if b['running_job']: things.append(f"a {b['running_job']['kind']} job is still running ({b['running_job']['id']}): follow it with `wait`")
+    work = b['open_work']
+    if work:
+        things.append(f"{work['kind']} {work.get('number') or work.get('milestone')} is open: kept {len(work['kept'])}, "
+                      f"left {len(work['left'])} ({', '.join(work['left'][:8]) or 'none'})")
+    if b.get('in_progress'):
+        p = b['in_progress']
+        things.append(f"{p['by']} was on {p['card']} (since {p['since']}"
+                      + (f", had read {', '.join(p['files_read'][:5])}" if p['files_read'] else '') + ')')
+    if b['waiting_for_the_person']: things.append(f"the branch {b['waiting_for_the_person']['branch']} waits for the person: accept or undo")
+    return things
+
+
+def hook_context(folder):
+    """The text an assistant's session-start hook adds when EAOS has work in this project; None otherwise."""
+    state = _project_of(folder)
+    if not state: return None
+    b = brief(state)
+    things = open_things(b)
+    if not things and not b['last_activity']: return None
+    lines = ['EAOS (Engineering Audit OS) is working on this project' + (f", branch {b['branch']}" if b['branch'] else '') + '.']
+    if b['last_activity']: lines.append(f"Last step: {b['last_activity']} by {b['last_assistant']}.")
+    if b['progress']: lines.append(f"Progress in the person's branch: {b['progress']['closed']} of {b['progress']['total']} cards closed ({b['progress']['percent']}%).")
+    lines += [f'- {t}' for t in things] or ['- Nothing is open.']
+    if things:
+        lines.append('Before anything else, call the eaos `status` tool and continue exactly from its handover, without asking the '
+                     'person again what they already answered. If the person asks to continue, this is the work they mean.')
+    else:
+        lines.append('When the person asks about the project or to continue, call the eaos `status` tool first.')
+    return '\n'.join(lines)
+
+
+def resume(folder, lang='ar'):
+    """Where the work stopped, for the person, in their language; and the sentence to give the other assistant."""
+    state = _project_of(folder)
+    if not state: return None
+    b, ar = brief(state), lang == 'ar'
+    work, p, busy, waiting = b['open_work'], b.get('in_progress'), b['running_job'], b['waiting_for_the_person']
+    rows = []
+    if b['branch']: rows.append(('الفرع', b['branch']) if ar else ('Branch', b['branch']))
+    if b['last_activity']: rows.append(('آخر خطوة', f"{b['last_activity']} ({b['last_assistant']})") if ar else ('Last step', f"{b['last_activity']} ({b['last_assistant']})"))
+    if b['progress']:
+        g = b['progress']
+        rows.append(('المنجز', f"{g['closed']} من {g['total']} ({g['percent']}%)") if ar else ('Done', f"{g['closed']} of {g['total']} ({g['percent']}%)"))
+    if busy: rows.append(('يعمل الآن', busy['kind']) if ar else ('Running now', busy['kind']))
+    if work:
+        rows.append((f"الدفعة {work.get('number') or work.get('milestone')}", f"حُفظ {len(work['kept'])}، باقي {len(work['left'])}") if ar else
+                    (f"Batch {work.get('number') or work.get('milestone')}", f"{len(work['kept'])} kept, {len(work['left'])} left"))
+    if p: rows.append(('كان يعمل على', p['card']) if ar else ('It was on', p['card']))
+    if waiting: rows.append(('ينتظر قرارك', waiting['branch']) if ar else ('Waiting for you', waiting['branch']))
+    say = 'كمّل شغل EAOS' if ar else 'Continue the EAOS work'
+    return {'rows': rows, 'open': bool(work or busy or waiting), 'say': say, 'handover': str(guided.outputs(state) / 'HANDOVER.md')}
+
+
+guided.REPORT_PARTS['handover'] = brief   # the work log on the report for people
+guided.RESUME.append(resume)             # eaos resume, for the person

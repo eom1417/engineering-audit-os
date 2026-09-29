@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.0.1 (2026-09-29)
+
+Versions restart at 0.0.1 and stay 0.0.x until the first official release, 1.0.0. From the owner's trials:
+
+- **The report cannot go stale in silence.** Building it no longer swallows a failure: the part that could not be built is
+  named at the top of the page, in `.report.json` beside it and in `logs/`, and the rest of the page is still made. Every
+  page says which EAOS made it (version, commit) and when; after an update, `status` rebuilds a page an older EAOS made at
+  once, from the check on record. `eaos doctor` prints the version and commit.
+- **Fixed: a batch with a card the assistant fixed could not be closed** (`execution.json would break its contract: tool
+  'assistant'`), in the repository's contract and in the copy the package installs.
+- **True progress**: a stable key per card, carried by every EAOS commit, so what is merged is read from git; the report
+  counts only what is in the person's branch.
+- **A merge closes the loop**: accept merges, deletes the branch and rebuilds the report in one step; a merge made by hand is
+  noticed and recorded.
+- **The branch**: when a project has several branches, EAOS asks which one (never choosing for the person) and everything
+  follows it.
+- **Handover between assistants**: every step journaled, `note`, `HANDOVER.md`, a session-start hook for Claude Code and Codex
+  (`eaos handover --hook`) so a new session knows where the work stopped and on which card, and `eaos resume` for the person.
+- An AI assistant's working copies inside a project (`.claude/worktrees/`) are no longer audited as part of it.
+
 ## Unreleased
 
 - **Release decision: pilot.** Measured on this repository and on a Go project, with codegraph, enola, jscpd and reforge all running: overall 0.8537, seven of nine domains at target. `structure_polyglot` went 0.3027 → 0.9228, `load_model` 0.0 → 0.9535, `target_architecture` 0.0 → 1.0. The two domains left are not code problems: `transformation_plan` carries one unmeasured indicator because verifying a prediction needs a report taken after the change and the engine never writes code, and `independent_proof` needs a reviewer outside this project. `evaluations/release-evidence.json` states both, and what the evidence does not support.

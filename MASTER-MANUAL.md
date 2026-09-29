@@ -1,6 +1,6 @@
 # Engineering Audit OS — Master Manual
 
-Version 3.0.0. Generated from canonical core, registry and research.
+Version 0.0.1. Generated from canonical core, registry and research.
 
 
 ---

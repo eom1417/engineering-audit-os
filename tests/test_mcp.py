@@ -204,6 +204,18 @@ class ToolTests(Home):
         self.assertEqual(agent_tools.accept(str(self.project))['status'], 'needs_agreement')
 
 
+class ExecutionRecordTests(Home):
+    def test_a_card_the_assistant_fixed_is_recorded_like_any_other(self):
+        """The trial of 2026-09-29: fix_finish failed on 'assistant' not in ['codemod', 'model'] for every batch with an
+        assistant's fix."""
+        from eaos.execute import record
+        runtime = Path(self.tmp.name) / 'runtime'
+        for tool in ('codemod', 'model', 'assistant'):
+            record(runtime, {'id': f'TASK-{tool}', 'tool': tool, 'status': 'VERIFIED_IN_ISOLATED_COPY', 'acceptance_exit': 0,
+                             'result': 'wave 1'})
+        self.assertEqual(len(json.loads((runtime / 'runtime/execution.json').read_text())['tasks']), 3)
+
+
 class OutputsTests(Home):
     def test_every_output_is_in_one_folder_named_after_the_project(self):
         state = agent_tools.project_state(str(self.project))
@@ -221,7 +233,24 @@ class OutputsTests(Home):
         state = agent_tools.project_state(str(self.project))
         guided.report_of(state).mkdir(parents=True)
         with mock.patch('eaos.human_report.write', side_effect=RuntimeError('broken record')):
-            self.assertEqual(guided.publish(state), guided.report_of(state) / 'START-HERE.md')
+            page = guided.publish(state)                           # the step goes on
+        self.assertEqual(page, guided.outputs(state) / 'REPORT.html')
+        self.assertIn('broken record', page.read_text(), 'the page says why, instead of an old page left in silence')
+        self.assertIn('page: RuntimeError: broken record', guided.report_stamp(state)['errors'])
+        self.assertTrue(list((guided.outputs(state) / 'logs').glob('*.log')))
+
+    def test_every_page_says_which_eaos_made_it_and_is_rebuilt_after_an_update(self):
+        from eaos.build_info import digest
+        state = agent_tools.project_state(str(self.project))
+        guided.report_of(state).mkdir(parents=True)
+        guided.publish(state)
+        made = guided.report_stamp(state)
+        self.assertEqual((made['digest'], made['version'], made['errors']), (digest(), __import__('eaos').__version__, []))
+        (guided.outputs(state) / '.report.json').write_text(json.dumps({**made, 'digest': 'an-older-eaos'}))
+        report = agent_tools._fresh_report(state)
+        self.assertTrue(report['rebuilt'])
+        self.assertEqual(guided.report_stamp(state)['digest'], digest())
+        self.assertFalse(agent_tools._fresh_report(state)['rebuilt'], 'a page this EAOS made is not rebuilt again')
 
     def test_a_report_an_older_eaos_left_is_moved_into_the_folder(self):
         state = agent_tools.project_state(str(self.project))

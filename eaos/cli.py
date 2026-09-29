@@ -169,7 +169,24 @@ def audit_command(args):
     return 0 if summary['status'] == 'REVIEW_REQUIRED' else 2
 
 
+def handover_hook(args):
+    """A session-start hook of Claude Code or Codex: the folder comes on stdin ({"cwd": ...}); when EAOS has work there,
+    the context to add to the session. Never fails and never prints anything else: a hook must not stop a session."""
+    try:
+        import os
+        raw = sys.stdin.read() if not sys.stdin.isatty() else ''
+        folder = (json.loads(raw) if raw.strip() else {}).get('cwd') or os.getcwd()
+        from .handover import hook_context
+        context = hook_context(folder)
+        if context:
+            print(json.dumps({'hookSpecificOutput': {'hookEventName': 'SessionStart', 'additionalContext': context}}, ensure_ascii=False))
+    except Exception:                       # a broken hook would cost the person their session; say nothing instead
+        pass
+    return 0
+
+
 def guided_command(args):
+    from . import handover  # noqa: F401  (registers the work log on the report for people)
     from .guided import main as guided_main
     return guided_main(args)
 
@@ -516,7 +533,8 @@ def main(argv=None):
                        ('undo', 'Throw the latest batch of fixes away (its branch, deleted)'),
                        ('show', 'Print what the check found, in plain words'),
                        ('do', 'Ask in your own words: eaos do "check my project"'),
-                       ('assistant', 'Teach your AI assistant (Claude Code, Codex) to use EAOS: eaos assistant install')):
+                       ('assistant', 'Teach your AI assistant (Claude Code, Codex) to use EAOS: eaos assistant install'),
+                       ('resume', 'Where the work stopped, and what to tell another assistant to go on (after a usage limit)')):
         q=s.add_parser(name,help=text)
         if name == 'do': q.add_argument('request',nargs='*')
         elif name == 'assistant': q.add_argument('action',nargs='?',choices=['install'],default='install')
@@ -526,6 +544,9 @@ def main(argv=None):
         q.add_argument('--yes',action='store_true',help='answer yes to the question this step asks')
         if name == 'doctor': q.add_argument('--fix',action='store_true',help='install what is missing')
         q.set_defaults(func=guided_command)
+    q=s.add_parser('handover',help='For an assistant\'s session-start hook: what EAOS has open in this folder (eaos assistant install sets it)')
+    q.add_argument('--hook',action='store_true',help='read the hook\'s JSON on stdin and answer with the context to add')
+    q.set_defaults(func=handover_hook)
     q=s.add_parser('mcp',help='EAOS as MCP tools for an AI assistant (stdio); eaos assistant install registers it')
     q.set_defaults(func=lambda args: __import__('eaos.mcp_server', fromlist=['main']).main())
     q=s.add_parser('init',help='Create the workspace the model-driven repair commands operate in')

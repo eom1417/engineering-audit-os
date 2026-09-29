@@ -1,6 +1,6 @@
 # Engineering Audit OS
 
-**[العربية](README.md)** · version 3.0.0 · status: **Pilot** · progress: [where we stand](#-where-we-stand)
+**[العربية](README.md)** · version 0.0.1 · status: **Pilot** · progress: [where we stand](#-where-we-stand)
 
 > **A full engineering review team in one command.**
 > EAOS reads your project the way an architect, a code reviewer, a performance engineer and a tech lead would, together. It hands you an evidenced picture of where the project stands today, the professional shape it should reach, and an ordered task plan that any engineer or AI model can execute and prove done.
@@ -331,7 +331,7 @@ flowchart TB
     R3_1 ==>|"✔ M1≥0.95 · S3≥0.8 · G2=1 · +2 acceptance tests"| R4_1
     R4_1 ==>|"✔ T6=1 · T7=1 · +2 acceptance tests"| R5_1
     R5_1 ==>|"✔ K1=1 · +4 acceptance tests"| R6_1
-    R6_1 ==>|"✔ L1=1 · L2=1 · L3=1 · … · +3 acceptance tests"| R6_2
+    R6_1 ==>|"✔ L1=1 · L2=1 · L3=1 · … · +5 acceptance tests"| R6_2
     R6_2 ==>|"✔ E7=1 · E2≥0.8"| R7_1
     R7_1 ==>|"✔ E10≥0.9 · +1 acceptance test"| R7_2
     R7_2 ==>|"✔ E11=1 · +1 acceptance test"| R8_1

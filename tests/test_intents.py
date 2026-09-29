@@ -89,5 +89,29 @@ class AssistantInstallTests(unittest.TestCase):
         self.assertFalse(any('mcp' in c.args[0] and 'add' in c.args[0] for c in run.call_args_list), 'already registered: not added twice')
 
 
+    def test_both_assistants_get_the_session_start_hook_once_beside_the_persons_own(self):
+        import json
+        from eaos import assistant_setup
+        home = Path(tempfile.mkdtemp())
+        (home / '.claude').mkdir()
+        mine = {'model': 'opus', 'hooks': {'SessionStart': [{'hooks': [{'type': 'command', 'command': 'echo hi'}]}],
+                                           'Stop': [{'hooks': [{'type': 'command', 'command': 'say done'}]}]}}
+        (home / '.claude/settings.json').write_text(json.dumps(mine))
+        with mock.patch.object(assistant_setup.shutil, 'which', side_effect=lambda n: f'/usr/bin/{n}'), \
+                mock.patch.object(assistant_setup.subprocess, 'run', return_value=mock.Mock(returncode=0)):
+            assistant_setup.install(home)
+            assistant_setup.install(home)
+        for path in (home / '.claude/settings.json', home / '.codex/hooks.json'):
+            data = json.loads(path.read_text())
+            commands = [h['command'] for g in data['hooks']['SessionStart'] for h in g['hooks']]
+            self.assertEqual(sum('handover --hook' in c for c in commands), 1, f'{path}: once, however often it is installed')
+        claude = json.loads((home / '.claude/settings.json').read_text())
+        self.assertEqual((claude['model'], claude['hooks']['Stop']), ('opus', mine['hooks']['Stop']))
+        self.assertIn('echo hi', [h['command'] for g in claude['hooks']['SessionStart'] for h in g['hooks']])
+        (home / '.codex/hooks.json').write_text('{broken')
+        self.assertIsNone(assistant_setup.add_session_hook(home / '.codex/hooks.json'))
+        self.assertEqual((home / '.codex/hooks.json').read_text(), '{broken', "a file the person broke is left as it is")
+
+
 if __name__ == '__main__':
     unittest.main()

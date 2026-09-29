@@ -202,6 +202,47 @@ class Handover(Base):
         for words in ('Continue from here', 'TASK-005', 'do not ask again', 'deleting it next', 'Codex'):
             self.assertIn(words, page)
 
+    def test_a_new_session_is_told_where_the_work_stopped_and_on_which_card(self):
+        from eaos.mcp_server import _answer
+        state = guided.load(self.project)
+        state['open_wave'] = {'number': 2, 'root': str(self.project), 'base': 'x', 'cards': ['TASK-002', 'TASK-005'],
+                              'kept': {'TASK-002': 'abc'}, 'failed': {}, 'tools': {}}
+        guided.save(state)
+        _answer(agent_tools.finding)(id='TASK-005', project=str(self.project))
+        _answer(agent_tools.fix_read)(path='src/a.js', project=str(self.project))
+        context = handover.hook_context(self.project / 'src')           # opened in a sub-folder of the project
+        for words in ('batch 2 is open', 'Codex was on TASK-005', 'src/a.js', 'call the eaos `status` tool'):
+            self.assertIn(words, context)
+        self.assertEqual(agent_tools.status(str(self.project))['handover']['in_progress']['card'], 'TASK-005')
+        self.assertIsNone(handover.hook_context(Path(self.tmp.name)), 'a folder EAOS knows nothing of adds nothing')
+        import io, sys
+        from eaos import cli
+        with mock.patch.object(sys, 'stdin', io.StringIO(json.dumps({'cwd': str(self.project), 'hook_event_name': 'SessionStart'}))), \
+                mock.patch('sys.stdout', new_callable=io.StringIO) as out:
+            cli.handover_hook(None)
+        self.assertEqual(json.loads(out.getvalue())['hookSpecificOutput']['hookEventName'], 'SessionStart')
+
+    def test_a_broken_hook_never_stops_a_session(self):
+        import io, sys
+        from eaos import cli
+        for stdin, failing in (('{not json', False), (json.dumps({'cwd': str(self.project)}), True)):
+            with mock.patch.object(sys, 'stdin', io.StringIO(stdin)), mock.patch('sys.stdout', new_callable=io.StringIO) as out, \
+                    mock.patch('eaos.handover.brief', side_effect=RuntimeError('broken state')) if failing else mock.patch('os.getcwd', return_value='/'):
+                self.assertEqual(cli.handover_hook(None), 0)
+            self.assertEqual(out.getvalue(), '', 'nothing printed: the session starts as if EAOS were not there')
+
+    def test_the_person_is_told_where_it_stopped_and_what_to_write(self):
+        from tests.test_guided import run
+        state = guided.load(self.project)
+        state['open_wave'] = {'number': 1, 'root': str(self.project), 'base': 'x', 'cards': ['TASK-001', 'TASK-003'],
+                              'kept': {'TASK-001': 'abc'}, 'failed': {}, 'tools': {}}
+        guided.save(state)
+        handover.note('checking TASK-003 next', 'TASK-003', str(self.project))
+        code, printed = run('resume', self.project, lang='ar')
+        self.assertEqual(code, 0)
+        for words in ('الدفعة 1', 'حُفظ 1، باقي 1', 'كمّل شغل EAOS', 'Codex'):
+            self.assertIn(words, printed)
+
     def test_a_failing_handover_never_costs_the_tool_its_answer(self):
         from eaos.mcp_server import _answer
         with mock.patch('eaos.handover.refresh', side_effect=OSError('disk full')):

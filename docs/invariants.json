@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "dad0b22",
+  "extracted_at_commit": "c992b28",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -138,6 +138,15 @@
       "note": ""
     },
     {
+      "id": "INV-3038d2457c",
+      "file": "eaos/build_info.py",
+      "symbol": "<module>",
+      "statement": "Every page EAOS makes for a person says which EAOS made it and when, so that an old page is never taken for a new one: after an update, a page whose fingerprint is not this EAOS's is rebuilt (eaos/guided.publish).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_mcp.py::OutputsTests::test_every_page_says_which_eaos_made_it_and_is_rebuilt_after_an_update",
+      "note": ""
+    },
+    {
       "id": "INV-faac8b9fcc",
       "file": "eaos/canonical_home.py",
       "symbol": "<module>",
@@ -180,6 +189,15 @@
       "statement": "An unanswered one is never a claim: we do not know, and a risk we invented is worse than a risk we missed.",
       "kind": "invariant",
       "enforced_by": "tests/test_load_model.py::BlockerTests::test_an_unanswered_question_is_never_a_blocker",
+      "note": ""
+    },
+    {
+      "id": "INV-cf44e4ac1c",
+      "file": "eaos/cli.py",
+      "symbol": "handover_hook",
+      "statement": "Never fails and never prints anything else: a hook must not stop a session.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_continuity.py::Handover::test_a_broken_hook_never_stops_a_session",
       "note": ""
     },
     {
@@ -930,10 +948,19 @@
       "note": ""
     },
     {
-      "id": "INV-1288953568",
+      "id": "INV-cac4ed44ab",
       "file": "eaos/guided.py",
       "symbol": "publish",
-      "statement": "Never a reason for a step to fail: without it, the technical report is still there.",
+      "statement": "Nothing here fails in silence: a part that cannot be built is named on the page, in .report.json beside it and in logs/, and the rest of the page is still made.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_mcp.py::OutputsTests::test_a_report_page_that_cannot_be_built_never_stops_the_step",
+      "note": ""
+    },
+    {
+      "id": "INV-95c66a6ea2",
+      "file": "eaos/guided.py",
+      "symbol": "publish",
+      "statement": "It is never a reason for a step to fail: without it, the technical report is still there.",
       "kind": "invariant",
       "enforced_by": "tests/test_mcp.py::OutputsTests::test_a_report_page_that_cannot_be_built_never_stops_the_step",
       "note": ""

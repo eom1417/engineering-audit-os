@@ -7,3 +7,4 @@ dist/
 .eaos-runs/
 .cache/
 evaluations/review-pack/
+.claude/

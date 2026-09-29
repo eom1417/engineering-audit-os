@@ -15,7 +15,7 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import branches, guided, jobs, plain
+from . import branches, guided, handover, jobs, plain
 
 # A person's answer comes at least this long after the question: sooner, nobody was asked (EAOS_ANSWER_SECONDS: tests).
 ANSWER_SECONDS = int(os.environ.get('EAOS_ANSWER_SECONDS') or 30)
@@ -56,12 +56,9 @@ def _head(state):
 
 
 def tool_digest():
-    """This EAOS's own code, as a fingerprint: a report made by an older EAOS is checked again, not reused."""
-    import hashlib
-    digest = hashlib.sha256()
-    for path in sorted(Path(__file__).resolve().parent.rglob('*.py')):
-        if '__pycache__' not in path.parts: digest.update(path.read_bytes())
-    return digest.hexdigest()[:16]
+    """This EAOS's own code, as a fingerprint (eaos/build_info.py): a report made by an older EAOS is checked again."""
+    from .build_info import digest
+    return digest()
 
 
 def _current(state, head):
@@ -168,7 +165,7 @@ def choose_branch(branch, project=None, person_said=''):
                          'Call audit: the check runs on this branch (its own copy; the person\'s checkout is not switched).')}
 
 def status(project=None):
-    from . import handover, ledger
+    from . import ledger
     state = project_state(project)
     asking = _branch(state)
     if asking:
@@ -202,8 +199,21 @@ def status(project=None):
     elif not guided.same_code(state, safety.get('commit'), head): step = ('safety_net', 'record the screens before any fix')
     else: step = ('fix_start', 'open the next batch of fixes')
     answer['next'] = {'tool': step[0], 'why': step[1]}
+    answer['report'] = _fresh_report(state) if checked else None
     answer['handover'] = handover.brief(state)
     return answer
+
+
+def _fresh_report(state):
+    """REPORT.html as it stands, rebuilt first when an older EAOS made it (after an update the person sees the new page at
+    once, from the check on record, before any new check): {page, built, version, commit, rebuilt, errors}."""
+    made = guided.report_stamp(state)
+    rebuilt = made.get('digest') != tool_digest()
+    if rebuilt:
+        guided.publish(state)
+        made = guided.report_stamp(state)
+    return {'page': str(branches.home(state) / 'REPORT.html'), 'rebuilt': rebuilt,
+            **{k: made.get(k) for k in ('built', 'version', 'commit', 'errors')}}
 
 
 # ---------------------------------------------------------------- diagnosis
@@ -413,8 +423,11 @@ def open_report(project=None, show=True):
         import webbrowser
         try: opened = webbrowser.open(page.resolve().as_uri())
         except Exception: opened = False
+    made = guided.report_stamp(state)
     return {'report_for_people': str(page), 'opened_in_browser': opened, 'outputs_folder': str(guided.outputs(state)),
-            'what_now': 'Tell the person where it is' + ('' if opened else ' and how to open it (double-click the file)') + '.'}
+            'built': made.get('built'), 'version': made.get('version'), 'report_errors': made.get('errors') or [],
+            'what_now': 'Tell the person where it is' + ('' if opened else ' and how to open it (double-click the file)') + '.'
+                        + (' Some parts could not be built: tell the person which, plainly (report_errors).' if made.get('errors') else '')}
 
 
 # ---------------------------------------------------------------- running the app

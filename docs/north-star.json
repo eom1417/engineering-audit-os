@@ -1040,7 +1040,7 @@
         {
           "id": "L4",
           "name": "التقرير يُري العمل",
-          "definition": "تقارير البشر التي فيها البطاقات كلها مطويةً، وخريطة البنية الحالية بعلاقاتها، والبنية المستهدفة وربطها بالحالية، والتقدم عبر الزمن ÷ التقارير",
+          "definition": "تقارير البشر التي فيها البطاقات كلها مطويةً، وخريطة البنية الحالية بعلاقاتها، وخريطة النظام من الصفحات إلى الـAPIs إلى الخادم إلى البيانات، والبنية المستهدفة وربطها بالحالية، والتقدم عبر الزمن، وسجل العمل ÷ التقارير",
           "target": 1.0,
           "value": null,
           "evidence": "not measured yet",
@@ -1055,6 +1055,16 @@
           "value": null,
           "evidence": "no trial run yet",
           "reads": "${EAOS_MEASURE}/branch/<مشروع>/trial.json",
+          "measured": "automated"
+        },
+        {
+          "id": "L6",
+          "name": "التقرير يتحدّث بشكل مضمون",
+          "definition": "تقارير تجارب المساعدين المختومة بنسخة EAOS التي بنتها، بلا جزء فشل بناؤه، والمبنية بعد آخر دمج ÷ التقارير",
+          "target": 1.0,
+          "value": null,
+          "evidence": "no trial run yet",
+          "reads": "${EAOS_MEASURE}/{handover,branch}/<مشروع>/EAOS/*/.report.json",
           "measured": "automated"
         }
       ]
@@ -4724,7 +4734,7 @@
       "id": "NS28",
       "title": "الاستمرارية والتقدم الصادق",
       "title_en": "Continuity and true progress",
-      "goal": "L1 إلى L5 عند أهدافها: التقدم يُحسب مما في فرع الشخص، والدمج يحذف الفرع ويحدّث التقرير، ومساعد يكمل عمل آخر، والعمل يتبع الفرع الذي يختاره الشخص، والتقرير يُري البطاقات والبنية الحالية والمستهدفة والتقدم.",
+      "goal": "L1 إلى L6 عند أهدافها: التقدم يُحسب مما في فرع الشخص، والدمج يحذف الفرع ويحدّث التقرير، ومساعد يكمل عمل آخر، والعمل يتبع الفرع الذي يختاره الشخص، والتقرير يُري البطاقات والبنية الحالية والمستهدفة والتقدم.",
       "stages": [
         "S08",
         "S09",
@@ -4973,6 +4983,116 @@
           "rollback": "احذف eaos/branches.py؛ يعود العمل على الفرع المفتوح.",
           "writes": [],
           "status": "todo"
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS28.T7",
+          "title": "التقرير مضمون: لا يبقى قديمًا بصمت، ومختوم بنسخته",
+          "why": "بعد التحديث قال المالك: شكل التقرير ما تغيّر أبدًا. كان بناء الصفحة يبلع أي خطأ ويترك الصفحة القديمة، ولا شيء فيها يقول من بناها ومتى.",
+          "moves": [
+            "L6",
+            "X10"
+          ],
+          "depends_on": [
+            "NS28.T4"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/guided.py",
+            "eaos/build_info.py",
+            "eaos/agent_tools.py",
+            "eaos/human_report.py",
+            "tests/test_mcp.py"
+          ],
+          "steps": [
+            "guided.publish: كل جزء يُبنى وحده، والفاشل يُسمّى أعلى الصفحة وفي .report.json وlogs/، ولا تبقى صفحة قديمة أبدًا.",
+            "build_info: النسخة والـcommit (من سجل التثبيت) وبصمة الكود؛ كل صفحة مختومة بها وبوقت البناء.",
+            "status يعيد بناء صفحة بنتها نسخة أقدم فورًا من الفحص الموجود، قبل أي فحص جديد؛ وeaos doctor يطبع النسخة.",
+            "عقد execution.json يقبل tool = assistant (كانت الدفعة التي فيها بطاقة من المساعد لا تُغلق)، في المستودع وفي نسخة الحزمة."
+          ],
+          "done_when": [
+            "L6 = 1.0."
+          ],
+          "pitfalls": [
+            "لا except صامت في الطريق إلى ما يراه الشخص."
+          ],
+          "acceptance": "python -m unittest tests.test_mcp && python tools/north_star.py measure --only L6 --min 1.0",
+          "rollback": "ارجع publish كما كان."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS28.T8",
+          "title": "خريطة النظام كاملة وسجل العمل في التقرير",
+          "why": "المالك: رسم يبين ترابطات النظام بالكامل، وكل الـAPIs والارتباطات بتفاصيلها، ومن عمل ماذا ومتى.",
+          "moves": [
+            "L4"
+          ],
+          "depends_on": [
+            "NS28.T4"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/system_map.py",
+            "eaos/human_report.py",
+            "tests/test_system_map.py"
+          ],
+          "steps": [
+            "system_map: الصفحات ← الـAPIs ← معالجات الخادم ← الوحدات ← البيانات، من features وentrypoints وflows وdomain وgraph.",
+            "رسم تفاعلي: صفحة تضيء كل ما تصل إليه، وAPI يبيّن من يستدعيه ومعالجه وجداوله، وجدول كامل لكل API.",
+            "سجل العمل: ما المفتوح وما بقي والخطوة التالية، وخط زمني بمن عمل ماذا ومتى، والملاحظات.",
+            "ملفات Mermaid الفنية بمجموعات وخطوط معنونة، وsystem.mmd للنظام من طرف إلى طرف."
+          ],
+          "done_when": [
+            "L4 = 1.0 بالأجزاء الجديدة."
+          ],
+          "pitfalls": [
+            "كل رقم ظاهر بمعناه."
+          ],
+          "acceptance": "python -m unittest tests.test_system_map && python tools/north_star.py measure --only L4 --min 1.0",
+          "rollback": "احذف القسمين؛ التقرير كما كان."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS28.T9",
+          "title": "بداية الجلسة تعرف أين وقف العمل: hook لـClaude Code وCodex وeaos resume",
+          "why": "المالك: جلستا Terminal منفصلتان بلا رابط؛ لو خلص الحد فجأة وفتح مساعدًا آخر يجب أن يكمل من نفس النقطة بأقل خسارة.",
+          "moves": [
+            "L3"
+          ],
+          "depends_on": [
+            "NS28.T3"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/handover.py",
+            "eaos/cli.py",
+            "eaos/assistant_setup.py",
+            "eaos/guided.py",
+            "tests/test_continuity.py",
+            "tests/test_intents.py",
+            "tools/handover_trial.py"
+          ],
+          "steps": [
+            "eaos handover --hook: يقرأ cwd من الـhook ويضيف للجلسة ما هو مفتوح وآخر خطوة ومن عملها والبطاقة التي كان عليها وما قرأ لها.",
+            "eaos assistant install يضع الـhook في ~/.claude/settings.json و~/.codex/hooks.json بجانب ما للشخص (Codex يطلب الموافقة مرة).",
+            "handover.in_progress: البطاقة التي كان المساعد عليها وملفاتها؛ أقصى خسارة تفكير بطاقة واحدة.",
+            "eaos resume للشخص بالعربي: أين وقف العمل والجملة التي يكتبها.",
+            "التجربة: Codex يُقطع وسط دفعة، ثم Claude Code بكلمة «كمّل» وحدها."
+          ],
+          "done_when": [
+            "L3 = 1.0 والموجّه «كمّل» وحده."
+          ],
+          "pitfalls": [
+            "الـhook لا يوقف جلسة أبدًا: يسكت عند أي خطأ."
+          ],
+          "acceptance": "python -m unittest tests.test_continuity tests.test_intents && python tools/north_star.py measure --only L3 --min 1.0",
+          "rollback": "احذف الـhook؛ status يبقى أول أداة."
         }
       ]
     },

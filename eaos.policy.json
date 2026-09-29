@@ -128,6 +128,7 @@
       "eaos/handover.py",
       "eaos/arch_map.py",
       "eaos/branches.py",
+      "eaos/build_info.py",
       "eaos/intake.py",
       "eaos/dependency_assessment.py",
       "eaos/mechanical_assessment.py",

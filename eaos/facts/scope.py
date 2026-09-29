@@ -14,8 +14,9 @@ import subprocess
 from pathlib import Path
 
 FILENAME = 'eaos.policy.json'
+# .claude/worktrees: the working copies an AI assistant makes of the project inside it, whole copies of its code.
 VENDORED = ("testdata", "fixtures", "vendor", "node_modules", "third_party",
-            "generated", ".venv", "dist", "build", "components/ui")
+            "generated", ".venv", "dist", "build", "components/ui", ".claude/worktrees")
 
 
 def _include_vendored(target, path=None):

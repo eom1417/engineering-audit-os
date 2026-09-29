@@ -18,6 +18,17 @@ class VendoredDefaultsTests(unittest.TestCase):
             self.assertIn(name, VENDORED)
             self.assertIn(name, vendored_patterns())
 
+    def test_an_assistants_working_copy_inside_the_project_is_not_the_project(self):
+        """Claude Code keeps worktrees in .claude/worktrees/: whole copies of the code, which would count every file twice."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'app.py').write_text('def main():\n    return 1\n')
+            copy = root / '.claude/worktrees/agent-1'
+            copy.mkdir(parents=True)
+            (copy / 'app.py').write_text('def main():\n    return 1\n')
+            self.assertIn('.claude/worktrees', declared_exclusions(root))
+            self.assertEqual([item['path'] for item in Source(root).files], ['app.py'])
+
     def test_declared_exclusions_include_vendored(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = declared_exclusions(Path(tmp))

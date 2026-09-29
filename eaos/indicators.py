@@ -350,7 +350,7 @@ def runtime_values(projects):
 
     def executed_by_model(project):
         tasks = (project.artifact('execution-log') or {}).get('tasks') or []
-        return any(t['tool'] == 'model' and t['status'] == 'VERIFIED_IN_ISOLATED_COPY' and t['acceptance_exit'] == 0 for t in tasks)
+        return any(t['tool'] in ('model', 'assistant') and t['status'] == 'VERIFIED_IN_ISOLATED_COPY' and t['acceptance_exit'] == 0 for t in tasks)
     rows = per(projects, executed_by_model)
     values['E1'] = (1.0 if any(ok for _, ok in rows) else 0.0, 'a card executed by a model, verified in an isolated copy, acceptance passing: ' + text(rows))
 
