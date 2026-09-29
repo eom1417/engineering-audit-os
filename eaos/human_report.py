@@ -2,9 +2,16 @@
 
 The report's other files are written for AI agents and stay exactly as they are. This page reads the same
 records (plan.json, dossier.json, debt-register.json, target-architecture.json, gap-matrix.json,
-run-manifest.json) and shows four reports on one page: the project summary, the gaps and risks, the
-structure map, and the plan with its progress. No external asset, no network: inline CSS, inline SVG,
-a little inline JS. Every number on the page carries its meaning in words next to it.
+run-manifest.json, and the graph, flow and structure facts) and shows five reports on one page: the project
+summary, the gaps and risks, the structure map (today's parts, their imports, files, functions and pages;
+eaos/arch_map.py), the target structure with the gap each part has closed, and the plan with its progress
+and every task card. No external asset, no network: inline CSS, inline SVG, a little inline JS. Every
+number on the page carries its meaning in words next to it.
+
+Progress comes from the ledger when the caller passes one (progress={'waves': [...], 'ledger': L}): a card
+is closed when it is 'done' (an EAOS fix merged into the person's main branch) or 'resolved' (a later check
+no longer finds it); 'on_branch' waits for the person and is not closed. With no ledger, a card a batch
+kept counts as done, as before.
 
 What a problem is: one task card of plan.json. Its area and severity come from one table, PATTERNS below:
     pattern             area             default severity
@@ -52,7 +59,7 @@ from pathlib import Path
 from . import plain
 from .ranking import CONFIDENCE_WEIGHT
 
-SECTIONS = ('summary', 'gaps', 'structure', 'plan')
+SECTIONS = ('summary', 'gaps', 'structure', 'target', 'plan')
 HUNDRED = '<span data-meaning="the full score, and the file count a density is measured against">100</span>'
 SEVERITIES = ('critical', 'high', 'medium', 'low')
 SEVERITY_WEIGHT = {'critical': 10, 'high': 5, 'medium': 2, 'low': 1}
@@ -79,7 +86,7 @@ GRADES = ((90, 'excellent'), (75, 'good'), (60, 'fair'), (40, 'weak'), (0, 'crit
 W = {  # every fixed word of the page: (Arabic, English)
     'title': ('تقرير المشروع', 'Project report'),
     'summary': ('ملخص المشروع', 'Project summary'), 'gaps': ('الفجوات والمخاطر', 'Gaps and risks'),
-    'structure': ('خريطة البنية', 'Structure map'), 'plan': ('الخطة والتقدم', 'Plan and progress'),
+    'structure': ('خريطة البنية', 'Structure map'), 'target': ('البنية المستهدفة', 'Target'), 'plan': ('الخطة والتقدم', 'Plan and progress'),
     'security': ('الأمان', 'Security'), 'quality': ('جودة الكود', 'Code quality'),
     'performance': ('الأداء تحت الضغط', 'Performance under load'),
     'maintainability': ('سهولة التطوير والاختبار', 'Ease of change and testing'),
@@ -215,10 +222,24 @@ def model(report, progress=None):
     coverage = dossier.get('coverage') or {}
     plan = _load(report / 'plan.json', {}) or {}
     known = isinstance(plan.get('tasks'), list)
+    target = _load(report / 'target-architecture.json', {}) or {}
     return {'rows': rows, 'statuses': statuses, 'coverage': coverage,
-            'score': score(rows, coverage.get('source_files'), statuses, known), 'plan': plan, 'target': _load(report / 'target-architecture.json', {}) or {},
+            'score': score(rows, coverage.get('source_files'), statuses, known), 'plan': plan, 'target': target,
             'gap_matrix': _load(report / 'gap-matrix.json', {}) or {}, 'manifest': _load(report / 'run-manifest.json', {}) or {},
-            'dossier': dossier, 'progress': progress or {}}
+            'dossier': dossier, 'progress': progress or {}, **maps(report, target)}
+
+
+def maps(report, target):
+    """The architecture maps (eaos/arch_map.py); a missing or broken fact record leaves its map None."""
+    from . import arch_map
+    out = {'cmap': None, 'drill': None, 'flows': None}
+    try:
+        out['cmap'] = arch_map.component_map(report, target)
+        out['drill'] = arch_map.drill_data(report, out['cmap'])
+    except Exception: pass
+    try: out['flows'] = arch_map.flow_charts(report)
+    except Exception: pass
+    return out
 
 
 # ---------------------------------------------------------------- html helpers
@@ -448,6 +469,8 @@ def section_summary(m, name):
             f'{meter(s["score"])}'
             + (f'<p class="note">{T("وُجدت مشكلة حرجة مؤكدة، فلا تتجاوز الدرجة " + num(CRITICAL_CAP, "the cap when a confirmed critical problem exists") + " مهما كانت بقية المجالات.", "A confirmed critical problem exists, so the score stays at " + num(CRITICAL_CAP, "the cap when a confirmed critical problem exists") + " or below whatever the other areas show.")}</p>' if s['capped'] else '')
             + '</div></div>')
+    if isinstance(m['plan'].get('tasks'), list) or ledger_of(m):
+        out.append(gap_block(m, m.get('cards') or []))
     cards = []
     for area in AREAS:
         a = s['areas'][area]
@@ -721,10 +744,12 @@ def section_structure(m):
     if tcomps:
         out.append(f'<div class="card"><h4>{T("البنية المستهدفة", "The target structure")}</h4>'
                    f'<p class="muted small">{T("الطبقات من الأعلى (ما يراه المستخدم) إلى الأسفل (الأساس). كل طبقة تعتمد فقط على ما تحتها.", "Layers from the top (what users see) to the bottom (the foundation). Each layer depends only on those below it.")}</p>'
-                   f'{layer_diagram(tcomps, True)}{layer_diagram(tcomps, False)}</div>')
+                   f'{layer_diagram(tcomps, True)}{layer_diagram(tcomps, False)}'
+                   f'<p class="small"><a href="#target" data-go="target">{T("البنية المستهدفة كاملة وتقدّم كل جزء ←", "The full target structure and each part’s progress →")}</a></p></div>')
     else:
         out.append(f'<div class="card"><h4>{T("البنية المستهدفة", "The target structure")}</h4>{unavailable("target")}</div>')
     out.append('</div>')
+    out.append(architecture_map(m))
     out.append(f'<h3>{T("الفرق بين اليوم والمستهدف", "The difference between today and the target")}</h3><div class="card"><ul class="diff">{"".join(differences(m, items))}</ul></div>')
     out.append(cycles(m))
     out.append(f'<details class="card"><summary>{T("كل الأجزاء كجدول", "All parts as a table")}</summary><table class="tbl"><thead><tr>'
@@ -813,30 +838,25 @@ def cycles(m):
 def section_plan(m):
     plan, rows, progress = m['plan'], m['rows'], m['progress'] or {}
     by_id = {r['id']: r for r in rows}
-    kept, failed = set(), {}
-    for wave in progress.get('waves') or []:
-        kept |= set(wave.get('kept') or [])
-        failed.update(wave.get('failed') or {})
-    out = []
-    total, done = len(rows), len(kept & set(by_id))
-    out.append(f'<div class="grid three"><div class="card stat good-bg"><div class="stat-n">{num(done, "problems fixed so far")}</div><p>{T("مشاكل أُصلحت حتى الآن", "problems fixed so far")}</p></div>'
-               f'<div class="card stat"><div class="stat-n">{num(total - done, "problems left")}</div><p>{T("مشاكل باقية", "problems left")}</p></div>'
-               f'<div class="card stat warn-bg"><div class="stat-n">{num(len(failed), "fixes that were tried and did not pass")}</div><p>{T("إصلاحات جُرّبت ولم تنجح", "fixes tried that did not pass")}</p></div></div>')
+    _, failed = waves_state(progress)
+    cards = m.get('cards') or []
+    t = gap_totals(m, cards)
+    out = [f'<div class="grid three"><div class="card stat good-bg"><div class="stat-n">{num(t["closed"], "problems fixed and merged, or no longer found, so far")}</div><p>{T("مشاكل أُغلقت حتى الآن: أُصلحت ودُمجت أو لم تعد موجودة", "problems closed so far: fixed and merged, or no longer found")}</p></div>'
+           f'<div class="card stat"><div class="stat-n">{num(t["total"] - t["closed"], "problems left")}</div><p>{T("مشاكل باقية", "problems left")}</p></div>'
+           f'<div class="card stat"><div class="stat-n">{num(t["on_branch"], "fixes on a branch waiting for your decision")}</div><p>{T("إصلاحات على فرع تنتظر قرارك، لا تُحسب حتى تُدمج", "fixes on a branch waiting for your decision; not counted until merged")}</p></div>'
+           f'<div class="card stat warn-bg"><div class="stat-n">{num(len(failed), "fixes that were tried and did not pass")}</div><p>{T("إصلاحات جُرّبت ولم تنجح", "fixes tried that did not pass")}</p></div></div>']
     milestones = plan.get('milestones') or []
     if not milestones:
         out.append(f'<h3>{T("المراحل", "Milestones")}</h3>{unavailable("milestones")}')
     else:
         steps = []
         for index, stone in enumerate(milestones, 1):
-            tasks = [t for t in stone.get('tasks') or []]
-            finished = sum(t in kept for t in tasks)
+            mine = [c for c in cards if c['milestone'] == stone.get('id')]
+            tasks = mine or list(stone.get('tasks') or [])
+            finished = sum(c['state'] in CLOSED for c in mine)
             share = round(100 * finished / len(tasks)) if tasks else 0
-            name = stone.get('name') or ''
-            label = MILESTONE.get(name)
-            if not label and name.startswith('build:'):
-                label = (f'بناء {name[6:]}', f'Build {name[6:]}')
-            label = label or (name, name)
-            ready = sum(by_id[t]['auto'] for t in tasks if t in by_id)
+            label = milestone_label(stone)
+            ready = sum(by_id[t]['auto'] for t in stone.get('tasks') or [] if t in by_id)
             state = 'done' if tasks and finished == len(tasks) else 'active' if finished else 'todo'
             n_done, n_all = num(finished, 'cards finished in this milestone'), num(len(tasks), 'cards in this milestone')
             n_share, n_auto = num(f'{share}%', 'share finished'), num(ready, 'cards EAOS can fix automatically here')
@@ -850,6 +870,7 @@ def section_plan(m):
                 f'<div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{share}"><span style="width:{share}%"></span></div>'
                 f'<p class="small">{tally}</p></div></li>')
         out.append(f'<h3>{T("المراحل بالترتيب", "Milestones in order")}</h3><ol class="roadmap">{"".join(steps)}</ol>')
+    out.append(cards_block(card_groups(m, cards)))
     out.append(waves_block(progress, failed, by_id))
     out.append(decisions_block(rows))
     return ''.join(out)
@@ -902,12 +923,575 @@ def decisions_block(rows):
                    f'<div class="grid two">{"".join(cards)}</div>')
 
 
+# ---------------------------------------------------------------- progress: the ledger and every task card
+
+CLOSED = ('done', 'resolved')
+CARD_STATE = {  # state: (Arabic, English, chip colour); 'on_branch' is delivered, not merged, so it is not closed
+    'done': ('أُصلحت ودُمجت ✓', 'Done ✓ merged', 'good'), 'resolved': ('أُغلقت: لم تعد موجودة', 'Closed by a recheck', 'good'),
+    'on_branch': ('على فرع ينتظر قرارك', 'Waiting on a branch', 'warn'), 'in_batch': ('في الدفعة الحالية', 'In the current batch', 'accent'),
+    'open': ('مفتوحة', 'Open', 'plain'), 'skipped': ('تحتاج قرارًا', 'Needs a decision', 'bad')}
+STATE_ORDER = ('open', 'in_batch', 'on_branch', 'skipped', 'done', 'resolved')
+EVENT = {'baseline': ('الفحص الأول', 'first check'), 'merged': ('دُمجت دفعة', 'a batch merged'),
+         'recheck': ('إعادة فحص', 'a recheck'), 'delivered': ('سُلّمت دفعة على فرع', 'a batch delivered on a branch')}
+
+
+def ledger_of(m):
+    ledger = (m.get('progress') or {}).get('ledger')
+    return ledger if isinstance(ledger, dict) and isinstance(ledger.get('cards'), list) else None
+
+
+def waves_state(progress):
+    kept, failed = set(), {}
+    for wave in (progress or {}).get('waves') or []:
+        kept |= set(wave.get('kept') or [])
+        failed.update(wave.get('failed') or {})
+    return kept, failed
+
+
+def task_cards(m):
+    """Every card: the plan's rows with their ledger state, then the ledger's cards the plan no longer has (fixed ones).
+    With no ledger, a card kept by a batch is done and one that failed needs a decision, as before the ledger."""
+    stones = {t: s.get('id') for s in m['plan'].get('milestones') or [] if isinstance(s, dict) for t in s.get('tasks') or []}
+    ledger = ledger_of(m)
+    kept, failed = waves_state(m['progress'])
+    mine = {c.get('id'): c for c in (ledger or {}).get('cards') or [] if isinstance(c, dict) and c.get('id')}
+    out, seen = [], set()
+    for r in m['rows']:
+        c = mine.get(r['id']) or {}
+        state = c.get('state') if ledger else 'done' if r['id'] in kept else 'skipped' if r['id'] in failed else 'open'
+        seen.add(r['id'])
+        out.append({'id': r['id'], 'key': c.get('key') or r['id'], 'title': r['title'], 'pattern': r['pattern'], 'severity': r['severity'],
+                    'milestone': c.get('milestone') or stones.get(r['id']), 'paths': r['paths'], 'before': r['before'], 'after': r['after'] or r['change'],
+                    'state': state if state in CARD_STATE else 'open', 'new': bool(c.get('new')), 'batch': c.get('batch'), 'at': c.get('at'),
+                    'why': c.get('why') or ('' if ledger else failed.get(r['id'], '')), 'commit': c.get('commit')})
+    for c in (ledger or {}).get('cards') or []:
+        if not isinstance(c, dict) or (c.get('id') and c['id'] in seen): continue
+        pattern = c.get('pattern') or 'generic'
+        out.append({'id': c.get('id') or '', 'key': c.get('key') or '', 'title': c.get('title') or '', 'pattern': pattern,
+                    'severity': PATTERNS.get(pattern, PATTERNS['generic'])[1], 'milestone': c.get('milestone'), 'paths': c.get('paths') or [],
+                    'before': '', 'after': '', 'state': c.get('state') if c.get('state') in CARD_STATE else 'open', 'new': bool(c.get('new')),
+                    'batch': c.get('batch'), 'at': c.get('at'), 'why': c.get('why') or '', 'commit': c.get('commit')})
+    return out
+
+
+def gap_totals(m, cards):
+    """The ledger's totals when it has them, else counted from the cards; percent is closed / total."""
+    counts = {s: sum(c['state'] == s for c in cards) for s in CARD_STATE}
+    t = {'total': len(cards), 'closed': counts['done'] + counts['resolved'], 'new': sum(c['new'] for c in cards), **counts}
+    given = (ledger_of(m) or {}).get('totals')
+    if isinstance(given, dict):
+        t.update({k: v for k, v in given.items() if isinstance(v, (int, float)) and not isinstance(v, bool)})
+    t['percent'] = float(t['percent']) if 'percent' in (given or {}) else (100 * t['closed'] / t['total'] if t['total'] else 0.0)
+    return t
+
+
+def pct(value):
+    """A share in words a person reads: whole percents, one decimal under ten, and "<1%" rather than 0.4%."""
+    value = float(value or 0)
+    if value <= 0: return '0%'
+    if value < 1: return '<1%'
+    return f'{value:.1f}%'.replace('.0%', '%') if value < 10 else f'{round(value)}%'
+
+
+def bar(share, cls=''):
+    share = max(0, min(100, round(share or 0)))
+    return (f'<div class="progress {cls}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{share}">'
+            f'<span style="width:{share}%"></span></div>')
+
+
+def state_chip(state, words=CARD_STATE):
+    ar, en, tone = words[state]
+    return f'<span class="chip st st-{tone}" data-state="{state}">{T(esc(ar), esc(en))}</span>'
+
+
+def gap_block(m, cards, chart=True):
+    """How much of the gap is closed: only what is merged into the person's branch, or no longer found, counts."""
+    t, ledger = gap_totals(m, cards), ledger_of(m)
+    head = f'<h3 id="gap-closed">{T("كم أُغلق من الفجوة", "How much of the gap is closed")}</h3>'
+    if not t['total']:
+        return head + f'<div class="card">{T("لا مشاكل مفتوحة في الخطة: لا فجوة لإغلاقها.", "The plan has no problem to close: there is no gap.", "p")}</div>'
+    share = num(pct(t['percent']), 'share of the problems found that are closed: fixed and merged, or no longer found')
+    closed, total = num(t['closed'], 'problems closed'), num(t['total'], 'problems in the plan, fixed ones included')
+    parts = [(k, v) for k, v in (('done', t['done']), ('resolved', t['resolved']), ('on_branch', t['on_branch']),
+                                 ('in_batch', t['in_batch']), ('skipped', t['skipped']), ('open', t['open'])) if v]
+    meanings = {'done': 'problems fixed by EAOS and merged into your main branch', 'resolved': 'problems a later check no longer found',
+                'on_branch': 'problems fixed on a branch that waits for your decision; not counted until merged',
+                'in_batch': 'problems in the batch being fixed now', 'skipped': 'problems set aside that need your decision',
+                'open': 'problems not started yet'}
+    tally = ''.join(f'<li>{state_chip(k)} {num(v, meanings[k])}</li>' for k, v in parts)
+    if t.get('new'):
+        tally += f'<li><span class="chip st st-accent">{T("جديدة", "New")}</span> {num(t["new"], "problems a later check found for the first time")}</li>'
+    branch = num(t['on_branch'], meanings['on_branch'])
+    waiting = (f'<p class="small">{T(f"على فرع ينتظر قرارك: {branch}. لا تُحسب مغلقة حتى تدمجها.", f"Waiting on a branch for your decision: {branch}. They count as closed only once you merge them.")}</p>'
+               if t['on_branch'] else '')
+    updated = str((ledger or {}).get('updated') or '')[:10]
+    when = (f'<p class="muted small">{T("آخر تحديث:", "Last updated:")} {num(updated, "the date the progress was last updated")}</p>' if updated else '')
+    marker = ' data-part="progress-history"' if chart else ''
+    body = (f'<div class="card gap-card"{marker}><div class="gap-head"><div class="gap-n">{share}</div><div>'
+            f'<p class="lead">{T(f"من الفجوة أُغلق: {closed} من {total} مشكلة أُصلحت ودُمجت في فرعك الرئيسي، أو لم تعد موجودة.", f"of the gap is closed: {closed} of {total} problems are fixed and merged into your main branch, or no longer found.")}</p>'
+            f'{bar(t["percent"], "big")}</div></div><ul class="tally">{tally}</ul>{waiting}{when}')
+    if chart:
+        body += history_block((ledger or {}).get('history') or [])
+    return head + body + '</div>'
+
+
+def history_block(history):
+    points = [h for h in history if isinstance(h, dict) and h.get('at') and isinstance(h.get('percent'), (int, float))]
+    title = f'<h4>{T("التقدم عبر الوقت", "Progress over time")}</h4>'
+    if not points:
+        return title + T('يظهر الخط هنا بعد أول دفعة تُدمج أو أول إعادة فحص.', 'The line shows here after the first merged batch or the first recheck.', 'p', 'muted small')
+    rows = ''.join(f'<tr><td>{num(str(h["at"])[:10], "date of this event")}</td><td>{T(*map(esc, EVENT.get(h.get("event"), (h.get("event") or "", h.get("event") or ""))))}</td>'
+                   f'<td>{num(h.get("closed", 0), "problems closed by then")}</td><td>{num(h.get("total", 0), "problems in the plan then")}</td>'
+                   f'<td>{num(pct(h["percent"]), "share of the gap closed by then")}</td></tr>' for h in points)
+    table = (f'<details><summary>{T("عرض كجدول", "Show as a table")}</summary><table class="tbl"><thead><tr><th>{T("التاريخ", "Date")}</th>'
+             f'<th>{T("ما حدث", "What happened")}</th><th>{T("المغلق", "Closed")}</th><th>{T("المجموع", "Total")}</th><th>{T("النسبة", "Share")}</th></tr></thead>'
+             f'<tbody>{rows}</tbody></table></details>')
+    return title + history_chart(points) + table
+
+
+def history_chart(points):
+    """A step line of the share closed over time: it holds its value until the next event. One colour, labelled axes."""
+    from datetime import datetime
+    width, height, left, right, top, bottom = 760, 230, 52, 70, 16, 34
+    def when(h):
+        try: return datetime.fromisoformat(str(h['at']).replace('Z', '+00:00')).timestamp()
+        except ValueError: return None
+    times = [when(h) for h in points]
+    if None in times or max(times) == min(times): times = list(range(len(points)))
+    top_value = max(h['percent'] for h in points)
+    scale = next((s for s in (5, 10, 20, 25, 50, 100) if s >= top_value * 1.1), 100)
+    span = (max(times) - min(times)) or 1
+    X = lambda t: left + (width - left - right) * ((t - min(times)) / span if len(points) > 1 else 0.5)
+    Y = lambda v: top + (height - top - bottom) * (1 - min(v, scale) / scale)
+    out = [f'<svg viewBox="0 0 {width} {height}" direction="ltr" role="img" class="chart history" '
+           f'aria-label="{esc("share of the gap closed over time")}">']
+    for tick in (0, scale / 2, scale):
+        label = f'{tick:g}%'
+        out.append(f'<line x1="{left}" x2="{width - right}" y1="{Y(tick):.1f}" y2="{Y(tick):.1f}" class="grid"/>'
+                   f'<text x="{left - 8}" y="{Y(tick) + 4:.1f}" text-anchor="end" class="tick" data-meaning="share of the gap closed">{label}</text>')
+    marks = sorted({0, len(points) - 1, (len(points) - 1) // 2})
+    for i in marks:
+        out.append(f'<text x="{X(times[i]):.1f}" y="{height - 10}" text-anchor="middle" class="tick" data-meaning="date of this event">{esc(str(points[i]["at"])[:10])}</text>')
+    path = f'M{X(times[0]):.1f},{Y(points[0]["percent"]):.1f}'
+    for t, h in zip(times[1:], points[1:]):
+        path += f' H{X(t):.1f} V{Y(h["percent"]):.1f}'
+    area = path + f' V{Y(0):.1f} H{X(times[0]):.1f} Z'
+    out.append(f'<path d="{area}" class="area"/><path d="{path}" class="line"/>')
+    for t, h in zip(times, points):
+        words = f'{str(h["at"])[:10]}: {pct(h["percent"])} ({EVENT.get(h.get("event"), ("", h.get("event") or ""))[1]})'
+        out.append(f'<circle cx="{X(t):.1f}" cy="{Y(h["percent"]):.1f}" r="4.5" class="dot-pt" data-meaning="share of the gap closed on this date">'
+                   f'<title>{esc(words)}</title></circle>')
+    last = points[-1]
+    out.append(f'<text x="{X(times[-1]) + 10:.1f}" y="{Y(last["percent"]) + 4:.1f}" class="end-label" data-meaning="share of the gap closed now">{esc(pct(last["percent"]))}</text>')
+    return ''.join(out) + '</svg>'
+
+
+def card_item(c, words=CARD_STATE, extra=''):
+    """One task card, collapsed: its state and title; open, what it is, where, now and should-be, and when."""
+    new = f' <span class="chip st st-accent">{T("جديدة", "New")}</span>' if c.get('new') else ''
+    where = ' '.join(lit(p) for p in c['paths'][:6])
+    if len(c['paths']) > 6: where += ' ' + T(f'و{num(len(c["paths"]) - 6, "more files")} ملفات أخرى', f'and {num(len(c["paths"]) - 6, "more files")} more files')
+    lines = []
+    if c.get('pattern') in plain.TEXT:
+        (tar, why_ar), (ten, why_en) = plain.problem(c['pattern'], 'ar'), plain.problem(c['pattern'], 'en')
+        lines.append(f'<p><b>{T(esc(tar), esc(ten))}</b>: {T(esc(why_ar), esc(why_en))}</p>')
+    if where: lines.append(f'<div class="where">{T("أين:", "Where:", cls="lbl")} {where}</div>')
+    if c.get('before') or c.get('after'):
+        lines.append(f'<div class="nowto"><div><b>{T("الآن", "Now")}</b> {said(c["before"] or c["title"])}</div>'
+                     f'<div><b>{T("المطلوب", "Should be")}</b> {said(c["after"]) or T("لم يُحدَّد بعد؛ يقرره شخص.", "Not stated yet; a person decides.")}</div></div>')
+    lines.append(extra + (c.get('extra') or ''))
+    when = []
+    if c.get('batch') is not None: when.append(T(f'الدفعة {num(c["batch"], "batch number")}', f'batch {num(c["batch"], "batch number")}'))
+    if c.get('at'): when.append(T(f'بتاريخ {num(str(c["at"])[:10], "the date its state last changed")}', f'on {num(str(c["at"])[:10], "the date its state last changed")}'))
+    if c.get('commit'): when.append(T('في الإيداع', 'in commit') + ' ' + lit(str(c['commit'])[:12]))
+    if when: lines.append(f'<p class="muted small">{" · ".join(when)}</p>')
+    if c.get('why'): lines.append(f'<p class="small">{T("السبب:", "Why:", cls="lbl")} {said(c["why"])}</p>')
+    search = ' '.join([c.get('id') or '', c.get('title') or '', c.get('pattern') or '', *c['paths']]).lower()
+    return (f'<details class="tcard" data-state="{c["state"]}" data-new="{int(bool(c.get("new")))}" data-search="{esc(search)}">'
+            f'<summary>{state_chip(c["state"], words)}{new} {said(c["title"]) or lit(c.get("id") or c.get("key") or "")}'
+            f'{(" " + lit(c["id"])) if c.get("id") else ""}</summary><div class="tbody">{"".join(lines)}</div></details>')
+
+
+def cards_block(groups, words=CARD_STATE, total=None):
+    """"All task cards": collapsed; inside, a status filter, a search, and one collapsed group per milestone."""
+    count = num(total if total is not None else sum(len(cards) for _, _, cards in groups), 'all task cards')
+    options = ''.join(f'<option value="{s}" data-ar="{esc(words[s][0])}" data-en="{esc(words[s][1])}">{esc(words[s][0])}</option>'
+                      for s in STATE_ORDER if s in words)
+    if words is CARD_STATE: options += '<option value="new" data-ar="جديدة" data-en="New">جديدة</option>'
+    blocks = []
+    for label, stone, cards in groups:
+        if not cards: continue
+        closed = sum(c['state'] in CLOSED for c in cards)
+        tally = T(f'المغلق: {num(closed, "cards closed in this milestone")} من {num(len(cards), "cards in this milestone")}',
+                  f'{num(closed, "cards closed in this milestone")} of {num(len(cards), "cards in this milestone")} closed')
+        blocks.append(f'<details class="mgroup"><summary><span>{T(esc(label[0]), esc(label[1]))} {lit(stone) if stone else ""}</span>'
+                      f'<span class="g-meta">{tally}</span></summary>{bar(100 * closed / len(cards), "thin")}'
+                      f'<div class="tcards">{"".join(card_item(c, words) for c in cards)}</div></details>')
+    return (f'<details class="card allcards" id="allcards" data-part="cards"><summary>{T("كل بطاقات المهام", "All task cards")} '
+            f'<span class="g-meta">{T(f"البطاقات: {count}", f"{count} cards")}</span></summary>'
+            f'<p class="muted small">{T("كل بطاقة مشكلة واحدة وحالتها. افتح المرحلة ثم البطاقة لترى التفاصيل.", "Each card is one problem and its state. Open a milestone, then a card, to see the details.")}</p>'
+            f'<div class="filters cfilters" role="search"><select id="cstate"><option value="" data-ar="كل الحالات" data-en="All states">كل الحالات</option>{options}</select>'
+            f'<input type="search" id="cq" data-ph-ar="ابحث بعنوان أو ملف أو رقم بطاقة…" data-ph-en="Search a title, a file or a card id…" placeholder="ابحث بعنوان أو ملف أو رقم بطاقة…">'
+            f'<span class="muted" id="cshown" aria-live="polite"></span></div>{"".join(blocks) or unavailable("cards")}</details>')
+
+
+def milestone_label(stone):
+    name = stone.get('name') or ''
+    label = MILESTONE.get(name)
+    if not label and name.startswith('build:'): label = (f'بناء {name[6:]}', f'Build {name[6:]}')
+    if not label and stone.get('name_ar'): label = (stone['name_ar'], name)
+    return label or (name, name)
+
+
+def card_groups(m, cards):
+    stones = [s for s in m['plan'].get('milestones') or [] if isinstance(s, dict)]
+    groups = [(milestone_label(s), s.get('id') or '', [c for c in cards if c['milestone'] == s.get('id')]) for s in stones]
+    known = {s.get('id') for s in stones}
+    rest = [c for c in cards if c['milestone'] not in known]
+    if rest: groups.append((('بلا مرحلة', 'No milestone'), '', rest))
+    return groups
+
+
+# ---------------------------------------------------------------- architecture maps (the data and layout: eaos/arch_map.py)
+
+INSTABILITY = {'stable': ('مستقر: كثيرون يعتمدون عليه وهو يعتمد على القليل', 'stable: many rely on it, it relies on little'),
+               'balanced': ('متوازن: يعتمد ويُعتمد عليه بقدر متقارب', 'balanced: it relies on others about as much as they rely on it'),
+               'unstable': ('متغيّر: يعتمد على كثير ولا يعتمد عليه إلا القليل', 'changeable: it relies on much, little relies on it'),
+               'alone': ('منفصل: لا يستورد شيئًا ولا يستورده أحد', 'on its own: it imports nothing and nothing imports it')}
+COHESION = {'strong': ('قوي', 'strong'), 'medium': ('متوسط', 'medium'), 'weak': ('ضعيف', 'weak')}
+
+
+def files_word(n):
+    return 'file' if n == 1 else 'files'
+
+
+def fit(text, room):
+    """A name cut from the left to fit `room` characters: the end of a path says the most."""
+    text = str(text)
+    return text if len(text) <= room else '…' + text[-(room - 1):]
+
+
+def arrow_defs(suffix):
+    head = '<path d="M0,0 L8,4 L0,8 z" class="arrow-head{}"/>'
+    return ''.join(f'<marker id="{name}-{suffix}" viewBox="0 0 8 8" refX="7" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse">'
+                   f'{head.format(cls)}</marker>' for name, cls in (('arr', ''), ('arrc', ' cyc')))
+
+
+def graph_svg(cmap, rtl):
+    """Today's parts as boxes, left to right from what uses to what is used (mirrored in Arabic), and their imports."""
+    from .arch_map import NODE_W as BW, NODE_H as BH
+    width, height = cmap['width'], cmap['height'] + 60
+    X = (lambda x: width - x - BW) if rtl else (lambda x: x)
+    boxes = {n['id']: (X(n['x']), n['y']) for n in cmap['nodes']}
+    names = {n['id']: n['short'] for n in cmap['nodes']}
+    suffix = 'ar' if rtl else 'en'
+    label = 'أجزاء المشروع اليوم وما يستورده كل جزء من غيره' if rtl else 'The parts of the project today and what each imports from the others'
+    parts = [f'<svg viewBox="0 0 {width} {height}" width="{width}" height="{height}" style="width:{width}px" direction="ltr" role="img" '
+             f'class="chart cgraph hl-graph {"l-ar" if rtl else "l-en"}" aria-label="{esc(label)}"><defs>{arrow_defs(suffix)}</defs><g class="edges">']
+    for e in sorted(cmap['edges'], key=lambda e: e['cycle']):
+        (ax, ay), (bx, by) = boxes[e['from']], boxes[e['to']]
+        if not e['back']:
+            sx, ex = (ax, bx + BW) if rtl else (ax + BW, bx)
+            bend = max(30, abs(ex - sx) / 2) * (-1 if rtl else 1)
+            d = f'M{sx:.1f},{ay + BH / 2:.1f} C{sx + bend:.1f},{ay + BH / 2:.1f} {ex - bend:.1f},{by + BH / 2:.1f} {ex:.1f},{by + BH / 2:.1f}'
+        else:           # set aside to break a loop, or inside one layer: it goes back under the boxes
+            low = max(ay, by) + BH + 24 + min(abs(ax - bx) / 12, 30)
+            d = f'M{ax + BW / 2:.1f},{ay + BH:.1f} C{ax + BW / 2:.1f},{low:.1f} {bx + BW / 2:.1f},{low:.1f} {bx + BW / 2:.1f},{by + BH + 2:.1f}'
+        cls = 'edge' + (' cyc' if e['cycle'] else '') + (' wrong' if e['wrong'] else '')
+        count = e['n']
+        words = f'{names[e["from"]]} → {names[e["to"]]}: ' + (f'الاستيرادات {count}' if rtl else f'{count} imports')
+        parts.append(f'<path d="{d}" class="{cls}" style="stroke-width:{1 + 1.3 * math.log2(count):.1f}" '
+                     f'marker-end="url(#{"arrc" if e["cycle"] else "arr"}-{suffix})" data-from="{esc(e["from"])}" data-to="{esc(e["to"])}" '
+                     f'data-meaning="{count} imports from one part to the other"><title>{esc(words)}</title></path>')
+    parts.append('</g>')
+    for n in cmap['nodes']:
+        x, y = boxes[n['id']]
+        side, edge = ('right', x + BW - 10) if rtl else ('left', x + 10)
+        files, uses, used = n['files'], n['uses'], n['used_by']
+        line = f'ملفات {files} · يستخدم {uses} · يستخدمه {used}' if rtl else f'{files} {files_word(files)} · uses {uses} · used by {used}'
+        meaning = f'{files} files; it uses {uses} other parts; {used} parts use it'
+        parts.append(f'<g class="cg-node{" cyc" if n["cycle"] else ""}" data-node="{esc(n["id"])}" tabindex="0" data-meaning="{esc(meaning)}">'
+                     f'<title>{esc(n["name"])}</title><rect x="{x:.1f}" y="{y:.1f}" width="{BW}" height="{BH}" rx="8"/>'
+                     + svg_text(edge, y + 20, fit(n['short'], 24), 'cg-name', side, attrs=' data-literal="1"')
+                     + svg_text(edge, y + 38, line, 'cg-sub', side, rtl) + '</g>')
+    return ''.join(parts) + '</svg>'
+
+
+def cohesion_words(n):
+    if n['cohesion'] is None: return T('لا يستورد شيئًا', 'it imports nothing')
+    share = num(f'{n["cohesion"]}%', 'share of its imports that stay inside it')
+    ar, en = COHESION[n['cohesion_word']]
+    return T(f'{share} من استيراداته تبقى داخله ({esc(ar)})', f'{share} of its imports stay inside it ({esc(en)})')
+
+
+def link_list(pairs, names):
+    shown = sorted(pairs, key=lambda pk: -pk[1])[:8]
+    def one(p, k):
+        count = num(k, 'imports along this link')
+        return f'<span class="link">{lit(names[p])} {T(f"(الاستيرادات: {count})", f"({count} imports)", cls="muted")}</span>'
+    return ' '.join(one(p, k) for p, k in shown) or T('لا شيء', 'nothing')
+
+
+def node_detail(n, cmap):
+    """What a click on a part shows: its numbers in words, and the parts on each side of it."""
+    names = {x['id']: x['short'] for x in cmap['nodes']}
+    users = link_list([(e['from'], e['n']) for e in cmap['edges'] if e['to'] == n['id']], names)
+    uses = link_list([(e['to'], e['n']) for e in cmap['edges'] if e['from'] == n['id']], names)
+    files = num(n['files'], 'files in this part')
+    come, go = num(n['ca'], 'imports coming into this part'), num(n['ce'], 'imports going out of this part')
+    ar_i, en_i = INSTABILITY[n['instability']]
+    loop = (T('هذا الجزء في حلقة: ما يستورده يمكن أن يصل إليه من جديد.', 'This part is in a loop: what it imports can reach back to it.', 'p', 'bad-ink')
+            if n['cycle'] else '')
+    return (f'<div class="node-detail card" data-for="{esc(n["id"])}" hidden><h4>{lit(n["name"])}</h4>'
+            f'<p class="small">{T(f"الملفات: {files} · استيرادات داخلة: {come} · خارجة: {go}", f"{files} files · {come} imports come in · {go} go out")}</p>'
+            f'<p class="small">{T("الترابط الداخلي:", "Cohesion:", cls="lbl")} {cohesion_words(n)} · {T("الثبات:", "Stability:", cls="lbl")} {T(esc(ar_i), esc(en_i))}</p>'
+            f'{loop}<p class="small">{T("يستخدمه:", "Used by:", cls="lbl")} {users}</p><p class="small">{T("يستخدم:", "Uses:", cls="lbl")} {uses}</p></div>')
+
+
+def graph_legend():
+    sample = lambda cls, dash='': (f'<svg width="46" height="12" aria-hidden="true" class="key-line"><path d="M2,6 H44" class="edge {cls}"{dash}/></svg>')
+    return (f'<div class="heat-legend">'
+            f'<span class="heat-key">{sample("")}{T("أ ← ب: أ يستورد من ب؛ الخط الأسمك استيرادات أكثر", "A → B: A imports from B; a thicker line is more imports")}</span>'
+            f'<span class="heat-key">{sample("cyc")}{T("في حلقة: كل طرف يصل إلى الآخر", "in a loop: each end reaches the other")}</span>'
+            f'<span class="heat-key">{sample("wrong")}{T("عكس ترتيب الطبقات المستهدف", "against the target layering")}</span>'
+            f'<span class="heat-key"><i class="key-box cyc"></i>{T("جزء داخل حلقة", "a part inside a loop")}</span></div>')
+
+
+def metrics_table(cmap):
+    rows = []
+    for n in sorted(cmap['nodes'], key=lambda n: -(n['ca'] + n['ce'])):
+        ar_i, en_i = INSTABILITY[n['instability']]
+        loop = T('نعم', 'yes', cls='bad-ink') if n['cycle'] else T('لا', 'no')
+        rows.append(f'<tr><td>{lit(n["short"])}</td><td>{num(n["files"], "files in this part")}</td><td>{num(n["used_by"], "parts that use it")}</td>'
+                    f'<td>{num(n["uses"], "parts it uses")}</td><td>{num(n["ca"], "imports coming in")} / {num(n["ce"], "imports going out")}</td>'
+                    f'<td>{cohesion_words(n)}</td><td>{T(esc(ar_i), esc(en_i))}</td><td>{loop}</td></tr>')
+    return (f'<details><summary>{T("مقاييس كل جزء كجدول", "Every part’s measures as a table")}</summary><div class="scroll"><table class="tbl"><thead><tr>'
+            f'<th>{T("الجزء", "Part")}</th><th>{T("الملفات", "Files")}</th><th>{T("أجزاء تستخدمه", "Parts that use it")}</th><th>{T("أجزاء يستخدمها", "Parts it uses")}</th>'
+            f'<th>{T("استيرادات داخلة / خارجة", "Imports in / out")}</th><th>{T("الترابط الداخلي", "Cohesion")}</th><th>{T("الثبات", "Stability")}</th>'
+            f'<th>{T("في حلقة", "In a loop")}</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div></details>'
+            f'<p class="muted small">{T("الترابط الداخلي: نسبة استيرادات الجزء التي تبقى داخله؛ كلما زادت كان الجزء متماسكًا. الثبات: جزء يعتمد عليه كثيرون ولا يعتمد على غيره مستقر، وتغييره يمس الكثير؛ وجزء يعتمد على كثير متغيّر.", "Cohesion: the share of a part’s imports that stay inside it; the higher, the more the part holds together. Stability: a part many rely on and that relies on little is stable, and changing it touches much; one that relies on much is changeable.")}</p>')
+
+
+def architecture_map(m):
+    """The parts of today as a flowchart of their imports, with a drill-down to files and functions."""
+    from . import arch_map
+    cmap = m.get('cmap')
+    head = f'<h3 id="arch-map">{T("كيف تعتمد الأجزاء بعضها على بعض", "How the parts depend on each other")}</h3>'
+    if not cmap:
+        return head + unavailable('architecture map')
+    loops = sum(e['cycle'] for e in cmap['edges'])
+    wrong = sum(e['wrong'] for e in cmap['edges'])
+    parts, links = num(len(cmap['nodes']), 'parts drawn'), num(len(cmap['edges']), 'links between parts')
+    n_loops, n_wrong = num(loops, 'links inside a loop'), num(wrong, 'links against the target layering')
+    summary = T(f'الأجزاء: {parts} · الروابط بينها: {links} · روابط داخل حلقات: {n_loops} · روابط عكس الطبقات المستهدفة: {n_wrong}',
+                f'{parts} parts · {links} links between them · {n_loops} links inside loops · {n_wrong} links against the target layering')
+    capped = (T(f'رُسمت أكبر الأجزاء فقط؛ لم يُرسم {num(cmap["capped"], "parts left out of the drawing")} جزءًا صغيرًا.',
+                f'Only the largest parts are drawn; {num(cmap["capped"], "parts left out of the drawing")} small parts are left out.', 'p', 'muted small')
+              if cmap['capped'] else '')
+    controls = (f'<div class="graph-tools"><label class="check"><input type="checkbox" class="only-loops"> {T("الحلقات فقط", "Loops only")}</label>'
+                f'<button type="button" class="btn ghost fit-btn">{T("ملاءمة الشاشة / الحجم الحقيقي", "Fit to screen / actual size")}</button></div>')
+    details = ''.join(node_detail(n, cmap) for n in cmap['nodes'])
+    out = [head, f'<div class="card graph-wrap" data-part="arch-map"><p class="muted small">{T("كل مربع جزء من المشروع اليوم (مجلد). السهم من الجزء الذي يستورد إلى الجزء الذي يُستورد منه، وسمكه بعدد الاستيرادات. الأجزاء التي تستخدم غيرها على اليمين، والأساس الذي يستخدمه الجميع على اليسار. مرّر المؤشر على جزء لترى روابطه، أو اضغط عليه لتثبيتها وترى مقاييسه.", "Each box is a part of the project today (a folder). An arrow goes from the part that imports to the part it imports from; its thickness is the number of imports. Parts that use others are on the left, the foundation everything uses on the right. Hover a part to see its links, or click it to keep them and see its measures.")}</p>'
+           f'<p class="small">{summary}</p>{capped}{graph_legend()}{controls}<div class="graph-scroll">{graph_svg(cmap, True)}{graph_svg(cmap, False)}</div>'
+           f'{details}{metrics_table(cmap)}</div>']
+    drill = m.get('drill')
+    if drill:
+        cap = drill['capped']
+        notes = []
+        if cap['files']: notes.append(T(f'في الأجزاء الكبيرة عُرض أول {num(arch_map.MAX_FILES, "files shown per part at most")} ملف فقط.', f'In large parts only the first {num(arch_map.MAX_FILES, "files shown per part at most")} files are listed.'))
+        if cap['calls']: notes.append(T(f'عُرضت أكثر الاستدعاءات تكرارًا فقط، وتُرك {num(cap["calls"], "calls between functions left out")} استدعاءً.', f'Only the most frequent calls are shown; {num(cap["calls"], "calls between functions left out")} are left out.'))
+        first = max(range(len(cmap['nodes'])), key=lambda i: cmap['nodes'][i]['ca'], default=0)
+        options = ''.join(f'<option value="{i}" data-literal="1"{" selected" if i == first else ""}>{esc(c["name"])}</option>' for i, c in enumerate(drill['comps']))
+        out.append(f'<div class="card drill" data-part="arch-drill"><h4>{T("داخل جزء: ملفاته ودواله", "Inside a part: its files and functions")}</h4>'
+                   f'<p class="muted small">{T("اختر جزءًا: في الوسط ملفاته والخطوط الملونة بينها استيراداتها الداخلية؛ على جانب الأجزاء التي تستخدمه، وعلى الجانب الآخر الأجزاء التي يستخدمها. اضغط على ملف لترى دواله ومن يستدعي من.", "Choose a part: in the middle its files, the coloured arcs between them the imports inside it; on one side the parts that use it, on the other the parts it uses. Click a file to see its functions and who calls whom.")}</p>'
+                   f'<p class="muted small">{" ".join(notes)}</p>'
+                   f'<label class="pick">{T("الجزء:", "Part:")} <select id="dcomp" data-literal="1">{options}</select></label>'
+                   f'<div id="dview" class="ego"></div><div id="dfile" class="ego"></div></div>'
+                   + arch_map.json_script('eaos-drill', drill))
+    flows = m.get('flows')
+    head = f'<h3 id="flows">{T("الصفحات وما تستدعيه", "Pages and what they call")}</h3>'
+    if not flows:
+        out.append(head + unavailable('flows'))
+    else:
+        options = ''.join(f'<option value="{i}" data-literal="1">{esc(" ".join(x for x in (f["method"], f["route"] or "?") if x))} — {esc(f["handler"])}</option>'
+                          for i, f in enumerate(flows))
+        out.append(head + f'<div class="card" data-part="flows"><p class="muted small">{T("اختر صفحة أو نقطة دخول: يُرسم مسارها من الرابط إلى الدالة التي تستقبله، ثم كل دالة تستدعيها بالترتيب، مجمّعة حسب الملف. حيث لا يستطيع التتبع أن يكمل، يقول المربع المنقّط إن التتبع يتوقف هنا.", "Choose a page or an entry point: its path is drawn from the route to the function that receives it, then every function it calls in order, grouped by file. Where the trace cannot go on, a dotted box says it stops there.")}</p>'
+                   f'<label class="pick">{T("الصفحة:", "Page:")} <select id="dflow" data-literal="1">{options}</select></label><div id="fview" class="flowchart"></div></div>'
+                   + arch_map.json_script('eaos-flows', {'box': [arch_map.FLOW_W, arch_map.FLOW_H], 'flows': flows}))
+    return ''.join(out)
+
+
+# ---------------------------------------------------------------- the target: layers, the way from today, the gap closed
+
+TBOX_W, TBOX_H, TBOX_GAP, TLABEL, TWIDTH, TROW_GAP = 146, 62, 10, 150, 1100, 26
+
+
+def target_rows(tcomps, order=None):
+    """[(layer, [components])], from what users see down to the foundation."""
+    layers = {}
+    for c in tcomps:
+        layers.setdefault(c.get('layer') or c.get('name') or '?', []).append(c)
+    order = order or LAYER_ORDER
+    names = sorted(layers, key=lambda name: (order.index(name) if name in order else len(order), name))
+    return [(name, sorted(layers[name], key=lambda c: (c.get('name') != name, -(c.get('files') or 0), c.get('name') or ''))) for name in names]
+
+
+def target_svg(rows, edges, progress, rtl, done=('أُغلق', 'closed')):
+    """The target as layers of boxes; every allowed link drawn faint, strong for the part under the pointer.
+    A component may bring its own second line as c['sub'] = (Arabic, English); `done` names what its bar counts."""
+    per_line = (TWIDTH - TLABEL) // (TBOX_W + TBOX_GAP)
+    boxes, y, parts, labels = {}, 8, [], []
+    for layer, comps in rows:
+        lines = [comps[i:i + per_line] for i in range(0, len(comps), per_line)] or [[]]
+        band = len(lines) * (TBOX_H + TBOX_GAP) - TBOX_GAP
+        labels.append(f'<rect x="0" y="{y - 4}" width="{TWIDTH}" height="{band + 8}" rx="8" class="t-band"/>'
+                      + svg_text(TWIDTH - 10 if rtl else 10, y + band / 2 + 5, layer, 't-layer', 'right' if rtl else 'left', attrs=' data-literal="1"'))
+        for line in lines:
+            for p, c in enumerate(line):
+                x = TLABEL + p * (TBOX_W + TBOX_GAP)
+                boxes[c.get('name')] = ((TWIDTH - x - TBOX_W) if rtl else x, y)
+            y += TBOX_H + TBOX_GAP
+        y += TROW_GAP - TBOX_GAP
+    height = y
+    suffix = 't-ar' if rtl else 't-en'
+    label = 'البنية المستهدفة طبقة طبقة' if rtl else 'The target structure, layer by layer'
+    parts.append(f'<svg viewBox="0 0 {TWIDTH} {height}" direction="ltr" role="img" class="chart tgraph hl-graph {"l-ar" if rtl else "l-en"}" '
+                 f'aria-label="{esc(label)}"><defs>{arrow_defs(suffix)}</defs>{"".join(labels)}<g class="edges">')
+    for e in edges:
+        if e.get('from') not in boxes or e.get('to') not in boxes: continue
+        (ax, ay), (bx, by) = boxes[e['from']], boxes[e['to']]
+        sx, ex = ax + TBOX_W / 2, bx + TBOX_W / 2
+        if by > ay + 1: d = f'M{sx:.1f},{ay + TBOX_H:.1f} C{sx:.1f},{ay + TBOX_H + 40:.1f} {ex:.1f},{by - 40:.1f} {ex:.1f},{by:.1f}'
+        elif by < ay - 1: d = f'M{sx:.1f},{ay:.1f} C{sx:.1f},{ay - 40:.1f} {ex:.1f},{by + TBOX_H + 40:.1f} {ex:.1f},{by + TBOX_H:.1f}'
+        else: d = f'M{sx:.1f},{ay + TBOX_H:.1f} C{sx:.1f},{ay + TBOX_H + 22:.1f} {ex:.1f},{by + TBOX_H + 22:.1f} {ex:.1f},{by + TBOX_H:.1f}'
+        count = e.get('imports') or 1
+        words = f'{e["from"]} → {e["to"]}' + (f': {count}' if e.get('imports') else '')
+        parts.append(f'<path d="{d}" class="edge t-edge" style="stroke-width:{1 + math.log2(count):.1f}" marker-end="url(#arr-{suffix})" '
+                     f'data-from="{esc(e["from"])}" data-to="{esc(e["to"])}" data-meaning="{count} imports the target allows along this link">'
+                     f'<title>{esc(words)}</title></path>')
+    parts.append('</g>')
+    for layer, comps in rows:
+        for c in comps:
+            name = c.get('name') or ''
+            x, y0 = boxes[name]
+            closed, total = progress.get(name, (0, 0))
+            files = c.get('files') or 0
+            side, edge = ('right', x + TBOX_W - 8) if rtl else ('left', x + 8)
+            if total:
+                words = f'{done[0]} {closed} من {total}' if rtl else f'{closed} of {total} {done[1]}'
+            else:
+                words = 'لا مشاكل فيه' if rtl else 'no problem in it'
+            sub = (c['sub'][0 if rtl else 1] if c.get('sub') else f'ملفات {files}' if rtl else f'{files} {files_word(files)}')
+            share = (TBOX_W - 16) * closed / total if total else 0
+            meaning = f'{files} files; {closed} of the {total} problems in its files are closed'
+            tip = f'{name}: {c.get("responsibility") or ""}'
+            parts.append(f'<g class="t-node{" empty" if not files and not c.get("sub") else ""}" data-node="{esc(name)}" tabindex="0" data-meaning="{esc(meaning)}"><title>{esc(tip)}</title>'
+                         f'<rect x="{x:.1f}" y="{y0:.1f}" width="{TBOX_W}" height="{TBOX_H}" rx="7"/>'
+                         + svg_text(edge, y0 + 17, fit(name, 19), 't-name', side, attrs=' data-literal="1"')
+                         + svg_text(edge, y0 + 33, sub + ' · ' + words, 't-sub', side, rtl)
+                         + f'<rect x="{x + 8:.1f}" y="{y0 + TBOX_H - 16:.1f}" width="{TBOX_W - 16}" height="6" rx="3" class="t-track"/>'
+                         + (f'<rect x="{(x + TBOX_W - 8 - share) if rtl else x + 8:.1f}" y="{y0 + TBOX_H - 16:.1f}" width="{share:.1f}" height="6" rx="3" class="t-fill"/>' if share else '')
+                         + '</g>')
+    return ''.join(parts) + '</svg>'
+
+
+def target_detail(c, progress, sources):
+    name = c.get('name') or ''
+    closed, total = progress.get(name, (0, 0))
+    share = 100 * closed / total if total else 0
+    from_today = ' '.join(lit(s) for s in sources) or T('لا جزء اليوم؛ يُبنى جديدًا', 'no part today; it is built new')
+    tally = (T(f'أُغلق {num(closed, "problems closed in this target part")} من {num(total, "problems in this target part")} ({num(pct(share), "share closed")})',
+               f'{num(closed, "problems closed in this target part")} of {num(total, "problems in this target part")} closed ({num(pct(share), "share closed")})')
+             if total else T('لا مشاكل في ملفاته.', 'No problem in its files.'))
+    files = num(c.get('files') or 0, 'files that belong to this target part')
+    return (f'<div class="node-detail card" data-for="{esc(name)}" hidden><h4>{lit(name)} <span class="muted small">{T("الطبقة:", "layer:")} {lit(c.get("layer") or "")}</span></h4>'
+            f'<p class="small">{T("مسؤوليته:", "Its job:", cls="lbl")} {tech(c.get("responsibility")) or T("لم تُكتب بعد.", "not written yet.")}</p>'
+            f'<p class="small">{T(f"الملفات: {files}", f"{files} files")} · {tally}</p>{bar(share, "thin")}'
+            f'<p class="small">{T("يأتي من اليوم:", "Comes from today’s:", cls="lbl")} {from_today}</p></div>')
+
+
+RELATION_STYLE = {'retain': 'r-keep', 'modify': 'r-modify', 'rebuild': 'r-rebuild', 'delete': 'r-remove', 'retire': 'r-remove', 'introduce': 'r-modify', 'build': 'r-modify'}
+
+
+def mapping_svg(current, order, rtl, root=''):
+    """Today's parts on one side, their place in the target on the other, a line for each: its style says what happens."""
+    row, width, gap = 24, 1100, 380
+    targets = []
+    for c in sorted(current, key=lambda c: (order.index(c.get('target_component')) if c.get('target_component') in order else len(order), c.get('name') or '')):
+        if c.get('target_component') and c.get('target_component') not in targets: targets.append(c['target_component'])
+    left = sorted(current, key=lambda c: (targets.index(c['target_component']) if c.get('target_component') in targets else len(targets), c.get('name') or ''))
+    height = max(len(left), len(targets), 1) * row + 20
+    step = (height - 20) / max(len(targets), 1)
+    ly = {c.get('id'): 10 + i * row + row / 2 for i, c in enumerate(left)}
+    ty = {t: 10 + i * step + step / 2 for i, t in enumerate(targets)}
+    a, b = (width - gap, gap) if rtl else (gap, width - gap)      # the line's two ends: today, and the target
+    label = 'كل جزء اليوم ومكانه في البنية المستهدفة' if rtl else 'Each part today and its place in the target structure'
+    out = [f'<svg viewBox="0 0 {width} {height}" direction="ltr" role="img" class="chart mapping {"l-ar" if rtl else "l-en"}" aria-label="{esc(label)}">']
+    for c in left:
+        t = c.get('target_component')
+        relation = c.get('relation') or ''
+        words = RELATION.get(relation, (relation, relation))[0 if rtl else 1]
+        name = c.get('name') or c.get('id') or ''
+        tip = f'{name} → {t or "—"}: {words}'
+        name = name[len(root):] if root and name.startswith(root) and name != root else name
+        y1 = ly[c.get('id')]
+        out.append(f'<g class="map-row" data-literal="1"><title>{esc(tip)}</title>'
+                   + svg_text(a + (10 if rtl else -10), y1 + 4, fit(name, 44), 'm-name', 'left' if rtl else 'right')
+                   + (f'<path d="M{a},{y1:.1f} C{(a + b) / 2:.1f},{y1:.1f} {(a + b) / 2:.1f},{ty[t]:.1f} {b},{ty[t]:.1f}" class="m-line {RELATION_STYLE.get(relation, "r-modify")}"/>' if t in ty else '')
+                   + '</g>')
+    for t, y1 in ty.items():
+        out.append(f'<g class="map-row" data-literal="1">' + svg_text(b + (-10 if rtl else 10), y1 + 4, fit(t, 40), 'm-target', 'right' if rtl else 'left') + '</g>')
+    return ''.join(out) + '</svg>'
+
+
+def section_target(m):
+    target = m['target']
+    tcomps = [c for c in target.get('target_components') or [] if isinstance(c, dict) and c.get('name')]
+    cards = m.get('cards') or []
+    out = [gap_block(m, cards, chart=False)]
+    if not tcomps:
+        return ''.join(out) + f'<h3>{T("البنية المستهدفة", "The target structure")}</h3>{unavailable("target")}'
+    from .arch_map import target_progress
+    progress = target_progress(target, cards, CLOSED)
+    edges = [e for e in target.get('target_edges') or [] if isinstance(e, dict)]
+    rows = target_rows(tcomps)
+    current = [c for c in target.get('current_components') or [] if isinstance(c, dict)]
+    sources = {}
+    for c in current: sources.setdefault(c.get('target_component'), []).append(c.get('name') or c.get('id') or '')
+    n_parts, n_layers, n_links = num(len(tcomps), 'parts in the target structure'), num(len(rows), 'layers in the target'), num(len(edges), 'links the target allows')
+    out.append(f'<h3>{T("البنية المستهدفة: ما سيصبح عليه البرنامج", "The target structure: what the program will become")}</h3>'
+               f'<div class="card graph-wrap" data-part="target-map"><p class="muted small">{T("كل صف طبقة، من الأعلى (ما يراه المستخدم) إلى الأسفل (الأساس)، وكل مربع جزء له مسؤولية واحدة. الشريط الأخضر في المربع: كم أُغلق من المشاكل في ملفاته. مرّر المؤشر أو اضغط على جزء لترى مسؤوليته وروابطه المسموحة ومن أين يأتي من البنية اليوم.", "Each row is a layer, from the top (what users see) to the bottom (the foundation); each box is a part with one job. The green bar in a box: how much of the problems in its files is closed. Hover or click a part to see its job, its allowed links and where it comes from in today’s structure.")}</p>'
+               f'<p class="small">{T(f"الأجزاء: {n_parts} · الطبقات: {n_layers} · الروابط المسموحة: {n_links}", f"{n_parts} parts · {n_layers} layers · {n_links} allowed links")}</p>'
+               f'<div class="graph-scroll">{target_svg(rows, edges, progress, True)}{target_svg(rows, edges, progress, False)}</div>'
+               + ''.join(target_detail(c, progress, sources.get(c['name'], [])) for c in tcomps) + '</div>')
+    if current:
+        order = [c['name'] for _, comps in rows for c in comps]
+        keys = ''.join(f'<span class="heat-key"><svg width="46" height="12" aria-hidden="true" class="key-line"><path d="M2,6 H44" class="m-line {RELATION_STYLE[r]}"/></svg>'
+                       f'{T(*map(esc, RELATION[r]))}</span>' for r in ('retain', 'modify', 'rebuild', 'delete') if any(c.get('relation') == r for c in current))
+        out.append(f'<h3>{T("من اليوم إلى المستهدف", "From today to the target")}</h3><div class="card" data-part="target-mapping"><p class="muted small">'
+                   f'{T("على جانب أجزاء البرنامج اليوم، وعلى الآخر مكان كل منها في البنية المستهدفة. شكل الخط يقول ماذا يحدث للجزء.", "On one side the parts of the program today, on the other where each goes in the target structure. The style of the line says what happens to the part.")}</p>'
+                   f'<div class="heat-legend">{keys}</div><div class="graph-scroll">{mapping_svg(current, order, True, target.get("root") or "")}{mapping_svg(current, order, False, target.get("root") or "")}</div></div>')
+    table = ''.join(
+        f'<tr><td>{lit(c["name"])}</td><td>{lit(c.get("layer") or "")}</td><td>{num(c.get("files") or 0, "files in this target part")}</td>'
+        f'<td>{" ".join(lit(s) for s in sources.get(c["name"], [])) or T("جديد", "new")}</td>'
+        f'<td>{num(progress.get(c["name"], (0, 0))[0], "problems closed here")} / {num(progress.get(c["name"], (0, 0))[1], "problems in this part")}'
+        f'{bar(100 * progress[c["name"]][0] / progress[c["name"]][1], "thin") if progress.get(c["name"], (0, 0))[1] else ""}</td></tr>'
+        for _, comps in rows for c in comps)
+    out.append(f'<h3>{T("إغلاق الفجوة في كل جزء مستهدف", "The gap closed in each target part")}</h3><div class="card scroll"><p class="muted small">'
+               f'{T("تُحسب المشكلة في كل جزء مستهدف تذهب إليه أحد ملفاتها. المغلق: ما أُصلح ودُمج أو لم يعد موجودًا.", "A problem counts in every target part one of its files goes to. Closed: fixed and merged, or no longer found.")}</p>'
+               f'<table class="tbl"><thead><tr><th>{T("الجزء المستهدف", "Target part")}</th><th>{T("الطبقة", "Layer")}</th><th>{T("الملفات", "Files")}</th>'
+               f'<th>{T("يأتي من اليوم", "Comes from today’s")}</th><th>{T("المغلق من المشاكل", "Problems closed")}</th></tr></thead><tbody>{table}</tbody></table></div>')
+    return ''.join(out)
+
+
 # ---------------------------------------------------------------- page
 
 def render(m, name, lang='ar'):
     parts = {}
+    try: m = dict(m, cards=task_cards(m))
+    except Exception: m = dict(m, cards=[])
     for section, build in (('summary', lambda: section_summary(m, name)), ('gaps', lambda: section_gaps(m)),
-                           ('structure', lambda: section_structure(m)), ('plan', lambda: section_plan(m))):
+                           ('structure', lambda: section_structure(m)), ('target', lambda: section_target(m)), ('plan', lambda: section_plan(m))):
         try: parts[section] = build()
         except Exception as error:     # one broken record costs its section, not the page or the audit
             parts[section] = unavailable(section, error)
@@ -915,10 +1499,12 @@ def render(m, name, lang='ar'):
                          'The health of the project on one page: the score, the five areas, the main problems, and what we did not check.'),
              'gaps': ('كل مشكلة: أين هي، وما حالها الآن وما المطلوب، وخطورتها، وهل يصلحها EAOS آليًا.',
                       'Every problem: where it is, what it is now and what it should be, how serious it is, and whether EAOS fixes it.'),
-             'structure': ('أجزاء المشروع اليوم وأين تتركز المشاكل، والبنية التي نقترحها بجانبها.',
-                           'The parts of the project today and where problems gather, with the structure we propose beside it.'),
-             'plan': ('ترتيب العمل مرحلة بعد مرحلة، وما أُنجز، وما ينتظر قرارك.',
-                      'The order of the work, milestone by milestone, what is done, and what waits for your decision.')}
+             'structure': ('أجزاء المشروع اليوم وأين تتركز المشاكل، وكيف يعتمد كل جزء على غيره، حتى الملفات والدوال والصفحات.',
+                           'The parts of the project today, where problems gather, and how each depends on the others, down to files, functions and pages.'),
+             'target': ('ما سيصبح عليه البرنامج: طبقاته وأجزاؤه، ومن أين يأتي كل جزء من اليوم، وكم أُغلق من الفجوة في كل جزء.',
+                        'What the program will become: its layers and parts, where each part comes from today, and how much of the gap each has closed.'),
+             'plan': ('ترتيب العمل مرحلة بعد مرحلة، وما أُنجز، وكل بطاقة مهمة وحالتها، وما ينتظر قرارك.',
+                      'The order of the work, milestone by milestone, what is done, every task card and its state, and what waits for your decision.')}
     nav = ''.join(f'<a href="#{s}" data-tab="{s}">{w(s)}</a>' for s in SECTIONS)
     body = ''.join(f'<section id="{s}" class="report" data-report="{s}"><header class="sec-head"><h2>{w(s)}</h2>'
                    f'<p class="muted">{T(*map(esc, intro[s]))}</p></header>{parts[s]}</section>' for s in SECTIONS)
@@ -934,12 +1520,12 @@ def render(m, name, lang='ar'):
             f'<nav class="tabs wrap" aria-label="reports">{nav}</nav></header>'
             f'<main class="wrap">{body}</main><footer class="wrap muted small">'
             f'{T("هذه الصفحة للقراءة. الملفات التقنية في المجلد نفسه مكتوبة للمساعد الذكي ولم تتغير.", "This page is for reading. The technical files in the same folder are written for the AI assistant and are unchanged.")}'
-            f'</footer><script>{JS}</script></body></html>')
+            f'</footer><script>{JS}{MAP_JS}</script></body></html>')
 
 
 def empty(progress=None):
     return {'rows': [], 'statuses': {}, 'coverage': {}, 'score': score([], 0, known=False), 'plan': {}, 'target': {},
-            'gap_matrix': {}, 'manifest': {}, 'dossier': {}, 'progress': progress or {}}
+            'gap_matrix': {}, 'manifest': {}, 'dossier': {}, 'progress': progress or {}, 'cmap': None, 'drill': None, 'flows': None}
 
 
 def write(report, lang='ar', name=None, progress=None):
@@ -1010,7 +1596,7 @@ class _Reader(HTMLParser):
 def readability_problems(html_text):
     """What stops a person from reading the page; an empty list means it passes.
 
-    The rules: the four reports exist (section ids summary, gaps, structure, plan, each with data-report);
+    The rules: the five reports exist (section ids summary, gaps, structure, target, plan, each with data-report);
     a severity legend (data-legend="severity") defines all four levels; both languages are present
     (class l-ar and l-en); every number in visible text sits inside an element with a non-empty
     data-meaning attribute, unless it is part of a literal (data-literal: a file path or an identifier);
@@ -1134,6 +1720,59 @@ html[dir=rtl] .marker{transform:translateX(50%)}
 .decision .count{font-size:13px;color:var(--muted);font-weight:500}.answers{margin:4px 0;padding-inline-start:20px;font-size:14px}.ids{display:flex;flex-wrap:wrap;gap:4px}
 .options{font-size:14px}.fails{font-size:14px}.na{color:var(--muted)}
 footer{padding-top:10px;padding-bottom:40px}
+.gap-card{display:block}.gap-head{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center}
+.gap-n{font-size:54px;font-weight:800;color:var(--good);line-height:1;min-width:120px;text-align:center}.gap-card .lead{margin:0 0 10px}
+.progress.big{height:16px}.progress.thin{height:6px;margin:6px 0}
+.tally{list-style:none;padding:0;margin:14px 0 4px;display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px}.tally li{display:flex;gap:6px;align-items:center}
+.tally .n{font-weight:800;font-size:16px}
+.chip.st{font-weight:600}.st-good{background:var(--good-soft);color:var(--good)}.st-warn{background:var(--warn-soft);color:var(--warn)}
+.st-accent{background:var(--accent-soft);color:var(--accent)}.st-bad{background:var(--bad-soft);color:var(--bad)}.st-plain{background:var(--surface-2);color:var(--ink-2)}
+.chart.history{max-width:760px;margin-top:6px}.history .grid{stroke:var(--line);stroke-width:1}.history .tick{font-size:12px;fill:var(--muted)}
+.history .line{fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linejoin:round}.history .area{fill:var(--accent);opacity:.08}
+.history .dot-pt{fill:var(--accent);stroke:var(--surface);stroke-width:2}.history .end-label{font-size:13px;font-weight:700;fill:var(--ink)}
+.allcards>summary{font-size:17px;display:flex;justify-content:space-between;gap:10px}.cfilters{position:static;margin:10px 0;box-shadow:none;border:0;padding:0}
+.mgroup{border:1px solid var(--line);border-radius:12px;padding:8px 14px;margin:8px 0;background:var(--bg)}
+.mgroup>summary{display:flex;justify-content:space-between;gap:10px;color:var(--ink)}.mgroup[hidden],.tcard[hidden]{display:none!important}
+.tcards{display:grid;gap:6px;margin-top:6px}.tcard{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:4px 12px}
+.tcard>summary{color:var(--ink);font-weight:500;font-size:14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}.tcard>summary .lit{margin-inline-start:auto}
+.tcard>summary .said{flex:1 1 320px;min-width:0;font-size:14px;color:var(--ink)}.tbody{font-size:14px;padding:4px 0 8px}.tbody p{margin:6px 0}.bad-ink{color:var(--bad);font-weight:600}
+.graph-scroll{overflow:auto;max-height:78vh;border:1px solid var(--line);border-radius:10px;background:var(--bg);margin-top:10px}
+.graph-scroll .chart{max-width:none}.fit .graph-scroll .cgraph{width:100%!important;height:auto}
+.graph-tools{display:flex;gap:14px;align-items:center;margin-top:8px;flex-wrap:wrap}
+.cgraph .cg-node rect{fill:var(--surface);stroke:var(--line);stroke-width:1.5}.cgraph .cg-node.cyc rect{stroke:var(--bad);stroke-width:2}
+.cg-node{cursor:pointer}.cg-node:focus{outline:none}.cg-node:focus rect,.t-node:focus rect{stroke:var(--accent);stroke-width:2.5}
+.cg-name{font:600 12px ui-monospace,Menlo,Consolas,monospace;fill:var(--ink)}.cg-sub{font-size:11px;fill:var(--ink-2)}
+.edge{fill:none;stroke:var(--ink-2);opacity:.28}.edge.cyc{stroke:var(--bad);opacity:.5}.edge.wrong{stroke-dasharray:6 4}
+.arrow-head{fill:var(--ink-2)}.arrow-head.cyc{fill:var(--bad)}.arrow-head.acc{fill:var(--accent)}
+.hl-graph.focus .edge{opacity:.06}.hl-graph.focus .edge.on{opacity:.95}.hl-graph.focus .cg-node,.hl-graph.focus .t-node{opacity:.35}
+.hl-graph.focus .cg-node.on,.hl-graph.focus .t-node.on{opacity:1}.hl-graph .on rect{stroke:var(--accent);stroke-width:2.5}
+.loops .edge:not(.cyc){display:none}
+.key-line{vertical-align:middle}.key-line .edge{opacity:.9;stroke-width:2.5}.key-box{width:16px;height:12px;border-radius:3px;display:inline-block;border:2px solid var(--line)}.key-box.cyc{border-color:var(--bad)}
+.node-detail{margin-top:10px;background:var(--surface-2);box-shadow:none}.node-detail h4 .lit{font-size:14px}.link{display:inline-flex;gap:4px;align-items:center;margin:2px 8px 2px 0}
+.drill,.graph-wrap{margin-bottom:16px}.pick{display:flex;gap:8px;align-items:center;margin:8px 0;font-weight:600}
+.pick select{font:13px ui-monospace,Menlo,Consolas,monospace;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);max-width:100%}
+.ego-heads{display:grid;grid-template-columns:240fr 140fr 290fr 190fr 240fr;font-size:13px;font-weight:700;color:var(--ink-2);margin-top:8px}
+.ego-heads>div:nth-child(2){grid-column:3}.ego-heads>div:nth-child(3){grid-column:5}
+.egograph{width:100%;height:auto;margin-top:4px}.e-box rect{fill:var(--surface);stroke:var(--line)}.e-box.cyc rect{stroke:var(--bad);stroke-width:1.5}
+.e-box[data-pick]{cursor:pointer}.e-box[data-pick]:hover rect{stroke:var(--accent)}.e-box.quiet{opacity:.55}
+.e-l{font:600 12px ui-monospace,Menlo,Consolas,monospace;fill:var(--ink)}.e-s{font-size:11px;fill:var(--muted)}
+.e-link{fill:none;stroke:var(--ink-2);opacity:.28}.e-arc{fill:none;stroke:var(--accent);stroke-width:1.2;opacity:.5}
+#dfile{margin-top:14px;border-top:1px solid var(--line);padding-top:6px}
+.flowsvg{display:block;margin:0 auto}.f-node rect{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.f-entry rect{fill:var(--accent);stroke:var(--accent)}.f-entry .f-l,.f-entry .f-s{fill:var(--on-accent)}.f-handler rect{stroke:var(--accent);stroke-width:2.5}
+.f-stop rect{fill:var(--bg);stroke:var(--muted);stroke-dasharray:5 4}.f-stop .f-l{fill:var(--muted)}
+.f-l{font:600 12.5px ui-monospace,Menlo,Consolas,monospace;fill:var(--ink)}.f-s{font-size:11.5px;fill:var(--ink-2)}
+.f-edge{fill:none;stroke:var(--ink-2);stroke-width:1.6;opacity:.6}.f-edge.stop{stroke-dasharray:4 4}
+.f-group{fill:none;stroke:var(--accent);stroke-opacity:.35;stroke-dasharray:3 3}.f-gname{font:600 11px ui-monospace,Menlo,Consolas,monospace;fill:var(--accent)}
+.tgraph{min-width:900px}.t-band{fill:var(--surface-2);opacity:.6}.t-layer{font:700 13px ui-monospace,Menlo,Consolas,monospace;fill:var(--accent)}
+.t-node{cursor:pointer}.t-node rect:first-of-type{fill:var(--surface);stroke:var(--line);stroke-width:1.5}.t-node.empty rect:first-of-type{stroke-dasharray:4 3}
+.t-name{font:600 12px ui-monospace,Menlo,Consolas,monospace;fill:var(--ink)}.t-sub{font-size:11px;fill:var(--ink-2)}
+.t-track{fill:var(--surface-2)}.t-fill{fill:var(--good)}.t-edge{opacity:.12}
+.mapping{min-width:900px}.m-name,.m-target{font:12px ui-monospace,Menlo,Consolas,monospace;fill:var(--ink)}.m-target{font-weight:700;fill:var(--accent)}
+.m-line{fill:none;stroke-width:1.8}.r-keep{stroke:var(--muted);opacity:.7}.r-modify{stroke:var(--accent);opacity:.8}
+.r-rebuild{stroke:var(--accent);stroke-width:3;stroke-dasharray:7 4;opacity:.8}.r-remove{stroke:var(--bad);stroke-dasharray:2 4;opacity:.8}
+.map-row:hover .m-line{stroke-width:4;opacity:1}
+@media (max-width:760px){.gap-head{grid-template-columns:1fr}.ego-heads{display:none}}
 @media (max-width:760px){.hero{grid-template-columns:1fr}.map-grid{grid-template-columns:1fr}.nowto{grid-template-columns:1fr}.top-in{flex-direction:column;align-items:flex-start}.filters{position:static}}
 @media print{body{background:#fff;font-size:12px}.top{position:static;backdrop-filter:none}.tabs,.actions,.filters,.more{display:none!important}
 .js section.report{display:block!important;break-before:page}.js section.report:first-of-type{break-before:auto}
@@ -1145,14 +1784,16 @@ JS = r"""
 function setLang(l){d.setAttribute('data-lang',l);d.lang=l;d.dir=l==='ar'?'rtl':'ltr';try{localStorage.setItem('eaos-human-lang',l)}catch(e){}
 document.querySelectorAll('[data-ph-ar]').forEach(function(e){e.placeholder=e.getAttribute('data-ph-'+l)});
 document.querySelectorAll('select option').forEach(function(o){if(!o.dataset.ar){o.dataset.ar=o.textContent}});
+document.querySelectorAll('option[data-en]').forEach(function(o){o.textContent=o.getAttribute('data-'+l)});
 var names={'':['كل درجات الخطورة','All severities'],critical:['حرجة','Critical'],high:['عالية','High'],medium:['متوسطة','Medium'],low:['منخفضة','Low']};
 var areas={'':['كل المجالات','All areas'],security:['الأمان','Security'],structure:['البنية','Structure'],quality:['جودة الكود','Code quality'],performance:['الأداء تحت الضغط','Performance under load'],maintainability:['سهولة التطوير والاختبار','Ease of change and testing']};
 var i=l==='ar'?0:1;document.querySelectorAll('#fsev option').forEach(function(o){o.textContent=names[o.value][i]});
 document.querySelectorAll('#farea option').forEach(function(o){o.textContent=areas[o.value][i]});count()}
 function show(id){document.querySelectorAll('section.report').forEach(function(s){s.classList.toggle('on',s.id===id)});
 document.querySelectorAll('.tabs a').forEach(function(a){a.classList.toggle('on',a.dataset.tab===id)})}
-var tabs=['summary','gaps','structure','plan'];function route(){var h=location.hash.slice(1);show(tabs.indexOf(h)>=0?h:'summary')}
+var tabs=Array.prototype.map.call(document.querySelectorAll('.tabs a'),function(a){return a.dataset.tab});function route(){var h=location.hash.slice(1);show(tabs.indexOf(h)>=0?h:'summary')}
 window.addEventListener('hashchange',function(){route();window.scrollTo(0,0)});
+document.querySelectorAll('[data-go]').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();history.replaceState(null,'','#'+a.dataset.go);show(a.dataset.go);window.scrollTo(0,0)})});
 document.querySelectorAll('.tabs a').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();history.replaceState(null,'','#'+a.dataset.tab);show(a.dataset.tab);window.scrollTo(0,0)})});
 document.querySelectorAll('.rows').forEach(function(r){var n=r.children.length;if(n>5){var b=document.createElement('button');b.type='button';b.className='more';
 b.innerHTML='<span class="l-ar">عرض الكل</span><span class="l-en">Show all</span>';b.onclick=function(){r.classList.toggle('all')};r.after(b)}});
@@ -1168,4 +1809,118 @@ document.getElementById('lang').onclick=function(){setLang(d.getAttribute('data-
 document.getElementById('print').onclick=function(){window.print()};
 window.addEventListener('beforeprint',function(){document.querySelectorAll('section.report').forEach(function(s){s.classList.add('on')})});
 window.addEventListener('afterprint',route);route();window.scrollTo(0,0)})();
+"""
+
+MAP_JS = r"""
+(function(){var d=document.documentElement,lang=d.getAttribute('data-lang')||'ar';
+document.querySelectorAll('option[data-en]').forEach(function(o){o.textContent=o.getAttribute('data-'+lang)});
+document.querySelectorAll('[data-ph-ar]').forEach(function(e){e.placeholder=e.getAttribute('data-ph-'+lang)});
+function E(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function B(ar,en){return '<span class="l-ar" lang="ar">'+ar+'</span><span class="l-en" lang="en">'+en+'</span>'}
+function J(id){var e=document.getElementById(id);if(!e)return null;try{return JSON.parse(e.textContent)}catch(x){return null}}
+function base(p){return String(p).split('/').pop()}
+function cut(s,n){s=String(s);return s.length>n?'…'+s.slice(s.length-n+1):s}
+function N(v,m){return '<span class="n" data-meaning="'+E(m)+'">'+E(v)+'</span>'}
+function sel(v){return '[data-node="'+String(v).replace(/["\\]/g,'\\$&')+'"]'}
+function wire(root){(root||document).querySelectorAll('.hl-graph').forEach(function(svg){if(svg.dataset.wired)return;svg.dataset.wired='1';
+var wrap=svg.closest('.graph-wrap'),pinned=null;
+function mark(id,on){svg.classList.toggle('focus',!!on);svg.querySelectorAll('.on').forEach(function(e){e.classList.remove('on')});if(!on)return;
+svg.querySelectorAll(sel(id)).forEach(function(e){e.classList.add('on')});
+svg.querySelectorAll('[data-from]').forEach(function(e){if(e.dataset.from===id||e.dataset.to===id){e.classList.add('on');
+svg.querySelectorAll(sel(e.dataset.from===id?e.dataset.to:e.dataset.from)).forEach(function(n){n.classList.add('on')})}})}
+svg.querySelectorAll('[data-node]').forEach(function(n){var id=n.dataset.node;
+n.addEventListener('mouseenter',function(){if(!pinned)mark(id,true)});n.addEventListener('mouseleave',function(){if(!pinned)mark(id,false)});
+function pick(){pinned=pinned===id?null:id;mark(pinned||id,!!pinned);if(n.dataset.pick){n.dispatchEvent(new CustomEvent('pick',{bubbles:true}));return}
+if(wrap)wrap.querySelectorAll('.node-detail').forEach(function(x){x.hidden=x.dataset.for!==pinned})}
+n.addEventListener('click',pick);n.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}})})})}
+document.querySelectorAll('.only-loops').forEach(function(c){c.addEventListener('change',function(){c.closest('.graph-wrap').classList.toggle('loops',c.checked)})});
+document.querySelectorAll('.fit-btn').forEach(function(b){b.addEventListener('click',function(){b.closest('.graph-wrap').classList.toggle('fit')})});
+// a three-column picture: what points in, the subject's own items (with arcs between them), what they point to
+function ego(o,rtl){var W=1100,rh=30,bh=24,cols=[[0,240],[380,290],[860,240]],gut=16;
+var n=Math.max(o.mid.length,o.left.length,o.right.length,1),H=n*rh+12,out=[];
+function X(c){var x=cols[c][0],w=cols[c][1];return rtl?W-x-w:x}
+function Y(list,i){var step=(H-12)/Math.max(list.length,1);return 6+i*step+(step-bh)/2}
+function yMid(i){return 6+i*rh+(rh-bh)/2}
+function link(c1,y1,c2,y2,cls,w){var a=X(c1),b=X(c2),wa=cols[c1][1],wb=cols[c2][1],sx,ex;if(a<b){sx=a+wa;ex=b}else{sx=a;ex=b+wb}
+var mx=(sx+ex)/2;return '<path class="'+cls+'" style="stroke-width:'+w.toFixed(1)+'" d="M'+sx+','+(y1+bh/2)+' C'+mx+','+(y1+bh/2)+' '+mx+','+(y2+bh/2)+' '+ex+','+(y2+bh/2)+'"/>'}
+function sw(k){return 1+Math.log2(Math.max(k||1,1))}
+o.lm.forEach(function(l){out.push(link(0,Y(o.left,l[0]),1,yMid(l[1]),'e-link',sw(l[2])))});
+o.mr.forEach(function(l){out.push(link(1,yMid(l[0]),2,Y(o.right,l[1]),'e-link',sw(l[2])))});
+var edge=rtl?X(1):X(1)+cols[1][1],dir=rtl?-1:1;
+o.mm.forEach(function(l){var y1=yMid(l[0])+bh/2,y2=yMid(l[1])+bh/2,bulge=Math.min(150,gut+Math.abs(y2-y1)*0.3)*dir;
+out.push('<path class="e-arc" d="M'+edge+','+y1+' C'+(edge+bulge)+','+y1+' '+(edge+bulge)+','+y2+' '+edge+','+y2+'" marker-end="url(#ego-arr)"/>')});
+function box(c,y,it,i){var x=X(c),w=cols[c][1],tx=rtl?x+w-8:x+8,anchor=rtl?'end':'start',room=Math.floor((w-16)/7);
+return '<g class="e-box'+(it.cls?' '+it.cls:'')+'"'+(it.pick!=null?' data-pick="'+it.pick+'" tabindex="0"':'')+'><title>'+E(it.title||it.label)+'</title><rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+bh+'" rx="6"/>'+
+'<text x="'+tx+'" y="'+(y+16)+'" text-anchor="'+anchor+'" direction="ltr"><tspan class="e-l">'+E(cut(it.label,room-(it.sub?Math.min(14,it.sub.length+2):0)))+'</tspan>'+(it.sub?'<tspan class="e-s"> '+E(cut(it.sub,14))+'</tspan>':'')+'</text></g>'}
+o.left.forEach(function(it,i){out.push(box(0,Y(o.left,i),it,i))});o.mid.forEach(function(it,i){out.push(box(1,yMid(i),it,i))});o.right.forEach(function(it,i){out.push(box(2,Y(o.right,i),it,i))});
+return '<svg viewBox="0 0 '+W+' '+H+'" class="chart egograph" direction="ltr" role="img" aria-label="'+E(o.label)+'"><defs><marker id="ego-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" class="arrow-head acc"/></marker></defs>'+out.join('')+'</svg>'}
+function heads(a,b,c){return '<div class="ego-heads"><div>'+a+'</div><div>'+b+'</div><div>'+c+'</div></div>'}
+function both(o){return '<div class="l-ar">'+ego(o,true)+'</div><div class="l-en">'+ego(o,false)+'</div>'}
+var D=J('eaos-drill');
+if(D){var rev=D.files.map(function(){return[]});D.imports.forEach(function(list,f){list.forEach(function(g){rev[g].push(f)})});
+var fnOut={},fnIn={};D.calls.forEach(function(c,i){(fnOut[c[0]]=fnOut[c[0]]||[]).push(i);(fnIn[c[2]]=fnIn[c[2]]||[]).push(i)});
+function comp(ci){var C=D.comps[ci],mine={},view=document.getElementById('dview');C.files.forEach(function(f){mine[f]=1});
+var left=C.used_by.slice().sort(function(a,b){return b[1]-a[1]}).slice(0,12),right=C.uses.slice().sort(function(a,b){return b[1]-a[1]}).slice(0,12);
+var li={},ri={};left.forEach(function(p,i){li[p[0]]=i});right.forEach(function(p,i){ri[p[0]]=i});
+var files=C.files.slice().sort(function(a,b){return (rev[b].length+D.imports[b].length)-(rev[a].length+D.imports[a].length)}).slice(0,30),mi={};files.forEach(function(f,i){mi[f]=i});
+var lm={},mr={},mm=[];files.forEach(function(f,i){rev[f].forEach(function(g){var o=D.owner[g];if(o!==ci&&o in li){var k=li[o]+':'+i;lm[k]=(lm[k]||0)+1}});
+D.imports[f].forEach(function(g){var o=D.owner[g];if(o===ci){if(g in mi)mm.push([i,mi[g]])}else if(o in ri){var k=i+':'+ri[o];mr[k]=(mr[k]||0)+1}})});
+function pairs(m){return Object.keys(m).map(function(k){var p=k.split(':');return[+p[0],+p[1],m[k]]})}
+var root=C.name.replace(/\/?$/,'/');
+var o={label:C.name,left:left.map(function(p){return{label:D.comps[p[0]].name,title:D.comps[p[0]].name+' → '+C.name+': '+p[1]}}),
+right:right.map(function(p){return{label:D.comps[p[0]].name,title:C.name+' → '+D.comps[p[0]].name+': '+p[1]}}),
+mid:files.map(function(f){var p=D.files[f];return{label:p.indexOf(root)===0?p.slice(root.length):p,title:p,pick:f,cls:D.cycle[f]?'cyc':''}}),lm:pairs(lm),mr:pairs(mr),mm:mm};
+var inside=mm.length,more=C.files.length-files.length,coh=C.cohesion==null?B('لا يستورد شيئًا','it imports nothing'):B(N(C.cohesion+'%','share of its imports that stay inside it')+' من استيراداته تبقى داخله',N(C.cohesion+'%','share of its imports that stay inside it')+' of its imports stay inside it');
+view.innerHTML='<p class="small"><code class="lit" dir="ltr" data-literal="1">'+E(C.name)+'</code> — '+B('الملفات: '+N(C.filecount,'files in this part')+' · استيرادات داخلية مرسومة: '+N(inside,'imports between its files drawn'),N(C.filecount,'files in this part')+' files · '+N(inside,'imports between its files drawn')+' imports between them drawn')+' · '+coh+
+(more>0?' · '+B('عُرض أكثر '+N(files.length,'files shown')+' ملفًا ارتباطًا','showing the '+N(files.length,'files shown')+' most connected files'):'')+'</p>'+
+heads(B('أجزاء تستخدمه','Parts that use it')+' '+N(C.used_by.length,'parts that use it'),B('ملفاته — اضغط على ملف','Its files — click a file'),B('أجزاء يستخدمها','Parts it uses')+' '+N(C.uses.length,'parts it uses'))+both(o);
+view.querySelectorAll('[data-pick]').forEach(function(g){function go(){file(+g.dataset.pick)}g.addEventListener('click',go);g.addEventListener('keydown',function(e){if(e.key==='Enter'){go()}})});
+if(files.length)file(files[0]);else document.getElementById('dfile').innerHTML=''}
+function file(f){var view=document.getElementById('dfile'),own=D.functions[f]||[],touched={};
+(fnOut[f]||[]).forEach(function(i){touched[D.calls[i][1]]=(touched[D.calls[i][1]]||0)+1});(fnIn[f]||[]).forEach(function(i){touched[D.calls[i][3]]=(touched[D.calls[i][3]]||0)+1});
+var names=own.slice().sort(function(a,b){return (touched[b]||0)-(touched[a]||0)}).slice(0,30),mi={};names.forEach(function(n,i){mi[n]=i});
+var L={},R={},lm={},mr={},mm=[];
+(fnOut[f]||[]).forEach(function(i){var c=D.calls[i];if(!(c[1] in mi))return;if(c[2]===f){if(c[3] in mi)mm.push([mi[c[1]],mi[c[3]]]);return}
+var k=c[2]+'|'+c[3];if(!(k in R))R[k]={label:c[3],sub:base(D.files[c[2]]),title:c[3]+' — '+D.files[c[2]],n:0};R[k].n+=c[4];var q=mi[c[1]]+'|'+k;mr[q]=(mr[q]||0)+c[4]});
+(fnIn[f]||[]).forEach(function(i){var c=D.calls[i];if(c[0]===f||!(c[3] in mi))return;var k=c[0]+'|'+c[1];if(!(k in L))L[k]={label:c[1],sub:base(D.files[c[0]]),title:c[1]+' — '+D.files[c[0]],n:0};L[k].n+=c[4];var q=k+'|'+mi[c[3]];lm[q]=(lm[q]||0)+c[4]});
+function top(M){return Object.keys(M).sort(function(a,b){return M[b].n-M[a].n}).slice(0,14)}
+var lk=top(L),rk=top(R),li={},ri={};lk.forEach(function(k,i){li[k]=i});rk.forEach(function(k,i){ri[k]=i});
+var LM=[],MR=[];Object.keys(lm).forEach(function(q){var p=q.split('|'),k=p[0]+'|'+p[1];if(k in li)LM.push([li[k],+p[2],lm[q]])});
+Object.keys(mr).forEach(function(q){var p=q.split('|'),k=p[1]+'|'+p[2];if(k in ri)MR.push([+p[0],ri[k],mr[q]])});
+var head='<h4><code class="lit" dir="ltr" data-literal="1">'+E(D.files[f])+'</code></h4>';
+if(!own.length){view.innerHTML=head+'<p class="muted small">'+B('لم نجد دوال مسمّاة في هذا الملف.','No named function was found in this file.')+'</p>';return}
+var o={label:D.files[f],left:lk.map(function(k){return L[k]}),right:rk.map(function(k){return R[k]}),mid:names.map(function(n){return{label:n,cls:touched[n]?'':'quiet'}}),lm:LM,mr:MR,mm:mm};
+view.innerHTML=head+'<p class="small">'+B('الدوال: '+N(own.length,'named functions in this file')+' · تستدعيها دوال من ملفات أخرى: '+N(lk.length,'functions elsewhere that call this file')+' · تستدعي هي: '+N(rk.length,'functions elsewhere this file calls'),
+N(own.length,'named functions in this file')+' functions · called by '+N(lk.length,'functions elsewhere that call this file')+' functions elsewhere · they call '+N(rk.length,'functions elsewhere this file calls')+' elsewhere')+'</p>'+
+heads(B('من يستدعيها','Who calls them'),B('دوال هذا الملف (الأقواس: استدعاءات بينها)','This file’s functions (arcs: calls between them)'),B('ما تستدعيه','What they call'))+both(o)}
+var dc=document.getElementById('dcomp');if(dc&&D.comps.length){dc.addEventListener('change',function(){comp(+dc.value)});comp(+dc.value||0)}}
+var F=J('eaos-flows');
+function flow(fl,rtl){var bw=F.box[0],bh=F.box[1],W=fl.width,H=fl.height,pos={},out=[];
+fl.nodes.forEach(function(n){pos[n.id]={x:rtl?W-n.x-bw:n.x,y:n.y,n:n}});
+var run=[];fl.nodes.concat([{y:-1}]).forEach(function(n){var last=run[run.length-1];if(last&&(n.y!==last.y||n.sub!==last.sub||n.kind==='stop'||n.kind==='entry')){if(run.length>1&&last.sub){var xs=run.map(function(r){return pos[r.id].x}),x0=Math.min.apply(0,xs),x1=Math.max.apply(0,xs)+bw;
+out.push('<rect class="f-group" x="'+(x0-6)+'" y="'+(last.y-20)+'" width="'+(x1-x0+12)+'" height="'+(bh+26)+'" rx="8"/><text class="f-gname" x="'+(rtl?x1:x0)+'" y="'+(last.y-7)+'" text-anchor="'+(rtl?'end':'start')+'" direction="ltr">'+E(base(last.sub))+'</text>')}run=[]}if(n.y>=0&&n.kind==='fn')run.push(n)});
+fl.edges.forEach(function(e){var a=pos[e[0]],b=pos[e[1]];if(!a||!b)return;var sx=a.x+bw/2,sy=a.y+bh,ex=b.x+bw/2,ey=b.y,d;
+if(ey>sy)d='M'+sx+','+sy+' C'+sx+','+(sy+26)+' '+ex+','+(ey-26)+' '+ex+','+ey;else{var side=rtl?-1:1,ox=a.x+(rtl?0:bw),tx=b.x+(rtl?0:bw);d='M'+ox+','+(a.y+bh/2)+' C'+(ox+60*side)+','+(a.y+bh/2)+' '+(tx+60*side)+','+(b.y+bh/2)+' '+tx+','+(b.y+bh/2)}
+out.push('<path class="f-edge'+(b.n.kind==='stop'?' stop':'')+'" d="'+d+'" marker-end="url(#f-arr)"/>')});
+function line(t,y,cls,words){var tx=rtl?x0+bw-10:x0+10,an=rtl&&!words?'end':'start',dir=rtl&&words?'rtl':'ltr';
+return '<text x="'+tx+'" y="'+y+'" text-anchor="'+an+'" direction="'+dir+'" class="'+cls+'">'+E(t)+'</text>'}var x0;
+fl.nodes.forEach(function(n){var p=pos[n.id],y=p.y,t1=n.label,t2,words=true;x0=p.x;
+if(n.kind==='entry'){t1=(n.sub||'')+' '+(n.label||'');t2=rtl?'الرابط الذي تبدأ منه':'where it starts'}
+else if(n.kind==='stop'){t2=rtl?'يتوقف التتبع هنا'+(n.more?' (و'+n.more+' غيرها)':''):'the trace stops here'+(n.more?' (and '+n.more+' more)':'')}
+else{t2=n.library?(rtl?base(n.sub)+' · ومكتبات: '+n.library:base(n.sub)+' · and '+n.library+' library calls'):base(n.sub);words=rtl&&!!n.library}
+out.push('<g class="f-node f-'+n.kind+'"><title>'+E(n.label+(n.sub?' — '+n.sub:''))+'</title><rect x="'+x0+'" y="'+y+'" width="'+bw+'" height="'+bh+'" rx="'+(n.kind==='entry'?bh/2:8)+'"/>'+
+line(cut(t1,30),y+20,'f-l',false)+line(cut(t2,38),y+38,'f-s',n.kind!=='fn'||words)+'</g>')});
+return '<svg viewBox="0 0 '+W+' '+H+'" class="chart flowsvg" direction="ltr" role="img" aria-label="'+E(fl.route+' '+fl.handler)+'"><defs><marker id="f-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 z" class="arrow-head"/></marker></defs>'+out.join('')+'</svg>'}
+function showFlow(i){var fl=F.flows[i],v=document.getElementById('fview');if(!fl||!v)return;
+var what=fl.surface==='page'?B('صفحة','A page'):B('نقطة دخول','An entry point');
+v.innerHTML='<p class="small">'+what+' <code class="lit" dir="ltr" data-literal="1">'+E((fl.method?fl.method+' ':'')+(fl.route||'?'))+'</code> → <code class="lit" dir="ltr" data-literal="1">'+E(fl.handler)+'</code> '+
+B('في','in')+' <code class="lit" dir="ltr" data-literal="1">'+E(fl.path)+'</code> · '+B('الاستدعاءات المتتبعة: '+N(fl.steps,'calls traced from this page')+' · يتوقف التتبع عند '+N(fl.stops,'calls the trace cannot follow')+' منها',N(fl.steps,'calls traced from this page')+' calls traced · the trace stops at '+N(fl.stops,'calls the trace cannot follow')+' of them')+'</p>'+
+'<div class="graph-scroll"><div class="l-ar">'+flow(fl,true)+'</div><div class="l-en">'+flow(fl,false)+'</div></div>'}
+var df=document.getElementById('dflow');if(F&&df&&F.flows.length){df.addEventListener('change',function(){showFlow(+df.value)});showFlow(+df.value||0)}
+function cards(){var s=(document.getElementById('cstate')||{}).value||'',q=((document.getElementById('cq')||{}).value||'').toLowerCase(),n=0,active=s||q;
+document.querySelectorAll('.tcard').forEach(function(c){var ok=(!s||c.dataset.state===s||(s==='new'&&c.dataset.new==='1'))&&(!q||c.dataset.search.indexOf(q)>=0);c.hidden=!ok;if(ok)n++});
+document.querySelectorAll('.mgroup').forEach(function(g){var any=g.querySelector('.tcard:not([hidden])');g.hidden=!!active&&!any;if(active&&any)g.open=true});
+var out=document.getElementById('cshown');if(out)out.textContent=active?(d.getAttribute('data-lang')==='ar'?('المعروض: '+n):('Showing: '+n)):''}
+['cstate','cq'].forEach(function(id){var e=document.getElementById(id);if(e){e.addEventListener('input',cards);e.addEventListener('change',cards)}});
+wire(document)})();
 """

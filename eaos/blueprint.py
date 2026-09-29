@@ -427,17 +427,77 @@ def document(spec, stack, built):
     return '\n'.join(lines)
 
 
+BUILD_STATE = {'done': ('بُنيت ✓', 'Built ✓', 'good'), 'open': ('لم تُبنَ بعد', 'Not built yet', 'plain'),
+               'skipped': ('تُركت: تحتاج قرارًا', 'Set aside: needs a decision', 'bad')}
+
+
+def build_cards(built, progress):
+    """Every build card with its state: built when a delivered milestone kept it, set aside when it skipped it."""
+    from html import escape
+    from .human_report import T
+    done = {card for record in progress or [] for card in record.get('kept') or []}
+    skipped, batch = {}, {}
+    for record in progress or []:
+        gone = record.get('skipped') or {}
+        skipped.update(gone if isinstance(gone, dict) else {card: '' for card in gone})
+        for card in list(record.get('kept') or []) + list(gone): batch[card] = record.get('number')
+    out = []
+    for c in built['plan']['tasks']:
+        state = 'done' if c['id'] in done else 'skipped' if c['id'] in skipped else 'open'
+        checks = ''.join(f'<li>{escape(str(a))}</li>' for a in c.get('acceptance') or [])
+        extra = f'<p class="small"><b>{T("يُقبل حين:", "Accepted when:")}</b></p><ul class="small">{checks}</ul>' if checks else ''
+        out.append({'id': c['id'], 'key': c['id'], 'title': c['title'], 'pattern': None, 'milestone': c.get('milestone'), 'paths': c.get('paths') or [],
+                    'before': '', 'after': '', 'state': state, 'new': False, 'batch': batch.get(c['id']), 'at': None,
+                    'why': skipped.get(c['id']) or '', 'commit': None, 'module': c.get('module'), 'extra': extra})
+    return out
+
+
+def layer_map(built, cards):
+    """The target's layers as rows of boxes, from what uses to what is used, each with the build cards in its folders."""
+    from .arch_map import feedback_edges, layer_of
+    from .human_report import target_rows
+    policy, rules = built['policy'], {r['allow_only']['from']: r['reason'] for r in built['policy']['rules']}
+    names = [name for name in policy['layers'] if not name.startswith('_')]
+    edges = [e for e in built['architecture'].get('target_edges') or [] if e.get('from') in names and e.get('to') in names]
+    weights = {(e['from'], e['to']): 1 for e in edges}
+    tier = layer_of(names, [e for e in weights if e not in feedback_edges(names, weights)])
+    homes = {name: [g.split('*')[0] for g in policy['layers'][name] if not g.startswith('*')] for name in names}
+    progress = {}
+    for name in names:
+        mine = [c for c in cards if any(p.startswith(h) for p in c['paths'] for h in homes[name] if h)]
+        progress[name] = (sum(c['state'] == 'done' for c in mine), len(mine))
+    comps = [{'name': name, 'layer': f'{tier[name] + 1}', 'responsibility': rules.get(name) or '', 'files': 0,
+              'sub': (f'البطاقات {progress[name][1]}', f'{progress[name][1]} card' + ('' if progress[name][1] == 1 else 's'))} for name in names]
+    rows = [(label, members) for label, members in target_rows(comps, sorted({c['layer'] for c in comps}, key=int))]
+    return rows, edges, progress
+
+
 def page(spec, stack, built, progress=None):
     """BLUEPRINT.html: the blueprint for a person, in the look of the report for people (eaos/human_report.py),
-    with every milestone's progress when `progress` (the state's `built` list) is given."""
+    with every milestone's progress when `progress` (the state's `built` list) is given: the target's layers, the parts,
+    and every build card with its state, reusing that page's drawings."""
     from html import escape
-    from .human_report import CSS
+    from .human_report import CSS, MAP_JS, T, bar, cards_block, target_svg
     done = {card for record in progress or [] for card in record.get('kept') or []}
     delivered = {record['milestone']: record.get('branch') for record in progress or []}
     rtl = any('؀' <= ch <= 'ۿ' for ch in spec.get('name', '') + spec.get('summary', ''))
+    cards = build_cards(built, progress)
+    def module_bar(module):
+        mine = [c for c in cards if c.get('module') == module]
+        finished = sum(c['state'] == 'done' for c in mine)
+        count = f'{finished} / {len(mine)}'
+        return (f'{bar(100 * finished / len(mine) if mine else 0, "thin")}<p class="muted small">'
+                f'<span data-meaning="build cards built of this part">{count}</span> {T("بطاقات بُنيت", "cards built")}</p>')
     parts = ''.join(f'<div class="card"><h4>{escape(m["name"])}</h4><p class="muted small">{escape(m.get("responsibility") or "")}</p>'
-                    f'<p class="small">{escape(", ".join(f["name"] for f in spec["features"] if f.get("module") == m["id"]))}</p></div>'
+                    f'<p class="small">{escape(", ".join(f["name"] for f in spec["features"] if f.get("module") == m["id"]))}</p>{module_bar(m["id"])}</div>'
                     for m in spec['modules'])
+    try:
+        rows, edges, layer_progress = layer_map(built, cards)
+        layers = (f'<div class="card graph-wrap" data-part="target-map"><p class="muted small">{T("كل صف طبقة: الأعلى يستخدم ما تحته ولا يستخدم ما فوقه. الشريط: كم بُني من بطاقات مجلداتها. مرّر المؤشر على طبقة لترى ما يُسمح لها باستخدامه.", "Each row is a tier: a layer uses what is below it, never what is above. The bar: how many of the cards in its folders are built. Hover a layer to see what it may use.")}</p>'
+                  f'<div class="graph-scroll">{target_svg(rows, edges, layer_progress, True, ("بُني", "built"))}{target_svg(rows, edges, layer_progress, False, ("بُني", "built"))}</div></div>')
+    except Exception:           # the drawing is extra: without it the page still lists the parts and the build
+        layers = ''
+    groups = [((m.get('name_ar') or m['name'], m['name']), m['id'], [c for c in cards if c['milestone'] == m['id']]) for m in built['plan']['milestones']]
     rows = ''.join(f'<tr><td><b>{escape(row["title"])}</b></td><td>{escape(row["name"])}</td><td>{escape(row["why"])}</td>'
                    f'<td class="small">{escape(row["switch"])}</td></tr>' for row in stack.values())
     rules = ''.join(f'<li>{escape(rule["reason"])}</li>' for rule in built['policy']['rules'])
@@ -460,9 +520,11 @@ td,th{{border-bottom:1px solid var(--line);padding:10px;text-align:start;vertica
 <body><header class="top"><div class="wrap top-in"><div><div class="kicker">EAOS · {label('مخطط البناء', 'Blueprint')}</div>
 <h1>{escape(spec['name'])}</h1></div></div></header><main class="wrap">
 <p>{escape(spec['summary'])}</p>
+<h3>{label('البنية المستهدفة، طبقة طبقة', 'The target structure, layer by layer')}</h3>{layers}
 <h3>{label('الأجزاء', 'The parts')}</h3><div class="grid">{parts}</div>
 <h3>{label('التقنيات، ولماذا، وكيف تُغيَّر لاحقًا', 'The technologies, why, and how to change each later')}</h3>
 <div class="card"><table><tr><th>{label('الجانب', 'Concern')}</th><th>{label('المختار', 'Chosen')}</th><th>{label('لماذا', 'Why')}</th><th>{label('لتغييره لاحقًا', 'To change it later')}</th></tr>{rows}</table></div>
 <h3>{label('القواعد التي يحفظها الهيكل', 'The rules the structure keeps')}</h3><div class="card"><ul>{rules}</ul></div>
 <h3>{label('البناء، مرحلة مرحلة', 'The build, milestone by milestone')}</h3><div class="grid">{''.join(stages)}</div>
-</main></body></html>"""
+<h3>{label('كل بطاقات البناء', 'Every build card')}</h3>{cards_block(groups, BUILD_STATE)}
+</main><script>{MAP_JS}</script></body></html>"""
