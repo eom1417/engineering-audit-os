@@ -2,10 +2,12 @@
 
 The report's other files are written for AI agents and stay exactly as they are. This page reads the same
 records (plan.json, dossier.json, debt-register.json, target-architecture.json, gap-matrix.json,
-run-manifest.json, and the graph, flow and structure facts) and shows five reports on one page: the project
+run-manifest.json, and the graph, flow and structure facts) and shows six reports on one page: the project
 summary, the gaps and risks, the structure map (today's parts, their imports, files, functions and pages;
-eaos/arch_map.py), the target structure with the gap each part has closed, and the plan with its progress
-and every task card. No external asset, no network: inline CSS, inline SVG, a little inline JS. Every
+eaos/arch_map.py), the system map (every page, API, server handler, part and table; eaos/system_map.py),
+the target structure with the gap each part has closed, and the plan with its progress, the work log
+(progress['handover'], eaos/handover.py brief) and every task card. progress['eaos'] stamps the page with the
+EAOS that built it; progress['report_errors'] and every part that failed show in a warning at the top. No external asset, no network: inline CSS, inline SVG, a little inline JS. Every
 number on the page carries its meaning in words next to it.
 
 Progress comes from the ledger when the caller passes one (progress={'waves': [...], 'ledger': L}): a card
@@ -59,7 +61,7 @@ from pathlib import Path
 from . import plain
 from .ranking import CONFIDENCE_WEIGHT
 
-SECTIONS = ('summary', 'gaps', 'structure', 'target', 'plan')
+SECTIONS = ('summary', 'gaps', 'structure', 'system', 'target', 'plan')
 HUNDRED = '<span data-meaning="the full score, and the file count a density is measured against">100</span>'
 SEVERITIES = ('critical', 'high', 'medium', 'low')
 SEVERITY_WEIGHT = {'critical': 10, 'high': 5, 'medium': 2, 'low': 1}
@@ -86,7 +88,7 @@ GRADES = ((90, 'excellent'), (75, 'good'), (60, 'fair'), (40, 'weak'), (0, 'crit
 W = {  # every fixed word of the page: (Arabic, English)
     'title': ('تقرير المشروع', 'Project report'),
     'summary': ('ملخص المشروع', 'Project summary'), 'gaps': ('الفجوات والمخاطر', 'Gaps and risks'),
-    'structure': ('خريطة البنية', 'Structure map'), 'target': ('البنية المستهدفة', 'Target'), 'plan': ('الخطة والتقدم', 'Plan and progress'),
+    'structure': ('خريطة البنية', 'Structure map'), 'system': ('خريطة النظام', 'System map'), 'target': ('البنية المستهدفة', 'Target'), 'plan': ('الخطة والتقدم', 'Plan and progress'),
     'security': ('الأمان', 'Security'), 'quality': ('جودة الكود', 'Code quality'),
     'performance': ('الأداء تحت الضغط', 'Performance under load'),
     'maintainability': ('سهولة التطوير والاختبار', 'Ease of change and testing'),
@@ -230,15 +232,22 @@ def model(report, progress=None):
 
 
 def maps(report, target):
-    """The architecture maps (eaos/arch_map.py); a missing or broken fact record leaves its map None."""
-    from . import arch_map
-    out = {'cmap': None, 'drill': None, 'flows': None}
-    try:
+    """The architecture maps (eaos/arch_map.py) and the system map (eaos/system_map.py); a missing or broken fact
+    record leaves its map None, and what failed is kept in map_errors for the page's warning and errors.json."""
+    from . import arch_map, system_map
+    out = {'cmap': None, 'drill': None, 'flows': None, 'system': None, 'system_layout': None, 'map_errors': []}
+    def attempt(part, build):
+        try: build()
+        except Exception as error: out['map_errors'].append({'section': part, 'error': f'{type(error).__name__}: {error}'[:300]})
+    def components():
         out['cmap'] = arch_map.component_map(report, target)
         out['drill'] = arch_map.drill_data(report, out['cmap'])
-    except Exception: pass
-    try: out['flows'] = arch_map.flow_charts(report)
-    except Exception: pass
+    def system():
+        out['system'] = system_map.build(report)
+        out['system_layout'] = system_map.layout(out['system'])
+    attempt('architecture map', components)
+    attempt('page flows', lambda: out.update(flows=arch_map.flow_charts(report)))
+    attempt('system map', system)
     return out
 
 
@@ -841,7 +850,7 @@ def section_plan(m):
     _, failed = waves_state(progress)
     cards = m.get('cards') or []
     t = gap_totals(m, cards)
-    out = [f'<div class="grid three"><div class="card stat good-bg"><div class="stat-n">{num(t["closed"], "problems fixed and merged, or no longer found, so far")}</div><p>{T("مشاكل أُغلقت حتى الآن: أُصلحت ودُمجت أو لم تعد موجودة", "problems closed so far: fixed and merged, or no longer found")}</p></div>'
+    out = [work_log(progress), f'<div class="grid three"><div class="card stat good-bg"><div class="stat-n">{num(t["closed"], "problems fixed and merged, or no longer found, so far")}</div><p>{T("مشاكل أُغلقت حتى الآن: أُصلحت ودُمجت أو لم تعد موجودة", "problems closed so far: fixed and merged, or no longer found")}</p></div>'
            f'<div class="card stat"><div class="stat-n">{num(t["total"] - t["closed"], "problems left")}</div><p>{T("مشاكل باقية", "problems left")}</p></div>'
            f'<div class="card stat"><div class="stat-n">{num(t["on_branch"], "fixes on a branch waiting for your decision")}</div><p>{T("إصلاحات على فرع تنتظر قرارك، لا تُحسب حتى تُدمج", "fixes on a branch waiting for your decision; not counted until merged")}</p></div>'
            f'<div class="card stat warn-bg"><div class="stat-n">{num(len(failed), "fixes that were tried and did not pass")}</div><p>{T("إصلاحات جُرّبت ولم تنجح", "fixes tried that did not pass")}</p></div></div>']
@@ -1484,6 +1493,273 @@ def section_target(m):
     return ''.join(out)
 
 
+# ---------------------------------------------------------------- the system map (the data and layout: eaos/system_map.py)
+
+SM_HEADS = (('الصفحات', 'Pages'), ('نقاط API', 'APIs'), ('ما يجيبها في الخادم', 'Server handlers'),
+            ('الأجزاء التي يستخدمها', 'Parts it uses'), ('الجداول والخدمات', 'Tables and services'))
+METHOD_CLASS = {'GET': 'get', 'POST': 'post', 'PUT': 'put', 'PATCH': 'put', 'DELETE': 'del'}
+
+
+def system_svg(sm, lay, rtl):
+    """Five columns, right to left in Arabic: pages, APIs grouped by resource, the server files that answer them, the
+    parts those use, and the tables and services reached. Every link is drawn faint; the JS lights one chain."""
+    from .system_map import COLUMNS, BOX_H, PAD, WIDTH
+    place, height = lay['place'], lay['height']
+    X = lambda c: (WIDTH - COLUMNS[c][0] - COLUMNS[c][1]) if rtl else COLUMNS[c][0]
+    mid = lambda i: place[i][1] + BOX_H / 2
+    label = 'خريطة النظام: الصفحات ونقاط API والخادم والبيانات' if rtl else 'The system map: pages, APIs, server and data'
+    out = [f'<svg viewBox="0 0 {WIDTH} {height}" direction="ltr" role="img" class="chart smap {"l-ar" if rtl else "l-en"}" aria-label="{esc(label)}">']
+    for band in lay['bands']:
+        x = X(1)
+        out.append(f'<rect x="{x - 4}" y="{band["top"] - 2}" width="{COLUMNS[1][1] + 8}" height="{band["bottom"] - band["top"]:.0f}" rx="7" class="sm-band"/>'
+                   + svg_text(x + COLUMNS[1][1] - 4 if rtl else x + 4, band['top'] + 11, band['label'], 'sm-band-l', 'right' if rtl else 'left', attrs=' data-literal="1"'))
+    if lay.get('callers_top'):
+        x = X(0)
+        words = 'كود مشترك يستدعي الخادم' if rtl else 'Shared code that calls the server'
+        out.append(svg_text(x + COLUMNS[0][1] if rtl else x, lay['callers_top'] + 12, words, 'sm-sub-head', 'right' if rtl else 'left', rtl))
+    out.append('<g class="sm-edges">')
+    for e in sm['edges']:
+        if e['from'] not in place or e['to'] not in place: continue
+        (ca, _), (cb, _) = place[e['from']], place[e['to']]
+        ya, yb = mid(e['from']), mid(e['to'])
+        if ca == cb:                                    # a page and the shared code it reaches: an arc on the outer side
+            ox = X(0) + COLUMNS[0][1] if rtl else X(0)
+            bulge = (10 + min(26, abs(yb - ya) / 18)) * (1 if rtl else -1)
+            d = f'M{ox:.0f},{ya:.1f} C{ox + bulge:.1f},{ya:.1f} {ox + bulge:.1f},{yb:.1f} {ox:.0f},{yb:.1f}'
+        else:
+            sx, ex = (X(ca), X(cb) + COLUMNS[cb][1]) if rtl else (X(ca) + COLUMNS[ca][1], X(cb))
+            bend = (ex - sx) / 2
+            d = f'M{sx:.0f},{ya:.1f} C{sx + bend:.1f},{ya:.1f} {ex - bend:.1f},{yb:.1f} {ex:.0f},{yb:.1f}'
+        width = 1 + math.log2(e["n"]) if e["n"] > 1 and e["kind"] != "use" else 1
+        out.append(f'<path d="{d}" class="sm-edge k-{e["kind"]}" style="stroke-width:{width:.1f}" data-from="{esc(e["from"])}" data-to="{esc(e["to"])}"/>')
+    out.append('</g>')
+    room = lambda c: int((COLUMNS[c][1] - 14) / 6.5)
+    def node(i, c, first, second='', cls='', tip='', search='', tag='', words=False):
+        x, y = X(c), place[i][1]
+        tx, anchor = (x + COLUMNS[c][1] - 7, 'start' if words else 'end') if rtl else (x + 7, 'start')
+        space = room(c) - len(tag) - (1 if tag else 0)
+        first = (first if len(first) <= space else first[:space - 1] + '…') if words else fit(first, max(space, 8))
+        room2 = space - len(first) - 1
+        second = (second if len(second) <= room2 else second[:room2 - 1] + '…') if second and room2 > 4 else ''
+        spans = (f'<tspan class="sm-tag t-{METHOD_CLASS.get(tag, "any")}">{esc(tag)} </tspan>' if tag else '') + f'<tspan class="sm-l">{esc(first)}</tspan>' + (f'<tspan class="sm-s"> {esc(second)}</tspan>' if second else '')
+        return (f'<g class="sm-node {cls}" data-node="{esc(i)}" data-search="{esc(search.lower())}" tabindex="0"><title data-literal="1">{esc(tip or first)}</title>'
+                f'<rect x="{x}" y="{y:.1f}" width="{COLUMNS[c][1]}" height="{BOX_H}" rx="5"/>'
+                f'<text x="{tx}" y="{y + 13:.1f}" text-anchor="{anchor}" direction="{"rtl" if words and rtl else "ltr"}" data-literal="1">{spans}</text></g>')
+    for p in sm['pages']:
+        tip = f'{p["route"]} → {p["component"]} ({p["file"]})'
+        out.append(node(p['id'], 0, p['route'], p['component'], 'n-page' + ('' if p['traced'] else ' untraced'), tip, f'{p["route"]} {p["component"]} {p["file"]}'))
+    for c in sm['callers']:
+        out.append(node(c['id'], 0, c['short'], '', 'n-caller', c['path'], c['path']))
+    for a in sm['apis']:
+        cls = 'n-api' + ('' if a['handlers'] else ' unknown') + ('' if a['exact'] or not a['handlers'] else ' guessed')
+        out.append(node(a['id'], 1, a['path'], '', cls, a['key'], a['key'] + ' ' + ' '.join(a['features']), a['method']))
+    for h in sm['handlers']:
+        name = h['short']
+        out.append(node(h['id'], 2, name, '', 'n-handler' + ('' if h['apis'] else ' idle'), h['path'], h['path']))
+    for mo in sm['modules']:
+        out.append(node(mo['id'], 3, mo['short'], '', 'n-module', mo['name'], mo['name']))
+    for d in sm['data']:
+        table = d['id'].startswith('T:')
+        text = d['name'] if table or not rtl else d.get('ar') or d['name']
+        out.append(node(d['id'], 4, text, '', 'n-table' if table else 'n-service', d['name'] + (' — ' + ', '.join(d.get('files') or []) if table else ''),
+                        d['name'] + ' ' + (d.get('ar') or ''), words=not table))
+    return ''.join(out) + '</svg>'
+
+
+def api_table(sm):
+    """Every API, collapsed: its method and path, who calls it, the server file that answers it, what it reaches."""
+    pages = {p['id']: p for p in sm['pages']}
+    short = {h['path']: h['short'] for h in sm['handlers']}
+    def some(items, meaning, limit=5):
+        shown = ' '.join(lit(i) for i in items[:limit])
+        more = len(items) - limit
+        return shown + (' ' + T(f'و{num(more, meaning)} غيرها', f'and {num(more, meaning)} more') if more > 0 else '') if items else '—'
+    rows = []
+    for a in sm['apis']:
+        reached = [pages[i]['route'] for i in sm['related'].get(a['id'], []) if i in pages]
+        callers = sorted(a['callers'])
+        if a['handlers']:
+            handler = ' '.join(f'<span title="{esc(h["path"])}">{lit(short.get(h["path"], h["path"]))}</span>' + (f' {lit(h["function"])}' if h['function'] else '')
+                               for h in a['handlers'][:3])
+            if not a['exact']: handler += ' ' + T('(من اسم الملف فقط)', '(from the file name only)', cls='muted')
+        else:
+            handler = T('غير معروف: لا مسار ولا ملف في الخادم يطابقه', 'unknown: no server route or file matches it', cls='muted')
+        data = a['tables'] + a['services']
+        rows.append(f'<tr data-search="{esc((a["key"] + " " + " ".join(callers) + " " + " ".join(a["features"])).lower())}"><td>{lit(a["method"])}</td><td>{lit(a["path"])}</td>'
+                    f'<td>{some(sorted(set(reached)), "more pages")}<div class="small muted">{some(callers, "more files", 3)}</div></td>'
+                    f'<td>{handler}</td><td>{some(data, "more tables and services")}</td><td>{some(a["features"], "more features", 3)}</td></tr>')
+    return (f'<details class="card" data-part="system-apis"><summary>{T("كل نقاط API كجدول", "Every API as a table")} '
+            f'<span class="g-meta">{T(f"النقاط: {num(len(sm["apis"]), "APIs in the table")}", f"{num(len(sm["apis"]), "APIs in the table")} APIs")}</span></summary>'
+            f'<div class="scroll"><table class="tbl sm-table"><thead><tr><th>{T("الطريقة", "Method")}</th><th>{T("المسار", "Path")}</th>'
+            f'<th>{T("من يستدعيها (صفحات، ثم ملفات)", "Called from (pages, then files)")}</th><th>{T("ما يجيبها في الخادم", "Server handler")}</th>'
+            f'<th>{T("الجداول والخدمات", "Tables and services")}</th><th>{T("الميزة", "Feature")}</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div></details>')
+
+
+def section_system(m):
+    """The whole system in one drawing, with a search, a feature filter, what a click reaches, and every API as a table."""
+    sm, lay = m.get('system'), m.get('system_layout')
+    if not sm or not lay:
+        return unavailable('system map')
+    from .system_map import COLUMNS, WIDTH
+    from .arch_map import json_script
+    answered = sum(1 for a in sm['apis'] if a['handlers'])
+    tables = sum(1 for d in sm['data'] if d['id'].startswith('T:'))
+    n = lambda v, meaning: num(v, meaning)
+    summary = T(f'الصفحات: {n(len(sm["pages"]), "pages")} · نقاط API: {n(len(sm["apis"]), "APIs")} · وجدنا في الخادم ما يجيب {n(answered, "APIs with a server handler found")} منها · '
+                f'ملفات الخادم: {n(len(sm["handlers"]), "server files that answer requests")} · الجداول: {n(tables, "tables")} · الخدمات: {n(len(sm["data"]) - tables, "services and storage")}',
+                f'{n(len(sm["pages"]), "pages")} pages · {n(len(sm["apis"]), "APIs")} APIs · a server handler found for {n(answered, "APIs with a server handler found")} of them · '
+                f'{n(len(sm["handlers"]), "server files that answer requests")} server files · {n(tables, "tables")} tables · {n(len(sm["data"]) - tables, "services and storage")} services')
+    notes = []
+    if sm['unknown']:
+        notes.append(T(f'لم نجد في الخادم ما يجيب {n(sm["unknown"], "APIs whose handler is unknown")} من نقاط API: قد يأتي جوابها من خادم آخر أو من مسار يُبنى وقت التشغيل. تظهر منقّطة.',
+                       f'For {n(sm["unknown"], "APIs whose handler is unknown")} APIs no server code was found that answers them: the answer may come from another server, or from a route built at run time. They are drawn dotted.'))
+    if sm['guessed']:
+        notes.append(T(f'{n(sm["guessed"], "APIs matched by file name only")} منها رُبطت بملف من اسمه فقط؛ تحقق منها.', f'{n(sm["guessed"], "APIs matched by file name only")} of them are matched to a file by its name only; check them.'))
+    untraced = sum(1 for p in sm['pages'] if not p['traced'])
+    if untraced:
+        notes.append(T(f'{n(untraced, "pages whose component file was not found")} صفحة لم نجد ملف مكوّنها، فلم نتتبع ما تستدعيه (تظهر باهتة).',
+                       f'{n(untraced, "pages whose component file was not found")} pages: their component file was not found, so what they call is not traced (drawn faded).'))
+    capped = {k: v for k, v in (sm.get('capped') or {}).items() if v}
+    words = {'pages': ('صفحة', 'pages'), 'callers': ('ملفًا مشتركًا', 'shared files'), 'apis': ('نقطة API', 'APIs'),
+             'handlers': ('ملف خادم', 'server files'), 'modules': ('جزءًا', 'parts'), 'data': ('جدولًا أو خدمة', 'tables or services')}
+    if capped:
+        ar = '، '.join(f'{n(v, "items left out of the drawing")} {words[k][0]}' for k, v in capped.items())
+        en = ', '.join(f'{n(v, "items left out of the drawing")} {words[k][1]}' for k, v in capped.items())
+        notes.append(T(f'الرسم محدود الحجم ليبقى مقروءًا؛ لم يُرسم: {ar}.', f'The drawing is capped to stay readable; left out: {en}.'))
+    notes.append(T('الجداول: المعرّفة في ملفات البيانات التي يستخدمها كود الخادم؛ لا نفرّق هنا بين القراءة والكتابة.',
+                   'Tables: those defined in the data files the server code uses; reading and writing are not told apart here.'))
+    features = ''.join(f'<option value="{esc(f["name"])}" data-literal="1">{esc(f["name"])}</option>' for f in sm['features'])
+    controls = (f'<div class="filters sm-tools" role="search"><input type="search" id="smq" data-ph-ar="ابحث عن صفحة أو API أو ملف أو جدول…" '
+                f'data-ph-en="Search a page, an API, a file or a table…" placeholder="ابحث عن صفحة أو API أو ملف أو جدول…">'
+                + (f'<select id="smf"><option value="" data-ar="كل الميزات" data-en="All features">كل الميزات</option>{features}</select>' if features else '')
+                + f'<button type="button" class="btn ghost" id="smclear">{T("إظهار الكل", "Show all")}</button>'
+                f'<span class="muted" id="smshown" aria-live="polite"></span></div>')
+    sample = lambda cls: f'<svg width="40" height="12" aria-hidden="true" class="key-line"><path d="M2,6 H38" class="sm-edge {cls}"/></svg>'
+    legend = (f'<div class="heat-legend">'
+              f'<span class="heat-key">{sample("k-call")}{T("صفحة أو ملف يستدعي API", "a page or a file calls an API")}</span>'
+              f'<span class="heat-key">{sample("k-uses")}{T("صفحة تستخدم كودًا مشتركًا", "a page uses shared code")}</span>'
+              f'<span class="heat-key">{sample("k-answer")}{T("ملف في الخادم يجيبها", "a server file answers it")}</span>'
+              f'<span class="heat-key">{sample("k-use")}{T("يستخدم جزءًا آخر", "uses another part")}</span>'
+              f'<span class="heat-key">{sample("k-data")}{T("يصل إلى جدول أو خدمة", "reaches a table or a service")}</span>'
+              f'<span class="heat-key"><i class="key-box sm-unknown"></i>{T("لا نعرف من يجيبها", "no known handler")}</span></div>')
+    spans, edge = [], 0                          # the columns and the gaps between them, as the drawing has them
+    for x, width in COLUMNS:
+        spans += [x - edge, width]; edge = x + width
+    spans.append(WIDTH - edge)
+    fr = ' '.join(f'{max(s, 0)}fr' for s in spans)
+    counts = (len(sm['pages']), len(sm['apis']), len(sm['handlers']), len(sm['modules']), len(sm['data']))
+    meanings = ('pages and shared files drawn', 'APIs drawn', 'server files drawn', 'parts drawn', 'tables and services drawn')
+    heads = ''.join(f'<div></div><div>{T(esc(ar), esc(en))} {num(counts[c] + (len(sm["callers"]) if c == 0 else 0), meanings[c])}</div>'
+                    for c, (ar, en) in enumerate(SM_HEADS)) + '<div></div>'
+    info = {x['id']: x for group in ('pages', 'callers', 'apis', 'handlers', 'modules', 'data') for x in sm[group]}
+    info = {k: {kk: vv for kk, vv in v.items() if kk not in ('reach',)} for k, v in info.items()}
+    data = {'rel': sm['related'], 'info': info, 'features': {f['name']: f['pages'] for f in sm['features']}}
+    return (f'<div class="card graph-wrap sm-wrap" data-part="system-map"><h3 class="sm-title">{T("كل الروابط: من الصفحة إلى البيانات", "Every link: from the page to the data")}</h3>'
+            f'<p class="muted small">{T("من اليمين إلى اليسار: الصفحة، ونقطة API التي تستدعيها، والملف في الخادم الذي يجيبها، والأجزاء التي يستخدمها، والجداول والخدمات التي يصل إليها. مرّر المؤشر على أي مربع لتضيء سلسلته كلها، أو اضغط عليه لتثبيتها وترى تفاصيله تحت الرسم.", "From left to right: the page, the API it calls, the server file that answers it, the parts that file uses, and the tables and services it reaches. Hover any box to light its whole chain, or click it to keep it and see its details under the drawing.")}</p>'
+            f'<p class="small">{summary}</p>' + ''.join(f'<p class="muted small">{x}</p>' for x in notes) + controls + legend
+            + f'<div class="graph-scroll sm-scroll"><div class="sm-heads" style="grid-template-columns:{fr}">{heads}</div>'
+            f'{system_svg(sm, lay, True)}{system_svg(sm, lay, False)}</div>'
+            f'<div id="smd" class="node-detail card sm-detail">{T("اضغط على صفحة أو نقطة API أو ملف أو جدول لترى ما يصل إليه ومن يصل إليه.", "Click a page, an API, a file or a table to see what it reaches and what reaches it.", "p", "muted small")}</div>'
+            f'</div>{api_table(sm)}' + json_script('eaos-system', data))
+
+
+# ---------------------------------------------------------------- the work log: who did what, when, and where it stopped
+
+TOOL_WORDS = {
+    'audit': ('فحص المشروع كله', 'checked the whole project'), 'choose_branch': ('اختار الفرع', 'chose the branch'),
+    'run_setup': ('جهّز تشغيل البرنامج في نسخة معزولة', 'prepared running the app in an isolated copy'),
+    'run_try': ('جرّب تشغيل البرنامج', 'tried running the app'), 'safety_net': ('سجّل شاشات البرنامج وسرعته', 'recorded the app’s screens and speed'),
+    'fix_start': ('فتح دفعة إصلاح', 'opened a fix batch'), 'fix_edit': ('أصلح بطاقة وتحقق منها', 'fixed a card and checked it'),
+    'fix_skip': ('ترك بطاقة مع السبب', 'left a card out, with the reason'), 'fix_finish': ('أغلق الدفعة وفحصها كلها', 'closed the batch and checked it whole'),
+    'accept': ('أدخل الفرع في فرعك', 'took the branch into yours'), 'undo': ('ألغى الفرع المنتظر', 'threw the waiting branch away'),
+    'note': ('كتب ملاحظة', 'wrote a note'), 'blueprint_start': ('بدأ مشروعًا من خطته', 'started a project from its plan'),
+    'blueprint_spec': ('راجع مواصفات المنتج', 'checked the product spec'), 'blueprint_design': ('رسم البنية المستهدفة', 'drew the target'),
+    'build_start': ('فتح مرحلة بناء', 'opened a build milestone'), 'build_edit': ('بنى بطاقة', 'built a card'),
+    'build_skip': ('ترك بطاقة بناء', 'left a build card out'), 'build_finish': ('أغلق مرحلة البناء', 'closed the build milestone'),
+    'wait': ('تابع عملًا جاريًا', 'followed a running job'), 'status': ('قرأ أين وصل العمل', 'read where the work is'),
+}
+JOB_WORDS = {'fix batch': ('دفعة الإصلاح', 'fix batch'), 'build milestone': ('مرحلة البناء', 'build milestone')}
+
+
+def when(at):
+    """An ISO time as a person reads it: the date and the minute, UTC."""
+    return str(at or '').replace('T', ' ')[:16]
+
+
+def who(name):
+    return f'<span class="chip who" data-literal="1">{esc(name or "?")}</span>'
+
+
+def work_log(progress):
+    """Where the work stopped, what is open and left, the next step, then the last steps and the notes, newest first."""
+    h = (progress or {}).get('handover')
+    head = f'<h3 id="work-log">{T("سجل العمل وأين وقفنا", "Work log and where we stopped")}</h3>'
+    if not isinstance(h, dict) or not (h.get('last_steps') or h.get('open_work') or h.get('last_assistant') or h.get('notes') or h.get('in_progress')):
+        return head + (f'<div class="card" data-part="work-log">{T("لم يبدأ أي عمل بعد: حين يبدأ مساعد ذكي (Claude Code أو Codex) الفحص أو الإصلاح، تظهر هنا كل خطوة، ومن قام بها، ومتى، وأين وقف.", "No work has started yet: when an AI assistant (Claude Code or Codex) starts the check or the fixes, every step shows here, who took it, when, and where it stopped.", "p")}</div>')
+    now, work = [], h.get('open_work') if isinstance(h.get('open_work'), dict) else None
+    job = h.get('running_job') if isinstance(h.get('running_job'), dict) else None
+    waiting = h.get('waiting_for_the_person') if isinstance(h.get('waiting_for_the_person'), dict) else None
+    cards = lambda ids: ' '.join(lit(c) for c in list(ids)[:20]) or T('لا شيء', 'none')
+    if job:
+        now.append(T(f'عمل جارٍ الآن: {lit(job.get("kind") or job.get("id") or "")}', f'A job is running now: {lit(job.get("kind") or job.get("id") or "")}', 'li'))
+    if work:
+        kind = JOB_WORDS.get(work.get('kind'), (work.get('kind') or '', work.get('kind') or ''))
+        number = work.get('number') if work.get('number') is not None else work.get('milestone')
+        label = (T(f'{esc(kind[0])} مفتوحة', f'Open {esc(kind[1])}') + (' ' + (num(number, 'the number of the open batch') if isinstance(number, int) else lit(number)) if number is not None else ''))
+        kept, not_kept, left = work.get('kept') or [], work.get('not_kept') or {}, work.get('left') or []
+        now.append(f'<li>{label}: ' + T(f'نجح {num(len(kept), "cards kept in the open batch")}، ولم ينجح {num(len(not_kept), "cards not kept in the open batch")}، وبقي {num(len(left), "cards left in the open batch")}',
+                                         f'{num(len(kept), "cards kept in the open batch")} kept, {num(len(not_kept), "cards not kept in the open batch")} not kept, {num(len(left), "cards left in the open batch")} left') + '</li>')
+        if left: now.append(f'<li>{T("الباقي:", "Left:", cls="lbl")} {cards(left)}</li>')
+        for card, why in list(not_kept.items())[:8] if isinstance(not_kept, dict) else []:
+            now.append(f'<li>{T("لم ينجح:", "Not kept:", cls="lbl")} {lit(card)} {tech(str(why)[:200])}</li>')
+    if waiting:
+        now.append(T(f'ينتظر قرارك: أدخل الفرع {lit(waiting.get("branch") or "")} في فرعك أو ألغِه.', f'Waiting for you: take branch {lit(waiting.get("branch") or "")} into yours, or throw it away.', 'li'))
+    busy = h.get('in_progress') if isinstance(h.get('in_progress'), dict) else None
+    if busy and busy.get('card'):
+        since = (T(f' منذ {num(when(busy.get("since")), "when this card was started (UTC)")}', f' since {num(when(busy.get("since")), "when this card was started (UTC)")}')
+                 if busy.get('since') else '')
+        by = f' {who(busy["by"])}' if busy.get('by') else ''
+        read = [f for f in busy.get('files_read') or [] if isinstance(f, str)]
+        now.append(f'<li>{T(f"كان يعمل على البطاقة {lit(busy["card"])}", f"Was working on card {lit(busy["card"])}")}{by}{since}'
+                   + (f'<div class="small">{T("قرأ من الملفات:", "Files it read:", cls="lbl")} {" ".join(lit(f) for f in read[:8])}'
+                      + (T(f' و{num(len(read) - 8, "more files read")} غيرها', f' and {num(len(read) - 8, "more files read")} more') if len(read) > 8 else '') + '</div>' if read else '')
+                   + (f'<div class="small">{T("آخر محاولة:", "Last try:", cls="lbl")} {tech(str(busy["last_try"])[:300])}</div>' if busy.get('last_try') else '')
+                   + '</li>')
+    if not now: now.append(T('لا شيء مفتوح الآن.', 'Nothing is open now.', 'li'))
+    if job: step = T('انتظار العمل الجاري حتى ينتهي، ثم المتابعة.', 'Wait for the running job to finish, then go on.')
+    elif busy and busy.get('card'): step = T(f'إكمال البطاقة {lit(busy["card"])} من حيث توقفت، ثم البقية.', f'Finish card {lit(busy["card"])} from where it stopped, then the rest.')
+    elif work and work.get('left'): step = T('إصلاح البطاقات الباقية واحدة واحدة، ثم إغلاق الدفعة وفحصها كلها.', 'Fix the cards left one by one, then close the batch and check it whole.')
+    elif work: step = T('إغلاق الدفعة المفتوحة وفحصها كلها.', 'Close the open batch and check it whole.')
+    elif waiting: step = T('قرارك في الفرع المنتظر: أدخله أو ألغِه.', 'Your decision on the waiting branch: take it in or throw it away.')
+    else: step = T('بدء الدفعة التالية من الخطة.', 'Start the next batch of the plan.')
+    p = h.get('progress') if isinstance(h.get('progress'), dict) else {}
+    tally = (f'<p class="small">{T(f"التقدم في فرعك: أُغلق {num(p.get("closed", 0), "cards closed")} من {num(p.get("total", 0), "cards in the plan")}", f"Progress in your branch: {num(p.get("closed", 0), "cards closed")} of {num(p.get("total", 0), "cards in the plan")} closed")}</p>' if p else '')
+    last = (f'<p class="small">{T("آخر من عمل:", "Last to work:", cls="lbl")} {who(h.get("last_assistant"))} '
+            + (T(f'في {num(when(h.get("last_activity")), "the time of the last step (UTC)")}', f'at {num(when(h.get("last_activity")), "the time of the last step (UTC)")}') if h.get('last_activity') else '')
+            + (f' · {T("الفرع:", "branch:", cls="lbl")} {lit(h["branch"])}' if isinstance(h.get('branch'), str) and h.get('branch') else '') + '</p>')
+    status = (f'<div class="card wl-status"><h4>{T("أين وقفنا", "Where we stopped")}</h4>{last}<ul class="small wl-now">{"".join(now)}</ul>'
+              f'<p class="small"><b>{T("الخطوة التالية:", "The next step:")}</b> {step}</p>{tally}'
+              + (f'<details><summary>{T("للمساعد الذكي الذي يكمل", "For the AI assistant that continues")}</summary>{tech(h["how_to_continue"])}</details>' if h.get('how_to_continue') else '')
+              + '</div>')
+    steps = [s for s in h.get('last_steps') or [] if isinstance(s, dict)]
+    items = []
+    for s in reversed(steps):
+        tool = s.get('tool') or ''
+        words = TOOL_WORDS.get(tool)
+        what = T(*map(esc, words)) if words else lit(tool)
+        items.append(f'<li class="wl-step"><span class="wl-dot" aria-hidden="true"></span><div><div class="wl-head">{who(s.get("by"))} '
+                     f'<span class="muted small">{num(when(s.get("at")), "the time of this step (UTC)")}</span></div>'
+                     f'<div>{what}{(" " + lit(s["card"])) if s.get("card") else ""}</div>'
+                     + (f'<div class="small muted">{T("النتيجة:", "Result:", cls="lbl")} {tech(str(s["outcome"])[:300])}</div>' if s.get('outcome') else '') + '</div></li>')
+    timeline = (f'<h4>{T("آخر الخطوات، الأحدث أولًا", "The last steps, newest first")}</h4><ol class="timeline">{"".join(items)}</ol>' if items
+                else T('لا خطوات مسجلة بعد.', 'No step recorded yet.', 'p', 'muted small'))
+    notes = [x for x in h.get('notes') or [] if isinstance(x, dict) and x.get('note')]
+    notes_html = (f'<h4>{T("ملاحظات المساعدين", "Notes from the assistants")}</h4><ul class="wl-notes">'
+                  + ''.join(f'<li>{who(x.get("by"))} <span class="muted small">{num(when(x.get("at")), "the time of this note (UTC)")}</span>'
+                            f'{(" " + lit(x["card"])) if x.get("card") else ""}<div>{said(x["note"])}</div></li>' for x in reversed(notes)) + '</ul>') if notes else ''
+    return head + f'<div class="card wl" data-part="work-log">{status}<div class="wl-body">{timeline}{notes_html}</div></div>'
+
+
 # ---------------------------------------------------------------- page
 
 def branch_line(branch):
@@ -1497,68 +1773,118 @@ def branch_line(branch):
 
 
 
-def render(m, name, lang='ar'):
-    parts = {}
+def stamp(eaos, cls='stamp'):
+    """Which EAOS built the page, from progress['eaos'] = {'version', 'commit', 'built' (ISO time)}; '' without it."""
+    if not isinstance(eaos, dict) or not (eaos.get('version') or eaos.get('commit')): return ''
+    built = str(eaos.get('built') or '').replace('T', ' ')[:16]
+    bits = [lit(eaos['version']) if eaos.get('version') else '', lit(str(eaos['commit'])[:12]) if eaos.get('commit') else '',
+            f'<span title="{esc(eaos["digest"])}">{lit(str(eaos["digest"])[:12])}</span>' if eaos.get('digest') else '',
+            num(built, 'when this page was built (UTC)') if built else '']
+    line = ' · '.join(b for b in bits if b)
+    part = ' data-part="stamp"' if cls == 'stamp' else ''
+    return f'<div class="{cls} muted small"{part}>{T("بنته نسخة EAOS", "Built by EAOS")} {line}</div>'
+
+
+def error_banner(errors):
+    """What could not be built, and why, at the top of the page; '' when everything was built."""
+    if not errors: return ''
+    items = ''.join(f'<li>{T("لم يُبنَ:", "Not built:", cls="lbl")} <b>{esc(e.get("section") or "")}</b> {tech(e.get("error"))}</li>' if isinstance(e, dict)
+                    else f'<li>{tech(str(e))}</li>' for e in errors)
+    return (f'<div class="wrap"><div class="card errors" data-part="report-errors" role="alert"><h4>{T("أجزاء من هذا التقرير لم تُبنَ", "Parts of this report could not be built")}</h4>'
+            f'<p class="small">{T("بقية الصفحة سليمة. هذه الأجزاء تقول «غير متاح» حتى يُصلح سببها:", "The rest of the page is sound. These parts say “not available” until their cause is fixed:")}</p>'
+            f'<ul class="small">{items}</ul></div></div>')
+
+
+INTRO = {'summary': ('صحة المشروع في صفحة واحدة: الدرجة، والمجالات الخمسة، وأهم المشاكل، وما لم نفحصه.',
+                     'The health of the project on one page: the score, the five areas, the main problems, and what we did not check.'),
+         'gaps': ('كل مشكلة: أين هي، وما حالها الآن وما المطلوب، وخطورتها، وهل يصلحها EAOS آليًا.',
+                  'Every problem: where it is, what it is now and what it should be, how serious it is, and whether EAOS fixes it.'),
+         'structure': ('أجزاء المشروع اليوم وأين تتركز المشاكل، وكيف يعتمد كل جزء على غيره، حتى الملفات والدوال والصفحات.',
+                       'The parts of the project today, where problems gather, and how each depends on the others, down to files, functions and pages.'),
+         'system': ('النظام من أوله إلى آخره: كل صفحة، وكل نقطة API تستدعيها، والكود في الخادم الذي يجيبها، وما يستخدمه، والجداول والخدمات التي يصل إليها.',
+                    'The system end to end: every page, every API it calls, the server code that answers it, what that code uses, and the tables and services it reaches.'),
+         'target': ('ما سيصبح عليه البرنامج: طبقاته وأجزاؤه، ومن أين يأتي كل جزء من اليوم، وكم أُغلق من الفجوة في كل جزء.',
+                    'What the program will become: its layers and parts, where each part comes from today, and how much of the gap each has closed.'),
+         'plan': ('أين وقف العمل ومن عمل ماذا، وترتيب العمل مرحلة بعد مرحلة، وما أُنجز، وكل بطاقة مهمة وحالتها، وما ينتظر قرارك.',
+                  'Where the work stopped and who did what, the order of the work milestone by milestone, what is done, every task card and its state, and what waits for your decision.')}
+
+
+def failure(section, error):
+    return {'section': section, 'error': f'{type(error).__name__}: {error}'[:300]}
+
+
+def render_parts(m, name, lang='ar'):
+    """(the page, [{section, error}] of every part that could not be built): a section that fails shows "not available"."""
+    parts, errors = {}, list(m.get('map_errors') or [])
     try: m = dict(m, cards=task_cards(m))
-    except Exception: m = dict(m, cards=[])
+    except Exception as error:
+        m = dict(m, cards=[])
+        errors.append(failure('cards', error))
     for section, build in (('summary', lambda: section_summary(m, name)), ('gaps', lambda: section_gaps(m)),
-                           ('structure', lambda: section_structure(m)), ('target', lambda: section_target(m)), ('plan', lambda: section_plan(m))):
+                           ('structure', lambda: section_structure(m)), ('system', lambda: section_system(m)),
+                           ('target', lambda: section_target(m)), ('plan', lambda: section_plan(m))):
         try: parts[section] = build()
         except Exception as error:     # one broken record costs its section, not the page or the audit
             parts[section] = unavailable(section, error)
-    intro = {'summary': ('صحة المشروع في صفحة واحدة: الدرجة، والمجالات الخمسة، وأهم المشاكل، وما لم نفحصه.',
-                         'The health of the project on one page: the score, the five areas, the main problems, and what we did not check.'),
-             'gaps': ('كل مشكلة: أين هي، وما حالها الآن وما المطلوب، وخطورتها، وهل يصلحها EAOS آليًا.',
-                      'Every problem: where it is, what it is now and what it should be, how serious it is, and whether EAOS fixes it.'),
-             'structure': ('أجزاء المشروع اليوم وأين تتركز المشاكل، وكيف يعتمد كل جزء على غيره، حتى الملفات والدوال والصفحات.',
-                           'The parts of the project today, where problems gather, and how each depends on the others, down to files, functions and pages.'),
-             'target': ('ما سيصبح عليه البرنامج: طبقاته وأجزاؤه، ومن أين يأتي كل جزء من اليوم، وكم أُغلق من الفجوة في كل جزء.',
-                        'What the program will become: its layers and parts, where each part comes from today, and how much of the gap each has closed.'),
-             'plan': ('ترتيب العمل مرحلة بعد مرحلة، وما أُنجز، وكل بطاقة مهمة وحالتها، وما ينتظر قرارك.',
-                      'The order of the work, milestone by milestone, what is done, every task card and its state, and what waits for your decision.')}
+            errors.append(failure(section, error))
+    progress = m.get('progress') or {}
+    told = [e for e in progress.get('report_errors') or [] if isinstance(e, str) and e.strip()]
     nav = ''.join(f'<a href="#{s}" data-tab="{s}">{w(s)}</a>' for s in SECTIONS)
     body = ''.join(f'<section id="{s}" class="report" data-report="{s}"><header class="sec-head"><h2>{w(s)}</h2>'
-                   f'<p class="muted">{T(*map(esc, intro[s]))}</p></header>{parts[s]}</section>' for s in SECTIONS)
+                   f'<p class="muted">{T(*map(esc, INTRO[s]))}</p></header>{parts[s]}</section>' for s in SECTIONS)
     generated = ((m['dossier'].get('provenance') or {}).get('generated_at') or '')[:10]
     date = (f'<span class="muted">{T("تاريخ الفحص:", "Audit date:")} {num(generated, "the date of the audit")}</span>' if generated else '')
-    date += branch_line((m.get('progress') or {}).get('branch'))
+    date += branch_line(progress.get('branch')) + stamp(progress.get('eaos'))
     direction = 'rtl' if lang == 'ar' else 'ltr'
-    return (f'<!doctype html><html lang="{lang}" dir="{direction}" data-lang="{lang}"><head><meta charset="utf-8">'
+    text = (f'<!doctype html><html lang="{lang}" dir="{direction}" data-lang="{lang}"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width, initial-scale=1"><title>{esc(W["title"][0 if lang == "ar" else 1])}: {esc(name)}</title>'
             f'<style>{CSS}</style></head><body><header class="top"><div class="wrap top-in"><div class="brand">'
             f'<div class="kicker">{T("تقرير EAOS", "EAOS report")}</div><h1>{w("title")}: {lit(name)}</h1>{date}</div>'
             f'<div class="actions"><button type="button" id="lang" class="btn">{T("English", "العربية")}</button>'
             f'<button type="button" id="print" class="btn ghost">{T("طباعة / PDF", "Print / PDF")}</button></div></div>'
-            f'<nav class="tabs wrap" aria-label="reports">{nav}</nav></header>'
+            f'<nav class="tabs wrap" aria-label="reports">{nav}</nav></header>{error_banner(told + errors)}'
             f'<main class="wrap">{body}</main><footer class="wrap muted small">'
             f'{T("هذه الصفحة للقراءة. الملفات التقنية في المجلد نفسه مكتوبة للمساعد الذكي ولم تتغير.", "This page is for reading. The technical files in the same folder are written for the AI assistant and are unchanged.")}'
-            f'</footer><script>{JS}{MAP_JS}</script></body></html>')
+            f'{stamp(progress.get("eaos"), "stamp-foot")}</footer><script>{JS}{MAP_JS}{SYSTEM_JS}</script></body></html>')
+    return text, errors
+
+
+def render(m, name, lang='ar'):
+    return render_parts(m, name, lang)[0]
 
 
 def empty(progress=None):
     return {'rows': [], 'statuses': {}, 'coverage': {}, 'score': score([], 0, known=False), 'plan': {}, 'target': {},
-            'gap_matrix': {}, 'manifest': {}, 'dossier': {}, 'progress': progress or {}, 'cmap': None, 'drill': None, 'flows': None}
+            'gap_matrix': {}, 'manifest': {}, 'dossier': {}, 'progress': progress or {}, 'cmap': None, 'drill': None, 'flows': None,
+            'system': None, 'system_layout': None, 'map_errors': []}
 
 
 def write(report, lang='ar', name=None, progress=None):
     """Write <report>/human/index.html from the report's records and return its path.
 
     Never raises for missing or broken records: a section it cannot build says "not available".
+    What could not be built is also written to <report>/human/errors.json as [{section, error}], [] when all was.
     """
     report = Path(report)
+    errors = []
     try:
         m = model(report, progress)
-    except Exception:
+    except Exception as error:
         m = empty(progress)
+        errors.append(failure('records', error))
     if name is None:
         name = Path(str((m['manifest'] or {}).get('target') or report)).name
     page = report / 'human' / 'index.html'
     page.parent.mkdir(parents=True, exist_ok=True)
+    lang = 'ar' if lang == 'ar' else 'en'
     try:
-        text = render(m, name, 'ar' if lang == 'ar' else 'en')
-    except Exception:
-        text = render(empty(progress), name, 'ar' if lang == 'ar' else 'en')
+        text, failed = render_parts(dict(m, map_errors=errors + list(m.get('map_errors') or [])), name, lang)
+    except Exception as error:
+        failed = errors + [failure('page', error)]
+        text = render(dict(empty(progress), map_errors=failed), name, lang)
     page.write_text(text, encoding='utf-8')
+    try: (page.parent / 'errors.json').write_text(json.dumps(failed, ensure_ascii=False, indent=1), encoding='utf-8')
+    except OSError: pass
     return page
 
 
@@ -1935,4 +2261,88 @@ document.querySelectorAll('.mgroup').forEach(function(g){var any=g.querySelector
 var out=document.getElementById('cshown');if(out)out.textContent=active?(d.getAttribute('data-lang')==='ar'?('المعروض: '+n):('Showing: '+n)):''}
 ['cstate','cq'].forEach(function(id){var e=document.getElementById(id);if(e){e.addEventListener('input',cards);e.addEventListener('change',cards)}});
 wire(document)})();
+"""
+
+CSS += r"""
+.sm-wrap .sm-title{margin:0 0 6px}.sm-tools{position:static;margin:10px 0 6px}
+.sm-scroll{max-height:82vh;position:relative}.sm-heads{display:grid;position:sticky;top:0;z-index:2;background:var(--bg);border-bottom:1px solid var(--line);
+font-size:13px;font-weight:700;color:var(--ink-2);padding:6px 0;min-width:1000px}.sm-heads>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.smap{min-width:1000px}.smap .sm-node{cursor:pointer}.smap .sm-node rect{fill:var(--surface);stroke:var(--line);stroke-width:1.2}
+.smap .sm-node:focus{outline:none}.smap .sm-node:focus rect,.smap .sm-node:hover rect{stroke:var(--accent);stroke-width:2}
+.sm-l{font:600 11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:var(--ink)}.sm-s{font:11px ui-monospace,Menlo,Consolas,monospace;fill:var(--muted)}
+.sm-tag{font:700 10px ui-monospace,Menlo,Consolas,monospace}.t-get{fill:var(--good)}.t-post{fill:var(--accent)}.t-put{fill:var(--warn)}.t-del{fill:var(--bad)}.t-any{fill:var(--muted)}
+.n-page rect{stroke:var(--accent)!important;stroke-opacity:.55}.n-page.untraced{opacity:.55}.n-caller rect{fill:var(--surface-2)!important;stroke-dasharray:3 2}
+.n-api.unknown rect{stroke:var(--muted)!important;stroke-dasharray:4 3}.n-api.guessed rect{stroke:var(--warn)!important}
+.n-handler rect{fill:var(--accent-soft)!important;stroke:transparent}.n-handler.idle{opacity:.6}.n-module rect{fill:var(--surface-2)!important}
+.n-table rect{fill:var(--good-soft)!important;stroke:transparent}.n-service rect{fill:var(--warn-soft)!important;stroke:transparent}
+.n-service .sm-l{font-family:system-ui,-apple-system,"Segoe UI","Noto Sans Arabic",Tahoma,sans-serif}
+.sm-band{fill:var(--surface-2);opacity:.75}.sm-band-l{font:700 10.5px ui-monospace,Menlo,Consolas,monospace;fill:var(--accent)}
+.sm-sub-head{font-size:12px;font-weight:700;fill:var(--ink-2)}
+.sm-edge{fill:none;stroke:var(--ink-2);opacity:.22}.sm-edge.k-use{opacity:.07}.sm-edge.k-data{opacity:.12}.sm-edge.k-uses{stroke:var(--accent);stroke-dasharray:2 3;opacity:.3}.sm-edge.k-data{stroke:var(--good)}
+.sm-edge.k-guess{stroke-dasharray:4 3}.key-line .sm-edge{opacity:.9;stroke-width:2.2}
+.smap.focus .sm-node{opacity:.18}.smap.focus .sm-node.on{opacity:1}.smap.focus .sm-node.on rect{stroke:var(--accent)!important;stroke-width:2;stroke-opacity:1}
+.smap.focus .sm-edge{opacity:.03}.smap.focus .sm-edge.on{opacity:.9;stroke:var(--accent);stroke-width:1.8}.smap.focus .sm-edge.on.k-data{stroke:var(--good)}
+.smap.focus .sm-node.hit rect{stroke:var(--warn)!important;stroke-width:2.5}
+.key-box.sm-unknown{border-style:dashed;border-color:var(--muted)}
+.sm-detail{margin-top:12px}.sm-detail h4 .lit{font-size:14px}.sm-group{margin:6px 0;font-size:13px}.sm-group b{margin-inline-end:6px}
+.sm-chip{font:12px ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:1px 9px;margin:2px;cursor:pointer;color:var(--ink);direction:ltr}
+.sm-chip:hover{border-color:var(--accent);color:var(--accent)}.sm-table td{font-size:13px;max-width:240px}.sm-table .lit{word-break:normal;overflow-wrap:anywhere;display:inline-block;max-width:100%;margin:1px 0;font-size:12px}.sm-table td:first-child,.sm-table td:nth-child(2){white-space:nowrap}.sm-table tr[hidden]{display:none}
+.errors{border-color:var(--bad);background:var(--bad-soft);margin-top:14px}.errors h4{color:var(--bad)}.errors ul{margin:4px 0 0;padding-inline-start:20px}
+.stamp{margin-top:2px}.stamp .lit{font-size:12px}.stamp-foot{margin-top:6px}
+.wl{display:grid;grid-template-columns:minmax(260px,1fr) 1.5fr;gap:18px;align-items:start}.wl-status{background:var(--accent-soft);border:0;box-shadow:none}
+.wl-status h4{margin-bottom:4px}.wl-now{margin:6px 0;padding-inline-start:18px}.wl-now li{margin:3px 0}.wl-body h4{margin:0 0 10px}
+.timeline{list-style:none;padding:0;margin:0 0 12px;position:relative}.timeline:before{content:"";position:absolute;inset-inline-start:6px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.wl-step{display:grid;grid-template-columns:14px 1fr;gap:12px;margin:0 0 12px;font-size:14px}.wl-dot{width:14px;height:14px;border-radius:50%;background:var(--surface);border:3px solid var(--accent);margin-top:5px;position:relative;z-index:1}
+.wl-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.chip.who{background:var(--accent);color:var(--on-accent);font:600 12px system-ui,sans-serif}
+.wl-notes{list-style:none;padding:0;margin:0}.wl-notes li{border-inline-start:3px solid var(--warn);padding:6px 10px;margin:6px 0;background:var(--bg);border-radius:6px;font-size:14px}
+@media (max-width:760px){.wl{grid-template-columns:1fr}}
+"""
+
+SYSTEM_JS = r"""
+(function(){var el=document.getElementById('eaos-system');if(!el)return;var D;try{D=JSON.parse(el.textContent)}catch(x){return}
+var svgs=[].slice.call(document.querySelectorAll('svg.smap')),panel=document.getElementById('smd'),hint=panel?panel.innerHTML:'',pinned=null,base=null,hits=null;
+function E(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function B(ar,en){return '<span class="l-ar" lang="ar">'+ar+'</span><span class="l-en" lang="en">'+en+'</span>'}
+function N(v,m){return '<span class="n" data-meaning="'+E(m)+'">'+E(v)+'</span>'}
+function L(s){return '<code class="lit" dir="ltr" data-literal="1">'+E(s)+'</code>'}
+function rel(id){return new Set(D.rel[id]||[id])}
+function mark(set){svgs.forEach(function(svg){svg.classList.toggle('focus',!!set);
+svg.querySelectorAll('.sm-node').forEach(function(n){n.classList.toggle('on',!!set&&set.has(n.dataset.node));n.classList.toggle('hit',!!hits&&hits.has(n.dataset.node))});
+svg.querySelectorAll('.sm-edge').forEach(function(e){e.classList.toggle('on',!!set&&set.has(e.dataset.from)&&set.has(e.dataset.to))})})}
+var KIND={P:['صفحة','Page'],C:['كود مشترك يستدعي الخادم','Shared code that calls the server'],A:['نقطة API','API'],H:['ملف في الخادم','Server file'],M:['جزء','Part'],T:['جدول','Table'],S:['خدمة أو تخزين','Service or storage']};
+var GROUP={P:['الصفحات','Pages'],C:['كود مشترك','Shared code'],A:['نقاط API','APIs'],H:['ملفات الخادم','Server files'],M:['الأجزاء','Parts'],T:['الجداول','Tables'],S:['الخدمات','Services']};
+function name(id){var o=D.info[id]||{},k=id.charAt(0);if(k==='P')return o.route+' · '+o.component;if(k==="A")return o.key||id.slice(2);if(k==='H'||k==='C')return o.short||o.path||id.slice(2);if(k==='M')return o.short||o.name;return o.name||id.slice(2)}
+function chip(id){return '<button type="button" class="sm-chip" data-to="'+E(id)+'">'+E(name(id))+'</button>'}
+function p(x){return '<p class="small">'+x+'</p>'}
+function detail(id){if(!panel)return;if(!id){panel.innerHTML=hint;return}
+var o=D.info[id]||{},k=id.charAt(0),lines=[],r=D.rel[id]||[];
+if(k==='P'){lines.push(B('ملف المكوّن:','Component file:')+' '+L(o.file));
+if(!o.traced)lines.push(B('لم نجد ملف مكوّنها، فلم نتتبع ما تستدعيه.','Its component file was not found, so what it calls is not traced.'));
+lines.push(B('تستدعي من ملفاتها: '+N(o.calls.length,'APIs called from this page’s own files')+' · تصل إلى كود مشترك يستدعي الخادم: '+N(o.shared.length,'shared files this page reaches'),
+N(o.calls.length,'APIs called from this page’s own files')+' APIs called from its own files · '+N(o.shared.length,'shared files this page reaches')+' shared files that call the server'))}
+if(k==='C'){lines.push(B('تصل إليه صفحات: '+N(o.pages.length,'pages that reach this file')+' · يستدعي: '+N(o.calls.length,'APIs this file calls'),N(o.pages.length,'pages that reach this file')+' pages reach it · it calls '+N(o.calls.length,'APIs this file calls')+' APIs'))}
+if(k==='A'){lines.push(B('يستدعيها من الملفات:','Called in the files:')+' '+(o.callers.length?o.callers.map(L).join(' '):B('لا أحد وجدناه','none we found')));
+if(o.handlers.length){lines.push(B('يجيبها في الخادم:','Answered on the server by:')+' '+o.handlers.map(function(h){return L(h.path)+(h.function?' '+L(h.function):'')}).join(' ')+(o.exact?'':' '+B('(من اسم الملف فقط؛ تحقق منه)','(from the file name only; check it)')))}
+else lines.push(B('لم نجد في الخادم ما يجيبها: قد يأتي جوابها من خادم آخر، أو من مسار يُبنى وقت التشغيل.','No server code was found that answers it: the answer may come from another server, or from a route built at run time.'));
+if(o.features&&o.features.length)lines.push(B('الميزة:','Feature:')+' '+o.features.map(L).join(' '))}
+if(k==='H'&&!o.apis.length)lines.push(B('لم نجد في الكود من يستدعيه: قد يُستدعى من خارج البرنامج (رابط، أو webhook، أو مهمة مجدولة).','No call to it was found in the code: it may be called from outside the program (a link, a webhook, a scheduled job).'));
+if(k==='T'&&o.files)lines.push(B('معرّف في:','Defined in:')+' '+o.files.map(L).join(' ')+' · '+B('لا نفرّق هنا بين القراءة والكتابة.','reading and writing are not told apart here.'));
+var groups='';'PCAHMTS'.split('').forEach(function(g){var list=r.filter(function(x){return x.charAt(0)===g&&x!==id});if(!list.length)return;
+groups+='<div class="sm-group"><b>'+B(GROUP[g][0],GROUP[g][1])+' '+N(list.length,'related items of this kind')+'</b>'+list.slice(0,40).map(chip).join('')+(list.length>40?' '+B('و'+N(list.length-40,'more items')+' غيرها','and '+N(list.length-40,'more items')+' more'):'')+'</div>'});
+panel.innerHTML='<h4>'+B(KIND[k][0],KIND[k][1])+' '+L(name(id))+'</h4>'+lines.map(p).join('')+groups;
+panel.querySelectorAll('.sm-chip').forEach(function(b){b.addEventListener('click',function(){select(b.dataset.to,true)})})}
+function select(id,scroll){pinned=id;mark(id?rel(id):base);detail(id);if(scroll&&id){svgs.forEach(function(svg){if(!svg.getBoundingClientRect().width)return;
+var n=svg.querySelector('[data-node="'+String(id).replace(/["\\]/g,'\\$&')+'"]');if(n&&n.scrollIntoView)n.scrollIntoView({block:'nearest',inline:'nearest'})})}}
+svgs.forEach(function(svg){svg.querySelectorAll('.sm-node').forEach(function(n){var id=n.dataset.node;
+n.addEventListener('mouseenter',function(){if(!pinned)mark(rel(id))});n.addEventListener('mouseleave',function(){if(!pinned)mark(base)});
+function pick(){select(pinned===id?null:id)}n.addEventListener('click',pick);n.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}})})});
+var q=document.getElementById('smq'),f=document.getElementById('smf'),out=document.getElementById('smshown'),lang=function(){return document.documentElement.getAttribute('data-lang')};
+function filter(){var text=(q&&q.value||'').trim().toLowerCase(),feature=f&&f.value||'',set=null,count=0;hits=null;
+if(feature){set=new Set();(D.features[feature]||[]).forEach(function(id){rel(id).forEach(function(x){set.add(x)})});count=(D.features[feature]||[]).length}
+if(text){hits=new Set();(svgs[0]?svgs[0].querySelectorAll('.sm-node'):[]).forEach(function(n){if(n.dataset.search.indexOf(text)>=0)hits.add(n.dataset.node)});
+if(!set){set=new Set(hits);if(hits.size<=5)hits.forEach(function(h){rel(h).forEach(function(x){set.add(x)})})}count=hits.size}
+document.querySelectorAll('.sm-table tbody tr').forEach(function(row){row.hidden=!!text&&row.dataset.search.indexOf(text)<0});
+base=set;pinned=null;mark(base);detail(null);if(out)out.textContent=(text||feature)?(lang()==='ar'?('المطابق: '+count):('Matching: '+count)):''}
+if(q)q.addEventListener('input',filter);if(f)f.addEventListener('change',filter);
+var c=document.getElementById('smclear');if(c)c.addEventListener('click',function(){if(q)q.value='';if(f)f.value='';filter()})})();
 """

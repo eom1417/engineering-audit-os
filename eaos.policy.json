@@ -127,6 +127,7 @@
       "eaos/ledger.py",
       "eaos/handover.py",
       "eaos/arch_map.py",
+      "eaos/system_map.py",
       "eaos/branches.py",
       "eaos/intake.py",
       "eaos/dependency_assessment.py",
