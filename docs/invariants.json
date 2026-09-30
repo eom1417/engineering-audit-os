@@ -1464,6 +1464,15 @@
       "note": "History: what an earlier version of the indicator computed."
     },
     {
+      "id": "INV-5f66e051ce",
+      "file": "eaos/system_map.py",
+      "symbol": "<module>",
+      "statement": "Reads only records the audit already wrote, and never raises for a missing or broken one (a missing piece is empty): facts/entrypoints.json entry_point: a page (route, its component) or a server route; data_access: an HTTP call the code makes (target URL, method), at the file that makes it features.json features: their routes (surfaces), endpoints, files; what the feature filter groups by facts/flows.json flow: a page and its call chain; the first caller is the page's component file facts/syntax.json symbol: exported functions (a GET or POST export is a file-routed handler, a component's name finds its file); import_edge: the packages a file imports (a database, email, ...) facts/graph.json graph_node: the files each file imports facts/domain.json data_table: a table, at the file that defines it target-architecture.json current_components: the parts, which own the files",
+      "kind": "invariant",
+      "enforced_by": "tests/test_system_map.py::SystemMapTests::test_missing_or_broken_records_leave_the_map_out_not_the_page",
+      "note": ""
+    },
+    {
       "id": "INV-551e1363f5",
       "file": "eaos/target_architecture.py",
       "symbol": "assess",
