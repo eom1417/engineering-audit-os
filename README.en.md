@@ -72,8 +72,8 @@ flowchart TB
     end
     subgraph P3["Execution: isolated, with the owner's authorization (1/2)"]
         direction LR
-        S08["<b>S08 · Rebuild / refactor</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 68%"]:::current
-        S09["<b>S09 · Functional verification</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 0%"]:::next
+        S08["<b>S08 · Rebuild / refactor</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 98%"]:::current
+        S09["<b>S09 · Functional verification</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 50%"]:::current
         S10["<b>S10 · Security</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
         S11["<b>S11 · Load</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
         S08 -->|"✔ Per task: its acceptance passes, the safety net passes, no new critical claim. E1 = 1"| S09
@@ -90,7 +90,7 @@ flowchart TB
     end
     subgraph P5["Governance and handover"]
         direction LR
-        S15["<b>S15 · Continuous governance and handover</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 44%"]:::current
+        S15["<b>S15 · Continuous governance and handover</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 100%"]:::done
         LOOP["↺ re-audit after every change: back to S01"]:::next
         S15 -->|"✔ K1 = 1, the baseline pinned, and the new-debt gate in CI"| LOOP
     end
@@ -226,15 +226,13 @@ No command modifies the original project, publishes anything or merges anything.
 <!-- north-star:progress:start -->
 <!-- generated from docs/north-star.json by python tools/north_star.py; do not edit by hand -->
 
-### Progress: **72.5 of 100 points**
+### Progress: **77.5 of 100 points**
 
-`██████████████████░░░░░░░` 72.5%
+`███████████████████░░░░░░` 77.5%
 
 | Steps done | Current step | Points left | Of which wait on the owner | Last measured |
 |---|---|---|---|---|
-| 18 of 27 | 19 · NS27 Build from a plan | 27.5 | 23 | 2026-09-28 · `0a8ea72+` |
-
-`+`: measured on changes over this commit, saved in the next one.
+| 19 of 27 | 20 · NS27 Build from a plan | 22.5 | 23 | 2026-09-30 · `0fbc461` |
 
 **How it is computed:**
 
@@ -297,11 +295,11 @@ flowchart TB
         direction LR
         NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 100%"]:::done
         NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 6 · ▰ 100%"]:::done
-        NS27["<b>19 · NS27</b><br/>البناء من خطة<br/>Build from a plan<br/>⚖ 6 · ▰ 93%"]:::current
-        NS28["<b>20 · NS28</b><br/>الاستمرارية والتقدم الصادق<br/>Continuity and true progress<br/>⚖ 5 · ▰ 0%"]:::next
+        NS28["<b>19 · NS28</b><br/>الاستمرارية والتقدم الصادق<br/>Continuity and true progress<br/>⚖ 5 · ▰ 100%"]:::done
+        NS27["<b>20 · NS27</b><br/>البناء من خطة<br/>Build from a plan<br/>⚖ 6 · ▰ 93%"]:::current
         NS26 -->|"✔ E5≥0.8 · +2 acceptance tests"| NS9
-        NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +7 acceptance tests"| NS27
-        NS27 -->|"✔ B1=1 · B2=1 · X8=1 · … · +1 acceptance test"| NS28
+        NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +7 acceptance tests"| NS28
+        NS28 -->|"✔ L1=1 · L2=1 · L3=1 · … · +5 acceptance tests"| NS27
     end
     subgraph R6_2["R6 · Proven execution (2/2)"]
         direction LR
@@ -331,7 +329,7 @@ flowchart TB
     R3_1 ==>|"✔ M1≥0.95 · S3≥0.8 · G2=1 · +2 acceptance tests"| R4_1
     R4_1 ==>|"✔ T6=1 · T7=1 · +2 acceptance tests"| R5_1
     R5_1 ==>|"✔ K1=1 · +4 acceptance tests"| R6_1
-    R6_1 ==>|"✔ L1=1 · L2=1 · L3=1 · … · +5 acceptance tests"| R6_2
+    R6_1 ==>|"✔ B1=1 · B2=1 · X8=1 · … · +1 acceptance test"| R6_2
     R6_2 ==>|"✔ E7=1 · E2≥0.8"| R7_1
     R7_1 ==>|"✔ E10≥0.9 · +1 acceptance test"| R7_2
     R7_2 ==>|"✔ E11=1 · +1 acceptance test"| R8_1
