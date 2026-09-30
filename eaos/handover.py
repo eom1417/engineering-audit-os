@@ -286,4 +286,4 @@ def resume(folder, lang='ar'):
 
 
 guided.REPORT_PARTS['handover'] = brief   # the work log on the report for people
-guided.RESUME.append(resume)             # eaos resume, for the person
+guided.RESUME.append(resume)             # eaos handover, for the person

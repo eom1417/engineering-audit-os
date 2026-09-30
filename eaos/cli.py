@@ -533,8 +533,7 @@ def main(argv=None):
                        ('undo', 'Throw the latest batch of fixes away (its branch, deleted)'),
                        ('show', 'Print what the check found, in plain words'),
                        ('do', 'Ask in your own words: eaos do "check my project"'),
-                       ('assistant', 'Teach your AI assistant (Claude Code, Codex) to use EAOS: eaos assistant install'),
-                       ('resume', 'Where the work stopped, and what to tell another assistant to go on (after a usage limit)')):
+                       ('assistant', 'Teach your AI assistant (Claude Code, Codex) to use EAOS: eaos assistant install')):
         q=s.add_parser(name,help=text)
         if name == 'do': q.add_argument('request',nargs='*')
         elif name == 'assistant': q.add_argument('action',nargs='?',choices=['install'],default='install')
@@ -544,9 +543,12 @@ def main(argv=None):
         q.add_argument('--yes',action='store_true',help='answer yes to the question this step asks')
         if name == 'doctor': q.add_argument('--fix',action='store_true',help='install what is missing')
         q.set_defaults(func=guided_command)
-    q=s.add_parser('handover',help='For an assistant\'s session-start hook: what EAOS has open in this folder (eaos assistant install sets it)')
-    q.add_argument('--hook',action='store_true',help='read the hook\'s JSON on stdin and answer with the context to add')
-    q.set_defaults(func=handover_hook)
+    q=s.add_parser('handover',help='Where the work stopped, and what to tell another assistant to go on (after a usage limit)')
+    q.add_argument('project',nargs='?',default='.')
+    q.add_argument('--lang',choices=['ar','en'],default=None)
+    q.add_argument('--hook',action='store_true',help='for an assistant\'s session-start hook (eaos assistant install sets it): '
+                   'read its JSON on stdin and answer with the context to add')
+    q.set_defaults(func=lambda args: handover_hook(args) if args.hook else guided_command(args))
     q=s.add_parser('mcp',help='EAOS as MCP tools for an AI assistant (stdio); eaos assistant install registers it')
     q.set_defaults(func=lambda args: __import__('eaos.mcp_server', fromlist=['main']).main())
     q=s.add_parser('init',help='Create the workspace the model-driven repair commands operate in')

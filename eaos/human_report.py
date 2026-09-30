@@ -1599,6 +1599,13 @@ def section_system(m):
     """The whole system in one drawing, with a search, a feature filter, what a click reaches, and every API as a table."""
     sm, lay = m.get('system'), m.get('system_layout')
     if not sm or not lay:
+        if (m.get('coverage') or {}).get('source_files') and not any(e.get('section') == 'system map' for e in m.get('map_errors') or []):
+            return (f'<div class="card" data-part="system-map"><h3>{T("كل الروابط: من الصفحة إلى البيانات", "Every link: from the page to the data")}</h3>'
+                    + T('لم نجد في هذا المشروع صفحات ويب ولا نقاط API يستدعيها أحد: هو مكتبة أو أداة أوامر أو خدمة بلا واجهة. '
+                        'أجزاؤه والعلاقات بينها، وملفاته ودواله، مرسومة في «خريطة البنية».',
+                        'This project has no web pages and no API that anything calls: it is a library, a command-line tool or a '
+                        'service without a front end. Its parts and the links between them, its files and functions, are drawn in '
+                        'the "Structure map".', 'p') + '</div>')
         return unavailable('system map')
     from .system_map import COLUMNS, WIDTH
     from .arch_map import json_script

@@ -116,7 +116,7 @@ CONTRACTS = {
                         ['id', 'command', 'ok']), 1)})),
  'execution-log': ('runtime/execution.json', 'NS9.T1', 'Runtime artifact: every plan card executed in an isolated copy, by its codemod or by a model, and what came of it.',
   obj({'schema_version': {'const': 1},
-       'tasks': arr(obj({'id': S, 'tool': enum('codemod', 'model'),
+       'tasks': arr(obj({'id': S, 'tool': enum('codemod', 'model', 'assistant'),
                          'status': enum('VERIFIED_IN_ISOLATED_COPY', 'NEEDS_REVIEW', 'BASELINE_FAILED', 'FAILED'),
                          'acceptance_exit': I, 'result': S}, ['id', 'tool', 'status', 'acceptance_exit']), 1)})),
  'runtime-guarantee': ('runtime/guarantee.json', 'NS20.T1', 'Runtime artifact: the output of eaos guarantee after the change, copied as written: predicted against observed indicator deltas.',

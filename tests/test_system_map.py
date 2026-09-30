@@ -77,6 +77,18 @@ class SystemMapTests(unittest.TestCase):
         self.out = system(report(self.tmp.name))
         self.sm = system_map.build(self.out)
 
+    def test_a_project_with_no_page_and_no_api_says_so_instead_of_leaving_a_gap(self):
+        """EAOS's own audit (a command-line tool): no page, no API. The section says what the project is and where its
+        links are drawn; it is not missing and it is not 'not available'."""
+        (Path(self.tmp.name) / 'library').mkdir()
+        bare = report(Path(self.tmp.name) / 'library')
+        for name in ('features.json', 'facts/entrypoints.json', 'facts/flows.json'):
+            (bare / name).unlink(missing_ok=True)
+        page = human_report.write(bare, 'ar', 'library').read_text(encoding='utf-8')
+        self.assertIn('data-part="system-map"', page)
+        self.assertIn('لم نجد في هذا المشروع صفحات ويب ولا نقاط API', page)
+        self.assertEqual(readability_problems(page), [])
+
     def test_each_api_is_mapped_to_the_server_code_that_answers_it(self):
         apis = {a['key']: a for a in self.sm['apis']}
         self.assertEqual(set(apis), {'GET /api/users', 'POST /api/users', 'GET /api/me', 'GET /api/nowhere'})

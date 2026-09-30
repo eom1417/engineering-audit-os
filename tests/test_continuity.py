@@ -238,7 +238,7 @@ class Handover(Base):
                               'kept': {'TASK-001': 'abc'}, 'failed': {}, 'tools': {}}
         guided.save(state)
         handover.note('checking TASK-003 next', 'TASK-003', str(self.project))
-        code, printed = run('resume', self.project, lang='ar')
+        code, printed = run('handover', self.project, lang='ar')
         self.assertEqual(code, 0)
         for words in ('الدفعة 1', 'حُفظ 1، باقي 1', 'كمّل شغل EAOS', 'Codex'):
             self.assertIn(words, printed)

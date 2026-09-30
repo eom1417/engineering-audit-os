@@ -29,7 +29,7 @@ from .start_here import start_here, summary_counts  # noqa: F401  (one home: eao
 
 ERRORS = Path(__file__).resolve().parent / 'data/errors.json'
 # The commands a user types, each ending with the next-step box (X4 in docs/north-star.json).
-USER_COMMANDS = ('start', 'next', 'status', 'doctor', 'clean', 'accept', 'undo', 'show', 'do', 'assistant', 'resume')
+USER_COMMANDS = ('start', 'next', 'status', 'doctor', 'clean', 'accept', 'undo', 'show', 'do', 'assistant', 'handover')
 LINE = '─' * 60
 
 
@@ -358,7 +358,7 @@ def branch_links(state):
 # The parts of the page other modules give, registered by those modules so that this one does not import them:
 # {'handover': eaos.handover.brief}. Each takes the state and returns what the page shows.
 REPORT_PARTS = {}
-# What `eaos resume` tells the person, registered by eaos/handover.py the same way.
+# What `eaos handover` tells the person, registered by eaos/handover.py the same way.
 RESUME = []
 
 
@@ -1040,7 +1040,7 @@ def resume(args):
 
 
 COMMANDS = {'start': start, 'next': next_command, 'status': status, 'doctor': doctor, 'clean': clean, 'accept': accept, 'undo': undo,
-            'show': show, 'do': do, 'assistant': assistant, 'resume': resume}
+            'show': show, 'do': do, 'assistant': assistant, 'handover': resume}
 
 
 def main(args):

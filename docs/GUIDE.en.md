@@ -102,7 +102,7 @@ have installed (from Codex to Claude Code, or the other way):
 **The first time you open Codex after installing**, it shows "New hook – review required": approve it once (Trust). It is
 what tells Codex where the work stopped. Claude Code does not ask.
 
-**Want to see for yourself where it stopped?** In the terminal, in your project folder: `eaos resume`. It tells you the
+**Want to see for yourself where it stopped?** In the terminal, in your project folder: `eaos handover`. It tells you the
 branch, the batch, what was kept and what is left, the card the assistant was on, the last assistant and when, and the line
 to write to the other assistant. The same is in the report, in the "Work log" section.
 

@@ -17,7 +17,7 @@ Versions restart at 0.0.1 and stay 0.0.x until the first official release, 1.0.0
 - **The branch**: when a project has several branches, EAOS asks which one (never choosing for the person) and everything
   follows it.
 - **Handover between assistants**: every step journaled, `note`, `HANDOVER.md`, a session-start hook for Claude Code and Codex
-  (`eaos handover --hook`) so a new session knows where the work stopped and on which card, and `eaos resume` for the person.
+  (`eaos handover --hook`) so a new session knows where the work stopped and on which card, and `eaos handover` for the person.
 - An AI assistant's working copies inside a project (`.claude/worktrees/`) are no longer audited as part of it.
 
 ## Unreleased
