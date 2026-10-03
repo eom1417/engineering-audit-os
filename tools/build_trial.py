@@ -20,9 +20,10 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+import dev_paths
 
 ROOT = Path(__file__).resolve().parents[1]
-MEASURE = Path(os.environ.get('EAOS_MEASURE', '/workspace/eaos-measure')) / 'build'
+MEASURE = dev_paths.MEASURE / 'build'
 MAX_TURNS = 8
 
 

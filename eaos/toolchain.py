@@ -1,7 +1,7 @@
 """Every external tool at its pinned version, installed without root, and checked by one command.
 
 upstreams/toolchain.json is the only list. `install` puts each tool under $EAOS_ENGINE_TOOLS (default
-/workspace/engine-tools): a release is downloaded and accepted only if its sha256 matches the pinned one,
+~/.eaos/tools): a release is downloaded and accepted only if its sha256 matches the pinned one,
 a Python tool goes into that directory's own virtualenv, a Node tool into its own prefix; every executable
 is linked into bin/. `doctor` reports, per tool, whether the binary is there and at the pinned version.
 Nothing here uses sudo or a system package manager: a tool that needs one says so and stops.

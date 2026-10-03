@@ -18,13 +18,14 @@ sys.path.insert(0, str(ROOT))
 
 from eaos.facts.source import language_of, inventory  # noqa: E402
 from eaos.facts.run import collect  # noqa: E402
+import dev_paths  # noqa: E402
 
 
 KNOWN_TARGETS = {
-    'enola': '/workspace/upstream-src/enola',
-    'codegraph': '/workspace/upstream-src/CodeGraph',
-    'reforge': '/workspace/upstream-src/Reforge',
-    'jscpd': '/workspace/upstream-src/jscpd',
+    'enola': str(dev_paths.UPSTREAMS / 'enola'),
+    'codegraph': str(dev_paths.UPSTREAMS / 'CodeGraph'),
+    'reforge': str(dev_paths.UPSTREAMS / 'Reforge'),
+    'jscpd': str(dev_paths.UPSTREAMS / 'jscpd'),
 }
 
 

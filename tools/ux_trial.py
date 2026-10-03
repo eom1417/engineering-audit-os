@@ -3,7 +3,7 @@
     python tools/ux_trial.py <project folder> [--name NAME] [--lang ar|en] [--until safety|applied]
 
 The trial answers every question with yes, as a person agreeing would, and types `eaos next` until the journey
-reaches --until or a step fails. It writes ${EAOS_MEASURE:-/tmp/eaos-measure}/ux/<name>/trial.json:
+reaches --until or a step fails. It writes $EAOS_MEASURE (tools/dev_paths.py)/ux/<name>/trial.json:
 
     {project, commit, manual_files, questions[{id, kind}], minutes_to_first_report, reached, applied,
      commands[{argv, exit, seconds}], finished}
@@ -20,9 +20,10 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+import dev_paths
 
 ROOT = Path(__file__).resolve().parents[1]
-MEASURE = Path(os.environ.get('EAOS_MEASURE', '/workspace/eaos-measure'))
+MEASURE = dev_paths.MEASURE
 ORDER = ('scan', 'ready', 'safety', 'fix', 'review')
 
 

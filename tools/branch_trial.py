@@ -1,7 +1,7 @@
 """A trial of the branch (docs/MCP.md, L5): the owner's case, a project checked out on main while the work goes on in a
 branch far ahead of it. A real assistant, Claude Code, with the EAOS tools and read-only tools only.
 
-    python tools/branch_trial.py chief-ops /workspace/owner-projects/chief-ops main
+    python tools/branch_trial.py chief-ops ~/projects/chief-ops main
 
 The person's part: «افحص مشروعي بـ EAOS وأصلح مشاكله»; when asked which branch, «الفرع اللي تنصح فيه»; «نعم» to the
 one agreement; «ادمجها» when a branch waits; «كمّل» when it stops for anything else (at most eight messages).
@@ -20,8 +20,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from handover_trial import claude          # noqa: E402  (one way to drive Claude Code)
+import dev_paths  # noqa: E402
 
-MEASURE = Path(os.environ.get('EAOS_MEASURE', '/workspace/eaos-measure')) / 'branch'
+MEASURE = dev_paths.MEASURE / 'branch'
 REQUEST, WHICH, YES, MERGE, GO_ON = ('افحص مشروعي بـ EAOS وأصلح مشاكله', 'الفرع اللي تنصح فيه', 'نعم، موافق', 'ادمجها', 'كمّل')
 
 

@@ -1,6 +1,5 @@
 """Emitted files are judged by their own tool, and a missing tool is a failure, never a pass."""
 import json
-import os
 import shutil
 import unittest
 from pathlib import Path
@@ -8,12 +7,12 @@ from unittest import mock
 
 from shared_fixture import Workspace
 
-from eaos import emit as emitting
+from eaos import emit as emitting, toolchain
 from eaos.emit import Emitted, emit
 
 
 def lint_available():
-    home = Path(os.environ.get('EAOS_ENGINE_TOOLS') or '/workspace/engine-tools')
+    home = toolchain.home()
     return (home / 'bin/markdownlint-cli2').exists() or shutil.which('markdownlint-cli2')
 
 

@@ -7,8 +7,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+import dev_paths  # noqa: E402
 
-DEFAULT_TARGET = Path('/workspace/upstream-src/enola')
+DEFAULT_TARGET = dev_paths.ENOLA
 REVIEW_FILES = (
     'README.md', 'RUN.md', 'EXECUTIVE.md', 'DECISION-BRIEF.md', 'PRODUCT-REPORT.md',
     'BLOCKERS.md', 'SYSTEM-MAP.md', 'FLOWS.md', 'DOMAIN-AND-DATA.md', 'CONTRACTS.md',

@@ -23,7 +23,7 @@ trap 'rm -rf "$WORK"' EXIT
 echo "  producing the two reference reports with the engines on"
 # shellcheck disable=SC2086
 "$EAOS" audit . --out "$WORK/self" --skip site --engines $ENGINES >/dev/null
-GO=/workspace/upstream-src/enola
+GO="$("$PYTHON" -c 'import sys; sys.path.insert(0, "tools"); import dev_paths; print(dev_paths.ENOLA)')"
 if [ -d "$GO" ]; then
   # shellcheck disable=SC2086
   "$EAOS" audit "$GO" --out "$WORK/go" --skip site --engines $ENGINES >/dev/null

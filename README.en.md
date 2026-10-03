@@ -1,6 +1,6 @@
 # Engineering Audit OS
 
-**[العربية](README.md)** · version 0.0.1 · status: **Pilot** · progress: [where we stand](#-where-we-stand)
+**[العربية](README.md)** · version 0.0.2 · status: **Pilot** · progress: [where we stand](#-where-we-stand)
 
 > **A full engineering review team in one command.**
 > EAOS reads your project the way an architect, a code reviewer, a performance engineer and a tech lead would, together. It hands you an evidenced picture of where the project stands today, the professional shape it should reach, and an ordered task plan that any engineer or AI model can execute and prove done.

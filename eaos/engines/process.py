@@ -11,13 +11,15 @@ import time
 from hashlib import sha256
 from pathlib import Path
 
+from .. import toolchain
+
 DEFAULT_TIMEOUT = 600
 SKIP_DIRECTORIES = {'.git', '.venv', 'venv', 'node_modules', '__pycache__', 'dist', 'build', '.mypy_cache'}
 
 
 def which(binary):
     """The pinned engine directory first, then the ambient PATH."""
-    pinned = Path(os.environ.get('EAOS_ENGINE_TOOLS') or '/workspace/engine-tools') / 'bin' / binary
+    pinned = toolchain.home() / 'bin' / binary
     if pinned.is_file() and os.access(pinned, os.X_OK):
         return str(pinned)
     return shutil.which(binary)

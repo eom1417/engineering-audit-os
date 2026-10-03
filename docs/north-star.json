@@ -1091,7 +1091,7 @@
             "أضف الأمر fetch: يستنسخ كل مشروع في corpus عند commit المثبّت إلى ${EAOS_CORPUS:-/tmp/eaos-corpus}، للقراءة فقط، ولا يشغّل شيئًا منه.",
             "إن وُجد المشروع عند commit آخر أعد تثبيته؛ إن فشل الجلب اطبع السبب واخرج بغير صفر."
           ],
-          "acceptance": "python tools/north_star.py fetch && test -d \"${EAOS_CORPUS:-/tmp/eaos-corpus}/finance-os-a0192b7b/.git\"",
+          "acceptance": "python tools/north_star.py fetch && python -c \"import sys; sys.path.insert(0, 'tools'); import dev_paths; assert (dev_paths.CORPUS / 'finance-os-a0192b7b/.git').is_dir()\"",
           "rollback": "احذف الأمر fetch.",
           "status": "done"
         },
@@ -6186,7 +6186,7 @@
   "live_corpus": [
     {
       "name": "chief-ops",
-      "source": "/workspace/owner-projects/chief-ops",
+      "source": "https://github.com/eom1417/chief-operations.git",
       "commit": "29f3d8e4609406d9bf2701dc57f4457e8afb6bd6",
       "stack": "React + Vite client, its own Node server, PostgreSQL with row-level security (app/)",
       "owner": "eom1417",

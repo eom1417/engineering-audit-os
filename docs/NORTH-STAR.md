@@ -190,7 +190,7 @@ flowchart TB
 
 | المهمة | الحجم | الحالة | الإنجاز | أمر القبول |
 | --- | --- | --- | --- | --- |
-| [NS1.T1](#ns1t1) جلب العيّنة المثبّتة | M | ✅ | 100% | `python tools/north_star.py fetch && test -d "${EAOS_CORPUS:-/tmp/eaos-corpus}/finance-os-a0192b7b/.git"` |
+| [NS1.T1](#ns1t1) جلب العيّنة المثبّتة | M | ✅ | 100% | `python tools/north_star.py fetch && python -c "import sys; sys.path.insert(0, 'tools'); import dev_paths; assert (dev_paths.CORPUS / 'finance-os-a0192b7b/.git').is_dir()"` |
 | [NS1.T2](#ns1t2) قياس المؤشرات الآلية من التقارير | M | ✅ | 100% | `python tools/north_star.py measure && python tools/north_star.py --check` |
 | [NS1.T3](#ns1t3) قياس الكود الميت على الحقيقة الأرضية الذاتية | M | ✅ | 100% | `python tools/north_star.py measure --only D1 && python tools/north_star.py measure --only S2` |
 | [NS1.T4](#ns1t4) حد أعلى لا يتراجع | M | ✅ | 100% | `python tools/north_star.py measure && python tools/north_star.py --no-regression` |
@@ -1577,7 +1577,7 @@ flowchart TB
 **أمر القبول:**
 
 ```bash
-python tools/north_star.py fetch && test -d "${EAOS_CORPUS:-/tmp/eaos-corpus}/finance-os-a0192b7b/.git"
+python tools/north_star.py fetch && python -c "import sys; sys.path.insert(0, 'tools'); import dev_paths; assert (dev_paths.CORPUS / 'finance-os-a0192b7b/.git').is_dir()"
 ```
 
 **التراجع:** احذف الأمر fetch.

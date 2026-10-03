@@ -2,15 +2,19 @@
 import json
 import re
 import shutil
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'tools'))
+import dev_paths  # noqa: E402
 
 from eaos import arch_map, blueprint, human_report
 from eaos.human_report import readability_problems
 from test_human_report import report, section
 
-CHIEF = Path('/workspace/eaos-measure/mcp/chief-ops/EAOS/project/technical')
+CHIEF = dev_paths.MEASURE / 'mcp/chief-ops/EAOS/project/technical'
 
 
 def node(path, depends, group=None):

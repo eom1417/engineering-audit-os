@@ -5,8 +5,12 @@ adapter must fail here — loudly, offline, in milliseconds — rather than sile
 on somebody's repository.
 """
 import json
+import sys
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'tools'))
+import dev_paths  # noqa: E402
 
 from eaos.engines import codegraph, enola, jscpd, reforge
 from eaos.engines.contract import KINDS
@@ -57,7 +61,7 @@ class CodeGraphNewToolsContractTests(unittest.TestCase):
         """The wrapper records each tool's status; failures downgrade to partial."""
         from eaos.engines import codegraph
         import tempfile
-        target = Path('/workspace/upstream-src/enola')
+        target = dev_paths.ENOLA
         if not target.is_dir(): self.skipTest('enola reference absent')
         with tempfile.TemporaryDirectory() as tmp:
             result = codegraph.run(target, Path(tmp))
@@ -246,7 +250,7 @@ class CodegraphWrapperContracts(unittest.TestCase):
         try:
             with tempfile.TemporaryDirectory() as tmp:
                 out = Path(tmp) / 'out'
-                result = codegraph.run(Path('/workspace/upstream-src/enola'), out)
+                result = codegraph.run(dev_paths.ENOLA, out)
         finally:
             codegraph.BINARY = original
         self.assertEqual(result['available'], False)
@@ -259,7 +263,7 @@ class CodegraphWrapperContracts(unittest.TestCase):
         from eaos.engines import codegraph
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / 'out'
-            target = Path('/workspace/upstream-src/enola')
+            target = dev_paths.ENOLA
             if not target.is_dir():
                 self.skipTest('enola reference absent')
             result = codegraph.run(target, out, tools={'find_hot_paths': True, 'get_dependency_graph': False,

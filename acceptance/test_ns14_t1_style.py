@@ -9,15 +9,18 @@ Interface this task must provide:
     evidenced text; `markdownlint-cli2 --config eaos/rules/.markdownlint-cli2.jsonc FILE` passes evidenced text.
 """
 import json
-import os
 import shutil
 import subprocess
+import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 STYLE = Path(__file__).parent / 'fixtures/style'
-TOOLS = Path(os.environ.get('EAOS_ENGINE_TOOLS', '/workspace/engine-tools')) / 'bin'
+sys.path.insert(0, str(ROOT))
+from eaos import toolchain  # noqa: E402
+
+TOOLS = toolchain.home() / 'bin'
 
 
 def binary(name):

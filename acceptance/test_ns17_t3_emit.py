@@ -7,7 +7,7 @@ Interface this task must provide:
     the first emitter is named handover-readme: it writes REPORT_DIR/handover/README.md, validated by
       markdownlint-cli2
     a validator that is not installed gives {"ok": false, "reason": "validator unavailable: <binary>"}
-    binaries are looked up in $EAOS_ENGINE_TOOLS/bin first (default /workspace/engine-tools), then PATH
+    binaries are looked up in $EAOS_ENGINE_TOOLS/bin first (default ~/.eaos/tools), then PATH
 """
 import json
 import os
@@ -20,6 +20,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'tools'))
+sys.path.insert(0, str(ROOT))
+from eaos import toolchain  # noqa: E402
 
 
 class Emit(unittest.TestCase):
@@ -45,7 +47,7 @@ class Emit(unittest.TestCase):
             self.assertIn('validator unavailable', row['reason'])
 
     def test_the_tool_accepts_what_eaos_wrote(self):
-        tools = Path(os.environ.get('EAOS_ENGINE_TOOLS', '/workspace/engine-tools'))
+        tools = toolchain.home()
         if not ((tools / 'bin/markdownlint-cli2').exists() or shutil.which('markdownlint-cli2')):
             self.fail('markdownlint-cli2 is not installed: run python -m eaos tools install --stage assessment (NS17.T1)')
         with tempfile.TemporaryDirectory() as tmp:

@@ -14,12 +14,15 @@ Interface this task must provide:
       python-desktop                 Python desktop or command-line application (RendaPerene)
 """
 import json
-import os
+import sys
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-CORPUS = Path(os.environ.get('EAOS_CORPUS', '/tmp/eaos-corpus'))
+sys.path.insert(0, str(ROOT / 'tools'))
+import dev_paths  # noqa: E402
+
+CORPUS = dev_paths.CORPUS
 EXPECTED = {'FleetManageWeb': 'react-vite-spa-rest', 'finance-os-a0192b7b': 'react-tanstack-start-supabase',
             'RendaPerene': 'python-desktop'}
 BASELINE = {'configuration', 'data', 'ci', 'tests', 'observability', 'secrets'}

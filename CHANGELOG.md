@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.0.2 (2026-09-30)
+
+- **Fixed: on a person's own computer the engines never ran the tools EAOS installed for them.** `eaos tools install`
+  puts every tool in `~/.eaos/tools`, but the engines looked for them in a folder of the server EAOS was built on, then
+  in PATH, so on a Mac most engines were silently missing. Both now read the same folder (`$EAOS_ENGINE_TOOLS`,
+  default `~/.eaos/tools`), and a test fails if any code names a path of one machine.
+- **EAOS can be developed from a clone alone, on any computer.** `bash tools/dev_setup.sh` builds everything a developer
+  needs; the sample corpus, the engines' sources and the measurements live under `~/.eaos/dev` (`$EAOS_DEV_HOME`,
+  `tools/dev_paths.py`) and are fetched at their pinned commits. `AGENTS.md` (and `CLAUDE.md`) tell the assistant
+  developing EAOS how the owner works, how versions, the plan and the trials go.
+
 ## 0.0.1 (2026-09-29)
 
 Versions restart at 0.0.1 and stay 0.0.x until the first official release, 1.0.0. From the owner's trials:

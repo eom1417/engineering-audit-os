@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 PYTHON="${PYTHON:-.venv/bin/python}"
 EAOS="${EAOS:-.venv/bin/eaos}"
-GO="${GO:-/workspace/upstream-src/enola}"
+GO="${GO:-$("$PYTHON" -c 'import sys; sys.path.insert(0, "tools"); import dev_paths; print(dev_paths.ENOLA)')}"
 OUT="$(mktemp -d)/signal"
 trap 'rm -rf "$(dirname "$OUT")"' EXIT
 

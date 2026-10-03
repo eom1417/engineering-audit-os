@@ -36,6 +36,26 @@ class PlatformTests(unittest.TestCase):
         with mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': ''}):
             self.assertEqual(toolchain.home(), Path.home() / '.eaos/tools')
 
+    def test_the_engines_run_the_tools_eaos_installed(self):
+        """`eaos tools install` and the engines that run the tools read the same folder."""
+        from eaos.engines import process
+        with tempfile.TemporaryDirectory() as tmp:
+            binary = Path(tmp) / 'bin/pinned-only-tool'
+            binary.parent.mkdir()
+            binary.write_text('#!/bin/sh\n')
+            binary.chmod(0o755)
+            with mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': tmp}):
+                self.assertEqual(process.which('pinned-only-tool'), str(binary))
+
+    def test_no_code_points_at_the_machine_eaos_was_built_on(self):
+        """A clone or a fork on another computer finds everything: no path of the development server is written in code."""
+        tracked = subprocess.run(['git', 'ls-files', 'eaos', 'tools', 'tests', 'acceptance', 'install.sh'], cwd=ROOT,
+                                 capture_output=True, text=True, check=True).stdout.split()
+        found = [name for name in tracked if name.endswith(('.py', '.sh'))
+                 and '/workspace/' in (ROOT / name).read_text(encoding='utf-8', errors='replace')
+                 and name != 'tests/test_platforms.py']
+        self.assertEqual(found, [])
+
 
     def test_the_browser_lives_in_eaos_tools_folder_on_every_computer(self):
         with mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': '/opt/eaos-tools', 'PLAYWRIGHT_BROWSERS_PATH': ''}):

@@ -19,6 +19,7 @@ import json
 import subprocess
 from pathlib import Path
 
+from .. import toolchain
 from .contract import OBSERVED, Report, SYMBOL, UNAVAILABLE, finding, measurement, subject
 
 NAME, VERSION, PINNED = 'codegraph', '1', 'v0.20.1'
@@ -30,7 +31,7 @@ TOOLS = {
     'codegraph_find_hot_paths': 'hot_path_external',
 }
 
-BINARY = '/workspace/engine-tools/bin/codegraph-server'
+BINARY = str(toolchain.home() / 'bin' / 'codegraph-server')
 
 
 def _run(tool, args, workspace, timeout=600, index_home=None):

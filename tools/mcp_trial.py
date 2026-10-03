@@ -1,6 +1,6 @@
 """A trial of the main way in (docs/MCP.md, X9): a real assistant, Claude Code, drives EAOS alone.
 
-    python tools/mcp_trial.py chief-ops /workspace/owner-projects/chief-ops
+    python tools/mcp_trial.py chief-ops ~/projects/chief-ops
 
 The person's part is played by two messages and nothing else: a plain request in Arabic, then «نعم» to the
 one question EAOS has the assistant ask. Everything between is the assistant with the EAOS tools and its own
@@ -18,9 +18,10 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+import dev_paths
 
 ROOT = Path(__file__).resolve().parents[1]
-MEASURE = Path(os.environ.get('EAOS_MEASURE', '/workspace/eaos-measure')) / 'mcp'
+MEASURE = dev_paths.MEASURE / 'mcp'
 REQUEST = 'افحص مشروعي بـ EAOS وأصلح مشاكله'
 YES = 'نعم، موافق'
 GO_ON = 'كمّل'

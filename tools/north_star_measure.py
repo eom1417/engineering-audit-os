@@ -14,11 +14,12 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from eaos.indicators import Report, facts, load, mean, per, pooled, ratio, text  # noqa: E402
 from eaos.indicators import values as shared_values  # noqa: E402
+import dev_paths  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 ENGINES = ['codegraph', 'enola', 'jscpd', 'reforge', 'syft', 'osv-scanner', 'scc', 'semgrep', 'trivy', 'checkov', 'dependency-cruiser', 'sqlfluff', 'spectral', 'oasdiff', 'gitnexus']
-CORPUS = Path(os.environ.get('EAOS_CORPUS', '/workspace/eaos-corpus'))
-REPORTS = Path(os.environ.get('EAOS_MEASURE', '/workspace/eaos-measure'))
+CORPUS = dev_paths.CORPUS
+REPORTS = dev_paths.MEASURE
 # Artifacts from runs of a project's own code. The audit report is deleted whenever the tool changes;
 # these are not, because re-running a project needs the owner's authorization, not a new commit.
 RUNTIME = REPORTS / 'runtime'

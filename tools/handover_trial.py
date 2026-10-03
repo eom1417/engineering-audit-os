@@ -1,7 +1,7 @@
 """A trial of the handover (docs/MCP.md, P1-P3): Codex starts the work, its usage limit ends it in the middle of a batch,
 and Claude Code, opened fresh, goes on from there; then the person says merge.
 
-    python tools/handover_trial.py endomap /workspace/owner-projects/endomap
+    python tools/handover_trial.py endomap ~/projects/endomap
 
 The person's part: «افحص مشروعي بـ EAOS وأصلح مشاكله» and «نعم» to Codex; then, to Claude Code, only «كمّل» (its
 session-start hook, as `eaos assistant install` sets it, tells it EAOS work is open here);
@@ -21,9 +21,10 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+import dev_paths
 
 ROOT = Path(__file__).resolve().parents[1]
-MEASURE = Path(os.environ.get('EAOS_MEASURE', '/workspace/eaos-measure')) / 'handover'
+MEASURE = dev_paths.MEASURE / 'handover'
 REQUEST, YES, GO_ON, MERGE = 'افحص مشروعي بـ EAOS وأصلح مشاكله', 'نعم، موافق', 'كمّل', 'ادمجها'
 LIMIT = 3 * 3600
 
