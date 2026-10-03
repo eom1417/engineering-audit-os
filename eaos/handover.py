@@ -21,7 +21,7 @@ from . import guided
 
 KEEP = 2000                  # journal lines kept
 READING = {'status', 'wait', 'overview', 'findings', 'finding', 'structure', 'plan', 'report_file', 'fix_read', 'build_read',
-           'open_report', 'open_blueprint', 'handover', 'branches'}
+           'open_report', 'open_blueprint', 'handover', 'branches', 'menu', 'tools_check', 'impact', 'ask'}
 
 
 def _now():

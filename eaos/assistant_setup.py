@@ -2,7 +2,8 @@
 
 For Claude Code: the skill in ~/.claude/skills/eaos/SKILL.md, and the EAOS MCP server registered for the user
 (`claude mcp add --scope user eaos -- <eaos> mcp`). For Codex: the same guide between two marker lines in
-~/.codex/AGENTS.md (the rest of that file is left as it is), and the MCP server in ~/.codex/config.toml.
+~/.codex/AGENTS.md (the rest of that file is left as it is), the same guide as the skill ~/.codex/skills/eaos/SKILL.md
+(`$eaos` in Codex; typed alone, it shows the menu), and the MCP server in ~/.codex/config.toml.
 For both, a session-start hook (~/.claude/settings.json, ~/.codex/hooks.json) that runs `eaos handover --hook`: when EAOS
 has work open in the folder, a new session is told at once where it stopped (eaos/handover.hook_context), so the
 other assistant goes on after a usage limit. Codex asks the person once to trust a new hook; Claude Code does not.
@@ -75,8 +76,19 @@ def codex(home):
                           + f'[mcp_servers.eaos]\ncommand = "{argv[0]}"\nargs = [{quoted}]\n'
                           # a tool call may wait up to a minute for a long job, and its first start imports the SDK
                           + 'startup_timeout_sec = 30\ntool_timeout_sec = 120\n', encoding='utf-8')
+    skill = home / '.codex/skills/eaos/SKILL.md'      # $eaos in Codex: its skills are listed under $, not /
+    skill.parent.mkdir(parents=True, exist_ok=True)
+    skill.write_text(codex_skill(), encoding='utf-8')
     add_session_hook(home / '.codex/hooks.json')
     return agents
+
+
+def codex_skill():
+    """The guide as a Codex skill: the frontmatter of the Claude Code skill (name and description only, all Codex reads),
+    then the guide."""
+    claude_skill = (TEMPLATES / 'claude-skill.md').read_text(encoding='utf-8')
+    front = [line for line in claude_skill.split('---')[1].strip().splitlines() if line.startswith(('name:', 'description:'))]
+    return '---\n' + '\n'.join(front).replace('Type /eaos alone', 'Type $eaos alone') + '\n---\n\n' + (TEMPLATES / 'guide.md').read_text(encoding='utf-8')
 
 
 def install(home=None):

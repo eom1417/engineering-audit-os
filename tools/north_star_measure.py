@@ -184,7 +184,7 @@ def self_truth(record):
                    f'{len(dead)} dead of {len(dead) + len(false)} distinct candidates (by path and symbol): ' + ', '.join(dead))}
 
 
-USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6')
+USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'X11', 'X12', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6')
 
 
 def measure(record, only=None):
@@ -249,6 +249,16 @@ def usability_values(only=None):
         values['X9'] = (ratio(len(ok), len(runs)) if runs else None,
                         f"trials an assistant drove from a plain request to a delivered branch, with at most one agreement: {len(ok)}/{len(runs)} "
                         f"({', '.join(t['project'] for t in runs) or 'no trial run yet'})")
+    for key, who, shown in (('X11', 'claude', 'as an arrow-key choice in Claude Code after /eaos alone'),
+                            ('X12', 'codex', 'as a numbered list in Codex after $eaos alone')):
+        if only in (None, key):
+            tries = [json.loads(p.read_text(encoding='utf-8')) for p in sorted((REPORTS / 'menu').glob('*/trial.json'))]
+            ok = [t['project'] for t in tries if all((t.get(who) or {}).get(k) for k in
+                                                     ('shown', 'as_choice', 'labels_in_order', 'recommended_first', 'menu_called', 'did_it'))]
+            values[key] = (ratio(len(ok), len(tries)) if tries else None,
+                           f"menu trials where the first page of menu() showed {shown}, every label in order and the recommended one "
+                           f"first, and the option chosen by its number reached its tools: {len(ok)}/{len(tries)} "
+                           f"({', '.join(t['project'] for t in tries) or 'no trial run yet'})")
     if only in (None, 'X10'):
         from eaos.human_report import readability_problems
         pages = sorted(p for p in REPORTS.glob('*/human/index.html') if p.parent.parent.name not in ('runtime', 'ux', 'mcp'))

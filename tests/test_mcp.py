@@ -66,7 +66,7 @@ class ServerTests(Home):
         self.assertTrue({'status', 'audit', 'wait', 'finding', 'run_setup', 'run_try', 'safety_net', 'fix_start', 'fix_edit',
                          'fix_finish', 'accept', 'undo', 'open_report', 'blueprint_start', 'blueprint_spec', 'blueprint_design',
                          'build_start', 'build_edit', 'build_finish'} <= names)
-        self.assertEqual({p.name for p in prompts.prompts}, {'audit', 'fix', 'status', 'build'})
+        self.assertEqual({p.name for p in prompts.prompts}, {'audit', 'fix', 'status', 'build', 'continue', 'report', 'tasks', 'ask', 'tools'})
         answer = json.loads(called.content[0].text)
         self.assertEqual((answer['project'], answer['next']['tool']), (str(self.project.resolve()), 'audit'),
                          'the folder the assistant was opened in is the project')
@@ -300,6 +300,52 @@ class JobTests(Home):
 
     def test_a_job_name_cannot_reach_outside_the_jobs_folder(self):
         with self.assertRaises(ValueError): jobs.read('../state')
+
+
+
+class MenuAndQuestionTests(Home):
+    """/eaos alone, and the person's questions about their code (eaos/menu.py; impact, ask and tools_check)."""
+
+    def call(self, name, arguments):
+        from eaos.mcp_server import build
+        os.chdir(self.project)
+        self.addCleanup(os.chdir, ROOT)
+        return json.loads(asyncio.run(build().call_tool(name, arguments)).content[0].text)
+
+    def test_the_menu_offers_the_check_first_on_a_project_never_checked(self):
+        offered = self.call('menu', {'lang': 'ar'})
+        first = offered['pages'][0][0]
+        self.assertEqual((first['id'], first['label']), ('audit', 'افحص المشروع (موصى به)'))
+        self.assertLessEqual(len(offered['pages'][0]), 4)
+
+    def test_questions_wait_for_a_check_then_answer_from_its_facts(self):
+        import shutil
+        from eaos.dossier import assemble
+        self.assertIn('audit', self.call('impact', {'target': 'src/a.js'})['error'])
+        self.assertIn('audit', self.call('ask', {'question': 'pricing'})['error'])
+        project = Path(self.tmp.name) / 'polyglot'
+        shutil.copytree(ROOT / 'tests/fixtures/polyglot', project)
+        git_project(project)
+        self.project = project
+        report = guided.report_of(agent_tools.project_state(str(project)))
+        assemble(project, report)
+        (report / 'plan.json').write_text('{}')
+        touched = self.call('impact', {'target': 'core/pricing.py'})
+        self.assertEqual(sorted(touched['direct_dependents']), ['cli.py', 'core/audit.py', 'worker/tasks.py'])
+        self.assertTrue(touched['limits'], 'what the answer cannot see is said with it')
+        found = self.call('ask', {'question': 'price_for'})
+        self.assertEqual(found['status'], 'ANSWERED')
+        self.assertTrue(all(answer.get('id') for answer in found['answers']))
+
+    def test_the_tools_say_this_version_and_what_this_project_needs(self):
+        from eaos import __version__
+        checked = self.call('tools_check', {})
+        self.assertEqual(checked['eaos']['version'], __version__)
+        self.assertEqual(checked['total'], len(checked['tools']))
+        needed = {row['name']: row['needed_here'] for row in checked['tools']}
+        self.assertFalse(needed['sqlfluff'], 'a project without SQL does not need the SQL linter')
+        if checked['missing_for_the_check']:
+            self.assertEqual(checked['install'], 'eaos tools install --stage assessment')
 
 
 if __name__ == '__main__':

@@ -359,7 +359,7 @@
           "definition": "قدرات الطريق الموجَّه (الحال، الفحص، متابعة العمل الطويل، الأدلة، تشغيل البرنامج، تصوير الشاشات، إصلاح بطاقة، التسليم، الاعتماد، التراجع) التي لها أداة MCP مسجّلة ومختبرة ÷ هذه القدرات",
           "target": 1.0,
           "value": 1.0,
-          "evidence": "capabilities of the guided way with a tested MCP tool: 18/18",
+          "evidence": "capabilities of the guided way with a tested MCP tool: 22/22",
           "reads": "eaos/mcp_server.py → CAPABILITIES و build()، و tests/test_mcp.py",
           "measured": "automated"
         },
@@ -381,6 +381,26 @@
           "value": 1.0,
           "evidence": "reports for people with the four reports, a severity legend and no number without its meaning: 5/5 (FleetManageWeb, RendaPerene, chief-ops, finance-os-a0192b7b, self-truth)",
           "reads": "${EAOS_MEASURE}/<مشروع>/human/index.html → eaos/human_report.readability_problems",
+          "measured": "automated"
+        },
+        {
+          "id": "X11",
+          "name": "قائمة /eaos في Claude Code",
+          "definition": "تجارب القائمة التي ظهرت فيها، بعد /eaos وحدها في شاشة Claude Code، الصفحة الأولى من menu() اختيارًا بالأسهم بعناوينها وترتيبها والموصى به أولًا، ثم نادى الخيار المختار أدواته ÷ التجارب",
+          "target": 1.0,
+          "value": 1.0,
+          "evidence": "menu trials where the first page of menu() showed as an arrow-key choice in Claude Code after /eaos alone, every label in order and the recommended one first, and the option chosen by its number reached its tools: 1/1 (calisthenics-coach)",
+          "reads": "${EAOS_MEASURE}/menu/<مشروع>/trial.json → claude",
+          "measured": "automated"
+        },
+        {
+          "id": "X12",
+          "name": "قائمة $eaos في Codex",
+          "definition": "تجارب القائمة التي ظهرت فيها، بعد $eaos وحدها في شاشة Codex، الصفحة الأولى من menu() قائمة مرقمة بعناوينها وترتيبها والموصى به أولًا، ثم نادى الرقم المختار أدواته ÷ التجارب",
+          "target": 1.0,
+          "value": 1.0,
+          "evidence": "menu trials where the first page of menu() showed as a numbered list in Codex after $eaos alone, every label in order and the recommended one first, and the option chosen by its number reached its tools: 1/1 (calisthenics-coach)",
+          "reads": "${EAOS_MEASURE}/menu/<مشروع>/trial.json → codex",
           "measured": "automated"
         }
       ]
@@ -3609,8 +3629,8 @@
         "S07"
       ],
       "title_en": "Team execution plan and the four reports",
-      "weight": 5,
-      "weight_why": "ما يستلمه الفريق فعلًا: الخطة والتقارير الأربعة.",
+      "weight": 4,
+      "weight_why": "ما يستلمه الفريق فعلًا: الخطة والتقارير الأربعة. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.)",
       "does": [
         "يحدد حجم كل بطاقة وقسمها في الفريق",
         "يجمع البطاقات في معالم بأهداف وشروط خروج",
@@ -4522,8 +4542,8 @@
         "S09",
         "S15"
       ],
-      "weight": 5,
-      "weight_why": "من تجربة المالك (2026-09-29): بعد أول دفعة بقي الفرع، ولم يتحدث التقرير، وسُجّلت ثلاث بطاقات منجزة والباقي كما هو؛ والعمل الطويل يتجاوز حد استخدام المساعد. بدون هذا لا يثق الشخص بأي رقم.",
+      "weight": 4,
+      "weight_why": "من تجربة المالك (2026-09-29): بعد أول دفعة بقي الفرع، ولم يتحدث التقرير، وسُجّلت ثلاث بطاقات منجزة والباقي كما هو؛ والعمل الطويل يتجاوز حد استخدام المساعد. بدون هذا لا يثق الشخص بأي رقم. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.)",
       "does": [
         "سجل للبطاقات بمفتاح ثابت يقرأ المنجز من git",
         "الدمج يحذف الفرع ويحدّث التقرير والتقدم في الخطوة نفسها",
@@ -4875,6 +4895,111 @@
           ],
           "acceptance": "python -m unittest tests.test_continuity tests.test_intents && python tools/north_star.py measure --only L3 --min 1.0",
           "rollback": "احذف الـhook؛ status يبقى أول أداة."
+        }
+      ]
+    },
+    {
+      "id": "NS29",
+      "title": "قائمة /eaos: ما يقدمه EAOS الآن، بخيار واحد",
+      "title_en": "The /eaos menu: what EAOS offers now, in one choice",
+      "goal": "X11 وX12 عند أهدافهما: من يكتب /eaos وحدها (في Codex: $eaos) يرى قائمة بما يناسب مشروعه الآن، الخطوة الموصى بها أولًا وبأرقام مشروعه، ويختار بالأسهم أو برقم، فيُنفَّذ ما اختاره.",
+      "stages": [
+        "S01",
+        "S15"
+      ],
+      "weight": 2,
+      "weight_why": "من طلب المالك (2026-10-03): /eaos كانت تبدأ العمل مباشرة، فلا يعرف الشخص ما تقدر الأداة عليه ولا يختار. نقطة من NS28 ونقطة من NS8.",
+      "does": [
+        "قائمة تُبنى من حالة المشروع: لا تقرير قبل فحص، ولا «تابع» بلا عمل مفتوح، والموصى به أولًا",
+        "صفحات من أربعة خيارات كحد أقصى، و«خيارات أخرى…» للبقية",
+        "أوامر مباشرة لكل خيار في Claude Code (/eaos:report و/eaos:ask وغيرها)",
+        "أسئلة الشخص عن كوده تُجاب من سجلات الفحص: ما يمسّه تغيير ملف، وأين يُستخدم شيء",
+        "الأدوات المثبتة ونسختها وما ينقص هذا المشروع وأمر تثبيته"
+      ],
+      "tools": [
+        "eaos/menu.py",
+        "eaos/mcp_server.py (menu, impact, ask, tools_check، والأوامر المباشرة)",
+        "eaos/templates/assistants/",
+        "eaos/assistant_setup.py (مهارة Codex)",
+        "المساعد الذكي (Codex وClaude Code)"
+      ],
+      "outputs": [
+        "~/.claude/skills/eaos/SKILL.md",
+        "~/.codex/skills/eaos/SKILL.md"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "done",
+          "id": "NS29.T1",
+          "title": "/eaos وحدها تعرض قائمة بما يناسب المشروع الآن",
+          "why": "طلب المالك قائمة مثل /model: يختار منها بدل أن تبدأ الأداة عملًا لم يختره.",
+          "moves": [
+            "X11",
+            "X12"
+          ],
+          "depends_on": [
+            "NS28.T3"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/menu.py",
+            "eaos/mcp_server.py",
+            "eaos/templates/assistants/claude-skill.md",
+            "eaos/templates/assistants/guide.md",
+            "eaos/assistant_setup.py",
+            "tests/test_menu.py",
+            "tools/menu_trial.py"
+          ],
+          "steps": [
+            "menu(project): الخيارات من status (عمل مفتوح، فرع ينتظر، لم يُفحص، تغيّر الكود، باقي بطاقات)، والموصى به أولًا، والوصف من أرقام المشروع.",
+            "صفحات من أربعة (أقصى ما يعرضه اختيار في Claude Code)، والرابع «خيارات أخرى…» حين يبقى غيرها.",
+            "مهارة Claude Code: /eaos بلا كلام بعدها تنادي menu وتعرضه بـAskUserQuestion؛ وCodex: مهارة $eaos تعرضه قائمة مرقمة.",
+            "تجربة حقيقية في شاشة كل مساعد (tmux): تظهر الصفحة الأولى كما هي، ويُختار رقم، فتُنادى أدواته."
+          ],
+          "done_when": [
+            "X11 = 1.0 وX12 = 1.0 في تجربة القائمة."
+          ],
+          "pitfalls": [
+            "خيار لا يمكن تنفيذه الآن لا يُعرض.",
+            "كلام الشخص بدل الاختيار طلبٌ يُنفَّذ، لا يُعاد عرض القائمة."
+          ],
+          "acceptance": "python -m unittest tests.test_menu && python tools/north_star.py measure --only X11 --min 1.0 && python tools/north_star.py measure --only X12 --min 1.0",
+          "rollback": "احذف eaos/menu.py والأداة menu وقسم القائمة من المهارتين."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "done",
+          "id": "NS29.T2",
+          "title": "أوامر مباشرة، وأسئلة عن الكود تُجاب من السجلات، والأدوات",
+          "why": "من يعرف ما يريد يختاره من قائمة / مباشرة؛ وأقوى ما يعرض قدرة EAOS أن يجيب «ماذا يتأثر لو غيّرت هذا الملف؟» من حقائق الفحص.",
+          "moves": [
+            "X8"
+          ],
+          "depends_on": [
+            "NS29.T1"
+          ],
+          "size": "S",
+          "files": [
+            "eaos/mcp_server.py",
+            "eaos/agent_tools.py",
+            "tests/test_mcp.py"
+          ],
+          "steps": [
+            "أوامر MCP لكل خيار بالكلمات نفسها (continue وreport وtasks وask وtools، مع audit وfix وbuild وstatus).",
+            "impact وask يقرآن من تقرير الفحص، ويقولان حدود الجواب؛ وبلا فحص يطلبان الفحص.",
+            "tools_check: نسخة EAOS، وكل أداة: مثبتة أم لا، وهل يحتاجها هذا المشروع، وأمر واحد لما ينقص."
+          ],
+          "done_when": [
+            "X8 = 1.0 والقدرات الأربع الجديدة مسجلة ومختبرة."
+          ],
+          "pitfalls": [
+            "لا جواب من خارج السجلات."
+          ],
+          "acceptance": "python -m unittest tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0",
+          "rollback": "احذف الأدوات الأربع والأوامر الخمسة الجديدة."
         }
       ]
     },
@@ -6154,6 +6279,7 @@
         "NS26",
         "NS9",
         "NS28",
+        "NS29",
         "NS27",
         "NS20"
       ],

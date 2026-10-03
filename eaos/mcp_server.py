@@ -42,6 +42,9 @@ The whole way for an existing project, in order (`status` always says the next t
 Only the plan's cards count as progress: do not do work outside them. Call `status` first in every session: its
 `handover` says what the last assistant (you, or another one after a usage limit) did and how to continue; add the
 why with `note` after each card and before you stop.
+When the person types /eaos alone, or asks what EAOS can do here, call `menu` and show its options as one choice
+(the recommended one first); once they chose, do what that option says at once. For questions about their code,
+`impact` (what changing a file touches) and `ask` answer from the check's records; `tools_check` says what is installed.
 Long steps return a job: call `wait` with it until it is done (a check takes 5-30 minutes). Keep every feature,
 route and behaviour when fixing: a fix that deletes what users reach is refused. Never invent results: report
 what the tools returned."""
@@ -51,7 +54,8 @@ what the tools returned."""
 CAPABILITIES = {'where things stand': 'status', 'read any plan': 'blueprint_start', 'check the product spec': 'blueprint_spec',
                 'draw the target and the build plan': 'blueprint_design', 'build a milestone': 'build_edit',
                 'hand a milestone over': 'build_finish', 'check the project': 'audit', 'follow long work': 'wait',
-                'show the report for people': 'open_report',
+                'show the report for people': 'open_report', 'offer what EAOS can do now': 'menu',
+                'what a change touches': 'impact', 'answer from the records': 'ask', 'check the tools': 'tools_check',
                 'read the evidence': 'finding', 'run the app': 'run_try', 'record the screens': 'safety_net',
                 'fix a card': 'fix_edit', 'hand fixes over': 'fix_finish', 'accept': 'accept', 'undo': 'undo',
                 'hand the work to another assistant': 'note', 'choose the branch': 'choose_branch'}
@@ -59,11 +63,8 @@ CAPABILITIES = {'where things stand': 'status', 'read any plan': 'blueprint_star
 
 def _status(project=None):
     """The status tool of the project's way: fixing, or building from a plan."""
-    from pathlib import Path
-    import os
-    from . import agent_tools, build_tools, guided
-    state = guided.load(Path(project or os.getcwd()).expanduser().resolve())
-    return build_tools.status(project) if (state or {}).get('mode') == 'build' else agent_tools.status(project)
+    from .build_tools import status_of
+    return status_of(project)
 
 
 def _answer(function):
@@ -121,6 +122,36 @@ def build():
     @_answer
     def choose_branch(branch: str, person_said: str = '', project: str | None = None) -> str:
         return tools.choose_branch(branch, project, person_said)
+
+    @server.tool(annotations=reading, description='What to offer the person who typed /eaos alone, or asked what EAOS can do: '
+                 'the options that make sense for this project now, the recommended one first, each with its words in their language, '
+                 'a description from the project\'s own numbers, and what to do once it is chosen; cut into pages of at most four. '
+                 'Show it as a choice (how_to_show). ' + project_doc)
+    @_answer
+    def menu(project: str | None = None, lang: str | None = None) -> str:
+        from .menu import menu as offer
+        return offer(project, lang)
+
+    @server.tool(annotations=reading, description='This EAOS (version, commit) and every external tool it runs: installed or not, '
+                 'at which version, whether this project needs it (needed_here), and the one command that installs what it '
+                 'misses. ' + project_doc)
+    @_answer
+    def tools_check(project: str | None = None) -> str:
+        return tools.tools_check(project)
+
+    @server.tool(annotations=reading, description='What changing a file or a symbol touches, from the check\'s facts: the files that '
+                 'import it (direct and further), the flows and entry points through it, the tests that cover it, and the files '
+                 'that change with it in the history. target: a path or a symbol name. ' + project_doc)
+    @_answer
+    def impact(target: str, project: str | None = None) -> str:
+        return tools.impact(target, project)
+
+    @server.tool(annotations=reading, description='Search the check\'s records (facts, claims, report sections) for a question, '
+                 'each answer with its place. Records use the code\'s own words: ask with identifiers or paths. '
+                 'NOT_IN_RECORDS means no record answers it: say so, never guess. ' + project_doc)
+    @_answer
+    def ask(question: str, project: str | None = None) -> str:
+        return tools.ask(question, project)
 
     @server.tool(annotations=working, description='Check the whole project (26 stages: files, features, tools, tests, structure, '
                  'security, load, plan). Returns a job to follow with `wait`; when the project was already checked at this commit, '
@@ -313,7 +344,7 @@ def build():
     def build_finish(project: str | None = None) -> str:
         return build.build_finish(project)
 
-    @server.prompt(name='build', description='Build a new project from its plan, with the best structure')
+    @server.prompt(name='build', description='Build a new project from its plan, with the best structure · ابنِ مشروعًا من خطة')
     def build_prompt() -> str:
         return ('Use the eaos tools to build my project from its plan, end to end: blueprint_start with my plan file (or the text '
                 'I paste), write the product spec, research what the plan leaves thin and recommend, ask me only real choices '
@@ -321,23 +352,41 @@ def build():
                 'build_finish, without coming back to me between steps. At the end, tell me simply what was built and ask whether '
                 'to take it in.')
 
-    @server.prompt(name='audit', description='Check this project and explain its problems simply')
+    @server.prompt(name='audit', description='Check this project and explain its problems simply · افحص المشروع')
     def audit_prompt() -> str:
         return ('Use the eaos tools to check this project: call `status`, then `audit` and `wait` until it is done. Then explain, '
                 'in my language and in plain words, how healthy the project is, its five most important problems (why each '
                 'matters), and what you recommend. Show evidence from `finding` for the top ones.')
 
-    @server.prompt(name='fix', description='Fix the next batch of problems safely, end to end')
+    @server.prompt(name='fix', description='Fix the next batch of problems safely, end to end · أصلح الدفعة التالية')
     def fix_prompt() -> str:
         return ('Use the eaos tools to fix this project safely, end to end, without coming back to me between steps: follow '
                 '`status` (audit if needed, then run_setup, run_try until the app runs, safety_net, fix_start, fix_edit for each '
                 'card, fix_finish). Ask me only the question run_setup gives. At the end, tell me simply what was fixed and on which '
                 'branch, and ask whether to accept or undo.')
 
-    @server.prompt(name='status', description='Where this project is, and what comes next')
+    @server.prompt(name='status', description='Where this project is, and what comes next · أين وصلنا؟')
     def status_prompt() -> str:
         return 'Call the eaos `status` tool and tell me simply where my project is and what comes next.'
 
+    from .menu import OPTIONS
+
+    def shortcut(key, description):
+        """/eaos:<key> in Claude Code: one menu option, straight away (the same words as eaos/menu.py)."""
+        words = f'Use the eaos tools: {OPTIONS[key][2]} Speak to me in my language, in plain words.'
+        if key == 'ask':                                  # /eaos:ask <the question>
+            def prompt(question: str = '') -> str:
+                return words + (f' My question: {question}' if question.strip() else '')
+        else:
+            def prompt() -> str:
+                return words
+        server.prompt(name=key, description=description)(prompt)
+
+    shortcut('continue', 'Continue the open EAOS work where it stopped · تابع من حيث توقفنا')
+    shortcut('report', 'Open the interactive report, one file to share · افتح التقرير التفاعلي')
+    shortcut('tasks', 'What is done and what comes next · المنجز والقادم')
+    shortcut('ask', 'Ask about your code: what a change touches, where a thing is used · اسأل عن مشروعك')
+    shortcut('tools', 'Which EAOS and tools are installed, what is missing · الأدوات والمحركات')
     return server
 
 

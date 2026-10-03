@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "57c1311",
+  "extracted_at_commit": "9c99fe4",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -1533,6 +1533,15 @@
       "statement": "Agent-led workflow: deterministic gates and next actions, never an autonomous LLM.",
       "kind": "invariant",
       "enforced_by": "tests/test_workflow.py::WorkflowTests::test_single_entrypoint_read_only_and_no_script_execution",
+      "note": ""
+    },
+    {
+      "id": "INV-18af397cf2",
+      "file": "eaos/menu.py",
+      "symbol": "<module>",
+      "statement": "The first option is always the recommended one.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_menu.py::Words::test_only_the_first_is_recommended_in_the_persons_language",
       "note": ""
     }
   ],

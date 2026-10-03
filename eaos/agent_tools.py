@@ -399,6 +399,42 @@ def plan(project=None, milestone=None):
                      'work outside the plan is not recorded anywhere.'}
 
 
+def impact(target, project=None, depth=3):
+    """What changing a file or a symbol touches, from the check's facts: who imports it, the flows and entry points through
+    it, the tests that cover it, and the files that change with it in the history."""
+    from .impact import LIMITS, assess
+    result = assess(_report(project_state(project)), target, depth)
+    return {**result, 'limits': LIMITS}
+
+
+def ask(question, project=None):
+    """The check's records that answer a question, each with its place; NOT_IN_RECORDS when none does."""
+    from .ask import answer
+    return answer(_report(project_state(project)), question)
+
+
+def tools_check(project=None):
+    """This EAOS (version, commit) and every external tool it runs: installed or not, at which version, and whether this
+    project needs it (its files decide: a JavaScript linter is not needed by a Go project); what this project needs
+    first, and the one command that installs what it misses."""
+    from . import build_info, toolchain
+    folder = Path(project or os.getcwd()).expanduser().resolve()
+    files = toolchain.project_files(folder) if guided.looks_like_project(folder) else None
+    rows = toolchain.doctor()['tools']
+    rules = {t['name']: t.get('applies', 'all') for t in toolchain.registry()['tools']}
+    for row in rows:
+        row['needed_here'] = None if files is None else toolchain.rule_applies(rules.get(row['name'], 'all'), files)
+        row['for_the_check'] = any(stage <= 'S07' for stage in row['stages'])   # eaos tools install --stage assessment
+    rows.sort(key=lambda r: (r['needed_here'] is False, not r['for_the_check'], r['ok'], r['name']))
+    wanted = [r for r in rows if not r['ok'] and not r['unavailable'] and r['needed_here'] is not False]
+    for_check, later = [r['name'] for r in wanted if r['for_the_check']], [r['name'] for r in wanted if not r['for_the_check']]
+    return {'eaos': {'version': build_info.__version__, 'commit': build_info.commit()}, 'tools_folder': str(toolchain.home()),
+            'installed': sum(r['ok'] for r in rows), 'total': len(rows), 'tools': rows,
+            'missing_for_the_check': for_check, 'missing_for_later_steps': later,
+            'install': ('eaos tools install --stage assessment' if for_check else
+                        f"eaos tools install {' '.join(later)}" if later else None)}
+
+
 def report_file(name='', project=None, offset=0, limit=20000):
     state = project_state(project)
     report = _report(state).resolve()

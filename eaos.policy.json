@@ -124,6 +124,7 @@
       "eaos/human_report.py",
       "eaos/blueprint.py",
       "eaos/build_tools.py",
+      "eaos/menu.py",
       "eaos/ledger.py",
       "eaos/handover.py",
       "eaos/arch_map.py",

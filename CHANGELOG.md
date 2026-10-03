@@ -1,7 +1,17 @@
 # Changelog
 
-## 0.0.2 (2026-09-30)
+## 0.0.2 (2026-10-03)
 
+- **`/eaos` alone shows a menu** (`$eaos` in Codex): the options that make sense for this project now, the recommended one
+  first, with the project's own numbers ("batch 4 is open: 1 kept, 2 left", "eaos/wave-2 waits for you"), in pages of four
+  you move through with the arrows (eaos/menu.py, the `menu` tool). Nothing is offered that cannot be done yet: no report
+  before a check, no "continue" without open work. In Claude Code, `/eaos` also lists a direct command for each option
+  (`/eaos:report`, `/eaos:tasks`, `/eaos:ask`, `/eaos:tools`, `/eaos:continue`, beside `audit`, `fix`, `build`, `status`).
+- **Ask about your code**: the `impact` tool (what changing a file or a symbol touches: who imports it, the flows and tests
+  through it, the files that change with it) and `ask` (the check's records that answer a question, each with its place).
+- `tools_check`: this EAOS's version and every tool it runs, which this project needs, and the one command for what is missing.
+- Fixed: `eaos doctor` and every report said 0.0.1 after the package became 0.0.2; a test now holds the package, the code and
+  this file to one version.
 - **Fixed: on a person's own computer the engines never ran the tools EAOS installed for them.** `eaos tools install`
   puts every tool in `~/.eaos/tools`, but the engines looked for them in a folder of the server EAOS was built on, then
   in PATH, so on a Mac most engines were silently missing. Both now read the same folder (`$EAOS_ENGINE_TOOLS`,

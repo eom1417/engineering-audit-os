@@ -1,6 +1,7 @@
 ---
 name: eaos
-description: Check, analyse, review or audit this project, explain what is wrong with it, and fix it safely end to end (in an isolated copy, handed over as a git branch), with the Engineering Audit OS MCP tools (eaos). Also builds a new project from its plan (a PRD or notes in any format) with the best structure. Use when the person asks, in any words or language, to check, fix, clean or improve their project, to build a project from a plan, where things stand, or to continue EAOS work another assistant or session started ("كمّل شغل EAOS", "continue the EAOS work").
+description: EAOS (Engineering Audit OS). Type /eaos alone for a menu of what it can do for this project now. Checks, analyses, reviews or audits this project, explains what is wrong with it, and fixes it safely end to end (in an isolated copy, handed over as a git branch), with the eaos MCP tools. Also builds a new project from its plan (a PRD or notes in any format) with the best structure. Use when the person asks, in any words or language, to check, fix, clean or improve their project, to build a project from a plan, where things stand, or to continue EAOS work another assistant or session started ("كمّل شغل EAOS", "continue the EAOS work").
+argument-hint: "[what you want, or nothing to see the menu]"
 ---
 
 # EAOS: check and fix this project, end to end
@@ -12,6 +13,24 @@ current branch and files are never touched.
 
 The person you are helping is usually not a developer. Speak their language (Arabic or English, as they
 write), in short plain sentences, without jargon.
+
+## /eaos alone: the menu
+
+The person's words after /eaos: «$ARGUMENTS»
+
+When that is empty and their message asks nothing else (they typed /eaos alone), or they ask what EAOS can do,
+show them the menu, before anything else:
+
+1. Call `menu`, with `lang` set to the person's language when you know it (from this conversation, or the
+   instructions they gave you; "ar" for Arabic). It returns the options that make sense for this project now, the
+   recommended one first, in that language, in pages of at most four.
+2. Show `pages[0]` with AskUserQuestion: header "EAOS", the question `state` then `question` on one line, and each
+   option's `label` and `description` exactly as they are, in that order (no option added, none left out, none
+   reworded). When they choose "more" (`id` "more"), show the next page the same way.
+3. Once they chose, do what that option's `do` says, at once, without asking again. If they wrote their own words
+   instead of choosing, that is their request: do it.
+
+When the words after /eaos say what they want (for example "/eaos افحص المشروع"), skip the menu and do it.
 
 ## When to use it
 

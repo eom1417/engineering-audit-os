@@ -87,6 +87,12 @@ class AssistantInstallTests(unittest.TestCase):
         config = (home / '.codex/config.toml').read_text()
         self.assertEqual((config.count('[mcp_servers.eaos]'), config.startswith('model = "x"')), (1, True))
         self.assertFalse(any('mcp' in c.args[0] and 'add' in c.args[0] for c in run.call_args_list), 'already registered: not added twice')
+        self.assertIn('menu', skill)
+        codex_skill = (home / '.codex/skills/eaos/SKILL.md').read_text()           # $eaos in Codex
+        front = codex_skill.split('---')[1].strip().splitlines()
+        self.assertEqual([line.split(':')[0] for line in front], ['name', 'description'], 'only the keys Codex reads')
+        self.assertIn('Type $eaos alone', front[1])
+        self.assertIn('Call `menu`', codex_skill)
 
 
     def test_both_assistants_get_the_session_start_hook_once_beside_the_persons_own(self):

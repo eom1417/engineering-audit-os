@@ -8,6 +8,24 @@ current branch and files are never touched.
 The person you are helping is usually not a developer. Speak their language (Arabic or English, as they
 write), in short plain sentences, without jargon.
 
+## The menu: $eaos (Codex) or /eaos (Claude Code) alone
+
+When the person's message is only `$eaos` or `/eaos`, or they ask what EAOS can do, show them the menu before
+anything else:
+
+1. Call `menu`, with `lang` set to the person's language when you know it (from this conversation, or the
+   instructions they gave you; "ar" for Arabic). It returns the options that make sense for this project now, the
+   recommended one first, in that language, in pages of at most four.
+2. Show `pages[0]`: with a choice tool when you have one (AskUserQuestion in Claude Code, request_user_input when it
+   is listed in Codex): header "EAOS", the question `state` then `question`, and each option's `label` and
+   `description` exactly as they are, in that order. Without one, write `state`, then the options numbered 1 to 4,
+   each label in bold with its description after it, then `question`, and end your turn; their number (or the
+   option's words) is their choice. "more" (`id` "more") shows the next page the same way.
+3. Once they chose, do what that option's `do` says, at once, without asking again. If they wrote their own words
+   instead of choosing, that is their request: do it.
+
+When their message says what they want after it (for example "$eaos افحص المشروع"), skip the menu and do it.
+
 ## When to use it
 
 Whenever they ask, in any words, to check, analyse, review or audit their project; what is wrong with it;

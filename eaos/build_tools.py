@@ -412,4 +412,10 @@ def status(project=None):
     return answer
 
 
+def status_of(project=None):
+    """The status of the project's way: building from a plan, or checking and fixing."""
+    state = guided.load(Path(project or os.getcwd()).expanduser().resolve())
+    return status(project) if (state or {}).get('mode') == 'build' else agent_tools.status(project)
+
+
 JOBS = {'build_edit': _build_edit_job, 'build_finish': _build_finish_job}

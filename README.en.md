@@ -72,8 +72,8 @@ flowchart TB
     end
     subgraph P3["Execution: isolated, with the owner's authorization (1/2)"]
         direction LR
-        S08["<b>S08 · Rebuild / refactor</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 98%"]:::current
-        S09["<b>S09 · Functional verification</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 50%"]:::current
+        S08["<b>S08 · Rebuild / refactor</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 97%"]:::current
+        S09["<b>S09 · Functional verification</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 44%"]:::current
         S10["<b>S10 · Security</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
         S11["<b>S11 · Load</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
         S08 -->|"✔ Per task: its acceptance passes, the safety net passes, no new critical claim. E1 = 1"| S09
@@ -157,6 +157,11 @@ The assistant checks your project, explains the main problems, and asks you one 
 copy. Then it carries on alone: it runs the app, records its screens, writes the fixes, and EAOS checks each one. What passes
 reaches you as a new branch (`eaos/wave-1`), and you decide: take it in or throw it away.
 
+**Or type `/eaos` alone** (in Codex: `$eaos`): a menu you move through with the arrows, its first option the step that fits
+your project now (check, continue where we stopped, review the ready fixes, open the report, done and coming next, ask about
+your project, tools). In Claude Code, `/eaos` also lists a direct command for each (`/eaos:report`, `/eaos:ask`, …); pick it
+from the list.
+
 **3. Read the report:** say "open the report". Everything is in one folder, `~/EAOS/<your project>/`, with `REPORT.html`
 (project summary, gaps and risks, structure map, plan and progress) in plain words.
 
@@ -232,7 +237,7 @@ No command modifies the original project, publishes anything or merges anything.
 
 | Steps done | Current step | Points left | Of which wait on the owner | Last measured |
 |---|---|---|---|---|
-| 19 of 27 | 20 · NS27 Build from a plan | 22.5 | 23 | 2026-09-30 · `0fbc461` |
+| 20 of 28 | 21 · NS27 Build from a plan | 22.5 | 23 | 2026-09-30 · `0fbc461` |
 
 **How it is computed:**
 
@@ -285,7 +290,7 @@ flowchart TB
     end
     subgraph R5_1["R5 · Plan, reports and handover kit"]
         direction LR
-        NS8["<b>14 · NS8</b><br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports<br/>⚖ 5 · ▰ 100%"]:::done
+        NS8["<b>14 · NS8</b><br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports<br/>⚖ 4 · ▰ 100%"]:::done
         NS14["<b>15 · NS14</b><br/>جودة التقرير تُفحص آليًا<br/>Report quality checked automatically<br/>⚖ 2 · ▰ 100%"]:::done
         NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 4 · ▰ 100%"]:::done
         NS8 -->|"✔ P1=1 · P4=1 · P3≥0.8 · …"| NS14
@@ -295,33 +300,35 @@ flowchart TB
         direction LR
         NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 4 · ▰ 100%"]:::done
         NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 6 · ▰ 100%"]:::done
-        NS28["<b>19 · NS28</b><br/>الاستمرارية والتقدم الصادق<br/>Continuity and true progress<br/>⚖ 5 · ▰ 100%"]:::done
-        NS27["<b>20 · NS27</b><br/>البناء من خطة<br/>Build from a plan<br/>⚖ 6 · ▰ 93%"]:::current
+        NS28["<b>19 · NS28</b><br/>الاستمرارية والتقدم الصادق<br/>Continuity and true progress<br/>⚖ 4 · ▰ 100%"]:::done
+        NS29["<b>20 · NS29</b><br/>قائمة /eaos<br/>The /eaos menu<br/>⚖ 2 · ▰ 100%"]:::done
         NS26 -->|"✔ E5≥0.8 · +2 acceptance tests"| NS9
         NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +7 acceptance tests"| NS28
-        NS28 -->|"✔ L1=1 · L2=1 · L3=1 · … · +5 acceptance tests"| NS27
+        NS28 -->|"✔ L1=1 · L2=1 · L3=1 · … · +5 acceptance tests"| NS29
     end
     subgraph R6_2["R6 · Proven execution (2/2)"]
         direction LR
-        NS20["<b>21 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
+        NS27["<b>21 · NS27</b><br/>البناء من خطة<br/>Build from a plan<br/>⚖ 6 · ▰ 93%"]:::current
+        NS20["<b>22 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
+        NS27 -->|"✔ B1=1 · B2=1 · X8=1 · … · +1 acceptance test"| NS20
     end
     subgraph R7_1["R7 · Operational hardening (1/2)"]
         direction LR
-        NS21["<b>22 · NS21</b><br/>الأمن بعد التحول<br/>Security after the transformation<br/>⚖ 3 · ▰ 0%"]:::owner
-        NS22["<b>23 · NS22</b><br/>الحمل<br/>Load<br/>⚖ 3 · ▰ 0%"]:::owner
-        NS23["<b>24 · NS23</b><br/>الأعطال المتعمدة<br/>Deliberate failures (chaos)<br/>⚖ 3 · ▰ 0%"]:::owner
-        NS24["<b>25 · NS24</b><br/>الرصد<br/>Observability<br/>⚖ 2 · ▰ 0%"]:::owner
+        NS21["<b>23 · NS21</b><br/>الأمن بعد التحول<br/>Security after the transformation<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS22["<b>24 · NS22</b><br/>الحمل<br/>Load<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS23["<b>25 · NS23</b><br/>الأعطال المتعمدة<br/>Deliberate failures (chaos)<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS24["<b>26 · NS24</b><br/>الرصد<br/>Observability<br/>⚖ 2 · ▰ 0%"]:::owner
         NS21 -->|"✔ E8=1 · +1 acceptance test"| NS22
         NS22 -->|"✔ E6≥0.8"| NS23
         NS23 -->|"✔ E9≥0.8 · +1 acceptance test"| NS24
     end
     subgraph R7_2["R7 · Operational hardening (2/2)"]
         direction LR
-        NS16["<b>26 · NS16</b><br/>الجاهزية للإنتاج<br/>Production readiness<br/>⚖ 2 · ▰ 0%"]:::owner
+        NS16["<b>27 · NS16</b><br/>الجاهزية للإنتاج<br/>Production readiness<br/>⚖ 2 · ▰ 0%"]:::owner
     end
     subgraph R8_1["R8 · Independent proof"]
         direction LR
-        NS10["<b>27 · NS10</b><br/>الإثبات المستقل<br/>Independent proof<br/>⚖ 5 · ▰ 18%"]:::owner
+        NS10["<b>28 · NS10</b><br/>الإثبات المستقل<br/>Independent proof<br/>⚖ 5 · ▰ 18%"]:::owner
     end
     R1_1 ==>|"✔ S1≥0.8 · S2≥0.8"| R1_2
     R1_2 ==>|"✔ H1=1 · +1 acceptance test"| R2_1
@@ -329,7 +336,7 @@ flowchart TB
     R3_1 ==>|"✔ M1≥0.95 · S3≥0.8 · G2=1 · +2 acceptance tests"| R4_1
     R4_1 ==>|"✔ T6=1 · T7=1 · +2 acceptance tests"| R5_1
     R5_1 ==>|"✔ K1=1 · +4 acceptance tests"| R6_1
-    R6_1 ==>|"✔ B1=1 · B2=1 · X8=1 · … · +1 acceptance test"| R6_2
+    R6_1 ==>|"✔ X11=1 · X12=1 · X8=1 · +2 acceptance tests"| R6_2
     R6_2 ==>|"✔ E7=1 · E2≥0.8"| R7_1
     R7_1 ==>|"✔ E10≥0.9 · +1 acceptance test"| R7_2
     R7_2 ==>|"✔ E11=1 · +1 acceptance test"| R8_1

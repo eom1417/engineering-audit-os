@@ -109,6 +109,15 @@ class PlatformTests(unittest.TestCase):
                 mock.patch.object(toolchain, '_companions_missing', return_value=''):
             self.assertEqual(toolchain.found_version(cruiser), ('18.4.0', ''), 'its own version, wherever it is printed')
 
+class VersionTests(unittest.TestCase):
+    def test_one_version_everywhere_the_person_reads_it(self):
+        import re
+        from eaos import __version__
+        package = re.search(r'^version = "([^"]+)"', (ROOT / 'pyproject.toml').read_text(encoding='utf-8'), re.M).group(1)
+        changelog = re.search(r'^## (\d+\.\d+\.\d+)', (ROOT / 'CHANGELOG.md').read_text(encoding='utf-8'), re.M).group(1)
+        self.assertEqual((__version__, changelog), (package, package), 'eaos doctor, the package and the changelog say one version')
+
+
 class InstalledPackageTests(unittest.TestCase):
     def test_an_installed_eaos_finds_everything_it_reads_without_the_repository(self):
         """Installed from a wheel into a fresh environment, away from this checkout: the tools list, the
