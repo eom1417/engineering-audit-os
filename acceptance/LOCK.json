@@ -4,6 +4,7 @@
  "fixtures/sandbox-app/server.py": "c4222207b8a0cc5e565156c89e216893eb0280f7a7f44c842eddcd9aca162d1e",
  "fixtures/style/clear.md": "df4c7564a057ab44d9cb1ae2f59247ea768ba2317e72fa0fffb09c7140695077",
  "fixtures/style/vague.md": "1f756dd94e40e2e6f9848075dc740c2fd8c7db028beeb3ec8cf89cdf59ed339c",
+ "test_field_report.py": "f3438d48b1826645d23e07d6de6f95371f563537b3e34dcf370822b76bf6ecfe",
  "test_ns14_t1_style.py": "8e7bc3cb8fc13a95f314304aef9560a4bf0633149abafa8f67ff55b6bb1872cf",
  "test_ns17_t2_sarif.py": "e7e95bd40541d637bddf4ebddf6674c1d5bef004d43c8c6e4d2886ce205a7e1c",
  "test_ns17_t3_emit.py": "33de74e8819e5d9ea1010f60fd33a6c67b9e33a089d0be68ba00a70b258ec0b1",

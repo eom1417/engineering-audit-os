@@ -402,6 +402,16 @@
           "evidence": "menu trials where the first page of menu() showed as a numbered list in Codex after $eaos alone, every label in order and the recommended one first, and the option chosen by its number reached its tools: 1/1 (calisthenics-coach)",
           "reads": "${EAOS_MEASURE}/menu/<مشروع>/trial.json → codex",
           "measured": "automated"
+        },
+        {
+          "id": "X13",
+          "name": "سيناريوهات تقرير الميدان",
+          "definition": "السيناريوهات التي تعثرت في تقرير الميدان وتعمل الآن (status من المجلد الأعلى، تقرير يقول أي commit فحص، بطاقة بلا فحص آلي لا تُرفض في النهاية، بطاقة تُعكس يدويًا لا تبقى منجزة، لا سؤال فرع والفروع مدموجة) ÷ السيناريوهات",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "acceptance/test_field_report.py",
+          "measured": "automated"
         }
       ]
     },
@@ -518,6 +528,26 @@
           "evidence": "high and critical debt items with two independent witnesses: FleetManageWeb 24/24 · finance-os-a0192b7b 11/11 · RendaPerene 0/0",
           "reads": "debt-register.json → items[] {severity, witnesses[] {tool, kind}}؛ شاهد kind == \"deterministic\" يكفي وحده",
           "measured": "automated"
+        },
+        {
+          "id": "S4",
+          "name": "كل بطاقة على ملفها ودليلها",
+          "definition": "بطاقات الفحص التي تقع كل مواقع دليلها في ملفات البطاقة، ولا تُعدّ «اتفاق محركين» إلا من دليلين على الملف نفسه ÷ البطاقات، على عيّنة المشاريع وEAOS نفسه",
+          "target": 1.0,
+          "value": null,
+          "evidence": "baseline 2026-10-07, EAOS on itself: 129 of 130 «independent engines» cards rest on one project-wide engine finding spanning more than 3 files",
+          "reads": "plan.json ↔ dossier claims → evidence sites",
+          "measured": "automated"
+        },
+        {
+          "id": "S5",
+          "name": "ضجيج منخفض في مشروع حقيقي",
+          "definition": "بطاقات مشروع المالك الحي التي لا يتركها الشخص كضجيج (تشابه شكل، نسخ مقصودة، ملفات خارج المنتج) ÷ البطاقات (الهدف ≥ 0.9، أي ضجيج أقل من 10%)",
+          "target": 0.9,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "${EAOS_MEASURE}/noise/<مشروع>/trial.json",
+          "measured": "automated"
         }
       ]
     },
@@ -555,6 +585,16 @@
           "value": 1.0,
           "evidence": "ready remove_dead cards: 152 for 152 dead-code and leftover claims",
           "reads": "plan.json → tasks[] with pattern \"remove_dead\", kind \"remediate\", decision.readiness \"ready\", runnable acceptance; divided by dossier.json claims whose render.key is \"dead_code\" or \"leftover\"",
+          "measured": "automated"
+        },
+        {
+          "id": "D4",
+          "name": "أرشيف قبل الحذف",
+          "definition": "ما أزالته دفعات التنظيف وله سجل في فرع الأرشيف (المسار، السبب، الدليل) ويعود بأمر واحد كما كان بايتًا ببايت ÷ ما أزالته",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "${EAOS_MEASURE}/archive/<مشروع>/trial.json",
           "measured": "automated"
         }
       ]
@@ -699,6 +739,26 @@
           "value": 1.0,
           "evidence": "sustainability indicators with a value: FleetManageWeb 6/6 · finance-os-a0192b7b 6/6 · RendaPerene 6/6",
           "reads": "sustainability.json → indicators[].value not null",
+          "measured": "automated"
+        },
+        {
+          "id": "G3",
+          "name": "مبادرة قبل الطلب",
+          "definition": "مبادرات اقترحها EAOS (صفحات متداخلة، حقل يُكتب ولا يُقرأ، ميزة لا يستدعيها إلا الاختبار، قرار مكتوب في الكود، وثائق تخالف الواقع) وحكم الشخص أنها صحيحة ÷ المبادرات، مع كشف حالة الصفحتين المتداخلتين في مشروع المالك قبل أن يُخبَر",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "${EAOS_MEASURE}/initiatives/<مشروع>/trial.json",
+          "measured": "automated"
+        },
+        {
+          "id": "G4",
+          "name": "قوانين المشروع بوابات",
+          "definition": "قوانين مشروع مكتوبة في eaos.policy.json (منع استيراد، منع قيمة في الكود، كاتب واحد لكل مفتاح) يوقف كلٌّ منها مخالفة مزروعة ويمرر الكود السليم ÷ القوانين",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "tests + ${EAOS_MEASURE}/laws/<مشروع>/trial.json",
           "measured": "automated"
         }
       ]
@@ -925,6 +985,36 @@
           "evidence": "readiness items whose command passed: chief-ops 0/0",
           "reads": "PRODUCTION-READINESS.json → items[] {id, command, ok}",
           "measured": "automated"
+        },
+        {
+          "id": "E12",
+          "name": "حماية المخرجات الرسمية",
+          "definition": "تجارب غيّر فيها إصلاحٌ مخرجًا مبصومًا (PDF أو Excel) دون أن تسمّيه خطته فأوقفته البوابة، ومرّ التغيير المسمّى ÷ التجارب",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "${EAOS_MEASURE}/outputs/<مشروع>/trial.json",
+          "measured": "automated"
+        },
+        {
+          "id": "E13",
+          "name": "من يقرأ هذه البيانات",
+          "definition": "قرّاء مفاتيح البيانات (جداول، ومفاتيح تخزين) الذين يجدهم impact(\"data:<key>\") ÷ القرّاء في الحقيقة الأرضية المسجلة للعيّنة",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "impact(data:) ↔ ground truth",
+          "measured": "automated"
+        },
+        {
+          "id": "E14",
+          "name": "التأثير وقت التشغيل",
+          "definition": "المعتمدون على ملف الذين يجدهم impact(runtime) ÷ المعتمدين الذين يظهرهم تتبّع تنفيذ الاختبارات (الهدف 0.9؛ الثابت اليوم ≈ 0.1 في تجربة الميدان)",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "impact ↔ per-test tracing",
+          "measured": "automated"
         }
       ]
     },
@@ -1086,6 +1176,56 @@
           "evidence": "reports of the assistant trials stamped with the EAOS that made them, with no part that failed, built after the last merge: 2/2 (chief-ops, endomap)",
           "reads": "${EAOS_MEASURE}/{handover,branch}/<مشروع>/EAOS/*/.report.json",
           "measured": "automated"
+        },
+        {
+          "id": "L7",
+          "name": "أرقام بعقد ثابت",
+          "definition": "تقارير العيّنة التي فيها metrics.json يطابق عقده (الإصدار، البطاقات، الدرجة، ومجالاتها، والـcommit المفحوص) ÷ التقارير",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "<تقرير>/metrics.json ↔ schemas/artifacts/metrics.schema.json",
+          "measured": "automated"
+        },
+        {
+          "id": "L8",
+          "name": "سجل درجات لكل فحص",
+          "definition": "مشاريع التجارب التي يحمل سجلها لكل فحص الدرجة ومجالاتها وعدد المفتوح، ويرسمها التقرير ÷ المشاريع",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "ledger.json → history[].scores",
+          "measured": "automated"
+        },
+        {
+          "id": "L9",
+          "name": "خطة مسجلة تصير صفحة",
+          "definition": "تجارب سُجّلت فيها خطة Markdown بترويسة ثابتة لمشروع موجود، فظهرت صفحة في التقرير بخطواتها وتقدمها المقاس من الفرع، بلا سطر HTML يدوي ÷ التجارب",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "${EAOS_MEASURE}/plans/<مشروع>/trial.json",
+          "measured": "automated"
+        },
+        {
+          "id": "L10",
+          "name": "التراجع عن خطوة واحدة",
+          "definition": "تجارب قال فيها الشخص «تراجع عن الخطوة 3» فأُعيد بناء الفرع دونها وأُعيدت البوابات، وبقي التقدم صادقًا ÷ التجارب",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "${EAOS_MEASURE}/plans/<مشروع>/trial.json → revert",
+          "measured": "automated"
+        },
+        {
+          "id": "L11",
+          "name": "صندوق القرارات",
+          "definition": "تجارب انتظرت فيها كل قرارات الشخص في صندوق واحد، كل قرار سؤال واحد مع توصية، ولم يُسأل عن شيء مرتين ÷ التجارب",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "${EAOS_MEASURE}/plans/<مشروع>/trial.json → decisions",
+          "measured": "automated"
         }
       ]
     }
@@ -1207,8 +1347,8 @@
       ],
       "stages": [],
       "title_en": "Automated measurement",
-      "weight": 3,
-      "weight_why": "أساس القياس: بدونه لا رقم يُصدَّق، لكنه صغير الحجم.",
+      "weight": 2,
+      "weight_why": "أساس القياس: بدونه لا رقم يُصدَّق، لكنه صغير الحجم. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
       "does": [
         "يجلب عيّنة المشاريع الحقيقية مثبّتة بالتزامها",
         "يحسب كل مؤشر آليًا من تقارير العيّنة بأمر واحد",
@@ -1278,8 +1418,8 @@
         "S01"
       ],
       "title_en": "Never fails on a real project",
-      "weight": 3,
-      "weight_why": "شرط دخول: الأداة التي تفشل على مشروع حقيقي لا تنفع، والإصلاح محدود.",
+      "weight": 2,
+      "weight_why": "شرط دخول: الأداة التي تفشل على مشروع حقيقي لا تنفع، والإصلاح محدود. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
       "does": [
         "يكمل التدقيق على كل مشروع في العيّنة دون انهيار",
         "يقص الوثائق إلى ميزانيتها بدل أن يفشل"
@@ -1485,8 +1625,8 @@
         "S02"
       ],
       "title_en": "Current state: see the whole program",
-      "weight": 4,
-      "weight_why": "أول التقارير الأربعة وأساس كل ما بعده: الوظائف والمداخل والبيانات.",
+      "weight": 2,
+      "weight_why": "أول التقارير الأربعة وأساس كل ما بعده: الوظائف والمداخل والبيانات. (2 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
       "does": [
         "يجد كل صفحة ومسار ودالة خادم كنقطة دخول",
         "يقرأ نموذج البيانات وسياسات الوصول من SQL وSupabase",
@@ -1574,8 +1714,8 @@
         "S04"
       ],
       "title_en": "Signal, not noise",
-      "weight": 3,
-      "weight_why": "يمنع الضجيج من إغراق الخطة؛ عمل مركّز.",
+      "weight": 2,
+      "weight_why": "يمنع الضجيج من إغراق الخطة؛ عمل مركّز. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
       "does": [
         "يستبعد التشابه الشكلي الذي ليس قاعدة أعمال",
         "لا يتهم ملفًا بالموت إن أشار إليه سجل"
@@ -1745,8 +1885,8 @@
         "S04"
       ],
       "title_en": "Dead code and leftovers: found and safely removed",
-      "weight": 4,
-      "weight_why": "قيمة مباشرة للمالك: حذف آمن للكود الميت والمعطّل.",
+      "weight": 2,
+      "weight_why": "قيمة مباشرة للمالك: حذف آمن للكود الميت والمعطّل. (2 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
       "does": [
         "يحسب قابلية الوصول من نقاط الدخول الحقيقية",
         "يكشف الأسماء غير المعرّفة والمفاتيح المكررة",
@@ -2069,8 +2209,8 @@
       ],
       "stages": [],
       "title_en": "Tool platform: every tool enters one way",
-      "weight": 4,
-      "weight_why": "منصة كل الأدوات: تثبيت موحد، وقراءة SARIF، وتوليد، وبوابات، وعزل.",
+      "weight": 3,
+      "weight_why": "منصة كل الأدوات: تثبيت موحد، وقراءة SARIF، وتوليد، وبوابات، وعزل. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
       "does": [
         "يثبّت كل أداة بإصدارها المثبّت وبصمتها بأمر واحد",
         "يقرأ نتائج ست أدوات بقارئ SARIF واحد",
@@ -2850,8 +2990,8 @@
         "S04"
       ],
       "title_en": "Measurement and debt register",
-      "weight": 4,
-      "weight_why": "الأرقام لكل ملف وسجل دَين واحد يجمع الأدلة.",
+      "weight": 3,
+      "weight_why": "الأرقام لكل ملف وسجل دَين واحد يجمع الأدلة. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
       "does": [
         "يقيس الحجم والتعقيد والتقلّب والاعتمادية لكل ملف",
         "يسجل كل خطر عالٍ بشاهدين مستقلين",
@@ -2979,8 +3119,8 @@
         "S05"
       ],
       "title_en": "Behaviour lock: specifications before any change",
-      "weight": 4,
-      "weight_why": "شبكة الأمان قبل أي تغيير: لا تحول بدونها.",
+      "weight": 3,
+      "weight_why": "شبكة الأمان قبل أي تغيير: لا تحول بدونها. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
       "does": [
         "يكتب مواصفة سلوك لكل ميزة",
         "يولّد سيناريوهات الحمل والأعطال والفحص الحي بصيغ أدواتها"
@@ -3220,8 +3360,8 @@
         "S06"
       ],
       "title_en": "Target-state report",
-      "weight": 5,
-      "weight_why": "قلب الوعد: الصورة المثالية بالوظائف نفسها وقرار لكل مكوّن.",
+      "weight": 3,
+      "weight_why": "قلب الوعد: الصورة المثالية بالوظائف نفسها وقرار لكل مكوّن. (2 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
       "does": [
         "يختار المعمارية المرجعية من سبع بحسب ملفات المشروع",
         "يضع كل ملف في مكوّن مستهدف ويقرر قرارات البنية التحتية",
@@ -3629,8 +3769,8 @@
         "S07"
       ],
       "title_en": "Team execution plan and the four reports",
-      "weight": 4,
-      "weight_why": "ما يستلمه الفريق فعلًا: الخطة والتقارير الأربعة. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.)",
+      "weight": 3,
+      "weight_why": "ما يستلمه الفريق فعلًا: الخطة والتقارير الأربعة. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.) (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
       "does": [
         "يحدد حجم كل بطاقة وقسمها في الفريق",
         "يجمع البطاقات في معالم بأهداف وشروط خروج",
@@ -4025,8 +4165,8 @@
         "S15"
       ],
       "title_en": "Operations and handover kit",
-      "weight": 4,
-      "weight_why": "ما يبقى مع الفريق بعد التسليم: ملفات تعمل كما هي.",
+      "weight": 3,
+      "weight_why": "ما يبقى مع الفريق بعد التسليم: ملفات تعمل كما هي. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
       "does": [
         "يولّد CI وpre-commit وRenovate وقواعد الحدود",
         "يولّد إعداد الرصد OpenTelemetry وأهداف SLO",
@@ -4136,8 +4276,8 @@
         "S05"
       ],
       "title_en": "Live baseline: behaviour and numbers before any change",
-      "weight": 4,
-      "weight_why": "أرقام قبل التغيير: بدونها لا يُقاس أي تحسن.",
+      "weight": 3,
+      "weight_why": "أرقام قبل التغيير: بدونها لا يُقاس أي تحسن. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
       "does": [
         "يشغّل شبكة الأمان على الكود الأصلي في بيئة معزولة",
         "يسجل خط أساس الحمل بـk6 لكل سيناريو"
@@ -4514,8 +4654,8 @@
         "S08"
       ],
       "title_en": "Proven execution",
-      "weight": 6,
-      "weight_why": "أثقل خطوة: تنفيذ فعلي لبطاقات الخطة على مشروع حقيقي.",
+      "weight": 3,
+      "weight_why": "أثقل خطوة: تنفيذ فعلي لبطاقات الخطة على مشروع حقيقي. (3 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
       "does": [
         "ينفّذ بطاقات الخطة بنموذج في نسخة منفصلة",
         "يشغّل أمر قبول كل بطاقة وشبكة الأمان بعدها",
@@ -4542,8 +4682,8 @@
         "S09",
         "S15"
       ],
-      "weight": 4,
-      "weight_why": "من تجربة المالك (2026-09-29): بعد أول دفعة بقي الفرع، ولم يتحدث التقرير، وسُجّلت ثلاث بطاقات منجزة والباقي كما هو؛ والعمل الطويل يتجاوز حد استخدام المساعد. بدون هذا لا يثق الشخص بأي رقم. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.)",
+      "weight": 3,
+      "weight_why": "من تجربة المالك (2026-09-29): بعد أول دفعة بقي الفرع، ولم يتحدث التقرير، وسُجّلت ثلاث بطاقات منجزة والباقي كما هو؛ والعمل الطويل يتجاوز حد استخدام المساعد. بدون هذا لا يثق الشخص بأي رقم. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.) (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
       "does": [
         "سجل للبطاقات بمفتاح ثابت يقرأ المنجز من git",
         "الدمج يحذف الفرع ويحدّث التقرير والتقدم في الخطوة نفسها",
@@ -5219,6 +5359,625 @@
           "rollback": "احذف الأوامر الجديدة؛ الأوامر القديمة لم تتغير.",
           "status": "todo"
         }
+      ]
+    },
+    {
+      "id": "NS30",
+      "title": "الثقة أولًا: كل بطاقة على ملفها، وكل رقم صادق",
+      "title_en": "Trust first: every card on its file, every number true",
+      "stages": [
+        "S03",
+        "S09"
+      ],
+      "weight": 4,
+      "goal": "S4 وX13 عند هدفهما: البطاقة تقع على ملفها ودليلها، و«اتفاق محركين» لا يُبنى من نتيجة عامة، وسيناريوهات تقرير الميدان الخمسة تعمل.",
+      "weight_why": "من تقرير الميدان (2026-10-07) وفحص EAOS لنفسه: 129 من 130 بطاقة «محركين مستقلين» تقوم على نتيجة واحدة تمتد لأكثر من 3 ملفات، وتقييم «فائدة البطاقات» 5 من 10. بلا هذا يفقد كل رقم بعده معناه.",
+      "does": [
+        "بطاقة لكل ملف ودليله، و«الاتفاق» من دليلين على الملف نفسه",
+        "status يجد المشروع من المجلد الأعلى ولا ينهار بلا git",
+        "التقرير يقول أي commit فحص وينبّه إذا تغيّر بعده",
+        "بطاقة تُعكس يدويًا لا تبقى منجزة",
+        "لا سؤال فرع والفروع مدموجة"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS30.T1",
+          "title": "البطاقة على ملفها ودليلها",
+          "why": "بطاقات «تعقيد في ملف X» يدعمها تكرار كلمة عبر 17 ملفًا؛ والقائمة تعرض أول 5 ملفات أبجديًا فقد يغيب ملف البطاقة نفسه.",
+          "moves": [
+            "S4"
+          ],
+          "depends_on": [
+            "NS29.T2"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/correlate.py",
+            "eaos/claims.py",
+            "eaos/agent_tools.py",
+            "tests/test_correlate.py"
+          ],
+          "steps": [
+            "نتيجة محرك موضوعها مجموعة (subject_kind=group) لا تُلصق ببطاقة ملف ولا تُعدّ محركًا ثانيًا عليه.",
+            "مسارات البطاقة: ملفها أولًا، ثم ما يقع فيه دليلها فقط.",
+            "findings يعرض ملف البطاقة دائمًا.",
+            "قياس S4 على العيّنة وEAOS نفسه."
+          ],
+          "done_when": [
+            "S4 = 1.0 على العيّنة."
+          ],
+          "pitfalls": [
+            "لا تُحذف نتيجة حقيقية: تبقى بطاقة مجموعة وحدها بدليلها."
+          ],
+          "acceptance": "python tools/north_star.py measure --only S4 --min 1.0",
+          "rollback": "ارجع correlate إلى الدمج بالملفات."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS30.T2",
+          "title": "سيناريوهات تقرير الميدان الخمسة",
+          "why": "أخطاء ظهرت في الاستخدام الحقيقي: status من المجلد الأعلى ينهار، والتقرير لا يقول أي commit فحص، ودفعة تُرفض في نهايتها، وبطاقة معكوسة تبقى منجزة، وسؤال فرع بلا داع.",
+          "moves": [
+            "X13"
+          ],
+          "depends_on": [
+            "NS30.T1"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/agent_tools.py",
+            "eaos/guided.py",
+            "eaos/waves.py",
+            "eaos/ledger.py",
+            "eaos/branches.py",
+            "acceptance/test_field_report.py"
+          ],
+          "steps": [
+            "project_state: مجلد بلا git فيه مستودع واحد تحته يُستخدم، وsame_code يتحقق قبل قراءة الـcommit.",
+            "publish يكتب الـcommit المفحوص، والصفحة وopen_report ينبّهان إن تغيّر الفرع بعده.",
+            "finish_batch يعامل البطاقة بلا فحص آلي كما يعاملها fix_edit، وfix_start يرفض ما يحتاج قرارًا.",
+            "merged_keys يحترم commits العكس.",
+            "branches.choice يتجاهل الفروع المدموجة (ahead 0) وفروع الأرشيف."
+          ],
+          "done_when": [
+            "X13 = 1.0."
+          ],
+          "pitfalls": [
+            "لا يُختار مستودع عند وجود أكثر من واحد: يُسأل الشخص."
+          ],
+          "acceptance": "python tools/acceptance.py test field_report && python tools/north_star.py measure --only X13 --min 1.0",
+          "rollback": "ارجع الدوال الخمس."
+        }
+      ],
+      "tools": [
+        "eaos/correlate.py",
+        "eaos/claims.py",
+        "eaos/agent_tools.py",
+        "eaos/guided.py",
+        "eaos/ledger.py",
+        "eaos/branches.py",
+        "eaos/waves.py"
+      ],
+      "outputs": [
+        "plan.json (بطاقات على ملفاتها)",
+        "~/EAOS/<المشروع>/.report.json → scanned_commit"
+      ]
+    },
+    {
+      "id": "NS31",
+      "title": "أرقام ثابتة وضجيج أقل",
+      "title_en": "Stable numbers, less noise",
+      "stages": [
+        "S03",
+        "S15"
+      ],
+      "weight": 3,
+      "goal": "L7 وL8 وS5 عند أهدافها: أرقام بعقد تقرأها أي لوحة، وسجل درجات لكل فحص، وضجيج أقل من 10% في مشروع حقيقي.",
+      "weight_why": "تقرير الميدان: لوحة المالك تقرأ ملفًا داخليًا (G13)، ولا سجل للدرجات (G10)، وعشرات البطاقات فُرزت يدويًا كضجيج (G6، G7).",
+      "does": [
+        "metrics() وmetrics.json بعقد وإصدار",
+        "سجل الدرجة ومجالاتها مع كل فحص، مرسوم في التقرير",
+        "فلتر تشابه الشكل عبر ملفات لا علاقة بينها",
+        "تعليم «مقصود» و«نسخة محفوظة عمدًا» من المساعد، يبقى بعد كل فحص"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS31.T1",
+          "title": "أرقام بعقد، وسجل الدرجات",
+          "why": "اللوحات الخارجية تقرأ ledger.json الداخلي، ولا يُعرف إن كان التحسن من هذه الدفعة أم التي قبلها.",
+          "moves": [
+            "L7",
+            "L8"
+          ],
+          "depends_on": [
+            "NS30.T2"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/guided.py",
+            "eaos/ledger.py",
+            "eaos/human_report.py",
+            "eaos/mcp_server.py",
+            "schemas/artifacts/metrics.schema.json"
+          ],
+          "steps": [
+            "metrics.json بعقد ومعه الأداة metrics.",
+            "ledger.sync يضيف الدرجة ومجالاتها والمفتوح مع كل فحص جديد.",
+            "التقرير يرسم السجل."
+          ],
+          "done_when": [
+            "L7 = L8 = 1.0."
+          ],
+          "pitfalls": [
+            "الرقم يُحسب مرة واحدة ويقرؤه الجميع."
+          ],
+          "acceptance": "python tools/north_star.py measure --only L7 --min 1.0 && python tools/north_star.py measure --only L8 --min 1.0",
+          "rollback": "احذف metrics.json وحقل scores."
+        },
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS31.T2",
+          "title": "ضجيج أقل من 10%",
+          "why": "بطاقات «153 رمزًا لها الشكل نفسه» عبر ملفات لا علاقة بينها، ونسخ محفوظة عمدًا تُعامل كتكرار، والتعليم يُمسح مع الفحص التالي.",
+          "moves": [
+            "S5"
+          ],
+          "depends_on": [
+            "NS31.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/claims.py",
+            "eaos/facts/scope.py",
+            "eaos/decisions.py",
+            "eaos/mcp_server.py",
+            "eaos.policy.json"
+          ],
+          "steps": [
+            "تشابه الشكل يحتاج صلة بين الملفات (طبقة، استيراد، تغيّر مشترك) أو حجمًا أكبر.",
+            "أداة mark(card أو مسار, intended|vendored, reason) تكتب في eaos.policy.json فتبقى.",
+            "تجربة على مشروع المالك الحي تقيس S5."
+          ],
+          "done_when": [
+            "S5 ≥ 0.9."
+          ],
+          "pitfalls": [
+            "لا يختفي تكرار حقيقي: يُقاس على الحقيقة الأرضية للعيّنة (S1)."
+          ],
+          "acceptance": "python tools/north_star.py measure --only S5 --min 0.9 && python tools/north_star.py measure --only S1 --min 0.9",
+          "rollback": "احذف الفلتر والتعليمات."
+        }
+      ],
+      "tools": [
+        "eaos/guided.py",
+        "eaos/ledger.py",
+        "eaos/human_report.py",
+        "eaos/claims.py",
+        "eaos.policy.json"
+      ],
+      "outputs": [
+        "<تقرير>/metrics.json",
+        "ledger.json → history[].scores"
+      ]
+    },
+    {
+      "id": "NS32",
+      "title": "خطط للمشاريع الموجودة",
+      "title_en": "Plans for existing projects",
+      "stages": [
+        "S06",
+        "S08"
+      ],
+      "weight": 4,
+      "goal": "L9 وL10 وL11 عند أهدافها: أي خطة تُسجَّل فتصير صفحة بتقدمها، والتراجع عن خطوة واحدة، وكل قرار في صندوق واحد.",
+      "weight_why": "تقرير الميدان: خطط الدمج وإعادة البناء بلا مكان (G1)، وتقريران وقائمتا مهام (G2)، والتراجع كله أو لا شيء (G3). هذا لب «الحاكم الهندسي».",
+      "does": [
+        "plan_register لخطة Markdown بترويسة ثابتة: خطوات وبوابات وقرارات وبطاقات تغلقها",
+        "صفحة لكل خطة في REPORT.html وتقدم مقاس من الفرع",
+        "undo(card أو step) يعيد بناء الفرع دونها",
+        "صندوق القرارات: سؤال واحد مع توصية"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS32.T1",
+          "title": "تقسيم agent_tools قبل الإضافة",
+          "why": "agent_tools.py مركز الأدوات كلها، ويستورده 6 ملفات ولا يغطيه إلا 5 اختبارات؛ إضافة الخطط عليه تزيد التشابك.",
+          "moves": [
+            "L9"
+          ],
+          "depends_on": [
+            "NS31.T2"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/agent_tools.py",
+            "eaos/tools/",
+            "tests/test_mcp.py"
+          ],
+          "steps": [
+            "تقسيمه بلا تغيير سلوك: الحال، والفحص، والتشغيل، والإصلاح.",
+            "كل اختبارات MCP كما هي."
+          ],
+          "done_when": [
+            "لا اختبار تغيّر، وقفل السلوك يمر."
+          ],
+          "pitfalls": [
+            "لا تغيير في أسماء الأدوات."
+          ],
+          "acceptance": "python -m unittest tests.test_mcp && python tools/north_star.py measure --only X8 --min 1.0",
+          "rollback": "ارجع الملف الواحد."
+        },
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS32.T2",
+          "title": "سجل الخطط وصفحاتها",
+          "why": "لوحة المالك وصفحة لكل خطة بُنيت يدويًا خارج EAOS.",
+          "moves": [
+            "L9"
+          ],
+          "depends_on": [
+            "NS32.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/plans.py",
+            "eaos/ledger.py",
+            "eaos/human_report.py",
+            "eaos/mcp_server.py"
+          ],
+          "steps": [
+            "plan_register(file) وplan_status وplan_step_done.",
+            "خطوات الخطة بطاقات في السجل نفسه بمفاتيح ثابتة.",
+            "صفحة لكل خطة في التقرير، وتقدمها من commits الفرع."
+          ],
+          "done_when": [
+            "L9 = 1.0 في تجربة على مشروع المالك."
+          ],
+          "pitfalls": [
+            "التقرير يقرأ الخطة ولا يكتبها."
+          ],
+          "acceptance": "python tools/north_star.py measure --only L9 --min 1.0",
+          "rollback": "احذف eaos/plans.py."
+        },
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS32.T3",
+          "title": "التراجع عن خطوة وصندوق القرارات",
+          "why": "الشخص يريد أحيانًا رفض خطوة واحدة؛ والأسئلة توقف العمل بين 2 و7 مرات في الدفعة.",
+          "moves": [
+            "L10",
+            "L11"
+          ],
+          "depends_on": [
+            "NS32.T2"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/waves.py",
+            "eaos/ledger.py",
+            "eaos/decisions.py",
+            "eaos/mcp_server.py"
+          ],
+          "steps": [
+            "undo(card|step): git revert على الفرع ثم إعادة البوابات.",
+            "decision_ask وdecision_answer، وكل سؤال مع توصية."
+          ],
+          "done_when": [
+            "L10 = L11 = 1.0."
+          ],
+          "pitfalls": [
+            "لا تراجع عن خطوة بنت عليها خطوة لاحقة دون ذكر ذلك."
+          ],
+          "acceptance": "python tools/north_star.py measure --only L10 --min 1.0 && python tools/north_star.py measure --only L11 --min 1.0",
+          "rollback": "ارجع undo للدفعة كاملة."
+        }
+      ],
+      "tools": [
+        "eaos/plans.py",
+        "eaos/ledger.py",
+        "eaos/waves.py",
+        "eaos/decisions.py",
+        "eaos/human_report.py",
+        "المساعد الذكي (Codex وClaude Code)"
+      ],
+      "outputs": [
+        "REPORT.html → صفحة لكل خطة",
+        "~/.eaos/projects/<المشروع>/plans/"
+      ]
+    },
+    {
+      "id": "NS33",
+      "title": "تنظيف بلا خوف",
+      "title_en": "Fearless cleanup",
+      "stages": [
+        "S05"
+      ],
+      "weight": 2,
+      "goal": "D4 عند هدفه: لا يُحذف ما له تاريخ إلا بعد نقله لفرع الأرشيف بسجل، ويعود بأمر واحد.",
+      "weight_why": "تقرير الميدان: الخوف من الفقد أجّل التنظيف حتى حُلّ يدويًا. والمبدأ نفسه طبّقناه على مجلد العمل في 2026-10-07.",
+      "does": [
+        "archive_move(paths, reason, parity_proof) إلى فرع يتيم",
+        "سجل MANIFEST في الفرع",
+        "restore(path)"
+      ],
+      "tasks": [
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS33.T1",
+          "title": "فرع الأرشيف والاسترجاع",
+          "why": "بطاقات الكود الميت تحذف مباشرة؛ والشخص يخاف الفقد.",
+          "moves": [
+            "D4"
+          ],
+          "depends_on": [
+            "NS32.T3"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/archive.py",
+            "eaos/waves.py",
+            "eaos/mcp_server.py"
+          ],
+          "steps": [
+            "archive_move يكتب الملفات وسجلها في فرع eaos/archive اليتيم.",
+            "remove_dead يمر به.",
+            "restore يعيد الملف بايتًا ببايت."
+          ],
+          "done_when": [
+            "D4 = 1.0."
+          ],
+          "pitfalls": [
+            "فرع الأرشيف لا يُبنى ولا يُفحص ولا يُنشر."
+          ],
+          "acceptance": "python tools/north_star.py measure --only D4 --min 1.0",
+          "rollback": "احذف eaos/archive.py."
+        }
+      ],
+      "tools": [
+        "eaos/archive.py",
+        "eaos/waves.py"
+      ],
+      "outputs": [
+        "فرع eaos/archive وفيه MANIFEST"
+      ]
+    },
+    {
+      "id": "NS34",
+      "title": "أدلة من التشغيل",
+      "title_en": "Evidence by execution",
+      "stages": [
+        "S04",
+        "S09"
+      ],
+      "weight": 3,
+      "goal": "E12 وE13 وE14 عند أهدافها: المخرجات الرسمية محمية، و«من يقرأ هذه البيانات» يُجاب، والتأثير يُرى وقت التشغيل.",
+      "weight_why": "تقرير الميدان: impact ربط صفحة بـ7 ملفات وقرّاؤها الفعليون أكثر من 60 (G4، G5)، وشبكة الأمان لا تبصم PDF ولا Excel (G8).",
+      "does": [
+        "impact(\"data:<key>\") من حقائق data_access الموجودة ومفاتيح التخزين",
+        "بصمة المخرجات الرسمية في قفل السلوك",
+        "قياس الشاشات على مقاسين",
+        "impact(runtime) من تتبّع الاختبارات"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS34.T1",
+          "title": "من يقرأ هذه البيانات",
+          "why": "حقائق data_access موجودة لكن impact لا يقرؤها، ولا تُرى مفاتيح التخزين داخل التطبيق.",
+          "moves": [
+            "E13"
+          ],
+          "depends_on": [
+            "NS33.T1"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/impact.py",
+            "eaos/facts/frameworks/",
+            "eaos/facts/entrypoints.py"
+          ],
+          "steps": [
+            "readers_of(key) في impact.",
+            "كاشف مفاتيح التخزين (localStorage، state، cache).",
+            "حقيقة أرضية في العيّنة."
+          ],
+          "done_when": [
+            "E13 ≥ 0.9."
+          ],
+          "pitfalls": [
+            "مفتاح نصي ديناميكي يُذكر حدًا لا يُخمَّن."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E13 --min 1.0",
+          "rollback": "احذف readers_of."
+        },
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS34.T2",
+          "title": "بصمة المخرجات الرسمية",
+          "why": "مخرج المشروع الرسمي وثيقة؛ تغيّرها بلا قصد خطر لا تراه الشاشات.",
+          "moves": [
+            "E12"
+          ],
+          "depends_on": [
+            "NS34.T1"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/behavior_lock.py",
+            "eaos/waves.py"
+          ],
+          "steps": [
+            "نوع جديد في القفل: أمر أو مسار يُنتج ملفًا، يُبصم بعد تطبيع (نص PDF وصورة صفحاته، خلايا Excel).",
+            "البوابة توقف التغيير غير المسمّى في الخطة."
+          ],
+          "done_when": [
+            "E12 = 1.0."
+          ],
+          "pitfalls": [
+            "التواريخ داخل الملف تُطبّع قبل البصمة."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E12 --min 1.0",
+          "rollback": "احذف النوع الجديد."
+        },
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS34.T3",
+          "title": "التأثير وقت التشغيل",
+          "why": "الاستدعاء عبر كائن (E.fn()) والتسجيل الديناميكي لا يراه التحليل الثابت.",
+          "moves": [
+            "E14"
+          ],
+          "depends_on": [
+            "NS34.T2"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/impact.py",
+            "eaos/verify.py"
+          ],
+          "steps": [
+            "تغطية لكل اختبار حيث يوجد أمر الاختبارات (coverage.py، c8).",
+            "impact(runtime=true) يجمع الثابت والمنفّذ."
+          ],
+          "done_when": [
+            "E14 ≥ 0.9 على مشروع المالك."
+          ],
+          "pitfalls": [
+            "تشغيل الاختبارات في نسخة معزولة فقط."
+          ],
+          "acceptance": "python tools/north_star.py measure --only E14 --min 1.0",
+          "rollback": "احذف runtime من impact."
+        }
+      ],
+      "tools": [
+        "eaos/impact.py",
+        "eaos/behavior_lock.py",
+        "eaos/verify.py",
+        "Playwright",
+        "coverage.py وc8"
+      ],
+      "outputs": [
+        "impact(data:) وimpact(runtime)",
+        "runtime/lock: بصمات المخرجات"
+      ]
+    },
+    {
+      "id": "NS35",
+      "title": "المبادرة وقوانين المشروع",
+      "title_en": "Initiative and project laws",
+      "stages": [
+        "S06",
+        "S07"
+      ],
+      "weight": 3,
+      "goal": "G3 وG4 عند هدفيهما: EAOS يقترح قبل أن يُطلب، بخطة جاهزة، وقوانين المشروع بوابات.",
+      "weight_why": "تقرير الميدان (G14): المالك اكتشف الصفحتين المتداخلتين بنفسه وحُللتا يدويًا في ساعات. يأتي أخيرًا لأنه يحتاج حساسات NS34 وضجيجًا تحت 10% (NS31)، وإلا صار ضجيجًا جديدًا.",
+      "does": [
+        "كواشف: صفحات تكتب البيانات نفسها، حقل يُكتب ولا يُقرأ، ميزة لا يستدعيها إلا الاختبار، قرار في الكود، وثائق تخالف الواقع",
+        "كل مبادرة بخطة جاهزة في صندوق القرارات",
+        "قوانين المشروع في eaos.policy.json بوابات"
+      ],
+      "tasks": [
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS35.T1",
+          "title": "محرك المبادرات",
+          "why": "كل كاشف وجده المالك يدويًا في مشروعه قابل للكشف آليًا.",
+          "moves": [
+            "G3"
+          ],
+          "depends_on": [
+            "NS34.T3"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/initiatives.py",
+            "eaos/features.py",
+            "eaos/system_map.py",
+            "eaos/facts/deadcode.py"
+          ],
+          "steps": [
+            "الكواشف الخمسة فوق حساسات البيانات والتشغيل.",
+            "الدرجة: الأثر × الثقة ÷ الكلفة، وما فوق العتبة يصير خطة مسجلة في صندوق القرارات.",
+            "المرفوض لا يُقترح مرة أخرى."
+          ],
+          "done_when": [
+            "G3 ≥ 0.7 مع كشف حالة الصفحتين."
+          ],
+          "pitfalls": [
+            "features.py يغطيه اختبار واحد: يُغطى أولًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only G3 --min 0.7",
+          "rollback": "احذف eaos/initiatives.py."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS35.T2",
+          "title": "قوانين المشروع بوابات",
+          "why": "لكل مشروع جاد قوانينه؛ eaos.policy.json يفرض الطبقات فقط اليوم.",
+          "moves": [
+            "G4"
+          ],
+          "depends_on": [
+            "NS35.T1"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/policy.py",
+            "eaos/waves.py"
+          ],
+          "steps": [
+            "forbid_import وforbid_literal وsingle_writer وrequire_archive_manifest.",
+            "كل قانون بوابة على الدفعات وعلى عمل الفريق."
+          ],
+          "done_when": [
+            "G4 = 1.0."
+          ],
+          "pitfalls": [
+            "قانون بلا سبب مكتوب يُرفض."
+          ],
+          "acceptance": "python tools/north_star.py measure --only G4 --min 1.0",
+          "rollback": "احذف الأنواع الجديدة من policy."
+        }
+      ],
+      "tools": [
+        "eaos/initiatives.py",
+        "eaos/policy.py",
+        "eaos/features.py",
+        "eaos/system_map.py"
+      ],
+      "outputs": [
+        "صندوق القرارات: مبادرات بخطط جاهزة",
+        "eaos.policy.json → laws"
       ]
     },
     {
@@ -6280,16 +7039,30 @@
         "NS9",
         "NS28",
         "NS29",
-        "NS27",
-        "NS20"
+        "NS27"
       ],
       "exit": "البوابة ب لـS05، وبوابتا S08 وS09: E5، E1، E7، E2",
       "title_en": "Proven execution"
     },
     {
+      "id": "R6G",
+      "title": "الحاكم الهندسي",
+      "title_en": "The engineering governor",
+      "milestones": [
+        "NS30",
+        "NS31",
+        "NS32",
+        "NS33",
+        "NS34",
+        "NS35"
+      ],
+      "exit": "S4 وX13 أولًا، ثم L7-L11 وD4 وE12-E14 وG3-G4"
+    },
+    {
       "id": "R7",
       "title": "التصليب التشغيلي",
       "milestones": [
+        "NS20",
         "NS21",
         "NS22",
         "NS23",
