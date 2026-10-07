@@ -13,8 +13,9 @@ It is not what EAOS tells the assistants of the projects it audits; that lives i
 - They judge EAOS by what a non-developer feels when using it on a Mac with Codex and Claude Code.
   Fix the cause, not the symptom; prove it with a real assistant trial, not only unit tests; keep the
   progress numbers honest.
-- Once a change is done and verified clean (full suite, gates), commit, push to GitHub `main` and
-  merge directly: that is their standing instruction.
+- **`main` is the owner's mother copy and is never touched**: no commit, push or merge into it; only the
+  owner decides about it. All work happens on `develop`: once a change is done and verified clean (full
+  suite, gates), commit and push to `origin/develop` (standing instruction since 2026-10-07).
 
 ## Versions
 
