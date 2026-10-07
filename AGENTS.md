@@ -5,9 +5,11 @@ It is not what EAOS tells the assistants of the projects it audits; that lives i
 
 ## The owner
 
-- The owner writes Gulf Arabic and is not a developer. **Every message to them is in Arabic**, plain
-  words, no jargon; tables are welcome. Only code, commands, file names, code comments and commit
-  messages stay in English.
+- The owner writes Gulf Arabic and is not a developer. **Every message to them is in Arabic, always**:
+  replies, the short progress updates between steps, questions, summaries and the notification summary;
+  plain words, no jargon; tables are welcome. **Everything programmed is in English**: code, code
+  comments, file and symbol names, commit messages and the technical docs. A command or a file name
+  inside an Arabic sentence stays as it is.
 - They judge EAOS by what a non-developer feels when using it on a Mac with Codex and Claude Code.
   Fix the cause, not the symptom; prove it with a real assistant trial, not only unit tests; keep the
   progress numbers honest.
