@@ -370,7 +370,7 @@
           "target": 1.0,
           "value": 1.0,
           "evidence": "trials an assistant drove from a plain request to a delivered branch, with at most one agreement: 2/2 (chief-ops, endomap)",
-          "reads": "${EAOS_MEASURE:-/workspace/eaos-measure}/mcp/<مشروع>/trial.json → delivered و person_turns و manual_files",
+          "reads": "${EAOS_MEASURE}/mcp/<مشروع>/trial.json → delivered و person_turns و manual_files",
           "measured": "automated"
         },
         {
