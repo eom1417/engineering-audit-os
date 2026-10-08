@@ -440,7 +440,7 @@ PROVENANCE = obj({
     'open_questions': arr(obj({'id': S, 'question': S, 'recommendation': NS}, ['id', 'question']))},
     ['method', 'assistant', 'model', 'at', 'confidence', 'departures', 'open_questions'])
 _IDEAL_ELEMENT = obj({'id': S, 'kind': S, 'title': S, 'operation': enum(*OPERATIONS), 'subject': NS, 'detail': S,
-                      'cites': arr(S, 1), 'unresolved': REFS},
+                      'cites': arr(S, 1), 'context': REFS, 'unresolved': REFS},
                      ['id', 'kind', 'title', 'operation', 'subject', 'cites'])
 _RULES_ELEMENT = obj({'id': S, 'kind': S, 'title': S, 'operation': enum(*OPERATIONS), 'subject': NS, 'detail': S,
                       'cites': REFS, 'rules': REFS},

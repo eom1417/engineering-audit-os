@@ -19,6 +19,7 @@ from pathlib import Path
 
 from .. import artifact_contracts, build_info, indicators
 from . import coverage as coverage_section
+from . import ideal as planned_ideal
 from .coverage import LANGUAGES
 from . import model as M
 from . import paths as code_paths
@@ -27,7 +28,7 @@ from . import system as system_map
 CONTRACT = 1
 REVISION = 2           # contract v2: sections added without breaking a v1 reader (docs/STUDIO.md)
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
-SECTIONS_V2 = ('paths',)  # contract v2 sections written here (coverage is written last, apart)
+SECTIONS_V2 = ('paths', 'ideal')  # contract v2 sections written here (coverage is written last, apart)
 SAFE = re.compile(r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$)).+')
 SEVERITY_OF_CONFIDENCE = {'CONFIRMED': 1.0, 'LIKELY': 0.7, 'HYPOTHESIS': 0.4}
 TASK_STATE = {'done': 'done', 'resolved': 'done', 'on_branch': 'active', 'in_batch': 'active', 'open': 'todo',
@@ -303,10 +304,13 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('story', lambda: story(report, m, card_rows))
     attempt('docs', lambda: docs(report))
     attempt('plans', lambda: plans(m, card_rows, lang))
-    attempt('decisions', lambda: decisions(m, card_rows, lang))
+    attempt('decisions', lambda: decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang))
     attempt('media', lambda: media(report))
     attempt('system', lambda: system_map.system(report, card_rows))
     attempt('paths', lambda: code_paths.paths(report, card_rows, m['plan'], lang))
+    attempt('ideal', lambda: planned_ideal.section(report, lang))
+    # Every section that draws a target says how its ideal was made: the rules only, or planned with a model (D10).
+    stamps = planned_ideal.provenance_of(built.get('ideal'))
     key = {'cards': 'cards', 'evidence': 'facts', 'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images'}
     def publish(section, data):
         problems = artifact_contracts.validate(data, contracts[f'studio-{section}'])
@@ -319,9 +323,11 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     for section in SECTIONS:
         if section not in built: continue
         body = built[section]
-        publish(section, {'schema_version': 1, 'contract': CONTRACT, **({key[section]: body} if section in key else body)})
+        made = {'provenance': stamps[section]} if section in stamps else {}
+        publish(section, {'schema_version': 1, 'contract': CONTRACT, **({key[section]: body} if section in key else body), **made})
     for section in SECTIONS_V2:
-        if section in built: publish(section, {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, **built[section]})
+        made = {'provenance': stamps[section]} if section in stamps else {}
+        if section in built: publish(section, {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, **built[section], **made})
     # Last of the sections: it says which of the others were written, and what is not measured yet.
     attempt('coverage', lambda: coverage_section.coverage(report, built, [e['name'] for e in entries], list(errors), lang))
     if 'coverage' in built: publish('coverage', {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, **built['coverage']})

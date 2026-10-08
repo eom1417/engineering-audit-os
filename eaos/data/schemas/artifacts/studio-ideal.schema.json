@@ -490,6 +490,12 @@
                             },
                             "minItems": 1
                           },
+                          "context": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
                           "unresolved": {
                             "type": "array",
                             "items": {
@@ -839,6 +845,12 @@
                               "type": "string"
                             },
                             "minItems": 1
+                          },
+                          "context": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
                           },
                           "unresolved": {
                             "type": "array",
@@ -1190,6 +1202,12 @@
                             },
                             "minItems": 1
                           },
+                          "context": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
                           "unresolved": {
                             "type": "array",
                             "items": {
@@ -1539,6 +1557,12 @@
                               "type": "string"
                             },
                             "minItems": 1
+                          },
+                          "context": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
                           },
                           "unresolved": {
                             "type": "array",
@@ -1890,6 +1914,12 @@
                             },
                             "minItems": 1
                           },
+                          "context": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
                           "unresolved": {
                             "type": "array",
                             "items": {
@@ -2239,6 +2269,12 @@
                               "type": "string"
                             },
                             "minItems": 1
+                          },
+                          "context": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
                           },
                           "unresolved": {
                             "type": "array",
@@ -2590,6 +2626,12 @@
                             },
                             "minItems": 1
                           },
+                          "context": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
                           "unresolved": {
                             "type": "array",
                             "items": {
@@ -2939,6 +2981,12 @@
                               "type": "string"
                             },
                             "minItems": 1
+                          },
+                          "context": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
                           },
                           "unresolved": {
                             "type": "array",

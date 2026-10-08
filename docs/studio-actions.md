@@ -9,7 +9,7 @@ action handlers (`eaos/studio/actions/`, NS46.T9). A byte-identical packaged cop
 
 | Part | In short |
 |---|---|
-| `actions` | Every MCP tool of `eaos/mcp_server.py` as an action: `id` (= the tool), label and description in English and Arabic, `inputs` (a JSON schema), `mode` (`direct`: EAOS is called without an assistant; `assistant`: a reasoning step the person's assistant runs), `irreversible` (needs an explicit confirm), `needs_consent` (the one-time run consent), `returns_job`, `changes_code`. |
+| `actions` | Every MCP tool of `eaos/mcp_server.py` as an action: `id` (= the tool), label and description in English and Arabic, `inputs` (a JSON schema), `mode` (`direct`: EAOS is called without an assistant; `assistant`: a reasoning step the person's assistant runs), `irreversible` (needs an explicit confirm), `needs_consent` (the one-time run consent), `returns_job`, `changes_code`. One action is not an MCP tool (`tool` null): `replan_ideal`, the planner of the ideal (docs/STUDIO.md D10, `eaos/studio/ideal.py`), which the run manager runs itself with the person's assistant (`adapters.ask`), its steps as `step` events; with no assistant it fails plainly and the rules' target stays. |
 | `verbs` | Fix, Verify, Explain and Plan over a selection, each with the EAOS tools the assistant may use and the result the person gets. |
 | `selection` | One card, several cards, a group (by area, severity, component, gap or operation) or a plan step, resolved to card ids on the server from the latest check's Studio data. Only open cards run. |
 | `lifecycle` | `queued`, `running`, `paused`, `waiting_for_person`, `done`, `failed`, `stopped`, with every transition. One run at a time per project; the rest queue, in an order the person can change. |

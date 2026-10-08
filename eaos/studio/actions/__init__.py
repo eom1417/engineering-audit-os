@@ -22,7 +22,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from . import adapters as adapters_module
 from . import handoff, selection as selecting
-from .runs import Manager
+from .runs import PLANNERS, Manager
 from .security import Locks
 from .store import ACTIVE, TERMINAL, Scrubber, Store, now
 
@@ -221,7 +221,9 @@ class Actions:
         from .prompts import build
         cards_detail = out['cards']
         prompt = build(verb, cards_detail, self.project, self.lang, action=action, inputs=inputs, labels={k: v['label'] for k, v in self.actions.items()})
-        out['handoff'] = {'available': bool(needed), 'request': handoff.request_text(prompt, '<run>') if needed else None}
+        # The planner asks the assistant itself: there is no request a chat assistant could take over.
+        handed = bool(needed) and action not in PLANNERS
+        out['handoff'] = {'available': handed, 'request': handoff.request_text(prompt, '<run>') if handed else None}
         out['confirm'] = self.locks.confirm(action, out['selection'], self.project) if self._needs_confirm(verb, action, inputs) else None
         return out
 
@@ -246,7 +248,7 @@ class Actions:
         record = {'id': run, 'action': action, 'verb': verb, 'label': label, 'selection': selection, 'inputs': inputs,
                   'cards': [c['id'] for c in cards], 'cards_detail': [{'id': c['id'], 'title': c.get('title'), 'paths': selecting._paths(c)} for c in cards],
                   'left_out': left, 'assistant': assistant if assistant != 'handoff' else None,
-                  'mode': 'direct' if not needed else ('handoff' if assistant == 'handoff' else 'assistant'),
+                  'mode': 'planner' if action in PLANNERS else 'direct' if not needed else ('handoff' if assistant == 'handoff' else 'assistant'),
                   'state': 'running' if reading else 'queued', 'attempt': 1, 'created': now(), 'queued_at': now(), 'read': reading,
                   **({'started': now()} if reading else {})}
         self.store.save(record, new=True)

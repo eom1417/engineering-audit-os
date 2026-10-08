@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "fdd485a",
+  "extracted_at_commit": "b2dc790",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -1545,6 +1545,15 @@
       "note": ""
     },
     {
+      "id": "INV-114bac932d",
+      "file": "eaos/studio/actions/adapters.py",
+      "symbol": "ask",
+      "statement": "The prompt goes on standard input, so its size never meets the argument limit; the process runs in its own group in `folder` (never in the project, whose instructions are not the planner's); `started(pid)` hears its pid, so the run manager can pause or stop it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ideal_planner.py::Ask::test_the_answer_and_the_model_come_from_the_stream_and_the_prompt_goes_on_standard_input",
+      "note": ""
+    },
+    {
       "id": "INV-a295ac00cf",
       "file": "eaos/studio/actions/handoff.py",
       "symbol": "<module>",
@@ -1641,6 +1650,19 @@
       "statement": "Paths are relative to the project; an absolute path, a home directory or `..` is never written.",
       "kind": "invariant",
       "enforced_by": "tests/test_studio_export.py::Export::test_no_path_outside_the_project_is_written",
+      "note": ""
+    },
+    {
+      "id": "INV-f9f3458dc4",
+      "file": "eaos/studio/ideal.py",
+      "symbol": "<module>",
+      "statement": "bundle(report) a compact, grounded picture: the rules' target of every view with the rules it applied, the cards, the facts that matter, the decisions, and the project's own documents as untrusted data pass 'plan' the ideal of every view in a strict JSON schema, every element citing fact, claim, card or rule ids pass 'critique' the same assistant reviews the draft (what was missed, risks, order) and returns the revised ideal check(...) deterministic: a citation resolves only to an id of this report; an element with no resolving citation is dropped and listed, never shown <report>/ideal/plan.json the checked ideal with its inputs, both answers and the dropped elements",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_ideal_planner.py::Planning::test_the_bundle_is_grounded_deterministic_and_marks_the_project_text_untrusted",
+        "tests/test_ideal_planner.py::EvidenceCheck::test_an_element_without_a_resolving_citation_is_dropped_and_listed",
+        "tests/test_ideal_planner.py::Planning::test_two_passes_then_the_check_then_the_plan_is_kept"
+      ],
       "note": ""
     },
     {
