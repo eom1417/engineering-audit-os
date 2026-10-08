@@ -97,7 +97,11 @@ def head(m, scan, lang, stamp, freshness):
         verdict = (f"{len(m['rows'])} مشكلة، منها {fixable} يصلحها EAOS وحده." if lang == 'ar' else
                    f"{len(m['rows'])} problems; EAOS fixes {fixable} of them by itself.")
     if fixable:
-        step = {'action': (f'ابدأ دفعة إصلاح لـ{fixable} بطاقة' if lang == 'ar' else f'Start a fix batch for {fixable} cards'), 'tool': 'fix_start'}
+        # A numeral never sits glued to a one-letter prefix (لـ165): it stands alone after a word, and the noun agrees with it.
+        cards = ('بطاقة واحدة' if fixable == 1 else 'بطاقتين' if fixable == 2 else
+                 f"{fixable} {'بطاقات' if fixable <= 10 else 'بطاقة'}")
+        step = {'action': (f'ابدأ دفعة إصلاح تشمل {cards}' if lang == 'ar' else f'Start a fix batch for {fixable} cards'),
+                'tool': 'fix_start'}
     elif m['rows']:
         step = {'action': ('راجع البطاقات التي تحتاج قرارًا' if lang == 'ar' else 'Review the cards that need a decision'), 'tool': 'findings'}
     else:
