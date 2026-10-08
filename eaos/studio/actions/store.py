@@ -172,6 +172,15 @@ class Store:
             prev = event.get('hash')
         return problems
 
+    def refused(self, method, path, reason, keep=500):
+        """A call the locks refused, in runs/refused.jsonl: when, which route, why; never a token or a query."""
+        line = json.dumps({'at': now(), 'method': method, 'path': self.scrub(str(path).split('?')[0])[:200], 'reason': reason}, ensure_ascii=False)
+        path = self.folder / 'refused.jsonl'
+        with self.lock:
+            if not self.folder.is_dir(): return
+            rows = path.read_text(encoding='utf-8').splitlines()[-(keep - 1):] if path.is_file() else []
+            path.write_text('\n'.join(rows + [line]) + '\n', encoding='utf-8')
+
     def wait_change(self, timeout):
         with self.changed:
             self.changed.wait(timeout)

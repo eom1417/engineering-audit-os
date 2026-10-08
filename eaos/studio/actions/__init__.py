@@ -83,7 +83,9 @@ class Actions:
     def handle(self, method, path, headers, body=None):
         method = str(method).upper()
         refused = self.locks.check(method, path, headers or {})
-        if refused: return refused[0], {'error': refused[1]}
+        if refused:
+            self.store.refused(method, urlsplit(path).path, refused[1])
+            return refused[0], {'error': refused[1]}
         route = urlsplit(path).path.rstrip('/')
         query = {key: values[-1] for key, values in parse_qs(urlsplit(path).query).items()}
         body = body if isinstance(body, dict) else {}

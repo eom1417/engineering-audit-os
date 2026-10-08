@@ -139,6 +139,16 @@ class Locks(Base):
         self.assertEqual(self.app.handle('POST', '/api/runs/reorder', {**referer, 'Referer': 'http://localhost:8765/#/runs'}, {'order': []})[0], 200)
         self.assertEqual(self.app.handle('POST', '/api/runs/reorder', referer, {'order': []})[0], 403)
 
+    def test_every_refusal_is_logged_with_its_reason_and_never_the_token(self):
+        self.app.handle('GET', f'/api/runs?token=wrong-{self.app.token[:5]}', {'Host': '127.0.0.1:8765'}, None)
+        self.app.handle('POST', '/api/runs', {**self.headers(), 'X-EAOS-CSRF': 'bad'}, {})
+        text = (self.app.store.folder / 'refused.jsonl').read_text()
+        rows = [json.loads(line) for line in text.splitlines()]
+        self.assertEqual([(r['method'], r['path']) for r in rows], [('GET', '/api/runs'), ('POST', '/api/runs')])
+        self.assertIn('CSRF', rows[1]['reason'])
+        self.assertNotIn(self.app.token, text)
+        self.assertNotIn(self.app.token[:5], text)
+
     def test_a_get_takes_the_token_from_the_query_but_a_post_does_not(self):
         host = {'Host': 'localhost:8765'}
         self.assertEqual(self.app.handle('GET', f'/api/session?token={self.app.token}', host, None)[0], 200)
