@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "bcd552a",
+  "extracted_at_commit": "77793ae",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -27,6 +27,15 @@
       "statement": "EAOS gives it the evidence, the isolated copy and the gates, and never calls a model itself here.",
       "kind": "invariant",
       "enforced_by": "tests/test_mcp.py::ToolTests::test_the_assistant_way_never_calls_a_model_itself",
+      "note": ""
+    },
+    {
+      "id": "INV-78989eee6b",
+      "file": "eaos/agent_tools.py",
+      "symbol": "locate",
+      "statement": "The project a folder means: itself when it is one (eaos/guided.looks_like_project); a folder with no project file and exactly one git repository directly under it (the assistant opened in the folder above) means that repository; with several, SeveralProjects: the person chooses, EAOS never guesses.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_continuity.py::FieldEdges::test_the_folder_above_means_its_one_repository_and_several_are_never_guessed",
       "note": ""
     },
     {

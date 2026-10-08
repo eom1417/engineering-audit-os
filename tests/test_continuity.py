@@ -197,6 +197,15 @@ class FieldEdges(Base):
         plain.mkdir()
         self.assertEqual(agent_tools.locate(plain), plain, 'nothing under it: the folder stays, and project_state says why')
 
+    def test_the_folder_above_means_its_one_repository_and_several_are_never_guessed(self):
+        above = Path(self.tmp.name)
+        self.assertEqual(agent_tools.locate(above), self.project)
+        git_project(above / 'other')
+        with self.assertRaises(agent_tools.SeveralProjects) as several:
+            agent_tools.locate(above)
+        self.assertEqual([p.name for p in several.exception.projects], ['other', 'shop'])
+        self.assertEqual(agent_tools.status(str(above))['status'], 'needs_project')
+
     def test_a_ready_card_still_opens_its_batch_past_the_decision_check(self):
         state = guided.load(self.project)
         state['setup'] = {'commit': state['scanned_commit'], 'ok': True}
