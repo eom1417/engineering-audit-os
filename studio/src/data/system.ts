@@ -1,6 +1,6 @@
 // studio/system.json (contract v1, schemas/artifacts/studio-system.schema.json): the project as two territory maps,
 // today and the target, laid out by EAOS (eaos/studio/system.py, territory.py) so the Studio only draws them.
-import type { Measure } from './types'
+import type { Measure } from './measure'
 
 export type Operation = 'retain' | 'modify' | 'rebuild' | 'delete' | 'merge' | 'introduce'
 export const OPERATIONS: Operation[] = ['retain', 'modify', 'rebuild', 'delete', 'merge', 'introduce']

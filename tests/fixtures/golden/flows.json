@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "extractor": "flows",
-  "extractor_version": "2",
+  "extractor_version": "3",
   "available": true,
-  "input_sha": "cd5ba8e5805ecfc17fd43d209f35a5f3572ea0e0de1103cabe270d0a44a4f27a",
+  "input_sha": "ce6f42c3564effba5091bd1ab8874071df7f8e2243c4b6d7537799a2d897f3ef",
   "limitations": [
     "A trace follows statically resolvable calls; dispatch through variables, callbacks or DI is not followed.",
     "Order inside a function is source order, not proof of runtime order or of the branch actually taken.",
@@ -18,14 +18,14 @@
     "flows_stopping_at_the_first_boundary": 5,
     "test_entry_points_excluded": 0,
     "entry_points_without_traceable_handler": 0,
-    "total_steps": 29,
+    "total_steps": 27,
     "unresolved_steps": 0,
     "steps_by_resolution": {
       "local": 3,
       "imported": 3,
       "external": 0,
       "builtin": 1,
-      "method_or_external": 22,
+      "method_or_external": 20,
       "ambiguous": 0,
       "unresolved": 0
     },
@@ -35,10 +35,10 @@
   },
   "facts": [
     {
-      "id": "FACT-ba933a03cc3f1ec7",
+      "id": "FACT-63b9449526f5e91d",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -87,10 +87,10 @@
       ]
     },
     {
-      "id": "FACT-d0dde4799d6178e0",
+      "id": "FACT-a5e0e4fa28e40fce",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -142,10 +142,10 @@
       ]
     },
     {
-      "id": "FACT-18f017ee41b639cf",
+      "id": "FACT-fff3f5ad1116f5f1",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -228,10 +228,10 @@
       ]
     },
     {
-      "id": "FACT-81462cbb60ac9096",
+      "id": "FACT-ebe9cc7c6d48692f",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py",
@@ -293,10 +293,10 @@
       ]
     },
     {
-      "id": "FACT-975e6412a1db4dc2",
+      "id": "FACT-e77a1b28c7e61d9e",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -359,16 +359,6 @@
           {
             "from": "main",
             "from_path": "cli.py",
-            "callee": "add_argument",
-            "line": 15,
-            "resolution": "method_or_external",
-            "to_path": null,
-            "to_symbol": null,
-            "depth": 0
-          },
-          {
-            "from": "main",
-            "from_path": "cli.py",
             "callee": "set_defaults",
             "line": 16,
             "resolution": "method_or_external",
@@ -415,10 +405,10 @@
       ]
     },
     {
-      "id": "FACT-091ec76fc1f28640",
+      "id": "FACT-ecf7f01338b8bcc7",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -477,10 +467,10 @@
       ]
     },
     {
-      "id": "FACT-3e7de071667f2e32",
+      "id": "FACT-133990b1ce5e3537",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -543,16 +533,6 @@
           {
             "from": "main",
             "from_path": "cli.py",
-            "callee": "add_argument",
-            "line": 15,
-            "resolution": "method_or_external",
-            "to_path": null,
-            "to_symbol": null,
-            "depth": 0
-          },
-          {
-            "from": "main",
-            "from_path": "cli.py",
             "callee": "set_defaults",
             "line": 16,
             "resolution": "method_or_external",
@@ -599,10 +579,10 @@
       ]
     },
     {
-      "id": "FACT-ee9345bfb2474952",
+      "id": "FACT-4a2206d613090cad",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "2",
+      "extractor_version": "3",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",

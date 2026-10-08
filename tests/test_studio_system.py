@@ -5,6 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from shared_fixture import Workspace
+
 from eaos import artifact_contracts
 from eaos.studio import system, territory
 
@@ -70,15 +72,12 @@ class Regions(unittest.TestCase):
         self.assertEqual(system.short('src/components', region), 'components')
 
 
-class Section(unittest.TestCase):
+class Section(Workspace):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.cards = write_report(self.tmp.name)
-        self.out = system.system(self.tmp.name, self.cards)
+        super().setUp()
+        self.cards = write_report(self.tmp)
+        self.out = system.system(self.tmp, self.cards)
         self.nodes = {n['id']: n for n in self.out['current']['nodes']}
-
-    def tearDown(self):
-        self.tmp.cleanup()
 
     def test_it_meets_its_contract(self):
         data = {'schema_version': 1, 'contract': 1, **self.out}
@@ -114,7 +113,7 @@ class Section(unittest.TestCase):
         self.assertEqual(self.nodes['src/api']['reason'], 'Because.')
 
     def test_the_layout_is_deterministic_and_inside_the_world(self):
-        again = system.system(self.tmp.name, self.cards)
+        again = system.system(self.tmp, self.cards)
         self.assertEqual(json.dumps(again, sort_keys=True), json.dumps(self.out, sort_keys=True))
         for view in (self.out['current'], self.out['target']):
             for n in view['nodes']:

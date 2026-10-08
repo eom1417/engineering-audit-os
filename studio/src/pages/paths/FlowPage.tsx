@@ -20,19 +20,14 @@ import { drawPath } from './draw'
 import { NodeInspector } from './Inspector'
 import { Lanes, Legend, type DrawNode } from './Lanes'
 import { indexOf, LANES, PATH_MODES, possible, usePaths, where, type CodePath, type PathMode, type PathOp, type PathsData } from './model'
+import { ModeSwitch } from './ModeSwitch'
 import { NoPaths } from './PathsPage'
 import { SequenceDiagram, StepList } from './Sequence'
-import { GAP_WORD, LANE_WORD, MODE_WORD, usePathWords } from './words'
+import { GAP_WORD, LANE_WORD, usePathWords } from './words'
 import css from './paths.module.css'
 
 interface FlowSearch { view?: string; show?: string; node?: string; traced?: string }
 type Show = 'diagram' | 'sequence' | 'steps'
-
-export function ModeSwitch({ mode, onChange, comfortable }: { mode: PathMode; onChange: (m: PathMode) => void; comfortable?: boolean }) {
-  const w = usePathWords()
-  return <Segmented label={w('view')} value={mode} onChange={onChange} comfortable={comfortable}
-    options={PATH_MODES.map((m) => ({ id: m, label: w(MODE_WORD[m]) }))} />
-}
 
 function ShowSwitch({ show, onChange, comfortable }: { show: Show; onChange: (s: Show) => void; comfortable?: boolean }) {
   const w = usePathWords()

@@ -20,6 +20,11 @@ PLANNED = {'meta': 'languages', 'head': None, 'health': 'domains', 'cards': 'car
            'functions': 'functions', 'screens': 'screens', 'gaps': 'gaps', 'operations': 'operations', 'history': 'scans',
            'quality': 'detectors', 'maps': None, 'paths': 'paths'}
 V1_STEP = 'NS36.T2'
+# A file's suffix -> its language, for the meta section and the coverage rows.
+LANGUAGES = {'.py': 'Python', '.ts': 'TypeScript', '.tsx': 'TypeScript', '.js': 'JavaScript', '.jsx': 'JavaScript',
+             '.mjs': 'JavaScript', '.cjs': 'JavaScript', '.go': 'Go', '.rb': 'Ruby', '.java': 'Java', '.kt': 'Kotlin',
+             '.cs': 'C#', '.php': 'PHP', '.rs': 'Rust', '.swift': 'Swift', '.vue': 'Vue', '.svelte': 'Svelte',
+             '.sql': 'SQL', '.dart': 'Dart', '.scala': 'Scala', '.c': 'C', '.cpp': 'C++', '.h': 'C'}
 
 
 def _text(lang, ar, en):
@@ -32,7 +37,6 @@ def _count(value, src):
 
 def _languages_with_functions(report):
     """{language: functions} from the function and method metrics the engines wrote."""
-    from .export import LANGUAGES
     out = {}
     for row in indicators.facts(report, 'metric'):
         if (row.get('value') or {}).get('scope') not in FUNCTION_SCOPES: continue
@@ -42,7 +46,6 @@ def _languages_with_functions(report):
 
 
 def _languages(report):
-    from .export import LANGUAGES
     names = set()
     for row in indicators.facts(report, 'graph_node'):
         name = LANGUAGES.get(Path(str((row.get('location') or {}).get('path') or '')).suffix.lower())

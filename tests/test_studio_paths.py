@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from shared_fixture import Workspace
+
 from eaos import artifact_contracts
 from eaos.studio import export, paths
 
@@ -81,16 +83,13 @@ def write_report(folder):
     return cards, plan
 
 
-class Paths(unittest.TestCase):
+class Paths(Workspace):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.cards, self.plan = write_report(self.tmp.name)
-        self.body = paths.paths(self.tmp.name, self.cards, self.plan, 'en')
+        super().setUp()
+        self.cards, self.plan = write_report(self.tmp)
+        self.body = paths.paths(self.tmp, self.cards, self.plan, 'en')
         self.nodes = {n['id']: n for n in self.body['nodes']}
         self.path = {p['id']: p for p in self.body['paths']}
-
-    def tearDown(self):
-        self.tmp.cleanup()
 
     def walked(self, pid):
         return [(e['from'], e['to'], e['how']) for e in (self.body['edges'][i] for i in self.path[pid]['steps'])]
@@ -141,7 +140,7 @@ class Paths(unittest.TestCase):
         self.assertEqual(self.nodes['H:src/api/orders.ts#fetchOrders']['steps'], ['M01'])
 
     def test_the_layout_puts_each_node_once_in_its_lane_and_does_not_move_between_runs(self):
-        again = paths.paths(self.tmp.name, self.cards, self.plan, 'en')
+        again = paths.paths(self.tmp, self.cards, self.plan, 'en')
         for path, other in zip(self.body['paths'], again['paths']):
             self.assertEqual(path['columns'], other['columns'])
             placed = [n for column in path['columns'] for n in column]

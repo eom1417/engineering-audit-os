@@ -1,9 +1,9 @@
 // Contract v1 (docs/STUDIO.md, schemas/artifacts/studio-*.schema.json): the fields the Studio reads today. Types
 // generated from the schemas replace this file with contract v2 (NS39.T3).
+import type { Measure } from './measure'
 import type { SystemMap } from './system'
 
-/** A number the Studio shows: its value and where it comes from. Not measured is null, never 0. */
-export interface Measure { value: number | null; src: string; unit?: string }
+export type { Measure } from './measure'
 
 export interface Manifest {
   contract: number
