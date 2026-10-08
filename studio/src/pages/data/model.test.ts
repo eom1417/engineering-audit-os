@@ -40,5 +40,6 @@ describe('the data paths model', () => {
     expect(membersOf(view, 'cluster:table:s')).toEqual(['table:stock'])
     expect(nodeOf(view, 'table:stock')).toBe('cluster:table:s')
     expect(labelOf('table:stock', byId)).toBe('stock')
+    expect(labelOf('cluster:table:work', byId)).toBe('work…')
   })
 })

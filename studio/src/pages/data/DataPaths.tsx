@@ -164,7 +164,7 @@ function DataBody({ data, dp }: { data: StudioData; dp: DataPaths }) {
               </>}
         </div>
       </section>
-      <aside className={css.inspector} aria-label={w('evidence')}>
+      <aside className={css.inspector} aria-label={w('evidence')} tabIndex={0}>
         {store ? <StoreInspector dp={dp} store={store} mode={mode} /> : <Overview dp={dp} mode={mode} focus={focus} onFocus={pick} />}
       </aside>
     </div>

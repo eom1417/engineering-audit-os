@@ -230,7 +230,7 @@ function InfraBody({ data, infra }: { data: StudioData; infra: Infra }) {
             : <InfraMap infra={infra} mode={mode} focus={focus} onFocus={pick} className={css.fitSvg} />}
         </div>
       </section>
-      <aside className={dataCss.inspector} aria-label={w('evidence')}>
+      <aside className={dataCss.inspector} aria-label={w('evidence')} tabIndex={0}>
         {detail ?? <div className={dataCss.overview}><p className={dataCss.hint}>{w('infraLead')} {w('chooseNode')}</p><LaneTable infra={infra} /></div>}
       </aside>
     </div>

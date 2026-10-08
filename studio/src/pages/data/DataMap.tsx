@@ -4,7 +4,7 @@
 // callers and stores), each with how many writes it knows. The geometry never mirrors with the page (DESIGN.md §6).
 import { useMemo, type KeyboardEvent, type RefObject } from 'react'
 import type { DataPaths, DataView, Store } from '../../data/dataMap'
-import { isCluster, labelOf, membersOf, tierCounts, toneOf, touches, viewOf, type Mode } from './model'
+import { isCluster, labelOf, membersOf, nodeOf, tierCounts, toneOf, touches, viewOf, type Mode } from './model'
 import { ownerWord } from './parts'
 import { useDataWords } from './words'
 import css from './Data.module.css'
@@ -21,15 +21,18 @@ export interface DataMapProps {
   svgRef?: RefObject<SVGSVGElement | null>
   transform?: string
   className?: string
+  /** false: a specimen (the gallery), drawn without buttons */
+  interactive?: boolean
 }
 
 function short(text: string, max: number): string {
   return text.length <= max ? text : '…' + text.slice(text.length - max + 1)
 }
 
-export function DataMap({ dp, mode, focus, reads, onFocus, svgRef, transform, className }: DataMapProps) {
+export function DataMap({ dp, mode, focus: chosen, reads, onFocus, svgRef, transform, className, interactive = true }: DataMapProps) {
   const w = useDataWords()
   const view: DataView = viewOf(dp, mode)
+  const focus = chosen ? nodeOf(view, chosen) : undefined // a store inside a cluster lights its cluster
   const stores = useMemo(() => new Map(dp.stores.map((s) => [s.id, s])), [dp])
   const [bw, bh] = view.box
   const width = view.size[0] + BAND
@@ -61,7 +64,7 @@ export function DataMap({ dp, mode, focus, reads, onFocus, svgRef, transform, cl
       : `${label}${cluster ? ` (${count})` : ''}`
     return (
       <g key={id} className={[css.node, css[`tone_${tone}`], on && css.on, faded && css.faded, cluster && css.cluster].filter(Boolean).join(' ')}
-        role="button" tabIndex={0} aria-label={name} aria-pressed={on} onClick={() => onFocus(id)} onKeyDown={key(id)}>
+        {...(interactive ? { role: 'button', tabIndex: 0, 'aria-label': name, 'aria-pressed': on, onClick: () => onFocus(id), onKeyDown: key(id) } : {})}>
         {cluster && <rect className={css.stack} x={x + 4} y={y - 4} width={bw} height={bh} rx={8} />}
         <rect className={css.box} x={x} y={y} width={bw} height={bh} rx={8} />
         {lane === 'store' && <text className={css.kind} x={x + 10} y={y + bh / 2 + 4}>{store ? KIND_MARK[store.kind] : '⋯'}</text>}

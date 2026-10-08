@@ -31,9 +31,11 @@ export interface InfraMapProps {
   svgRef?: RefObject<SVGSVGElement | null>
   transform?: string
   className?: string
+  /** false: a specimen (the gallery), drawn without buttons */
+  interactive?: boolean
 }
 
-export function InfraMap({ infra, mode, focus, onFocus, svgRef, transform, className }: InfraMapProps) {
+export function InfraMap({ infra, mode, focus, onFocus, svgRef, transform, className, interactive = true }: InfraMapProps) {
   const w = useDataWords()
   const key = (id: string) => (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFocus(id) } }
   const rowText = (row: Row) => row.kind === 'node' ? nodeName(row.node, w) : row.kind === 'item' ? w(`area_${row.item.area}` as DataWord) : w('moreN', { n: row.more })
@@ -87,8 +89,8 @@ export function InfraMap({ infra, mode, focus, onFocus, svgRef, transform, class
                 const ry = y + HEAD + i * ROW_H
                 const tone = row.kind === 'item' ? row.item.op : 'none'
                 return (
-                  <g key={id} className={[css.row, css[`op_${tone}`], focus === id && css.on].filter(Boolean).join(' ')} role="button" tabIndex={0}
-                    aria-label={rowText(row)} aria-pressed={focus === id} onClick={() => onFocus(id)} onKeyDown={key(id)}>
+                  <g key={id} className={[css.row, css[`op_${tone}`], focus === id && css.on].filter(Boolean).join(' ')}
+                    {...(interactive ? { role: 'button', tabIndex: 0, 'aria-label': rowText(row), 'aria-pressed': focus === id, onClick: () => onFocus(id), onKeyDown: key(id) } : {})}>
                     <rect className={css.rowBox} x={x + 8} y={ry} width={LANE_W - 16} height={ROW_H - 4} rx={6} />
                     {row.kind === 'item' && <text className={css.opMark} x={x + 18} y={ry + 18}>{row.item.op === 'keep' ? '●' : '+'}</text>}
                     <text className={row.kind === 'node' && row.node.kind === 'host' ? css.rowMono : css.rowText} x={x + (row.kind === 'item' ? 34 : 18)} y={ry + 18}>

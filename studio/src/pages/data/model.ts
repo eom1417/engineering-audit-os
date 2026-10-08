@@ -51,7 +51,7 @@ export const isCluster = (id: string) => id.startsWith('cluster:')
 
 /** A store's short label on the map: the table or resource name, without the id's kind prefix. */
 export function labelOf(id: string, stores: Map<string, Store>): string {
-  if (isCluster(id)) return id.slice('cluster:'.length)
+  if (isCluster(id)) return id.slice('cluster:'.length).replace(/(^|…)\w+:/g, '$1') + '…' // cluster:table:work -> work…
   return stores.get(id)?.name ?? id
 }
 
