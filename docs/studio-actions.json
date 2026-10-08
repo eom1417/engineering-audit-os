@@ -1,0 +1,2182 @@
+{
+ "schema_version": 1,
+ "contract": "studio-actions",
+ "revision": 1,
+ "about": "The command centre (docs/STUDIO.md D8): every EAOS action the Studio can run, the selections and verbs, the run lifecycle, the run events, the preview, the endpoints and their security, and the snapshot behaviour. Built by NS46.T9 (eaos/studio/actions/); read by the Studio pages of NS46.T10 and mounted by the NS37.T2 server. A packaged byte-identical copy is eaos/data/studio-actions.json.",
+ "actions": [
+  {
+   "id": "status",
+   "tool": "status",
+   "group": "understand",
+   "label": {
+    "en": "Where things stand",
+    "ar": "أين وصلنا"
+   },
+   "description": {
+    "en": "The next step, the progress and the handover.",
+    "ar": "الخطوة التالية والتقدم وما تركه آخر مساعد."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "branches",
+   "tool": "branches",
+   "group": "understand",
+   "label": {
+    "en": "Branches",
+    "ar": "الفروع"
+   },
+   "description": {
+    "en": "The project branches and the recommendation.",
+    "ar": "فروع المشروع والتوصية."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "choose_branch",
+   "tool": "choose_branch",
+   "group": "setup",
+   "label": {
+    "en": "Work on this branch",
+    "ar": "اعمل على هذا الفرع"
+   },
+   "description": {
+    "en": "Every later step follows this branch. The person chooses; nothing is switched in their checkout.",
+    "ar": "كل ما بعده يتبع هذا الفرع. الشخص يختار، ولا يتغير فرعه المفتوح."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "branch": {
+      "type": "string"
+     },
+     "person_said": {
+      "type": "string"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "branch"
+    ]
+   }
+  },
+  {
+   "id": "menu",
+   "tool": "menu",
+   "group": "understand",
+   "label": {
+    "en": "What EAOS can do now",
+    "ar": "ماذا يقدر EAOS يسوي الحين"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "lang": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "enum": [
+       "ar",
+       "en",
+       null
+      ]
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "tools_check",
+   "tool": "tools_check",
+   "group": "understand",
+   "label": {
+    "en": "Installed tools",
+    "ar": "الأدوات المثبتة"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "impact",
+   "tool": "impact",
+   "group": "understand",
+   "label": {
+    "en": "What a change touches",
+    "ar": "ماذا يمس التغيير"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "target": {
+      "type": "string"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "target"
+    ]
+   }
+  },
+  {
+   "id": "ask",
+   "tool": "ask",
+   "group": "understand",
+   "label": {
+    "en": "Ask the records",
+    "ar": "اسأل السجلات"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "question": {
+      "type": "string"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "question"
+    ]
+   }
+  },
+  {
+   "id": "audit",
+   "tool": "audit",
+   "group": "check",
+   "label": {
+    "en": "Check the project",
+    "ar": "افحص المشروع"
+   },
+   "description": {
+    "en": "The full check, 5 to 30 minutes. Nothing in the project changes.",
+    "ar": "الفحص الكامل من 5 إلى 30 دقيقة. لا يتغير شيء في المشروع."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": true,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "fresh": {
+      "type": "boolean"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "wait",
+   "tool": "wait",
+   "group": "check",
+   "label": {
+    "en": "Follow a job",
+    "ar": "تابع المهمة"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "job": {
+      "type": "string"
+     },
+     "seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 50
+     }
+    },
+    "required": [
+     "job"
+    ]
+   }
+  },
+  {
+   "id": "overview",
+   "tool": "overview",
+   "group": "understand",
+   "label": {
+    "en": "Health overview",
+    "ar": "نظرة على الصحة"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "findings",
+   "tool": "findings",
+   "group": "understand",
+   "label": {
+    "en": "Problems",
+    "ar": "المشاكل"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "kind": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "path": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "text": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "fixable_only": {
+      "type": "boolean"
+     },
+     "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200
+     },
+     "offset": {
+      "type": "integer",
+      "minimum": 0
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "finding",
+   "tool": "finding",
+   "group": "understand",
+   "label": {
+    "en": "One problem whole",
+    "ar": "مشكلة بتفاصيلها"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "id": {
+      "type": "string"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "id"
+    ]
+   }
+  },
+  {
+   "id": "structure",
+   "tool": "structure",
+   "group": "understand",
+   "label": {
+    "en": "The architecture",
+    "ar": "البنية"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "plan",
+   "tool": "plan",
+   "group": "understand",
+   "label": {
+    "en": "The plan of fixes",
+    "ar": "خطة الإصلاح"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "milestone": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "report_file",
+   "tool": "report_file",
+   "group": "understand",
+   "label": {
+    "en": "A report file",
+    "ar": "ملف من التقرير"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "name": {
+      "type": "string"
+     },
+     "offset": {
+      "type": "integer",
+      "minimum": 0
+     },
+     "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200000
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "open_report",
+   "tool": "open_report",
+   "group": "understand",
+   "label": {
+    "en": "Open the report",
+    "ar": "افتح التقرير"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "show": {
+      "type": "boolean"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "run_setup",
+   "tool": "run_setup",
+   "group": "setup",
+   "label": {
+    "en": "Run the app safely",
+    "ar": "شغّل التطبيق بأمان"
+   },
+   "description": {
+    "en": "Runs the app in an isolated copy: a temporary database, no secrets, nothing reaches the internet. Asks your agreement once.",
+    "ar": "يشغّل التطبيق في نسخة معزولة: قاعدة بيانات مؤقتة، بلا أسرار، ولا شيء يخرج للإنترنت. يطلب موافقتك مرة واحدة."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": true,
+   "returns_job": true,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "person_agreed": {
+      "type": "boolean"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "run_try",
+   "tool": "run_try",
+   "group": "setup",
+   "label": {
+    "en": "Get the app running",
+    "ar": "خلّ التطبيق يشتغل"
+   },
+   "description": {
+    "en": "The assistant reads the failure and the code and proposes how to run it, until it runs.",
+    "ar": "المساعد يقرأ سبب الفشل والكود ويقترح طريقة التشغيل حتى يشتغل."
+   },
+   "mode": "assistant",
+   "needs_assistant": true,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": true,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "proposal": {
+      "type": [
+       "object",
+       "null"
+      ]
+     },
+     "mode": {
+      "type": "string",
+      "enum": [
+       "lock",
+       "baseline"
+      ]
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "safety_net",
+   "tool": "safety_net",
+   "group": "setup",
+   "label": {
+    "en": "Record every screen",
+    "ar": "صوّر كل الشاشات"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": true,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "fix_start",
+   "tool": "fix_start",
+   "group": "fix",
+   "label": {
+    "en": "Open a batch of fixes",
+    "ar": "افتح دفعة إصلاح"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": true,
+   "changes_code": true,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "cards": {
+      "type": [
+       "array",
+       "null"
+      ],
+      "items": {
+       "type": "string",
+       "pattern": "^[A-Za-z0-9_.:-]{1,80}$"
+      },
+      "maxItems": 500
+     },
+     "size": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "fix_read",
+   "tool": "fix_read",
+   "group": "fix",
+   "label": {
+    "en": "Read a file of the batch",
+    "ar": "اقرأ ملفًا من الدفعة"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "start": {
+      "type": "integer",
+      "minimum": 1
+     },
+     "end": {
+      "type": [
+       "integer",
+       "null"
+      ]
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "path"
+    ]
+   }
+  },
+  {
+   "id": "fix_edit",
+   "tool": "fix_edit",
+   "group": "fix",
+   "label": {
+    "en": "Fix a card",
+    "ar": "أصلح بطاقة"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "assistant",
+   "needs_assistant": true,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": true,
+   "changes_code": true,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "card": {
+      "type": "string"
+     },
+     "edits": {
+      "type": "array",
+      "items": {
+       "type": "object"
+      }
+     },
+     "summary": {
+      "type": "string"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "card",
+     "edits"
+    ]
+   }
+  },
+  {
+   "id": "fix_skip",
+   "tool": "fix_skip",
+   "group": "fix",
+   "label": {
+    "en": "Leave a card out",
+    "ar": "اترك بطاقة"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "card": {
+      "type": "string"
+     },
+     "reason": {
+      "type": "string"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "card",
+     "reason"
+    ]
+   }
+  },
+  {
+   "id": "fix_finish",
+   "tool": "fix_finish",
+   "group": "fix",
+   "label": {
+    "en": "Hand the batch over",
+    "ar": "سلّم الدفعة"
+   },
+   "description": {
+    "en": "Every kept change through the project checks and screens, then a new branch eaos/wave-N. Your branch is not touched.",
+    "ar": "كل تغيير محفوظ يمر على فحوص المشروع وشاشاته، ثم فرع جديد eaos/wave-N. فرعك لا يُلمس."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": true,
+   "changes_code": true,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "accept",
+   "tool": "accept",
+   "group": "handover",
+   "label": {
+    "en": "Take the branch in",
+    "ar": "اعتمد الفرع"
+   },
+   "description": {
+    "en": "Merges the waiting branch into your current branch, deletes it, and updates the report and the progress.",
+    "ar": "يدمج الفرع المنتظر في فرعك الحالي، ويحذفه، ويحدّث التقرير والتقدم."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": true,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "person_agreed": {
+      "type": "boolean"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "note",
+   "tool": "note",
+   "group": "handover",
+   "label": {
+    "en": "Leave a note",
+    "ar": "اترك ملاحظة"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "text": {
+      "type": "string"
+     },
+     "card": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "text"
+    ]
+   }
+  },
+  {
+   "id": "undo",
+   "tool": "undo",
+   "group": "handover",
+   "label": {
+    "en": "Throw the branch away",
+    "ar": "ارمِ الفرع"
+   },
+   "description": {
+    "en": "Deletes the waiting branch while it is not merged: the project stays as it was.",
+    "ar": "يحذف الفرع المنتظر ما دام لم يُدمج: يبقى المشروع كما كان."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": true,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "blueprint_start",
+   "tool": "blueprint_start",
+   "group": "build",
+   "label": {
+    "en": "Read a plan to build",
+    "ar": "اقرأ خطة البناء"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "assistant",
+   "needs_assistant": true,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "source": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "text": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "blueprint_spec",
+   "tool": "blueprint_spec",
+   "group": "build",
+   "label": {
+    "en": "Check the product spec",
+    "ar": "راجع مواصفات المنتج"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "assistant",
+   "needs_assistant": true,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "spec": {
+      "type": "object"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "spec"
+    ]
+   }
+  },
+  {
+   "id": "blueprint_design",
+   "tool": "blueprint_design",
+   "group": "build",
+   "label": {
+    "en": "Draw the target and the build plan",
+    "ar": "ارسم الهدف وخطة البناء"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "stack": {
+      "type": [
+       "object",
+       "null"
+      ]
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "build_start",
+   "tool": "build_start",
+   "group": "build",
+   "label": {
+    "en": "Open the next milestone",
+    "ar": "افتح المرحلة التالية"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": true,
+   "returns_job": false,
+   "changes_code": true,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "person_agreed": {
+      "type": "boolean"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "build_read",
+   "tool": "build_read",
+   "group": "build",
+   "label": {
+    "en": "Read a file of the build",
+    "ar": "اقرأ ملفًا من البناء"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "path": {
+      "type": "string"
+     },
+     "start": {
+      "type": "integer",
+      "minimum": 1
+     },
+     "end": {
+      "type": [
+       "integer",
+       "null"
+      ]
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
+   "id": "build_edit",
+   "tool": "build_edit",
+   "group": "build",
+   "label": {
+    "en": "Build a card",
+    "ar": "ابنِ بطاقة"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "assistant",
+   "needs_assistant": true,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": true,
+   "changes_code": true,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "card": {
+      "type": "string"
+     },
+     "edits": {
+      "type": "array",
+      "items": {
+       "type": "object"
+      }
+     },
+     "summary": {
+      "type": "string"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "card",
+     "edits"
+    ]
+   }
+  },
+  {
+   "id": "build_skip",
+   "tool": "build_skip",
+   "group": "build",
+   "label": {
+    "en": "Leave a build card out",
+    "ar": "اترك بطاقة بناء"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "card": {
+      "type": "string"
+     },
+     "reason": {
+      "type": "string"
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": [
+     "card",
+     "reason"
+    ]
+   }
+  },
+  {
+   "id": "build_finish",
+   "tool": "build_finish",
+   "group": "build",
+   "label": {
+    "en": "Hand the milestone over",
+    "ar": "سلّم المرحلة"
+   },
+   "description": {
+    "en": "",
+    "ar": ""
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": true,
+   "changes_code": true,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  }
+ ],
+ "verbs": [
+  {
+   "id": "fix",
+   "label": {
+    "en": "Fix",
+    "ar": "أصلح"
+   },
+   "needs_assistant": true,
+   "changes_code": true,
+   "tools": [
+    "status",
+    "run_setup",
+    "run_try",
+    "safety_net",
+    "fix_start",
+    "finding",
+    "fix_read",
+    "fix_edit",
+    "fix_skip",
+    "fix_finish",
+    "note",
+    "wait"
+   ],
+   "result": {
+    "en": "A new branch eaos/wave-N with the kept fixes, waiting for Accept or Undo.",
+    "ar": "فرع جديد eaos/wave-N فيه الإصلاحات المقبولة، ينتظر الاعتماد أو الرمي."
+   }
+  },
+  {
+   "id": "verify",
+   "label": {
+    "en": "Verify",
+    "ar": "تحقق"
+   },
+   "needs_assistant": true,
+   "changes_code": false,
+   "tools": [
+    "status",
+    "finding",
+    "impact",
+    "ask",
+    "report_file",
+    "note"
+   ],
+   "result": {
+    "en": "For each card: still real, already gone, or a false alarm, with the evidence; written as a note.",
+    "ar": "لكل بطاقة: ما زالت موجودة، أو اختفت، أو إنذار كاذب، مع الدليل؛ تُكتب ملاحظة."
+   }
+  },
+  {
+   "id": "explain",
+   "label": {
+    "en": "Explain",
+    "ar": "اشرح"
+   },
+   "needs_assistant": true,
+   "changes_code": false,
+   "tools": [
+    "status",
+    "finding",
+    "impact",
+    "structure",
+    "ask"
+   ],
+   "result": {
+    "en": "A plain explanation: what is wrong, why it matters, what fixing it changes.",
+    "ar": "شرح بسيط: وش المشكلة، وليش تهم، ووش يتغير لو انصلحت."
+   }
+  },
+  {
+   "id": "plan",
+   "label": {
+    "en": "Plan",
+    "ar": "خطّط"
+   },
+   "needs_assistant": true,
+   "changes_code": false,
+   "tools": [
+    "status",
+    "plan",
+    "finding",
+    "impact",
+    "structure",
+    "note"
+   ],
+   "result": {
+    "en": "An order of batches for the selection, what waits for what, and the risk of each.",
+    "ar": "ترتيب دفعات للمختار، ووش ينتظر وش، وخطر كل دفعة."
+   }
+  }
+ ],
+ "selection": {
+  "about": "What the person selected on the Problems, Plan and Change pages or on a map; resolved to card ids on the server from the Studio data of the latest check.",
+  "schema": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": [
+    "kind"
+   ],
+   "properties": {
+    "kind": {
+     "enum": [
+      "card",
+      "cards",
+      "group",
+      "step"
+     ]
+    },
+    "cards": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.:-]{1,80}$"
+     },
+     "maxItems": 500
+    },
+    "group": {
+     "type": "object",
+     "additionalProperties": false,
+     "required": [
+      "by",
+      "value"
+     ],
+     "properties": {
+      "by": {
+       "enum": [
+        "area",
+        "severity",
+        "component",
+        "gap",
+        "operation"
+       ]
+      },
+      "value": {
+       "type": "string"
+      }
+     }
+    },
+    "step": {
+     "type": "string"
+    }
+   }
+  },
+  "resolve": {
+   "card": "cards[0], one id",
+   "cards": "the ids as given, at most 500",
+   "group.area": "cards.json cards whose category equals value",
+   "group.severity": "cards.json cards whose severity equals value",
+   "group.component": "gaps.json: the cards of every gap whose component equals value",
+   "group.gap": "gaps.json: the cards of the gap whose id equals value",
+   "group.operation": "operations.json: the cards of the operation whose id equals value",
+   "step": "cards.json cards whose milestone equals the step id"
+  },
+  "rules": [
+   "Only open cards are run; a card already done, resolved, skipped or on a branch is reported and left out.",
+   "An empty selection is refused with the reason, never run.",
+   "A selection that needs a section the check did not write is refused with its coverage state."
+  ]
+ },
+ "lifecycle": {
+  "states": {
+   "queued": {
+    "en": "Waiting its turn",
+    "ar": "ينتظر دوره"
+   },
+   "running": {
+    "en": "Running",
+    "ar": "يشتغل"
+   },
+   "paused": {
+    "en": "Paused",
+    "ar": "متوقف مؤقتًا"
+   },
+   "waiting_for_person": {
+    "en": "Waiting for your answer",
+    "ar": "ينتظر جوابك"
+   },
+   "done": {
+    "en": "Done",
+    "ar": "انتهى"
+   },
+   "failed": {
+    "en": "Did not finish",
+    "ar": "ما اكتمل"
+   },
+   "stopped": {
+    "en": "Stopped",
+    "ar": "أوقفته"
+   }
+  },
+  "terminal": [
+   "done",
+   "failed",
+   "stopped"
+  ],
+  "transitions": [
+   [
+    "queued",
+    "running",
+    "the queue reaches it"
+   ],
+   [
+    "queued",
+    "stopped",
+    "stop"
+   ],
+   [
+    "running",
+    "paused",
+    "pause (the assistant process is suspended; a direct call finishes its current step)"
+   ],
+   [
+    "paused",
+    "running",
+    "resume"
+   ],
+   [
+    "paused",
+    "stopped",
+    "stop"
+   ],
+   [
+    "running",
+    "waiting_for_person",
+    "a question event"
+   ],
+   [
+    "waiting_for_person",
+    "running",
+    "the answer (the assistant session is resumed with it)"
+   ],
+   [
+    "waiting_for_person",
+    "stopped",
+    "stop"
+   ],
+   [
+    "running",
+    "done",
+    "the result event"
+   ],
+   [
+    "running",
+    "failed",
+    "an error the run cannot go past, or the process died"
+   ],
+   [
+    "running",
+    "stopped",
+    "stop"
+   ],
+   [
+    "failed",
+    "queued",
+    "retry (a new attempt of the same run, same selection)"
+   ],
+   [
+    "stopped",
+    "queued",
+    "retry"
+   ],
+   [
+    "done",
+    "done",
+    "accept or undo record their outcome on the run; the state stays done"
+   ]
+  ],
+  "one_at_a_time": "One run per project is running or waiting_for_person at a time; EAOS keeps one open batch per project. The rest queue in order.",
+  "restart": "Runs, their events and the queue are on disk (~/.eaos/runs/). After a server restart a run that was running is marked failed with the reason unless its process is still alive, in which case it is followed again; queued runs keep their order."
+ },
+ "events": {
+  "envelope": {
+   "type": "object",
+   "required": [
+    "seq",
+    "id",
+    "run",
+    "at",
+    "kind",
+    "text",
+    "data",
+    "prev",
+    "hash"
+   ],
+   "properties": {
+    "seq": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "Gapless per run; the SSE id, so Last-Event-ID replays exactly."
+    },
+    "id": {
+     "type": "string",
+     "description": "<run>-<seq>"
+    },
+    "run": {
+     "type": "string"
+    },
+    "at": {
+     "type": "string",
+     "format": "date-time"
+    },
+    "kind": {
+     "enum": [
+      "state",
+      "step",
+      "read",
+      "edit",
+      "check",
+      "screenshot",
+      "progress",
+      "question",
+      "answer",
+      "result",
+      "error",
+      "action",
+      "say"
+     ]
+    },
+    "text": {
+     "type": "object",
+     "required": [
+      "en",
+      "ar"
+     ],
+     "properties": {
+      "en": {
+       "type": "string"
+      },
+      "ar": {
+       "type": "string"
+      }
+     }
+    },
+    "data": {
+     "type": "object"
+    },
+    "detail": {
+     "type": [
+      "string",
+      "null"
+     ],
+     "description": "The technical detail, one tap away; never a secret."
+    },
+    "prev": {
+     "type": "string",
+     "description": "hash of the previous event, 64 zeros for the first"
+    },
+    "hash": {
+     "type": "string",
+     "description": "sha256(prev + canonical JSON of the event without hash), as docs D-platform 2.5"
+    }
+   }
+  },
+  "kinds": {
+   "state": {
+    "data": {
+     "from": "state",
+     "to": "state",
+     "why": "string"
+    }
+   },
+   "step": {
+    "data": {
+     "tool": "EAOS tool name or null",
+     "card": "card id or null"
+    }
+   },
+   "read": {
+    "data": {
+     "path": "project-relative path",
+     "tool": "tool that read it"
+    }
+   },
+   "edit": {
+    "data": {
+     "card": "card id",
+     "paths": [
+      "project-relative path"
+     ],
+     "diff": "unified diff, at most 64 KiB",
+     "kept": "bool or null"
+    }
+   },
+   "check": {
+    "data": {
+     "name": "the gate or check",
+     "passed": "bool",
+     "summary": "string"
+    }
+   },
+   "screenshot": {
+    "data": {
+     "route": "string",
+     "viewport": "string",
+     "when": "before|after",
+     "path": "path in the outputs folder"
+    }
+   },
+   "progress": {
+    "data": {
+     "batch": "batch number or null",
+     "done": "int",
+     "total": "int"
+    }
+   },
+   "question": {
+    "data": {
+     "id": "question id",
+     "text": {
+      "en": "string",
+      "ar": "string"
+     },
+     "options": [
+      {
+       "id": "string",
+       "label": {
+        "en": "string",
+        "ar": "string"
+       }
+      }
+     ],
+     "recommendation": "option id or null",
+     "why": "which of the three EAOS questions, or another choice"
+    }
+   },
+   "answer": {
+    "data": {
+     "question": "question id",
+     "option": "option id or null",
+     "text": "free text or null",
+     "by": "person"
+    }
+   },
+   "result": {
+    "data": {
+     "branch": "eaos/wave-N or null",
+     "diff_stat": {
+      "files": "int",
+      "insertions": "int",
+      "deletions": "int"
+     },
+     "tests": {
+      "passed": "bool or null",
+      "summary": "string"
+     },
+     "cards_closed": [
+      "card id"
+     ],
+     "indicators": [
+      {
+       "id": "string",
+       "before": "number|null",
+       "after": "number|null"
+      }
+     ],
+     "answer": "the assistant final words, for explain, verify and plan"
+    }
+   },
+   "error": {
+    "data": {
+     "reason": "string",
+     "what_now": {
+      "en": "string",
+      "ar": "string"
+     },
+     "recoverable": "bool"
+    }
+   },
+   "action": {
+    "data": {
+     "action": "action id",
+     "by": "person|studio",
+     "arguments": "the arguments, without project, edits, spec or proposal bodies"
+    }
+   },
+   "say": {
+    "data": {
+     "words": "what the assistant told the person, in its own words"
+    }
+   }
+  },
+  "rules": [
+   "Every action the API accepts is logged as an action event before it runs.",
+   "Plain text in both languages on every event; the technical detail is optional and one tap away.",
+   "No secret, no absolute home path and no environment value is ever written to an event."
+  ]
+ },
+ "preview": {
+  "type": "object",
+  "required": [
+   "action",
+   "verb",
+   "selection",
+   "cards",
+   "left_out",
+   "files",
+   "batches",
+   "estimate",
+   "risk",
+   "on_failure",
+   "assistant",
+   "handoff",
+   "irreversible",
+   "needs_consent",
+   "confirm"
+  ],
+  "properties": {
+   "action": {
+    "type": "string"
+   },
+   "verb": {
+    "type": [
+     "string",
+     "null"
+    ]
+   },
+   "selection": {
+    "type": [
+     "object",
+     "null"
+    ]
+   },
+   "cards": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "description": "{id, title, severity, paths}"
+    }
+   },
+   "left_out": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "description": "{id, why}"
+    }
+   },
+   "files": {
+    "type": "array",
+    "items": {
+     "type": "string"
+    },
+    "description": "project-relative paths the cards point at"
+   },
+   "batches": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "description": "{number, cards}; at most 10 cards each, as fix_start"
+    }
+   },
+   "estimate": {
+    "type": "object",
+    "description": "{minutes_low, minutes_high, basis{en,ar}}; null minutes when there is no basis"
+   },
+   "risk": {
+    "type": "object",
+    "description": "{level: low|medium|high, why{en,ar}}"
+   },
+   "on_failure": {
+    "type": "object",
+    "required": [
+     "en",
+     "ar"
+    ],
+    "properties": {
+     "en": {
+      "type": "string"
+     },
+     "ar": {
+      "type": "string"
+     }
+    }
+   },
+   "assistant": {
+    "type": [
+     "object",
+     "null"
+    ],
+    "description": "{id: claude|codex, name, installed, logged_in, version}; null for a direct action"
+   },
+   "assistants": {
+    "type": "array",
+    "description": "every adapter with its detection, so the person may pick another"
+   },
+   "handoff": {
+    "type": "object",
+    "description": "{available: true, request{en,ar}}: the copyable request when no assistant is available"
+   },
+   "irreversible": {
+    "type": "boolean"
+   },
+   "needs_consent": {
+    "type": "boolean"
+   },
+   "confirm": {
+    "type": [
+     "object",
+     "null"
+    ],
+    "description": "{token, expires}: single-use, bound to the action, the selection and the project; required by POST /api/runs for a run that changes code or is irreversible, and by accept and undo"
+   }
+  }
+ },
+ "endpoints": [
+  {
+   "method": "GET",
+   "path": "/api/session",
+   "does": "The CSRF token for this page, the server mode (live), the assistants detected."
+  },
+  {
+   "method": "GET",
+   "path": "/api/actions",
+   "does": "This contract, as served (actions, verbs, lifecycle)."
+  },
+  {
+   "method": "GET",
+   "path": "/api/assistants",
+   "does": "Each adapter: installed, logged in, version."
+  },
+  {
+   "method": "POST",
+   "path": "/api/actions/<id>/preview",
+   "body": "{inputs?, selection?, verb?, assistant?}",
+   "does": "The preview payload; never changes anything."
+  },
+  {
+   "method": "POST",
+   "path": "/api/runs",
+   "body": "{action, inputs?, selection?, verb?, assistant?, confirm?}",
+   "does": "Queues a run; returns {run}. A direct read action may return its result at once in run.result."
+  },
+  {
+   "method": "GET",
+   "path": "/api/runs",
+   "does": "Every run, newest first, with the queue order; ?q= searches the label, cards and outcome; ?state= filters."
+  },
+  {
+   "method": "GET",
+   "path": "/api/runs/<id>",
+   "does": "One run with its last state, its result and its open question."
+  },
+  {
+   "method": "GET",
+   "path": "/api/runs/<id>/events",
+   "does": "SSE: every event of the run from Last-Event-ID (or ?after=) on, then live; a heartbeat comment every 15 s; ends after a terminal state."
+  },
+  {
+   "method": "POST",
+   "path": "/api/runs/<id>/pause"
+  },
+  {
+   "method": "POST",
+   "path": "/api/runs/<id>/resume"
+  },
+  {
+   "method": "POST",
+   "path": "/api/runs/<id>/stop"
+  },
+  {
+   "method": "POST",
+   "path": "/api/runs/<id>/retry"
+  },
+  {
+   "method": "POST",
+   "path": "/api/runs/reorder",
+   "body": "{order: [run ids of queued runs]}"
+  },
+  {
+   "method": "GET",
+   "path": "/api/questions",
+   "does": "The open questions of every run, for the Decisions inbox."
+  },
+  {
+   "method": "POST",
+   "path": "/api/questions/<id>/answer",
+   "body": "{option?, text?}",
+   "does": "Records the answer and resumes the run."
+  },
+  {
+   "method": "POST",
+   "path": "/api/runs/<id>/accept",
+   "body": "{confirm}",
+   "does": "accept with person_agreed=true; needs the confirm token from the accept preview."
+  },
+  {
+   "method": "POST",
+   "path": "/api/runs/<id>/undo",
+   "body": "{confirm}",
+   "does": "undo; needs the confirm token from the undo preview."
+  }
+ ],
+ "security": {
+  "listen": "127.0.0.1 only; the server refuses to bind any other address.",
+  "launch_token": "A random token per server launch (secrets.token_urlsafe(32)), in the URL the server opens (#token=) and sent by the Studio as the header X-EAOS-Token on every API call; compared in constant time (hmac.compare_digest).",
+  "csrf": "Every POST carries X-EAOS-CSRF equal to the token GET /api/session returned for this launch; constant-time compare.",
+  "origin": "Every POST must carry an Origin (or, if absent, a Referer) of http://127.0.0.1:<port> or http://localhost:<port>; Host must be one of the two as well (DNS rebinding).",
+  "confirm": "Irreversible actions and code-changing runs need a single-use confirm token from their preview, valid 10 minutes, bound to the action, the selection and the project (HMAC with the launch token).",
+  "log": "Every accepted action is an action event before it runs; every refusal is logged to the server log with its reason (never the token).",
+  "network": "Nothing is fetched from or sent to the network by the action API; the assistants are the person's own, started on this computer.",
+  "consent": "Running the project's code still needs the one-time run_setup consent; a Fix run without it stops at a question."
+ },
+ "assistants": {
+  "claude": {
+   "name": "Claude Code",
+   "argv": [
+    "claude",
+    "-p",
+    "<prompt>",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--mcp-config",
+    "<run>/mcp.json",
+    "--strict-mcp-config",
+    "--allowedTools",
+    "mcp__eaos",
+    "Read",
+    "Grep",
+    "Glob",
+    "--disallowedTools",
+    "Bash",
+    "Edit",
+    "Write",
+    "NotebookEdit",
+    "WebFetch",
+    "WebSearch"
+   ],
+   "resume": [
+    "--resume",
+    "<session>"
+   ],
+   "detect": [
+    "claude --version",
+    "claude auth status (or the credentials file)"
+   ]
+  },
+  "codex": {
+   "name": "Codex",
+   "argv": [
+    "codex",
+    "exec",
+    "--json",
+    "--skip-git-repo-check",
+    "-c",
+    "mcp_servers.eaos={...}",
+    "-c",
+    "approval_policy=\"never\"",
+    "-c",
+    "sandbox_mode=\"read-only\"",
+    "<prompt>"
+   ],
+   "resume": [
+    "exec",
+    "resume",
+    "<session>"
+   ],
+   "detect": [
+    "codex --version",
+    "codex login status"
+   ]
+  },
+  "handoff": {
+   "name": "Assistant handoff",
+   "about": "No assistant available: the request is queued in the project state; the next `status` call of any assistant returns it under studio_request, and the Studio shows a copyable request text. The run waits in waiting_for_person until an assistant takes it."
+  },
+  "rules": [
+   "The assistant may only change code through the EAOS tools (no Bash, Edit or Write): every change goes through the isolated copy and the gates.",
+   "The prompt names the verb, the cards and the EAOS way, in the person's language; the run is what the assistant would do in chat.",
+   "The three EAOS questions (branch, run consent, accept or undo) come back as question events, never answered by the assistant."
+  ]
+ },
+ "snapshot": {
+  "about": "Opened from a file (file://), with no server: every action button stays visible and, when pressed, shows how to start the live Studio instead of failing.",
+  "command": "eaos studio",
+  "text": {
+   "en": "Actions run from the live Studio. Open a terminal in the project and run: eaos studio",
+   "ar": "الأوامر تشتغل من الاستوديو الحي. افتح الطرفية في المشروع واكتب: eaos studio"
+  },
+  "copy_to_assistant": "The same preview text as the handoff request, so the person can also paste it to their assistant."
+ }
+}
