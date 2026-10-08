@@ -66,6 +66,14 @@ class EvidenceOfItsKind(unittest.TestCase):
         claim = {'fact_ids': ['F-1', 'F-3'], 'render': {'params': {'place': 'src/m0.py'}}}
         self.assertEqual(claim_paths(claim, index), ['src/m0.py', 'src/a_first.py'])
 
+    def test_the_cards_own_file_leads_even_when_only_a_site_names_it(self):
+        # A cycle found at ChatMessage.tsx whose sites run through AIChatPage.tsx: the card on AIChatPage.tsx shows it.
+        index = {'F-1': 'src/ChatMessage.tsx', 'F-2': 'src/MessageList.tsx'}
+        claim = {'fact_ids': ['F-1', 'F-2'], 'render': {'params': {'place': 'src/AIChatPage.tsx'}}}
+        self.assertEqual(claim_paths(claim, index)[0], 'src/AIChatPage.tsx')
+        group = {'fact_ids': ['F-1'], 'render': {'params': {'place': 'group:F-1'}}}
+        self.assertEqual(claim_paths(group, index), ['src/ChatMessage.tsx'])
+
 
 if __name__ == '__main__':
     unittest.main()

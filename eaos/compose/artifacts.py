@@ -44,6 +44,8 @@ ARTIFACTS = (
              0, 80, record='plan.json'),
     Artifact('human/index.html', 'compose', DOCUMENT, 'The report for a person, in one page: health score, gaps and risks, '
              'structure map, plan and progress, in Arabic and English (eaos/human_report.py)', 0, 100000, record='plan.json'),
+    Artifact('studio/manifest.json', 'compose', RECORD, 'The index of the Studio\'s data: one contract-checked file per section, '
+             'written from the one model (eaos/studio/export.py, docs/STUDIO.md)'),
     Artifact('README.md', 'claims', DOCUMENT, 'What this report holds and in what order to read it', 1, 120,
              record='dossier.json'),
     Artifact('RUN.md', 'validate', DOCUMENT, 'What this run examined, and what it could not', 2, 120,

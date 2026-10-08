@@ -197,7 +197,7 @@ STUDIO = {
  'meta': ('What the project is: its languages, its size and the stages of the check that ran.',
   section({'languages': arr(obj({'name': S, 'files': {'type': 'integer', 'minimum': 0}, 'share': REF('ratio')})),
            'files': REF('measure'), 'lines': REF('measure'),
-           'stages': arr(obj({'id': STAGE, 'title': S, 'state': enum('done', 'partial', 'skipped', 'failed')}))},
+           'stages': arr(obj({'id': S, 'title': S, 'state': enum('done', 'partial', 'skipped', 'failed')}))},
           ['languages', 'files', 'lines', 'stages'])),
  'head': ('What every page shows on top: the scan, the EAOS that made it, whether it is still fresh, the verdict in one sentence and the next step.',
   section({'scanned': REF('scan'), 'eaos': obj({'version': S, 'commit': S, 'digest': S}),

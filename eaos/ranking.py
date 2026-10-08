@@ -22,8 +22,10 @@ def claim_paths(claim, fact_index):
         value = fact_index.get(fact_id)
         if value: paths.append(value)
         paths += fact_index.get(fact_id + ':paths', [])
-    # The card's own file leads, so a list cut to its first few paths never hides the file the card is about.
+    # The card's own file leads, so a list cut to its first few paths never hides the file the card is about. An engine
+    # card's place is where its evidence lies (eaos/correlate.clusters), even when only a site of a finding names it.
     place = ((claim.get('render') or {}).get('params') or {}).get('place')
+    if place and not str(place).startswith('group:'): paths.append(place)
     return sorted({path for path in paths if path}, key=lambda path: (path != place, path))
 
 

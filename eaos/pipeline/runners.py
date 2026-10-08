@@ -184,6 +184,8 @@ def compose(context):
     render(context.out, read(context.out / 'dossier.json'), context.language)
     from ..human_report import write as human_page
     human_page(context.out, context.language, Path(context.target).name)
+    from ..studio.export import export as studio
+    studio(context.out, context.language, Path(context.target).name, context.target)
     from ..start_here import start_here
     start_here(context.out, context.language, Path(context.target).name)
     return {}

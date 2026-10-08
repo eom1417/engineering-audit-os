@@ -60,8 +60,7 @@
         ],
         "properties": {
           "id": {
-            "type": "string",
-            "pattern": "^S(0[1-9]|1[0-5])$"
+            "type": "string"
           },
           "title": {
             "type": "string"

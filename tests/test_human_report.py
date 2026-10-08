@@ -88,8 +88,9 @@ class HumanReportTests(unittest.TestCase):
         self.assertEqual(result['areas']['performance']['light'], 'grey')
 
     def test_a_confirmed_critical_problem_caps_the_score(self):
-        rows = [dict(row, confidence='CONFIRMED') for row in human_report.problems(self.out)]
-        self.assertEqual(human_report.score(rows, 50)['score'], human_report.CRITICAL_CAP)
+        from eaos.studio import model
+        rows = [dict(row, confidence='CONFIRMED') for row in model.problems(self.out)]
+        self.assertEqual(model.score(rows, 50)['score'], model.CRITICAL_CAP)
 
     def test_no_number_stands_alone(self):
         self.assertEqual(readability_problems(self.page), [])

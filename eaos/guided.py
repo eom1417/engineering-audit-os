@@ -389,6 +389,14 @@ def publish(state, lang=None, event=None):
     part('branch', lambda: branch_links(state))
     for name, build in REPORT_PARTS.items(): part(name, lambda build=build: build(state))
     progress.update(eaos=stamp(made), report_errors=errors)
+    try:                                    # the Studio's data, from the same ledger as the page (eaos/studio/export.py)
+        from .studio.export import export as studio
+        errors += [f"studio {e['section']}: {e['error']}"[:300]
+                   for e in studio(report, lang or state.get('lang') or 'en', Path(state['project']).name, state['project'],
+                                   progress, state)['errors']]
+    except Exception as problem:
+        errors.append(f'studio: {type(problem).__name__}: {problem}'[:300])
+        log_failure(outputs(state), problem)
     try:
         from .human_report import write
         write(report, lang or state.get('lang') or 'en', Path(state['project']).name, progress=progress)
