@@ -65,6 +65,30 @@ The planned ideal (docs/STUDIO.md D10; written by the planner 2026-10-08 with NS
     eaos.studio.ideal.decisions(report, lang) -> [rows of studio/decisions.json]   the open questions, for the inbox
     $EAOS_MEASURE/ideal/FleetManageWeb/run.json      a real run: {project, assistant, model, at, real, passes,
                                                      share_with_evidence, elements, dropped, departures, open_questions}
+
+AI nodes in the EAOS pipeline (docs/STUDIO.md D11; written by the planner 2026-10-08 with NS46.T15):
+    eaos.studio.nodes.NODES                          the AI nodes, in order, as declared data: Node(name, title, kind='ai',
+                                                     passes, requires, consumes, produces, routes, budget); `routes` is a
+                                                     tuple of Route(decision, to, when): `to` is another node or one of
+                                                     eaos.studio.nodes.SINKS; each node has exactly one 'rules only' route
+    eaos.studio.nodes.Budget(seconds, usd)           the time and cost budget of one node's run
+    eaos.studio.nodes.run(report, names=None, launcher=None, adapters=None, project=None, lang='en', budget=None,
+                          fresh=False, **inputs) -> {name: record}
+        runs the named nodes (all by default) whose inputs exist; `launcher(pass, prompt, schema) -> dict` is the
+        assistant (its optional `cost_usd` read after each call); without one, the first available adapter of
+        `adapters`; with none, every node takes its rules-only route. `inputs`: wave=<folder of a fix batch>.
+        A schema asks for {summary, decisions: [decision]}; a decision's `subject` is held to an enum of the subjects.
+    record (contract ai-node)                        {node, state: decided|rules_only|failed, method: model|rules, assistant,
+                                                     model, at, inputs (digest), prompt (digest), cached, seconds, cost_usd,
+                                                     budget, why, decisions, dropped, routes: [{decision, to, when,
+                                                     subjects}]}
+    eaos.studio.nodes.core.DECISION                  the shared decision: {subject, decision, options, evidence (ids, at
+                                                     least one), confidence, why, open_questions, source: model|rules}
+    eaos.studio.nodes.core.log(report) -> [entries]  the run log: {node, at, prompt, model, inputs, output, cached, ...}
+    evaluations/pipelines/eaos.json                  a pipeline anchored at eaos/studio/nodes/__init__.py with
+                                                     `ai_stages` and one router per node (table = the node's name)
+    $EAOS_MEASURE/nodes/FleetManageWeb/card_triage.json   a real triage run: {project, assistant, model, at, real,
+                                                     decisions, share_with_evidence, routes{decision: count}}
 """
 import json
 import re
@@ -594,6 +618,189 @@ class IdealPlanned(unittest.TestCase):
         self.assertIsInstance(run['dropped'], list)
         self.assertIsInstance(run['departures'], list)
         self.assertIsInstance(run['open_questions'], list)
+
+
+def _nodes_report(base):
+    """The smallest report every AI node reads: three cards with their facts, a plan, a pipeline gap, a fix batch."""
+    report = _ideal_report(base)
+    facts = [{'id': f'FACT-000{i}', 'kind': 'graph_node', 'location': {'path': f'src/{n}.ts', 'start_line': 1},
+              'value': {'fan_in': i, 'fan_out': 0, 'depends_on': []}} for i, n in ((1, 'a'), (2, 'b'), (3, 'c'))]
+    (report / 'facts/graph.json').write_text(json.dumps({'facts': facts}), encoding='utf-8')
+    cards = [{'id': f'TASK-00{i}', 'title': f'Card {i}', 'severity': 'high', 'kind': 'remove_dead', 'paths': [f'src/{n}.ts'],
+              'state': 'open', 'evidence': [f'FACT-000{i}'], 'confidence': 0.9, 'milestone': 'M1'} for i, n in ((1, 'a'), (2, 'b'), (3, 'c'))]
+    (report / 'studio/cards.json').write_text(json.dumps({'cards': cards}), encoding='utf-8')
+    tasks = [{'id': c['id'], 'title': c['title'], 'kind': 'remove_dead', 'paths': c['paths'], 'prerequisites': [],
+              'evidence': {'fact_ids': c['evidence']}} for c in cards]
+    tasks[2]['prerequisites'] = ['TASK-001']
+    (report / 'plan.json').write_text(json.dumps({'tasks': tasks, 'waves': [['TASK-001', 'TASK-002'], ['TASK-003']],
+                                                  'milestones': [{'id': 'M1', 'goal': 'Stabilise', 'tasks': [c['id'] for c in cards]}]}),
+                                      encoding='utf-8')
+    site = {'path': 'src/a.ts', 'line': 1, 'fact': None, 'text': None}
+    gap = [{'id': f'gap:P{n}:x', 'rule': f'P{n}', 'pipeline': 'p', 'subject': 'p/a', 'subject_kind': 'stage', 'operation': 'refactor',
+            'detail': f'rule P{n} broken', 'evidence': site, 'card': None, 'step': None} for n in (2, 7)]
+    (report / 'studio/pipeline.json').write_text(json.dumps({'detected': True, 'views': {'gap': gap}, 'stages': [], 'routers': []}),
+                                                 encoding='utf-8')
+    wave = base / 'runtime/waves/wave-1'
+    wave.mkdir(parents=True)
+    (wave / 'wave.json').write_text(json.dumps({'wave': 1, 'branch': 'eaos/wave-1', 'kept': ['TASK-001'],
+                                                'failed': {'TASK-002': 'the project\'s checks failed'}, 'stat': '1 file changed'}),
+                                    encoding='utf-8')
+    (wave / '0001-TASK-001.patch').write_text('--- a/src/a.ts\n+++ b/src/a.ts\n@@ -1 +1 @@\n-dead()\n+\n', encoding='utf-8')
+    return report, wave
+
+
+def _fill(schema):
+    """A value of `schema`: each decision list holds one decision per subject the schema allows, citing the subject,
+    after one decision that cites an id that does not exist."""
+    kind = schema.get('type')
+    kind = next((k for k in kind if k != 'null'), 'null') if isinstance(kind, list) else kind
+    if 'enum' in schema: return schema['enum'][0]
+    if 'oneOf' in schema: return _fill(next(s for s in schema['oneOf'] if s.get('type') != 'null'))
+    if kind == 'object': return {name: _fill(sub) for name, sub in (schema.get('properties') or {}).items()}
+    if kind == 'array':
+        items = schema.get('items') or {}
+        subject = (items.get('properties') or {}).get('subject') or {}
+        if subject.get('enum'):
+            rows = []
+            for i, value in enumerate(subject['enum']):
+                row = _fill(items)
+                row.update(subject=value, evidence=[value], confidence=0.8, why='the evidence says so')
+                if i == 0: rows.append(dict(row, evidence=['FACT-invented'], why='invented'))
+                rows.append(row)
+            return rows
+        return []
+    return {'string': '', 'number': 0.5, 'integer': 1, 'boolean': False}.get(kind)
+
+
+class _NodeLauncher:
+    assistant, model = 'Claude Code', 'test-model'
+
+    def __init__(self, sleep=0, cost=None):
+        self.sleep, self.cost_usd, self.calls = sleep, cost, []
+
+    def __call__(self, name, prompt, schema):
+        import time
+        self.calls.append(name)
+        if self.sleep: time.sleep(self.sleep)
+        return _fill(schema)
+
+
+class AINodes(unittest.TestCase):
+    """NS46.T15: AI nodes are first-class stages of EAOS's pipeline: a shared decision schema, a router of declared
+    branches after each node with a rules-only fallback, guards (evidence, budget, run log, cache), and the nodes drawn
+    on EAOS's own pipeline map and in its truth file."""
+
+    def setUp(self):
+        self.folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.folder.cleanup)
+        self.report, self.wave = _nodes_report(Path(self.folder.name))
+        from eaos.studio import nodes
+        self.nodes = nodes
+
+    def test_every_nodes_output_meets_the_shared_decision_schema_and_uncited_output_is_dropped(self):
+        contracts = artifact_contracts.contracts()
+        decision = {'type': 'object', '$defs': contracts['ai-node'].get('$defs', {}), **self.nodes.core.DECISION}
+        records = self.nodes.run(self.report, launcher=_NodeLauncher(), wave=self.wave)
+        self.assertEqual(set(records), {node.name for node in self.nodes.NODES})
+        for name, record in records.items():
+            self.assertEqual(artifact_contracts.validate(record, contracts['ai-node']), [], name)
+            self.assertEqual(record['method'], 'model', name)
+            self.assertTrue(record['decisions'], name)
+            for row in record['decisions']:
+                self.assertEqual(artifact_contracts.validate(row, decision), [], (name, row))
+                self.assertTrue(row['evidence'], (name, row))
+                self.assertNotIn('FACT-invented', row['evidence'], name)
+        for name in ('card_triage', 'plan_orderer', 'fix_reviewer', 'pipeline_gap_planner'):
+            self.assertTrue(any('FACT-invented' in (row.get('evidence') or []) for row in records[name]['dropped']), name)
+
+    def test_every_node_routes_by_declared_branches_and_falls_back_to_rules_only(self):
+        names = {node.name for node in self.nodes.NODES}
+        self.assertGreaterEqual(names, {'ideal_planner', 'plan_orderer', 'card_triage', 'fix_reviewer', 'pipeline_gap_planner'})
+        for node in self.nodes.NODES:
+            self.assertEqual(node.kind, 'ai')
+            self.assertTrue(node.routes, node.name)
+            self.assertEqual([r.decision for r in node.routes].count('rules only'), 1, node.name)
+            for route in node.routes:
+                self.assertIn(route.to, names | set(self.nodes.SINKS), (node.name, route))
+                self.assertTrue(route.when, (node.name, route))
+        triage = {r.decision: r.to for r in self.nodes.node('card_triage').routes}
+        self.assertEqual((triage['confirm'], triage['doubt'], triage['reject']), ('plan_orderer', 'probe', 'library_feedback'))
+        reviewer = {r.decision for r in self.nodes.node('fix_reviewer').routes}
+        self.assertLessEqual({'accept', 'retry', 'ask'}, reviewer)
+        records = self.nodes.run(self.report, adapters={}, wave=self.wave)
+        for name, record in records.items():
+            self.assertEqual((record['state'], record['method']), ('rules_only', 'rules'), name)
+            self.assertTrue(record['why'], name)
+            self.assertEqual([r['decision'] for r in record['routes'] if r['subjects']], ['rules only'], name)
+            self.assertTrue(record['decisions'] and all(row['source'] == 'rules' for row in record['decisions']), name)
+
+    def test_budget_run_log_and_cache_hold_with_a_fake_launcher(self):
+        import time
+        Budget = self.nodes.Budget
+        began = time.monotonic()
+        slow = self.nodes.run(self.report, names=['card_triage'], launcher=_NodeLauncher(sleep=5), budget=Budget(seconds=1, usd=1.0))
+        self.assertLess(time.monotonic() - began, 4.5)
+        self.assertEqual(slow['card_triage']['state'], 'rules_only')
+        self.assertIn('time', slow['card_triage']['why'])
+        costly = self.nodes.run(self.report, names=['card_triage'], launcher=_NodeLauncher(cost=5.0), budget=Budget(seconds=60, usd=1.0),
+                                fresh=True)
+        self.assertEqual(costly['card_triage']['state'], 'rules_only')
+        self.assertIn('budget', costly['card_triage']['why'])
+        launcher = _NodeLauncher()
+        first = self.nodes.run(self.report, names=['card_triage'], launcher=launcher, fresh=True)['card_triage']
+        entry = self.nodes.core.log(self.report)[-1]
+        self.assertEqual(entry['node'], 'card_triage')
+        for field in ('prompt', 'model', 'inputs', 'output', 'cached', 'at'):
+            self.assertIn(field, entry)
+        self.assertTrue(entry['prompt'] and entry['inputs'] and entry['model'] == 'test-model')
+        self.assertEqual(entry['output'], first['decisions'])
+        calls = len(launcher.calls)
+        again = self.nodes.run(self.report, names=['card_triage'], launcher=launcher)['card_triage']
+        self.assertEqual(len(launcher.calls), calls, 'the same inputs were asked again')
+        self.assertTrue(again['cached'])
+        self.assertEqual(again['decisions'], first['decisions'])
+        cards = json.loads((self.report / 'studio/cards.json').read_text(encoding='utf-8'))
+        cards['cards'][0]['title'] = 'Card 1, changed'
+        (self.report / 'studio/cards.json').write_text(json.dumps(cards), encoding='utf-8')
+        changed = self.nodes.run(self.report, names=['card_triage'], launcher=launcher)['card_triage']
+        self.assertGreater(len(launcher.calls), calls)
+        self.assertFalse(changed['cached'])
+
+    def test_eaos_own_pipeline_map_and_truth_show_the_ai_nodes_and_their_branches(self):
+        from eaos.facts import pipeline
+        from eaos.studio import pipeline as section
+        anchor = 'eaos/studio/nodes/__init__.py'
+        truth = json.loads((ROOT / 'evaluations/pipelines/eaos.json').read_text(encoding='utf-8'))
+        mine = next(p for p in truth['pipelines'] if p['anchor'] == anchor)
+        declared = {node.name: node for node in self.nodes.NODES}
+        self.assertEqual(set(mine['ai_stages']), set(declared))
+        for name, node in declared.items():
+            router = next(r for r in mine['routers'] if r['table'] == name)
+            self.assertEqual(sorted(router['branches']), sorted(r.decision for r in node.routes), name)
+        body = section.section(pipeline.scan(ROOT))
+        found = next(p for p in body['pipelines'] if p['entry']['path'] == anchor or any(e['path'] == anchor for e in p['evidence']))
+        stages = {s['id']: s for s in body['stages'] if s['pipeline'] == found['id']}
+        ai = {s['label'] for s in stages.values() if s['kind'] == 'ai'}
+        self.assertEqual(ai, set(declared))
+        for name, node in declared.items():
+            router = next(r for r in body['routers'] if r['pipeline'] == found['id'] and r.get('table') == name)
+            self.assertEqual(sorted(b['condition'] for b in router['branches']), sorted(r.decision for r in node.routes), name)
+            for branch, route in zip(sorted(router['branches'], key=lambda b: b['condition']), sorted(node.routes, key=lambda r: r.decision)):
+                self.assertIn(branch['to'], stages, (name, branch))
+                self.assertEqual(stages[branch['to']]['label'], route.to, (name, branch))
+        self.assertEqual(artifact_contracts.validate({'schema_version': 1, 'contract': 1, 'revision': 2, **body},
+                                                     artifact_contracts.contracts()['studio-pipeline']), [])
+
+    def test_a_real_card_triage_run_on_fleetmanageweb_has_every_decision_with_evidence(self):
+        path = reports() / 'nodes/FleetManageWeb/card_triage.json'
+        self.assertTrue(path.is_file(), 'no recorded card triage run on FleetManageWeb')
+        run = json.loads(path.read_text(encoding='utf-8'))
+        self.assertTrue(run['real'])
+        self.assertIn(run['assistant'], ('Claude Code', 'Codex'))
+        self.assertTrue(run['model'] and run['at'])
+        self.assertGreater(run['decisions'], 0)
+        self.assertEqual(run['share_with_evidence'], 1.0)
+        self.assertLessEqual(set(run['routes']), {'confirm', 'doubt', 'reject', 'rules only'})
 
 
 if __name__ == '__main__':
