@@ -1466,6 +1466,63 @@
     },
     "required": []
    }
+  },
+  {
+   "id": "run_nodes",
+   "tool": null,
+   "group": "understand",
+   "label": {
+    "en": "Run the AI nodes",
+    "ar": "شغّل عُقد الذكاء"
+   },
+   "description": {
+    "en": "Your assistant triages the cards, plans the pipeline's gaps, orders the plan and reviews the last batch of fixes; each decision cites its evidence, and what needs you comes to the Decisions inbox. A node already decided on the same inputs is not asked again. Nothing in the project changes.",
+    "ar": "مساعدك يفرز البطاقات، ويخطط فجوات خط المعالجة، ويرتّب الخطة، ويراجع آخر دفعة إصلاحات؛ كل قرار يستشهد بدليله، وما يحتاجك يجيك في صندوق القرارات. العقدة اللي قرّرت على المدخلات نفسها ما تُسأل من جديد. لا يتغير شيء في المشروع."
+   },
+   "mode": "assistant",
+   "needs_assistant": true,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     },
+     "nodes": {
+      "type": [
+       "array",
+       "null"
+      ],
+      "items": {
+       "type": "string",
+       "enum": [
+        "card_triage",
+        "ideal_planner",
+        "pipeline_gap_planner",
+        "plan_orderer",
+        "fix_reviewer"
+       ]
+      },
+      "description": "The nodes to run, in their order; all but the ideal planner (re-planned by replan_ideal) when left out."
+     },
+     "fresh": {
+      "type": [
+       "boolean",
+       "null"
+      ],
+      "description": "Ask again even when the inputs did not change."
+     }
+    },
+    "required": []
+   }
   }
  ],
  "verbs": [

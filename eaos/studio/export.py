@@ -24,6 +24,7 @@ from . import journeys as journeys_map
 from . import data_paths as data_map
 from . import infra as infra_map
 from . import ideal as planned_ideal
+from .nodes import view as ai_nodes
 from . import model as M
 from . import paths as code_paths
 from . import pipeline as pipeline_map
@@ -32,7 +33,7 @@ from . import system as system_map
 CONTRACT = 1
 REVISION = 2           # contract v2: sections added without breaking a v1 reader (docs/STUDIO.md)
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
-SECTIONS_V2 = ('paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'ideal')   # contract v2 sections written here (coverage is written last, apart)
+SECTIONS_V2 = ('paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'ideal', 'nodes')   # contract v2 sections written here (coverage is written last, apart)
 SAFE = re.compile(r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$)).+')
 LANGUAGES = M.LANGUAGES
 SEVERITY_OF_CONFIDENCE = {'CONFIRMED': 1.0, 'LIKELY': 0.7, 'HYPOTHESIS': 0.4}
@@ -309,7 +310,7 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('story', lambda: story(report, m, card_rows))
     attempt('docs', lambda: docs(report))
     attempt('plans', lambda: plans(m, card_rows, lang))
-    attempt('decisions', lambda: decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang))
+    attempt('decisions', lambda: decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang) + ai_nodes.decisions(report, lang))
     attempt('media', lambda: media(report))
     attempt('system', lambda: system_map.system(report, card_rows))
     attempt('paths', lambda: code_paths.paths(report, card_rows, m['plan'], lang))
@@ -320,6 +321,7 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('pipeline', lambda: pipeline_map.from_report(report, card_rows, m['plan'], lang))
     if built.get('pipeline', False) is None: built.pop('pipeline')   # the check wrote no facts/pipeline.json
     attempt('ideal', lambda: planned_ideal.section(report, lang))
+    attempt('nodes', lambda: ai_nodes.section(report, lang))
     # Every section that draws a target says how its ideal was made: the rules only, or planned with a model (D10).
     stamps = planned_ideal.provenance_of(built.get('ideal'))
     key = {'cards': 'cards', 'evidence': 'facts', 'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images'}

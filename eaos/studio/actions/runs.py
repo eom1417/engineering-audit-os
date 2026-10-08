@@ -25,7 +25,7 @@ STUDIO = 'EAOS Studio'                      # eaos/mcp_server.py STUDIO
 STOP_GRACE = 5
 # Studio actions that are not an MCP tool: the planner of the ideal, which asks the person's assistant itself
 # (eaos/studio/ideal.py, docs/STUDIO.md D10).
-PLANNERS = ('replan_ideal',)
+PLANNERS = ('replan_ideal', 'run_nodes')
 
 
 def alive(pid):
@@ -156,6 +156,7 @@ class Manager:
     def _start(self, run):
         record = self.store.load(run)
         try:
+            if record.get('action') == 'run_nodes': return self._run_nodes(run)
             if record.get('action') in PLANNERS: return self._plan_ideal(run)
             if record['mode'] == 'direct': return self._direct(run)
             if record['mode'] == 'handoff': return self._handoff(run)
@@ -216,6 +217,51 @@ class Manager:
                              'assistant': result['assistant'], 'model': result['model']}}
         self.store.append(run, 'result', {'en': f"The ideal is planned: {result['elements']} elements, each with its evidence",
                                           'ar': f"تم تخطيط المثالي: {result['elements']} عنصرًا، كل واحد بدليله"}, payload)
+        self.set_state(run, 'done', result=payload)
+
+    # the AI nodes
+    def _run_nodes(self, run):
+        """Run the AI nodes on the latest check (docs/STUDIO.md D11) with the run's assistant: each node's steps are the
+        run's events, the last batch of fixes is the fix reviewer's input, and the Studio's data is published again so the
+        pipeline map, the cards and the inbox show the decisions. Without an assistant every node decides by the rules."""
+        from ... import guided
+        from .. import nodes
+        from .selection import studio_folder
+        studio = studio_folder(self.project)
+        report = studio.parent if studio else None
+        if report is None or not (report / 'plan.json').is_file():
+            return self._fail(run, 'there is no check for the AI nodes to read yet', {'en': 'Run the check first, then the AI nodes.',
+                                                                                      'ar': 'شغّل الفحص أولًا، ثم عُقد الذكاء.'})
+        record = self.store.load(run)
+        inputs = record.get('inputs') or {}
+        names = inputs.get('nodes') or [n.name for n in nodes.NODES if n.name != 'ideal_planner']
+        wanted = record.get('assistant')
+        adapters = {wanted: self.adapters[wanted]} if wanted in self.adapters else self.adapters
+        wave = None
+        try:
+            state = guided.load(self.project)
+            if state.get('waves'): wave = guided.runtime_of(state) / 'waves' / f"wave-{len(state['waves'])}"
+        except Exception:
+            wave = None
+        cancel = self.cancels[run] = threading.Event()
+        say = lambda en, ar: self.store.append(run, 'step', {'en': en, 'ar': ar}, {'tool': 'run_nodes'})
+        try:
+            records = nodes.run(report, names=names, adapters=adapters, project=self.project, lang=self.lang, fresh=bool(inputs.get('fresh')),
+                                say=say, cancel=cancel, started=lambda pid: self.store.update(run, pid=pid), wave=wave)
+        finally:
+            self.cancels.pop(run, None)
+            self.store.update(run, pid=None)
+        if self.store.load(run).get('state') in TERMINAL: return
+        try: guided.publish(guided.load(self.project), self.lang)
+        except Exception as problem:
+            say(f'The Studio data could not be refreshed: {type(problem).__name__}', f'ما قدرت أحدّث بيانات الاستوديو: {type(problem).__name__}')
+        summary = {name: {'state': r['state'], 'method': r['method'], 'model': r['model'], 'cached': r['cached'],
+                          'routes': {x['decision']: len(x['subjects']) for x in r['routes']}, 'dropped': len(r['dropped'])}
+                   for name, r in records.items()}
+        by_model = sum(r['method'] == 'model' for r in records.values())
+        payload = {**self._outcome(run, answer=None), 'nodes': summary}
+        self.store.append(run, 'result', {'en': f'{len(records)} AI nodes decided ({by_model} by your assistant, the rest by the rules only)',
+                                          'ar': f'قرّرت {len(records)} عُقد ذكاء ({by_model} بمساعدك، والباقي بالقواعد فقط)'}, payload)
         self.set_state(run, 'done', result=payload)
 
     # direct calls

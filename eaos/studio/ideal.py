@@ -24,6 +24,8 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .nodes.core import AdapterLauncher, digest, pick as _pick, lenient as _lenient, UNTRUSTED
+
 VIEWS = ('system', 'change', 'journeys', 'paths', 'data_paths', 'infra', 'pipeline', 'plan_order')
 OPERATIONS = ('retain', 'refactor', 'rebuild', 'merge', 'delete', 'new')
 # The studio sections that draw a target, and the view whose provenance each carries (tools/make_contracts.py).
@@ -34,7 +36,6 @@ RELATION_OP = {'retain': 'retain', 'modify': 'refactor', 'refactor': 'refactor',
                'retire': 'delete', 'introduce': 'new', 'new': 'new', 'merge': 'merge', 'unassessed': 'refactor'}
 TIMEOUT = 900
 LIMIT = {'elements': 160, 'cards': 140, 'facts': 50, 'doc_chars': 4000, 'docs_chars': 24000}
-UNTRUSTED = 'untrusted_project_data'          # eaos/semantic.py UNTRUSTED: the project's text is data, never orders
 DOCS = ('README.md', 'README', 'readme.md', 'ARCHITECTURE.md', 'CONTRIBUTING.md', 'docs/**/*.md', '*.md')
 WORDS = {
     'not_planned': ("The ideal shown is the rules' target. It is not planned yet: re-plan it from the command centre "
@@ -338,10 +339,6 @@ def bundle(report, project=None, lang='en'):
     }
 
 
-def digest(value):
-    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()[:16]
-
-
 def scan_key(report):
     """What a plan was made for: the records of the check that the rules' target is read from. A new check changes it."""
     h = hashlib.sha256()
@@ -352,14 +349,6 @@ def scan_key(report):
 
 
 # ---------------------------------------------------------------- what the assistant must answer
-
-def _lenient(schema):
-    """The schema without its `required` lists: what the CLIs were held to, read leniently, since the evidence check
-    decides what stays and a view the assistant left out simply stays the rules' target."""
-    if isinstance(schema, dict): return {k: _lenient(v) for k, v in schema.items() if k != 'required'}
-    if isinstance(schema, list): return [_lenient(v) for v in schema]
-    return schema
-
 
 def _strict(properties, required=None):
     return {'type': 'object', 'additionalProperties': False, 'properties': properties, 'required': list(required or properties)}
@@ -479,27 +468,6 @@ def share(ideal, known):
 
 
 # ---------------------------------------------------------------- the run
-
-class AdapterLauncher:
-    """The person's assistant as the planner's launcher: each pass is one `ask` in its own folder."""
-
-    def __init__(self, adapter, folder, timeout=TIMEOUT, cancel=None, started=None):
-        self.adapter, self.folder, self.timeout, self.cancel, self.started = adapter, Path(folder), timeout, cancel, started
-        self.assistant, self.model, self.seconds = adapter.name, None, 0.0
-
-    def __call__(self, name, prompt, schema):
-        from .actions.adapters import ask
-        answer = ask(self.adapter, prompt, schema, self.folder / name, self.timeout, self.cancel, self.started)
-        self.model, self.seconds = answer['model'] or self.model, self.seconds + answer['seconds']
-        return answer['answer']
-
-
-def _pick(adapters):
-    if adapters is None:
-        from .actions.adapters import installed
-        adapters = installed()
-    return next((adapter for adapter in adapters.values() if adapter.available()), None)
-
 
 def _record(folder, row):
     path = folder / 'runs.json'

@@ -66,8 +66,11 @@ def declared_lists(py, out):
                 functions = [item.id for item in [*rest, *[k.value for k in keywords]]
                              if isinstance(item, ast.Name) and py.resolve(rel, item.id)]
                 optional = any(k.arg == 'necessity' and 'optional' in _unparse(k.value).lower() for k in keywords)
+                ai = any(k.arg == 'kind' and _str(k.value) == 'ai' for k in keywords) or (
+                    any(k.arg == 'routes' for k in keywords) and _default_kind(py, rel, element) == 'ai')
                 rows.append({'label': label, 'line': element.lineno, 'requires': requires, 'produces': produces,
-                             'consumes': consumes, 'functions': functions, 'optional': optional})
+                             'consumes': consumes, 'functions': functions, 'optional': optional, 'ai': ai,
+                             'routes': [r for k in keywords if k.arg in ROUTES for r in _routes(k.value)]})
             else:
                 names = [r['label'] for r in rows]
                 if len(set(names)) != len(names): continue
@@ -79,6 +82,53 @@ def declared_lists(py, out):
                 sequence = not dag and all(r['functions'] for r in rows) and called
                 if dag: _declared_dag(py, rel, var, node, rows, drivers, out)
                 elif sequence: _declared_sequence(py, rel, var, node, rows, drivers, out)
+
+
+ROUTES = {'routes', 'branches'}
+
+
+def _routes(value):
+    """The declared branches of a stage record: Route(decision, to, when) calls or (decision, to, when) tuples, each
+    with the line it is written on."""
+    out = []
+    for item in value.elts if isinstance(value, (ast.Tuple, ast.List)) else []:
+        parts = item.args if isinstance(item, ast.Call) else item.elts if isinstance(item, ast.Tuple) else []
+        named = {k.arg: _str(k.value) for k in item.keywords} if isinstance(item, ast.Call) else {}
+        values = [_str(part) for part in parts]
+        condition = values[0] if values else named.get('decision') or named.get('condition')
+        to = values[1] if len(values) > 1 else named.get('to')
+        if condition and to: out.append({'condition': condition, 'to': to, 'line': item.lineno})
+    return out
+
+
+def _default_kind(py, rel, element):
+    """The default of a record class's `kind` field (class Node(NamedTuple): kind: str = 'ai'), when the record
+    leaves it out."""
+    if not isinstance(element.func, ast.Name): return None
+    for module in [rel] + [py.module_rel(m) for m, a in py.imports.get(rel, {}).values() if a == element.func.id]:
+        cls = py.classes.get(module, {}).get(element.func.id) if module else None
+        for item in (cls.body if cls else []):
+            if isinstance(item, ast.AnnAssign) and isinstance(item.target, ast.Name) and item.target.id == 'kind':
+                return _str(item.value)
+    return None
+
+
+def _declared_routes(py, rel, found, by_label):
+    """Each stage's declared branches as a router after it: the decision is the branch's condition, and a target that
+    is not a stage is where the work leaves the pipeline (a sink)."""
+    for label, (key, row, _) in by_label.items():
+        if not row['routes']: continue
+        where = site(rel, row['line'], py.line(rel, row['line']))
+        router = found.stage(f'{label} router', where, kind='router')
+        found.edge(key, router, 'declared', where, kind='control')
+        branches = []
+        for route in row['routes']:
+            at = site(rel, route['line'], py.line(rel, route['line']))
+            to = by_label[route['to']][0] if route['to'] in by_label else found.stage(route['to'], at, kind='sink')
+            branches.append({'condition': route['condition'], 'to': to, 'evidence': at})
+        found.routers.append({'id': f'{found.id}:{slug(label)}:routes', 'pipeline': found.id, 'stage': router, 'kind': 'conditional_edges',
+                              'table': label, 'on': 'decision', 'entry': where, 'branches': branches, 'total': True, 'default': None,
+                              'unhandled': []})
 
 
 def _declared_dag(py, rel, var, node, rows, drivers, out):
@@ -104,6 +154,9 @@ def _declared_dag(py, rel, var, node, rows, drivers, out):
         if target:
             found.functions.add((target[0], target[1].name))
             describe(py, target[0], target[1], stage)
+        if row['ai']:
+            stage['kind'] = 'ai'
+            stage['marks'] = sorted(set(stage['marks']) | {'ai', 'slow'})
     for label, (key, row, _) in by_label.items():
         for need in row['requires']:
             if need not in by_label: continue
@@ -156,6 +209,7 @@ def _declared_dag(py, rel, var, node, rows, drivers, out):
             found.unresolved.append({'id': f'{key}:runner', 'pipeline': found.id, 'stage': key, 'call': label,
                                      'reason': 'no registry maps this stage to the function that runs it',
                                      'evidence': found.stages[key]['entry']})
+    _declared_routes(py, rel, found, by_label)
     _context_channels(py, found, [(t[0], t[1]) for _, _, t in by_label.values() if t])
     out.append(found)
 

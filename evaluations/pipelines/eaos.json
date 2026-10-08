@@ -3,7 +3,7 @@
  "kind": "declared_dag",
  "source": null,
  "commit": null,
- "written": "2026-10-08, by reading eaos/pipeline/stages.py, eaos/pipeline/run.py, eaos/pipeline/runners.py, eaos/facts/run.py, eaos/guided.py, eaos/runtime/pipeline.py, eaos/engage.py and studio/package.json, before the detector existed. It follows the code of this repository: a change to these files changes the truth, in the same commit.",
+ "written": "2026-10-08, by reading eaos/pipeline/stages.py, eaos/pipeline/run.py, eaos/pipeline/runners.py, eaos/facts/run.py, eaos/guided.py, eaos/runtime/pipeline.py, eaos/engage.py and studio/package.json, before the detector existed; the AI nodes' pipeline was added with NS46.T15 from eaos/studio/nodes/__init__.py. It follows the code of this repository: a change to these files changes the truth, in the same commit.",
  "pipelines": [
   {
    "anchor": "eaos/pipeline/stages.py",
@@ -78,6 +78,30 @@
    "routers": []
   },
   {
+   "anchor": "eaos/studio/nodes/__init__.py",
+   "title": "The AI nodes: NODES, run in order by eaos/studio/nodes/__init__.py run() through the NODE_RUNNERS registry, each node's router sending every subject on by its decision (written 2026-10-08 with NS46.T15, from the declarations)",
+   "role": "product",
+   "stages": ["card_triage", "ideal_planner", "pipeline_gap_planner", "plan_orderer", "fix_reviewer"],
+   "edges": [["card_triage", "plan_orderer"], ["ideal_planner", "plan_orderer"], ["pipeline_gap_planner", "plan_orderer"],
+             ["plan_orderer", "fix_reviewer"]],
+   "routers": [
+    {"table": "NODE_RUNNERS", "at": "eaos/studio/nodes/__init__.py: runner = NODE_RUNNERS.get(each.name)",
+     "branches": ["card_triage", "ideal_planner", "pipeline_gap_planner", "plan_orderer", "fix_reviewer"]},
+    {"table": "card_triage", "at": "eaos/studio/nodes/__init__.py: Node('card_triage', ..., routes=(...))",
+     "branches": ["confirm", "doubt", "reject", "rules only"], "to": ["plan_orderer", "probe", "library_feedback", "plan_orderer"]},
+    {"table": "ideal_planner", "at": "eaos/studio/nodes/__init__.py: Node('ideal_planner', ..., routes=(...))",
+     "branches": ["accept", "ask", "rules only"], "to": ["plan_orderer", "inbox", "plan_orderer"]},
+    {"table": "pipeline_gap_planner", "at": "eaos/studio/nodes/__init__.py: Node('pipeline_gap_planner', ..., routes=(...))",
+     "branches": ["plan", "ask", "not a gap", "rules only"], "to": ["plan_orderer", "inbox", "library_feedback", "plan_orderer"]},
+    {"table": "plan_orderer", "at": "eaos/studio/nodes/__init__.py: Node('plan_orderer', ..., routes=(...))",
+     "branches": ["reorder", "keep", "ask", "rules only"], "to": ["plan", "plan", "inbox", "plan"]},
+    {"table": "fix_reviewer", "at": "eaos/studio/nodes/__init__.py: Node('fix_reviewer', ..., routes=(...))",
+     "branches": ["accept", "retry", "ask", "rules only"], "to": ["handover", "fix", "inbox", "gates"]}
+   ],
+   "ai_stages": ["card_triage", "ideal_planner", "pipeline_gap_planner", "plan_orderer", "fix_reviewer"],
+   "sinks": ["plan", "probe", "library_feedback", "inbox", "handover", "fix", "gates"]
+  },
+ {
    "anchor": "studio/package.json",
    "title": "The Studio's build script: npm run build chains its checks before the bundle and the ship step",
    "role": "tooling",

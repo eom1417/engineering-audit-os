@@ -148,6 +148,10 @@ class Adapter:
         """The model this assistant uses when its stream does not say."""
         return None
 
+    def cost(self, lines):
+        """What the answer cost in US dollars, when the stream says (None otherwise)."""
+        return None
+
 
 class ClaudeCode(Adapter):
     id, name, id_command = 'claude', 'Claude Code', 'claude'
@@ -169,10 +173,21 @@ class ClaudeCode(Adapter):
                                *[f'mcp__eaos__{tool}' for tool in PERSON_ONLY]]
         return argv + (['--resume', session] if session else [])
 
-    def ask_argv(self, schema, folder):
-        """One question on standard input, no tool, no MCP server, nothing kept: the answer held to `schema`."""
+    def ask_argv(self, schema, folder, budget_usd=None):
+        """One question on standard input, no tool, no MCP server, nothing kept: the answer held to `schema`, and the
+        spending held to `budget_usd` by Claude Code itself when it is given."""
         return self.command + ['-p', '--output-format', 'stream-json', '--verbose', '--json-schema', json.dumps(schema),
-                               '--tools', '', '--strict-mcp-config', '--no-session-persistence']
+                               '--tools', '', '--strict-mcp-config', '--no-session-persistence',
+                               *(['--max-budget-usd', f'{float(budget_usd):.2f}'] if budget_usd else [])]
+
+    def cost(self, lines):
+        """`total_cost_usd` of the stream's result line."""
+        for line in reversed(lines):
+            try: event = json.loads(line)
+            except ValueError: continue
+            if isinstance(event, dict) and event.get('type') == 'result' and isinstance(event.get('total_cost_usd'), (int, float)):
+                return float(event['total_cost_usd'])
+        return None
 
     def answer(self, lines):
         """(answer, model, failure) from the stream of an `ask`."""
@@ -248,8 +263,9 @@ class Codex(Adapter):
         if session: return self.command + ['exec', 'resume', *options, session, prompt]
         return self.command + ['exec', *options, prompt]
 
-    def ask_argv(self, schema, folder):
-        """One question on standard input (`-`), a read-only sandbox, nothing kept: the answer held to `schema`."""
+    def ask_argv(self, schema, folder, budget_usd=None):
+        """One question on standard input (`-`), a read-only sandbox, nothing kept: the answer held to `schema`. Codex has no
+        spending limit of its own, so `budget_usd` is held only by the time limit."""
         path = folder / 'schema.json'
         path.write_text(json.dumps(schema), encoding='utf-8')
         return self.command + ['exec', '--json', '--skip-git-repo-check', '--ephemeral', '--output-schema', str(path),
@@ -328,8 +344,8 @@ def _json_object(text):
     return value if isinstance(value, dict) else None
 
 
-def ask(adapter, prompt, schema, folder, timeout=900, cancel=None, started=None):
-    """Ask the assistant one question and return {answer, model, assistant, seconds}.
+def ask(adapter, prompt, schema, folder, timeout=900, cancel=None, started=None, budget_usd=None):
+    """Ask the assistant one question and return {answer, model, assistant, seconds, cost_usd}.
 
     The prompt goes on standard input, so its size never meets the argument limit; the process runs in its own group in
     `folder` (never in the project, whose instructions are not the planner's); `started(pid)` hears its pid, so the run
@@ -339,7 +355,8 @@ def ask(adapter, prompt, schema, folder, timeout=900, cancel=None, started=None)
     folder.mkdir(parents=True, exist_ok=True)
     stream, began = folder / 'stream.jsonl', time.monotonic()
     with open(stream, 'wb') as out, open(folder / 'stderr.log', 'wb') as err:
-        process = subprocess.Popen(adapter.ask_argv(schema, folder), cwd=folder, stdin=subprocess.PIPE, stdout=out, stderr=err,
+        argv = adapter.ask_argv(schema, folder, budget_usd) if budget_usd else adapter.ask_argv(schema, folder)
+        process = subprocess.Popen(argv, cwd=folder, stdin=subprocess.PIPE, stdout=out, stderr=err,
                                    start_new_session=True)
         if started: started(process.pid)
         try:
@@ -361,7 +378,8 @@ def ask(adapter, prompt, schema, folder, timeout=900, cancel=None, started=None)
     if failure or answer is None:
         tail = (folder / 'stderr.log').read_text(encoding='utf-8', errors='replace')[-400:].strip()
         raise AskFailed(failure or f'no JSON answer (exit {process.returncode})' + (f': {tail}' if tail else ''))
-    return {'answer': answer, 'model': model or adapter.model(), 'assistant': adapter.name, 'seconds': round(time.monotonic() - began, 1)}
+    return {'answer': answer, 'model': model or adapter.model(), 'assistant': adapter.name, 'seconds': round(time.monotonic() - began, 1),
+            'cost_usd': adapter.cost(lines)}
 
 
 def installed():

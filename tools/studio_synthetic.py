@@ -210,6 +210,43 @@ def synthetic_pipeline(stages=1000, width=8):
             'src': {'pipeline': 'synthetic'}}
 
 
+def synthetic_nodes(card_rows):
+    """studio/nodes.json at scale: every declared AI node, the card triage decided by an assistant on 500 cards (each
+    citing its own card), a few dropped, the others decided by the rules alone, each with its run log."""
+    from eaos.studio import nodes
+    from eaos.studio.nodes import view
+    choices = ('confirm', 'confirm', 'confirm', 'doubt', 'reject')
+    rows = []
+    for node in nodes.NODES:
+        model = node.name == 'card_triage'
+        subjects = [c['id'] for c in card_rows[:500]] if model else ['plan' if node.name == 'plan_orderer' else node.name]
+        decisions = [{'subject': s, 'decision': choices[i % 5] if model else 'rules only', 'options': [r.decision for r in node.routes][:-1],
+                      'evidence': [s] if model else ['RULE-plan-order'], 'confidence': 0.8 if model else 0.5,
+                      'why': 'Its evidence shows it.' if model else 'The rules decided alone.', 'open_questions': [],
+                      'source': 'model' if model else 'rules', 'detail': {}} for i, s in enumerate(subjects)]
+        taken = {}
+        for d in decisions: taken[d['decision']] = taken.get(d['decision'], 0) + 1
+        rows.append({'id': node.name, 'title': {'en': node.title, 'ar': nodes.TITLES_AR[node.name]}, 'kind': 'ai', 'passes': list(node.passes),
+                     'requires': list(node.requires),
+                     'routes': [{'decision': r.decision, 'to': r.to, 'when': {'en': r.when, 'ar': view.WHEN_AR[(node.name, r.decision)]},
+                                 'subjects': taken.get(r.decision, 0)} for r in node.routes],
+                     'state': 'decided' if model else 'rules_only', 'method': 'model' if model else 'rules',
+                     'assistant': 'Claude Code' if model else None, 'model': 'synthetic' if model else None, 'at': WHEN, 'cached': False,
+                     'seconds': 420.0 if model else 0.1, 'cost_usd': 1.2 if model else None,
+                     'budget': {'seconds': float(node.budget.seconds), 'usd': node.budget.usd},
+                     'why': None if model else 'No assistant is installed and logged in here, so the rules decided alone.',
+                     'summary': None, 'decisions': decisions,
+                     'dropped': [{'subject': card_rows[i]['id'], 'decision': 'confirm', 'evidence': ['FACT-invented'],
+                                  'why': 'no evidence id resolves to a fact, claim, card or rule of this report'} for i in range(3)] if model else [],
+                     'log': [{'at': WHEN, 'state': 'decided' if model else 'rules_only', 'assistant': 'Claude Code' if model else None,
+                              'model': 'synthetic' if model else None, 'prompt': 'synthetic' if model else None, 'inputs': 'synthetic',
+                              'cached': False, 'seconds': 1.0, 'cost_usd': None}]})
+    count = lambda value: measure(value, 'synthetic')
+    return {**V2, 'nodes': rows, 'sinks': [{'id': k, 'title': {'en': en, 'ar': ar}} for k, (en, ar) in nodes.SINKS.items()], 'questions': [],
+            'counts': {'nodes': count(len(rows)), 'ran': count(len(rows)), 'by_model': count(1),
+                       'decisions': count(sum(len(r['decisions']) for r in rows)), 'dropped': count(3)}}
+
+
 def synthetic_ideal(comps, layer, card_rows):
     """studio/ideal.json at scale: every view's rules target, the system and the plan order planned, each planned element
     citing cards and facts that exist, and the rest of the views on the rules with their plain "not planned" state."""
@@ -368,6 +405,7 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
     sections.update(data_paths={**V2, **data_paths}, infra={**V2, **infra})
     sections['pipeline'] = synthetic_pipeline(stages=max(components, 50))
     sections['ideal'] = synthetic_ideal(comps, layer, card_rows)
+    sections['nodes'] = synthetic_nodes(card_rows)
     written = list(sections)
     sections['coverage'] = {**V2, **coverage_section.coverage(Path('.'), sections, written, [], 'en')}
     return sections

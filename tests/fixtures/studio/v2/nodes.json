@@ -1,0 +1,739 @@
+{
+ "schema_version": 1,
+ "contract": 1,
+ "revision": 2,
+ "nodes": [
+  {
+   "id": "card_triage",
+   "title": {
+    "en": "Card triage",
+    "ar": "فرز البطاقات"
+   },
+   "kind": "ai",
+   "passes": [
+    "decide"
+   ],
+   "requires": [],
+   "routes": [
+    {
+     "decision": "confirm",
+     "to": "plan_orderer",
+     "when": {
+      "en": "the evidence holds: the card goes on to the plan",
+      "ar": "الدليل يثبتها: تكمل البطاقة إلى الخطة"
+     },
+     "subjects": 3
+    },
+    {
+     "decision": "doubt",
+     "to": "probe",
+     "when": {
+      "en": "the evidence does not settle it: a probe does, before the person sees the card",
+      "ar": "الدليل لا يحسمها: فحص يحسمها قبل أن يراها الشخص"
+     },
+     "subjects": 0
+    },
+    {
+     "decision": "reject",
+     "to": "library_feedback",
+     "when": {
+      "en": "the evidence contradicts the card: it is set aside and its rule is told",
+      "ar": "الدليل ينقضها: تُنحّى وتُبلَّغ قاعدتها"
+     },
+     "subjects": 0
+    },
+    {
+     "decision": "rules only",
+     "to": "plan_orderer",
+     "when": {
+      "en": "no assistant decided: the card goes on as the engines wrote it",
+      "ar": "ما قرر مساعد: تكمل البطاقة كما كتبتها المحركات"
+     },
+     "subjects": 0
+    }
+   ],
+   "state": "decided",
+   "method": "model",
+   "assistant": "Claude Code",
+   "model": "test-model",
+   "at": "2026-10-08T22:00:00+00:00",
+   "cached": false,
+   "seconds": 0.0,
+   "cost_usd": null,
+   "budget": {
+    "seconds": 1800.0,
+    "usd": 6.0
+   },
+   "why": null,
+   "summary": null,
+   "decisions": [
+    {
+     "subject": "TASK-001",
+     "decision": "confirm",
+     "options": [
+      "confirm",
+      "doubt",
+      "reject"
+     ],
+     "evidence": [
+      "TASK-001"
+     ],
+     "confidence": 0.8,
+     "why": "the evidence says so",
+     "open_questions": [],
+     "source": "model",
+     "detail": {
+      "falsifier": ""
+     }
+    },
+    {
+     "subject": "TASK-002",
+     "decision": "confirm",
+     "options": [
+      "confirm",
+      "doubt",
+      "reject"
+     ],
+     "evidence": [
+      "TASK-002"
+     ],
+     "confidence": 0.8,
+     "why": "the evidence says so",
+     "open_questions": [],
+     "source": "model",
+     "detail": {
+      "falsifier": ""
+     }
+    },
+    {
+     "subject": "TASK-003",
+     "decision": "confirm",
+     "options": [
+      "confirm",
+      "doubt",
+      "reject"
+     ],
+     "evidence": [
+      "TASK-003"
+     ],
+     "confidence": 0.8,
+     "why": "the evidence says so",
+     "open_questions": [],
+     "source": "model",
+     "detail": {
+      "falsifier": ""
+     }
+    }
+   ],
+   "dropped": [
+    {
+     "subject": "TASK-001",
+     "decision": "confirm",
+     "evidence": [
+      "FACT-invented"
+     ],
+     "why": "no evidence id resolves to a fact, claim, card or rule of this report"
+    }
+   ],
+   "log": [
+    {
+     "at": "2026-10-08T22:00:00+00:00",
+     "state": "decided",
+     "assistant": "Claude Code",
+     "model": "test-model",
+     "prompt": "2380dbd41de267af",
+     "inputs": "656ff99276ccde8f",
+     "cached": false,
+     "seconds": 0.0,
+     "cost_usd": null
+    }
+   ]
+  },
+  {
+   "id": "ideal_planner",
+   "title": {
+    "en": "Ideal planner",
+    "ar": "مخطِّط المثالي"
+   },
+   "kind": "ai",
+   "passes": [
+    "plan",
+    "critique"
+   ],
+   "requires": [],
+   "routes": [
+    {
+     "decision": "accept",
+     "to": "plan_orderer",
+     "when": {
+      "en": "every view planned on evidence, no question left: the ideal goes on to the plan",
+      "ar": "كل عرض مخطَّط بدليل ولا سؤال باقٍ: يكمل المثالي إلى الخطة"
+     },
+     "subjects": 0
+    },
+    {
+     "decision": "ask",
+     "to": "inbox",
+     "when": {
+      "en": "the ideal leaves questions: they wait for the person in the Decisions inbox",
+      "ar": "المثالي يترك أسئلة: تنتظر الشخص في صندوق القرارات"
+     },
+     "subjects": 0
+    },
+    {
+     "decision": "rules only",
+     "to": "plan_orderer",
+     "when": {
+      "en": "not planned: the rules' target stands",
+      "ar": "ما خُطِّط: يبقى هدف القواعد"
+     },
+     "subjects": 1
+    }
+   ],
+   "state": "rules_only",
+   "method": "rules",
+   "assistant": null,
+   "model": null,
+   "at": "2026-10-08T22:00:00+00:00",
+   "cached": false,
+   "seconds": 0.0,
+   "cost_usd": null,
+   "budget": {
+    "seconds": 2400.0,
+    "usd": 10.0
+   },
+   "why": "No assistant is installed and logged in here, so the rules decided alone.",
+   "summary": null,
+   "decisions": [
+    {
+     "subject": "ideal",
+     "decision": "rules only",
+     "options": [
+      "accept",
+      "ask"
+     ],
+     "evidence": [
+      "RULE-disposition-delete",
+      "RULE-disposition-modify",
+      "RULE-disposition-rebuild",
+      "RULE-disposition-retain",
+      "RULE-infra-ci",
+      "RULE-layer-api-client",
+      "RULE-layer-config",
+      "RULE-layer-features"
+     ],
+     "confidence": 0.5,
+     "why": "No assistant is installed and logged in here, so the rules decided alone.",
+     "open_questions": [],
+     "source": "rules",
+     "detail": {}
+    }
+   ],
+   "dropped": [],
+   "log": [
+    {
+     "at": "2026-10-08T22:00:00+00:00",
+     "state": "rules_only",
+     "assistant": null,
+     "model": null,
+     "prompt": null,
+     "inputs": "7c1a0de0841da50a",
+     "cached": false,
+     "seconds": 0.0,
+     "cost_usd": null
+    }
+   ]
+  },
+  {
+   "id": "pipeline_gap_planner",
+   "title": {
+    "en": "Pipeline gap planner",
+    "ar": "مخطِّط فجوات خط المعالجة"
+   },
+   "kind": "ai",
+   "passes": [
+    "plan",
+    "critique"
+   ],
+   "requires": [],
+   "routes": [
+    {
+     "decision": "plan",
+     "to": "plan_orderer",
+     "when": {
+      "en": "the gap is closed by a step, which goes on to the plan",
+      "ar": "خطوة تسد الفجوة، وتكمل إلى الخطة"
+     },
+     "subjects": 2
+    },
+    {
+     "decision": "ask",
+     "to": "inbox",
+     "when": {
+      "en": "closing the gap is a choice for the person",
+      "ar": "سد الفجوة اختيار للشخص"
+     },
+     "subjects": 0
+    },
+    {
+     "decision": "not a gap",
+     "to": "library_feedback",
+     "when": {
+      "en": "the pipeline rule does not fit here: its rule is told",
+      "ar": "قاعدة خط المعالجة لا تنطبق هنا: تُبلَّغ قاعدتها"
+     },
+     "subjects": 0
+    },
+    {
+     "decision": "rules only",
+     "to": "plan_orderer",
+     "when": {
+      "en": "no assistant decided: the rules' gap stands",
+      "ar": "ما قرر مساعد: تبقى فجوة القواعد"
+     },
+     "subjects": 0
+    }
+   ],
+   "state": "decided",
+   "method": "model",
+   "assistant": "Claude Code",
+   "model": "test-model",
+   "at": "2026-10-08T22:00:00+00:00",
+   "cached": false,
+   "seconds": 0.0,
+   "cost_usd": null,
+   "budget": {
+    "seconds": 1200.0,
+    "usd": 4.0
+   },
+   "why": null,
+   "summary": null,
+   "decisions": [
+    {
+     "subject": "gap:P2:x",
+     "decision": "plan",
+     "options": [
+      "plan",
+      "ask",
+      "not a gap"
+     ],
+     "evidence": [
+      "gap:P2:x"
+     ],
+     "confidence": 0.8,
+     "why": "the evidence says so",
+     "open_questions": [],
+     "source": "model",
+     "detail": {
+      "operation": "retain",
+      "step": ""
+     }
+    },
+    {
+     "subject": "gap:P7:x",
+     "decision": "plan",
+     "options": [
+      "plan",
+      "ask",
+      "not a gap"
+     ],
+     "evidence": [
+      "gap:P7:x"
+     ],
+     "confidence": 0.8,
+     "why": "the evidence says so",
+     "open_questions": [],
+     "source": "model",
+     "detail": {
+      "operation": "retain",
+      "step": ""
+     }
+    }
+   ],
+   "dropped": [
+    {
+     "subject": "gap:P2:x",
+     "decision": "plan",
+     "evidence": [
+      "FACT-invented"
+     ],
+     "why": "no evidence id resolves to a fact, claim, card or rule of this report"
+    }
+   ],
+   "log": [
+    {
+     "at": "2026-10-08T22:00:00+00:00",
+     "state": "decided",
+     "assistant": "Claude Code",
+     "model": "test-model",
+     "prompt": "5504bcb2062be432",
+     "inputs": "e885009ca91221fe",
+     "cached": false,
+     "seconds": 0.0,
+     "cost_usd": null
+    }
+   ]
+  },
+  {
+   "id": "plan_orderer",
+   "title": {
+    "en": "Plan orderer",
+    "ar": "مرتّب الخطة"
+   },
+   "kind": "ai",
+   "passes": [
+    "plan",
+    "critique"
+   ],
+   "requires": [
+    "card_triage",
+    "ideal_planner",
+    "pipeline_gap_planner"
+   ],
+   "routes": [
+    {
+     "decision": "reorder",
+     "to": "plan",
+     "when": {
+      "en": "a better order and grouping of the steps, every prerequisite kept",
+      "ar": "ترتيب وتجميع أفضل للخطوات، وكل شرط مسبق محفوظ"
+     },
+     "subjects": 0
+    },
+    {
+     "decision": "keep",
+     "to": "plan",
+     "when": {
+      "en": "the rules' order is already right",
+      "ar": "ترتيب القواعد صحيح أصلًا"
+     },
+     "subjects": 0
+    },
+    {
+     "decision": "ask",
+     "to": "inbox",
+     "when": {
+      "en": "the order depends on a choice for the person",
+      "ar": "الترتيب يتوقف على اختيار للشخص"
+     },
+     "subjects": 0
+    },
+    {
+     "decision": "rules only",
+     "to": "plan",
+     "when": {
+      "en": "no assistant decided: the rules' order stands",
+      "ar": "ما قرر مساعد: يبقى ترتيب القواعد"
+     },
+     "subjects": 1
+    }
+   ],
+   "state": "decided",
+   "method": "model",
+   "assistant": "Claude Code",
+   "model": "test-model",
+   "at": "2026-10-08T22:00:00+00:00",
+   "cached": false,
+   "seconds": 0.0,
+   "cost_usd": null,
+   "budget": {
+    "seconds": 1200.0,
+    "usd": 4.0
+   },
+   "why": null,
+   "summary": null,
+   "decisions": [
+    {
+     "subject": "plan",
+     "decision": "rules only",
+     "options": [
+      "reorder",
+      "keep",
+      "ask"
+     ],
+     "evidence": [
+      "TASK-001",
+      "TASK-002",
+      "TASK-003",
+      "RULE-plan-order"
+     ],
+     "confidence": 0.6,
+     "why": "The rules' order: milestones, prerequisites and the files each card touches. The assistant left this subject undecided, so the rules decided it.",
+     "open_questions": [],
+     "source": "rules",
+     "detail": {
+      "steps": [
+       {
+        "id": "M1-W1",
+        "title": "M1, wave 1",
+        "tasks": [
+         "TASK-001",
+         "TASK-002"
+        ],
+        "why": "The rules' order: the milestone, then the wave."
+       },
+       {
+        "id": "M1-W2",
+        "title": "M1, wave 2",
+        "tasks": [
+         "TASK-003"
+        ],
+        "why": "The rules' order: the milestone, then the wave."
+       }
+      ]
+     }
+    }
+   ],
+   "dropped": [
+    {
+     "subject": "plan",
+     "decision": "reorder",
+     "evidence": [
+      "FACT-invented"
+     ],
+     "why": "no evidence id resolves to a fact, claim, card or rule of this report"
+    },
+    {
+     "subject": "plan",
+     "decision": "reorder",
+     "evidence": [
+      "plan"
+     ],
+     "why": "no evidence id resolves to a fact, claim, card or rule of this report"
+    }
+   ],
+   "log": [
+    {
+     "at": "2026-10-08T22:00:00+00:00",
+     "state": "decided",
+     "assistant": "Claude Code",
+     "model": "test-model",
+     "prompt": "27df21817a248827",
+     "inputs": "97aee12b4425592a",
+     "cached": false,
+     "seconds": 0.0,
+     "cost_usd": null
+    }
+   ]
+  },
+  {
+   "id": "fix_reviewer",
+   "title": {
+    "en": "Fix reviewer",
+    "ar": "مراجع الإصلاح"
+   },
+   "kind": "ai",
+   "passes": [
+    "decide"
+   ],
+   "requires": [
+    "plan_orderer"
+   ],
+   "routes": [
+    {
+     "decision": "accept",
+     "to": "handover",
+     "when": {
+      "en": "the diff does what the card asks and the checks hold: offered to the person",
+      "ar": "التعديل يفعل ما تطلبه البطاقة والفحوص سليمة: يُعرض على الشخص"
+     },
+     "subjects": 1
+    },
+    {
+     "decision": "retry",
+     "to": "fix",
+     "when": {
+      "en": "the fix is wrong or incomplete: it is made again",
+      "ar": "الإصلاح خطأ أو ناقص: يُعاد"
+     },
+     "subjects": 0
+    },
+    {
+     "decision": "ask",
+     "to": "inbox",
+     "when": {
+      "en": "the fix needs a choice from the person",
+      "ar": "الإصلاح يحتاج اختيارًا من الشخص"
+     },
+     "subjects": 0
+    },
+    {
+     "decision": "rules only",
+     "to": "gates",
+     "when": {
+      "en": "no assistant decided: the gates' verdict stands",
+      "ar": "ما قرر مساعد: يبقى حكم البوابات"
+     },
+     "subjects": 1
+    }
+   ],
+   "state": "decided",
+   "method": "model",
+   "assistant": "Claude Code",
+   "model": "test-model",
+   "at": "2026-10-08T22:00:00+00:00",
+   "cached": false,
+   "seconds": 0.0,
+   "cost_usd": null,
+   "budget": {
+    "seconds": 900.0,
+    "usd": 3.0
+   },
+   "why": null,
+   "summary": null,
+   "decisions": [
+    {
+     "subject": "TASK-001",
+     "decision": "accept",
+     "options": [
+      "accept",
+      "retry",
+      "ask"
+     ],
+     "evidence": [
+      "TASK-001"
+     ],
+     "confidence": 0.8,
+     "why": "the evidence says so",
+     "open_questions": [],
+     "source": "model",
+     "detail": {
+      "concerns": []
+     }
+    },
+    {
+     "subject": "TASK-002",
+     "decision": "rules only",
+     "options": [
+      "accept",
+      "retry",
+      "ask"
+     ],
+     "evidence": [
+      "TASK-002",
+      "FACT-0002"
+     ],
+     "confidence": 0.5,
+     "why": "The gates failed this fix. The assistant left this subject undecided, so the rules decided it.",
+     "open_questions": [],
+     "source": "rules",
+     "detail": {
+      "concerns": [
+       "failed: the project's checks failed"
+      ]
+     }
+    }
+   ],
+   "dropped": [
+    {
+     "subject": "TASK-001",
+     "decision": "accept",
+     "evidence": [
+      "FACT-invented"
+     ],
+     "why": "no evidence id resolves to a fact, claim, card or rule of this report"
+    },
+    {
+     "subject": "TASK-002",
+     "decision": "accept",
+     "evidence": [
+      "TASK-002"
+     ],
+     "why": "the gates failed this fix, so it cannot be accepted"
+    }
+   ],
+   "log": [
+    {
+     "at": "2026-10-08T22:00:00+00:00",
+     "state": "decided",
+     "assistant": "Claude Code",
+     "model": "test-model",
+     "prompt": "497835407762b365",
+     "inputs": "9af033e1f3394826",
+     "cached": false,
+     "seconds": 0.0,
+     "cost_usd": null
+    }
+   ]
+  }
+ ],
+ "sinks": [
+  {
+   "id": "plan",
+   "title": {
+    "en": "The plan",
+    "ar": "الخطة"
+   }
+  },
+  {
+   "id": "probe",
+   "title": {
+    "en": "A probe",
+    "ar": "فحص يحسمها"
+   }
+  },
+  {
+   "id": "library_feedback",
+   "title": {
+    "en": "The library's feedback",
+    "ar": "ملاحظات للمكتبة"
+   }
+  },
+  {
+   "id": "inbox",
+   "title": {
+    "en": "The Decisions inbox",
+    "ar": "صندوق القرارات"
+   }
+  },
+  {
+   "id": "handover",
+   "title": {
+    "en": "Offered to the person",
+    "ar": "تُعرض على الشخص"
+   }
+  },
+  {
+   "id": "fix",
+   "title": {
+    "en": "Fixed again",
+    "ar": "يُصلَح من جديد"
+   }
+  },
+  {
+   "id": "gates",
+   "title": {
+    "en": "The gates' verdict",
+    "ar": "حكم البوابات"
+   }
+  }
+ ],
+ "questions": [],
+ "counts": {
+  "nodes": {
+   "value": 5,
+   "src": "nodes/<node>/last.json: declared nodes",
+   "unit": "count"
+  },
+  "ran": {
+   "value": 5,
+   "src": "nodes/<node>/last.json: nodes with a last run",
+   "unit": "count"
+  },
+  "by_model": {
+   "value": 4,
+   "src": "nodes/<node>/last.json: nodes the person's assistant decided",
+   "unit": "count"
+  },
+  "decisions": {
+   "value": 9,
+   "src": "nodes/<node>/last.json: decisions",
+   "unit": "count"
+  },
+  "dropped": {
+   "value": 6,
+   "src": "nodes/<node>/last.json: decisions dropped by the evidence check",
+   "unit": "count"
+  }
+ }
+}

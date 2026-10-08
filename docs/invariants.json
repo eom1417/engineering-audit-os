@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "fdd485a",
+  "extracted_at_commit": "cc5ff08",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -45,6 +45,33 @@
       "statement": "`new`: a project still to be built from its plan, whose folder may be empty or not there yet (it is made); never the home folder or the disk's root.",
       "kind": "invariant",
       "enforced_by": "tests/test_blueprint.py::BuildTests::test_from_a_pasted_plan_to_a_designed_blueprint_in_an_empty_folder",
+      "note": ""
+    },
+    {
+      "id": "INV-f671b09e18",
+      "file": "eaos/api/guard.py",
+      "symbol": "<module>",
+      "statement": "The token is in the address EAOS opens (#token=, never sent to a server, never in a log) and the Studio keeps it for the tab.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_never_reaches_a_log_or_the_page",
+      "note": ""
+    },
+    {
+      "id": "INV-347b9d9a34",
+      "file": "eaos/api/guard.py",
+      "symbol": "<module>",
+      "statement": "- A refusal says why in the server's log, never with the token.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_never_reaches_a_log_or_the_page",
+      "note": ""
+    },
+    {
+      "id": "INV-46695141c9",
+      "file": "eaos/api/guard.py",
+      "symbol": "same",
+      "statement": "Constant-time comparison of two tokens; a missing one never matches.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_is_compared_in_constant_time",
       "note": ""
     },
     {
@@ -804,6 +831,15 @@
       "note": ""
     },
     {
+      "id": "INV-e551b2653b",
+      "file": "eaos/facts/frameworks/http_access.py",
+      "symbol": "object_keys",
+      "statement": "Request keys are the payload's names, never its values.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_http_access.py::PayloadKeyTests::test_an_object_literal_payload_gives_its_keys_and_a_spread_marks_them_partial",
+      "note": ""
+    },
+    {
       "id": "INV-38206a42b2",
       "file": "eaos/facts/frameworks/supabase_access.py",
       "symbol": "_supabase_prefix",
@@ -838,6 +874,33 @@
       "kind": "rationale",
       "enforced_by": null,
       "note": "Describes how the numbers should be read, not what the extractor does; nothing in the code can be broken to violate it."
+    },
+    {
+      "id": "INV-3f8dce8498",
+      "file": "eaos/facts/pipeline.py",
+      "symbol": "<module>",
+      "statement": "A pipeline is found only from what the code declares or does, never guessed from names alone: - a declared DAG: a list of stage records whose `requires` name other stages, run through a registry of runners; - a declared sequence: a list of steps holding the functions a driver calls one after the other; - a registry loop: a loop over stage names dispatching through a table, each stage's inputs taken from what the earlier stages put in an accumulator; - an orchestrator: a function announcing its phases in order, or one whose calls pass one stage's result to the next; - the frameworks' own declarations (Airflow, Prefect, Dagster, Luigi, Celery canvas, LangGraph, Temporal), queue topologies (a topic both produced and consumed), and the build and CI chains (GitHub Actions `needs`, Make and just targets, npm script chains, n8n / Node-RED / Step Functions exports).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_pipeline_map.py::Orchestrators::test_a_chain_of_calls_without_a_pipeline_signal_is_not_a_pipeline",
+      "note": ""
+    },
+    {
+      "id": "INV-398e27160f",
+      "file": "eaos/facts/pipeline.py",
+      "symbol": "<module>",
+      "statement": "A dispatch EAOS cannot follow is written as an unresolved step, never as an edge.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_pipeline_map.py::RegistryLoop::test_a_dispatch_eaos_cannot_follow_is_an_unresolved_step_never_an_edge",
+      "note": ""
+    },
+    {
+      "id": "INV-37eae478a8",
+      "file": "eaos/facts/pipeline.py",
+      "symbol": "scan",
+      "statement": "Never runs the project.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_pipeline_map.py::NothingInvented::test_never_runs_the_project",
+      "note": ""
     },
     {
       "id": "INV-01f72bf4a5",
@@ -1617,6 +1680,15 @@
       "note": ""
     },
     {
+      "id": "INV-ee22f5eb15",
+      "file": "eaos/studio/data_paths.py",
+      "symbol": "<module>",
+      "statement": "Nothing is invented: a tier the records do not reach is a gap, drawn and counted, never a guessed link.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_data_map.py::DataPaths::test_each_write_is_a_path_whose_unreached_tiers_are_gaps_with_their_step",
+      "note": ""
+    },
+    {
       "id": "INV-72b9c08f08",
       "file": "eaos/studio/export.py",
       "symbol": "<module>",
@@ -1653,6 +1725,15 @@
       "note": ""
     },
     {
+      "id": "INV-e244b0b236",
+      "file": "eaos/studio/hidden.py",
+      "symbol": "<module>",
+      "statement": "seen the screens of studio/journeys.json (kind page), by area (the first segment of their route), and the dialog and form files they render (a file named …Dialog, …Form, …Modal, …Sheet, …Drawer) unseen triggers background jobs, schedules and containers (entry_point surface job or container), web hooks (a server route whose path names a hook or a callback), edge functions (files under supabase/functions/<name>/, netlify/functions/ or api/cron/) screens routes that are not pages: layouts, redirects and catch-alls (journeys.json) server server routes this repository answers (entry_point surface http) writes the writes the code sends (data_access post, put, patch, delete, insert, update, upsert), by resource outside the outside services the code calls (runtime integration_target), by host config environment variables read (config env_read), secret-shaped settings, committed credentials (facts/secrets.json; the value is never read or written) build CI steps and deployment targets (runtime ci_step, deployment_target), and the commands the manifests declare (entry_point surface cli) dead unreachable modules, unused symbols and unread constants (deadcode), leftovers, broken code links a screen area sets an unseen item of triggers, server, writes, outside or config in motion when a file the area's screens render (three import steps) holds the item's evidence; an item of triggers, writes, outside or config that no screen reaches is flagged `no_screen`: it runs, or waits, with nothing the user sees in front of it components each item is counted in the deepest component of target-architecture.json holding its file, so the System map can mark the components that hold unseen work",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_journeys.py::Hidden::test_a_write_a_screen_sets_in_motion_is_linked_and_one_no_screen_reaches_is_flagged",
+      "note": ""
+    },
+    {
       "id": "INV-f9f3458dc4",
       "file": "eaos/studio/ideal.py",
       "symbol": "<module>",
@@ -1663,6 +1744,114 @@
         "tests/test_ideal_planner.py::EvidenceCheck::test_an_element_without_a_resolving_citation_is_dropped_and_listed",
         "tests/test_ideal_planner.py::Planning::test_two_passes_then_the_check_then_the_plan_is_kept"
       ],
+      "note": ""
+    },
+    {
+      "id": "INV-406444b3a9",
+      "file": "eaos/studio/infra.py",
+      "symbol": "<module>",
+      "statement": "hosting facts/runtime.json deployment_target: Dockerfile ports, compose services, hosting manifests ci facts/runtime.json ci_step, by workflow file (GitHub Actions) or package.json scripts environments facts/config.json env_read (variable names, never values; secret-shaped ones counted), the sensitive files no extractor reads, and environments named by the hosts the code calls (`*-staging.*`, `*-production.*`) databases Supabase calls (facts/entrypoints.json data_access), database client packages (facts/resolve.json module_edge EXTERNAL), tables declared in code (facts/domain.json data_table) and migrations (facts/runtime.json migration_step), connection pools queues queue client packages the code imports; none found is a measured empty lane, read only against the packages listed in PACKAGES services outbound hosts (facts/runtime.json integration_target, with its resilience_policy) and service SDK packages observability facts/runtime.json observability_signal, and telemetry packages",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_data_map.py::Infra::test_each_lane_from_its_records",
+      "note": ""
+    },
+    {
+      "id": "INV-7911b2ced3",
+      "file": "eaos/studio/infra.py",
+      "symbol": "<module>",
+      "statement": "A lane the target says nothing about is \"not measured yet\" for the target, never \"fine\".",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_data_map.py::Infra::test_the_target_decides_where_it_speaks_and_is_not_measured_where_it_is_silent",
+      "note": ""
+    },
+    {
+      "id": "INV-4ee01b4800",
+      "file": "eaos/studio/journeys.py",
+      "symbol": "matches",
+      "statement": "Whether a link's target opens this route: segment by segment, a route's :param takes any segment, a link's :param only a route's :param; a catch-all never matches.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_journeys.py::Journeys::test_a_link_belongs_to_the_screens_rendering_its_file_and_the_menu_to_the_layout",
+      "note": ""
+    },
+    {
+      "id": "INV-f44a4e156a",
+      "file": "eaos/studio/nodes/core.py",
+      "symbol": "<module>",
+      "statement": "`run_node(node, spec, report, ...)` runs one node with its guards: the evidence check a decision keeps only the ids that resolve; one with none left, an unknown subject, a choice the node does not have or a repeated subject is dropped and listed, never routed the critique pass planning nodes ('critique' in their passes) review their draft before it is checked the rules fallback no assistant, over the time or cost budget, or a failed answer: the rules decide alone and every subject takes the route \"rules only\"; a subject the model left out keeps the rules' decision, marked `source: rules` the run log <report>/nodes/runs.jsonl: the prompt's and inputs' digests, the model, the output the cache <report>/nodes/<node>/cache/<key>.json: the same inputs give the same result, no new call (also when no assistant is here: a decision already made stands); `fresh` asks again",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Framework::test_a_subject_the_model_leaves_out_keeps_the_rules_decision",
+      "note": ""
+    },
+    {
+      "id": "INV-b6e63a22d4",
+      "file": "eaos/studio/nodes/core.py",
+      "symbol": "Bounded",
+      "statement": "A launcher held to a budget: each call waits at most the seconds left (even a launcher that hangs is cut off, and its cancel is set), and what it says it has spent (`cost_usd`, read after each call) may not pass `usd`.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Launcher::test_a_hanging_launcher_is_cut_off_and_an_expensive_one_refused",
+      "note": ""
+    },
+    {
+      "id": "INV-a2f849af28",
+      "file": "eaos/studio/nodes/fix_reviewer.py",
+      "symbol": "<module>",
+      "statement": "The gates stay the judge: a card they failed cannot be accepted, whatever the answer says.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Reviewer::test_the_gates_stay_the_judge",
+      "note": ""
+    },
+    {
+      "id": "INV-dfead6c9f3",
+      "file": "eaos/studio/nodes/fix_reviewer.py",
+      "symbol": "inputs",
+      "statement": "The batch of `wave` (its folder), or None when no batch is given.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Reviewer::test_the_gates_stay_the_judge",
+      "note": ""
+    },
+    {
+      "id": "INV-1183a21ef5",
+      "file": "eaos/studio/nodes/plan_orderer.py",
+      "symbol": "<module>",
+      "statement": "The proposal is written to nodes/plan_orderer/order.json; the plan itself is never changed by it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Planners::test_a_good_order_is_written_with_the_cards_it_left_out_and_without_the_rejected",
+      "note": ""
+    },
+    {
+      "id": "INV-c384201e41",
+      "file": "eaos/studio/nodes/triage.py",
+      "symbol": "<module>",
+      "statement": "Nothing here changes a card: the verdicts, the probe requests and the library's feedback are written beside the report (nodes/card_triage/), and `precision(report)` gives the triage's own column of the precision measure, per kind of card, never mixed with the hand-written labels (tools/precision.py).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Triage::test_doubt_becomes_a_probe_and_reject_library_feedback",
+      "note": ""
+    },
+    {
+      "id": "INV-922850fe66",
+      "file": "eaos/studio/nodes/triage.py",
+      "symbol": "_excerpt",
+      "statement": "A few lines of the project's code around `line`, each cut short; None when the file cannot be read.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Triage::test_the_bundle_holds_the_code_at_each_fact_marked_untrusted",
+      "note": ""
+    },
+    {
+      "id": "INV-09be4a6746",
+      "file": "eaos/studio/nodes/triage.py",
+      "symbol": "by_kind",
+      "statement": "{kind of card: {confirm, doubt, reject, rules only, precision}}: the triage's own estimate of how much of each kind is true (confirmed ÷ confirmed and rejected), a model's opinion beside the labelled precision, never instead of it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Triage::test_doubt_becomes_a_probe_and_reject_library_feedback",
+      "note": ""
+    },
+    {
+      "id": "INV-a32f3b9c61",
+      "file": "eaos/studio/nodes/view.py",
+      "symbol": "<module>",
+      "statement": "`section(report, lang)` lists every declared node (eaos/studio/nodes/__init__.py) with its router's branches and how many subjects took each, and its last run (nodes/<node>/last.json) as it was decided: by which assistant and model, or by the rules alone and why; a node that never ran says so.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Studio::test_the_section_says_what_ran_and_how",
       "note": ""
     },
     {
@@ -1834,114 +2023,6 @@
       "statement": "Agent-led workflow: deterministic gates and next actions, never an autonomous LLM.",
       "kind": "invariant",
       "enforced_by": "tests/test_workflow.py::WorkflowTests::test_single_entrypoint_read_only_and_no_script_execution",
-      "note": ""
-    },
-    {
-      "id": "INV-e244b0b236",
-      "file": "eaos/studio/hidden.py",
-      "symbol": "<module>",
-      "statement": "seen the screens of studio/journeys.json (kind page), by area (the first segment of their route), and the dialog and form files they render (a file named …Dialog, …Form, …Modal, …Sheet, …Drawer) unseen triggers background jobs, schedules and containers (entry_point surface job or container), web hooks (a server route whose path names a hook or a callback), edge functions (files under supabase/functions/<name>/, netlify/functions/ or api/cron/) screens routes that are not pages: layouts, redirects and catch-alls (journeys.json) server server routes this repository answers (entry_point surface http) writes the writes the code sends (data_access post, put, patch, delete, insert, update, upsert), by resource outside the outside services the code calls (runtime integration_target), by host config environment variables read (config env_read), secret-shaped settings, committed credentials (facts/secrets.json; the value is never read or written) build CI steps and deployment targets (runtime ci_step, deployment_target), and the commands the manifests declare (entry_point surface cli) dead unreachable modules, unused symbols and unread constants (deadcode), leftovers, broken code links a screen area sets an unseen item of triggers, server, writes, outside or config in motion when a file the area's screens render (three import steps) holds the item's evidence; an item of triggers, writes, outside or config that no screen reaches is flagged `no_screen`: it runs, or waits, with nothing the user sees in front of it components each item is counted in the deepest component of target-architecture.json holding its file, so the System map can mark the components that hold unseen work",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_journeys.py::Hidden::test_a_write_a_screen_sets_in_motion_is_linked_and_one_no_screen_reaches_is_flagged",
-      "note": ""
-    },
-    {
-      "id": "INV-4ee01b4800",
-      "file": "eaos/studio/journeys.py",
-      "symbol": "matches",
-      "statement": "Whether a link's target opens this route: segment by segment, a route's :param takes any segment, a link's :param only a route's :param; a catch-all never matches.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_journeys.py::Journeys::test_a_link_belongs_to_the_screens_rendering_its_file_and_the_menu_to_the_layout",
-      "note": ""
-    },
-    {
-      "id": "INV-e551b2653b",
-      "file": "eaos/facts/frameworks/http_access.py",
-      "symbol": "object_keys",
-      "statement": "Request keys are the payload's names, never its values.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_http_access.py::PayloadKeyTests::test_an_object_literal_payload_gives_its_keys_and_a_spread_marks_them_partial",
-      "note": ""
-    },
-    {
-      "id": "INV-ee22f5eb15",
-      "file": "eaos/studio/data_paths.py",
-      "symbol": "<module>",
-      "statement": "Nothing is invented: a tier the records do not reach is a gap, drawn and counted, never a guessed link.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_data_map.py::DataPaths::test_each_write_is_a_path_whose_unreached_tiers_are_gaps_with_their_step",
-      "note": ""
-    },
-    {
-      "id": "INV-406444b3a9",
-      "file": "eaos/studio/infra.py",
-      "symbol": "<module>",
-      "statement": "hosting facts/runtime.json deployment_target: Dockerfile ports, compose services, hosting manifests ci facts/runtime.json ci_step, by workflow file (GitHub Actions) or package.json scripts environments facts/config.json env_read (variable names, never values; secret-shaped ones counted), the sensitive files no extractor reads, and environments named by the hosts the code calls (`*-staging.*`, `*-production.*`) databases Supabase calls (facts/entrypoints.json data_access), database client packages (facts/resolve.json module_edge EXTERNAL), tables declared in code (facts/domain.json data_table) and migrations (facts/runtime.json migration_step), connection pools queues queue client packages the code imports; none found is a measured empty lane, read only against the packages listed in PACKAGES services outbound hosts (facts/runtime.json integration_target, with its resilience_policy) and service SDK packages observability facts/runtime.json observability_signal, and telemetry packages",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_data_map.py::Infra::test_each_lane_from_its_records",
-      "note": ""
-    },
-    {
-      "id": "INV-7911b2ced3",
-      "file": "eaos/studio/infra.py",
-      "symbol": "<module>",
-      "statement": "A lane the target says nothing about is \"not measured yet\" for the target, never \"fine\".",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_data_map.py::Infra::test_the_target_decides_where_it_speaks_and_is_not_measured_where_it_is_silent",
-      "note": ""
-    },
-    {
-      "id": "INV-f671b09e18",
-      "file": "eaos/api/guard.py",
-      "symbol": "<module>",
-      "statement": "The token is in the address EAOS opens (#token=, never sent to a server, never in a log) and the Studio keeps it for the tab.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_never_reaches_a_log_or_the_page",
-      "note": ""
-    },
-    {
-      "id": "INV-347b9d9a34",
-      "file": "eaos/api/guard.py",
-      "symbol": "<module>",
-      "statement": "- A refusal says why in the server's log, never with the token.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_never_reaches_a_log_or_the_page",
-      "note": ""
-    },
-    {
-      "id": "INV-46695141c9",
-      "file": "eaos/api/guard.py",
-      "symbol": "same",
-      "statement": "Constant-time comparison of two tokens; a missing one never matches.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_is_compared_in_constant_time",
-      "note": ""
-    },
-    {
-      "id": "INV-3f8dce8498",
-      "file": "eaos/facts/pipeline.py",
-      "symbol": "<module>",
-      "statement": "A pipeline is found only from what the code declares or does, never guessed from names alone: - a declared DAG: a list of stage records whose `requires` name other stages, run through a registry of runners; - a declared sequence: a list of steps holding the functions a driver calls one after the other; - a registry loop: a loop over stage names dispatching through a table, each stage's inputs taken from what the earlier stages put in an accumulator; - an orchestrator: a function announcing its phases in order, or one whose calls pass one stage's result to the next; - the frameworks' own declarations (Airflow, Prefect, Dagster, Luigi, Celery canvas, LangGraph, Temporal), queue topologies (a topic both produced and consumed), and the build and CI chains (GitHub Actions `needs`, Make and just targets, npm script chains, n8n / Node-RED / Step Functions exports).",
-      "kind": "invariant",
-      "enforced_by": "tests/test_pipeline_map.py::Orchestrators::test_a_chain_of_calls_without_a_pipeline_signal_is_not_a_pipeline",
-      "note": ""
-    },
-    {
-      "id": "INV-398e27160f",
-      "file": "eaos/facts/pipeline.py",
-      "symbol": "<module>",
-      "statement": "A dispatch EAOS cannot follow is written as an unresolved step, never as an edge.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_pipeline_map.py::RegistryLoop::test_a_dispatch_eaos_cannot_follow_is_an_unresolved_step_never_an_edge",
-      "note": ""
-    },
-    {
-      "id": "INV-37eae478a8",
-      "file": "eaos/facts/pipeline.py",
-      "symbol": "scan",
-      "statement": "Never runs the project.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_pipeline_map.py::NothingInvented::test_never_runs_the_project",
       "note": ""
     }
   ],
