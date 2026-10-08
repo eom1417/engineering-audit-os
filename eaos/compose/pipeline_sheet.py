@@ -40,7 +40,7 @@ def fit(text, room):
 
 def flowchart(section, pipeline):
     """One pipeline left to right, every stage where EAOS placed it (layer, order): routers as diamonds, edges with the
-    data's shape, failure routes dashed to their ends. Its geometry never mirrors."""
+    data's shape, failure routes dashed to their ends; drawn left to right in both languages."""
     stages = [s for s in section['stages'] if s['pipeline'] == pipeline['id']]
     at = {s['id']: (PAD + s['layer'] * STEP_X, PAD + s['order'] * STEP_Y) for s in stages}
     width = PAD * 2 + NODE_W + max([s['layer'] for s in stages] + [0]) * STEP_X
