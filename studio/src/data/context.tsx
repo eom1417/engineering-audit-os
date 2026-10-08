@@ -1,23 +1,76 @@
 // The loaded report, shared by every page; and the few numbers several places show, computed once here.
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { load, type Loaded } from './load'
+// The report comes through one DataSource (source.ts): a snapshot, or the live server, whose events reload the
+// sections that changed and are announced to screen readers in the person's language.
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { usePrefs } from '../i18n/prefs'
+import type { Loaded } from './load'
+import type { LiveEvent, LiveStatus } from './live'
+import { pickSource, type DataSource, type Mode } from './source'
 import type { Card, StudioData } from './types'
 
 const DataContext = createContext<Loaded>({ kind: 'loading' })
 
-export function DataProvider({ children, preset }: { children: ReactNode; preset?: Loaded }) {
+export interface Live {
+  mode: Mode
+  status: LiveStatus | null
+  /** The last event the pages now show */
+  last: LiveEvent | null
+}
+
+const LiveContext = createContext<Live>({ mode: 'snapshot', status: null, last: null })
+
+export function DataProvider({ children, preset, source }: { children: ReactNode; preset?: Loaded; source?: DataSource }) {
   const [state, setState] = useState<Loaded>(preset ?? { kind: 'loading' })
+  const [chosen] = useState<DataSource>(() => source ?? pickSource())
+  const [live, setLive] = useState<Live>({ mode: preset ? 'snapshot' : chosen.mode, status: null, last: null })
+  const current = useRef<StudioData | null>(null)
+  const { lang } = usePrefs()
+
   useEffect(() => {
     if (preset) return
-    let live = true
-    load().then((next) => { if (live) setState(next) }, () => { if (live) setState({ kind: 'empty' }) })
-    return () => { live = false }
-  }, [preset])
-  return <DataContext.Provider value={state}>{children}</DataContext.Provider>
+    let on = true
+    let queue = Promise.resolve()
+    const apply = (next: Loaded) => {
+      if (!on) return
+      current.current = next.kind === 'ready' ? next.data : null
+      setState(next)
+    }
+    // Events are applied one after another, each on the report the one before it left.
+    const reload = (event: LiveEvent | null) => {
+      queue = queue.then(() => chosen.load(event ? current.current : null)).then((next) => {
+        apply(next)
+        if (on && event) setLive((was) => ({ ...was, last: event }))
+      }, () => undefined)
+    }
+    queue = chosen.load().then(apply, () => apply({ kind: 'empty' }))
+    const stop = chosen.follow?.(reload, (status) => { if (on) setLive((was) => ({ ...was, status })) })
+    return () => { on = false; stop?.() }
+  }, [preset, chosen])
+
+  useEffect(() => {
+    const root = document.documentElement
+    root.dataset.studioMode = live.mode
+    if (live.status) root.dataset.studioLive = live.status
+    if (live.last) root.dataset.studioEvent = live.last.id
+  }, [live])
+
+  return (
+    <DataContext.Provider value={state}>
+      <LiveContext.Provider value={live}>
+        {children}
+        <div className="sr" role="status" aria-live="polite">{live.last ? live.last.text[lang] : ''}</div>
+      </LiveContext.Provider>
+    </DataContext.Provider>
+  )
 }
 
 export function useLoaded(): Loaded {
   return useContext(DataContext)
+}
+
+/** Whether the Studio is live or a snapshot, and the last change it shows. */
+export function useLive(): Live {
+  return useContext(LiveContext)
 }
 
 /** The report when it is loaded, else null (pages render their loading, empty or error state). */

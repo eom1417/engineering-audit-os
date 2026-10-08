@@ -191,6 +191,11 @@ def guided_command(args):
     return guided_main(args)
 
 
+def studio_command(args):
+    from .api.launch import run_foreground
+    return run_foreground(args.project, port=args.port, show=not args.no_open)
+
+
 def stages_command(args):
     from .pipeline import STAGES, errors
     print(json.dumps({'stages': [{'name': stage.name, 'requires': list(stage.requires),
@@ -549,6 +554,11 @@ def main(argv=None):
     q.add_argument('--hook',action='store_true',help='for an assistant\'s session-start hook (eaos assistant install sets it): '
                    'read its JSON on stdin and answer with the context to add')
     q.set_defaults(func=lambda args: handover_hook(args) if args.hook else guided_command(args))
+    q=s.add_parser('studio',help='Open the live EAOS Studio of this project in your browser (on this computer only)')
+    q.add_argument('project',nargs='?',default='.')
+    q.add_argument('--port',type=int,default=0,help='the port on 127.0.0.1 (default: a free one)')
+    q.add_argument('--no-open',action='store_true',help='print the address without opening the browser')
+    q.set_defaults(func=studio_command)
     q=s.add_parser('mcp',help='EAOS as MCP tools for an AI assistant (stdio); eaos assistant install registers it')
     q.set_defaults(func=lambda args: __import__('eaos.mcp_server', fromlist=['main']).main())
     q=s.add_parser('init',help='Create the workspace the model-driven repair commands operate in')
