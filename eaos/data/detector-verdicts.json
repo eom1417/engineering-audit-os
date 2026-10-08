@@ -31,6 +31,7 @@
     "engine_cluster:misconfiguration": "no labelled class for this detector yet",
     "engine_cluster:sql_quality": "no labelled class for this detector yet",
     "engine_cluster:api_contract": "no labelled class for this detector yet",
+    "engine_cluster:unused_dependency": "no labelled class for this detector yet",
     "cochange": "no labelled class for this detector yet",
     "trace_gap": "no labelled class for this detector yet",
     "policy": "no labelled class for this detector yet",

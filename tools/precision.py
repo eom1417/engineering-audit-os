@@ -67,6 +67,7 @@ DETECTORS = {
     'engine_cluster:coupling': None, 'engine_cluster:dataflow': None, 'engine_cluster:surface': None,
     'engine_cluster:test_quality': None, 'engine_cluster:naming': None, 'engine_cluster:boundary': None,
     'engine_cluster:misconfiguration': None, 'engine_cluster:sql_quality': None, 'engine_cluster:api_contract': None,
+    'engine_cluster:unused_dependency': None,
     'cochange': None, 'trace_gap': None, 'policy': None, 'load_blocker': None, 'untested': None, 'unattributed': None,
 }
 # The declared bar: precision on judged output, recall on the planted targets (or on the labels when nothing

@@ -220,6 +220,45 @@ class AdoptionTests(unittest.TestCase):
         self.assertTrue(records['NS1.T1'][1])
         self.assertFalse(records['NS2.T2'][1])
 
+    def test_a_record_names_its_task_by_file_name_and_the_studio_form_is_complete(self):
+        import north_star_measure
+        with tempfile.TemporaryDirectory() as tmp:
+            Path(tmp, 'ns9-t2-shell.md').write_text('## Icons\n**Candidates**\n| Licence | Maintenance |\n**Decision**: adopt\n')
+            records = north_star_measure.adoption_records(tmp)
+        self.assertTrue(records['NS9.T2'][1])
+
+    def test_w2_counts_a_task_from_its_own_commits_and_its_studio_packages_from_records_before_the_studio(self):
+        import subprocess
+        import north_star_measure
+        record = {'milestones': [{'tasks': [
+            {'id': 'NS1.T1', 'status': 'todo', 'steps': ['docs/adoption/'], 'files': ['shared.py']},
+            {'id': 'NS2.T1', 'status': 'todo', 'steps': ['docs/adoption/'], 'files': ['shared.py', 'studio/src/']}]}]}
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            def commit(message, files):
+                for name, body in files.items():
+                    path = root / name
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(body)
+                subprocess.run(['git', 'add', '-A'], cwd=root, check=True)
+                subprocess.run(['git', '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', message], cwd=root, check=True)
+
+            subprocess.run(['git', 'init', '-q'], cwd=root, check=True)
+            commit('plan', {'docs/north-star.json': '"id": "NS1.T1" "id": "NS2.T1"'})
+            commit('another capability edits a shared file', {'shared.py': 'x = 1\n'})
+            section = '**Candidates**\n| Licence | Maintenance |\n**Decision**: adopt\n**Pinned**: `a@1.0.0`\n'
+            commit('NS2.T1: adoption record', {'docs/adoption/ns2-t1-ui.md': '# NS2.T1\n\n## UI\n' + section})
+            commit('NS2.T1: code', {'studio/src/a.ts': '1', 'studio/package.json': '{"dependencies": {"a": "1.0.0"}}'})
+            with mock.patch.object(north_star_measure, 'ROOT', root):
+                value, evidence = north_star_measure.adoption_value(record)
+                self.assertEqual(value, 1.0, evidence)   # NS1.T1 has not begun: the shared file's commit is not its own
+                commit('NS2.T1: a package added later', {'studio/package.json': '{"dependencies": {"a": "1.0.0", "b": "2.0.0"}}'})
+                value, evidence = north_star_measure.adoption_value(record)
+        self.assertEqual(value, 0.0)
+        self.assertIn('NS2.T1: Studio packages without a record', evidence)
+        self.assertIn(': b', evidence)
+
     def test_the_precision_set_has_its_adoption_record(self):
         import north_star_measure
         path, complete = north_star_measure.adoption_records()['NS38.T1']

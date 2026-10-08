@@ -320,8 +320,8 @@ def adoption_records(where=None):
 
 def adoption_value(record):
     """W2: tasks whose plan asks for an adoption record, begun (done, or code committed for them), that have a complete
-    record (candidates, licence, maintenance, decision) committed no later than their first code ÷ such tasks begun.
-    A task that writes Studio code also needs every package of studio/package.json pinned by such a record
+    record (candidates, licence, maintenance, decision) committed no later than their first code (task_code) ÷ such
+    tasks begun. A task that writes Studio code also needs every package of studio/package.json pinned by such a record
     (studio_packages): an unrecorded package is code adopted without scouting."""
     tasks = [task for milestone in record['milestones'] for task in milestone['tasks']
              if any(ADOPTION_STEP in step for step in task.get('steps') or [])]
@@ -330,7 +330,7 @@ def adoption_value(record):
     begun, good, notes = [], [], []
     for task in tasks:
         code = [f for f in task.get('files') or [] if not f.startswith('docs/') and (ROOT / f.rstrip('/')).exists()]
-        first_code = first_commit(code, since_task=task['id']) if code else None
+        first_code = task_code(task, code)
         if task.get('status') != 'done' and first_code is None and task['id'] not in records: continue
         begun.append(task['id'])
         found = records.get(task['id'])
@@ -345,7 +345,7 @@ def adoption_value(record):
         if any(f.startswith(STUDIO_CODE) for f in task.get('files') or []):
             packages = packages or studio_packages()
             covered, wanted = packages
-            if covered != wanted:
+            if covered != set(wanted):
                 notes.append(f"{task['id']}: Studio packages without a record written before the Studio's code: "
                              f"{', '.join(sorted(set(wanted) - covered))}"); continue
         good.append(task['id'])
@@ -377,14 +377,25 @@ def studio_packages():
     return covered, wanted
 
 
-def first_commit(paths, since_task=None):
-    """The oldest commit touching `paths` (after the commit that registered `since_task` in the plan), or None."""
+def task_code(task, code):
+    """The task's first code: the oldest commit touching its files that names the task in its message. Files are shared
+    between tasks (upstreams/toolchain.json, tools/studio_gates.py), so a commit of another task does not begin this one;
+    a task closed with no commit naming it falls back to the oldest commit touching its files."""
+    if not code: return None
+    return (first_commit(code, since_task=task['id'], naming=task['id'])
+            or (first_commit(code, since_task=task['id']) if task.get('status') == 'done' else None))
+
+
+def first_commit(paths, since_task=None, naming=None):
+    """The oldest commit touching `paths` (after the commit that registered `since_task` in the plan, and whose message
+    names `naming` when given), or None."""
     if not paths: return None
     since = []
     if since_task:
         added = git('log', '--reverse', '--format=%H', '-S', f'"id": "{since_task}"', '--', 'docs/north-star.json', cwd=ROOT).stdout.split()
         if added: since = [f'{added[0]}..HEAD']
-    found = git('log', '--reverse', '--format=%H', *since, '--', *paths, cwd=ROOT).stdout.split()
+    grep = ['--fixed-strings', f'--grep={naming}'] if naming else []
+    found = git('log', '--reverse', '--format=%H', *grep, *since, '--', *paths, cwd=ROOT).stdout.split()
     return found[0] if found else None
 
 

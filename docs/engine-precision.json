@@ -185,9 +185,9 @@
         "eaos": 116,
         "finance-os-a0192b7b": 160
       },
-      "detectors": 39,
+      "detectors": 40,
       "shown": 8,
-      "hidden": 31,
+      "hidden": 32,
       "limits": "Precision is measured on judged outputs only: those that touch a labelled item or a file in which the class was labelled exhaustively. Recall is measured on the planted mutations a detector was built to find, and on the hand labels. Labels are one reviewer's reading of the source."
     },
     "classes": {
@@ -1662,6 +1662,26 @@
       },
       {
         "detector": "engine_cluster:api_contract",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 0,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {},
+        "false_examples": []
+      },
+      {
+        "detector": "engine_cluster:unused_dependency",
         "class": null,
         "status": "not_measured",
         "shown": false,
