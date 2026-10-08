@@ -118,6 +118,61 @@ def synthetic_paths(comps, layer, modules, card_rows, pages=250, calls=3):
             'src': {'paths': 'synthetic'}, 'timeline': paths_section.timeline(plan, card_rows, 'en')}
 
 
+def synthetic_pipeline(stages=1000, width=8):
+    """studio/pipeline.json for the synthetic project: one product pipeline of `stages` stages in `width` lanes, a router
+    every 50 stages with its labelled branches, a fork and its join every 100, a failure lane per router, a side channel,
+    a dead stage and an unresolved call, and the ideal and gap views, every id resolving."""
+    site = lambda path, line: {'path': path, 'line': line, 'fact': None, 'text': None}
+    rows, edges, routers, fans, gap = [], [], [], [], []
+    for i in range(stages):
+        layer, order = i // width, i % width
+        path = f'pipeline/stage_{i // 50:02d}.py'
+        rows.append({'id': f'p:s{i}', 'pipeline': 'p', 'label': f'stage {i}', 'kind': 'router' if i % 50 == 49 else 'stage',
+                     'entry': site(path, 1 + 10 * (i % 50)), 'symbol': f'pipeline.stage_{i // 50:02d}.step_{i}',
+                     'tools': ['pandas'] if i % 7 == 0 else [], 'inputs': [{'name': f'v{i - 1}', 'kind': 'value', 'shape': 'DataFrame'}] if i else [],
+                     'outputs': [{'name': f'v{i}', 'kind': 'value', 'shape': 'DataFrame'}],
+                     'side_effects': [{'kind': 'file', 'name': f'out/{i}.parquet', 'path': path, 'line': 2 + 10 * (i % 50), 'fact': None, 'text': None}] if i % 25 == 0 else [],
+                     'optional': False, 'marks': ['slow'] if i % 97 == 0 else [], 'sub_pipeline': None, 'coverage': 'measured',
+                     'layer': layer, 'order': order, 'cards': [], 'steps': []})
+        if i >= width:
+            edges.append({'id': f'p:s{i - width}->s{i}', 'pipeline': 'p', 'from': f'p:s{i - width}', 'to': f'p:s{i}', 'kind': 'data',
+                          'data': {'names': [f'v{i - width}'], 'shape': 'DataFrame'}, 'matched_by': 'value', 'condition': None,
+                          'evidence': site(path, 1 + 10 * (i % 50))})
+    for i in range(49, stages, 50):
+        targets = [j for j in (i + 1, i + 2, i + 3) if j < stages]
+        routers.append({'id': f'p:r{i}', 'pipeline': 'p', 'stage': f'p:s{i}', 'kind': 'dict_dispatch', 'on': 'record.kind',
+                        'entry': rows[i]['entry'], 'branches': [{'condition': f'kind == {k}', 'to': f'p:s{j}', 'evidence': rows[i]['entry']}
+                                                                 for k, j in zip(('a', 'b', 'c'), targets)],
+                        'total': i % 100 != 49, 'default': None, 'unhandled': [] if i % 100 != 49 else ['d']})
+        if i % 100 == 49:
+            gap.append({'id': f'gap:P4:r{i}', 'rule': 'P4', 'pipeline': 'p', 'subject': f'p:r{i}', 'subject_kind': 'router', 'operation': 'refactor',
+                        'detail': 'kind d has no branch', 'evidence': rows[i]['entry'], 'card': None, 'step': None})
+    for i in range(0, stages - width, 100):
+        fans.append({'id': f'p:f{i}', 'pipeline': 'p', 'fork': f'p:s{i}', 'join': f'p:s{i + width}' if i % 200 else None,
+                     'branches': [f'p:s{j}' for j in range(i + 1, min(i + width, stages))], 'matched': bool(i % 200), 'kind': 'parallel',
+                     'evidence': rows[i]['entry']})
+    hidden = [{'id': 'p:h0', 'pipeline': 'p', 'kind': 'side_channel', 'channel': 'global', 'name': 'CACHE', 'stages': ['p:s1', 'p:s30'], 'evidence': rows[1]['entry']},
+              {'id': 'p:h1', 'pipeline': 'p', 'kind': 'dead_stage', 'channel': None, 'name': 'stage 3', 'stages': ['p:s3'], 'evidence': rows[3]['entry']}]
+    unresolved = [{'id': 'p:u0', 'pipeline': 'p', 'stage': 'p:s10', 'call': 'getattr(module, name)()', 'reason': 'dynamic dispatch', 'evidence': rows[10]['entry']}]
+    rules = [{**rule, 'broken': sum(g['rule'] == rule['id'] for g in gap)}
+             for rule in __import__('json').loads((ROOT / 'eaos/data/pipeline-rules.json').read_text(encoding='utf-8'))]
+    count = lambda value, src: measure(value, f'synthetic: {src}')
+    return {**V2, 'detected': True, 'confidence': ratio(0.9, 'synthetic'), 'verdict': f'A synthetic pipeline of {stages} stages.',
+            'kinds': ['orchestrator'], 'evidence': [rows[0]['entry']],
+            'looked_for': [{'kind': 'orchestrator', 'label': 'orchestrator', 'found': 1, 'how': 'synthetic'}],
+            'pipelines': [{'id': 'p', 'title': 'synthetic', 'kind': 'orchestrator', 'role': 'product', 'confidence': 0.9, 'entry': rows[0]['entry'],
+                           'evidence': [rows[0]['entry']], 'parent': None, 'stages': [r['id'] for r in rows], 'counts': {'stages': stages}}],
+            'stages': rows, 'edges': edges, 'routers': routers, 'fans': fans, 'control': [], 'error_lanes': [
+                {'id': f'p:e{r["id"]}', 'pipeline': 'p', 'from': r['stage'], 'to': 'failed', 'kind': 'catch', 'condition': None, 'evidence': r['entry']}
+                for r in routers], 'hidden': hidden, 'unresolved': unresolved, 'rules': rules,
+            'views': {'current': {'stages': [r['id'] for r in rows], 'edges': [e['id'] for e in edges]},
+                      'ideal': {'stages': [{'id': r['id'], 'op': 'retain', 'label': r['label'], 'pipeline': 'p'} for r in rows],
+                                'edges': [{'from': e['from'], 'to': e['to'], 'op': 'retain', 'pipeline': 'p'} for e in edges], 'made_by': 'rules'},
+                      'gap': gap},
+            'counts': {'stages': count(stages, 'stages'), 'edges': count(len(edges), 'edges'), 'gaps': count(len(gap), 'gap')},
+            'src': {'pipeline': 'synthetic'}}
+
+
 def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_per_component=3):
     """{section: data} for a synthetic project; nothing is written."""
     rng = random.Random(seed)
@@ -229,6 +284,7 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
                     'indicators': [{'id': 'S1', 'name': 'S1', 'value': ratio(0.88, 'synthetic'), 'target': 0.8}]},
     }
     sections['paths'] = synthetic_paths(comps, layer, modules, card_rows)
+    sections['pipeline'] = synthetic_pipeline(stages=max(components, 50))
     written = list(sections)
     sections['coverage'] = {**V2, **coverage_section.coverage(Path('.'), sections, written, [], 'en')}
     return sections

@@ -18,7 +18,7 @@ FUNCTION_SCOPES = ('function', 'method')
 PLANNED = {'meta': 'languages', 'head': None, 'health': 'domains', 'cards': 'cards', 'evidence': 'facts', 'story': 'gap',
            'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images',
            'functions': 'functions', 'screens': 'screens', 'gaps': 'gaps', 'operations': 'operations', 'history': 'scans',
-           'quality': 'detectors', 'maps': None, 'paths': 'paths'}
+           'quality': 'detectors', 'maps': None, 'paths': 'paths', 'pipeline': 'stages'}
 V1_STEP = 'NS36.T2'
 
 
@@ -91,6 +91,9 @@ def _not_exported(section, report, built, lang):
     if section == 'paths':
         return ('not_built', _text(lang, 'مسارات الكود لم تُصدَّر في هذا الفحص.', 'The code paths are not exported in this check.'),
                 'NS46.T6', 'audit', _count(None, 'paths.json#paths'), [])
+    if section == 'pipeline':
+        return ('not_built', _text(lang, 'خريطة خط المعالجة لم تُصدَّر في هذا الفحص.', 'The pipeline map is not exported in this check.'),
+                'NS46.T12', 'audit', _count(None, 'pipeline.json#stages'), [])
     if section == 'maps':
         return ('not_built', _text(lang, 'خرائط النظام لم تُصدَّر في هذا الفحص.', 'The system maps are not exported in this check.'),
                 'NS46.T6', 'audit', _count(None, 'maps.json'), [])

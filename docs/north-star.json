@@ -1568,6 +1568,16 @@
           "measured": "automated"
         },
         {
+          "id": "F16",
+          "name": "خريطة خط المعالجة صادقة",
+          "definition": "فحوص الحقيقة لخريطة خط المعالجة التي تمر ÷ الفحوص: لكل ملف حقيقة مكتوب يدويًا (EAOS نفسه ومستودعان عامّان مثبتان من نوعين مختلفين) استدعاء ≥ 0.8 ودقة ≥ 0.9 للمراحل والحواف وفروع الموجّهات (ستة فحوص لكل ملف)، ولكل مشروع تطبيق في العيّنة (FleetManageWeb وfinance-os وRendaPerene وchief-ops) لا خط معالجة مخترع: كل مرحلة بدليل يُتحقق منه في الكود؛ بلا قياس لا قيمة",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md (the pipeline map)",
+          "reads": "${EAOS_MEASURE}/pipeline/*/measure.json (tools/pipeline_truth.py)",
+          "measured": "automated"
+        },
+        {
           "id": "W1",
           "name": "المساعد يحسن استخدام الأدوات",
           "definition": "متوسط مؤشرات تجربة الأدوات: نجاح الاستدعاء، و1 − نسبة العمل خارج أدوات EAOS، و1 − الأداة الخطأ، على 11 سيناريو في Claude وCodex",
@@ -4129,8 +4139,8 @@
         "S07"
       ],
       "title_en": "Team execution plan and the four reports",
-      "weight": 2,
-      "weight_why": "ما يستلمه الفريق فعلًا: الخطة والتقارير الأربعة. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.) (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
+      "weight": 1,
+      "weight_why": "ما يستلمه الفريق فعلًا: الخطة والتقارير الأربعة. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.) (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.) (1 من نقاطه إلى NS46: خريطة خط المعالجة، 2026-10-08.)",
       "does": [
         "يحدد حجم كل بطاقة وقسمها في الفريق",
         "يجمع البطاقات في معالم بأهداف وشروط خروج",
@@ -5984,14 +5994,15 @@
         "S07",
         "S15"
       ],
-      "weight": 6,
-      "goal": "F11 وF13 وF14 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويحكم المالك.",
-      "weight_why": "قرار المالك (2026-10-08): تُكمل الواجهة قبل متابعة المحرك، فيظهر كل تقدم لاحق في صفحة أو رقم. نقطة من كل من NS7 وNS13 وNS14 وNS25 وNS26 وNS29.",
+      "weight": 7,
+      "goal": "F11 وF13 وF14 وF16 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويحكم المالك.",
+      "weight_why": "قرار المالك (2026-10-08): تُكمل الواجهة قبل متابعة المحرك، فيظهر كل تقدم لاحق في صفحة أو رقم. نقطة من كل من NS7 وNS13 وNS14 وNS25 وNS26 وNS29. ونقطة من NS8 لخريطة خط المعالجة (قرار المالك 2026-10-08، D9).",
       "does": [
         "عقد البيانات v2 بأقسام إضافية وبيانات تجريبية بحجم شركة",
         "حالات تغطية بدل «قريبًا»، تُعدّ وتهبط",
         "كل صفحات C-experience 2.2 والخرائط المرئية",
         "بوابات الشاشات على خمسة مشاريع وميزانيات السرعة",
+        "خريطة خط المعالجة: كشف المراحل والحواف والموجّهات والتفرع والأخطاء والقنوات الخفية، والحالي والمثالي والفجوة",
         "مراجعة ذاتية وحكم المالك"
       ],
       "tools": [
@@ -6006,7 +6017,11 @@
         "studio/coverage.json وأقسام v2",
         "docs/studio-routes.json",
         "tools/studio_synthetic.py",
-        "docs/STUDIO-REVIEW.md"
+        "docs/STUDIO-REVIEW.md",
+        "studio/pipeline.json",
+        "facts/pipeline.json",
+        "evaluations/pipelines/",
+        "tools/pipeline_truth.py"
       ],
       "tasks": [
         {
@@ -6272,6 +6287,91 @@
           "rollback": "لا شيء: قياس."
         },
         {
+          "needs": "none",
+          "writes": [
+            "contract:studio-pipeline",
+            "facts:pipeline"
+          ],
+          "status": "todo",
+          "id": "NS46.T12",
+          "title": "خريطة خط المعالجة: الكشف والمراحل والحواف والموجّهات والمثالي والفجوة (المحرك والعقد)",
+          "why": "قرار المالك (2026-10-08، D9): برامج مثل EAOS نفسها خط معالجة تمر فيه البيانات بأدوات ثم تنتقل لغيرها، ولا شيء في التحليل يرسمه. المحرك يكشفه بالدليل ويفهم مراحله وتفرعاته، ويقول بوضوح حين لا يجد شيئًا وماذا بحث.",
+          "moves": [
+            "F16",
+            "F12"
+          ],
+          "depends_on": [
+            "NS46.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/facts/pipeline.py",
+            "eaos/studio/pipeline.py",
+            "eaos/data/pipeline-rules.json",
+            "tools/make_contracts.py",
+            "tests/fixtures/studio/v2/pipeline.json",
+            "evaluations/pipelines/",
+            "tools/pipeline_truth.py",
+            "docs/adoption/ns46-t12-pipeline-engine.md",
+            "tests/test_pipeline_map.py"
+          ],
+          "steps": [
+            "سجل استكشاف في docs/adoption/ قبل الكود: ما يُعاد استخدامه (رسم الاستدعاء والحقائق والمحلل) وما يُعتمد من أدوات.",
+            "عقد studio/pipeline.json ومخططه وبياناته التجريبية (EAOS نفسه): الكشف وثقته ودليله وما بُحث عنه، والمراحل، والحواف بتدفق القيم، والموجّهات وفروعها، والتفرع والتجميع، ومسارات الخطأ، والخفي، وما لم يُتتبع، والعروض الحالي والمثالي والفجوة.",
+            "الكاشف facts/pipeline.json: منسّق يمرر ناتج مرحلة لتاليتها، وDAG معلن (سجل مراحل، Airflow، Prefect، Celery، LangGraph، GitHub Actions، Makefile، سكربتات npm)، وطوابير، وموجّهات (قاموس، سجل، match، سلسلة if)، وما لا يُتتبع فجوة معدودة لا اختراع.",
+            "المثالي بقواعد مذكورة المصدر في المكتبة، والفجوة: مدخل لكل قاعدة مكسورة بدليله وبطاقته وخطوته وعمليته.",
+            "ملفات حقيقة مكتوبة يدويًا من قراءة الكود: EAOS ومستودعان عامّان مثبتان، وأداة قياس تكتب الاستدعاء والدقة."
+          ],
+          "done_when": [
+            "اختبار القبول ns46_studio.PipelineEngine يمر، وF16 = 1.0."
+          ],
+          "pitfalls": [
+            "لا مرحلة ولا حافة بلا دليل file:line.",
+            "لا خط معالجة مخترع على تطبيق: ما يوجد يظهر بدليله.",
+            "ملف الحقيقة يُكتب من قراءة الكود لا من ناتج الكاشف."
+          ],
+          "acceptance": "python tools/acceptance.py test ns46_studio.PipelineEngine && python tools/north_star.py measure --only F16 --min 1.0",
+          "rollback": "احذف eaos/facts/pipeline.py وeaos/studio/pipeline.py وقسم pipeline من tools/make_contracts.py."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T13",
+          "title": "خريطة خط المعالجة: صفحة النظام ← خط المعالجة وورقة التقرير",
+          "why": "الشخص يرى خط المعالجة مرسومًا بدقة وفخامة: كل مرحلة وأدواتها، والموجّهات معينات بفروع مسماة، والتفرع والتجميع، ومسار الخطأ، وشكل البيانات على الحواف، حاليًا ومثاليًا وفجوة، ويتبع البيانات من مدخل إلى مخرجاتها.",
+          "moves": [
+            "F11",
+            "F8"
+          ],
+          "depends_on": [
+            "NS46.T12"
+          ],
+          "size": "L",
+          "files": [
+            "studio/src/pages/pipeline/",
+            "eaos/compose/",
+            "studio/scripts/gates.mjs",
+            "docs/studio-routes.json"
+          ],
+          "steps": [
+            "يبني على صدفة الاستوديو (NS37.T1) كما بنيت عليها صفحات الخرائط؛ وNS37 بعد NS46 في ترتيب الخطة فلا يُسجَّل اعتمادًا.",
+            "System → Pipeline: مخطط طبقي من اليسار لليمين (ومن الأعلى للأسفل على الجوال)، والعروض الحالي والمثالي والفجوة، والخريطة والخطوات، و«أظهر الخفي».",
+            "«اتبع البيانات»، والدخول في مرحلة إلى خط معالجتها الفرعي ومسار كودها وبطاقاتها، وكل عنصر بدليله.",
+            "ورقة خط المعالجة في REPORT.html وPDF: المخطط وجدول المراحل والفجوة.",
+            "البوابات المعتادة: جوال ولوحي وكمبيوتر، عربي وإنجليزي، فاتح وداكن، لوحة المفاتيح، و1000 مرحلة اصطناعية."
+          ],
+          "done_when": [
+            "مسارات NS46.T13 في docs/studio-routes.json تجتاز البوابات، وورقة خط المعالجة في التقرير."
+          ],
+          "pitfalls": [
+            "الصفحة لا تحسب موقعًا ولا رقمًا: كل شيء من pipeline.json.",
+            "حين لا يوجد خط معالجة تقول الصفحة ذلك بوضوح وماذا بُحث عنه."
+          ],
+          "acceptance": "python tools/acceptance.py test ns46_studio.PipelinePage && python tools/north_star.py measure --only F8 --min 1.0",
+          "rollback": "ارجع صفحة خط المعالجة وورقة التقرير."
+        },
+        {
           "needs": "human",
           "writes": [],
           "status": "todo",
@@ -6282,10 +6382,13 @@
             "F11",
             "F12",
             "F13",
-            "F14"
+            "F14",
+            "F16"
           ],
           "depends_on": [
-            "NS46.T7"
+            "NS46.T7",
+            "NS46.T12",
+            "NS46.T13"
           ],
           "size": "M",
           "files": [
@@ -6297,12 +6400,12 @@
             "حكم المالك مسجل بتاريخه، ورقم إصدار جديد."
           ],
           "done_when": [
-            "F11 وF13 وF14 = 1.0، والواجهة حية ومصدرها واحد (F9 وF7)، وحكم المالك مسجل."
+            "F11 وF13 وF14 وF16 = 1.0، والواجهة حية ومصدرها واحد (F9 وF7)، وحكم المالك مسجل."
           ],
           "pitfalls": [
             "لا يُغلق دون حكم المالك."
           ],
-          "acceptance": "python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview",
+          "acceptance": "python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F16 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview",
           "rollback": "لا شيء: مراجعة."
         }
       ]
@@ -9120,7 +9223,7 @@
         "NS35",
         "NS45"
       ],
-      "exit": "S4 وX13، ثم F11-F14 (الاستوديو أولًا)، ثم A1-A3 وN1-N2، ثم F2-F10 (الاستوديو)، ثم Q1-Q4 وZ1-Z2 وI1-I3 وJ1-J2 وO1-O2، ثم Y1-Y2 وW1-W2 وD4 وE12-E14 وG3-G4"
+      "exit": "S4 وX13، ثم F11-F14 وF16 (الاستوديو أولًا وخريطة خط المعالجة)، ثم A1-A3 وN1-N2، ثم F2-F10 (الاستوديو)، ثم Q1-Q4 وZ1-Z2 وI1-I3 وJ1-J2 وO1-O2، ثم Y1-Y2 وW1-W2 وD4 وE12-E14 وG3-G4"
     },
     {
       "id": "R7",

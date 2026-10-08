@@ -167,7 +167,7 @@ SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'pla
 # Contract v2 (docs/STUDIO.md D7): sections added without breaking a v1 reader. They keep "contract": 1 (the number a
 # reader-breaking change raises) and carry "revision": 2; a v1 reader ignores a section it does not know.
 STUDIO_REVISION = 2
-SECTIONS_V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'coverage', 'paths')
+SECTIONS_V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'coverage', 'paths', 'pipeline')
 REF = lambda name: {'$ref': f'#/$defs/{name}'}
 DEFS = {
     'ratio': {'type': 'number', 'minimum': 0, 'maximum': 1},
@@ -425,6 +425,82 @@ STUDIO_V2['paths'] = (
                  'counts': {'type': 'object', 'additionalProperties': REF('measure')}},
                  ['plan', 'waves', 'steps', 'tasks', 'counts'])]}},
             ['lanes', 'paths', 'nodes', 'edges', 'components', 'new', 'overview', 'counts', 'src', 'timeline']))
+# The pipeline map (studio/pipeline.json, eaos/studio/pipeline.py from facts/pipeline.json): whether the project, or a
+# part of it, is a pipeline; its stages with their tools, inputs, outputs and side effects; the edges matched by value
+# flow; routers and their branches; fan-out and fan-in; the error lanes; what bypasses the declared flow; the steps
+# EAOS could not follow (drawn as gaps, never invented); and the ideal pipeline and the gap, by rules.
+_SITE = obj({'path': {'type': ['string', 'null'], 'pattern': r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$))'}, 'line': NI, 'fact': NS,
+             'text': NS}, ['path', 'line'])
+_PIPELINE_KINDS = ('declared_dag', 'registry_loop', 'orchestrator', 'airflow', 'prefect', 'dagster', 'luigi', 'celery',
+                   'langgraph', 'n8n', 'node_red', 'temporal', 'step_functions', 'github_actions', 'makefile', 'justfile',
+                   'npm_scripts', 'queue', 'cli_chain')
+_PIPELINE_OPS = enum(*OPERATIONS)
+_PORT = obj({'name': S, 'kind': enum('value', 'file', 'table', 'artifact', 'topic', 'env', 'context'), 'shape': NS}, ['name', 'kind'])
+_EFFECT = obj({'kind': enum('file', 'env', 'network', 'global', 'cache', 'db', 'process', 'model'), 'name': S, **_SITE['properties']},
+              ['kind', 'name'])
+_PL_ID = {'type': 'string', 'pattern': '^[A-Za-z0-9_.:/-]+$'}
+STUDIO_V2['pipeline'] = (
+ 'The pipeline map: whether the project (or a part of it) is a pipeline or flowchart, with its confidence and evidence and what was looked for; each pipeline\'s stages with their entry, tools, inputs, outputs and side effects; the edges matched by value flow (value, file, table, artifact, topic); routers with their labelled branches and whether they are total; fan-out and fan-in; error lanes; hidden side channels, dead stages and unread outputs; the steps EAOS could not follow, counted and drawn as gaps; and the current, ideal and gap views by rules.',
+ section_v2({'detected': B, 'confidence': REF('ratio_measure'), 'verdict': S, 'kinds': arr(enum(*_PIPELINE_KINDS)),
+             'evidence': arr(_SITE),
+             'looked_for': arr(obj({'kind': enum(*_PIPELINE_KINDS), 'label': S, 'found': COUNT, 'how': S}, ['kind', 'label', 'found', 'how']), 1),
+             'pipelines': arr(obj({'id': _PL_ID, 'title': S, 'kind': enum(*_PIPELINE_KINDS), 'role': enum('product', 'tooling'),
+                                   'confidence': REF('ratio'), 'entry': _SITE, 'evidence': arr(_SITE), 'parent': NS,
+                                   'stages': arr(S), 'counts': {'type': 'object', 'additionalProperties': COUNT}},
+                                  ['id', 'title', 'kind', 'role', 'confidence', 'entry', 'evidence', 'parent', 'stages'])),
+             'stages': arr(obj({'id': _PL_ID, 'pipeline': S, 'label': S,
+                                'kind': enum('stage', 'router', 'fork', 'join', 'ai', 'source', 'sink', 'external'),
+                                'entry': _SITE, 'symbol': NS, 'tools': REFS, 'inputs': arr(_PORT), 'outputs': arr(_PORT),
+                                'side_effects': arr(_EFFECT), 'optional': B, 'marks': arr(enum('slow', 'risky', 'ai', 'external')),
+                                'sub_pipeline': NS, 'coverage': enum(*COVERAGE_STATES), 'layer': COUNT, 'order': COUNT,
+                                'cards': REFS, 'steps': REFS},
+                               ['id', 'pipeline', 'label', 'kind', 'entry', 'tools', 'inputs', 'outputs', 'side_effects', 'coverage',
+                                'layer', 'order', 'cards', 'steps'])),
+             'edges': arr(obj({'id': S, 'pipeline': S, 'from': S, 'to': S, 'kind': enum('data', 'control', 'error', 'hidden'),
+                               'data': obj({'names': REFS, 'shape': NS}, ['names', 'shape']),
+                               'matched_by': enum('value', 'file', 'table', 'artifact', 'topic', 'declared', 'order'),
+                               'condition': NS, 'evidence': _SITE},
+                              ['id', 'pipeline', 'from', 'to', 'kind', 'data', 'matched_by', 'evidence'])),
+             'routers': arr(obj({'id': S, 'pipeline': S, 'stage': S,
+                                 'kind': enum('dict_dispatch', 'registry', 'match', 'switch', 'if_chain', 'plugin_list',
+                                              'strategy_map', 'conditional_edges', 'branch_operator'),
+                                 'on': S, 'entry': _SITE,
+                                 'branches': arr(obj({'condition': S, 'to': NS, 'evidence': _SITE}, ['condition', 'to', 'evidence'])),
+                                 'total': {'type': ['boolean', 'null']}, 'default': NS, 'unhandled': REFS},
+                                ['id', 'pipeline', 'stage', 'kind', 'on', 'entry', 'branches', 'total', 'unhandled'])),
+             'fans': arr(obj({'id': S, 'pipeline': S, 'fork': S, 'join': NS, 'branches': REFS, 'matched': B,
+                              'kind': enum('parallel', 'map', 'group', 'chord', 'collect'), 'evidence': _SITE},
+                             ['id', 'pipeline', 'fork', 'join', 'branches', 'matched', 'kind', 'evidence'])),
+             'control': arr(obj({'id': S, 'pipeline': S, 'stage': S, 'kind': enum('loop', 'retry', 'conditional_skip', 'early_exit'),
+                                 'condition': NS, 'evidence': _SITE}, ['id', 'pipeline', 'stage', 'kind', 'evidence'])),
+             'error_lanes': arr(obj({'id': S, 'pipeline': S, 'from': S, 'to': S,
+                                     'kind': enum('skip', 'fail', 'retry', 'block', 'raise', 'catch', 'fallback'),
+                                     'condition': NS, 'evidence': _SITE}, ['id', 'pipeline', 'from', 'to', 'kind', 'evidence'])),
+             'hidden': arr(obj({'id': S, 'pipeline': S, 'kind': enum('side_channel', 'dead_stage', 'unread_output'),
+                                'channel': {'type': ['string', 'null'], 'enum': ['global', 'file', 'env', 'cache', 'db', 'context', None]},
+                                'name': S, 'stages': REFS, 'evidence': _SITE}, ['id', 'pipeline', 'kind', 'name', 'stages', 'evidence'])),
+             'unresolved': arr(obj({'id': S, 'pipeline': S, 'stage': S, 'call': S, 'reason': S, 'evidence': _SITE},
+                                   ['id', 'pipeline', 'stage', 'call', 'reason', 'evidence'])),
+             'rules': arr(obj({'id': {'type': 'string', 'pattern': '^P[0-9]+$'}, 'title': S, 'why': S, 'source': S, 'broken': COUNT},
+                              ['id', 'title', 'why', 'source', 'broken'])),
+             'views': obj({
+                 'current': obj({'stages': REFS, 'edges': REFS}, ['stages', 'edges']),
+                 'ideal': obj({'stages': arr(obj({'id': S, 'op': _PIPELINE_OPS, 'label': S, 'pipeline': S, 'why': NS, 'rule': NS,
+                                                  'contract': obj({'inputs': REFS, 'outputs': REFS}, ['inputs', 'outputs']),
+                                                  'marks': arr(enum('slow', 'risky', 'ai', 'external'))},
+                                                 ['id', 'op', 'label', 'pipeline'])),
+                               'edges': arr(obj({'from': S, 'to': S, 'op': _PIPELINE_OPS, 'pipeline': S, 'rule': NS},
+                                                ['from', 'to', 'op', 'pipeline'])),
+                               'made_by': enum('rules', 'model')}, ['stages', 'edges', 'made_by']),
+                 'gap': arr(obj({'id': S, 'rule': {'type': 'string', 'pattern': '^P[0-9]+$'}, 'pipeline': S, 'subject': S,
+                                 'subject_kind': enum('pipeline', 'stage', 'edge', 'router', 'fan', 'hidden', 'unresolved'),
+                                 'operation': _PIPELINE_OPS, 'detail': S, 'evidence': _SITE, 'card': NS, 'step': NS},
+                                ['id', 'rule', 'pipeline', 'subject', 'subject_kind', 'operation', 'detail', 'evidence', 'card', 'step']))},
+                 ['current', 'ideal', 'gap']),
+             'counts': {'type': 'object', 'additionalProperties': REF('measure')},
+             'src': {'type': 'object', 'additionalProperties': REF('source')}},
+            ['detected', 'confidence', 'verdict', 'kinds', 'evidence', 'looked_for', 'pipelines', 'stages', 'edges', 'routers',
+             'fans', 'control', 'error_lanes', 'hidden', 'unresolved', 'rules', 'views', 'counts', 'src']))
 DEFS_V2 = {**DEFS, 'touch': obj({'kind': enum('table', 'file', 'env', 'network', 'store', 'storage'), 'name': S}, ['kind', 'name'])}
 for _name, (_description, _schema) in STUDIO.items():
     _schema = {**_schema, '$defs': DEFS}
