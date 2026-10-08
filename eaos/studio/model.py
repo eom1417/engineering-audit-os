@@ -45,6 +45,12 @@ from pathlib import Path
 
 from ..ranking import CONFIDENCE_WEIGHT
 
+# The language of a source file by its suffix: the Studio's languages bar and the coverage of function facts.
+LANGUAGES = {'.py': 'Python', '.ts': 'TypeScript', '.tsx': 'TypeScript', '.js': 'JavaScript', '.jsx': 'JavaScript',
+             '.mjs': 'JavaScript', '.cjs': 'JavaScript', '.go': 'Go', '.rb': 'Ruby', '.java': 'Java', '.kt': 'Kotlin',
+             '.cs': 'C#', '.php': 'PHP', '.rs': 'Rust', '.swift': 'Swift', '.vue': 'Vue', '.svelte': 'Svelte',
+             '.sql': 'SQL', '.dart': 'Dart', '.scala': 'Scala', '.c': 'C', '.cpp': 'C++', '.h': 'C'}
+
 SEVERITIES = ('critical', 'high', 'medium', 'low')
 SEVERITY_WEIGHT = {'critical': 10, 'high': 5, 'medium': 2, 'low': 1}
 HALF_POINT = 20          # weighted points per 100 files at which an area scores 50
