@@ -220,11 +220,13 @@ USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'X11', 'X12'
 
 
 STUDIO = ('F8', 'W2')
+STUDIO_PHASE = ('F11', 'F12', 'F13', 'F14')   # the exit gate of NS46, tools/north_star_studio.py
 
 
 def measure(record, only=None):
     if only in USABILITY: return usability_values(only)   # read from this checkout, not from the corpus
     if only in STUDIO: return studio_values(only)
+    if only in STUDIO_PHASE: return studio_phase_values(record, only)
     projects = []
     for spec in record['corpus']:
         target = CORPUS / spec['name']
@@ -238,7 +240,14 @@ def measure(record, only=None):
     values.update(live_values(record))
     values.update(usability_values(only))
     values.update(studio_values(only))
+    values.update(studio_phase_values(record, only))
     return values
+
+
+def studio_phase_values(record, only=None):
+    """F11-F14 from the screen-gate runs and the reports' studio/coverage.json (tools/north_star_studio.py)."""
+    import north_star_studio
+    return north_star_studio.values(REPORTS, record, only)
 
 
 def studio_values(only=None):

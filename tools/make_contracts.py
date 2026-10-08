@@ -164,6 +164,10 @@ CONTRACTS = {
 # is a measure with its source; what was not measured is null, never 0; a path is relative to the project.
 STUDIO_CONTRACT = 1
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media')
+# Contract v2 (docs/STUDIO.md D7): sections added without breaking a v1 reader. They keep "contract": 1 (the number a
+# reader-breaking change raises) and carry "revision": 2; a v1 reader ignores a section it does not know.
+STUDIO_REVISION = 2
+SECTIONS_V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'coverage')
 REF = lambda name: {'$ref': f'#/$defs/{name}'}
 DEFS = {
     'ratio': {'type': 'number', 'minimum': 0, 'maximum': 1},
@@ -178,6 +182,11 @@ DEFS = {
 CARD_STATES = ('open', 'in_batch', 'on_branch', 'done', 'resolved', 'skipped')
 PLAN_STATES = ('draft', 'registered', 'approved', 'rejected', 'active', 'review', 'merged', 'closed', 'regressed', 'archived')
 TASK_STATES = ('todo', 'active', 'done', 'blocked', 'regressed')
+OPERATIONS = ('retain', 'refactor', 'rebuild', 'merge', 'delete', 'new')
+SEVERITIES = ('critical', 'high', 'medium', 'low', 'info')
+COVERAGE_STATES = ('measured', 'empty', 'partial', 'not_measured', 'failed')
+COVERAGE_REASONS = ('written', 'nothing_found', 'some_parts_missing', 'not_built', 'facts_not_exported', 'stage_failed',
+                    'section_error', 'needs_run', 'needs_screens')
 
 
 def section(props, required):
@@ -185,12 +194,22 @@ def section(props, required):
                ['schema_version', 'contract', *required])
 
 
+def section_v2(props, required):
+    return obj({'schema_version': {'const': 1}, 'contract': {'const': STUDIO_CONTRACT}, 'revision': {'const': STUDIO_REVISION},
+                **props}, ['schema_version', 'contract', 'revision', *required])
+
+
+COUNT = {'type': 'integer', 'minimum': 0}
+REFS = arr(S)
+
+
 STUDIO = {
  'manifest': ('The index of the Studio\'s data, written last so a reader never sees a half-written set: which EAOS built it, which scan, and every section with its fingerprint.',
   section({'built': obj({'version': S, 'commit': S, 'digest': S, 'studio_digest': S, 'built': S}),
            'project': obj({'name': {'type': 'string', 'minLength': 1}}),
            'scanned': REF('scan'),
-           'sections': arr(obj({'name': enum(*SECTIONS), 'file': {'type': 'string', 'pattern': '^[a-z]+\\.json$'},
+           'revision': {'type': 'integer', 'minimum': 1},
+           'sections': arr(obj({'name': enum(*SECTIONS, *SECTIONS_V2), 'file': {'type': 'string', 'pattern': '^[a-z]+\\.json$'},
                                 'sha256': {'type': 'string', 'pattern': '^[0-9a-f]{64}$'},
                                 'bytes': {'type': 'integer', 'minimum': 0}}), 1)},
           ['built', 'project', 'scanned', 'sections'])),
@@ -259,10 +278,77 @@ STUDIO = {
                               'route': NS, 'viewport': NS, 'pair': NS}, ['id', 'path', 'title', 'kind']))},
           ['images'])),
 }
+STUDIO_V2 = {
+ 'functions': ('Every function EAOS read, by module: what it is, its signature and summary, who calls it and what it calls, the data it reads and writes, its size and complexity, and the cards on it.',
+  section_v2({'modules': arr(obj({'id': REF('path'), 'component': NS, 'language': NS, 'functions': COUNT}, ['id', 'functions'])),
+              'functions': arr(obj({'id': S, 'name': S, 'module': REF('path'), 'line': NI, 'end_line': NI, 'language': NS,
+                                    'kind': enum('function', 'method', 'component', 'hook', 'handler', 'class'),
+                                    'signature': NS, 'summary': NS, 'exported': {'type': ['boolean', 'null']},
+                                    'lines': REF('measure'), 'complexity': REF('measure'),
+                                    'callers': REFS, 'callees': REFS,
+                                    'reads': arr(REF('touch')), 'writes': arr(REF('touch')), 'cards': REFS},
+                                   ['id', 'name', 'module', 'kind', 'lines', 'complexity', 'callers', 'callees']))},
+             ['modules', 'functions'])),
+ 'screens': ('What users see: every screen with its route, its shots per viewport before and after each batch, its inputs, and the usability issues found on it, each pinned to a region of the shot.',
+  section_v2({'screens': arr(obj({'id': S, 'route': S, 'title': S, 'component': NS, 'file': {'type': ['string', 'null']},
+                                  'shots': arr(obj({'path': REF('path'), 'width': {'type': 'integer', 'minimum': 1},
+                                                    'phase': {'type': ['string', 'null'], 'enum': ['before', 'after', 'baseline', None]},
+                                                    'batch': NS}, ['path', 'width'])),
+                                  'inputs': arr(obj({'id': S, 'label': NS, 'kind': S, 'labelled': {'type': ['boolean', 'null']},
+                                                     'validated': {'type': ['boolean', 'null']}, 'required': {'type': ['boolean', 'null']}},
+                                                    ['id', 'kind'])),
+                                  'issues': arr(obj({'id': S, 'rule': S, 'severity': enum(*SEVERITIES), 'summary': S, 'element': NS,
+                                                     'width': NI, 'box': {'type': ['object', 'null'], 'required': ['x', 'y', 'w', 'h'],
+                                                                          'properties': {k: {'type': 'number', 'minimum': 0} for k in 'xywh'}},
+                                                     'card': NS, 'state': enum('open', 'fixed')},
+                                                    ['id', 'rule', 'severity', 'summary', 'state']))},
+                                 ['id', 'route', 'title', 'shots', 'inputs', 'issues']))},
+             ['screens'])),
+ 'gaps': ('The gap register: what separates each component from the ideal, the operation that closes it, and how far it is closed.',
+  section_v2({'gaps': arr(obj({'id': S, 'component': S, 'operation': enum(*OPERATIONS), 'to': NS, 'responsibility': NS,
+                               'files': COUNT, 'cards': REFS, 'cards_closed': COUNT, 'steps': REFS, 'operations': REFS,
+                               'decision': NS, 'closed': REF('ratio_measure')},
+                              ['id', 'component', 'operation', 'files', 'cards', 'cards_closed', 'closed']))},
+             ['gaps'])),
+ 'operations': ('The ordered operations of the change: what is retained, refactored, rebuilt, merged, deleted or new, on which subject, in which step, after which other operations.',
+  section_v2({'operations': arr(obj({'id': S, 'op': enum(*OPERATIONS), 'subject': S,
+                                     'subject_kind': enum('component', 'module', 'file', 'function', 'table', 'screen', 'endpoint'),
+                                     'target': NS, 'reason': S, 'plan': NS, 'step': NS, 'order': COUNT, 'after': REFS,
+                                     'gap': NS, 'cards': REFS, 'branch': NS, 'state': enum(*TASK_STATES)},
+                                    ['id', 'op', 'subject', 'subject_kind', 'reason', 'order', 'after', 'state']))},
+             ['operations'])),
+ 'history': ('The project over time: every scan with its score and open cards by severity, what each scan added and resolved, and the events between scans.',
+  section_v2({'scans': arr(obj({'id': S, 'commit': NS, 'branch': NS, 'at': S,
+                                'score': {'type': ['number', 'null'], 'minimum': 0, 'maximum': 1},
+                                'open': obj({k: COUNT for k in SEVERITIES}), 'added': NI, 'resolved': NI,
+                                'open_keys': REFS}, ['id', 'at', 'score', 'open'])),
+              'events': arr(obj({'at': S, 'kind': enum('scan', 'batch', 'merge', 'decision', 'release'), 'title': S, 'ref': NS},
+                                ['at', 'kind', 'title']))},
+             ['scans', 'events'])),
+ 'quality': ("How good EAOS's own analysis is for this project: each detector's precision and recall on labelled cases, how much of each capability was measured, and the product plan's indicators.",
+  section_v2({'detectors': arr(obj({'id': S, 'name': S, 'engine': NS, 'applies': B,
+                                    'precision': REF('ratio_measure'), 'recall': REF('ratio_measure'), 'labelled': NI},
+                                   ['id', 'name', 'applies', 'precision', 'recall'])),
+              'capabilities': arr(obj({'id': S, 'name': S, 'value': REF('ratio_measure')}, ['id', 'name', 'value'])),
+              'indicators': arr(obj({'id': S, 'name': S, 'value': REF('ratio_measure'), 'target': REF('ratio')},
+                                    ['id', 'name', 'value', 'target']))},
+             ['detectors', 'capabilities', 'indicators'])),
+ 'coverage': ('What EAOS measured for this report and what it has not measured yet: every Studio section with its state, the reason in a stable code, which step of the plan will produce it, and how to produce it. A page with no data shows this instead of "coming soon".',
+  section_v2({'sections': arr(obj({'section': {'type': 'string', 'pattern': '^[a-z]+$'}, 'state': enum(*COVERAGE_STATES),
+                                   'reason': enum(*COVERAGE_REASONS), 'detail': S, 'step': {'type': ['string', 'null'], 'pattern': '^NS[0-9]+(\\.T[0-9]+)?$'},
+                                   'tool': NS, 'count': REF('measure'),
+                                   'parts': arr(obj({'id': S, 'state': enum(*COVERAGE_STATES), 'detail': S}, ['id', 'state']))},
+                                  ['section', 'state', 'reason', 'detail', 'step', 'count'], extra=False), 1),
+              'not_measured': REF('measure')},
+             ['sections', 'not_measured'])),
+}
+DEFS_V2 = {**DEFS, 'touch': obj({'kind': enum('table', 'file', 'env', 'network', 'store', 'storage'), 'name': S}, ['kind', 'name'])}
 for _name, (_description, _schema) in STUDIO.items():
     _schema = {**_schema, '$defs': DEFS}
-    if _name == 'manifest': _schema['x-sections'] = list(SECTIONS)
+    if _name == 'manifest': _schema['x-sections'] = list(SECTIONS) + list(SECTIONS_V2)
     CONTRACTS[f'studio-{_name}'] = (f'studio/{_name}.json', 'NS36', _description, _schema)
+for _name, (_description, _schema) in STUDIO_V2.items():
+    CONTRACTS[f'studio-{_name}'] = (f'studio/{_name}.json', 'NS46', _description, {**_schema, '$defs': DEFS_V2, 'x-revision': STUDIO_REVISION})
 
 def main():
     for name, (artifact, owner, description, schema) in CONTRACTS.items():

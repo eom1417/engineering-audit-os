@@ -1,0 +1,388 @@
+{
+ "schema_version": 1,
+ "about": "The routes the Studio must have to leave the \"Studio first\" phase (docs/STUDIO.md D7, NS46): every route of C-experience 2.2 and the pages STUDIO-COMPLETE.md adds, under the names the screen gates shoot them by. `id` is the page name in gates.json; `studio` the hash route as built (D6 names: problems, decisions); `spec` the route in the experience plan; `needs` the data sections the page reads (each written, or explained in studio/coverage.json); `task` the step that builds it. Read by tools/north_star_studio.py (F11, F13).",
+ "routes": [
+  {
+   "id": "home",
+   "studio": "#/",
+   "spec": "#/",
+   "section": "home",
+   "needs": [
+    "head",
+    "health",
+    "plans",
+    "decisions"
+   ],
+   "task": "NS37.T3"
+  },
+  {
+   "id": "system",
+   "studio": "#/system",
+   "spec": "#/system?lens=structure|links|infra&layer=&focus=<nodeId>&z=<level>",
+   "section": "system",
+   "needs": [
+    "story",
+    "maps"
+   ],
+   "task": "NS46.T6"
+  },
+  {
+   "id": "system-focus",
+   "studio": "#/system?focus=<nodeId>",
+   "spec": "#/system?focus=<nodeId>",
+   "section": "system",
+   "needs": [
+    "story",
+    "maps"
+   ],
+   "task": "NS46.T6"
+  },
+  {
+   "id": "system-infra",
+   "studio": "#/system?lens=infra",
+   "spec": "#/system?lens=infra",
+   "section": "system",
+   "needs": [
+    "maps"
+   ],
+   "task": "NS46.T6"
+  },
+  {
+   "id": "system-component",
+   "studio": "#/system/c/<component>",
+   "spec": "#/system/c/<component>",
+   "section": "system",
+   "needs": [
+    "story",
+    "maps"
+   ],
+   "task": "NS46.T6"
+  },
+  {
+   "id": "system-module",
+   "studio": "#/system/m/<module>",
+   "spec": "#/system/m/<module>",
+   "section": "system",
+   "needs": [
+    "maps",
+    "functions"
+   ],
+   "task": "NS46.T6"
+  },
+  {
+   "id": "journeys",
+   "studio": "#/system/journeys",
+   "spec": "STUDIO-COMPLETE: System -> Journeys",
+   "section": "system",
+   "needs": [
+    "maps",
+    "screens"
+   ],
+   "task": "NS46.T6"
+  },
+  {
+   "id": "paths",
+   "studio": "#/system/paths",
+   "spec": "STUDIO-COMPLETE: System -> Paths",
+   "section": "system",
+   "needs": [
+    "maps"
+   ],
+   "task": "NS46.T6"
+  },
+  {
+   "id": "data",
+   "studio": "#/system/data",
+   "spec": "STUDIO-COMPLETE: System -> Data",
+   "section": "system",
+   "needs": [
+    "maps"
+   ],
+   "task": "NS46.T6"
+  },
+  {
+   "id": "flow",
+   "studio": "#/flows/<flowId>",
+   "spec": "#/flows/<flowId>",
+   "section": "system",
+   "needs": [
+    "maps"
+   ],
+   "task": "NS46.T6"
+  },
+  {
+   "id": "functions",
+   "studio": "#/system/functions",
+   "spec": "C-experience 3.3: function list",
+   "section": "system",
+   "needs": [
+    "functions"
+   ],
+   "task": "NS46.T5"
+  },
+  {
+   "id": "function",
+   "studio": "#/system/f/<functionId>",
+   "spec": "#/system/f/<functionId>",
+   "section": "system",
+   "needs": [
+    "functions"
+   ],
+   "task": "NS46.T5"
+  },
+  {
+   "id": "screens",
+   "studio": "#/screens",
+   "spec": "#/screens?issue=open",
+   "section": "system",
+   "needs": [
+    "screens"
+   ],
+   "task": "NS46.T5"
+  },
+  {
+   "id": "screen",
+   "studio": "#/screens/<screenId>",
+   "spec": "#/screens/<screenId>?vp=390&compare=slider",
+   "section": "system",
+   "needs": [
+    "screens"
+   ],
+   "task": "NS46.T5"
+  },
+  {
+   "id": "problems",
+   "studio": "#/problems",
+   "spec": "#/findings?sev=&area=&state=&q=&group=",
+   "section": "problems",
+   "needs": [
+    "cards"
+   ],
+   "task": "NS46.T2"
+  },
+  {
+   "id": "problem",
+   "studio": "#/problems?card=<cardKey>",
+   "spec": "#/findings/<cardKey>",
+   "section": "problems",
+   "needs": [
+    "cards",
+    "evidence"
+   ],
+   "task": "NS46.T2"
+  },
+  {
+   "id": "evidence",
+   "studio": "#/evidence/<factId>",
+   "spec": "#/evidence/<factId>",
+   "section": "problems",
+   "needs": [
+    "evidence"
+   ],
+   "task": "NS46.T2"
+  },
+  {
+   "id": "bridge",
+   "studio": "#/change/bridge",
+   "spec": "#/change/bridge",
+   "section": "change",
+   "needs": [
+    "story"
+   ],
+   "task": "NS46.T3"
+  },
+  {
+   "id": "gaps",
+   "studio": "#/change/gaps",
+   "spec": "#/change/gaps?relation=",
+   "section": "change",
+   "needs": [
+    "gaps"
+   ],
+   "task": "NS46.T3"
+  },
+  {
+   "id": "gap",
+   "studio": "#/change/gaps/<component>",
+   "spec": "#/change/gaps/<component>",
+   "section": "change",
+   "needs": [
+    "gaps"
+   ],
+   "task": "NS46.T3"
+  },
+  {
+   "id": "plans",
+   "studio": "#/plans",
+   "spec": "#/plans",
+   "section": "change",
+   "needs": [
+    "plans"
+   ],
+   "task": "NS46.T3"
+  },
+  {
+   "id": "plan",
+   "studio": "#/plans/<planId>",
+   "spec": "#/plans/<planId>?view=timeline|graph|board",
+   "section": "change",
+   "needs": [
+    "plans",
+    "operations"
+   ],
+   "task": "NS46.T3"
+  },
+  {
+   "id": "plan-step",
+   "studio": "#/plans/<planId>/<stepId>",
+   "spec": "#/plans/<planId>/<stepId>",
+   "section": "change",
+   "needs": [
+    "plans"
+   ],
+   "task": "NS46.T3"
+  },
+  {
+   "id": "task",
+   "studio": "#/tasks/<taskId>",
+   "spec": "#/tasks/<taskId>",
+   "section": "change",
+   "needs": [
+    "plans",
+    "cards"
+   ],
+   "task": "NS46.T3"
+  },
+  {
+   "id": "operation",
+   "studio": "#/ops/<opId>",
+   "spec": "#/ops/<opId>",
+   "section": "change",
+   "needs": [
+    "operations"
+   ],
+   "task": "NS46.T3"
+  },
+  {
+   "id": "decisions",
+   "studio": "#/decisions",
+   "spec": "#/inbox",
+   "section": "decisions",
+   "needs": [
+    "decisions"
+   ],
+   "task": "NS37.T3"
+  },
+  {
+   "id": "decision",
+   "studio": "#/decisions/<decisionId>",
+   "spec": "#/inbox/<decisionId>",
+   "section": "decisions",
+   "needs": [
+    "decisions"
+   ],
+   "task": "NS37.T3"
+  },
+  {
+   "id": "library",
+   "studio": "#/library/docs",
+   "spec": "#/library/docs?group=",
+   "section": "library",
+   "needs": [
+    "docs"
+   ],
+   "task": "NS46.T4"
+  },
+  {
+   "id": "document",
+   "studio": "#/library/docs/<path>",
+   "spec": "#/library/docs/<path>#<heading>",
+   "section": "library",
+   "needs": [
+    "docs"
+   ],
+   "task": "NS46.T4"
+  },
+  {
+   "id": "image",
+   "studio": "#/library/images/<id>",
+   "spec": "#/library/images/<id>",
+   "section": "library",
+   "needs": [
+    "media"
+   ],
+   "task": "NS46.T4"
+  },
+  {
+   "id": "history",
+   "studio": "#/history",
+   "spec": "#/history",
+   "section": "history",
+   "needs": [
+    "history"
+   ],
+   "task": "NS46.T4"
+  },
+  {
+   "id": "history-scan",
+   "studio": "#/history/<scanCommit>",
+   "spec": "#/history/<scanCommit>",
+   "section": "history",
+   "needs": [
+    "history"
+   ],
+   "task": "NS46.T4"
+  },
+  {
+   "id": "history-compare",
+   "studio": "#/history/compare/<a>..<b>",
+   "spec": "#/history/compare/<a>..<b>",
+   "section": "history",
+   "needs": [
+    "history"
+   ],
+   "task": "NS46.T4"
+  },
+  {
+   "id": "quality",
+   "studio": "#/quality",
+   "spec": "STUDIO-COMPLETE: EAOS quality",
+   "section": "quality",
+   "needs": [
+    "quality"
+   ],
+   "task": "NS46.T4"
+  }
+ ],
+ "projects": [
+  {
+   "name": "FleetManageWeb",
+   "match": "fleetmanageweb"
+  },
+  {
+   "name": "chief-ops",
+   "match": "chief-ops"
+  },
+  {
+   "name": "finance-os",
+   "match": "finance-os"
+  },
+  {
+   "name": "EAOS itself",
+   "match": "eaos"
+  },
+  {
+   "name": "synthetic (5,000 cards, 1,000 components)",
+   "match": "synthetic",
+   "make": "python tools/studio_synthetic.py --out <dir>"
+  }
+ ],
+ "budgets": {
+  "lighthouse_mobile": {
+   "performance": 90,
+   "accessibility": 100
+  },
+  "filter_5000_ms": 100,
+  "home_interactive_ms": 1500
+ }
+}

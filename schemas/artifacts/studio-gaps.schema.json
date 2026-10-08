@@ -1,17 +1,15 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "studio/manifest.json",
-  "description": "The index of the Studio's data, written last so a reader never sees a half-written set: which EAOS built it, which scan, and every section with its fingerprint.",
-  "x-artifact": "studio/manifest.json",
-  "x-owner": "NS36",
+  "title": "studio/gaps.json",
+  "description": "The gap register: what separates each component from the ideal, the operation that closes it, and how far it is closed.",
+  "x-artifact": "studio/gaps.json",
+  "x-owner": "NS46",
   "type": "object",
   "required": [
     "schema_version",
     "contract",
-    "built",
-    "project",
-    "scanned",
-    "sections"
+    "revision",
+    "gaps"
   ],
   "properties": {
     "schema_version": {
@@ -20,100 +18,89 @@
     "contract": {
       "const": 1
     },
-    "built": {
-      "type": "object",
-      "required": [
-        "version",
-        "commit",
-        "digest",
-        "studio_digest",
-        "built"
-      ],
-      "properties": {
-        "version": {
-          "type": "string"
-        },
-        "commit": {
-          "type": "string"
-        },
-        "digest": {
-          "type": "string"
-        },
-        "studio_digest": {
-          "type": "string"
-        },
-        "built": {
-          "type": "string"
-        }
-      }
-    },
-    "project": {
-      "type": "object",
-      "required": [
-        "name"
-      ],
-      "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1
-        }
-      }
-    },
-    "scanned": {
-      "$ref": "#/$defs/scan"
-    },
     "revision": {
-      "type": "integer",
-      "minimum": 1
+      "const": 2
     },
-    "sections": {
+    "gaps": {
       "type": "array",
       "items": {
         "type": "object",
         "required": [
-          "name",
-          "file",
-          "sha256",
-          "bytes"
+          "id",
+          "component",
+          "operation",
+          "files",
+          "cards",
+          "cards_closed",
+          "closed"
         ],
         "properties": {
-          "name": {
+          "id": {
+            "type": "string"
+          },
+          "component": {
+            "type": "string"
+          },
+          "operation": {
             "type": "string",
             "enum": [
-              "meta",
-              "head",
-              "health",
-              "cards",
-              "evidence",
-              "story",
-              "docs",
-              "plans",
-              "decisions",
-              "media",
-              "functions",
-              "screens",
-              "gaps",
-              "operations",
-              "history",
-              "quality",
-              "coverage"
+              "retain",
+              "refactor",
+              "rebuild",
+              "merge",
+              "delete",
+              "new"
             ]
           },
-          "file": {
-            "type": "string",
-            "pattern": "^[a-z]+\\.json$"
+          "to": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
-          "sha256": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{64}$"
+          "responsibility": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
-          "bytes": {
+          "files": {
             "type": "integer",
             "minimum": 0
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cards_closed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "decision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "closed": {
+            "$ref": "#/$defs/ratio_measure"
           }
         }
-      },
-      "minItems": 1
+      }
     }
   },
   "$defs": {
@@ -204,25 +191,30 @@
           "type": "string"
         }
       }
+    },
+    "touch": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "table",
+            "file",
+            "env",
+            "network",
+            "store",
+            "storage"
+          ]
+        },
+        "name": {
+          "type": "string"
+        }
+      }
     }
   },
-  "x-sections": [
-    "meta",
-    "head",
-    "health",
-    "cards",
-    "evidence",
-    "story",
-    "docs",
-    "plans",
-    "decisions",
-    "media",
-    "functions",
-    "screens",
-    "gaps",
-    "operations",
-    "history",
-    "quality",
-    "coverage"
-  ]
+  "x-revision": 2
 }

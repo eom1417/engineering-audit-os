@@ -62,6 +62,10 @@
     "scanned": {
       "$ref": "#/$defs/scan"
     },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
     "sections": {
       "type": "array",
       "items": {
@@ -85,7 +89,14 @@
               "docs",
               "plans",
               "decisions",
-              "media"
+              "media",
+              "functions",
+              "screens",
+              "gaps",
+              "operations",
+              "history",
+              "quality",
+              "coverage"
             ]
           },
           "file": {
@@ -205,6 +216,13 @@
     "docs",
     "plans",
     "decisions",
-    "media"
+    "media",
+    "functions",
+    "screens",
+    "gaps",
+    "operations",
+    "history",
+    "quality",
+    "coverage"
   ]
 }

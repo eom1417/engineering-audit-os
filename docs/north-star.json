@@ -1528,6 +1528,46 @@
           "measured": "recorded"
         },
         {
+          "id": "F11",
+          "name": "كل صفحة في الاستوديو موجودة وتعرض شيئًا صادقًا",
+          "definition": "مسارات docs/studio-routes.json (كل مسارات C-experience 2.2 وما أضافه STUDIO-COMPLETE) التي صوّرها آخر تشغيل كامل لبوابات الشاشات على البناء المشحون، واجتازت كل لقطاتها، وكل قسم بيانات تقرؤه إما مكتوب أو موصوف في studio/coverage.json بسببه وخطوته ÷ المسارات",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md",
+          "reads": "${EAOS_MEASURE}/studio-gates/**/gates.json + docs/studio-routes.json + <بيانات التشغيل>/coverage.json",
+          "measured": "automated"
+        },
+        {
+          "id": "F12",
+          "name": "ما قاسه الاستوديو فعلًا",
+          "definition": "صفوف studio/coverage.json بحالة measured أو empty ÷ كل الصفوف، على تقارير العيّنة؛ الباقي هو عدد حالات «لم يُقس بعد»، ولا يصعد أبدًا. تقرير بلا coverage.json يُحسب كله غير مقيس",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md",
+          "reads": "<تقرير>/studio/coverage.json",
+          "measured": "automated"
+        },
+        {
+          "id": "F13",
+          "name": "الاستوديو يجتاز البوابات على عدة مشاريع",
+          "definition": "مشاريع docs/studio-routes.json (FleetManageWeb وchief-ops وfinance-os وEAOS نفسه ومشروع اصطناعي من 5000 بطاقة و1000 مكوّن) التي صوّر فيها تشغيل كامل للبناء المشحون كل مسار، واجتاز كل بوابة ÷ المشاريع",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md",
+          "reads": "${EAOS_MEASURE}/studio-gates/**/gates.json",
+          "measured": "automated"
+        },
+        {
+          "id": "F14",
+          "name": "ميزانيات السرعة",
+          "definition": "ميزانيات STUDIO-COMPLETE المحققة على البناء المشحون: Lighthouse على الجوال (أداء ≥ 90 ووصول = 100) لكل صفحة قيست، وتصفية 5000 بطاقة ≤ 100 ملي ثانية، والرئيسية تفاعلية ≤ 1.5 ثانية ÷ الميزانيات؛ ميزانية لم تُقس لا تُحسب محققة",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md",
+          "reads": "${EAOS_MEASURE}/studio-gates/**/gates.json → lighthouse + ${EAOS_MEASURE}/studio-gates/budgets.json",
+          "measured": "automated"
+        },
+        {
           "id": "W1",
           "name": "المساعد يحسن استخدام الأدوات",
           "definition": "متوسط مؤشرات تجربة الأدوات: نجاح الاستدعاء، و1 − نسبة العمل خارج أدوات EAOS، و1 − الأداة الخطأ، على 11 سيناريو في Claude وCodex",
@@ -3680,8 +3720,8 @@
         "S06"
       ],
       "title_en": "Target-state report",
-      "weight": 2,
-      "weight_why": "قلب الوعد: الصورة المثالية بالوظائف نفسها وقرار لكل مكوّن. (2 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.)",
+      "weight": 1,
+      "weight_why": "قلب الوعد: الصورة المثالية بالوظائف نفسها وقرار لكل مكوّن. (2 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.) (1 من نقاطه إلى NS46: الاستوديو أولًا، 2026-10-08.)",
       "does": [
         "يختار المعمارية المرجعية من سبع بحسب ملفات المشروع",
         "يضع كل ملف في مكوّن مستهدف ويقرر قرارات البنية التحتية",
@@ -3824,8 +3864,8 @@
         "S06"
       ],
       "title_en": "Architecture model and decisions (C4, ADR)",
-      "weight": 2,
-      "weight_why": "رسم العمارة وقراراتها بصيغ معيارية تتحقق منها أدواتها. (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.)",
+      "weight": 1,
+      "weight_why": "رسم العمارة وقراراتها بصيغ معيارية تتحقق منها أدواتها. (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.) (1 من نقاطه إلى NS46: الاستوديو أولًا، 2026-10-08.)",
       "does": [
         "يرسم نموذج C4 للوضع الحالي من الحقائق",
         "يرسم نموذج C4 للصورة المثالية",
@@ -4240,8 +4280,8 @@
         "S07"
       ],
       "title_en": "Report quality checked automatically",
-      "weight": 2,
-      "weight_why": "فحص آلي لجودة كتابة التقارير.",
+      "weight": 1,
+      "weight_why": "فحص آلي لجودة كتابة التقارير. (1 من نقاطه إلى NS46: الاستوديو أولًا، 2026-10-08.)",
       "does": [
         "يفحص التقارير الأربعة بأسلوب EAOS في Vale وقواعد markdownlint",
         "يضيف مرحلة فحص التقارير إلى خط الإنتاج",
@@ -4485,8 +4525,8 @@
         "S15"
       ],
       "title_en": "Operations and handover kit",
-      "weight": 2,
-      "weight_why": "ما يبقى مع الفريق بعد التسليم: ملفات تعمل كما هي. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
+      "weight": 1,
+      "weight_why": "ما يبقى مع الفريق بعد التسليم: ملفات تعمل كما هي. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.) (1 من نقاطه إلى NS46: الاستوديو أولًا، 2026-10-08.)",
       "does": [
         "يولّد CI وpre-commit وRenovate وقواعد الحدود",
         "يولّد إعداد الرصد OpenTelemetry وأهداف SLO",
@@ -4596,8 +4636,8 @@
         "S05"
       ],
       "title_en": "Live baseline: behaviour and numbers before any change",
-      "weight": 2,
-      "weight_why": "أرقام قبل التغيير: بدونها لا يُقاس أي تحسن. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
+      "weight": 1,
+      "weight_why": "أرقام قبل التغيير: بدونها لا يُقاس أي تحسن. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.) (1 من نقاطه إلى NS46: الاستوديو أولًا، 2026-10-08.)",
       "does": [
         "يشغّل شبكة الأمان على الكود الأصلي في بيئة معزولة",
         "يسجل خط أساس الحمل بـk6 لكل سيناريو"
@@ -5367,8 +5407,8 @@
         "S01",
         "S15"
       ],
-      "weight": 2,
-      "weight_why": "من طلب المالك (2026-10-03): /eaos كانت تبدأ العمل مباشرة، فلا يعرف الشخص ما تقدر الأداة عليه ولا يختار. نقطة من NS28 ونقطة من NS8.",
+      "weight": 1,
+      "weight_why": "من طلب المالك (2026-10-03): /eaos كانت تبدأ العمل مباشرة، فلا يعرف الشخص ما تقدر الأداة عليه ولا يختار. نقطة من NS28 ونقطة من NS8. (1 من نقاطه إلى NS46: الاستوديو أولًا، 2026-10-08.)",
       "does": [
         "قائمة تُبنى من حالة المشروع: لا تقرير قبل فحص، ولا «تابع» بلا عمل مفتوح، والموصى به أولًا",
         "صفحات من أربعة خيارات كحد أقصى، و«خيارات أخرى…» للبقية",
@@ -5933,6 +5973,337 @@
           ],
           "acceptance": "python tools/north_star.py measure --only F8 --min 1.0 && python tools/north_star.py measure --only F10 --min 1.0",
           "rollback": "احذف مجلد النماذج؛ لا كود منتج يتغير."
+        }
+      ]
+    },
+    {
+      "id": "NS46",
+      "title": "الاستوديو أولًا: واجهة كاملة واحترافية",
+      "title_en": "Studio first: a complete, professional front end",
+      "stages": [
+        "S07",
+        "S15"
+      ],
+      "weight": 6,
+      "goal": "F11 وF13 وF14 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويحكم المالك.",
+      "weight_why": "قرار المالك (2026-10-08): تُكمل الواجهة قبل متابعة المحرك، فيظهر كل تقدم لاحق في صفحة أو رقم. نقطة من كل من NS7 وNS13 وNS14 وNS25 وNS26 وNS29.",
+      "does": [
+        "عقد البيانات v2 بأقسام إضافية وبيانات تجريبية بحجم شركة",
+        "حالات تغطية بدل «قريبًا»، تُعدّ وتهبط",
+        "كل صفحات C-experience 2.2 والخرائط المرئية",
+        "بوابات الشاشات على خمسة مشاريع وميزانيات السرعة",
+        "مراجعة ذاتية وحكم المالك"
+      ],
+      "tools": [
+        "React + TS + Vite",
+        "ELK",
+        "d3",
+        "axe-core",
+        "Lighthouse",
+        "Playwright"
+      ],
+      "outputs": [
+        "studio/coverage.json وأقسام v2",
+        "docs/studio-routes.json",
+        "tools/studio_synthetic.py",
+        "docs/STUDIO-REVIEW.md"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [
+            "contract:studio-functions",
+            "contract:studio-screens",
+            "contract:studio-gaps",
+            "contract:studio-operations",
+            "contract:studio-history",
+            "contract:studio-quality",
+            "contract:studio-coverage"
+          ],
+          "status": "todo",
+          "id": "NS46.T1",
+          "title": "عقد البيانات v2 وبياناته التجريبية",
+          "why": "الصفحات تُبنى وتُختبر الآن على شكل البيانات النهائي، فلا يبقى لعمل المحرك لاحقًا إلا ملء البيانات. وحالة التغطية تقول بصدق ما لم يُقس بعد.",
+          "moves": [
+            "F12"
+          ],
+          "depends_on": [
+            "NS36.T2"
+          ],
+          "size": "M",
+          "files": [
+            "tools/make_contracts.py",
+            "schemas/artifacts/studio-*.schema.json",
+            "eaos/studio/coverage.py",
+            "eaos/studio/export.py",
+            "tools/studio_synthetic.py",
+            "tests/fixtures/studio/v2/",
+            "tests/test_studio_contract_v2.py"
+          ],
+          "steps": [
+            "مخططات إضافية لأقسام functions وscreens وgaps وoperations وhistory وquality وcoverage، تحمل \"contract\": 1 و\"revision\": 2 فلا ينكسر قارئ v1.",
+            "بيانات صغيرة صحيحة لكل قسم، ومولّد اصطناعي حتمي بـ5000 بطاقة و1000 مكوّن، كل معرّف فيه يشير إلى موجود.",
+            "المُصدِّر يكتب coverage.json آخر الأقسام: مقيس حيث كُتب القسم، و«لم يُقس بعد» بسببه وخطوته حيث لم يُكتب."
+          ],
+          "done_when": [
+            "اختبار القبول ns46_studio.ContractV2 يمر، وF12 مقيس على تقارير العيّنة."
+          ],
+          "pitfalls": [
+            "لا يُرفع رقم العقد: قسم جديد إضافة لا كسر.",
+            "غير المقيس null لا صفر."
+          ],
+          "acceptance": "python tools/acceptance.py test ns46_studio.ContractV2 && python tools/north_star.py measure --only F12",
+          "rollback": "احذف الأقسام الجديدة من tools/make_contracts.py وeaos/studio/coverage.py."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T2",
+          "title": "المشاكل والأدلة",
+          "why": "المشاكل أكثر ما يفتحه الشخص: قائمة بفلاتر وتجميع وبحث عربي، وتفاصيل بدليلها وكودها، وسريعة على 5000 بطاقة.",
+          "moves": [
+            "F11",
+            "F8",
+            "F14"
+          ],
+          "depends_on": [
+            "NS46.T1"
+          ],
+          "size": "L",
+          "files": [
+            "studio/src/pages/problems/",
+            "studio/scripts/gates.mjs",
+            "docs/studio-routes.json"
+          ],
+          "steps": [
+            "القائمة: فلاتر بعدّاداتها، وتجميع بالمجال أو المكوّن أو الخطوة، وبحث بتطبيع عربي، وكل حالة في الرابط.",
+            "التفاصيل: لماذا تهم، والمكان، والثقة، والدليل بسطر الكود، وموقعها في الخطة.",
+            "صفحة الدليل #/evidence/<factId>، وقياس تصفية 5000 بطاقة في studio-gates/budgets.json."
+          ],
+          "done_when": [
+            "مسارات NS46.T2 في docs/studio-routes.json تجتاز البوابات بالبيانات، والتصفية ≤ 100 ملي ثانية."
+          ],
+          "pitfalls": [
+            "لا قائمة تُعاد ترتيبها تحت إصبع الشخص.",
+            "لا رقم بلا مصدره."
+          ],
+          "acceptance": "python tools/acceptance.py test ns46_studio.Problems && python tools/north_star.py measure --only F8 --min 1.0",
+          "rollback": "ارجع صفحات المشاكل."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T3",
+          "title": "التغيير: الجسر والفجوات والخطة والعمليات",
+          "why": "الشخص يرى أين يذهب كل جزء، وما يفصله عن الصورة المثالية، وبأي ترتيب تُنفذ العمليات.",
+          "moves": [
+            "F11",
+            "F8"
+          ],
+          "depends_on": [
+            "NS46.T1"
+          ],
+          "size": "L",
+          "files": [
+            "studio/src/pages/change/",
+            "eaos/studio/",
+            "studio/scripts/gates.mjs",
+            "docs/studio-routes.json"
+          ],
+          "steps": [
+            "الجسر: sankey على الكمبيوتر وقائمة تحويل على الجوال.",
+            "سجل الفجوات وتفاصيلها من gaps.json.",
+            "لوحة الخطة: خط زمني ورسم اعتماديات ولوحة، والعمليات من operations.json.",
+            "المُصدِّر يكتب gaps وoperations من القصة والخطة حيث توجد."
+          ],
+          "done_when": [
+            "مسارات NS46.T3 تجتاز البوابات ببيانات حقيقية أو حالة تغطية."
+          ],
+          "pitfalls": [
+            "العملية لا تُخترع: ما لا يقيسه المحرك يظهر حالة تغطية."
+          ],
+          "acceptance": "python tools/acceptance.py test ns46_studio.Change && python tools/north_star.py measure --only F8 --min 1.0",
+          "rollback": "ارجع صفحات التغيير."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T4",
+          "title": "المكتبة والتاريخ وجودة EAOS",
+          "why": "قراءة كل ما كتبه EAOS بترتيبه، ورؤية التحسن عبر الفحوص، ومعرفة مدى دقة تحليل EAOS نفسه لهذا المشروع.",
+          "moves": [
+            "F11",
+            "F8"
+          ],
+          "depends_on": [
+            "NS46.T1"
+          ],
+          "size": "L",
+          "files": [
+            "studio/src/pages/library/",
+            "studio/src/pages/history/",
+            "studio/src/pages/quality/",
+            "eaos/studio/",
+            "docs/studio-routes.json"
+          ],
+          "steps": [
+            "قارئ المستندات بعناوينه وتنقل داخل الصفحة، والصور والرسوم.",
+            "التاريخ: الدرجة عبر الفحوص، ومقارنة فحصين، وحالة «فحص واحد حتى الآن».",
+            "صفحة الجودة من docs/engine-precision.json ومؤشرات الخطة وcoverage.json."
+          ],
+          "done_when": [
+            "مسارات NS46.T4 تجتاز البوابات."
+          ],
+          "pitfalls": [
+            "الرسم يظهر فقط مع فحصين أو أكثر."
+          ],
+          "acceptance": "python tools/acceptance.py test ns46_studio.LibraryHistoryQuality && python tools/north_star.py measure --only F8 --min 1.0",
+          "rollback": "ارجع الصفحات الثلاث."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T5",
+          "title": "مستكشف الدوال ومعرض الشاشات",
+          "why": "ما تفعله كل دالة ومن يستدعيها وما تلمسه من بيانات، وما يراه المستخدم وما الخطأ فيه.",
+          "moves": [
+            "F11",
+            "F8",
+            "F12"
+          ],
+          "depends_on": [
+            "NS46.T1"
+          ],
+          "size": "L",
+          "files": [
+            "studio/src/pages/functions/",
+            "studio/src/pages/screens/",
+            "eaos/studio/",
+            "docs/studio-routes.json"
+          ],
+          "steps": [
+            "المُصدِّر يكتب functions.json من حقائق المحركات الموجودة (Lizard وast-grep وreact-docgen)، وتغطية كل لغة.",
+            "المستكشف: قائمة مرتبة وتفاصيل ورسم استدعاء من خطوتين.",
+            "معرض الشاشات من media.json ونتائج بوابة الشاشات حيث توجد، وحالة تغطية حيث لا."
+          ],
+          "done_when": [
+            "مسارات NS46.T5 تجتاز البوابات."
+          ],
+          "pitfalls": [
+            "لغة بلا حقائق دوال تظهر في التغطية، لا قائمة فارغة."
+          ],
+          "acceptance": "python tools/acceptance.py test ns46_studio.FunctionsScreens && python tools/north_star.py measure --only F8 --min 1.0",
+          "rollback": "ارجع الصفحتين."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T6",
+          "title": "الخرائط المرئية: الرحلات والمسارات والبيانات والبنية",
+          "why": "طلب المالك (2026-10-08): رسم مسار المستخدم ومسار الكود والظاهر والخفي ومسار البيانات وتسلسل كل شيء، حاليًا ومستهدفًا.",
+          "moves": [
+            "F11",
+            "F8"
+          ],
+          "depends_on": [
+            "NS46.T1"
+          ],
+          "size": "L",
+          "files": [
+            "studio/src/pages/system/",
+            "eaos/studio/",
+            "docs/adoption/",
+            "docs/studio-routes.json"
+          ],
+          "steps": [
+            "لكل خريطة ثلاثة عروض: الحالي والمستهدف والتغيير، ومواقع ثابتة بين الفحوص.",
+            "كل عنصر يربط بدليله، والفجوات في البيانات تُرسم ولا تُخترع.",
+            "عرض «خطوات» خطي لكل خريطة على الجوال ولقارئ الشاشة، وتبقى الخريطة صالحة عند 1000 عقدة."
+          ],
+          "done_when": [
+            "مسارات NS46.T6 تجتاز البوابات."
+          ],
+          "pitfalls": [
+            "لا رابط مخترع بين عنصرين."
+          ],
+          "acceptance": "python tools/acceptance.py test ns46_studio.Maps && python tools/north_star.py measure --only F8 --min 1.0",
+          "rollback": "ارجع صفحات الخرائط."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T7",
+          "title": "عدة مشاريع والحجم الكبير والميزانيات",
+          "why": "الاستوديو لا يناسب مشروعًا واحدًا: يُختبر على مشاريع مختلفة الحجم والتقنية، وعلى 5000 بطاقة و1000 مكوّن.",
+          "moves": [
+            "F13",
+            "F14"
+          ],
+          "depends_on": [
+            "NS46.T2",
+            "NS46.T3",
+            "NS46.T4",
+            "NS46.T5",
+            "NS46.T6"
+          ],
+          "size": "L",
+          "files": [
+            "studio/scripts/gates.mjs",
+            "tools/studio_synthetic.py",
+            "tools/studio_gates.py"
+          ],
+          "steps": [
+            "تشغيل البوابات الكامل على FleetManageWeb وchief-ops وfinance-os وEAOS نفسه والمشروع الاصطناعي.",
+            "Lighthouse على الجوال، وقياس تصفية 5000 بطاقة وزمن تفاعل الرئيسية في studio-gates/budgets.json."
+          ],
+          "done_when": [
+            "F13 = 1.0 وF14 = 1.0."
+          ],
+          "pitfalls": [
+            "قياس على بناء غير المشحون لا يُحسب."
+          ],
+          "acceptance": "python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0",
+          "rollback": "لا شيء: قياس."
+        },
+        {
+          "needs": "human",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T8",
+          "title": "المراجعة الذاتية وحكم المالك",
+          "why": "المالك يحكم بما يراه: مراجعة مكتوبة بالصور لكل المشاريع، ثم حكمه مسجلًا، ثم يعود العمل إلى المحرك.",
+          "moves": [
+            "F11",
+            "F12",
+            "F13",
+            "F14"
+          ],
+          "depends_on": [
+            "NS46.T7"
+          ],
+          "size": "M",
+          "files": [
+            "docs/STUDIO-REVIEW.md",
+            "CHANGELOG.md"
+          ],
+          "steps": [
+            "مراجعة ذاتية بالصور لكل مشروع وكل قسم، تذكر ما زال غير مقيس ولماذا.",
+            "حكم المالك مسجل بتاريخه، ورقم إصدار جديد."
+          ],
+          "done_when": [
+            "F11 وF13 وF14 = 1.0، والواجهة حية ومصدرها واحد (F9 وF7)، وحكم المالك مسجل."
+          ],
+          "pitfalls": [
+            "لا يُغلق دون حكم المالك."
+          ],
+          "acceptance": "python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview",
+          "rollback": "لا شيء: مراجعة."
         }
       ]
     },
@@ -6601,7 +6972,8 @@
           "why": "المالك يريد أن يرى النظام وارتباطاته ويفهم كل دالة.",
           "moves": [
             "Q4",
-            "F8"
+            "F8",
+            "F12"
           ],
           "depends_on": [
             "NS40.T2",
@@ -6703,7 +7075,8 @@
           "why": "المالك يريد اكتشاف التشوهات البصرية وما يصعب فهمه.",
           "moves": [
             "Z2",
-            "F8"
+            "F8",
+            "F12"
           ],
           "depends_on": [
             "NS41.T1",
@@ -6898,7 +7271,8 @@
           "why": "مصفوفة الفجوة اليوم تقارن الحالي بنفسه.",
           "moves": [
             "J1",
-            "J2"
+            "J2",
+            "F12"
           ],
           "depends_on": [
             "NS42.T3"
@@ -7186,7 +7560,8 @@
           "title": "العمليات وقواعد الترتيب",
           "why": "الدمج والتقسيم وإعادة البناء نصوص في قرارات البنية فقط.",
           "moves": [
-            "O1"
+            "O1",
+            "F12"
           ],
           "depends_on": [
             "NS43.T1",
@@ -8728,6 +9103,7 @@
       "milestones": [
         "NS30",
         "NS36",
+        "NS46",
         "NS38",
         "NS31",
         "NS39",
@@ -8743,7 +9119,7 @@
         "NS35",
         "NS45"
       ],
-      "exit": "S4 وX13، ثم A1-A3 وN1-N2، ثم F2-F10 (الاستوديو)، ثم Q1-Q4 وZ1-Z2 وI1-I3 وJ1-J2 وO1-O2، ثم Y1-Y2 وW1-W2 وD4 وE12-E14 وG3-G4"
+      "exit": "S4 وX13، ثم F11-F14 (الاستوديو أولًا)، ثم A1-A3 وN1-N2، ثم F2-F10 (الاستوديو)، ثم Q1-Q4 وZ1-Z2 وI1-I3 وJ1-J2 وO1-O2، ثم Y1-Y2 وW1-W2 وD4 وE12-E14 وG3-G4"
     },
     {
       "id": "R7",
