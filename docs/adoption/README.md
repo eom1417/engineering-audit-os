@@ -23,11 +23,12 @@ Apache-2.0, CC0, OFL (fonts) and file-level copyleft left unmodified (MPL-2.0, E
 
 `python tools/north_star.py measure --only W2` reads every record here. W2 is the share of the Studio's packages
 (`studio/package.json`, dependencies and dev dependencies) that a record pins with all three parts present and that
-was committed no later than the first commit of the Studio's code (`studio/src/`). A package added without a record,
-or a record written after the code, lowers it.
+was committed no later than the commit that first added that package to `studio/package.json`. A package added
+without a record, or a record written after the package came in, lowers it.
 
 ## Records
 
 | Task | Record |
 |---|---|
 | NS37.T1 design system and shell | [ns37-t1-studio-shell.md](ns37-t1-studio-shell.md) |
+| NS37.T1 finishing: bundle locales, one screen gate | [ns37-t1-finish.md](ns37-t1-finish.md) |
