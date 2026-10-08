@@ -310,7 +310,7 @@ flowchart TB
         direction LR
         NS27["<b>21 · NS27</b><br/>البناء من خطة<br/>Build from a plan<br/>⚖ 6 · ▰ 93%"]:::current
     end
-    subgraph R6G_1["R6G · The engineering governor (1/2)"]
+    subgraph R6G_1["R6G · Trust, plans and initiative (1/2)"]
         direction LR
         NS30["<b>22 · NS30</b><br/>الثقة أولًا<br/>Trust first<br/>⚖ 4 · ▰ 0%"]:::next
         NS31["<b>23 · NS31</b><br/>أرقام ثابتة وضجيج أقل<br/>Stable numbers, less noise<br/>⚖ 3 · ▰ 26%"]:::owner
@@ -320,7 +320,7 @@ flowchart TB
         NS31 -->|"✔ L7=1 · L8=1 · S5≥0.9 · …"| NS32
         NS32 -->|"✔ X8=1 · L9=1 · L10=1 · … · +1 acceptance test"| NS33
     end
-    subgraph R6G_2["R6G · The engineering governor (2/2)"]
+    subgraph R6G_2["R6G · Trust, plans and initiative (2/2)"]
         direction LR
         NS34["<b>26 · NS34</b><br/>أدلة من التشغيل<br/>Evidence by execution<br/>⚖ 3 · ▰ 0%"]:::owner
         NS35["<b>27 · NS35</b><br/>المبادرة وقوانين المشروع<br/>Initiative and project laws<br/>⚖ 3 · ▰ 0%"]:::owner
