@@ -35,7 +35,7 @@
 .exploreModal, .exploreDialog { position: absolute; inset: 0; outline: none; display: flex; flex-direction: column; }
 .exploreCanvas { flex: 1; }
 .exploreTitle { font-size: 16px; font-weight: 600; }
-.exploreBar { position: fixed; inset-inline: 12px; inset-block-end: 12px; z-index: calc(var(--z-overlay) + 1); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 14px; padding-inline: 14px 8px; background: var(--bg-raised); border: 1px solid var(--border-default); border-radius: var(--radius-12); box-shadow: var(--shadow-float); }
+.exploreBar { position: absolute; inset-inline: 12px; inset-block-end: 12px; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 14px; padding-inline: 14px 8px; background: var(--bg-raised); border: 1px solid var(--border-default); border-radius: var(--radius-12); box-shadow: var(--shadow-float); }
 
 @media (max-width: 1199px) and (min-width: 768px) {
   .sys { grid-template-columns: minmax(0, 1fr); }

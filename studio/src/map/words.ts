@@ -22,6 +22,7 @@ export const MAP_WORDS = {
   zoomFit: ['ملاءمة الخريطة', 'Fit the map'],
   exploreMap: ['افتح الخريطة كاملة', 'Explore the full map'],
   closeMap: ['أغلق الخريطة', 'Close the map'],
+  seeDetails: ['اعرض تفاصيله', 'See its details'],
   mapAria: ['خريطة المشروع اليوم: {c} مكوّنًا في {r} مناطق و{e} علاقة استيراد', 'The project today: {c} components in {r} regions and {e} import links'],
   mapAriaTarget: ['البنية المستهدفة: {c} مكوّنًا في {r} طبقات و{e} علاقة', 'The target architecture: {c} components in {r} layers and {e} links'],
   nodeAria: ['{id}، {files} ملفات، {n} مشكلة، {op}', '{id}, {files} files, {n} findings, {op}'],

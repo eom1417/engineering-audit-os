@@ -148,19 +148,21 @@ function SystemMapBody({ data, system }: { data: StudioData; system: SystemMap }
           <Modal className={css.exploreModal}>
             <Dialog className={css.exploreDialog} aria-label={w('systemMap')}>
               {({ close }) => (
-                <MapCanvas system={system} mode={mode} focus={focus} only={only} onFocus={setFocus} legend={false} minimap={false}
-                  className={css.exploreCanvas}
-                  head={<><IconButton icon="x" label={w('closeMap')} onPress={close} /><Heading slot="title" className={css.exploreTitle}>{w('systemMap')}</Heading></>} />
+                <>
+                  <MapCanvas system={system} mode={mode} focus={focus} only={only} onFocus={setFocus} legend={false} minimap={false}
+                    className={css.exploreCanvas}
+                    head={<><IconButton icon="x" label={w('closeMap')} onPress={close} /><Heading slot="title" className={css.exploreTitle}>{w('systemMap')}</Heading></>} />
+                  {focus && (
+                    <div className={css.exploreBar} role="status">
+                      <bdi dir="ltr" className="id">{focus}</bdi>
+                      <Button variant="primary" onPress={close}>{w('seeDetails')}</Button>
+                    </div>
+                  )}
+                </>
               )}
             </Dialog>
           </Modal>
         </ModalOverlay>
-        {explore && focus && (
-          <div className={css.exploreBar} role="status">
-            <bdi dir="ltr" className="id">{focus}</bdi>
-            <Button variant="primary" onPress={() => setExplore(false)}>{t('close')}</Button>
-          </div>
-        )}
       </div>
     )
   }
