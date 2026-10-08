@@ -75,8 +75,18 @@
    "spec": "STUDIO-COMPLETE: System -> Journeys",
    "section": "system",
    "needs": [
-    "maps",
+    "journeys",
     "screens"
+   ],
+   "task": "NS46.T6"
+  },
+  {
+   "id": "hidden",
+   "studio": "#/system/hidden",
+   "spec": "STUDIO-COMPLETE: Visible vs hidden (its own lens)",
+   "section": "system",
+   "needs": [
+    "hidden"
    ],
    "task": "NS46.T6"
   },
