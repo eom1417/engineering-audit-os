@@ -408,8 +408,8 @@
           "name": "سيناريوهات تقرير الميدان",
           "definition": "السيناريوهات التي تعثرت في تقرير الميدان وتعمل الآن (status من المجلد الأعلى، تقرير يقول أي commit فحص، بطاقة بلا فحص آلي لا تُرفض في النهاية، بطاقة تُعكس يدويًا لا تبقى منجزة، لا سؤال فرع والفروع مدموجة) ÷ السيناريوهات",
           "target": 1.0,
-          "value": null,
-          "evidence": "not measured yet",
+          "value": 1.0,
+          "evidence": "field-report scenarios that work: 5/5 (measured 2026-10-08 at 31c12bb)",
           "reads": "acceptance/test_field_report.py",
           "measured": "automated"
         }
@@ -644,8 +644,8 @@
           "name": "كل بطاقة على ملفها ودليلها",
           "definition": "بطاقات الفحص التي تقع كل مواقع دليلها في ملفات البطاقة، ولا تُعدّ «اتفاق محركين» إلا من دليلين على الملف نفسه ÷ البطاقات، على عيّنة المشاريع وEAOS نفسه",
           "target": 1.0,
-          "value": null,
-          "evidence": "baseline 2026-10-07, EAOS on itself: 129 of 130 «independent engines» cards rest on one project-wide engine finding spanning more than 3 files",
+          "value": 1.0,
+          "evidence": "engine cards on their own file and evidence: FleetManageWeb 20/20 · finance-os-a0192b7b 78/78 · RendaPerene 20/20 · eaos 89/89 (measured 2026-10-08 at 31c12bb)",
           "reads": "plan.json ↔ dossier claims → evidence sites",
           "measured": "automated"
         },
@@ -1522,8 +1522,8 @@
           "name": "اتجاه التصميم معتمد",
           "definition": "اختار المالك اتجاهًا من ثلاثة نماذج حقيقية، ومسجل في docs/STUDIO.md (1 أو 0)",
           "target": 1.0,
-          "value": null,
-          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "value": 1.0,
+          "evidence": "docs/STUDIO.md D6: the owner approved the design direction on 2026-10-08 (Instrument as the base, with Atlas's territory map and Calm's phone decision card), chosen from three real mockups (recorded 2026-10-08)",
           "reads": "docs/STUDIO.md",
           "measured": "recorded"
         },
@@ -5743,7 +5743,7 @@
         {
           "needs": "none",
           "writes": [],
-          "status": "todo",
+          "status": "done",
           "id": "NS30.T1",
           "title": "البطاقة على ملفها ودليلها",
           "why": "بطاقات «تعقيد في ملف X» يدعمها تكرار كلمة عبر 17 ملفًا؛ والقائمة تعرض أول 5 ملفات أبجديًا فقد يغيب ملف البطاقة نفسه.",
@@ -5778,7 +5778,7 @@
         {
           "needs": "none",
           "writes": [],
-          "status": "todo",
+          "status": "done",
           "id": "NS30.T2",
           "title": "سيناريوهات تقرير الميدان الخمسة",
           "why": "أخطاء ظهرت في الاستخدام الحقيقي: status من المجلد الأعلى ينهار، والتقرير لا يقول أي commit فحص، ودفعة تُرفض في نهايتها، وبطاقة معكوسة تبقى منجزة، وسؤال فرع بلا داع.",
@@ -5863,7 +5863,7 @@
         {
           "needs": "none",
           "writes": [],
-          "status": "todo",
+          "status": "done",
           "id": "NS36.T1",
           "title": "القرارات ونواة العقد",
           "why": "بلا قرارات مكتوبة وعقد متحقق منه تُبنى الواجهة على بيانات تتغير تحتها، كما حدث في الواجهة المؤقتة التي قرأت ملفات داخلية مباشرة.",
@@ -8499,6 +8499,7 @@
     "مشاريع holdout لا تُقرأ تقاريرها أثناء التطوير.",
     "كل أداة خارجية تدخل عبر upstreams/registry.yaml ومحوّل يقرأ مخرجها أو مولّد يكتب إدخالها؛ لا كود يعيد ما تفعله أداة معتمدة.",
     "المراحل تُعبر بالترتيب في pipeline. مرحلة من عقد التنفيذ لا تبدأ دون authorization.json صالح وبيئة معزولة.",
+    "الخطوات تُنفَّذ بترتيب roadmap، لكن المهمة المفتوحة لا تمنع إغلاق مهمة لاحقة إلا إن كانت اللاحقة تعتمد عليها في depends_on، مباشرة أو بواسطة مهام أخرى. فالمهمة تُغلق متى مر أمر قبولها، ولو بقيت قبلها مهمة مفتوحة لا تعتمد عليها، مثل مهمة البيئة المعزولة NS27.T5 (قرار المالك 2026-10-08، الخيار ب؛ tools/north_star_steps.py).",
     "قواعد المنتج وبياناته (ترجمة SARIF، وقواعد Semgrep، والكتالوج المرجعي، وقواعد الأسلوب، وقوائم الفحص) في eaos/rules/. أما eaos/data/ فنسخة معبأة من وثائق الجذر، يفرض tools/validate.py أن يكون لكل ملف فيها أصل.",
     "تبنَّ قبل أن تبني: كل قدرة جديدة تبدأ بسجل استكشاف في docs/adoption/ (المرشحون من المصادر المفتوحة، الرخصة، آخر إصدار، الصيانة، العمل بلا إنترنت، القرار وسببه). تُبنى من الصفر فقط إذا لم يوجد بديل يستحق، بسبب مكتوب. EAOS مفتوح المصدر (MIT) وغير تجاري، فكل أداة مفتوحة مسموحة (قرار المالك 2026-10-08)، بثلاثة شروط: تُنسب لأصحابها في THIRD_PARTY_NOTICES.md، وتعمل برنامجًا منفصلًا عبر محوّل لا مكتبة مدمجة في كود EAOS، وتُعلَّم في toolchain برخصتها إن كانت غير تجارية أو تقيّد نوع الكود الذي تفحصه (مثل CodeQL على المشاريع الخاصة) ليعرف المستخدم.",
     "EAOS يقود المساعد الذي يعمل داخله: لكل مهمة نموذج عقد (المدخلات، الأدوات المسموحة، شكل المخرج، مدقق ثابت، الميزانية)؛ الحكم المستقل (التصورات الثلاثة، المراجعة الثانية) يعمل في جلسات منفصلة؛ النموذج لا يعلّم تقدمًا ولا يلمس فرع الشخص، وكل مخرجه يمر بمدقق."

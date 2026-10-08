@@ -72,8 +72,7 @@ def validate(record):
             if not str(row.get(field) or '').strip(): problems.append(f"live_corpus {row.get('name', '?')}: no {field}")
         if not re.fullmatch(r'[0-9a-f]{40}', str(row.get('commit', ''))): problems.append(f"live_corpus {row.get('name', '?')}: commit must be a full sha")
     if record.get('roadmap') and not any('roadmap phase' in problem for problem in problems):
-        states = {milestone['id']: state for _, milestone, state in progress(record)}
-        problems += step_problems(record, step_order(record), states)
+        problems += step_problems(record, step_order(record))
     # The pipeline and the roadmap are the plan's two axes: every stage is served by a milestone, and every
     # milestone sits in exactly one phase, listed in phase order, so reading the record top-down is executing it.
     stages = [stage['id'] for stage in record.get('pipeline', [])]
