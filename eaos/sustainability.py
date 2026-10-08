@@ -119,7 +119,10 @@ def writers(sets):
 
 
 def _indicator_data_owners(sets):
-    """P3: writers per mutable field; lower is better."""
+    """P3: writers per mutable field; lower is better. Not measured while its detector is under its precision bar."""
+    from .claims import hidden_detectors
+    hidden = hidden_detectors().get('data_owners')
+    if hidden: return {'value': None, 'measured': False, 'reason': 'hidden: ' + hidden}
     multi = {key: len(paths) for key, paths in writers(sets).items()}
     return {'value': len(multi), 'multi_writers': multi}
 

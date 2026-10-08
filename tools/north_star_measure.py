@@ -219,8 +219,12 @@ def card_values(projects, record):
 USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'X11', 'X12', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6')
 
 
+PLAN_V2 = ('A1', 'W2')
+
+
 def measure(record, only=None):
     if only in USABILITY: return usability_values(only)   # read from this checkout, not from the corpus
+    if only in PLAN_V2: return plan_v2_values(record, only)
     projects = []
     for spec in record['corpus']:
         target = CORPUS / spec['name']
@@ -233,7 +237,78 @@ def measure(record, only=None):
     values.update(card_values(projects, record))
     values.update(live_values(record))
     values.update(usability_values(only))
+    values.update(plan_v2_values(record, only))
     return values
+
+
+def plan_v2_values(record, only=None):
+    """A1 from the precision set (docs/engine-precision.json, written by tools/precision.py) and the verdicts the
+    product reads; W2 from the adoption records in docs/adoption/ and the history of each task's files."""
+    values = {}
+    if only in (None, 'A1'):
+        from precision import a1_value
+        values['A1'] = a1_value()
+    if only in (None, 'W2'):
+        values['W2'] = adoption_value(record)
+    return values
+
+
+ADOPTION_STEP = 'docs/adoption/'
+ADOPTION_PARTS = ('## Candidates', '## Decision', 'Licence', 'Maintenance')
+
+
+def adoption_records(where=None):
+    """{task id: (record path, complete)} from the `Task:` line of each docs/adoption/*.md."""
+    records = {}
+    for path in sorted(Path(where or ROOT / 'docs/adoption').glob('*.md')):
+        text = path.read_text(encoding='utf-8')
+        for line in text.splitlines():
+            if line.startswith('Task:'):
+                for task_id in line.split(':', 1)[1].replace(',', ' ').split():
+                    records[task_id] = (path, all(part in text for part in ADOPTION_PARTS))
+    return records
+
+
+def adoption_value(record):
+    """W2: tasks whose plan asks for an adoption record, begun (done, or code committed for them), that have a complete
+    record (candidates, licence, maintenance, decision) committed no later than their first code ÷ such tasks begun."""
+    tasks = [task for milestone in record['milestones'] for task in milestone['tasks']
+             if any(ADOPTION_STEP in step for step in task.get('steps') or [])]
+    records = adoption_records()
+    begun, good, notes = [], [], []
+    for task in tasks:
+        code = [f for f in task.get('files') or [] if not f.startswith('docs/') and (ROOT / f.rstrip('/')).exists()]
+        first_code = first_commit(code, since_task=task['id']) if code else None
+        if task.get('status') != 'done' and first_code is None and task['id'] not in records: continue
+        begun.append(task['id'])
+        found = records.get(task['id'])
+        if not found:
+            notes.append(f"{task['id']}: no record"); continue
+        path, complete = found
+        if not complete:
+            notes.append(f"{task['id']}: {path.name} lacks one of {', '.join(ADOPTION_PARTS)}"); continue
+        recorded = first_commit([path.relative_to(ROOT).as_posix()])
+        if recorded is None or (first_code is not None and not is_ancestor(recorded, first_code)):
+            notes.append(f"{task['id']}: record not committed before its first code"); continue
+        good.append(task['id'])
+    if not begun: return None, 'no task that needs an adoption record has begun'
+    return ratio(len(good), len(begun)), (f"begun tasks with an adoption record written before their code: {len(good)}/{len(begun)} "
+                                          f"({', '.join(good) or 'none'})" + (f"; {'; '.join(notes)}" if notes else ''))
+
+
+def first_commit(paths, since_task=None):
+    """The oldest commit touching `paths` (after the commit that registered `since_task` in the plan), or None."""
+    if not paths: return None
+    since = []
+    if since_task:
+        added = git('log', '--reverse', '--format=%H', '-S', f'"id": "{since_task}"', '--', 'docs/north-star.json', cwd=ROOT).stdout.split()
+        if added: since = [f'{added[0]}..HEAD']
+    found = git('log', '--reverse', '--format=%H', *since, '--', *paths, cwd=ROOT).stdout.split()
+    return found[0] if found else None
+
+
+def is_ancestor(older, newer):
+    return older == newer or git('merge-base', '--is-ancestor', older, newer, cwd=ROOT).returncode == 0
 
 
 def usability_values(only=None):

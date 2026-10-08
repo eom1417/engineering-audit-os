@@ -46,6 +46,12 @@ def hidden_detectors():
     except (OSError, ValueError): return {}
 
 
+def shown_kinds(kinds, detectors=None):
+    """The fact kinds among `kinds` whose detector is shown; `detectors` maps a kind to its detector id."""
+    hidden = hidden_detectors()
+    return {kind for kind in kinds if (detectors or {}).get(kind, kind) not in hidden}
+
+
 def withhold(claims):
     """(shown, withheld): a claim from a hidden detector is kept aside with the reason, never shown or planned."""
     hidden = hidden_detectors()

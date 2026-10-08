@@ -34,7 +34,9 @@ def data_model(out, language='ar'):
     out = Path(out); sets = _read_sets(out); ar = language == 'ar'
     title = 'نموذج البيانات' if ar else 'Data model'
     lines = ['# ' + title, '']
-    models = [f for f in sets.get('runtime', {}).get('facts', []) if f['kind'] == 'data_model']
+    from .claims import shown_kinds
+    # Under its measured precision bar (tools/precision.py), the detector is hidden rather than shown with a caveat.
+    models = [f for f in sets.get('runtime', {}).get('facts', []) if f['kind'] in shown_kinds({'data_model'}, {'data_model': 'data_model:runtime'})]
     if not models:
         lines += ['*' + ('لا نماذج مكتشفة' if ar else 'No models detected') + '*']
     by_framework = defaultdict(list)

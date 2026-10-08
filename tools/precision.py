@@ -295,22 +295,26 @@ def judge(output, items, scopes):
 def ratio(a, b): return round(a / b, 3) if b else None
 
 
-def score(truth=None, report_dirs=None):
-    """The per-detector table. `report_dirs` maps (name, kind) to a report directory (tests pass their own)."""
+def score(truth=None, report_dirs=None, seeded=None):
+    """The per-detector table. `report_dirs` maps (name, kind) to (report directory, audited root) and `seeded` maps a
+    name to its seeded truth: tests pass their own; by default every report and truth on this machine."""
     truth = truth if truth is not None else load_truth()
     blank = lambda: {'tp': 0, 'fp': 0, 'unjudged': 0, 'outputs': 0, 'targets': 0, 'targets_found': 0,
                      'positives': 0, 'positives_found': 0, 'false_examples': [], 'by_project': {}}
     stats = {d: blank() for d in DETECTORS}
     found_by_class = {}
     for name, kind, target, out in reports():
-        out = (report_dirs or {}).get((name, kind), out)
+        if report_dirs is not None:
+            if (name, kind) not in report_dirs: continue
+            out, target = report_dirs[(name, kind)]
         if not (Path(out) / 'dossier.json').is_file(): continue
         rows = outputs(out, target)
         if kind == 'original':
             items, scopes = (truth.get(name) or {}).get('items', []), (truth.get(name) or {}).get('scopes', [])
         else:
-            seeded = seeded_truth(name) or {}
-            items, scopes, planted = seeded.get('items', []), seeded.get('scopes', []), set(seeded.get('files') or [])
+            seeded_items = (seeded or {}).get(name) or seeded_truth(name) or {}
+            items, scopes = seeded_items.get("items", []), seeded_items.get("scopes", [])
+            planted = set(seeded_items.get("files") or [])
             rows = [row for row in rows if any(site[0] in planted for site in row['sites'])]
         found = {}
         for row in rows:
