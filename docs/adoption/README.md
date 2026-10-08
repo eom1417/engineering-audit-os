@@ -34,5 +34,6 @@ written after the code, fails that task.
 | Task | Record |
 |---|---|
 | NS37.T1 design system and shell | [ns37-t1-studio-shell.md](ns37-t1-studio-shell.md) |
+| NS37.T2 local read server and live stream | [ns37-t2-live-server.md](ns37-t2-live-server.md) |
 | NS38.T1 labelled precision set | [NS38.T1-precision-harness.md](NS38.T1-precision-harness.md) |
 | NS46.T1 contract v2 and its fixtures | [ns46-t1-contract-v2.md](ns46-t1-contract-v2.md) |
