@@ -1,0 +1,31 @@
+/* Sheets: a bottom sheet on the phone, a centred dialog of 480 on desktop (DESIGN.md §3). */
+.overlay {
+  position: fixed; inset: 0; z-index: var(--z-overlay); background: var(--scrim); display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.overlay[data-entering] { animation: fade var(--dur-base) var(--ease-standard); }
+.overlay[data-exiting] { animation: fade var(--dur-fast) var(--ease-exit) reverse; }
+.modal {
+  inline-size: min(var(--sheet-w), 100%); max-block-size: 86vh; display: flex; flex-direction: column; overflow: hidden;
+  border: 1px solid var(--border-default); border-radius: var(--radius-16); background: var(--bg-raised); box-shadow: var(--shadow-float);
+}
+.modal[data-entering] { animation: rise var(--dur-slow) var(--ease-emphasized); }
+.dialog { display: flex; flex-direction: column; min-block-size: 0; outline: none; }
+.grab { display: none; }
+.head { display: flex; align-items: center; gap: 8px; padding-block: 8px; padding-inline: 20px 8px; border-block-end: 1px solid var(--border-subtle); }
+.head h2 { flex: 1; font-size: var(--text-section); font-weight: 600; line-height: 1.4; }
+.body { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; }
+.sub { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.lead { color: var(--text-secondary); }
+@keyframes fade { from { opacity: 0; } }
+@keyframes rise { from { opacity: 0; translate: 0 12px; } }
+
+@media (max-width: 767px) {
+  .overlay { align-items: flex-end; padding: 0; }
+  .modal { inline-size: 100%; max-block-size: 90vh; border-radius: var(--radius-16) var(--radius-16) 0 0; border-block-end: 0; padding-block-end: env(safe-area-inset-bottom); }
+  .modal[data-entering] { animation: slide var(--dur-slow) var(--ease-emphasized); }
+  .grab { display: block; inline-size: 36px; block-size: 5px; border-radius: 3px; background: var(--border-strong); margin: 8px auto 0; flex: none; }
+  .body { padding: 14px 16px 20px; }
+  .head { padding-inline: 16px 4px; }
+}
+@keyframes slide { from { translate: 0 100%; } }

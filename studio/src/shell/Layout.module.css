@@ -1,0 +1,39 @@
+/* Page layouts (DESIGN.md §4): page padding, the 8/4 home grid, split panes (list + detail) and the inspector. */
+.page { padding: 24px var(--page-pad) 48px; display: flex; flex-direction: column; gap: var(--section-gap); max-inline-size: calc(var(--content-max) + 2 * var(--page-pad)); margin-inline: auto; inline-size: 100%; }
+.titleBlock { display: flex; flex-direction: column; gap: 6px; }
+.largeTitle { font-size: var(--text-large-title); font-weight: 600; line-height: var(--leading-tight); overflow-wrap: anywhere; }
+.kicker { font-size: 14px; font-weight: 600; color: var(--text-secondary); line-height: 1.4; }
+.lead { color: var(--text-secondary); max-inline-size: 70ch; }
+.banner { display: flex; gap: 10px; align-items: flex-start; padding: 10px 14px; border-radius: var(--radius-8); background: var(--status-warning-subtle); color: var(--status-warning-text); font-size: 13px; }
+
+.columns { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); gap: var(--section-gap); align-items: start; }
+.col { display: flex; flex-direction: column; gap: var(--section-gap); min-inline-size: 0; }
+
+/* Split: the list pane (380–480) beside the detail; sticky so the list stays while the detail scrolls */
+.split { display: grid; grid-template-columns: minmax(380px, 400px) minmax(0, 1fr); min-block-size: calc(100vh - var(--topbar-h)); }
+.listPane { border-inline-end: 1px solid var(--border-subtle); background: var(--bg-surface); position: sticky; inset-block-start: var(--topbar-h); block-size: calc(100vh - var(--topbar-h)); overflow-y: auto; display: flex; flex-direction: column; }
+.listHead { padding: 16px 16px 8px; display: flex; flex-direction: column; gap: 10px; position: sticky; inset-block-start: 0; background: var(--bg-surface); z-index: 1; }
+.detailPane { min-inline-size: 0; }
+
+/* Inspector: 360 at the inline-end side */
+.inspected { display: grid; grid-template-columns: minmax(0, 1fr) var(--inspector-w); min-block-size: calc(100vh - var(--topbar-h)); }
+.inspector { border-inline-start: 1px solid var(--border-subtle); background: var(--bg-surface); position: sticky; inset-block-start: var(--topbar-h); block-size: calc(100vh - var(--topbar-h)); overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+@media (max-width: 1199px) and (min-width: 768px) {
+  .columns { grid-template-columns: minmax(0, 1fr); }
+  .inspected { grid-template-columns: minmax(0, 1fr); }
+  .inspector { position: static; block-size: auto; border-inline-start: 0; border-block-start: 1px solid var(--border-subtle); }
+  .split { grid-template-columns: minmax(300px, 340px) minmax(0, 1fr); }
+}
+
+@media (max-width: 767px) {
+  .page { padding: 0 var(--page-pad) 0; }
+  .kicker { font-size: var(--text-large-title); color: var(--text-primary); line-height: var(--leading-tight); }
+  .columns { display: flex; flex-direction: column; align-items: stretch; }
+  .col { display: contents; }
+  .split, .inspected { display: block; min-block-size: 0; }
+  .listPane { position: static; block-size: auto; border: 0; background: none; overflow: visible; }
+  .listHead { position: static; padding: 0 var(--page-pad) 12px; background: none; }
+  .inspector { display: none; }
+  .phoneHidden { display: none; }
+}

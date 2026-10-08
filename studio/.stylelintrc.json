@@ -1,0 +1,19 @@
+{
+  "plugins": ["stylelint-use-logical", "stylelint-declaration-strict-value"],
+  "rules": {
+    "csstools/use-logical": ["always", { "except": ["float"] }],
+    "scale-unlimited/declaration-strict-value": [
+      ["/color$/", "fill", "stroke", "background-color", "border-color", "outline-color"],
+      { "ignoreValues": ["currentColor", "transparent", "inherit", "none", "initial", "unset"] }
+    ],
+    "color-no-hex": true,
+    "color-named": "never",
+    "function-disallowed-list": ["rgb", "rgba", "hsl", "hsla", "hwb", "lab", "lch", "oklab", "oklch"]
+  },
+  "overrides": [
+    {
+      "files": ["src/design/tokens.css"],
+      "rules": { "scale-unlimited/declaration-strict-value": null, "color-no-hex": null, "function-disallowed-list": null }
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+/* Segmented control and search field (DESIGN.md §3): 28px desktop, 44px phone; inputs 16px so phones never zoom. */
+.seg { display: inline-flex; align-items: center; padding: 2px; gap: 2px; border-radius: var(--radius-8); background: var(--bg-sunken); border: 1px solid var(--border-subtle); }
+.segBtn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-block-size: 28px; padding-inline: 10px; border-radius: 6px;
+  font-size: 13px; color: var(--text-secondary); cursor: pointer;
+}
+.segBtn[data-hovered] { color: var(--text-primary); }
+.segBtn[data-selected] { background: var(--bg-raised); color: var(--text-primary); box-shadow: 0 0 0 1px var(--border-default); font-weight: 500; }
+.segBtn[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.comfortable .segBtn { min-block-size: 40px; }
+
+.field {
+  display: flex; align-items: center; gap: 8px; min-block-size: 44px; padding-inline: 12px; border: 1px solid var(--border-default);
+  border-radius: var(--radius-8); background: var(--bg-surface); color: var(--text-tertiary);
+}
+.field:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.field input { flex: 1; min-inline-size: 0; min-block-size: 42px; border: 0; outline: 0; background: none; font-size: var(--text-input); color: var(--text-primary); }
+.field input::placeholder { color: var(--text-tertiary); }
+.field input::-webkit-search-cancel-button { display: none; }
+.clear { display: inline-grid; place-items: center; inline-size: 32px; block-size: 32px; border-radius: var(--radius-8); color: var(--text-tertiary); cursor: pointer; }
+.clear[data-hovered] { background: var(--bg-hover); color: var(--text-primary); }
+.field[data-empty] .clear { display: none; }
+
+@media (max-width: 767px) {
+  .segBtn, .comfortable .segBtn { min-block-size: 44px; min-inline-size: 44px; }
+  .field input { min-block-size: 44px; }
+  .clear { inline-size: 44px; block-size: 44px; }
+}

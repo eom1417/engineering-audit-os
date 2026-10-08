@@ -1,0 +1,36 @@
+/* The page's base: type, focus ring and the few global helpers every module relies on. Logical properties only. */
+@import './fonts.css';
+@import './tokens.css';
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html, body { margin: 0; background: var(--bg-canvas); color: var(--text-primary); }
+body {
+  font-family: var(--font-sans); font-size: var(--text-body); line-height: var(--leading-body); font-weight: 400;
+  font-synthesis: none; -webkit-font-smoothing: antialiased; overflow-x: clip;
+}
+h1, h2, h3, h4, p, dl, dd, ul, ol, figure, blockquote { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; text-align: start; }
+:focus-visible, [data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-4); }
+[hidden] { display: none !important; }
+#root { min-block-size: 100vh; }
+
+/* Visually hidden, still read by screen readers */
+.sr { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* Western digits, tabular, in every counter and table */
+.num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+/* Identifiers, paths, tool names, commits: LTR-isolated Plex Mono at 0.92em (DESIGN.md §5) */
+.id { font-family: var(--font-mono); font-size: .92em; letter-spacing: 0; unicode-bidi: isolate; word-break: normal; overflow-wrap: anywhere; }
+.ltr { unicode-bidi: isolate; }
+/* Report text in its own direction, as its own block aligned to its own start */
+.txt-block { display: block; text-align: start; unicode-bidi: isolate; }
+/* Pointing icons flip in right-to-left; everything else never mirrors */
+[dir="rtl"] .mirror { transform: scaleX(-1); }
+kbd { font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); border: 1px solid var(--border-default); border-radius: var(--radius-4); padding: 0 5px; line-height: 18px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0ms !important; transition-duration: 0ms !important; }
+}

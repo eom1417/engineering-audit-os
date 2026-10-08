@@ -1,0 +1,45 @@
+/* Buttons (DESIGN.md §3): primary is the one main action, secondary the rest, ghost a quiet link-like action. */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-block-size: 36px; padding-inline: 14px;
+  border-radius: var(--radius-8); font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-standard), border-color var(--dur-fast) var(--ease-standard);
+}
+.btn[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.primary { background: var(--accent-button); color: var(--text-on-accent); }
+.primary[data-hovered], .primary:hover { background: var(--accent-button-hover); }
+.primary[data-pressed] { background: var(--accent-button-hover); transform: translateY(1px); }
+.secondary { background: var(--bg-surface); border: 1px solid var(--border-strong); color: var(--text-primary); }
+.secondary[data-hovered], .secondary:hover { background: var(--bg-hover); }
+.secondary[data-pressed] { background: var(--bg-selected); }
+.ghost { color: var(--accent-text); }
+.ghost[data-hovered], .ghost:hover { background: var(--accent-subtle); }
+.ghost[data-pressed] { background: var(--accent-subtle); }
+.block { inline-size: 100%; min-inline-size: 0; white-space: normal; flex-wrap: nowrap; row-gap: 4px; text-align: center; padding-block: 8px; }
+.large { min-block-size: 48px; font-size: 15px; font-weight: 600; }
+.busy { cursor: progress; opacity: .8; }
+.spinner { inline-size: 14px; block-size: 14px; border-radius: 50%; border: 2px solid currentColor; border-block-start-color: transparent; animation: spin 700ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.tool {
+  margin-inline-start: 4px; font-family: var(--font-mono); font-size: 11px; font-weight: 400; padding: 1px 6px; border-radius: var(--radius-4);
+  background: var(--bg-sunken); color: var(--text-secondary); border: 1px solid var(--border-subtle);
+}
+.primary .tool { background: color-mix(in srgb, var(--gray-12) 22%, transparent); color: var(--text-on-accent); border-color: transparent; }
+[data-theme="dark"] .primary .tool { background: color-mix(in srgb, var(--bg-sunken) 40%, transparent); }
+
+.iconBtn {
+  display: inline-grid; place-items: center; inline-size: 44px; block-size: 44px; border-radius: var(--radius-8);
+  color: var(--text-secondary); cursor: pointer;
+}
+.iconBtn[data-hovered], .iconBtn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.iconBtn[data-pressed] { background: var(--bg-selected); }
+.iconBtn[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.iconBtn svg { inline-size: 18px; block-size: 18px; }
+.small { inline-size: 32px; block-size: 32px; }
+.small svg { inline-size: 16px; block-size: 16px; }
+
+@media (max-width: 767px) {
+  .btn { min-block-size: 44px; font-size: 15px; }
+  .large { min-block-size: 52px; font-size: 16px; }
+  .small { inline-size: 44px; block-size: 44px; }
+}

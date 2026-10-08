@@ -8,3 +8,7 @@ dist/
 .cache/
 evaluations/review-pack/
 .claude/
+
+# The Studio (studio/): its packages and local build; the shipped build is eaos/data/studio
+studio/node_modules/
+studio/.gates/
