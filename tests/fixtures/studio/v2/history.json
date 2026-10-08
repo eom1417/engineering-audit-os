@@ -1,0 +1,67 @@
+{
+ "schema_version": 1,
+ "contract": 1,
+ "revision": 2,
+ "scans": [
+  {
+   "id": "a1b2c3d",
+   "commit": "a1b2c3d",
+   "branch": "main",
+   "at": "2026-10-01T09:00:00+00:00",
+   "score": 0.52,
+   "open": {
+    "critical": 1,
+    "high": 9,
+    "medium": 20,
+    "low": 8,
+    "info": 2
+   },
+   "added": null,
+   "resolved": null,
+   "open_keys": []
+  },
+  {
+   "id": "e4f5a6b",
+   "commit": "e4f5a6b",
+   "branch": "main",
+   "at": "2026-10-08T09:00:00+00:00",
+   "score": 0.6,
+   "open": {
+    "critical": 0,
+    "high": 7,
+    "medium": 18,
+    "low": 8,
+    "info": 2
+   },
+   "added": 2,
+   "resolved": 6,
+   "open_keys": []
+  }
+ ],
+ "events": [
+  {
+   "at": "2026-10-01T09:00:00+00:00",
+   "kind": "scan",
+   "title": "First check",
+   "ref": "a1b2c3d"
+  },
+  {
+   "at": "2026-10-03T14:20:00+00:00",
+   "kind": "batch",
+   "title": "Fix batch 1: 6 cards",
+   "ref": "eaos/wave-1"
+  },
+  {
+   "at": "2026-10-04T10:00:00+00:00",
+   "kind": "merge",
+   "title": "eaos/wave-1 merged",
+   "ref": "eaos/wave-1"
+  },
+  {
+   "at": "2026-10-08T09:00:00+00:00",
+   "kind": "scan",
+   "title": "Check after the merge",
+   "ref": "e4f5a6b"
+  }
+ ]
+}

@@ -1,0 +1,90 @@
+{
+ "schema_version": 1,
+ "contract": 1,
+ "revision": 2,
+ "detectors": [
+  {
+   "id": "enola.complexity",
+   "name": "Complex functions",
+   "engine": "enola",
+   "applies": true,
+   "precision": {
+    "value": 1.0,
+    "src": "docs/engine-precision.json#rows[engine=enola,kind=complexity]"
+   },
+   "recall": {
+    "value": 1.0,
+    "src": "docs/engine-precision.json#rows[engine=enola,kind=complexity]"
+   },
+   "labelled": 1
+  },
+  {
+   "id": "jscpd.literal_duplication",
+   "name": "Copied code",
+   "engine": "jscpd",
+   "applies": true,
+   "precision": {
+    "value": null,
+    "src": "not measured on labelled cases yet"
+   },
+   "recall": {
+    "value": null,
+    "src": "not measured on labelled cases yet"
+   },
+   "labelled": null
+  },
+  {
+   "id": "sqlfluff.style",
+   "name": "SQL style",
+   "engine": "sqlfluff",
+   "applies": false,
+   "precision": {
+    "value": null,
+    "src": "no SQL in this project"
+   },
+   "recall": {
+    "value": null,
+    "src": "no SQL in this project"
+   },
+   "labelled": null
+  }
+ ],
+ "capabilities": [
+  {
+   "id": "C2",
+   "name": "Current state",
+   "value": {
+    "value": 0.62,
+    "src": "docs/north-star.json#capabilities[C2]"
+   }
+  },
+  {
+   "id": "C3",
+   "name": "Signal",
+   "value": {
+    "value": null,
+    "src": "not measured for this project"
+   }
+  }
+ ],
+ "indicators": [
+  {
+   "id": "S1",
+   "name": "Cards that are real problems",
+   "value": {
+    "value": 0.883,
+    "src": "docs/north-star.json#S1"
+   },
+   "target": 0.8
+  },
+  {
+   "id": "Q1",
+   "name": "References at compiler accuracy",
+   "value": {
+    "value": null,
+    "src": "not measured yet"
+   },
+   "target": 0.85
+  }
+ ]
+}

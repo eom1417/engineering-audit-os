@@ -1,0 +1,64 @@
+{
+ "schema_version": 1,
+ "contract": 1,
+ "revision": 2,
+ "operations": [
+  {
+   "id": "op-1",
+   "op": "refactor",
+   "subject": "work-orders",
+   "subject_kind": "component",
+   "target": "features/work-orders",
+   "reason": "One owner for the work-order writes.",
+   "plan": "fix",
+   "step": "M2",
+   "order": 1,
+   "after": [],
+   "gap": "gap-work-orders",
+   "cards": [
+    "TASK-014"
+   ],
+   "branch": "eaos/wave-2",
+   "state": "active"
+  },
+  {
+   "id": "op-2",
+   "op": "merge",
+   "subject": "src/utils/date.ts",
+   "subject_kind": "file",
+   "target": "shared/lib/date.ts",
+   "reason": "Two copies of the same date helpers.",
+   "plan": "fix",
+   "step": "M3",
+   "order": 2,
+   "after": [
+    "op-1"
+   ],
+   "gap": "gap-legacy-utils",
+   "cards": [],
+   "branch": null,
+   "state": "todo"
+  },
+  {
+   "id": "op-3",
+   "op": "new",
+   "subject": "audit-log",
+   "subject_kind": "component",
+   "target": "features/audit-log",
+   "reason": "Changes to work orders are not recorded.",
+   "plan": "fix",
+   "step": "M4",
+   "order": 3,
+   "after": [
+    "op-1",
+    "op-2"
+   ],
+   "gap": "gap-audit-log",
+   "cards": [
+    "TASK-030"
+   ],
+   "branch": null,
+   "state": "todo"
+  }
+ ]
+}

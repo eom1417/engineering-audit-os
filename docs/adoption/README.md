@@ -31,3 +31,4 @@ or a record written after the code, lowers it.
 | Task | Record |
 |---|---|
 | NS37.T1 design system and shell | [ns37-t1-studio-shell.md](ns37-t1-studio-shell.md) |
+| NS46.T1 contract v2 and its fixtures | [ns46-t1-contract-v2.md](ns46-t1-contract-v2.md) |

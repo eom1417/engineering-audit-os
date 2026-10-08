@@ -18,9 +18,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .. import artifact_contracts, build_info, indicators
+from . import coverage as coverage_section
 from . import model as M
 
 CONTRACT = 1
+REVISION = 2           # contract v2: sections added without breaking a v1 reader (docs/STUDIO.md)
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media')
 SAFE = re.compile(r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$)).+')
 LANGUAGES = {'.py': 'Python', '.ts': 'TypeScript', '.tsx': 'TypeScript', '.js': 'JavaScript', '.jsx': 'JavaScript',
@@ -300,18 +302,23 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('decisions', lambda: decisions(m, card_rows, lang))
     attempt('media', lambda: media(report))
     key = {'cards': 'cards', 'evidence': 'facts', 'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images'}
-    for section in SECTIONS:
-        if section not in built: continue
-        body = built[section]
-        data = {'schema_version': 1, 'contract': CONTRACT, **({key[section]: body} if section in key else body)}
+    def publish(section, data):
         problems = artifact_contracts.validate(data, contracts[f'studio-{section}'])
         if problems:
             errors.append({'section': section, 'error': '; '.join(problems[:5])[:300]})
-            continue
+            return
         blob = _write(folder, section, data)
         entries.append({'name': section, 'file': f'{section}.json', 'sha256': hashlib.sha256(blob).hexdigest(), 'bytes': len(blob)})
+
+    for section in SECTIONS:
+        if section not in built: continue
+        body = built[section]
+        publish(section, {'schema_version': 1, 'contract': CONTRACT, **({key[section]: body} if section in key else body)})
+    # Last of the sections: it says which of the others were written, and what is not measured yet.
+    attempt('coverage', lambda: coverage_section.coverage(report, built, [e['name'] for e in entries], list(errors), lang))
+    if 'coverage' in built: publish('coverage', {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, **built['coverage']})
     (folder / 'errors.json').write_text(json.dumps(errors, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    manifest = {'schema_version': 1, 'contract': CONTRACT, 'built': stamp,
+    manifest = {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, 'built': stamp,
                 'project': {'name': name or Path(str(project or report)).name}, 'scanned': scan, 'sections': entries}
     if entries and not artifact_contracts.validate(manifest, contracts['studio-manifest']): _write(folder, 'manifest', manifest)
     return {'written': [e['name'] for e in entries], 'errors': errors}

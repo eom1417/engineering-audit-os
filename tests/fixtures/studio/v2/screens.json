@@ -1,0 +1,103 @@
+{
+ "schema_version": 1,
+ "contract": 1,
+ "revision": 2,
+ "screens": [
+  {
+   "id": "work-orders",
+   "route": "/work-orders",
+   "title": "Work orders",
+   "component": "pages",
+   "file": "src/pages/WorkOrders.tsx",
+   "shots": [
+    {
+     "path": "screens/work-orders-390.png",
+     "width": 390,
+     "phase": "baseline",
+     "batch": null
+    },
+    {
+     "path": "screens/work-orders-1440.png",
+     "width": 1440,
+     "phase": "baseline",
+     "batch": null
+    },
+    {
+     "path": "screens/work-orders-390-after.png",
+     "width": 390,
+     "phase": "after",
+     "batch": "wave-1"
+    }
+   ],
+   "inputs": [
+    {
+     "id": "search",
+     "label": null,
+     "kind": "text",
+     "labelled": false,
+     "validated": null,
+     "required": false
+    },
+    {
+     "id": "status",
+     "label": "Status",
+     "kind": "select",
+     "labelled": true,
+     "validated": true,
+     "required": true
+    }
+   ],
+   "issues": [
+    {
+     "id": "work-orders-1",
+     "rule": "label",
+     "severity": "high",
+     "summary": "The search field has no label.",
+     "element": "input#search",
+     "width": 390,
+     "box": {
+      "x": 16,
+      "y": 120,
+      "w": 358,
+      "h": 44
+     },
+     "card": "TASK-021",
+     "state": "open"
+    },
+    {
+     "id": "work-orders-2",
+     "rule": "target-size",
+     "severity": "medium",
+     "summary": "The filter button is 32 px tall.",
+     "element": "button.filter",
+     "width": 390,
+     "box": {
+      "x": 330,
+      "y": 64,
+      "w": 44,
+      "h": 32
+     },
+     "card": null,
+     "state": "fixed"
+    }
+   ]
+  },
+  {
+   "id": "login",
+   "route": "/login",
+   "title": "Sign in",
+   "component": null,
+   "file": null,
+   "shots": [
+    {
+     "path": "screens/login-390.png",
+     "width": 390,
+     "phase": null,
+     "batch": null
+    }
+   ],
+   "inputs": [],
+   "issues": []
+  }
+ ]
+}

@@ -1,0 +1,93 @@
+{
+ "schema_version": 1,
+ "contract": 1,
+ "revision": 2,
+ "sections": [
+  {
+   "section": "cards",
+   "state": "measured",
+   "reason": "written",
+   "detail": "Measured in this check.",
+   "step": null,
+   "tool": null,
+   "count": {
+    "value": 37,
+    "src": "cards.json#cards",
+    "unit": "count"
+   },
+   "parts": []
+  },
+  {
+   "section": "decisions",
+   "state": "empty",
+   "reason": "nothing_found",
+   "detail": "Measured; nothing was found.",
+   "step": null,
+   "tool": null,
+   "count": {
+    "value": 0,
+    "src": "decisions.json#decisions",
+    "unit": "count"
+   },
+   "parts": []
+  },
+  {
+   "section": "functions",
+   "state": "not_measured",
+   "reason": "facts_not_exported",
+   "detail": "EAOS read 505 functions; the function explorer is not exported yet.",
+   "step": "NS46.T5",
+   "tool": "audit",
+   "count": {
+    "value": 505,
+    "src": "facts/metrics.json#metric[scope in function, method]",
+    "unit": "count"
+   },
+   "parts": [
+    {
+     "id": "TypeScript",
+     "state": "measured",
+     "detail": "505 functions"
+    },
+    {
+     "id": "SQL",
+     "state": "not_measured",
+     "detail": "0 functions"
+    }
+   ]
+  },
+  {
+   "section": "screens",
+   "state": "not_measured",
+   "reason": "needs_screens",
+   "detail": "Capturing the screens needs the app running, with your agreement.",
+   "step": "NS41.T1",
+   "tool": "run_setup",
+   "count": {
+    "value": null,
+    "src": "media.json#images[kind=screen]",
+    "unit": "count"
+   },
+   "parts": []
+  },
+  {
+   "section": "media",
+   "state": "failed",
+   "reason": "section_error",
+   "detail": "ValueError: no folder",
+   "step": "NS36.T2",
+   "tool": "audit",
+   "count": {
+    "value": null,
+    "src": "errors.json",
+    "unit": "count"
+   },
+   "parts": []
+  }
+ ],
+ "not_measured": {
+  "value": 3,
+  "src": "coverage.json#sections[state in not_measured, failed]",
+  "unit": "count"
+ }
+}

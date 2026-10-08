@@ -1,0 +1,76 @@
+{
+ "schema_version": 1,
+ "contract": 1,
+ "revision": 2,
+ "gaps": [
+  {
+   "id": "gap-work-orders",
+   "component": "work-orders",
+   "operation": "refactor",
+   "to": "features/work-orders",
+   "responsibility": "Create, assign and close work orders.",
+   "files": 74,
+   "cards": [
+    "TASK-003",
+    "TASK-014",
+    "TASK-021"
+   ],
+   "cards_closed": 1,
+   "steps": [
+    "M2"
+   ],
+   "operations": [
+    "op-1"
+   ],
+   "decision": null,
+   "closed": {
+    "value": 0.3333,
+    "src": "cards_closed / cards"
+   }
+  },
+  {
+   "id": "gap-legacy-utils",
+   "component": "legacy-utils",
+   "operation": "merge",
+   "to": "shared/lib",
+   "responsibility": null,
+   "files": 9,
+   "cards": [],
+   "cards_closed": 0,
+   "steps": [
+    "M3"
+   ],
+   "operations": [
+    "op-2"
+   ],
+   "decision": "target-architecture",
+   "closed": {
+    "value": null,
+    "src": "no card closes this gap yet"
+   }
+  },
+  {
+   "id": "gap-audit-log",
+   "component": "audit-log",
+   "operation": "new",
+   "to": "features/audit-log",
+   "responsibility": "Record who changed what.",
+   "files": 0,
+   "cards": [
+    "TASK-030"
+   ],
+   "cards_closed": 0,
+   "steps": [
+    "M4"
+   ],
+   "operations": [
+    "op-3"
+   ],
+   "decision": null,
+   "closed": {
+    "value": 0,
+    "src": "cards_closed / cards"
+   }
+  }
+ ]
+}

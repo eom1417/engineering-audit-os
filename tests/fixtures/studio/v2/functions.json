@@ -1,0 +1,130 @@
+{
+ "schema_version": 1,
+ "contract": 1,
+ "revision": 2,
+ "modules": [
+  {
+   "id": "src/features/work-orders/api.ts",
+   "component": "work-orders",
+   "language": "TypeScript",
+   "functions": 2
+  },
+  {
+   "id": "src/pages/WorkOrders.tsx",
+   "component": "pages",
+   "language": "TypeScript",
+   "functions": 1
+  }
+ ],
+ "functions": [
+  {
+   "id": "src/features/work-orders/api.ts#createWorkOrder",
+   "name": "createWorkOrder",
+   "module": "src/features/work-orders/api.ts",
+   "line": 12,
+   "end_line": 41,
+   "language": "TypeScript",
+   "kind": "function",
+   "signature": "createWorkOrder(input: NewWorkOrder): Promise<WorkOrder>",
+   "summary": "Validates a new work order and inserts it into work_orders.",
+   "exported": true,
+   "lines": {
+    "value": 30,
+    "src": "facts/metrics.json#metric[symbol=createWorkOrder].value.lines",
+    "unit": "lines"
+   },
+   "complexity": {
+    "value": 6,
+    "src": "facts/metrics.json#metric[symbol=createWorkOrder].value.branches",
+    "unit": "count"
+   },
+   "callers": [
+    "src/pages/WorkOrders.tsx#WorkOrdersPage"
+   ],
+   "callees": [
+    "src/features/work-orders/api.ts#toRow"
+   ],
+   "reads": [
+    {
+     "kind": "env",
+     "name": "VITE_SUPABASE_URL"
+    }
+   ],
+   "writes": [
+    {
+     "kind": "table",
+     "name": "work_orders"
+    }
+   ],
+   "cards": [
+    "TASK-014"
+   ]
+  },
+  {
+   "id": "src/features/work-orders/api.ts#toRow",
+   "name": "toRow",
+   "module": "src/features/work-orders/api.ts",
+   "line": 43,
+   "end_line": 50,
+   "language": "TypeScript",
+   "kind": "function",
+   "signature": null,
+   "summary": null,
+   "exported": false,
+   "lines": {
+    "value": 8,
+    "src": "facts/metrics.json#metric[symbol=toRow].value.lines",
+    "unit": "lines"
+   },
+   "complexity": {
+    "value": null,
+    "src": "not measured: no branch count for this function",
+    "unit": "count"
+   },
+   "callers": [
+    "src/features/work-orders/api.ts#createWorkOrder"
+   ],
+   "callees": [],
+   "reads": [],
+   "writes": [],
+   "cards": []
+  },
+  {
+   "id": "src/pages/WorkOrders.tsx#WorkOrdersPage",
+   "name": "WorkOrdersPage",
+   "module": "src/pages/WorkOrders.tsx",
+   "line": 8,
+   "end_line": 120,
+   "language": "TypeScript",
+   "kind": "component",
+   "signature": "WorkOrdersPage(): JSX.Element",
+   "summary": "Lists work orders and opens the create form.",
+   "exported": true,
+   "lines": {
+    "value": 113,
+    "src": "facts/metrics.json#metric[symbol=WorkOrdersPage].value.lines",
+    "unit": "lines"
+   },
+   "complexity": {
+    "value": 14,
+    "src": "facts/metrics.json#metric[symbol=WorkOrdersPage].value.branches",
+    "unit": "count"
+   },
+   "callers": [],
+   "callees": [
+    "src/features/work-orders/api.ts#createWorkOrder"
+   ],
+   "reads": [
+    {
+     "kind": "table",
+     "name": "work_orders"
+    }
+   ],
+   "writes": [],
+   "cards": [
+    "TASK-003",
+    "TASK-014"
+   ]
+  }
+ ]
+}

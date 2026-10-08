@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "77793ae",
+  "extracted_at_commit": "69dd0e5",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -1524,6 +1524,15 @@
       "statement": "The model's layer: interpretation on top of facts, never instead of them.",
       "kind": "invariant",
       "enforced_by": "tests/test_semantic.py::SemanticTests::test_model_inference_can_never_reach_confirmed",
+      "note": ""
+    },
+    {
+      "id": "INV-9653d5295e",
+      "file": "eaos/studio/coverage.py",
+      "symbol": "<module>",
+      "statement": "A row is never optimistic: a section counts as measured only when it was written and met its contract.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_contract_v2.py::ExportedCoverage::test_a_section_counts_as_measured_only_when_it_was_written",
       "note": ""
     },
     {
