@@ -8,9 +8,16 @@ from collections import defaultdict
 from . import digest, make
 
 BUILTINS = set(dir(builtins)) | {'console', 'print', 'require', 'super', 'len', 'range'}
+# The globals every JavaScript runtime defines: a call to one leaves the codebase, it is not a gap in the trace.
+JS_GLOBALS = {'Array', 'Boolean', 'Date', 'Error', 'JSON', 'Map', 'Math', 'Number', 'Object', 'Promise', 'Reflect', 'RegExp',
+              'Set', 'String', 'Symbol', 'URL', 'URLSearchParams', 'WeakMap', 'WeakSet', 'atob', 'btoa', 'clearInterval',
+              'clearTimeout', 'decodeURI', 'decodeURIComponent', 'encodeURI', 'encodeURIComponent', 'isFinite', 'isNaN',
+              'parseFloat', 'parseInt', 'queueMicrotask', 'requestAnimationFrame', 'cancelAnimationFrame', 'setInterval',
+              'setTimeout', 'structuredClone'}
+JS_SUFFIXES = ('.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.mts', '.cts')
 
 NAME = 'flows'
-VERSION = '2'
+VERSION = '3'
 MAX_DEPTH = 6
 MAX_STEPS = 40
 LIMITATIONS = [
@@ -74,7 +81,7 @@ def resolve_callee(name, path, by_file, by_name, imports, external_names, attrib
     if len(candidates) == 1: return candidates[0], 'imported'
     if len(candidates) > 1: return None, 'ambiguous'
     if name in external_names.get(path, set()): return None, 'external'
-    if name in BUILTINS: return None, 'builtin'
+    if name in BUILTINS or (name in JS_GLOBALS and path.endswith(JS_SUFFIXES)): return None, 'builtin'
     if attribute: return None, 'method_or_external'
     return None, 'unresolved'
 
@@ -115,7 +122,12 @@ def trace(entry, by_file, by_name, calls, imports, env_by_file, external_names):
         key = (current['path'], current['symbol'])
         if key in seen or depth > MAX_DEPTH: continue
         seen.add(key)
+        called = set()
         for call in calls.get(key, []):
+            # The same callee called again from the same function adds nothing to the path: its first call stands for
+            # it, so repeated hooks and helpers do not spend the step budget before the trace leaves the file.
+            if call['callee'] in called: continue
+            called.add(call['callee'])
             target, how = resolve_callee(call['callee'], current['path'], by_file, by_name, imports,
                                          external_names, call.get('attribute', False))
             step = {'from': current['symbol'], 'from_path': current['path'], 'callee': call['callee'],

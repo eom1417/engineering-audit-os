@@ -206,6 +206,26 @@ class HotspotTests(unittest.TestCase):
             self.assertIn('decide', hotspots[0]['statement'])
 
 
+class FlowBudgetTests(unittest.TestCase):
+    """The step budget is spent on distinct calls, so a page full of repeated hooks still reaches its data call."""
+
+    def test_a_repeated_callee_is_recorded_once_and_the_trace_reaches_the_call_behind_it(self):
+        from eaos.facts import flows
+        page = {'path': 'src/Page.tsx', 'symbol': 'Page', 'name': 'Page', 'start': 1, 'end': 90, 'kind': 'function'}
+        load = {'path': 'src/api.ts', 'symbol': 'load', 'name': 'load', 'start': 1, 'end': 5, 'kind': 'function'}
+        by_file, by_name = {'src/Page.tsx': [page], 'src/api.ts': [load]}, {'Page': [page], 'load': [load]}
+        calls = {('src/Page.tsx', 'Page'): [{'callee': 'useState', 'line': n, 'attribute': False} for n in range(2, 60)]
+                 + [{'callee': 'String', 'line': 61, 'attribute': False}, {'callee': 'load', 'line': 62, 'attribute': False}]}
+        entry = {'value': {'handler': 'Page', 'surface': 'page', 'route': '/', 'http_method': None, 'framework': 'react_router'},
+                 'location': {'path': 'src/Page.tsx', 'start_line': 1}}
+        traced = flows.trace(entry, by_file, by_name, calls, {'src/Page.tsx': {'src/api.ts'}}, {}, {'src/Page.tsx': {'useState'}})
+        callees = [step['callee'] for step in traced['steps']]
+        self.assertEqual(callees.count('useState'), 1)
+        self.assertEqual(next(s for s in traced['steps'] if s['callee'] == 'load')['resolution'], 'imported')
+        self.assertEqual(next(s for s in traced['steps'] if s['callee'] == 'String')['resolution'], 'builtin')
+        self.assertEqual(traced['unresolved_steps'], 0)
+
+
 class FlowHandlerLinkingTests(TemporaryWorkspace):
     """Handler-to-symbol linking handles Go receiver-method calls and cross-file imports."""
 
