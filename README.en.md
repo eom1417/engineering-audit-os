@@ -66,7 +66,7 @@ flowchart TB
         direction LR
         S05["<b>S05 · Lock current behaviour</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 33%"]:::current
         S06["<b>S06 · Target architecture</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 45%"]:::current
-        S07["<b>S07 · Gap and transformation plan</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 29%"]:::current
+        S07["<b>S07 · Gap and transformation plan</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 32%"]:::current
         S05 -->|"✔ A (static): E4 = 1 · B (isolated): E5 ≥ 0.8 and a k6 baseline"| S06
         S06 -->|"✔ T1–T7 at target, and a recorded human approval"| S07
     end
@@ -90,7 +90,7 @@ flowchart TB
     end
     subgraph P5["Governance and handover"]
         direction LR
-        S15["<b>S15 · Continuous governance and handover</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 24%"]:::current
+        S15["<b>S15 · Continuous governance and handover</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 27%"]:::current
         LOOP["↺ re-audit after every change: back to S01"]:::next
         S15 -->|"✔ K1 = 1, the baseline pinned, and the new-debt gate in CI"| LOOP
     end
@@ -231,13 +231,13 @@ No command modifies the original project, publishes anything or merges anything.
 <!-- north-star:progress:start -->
 <!-- generated from docs/north-star.json by python tools/north_star.py; do not edit by hand -->
 
-### Progress: **35.6 of 100 points**
+### Progress: **36.3 of 100 points**
 
-`█████████░░░░░░░░░░░░░░░░` 35.6%
+`█████████░░░░░░░░░░░░░░░░` 36.3%
 
 | Steps done | Current step | Points left | Of which wait on the owner | Last measured |
 |---|---|---|---|---|
-| 21 of 45 | 21 · NS27 Build from a plan | 64.4 | 60 | 2026-09-30 · `0fbc461` |
+| 21 of 45 | 21 · NS27 Build from a plan | 63.7 | 60 | 2026-09-30 · `0fbc461` |
 
 **How it is computed:**
 
@@ -314,7 +314,7 @@ flowchart TB
         direction LR
         NS30["<b>22 · NS30</b><br/>الثقة أولًا<br/>Trust first<br/>⚖ 4 · ▰ 100%"]:::done
         NS36["<b>23 · NS36</b><br/>أساس الاستوديو<br/>Studio foundation<br/>⚖ 3 · ▰ 42%"]:::owner
-        NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 7 · ▰ 0%"]:::owner
+        NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 7 · ▰ 11%"]:::owner
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 acceptance test"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 acceptance tests"| NS46
