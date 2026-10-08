@@ -15,6 +15,8 @@ import subprocess
 from pathlib import Path
 
 NOT_THE_PERSONS = ('eaos/', 'dependabot/', 'renovate/', 'snyk-', 'greenkeeper/', 'gh-pages', 'HEAD')
+# Branches kept only for the record: never a choice of where the work goes on.
+ARCHIVED = ('archive/', 'archived/')
 # What each branch keeps of its own in state.json; the others are the project's (consent, language, questions).
 KEYS = ('scanned', 'scanned_commit', 'scanned_with', 'setup', 'safety', 'waves', 'open_wave', 'tried', 'applied')
 
@@ -94,9 +96,16 @@ def recommend(rows):
     return max(rows, key=lambda r: (r.get('commits') or 0, r['last_commit']))['name'] if rows else None
 
 
+def _a_choice(row):
+    """A branch worth asking about: the main one, the one checked out, or one with code of its own that is not kept only
+    for the record (archive/); a branch merged into main (nothing ahead of it) is main's code."""
+    if row['main'] or row['checked_out']: return True
+    return not row['name'].startswith(ARCHIVED) and row.get('ahead_of_main') != 0
+
+
 def choice(project):
-    """None when there is nothing to choose (one branch, or every branch has the same code); else the question: the
-    branches with what each is, and the recommendation."""
-    rows = inventory(project)
+    """None when there is nothing to choose (one branch, or every branch has the same code, once merged and archived
+    branches are left out); else the question: the branches with what each is, and the recommendation."""
+    rows = [row for row in inventory(project) if _a_choice(row)]
     if len({r['tip'] for r in rows}) <= 1: return None
     return {'branches': rows, 'recommended': recommend(rows), 'main': next((r['name'] for r in rows if r['main']), None)}

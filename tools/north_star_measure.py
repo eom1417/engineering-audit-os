@@ -216,7 +216,7 @@ def card_values(projects, record):
     return {'S4': (pooled([v for _, v in rows]), 'engine cards on their own file and evidence: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))}
 
 
-USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'X11', 'X12', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6')
+USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'X11', 'X12', 'X13', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6')
 
 
 STUDIO = ('F8', 'W2')
@@ -356,12 +356,33 @@ def usability_values(only=None):
         values['X10'] = (ratio(len(clean), len(pages)) if pages else None,
                          f"reports for people with the four reports, a severity legend and no number without its meaning: {len(clean)}/{len(pages)} "
                          f"({', '.join(p.parent.parent.name for p in pages) or 'no report yet'})")
+    if only in (None, 'X13'): values['X13'] = field_report_value()
     values.update(blueprint_values(only))
     values.update(continuity_values(only))
     if only in (None, 'X5'):
         done, total = guided.complete_entries()
         values['X5'] = (ratio(done, total) or 0.0, f'known errors with a plain message, a fix and a command in Arabic and English: {done}/{total}')
     return values
+
+
+def field_report_value():
+    """X13: the scenarios of the field report (2026-10-07) that work now, from the locked acceptance/test_field_report.py
+    run on this checkout: each test is one scenario."""
+    import importlib.util
+    import unittest
+    # Loaded from its file: on this script's path, `acceptance` is tools/acceptance.py, not the folder of locked tests.
+    spec = importlib.util.spec_from_file_location('field_report_acceptance', ROOT / 'acceptance/test_field_report.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    suite = unittest.defaultTestLoader.loadTestsFromModule(module)
+    flat = lambda s: [t for item in s for t in (flat(item) if isinstance(item, unittest.TestSuite) else [item])]
+    names = [test.id().rsplit('.', 1)[-1] for test in flat(suite)]
+    with open(os.devnull, 'w') as quiet:
+        result = unittest.TextTestRunner(stream=quiet, verbosity=0).run(suite)
+    broken = {test.id().rsplit('.', 1)[-1] for test, _ in result.failures + result.errors}
+    ok = [name for name in names if name not in broken]
+    return (ratio(len(ok), len(names)) if names else None,
+            f'field-report scenarios that work: {len(ok)}/{len(names)}' + (f"; failing: {', '.join(sorted(broken))}" if broken else ''))
 
 
 def blueprint_values(only=None):

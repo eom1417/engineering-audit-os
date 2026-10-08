@@ -200,8 +200,8 @@ def finish_batch(report, target, runtime, number, root, base, card_ids, kept, fa
     say('acceptance')
     if kept:
         exits = batch_acceptance(report, [cards[c] for c in kept], root)
-        for card_id, code in exits.items():
-            if code != 0: failed[card_id] = f'its problem is still there (acceptance exited {code})'
+        for card_id, code in exits.items():     # no check of its own (None): kept on the gates, as fix_edit keeps it
+            if code not in (0, None): failed[card_id] = f'its problem is still there (acceptance exited {code})'
         still = [kept[c] for c in kept if c not in failed]
         for sha in rebuild(root, base, still):
             failed[next(c for c, s in kept.items() if s == sha)] = 'it no longer applies once the others are in'

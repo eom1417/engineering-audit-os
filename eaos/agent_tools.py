@@ -25,10 +25,34 @@ PAGE = 30
 
 # ---------------------------------------------------------------- the project and its state
 
+class SeveralProjects(ValueError):
+    """A folder that is no project but holds several git repositories directly under it: the person says which."""
+    def __init__(self, folder, projects):
+        super().__init__(f'{folder} holds several projects: {", ".join(str(p) for p in projects[:10])}; pass one as `project`')
+        self.projects = projects
+
+
+def repositories_under(folder):
+    """The git repositories directly under `folder` (one level down), sorted."""
+    try: return sorted(child for child in Path(folder).iterdir() if child.is_dir() and (child / '.git').exists())
+    except OSError: return []
+
+
+def locate(folder):
+    """The project a folder means: itself when it is one (eaos/guided.looks_like_project); a folder with no project file
+    and exactly one git repository directly under it (the assistant opened in the folder above) means that repository; with several, SeveralProjects: the
+    person chooses, EAOS never guesses."""
+    if not folder.is_dir() or guided.looks_like_project(folder): return folder
+    found = repositories_under(folder)
+    if len(found) > 1: raise SeveralProjects(folder, found)
+    return found[0] if found else folder
+
+
 def project_state(project=None, new=False):
     """The project's state, made on first use. `new`: a project still to be built from its plan, whose folder may be
     empty or not there yet (it is made); never the home folder or the disk's root."""
     folder = Path(project or os.getcwd()).expanduser().resolve()
+    if not new and not (guided.load(folder) if folder.is_dir() else None): folder = locate(folder)
     state = guided.load(folder) if folder.is_dir() else None
     if new or (state or {}).get('mode') == 'build':
         if folder in (Path.home().resolve(), Path(folder.anchor)):
@@ -166,7 +190,11 @@ def choose_branch(branch, project=None, person_said=''):
 
 def status(project=None):
     from . import ledger
-    state = project_state(project)
+    try: state = project_state(project)
+    except SeveralProjects as several:
+        return {'status': 'needs_project', 'projects': [str(p) for p in several.projects],
+                'what_now': 'This folder holds several projects. Ask the person which one to work on (list them by name), '
+                            'end your turn, then call status again with project = the folder they chose.'}
     asking = _branch(state)
     if asking:
         return {'project': state['project'], 'branch': None, **asking, 'next': {'tool': 'choose_branch', 'why': 'the project has '
@@ -460,10 +488,22 @@ def open_report(project=None, show=True):
         try: opened = webbrowser.open(page.resolve().as_uri())
         except Exception: opened = False
     made = guided.report_stamp(state)
+    stale = _stale(state, made)
     return {'report_for_people': str(page), 'opened_in_browser': opened, 'outputs_folder': str(guided.outputs(state)),
             'built': made.get('built'), 'version': made.get('version'), 'report_errors': made.get('errors') or [],
+            'checked_commit': made.get('scanned_commit'), 'stale': stale,
             'what_now': 'Tell the person where it is' + ('' if opened else ' and how to open it (double-click the file)') + '.'
-                        + (' Some parts could not be built: tell the person which, plainly (report_errors).' if made.get('errors') else '')}
+                        + (' Some parts could not be built: tell the person which, plainly (report_errors).' if made.get('errors') else '')
+                        + (' The branch has moved on with new work since this check: say the report shows the code as it was '
+                           'then, and offer a new check (audit with fresh=true).' if stale else '')}
+
+
+def _stale(state, made):
+    """{checked, now} once the branch went past the checked commit with code of its own (not only EAOS's merged fixes);
+    else None."""
+    checked, now = made.get('scanned_commit') or state.get('scanned_commit'), _head(state)
+    if not checked or not now or guided.same_code(state, checked, now): return None
+    return {'checked': checked, 'now': now}
 
 
 # ---------------------------------------------------------------- running the app
@@ -604,7 +644,7 @@ def _brief(card):
 
 
 def fix_start(project=None, cards=None, size=10):
-    from .waves import next_batch, plan as read_plan
+    from .waves import next_batch, plan as read_plan, ready
     state = project_state(project)
     guided.reconcile(state)
     if state.get('open_wave'):
@@ -623,6 +663,12 @@ def fix_start(project=None, cards=None, size=10):
     chosen = list(dict.fromkeys(cards)) if cards else next_batch(report, state.get('tried') or [], size=min(max(int(size), 1), 25))
     unknown = [c for c in chosen if c not in known]
     if unknown: raise ValueError(f'not cards of this plan: {", ".join(unknown[:5])}')
+    undecided = [c for c in chosen if not ready(known[c])]
+    if undecided:
+        return {'error': f'{", ".join(undecided[:5])} need(s) a decision by the person before any fix (not ready): no batch '
+                         'was opened', 'needs_decision': undecided,
+                'what_now': 'Explain the decision each card needs (see `finding`), plainly, and leave it out of the batch; '
+                            'call fix_start again with ready cards only, or with no cards for the next ready batch.'}
     if not chosen: return {'status': 'nothing_to_fix', 'what_now': 'No fixable card is left; the rest need the person\'s decision (see plan).'}
     return _start('fix_start', state, {'cards': chosen})
 
