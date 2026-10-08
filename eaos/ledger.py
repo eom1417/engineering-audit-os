@@ -72,19 +72,37 @@ def _save(state, ledger):
 
 
 def merged_keys(project, ref='HEAD'):
-    """{key: commit} for every EAOS card commit in the branch `ref`; {subject: commit} for older ones."""
+    """{key: commit} for every EAOS card commit in the branch `ref`; {subject: commit} for older ones. A commit reverted
+    later in the branch (`git revert`, "This reverts commit <sha>") is not there any more, unless its revert was itself
+    reverted."""
+    return _walk(project, ref)[:2]
+
+
+def reverted_keys(project, ref='HEAD'):
+    """The keys whose EAOS commit is in the branch `ref` but was reverted there, and not fixed again after."""
+    return _walk(project, ref)[2]
+
+
+def _walk(project, ref):
     done = _git(project, 'log', '--format=%H%x00%ae%x00%B%x1e', ref)
-    by_key, legacy = {}, {}
-    if done.returncode: return by_key, legacy
-    for entry in done.stdout.split('\x1e'):
+    by_key, legacy, reverted, undone = {}, {}, set(), set()
+    if done.returncode: return by_key, legacy, undone
+    for entry in done.stdout.split('\x1e'):            # newest first: a revert is met before what it reverts
         parts = entry.strip('\n').split('\x00')
         if len(parts) != 3: continue
         sha, email, body = parts
         found = re.findall(rf'^{TRAILER}: ([0-9a-f]{{12}})$', body, re.M)
+        if sha in reverted:
+            undone.update(found)
+            continue
+        undoes = re.findall(r'This reverts commit ([0-9a-f]{40})', body)
+        if undoes:
+            reverted.update(undoes)
+            continue
         for k in found: by_key.setdefault(k, sha)
         if not found and email == 'eaos@localhost' and re.match(r'TASK-\d+: ', body):
             legacy[body.split('\n', 1)[0]] = sha
-    return by_key, legacy
+    return by_key, legacy, undone - set(by_key)
 
 
 def _plan(state, report=None):
@@ -147,7 +165,7 @@ def sync(state, event=None, report=None):
         ledger['plan_stamp'] = stamp
         event = event or 'recheck'
     project = state['project']
-    in_branch, legacy = merged_keys(project, branches.ref(state))
+    in_branch, legacy, undone = _walk(project, branches.ref(state))
     by_id = {c['id']: c for c in cards.values() if c['id']}
     waves = state.get('waves') or []
     for wave in waves:                                                       # what each batch did, by key
@@ -166,6 +184,8 @@ def sync(state, event=None, report=None):
             elif card['state'] == 'on_branch' and wave.get('status') in ('undone', 'empty'):
                 card.update(state='open', batch=None)
     for card in cards.values():
+        if card['key'] in undone and card['state'] == 'done':                # its fix was reverted on the branch
+            card.update(state='open', commit=None, batch=None, why='its fix was reverted on the branch')
         if card['key'] in in_branch and card['state'] != 'done':
             card.update(state='done', commit=in_branch[card['key']], at=_now(), why='')
     for subject, sha in legacy.items():                                     # merged before keys: its old card, by its words

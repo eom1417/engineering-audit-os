@@ -363,7 +363,8 @@ RESUME = []
 
 
 def report_stamp(state):
-    """What the last REPORT.html of the branch was made from: {version, commit, digest, built, errors}; {} when none."""
+    """What the last REPORT.html of the branch was made from: {version, commit, digest, built, scanned_commit (the project
+    commit the check read), errors}; {} when none."""
     try: return json.loads((branches.home(state) / '.report.json').read_text(encoding='utf-8'))
     except (OSError, ValueError): return {}
 
@@ -415,8 +416,8 @@ def publish(state, lang=None, event=None):
     page = report / 'human' / 'index.html'
     home_folder.mkdir(parents=True, exist_ok=True)
     if page.is_file(): shutil.copyfile(page, target)
-    (home_folder / '.report.json').write_text(json.dumps({**stamp(made), 'errors': errors}, ensure_ascii=False, indent=1) + '\n',
-                                              encoding='utf-8')
+    (home_folder / '.report.json').write_text(json.dumps({**stamp(made), 'scanned_commit': state.get('scanned_commit'),
+                                                         'errors': errors}, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     return target if target.is_file() else report / 'START-HERE.md'
 
 
@@ -499,8 +500,8 @@ PUBLISHERS = {}
 def same_code(state, commit, head=None):
     """`head` holds the code of `commit` plus EAOS's own fixes only (every commit between them made by EAOS, and merges):
     a check, a run and a safety net made at `commit` still hold, and a merged batch costs no new check."""
+    if not commit: return False                 # before reading the head: a folder without git has no commit to compare
     head = head or _commit(state)
-    if not commit: return False
     if commit == head: return True
     if _git(state['project'], 'merge-base', '--is-ancestor', commit, head).returncode: return False
     authors = _git(state['project'], 'log', '--no-merges', '--format=%ae', f'{commit}..{head}')

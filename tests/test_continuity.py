@@ -180,6 +180,33 @@ class Continuity(Base):
         self.assertEqual(agent_tools.fix_start(str(self.project))['status'], 'waiting_decision')
 
 
+class FieldEdges(Base):
+    """The edges of the field-report scenarios (acceptance/test_field_report.py) that the acceptance does not walk."""
+
+    def test_a_fix_whose_revert_was_reverted_is_done_again(self):
+        self.batch(1, ['TASK-001'])
+        git(self.project, 'merge', '-q', '--ff-only', 'eaos/wave-1')
+        agent_tools.status(str(self.project))
+        for _ in range(2): git(self.project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'revert', '--no-edit', 'HEAD')
+        self.assertEqual(ledger.sync(guided.load(self.project))['totals']['done'], 1)
+
+    def test_a_folder_with_a_project_file_is_the_project_even_with_one_repository_under_it(self):
+        inner = git_project(self.project / 'vendor' / 'lib').parent.parent
+        self.assertEqual(agent_tools.locate(inner), self.project)
+        plain = Path(self.tmp.name) / 'plain'
+        plain.mkdir()
+        self.assertEqual(agent_tools.locate(plain), plain, 'nothing under it: the folder stays, and project_state says why')
+
+    def test_a_ready_card_still_opens_its_batch_past_the_decision_check(self):
+        state = guided.load(self.project)
+        state['setup'] = {'commit': state['scanned_commit'], 'ok': True}
+        state['consent'] = {'run_and_fix': True}
+        guided.save(state)
+        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as started:
+            self.assertEqual(agent_tools.fix_start(str(self.project), cards=['TASK-001'])['status'], 'started')
+        self.assertEqual(started.call_args[0][2], {'cards': ['TASK-001']})
+
+
 class Handover(Base):
     def test_every_call_is_journaled_and_the_next_assistant_knows_where_to_go_on(self):
         from eaos.mcp_server import _answer

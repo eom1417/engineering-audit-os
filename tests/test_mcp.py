@@ -102,7 +102,9 @@ class ServerTests(Home):
 
     def test_an_error_reaches_the_assistant_as_words_to_act_on(self):
         from eaos.mcp_server import _answer
-        answer = json.loads(_answer(lambda: agent_tools.status(str(Path(self.tmp.name))))())
+        empty = Path(self.tmp.name) / 'empty'                 # no project file and no repository under it
+        empty.mkdir()
+        answer = json.loads(_answer(lambda: agent_tools.status(str(empty)))())
         self.assertIn('not a project folder', answer['error'])
         self.assertIn('eaos start .', answer['what_now'])
 

@@ -44,6 +44,13 @@ class Branches(unittest.TestCase):
         git(p, 'branch', 'dependabot/npm/left-pad-2')             # a bot's branch is never offered
         git(p, 'branch', 'eaos/wave-9')                           # nor one of EAOS's own
 
+    def test_a_branch_with_work_of_its_own_is_still_a_choice_beside_merged_and_archived_ones(self):
+        git(self.project, 'branch', 'merged-long-ago')
+        git(self.project, 'branch', 'archive/develop-copy', 'develop')
+        options = branches.choice(str(self.project))
+        self.assertEqual({row['name'] for row in options['branches']}, {'main', 'develop'})
+        self.assertEqual(options['recommended'], 'develop')
+
     def choose(self, branch, where, said):
         """The person was asked (status) and answered."""
         agent_tools.status(str(where))
