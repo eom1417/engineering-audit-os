@@ -16,6 +16,7 @@ import { layout, MissingBanner } from '../shell/Layout'
 import { WithData } from '../shell/Layout'
 import css from './Pages.module.css'
 import { ownerOf } from '../map/model'
+import { ListTools, SelectableRow } from '../command/Selectable'
 
 type Who = 'all' | 'you' | 'eaos'
 interface ProblemsSearch { card?: string; who?: Who; severity?: string; component?: string; q?: string }
@@ -65,6 +66,7 @@ function ProblemsBody({ data }: { data: StudioData }) {
       && (!search.component || (owner ? c.paths.length > 0 && owner(c.paths[0]) === search.component
         : c.paths.some((p) => p === search.component || p.startsWith(search.component + '/')))))
   }, [cards, index, search.q, search.severity, search.component, who, owner])
+  const order = useMemo(() => shown.map((c) => c.id), [shown])
   const selected = cards.find((c) => c.id === search.card)
   const listName = t('problems')
   usePageChrome(selected ? selected.id : listName, selected ? { to: '/problems', search: { ...search, card: undefined }, label: listName } : undefined, data.manifest.project.name)
@@ -80,10 +82,13 @@ function ProblemsBody({ data }: { data: StudioData }) {
           <Segmented label={t('problems')} value={who} onChange={(next) => set({ who: next === 'all' ? undefined : next })}
             options={[{ id: 'all', label: t('allProblems') }, { id: 'you', label: t('needsYou') }, { id: 'eaos', label: t('eaosFixes') }]} />
           {search.component && <Chip tone="accent"><Id value={search.component} /></Chip>}
+          <ListTools shown={order} />
         </div>
         {shown.length === 0 ? <StateMessage title={t('noResults')} /> : (
           <FoldList items={shown} first={40} label={listName} render={(card) => (
-            <FindingRow card={card} to="/problems" search={{ ...search, card: card.id }} current={card.id === search.card} />
+            <SelectableRow id={card.id} order={order}>
+              <FindingRow card={card} to="/problems" search={{ ...search, card: card.id }} current={card.id === search.card} />
+            </SelectableRow>
           )} />
         )}
       </div>

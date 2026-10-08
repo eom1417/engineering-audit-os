@@ -3,7 +3,7 @@
 import MiniSearch from 'minisearch'
 import { normalize, terms, tokenize } from './normalize'
 
-export type EntryKind = 'page' | 'component' | 'card' | 'decision' | 'doc'
+export type EntryKind = 'page' | 'action' | 'component' | 'card' | 'decision' | 'doc'
 
 export interface Entry {
   id: string

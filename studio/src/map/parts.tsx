@@ -15,6 +15,7 @@ import { TerritoryMap, type Variant } from './TerritoryMap'
 import { useZoom, visibleWorld } from './useZoom'
 import { OP_WORD, useMapWords } from './words'
 import css from './parts.module.css'
+import { SelectComponentCards } from '../command/Selectable'
 
 const SEVERITIES = ['critical', 'high', 'medium', 'low'] as const
 const SEV_WORD = { critical: ['حرجة', 'Critical'], high: ['عالية', 'High'], medium: ['متوسطة', 'Medium'], low: ['منخفضة', 'Low'] } as const
@@ -280,6 +281,7 @@ function CurrentInspector({ system, node, mode, onFocus, touch }: { system: Syst
         </section>
       )}
       <div className={css.insFoot}>
+        <SelectComponentCards component={node.id} />
         {node.findings.total > 0 && (
           <Go to="/problems" search={{ component: node.id }} className={buttonClass('secondary', { block: true })}>
             {w('openItsFindings', { n: node.findings.total })}<Icon name="chevron" />

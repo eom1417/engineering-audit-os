@@ -1,0 +1,147 @@
+/* The runs pages: list rows, queue, the live run (head, now line, batches, timeline, diff, screens, result). The
+   layout reserves room for what will come, so a new event or a finished batch never moves what is already read. */
+
+/* ---------- Rows ---------- */
+.row { display: flex; align-items: center; gap: 12px; padding: 8px 14px; min-block-size: 60px; color: inherit; inline-size: 100%; text-align: start; }
+.row:hover { background: var(--bg-hover); }
+.row:focus-visible { outline-offset: -2px; }
+li + li > .row { border-block-start: 1px solid var(--border-subtle); }
+.rowIcon { inline-size: 32px; block-size: 32px; display: grid; place-items: center; border-radius: var(--radius-8); background: var(--bg-sunken); color: var(--text-secondary); flex: none; }
+.rowMain { display: flex; flex-direction: column; min-inline-size: 0; flex: 1; line-height: 1.4; }
+.rowTitle bdi, .title bdi, .nowText bdi { white-space: nowrap; }
+.rowTitle { font-weight: 500; font-size: var(--text-row); overflow-wrap: anywhere; }
+.rowSub { font-size: 12px; color: var(--text-tertiary); }
+.rowEnd { flex: none; display: inline-flex; }
+
+.queue { display: flex; flex-direction: column; }
+.queueRow { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; }
+.queueRow + .queueRow { border-block-start: 1px solid var(--border-subtle); }
+.queueN { text-align: center; font-size: 13px; font-weight: 600; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.queueMain .row { padding-inline-start: 4px; }
+.queueTools { display: flex; padding-inline-end: 4px; }
+.historyTools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.historyTools > :first-child { flex: 1 1 240px; }
+
+.demo {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; padding: 6px 6px 6px 14px;
+  border-radius: var(--radius-8); background: var(--accent-subtle); color: var(--accent-text); font-size: 13px;
+}
+.snapshot { padding: 16px; display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.snapLead { color: var(--text-secondary); line-height: 1.55; }
+.command { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.command code {
+  font-family: var(--font-mono); font-size: 14px; padding: 8px 12px; border-radius: var(--radius-8); background: var(--code-bg);
+  border: 1px solid var(--border-subtle);
+}
+.panelTitle { font-size: var(--text-section); font-weight: 600; line-height: 1.4; }
+
+/* ---------- The live run ---------- */
+.runPage { gap: 16px; }
+.head { display: flex; flex-direction: column; gap: 6px; }
+.headTop { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.kicker { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.title { font-size: var(--text-large-title); font-weight: 600; line-height: var(--leading-tight); overflow-wrap: anywhere; }
+.meta { font-size: 13px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.reconnect { color: var(--status-warning-text); }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; margin-block-start: 4px; }
+
+.now {
+  display: flex; flex-direction: column; gap: 2px; min-block-size: 64px; padding: 10px 14px; border-radius: var(--radius-8);
+  background: var(--bg-sunken); border-inline-start: 3px solid var(--accent-solid);
+}
+.nowLabel { font-size: 12px; font-weight: 600; color: var(--accent-text); }
+.nowText { font-size: 15px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--section-gap); align-items: start; }
+.single { display: block; }
+.mainCol, .sideCol { display: flex; flex-direction: column; gap: var(--section-gap); min-inline-size: 0; }
+.sideCol { position: sticky; inset-block-start: calc(var(--topbar-h) + 16px); }
+.placeholder { font-size: 13px; color: var(--text-tertiary); min-block-size: 28px; display: flex; align-items: center; }
+
+.batches { display: flex; flex-direction: column; gap: 10px; }
+.batch { display: grid; grid-template-columns: 72px minmax(0, 1fr) 64px; align-items: center; gap: 10px; font-size: 13px; min-block-size: 20px; }
+.batchName { color: var(--text-secondary); white-space: nowrap; }
+.batchCount { text-align: end; color: var(--text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.meter { display: block; block-size: 6px; border-radius: 3px; background: var(--bg-selected); overflow: hidden; }
+.meterFill { display: block; block-size: 100%; border-radius: 3px; background: var(--accent-solid); transition: inline-size var(--dur-slow) var(--ease-standard); }
+
+.timeline { display: flex; flex-direction: column; }
+.ev { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 10px; padding: 10px 14px; align-items: start; }
+.ev + .ev { border-block-start: 1px solid var(--border-subtle); }
+.evIcon { display: grid; place-items: center; block-size: 22px; color: var(--text-tertiary); }
+.evGood .evIcon { color: var(--status-good); }
+.evBad .evIcon { color: var(--status-critical); }
+.evBad .evText { color: var(--status-critical-text); }
+.evQuiet .evText { color: var(--text-tertiary); font-size: 13px; }
+.evMain { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
+.evText { font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.evMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: var(--text-tertiary); }
+.evTime { justify-self: start; font-family: var(--font-mono); font-size: 11px; color: var(--text-tertiary); padding-block-start: 3px; direction: ltr; unicode-bidi: isolate; }
+.more { align-self: flex-start; min-block-size: 32px; padding-inline: 6px 10px; font-size: 13px; gap: 4px; }
+.flip { transform: rotate(180deg); }
+.reads { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+
+.diff, .detail {
+  margin: 0; padding: 10px 0; border-radius: var(--radius-8); background: var(--code-bg); border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; overflow-x: auto; direction: ltr; text-align: start; white-space: pre;
+  max-block-size: 420px;
+}
+.detail { padding: 10px 12px; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-secondary); }
+.diff code { display: block; min-inline-size: max-content; }
+.diff span { display: block; padding-inline: 12px; }
+.d_add { background: var(--status-good-subtle); color: var(--status-good-text); }
+.d_del { background: var(--status-critical-subtle); color: var(--status-critical-text); }
+.d_hunk { color: var(--accent-text); }
+.d_file { color: var(--text-secondary); font-weight: 500; }
+.d_ctx { color: var(--text-secondary); }
+
+.pairs { display: flex; flex-direction: column; gap: 14px; }
+.pair { display: flex; flex-direction: column; gap: 6px; }
+.pairTitle { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.pairShots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.shot { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; }
+.shotImg { inline-size: 100%; block-size: auto; aspect-ratio: 180 / 300; border-radius: var(--radius-8); border: 1px solid var(--border-default); background: var(--bg-sunken); }
+.shotNone { aspect-ratio: 180 / 300; display: grid; place-items: center; padding: 8px; text-align: center; font-size: 12px; color: var(--text-tertiary); border-radius: var(--radius-8); border: 1px dashed var(--border-strong); overflow-wrap: anywhere; }
+.shotCap { font-size: 12px; color: var(--text-tertiary); }
+
+.resultPanel, .error { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.error { border-color: var(--status-critical); }
+.whatNow { color: var(--text-secondary); font-size: 14px; }
+.result { display: flex; flex-direction: column; gap: 14px; }
+.answer { font-size: 15px; line-height: 1.6; padding: 12px 14px; border-radius: var(--radius-8); background: var(--bg-sunken); }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
+.facts > div { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--radius-8); background: var(--bg-sunken); min-inline-size: 0; }
+.facts dt { font-size: 12px; color: var(--text-tertiary); }
+.facts dd { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-weight: 500; font-size: 14px; min-inline-size: 0; }
+.factSub { font-weight: 400; font-size: 12px; color: var(--text-secondary); }
+.subTitle { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-block-end: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cardLink { display: inline-flex; align-items: center; min-block-size: 28px; padding-inline: 10px; border-radius: var(--radius-full); background: var(--accent-subtle); color: var(--accent-text); font-size: 13px; }
+.cardLink:hover { text-decoration: underline; text-underline-offset: 3px; }
+.indicators { display: flex; flex-direction: column; }
+.indicators li { display: flex; justify-content: space-between; gap: 12px; padding-block: 6px; border-block-end: 1px solid var(--border-subtle); font-size: 14px; }
+.indName { color: var(--text-secondary); }
+.indMove { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat { font-family: var(--font-mono); font-size: 13px; }
+.decide { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 8px; }
+.outcome { font-weight: 500; color: var(--status-good-text); }
+.decideBranch { font-size: 14px; color: var(--text-secondary); overflow-wrap: anywhere; }
+.decideFoot { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+
+@media (max-width: 1199px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .sideCol { position: static; order: -1; }
+}
+@media (max-width: 767px) {
+  .row { min-block-size: 64px; padding-inline: 12px; }
+  .queueRow { grid-template-columns: 24px minmax(0, 1fr); }
+  .queueTools { grid-column: 2; padding-block-end: 6px; gap: 4px; }
+  .controls > * { flex: 1; }
+  .ev { padding: 10px 12px; grid-template-columns: 22px minmax(0, 1fr); }
+  .evTime { grid-column: 2; grid-row: 2; padding-block-start: 0; }
+  .more { min-block-size: 44px; }
+  .batch { grid-template-columns: 64px minmax(0, 1fr) 56px; }
+  .decide { grid-template-columns: minmax(0, 1fr); }
+  .decideFoot > * { flex: 1; }
+  .cardLink { min-block-size: 44px; padding-inline: 14px; }
+}
