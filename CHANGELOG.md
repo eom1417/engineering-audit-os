@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.0.3 (2026-10-08)
+
+- **Six code-understanding engines** run inside EAOS, each at a pinned version with its licence recorded:
+  ast-grep (EAOS's own React rules), Lizard (complexity, length and parameters per function), complexipy
+  (cognitive complexity of Python functions), vulture (unused Python code), knip (unused files, exports and
+  dependencies, without running any project configuration) and react-docgen (components and their props).
+- **The screen gate** (`tools/studio_gates.py`): pinned axe-core, Lighthouse, css-analyzer and Playwright check every
+  screen at phone, tablet and desktop widths, in Arabic and English, light and dark: nothing spills past the screen
+  (the page's layout width must equal the screen's), it opens at the top, touch targets are 44px, no accessibility
+  violations.
+- Fixed: the dead-code and broken-code checks gave different ids to the same commit in a fresh checkout (they hashed
+  file times); they now hash content only.
+
 ## 0.0.2 (2026-10-03)
 
 - **`/eaos` alone shows a menu** (`$eaos` in Codex): the options that make sense for this project now, the recommended one
