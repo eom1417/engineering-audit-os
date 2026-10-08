@@ -36,6 +36,7 @@ pages are held to the mobile minimums, and the CSS drift counts of the shipped s
 """
 import argparse
 import json
+import re
 import shutil
 import sys
 import tempfile
@@ -160,13 +161,20 @@ def finish(report, result, label, out):
 
 
 def studio_placeholders(data):
-    """{card}: the first problem card with evidence; {component}: the component holding the most cards (each card's
+    """{card}: the first problem card with evidence, {fact} its first fact (with code when one has it) and {word} the longest
+    word of its title; {component}: the component holding the most cards (each card's
     path counted in its deepest component), so the focused System view shows a full inspector; {path}: the code path
     the flow pages open ('none' without studio/paths.json); {task}, {screen}, {hidden_group}: the journeys and hidden pages'
     subjects; {store}: the data map's store; {stage}: the first router of the pipeline map, else its first stage ('none'
     without studio/pipeline.json or a pipeline)."""
     cards = json.loads((data / 'cards.json').read_text(encoding='utf-8'))['cards']
-    card = next((c for c in cards if c.get('evidence')), cards[0] if cards else {'id': ''})['id']
+    chosen = next((c for c in cards if c.get('evidence')), cards[0] if cards else {'id': '', 'title': '', 'evidence': []})
+    card = chosen['id']
+    # {fact}: the card's first fact, one with code when it has one; {word}: the longest word of its title (the search)
+    facts = {f['id']: f for f in (json.loads((data / 'evidence.json').read_text(encoding='utf-8'))['facts'] if (data / 'evidence.json').is_file() else [])}
+    cited = [facts[i] for i in chosen.get('evidence') or [] if i in facts]
+    fact = next((f for f in cited if f.get('code')), cited[0] if cited else {'id': 'none'})['id']
+    word = max([w for w in re.split(r'[^\w]+', chosen.get('title') or '') if w and not w.isdigit()] or ['none'], key=len)
     story = json.loads((data / 'story.json').read_text(encoding='utf-8')) if (data / 'story.json').is_file() else {}
     names = sorted((c['name'] for c in (story.get('current') or {}).get('components') or []), key=len, reverse=True)
     held = {}
@@ -191,8 +199,8 @@ def studio_placeholders(data):
     store = next((s for s in stores if s.get('multi_writer')), stores[0] if stores else {'id': 'none'})
     stages = section('pipeline').get('stages') or []
     stage = next((s for s in stages if s.get('kind') == 'router'), stages[0] if stages else {'id': 'none'})
-    return {'card': card, 'component': component, 'path': chosen['id'], 'task': task['id'], 'screen': screen['id'],
-            'hidden_group': group['id'], 'store': store['id'], 'stage': stage['id']}
+    return {'card': card, 'fact': fact, 'word': word, 'component': component, 'path': chosen['id'], 'task': task['id'],
+            'screen': screen['id'], 'hidden_group': group['id'], 'store': store['id'], 'stage': stage['id']}
 
 
 def studio_pages(matrix, data, base, folder, only=None):

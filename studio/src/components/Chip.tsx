@@ -40,14 +40,16 @@ const SEV_BARS: Record<Severity, number> = { low: 1, medium: 2, high: 3, critica
 const SEV_CLASS: Record<Severity, string> = { low: css.sevLow, medium: css.sevMedium, high: css.sevHigh, critical: css.sevCritical }
 const SEV_WORD = { low: 'sevLow', medium: 'sevMedium', high: 'sevHigh', critical: 'sevCritical' } as const
 
+/** The four bars and the word; a card of severity "info" (the contract allows it) shows no bar lit and its word. */
 export function SeverityGlyph({ severity, word = true }: { severity: Severity; word?: boolean }) {
   const { t } = usePrefs()
+  const name = t(SEV_WORD[severity] ?? 'sevInfo')
   return (
-    <span className={[css.sev, SEV_CLASS[severity]].join(' ')} aria-label={word ? undefined : t(SEV_WORD[severity])} role={word ? undefined : 'img'}>
+    <span className={[css.sev, SEV_CLASS[severity] ?? css.sevLow].join(' ')} aria-label={word ? undefined : name} role={word ? undefined : 'img'}>
       <span className={css.bars} aria-hidden="true">
-        {[0, 1, 2, 3].map((i) => <i key={i} data-on={i < SEV_BARS[severity] ? '' : undefined} />)}
+        {[0, 1, 2, 3].map((i) => <i key={i} data-on={i < (SEV_BARS[severity] ?? 0) ? '' : undefined} />)}
       </span>
-      {word && <span>{t(SEV_WORD[severity])}</span>}
+      {word && <span>{name}</span>}
     </span>
   )
 }

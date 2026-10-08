@@ -112,6 +112,7 @@ export const WORDS = {
   sevHigh: ['عالية', 'High'],
   sevMedium: ['متوسطة', 'Medium'],
   sevLow: ['منخفضة', 'Low'],
+  sevInfo: ['للعلم', 'Info'],
   opKeep: ['يبقى', 'Keep'],
   opModify: ['يُعدَّل', 'Modify'],
   opRebuild: ['يُعاد بناؤه', 'Rebuild'],

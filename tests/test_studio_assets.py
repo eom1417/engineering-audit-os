@@ -139,9 +139,19 @@ class GateMatrix(unittest.TestCase):
             (data / 'cards.json').write_text(json.dumps({'cards': cards}), encoding='utf-8')
             story = {'current': {'components': [{'name': n} for n in ('(root)', 'src', 'src/a', 'src/b', 'src/b/c')]}}
             (data / 'story.json').write_text(json.dumps(story), encoding='utf-8')
-            self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'component': 'src/b', 'path': 'none',
+            self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'fact': 'none', 'word': 'none', 'component': 'src/b', 'path': 'none',
                                                                     'task': 'none', 'screen': 'none', 'hidden_group': 'none',
                                                                     'store': 'none', 'stage': 'none'})
+            # {fact}: the card's first fact with code; {word}: the longest word of its title
+            cards[1]['title'] = 'Flow FLOW-003 stops at 10 unresolvable calls'
+            (data / 'cards.json').write_text(json.dumps({'cards': cards}), encoding='utf-8')
+            facts = [{'id': 'FACT-0', 'code': None}, {'id': 'FACT-1', 'code': None}, {'id': 'FACT-2', 'code': {'start': 1}}]
+            cards[1]['evidence'] = ['FACT-1', 'FACT-2']
+            (data / 'cards.json').write_text(json.dumps({'cards': cards}), encoding='utf-8')
+            (data / 'evidence.json').write_text(json.dumps({'facts': facts}), encoding='utf-8')
+            found = self.gates.studio_placeholders(data)
+            self.assertEqual((found['fact'], found['word']), ('FACT-2', 'unresolvable'))
+            (data / 'evidence.json').unlink()
             journeys = {'tasks': [{'id': 't/one', 'path': ['s/a']}, {'id': 't/two', 'path': ['s/a', 's/b']}],
                         'screens': [{'id': 's/a', 'kind': 'page', 'flags': []}, {'id': 's/b', 'kind': 'page', 'flags': ['broken_link']}]}
             (data / 'journeys.json').write_text(json.dumps(journeys), encoding='utf-8')

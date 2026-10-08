@@ -1,5 +1,5 @@
 {
- "about": "The Studio's routes for the screen gate: python tools/studio_gates.py --studio (studio/README.md). {card} is a problem card with evidence and {component} the component holding the most cards in the report given with --data; {task}, {screen} and {hidden_group}: a journeys task with a path, a flagged screen and an unseen group with items; {store}: the first data store written from more than one place (tools/studio_gates.py).",
+ "about": "The Studio's routes for the screen gate: python tools/studio_gates.py --studio (studio/README.md). {card} is a problem card with evidence, {fact} its first fact (one with code when it has one), {word} a word of its title, and {component} the component holding the most cards in the report given with --data; {task}, {screen} and {hidden_group}: a journeys task with a path, a flagged screen and an unseen group with items; {store}: the first data store written from more than one place (tools/studio_gates.py).",
  "wait_for": "main#main",
  "variants": [
   {"name": "ar-light", "query": {"lang": "ar", "theme": "light"}, "color_scheme": "light", "expect": {"dir": "rtl", "attributes": {"lang": "ar", "data-theme": "light"}}},
@@ -41,6 +41,10 @@
   {"name": "system-infra-steps", "path": "index.html#/system?lens=infra&show=steps", "viewports": ["tablet", "desktop"]},
   {"name": "problems", "path": "index.html#/problems", "lighthouse": true},
   {"name": "problem", "path": "index.html#/problems?card={card}"},
+  {"name": "problems-grouped", "path": "index.html#/problems?group=step&severity=high,medium"},
+  {"name": "problems-search", "path": "index.html#/problems?q={word}&card={card}"},
+  {"name": "problems-filters", "path": "index.html#/problems?severity=high", "actions": [{"click": "[data-open=\"filters\"]", "wait": 400}]},
+  {"name": "evidence", "path": "index.html#/evidence/{fact}"},
   {"name": "change", "path": "index.html#/change"},
   {"name": "change-focus", "path": "index.html#/change?focus={component}", "viewports": ["tablet", "desktop"]},
   {"name": "decisions", "path": "index.html#/decisions"},

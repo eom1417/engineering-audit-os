@@ -37,6 +37,7 @@ STUDIO_DATA=<report>/studio npm run dev   # live development on a report's data,
 | `src/search/` | the Arabic normaliser and the MiniSearch index, with their unit tests |
 | `src/data/` | contract v1 types and the loader (classic `<name>.js` scripts beside `index.html`) |
 | `src/pages/` | the section pages on real data |
+| `src/pages/problems/` | Problems (search, facets with counts, grouping, every state in the address) and `#/evidence/<factId>`; `model.ts` is the list logic, timed at 5,000 cards by `tools/studio_budgets.py` |
 | `src/pages/data/` | System → Data (`studio/data_paths.json`): the seven links of every write, the map of writers and stores with its gaps hatched, a store's chain, the steps view, the gallery fixture |
 | `src/pages/infra/` | The infrastructure lens (`#/system?lens=infra`, `studio/infra.json`): the context diagram, Today / Change / Target, the steps view |
 | `src/data/actions/` | the command centre's client against `docs/studio-actions.json` (bundled from the file): live (launch token, CSRF, SSE over fetch with `Last-Event-ID`) and demo (a recorded run replayed on the open report, `#/runs?demo=1`), the run view derived from events, the shared runs/queue/questions state |

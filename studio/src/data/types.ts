@@ -57,9 +57,19 @@ export interface Card {
   evidence: string[]
   scope: 'place' | 'group'
   confidence: number
+  /** Why it matters, in both languages (absent when the plan gives no impact) */
+  why?: { ar: string; en: string }
 }
 
-export interface Fact { id: string; kind: string; engine: string | null; path: string | null; line: number | null; summary: string; sites: { path: string; line?: number }[] }
+/** The lines of code around a fact's place as the check read them; a line where a secret was found is empty and in `hidden`. */
+export interface CodeExcerpt { start: number; line: number; lines: string[]; hidden: number[] }
+
+export interface Fact {
+  id: string; kind: string; engine: string | null; path: string | null; line: number | null; summary: string
+  sites: { path: string; line?: number | null }[]
+  /** Absent in older reports; null when there is no line, the file could not be read, or the fact is a secret */
+  code?: CodeExcerpt | null
+}
 
 export type Relation = 'retain' | 'modify' | 'rebuild' | 'delete' | 'merge' | 'missing' | 'introduce'
 

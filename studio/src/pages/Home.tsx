@@ -74,7 +74,7 @@ function HomeBody({ data }: { data: StudioData }) {
             <Tiles>
               <StatTile value={scoreN} of={t('outOf100')} label={scoreN === null ? t('health') : <><BandDot score={scoreN} />{t('health')}: {bandWord(scoreN)}</>} meter={scoreN ?? undefined} onPress={() => setHealthOpen(true)} />
               <StatTile value={c.needDecision} label={t('needCheck')} to="/problems" search={{ who: 'you' }} />
-              <StatTile value={c.bySeverity.high + c.bySeverity.critical} label={t('highSeverity')} to="/problems" search={{ severity: 'high' }} />
+              <StatTile value={c.bySeverity.high + c.bySeverity.critical} label={t('highSeverity')} to="/problems" search={{ severity: 'critical,high' }} />
             </Tiles>
           </div>
           <Panel className={[css.status, css.deskOnly].join(' ')}>
@@ -84,7 +84,7 @@ function HomeBody({ data }: { data: StudioData }) {
                 <StatLink icon={<SeverityGlyph severity="critical" word={false} />} value={c.needDecision} label={t('needCheck')} to="/problems" search={{ who: 'you' }} />
                 {(['high', 'medium', 'low'] as const).map((sev) => (
                   <StatLink key={sev} icon={<SeverityGlyph severity={sev} word={false} />} value={c.bySeverity[sev] + (sev === 'high' ? c.bySeverity.critical : 0)}
-                    label={t(sev === 'high' ? 'sevHigh' : sev === 'medium' ? 'sevMedium' : 'sevLow')} to="/problems" search={{ severity: sev }} />
+                    label={t(sev === 'high' ? 'sevHigh' : sev === 'medium' ? 'sevMedium' : 'sevLow')} to="/problems" search={{ severity: sev === 'high' ? 'critical,high' : sev }} />
                 ))}
               </StatLinks>
             </div>
