@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "fdaa31e",
+  "extracted_at_commit": "bcd552a",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -462,6 +462,15 @@
       "note": ""
     },
     {
+      "id": "INV-02df22812f",
+      "file": "eaos/engines/complexipy.py",
+      "symbol": "<module>",
+      "statement": "A file complexipy cannot parse is named in the coverage, not hidden: its exit code is 1 then, and every other file is still measured.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_code_engines.py::ComplexipyTests::test_a_file_it_cannot_parse_is_named_and_the_rest_is_still_measured",
+      "note": ""
+    },
+    {
       "id": "INV-30c763c99a",
       "file": "eaos/engines/contract.py",
       "symbol": "<module>",
@@ -507,6 +516,15 @@
       "note": ""
     },
     {
+      "id": "INV-1a4a0615d4",
+      "file": "eaos/engines/knip.py",
+      "symbol": "<module>",
+      "statement": "Without its plugins and without node_modules, knip cannot tell which devDependency a tool or a script uses, so devDependencies, binaries and unlisted names are counted, not reported; unused files and exports become `dead_code` findings, unused production dependencies `unused_dependency` findings.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_code_engines.py::KnipTests::test_dev_dependencies_are_counted_not_reported",
+      "note": ""
+    },
+    {
       "id": "INV-742d92b588",
       "file": "eaos/engines/osv_scanner.py",
       "symbol": "<module>",
@@ -531,6 +549,15 @@
       "statement": "Such an engine asks for hardlink=False and gets a copy it cannot reach the project through.",
       "kind": "invariant",
       "enforced_by": "tests/test_adapters.py::MirrorTests::test_a_copy_without_hardlinks_cannot_reach_the_project",
+      "note": ""
+    },
+    {
+      "id": "INV-bbef4cfb2e",
+      "file": "eaos/engines/react_docgen.py",
+      "symbol": "<module>",
+      "statement": "The CLI stops at the first file it cannot parse and writes nothing, so the files go in batches, and a batch that fails is split in two until the file that fails stands alone; it is named in the coverage, the rest is read.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_code_engines.py::ReactDocgenTests::test_a_failing_file_is_isolated_and_named_and_the_rest_is_read",
       "note": ""
     },
     {
@@ -594,6 +621,60 @@
       "statement": "Checked in that order: a tool that is not installed is reported as absent even where it would not apply, so an install gap is never hidden.",
       "kind": "invariant",
       "enforced_by": "tests/test_supply_chain.py::RegistryTests::test_a_tool_with_nothing_to_read_is_not_applicable_not_absent",
+      "note": ""
+    },
+    {
+      "id": "INV-84fca2f597",
+      "file": "eaos/engines/tool.py",
+      "symbol": "declined",
+      "statement": "`probe` is the adapter's own version reader, for a tool whose version `version(binary)` cannot read.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_code_engines.py::EveryEngineTests::test_an_adapter_reads_its_own_version_when_the_binary_prints_none",
+      "note": ""
+    },
+    {
+      "id": "INV-1a35582a84",
+      "file": "eaos/engines/vulture.py",
+      "symbol": "<module>",
+      "statement": "vulture cannot see what a framework calls.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_code_engines.py::VultureTests::test_what_a_framework_calls_is_counted_not_reported_and_the_rest_still_is",
+      "note": ""
+    },
+    {
+      "id": "INV-0083962e6c",
+      "file": "eaos/engines/vulture.py",
+      "symbol": "<module>",
+      "statement": "So each reported candidate is checked against its source, read and never run: a function decorated by `obj.attr` or `obj.attr(...)` is registered, and a method whose name a standard-library base class defines is a hook.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_code_engines.py::VultureTests::test_what_a_framework_calls_is_counted_not_reported_and_the_rest_still_is",
+      "note": ""
+    },
+    {
+      "id": "INV-bea3038cb2",
+      "file": "eaos/engines/vulture.py",
+      "symbol": "exclusions",
+      "statement": "vulture matches each pattern against the absolute path of a file, so a pattern must be anchored at the target: an unanchored `*/build/*` would drop every file of a project that itself lives under some `build` directory (or `.claude/worktrees`).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_code_engines.py::ExclusionTests::test_vulture_patterns_are_anchored_at_the_target",
+      "note": ""
+    },
+    {
+      "id": "INV-12ab23221b",
+      "file": "eaos/engines/vulture.py",
+      "symbol": "_stdlib_class_names",
+      "statement": "Every name a standard-library class defines, read from its source (never imported), following bases defined in the same module or imported into it from another standard-library module.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_code_engines.py::VultureTests::test_what_a_framework_calls_is_counted_not_reported_and_the_rest_still_is",
+      "note": ""
+    },
+    {
+      "id": "INV-72b830fa6d",
+      "file": "eaos/engines/vulture.py",
+      "symbol": "called_by_framework",
+      "statement": "A file that cannot be read or parsed answers False: the candidate is reported.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_code_engines.py::VultureTests::test_an_unreadable_file_leaves_the_candidate_reported",
       "note": ""
     },
     {

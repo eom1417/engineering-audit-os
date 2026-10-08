@@ -1,0 +1,15 @@
+id: eaos.react.effect-derived-state
+valid:
+  - "useEffect(() => { fetchVehicles().then(setVehicles); }, []);"
+  - "useEffect(() => { setTotal(a + b); track(total); }, [a, b]);"
+  - "useEffect(() => { document.title = name; }, [name]);"
+invalid:
+  - "useEffect(() => { setFullName(first + ' ' + last); }, [first, last]);"
+  - "useEffect(() => setFiltered(items.filter(i => i.active)), [items]);"
+  - "React.useEffect(() => { setCount(list.length) }, [list]);"
+---
+id: eaos.react.effect-derived-state-js
+valid:
+  - "useEffect(() => { load().then(setRows); }, []);"
+invalid:
+  - "useEffect(() => { setFullName(first + ' ' + last); }, [first, last]);"

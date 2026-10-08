@@ -1,0 +1,53 @@
+{
+ "engine": "react-docgen",
+ "pinned_version": "3.0.7",
+ "captured_from": "react-docgen --resolver find-all-exported-components <files> (in tests/fixtures/code_engines/web; library 8.0.4)",
+ "react-docgen.json": {
+  "src/main.tsx": [
+   {
+    "description": "",
+    "methods": [],
+    "displayName": "App"
+   }
+  ],
+  "src/components/VehicleCard.tsx": [
+   {
+    "description": "",
+    "methods": [],
+    "displayName": "VehicleCard",
+    "props": {
+     "vehicle": {
+      "required": true,
+      "tsType": {
+       "name": "Vehicle"
+      },
+      "description": ""
+     },
+     "compact": {
+      "required": false,
+      "tsType": {
+       "name": "boolean"
+      },
+      "description": ""
+     }
+    }
+   }
+  ],
+  "src/components/Orphan.tsx": [
+   {
+    "description": "",
+    "methods": [],
+    "displayName": "Orphan",
+    "props": {
+     "title": {
+      "required": true,
+      "tsType": {
+       "name": "string"
+      },
+      "description": ""
+     }
+    }
+   }
+  ]
+ }
+}

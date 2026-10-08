@@ -24,7 +24,7 @@ import re
 from collections import Counter, defaultdict
 from pathlib import PurePosixPath
 
-from . import digest, make
+from . import make
 from .source import classify, language_of
 
 NAME = 'deadcode'
@@ -247,7 +247,7 @@ def run(target, source, symbols=None, resolved=None, entry_points=None, **option
     folders = {PurePosixPath(path).parent for path in known if PurePosixPath(path).name == 'package.json'}
     commanded = {path for path in _commanded(source, known, folders) if not _is_test(path)}
     reached = _reachable(seeds | configs | commanded if seeds else seeds, graph, {p: refs.texts[p] for p in code if p in refs.texts})
-    sha = digest(str(source.fingerprint).encode('utf-8'))
+    sha = source.content_fingerprint
     facts = []
     # With no production entry point, nothing says who uses the code: a library's public names serve callers
     # outside the snapshot. Then only what is private by convention (`_name`) is judged, and no module is.

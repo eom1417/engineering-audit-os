@@ -46,6 +46,9 @@ def rule_applies(rule, files):
     """Whether a tool's `applies` rule (upstreams/toolchain.json) holds for a project's files."""
     if rule == 'all': return True
     if rule == 'js': return any(f.endswith(('.ts', '.tsx', '.js', '.jsx')) for f in files)
+    if rule == 'react': return any(f.endswith(('.tsx', '.jsx')) for f in files)
+    if rule == 'node_package': return 'package.json' in files
+    if rule == 'python': return any(f.endswith('.py') for f in files)
     if rule == 'sql': return any(f.endswith('.sql') for f in files)
     if rule == 'ci_or_iac': return any(f.startswith('.github/workflows/') or f.endswith(('Dockerfile', '.tf')) for f in files)
     if rule == 'openapi': return any(f.split('/')[-1].startswith(('openapi.', 'swagger.')) for f in files)
@@ -81,6 +84,10 @@ def found_version(tool):
         return (done.stdout.strip(), '') if done.returncode == 0 else (None, 'not installed')
     path = binary_path(tool)
     if not path: return None, 'not installed'
+    if tool.get('version_from') == 'package':
+        # A command with no --version (the react-docgen CLI): the version is the one its npm package records.
+        found = package_version(tool)
+        return (found, '') if found else (None, f"{tool['install']['package']} is not installed in {npm_prefix(tool)}")
     try:
         # A tool that runs on another (the Structurizr CLI on the JRE) finds it in the pinned bin first.
         done = subprocess.run([path, *tool.get('version_args', ['--version'])], capture_output=True, text=True, timeout=120,
@@ -88,6 +95,12 @@ def found_version(tool):
     except (OSError, subprocess.TimeoutExpired) as problem:
         return None, f'{path} --version failed: {problem}'
     output = done.stdout + done.stderr
+    # A tool numbered with two parts (vulture 2.16) names its own pattern; the rest read as x.y.z.
+    if tool.get('version_pattern'):
+        match = re.search(tool['version_pattern'], output)
+        if not match: return None, f'{path} --version printed no version'
+        missing = _companions_missing(tool)
+        return (None, missing) if missing else (match.group(1), '')
     # A tool may print another program's version first (dependency-cruiser names the Node.js it refuses):
     # the pinned version anywhere in the output is the tool's own; a refusal of Node.js is said as such.
     if tool['version'] in VERSION.findall(output) and not tool.get('version_reports'):
@@ -104,6 +117,13 @@ def found_version(tool):
     if tool.get('version_reports'):
         return (tool['version'], '') if match.group(1) == tool['version_reports'] else (match.group(1), '')
     return match.group(1), ''
+
+
+def package_version(tool):
+    """The version an npm tool's own package.json records in its pinned prefix, or None."""
+    manifest = npm_prefix(tool) / 'node_modules' / tool['install']['package'] / 'package.json'
+    try: return json.loads(manifest.read_text(encoding='utf-8')).get('version')
+    except (OSError, ValueError): return None
 
 
 def _companions_missing(tool):

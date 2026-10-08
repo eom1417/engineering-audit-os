@@ -1,0 +1,78 @@
+{
+ "engine": "knip",
+ "pinned_version": "6.40.0",
+ "captured_from": "knip --config <every plugin off> --reporter json (in tests/fixtures/code_engines/web)",
+ "knip.json": {
+  "issues": [
+   {
+    "file": "src/components/Orphan.tsx",
+    "binaries": [],
+    "catalog": [],
+    "catalogReferences": [],
+    "dependencies": [],
+    "devDependencies": [],
+    "duplicates": [],
+    "enumMembers": [],
+    "exports": [],
+    "files": [
+     {
+      "name": "src/components/Orphan.tsx"
+     }
+    ],
+    "namespaceMembers": [],
+    "optionalPeerDependencies": [],
+    "types": [],
+    "unlisted": [],
+    "unresolved": []
+   },
+   {
+    "file": "package.json",
+    "binaries": [],
+    "catalog": [],
+    "catalogReferences": [],
+    "dependencies": [
+     {
+      "name": "left-pad",
+      "line": 6,
+      "col": 6,
+      "pos": 100
+     }
+    ],
+    "devDependencies": [],
+    "duplicates": [],
+    "enumMembers": [],
+    "exports": [],
+    "files": [],
+    "namespaceMembers": [],
+    "optionalPeerDependencies": [],
+    "types": [],
+    "unlisted": [],
+    "unresolved": []
+   },
+   {
+    "file": "src/lib/format.ts",
+    "binaries": [],
+    "catalog": [],
+    "catalogReferences": [],
+    "dependencies": [],
+    "devDependencies": [],
+    "duplicates": [],
+    "enumMembers": [],
+    "exports": [
+     {
+      "name": "unusedFormat",
+      "line": 7,
+      "col": 17,
+      "pos": 140
+     }
+    ],
+    "files": [],
+    "namespaceMembers": [],
+    "optionalPeerDependencies": [],
+    "types": [],
+    "unlisted": [],
+    "unresolved": []
+   }
+  ]
+ }
+}

@@ -1,0 +1,28 @@
+{
+ "engine": "complexipy",
+ "pinned_version": "8.0.1",
+ "captured_from": "complexipy . --output-format json (in tests/fixtures/code_engines/py)",
+ "complexipy.json": [
+  {
+   "complexity": 0,
+   "file_name": "billing.py",
+   "function_name": "unused_helper",
+   "path": "billing.py",
+   "refactor_plans": []
+  },
+  {
+   "complexity": 1,
+   "file_name": "billing.py",
+   "function_name": "total",
+   "path": "billing.py",
+   "refactor_plans": []
+  },
+  {
+   "complexity": 25,
+   "file_name": "billing.py",
+   "function_name": "tariff",
+   "path": "billing.py",
+   "refactor_plans": []
+  }
+ ]
+}

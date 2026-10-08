@@ -2,7 +2,7 @@
 from fnmatch import fnmatch
 from pathlib import Path
 from ..discovery import classify
-from ..workspace import inventory, safe_file
+from ..workspace import digest, inventory, safe_file
 
 LANGUAGE_BY_SUFFIX = {
     '.py': 'python', '.pyi': 'python', '.js': 'javascript', '.jsx': 'javascript', '.mjs': 'javascript',
@@ -44,6 +44,14 @@ class Source:
 
     @property
     def fingerprint(self): return self.inventory['fingerprint']
+
+    @property
+    def content_fingerprint(self):
+        """A digest of what the files say: each in-scope path with its size and content hash, and no
+        modification time. The inventory fingerprint also hashes mtimes, so a fresh checkout of the same
+        commit gives it a new value; a fact id derived from it would change between machines."""
+        return digest('\n'.join(f"{item['path']}\t{item['size']}\t{item['sha256']}"
+                                 for item in sorted(self.files, key=lambda item: item['path'])).encode('utf-8'))
 
     def readable(self):
         return [item for item in self.files if item['capture'] == 'hashed']

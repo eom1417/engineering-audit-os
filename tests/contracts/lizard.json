@@ -1,0 +1,6 @@
+{
+ "engine": "lizard",
+ "pinned_version": "1.24.1",
+ "captured_from": "lizard --csv -i -1 -t 4 . (in tests/fixtures/code_engines/py, then tests/fixtures/code_engines/web)",
+ "lizard.csv": "27,22,157,7,27,\"tariff@5-31@./billing.py\",\"./billing.py\",\"tariff\",\"tariff( kind , weight , express , zone , member , coupon , season )\",5,31\n2,1,9,1,2,\"unused_helper@34-35@./billing.py\",\"./billing.py\",\"unused_helper\",\"unused_helper( value )\",34,35\n2,2,18,1,2,\"total@38-39@./billing.py\",\"./billing.py\",\"total\",\"total( items )\",38,39\n1,1,16,1,1,\"Orphan@1-1@./src/components/Orphan.tsx\",\"./src/components/Orphan.tsx\",\"Orphan\",\"Orphan ( title title )\",1,1\n3,1,14,1,3,\"plate@3-5@./src/lib/format.ts\",\"./src/lib/format.ts\",\"plate\",\"plate ( text )\",3,5\n3,1,14,1,3,\"unusedFormat@7-9@./src/lib/format.ts\",\"./src/lib/format.ts\",\"unusedFormat\",\"unusedFormat ( text )\",7,9\n1,1,13,0,1,\"(anonymous)@8-8@./src/components/VehicleCard.tsx\",\"./src/components/VehicleCard.tsx\",\"(anonymous)\",\"(anonymous)\",8,8\n5,2,48,2,5,\"VehicleCard@6-10@./src/components/VehicleCard.tsx\",\"./src/components/VehicleCard.tsx\",\"VehicleCard\",\"VehicleCard ( vehicle , compact Props )\",6,10\n1,1,15,0,1,\"App@4-4@./src/main.tsx\",\"./src/main.tsx\",\"App\",\"App ( )\",4,4\n"
+}

@@ -17,7 +17,7 @@ DETERMINISTIC = 'deterministic'
 # and counted, so an unmapped rule shows up as reduced coverage instead of silently disappearing.
 KINDS = ('cycle', 'coupling', 'complexity', 'duplication', 'dead_code', 'dataflow', 'surface',
          'literal_duplication', 'test_quality', 'naming', 'boundary',
-         'module_edge_external', 'call_edge_external', 'symbol_metric_external', 'hot_path_external', 'vulnerability', 'misconfiguration', 'secret', 'sql_quality', 'api_contract')
+         'module_edge_external', 'call_edge_external', 'symbol_metric_external', 'hot_path_external', 'vulnerability', 'misconfiguration', 'secret', 'sql_quality', 'api_contract', 'unused_dependency')
 
 
 # At what resolution an engine answers a question. Two engines disagreeing about cycles while

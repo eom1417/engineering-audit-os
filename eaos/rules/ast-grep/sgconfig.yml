@@ -1,0 +1,7 @@
+# EAOS's own ast-grep rule pack. Each rule records a structural fact (metadata.record) or, when
+# metadata.kind names a kind of the shared vocabulary (eaos/engines/contract.py KINDS), a finding.
+# `ast-grep test -c sgconfig.yml --skip-snapshot-tests` proves every rule against its examples.
+ruleDirs:
+  - rules
+testConfigs:
+  - testDir: rule-tests
