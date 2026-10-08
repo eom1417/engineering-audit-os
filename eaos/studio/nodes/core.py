@@ -354,9 +354,12 @@ def run_node(node, spec, report, launcher=None, adapters=None, project=None, lan
     if not subjects:
         return rules_only('rules_only', 'There was nothing for the node to decide.')
     detail = getattr(spec, 'DETAIL', None)
-    schema = answer_schema(node, subjects, detail)
-    prompt = spec.prompt(data)
-    key = digest([node.name, node.version, getattr(spec, 'VERSION', '1'), digest(prompt), digest(schema)])
+    # A long list is asked in batches (spec.batches), one question each, all under the one budget; a planning node,
+    # whose critique reviews the whole draft, is asked at once.
+    parts = spec.batches(data) if hasattr(spec, 'batches') and 'critique' not in node.passes else [data]
+    asks = [(part, answer_schema(node, spec.subjects(part), detail), spec.prompt(part)) for part in parts]
+    schema, prompt = asks[0][1], asks[0][2]
+    key = digest([node.name, node.version, getattr(spec, 'VERSION', '1'), [digest(p) for _, _, p in asks], [digest(s) for _, s, _ in asks]])
     hit = None if fresh else cached(report, node, key)
     if hit:
         tell(f'{node.title}: the same inputs as before, the cached decision stands', f'{node.title}: المدخلات نفسها، فيبقى القرار المحفوظ')
@@ -369,13 +372,18 @@ def run_node(node, spec, report, launcher=None, adapters=None, project=None, lan
                                    started=started, budget_usd=budget.usd)
     cancel = cancel or threading.Event()
     bounded = Bounded(launcher, budget.seconds, budget.usd, cancel)
-    asked, critique = [prompt], None
+    asked, critique, answers = [p for _, _, p in asks], None, []
     try:
-        tell(f'{node.title}: {bounded.assistant or "the assistant"} decides', f'{node.title}: {bounded.assistant or "المساعد"} يقرّر')
-        answer = bounded(node.passes[0], prompt, schema)
         from ... import artifact_contracts
-        problems = artifact_contracts.validate(answer, lenient(schema))
-        if problems: raise ValueError('the answer is not in the asked shape: ' + '; '.join(problems[:3]))
+        for index, (part, part_schema, part_prompt) in enumerate(asks):
+            batch = f' ({index + 1}/{len(asks)})' if len(asks) > 1 else ''
+            tell(f'{node.title}: {bounded.assistant or "the assistant"} decides{batch}', f'{node.title}: {bounded.assistant or "المساعد"} يقرّر{batch}')
+            one = bounded(node.passes[0] if len(asks) == 1 else f'{node.passes[0]}-{index + 1}', part_prompt, part_schema)
+            problems = artifact_contracts.validate(one, lenient(part_schema))
+            if problems: raise ValueError('the answer is not in the asked shape: ' + '; '.join(problems[:3]))
+            answers.append(one)
+        answer = answers[0] if len(answers) == 1 else {'summary': ' '.join(short(a.get('summary'), 300) for a in answers if a.get('summary')),
+                                                        'decisions': [d for a in answers for d in a.get('decisions') or []]}
         if 'critique' in node.passes:
             tell(f'{node.title}: a second pass reviews the decisions', f'{node.title}: تمرير ثانٍ يراجع القرارات')
             second = critique_prompt(prompt, data, answer, lang)
@@ -394,14 +402,14 @@ def run_node(node, spec, report, launcher=None, adapters=None, project=None, lan
             why, state = WORDS['stopped'], 'rules_only'
         else:
             why, state = WORDS['failed'].format(why=short(f'{type(problem).__name__}: {problem}', 300)), 'failed'
-        return rules_only(state, why, bounded.assistant, bounded.model, digest(asked), digest(schema), seconds, cost,
+        return rules_only(state, why, bounded.assistant, bounded.model, digest(asked), digest([s for _, s, _ in asks]), seconds, cost,
                           over=isinstance(problem, OverBudget))
     tell(f'{node.title}: checking that every decision stands on evidence', f'{node.title}: يتحقق أن كل قرار قائم على دليل')
     kept, dropped = check(node, spec, data, answer, known)
     decided = {d['subject'] for d in kept}
     left = rules_decisions(node, spec, data, 'The assistant left this subject undecided, so the rules decided it.', decided)
     row = record(node, {**base, 'state': 'decided', 'method': 'model', 'assistant': bounded.assistant, 'model': bounded.model,
-                        'prompt': digest(asked), 'schema': digest(schema), 'cached': False, 'seconds': round(time.monotonic() - began, 1),
+                        'prompt': digest(asked), 'schema': digest([s for _, s, _ in asks]), 'cached': False, 'seconds': round(time.monotonic() - began, 1),
                         'cost_usd': bounded.cost_usd, 'why': None, 'summary': short((answer or {}).get('summary'), 800)},
                  kept + left, dropped, critique=critique if isinstance(critique, dict) else None)
     tell(f'{node.title}: {len(kept)} decisions with their evidence, {len(dropped)} dropped without it',

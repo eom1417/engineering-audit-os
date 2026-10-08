@@ -75,6 +75,16 @@ def inputs(report, project=None, lang='en', cards=None, limit=None, **_):
             'trust': {'code': core.UNTRUSTED, 'titles': core.UNTRUSTED}, 'cards': out, 'omitted': max(0, len(rows) - cap), 'lang': lang}
 
 
+BATCH = 40
+
+
+def batches(data):
+    """The cards in batches of BATCH, each with the rest of the bundle."""
+    cards = data['cards']
+    return [{**data, 'cards': cards[i:i + BATCH], 'batch': {'from': i + 1, 'to': min(i + BATCH, len(cards)), 'of': len(cards)}}
+            for i in range(0, len(cards), BATCH)] or [data]
+
+
 def subjects(data):
     return [c['id'] for c in data['cards']]
 

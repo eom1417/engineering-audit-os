@@ -131,6 +131,16 @@ class Framework(Base):
         self.assertEqual((record['state'], record['method']), ('failed', 'rules'))
         self.assertIn('could not be used', record['why'])
 
+    def test_a_long_list_is_asked_in_batches_under_one_budget(self):
+        cards = json.loads((self.report / 'studio/cards.json').read_text(encoding='utf-8'))
+        cards['cards'] += [dict(cards['cards'][0], id=f'TASK-{n:03d}') for n in range(10, 10 + triage.BATCH)]
+        (self.report / 'studio/cards.json').write_text(json.dumps(cards), encoding='utf-8')
+        launcher = _NodeLauncher()
+        record = nodes.run(self.report, names=['card_triage'], launcher=launcher)['card_triage']
+        self.assertEqual(launcher.calls, ['decide-1', 'decide-2'])
+        self.assertEqual(len(record['decisions']), 3 + triage.BATCH)
+        self.assertEqual({d['source'] for d in record['decisions']}, {'model'})
+
     def test_a_changed_prompt_or_schema_asks_again(self):
         launcher = _NodeLauncher()
         nodes.run(self.report, names=['card_triage'], launcher=launcher)
