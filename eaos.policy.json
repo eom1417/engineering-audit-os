@@ -162,6 +162,10 @@
     ],
     "engines": [
       "eaos/engines/**"
+    ],
+    "studio": [
+      "studio/**",
+      "eaos/data/studio/**"
     ]
   },
   "rules": [
