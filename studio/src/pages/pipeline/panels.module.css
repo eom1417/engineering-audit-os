@@ -1,0 +1,102 @@
+/* The pipeline page's panels: its head, the inspector's pieces, the steps list, the gap entries, the rules and what
+   EAOS looked for. The inspector's frame (sections, evidence lists, link rows) is the code paths'. */
+
+.head { display: flex; flex-direction: column; gap: 8px; min-inline-size: 0; }
+.verdict { font-size: 15px; line-height: 1.55; color: var(--text-primary); max-inline-size: 70ch; }
+.facts { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 12.5px; color: var(--text-tertiary); }
+.facts strong { color: var(--text-secondary); font-weight: 600; }
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 13px; min-inline-size: 0; }
+.crumb { color: var(--accent-text); min-block-size: 28px; display: inline-flex; align-items: center; }
+.crumb:hover { text-decoration: underline; }
+.crumbOn { font-weight: 600; color: var(--text-primary); }
+.vh { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.code { grid-column: 1 / -1; }
+.code code { display: block; font-family: var(--font-mono); font-size: 12px; padding: 6px 8px; border-radius: var(--radius-4); background: var(--bg-sunken); color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
+.muted { color: var(--text-tertiary); font-size: 12px; }
+.inline { color: var(--accent-text); text-align: start; cursor: pointer; min-block-size: 24px; display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.inline:hover { text-decoration: underline; }
+.inline[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-4); }
+.pick { inline-size: 100%; text-align: start; cursor: pointer; }
+.tool { font-size: 12px; padding: 2px 8px; border-radius: var(--radius-full); background: var(--bg-sunken); border: 1px solid var(--border-subtle); }
+
+.ports { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.portCol { display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
+.portList { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+.portList li { display: flex; flex-direction: column; gap: 1px; min-inline-size: 0; overflow-wrap: anywhere; }
+
+.branches { display: flex; flex-direction: column; font-size: 12.5px; }
+.branches li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: center; padding-block: 4px; border-block-end: 1px solid var(--border-subtle); min-inline-size: 0; }
+.branches li > * { min-inline-size: 0; overflow-wrap: anywhere; }
+.cond { color: var(--text-secondary); }
+
+.linkTable { display: flex; flex-direction: column; font-size: 12.5px; }
+.linkTable li { display: flex; flex-direction: column; gap: 2px; padding-block: 6px; border-block-end: 1px solid var(--border-subtle); min-inline-size: 0; overflow-wrap: anywhere; }
+.opLine { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--text-tertiary); }
+
+.gapList { display: flex; flex-direction: column; gap: 10px; }
+.gapItem { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: var(--radius-8); border: 1px solid var(--border-default); background: var(--bg-surface); min-inline-size: 0; }
+[data-theme="dark"] .gapItem { border-color: var(--border-subtle); }
+.gapHead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.gapNo { display: inline-grid; place-items: center; min-inline-size: 22px; block-size: 22px; padding-inline: 5px; border-radius: var(--radius-full); background: var(--status-warning); color: var(--text-on-accent); font-size: 12px; font-weight: 600; }
+[data-theme="dark"] .gapNo { color: var(--bg-canvas); }
+.rule { font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+.gapDetail { font-size: 13px; line-height: 1.55; color: var(--text-primary); }
+.gapLinks { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; }
+.gapNos { font-size: 11px; font-weight: 600; color: var(--status-warning-text); background: var(--status-warning-subtle); border-radius: var(--radius-full); padding-inline: 6px; }
+
+.rules { display: flex; flex-direction: column; }
+.rules li { display: flex; flex-direction: column; gap: 2px; padding-block: 7px; border-block-end: 1px solid var(--border-subtle); min-inline-size: 0; }
+.ruleHead { display: flex; align-items: baseline; gap: 8px; font-size: 13px; min-inline-size: 0; }
+.ruleTitle { flex: 1; min-inline-size: 0; overflow-wrap: anywhere; }
+.broken { font-size: 12px; font-weight: 600; color: var(--status-warning-text); white-space: nowrap; }
+.holds { font-size: 12px; color: var(--status-good-text); white-space: nowrap; }
+
+.tree { display: flex; flex-direction: column; }
+.treeRow { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; inline-size: 100%; text-align: start; padding: 7px 8px; min-block-size: 40px; border-radius: var(--radius-8); cursor: pointer; font-size: 13px; }
+.treeRow:hover { background: var(--bg-hover); }
+.treeRow[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.treeOn { background: var(--accent-subtle); }
+
+.looked { display: grid; grid-template-columns: minmax(0, 1fr); font-size: 13px; }
+.looked li { display: flex; justify-content: space-between; gap: 12px; padding-block: 7px; border-block-end: 1px solid var(--border-subtle); }
+.foundYes { font-weight: 600; color: var(--text-primary); }
+
+/* a list whose rows say something, then where it is */
+.stack { display: flex; flex-direction: column; font-size: 12.5px; }
+.stack li { display: flex; flex-direction: column; gap: 1px; padding-block: 5px; border-block-end: 1px solid var(--border-subtle); min-inline-size: 0; overflow-wrap: anywhere; }
+.stack li > :last-child:not(:first-child) { font-size: 11.5px; color: var(--text-tertiary); }
+
+/* the steps */
+.steps { display: flex; flex-direction: column; }
+.stepItem { display: flex; flex-direction: column; }
+.layerHead { font-size: 12px; font-weight: 600; color: var(--text-tertiary); padding: 12px 4px 4px; }
+.stepBtn { display: flex; align-items: flex-start; gap: 10px; inline-size: 100%; text-align: start; padding: 9px 6px; min-block-size: 44px; border-block-end: 1px solid var(--border-subtle); cursor: pointer; }
+.stepBtn:hover { background: var(--bg-hover); }
+.stepBtn[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: -2px; border-radius: var(--radius-8); }
+.stepOn { background: var(--accent-subtle); }
+.stepMain { display: flex; flex-direction: column; gap: 3px; flex: 1; min-inline-size: 0; }
+.stepTitle { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; font-size: 14px; font-weight: 500; min-inline-size: 0; overflow-wrap: anywhere; }
+.stepIo { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 12.5px; color: var(--text-secondary); min-inline-size: 0; overflow-wrap: anywhere; }
+.stepTags { display: flex; flex-wrap: wrap; gap: 4px; font-size: 11.5px; }
+.stepWhere { font-size: 11.5px; color: var(--text-tertiary); }
+.tagErr, .tagHidden, .tagGap { padding: 1px 7px; border-radius: var(--radius-full); }
+.tagErr { background: var(--status-critical-subtle); color: var(--status-critical-text); }
+.tagHidden { border: 1px dashed var(--text-tertiary); color: var(--text-secondary); }
+.tagGap { background: var(--status-warning-subtle); color: var(--status-warning-text); }
+.glyph { flex: none; inline-size: 14px; block-size: 10px; margin-block-start: 5px; border-radius: 3px; border: 1.3px solid var(--border-strong); background: var(--bg-surface); }
+.g_router { inline-size: 10px; block-size: 10px; margin-inline: 2px; transform: rotate(45deg); border-radius: 1px; border-color: var(--text-secondary); }
+.g_ai { border-color: var(--accent-solid); }
+.g_source, .g_sink { border-radius: var(--radius-full); }
+
+/* the follow-the-data picker */
+.follow { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); min-inline-size: 0; }
+.follow select { min-block-size: 32px; max-inline-size: 220px; padding-inline: 8px; border-radius: var(--radius-8); border: 1px solid var(--border-default); background: var(--bg-surface); color: var(--text-primary); font-family: var(--font-mono); font-size: 12px; }
+.followBar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 8px 12px; border-radius: var(--radius-8); background: var(--accent-subtle); color: var(--accent-text); font-size: 13px; }
+
+@media (max-width: 767px) {
+  .crumb, .inline { min-block-size: 44px; min-inline-size: 44px; }
+  .follow select { min-block-size: 44px; max-inline-size: none; flex: 1; font-size: 16px; }
+  .follow { flex-wrap: wrap; }
+  .ports { grid-template-columns: minmax(0, 1fr); }
+  .treeRow { min-block-size: 44px; }
+}

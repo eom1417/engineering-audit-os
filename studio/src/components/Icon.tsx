@@ -4,14 +4,15 @@ import {
   ArrowLeftRight, ArrowRight, BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Clock, Copy, Ellipsis,
   FileText, Folder, Globe, House, Inbox, LayoutGrid, Moon, Pencil, Plus, RefreshCw, Search, Sun, Trash2,
   TriangleAlert, Workflow, X, GitMerge, Activity, Command, Wrench, ShieldCheck, Lightbulb, ListOrdered, Play, Pause, Square,
-  RotateCcw, GitBranch, ArrowUp, ArrowDown, SquareTerminal, Layers, CircleCheck, CircleX, FilePen, MessageSquare, Eye, type LucideIcon,
+  RotateCcw, GitBranch, ArrowUp, ArrowDown, SquareTerminal, Layers, CircleCheck, CircleX, FilePen, MessageSquare, Eye, Waypoints,
+  type LucideIcon,
 } from 'lucide-react'
 
 const ICONS = {
   home: House, system: Workflow, problems: TriangleAlert, change: ArrowLeftRight, inbox: Inbox, search: Search,
   chevron: ChevronRight, chevronDown: ChevronDown, back: ChevronLeft, arrow: ArrowRight, copy: Copy, check: Check,
   more: Ellipsis, sun: Sun, moon: Moon, globe: Globe, file: FileText, folder: Folder, book: BookOpen, clock: Clock,
-  x: X, pulse: Activity, command: Command, gallery: LayoutGrid,
+  x: X, pulse: Activity, command: Command, gallery: LayoutGrid, flow: Waypoints,
   fix: Wrench, verify: ShieldCheck, explain: Lightbulb, plan: ListOrdered, play: Play, pause: Pause, stop: Square, retry: RotateCcw,
   branch: GitBranch, up: ArrowUp, down: ArrowDown, terminal: SquareTerminal, layers: Layers, pass: CircleCheck, fail: CircleX,
   edit: FilePen, say: MessageSquare, eye: Eye,

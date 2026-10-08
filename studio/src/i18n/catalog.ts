@@ -12,6 +12,7 @@ export const WORDS = {
   system: ['النظام', 'System'],
   systemMap: ['مكوّنات النظام', 'System components'],
   codePaths: ['مسارات الكود', 'Code paths'],
+  pipeline: ['خط المعالجة', 'Pipeline'],
   problems: ['المشاكل', 'Problems'],
   change: ['التغيير', 'Change'],
   journeyAndPlan: ['الرحلة والخطة', 'Journey and plan'],

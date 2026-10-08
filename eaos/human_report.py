@@ -26,6 +26,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from . import plain
+from .compose import pipeline_sheet
 from .ranking import CONFIDENCE_WEIGHT
 from .studio.model import (AREAS, CLOSED, CRITICAL_CAP, HALF_POINT, SEVERITIES, SEVERITY_WEIGHT, gap_totals, ledger_of, records,
                           score, task_cards, waves_state)
@@ -97,7 +98,7 @@ def maps(report, target):
     """The architecture maps (eaos/arch_map.py) and the system map (eaos/system_map.py); a missing or broken fact
     record leaves its map None, and what failed is kept in map_errors for the page's warning and errors.json."""
     from . import arch_map, system_map
-    out = {'cmap': None, 'drill': None, 'flows': None, 'system': None, 'system_layout': None, 'map_errors': []}
+    out = {'cmap': None, 'drill': None, 'flows': None, 'system': None, 'system_layout': None, 'pipeline': None, 'map_errors': []}
     def attempt(part, build):
         try: build()
         except Exception as error: out['map_errors'].append({'section': part, 'error': f'{type(error).__name__}: {error}'[:300]})
@@ -110,7 +111,16 @@ def maps(report, target):
     attempt('architecture map', components)
     attempt('page flows', lambda: out.update(flows=arch_map.flow_charts(report)))
     attempt('system map', system)
+    attempt('pipeline map', lambda: out.update(pipeline=pipeline_sections(report)))
     return out
+
+
+def pipeline_sections(report):
+    """The Studio's pipeline section in both languages (eaos/studio/pipeline.py), for the pipeline sheet; None when the
+    check wrote no facts/pipeline.json."""
+    from .studio import pipeline
+    sections = {lang: pipeline.from_report(report, lang=lang) for lang in ('ar', 'en')}
+    return sections if all(sections.values()) else None
 
 
 # ---------------------------------------------------------------- html helpers
@@ -1406,6 +1416,11 @@ def api_table(sm):
             f'<th>{T("الجداول والخدمات", "Tables and services")}</th><th>{T("الميزة", "Feature")}</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div></details>')
 
 
+def pipeline_part(m):
+    """The pipeline sheet (eaos/compose/pipeline_sheet.py) under the system map, when the project holds a pipeline."""
+    return pipeline_sheet.sheet(m['pipeline']) if m.get('pipeline') else ''
+
+
 def section_system(m):
     """The whole system in one drawing, with a search, a feature filter, what a click reaches, and every API as a table."""
     sm, lay = m.get('system'), m.get('system_layout')
@@ -1639,7 +1654,7 @@ def render_parts(m, name, lang='ar'):
         m = dict(m, cards=[])
         errors.append(failure('cards', error))
     for section, build in (('summary', lambda: section_summary(m, name)), ('gaps', lambda: section_gaps(m)),
-                           ('structure', lambda: section_structure(m)), ('system', lambda: section_system(m)),
+                           ('structure', lambda: section_structure(m)), ('system', lambda: section_system(m) + pipeline_part(m)),
                            ('target', lambda: section_target(m)), ('plan', lambda: section_plan(m))):
         try: parts[section] = build()
         except Exception as error:     # one broken record costs its section, not the page or the audit
@@ -1656,7 +1671,7 @@ def render_parts(m, name, lang='ar'):
     direction = 'rtl' if lang == 'ar' else 'ltr'
     text = (f'<!doctype html><html lang="{lang}" dir="{direction}" data-lang="{lang}"><head><meta charset="utf-8">'
             f'<meta name="viewport" content="width=device-width, initial-scale=1"><title>{esc(W["title"][0 if lang == "ar" else 1])}: {esc(name)}</title>'
-            f'<style>{CSS}</style></head><body><header class="top"><div class="wrap top-in"><div class="brand">'
+            f'<style>{CSS}{pipeline_sheet.CSS}</style></head><body><header class="top"><div class="wrap top-in"><div class="brand">'
             f'<div class="kicker">{T("تقرير EAOS", "EAOS report")}</div><h1>{w("title")}: {lit(name)}</h1>{date}</div>'
             f'<div class="actions"><button type="button" id="lang" class="btn">{T("English", "العربية")}</button>'
             f'<button type="button" id="print" class="btn ghost">{T("طباعة / PDF", "Print / PDF")}</button></div></div>'
@@ -1674,7 +1689,7 @@ def render(m, name, lang='ar'):
 def empty(progress=None):
     return {'rows': [], 'statuses': {}, 'coverage': {}, 'score': score([], 0, known=False), 'plan': {}, 'target': {},
             'gap_matrix': {}, 'manifest': {}, 'dossier': {}, 'progress': progress or {}, 'cmap': None, 'drill': None, 'flows': None,
-            'system': None, 'system_layout': None, 'map_errors': []}
+            'system': None, 'system_layout': None, 'pipeline': None, 'map_errors': []}
 
 
 def write(report, lang='ar', name=None, progress=None):

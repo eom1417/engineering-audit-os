@@ -141,7 +141,7 @@ class GateMatrix(unittest.TestCase):
             (data / 'story.json').write_text(json.dumps(story), encoding='utf-8')
             self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'component': 'src/b', 'path': 'none',
                                                                     'task': 'none', 'screen': 'none', 'hidden_group': 'none',
-                                                                    'store': 'none'})
+                                                                    'store': 'none', 'stage': 'none'})
             journeys = {'tasks': [{'id': 't/one', 'path': ['s/a']}, {'id': 't/two', 'path': ['s/a', 's/b']}],
                         'screens': [{'id': 's/a', 'kind': 'page', 'flags': []}, {'id': 's/b', 'kind': 'page', 'flags': ['broken_link']}]}
             (data / 'journeys.json').write_text(json.dumps(journeys), encoding='utf-8')
@@ -152,10 +152,16 @@ class GateMatrix(unittest.TestCase):
             (data / 'data_paths.json').write_text(json.dumps({'stores': [{'id': 'table:a', 'multi_writer': False},
                                                                           {'id': 'table:b', 'multi_writer': True}]}), encoding='utf-8')
             self.assertEqual(self.gates.studio_placeholders(data)['store'], 'table:b')   # written from several places first
+            (data / 'pipeline.json').write_text(json.dumps({'stages': [{'id': 'p:a', 'kind': 'stage'}, {'id': 'p:r', 'kind': 'router'}]}),
+                                                encoding='utf-8')
+            self.assertEqual(self.gates.studio_placeholders(data)['stage'], 'p:r')   # the first router of the pipeline map
             paths = [{'id': 'p/short', 'reach': 3, 'steps': [1] * 4}, {'id': 'p/long', 'reach': 3, 'steps': [1] * 90},
                      {'id': 'p/a', 'reach': 3, 'steps': [1] * 70}, {'id': 'p/near', 'reach': 1, 'steps': [1] * 99}]
             (data / 'paths.json').write_text(json.dumps({'paths': paths}), encoding='utf-8')
             self.assertEqual(self.gates.studio_placeholders(data)['path'], 'p/a')   # furthest, then longest within 60
+            stages = [{'id': 'm:a', 'kind': 'stage'}, {'id': 'm:r', 'kind': 'router'}]
+            (data / 'pipeline.json').write_text(json.dumps({'stages': stages}), encoding='utf-8')
+            self.assertEqual(self.gates.studio_placeholders(data)['stage'], 'm:r')  # the pipeline page opens on a router
             (data / 'paths.json').unlink()
             pages = dict((e['name'], e) for e, _ in self.gates.studio_pages(self.matrix, data, 'http://127.0.0.1:1/', data))
         self.assertEqual(pages['system-focus']['url'], 'http://127.0.0.1:1/index.html#/system?focus=src%2Fb')

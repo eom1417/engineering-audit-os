@@ -24,6 +24,7 @@ export const SECTIONS: SectionDef[] = [
   { id: 'home', to: '/', icon: 'home', tab: 'home', nav: 'overview', tabbar: true, built: true },
   { id: 'system', to: '/system', icon: 'system', tab: 'system', nav: 'systemMap', group: 'groupCurrent', tabbar: true, built: true, count: (c) => c.components },
   { id: 'paths', to: '/system/paths', icon: 'pulse', tab: 'codePaths', nav: 'codePaths', group: 'groupCurrent', tabbar: false, built: true },
+  { id: 'pipeline', to: '/system/pipeline', icon: 'flow', tab: 'pipeline', nav: 'pipeline', group: 'groupCurrent', tabbar: false, built: true },
   { id: 'problems', to: '/problems', icon: 'problems', tab: 'problems', nav: 'problems', group: 'groupProblems', tabbar: true, built: true, count: (c) => c.cards },
   { id: 'change', to: '/change', icon: 'change', tab: 'change', nav: 'journeyAndPlan', group: 'groupChange', tabbar: true, built: true },
   { id: 'runs', to: '/runs', icon: 'pulse', tab: 'runs', nav: 'runs', group: 'groupInbox', tabbar: false, built: true },

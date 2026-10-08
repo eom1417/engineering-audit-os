@@ -1,5 +1,5 @@
 // The System section's maps, one link each: the structure (territory), the user journeys, visible and hidden, the code
-// paths, the data paths and the infrastructure lens. Each
+// paths, the data paths, the infrastructure lens and the pipeline. Each
 // map worker adds its own entry here; the current one is marked. Shown at the top of every System map page. And the
 // "show hidden" switch every map carries (STUDIO-COMPLETE: hidden things drawn differently, with a switch and a legend).
 import { Go } from '../../components/Go'
@@ -15,6 +15,7 @@ export const SYSTEM_VIEWS: SystemView[] = [
   { id: 'paths', to: '/system/paths', word: 'viewPaths' },
   { id: 'data', to: '/system/data', word: 'viewData' },
   { id: 'infra', to: '/system', search: { lens: 'infra' }, word: 'viewInfra' },
+  { id: 'pipeline', to: '/system/pipeline', word: 'viewPipeline' },
 ]
 
 export function SystemViews({ current }: { current: string }) {

@@ -399,6 +399,56 @@
    "section": "runs",
    "needs": [],
    "task": "NS46.T10"
+  },
+  {
+   "id": "pipeline",
+   "studio": "#/system/pipeline",
+   "spec": "STUDIO-COMPLETE: System -> Pipeline (Current, Map)",
+   "section": "system",
+   "needs": [
+    "pipeline"
+   ],
+   "task": "NS46.T13"
+  },
+  {
+   "id": "pipeline-ideal",
+   "studio": "#/system/pipeline?view=ideal",
+   "spec": "STUDIO-COMPLETE: System -> Pipeline, the Ideal view",
+   "section": "system",
+   "needs": [
+    "pipeline"
+   ],
+   "task": "NS46.T13"
+  },
+  {
+   "id": "pipeline-gap",
+   "studio": "#/system/pipeline?view=gap",
+   "spec": "STUDIO-COMPLETE: System -> Pipeline, the Gap view",
+   "section": "system",
+   "needs": [
+    "pipeline"
+   ],
+   "task": "NS46.T13"
+  },
+  {
+   "id": "pipeline-steps",
+   "studio": "#/system/pipeline?show=steps",
+   "spec": "STUDIO-COMPLETE: System -> Pipeline, the Steps view",
+   "section": "system",
+   "needs": [
+    "pipeline"
+   ],
+   "task": "NS46.T13"
+  },
+  {
+   "id": "pipeline-stage",
+   "studio": "#/system/pipeline?stage=<stageId>&hidden=1",
+   "spec": "STUDIO-COMPLETE: System -> Pipeline, a stage's evidence, show hidden",
+   "section": "system",
+   "needs": [
+    "pipeline"
+   ],
+   "task": "NS46.T13"
   }
  ],
  "projects": [
