@@ -3,7 +3,8 @@
 import {
   ArrowLeftRight, ArrowRight, BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Clock, Copy, Ellipsis,
   FileText, Folder, Globe, House, Inbox, LayoutGrid, Moon, Pencil, Plus, RefreshCw, Search, Sun, Trash2,
-  TriangleAlert, Workflow, X, GitMerge, Activity, Command, type LucideIcon,
+  TriangleAlert, Workflow, X, GitMerge, Activity, Command, Wrench, ShieldCheck, Lightbulb, ListOrdered, Play, Pause, Square,
+  RotateCcw, GitBranch, ArrowUp, ArrowDown, SquareTerminal, Layers, CircleCheck, CircleX, FilePen, MessageSquare, Eye, type LucideIcon,
 } from 'lucide-react'
 
 const ICONS = {
@@ -11,6 +12,9 @@ const ICONS = {
   chevron: ChevronRight, chevronDown: ChevronDown, back: ChevronLeft, arrow: ArrowRight, copy: Copy, check: Check,
   more: Ellipsis, sun: Sun, moon: Moon, globe: Globe, file: FileText, folder: Folder, book: BookOpen, clock: Clock,
   x: X, pulse: Activity, command: Command, gallery: LayoutGrid,
+  fix: Wrench, verify: ShieldCheck, explain: Lightbulb, plan: ListOrdered, play: Play, pause: Pause, stop: Square, retry: RotateCcw,
+  branch: GitBranch, up: ArrowUp, down: ArrowDown, terminal: SquareTerminal, layers: Layers, pass: CircleCheck, fail: CircleX,
+  edit: FilePen, say: MessageSquare, eye: Eye,
   opKeep: Circle, opModify: Pencil, opRebuild: RefreshCw, opDelete: Trash2, opMerge: GitMerge, opIntroduce: Plus,
 } satisfies Record<string, LucideIcon>
 

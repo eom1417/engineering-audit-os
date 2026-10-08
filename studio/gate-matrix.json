@@ -56,6 +56,16 @@
   {"name": "gallery-paths", "path": "index.html#/_gallery/paths"},
   {"name": "palette", "path": "index.html#/", "actions": [{"press": "Control+k", "wait": 300}, {"type": "مشاكل", "wait": 300}]},
   {"name": "sheet", "path": "index.html#/", "actions": [{"click": "[data-open=\"project\"]", "wait": 400}]},
+  {"name": "runs", "path": "index.html#/runs?demo=1"},
+  {"name": "runs-snapshot", "path": "index.html#/runs"},
+  {"name": "run", "path": "index.html#/runs/demo-5?demo=1"},
+  {"name": "run-question", "path": "index.html#/runs/demo-6?demo=1"},
+  {"name": "run-snapshot", "path": "index.html#/runs/demo-5", "viewports": ["phone", "desktop"]},
+  {"name": "decisions-runs", "path": "index.html#/decisions?demo=1"},
+  {"name": "problems-select", "path": "index.html#/problems?demo=1", "actions": [{"click": "input[type=\"checkbox\"]", "wait": 300}]},
+  {"name": "preview", "path": "index.html#/problems?demo=1", "actions": [{"click": "input[type=\"checkbox\"]", "wait": 300}, {"click": "[data-verb=\"fix\"]", "wait": 700}]},
+  {"name": "preview-snapshot", "path": "index.html#/problems", "actions": [{"click": "input[type=\"checkbox\"]", "wait": 300}, {"click": "[data-verb=\"fix\"]", "wait": 500}], "viewports": ["phone", "desktop"]},
+  {"name": "palette-actions", "path": "index.html#/", "actions": [{"press": "Control+k", "wait": 300}, {"type": "audit", "wait": 300}], "viewports": ["phone", "desktop"]},
   {"name": "file-home", "file": "index.html#/", "viewports": ["phone"], "variants": ["ar-light"]}
  ]
 }

@@ -12,6 +12,9 @@ import { Icon } from '../components/Icon'
 import { Props } from '../components/Panel'
 import { Sheet, SheetLead, SheetSub } from '../components/Sheet'
 import { CopyRequestButton } from '../components/Button'
+import { CommandProvider } from '../command/command'
+import { CommandHost } from '../command/CommandHost'
+import { useActions } from '../data/actions/store'
 import { counts, useLoaded, useStudio, type Counts } from '../data/context'
 import type { Freshness } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
@@ -24,6 +27,12 @@ import css from './Shell.module.css'
 function useCounts(): Counts | null {
   const data = useStudio()
   return data ? counts(data) : null
+}
+
+/** The command centre's counts beside the report's: questions from runs join the inbox, and runs that are not over. */
+function useLiveCounts(): Record<string, number> {
+  const { questions, runs } = useActions()
+  return { decisions: questions.length, runs: runs.filter((run) => !['done', 'failed', 'stopped'].includes(run.state)).length }
 }
 
 function LanguageAndTheme({ comfortable }: { comfortable?: boolean }) {
@@ -46,11 +55,13 @@ function Sidebar({ project, current, onPalette, onProject }: { project: string; 
   const c = useCounts()
   const data = useStudio()
   const sections = visibleSections(dev)
+  const live = useLiveCounts()
   const item = (s: SectionDef) => (
     <Go key={s.id} to={s.to} className={css.navItem} current={current?.id === s.id} label={t(s.nav)}>
       <Icon name={s.icon} />
       <span className={css.navLabel}>{t(s.nav)}</span>
-      {c && s.count && <N value={s.count(c)} className={css.navCount} />}
+      {c && s.count && <N value={s.count(c) + (live[s.id] ?? 0)} className={css.navCount} />}
+      {!s.count && live[s.id] ? <N value={live[s.id]} className={css.navCount} /> : null}
     </Go>
   )
   const groups: SectionDef[][] = []
@@ -92,10 +103,11 @@ function Sidebar({ project, current, onPalette, onProject }: { project: string; 
 function TabBar({ current }: { current?: SectionDef }) {
   const { t } = usePrefs()
   const c = useCounts()
+  const live = useLiveCounts()
   return (
     <nav className={css.tabbar} aria-label={t('mainTabs')}>
       {visibleSections(false).filter((s) => s.tabbar).map((s) => {
-        const badge = c && s.badge ? s.badge(c) : 0
+        const badge = (c && s.badge ? s.badge(c) : 0) + (s.badge ? live[s.id] ?? 0 : 0)
         return (
           <Go key={s.id} to={s.to} className={css.tab} current={current?.id === s.id}>
             <span className={css.tabIcon}><Icon name={s.icon} size={22} />{badge > 0 && <span className={css.tabBadge}><Badge count={badge} /></span>}</span>
@@ -215,7 +227,7 @@ export function Shell() {
   useEffect(() => { window.scrollTo(0, 0) }, [pathname])
 
   return (
-    <>
+    <CommandProvider>
       <a className={css.skip} href="#main" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus() }}>{t('skip')}</a>
       <div className={css.shell}>
         <Sidebar project={project} current={current} onPalette={() => setPalette(true)} onProject={() => setProjectSheet(true)} />
@@ -229,6 +241,7 @@ export function Shell() {
       <Palette isOpen={palette} onOpenChange={setPalette} />
       <ProjectSheet isOpen={projectSheet} onOpenChange={setProjectSheet} project={project} />
       <ScanSheet isOpen={scanSheet} onOpenChange={setScanSheet} />
-    </>
+      <CommandHost />
+    </CommandProvider>
   )
 }

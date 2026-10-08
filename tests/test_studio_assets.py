@@ -3,6 +3,7 @@ reaches the network (NS37.T1). Runs without Node: it recomputes the source finge
 recorded, so a change to studio/ without a rebuild fails here."""
 import hashlib
 import json
+import os
 import re
 import unittest
 from pathlib import Path
@@ -12,7 +13,7 @@ STUDIO = ROOT / 'studio'
 SHIPPED = ROOT / 'eaos/data/studio'
 # Keep in step with SOURCES in studio/scripts/ship.mjs
 SOURCES = ['index.html', 'package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts', '.stylelintrc.json', 'public',
-           'scripts/ship.mjs', 'src']
+           'scripts/ship.mjs', 'src', '../docs/studio-actions.json']
 NAMESPACES = {'http://www.w3.org/1998/Math/MathML', 'http://www.w3.org/1999/xlink', 'http://www.w3.org/2000/svg',
               'http://www.w3.org/XML/1998/namespace', 'http://www.w3.org/1999/xhtml', 'https://react.dev/errors/',
               # TanStack Router's base for parsing a URL when the page's origin is opaque (file://): never requested
@@ -25,7 +26,7 @@ def source_digest():
         path = STUDIO / entry
         files += [path] if path.is_file() else [p for p in path.rglob('*') if p.is_file()]
     digest = hashlib.sha256()
-    for name in sorted(p.relative_to(STUDIO).as_posix() for p in files):
+    for name in sorted(Path(os.path.relpath(p, STUDIO)).as_posix() for p in files):
         digest.update(f'{name}\0'.encode('utf-8'))
         digest.update((STUDIO / name).read_bytes())
     return digest.hexdigest()

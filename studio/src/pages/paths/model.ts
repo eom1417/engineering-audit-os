@@ -84,7 +84,8 @@ declare global {
   interface Window { EAOS_STUDIO?: Record<string, unknown> }
 }
 
-/** The paths section, loaded on demand from paths.js beside the Studio (like every section: a classic script). */
+/** The paths section as the data source loaded it (the snapshot's script or the live server, whose events replace it),
+ * else loaded on demand from paths.js beside the Studio (a classic script). */
 export function usePaths(data: StudioData): PathsState {
   const listed = data.manifest.sections.some((s) => (s.name as string) === 'paths')
   const preset = () => (window.EAOS_STUDIO?.paths as PathsData | undefined)
@@ -99,7 +100,7 @@ export function usePaths(data: StudioData): PathsState {
     })
     return () => { live = false }
   }, [state.kind])
-  return state
+  return data.paths ? { kind: 'ready', paths: data.paths as PathsData } : state
 }
 
 export interface Index {

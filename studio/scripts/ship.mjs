@@ -9,7 +9,9 @@ import { fileURLToPath } from 'node:url'
 const studio = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const target = path.resolve(studio, '../eaos/data/studio')
 // Keep in step with SOURCES in tests/test_studio_assets.py
-export const SOURCES = ['index.html', 'package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts', '.stylelintrc.json', 'public', 'scripts/ship.mjs', 'src']
+// '../docs/studio-actions.json': the action contract the command centre is built against (src/data/actions/contract.ts)
+export const SOURCES = ['index.html', 'package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts', '.stylelintrc.json', 'public', 'scripts/ship.mjs', 'src',
+  '../docs/studio-actions.json']
 
 function files(entry) {
   const full = path.join(studio, entry)

@@ -24,6 +24,8 @@ export const WORDS = {
   groupProblems: ['المشاكل', 'Problems'],
   groupChange: ['التغيير', 'Change'],
   groupInbox: ['القرارات', 'Inbox'],
+  runs: ['التشغيل', 'Runs'],
+  kindAction: ['أمر', 'Action'],
   groupLibrary: ['المكتبة', 'Library'],
   // search and palette
   search: ['بحث', 'Search'],

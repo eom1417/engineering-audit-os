@@ -39,6 +39,9 @@ STUDIO_DATA=<report>/studio npm run dev   # live development on a report's data,
 | `src/pages/` | the section pages on real data |
 | `src/pages/data/` | System → Data (`studio/data_paths.json`): the seven links of every write, the map of writers and stores with its gaps hatched, a store's chain, the steps view, the gallery fixture |
 | `src/pages/infra/` | The infrastructure lens (`#/system?lens=infra`, `studio/infra.json`): the context diagram, Today / Change / Target, the steps view |
+| `src/data/actions/` | the command centre's client against `docs/studio-actions.json` (bundled from the file): live (launch token, CSRF, SSE over fetch with `Last-Event-ID`) and demo (a recorded run replayed on the open report, `#/runs?demo=1`), the run view derived from events, the shared runs/queue/questions state |
+| `src/command/` | selection (check boxes, shift ranges, groups), the action bar, the preview sheet, run questions and their toast, the run pill |
+| `src/pages/runs/` | Runs (now, queue, history) and the live run |
 | `src/map/` | the territory map (`studio/system.json`): drawing, pan and zoom, legend, minimap, ego diagram, inspector, ranked list, the Home and Change pieces, and its own word catalogue |
 
 ## Rules the build enforces

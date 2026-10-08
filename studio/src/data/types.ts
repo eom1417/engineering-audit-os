@@ -86,7 +86,7 @@ export interface Decision {
   plan: string | null
 }
 
-export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system', 'journeys', 'hidden', 'data_paths', 'infra'] as const
+export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system', 'paths', 'journeys', 'hidden', 'data_paths', 'infra'] as const
 export type SectionName = (typeof SECTIONS)[number]
 
 export interface StudioData {
@@ -106,6 +106,8 @@ export interface StudioData {
   hidden?: Hidden
   data_paths?: DataPaths
   infra?: Infra
+  /** studio/paths.json, typed by its pages (pages/paths/model.ts) */
+  paths?: unknown
   /** Sections the manifest lists but whose file did not load */
   missing: SectionName[]
 }

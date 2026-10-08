@@ -13,10 +13,15 @@ import { JourneyStrip } from '../map/home'
 import { useMapWords } from '../map/words'
 import { usePhone } from './SystemMap'
 import { TimelineEntry } from './paths/TimelinePage'
+import { GroupBox, ListTools } from '../command/Selectable'
+import { stepCards } from '../command/groups'
+import { useCmdWords } from '../command/words'
+import cmd from '../command/command.module.css'
 
 function ChangeBody({ data }: { data: StudioData }) {
   const { t } = usePrefs()
   const w = useMapWords()
+  const cw = useCmdWords()
   const phone = usePhone()
   const system = data.system && data.system.current.nodes.length > 0 ? data.system : undefined
   usePageChrome(t('change'), undefined, data.manifest.project.name)
@@ -51,10 +56,12 @@ function ChangeBody({ data }: { data: StudioData }) {
         <Section title={t('fixPlan')}>
           <PlanStrip plan={plan} to="/change" />
           <TimelineEntry data={data} />
+          <ListTools shown={[]} />
           <Panel>
             <ol className={css.steps}>
               {plan.steps.map((step) => (
-                <li key={step.id} className={css.step}>
+                <li key={step.id} className={[css.step, cmd.stepRow].join(' ')}>
+                  <GroupBox ids={stepCards(data, step.id)} group={{ by: 'step', value: step.id, label: step.title ?? step.id }} label={cw('selectStep', { id: step.id })} />
                   <Id value={step.id} className={css.stepId} />
                   <span className={css.stepTitle}><Txt block>{step.title ?? step.gate}</Txt></span>
                   <span className={css.muted}><N value={step.tasks.length} /></span>

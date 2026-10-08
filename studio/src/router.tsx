@@ -15,6 +15,8 @@ import { PathsPage } from './pages/paths/PathsPage'
 import { TimelinePage } from './pages/paths/TimelinePage'
 import { HiddenPage } from './pages/system/hidden/HiddenPage'
 import { JourneysPage } from './pages/system/journeys/JourneysPage'
+import { RunPage } from './pages/runs/RunPage'
+import { RunsPage } from './pages/runs/RunsPage'
 import { GalleryPage } from './gallery/Gallery'
 import { Shell } from './shell/Shell'
 import { SECTIONS } from './shell/sections'
@@ -56,7 +58,9 @@ export function makeRouter(dev: () => boolean) {
     createRoute({ getParentRoute: () => root, path: '/problems', component: ProblemsPage, validateSearch: params('card', 'who', 'severity', 'component', 'q') }),
     createRoute({ getParentRoute: () => root, path: '/change', component: ChangePage, validateSearch: params('focus', 'side') }),
     createRoute({ getParentRoute: () => root, path: '/change/timeline', component: TimelinePage, validateSearch: params('step', 'wave') }),
-    createRoute({ getParentRoute: () => root, path: '/decisions', component: DecisionsPage }),
+    createRoute({ getParentRoute: () => root, path: '/decisions', component: DecisionsPage, validateSearch: params('demo') }),
+    createRoute({ getParentRoute: () => root, path: '/runs', component: RunsPage, validateSearch: params('q', 'show', 'demo') }),
+    createRoute({ getParentRoute: () => root, path: '/runs/$runId', component: RunPage, validateSearch: params('demo') }),
     createRoute({ getParentRoute: () => root, path: '/library', component: LibraryPage, beforeLoad: devOnly('library', dev) }),
     createRoute({ getParentRoute: () => root, path: '/_gallery', component: GalleryPage, validateSearch: params('view', 'card') }),
     createRoute({ getParentRoute: () => root, path: '/_gallery/paths', component: PathsGalleryPage }),
