@@ -29,9 +29,10 @@ def _read(project):
     except (OSError, ValueError): return []
 
 
-def _write(project, rows):
+def _write(project, rows, create=False):
     path = _path(project)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    if create: path.parent.mkdir(parents=True, exist_ok=True)
+    elif not path.parent.is_dir(): return                 # the project's workspace is gone: nothing to update
     temporary = path.with_name(path.name + f'.{os.getpid()}.tmp')
     temporary.write_text(json.dumps(rows, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     temporary.replace(path)
@@ -49,7 +50,11 @@ def add(project, run, prompt, label):
         rows = [row for row in _read(project) if row.get('run') != run]
         rows.append({'id': run, 'run': run, 'label': label, 'request': request_text(prompt, run), 'state': 'waiting',
                      'created': _now(), 'taken_by': None, 'taken_at': None, 'done': None})
-        _write(project, rows)
+        _write(project, rows, create=True)
+
+
+def exists(project):
+    return _path(project).is_file()
 
 
 def pending(project):

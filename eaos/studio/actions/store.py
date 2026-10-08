@@ -57,8 +57,9 @@ class Scrubber:
         return value
 
 
-def _write_json(path, data):
-    path.parent.mkdir(exist_ok=True)                  # a run's folder, never the runs folder: a deleted project stays deleted
+def _write_json(path, data, create=False):
+    if create: path.parent.mkdir(exist_ok=True)       # a new run's folder, never the runs folder: a deleted project stays deleted
+    elif not path.parent.is_dir(): raise KeyError(path.parent.name)
     temporary = path.with_name(path.name + f'.{os.getpid()}.{threading.get_ident()}.tmp')
     temporary.write_text(json.dumps(data, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     temporary.replace(path)
@@ -76,6 +77,7 @@ class Store:
     def __init__(self, folder, scrub):
         self.folder = Path(folder)
         self.folder.mkdir(parents=True, exist_ok=True)
+        (self.folder / 'dispatch.lock').touch()
         self.scrub = scrub
         self.lock = threading.RLock()
         self.changed = threading.Condition(self.lock)
@@ -90,10 +92,10 @@ class Store:
         if not data: raise KeyError(run)
         return data
 
-    def save(self, record):
+    def save(self, record, new=False):
         with self.lock:
             record['updated'] = now()
-            _write_json(self.path(record['id']) / 'run.json', record)
+            _write_json(self.path(record['id']) / 'run.json', record, create=new)
             self.changed.notify_all()
         return record
 
@@ -113,14 +115,14 @@ class Store:
     # the queue
     def queue(self):
         order = _read_json(self.folder / 'queue.json', []) or []
-        queued = {row['id']: row for row in self.all() if row.get('state') == 'queued'}
+        queued = {row['id']: row for row in self.all() if row.get('state') == 'queued' and not row.get('read')}
         known = [run for run in order if run in queued]
         rest = sorted((run for run in queued if run not in known), key=lambda run: queued[run].get('queued_at') or '')
         return known + rest
 
     def set_queue(self, order):
         with self.lock:
-            _write_json(self.folder / 'queue.json', list(order))
+            _write_json(self.folder / 'queue.json', list(order))     # the runs folder exists: the Store made it
             self.changed.notify_all()
 
     # events
@@ -143,7 +145,7 @@ class Store:
             data = {**data, 'diff': data['diff'][:DIFF_LIMIT] + '\n[the rest of the diff is cut]', 'cut': True}
         with self.lock:
             path = self.path(run) / 'events.jsonl'
-            path.parent.mkdir(exist_ok=True)
+            if not path.parent.is_dir(): raise KeyError(run)        # a run is made by save(new=True), never here
             with path.open('a+', encoding='utf-8') as out:
                 fcntl.flock(out, fcntl.LOCK_EX)
                 out.seek(0)

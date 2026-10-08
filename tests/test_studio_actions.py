@@ -171,7 +171,7 @@ class EventLog(unittest.TestCase):
     def test_events_are_gapless_hash_chained_and_tampering_shows(self):
         with tempfile.TemporaryDirectory() as folder:
             log = store.Store(Path(folder) / 'runs', store.Scrubber(folder))
-            log.save({'id': 'r1', 'state': 'queued'})
+            log.save({'id': 'r1', 'state': 'queued'}, new=True)
             for index in range(5): log.append('r1', 'step', f'step {index}', {'n': index})
             events = log.events('r1')
             self.assertEqual([e['seq'] for e in events], [1, 2, 3, 4, 5])
@@ -186,7 +186,7 @@ class EventLog(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             project = Path(folder) / 'project'
             log = store.Store(Path(folder) / 'runs', store.Scrubber(project, ['launch-token-value']))
-            log.save({'id': 'r1'})
+            log.save({'id': 'r1'}, new=True)
             words = (f'{project}/src/a.py and {Path.home()}/x with sk-ant-abcdefghijklmnopqrstuv ghp_abcdefghijklmnopqrstuvwxyz0123 '
                      'Bearer abcdefghijklmnopqrstuvwxyz and launch-token-value')
             event = log.append('r1', 'say', words, {'nested': [words]}, words)
@@ -198,7 +198,7 @@ class EventLog(unittest.TestCase):
     def test_a_huge_diff_is_cut(self):
         with tempfile.TemporaryDirectory() as folder:
             log = store.Store(Path(folder) / 'runs', store.Scrubber(folder))
-            log.save({'id': 'r1'})
+            log.save({'id': 'r1'}, new=True)
             event = log.append('r1', 'edit', 'big', {'diff': 'x' * (store.DIFF_LIMIT + 10)})
             self.assertTrue(event['data']['cut'])
             self.assertLess(len(event['data']['diff']), store.DIFF_LIMIT + 100)
@@ -235,6 +235,21 @@ class Adapters(unittest.TestCase):
         self.assertIn('command', steps)
         self.assertTrue(any(tool == 'run_setup' and isinstance(payload, dict) and payload.get('status') == 'needs_agreement'
                             for tool, payload in state['eaos_results']))
+
+    def test_real_explain_runs_started_by_the_studio_read_as_plain_events(self):
+        for adapter, name, tools in ((adapters.ClaudeCode(), 'claude-explain-stream.jsonl', {'finding', 'impact'}),
+                                     (adapters.Codex(), 'codex-explain-stream.jsonl', {'status', 'finding', 'impact'})):
+            state, events = self.parse(adapter, name)
+            self.assertIsNone(state['failed'], name)
+            self.assertIn('TASK-001', state['final'])
+            called = {data.get('tool') for kind, _, data, _ in events if kind in ('step', 'read')}
+            self.assertLessEqual(tools, called, name)
+            self.assertFalse({'fix_edit', 'accept', 'undo'} & called)
+            for kind, words, data, detail in events:
+                if kind == 'error':
+                    self.assertTrue(data['recoverable'])
+                    self.assertNotIn('Error', words['en'])
+                    self.assertIn('Error', detail)
 
     def test_an_edit_carries_its_diff_and_a_check_its_verdict(self):
         events = adapters.tool_events('fix_edit', {'card': 'TASK-1', 'edits': [{'path': 'a.py', 'find': 'x = 1\n', 'replace': 'x = 2\n'},
@@ -360,6 +375,8 @@ class Runs(Base):
         argvs = [json.loads(line) for line in Path(os.environ['FAKE_ARGV']).read_text().splitlines() if '-p' in line]
         self.assertEqual(argvs[-1][-2:], ['--resume', 'fake-session'])
         self.assertIn('option "yes"', argvs[-1][argvs[-1].index('-p') + 1])
+        starts = [e['text']['en'] for e in self.app.store.events(run) if e['kind'] == 'step' and e['data'].get('assistant')]
+        self.assertEqual(starts, ['Claude Code started', 'Claude Code went on'])
         edits = [e for e in self.app.store.events(run) if e['kind'] == 'edit']
         self.assertIn('+x = 2', edits[0]['data']['diff'])
         self.assertIn('check', self.kinds(run))
@@ -431,6 +448,8 @@ class Runs(Base):
         self.assertEqual([e['seq'] for e in payload['events']], [ids[-1]])
 
     def test_two_servers_never_start_the_same_run(self):
+        deadline = time.monotonic() + 5
+        while self.app.manager._lockfile is None and time.monotonic() < deadline: time.sleep(0.05)
         other = self.make()
         self.assertFalse(other.manager._hold())
         run = self.start('explain', app=other)
@@ -449,7 +468,7 @@ class Runs(Base):
         self.app.manager.children.clear()
         dead = 'r-dead'
         self.app.store.save({'id': dead, 'action': 'explain', 'verb': 'explain', 'mode': 'assistant', 'assistant': 'claude', 'state': 'running',
-                             'pid': 999999, 'label': {'en': 'x', 'ar': 'x'}, 'created': '0'})
+                             'pid': 999999, 'label': {'en': 'x', 'ar': 'x'}, 'created': '0'}, new=True)
         again = self.make()
         self.assertEqual(again.wait(dead, ('failed',), 10)['state'], 'failed')
         self.assertIn('server', again.store.events(dead)[-2]['text']['en'])
@@ -513,7 +532,7 @@ class Direct(Base):
         self.app.manager.tools, calls = self.fake_tools({'accept': {'status': 'accepted', 'branch': 'eaos/wave-1'}})
         record = {'id': 'r-fix', 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'done', 'label': {'en': 'x', 'ar': 'x'},
                   'created': '0', 'result': {'branch': 'eaos/wave-1'}}
-        self.app.store.save(record)
+        self.app.store.save(record, new=True)
         self.assertEqual(self.post('/api/runs/r-fix/accept', {})[0], 403)
         wrong = self.post('/api/actions/undo/preview')[1]['confirm']['token']
         self.assertEqual(self.post('/api/runs/r-fix/accept', {'confirm': wrong})[0], 403)

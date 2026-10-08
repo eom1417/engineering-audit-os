@@ -245,15 +245,15 @@ class Actions:
                   'cards': [c['id'] for c in cards], 'cards_detail': [{'id': c['id'], 'title': c.get('title'), 'paths': selecting._paths(c)} for c in cards],
                   'left_out': left, 'assistant': assistant if assistant != 'handoff' else None,
                   'mode': 'direct' if not needed else ('handoff' if assistant == 'handoff' else 'assistant'),
-                  'state': 'queued', 'attempt': 1, 'created': now(), 'queued_at': now(), 'read': reading}
-        self.store.save(record)
+                  'state': 'running' if reading else 'queued', 'attempt': 1, 'created': now(), 'queued_at': now(), 'read': reading,
+                  **({'started': now()} if reading else {})}
+        self.store.save(record, new=True)
         shown = {k: v for k, v in inputs.items() if k not in ('edits', 'spec', 'proposal', 'text')}
         self.store.append(run, 'action', {'en': f"You asked: {label['en']}", 'ar': f"طلبت: {label['ar']}"},
                           {'action': action, 'by': 'person', 'arguments': {**shown, **({'cards': record['cards']} if verb else {})}})
         if reading:
-            if 'seconds' in inputs: inputs['seconds'] = 0
-            self.manager.set_state(run, 'running')
-            self.manager._direct(run, follow=False)
+            if 'seconds' in inputs: self.store.update(run, inputs={**inputs, 'seconds': 0})
+            self.manager._direct(run, follow=False)                 # never queued: it answers now, in this call
             return self.store.load(run)
         self.store.set_queue(self.store.queue())
         return self.store.load(run)

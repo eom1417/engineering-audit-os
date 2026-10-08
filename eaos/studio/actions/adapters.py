@@ -60,14 +60,19 @@ def tool_events(tool, arguments, labels):
              {'tool': tool, 'card': card}, json.dumps(shown, ensure_ascii=False)[:2000] if shown else None)]
 
 
-def result_events(tool, arguments, payload):
-    """The events an EAOS tool's answer gives: a check's verdict, a job's progress, an error the assistant will read."""
+def result_events(tool, arguments, payload, labels=None):
+    """The events an EAOS tool's answer gives: a check's verdict, a job's progress, an error the assistant will read.
+    A tool's error is said plainly (which step could not answer, and that the assistant goes on); its technical words
+    are the detail."""
     if not isinstance(payload, dict): return []
     out = []
     if payload.get('error'):
-        out.append(('error', {'en': f"{tool} answered: {str(payload['error'])[:300]}", 'ar': f"أجاب {tool}: {str(payload['error'])[:300]}"},
+        label = (labels or {}).get(tool) or {'en': tool, 'ar': tool}
+        out.append(('error', {'en': f"\u201c{label['en']}\u201d could not answer this time; the assistant reads why and goes on",
+                              'ar': f"\u00ab{label['ar']}\u00bb ما قدر يجاوب هالمرة؛ المساعد يقرأ السبب ويكمل"},
                     {'reason': str(payload['error'])[:2000], 'tool': tool, 'recoverable': True,
-                     'what_now': {'en': 'The assistant reads this and goes on.', 'ar': 'المساعد يقرأ هذا ويكمل.'}}, payload.get('what_now')))
+                     'what_now': {'en': 'Nothing to do: the assistant goes on.', 'ar': 'ما عليك شي: المساعد يكمل.'}},
+                    str(payload['error'])[:2000] + (f"\n{payload['what_now']}" if payload.get('what_now') else '')))
         return out
     progress = payload.get('progress')
     if isinstance(progress, dict) and progress.get('total'):
@@ -132,7 +137,7 @@ class Adapter:
         return found['installed'] and found['logged_in']
 
     def new_state(self):
-        return {'session': None, 'pending': {}, 'final': None, 'failed': None, 'texts': [], 'eaos_results': []}
+        return {'session': None, 'resumed': False, 'pending': {}, 'final': None, 'failed': None, 'texts': [], 'eaos_results': []}
 
 
 class ClaudeCode(Adapter):
@@ -160,10 +165,10 @@ class ClaudeCode(Adapter):
         try: event = json.loads(line)
         except ValueError: return []
         if not isinstance(event, dict): return []
-        before, state['session'] = state['session'], event.get('session_id') or state['session']
+        state['session'] = event.get('session_id') or state['session']
         kind, out = event.get('type'), []
         if kind == 'system' and event.get('subtype') == 'init':
-            out.append(('step', {'en': 'Claude Code went on', 'ar': 'Claude Code كمّل'} if before else {'en': 'Claude Code started', 'ar': 'بدأ Claude Code'},
+            out.append(('step', {'en': 'Claude Code went on', 'ar': 'Claude Code كمّل'} if state['resumed'] else {'en': 'Claude Code started', 'ar': 'بدأ Claude Code'},
                         {'tool': None, 'assistant': self.name}, None))
         elif kind == 'assistant':
             for block in (event.get('message') or {}).get('content') or []:
@@ -182,7 +187,7 @@ class ClaudeCode(Adapter):
                 if tool and tool in labels:
                     payload = _json_text(block.get('content'))
                     state['eaos_results'].append((tool, payload))
-                    out += result_events(tool, arguments, payload)
+                    out += result_events(tool, arguments, payload, labels)
         elif kind == 'result':
             state['final'] = str(event.get('result') or '')
             if event.get('is_error') or event.get('subtype') not in (None, 'success'):
@@ -216,15 +221,15 @@ class Codex(Adapter):
         if not isinstance(event, dict): return []
         kind, item, out = event.get('type'), event.get('item') or {}, []
         if kind == 'thread.started':
-            before, state['session'] = state['session'], event.get('thread_id') or state['session']
-            out.append(('step', {'en': 'Codex went on', 'ar': 'Codex كمّل'} if before else {'en': 'Codex started', 'ar': 'بدأ Codex'},
+            state['session'] = event.get('thread_id') or state['session']
+            out.append(('step', {'en': 'Codex went on', 'ar': 'Codex كمّل'} if state['resumed'] else {'en': 'Codex started', 'ar': 'بدأ Codex'},
                         {'tool': None, 'assistant': self.name}, None))
         elif kind == 'item.started' and item.get('type') == 'mcp_tool_call' and item.get('server') == 'eaos':
             out += tool_events(item.get('tool'), item.get('arguments'), labels)
         elif kind == 'item.completed' and item.get('type') == 'mcp_tool_call' and item.get('server') == 'eaos':
             payload = _json_text(((item.get('result') or {}).get('content')) or []) if item.get('result') else ({'error': item.get('error')} if item.get('error') else None)
             state['eaos_results'].append((item.get('tool'), payload))
-            out += result_events(item.get('tool'), item.get('arguments'), payload)
+            out += result_events(item.get('tool'), item.get('arguments'), payload, labels)
         elif kind == 'item.completed' and item.get('type') == 'agent_message' and str(item.get('text') or '').strip():
             state['texts'].append(item['text'])
             state['final'] = item['text']

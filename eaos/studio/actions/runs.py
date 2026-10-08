@@ -98,11 +98,11 @@ class Manager:
     def _hold(self):
         if self._lockfile: return True
         try:
-            handle = open(self.store.folder / 'dispatch.lock', 'a')
+            handle = open(self.store.folder / 'dispatch.lock', 'r+')     # made by the Store; a deleted folder stays deleted
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except OSError:
             try: handle.close()
-            except Exception: pass
+            except NameError: pass
             return False
         self._lockfile = handle
         self.recover()
@@ -261,6 +261,7 @@ class Manager:
         offset, pid = record.get('offset') or 0, record.get('pid')
         state = adapter.new_state()
         state['session'] = record.get('session')
+        state['resumed'] = bool(record.get('session'))     # this turn resumes the assistant's session with an answer
         buffer = b''
         try:
             while True:
@@ -372,7 +373,9 @@ class Manager:
                 record = self.store.load(run)
                 if record.get('state') in TERMINAL: return handoff.drop(self.project, run)
                 row = handoff.get(self.project, run)
-                if row is None: return self._fail(run, 'the request was removed')
+                if row is None:
+                    if handoff.exists(self.project): self._fail(run, 'the request was removed')
+                    return                                  # the project's EAOS workspace is gone with it
                 if row['state'] in ('taken', 'done') and record.get('state') == 'waiting_for_person':
                     self.store.append(run, 'step', {'en': f"{row['taken_by']} took the request", 'ar': f"{row['taken_by']} استلم الطلب"}, {'tool': 'status', 'by': row['taken_by']})
                     self.set_state(run, 'running', 'taken')
