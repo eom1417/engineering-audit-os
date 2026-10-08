@@ -141,7 +141,7 @@ class GateMatrix(unittest.TestCase):
             (data / 'story.json').write_text(json.dumps(story), encoding='utf-8')
             self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'component': 'src/b', 'path': 'none',
                                                                     'task': 'none', 'screen': 'none', 'hidden_group': 'none',
-                                                                    'store': 'none', 'stage': 'none'})
+                                                                    'store': 'none', 'stage': 'none', 'ai_stage': 'none', 'ai_pipeline': 'none'})
             journeys = {'tasks': [{'id': 't/one', 'path': ['s/a']}, {'id': 't/two', 'path': ['s/a', 's/b']}],
                         'screens': [{'id': 's/a', 'kind': 'page', 'flags': []}, {'id': 's/b', 'kind': 'page', 'flags': ['broken_link']}]}
             (data / 'journeys.json').write_text(json.dumps(journeys), encoding='utf-8')
@@ -162,6 +162,8 @@ class GateMatrix(unittest.TestCase):
             stages = [{'id': 'm:a', 'kind': 'stage'}, {'id': 'm:r', 'kind': 'router'}]
             (data / 'pipeline.json').write_text(json.dumps({'stages': stages}), encoding='utf-8')
             self.assertEqual(self.gates.studio_placeholders(data)['stage'], 'm:r')  # the pipeline page opens on a router
+            (data / 'pipeline.json').write_text(json.dumps({'stages': [*stages, {'id': 'n:t', 'kind': 'ai', 'pipeline': 'n'}]}), encoding='utf-8')
+            self.assertEqual([self.gates.studio_placeholders(data)[k] for k in ('ai_stage', 'ai_pipeline')], ['n:t', 'n'])   # its first AI node
             (data / 'paths.json').unlink()
             pages = dict((e['name'], e) for e, _ in self.gates.studio_pages(self.matrix, data, 'http://127.0.0.1:1/', data))
         self.assertEqual(pages['system-focus']['url'], 'http://127.0.0.1:1/index.html#/system?focus=src%2Fb')

@@ -100,3 +100,9 @@
   .ports { grid-template-columns: minmax(0, 1fr); }
   .treeRow { min-block-size: 44px; }
 }
+
+/* an AI node's last run (docs/STUDIO.md D11) */
+.aiRoutesH { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-block: 8px 2px; }
+.aiInbox { display: inline-flex; align-items: center; min-block-size: 44px; color: var(--ai-text); font-weight: 600; cursor: pointer; }
+.aiInbox:hover { text-decoration: underline; }
+.aiInbox:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-4); }

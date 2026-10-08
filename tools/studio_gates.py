@@ -164,7 +164,8 @@ def studio_placeholders(data):
     path counted in its deepest component), so the focused System view shows a full inspector; {path}: the code path
     the flow pages open ('none' without studio/paths.json); {task}, {screen}, {hidden_group}: the journeys and hidden pages'
     subjects; {store}: the data map's store; {stage}: the first router of the pipeline map, else its first stage ('none'
-    without studio/pipeline.json or a pipeline)."""
+    without studio/pipeline.json or a pipeline); {ai_stage} and {ai_pipeline}: its first AI node and that node's pipeline
+    ('none' without one)."""
     cards = json.loads((data / 'cards.json').read_text(encoding='utf-8'))['cards']
     card = next((c for c in cards if c.get('evidence')), cards[0] if cards else {'id': ''})['id']
     story = json.loads((data / 'story.json').read_text(encoding='utf-8')) if (data / 'story.json').is_file() else {}
@@ -191,8 +192,9 @@ def studio_placeholders(data):
     store = next((s for s in stores if s.get('multi_writer')), stores[0] if stores else {'id': 'none'})
     stages = section('pipeline').get('stages') or []
     stage = next((s for s in stages if s.get('kind') == 'router'), stages[0] if stages else {'id': 'none'})
+    ai = next((s for s in stages if s.get('kind') == 'ai'), {'id': 'none', 'pipeline': 'none'})
     return {'card': card, 'component': component, 'path': chosen['id'], 'task': task['id'], 'screen': screen['id'],
-            'hidden_group': group['id'], 'store': store['id'], 'stage': stage['id']}
+            'hidden_group': group['id'], 'store': store['id'], 'stage': stage['id'], 'ai_stage': ai['id'], 'ai_pipeline': ai['pipeline']}
 
 
 def studio_pages(matrix, data, base, folder, only=None):
