@@ -70,3 +70,5 @@
 /* the task's steps */
 .step circle { fill: var(--accent-button); }
 .step text { font-family: var(--font-mono); font-size: 11px; font-weight: 600; fill: var(--bg-surface); }
+.cluster .frame { stroke-width: 1.6; }
+.clusterSub { font-size: 11.5px; fill: var(--text-secondary); }

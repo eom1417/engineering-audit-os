@@ -102,3 +102,69 @@ export function unseenBy(j: Journeys, areaItems: Map<string, number>): Map<strin
   }
   return out
 }
+
+// ---------------------------------------------------------------- clusters: a map of 1,000 screens and more
+
+/** Above this many screens the map opens on its areas (one frame per area); choosing an area expands its screens. */
+export const CLUSTER_AT = 250
+const CLUSTER_ROWS = 10
+
+export interface Cluster { id: string; screens: Screen[]; depth: number | null; flags: Record<ScreenFlag, number>; x: number; y: number }
+export interface ClusterEdge { from: string; to: string; count: number; d: string }
+
+function curve(ax: number, ay: number, bx: number, by: number, w: number, h: number): string {
+  if (bx > ax) {
+    const x1 = ax + w, y1 = ay + h / 2, x2 = bx, y2 = by + h / 2, mid = (x1 + x2) / 2
+    return `M${x1},${y1} C${mid},${y1} ${mid},${y2} ${x2},${y2}`
+  }
+  const x1 = ax + w / 2, x2 = bx + w / 2, top = Math.min(ay, by) - 40
+  return `M${x1},${ay} C${x1},${top} ${x2},${top} ${x2},${by}`
+}
+
+/** The areas as frames on the same grid (columns = the nearest member's clicks from the start), and the links
+ * between areas, counted. Deterministic: the order comes from the data, so an area keeps its place. */
+export function clusters(j: Journeys): { nodes: Cluster[]; edges: ClusterEdge[]; width: number; height: number } {
+  const g = j.grid
+  const byId = new Map(j.screens.map((s) => [s.id, s]))
+  const groups = (j.groups ?? []).map((grp) => {
+    const screens = grp.screens.map((id) => byId.get(id)).filter((s): s is Screen => Boolean(s) && s!.kind === 'page')
+    const depths = screens.map((s) => s.depth).filter((d): d is number => d !== null && d !== undefined)
+    const flags = { broken_link: 0, no_way_in: 0, dead_end: 0, duplicate: 0 } as Record<ScreenFlag, number>
+    for (const s of screens) for (const f of s.flags) flags[f] += 1
+    return { id: grp.id, screens, depth: depths.length ? Math.min(...depths) : null, flags }
+  }).filter((c) => c.screens.length)
+  const levels = [...new Set(groups.map((c) => c.depth))].sort((a, b) => (a === null ? 1 : b === null ? -1 : a - b))
+  const nodes: Cluster[] = []
+  let col = 0
+  for (const level of levels) {
+    const here = groups.filter((c) => c.depth === level).sort((a, b) => a.id.localeCompare(b.id))
+    here.forEach((c, i) => nodes.push({ ...c, x: g.pad + (col + Math.floor(i / CLUSTER_ROWS)) * g.col_w, y: g.pad + (i % CLUSTER_ROWS) * g.row_h }))
+    col += Math.max(1, Math.ceil(here.length / CLUSTER_ROWS))
+  }
+  const groupOf = new Map<string, string>()
+  for (const c of nodes) for (const s of c.screens) groupOf.set(s.id, c.id)
+  const at = new Map(nodes.map((c) => [c.id, c]))
+  const counts = new Map<string, number>()
+  for (const e of j.edges) {
+    const a = groupOf.get(e.from), b = groupOf.get(e.to)
+    if (a && b && a !== b) counts.set(`${a}>${b}`, (counts.get(`${a}>${b}`) ?? 0) + e.count)
+  }
+  const edges = [...counts.entries()].map(([key, count]) => {
+    const [from, to] = key.split('>')
+    const a = at.get(from)!, b = at.get(to)!
+    return { from, to, count, d: curve(a.x, a.y, b.x, b.y, g.box_w, g.box_h) }
+  })
+  const rows = Math.min(CLUSTER_ROWS, Math.max(1, ...levels.map((l) => groups.filter((c) => c.depth === l).length)))
+  return { nodes, edges, width: g.pad * 2 + Math.max(col - 1, 0) * g.col_w + g.box_w, height: g.pad * 2 + (rows - 1) * g.row_h + g.box_h }
+}
+
+/** An expanded area: its screens and the screens they link with. */
+export function areaScreens(j: Journeys, group: string): Set<string> {
+  const members = new Set((j.groups ?? []).find((g) => g.id === group)?.screens ?? [])
+  const out = new Set(members)
+  for (const e of j.edges) {
+    if (members.has(e.from)) out.add(e.to)
+    if (members.has(e.to)) out.add(e.from)
+  }
+  return out
+}

@@ -8,7 +8,7 @@ import type { Journeys, Screen, ScreenFlag, Task } from '../../../data/journeys'
 import { usePrefs } from '../../../i18n/prefs'
 import type { ZoomState } from '../../../map/useZoom'
 import { useJourneyWords } from '../words'
-import { captions, clip, edgeKey, litSet, pathEdges, shownEdges, shownScreens, type JourneyMode } from './model'
+import { areaScreens, captions, clip, clusters, edgeKey, litSet, pathEdges, shownEdges, shownScreens, type JourneyMode } from './model'
 import css from './JourneyMap.module.css'
 
 export interface JourneyMapProps {
@@ -29,24 +29,36 @@ export interface JourneyMapProps {
   className?: string
   /** a base for screen shots (paths in journeys.json are relative to the report folder) */
   shotBase?: string
+  /** a map of many screens: one frame per area (CLUSTER_AT); pressing an area calls onFocus('area:<id>') */
+  clustered?: boolean
+  /** an expanded area: only its screens and the screens they link with */
+  area?: string
 }
 
 const TOP = 56
 
-export function JourneyMap({ journeys: j, mode, variant, focus, task, flag, showHidden, unseen, onFocus, transform, svgRef, dragging, label, className, shotBase = '../' }: JourneyMapProps) {
+export function JourneyMap(props: JourneyMapProps) {
+  return props.clustered ? <ClusterMap {...props} /> : <ScreenMap {...props} />
+}
+
+function ScreenMap({ journeys: j, mode, variant, focus, task, flag, showHidden, unseen, onFocus, transform, svgRef, dragging, label, className, shotBase = '../', area }: JourneyMapProps) {
   const w = useJourneyWords()
   const { lang } = usePrefs()
   const uid = useId().replace(/:/g, '')
   const g = j.grid
   const full = variant === 'full'
-  const screens = shownScreens(j, showHidden)
-  const edges = shownEdges(j, showHidden)
+  const only = area ? areaScreens(j, area) : null
+  const screens = shownScreens(j, showHidden).filter((s) => !only || only.has(s.id))
+  const edges = shownEdges(j, showHidden).filter((e) => !only || (only.has(e.from) && only.has(e.to)))
+  const menus = only ? [] : j.menus
   const lit = litSet(j, focus, task, flag)
   const onPath = pathEdges(task)
   const step = new Map((task?.path ?? []).map((id, i) => [id, i + 1]))
   const dim = lit !== null
   const interactive = full && Boolean(onFocus)
-  const vb = `${-8} ${-TOP} ${g.width + 56} ${g.height + TOP + 16}`
+  const box = only && screens.length ? [Math.min(...screens.map((s) => s.x)), Math.min(...screens.map((s) => s.y)),
+    Math.max(...screens.map((s) => s.x)) + g.box_w, Math.max(...screens.map((s) => s.y)) + g.box_h] : null
+  const vb = box ? `${box[0] - 40} ${box[1] - TOP} ${box[2] - box[0] + 100} ${box[3] - box[1] + TOP + 40}` : `${-8} ${-TOP} ${g.width + 56} ${g.height + TOP + 16}`
   const tf = transform ? { transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})` } : undefined
   const key = (e: KeyboardEvent, id: string) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFocus?.(id) }
@@ -86,7 +98,7 @@ export function JourneyMap({ journeys: j, mode, variant, focus, task, flag, show
       </defs>
       <rect className={css.water} x={-4000} y={-4000} width={g.width + 8000} height={g.height + 8000} />
       <g style={tf} className={css.world}>
-        {full && captions(j).map((c) => (
+        {full && !only && captions(j).map((c) => (
           <text key={c.col} x={g.pad + c.col * g.col_w} y={-TOP + 22} className={css.caption} direction={lang === 'ar' ? 'rtl' : 'ltr'}
             textAnchor="start" dx={lang === 'ar' ? g.box_w : 0}>
             {c.kind === 'start' ? w('start') : c.kind === 'none' ? w('noWayInCol') : c.n === 1 ? w('oneClick') : w('clicks', { n: c.n })}
@@ -105,7 +117,7 @@ export function JourneyMap({ journeys: j, mode, variant, focus, task, flag, show
             )
           })}
         </g>
-        {j.menus.map((m) => (
+        {menus.map((m) => (
           <g key={m.id} className={[css.menu, dim && !lit!.has(m.id) && css.faded, task && step.has(m.id) && css.onPath, focus === m.id && css.sel].filter(Boolean).join(' ')}
             {...(interactive ? { role: 'button', tabIndex: 0, 'aria-label': `${w('menu')}: ${w('menuSub', { n: m.links, s: m.scope.length })}`,
               'aria-pressed': focus === m.id, onClick: () => onFocus?.(m.id), onKeyDown: (e: KeyboardEvent) => key(e, m.id) } : {})}>
@@ -166,5 +178,51 @@ function StepBadge({ x, y, n }: { x: number; y: number; n: number }) {
       <circle cx={x} cy={y} r={11} />
       <text x={x} y={y + 4} textAnchor="middle">{n}</text>
     </g>
+  )
+}
+
+/** The areas of a large app: one frame per area with its screens and flags, the links between areas counted. */
+function ClusterMap({ journeys: j, variant, focus, onFocus, transform, svgRef, dragging, label, className }: JourneyMapProps) {
+  const w = useJourneyWords()
+  const { lang } = usePrefs()
+  const uid = useId().replace(/:/g, '')
+  const g = j.grid
+  const { nodes, edges, width, height } = clusters(j)
+  const interactive = variant === 'full' && Boolean(onFocus)
+  const tf = transform ? { transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.k})` } : undefined
+  const key = (e: KeyboardEvent, id: string) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFocus?.(id) }
+  }
+  return (
+    <svg ref={svgRef} viewBox={`-8 -24 ${width + 16} ${height + 40}`} preserveAspectRatio="xMidYMid meet" direction="ltr"
+      className={[css.map, css[variant], dragging && css.dragging, className].filter(Boolean).join(' ')}
+      role={label ? (interactive ? 'group' : 'img') : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
+      <defs>
+        <marker id={`a${uid}`} viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,1 L7,4 L0,7z" className={css.arrow} />
+        </marker>
+      </defs>
+      <rect className={css.water} x={-4000} y={-4000} width={width + 8000} height={height + 8000} />
+      <g style={tf} className={css.world}>
+        <g className={css.edges}>
+          {edges.map((e) => <path key={`${e.from}>${e.to}`} d={e.d} strokeWidth={1 + Math.log2(1 + e.count)} className={css.edge} markerEnd={`url(#a${uid})`} />)}
+        </g>
+        {nodes.map((c) => {
+          const id = `area:${c.id}`
+          const problems = c.flags.broken_link + c.flags.no_way_in + c.flags.dead_end + c.flags.duplicate
+          return (
+            <g key={c.id} className={[css.screen, css.cluster, focus === id && css.sel].filter(Boolean).join(' ')}
+              {...(interactive ? { role: 'button', tabIndex: 0, 'aria-label': `${c.id}: ${w('clusterSub', { s: c.screens.length })}`,
+                onClick: () => onFocus?.(id), onKeyDown: (e: KeyboardEvent) => key(e, id) } : {})}>
+              <rect x={c.x + 6} y={c.y + 6} width={g.box_w} height={g.box_h} rx={8} className={css.twin} />
+              <rect x={c.x} y={c.y} width={g.box_w} height={g.box_h} rx={8} className={css.frame} />
+              <text x={c.x + 10} y={c.y + 24} className={css.title}>{clip(c.id, 20)}</text>
+              <text x={lang === 'ar' ? c.x + g.box_w - 10 : c.x + 10} y={c.y + 46} className={css.clusterSub} direction={lang === 'ar' ? 'rtl' : 'ltr'}>
+                {w('clusterSub', { s: c.screens.length }) + (problems ? ` · ${w('clusterFlags', { n: problems })}` : '')}</text>
+            </g>
+          )
+        })}
+      </g>
+    </svg>
   )
 }

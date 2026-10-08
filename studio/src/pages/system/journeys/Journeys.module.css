@@ -94,6 +94,8 @@ button.stepMain:hover .stepText { text-decoration: underline; }
 .depth { display: flex; flex-direction: column; gap: 4px; }
 .depthTitle { display: flex; gap: 8px; align-items: baseline; font-size: var(--text-label); font-weight: 600; color: var(--text-secondary); }
 
+.fixtureSvg { inline-size: 100%; block-size: auto; }
+
 /* phone */
 .phone { display: flex; flex-direction: column; gap: 14px; padding: 8px var(--page-pad) 24px; min-inline-size: 0; }
 .largeTitle { font-size: var(--text-large-title); font-weight: 600; line-height: var(--leading-tight); }

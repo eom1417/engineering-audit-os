@@ -33,10 +33,12 @@ export interface CanvasProps {
   className?: string
   legend?: boolean
   replace?: ReactNode
+  clustered?: boolean
+  area?: string
 }
 
 /** The map in the shared frame; it opens at a readable zoom on the start, and centres on a screen chosen elsewhere. */
-export function JourneyCanvas({ journeys: j, mode, focus, task, flag, showHidden, unseen, onFocus, title, head, className, legend = true, replace }: CanvasProps) {
+export function JourneyCanvas({ journeys: j, mode, focus, task, flag, showHidden, unseen, onFocus, title, head, className, legend = true, replace, clustered, area }: CanvasProps) {
   const w = useJourneyWords()
   const svg = useRef<SVGSVGElement>(null)
   const zoom = useZoom(svg)
@@ -63,19 +65,20 @@ export function JourneyCanvas({ journeys: j, mode, focus, task, flag, showHidden
     const watch = new ResizeObserver(apply)
     watch.observe(el)
     return () => watch.disconnect()
-  }, [setT, replace, j])
+  }, [setT, replace, j, clustered, area])
   const { centreOn } = zoom
   useEffect(() => {
     const s = focus ? j.screens.find((x) => x.id === focus) ?? j.menus.find((x) => x.id === focus) : undefined
-    if (s) centreOn(s.x + j.grid.box_w / 2, s.y + j.grid.box_h / 2, 1)
-  }, [focus, j, centreOn])
+    if (s && !area) centreOn(s.x + j.grid.box_w / 2, s.y + j.grid.box_h / 2, 1)
+  }, [focus, j, centreOn, area])
   const label = w('mapAria', { s: j.counts.screens.value ?? 0, l: j.counts.links.value ?? 0 })
   return (
     <CanvasFrame title={title} head={head} zoom={replace ? undefined : zoom} className={className}>
       {replace ?? (
         <div className={canvasClass.canvas}>
           <JourneyMap journeys={j} mode={mode} variant="full" focus={focus} task={task} flag={flag} showHidden={showHidden} unseen={unseen}
-            onFocus={onFocus} transform={zoom.t} dragging={zoom.dragging} svgRef={svg} label={label} className={canvasClass.svg} />
+            onFocus={onFocus} transform={zoom.t} dragging={zoom.dragging} svgRef={svg} label={label} className={canvasClass.svg}
+            clustered={clustered} area={area} />
           {legend && <Legend mode={mode} showHidden={showHidden} floating />}
         </div>
       )}

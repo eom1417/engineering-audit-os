@@ -18,12 +18,12 @@ import { MissingBanner, WithData } from '../../../shell/Layout'
 import { usePhone } from '../../SystemMap'
 import { HiddenSwitch, SystemViews } from '../SystemViews'
 import { useJourneyWords } from '../words'
-import { FLAGS, JOURNEY_MODES, unseenBy, type JourneyMode } from './model'
+import { CLUSTER_AT, FLAGS, JOURNEY_MODES, unseenBy, type JourneyMode } from './model'
 import { FlagFilter, JourneyCanvas, Legend, MenuPanel, Missing, Overview, ScreenPanel, StepsView, TaskPanel } from './parts'
 import { JourneyMap } from './JourneyMap'
 import css from './Journeys.module.css'
 
-interface JourneySearch { view?: string; show?: string; task?: string; focus?: string; hidden?: string; flag?: string }
+interface JourneySearch { view?: string; show?: string; task?: string; focus?: string; hidden?: string; flag?: string; area?: string }
 
 function ModeSwitch({ mode, onChange, comfortable }: { mode: JourneyMode; onChange: (m: JourneyMode) => void; comfortable?: boolean }) {
   const w = useJourneyWords()
@@ -63,6 +63,9 @@ function JourneysBody({ data, j }: { data: StudioData; j: Journeys }) {
   const ids = new Set([...j.screens.filter((s) => showHidden || s.kind === 'page').map((s) => s.id), ...j.menus.map((m) => m.id)])
   const focus = search.focus && ids.has(search.focus) ? search.focus : undefined
   usePageChrome(w('journeys'), undefined, data.manifest.project.name)
+  // a large app opens on its areas; an area chosen there shows its screens and the screens they link with
+  const area = (j.groups ?? []).some((g) => g.id === search.area) ? search.area : undefined
+  const clustered = j.screens.length > CLUSTER_AT && !area && !focus && !task
 
   const unseen = useMemo(() => {
     const per = new Map<string, number>()
@@ -76,7 +79,7 @@ function JourneysBody({ data, j }: { data: StudioData; j: Journeys }) {
       return Object.fromEntries(Object.entries(next).filter(([, v]) => v !== undefined && v !== '')) as JourneySearch
     },
   })
-  const setFocus = (id: string) => go({ focus: id === focus ? undefined : id, task: undefined })
+  const setFocus = (id: string) => id.startsWith('area:') ? go({ area: id.slice(5) }) : go({ focus: id === focus ? undefined : id, task: undefined })
   const pick = (id: string) => go({ focus: id, task: undefined })
   const setTask = (id: string | undefined) => go({ task: id, focus: undefined, flag: undefined })
   const setFlag = (f: ScreenFlag | undefined) => go({ flag: f, focus: undefined, task: undefined })
@@ -97,11 +100,12 @@ function JourneysBody({ data, j }: { data: StudioData; j: Journeys }) {
         <MissingBanner data={data} />
         <SystemViews current="journeys" />
         <h1 className={css.largeTitle}>{w('journeys')}</h1>
+        {clustered && <p className={css.lead}>{w('areasHint')}</p>}
         <p className={css.lead}>{w('journeysLead', { s: j.counts.screens.value ?? 0, l: j.counts.links.value ?? 0, t: j.tasks.filter((x) => !x.dead).length })}</p>
         <ModeSwitch mode={mode} onChange={setMode} comfortable />
         <figure className={css.preview}>
           <button type="button" className={css.previewBtn} onClick={() => setExplore(true)} aria-label={w('exploreMap')}>
-            <JourneyMap journeys={j} mode={mode} variant="preview" focus={focus} task={task} flag={flag} showHidden={showHidden} unseen={unseen} />
+            <JourneyMap journeys={j} mode={mode} variant="preview" focus={focus} task={task} flag={flag} showHidden={showHidden} unseen={unseen} clustered={clustered} area={area} />
           </button>
           <figcaption className={css.cap}>
             <span>{counts}</span>
@@ -126,7 +130,7 @@ function JourneysBody({ data, j }: { data: StudioData; j: Journeys }) {
               {({ close }) => (
                 <>
                   <JourneyCanvas journeys={j} mode={mode} focus={focus} task={task} flag={flag} showHidden={showHidden} unseen={unseen}
-                    onFocus={setFocus} legend={false} className={css.exploreCanvas}
+                    onFocus={setFocus} legend={false} className={css.exploreCanvas} clustered={clustered} area={area}
                     head={<><IconButton icon="x" label={w('closeMap')} onPress={close} /><Heading slot="title" className={css.exploreTitle}>{w('journeys')}</Heading></>} />
                   {focus && (
                     <div className={css.exploreBar} role="status">
@@ -151,6 +155,7 @@ function JourneysBody({ data, j }: { data: StudioData; j: Journeys }) {
         options={[{ id: 'map', label: w('asMap') }, { id: 'steps', label: w('asSteps') }]} />
       <TaskSelect j={j} value={task?.id} onChange={setTask} />
       <HiddenSwitch on={showHidden} onChange={setHidden} />
+      {area && <button type="button" className={css.flagBtn} aria-pressed onClick={() => go({ area: undefined, focus: undefined })}><Id value={area} /><span aria-hidden="true">×</span><span className="sr">{w('allAreas')}</span></button>}
     </>
   )
   return (
@@ -159,7 +164,7 @@ function JourneysBody({ data, j }: { data: StudioData; j: Journeys }) {
         <MissingBanner data={data} />
         <div className={css.viewsRow}><SystemViews current="journeys" /></div>
         <JourneyCanvas key={steps ? 'steps' : 'map'} journeys={j} mode={mode} focus={focus} task={task} flag={flag} showHidden={showHidden} unseen={unseen}
-          onFocus={setFocus} title={title} head={head} className={css.canvasBox}
+          onFocus={setFocus} title={title} head={head} className={css.canvasBox} clustered={clustered} area={area}
           replace={steps ? <div className={css.stepsView}><StepsView j={j} task={task} focus={focus} onFocus={pick} /></div> : undefined} />
       </section>
       <aside className={css.inspector} aria-label={t('inspector')}>{inspector}</aside>

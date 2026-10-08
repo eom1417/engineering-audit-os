@@ -77,6 +77,10 @@ export const JOURNEY_WORDS = {
   tasksHere: ['مهام تمر بها', 'Tasks through it'],
   openFindings: ['افتح مشاكل مجلدها', 'Open its folder’s findings'],
   showOnMap: ['اعرضها على الخريطة', 'Show it on the map'],
+  clusterSub: ['{s} شاشة', '{s} screens'],
+  clusterFlags: ['{n} عليها ملاحظة', '{n} flagged'],
+  areasHint: ['التطبيق كبير: الخريطة تعرض مناطقه. اختر منطقة لتفتح شاشاتها.', 'A large app: the map shows its areas. Choose an area to open its screens.'],
+  allAreas: ['كل المناطق', 'All areas'],
   // tasks and steps
   tasks: ['المهام', 'Tasks'],
   steps: ['الخطوات', 'Steps'],
