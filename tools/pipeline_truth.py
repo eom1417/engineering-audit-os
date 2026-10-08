@@ -140,6 +140,7 @@ def verify(project, record):
             line = text(stage['entry'].get('path'), stage['entry'].get('line'))
             symbol = (stage.get('symbol') or '').rsplit('.', 1)[-1]
             words = [stage['label'], symbol, stage['label'].replace(' ', '_'), stage['label'].split()[0] if stage['label'].split() else '']
+            words += {'source': ['entry', 'start'], 'sink': ['finish', 'end']}.get(stage['kind'], [])
             if line is None or not _says(line, words):
                 problems.append(f"{pipeline['id']}: stage {stage['label']} at {stage['entry']} does not name it")
         for edge in pipeline['edges']:

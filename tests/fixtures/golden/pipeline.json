@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "extractor": "pipeline",
+  "extractor_version": "1",
+  "available": true,
+  "input_sha": "b98db358513d8e2f3da8f52fde036a72c8790a5f3206feb6ec0f3a2914bef920",
+  "limitations": [
+    "Read from the code, never by running it: a graph built at run time from data is an unresolved step, not an edge.",
+    "Python is read with its own parser; JavaScript and other languages only through their build files (package.json, CI).",
+    "An orchestrator counts only where the code passes one stage's result to the next, or announces its phases in order.",
+    "A side channel is found where a stage writes a shared context key, global or environment variable another reads."
+  ],
+  "summary": {
+    "detected": false,
+    "pipelines": 0,
+    "stages": 0,
+    "kinds": []
+  },
+  "facts": [
+    {
+      "id": "FACT-71526aa09e29e4c9",
+      "kind": "pipeline_scan",
+      "extractor": "pipeline",
+      "extractor_version": "1",
+      "input_sha": "44c1c7d3ec751b412d110bd599de042ab706622f3e40ed95456639642d34c593",
+      "location": {
+        "path": ".",
+        "start_line": null
+      },
+      "value": {
+        "detected": false,
+        "confidence": null,
+        "kinds": [],
+        "evidence": [],
+        "looked_for": [
+          {
+            "kind": "declared_dag",
+            "label": "Declared stages with requires, run through a registry",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "registry_loop",
+            "label": "A loop over stage names dispatching through a table",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "orchestrator",
+            "label": "A function passing one stage's output to the next, or announcing its phases",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "airflow",
+            "label": "Airflow DAGs (operators, >>, TaskFlow, branch operators)",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "prefect",
+            "label": "Prefect flows calling tasks",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "dagster",
+            "label": "Dagster jobs and assets",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "luigi",
+            "label": "Luigi tasks and their requires()",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "celery",
+            "label": "Celery canvas (chain, group, chord), task routes and retries",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "langgraph",
+            "label": "LangGraph graphs (add_node, add_edge, add_conditional_edges)",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "n8n",
+            "label": "n8n workflow exports",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "node_red",
+            "label": "Node-RED flow exports",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "temporal",
+            "label": "Temporal workflows running activities",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "step_functions",
+            "label": "AWS Step Functions state machines",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "github_actions",
+            "label": "GitHub Actions jobs and their needs",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "makefile",
+            "label": "Makefile targets and prerequisites",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "justfile",
+            "label": "justfile recipes and dependencies",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "npm_scripts",
+            "label": "npm script chains (a && b)",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "queue",
+            "label": "Queue or stream topologies: a topic both produced and consumed",
+            "found": 0,
+            "how": "read from the code without running it"
+          },
+          {
+            "kind": "cli_chain",
+            "label": "Command-line subcommands that chain",
+            "found": 0,
+            "how": "not read yet: subcommands are listed by the entry points, their chaining is not followed"
+          }
+        ],
+        "read": {
+          "python_files": 5
+        }
+      }
+    }
+  ]
+}
