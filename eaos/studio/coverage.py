@@ -92,7 +92,8 @@ def _not_exported(section, report, built, lang):
         return ('not_built', _text(lang, 'مسارات الكود لم تُصدَّر في هذا الفحص.', 'The code paths are not exported in this check.'),
                 'NS46.T6', 'audit', _count(None, 'paths.json#paths'), [])
     if section == 'pipeline':
-        return ('not_built', _text(lang, 'خريطة خط المعالجة لم تُصدَّر في هذا الفحص.', 'The pipeline map is not exported in this check.'),
+        return ('not_built', _text(lang, 'هذا الفحص لم يكتب حقائق خط المعالجة (facts/pipeline.json): أعد الفحص بإصدار أحدث من EAOS.',
+                                   'This check wrote no pipeline facts (facts/pipeline.json): check again with a newer EAOS.'),
                 'NS46.T12', 'audit', _count(None, 'pipeline.json#stages'), [])
     if section == 'maps':
         return ('not_built', _text(lang, 'خرائط النظام لم تُصدَّر في هذا الفحص.', 'The system maps are not exported in this check.'),
@@ -117,6 +118,18 @@ def _paths_parts(body, lang):
     return parts
 
 
+def _pipeline_parts(body, lang):
+    """What the pipeline map measured, and the steps it could not follow, counted rather than hidden."""
+    counts = (body or {}).get('counts') or {}
+    value = lambda key: (counts.get(key) or {}).get('value') or 0
+    parts = [{'id': 'stages', 'state': 'measured', 'detail': _text(lang, f'{value("stages")} مرحلة و{value("edges")} رابطًا بدليلها',
+                                                                  f'{value("stages")} stages and {value("edges")} edges with their evidence')}]
+    if value('unresolved'):
+        parts.append({'id': 'unresolved', 'state': 'not_measured',
+                      'detail': _text(lang, f'{value("unresolved")} خطوة لم يستطع EAOS تتبّعها', f'{value("unresolved")} steps EAOS could not follow')})
+    return parts
+
+
 def coverage(report, built, written, errors, lang='ar'):
     """The coverage section's body: one row per planned section, and every other written section, in that order.
 
@@ -136,7 +149,8 @@ def coverage(report, built, written, errors, lang='ar'):
                          'detail': (_text(lang, 'قيس ولم يُوجد شيء.', 'Measured; nothing was found.') if empty else
                                     _text(lang, 'مقيس في هذا الفحص.', 'Measured in this check.')),
                          'step': None, 'tool': None, 'count': _count(count, f'{section}.json' + (f'#{items}' if items else '')),
-                         'parts': _paths_parts(body, lang) if section == 'paths' else []})
+                         'parts': _paths_parts(body, lang) if section == 'paths' else
+                         _pipeline_parts(body, lang) if section == 'pipeline' else []})
         elif section in failed:
             rows.append({'section': section, 'state': 'failed', 'reason': 'section_error', 'detail': failed[section][:300],
                          'step': V1_STEP, 'tool': 'audit', 'count': _count(None, 'errors.json'), 'parts': []})

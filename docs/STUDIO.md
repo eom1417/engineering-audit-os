@@ -203,6 +203,37 @@ draw what `eaos/studio/paths.py` writes; the Studio computes no position and no 
 - **The plan timeline** is the fix plan in waves (`eaos/plan.py` waves()): each task's step and wave, and what it
   waits for, a prerequisite the plan names or the last task of an earlier wave touching the same file.
 
+## The pipeline map (`studio/pipeline.json`)
+
+System -> Pipeline and the report's pipeline sheet (NS46.T13) draw what `eaos/studio/pipeline.py` writes from
+`facts/pipeline.json` (`eaos/facts/pipeline.py`, run by the facts stage like every extractor); the Studio computes no
+position and no number.
+
+- **Detection.** `detected`, `confidence` (the highest product pipeline's), `kinds`, project-level `evidence`, and
+  `looked_for`: every kind looked for (declared DAGs, registry loops, orchestrators, Airflow, Prefect, Dagster, Luigi,
+  Celery, LangGraph, n8n, Node-RED, Temporal, Step Functions, GitHub Actions, Make, just, npm scripts, queues, chained
+  CLIs) with how many were found and how, so "none found" is said with what was searched. Build and CI chains are
+  `role: tooling`, never a product pipeline.
+- **Pipelines and stages.** Each pipeline names its kind, entry, evidence and `parent` (the stage whose function runs it:
+  a sub-pipeline to zoom into). Each stage has its entry (file, line, fact), symbol, tools (third-party modules it
+  calls), inputs and outputs (value, file, table, artifact, topic, env, context), side effects, marks (slow, risky, ai,
+  external), `sub_pipeline`, the cards on its file and their plan steps, and its `layer` and `order` from
+  `arch_map` (cycle edges set aside, longest-path layers, barycentre order), so every view keeps the same places.
+- **Edges** say how they are known (`matched_by`: value, file, table, artifact, topic, declared, order) and the data
+  names on them. **Routers** (registry, dict dispatch, if-chain, match/switch, branch operators, conditional edges)
+  list each branch with its condition, target and line, whether they are total and what they leave unhandled. **Fans**
+  pair a fork with its join (or none), **control** holds loops, retries and conditional skips, **error lanes** say
+  where failures go. **Hidden** holds side channels (a shared context key, a global, an environment variable one stage
+  writes and another reads), dead stages and unread outputs. **Unresolved** steps are counted and drawn as gaps.
+- **Views.** `current` lists the stages and edges; `ideal` gives each stage its operation (retain, refactor, rebuild,
+  merge, delete, new) with the rule that asks it, plus the new joins, failure lanes and explicit edges the rules call
+  for; `gap` has one entry per broken rule with its evidence, card, plan step and operation. `ideal.made_by` is
+  `rules` until the model-planned ideal (STUDIO-COMPLETE.md) exists. The rules (P1-P9) and their sources are in
+  `rules`, from `eaos/data/pipeline-rules.json`.
+- **Truth.** `evaluations/pipelines/` holds hand-written truth files (EAOS itself, public pipelines pinned to a commit,
+  and the app projects that must show none); `tools/pipeline_truth.py measure` writes recall and precision of stages,
+  edges and router branches to `$EAOS_MEASURE/pipeline/<name>/measure.json`, read by indicator F16.
+
 ## The plan model
 
 One model for every kind of plan: an EAOS fix plan, a build plan, the product plan itself, a plan the owner

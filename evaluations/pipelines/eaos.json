@@ -40,7 +40,7 @@
    "title": "The fact extractors inside the facts stage: collect() runs ORDER through the EXTRACTORS registry, each extractor's inputs taken from what the earlier ones produced",
    "role": "product",
    "stages": ["syntax", "resolve", "structure", "fingerprint", "sequences", "runtime", "entrypoints", "redundancy", "config",
-              "metrics", "domain", "history", "graph", "flows", "leftovers", "deadcode", "broken", "secrets"],
+              "metrics", "domain", "history", "graph", "flows", "leftovers", "deadcode", "broken", "secrets", "pipeline"],
    "edges": [["syntax", "resolve"], ["syntax", "redundancy"], ["structure", "redundancy"], ["entrypoints", "redundancy"],
              ["syntax", "structure"], ["syntax", "fingerprint"], ["syntax", "sequences"], ["syntax", "runtime"],
              ["syntax", "entrypoints"], ["syntax", "metrics"], ["syntax", "flows"], ["resolve", "flows"],
@@ -50,7 +50,7 @@
    "routers": [
     {"table": "EXTRACTORS", "at": "eaos/facts/run.py: module = EXTRACTORS[name]",
      "branches": ["history", "syntax", "structure", "resolve", "entrypoints", "config", "metrics", "graph", "flows", "domain",
-                  "fingerprint", "sequences", "redundancy", "runtime", "leftovers", "deadcode", "broken", "secrets"]},
+                  "fingerprint", "sequences", "redundancy", "runtime", "leftovers", "deadcode", "broken", "secrets", "pipeline"]},
     {"table": "name", "at": "eaos/facts/run.py: if name == 'history': ... elif ... else: module.run(target, source)",
      "branches": ["history", "resolve", "redundancy", "structure", "fingerprint", "sequences", "runtime", "entrypoints",
                   "metrics", "flows", "graph", "syntax", "leftovers", "secrets", "broken", "deadcode", "else"]}

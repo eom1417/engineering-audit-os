@@ -1,7 +1,7 @@
 """Run deterministic extractors over one shared snapshot and persist their fact sets."""
 import json
 from pathlib import Path
-from . import broken, config, deadcode, domain, entrypoints, external, fingerprint, flows, graph, history, leftovers, metrics, redundancy, resolve, runtime, secrets, sequences, structure, syntax
+from . import broken, config, deadcode, domain, entrypoints, external, fingerprint, flows, graph, history, leftovers, metrics, pipeline, redundancy, resolve, runtime, secrets, sequences, structure, syntax
 from .source import Source
 from .store import facts_dir, write_index, write_set
 from hashlib import sha256 as _sha256
@@ -11,8 +11,8 @@ EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'res
               'config': config, 'metrics': metrics, 'graph': graph, 'flows': flows, 'domain': domain,
               'fingerprint': fingerprint, 'sequences': sequences, 'redundancy': redundancy, 'runtime': runtime,
               'leftovers': leftovers, 'deadcode': deadcode, 'broken': broken,
-              'secrets': secrets}
-ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'runtime', 'entrypoints', 'redundancy', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets']
+              'secrets': secrets, 'pipeline': pipeline}
+ORDER = ['syntax', 'resolve', 'structure', 'fingerprint', 'sequences', 'runtime', 'entrypoints', 'redundancy', 'config', 'metrics', 'domain', 'history', 'graph', 'flows', 'leftovers', 'deadcode', 'broken', 'secrets', 'pipeline']
 
 
 # Every fact set the tool can read, in one place. Three modules used to keep their own copy of

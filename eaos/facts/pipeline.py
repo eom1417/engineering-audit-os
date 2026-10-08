@@ -266,6 +266,10 @@ def _unparse(node, limit=80):
 def describe(py, rel, node, found_stage):
     """Fill a stage's tools, side effects and marks from its entry function's body (one level, no guessing)."""
     if node is None: return
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+        params = [a for a in [*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs] if a.arg not in ('self', 'cls')]
+        found_stage['annotated'] = node.returns is not None and all(a.annotation is not None for a in params)
+        found_stage['shared_context'] = len(params) == 1 and params[0].arg in CONTEXT_PARAMS
     imports = py.imports.get(rel, {})
     tools, effects, marks = [], [], set(found_stage['marks'])
     for sub in ast.walk(node):
@@ -615,7 +619,7 @@ def _registry_loop(py, rel, fn_name, fn, loop, var, table, out):
     order = keys
     for candidate in py.assigns.get(table_rel, {}).values():
         items = _strs(candidate.value) if isinstance(candidate.value, (ast.List, ast.Tuple)) else []
-        if len(items) >= 3 and set(items) <= set(keys) and len(items) >= 0.8 * len(keys): order = items; break
+        if len(items) >= 3 and set(items) <= set(keys) and len(items) >= 0.5 * len(keys): order = items; break
     found = Found(f'{rel}:{fn_name}', f'{key} ({rel})', 'registry_loop', site(rel, fn.lineno, py.line(rel, fn.lineno)),
                   [site(table_rel, table_node.lineno, py.line(table_rel, table_node.lineno)), site(rel, loop.lineno, py.line(rel, loop.lineno))])
     found.functions.add((rel, fn_name))
@@ -994,7 +998,8 @@ def airflow(py, out, flows):
 
 
 def _branch_operator(py, found, key, target, tasks, rel, call):
-    returns = [(_strs(s.value) or [], s.lineno) for s in ast.walk(target[1]) if isinstance(s, ast.Return) and s.value is not None]
+    returns = sorted(((_strs(s.value) or [], s.lineno) for s in ast.walk(target[1]) if isinstance(s, ast.Return) and s.value is not None),
+                     key=lambda row: row[1])
     by_task = {task_id: None for task_id, _ in tasks.values()}
     branches = []
     for values, line in returns:
@@ -1144,32 +1149,66 @@ def _task_routes(py, out, tasks):
                     break
 
 
+def _loop_values(tree):
+    """{id(node): {name: [literal strings]}} for every node inside `for name in <literal list>` loops, the list written in
+    place or assigned to a name in the same function, so `add_edge('a', name)` in such a loop means each listed value."""
+    parents, out = {}, {}
+    for parent in ast.walk(tree):
+        for child in ast.iter_child_nodes(parent): parents[id(child)] = parent
+    lists = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) and \
+                isinstance(node.value, (ast.List, ast.Tuple)) and node.value.elts and all(_str(e) is not None for e in node.value.elts):
+            lists[node.targets[0].id] = _strs(node.value)
+
+    def values(node):
+        found, current = {}, parents.get(id(node))
+        while current is not None:
+            if isinstance(current, ast.For) and isinstance(current.target, ast.Name):
+                items = _strs(current.iter) if isinstance(current.iter, (ast.List, ast.Tuple)) else \
+                    lists.get(current.iter.id) if isinstance(current.iter, ast.Name) else None
+                if items: found.setdefault(current.target.id, items)
+            current = parents.get(id(current))
+        return found
+    return values
+
+
 def langgraph(py, out):
     for rel, tree in py.trees.items():
+        if not any((module or '').split('.')[0] == 'langgraph' for module, _ in py.imports.get(rel, {}).values()): continue
         graphs = {}
         for sub in ast.walk(tree):
             if isinstance(sub, ast.Assign) and isinstance(sub.value, ast.Call) and _name(sub.value.func) in ('StateGraph', 'Graph', 'MessageGraph') \
-                    and len(sub.targets) == 1 and isinstance(sub.targets[0], ast.Name):
-                graphs[sub.targets[0].id] = Found(f'{rel}:{sub.targets[0].id}', f'{sub.targets[0].id} ({rel})', 'langgraph',
-                                                   site(rel, sub.lineno, py.line(rel, sub.lineno)), [site(rel, sub.lineno, py.line(rel, sub.lineno))])
+                    and len(sub.targets) == 1 and isinstance(sub.targets[0], (ast.Name, ast.Attribute)):
+                name = _unparse(sub.targets[0])
+                graphs[name] = Found(f'{rel}:{name}', f'{name} ({rel})', 'langgraph', site(rel, sub.lineno, py.line(rel, sub.lineno)),
+                                     [site(rel, sub.lineno, py.line(rel, sub.lineno))])
         if not graphs: continue
+        loops = _loop_values(tree)
         calls = sorted((s for s in ast.walk(tree) if isinstance(s, ast.Call) and isinstance(s.func, ast.Attribute)
-                        and isinstance(s.func.value, ast.Name) and s.func.value.id in graphs), key=lambda s: s.lineno)
+                        and _unparse(s.func.value) in graphs), key=lambda s: s.lineno)
         for call in calls:
-            found, method, where = graphs[call.func.value.id], call.func.attr, site(rel, call.lineno, py.line(rel, call.lineno))
+            found, method, where = graphs[_unparse(call.func.value)], call.func.attr, site(rel, call.lineno, py.line(rel, call.lineno))
+            bound = loops(call)
             node_key = lambda label: found.stage(label, where, kind='source' if label == 'START' else 'sink' if label == 'END' else 'stage')
-            label_of = lambda expr: _str(expr) or (expr.id if isinstance(expr, ast.Name) else None)
+
+            def labels(expr):
+                if _str(expr) is not None: return [_str(expr)]
+                if isinstance(expr, ast.Name): return bound.get(expr.id) or [expr.id]
+                if isinstance(expr, (ast.List, ast.Tuple)): return [l for e in expr.elts for l in labels(e)]
+                return []
+
+            label_of = lambda expr: (labels(expr) or [None])[0]
             if method == 'add_node' and call.args:
-                label = label_of(call.args[0])
-                key = node_key(label)
+                key = node_key(label_of(call.args[0]))
                 fn = call.args[1] if len(call.args) > 1 else call.args[0]
                 target = py.resolve(rel, fn.id) if isinstance(fn, ast.Name) else None
-                if target:
-                    found.stages[key]['symbol'] = f"{target[0][:-3].replace('/', '.')}.{target[1].name}"
-                    describe(py, target[0], target[1], found.stages[key])
+                found.stages[key]['symbol'] = f"{target[0][:-3].replace('/', '.')}.{target[1].name}" if target else _unparse(fn, 120)
+                if target: describe(py, target[0], target[1], found.stages[key])
             elif method == 'add_edge' and len(call.args) >= 2:
-                for a in (call.args[0].elts if isinstance(call.args[0], (ast.List, ast.Tuple)) else [call.args[0]]):
-                    found.edge(node_key(label_of(a)), node_key(label_of(call.args[1])), 'declared', where, kind='data')
+                for a in labels(call.args[0]):
+                    for b in labels(call.args[1]):
+                        found.edge(node_key(a), node_key(b), 'declared', where, kind='data')
             elif method in ('set_entry_point', 'set_finish_point') and call.args:
                 ends = (node_key('START'), node_key(label_of(call.args[0]))) if method == 'set_entry_point' else (node_key(label_of(call.args[0])), node_key('END'))
                 found.edge(*ends, 'declared', where)
@@ -1190,7 +1229,7 @@ def langgraph(py, out):
                 else:
                     found.unresolved.append({'id': f'{source}:route:{call.lineno}', 'pipeline': found.id, 'stage': source,
                                              'call': _unparse(call.args[1]), 'reason': 'the router returns node names EAOS cannot list', 'evidence': where})
-                router_fn = label_of(call.args[1]) or 'router'
+                router_fn = label_of(call.args[1]) or _unparse(call.args[1], 40) or 'router'
                 router = found.stage(router_fn, where, kind='router')
                 found.edge(source, router, 'declared', where, kind='control')
                 found.routers.append({'id': f'{found.id}:{slug(router_fn)}:{call.lineno}', 'pipeline': found.id, 'stage': router,
@@ -1472,9 +1511,10 @@ def _fans_from_edges(found):
         for fork, branches in sorted(outgoing.items()):
             if len(branches) < 2: continue
             joins = [s for s, sources in incoming.items() if set(branches) <= sources]
-            if found.kind in ('declared_dag', 'registry_loop'):
-                # A declared DAG's stages read the snapshot and earlier artifacts; a fan is a fork whose branches meet again.
-                if not joins: continue
+            if found.kind not in ('airflow', 'langgraph') and not joins:
+                # Elsewhere one value read by two later stages is not a parallel fan-out: only a fork whose branches meet
+                # again is drawn as one.
+                continue
             found.fans.append({'id': f'{fork}:fan', 'pipeline': found.id, 'fork': fork, 'join': joins[0] if joins else None,
                                'branches': sorted(branches, key=found.order.index), 'matched': bool(joins),
                                'kind': 'parallel' if found.kind == 'airflow' else 'collect', 'evidence': found.stages[fork]['entry']})
