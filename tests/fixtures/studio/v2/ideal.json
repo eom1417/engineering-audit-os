@@ -1,0 +1,542 @@
+{
+ "schema_version": 1,
+ "contract": 1,
+ "revision": 2,
+ "state": "planned",
+ "message": {
+  "en": "Planned by Claude Code (fake-model) on top of the rules, reviewed by a second pass; every element cites its evidence.",
+  "ar": "خطّطه Claude Code (fake-model) فوق القواعد، وراجعه تمرير ثانٍ؛ كل عنصر يستشهد بدليله."
+ },
+ "provenance": {
+  "method": "planned",
+  "state": "planned",
+  "assistant": "Claude Code",
+  "model": "fake-model",
+  "at": "2026-10-08T09:00:00+00:00",
+  "confidence": 0.7,
+  "message": {
+   "en": "Planned by Claude Code (fake-model) on top of the rules, reviewed by a second pass; every element cites its evidence.",
+   "ar": "خطّطه Claude Code (fake-model) فوق القواعد، وراجعه تمرير ثانٍ؛ كل عنصر يستشهد بدليله."
+  },
+  "inputs": "d4841e4081c243ec",
+  "departures": [
+   {
+    "rule_says": "modify src",
+    "plan_chose": "split src",
+    "because": "two writers",
+    "element": "s1",
+    "cites": [
+     "TASK-001"
+    ]
+   }
+  ],
+  "open_questions": [
+   {
+    "id": "q1",
+    "question": "Keep the old client while moving?",
+    "recommendation": "yes"
+   }
+  ]
+ },
+ "views": {
+  "system": {
+   "provenance": {
+    "method": "planned",
+    "state": "planned",
+    "assistant": "Claude Code",
+    "model": "fake-model",
+    "at": "2026-10-08T09:00:00+00:00",
+    "confidence": 0.8,
+    "message": {
+     "en": "Planned by Claude Code (fake-model) on top of the rules, reviewed by a second pass; every element cites its evidence.",
+     "ar": "خطّطه Claude Code (fake-model) فوق القواعد، وراجعه تمرير ثانٍ؛ كل عنصر يستشهد بدليله."
+    },
+    "inputs": "d4841e4081c243ec",
+    "departures": [
+     {
+      "rule_says": "modify src",
+      "plan_chose": "split src",
+      "because": "two writers",
+      "element": "s1",
+      "cites": [
+       "TASK-001"
+      ]
+     }
+    ],
+    "open_questions": [
+     {
+      "id": "q1",
+      "question": "Keep the old client while moving?",
+      "recommendation": "yes"
+     }
+    ]
+   },
+   "rules": {
+    "summary": "Today's components with the rules' disposition, and the target components of the reference.",
+    "elements": [
+     {
+      "id": "T-src",
+      "kind": "component",
+      "title": "src",
+      "operation": "refactor",
+      "subject": null,
+      "detail": "Everything else.",
+      "cites": [
+       "CLM-001",
+       "FACT-graph1"
+      ],
+      "rules": [
+       "RULE-disposition-modify"
+      ]
+     },
+     {
+      "id": "T-old",
+      "kind": "component",
+      "title": "old",
+      "operation": "delete",
+      "subject": null,
+      "detail": "Nothing reaches it.",
+      "cites": [],
+      "rules": [
+       "RULE-disposition-delete"
+      ]
+     },
+     {
+      "id": "TC-api-client",
+      "kind": "target_component",
+      "title": "api-client",
+      "operation": "new",
+      "subject": null,
+      "detail": "Knows the endpoints",
+      "cites": [],
+      "rules": [
+       "RULE-layer-api-client"
+      ]
+     }
+    ],
+    "count": {
+     "value": 3,
+     "src": "ideal: the rules' system view",
+     "unit": "count"
+    }
+   },
+   "planned": {
+    "summary": "One client.",
+    "confidence": 0.8,
+    "elements": [
+     {
+      "id": "s1",
+      "kind": "component",
+      "title": "Element s1",
+      "operation": "refactor",
+      "subject": "T-src",
+      "detail": "why",
+      "cites": [
+       "FACT-graph1",
+       "RULE-disposition-modify"
+      ]
+     },
+     {
+      "id": "s2",
+      "kind": "component",
+      "title": "Element s2",
+      "operation": "refactor",
+      "subject": "T-src",
+      "detail": "why",
+      "cites": [
+       "TASK-001"
+      ],
+      "unresolved": [
+       "FACT-nope"
+      ]
+     }
+    ],
+    "count": {
+     "value": 2,
+     "src": "ideal/plan.json#ideal.views.system",
+     "unit": "count"
+    }
+   },
+   "differences": [
+    {
+     "element": "s1",
+     "kind": "same",
+     "subject": "T-src",
+     "rules": "refactor",
+     "planned": "refactor"
+    },
+    {
+     "element": "s2",
+     "kind": "same",
+     "subject": "T-src",
+     "rules": "refactor",
+     "planned": "refactor"
+    }
+   ]
+  },
+  "change": {
+   "provenance": {
+    "method": "rules",
+    "state": "not_planned",
+    "assistant": null,
+    "model": null,
+    "at": null,
+    "confidence": null,
+    "message": {
+     "en": "The plan left this view as the rules' target: nothing it planned here stood on evidence, or there was nothing to plan.",
+     "ar": "ترك التخطيط هذا العرض على هدف القواعد: ما خطّطه هنا بلا دليل، أو ما فيه شيء يُخطَّط."
+    },
+    "departures": [],
+    "open_questions": []
+   },
+   "rules": {
+    "summary": "What changes from today to the rules' target: every component that is not retained.",
+    "elements": [
+     {
+      "id": "chg-T-src",
+      "kind": "change",
+      "title": "src",
+      "operation": "refactor",
+      "subject": null,
+      "detail": "Everything else.",
+      "cites": [
+       "CLM-001",
+       "FACT-graph1"
+      ],
+      "rules": [
+       "RULE-disposition-modify"
+      ]
+     },
+     {
+      "id": "chg-T-old",
+      "kind": "change",
+      "title": "old",
+      "operation": "delete",
+      "subject": null,
+      "detail": "Nothing reaches it.",
+      "cites": [],
+      "rules": [
+       "RULE-disposition-delete"
+      ]
+     }
+    ],
+    "count": {
+     "value": 2,
+     "src": "ideal: the rules' change view",
+     "unit": "count"
+    }
+   },
+   "planned": null,
+   "differences": []
+  },
+  "journeys": {
+   "provenance": {
+    "method": "rules",
+    "state": "not_planned",
+    "assistant": null,
+    "model": null,
+    "at": null,
+    "confidence": null,
+    "message": {
+     "en": "The plan left this view as the rules' target: nothing it planned here stood on evidence, or there was nothing to plan.",
+     "ar": "ترك التخطيط هذا العرض على هدف القواعد: ما خطّطه هنا بلا دليل، أو ما فيه شيء يُخطَّط."
+    },
+    "departures": [],
+    "open_questions": []
+   },
+   "rules": {
+    "summary": "Every page the user reaches, as the facts list them; the rules give screens no target yet.",
+    "elements": [
+     {
+      "id": "FACT-page1",
+      "kind": "screen",
+      "title": "/drivers",
+      "operation": "retain",
+      "subject": null,
+      "detail": "src/App.tsx",
+      "cites": [
+       "FACT-page1"
+      ],
+      "rules": []
+     }
+    ],
+    "count": {
+     "value": 1,
+     "src": "ideal: the rules' journeys view",
+     "unit": "count"
+    }
+   },
+   "planned": null,
+   "differences": []
+  },
+  "paths": {
+   "provenance": {
+    "method": "rules",
+    "state": "not_planned",
+    "assistant": null,
+    "model": null,
+    "at": null,
+    "confidence": null,
+    "message": {
+     "en": "The plan left this view as the rules' target: nothing it planned here stood on evidence, or there was nothing to plan.",
+     "ar": "ترك التخطيط هذا العرض على هدف القواعد: ما خطّطه هنا بلا دليل، أو ما فيه شيء يُخطَّط."
+    },
+    "departures": [],
+    "open_questions": []
+   },
+   "rules": {
+    "summary": "Every code path with the hardest operation the rules give the parts it crosses (studio/paths.json).",
+    "elements": [],
+    "count": {
+     "value": 0,
+     "src": "ideal: the rules' paths view",
+     "unit": "count"
+    }
+   },
+   "planned": null,
+   "differences": []
+  },
+  "data_paths": {
+   "provenance": {
+    "method": "rules",
+    "state": "not_planned",
+    "assistant": null,
+    "model": null,
+    "at": null,
+    "confidence": null,
+    "message": {
+     "en": "The plan left this view as the rules' target: nothing it planned here stood on evidence, or there was nothing to plan.",
+     "ar": "ترك التخطيط هذا العرض على هدف القواعد: ما خطّطه هنا بلا دليل، أو ما فيه شيء يُخطَّط."
+    },
+    "departures": [],
+    "open_questions": []
+   },
+   "rules": {
+    "summary": "The tables and the data calls the facts list; the rules give data no target yet.",
+    "elements": [
+     {
+      "id": "FACT-write1",
+      "kind": "store",
+      "title": "drivers",
+      "operation": "retain",
+      "subject": null,
+      "detail": "src/a.ts",
+      "cites": [
+       "FACT-write1"
+      ],
+      "rules": []
+     }
+    ],
+    "count": {
+     "value": 1,
+     "src": "ideal: the rules' data_paths view",
+     "unit": "count"
+    }
+   },
+   "planned": null,
+   "differences": []
+  },
+  "infra": {
+   "provenance": {
+    "method": "rules",
+    "state": "not_planned",
+    "assistant": null,
+    "model": null,
+    "at": null,
+    "confidence": null,
+    "message": {
+     "en": "The plan left this view as the rules' target: nothing it planned here stood on evidence, or there was nothing to plan.",
+     "ar": "ترك التخطيط هذا العرض على هدف القواعد: ما خطّطه هنا بلا دليل، أو ما فيه شيء يُخطَّط."
+    },
+    "departures": [],
+    "open_questions": []
+   },
+   "rules": {
+    "summary": "The reference's infrastructure baseline: each area kept or introduced, with the tool that fits.",
+    "elements": [
+     {
+      "id": "INFRA-ci",
+      "kind": "infra",
+      "title": "ci: GitHub Actions",
+      "operation": "new",
+      "subject": "ci",
+      "detail": "Introduce CI (no workflow)",
+      "cites": [],
+      "rules": [
+       "RULE-infra-ci"
+      ]
+     }
+    ],
+    "count": {
+     "value": 1,
+     "src": "ideal: the rules' infra view",
+     "unit": "count"
+    }
+   },
+   "planned": null,
+   "differences": []
+  },
+  "pipeline": {
+   "provenance": {
+    "method": "rules",
+    "state": "not_planned",
+    "assistant": null,
+    "model": null,
+    "at": null,
+    "confidence": null,
+    "message": {
+     "en": "The plan left this view as the rules' target: nothing it planned here stood on evidence, or there was nothing to plan.",
+     "ar": "ترك التخطيط هذا العرض على هدف القواعد: ما خطّطه هنا بلا دليل، أو ما فيه شيء يُخطَّط."
+    },
+    "departures": [],
+    "open_questions": []
+   },
+   "rules": {
+    "summary": "No pipeline map was written for this check.",
+    "elements": [],
+    "count": {
+     "value": 0,
+     "src": "ideal: the rules' pipeline view",
+     "unit": "count"
+    }
+   },
+   "planned": null,
+   "differences": []
+  },
+  "plan_order": {
+   "provenance": {
+    "method": "planned",
+    "state": "planned",
+    "assistant": "Claude Code",
+    "model": "fake-model",
+    "at": "2026-10-08T09:00:00+00:00",
+    "confidence": 0.6,
+    "message": {
+     "en": "Planned by Claude Code (fake-model) on top of the rules, reviewed by a second pass; every element cites its evidence.",
+     "ar": "خطّطه Claude Code (fake-model) فوق القواعد، وراجعه تمرير ثانٍ؛ كل عنصر يستشهد بدليله."
+    },
+    "inputs": "d4841e4081c243ec",
+    "departures": [],
+    "open_questions": []
+   },
+   "rules": {
+    "summary": "The fix plan's milestones in the rules' order.",
+    "elements": [
+     {
+      "id": "M01",
+      "kind": "step",
+      "title": "M01: stabilize",
+      "operation": "retain",
+      "subject": "M01",
+      "detail": "Stabilise",
+      "cites": [
+       "TASK-001"
+      ],
+      "rules": [
+       "RULE-plan-order"
+      ]
+     }
+    ],
+    "count": {
+     "value": 1,
+     "src": "ideal: the rules' plan_order view",
+     "unit": "count"
+    }
+   },
+   "planned": {
+    "summary": "Client first.",
+    "confidence": 0.6,
+    "elements": [
+     {
+      "id": "p1",
+      "kind": "component",
+      "title": "Element p1",
+      "operation": "new",
+      "subject": "M01",
+      "detail": "why",
+      "cites": [
+       "TASK-001"
+      ]
+     }
+    ],
+    "count": {
+     "value": 1,
+     "src": "ideal/plan.json#ideal.views.plan_order",
+     "unit": "count"
+    }
+   },
+   "differences": [
+    {
+     "element": "p1",
+     "kind": "changed",
+     "subject": "M01",
+     "rules": "retain",
+     "planned": "new"
+    }
+   ]
+  }
+ },
+ "evidence": {
+  "share": {
+   "value": 1.0,
+   "src": "ideal/plan.json#share: planned elements with a resolving citation / planned elements"
+  },
+  "raw_share": {
+   "value": 0.75,
+   "src": "ideal/plan.json#raw_share: the same before the evidence check"
+  },
+  "elements": {
+   "value": 3,
+   "src": "ideal/plan.json#elements",
+   "unit": "count"
+  },
+  "dropped": [
+   {
+    "view": "system",
+    "id": "s9",
+    "title": "Element s9",
+    "why": "no citation resolves to a fact, claim, card or rule of this report"
+   }
+  ]
+ },
+ "critique": {
+  "missed": [
+   {
+    "view": "infra",
+    "what": "no CI",
+    "cites": [
+     "RULE-infra-ci"
+    ]
+   }
+  ],
+  "risks": [],
+  "order": []
+ },
+ "questions": [
+  {
+   "id": "q1",
+   "view": "system",
+   "question": "Keep the old client while moving?",
+   "options": [
+    "yes",
+    "no"
+   ],
+   "recommendation": "yes",
+   "why": "the facts do not decide it"
+  }
+ ],
+ "runs": [
+  {
+   "at": "2026-10-08T09:00:00+00:00",
+   "state": "planned",
+   "assistant": "Claude Code",
+   "model": "fake-model",
+   "seconds": 95.0,
+   "passes": [
+    "plan",
+    "critique"
+   ],
+   "message": "3 elements, 1 dropped"
+  }
+ ]
+}

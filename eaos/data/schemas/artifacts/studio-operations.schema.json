@@ -126,6 +126,141 @@
           }
         }
       }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "method",
+        "assistant",
+        "model",
+        "at",
+        "confidence",
+        "departures",
+        "open_questions"
+      ],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "rules",
+            "planned"
+          ]
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "planned",
+            "not_planned",
+            "stale",
+            "failed"
+          ]
+        },
+        "assistant": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "message": {
+          "type": "object",
+          "required": [
+            "en",
+            "ar"
+          ],
+          "properties": {
+            "en": {
+              "type": "string"
+            },
+            "ar": {
+              "type": "string"
+            }
+          }
+        },
+        "inputs": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "departures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "rule_says",
+              "plan_chose",
+              "because"
+            ],
+            "properties": {
+              "rule_says": {
+                "type": "string"
+              },
+              "plan_chose": {
+                "type": "string"
+              },
+              "because": {
+                "type": "string"
+              },
+              "element": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "cites": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "open_questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "question"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "question": {
+                "type": "string"
+              },
+              "recommendation": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   },
   "$defs": {

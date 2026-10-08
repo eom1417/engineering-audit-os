@@ -1433,6 +1433,39 @@
     },
     "required": []
    }
+  },
+  {
+   "id": "replan_ideal",
+   "tool": null,
+   "group": "understand",
+   "label": {
+    "en": "Re-plan the ideal",
+    "ar": "أعد تخطيط المثالي"
+   },
+   "description": {
+    "en": "Your assistant plans the ideal of every view on top of the rules' target, a second pass reviews it, and every element without evidence is dropped. A few minutes. Nothing in the project changes.",
+    "ar": "مساعدك يخطّط المثالي لكل عرض فوق هدف القواعد، وتمرير ثانٍ يراجعه، وكل عنصر بلا دليل يُحذف. دقائق قليلة. لا يتغير شيء في المشروع."
+   },
+   "mode": "assistant",
+   "needs_assistant": true,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
   }
  ],
  "verbs": [

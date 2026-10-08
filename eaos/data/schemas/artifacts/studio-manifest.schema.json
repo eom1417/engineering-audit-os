@@ -103,7 +103,8 @@
               "hidden",
               "data_paths",
               "infra",
-              "pipeline"
+              "pipeline",
+              "ideal"
             ]
           },
           "file": {
@@ -237,6 +238,7 @@
     "hidden",
     "data_paths",
     "infra",
-    "pipeline"
+    "pipeline",
+    "ideal"
   ]
 }
