@@ -74,6 +74,7 @@ def main(argv):
     parser.add_argument('--assistant', default='claude', choices=('claude', 'codex'))
     parser.add_argument('--lang', default='ar', choices=('ar', 'en'))
     parser.add_argument('--timeout', type=int, default=ideal.TIMEOUT)
+    parser.add_argument('--commit', help='the commit a frozen copy (no .git) was made from, for the record')
     args = parser.parse_args(argv)
     folder = MEASURE / args.project
     folder.mkdir(parents=True, exist_ok=True)
@@ -90,7 +91,9 @@ def main(argv):
     exported = export.export(report, args.lang, args.project)
     body = ideal.section(report, args.lang)
     record = json.loads((report / 'ideal/plan.json').read_text(encoding='utf-8')) if result['state'] == 'planned' else {}
+    from eaos import build_info
     commit = subprocess.run(['git', '-C', str(ROOT), 'rev-parse', '--short', 'HEAD'], capture_output=True, text=True).stdout.strip()
+    eaos = {'commit': commit or args.commit or None, 'digest': build_info.digest()}
     run = {'project': args.project, 'assistant': result.get('assistant') or adapter.name, 'model': result.get('model'),
            'at': result.get('at') or (body['runs'][-1]['at'] if body['runs'] else None), 'real': True, 'state': result['state'],
            'message': result['message'], 'passes': result.get('passes') or [], 'seconds': result.get('seconds'),
@@ -102,7 +105,7 @@ def main(argv):
                      for name, view in body['views'].items()},
            'dropped': record.get('dropped') or [], 'departures': (record.get('ideal') or {}).get('departures') or [],
            'open_questions': (record.get('ideal') or {}).get('open_questions') or [], 'critique': record.get('critique'),
-           'bundle_bytes': record.get('bundle_bytes'), 'export_errors': exported['errors'], 'eaos': commit,
+           'bundle_bytes': record.get('bundle_bytes'), 'export_errors': exported['errors'], 'eaos': eaos,
            'corpus_documents': corpus.is_dir()}
     (folder / 'run.json').write_text(json.dumps(run, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     if record: (folder / 'comparison.md').write_text(comparison(args.project, body, record), encoding='utf-8')
