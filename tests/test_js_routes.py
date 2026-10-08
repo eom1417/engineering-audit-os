@@ -27,6 +27,45 @@ class ReactRouterTests(unittest.TestCase):
         self.assertEqual(detect('src/App.tsx', '<Route path="/x" element={<X />} />'), [])
 
 
+class NestedReactRouterTests(unittest.TestCase):
+    """Found on FleetManageWeb: 37 screens under <Route path="/app/*"> were reported at /drivers, /service…, where a
+    person never finds them; the links of the app all point at /app/…."""
+    APP = ('import { Routes, Route, Navigate } from "react-router-dom";\n'
+           '<Routes>\n'
+           '  <Route path="/login" element={<Login />} />\n'
+           '  <Route path="/app/*" element={\n'
+           '    <Layout title="Can\'t stop">\n'
+           '      <Routes>\n'
+           '        <Route path="/" element={<Dashboard />} />\n'
+           '        <Route path="/drivers/:id" element={<Driver />} />\n'
+           '        <Route path="/settings" element={<Settings />}>\n'
+           '          <Route index element={<Navigate to="account" replace />} />\n'
+           '          <Route path="account" element={<Account />} />\n'
+           '        </Route>\n'
+           '        <Route path="*" element={<NotFound />} />\n'
+           '      </Routes>\n'
+           '    </Layout>\n'
+           '  } />\n'
+           '  <Route path="*" element={<NotFound />} />\n'
+           '</Routes>\n')
+
+    def test_a_route_of_a_descendant_routes_is_joined_to_its_parent_path(self):
+        rows = detect('src/App.tsx', self.APP)
+        self.assertEqual([(r['route'], r['handler']) for r in rows],
+                         [('/login', 'Login'), ('/app/*', 'Layout'), ('/app', 'Dashboard'), ('/app/drivers/:id', 'Driver'),
+                          ('/app/settings', 'Settings'), ('/app/settings/account', 'Account'), ('/app/*', 'NotFound'),
+                          ('*', 'NotFound')])
+
+    def test_the_path_as_written_is_kept_when_it_differs(self):
+        rows = {r['handler']: r for r in detect('src/App.tsx', self.APP)}
+        self.assertEqual((rows['Account'].get('declared'), rows['Login'].get('declared')), ('account', None))
+
+    def test_an_absolute_child_already_under_its_parent_is_not_joined_twice(self):
+        text = ('import { Routes, Route } from "react-router-dom";\n'
+                '<Route path="/admin" element={<Admin />}>\n  <Route path="/admin/users" element={<Users />} />\n</Route>\n')
+        self.assertEqual([r['route'] for r in detect('src/App.tsx', text)], ['/admin', '/admin/users'])
+
+
 class TanStackTests(unittest.TestCase):
     def test_a_file_route_is_a_page_with_its_component(self):
         text = ('import { createFileRoute } from "@tanstack/react-router";\n'

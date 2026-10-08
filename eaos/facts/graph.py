@@ -82,7 +82,7 @@ def run(target, source, edges=None, entry_points=None, metrics=None, history=Non
     fan_in = {path: 0 for path in nodes}
     for path, targets in adjacency.items():
         for other in targets: fan_in[other] += 1
-    entry_files = sorted({fact['location']['path'] for fact in entry_points or []})
+    entry_files = sorted({fact['location']['path'] for fact in entry_points or [] if fact.get('kind') != 'navigation'})
     distance = {path: 0 for path in entry_files if path in adjacency}
     queue = deque(distance)
     while queue:

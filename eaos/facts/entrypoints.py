@@ -4,7 +4,8 @@ This is the objective skeleton of a system. A detector reports only what it matc
 an unsupported framework becomes a declared gap, never an invented route.
 
 The same loop also emits ``data_access`` facts produced by framework detectors that declare
-``FACT_KIND = 'data_access'``. Reading the file once and letting each detector contribute the
+``FACT_KIND = 'data_access'``, and the ``navigation`` facts (a link from one screen to another) of the detectors
+that declare ``FACT_KIND = 'navigation'``. Reading the file once and letting each detector contribute the
 fact kind it owns keeps the persisted ledger a single observation per source, not two parallel
 scans that could disagree about the file contents.
 """
@@ -14,7 +15,7 @@ from .frameworks import MODULES, applicable, fact_kind
 from .source import language_of
 
 NAME = 'entrypoints'
-VERSION = '3'
+VERSION = '4'
 LIMITATIONS = [
     'Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.',
     'Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.',
@@ -64,7 +65,8 @@ def _entry_point_fact(item, rel, language, entry, category):
                 {'path': rel, 'start_line': entry['line'], 'symbol': entry['handler']},
                 {'surface': entry['surface'], 'route': entry['route'], 'http_method': entry['http_method'],
                  'handler': entry['handler'], 'framework': entry['framework'], 'language': language,
-                 'category': category, 'note': entry.get('note')},
+                 'category': category, 'note': entry.get('note'),
+                 **({'declared': entry['declared']} if entry.get('declared') else {})},
                 resolution='UNRESOLVED' if entry['route'] is None or entry['handler'] is None else 'RESOLVED',
                 limitations=LIMITATIONS)
 
@@ -77,12 +79,20 @@ def _data_access_fact(item, rel, line, call, category):
                 limitations=LIMITATIONS)
 
 
+def _navigation_fact(item, rel, line, link, category, limitations):
+    return make('navigation', NAME, VERSION, item['sha256'],
+                {'path': rel, 'start_line': line, 'symbol': link.get('symbol') or 'navigation'},
+                {'target': link['target'], 'via': link['via'], 'dynamic': link['dynamic'], 'relative': link['relative'],
+                 'category': category},
+                resolution='UNRESOLVED' if link['relative'] else None, limitations=limitations)
+
+
 def run(target, source, symbols=None, **options):
     from . import syntax
     if symbols is None:
         symbols = [f for f in syntax.run(target, source)['facts'] if f['kind'] == 'symbol']
     table = symbol_map(symbols)
-    facts, fingerprints, surfaces, frameworks, data_access_by_client = [], [], {}, {}, {}
+    facts, fingerprints, surfaces, frameworks, data_access_by_client, navigation_by_via = [], [], {}, {}, {}, {}
     covered_languages, uncovered = set(), {}
     # A detector that needs the whole project before reading one file (which names reach a database
     # client across imports, say) declares prepare(texts); what it returns per file reaches it as
@@ -117,6 +127,11 @@ def run(target, source, symbols=None, **options):
                     fingerprints.append(item['sha256'])
                     data_access_by_client[call['client']] = data_access_by_client.get(call['client'], 0) + 1
                     facts.append(_data_access_fact(item, rel, line, call, category))
+            elif kind == 'navigation':
+                for _offset, line, link in module.detect(context):
+                    fingerprints.append(item['sha256'])
+                    navigation_by_via[link['via']] = navigation_by_via.get(link['via'], 0) + 1
+                    facts.append(_navigation_fact(item, rel, line, link, category, module.LIMITATIONS))
         if not any_match and language and category == 'source':
             uncovered[language] = uncovered.get(language, 0) + 1
     facts.sort(key=lambda f: (f['value'].get('surface') or f['value'].get('client') or '',
@@ -130,6 +145,8 @@ def run(target, source, symbols=None, **options):
                'test_only_entry_points': len(entry_point_facts) - len(production),
                'data_access': len(data_access_facts),
                'data_access_by_client': dict(sorted(data_access_by_client.items())),
+               'navigation': sum(navigation_by_via.values()),
+               'navigation_by_via': dict(sorted(navigation_by_via.items())),
                'by_surface': dict(sorted(surfaces.items())),
                'by_framework': dict(sorted(frameworks.items())),
                'languages_with_detections': sorted(covered_languages),
