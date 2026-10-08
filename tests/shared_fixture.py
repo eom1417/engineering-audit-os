@@ -3,9 +3,15 @@
 Seventeen test classes carried the same `tearDownClass` body. The tool found it, this is the
 canonical home it proposed, and removing the copies is what closing that finding means.
 """
+import os
 import shutil
 import tempfile
 import unittest
+
+# The suite checks what each detector finds on its fixture. Which detectors a reader is shown is measured on the
+# labelled precision set (tools/precision.py) and tested on its own (test_precision), so the suite runs with no
+# verdicts unless a test sets them. Every test module that audits a fixture imports this module.
+os.environ.setdefault('EAOS_DETECTOR_VERDICTS', '')
 
 
 class Workspace(unittest.TestCase):

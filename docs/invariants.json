@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "69dd0e5",
+  "extracted_at_commit": "2a356dc",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -180,6 +180,15 @@
       "statement": "Every indicator here is computed from an actual report directory: if the evidence for it is absent, the indicator is unmeasured and says so, and an unmeasured indicator never counts as a pass.",
       "kind": "invariant",
       "enforced_by": "tests/test_capability.py::UnmeasuredTests::test_an_unmeasured_indicator_blocks_the_target_even_at_a_high_score",
+      "note": ""
+    },
+    {
+      "id": "INV-0307f598a9",
+      "file": "eaos/claims.py",
+      "symbol": "withhold",
+      "statement": "(shown, withheld): a claim from a hidden detector is kept aside with the reason, never shown or planned.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_precision.py::WithholdTests::test_a_claim_of_a_hidden_detector_is_set_aside_with_its_reason",
       "note": ""
     },
     {

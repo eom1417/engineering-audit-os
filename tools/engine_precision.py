@@ -99,8 +99,11 @@ def main(argv):
     result = {'rows': rows, 'summary': summarise(rows),
               'load_rows': load, 'load_summary': summarise_load(load) if load else None}
     if '--write' in argv:
-        (ROOT / 'docs/engine-precision.json').write_text(
-            json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        # The labelled precision set (tools/precision.py) shares the record under its own key; keep it.
+        path = ROOT / 'docs/engine-precision.json'
+        previous = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else {}
+        if 'precision' in previous: result['precision'] = previous['precision']
+        path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(result['summary'], ensure_ascii=False, indent=2))
     for row in rows:
         mark = 'found' if row['found'] else 'MISSED'

@@ -5,6 +5,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
 from eaos.acceptance import fingerprint, run
 from eaos.decisions import decide, identity, task_errors
 from eaos.delta import compare

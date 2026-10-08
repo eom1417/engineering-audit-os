@@ -21,14 +21,18 @@ Apache-2.0, CC0, OFL (fonts) and file-level copyleft left unmodified (MPL-2.0, E
 
 ## How the plan measures it (indicator W2)
 
-`python tools/north_star.py measure --only W2` reads every record here. W2 is the share of the Studio's packages
-(`studio/package.json`, dependencies and dev dependencies) that a record pins with all three parts present and that
-was committed no later than the first commit of the Studio's code (`studio/src/`). A package added without a record,
-or a record written after the code, lowers it.
+`python tools/north_star.py measure --only W2` reads every record here. W2 is the share of the plan's tasks that ask
+for a record (a step naming `docs/adoption/`) and have begun (done, or code committed for them) whose record is
+complete (candidates, licence, maintenance, decision) and was committed no later than the task's first code. A record
+names its tasks on a `Task:` line, or by its file name (`ns37-t1-…` is NS37.T1). A task that writes Studio code
+(`studio/`) also needs every package of `studio/package.json` pinned by a complete section of a record committed no
+later than the first commit of the Studio's code (`studio/src/`): a package added without a record, or a record
+written after the code, fails that task.
 
 ## Records
 
 | Task | Record |
 |---|---|
 | NS37.T1 design system and shell | [ns37-t1-studio-shell.md](ns37-t1-studio-shell.md) |
+| NS38.T1 labelled precision set | [NS38.T1-precision-harness.md](NS38.T1-precision-harness.md) |
 | NS46.T1 contract v2 and its fixtures | [ns46-t1-contract-v2.md](ns46-t1-contract-v2.md) |

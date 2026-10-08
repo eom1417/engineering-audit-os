@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
 from eaos import sustainability
 from eaos.facts.run import collect
 
@@ -74,6 +75,19 @@ class SustainabilityTests(unittest.TestCase):
         for label in ('Single source', 'Minimal path', 'Single owner', 'Honest boundaries',
                        'Verifiable paths', 'Understandable units'):
             self.assertIn(label, content)
+
+    def test_an_attribute_written_from_two_files_is_counted_and_the_dashboard_is_written(self):
+        files = {'state.py': 'LIMIT = 10\n', 'a.py': 'import state\n\ndef f():\n    state.LIMIT = 1\n',
+                 'b.py': 'import state\n\ndef g():\n    state.LIMIT = 2\n'}
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / 'src'
+            source.mkdir()
+            for name, text in files.items(): (source / name).write_text(text)
+            out = _make_run(tmp, source)
+            result = sustainability.render(out, language='en')
+            self.assertTrue(Path(result['artifact']).is_file())
+            owners = sustainability.writers(sustainability._read_sets(out))
+        self.assertEqual(owners, {'state.LIMIT': ['a.py', 'b.py']})
 
     def test_render_arabic_produces_arabic_header(self):
         tmp = tempfile.mkdtemp()

@@ -1,0 +1,51 @@
+{
+  "source": "docs/engine-precision.json (tools/precision.py score --write)",
+  "bar": {
+    "precision": 0.8,
+    "recall": 0.5,
+    "judged": 5
+  },
+  "hidden": {
+    "structural_duplicate": "precision 0.375 < 0.8 on 24 judged outputs",
+    "sequence_duplicate": "precision 0.071 < 0.8 on 14 judged outputs",
+    "duplicated_rule": "precision 0.714 < 0.8 on 7 judged outputs",
+    "engine_cluster:literal_duplication": "only 3 judged outputs (bar 5)",
+    "engine_cluster:duplication": "it produced no output on the set",
+    "dead_code_review": "recall 0.185 < 0.5",
+    "engine_cluster:dead_code": "recall 0.0 < 0.5",
+    "external_write": "only 2 judged outputs (bar 5)",
+    "data_owners": "only 1 judged outputs (bar 5)",
+    "data_model": "precision 0.425 < 0.8 on 146 judged outputs",
+    "data_model:runtime": "only 4 judged outputs (bar 5)",
+    "redundant_work": "only 4 judged outputs (bar 5)",
+    "access_gap_no_rls": "only 1 judged outputs (bar 5)",
+    "access_gap_open_write": "only 1 judged outputs (bar 5)",
+    "engine_cluster:secret": "only 2 judged outputs (bar 5)",
+    "import_cycle": "precision 0.75 < 0.8 on 8 judged outputs",
+    "engine_cluster:coupling": "no labelled class for this detector yet",
+    "engine_cluster:dataflow": "no labelled class for this detector yet",
+    "engine_cluster:surface": "no labelled class for this detector yet",
+    "engine_cluster:test_quality": "no labelled class for this detector yet",
+    "engine_cluster:naming": "no labelled class for this detector yet",
+    "engine_cluster:boundary": "no labelled class for this detector yet",
+    "engine_cluster:misconfiguration": "no labelled class for this detector yet",
+    "engine_cluster:sql_quality": "no labelled class for this detector yet",
+    "engine_cluster:api_contract": "no labelled class for this detector yet",
+    "cochange": "no labelled class for this detector yet",
+    "trace_gap": "no labelled class for this detector yet",
+    "policy": "no labelled class for this detector yet",
+    "load_blocker": "no labelled class for this detector yet",
+    "untested": "no labelled class for this detector yet",
+    "unattributed": "no labelled class for this detector yet"
+  },
+  "shown": [
+    "broken_code",
+    "data_table",
+    "dead_code",
+    "engine_cluster:complexity",
+    "engine_cluster:cycle",
+    "hotspot",
+    "mutable_global",
+    "vulnerable_dependency"
+  ]
+}

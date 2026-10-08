@@ -107,15 +107,24 @@ def _indicator_minimal_path(sets):
             'files_analysed': summary.get('files_observed')}
 
 
-def _indicator_data_owners(sets):
-    """P3: writers per mutable field; lower is better."""
-    writers = defaultdict(set)
+def writers(sets):
+    """{field: the files that write it} for every mutable field written from more than one file."""
+    found = defaultdict(set)
     for fact in sets.get('domain', {}).get('facts', []):
         if fact['kind'] == 'mutable_global':
-            writers[fact['value']['name']].add(fact['location']['path'])
+            found[fact['value']['name']].add(fact['location']['path'])
         if fact['kind'] == 'external_state_write':
-            writers[(fact['value']['module'], fact['value']['attribute'])].add(fact['location']['path'])
-    multi = {key: len(paths) for key, paths in writers.items() if len(paths) > 1}
+            # A dotted name, not a tuple: the indicator is written as JSON, whose keys are strings.
+            found[f"{fact['value']['module']}.{fact['value']['attribute']}"].add(fact['location']['path'])
+    return {key: sorted(paths) for key, paths in found.items() if len(paths) > 1}
+
+
+def _indicator_data_owners(sets):
+    """P3: writers per mutable field; lower is better. Not measured while its detector is under its precision bar."""
+    from .claims import hidden_detectors
+    hidden = hidden_detectors().get('data_owners')
+    if hidden: return {'value': None, 'measured': False, 'reason': 'hidden: ' + hidden}
+    multi = {key: len(paths) for key, paths in writers(sets).items()}
     return {'value': len(multi), 'multi_writers': multi}
 
 

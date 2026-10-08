@@ -5,6 +5,8 @@ what would disprove it. A question is an admitted gap. Nothing rendered may exis
 """
 from datetime import datetime, timezone
 import json
+import os
+from pathlib import Path
 from .compose.labels import IMPACTS
 from .vocabulary import schema_errors
 from .workspace import DATA, read, write
@@ -24,6 +26,53 @@ def claim_id(index): return 'CLM-%03d' % index
 
 
 STATEMENT_LIMIT = 600
+
+# What the precision set (tools/precision.py) measured for each detector: shown or hidden. A detector whose
+# measured precision or recall is under its declared bar is hidden, not shown with a caveat (NS38.T1).
+VERDICTS = DATA / 'detector-verdicts.json'
+
+
+def detector_of(claim):
+    """The detector a claim comes from: its card key, an engine cluster's kind, or the import-cycle check."""
+    render = claim.get('render') or {}
+    key = render.get('key')
+    if key == 'engine_cluster': return 'engine_cluster:' + str((render.get('params') or {}).get('kind'))
+    if key: return key
+    if str(claim.get('statement', '')).startswith('Import cycle between'): return 'import_cycle'
+    return 'unattributed'
+
+
+def verdicts_path():
+    """The verdicts in force: $EAOS_DETECTOR_VERDICTS when it is set (empty: none, every detector shown), else the
+    packaged file. The unit tests check each detector on its own fixture, so they run with none."""
+    chosen = os.environ.get('EAOS_DETECTOR_VERDICTS')
+    if chosen is None: return VERDICTS
+    return Path(chosen) if chosen else None
+
+
+def hidden_detectors():
+    """{detector: why} for the detectors under their measured bar; empty when nothing was measured."""
+    path = verdicts_path()
+    if path is None: return {}
+    try: return dict(read(path).get('hidden') or {})
+    except (OSError, ValueError): return {}
+
+
+def shown_kinds(kinds, detectors=None):
+    """The fact kinds among `kinds` whose detector is shown; `detectors` maps a kind to its detector id."""
+    hidden = hidden_detectors()
+    return {kind for kind in kinds if (detectors or {}).get(kind, kind) not in hidden}
+
+
+def withhold(claims):
+    """(shown, withheld): a claim from a hidden detector is kept aside with the reason, never shown or planned."""
+    hidden = hidden_detectors()
+    shown, withheld = [], []
+    for claim in claims:
+        why = hidden.get(detector_of(claim))
+        if why is None: shown.append(claim)
+        else: withheld.append({**claim, 'withheld': {'detector': detector_of(claim), 'why': why}})
+    return shown, withheld
 
 
 def make(index, statement, claim_type, confidence, method, evidence_ids, falsifier, **extra):

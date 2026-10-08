@@ -219,14 +219,18 @@ def card_values(projects, record):
 USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'X11', 'X12', 'X13', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6')
 
 
-STUDIO = ('F8', 'W2')
+STUDIO = ('F8',)
 STUDIO_PHASE = ('F11', 'F12', 'F13', 'F14')   # the exit gate of NS46, tools/north_star_studio.py
+
+
+PLAN_V2 = ('A1', 'W2')
 
 
 def measure(record, only=None):
     if only in USABILITY: return usability_values(only)   # read from this checkout, not from the corpus
     if only in STUDIO: return studio_values(only)
     if only in STUDIO_PHASE: return studio_phase_values(record, only)
+    if only in PLAN_V2: return plan_v2_values(record, only)
     projects = []
     for spec in record['corpus']:
         target = CORPUS / spec['name']
@@ -241,6 +245,7 @@ def measure(record, only=None):
     values.update(usability_values(only))
     values.update(studio_values(only))
     values.update(studio_phase_values(record, only))
+    values.update(plan_v2_values(record, only))
     return values
 
 
@@ -252,7 +257,7 @@ def studio_phase_values(record, only=None):
 
 def studio_values(only=None):
     """F8 from the Studio's screen gates (studio/scripts/gates.mjs -> $EAOS_MEASURE/studio-gates/gates.json), counted
-    only when they ran in full on the build shipped in this checkout; W2 from the adoption records (docs/adoption)."""
+    only when they ran in full on the build shipped in this checkout."""
     values = {}
     shipped = ROOT / 'eaos/data/studio/SOURCE.json'
     if only in (None, 'F8'):
@@ -272,34 +277,119 @@ def studio_values(only=None):
                             f"Studio shots passing every gate (overflow, initial scroll, axe, 44px targets, Arabic tracking, offline, script errors) "
                             f"at {'/'.join(map(str, widths))} in {', '.join('-'.join(v) for v in variants)}: {len(rows) - len(failed)}/{len(rows)} "
                             f"({len({r['route'] for r in rows})} views of {run['data']['project']})" + (f"; failing: {', '.join(failed[:5])}" if failed else ''))
-    if only in (None, 'W2'):
-        values['W2'] = adoption_value()
     return values
 
 
-def adoption_value():
-    """The Studio's packages pinned by an adoption record with candidates, a decision and pins, committed no later than
-    the Studio's first code (docs/adoption/README.md)."""
+def plan_v2_values(record, only=None):
+    """A1 from the precision set (docs/engine-precision.json, written by tools/precision.py) and the verdicts the
+    product reads; W2 from the adoption records in docs/adoption/ and the history of each task's files."""
+    values = {}
+    if only in (None, 'A1'):
+        from precision import a1_value
+        values['A1'] = a1_value()
+    if only in (None, 'W2'):
+        values['W2'] = adoption_value(record)
+    return values
+
+
+ADOPTION_STEP = 'docs/adoption/'
+# A record is complete when it names its candidates, their licence and maintenance, and the decision; both the
+# heading form (`## Candidates`) and the Studio's per-capability form (`**Candidates**`) count.
+ADOPTION_PARTS = (('Candidates', ('## Candidates', '**Candidates**')), ('Licence', ('Licence',)),
+                  ('Maintenance', ('Maintenance',)), ('Decision', ('## Decision', '**Decision**')))
+STUDIO_CODE = 'studio/'
+
+
+def adoption_records(where=None):
+    """{task id: (record path, complete)}: a record names its tasks on a `Task:` line, or by its file name
+    (`ns37-t1-studio-shell.md` is NS37.T1's)."""
+    import re
+    records = {}
+    for path in sorted(Path(where or ROOT / 'docs/adoption').glob('*.md')):
+        if path.name == 'README.md': continue
+        text = path.read_text(encoding='utf-8')
+        complete = all(any(form in text for form in forms) for _, forms in ADOPTION_PARTS)
+        named = [task_id for line in text.splitlines() if line.startswith('Task:')
+                 for task_id in line.split(':', 1)[1].replace(',', ' ').split()]
+        by_name = re.match(r'(?i)(ns\d+)[.-](t\d+)\b', path.stem)
+        if not named and by_name: named = [f'{by_name[1].upper()}.{by_name[2].upper()}']
+        for task_id in named:
+            records.setdefault(task_id, (path, complete))
+    return records
+
+
+def adoption_value(record):
+    """W2: tasks whose plan asks for an adoption record, begun (done, or code committed for them), that have a complete
+    record (candidates, licence, maintenance, decision) committed no later than their first code ÷ such tasks begun.
+    A task that writes Studio code also needs every package of studio/package.json pinned by such a record
+    (studio_packages): an unrecorded package is code adopted without scouting."""
+    tasks = [task for milestone in record['milestones'] for task in milestone['tasks']
+             if any(ADOPTION_STEP in step for step in task.get('steps') or [])]
+    records = adoption_records()
+    packages = None
+    begun, good, notes = [], [], []
+    for task in tasks:
+        code = [f for f in task.get('files') or [] if not f.startswith('docs/') and (ROOT / f.rstrip('/')).exists()]
+        first_code = first_commit(code, since_task=task['id']) if code else None
+        if task.get('status') != 'done' and first_code is None and task['id'] not in records: continue
+        begun.append(task['id'])
+        found = records.get(task['id'])
+        if not found:
+            notes.append(f"{task['id']}: no record"); continue
+        path, complete = found
+        if not complete:
+            notes.append(f"{task['id']}: {path.name} lacks one of {', '.join(name for name, _ in ADOPTION_PARTS)}"); continue
+        recorded = first_commit([path.relative_to(ROOT).as_posix()])
+        if recorded is None or (first_code is not None and not is_ancestor(recorded, first_code)):
+            notes.append(f"{task['id']}: record not committed before its first code"); continue
+        if any(f.startswith(STUDIO_CODE) for f in task.get('files') or []):
+            packages = packages or studio_packages()
+            covered, wanted = packages
+            if covered != wanted:
+                notes.append(f"{task['id']}: Studio packages without a record written before the Studio's code: "
+                             f"{', '.join(sorted(set(wanted) - covered))}"); continue
+        good.append(task['id'])
+    if not begun: return None, 'no task that needs an adoption record has begun'
+    pinned = f"; Studio packages pinned before its code {len(packages[0])}/{len(packages[1])}" if packages else ''
+    return ratio(len(good), len(begun)), (f"begun tasks with an adoption record written before their code: {len(good)}/{len(begun)} "
+                                          f"({', '.join(good) or 'none'})" + pinned + (f"; {'; '.join(notes)}" if notes else ''))
+
+
+def studio_packages():
+    """(covered, wanted): the Studio's packages (studio/package.json) and those pinned at that version in the
+    `**Pinned**` part of a complete capability section of a record committed no later than the Studio's first code
+    (docs/adoption/README.md)."""
     import re
     package = json.loads((ROOT / 'studio/package.json').read_text(encoding='utf-8')) if (ROOT / 'studio/package.json').is_file() else {}
     wanted = {**package.get('dependencies', {}), **package.get('devDependencies', {})}
-    if not wanted:
-        return None, 'the Studio has no packages yet'
-    first_code = git('log', '--reverse', '--format=%H', '--', 'studio/src', cwd=ROOT).stdout.split()
+    first_code = first_commit(['studio/src'])
     covered = set()
     for path in sorted((ROOT / 'docs/adoption').glob('*.md')):
         if path.name == 'README.md': continue
-        added = git('log', '--diff-filter=A', '--format=%H', '--', path.relative_to(ROOT).as_posix(), cwd=ROOT).stdout.split()
-        if not added: continue  # not committed: it cannot show it came first
-        if first_code and subprocess.run(['git', 'merge-base', '--is-ancestor', added[-1], first_code[0]], cwd=ROOT).returncode != 0: continue
+        added = first_commit([path.relative_to(ROOT).as_posix()])
+        if added is None: continue  # not committed: it cannot show it came first
+        if first_code and not is_ancestor(added, first_code): continue
         for section in path.read_text(encoding='utf-8').split('\n## ')[1:]:
             if not all(part in section for part in ('**Candidates**', '**Decision**', '**Pinned**')): continue
             pinned = section.split('**Pinned**', 1)[1]
             for name, version in re.findall(r'`(@?[\w./-]+)@(\d+\.\d+\.\d+)`', pinned):
                 if wanted.get(name) == version: covered.add(name)
-    missing = sorted(set(wanted) - covered)
-    return (ratio(len(covered), len(wanted)), f'Studio packages pinned by an adoption record written before the code: {len(covered)}/{len(wanted)}'
-            + (f"; without a record: {', '.join(missing)}" if missing else ''))
+    return covered, wanted
+
+
+def first_commit(paths, since_task=None):
+    """The oldest commit touching `paths` (after the commit that registered `since_task` in the plan), or None."""
+    if not paths: return None
+    since = []
+    if since_task:
+        added = git('log', '--reverse', '--format=%H', '-S', f'"id": "{since_task}"', '--', 'docs/north-star.json', cwd=ROOT).stdout.split()
+        if added: since = [f'{added[0]}..HEAD']
+    found = git('log', '--reverse', '--format=%H', *since, '--', *paths, cwd=ROOT).stdout.split()
+    return found[0] if found else None
+
+
+def is_ancestor(older, newer):
+    return older == newer or git('merge-base', '--is-ancestor', older, newer, cwd=ROOT).returncode == 0
 
 
 def usability_values(only=None):
