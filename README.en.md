@@ -56,7 +56,7 @@ flowchart TB
         direction LR
         S01["<b>S01 · Intake and inventory</b><br/>📄 intake.json · facts/index.json …<br/>▰ 100%"]:::done
         S02["<b>S02 · Map the current architecture</b><br/>📄 features.json · load-model.json …<br/>▰ 25%"]:::current
-        S03["<b>S03 · Measure</b><br/>📄 measurements.json · خط الأساس المثبّت<br/>▰ 12%"]:::current
+        S03["<b>S03 · Measure</b><br/>📄 measurements.json · خط الأساس المثبّت<br/>▰ 44%"]:::current
         S04["<b>S04 · Diagnose and debt register</b><br/>📄 CURRENT-STATE.md · debt-register.json …<br/>▰ 50%"]:::current
         S01 -->|"✔ U6 = 1, U1 ≥ 0.95, H3 = 1, R4 = 1"| S02
         S02 -->|"✔ U2 ≥ 0.9, U3 = U4 = 1, U5 ≥ 0.8, and the current C4 model"| S03
@@ -73,7 +73,7 @@ flowchart TB
     subgraph P3["Execution: isolated, with the owner's authorization (1/2)"]
         direction LR
         S08["<b>S08 · Rebuild / refactor</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 66%"]:::current
-        S09["<b>S09 · Functional verification</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 12%"]:::current
+        S09["<b>S09 · Functional verification</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 38%"]:::current
         S10["<b>S10 · Security</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
         S11["<b>S11 · Load</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
         S08 -->|"✔ Per task: its acceptance passes, the safety net passes, no new critical claim. E1 = 1"| S09
@@ -90,7 +90,7 @@ flowchart TB
     end
     subgraph P5["Governance and handover"]
         direction LR
-        S15["<b>S15 · Continuous governance and handover</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 20%"]:::current
+        S15["<b>S15 · Continuous governance and handover</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 23%"]:::current
         LOOP["↺ re-audit after every change: back to S01"]:::next
         S15 -->|"✔ K1 = 1, the baseline pinned, and the new-debt gate in CI"| LOOP
     end
@@ -231,13 +231,13 @@ No command modifies the original project, publishes anything or merges anything.
 <!-- north-star:progress:start -->
 <!-- generated from docs/north-star.json by python tools/north_star.py; do not edit by hand -->
 
-### Progress: **31.3 of 100 points**
+### Progress: **36.1 of 100 points**
 
-`████████░░░░░░░░░░░░░░░░░` 31.3%
+`█████████░░░░░░░░░░░░░░░░` 36.1%
 
 | Steps done | Current step | Points left | Of which wait on the owner | Last measured |
 |---|---|---|---|---|
-| 20 of 45 | 21 · NS27 Build from a plan | 68.7 | 59 | 2026-09-30 · `0fbc461` |
+| 21 of 45 | 21 · NS27 Build from a plan | 63.9 | 59 | 2026-09-30 · `0fbc461` |
 
 **How it is computed:**
 
@@ -312,8 +312,8 @@ flowchart TB
     end
     subgraph R6G_1["R6G · EAOS v2: truthful analysis, ideal picture, ordered operations, live Studio (1/5)"]
         direction LR
-        NS30["<b>22 · NS30</b><br/>الثقة أولًا<br/>Trust first<br/>⚖ 4 · ▰ 0%"]:::next
-        NS36["<b>23 · NS36</b><br/>أساس الاستوديو<br/>Studio foundation<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS30["<b>22 · NS30</b><br/>الثقة أولًا<br/>Trust first<br/>⚖ 4 · ▰ 100%"]:::done
+        NS36["<b>23 · NS36</b><br/>أساس الاستوديو<br/>Studio foundation<br/>⚖ 3 · ▰ 25%"]:::owner
         NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 6 · ▰ 0%"]:::owner
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 acceptance test"| NS36
