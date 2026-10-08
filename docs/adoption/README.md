@@ -31,3 +31,4 @@ or a record written after the code, lowers it.
 | Task | Record |
 |---|---|
 | NS37.T1 design system and shell | [ns37-t1-studio-shell.md](ns37-t1-studio-shell.md) |
+| The System maps (territory, change, target) | [studio-maps.md](studio-maps.md) |
