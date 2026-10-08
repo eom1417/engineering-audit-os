@@ -40,3 +40,4 @@ one is its record.
 | NS46.T1 contract v2 and its fixtures | [ns46-t1-contract-v2.md](ns46-t1-contract-v2.md) |
 | The System maps (territory, change, target) | [studio-maps.md](studio-maps.md) |
 | Code paths, sequences and the plan timeline | [studio-map-paths.md](studio-map-paths.md) |
+| The pipeline map's engine (stages, value flow, routers, declared DAGs, CI and build chains) | [ns46-t12-pipeline-engine.md](ns46-t12-pipeline-engine.md) |
