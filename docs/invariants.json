@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "69dd0e5",
+  "extracted_at_commit": "3a38957",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -1524,6 +1524,51 @@
       "statement": "The model's layer: interpretation on top of facts, never instead of them.",
       "kind": "invariant",
       "enforced_by": "tests/test_semantic.py::SemanticTests::test_model_inference_can_never_reach_confirmed",
+      "note": ""
+    },
+    {
+      "id": "INV-a295ac00cf",
+      "file": "eaos/studio/actions/handoff.py",
+      "symbol": "<module>",
+      "statement": "The request waits in the project's EAOS workspace (`studio-requests.json`, never inside the project).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_actions.py::Handoff::test_the_request_waits_in_the_eaos_workspace_never_in_the_project",
+      "note": ""
+    },
+    {
+      "id": "INV-494f660ca2",
+      "file": "eaos/studio/actions/prompts.py",
+      "symbol": "<module>",
+      "statement": "Every prompt says the same three things: change code only through the EAOS tools, never take the person's decisions (accept, undo, the branch, the run consent), and ask the person with one `eaos-question` block, which the Studio shows in its inbox.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_actions.py::Prompts::test_a_fix_prompt_keeps_the_eaos_way_and_the_persons_decisions",
+      "note": ""
+    },
+    {
+      "id": "INV-81ab834688",
+      "file": "eaos/studio/actions/runs.py",
+      "symbol": "<module>",
+      "statement": "Only the server that holds the project's `dispatch.lock` starts runs, so two Studio servers never start the same one.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_actions.py::Runs::test_two_servers_never_start_the_same_run",
+      "note": ""
+    },
+    {
+      "id": "INV-88b33e6d9d",
+      "file": "eaos/studio/actions/runs.py",
+      "symbol": "recover",
+      "statement": "At the start of the dispatcher: runs this server cannot follow any more are said to have stopped, the rest followed.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_actions.py::Runs::test_a_restart_follows_a_live_assistant_and_fails_a_dead_one_plainly",
+      "note": ""
+    },
+    {
+      "id": "INV-47d795f4e2",
+      "file": "eaos/studio/actions/security.py",
+      "symbol": "check",
+      "statement": "GET needs the token (in the header, or `token=` in the query for an EventSource, which cannot set headers); POST also the CSRF token and the Studio's origin.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_actions.py::Locks::test_a_get_takes_the_token_from_the_query_but_a_post_does_not",
       "note": ""
     },
     {

@@ -26,3 +26,28 @@ action handlers (`eaos/studio/actions/`, NS46.T9). A byte-identical packaged cop
 - Accept, merge and undo need the person's explicit confirmation (the confirm token from their preview).
 - Running the project's code still needs the one-time run_setup consent; an assistant never gives it.
 - The assistant changes code only through the EAOS tools: no shell, no direct file write.
+
+## Mounting it on the read server (NS37.T2)
+
+The handlers are framework-agnostic (`eaos/studio/actions/__init__.py`): `Actions.handle(method, path, headers, body)`
+returns `(status, dict)` for every endpoint, and `Actions.sse(run, last_event_id, follow=True)` yields the event
+stream. The read server mounts them next to its own routes, with the same launch token:
+
+```python
+from eaos.studio.actions import Actions, mount
+actions = Actions(project, port=port, token=launch_token)   # 127.0.0.1:<port>; the CSRF token is actions.csrf
+mount(app.router, actions)                                   # /api/session, /api/actions…, /api/runs…, /api/questions…
+```
+
+The page gets the CSRF token from `GET /api/session` and sends `X-EAOS-Token` and `X-EAOS-CSRF` on every call; an
+`EventSource` passes the token as `?token=` (it cannot set headers) and resumes with `Last-Event-ID`. The read server
+keeps its own routes under other paths; both share `127.0.0.1` and the token. Without Starlette,
+`eaos.studio.actions.serve.serve(actions)` serves the same API with the standard library (the trial uses it).
+
+## Where a run lives
+
+`~/.eaos/projects/<project>/runs/<run>/`: `run.json`, `events.jsonl` (hash-chained), `stream.jsonl` (the assistant's
+raw output) and `stderr.log`; `runs/queue.json` holds the queue's order and `runs/dispatch.lock` the one server that
+starts runs. The assistant handoff waits in `~/.eaos/projects/<project>/studio-requests.json`; `status` hands it to the
+next assistant and a `note` that starts with `studio-request <run> done` closes it. In a run the Studio started
+(`EAOS_STUDIO_RUN` set), `accept`, `undo` and `choose_branch` refuse: the person decides those in the Studio.

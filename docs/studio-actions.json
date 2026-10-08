@@ -2022,13 +2022,13 @@
    "method": "POST",
    "path": "/api/actions/<id>/preview",
    "body": "{inputs?, selection?, verb?, assistant?}",
-   "does": "The preview payload; never changes anything."
+   "does": "The preview payload; never changes anything. <id> is an action, or a verb (fix, verify, explain, plan) when the body has a selection."
   },
   {
    "method": "POST",
    "path": "/api/runs",
    "body": "{action, inputs?, selection?, verb?, assistant?, confirm?}",
-   "does": "Queues a run; returns {run}. A direct read action may return its result at once in run.result."
+   "does": "Queues a run; returns {run}. A verb over a selection is posted with `verb` and `selection` (and `action` = the verb); a read-only action answers at once, its result in run.result, and stays out of the history unless ?all=1. Refused with 403 {needs: \"confirm\"} when the run changes code or cannot be undone and the confirm token is missing."
   },
   {
    "method": "GET",
@@ -2178,5 +2178,11 @@
    "ar": "الأوامر تشتغل من الاستوديو الحي. افتح الطرفية في المشروع واكتب: eaos studio"
   },
   "copy_to_assistant": "The same preview text as the handoff request, so the person can also paste it to their assistant."
+ },
+ "questions": {
+  "about": "How a question reaches the person.",
+  "block": "The assistant ends its turn with one fenced block ```eaos-question {\"text\": {en, ar}, \"options\": [{id, label{en, ar}}], \"recommendation\": id}```; the run waits in waiting_for_person and the question appears in GET /api/questions.",
+  "consent": "When the assistant stops on run_setup's needs_agreement without a block, the Studio asks the run consent itself (why: \"run consent\").",
+  "resume": "The answer resumes the same assistant session (claude --resume, codex exec resume) with the person's words."
  }
 }

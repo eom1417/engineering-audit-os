@@ -8,6 +8,8 @@ and Codex by `eaos assistant install`, which install.sh runs.
 import functools
 import inspect
 import json
+import os
+from pathlib import Path
 
 from . import __version__
 
@@ -61,10 +63,22 @@ CAPABILITIES = {'where things stand': 'status', 'read any plan': 'blueprint_star
                 'hand the work to another assistant': 'note', 'choose the branch': 'choose_branch'}
 
 
+# What only the person decides. In a run the Studio started (EAOS_STUDIO_RUN set by eaos/studio/actions), the assistant
+# asks instead, and the person answers in the Studio, which calls these itself.
+PERSON_ONLY = ('accept', 'undo', 'choose_branch')
+STUDIO = 'EAOS Studio'           # the name the Studio's own calls are recorded under
+
+
 def _status(project=None):
-    """The status tool of the project's way: fixing, or building from a plan."""
+    """The status tool of the project's way: fixing, or building from a plan; with the request the Studio handed to the
+    next assistant, when one waits (eaos/studio/actions/handoff.py)."""
     from .build_tools import status_of
-    return status_of(project)
+    result = status_of(project)
+    if isinstance(result, dict) and not os.environ.get('EAOS_STUDIO_RUN'):
+        from .handover import assistant
+        from .studio.actions import handoff
+        if assistant() != STUDIO: result.update(handoff.for_status(Path(project or os.getcwd()).expanduser().resolve(), assistant()))
+    return result
 
 
 def _answer(function):
@@ -77,6 +91,9 @@ def _answer(function):
         from .guided import explain
         from .handover import record
         try:
+            if function.__name__ in PERSON_ONLY and os.environ.get('EAOS_STUDIO_RUN'):
+                raise PermissionError(f'{function.__name__} is the person\'s decision, and they make it in the EAOS Studio: ask them '
+                                      'with an eaos-question block and stop')
             result = function(*args, **kwargs)
         except LookupError as problem:
             result = {'error': str(problem)}
@@ -283,6 +300,8 @@ def build():
     @_answer
     def note(text: str, card: str | None = None, project: str | None = None) -> str:
         from . import handover
+        from .studio.actions import handoff
+        handoff.close(Path(project or os.getcwd()).expanduser().resolve(), text)
         return handover.note(text, card, project, _status)
 
     @server.tool(annotations=working, description='Throw the waiting branch away (while it is not merged): the project is as it was.')
@@ -388,6 +407,17 @@ def build():
     shortcut('ask', 'Ask about your code: what a change touches, where a thing is used · اسأل عن مشروعك')
     shortcut('tools', 'Which EAOS and tools are installed, what is missing · الأدوات والمحركات')
     return server
+
+
+def functions():
+    """{tool name: the function the MCP server calls}, each answering JSON text and recorded in the journal like an
+    assistant's call: what the Studio's command centre calls for a direct action (eaos/studio/actions)."""
+    return {tool.name: tool.fn for tool in build()._tool_manager.list_tools()}
+
+
+def reading():
+    """The tools marked read-only: they change nothing, so the Studio answers them at once."""
+    return {tool.name for tool in build()._tool_manager.list_tools() if tool.annotations and tool.annotations.read_only_hint}
 
 
 def main():
