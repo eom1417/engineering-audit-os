@@ -10,7 +10,7 @@ export const JOURNEY_WORDS = {
   viewHidden: ['الظاهر والخفي', 'Visible and hidden'],
   // journeys: page and toolbar
   journeys: ['رحلات المستخدم', 'User journeys'],
-  journeysLead: ['{s} شاشة يفتحها المستخدم، و{l} رابطًا بينها، و{t} مهمة مرسومة كمسار من البداية.', '{s} screens a person opens, {l} links between them, and {t} tasks drawn as paths from the start.'],
+  journeysLead: ['{s} شاشة يفتحها المستخدم، بينها {l} رابطًا، ومعها {t} مهمة مرسومة كمسار من البداية.', '{s} screens a person opens, {l} links between them, and {t} tasks drawn as paths from the start.'],
   journeysCount: ['{s} شاشة · {l} رابطًا · {t} مهمة', '{s} screens · {l} links · {t} tasks'],
   mapToday: ['اليوم', 'Today'],
   mapChange: ['التغيير', 'Change'],
@@ -84,10 +84,10 @@ export const JOURNEY_WORDS = {
   // tasks and steps
   tasks: ['المهام', 'Tasks'],
   steps: ['الخطوات', 'Steps'],
-  stepStart: ['ابدأ من {r}', 'Start at {r}'],
-  stepGo: ['انتقل إلى {r}', 'Go to {r}'],
+  stepStart: ['ابدأ من', 'Start at'],
+  stepGo: ['انتقل إلى', 'Go to'],
   stepMenu: ['افتح القائمة', 'Open the menu'],
-  stepDialog: ['افتح النافذة {f}', 'Open the dialog {f}'],
+  stepDialog: ['افتح النافذة', 'Open the dialog'],
   stepVia: ['عبر', 'via'],
   taskNoPath: ['لا طريق من البداية إلى هذه المهمة: شاشتها لا يصلها رابط.', 'No path from the start reaches this task: no link leads to its screen.'],
   taskDead: ['ملفها في كود لا تعرضه أي شاشة (كود ميت).', 'Its file is in code no screen renders (dead code).'],
@@ -113,7 +113,7 @@ export const JOURNEY_WORDS = {
   more: ['و{n} أخرى', 'and {n} more'],
   // hidden
   hidden: ['الظاهر والخفي', 'Visible and hidden'],
-  hiddenLead: ['{s} شاشة يراها المستخدم، و{u} شيئًا يعمل دون أن يُرى، منها {n} بلا أي شاشة أمامه.', '{s} screens the user sees, and {u} things that run unseen, {n} of them with no screen in front of them.'],
+  hiddenLead: ['{s} شاشة يراها المستخدم، ويعمل {u} شيئًا دون أن يُرى، منها {n} بلا أي شاشة أمامه.', '{s} screens the user sees, and {u} things that run unseen, {n} of them with no screen in front of them.'],
   seenSide: ['ما يراه المستخدم', 'What the user sees'],
   unseenSide: ['ما يعمل دون أن يُرى', 'What runs unseen'],
   area: ['منطقة', 'Area'],

@@ -69,7 +69,13 @@ export function JourneyCanvas({ journeys: j, mode, focus, task, flag, showHidden
   const { centreOn } = zoom
   useEffect(() => {
     const s = focus ? j.screens.find((x) => x.id === focus) ?? j.menus.find((x) => x.id === focus) : undefined
-    if (s && !area) centreOn(s.x + j.grid.box_w / 2, s.y + j.grid.box_h / 2, 1)
+    const el = svg.current
+    if (!s || area || !el) return
+    // centred at a readable zoom: a frame about as large as it is drawn at 0.8 of its size
+    const box = el.getBoundingClientRect()
+    const vb = el.viewBox.baseVal
+    const fit = box.width && vb.width ? Math.min(box.width / vb.width, box.height / vb.height) : 1
+    centreOn(s.x + j.grid.box_w / 2, s.y + j.grid.box_h / 2, Math.max(1, 0.8 / fit))
   }, [focus, j, centreOn, area])
   const label = w('mapAria', { s: j.counts.screens.value ?? 0, l: j.counts.links.value ?? 0 })
   return (
@@ -241,7 +247,8 @@ export function TaskSteps({ j, task, onFocus }: { j: Journeys; task: Task; onFoc
       {steps.map((s) => {
         const screen = j.screens.find((x) => x.id === s.node)
         const site: LinkSite | undefined = s.via?.evidence[0]
-        const text = s.index === 0 ? w('stepStart', { r: screen?.route ?? s.node }) : s.node.startsWith('menu:') ? w('stepMenu') : w('stepGo', { r: screen?.route ?? s.node })
+        const route = <Id value={screen?.route ?? s.node} />
+        const text = s.index === 0 ? <>{w('stepStart')} {route}</> : s.node.startsWith('menu:') ? w('stepMenu') : <>{w('stepGo')} {route}</>
         return (
           <li key={s.node} className={css.stepRow}>
             <span className={css.stepN} aria-hidden="true">{s.index + 1}</span>
@@ -255,7 +262,7 @@ export function TaskSteps({ j, task, onFocus }: { j: Journeys; task: Task; onFoc
       {task.kind === 'dialog' && task.file && (
         <li className={css.stepRow}>
           <span className={css.stepN} aria-hidden="true">{steps.length + 1}</span>
-          <span className={css.stepMain}><span className={css.stepText}>{w('stepDialog', { f: task.file.split('/').pop() ?? task.file })}</span>
+          <span className={css.stepMain}><span className={css.stepText}>{w('stepDialog')} <Id value={task.file.split('/').pop() ?? task.file} /></span>
             <span className={css.stepVia}><Id value={task.file} keep={3} /></span></span>
         </li>
       )}
