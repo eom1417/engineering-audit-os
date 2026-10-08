@@ -1,0 +1,3291 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/ideal.json",
+  "description": "The ideal picture of every Target/Ideal view (structure, change, journeys, paths, data, infrastructure, pipeline and the plan's order): the rules' baseline with its evidence, the ideal the person's assistant planned on top of it after a critique pass, every planned element citing facts, claims, cards or rules that exist (an uncited element is dropped by the evidence check and listed), and each view's provenance: how it was made, by which assistant and model, when, its confidence, where it departs from the rules and why, and the questions it leaves for the person.",
+  "x-artifact": "studio/ideal.json",
+  "x-owner": "NS46",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "revision",
+    "state",
+    "message",
+    "provenance",
+    "views",
+    "evidence",
+    "critique",
+    "questions",
+    "runs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "revision": {
+      "const": 2
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "not_planned",
+        "stale",
+        "failed"
+      ]
+    },
+    "message": {
+      "type": "object",
+      "required": [
+        "en",
+        "ar"
+      ],
+      "properties": {
+        "en": {
+          "type": "string"
+        },
+        "ar": {
+          "type": "string"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "method",
+        "assistant",
+        "model",
+        "at",
+        "confidence",
+        "departures",
+        "open_questions"
+      ],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "rules",
+            "planned"
+          ]
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "planned",
+            "not_planned",
+            "stale",
+            "failed"
+          ]
+        },
+        "assistant": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "message": {
+          "type": "object",
+          "required": [
+            "en",
+            "ar"
+          ],
+          "properties": {
+            "en": {
+              "type": "string"
+            },
+            "ar": {
+              "type": "string"
+            }
+          }
+        },
+        "inputs": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "departures": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "rule_says",
+              "plan_chose",
+              "because"
+            ],
+            "properties": {
+              "rule_says": {
+                "type": "string"
+              },
+              "plan_chose": {
+                "type": "string"
+              },
+              "because": {
+                "type": "string"
+              },
+              "element": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "cites": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "open_questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "question"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "question": {
+                "type": "string"
+              },
+              "recommendation": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "views": {
+      "type": "object",
+      "required": [
+        "system",
+        "change",
+        "journeys",
+        "paths",
+        "data_paths",
+        "infra",
+        "pipeline",
+        "plan_order"
+      ],
+      "properties": {
+        "system": {
+          "type": "object",
+          "required": [
+            "provenance",
+            "rules",
+            "planned",
+            "differences"
+          ],
+          "properties": {
+            "provenance": {
+              "type": "object",
+              "required": [
+                "method",
+                "assistant",
+                "model",
+                "at",
+                "confidence",
+                "departures",
+                "open_questions"
+              ],
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "rules",
+                    "planned"
+                  ]
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "planned",
+                    "not_planned",
+                    "stale",
+                    "failed"
+                  ]
+                },
+                "assistant": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "model": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "confidence": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "message": {
+                  "type": "object",
+                  "required": [
+                    "en",
+                    "ar"
+                  ],
+                  "properties": {
+                    "en": {
+                      "type": "string"
+                    },
+                    "ar": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "inputs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "departures": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "rule_says",
+                      "plan_chose",
+                      "because"
+                    ],
+                    "properties": {
+                      "rule_says": {
+                        "type": "string"
+                      },
+                      "plan_chose": {
+                        "type": "string"
+                      },
+                      "because": {
+                        "type": "string"
+                      },
+                      "element": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "open_questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "question"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "question": {
+                        "type": "string"
+                      },
+                      "recommendation": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "rules": {
+              "type": "object",
+              "required": [
+                "summary",
+                "elements",
+                "count"
+              ],
+              "properties": {
+                "summary": {
+                  "type": "string"
+                },
+                "elements": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "kind",
+                      "title",
+                      "operation",
+                      "cites"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "operation": {
+                        "type": "string",
+                        "enum": [
+                          "retain",
+                          "refactor",
+                          "rebuild",
+                          "merge",
+                          "delete",
+                          "new"
+                        ]
+                      },
+                      "subject": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "detail": {
+                        "type": "string"
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "rules": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "count": {
+                  "$ref": "#/$defs/measure"
+                }
+              }
+            },
+            "planned": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "summary",
+                    "confidence",
+                    "elements",
+                    "count"
+                  ],
+                  "properties": {
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "elements": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "kind",
+                          "title",
+                          "operation",
+                          "subject",
+                          "cites"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "enum": [
+                              "retain",
+                              "refactor",
+                              "rebuild",
+                              "merge",
+                              "delete",
+                              "new"
+                            ]
+                          },
+                          "subject": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "detail": {
+                            "type": "string"
+                          },
+                          "cites": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "$ref": "#/$defs/measure"
+                    }
+                  }
+                }
+              ]
+            },
+            "differences": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "element",
+                  "kind"
+                ],
+                "properties": {
+                  "element": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "added",
+                      "changed",
+                      "dropped_from_rules",
+                      "same"
+                    ]
+                  },
+                  "subject": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "rules": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "planned": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "change": {
+          "type": "object",
+          "required": [
+            "provenance",
+            "rules",
+            "planned",
+            "differences"
+          ],
+          "properties": {
+            "provenance": {
+              "type": "object",
+              "required": [
+                "method",
+                "assistant",
+                "model",
+                "at",
+                "confidence",
+                "departures",
+                "open_questions"
+              ],
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "rules",
+                    "planned"
+                  ]
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "planned",
+                    "not_planned",
+                    "stale",
+                    "failed"
+                  ]
+                },
+                "assistant": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "model": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "confidence": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "message": {
+                  "type": "object",
+                  "required": [
+                    "en",
+                    "ar"
+                  ],
+                  "properties": {
+                    "en": {
+                      "type": "string"
+                    },
+                    "ar": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "inputs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "departures": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "rule_says",
+                      "plan_chose",
+                      "because"
+                    ],
+                    "properties": {
+                      "rule_says": {
+                        "type": "string"
+                      },
+                      "plan_chose": {
+                        "type": "string"
+                      },
+                      "because": {
+                        "type": "string"
+                      },
+                      "element": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "open_questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "question"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "question": {
+                        "type": "string"
+                      },
+                      "recommendation": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "rules": {
+              "type": "object",
+              "required": [
+                "summary",
+                "elements",
+                "count"
+              ],
+              "properties": {
+                "summary": {
+                  "type": "string"
+                },
+                "elements": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "kind",
+                      "title",
+                      "operation",
+                      "cites"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "operation": {
+                        "type": "string",
+                        "enum": [
+                          "retain",
+                          "refactor",
+                          "rebuild",
+                          "merge",
+                          "delete",
+                          "new"
+                        ]
+                      },
+                      "subject": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "detail": {
+                        "type": "string"
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "rules": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "count": {
+                  "$ref": "#/$defs/measure"
+                }
+              }
+            },
+            "planned": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "summary",
+                    "confidence",
+                    "elements",
+                    "count"
+                  ],
+                  "properties": {
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "elements": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "kind",
+                          "title",
+                          "operation",
+                          "subject",
+                          "cites"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "enum": [
+                              "retain",
+                              "refactor",
+                              "rebuild",
+                              "merge",
+                              "delete",
+                              "new"
+                            ]
+                          },
+                          "subject": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "detail": {
+                            "type": "string"
+                          },
+                          "cites": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "$ref": "#/$defs/measure"
+                    }
+                  }
+                }
+              ]
+            },
+            "differences": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "element",
+                  "kind"
+                ],
+                "properties": {
+                  "element": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "added",
+                      "changed",
+                      "dropped_from_rules",
+                      "same"
+                    ]
+                  },
+                  "subject": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "rules": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "planned": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "journeys": {
+          "type": "object",
+          "required": [
+            "provenance",
+            "rules",
+            "planned",
+            "differences"
+          ],
+          "properties": {
+            "provenance": {
+              "type": "object",
+              "required": [
+                "method",
+                "assistant",
+                "model",
+                "at",
+                "confidence",
+                "departures",
+                "open_questions"
+              ],
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "rules",
+                    "planned"
+                  ]
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "planned",
+                    "not_planned",
+                    "stale",
+                    "failed"
+                  ]
+                },
+                "assistant": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "model": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "confidence": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "message": {
+                  "type": "object",
+                  "required": [
+                    "en",
+                    "ar"
+                  ],
+                  "properties": {
+                    "en": {
+                      "type": "string"
+                    },
+                    "ar": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "inputs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "departures": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "rule_says",
+                      "plan_chose",
+                      "because"
+                    ],
+                    "properties": {
+                      "rule_says": {
+                        "type": "string"
+                      },
+                      "plan_chose": {
+                        "type": "string"
+                      },
+                      "because": {
+                        "type": "string"
+                      },
+                      "element": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "open_questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "question"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "question": {
+                        "type": "string"
+                      },
+                      "recommendation": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "rules": {
+              "type": "object",
+              "required": [
+                "summary",
+                "elements",
+                "count"
+              ],
+              "properties": {
+                "summary": {
+                  "type": "string"
+                },
+                "elements": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "kind",
+                      "title",
+                      "operation",
+                      "cites"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "operation": {
+                        "type": "string",
+                        "enum": [
+                          "retain",
+                          "refactor",
+                          "rebuild",
+                          "merge",
+                          "delete",
+                          "new"
+                        ]
+                      },
+                      "subject": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "detail": {
+                        "type": "string"
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "rules": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "count": {
+                  "$ref": "#/$defs/measure"
+                }
+              }
+            },
+            "planned": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "summary",
+                    "confidence",
+                    "elements",
+                    "count"
+                  ],
+                  "properties": {
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "elements": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "kind",
+                          "title",
+                          "operation",
+                          "subject",
+                          "cites"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "enum": [
+                              "retain",
+                              "refactor",
+                              "rebuild",
+                              "merge",
+                              "delete",
+                              "new"
+                            ]
+                          },
+                          "subject": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "detail": {
+                            "type": "string"
+                          },
+                          "cites": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "$ref": "#/$defs/measure"
+                    }
+                  }
+                }
+              ]
+            },
+            "differences": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "element",
+                  "kind"
+                ],
+                "properties": {
+                  "element": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "added",
+                      "changed",
+                      "dropped_from_rules",
+                      "same"
+                    ]
+                  },
+                  "subject": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "rules": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "planned": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "paths": {
+          "type": "object",
+          "required": [
+            "provenance",
+            "rules",
+            "planned",
+            "differences"
+          ],
+          "properties": {
+            "provenance": {
+              "type": "object",
+              "required": [
+                "method",
+                "assistant",
+                "model",
+                "at",
+                "confidence",
+                "departures",
+                "open_questions"
+              ],
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "rules",
+                    "planned"
+                  ]
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "planned",
+                    "not_planned",
+                    "stale",
+                    "failed"
+                  ]
+                },
+                "assistant": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "model": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "confidence": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "message": {
+                  "type": "object",
+                  "required": [
+                    "en",
+                    "ar"
+                  ],
+                  "properties": {
+                    "en": {
+                      "type": "string"
+                    },
+                    "ar": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "inputs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "departures": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "rule_says",
+                      "plan_chose",
+                      "because"
+                    ],
+                    "properties": {
+                      "rule_says": {
+                        "type": "string"
+                      },
+                      "plan_chose": {
+                        "type": "string"
+                      },
+                      "because": {
+                        "type": "string"
+                      },
+                      "element": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "open_questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "question"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "question": {
+                        "type": "string"
+                      },
+                      "recommendation": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "rules": {
+              "type": "object",
+              "required": [
+                "summary",
+                "elements",
+                "count"
+              ],
+              "properties": {
+                "summary": {
+                  "type": "string"
+                },
+                "elements": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "kind",
+                      "title",
+                      "operation",
+                      "cites"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "operation": {
+                        "type": "string",
+                        "enum": [
+                          "retain",
+                          "refactor",
+                          "rebuild",
+                          "merge",
+                          "delete",
+                          "new"
+                        ]
+                      },
+                      "subject": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "detail": {
+                        "type": "string"
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "rules": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "count": {
+                  "$ref": "#/$defs/measure"
+                }
+              }
+            },
+            "planned": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "summary",
+                    "confidence",
+                    "elements",
+                    "count"
+                  ],
+                  "properties": {
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "elements": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "kind",
+                          "title",
+                          "operation",
+                          "subject",
+                          "cites"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "enum": [
+                              "retain",
+                              "refactor",
+                              "rebuild",
+                              "merge",
+                              "delete",
+                              "new"
+                            ]
+                          },
+                          "subject": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "detail": {
+                            "type": "string"
+                          },
+                          "cites": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "$ref": "#/$defs/measure"
+                    }
+                  }
+                }
+              ]
+            },
+            "differences": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "element",
+                  "kind"
+                ],
+                "properties": {
+                  "element": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "added",
+                      "changed",
+                      "dropped_from_rules",
+                      "same"
+                    ]
+                  },
+                  "subject": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "rules": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "planned": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "data_paths": {
+          "type": "object",
+          "required": [
+            "provenance",
+            "rules",
+            "planned",
+            "differences"
+          ],
+          "properties": {
+            "provenance": {
+              "type": "object",
+              "required": [
+                "method",
+                "assistant",
+                "model",
+                "at",
+                "confidence",
+                "departures",
+                "open_questions"
+              ],
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "rules",
+                    "planned"
+                  ]
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "planned",
+                    "not_planned",
+                    "stale",
+                    "failed"
+                  ]
+                },
+                "assistant": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "model": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "confidence": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "message": {
+                  "type": "object",
+                  "required": [
+                    "en",
+                    "ar"
+                  ],
+                  "properties": {
+                    "en": {
+                      "type": "string"
+                    },
+                    "ar": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "inputs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "departures": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "rule_says",
+                      "plan_chose",
+                      "because"
+                    ],
+                    "properties": {
+                      "rule_says": {
+                        "type": "string"
+                      },
+                      "plan_chose": {
+                        "type": "string"
+                      },
+                      "because": {
+                        "type": "string"
+                      },
+                      "element": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "open_questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "question"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "question": {
+                        "type": "string"
+                      },
+                      "recommendation": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "rules": {
+              "type": "object",
+              "required": [
+                "summary",
+                "elements",
+                "count"
+              ],
+              "properties": {
+                "summary": {
+                  "type": "string"
+                },
+                "elements": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "kind",
+                      "title",
+                      "operation",
+                      "cites"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "operation": {
+                        "type": "string",
+                        "enum": [
+                          "retain",
+                          "refactor",
+                          "rebuild",
+                          "merge",
+                          "delete",
+                          "new"
+                        ]
+                      },
+                      "subject": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "detail": {
+                        "type": "string"
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "rules": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "count": {
+                  "$ref": "#/$defs/measure"
+                }
+              }
+            },
+            "planned": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "summary",
+                    "confidence",
+                    "elements",
+                    "count"
+                  ],
+                  "properties": {
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "elements": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "kind",
+                          "title",
+                          "operation",
+                          "subject",
+                          "cites"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "enum": [
+                              "retain",
+                              "refactor",
+                              "rebuild",
+                              "merge",
+                              "delete",
+                              "new"
+                            ]
+                          },
+                          "subject": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "detail": {
+                            "type": "string"
+                          },
+                          "cites": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "$ref": "#/$defs/measure"
+                    }
+                  }
+                }
+              ]
+            },
+            "differences": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "element",
+                  "kind"
+                ],
+                "properties": {
+                  "element": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "added",
+                      "changed",
+                      "dropped_from_rules",
+                      "same"
+                    ]
+                  },
+                  "subject": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "rules": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "planned": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "infra": {
+          "type": "object",
+          "required": [
+            "provenance",
+            "rules",
+            "planned",
+            "differences"
+          ],
+          "properties": {
+            "provenance": {
+              "type": "object",
+              "required": [
+                "method",
+                "assistant",
+                "model",
+                "at",
+                "confidence",
+                "departures",
+                "open_questions"
+              ],
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "rules",
+                    "planned"
+                  ]
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "planned",
+                    "not_planned",
+                    "stale",
+                    "failed"
+                  ]
+                },
+                "assistant": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "model": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "confidence": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "message": {
+                  "type": "object",
+                  "required": [
+                    "en",
+                    "ar"
+                  ],
+                  "properties": {
+                    "en": {
+                      "type": "string"
+                    },
+                    "ar": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "inputs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "departures": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "rule_says",
+                      "plan_chose",
+                      "because"
+                    ],
+                    "properties": {
+                      "rule_says": {
+                        "type": "string"
+                      },
+                      "plan_chose": {
+                        "type": "string"
+                      },
+                      "because": {
+                        "type": "string"
+                      },
+                      "element": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "open_questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "question"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "question": {
+                        "type": "string"
+                      },
+                      "recommendation": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "rules": {
+              "type": "object",
+              "required": [
+                "summary",
+                "elements",
+                "count"
+              ],
+              "properties": {
+                "summary": {
+                  "type": "string"
+                },
+                "elements": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "kind",
+                      "title",
+                      "operation",
+                      "cites"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "operation": {
+                        "type": "string",
+                        "enum": [
+                          "retain",
+                          "refactor",
+                          "rebuild",
+                          "merge",
+                          "delete",
+                          "new"
+                        ]
+                      },
+                      "subject": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "detail": {
+                        "type": "string"
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "rules": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "count": {
+                  "$ref": "#/$defs/measure"
+                }
+              }
+            },
+            "planned": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "summary",
+                    "confidence",
+                    "elements",
+                    "count"
+                  ],
+                  "properties": {
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "elements": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "kind",
+                          "title",
+                          "operation",
+                          "subject",
+                          "cites"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "enum": [
+                              "retain",
+                              "refactor",
+                              "rebuild",
+                              "merge",
+                              "delete",
+                              "new"
+                            ]
+                          },
+                          "subject": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "detail": {
+                            "type": "string"
+                          },
+                          "cites": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "$ref": "#/$defs/measure"
+                    }
+                  }
+                }
+              ]
+            },
+            "differences": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "element",
+                  "kind"
+                ],
+                "properties": {
+                  "element": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "added",
+                      "changed",
+                      "dropped_from_rules",
+                      "same"
+                    ]
+                  },
+                  "subject": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "rules": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "planned": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "pipeline": {
+          "type": "object",
+          "required": [
+            "provenance",
+            "rules",
+            "planned",
+            "differences"
+          ],
+          "properties": {
+            "provenance": {
+              "type": "object",
+              "required": [
+                "method",
+                "assistant",
+                "model",
+                "at",
+                "confidence",
+                "departures",
+                "open_questions"
+              ],
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "rules",
+                    "planned"
+                  ]
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "planned",
+                    "not_planned",
+                    "stale",
+                    "failed"
+                  ]
+                },
+                "assistant": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "model": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "confidence": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "message": {
+                  "type": "object",
+                  "required": [
+                    "en",
+                    "ar"
+                  ],
+                  "properties": {
+                    "en": {
+                      "type": "string"
+                    },
+                    "ar": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "inputs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "departures": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "rule_says",
+                      "plan_chose",
+                      "because"
+                    ],
+                    "properties": {
+                      "rule_says": {
+                        "type": "string"
+                      },
+                      "plan_chose": {
+                        "type": "string"
+                      },
+                      "because": {
+                        "type": "string"
+                      },
+                      "element": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "open_questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "question"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "question": {
+                        "type": "string"
+                      },
+                      "recommendation": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "rules": {
+              "type": "object",
+              "required": [
+                "summary",
+                "elements",
+                "count"
+              ],
+              "properties": {
+                "summary": {
+                  "type": "string"
+                },
+                "elements": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "kind",
+                      "title",
+                      "operation",
+                      "cites"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "operation": {
+                        "type": "string",
+                        "enum": [
+                          "retain",
+                          "refactor",
+                          "rebuild",
+                          "merge",
+                          "delete",
+                          "new"
+                        ]
+                      },
+                      "subject": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "detail": {
+                        "type": "string"
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "rules": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "count": {
+                  "$ref": "#/$defs/measure"
+                }
+              }
+            },
+            "planned": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "summary",
+                    "confidence",
+                    "elements",
+                    "count"
+                  ],
+                  "properties": {
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "elements": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "kind",
+                          "title",
+                          "operation",
+                          "subject",
+                          "cites"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "enum": [
+                              "retain",
+                              "refactor",
+                              "rebuild",
+                              "merge",
+                              "delete",
+                              "new"
+                            ]
+                          },
+                          "subject": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "detail": {
+                            "type": "string"
+                          },
+                          "cites": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "$ref": "#/$defs/measure"
+                    }
+                  }
+                }
+              ]
+            },
+            "differences": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "element",
+                  "kind"
+                ],
+                "properties": {
+                  "element": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "added",
+                      "changed",
+                      "dropped_from_rules",
+                      "same"
+                    ]
+                  },
+                  "subject": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "rules": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "planned": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "plan_order": {
+          "type": "object",
+          "required": [
+            "provenance",
+            "rules",
+            "planned",
+            "differences"
+          ],
+          "properties": {
+            "provenance": {
+              "type": "object",
+              "required": [
+                "method",
+                "assistant",
+                "model",
+                "at",
+                "confidence",
+                "departures",
+                "open_questions"
+              ],
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "rules",
+                    "planned"
+                  ]
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "planned",
+                    "not_planned",
+                    "stale",
+                    "failed"
+                  ]
+                },
+                "assistant": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "model": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "confidence": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "message": {
+                  "type": "object",
+                  "required": [
+                    "en",
+                    "ar"
+                  ],
+                  "properties": {
+                    "en": {
+                      "type": "string"
+                    },
+                    "ar": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "inputs": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "departures": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "rule_says",
+                      "plan_chose",
+                      "because"
+                    ],
+                    "properties": {
+                      "rule_says": {
+                        "type": "string"
+                      },
+                      "plan_chose": {
+                        "type": "string"
+                      },
+                      "because": {
+                        "type": "string"
+                      },
+                      "element": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "open_questions": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "question"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "question": {
+                        "type": "string"
+                      },
+                      "recommendation": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "rules": {
+              "type": "object",
+              "required": [
+                "summary",
+                "elements",
+                "count"
+              ],
+              "properties": {
+                "summary": {
+                  "type": "string"
+                },
+                "elements": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "kind",
+                      "title",
+                      "operation",
+                      "cites"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "kind": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "operation": {
+                        "type": "string",
+                        "enum": [
+                          "retain",
+                          "refactor",
+                          "rebuild",
+                          "merge",
+                          "delete",
+                          "new"
+                        ]
+                      },
+                      "subject": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "detail": {
+                        "type": "string"
+                      },
+                      "cites": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "rules": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "count": {
+                  "$ref": "#/$defs/measure"
+                }
+              }
+            },
+            "planned": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "summary",
+                    "confidence",
+                    "elements",
+                    "count"
+                  ],
+                  "properties": {
+                    "summary": {
+                      "type": "string"
+                    },
+                    "confidence": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "elements": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "kind",
+                          "title",
+                          "operation",
+                          "subject",
+                          "cites"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "operation": {
+                            "type": "string",
+                            "enum": [
+                              "retain",
+                              "refactor",
+                              "rebuild",
+                              "merge",
+                              "delete",
+                              "new"
+                            ]
+                          },
+                          "subject": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "detail": {
+                            "type": "string"
+                          },
+                          "cites": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "count": {
+                      "$ref": "#/$defs/measure"
+                    }
+                  }
+                }
+              ]
+            },
+            "differences": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "element",
+                  "kind"
+                ],
+                "properties": {
+                  "element": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "added",
+                      "changed",
+                      "dropped_from_rules",
+                      "same"
+                    ]
+                  },
+                  "subject": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "rules": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "planned": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence": {
+      "type": "object",
+      "required": [
+        "share",
+        "raw_share",
+        "elements",
+        "dropped"
+      ],
+      "properties": {
+        "share": {
+          "$ref": "#/$defs/ratio_measure"
+        },
+        "raw_share": {
+          "$ref": "#/$defs/ratio_measure"
+        },
+        "elements": {
+          "$ref": "#/$defs/measure"
+        },
+        "dropped": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "view",
+              "id",
+              "why"
+            ],
+            "properties": {
+              "view": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "why": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "critique": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "missed",
+            "risks",
+            "order"
+          ],
+          "properties": {
+            "missed": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "risks": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "order": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "view",
+          "question",
+          "options"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "view": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "recommendation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "why": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "state",
+          "passes"
+        ],
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "planned",
+              "not_planned",
+              "stale",
+              "failed"
+            ]
+          },
+          "assistant": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "seconds": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "passes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    },
+    "touch": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "table",
+            "file",
+            "env",
+            "network",
+            "store",
+            "storage"
+          ]
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "x-revision": 2
+}

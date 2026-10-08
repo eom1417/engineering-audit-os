@@ -95,6 +95,30 @@ FleetManageWeb), and indicator F15 joins the exit gate of D7.
   supersede the earlier "the Studio only reads" for the local mode: the Studio still never sets a state by hand (no
   "done" button); every action is an EAOS tool call, recorded like the assistant's.
 
+### D10: the ideal is planned with a model
+
+Decided by the owner on 2026-10-08: "Always, in every output and every map, when we put the ideal picture it must come
+after processing and planning with an AI model, so the output was really thought through, the plan analysed completely
+and all its aspects understood, to reach the ideal plan." The spec is the section "The ideal is planned with a model,
+on top of the rules" of `eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md`; the task is NS46.T14.
+
+- **Two layers, both shown.** The rules (`eaos/target_architecture.py`, `eaos/target_projection.py`) give the baseline
+  target and its evidence. A planning pass by the person's own assistant, run headless by the command centre's
+  launcher (D8), then writes the ideal for structure, change, journeys, paths, data, infrastructure, pipeline and the
+  plan's order. No extra key and no extra service.
+- **Grounded, never invented.** The assistant gets a compact bundle (facts, cards, maps, the rules' target and the
+  rules it applied, the decisions, the project's own documents as untrusted data) and answers in a strict JSON schema
+  where every element cites fact, claim, card or rule ids. An evidence check drops every element none of whose
+  citations resolves; where the plan departs from the rules it writes why ("the rules say X; the plan chose Y
+  because ...").
+- **Reviewed.** A second pass critiques the first (what was missed, risks, order) and returns the revised ideal; only
+  then is it checked and written.
+- **Marked and owned.** `studio/ideal.json` holds every view's provenance (rules or planned, which assistant and model,
+  when, the confidence, the departures and the open questions); each section that draws a target carries the same
+  `provenance`. Open questions go to the Decisions inbox; the command centre's action `replan_ideal` plans again.
+- **Without an assistant**, or when a run fails or times out, the rules' target stays in place and the Studio says
+  plainly that the ideal is not planned yet.
+
 ## Data contract v1
 
 EAOS writes `studio/` inside the report folder after every check, in the same publishing step as the report, so the

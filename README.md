@@ -56,7 +56,7 @@ flowchart TB
         direction LR
         S01["<b>S01 · الاستلام والجرد</b><br/>📄 intake.json · facts/index.json …<br/>▰ 100%"]:::done
         S02["<b>S02 · رسم العمارة الحالية</b><br/>📄 features.json · load-model.json …<br/>▰ 25%"]:::current
-        S03["<b>S03 · القياس</b><br/>📄 measurements.json · خط الأساس المثبّت<br/>▰ 47%"]:::current
+        S03["<b>S03 · القياس</b><br/>📄 measurements.json · خط الأساس المثبّت<br/>▰ 43%"]:::current
         S04["<b>S04 · التشخيص وسجل الدَّين</b><br/>📄 CURRENT-STATE.md · debt-register.json …<br/>▰ 50%"]:::current
         S01 -->|"✔ U6 = 1، U1 ≥ 0.95، H3 = 1، R4 = 1"| S02
         S02 -->|"✔ U2 ≥ 0.9، U3 = U4 = 1، U5 ≥ 0.8، ونموذج C4 الحالي"| S03
@@ -66,14 +66,14 @@ flowchart TB
         direction LR
         S05["<b>S05 · تثبيت السلوك الحالي</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 33%"]:::current
         S06["<b>S06 · الصورة المثالية</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 45%"]:::current
-        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 33%"]:::current
+        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 32%"]:::current
         S05 -->|"✔ أ (ساكن): E4 = 1 · ب (معزول): E5 ≥ 0.8 وخط أساس k6"| S06
         S06 -->|"✔ T1–T7 عند أهدافها، وموافقة بشرية مسجلة"| S07
     end
     subgraph P3["التنفيذ: بيئة معزولة بتفويض المالك (1/2)"]
         direction LR
         S08["<b>S08 · التنفيذ</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 66%"]:::current
-        S09["<b>S09 · التحقق الوظيفي</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 38%"]:::current
+        S09["<b>S09 · التحقق الوظيفي</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 33%"]:::current
         S10["<b>S10 · الأمن</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
         S11["<b>S11 · الحمل</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
         S08 -->|"✔ لكل مهمة: قبولها يمر، وشبكة الأمان تمر، ولا ادعاء حرج جديد. E1 = 1"| S09
@@ -90,7 +90,7 @@ flowchart TB
     end
     subgraph P5["الحوكمة والتسليم"]
         direction LR
-        S15["<b>S15 · الحوكمة المستمرة والتسليم</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 25%"]:::current
+        S15["<b>S15 · الحوكمة المستمرة والتسليم</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 24%"]:::current
         LOOP["↺ إعادة التدقيق بعد كل تغيير: يعود إلى S01"]:::next
         S15 -->|"✔ K1 = 1، وخط الأساس مثبّت، وبوابة الدَّين الجديد في CI"| LOOP
     end
@@ -228,13 +228,13 @@ eaos improve audit --out campaign --checks checks.json \
 <!-- north-star:progress:start -->
 <!-- مولَّد من docs/north-star.json بالأمر python tools/north_star.py؛ لا تحرّره يدويًا -->
 
-### التقدم: **36.6 من 100 نقطة**
+### التقدم: **35.6 من 100 نقطة**
 
-`█████████░░░░░░░░░░░░░░░░` 36.6%
+`█████████░░░░░░░░░░░░░░░░` 35.6%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 21 من 45 | 21 · NS27 البناء من خطة | 63.4 | 59 | 2026-09-30 · `0fbc461` |
+| 21 من 45 | 21 · NS27 البناء من خطة | 64.4 | 60 | 2026-09-30 · `0fbc461` |
 
 **كيف يُحسب:**
 
@@ -309,13 +309,13 @@ flowchart TB
     end
     subgraph R6G_1["R6G · EAOS v2: تحليل صادق، صورة مثالية، عمليات مرتبة، واستوديو حي (1/5)"]
         direction LR
-        NS30["<b>22 · NS30</b><br/>الثقة أولًا<br/>Trust first<br/>⚖ 4 · ▰ 100%"]:::done
+        NS30["<b>22 · NS30</b><br/>الثقة أولًا<br/>Trust first<br/>⚖ 3 · ▰ 100%"]:::done
         NS36["<b>23 · NS36</b><br/>أساس الاستوديو<br/>Studio foundation<br/>⚖ 3 · ▰ 42%"]:::owner
-        NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 6 · ▰ 0%"]:::owner
+        NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 7 · ▰ 0%"]:::owner
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 اختبار قبول"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 اختبار قبول"| NS46
-        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +11 اختبار قبول"| NS38
+        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +12 اختبار قبول"| NS38
     end
     subgraph R6G_2["R6G · EAOS v2: تحليل صادق، صورة مثالية، عمليات مرتبة، واستوديو حي (2/5)"]
         direction LR

@@ -30,6 +30,29 @@ The command centre (docs/STUDIO.md D8, docs/studio-actions.json; written by the 
     tools/studio_trial.py -> $EAOS_MEASURE/studio/<project>/trial.json: {project, assistant, audited, selection{kind,
         cards}, cards_fixed, questions_answered_in_inbox, accepted, typed_to_assistant, time_to_first_action_s,
         steps_per_task, failures[], understood{state: bool}, screenshots[], video}
+
+The planned ideal (docs/STUDIO.md D10; written by the planner 2026-10-08 with NS46.T14):
+    eaos.studio.ideal.VIEWS                          system, change, journeys, paths, data_paths, infra, pipeline, plan_order
+    eaos.studio.ideal.known_ids(report, project=None) -> set   every id a citation may resolve to: the report's facts
+                                                     (FACT-...), claims (CLM-...), cards (TASK-...) and the rules the
+                                                     baseline applied (RULE-<family>-<name>, e.g. RULE-disposition-modify)
+    eaos.studio.ideal.check(ideal, known) -> (kept, dropped)   the evidence check: an element none of whose `cites`
+                                                     resolves is dropped ([{view, id, why}]); unresolved cites are removed
+    eaos.studio.ideal.plan(report, launcher=None, project=None, lang='en', adapters=None) -> {'state', 'message', ...}
+        the planning pass, the critique pass and the evidence check, kept in <report>/ideal/plan.json. `launcher(pass,
+        prompt, schema) -> dict` asks the assistant (pass 'plan' -> an ideal; pass 'critique' -> {critique, ideal});
+        `launcher.assistant` and `launcher.model` name it, read after each call. Without a launcher, the first available
+        adapter of `adapters` (eaos.studio.actions.adapters.installed() by default) runs headless; with none, nothing
+        is planned. A failure or timeout leaves the rules' target in place.
+        An ideal: {views: {<view>: {summary, confidence, elements: [{id, kind, title, operation, subject, detail,
+        cites: [ids]}]}}, departures: [{view, element, rule_says, plan_chose, because, cites}],
+        open_questions: [{id, view, question, options, recommendation, why}], confidence}
+    eaos.studio.ideal.section(report, lang) -> dict  the body of studio/ideal.json (contract studio-ideal): state
+                                                     (planned, not_planned, stale, failed), message, views{<view>:
+                                                     {provenance, rules, planned}}, evidence, questions
+    eaos.studio.ideal.decisions(report, lang) -> [rows of studio/decisions.json]   the open questions, for the inbox
+    $EAOS_MEASURE/ideal/FleetManageWeb/run.json      a real run: {project, assistant, model, at, real, passes,
+                                                     share_with_evidence, elements, dropped, departures, open_questions}
 """
 import json
 import re
@@ -312,6 +335,148 @@ class CommandCentreTrial(unittest.TestCase):
         self.assertIsInstance(trial['steps_per_task'], (int, float))
         self.assertTrue(trial['screenshots'] and all(Path(p).is_file() for p in trial['screenshots']))
         self.assertTrue(Path(trial['video']).is_file())
+
+
+def _ideal_report(base):
+    """The smallest report the planner reads: the rules' target, one fact, one card, a plan."""
+    report = base / 'report'
+    (report / 'facts').mkdir(parents=True)
+    (report / 'studio').mkdir()
+    (report / 'target-architecture.json').write_text(json.dumps({
+        'reference': 'react-vite-spa-rest', 'gap_matrix': [], 'decisions': [], 'target_edges': [],
+        'current_components': [{'id': 'T-src', 'name': 'src', 'relation': 'modify', 'reason': 'Everything else.', 'files': 2,
+                                'paths': ['src/a.ts', 'src/b.ts']}],
+        'target_components': [{'name': 'api-client', 'layer': 'api-client', 'responsibility': 'The only code that knows endpoints',
+                               'files': 1, 'paths': ['src/a.ts']}],
+        'infrastructure': [{'area': 'ci', 'present': False, 'decision': 'Introduce CI', 'tool': 'GitHub Actions', 'evidence': 'no workflow'}]}),
+        encoding='utf-8')
+    (report / 'facts/graph.json').write_text(json.dumps({'facts': [{'id': 'FACT-0001', 'kind': 'graph_node', 'location': {'path': 'src/a.ts'},
+                                                                    'value': {'fan_in': 1, 'fan_out': 0, 'depends_on': []}}]}), encoding='utf-8')
+    (report / 'studio/cards.json').write_text(json.dumps({'cards': [{'id': 'TASK-001', 'title': 'Two writers of one table', 'severity': 'high',
+                                                                     'kind': 'ownership', 'paths': ['src/a.ts'], 'state': 'open'}]}), encoding='utf-8')
+    (report / 'plan.json').write_text(json.dumps({'milestones': [{'id': 'M1', 'goal': 'Stabilise', 'tasks': ['TASK-001']}]}), encoding='utf-8')
+    return report
+
+
+def _ideal(extra=()):
+    element = lambda i, cites, op='refactor': {'id': i, 'kind': 'component', 'title': f'Element {i}', 'operation': op,
+                                               'subject': 'T-src', 'detail': 'why', 'cites': list(cites)}
+    views = {'system': {'summary': 'One client for the backend.', 'confidence': 0.7,
+                        'elements': [element('s1', ['FACT-0001', 'RULE-disposition-modify']), element('s2', ['FACT-nope', 'TASK-001']), *extra]},
+             'plan_order': {'summary': 'Client first.', 'confidence': 0.6,
+                            'elements': [{'id': 'p1', 'kind': 'step', 'title': 'Make the client', 'operation': 'new', 'subject': 'M1',
+                                          'detail': 'first', 'cites': ['TASK-001']}]}}
+    return {'views': views, 'confidence': 0.65,
+            'departures': [{'view': 'system', 'element': 's1', 'rule_says': 'modify src', 'plan_chose': 'split src',
+                            'because': 'two writers of one table', 'cites': ['TASK-001']}],
+            'open_questions': [{'id': 'q1', 'view': 'system', 'question': 'Keep the old client during the move?',
+                                'options': ['yes', 'no'], 'recommendation': 'yes', 'why': 'nothing in the facts decides it'}]}
+
+
+class _Launcher:
+    assistant, model = 'Claude Code', 'test-model'
+
+    def __init__(self, fail=None):
+        self.fail, self.passes = fail, []
+
+    def __call__(self, name, prompt, schema):
+        self.passes.append(name)
+        if self.fail: raise self.fail
+        uncited = {'id': 's9', 'kind': 'component', 'title': 'Invented', 'operation': 'new', 'subject': None, 'detail': 'no evidence',
+                   'cites': ['FACT-invented']}
+        if name == 'plan': return _ideal()
+        return {'critique': {'missed': [], 'risks': [{'view': 'system', 'risk': 'order', 'cites': ['TASK-001']}], 'order': []},
+                'ideal': _ideal([uncited])}
+
+
+class IdealPlanned(unittest.TestCase):
+    """NS46.T14: every Target/Ideal view is planned by the person's assistant on top of the rules, every element with
+    its evidence, each view with its provenance; without an assistant the rules' target says it is not planned yet."""
+
+    def setUp(self):
+        self.folder = tempfile.TemporaryDirectory()
+        self.addCleanup(self.folder.cleanup)
+        self.report = _ideal_report(Path(self.folder.name))
+        from eaos.studio import ideal
+        self.ideal = ideal
+
+    def test_every_planned_element_cites_evidence_that_exists_and_an_uncited_one_is_dropped(self):
+        known = self.ideal.known_ids(self.report)
+        self.assertLessEqual({'FACT-0001', 'TASK-001', 'RULE-disposition-modify'}, known)
+        kept, dropped = self.ideal.check(_ideal([{'id': 's9', 'kind': 'component', 'title': 'Invented', 'operation': 'new',
+                                                  'subject': None, 'detail': '', 'cites': ['FACT-invented']}]), known)
+        ids = {e['id'] for view in kept['views'].values() for e in view['elements']}
+        self.assertEqual(ids, {'s1', 's2', 'p1'})
+        self.assertEqual([(row['view'], row['id']) for row in dropped], [('system', 's9')])
+        for view in kept['views'].values():
+            for element in view['elements']:
+                self.assertTrue(element['cites'] and set(element['cites']) <= known, element)
+        launcher = _Launcher()
+        result = self.ideal.plan(self.report, launcher=launcher, lang='en')
+        self.assertEqual(result['state'], 'planned', result)
+        self.assertEqual(launcher.passes, ['plan', 'critique'])
+        body = self.ideal.section(self.report, 'en')
+        self.assertEqual(body['evidence']['share']['value'], 1.0)
+        self.assertIn('s9', {row['id'] for row in body['evidence']['dropped']})
+        planned = [e for view in body['views'].values() if view['planned'] for e in view['planned']['elements']]
+        self.assertTrue(planned)
+        for element in planned:
+            self.assertTrue(element['cites'] and set(element['cites']) <= known, element)
+
+    def test_each_ideal_view_carries_its_provenance(self):
+        self.ideal.plan(self.report, launcher=_Launcher(), lang='en')
+        body = self.ideal.section(self.report, 'en')
+        self.assertEqual(artifact_contracts.validate({'schema_version': 1, 'contract': 1, 'revision': 2, **body},
+                                                     artifact_contracts.contracts()['studio-ideal']), [])
+        self.assertEqual(set(body['views']), set(self.ideal.VIEWS))
+        for name, view in body['views'].items():
+            provenance = view['provenance']
+            self.assertLessEqual({'method', 'assistant', 'model', 'at', 'confidence', 'departures', 'open_questions'}, set(provenance), name)
+            self.assertIn(provenance['method'], ('rules', 'planned'))
+        system = body['views']['system']['provenance']
+        self.assertEqual((system['method'], system['assistant'], system['model']), ('planned', 'Claude Code', 'test-model'))
+        self.assertTrue(system['at'] and 0 <= system['confidence'] <= 1)
+        self.assertEqual(system['departures'][0]['because'], 'two writers of one table')
+        self.assertLessEqual({'rule_says', 'plan_chose', 'because'}, set(system['departures'][0]))
+        self.assertTrue(system['open_questions'])
+        inbox = self.ideal.decisions(self.report, 'en')
+        self.assertTrue(inbox and all(row['state'] == 'waiting' and row['question'] for row in inbox))
+
+    def test_without_an_assistant_the_studio_shows_the_rules_target_not_planned_yet(self):
+        from eaos.studio import export
+        self.assertIn('ideal', export.SECTIONS_V2)
+        result = self.ideal.plan(self.report, launcher=None, adapters={}, lang='en')
+        self.assertEqual(result['state'], 'not_planned')
+        self.assertTrue(result['message'])
+        body = self.ideal.section(self.report, 'en')
+        self.assertEqual(body['state'], 'not_planned')
+        self.assertTrue(body['message']['en'] and body['message']['ar'])
+        for view in body['views'].values():
+            self.assertEqual(view['provenance']['method'], 'rules')
+            self.assertIsNone(view['planned'])
+        self.assertTrue(body['views']['system']['rules']['elements'])
+        failed = self.ideal.plan(self.report, launcher=_Launcher(fail=TimeoutError('took too long')), lang='en')
+        self.assertEqual(failed['state'], 'failed')
+        self.assertTrue(failed['message'])
+        self.assertEqual({v['provenance']['method'] for v in self.ideal.section(self.report, 'en')['views'].values()}, {'rules'})
+        contract = json.loads((ROOT / 'docs/studio-actions.json').read_text(encoding='utf-8'))
+        self.assertEqual((ROOT / 'docs/studio-actions.json').read_bytes(), (ROOT / 'eaos/data/studio-actions.json').read_bytes())
+        action = next(a for a in contract['actions'] if a['id'] == 'replan_ideal')
+        self.assertTrue(action['needs_assistant'] and not action['changes_code'] and not action['irreversible'])
+
+    def test_a_real_planning_run_on_fleetmanageweb_has_every_element_with_evidence(self):
+        path = reports() / 'ideal/FleetManageWeb/run.json'
+        self.assertTrue(path.is_file(), 'no recorded planning run on FleetManageWeb')
+        run = json.loads(path.read_text(encoding='utf-8'))
+        self.assertTrue(run['real'])
+        self.assertIn(run['assistant'], ('Claude Code', 'Codex'))
+        self.assertTrue(run['model'] and run['at'])
+        self.assertEqual(run['passes'], ['plan', 'critique'])
+        self.assertGreater(run['elements'], 0)
+        self.assertEqual(run['share_with_evidence'], 1.0)
+        self.assertIsInstance(run['dropped'], list)
+        self.assertIsInstance(run['departures'], list)
+        self.assertIsInstance(run['open_questions'], list)
 
 
 if __name__ == '__main__':

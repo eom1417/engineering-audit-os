@@ -98,7 +98,8 @@
               "history",
               "quality",
               "coverage",
-              "paths"
+              "paths",
+              "ideal"
             ]
           },
           "file": {
@@ -227,6 +228,7 @@
     "history",
     "quality",
     "coverage",
-    "paths"
+    "paths",
+    "ideal"
   ]
 }
