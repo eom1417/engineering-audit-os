@@ -19,9 +19,10 @@ from pathlib import Path
 
 from .. import artifact_contracts, build_info, indicators
 from . import model as M
+from . import system as system_map
 
 CONTRACT = 1
-SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media')
+SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
 SAFE = re.compile(r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$)).+')
 LANGUAGES = {'.py': 'Python', '.ts': 'TypeScript', '.tsx': 'TypeScript', '.js': 'JavaScript', '.jsx': 'JavaScript',
              '.mjs': 'JavaScript', '.cjs': 'JavaScript', '.go': 'Go', '.rb': 'Ruby', '.java': 'Java', '.kt': 'Kotlin',
@@ -299,6 +300,7 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('plans', lambda: plans(m, card_rows, lang))
     attempt('decisions', lambda: decisions(m, card_rows, lang))
     attempt('media', lambda: media(report))
+    attempt('system', lambda: system_map.system(report, card_rows))
     key = {'cards': 'cards', 'evidence': 'facts', 'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images'}
     for section in SECTIONS:
         if section not in built: continue

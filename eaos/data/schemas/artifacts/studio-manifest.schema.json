@@ -85,7 +85,8 @@
               "docs",
               "plans",
               "decisions",
-              "media"
+              "media",
+              "system"
             ]
           },
           "file": {
@@ -205,6 +206,7 @@
     "docs",
     "plans",
     "decisions",
-    "media"
+    "media",
+    "system"
   ]
 }

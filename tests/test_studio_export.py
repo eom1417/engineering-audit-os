@@ -7,7 +7,7 @@ from eaos.studio import export, model
 from tests.shared_fixture import Workspace
 from tests.test_human_report import report
 
-SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media')
+SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
 
 
 class Export(Workspace):

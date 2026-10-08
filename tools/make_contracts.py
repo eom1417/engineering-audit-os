@@ -163,7 +163,7 @@ CONTRACTS = {
 # after every check. Every section carries the contract version; a ratio is bounded to 0..1; a number the Studio shows
 # is a measure with its source; what was not measured is null, never 0; a path is relative to the project.
 STUDIO_CONTRACT = 1
-SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media')
+SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
 REF = lambda name: {'$ref': f'#/$defs/{name}'}
 DEFS = {
     'ratio': {'type': 'number', 'minimum': 0, 'maximum': 1},
@@ -183,6 +183,44 @@ TASK_STATES = ('todo', 'active', 'done', 'blocked', 'regressed')
 def section(props, required):
     return obj({'schema_version': {'const': 1}, 'contract': {'const': STUDIO_CONTRACT}, **props},
                ['schema_version', 'contract', *required])
+
+
+# The system section (studio/system.json): the territory maps of today and of the target, laid out by EAOS so the
+# Studio only draws (eaos/studio/system.py, eaos/studio/territory.py). The precursor of NS39.T1's unified graph.
+_COUNT = {'type': 'integer', 'minimum': 0}
+_XY = {'type': 'number'}
+_OP = enum('retain', 'modify', 'rebuild', 'delete', 'merge', 'introduce')
+_NAME = obj({'ar': S, 'en': S, 'ident': B}, ['ar', 'en', 'ident'])
+_LABEL = obj({'x': _XY, 'y': _XY, 'anchor': enum('start', 'middle', 'end'), 'size': N, 'placed': B, 'big': B},
+             ['x', 'y', 'anchor', 'size', 'placed'])
+_REGION = obj({'id': S, 'kind': enum('dir', 'rest', 'top', 'layer'), 'folder': NS, 'name': _NAME, 'components': _COUNT,
+               'files': _COUNT, 'findings': NI, 'lead': S,
+               'label': obj({'x': _XY, 'y': _XY, 'tx': _XY, 'ty': _XY}, ['x', 'y', 'tx', 'ty']),
+               'land': arr(obj({'level': {'type': 'integer', 'minimum': 0, 'maximum': 2}, 'd': S}, ['level', 'd']))},
+              ['id', 'kind', 'name', 'components', 'files', 'lead', 'label', 'land'])
+_EDGE = obj({'from': S, 'to': S, 'imports': _COUNT, 'cycle': B, 'd': S, 'mid': arr(_XY), 'width': N},
+            ['from', 'to', 'imports', 'd', 'width'])
+_PLACE = {'x': _XY, 'y': _XY, 'r': {'type': 'number', 'minimum': 0}, 'label': _LABEL}
+_SEVERITY = obj({'critical': _COUNT, 'high': _COUNT, 'medium': _COUNT, 'low': _COUNT, 'total': _COUNT},
+                ['critical', 'high', 'medium', 'low', 'total'])
+_VIEW = lambda node: obj({'regions': arr(_REGION), 'nodes': arr(node), 'edges': arr(_EDGE), 'scale': N,
+                          'bounds': arr(N)}, ['regions', 'nodes', 'edges', 'bounds'])
+SYSTEM_SECTION = section({
+    'world': obj({'width': _COUNT, 'height': _COUNT}, ['width', 'height']), 'graph': S,
+    'counts': obj({k: REF('measure') for k in ('components', 'regions', 'edges', 'imports', 'target_components',
+                                                'target_edges', 'target_regions')},
+                  ['components', 'regions', 'edges', 'imports', 'target_components', 'target_edges']),
+    'operations': obj({k: REF('measure') for k in ('retain', 'modify', 'rebuild', 'delete', 'merge', 'introduce')}),
+    'src': {'type': 'object', 'additionalProperties': REF('source')},
+    'capped': _COUNT,
+    'current': _VIEW(obj({'id': S, 'short': S, 'kind': S, 'region': S, 'files': _COUNT, 'fan_in': NI, 'fan_out': NI,
+                          'findings': _SEVERITY, 'op': _OP, 'target': NS, 'merged_with': _COUNT, 'reason': S,
+                          'decision': {'type': ['object', 'null'], 'properties': {'id': S, 'chosen': S}}, **_PLACE},
+                         ['id', 'short', 'region', 'files', 'findings', 'op', 'x', 'y', 'r', 'label'])),
+    'target': _VIEW(obj({'id': S, 'short': S, 'layer': NS, 'region': S, 'files': _COUNT, 'responsibility': S,
+                         'sources': arr(S), 'op': _OP, 'carried': _COUNT, **_PLACE},
+                        ['id', 'short', 'region', 'files', 'sources', 'op', 'x', 'y', 'r', 'label'])),
+}, ['world', 'counts', 'operations', 'src', 'current', 'target'])
 
 
 STUDIO = {
@@ -258,6 +296,8 @@ STUDIO = {
                               'batch': NS, 'phase': {'type': ['string', 'null'], 'enum': ['before', 'after', 'baseline', None]},
                               'route': NS, 'viewport': NS, 'pair': NS}, ['id', 'path', 'title', 'kind']))},
           ['images'])),
+ 'system': ('The project as two territory maps, today and the target: components with their files, findings and operation, the weighted imports between them, and the layout computed by EAOS so the Studio only draws. The precursor of NS39.T1\'s unified graph.',
+  SYSTEM_SECTION)
 }
 for _name, (_description, _schema) in STUDIO.items():
     _schema = {**_schema, '$defs': DEFS}
