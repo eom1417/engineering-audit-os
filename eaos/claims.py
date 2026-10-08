@@ -25,6 +25,37 @@ def claim_id(index): return 'CLM-%03d' % index
 
 STATEMENT_LIMIT = 600
 
+# What the precision set (tools/precision.py) measured for each detector: shown or hidden. A detector whose
+# measured precision or recall is under its declared bar is hidden, not shown with a caveat (NS38.T1).
+VERDICTS = DATA / 'detector-verdicts.json'
+
+
+def detector_of(claim):
+    """The detector a claim comes from: its card key, an engine cluster's kind, or the import-cycle check."""
+    render = claim.get('render') or {}
+    key = render.get('key')
+    if key == 'engine_cluster': return 'engine_cluster:' + str((render.get('params') or {}).get('kind'))
+    if key: return key
+    if str(claim.get('statement', '')).startswith('Import cycle between'): return 'import_cycle'
+    return 'unattributed'
+
+
+def hidden_detectors():
+    """{detector: why} for the detectors under their measured bar; empty when nothing was measured."""
+    try: return dict(read(VERDICTS).get('hidden') or {})
+    except (OSError, ValueError): return {}
+
+
+def withhold(claims):
+    """(shown, withheld): a claim from a hidden detector is kept aside with the reason, never shown or planned."""
+    hidden = hidden_detectors()
+    shown, withheld = [], []
+    for claim in claims:
+        why = hidden.get(detector_of(claim))
+        if why is None: shown.append(claim)
+        else: withheld.append({**claim, 'withheld': {'detector': detector_of(claim), 'why': why}})
+    return shown, withheld
+
 
 def make(index, statement, claim_type, confidence, method, evidence_ids, falsifier, **extra):
     # The schema caps a statement at STATEMENT_LIMIT. Each builder names a bounded list (naming());

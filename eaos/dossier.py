@@ -177,7 +177,11 @@ def build_claims(sets, records, load_record=None, target=None):
         rows += ledger.from_legacy(records['findings'], records['architecture'] or {}, records['flows'],
                                    records['coverage'], (records['state'] or {}).get('revision'))
     fact_index = fact_index_of(sets)
-    rows = ledger.renumber(ledger.merge(rows))
+    # A claim from a detector under its measured precision bar is set aside before numbering: it is never
+    # shown, planned or counted, and the precision set (tools/precision.py) still reads it.
+    rows, withheld = ledger.withhold(ledger.merge(rows))
+    rows = ledger.renumber(rows)
+    for number, row in enumerate(withheld, start=1): row['id'] = 'WHD-%03d' % number
     for row in rows:
         row['origin'] = origin_of(row, fact_index)
         row.setdefault('artifacts', [BRIEF if asserts_a_problem(row) else (detail_artifact(row) or 'SYSTEM-MAP.md')])
@@ -190,7 +194,7 @@ def build_claims(sets, records, load_record=None, target=None):
         for row in rows:
             built = mechanical(row, sets, target)
             if built: row['assessment'], row['checks'] = built['assessment'], built['checks']
-    return rows, fact_index
+    return rows, fact_index, withheld
 
 
 def brief(target, dossier, language):
@@ -638,7 +642,7 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
     # The load record lives beside the fact sets, not among them: it has a different shape, so it
     # is handed over separately rather than pushed into a map every consumer expects to be uniform.
     load_record = read(out / 'load-model.json') if (out / 'load-model.json').is_file() else None
-    rows, fact_index = build_claims(sets, records, load_record=load_record, target=target)
+    rows, fact_index, withheld = build_claims(sets, records, load_record=load_record, target=target)
     from fnmatch import fnmatch
     patterns = [p.strip('/') for p in (exclude or []) if p.strip('/')]
     def source_filter(path): return any(path == p or path.startswith(p + '/') or fnmatch(path, p) for p in patterns)
@@ -676,6 +680,7 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
         'description': describe(sets, records),
         'claim_counts': counts,
         'claims': rows,
+        'withheld_claims': withheld,
         'questions': questions_of(records, sets),
         'tasks': tasks_of(records),
         'legacy_tasks': tasks_of(records),
