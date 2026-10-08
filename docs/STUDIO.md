@@ -39,6 +39,22 @@ bundled. Nothing is loaded from the network at run time, and the content securit
 The Studio is the whole of EAOS's front end, and every later step adds its own page to it. Phase R6G ("Trust, plans
 and initiative") runs NS30 → NS36 → NS32 → NS37 → NS31 → NS33 → NS34 → NS35.
 
+### D6: the design direction
+
+Three directions were drawn as static mockups on FleetManageWeb's real report: Instrument, Atlas and Calm. Each
+covers Home, the System map and a card's detail on phone and desktop, in Arabic and English, light and dark: 72
+shots, all passing the automated gates. On 2026-10-08 the owner approved the recommendation, **Instrument as the
+base**, and left the exact blend to the developer, choosing for elegance and practicality:
+
+- **Instrument**: type, colour, density, the desktop sidebar, the phone tab bar with five sections (Home, System,
+  Problems, Change, Decisions), and dark and light finished to the same standard.
+- **From Atlas**: the System map as a territory, with cluster hulls, map-style labels and label placement by
+  priority. Home also opens with Atlas's one-sentence headline, where every number is a link.
+- **From Calm**: the phone decision card, with one question, its recommendation and large one-tap answers.
+
+The blended mockup and its design system spec live in `eaos-dev/planning/studio-v2/directions/studio/`
+(`DESIGN.md`, `REVIEW.md`); NS37.T1 builds that spec, and no other direction is built.
+
 ## Data contract v1
 
 EAOS writes `studio/` inside the report folder after every check, in the same publishing step as the report, so the
