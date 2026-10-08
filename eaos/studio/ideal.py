@@ -199,13 +199,21 @@ def _rules_views(report):
                                          [s.get('fact')] + [x.get('fact') for x in s.get('sites') or [] if isinstance(x, dict)])
                                 for s in stores])
     else:
-        tables = [f for f in _facts(report, 'domain') if f.get('kind') in ('table', 'data_model')
-                  and (f.get('value') or {}).get('kind') in (None, 'table', 'sql_table', 'supabase_table', 'orm_model')]
-        writes = [f for f in _facts(report, 'entrypoints') if f.get('kind') == 'data_access']
-        views['data_paths'] = ('The tables and the data calls the facts list; the rules give data no target yet.',
-                               [_element(f['id'], 'store', (f.get('value') or {}).get('name') or (f.get('value') or {}).get('table')
-                                         or (f.get('value') or {}).get('route') or f['id'], 'retain', None,
-                                         (f.get('location') or {}).get('path'), [f['id']]) for f in (tables + writes)[:LIMIT['elements']]])
+        stores = {}
+        for f in _facts(report, 'entrypoints'):
+            value = f.get('value') or {}
+            if f.get('kind') != 'data_access': continue
+            called = str(value.get('target') or value.get('route') or '')
+            called = called.split('://', 1)[-1].split('/', 1)[-1] if '://' in called else called
+            resource = next((part for part in re.split(r'[/?]', called) if part and not part.startswith((':', '$', '{'))), None)
+            name = value.get('table') or (f"{value.get('client') or 'api'}:{resource.lower()}" if resource else '?')
+            stores.setdefault(str(name), []).append(f)
+        views['data_paths'] = ('Every store the data calls reach, with the calls and the files they come from; the rules give '
+                               'data no target yet (one owner per store is the plan\'s to propose).',
+                               [_element(f'STORE-{_slug(name)}', 'store', name, 'retain', None,
+                                         f"{len(rows)} call(s) from {len({(r.get('location') or {}).get('path') for r in rows})} file(s): "
+                                         + ', '.join(sorted({str((r.get('location') or {}).get('path')) for r in rows}))[:160],
+                                         [r['id'] for r in rows]) for name, rows in sorted(stores.items())][:LIMIT['elements']])
     infra = [i for i in target.get('infrastructure') or [] if isinstance(i, dict) and i.get('area')]
     views['infra'] = ("The reference's infrastructure baseline: each area kept or introduced, with the tool that fits.",
                       [_element(f"INFRA-{_slug(i['area'])}", 'infra', f"{i['area']}: {i.get('tool') or i.get('tool_reason') or ''}",
