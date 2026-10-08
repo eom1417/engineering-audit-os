@@ -224,6 +224,7 @@ STUDIO_PHASE = ('F11', 'F12', 'F13', 'F14', 'F15')   # the exit gate of NS46, to
 
 
 PLAN_V2 = ('A1', 'W2')
+PIPELINE_MAP = ('F16',)   # the pipeline map against its truth files, tools/pipeline_truth.py
 
 
 def measure(record, only=None):
@@ -231,6 +232,7 @@ def measure(record, only=None):
     if only in STUDIO: return studio_values(only)
     if only in STUDIO_PHASE: return studio_phase_values(record, only)
     if only in PLAN_V2: return plan_v2_values(record, only)
+    if only in PIPELINE_MAP: return pipeline_map_values(only)
     projects = []
     for spec in record['corpus']:
         target = CORPUS / spec['name']
@@ -246,7 +248,15 @@ def measure(record, only=None):
     values.update(studio_values(only))
     values.update(studio_phase_values(record, only))
     values.update(plan_v2_values(record, only))
+    values.update(pipeline_map_values(only))
     return values
+
+
+def pipeline_map_values(only=None):
+    """F16 from $EAOS_MEASURE/pipeline/*/measure.json (python tools/pipeline_truth.py measure)."""
+    if only not in (None, 'F16'): return {}
+    import pipeline_truth
+    return {'F16': pipeline_truth.f16_value(REPORTS)}
 
 
 def studio_phase_values(record, only=None):

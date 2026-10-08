@@ -1,0 +1,17 @@
+{
+ "name": "celery-payments",
+ "kind": "celery",
+ "source": "https://github.com/McHenro/Distributed-Celery-Financial-Pipeline",
+ "commit": "13e86a5b18d1d057dcd825ba3efd1032e5acba0d",
+ "written": "2026-10-08, by reading config/celery.py, ledger/services.py, ledger/views.py and the three tasks.py at the pinned commit. process_payment() chains debit_wallet into write_ledger_entry (the debit's returned dict is the ledger task's argument); notify_users() fans send_notification out over chunks with a group and never gathers the results; task_routes sends each task to its queue; the two money tasks retry with back-off and, when retries run out, re-send themselves to the dead_letter queue. The view's docstring says wallet -> ledger -> notification, but in the code the notification is fed by the request's values, not by the ledger task, so there is no edge from write_ledger_entry to send_notification.",
+ "pipelines": [
+  {"anchor": "ledger/services.py", "title": "The payment canvas", "role": "product",
+   "stages": ["debit_wallet", "write_ledger_entry", "send_notification"],
+   "edges": [["debit_wallet", "write_ledger_entry"]],
+   "routers": [{"table": "task_routes", "at": "config/celery.py: app.conf.task_routes",
+                "branches": ["wallet.tasks.debit_wallet", "ledger.tasks.write_ledger_entry", "notifications.tasks.send_notification"]}],
+   "fans": ["notify_users: group(send_notification.s(chunk) for chunk in chunks(...)) with no join"],
+   "error_lanes": ["debit_wallet: retry (autoretry_for, back-off 5, 5 retries), then dead_letter",
+                   "write_ledger_entry: retry (autoretry_for, back-off 5, 5 retries), then dead_letter"]}
+ ]
+}

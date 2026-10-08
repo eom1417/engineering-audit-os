@@ -1,0 +1,1665 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/pipeline.json",
+  "description": "The pipeline map: whether the project (or a part of it) is a pipeline or flowchart, with its confidence and evidence and what was looked for; each pipeline's stages with their entry, tools, inputs, outputs and side effects; the edges matched by value flow (value, file, table, artifact, topic); routers with their labelled branches and whether they are total; fan-out and fan-in; error lanes; hidden side channels, dead stages and unread outputs; the steps EAOS could not follow, counted and drawn as gaps; and the current, ideal and gap views by rules.",
+  "x-artifact": "studio/pipeline.json",
+  "x-owner": "NS46",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "revision",
+    "detected",
+    "confidence",
+    "verdict",
+    "kinds",
+    "evidence",
+    "looked_for",
+    "pipelines",
+    "stages",
+    "edges",
+    "routers",
+    "fans",
+    "control",
+    "error_lanes",
+    "hidden",
+    "unresolved",
+    "rules",
+    "views",
+    "counts",
+    "src"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "revision": {
+      "const": 2
+    },
+    "detected": {
+      "type": "boolean"
+    },
+    "confidence": {
+      "$ref": "#/$defs/ratio_measure"
+    },
+    "verdict": {
+      "type": "string"
+    },
+    "kinds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "declared_dag",
+          "registry_loop",
+          "orchestrator",
+          "airflow",
+          "prefect",
+          "dagster",
+          "luigi",
+          "celery",
+          "langgraph",
+          "n8n",
+          "node_red",
+          "temporal",
+          "step_functions",
+          "github_actions",
+          "makefile",
+          "justfile",
+          "npm_scripts",
+          "queue",
+          "cli_chain"
+        ]
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "line"
+        ],
+        "properties": {
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "fact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "text": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "looked_for": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "label",
+          "found",
+          "how"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "declared_dag",
+              "registry_loop",
+              "orchestrator",
+              "airflow",
+              "prefect",
+              "dagster",
+              "luigi",
+              "celery",
+              "langgraph",
+              "n8n",
+              "node_red",
+              "temporal",
+              "step_functions",
+              "github_actions",
+              "makefile",
+              "justfile",
+              "npm_scripts",
+              "queue",
+              "cli_chain"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "found": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "how": {
+            "type": "string"
+          }
+        }
+      },
+      "minItems": 1
+    },
+    "pipelines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "kind",
+          "role",
+          "confidence",
+          "entry",
+          "evidence",
+          "parent",
+          "stages"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:/-]+$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "declared_dag",
+              "registry_loop",
+              "orchestrator",
+              "airflow",
+              "prefect",
+              "dagster",
+              "luigi",
+              "celery",
+              "langgraph",
+              "n8n",
+              "node_red",
+              "temporal",
+              "step_functions",
+              "github_actions",
+              "makefile",
+              "justfile",
+              "npm_scripts",
+              "queue",
+              "cli_chain"
+            ]
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "product",
+              "tooling"
+            ]
+          },
+          "confidence": {
+            "$ref": "#/$defs/ratio"
+          },
+          "entry": {
+            "type": "object",
+            "required": [
+              "path",
+              "line"
+            ],
+            "properties": {
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+              },
+              "line": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "fact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "text": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path",
+                "line"
+              ],
+              "properties": {
+                "path": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+                },
+                "line": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "fact": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "text": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "parent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "pipeline",
+          "label",
+          "kind",
+          "entry",
+          "tools",
+          "inputs",
+          "outputs",
+          "side_effects",
+          "coverage",
+          "layer",
+          "order",
+          "cards",
+          "steps"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_.:/-]+$"
+          },
+          "pipeline": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "stage",
+              "router",
+              "fork",
+              "join",
+              "ai",
+              "source",
+              "sink",
+              "external"
+            ]
+          },
+          "entry": {
+            "type": "object",
+            "required": [
+              "path",
+              "line"
+            ],
+            "properties": {
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+              },
+              "line": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "fact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "text": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "symbol": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "inputs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "kind"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "value",
+                    "file",
+                    "table",
+                    "artifact",
+                    "topic",
+                    "env",
+                    "context"
+                  ]
+                },
+                "shape": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "kind"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "value",
+                    "file",
+                    "table",
+                    "artifact",
+                    "topic",
+                    "env",
+                    "context"
+                  ]
+                },
+                "shape": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "side_effects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "kind",
+                "name"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "file",
+                    "env",
+                    "network",
+                    "global",
+                    "cache",
+                    "db",
+                    "process",
+                    "model"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+                },
+                "line": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "fact": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "text": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "optional": {
+            "type": "boolean"
+          },
+          "marks": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "slow",
+                "risky",
+                "ai",
+                "external"
+              ]
+            }
+          },
+          "sub_pipeline": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "coverage": {
+            "type": "string",
+            "enum": [
+              "measured",
+              "empty",
+              "partial",
+              "not_measured",
+              "failed"
+            ]
+          },
+          "layer": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "pipeline",
+          "from",
+          "to",
+          "kind",
+          "data",
+          "matched_by",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pipeline": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "data",
+              "control",
+              "error",
+              "hidden"
+            ]
+          },
+          "data": {
+            "type": "object",
+            "required": [
+              "names",
+              "shape"
+            ],
+            "properties": {
+              "names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "shape": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "matched_by": {
+            "type": "string",
+            "enum": [
+              "value",
+              "file",
+              "table",
+              "artifact",
+              "topic",
+              "declared",
+              "order"
+            ]
+          },
+          "condition": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence": {
+            "type": "object",
+            "required": [
+              "path",
+              "line"
+            ],
+            "properties": {
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+              },
+              "line": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "fact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "text": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "routers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "pipeline",
+          "stage",
+          "kind",
+          "on",
+          "entry",
+          "branches",
+          "total",
+          "unhandled"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pipeline": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "dict_dispatch",
+              "registry",
+              "match",
+              "switch",
+              "if_chain",
+              "plugin_list",
+              "strategy_map",
+              "conditional_edges",
+              "branch_operator"
+            ]
+          },
+          "on": {
+            "type": "string"
+          },
+          "entry": {
+            "type": "object",
+            "required": [
+              "path",
+              "line"
+            ],
+            "properties": {
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+              },
+              "line": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "fact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "text": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "condition",
+                "to",
+                "evidence"
+              ],
+              "properties": {
+                "condition": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "evidence": {
+                  "type": "object",
+                  "required": [
+                    "path",
+                    "line"
+                  ],
+                  "properties": {
+                    "path": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+                    },
+                    "line": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "fact": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "text": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "total": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "default": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unhandled": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "fans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "pipeline",
+          "fork",
+          "join",
+          "branches",
+          "matched",
+          "kind",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pipeline": {
+            "type": "string"
+          },
+          "fork": {
+            "type": "string"
+          },
+          "join": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "matched": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "parallel",
+              "map",
+              "group",
+              "chord",
+              "collect"
+            ]
+          },
+          "evidence": {
+            "type": "object",
+            "required": [
+              "path",
+              "line"
+            ],
+            "properties": {
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+              },
+              "line": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "fact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "text": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "control": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "pipeline",
+          "stage",
+          "kind",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pipeline": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "loop",
+              "retry",
+              "conditional_skip",
+              "early_exit"
+            ]
+          },
+          "condition": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence": {
+            "type": "object",
+            "required": [
+              "path",
+              "line"
+            ],
+            "properties": {
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+              },
+              "line": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "fact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "text": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "error_lanes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "pipeline",
+          "from",
+          "to",
+          "kind",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pipeline": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "skip",
+              "fail",
+              "retry",
+              "block",
+              "raise",
+              "catch",
+              "fallback"
+            ]
+          },
+          "condition": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence": {
+            "type": "object",
+            "required": [
+              "path",
+              "line"
+            ],
+            "properties": {
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+              },
+              "line": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "fact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "text": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "hidden": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "pipeline",
+          "kind",
+          "name",
+          "stages",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pipeline": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "side_channel",
+              "dead_stage",
+              "unread_output"
+            ]
+          },
+          "channel": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "global",
+              "file",
+              "env",
+              "cache",
+              "db",
+              "context",
+              null
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence": {
+            "type": "object",
+            "required": [
+              "path",
+              "line"
+            ],
+            "properties": {
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+              },
+              "line": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "fact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "text": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "unresolved": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "pipeline",
+          "stage",
+          "call",
+          "reason",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "pipeline": {
+            "type": "string"
+          },
+          "stage": {
+            "type": "string"
+          },
+          "call": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "object",
+            "required": [
+              "path",
+              "line"
+            ],
+            "properties": {
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+              },
+              "line": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "fact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "text": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "why",
+          "source",
+          "broken"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^P[0-9]+$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "broken": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "views": {
+      "type": "object",
+      "required": [
+        "current",
+        "ideal",
+        "gap"
+      ],
+      "properties": {
+        "current": {
+          "type": "object",
+          "required": [
+            "stages",
+            "edges"
+          ],
+          "properties": {
+            "stages": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "edges": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "ideal": {
+          "type": "object",
+          "required": [
+            "stages",
+            "edges",
+            "made_by"
+          ],
+          "properties": {
+            "stages": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "op",
+                  "label",
+                  "pipeline"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "retain",
+                      "refactor",
+                      "rebuild",
+                      "merge",
+                      "delete",
+                      "new"
+                    ]
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "pipeline": {
+                    "type": "string"
+                  },
+                  "why": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "rule": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "contract": {
+                    "type": "object",
+                    "required": [
+                      "inputs",
+                      "outputs"
+                    ],
+                    "properties": {
+                      "inputs": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "outputs": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "marks": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "slow",
+                        "risky",
+                        "ai",
+                        "external"
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "edges": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "from",
+                  "to",
+                  "op",
+                  "pipeline"
+                ],
+                "properties": {
+                  "from": {
+                    "type": "string"
+                  },
+                  "to": {
+                    "type": "string"
+                  },
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "retain",
+                      "refactor",
+                      "rebuild",
+                      "merge",
+                      "delete",
+                      "new"
+                    ]
+                  },
+                  "pipeline": {
+                    "type": "string"
+                  },
+                  "rule": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "made_by": {
+              "type": "string",
+              "enum": [
+                "rules",
+                "model"
+              ]
+            }
+          }
+        },
+        "gap": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "rule",
+              "pipeline",
+              "subject",
+              "subject_kind",
+              "operation",
+              "detail",
+              "evidence",
+              "card",
+              "step"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "rule": {
+                "type": "string",
+                "pattern": "^P[0-9]+$"
+              },
+              "pipeline": {
+                "type": "string"
+              },
+              "subject": {
+                "type": "string"
+              },
+              "subject_kind": {
+                "type": "string",
+                "enum": [
+                  "pipeline",
+                  "stage",
+                  "edge",
+                  "router",
+                  "fan",
+                  "hidden",
+                  "unresolved"
+                ]
+              },
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "retain",
+                  "refactor",
+                  "rebuild",
+                  "merge",
+                  "delete",
+                  "new"
+                ]
+              },
+              "detail": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": "object",
+                "required": [
+                  "path",
+                  "line"
+                ],
+                "properties": {
+                  "path": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+                  },
+                  "line": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "fact": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "text": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "card": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "step": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/measure"
+      }
+    },
+    "src": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/source"
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    },
+    "touch": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "table",
+            "file",
+            "env",
+            "network",
+            "store",
+            "storage"
+          ]
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "x-revision": 2
+}

@@ -4,8 +4,10 @@
     guard.py   the token, the Host and Origin checks and the CSRF token, on every request
     read.py    the read routes and their OpenAPI document, generated from the contract's schemas
     events.py  the live feed: the project's event log when there is one, else the Studio manifest's digests
-    server.py  the app: the Studio's assets, the read API, the stream, and the mount point of the action API
-    launch.py  `eaos studio` and the `open_studio` tool: start or reuse the server of a project, open its address
+    server.py  the app: the Studio's assets, the read API, the stream, the mount point of the action API, and
+               `eaos studio` (run_foreground)
+    launch.py  the `open_studio` tool and the server's record: start or reuse the server of a project, open its
+               address, without importing the server
 
 Starlette, Uvicorn and sse-starlette are adopted (docs/adoption/ns37-t2-live-server.md); they come with `mcp`.
 """

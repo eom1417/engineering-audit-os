@@ -192,7 +192,7 @@ def guided_command(args):
 
 
 def studio_command(args):
-    from .api.launch import run_foreground
+    from .api.server import run_foreground
     return run_foreground(args.project, port=args.port, show=not args.no_open)
 
 

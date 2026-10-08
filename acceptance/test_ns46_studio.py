@@ -30,6 +30,19 @@ The command centre (docs/STUDIO.md D8, docs/studio-actions.json; written by the 
     tools/studio_trial.py -> $EAOS_MEASURE/studio/<project>/trial.json: {project, assistant, audited, selection{kind,
         cards}, cards_fixed, questions_answered_in_inbox, accepted, typed_to_assistant, time_to_first_action_s,
         steps_per_task, failures[], understood{state: bool}, screenshots[], video}
+
+The pipeline map (docs/STUDIO.md D9; written by the planner 2026-10-08 with NS46.T12-T13):
+    eaos.facts.pipeline.scan(project) -> record      {detected, confidence, kinds, evidence, looked_for, pipelines, stages,
+                                                     edges, routers, fans, control, error_lanes, hidden, unresolved}; every
+                                                     stage, edge and branch with its evidence {path, line} in the project
+    eaos.facts.pipeline.write(report, record)        facts/pipeline.json of a report, as the facts stage writes it
+    eaos.studio.pipeline.section(record, cards=(), plan=None, lang='en') -> the body of studio/pipeline.json
+    evaluations/pipelines/<name>.json                hand-written truth files: {name, kind, source, commit, pipelines:
+                                                     [{anchor, stages, edges, routers: [{table, branches}]}]}; source null
+                                                     is this repository; apps.json lists what each app project holds
+    tools/pipeline_truth.py checkout(truth) -> Path | None, compare(truth, record) -> {stages|edges|branches: {recall,
+                                                     precision}}, verify(project, record) -> [problems], apps() -> [(name, path)]
+    human/index.html                                 a section id="pipeline-sheet" when facts/pipeline.json holds a pipeline
 """
 import json
 import re
@@ -312,6 +325,111 @@ class CommandCentreTrial(unittest.TestCase):
         self.assertIsInstance(trial['steps_per_task'], (int, float))
         self.assertTrue(trial['screenshots'] and all(Path(p).is_file() for p in trial['screenshots']))
         self.assertTrue(Path(trial['video']).is_file())
+
+
+RECALL, PRECISION = 0.8, 0.9
+
+
+def pipeline_truth():
+    import pipeline_truth as truth
+    return truth
+
+
+class PipelineEngine(unittest.TestCase):
+    """NS46.T12: the engine finds the pipelines as the hand-written truth files say, and invents none."""
+
+    def judge(self, name, scores):
+        for part in ('stages', 'edges', 'branches'):
+            self.assertGreaterEqual(scores[part]['recall'], RECALL, f'{name}: {part} recall {scores[part]}')
+            self.assertGreaterEqual(scores[part]['precision'], PRECISION, f'{name}: {part} precision {scores[part]}')
+
+    def test_eaos_itself_matches_its_hand_written_truth(self):
+        from eaos.facts import pipeline
+        truth = pipeline_truth()
+        record = pipeline.scan(ROOT)
+        self.assertTrue(record['detected'])
+        self.judge('eaos', truth.compare(truth.load('eaos'), record))
+        self.assertEqual(truth.verify(ROOT, record), [])
+
+    def test_two_public_pipelines_of_different_kinds_match_their_truth(self):
+        from eaos.facts import pipeline
+        truth = pipeline_truth()
+        public = [truth.load(path.stem) for path in sorted((ROOT / 'evaluations/pipelines').glob('*.json'))
+                  if path.stem not in ('eaos', 'apps')]
+        self.assertGreaterEqual(len({t['kind'] for t in public}), 2, 'two public pipelines of different kinds')
+        for spec in public:
+            self.assertTrue(spec['source'] and spec['commit'], spec['name'])
+            where = truth.checkout(spec)
+            self.assertIsNotNone(where, f"{spec['name']}: not cloned at {spec['commit']} (python tools/pipeline_truth.py fetch)")
+            record = pipeline.scan(where)
+            self.judge(spec['name'], truth.compare(spec, record))
+            self.assertEqual(truth.verify(where, record), [], spec['name'])
+
+    def test_no_pipeline_is_invented_on_the_app_projects(self):
+        from eaos.facts import pipeline
+        truth = pipeline_truth()
+        expected = truth.load('apps')['projects']
+        apps = truth.apps()
+        self.assertGreaterEqual(len(apps), 4)
+        for name, where in apps:
+            record = pipeline.scan(where)
+            found = sorted(p['title'] for p in record['pipelines'] if p['role'] == 'product')
+            self.assertEqual(found, sorted(expected.get(name, {}).get('product', [])), f'{name}: a product pipeline not in the truth')
+            self.assertEqual(truth.verify(where, record), [], name)
+
+    def test_the_section_meets_its_contract_with_its_fixture(self):
+        from eaos.facts import pipeline
+        from eaos.studio import pipeline as section
+        contracts = artifact_contracts.contracts()
+        manifest = json.loads((ROOT / 'schemas/artifacts/studio-manifest.schema.json').read_text(encoding='utf-8'))
+        self.assertIn('pipeline', manifest['x-sections'])
+        source = (ROOT / 'schemas/artifacts/studio-pipeline.schema.json').read_bytes()
+        self.assertEqual(source, (ROOT / 'eaos/data/schemas/artifacts/studio-pipeline.schema.json').read_bytes())
+        fixture = json.loads((ROOT / 'tests/fixtures/studio/v2/pipeline.json').read_text(encoding='utf-8'))
+        self.assertEqual(artifact_contracts.validate(fixture, contracts['studio-pipeline']), [])
+        self.assertTrue(fixture['detected'] and fixture['routers'] and fixture['views']['gap'])
+        body = {'schema_version': 1, 'contract': 1, 'revision': 2, **section.section(pipeline.scan(ROOT))}
+        self.assertEqual(artifact_contracts.validate(body, contracts['studio-pipeline']), [])
+        self.assertEqual({r['id'] for r in body['rules']} >= {f'P{n}' for n in range(1, 10)}, True)
+        for entry in body['views']['gap']:
+            self.assertTrue(entry['evidence']['path'], entry['id'])
+
+    def test_a_1000_stage_synthetic_pipeline_builds_within_its_budget(self):
+        import time
+        from eaos.facts import pipeline
+        from eaos.studio import pipeline as section
+        with tempfile.TemporaryDirectory() as folder:
+            project = Path(folder)
+            body = ['def stage_%d(value):\n    return value + %d\n' % (n, n) for n in range(1000)]
+            calls = ['    v0 = stage_0(seed)'] + ['    v%d = stage_%d(v%d)' % (n, n, n - 1) for n in range(1, 1000)]
+            (project / 'flow.py').write_text('\n'.join(body) + '\n\ndef run_pipeline(seed):\n' + '\n'.join(calls) + '\n    return v999\n',
+                                             encoding='utf-8')
+            began = time.monotonic()
+            record = pipeline.scan(project)
+            data = {'schema_version': 1, 'contract': 1, 'revision': 2, **section.section(record)}
+            spent = time.monotonic() - began
+        self.assertGreaterEqual(len(data['stages']), 1000)
+        self.assertGreaterEqual(len(data['edges']), 999)
+        self.assertEqual(artifact_contracts.validate(data, artifact_contracts.contracts()['studio-pipeline']), [])
+        self.assertLess(spent, 20.0, f'{spent:.1f} s for 1,000 stages')
+
+
+class PipelinePage(RoutesOfTask, unittest.TestCase):
+    """NS46.T13: System -> Pipeline in the Studio, and the pipeline sheet in the report."""
+    task = 'NS46.T13'
+
+    def test_the_report_has_the_pipeline_sheet(self):
+        sys.path.insert(0, str(ROOT))
+        from eaos import human_report
+        from eaos.facts import pipeline
+        from tests.test_human_report import report
+        with tempfile.TemporaryDirectory() as folder:
+            out = report(Path(folder))
+            pipeline.write(out, pipeline.scan(ROOT))
+            page = Path(human_report.write(out, 'en', 'eaos')).read_text(encoding='utf-8')
+        self.assertIn('id="pipeline-sheet"', page)
+        for stage in ('facts', 'claims', 'compose'):
+            self.assertIn(stage, page)
 
 
 if __name__ == '__main__':

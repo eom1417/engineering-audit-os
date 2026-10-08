@@ -1,5 +1,9 @@
 """`eaos studio` and the `open_studio` tool: the live Studio of a project, started once and reused.
 
+This module finds, records and starts the server without importing it (`eaos studio` itself runs in
+server.run_foreground), so the `open_studio` tool does not depend on the server and the command centre it mounts,
+which call the MCP tools back.
+
 One server per project. Its address, port, process and token are kept in ~/.eaos/studio/<workspace>.json, readable by
 the person only, so a second `eaos studio` (or `open_studio`) reopens the running one instead of starting another.
 A record whose process is gone, or whose server does not answer with its token, is replaced.
@@ -11,7 +15,6 @@ state, which says how to start.
 """
 import json
 import os
-import signal
 import subprocess
 import sys
 import time
@@ -84,35 +87,6 @@ def prepare(project=None):
     return state, report
 
 
-def run_foreground(project=None, port=0, show=True, out=lambda text: print(text, flush=True)):
-    """`eaos studio`: serve until stopped. Returns the exit code."""
-    from .server import Keys, bind, create_app, serve
-    state, report = prepare(project)
-    found = running(state)
-    if found:
-        out(f'The Studio of this project is already open: {url_of(found)}')
-        _open(url_of(found), show)
-        return 0
-    sock = bind(port)
-    app = create_app(report, project=state['project'], keys=Keys(port=sock.getsockname()[1]))
-    ctx = app.state.ctx
-    _write_record(state, {'pid': os.getpid(), 'port': ctx.keys.port, 'token': ctx.keys.token, 'report': str(report),
-                          'project': state['project'], 'started': time.time()})
-    try:
-        out(f"EAOS Studio, live: {ctx.url}\n(only this computer can open it; press Ctrl-C to stop)")
-        if not guided.scan_done(state):
-            out('This project has not been checked yet: the Studio opens empty until `eaos start` checks it.')
-        _open(ctx.url, show)
-        # Uvicorn re-raises the signal it stopped on; a stop (SIGTERM) then ends here like Ctrl-C, and the record goes
-        signal.signal(signal.SIGTERM, _interrupt)
-        serve(app, sock)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        record_path(state).unlink(missing_ok=True)
-    return 0
-
-
 def open_studio(project=None, show=True):
     """`open_studio`: the live Studio's address, starting its server in the background when it is not running."""
     state, report = prepare(project)
@@ -144,10 +118,6 @@ def open_studio(project=None, show=True):
                         + '; it updates by itself after every check, batch, merge and decision. '
                         + ('' if guided.scan_done(state) else 'The project is not checked yet: offer audit first. ')
                         + 'Do not paste the address anywhere else: it holds the key of this session.'}
-
-
-def _interrupt(number, frame):
-    raise KeyboardInterrupt
 
 
 def _open(url, show):

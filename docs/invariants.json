@@ -1894,6 +1894,33 @@
       "kind": "invariant",
       "enforced_by": "tests/test_studio_actions.py::Locks::test_every_refusal_is_logged_with_its_reason_and_never_the_token",
       "note": ""
+    },
+    {
+      "id": "INV-3f8dce8498",
+      "file": "eaos/facts/pipeline.py",
+      "symbol": "<module>",
+      "statement": "A pipeline is found only from what the code declares or does, never guessed from names alone: - a declared DAG: a list of stage records whose `requires` name other stages, run through a registry of runners; - a declared sequence: a list of steps holding the functions a driver calls one after the other; - a registry loop: a loop over stage names dispatching through a table, each stage's inputs taken from what the earlier stages put in an accumulator; - an orchestrator: a function announcing its phases in order, or one whose calls pass one stage's result to the next; - the frameworks' own declarations (Airflow, Prefect, Dagster, Luigi, Celery canvas, LangGraph, Temporal), queue topologies (a topic both produced and consumed), and the build and CI chains (GitHub Actions `needs`, Make and just targets, npm script chains, n8n / Node-RED / Step Functions exports).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_pipeline_map.py::Orchestrators::test_a_chain_of_calls_without_a_pipeline_signal_is_not_a_pipeline",
+      "note": ""
+    },
+    {
+      "id": "INV-398e27160f",
+      "file": "eaos/facts/pipeline.py",
+      "symbol": "<module>",
+      "statement": "A dispatch EAOS cannot follow is written as an unresolved step, never as an edge.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_pipeline_map.py::RegistryLoop::test_a_dispatch_eaos_cannot_follow_is_an_unresolved_step_never_an_edge",
+      "note": ""
+    },
+    {
+      "id": "INV-37eae478a8",
+      "file": "eaos/facts/pipeline.py",
+      "symbol": "scan",
+      "statement": "Never runs the project.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_pipeline_map.py::NothingInvented::test_never_runs_the_project",
+      "note": ""
     }
   ],
   "limits": "Extraction is lexical: it finds sentences that assert, not every promise a docstring makes. A sentence it misses is still an invariant."

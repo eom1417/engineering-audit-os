@@ -167,7 +167,8 @@
     ],
     "studio": [
       "studio/**",
-      "eaos/data/studio/**"
+      "eaos/data/studio/**",
+      "docs/studio-actions.json"
     ]
   },
   "rules": [

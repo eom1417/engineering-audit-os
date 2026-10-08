@@ -20,7 +20,7 @@ PLANNED = {'meta': 'languages', 'head': None, 'health': 'domains', 'cards': 'car
            'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images',
            'functions': 'functions', 'screens': 'screens', 'gaps': 'gaps', 'operations': 'operations', 'history': 'scans',
            'quality': 'detectors', 'maps': None, 'paths': 'paths', 'journeys': 'screens', 'hidden': 'items',
-           'data_paths': 'stores', 'infra': None}
+           'data_paths': 'stores', 'infra': None, 'pipeline': 'stages'}
 V1_STEP = 'NS36.T2'
 
 
@@ -99,6 +99,10 @@ def _not_exported(section, report, built, lang):
         return ('not_built', _text(lang, 'خريطة البيانات أو البنية التحتية لم تُصدَّر في هذا الفحص.',
                                    'The data or infrastructure map is not exported in this check.'),
                 'NS46.T6', 'audit', _count(None, f'{section}.json'), [])
+    if section == 'pipeline':
+        return ('not_built', _text(lang, 'هذا الفحص لم يكتب حقائق خط المعالجة (facts/pipeline.json): أعد الفحص بإصدار أحدث من EAOS.',
+                                   'This check wrote no pipeline facts (facts/pipeline.json): check again with a newer EAOS.'),
+                'NS46.T12', 'audit', _count(None, 'pipeline.json#stages'), [])
     if section == 'maps':
         return ('not_built', _text(lang, 'خرائط النظام لم تُصدَّر في هذا الفحص.', 'The system maps are not exported in this check.'),
                 'NS46.T6', 'audit', _count(None, 'maps.json'), [])
@@ -119,6 +123,18 @@ def _paths_parts(body, lang):
              'handler_not_found': ('مدخل خادم بلا معالج يمكن تتبّعه', 'server entries with no traceable handler')}
     for key, (ar, en) in words.items():
         if value(key): parts.append({'id': key, 'state': 'not_measured', 'detail': _text(lang, f'{value(key)} {ar}', f'{value(key)} {en}')})
+    return parts
+
+
+def _pipeline_parts(body, lang):
+    """What the pipeline map measured, and the steps it could not follow, counted rather than hidden."""
+    counts = (body or {}).get('counts') or {}
+    value = lambda key: (counts.get(key) or {}).get('value') or 0
+    parts = [{'id': 'stages', 'state': 'measured', 'detail': _text(lang, f'{value("stages")} مرحلة و{value("edges")} رابطًا بدليلها',
+                                                                  f'{value("stages")} stages and {value("edges")} edges with their evidence')}]
+    if value('unresolved'):
+        parts.append({'id': 'unresolved', 'state': 'not_measured',
+                      'detail': _text(lang, f'{value("unresolved")} خطوة لم يستطع EAOS تتبّعها', f'{value("unresolved")} steps EAOS could not follow')})
     return parts
 
 
@@ -157,7 +173,7 @@ def _infra_parts(body, lang):
     return parts
 
 
-PARTS = {'paths': _paths_parts, 'data_paths': _data_paths_parts, 'infra': _infra_parts}
+PARTS = {'paths': _paths_parts, 'data_paths': _data_paths_parts, 'infra': _infra_parts, 'pipeline': _pipeline_parts}
 
 
 def coverage(report, built, written, errors, lang='ar'):

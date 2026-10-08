@@ -26,7 +26,10 @@ import contextlib
 import inspect
 import json
 import logging
+import os
+import signal
 import socket
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -38,7 +41,8 @@ from starlette.middleware import Middleware
 from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Route
 
-from . import guard, read
+from .. import guided
+from . import guard, launch, read
 from .events import Feed
 
 ASSETS = Path(__file__).resolve().parent.parent / 'data' / 'studio'
@@ -239,3 +243,35 @@ def serve(app, sock=None, ready=None):
     server = uvicorn.Server(config)
     if ready: ready(server)
     server.run(sockets=[sock])
+
+
+def run_foreground(project=None, port=0, show=True, out=lambda text: print(text, flush=True)):
+    """`eaos studio`: serve until stopped, with the record launch.py reuses. Returns the exit code."""
+    state, report = launch.prepare(project)
+    found = launch.running(state)
+    if found:
+        out(f'The Studio of this project is already open: {launch.url_of(found)}')
+        launch._open(launch.url_of(found), show)
+        return 0
+    sock = bind(port)
+    app = create_app(report, project=state['project'], keys=Keys(port=sock.getsockname()[1]))
+    ctx = app.state.ctx
+    launch._write_record(state, {'pid': os.getpid(), 'port': ctx.keys.port, 'token': ctx.keys.token, 'report': str(report),
+                                 'project': state['project'], 'started': time.time()})
+    try:
+        out(f"EAOS Studio, live: {ctx.url}\n(only this computer can open it; press Ctrl-C to stop)")
+        if not guided.scan_done(state):
+            out('This project has not been checked yet: the Studio opens empty until `eaos start` checks it.')
+        launch._open(ctx.url, show)
+        # Uvicorn re-raises the signal it stopped on; a stop (SIGTERM) then ends here like Ctrl-C, and the record goes
+        signal.signal(signal.SIGTERM, _interrupt)
+        serve(app, sock)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        launch.record_path(state).unlink(missing_ok=True)
+    return 0
+
+
+def _interrupt(number, frame):
+    raise KeyboardInterrupt

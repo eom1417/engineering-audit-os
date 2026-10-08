@@ -1,0 +1,97 @@
+{
+ "name": "company-research-langgraph",
+ "kind": "langgraph",
+ "source": "https://github.com/guy-hartstein/company-research-agent",
+ "commit": "5b2caa8277605b98aa7029246267faeba8a312fb",
+ "written": "2026-10-08, by reading backend/graph.py, langgraph_entry.py and application.py at the pinned commit, before the detector was run on this project (a held-out check: the detector was not developed on it). A LangGraph StateGraph of ten nodes: grounding fans out to four researchers, which the collector gathers, then curator, enricher, briefing and editor in a line. The researcher edges are added in a loop over a literal list. No conditional edges, so no router.",
+ "pipelines": [
+  {
+   "anchor": "backend/graph.py",
+   "title": "The research workflow (StateGraph)",
+   "role": "product",
+   "stages": [
+    "grounding",
+    "financial_analyst",
+    "news_scanner",
+    "industry_analyst",
+    "company_analyst",
+    "collector",
+    "curator",
+    "enricher",
+    "briefing",
+    "editor"
+   ],
+   "edges": [
+    [
+     "grounding",
+     "financial_analyst"
+    ],
+    [
+     "grounding",
+     "news_scanner"
+    ],
+    [
+     "grounding",
+     "industry_analyst"
+    ],
+    [
+     "grounding",
+     "company_analyst"
+    ],
+    [
+     "financial_analyst",
+     "collector"
+    ],
+    [
+     "news_scanner",
+     "collector"
+    ],
+    [
+     "industry_analyst",
+     "collector"
+    ],
+    [
+     "company_analyst",
+     "collector"
+    ],
+    [
+     "collector",
+     "curator"
+    ],
+    [
+     "curator",
+     "enricher"
+    ],
+    [
+     "enricher",
+     "briefing"
+    ],
+    [
+     "briefing",
+     "editor"
+    ]
+   ],
+   "routers": [],
+   "fans": [
+    "grounding -> four researchers -> collector (matched)"
+   ]
+  },
+  {
+   "anchor": "ui/package.json",
+   "title": "The UI's build script: tsc, then vite build",
+   "role": "tooling",
+   "stages": [
+    "tsc",
+    "vite build"
+   ],
+   "edges": [
+    [
+     "tsc",
+     "vite build"
+    ]
+   ],
+   "routers": []
+  }
+ ],
+ "amended": "2026-10-08, after the first measurement: the ui/package.json build chain added. The truth's author had read only the Python graph; eaos.json counts build chains as tooling pipelines, and the same rule applies here. The detector was not changed for it. The first measurement (stages, edges: recall 0.0, precision 0.0) is kept in the worker report: the detector then read neither a graph held on an attribute (self.workflow) nor edges added in a loop over a literal list, both fixed in general, not for this project's names."
+}

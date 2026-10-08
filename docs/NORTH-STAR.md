@@ -4,13 +4,13 @@
 
 ## أين نحن
 
-### التقدم: **36.6 من 100 نقطة**
+### التقدم: **36.2 من 100 نقطة**
 
-`█████████░░░░░░░░░░░░░░░░` 36.6%
+`█████████░░░░░░░░░░░░░░░░` 36.2%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 21 من 45 | 21 · NS27 البناء من خطة | 63.4 | 59 | 2026-09-30 · `0fbc461` |
+| 21 من 45 | 21 · NS27 البناء من خطة | 63.8 | 60 | 2026-09-30 · `0fbc461` |
 
 **كيف يُحسب:**
 
@@ -65,7 +65,7 @@ flowchart TB
     end
     subgraph R5_1["R5 · الخطة والتقارير وعدّة التسليم"]
         direction LR
-        NS8["<b>14 · NS8</b><br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports<br/>⚖ 2 · ▰ 100%"]:::done
+        NS8["<b>14 · NS8</b><br/>خطة التنفيذ للفريق والتقارير الأربعة<br/>Team execution plan and the four reports<br/>⚖ 1 · ▰ 100%"]:::done
         NS14["<b>15 · NS14</b><br/>جودة التقرير تُفحص آليًا<br/>Report quality checked automatically<br/>⚖ 1 · ▰ 100%"]:::done
         NS25["<b>16 · NS25</b><br/>عدّة التشغيل والتسليم<br/>Operations and handover kit<br/>⚖ 1 · ▰ 100%"]:::done
         NS8 -->|"✔ P1=1 · P4=1 · P3≥0.8 · …"| NS14
@@ -89,11 +89,11 @@ flowchart TB
         direction LR
         NS30["<b>22 · NS30</b><br/>الثقة أولًا<br/>Trust first<br/>⚖ 4 · ▰ 100%"]:::done
         NS36["<b>23 · NS36</b><br/>أساس الاستوديو<br/>Studio foundation<br/>⚖ 3 · ▰ 42%"]:::owner
-        NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 6 · ▰ 0%"]:::owner
+        NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 7 · ▰ 8%"]:::owner
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 اختبار قبول"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 اختبار قبول"| NS46
-        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +11 اختبار قبول"| NS38
+        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +13 اختبار قبول"| NS38
     end
     subgraph R6G_2["R6G · EAOS v2: تحليل صادق، صورة مثالية، عمليات مرتبة، واستوديو حي (2/5)"]
         direction LR
@@ -190,7 +190,7 @@ flowchart TB
 | 11 | [**NS15** تثبيت السلوك: المواصفات قبل أي تغيير (ساكن)](#step-11) | R4 | 1 | 100% | 1 | 100% | ✅ مكتملة | E4=1 · +4 اختبار قبول |
 | 12 | [**NS7** تقرير الصورة المثالية](#step-12) | R4 | 1 | 100% | 1 | 100% | ✅ مكتملة | T1=1 · G1=1 · T2=1 · T4=1 · T5=1 · +2 اختبار قبول |
 | 13 | [**NS13** نموذج العمارة وقراراتها](#step-13) | R4 | 1 | 100% | 1 | 100% | ✅ مكتملة | T6=1 · T7=1 · +2 اختبار قبول |
-| 14 | [**NS8** خطة التنفيذ للفريق والتقارير الأربعة](#step-14) | R5 | 2 | 100% | 2 | 100% | ✅ مكتملة | P1=1 · P4=1 · P3≥0.8 · P6=1 · P7=1 · P9≥0.8 |
+| 14 | [**NS8** خطة التنفيذ للفريق والتقارير الأربعة](#step-14) | R5 | 1 | 100% | 1 | 100% | ✅ مكتملة | P1=1 · P4=1 · P3≥0.8 · P6=1 · P7=1 · P9≥0.8 |
 | 15 | [**NS14** جودة التقرير تُفحص آليًا](#step-15) | R5 | 1 | 100% | 1 | 100% | ✅ مكتملة | P8=1 · +3 اختبار قبول |
 | 16 | [**NS25** عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي](#step-16) | R5 | 1 | 100% | 1 | 100% | ✅ مكتملة | K1=1 · +4 اختبار قبول |
 | 17 | [**NS26** خط الأساس الحي: السلوك والأرقام قبل أي تغيير](#step-17) | R6 | 1 | 100% | 1 | 100% | ✅ مكتملة | E5≥0.8 · +2 اختبار قبول |
@@ -200,7 +200,7 @@ flowchart TB
 | 21 | [**NS27** البناء من خطة](#step-21) | R6 | 6 | 93% | 5.6 | 88% | 🟡 قيد العمل | B1=1 · B2=1 · X8=1 · B3=1 · B4=1 · X1=1 · … · +1 اختبار قبول |
 | 22 | [**NS30** الثقة أولًا: كل بطاقة على ملفها، وكل رقم صادق](#step-22) | R6G | 4 | 100% | 4 | 100% | ✅ مكتملة | S4=1 · X13=1 · +1 اختبار قبول |
 | 23 | [**NS36** أساس الاستوديو: القرارات والعقد والنموذج](#step-23) | R6G | 3 | 42% | 1.26 | 50% | 🔴 تحتاج مدخلًا منك | F8=1 · F10=1 · +4 اختبار قبول |
-| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 6 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F11=1 · F9=1 · … · +11 اختبار قبول |
+| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 7 | 8% | 0.58 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +13 اختبار قبول |
 | 25 | [**NS38** تحليل صادق: الدقة أولًا](#step-25) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | A1=1 · W2=1 · A2=1 · A3=1 |
 | 26 | [**NS31** أرقام ثابتة وضجيج أقل](#step-26) | R6G | 3 | 26% | 0.8 | 24% | 🔴 تحتاج مدخلًا منك | L7=1 · L8=1 · S5≥0.9 · S1≥0.9 |
 | 27 | [**NS39** خريطة النظام والسجل والأحداث](#step-27) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | N1=1 · N2=1 · +1 اختبار قبول |
@@ -222,7 +222,7 @@ flowchart TB
 | 43 | [**NS24** الرصد: كل سطح حرج مرئي](#step-43) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E10≥0.9 · +1 اختبار قبول |
 | 44 | [**NS16** الجاهزية للإنتاج: كل بند بأمر](#step-44) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E11=1 · +1 اختبار قبول |
 | 45 | [**NS10** الإثبات المستقل](#step-45) | R8 | 5 | 18% | 0.9 | 15% | 🔴 تحتاج مدخلًا منك | V4=1 · V3=1 |
-| | **المجموع** | | **100** | | **36.6** | | | |
+| | **المجموع** | | **100** | | **36.2** | | | |
 
 ## الخطوات بالتفصيل
 
@@ -755,11 +755,11 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 2 | 100% | 2 من 2 | 100% | R5 | S07 |
+| 1 | 100% | 1 من 1 | 100% | R5 | S07 |
 
 **الهدف:** P1 = 1.0 و P2 ≥ 0.5 و P3 ≥ 0.8 و P4 = 1.0 و P6 = 1.0 و P7 = 1.0 و P9 ≥ 0.8.
 
-**لماذا هذا الوزن:** ما يستلمه الفريق فعلًا: الخطة والتقارير الأربعة. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.) (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)
+**لماذا هذا الوزن:** ما يستلمه الفريق فعلًا: الخطة والتقارير الأربعة. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.) (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.) (1 من نقاطه إلى NS46: خريطة خط المعالجة، 2026-10-08.)
 
 **ماذا تفعل:**
 
@@ -1202,11 +1202,11 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 6 | 0% | 0 من 6 | 0% | R6G | S07, S15 |
+| 7 | 8% | 0.58 من 7 | 12% | R6G | S07, S15 |
 
-**الهدف:** F11 وF13 وF14 وF15 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويُشغَّل EAOS كله من الاستوديو، ويحكم المالك.
+**الهدف:** F11 وF13 وF14 وF15 وF16 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويُشغَّل EAOS كله من الاستوديو، ويحكم المالك.
 
-**لماذا هذا الوزن:** قرار المالك (2026-10-08): تُكمل الواجهة قبل متابعة المحرك، فيظهر كل تقدم لاحق في صفحة أو رقم. نقطة من كل من NS7 وNS13 وNS14 وNS25 وNS26 وNS29.
+**لماذا هذا الوزن:** قرار المالك (2026-10-08): تُكمل الواجهة قبل متابعة المحرك، فيظهر كل تقدم لاحق في صفحة أو رقم. نقطة من كل من NS7 وNS13 وNS14 وNS25 وNS26 وNS29. ونقطة من NS8 لخريطة خط المعالجة (قرار المالك 2026-10-08، D9).
 
 **ماذا تفعل:**
 
@@ -1216,10 +1216,11 @@ flowchart TB
 4. بوابات الشاشات على خمسة مشاريع وميزانيات السرعة
 5. مركز التحكم: كل أداة EAOS زر أو نموذج، واختيار وتشغيل وطابور وأسئلة في صندوق القرارات، بالمساعد الحقيقي
 6. مراجعة ذاتية وحكم المالك
+7. خريطة خط المعالجة: كشف المراحل والحواف والموجّهات والتفرع والأخطاء والقنوات الخفية، والحالي والمثالي والفجوة
 
 **الأدوات:** React + TS + Vite · ELK · d3 · axe-core · Lighthouse · Playwright
 
-**المخرج:** `studio/coverage.json وأقسام v2` · `docs/studio-routes.json` · `tools/studio_synthetic.py` · `docs/STUDIO-REVIEW.md` · `docs/studio-actions.json` · `eaos/studio/actions/` · `tools/studio_trial.py`
+**المخرج:** `studio/coverage.json وأقسام v2` · `docs/studio-routes.json` · `tools/studio_synthetic.py` · `docs/STUDIO-REVIEW.md` · `docs/studio-actions.json` · `eaos/studio/actions/` · `tools/studio_trial.py` · `studio/pipeline.json` · `facts/pipeline.json` · `evaluations/pipelines/` · `tools/pipeline_truth.py`
 
 **تحتاج منك قبل أن تكتمل:** مراجع بشري من خارج المشروع
 
@@ -1231,6 +1232,7 @@ flowchart TB
 | الاستوديو يجتاز البوابات على عدة مشاريع | `F13 = 1` | — | ❌ |
 | ميزانيات السرعة | `F14 = 1` | — | ❌ |
 | مركز التحكم: تشغيل EAOS من الاستوديو | `F15 = 1` | — | ❌ |
+| خريطة خط المعالجة صادقة | `F16 = 1` | 1.0 | ✅ |
 | كل صفحة في الاستوديو موجودة وتعرض شيئًا صادقًا | `F11 = 1` | — | ❌ |
 | الواجهة حية | `F9 = 1` | — | ❌ |
 | مصدر واحد للتقرير والاستوديو | `F7 = 1` | — | ❌ |
@@ -1244,6 +1246,8 @@ flowchart TB
 | اختبار قبول | `test ns46_studio.CommandCentreActions` | — | ⬜ |
 | اختبار قبول | `test ns46_studio.CommandCentrePages` | — | ⬜ |
 | اختبار قبول | `test ns46_studio.CommandCentreTrial` | — | ⬜ |
+| اختبار قبول | `test ns46_studio.PipelineEngine` | — | ⬜ |
+| اختبار قبول | `test ns46_studio.PipelinePage` | — | ⬜ |
 | اختبار قبول | `test ns46_studio.SelfReview` | — | ⬜ |
 
 **المهام:**
@@ -1260,7 +1264,9 @@ flowchart TB
 | [NS46.T9](#ns46t9) مركز التحكم: واجهة الأوامر ومشغّل المساعد | L | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.CommandCentreActions` |
 | [NS46.T10](#ns46t10) مركز التحكم: الاختيار والمعاينة والتشغيل الحي والطابور وسجل التشغيل والصندوق | L | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.CommandCentrePages && python tools/north_star.py measure --only F8 --min 1.0` |
 | [NS46.T11](#ns46t11) مركز التحكم: تجربة حقيقية على FleetManageWeb مسجلة | M | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/north_star.py measure --only F15 --min 1.0` |
-| [NS46.T8](#ns46t8) المراجعة الذاتية وحكم المالك | M | ⬜ | 0% | `python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F15 --min 1.0 && python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/acceptance.py test ns46_studio.SelfReview` |
+| [NS46.T12](#ns46t12) خريطة خط المعالجة: الكشف والمراحل والحواف والموجّهات والمثالي والفجوة (المحرك والعقد) | L | ⬜ | 90% | `python tools/acceptance.py test ns46_studio.PipelineEngine && python tools/north_star.py measure --only F16 --min 1.0` |
+| [NS46.T13](#ns46t13) خريطة خط المعالجة: صفحة النظام ← خط المعالجة وورقة التقرير | L | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.PipelinePage && python tools/north_star.py measure --only F8 --min 1.0` |
+| [NS46.T8](#ns46t8) المراجعة الذاتية وحكم المالك | M | ⬜ | 13% | `python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F15 --min 1.0 && python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/north_star.py measure --only F16 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview` |
 
 <a id="step-25"></a>
 
@@ -2104,7 +2110,7 @@ flowchart TB
         direction LR
         S05["<b>S05 · تثبيت السلوك الحالي</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 33%"]:::current
         S06["<b>S06 · الصورة المثالية</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 45%"]:::current
-        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 33%"]:::current
+        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 31%"]:::current
         S05 -->|"✔ أ (ساكن): E4 = 1 · ب (معزول): E5 ≥ 0.8 وخط أساس k6"| S06
         S06 -->|"✔ T1–T7 عند أهدافها، وموافقة بشرية مسجلة"| S07
     end
@@ -2128,7 +2134,7 @@ flowchart TB
     end
     subgraph P5["الحوكمة والتسليم"]
         direction LR
-        S15["<b>S15 · الحوكمة المستمرة والتسليم</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 25%"]:::current
+        S15["<b>S15 · الحوكمة المستمرة والتسليم</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 27%"]:::current
         LOOP["↺ إعادة التدقيق بعد كل تغيير: يعود إلى S01"]:::next
         S15 -->|"✔ K1 = 1، وخط الأساس مثبّت، وبوابة الدَّين الجديد في CI"| LOOP
     end
@@ -2398,6 +2404,7 @@ flowchart TB
 | F15 مركز التحكم: تشغيل EAOS من الاستوديو | تجارب tools/studio_trial.py الحقيقية ($EAOS_MEASURE/studio/<project>/trial.json) التي فُحص فيها المشروع واختيرت مجموعة بطاقات وأصلحها مساعد حقيقي، وأُجيب سؤال من صندوق القرارات، واعتُمد الفرع، كلها من الاستوديو دون كتابة للمساعد، وكل حالة مرت مفهومة ÷ التجارب؛ بلا تجربة على FleetManageWeb لا يُحسب | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md (the command centre) |
 | W1 المساعد يحسن استخدام الأدوات | متوسط مؤشرات تجربة الأدوات: نجاح الاستدعاء، و1 − نسبة العمل خارج أدوات EAOS، و1 − الأداة الخطأ، على 11 سيناريو في Claude وCodex | 90% | — | not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md |
 | W2 تبني قبل البناء | قدرات الخطة الجديدة التي لها سجل استكشاف مكتوب (المرشحون، الرخصة، الصيانة، القرار) قبل أي كود ÷ القدرات الجديدة | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md |
+| F16 خريطة خط المعالجة صادقة | فحوص الحقيقة لخريطة خط المعالجة التي تمر ÷ الفحوص: لكل ملف حقيقة مكتوب يدويًا (EAOS نفسه ومستودعان عامّان مثبتان من نوعين مختلفين) استدعاء ≥ 0.8 ودقة ≥ 0.9 للمراحل والحواف وفروع الموجّهات (ستة فحوص لكل ملف)، ولكل مشروع تطبيق في العيّنة (FleetManageWeb وfinance-os وRendaPerene وchief-ops) لا خط معالجة مخترع: كل مرحلة بدليل يُتحقق منه في الكود؛ بلا قياس لا قيمة | 100% | 100% | pipeline map truth checks holding: 32/32 over 5 truth files (python tools/pipeline_truth.py measure, 2026-10-08) |
 
 ## ملحق ب: الرؤية
 
@@ -6205,13 +6212,86 @@ python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/n
 
 **التراجع:** لا شيء: تجربة وقياس.
 
+<a id="ns46t12"></a>
+
+#### NS46.T12 — خريطة خط المعالجة: الكشف والمراحل والحواف والموجّهات والمثالي والفجوة (المحرك والعقد) ⬜
+
+**لماذا:** قرار المالك (2026-10-08، D9): برامج مثل EAOS نفسها خط معالجة تمر فيه البيانات بأدوات ثم تنتقل لغيرها، ولا شيء في التحليل يرسمه. المحرك يكشفه بالدليل ويفهم مراحله وتفرعاته، ويقول بوضوح حين لا يجد شيئًا وماذا بحث.
+
+**يحرّك:** F16, F12 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS46.T1 · **الحجم:** L
+
+**الملفات:** `eaos/facts/pipeline.py` · `eaos/studio/pipeline.py` · `eaos/data/pipeline-rules.json` · `tools/make_contracts.py` · `tests/fixtures/studio/v2/pipeline.json` · `evaluations/pipelines/` · `tools/pipeline_truth.py` · `docs/adoption/ns46-t12-pipeline-engine.md` · `tests/test_pipeline_map.py`
+
+**يكتب:** `contract:studio-pipeline` (العقد: `schemas/artifacts/studio-pipeline.schema.json`) · `facts:pipeline`
+
+**الخطوات:**
+
+1. سجل استكشاف في docs/adoption/ قبل الكود: ما يُعاد استخدامه (رسم الاستدعاء والحقائق والمحلل) وما يُعتمد من أدوات.
+2. عقد studio/pipeline.json ومخططه وبياناته التجريبية (EAOS نفسه): الكشف وثقته ودليله وما بُحث عنه، والمراحل، والحواف بتدفق القيم، والموجّهات وفروعها، والتفرع والتجميع، ومسارات الخطأ، والخفي، وما لم يُتتبع، والعروض الحالي والمثالي والفجوة.
+3. الكاشف facts/pipeline.json: منسّق يمرر ناتج مرحلة لتاليتها، وDAG معلن (سجل مراحل، Airflow، Prefect، Celery، LangGraph، GitHub Actions، Makefile، سكربتات npm)، وطوابير، وموجّهات (قاموس، سجل، match، سلسلة if)، وما لا يُتتبع فجوة معدودة لا اختراع.
+4. المثالي بقواعد مذكورة المصدر في المكتبة، والفجوة: مدخل لكل قاعدة مكسورة بدليله وبطاقته وخطوته وعمليته.
+5. ملفات حقيقة مكتوبة يدويًا من قراءة الكود: EAOS ومستودعان عامّان مثبتان، وأداة قياس تكتب الاستدعاء والدقة.
+
+**تنتهي حين:**
+
+- [ ] اختبار القبول ns46_studio.PipelineEngine يمر، وF16 = 1.0.
+
+**فخاخ معروفة:**
+
+- لا مرحلة ولا حافة بلا دليل file:line.
+- لا خط معالجة مخترع على تطبيق: ما يوجد يظهر بدليله.
+- ملف الحقيقة يُكتب من قراءة الكود لا من ناتج الكاشف.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test ns46_studio.PipelineEngine && python tools/north_star.py measure --only F16 --min 1.0
+```
+
+**التراجع:** احذف eaos/facts/pipeline.py وeaos/studio/pipeline.py وقسم pipeline من tools/make_contracts.py.
+
+<a id="ns46t13"></a>
+
+#### NS46.T13 — خريطة خط المعالجة: صفحة النظام ← خط المعالجة وورقة التقرير ⬜
+
+**لماذا:** الشخص يرى خط المعالجة مرسومًا بدقة وفخامة: كل مرحلة وأدواتها، والموجّهات معينات بفروع مسماة، والتفرع والتجميع، ومسار الخطأ، وشكل البيانات على الحواف، حاليًا ومثاليًا وفجوة، ويتبع البيانات من مدخل إلى مخرجاتها.
+
+**يحرّك:** F11, F8 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS46.T12 · **الحجم:** L
+
+**الملفات:** `studio/src/pages/pipeline/` · `eaos/compose/` · `studio/scripts/gates.mjs` · `docs/studio-routes.json`
+
+**الخطوات:**
+
+1. يبني على صدفة الاستوديو (NS37.T1) كما بنيت عليها صفحات الخرائط؛ وNS37 بعد NS46 في ترتيب الخطة فلا يُسجَّل اعتمادًا.
+2. System → Pipeline: مخطط طبقي من اليسار لليمين (ومن الأعلى للأسفل على الجوال)، والعروض الحالي والمثالي والفجوة، والخريطة والخطوات، و«أظهر الخفي».
+3. «اتبع البيانات»، والدخول في مرحلة إلى خط معالجتها الفرعي ومسار كودها وبطاقاتها، وكل عنصر بدليله.
+4. ورقة خط المعالجة في REPORT.html وPDF: المخطط وجدول المراحل والفجوة.
+5. البوابات المعتادة: جوال ولوحي وكمبيوتر، عربي وإنجليزي، فاتح وداكن، لوحة المفاتيح، و1000 مرحلة اصطناعية.
+
+**تنتهي حين:**
+
+- [ ] مسارات NS46.T13 في docs/studio-routes.json تجتاز البوابات، وورقة خط المعالجة في التقرير.
+
+**فخاخ معروفة:**
+
+- الصفحة لا تحسب موقعًا ولا رقمًا: كل شيء من pipeline.json.
+- حين لا يوجد خط معالجة تقول الصفحة ذلك بوضوح وماذا بُحث عنه.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test ns46_studio.PipelinePage && python tools/north_star.py measure --only F8 --min 1.0
+```
+
+**التراجع:** ارجع صفحة خط المعالجة وورقة التقرير.
+
 <a id="ns46t8"></a>
 
 #### NS46.T8 — المراجعة الذاتية وحكم المالك ⬜
 
 **لماذا:** المالك يحكم بما يراه: مراجعة مكتوبة بالصور لكل المشاريع، ثم حكمه مسجلًا، ثم يعود العمل إلى المحرك.
 
-**يحرّك:** F11, F12, F13, F14, F15 · **ينفّذه:** يحتاج إنسانًا من خارج المشروع · **يعتمد على:** NS46.T7, NS46.T11 · **الحجم:** M
+**يحرّك:** F11, F12, F13, F14, F15, F16 · **ينفّذه:** يحتاج إنسانًا من خارج المشروع · **يعتمد على:** NS46.T7, NS46.T11, NS46.T12, NS46.T13 · **الحجم:** M
 
 **الملفات:** `docs/STUDIO-REVIEW.md` · `CHANGELOG.md`
 
@@ -6222,7 +6302,7 @@ python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/n
 
 **تنتهي حين:**
 
-- [ ] F11 وF13 وF14 وF15 = 1.0، ومركز التحكم يشغّل EAOS من الاستوديو، والواجهة حية ومصدرها واحد (F9 وF7)، وحكم المالك مسجل.
+- [ ] F11 وF13 وF14 وF15 وF16 = 1.0، ومركز التحكم يشغّل EAOS من الاستوديو، والواجهة حية ومصدرها واحد (F9 وF7)، وحكم المالك مسجل.
 
 **فخاخ معروفة:**
 
@@ -6231,7 +6311,7 @@ python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/n
 **أمر القبول:**
 
 ```bash
-python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F15 --min 1.0 && python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/acceptance.py test ns46_studio.SelfReview
+python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F15 --min 1.0 && python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/north_star.py measure --only F16 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview
 ```
 
 **التراجع:** لا شيء: مراجعة.

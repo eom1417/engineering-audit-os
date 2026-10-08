@@ -1,0 +1,93 @@
+{
+ "name": "eaos",
+ "kind": "declared_dag",
+ "source": null,
+ "commit": null,
+ "written": "2026-10-08, by reading eaos/pipeline/stages.py, eaos/pipeline/run.py, eaos/pipeline/runners.py, eaos/facts/run.py, eaos/guided.py, eaos/runtime/pipeline.py, eaos/engage.py and studio/package.json, before the detector existed. It follows the code of this repository: a change to these files changes the truth, in the same commit.",
+ "pipelines": [
+  {
+   "anchor": "eaos/pipeline/stages.py",
+   "title": "The audit pipeline: STAGES, run by eaos/pipeline/run.py execute() through the RUNNERS registry",
+   "role": "product",
+   "stages": ["facts", "features", "lock", "intake", "engines", "verify", "measure", "policy", "load", "claims", "probe",
+              "semantic", "sustainability", "transform", "plan", "target", "reports", "quality", "pdf", "execution_guide",
+              "executive", "compose", "bundles", "emit", "site", "validate"],
+   "edges": [["facts", "features"], ["features", "lock"], ["features", "intake"], ["facts", "engines"], ["facts", "verify"],
+             ["facts", "measure"], ["facts", "policy"], ["facts", "load"], ["facts", "claims"], ["load", "claims"],
+             ["claims", "probe"], ["claims", "semantic"], ["claims", "sustainability"], ["sustainability", "transform"],
+             ["probe", "plan"], ["plan", "target"], ["transform", "target"], ["plan", "reports"], ["target", "reports"],
+             ["reports", "quality"], ["reports", "pdf"], ["plan", "execution_guide"], ["transform", "execution_guide"],
+             ["load", "execution_guide"], ["sustainability", "executive"], ["plan", "compose"], ["target", "compose"],
+             ["executive", "compose"], ["compose", "bundles"], ["compose", "emit"], ["compose", "site"], ["compose", "validate"]],
+   "routers": [
+    {"table": "RUNNERS", "at": "eaos/pipeline/run.py: runner = runners.get(stage.name)",
+     "branches": ["facts", "features", "lock", "intake", "engines", "verify", "measure", "policy", "load", "claims", "probe",
+                  "semantic", "sustainability", "transform", "plan", "target", "reports", "quality", "pdf", "execution_guide",
+                  "executive", "compose", "bundles", "emit", "site", "validate"]}
+   ],
+   "ai_stages": ["semantic"],
+   "error_lanes": ["SkipStage -> unavailable", "any exception -> failed", "declared artifacts not written -> failed",
+                   "no runner registered -> failed", "a prerequisite did not complete -> not_reached (dependents)"],
+   "hidden": [
+    {"kind": "side_channel", "name": "context['collected']", "stages": ["facts", "engines", "claims", "features"]},
+    {"kind": "side_channel", "name": "context['source']", "stages": ["facts", "engines"]},
+    {"kind": "side_channel", "name": "context['exclude']", "stages": ["facts", "engines", "claims"]},
+    {"kind": "unread_output", "name": "context['dossier_status']", "stages": ["claims"]}
+   ]
+  },
+  {
+   "anchor": "eaos/facts/run.py",
+   "title": "The fact extractors inside the facts stage: collect() runs ORDER through the EXTRACTORS registry, each extractor's inputs taken from what the earlier ones produced",
+   "role": "product",
+   "stages": ["syntax", "resolve", "structure", "fingerprint", "sequences", "runtime", "entrypoints", "redundancy", "config",
+              "metrics", "domain", "history", "graph", "flows", "leftovers", "deadcode", "broken", "secrets", "pipeline"],
+   "edges": [["syntax", "resolve"], ["syntax", "redundancy"], ["structure", "redundancy"], ["entrypoints", "redundancy"],
+             ["syntax", "structure"], ["syntax", "fingerprint"], ["syntax", "sequences"], ["syntax", "runtime"],
+             ["syntax", "entrypoints"], ["syntax", "metrics"], ["syntax", "flows"], ["resolve", "flows"],
+             ["entrypoints", "flows"], ["config", "flows"], ["resolve", "graph"], ["entrypoints", "graph"],
+             ["metrics", "graph"], ["history", "graph"], ["resolve", "leftovers"], ["resolve", "broken"],
+             ["syntax", "deadcode"], ["resolve", "deadcode"], ["entrypoints", "deadcode"]],
+   "routers": [
+    {"table": "EXTRACTORS", "at": "eaos/facts/run.py: module = EXTRACTORS[name]",
+     "branches": ["history", "syntax", "structure", "resolve", "entrypoints", "config", "metrics", "graph", "flows", "domain",
+                  "fingerprint", "sequences", "redundancy", "runtime", "leftovers", "deadcode", "broken", "secrets", "pipeline"]},
+    {"table": "name", "at": "eaos/facts/run.py: if name == 'history': ... elif ... else: module.run(target, source)",
+     "branches": ["history", "resolve", "redundancy", "structure", "fingerprint", "sequences", "runtime", "entrypoints",
+                  "metrics", "flows", "graph", "syntax", "leftovers", "secrets", "broken", "deadcode", "else"]}
+   ],
+   "unresolved": ["produced['external'] is read for resolve, but no extractor of this loop writes it"]
+  },
+  {
+   "anchor": "eaos/guided.py",
+   "title": "The guided session: STEPS, the next one not done run by advance()",
+   "role": "product",
+   "stages": ["scan", "ready", "safety", "fix"],
+   "edges": [["scan", "ready"], ["ready", "safety"], ["safety", "fix"]],
+   "routers": []
+  },
+  {
+   "anchor": "eaos/runtime/pipeline.py",
+   "title": "The model-led audit: _execute() announces its phases in order, each phase running model jobs",
+   "role": "product",
+   "stages": ["deterministic facts", "source inspection", "architecture reconstruction", "scope and review module",
+              "root-cause challenge", "target architecture and migration design", "migration challenge and final verification"],
+   "edges": [["deterministic facts", "source inspection"], ["source inspection", "architecture reconstruction"],
+             ["architecture reconstruction", "scope and review module"], ["scope and review module", "root-cause challenge"],
+             ["root-cause challenge", "target architecture and migration design"],
+             ["target architecture and migration design", "migration challenge and final verification"]],
+   "routers": []
+  },
+  {
+   "anchor": "studio/package.json",
+   "title": "The Studio's build script: npm run build chains its checks before the bundle and the ship step",
+   "role": "tooling",
+   "stages": ["lint", "typecheck", "test", "vite build", "node scripts/ship.mjs"],
+   "edges": [["lint", "typecheck"], ["typecheck", "test"], ["test", "vite build"], ["vite build", "node scripts/ship.mjs"]],
+   "routers": []
+  }
+ ],
+ "not_pipelines": [
+  {"path": "eaos/engage.py", "why": "STAGES lists the engagement's fifteen stages with their artifacts and checks; no code runs them in order or passes one's output to the next, each is judged on its own"},
+  {"path": "eaos/plain.py", "why": "STAGES maps each audit stage to the words shown while waiting: labels, not stages"}
+ ]
+}

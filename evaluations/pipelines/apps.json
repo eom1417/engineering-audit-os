@@ -1,0 +1,10 @@
+{
+ "name": "apps",
+ "written": "2026-10-08, by reading each app's layout, build files and Python modules at its pinned commit (docs/north-star.json corpus and live_corpus). None of the four is pipeline-shaped software: FleetManageWeb and finance-os are React single-page apps on Supabase, chief-ops a React client with its own Node server, RendaPerene a Streamlit app over SQLite. Their build and CI chains (npm scripts, GitHub Actions) are tooling, not the product, and may be shown as such with their evidence.",
+ "projects": {
+  "FleetManageWeb": {"product": []},
+  "finance-os-a0192b7b": {"product": []},
+  "RendaPerene": {"product": []},
+  "chief-ops": {"product": []}
+ }
+}
