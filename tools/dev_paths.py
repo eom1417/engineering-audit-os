@@ -28,6 +28,8 @@ UPSTREAMS = place('EAOS_UPSTREAMS', 'upstream-src')
 # The hand-written labels of the precision set (tools/precision.py): kept outside the repository and the
 # projects, written from the source before any report of the project is read.
 TRUTH = place('EAOS_TRUTH', 'truth')
+# Public pipeline projects pinned for the pipeline map's truth files (evaluations/pipelines/, tools/pipeline_truth.py).
+PIPELINES = place('EAOS_PIPELINES', 'pipelines')
 ENOLA = UPSTREAMS / 'enola'
 
 
@@ -61,7 +63,7 @@ if __name__ == '__main__':
     if sys.argv[1:] == ['upstreams']:
         fetch_upstreams()
     elif not sys.argv[1:]:
-        for label, path in (('corpus', CORPUS), ('measure', MEASURE), ('upstream-src', UPSTREAMS), ('truth', TRUTH)):
+        for label, path in (('corpus', CORPUS), ('measure', MEASURE), ('upstream-src', UPSTREAMS), ('truth', TRUTH), ('pipelines', PIPELINES)):
             print(f'{label:13} {path}{"" if path.exists() else "  (absent)"}')
     else:
         raise SystemExit(__doc__)

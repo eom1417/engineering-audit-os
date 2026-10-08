@@ -1,0 +1,19 @@
+{
+ "name": "reddit-airflow",
+ "kind": "airflow",
+ "source": "https://github.com/airscholar/RedditDataEngineering",
+ "commit": "ac36b26e9d7da7fe6df0f9c5abad00a79cafa227",
+ "written": "2026-10-08, by reading dags/reddit_dag.py, pipelines/reddit_pipeline.py, pipelines/aws_s3_pipeline.py and etls/*.py at the pinned commit. An Airflow DAG of two PythonOperator tasks (reddit_extraction >> s3_upload, the second also pulling the first's XCom), each task's callable itself a small pipeline of ETL functions.",
+ "pipelines": [
+  {"anchor": "dags/reddit_dag.py", "title": "The DAG etl_reddit_pipeline", "role": "product",
+   "stages": ["reddit_extraction", "s3_upload"],
+   "edges": [["reddit_extraction", "s3_upload"]], "routers": []},
+  {"anchor": "pipelines/reddit_pipeline.py", "title": "reddit_pipeline(): connect, extract, transform, load to CSV", "role": "product",
+   "stages": ["connect_reddit", "extract_posts", "transform_data", "load_data_to_csv"],
+   "edges": [["connect_reddit", "extract_posts"], ["extract_posts", "transform_data"], ["transform_data", "load_data_to_csv"]], "routers": []},
+  {"anchor": "pipelines/aws_s3_pipeline.py", "title": "upload_s3_pipeline(): connect to S3, make the bucket, upload", "role": "product",
+   "stages": ["connect_to_s3", "create_bucket_if_not_exist", "upload_to_s3"],
+   "edges": [["connect_to_s3", "create_bucket_if_not_exist"], ["connect_to_s3", "upload_to_s3"]], "routers": []}
+ ],
+ "not_pipelines": [{"path": "etls/reddit_etl.py", "why": "the stage functions themselves, each one step"}]
+}
