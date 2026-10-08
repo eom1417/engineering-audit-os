@@ -31,6 +31,7 @@ STUDIO_DATA=<report>/studio npm run dev   # live development on a report's data,
 | `src/search/` | the Arabic normaliser and the MiniSearch index, with their unit tests |
 | `src/data/` | contract v1 types and the loader (classic `<name>.js` scripts beside `index.html`) |
 | `src/pages/` | the section pages on real data |
+| `src/map/` | the territory map (`studio/system.json`): drawing, pan and zoom, legend, minimap, ego diagram, inspector, ranked list, the Home and Change pieces, and its own word catalogue |
 
 ## Rules the build enforces
 

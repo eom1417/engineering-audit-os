@@ -8,9 +8,16 @@ import { Id, N, Txt } from '../i18n/text'
 import { usePageChrome } from '../shell/chrome'
 import { layout, MissingBanner, PageTitle, WithData } from '../shell/Layout'
 import css from './Pages.module.css'
+import { CompareMaps, GapList } from '../map/ChangeMaps'
+import { JourneyStrip } from '../map/home'
+import { useMapWords } from '../map/words'
+import { usePhone } from './SystemMap'
 
 function ChangeBody({ data }: { data: StudioData }) {
   const { t } = usePrefs()
+  const w = useMapWords()
+  const phone = usePhone()
+  const system = data.system && data.system.current.nodes.length > 0 ? data.system : undefined
   usePageChrome(t('change'), undefined, data.manifest.project.name)
   const today = data.story?.current.components.length ?? null
   const changing = data.story ? data.story.gap.filter((row) => row.relation !== 'retain').length : null
@@ -21,12 +28,24 @@ function ChangeBody({ data }: { data: StudioData }) {
       <MissingBanner data={data} />
       <PageTitle title={t('journeyAndPlan')} />
       <Section title={t('fromTodayToTarget')} unit={t('inComponents')}>
-        <Journey label={t('fromTodayToTarget')} stages={[
-          { key: t('today'), value: today, unit: t('componentsInCode'), to: '/system' },
-          { key: t('changeStage'), value: changing, unit: t('componentsChange'), to: '/system' },
-          { key: t('target'), value: target, unit: t('componentsInTarget'), to: '/change' },
-        ]} />
+        {system ? <JourneyStrip data={data} system={system} /> : (
+          <Journey label={t('fromTodayToTarget')} stages={[
+            { key: t('today'), value: today, unit: t('componentsInCode'), to: '/system' },
+            { key: t('changeStage'), value: changing, unit: t('componentsChange'), to: '/system' },
+            { key: t('target'), value: target, unit: t('componentsInTarget'), to: '/change' },
+          ]} />
+        )}
       </Section>
+      {system && (
+        <Section title={w('twoMaps')}>
+          <CompareMaps system={system} phone={phone} />
+        </Section>
+      )}
+      {system && (
+        <Section title={w('gapList')} count={system.current.nodes.filter((n) => n.op !== 'retain').length}>
+          <GapList system={system} />
+        </Section>
+      )}
       {plan && (
         <Section title={t('fixPlan')}>
           <PlanStrip plan={plan} to="/change" />

@@ -1,0 +1,104 @@
+/* The canvas, its toolbar and floating chrome, the legend, the ego diagram, the inspector and the ranked list. The
+   chrome follows the page direction (legend at inline-start, minimap at inline-end); the map inside does not. */
+.canvasWrap { display: flex; flex-direction: column; min-inline-size: 0; min-block-size: 0; }
+.toolbar { display: flex; flex-direction: column; gap: 8px; padding: 10px 16px; border-block-end: 1px solid var(--border-subtle); background: var(--bg-canvas); }
+.toolTitle { display: flex; align-items: center; gap: 10px; min-inline-size: 0; }
+.toolRow { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; min-inline-size: 0; }
+.toolSpacer { flex: 1; }
+.zoom { display: inline-flex; border: 1px solid var(--border-default); border-radius: var(--radius-8); background: var(--bg-surface); overflow: hidden; }
+.zoomBtn { display: inline-grid; place-items: center; inline-size: 32px; block-size: 30px; font-size: 18px; line-height: 1; color: var(--text-secondary); cursor: pointer; }
+.zoomBtn + .zoomBtn { border-inline-start: 1px solid var(--border-subtle); }
+.zoomBtn[data-hovered] { background: var(--bg-hover); color: var(--text-primary); }
+.zoomBtn[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.fitIcon { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.canvas { position: relative; flex: 1; min-block-size: 0; overflow: hidden; background: var(--map-water); }
+.canvasSvg { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; }
+
+.float { background: var(--bg-raised); border: 1px solid var(--border-default); border-radius: var(--radius-8); box-shadow: var(--shadow-float); }
+.legend { position: absolute; inset-block-end: 16px; inset-inline-start: 16px; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; font-size: 12px; color: var(--text-secondary); inline-size: 236px; line-height: 1.35; }
+.legendInline { position: static; inline-size: auto; display: flex; flex-direction: row; flex-wrap: wrap; gap: 8px 20px; padding: 10px 2px 0; font-size: 12px; color: var(--text-secondary); }
+.legendInline .lgKey { border: 0; padding: 0; }
+.lgOps { display: flex; flex-direction: column; gap: 3px; }
+.legendInline .lgOps { flex-direction: row; flex-wrap: wrap; gap: 4px 14px; }
+.lgOps li { display: flex; align-items: center; gap: 8px; }
+.lgN { margin-inline-start: auto; color: var(--text-tertiary); }
+.legendInline .lgN { margin-inline-start: 2px; }
+.lgBins { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.lgCap { inline-size: 100%; }
+.legendInline .lgCap { inline-size: auto; }
+.lgBin { display: inline-flex; align-items: center; gap: 5px; }
+.sw { inline-size: 10px; block-size: 10px; border-radius: 50%; flex: none; border: 1.5px solid var(--op-keep); background: var(--op-keep-wash); }
+.op_modify { background: var(--op-modify-wash); border-color: var(--op-modify); }
+.op_rebuild { background: var(--op-rebuild-wash); border-color: var(--op-rebuild); }
+.op_merge { background: var(--op-merge-wash); border-color: var(--op-merge); }
+.op_introduce { background: var(--op-introduce-wash); border-color: var(--op-introduce); border-style: dashed; }
+.op_delete { border-color: var(--op-delete); background: repeating-linear-gradient(45deg, var(--op-delete) 0 1.5px, var(--op-delete-wash) 1.5px 3.5px); }
+.fb0 { background: var(--seq-100); border-color: var(--border-strong); }
+.fb1 { background: var(--seq-200); border-color: var(--seq-400); }
+.fb2 { background: var(--seq-300); border-color: var(--seq-500); }
+.fb3 { background: var(--seq-500); border-color: var(--seq-600); }
+.fb4 { background: var(--seq-700); border-color: var(--seq-700); }
+.lgKey { display: flex; align-items: center; gap: 8px; padding-block-start: 6px; border-block-start: 1px solid var(--border-subtle); }
+.lgSize { flex: none; fill: var(--op-keep-wash); stroke: var(--op-keep); stroke-width: 1.2; }
+.lgEdge { flex: none; stroke: var(--text-tertiary); }
+.minimap { position: absolute; inset-block-end: 16px; inset-inline-end: 16px; inline-size: 128px; padding: 5px; }
+.minimap svg { inline-size: 100%; block-size: auto; aspect-ratio: 1 / .9; }
+
+/* the neighbourhood */
+.ego { display: flex; flex-direction: column; gap: 6px; }
+.egoCaps { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-tertiary); }
+.egoSvg { display: block; max-inline-size: 100%; block-size: auto; overflow: visible; }
+.egEdge { fill: none; stroke: var(--edge-strong); opacity: .35; }
+.egN { cursor: pointer; outline: none; }
+.egN:focus-visible .egBg { stroke: var(--focus-ring); stroke-width: 2; }
+.egBg { fill: var(--bg-surface); stroke: var(--border-strong); }
+.egN:hover .egBg { fill: var(--bg-hover); }
+.egT { font-family: var(--font-mono); font-size: 11px; fill: var(--text-primary); }
+.egM { font-family: var(--font-mono); font-size: 9.5px; fill: var(--text-tertiary); }
+.egC rect { fill: var(--accent-solid); }
+.egC text { font-family: var(--font-mono); font-size: 12px; font-weight: 500; fill: var(--text-on-accent); }
+.egoCap { font-size: 12px; color: var(--text-tertiary); }
+
+/* the inspector */
+.inspect { display: flex; flex-direction: column; gap: 18px; min-inline-size: 0; }
+.insHead { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.insK { font-size: 12px; color: var(--text-tertiary); }
+.insTitle { font-size: 17px; font-weight: 500; line-height: 1.3; overflow-wrap: anywhere; }
+.insNote { font-size: 12px; color: var(--text-tertiary); }
+.insResp { display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+.insRespK { font-size: 12px; color: var(--text-tertiary); }
+.metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--border-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-8); overflow: hidden; }
+.metrics > div { background: var(--bg-surface); padding: 8px 10px; display: flex; flex-direction: column; min-inline-size: 0; }
+.metrics dt { font-size: 11px; color: var(--text-tertiary); line-height: 1.3; }
+.metrics dd { font-size: 18px; font-weight: 600; line-height: 1.3; }
+.metrics dd .muted { font-size: 11px; font-weight: 400; }
+.insSec { display: flex; flex-direction: column; gap: 8px; }
+.insH { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.sevList { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.sevList li { display: grid; grid-template-columns: 64px minmax(0, 1fr) 28px; gap: 10px; align-items: center; }
+.sevK { color: var(--text-secondary); }
+.sevBar { display: block; block-size: 8px; border-radius: 4px; background: var(--bg-sunken); overflow: hidden; }
+.sevBar i { display: block; block-size: 100%; border-radius: 4px; }
+.sevN { text-align: end; font-weight: 500; }
+.sev_critical { background: var(--sev-4); }
+.sev_high { background: var(--sev-3); }
+.sev_medium { background: var(--sev-2); }
+.sev_low { background: var(--sev-1); }
+.decision { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--radius-8); background: var(--bg-sunken); font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+.decId { color: var(--text-tertiary); font-size: 12px; }
+.insFoot { display: flex; flex-direction: column; gap: 8px; }
+.srcRow { display: flex; align-items: center; gap: 10px; padding: 8px 12px; min-block-size: 44px; font-size: 13px; }
+.srcRow > :first-child { flex: 1; min-inline-size: 0; }
+.srcRow:hover { background: var(--bg-hover); }
+li + li > .srcRow { border-block-start: 1px solid var(--border-subtle); }
+.chev { color: var(--text-tertiary); flex: none; }
+.muted { color: var(--text-tertiary); font-size: 13px; }
+
+/* the ranked list's severity bar */
+.rankBar { display: flex; gap: 2px; block-size: 6px; inline-size: min(160px, 100%); margin-block-start: 4px; }
+.rankBar i { display: block; block-size: 100%; border-radius: 2px; min-inline-size: 3px; }
+
+@media (max-width: 767px) {
+  .zoomBtn { inline-size: 44px; block-size: 44px; }
+  .metrics dd { font-size: 17px; }
+}

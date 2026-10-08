@@ -1572,6 +1572,42 @@
       "note": ""
     },
     {
+      "id": "INV-95c00f6404",
+      "file": "eaos/studio/territory.py",
+      "symbol": "<module>",
+      "statement": "regions a squarified treemap gives each region its room (weight = the area its dots need); the nodes of a region are kept inside the ellipse of its room positions a few hundred steps of a small force layout: dots push apart (room for their labels), parent and child folders attract, imports inside a region pull a little, every dot is held in its region's ellipse; seeded, so the same input always gives the same map land per region, a summed gaussian \"mass\" field of its dots, cut by marching squares at three levels (filled outer land, filled inner land, a dashed inner line), smoothed by Chaikin's corner cutting labels region names first; then dots in priority (the large ones first), each label trying below, above, after and before its dot and placed only where it collides with no placed label and no other dot; a large folder is always labelled, a small one with no free spot is labelled only when it is selected edges a quadratic curve between two rims, always bent to the same side of its direction, so the two directions of a pair separate; its width grows with the log of the imports",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_system.py::Section::test_the_layout_is_deterministic_and_inside_the_world",
+      "note": ""
+    },
+    {
+      "id": "INV-31fe0597c5",
+      "file": "eaos/studio/territory.py",
+      "symbol": "<module>",
+      "statement": "Pure Python (EAOS has no numpy); the world is direction neutral: the Studio mirrors the chrome around it in Arabic, never the geometry.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_system.py::Geometry::test_the_geometry_is_pure_python_and_direction_neutral",
+      "note": ""
+    },
+    {
+      "id": "INV-e078bf482e",
+      "file": "eaos/studio/territory.py",
+      "symbol": "radius",
+      "statement": "r = 4.5 + 3.1 * sqrt(files), scaled down for a crowded map so the dots never cover more than a third of it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_system.py::Geometry::test_a_crowded_map_shrinks_its_dots",
+      "note": ""
+    },
+    {
+      "id": "INV-f5df5f043e",
+      "file": "eaos/studio/territory.py",
+      "symbol": "squarify",
+      "statement": "Squarified treemap (Bruls, Huizing, van Wijk): [(x, y, w, h)] in the order of weights, which must be sorted from the largest.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_system.py::Geometry::test_squarify_keeps_the_order_of_its_weights",
+      "note": ""
+    },
+    {
       "id": "INV-2861e4e651",
       "file": "eaos/surface_records.py",
       "symbol": "surface_check",

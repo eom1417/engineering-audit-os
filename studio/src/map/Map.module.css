@@ -1,0 +1,63 @@
+/* The territory map (DESIGN.md §6) in Studio tokens: land, edges, dots, labels; focus and fading; legend, minimap. */
+.map { display: block; font-family: var(--font-sans); user-select: none; -webkit-user-select: none; }
+.full { touch-action: none; cursor: grab; }
+.full.dragging { cursor: grabbing; }
+.world { transition: transform var(--dur-base) var(--ease-standard); }
+.dragging .world { transition: none; }
+.water { fill: var(--map-water); }
+.grat { stroke: var(--map-grid); stroke-width: 1; fill: none; }
+.land0 { fill: var(--land-0); stroke: var(--contour-strong); stroke-width: 1.1; }
+.land1 { fill: var(--land-1); stroke: var(--contour); stroke-width: .8; }
+.land2 { fill: none; stroke: var(--contour); stroke-width: .8; stroke-dasharray: 2 3; }
+.mini .land0 { stroke-width: 3; }
+
+.edge { fill: none; stroke: var(--edge); stroke-linecap: round; transition: stroke var(--dur-fast), opacity var(--dur-fast); }
+.preview .edge { stroke: var(--edge-strong); opacity: .28; }
+.dim .edge { opacity: .45; }
+.dim .edge.edgeOn { stroke: var(--accent-solid); opacity: .9; }
+.arrowHead { fill: var(--accent-solid); }
+.weight {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600; fill: var(--accent-text);
+  paint-order: stroke; stroke: var(--map-halo); stroke-width: 4px; stroke-linejoin: round;
+}
+
+/* dots: colour by operation (today's map in Change, the target) or by findings (today) */
+.dot { stroke-width: 1.5; fill: var(--op-keep-wash); stroke: var(--op-keep); transition: opacity var(--dur-fast); }
+.mini .dot { stroke-width: 3; }
+.op_modify .dot { fill: var(--op-modify-wash); stroke: var(--op-modify); }
+.op_rebuild .dot { fill: var(--op-rebuild-wash); stroke: var(--op-rebuild); }
+.op_delete .dot { stroke: var(--op-delete); }
+.op_merge .dot { fill: var(--op-merge-wash); stroke: var(--op-merge); }
+.op_introduce .dot { fill: var(--op-introduce-wash); stroke: var(--op-introduce); stroke-dasharray: 3 2; }
+.fb_0 .dot { fill: var(--seq-100); stroke: var(--border-strong); }
+.fb_1 .dot { fill: var(--seq-200); stroke: var(--seq-400); }
+.fb_2 .dot { fill: var(--seq-300); stroke: var(--seq-500); }
+.fb_3 .dot { fill: var(--seq-500); stroke: var(--seq-600); }
+.fb_4 .dot { fill: var(--seq-700); stroke: var(--seq-700); }
+.hatchBg { fill: var(--op-delete-wash); }
+.hatchFg { fill: var(--op-delete); opacity: .55; }
+.halo { fill: var(--accent-solid); opacity: 0; }
+.hit { fill: transparent; }
+.node { outline: none; }
+.full .node { cursor: pointer; }
+.node:focus-visible .dot { stroke: var(--focus-ring); stroke-width: 3; }
+.node:hover .dot { stroke-width: 2.5; }
+.sel .halo, .lit .halo { opacity: .16; }
+.sel .dot, .lit .dot { stroke: var(--accent-solid); stroke-width: 3; }
+.preview .sel .dot, .preview .lit .dot { stroke-width: 6; }
+.faded .dot { opacity: .3; }
+
+/* labels: identifiers in Plex Mono with a canvas halo; region names in Plex Sans Arabic or tracked English capitals */
+.lbl {
+  font-family: var(--font-mono); fill: var(--text-secondary); paint-order: stroke; stroke: var(--map-halo);
+  stroke-width: 4px; stroke-linejoin: round; transition: opacity var(--dur-fast);
+}
+.lbl.big { fill: var(--text-primary); font-weight: 500; }
+.lblSel { fill: var(--accent-text); font-weight: 600; }
+.lblOff { opacity: .4; }
+.reg { font-weight: 600; fill: var(--text-secondary); paint-order: stroke; stroke: var(--map-halo); stroke-width: 5px; stroke-linejoin: round; }
+.regEn { text-transform: uppercase; letter-spacing: .14em; }
+.regId { font-family: var(--font-mono); font-weight: 500; }
+.preview .reg { fill: var(--text-primary); stroke-width: 10px; }
+.regSub { fill: var(--text-tertiary); paint-order: stroke; stroke: var(--map-halo); stroke-width: 4px; stroke-linejoin: round; }
+.frame { fill: none; stroke: var(--accent-solid); stroke-width: 10; }

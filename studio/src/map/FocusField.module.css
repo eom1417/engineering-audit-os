@@ -1,0 +1,20 @@
+/* The focus field and its list of components. */
+.box { min-inline-size: 0; }
+.field {
+  display: flex; align-items: center; gap: 8px; min-block-size: 32px; padding-inline: 10px; inline-size: 220px; max-inline-size: 100%;
+  border: 1px solid var(--border-default); border-radius: var(--radius-8); background: var(--bg-surface); color: var(--text-tertiary);
+}
+.field:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+.input { flex: 1; min-inline-size: 0; border: 0; outline: 0; background: none; font-size: 13px; color: var(--text-primary); min-block-size: 30px; }
+.input::placeholder { color: var(--text-tertiary); }
+.comfortable .field { inline-size: 100%; min-block-size: 44px; padding-inline: 12px; }
+.comfortable .input { font-size: var(--text-input); min-block-size: 44px; }
+.popover { inline-size: var(--trigger-width); min-inline-size: 240px; max-block-size: 320px; overflow-y: auto; background: var(--bg-raised); border: 1px solid var(--border-default); border-radius: var(--radius-8); box-shadow: var(--shadow-float); }
+.list { padding: 4px; outline: none; }
+.option { display: flex; align-items: center; min-block-size: 32px; padding: 4px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; outline: none; }
+.option[data-focused], .option[data-hovered] { background: var(--bg-hover); }
+.option[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+
+@media (max-width: 767px) {
+  .option { min-block-size: 44px; }
+}
