@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "studio/evidence.json",
-  "description": "The facts the cards cite: which engine found what, and where.",
+  "description": "The facts the cards cite: which engine found what, and where, with the lines of code around the place (never for a secret).",
   "x-artifact": "studio/evidence.json",
   "x-owner": "NS36",
   "type": "object",
@@ -73,6 +73,47 @@
                 }
               }
             }
+          },
+          "code": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "start",
+                  "line",
+                  "lines",
+                  "hidden"
+                ],
+                "properties": {
+                  "start": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "line": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 240
+                    },
+                    "minItems": 1
+                  },
+                  "hidden": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              }
+            ]
           }
         }
       }

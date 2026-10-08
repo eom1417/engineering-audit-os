@@ -1921,6 +1921,24 @@
       "kind": "invariant",
       "enforced_by": "tests/test_pipeline_map.py::NothingInvented::test_never_runs_the_project",
       "note": ""
+    },
+    {
+      "id": "INV-49418ebcf7",
+      "file": "eaos/studio/export.py",
+      "symbol": "code_excerpt",
+      "statement": "{start, line, lines, hidden}: the lines around `line` of `path` as the check read them, or None: no line, a secret (its value is never written), or a file that cannot be read as text.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_export.py::Evidence::test_no_code_for_a_secret_a_missing_line_or_a_file_not_read",
+      "note": ""
+    },
+    {
+      "id": "INV-8d2505b670",
+      "file": "eaos/studio/export.py",
+      "symbol": "sources",
+      "statement": "path -> text: the file at the scanned commit (git show), else the project's working copy; never a path outside the project.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_export.py::Evidence::test_files_are_read_at_the_scanned_commit_and_never_outside_the_project",
+      "note": ""
     }
   ],
   "limits": "Extraction is lexical: it finds sentences that assert, not every promise a docstring makes. A sentence it misses is still an invariant."

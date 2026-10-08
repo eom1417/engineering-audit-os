@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .. import artifact_contracts, build_info, indicators
+from ..compose.labels import impact_of
 from . import coverage as coverage_section
 from . import hidden as hidden_map
 from . import journeys as journeys_map
@@ -34,6 +35,7 @@ SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'pla
 SECTIONS_V2 = ('paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline')   # contract v2 sections written here (coverage is written last, apart)
 SAFE = re.compile(r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$)).+')
 LANGUAGES = M.LANGUAGES
+LANGUAGES_SHOWN = ('ar', 'en')     # the Studio's two languages: a sentence written for both, shown in the person's
 SEVERITY_OF_CONFIDENCE = {'CONFIRMED': 1.0, 'LIKELY': 0.7, 'HYPOTHESIS': 0.4}
 TASK_STATE = {'done': 'done', 'resolved': 'done', 'on_branch': 'active', 'in_batch': 'active', 'open': 'todo',
               'skipped': 'blocked'}
@@ -143,20 +145,83 @@ def cards(m, claims):
                     'scope': 'group' if str(params.get('place') or '').startswith('group:') else 'place',
                     'place': place, 'paths': [p for p in map(rel, card['paths']) if p], 'evidence': evidence,
                     'state': card['state'], 'milestone': card.get('milestone'),
-                    'confidence': SEVERITY_OF_CONFIDENCE.get(row.get('confidence'))})
+                    'confidence': SEVERITY_OF_CONFIDENCE.get(row.get('confidence')), **why_of(task)})
     return out
 
 
-def evidence(report, cited):
+def why_of(task):
+    """{'why': {ar, en}}: why the card matters, in the person's two languages (the report's impact sentence, translated
+    by its render key where the catalogue has it); nothing when the plan gives no impact."""
+    if not task.get('impact') and not task.get('impact_render'): return {}
+    claim = {'impact': {'scenario': task.get('impact') or ''}, 'render': task.get('impact_render')}
+    words = {lang: impact_of(claim, lang) for lang in LANGUAGES_SHOWN}
+    return {'why': words} if all(w and w != '—' for w in words.values()) else {}
+
+
+CODE_CONTEXT = 2           # lines shown before and after a fact's line
+CODE_WIDTH = 240           # a longer line is cut: a minified file never fills the page
+SECRET_KINDS = {'secret', 'credential', 'hardcoded_secret'}
+
+
+def code_excerpt(source, path, line, kind, secrets=frozenset()):
+    """{start, line, lines, hidden}: the lines around `line` of `path` as the check read them, or None: no line, a
+    secret (its value is never written), or a file that cannot be read as text. A line where any fact found a secret
+    (`secrets`: {(path, line)}) is written empty and named in `hidden`. `source(path)` returns the file's text or None."""
+    if not path or not isinstance(line, int) or line < 1 or kind in SECRET_KINDS: return None
+    text = source(path)
+    if text is None or '\0' in text[:4096]: return None
+    rows = text.splitlines()
+    if line > len(rows): return None
+    start = max(1, line - CODE_CONTEXT)
+    shown = range(start, min(len(rows), line + CODE_CONTEXT) + 1)
+    hidden = [n for n in shown if (path, n) in secrets]
+    return {'start': start, 'line': line, 'lines': ['' if n in hidden else rows[n - 1][:CODE_WIDTH] for n in shown], 'hidden': hidden}
+
+
+def sources(project, commit):
+    """path -> text: the file at the scanned commit (git show), else the project's working copy; never a path
+    outside the project. Cached, so each file is read once."""
+    root = Path(project).resolve() if project else None
+    cache = {}
+
+    def read(path):
+        if path in cache: return cache[path]
+        text = None
+        if root and commit:
+            done = subprocess.run(['git', '-C', str(root), 'show', f'{commit}:{path}'], capture_output=True)
+            if done.returncode == 0 and len(done.stdout) <= 2_000_000: text = done.stdout.decode('utf-8', 'replace')
+        if text is None and root:
+            file = (root / path).resolve()
+            if file.is_relative_to(root) and file.is_file() and file.stat().st_size <= 2_000_000:
+                text = file.read_text(encoding='utf-8', errors='replace')
+        cache[path] = text
+        return text
+    return read
+
+
+def evidence(report, cited, source=None):
+    source = source or (lambda path: None)
+    rows = indicators.facts(report)
+    secrets = set()
+    for row in rows:
+        value, where = row.get('value') or {}, row.get('location') or {}
+        if (value.get('kind') or row.get('kind')) not in SECRET_KINDS: continue
+        for site in [where, *(s for s in value.get('sites') or [] if isinstance(s, dict))]:
+            for n in (site.get('start_line'), site.get('line')):
+                if isinstance(n, int) and rel(site.get('path')): secrets.add((rel(site.get('path')), n))
     out = []
-    for row in indicators.facts(report):
+    for row in rows:
         if row.get('id') not in cited: continue
         value, where = row.get('value') or {}, row.get('location') or {}
         sites = [{'path': rel(s.get('path')), 'line': s.get('line') if isinstance(s.get('line'), int) else None}
                  for s in value.get('sites') or [] if isinstance(s, dict) and rel(s.get('path'))]
         out.append({'id': row['id'], 'kind': value.get('kind') or row.get('kind') or '', 'engine': value.get('engine'),
-                    'path': rel(where.get('path')), 'line': where.get('start_line') if isinstance(where.get('start_line'), int) else None,
+                    'path': rel(where.get('path')), 'line': next((n for n in (where.get('start_line'), where.get('line')) if isinstance(n, int)), None),
                     'summary': str(value.get('message') or value.get('rule') or row.get('kind') or '')[:400], 'sites': sites[:20]})
+        fact = out[-1]
+        # the code around the fact's line, else around its first site in the same file
+        line = fact['line'] or next((site['line'] for site in sites if site['path'] == fact['path'] and site['line']), None)
+        fact['code'] = code_excerpt(source, fact['path'], line, fact['kind'], secrets)
     return out
 
 
@@ -304,7 +369,7 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('meta', lambda: meta(report, m))
     attempt('head', lambda: head(m, scan, lang, stamp, freshness(project, state)))
     attempt('health', lambda: health(m, history))
-    attempt('evidence', lambda: evidence(report, {i for c in card_rows for i in c['evidence']}))
+    attempt('evidence', lambda: evidence(report, {i for c in card_rows for i in c['evidence']}, sources(project, scan['commit'])))
     attempt('story', lambda: story(report, m, card_rows))
     attempt('docs', lambda: docs(report))
     attempt('plans', lambda: plans(m, card_rows, lang))
