@@ -383,6 +383,22 @@
     "quality"
    ],
    "task": "NS46.T4"
+  },
+  {
+   "id": "runs",
+   "studio": "#/runs",
+   "spec": "STUDIO-COMPLETE: the command centre, runs history and queue",
+   "section": "runs",
+   "needs": [],
+   "task": "NS46.T10"
+  },
+  {
+   "id": "run",
+   "studio": "#/runs/<id>",
+   "spec": "STUDIO-COMPLETE: the command centre, the live run",
+   "section": "runs",
+   "needs": [],
+   "task": "NS46.T10"
   }
  ],
  "projects": [

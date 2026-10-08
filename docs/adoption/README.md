@@ -43,3 +43,4 @@ one is its record.
 | Code paths, sequences and the plan timeline | [studio-map-paths.md](studio-map-paths.md) |
 | NS46.T6 user journeys, visible and hidden | [studio-journeys.md](studio-journeys.md) |
 | The data paths map and the infrastructure lens | [studio-map-data.md](studio-map-data.md) |
+| NS46.T9 command centre: action API and assistant launcher | [ns46-t9-command-centre.md](ns46-t9-command-centre.md) |

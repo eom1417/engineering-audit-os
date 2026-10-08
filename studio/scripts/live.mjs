@@ -3,7 +3,7 @@
 // EAOS_LIVE_WITHIN ms of the data being written. The Python half started the server and rewrites the data; this
 // script asks it for each event (EAOS_LIVE_MUTATE mutate …) and times the page. Writes EAOS_LIVE_OUT/live.json and a
 // screenshot of each view after its last event.
-// Playwright comes from the EAOS toolchain ($EAOS_ENGINE_TOOLS, default ~/.eaos/tools), as in gates.mjs.
+// Playwright comes from the EAOS toolchain ($EAOS_ENGINE_TOOLS, default ~/.eaos/tools), as in tools/studio_gates.py.
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
