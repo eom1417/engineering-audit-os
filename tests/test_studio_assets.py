@@ -95,3 +95,52 @@ class Source(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class GateMatrix(unittest.TestCase):
+    """studio/gate-matrix.json: the Studio's routes for the one screen gate (tools/studio_gates.py --studio)."""
+
+    @classmethod
+    def setUpClass(cls):
+        import sys
+        sys.path.insert(0, str(ROOT / 'tools'))
+        import studio_gates
+        cls.gates = studio_gates
+        cls.matrix = json.loads((STUDIO / 'gate-matrix.json').read_text(encoding='utf-8'))
+
+    def test_every_page_is_named_once_and_audited_in_known_viewports_and_variants(self):
+        pages = self.matrix['pages']
+        self.assertEqual(len({p['name'] for p in pages}), len(pages))
+        viewports = {v['name'] for v in self.matrix['viewports']}
+        variants = {v['name'] for v in self.matrix['variants']}
+        self.assertEqual({v['width'] for v in self.matrix['viewports']}, {390, 768, 1440})
+        self.assertEqual(variants, {'ar-light', 'ar-dark', 'en-light', 'en-dark'})
+        for page in pages:
+            self.assertEqual(sum(k in page for k in ('path', 'file')), 1, page)
+            self.assertLessEqual(set(page.get('viewports', viewports)), viewports, page)
+            self.assertLessEqual(set(page.get('variants', variants)), variants, page)
+        self.assertTrue(any('file' in p for p in pages), 'the Studio is also opened from a file')
+        self.assertTrue(any(p.get('actions') for p in pages), 'an overlay is opened before it is measured')
+
+    def test_every_variant_says_what_the_page_must_apply(self):
+        for variant in self.matrix['variants']:
+            lang, theme = variant['name'].split('-')
+            self.assertEqual(variant['query'], {'lang': lang, 'theme': theme})
+            self.assertEqual(variant['expect'], {'dir': 'rtl' if lang == 'ar' else 'ltr', 'attributes': {'lang': lang, 'data-theme': theme}})
+
+    def test_placeholders_are_a_card_with_evidence_and_the_component_holding_most_cards(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            data = Path(folder)
+            cards = [{'id': 'TASK-1', 'evidence': [], 'paths': ['src/a/x.ts']},
+                     {'id': 'TASK-2', 'evidence': ['FACT-1'], 'paths': ['src/b/y.ts', 'src/b/c/z.ts']},
+                     {'id': 'TASK-3', 'evidence': [], 'paths': ['src/b/w.ts']}]
+            (data / 'cards.json').write_text(json.dumps({'cards': cards}), encoding='utf-8')
+            story = {'current': {'components': [{'name': n} for n in ('(root)', 'src', 'src/a', 'src/b', 'src/b/c')]}}
+            (data / 'story.json').write_text(json.dumps(story), encoding='utf-8')
+            self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'component': 'src/b'})
+            pages = dict((e['name'], e) for e, _ in self.gates.studio_pages(self.matrix, data, 'http://127.0.0.1:1/', data))
+        self.assertEqual(pages['system-focus']['url'], 'http://127.0.0.1:1/index.html#/system?focus=src%2Fb')
+        self.assertEqual(pages['problem']['url'], 'http://127.0.0.1:1/index.html#/problems?card=TASK-2')
+        self.assertTrue(pages['file-home']['url'].startswith('file://') and pages['file-home']['url'].endswith('/index.html#/'))
+        self.assertNotIn('path', pages['home'])

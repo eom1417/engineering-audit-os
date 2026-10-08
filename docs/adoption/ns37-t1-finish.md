@@ -27,6 +27,13 @@ the UnJS organisation) and is pinned by the lock file.
 
 **Pinned**: `@react-aria/optimize-locales-plugin@2.1.0`
 
+**Measured after adoption**: `studio.js` 571,921 → 568,134 bytes (gzip −9 178,342 → 176,217). The 32 other locales
+are gone from the bundle (no German, French or Japanese string is left), but the Studio uses few React Aria
+components, so their strings weighed only about 4 kB. The weight is the libraries themselves, measured from the
+source map: react-dom 203 kB, react-aria 117 kB, the Studio's own code 83 kB, TanStack Router 71 kB, react-aria-
+components 20 kB, MiniSearch 17 kB, react-stately 17 kB. The plan's budget (Shell + Home JS ≤ 170 kB gzip,
+C-experience §6) needs route chunks, which the single classic script that opens from a file does not have yet.
+
 ## The Studio's screen gate
 
 **Candidates**

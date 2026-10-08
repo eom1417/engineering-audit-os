@@ -3,6 +3,7 @@
 // refuses module scripts there) and the package ships the same names every release (docs/STUDIO.md, D1).
 import fs from 'node:fs'
 import path from 'node:path'
+import optimizeLocales from '@react-aria/optimize-locales-plugin'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 
@@ -36,7 +37,8 @@ function classicScript(): Plugin {
 
 export default defineConfig({
   base: './',
-  plugins: [react(), reportData(), classicScript()],
+  // React Aria's strings only for the two languages the Studio speaks (docs/adoption/ns37-t1-finish.md)
+  plugins: [optimizeLocales.vite({ locales: ['ar', 'en'] }), react(), reportData(), classicScript()],
   server: { host: '0.0.0.0', port: 5180, allowedHosts: ['.dev.remote.e-m.sa'] },
   build: {
     outDir: 'dist',

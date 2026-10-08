@@ -16,3 +16,21 @@
   var theme = saved.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   h.lang = lang; h.dir = lang === 'ar' ? 'rtl' : 'ltr'; h.dataset.theme = theme === 'dark' ? 'dark' : 'light';
 })();
+
+// Starts reading the report's data while the Studio's own script is still downloading (src/data/load.ts waits for
+// it): the manifest, then every section it lists, each a classic script beside index.html.
+window.EAOS_DATA = new Promise(function (done) {
+  function add(name, then) {
+    var tag = document.createElement('script');
+    tag.src = './' + name + '.js';
+    tag.onload = tag.onerror = then;
+    document.head.appendChild(tag);
+  }
+  add('manifest', function () {
+    var manifest = (window.EAOS_STUDIO || {}).manifest;
+    var names = (manifest && manifest.sections || []).map(function (s) { return s.name; }).filter(function (n) { return /^[a-z]+$/.test(n); });
+    var left = names.length;
+    if (!left) return done();
+    names.forEach(function (name) { add(name, function () { if (--left === 0) done(); }); });
+  });
+});

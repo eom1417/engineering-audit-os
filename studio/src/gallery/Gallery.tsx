@@ -1,5 +1,5 @@
 // #/_gallery: every component in every state (DESIGN.md §3), with the page's language and theme, or as a matrix of
-// the four (ar/en × light/dark) frames. The automated gates run on it like on any page (scripts/gates.mjs).
+// the four (ar/en × light/dark) frames. The automated gates run on it like on any page (tools/studio_gates.py --studio).
 import { useSearch } from '@tanstack/react-router'
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Button, CopyRequestButton, IconButton } from '../components/Button'
@@ -13,6 +13,7 @@ import { FoldList, Panel, Props, RowButton, RowLink, Section, Skeleton, StateMes
 import { Sheet, SheetLead } from '../components/Sheet'
 import { DecisionCard, Headline, Journey, NextStep, PlanStrip } from '../components/Story'
 import { useToast } from '../components/Toast'
+import { useStudio } from '../data/context'
 import type { Freshness, Relation, Severity } from '../data/types'
 import { PrefsScope, usePrefs, type Lang, type Theme } from '../i18n/prefs'
 import { Id, N, Txt } from '../i18n/text'
@@ -62,6 +63,7 @@ const SWATCHES = ['bg-canvas', 'bg-surface', 'bg-raised', 'bg-sunken', 'bg-hover
 function Specimens() {
   const { t, lang } = usePrefs()
   const toast = useToast()
+  const version = useStudio()?.manifest.built.version
   const [sheet, setSheet] = useState(false)
   const [seg, setSeg] = useState<'a' | 'b' | 'c'>('a')
   const [query, setQuery] = useState('خطة')
@@ -186,7 +188,7 @@ function Specimens() {
           </Section>
         </State>
         <State name="props: value · not recorded">
-          <Panel pad><Props rows={[[t('files'), <N value={279} />], [t('branch'), t('notRecorded'), true], [t('eaosVersion'), <Id value="0.0.2" />]]} /></Panel>
+          <Panel pad><Props rows={[[t('files'), <N value={279} />], [t('branch'), t('notRecorded'), true], version ? [t('eaosVersion'), <Id value={version} />] : [t('eaosVersion'), t('notRecorded'), true]]} /></Panel>
         </State>
       </Group>
 
