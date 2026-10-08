@@ -3,14 +3,14 @@
 import {
   ArrowLeftRight, ArrowRight, BookOpen, Check, ChevronDown, ChevronLeft, ChevronRight, Circle, Clock, Copy, Ellipsis,
   FileText, Folder, Globe, House, Inbox, LayoutGrid, Moon, Pencil, Plus, RefreshCw, Search, Sun, Trash2,
-  TriangleAlert, Workflow, X, GitMerge, Activity, Command, type LucideIcon,
+  TriangleAlert, Workflow, X, GitMerge, Activity, Command, Waypoints, type LucideIcon,
 } from 'lucide-react'
 
 const ICONS = {
   home: House, system: Workflow, problems: TriangleAlert, change: ArrowLeftRight, inbox: Inbox, search: Search,
   chevron: ChevronRight, chevronDown: ChevronDown, back: ChevronLeft, arrow: ArrowRight, copy: Copy, check: Check,
   more: Ellipsis, sun: Sun, moon: Moon, globe: Globe, file: FileText, folder: Folder, book: BookOpen, clock: Clock,
-  x: X, pulse: Activity, command: Command, gallery: LayoutGrid,
+  x: X, pulse: Activity, command: Command, gallery: LayoutGrid, flow: Waypoints,
   opKeep: Circle, opModify: Pencil, opRebuild: RefreshCw, opDelete: Trash2, opMerge: GitMerge, opIntroduce: Plus,
 } satisfies Record<string, LucideIcon>
 

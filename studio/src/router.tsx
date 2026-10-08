@@ -10,6 +10,8 @@ import { SystemMapPage } from './pages/SystemMap'
 import { FlowPage } from './pages/paths/FlowPage'
 import { PathsGalleryPage } from './pages/paths/PathsGallery'
 import { PathsPage } from './pages/paths/PathsPage'
+import { PipelineGalleryPage } from './pages/pipeline/PipelineGallery'
+import { PipelinePage } from './pages/pipeline/PipelinePage'
 import { TimelinePage } from './pages/paths/TimelinePage'
 import { GalleryPage } from './gallery/Gallery'
 import { Shell } from './shell/Shell'
@@ -39,6 +41,7 @@ export function makeRouter(dev: () => boolean) {
     createRoute({ getParentRoute: () => root, path: '/', component: HomePage }),
     createRoute({ getParentRoute: () => root, path: '/system', component: SystemMapPage, validateSearch: params('focus', 'view', 'show', 'op') }),
     createRoute({ getParentRoute: () => root, path: '/system/paths', component: PathsPage, validateSearch: params('view', 'cluster', 'q', 'filter', 'file', 'part') }),
+    createRoute({ getParentRoute: () => root, path: '/system/pipeline', component: PipelinePage, validateSearch: params('p', 'view', 'show', 'stage', 'hidden', 'follow') }),
     createRoute({ getParentRoute: () => root, path: '/flows/$pathId', component: FlowPage, validateSearch: params('view', 'show', 'node', 'traced') }),
     createRoute({ getParentRoute: () => root, path: '/problems', component: ProblemsPage, validateSearch: params('card', 'who', 'severity', 'component', 'q') }),
     createRoute({ getParentRoute: () => root, path: '/change', component: ChangePage, validateSearch: params('focus', 'side') }),
@@ -47,6 +50,7 @@ export function makeRouter(dev: () => boolean) {
     createRoute({ getParentRoute: () => root, path: '/library', component: LibraryPage, beforeLoad: devOnly('library', dev) }),
     createRoute({ getParentRoute: () => root, path: '/_gallery', component: GalleryPage, validateSearch: params('view', 'card') }),
     createRoute({ getParentRoute: () => root, path: '/_gallery/paths', component: PathsGalleryPage }),
+    createRoute({ getParentRoute: () => root, path: '/_gallery/pipeline', component: PipelineGalleryPage }),
   ])
   return createRouter({ routeTree: tree, history: createHashHistory(), defaultNotFoundComponent: () => { throw redirect({ to: '/' }) }, scrollRestoration: false })
 }

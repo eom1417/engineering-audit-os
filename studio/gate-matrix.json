@@ -36,6 +36,12 @@
   {"name": "plan-timeline", "path": "index.html#/change/timeline"},
   {"name": "plan-timeline-cell", "path": "index.html#/change/timeline?step=M01&wave=1", "viewports": ["tablet", "desktop"]},
   {"name": "gallery-paths", "path": "index.html#/_gallery/paths"},
+  {"name": "pipeline", "path": "index.html#/system/pipeline"},
+  {"name": "pipeline-ideal", "path": "index.html#/system/pipeline?view=ideal"},
+  {"name": "pipeline-gap", "path": "index.html#/system/pipeline?view=gap"},
+  {"name": "pipeline-steps", "path": "index.html#/system/pipeline?show=steps"},
+  {"name": "pipeline-stage", "path": "index.html#/system/pipeline?stage={stage}&hidden=1"},
+  {"name": "gallery-pipeline", "path": "index.html#/_gallery/pipeline"},
   {"name": "palette", "path": "index.html#/", "actions": [{"press": "Control+k", "wait": 300}, {"type": "مشاكل", "wait": 300}]},
   {"name": "sheet", "path": "index.html#/", "actions": [{"click": "[data-open=\"project\"]", "wait": 400}]},
   {"name": "file-home", "file": "index.html#/", "viewports": ["phone"], "variants": ["ar-light"]}
