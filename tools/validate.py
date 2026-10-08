@@ -14,6 +14,14 @@ PACKAGED_TOP=['controls.json','sources.json','START-HERE.md']
 PACKAGED_OWN=['errors.json','intents.json','toolchain.json','stacks.json']
 # Packaged copies of files kept elsewhere in the repository: (packaged name, source).
 PACKAGED_COPIES=[('toolchain.json','upstreams/toolchain.json')]
+# The built Studio (studio/, npm run build): its SOURCE.json names every file it ships, and tests/test_studio_assets.py
+# checks they were built from today's source; there is no copy of them elsewhere to go stale against.
+STUDIO_BUILT='studio/SOURCE.json'
+
+
+def studio_files(data):
+    try:return {'studio/'+name for name in json.loads((Path(data)/STUDIO_BUILT).read_text())['files']}|{STUDIO_BUILT}
+    except (OSError,ValueError,KeyError):return set()
 
 
 def expected_package_files(root):
@@ -37,13 +45,14 @@ def packaged_errors(root,data=None):
     root=Path(root);data=Path(data) if data else root/'eaos/data'
     errors=[]
     if not data.is_dir():return ['Packaged data directory is absent: '+str(data)]
-    expected=expected_package_files(root)
+    built=studio_files(data)
+    expected=expected_package_files(root)|built
     present={path.relative_to(data).as_posix() for path in data.rglob('*') if path.is_file()}
     errors+=['Missing packaged file '+rel for rel in sorted(expected-present)]
     errors+=['Unexpected packaged file '+rel for rel in sorted(present-expected)]
     errors+=['Stale packaged copy '+name+' of '+source for name,source in PACKAGED_COPIES
              if (root/source).is_file() and (data/name).is_file() and (root/source).read_bytes()!=(data/name).read_bytes()]
-    errors+=['Stale packaged copy '+rel for rel in sorted(expected&present-set(PACKAGED_OWN)) if (root/rel).read_bytes()!=(data/rel).read_bytes()]
+    errors+=['Stale packaged copy '+rel for rel in sorted(expected&present-set(PACKAGED_OWN)-built) if (root/rel).read_bytes()!=(data/rel).read_bytes()]
     patterns=package_data_patterns(root)
     if patterns is not None:
         for rel in sorted(expected):
