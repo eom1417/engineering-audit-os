@@ -9,6 +9,7 @@ the sites; precision and recall are measured against a declared bar, and a detec
 eaos/data/detector-verdicts.json is read by the product (eaos/claims.withhold).
 
     python tools/precision.py seed             # copy the four projects and plant the mutations
+    python tools/precision.py label-dependencies  # mechanical labels: locked versions asked of OSV
     python tools/precision.py seal             # record the digest of every truth file (commit it before scoring)
     python tools/precision.py audit [name ...] # audit originals and seeded copies (long: run it as a unit)
     python tools/precision.py score [--write]  # match, measure, and write docs/engine-precision.json + the verdicts
@@ -125,6 +126,51 @@ def seed(names=None):
             {'project': name, 'seeded_copy': str(copy), 'files': sorted(files), 'items': items, 'scopes': scopes},
             indent=2) + '\n', encoding='utf-8')
         print(f'{name}: {len(files)} planted files, {len(items)} seeded items -> {copy}')
+
+
+LOCKFILES = ('package-lock.json', 'app/package-lock.json')
+
+
+def label_dependencies(names=None):
+    """Mechanical labels for vulnerable_dependency: every package version locked in package-lock.json, asked of the
+    public OSV database directly (api.osv.dev), independently of EAOS's osv-scanner run. The lockfile is the scope."""
+    import urllib.request
+    import datetime
+    for name, spec in PROJECTS.items():
+        if names and name not in names: continue
+        locks = [rel for rel in LOCKFILES if (spec['source'] / rel).is_file()]
+        items, scopes = [], []
+        for rel in locks:
+            text = (spec['source'] / rel).read_text(encoding='utf-8')
+            packages = json.loads(text).get('packages') or {}
+            lines = {line.strip().split('"')[1]: number for number, line in enumerate(text.splitlines(), start=1)
+                     if line.startswith('    "node_modules/')}
+            locked = sorted({(key.rsplit('node_modules/', 1)[1], value['version']) for key, value in packages.items()
+                             if key.startswith('node_modules/') and value.get('version')})
+            for start in range(0, len(locked), 500):
+                chunk = locked[start:start + 500]
+                body = json.dumps({'queries': [{'package': {'name': pkg, 'ecosystem': 'npm'}, 'version': version}
+                                               for pkg, version in chunk]}).encode()
+                request = urllib.request.Request('https://api.osv.dev/v1/querybatch', data=body, headers={'Content-Type': 'application/json'})
+                with urllib.request.urlopen(request, timeout=120) as response:
+                    results = json.loads(response.read())['results']
+                for (pkg, version), result in zip(chunk, results):
+                    ids = sorted(v['id'] for v in result.get('vulns') or [])
+                    if not ids: continue
+                    line = next((n for key, n in lines.items() if key.rsplit('node_modules/', 1)[1] == pkg), 1)
+                    items.append({'id': f'DEP-{name}-{len(items) + 1:03d}', 'class': 'vulnerable_dependency', 'label': 'positive',
+                                  'subject': f'npm:{pkg}@{version}', 'sites': [{'path': rel, 'start': line, 'end': line}],
+                                  'reason': f"OSV lists {', '.join(ids[:3])}{' …' if len(ids) > 3 else ''} for this locked version"})
+            scopes.append({'class': 'vulnerable_dependency', 'paths': [rel], 'note': 'every locked package version asked of OSV'})
+        if not locks: continue
+        commit = (spec['source'] / '.git' / 'HEAD').read_text().strip() if (spec['source'] / '.git').is_dir() else None
+        (TRUTH / f'{name}.dependencies.json').write_text(json.dumps({
+            'project': name, 'source': str(spec['source']), 'commit': commit,
+            'labelled_at': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
+            'labelled_by': 'tools/precision.py label-dependencies (mechanical: lockfile + api.osv.dev querybatch)',
+            'method': 'Every package version in the lockfile was asked of the OSV database; no EAOS report was read.',
+            'report_read_before_labelling': False, 'scopes': scopes, 'items': items}, indent=2) + '\n', encoding='utf-8')
+        print(f'{name}: {len(items)} vulnerable locked versions in {", ".join(locks)}')
 
 
 def seal():
@@ -264,7 +310,8 @@ def item_sites(item):
 
 def matches(output, item, cls):
     if cls == 'vulnerable_dependency' and output.get('subject'):
-        return output['subject'].lower() in str(item.get('subject', '')).lower()
+        subject = str(item.get('subject', '')).lower()
+        return subject == output['subject'].lower() or subject.endswith(':' + output['subject'].lower())
     sites, mine = item_sites(item), output['sites']
     if cls in GROUPS:
         hit = {i for i, site in enumerate(sites) if any(touches(o, site) for o in mine)}
@@ -431,6 +478,7 @@ def main(argv):
     command = argv[0] if argv else None
     if command == 'seed': seed(argv[1:]); return 0
     if command == 'seal': seal(); return 0
+    if command == 'label-dependencies': label_dependencies(argv[1:]); return 0
     if command == 'audit': audit(argv[1:]); return 0
     if command == 'score':
         truth = load_truth()

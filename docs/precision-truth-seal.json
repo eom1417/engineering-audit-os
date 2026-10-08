@@ -1,0 +1,21 @@
+{
+  "sealed_at": "2026-10-08T17:02:07+00:00",
+  "why": "The truth is fixed before any report of the projects is read; score checks it is unchanged.",
+  "files": {
+    "FleetManageWeb.A.json": "533a48f1b4e8036d58d55305fc7d1d9f19a69f5f3a47f513fc903fd6911746c9",
+    "FleetManageWeb.B.json": "46c7ebfde6e9a215fdf2d8388401c0f8fe7f74628d0d2ed39498ff64bee1b111",
+    "FleetManageWeb.dependencies.json": "f0529a1fd2363dccb1aff565cff5a73a8a048af90c6050230d7e010856ab2c0c",
+    "chief-ops.A.json": "5ee5602ae7639ce628ab1d903bc70a0537b12f7234b39078f6762dfa62ea4e0c",
+    "chief-ops.B.json": "f7af39a0adb382995f3ced6ef3ae9551b412001cbd8171d9c3165d451066e74b",
+    "chief-ops.dependencies.json": "51910a0678f8fd36fa17c865159e9ba15b8cf328210be6c4bfb15bd5ea1c3800",
+    "eaos.A.json": "684f6ba3e67a7317e64ee47485b660403a9fdd633fc22cad271ba2b9b61863f0",
+    "eaos.B.json": "d00ec60fde103ad983ce85ca28b5d1ad46822aa1d6aa4c5d34180fee964b854c",
+    "finance-os-a0192b7b.A.json": "32b02698371bf8fee1fc909bb4d00c816d990b7f93f766e6a30d59a3a4348de4",
+    "finance-os-a0192b7b.B.json": "47533a3d9003fee4db2b4f40a6a9b0217c3973e84e265b5071869727bc3dc2b7",
+    "finance-os-a0192b7b.dependencies.json": "c8fbf7c15a72d1482b25f9bdf44ad0e91dfb936a6d9ca28b1b501232ee3cb0e4",
+    "seeded/FleetManageWeb.json": "688c22ca6759ec93ca191f6f797b89fb05e38137b46b0d9f15ff7e632be4cb14",
+    "seeded/chief-ops.json": "e09dd0a3941f71aa037c49f08c6d7adcf196496dd29768f4060f04fbdb29d252",
+    "seeded/eaos.json": "a2a1e54d4e3aacde3a22409d86234244e33ebabdc551d16fde1506f48f7ec5ff",
+    "seeded/finance-os-a0192b7b.json": "7712d2bd4c428204dfb69915991710cae7e9e53525c1822e6d2e33379206161f"
+  }
+}
