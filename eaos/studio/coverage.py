@@ -12,6 +12,7 @@ it) or not (so an engine step must produce them first).
 from pathlib import Path
 
 from .. import indicators
+from .model import LANGUAGES
 
 FUNCTION_SCOPES = ('function', 'method')
 # Each section the Studio reads, in the order the rows are written, with the field its count reads.
@@ -32,7 +33,6 @@ def _count(value, src):
 
 def _languages_with_functions(report):
     """{language: functions} from the function and method metrics the engines wrote."""
-    from .export import LANGUAGES
     out = {}
     for row in indicators.facts(report, 'metric'):
         if (row.get('value') or {}).get('scope') not in FUNCTION_SCOPES: continue
@@ -42,7 +42,6 @@ def _languages_with_functions(report):
 
 
 def _languages(report):
-    from .export import LANGUAGES
     names = set()
     for row in indicators.facts(report, 'graph_node'):
         name = LANGUAGES.get(Path(str((row.get('location') or {}).get('path') or '')).suffix.lower())
