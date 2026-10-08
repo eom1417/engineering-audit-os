@@ -482,6 +482,15 @@ class MeasurementTests(unittest.TestCase):
     def test_an_unknown_indicator_is_refused(self):
         self.assertEqual(load_tool().main(['measure', '--only', 'ZZ9']), 2)
 
+    def test_a_hand_recorded_indicator_is_read_without_measuring_the_corpus(self):
+        import sys
+        from unittest import mock
+        tool = load_tool()
+        sys.path.insert(0, str(ROOT / 'tools'))
+        import north_star_measure
+        with mock.patch.object(north_star_measure, 'measure', side_effect=AssertionError('measured')):
+            self.assertEqual(tool.main(['measure', '--only', 'F10', '--min', '1.0']), 0)   # D6, recorded 1.0
+
 
 if __name__ == '__main__':
     unittest.main()

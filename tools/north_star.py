@@ -215,7 +215,9 @@ def main(argv):
         if only is not None and only not in {row['id'] for row in indicators(record)}:
             print(f'unknown indicator {only}', file=sys.stderr)
             return 2
-        values = measure(record, only)
+        # An indicator recorded by hand has nothing to audit: --only reads it without measuring the corpus.
+        hand = only is not None and next(row for row in indicators(record) if row['id'] == only).get('measured') == 'recorded'
+        values = {} if hand else measure(record, only)
         if only is None:
             SOURCE.write_text(json.dumps(measured(record, values), ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
             TARGET.write_text(render(record), encoding='utf-8')
