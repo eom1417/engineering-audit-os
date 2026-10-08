@@ -1572,8 +1572,8 @@
           "name": "خريطة خط المعالجة صادقة",
           "definition": "فحوص الحقيقة لخريطة خط المعالجة التي تمر ÷ الفحوص: لكل ملف حقيقة مكتوب يدويًا (EAOS نفسه ومستودعان عامّان مثبتان من نوعين مختلفين) استدعاء ≥ 0.8 ودقة ≥ 0.9 للمراحل والحواف وفروع الموجّهات (ستة فحوص لكل ملف)، ولكل مشروع تطبيق في العيّنة (FleetManageWeb وfinance-os وRendaPerene وchief-ops) لا خط معالجة مخترع: كل مرحلة بدليل يُتحقق منه في الكود؛ بلا قياس لا قيمة",
           "target": 1.0,
-          "value": null,
-          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md (the pipeline map)",
+          "value": 1.0,
+          "evidence": "pipeline map truth checks holding: 32/32 over 5 truth files (python tools/pipeline_truth.py measure, 2026-10-08)",
           "reads": "${EAOS_MEASURE}/pipeline/*/measure.json (tools/pipeline_truth.py)",
           "measured": "automated"
         },

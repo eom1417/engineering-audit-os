@@ -4,13 +4,13 @@
 
 ## أين نحن
 
-### التقدم: **35.6 من 100 نقطة**
+### التقدم: **36.3 من 100 نقطة**
 
-`█████████░░░░░░░░░░░░░░░░` 35.6%
+`█████████░░░░░░░░░░░░░░░░` 36.3%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 21 من 45 | 21 · NS27 البناء من خطة | 64.4 | 60 | 2026-09-30 · `0fbc461` |
+| 21 من 45 | 21 · NS27 البناء من خطة | 63.7 | 60 | 2026-09-30 · `0fbc461` |
 
 **كيف يُحسب:**
 
@@ -89,7 +89,7 @@ flowchart TB
         direction LR
         NS30["<b>22 · NS30</b><br/>الثقة أولًا<br/>Trust first<br/>⚖ 4 · ▰ 100%"]:::done
         NS36["<b>23 · NS36</b><br/>أساس الاستوديو<br/>Studio foundation<br/>⚖ 3 · ▰ 42%"]:::owner
-        NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 7 · ▰ 0%"]:::owner
+        NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 7 · ▰ 11%"]:::owner
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 اختبار قبول"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 اختبار قبول"| NS46
@@ -200,7 +200,7 @@ flowchart TB
 | 21 | [**NS27** البناء من خطة](#step-21) | R6 | 6 | 93% | 5.6 | 88% | 🟡 قيد العمل | B1=1 · B2=1 · X8=1 · B3=1 · B4=1 · X1=1 · … · +1 اختبار قبول |
 | 22 | [**NS30** الثقة أولًا: كل بطاقة على ملفها، وكل رقم صادق](#step-22) | R6G | 4 | 100% | 4 | 100% | ✅ مكتملة | S4=1 · X13=1 · +1 اختبار قبول |
 | 23 | [**NS36** أساس الاستوديو: القرارات والعقد والنموذج](#step-23) | R6G | 3 | 42% | 1.26 | 50% | 🔴 تحتاج مدخلًا منك | F8=1 · F10=1 · +4 اختبار قبول |
-| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 7 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F16=1 · F11=1 · F9=1 · … · +10 اختبار قبول |
+| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 7 | 11% | 0.75 | 14% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F16=1 · F11=1 · F9=1 · … · +10 اختبار قبول |
 | 25 | [**NS38** تحليل صادق: الدقة أولًا](#step-25) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | A1=1 · W2=1 · A2=1 · A3=1 |
 | 26 | [**NS31** أرقام ثابتة وضجيج أقل](#step-26) | R6G | 3 | 26% | 0.8 | 24% | 🔴 تحتاج مدخلًا منك | L7=1 · L8=1 · S5≥0.9 · S1≥0.9 |
 | 27 | [**NS39** خريطة النظام والسجل والأحداث](#step-27) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | N1=1 · N2=1 · +1 اختبار قبول |
@@ -222,7 +222,7 @@ flowchart TB
 | 43 | [**NS24** الرصد: كل سطح حرج مرئي](#step-43) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E10≥0.9 · +1 اختبار قبول |
 | 44 | [**NS16** الجاهزية للإنتاج: كل بند بأمر](#step-44) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E11=1 · +1 اختبار قبول |
 | 45 | [**NS10** الإثبات المستقل](#step-45) | R8 | 5 | 18% | 0.9 | 15% | 🔴 تحتاج مدخلًا منك | V4=1 · V3=1 |
-| | **المجموع** | | **100** | | **35.6** | | | |
+| | **المجموع** | | **100** | | **36.3** | | | |
 
 ## الخطوات بالتفصيل
 
@@ -1202,7 +1202,7 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 7 | 0% | 0 من 7 | 0% | R6G | S07, S15 |
+| 7 | 11% | 0.75 من 7 | 14% | R6G | S07, S15 |
 
 **الهدف:** F11 وF13 وF14 وF16 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويحكم المالك.
 
@@ -1230,7 +1230,7 @@ flowchart TB
 | الواجهة سليمة على كل جهاز | `F8 = 1` | — | ❌ |
 | الاستوديو يجتاز البوابات على عدة مشاريع | `F13 = 1` | — | ❌ |
 | ميزانيات السرعة | `F14 = 1` | — | ❌ |
-| خريطة خط المعالجة صادقة | `F16 = 1` | — | ❌ |
+| خريطة خط المعالجة صادقة | `F16 = 1` | 1.0 | ✅ |
 | كل صفحة في الاستوديو موجودة وتعرض شيئًا صادقًا | `F11 = 1` | — | ❌ |
 | الواجهة حية | `F9 = 1` | — | ❌ |
 | مصدر واحد للتقرير والاستوديو | `F7 = 1` | — | ❌ |
@@ -1256,9 +1256,9 @@ flowchart TB
 | [NS46.T5](#ns46t5) مستكشف الدوال ومعرض الشاشات | L | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.FunctionsScreens && python tools/north_star.py measure --only F8 --min 1.0` |
 | [NS46.T6](#ns46t6) الخرائط المرئية: الرحلات والمسارات والبيانات والبنية | L | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.Maps && python tools/north_star.py measure --only F8 --min 1.0` |
 | [NS46.T7](#ns46t7) عدة مشاريع والحجم الكبير والميزانيات | L | ⬜ | 0% | `python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0` |
-| [NS46.T12](#ns46t12) خريطة خط المعالجة: الكشف والمراحل والحواف والموجّهات والمثالي والفجوة (المحرك والعقد) | L | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.PipelineEngine && python tools/north_star.py measure --only F16 --min 1.0` |
+| [NS46.T12](#ns46t12) خريطة خط المعالجة: الكشف والمراحل والحواف والموجّهات والمثالي والفجوة (المحرك والعقد) | L | ⬜ | 90% | `python tools/acceptance.py test ns46_studio.PipelineEngine && python tools/north_star.py measure --only F16 --min 1.0` |
 | [NS46.T13](#ns46t13) خريطة خط المعالجة: صفحة النظام ← خط المعالجة وورقة التقرير | L | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.PipelinePage && python tools/north_star.py measure --only F8 --min 1.0` |
-| [NS46.T8](#ns46t8) المراجعة الذاتية وحكم المالك | M | ⬜ | 0% | `python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F16 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview` |
+| [NS46.T8](#ns46t8) المراجعة الذاتية وحكم المالك | M | ⬜ | 15% | `python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F16 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview` |
 
 <a id="step-25"></a>
 
@@ -2102,7 +2102,7 @@ flowchart TB
         direction LR
         S05["<b>S05 · تثبيت السلوك الحالي</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 33%"]:::current
         S06["<b>S06 · الصورة المثالية</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 45%"]:::current
-        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 29%"]:::current
+        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 32%"]:::current
         S05 -->|"✔ أ (ساكن): E4 = 1 · ب (معزول): E5 ≥ 0.8 وخط أساس k6"| S06
         S06 -->|"✔ T1–T7 عند أهدافها، وموافقة بشرية مسجلة"| S07
     end
@@ -2126,7 +2126,7 @@ flowchart TB
     end
     subgraph P5["الحوكمة والتسليم"]
         direction LR
-        S15["<b>S15 · الحوكمة المستمرة والتسليم</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 24%"]:::current
+        S15["<b>S15 · الحوكمة المستمرة والتسليم</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 27%"]:::current
         LOOP["↺ إعادة التدقيق بعد كل تغيير: يعود إلى S01"]:::next
         S15 -->|"✔ K1 = 1، وخط الأساس مثبّت، وبوابة الدَّين الجديد في CI"| LOOP
     end
@@ -2393,7 +2393,7 @@ flowchart TB
 | F12 ما قاسه الاستوديو فعلًا | صفوف studio/coverage.json بحالة measured أو empty ÷ كل الصفوف، على تقارير العيّنة؛ الباقي هو عدد حالات «لم يُقس بعد»، ولا يصعد أبدًا. تقرير بلا coverage.json يُحسب كله غير مقيس | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md |
 | F13 الاستوديو يجتاز البوابات على عدة مشاريع | مشاريع docs/studio-routes.json (FleetManageWeb وchief-ops وfinance-os وEAOS نفسه ومشروع اصطناعي من 5000 بطاقة و1000 مكوّن) التي صوّر فيها تشغيل كامل للبناء المشحون كل مسار، واجتاز كل بوابة ÷ المشاريع | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md |
 | F14 ميزانيات السرعة | ميزانيات STUDIO-COMPLETE المحققة على البناء المشحون: Lighthouse على الجوال (أداء ≥ 90 ووصول = 100) لكل صفحة قيست، وتصفية 5000 بطاقة ≤ 100 ملي ثانية، والرئيسية تفاعلية ≤ 1.5 ثانية ÷ الميزانيات؛ ميزانية لم تُقس لا تُحسب محققة | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md |
-| F16 خريطة خط المعالجة صادقة | فحوص الحقيقة لخريطة خط المعالجة التي تمر ÷ الفحوص: لكل ملف حقيقة مكتوب يدويًا (EAOS نفسه ومستودعان عامّان مثبتان من نوعين مختلفين) استدعاء ≥ 0.8 ودقة ≥ 0.9 للمراحل والحواف وفروع الموجّهات (ستة فحوص لكل ملف)، ولكل مشروع تطبيق في العيّنة (FleetManageWeb وfinance-os وRendaPerene وchief-ops) لا خط معالجة مخترع: كل مرحلة بدليل يُتحقق منه في الكود؛ بلا قياس لا قيمة | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md (the pipeline map) |
+| F16 خريطة خط المعالجة صادقة | فحوص الحقيقة لخريطة خط المعالجة التي تمر ÷ الفحوص: لكل ملف حقيقة مكتوب يدويًا (EAOS نفسه ومستودعان عامّان مثبتان من نوعين مختلفين) استدعاء ≥ 0.8 ودقة ≥ 0.9 للمراحل والحواف وفروع الموجّهات (ستة فحوص لكل ملف)، ولكل مشروع تطبيق في العيّنة (FleetManageWeb وfinance-os وRendaPerene وchief-ops) لا خط معالجة مخترع: كل مرحلة بدليل يُتحقق منه في الكود؛ بلا قياس لا قيمة | 100% | 100% | pipeline map truth checks holding: 32/32 over 5 truth files (python tools/pipeline_truth.py measure, 2026-10-08) |
 | W1 المساعد يحسن استخدام الأدوات | متوسط مؤشرات تجربة الأدوات: نجاح الاستدعاء، و1 − نسبة العمل خارج أدوات EAOS، و1 − الأداة الخطأ، على 11 سيناريو في Claude وCodex | 90% | — | not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md |
 | W2 تبني قبل البناء | قدرات الخطة الجديدة التي لها سجل استكشاف مكتوب (المرشحون، الرخصة، الصيانة، القرار) قبل أي كود ÷ القدرات الجديدة | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md |
 

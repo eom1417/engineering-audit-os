@@ -150,7 +150,7 @@ def verdict(record, product, stages, lang):
     tooling = [p for p in record['pipelines'] if p['role'] == 'tooling']
     if product:
         names = '، '.join(p['title'] for p in product[:3]) if ar else ', '.join(p['title'] for p in product[:3])
-        return (f'هذا المشروع خط معالجة: وجد EAOS {len(product)} خط معالجة فيها {len(stages)} مرحلة ({names}).' if ar else
+        return (f'هذا المشروع خط معالجة: وجد EAOS خطوط معالجة عددها {len(product)}، فيها {len(stages)} مرحلة ({names}).' if ar else
                 f'This project is a pipeline: EAOS found {len(product)} pipelines with {len(stages)} stages ({names}).')
     looked = len(record['looked_for'])
     if tooling:
