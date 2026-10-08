@@ -1,0 +1,24 @@
+/* Finding row and evidence card (DESIGN.md §3). */
+.row {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; inline-size: 100%;
+  min-block-size: 56px; padding: 8px 14px; color: inherit; text-align: start; border-inline-start: 3px solid transparent;
+}
+li + li > .row { border-block-start: 1px solid var(--border-subtle); }
+.row:hover { background: var(--bg-hover); }
+.row:focus-visible { outline-offset: -2px; }
+.row[aria-current="page"] { background: var(--accent-subtle); border-inline-start-color: var(--accent-solid); }
+.main { display: flex; flex-direction: column; min-inline-size: 0; line-height: 1.4; }
+.title { font-weight: 500; font-size: var(--text-row); overflow-wrap: anywhere; }
+.meta { font-size: 12px; color: var(--text-tertiary); display: flex; flex-wrap: wrap; gap: 0 6px; }
+.marker { font-size: 11px; font-weight: 500; padding: 1px 8px; border-radius: var(--radius-full); white-space: nowrap; }
+.you { color: var(--accent-text); background: var(--accent-subtle); }
+.eaos { color: var(--text-secondary); background: var(--bg-sunken); }
+
+.evidence { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; }
+.evHead { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 12px; color: var(--text-tertiary); }
+.evKind { font-weight: 600; color: var(--text-secondary); }
+.evText { font-size: 14px; line-height: 1.55; }
+.code {
+  margin: 0; padding: 10px 12px; border-radius: var(--radius-8); background: var(--code-bg); border: 1px solid var(--border-subtle);
+  font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; overflow-x: auto; direction: ltr; text-align: start; white-space: pre;
+}

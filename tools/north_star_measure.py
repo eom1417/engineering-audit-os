@@ -219,8 +219,12 @@ def card_values(projects, record):
 USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'X11', 'X12', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6')
 
 
+STUDIO = ('F8', 'W2')
+
+
 def measure(record, only=None):
     if only in USABILITY: return usability_values(only)   # read from this checkout, not from the corpus
+    if only in STUDIO: return studio_values(only)
     projects = []
     for spec in record['corpus']:
         target = CORPUS / spec['name']
@@ -233,7 +237,60 @@ def measure(record, only=None):
     values.update(card_values(projects, record))
     values.update(live_values(record))
     values.update(usability_values(only))
+    values.update(studio_values(only))
     return values
+
+
+def studio_values(only=None):
+    """F8 from the Studio's screen gates (studio/scripts/gates.mjs -> $EAOS_MEASURE/studio-gates/gates.json), counted
+    only when they ran in full on the build shipped in this checkout; W2 from the adoption records (docs/adoption)."""
+    values = {}
+    shipped = ROOT / 'eaos/data/studio/SOURCE.json'
+    if only in (None, 'F8'):
+        gates = REPORTS / 'studio-gates/gates.json'
+        run = json.loads(gates.read_text(encoding='utf-8')) if gates.is_file() else None
+        built = json.loads(shipped.read_text(encoding='utf-8'))['source_sha256'] if shipped.is_file() else None
+        if not run:
+            values['F8'] = (None, 'no gate run yet: npm run build && node scripts/gates.mjs in studio/')
+        elif not run.get('complete') or run.get('studio_source_sha256') != built:
+            values['F8'] = (None, 'the last gate run is not of the shipped build, or not complete: run node scripts/gates.mjs again')
+        else:
+            rows = run['results']
+            widths = sorted({v['width'] for v in run['viewports'].values()})
+            variants = sorted({(r['lang'], r['theme']) for r in rows})
+            failed = sorted({r['shot'] for r in rows if not r['pass']})
+            values['F8'] = (ratio(len(rows) - len(failed), len(rows)) if rows else None,
+                            f"Studio shots passing every gate (overflow, initial scroll, axe, 44px targets, Arabic tracking, offline, script errors) "
+                            f"at {'/'.join(map(str, widths))} in {', '.join('-'.join(v) for v in variants)}: {len(rows) - len(failed)}/{len(rows)} "
+                            f"({len({r['route'] for r in rows})} views of {run['data']['project']})" + (f"; failing: {', '.join(failed[:5])}" if failed else ''))
+    if only in (None, 'W2'):
+        values['W2'] = adoption_value()
+    return values
+
+
+def adoption_value():
+    """The Studio's packages pinned by an adoption record with candidates, a decision and pins, committed no later than
+    the Studio's first code (docs/adoption/README.md)."""
+    import re
+    package = json.loads((ROOT / 'studio/package.json').read_text(encoding='utf-8')) if (ROOT / 'studio/package.json').is_file() else {}
+    wanted = {**package.get('dependencies', {}), **package.get('devDependencies', {})}
+    if not wanted:
+        return None, 'the Studio has no packages yet'
+    first_code = git('log', '--reverse', '--format=%H', '--', 'studio/src', cwd=ROOT).stdout.split()
+    covered = set()
+    for path in sorted((ROOT / 'docs/adoption').glob('*.md')):
+        if path.name == 'README.md': continue
+        added = git('log', '--diff-filter=A', '--format=%H', '--', path.relative_to(ROOT).as_posix(), cwd=ROOT).stdout.split()
+        if not added: continue  # not committed: it cannot show it came first
+        if first_code and subprocess.run(['git', 'merge-base', '--is-ancestor', added[-1], first_code[0]], cwd=ROOT).returncode != 0: continue
+        for section in path.read_text(encoding='utf-8').split('\n## ')[1:]:
+            if not all(part in section for part in ('**Candidates**', '**Decision**', '**Pinned**')): continue
+            pinned = section.split('**Pinned**', 1)[1]
+            for name, version in re.findall(r'`(@?[\w./-]+)@(\d+\.\d+\.\d+)`', pinned):
+                if wanted.get(name) == version: covered.add(name)
+    missing = sorted(set(wanted) - covered)
+    return (ratio(len(covered), len(wanted)), f'Studio packages pinned by an adoption record written before the code: {len(covered)}/{len(wanted)}'
+            + (f"; without a record: {', '.join(missing)}" if missing else ''))
 
 
 def usability_values(only=None):

@@ -1,0 +1,55 @@
+/* Chips, severity glyph, operation chip, badges (DESIGN.md §3): every colour also carries a word or an icon. */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; min-block-size: 24px; padding-inline: 9px; border-radius: var(--radius-full);
+  font-size: 12px; font-weight: 500; line-height: 1.3; border: 1px solid var(--border-default); color: var(--text-secondary);
+  background: var(--bg-surface); white-space: nowrap;
+}
+button.chip, a.chip { cursor: pointer; min-block-size: 28px; }
+button.chip[data-hovered], a.chip:hover { background: var(--bg-hover); }
+button.chip[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.dot { inline-size: 7px; block-size: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.neutral .dot { background: var(--status-neutral); }
+.good { color: var(--status-good-text); background: var(--status-good-subtle); border-color: transparent; }
+.warning { color: var(--status-warning-text); background: var(--status-warning-subtle); border-color: transparent; }
+.serious { color: var(--status-serious-text); background: var(--status-serious-subtle); border-color: transparent; }
+.critical { color: var(--status-critical-text); background: var(--status-critical-subtle); border-color: transparent; }
+.good .dot { background: var(--status-good); }
+.warning .dot { background: var(--status-warning); }
+.serious .dot { background: var(--status-serious); }
+.critical .dot { background: var(--status-critical); }
+.accent { color: var(--accent-text); background: var(--accent-subtle); border-color: transparent; }
+.accent .dot { background: var(--accent-solid); }
+
+.sev { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--sev-text); white-space: nowrap; }
+.sevLow, .sevMedium { color: var(--text-secondary); }
+.bars { display: inline-flex; align-items: flex-end; gap: 2px; block-size: 12px; }
+.bars i { inline-size: 3px; border-radius: 1px; background: var(--sev-off); }
+.bars i:nth-child(1) { block-size: 5px; }
+.bars i:nth-child(2) { block-size: 7px; }
+.bars i:nth-child(3) { block-size: 9px; }
+.bars i:nth-child(4) { block-size: 12px; }
+.sevLow .bars i[data-on] { background: var(--sev-1); }
+.sevMedium .bars i[data-on] { background: var(--sev-2); }
+.sevHigh .bars i[data-on] { background: var(--sev-3); }
+.sevCritical .bars i[data-on] { background: var(--sev-4); }
+
+.op { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; }
+.opIcon { display: inline-grid; place-items: center; padding: 2px; border-radius: var(--radius-4); }
+.opIcon svg { inline-size: 14px; block-size: 14px; }
+.keep .opIcon { color: var(--op-keep); background: var(--bg-selected); }
+.modify .opIcon { color: var(--op-modify); background: color-mix(in srgb, var(--op-modify) 14%, transparent); }
+.rebuild .opIcon { color: var(--op-rebuild); background: color-mix(in srgb, var(--op-rebuild) 14%, transparent); }
+.delete .opIcon { color: var(--op-delete); background: color-mix(in srgb, var(--op-delete) 14%, transparent); }
+.merge .opIcon { color: var(--op-merge); background: color-mix(in srgb, var(--op-merge) 14%, transparent); }
+.introduce .opIcon { color: var(--op-introduce); background: color-mix(in srgb, var(--op-introduce) 14%, transparent); }
+.opTo { display: inline-flex; align-items: center; gap: 4px; color: var(--text-tertiary); font-weight: 400; min-inline-size: 0; }
+.opTo svg { inline-size: 12px; block-size: 12px; }
+
+.badge {
+  min-inline-size: 17px; block-size: 17px; padding-inline: 4px; border-radius: 9px; background: var(--accent-button);
+  color: var(--text-on-accent); font-size: 11px; font-weight: 600; line-height: 17px; text-align: center;
+}
+
+@media (max-width: 767px) {
+  button.chip, a.chip { min-block-size: 44px; padding-inline: 12px; }
+}

@@ -1,0 +1,51 @@
+/* Health block, segmented meter, stat tiles and stat links (DESIGN.md §3). Meters fill from inline-start. */
+.health { display: flex; flex-direction: column; gap: 10px; padding: 18px 20px; inline-size: 100%; text-align: start; border-radius: var(--radius-12); cursor: pointer; }
+.health[data-hovered] { background: var(--bg-hover); }
+.health[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.eyebrow { font-size: 13px; color: var(--text-tertiary); font-weight: 500; }
+.line { display: flex; align-items: baseline; gap: 6px; }
+.display { font-size: var(--text-display); font-weight: 600; line-height: 1; }
+.of { font-size: 14px; color: var(--text-tertiary); margin-inline-end: 8px; }
+.line > :last-child { margin-inline-start: auto; align-self: center; color: var(--text-tertiary); }
+.unmeasured { font-size: 20px; font-weight: 500; color: var(--text-tertiary); }
+
+.meter { display: flex; flex-direction: column; gap: 4px; }
+.track { display: flex; gap: 3px; }
+.seg { position: relative; block-size: 8px; border-radius: 2px; background: var(--bg-selected); overflow: hidden; }
+.seg i { position: absolute; inset-block: 0; inset-inline-start: 0; background: var(--text-primary); }
+.ticks { position: relative; block-size: 14px; font-size: 11px; color: var(--text-tertiary); }
+.ticks span { position: absolute; translate: -50% 0; }
+[dir="rtl"] .ticks span { translate: 50% 0; }
+.hint { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-tertiary); line-height: 1.4; }
+
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-block-size: 80px; padding: 10px 12px;
+  border-radius: var(--radius-12); background: var(--bg-surface); border: 1px solid var(--border-default); text-align: start; color: inherit;
+}
+.tile:hover, .tile[data-hovered] { border-color: var(--border-strong); }
+.tile { cursor: pointer; }
+.tile[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.tileN { font-size: var(--text-tile); font-weight: 600; line-height: 1.2; }
+.tileN .of { font-size: 13px; margin: 0; }
+.tileL { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; line-height: 1.35; color: var(--text-secondary); }
+.tile .meter { inline-size: 100%; margin-block-start: auto; }
+.tile .seg { block-size: 5px; }
+
+.statLinks { display: flex; flex-direction: column; }
+.statLink { display: flex; align-items: center; gap: 10px; min-block-size: 40px; padding-inline: 8px; border-radius: var(--radius-8); color: inherit; }
+.statLink:hover { background: var(--bg-hover); }
+.statIcon { color: var(--text-tertiary); display: grid; }
+.statN { font-weight: 600; min-inline-size: 30px; }
+.statL { color: var(--text-secondary); font-size: 14px; flex: 1; }
+.statLink > :last-child { color: var(--text-tertiary); }
+
+@media (max-width: 767px) {
+  .statLink { min-block-size: 48px; }
+  .health { padding: 14px 16px; }
+}
+.bandDot { inline-size: 7px; block-size: 7px; border-radius: 50%; flex: none; background: var(--status-neutral); }
+.bandDot[data-band="good"] { background: var(--status-good); }
+.bandDot[data-band="warning"] { background: var(--status-warning); }
+.bandDot[data-band="serious"] { background: var(--status-serious); }
+.bandDot[data-band="critical"] { background: var(--status-critical); }

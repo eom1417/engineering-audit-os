@@ -1,0 +1,164 @@
+/* EAOS Studio design tokens (DESIGN.md §2): Instrument base, Atlas map tokens. The only file with raw values;
+   components read every colour, size and duration through these custom properties. */
+
+/* ---------- Primitives: 12-step cool neutral, blue accent, viz ramps ---------- */
+:root {
+  --gray-1: #fcfcfd; --gray-2: #f8f9fa; --gray-3: #f0f1f3; --gray-4: #e8e9ec; --gray-5: #e0e1e6; --gray-6: #d8d9df;
+  --gray-7: #cbcdd5; --gray-8: #b6b9c3; --gray-9: #8a8e99; --gray-10: #7d818c; --gray-11: #5d616b; --gray-12: #17191d;
+  --blue-3: #eaf2fd; --blue-4: #dbe8fb; --blue-6: #b3cff4; --blue-8: #6fa3e8; --blue-9: #2a78d6; --blue-10: #2068c2; --blue-11: #1d5fb3;
+  --orange-1: #fdf1e8; --orange-2: #f9d7bd; --orange-3: #f2ab78; --orange-4: #e07a35; --orange-5: #c2560e;
+  --aqua: #1597a5; --violet: #7c5fd6; --red: #d33a3a; --green: #2f8f4e; --amber: #b7791f;
+
+  --font-sans: "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --space-2: 2px; --space-4: 4px; --space-8: 8px; --space-12: 12px; --space-16: 16px; --space-20: 20px;
+  --space-24: 24px; --space-32: 32px; --space-40: 40px; --space-56: 56px;
+  --radius-4: 4px; --radius-8: 8px; --radius-12: 12px; --radius-16: 16px; --radius-full: 999px;
+
+  --dur-instant: 90ms; --dur-fast: 140ms; --dur-base: 200ms; --dur-slow: 240ms;
+  --ease-standard: cubic-bezier(.2, 0, 0, 1); --ease-emphasized: cubic-bezier(.3, 0, 0, 1); --ease-exit: cubic-bezier(.4, 0, 1, 1);
+
+  --sidebar-w: 232px; --rail-w: 56px; --inspector-w: 360px; --list-w: 400px; --topbar-h: 48px; --tabbar-h: 60px;
+}
+
+/* ---------- Type scale (DESIGN.md §2.3): desktop first, phone below 768 ---------- */
+:root, [lang="ar"] {
+  --text-display: 32px; --text-tile: 24px; --text-large-title: 24px; --text-headline: 26px; --text-section: 17px;
+  --text-body: 15px; --text-row: 14px; --text-meta: 13px; --text-label: 13px; --text-caption: 12px; --text-input: 16px;
+  --leading-body: 1.6; --leading-tight: 1.25; --leading-headline: 1.4;
+  --page-pad: 28px; --section-gap: 24px; --panel-pad: 16px; --row-h: 36px; --control-h: 32px; --target: 24px;
+  --topbar-h-phone: 52px; --sheet-w: 480px; --palette-w: 640px; --content-max: 1320px;
+  --z-sticky: 10; --z-tabbar: 20; --z-overlay: 40; --z-toast: 60;
+}
+[lang="en"] { --text-body: 14px; --text-label: 12px; --leading-body: 1.5; --text-headline: 25px; }
+@media (max-width: 767px) {
+  :root, [lang] {
+    --text-large-title: 28px; --text-headline: 20px; --text-body: 15px; --text-row: 15px; --text-meta: 13px;
+    --text-label: 14px; --leading-headline: 1.5;
+    --page-pad: 16px; --section-gap: 18px; --panel-pad: 14px; --row-h: 48px; --control-h: 44px; --target: 44px;
+  }
+  [lang="en"] { --text-label: 13px; }
+}
+
+/* ---------- Semantic: light (scoped by data-theme, so a gallery frame can differ from the page) ---------- */
+:root, [data-theme="light"] {
+  color-scheme: light;
+  --gray-1: #fcfcfd; --gray-2: #f8f9fa; --gray-3: #f0f1f3; --gray-4: #e8e9ec; --gray-5: #e0e1e6; --gray-6: #d8d9df;
+  --gray-7: #cbcdd5; --gray-8: #b6b9c3; --gray-9: #8a8e99; --gray-10: #7d818c; --gray-11: #5d616b; --gray-12: #17191d;
+  --bg-canvas: var(--gray-1);
+  --bg-surface: #ffffff;
+  --bg-raised: #ffffff;
+  --bg-sunken: var(--gray-2);
+  --bg-hover: var(--gray-3);
+  --bg-selected: var(--gray-4);
+  --border-subtle: var(--gray-4);
+  --border-default: var(--gray-5);
+  --border-strong: var(--gray-7);
+  --text-primary: var(--gray-12);
+  --text-secondary: var(--gray-11);
+  --text-tertiary: #62666f;
+  --text-on-accent: #ffffff;
+  --accent-solid: var(--blue-9);
+  --accent-solid-hover: var(--blue-10);
+  --accent-button: var(--blue-10); --accent-button-hover: var(--blue-11);
+  --accent-subtle: var(--blue-3);
+  --accent-text: var(--blue-11);
+  --focus-ring: var(--blue-9);
+  --ink: var(--gray-12);
+  --ink-soft: var(--gray-7);
+
+  --status-good: #2f8f4e;     --status-good-subtle: #e7f4ec;
+  --status-warning: #a8650a;  --status-warning-subtle: #fcf0db;
+  --status-serious: #c2410c;  --status-serious-subtle: #fde9dc;
+  --status-critical: #c92a2a; --status-critical-subtle: #fbe5e5;
+  --status-neutral: var(--gray-9); --status-neutral-subtle: var(--gray-3);
+  --status-good-text: #1f6b39; --status-warning-text: #7d4a06; --status-serious-text: #9c340a; --status-critical-text: #a32020;
+
+  /* severity: one ordinal orange ramp (low -> high) */
+  --sev-1: #f1c6a3; --sev-2: #e8955a; --sev-3: #cf5d12; --sev-4: #8f3606; --sev-off: var(--gray-5);
+  --sev-text: #a3460b;
+  --hc-high-fg: #ffffff; --hc-medium-fg: #1d1206; --hc-low-fg: #2a1709;
+
+  /* operations (reserved meanings) */
+  --op-keep: #8a8e99; --op-modify: #2a78d6; --op-rebuild: #d9711c; --op-introduce: #1597a5; --op-merge: #7c5fd6; --op-delete: #d33a3a;
+
+  /* sequential ramp for counts (findings density) */
+  --seq-100: #eef1f6; --seq-200: #d5ddeb; --seq-300: #aebfd9; --seq-400: #7d98c4; --seq-500: #4f71aa; --seq-600: #2f4f86; --seq-700: #1d335c;
+
+  /* operation washes (dot fills on the map) */
+  --op-keep-wash: #eceef2; --op-modify-wash: #dce9fa; --op-rebuild-wash: #fbe6d3; --op-delete-wash: #fbe3e3;
+  /* territory map: cool neutral land on the canvas, contours one step darker; no warm paper */
+  --map-water: var(--gray-1); --map-grid: rgba(23, 25, 29, .035); --map-halo: var(--gray-1);
+  --land-0: #f0f2f5; --land-1: #e7eaef; --contour: #cfd3db; --contour-strong: #b9bec9;
+  --edge: rgba(23, 25, 29, .14);
+  --edge-strong: rgba(23, 25, 29, .62);
+  --hull: rgba(23, 25, 29, .028);
+  --hull-line: var(--gray-5);
+
+  --shadow-float: 0 1px 2px rgba(16, 18, 24, .06), 0 8px 24px -4px rgba(16, 18, 24, .14), 0 24px 56px -12px rgba(16, 18, 24, .18);
+  --scrim: rgba(16, 18, 24, .32);
+  --code-bg: var(--gray-2);
+  --code-hl: #fff4e8;
+  --code-hl-bar: var(--sev-3);
+}
+
+/* ---------- Semantic: dark (stepped, not inverted) ---------- */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --gray-1: #0f1012; --gray-2: #151619; --gray-3: #1c1d21; --gray-4: #222429; --gray-5: #292b31; --gray-6: #31343a;
+  --gray-7: #3d4048; --gray-8: #535761; --gray-9: #6c707a; --gray-10: #7b7f89; --gray-11: #a9adb6; --gray-12: #eceef1;
+  --bg-canvas: #0f1012;
+  --bg-surface: #151619;
+  --bg-raised: #1b1c20;
+  --bg-sunken: #0b0c0e;
+  --bg-hover: #1f2125;
+  --bg-selected: #26282d;
+  --border-subtle: #1f2125;
+  --border-default: #292b31;
+  --border-strong: #3d4048;
+  --text-primary: #eceef1;
+  --text-secondary: #a9adb6;
+  --text-tertiary: #8a8f99;
+  --accent-solid: #3987e5;
+  --accent-solid-hover: #4f95ea;
+  --accent-button: #2a6bc4; --accent-button-hover: #2f76d2;
+  --accent-subtle: #13243b;
+  --accent-text: #7fb2f0;
+  --focus-ring: #3987e5;
+  --ink: #eceef1;
+  --ink-soft: #3d4048;
+
+  --status-good: #4cb874;     --status-good-subtle: #11281a;
+  --status-warning: #e0a43c;  --status-warning-subtle: #2c2110;
+  --status-serious: #f0874a;  --status-serious-subtle: #2e1a0e;
+  --status-critical: #f0625f; --status-critical-subtle: #2e1414;
+  --status-neutral: #7b7f89;  --status-neutral-subtle: #1f2125;
+  --status-good-text: #6fd08f; --status-warning-text: #f0b85a; --status-serious-text: #f6a06c; --status-critical-text: #f6837f;
+
+  --sev-1: #6b4a33; --sev-2: #a8612c; --sev-3: #e07a35; --sev-4: #f5a46b; --sev-off: #2c2e34;
+  --sev-text: #f0995c;
+  --hc-high-fg: #160b03; --hc-medium-fg: #ffffff; --hc-low-fg: #ffffff;
+
+  --op-keep: #7b7f89; --op-modify: #3987e5; --op-rebuild: #e8893a; --op-introduce: #2fb3c1; --op-merge: #9a82ea; --op-delete: #f0625f;
+
+  --seq-100: #161a22; --seq-200: #1b2536; --seq-300: #22344f; --seq-400: #2c4a72; --seq-500: #3d6499; --seq-600: #5b86c0; --seq-700: #8fb0e0;
+
+  --op-keep-wash: #23252b; --op-modify-wash: #152844; --op-rebuild-wash: #33210f; --op-delete-wash: #351616;
+  --map-water: #0f1012; --map-grid: rgba(236, 238, 241, .03); --map-halo: #0f1012;
+  --land-0: #16181c; --land-1: #1b1e23; --contour: #2c2f36; --contour-strong: #3a3e47;
+  --edge: rgba(236, 238, 241, .12);
+  --edge-strong: rgba(236, 238, 241, .7);
+  --hull: rgba(236, 238, 241, .022);
+  --hull-line: #26282d;
+
+  --shadow-float: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 12px 32px -6px rgba(0, 0, 0, .6), 0 28px 64px -16px rgba(0, 0, 0, .7);
+  --scrim: rgba(0, 0, 0, .55);
+  --code-bg: #0b0c0e;
+  --code-hl: #2a1b10;
+  --code-hl-bar: #e07a35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-instant: 0ms; --dur-fast: 0ms; --dur-base: 0ms; --dur-slow: 0ms; }
+}

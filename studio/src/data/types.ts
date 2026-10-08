@@ -1,0 +1,103 @@
+// Contract v1 (docs/STUDIO.md, schemas/artifacts/studio-*.schema.json): the fields the Studio reads today. Types
+// generated from the schemas replace this file with contract v2 (NS39.T3).
+
+/** A number the Studio shows: its value and where it comes from. Not measured is null, never 0. */
+export interface Measure { value: number | null; src: string; unit?: string }
+
+export interface Manifest {
+  contract: number
+  built: { built: string; commit: string; digest: string; studio_digest?: string; version: string }
+  project: { name: string }
+  scanned: { at: string | null; branch: string | null; commit: string | null }
+  sections: { name: SectionName; file: string; sha256: string; bytes: number }[]
+}
+
+export interface Meta {
+  files: Measure
+  lines: Measure
+  languages: { name: string; files: number; share: number }[]
+  stages: { id: string; state: string; title: string }[]
+}
+
+export type Freshness = 'fresh' | 'branch_moved' | 'eaos_updated' | 'unknown'
+
+export interface Head {
+  freshness: Freshness
+  verdict: string
+  next: { action: string; tool: string | null } | null
+  scanned: { at: string | null; branch: string | null; commit: string | null }
+  eaos: { version: string; commit: string; digest: string }
+}
+
+export interface Health {
+  score: Measure
+  formula: string
+  domains: { id: string; name: string; cards: number; score: Measure }[]
+  history: { at: string; commit: string | null; score: number | null }[]
+}
+
+export type Severity = 'critical' | 'high' | 'medium' | 'low'
+export type CardState = 'open' | 'in_batch' | 'on_branch' | 'done' | 'resolved' | 'skipped'
+
+export interface Card {
+  id: string
+  key: string
+  title: string
+  kind: string
+  category: string
+  severity: Severity
+  state: CardState
+  fixable: boolean
+  needs_decision: boolean
+  milestone: string | null
+  paths: string[]
+  evidence: string[]
+  scope: 'place' | 'group'
+  confidence: number
+}
+
+export interface Fact { id: string; kind: string; engine: string | null; path: string | null; line: number | null; summary: string; sites: { path: string; line?: number }[] }
+
+export type Relation = 'retain' | 'modify' | 'rebuild' | 'delete' | 'merge' | 'missing' | 'introduce'
+
+export interface Story {
+  current: { components: { name: string; files: number; layer: string }[] }
+  target: { components: { name: string; layer: string; responsibility: string }[] }
+  gap: { component: string; relation: Relation; to: string | null; files: number; cards: string[]; closed: number }[]
+}
+
+export interface Doc { id: string; title: string; group: string; order: number | null; path: string; bytes: number }
+
+export interface PlanStep { id: string; state: string; title?: string; gate: string; tasks: { id: string; state: string; title: string }[] }
+export interface Plan { id: string; kind: string; title?: string; state: string; progress: Measure; steps: PlanStep[] }
+
+export interface Decision {
+  id: string
+  question: string
+  recommendation: string
+  options: { id: string; label: string }[]
+  blocks: string[]
+  state: 'waiting' | 'answered'
+  answer: string | null
+  tool: string | null
+  plan: string | null
+}
+
+export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media'] as const
+export type SectionName = (typeof SECTIONS)[number]
+
+export interface StudioData {
+  manifest: Manifest
+  meta?: Meta
+  head?: Head
+  health?: Health
+  cards?: { cards: Card[] }
+  evidence?: { facts: Fact[] }
+  story?: Story
+  docs?: { docs: Doc[] }
+  plans?: { plans: Plan[] }
+  decisions?: { decisions: Decision[] }
+  media?: unknown
+  /** Sections the manifest lists but whose file did not load */
+  missing: SectionName[]
+}
