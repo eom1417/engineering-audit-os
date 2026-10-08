@@ -634,7 +634,7 @@ def from_engines(fact_sets, offset=0):
                 impact = {'scenario': 'محركان يتناقضان في خاصية بنيوية؛ أحدهما مخطئ ولا يصح البناء على أي منهما قبل الحسم.'}
             made.append(make(index, statement[:600], 'structure' if kind in ('cycle', 'boundary') else 'risk',
                              confidence, ['external_engine'], [],
-                             falsifier, fact_ids=cluster['fact_ids'], confidence_ceiling=ceiling,
+                             falsifier, fact_ids=cluster['fact_ids_by_kind'][kind], confidence_ceiling=ceiling,
                              render={'key': 'engine_cluster',
                                      'params': {'place': cluster['place'], 'kind': kind,
                                                 'engines': engines, 'verdict': detail['verdict'],

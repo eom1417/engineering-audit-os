@@ -314,12 +314,24 @@ def filter_dead_code_references(facts, source):
     return kept, dropped
 
 
+def is_wide(fact):
+    """A finding about a group spread over more than WIDE files is evidence about the group, not about each file in it:
+    a word repeated across 17 files says nothing about the complexity of any one of them (NS30.T1)."""
+    return fact['value'].get('subject_kind') == 'group' and len(_places(fact)) > WIDE
+
+
+WIDE = 3
+
+
 def clusters(sets):
-    """One cluster per place, holding every engine's evidence about it."""
+    """One cluster per place, holding every engine's evidence about it; a wide group finding is a cluster of its own."""
     evaluated = _evaluated(sets)
     filtered = _filter_registry_referenced_dead_code(_findings(sets), sets)
     by_place = {}
     for fact in filtered:
+        if is_wide(fact):
+            by_place.setdefault('group:' + fact['id'], []).append(fact)
+            continue
         for place in _places(fact):
             by_place.setdefault(place, []).append(fact)
     built = []
@@ -344,6 +356,11 @@ def clusters(sets):
             'corroboration': corroboration,
             'fact_ids': sorted(fact['id'] for fact in facts
                                if not (fact.get('value') or {}).get('referenced_by_registry')),
+            # A claim about one kind cites only the evidence of that kind, so its files are where that evidence lies.
+            'fact_ids_by_kind': {kind: sorted(fact['id'] for fact in facts if fact['value']['kind'] == kind
+                                              and not (fact.get('value') or {}).get('referenced_by_registry'))
+                                 for kind in sorted(kinds)},
+            'scope': 'group' if place.startswith('group:') else 'place',
             'findings': len([f for f in facts if not (f.get('value') or {}).get('referenced_by_registry')]),
             'weight': round(sum(2.0 if detail['verdict'] == CORROBORATED else
                                 0.5 if detail['verdict'] in (CONTESTED, GRANULARITY_GAP) else 1.0

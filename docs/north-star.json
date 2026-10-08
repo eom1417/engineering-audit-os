@@ -1115,7 +1115,7 @@
       "id": "C12",
       "name": "الاستمرارية: تقدم صادق، ودمج يغلق الحلقة، وتسليم بين المساعدين",
       "weight": 5,
-      "ideal": "ما في فرع الشخص هو وحده ما يُحسب منجزًا، بمفتاح ثابت لكل بطاقة مهما أعيد الفحص؛ الدمج يحذف الفرع ويحدّث التقرير فورًا؛ ومساعد يكمل من حيث توقف غيره دون أن يسأل الشخص من جديد؛ والتقرير يُري البطاقات والبنية الحالية والمستهدفة والتقدم عبر الزمن.",
+      "ideal": "ما في فرع الشخص هو وحده ما يُحسب منجزًا، بمفتاح ثابت لكل بطاقة مهما أعيد الفحص؛ الدمج يحذف الفرع ويحدّث التقرير فورًا؛ ومساعد يكمل من حيث توقف غيره دون أن يسأل الشخص من جديد؛ والتقرير يُري البطاقات والبنية الحالية والمستهدفة والتقدم عبر الزمن. وكل هذا يُرى في واجهة واحدة لـEAOS (الاستوديو) تُبنى مع كل فحص: الوضع الراهن والفجوة والصورة المثالية، والخطط وخططها الفرعية، والقرارات، والمستندات، والصور، وكل رقم فيها بمصدره.",
       "indicators": [
         {
           "id": "L1",
@@ -1225,6 +1225,76 @@
           "value": null,
           "evidence": "not measured yet",
           "reads": "${EAOS_MEASURE}/plans/<مشروع>/trial.json → decisions",
+          "measured": "automated"
+        },
+        {
+          "id": "F1",
+          "name": "الاستوديو يُبنى للجميع",
+          "definition": "مشاريع العيّنة التي بُني لها الاستوديو تلقائيًا مع الفحص، وفتحت كل صفحاته بلا خطأ في المتصفح ÷ مشاريع العيّنة",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "<تقرير>/studio/manifest.json + فتح الصفحات في Chromium",
+          "measured": "automated"
+        },
+        {
+          "id": "F2",
+          "name": "كل رقم في الاستوديو له مصدر",
+          "definition": "الأرقام الظاهرة في صفحات الاستوديو التي يحمل كل منها مصدره (ملف وحقل، أو معادلة) ÷ الأرقام الظاهرة، على العيّنة",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "<تقرير>/studio/*.json → src + DOM [data-src]",
+          "measured": "automated"
+        },
+        {
+          "id": "F3",
+          "name": "الاستوديو بلا مخالفة وصولية جدية",
+          "definition": "صفحات الاستوديو بلا مخالفة جدية (axe: serious أو critical) في الوضعين الفاتح والداكن وباللغتين ÷ الصفحات",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "axe-core على كل صفحة × وضعين × لغتين",
+          "measured": "automated"
+        },
+        {
+          "id": "F4",
+          "name": "الاستوديو سريع على مشروع كبير",
+          "definition": "قياسات أول عرض لصفحات الاستوديو على مشروع مولّد بـ5000 بطاقة كانت أقل من ثانيتين ÷ القياسات",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "tests/perf: مشروع مولّد بـ5000 بطاقة",
+          "measured": "automated"
+        },
+        {
+          "id": "F5",
+          "name": "المالك يكمل مهامه وحده",
+          "definition": "مهام حقيقية من خمس (أين نحن، ما أخطر مشكلة ودليلها، ما التالي في خطة، ما القرار المنتظر، ماذا تغيّر منذ الفحص السابق) أكملها المالك في الاستوديو دون مساعدة ÷ 5",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "تجربة المالك المسجلة: ${EAOS_MEASURE}/studio/<مشروع>/trial.json",
+          "measured": "recorded"
+        },
+        {
+          "id": "F6",
+          "name": "شكل الاستوديو ثابت",
+          "definition": "صفحات الاستوديو التي تطابق لقطاتها المرجعية المعتمدة (Chromium وWebKit، الوضعان، اللغتان) ÷ الصفحات",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "tests/visual → اللقطات المرجعية",
+          "measured": "automated"
+        },
+        {
+          "id": "F7",
+          "name": "مصدر واحد للتقرير والاستوديو",
+          "definition": "الأرقام في REPORT.html التي تساوي قيمتها في نموذج الاستوديو، مع REPORT.html لا يقرأ أي ملف من التقرير بنفسه ÷ أرقام REPORT.html، على العيّنة",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet",
+          "reads": "<تقرير>/REPORT.html ↔ <تقرير>/studio/*.json",
           "measured": "automated"
         }
       ]
@@ -1963,8 +2033,8 @@
         "S04"
       ],
       "title_en": "Basic security hygiene",
-      "weight": 3,
-      "weight_why": "أمن أساسي: أسرار مرفوعة وسياسات وصول.",
+      "weight": 2,
+      "weight_why": "أمن أساسي: أسرار مرفوعة وسياسات وصول. (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.)",
       "does": [
         "يجد الأسرار المرفوعة بخطورتها الصحيحة",
         "يتحقق من تغطية سياسات الوصول لكل جدول"
@@ -2209,8 +2279,8 @@
       ],
       "stages": [],
       "title_en": "Tool platform: every tool enters one way",
-      "weight": 3,
-      "weight_why": "منصة كل الأدوات: تثبيت موحد، وقراءة SARIF، وتوليد، وبوابات، وعزل. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
+      "weight": 2,
+      "weight_why": "منصة كل الأدوات: تثبيت موحد، وقراءة SARIF، وتوليد، وبوابات، وعزل. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.)",
       "does": [
         "يثبّت كل أداة بإصدارها المثبّت وبصمتها بأمر واحد",
         "يقرأ نتائج ست أدوات بقارئ SARIF واحد",
@@ -2811,8 +2881,8 @@
         "S04"
       ],
       "title_en": "Static-analysis adapters: proven tools, not our own code",
-      "weight": 3,
-      "weight_why": "عشرة محوّلات لأدوات جاهزة بدل كود نكتبه: أدلة مستقلة.",
+      "weight": 2,
+      "weight_why": "عشرة محوّلات لأدوات جاهزة بدل كود نكتبه: أدلة مستقلة. (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.)",
       "does": [
         "يبني قائمة الاعتماديات وثغراتها",
         "يشغّل Semgrep وTrivy وCheckov وSQLFluff وSpectral وoasdiff",
@@ -2990,8 +3060,8 @@
         "S04"
       ],
       "title_en": "Measurement and debt register",
-      "weight": 3,
-      "weight_why": "الأرقام لكل ملف وسجل دَين واحد يجمع الأدلة. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
+      "weight": 2,
+      "weight_why": "الأرقام لكل ملف وسجل دَين واحد يجمع الأدلة. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.)",
       "does": [
         "يقيس الحجم والتعقيد والتقلّب والاعتمادية لكل ملف",
         "يسجل كل خطر عالٍ بشاهدين مستقلين",
@@ -3119,8 +3189,8 @@
         "S05"
       ],
       "title_en": "Behaviour lock: specifications before any change",
-      "weight": 3,
-      "weight_why": "شبكة الأمان قبل أي تغيير: لا تحول بدونها. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
+      "weight": 2,
+      "weight_why": "شبكة الأمان قبل أي تغيير: لا تحول بدونها. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.)",
       "does": [
         "يكتب مواصفة سلوك لكل ميزة",
         "يولّد سيناريوهات الحمل والأعطال والفحص الحي بصيغ أدواتها"
@@ -3360,8 +3430,8 @@
         "S06"
       ],
       "title_en": "Target-state report",
-      "weight": 3,
-      "weight_why": "قلب الوعد: الصورة المثالية بالوظائف نفسها وقرار لكل مكوّن. (2 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
+      "weight": 2,
+      "weight_why": "قلب الوعد: الصورة المثالية بالوظائف نفسها وقرار لكل مكوّن. (2 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.)",
       "does": [
         "يختار المعمارية المرجعية من سبع بحسب ملفات المشروع",
         "يضع كل ملف في مكوّن مستهدف ويقرر قرارات البنية التحتية",
@@ -3504,8 +3574,8 @@
         "S06"
       ],
       "title_en": "Architecture model and decisions (C4, ADR)",
-      "weight": 3,
-      "weight_why": "رسم العمارة وقراراتها بصيغ معيارية تتحقق منها أدواتها.",
+      "weight": 2,
+      "weight_why": "رسم العمارة وقراراتها بصيغ معيارية تتحقق منها أدواتها. (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.)",
       "does": [
         "يرسم نموذج C4 للوضع الحالي من الحقائق",
         "يرسم نموذج C4 للصورة المثالية",
@@ -5571,6 +5641,155 @@
       ]
     },
     {
+      "id": "NS36",
+      "title": "أساس الاستوديو: القرارات والعقد والنموذج",
+      "title_en": "Studio foundation: decisions, contract and model",
+      "stages": [
+        "S03",
+        "S15"
+      ],
+      "weight": 3,
+      "goal": "قرارات الاستوديو مسجلة، وعقد بياناته ثابت ومتحقق منه، والنموذج يُكتب مع كل فحص، وأساس الواجهة يعرض بيانات حقيقية؛ وينتهي ببوابة المالك: نموذج حي يعتمد شكله قبل أي صفحة.",
+      "weight_why": "طلب المالك (2026-10-08): واجهة لـEAOS نفسه يتابع منها أي شخص كل شيء، ووافق على الخطة الاستراتيجية (studio-strategy.html) وقراراتها الخمسة. الأساس أولًا لأن الهندسة العكسية أظهرت أن كل صفحة تقوم على العقد والنموذج.",
+      "does": [
+        "سجل قرار البنية docs/STUDIO.md بالقرارات D1-D5 ونموذج الخطة",
+        "عقد studio/*.json بمخططات ونسختها المعبأة، ومدقق يدعم $ref والحدود",
+        "نموذج واحد للدرجة والبطاقات والقصة والمستندات يكتبه النشر بكاتب ذري",
+        "أساس الواجهة: التحميل من ملف، الرموز والخط واللغتان، مكوّن الرقم بمصدره، الحالات"
+      ],
+      "tools": [
+        "eaos/artifact_contracts.py",
+        "eaos/build_info.py",
+        "eaos/human_report.py",
+        "eaos/guided.py",
+        "eaos/studio/ (جديد)",
+        "studio/ (مصدر الواجهة، جديد)"
+      ],
+      "outputs": [
+        "docs/STUDIO.md",
+        "schemas/artifacts/studio-*.schema.json",
+        "<تقرير>/studio/manifest.json وأقسامه",
+        "<تقرير>/studio/index.html"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS36.T1",
+          "title": "القرارات ونواة العقد",
+          "why": "بلا قرارات مكتوبة وعقد متحقق منه تُبنى الواجهة على بيانات تتغير تحتها، كما حدث في الواجهة المؤقتة التي قرأت ملفات داخلية مباشرة.",
+          "moves": [
+            "F2"
+          ],
+          "depends_on": [],
+          "size": "M",
+          "files": [
+            "docs/STUDIO.md",
+            "eaos/artifact_contracts.py",
+            "eaos/build_info.py",
+            "schemas/artifacts/studio-*.schema.json",
+            "eaos/data/schemas/artifacts/",
+            "acceptance/test_studio_contract.py"
+          ],
+          "steps": [
+            "docs/STUDIO.md: القرارات D1-D5 كما وافق عليها المالك، وإصدار العقد (contract v1)، ونموذج الخطة الواحد ومراحل حياتها.",
+            "studio-manifest.schema.json بـx-sections، ومخطط لكل قسم: meta وhead وhealth وcards وevidence وstory وdocs وplans وdecisions وmedia.",
+            "validate يحل $ref إلى #/$defs ويفرض minimum وmaximum.",
+            "النسخة المعبأة في eaos/data مطابقة بايتًا ببايت.",
+            "build_info.studio_digest() بصمة منفصلة لأصول الواجهة."
+          ],
+          "done_when": [
+            "acceptance/test_studio_contract.py يمر."
+          ],
+          "pitfalls": [
+            "لا يتغير سلوك أي عقد موجود: كل اختبارات العقود كما هي.",
+            "كل قيمة نسبة في العقد بين 0 و1 بحدود في المخطط."
+          ],
+          "acceptance": "python tools/acceptance.py test studio_contract",
+          "rollback": "احذف مخططات studio وstudio_digest، وارجع validate."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS36.T2",
+          "title": "النموذج والمُصدِّر",
+          "why": "الدرجة والأرقام تُحسب اليوم داخل human_report وقت رسم الصفحة، فلا يقرؤها غيره؛ والواجهة يجب أن تُبنى وحدها مع كل فحص (R02).",
+          "moves": [
+            "F1",
+            "F2"
+          ],
+          "depends_on": [
+            "NS36.T1",
+            "NS30.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/studio/model.py",
+            "eaos/studio/export.py",
+            "eaos/human_report.py",
+            "eaos/guided.py",
+            "eaos/ledger.py"
+          ],
+          "steps": [
+            "نقل حساب الدرجة ومجالاتها من human_report إلى نموذج واحد بمعادلته، وhuman_report يقرؤه.",
+            "كتابة الأقسام meta وhead وhealth وcards وevidence وstory وdocs بكاتب ذري (ملف مؤقت ثم إعادة تسمية).",
+            "كل رقم يحمل src: الملف والحقل أو المعادلة.",
+            "الربط بخطوة النشر: كل فحص يكتب studio/."
+          ],
+          "done_when": [
+            "studio/manifest.json وأقسامه صالحة في كل تقرير من العيّنة."
+          ],
+          "pitfalls": [
+            "غير المقيس null لا صفر.",
+            "لا مسار مطلق ولا سر في البيانات."
+          ],
+          "acceptance": "python tools/acceptance.py contract studio-manifest && python tools/acceptance.py contract studio-cards && python tools/acceptance.py contract studio-story",
+          "rollback": "احذف eaos/studio/ وارجع الحساب إلى human_report."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS36.T3",
+          "title": "أساس الواجهة وبوابة المالك",
+          "why": "الواجهة السابقة رُفضت لأنها صفحات جداول بُنيت يدويًا؛ قبل بناء أي صفحة يرى المالك نموذجًا حيًا على بيانات حقيقية ويعتمد شكله.",
+          "moves": [
+            "F1",
+            "F2"
+          ],
+          "depends_on": [
+            "NS36.T2"
+          ],
+          "size": "L",
+          "files": [
+            "studio/package.json",
+            "studio/src/",
+            "studio/vite.config.ts",
+            "eaos/data/studio/",
+            "tests/test_studio_assets.py"
+          ],
+          "steps": [
+            "الهيكل: React وTypeScript وVite، React Aria، رموز التصميم وCSS Modules، الخط IBM Plex Sans Arabic محليًا.",
+            "التحميل من ملف مباشرة بنسخ JavaScript للبيانات، وسياسة أمان تمنع أي اتصال خارجي.",
+            "مكوّنا Num (الرقم بمصدره) وLiteral، وحالات الفراغ والتحميل والخطأ.",
+            "أداة البناء تشحن الأصول في eaos/data/studio بأسماء ثابتة، واختبار بلا Node يطابق بصمتها.",
+            "نموذج حي للرئيسية على بيانات EAOS نفسه يعرضه المساعد على المالك، ولا تبدأ NS37 قبل اعتماده."
+          ],
+          "done_when": [
+            "index.html في كل تقرير من العيّنة، والمالك اعتمد النموذج الحي."
+          ],
+          "pitfalls": [
+            "لا مكتبة من الإنترنت وقت التشغيل.",
+            "العربية من اليمين واللغة الإنجليزية من اليسار من أول سطر."
+          ],
+          "acceptance": "python tools/acceptance.py file studio/index.html && python tools/acceptance.py test studio_contract",
+          "rollback": "احذف studio/ وeaos/data/studio/."
+        }
+      ]
+    },
+    {
       "id": "NS32",
       "title": "خطط للمشاريع الموجودة",
       "title_en": "Plans for existing projects",
@@ -5700,6 +5919,263 @@
       "outputs": [
         "REPORT.html → صفحة لكل خطة",
         "~/.eaos/projects/<المشروع>/plans/"
+      ]
+    },
+    {
+      "id": "NS37",
+      "title": "الاستوديو كاملًا: الصفحات والإثبات",
+      "title_en": "The full Studio: pages and proof",
+      "stages": [
+        "S07",
+        "S15"
+      ],
+      "weight": 4,
+      "goal": "F1 إلى F7 عند أهدافها: الاستوديو يُفتح من /eaos والأمر والملف ويتحدث وحده، بالقصة الثلاثية والمشاكل والمستندات والخطط وخططها الفرعية والقرارات والمعرض، وREPORT.html والاستوديو من نموذج واحد، وتجربة المالك 5 من 5.",
+      "weight_why": "طلب المالك (2026-10-08): الراهن والمثالي والفجوة، وصفحة للخطط وخططها الفرعية التفاعلية، واستوديو صور، ومشغّل لملفات md، بثوابت تضمن حوكمة الخطة. بعد NS32 لأن صفحات الخطط والقرارات تقرأ سجلها.",
+      "does": [
+        "الفتح والتحديث: eaos studio، أداة open_studio، خيار في /eaos، STUDIO.html",
+        "الرئيسية والقصة: الراهن والفجوة (الجسر والمصفوفة والمؤشرات) والمثالية",
+        "مستكشف المشاكل بدليلها، ومشغّل المستندات، والمنظومة",
+        "الخطط والخطط الفرعية، وصندوق القرارات، والتقدم، والمعرض",
+        "REPORT.html من النموذج نفسه، والإثبات: لقطات ووصولية وأداء وتجربة المالك"
+      ],
+      "tools": [
+        "eaos/studio/",
+        "studio/src/",
+        "eaos/mcp_server.py",
+        "eaos/cli.py",
+        "eaos/human_report.py",
+        "eaos/plans.py"
+      ],
+      "outputs": [
+        "<تقرير>/studio/ كاملًا",
+        "<تقرير>/STUDIO.html",
+        "<تقرير>/REPORT.html من النموذج",
+        "tests/visual: اللقطات المرجعية"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS37.T1",
+          "title": "الفتح والتحديث",
+          "why": "واجهة لا يعرف الشخص كيف يفتحها، أو تبقى قديمة بعد الدمج، تُفقد الثقة كما يفقدها رقم خاطئ.",
+          "moves": [
+            "F1"
+          ],
+          "depends_on": [
+            "NS36.T3",
+            "NS32.T1"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/studio/serve.py",
+            "eaos/cli.py",
+            "eaos/mcp_server.py",
+            "eaos/guided.py",
+            "eaos/data/"
+          ],
+          "steps": [
+            "serve.py خادم محلي للقراءة فقط (GET).",
+            "الأمر eaos studio وأداة open_studio، وخيار «افتح الاستوديو» في قائمة /eaos.",
+            "STUDIO.html في التقرير يفتح بلا خادم.",
+            "ختم الفحص في كل صفحة، وتنبيه إذا تحرك الفرع بعده."
+          ],
+          "done_when": [
+            "بعد دمج فرع تتحدث الواجهة خلال 5 ثوانٍ، وSTUDIO.html في كل تقرير."
+          ],
+          "pitfalls": [
+            "الخادم على 127.0.0.1 وحده.",
+            "لا فعل كتابة: كل فعل جملة تُنسخ للمساعد."
+          ],
+          "acceptance": "python tools/acceptance.py file STUDIO.html && python tools/north_star.py measure --only X8 --min 1.0",
+          "rollback": "احذف serve.py والأمر والأداة."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS37.T2",
+          "title": "الرئيسية والقصة",
+          "why": "لب طلب المالك: الوضع الراهن والصورة المثالية والفجوة بينهما، بصريًا، وكل رقم بمصدره.",
+          "moves": [
+            "F2"
+          ],
+          "depends_on": [
+            "NS37.T1"
+          ],
+          "size": "L",
+          "files": [
+            "studio/src/pages/home/",
+            "studio/src/pages/story/",
+            "studio/src/charts/",
+            "eaos/studio/model.py"
+          ],
+          "steps": [
+            "الرئيسية: أين نحن، أين يجب أن نكون، ما التالي.",
+            "الراهن: البنية الحالية ودرجتها.",
+            "الفجوة: الجسر (أين يذهب كل جزء من الكود)، والمصفوفة، والمؤشرات بأهدافها.",
+            "المثالية: البنية المستهدفة ومكوناتها."
+          ],
+          "done_when": [
+            "F2 = 1.0 على هذه الصفحات، والمالك راجعها."
+          ],
+          "pitfalls": [
+            "الرسم المزدحم يُطوى فوق 8 عناصر.",
+            "لكل رسم جدول بديل."
+          ],
+          "acceptance": "python tools/north_star.py measure --only F2 --min 1.0",
+          "rollback": "احذف صفحات القصة."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS37.T3",
+          "title": "المشاكل والمستندات والمنظومة",
+          "why": "الفحص يكتب مئات البطاقات ومئات المستندات (290 على EAOS نفسه) لا يراها أحد اليوم إلا في ملفات.",
+          "moves": [
+            "F4"
+          ],
+          "depends_on": [
+            "NS37.T2"
+          ],
+          "size": "L",
+          "files": [
+            "studio/src/pages/cards/",
+            "studio/src/pages/docs/",
+            "studio/src/pages/system/",
+            "tests/perf/"
+          ],
+          "steps": [
+            "مستكشف البطاقات: بحث وفلترة، وكل بطاقة بدليلها وملفاتها وشارة «دليل عام» إن وُجدت.",
+            "مشغّل المستندات: كل ملفات md بفهرس وبحث ورسوم Mermaid محليًا.",
+            "المنظومة: الأدوات والمحركات وما شغّله الفحص.",
+            "قياس الأداء على مشروع مولّد بـ5000 بطاقة."
+          ],
+          "done_when": [
+            "F4 = 1.0."
+          ],
+          "pitfalls": [
+            "قائمة طويلة تُرسم بالتمرير الافتراضي.",
+            "نص المستند يُنقّى قبل عرضه."
+          ],
+          "acceptance": "python tools/north_star.py measure --only F4 --min 1.0",
+          "rollback": "احذف الصفحات الثلاث."
+        },
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS37.T4",
+          "title": "الخطط والقرارات والتقدم والمعرض",
+          "why": "طلب المالك صفحة للخطط التي يريد تطويرها وصفحات تفاعلية لخططها الفرعية، بحوكمة كاملة، واستوديو يجمع الصور.",
+          "moves": [
+            "F1",
+            "F2"
+          ],
+          "depends_on": [
+            "NS37.T3",
+            "NS32.T3"
+          ],
+          "size": "L",
+          "files": [
+            "studio/src/pages/plans/",
+            "studio/src/pages/decisions/",
+            "studio/src/pages/progress/",
+            "studio/src/pages/media/",
+            "eaos/studio/model.py",
+            "eaos/behavior_lock.py"
+          ],
+          "steps": [
+            "صفحة الخطط، وصفحة لكل خطة وخططها الفرعية بمراحل حياتها وبواباتها، وتقدم مقاس من الفرع لا زر «منجز».",
+            "صندوق القرارات: سؤال واحد مع توصية.",
+            "التقدم: سجل الدرجات عبر الزمن.",
+            "المعرض: لقطات كل دفعة، ومقارنة قبل وبعد."
+          ],
+          "done_when": [
+            "خطة مسجلة وخطتها الفرعية تظهران بتقدم مقاس في كل تقرير فيه خطة."
+          ],
+          "pitfalls": [
+            "الواجهة لا تكتب في السجل أبدًا."
+          ],
+          "acceptance": "python tools/acceptance.py contract studio-plans && python tools/acceptance.py contract studio-decisions && python tools/north_star.py measure --only F1 --min 1.0",
+          "rollback": "احذف الصفحات الأربع."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS37.T5",
+          "title": "مصدر واحد للحقيقة",
+          "why": "تقريران يحسب كل منهما أرقامه ينحرفان؛ وهذا ما حدث مع الواجهة المؤقتة واللوحة الخارجية.",
+          "moves": [
+            "F7"
+          ],
+          "depends_on": [
+            "NS37.T4"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/human_report.py",
+            "eaos/studio/model.py",
+            "tests/test_single_source.py"
+          ],
+          "steps": [
+            "REPORT.html يرسم من النموذج ولا يقرأ أي ملف بنفسه.",
+            "اختبار يطابق كل رقم في REPORT.html مع النموذج.",
+            "metrics.json إسقاط ثابت من النموذج.",
+            "إيقاف الواجهة المؤقتة (eaos-hub) وتوجيه روابطها إلى الاستوديو."
+          ],
+          "done_when": [
+            "F7 = 1.0."
+          ],
+          "pitfalls": [
+            "لا يتغير شكل REPORT.html: لقطاته قبل وبعد متطابقة."
+          ],
+          "acceptance": "python tools/north_star.py measure --only F7 --min 1.0",
+          "rollback": "ارجع human_report إلى القراءة المباشرة."
+        },
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS37.T6",
+          "title": "الإثبات",
+          "why": "الصورة المثالية تُقاس ولا تُدّعى: كل مؤشرات الاستوديو عند هدفها، وتجربة المالك الحقيقية.",
+          "moves": [
+            "F1",
+            "F3",
+            "F5",
+            "F6"
+          ],
+          "depends_on": [
+            "NS37.T5"
+          ],
+          "size": "M",
+          "files": [
+            "tests/visual/",
+            "tests/a11y/",
+            "tools/studio_trial.py",
+            "CHANGELOG.md"
+          ],
+          "steps": [
+            "لقطات مرجعية على Chromium وWebKit بالوضعين واللغتين.",
+            "axe-core على كل صفحة.",
+            "تجربة على كل مشاريع العيّنة، وEAOS يفحص الاستوديو نفسه.",
+            "تجربة المالك: خمس مهام وحده، تُسجل في trial.json.",
+            "رقم إصدار جديد."
+          ],
+          "done_when": [
+            "F1 وF3 وF5 وF6 عند 1.0."
+          ],
+          "pitfalls": [
+            "اللقطات تُعتمد من المالك مرة، ثم تتغير فقط بقرار."
+          ],
+          "acceptance": "python tools/north_star.py measure --only F1 --min 1.0 && python tools/north_star.py measure --only F3 --min 1.0 && python tools/north_star.py measure --only F5 --min 1.0 && python tools/north_star.py measure --only F6 --min 1.0",
+          "rollback": "لا شيء يُرجع: هذه مهمة قياس."
+        }
       ]
     },
     {
@@ -7051,12 +7527,14 @@
       "milestones": [
         "NS30",
         "NS31",
+        "NS36",
         "NS32",
+        "NS37",
         "NS33",
         "NS34",
         "NS35"
       ],
-      "exit": "S4 وX13 أولًا، ثم L7-L11 وD4 وE12-E14 وG3-G4"
+      "exit": "S4 وX13 أولًا، ثم L7-L11 وF1-F7 (الاستوديو) وD4 وE12-E14 وG3-G4"
     },
     {
       "id": "R7",

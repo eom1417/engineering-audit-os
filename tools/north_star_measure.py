@@ -184,6 +184,38 @@ def self_truth(record):
                    f'{len(dead)} dead of {len(dead) + len(false)} distinct candidates (by path and symbol): ' + ', '.join(dead))}
 
 
+def card_on_its_file(out):
+    """S4 for one report: (cards standing on their own file and evidence, engine cards). A card stands when every fact
+    it cites is of its kind and not a wide group finding, an agreement has two engines with a site at the card's place,
+    and the card's place leads its paths."""
+    from eaos.correlate import is_wide
+    by_id = {row['id']: row for row in facts(out, 'engine_finding')}
+    paths = {task.get('claim_id'): task.get('paths') or [] for task in load(out, 'plan.json', {}).get('tasks') or []}
+    honest = total = 0
+    for claim in load(out, 'dossier.json', {}).get('claims') or []:
+        params = (claim.get('render') or {}).get('params') or {}
+        if (claim.get('render') or {}).get('key') != 'engine_cluster': continue
+        total += 1
+        cited = [by_id[i] for i in claim.get('fact_ids') or [] if i in by_id]
+        local = all(row['value'].get('kind') == params.get('kind') and not is_wide(row) for row in cited)
+        at_place = {row['value'].get('engine') for row in cited
+                    if params.get('place') in {site.get('path') for site in row['value'].get('sites') or []}
+                    | {(row.get('location') or {}).get('path')}}
+        agreed = params.get('verdict') != 'corroborated' or len(at_place) >= 2
+        shown = paths.get(claim['id'])
+        leads = shown is None or not shown or shown[0] == params.get('place')
+        honest += bool(cited) and local and agreed and leads
+    return honest, total
+
+
+def card_values(projects, record):
+    """S4 on the corpus and on EAOS's own history (the self-truth report)."""
+    rows = per(projects, lambda p: card_on_its_file(p.out))
+    self_out = REPORTS / 'self-truth'
+    if (self_out / 'dossier.json').is_file(): rows.append(('eaos', card_on_its_file(self_out)))
+    return {'S4': (pooled([v for _, v in rows]), 'engine cards on their own file and evidence: ' + text(rows, lambda v: f'{v[0]}/{v[1]}'))}
+
+
 USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'X11', 'X12', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6')
 
 
@@ -197,7 +229,8 @@ def measure(record, only=None):
         out, code = audit(spec['name'], target, spec['commit'])
         projects.append(Project(spec, out, code))
     values = indicator_values(projects, record)
-    if only is None or only in ('D1', 'S2'): values.update(self_truth(record))
+    if only is None or only in ('D1', 'S2', 'S4'): values.update(self_truth(record))
+    values.update(card_values(projects, record))
     values.update(live_values(record))
     values.update(usability_values(only))
     return values

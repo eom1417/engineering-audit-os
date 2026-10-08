@@ -56,17 +56,17 @@ flowchart TB
         direction LR
         S01["<b>S01 · Intake and inventory</b><br/>📄 intake.json · facts/index.json …<br/>▰ 100%"]:::done
         S02["<b>S02 · Map the current architecture</b><br/>📄 features.json · load-model.json …<br/>▰ 100%"]:::done
-        S03["<b>S03 · Measure</b><br/>📄 measurements.json · خط الأساس المثبّت<br/>▰ 38%"]:::current
-        S04["<b>S04 · Diagnose and debt register</b><br/>📄 CURRENT-STATE.md · debt-register.json …<br/>▰ 81%"]:::current
+        S03["<b>S03 · Measure</b><br/>📄 measurements.json · خط الأساس المثبّت<br/>▰ 23%"]:::current
+        S04["<b>S04 · Diagnose and debt register</b><br/>📄 CURRENT-STATE.md · debt-register.json …<br/>▰ 77%"]:::current
         S01 -->|"✔ U6 = 1, U1 ≥ 0.95, H3 = 1, R4 = 1"| S02
         S02 -->|"✔ U2 ≥ 0.9, U3 = U4 = 1, U5 ≥ 0.8, and the current C4 model"| S03
         S03 -->|"✔ M1 ≥ 0.95, and the baseline pinned"| S04
     end
     subgraph P2["Assessment: reads the project only (2/2)"]
         direction LR
-        S05["<b>S05 · Lock current behaviour</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 75%"]:::current
-        S06["<b>S06 · Target architecture</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 66%"]:::current
-        S07["<b>S07 · Gap and transformation plan</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 76%"]:::current
+        S05["<b>S05 · Lock current behaviour</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 71%"]:::current
+        S06["<b>S06 · Target architecture</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 63%"]:::current
+        S07["<b>S07 · Gap and transformation plan</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 62%"]:::current
         S05 -->|"✔ A (static): E4 = 1 · B (isolated): E5 ≥ 0.8 and a k6 baseline"| S06
         S06 -->|"✔ T1–T7 at target, and a recorded human approval"| S07
     end
@@ -90,7 +90,7 @@ flowchart TB
     end
     subgraph P5["Governance and handover"]
         direction LR
-        S15["<b>S15 · Continuous governance and handover</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 80%"]:::current
+        S15["<b>S15 · Continuous governance and handover</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 52%"]:::current
         LOOP["↺ re-audit after every change: back to S01"]:::next
         S15 -->|"✔ K1 = 1, the baseline pinned, and the new-debt gate in CI"| LOOP
     end
@@ -231,13 +231,13 @@ No command modifies the original project, publishes anything or merges anything.
 <!-- north-star:progress:start -->
 <!-- generated from docs/north-star.json by python tools/north_star.py; do not edit by hand -->
 
-### Progress: **60.3 of 100 points**
+### Progress: **53.8 of 100 points**
 
-`███████████████░░░░░░░░░░` 60.3%
+`█████████████░░░░░░░░░░░░` 53.8%
 
 | Steps done | Current step | Points left | Of which wait on the owner | Last measured |
 |---|---|---|---|---|
-| 20 of 34 | 21 · NS27 Build from a plan | 39.7 | 38 | 2026-09-30 · `0fbc461` |
+| 20 of 36 | 21 · NS27 Build from a plan | 46.2 | 42 | 2026-09-30 · `0fbc461` |
 
 **How it is computed:**
 
@@ -265,26 +265,26 @@ flowchart TB
     subgraph R1_2["R1 · Foundation: reach, visibility, signal (2/2)"]
         direction LR
         NS5["<b>5 · NS5</b><br/>الكود الميت والمخلفات<br/>Dead code and leftovers<br/>⚖ 2 · ▰ 100%"]:::done
-        NS6["<b>6 · NS6</b><br/>نظافة الأمن الأساسية<br/>Basic security hygiene<br/>⚖ 3 · ▰ 100%"]:::done
+        NS6["<b>6 · NS6</b><br/>نظافة الأمن الأساسية<br/>Basic security hygiene<br/>⚖ 2 · ▰ 100%"]:::done
         NS5 -->|"✔ D1≥0.8 · D2≥0.9 · D3≥0.9"| NS6
     end
     subgraph R2_1["R2 · Tool platform"]
         direction LR
-        NS17["<b>7 · NS17</b><br/>منصة الأدوات<br/>Tool platform<br/>⚖ 3 · ▰ 100%"]:::done
+        NS17["<b>7 · NS17</b><br/>منصة الأدوات<br/>Tool platform<br/>⚖ 2 · ▰ 100%"]:::done
     end
     subgraph R3_1["R3 · Full evidence from proven tools"]
         direction LR
         NS11["<b>8 · NS11</b><br/>الاستلام<br/>Intake<br/>⚖ 2 · ▰ 100%"]:::done
-        NS12["<b>9 · NS12</b><br/>محوّلات الفحص الساكن<br/>Static-analysis adapters<br/>⚖ 3 · ▰ 100%"]:::done
-        NS18["<b>10 · NS18</b><br/>القياس وسجل الدَّين<br/>Measurement and debt register<br/>⚖ 3 · ▰ 100%"]:::done
+        NS12["<b>9 · NS12</b><br/>محوّلات الفحص الساكن<br/>Static-analysis adapters<br/>⚖ 2 · ▰ 100%"]:::done
+        NS18["<b>10 · NS18</b><br/>القياس وسجل الدَّين<br/>Measurement and debt register<br/>⚖ 2 · ▰ 100%"]:::done
         NS11 -->|"✔ U6=1 · +1 acceptance test"| NS12
         NS12 -->|"✔ H3=1 · R3=1 · +12 acceptance tests"| NS18
     end
     subgraph R4_1["R4 · Behaviour lock and target state"]
         direction LR
-        NS15["<b>11 · NS15</b><br/>تثبيت السلوك<br/>Behaviour lock<br/>⚖ 3 · ▰ 100%"]:::done
-        NS7["<b>12 · NS7</b><br/>تقرير الصورة المثالية<br/>Target-state report<br/>⚖ 3 · ▰ 100%"]:::done
-        NS13["<b>13 · NS13</b><br/>نموذج العمارة وقراراتها<br/>Architecture model and decisions (C4, ADR)<br/>⚖ 3 · ▰ 100%"]:::done
+        NS15["<b>11 · NS15</b><br/>تثبيت السلوك<br/>Behaviour lock<br/>⚖ 2 · ▰ 100%"]:::done
+        NS7["<b>12 · NS7</b><br/>تقرير الصورة المثالية<br/>Target-state report<br/>⚖ 2 · ▰ 100%"]:::done
+        NS13["<b>13 · NS13</b><br/>نموذج العمارة وقراراتها<br/>Architecture model and decisions (C4, ADR)<br/>⚖ 2 · ▰ 100%"]:::done
         NS15 -->|"✔ E4=1 · +4 acceptance tests"| NS7
         NS7 -->|"✔ T1=1 · G1=1 · T2=1 · … · +2 acceptance tests"| NS13
     end
@@ -314,37 +314,41 @@ flowchart TB
         direction LR
         NS30["<b>22 · NS30</b><br/>الثقة أولًا<br/>Trust first<br/>⚖ 4 · ▰ 0%"]:::next
         NS31["<b>23 · NS31</b><br/>أرقام ثابتة وضجيج أقل<br/>Stable numbers, less noise<br/>⚖ 3 · ▰ 26%"]:::owner
-        NS32["<b>24 · NS32</b><br/>خطط للمشاريع الموجودة<br/>Plans for existing projects<br/>⚖ 4 · ▰ 26%"]:::owner
-        NS33["<b>25 · NS33</b><br/>تنظيف بلا خوف<br/>Fearless cleanup<br/>⚖ 2 · ▰ 0%"]:::owner
+        NS36["<b>24 · NS36</b><br/>أساس الاستوديو<br/>Studio foundation<br/>⚖ 3 · ▰ 0%"]:::next
+        NS32["<b>25 · NS32</b><br/>خطط للمشاريع الموجودة<br/>Plans for existing projects<br/>⚖ 4 · ▰ 26%"]:::owner
         NS30 -->|"✔ S4=1 · X13=1 · +1 acceptance test"| NS31
-        NS31 -->|"✔ L7=1 · L8=1 · S5≥0.9 · …"| NS32
-        NS32 -->|"✔ X8=1 · L9=1 · L10=1 · … · +1 acceptance test"| NS33
+        NS31 -->|"✔ L7=1 · L8=1 · S5≥0.9 · …"| NS36
+        NS36 -->|"✔ +5 acceptance tests"| NS32
     end
     subgraph R6G_2["R6G · Trust, plans and initiative (2/2)"]
         direction LR
-        NS34["<b>26 · NS34</b><br/>أدلة من التشغيل<br/>Evidence by execution<br/>⚖ 3 · ▰ 0%"]:::owner
-        NS35["<b>27 · NS35</b><br/>المبادرة وقوانين المشروع<br/>Initiative and project laws<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS37["<b>26 · NS37</b><br/>الاستوديو كاملًا<br/>The full Studio<br/>⚖ 4 · ▰ 12%"]:::owner
+        NS33["<b>27 · NS33</b><br/>تنظيف بلا خوف<br/>Fearless cleanup<br/>⚖ 2 · ▰ 0%"]:::owner
+        NS34["<b>28 · NS34</b><br/>أدلة من التشغيل<br/>Evidence by execution<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS35["<b>29 · NS35</b><br/>المبادرة وقوانين المشروع<br/>Initiative and project laws<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS37 -->|"✔ X8=1 · F2=1 · F4=1 · … · +3 acceptance tests"| NS33
+        NS33 -->|"✔ D4=1"| NS34
         NS34 -->|"✔ E13=1 · E12=1 · E14=1"| NS35
     end
     subgraph R7_1["R7 · Operational hardening (1/2)"]
         direction LR
-        NS20["<b>28 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
-        NS21["<b>29 · NS21</b><br/>الأمن بعد التحول<br/>Security after the transformation<br/>⚖ 3 · ▰ 0%"]:::owner
-        NS22["<b>30 · NS22</b><br/>الحمل<br/>Load<br/>⚖ 3 · ▰ 0%"]:::owner
-        NS23["<b>31 · NS23</b><br/>الأعطال المتعمدة<br/>Deliberate failures (chaos)<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS20["<b>30 · NS20</b><br/>التحقق الوظيفي<br/>Functional verification<br/>⚖ 5 · ▰ 0%"]:::owner
+        NS21["<b>31 · NS21</b><br/>الأمن بعد التحول<br/>Security after the transformation<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS22["<b>32 · NS22</b><br/>الحمل<br/>Load<br/>⚖ 3 · ▰ 0%"]:::owner
+        NS23["<b>33 · NS23</b><br/>الأعطال المتعمدة<br/>Deliberate failures (chaos)<br/>⚖ 3 · ▰ 0%"]:::owner
         NS20 -->|"✔ E7=1 · E2≥0.8"| NS21
         NS21 -->|"✔ E8=1 · +1 acceptance test"| NS22
         NS22 -->|"✔ E6≥0.8"| NS23
     end
     subgraph R7_2["R7 · Operational hardening (2/2)"]
         direction LR
-        NS24["<b>32 · NS24</b><br/>الرصد<br/>Observability<br/>⚖ 2 · ▰ 0%"]:::owner
-        NS16["<b>33 · NS16</b><br/>الجاهزية للإنتاج<br/>Production readiness<br/>⚖ 2 · ▰ 0%"]:::owner
+        NS24["<b>34 · NS24</b><br/>الرصد<br/>Observability<br/>⚖ 2 · ▰ 0%"]:::owner
+        NS16["<b>35 · NS16</b><br/>الجاهزية للإنتاج<br/>Production readiness<br/>⚖ 2 · ▰ 0%"]:::owner
         NS24 -->|"✔ E10≥0.9 · +1 acceptance test"| NS16
     end
     subgraph R8_1["R8 · Independent proof"]
         direction LR
-        NS10["<b>34 · NS10</b><br/>الإثبات المستقل<br/>Independent proof<br/>⚖ 5 · ▰ 18%"]:::owner
+        NS10["<b>36 · NS10</b><br/>الإثبات المستقل<br/>Independent proof<br/>⚖ 5 · ▰ 18%"]:::owner
     end
     R1_1 ==>|"✔ S1≥0.8 · S2≥0.8"| R1_2
     R1_2 ==>|"✔ H1=1 · +1 acceptance test"| R2_1
@@ -354,7 +358,7 @@ flowchart TB
     R5_1 ==>|"✔ K1=1 · +4 acceptance tests"| R6_1
     R6_1 ==>|"✔ X11=1 · X12=1 · X8=1 · +2 acceptance tests"| R6_2
     R6_2 ==>|"✔ B1=1 · B2=1 · X8=1 · … · +1 acceptance test"| R6G_1
-    R6G_1 ==>|"✔ D4=1"| R6G_2
+    R6G_1 ==>|"✔ X8=1 · L9=1 · L10=1 · … · +1 acceptance test"| R6G_2
     R6G_2 ==>|"✔ G3≥0.7 · G4=1"| R7_1
     R7_1 ==>|"✔ E9≥0.8 · +1 acceptance test"| R7_2
     R7_2 ==>|"✔ E11=1 · +1 acceptance test"| R8_1

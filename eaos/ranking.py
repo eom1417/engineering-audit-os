@@ -22,7 +22,9 @@ def claim_paths(claim, fact_index):
         value = fact_index.get(fact_id)
         if value: paths.append(value)
         paths += fact_index.get(fact_id + ':paths', [])
-    return sorted({path for path in paths if path})
+    # The card's own file leads, so a list cut to its first few paths never hides the file the card is about.
+    place = ((claim.get('render') or {}).get('params') or {}).get('place')
+    return sorted({path for path in paths if path}, key=lambda path: (path != place, path))
 
 
 def cost_of(paths, sets):
