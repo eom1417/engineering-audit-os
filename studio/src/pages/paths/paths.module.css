@@ -220,3 +220,4 @@
 
 /* the gallery's frames: a fixed height for a canvas that fills its box */
 .galleryFrame { display: flex; block-size: 420px; overflow: hidden; }
+[data-theme="dark"] .tl4 { color: var(--bg-canvas); }

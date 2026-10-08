@@ -46,7 +46,7 @@ export function SequenceDiagram({ data, index, path, selected, onSelect }:
           const a = x(m.from)
           const b = x(m.to)
           const node = index.node.get(m.toNode)
-          const label = node ? (m.gap && node.reason ? `? ${w(GAP_WORD[node.reason].title)}` : node.label) : ''
+          const label = node ? (m.gap ? `? ${node.reason === 'trace_stopped' ? w('callsNotResolved', { n: Number(node.detail) || node.items.length }) : node.label}` : node.label) : ''
           const self = a === b
           const room = Math.max(14, Math.floor((self ? COL : Math.abs(b - a)) / 7))
           const d = self ? `M${a},${y - 6} h30 v10 h-26` : `M${a},${y} L${b + (b > a ? -6 : 6)},${y}`
