@@ -45,17 +45,19 @@ export function QuestionCard({ question, runLabel, compact }: { question: Questi
   const [text, setText] = useState('')
   const recommended = question.options.find((o) => o.id === question.recommendation)
   const ordered = recommended ? [recommended, ...question.options.filter((o) => o !== recommended)] : question.options
+  // Two short answers sit side by side; longer ones stack, each on its own line
+  const stacked = ordered.length !== 2 || ordered.some((o) => o.label[lang].length > 14)
   return (
     <Panel as="article" emphasis className={css.question} label={question.text[lang]}>
       <div className={css.qHead}>
         <Chip tone="accent">{w('runAsks')}</Chip>
-        {runLabel && !compact && <Go to={`/runs/${encodeURIComponent(question.run)}`} className={css.qRun}><Txt>{w('fromRun', { label: runLabel })}</Txt></Go>}
+        {runLabel && !compact && <Go to={`/runs/${encodeURIComponent(question.run)}`} className={css.qRun}><span><Txt>{w('fromRun', { label: runLabel })}</Txt></span></Go>}
       </div>
       <h3 className={css.qText}><Txt block>{question.text[lang]}</Txt></h3>
       {recommended && (
         <div className={css.qRec}><span className={css.qRecLabel}>{w('recommended')}</span><Txt block>{recommended.label[lang]}</Txt></div>
       )}
-      <div className={[css.qAnswers, ordered.length !== 2 && css.qAnswersMany].filter(Boolean).join(' ')}>
+      <div className={[css.qAnswers, stacked && css.qAnswersMany].filter(Boolean).join(' ')}>
         {ordered.map((option) => (
           <Button key={option.id} variant={option === recommended ? 'primary' : 'secondary'} large icon={option === recommended ? 'check' : undefined}
             className={css.qAnswer} onPress={() => answer(question, option.id)}>

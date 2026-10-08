@@ -130,7 +130,7 @@ export function demoClient(cardsOf: () => DemoCard[], speed = 1): ActionsClient 
     counter += 1
     const id = `demo-${counter}`
     const label: Bi = verb
-      ? (() => { const word = verbOf(verb).label; const ids = cards.slice(0, 3).map((c) => c.id).join(', ') + (cards.length > 3 ? ' …' : ''); return bi(`${word.en}: ${ids}`, `${word.ar}: ${ids}`) })()
+      ? (() => { const word = verbOf(verb).label; const ids = cards.slice(0, 3).map((c) => c.id); const more = cards.length > 3 ? ' …' : ''; return bi(`${word.en}: ${ids.join(', ')}${more}`, `${word.ar}: ${ids.join('، ')}${more}`) })()
       : actionOf(action)?.label ?? bi(action, action)
     const branch = `eaos/wave-${wave++}`
     const recorded = recordingFor(verb, cards, id, branch, label)
