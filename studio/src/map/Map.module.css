@@ -46,6 +46,9 @@
 .sel .dot, .lit .dot { stroke: var(--accent-solid); stroke-width: 3; }
 .preview .sel .dot, .preview .lit .dot { stroke-width: 6; }
 .faded .dot { opacity: .3; }
+.hiddenRing { fill: none; stroke: var(--text-secondary); stroke-width: 1.6; stroke-dasharray: 2.5 3; }
+.preview .hiddenRing { stroke-width: 3; }
+.faded .hiddenRing { opacity: .3; }
 
 /* labels: identifiers in Plex Mono with a canvas halo; region names in Plex Sans Arabic or tracked English capitals */
 .lbl {

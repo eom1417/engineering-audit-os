@@ -11,6 +11,8 @@ import { FlowPage } from './pages/paths/FlowPage'
 import { PathsGalleryPage } from './pages/paths/PathsGallery'
 import { PathsPage } from './pages/paths/PathsPage'
 import { TimelinePage } from './pages/paths/TimelinePage'
+import { HiddenPage } from './pages/system/hidden/HiddenPage'
+import { JourneysPage } from './pages/system/journeys/JourneysPage'
 import { GalleryPage } from './gallery/Gallery'
 import { Shell } from './shell/Shell'
 import { SECTIONS } from './shell/sections'
@@ -37,8 +39,10 @@ function devOnly(id: string, dev: () => boolean) {
 export function makeRouter(dev: () => boolean) {
   const tree = root.addChildren([
     createRoute({ getParentRoute: () => root, path: '/', component: HomePage }),
-    createRoute({ getParentRoute: () => root, path: '/system', component: SystemMapPage, validateSearch: params('focus', 'view', 'show', 'op') }),
+    createRoute({ getParentRoute: () => root, path: '/system', component: SystemMapPage, validateSearch: params('focus', 'view', 'show', 'op', 'hidden') }),
     createRoute({ getParentRoute: () => root, path: '/system/paths', component: PathsPage, validateSearch: params('view', 'cluster', 'q', 'filter', 'file', 'part') }),
+    createRoute({ getParentRoute: () => root, path: '/system/journeys', component: JourneysPage, validateSearch: params('view', 'show', 'task', 'focus', 'hidden', 'flag', 'area') }),
+    createRoute({ getParentRoute: () => root, path: '/system/hidden', component: HiddenPage, validateSearch: params('focus', 'only', 'hidden') }),
     createRoute({ getParentRoute: () => root, path: '/flows/$pathId', component: FlowPage, validateSearch: params('view', 'show', 'node', 'traced') }),
     createRoute({ getParentRoute: () => root, path: '/problems', component: ProblemsPage, validateSearch: params('card', 'who', 'severity', 'component', 'q') }),
     createRoute({ getParentRoute: () => root, path: '/change', component: ChangePage, validateSearch: params('focus', 'side') }),

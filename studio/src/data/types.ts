@@ -1,5 +1,6 @@
 // Contract v1 (docs/STUDIO.md, schemas/artifacts/studio-*.schema.json): the fields the Studio reads today. Types
 // generated from the schemas replace this file with contract v2 (NS39.T3).
+import type { Hidden, Journeys } from './journeys'
 import type { Measure } from './measure'
 import type { SystemMap } from './system'
 
@@ -84,7 +85,7 @@ export interface Decision {
   plan: string | null
 }
 
-export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system'] as const
+export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system', 'journeys', 'hidden'] as const
 export type SectionName = (typeof SECTIONS)[number]
 
 export interface StudioData {
@@ -100,6 +101,8 @@ export interface StudioData {
   decisions?: { decisions: Decision[] }
   media?: unknown
   system?: SystemMap
+  journeys?: Journeys
+  hidden?: Hidden
   /** Sections the manifest lists but whose file did not load */
   missing: SectionName[]
 }

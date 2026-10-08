@@ -138,7 +138,15 @@ class GateMatrix(unittest.TestCase):
             (data / 'cards.json').write_text(json.dumps({'cards': cards}), encoding='utf-8')
             story = {'current': {'components': [{'name': n} for n in ('(root)', 'src', 'src/a', 'src/b', 'src/b/c')]}}
             (data / 'story.json').write_text(json.dumps(story), encoding='utf-8')
-            self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'component': 'src/b', 'path': 'none'})
+            self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'component': 'src/b', 'path': 'none',
+                                                                    'task': 'none', 'screen': 'none', 'hidden_group': 'none'})
+            journeys = {'tasks': [{'id': 't/one', 'path': ['s/a']}, {'id': 't/two', 'path': ['s/a', 's/b']}],
+                        'screens': [{'id': 's/a', 'kind': 'page', 'flags': []}, {'id': 's/b', 'kind': 'page', 'flags': ['broken_link']}]}
+            (data / 'journeys.json').write_text(json.dumps(journeys), encoding='utf-8')
+            (data / 'hidden.json').write_text(json.dumps({'groups': [{'id': 'g/empty', 'count': {'value': 0}},
+                                                                      {'id': 'g/writes', 'count': {'value': 4}}]}), encoding='utf-8')
+            self.assertEqual([self.gates.studio_placeholders(data)[k] for k in ('task', 'screen', 'hidden_group')],
+                             ['t/two', 's/b', 'g/writes'])   # a task with a path, a screen with a broken link, a group with items
             paths = [{'id': 'p/short', 'reach': 3, 'steps': [1] * 4}, {'id': 'p/long', 'reach': 3, 'steps': [1] * 90},
                      {'id': 'p/a', 'reach': 3, 'steps': [1] * 70}, {'id': 'p/near', 'reach': 1, 'steps': [1] * 99}]
             (data / 'paths.json').write_text(json.dumps({'paths': paths}), encoding='utf-8')

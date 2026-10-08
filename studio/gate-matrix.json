@@ -1,5 +1,5 @@
 {
- "about": "The Studio's routes for the screen gate: python tools/studio_gates.py --studio (studio/README.md). {card} is a problem card with evidence and {component} the component holding the most cards in the report given with --data.",
+ "about": "The Studio's routes for the screen gate: python tools/studio_gates.py --studio (studio/README.md). {card} is a problem card with evidence and {component} the component holding the most cards in the report given with --data; {task}, {screen} and {hidden_group}: a journeys task with a path, a flagged screen and an unseen group with items (tools/studio_gates.py).",
  "wait_for": "main#main",
  "variants": [
   {"name": "ar-light", "query": {"lang": "ar", "theme": "light"}, "color_scheme": "light", "expect": {"dir": "rtl", "attributes": {"lang": "ar", "data-theme": "light"}}},
@@ -21,6 +21,15 @@
   {"name": "system-change", "path": "index.html#/system?view=change"},
   {"name": "system-target", "path": "index.html#/system?view=target&focus=features"},
   {"name": "system-list", "path": "index.html#/system?show=list", "viewports": ["tablet", "desktop"]},
+  {"name": "system-hidden", "path": "index.html#/system?hidden=1"},
+  {"name": "journeys", "path": "index.html#/system/journeys"},
+  {"name": "journeys-change", "path": "index.html#/system/journeys?view=change"},
+  {"name": "journeys-target", "path": "index.html#/system/journeys?view=target&hidden=1"},
+  {"name": "journeys-task", "path": "index.html#/system/journeys?task={task}"},
+  {"name": "journeys-focus", "path": "index.html#/system/journeys?focus={screen}"},
+  {"name": "journeys-steps", "path": "index.html#/system/journeys?show=steps", "viewports": ["tablet", "desktop"]},
+  {"name": "hidden", "path": "index.html#/system/hidden"},
+  {"name": "hidden-focus", "path": "index.html#/system/hidden?focus={hidden_group}"},
   {"name": "problems", "path": "index.html#/problems", "lighthouse": true},
   {"name": "problem", "path": "index.html#/problems?card={card}"},
   {"name": "change", "path": "index.html#/change"},

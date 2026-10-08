@@ -1750,6 +1750,24 @@
       "kind": "invariant",
       "enforced_by": "tests/test_workflow.py::WorkflowTests::test_single_entrypoint_read_only_and_no_script_execution",
       "note": ""
+    },
+    {
+      "id": "INV-e244b0b236",
+      "file": "eaos/studio/hidden.py",
+      "symbol": "<module>",
+      "statement": "seen the screens of studio/journeys.json (kind page), by area (the first segment of their route), and the dialog and form files they render (a file named …Dialog, …Form, …Modal, …Sheet, …Drawer) unseen triggers background jobs, schedules and containers (entry_point surface job or container), web hooks (a server route whose path names a hook or a callback), edge functions (files under supabase/functions/<name>/, netlify/functions/ or api/cron/) screens routes that are not pages: layouts, redirects and catch-alls (journeys.json) server server routes this repository answers (entry_point surface http) writes the writes the code sends (data_access post, put, patch, delete, insert, update, upsert), by resource outside the outside services the code calls (runtime integration_target), by host config environment variables read (config env_read), secret-shaped settings, committed credentials (facts/secrets.json; the value is never read or written) build CI steps and deployment targets (runtime ci_step, deployment_target), and the commands the manifests declare (entry_point surface cli) dead unreachable modules, unused symbols and unread constants (deadcode), leftovers, broken code links a screen area sets an unseen item of triggers, server, writes, outside or config in motion when a file the area's screens render (three import steps) holds the item's evidence; an item of triggers, writes, outside or config that no screen reaches is flagged `no_screen`: it runs, or waits, with nothing the user sees in front of it components each item is counted in the deepest component of target-architecture.json holding its file, so the System map can mark the components that hold unseen work",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_journeys.py::Hidden::test_a_write_a_screen_sets_in_motion_is_linked_and_one_no_screen_reaches_is_flagged",
+      "note": ""
+    },
+    {
+      "id": "INV-4ee01b4800",
+      "file": "eaos/studio/journeys.py",
+      "symbol": "matches",
+      "statement": "Whether a link's target opens this route: segment by segment, a route's :param takes any segment, a link's :param only a route's :param; a catch-all never matches.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_journeys.py::Journeys::test_a_link_belongs_to_the_screens_rendering_its_file_and_the_menu_to_the_layout",
+      "note": ""
     }
   ],
   "limits": "Extraction is lexical: it finds sentences that assert, not every promise a docstring makes. A sentence it misses is still an invariant."

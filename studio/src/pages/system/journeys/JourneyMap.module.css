@@ -1,0 +1,74 @@
+/* The journeys map in Studio tokens: frames, the menu, link curves, broken stubs, flags, the hidden hatch, the task's
+   path and the operation hues of the Change and Target views. */
+.map { display: block; font-family: var(--font-sans); user-select: none; -webkit-user-select: none; }
+.full { touch-action: none; cursor: grab; }
+.full.dragging { cursor: grabbing; }
+.world { transition: transform var(--dur-base) var(--ease-standard); }
+.dragging .world { transition: none; }
+.water { fill: var(--map-water); }
+.caption { font-size: 12px; font-weight: 600; fill: var(--text-tertiary); }
+
+/* links */
+.edge { fill: none; stroke: var(--edge-strong); stroke-width: 1.3; opacity: .55; transition: opacity var(--dur-fast), stroke var(--dur-fast); }
+.via_menu { opacity: .35; }
+.back { opacity: .3; }
+.via_redirect { stroke-dasharray: 5 3; }
+.via_menu_of { stroke-dasharray: 1.5 3; stroke-width: 1.6; opacity: .7; }
+.edgeOn { stroke: var(--accent-solid); stroke-width: 2.6; opacity: 1; }
+.edgeOff { opacity: .12; }
+.arrow { fill: var(--edge-strong); }
+.arrowOn { fill: var(--accent-solid); }
+
+/* screens: a frame with a browser bar */
+.screen { outline: none; transition: opacity var(--dur-fast); }
+.full .screen, .full .menu { cursor: pointer; }
+.frame { fill: var(--bg-surface); stroke: var(--border-strong); stroke-width: 1.2; }
+.bar { fill: var(--bg-sunken); stroke: none; }
+.barDot { fill: var(--border-strong); }
+.title { font-family: var(--font-mono); font-size: 12.5px; font-weight: 500; fill: var(--text-primary); }
+.route { font-family: var(--font-mono); font-size: 11px; fill: var(--text-secondary); }
+.twin { fill: var(--bg-sunken); stroke: var(--border-strong); stroke-width: 1; stroke-dasharray: 3 2; }
+.noWayIn .frame { stroke-dasharray: 5 3; stroke: var(--status-warning); stroke-width: 1.6; }
+.deadEnd { stroke: var(--status-warning); stroke-width: 3; stroke-linecap: round; }
+.screen:hover .frame { stroke-width: 2; }
+.screen:focus-visible .frame, .menu:focus-visible .menuBox { stroke: var(--focus-ring); stroke-width: 3; }
+.sel .frame, .sel .menuBox { stroke: var(--accent-solid); stroke-width: 2.6; }
+.onPath .frame, .onPath .menuBox { stroke: var(--accent-solid); stroke-width: 2.4; }
+.faded { opacity: .28; }
+.preview .title { font-size: 15px; }
+.preview .route { display: none; }
+
+/* hidden routes: hatched, dashed */
+.hidden .frame { stroke-dasharray: 4 3; stroke: var(--text-tertiary); }
+.hidden .title { fill: var(--text-secondary); }
+.hatchBg { fill: var(--bg-surface); }
+.hatchFg { fill: var(--border-default); }
+.unseen rect { stroke: var(--text-tertiary); stroke-width: 1; stroke-dasharray: 2 2; }
+.unseen text { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; fill: var(--text-primary); paint-order: stroke; stroke: var(--bg-surface); stroke-width: 3px; }
+
+/* the menu */
+.menuBox { fill: var(--accent-subtle); stroke: var(--accent-solid); stroke-width: 1.2; }
+.menuTitle { font-size: 12.5px; font-weight: 600; fill: var(--accent-text); }
+.menuSub { font-size: 10.5px; fill: var(--text-secondary); }
+
+/* broken links */
+.broken path { fill: none; stroke: var(--status-critical); stroke-width: 1.6; stroke-dasharray: 3 2; }
+.broken .brokenX { stroke-dasharray: none; stroke-width: 2; stroke-linecap: round; }
+
+/* change and target: the folder's operation */
+.op_retain .frame { fill: var(--op-keep-wash); stroke: var(--op-keep); }
+.op_modify .frame { fill: var(--op-modify-wash); stroke: var(--op-modify); }
+.op_rebuild .frame { fill: var(--op-rebuild-wash); stroke: var(--op-rebuild); }
+.op_delete .frame { fill: var(--op-delete-wash); stroke: var(--op-delete); }
+.delBg { fill: var(--op-delete-wash); }
+.delFg { fill: var(--op-delete); opacity: .45; }
+.removed { opacity: .6; }
+.removed .title, .removed .route { text-decoration: line-through; }
+.undecided circle { fill: var(--bg-raised); stroke: var(--text-tertiary); stroke-width: 1.2; stroke-dasharray: 2 2; }
+.undecided text { font-size: 11px; font-weight: 600; fill: var(--text-secondary); }
+
+/* the task's steps */
+.step circle { fill: var(--accent-button); }
+.step text { font-family: var(--font-mono); font-size: 11px; font-weight: 600; fill: var(--bg-surface); }
+.cluster .frame { stroke-width: 1.6; }
+.clusterSub { font-size: 11.5px; fill: var(--text-secondary); }

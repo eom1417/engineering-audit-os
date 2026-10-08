@@ -62,7 +62,8 @@
         "move",
         "stage",
         "data_access",
-        "broken_code"
+        "broken_code",
+        "navigation"
       ]
     },
     "extractor": {

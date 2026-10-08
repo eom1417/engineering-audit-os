@@ -167,7 +167,7 @@ SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'pla
 # Contract v2 (docs/STUDIO.md D7): sections added without breaking a v1 reader. They keep "contract": 1 (the number a
 # reader-breaking change raises) and carry "revision": 2; a v1 reader ignores a section it does not know.
 STUDIO_REVISION = 2
-SECTIONS_V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'coverage', 'paths')
+SECTIONS_V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'coverage', 'paths', 'journeys', 'hidden')
 REF = lambda name: {'$ref': f'#/$defs/{name}'}
 DEFS = {
     'ratio': {'type': 'number', 'minimum': 0, 'maximum': 1},
@@ -318,6 +318,55 @@ STUDIO = {
  'system': ('The project as two territory maps, today and the target: components with their files, findings and operation, the weighted imports between them, and the layout computed by EAOS so the Studio only draws. The precursor of NS39.T1\'s unified graph.',
   SYSTEM_SECTION)
 }
+# The visual maps of NS46.T6 (STUDIO-COMPLETE.md "the owner's must-haves"): the user's journeys between screens
+# (eaos/studio/journeys.py) and what the user sees against what runs unseen (eaos/studio/hidden.py). Every element
+# carries its evidence (fact, file, line); a gap in the engine's data is written in `missing` and counted in coverage.
+_EVIDENCE = obj({'file': NS, 'line': NI, 'fact': NS}, ['file'])
+_MAP_GAP = obj({'id': S, 'state': enum(*COVERAGE_STATES), 'step': {'type': 'string', 'pattern': '^NS[0-9]+(\\.T[0-9]+)?$'},
+                'count': REF('measure'), 'detail': obj({'ar': S, 'en': S})}, ['id', 'state', 'step', 'count', 'detail'])
+_LINK_SITE = obj({'file': S, 'line': NI, 'fact': NS, 'via': S, 'target': NS}, ['file', 'via'])
+JOURNEYS_SECTION = section_v2({
+    'counts': obj({k: REF('measure') for k in ('screens', 'hidden_screens', 'links', 'link_sites', 'broken', 'no_way_in',
+                                                'dead_ends', 'duplicates', 'tasks', 'unowned_links', 'unowned_dead', 'without_target', 'shots')}),
+    'src': {'type': 'object', 'additionalProperties': REF('source')},
+    'grid': obj({k: COUNT for k in ('cols', 'rows', 'col_w', 'row_h', 'box_w', 'box_h', 'pad', 'width', 'height')}),
+    'starts': REFS,
+    'screens': arr(obj({'id': S, 'route': S, 'title': S, 'kind': enum('page', 'layout', 'redirect', 'fallback'),
+                        'file': {'anyOf': [REF('path'), {'type': 'null'}]}, 'router': REF('path'), 'line': NI, 'fact': NS,
+                        'declared': arr(_EVIDENCE), 'group': S, 'feature': NS, 'component': NS,
+                        'op': {'type': ['string', 'null'], 'enum': ['retain', 'modify', 'rebuild', 'delete', None]},
+                        'target': NS, 'decided': B, 'start': B, 'depth': NI, 'menu': NS,
+                        'flags': arr(enum('no_way_in', 'dead_end', 'duplicate', 'broken_link')), 'twins': REFS,
+                        'shots': arr(REF('path')), 'col': COUNT, 'row': COUNT, 'x': N, 'y': N},
+                       ['id', 'route', 'title', 'kind', 'file', 'router', 'fact', 'flags', 'op', 'decided', 'col', 'row', 'x', 'y'])),
+    'menus': arr(obj({'id': S, 'router': REF('path'), 'scope': REFS, 'root': NS, 'files': arr(REF('path')), 'links': COUNT,
+                      'col': COUNT, 'row': COUNT, 'x': N, 'y': N}, ['id', 'router', 'scope', 'links', 'x', 'y'])),
+    'edges': arr(obj({'from': S, 'to': S, 'via': enum('link', 'redirect', 'navigate', 'menu', 'menu_of'), 'back': B,
+                      'evidence': arr(_LINK_SITE), 'count': COUNT, 'd': S}, ['from', 'to', 'via', 'evidence', 'count', 'd'])),
+    'broken': arr(obj({'from': S, 'file': S, 'line': NI, 'fact': NS, 'via': S, 'target': S, 'dynamic': B}, ['from', 'file', 'target'])),
+    'unowned': arr(obj({'file': S, 'line': NI, 'fact': NS, 'via': S, 'target': NS, 'dead': B}, ['file', 'via', 'dead'])),
+    'relative': arr(obj({'from': S, 'file': S, 'line': NI, 'fact': NS, 'via': S, 'target': S}, ['from', 'file', 'target'])),
+    'groups': arr(obj({'id': S, 'screens': REFS}, ['id', 'screens'])),
+    'tasks': arr(obj({'id': S, 'name': obj({'ar': S, 'en': S}), 'kind': enum('route', 'dialog'), 'screen': NS,
+                      'file': NS, 'line': NI, 'path': REFS, 'hosts': REFS, 'dead': B, 'src': S}, ['id', 'name', 'kind', 'screen', 'path', 'dead', 'src'])),
+    'capped': {'type': 'object', 'additionalProperties': COUNT},
+    'missing': arr(_MAP_GAP),
+}, ['counts', 'src', 'grid', 'starts', 'screens', 'menus', 'edges', 'broken', 'tasks', 'missing'])
+_HIDDEN_GROUP = enum('triggers', 'screens', 'server', 'writes', 'outside', 'config', 'build', 'dead')
+HIDDEN_SECTION = section_v2({
+    'counts': {'type': 'object', 'additionalProperties': REF('measure')},
+    'src': {'type': 'object', 'additionalProperties': REF('source')},
+    'seen': arr(obj({'id': S, 'name': S, 'screens': REFS, 'routes': REFS, 'dialogs': REFS, 'dialog_count': COUNT},
+                    ['id', 'name', 'screens', 'dialogs', 'dialog_count'])),
+    'groups': arr(obj({'id': _HIDDEN_GROUP, 'count': REF('measure'), 'kinds': {'type': 'object', 'additionalProperties': COUNT},
+                       'no_screen': COUNT, 'items': REFS, 'capped': COUNT}, ['id', 'count', 'kinds', 'no_screen', 'items'])),
+    'items': arr(obj({'id': S, 'group': _HIDDEN_GROUP, 'kind': S, 'name': S, 'file': NS, 'line': NI, 'fact': NS,
+                      'files': REFS, 'detail': NS, 'card': NS, 'areas': REFS, 'no_screen': B, 'component': NS},
+                     ['id', 'group', 'kind', 'name', 'file', 'fact', 'areas', 'no_screen'])),
+    'links': arr(obj({'from': S, 'to': _HIDDEN_GROUP, 'count': COUNT, 'items': REFS}, ['from', 'to', 'count', 'items'])),
+    'components': {'type': 'object', 'additionalProperties': {'type': 'object', 'additionalProperties': COUNT}},
+    'missing': arr(_MAP_GAP),
+}, ['counts', 'src', 'seen', 'groups', 'items', 'links', 'components', 'missing'])
 STUDIO_V2 = {
  'functions': ('Every function EAOS read, by module: what it is, its signature and summary, who calls it and what it calls, the data it reads and writes, its size and complexity, and the cards on it.',
   section_v2({'modules': arr(obj({'id': REF('path'), 'component': NS, 'language': NS, 'functions': COUNT}, ['id', 'functions'])),
@@ -373,6 +422,10 @@ STUDIO_V2 = {
               'indicators': arr(obj({'id': S, 'name': S, 'value': REF('ratio_measure'), 'target': REF('ratio')},
                                     ['id', 'name', 'value', 'target']))},
              ['detectors', 'capabilities', 'indicators'])),
+ 'journeys': ('The user\'s journeys: every screen as a frame on a pinned grid, the links between screens with the file and line of each, the main tasks as paths from the start, and the screens that are broken links, dead ends, out of reach or duplicates; each screen with its component\'s operation, and the gaps in the data counted.',
+  JOURNEYS_SECTION),
+ 'hidden': ('What the user sees against what runs unseen: the screens by area, and the background jobs, web hooks, edge functions, hidden screens, server routes, writes, outside services, configuration and secrets, build steps and dead code, each with its evidence, the screens that set it in motion and the component that holds it.',
+  HIDDEN_SECTION),
  'coverage': ('What EAOS measured for this report and what it has not measured yet: every Studio section with its state, the reason in a stable code, which step of the plan will produce it, and how to produce it. A page with no data shows this instead of "coming soon".',
   section_v2({'sections': arr(obj({'section': {'type': 'string', 'pattern': '^[a-z]+$'}, 'state': enum(*COVERAGE_STATES),
                                    'reason': enum(*COVERAGE_REASONS), 'detail': S, 'step': {'type': ['string', 'null'], 'pattern': '^NS[0-9]+(\\.T[0-9]+)?$'},

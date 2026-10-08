@@ -40,3 +40,4 @@ one is its record.
 | NS46.T1 contract v2 and its fixtures | [ns46-t1-contract-v2.md](ns46-t1-contract-v2.md) |
 | The System maps (territory, change, target) | [studio-maps.md](studio-maps.md) |
 | Code paths, sequences and the plan timeline | [studio-map-paths.md](studio-map-paths.md) |
+| NS46.T6 user journeys, visible and hidden | [studio-journeys.md](studio-journeys.md) |

@@ -1,0 +1,27 @@
+/* The System maps' tabs: one row of links, 44px tall on the phone, scrolling sideways when they do not fit. */
+.views { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; min-inline-size: 0; }
+.views::-webkit-scrollbar { display: none; }
+.view {
+  display: inline-flex; align-items: center; min-block-size: 32px; padding-inline: 12px; border-radius: var(--radius-full);
+  font-size: 13px; color: var(--text-secondary); white-space: nowrap; border: 1px solid transparent;
+}
+.view:hover { background: var(--bg-hover); color: var(--text-primary); }
+.on { background: var(--accent-subtle); color: var(--accent-text); font-weight: 500; border-color: var(--accent-subtle); }
+
+/* the "show hidden" switch */
+.switch { display: inline-flex; align-items: center; gap: 8px; min-block-size: 28px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+.track { inline-size: 30px; block-size: 18px; border-radius: var(--radius-full); background: var(--bg-sunken); border: 1px solid var(--border-strong); position: relative; flex: none; transition: background var(--dur-fast); }
+.thumb { position: absolute; inset-block-start: 2px; inset-inline-start: 2px; inline-size: 12px; block-size: 12px; border-radius: 50%; background: var(--text-tertiary); transition: inset-inline-start var(--dur-fast), background var(--dur-fast); }
+.switch[data-selected] .track { background: var(--accent-button); border-color: var(--accent-button); }
+.switch[data-selected] .thumb { inset-inline-start: 14px; background: var(--bg-surface); }
+.switch[data-selected] { color: var(--text-primary); }
+.switch:focus-visible { outline: none; }
+.switch:focus-visible .track { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+@media (max-width: 767px) {
+  .view { min-block-size: 44px; padding-inline: 14px; }
+  .switch { min-block-size: 44px; font-size: 15px; }
+  .track { inline-size: 40px; block-size: 24px; }
+  .thumb { inline-size: 18px; block-size: 18px; }
+  .switch[data-selected] .thumb { inset-inline-start: 18px; }
+}

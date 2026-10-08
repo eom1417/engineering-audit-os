@@ -93,6 +93,8 @@ export const MAP_WORDS = {
   capped: ['تعرض الخريطة أكبر {n} مكوّنًا.', 'The map shows the largest {n} components.'],
   more: ['و{n} أخرى', 'and {n} more'],
   showAll: ['اعرض كل العمليات', 'Show every operation'],
+  hiddenRing: ['حلقة متقطعة: يحمل عملًا لا يُرى ({n})', 'Dashed ring: holds unseen work ({n})'],
+  showHidden: ['اعرض الخفي', 'Show hidden'],
 } satisfies Record<string, readonly [string, string]>
 
 export type MapWord = keyof typeof MAP_WORDS
@@ -112,7 +114,13 @@ export function useWordTable<K extends string>(table: Record<K, readonly [string
     })
 }
 
-/** The maps' words in the current language. */
-export function useMapWords() {
-  return useWordTable(MAP_WORDS)
+/** A hook giving a word table's words in the current language (useWordTable bound to one table). Each map keeps its
+ * own table, Arabic first and English equally finished. */
+export function makeWords<K extends string>(table: Record<K, readonly [string, string]>) {
+  return function useWords() {
+    return useWordTable(table)
+  }
 }
+
+/** The maps' words in the current language. */
+export const useMapWords = makeWords<MapWord>(MAP_WORDS)

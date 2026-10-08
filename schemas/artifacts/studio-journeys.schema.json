@@ -1,0 +1,866 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/journeys.json",
+  "description": "The user's journeys: every screen as a frame on a pinned grid, the links between screens with the file and line of each, the main tasks as paths from the start, and the screens that are broken links, dead ends, out of reach or duplicates; each screen with its component's operation, and the gaps in the data counted.",
+  "x-artifact": "studio/journeys.json",
+  "x-owner": "NS46",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "revision",
+    "counts",
+    "src",
+    "grid",
+    "starts",
+    "screens",
+    "menus",
+    "edges",
+    "broken",
+    "tasks",
+    "missing"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "revision": {
+      "const": 2
+    },
+    "counts": {
+      "type": "object",
+      "required": [
+        "screens",
+        "hidden_screens",
+        "links",
+        "link_sites",
+        "broken",
+        "no_way_in",
+        "dead_ends",
+        "duplicates",
+        "tasks",
+        "unowned_links",
+        "unowned_dead",
+        "without_target",
+        "shots"
+      ],
+      "properties": {
+        "screens": {
+          "$ref": "#/$defs/measure"
+        },
+        "hidden_screens": {
+          "$ref": "#/$defs/measure"
+        },
+        "links": {
+          "$ref": "#/$defs/measure"
+        },
+        "link_sites": {
+          "$ref": "#/$defs/measure"
+        },
+        "broken": {
+          "$ref": "#/$defs/measure"
+        },
+        "no_way_in": {
+          "$ref": "#/$defs/measure"
+        },
+        "dead_ends": {
+          "$ref": "#/$defs/measure"
+        },
+        "duplicates": {
+          "$ref": "#/$defs/measure"
+        },
+        "tasks": {
+          "$ref": "#/$defs/measure"
+        },
+        "unowned_links": {
+          "$ref": "#/$defs/measure"
+        },
+        "unowned_dead": {
+          "$ref": "#/$defs/measure"
+        },
+        "without_target": {
+          "$ref": "#/$defs/measure"
+        },
+        "shots": {
+          "$ref": "#/$defs/measure"
+        }
+      }
+    },
+    "src": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/source"
+      }
+    },
+    "grid": {
+      "type": "object",
+      "required": [
+        "cols",
+        "rows",
+        "col_w",
+        "row_h",
+        "box_w",
+        "box_h",
+        "pad",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "cols": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "col_w": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "row_h": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "box_w": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "box_h": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pad": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "starts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "screens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "route",
+          "title",
+          "kind",
+          "file",
+          "router",
+          "fact",
+          "flags",
+          "op",
+          "decided",
+          "col",
+          "row",
+          "x",
+          "y"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "route": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "page",
+              "layout",
+              "redirect",
+              "fallback"
+            ]
+          },
+          "file": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/path"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "router": {
+            "$ref": "#/$defs/path"
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "fact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "declared": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "file"
+              ],
+              "properties": {
+                "file": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "line": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "fact": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "group": {
+            "type": "string"
+          },
+          "feature": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "component": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "op": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "retain",
+              "modify",
+              "rebuild",
+              "delete",
+              null
+            ]
+          },
+          "target": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decided": {
+            "type": "boolean"
+          },
+          "start": {
+            "type": "boolean"
+          },
+          "depth": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "menu": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "no_way_in",
+                "dead_end",
+                "duplicate",
+                "broken_link"
+              ]
+            }
+          },
+          "twins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "shots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/path"
+            }
+          },
+          "col": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "row": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "menus": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "router",
+          "scope",
+          "links",
+          "x",
+          "y"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "router": {
+            "$ref": "#/$defs/path"
+          },
+          "scope": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "root": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/path"
+            }
+          },
+          "links": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "col": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "row": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "x": {
+            "type": "number"
+          },
+          "y": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "to",
+          "via",
+          "evidence",
+          "count",
+          "d"
+        ],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "via": {
+            "type": "string",
+            "enum": [
+              "link",
+              "redirect",
+              "navigate",
+              "menu",
+              "menu_of"
+            ]
+          },
+          "back": {
+            "type": "boolean"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "file",
+                "via"
+              ],
+              "properties": {
+                "file": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "fact": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "via": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "d": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "broken": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "file",
+          "target"
+        ],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "fact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "via": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          },
+          "dynamic": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "unowned": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "file",
+          "via",
+          "dead"
+        ],
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "fact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "via": {
+            "type": "string"
+          },
+          "target": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "dead": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "relative": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "file",
+          "target"
+        ],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "fact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "via": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "screens"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "screens": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "screen",
+          "path",
+          "dead",
+          "src"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "object",
+            "required": [
+              "ar",
+              "en"
+            ],
+            "properties": {
+              "ar": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "route",
+              "dialog"
+            ]
+          },
+          "screen": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "file": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hosts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dead": {
+            "type": "boolean"
+          },
+          "src": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "capped": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "missing": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "state",
+          "step",
+          "count",
+          "detail"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "measured",
+              "empty",
+              "partial",
+              "not_measured",
+              "failed"
+            ]
+          },
+          "step": {
+            "type": "string",
+            "pattern": "^NS[0-9]+(\\.T[0-9]+)?$"
+          },
+          "count": {
+            "$ref": "#/$defs/measure"
+          },
+          "detail": {
+            "type": "object",
+            "required": [
+              "ar",
+              "en"
+            ],
+            "properties": {
+              "ar": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    },
+    "touch": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "table",
+            "file",
+            "env",
+            "network",
+            "store",
+            "storage"
+          ]
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "x-revision": 2
+}

@@ -1,0 +1,55 @@
+/* The visible and hidden diagram: solid boxes for what the user sees, hatched dashed boxes for what runs unseen. */
+.map { display: block; font-family: var(--font-sans); user-select: none; -webkit-user-select: none; }
+.full { touch-action: none; cursor: grab; }
+.full.dragging { cursor: grabbing; }
+.world { transition: transform var(--dur-base) var(--ease-standard); }
+.dragging .world { transition: none; }
+.water { fill: var(--map-water); }
+.side { font-size: 14px; font-weight: 600; fill: var(--text-tertiary); }
+
+.link { fill: none; stroke: var(--edge-strong); opacity: .35; transition: opacity var(--dur-fast); }
+.linkOn { stroke: var(--accent-solid); opacity: .9; }
+.linkOff { opacity: .08; }
+
+.area, .group { outline: none; transition: opacity var(--dur-fast); }
+.full .area, .full .group { cursor: pointer; }
+.box { fill: var(--bg-surface); stroke: var(--border-strong); stroke-width: 1.2; }
+.hatch { stroke: none; }
+.gbox { fill: none; stroke: var(--text-tertiary); stroke-width: 1.4; stroke-dasharray: 5 3; }
+.hatchBg { fill: var(--bg-surface); }
+.hatchFg { fill: var(--bg-hover); }
+.empty { opacity: .55; }
+.name { font-size: 15px; font-weight: 600; fill: var(--text-primary); }
+.ident { font-family: var(--font-mono); font-size: 14px; font-weight: 500; fill: var(--text-primary); }
+.sub { font-size: 12.5px; fill: var(--text-secondary); }
+.count { font-family: var(--font-mono); font-size: 16px; font-weight: 600; fill: var(--text-primary); }
+.item { font-family: var(--font-mono); font-size: 12px; fill: var(--text-secondary); paint-order: stroke; stroke: var(--bg-surface); stroke-width: 3px; }
+.itemAlone { fill: var(--status-critical); }
+.alone { font-size: 12px; font-weight: 600; fill: var(--status-critical); paint-order: stroke; stroke: var(--bg-surface); stroke-width: 3px; }
+.area:hover .box, .group:hover .gbox { stroke-width: 2; }
+.area:focus-visible .box, .group:focus-visible .gbox { stroke: var(--focus-ring); stroke-width: 3; stroke-dasharray: none; }
+.sel .box, .sel .gbox { stroke: var(--accent-solid); stroke-width: 2.6; }
+.faded { opacity: .3; }
+.preview .item, .preview .alone { display: none; }
+.preview .name, .preview .ident { font-size: 18px; }
+.preview .sub { display: none; }
+.preview .name, .preview .ident { font-size: 20px; }
+
+/* the page (its frame is the journeys page's: Journeys.module.css) */
+.lens { display: flex; flex-direction: column; gap: 8px; padding: 8px 16px 10px; background: var(--bg-canvas); border-block-end: 1px solid var(--border-subtle); }
+.leadLine { font-size: 13.5px; color: var(--text-secondary); line-height: 1.5; }
+.legend { position: absolute; inset-block-end: 16px; inset-inline-start: 16px; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; font-size: 12px; color: var(--text-secondary); background: var(--bg-raised); border: 1px solid var(--border-default); border-radius: var(--radius-8); box-shadow: var(--shadow-float); }
+.legendInline { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--text-secondary); }
+.lg { display: flex; align-items: center; gap: 8px; }
+.swSeen { inline-size: 22px; block-size: 13px; border-radius: 3px; border: 1.2px solid var(--border-strong); background: var(--bg-surface); flex: none; }
+.swUnseen { inline-size: 22px; block-size: 13px; border-radius: 3px; border: 1.4px dashed var(--text-tertiary); background: repeating-linear-gradient(45deg, var(--bg-hover) 0 2px, var(--bg-surface) 2px 6px); flex: none; }
+.swAlone { inline-size: 10px; block-size: 10px; border-radius: 50%; background: var(--status-critical); flex: none; }
+.groupCard { display: flex; flex-direction: column; gap: 6px; }
+.groupHead { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.groupName { font-weight: 600; font-size: 15px; }
+.groupKinds { font-size: 12px; color: var(--text-tertiary); }
+.aloneTag { color: var(--status-critical); font-size: 12px; font-weight: 600; }
+
+/* phone */
+.previewSvg { inline-size: 100%; block-size: auto; aspect-ratio: 1 / .9; }
+

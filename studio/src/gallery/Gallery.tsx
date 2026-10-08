@@ -19,6 +19,7 @@ import { PrefsScope, usePrefs, type Lang, type Theme } from '../i18n/prefs'
 import { Id, N, Txt } from '../i18n/text'
 import { usePageChrome } from '../shell/chrome'
 import { layout, PageTitle } from '../shell/Layout'
+import { HiddenFixture, JourneysFixture } from '../pages/system/MapsGallery'
 import { cards, code, decisionAnswered, decisionMany, decisionTwo, facts, plan } from './fixtures'
 import css from './Gallery.module.css'
 
@@ -256,6 +257,12 @@ function Specimens() {
         <State name="evidence: with code (own LTR scroll) · sentence only" wide>
           <div className={css.col}><EvidenceCard fact={facts[0]} code={code} /><EvidenceCard fact={facts[1]} /></div>
         </State>
+      </Group>
+
+      <Group id="maps-journeys" title="Maps · user journeys · visible and hidden">
+        <State name="journeys: today · a task's path" wide><JourneysFixture mode="current" task /></State>
+        <State name="journeys: change (folder operation) · target with hidden routes" wide><JourneysFixture mode="target" hidden /></State>
+        <State name="visible and hidden" wide><HiddenFixture /></State>
       </Group>
 
       <Group id="overlays" title="Sheet · CommandPalette (⌘K) · Toast">

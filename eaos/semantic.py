@@ -61,7 +61,7 @@ def digest_of(sets, dossier, limit=60):
         'entry_points': [{'surface': fact['value']['surface'], 'route': fact['value']['route'],
                           'handler': fact['value']['handler'], 'path': fact['location']['path'],
                           'fact_id': fact['id']}
-                         for fact in sets['entrypoints']['facts'] if fact['value'].get('category') != 'test'][:40],
+                         for fact in sets['entrypoints']['facts'] if fact['kind'] == 'entry_point' and fact['value'].get('category') != 'test'][:40],
         'flows': [{'flow_id': fact['value']['flow_id'], 'entry': fact['value']['entry']['route'],
                    'touched_files': fact['value']['touched_files'], 'fact_id': fact['id']}
                   for fact in sets.get('flows', {}).get('facts', [])][:20],

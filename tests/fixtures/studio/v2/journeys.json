@@ -1,0 +1,775 @@
+{
+ "schema_version": 1,
+ "contract": 1,
+ "revision": 2,
+ "counts": {
+  "screens": {
+   "value": 8,
+   "src": "facts/entrypoints.json#entry_point[surface=page] (one per full route), kind page",
+   "unit": "count"
+  },
+  "hidden_screens": {
+   "value": 3,
+   "src": "facts/entrypoints.json#entry_point[surface=page] (one per full route), kind layout, redirect or fallback",
+   "unit": "count"
+  },
+  "links": {
+   "value": 6,
+   "src": "facts/entrypoints.json#navigation, matched to the screens' routes (screen pairs)",
+   "unit": "count"
+  },
+  "link_sites": {
+   "value": 6,
+   "src": "facts/entrypoints.json#navigation, matched to the screens' routes",
+   "unit": "count"
+  },
+  "broken": {
+   "value": 1,
+   "src": "facts/entrypoints.json#navigation whose target matches no screen",
+   "unit": "count"
+  },
+  "no_way_in": {
+   "value": 3,
+   "src": "screens no chain of links reaches from the start route",
+   "unit": "count"
+  },
+  "dead_ends": {
+   "value": 1,
+   "src": "pages with no link out and no menu",
+   "unit": "count"
+  },
+  "duplicates": {
+   "value": 2,
+   "src": "routes declared twice, or one component file on several routes",
+   "unit": "count"
+  },
+  "tasks": {
+   "value": 2,
+   "src": "create or edit routes, and Create…/Edit… dialog or form files a screen renders",
+   "unit": "count"
+  },
+  "unowned_links": {
+   "value": 1,
+   "src": "facts/entrypoints.json#navigation in files no screen renders",
+   "unit": "count"
+  },
+  "unowned_dead": {
+   "value": 1,
+   "src": "facts/entrypoints.json#navigation in files no screen renders, in an unreachable module",
+   "unit": "count"
+  },
+  "without_target": {
+   "value": 8,
+   "src": "screens with no screen-level decision in target-architecture.json",
+   "unit": "count"
+  },
+  "shots": {
+   "value": 0,
+   "src": "media.json#images[kind=screen] with the screen's route",
+   "unit": "count"
+  }
+ },
+ "src": {
+  "screens": "facts/entrypoints.json#entry_point[surface=page] (one per full route)",
+  "links": "facts/entrypoints.json#navigation, matched to the screens' routes",
+  "broken": "facts/entrypoints.json#navigation whose target matches no screen",
+  "no_way_in": "screens no chain of links reaches from the start route",
+  "dead_ends": "pages with no link out and no menu",
+  "duplicates": "routes declared twice, or one component file on several routes",
+  "tasks": "create or edit routes, and Create…/Edit… dialog or form files a screen renders",
+  "unowned_links": "facts/entrypoints.json#navigation in files no screen renders",
+  "relative": "facts/entrypoints.json#navigation[relative] (not resolved to a screen)",
+  "without_target": "screens with no screen-level decision in target-architecture.json",
+  "shots": "media.json#images[kind=screen] with the screen's route"
+ },
+ "grid": {
+  "cols": 6,
+  "rows": 6,
+  "col_w": 212,
+  "row_h": 84,
+  "box_w": 168,
+  "box_h": 60,
+  "pad": 24,
+  "width": 1276,
+  "height": 528
+ },
+ "starts": [
+  "/"
+ ],
+ "screens": [
+  {
+   "id": "*",
+   "route": "*",
+   "title": "NotFound",
+   "kind": "fallback",
+   "file": "src/pages/NotFound.tsx",
+   "router": "src/App.tsx",
+   "line": 20,
+   "fact": "FACT-entry_point-src_App.tsx-20",
+   "declared": [
+    {
+     "file": "src/App.tsx",
+     "line": 20,
+     "fact": "FACT-entry_point-src_App.tsx-20"
+    }
+   ],
+   "group": "*",
+   "feature": null,
+   "component": "src/pages",
+   "op": "rebuild",
+   "target": "pages",
+   "decided": false,
+   "start": false,
+   "depth": null,
+   "menu": null,
+   "flags": [],
+   "twins": [],
+   "shots": [],
+   "col": 5,
+   "row": 0,
+   "x": 1084,
+   "y": 24
+  },
+  {
+   "id": "/",
+   "route": "/",
+   "title": "Root",
+   "kind": "page",
+   "file": null,
+   "router": "src/App.tsx",
+   "line": 10,
+   "fact": "FACT-entry_point-src_App.tsx-10",
+   "declared": [
+    {
+     "file": "src/App.tsx",
+     "line": 10,
+     "fact": "FACT-entry_point-src_App.tsx-10"
+    }
+   ],
+   "group": "/",
+   "feature": null,
+   "component": "src",
+   "op": "modify",
+   "target": "app",
+   "decided": false,
+   "start": true,
+   "depth": 0,
+   "menu": null,
+   "flags": [],
+   "twins": [],
+   "shots": [],
+   "col": 0,
+   "row": 0,
+   "x": 24,
+   "y": 24
+  },
+  {
+   "id": "/app",
+   "route": "/app",
+   "title": "Home",
+   "kind": "page",
+   "file": "src/pages/Home.tsx",
+   "router": "src/App.tsx",
+   "line": 13,
+   "fact": "FACT-entry_point-src_App.tsx-13",
+   "declared": [
+    {
+     "file": "src/App.tsx",
+     "line": 13,
+     "fact": "FACT-entry_point-src_App.tsx-13"
+    }
+   ],
+   "group": "/",
+   "feature": null,
+   "component": "src/pages",
+   "op": "rebuild",
+   "target": "pages",
+   "decided": false,
+   "start": false,
+   "depth": 1,
+   "menu": "menu:src/App.tsx",
+   "flags": [],
+   "twins": [],
+   "shots": [],
+   "col": 1,
+   "row": 0,
+   "x": 236,
+   "y": 24
+  },
+  {
+   "id": "/app/*#NotFound",
+   "route": "/app/*",
+   "title": "NotFound",
+   "kind": "fallback",
+   "file": "src/pages/NotFound.tsx",
+   "router": "src/App.tsx",
+   "line": 19,
+   "fact": "FACT-entry_point-src_App.tsx-19",
+   "declared": [
+    {
+     "file": "src/App.tsx",
+     "line": 19,
+     "fact": "FACT-entry_point-src_App.tsx-19"
+    }
+   ],
+   "group": "*",
+   "feature": null,
+   "component": "src/pages",
+   "op": "rebuild",
+   "target": "pages",
+   "decided": false,
+   "start": false,
+   "depth": null,
+   "menu": "menu:src/App.tsx",
+   "flags": [],
+   "twins": [],
+   "shots": [],
+   "col": 5,
+   "row": 1,
+   "x": 1084,
+   "y": 108
+  },
+  {
+   "id": "/app/*#Shell",
+   "route": "/app/*",
+   "title": "Shell",
+   "kind": "layout",
+   "file": null,
+   "router": "src/App.tsx",
+   "line": 12,
+   "fact": "FACT-entry_point-src_App.tsx-12",
+   "declared": [
+    {
+     "file": "src/App.tsx",
+     "line": 12,
+     "fact": "FACT-entry_point-src_App.tsx-12"
+    }
+   ],
+   "group": "app",
+   "feature": null,
+   "component": "src",
+   "op": "modify",
+   "target": "app",
+   "decided": false,
+   "start": false,
+   "depth": null,
+   "menu": null,
+   "flags": [],
+   "twins": [],
+   "shots": [],
+   "col": 5,
+   "row": 2,
+   "x": 1084,
+   "y": 192
+  },
+  {
+   "id": "/app/items",
+   "route": "/app/items",
+   "title": "Items",
+   "kind": "page",
+   "file": "src/pages/Items.tsx",
+   "router": "src/App.tsx",
+   "line": 14,
+   "fact": "FACT-entry_point-src_App.tsx-14",
+   "declared": [
+    {
+     "file": "src/App.tsx",
+     "line": 14,
+     "fact": "FACT-entry_point-src_App.tsx-14"
+    }
+   ],
+   "group": "items",
+   "feature": "items",
+   "component": "src/pages",
+   "op": "rebuild",
+   "target": "pages",
+   "decided": false,
+   "start": false,
+   "depth": 3,
+   "menu": "menu:src/App.tsx",
+   "flags": [
+    "duplicate"
+   ],
+   "twins": [
+    "/app/old"
+   ],
+   "shots": [],
+   "col": 3,
+   "row": 0,
+   "x": 660,
+   "y": 24
+  },
+  {
+   "id": "/app/items/:id",
+   "route": "/app/items/:id",
+   "title": "Item",
+   "kind": "page",
+   "file": "src/pages/Item.tsx",
+   "router": "src/App.tsx",
+   "line": 16,
+   "fact": "FACT-entry_point-src_App.tsx-16",
+   "declared": [
+    {
+     "file": "src/App.tsx",
+     "line": 16,
+     "fact": "FACT-entry_point-src_App.tsx-16"
+    }
+   ],
+   "group": "items",
+   "feature": null,
+   "component": "src/pages",
+   "op": "rebuild",
+   "target": "pages",
+   "decided": false,
+   "start": false,
+   "depth": 4,
+   "menu": "menu:src/App.tsx",
+   "flags": [
+    "broken_link"
+   ],
+   "twins": [],
+   "shots": [],
+   "col": 4,
+   "row": 0,
+   "x": 872,
+   "y": 24
+  },
+  {
+   "id": "/app/items/new",
+   "route": "/app/items/new",
+   "title": "CreateItemPage",
+   "kind": "page",
+   "file": "src/pages/CreateItemPage.tsx",
+   "router": "src/App.tsx",
+   "line": 15,
+   "fact": "FACT-entry_point-src_App.tsx-15",
+   "declared": [
+    {
+     "file": "src/App.tsx",
+     "line": 15,
+     "fact": "FACT-entry_point-src_App.tsx-15"
+    }
+   ],
+   "group": "items",
+   "feature": null,
+   "component": "src/pages",
+   "op": "rebuild",
+   "target": "pages",
+   "decided": false,
+   "start": false,
+   "depth": 4,
+   "menu": "menu:src/App.tsx",
+   "flags": [],
+   "twins": [],
+   "shots": [],
+   "col": 4,
+   "row": 1,
+   "x": 872,
+   "y": 108
+  },
+  {
+   "id": "/app/lost",
+   "route": "/app/lost",
+   "title": "Lost",
+   "kind": "page",
+   "file": "src/pages/Lost.tsx",
+   "router": "src/App.tsx",
+   "line": 18,
+   "fact": "FACT-entry_point-src_App.tsx-18",
+   "declared": [
+    {
+     "file": "src/App.tsx",
+     "line": 18,
+     "fact": "FACT-entry_point-src_App.tsx-18"
+    }
+   ],
+   "group": "lost",
+   "feature": null,
+   "component": "src/pages",
+   "op": "rebuild",
+   "target": "pages",
+   "decided": false,
+   "start": false,
+   "depth": null,
+   "menu": "menu:src/App.tsx",
+   "flags": [
+    "no_way_in"
+   ],
+   "twins": [],
+   "shots": [],
+   "col": 5,
+   "row": 3,
+   "x": 1084,
+   "y": 276
+  },
+  {
+   "id": "/app/old",
+   "route": "/app/old",
+   "title": "Items",
+   "kind": "page",
+   "file": "src/pages/Items.tsx",
+   "router": "src/App.tsx",
+   "line": 17,
+   "fact": "FACT-entry_point-src_App.tsx-17",
+   "declared": [
+    {
+     "file": "src/App.tsx",
+     "line": 17,
+     "fact": "FACT-entry_point-src_App.tsx-17"
+    }
+   ],
+   "group": "old",
+   "feature": null,
+   "component": "src/pages",
+   "op": "rebuild",
+   "target": "pages",
+   "decided": false,
+   "start": false,
+   "depth": null,
+   "menu": "menu:src/App.tsx",
+   "flags": [
+    "no_way_in",
+    "duplicate"
+   ],
+   "twins": [
+    "/app/items"
+   ],
+   "shots": [],
+   "col": 5,
+   "row": 4,
+   "x": 1084,
+   "y": 360
+  },
+  {
+   "id": "/terms",
+   "route": "/terms",
+   "title": "Terms",
+   "kind": "page",
+   "file": "src/pages/Terms.tsx",
+   "router": "src/App.tsx",
+   "line": 11,
+   "fact": "FACT-entry_point-src_App.tsx-11",
+   "declared": [
+    {
+     "file": "src/App.tsx",
+     "line": 11,
+     "fact": "FACT-entry_point-src_App.tsx-11"
+    }
+   ],
+   "group": "public",
+   "feature": null,
+   "component": "src/pages",
+   "op": "rebuild",
+   "target": "pages",
+   "decided": false,
+   "start": false,
+   "depth": null,
+   "menu": null,
+   "flags": [
+    "no_way_in",
+    "dead_end"
+   ],
+   "twins": [],
+   "shots": [],
+   "col": 5,
+   "row": 5,
+   "x": 1084,
+   "y": 444
+  }
+ ],
+ "menus": [
+  {
+   "id": "menu:src/App.tsx",
+   "router": "src/App.tsx",
+   "scope": [
+    "/app",
+    "/app/*#NotFound",
+    "/app/items",
+    "/app/items/:id",
+    "/app/items/new",
+    "/app/lost",
+    "/app/old"
+   ],
+   "root": "/app",
+   "files": [
+    "src/nav/menu.ts"
+   ],
+   "links": 1,
+   "col": 2,
+   "row": 0,
+   "x": 448,
+   "y": 24
+  }
+ ],
+ "edges": [
+  {
+   "from": "/",
+   "to": "/app",
+   "via": "redirect",
+   "back": false,
+   "evidence": [
+    {
+     "file": "src/App.tsx",
+     "line": 30,
+     "fact": "FACT-navigation-src_App.tsx-30",
+     "via": "redirect",
+     "target": "/app"
+    }
+   ],
+   "count": 1,
+   "d": "M192,54 C214,54 214,54 236,54"
+  },
+  {
+   "from": "/app",
+   "to": "menu:src/App.tsx",
+   "via": "menu_of",
+   "back": false,
+   "evidence": [
+    {
+     "file": "src/App.tsx",
+     "line": null,
+     "fact": null,
+     "via": "menu_of",
+     "target": null
+    }
+   ],
+   "count": 1,
+   "d": "M404,54 C426,54 426,54 448,54"
+  },
+  {
+   "from": "/app/items",
+   "to": "/app/items/:id",
+   "via": "navigate",
+   "back": false,
+   "evidence": [
+    {
+     "file": "src/pages/Items.tsx",
+     "line": 41,
+     "fact": "FACT-navigation-src_pages_Items.tsx-41",
+     "via": "navigate",
+     "target": "/app/items/:param"
+    }
+   ],
+   "count": 1,
+   "d": "M828,54 C850,54 850,54 872,54"
+  },
+  {
+   "from": "/app/items",
+   "to": "/app/items/new",
+   "via": "link",
+   "back": false,
+   "evidence": [
+    {
+     "file": "src/pages/Items.tsx",
+     "line": 40,
+     "fact": "FACT-navigation-src_pages_Items.tsx-40",
+     "via": "link",
+     "target": "/app/items/new"
+    }
+   ],
+   "count": 1,
+   "d": "M828,54 C850,54 850,138 872,138"
+  },
+  {
+   "from": "/app/old",
+   "to": "/app/items/:id",
+   "via": "navigate",
+   "back": true,
+   "evidence": [
+    {
+     "file": "src/pages/Items.tsx",
+     "line": 41,
+     "fact": "FACT-navigation-src_pages_Items.tsx-41",
+     "via": "navigate",
+     "target": "/app/items/:param"
+    }
+   ],
+   "count": 1,
+   "d": "M1168,360 C1168,-36 956,-36 956,24"
+  },
+  {
+   "from": "/app/old",
+   "to": "/app/items/new",
+   "via": "link",
+   "back": true,
+   "evidence": [
+    {
+     "file": "src/pages/Items.tsx",
+     "line": 40,
+     "fact": "FACT-navigation-src_pages_Items.tsx-40",
+     "via": "link",
+     "target": "/app/items/new"
+    }
+   ],
+   "count": 1,
+   "d": "M1168,360 C1168,52 956,52 956,108"
+  },
+  {
+   "from": "menu:src/App.tsx",
+   "to": "/app/items",
+   "via": "menu",
+   "back": false,
+   "evidence": [
+    {
+     "file": "src/nav/menu.ts",
+     "line": 3,
+     "fact": "FACT-navigation-src_nav_menu.ts-3",
+     "via": "menu",
+     "target": "/app/items"
+    }
+   ],
+   "count": 1,
+   "d": "M616,54 C638,54 638,54 660,54"
+  }
+ ],
+ "broken": [
+  {
+   "file": "src/pages/Item.tsx",
+   "line": 50,
+   "fact": "FACT-navigation-src_pages_Item.tsx-50",
+   "via": "link",
+   "target": "/app/missing",
+   "from": "/app/items/:id",
+   "dynamic": false
+  }
+ ],
+ "unowned": [
+  {
+   "file": "src/dead/Widget.tsx",
+   "line": 5,
+   "fact": "FACT-navigation-src_dead_Widget.tsx-5",
+   "via": "link",
+   "target": "/app/lost",
+   "dead": true
+  }
+ ],
+ "relative": [],
+ "groups": [
+  {
+   "id": "*",
+   "screens": [
+    "*",
+    "/app/*#NotFound"
+   ]
+  },
+  {
+   "id": "/",
+   "screens": [
+    "/",
+    "/app"
+   ]
+  },
+  {
+   "id": "app",
+   "screens": [
+    "/app/*#Shell"
+   ]
+  },
+  {
+   "id": "items",
+   "screens": [
+    "/app/items",
+    "/app/items/:id",
+    "/app/items/new"
+   ]
+  },
+  {
+   "id": "lost",
+   "screens": [
+    "/app/lost"
+   ]
+  },
+  {
+   "id": "old",
+   "screens": [
+    "/app/old"
+   ]
+  },
+  {
+   "id": "public",
+   "screens": [
+    "/terms"
+   ]
+  }
+ ],
+ "tasks": [
+  {
+   "id": "task:edit:item",
+   "name": {
+    "ar": "تعديل: item",
+    "en": "Edit item"
+   },
+   "kind": "dialog",
+   "screen": "/app/items",
+   "file": "src/items/EditItemDialog.tsx",
+   "line": null,
+   "path": [
+    "/",
+    "/app",
+    "menu:src/App.tsx",
+    "/app/items"
+   ],
+   "hosts": [
+    "/app/items",
+    "/app/old"
+   ],
+   "dead": false,
+   "src": "file src/items/EditItemDialog.tsx, rendered by 2 screen(s)"
+  },
+  {
+   "id": "task:create:item",
+   "name": {
+    "ar": "إنشاء: item",
+    "en": "Create item"
+   },
+   "kind": "route",
+   "screen": "/app/items/new",
+   "file": "src/pages/CreateItemPage.tsx",
+   "line": null,
+   "path": [
+    "/",
+    "/app",
+    "menu:src/App.tsx",
+    "/app/items",
+    "/app/items/new"
+   ],
+   "dead": false,
+   "src": "route /app/items/new (component CreateItemPage)"
+  }
+ ],
+ "capped": {
+  "tasks": 0,
+  "broken": 0,
+  "unowned": 0
+ },
+ "missing": [
+  {
+   "id": "screen_target",
+   "state": "not_measured",
+   "step": "NS44.T1",
+   "count": {
+    "value": 8,
+    "src": "screens with no screen-level decision in target-architecture.json",
+    "unit": "count"
+   },
+   "detail": {
+    "ar": "البنية المستهدفة تقرر المجلدات لا الشاشات: لا قرار لكل شاشة (تبقى، تُدمج، تُحذف).",
+    "en": "The target architecture decides folders, not screens: no screen has its own decision (keep, merge, delete)."
+   }
+  },
+  {
+   "id": "shots",
+   "state": "not_measured",
+   "step": "NS41.T1",
+   "count": {
+    "value": null,
+    "src": "media.json#images[kind=screen] with the screen's route",
+    "unit": "count"
+   },
+   "detail": {
+    "ar": "لا صور للشاشات بعد: تصويرها يحتاج تشغيل التطبيق بموافقتك.",
+    "en": "No screen shots yet: capturing them needs the app running, with your agreement."
+   }
+  }
+ ]
+}
