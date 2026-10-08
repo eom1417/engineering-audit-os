@@ -23,7 +23,7 @@ export function TierStrip({ dp, vertical }: { dp: DataPaths; vertical?: boolean 
         const why = row?.gaps.map((g) => `${w(`gap_${g.reason}` as DataWord)} (${w('stepWord', { s: g.step })})`).join(' · ')
         return (
           <li key={tier} className={css.tier} title={why || undefined}>
-            <span className={css.tierName}>{w(`tier_${tier}`)}</span>
+            <span className={css.tierName} title={w(`tier_${tier}`)} data-truncate>{w(`tier_${tier}`)}</span>
             <span className={css.tierBar} aria-hidden="true"><span style={{ inlineSize: `${Math.round(share * 100)}%` }} /></span>
             <span className={css.tierN}>{total ? w('knownOf', { k: known, n: total }) : w('noWrites')}</span>
             {vertical && why && <span className={css.tierWhy}>{why}</span>}

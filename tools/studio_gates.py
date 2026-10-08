@@ -243,7 +243,9 @@ def run_studio(args):
             pages = studio_pages(matrix, data, base, site, only)
             report['pages'] = [entry['name'] for entry, _ in pages]
             entries = [{**entry, 'wait_for': entry.get('wait_for', matrix.get('wait_for'))} for entry, _ in pages]
-            result = audit.page_audit(entries, sizes, page_variants, out)
+            # the matrix grows with every Studio page: allow 5 s a screen (about twice the time one takes), at least 15 min
+            shots = sum(len(e.get('viewports') or sizes) * len(e.get('variants') or page_variants) for e in entries)
+            result = audit.page_audit(entries, sizes, page_variants, out, timeout=max(900, 5 * shots))
             first = page_variants[0]['query']
             if result['status'] == 'observed' and not args.quick:
                 report['lighthouse'] = {}
