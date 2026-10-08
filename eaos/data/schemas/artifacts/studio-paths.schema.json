@@ -69,6 +69,12 @@
           "title": {
             "type": "string"
           },
+          "handler": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "surface": {
             "type": "string"
           },

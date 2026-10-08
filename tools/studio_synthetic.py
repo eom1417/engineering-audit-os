@@ -93,7 +93,7 @@ def synthetic_paths(comps, layer, modules, card_rows, pages=250, calls=3):
             steps.append(link(e, t, 'defines', mods[server][2]))
         ids = {edges[k][end] for k in steps for end in ('from', 'to')}
         columns = paths_section.layout(ids, {n: nodes[n]['lane'] for n in ids}, [(edges[k]['from'], edges[k]['to']) for k in steps])
-        out.append({'id': f'{domain}-{i}', 'title': route, 'surface': 'page', 'entry': f'S:{route}', 'fact': None, 'flow': None, 'flow_fact': None,
+        out.append({'id': f'{domain}-{i}', 'title': route, 'handler': comp, 'surface': 'page', 'entry': f'S:{route}', 'fact': None, 'flow': None, 'flow_fact': None,
                     'steps': steps, 'columns': columns, 'gaps': sum(nodes[n]['kind'] == 'gap' for n in ids), 'capped': 0,
                     'unresolved': None, 'reach': 6})
     used = Counter(n for p in out for column in p['columns'] for n in column)

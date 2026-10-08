@@ -23,6 +23,7 @@ export interface SectionDef {
 export const SECTIONS: SectionDef[] = [
   { id: 'home', to: '/', icon: 'home', tab: 'home', nav: 'overview', tabbar: true, built: true },
   { id: 'system', to: '/system', icon: 'system', tab: 'system', nav: 'systemMap', group: 'groupCurrent', tabbar: true, built: true, count: (c) => c.components },
+  { id: 'paths', to: '/system/paths', icon: 'pulse', tab: 'codePaths', nav: 'codePaths', group: 'groupCurrent', tabbar: false, built: true },
   { id: 'problems', to: '/problems', icon: 'problems', tab: 'problems', nav: 'problems', group: 'groupProblems', tabbar: true, built: true, count: (c) => c.cards },
   { id: 'change', to: '/change', icon: 'change', tab: 'change', nav: 'journeyAndPlan', group: 'groupChange', tabbar: true, built: true },
   { id: 'decisions', to: '/decisions', icon: 'inbox', tab: 'decisions', nav: 'waitingForYou', group: 'groupInbox', tabbar: true, built: true, count: (c) => c.decisionsWaiting, badge: (c) => c.decisionsWaiting },
@@ -36,6 +37,7 @@ export function visibleSections(dev: boolean): SectionDef[] {
 
 /** The section a path belongs to ("/problems?card=…" → problems) */
 export function sectionOf(pathname: string): SectionDef | undefined {
-  const head = '/' + (pathname.split('/')[1] ?? '')
+  const first = '/' + (pathname.split('/')[1] ?? '')
+  const head = first === '/flows' ? '/system' : first     // a code path belongs to System
   return SECTIONS.find((section) => section.to === head) ?? (head === '/' ? SECTIONS[0] : undefined)
 }

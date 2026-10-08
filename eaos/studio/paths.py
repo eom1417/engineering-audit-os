@@ -370,7 +370,7 @@ def code_paths(report, card_rows):
         nodes = {start} | {b.g.edges[i][end] for i in steps for end in ('from', 'to')}
         lanes = {b.g.nodes[n]['lane'] for n in nodes if b.g.nodes[n]['kind'] != 'gap'}
         columns = layout(nodes, {n: b.g.nodes[n]['lane'] for n in nodes}, [(b.g.edges[i]['from'], b.g.edges[i]['to']) for i in steps])
-        out.append({'id': pid, 'title': title, 'surface': entry['surface'], 'entry': start,
+        out.append({'id': pid, 'title': title, 'handler': entry['handler'], 'surface': entry['surface'], 'entry': start,
                     'fact': _fact_id(entry['fact']), 'flow': ((flow or {}).get('value') or {}).get('flow_id'),
                     'flow_fact': _fact_id(flow), 'steps': steps, 'columns': columns,
                     'gaps': sum(b.g.nodes[n]['kind'] == 'gap' for n in nodes), 'capped': capped,

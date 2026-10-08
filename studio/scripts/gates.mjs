@@ -40,6 +40,10 @@ for (const name of fs.readdirSync(dataDir).filter((n) => n.endsWith('.js'))) fs.
 const manifest = JSON.parse(fs.readFileSync(path.join(dataDir, 'manifest.json'), 'utf8'))
 const cards = JSON.parse(fs.readFileSync(path.join(dataDir, 'cards.json'), 'utf8')).cards
 const firstCard = cards.find((c) => c.evidence.length) ?? cards[0]
+// The code path the gates open: the one reaching furthest through the lanes, then the longest within 60 links
+const pathsFile = path.join(dataDir, 'paths.json')
+const codePaths = fs.existsSync(pathsFile) ? JSON.parse(fs.readFileSync(pathsFile, 'utf8')).paths : []
+const firstPath = [...codePaths].sort((a, b) => b.reach - a.reach || Math.min(b.steps.length, 60) - Math.min(a.steps.length, 60) || a.id.localeCompare(b.id))[0]
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.json': 'application/json', '.txt': 'text/plain' }
 const server = http.createServer((req, res) => {
@@ -67,6 +71,16 @@ const ROUTES = [
   { name: 'change', hash: '#/change' },
   { name: 'change-focus', hash: `#/change?focus=${encodeURIComponent('src/components/drivers')}`, viewports: ['tablet', 'desktop'] },
   { name: 'decisions', hash: '#/decisions' },
+  { name: 'paths', hash: '#/system/paths' },
+  { name: 'paths-change', hash: '#/system/paths?view=change', viewports: ['phone', 'desktop'] },
+  { name: 'flow', hash: `#/flows/${encodeURIComponent(firstPath?.id ?? 'none')}` },
+  { name: 'flow-target', hash: `#/flows/${encodeURIComponent(firstPath?.id ?? 'none')}?view=target&show=diagram`, viewports: ['phone', 'desktop'] },
+  { name: 'flow-change', hash: `#/flows/${encodeURIComponent(firstPath?.id ?? 'none')}?view=change&show=diagram`, viewports: ['phone', 'desktop'] },
+  { name: 'flow-sequence', hash: `#/flows/${encodeURIComponent(firstPath?.id ?? 'none')}?show=sequence` },
+  { name: 'flow-steps', hash: `#/flows/${encodeURIComponent(firstPath?.id ?? 'none')}?show=steps`, viewports: ['tablet', 'desktop'] },
+  { name: 'plan-timeline', hash: '#/change/timeline' },
+  { name: 'plan-timeline-cell', hash: '#/change/timeline?step=M01&wave=1', viewports: ['tablet', 'desktop'] },
+  { name: 'gallery-paths', hash: '#/_gallery/paths' },
   { name: 'palette', hash: '#/', open: async (page) => { await page.keyboard.press('Control+k'); await page.keyboard.type('مشاكل') } },
   { name: 'sheet', hash: '#/', open: async (page, vp) => { await page.locator('[data-open="project"]').locator('visible=true').first().click() } },
 ]

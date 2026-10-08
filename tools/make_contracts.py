@@ -390,7 +390,7 @@ _PATH_EVIDENCE = {'fact': NS, 'path': {'type': ['string', 'null'], 'pattern': r'
 STUDIO_V2['paths'] = (
  'The code paths: for every page, server route, command or job, the path through its layers (screen, component, handler, call, endpoint, service, data) with the evidence of every node and link, a gap where the records stop (never an invented link), what each step becomes in the target, and the fix plan\'s timeline: its waves and what each task waits for.',
  section_v2({'lanes': arr(_LANE),
-             'paths': arr(obj({'id': {'type': 'string', 'pattern': '^[a-z0-9-]+$'}, 'title': S, 'surface': S, 'entry': S,
+             'paths': arr(obj({'id': {'type': 'string', 'pattern': '^[a-z0-9-]+$'}, 'title': S, 'handler': NS, 'surface': S, 'entry': S,
                                'fact': NS, 'flow': NS, 'flow_fact': NS, 'steps': arr(COUNT), 'columns': arr(REFS), 'gaps': COUNT,
                                'capped': COUNT, 'unresolved': NI, 'reach': {'type': 'integer', 'minimum': 0, 'maximum': 6}},
                               ['id', 'title', 'surface', 'entry', 'steps', 'columns', 'gaps', 'capped', 'unresolved', 'reach'])),

@@ -9,7 +9,7 @@ declare global {
 
 export const CONTRACT = 1
 
-function script(name: string): Promise<boolean> {
+export function script(name: string): Promise<boolean> {
   return new Promise((resolve) => {
     const tag = document.createElement('script')
     tag.src = `./${name}.js`

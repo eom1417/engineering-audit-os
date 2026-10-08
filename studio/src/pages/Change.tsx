@@ -12,6 +12,7 @@ import { CompareMaps, GapList } from '../map/ChangeMaps'
 import { JourneyStrip } from '../map/home'
 import { useMapWords } from '../map/words'
 import { usePhone } from './SystemMap'
+import { TimelineEntry } from './paths/TimelinePage'
 
 function ChangeBody({ data }: { data: StudioData }) {
   const { t } = usePrefs()
@@ -49,6 +50,7 @@ function ChangeBody({ data }: { data: StudioData }) {
       {plan && (
         <Section title={t('fixPlan')}>
           <PlanStrip plan={plan} to="/change" />
+          <TimelineEntry data={data} />
           <Panel>
             <ol className={css.steps}>
               {plan.steps.map((step) => (

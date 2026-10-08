@@ -178,8 +178,10 @@ class Paths(unittest.TestCase):
         contracts = artifact_contracts.contracts()
         data = {'schema_version': 1, 'contract': 1, 'revision': 2, **self.body}
         self.assertEqual(artifact_contracts.validate(data, contracts['studio-paths']), [])
-        fixture = json.loads((ROOT / 'tests/fixtures/studio/v2/paths.json').read_text(encoding='utf-8'))
-        self.assertEqual(artifact_contracts.validate(fixture, contracts['studio-paths']), [])
+        source = (ROOT / 'tests/fixtures/studio/v2/paths.json').read_bytes()
+        self.assertEqual(artifact_contracts.validate(json.loads(source), contracts['studio-paths']), [])
+        # the Studio's gallery draws the same fixture, mirrored byte for byte inside studio/
+        self.assertEqual((ROOT / 'studio/src/pages/paths/fixture.json').read_bytes(), source)
 
 
 class Export(unittest.TestCase):
