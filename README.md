@@ -310,20 +310,20 @@ flowchart TB
     subgraph R6G_1["R6G · الثقة والخطط والمبادرة (1/2)"]
         direction LR
         NS30["<b>22 · NS30</b><br/>الثقة أولًا<br/>Trust first<br/>⚖ 4 · ▰ 0%"]:::next
-        NS31["<b>23 · NS31</b><br/>أرقام ثابتة وضجيج أقل<br/>Stable numbers, less noise<br/>⚖ 3 · ▰ 26%"]:::owner
-        NS36["<b>24 · NS36</b><br/>أساس الاستوديو<br/>Studio foundation<br/>⚖ 3 · ▰ 0%"]:::next
-        NS32["<b>25 · NS32</b><br/>خطط للمشاريع الموجودة<br/>Plans for existing projects<br/>⚖ 4 · ▰ 26%"]:::owner
-        NS30 -->|"✔ S4=1 · X13=1 · +1 اختبار قبول"| NS31
-        NS31 -->|"✔ L7=1 · L8=1 · S5≥0.9 · …"| NS36
+        NS36["<b>23 · NS36</b><br/>أساس الاستوديو<br/>Studio foundation<br/>⚖ 3 · ▰ 0%"]:::next
+        NS32["<b>24 · NS32</b><br/>خطط للمشاريع الموجودة<br/>Plans for existing projects<br/>⚖ 4 · ▰ 26%"]:::owner
+        NS37["<b>25 · NS37</b><br/>الاستوديو كاملًا<br/>The full Studio<br/>⚖ 4 · ▰ 12%"]:::owner
+        NS30 -->|"✔ S4=1 · X13=1 · +1 اختبار قبول"| NS36
         NS36 -->|"✔ +5 اختبار قبول"| NS32
+        NS32 -->|"✔ X8=1 · L9=1 · L10=1 · … · +1 اختبار قبول"| NS37
     end
     subgraph R6G_2["R6G · الثقة والخطط والمبادرة (2/2)"]
         direction LR
-        NS37["<b>26 · NS37</b><br/>الاستوديو كاملًا<br/>The full Studio<br/>⚖ 4 · ▰ 12%"]:::owner
+        NS31["<b>26 · NS31</b><br/>أرقام ثابتة وضجيج أقل<br/>Stable numbers, less noise<br/>⚖ 3 · ▰ 26%"]:::owner
         NS33["<b>27 · NS33</b><br/>تنظيف بلا خوف<br/>Fearless cleanup<br/>⚖ 2 · ▰ 0%"]:::owner
         NS34["<b>28 · NS34</b><br/>أدلة من التشغيل<br/>Evidence by execution<br/>⚖ 3 · ▰ 0%"]:::owner
         NS35["<b>29 · NS35</b><br/>المبادرة وقوانين المشروع<br/>Initiative and project laws<br/>⚖ 3 · ▰ 0%"]:::owner
-        NS37 -->|"✔ X8=1 · F2=1 · F4=1 · … · +3 اختبار قبول"| NS33
+        NS31 -->|"✔ L7=1 · L8=1 · S5≥0.9 · …"| NS33
         NS33 -->|"✔ D4=1"| NS34
         NS34 -->|"✔ E13=1 · E12=1 · E14=1"| NS35
     end
@@ -355,7 +355,7 @@ flowchart TB
     R5_1 ==>|"✔ K1=1 · +4 اختبار قبول"| R6_1
     R6_1 ==>|"✔ X11=1 · X12=1 · X8=1 · +2 اختبار قبول"| R6_2
     R6_2 ==>|"✔ B1=1 · B2=1 · X8=1 · … · +1 اختبار قبول"| R6G_1
-    R6G_1 ==>|"✔ X8=1 · L9=1 · L10=1 · … · +1 اختبار قبول"| R6G_2
+    R6G_1 ==>|"✔ X8=1 · F2=1 · F4=1 · … · +3 اختبار قبول"| R6G_2
     R6G_2 ==>|"✔ G3≥0.7 · G4=1"| R7_1
     R7_1 ==>|"✔ E9≥0.8 · +1 اختبار قبول"| R7_2
     R7_2 ==>|"✔ E11=1 · +1 اختبار قبول"| R8_1

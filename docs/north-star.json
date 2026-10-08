@@ -5539,108 +5539,6 @@
       ]
     },
     {
-      "id": "NS31",
-      "title": "أرقام ثابتة وضجيج أقل",
-      "title_en": "Stable numbers, less noise",
-      "stages": [
-        "S03",
-        "S15"
-      ],
-      "weight": 3,
-      "goal": "L7 وL8 وS5 عند أهدافها: أرقام بعقد تقرأها أي لوحة، وسجل درجات لكل فحص، وضجيج أقل من 10% في مشروع حقيقي.",
-      "weight_why": "تقرير الميدان: لوحة المالك تقرأ ملفًا داخليًا (G13)، ولا سجل للدرجات (G10)، وعشرات البطاقات فُرزت يدويًا كضجيج (G6، G7).",
-      "does": [
-        "metrics() وmetrics.json بعقد وإصدار",
-        "سجل الدرجة ومجالاتها مع كل فحص، مرسوم في التقرير",
-        "فلتر تشابه الشكل عبر ملفات لا علاقة بينها",
-        "تعليم «مقصود» و«نسخة محفوظة عمدًا» من المساعد، يبقى بعد كل فحص"
-      ],
-      "tasks": [
-        {
-          "needs": "none",
-          "writes": [],
-          "status": "todo",
-          "id": "NS31.T1",
-          "title": "أرقام بعقد، وسجل الدرجات",
-          "why": "اللوحات الخارجية تقرأ ledger.json الداخلي، ولا يُعرف إن كان التحسن من هذه الدفعة أم التي قبلها.",
-          "moves": [
-            "L7",
-            "L8"
-          ],
-          "depends_on": [
-            "NS30.T2"
-          ],
-          "size": "M",
-          "files": [
-            "eaos/guided.py",
-            "eaos/ledger.py",
-            "eaos/human_report.py",
-            "eaos/mcp_server.py",
-            "schemas/artifacts/metrics.schema.json"
-          ],
-          "steps": [
-            "metrics.json بعقد ومعه الأداة metrics.",
-            "ledger.sync يضيف الدرجة ومجالاتها والمفتوح مع كل فحص جديد.",
-            "التقرير يرسم السجل."
-          ],
-          "done_when": [
-            "L7 = L8 = 1.0."
-          ],
-          "pitfalls": [
-            "الرقم يُحسب مرة واحدة ويقرؤه الجميع."
-          ],
-          "acceptance": "python tools/north_star.py measure --only L7 --min 1.0 && python tools/north_star.py measure --only L8 --min 1.0",
-          "rollback": "احذف metrics.json وحقل scores."
-        },
-        {
-          "needs": "sandbox",
-          "writes": [],
-          "status": "todo",
-          "id": "NS31.T2",
-          "title": "ضجيج أقل من 10%",
-          "why": "بطاقات «153 رمزًا لها الشكل نفسه» عبر ملفات لا علاقة بينها، ونسخ محفوظة عمدًا تُعامل كتكرار، والتعليم يُمسح مع الفحص التالي.",
-          "moves": [
-            "S5"
-          ],
-          "depends_on": [
-            "NS31.T1"
-          ],
-          "size": "L",
-          "files": [
-            "eaos/claims.py",
-            "eaos/facts/scope.py",
-            "eaos/decisions.py",
-            "eaos/mcp_server.py",
-            "eaos.policy.json"
-          ],
-          "steps": [
-            "تشابه الشكل يحتاج صلة بين الملفات (طبقة، استيراد، تغيّر مشترك) أو حجمًا أكبر.",
-            "أداة mark(card أو مسار, intended|vendored, reason) تكتب في eaos.policy.json فتبقى.",
-            "تجربة على مشروع المالك الحي تقيس S5."
-          ],
-          "done_when": [
-            "S5 ≥ 0.9."
-          ],
-          "pitfalls": [
-            "لا يختفي تكرار حقيقي: يُقاس على الحقيقة الأرضية للعيّنة (S1)."
-          ],
-          "acceptance": "python tools/north_star.py measure --only S5 --min 0.9 && python tools/north_star.py measure --only S1 --min 0.9",
-          "rollback": "احذف الفلتر والتعليمات."
-        }
-      ],
-      "tools": [
-        "eaos/guided.py",
-        "eaos/ledger.py",
-        "eaos/human_report.py",
-        "eaos/claims.py",
-        "eaos.policy.json"
-      ],
-      "outputs": [
-        "<تقرير>/metrics.json",
-        "ledger.json → history[].scores"
-      ]
-    },
-    {
       "id": "NS36",
       "title": "أساس الاستوديو: القرارات والعقد والنموذج",
       "title_en": "Studio foundation: decisions, contract and model",
@@ -5818,7 +5716,7 @@
             "L9"
           ],
           "depends_on": [
-            "NS31.T2"
+            "NS36.T3"
           ],
           "size": "M",
           "files": [
@@ -6176,6 +6074,108 @@
           "acceptance": "python tools/north_star.py measure --only F1 --min 1.0 && python tools/north_star.py measure --only F3 --min 1.0 && python tools/north_star.py measure --only F5 --min 1.0 && python tools/north_star.py measure --only F6 --min 1.0",
           "rollback": "لا شيء يُرجع: هذه مهمة قياس."
         }
+      ]
+    },
+    {
+      "id": "NS31",
+      "title": "أرقام ثابتة وضجيج أقل",
+      "title_en": "Stable numbers, less noise",
+      "stages": [
+        "S03",
+        "S15"
+      ],
+      "weight": 3,
+      "goal": "L7 وL8 وS5 عند أهدافها: أرقام بعقد تقرأها أي لوحة، وسجل درجات لكل فحص، وضجيج أقل من 10% في مشروع حقيقي.",
+      "weight_why": "تقرير الميدان: لوحة المالك تقرأ ملفًا داخليًا (G13)، ولا سجل للدرجات (G10)، وعشرات البطاقات فُرزت يدويًا كضجيج (G6، G7).",
+      "does": [
+        "metrics() وmetrics.json بعقد وإصدار",
+        "سجل الدرجة ومجالاتها مع كل فحص، مرسوم في التقرير",
+        "فلتر تشابه الشكل عبر ملفات لا علاقة بينها",
+        "تعليم «مقصود» و«نسخة محفوظة عمدًا» من المساعد، يبقى بعد كل فحص"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS31.T1",
+          "title": "أرقام بعقد، وسجل الدرجات",
+          "why": "اللوحات الخارجية تقرأ ledger.json الداخلي، ولا يُعرف إن كان التحسن من هذه الدفعة أم التي قبلها.",
+          "moves": [
+            "L7",
+            "L8"
+          ],
+          "depends_on": [
+            "NS30.T2"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/guided.py",
+            "eaos/ledger.py",
+            "eaos/human_report.py",
+            "eaos/mcp_server.py",
+            "schemas/artifacts/metrics.schema.json"
+          ],
+          "steps": [
+            "metrics.json بعقد ومعه الأداة metrics.",
+            "ledger.sync يضيف الدرجة ومجالاتها والمفتوح مع كل فحص جديد.",
+            "التقرير يرسم السجل."
+          ],
+          "done_when": [
+            "L7 = L8 = 1.0."
+          ],
+          "pitfalls": [
+            "الرقم يُحسب مرة واحدة ويقرؤه الجميع."
+          ],
+          "acceptance": "python tools/north_star.py measure --only L7 --min 1.0 && python tools/north_star.py measure --only L8 --min 1.0",
+          "rollback": "احذف metrics.json وحقل scores."
+        },
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS31.T2",
+          "title": "ضجيج أقل من 10%",
+          "why": "بطاقات «153 رمزًا لها الشكل نفسه» عبر ملفات لا علاقة بينها، ونسخ محفوظة عمدًا تُعامل كتكرار، والتعليم يُمسح مع الفحص التالي.",
+          "moves": [
+            "S5"
+          ],
+          "depends_on": [
+            "NS31.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/claims.py",
+            "eaos/facts/scope.py",
+            "eaos/decisions.py",
+            "eaos/mcp_server.py",
+            "eaos.policy.json"
+          ],
+          "steps": [
+            "تشابه الشكل يحتاج صلة بين الملفات (طبقة، استيراد، تغيّر مشترك) أو حجمًا أكبر.",
+            "أداة mark(card أو مسار, intended|vendored, reason) تكتب في eaos.policy.json فتبقى.",
+            "تجربة على مشروع المالك الحي تقيس S5."
+          ],
+          "done_when": [
+            "S5 ≥ 0.9."
+          ],
+          "pitfalls": [
+            "لا يختفي تكرار حقيقي: يُقاس على الحقيقة الأرضية للعيّنة (S1)."
+          ],
+          "acceptance": "python tools/north_star.py measure --only S5 --min 0.9 && python tools/north_star.py measure --only S1 --min 0.9",
+          "rollback": "احذف الفلتر والتعليمات."
+        }
+      ],
+      "tools": [
+        "eaos/guided.py",
+        "eaos/ledger.py",
+        "eaos/human_report.py",
+        "eaos/claims.py",
+        "eaos.policy.json"
+      ],
+      "outputs": [
+        "<تقرير>/metrics.json",
+        "ledger.json → history[].scores"
       ]
     },
     {
@@ -7526,15 +7526,15 @@
       "title_en": "Trust, plans and initiative",
       "milestones": [
         "NS30",
-        "NS31",
         "NS36",
         "NS32",
         "NS37",
+        "NS31",
         "NS33",
         "NS34",
         "NS35"
       ],
-      "exit": "S4 وX13 أولًا، ثم L7-L11 وF1-F7 (الاستوديو) وD4 وE12-E14 وG3-G4"
+      "exit": "S4 وX13 أولًا، ثم الاستوديو (F1-F7) مع الخطط (L9-L11) ليكون دليل التطوير، ثم L7 وL8 وS5 وD4 وE12-E14 وG3-G4"
     },
     {
       "id": "R7",
