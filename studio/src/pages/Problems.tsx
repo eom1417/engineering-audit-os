@@ -15,6 +15,7 @@ import { usePageChrome } from '../shell/chrome'
 import { layout, MissingBanner } from '../shell/Layout'
 import { WithData } from '../shell/Layout'
 import css from './Pages.module.css'
+import { ownerOf } from '../map/model'
 
 type Who = 'all' | 'you' | 'eaos'
 interface ProblemsSearch { card?: string; who?: Who; severity?: string; component?: string; q?: string }
@@ -53,14 +54,17 @@ function ProblemsBody({ data }: { data: StudioData }) {
   const navigate = useNavigate()
   const cards = data.cards?.cards ?? []
   const index = useMemo(() => buildIndex(cards.map((c) => ({ id: c.id, kind: 'card', title: c.title, keywords: [c.id, ...c.paths].join(' '), to: '' }))), [cards])
+  // A component's cards are those the map counts for it (map/model.ts ownerOf): one number on every page
+  const owner = useMemo(() => data.system?.current.nodes.length ? ownerOf(data.system.current.nodes.map((n) => n.id)) : null, [data.system])
   const who: Who = search.who ?? 'all'
   const shown = useMemo(() => {
     const hits = search.q ? new Set(index.search(search.q, cards.length).map((e) => e.id)) : null
     return cards.filter((c) => (!hits || hits.has(c.id))
       && (who === 'all' || (who === 'you') === c.needs_decision)
       && (!search.severity || c.severity === search.severity || (search.severity === 'high' && c.severity === 'critical'))
-      && (!search.component || c.paths.some((p) => p === search.component || p.startsWith(search.component + '/'))))
-  }, [cards, index, search.q, search.severity, search.component, who])
+      && (!search.component || (owner ? c.paths.length > 0 && owner(c.paths[0]) === search.component
+        : c.paths.some((p) => p === search.component || p.startsWith(search.component + '/')))))
+  }, [cards, index, search.q, search.severity, search.component, who, owner])
   const selected = cards.find((c) => c.id === search.card)
   const listName = t('problems')
   usePageChrome(selected ? selected.id : listName, selected ? { to: '/problems', search: { ...search, card: undefined }, label: listName } : undefined, data.manifest.project.name)

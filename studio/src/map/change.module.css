@@ -1,0 +1,34 @@
+/* Change: the two maps side by side (stacked on the phone) and the gap list. */
+.compare { display: flex; flex-direction: column; gap: 10px; }
+.hint { font-size: 13px; color: var(--text-secondary); }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.pane { block-size: 540px; border: 1px solid var(--border-default); border-radius: var(--radius-12); overflow: hidden; background: var(--map-water); }
+[data-theme="dark"] .pane { border-color: var(--border-subtle); }
+.paneTitle { display: flex; align-items: baseline; gap: 8px; font-size: 15px; font-weight: 600; }
+.paneSub { font-size: 12px; font-weight: 400; color: var(--text-tertiary); }
+.legends { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+
+.stack { display: flex; flex-direction: column; gap: 12px; }
+.card { display: flex; flex-direction: column; border: 1px solid var(--border-default); border-radius: var(--radius-12); overflow: hidden; background: var(--map-water); color: inherit; }
+[data-theme="dark"] .card { border-color: var(--border-subtle); }
+.card > svg { inline-size: 100%; block-size: auto; aspect-ratio: 1 / .86; }
+.cardHead { display: flex; align-items: center; gap: 8px; min-block-size: 44px; padding: 6px 14px; background: var(--bg-surface); border-block-end: 1px solid var(--border-subtle); }
+.cardTitle { font-weight: 600; font-size: 15px; }
+.cardSub { flex: 1; min-inline-size: 0; font-size: 12px; color: var(--text-tertiary); }
+
+.gapRow { display: flex; align-items: center; gap: 12px; padding: 8px 14px; min-block-size: 56px; color: inherit; }
+.gapRow:hover { background: var(--bg-hover); }
+li + li > .gapRow { border-block-start: 1px solid var(--border-subtle); }
+.gapMain { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; flex: 1; min-inline-size: 0; font-size: 14px; }
+.gapSub { display: flex; }
+.gapNums { display: flex; gap: 14px; font-size: 13px; font-weight: 500; flex: none; }
+.gapK { font-weight: 400; color: var(--text-tertiary); font-size: 12px; }
+.chev { color: var(--text-tertiary); flex: none; }
+
+@media (max-width: 1199px) {
+  .pair, .legends { grid-template-columns: minmax(0, 1fr); }
+  .pane { block-size: 460px; }
+}
+@media (max-width: 767px) {
+  .gapNums { flex-direction: column; gap: 0; align-items: flex-end; }
+}
