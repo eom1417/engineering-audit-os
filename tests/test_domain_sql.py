@@ -1,7 +1,11 @@
 """Row-level security and access policies are read from SQL migrations in their net state."""
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 from eaos.facts.domain import sql_access, table_key
+from eaos.facts.run import collect
 
 
 class SqlAccessTests(unittest.TestCase):
@@ -34,6 +38,28 @@ class SqlAccessTests(unittest.TestCase):
     def test_one_spelling_per_table(self):
         self.assertEqual({table_key('"public"."Accounts"'), table_key('accounts'), table_key('public.accounts')},
                          {'public.accounts'})
+
+
+class TableDeclarationTests(unittest.TestCase):
+    def tables(self, files):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'
+            for name, text in files.items():
+                (repo / name).parent.mkdir(parents=True, exist_ok=True)
+                (repo / name).write_text(text)
+            collect(repo, Path(tmp) / 'out', ['domain'])
+            facts = json.loads((Path(tmp) / 'out/facts/domain.json').read_text())['facts']
+        return sorted((f['value']['name'], f['location']['path']) for f in facts if f['kind'] == 'data_table')
+
+    def test_a_table_named_at_run_time_is_not_a_table_called_if(self):
+        found = self.tables({'server/db.ts': 'db.exec(`CREATE TABLE IF NOT EXISTS ${name} (id int)`);\n'
+                                             'db.exec("CREATE TABLE IF NOT EXISTS sessions (id int)");\n'})
+        self.assertEqual(found, [('sessions', 'server/db.ts')])
+
+    def test_prose_quoting_a_schema_declares_no_table(self):
+        found = self.tables({'PLAN/notes.md': 'We will run CREATE TABLE audit_log (id int).\n',
+                             'db/schema.sql': 'CREATE TABLE audit_log (id int);\n'})
+        self.assertEqual(found, [('audit_log', 'db/schema.sql')])
 
 
 if __name__ == '__main__':

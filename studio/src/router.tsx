@@ -1,7 +1,9 @@
 // The Studio's routes on hash history, so a link like #/problems?card=TASK-001 restores its view and works from a
 // file. Unbuilt sections have no route unless the developer flag is on (shell/sections.ts).
-import { createHashHistory, createRootRoute, createRoute, createRouter, redirect } from '@tanstack/react-router'
+import { createHashHistory, createRootRoute, createRoute, createRouter, redirect, useSearch } from '@tanstack/react-router'
 import { ChangePage } from './pages/Change'
+import { DataPathsPage } from './pages/data/DataPaths'
+import { InfraLensPage } from './pages/infra/InfraLens'
 import { DecisionsPage } from './pages/Decisions'
 import { HomePage } from './pages/Home'
 import { LibraryPage } from './pages/Library'
@@ -30,6 +32,12 @@ function params(...names: string[]) {
 
 const root = createRootRoute({ component: Shell })
 
+/** #/system shows the territory map, or the lens the address names (?lens=infra). */
+function SystemRoute() {
+  const { lens } = useSearch({ strict: false }) as { lens?: string }
+  return lens === 'infra' ? <InfraLensPage /> : <SystemMapPage />
+}
+
 function devOnly(id: string, dev: () => boolean) {
   return () => {
     if (!SECTIONS.find((s) => s.id === id)?.built && !dev()) throw redirect({ to: '/' })
@@ -39,10 +47,11 @@ function devOnly(id: string, dev: () => boolean) {
 export function makeRouter(dev: () => boolean) {
   const tree = root.addChildren([
     createRoute({ getParentRoute: () => root, path: '/', component: HomePage }),
-    createRoute({ getParentRoute: () => root, path: '/system', component: SystemMapPage, validateSearch: params('focus', 'view', 'show', 'op', 'hidden') }),
+    createRoute({ getParentRoute: () => root, path: '/system', component: SystemRoute, validateSearch: params('focus', 'view', 'show', 'op', 'hidden', 'lens', 'item') }),
     createRoute({ getParentRoute: () => root, path: '/system/paths', component: PathsPage, validateSearch: params('view', 'cluster', 'q', 'filter', 'file', 'part') }),
     createRoute({ getParentRoute: () => root, path: '/system/journeys', component: JourneysPage, validateSearch: params('view', 'show', 'task', 'focus', 'hidden', 'flag', 'area') }),
     createRoute({ getParentRoute: () => root, path: '/system/hidden', component: HiddenPage, validateSearch: params('focus', 'only', 'hidden') }),
+    createRoute({ getParentRoute: () => root, path: '/system/data', component: DataPathsPage, validateSearch: params('view', 'store', 'show', 'reads') }),
     createRoute({ getParentRoute: () => root, path: '/flows/$pathId', component: FlowPage, validateSearch: params('view', 'show', 'node', 'traced') }),
     createRoute({ getParentRoute: () => root, path: '/problems', component: ProblemsPage, validateSearch: params('card', 'who', 'severity', 'component', 'q') }),
     createRoute({ getParentRoute: () => root, path: '/change', component: ChangePage, validateSearch: params('focus', 'side') }),

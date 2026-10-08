@@ -21,6 +21,8 @@ from .. import artifact_contracts, build_info, indicators
 from . import coverage as coverage_section
 from . import hidden as hidden_map
 from . import journeys as journeys_map
+from . import data_paths as data_map
+from . import infra as infra_map
 from . import model as M
 from . import paths as code_paths
 from . import system as system_map
@@ -28,7 +30,7 @@ from . import system as system_map
 CONTRACT = 1
 REVISION = 2           # contract v2: sections added without breaking a v1 reader (docs/STUDIO.md)
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
-SECTIONS_V2 = ('paths', 'journeys', 'hidden')   # contract v2 sections written here (coverage is written last, apart)
+SECTIONS_V2 = ('paths', 'journeys', 'hidden', 'data_paths', 'infra')   # contract v2 sections written here (coverage is written last, apart)
 SAFE = re.compile(r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$)).+')
 LANGUAGES = M.LANGUAGES
 SEVERITY_OF_CONFIDENCE = {'CONFIRMED': 1.0, 'LIKELY': 0.7, 'HYPOTHESIS': 0.4}
@@ -311,6 +313,8 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('paths', lambda: code_paths.paths(report, card_rows, m['plan'], lang))
     attempt('journeys', lambda: journeys_map.journeys(report, built.get('media')))
     if 'journeys' in built: attempt('hidden', lambda: hidden_map.hidden(report, built['journeys'], card_rows))
+    attempt('data_paths', lambda: data_map.data_paths(report, lang))
+    attempt('infra', lambda: infra_map.infra(report, lang))
     key = {'cards': 'cards', 'evidence': 'facts', 'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images'}
     def publish(section, data):
         problems = artifact_contracts.validate(data, contracts[f'studio-{section}'])

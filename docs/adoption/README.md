@@ -41,3 +41,4 @@ one is its record.
 | The System maps (territory, change, target) | [studio-maps.md](studio-maps.md) |
 | Code paths, sequences and the plan timeline | [studio-map-paths.md](studio-map-paths.md) |
 | NS46.T6 user journeys, visible and hidden | [studio-journeys.md](studio-journeys.md) |
+| The data paths map and the infrastructure lens | [studio-map-data.md](studio-map-data.md) |

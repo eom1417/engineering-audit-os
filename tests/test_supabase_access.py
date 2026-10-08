@@ -51,6 +51,11 @@ class SupabaseAccessDetectionTests(unittest.TestCase):
         self.assertEqual(records[('rpc', 'rpc')]['target'], 'daily_report')
         self.assertEqual(records[('storage', 'storage')]['target'], 'avatars')
 
+    def test_a_written_row_gives_its_columns(self):
+        records = [r for _, _, r in supabase_access.extract_calls(
+            "supabase.from('vehicles').insert([{ plate, vin: v }]);\nsupabase.from('vehicles').update(row).eq('id', 1);\n")]
+        self.assertEqual([(r['operation'], r.get('keys')) for r in records], [('insert', ['plate', 'vin']), ('update', None)])
+
     def test_a_non_supabase_chain_is_not_a_supabase_call(self):
         # myClient.from('things').select('*') sits inside the same source; the detector
         # must report four facts, not five.

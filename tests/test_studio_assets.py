@@ -139,7 +139,8 @@ class GateMatrix(unittest.TestCase):
             story = {'current': {'components': [{'name': n} for n in ('(root)', 'src', 'src/a', 'src/b', 'src/b/c')]}}
             (data / 'story.json').write_text(json.dumps(story), encoding='utf-8')
             self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'component': 'src/b', 'path': 'none',
-                                                                    'task': 'none', 'screen': 'none', 'hidden_group': 'none'})
+                                                                    'task': 'none', 'screen': 'none', 'hidden_group': 'none',
+                                                                    'store': 'none'})
             journeys = {'tasks': [{'id': 't/one', 'path': ['s/a']}, {'id': 't/two', 'path': ['s/a', 's/b']}],
                         'screens': [{'id': 's/a', 'kind': 'page', 'flags': []}, {'id': 's/b', 'kind': 'page', 'flags': ['broken_link']}]}
             (data / 'journeys.json').write_text(json.dumps(journeys), encoding='utf-8')
@@ -147,6 +148,9 @@ class GateMatrix(unittest.TestCase):
                                                                       {'id': 'g/writes', 'count': {'value': 4}}]}), encoding='utf-8')
             self.assertEqual([self.gates.studio_placeholders(data)[k] for k in ('task', 'screen', 'hidden_group')],
                              ['t/two', 's/b', 'g/writes'])   # a task with a path, a screen with a broken link, a group with items
+            (data / 'data_paths.json').write_text(json.dumps({'stores': [{'id': 'table:a', 'multi_writer': False},
+                                                                          {'id': 'table:b', 'multi_writer': True}]}), encoding='utf-8')
+            self.assertEqual(self.gates.studio_placeholders(data)['store'], 'table:b')   # written from several places first
             paths = [{'id': 'p/short', 'reach': 3, 'steps': [1] * 4}, {'id': 'p/long', 'reach': 3, 'steps': [1] * 90},
                      {'id': 'p/a', 'reach': 3, 'steps': [1] * 70}, {'id': 'p/near', 'reach': 1, 'steps': [1] * 99}]
             (data / 'paths.json').write_text(json.dumps({'paths': paths}), encoding='utf-8')

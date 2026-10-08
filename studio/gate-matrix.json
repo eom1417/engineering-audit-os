@@ -1,5 +1,5 @@
 {
- "about": "The Studio's routes for the screen gate: python tools/studio_gates.py --studio (studio/README.md). {card} is a problem card with evidence and {component} the component holding the most cards in the report given with --data; {task}, {screen} and {hidden_group}: a journeys task with a path, a flagged screen and an unseen group with items (tools/studio_gates.py).",
+ "about": "The Studio's routes for the screen gate: python tools/studio_gates.py --studio (studio/README.md). {card} is a problem card with evidence and {component} the component holding the most cards in the report given with --data; {task}, {screen} and {hidden_group}: a journeys task with a path, a flagged screen and an unseen group with items; {store}: the first data store written from more than one place (tools/studio_gates.py).",
  "wait_for": "main#main",
  "variants": [
   {"name": "ar-light", "query": {"lang": "ar", "theme": "light"}, "color_scheme": "light", "expect": {"dir": "rtl", "attributes": {"lang": "ar", "data-theme": "light"}}},
@@ -30,6 +30,15 @@
   {"name": "journeys-steps", "path": "index.html#/system/journeys?show=steps", "viewports": ["tablet", "desktop"]},
   {"name": "hidden", "path": "index.html#/system/hidden"},
   {"name": "hidden-focus", "path": "index.html#/system/hidden?focus={hidden_group}"},
+  {"name": "data", "path": "index.html#/system/data"},
+  {"name": "data-store", "path": "index.html#/system/data?store={store}"},
+  {"name": "data-change", "path": "index.html#/system/data?view=change"},
+  {"name": "data-target", "path": "index.html#/system/data?view=target"},
+  {"name": "data-steps", "path": "index.html#/system/data?show=steps", "viewports": ["tablet", "desktop"]},
+  {"name": "system-infra", "path": "index.html#/system?lens=infra"},
+  {"name": "system-infra-change", "path": "index.html#/system?lens=infra&view=change"},
+  {"name": "system-infra-target", "path": "index.html#/system?lens=infra&view=target&item=target%3Aobservability%3Aobservability"},
+  {"name": "system-infra-steps", "path": "index.html#/system?lens=infra&show=steps", "viewports": ["tablet", "desktop"]},
   {"name": "problems", "path": "index.html#/problems", "lighthouse": true},
   {"name": "problem", "path": "index.html#/problems?card={card}"},
   {"name": "change", "path": "index.html#/change"},

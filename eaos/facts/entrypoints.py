@@ -75,7 +75,9 @@ def _data_access_fact(item, rel, line, call, category):
     return make('data_access', NAME, VERSION, item['sha256'],
                 {'path': rel, 'start_line': line, 'symbol': call.get('symbol') or 'data_access'},
                 {'client': call['client'], 'target': call['target'], 'operation': call['operation'],
-                 'bounded': call.get('bounded'), 'category': category},
+                 'bounded': call.get('bounded'), 'category': category,
+                 # the names a write sends, when its payload is an object literal in the call (values never kept)
+                 **({'keys': call['keys'], 'keys_partial': call['keys_partial']} if 'keys' in call else {})},
                 limitations=LIMITATIONS)
 
 

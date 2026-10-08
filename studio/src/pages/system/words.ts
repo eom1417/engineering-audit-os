@@ -8,6 +8,9 @@ export const JOURNEY_WORDS = {
   viewMap: ['البنية', 'Structure'],
   viewJourneys: ['رحلات المستخدم', 'User journeys'],
   viewHidden: ['الظاهر والخفي', 'Visible and hidden'],
+  viewPaths: ['مسارات الكود', 'Code paths'],
+  viewData: ['مسارات البيانات', 'Data paths'],
+  viewInfra: ['البنية التحتية', 'Infrastructure'],
   // journeys: page and toolbar
   journeys: ['رحلات المستخدم', 'User journeys'],
   journeysLead: ['{s} شاشة يفتحها المستخدم، بينها {l} رابطًا، ومعها {t} مهمة مرسومة كمسار من البداية.', '{s} screens a person opens, {l} links between them, and {t} tasks drawn as paths from the start.'],

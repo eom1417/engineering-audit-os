@@ -20,6 +20,7 @@ import { Id, N, Txt } from '../i18n/text'
 import { usePageChrome } from '../shell/chrome'
 import { layout, PageTitle } from '../shell/Layout'
 import { HiddenFixture, JourneysFixture } from '../pages/system/MapsGallery'
+import { DataChainFixture, DataFixture, InfraFixture } from '../pages/data/MapsGallery'
 import { cards, code, decisionAnswered, decisionMany, decisionTwo, facts, plan } from './fixtures'
 import css from './Gallery.module.css'
 
@@ -291,6 +292,14 @@ function Specimens() {
         <State name="link in a sentence">
           <p>{ar ? 'افتح ' : 'Open '}<Go to="/_gallery" className={css.link}>{ar ? 'قائمة المشاكل' : 'the problems list'}</Go>.</p>
         </State>
+      </Group>
+
+      <Group id="data-map" title="Data paths map · infrastructure lens (fixture)">
+        <State name="data paths: today (a store written from two places, focused)" wide><DataFixture mode="current" /></State>
+        <State name="data paths: change" wide><DataFixture mode="change" /></State>
+        <State name="data paths: the seven links and one write's chain" wide><DataChainFixture /></State>
+        <State name="infrastructure: today" wide><InfraFixture mode="current" /></State>
+        <State name="infrastructure: target (keep, introduce, silent)" wide><InfraFixture mode="target" /></State>
       </Group>
     </>
   )

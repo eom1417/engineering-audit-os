@@ -1,0 +1,44 @@
+/* The infrastructure lens: the context diagram (the application in the middle, seven lanes in fixed slots) and its
+   steps view. The diagram's geometry never mirrors; the page chrome does. */
+.fitSvg { display: block; inline-size: 100%; block-size: auto; max-inline-size: 1100px; margin-inline: auto; padding: 8px; }
+.map { display: block; font-family: var(--font-sans); user-select: none; -webkit-user-select: none; }
+.hatchBg { fill: var(--bg-sunken); }
+.hatchFg { fill: var(--border-default); }
+.link { fill: none; stroke: var(--edge-strong); opacity: .35; stroke-width: 1.5; }
+.rel { font-size: 13px; fill: var(--text-tertiary); paint-order: stroke; stroke: var(--map-halo); stroke-width: 4px; stroke-linejoin: round; }
+.app rect { fill: var(--accent-subtle); stroke: var(--accent-solid); stroke-width: 1.5; }
+.appTitle { font-size: 18px; font-weight: 600; fill: var(--accent-text); }
+.appSub { font-family: var(--font-mono); font-size: 13px; fill: var(--text-secondary); }
+.laneBox { fill: var(--bg-surface); stroke: var(--border-strong); stroke-width: 1; }
+.laneEmpty { stroke-dasharray: 5 4; fill: var(--bg-canvas); }
+.laneTitle { font-size: 16px; font-weight: 600; fill: var(--text-primary); }
+.laneN { font-family: var(--font-mono); font-size: 14px; fill: var(--text-tertiary); }
+.emptyText { font-size: 14px; fill: var(--text-tertiary); }
+.silentNote { font-size: 13px; fill: var(--text-tertiary); }
+.row { outline: none; cursor: pointer; }
+.rowBox { fill: var(--bg-sunken); stroke: transparent; }
+.row:hover .rowBox { fill: var(--bg-hover); }
+.row:focus-visible .rowBox { stroke: var(--focus-ring); stroke-width: 2; }
+.on .rowBox { fill: var(--accent-subtle); stroke: var(--accent-solid); stroke-width: 1.5; }
+.op_keep .rowBox { fill: var(--op-keep-wash); }
+.op_introduce .rowBox { fill: var(--op-introduce-wash); stroke: var(--op-introduce); stroke-dasharray: 4 3; }
+.opMark { font-size: 14px; fill: var(--text-secondary); }
+.op_introduce .opMark { fill: var(--op-introduce); font-weight: 600; }
+.rowText { font-size: 14px; fill: var(--text-primary); }
+.rowMono { font-family: var(--font-mono); font-size: 13px; fill: var(--text-primary); }
+.rowN { font-family: var(--font-mono); font-size: 13px; fill: var(--text-tertiary); }
+
+.steps { display: flex; flex-direction: column; gap: 12px; }
+.stepLane { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; padding: 12px 14px 4px; font-size: 15px; font-weight: 600; }
+.stepN { margin-inline-start: auto; font-size: 12px; color: var(--text-tertiary); }
+.stepEmpty { padding: 6px 14px 12px; font-size: 13px; color: var(--text-tertiary); }
+.keepMark { color: var(--op-keep); margin-inline-end: 6px; }
+.addMark { color: var(--op-introduce); font-weight: 600; margin-inline-end: 6px; }
+
+/* the lanes in a table (the inspector when nothing is chosen) */
+.lanes { inline-size: 100%; border-collapse: collapse; font-size: 13px; }
+.lanes th, .lanes td { padding: 8px 4px; text-align: start; border-block-end: 1px solid var(--border-subtle); font-weight: 400; vertical-align: top; }
+.lanes thead th { font-size: 12px; color: var(--text-tertiary); }
+.lanes tbody th { font-weight: 500; color: var(--text-primary); }
+.lanes td { color: var(--text-secondary); }
+.silentCell { color: var(--text-tertiary); }

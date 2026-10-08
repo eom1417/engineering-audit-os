@@ -42,5 +42,27 @@ class HttpAccessTests(unittest.TestCase):
         self.assertEqual(routes('app.get("/x", handler);\n'), [('GET', '/x')])
 
 
+class PayloadKeyTests(unittest.TestCase):
+    """The request keys of a write: the names of the object literal it sends, never the values."""
+    def calls(self, text):
+        return {(r['operation'], r['target']): r for _, _, r in http_access.extract_calls('const api = axios.create({});\n' + text)}
+
+    def test_an_object_literal_payload_gives_its_keys_and_a_spread_marks_them_partial(self):
+        found = self.calls("api.post('/documents', { name, file: f, 'vin': v, nested: { a: 1 }, ...rest });\n")
+        self.assertEqual((found[('post', '/documents')]['keys'], found[('post', '/documents')]['keys_partial']),
+                         (['file', 'name', 'nested', 'vin'], True))
+
+    def test_a_payload_across_lines_and_a_fetch_body_are_read(self):
+        found = self.calls('api.patch("/x", {\n  status: "done",\n  notes,\n});\n'
+                           "fetch(`${API}/ai/ask`, { method: 'POST', body: JSON.stringify({ question, history: h }) });\n")
+        self.assertEqual(found[('patch', '/x')]['keys'], ['notes', 'status'])
+        self.assertEqual(found[('post', '/ai/ask')]['keys'], ['history', 'question'])
+
+    def test_a_variable_payload_and_a_read_have_no_keys_rather_than_none(self):
+        found = self.calls('api.put(`/vehicles/${id}`, payload);\napi.get("/vehicles", { params: { page } });\n')
+        self.assertNotIn('keys', found[('put', '/vehicles/{}')])
+        self.assertNotIn('keys', found[('get', '/vehicles')])
+
+
 if __name__ == '__main__':
     unittest.main()

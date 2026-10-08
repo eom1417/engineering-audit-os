@@ -1,0 +1,481 @@
+{
+ "schema_version": 1,
+ "contract": 1,
+ "revision": 2,
+ "app": {
+  "reference": "react-vite-node-api",
+  "src": "target-architecture.json#reference"
+ },
+ "lanes": [
+  {
+   "id": "hosting",
+   "relation": "deployed_to",
+   "state": "measured",
+   "reason": "found",
+   "count": {
+    "value": 1,
+    "src": "facts/runtime.json#deployment_target (distinct nodes)",
+    "unit": "count"
+   },
+   "nodes": [
+    {
+     "id": "host:Vercel",
+     "lane": "hosting",
+     "name": "Vercel",
+     "kind": "platform",
+     "detail": {},
+     "items": [],
+     "sites": [
+      {
+       "path": "vercel.json",
+       "line": null,
+       "fact": "FACT-R-1"
+      }
+     ],
+     "evidence": 1
+    }
+   ],
+   "folded": []
+  },
+  {
+   "id": "ci",
+   "relation": "built_by",
+   "state": "measured",
+   "reason": "found",
+   "count": {
+    "value": 2,
+    "src": "facts/runtime.json#ci_step (distinct nodes)",
+    "unit": "count"
+   },
+   "nodes": [
+    {
+     "id": "ci:.github/workflows/ci.yml",
+     "lane": "ci",
+     "name": "GitHub Actions · ci",
+     "kind": "workflow",
+     "detail": {
+      "steps": 1
+     },
+     "items": [
+      "test"
+     ],
+     "sites": [
+      {
+       "path": ".github/workflows/ci.yml",
+       "line": null,
+       "fact": "FACT-R-3"
+      }
+     ],
+     "evidence": 1
+    },
+    {
+     "id": "ci:package.json",
+     "lane": "ci",
+     "name": "npm scripts",
+     "kind": "scripts",
+     "detail": {
+      "steps": 1
+     },
+     "items": [
+      "build"
+     ],
+     "sites": [
+      {
+       "path": "package.json",
+       "line": null,
+       "fact": "FACT-R-4"
+      }
+     ],
+     "evidence": 1
+    }
+   ],
+   "folded": []
+  },
+  {
+   "id": "environments",
+   "relation": "configured_by",
+   "state": "measured",
+   "reason": "found",
+   "count": {
+    "value": 2,
+    "src": "facts/config.json#env_read (names) + config_file_unread (distinct nodes)",
+    "unit": "count"
+   },
+   "nodes": [
+    {
+     "id": "env:variables",
+     "lane": "environments",
+     "name": "Environment variables",
+     "kind": "variables",
+     "detail": {
+      "variables": 2,
+      "secret_shaped": 1,
+      "without_default": 1
+     },
+     "items": [
+      "DATABASE_URL",
+      "PORT"
+     ],
+     "sites": [
+      {
+       "path": "server/env.ts",
+       "line": 3,
+       "fact": "FACT-C-1"
+      },
+      {
+       "path": "server/env.ts",
+       "line": 4,
+       "fact": "FACT-C-2"
+      }
+     ],
+     "evidence": 2
+    },
+    {
+     "id": "env:named:staging",
+     "lane": "environments",
+     "name": "staging",
+     "kind": "environment",
+     "detail": {},
+     "items": [
+      "shop-staging.example.app"
+     ],
+     "sites": [
+      {
+       "path": "web/src/env.ts",
+       "line": null,
+       "fact": "FACT-R-7"
+      }
+     ],
+     "evidence": 1
+    }
+   ],
+   "folded": []
+  },
+  {
+   "id": "databases",
+   "relation": "stores_in",
+   "state": "measured",
+   "reason": "found",
+   "count": {
+    "value": 3,
+    "src": "facts/entrypoints.json#data_access[client=supabase] + facts/resolve.json#module_edge[EXTERNAL] + facts/domain.json#data_table + facts/runtime.json#migration_step (distinct nodes)",
+    "unit": "count"
+   },
+   "nodes": [
+    {
+     "id": "databases:Supabase",
+     "lane": "databases",
+     "name": "Supabase",
+     "kind": "database",
+     "detail": {
+      "calls": 4
+     },
+     "items": [],
+     "sites": [
+      {
+       "path": "web/src/lib/stock.ts",
+       "line": 16,
+       "fact": "FACT-DA-6"
+      },
+      {
+       "path": "web/src/pages/Admin.tsx",
+       "line": 17,
+       "fact": "FACT-DA-7"
+      },
+      {
+       "path": "web/src/pages/Admin.tsx",
+       "line": 18,
+       "fact": "FACT-DA-8"
+      },
+      {
+       "path": "server/orders.ts",
+       "line": 19,
+       "fact": "FACT-DA-9"
+      }
+     ],
+     "evidence": 4
+    },
+    {
+     "id": "db:schema",
+     "lane": "databases",
+     "name": "Tables declared in code",
+     "kind": "schema",
+     "detail": {
+      "tables": 2,
+      "row_level_security": 1
+     },
+     "items": [],
+     "sites": [
+      {
+       "path": "db/schema.sql",
+       "line": 1,
+       "fact": "FACT-T-1"
+      },
+      {
+       "path": "db/schema.sql",
+       "line": 9,
+       "fact": "FACT-T-2"
+      }
+     ],
+     "evidence": 2
+    },
+    {
+     "id": "databases:PostgreSQL",
+     "lane": "databases",
+     "name": "PostgreSQL",
+     "kind": "package",
+     "detail": {},
+     "items": [
+      "pg"
+     ],
+     "sites": [
+      {
+       "path": "server/db.ts",
+       "line": 1,
+       "fact": "FACT-M-1"
+      }
+     ],
+     "evidence": 1
+    }
+   ],
+   "folded": []
+  },
+  {
+   "id": "queues",
+   "relation": "queues_on",
+   "state": "measured",
+   "reason": "found",
+   "count": {
+    "value": 1,
+    "src": "facts/resolve.json#module_edge[EXTERNAL] matched against eaos/studio/infra.py PACKAGES (distinct nodes)",
+    "unit": "count"
+   },
+   "nodes": [
+    {
+     "id": "queues:BullMQ",
+     "lane": "queues",
+     "name": "BullMQ",
+     "kind": "package",
+     "detail": {},
+     "items": [
+      "bullmq"
+     ],
+     "sites": [
+      {
+       "path": "server/jobs.ts",
+       "line": 1,
+       "fact": "FACT-M-2"
+      }
+     ],
+     "evidence": 1
+    }
+   ],
+   "folded": []
+  },
+  {
+   "id": "services",
+   "relation": "calls",
+   "state": "measured",
+   "reason": "found",
+   "count": {
+    "value": 2,
+    "src": "facts/runtime.json#integration_target + resilience_policy + facts/resolve.json#module_edge[EXTERNAL] (distinct nodes)",
+    "unit": "count"
+   },
+   "nodes": [
+    {
+     "id": "svc:api.stripe.com",
+     "lane": "services",
+     "name": "api.stripe.com",
+     "kind": "host",
+     "detail": {
+      "timeout": true,
+      "retry": false
+     },
+     "items": [],
+     "sites": [
+      {
+       "path": "web/src/lib/pay.ts",
+       "line": null,
+       "fact": "FACT-R-5"
+      }
+     ],
+     "evidence": 1
+    },
+    {
+     "id": "svc:shop-staging.example.app",
+     "lane": "services",
+     "name": "shop-staging.example.app",
+     "kind": "host",
+     "detail": {
+      "timeout": false,
+      "retry": false
+     },
+     "items": [],
+     "sites": [
+      {
+       "path": "web/src/env.ts",
+       "line": null,
+       "fact": "FACT-R-7"
+      }
+     ],
+     "evidence": 1
+    }
+   ],
+   "folded": []
+  },
+  {
+   "id": "observability",
+   "relation": "reports_to",
+   "state": "measured",
+   "reason": "found",
+   "count": {
+    "value": 2,
+    "src": "facts/runtime.json#observability_signal + facts/resolve.json#module_edge[EXTERNAL] (distinct nodes)",
+    "unit": "count"
+   },
+   "nodes": [
+    {
+     "id": "obs:log",
+     "lane": "observability",
+     "name": "log",
+     "kind": "signal",
+     "detail": {
+      "files": 1
+     },
+     "items": [],
+     "sites": [
+      {
+       "path": "server/log.ts",
+       "line": null,
+       "fact": "FACT-R-9"
+      }
+     ],
+     "evidence": 1
+    },
+    {
+     "id": "observability:Sentry",
+     "lane": "observability",
+     "name": "Sentry",
+     "kind": "package",
+     "detail": {},
+     "items": [
+      "@sentry/react"
+     ],
+     "sites": [
+      {
+       "path": "web/src/main.tsx",
+       "line": 1,
+       "fact": "FACT-M-3"
+      }
+     ],
+     "evidence": 1
+    }
+   ],
+   "folded": []
+  }
+ ],
+ "counts": {
+  "nodes": {
+   "value": 13,
+   "src": "lanes[].nodes + folded (count)",
+   "unit": "count"
+  },
+  "lanes_found": {
+   "value": 7,
+   "src": "lanes[state=measured] (count)",
+   "unit": "count"
+  },
+  "introduce": {
+   "value": 1,
+   "src": "target-architecture.json#infrastructure[present=false] (count)",
+   "unit": "count"
+  },
+  "keep": {
+   "value": 1,
+   "src": "target-architecture.json#infrastructure[present=true] (count)",
+   "unit": "count"
+  },
+  "target_silent": {
+   "value": 5,
+   "src": "target.lanes[state=not_measured] (count)",
+   "unit": "count"
+  }
+ },
+ "target": {
+  "reference": "react-vite-node-api",
+  "status": null,
+  "lanes": [
+   {
+    "id": "hosting",
+    "state": "measured",
+    "reason": "decided",
+    "items": [
+     {
+      "area": "hosting",
+      "present": true,
+      "op": "keep",
+      "decision": "Keep: declared.",
+      "tool": null,
+      "evidence": "vercel.json"
+     }
+    ]
+   },
+   {
+    "id": "ci",
+    "state": "not_measured",
+    "reason": "target_silent",
+    "items": []
+   },
+   {
+    "id": "environments",
+    "state": "not_measured",
+    "reason": "target_silent",
+    "items": []
+   },
+   {
+    "id": "databases",
+    "state": "not_measured",
+    "reason": "target_silent",
+    "items": []
+   },
+   {
+    "id": "queues",
+    "state": "not_measured",
+    "reason": "target_silent",
+    "items": []
+   },
+   {
+    "id": "services",
+    "state": "not_measured",
+    "reason": "target_silent",
+    "items": []
+   },
+   {
+    "id": "observability",
+    "state": "measured",
+    "reason": "decided",
+    "items": [
+     {
+      "area": "observability",
+      "present": false,
+      "op": "introduce",
+      "decision": "Introduce: errors reported.",
+      "tool": "OpenTelemetry",
+      "evidence": "0"
+     }
+    ]
+   }
+  ]
+ },
+ "src": {
+  "hosting": "facts/runtime.json#deployment_target",
+  "ci": "facts/runtime.json#ci_step",
+  "environments": "facts/config.json#env_read (names) + config_file_unread",
+  "databases": "facts/entrypoints.json#data_access[client=supabase] + facts/resolve.json#module_edge[EXTERNAL] + facts/domain.json#data_table + facts/runtime.json#migration_step",
+  "queues": "facts/resolve.json#module_edge[EXTERNAL] matched against eaos/studio/infra.py PACKAGES",
+  "services": "facts/runtime.json#integration_target + resilience_policy + facts/resolve.json#module_edge[EXTERNAL]",
+  "observability": "facts/runtime.json#observability_signal + facts/resolve.json#module_edge[EXTERNAL]",
+  "target": "target-architecture.json#infrastructure"
+ }
+}

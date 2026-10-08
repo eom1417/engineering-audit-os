@@ -32,6 +32,13 @@ LIMITATIONS = [
 ]
 
 
+# Hosting platforms a repository declares by one manifest file: the file names the host. A Dockerfile is read for its
+# ports (_dockerfile_ports); these say where the code is deployed, which the infrastructure map draws (eaos/studio/infra.py).
+HOSTING_MANIFESTS = {'vercel.json': 'Vercel', 'netlify.toml': 'Netlify', 'fly.toml': 'Fly.io', 'railway.json': 'Railway',
+                     'railway.toml': 'Railway', 'render.yaml': 'Render', 'Procfile': 'Procfile', 'nixpacks.toml': 'Nixpacks',
+                     'wrangler.toml': 'Cloudflare Workers'}
+
+
 def _dockerfile_ports(text):
     """EXPOSE instructions: deployment-target hints."""
     ports = []
@@ -608,6 +615,10 @@ def run(target, source, symbols=None, **options):
                 facts.append(make('deployment_target', NAME, VERSION, item['sha256'],
                                    {'path': rel}, {'kind': 'compose', 'service': service},
                                    limitations=LIMITATIONS))
+        elif name in HOSTING_MANIFESTS:
+            facts.append(make('deployment_target', NAME, VERSION, item['sha256'],
+                               {'path': rel}, {'kind': 'hosting', 'host': HOSTING_MANIFESTS[name]},
+                               limitations=LIMITATIONS))
         elif '.github/workflows/' in rel and (name.endswith('.yml') or name.endswith('.yaml')):
             for step in _github_actions(text)[:40]:
                 facts.append(make('ci_step', NAME, VERSION, item['sha256'],

@@ -37,7 +37,7 @@
         "properties": {
           "section": {
             "type": "string",
-            "pattern": "^[a-z]+$"
+            "pattern": "^[a-z][a-z_]*$"
           },
           "state": {
             "type": "string",

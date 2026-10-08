@@ -100,12 +100,14 @@
               "coverage",
               "paths",
               "journeys",
-              "hidden"
+              "hidden",
+              "data_paths",
+              "infra"
             ]
           },
           "file": {
             "type": "string",
-            "pattern": "^[a-z]+\\.json$"
+            "pattern": "^[a-z][a-z_]*\\.json$"
           },
           "sha256": {
             "type": "string",
@@ -231,6 +233,8 @@
     "coverage",
     "paths",
     "journeys",
-    "hidden"
+    "hidden",
+    "data_paths",
+    "infra"
   ]
 }

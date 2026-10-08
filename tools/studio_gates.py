@@ -163,7 +163,7 @@ def studio_placeholders(data):
     """{card}: the first problem card with evidence; {component}: the component holding the most cards (each card's
     path counted in its deepest component), so the focused System view shows a full inspector; {path}: the code path
     the flow pages open ('none' without studio/paths.json); {task}, {screen}, {hidden_group}: the journeys and hidden pages'
-    subjects."""
+    subjects; {store}: the data map's store."""
     cards = json.loads((data / 'cards.json').read_text(encoding='utf-8'))['cards']
     card = next((c for c in cards if c.get('evidence')), cards[0] if cards else {'id': ''})['id']
     story = json.loads((data / 'story.json').read_text(encoding='utf-8')) if (data / 'story.json').is_file() else {}
@@ -185,8 +185,11 @@ def studio_placeholders(data):
     screens = journeys.get('screens') or []
     screen = next((s for s in screens if 'broken_link' in s['flags']), None) or next((s for s in screens if s['kind'] == 'page'), {'id': 'none'})
     group = next((g for g in hidden.get('groups') or [] if g['count']['value']), {'id': 'none'})
+    # {store}: the data map's first store written from more than one place, else its first (studio/data_paths.json)
+    stores = section('data_paths').get('stores') or []
+    store = next((s for s in stores if s.get('multi_writer')), stores[0] if stores else {'id': 'none'})
     return {'card': card, 'component': component, 'path': chosen['id'], 'task': task['id'], 'screen': screen['id'],
-            'hidden_group': group['id']}
+            'hidden_group': group['id'], 'store': store['id']}
 
 
 def studio_pages(matrix, data, base, folder, only=None):
