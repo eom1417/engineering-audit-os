@@ -1,0 +1,212 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/cards.json",
+  "description": "Every card of the plan on its own file and evidence, with its state read from the ledger.",
+  "x-artifact": "studio/cards.json",
+  "x-owner": "NS36",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "cards"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "cards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "key",
+          "title",
+          "kind",
+          "severity",
+          "fixable",
+          "scope",
+          "paths",
+          "evidence",
+          "state"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "high",
+              "medium",
+              "low",
+              "info"
+            ]
+          },
+          "fixable": {
+            "type": "boolean"
+          },
+          "needs_decision": {
+            "type": "boolean"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "place",
+              "group"
+            ]
+          },
+          "place": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/path"
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "in_batch",
+              "on_branch",
+              "done",
+              "resolved",
+              "skipped"
+            ]
+          },
+          "milestone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

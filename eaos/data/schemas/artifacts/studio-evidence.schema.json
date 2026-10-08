@@ -1,0 +1,171 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/evidence.json",
+  "description": "The facts the cards cite: which engine found what, and where.",
+  "x-artifact": "studio/evidence.json",
+  "x-owner": "NS36",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "facts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "summary"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "engine": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          },
+          "sites": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path"
+              ],
+              "properties": {
+                "path": {
+                  "$ref": "#/$defs/path"
+                },
+                "line": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

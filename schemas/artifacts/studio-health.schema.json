@@ -1,0 +1,177 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/health.json",
+  "description": "The project's health: one score by one formula, its domains, and the score after every scan.",
+  "x-artifact": "studio/health.json",
+  "x-owner": "NS36",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "score",
+    "formula",
+    "domains",
+    "history"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "score": {
+      "$ref": "#/$defs/ratio_measure"
+    },
+    "formula": {
+      "type": "string"
+    },
+    "domains": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "score",
+          "cards"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "score": {
+            "$ref": "#/$defs/ratio_measure"
+          },
+          "cards": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "commit",
+          "score"
+        ],
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "commit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "score": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

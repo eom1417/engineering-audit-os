@@ -1,0 +1,187 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/decisions.json",
+  "description": "What waits for the person: one question each, its recommendation, and what it blocks.",
+  "x-artifact": "studio/decisions.json",
+  "x-owner": "NS36",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "decisions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "question",
+          "recommendation",
+          "state"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "question": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          },
+          "options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "label"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "answered",
+              "withdrawn"
+            ]
+          },
+          "answer": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "plan": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "asked": {
+            "type": "string"
+          },
+          "tool": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

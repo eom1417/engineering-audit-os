@@ -5,7 +5,8 @@ the stage gates (eaos/engage.py) read artifacts only through load_valid: an arti
 contract counts as absent, so a file with the right name and the wrong shape moves nothing.
 
 Only the JSON Schema subset the contracts use is implemented, to keep the tool free of dependencies:
-type, const, enum, required, properties, additionalProperties: false, items, minItems, minLength, pattern.
+type, const, enum, required, properties, additionalProperties: false, items, minItems, minLength,
+pattern, minimum, maximum, and $ref to the schema's own #/$defs.
 """
 import json
 import re
@@ -29,8 +30,18 @@ def _is(value, kind):
     return isinstance(value, TYPES[kind])
 
 
-def validate(value, schema, where='$'):
+def _resolve(schema, root):
+    while '$ref' in schema:
+        reference = schema['$ref']
+        if not reference.startswith('#/$defs/'): raise ValueError(f'unsupported $ref {reference!r}')
+        schema = root['$defs'][reference[len('#/$defs/'):]]
+    return schema
+
+
+def validate(value, schema, where='$', root=None):
     """Every way `value` breaks `schema`, as readable lines; empty when it conforms."""
+    root = schema if root is None else root
+    schema = _resolve(schema, root)
     problems = []
     kinds = schema.get('type')
     if kinds is not None:
@@ -39,6 +50,9 @@ def validate(value, schema, where='$'):
             return [f'{where}: expected {"/".join(kinds)}, got {type(value).__name__}']
     if 'const' in schema and value != schema['const']: problems.append(f'{where}: must be {schema["const"]!r}')
     if 'enum' in schema and value not in schema['enum']: problems.append(f'{where}: {value!r} not in {schema["enum"]}')
+    if _is(value, 'number'):
+        if 'minimum' in schema and value < schema['minimum']: problems.append(f'{where}: {value} below {schema["minimum"]}')
+        if 'maximum' in schema and value > schema['maximum']: problems.append(f'{where}: {value} above {schema["maximum"]}')
     if isinstance(value, str):
         if len(value) < schema.get('minLength', 0): problems.append(f'{where}: shorter than {schema["minLength"]}')
         if 'pattern' in schema and not re.search(schema['pattern'], value): problems.append(f'{where}: {value!r} does not match {schema["pattern"]}')
@@ -47,12 +61,12 @@ def validate(value, schema, where='$'):
             if key not in value: problems.append(f'{where}: missing required field {key!r}')
         properties = schema.get('properties', {})
         for key, item in value.items():
-            if key in properties: problems += validate(item, properties[key], f'{where}.{key}')
+            if key in properties: problems += validate(item, properties[key], f'{where}.{key}', root)
             elif schema.get('additionalProperties') is False: problems.append(f'{where}: unexpected field {key!r}')
     if isinstance(value, list):
         if len(value) < schema.get('minItems', 0): problems.append(f'{where}: fewer than {schema["minItems"]} item(s)')
         if 'items' in schema:
-            for index, item in enumerate(value): problems += validate(item, schema['items'], f'{where}[{index}]')
+            for index, item in enumerate(value): problems += validate(item, schema['items'], f'{where}[{index}]', root)
     return problems
 
 

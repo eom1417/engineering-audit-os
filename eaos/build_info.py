@@ -24,6 +24,18 @@ def digest():
 
 
 @lru_cache(maxsize=1)
+def studio_digest():
+    """The Studio's built assets and its data contract, as a fingerprint of their own: a change to the interface alone
+    rebuilds the Studio without forcing a new check, which digest() would (NS36)."""
+    code = hashlib.sha256()
+    for path in sorted([*(HERE / 'data/studio').rglob('*'), *(HERE / 'data/schemas/artifacts').glob('studio-*.schema.json')]):
+        if path.is_file():
+            code.update(path.relative_to(HERE).as_posix().encode('utf-8') + b'\0')
+            code.update(path.read_bytes())
+    return code.hexdigest()[:16]
+
+
+@lru_cache(maxsize=1)
 def commit():
     """The commit EAOS was installed from (pip's record of a git install), else the commit of the checkout it runs
     from; '' when neither says."""

@@ -1,0 +1,263 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/story.json",
+  "description": "The current state, the ideal picture and the gap between them, as one story.",
+  "x-artifact": "studio/story.json",
+  "x-owner": "NS36",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "current",
+    "target",
+    "gap",
+    "indicators"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "current": {
+      "type": "object",
+      "required": [
+        "summary",
+        "components"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "files"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "layer": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "files": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "required": [
+        "summary",
+        "components"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "responsibility"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "responsibility": {
+                "type": "string"
+              },
+              "layer": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "gap": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "component",
+          "relation",
+          "files",
+          "cards"
+        ],
+        "properties": {
+          "component": {
+            "type": "string"
+          },
+          "relation": {
+            "type": "string",
+            "enum": [
+              "retain",
+              "modify",
+              "rebuild",
+              "delete",
+              "missing"
+            ]
+          },
+          "to": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "files": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "closed": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "indicators": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "today",
+          "target"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "today": {
+            "$ref": "#/$defs/measure"
+          },
+          "expected": {
+            "$ref": "#/$defs/measure"
+          },
+          "target": {
+            "$ref": "#/$defs/measure"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

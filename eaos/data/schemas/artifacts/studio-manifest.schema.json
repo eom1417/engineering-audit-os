@@ -1,0 +1,210 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/manifest.json",
+  "description": "The index of the Studio's data, written last so a reader never sees a half-written set: which EAOS built it, which scan, and every section with its fingerprint.",
+  "x-artifact": "studio/manifest.json",
+  "x-owner": "NS36",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "built",
+    "project",
+    "scanned",
+    "sections"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "built": {
+      "type": "object",
+      "required": [
+        "version",
+        "commit",
+        "digest",
+        "studio_digest",
+        "built"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        },
+        "digest": {
+          "type": "string"
+        },
+        "studio_digest": {
+          "type": "string"
+        },
+        "built": {
+          "type": "string"
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "scanned": {
+      "$ref": "#/$defs/scan"
+    },
+    "sections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "file",
+          "sha256",
+          "bytes"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "meta",
+              "head",
+              "health",
+              "cards",
+              "evidence",
+              "story",
+              "docs",
+              "plans",
+              "decisions",
+              "media"
+            ]
+          },
+          "file": {
+            "type": "string",
+            "pattern": "^[a-z]+\\.json$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "minItems": 1
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "x-sections": [
+    "meta",
+    "head",
+    "health",
+    "cards",
+    "evidence",
+    "story",
+    "docs",
+    "plans",
+    "decisions",
+    "media"
+  ]
+}

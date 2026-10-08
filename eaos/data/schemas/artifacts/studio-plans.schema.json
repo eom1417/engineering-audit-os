@@ -1,0 +1,269 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/plans.json",
+  "description": "Every plan in one model (fix, build, product, owner and sub-plans): steps, tasks and gates, with states computed from git, gates and recorded decisions, never set by hand.",
+  "x-artifact": "studio/plans.json",
+  "x-owner": "NS36",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "plans"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "plans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "kind",
+          "state",
+          "steps",
+          "progress"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "fix",
+              "build",
+              "product",
+              "owner",
+              "sub"
+            ]
+          },
+          "parent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "registered",
+              "approved",
+              "rejected",
+              "active",
+              "review",
+              "merged",
+              "closed",
+              "regressed",
+              "archived"
+            ]
+          },
+          "goal": {
+            "type": "string"
+          },
+          "indicators": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "progress": {
+            "$ref": "#/$defs/ratio_measure"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "title",
+                "state",
+                "tasks"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "todo",
+                    "active",
+                    "done",
+                    "blocked",
+                    "regressed"
+                  ]
+                },
+                "weight": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "gate": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "depends_on": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "sub_plan": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "tasks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "id",
+                      "title",
+                      "state"
+                    ],
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "state": {
+                        "type": "string",
+                        "enum": [
+                          "todo",
+                          "active",
+                          "done",
+                          "blocked",
+                          "regressed"
+                        ]
+                      },
+                      "acceptance": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "depends_on": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

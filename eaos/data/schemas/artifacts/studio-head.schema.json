@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/head.json",
+  "description": "What every page shows on top: the scan, the EAOS that made it, whether it is still fresh, the verdict in one sentence and the next step.",
+  "x-artifact": "studio/head.json",
+  "x-owner": "NS36",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "scanned",
+    "eaos",
+    "freshness",
+    "verdict",
+    "next"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "scanned": {
+      "$ref": "#/$defs/scan"
+    },
+    "eaos": {
+      "type": "object",
+      "required": [
+        "version",
+        "commit",
+        "digest"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "commit": {
+          "type": "string"
+        },
+        "digest": {
+          "type": "string"
+        }
+      }
+    },
+    "freshness": {
+      "type": "string",
+      "enum": [
+        "fresh",
+        "branch_moved",
+        "eaos_updated",
+        "unknown"
+      ]
+    },
+    "verdict": {
+      "type": "string"
+    },
+    "next": {
+      "type": "object",
+      "required": [
+        "action"
+      ],
+      "properties": {
+        "action": {
+          "type": "string"
+        },
+        "tool": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
