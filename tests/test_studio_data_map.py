@@ -12,6 +12,7 @@ from eaos.studio.infra import MAX_LANE_NODES, infra, package_of
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / 'tests/fixtures/studio/v2'
+GALLERY = ROOT / 'studio/src/pages/data/fixture.json'
 
 
 def _fact(kind, path, line, value, fid, resolution=None):
@@ -236,20 +237,25 @@ class Infra(unittest.TestCase):
 
 class Fixtures(unittest.TestCase):
     def test_the_fixtures_are_the_small_shop_as_exported(self):
-        """tests/fixtures/studio/v2/{data_paths,infra}.json are written by `python -m tests.test_studio_data_map --write-fixtures`."""
+        """tests/fixtures/studio/v2/{data_paths,infra}.json and the gallery's studio/src/pages/data/fixture.json are written
+        by `python -m tests.test_studio_data_map --write-fixtures`."""
         with tempfile.TemporaryDirectory() as tmp:
             out = shop(tmp)
-            for name, body in (('data_paths', data_paths(out)), ('infra', infra(out))):
-                expected = {'schema_version': 1, 'contract': 1, 'revision': 2, **body}
-                self.assertEqual(json.loads((FIXTURES / f'{name}.json').read_text(encoding='utf-8')), expected, name)
+            bodies = {'data_paths': data_paths(out), 'infra': infra(out)}
+        for name, body in bodies.items():
+            expected = {'schema_version': 1, 'contract': 1, 'revision': 2, **body}
+            self.assertEqual(json.loads((FIXTURES / f'{name}.json').read_text(encoding='utf-8')), expected, name)
+        self.assertEqual(json.loads(GALLERY.read_text(encoding='utf-8')), bodies)
 
 
 def write_fixtures():
     with tempfile.TemporaryDirectory() as tmp:
         out = shop(tmp)
-        for name, body in (('data_paths', data_paths(out)), ('infra', infra(out))):
-            text = json.dumps({'schema_version': 1, 'contract': 1, 'revision': 2, **body}, ensure_ascii=False, indent=1)
-            (FIXTURES / f'{name}.json').write_text(text + '\n', encoding='utf-8')
+        bodies = {'data_paths': data_paths(out), 'infra': infra(out)}
+    for name, body in bodies.items():
+        text = json.dumps({'schema_version': 1, 'contract': 1, 'revision': 2, **body}, ensure_ascii=False, indent=1)
+        (FIXTURES / f'{name}.json').write_text(text + '\n', encoding='utf-8')
+    GALLERY.write_text(json.dumps(bodies, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
 
 
 if __name__ == '__main__':

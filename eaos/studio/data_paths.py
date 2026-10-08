@@ -292,9 +292,12 @@ def data_paths(report, lang='ar'):
             violations.append({'id': f'own:{sid}', 'subject': sid, 'kind': 'table', 'tier': 'client', 'writers': sorted(writers)})
         today = sorted({group_today(m) for m in writers})
         later = sorted({group_target(m) for m in writers} - {None}) if has_target else None
+        # A table has more than one owner when two modules write it; an API resource only when one of its endpoints is
+        # written from two modules (POST /auth/login and POST /auth/register from two files are two inputs, one owner each).
+        many = len(writers) > 1 if store['kind'] != 'resource' else any(len(endpoints[e]['writers']) > 1 for e in store['endpoints'])
         store.update(
             writers=sorted(writers), readers=sorted(readers_of.get(sid, set())),
-            multi_writer=len(writers) > 1,
+            multi_writer=many,
             today={'writers': len(writers), 'components': today},
             target=None if later is None else {'components': later, 'single': len(later) <= 1 if writers else None,
                                                'unmapped': sorted(m for m in writers if group_target(m) is None)},

@@ -9,6 +9,7 @@ import { useStudio } from '../data/context'
 import { WORDS } from '../i18n/catalog'
 import { usePrefs } from '../i18n/prefs'
 import { Id, Txt } from '../i18n/text'
+import { DATA_WORDS } from '../pages/data/words'
 import { buildIndex, type Entry, type EntryKind } from '../search'
 import { visibleSections } from './sections'
 import css from './Palette.module.css'
@@ -32,6 +33,10 @@ export function useEntries(): Entry[] {
       id: `page:${s.id}`, kind: 'page', title: WORDS[s.nav][index], keywords: [...WORDS[s.nav], ...WORDS[s.tab]].join(' '), to: s.to,
     }))
     if (!data) return entries
+    // the System section's own maps, beside the territory
+    if (data.data_paths) entries.push({ id: 'page:data', kind: 'page', title: DATA_WORDS.dataTitle[index], keywords: DATA_WORDS.dataTitle.join(' '), to: '/system/data' })
+    if (data.infra) entries.push({ id: 'page:infra', kind: 'page', title: DATA_WORDS.infraTitle[index], keywords: DATA_WORDS.infraTitle.join(' '), to: '/system?lens=infra' })
+    for (const s of data.data_paths?.stores ?? []) entries.push({ id: `component:${s.id}`, kind: 'component', title: s.name, to: `/system/data?store=${encodeURIComponent(s.id)}` })
     for (const c of data.story?.current.components ?? []) entries.push({ id: `component:${c.name}`, kind: 'component', title: c.name, to: `/system?focus=${encodeURIComponent(c.name)}` })
     for (const d of data.decisions?.decisions ?? []) entries.push({ id: `decision:${d.id}`, kind: 'decision', title: d.question, keywords: d.recommendation, to: '/decisions' })
     for (const c of data.cards?.cards ?? []) entries.push({ id: `card:${c.id}`, kind: 'card', title: c.title, keywords: [c.id, ...c.paths, c.kind].join(' '), to: `/problems?card=${encodeURIComponent(c.id)}` })

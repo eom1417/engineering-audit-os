@@ -40,6 +40,10 @@ for (const name of fs.readdirSync(dataDir).filter((n) => n.endsWith('.js'))) fs.
 const manifest = JSON.parse(fs.readFileSync(path.join(dataDir, 'manifest.json'), 'utf8'))
 const cards = JSON.parse(fs.readFileSync(path.join(dataDir, 'cards.json'), 'utf8')).cards
 const firstCard = cards.find((c) => c.evidence.length) ?? cards[0]
+// The data map's store to focus: the first written from more than one place, else the first (when the report has one).
+const dataFile = path.join(dataDir, 'data_paths.json')
+const stores = fs.existsSync(dataFile) ? JSON.parse(fs.readFileSync(dataFile, 'utf8')).stores : []
+const firstStore = stores.find((s) => s.multi_writer) ?? stores[0]
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.json': 'application/json', '.txt': 'text/plain' }
 const server = http.createServer((req, res) => {
@@ -62,6 +66,15 @@ const ROUTES = [
   { name: 'system-change', hash: '#/system?view=change' },
   { name: 'system-target', hash: `#/system?view=target&focus=${encodeURIComponent('features')}` },
   { name: 'system-list', hash: '#/system?show=list', viewports: ['tablet', 'desktop'] },
+  { name: 'data', hash: '#/system/data' },
+  ...(firstStore ? [{ name: 'data-store', hash: `#/system/data?store=${encodeURIComponent(firstStore.id)}` }] : []),
+  { name: 'data-change', hash: '#/system/data?view=change' },
+  { name: 'data-target', hash: '#/system/data?view=target' },
+  { name: 'data-steps', hash: '#/system/data?show=steps', viewports: ['tablet', 'desktop'] },
+  { name: 'system-infra', hash: '#/system?lens=infra' },
+  { name: 'system-infra-change', hash: '#/system?lens=infra&view=change' },
+  { name: 'system-infra-target', hash: `#/system?lens=infra&view=target&item=${encodeURIComponent('target:observability:observability')}` },
+  { name: 'system-infra-steps', hash: '#/system?lens=infra&show=steps', viewports: ['tablet', 'desktop'] },
   { name: 'problems', hash: '#/problems' },
   { name: 'problem', hash: `#/problems?card=${encodeURIComponent(firstCard.id)}` },
   { name: 'change', hash: '#/change' },

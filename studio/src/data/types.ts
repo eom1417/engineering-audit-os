@@ -1,6 +1,7 @@
 // Contract v1 (docs/STUDIO.md, schemas/artifacts/studio-*.schema.json): the fields the Studio reads today. Types
 // generated from the schemas replace this file with contract v2 (NS39.T3).
 import type { Measure } from './measure'
+import type { DataPaths, Infra } from './dataMap'
 import type { SystemMap } from './system'
 
 /** A number the Studio shows: its value and where it comes from. Not measured is null, never 0. */
@@ -85,7 +86,7 @@ export interface Decision {
   plan: string | null
 }
 
-export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system'] as const
+export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system', 'data_paths', 'infra'] as const
 export type SectionName = (typeof SECTIONS)[number]
 
 export interface StudioData {
@@ -101,6 +102,8 @@ export interface StudioData {
   decisions?: { decisions: Decision[] }
   media?: unknown
   system?: SystemMap
+  data_paths?: DataPaths
+  infra?: Infra
   /** Sections the manifest lists but whose file did not load */
   missing: SectionName[]
 }

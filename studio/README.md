@@ -31,6 +31,8 @@ STUDIO_DATA=<report>/studio npm run dev   # live development on a report's data,
 | `src/search/` | the Arabic normaliser and the MiniSearch index, with their unit tests |
 | `src/data/` | contract v1 types and the loader (classic `<name>.js` scripts beside `index.html`) |
 | `src/pages/` | the section pages on real data |
+| `src/pages/data/` | System → Data (`studio/data_paths.json`): the seven links of every write, the map of writers and stores with its gaps hatched, a store's chain, the steps view, the gallery fixture |
+| `src/pages/infra/` | The infrastructure lens (`#/system?lens=infra`, `studio/infra.json`): the context diagram, Today / Change / Target, the steps view |
 | `src/map/` | the territory map (`studio/system.json`): drawing, pan and zoom, legend, minimap, ego diagram, inspector, ranked list, the Home and Change pieces, and its own word catalogue |
 
 ## Rules the build enforces

@@ -43,7 +43,7 @@
    "spec": "#/system?lens=infra",
    "section": "system",
    "needs": [
-    "maps"
+    "infra"
    ],
    "task": "NS46.T6"
   },
@@ -96,7 +96,7 @@
    "spec": "STUDIO-COMPLETE: System -> Data",
    "section": "system",
    "needs": [
-    "maps"
+    "data_paths"
    ],
    "task": "NS46.T6"
   },
