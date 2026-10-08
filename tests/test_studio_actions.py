@@ -258,6 +258,17 @@ class Adapters(unittest.TestCase):
         self.assertEqual(argv[-2:], ['--resume', 's1'])
         self.assertEqual(config['mcpServers']['eaos']['env']['EAOS_STUDIO_RUN'], 'r1')
         self.assertEqual(config['mcpServers']['eaos']['args'][-1], 'mcp')
+        with tempfile.TemporaryDirectory() as folder:
+            argv = adapters.ClaudeCode(command=['claude']).argv('explain', 'r1', Path(folder), tools=['status', 'finding'])
+        allowed = argv[argv.index('--allowedTools') + 1:argv.index('--disallowedTools')]
+        self.assertEqual(allowed, ['mcp__eaos__status', 'mcp__eaos__finding', 'Read', 'Grep', 'Glob'])
+
+    def test_the_runs_mcp_server_is_this_eaos_never_another_on_the_path(self):
+        with mock.patch('shutil.which', return_value='/usr/local/bin/eaos'):
+            argv, env = adapters.eaos_server('r1', 'Codex')
+        self.assertEqual(argv, [sys.executable, '-m', 'eaos', 'mcp'])
+        self.assertEqual(Path(env['PYTHONPATH']), ROOT)
+        self.assertEqual((env['EAOS_STUDIO_RUN'], env['EAOS_ASSISTANT']), ('r1', 'Codex'))
 
     def test_codex_starts_read_only_with_the_eaos_server_and_resumes_its_thread(self):
         argv = adapters.Codex(command=['codex']).argv('go on', 'r1', Path('.'), session='t1')
@@ -266,6 +277,10 @@ class Adapters(unittest.TestCase):
         server = next(a for a in argv if a.startswith('mcp_servers.eaos='))
         self.assertIn('EAOS_STUDIO_RUN="r1"', server)
         self.assertEqual(argv[-2:], ['t1', 'go on'])
+        self.assertIn('disabled_tools=["accept", "undo", "choose_branch"]', server)
+        limited = next(a for a in adapters.Codex(command=['codex']).argv('x', 'r1', Path('.'), tools=['status']) if a.startswith('mcp_servers.eaos='))
+        self.assertIn('enabled_tools=["status"]', limited)
+        self.assertNotIn('disabled_tools', limited)
 
     def test_detection_says_installed_and_logged_in(self):
         with mock.patch.dict(os.environ, {'FAKE_LOGGED_IN': '0'}):

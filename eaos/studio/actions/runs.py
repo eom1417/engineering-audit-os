@@ -17,7 +17,7 @@ import threading
 import time
 from pathlib import Path
 
-from . import handoff, prompts
+from . import adapters, handoff, prompts
 from .store import ACTIVE, TERMINAL, now
 
 STUDIO = 'EAOS Studio'                      # eaos/mcp_server.py STUDIO
@@ -236,7 +236,9 @@ class Manager:
         record = self.store.load(run)
         if not record.get('branches_before'):
             self.store.update(run, branches_before=sorted(self._waiting_branches()))
-        argv = adapter.argv(prompt, run, folder, session)
+        verb = next((v for v in self.contract['verbs'] if v['id'] == record.get('verb')), None)
+        tools = [tool for tool in verb['tools'] if tool not in adapters.PERSON_ONLY] if verb else None
+        argv = adapter.argv(prompt, run, folder, session, tools=tools)
         stream = folder / 'stream.jsonl'
         offset = stream.stat().st_size if stream.is_file() else 0
         env = {**os.environ, 'EAOS_STUDIO_RUN': run}

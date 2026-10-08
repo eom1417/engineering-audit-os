@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "3a38957",
+  "extracted_at_commit": "23e7085",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -1524,6 +1524,15 @@
       "statement": "The model's layer: interpretation on top of facts, never instead of them.",
       "kind": "invariant",
       "enforced_by": "tests/test_semantic.py::SemanticTests::test_model_inference_can_never_reach_confirmed",
+      "note": ""
+    },
+    {
+      "id": "INV-b4c31d686c",
+      "file": "eaos/studio/actions/adapters.py",
+      "symbol": "eaos_server",
+      "statement": "The EAOS MCP server's argv and environment for a run: this very EAOS (the Python and the package the Studio runs, never another `eaos` on the PATH), the person's EAOS home, and the run's id, which makes the person-only tools refuse (eaos/mcp_server.py).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_actions.py::Adapters::test_the_runs_mcp_server_is_this_eaos_never_another_on_the_path",
       "note": ""
     },
     {

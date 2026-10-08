@@ -1410,6 +1410,8 @@
    "changes_code": true,
    "tools": [
     "status",
+    "audit",
+    "wait",
     "run_setup",
     "run_try",
     "safety_net",
@@ -1419,8 +1421,7 @@
     "fix_edit",
     "fix_skip",
     "fix_finish",
-    "note",
-    "wait"
+    "note"
    ],
    "result": {
     "en": "A new branch eaos/wave-N with the kept fixes, waiting for Accept or Undo.",
@@ -2166,6 +2167,7 @@
   },
   "rules": [
    "The assistant may only change code through the EAOS tools (no Bash, Edit or Write): every change goes through the isolated copy and the gates.",
+   "A verb run may call only the EAOS tools its verb lists (Claude Code --allowedTools, Codex enabled_tools); an action run every EAOS tool but accept, undo and choose_branch.",
    "The prompt names the verb, the cards and the EAOS way, in the person's language; the run is what the assistant would do in chat.",
    "The three EAOS questions (branch, run consent, accept or undo) come back as question events, never answered by the assistant."
   ]

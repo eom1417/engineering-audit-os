@@ -11,7 +11,6 @@ Codex: `codex exec --json`, the EAOS server by `-c mcp_servers.eaos=...`, a read
 import difflib
 import json
 import os
-import shutil
 import subprocess
 import time
 
@@ -21,17 +20,15 @@ EDITS = ('fix_edit', 'build_edit')
 
 
 def eaos_server(run, assistant):
-    """The EAOS MCP server's argv and environment for a run: this EAOS, the person's EAOS home, and the run's id, which
-    makes the person-only tools refuse (eaos/mcp_server.py)."""
-    from ...assistant_setup import eaos_command
+    """The EAOS MCP server's argv and environment for a run: this very EAOS (the Python and the package the Studio runs,
+    never another `eaos` on the PATH), the person's EAOS home, and the run's id, which makes the person-only tools refuse
+    (eaos/mcp_server.py)."""
+    import sys
     from pathlib import Path
-    root = str(Path(__file__).resolve().parents[3])
-    env = {'EAOS_STUDIO_RUN': run, 'EAOS_ASSISTANT': assistant}
+    env = {'EAOS_STUDIO_RUN': run, 'EAOS_ASSISTANT': assistant, 'PYTHONPATH': str(Path(__file__).resolve().parents[3])}
     for name in ('EAOS_HOME', 'EAOS_OUTPUT', 'EAOS_ENGINE_TOOLS'):
         if os.environ.get(name): env[name] = os.environ[name]
-    argv = eaos_command() + ['mcp']
-    if argv[0] != 'eaos' and not shutil.which('eaos'): env['PYTHONPATH'] = root
-    return argv, env
+    return [sys.executable, '-m', 'eaos', 'mcp'], env
 
 
 def _diff(edit):
@@ -147,12 +144,13 @@ class ClaudeCode(Adapter):
         try: return bool(json.loads(done.stdout).get('loggedIn'))
         except ValueError: return done.returncode == 0
 
-    def argv(self, prompt, run, folder, session=None):
+    def argv(self, prompt, run, folder, session=None, tools=None):
+        """`tools`: the EAOS tools this run may call (None: every one but the person's)."""
         server, env = eaos_server(run, self.name)
         config = folder / 'mcp.json'
         config.write_text(json.dumps({'mcpServers': {'eaos': {'command': server[0], 'args': server[1:], 'env': env}}}), encoding='utf-8')
         argv = self.command + ['-p', prompt, '--output-format', 'stream-json', '--verbose', '--mcp-config', str(config), '--strict-mcp-config',
-                               '--allowedTools', 'mcp__eaos', 'Read', 'Grep', 'Glob',
+                               '--allowedTools', *([f'mcp__eaos__{tool}' for tool in tools] if tools else ['mcp__eaos']), 'Read', 'Grep', 'Glob',
                                '--disallowedTools', 'Bash', 'Edit', 'Write', 'NotebookEdit', 'WebFetch', 'WebSearch',
                                *[f'mcp__eaos__{tool}' for tool in PERSON_ONLY]]
         return argv + (['--resume', session] if session else [])
@@ -199,11 +197,14 @@ class Codex(Adapter):
         done = self._run('login', 'status')
         return bool(done and done.returncode == 0 and 'not logged in' not in (done.stdout + done.stderr).lower())
 
-    def argv(self, prompt, run, folder, session=None):
+    def argv(self, prompt, run, folder, session=None, tools=None):
+        """`tools`: the EAOS tools this run may call (None: every one but the person's)."""
         server, env = eaos_server(run, self.name)
         quoted = lambda value: json.dumps(str(value))
-        table = (f'mcp_servers.eaos={{command={quoted(server[0])}, args=[{", ".join(quoted(a) for a in server[1:])}], '
-                 f'startup_timeout_sec=60, tool_timeout_sec=120, env={{{", ".join(f"{k}={quoted(v)}" for k, v in env.items())}}}}}')
+        listed = lambda names: '[' + ', '.join(quoted(name) for name in names) + ']'
+        limit = f'enabled_tools={listed(tools)}' if tools else f'disabled_tools={listed(PERSON_ONLY)}'
+        table = (f'mcp_servers.eaos={{command={quoted(server[0])}, args={listed(server[1:])}, '
+                 f'startup_timeout_sec=60, tool_timeout_sec=120, {limit}, env={{{", ".join(f"{k}={quoted(v)}" for k, v in env.items())}}}}}')
         options = ['--json', '--skip-git-repo-check', '-c', table, '-c', 'approval_policy="never"', '-c', 'sandbox_mode="read-only"']
         if session: return self.command + ['exec', 'resume', *options, session, prompt]
         return self.command + ['exec', *options, prompt]
