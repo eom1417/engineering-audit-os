@@ -60,6 +60,41 @@ class FlowTraceTests(TemporaryWorkspace):
             self.assertEqual(next(step for step in steps if step['callee'] == 'mystery_function')['resolution'], 'unresolved')
 
 
+class ScriptFlowTests(unittest.TestCase):
+    """A script that runs a file of the repository is traced from that file; a console script from its function."""
+
+    def test_task_runner_scripts_and_console_scripts_are_traced_to_their_handlers(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'
+            (repo / 'web/scripts').mkdir(parents=True); (repo / 'tools').mkdir(); (repo / 'pkg').mkdir()
+            (repo / 'web/package.json').write_text(json.dumps({'scripts': {
+                'build': 'tsc && node scripts/ship.mjs', 'gates': 'python ../tools/gates.py', 'dev': 'vite',
+                'missing': 'node scripts/absent.mjs'}}))
+            (repo / 'web/scripts/ship.mjs').write_text(
+                "import fs from 'node:fs'\n\nfunction pack(dir) {\n  return fs.readdirSync(dir)\n}\n\nconsole.log(pack('dist'))\n")
+            (repo / 'tools/gates.py').write_text('def check():\n    return 0\n\n\nraise SystemExit(check())\n')
+            (repo / 'pyproject.toml').write_text('[project]\nname = "pkg"\n\n[project.scripts]\npkg = "pkg.cli:main"\n')
+            (repo / 'pkg/__init__.py').write_text('')
+            (repo / 'pkg/cli.py').write_text('def run():\n    return 1\n\n\ndef main():\n    return run()\n')
+            collect(repo, Path(tmp) / 'out', SETS)
+            flows = {f['value']['entry']['route']: f['value'] for f in read_set(Path(tmp) / 'out', 'flows')['facts']}
+            summary = read_set(Path(tmp) / 'out', 'flows')['summary']
+        ship = flows['npm run build']
+        self.assertTrue(ship['handler_found'])
+        self.assertIn('pack', [step['callee'] for step in ship['steps']])
+        self.assertIn('web/scripts/ship.mjs', ship['touched_files'])
+        self.assertIn('check', [step['callee'] for step in flows['npm run gates']['steps']])
+        console = flows['pkg']
+        self.assertEqual(console['steps'][0]['from_path'], 'pkg/cli.py')
+        self.assertEqual(console['steps'][0]['callee'], 'run')
+        # A script that names a file the repository does not have is an entry point the tracer could not start:
+        # it stays visible as a gap; a script running only an external tool is not an entry point at all.
+        self.assertNotIn('npm run missing', flows)
+        self.assertNotIn('npm run dev', flows)
+        self.assertEqual(summary['entry_points_considered'], 4)
+        self.assertEqual(summary['entry_points_without_traceable_handler'], 1)
+
+
 class DomainFactTests(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):

@@ -17,7 +17,7 @@ JS_GLOBALS = {'Array', 'Boolean', 'Date', 'Error', 'JSON', 'Map', 'Math', 'Numbe
 JS_SUFFIXES = ('.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.mts', '.cts')
 
 NAME = 'flows'
-VERSION = '3'
+VERSION = '4'
 MAX_DEPTH = 6
 MAX_STEPS = 40
 LIMITATIONS = [
@@ -89,13 +89,24 @@ def resolve_callee(name, path, by_file, by_name, imports, external_names, attrib
 GAP_RESOLUTIONS = {'unresolved', 'ambiguous'}
 
 
-def _resolve_handler(handler, path, by_file, by_name, imports):
+def _resolve_handler(handler, path, by_file, by_name, imports, calls=None):
     """Locate the symbol a handler points at. Accepts bare names, receiver-qualified calls
     like `s.handleIndex`, and cross-file imports."""
     if not handler: return None
     # A script page (Streamlit) is its module: the flow starts at the calls made at the top level.
     if handler == '<module>': return {'path': path, 'symbol': None, 'name': '<module>'}
-    if handler.endswith('.py') and handler in by_file: return {'path': handler, 'symbol': None, 'name': '<module>'}
+    # A script that runs a file of the repository (`node scripts/ship.mjs`, `python -m pkg.tool`) starts at its top level.
+    if handler.endswith(('.py',) + JS_SUFFIXES):
+        for candidate in (handler, handler[:-3] + '/__main__.py' if handler.endswith('.py') else None):
+            if candidate in by_file or (candidate, None) in (calls or {}): return {'path': candidate, 'symbol': None, 'name': '<module>'}
+    # A console script `package.module:function` names its function by import path, from the manifest's folder.
+    if ':' in handler and '/' not in handler:
+        module, _, attribute = handler.partition(':')
+        base = path.rsplit('/', 1)[0] + '/' if '/' in path else ''
+        stem = module.replace('.', '/')
+        for candidate in (stem + '.py', stem + '/__init__.py', 'src/' + stem + '.py', 'src/' + stem + '/__init__.py'):
+            for row in by_file.get(base + candidate, []):
+                if row['symbol'] == attribute or row['name'] == attribute: return row
     for row in by_file.get(path, []):
         if row['symbol'] == handler or row['name'] == handler: return row
     if '.' in handler:
@@ -114,7 +125,7 @@ def trace(entry, by_file, by_name, calls, imports, env_by_file, external_names):
     """Follow one entry point through resolvable calls, recording every stop with its reason."""
     handler = entry['value'].get('handler')
     path = entry['location']['path']
-    start = _resolve_handler(handler, path, by_file, by_name, imports)
+    start = _resolve_handler(handler, path, by_file, by_name, imports, calls)
     steps, seen, unresolved = [], set(), 0
     queue = [(start, 0)] if start else []
     while queue and len(steps) < MAX_STEPS:
