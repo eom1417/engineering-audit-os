@@ -55,6 +55,23 @@ base**, and left the exact blend to the developer, choosing for elegance and pra
 The blended mockup and its design system spec live in `eaos-dev/planning/studio-v2/directions/studio/`
 (`DESIGN.md`, `REVIEW.md`); NS37.T1 builds that spec, and no other direction is built.
 
+### D7: Studio first
+
+Decided by the owner on 2026-10-08: the front end is finished, complete and professional, before more engine work,
+so that every later engine step visibly fills a page or raises a measured number. The phase is NS46 in
+`docs/north-star.json`, placed first in R6G; its spec is `eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md`.
+
+- **Coverage states, never "coming soon".** A page whose data EAOS does not produce yet shows a designed state that
+  says what is missing, why, and which step will produce it, read from `studio/coverage.json`. The share of sections
+  still "not measured yet" is an indicator that may only fall (F12).
+- **Contract v2 is defined now**, as additive sections (below): the pages are built and tested against fixtures, so
+  later engine work only fills data.
+- **The exit gate** of STUDIO-COMPLETE.md: every route of the experience plan (C-experience §2.2, listed in
+  `docs/studio-routes.json`) exists and shows real data or a designed coverage state (F11); the screen gates pass on
+  FleetManageWeb, chief-ops, finance-os, EAOS itself and a synthetic project of 5,000 cards and 1,000 components
+  (F13); Lighthouse mobile and the speed budgets hold (F14); and the owner reviews it. The engine roadmap resumes
+  (NS38.T2 onward) after that gate.
+
 ## Data contract v1
 
 EAOS writes `studio/` inside the report folder after every check, in the same publishing step as the report, so the
