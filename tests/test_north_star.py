@@ -33,7 +33,6 @@ class NorthStarTests(unittest.TestCase):
         self.assertLessEqual(states.count('current'), 1)
         if 'current' in states:
             self.assertTrue(all(state == 'done' for state in states[:states.index('current')]))
-            self.assertNotIn('done', states[states.index('current'):])
 
     def test_a_milestone_needing_a_sandbox_waits_on_the_owner(self):
         record = copy.deepcopy(self.record)
@@ -117,12 +116,37 @@ class StepTests(unittest.TestCase):
         items = self.steps.criteria({'status': 'todo', 'acceptance': 'python tools/north_star.py measure --only K1'}, self.record)
         self.assertEqual([item['kind'] for item in items], ['measured'])
 
-    def test_a_step_cannot_close_before_the_one_before_it(self):
+    def test_a_task_cannot_close_while_a_task_it_depends_on_is_open(self):
         record = copy.deepcopy(self.record)
         first = self.tool.step_order(record)[0]
         milestone = next(m for m in record['milestones'] if m['id'] == first)
         milestone['tasks'][0]['status'] = 'todo'
-        self.assertTrue(any('while an earlier step is open' in problem for problem in self.tool.validate(record)))
+        opened = milestone['tasks'][0]['id']
+        dependents = [t['id'] for m in record['milestones'] for t in m['tasks']
+                      if t['status'] == 'done' and opened in t.get('depends_on', [])]
+        self.assertTrue(dependents)
+        problems = self.tool.validate(record)
+        self.assertIn(f"{dependents[0]}: closed while a task it depends on is open ({opened})", problems)
+
+    def test_a_task_that_depends_on_an_open_task_through_another_is_rejected(self):
+        tasks = [{'id': 'A', 'status': 'todo'}, {'id': 'B', 'status': 'done', 'depends_on': ['A']},
+                 {'id': 'C', 'status': 'done', 'depends_on': ['B']}]
+        by_id = {task['id']: task for task in tasks}
+        self.assertEqual(self.steps.open_prerequisites(by_id['C'], by_id), ['A'])
+        self.assertEqual(self.steps.open_prerequisites(by_id['B'], by_id), ['A'])
+
+    def test_an_unrelated_open_task_in_an_earlier_step_does_not_block_a_later_one(self):
+        # the owner's decision of 2026-10-08: NS27.T5 (sandbox) stays open while independent later tasks close
+        record = copy.deepcopy(self.record)
+        order = self.tool.step_order(record)
+        by_id = {m['id']: m for m in record['milestones']}
+        earlier, later = by_id[order[0]], by_id[order[-1]]
+        earlier['tasks'].append({'id': 'EARLY.OPEN', 'status': 'todo', 'acceptance': 'tools/acceptance.py test none'})
+        later['tasks'].append({'id': 'LATE.DONE', 'status': 'done', 'acceptance': 'tools/acceptance.py test none'})
+        problems = self.steps.problems(record, order)
+        self.assertFalse(any('EARLY.OPEN' in problem or 'LATE.DONE' in problem for problem in problems))
+        later['tasks'][-1]['depends_on'] = ['EARLY.OPEN']
+        self.assertIn('LATE.DONE: closed while a task it depends on is open (EARLY.OPEN)', self.steps.problems(record, order))
 
     def test_a_closed_step_whose_gate_fell_is_rejected(self):
         record = copy.deepcopy(self.record)

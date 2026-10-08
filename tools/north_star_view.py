@@ -227,7 +227,8 @@ def method(language):
                 '- **نقاط الخطوة** = الوزن × الإنجاز. **التقدم** = مجموع نقاط الخطوات من 100.',
                 '- **جودة المخرج** = متوسط (القيمة ÷ الحد) لمعايير بوابة الخطوة كما تُقاس اليوم على 3 مشاريع حقيقية.',
                 '- **بوابة الانتقال:** لا تبدأ الخطوة التالية قبل أن تتحقق كل معايير بوابة الخطوة الحالية. '
-                'و`python tools/north_star.py --check` يفشل إن أُغلقت خطوة قبل سابقتها، أو سقط معيار من بوابة خطوة مغلقة.']
+                'و`python tools/north_star.py --check` يفشل إن أُغلقت مهمة وما زالت مفتوحةً مهمةٌ تعتمد هي عليها (مباشرة أو بواسطة غيرها)، أو سقط معيار من بوابة خطوة مغلقة. '
+                'مهمة مفتوحة في خطوة سابقة لا تعتمد عليها اللاحقة لا تمنع إغلاقها (قرار المالك 2026-10-08).']
     return ['**How it is computed:**', '',
             '- Every step has a **weight** in points, summing to 100, each with its stated reason.',
             f"- **Step completion** = the mean of its tasks weighted by size (S = {SIZE_POINTS['S']}, M = {SIZE_POINTS['M']}, L = {SIZE_POINTS['L']}). "
@@ -235,7 +236,8 @@ def method(language):
             '- **Step points** = weight × completion. **Progress** = the sum over all steps, out of 100.',
             '- **Output quality** = the mean of value ÷ threshold over the step\'s gate criteria, as measured today on 3 real projects.',
             '- **Transition gate:** the next step does not start until every criterion of the current step\'s gate holds. '
-            '`python tools/north_star.py --check` fails when a step closes before the one before it, or a closed step\'s gate stops holding.']
+            '`python tools/north_star.py --check` fails when a task closes while a task it depends on (directly or through others) is open, or a closed step\'s gate stops holding. '
+            'An open task in an earlier step that a later task does not depend on does not stop it closing (owner\'s decision, 2026-10-08).']
 
 
 def readme_block(record, name, language):

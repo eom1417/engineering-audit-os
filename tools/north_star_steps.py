@@ -12,6 +12,9 @@ Every number here is computed from docs/north-star.json; nothing is estimated by
     gate          what must hold before the next step starts: every indicator threshold named by an
                   acceptance command of the step's tasks (--min), every indicator it only requires measured,
                   and every acceptance test they run
+    order         an open task blocks a later task from closing only when the later task depends on it,
+                  directly or through other tasks (depends_on); an unrelated open task in an earlier step
+                  does not (owner's decision, 2026-10-08)
 """
 import re
 
@@ -97,9 +100,22 @@ def gate_text(items, language='ar', limit=6):
     return ' · '.join(parts) or ('أمر القبول' if language == 'ar' else 'acceptance command')
 
 
-def problems(record, order, states):
+def open_prerequisites(task, by_id):
+    """The open tasks a task depends on, directly or through other tasks, in the order they are first reached."""
+    found, seen, pending = [], set(), list(task.get('depends_on', []))
+    while pending:
+        name = pending.pop(0)
+        if name in seen or name not in by_id: continue
+        seen.add(name)
+        if by_id[name]['status'] != 'done': found.append(name)
+        pending += by_id[name].get('depends_on', [])
+    return found
+
+
+def problems(record, order):
     """The gate, enforced: weights sum to 100; each step says what it does, with which tools, into which output;
-    no step closes before the one before it; and a closed step's gate still holds on today's measurement."""
+    no task closes while a task it depends on, directly or transitively, is open; and a closed step's gate still
+    holds on today's measurement."""
     found = []
     if sum(milestone.get('weight', 0) for milestone in record['milestones']) != 100:
         found.append('step weights must sum to 100')
@@ -109,13 +125,13 @@ def problems(record, order, states):
         if not isinstance(milestone.get('weight'), int) or milestone['weight'] <= 0:
             found.append(f"{milestone['id']}: weight must be a positive whole number of points")
     by_id = {milestone['id']: milestone for milestone in record['milestones']}
-    for index, name in enumerate(order):
+    task_by_id = {task['id']: task for milestone in record['milestones'] for task in milestone['tasks']}
+    for name in order:
         milestone = by_id[name]
-        if any(task['status'] == 'done' for task in milestone['tasks']):
-            earlier = [other for other in order[:index] if states[other] != 'done']
-            if earlier: found.append(f"{name}: has a closed task while an earlier step is open ({', '.join(earlier)})")
         for task in milestone['tasks']:
             if task['status'] != 'done': continue
+            blocking = open_prerequisites(task, task_by_id)
+            if blocking: found.append(f"{task['id']}: closed while a task it depends on is open ({', '.join(blocking)})")
             for item in criteria(task, record):
                 if item['kind'] != 'check' and not item['holds']:
                     found.append(f"{task['id']}: closed, but its gate no longer holds: {item['id']} = {item['value']}"

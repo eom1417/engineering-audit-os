@@ -245,7 +245,7 @@ No command modifies the original project, publishes anything or merges anything.
 - **Step completion** = the mean of its tasks weighted by size (S = 1, M = 2, L = 3). A closed task is 100%. An open one counts its indicators' progress toward their gate thresholds (value ÷ threshold), capped at 90% until its acceptance command passes and it is closed.
 - **Step points** = weight × completion. **Progress** = the sum over all steps, out of 100.
 - **Output quality** = the mean of value ÷ threshold over the step's gate criteria, as measured today on 3 real projects.
-- **Transition gate:** the next step does not start until every criterion of the current step's gate holds. `python tools/north_star.py --check` fails when a step closes before the one before it, or a closed step's gate stops holding.
+- **Transition gate:** the next step does not start until every criterion of the current step's gate holds. `python tools/north_star.py --check` fails when a task closes while a task it depends on (directly or through others) is open, or a closed step's gate stops holding. An open task in an earlier step that a later task does not depend on does not stop it closing (owner's decision, 2026-10-08).
 
 The twenty-five steps in execution order; each arrow carries the gate of the step before it. Every step in full (what it does, its tools, its output, and its gate values today) is in [docs/NORTH-STAR.md](docs/NORTH-STAR.md) (Arabic).
 
