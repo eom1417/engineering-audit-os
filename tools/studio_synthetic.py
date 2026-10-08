@@ -21,6 +21,8 @@ sys.path.insert(0, str(ROOT))
 from eaos import artifact_contracts  # noqa: E402
 from eaos.studio import coverage as coverage_section  # noqa: E402
 from eaos.studio import export  # noqa: E402
+from eaos.studio import hidden as hidden_map  # noqa: E402
+from eaos.studio import journeys as journeys_map  # noqa: E402
 
 DOMAINS = ('work-orders', 'assets', 'vehicles', 'drivers', 'invoices', 'payments', 'inventory', 'reports', 'auth', 'users',
            'billing', 'routes', 'maintenance', 'fuel', 'alerts', 'audit', 'settings', 'notifications', 'contracts', 'suppliers')
@@ -153,9 +155,59 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
                     'capabilities': [{'id': 'C2', 'name': 'Current state', 'value': ratio(0.6, 'synthetic')}],
                     'indicators': [{'id': 'S1', 'name': 'S1', 'value': ratio(0.88, 'synthetic'), 'target': 0.8}]},
     }
+    sections.update(maps(comps, layer, card_rows))
     written = list(sections)
     sections['coverage'] = {**V2, **coverage_section.coverage(Path('.'), sections, written, [], 'en')}
     return sections
+
+
+def maps(comps, layer, card_rows):
+    """journeys and hidden for the synthetic project, built by the exporter's own code from records like a scan's: one
+    screen per component under an /app layout, a sidebar menu to the first screen of each domain, each screen linking
+    to the next of its domain, every tenth a create form, and unseen work (writes, outside calls, dead code) behind them."""
+    router, pages, links, imports, names = 'src/App.tsx', [], [], {}, {}
+    files = {c: f'src/pages/{c}.tsx' for c in comps}
+    pages.append({'route': '/', 'declared': '/', 'handler': 'Root', 'router': router, 'line': 1, 'fact': 'FACT-route-root', 'framework': 'react_router'})
+    pages.append({'route': '/app/*', 'declared': '/app/*', 'handler': 'Shell', 'router': router, 'line': 2, 'fact': 'FACT-route-shell', 'framework': 'react_router'})
+    links.append({'target': '/app', 'via': 'redirect', 'file': router, 'line': 1, 'symbol': 'Root', 'fact': 'FACT-nav-root', 'dynamic': False, 'relative': False})
+    pages.append({'route': '/app', 'declared': '/', 'handler': 'Home', 'router': router, 'line': 3, 'fact': 'FACT-route-home', 'framework': 'react_router'})
+    names[(router, 'Home')] = ['./pages/Home']
+    imports[router] = ['src/pages/Home.tsx', 'src/Sidebar.tsx', *files.values()]
+    imports['src/Sidebar.tsx'] = ['src/nav/menu.ts']
+    imports['src/pages/Home.tsx'] = []
+    first = {}
+    for i, c in enumerate(comps):
+        handler = 'P' + c.replace('-', '_')
+        domain = c.rsplit('-', 1)[0]
+        pages.append({'route': f'/app/{domain}/{c}', 'declared': f'/{domain}/{c}', 'handler': handler, 'router': router, 'line': 10 + i, 'fact': f'FACT-route-{i}', 'framework': 'react_router'})
+        names[(router, handler)] = [f'./pages/{c}']
+        imports[files[c]] = [f'src/api/{layer[c]}.ts']
+        if domain not in first:
+            first[domain] = c
+            links.append({'target': f'/app/{domain}/{c}', 'via': 'menu', 'file': 'src/nav/menu.ts', 'line': len(first), 'symbol': None, 'fact': f'FACT-menu-{i}', 'dynamic': False, 'relative': False})
+        nxt = comps[i + len(DOMAINS)] if i + len(DOMAINS) < len(comps) else None
+        if nxt: links.append({'target': f'/app/{domain}/{nxt}', 'via': 'link', 'file': files[c], 'line': 20, 'symbol': handler, 'fact': f'FACT-nav-{i}', 'dynamic': False, 'relative': False})
+        if i % 10 == 0:
+            pages.append({'route': f'/app/{domain}/{c}/new', 'declared': f'/{domain}/{c}/new', 'handler': 'Create' + handler, 'router': router, 'line': 5000 + i, 'fact': f'FACT-route-new-{i}', 'framework': 'react_router'})
+            names[(router, 'Create' + handler)] = [f'./pages/{c}New']
+            imports[router].append(f'src/pages/{c}New.tsx')
+            imports[f'src/pages/{c}New.tsx'] = [f'src/api/{layer[c]}.ts']
+            links.append({'target': f'/app/{domain}/{c}/new', 'via': 'link', 'file': files[c], 'line': 30, 'symbol': handler, 'fact': f'FACT-new-{i}', 'dynamic': False, 'relative': False})
+        if i % 97 == 5: links.append({'target': f'/app/{domain}/{c}/missing', 'via': 'navigate', 'file': files[c], 'line': 40, 'symbol': handler, 'fact': f'FACT-broken-{i}', 'dynamic': False, 'relative': False})
+    owners = {f: {'name': f'src/pages/{layer[c]}', 'relation': ('retain', 'modify', 'rebuild', 'delete')[i % 4], 'target_component': layer[c]}
+              for i, (c, f) in enumerate(files.items())}
+    records = {'pages': pages, 'links': links, 'imports': imports, 'names': names, 'defined': {}, 'owners': owners, 'target_of': {},
+               'feature_of': {}, 'shots': {}, 'dead': set(), 'has_target': True}
+    journeys = journeys_map.from_records(records)
+    items = [{'id': f'writes:http:/{layer[c]}', 'group': 'writes', 'kind': 'http', 'name': f'/{layer[c]}', 'file': f'src/api/{layer[c]}.ts',
+              'line': 3, 'fact': f'FACT-write-{layer[c]}', 'files': [f'src/api/{layer[c]}.ts'], 'detail': None} for c in comps[:len(set(layer.values()))]]
+    items += [{'id': f'dead:unreachable-module:{i}', 'group': 'dead', 'kind': 'unreachable-module', 'name': f'src/old/m{i}.ts', 'file': f'src/old/m{i}.ts',
+               'line': 1, 'fact': f'FACT-dead-{i}', 'files': [f'src/old/m{i}.ts'], 'detail': None} for i in range(300)]
+    items.append({'id': 'outside:api.example.com', 'group': 'outside', 'kind': 'host', 'name': 'api.example.com', 'file': 'src/old/client.ts',
+                  'line': 1, 'fact': 'FACT-host', 'files': ['src/old/client.ts'], 'detail': None})
+    reach = {s['id']: ({s['file'], *imports.get(s['file'], [])} if s['file'] else set()) for s in journeys['screens'] if s['kind'] == 'page'}
+    hidden = hidden_map.assemble(items, journeys, reach, {f: o['name'] for f, o in owners.items()}, card_rows[:50])
+    return {'journeys': {**V2, **journeys}, 'hidden': {**V2, **hidden}}
 
 
 def write(folder, sections, name='synthetic'):

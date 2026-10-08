@@ -22,9 +22,10 @@ import { OP_WORD, useMapWords } from '../map/words'
 import { usePageChrome } from '../shell/chrome'
 import { MissingBanner, WithData } from '../shell/Layout'
 import { SystemPage } from './System'
+import { HiddenSwitch, SystemViews } from './system/SystemViews'
 import css from './SystemMap.module.css'
 
-interface SystemSearch { focus?: string; view?: string; show?: string; op?: string }
+interface SystemSearch { focus?: string; view?: string; show?: string; op?: string; hidden?: string }
 
 export function usePhone(): boolean {
   const query = '(max-width: 767px)'
@@ -93,6 +94,18 @@ function SystemMapBody({ data, system }: { data: StudioData; system: SystemMap }
   const focus = view.nodes.some((n) => n.id === search.focus) ? search.focus : undefined
   const only = (['retain', 'modify', 'rebuild', 'delete', 'merge', 'introduce'] as Operation[]).find((op) => op === search.op)
   const list = search.show === 'list'
+  // the "show hidden" lens: the components holding unseen work (studio/hidden.json), each with how many items
+  const showHidden = search.hidden === '1'
+  const marked = useMemo(() => {
+    if (!showHidden || !data.hidden) return undefined
+    const out: Record<string, number> = {}
+    for (const [id, groups] of Object.entries(data.hidden.components)) {
+      const n = Object.entries(groups).reduce((sum, [g, k]) => sum + (g === 'screens' ? 0 : k ?? 0), 0)
+      if (n) out[id] = n
+    }
+    return out
+  }, [showHidden, data.hidden])
+  const hiddenSwitch = data.hidden ? <HiddenSwitch on={showHidden} onChange={(on) => go({ hidden: on ? '1' : undefined })} /> : null
   const [centre, setCentre] = useState<string | undefined>()
   const [explore, setExplore] = useState(false)
   const focusCard = useRef<HTMLDivElement>(null)
@@ -123,18 +136,20 @@ function SystemMapBody({ data, system }: { data: StudioData; system: SystemMap }
     return (
       <div className={css.phone}>
         <MissingBanner data={data} />
+        <SystemViews current="map" />
         <h1 className={css.largeTitle}>{w('systemMap')}</h1>
         <ModeSwitch mode={mode} onChange={setMode} comfortable />
         <figure className={css.preview}>
           <button type="button" className={css.previewBtn} onClick={() => setExplore(true)} aria-label={w('exploreMap')}>
-            <TerritoryMap view={view} mode={mode} variant="preview" focus={focus} only={only} />
+            <TerritoryMap view={view} mode={mode} variant="preview" focus={focus} only={only} marked={marked} />
           </button>
           <figcaption className={css.cap}>
             <span>{counts}</span>
             <Button variant="ghost" onPress={() => setExplore(true)}>{w('exploreMap')}</Button>
           </figcaption>
         </figure>
-        <Legend system={system} mode={mode} view={view} inline />
+        {hiddenSwitch}
+        <Legend system={system} mode={mode} view={view} inline marked={marked} />
         <FocusField ids={ids} label={w('findComponent')} onPick={pick} comfortable />
         {focus && (
           <div ref={focusCard} className={css.focusCard}>
@@ -149,7 +164,7 @@ function SystemMapBody({ data, system }: { data: StudioData; system: SystemMap }
             <Dialog className={css.exploreDialog} aria-label={w('systemMap')}>
               {({ close }) => (
                 <>
-                  <MapCanvas system={system} mode={mode} focus={focus} only={only} onFocus={setFocus} legend={false} minimap={false}
+                  <MapCanvas system={system} mode={mode} focus={focus} only={only} onFocus={setFocus} legend={false} minimap={false} marked={marked}
                     className={css.exploreCanvas}
                     head={<><IconButton icon="x" label={w('closeMap')} onPress={close} /><Heading slot="title" className={css.exploreTitle}>{w('systemMap')}</Heading></>} />
                   {focus && (
@@ -174,6 +189,7 @@ function SystemMapBody({ data, system }: { data: StudioData; system: SystemMap }
       <Segmented label={w('showAs')} value={list ? 'list' : 'map'} onChange={(v) => go({ show: v === 'list' ? 'list' : undefined })}
         options={[{ id: 'map', label: w('asMap') }, { id: 'list', label: w('asList') }]} />
       <FocusField ids={ids} label={w('focusComponent')} onPick={pick} />
+      {hiddenSwitch}
       {only && <Go to="/system" search={{ view: search.view }} className={css.only} label={w('showAll')}>{w(OP_WORD[only])}<span aria-hidden="true">×</span></Go>}
     </>
   )
@@ -181,7 +197,8 @@ function SystemMapBody({ data, system }: { data: StudioData; system: SystemMap }
     <div className={css.sys}>
       <section className={css.canvasCol} aria-labelledby="h-map">
         <MissingBanner data={data} />
-        <MapCanvas key={list ? 'list' : 'map'} system={system} mode={mode} focus={focus} only={only} onFocus={setFocus} centreOn={centre} title={title} head={head}
+        <div className={css.viewsRow}><SystemViews current="map" /></div>
+        <MapCanvas key={list ? 'list' : 'map'} system={system} mode={mode} focus={focus} only={only} onFocus={setFocus} centreOn={centre} title={title} head={head} marked={marked}
           className={css.canvasBox}
           replace={list ? <div className={css.listView}><RankedList system={system} mode={mode} focus={focus} onFocus={setFocus} first={60} /></div> : undefined} />
         {(system.capped ?? 0) > 0 && <p className={css.capped}>{w('capped', { n: system.current.nodes.length })}</p>}

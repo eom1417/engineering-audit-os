@@ -33,6 +33,8 @@ export interface TerritoryMapProps {
   className?: string
   svgRef?: React.Ref<SVGSVGElement>
   dragging?: boolean
+  /** The "show hidden" lens: components holding unseen work get a dashed ring */
+  marked?: Record<string, number>
 }
 
 function isCurrent(node: AnyNode): node is CurrentNode {
@@ -45,7 +47,7 @@ function strongEdges(edges: MapEdge[]): MapEdge[] {
   return strong.length >= 8 ? strong : [...edges].sort((a, b) => b.imports - a.imports).slice(0, 12)
 }
 
-export function TerritoryMap({ view, mode, variant, focus, lit = [], only, onFocus, transform, frame, label, className, svgRef, dragging }: TerritoryMapProps) {
+export function TerritoryMap({ view, mode, variant, focus, lit = [], only, onFocus, transform, frame, label, className, svgRef, dragging, marked }: TerritoryMapProps) {
   const { lang } = usePrefs()
   const w = useMapWords()
   const uid = useId().replace(/:/g, '')
@@ -144,11 +146,15 @@ export function TerritoryMap({ view, mode, variant, focus, lit = [], only, onFoc
               <g key={n.id} className={nodeClass(n)} role="button" tabIndex={0} aria-label={nodeName(n)}
                 aria-pressed={focusNode?.id === n.id} onClick={() => press(n.id)} onKeyDown={(e) => key(e, n.id)} data-node={n.id}>
                 <circle className={css.halo} cx={n.x} cy={n.y} r={r + 9} />
+                {marked?.[n.id] ? <circle className={css.hiddenRing} cx={n.x} cy={n.y} r={r + 4.5} /> : null}
                 <circle className={css.dot} cx={n.x} cy={n.y} r={r} style={fill} />
                 <circle className={css.hit} cx={n.x} cy={n.y} r={Math.max(r, 14)} />
               </g>
             ) : (
-              <g key={n.id} className={nodeClass(n)}><circle className={css.dot} cx={n.x} cy={n.y} r={r} style={fill} /></g>
+              <g key={n.id} className={nodeClass(n)}>
+                {marked?.[n.id] && !mini ? <circle className={css.hiddenRing} cx={n.x} cy={n.y} r={r + 4.5} /> : null}
+                <circle className={css.dot} cx={n.x} cy={n.y} r={r} style={fill} />
+              </g>
             )
           })}
         </g>

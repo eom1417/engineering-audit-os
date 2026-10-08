@@ -102,3 +102,7 @@ li + li > .srcRow { border-block-start: 1px solid var(--border-subtle); }
   .zoomBtn { inline-size: 44px; block-size: 44px; }
   .metrics dd { font-size: 17px; }
 }
+
+/* the "show hidden" lens: a dashed ring around the components that hold unseen work */
+.lgHidden { flex: none; fill: none; stroke: var(--text-secondary); stroke-width: 1.5; stroke-dasharray: 2 2.5; }
+.lgHidden .lgDot { stroke: var(--op-keep); stroke-dasharray: none; fill: var(--op-keep-wash); }

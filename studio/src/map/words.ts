@@ -92,6 +92,8 @@ export const MAP_WORDS = {
   capped: ['تعرض الخريطة أكبر {n} مكوّنًا.', 'The map shows the largest {n} components.'],
   more: ['و{n} أخرى', 'and {n} more'],
   showAll: ['اعرض كل العمليات', 'Show every operation'],
+  hiddenRing: ['حلقة متقطعة: يحمل عملًا لا يُرى ({n})', 'Dashed ring: holds unseen work ({n})'],
+  showHidden: ['اعرض الخفي', 'Show hidden'],
 } satisfies Record<string, readonly [string, string]>
 
 export type MapWord = keyof typeof MAP_WORDS
@@ -100,13 +102,19 @@ export const OP_WORD: Record<Operation, MapWord> = {
   retain: 'opRetain', modify: 'opModify', rebuild: 'opRebuild', delete: 'opDelete', merge: 'opMerge', introduce: 'opIntroduce',
 }
 
-/** The maps' words in the current language, with {name} placeholders filled in (numbers in the page's digits). */
-export function useMapWords() {
-  const { lang, num } = usePrefs()
-  const index = lang === 'ar' ? 0 : 1
-  return (key: MapWord, vars?: Record<string, string | number>) =>
-    MAP_WORDS[key][index].replace(/\{(\w+)\}/g, (_, name: string) => {
-      const value = vars?.[name]
-      return value === undefined ? '' : typeof value === 'number' ? num(value) : value
-    })
+/** A hook giving a word table's words in the current language, with {name} placeholders filled in (numbers in the
+ * page's digits). Each map keeps its own table, Arabic first and English equally finished. */
+export function makeWords<K extends string>(table: Record<K, readonly [string, string]>) {
+  return function useWords() {
+    const { lang, num } = usePrefs()
+    const index = lang === 'ar' ? 0 : 1
+    return (key: K, vars?: Record<string, string | number>) =>
+      table[key][index].replace(/\{(\w+)\}/g, (_, name: string) => {
+        const value = vars?.[name]
+        return value === undefined ? '' : typeof value === 'number' ? num(value) : value
+      })
+  }
 }
+
+/** The maps' words in the current language. */
+export const useMapWords = makeWords<MapWord>(MAP_WORDS)

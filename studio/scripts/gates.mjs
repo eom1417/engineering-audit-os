@@ -40,6 +40,12 @@ for (const name of fs.readdirSync(dataDir).filter((n) => n.endsWith('.js'))) fs.
 const manifest = JSON.parse(fs.readFileSync(path.join(dataDir, 'manifest.json'), 'utf8'))
 const cards = JSON.parse(fs.readFileSync(path.join(dataDir, 'cards.json'), 'utf8')).cards
 const firstCard = cards.find((c) => c.evidence.length) ?? cards[0]
+// The journeys map (NS46.T6): a task with a path and a flagged screen of this report, when it has them.
+const readSection = (name) => { try { return JSON.parse(fs.readFileSync(path.join(dataDir, `${name}.json`), 'utf8')) } catch { return null } }
+const journeys = readSection('journeys')
+const pathTask = journeys?.tasks.find((t) => t.path.length > 1)
+const flagged = journeys?.screens.find((s) => s.flags.includes('broken_link')) ?? journeys?.screens.find((s) => s.kind === 'page')
+const hiddenGroup = readSection('hidden')?.groups.find((g) => g.count.value)
 
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.woff2': 'font/woff2', '.json': 'application/json', '.txt': 'text/plain' }
 const server = http.createServer((req, res) => {
@@ -62,6 +68,15 @@ const ROUTES = [
   { name: 'system-change', hash: '#/system?view=change' },
   { name: 'system-target', hash: `#/system?view=target&focus=${encodeURIComponent('features')}` },
   { name: 'system-list', hash: '#/system?show=list', viewports: ['tablet', 'desktop'] },
+  { name: 'system-hidden', hash: '#/system?hidden=1' },
+  { name: 'journeys', hash: '#/system/journeys' },
+  { name: 'journeys-change', hash: '#/system/journeys?view=change' },
+  { name: 'journeys-target', hash: '#/system/journeys?view=target&hidden=1' },
+  ...(pathTask ? [{ name: 'journeys-task', hash: `#/system/journeys?task=${encodeURIComponent(pathTask.id)}` }] : []),
+  ...(flagged ? [{ name: 'journeys-focus', hash: `#/system/journeys?focus=${encodeURIComponent(flagged.id)}` }] : []),
+  { name: 'journeys-steps', hash: '#/system/journeys?show=steps', viewports: ['tablet', 'desktop'] },
+  { name: 'hidden', hash: '#/system/hidden' },
+  ...(hiddenGroup ? [{ name: 'hidden-focus', hash: `#/system/hidden?focus=${encodeURIComponent(hiddenGroup.id)}` }] : []),
   { name: 'problems', hash: '#/problems' },
   { name: 'problem', hash: `#/problems?card=${encodeURIComponent(firstCard.id)}` },
   { name: 'change', hash: '#/change' },

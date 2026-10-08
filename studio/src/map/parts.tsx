@@ -39,9 +39,11 @@ export interface CanvasProps {
   className?: string
   /** Shown instead of the map (the list view), under the same toolbar */
   replace?: ReactNode
+  /** The "show hidden" lens: components holding unseen work (studio/hidden.json), by id, with how many items */
+  marked?: Record<string, number>
 }
 
-export function MapCanvas({ system, mode, focus, lit, only, onFocus, title, head, variant = 'full', legend = true, minimap = true, centreOn, className, replace }: CanvasProps) {
+export function MapCanvas({ system, mode, focus, lit, only, onFocus, title, head, variant = 'full', legend = true, minimap = true, centreOn, className, replace, marked }: CanvasProps) {
   const w = useMapWords()
   const svg = useRef<SVGSVGElement>(null)
   const zoom = useZoom(svg)
@@ -56,32 +58,47 @@ export function MapCanvas({ system, mode, focus, lit, only, onFocus, title, head
     if (node) centre(node.x, node.y, 1.8)
   }, [centreOn, view, centre])
   return (
-    <div className={[css.canvasWrap, className].filter(Boolean).join(' ')}>
-      <div className={css.toolbar}>
-        {title && <div className={css.toolTitle}>{title}</div>}
-        <div className={css.toolRow}>
-        {head}
-        <span className={css.toolSpacer} />
-        {!replace && <div className={css.zoom} role="group" aria-label={w('zoom')}>
-          <AriaButton className={css.zoomBtn} aria-label={w('zoomOut')} onPress={() => zoom.zoomBy(1 / 1.4)}><span aria-hidden="true">−</span></AriaButton>
-          <AriaButton className={css.zoomBtn} aria-label={w('zoomIn')} onPress={() => zoom.zoomBy(1.4)}><span aria-hidden="true">+</span></AriaButton>
-          <AriaButton className={css.zoomBtn} aria-label={w('zoomFit')} onPress={zoom.fit}><FitIcon /></AriaButton>
-        </div>}
-        </div>
-      </div>
+    <CanvasFrame title={title} head={head} zoom={replace ? undefined : zoom} className={className}>
       {replace ?? <div className={css.canvas}>
-        <TerritoryMap view={view} mode={mode} variant={variant} focus={focus} lit={lit} only={only} onFocus={onFocus}
+        <TerritoryMap view={view} mode={mode} variant={variant} focus={focus} lit={lit} only={only} onFocus={onFocus} marked={marked}
           transform={zoom.t} dragging={zoom.dragging} svgRef={svg} label={label} className={css.canvasSvg} />
-        {legend && <Legend system={system} mode={mode} view={view} />}
+        {legend && <Legend system={system} mode={mode} view={view} marked={marked} />}
         {minimap && (
           <div className={[css.minimap, css.float].join(' ')} aria-hidden="true">
             <TerritoryMap view={view} mode={mode} variant="mini" frame={visibleWorld(zoom.t, view.bounds)} />
           </div>
         )}
       </div>}
+    </CanvasFrame>
+  )
+}
+
+/** A map's frame, shared by every map of the Studio: the toolbar (a title line, then the switches and the zoom
+ * buttons) above the canvas. `zoom` is the map's useZoom(); without it the zoom buttons are hidden (a list view). */
+export function CanvasFrame({ title, head, zoom, className, children }:
+  { title?: ReactNode; head?: ReactNode; zoom?: Pick<ReturnType<typeof useZoom>, 'zoomBy' | 'fit'>; className?: string; children: ReactNode }) {
+  const w = useMapWords()
+  return (
+    <div className={[css.canvasWrap, className].filter(Boolean).join(' ')}>
+      <div className={css.toolbar}>
+        {title && <div className={css.toolTitle}>{title}</div>}
+        <div className={css.toolRow}>
+        {head}
+        <span className={css.toolSpacer} />
+        {zoom && <div className={css.zoom} role="group" aria-label={w('zoom')}>
+          <AriaButton className={css.zoomBtn} aria-label={w('zoomOut')} onPress={() => zoom.zoomBy(1 / 1.4)}><span aria-hidden="true">−</span></AriaButton>
+          <AriaButton className={css.zoomBtn} aria-label={w('zoomIn')} onPress={() => zoom.zoomBy(1.4)}><span aria-hidden="true">+</span></AriaButton>
+          <AriaButton className={css.zoomBtn} aria-label={w('zoomFit')} onPress={zoom.fit}><FitIcon /></AriaButton>
+        </div>}
+        </div>
+      </div>
+      {children}
     </div>
   )
 }
+
+/** The class of a map's drawing area (position: relative, the map's water) and of its SVG filling it. */
+export const canvasClass = { canvas: css.canvas, svg: css.canvasSvg, float: css.float }
 
 function FitIcon() {
   return (
@@ -93,7 +110,7 @@ function FitIcon() {
 
 // ---------------------------------------------------------------- legend
 
-export function Legend({ system, mode, view, inline }: { system: SystemMap; mode: MapMode; view: MapView; inline?: boolean }) {
+export function Legend({ system, mode, view, inline, marked }: { system: SystemMap; mode: MapMode; view: MapView; inline?: boolean; marked?: Record<string, number> }) {
   const w = useMapWords()
   const files = view.nodes.map((n) => n.files).sort((a, b) => a - b)
   const sizes = files.length ? [files[0], files[Math.floor(files.length / 2)], files[files.length - 1]] : []
@@ -134,6 +151,12 @@ export function Legend({ system, mode, view, inline }: { system: SystemMap; mode
         <div className={css.lgKey}>
           <svg width="44" height="10" aria-hidden="true" className={css.lgEdge}><path d="M2 5h12" strokeWidth="1.2" /><path d="M18 5h24" strokeWidth="4.4" /></svg>
           <span>{w('lineIsImports')} <bdi dir="ltr" className="num">{lo === hi ? lo : `${lo}–${hi}`}</bdi></span>
+        </div>
+      )}
+      {marked && Object.keys(marked).length > 0 && (
+        <div className={css.lgKey}>
+          <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" className={css.lgHidden}><circle cx="11" cy="11" r="5" className={css.lgDot} /><circle cx="11" cy="11" r="9" /></svg>
+          <span>{w('hiddenRing', { n: Object.keys(marked).length })}</span>
         </div>
       )}
     </div>

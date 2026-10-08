@@ -19,12 +19,15 @@ from pathlib import Path
 
 from .. import artifact_contracts, build_info, indicators
 from . import coverage as coverage_section
+from . import hidden as hidden_map
+from . import journeys as journeys_map
 from . import model as M
 from . import system as system_map
 
 CONTRACT = 1
 REVISION = 2           # contract v2: sections added without breaking a v1 reader (docs/STUDIO.md)
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
+SECTIONS_V2 = ('journeys', 'hidden')   # the v2 sections this exporter writes, before coverage (NS46.T6)
 SAFE = re.compile(r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$)).+')
 LANGUAGES = M.LANGUAGES
 SEVERITY_OF_CONFIDENCE = {'CONFIRMED': 1.0, 'LIKELY': 0.7, 'HYPOTHESIS': 0.4}
@@ -300,6 +303,8 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('decisions', lambda: decisions(m, card_rows, lang))
     attempt('media', lambda: media(report))
     attempt('system', lambda: system_map.system(report, card_rows))
+    attempt('journeys', lambda: journeys_map.journeys(report, built.get('media')))
+    if 'journeys' in built: attempt('hidden', lambda: hidden_map.hidden(report, built['journeys'], card_rows))
     key = {'cards': 'cards', 'evidence': 'facts', 'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images'}
     def publish(section, data):
         problems = artifact_contracts.validate(data, contracts[f'studio-{section}'])
@@ -313,6 +318,8 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
         if section not in built: continue
         body = built[section]
         publish(section, {'schema_version': 1, 'contract': CONTRACT, **({key[section]: body} if section in key else body)})
+    for section in SECTIONS_V2:
+        if section in built: publish(section, {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, **built[section]})
     # Last of the sections: it says which of the others were written, and what is not measured yet.
     attempt('coverage', lambda: coverage_section.coverage(report, built, [e['name'] for e in entries], list(errors), lang))
     if 'coverage' in built: publish('coverage', {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, **built['coverage']})

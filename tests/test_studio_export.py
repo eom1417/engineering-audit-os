@@ -8,6 +8,7 @@ from tests.shared_fixture import Workspace
 from tests.test_human_report import report
 
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
+SECTIONS_V2 = ('journeys', 'hidden')          # the v2 maps, written before coverage
 
 
 class Export(Workspace):
@@ -23,7 +24,7 @@ class Export(Workspace):
 
     def test_every_section_and_the_manifest_meet_their_contract(self):
         self.assertEqual(self.result['errors'], [])
-        self.assertEqual(self.result['written'], [*SECTIONS, 'coverage'])
+        self.assertEqual(self.result['written'], [*SECTIONS, *SECTIONS_V2, 'coverage'])
         contracts = artifact_contracts.contracts()
         for name in ('manifest', *SECTIONS, 'coverage'):
             self.assertEqual(artifact_contracts.validate(self.load(name), contracts[f'studio-{name}']), [], name)
@@ -86,7 +87,7 @@ class Export(Workspace):
         with mock.patch.object(export, 'media', side_effect=ValueError('no folder')):
             result = export.export(self.out, 'en', 'shop')
         self.assertEqual(result['errors'], [{'section': 'media', 'error': 'ValueError: no folder'}])
-        self.assertEqual(result['written'], [name for name in SECTIONS if name != 'media'] + ['coverage'])
+        self.assertEqual(result['written'], [name for name in SECTIONS if name != 'media'] + [*SECTIONS_V2, 'coverage'])
         self.assertNotIn('media', {entry['name'] for entry in self.load('manifest')['sections']})
         rows = {row['section']: row for row in self.load('coverage')['sections']}
         self.assertEqual((rows['media']['state'], rows['media']['reason']), ('failed', 'section_error'))

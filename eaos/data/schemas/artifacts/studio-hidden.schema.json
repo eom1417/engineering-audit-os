@@ -1,0 +1,444 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/hidden.json",
+  "description": "What the user sees against what runs unseen: the screens by area, and the background jobs, web hooks, edge functions, hidden screens, server routes, writes, outside services, configuration and secrets, build steps and dead code, each with its evidence, the screens that set it in motion and the component that holds it.",
+  "x-artifact": "studio/hidden.json",
+  "x-owner": "NS46",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "revision",
+    "counts",
+    "src",
+    "seen",
+    "groups",
+    "items",
+    "links",
+    "components",
+    "missing"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "revision": {
+      "const": 2
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/measure"
+      }
+    },
+    "src": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/source"
+      }
+    },
+    "seen": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "screens",
+          "dialogs",
+          "dialog_count"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "screens": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dialogs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dialog_count": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "count",
+          "kinds",
+          "no_screen",
+          "items"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "triggers",
+              "screens",
+              "server",
+              "writes",
+              "outside",
+              "config",
+              "build",
+              "dead"
+            ]
+          },
+          "count": {
+            "$ref": "#/$defs/measure"
+          },
+          "kinds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "no_screen": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capped": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "group",
+          "kind",
+          "name",
+          "file",
+          "fact",
+          "areas",
+          "no_screen"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "group": {
+            "type": "string",
+            "enum": [
+              "triggers",
+              "screens",
+              "server",
+              "writes",
+              "outside",
+              "config",
+              "build",
+              "dead"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "file": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "fact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "card": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "areas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "no_screen": {
+            "type": "boolean"
+          },
+          "component": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "links": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "to",
+          "count",
+          "items"
+        ],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string",
+            "enum": [
+              "triggers",
+              "screens",
+              "server",
+              "writes",
+              "outside",
+              "config",
+              "build",
+              "dead"
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "missing": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "state",
+          "step",
+          "count",
+          "detail"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "measured",
+              "empty",
+              "partial",
+              "not_measured",
+              "failed"
+            ]
+          },
+          "step": {
+            "type": "string",
+            "pattern": "^NS[0-9]+(\\.T[0-9]+)?$"
+          },
+          "count": {
+            "$ref": "#/$defs/measure"
+          },
+          "detail": {
+            "type": "object",
+            "required": [
+              "ar",
+              "en"
+            ],
+            "properties": {
+              "ar": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    },
+    "touch": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "table",
+            "file",
+            "env",
+            "network",
+            "store",
+            "storage"
+          ]
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "x-revision": 2
+}

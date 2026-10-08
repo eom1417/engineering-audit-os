@@ -7,6 +7,8 @@ import { HomePage } from './pages/Home'
 import { LibraryPage } from './pages/Library'
 import { ProblemsPage } from './pages/Problems'
 import { SystemMapPage } from './pages/SystemMap'
+import { HiddenPage } from './pages/system/hidden/HiddenPage'
+import { JourneysPage } from './pages/system/journeys/JourneysPage'
 import { GalleryPage } from './gallery/Gallery'
 import { Shell } from './shell/Shell'
 import { SECTIONS } from './shell/sections'
@@ -33,7 +35,9 @@ function devOnly(id: string, dev: () => boolean) {
 export function makeRouter(dev: () => boolean) {
   const tree = root.addChildren([
     createRoute({ getParentRoute: () => root, path: '/', component: HomePage }),
-    createRoute({ getParentRoute: () => root, path: '/system', component: SystemMapPage, validateSearch: params('focus', 'view', 'show', 'op') }),
+    createRoute({ getParentRoute: () => root, path: '/system', component: SystemMapPage, validateSearch: params('focus', 'view', 'show', 'op', 'hidden') }),
+    createRoute({ getParentRoute: () => root, path: '/system/journeys', component: JourneysPage, validateSearch: params('view', 'show', 'task', 'focus', 'hidden', 'flag') }),
+    createRoute({ getParentRoute: () => root, path: '/system/hidden', component: HiddenPage, validateSearch: params('focus', 'only', 'hidden') }),
     createRoute({ getParentRoute: () => root, path: '/problems', component: ProblemsPage, validateSearch: params('card', 'who', 'severity', 'component', 'q') }),
     createRoute({ getParentRoute: () => root, path: '/change', component: ChangePage, validateSearch: params('focus', 'side') }),
     createRoute({ getParentRoute: () => root, path: '/decisions', component: DecisionsPage }),

@@ -19,7 +19,7 @@ FUNCTION_SCOPES = ('function', 'method')
 PLANNED = {'meta': 'languages', 'head': None, 'health': 'domains', 'cards': 'cards', 'evidence': 'facts', 'story': 'gap',
            'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images',
            'functions': 'functions', 'screens': 'screens', 'gaps': 'gaps', 'operations': 'operations', 'history': 'scans',
-           'quality': 'detectors', 'maps': None}
+           'quality': 'detectors', 'maps': None, 'journeys': 'screens', 'hidden': 'items'}
 V1_STEP = 'NS36.T2'
 
 
@@ -87,6 +87,10 @@ def _not_exported(section, report, built, lang):
         return ('not_built', _text(lang, 'دقة كاشفات EAOS تُقاس على حالاتها المعلَّمة، ولم تُصدَّر لكل مشروع بعد.',
                                    "EAOS's detector precision is measured on its labelled cases and not exported per project yet."),
                 'NS46.T4', None, _count(None, 'docs/engine-precision.json'), [])
+    if section in ('journeys', 'hidden'):
+        return ('not_built', _text(lang, 'خريطة الرحلات والظاهر والخفي لم تُصدَّر في هذا الفحص.',
+                                   'The journeys and the visible and hidden maps are not exported in this check.'),
+                'NS46.T6', 'audit', _count(None, f'{section}.json'), [])
     if section == 'maps':
         return ('not_built', _text(lang, 'خرائط النظام لم تُصدَّر في هذا الفحص.', 'The system maps are not exported in this check.'),
                 'NS46.T6', 'audit', _count(None, 'maps.json'), [])
@@ -108,11 +112,18 @@ def coverage(report, built, written, errors, lang='ar'):
             listed = body.get(items) if isinstance(body, dict) and items else body if isinstance(body, list) else None
             count = len(listed) if isinstance(listed, list) else None
             empty = count == 0
-            rows.append({'section': section, 'state': 'empty' if empty else 'measured',
-                         'reason': 'nothing_found' if empty else 'written',
+            # A written section may name the parts of its data the engine does not produce yet (`missing`): it is partial.
+            gaps = [g for g in (body.get('missing') if isinstance(body, dict) and not empty else None) or []
+                    if isinstance(g, dict) and g.get('state') in ('not_measured', 'partial', 'failed')]
+            parts = [{'id': g['id'], 'state': g['state'], 'detail': (g.get('detail') or {}).get(lang) or g['id']} for g in gaps]
+            rows.append({'section': section, 'state': 'empty' if empty else 'partial' if gaps else 'measured',
+                         'reason': 'nothing_found' if empty else 'some_parts_missing' if gaps else 'written',
                          'detail': (_text(lang, 'قيس ولم يُوجد شيء.', 'Measured; nothing was found.') if empty else
+                                    _text(lang, 'مقيس، وأجزاء منه لم تُقس بعد: ', 'Measured; parts are not measured yet: ')
+                                    + _text(lang, '؛ ', '; ').join(p['detail'].rstrip('.') for p in parts) + '.' if gaps else
                                     _text(lang, 'مقيس في هذا الفحص.', 'Measured in this check.')),
-                         'step': None, 'tool': None, 'count': _count(count, f'{section}.json' + (f'#{items}' if items else '')), 'parts': []})
+                         'step': gaps[0]['step'] if gaps else None, 'tool': None,
+                         'count': _count(count, f'{section}.json' + (f'#{items}' if items else '')), 'parts': parts})
         elif section in failed:
             rows.append({'section': section, 'state': 'failed', 'reason': 'section_error', 'detail': failed[section][:300],
                          'step': V1_STEP, 'tool': 'audit', 'count': _count(None, 'errors.json'), 'parts': []})

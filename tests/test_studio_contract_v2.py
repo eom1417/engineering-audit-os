@@ -17,7 +17,8 @@ sys.path.insert(0, str(ROOT / 'tools'))
 import studio_synthetic  # noqa: E402
 
 V1 = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media')
-V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'coverage')
+V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'coverage', 'journeys', 'hidden')
+ORDER = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'journeys', 'hidden', 'coverage')   # coverage last
 FIXTURES = ROOT / 'tests/fixtures/studio/v2'
 
 
@@ -96,7 +97,7 @@ class Synthetic(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             self.assertEqual(studio_synthetic.write(folder, self.sections), [])
             manifest = json.loads((Path(folder) / 'manifest.json').read_text(encoding='utf-8'))
-            self.assertEqual([e['name'] for e in manifest['sections']], [*V1, *V2])
+            self.assertEqual([e['name'] for e in manifest['sections']], [*V1, *ORDER])
             for entry in manifest['sections']:
                 self.assertEqual(entry['sha256'], hashlib.sha256((Path(folder) / entry['file']).read_bytes()).hexdigest())
             self.assertTrue((Path(folder) / 'cards.js').is_file())

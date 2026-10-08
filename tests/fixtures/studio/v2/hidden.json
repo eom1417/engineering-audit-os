@@ -1,0 +1,479 @@
+{
+ "schema_version": 1,
+ "contract": 1,
+ "revision": 2,
+ "counts": {
+  "seen": {
+   "value": 8,
+   "src": "studio/journeys.json#screens[kind=page]",
+   "unit": "count"
+  },
+  "dialogs": {
+   "value": 2,
+   "src": "facts/graph.json#graph_node named …Dialog, …Form, …Modal, …Sheet, …Drawer, rendered by a screen",
+   "unit": "count"
+  },
+  "unseen": {
+   "value": 8,
+   "src": "every item of the unseen groups",
+   "unit": "count"
+  },
+  "no_screen": {
+   "value": 1,
+   "src": "items of triggers, server, writes, outside and config no screen reaches by three import steps",
+   "unit": "count"
+  },
+  "triggers": {
+   "value": 1,
+   "src": "facts/entrypoints.json#entry_point[surface in job, container; http hook routes]; facts/graph.json#graph_node under supabase/functions, netlify/functions, api/cron",
+   "unit": "count"
+  },
+  "screens": {
+   "value": 3,
+   "src": "studio/journeys.json#screens[kind in layout, redirect, fallback]",
+   "unit": "count"
+  },
+  "server": {
+   "value": 0,
+   "src": "facts/entrypoints.json#entry_point[surface=http]",
+   "unit": "count"
+  },
+  "writes": {
+   "value": 2,
+   "src": "facts/entrypoints.json#data_access[operation in post, put, patch, delete, insert, update, upsert, remove, rpc]",
+   "unit": "count"
+  },
+  "outside": {
+   "value": 1,
+   "src": "facts/runtime.json#integration_target (distinct hosts)",
+   "unit": "count"
+  },
+  "config": {
+   "value": 0,
+   "src": "facts/config.json#env_read (distinct names), config_key[secret_shaped], config_file_unread; facts/secrets.json",
+   "unit": "count"
+  },
+  "build": {
+   "value": 0,
+   "src": "facts/runtime.json#ci_step, deployment_target; facts/entrypoints.json#entry_point[surface=cli]",
+   "unit": "count"
+  },
+  "dead": {
+   "value": 1,
+   "src": "facts/deadcode.json#engine_finding; facts/leftovers.json#leftover; facts/broken.json#broken_code",
+   "unit": "count"
+  }
+ },
+ "src": {
+  "triggers": "facts/entrypoints.json#entry_point[surface in job, container; http hook routes]; facts/graph.json#graph_node under supabase/functions, netlify/functions, api/cron",
+  "screens": "studio/journeys.json#screens[kind in layout, redirect, fallback]",
+  "server": "facts/entrypoints.json#entry_point[surface=http]",
+  "writes": "facts/entrypoints.json#data_access[operation in post, put, patch, delete, insert, update, upsert, remove, rpc]",
+  "outside": "facts/runtime.json#integration_target (distinct hosts)",
+  "config": "facts/config.json#env_read (distinct names), config_key[secret_shaped], config_file_unread; facts/secrets.json",
+  "build": "facts/runtime.json#ci_step, deployment_target; facts/entrypoints.json#entry_point[surface=cli]",
+  "dead": "facts/deadcode.json#engine_finding; facts/leftovers.json#leftover; facts/broken.json#broken_code",
+  "seen": "studio/journeys.json#screens[kind=page]",
+  "dialogs": "facts/graph.json#graph_node named …Dialog, …Form, …Modal, …Sheet, …Drawer, rendered by a screen",
+  "no_screen": "items of triggers, server, writes, outside and config no screen reaches by three import steps"
+ },
+ "seen": [
+  {
+   "id": "area:/",
+   "name": "/",
+   "screens": [
+    "/",
+    "/app"
+   ],
+   "routes": [
+    "/",
+    "/app"
+   ],
+   "dialogs": [],
+   "dialog_count": 0
+  },
+  {
+   "id": "area:items",
+   "name": "items",
+   "screens": [
+    "/app/items",
+    "/app/items/:id",
+    "/app/items/new"
+   ],
+   "routes": [
+    "/app/items",
+    "/app/items/:id",
+    "/app/items/new"
+   ],
+   "dialogs": [
+    "EditItemDialog"
+   ],
+   "dialog_count": 1
+  },
+  {
+   "id": "area:lost",
+   "name": "lost",
+   "screens": [
+    "/app/lost"
+   ],
+   "routes": [
+    "/app/lost"
+   ],
+   "dialogs": [],
+   "dialog_count": 0
+  },
+  {
+   "id": "area:old",
+   "name": "old",
+   "screens": [
+    "/app/old"
+   ],
+   "routes": [
+    "/app/old"
+   ],
+   "dialogs": [
+    "EditItemDialog"
+   ],
+   "dialog_count": 1
+  },
+  {
+   "id": "area:public",
+   "name": "public",
+   "screens": [
+    "/terms"
+   ],
+   "routes": [
+    "/terms"
+   ],
+   "dialogs": [],
+   "dialog_count": 0
+  }
+ ],
+ "groups": [
+  {
+   "id": "triggers",
+   "count": {
+    "value": 1,
+    "src": "facts/entrypoints.json#entry_point[surface in job, container; http hook routes]; facts/graph.json#graph_node under supabase/functions, netlify/functions, api/cron",
+    "unit": "count"
+   },
+   "kinds": {
+    "job": 1
+   },
+   "no_screen": 0,
+   "items": [
+    "triggers:job:nightly:jobs/nightly.py:4"
+   ],
+   "capped": 0
+  },
+  {
+   "id": "screens",
+   "count": {
+    "value": 3,
+    "src": "studio/journeys.json#screens[kind in layout, redirect, fallback]",
+    "unit": "count"
+   },
+   "kinds": {
+    "fallback": 2,
+    "layout": 1
+   },
+   "no_screen": 0,
+   "items": [
+    "screens:*",
+    "screens:/app/*#NotFound",
+    "screens:/app/*#Shell"
+   ],
+   "capped": 0
+  },
+  {
+   "id": "server",
+   "count": {
+    "value": 0,
+    "src": "facts/entrypoints.json#entry_point[surface=http]",
+    "unit": "count"
+   },
+   "kinds": {},
+   "no_screen": 0,
+   "items": [],
+   "capped": 0
+  },
+  {
+   "id": "writes",
+   "count": {
+    "value": 2,
+    "src": "facts/entrypoints.json#data_access[operation in post, put, patch, delete, insert, update, upsert, remove, rpc]",
+    "unit": "count"
+   },
+   "kinds": {
+    "http": 2
+   },
+   "no_screen": 1,
+   "items": [
+    "writes:http:/widgets",
+    "writes:http:/items"
+   ],
+   "capped": 0
+  },
+  {
+   "id": "outside",
+   "count": {
+    "value": 1,
+    "src": "facts/runtime.json#integration_target (distinct hosts)",
+    "unit": "count"
+   },
+   "kinds": {
+    "host": 1
+   },
+   "no_screen": 0,
+   "items": [
+    "outside:api.example.com"
+   ],
+   "capped": 0
+  },
+  {
+   "id": "config",
+   "count": {
+    "value": 0,
+    "src": "facts/config.json#env_read (distinct names), config_key[secret_shaped], config_file_unread; facts/secrets.json",
+    "unit": "count"
+   },
+   "kinds": {},
+   "no_screen": 0,
+   "items": [],
+   "capped": 0
+  },
+  {
+   "id": "build",
+   "count": {
+    "value": 0,
+    "src": "facts/runtime.json#ci_step, deployment_target; facts/entrypoints.json#entry_point[surface=cli]",
+    "unit": "count"
+   },
+   "kinds": {},
+   "no_screen": 0,
+   "items": [],
+   "capped": 0
+  },
+  {
+   "id": "dead",
+   "count": {
+    "value": 1,
+    "src": "facts/deadcode.json#engine_finding; facts/leftovers.json#leftover; facts/broken.json#broken_code",
+    "unit": "count"
+   },
+   "kinds": {
+    "unreachable-module": 1
+   },
+   "no_screen": 0,
+   "items": [
+    "dead:unreachable-module:src/dead/Widget.tsx:src/dead/Widget.tsx:1"
+   ],
+   "capped": 0
+  }
+ ],
+ "items": [
+  {
+   "id": "triggers:job:nightly:jobs/nightly.py:4",
+   "group": "triggers",
+   "kind": "job",
+   "name": "nightly",
+   "file": "jobs/nightly.py",
+   "line": 4,
+   "fact": "FACT-entry_point-jobs_nightly.py-4",
+   "files": [
+    "jobs/nightly.py"
+   ],
+   "detail": "celery",
+   "card": null,
+   "areas": [],
+   "no_screen": false,
+   "component": null
+  },
+  {
+   "id": "screens:*",
+   "group": "screens",
+   "kind": "fallback",
+   "name": "* (NotFound)",
+   "file": "src/App.tsx",
+   "line": 20,
+   "fact": "FACT-entry_point-src_App.tsx-20",
+   "files": [
+    "src/App.tsx",
+    "src/pages/NotFound.tsx"
+   ],
+   "detail": null,
+   "card": null,
+   "areas": [],
+   "no_screen": false,
+   "component": "src"
+  },
+  {
+   "id": "screens:/app/*#NotFound",
+   "group": "screens",
+   "kind": "fallback",
+   "name": "/app/* (NotFound)",
+   "file": "src/App.tsx",
+   "line": 19,
+   "fact": "FACT-entry_point-src_App.tsx-19",
+   "files": [
+    "src/App.tsx",
+    "src/pages/NotFound.tsx"
+   ],
+   "detail": null,
+   "card": null,
+   "areas": [],
+   "no_screen": false,
+   "component": "src"
+  },
+  {
+   "id": "screens:/app/*#Shell",
+   "group": "screens",
+   "kind": "layout",
+   "name": "/app/* (Shell)",
+   "file": "src/App.tsx",
+   "line": 12,
+   "fact": "FACT-entry_point-src_App.tsx-12",
+   "files": [
+    "src/App.tsx"
+   ],
+   "detail": null,
+   "card": null,
+   "areas": [],
+   "no_screen": false,
+   "component": "src"
+  },
+  {
+   "id": "writes:http:/items",
+   "group": "writes",
+   "kind": "http",
+   "name": "/items",
+   "file": "src/api/items.ts",
+   "line": 9,
+   "fact": "FACT-data_access-src_api_items.ts-9",
+   "files": [
+    "src/api/items.ts"
+   ],
+   "detail": "POST /items",
+   "card": null,
+   "areas": [
+    "area:items",
+    "area:old"
+   ],
+   "no_screen": false,
+   "component": null
+  },
+  {
+   "id": "writes:http:/widgets",
+   "group": "writes",
+   "kind": "http",
+   "name": "/widgets",
+   "file": "src/dead/Widget.tsx",
+   "line": 7,
+   "fact": "FACT-data_access-src_dead_Widget.tsx-7",
+   "files": [
+    "src/dead/Widget.tsx"
+   ],
+   "detail": "DELETE /widgets",
+   "card": "TASK-1",
+   "areas": [],
+   "no_screen": true,
+   "component": "src/dead"
+  },
+  {
+   "id": "outside:api.example.com",
+   "group": "outside",
+   "kind": "host",
+   "name": "api.example.com",
+   "file": "src/api/items.ts",
+   "line": 2,
+   "fact": "FACT-integration_target-src_api_items.ts-2",
+   "files": [
+    "src/api/items.ts"
+   ],
+   "detail": null,
+   "card": null,
+   "areas": [
+    "area:items",
+    "area:old"
+   ],
+   "no_screen": false,
+   "component": null
+  },
+  {
+   "id": "dead:unreachable-module:src/dead/Widget.tsx:src/dead/Widget.tsx:1",
+   "group": "dead",
+   "kind": "unreachable-module",
+   "name": "src/dead/Widget.tsx",
+   "file": "src/dead/Widget.tsx",
+   "line": 1,
+   "fact": "FACT-engine_finding-src_dead_Widget.tsx-1",
+   "files": [
+    "src/dead/Widget.tsx"
+   ],
+   "detail": null,
+   "card": null,
+   "areas": [],
+   "no_screen": false,
+   "component": "src/dead"
+  }
+ ],
+ "links": [
+  {
+   "from": "area:items",
+   "to": "outside",
+   "count": 1,
+   "items": [
+    "outside:api.example.com"
+   ]
+  },
+  {
+   "from": "area:items",
+   "to": "writes",
+   "count": 1,
+   "items": [
+    "writes:http:/items"
+   ]
+  },
+  {
+   "from": "area:old",
+   "to": "outside",
+   "count": 1,
+   "items": [
+    "outside:api.example.com"
+   ]
+  },
+  {
+   "from": "area:old",
+   "to": "writes",
+   "count": 1,
+   "items": [
+    "writes:http:/items"
+   ]
+  }
+ ],
+ "components": {
+  "src": {
+   "screens": 3
+  },
+  "src/dead": {
+   "writes": 1,
+   "dead": 1
+  }
+ },
+ "missing": [
+  {
+   "id": "controls",
+   "state": "not_measured",
+   "step": "NS40.T1",
+   "count": {
+    "value": null,
+    "src": "screens.json#screens[].inputs",
+    "unit": "count"
+   },
+   "detail": {
+    "ar": "الأزرار والحقول على كل شاشة لم تُقرأ بعد.",
+    "en": "The buttons and inputs on each screen are not read yet."
+   }
+  }
+ ]
+}

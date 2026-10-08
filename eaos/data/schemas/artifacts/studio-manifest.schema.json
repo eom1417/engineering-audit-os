@@ -97,7 +97,9 @@
               "operations",
               "history",
               "quality",
-              "coverage"
+              "coverage",
+              "journeys",
+              "hidden"
             ]
           },
           "file": {
@@ -225,6 +227,8 @@
     "operations",
     "history",
     "quality",
-    "coverage"
+    "coverage",
+    "journeys",
+    "hidden"
   ]
 }
