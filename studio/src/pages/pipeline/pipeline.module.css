@@ -102,3 +102,4 @@
 .fold:not([open]) { padding-block: 4px; }
 .foldHead { cursor: pointer; font-weight: 600; color: var(--text-secondary); min-block-size: 24px; display: flex; align-items: center; }
 .foldHead:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-4); }
+@media (max-width: 767px) { .foldHead { min-block-size: 44px; } }

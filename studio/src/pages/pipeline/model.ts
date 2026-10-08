@@ -172,9 +172,11 @@ export function scopeOf(data: PipelineData, id: string): Scope | null {
   }
 }
 
-/** The pipeline shown first: the first product pipeline at the top, else the first one. */
+/** The pipeline shown first: the longest product pipeline at the top (the one the project is), else the first one. */
 export function firstPipeline(data: PipelineData): string | undefined {
-  return (data.pipelines.find((p) => !p.parent && p.role === 'product') ?? data.pipelines.find((p) => !p.parent) ?? data.pipelines[0])?.id
+  const top = data.pipelines.filter((p) => !p.parent && p.role === 'product')
+  const longest = top.reduce<Pipeline | undefined>((best, p) => (!best || p.stages.length > best.stages.length ? p : best), undefined)
+  return (longest ?? data.pipelines.find((p) => !p.parent) ?? data.pipelines[0])?.id
 }
 
 /** The pipeline's ancestors, outermost first, for the breadcrumb. */
@@ -242,7 +244,7 @@ const STEP_X = 250        // one layer to the next along a left-to-right flow
 const STEP_Y = 82         // one place to the next inside a layer
 const DOWN_X = 184        // one place to the next on the phone's top-to-bottom flow
 const DOWN_Y = 132        // one layer to the next on the phone
-const PAD = 28
+const PAD = 44            // room above the first row for the hidden channels' names
 const LANE_GAP = 40
 export const PILL_W = 140
 

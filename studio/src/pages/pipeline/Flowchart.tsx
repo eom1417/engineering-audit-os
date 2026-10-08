@@ -115,6 +115,12 @@ export function Flowchart({ scope, view, down, selected, onSelect, hidden, lit, 
   const t = zoom.t
   const view0 = { x0: -t.x / t.k - MARGIN, y0: -t.y / t.k - MARGIN, x1: (size.w - t.x) / t.k + MARGIN, y1: (size.h - t.y) / t.k + MARGIN }
   const inView = (p: At | undefined) => !!p && p.x + NODE_W >= view0.x0 && p.x <= view0.x1 && p.y + NODE_H >= view0.y0 && p.y <= view0.y1
+  // a stage wholly in the visible box is a button; one cut by the canvas's edge is still drawn and clickable, but not a
+  // keyboard stop, so no target hides under the page's chrome (the steps list reaches every stage)
+  const whole = (p: At, w = NODE_W, h = NODE_H) => size.w > 0 && p.x * t.k + t.x >= 0 && (p.x + w) * t.k + t.x <= size.w && p.y * t.k + t.y >= 0 && (p.y + h) * t.k + t.y <= size.h
+  const target = (p: At, label: string, pressed: boolean | undefined, act: () => void, w?: number, h?: number) => whole(p, w, h)
+    ? { role: 'button', tabIndex: 0, 'aria-label': label, 'aria-pressed': pressed, onKeyDown: (ev: React.KeyboardEvent) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); act() } } }
+    : { 'aria-hidden': true }
   const culled = scope.stages.length > 200
 
   const near = useMemo(() => {
@@ -262,8 +268,7 @@ export function Flowchart({ scope, view, down, selected, onSelect, hidden, lit, 
       const gx = g.across ? p.x + 18 : p.x + NODE_W + 14
       const gy = g.across ? p.y + NODE_H + 14 : p.y + 8
       gapParts.push(
-        <g key={u.id} className={css.gapNode} role="button" tabIndex={0} aria-label={`${w('gapNode')}: ${u.call}. ${u.reason}`}
-          onClick={() => onSelect(u.stage)} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onSelect(u.stage) } }}>
+        <g key={u.id} className={css.gapNode} {...target({ x: gx, y: gy }, `${w('gapNode')}: ${u.call}. ${u.reason}`, undefined, () => onSelect(u.stage), NODE_W - 36, 28)} onClick={() => onSelect(u.stage)}>
           <path d={g.across ? `M${p.x + 30},${p.y + NODE_H} L${gx + 12},${gy}` : `M${p.x + NODE_W},${p.y + NODE_H / 2} L${gx},${gy + 14}`} className={css.gapLink} />
           <rect x={gx} y={gy} width={NODE_W - 36} height={28} rx={6} />
           <text x={gx + 10} y={gy + 18} className={css.gapText}>? {fit(u.call, 15)}</text>
@@ -275,7 +280,8 @@ export function Flowchart({ scope, view, down, selected, onSelect, hidden, lit, 
   const ports = (s: Stage) => {
     const out: ReactNode[] = []
     const labels = outLabels.get(s.id)
-    if (labels && view !== 'ideal' && !dim(s.id)) {
+    const crowded = !!selected && (scope.routerOf.get(selected)?.branches.length ?? 0) > 0   // a chosen router writes its conditions there
+    if (labels && view !== 'ideal' && !dim(s.id) && !crowded) {
       labels.slice(0, 2).forEach((text, i) => {
         const x = g.across ? NODE_W + 6 : NODE_W / 2 + 8
         const y = g.across ? NODE_H / 2 - 4 - i * 14 : NODE_H + 14 + i * 13
@@ -308,8 +314,7 @@ export function Flowchart({ scope, view, down, selected, onSelect, hidden, lit, 
       ? <polygon className={css.box} points={`${NODE_W / 2},-6 ${NODE_W + 4},${NODE_H / 2} ${NODE_W / 2},${NODE_H + 6} -4,${NODE_H / 2}`} />
       : <rect className={css.box} width={NODE_W} height={NODE_H} rx={kind === 'source' || kind === 'sink' ? NODE_H / 2 : 10} />
     nodes.push(
-      <g key={id} className={cls} transform={`translate(${at.x},${at.y})`} role="button" tabIndex={0} aria-label={aria} aria-pressed={id === selected}
-        onClick={() => onSelect(id)} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onSelect(id) } }}>
+      <g key={id} className={cls} transform={`translate(${at.x},${at.y})`} {...target(at, aria, id === selected, () => onSelect(id))} onClick={() => onSelect(id)}>
         {shape}
         {kind === 'ai' && <rect className={css.aiRing} x={3} y={3} width={NODE_W - 6} height={NODE_H - 6} rx={8} />}
         {opOf === 'delete' && <rect width={NODE_W} height={NODE_H} rx={10} fill="url(#pp-hatch)" opacity={0.5} />}

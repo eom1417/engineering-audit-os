@@ -13,8 +13,25 @@ ROOT = Path(__file__).resolve().parent.parent
 FIXTURE = ROOT / 'tests/fixtures/studio/v2/pipeline.json'
 
 
+GALLERY = ROOT / 'studio/src/pages/pipeline/fixture.json'
+
+
 def fixture():
     return json.loads(FIXTURE.read_text(encoding='utf-8'))
+
+
+def gallery_fixture():
+    """What the Studio's gallery draws: the contract fixture cut to its pipeline holding `claims` (EAOS's STAGES), so the
+    shipped bundle carries one pipeline, not all. Rewrite it with: python -m tests.test_pipeline_sheet --write"""
+    data = fixture()
+    keep = next(s['pipeline'] for s in data['stages'] if s['label'] == 'claims')
+    mine = lambda rows: [r for r in rows if r.get('pipeline') == keep]
+    views = data['views']
+    return {**data, 'pipelines': [p for p in data['pipelines'] if p['id'] == keep],
+            **{k: mine(data[k]) for k in ('stages', 'edges', 'routers', 'fans', 'control', 'error_lanes', 'hidden', 'unresolved')},
+            'views': {'current': {'stages': [s['id'] for s in mine(data['stages'])], 'edges': [e['id'] for e in mine(data['edges'])]},
+                      'ideal': {**views['ideal'], 'stages': mine(views['ideal']['stages']), 'edges': mine(views['ideal']['edges'])},
+                      'gap': mine(views['gap'])}}
 
 
 class PipelineSheet(unittest.TestCase):
@@ -22,9 +39,9 @@ class PipelineSheet(unittest.TestCase):
         data = fixture()
         page = pipeline_sheet.sheet({'ar': data, 'en': data})
         self.assertIn('id="pipeline-sheet"', page)
-        main = next(p for p in data['pipelines'] if p['id'] == 'main')
+        main = next(p for p in data['pipelines'] if any(s['label'] == 'claims' for s in data['stages'] if s['pipeline'] == p['id']))
         svg = pipeline_sheet.flowchart(data, main)
-        for stage in (s for s in data['stages'] if s['pipeline'] == 'main'):
+        for stage in (s for s in data['stages'] if s['pipeline'] == main['id']):
             x = pipeline_sheet.PAD + stage['layer'] * pipeline_sheet.STEP_X
             if stage['kind'] != 'router':
                 self.assertIn(f'x="{x}" y="{pipeline_sheet.PAD + stage["order"] * pipeline_sheet.STEP_Y}"', svg)
@@ -35,7 +52,8 @@ class PipelineSheet(unittest.TestCase):
         page = pipeline_sheet.sheet({'ar': data, 'en': data})
         for g in data['views']['gap']:
             self.assertIn(f"{g['evidence']['path']}:{g['evidence']['line']}", page)
-        self.assertIn('eaos/pipeline/runners.py:80', page)     # claims, by its entry
+        claims = next(s for s in data['stages'] if s['label'] == 'claims')
+        self.assertIn(f"{claims['entry']['path']}:{claims['entry']['line']}", page)     # a stage, by its entry
 
     def test_no_pipeline_means_no_sheet(self):
         data = {**fixture(), 'detected': False, 'pipelines': [], 'stages': []}
@@ -52,8 +70,13 @@ class PipelineSheet(unittest.TestCase):
         self.assertIn('class="l-ar" lang="ar">خط المعالجة', page)
 
     def test_the_studio_gallery_draws_the_contract_fixture(self):
-        self.assertEqual((ROOT / 'studio/src/pages/pipeline/fixture.json').read_bytes(), FIXTURE.read_bytes())
+        self.assertEqual(json.loads(GALLERY.read_text(encoding='utf-8')), gallery_fixture(),
+                         'rewrite it: python -m tests.test_pipeline_sheet --write')
 
 
 if __name__ == '__main__':
-    unittest.main()
+    import sys
+    if '--write' in sys.argv:
+        GALLERY.write_text(json.dumps(gallery_fixture(), ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
+    else:
+        unittest.main()

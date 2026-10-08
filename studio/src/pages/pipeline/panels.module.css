@@ -11,7 +11,7 @@
 .crumbOn { font-weight: 600; color: var(--text-primary); }
 .vh { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .code { grid-column: 1 / -1; }
-.code code { display: block; font-family: var(--font-mono); font-size: 12px; padding: 6px 8px; border-radius: var(--radius-4); background: var(--bg-sunken); color: var(--text-primary); overflow-x: auto; white-space: pre; }
+.code code { display: block; font-family: var(--font-mono); font-size: 12px; padding: 6px 8px; border-radius: var(--radius-4); background: var(--bg-sunken); color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
 .muted { color: var(--text-tertiary); font-size: 12px; }
 .inline { color: var(--accent-text); text-align: start; cursor: pointer; min-block-size: 24px; display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .inline:hover { text-decoration: underline; }
@@ -94,7 +94,7 @@
 .followBar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 8px 12px; border-radius: var(--radius-8); background: var(--accent-subtle); color: var(--accent-text); font-size: 13px; }
 
 @media (max-width: 767px) {
-  .crumb, .inline { min-block-size: 44px; }
+  .crumb, .inline { min-block-size: 44px; min-inline-size: 44px; }
   .follow select { min-block-size: 44px; max-inline-size: none; flex: 1; font-size: 16px; }
   .follow { flex-wrap: wrap; }
   .ports { grid-template-columns: minmax(0, 1fr); }
