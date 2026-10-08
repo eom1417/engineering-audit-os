@@ -490,6 +490,116 @@
           "evidence": "source files with size, complexity, churn and fan-in: FleetManageWeb 273/273 · finance-os-a0192b7b 301/301 · RendaPerene 74/74",
           "reads": "measurements.json → files[] {path, loc, complexity_max, churn, fan_in}، كل حقل ليس null",
           "measured": "automated"
+        },
+        {
+          "id": "A1",
+          "name": "دقة الكواشف مقاسة",
+          "definition": "كواشف EAOS التي لها دقة واستدعاء مقاسان على مجموعة معلَّمة (≥150 عنصرًا على 4 مشاريع مع عيوب مزروعة) ويبلغان حدهما المعلن ÷ الكواشف التي تُعرض نتائجها",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "docs/engine-precision.json ← tools/precision.py",
+          "measured": "automated"
+        },
+        {
+          "id": "A2",
+          "name": "أساس JS/TS سليم",
+          "definition": "متوسط أربعة: رموز FleetManageWeb غير المسماة باسم معامل، وروابط @/ المحلولة (≥0.99)، ومجموعات التكرار التي ليست دوال مجهولة، ونماذج البيانات التي ليست أنواع خصائص ÷ 1",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "facts/syntax.json · resolve.json · fingerprint.json · domain.json على FleetManageWeb",
+          "measured": "automated"
+        },
+        {
+          "id": "A3",
+          "name": "أسطح المنتج ومكوّناته الحقيقية",
+          "definition": "متوسط: أدوات MCP المكتشفة في EAOS ÷ أدواته، وعدد القدرات ضمن ±20% من الحقيقة المعلَّمة على 3 مشاريع، و(1 − حصة أكبر مكوّن مستهدف فوق 0.30)",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "entrypoints.json · features.json · target-architecture.json",
+          "measured": "automated"
+        },
+        {
+          "id": "N1",
+          "name": "خريطة النظام سليمة",
+          "definition": "متوسط: عُقد بمصدر ÷ العقد، وحواف بلا طرف مفقود ÷ الحواف، وإعادة بناء متطابقة بايتًا (1 أو 0)، على العيّنة",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "graph/nodes.jsonl · edges.jsonl",
+          "measured": "automated"
+        },
+        {
+          "id": "N2",
+          "name": "السجل يُعاد من الأحداث",
+          "definition": "مشاريع العيّنة التي يعيد فيها تشغيل events.jsonl بناء ledger.json بايتًا ببايت وتصح سلسلة البصمات ÷ المشاريع",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "events.jsonl ↔ ledger.json",
+          "measured": "automated"
+        },
+        {
+          "id": "Q1",
+          "name": "التتبع يصل",
+          "definition": "1 − نسبة خطوات المسارات المنتهية بلا حل (الهدف ≤ 0.15 على FleetManageWeb و≤ 0.20 على EAOS)",
+          "target": 0.85,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "facts/flows.json",
+          "measured": "automated"
+        },
+        {
+          "id": "Q2",
+          "name": "مالك واحد لكل مُدخل",
+          "definition": "نقاط الكتابة المعروفة بأكثر من كاتب (6 على FleetManageWeb) التي وجدها EAOS ÷ المعروفة، مع دقة ≥ 0.8",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "ownership_violation في الخريطة",
+          "measured": "automated"
+        },
+        {
+          "id": "Q3",
+          "name": "تداخل الصفحات والوظائف",
+          "definition": "أدنى قيمتي الدقة والاستدعاء على أزواج التداخل المعلَّمة",
+          "target": 0.8,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "overlap في الخريطة",
+          "measured": "automated"
+        },
+        {
+          "id": "Q4",
+          "name": "بطاقة لكل دالة صادقة",
+          "definition": "بطاقات الدوال المراجعة (50) التي لا تذكر مستدعيًا أو أثرًا غير موجود في الحقائق ÷ المراجعة",
+          "target": 0.9,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "functions/*.json",
+          "measured": "automated"
+        },
+        {
+          "id": "Z1",
+          "name": "الشاشات مصوّرة",
+          "definition": "صفحات بلا معاملات صُوّرت بالمقاسات الثلاثة مسجلًا دخولها على بيانات مزروعة ÷ هذه الصفحات، على FleetManageWeb وchief-ops",
+          "target": 0.9,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "screens.json",
+          "measured": "automated"
+        },
+        {
+          "id": "Z2",
+          "name": "كشف مشاكل الاستخدام",
+          "definition": "العيوب المزروعة في الواجهات (تداخل، تباين، قص، زر مكرر، هدف لمس صغير) التي كشفتها الفحوص الآلية ÷ المزروعة",
+          "target": 0.9,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "ui_issue ← طفرات مزروعة",
+          "measured": "automated"
         }
       ]
     },
@@ -712,6 +822,36 @@
           "value": 1.0,
           "evidence": "MADR files for decisions: FleetManageWeb 35/35 · finance-os-a0192b7b 29/29 · RendaPerene 9/9",
           "measured": "automated"
+        },
+        {
+          "id": "I1",
+          "name": "وصف النظام مكتمل",
+          "definition": "مشاريع العيّنة التي يجتاز وصفها فحوص الاكتمال BC1-BC7 ÷ المشاريع",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "brief/brief-check.json",
+          "measured": "automated"
+        },
+        {
+          "id": "I2",
+          "name": "الصورة المثالية بلا اختلاق",
+          "definition": "1 − نسبة العناصر التي أسقطها المدقق V1-V8 من تصورات النموذج (الهدف ≥ 0.9)",
+          "target": 0.9,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "proposals/*.json · ideal-validate.json",
+          "measured": "automated"
+        },
+        {
+          "id": "I3",
+          "name": "تصميم يقبله المالك",
+          "definition": "مشروعان من العيّنة قيّم المالك صورتهما المثالية ≥ 4 من 5 ÷ 2",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "decisions: تقييم المالك",
+          "measured": "recorded"
         }
       ]
     },
@@ -760,6 +900,26 @@
           "evidence": "not measured yet",
           "reads": "tests + ${EAOS_MEASURE}/laws/<مشروع>/trial.json",
           "measured": "automated"
+        },
+        {
+          "id": "J1",
+          "name": "فجوات مؤكدة بالدليل",
+          "definition": "فجوات السجل المؤكدة أو الافتراضية بمجسّ مسمّى، ولكل مؤكدة دليل من الجهتين ÷ الفجوات",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "gap-register.json",
+          "measured": "automated"
+        },
+        {
+          "id": "J2",
+          "name": "الفجوات تصمد للمراجعة",
+          "definition": "فجوات من عينة 30 وافق عليها المراجع ÷ 30",
+          "target": 0.85,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "مراجعة مسجلة",
+          "measured": "recorded"
         }
       ]
     },
@@ -1015,6 +1175,26 @@
           "evidence": "not measured yet",
           "reads": "impact ↔ per-test tracing",
           "measured": "automated"
+        },
+        {
+          "id": "O1",
+          "name": "العمليات بترتيب آمن",
+          "definition": "خطط العيّنة التي لا تخالف أيًا من قواعد الترتيب O1-O8، مع رفض الحالات المزروعة (حذف قبل نقل المستدعين) ÷ الخطط",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "ops.json ← فاحص الترتيب",
+          "measured": "automated"
+        },
+        {
+          "id": "O2",
+          "name": "دمج وإعادة بناء حقيقيان",
+          "definition": "عمليتا دمج وإعادة بناء تدريجي نُفذتا كاملتين على chief-ops وبقي قفل السلوك أخضر ÷ 2",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "${EAOS_MEASURE}/ops/chief-ops/trial.json",
+          "measured": "automated"
         }
       ]
     },
@@ -1059,6 +1239,26 @@
           "value": 0.3,
           "evidence": "3 real projects, 0 held out",
           "reads": "docs/north-star.json → corpus[] count and corpus[].holdout",
+          "measured": "automated"
+        },
+        {
+          "id": "Y1",
+          "name": "يتحمل مشروعًا كبيرًا",
+          "definition": "متوسط: تحليل مشروع من 10 آلاف ملف ≤ 20 دقيقة، وإعادة فحص ملف واحد ≤ 60 ثانية، وفتح صفحة ≤ 2 ثانية (1 لكل شرط)",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "${EAOS_MEASURE}/scale/trial.json",
+          "measured": "automated"
+        },
+        {
+          "id": "Y2",
+          "name": "التنبؤ يصدق بعد التحول",
+          "definition": "فروق المؤشرات المتنبأ بها التي تحققت بعد تحول كامل ÷ المتنبأ بها",
+          "target": 0.8,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "guarantee compare",
           "measured": "automated"
         }
       ]
@@ -1296,6 +1496,56 @@
           "evidence": "not measured yet",
           "reads": "<تقرير>/REPORT.html ↔ <تقرير>/studio/*.json",
           "measured": "automated"
+        },
+        {
+          "id": "F8",
+          "name": "الواجهة سليمة على كل جهاز",
+          "definition": "شاشات الاستوديو التي تجتاز البوابات الآلية عند 390 و768 و1440، باللغتين والوضعين: لا تمرير أفقي، ولا فتح مزاح، وaxe بلا جدي، وأهداف لمس ≥ 44 ÷ الشاشات",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "tests/visual · tests/a11y",
+          "measured": "automated"
+        },
+        {
+          "id": "F9",
+          "name": "الواجهة حية",
+          "definition": "أحداث (فحص، دفعة، دمج، قرار) ظهرت في استوديو مفتوح خلال 5 ثوانٍ ÷ الأحداث، في تجربة Playwright",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "tests/live",
+          "measured": "automated"
+        },
+        {
+          "id": "F10",
+          "name": "اتجاه التصميم معتمد",
+          "definition": "اختار المالك اتجاهًا من ثلاثة نماذج حقيقية، ومسجل في docs/STUDIO.md (1 أو 0)",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "docs/STUDIO.md",
+          "measured": "recorded"
+        },
+        {
+          "id": "W1",
+          "name": "المساعد يحسن استخدام الأدوات",
+          "definition": "متوسط مؤشرات تجربة الأدوات: نجاح الاستدعاء، و1 − نسبة العمل خارج أدوات EAOS، و1 − الأداة الخطأ، على 11 سيناريو في Claude وCodex",
+          "target": 0.9,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "${EAOS_MEASURE}/tooluse/*/trial.json",
+          "measured": "automated"
+        },
+        {
+          "id": "W2",
+          "name": "تبني قبل البناء",
+          "definition": "قدرات الخطة الجديدة التي لها سجل استكشاف مكتوب (المرشحون، الرخصة، الصيانة، القرار) قبل أي كود ÷ القدرات الجديدة",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
+          "reads": "docs/adoption/*.md",
+          "measured": "automated"
         }
       ]
     }
@@ -1417,8 +1667,8 @@
       ],
       "stages": [],
       "title_en": "Automated measurement",
-      "weight": 2,
-      "weight_why": "أساس القياس: بدونه لا رقم يُصدَّق، لكنه صغير الحجم. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
+      "weight": 1,
+      "weight_why": "أساس القياس: بدونه لا رقم يُصدَّق، لكنه صغير الحجم. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "يجلب عيّنة المشاريع الحقيقية مثبّتة بالتزامها",
         "يحسب كل مؤشر آليًا من تقارير العيّنة بأمر واحد",
@@ -1488,8 +1738,8 @@
         "S01"
       ],
       "title_en": "Never fails on a real project",
-      "weight": 2,
-      "weight_why": "شرط دخول: الأداة التي تفشل على مشروع حقيقي لا تنفع، والإصلاح محدود. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
+      "weight": 1,
+      "weight_why": "شرط دخول: الأداة التي تفشل على مشروع حقيقي لا تنفع، والإصلاح محدود. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "يكمل التدقيق على كل مشروع في العيّنة دون انهيار",
         "يقص الوثائق إلى ميزانيتها بدل أن يفشل"
@@ -1695,8 +1945,8 @@
         "S02"
       ],
       "title_en": "Current state: see the whole program",
-      "weight": 2,
-      "weight_why": "أول التقارير الأربعة وأساس كل ما بعده: الوظائف والمداخل والبيانات. (2 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
+      "weight": 1,
+      "weight_why": "أول التقارير الأربعة وأساس كل ما بعده: الوظائف والمداخل والبيانات. (2 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "يجد كل صفحة ومسار ودالة خادم كنقطة دخول",
         "يقرأ نموذج البيانات وسياسات الوصول من SQL وSupabase",
@@ -1784,8 +2034,8 @@
         "S04"
       ],
       "title_en": "Signal, not noise",
-      "weight": 2,
-      "weight_why": "يمنع الضجيج من إغراق الخطة؛ عمل مركّز. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
+      "weight": 1,
+      "weight_why": "يمنع الضجيج من إغراق الخطة؛ عمل مركّز. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "يستبعد التشابه الشكلي الذي ليس قاعدة أعمال",
         "لا يتهم ملفًا بالموت إن أشار إليه سجل"
@@ -1955,8 +2205,8 @@
         "S04"
       ],
       "title_en": "Dead code and leftovers: found and safely removed",
-      "weight": 2,
-      "weight_why": "قيمة مباشرة للمالك: حذف آمن للكود الميت والمعطّل. (2 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
+      "weight": 1,
+      "weight_why": "قيمة مباشرة للمالك: حذف آمن للكود الميت والمعطّل. (2 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "يحسب قابلية الوصول من نقاط الدخول الحقيقية",
         "يكشف الأسماء غير المعرّفة والمفاتيح المكررة",
@@ -2033,8 +2283,8 @@
         "S04"
       ],
       "title_en": "Basic security hygiene",
-      "weight": 2,
-      "weight_why": "أمن أساسي: أسرار مرفوعة وسياسات وصول. (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.)",
+      "weight": 1,
+      "weight_why": "أمن أساسي: أسرار مرفوعة وسياسات وصول. (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "يجد الأسرار المرفوعة بخطورتها الصحيحة",
         "يتحقق من تغطية سياسات الوصول لكل جدول"
@@ -2279,8 +2529,8 @@
       ],
       "stages": [],
       "title_en": "Tool platform: every tool enters one way",
-      "weight": 2,
-      "weight_why": "منصة كل الأدوات: تثبيت موحد، وقراءة SARIF، وتوليد، وبوابات، وعزل. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.)",
+      "weight": 1,
+      "weight_why": "منصة كل الأدوات: تثبيت موحد، وقراءة SARIF، وتوليد، وبوابات، وعزل. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "يثبّت كل أداة بإصدارها المثبّت وبصمتها بأمر واحد",
         "يقرأ نتائج ست أدوات بقارئ SARIF واحد",
@@ -2392,8 +2642,8 @@
         "S01"
       ],
       "title_en": "Intake: what must be protected, and where to go",
-      "weight": 2,
-      "weight_why": "استبيان قصير يحدد ما يجب حمايته وإلى أين.",
+      "weight": 1,
+      "weight_why": "استبيان قصير يحدد ما يجب حمايته وإلى أين. (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "يسأل المالك أسئلة الاستلام بقيم افتراضية معلنة",
         "يحوّل الإجابات إلى سيناريوهات جودة قابلة للقياس"
@@ -2881,8 +3131,8 @@
         "S04"
       ],
       "title_en": "Static-analysis adapters: proven tools, not our own code",
-      "weight": 2,
-      "weight_why": "عشرة محوّلات لأدوات جاهزة بدل كود نكتبه: أدلة مستقلة. (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.)",
+      "weight": 1,
+      "weight_why": "عشرة محوّلات لأدوات جاهزة بدل كود نكتبه: أدلة مستقلة. (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "يبني قائمة الاعتماديات وثغراتها",
         "يشغّل Semgrep وTrivy وCheckov وSQLFluff وSpectral وoasdiff",
@@ -3060,8 +3310,8 @@
         "S04"
       ],
       "title_en": "Measurement and debt register",
-      "weight": 2,
-      "weight_why": "الأرقام لكل ملف وسجل دَين واحد يجمع الأدلة. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.)",
+      "weight": 1,
+      "weight_why": "الأرقام لكل ملف وسجل دَين واحد يجمع الأدلة. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "يقيس الحجم والتعقيد والتقلّب والاعتمادية لكل ملف",
         "يسجل كل خطر عالٍ بشاهدين مستقلين",
@@ -3189,8 +3439,8 @@
         "S05"
       ],
       "title_en": "Behaviour lock: specifications before any change",
-      "weight": 2,
-      "weight_why": "شبكة الأمان قبل أي تغيير: لا تحول بدونها. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.)",
+      "weight": 1,
+      "weight_why": "شبكة الأمان قبل أي تغيير: لا تحول بدونها. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS36-NS37: الاستوديو، 2026-10-08.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "يكتب مواصفة سلوك لكل ميزة",
         "يولّد سيناريوهات الحمل والأعطال والفحص الحي بصيغ أدواتها"
@@ -3839,8 +4089,8 @@
         "S07"
       ],
       "title_en": "Team execution plan and the four reports",
-      "weight": 3,
-      "weight_why": "ما يستلمه الفريق فعلًا: الخطة والتقارير الأربعة. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.) (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
+      "weight": 2,
+      "weight_why": "ما يستلمه الفريق فعلًا: الخطة والتقارير الأربعة. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.) (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "يحدد حجم كل بطاقة وقسمها في الفريق",
         "يجمع البطاقات في معالم بأهداف وشروط خروج",
@@ -4235,8 +4485,8 @@
         "S15"
       ],
       "title_en": "Operations and handover kit",
-      "weight": 3,
-      "weight_why": "ما يبقى مع الفريق بعد التسليم: ملفات تعمل كما هي. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
+      "weight": 2,
+      "weight_why": "ما يبقى مع الفريق بعد التسليم: ملفات تعمل كما هي. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "يولّد CI وpre-commit وRenovate وقواعد الحدود",
         "يولّد إعداد الرصد OpenTelemetry وأهداف SLO",
@@ -4346,8 +4596,8 @@
         "S05"
       ],
       "title_en": "Live baseline: behaviour and numbers before any change",
-      "weight": 3,
-      "weight_why": "أرقام قبل التغيير: بدونها لا يُقاس أي تحسن. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
+      "weight": 2,
+      "weight_why": "أرقام قبل التغيير: بدونها لا يُقاس أي تحسن. (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "يشغّل شبكة الأمان على الكود الأصلي في بيئة معزولة",
         "يسجل خط أساس الحمل بـk6 لكل سيناريو"
@@ -4724,8 +4974,8 @@
         "S08"
       ],
       "title_en": "Proven execution",
-      "weight": 3,
-      "weight_why": "أثقل خطوة: تنفيذ فعلي لبطاقات الخطة على مشروع حقيقي. (3 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
+      "weight": 2,
+      "weight_why": "أثقل خطوة: تنفيذ فعلي لبطاقات الخطة على مشروع حقيقي. (3 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "ينفّذ بطاقات الخطة بنموذج في نسخة منفصلة",
         "يشغّل أمر قبول كل بطاقة وشبكة الأمان بعدها",
@@ -4752,8 +5002,8 @@
         "S09",
         "S15"
       ],
-      "weight": 3,
-      "weight_why": "من تجربة المالك (2026-09-29): بعد أول دفعة بقي الفرع، ولم يتحدث التقرير، وسُجّلت ثلاث بطاقات منجزة والباقي كما هو؛ والعمل الطويل يتجاوز حد استخدام المساعد. بدون هذا لا يثق الشخص بأي رقم. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.) (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.)",
+      "weight": 2,
+      "weight_why": "من تجربة المالك (2026-09-29): بعد أول دفعة بقي الفرع، ولم يتحدث التقرير، وسُجّلت ثلاث بطاقات منجزة والباقي كما هو؛ والعمل الطويل يتجاوز حد استخدام المساعد. بدون هذا لا يثق الشخص بأي رقم. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.) (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
       "does": [
         "سجل للبطاقات بمفتاح ثابت يقرأ المنجز من git",
         "الدمج يحذف الفرع ويحدّث التقرير والتقدم في الخطوة نفسها",
@@ -5547,13 +5797,13 @@
         "S15"
       ],
       "weight": 3,
-      "goal": "قرارات الاستوديو مسجلة، وعقد بياناته ثابت ومتحقق منه، والنموذج يُكتب مع كل فحص، وأساس الواجهة يعرض بيانات حقيقية؛ وينتهي ببوابة المالك: نموذج حي يعتمد شكله قبل أي صفحة.",
+      "goal": "قرارات الاستوديو وعقد بياناته ونموذجه الواحد مكتوبة ومتحقق منها، وينتهي باختيار المالك اتجاه التصميم من ثلاثة نماذج حقيقية للجوال والكمبيوتر.",
       "weight_why": "طلب المالك (2026-10-08): واجهة لـEAOS نفسه يتابع منها أي شخص كل شيء، ووافق على الخطة الاستراتيجية (studio-strategy.html) وقراراتها الخمسة. الأساس أولًا لأن الهندسة العكسية أظهرت أن كل صفحة تقوم على العقد والنموذج.",
       "does": [
         "سجل قرار البنية docs/STUDIO.md بالقرارات D1-D5 ونموذج الخطة",
         "عقد studio/*.json بمخططات ونسختها المعبأة، ومدقق يدعم $ref والحدود",
         "نموذج واحد للدرجة والبطاقات والقصة والمستندات يكتبه النشر بكاتب ذري",
-        "أساس الواجهة: التحميل من ملف، الرموز والخط واللغتان، مكوّن الرقم بمصدره، الحالات"
+        "P0: بنية التنقل، ومخططات للجوال أولًا ثم الكمبيوتر، وثلاثة اتجاهات تصميم كنماذج ثابتة على بيانات حقيقية، واختيار المالك"
       ],
       "tools": [
         "eaos/artifact_contracts.py",
@@ -5561,13 +5811,13 @@
         "eaos/human_report.py",
         "eaos/guided.py",
         "eaos/studio/ (جديد)",
-        "studio/ (مصدر الواجهة، جديد)"
+        "studio-v2/C-experience.md (الأقسام 2-4 و7)"
       ],
       "outputs": [
         "docs/STUDIO.md",
         "schemas/artifacts/studio-*.schema.json",
         "<تقرير>/studio/manifest.json وأقسامه",
-        "<تقرير>/studio/index.html"
+        "eaos-dev/planning/studio-v2/directions/ (72 لقطة) واختيار المالك في docs/STUDIO.md"
       ],
       "tasks": [
         {
@@ -5647,43 +5897,1065 @@
           "rollback": "احذف eaos/studio/ وارجع الحساب إلى human_report."
         },
         {
-          "needs": "none",
+          "needs": "human",
           "writes": [],
           "status": "todo",
           "id": "NS36.T3",
-          "title": "أساس الواجهة وبوابة المالك",
-          "why": "الواجهة السابقة رُفضت لأنها صفحات جداول بُنيت يدويًا؛ قبل بناء أي صفحة يرى المالك نموذجًا حيًا على بيانات حقيقية ويعتمد شكله.",
+          "title": "اتجاه التصميم: ثلاثة نماذج واختيار المالك",
+          "why": "النموذج الأول رُفض (2026-10-08): صفحة تقرير لا نظام، مكسورة على الجوال، بلا هوية؛ لأن الشكل حُسم قبل التصميم وبلا بوابات. لا تُبنى شاشة قبل أن يختار المالك اتجاهًا رآه على جهازيه.",
           "moves": [
-            "F1",
-            "F2"
+            "F8",
+            "F10"
           ],
           "depends_on": [
             "NS36.T2"
           ],
           "size": "L",
           "files": [
-            "studio/package.json",
-            "studio/src/",
-            "studio/vite.config.ts",
-            "eaos/data/studio/",
-            "tests/test_studio_assets.py"
+            "eaos-dev/planning/studio-v2/directions/",
+            "docs/STUDIO.md",
+            "tools/studio_gates.py"
           ],
           "steps": [
-            "الهيكل: React وTypeScript وVite، React Aria، رموز التصميم وCSS Modules، الخط IBM Plex Sans Arabic محليًا.",
-            "التحميل من ملف مباشرة بنسخ JavaScript للبيانات، وسياسة أمان تمنع أي اتصال خارجي.",
-            "مكوّنا Num (الرقم بمصدره) وLiteral، وحالات الفراغ والتحميل والخطأ.",
-            "أداة البناء تشحن الأصول في eaos/data/studio بأسماء ثابتة، واختبار بلا Node يطابق بصمتها.",
-            "نموذج حي للرئيسية على بيانات EAOS نفسه يعرضه المساعد على المالك، ولا تبدأ NS37 قبل اعتماده."
+            "بنية التنقل: خمسة أقسام (الرئيسية، النظام، المشاكل، التغيير، القرارات) ومخطط الروابط، ويعتمدها المالك.",
+            "لوحة مراجع (Linear وStripe وGitHub وApple Health وغيرها) ومخططات رمادية للجوال 390 ثم للكمبيوتر 1440 تكوينًا مختلفًا.",
+            "ثلاثة اتجاهات (Instrument وAtlas وCalm) نماذج HTML ثابتة على بيانات تقرير حقيقي: الرئيسية وخريطة النظام وتفاصيل بطاقة × الجهازين × اللغتين × الوضعين (72 لقطة).",
+            "tools/studio_gates.py: لا تمرير أفقي، ولا فتح مزاح، وaxe، وأهداف لمس 44، وارتفاع الصفحة؛ ومراجعة ذاتية مكتوبة مع اللقطات.",
+            "المالك يختار؛ يُسجَّل في docs/STUDIO.md."
           ],
           "done_when": [
-            "index.html في كل تقرير من العيّنة، والمالك اعتمد النموذج الحي."
+            "F8 = 1.0 على النماذج، وF10 = 1."
           ],
           "pitfalls": [
-            "لا مكتبة من الإنترنت وقت التشغيل.",
-            "العربية من اليمين واللغة الإنجليزية من اليسار من أول سطر."
+            "لا يُعرض على المالك شيء لم يجتز البوابات.",
+            "البيانات حقيقية لا مخترعة.",
+            "الجوال يُصمم أولًا ومنفصلًا."
           ],
-          "acceptance": "python tools/acceptance.py file studio/index.html && python tools/acceptance.py test studio_contract",
-          "rollback": "احذف studio/ وeaos/data/studio/."
+          "acceptance": "python tools/north_star.py measure --only F8 --min 1.0 && python tools/north_star.py measure --only F10 --min 1.0",
+          "rollback": "احذف مجلد النماذج؛ لا كود منتج يتغير."
+        }
+      ]
+    },
+    {
+      "id": "NS38",
+      "title": "تحليل صادق: الدقة أولًا",
+      "title_en": "Truthful analysis: precision first",
+      "stages": [
+        "S02",
+        "S03"
+      ],
+      "weight": 2,
+      "goal": "A1 وA2 وA3 عند أهدافها: كل كاشف مقاسة دقته على مجموعة معلَّمة، وأساس JS/TS سليم، وأسطح المنتج ومكوّناته حقيقية.",
+      "weight_why": "المرحلة P1 من خطة v2 (موافقة المالك 2026-10-08). كل ما فوقها (الخريطة، الوصف، الصورة المثالية، العمليات) صادق بقدر صدق التحليل؛ والتقارير الحقيقية تُظهر ضجيجًا يصنع معظم بطاقات التكرار في FleetManageWeb.",
+      "does": [
+        "مجموعة معلَّمة وعيوب مزروعة وقياس دقة لكل كاشف",
+        "أسماء دوال TS صحيحة من tags.scm، وروابط @/ من dependency-cruiser، ونظام التصميم عقدًا لا خارجيًا",
+        "إسقاط ضجيج الدوال المجهولة وأنماط الخطافات وأنواع الخصائص",
+        "أسطح MCP والأوامر الفرعية، وتجميع القدرات، وقراءة سياسة المشروع المعلنة"
+      ],
+      "tools": [
+        "tree-sitter tags.scm (مثبت)",
+        "dependency-cruiser",
+        "ast-grep",
+        "networkx Leiden",
+        "eaos/facts/*",
+        "eaos/features.py"
+      ],
+      "outputs": [
+        "docs/engine-precision.json",
+        "docs/adoption/*.md",
+        "facts بلا ضجيج"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS38.T1",
+          "title": "مجموعة الدقة المعلَّمة",
+          "why": "ثلاث حالات مزروعة ليست قياسًا؛ لا كاشف جديد قبل أن تُقاس دقة الموجود.",
+          "moves": [
+            "A1",
+            "W2"
+          ],
+          "depends_on": [
+            "NS30.T2"
+          ],
+          "size": "L",
+          "files": [
+            "tools/precision.py",
+            "eaos-dev/truth/",
+            "docs/engine-precision.json",
+            "docs/adoption/"
+          ],
+          "steps": [
+            "سجل استكشاف في docs/adoption/ قبل أي كود (قاعدة «تبنَّ قبل أن تبني»)، من E-adopt-before-build.md.",
+            "≥150 عنصرًا معلَّمًا على FleetManageWeb وEAOS وchief-ops وfinance-os (تكرار، تداخل، كتّاب متعددون، نماذج، عيوب واجهة).",
+            "طفرات مزروعة في نسخ.",
+            "دقة واستدعاء لكل كاشف وحد معلن؛ ما تحت حده يُخفى."
+          ],
+          "done_when": [
+            "A1 مقاس لكل كاشف معروض."
+          ],
+          "pitfalls": [
+            "الحقيقة تُكتب قبل قراءة التقرير.",
+            "مشاريع holdout لا تُستخدم."
+          ],
+          "acceptance": "python tools/north_star.py measure --only A1 --min 1.0 && python tools/north_star.py measure --only W2 --min 1.0",
+          "rollback": "لا شيء يُرجع: قياس."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS38.T2",
+          "title": "أساس JS/TS",
+          "why": "الدوال تُسمى بأول معامل (prev ×125)، و591 رابط @/ ضائعة، و312 من 318 مجموعة تكرار دوال مجهولة، و356 «نموذج بيانات» أنواع خصائص.",
+          "moves": [
+            "A2"
+          ],
+          "depends_on": [
+            "NS38.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/facts/syntax.py",
+            "eaos/facts/resolve.py",
+            "eaos/facts/fingerprint.py",
+            "eaos/facts/sequences.py",
+            "eaos/facts/domain.py",
+            "eaos/engines/dependency_cruiser.py",
+            "upstreams/toolchain.json"
+          ],
+          "steps": [
+            "تثبيت tree-sitter-language-pack واستخدام tags.scm للأسماء.",
+            "قراءة روابط dependency-cruiser المحلولة؛ components/ui عقد «نظام تصميم» لا خارجية.",
+            "إسقاط الدوال المجهولة وأنماط الخطافات من التكرار.",
+            "أنواع الخصائص ليست نماذج بيانات."
+          ],
+          "done_when": [
+            "A2 = 1.0."
+          ],
+          "pitfalls": [
+            "لا تهبط دقة أي كاشف في A1."
+          ],
+          "acceptance": "python tools/north_star.py measure --only A2 --min 1.0",
+          "rollback": "ارجع المستخرجات إلى إصداراتها السابقة."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS38.T3",
+          "title": "القدرات والمكوّنات الحقيقية",
+          "why": "على EAOS نفسه 207 من 211 ملفًا في جزء واحد: نمط **/*.py شامل، وEAOS كله «قدرة» واحدة، وأدوات MCP غير مكتشفة.",
+          "moves": [
+            "A3"
+          ],
+          "depends_on": [
+            "NS38.T2"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/facts/entrypoints.py",
+            "eaos/features.py",
+            "eaos/rules/reference-architectures.json",
+            "eaos/target_projection.py"
+          ],
+          "steps": [
+            "كاشف أسطح MCP وكل أمر فرعي.",
+            "القدرة = أسطح مجمّعة بالغرض وتجمّع الاستدعاءات (Leiden من networkx).",
+            "لا نمط شامل في الكتالوج؛ غير المصنف «غير مصنف».",
+            "السياسة المعلنة (eaos.policy.json) تُقرأ."
+          ],
+          "done_when": [
+            "A3 = 1.0."
+          ],
+          "pitfalls": [
+            "لا يتغير ما يُكتب في تقارير المشاريع إلا عبر قياس."
+          ],
+          "acceptance": "python tools/north_star.py measure --only A3 --min 1.0",
+          "rollback": "ارجع الكتالوج والميزات."
+        }
+      ]
+    },
+    {
+      "id": "NS31",
+      "title": "أرقام ثابتة وضجيج أقل",
+      "title_en": "Stable numbers, less noise",
+      "stages": [
+        "S03",
+        "S15"
+      ],
+      "weight": 3,
+      "goal": "L7 وL8 وS5 عند أهدافها: أرقام بعقد تقرأها أي لوحة، وسجل درجات لكل فحص، وضجيج أقل من 10% في مشروع حقيقي.",
+      "weight_why": "تقرير الميدان: لوحة المالك تقرأ ملفًا داخليًا (G13)، ولا سجل للدرجات (G10)، وعشرات البطاقات فُرزت يدويًا كضجيج (G6، G7).",
+      "does": [
+        "metrics() وmetrics.json بعقد وإصدار",
+        "سجل الدرجة ومجالاتها مع كل فحص، مرسوم في التقرير",
+        "فلتر تشابه الشكل عبر ملفات لا علاقة بينها",
+        "تعليم «مقصود» و«نسخة محفوظة عمدًا» من المساعد، يبقى بعد كل فحص"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS31.T1",
+          "title": "أرقام بعقد، وسجل الدرجات",
+          "why": "اللوحات الخارجية تقرأ ledger.json الداخلي، ولا يُعرف إن كان التحسن من هذه الدفعة أم التي قبلها.",
+          "moves": [
+            "L7",
+            "L8"
+          ],
+          "depends_on": [
+            "NS38.T3"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/guided.py",
+            "eaos/ledger.py",
+            "eaos/human_report.py",
+            "eaos/mcp_server.py",
+            "schemas/artifacts/metrics.schema.json"
+          ],
+          "steps": [
+            "metrics.json بعقد ومعه الأداة metrics.",
+            "ledger.sync يضيف الدرجة ومجالاتها والمفتوح مع كل فحص جديد.",
+            "التقرير يرسم السجل."
+          ],
+          "done_when": [
+            "L7 = L8 = 1.0."
+          ],
+          "pitfalls": [
+            "الرقم يُحسب مرة واحدة ويقرؤه الجميع."
+          ],
+          "acceptance": "python tools/north_star.py measure --only L7 --min 1.0 && python tools/north_star.py measure --only L8 --min 1.0",
+          "rollback": "احذف metrics.json وحقل scores."
+        },
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS31.T2",
+          "title": "ضجيج أقل من 10%",
+          "why": "بطاقات «153 رمزًا لها الشكل نفسه» عبر ملفات لا علاقة بينها، ونسخ محفوظة عمدًا تُعامل كتكرار، والتعليم يُمسح مع الفحص التالي.",
+          "moves": [
+            "S5"
+          ],
+          "depends_on": [
+            "NS31.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/claims.py",
+            "eaos/facts/scope.py",
+            "eaos/decisions.py",
+            "eaos/mcp_server.py",
+            "eaos.policy.json"
+          ],
+          "steps": [
+            "تشابه الشكل يحتاج صلة بين الملفات (طبقة، استيراد، تغيّر مشترك) أو حجمًا أكبر.",
+            "أداة mark(card أو مسار, intended|vendored, reason) تكتب في eaos.policy.json فتبقى.",
+            "تجربة على مشروع المالك الحي تقيس S5."
+          ],
+          "done_when": [
+            "S5 ≥ 0.9."
+          ],
+          "pitfalls": [
+            "لا يختفي تكرار حقيقي: يُقاس على الحقيقة الأرضية للعيّنة (S1)."
+          ],
+          "acceptance": "python tools/north_star.py measure --only S5 --min 0.9 && python tools/north_star.py measure --only S1 --min 0.9",
+          "rollback": "احذف الفلتر والتعليمات."
+        }
+      ],
+      "tools": [
+        "eaos/guided.py",
+        "eaos/ledger.py",
+        "eaos/human_report.py",
+        "eaos/claims.py",
+        "eaos.policy.json"
+      ],
+      "outputs": [
+        "<تقرير>/metrics.json",
+        "ledger.json → history[].scores"
+      ]
+    },
+    {
+      "id": "NS39",
+      "title": "خريطة النظام والسجل والأحداث",
+      "title_en": "System graph, store and events",
+      "stages": [
+        "S02",
+        "S15"
+      ],
+      "weight": 2,
+      "goal": "N1 وN2 عند هدفيهما: خريطة نظام واحدة بعقد ومصادر يقرؤها كل عرض والوصف، ومخزن قابل لإعادة البناء، وسجل أحداث يُبنى منه السجل.",
+      "weight_why": "المرحلة P2. الخريطة أساس كل صفحة وأساس وصف النظام للنموذج؛ والأحداث أساس التحديث الحي والتدقيق.",
+      "does": [
+        "أنواع العقد والحواف بمعرّفات ثابتة ومصدر",
+        "nodes.jsonl وedges.jsonl ومخزن SQLite بنسخ عبر الفحوص",
+        "events.jsonl بسلسلة بصمات، والسجل واليوميات إسقاطات منه",
+        "عقد v2 بأقسام graph وfunctions وscreens وflows وinfra وops وscans، وأنواع TS مولدة"
+      ],
+      "tools": [
+        "SQLite + FTS5",
+        "json-schema-to-typescript",
+        "eaos/studio/",
+        "eaos/ledger.py"
+      ],
+      "outputs": [
+        "report/graph/",
+        "~/.eaos/eaos.db",
+        "events.jsonl",
+        "schemas/artifacts/studio-*.schema.json (v2)"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS39.T1",
+          "title": "الخريطة الموحدة",
+          "why": "كل عرض اليوم يقرأ مجموعات الحقائق الخام بطريقته؛ والوصف للنموذج يحتاج صورة واحدة دقيقة.",
+          "moves": [
+            "N1"
+          ],
+          "depends_on": [
+            "NS38.T3"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/graph/",
+            "schemas/graph.schema.json",
+            "eaos/system_map.py",
+            "eaos/arch_map.py",
+            "eaos/features.py"
+          ],
+          "steps": [
+            "أنواع العقد والحواف من A-analysis.md القسم 3.",
+            "معرّفات ثابتة مقروءة ومصدر لكل عنصر.",
+            "كتابة حتمية؛ والعروض الحالية تقرأ الخريطة."
+          ],
+          "done_when": [
+            "N1 = 1.0."
+          ],
+          "pitfalls": [
+            "الخريطة لا تخترع حافة: كل حافة لها resolution."
+          ],
+          "acceptance": "python tools/north_star.py measure --only N1 --min 1.0",
+          "rollback": "احذف eaos/graph/ وأرجع العروض."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS39.T2",
+          "title": "المخزن وسجل الأحداث",
+          "why": "السجل واليوميات سجلان جزئيان؛ لا تحديث حي ولا تدقيق بلا سجل أحداث واحد.",
+          "moves": [
+            "N2"
+          ],
+          "depends_on": [
+            "NS39.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/store/",
+            "eaos/events.py",
+            "eaos/ledger.py",
+            "eaos/handover.py",
+            "schemas/events/event.schema.json"
+          ],
+          "steps": [
+            "events.jsonl بمغلف وسلسلة بصمات.",
+            "ledger.json واليوميات إسقاطات تُعاد بالتشغيل.",
+            "مخزن SQLite يُبنى من الحزم والأحداث، بنسخ عبر الفحوص."
+          ],
+          "done_when": [
+            "N2 = 1.0، وأرقام النموذج من المخزن = من الملفات."
+          ],
+          "pitfalls": [
+            "لا بيانات توجد في المخزن وحده."
+          ],
+          "acceptance": "python tools/north_star.py measure --only N2 --min 1.0",
+          "rollback": "ارجع ledger إلى الكتابة المباشرة."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS39.T3",
+          "title": "عقد البيانات v2",
+          "why": "عقد v1 لا يحمل الروابط ولا الدوال ولا الشاشات ولا العمليات ولا تاريخ الفحوص.",
+          "moves": [
+            "N1",
+            "F2"
+          ],
+          "depends_on": [
+            "NS39.T2"
+          ],
+          "size": "M",
+          "files": [
+            "tools/make_contracts.py",
+            "eaos/studio/export.py",
+            "docs/STUDIO.md"
+          ],
+          "steps": [
+            "أقسام v2 إضافية لا تكسر v1.",
+            "أنواع TS مولدة من المخططات.",
+            "القسم الكبير مقسّم على أجزاء."
+          ],
+          "done_when": [
+            "أقسام v2 صالحة في كل تقرير من العيّنة."
+          ],
+          "pitfalls": [
+            "قارئ v1 يبقى يعمل."
+          ],
+          "acceptance": "python tools/acceptance.py contract studio-manifest && python tools/north_star.py measure --only N1 --min 1.0",
+          "rollback": "احذف أقسام v2."
+        }
+      ]
+    },
+    {
+      "id": "NS37",
+      "title": "الاستوديو: المنصة وأول إصدار حقيقي",
+      "title_en": "Studio: platform and first real release",
+      "stages": [
+        "S07",
+        "S15"
+      ],
+      "weight": 4,
+      "goal": "F2 وF4 وF7 وF8 وF9 عند أهدافها: الاستوديو نظام لا صفحة، الجوال أولًا والكمبيوتر لوحات احترافية، حي، ويعرض ما هو صحيح اليوم فقط.",
+      "weight_why": "المرحلة P3 من خطة v2. أول ما يحكم عليه المالك على شاشات حقيقية؛ يعرض فقط البيانات الصحيحة اليوم، وتُضاف الصفحات مع كل مرحلة محرك.",
+      "does": [
+        "رموز الاتجاه المختار ومعرض المكونات بكل حالاتها",
+        "الإطار: شريط سفلي وتنقل متراكب على الجوال، قائمة جانبية ولوحات ومفتش و⌘K على الكمبيوتر، وبحث بالعربي",
+        "واجهة قراءة محلية وبث حي، ونسخة لقطة تعمل من ملف",
+        "الرئيسية والمشاكل بدليلها والقرارات والمستندات، وREPORT.html من النموذج نفسه"
+      ],
+      "tools": [
+        "React + TS + Vite",
+        "React Aria",
+        "TanStack Router/Query/Virtual",
+        "FastAPI + sse-starlette",
+        "MiniSearch"
+      ],
+      "outputs": [
+        "studio/ (المصدر)",
+        "eaos/data/studio/ (البناء)",
+        "eaos studio (خادم محلي)",
+        "tests/visual · tests/a11y · tests/live"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS37.T1",
+          "title": "نظام التصميم والإطار",
+          "why": "الإطار والمكوّنات تُبنى مرة بالاتجاه المختار، فتأتي كل صفحة متناسقة.",
+          "moves": [
+            "F8"
+          ],
+          "depends_on": [
+            "NS36.T3",
+            "NS39.T3"
+          ],
+          "size": "L",
+          "files": [
+            "studio/src/design/",
+            "studio/src/shell/",
+            "studio/src/components/",
+            "tools/studio_gates.py"
+          ],
+          "steps": [
+            "سجل استكشاف في docs/adoption/ قبل أي كود (قاعدة «تبنَّ قبل أن تبني»)، من E-adopt-before-build.md.",
+            "رموز الاتجاه المختار، ومعرض #/_gallery لكل مكوّن × حالة × وضع × اتجاه.",
+            "الإطار: الشريط السفلي والتنقل المتراكب والأوراق على الجوال؛ القائمة واللوحات والمفتش و⌘K على الكمبيوتر.",
+            "بحث بتطبيع عربي."
+          ],
+          "done_when": [
+            "F8 = 1.0 على المعرض والإطار."
+          ],
+          "pitfalls": [
+            "لا وجهة معطلة تظهر أبدًا.",
+            "لا خاصية left/right فيزيائية."
+          ],
+          "acceptance": "python tools/north_star.py measure --only F8 --min 1.0 && python tools/north_star.py measure --only W2 --min 1.0",
+          "rollback": "احذف studio/."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS37.T2",
+          "title": "واجهة القراءة والبث الحي",
+          "why": "الواجهة تتحدث وحدها بعد كل فحص ودفعة ودمج، وتعمل لقطةً من ملف.",
+          "moves": [
+            "F9"
+          ],
+          "depends_on": [
+            "NS37.T1",
+            "NS39.T2"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/api/",
+            "eaos/cli.py",
+            "eaos/mcp_server.py",
+            "studio/src/data/"
+          ],
+          "steps": [
+            "واجهة REST للقراءة على 127.0.0.1 برمز تشغيل، مولدة من المخططات.",
+            "بث SSE من سجل الأحداث يعيد ما فات.",
+            "اللقطة = موارد الواجهة على القرص، ومصدران بواجهة واحدة يعرضان نفس الشيء.",
+            "الأمر eaos studio وأداة open_studio."
+          ],
+          "done_when": [
+            "F9 = 1.0."
+          ],
+          "pitfalls": [
+            "لا كتابة من الاستوديو في الوضع المحلي: الفعل جملة تُنسخ للمساعد."
+          ],
+          "acceptance": "python tools/north_star.py measure --only F9 --min 1.0",
+          "rollback": "احذف eaos/api/."
+        },
+        {
+          "needs": "human",
+          "writes": [],
+          "status": "todo",
+          "id": "NS37.T3",
+          "title": "الرئيسية والمشاكل والقرارات والمستندات",
+          "why": "أول إصدار حقيقي: الصفحات التي بياناتها صحيحة اليوم.",
+          "moves": [
+            "F2",
+            "F4"
+          ],
+          "depends_on": [
+            "NS37.T2"
+          ],
+          "size": "L",
+          "files": [
+            "studio/src/pages/home/",
+            "studio/src/pages/findings/",
+            "studio/src/pages/inbox/",
+            "studio/src/pages/library/"
+          ],
+          "steps": [
+            "الرئيسية ≤ شاشتين على الجوال وكل رقم رابط.",
+            "المشاكل: قائمة وتفاصيل بدليلها؛ 5000 بطاقة تُصفّى في ≤ 100 ملي ثانية.",
+            "القرارات: سؤال وتوصية وما يفتحه.",
+            "المكتبة: المستندات مجمعة بقارئ."
+          ],
+          "done_when": [
+            "F2 وF4 = 1.0، ويراجع المالك الإصدار."
+          ],
+          "pitfalls": [
+            "لا صفحة «قريبًا»."
+          ],
+          "acceptance": "python tools/north_star.py measure --only F2 --min 1.0 && python tools/north_star.py measure --only F4 --min 1.0 && python tools/north_star.py measure --only F8 --min 1.0",
+          "rollback": "احذف الصفحات."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS37.T4",
+          "title": "مصدر واحد للحقيقة",
+          "why": "REPORT.html يحسب أرقامه بنفسه في أجزاء؛ رقمان لشيء واحد يفقدان الثقة.",
+          "moves": [
+            "F7"
+          ],
+          "depends_on": [
+            "NS37.T3"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/human_report.py",
+            "eaos/studio/model.py",
+            "tests/test_single_source.py"
+          ],
+          "steps": [
+            "REPORT.html يرسم من النموذج ولا يقرأ ملفًا بنفسه.",
+            "اختبار يطابق كل رقم فيه مع النموذج.",
+            "إيقاف الصفحات المؤقتة في eaos-hub."
+          ],
+          "done_when": [
+            "F7 = 1.0."
+          ],
+          "pitfalls": [
+            "شكل REPORT.html لا يتغير."
+          ],
+          "acceptance": "python tools/north_star.py measure --only F7 --min 1.0",
+          "rollback": "ارجع human_report."
+        }
+      ]
+    },
+    {
+      "id": "NS40",
+      "title": "الفهم: الدوال والواجهات والمُدخلات",
+      "title_en": "Understanding: functions, UI and inputs",
+      "stages": [
+        "S02",
+        "S03"
+      ],
+      "weight": 2,
+      "goal": "Q1 إلى Q4 عند أهدافها، وصفحتا خريطة النظام ومستكشف الدوال في الاستوديو.",
+      "weight_why": "المرحلة P4: طلب المالك فهم كل وظيفة وما وراءها، واكتشاف الصفحات المتداخلة، ومكان واحد لكل مُدخل.",
+      "does": [
+        "مراجع بدقة المترجم (SCIP)",
+        "مستخرج الواجهة: مكوّنات ونماذج وحقول ومفاتيح الطلبات والتنقل",
+        "التداخل على السلوك، ومالك واحد لكل حقل بيانات",
+        "بطاقة لكل دالة، وصفحتا خريطة النظام ومستكشف الدوال"
+      ],
+      "tools": [
+        "scip-typescript",
+        "scip-python",
+        "ast-grep",
+        "react-docgen",
+        "React Flow + elkjs",
+        "Sigma + graphology"
+      ],
+      "outputs": [
+        "calls محلولة",
+        "functions/*.json",
+        "overlap وownership_violation",
+        "صفحتان في الاستوديو"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS40.T1",
+          "title": "مراجع بدقة المترجم",
+          "why": "43-58% من خطوات المسارات تنقطع بلا حل.",
+          "moves": [
+            "Q1"
+          ],
+          "depends_on": [
+            "NS39.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/engines/scip.py",
+            "upstreams/toolchain.json",
+            "eaos/graph/"
+          ],
+          "steps": [
+            "سجل استكشاف في docs/adoption/ قبل أي كود (قاعدة «تبنَّ قبل أن تبني»)، من E-adopt-before-build.md.",
+            "محرك SCIP لـ TS وPython بإصدار مثبت.",
+            "حواف calls من فهارسه."
+          ],
+          "done_when": [
+            "Q1 ≥ 0.85."
+          ],
+          "pitfalls": [
+            "لا يتباطأ الفحص فوق ميزانيته."
+          ],
+          "acceptance": "python tools/north_star.py measure --only Q1 --min 0.85 && python tools/north_star.py measure --only W2 --min 1.0",
+          "rollback": "احذف المحرك."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS40.T2",
+          "title": "طبقة الواجهة والبيانات، والتداخل ومالك المُدخل",
+          "why": "لا نموذج للشاشات والحقول؛ والتكرار الحقيقي (1800 سطر) ليس بطاقة؛ وdata_owners = 0 حيث 6 نقاط كتابة متعددة.",
+          "moves": [
+            "Q2",
+            "Q3"
+          ],
+          "depends_on": [
+            "NS40.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/facts/ui.py",
+            "eaos/overlap.py",
+            "eaos/ownership.py",
+            "eaos/sustainability.py"
+          ],
+          "steps": [
+            "مستخرج الواجهة بقواعد ast-grep وreact-docgen.",
+            "تتبع الحقل ← الطلب ← المسار ← المعالج ← العمود.",
+            "تداخل الصفحات على التوقيع السلوكي."
+          ],
+          "done_when": [
+            "Q2 = 1.0 وQ3 ≥ 0.8."
+          ],
+          "pitfalls": [
+            "الطبقة غير الموجودة فجوة تغطية لا «مالك واحد»."
+          ],
+          "acceptance": "python tools/north_star.py measure --only Q2 --min 1.0 && python tools/north_star.py measure --only Q3 --min 0.8",
+          "rollback": "احذف الكواشف الجديدة."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS40.T3",
+          "title": "بطاقات الدوال وصفحتا الخريطة والمستكشف",
+          "why": "المالك يريد أن يرى النظام وارتباطاته ويفهم كل دالة.",
+          "moves": [
+            "Q4",
+            "F8"
+          ],
+          "depends_on": [
+            "NS40.T2",
+            "NS37.T3"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/functions.py",
+            "eaos/data/tasks/function_summary.json",
+            "studio/src/pages/system/",
+            "studio/src/pages/functions/"
+          ],
+          "steps": [
+            "بطاقة لكل دالة؛ الملخص بنموذج بعقد مهمة ومدقق يرفض أي مستدعٍ أو أثر غير موجود.",
+            "خريطة النظام بتكبير دلالي، وعلى الجوال جوار مركّز.",
+            "مستكشف الدوال."
+          ],
+          "done_when": [
+            "Q4 ≥ 0.9 وF8 = 1.0."
+          ],
+          "pitfalls": [
+            "ملخص النموذج ادعاء INFERRED لا يغير حواف الخريطة."
+          ],
+          "acceptance": "python tools/north_star.py measure --only Q4 --min 0.9 && python tools/north_star.py measure --only F8 --min 1.0",
+          "rollback": "احذف الصفحتين والبطاقات."
+        }
+      ]
+    },
+    {
+      "id": "NS41",
+      "title": "رؤية الشاشات ومشاكل الاستخدام",
+      "title_en": "Seeing screens and HCI",
+      "stages": [
+        "S04",
+        "S05"
+      ],
+      "weight": 2,
+      "goal": "Z1 وZ2 عند هدفيهما، ومعرض الشاشات في الاستوديو بالمشاكل عليها وقبل وبعد.",
+      "weight_why": "المرحلة P5: طلب المالك رؤية الواجهات بصريًا وكشف التشوهات وما يصعب فهمه؛ ولم تُصوَّر شاشة واحدة حتى اليوم.",
+      "does": [
+        "تصوير كل صفحة مسجلًا دخولها على بيانات مزروعة بثلاثة مقاسات مع DOM وشجرة الوصول والشبكة",
+        "فحوص ثابتة: axe والتداخل والقص وأهداف اللمس والانزياح وانحراف التصميم",
+        "مراجعة النموذج بعد الفحوص فقط، مثبتة على عنصر ومعايرة",
+        "معرض الشاشات ومقارنة قبل وبعد"
+      ],
+      "tools": [
+        "Playwright",
+        "axe-core",
+        "Lighthouse",
+        "css-analyzer",
+        "odiff"
+      ],
+      "outputs": [
+        "screens.json",
+        "ui_issue",
+        "صفحة الشاشات"
+      ],
+      "tasks": [
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS41.T1",
+          "title": "مسار التصوير",
+          "why": "قفل السلوك يولد مواصفات لكنه لم يصور شاشة واحدة على العيّنة.",
+          "moves": [
+            "Z1"
+          ],
+          "depends_on": [
+            "NS39.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/capture.py",
+            "eaos/behavior_lock.py",
+            "eaos/live_run.py",
+            "eaos/local_db.py"
+          ],
+          "steps": [
+            "سجل استكشاف في docs/adoption/ قبل أي كود (قاعدة «تبنَّ قبل أن تبني»)، من E-adopt-before-build.md.",
+            "تصوير بثلاثة مقاسات ووضعين، مع DOM وشجرة الوصول والشبكة (أسماء المفاتيح فقط) والتغطية.",
+            "صفحات المعاملات من البيانات المزروعة."
+          ],
+          "done_when": [
+            "Z1 ≥ 0.9."
+          ],
+          "pitfalls": [
+            "بيانات مزروعة فقط، لا بيانات المالك."
+          ],
+          "acceptance": "python tools/north_star.py measure --only Z1 --min 0.9 && python tools/north_star.py measure --only W2 --min 1.0",
+          "rollback": "احذف مسار التصوير."
+        },
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS41.T2",
+          "title": "فحوص الاستخدام ومعرض الشاشات",
+          "why": "المالك يريد اكتشاف التشوهات البصرية وما يصعب فهمه.",
+          "moves": [
+            "Z2",
+            "F8"
+          ],
+          "depends_on": [
+            "NS41.T1",
+            "NS37.T3"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/hci.py",
+            "eaos/data/tasks/hci_review.json",
+            "studio/src/pages/screens/"
+          ],
+          "steps": [
+            "الفحوص الثابتة أولًا، ثم مراجعة النموذج مثبتة على عنصر ومؤكدة.",
+            "المعايرة على 100 شاشة معلَّمة؛ الفئة تحت حدها تُخفى.",
+            "المعرض بدبابيس على المشاكل وقبل وبعد."
+          ],
+          "done_when": [
+            "Z2 ≥ 0.9 وF8 = 1.0."
+          ],
+          "pitfalls": [
+            "إرسال الصور للنموذج بإذن خاص لكل مشروع."
+          ],
+          "acceptance": "python tools/north_star.py measure --only Z2 --min 0.9 && python tools/north_star.py measure --only F8 --min 1.0",
+          "rollback": "احذف الفحوص والصفحة."
+        }
+      ]
+    },
+    {
+      "id": "NS42",
+      "title": "الصورة المثالية: الوصف والتصورات والاعتماد",
+      "title_en": "The ideal picture: brief, proposals, approval",
+      "stages": [
+        "S06"
+      ],
+      "weight": 2,
+      "goal": "I1 وI2 وI3 عند أهدافها: النموذج يتلقى وصفًا دقيقًا مكتملًا، ويرسم ثلاثة تصورات مستقلة يدققها EAOS، ويعتمد المالك الصورة.",
+      "weight_why": "المرحلة P6: طلب المالك أن يعطي EAOS النموذج كل المخططات والتفاصيل ويطلب منه تصورًا مثاليًا؛ والمحرك اليوم يوزع الملفات على قالب.",
+      "does": [
+        "وصف النظام بثلاث طبقات وفحوص اكتمال وأداة brief_read",
+        "عقد ideal v1 ومدقق V1-V8",
+        "ثلاثة تصورات بعدسات مختلفة في جلسات منفصلة + الآلي + المعلن، ومقارنة على الكود",
+        "اعتماد المالك ونسخ الصورة، والجسر في الاستوديو"
+      ],
+      "tools": [
+        "eaos/runtime/ (Claude وCodex)",
+        "eaos/target_projection.py",
+        "Structurizr vNext",
+        "elkjs"
+      ],
+      "outputs": [
+        "brief/",
+        "proposals/",
+        "target@vN",
+        "صفحة الجسر"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS42.T1",
+          "title": "وصف النظام",
+          "why": "النموذج يرسم بقدر ما يرى؛ وصف ناقص يصنع نتيجة «domain-207».",
+          "moves": [
+            "I1"
+          ],
+          "depends_on": [
+            "NS40.T2"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/brief.py",
+            "eaos/agent_tools.py",
+            "schemas/artifacts/brief-*.schema.json"
+          ],
+          "steps": [
+            "L0 ≤ 6 آلاف رمز، وL1 لكل قدرة ومكوّن، وL2 الأدلة عبر brief_read.",
+            "فحوص BC1-BC7 بوابة."
+          ],
+          "done_when": [
+            "I1 = 1.0."
+          ],
+          "pitfalls": [
+            "لا اقتطاع صامت."
+          ],
+          "acceptance": "python tools/north_star.py measure --only I1 --min 1.0",
+          "rollback": "احذف brief."
+        },
+        {
+          "needs": "model_provider",
+          "writes": [],
+          "status": "todo",
+          "id": "NS42.T2",
+          "title": "التصورات والمدقق والمقارنة",
+          "why": "تصور واحد من نموذج واحد يحمل أخطاءه؛ والاختلاف بين المستقلين هو ما يحتاج قرار المالك.",
+          "moves": [
+            "I2",
+            "W1"
+          ],
+          "depends_on": [
+            "NS42.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/ideal.py",
+            "eaos/data/tasks/ideal_*.json",
+            "eaos/runtime/",
+            "eaos/target_projection.py"
+          ],
+          "steps": [
+            "ثلاث عدسات (البنية، التشغيل والتحمل، الأمان والبيانات) في جلسات منفصلة بخلط Claude وCodex.",
+            "المدقق V1-V8 وجولة إصلاح واحدة.",
+            "إسقاط كل تصور على الكود ومقارنة الأرقام والتوافق."
+          ],
+          "done_when": [
+            "I2 ≥ 0.9."
+          ],
+          "pitfalls": [
+            "المساعد الذي يحادث المالك لا يكتب التصورات."
+          ],
+          "acceptance": "python tools/north_star.py measure --only I2 --min 0.9",
+          "rollback": "احذف ideal."
+        },
+        {
+          "needs": "human",
+          "writes": [],
+          "status": "todo",
+          "id": "NS42.T3",
+          "title": "الاعتماد والجسر",
+          "why": "لا شيء يُبنى على صورة لم يعتمدها المالك.",
+          "moves": [
+            "I3",
+            "F8"
+          ],
+          "depends_on": [
+            "NS42.T2",
+            "NS37.T3"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/ideal.py",
+            "studio/src/pages/change/"
+          ],
+          "steps": [
+            "الخلافات قرارات في صندوق المالك (≤ 7).",
+            "الاعتماد يجمد target@vN.",
+            "صفحة الجسر، وعلى الجوال قائمة انتقال."
+          ],
+          "done_when": [
+            "I3 = 1.0."
+          ],
+          "pitfalls": [],
+          "acceptance": "python tools/north_star.py measure --only I3 --min 1.0 && python tools/north_star.py measure --only F8 --min 1.0",
+          "rollback": "احذف صفحة الجسر."
+        }
+      ]
+    },
+    {
+      "id": "NS43",
+      "title": "الهندسة العكسية: الفجوات ونماذج الجودة",
+      "title_en": "Reverse engineering: gaps and quality models",
+      "stages": [
+        "S06",
+        "S07"
+      ],
+      "weight": 2,
+      "goal": "J1 وJ2 عند هدفيهما، ونماذج التحمل والتهديدات والأعطال ومستويات الخدمة لكل مشروع.",
+      "weight_why": "المرحلة P7: طلب المالك تحليل الصورة المثالية بالهندسة العكسية وتأكيد الفجوات، بضمان التحمل والأمان والاستمرارية لآلاف المستخدمين.",
+      "does": [
+        "كتالوج الالتزامات وفاحص لكل التزام",
+        "سجل الفجوات بدليل من الجهتين",
+        "نماذج التحمل (1k/10k/50k) وSTRIDE وFMEA وSLO",
+        "صفحات الفجوات والجودة"
+      ],
+      "tools": [
+        "pytm",
+        "k6",
+        "Toxiproxy",
+        "OWASP ZAP"
+      ],
+      "outputs": [
+        "gap-register.json",
+        "CAPACITY.md · THREAT-MODEL.md · FAILURE-MODES.md · SLO.md"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS43.T1",
+          "title": "الالتزامات وسجل الفجوات",
+          "why": "مصفوفة الفجوة اليوم تقارن الحالي بنفسه.",
+          "moves": [
+            "J1",
+            "J2"
+          ],
+          "depends_on": [
+            "NS42.T3"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/rules/obligations.json",
+            "eaos/gaps.py",
+            "studio/src/pages/change/"
+          ],
+          "steps": [
+            "سجل استكشاف في docs/adoption/ قبل أي كود (قاعدة «تبنَّ قبل أن تبني»)، من E-adopt-before-build.md.",
+            "التسلسل من الجودة إلى البنية إلى البيانات إلى الواجهة.",
+            "مؤكدة أو افتراضية بمجس أو متحققة."
+          ],
+          "done_when": [
+            "J1 = 1.0 وJ2 ≥ 0.85."
+          ],
+          "pitfalls": [
+            "الفجوة المؤكدة وحدها تبرر عملية هدم."
+          ],
+          "acceptance": "python tools/north_star.py measure --only J1 --min 1.0 && python tools/north_star.py measure --only J2 --min 0.85 && python tools/north_star.py measure --only W2 --min 1.0",
+          "rollback": "احذف gaps."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS43.T2",
+          "title": "نماذج الجودة",
+          "why": "منتج شركة يجب أن يُعرف حمله وتهديداته وأعطاله قبل أن يُبنى عليه.",
+          "moves": [
+            "J1"
+          ],
+          "depends_on": [
+            "NS43.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/quality_models.py",
+            "eaos/load_model.py",
+            "eaos/data/tasks/threats.json"
+          ],
+          "steps": [
+            "السعة لكل شريحة مستخدمين، وعنق الزجاجة.",
+            "STRIDE لكل حد ثقة بـ pytm.",
+            "FMEA لكل اعتماد خارجي.",
+            "SLO بمؤشراتها."
+          ],
+          "done_when": [
+            "كل رقم بمصدره على chief-ops."
+          ],
+          "pitfalls": [
+            "الافتراضي يُكتب افتراضيًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only J1 --min 1.0",
+          "rollback": "احذف النماذج."
         }
       ]
     },
@@ -5716,7 +6988,7 @@
             "L9"
           ],
           "depends_on": [
-            "NS36.T3"
+            "NS43.T2"
           ],
           "size": "M",
           "files": [
@@ -5820,365 +7092,6 @@
       ]
     },
     {
-      "id": "NS37",
-      "title": "الاستوديو كاملًا: الصفحات والإثبات",
-      "title_en": "The full Studio: pages and proof",
-      "stages": [
-        "S07",
-        "S15"
-      ],
-      "weight": 4,
-      "goal": "F1 إلى F7 عند أهدافها: الاستوديو يُفتح من /eaos والأمر والملف ويتحدث وحده، بالقصة الثلاثية والمشاكل والمستندات والخطط وخططها الفرعية والقرارات والمعرض، وREPORT.html والاستوديو من نموذج واحد، وتجربة المالك 5 من 5.",
-      "weight_why": "طلب المالك (2026-10-08): الراهن والمثالي والفجوة، وصفحة للخطط وخططها الفرعية التفاعلية، واستوديو صور، ومشغّل لملفات md، بثوابت تضمن حوكمة الخطة. بعد NS32 لأن صفحات الخطط والقرارات تقرأ سجلها.",
-      "does": [
-        "الفتح والتحديث: eaos studio، أداة open_studio، خيار في /eaos، STUDIO.html",
-        "الرئيسية والقصة: الراهن والفجوة (الجسر والمصفوفة والمؤشرات) والمثالية",
-        "مستكشف المشاكل بدليلها، ومشغّل المستندات، والمنظومة",
-        "الخطط والخطط الفرعية، وصندوق القرارات، والتقدم، والمعرض",
-        "REPORT.html من النموذج نفسه، والإثبات: لقطات ووصولية وأداء وتجربة المالك"
-      ],
-      "tools": [
-        "eaos/studio/",
-        "studio/src/",
-        "eaos/mcp_server.py",
-        "eaos/cli.py",
-        "eaos/human_report.py",
-        "eaos/plans.py"
-      ],
-      "outputs": [
-        "<تقرير>/studio/ كاملًا",
-        "<تقرير>/STUDIO.html",
-        "<تقرير>/REPORT.html من النموذج",
-        "tests/visual: اللقطات المرجعية"
-      ],
-      "tasks": [
-        {
-          "needs": "none",
-          "writes": [],
-          "status": "todo",
-          "id": "NS37.T1",
-          "title": "الفتح والتحديث",
-          "why": "واجهة لا يعرف الشخص كيف يفتحها، أو تبقى قديمة بعد الدمج، تُفقد الثقة كما يفقدها رقم خاطئ.",
-          "moves": [
-            "F1"
-          ],
-          "depends_on": [
-            "NS36.T3",
-            "NS32.T1"
-          ],
-          "size": "M",
-          "files": [
-            "eaos/studio/serve.py",
-            "eaos/cli.py",
-            "eaos/mcp_server.py",
-            "eaos/guided.py",
-            "eaos/data/"
-          ],
-          "steps": [
-            "serve.py خادم محلي للقراءة فقط (GET).",
-            "الأمر eaos studio وأداة open_studio، وخيار «افتح الاستوديو» في قائمة /eaos.",
-            "STUDIO.html في التقرير يفتح بلا خادم.",
-            "ختم الفحص في كل صفحة، وتنبيه إذا تحرك الفرع بعده."
-          ],
-          "done_when": [
-            "بعد دمج فرع تتحدث الواجهة خلال 5 ثوانٍ، وSTUDIO.html في كل تقرير."
-          ],
-          "pitfalls": [
-            "الخادم على 127.0.0.1 وحده.",
-            "لا فعل كتابة: كل فعل جملة تُنسخ للمساعد."
-          ],
-          "acceptance": "python tools/acceptance.py file STUDIO.html && python tools/north_star.py measure --only X8 --min 1.0",
-          "rollback": "احذف serve.py والأمر والأداة."
-        },
-        {
-          "needs": "none",
-          "writes": [],
-          "status": "todo",
-          "id": "NS37.T2",
-          "title": "الرئيسية والقصة",
-          "why": "لب طلب المالك: الوضع الراهن والصورة المثالية والفجوة بينهما، بصريًا، وكل رقم بمصدره.",
-          "moves": [
-            "F2"
-          ],
-          "depends_on": [
-            "NS37.T1"
-          ],
-          "size": "L",
-          "files": [
-            "studio/src/pages/home/",
-            "studio/src/pages/story/",
-            "studio/src/charts/",
-            "eaos/studio/model.py"
-          ],
-          "steps": [
-            "الرئيسية: أين نحن، أين يجب أن نكون، ما التالي.",
-            "الراهن: البنية الحالية ودرجتها.",
-            "الفجوة: الجسر (أين يذهب كل جزء من الكود)، والمصفوفة، والمؤشرات بأهدافها.",
-            "المثالية: البنية المستهدفة ومكوناتها."
-          ],
-          "done_when": [
-            "F2 = 1.0 على هذه الصفحات، والمالك راجعها."
-          ],
-          "pitfalls": [
-            "الرسم المزدحم يُطوى فوق 8 عناصر.",
-            "لكل رسم جدول بديل."
-          ],
-          "acceptance": "python tools/north_star.py measure --only F2 --min 1.0",
-          "rollback": "احذف صفحات القصة."
-        },
-        {
-          "needs": "none",
-          "writes": [],
-          "status": "todo",
-          "id": "NS37.T3",
-          "title": "المشاكل والمستندات والمنظومة",
-          "why": "الفحص يكتب مئات البطاقات ومئات المستندات (290 على EAOS نفسه) لا يراها أحد اليوم إلا في ملفات.",
-          "moves": [
-            "F4"
-          ],
-          "depends_on": [
-            "NS37.T2"
-          ],
-          "size": "L",
-          "files": [
-            "studio/src/pages/cards/",
-            "studio/src/pages/docs/",
-            "studio/src/pages/system/",
-            "tests/perf/"
-          ],
-          "steps": [
-            "مستكشف البطاقات: بحث وفلترة، وكل بطاقة بدليلها وملفاتها وشارة «دليل عام» إن وُجدت.",
-            "مشغّل المستندات: كل ملفات md بفهرس وبحث ورسوم Mermaid محليًا.",
-            "المنظومة: الأدوات والمحركات وما شغّله الفحص.",
-            "قياس الأداء على مشروع مولّد بـ5000 بطاقة."
-          ],
-          "done_when": [
-            "F4 = 1.0."
-          ],
-          "pitfalls": [
-            "قائمة طويلة تُرسم بالتمرير الافتراضي.",
-            "نص المستند يُنقّى قبل عرضه."
-          ],
-          "acceptance": "python tools/north_star.py measure --only F4 --min 1.0",
-          "rollback": "احذف الصفحات الثلاث."
-        },
-        {
-          "needs": "sandbox",
-          "writes": [],
-          "status": "todo",
-          "id": "NS37.T4",
-          "title": "الخطط والقرارات والتقدم والمعرض",
-          "why": "طلب المالك صفحة للخطط التي يريد تطويرها وصفحات تفاعلية لخططها الفرعية، بحوكمة كاملة، واستوديو يجمع الصور.",
-          "moves": [
-            "F1",
-            "F2"
-          ],
-          "depends_on": [
-            "NS37.T3",
-            "NS32.T3"
-          ],
-          "size": "L",
-          "files": [
-            "studio/src/pages/plans/",
-            "studio/src/pages/decisions/",
-            "studio/src/pages/progress/",
-            "studio/src/pages/media/",
-            "eaos/studio/model.py",
-            "eaos/behavior_lock.py"
-          ],
-          "steps": [
-            "صفحة الخطط، وصفحة لكل خطة وخططها الفرعية بمراحل حياتها وبواباتها، وتقدم مقاس من الفرع لا زر «منجز».",
-            "صندوق القرارات: سؤال واحد مع توصية.",
-            "التقدم: سجل الدرجات عبر الزمن.",
-            "المعرض: لقطات كل دفعة، ومقارنة قبل وبعد."
-          ],
-          "done_when": [
-            "خطة مسجلة وخطتها الفرعية تظهران بتقدم مقاس في كل تقرير فيه خطة."
-          ],
-          "pitfalls": [
-            "الواجهة لا تكتب في السجل أبدًا."
-          ],
-          "acceptance": "python tools/acceptance.py contract studio-plans && python tools/acceptance.py contract studio-decisions && python tools/north_star.py measure --only F1 --min 1.0",
-          "rollback": "احذف الصفحات الأربع."
-        },
-        {
-          "needs": "none",
-          "writes": [],
-          "status": "todo",
-          "id": "NS37.T5",
-          "title": "مصدر واحد للحقيقة",
-          "why": "تقريران يحسب كل منهما أرقامه ينحرفان؛ وهذا ما حدث مع الواجهة المؤقتة واللوحة الخارجية.",
-          "moves": [
-            "F7"
-          ],
-          "depends_on": [
-            "NS37.T4"
-          ],
-          "size": "M",
-          "files": [
-            "eaos/human_report.py",
-            "eaos/studio/model.py",
-            "tests/test_single_source.py"
-          ],
-          "steps": [
-            "REPORT.html يرسم من النموذج ولا يقرأ أي ملف بنفسه.",
-            "اختبار يطابق كل رقم في REPORT.html مع النموذج.",
-            "metrics.json إسقاط ثابت من النموذج.",
-            "إيقاف الواجهة المؤقتة (eaos-hub) وتوجيه روابطها إلى الاستوديو."
-          ],
-          "done_when": [
-            "F7 = 1.0."
-          ],
-          "pitfalls": [
-            "لا يتغير شكل REPORT.html: لقطاته قبل وبعد متطابقة."
-          ],
-          "acceptance": "python tools/north_star.py measure --only F7 --min 1.0",
-          "rollback": "ارجع human_report إلى القراءة المباشرة."
-        },
-        {
-          "needs": "sandbox",
-          "writes": [],
-          "status": "todo",
-          "id": "NS37.T6",
-          "title": "الإثبات",
-          "why": "الصورة المثالية تُقاس ولا تُدّعى: كل مؤشرات الاستوديو عند هدفها، وتجربة المالك الحقيقية.",
-          "moves": [
-            "F1",
-            "F3",
-            "F5",
-            "F6"
-          ],
-          "depends_on": [
-            "NS37.T5"
-          ],
-          "size": "M",
-          "files": [
-            "tests/visual/",
-            "tests/a11y/",
-            "tools/studio_trial.py",
-            "CHANGELOG.md"
-          ],
-          "steps": [
-            "لقطات مرجعية على Chromium وWebKit بالوضعين واللغتين.",
-            "axe-core على كل صفحة.",
-            "تجربة على كل مشاريع العيّنة، وEAOS يفحص الاستوديو نفسه.",
-            "تجربة المالك: خمس مهام وحده، تُسجل في trial.json.",
-            "رقم إصدار جديد."
-          ],
-          "done_when": [
-            "F1 وF3 وF5 وF6 عند 1.0."
-          ],
-          "pitfalls": [
-            "اللقطات تُعتمد من المالك مرة، ثم تتغير فقط بقرار."
-          ],
-          "acceptance": "python tools/north_star.py measure --only F1 --min 1.0 && python tools/north_star.py measure --only F3 --min 1.0 && python tools/north_star.py measure --only F5 --min 1.0 && python tools/north_star.py measure --only F6 --min 1.0",
-          "rollback": "لا شيء يُرجع: هذه مهمة قياس."
-        }
-      ]
-    },
-    {
-      "id": "NS31",
-      "title": "أرقام ثابتة وضجيج أقل",
-      "title_en": "Stable numbers, less noise",
-      "stages": [
-        "S03",
-        "S15"
-      ],
-      "weight": 3,
-      "goal": "L7 وL8 وS5 عند أهدافها: أرقام بعقد تقرأها أي لوحة، وسجل درجات لكل فحص، وضجيج أقل من 10% في مشروع حقيقي.",
-      "weight_why": "تقرير الميدان: لوحة المالك تقرأ ملفًا داخليًا (G13)، ولا سجل للدرجات (G10)، وعشرات البطاقات فُرزت يدويًا كضجيج (G6، G7).",
-      "does": [
-        "metrics() وmetrics.json بعقد وإصدار",
-        "سجل الدرجة ومجالاتها مع كل فحص، مرسوم في التقرير",
-        "فلتر تشابه الشكل عبر ملفات لا علاقة بينها",
-        "تعليم «مقصود» و«نسخة محفوظة عمدًا» من المساعد، يبقى بعد كل فحص"
-      ],
-      "tasks": [
-        {
-          "needs": "none",
-          "writes": [],
-          "status": "todo",
-          "id": "NS31.T1",
-          "title": "أرقام بعقد، وسجل الدرجات",
-          "why": "اللوحات الخارجية تقرأ ledger.json الداخلي، ولا يُعرف إن كان التحسن من هذه الدفعة أم التي قبلها.",
-          "moves": [
-            "L7",
-            "L8"
-          ],
-          "depends_on": [
-            "NS30.T2"
-          ],
-          "size": "M",
-          "files": [
-            "eaos/guided.py",
-            "eaos/ledger.py",
-            "eaos/human_report.py",
-            "eaos/mcp_server.py",
-            "schemas/artifacts/metrics.schema.json"
-          ],
-          "steps": [
-            "metrics.json بعقد ومعه الأداة metrics.",
-            "ledger.sync يضيف الدرجة ومجالاتها والمفتوح مع كل فحص جديد.",
-            "التقرير يرسم السجل."
-          ],
-          "done_when": [
-            "L7 = L8 = 1.0."
-          ],
-          "pitfalls": [
-            "الرقم يُحسب مرة واحدة ويقرؤه الجميع."
-          ],
-          "acceptance": "python tools/north_star.py measure --only L7 --min 1.0 && python tools/north_star.py measure --only L8 --min 1.0",
-          "rollback": "احذف metrics.json وحقل scores."
-        },
-        {
-          "needs": "sandbox",
-          "writes": [],
-          "status": "todo",
-          "id": "NS31.T2",
-          "title": "ضجيج أقل من 10%",
-          "why": "بطاقات «153 رمزًا لها الشكل نفسه» عبر ملفات لا علاقة بينها، ونسخ محفوظة عمدًا تُعامل كتكرار، والتعليم يُمسح مع الفحص التالي.",
-          "moves": [
-            "S5"
-          ],
-          "depends_on": [
-            "NS31.T1"
-          ],
-          "size": "L",
-          "files": [
-            "eaos/claims.py",
-            "eaos/facts/scope.py",
-            "eaos/decisions.py",
-            "eaos/mcp_server.py",
-            "eaos.policy.json"
-          ],
-          "steps": [
-            "تشابه الشكل يحتاج صلة بين الملفات (طبقة، استيراد، تغيّر مشترك) أو حجمًا أكبر.",
-            "أداة mark(card أو مسار, intended|vendored, reason) تكتب في eaos.policy.json فتبقى.",
-            "تجربة على مشروع المالك الحي تقيس S5."
-          ],
-          "done_when": [
-            "S5 ≥ 0.9."
-          ],
-          "pitfalls": [
-            "لا يختفي تكرار حقيقي: يُقاس على الحقيقة الأرضية للعيّنة (S1)."
-          ],
-          "acceptance": "python tools/north_star.py measure --only S5 --min 0.9 && python tools/north_star.py measure --only S1 --min 0.9",
-          "rollback": "احذف الفلتر والتعليمات."
-        }
-      ],
-      "tools": [
-        "eaos/guided.py",
-        "eaos/ledger.py",
-        "eaos/human_report.py",
-        "eaos/claims.py",
-        "eaos.policy.json"
-      ],
-      "outputs": [
-        "<تقرير>/metrics.json",
-        "ledger.json → history[].scores"
-      ]
-    },
-    {
       "id": "NS33",
       "title": "تنظيف بلا خوف",
       "title_en": "Fearless cleanup",
@@ -6234,6 +7147,137 @@
       ],
       "outputs": [
         "فرع eaos/archive وفيه MANIFEST"
+      ]
+    },
+    {
+      "id": "NS44",
+      "title": "العمليات: دمج وحذف وإعادة بناء بترتيب مضمون",
+      "title_en": "Operations: merge, delete, rebuild in a guaranteed order",
+      "stages": [
+        "S07",
+        "S08"
+      ],
+      "weight": 2,
+      "goal": "O1 وO2 عند هدفيهما، ولوحة الخطة في الاستوديو بخط زمني ورسم اعتماد ومسارات العمليات.",
+      "weight_why": "المرحلة P8: طلب المالك أن يكون أي دمج أو حذف أو إعادة بناء بتسلسل واضح يمنع اللخبطة، وأن تنضاف الخطط والميزات مترابطة لا مرقعة.",
+      "does": [
+        "ثمانية أنواع عمليات بشروطها وشبكة أمانها ورجوعها",
+        "قواعد الترتيب O1-O8 مفروضة",
+        "سجل خطط واحد وplan_validate، وناقل أوامر واحد، وسجل إضافات",
+        "لوحة الخطة"
+      ],
+      "tools": [
+        "eaos/waves.py",
+        "eaos/ledger.py",
+        "eaos/simulator.py",
+        "eaos/behavior_lock.py"
+      ],
+      "outputs": [
+        "ops.json",
+        "لوحة الخطة",
+        "تجربة chief-ops"
+      ],
+      "tasks": [
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS44.T1",
+          "title": "العمليات وقواعد الترتيب",
+          "why": "الدمج والتقسيم وإعادة البناء نصوص في قرارات البنية فقط.",
+          "moves": [
+            "O1"
+          ],
+          "depends_on": [
+            "NS43.T1",
+            "NS33.T1"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/operations.py",
+            "eaos/plan.py",
+            "eaos/roadmap.py"
+          ],
+          "steps": [
+            "الأنواع الثمانية تُترجم إلى بطاقات بمفتاح EAOS-Op.",
+            "فاحص O1-O8 يرفض الحالات المزروعة.",
+            "إعادة البناء خمس عمليات (جديد، تحويل بمفتاح، تطابق، تبديل، حذف)."
+          ],
+          "done_when": [
+            "O1 = 1.0."
+          ],
+          "pitfalls": [
+            "لا حذف قبل نقل المستدعين."
+          ],
+          "acceptance": "python tools/north_star.py measure --only O1 --min 1.0",
+          "rollback": "احذف operations."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS44.T2",
+          "title": "سجل الخطط والإضافات المترابطة",
+          "why": "إضافة صفحة أو ميزة يجب أن ترتبط بقدرة ومكوّن أو تُرفض بسبب.",
+          "moves": [
+            "O1",
+            "L9"
+          ],
+          "depends_on": [
+            "NS44.T1",
+            "NS32.T3"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/plans.py",
+            "eaos/commands.py",
+            "eaos/extensions.py",
+            "studio/src/pages/plans/"
+          ],
+          "steps": [
+            "plan_register وplan_validate على الصورة المعتمدة.",
+            "ناقل أوامر واحد للمساعد والأمر والواجهة.",
+            "سجل إضافات بمخطط مدقق.",
+            "لوحة الخطة."
+          ],
+          "done_when": [
+            "10 حالات مكتوبة: تُربط أو تُرفض بقاعدة."
+          ],
+          "pitfalls": [
+            "لا زر «منجز»."
+          ],
+          "acceptance": "python tools/north_star.py measure --only O1 --min 1.0 && python tools/north_star.py measure --only F8 --min 1.0",
+          "rollback": "احذف السجل."
+        },
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS44.T3",
+          "title": "دمج وإعادة بناء حقيقيان",
+          "why": "الإثبات على مشروع حقيقي لا على اختبار.",
+          "moves": [
+            "O2"
+          ],
+          "depends_on": [
+            "NS44.T2"
+          ],
+          "size": "L",
+          "files": [
+            "tools/ops_trial.py"
+          ],
+          "steps": [
+            "دمج وإعادة بناء تدريجي على chief-ops وقفل السلوك أخضر."
+          ],
+          "done_when": [
+            "O2 = 1.0."
+          ],
+          "pitfalls": [
+            "بإذن المالك المسجل في live_corpus."
+          ],
+          "acceptance": "python tools/north_star.py measure --only O2 --min 1.0",
+          "rollback": "لا شيء: تجربة."
+        }
       ]
     },
     {
@@ -6454,6 +7498,137 @@
       "outputs": [
         "صندوق القرارات: مبادرات بخطط جاهزة",
         "eaos.policy.json → laws"
+      ]
+    },
+    {
+      "id": "NS45",
+      "title": "التوسع والإثبات",
+      "title_en": "Scale and proof",
+      "stages": [
+        "S09",
+        "S15"
+      ],
+      "weight": 2,
+      "goal": "Y1 وY2 وW1 وF5 عند أهدافها: مشروع كبير، ووضع الفريق، والتنبؤ يصدق، والمساعد يحسن الأدوات، والمالك يكمل مهامه وحده على الجوال.",
+      "weight_why": "المرحلة P9: معيار منتج شركة يخدم آلاف المستخدمين، والصورة المثالية تُقاس ولا تُدّعى.",
+      "does": [
+        "التبسيط بمستويات إثبات L0-L4 واختبار الطفرات",
+        "مشروع من 10 آلاف ملف",
+        "وضع الفريق: Postgres وأدوار OIDC وعمال وحاويات",
+        "مجموعة تجارب الأدوات للمساعدين، وتجربة المالك"
+      ],
+      "tools": [
+        "Stryker",
+        "mutmut",
+        "Hypothesis",
+        "fast-check",
+        "Postgres",
+        "OpenTelemetry"
+      ],
+      "outputs": [
+        "tooluse trials",
+        "scale trial",
+        "تجربة المالك"
+      ],
+      "tasks": [
+        {
+          "needs": "model_provider",
+          "writes": [],
+          "status": "todo",
+          "id": "NS45.T1",
+          "title": "المساعد يحسن الأدوات",
+          "why": "التجارب الحقيقية: 22-30% من العمل خارج أدوات EAOS، وأخطاء لا تقول ما العمل، وانتظار يُقطع بصمت.",
+          "moves": [
+            "W1"
+          ],
+          "depends_on": [
+            "NS37.T2"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/agent_tools.py",
+            "eaos/mcp_server.py",
+            "eaos/data/tasks/",
+            "tools/tooluse_trial.py"
+          ],
+          "steps": [
+            "قواعد تصميم الأدوات الثمانية من F-assistant-pipeline.md.",
+            "أدوات ناقصة: قراءة المشروع، وتشغيل الرحلات، وآخر سطور الخطأ.",
+            "11 سيناريو على Claude وCodex."
+          ],
+          "done_when": [
+            "W1 ≥ 0.9."
+          ],
+          "pitfalls": [
+            "النموذج لا يعلّم تقدمًا."
+          ],
+          "acceptance": "python tools/north_star.py measure --only W1 --min 0.9",
+          "rollback": "ارجع الأدوات."
+        },
+        {
+          "needs": "sandbox",
+          "writes": [],
+          "status": "todo",
+          "id": "NS45.T2",
+          "title": "التبسيط المثبت والتوسع",
+          "why": "كود معقد يمكن أن يكون أبسط بنفس السلوك، ومشروع شركة كبير.",
+          "moves": [
+            "Y1",
+            "Y2"
+          ],
+          "depends_on": [
+            "NS44.T3"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/simplify.py",
+            "eaos/store/postgres.py",
+            "tools/scale_trial.py"
+          ],
+          "steps": [
+            "تبسيط بفرق متنبأ ومستوى إثبات.",
+            "مشروع مفتوح من 10 آلاف ملف.",
+            "وضع الفريق."
+          ],
+          "done_when": [
+            "Y1 = 1.0 وY2 ≥ 0.8."
+          ],
+          "pitfalls": [],
+          "acceptance": "python tools/north_star.py measure --only Y1 --min 1.0 && python tools/north_star.py measure --only Y2 --min 0.8",
+          "rollback": "لا شيء: قياس."
+        },
+        {
+          "needs": "human",
+          "writes": [],
+          "status": "todo",
+          "id": "NS45.T3",
+          "title": "تجربة المالك",
+          "why": "المالك يحكم بما يحسه غير المطور.",
+          "moves": [
+            "F5",
+            "F3",
+            "F6"
+          ],
+          "depends_on": [
+            "NS45.T1",
+            "NS45.T2"
+          ],
+          "size": "M",
+          "files": [
+            "tools/studio_trial.py",
+            "CHANGELOG.md"
+          ],
+          "steps": [
+            "خمس مهام على الجوال دون مساعدة، كل منها ≤ 60 ثانية.",
+            "رقم إصدار جديد."
+          ],
+          "done_when": [
+            "F5 وF3 وF6 = 1.0."
+          ],
+          "pitfalls": [],
+          "acceptance": "python tools/north_star.py measure --only F5 --min 1.0 && python tools/north_star.py measure --only F3 --min 1.0 && python tools/north_star.py measure --only F6 --min 1.0",
+          "rollback": "لا شيء: قياس."
+        }
       ]
     },
     {
@@ -6949,7 +8124,9 @@
     "مشاريع holdout لا تُقرأ تقاريرها أثناء التطوير.",
     "كل أداة خارجية تدخل عبر upstreams/registry.yaml ومحوّل يقرأ مخرجها أو مولّد يكتب إدخالها؛ لا كود يعيد ما تفعله أداة معتمدة.",
     "المراحل تُعبر بالترتيب في pipeline. مرحلة من عقد التنفيذ لا تبدأ دون authorization.json صالح وبيئة معزولة.",
-    "قواعد المنتج وبياناته (ترجمة SARIF، وقواعد Semgrep، والكتالوج المرجعي، وقواعد الأسلوب، وقوائم الفحص) في eaos/rules/. أما eaos/data/ فنسخة معبأة من وثائق الجذر، يفرض tools/validate.py أن يكون لكل ملف فيها أصل."
+    "قواعد المنتج وبياناته (ترجمة SARIF، وقواعد Semgrep، والكتالوج المرجعي، وقواعد الأسلوب، وقوائم الفحص) في eaos/rules/. أما eaos/data/ فنسخة معبأة من وثائق الجذر، يفرض tools/validate.py أن يكون لكل ملف فيها أصل.",
+    "تبنَّ قبل أن تبني: كل قدرة جديدة تبدأ بسجل استكشاف في docs/adoption/ (المرشحون من المصادر المفتوحة، الرخصة، آخر إصدار، الصيانة، العمل بلا إنترنت، القرار وسببه). تُبنى من الصفر فقط إذا لم يوجد بديل يستحق، بسبب مكتوب. EAOS مفتوح المصدر (MIT) وغير تجاري، فكل أداة مفتوحة مسموحة (قرار المالك 2026-10-08)، بثلاثة شروط: تُنسب لأصحابها في THIRD_PARTY_NOTICES.md، وتعمل برنامجًا منفصلًا عبر محوّل لا مكتبة مدمجة في كود EAOS، وتُعلَّم في toolchain برخصتها إن كانت غير تجارية أو تقيّد نوع الكود الذي تفحصه (مثل CodeQL على المشاريع الخاصة) ليعرف المستخدم.",
+    "EAOS يقود المساعد الذي يعمل داخله: لكل مهمة نموذج عقد (المدخلات، الأدوات المسموحة، شكل المخرج، مدقق ثابت، الميزانية)؛ الحكم المستقل (التصورات الثلاثة، المراجعة الثانية) يعمل في جلسات منفصلة؛ النموذج لا يعلّم تقدمًا ولا يلمس فرع الشخص، وكل مخرجه يمر بمدقق."
   ],
   "adopted_adapters": [
     {
@@ -7522,19 +8699,27 @@
     },
     {
       "id": "R6G",
-      "title": "الثقة والخطط والمبادرة",
-      "title_en": "Trust, plans and initiative",
+      "title": "EAOS v2: تحليل صادق، صورة مثالية، عمليات مرتبة، واستوديو حي",
+      "title_en": "EAOS v2: truthful analysis, ideal picture, ordered operations, live Studio",
       "milestones": [
         "NS30",
         "NS36",
-        "NS32",
-        "NS37",
+        "NS38",
         "NS31",
+        "NS39",
+        "NS37",
+        "NS40",
+        "NS41",
+        "NS42",
+        "NS43",
+        "NS32",
         "NS33",
+        "NS44",
         "NS34",
-        "NS35"
+        "NS35",
+        "NS45"
       ],
-      "exit": "S4 وX13 أولًا، ثم الاستوديو (F1-F7) مع الخطط (L9-L11) ليكون دليل التطوير، ثم L7 وL8 وS5 وD4 وE12-E14 وG3-G4"
+      "exit": "S4 وX13، ثم A1-A3 وN1-N2، ثم F2-F10 (الاستوديو)، ثم Q1-Q4 وZ1-Z2 وI1-I3 وJ1-J2 وO1-O2، ثم Y1-Y2 وW1-W2 وD4 وE12-E14 وG3-G4"
     },
     {
       "id": "R7",
