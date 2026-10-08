@@ -1,0 +1,6 @@
+{
+ "engine": "vulture",
+ "pinned_version": "2.16",
+ "captured_from": "vulture . (in tests/fixtures/code_engines/py; exit code 3)",
+ "vulture.txt": "billing.py:2: unused import 'os' (90% confidence)\nbilling.py:34: unused function 'unused_helper' (60% confidence)\nbilling.py:38: unused function 'total' (60% confidence)\n"
+}

@@ -1,0 +1,28 @@
+id: eaos.react.component-arrow
+valid:
+  - "const toRow = (v: Vehicle) => ({ id: v.id });"
+  - "const vehicle = () => <div />;"
+  - "const Vehicle = { id: 1 };"
+invalid:
+  - "const VehicleCard = ({ vehicle }: Props) => <div>{vehicle.plate}</div>;"
+  - "export const Header: React.FC<HeaderProps> = ({ title }) => { return <h1>{title}</h1>; };"
+  - "const Empty = () => <Spinner />;"
+---
+id: eaos.react.component-arrow-js
+valid:
+  - "const toRow = (v) => ({ id: v.id });"
+invalid:
+  - "const VehicleCard = ({ vehicle }) => <div>{vehicle.plate}</div>;"
+---
+id: eaos.react.component-function
+valid:
+  - "function Format(value: number) { return value.toFixed(2); }"
+  - "function render() { return <div />; }"
+invalid:
+  - "export default function Dashboard() { return <main><Header /></main>; }"
+---
+id: eaos.react.component-function-js
+valid:
+  - "function Format(value) { return value.toFixed(2); }"
+invalid:
+  - "export default function Dashboard() { return <main />; }"

@@ -476,6 +476,113 @@
       "license_note": "Non-commercial use only. EAOS is free and non-commercial; a commercial user of EAOS is bound by this license and may skip it (--skip gitnexus): CodeGraph and dependency-cruiser cover its core capability."
     },
     {
+      "name": "ast-grep",
+      "role": "read",
+      "stages": [
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "applies": "js",
+      "license": "MIT",
+      "repository": "https://github.com/ast-grep/ast-grep",
+      "version": "0.45.3",
+      "binary": "ast-grep",
+      "install": {
+        "method": "pip",
+        "package": "ast-grep-cli"
+      },
+      "install_note": "The PyPI wheel carries the same prebuilt binary as the GitHub release, per platform; pip checks it against the index hash. It reads EAOS's own rule pack in eaos/rules/ast-grep."
+    },
+    {
+      "name": "lizard",
+      "role": "read",
+      "stages": [
+        "S03",
+        "S04"
+      ],
+      "applies": "all",
+      "license": "MIT",
+      "repository": "https://github.com/terryyin/lizard",
+      "version": "1.24.1",
+      "binary": "lizard",
+      "install": {
+        "method": "pip",
+        "package": "lizard"
+      }
+    },
+    {
+      "name": "complexipy",
+      "role": "read",
+      "stages": [
+        "S03",
+        "S04"
+      ],
+      "applies": "python",
+      "license": "MIT",
+      "repository": "https://github.com/rohaquinlop/complexipy",
+      "version": "8.0.1",
+      "binary": "complexipy",
+      "install": {
+        "method": "pip",
+        "package": "complexipy"
+      }
+    },
+    {
+      "name": "vulture",
+      "role": "read",
+      "stages": [
+        "S03",
+        "S04"
+      ],
+      "applies": "python",
+      "license": "MIT",
+      "repository": "https://github.com/jendrikseipp/vulture",
+      "version": "2.16",
+      "binary": "vulture",
+      "version_pattern": "vulture (\\d+\\.\\d+(?:\\.\\d+)?)",
+      "install": {
+        "method": "pip",
+        "package": "vulture"
+      }
+    },
+    {
+      "name": "knip",
+      "role": "read",
+      "stages": [
+        "S03",
+        "S04"
+      ],
+      "applies": "node_package",
+      "license": "ISC",
+      "repository": "https://github.com/webpro-nl/knip",
+      "version": "6.40.0",
+      "binary": "knip",
+      "install": {
+        "method": "npm",
+        "package": "knip"
+      }
+    },
+    {
+      "name": "react-docgen",
+      "role": "read",
+      "stages": [
+        "S02",
+        "S03"
+      ],
+      "applies": "react",
+      "license": "MIT",
+      "repository": "https://github.com/reactjs/react-docgen",
+      "version": "3.0.7",
+      "binary": "react-docgen",
+      "install": {
+        "method": "npm",
+        "package": "@react-docgen/cli"
+      },
+      "version_from": "package",
+      "install_note": "The command-line package @react-docgen/cli 3.0.7 pins the react-docgen library at exactly 8.0.4. It has no --version: its version is read from its own package.json."
+    },
+    {
       "name": "vale",
       "role": "validate",
       "stages": [

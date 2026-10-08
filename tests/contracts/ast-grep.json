@@ -1,0 +1,634 @@
+{
+ "engine": "ast-grep",
+ "pinned_version": "0.45.3",
+ "captured_from": "ast-grep scan --config eaos/rules/ast-grep/sgconfig.yml --json=stream --include-metadata . (in tests/fixtures/code_engines/web)",
+ "ast-grep.jsonl": [
+  {
+   "text": "App = () => <VehicleCard vehicle={{ id: 1, plate: plate('ab 12') }} />",
+   "range": {
+    "byteOffset": {
+     "start": 108,
+     "end": 178
+    },
+    "start": {
+     "line": 3,
+     "column": 13
+    },
+    "end": {
+     "line": 3,
+     "column": 83
+    }
+   },
+   "file": "src/main.tsx",
+   "lines": "export const App = () => <VehicleCard vehicle={{ id: 1, plate: plate('ab 12') }} />;",
+   "charCount": {
+    "leading": 13,
+    "trailing": 1
+   },
+   "language": "Tsx",
+   "metaVariables": {
+    "single": {
+     "NAME": {
+      "text": "App",
+      "range": {
+       "byteOffset": {
+        "start": 108,
+        "end": 111
+       },
+       "start": {
+        "line": 3,
+        "column": 13
+       },
+       "end": {
+        "line": 3,
+        "column": 16
+       }
+      }
+     }
+    },
+    "multi": {
+     "secondary": [
+      {
+       "text": "App",
+       "range": {
+        "byteOffset": {
+         "start": 108,
+         "end": 111
+        },
+        "start": {
+         "line": 3,
+         "column": 13
+        },
+        "end": {
+         "line": 3,
+         "column": 16
+        }
+       }
+      },
+      {
+       "text": "<VehicleCard vehicle={{ id: 1, plate: plate('ab 12') }} />",
+       "range": {
+        "byteOffset": {
+         "start": 120,
+         "end": 178
+        },
+        "start": {
+         "line": 3,
+         "column": 25
+        },
+        "end": {
+         "line": 3,
+         "column": 83
+        }
+       }
+      },
+      {
+       "text": "() => <VehicleCard vehicle={{ id: 1, plate: plate('ab 12') }} />",
+       "range": {
+        "byteOffset": {
+         "start": 114,
+         "end": 178
+        },
+        "start": {
+         "line": 3,
+         "column": 19
+        },
+        "end": {
+         "line": 3,
+         "column": 83
+        }
+       }
+      }
+     ]
+    },
+    "transformed": {}
+   },
+   "ruleId": "eaos.react.component-arrow",
+   "severity": "info",
+   "note": null,
+   "message": "React component App (arrow function)",
+   "labels": [
+    {
+     "text": "App = () => <VehicleCard vehicle={{ id: 1, plate: plate('ab 12') }} />",
+     "range": {
+      "byteOffset": {
+       "start": 108,
+       "end": 178
+      },
+      "start": {
+       "line": 3,
+       "column": 13
+      },
+      "end": {
+       "line": 3,
+       "column": 83
+      }
+     },
+     "style": "primary"
+    },
+    {
+     "text": "App",
+     "range": {
+      "byteOffset": {
+       "start": 108,
+       "end": 111
+      },
+      "start": {
+       "line": 3,
+       "column": 13
+      },
+      "end": {
+       "line": 3,
+       "column": 16
+      }
+     },
+     "style": "secondary"
+    },
+    {
+     "text": "<VehicleCard vehicle={{ id: 1, plate: plate('ab 12') }} />",
+     "range": {
+      "byteOffset": {
+       "start": 120,
+       "end": 178
+      },
+      "start": {
+       "line": 3,
+       "column": 25
+      },
+      "end": {
+       "line": 3,
+       "column": 83
+      }
+     },
+     "style": "secondary"
+    },
+    {
+     "text": "() => <VehicleCard vehicle={{ id: 1, plate: plate('ab 12') }} />",
+     "range": {
+      "byteOffset": {
+       "start": 114,
+       "end": 178
+      },
+      "start": {
+       "line": 3,
+       "column": 19
+      },
+      "end": {
+       "line": 3,
+       "column": 83
+      }
+     },
+     "style": "secondary"
+    }
+   ],
+   "metadata": {
+    "form": "arrow",
+    "record": "react_component"
+   }
+  },
+  {
+   "text": "Orphan = ({ title }: { title: string }) => <h1>{title}</h1>",
+   "range": {
+    "byteOffset": {
+     "start": 13,
+     "end": 72
+    },
+    "start": {
+     "line": 0,
+     "column": 13
+    },
+    "end": {
+     "line": 0,
+     "column": 72
+    }
+   },
+   "file": "src/components/Orphan.tsx",
+   "lines": "export const Orphan = ({ title }: { title: string }) => <h1>{title}</h1>;",
+   "charCount": {
+    "leading": 13,
+    "trailing": 1
+   },
+   "language": "Tsx",
+   "metaVariables": {
+    "single": {
+     "NAME": {
+      "text": "Orphan",
+      "range": {
+       "byteOffset": {
+        "start": 13,
+        "end": 19
+       },
+       "start": {
+        "line": 0,
+        "column": 13
+       },
+       "end": {
+        "line": 0,
+        "column": 19
+       }
+      }
+     }
+    },
+    "multi": {
+     "secondary": [
+      {
+       "text": "Orphan",
+       "range": {
+        "byteOffset": {
+         "start": 13,
+         "end": 19
+        },
+        "start": {
+         "line": 0,
+         "column": 13
+        },
+        "end": {
+         "line": 0,
+         "column": 19
+        }
+       }
+      },
+      {
+       "text": "<h1>{title}</h1>",
+       "range": {
+        "byteOffset": {
+         "start": 56,
+         "end": 72
+        },
+        "start": {
+         "line": 0,
+         "column": 56
+        },
+        "end": {
+         "line": 0,
+         "column": 72
+        }
+       }
+      },
+      {
+       "text": "({ title }: { title: string }) => <h1>{title}</h1>",
+       "range": {
+        "byteOffset": {
+         "start": 22,
+         "end": 72
+        },
+        "start": {
+         "line": 0,
+         "column": 22
+        },
+        "end": {
+         "line": 0,
+         "column": 72
+        }
+       }
+      }
+     ]
+    },
+    "transformed": {}
+   },
+   "ruleId": "eaos.react.component-arrow",
+   "severity": "info",
+   "note": null,
+   "message": "React component Orphan (arrow function)",
+   "labels": [
+    {
+     "text": "Orphan = ({ title }: { title: string }) => <h1>{title}</h1>",
+     "range": {
+      "byteOffset": {
+       "start": 13,
+       "end": 72
+      },
+      "start": {
+       "line": 0,
+       "column": 13
+      },
+      "end": {
+       "line": 0,
+       "column": 72
+      }
+     },
+     "style": "primary"
+    },
+    {
+     "text": "Orphan",
+     "range": {
+      "byteOffset": {
+       "start": 13,
+       "end": 19
+      },
+      "start": {
+       "line": 0,
+       "column": 13
+      },
+      "end": {
+       "line": 0,
+       "column": 19
+      }
+     },
+     "style": "secondary"
+    },
+    {
+     "text": "<h1>{title}</h1>",
+     "range": {
+      "byteOffset": {
+       "start": 56,
+       "end": 72
+      },
+      "start": {
+       "line": 0,
+       "column": 56
+      },
+      "end": {
+       "line": 0,
+       "column": 72
+      }
+     },
+     "style": "secondary"
+    },
+    {
+     "text": "({ title }: { title: string }) => <h1>{title}</h1>",
+     "range": {
+      "byteOffset": {
+       "start": 22,
+       "end": 72
+      },
+      "start": {
+       "line": 0,
+       "column": 22
+      },
+      "end": {
+       "line": 0,
+       "column": 72
+      }
+     },
+     "style": "secondary"
+    }
+   ],
+   "metadata": {
+    "form": "arrow",
+    "record": "react_component"
+   }
+  },
+  {
+   "text": "useEffect(() => { setLabel(vehicle.plate.toUpperCase()); }, [vehicle])",
+   "range": {
+    "byteOffset": {
+     "start": 249,
+     "end": 319
+    },
+    "start": {
+     "line": 7,
+     "column": 2
+    },
+    "end": {
+     "line": 7,
+     "column": 72
+    }
+   },
+   "file": "src/components/VehicleCard.tsx",
+   "lines": "  useEffect(() => { setLabel(vehicle.plate.toUpperCase()); }, [vehicle]);",
+   "charCount": {
+    "leading": 2,
+    "trailing": 1
+   },
+   "language": "Tsx",
+   "metaVariables": {
+    "single": {
+     "SETTER": {
+      "text": "setLabel",
+      "range": {
+       "byteOffset": {
+        "start": 267,
+        "end": 275
+       },
+       "start": {
+        "line": 7,
+        "column": 20
+       },
+       "end": {
+        "line": 7,
+        "column": 28
+       }
+      }
+     }
+    },
+    "multi": {
+     "DEPS": [
+      {
+       "text": "vehicle",
+       "range": {
+        "byteOffset": {
+         "start": 310,
+         "end": 317
+        },
+        "start": {
+         "line": 7,
+         "column": 63
+        },
+        "end": {
+         "line": 7,
+         "column": 70
+        }
+       }
+      }
+     ],
+     "ARGS": [
+      {
+       "text": "vehicle.plate.toUpperCase()",
+       "range": {
+        "byteOffset": {
+         "start": 276,
+         "end": 303
+        },
+        "start": {
+         "line": 7,
+         "column": 29
+        },
+        "end": {
+         "line": 7,
+         "column": 56
+        }
+       }
+      }
+     ]
+    },
+    "transformed": {}
+   },
+   "ruleId": "eaos.react.effect-derived-state",
+   "severity": "info",
+   "note": null,
+   "message": "useEffect only calls setLabel; the value can be derived during render",
+   "labels": [
+    {
+     "text": "useEffect(() => { setLabel(vehicle.plate.toUpperCase()); }, [vehicle])",
+     "range": {
+      "byteOffset": {
+       "start": 249,
+       "end": 319
+      },
+      "start": {
+       "line": 7,
+       "column": 2
+      },
+      "end": {
+       "line": 7,
+       "column": 72
+      }
+     },
+     "style": "primary"
+    }
+   ],
+   "metadata": {
+    "record": "react_effect_derived_state"
+   }
+  },
+  {
+   "text": "function VehicleCard({ vehicle, compact }: Props) {\n  const [label, setLabel] = useState('');\n  useEffect(() => { setLabel(vehicle.plate.toUpperCase()); }, [vehicle]);\n  return <div>{compact ? vehicle.id : label}</div>;\n}",
+   "range": {
+    "byteOffset": {
+     "start": 153,
+     "end": 374
+    },
+    "start": {
+     "line": 5,
+     "column": 7
+    },
+    "end": {
+     "line": 9,
+     "column": 1
+    }
+   },
+   "file": "src/components/VehicleCard.tsx",
+   "lines": "export function VehicleCard({ vehicle, compact }: Props) {\n  const [label, setLabel] = useState('');\n  useEffect(() => { setLabel(vehicle.plate.toUpperCase()); }, [vehicle]);\n  return <div>{compact ? vehicle.id : label}</div>;\n}",
+   "charCount": {
+    "leading": 7,
+    "trailing": 0
+   },
+   "language": "Tsx",
+   "metaVariables": {
+    "single": {
+     "NAME": {
+      "text": "VehicleCard",
+      "range": {
+       "byteOffset": {
+        "start": 162,
+        "end": 173
+       },
+       "start": {
+        "line": 5,
+        "column": 16
+       },
+       "end": {
+        "line": 5,
+        "column": 27
+       }
+      }
+     }
+    },
+    "multi": {
+     "secondary": [
+      {
+       "text": "VehicleCard",
+       "range": {
+        "byteOffset": {
+         "start": 162,
+         "end": 173
+        },
+        "start": {
+         "line": 5,
+         "column": 16
+        },
+        "end": {
+         "line": 5,
+         "column": 27
+        }
+       }
+      },
+      {
+       "text": "<div>{compact ? vehicle.id : label}</div>",
+       "range": {
+        "byteOffset": {
+         "start": 330,
+         "end": 371
+        },
+        "start": {
+         "line": 8,
+         "column": 9
+        },
+        "end": {
+         "line": 8,
+         "column": 50
+        }
+       }
+      }
+     ]
+    },
+    "transformed": {}
+   },
+   "ruleId": "eaos.react.component-function",
+   "severity": "info",
+   "note": null,
+   "message": "React component VehicleCard (function declaration)",
+   "labels": [
+    {
+     "text": "function VehicleCard({ vehicle, compact }: Props) {\n  const [label, setLabel] = useState('');\n  useEffect(() => { setLabel(vehicle.plate.toUpperCase()); }, [vehicle]);\n  return <div>{compact ? vehicle.id : label}</div>;\n}",
+     "range": {
+      "byteOffset": {
+       "start": 153,
+       "end": 374
+      },
+      "start": {
+       "line": 5,
+       "column": 7
+      },
+      "end": {
+       "line": 9,
+       "column": 1
+      }
+     },
+     "style": "primary"
+    },
+    {
+     "text": "VehicleCard",
+     "range": {
+      "byteOffset": {
+       "start": 162,
+       "end": 173
+      },
+      "start": {
+       "line": 5,
+       "column": 16
+      },
+      "end": {
+       "line": 5,
+       "column": 27
+      }
+     },
+     "style": "secondary"
+    },
+    {
+     "text": "<div>{compact ? vehicle.id : label}</div>",
+     "range": {
+      "byteOffset": {
+       "start": 330,
+       "end": 371
+      },
+      "start": {
+       "line": 8,
+       "column": 9
+      },
+      "end": {
+       "line": 8,
+       "column": 50
+      }
+     },
+     "style": "secondary"
+    }
+   ],
+   "metadata": {
+    "form": "function",
+    "record": "react_component"
+   }
+  }
+ ]
+}

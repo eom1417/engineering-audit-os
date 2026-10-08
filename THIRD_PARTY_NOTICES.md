@@ -14,6 +14,12 @@ and the pinned versions, commits and checksums are in `upstreams/registry.yaml`.
 | [CodeGraph](https://github.com/codegraph-ai/CodeGraph) | Andrey Vasilevsky | Apache-2.0 | separate process; one-shot tool JSON read |
 | [Reforge](https://github.com/LyleMi/Reforge) | Reforge authors | Apache-2.0 | separate process; JSON report read |
 | [jscpd](https://github.com/kucherenko/jscpd) | Andrey Kucherenko | MIT | separate process; JSON report read |
+| [ast-grep](https://github.com/ast-grep/ast-grep) | Herrington Darkholme | MIT | separate process; EAOS's own rule pack, JSON stream read |
+| [Lizard](https://github.com/terryyin/lizard) | Terry Yin and other contributors | MIT | separate process; CSV read |
+| [complexipy](https://github.com/rohaquinlop/complexipy) | Robin Quintero | MIT | separate process; JSON report read |
+| [vulture](https://github.com/jendrikseipp/vulture) | Jendrik Seipp | MIT | separate process; text report read |
+| [knip](https://github.com/webpro-nl/knip) | Lars Kappert | ISC | separate process, every plugin off; JSON report read |
+| [react-docgen](https://github.com/reactjs/react-docgen) (`@react-docgen/cli`) | Facebook, Inc. and its affiliates | MIT | separate process; JSON report read |
 
 Two projects were evaluated and deliberately not used:
 

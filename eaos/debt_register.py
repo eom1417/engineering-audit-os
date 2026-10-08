@@ -38,7 +38,7 @@ ENGINE_KINDS = {
     'boundary': ('architecture', 'medium'), 'complexity': ('maintainability', 'medium'), 'duplication': ('maintainability', 'low'),
     'literal_duplication': ('maintainability', 'low'), 'dead_code': ('dead_code', 'low'), 'surface': ('security', 'medium'),
     'sql_quality': ('data', 'low'), 'api_contract': ('architecture', 'medium'), 'naming': ('maintainability', 'low'),
-    'test_quality': ('reliability', 'low'),
+    'test_quality': ('reliability', 'low'), 'unused_dependency': ('supply_chain', 'low'),
 }
 RECOMMENDATIONS = {
     'security': 'Close the exposure first: rotate or move the secret, or add the missing policy, then add a check that keeps it closed.',

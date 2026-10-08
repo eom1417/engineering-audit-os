@@ -58,7 +58,7 @@
 | 6 | ArchUnit | Apache-2.0 | 2026-09-23 | مشروطة: Java | يولّد لها | S06، S15 | NS25.T1 |
 | 7 | SonarQube Community Build | LGPL-3.0 | 2026-09-23 | اختيارية وتوصية | تقرأ (Web API) | S04، S15 | — |
 | 8 | jscpd | MIT | 2026-09-23 | **مدمجة** | تقرأ | S03، S04 | قائمة |
-| 9 | Lizard | MIT | 2026-09-16 | اختيارية | تقرأ | S03 | — |
+| 9 | Lizard | MIT | 2026-10-05 | أساسية: كل اللغات | تقرأ | S03، S04 | P1 |
 | 10 | dependency-cruiser | MIT | 2026-09-23 | أساسية: JS/TS | تقرأ، يولّد لها | S02، S04، S15 | NS12.T6، NS25.T1 |
 | 11 | Code Maat | GPL-3.0 | 2025-07-03 | مرفوضة (§٥) | — | — | — |
 | 12 | Renovate | AGPL-3.0 | 2026-09-24 | توصية وتنفيذ | يولّد لها، تدقّق، تُشغَّل | S06، S08، S15 | NS25.T1 |
@@ -104,7 +104,7 @@
 | 52 | MkDocs | BSD-2-Clause | 2025-10-20 | يُستبدل بـ**Zensical** | — | S15 | NS25.T4 |
 
 **الحصيلة:**
-- **أساسية لعقد التقييم (11):** Syft، وscc، وOSV-Scanner، وSemgrep، وTrivy، وCheckov، وdependency-cruiser، وSQLFluff، وSpectral، وoasdiff، وGitNexus. تُضاف إلى 4 محرّكات مدمجة: CodeGraph، وenola، وjscpd، وreforge.
+- **أساسية لعقد التقييم (17):** Syft، وscc، وOSV-Scanner، وSemgrep، وTrivy، وCheckov، وdependency-cruiser، وSQLFluff، وSpectral، وoasdiff، وGitNexus، وast-grep، وLizard، وcomplexipy، وvulture، وknip، وreact-docgen. تُضاف إلى 4 محرّكات مدمجة: CodeGraph، وenola، وjscpd، وreforge.
 - **تنفيذ (9، منها مشروطة):** Playwright، وApprovalTests، وPact، وSchemathesis، وk6، وZAP، وToxiproxy، وGoss، وOpenTelemetry Collector. يولّد EAOS إدخالها في عقد التقييم، وتُشغَّل في عقد التنفيذ.
 - **توصية:** Renovate، وpre-commit، وSloth، وSigNoz، وOpenTofu، وAnsible، وUnleash، وTraefik، وLiquibase، وBytebase، وChaos Mesh، وDevLake، وSonarQube. تدخل الصورة المثالية بقرار مسبَّب، و«لا حاجة» قرار مقبول بسببه.
 - **مرفوضة (5):** Stratify، وCode Maat، وLog4brains، وadr-tools، وMkDocs (يحل محلها Zensical). **لا شيء منها رُفض لرخصته**: الأسباب تكرار القدرة أو توقف التطوير.
@@ -130,7 +130,12 @@
 | SQLFluff | pip | `sqlfluff lint --format json --dialect postgres <ملفات .sql>` | JSON | `sql_quality`؛ فئات الخطر فقط تصير ادعاءات |
 | Spectral | npm | `spectral lint -f sarif <openapi>` | SARIF | `api_contract` |
 | oasdiff | release | `oasdiff breaking <old> <new> -f json` | JSON | `api_contract`: الكسر بين إصدارين |
-| Lizard (اختياري) | pip | `lizard --xml TARGET` | XML (cppncss) | شاهد ثالث على `complexity` |
+| Lizard | pip | `lizard --csv -i -1 -t 4 .` (cwd = TARGET) | CSV بلا ترويسة (ترتيب الأعمدة مثبّت في `tests/contracts/lizard.json`) | قياس لكل دالة، و`complexity` فوق 15 |
+| complexipy | pip، Python فقط | `complexipy . --output-format json --output <workdir> --ignore-complexity` | JSON | التعقيد الإدراكي لكل دالة، و`complexity` فوق 15 |
+| vulture | pip، Python فقط | `vulture . --exclude <المستثنى>` | نص (شكل السطر مثبّت في `tests/contracts/vulture.json`) | `dead_code` للدوال والأصناف والاستيرادات؛ المتغيرات وملفات الاختبار وما يستدعيه إطار (دالة مسجَّلة بمزخرف، أو دالة ترث خطافًا من المكتبة القياسية) تُعدّ فقط |
+| knip | npm، مشروع فيه `package.json` | `knip --config <workdir>/knip-config.json --reporter json` وكل الإضافات مطفأة كي لا يُشغَّل أي ملف إعداد من المشروع | JSON | `dead_code` (ملفات وexports) و`unused_dependency`؛ ويحلّ أسماء `@/` من `tsconfig` بنفسه |
+| ast-grep | pip (`ast-grep-cli`) | `ast-grep scan --config eaos/rules/ast-grep/sgconfig.yml --json=stream --include-metadata .` | JSON سطرًا سطرًا | سجلات بنيوية: المكوّنات بأسمائها، و`useEffect` الذي ينسخ الحالة؛ القاعدة التي تسمّي `kind` تصير نتيجة |
+| react-docgen | npm (`@react-docgen/cli`) | `react-docgen --resolver find-all-exported-components --out <workdir> <ملفات .tsx/.jsx>` على دفعات | JSON | سجل لكل مكوّن بخصائصه وأنواعها، ليُفرَّق بين خصائص المكوّن ونماذج البيانات |
 
 ### ما يولّده EAOS، والمدقق الذي يحكم عليه
 

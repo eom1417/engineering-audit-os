@@ -544,7 +544,7 @@ def _engine_cluster_measurement(kind, cluster, fact_sets):
     if kind == 'complexity':
         # reforge names it function.complexity and declares a threshold; codegraph names it complexity
         # without one. A measurement that carries its threshold is preferred over one that does not.
-        found = [m for fact in facts for name in ('function.complexity', 'cyclomatic_complexity', 'complexity')
+        found = [m for fact in facts for name in ('function.complexity', 'cyclomatic_complexity', 'cognitive_complexity', 'complexity')
                  for m in [_extract_measurement(fact, name)] if m is not None and m.get('value') is not None]
         found.sort(key=lambda m: m.get('threshold') is None)
         if found and found[0].get('threshold') is not None:
@@ -585,7 +585,8 @@ def _engine_cluster_measurement(kind, cluster, fact_sets):
 ENGINE_KIND_WORDS = {'complexity': 'تعقيد', 'coupling': 'ترابط', 'cycle': 'دورة اعتماد',
                      'duplication': 'تكرار بنيوي', 'literal_duplication': 'تكرار حرفي',
                      'dead_code': 'كود ميت', 'dataflow': 'تدفق بيانات', 'surface': 'سطح عام',
-                     'boundary': 'خرق حد', 'naming': 'انحراف تسمية', 'test_quality': 'جودة اختبار'}
+                     'boundary': 'خرق حد', 'naming': 'انحراف تسمية', 'test_quality': 'جودة اختبار',
+                     'unused_dependency': 'اعتمادية غير مستخدمة'}
 
 
 def from_engines(fact_sets, offset=0):

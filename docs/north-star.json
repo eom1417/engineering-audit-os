@@ -8172,6 +8172,30 @@
     {
       "name": "gitnexus",
       "applies": "all"
+    },
+    {
+      "name": "ast-grep",
+      "applies": "js"
+    },
+    {
+      "name": "lizard",
+      "applies": "all"
+    },
+    {
+      "name": "complexipy",
+      "applies": "python"
+    },
+    {
+      "name": "vulture",
+      "applies": "python"
+    },
+    {
+      "name": "knip",
+      "applies": "node_package"
+    },
+    {
+      "name": "react-docgen",
+      "applies": "react"
     }
   ],
   "pipeline": [

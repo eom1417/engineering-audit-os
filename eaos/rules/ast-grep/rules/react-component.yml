@@ -1,0 +1,59 @@
+# A React component declared as `const Name = (...) => <jsx/>` or `function Name(...) { return <jsx/> }`.
+# The binding name is captured as $NAME, so a later stage can tell components apart from data models.
+id: eaos.react.component-arrow
+language: Tsx
+severity: info
+message: React component $NAME (arrow function)
+metadata: {record: react_component, form: arrow}
+rule:
+  kind: variable_declarator
+  all:
+    - has: {field: name, pattern: $NAME}
+    - has:
+        field: value
+        kind: arrow_function
+        has: {stopBy: end, any: [{kind: jsx_element}, {kind: jsx_self_closing_element}]}
+constraints:
+  NAME: {regex: '^[A-Z][A-Za-z0-9_]*$'}
+---
+id: eaos.react.component-arrow-js
+language: JavaScript
+severity: info
+message: React component $NAME (arrow function)
+metadata: {record: react_component, form: arrow}
+rule:
+  kind: variable_declarator
+  all:
+    - has: {field: name, pattern: $NAME}
+    - has:
+        field: value
+        kind: arrow_function
+        has: {stopBy: end, any: [{kind: jsx_element}, {kind: jsx_self_closing_element}]}
+constraints:
+  NAME: {regex: '^[A-Z][A-Za-z0-9_]*$'}
+---
+id: eaos.react.component-function
+language: Tsx
+severity: info
+message: React component $NAME (function declaration)
+metadata: {record: react_component, form: function}
+rule:
+  kind: function_declaration
+  all:
+    - has: {field: name, pattern: $NAME}
+    - has: {field: body, stopBy: end, any: [{kind: jsx_element}, {kind: jsx_self_closing_element}]}
+constraints:
+  NAME: {regex: '^[A-Z][A-Za-z0-9_]*$'}
+---
+id: eaos.react.component-function-js
+language: JavaScript
+severity: info
+message: React component $NAME (function declaration)
+metadata: {record: react_component, form: function}
+rule:
+  kind: function_declaration
+  all:
+    - has: {field: name, pattern: $NAME}
+    - has: {field: body, stopBy: end, any: [{kind: jsx_element}, {kind: jsx_self_closing_element}]}
+constraints:
+  NAME: {regex: '^[A-Z][A-Za-z0-9_]*$'}

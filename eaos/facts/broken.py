@@ -19,7 +19,7 @@ import re
 import symtable
 from pathlib import PurePosixPath
 
-from . import digest, make
+from . import make
 from .source import classify, language_of
 
 NAME = 'broken'
@@ -157,7 +157,7 @@ def stale_instructions(source, known, everything):
 def run(target, source, resolved=None, **options):
     known = {item['path'] for item in source.readable()}
     everything = {item['path'] for item in source.inventory['files']}
-    sha = digest(str(source.fingerprint).encode('utf-8'))
+    sha = source.content_fingerprint
     facts = []
     for path in sorted(known):
         if language_of(path) != 'python': continue

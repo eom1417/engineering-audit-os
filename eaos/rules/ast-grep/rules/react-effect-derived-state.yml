@@ -1,0 +1,34 @@
+# A `useEffect` whose whole body is one state setter: state copied or computed from other state or
+# props, which React renders twice for; a value computed during render (or useMemo) does it once.
+# A candidate, not a verdict: a setter that resets state on a key change is sometimes intended.
+id: eaos.react.effect-derived-state
+language: Tsx
+severity: info
+message: useEffect only calls $SETTER; the value can be derived during render
+metadata: {record: react_effect_derived_state}
+rule:
+  any:
+    - pattern: useEffect(() => { $SETTER($$$ARGS); }, [$$$DEPS])
+    - pattern: useEffect(() => { $SETTER($$$ARGS) }, [$$$DEPS])
+    - pattern: useEffect(() => $SETTER($$$ARGS), [$$$DEPS])
+    - pattern: React.useEffect(() => { $SETTER($$$ARGS); }, [$$$DEPS])
+    - pattern: React.useEffect(() => { $SETTER($$$ARGS) }, [$$$DEPS])
+    - pattern: React.useEffect(() => $SETTER($$$ARGS), [$$$DEPS])
+constraints:
+  SETTER: {regex: '^set[A-Z]'}
+---
+id: eaos.react.effect-derived-state-js
+language: JavaScript
+severity: info
+message: useEffect only calls $SETTER; the value can be derived during render
+metadata: {record: react_effect_derived_state}
+rule:
+  any:
+    - pattern: useEffect(() => { $SETTER($$$ARGS); }, [$$$DEPS])
+    - pattern: useEffect(() => { $SETTER($$$ARGS) }, [$$$DEPS])
+    - pattern: useEffect(() => $SETTER($$$ARGS), [$$$DEPS])
+    - pattern: React.useEffect(() => { $SETTER($$$ARGS); }, [$$$DEPS])
+    - pattern: React.useEffect(() => { $SETTER($$$ARGS) }, [$$$DEPS])
+    - pattern: React.useEffect(() => $SETTER($$$ARGS), [$$$DEPS])
+constraints:
+  SETTER: {regex: '^set[A-Z]'}
