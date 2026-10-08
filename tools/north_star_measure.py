@@ -219,7 +219,7 @@ def card_values(projects, record):
 USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'X11', 'X12', 'X13', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6')
 
 
-STUDIO = ('F8',)
+STUDIO = ('F8', 'F9')
 STUDIO_PHASE = ('F11', 'F12', 'F13', 'F14')   # the exit gate of NS46, tools/north_star_studio.py
 
 
@@ -257,13 +257,13 @@ def studio_phase_values(record, only=None):
 
 def studio_values(only=None):
     """F8 from the Studio's screen gates (studio/scripts/gates.mjs -> $EAOS_MEASURE/studio-gates/gates.json), counted
-    only when they ran in full on the build shipped in this checkout."""
+    only when they ran in full on the build shipped in this checkout; F9 from the live trial (live_studio_value)."""
     values = {}
     shipped = ROOT / 'eaos/data/studio/SOURCE.json'
+    built = json.loads(shipped.read_text(encoding='utf-8'))['source_sha256'] if shipped.is_file() else None
     if only in (None, 'F8'):
         gates = REPORTS / 'studio-gates/gates.json'
         run = json.loads(gates.read_text(encoding='utf-8')) if gates.is_file() else None
-        built = json.loads(shipped.read_text(encoding='utf-8'))['source_sha256'] if shipped.is_file() else None
         if not run:
             values['F8'] = (None, 'no gate run yet: npm run build && node scripts/gates.mjs in studio/')
         elif not run.get('complete') or run.get('studio_source_sha256') != built:
@@ -277,7 +277,30 @@ def studio_values(only=None):
                             f"Studio shots passing every gate (overflow, initial scroll, axe, 44px targets, Arabic tracking, offline, script errors) "
                             f"at {'/'.join(map(str, widths))} in {', '.join('-'.join(v) for v in variants)}: {len(rows) - len(failed)}/{len(rows)} "
                             f"({len({r['route'] for r in rows})} views of {run['data']['project']})" + (f"; failing: {', '.join(failed[:5])}" if failed else ''))
+    if only in (None, 'F9'):
+        values['F9'] = live_studio_value(built)
     return values
+
+
+def live_studio_value(built):
+    """F9 from the live trial (tools/studio_live_trial.py -> $EAOS_MEASURE/studio-live/trial.json): the events (a scan, a
+    batch, a merge, a decision) shown on screen by an open live Studio within the trial's 5 s ÷ the events, counted only
+    when the trial ran in full on the build shipped in this checkout and the server refused a request without its token."""
+    path = REPORTS / 'studio-live/trial.json'
+    run = json.loads(path.read_text(encoding='utf-8')) if path.is_file() else None
+    if not run:
+        return None, 'no live trial yet: python tools/studio_live_trial.py'
+    if not run.get('complete') or run.get('studio_source_sha256') != built:
+        return None, 'the last live trial is not of the shipped build, or not complete: run python tools/studio_live_trial.py again'
+    events = run['events']
+    guarded = all(code == 401 for code in (run.get('refused') or {}).values()) and bool(run.get('refused')) and run.get('token_left_address')
+    shown = [e for e in events if e['shown'] and e['ms'] is not None and e['ms'] <= run['within_ms']] if guarded else []
+    slowest = max((e['ms'] for e in shown), default=None)
+    return (ratio(len(shown), len(events)) if events else None,
+            f"events on screen in an open live Studio within {run['within_ms'] // 1000} s (Playwright, {', '.join(run['variants'])}): "
+            f"{len(shown)}/{len(events)} ({', '.join(sorted({e['kind'] for e in events}))}; slowest {slowest} ms; feed from {run['feed_source']}"
+            f"{'' if run['feed_source'] == 'events' else ', the event log of NS39.T2 not written yet'})"
+            + ('' if guarded else '; NOT COUNTED: the server answered without its token, or the token stayed in the address'))
 
 
 def plan_v2_values(record, only=None):

@@ -125,6 +125,53 @@ a whole data folder of 5,000 cards and 1,000 components, every reference resolve
 `build_info.studio_digest()` fingerprints the built assets and the Studio's schemas apart from `build_info.digest()`,
 so a change to the interface alone rebuilds the Studio without forcing a new check.
 
+## Live: the local server (NS37.T2)
+
+`eaos studio` (and the `open_studio` tool, for an assistant) rebuilds the Studio data from the ledger, starts a server
+for the project on 127.0.0.1 and opens `http://127.0.0.1:<port>/#token=<launch token>` in the browser. The server is
+`eaos/api/` on Starlette, Uvicorn and sse-starlette, which come with `mcp` (docs/adoption/ns37-t2-live-server.md). One
+server runs per project: its record (port, process, token) is `~/.eaos/studio/<workspace>.json`, readable by the person
+only, and a second `eaos studio` or `open_studio` reopens it.
+
+| Route | What |
+|---|---|
+| `GET /`, `/boot.js`, `/assets/*` | the shipped Studio (eaos/data/studio), served with `connect-src 'self'` in place of the snapshot's `'none'` |
+| `GET /api/session` | the mode (`live`), the CSRF token, the project, the feed's source and last id, whether actions are mounted |
+| `GET /api/manifest` | studio/manifest.json; 404 `empty` before the first check |
+| `GET /api/sections/<name>` | studio/<name>.json byte for byte, for every `studio-<name>` schema of the contract; 404 with the section's coverage row when the check did not write it |
+| `GET /api/schemas/<name>`, `GET /api/openapi.json` | the section's JSON Schema, and the OpenAPI 3.1 document of these routes generated from the schemas |
+| `GET /api/events` | the live stream (server-sent events), below |
+
+Rules, enforced by `eaos/api/guard.py` and `tests/test_studio_api.py`:
+
+- It listens on 127.0.0.1 only, and answers only to the Host `127.0.0.1:<port>` or `localhost:<port>` (DNS rebinding).
+- Every `/api/` call carries `X-EAOS-Token`, compared in constant time. The token travels in the address's fragment,
+  which no browser sends to a server; `boot.js` keeps it in the tab's session storage and removes it from the address
+  (`#token=…`, or `#/<route>?…&token=…` to open a route). It never reaches a log, the page or the session answer.
+- The read API has no write. A write that is mounted beside it (the action API) needs `X-EAOS-CSRF`, from
+  `/api/session`, and an Origin (or a Referer) of this server.
+
+**The stream.** The feed (`eaos/api/events.py`) numbers what changed; an event's id is `<epoch>-<seq>`, and a reconnect
+with `Last-Event-ID` gets every event it missed, or `reset` (reload everything) when the id is from an earlier server or
+older than the 2,000 the feed keeps. The source is the project's event log (`events.jsonl`) once NS39.T2 writes it;
+until then the feed watches the manifest's section digests and names the change: `scan.done` (the scan changed),
+`batch.delivered` (cards moved to `in_batch` or `on_branch`), `branch.merged` (cards moved to `done`), `decision.asked`
+and `decision.answered`, else `studio.updated`. Each event says its source and the sections whose digest changed.
+
+**The Studio's side.** The pages read through one interface (`studio/src/data/source.ts`): the snapshot (the data
+scripts beside the Studio, from a file or any static server) or the live server (`live.ts`), chosen by whether the tab
+holds a launch token. Both give the same data from the same files. Live, an event reloads only the sections whose
+sha256 changed, the pages re-render in place, and a polite live region says what changed in the person's language.
+
+**The action API mounts here.** `create_app(report, mounts=[mount])`, where `mount(ctx)` returns Starlette routes or
+`(method, path, handler)` tuples of framework-free handlers (`server.plain`); `eaos.studio.actions.mount` is mounted by
+itself when it exists. Mounted routes get the guard (token, CSRF, Origin) and publish into the same stream with
+`ctx.publish(kind, data, text)`.
+
+**F9** is measured by `tools/studio_live_trial.py`: the real server on a copy of a report's data, the shipped Studio
+in Chromium at 390 (Arabic, light) and 1440 (English, dark), and the four events written the way the exporter writes
+them; each must show on the page within 5 s.
+
 ## The plan model
 
 One model for every kind of plan: an EAOS fix plan, a build plan, the product plan itself, a plan the owner

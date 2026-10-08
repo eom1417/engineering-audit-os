@@ -1696,6 +1696,33 @@
       "kind": "invariant",
       "enforced_by": "tests/test_workflow.py::WorkflowTests::test_single_entrypoint_read_only_and_no_script_execution",
       "note": ""
+    },
+    {
+      "id": "INV-f671b09e18",
+      "file": "eaos/api/guard.py",
+      "symbol": "<module>",
+      "statement": "The token is in the address EAOS opens (#token=, never sent to a server, never in a log) and the Studio keeps it for the tab.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_never_reaches_a_log_or_the_page",
+      "note": ""
+    },
+    {
+      "id": "INV-347b9d9a34",
+      "file": "eaos/api/guard.py",
+      "symbol": "<module>",
+      "statement": "- A refusal says why in the server's log, never with the token.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_never_reaches_a_log_or_the_page",
+      "note": ""
+    },
+    {
+      "id": "INV-46695141c9",
+      "file": "eaos/api/guard.py",
+      "symbol": "same",
+      "statement": "Constant-time comparison of two tokens; a missing one never matches.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_is_compared_in_constant_time",
+      "note": ""
     }
   ],
   "limits": "Extraction is lexical: it finds sentences that assert, not every promise a docstring makes. A sentence it misses is still an invariant."

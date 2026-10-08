@@ -215,6 +215,14 @@ def build():
         if (state or {}).get('mode') == 'build' and not guided.scan_done(state): return build_tools.open_blueprint(project, show)
         return tools.open_report(project, show)
 
+    @server.tool(annotations=reading, description='Open the live EAOS Studio of the project in the person\'s browser: every '
+                 'card, map, plan and decision of the last check, updating by itself after every check, batch, merge and decision. '
+                 'It runs on this computer only (127.0.0.1) and is reused while it runs. Offer it with open_report.')
+    @_answer
+    def open_studio(show: bool = True, project: str | None = None) -> str:
+        from .api.launch import open_studio as launch
+        return launch(project, show)
+
     @server.tool(annotations=working, description='Run the app in an isolated copy (a temporary local database, no secrets, nothing '
                  'reaches the internet), found from its files. Needs the person\'s agreement once: without it, returns the question to '
                  'ask. person_agreed=true only after they said yes. Returns a job.')

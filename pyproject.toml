@@ -8,7 +8,7 @@ description = "Architecture, structure and maintainability audit CLI"
 requires-python = ">=3.10"
 readme = "README.md"
 license = { text = "MIT" }
-dependencies = ["mcp>=2.2,<3", "pypdf>=5"]
+dependencies = ["mcp>=2.2,<3", "pypdf>=5", "starlette>=1.7,<2", "sse-starlette>=3.4,<4", "uvicorn>=0.54,<1"]
 [project.optional-dependencies]
 facts = ["tree-sitter>=0.21", "tree-sitter-language-pack>=0.2"]
 runtime = ["coverage>=7.0"]

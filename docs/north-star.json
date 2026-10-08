@@ -1514,7 +1514,7 @@
           "target": 1.0,
           "value": null,
           "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md",
-          "reads": "tests/live",
+          "reads": "${EAOS_MEASURE}/studio-live/trial.json (tools/studio_live_trial.py)",
           "measured": "automated"
         },
         {
