@@ -161,7 +161,8 @@ def finish(report, result, label, out):
 
 def studio_placeholders(data):
     """{card}: the first problem card with evidence; {component}: the component holding the most cards (each card's
-    path counted in its deepest component), so the focused System view shows a full inspector."""
+    path counted in its deepest component), so the focused System view shows a full inspector; {path}: the code path
+    the flow pages open ('none' without studio/paths.json)."""
     cards = json.loads((data / 'cards.json').read_text(encoding='utf-8'))['cards']
     card = next((c for c in cards if c.get('evidence')), cards[0] if cards else {'id': ''})['id']
     story = json.loads((data / 'story.json').read_text(encoding='utf-8')) if (data / 'story.json').is_file() else {}
@@ -172,7 +173,10 @@ def studio_placeholders(data):
             owner = next((n for n in names if path.startswith(n + '/')), None)
             if owner: held[owner] = held.get(owner, 0) + 1
     component = max(held, key=lambda n: (held[n], n)) if held else (names[-1] if names else '')
-    return {'card': card, 'component': component}
+    # {path}: the code path reaching furthest through the lanes, then the longest within 60 links (studio/paths.json)
+    paths = json.loads((data / 'paths.json').read_text(encoding='utf-8'))['paths'] if (data / 'paths.json').is_file() else []
+    chosen = min(paths, key=lambda p: (-p['reach'], -min(len(p['steps']), 60), p['id']), default={'id': 'none'})
+    return {'card': card, 'component': component, 'path': chosen['id']}
 
 
 def studio_pages(matrix, data, base, folder, only=None):

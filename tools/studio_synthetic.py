@@ -8,11 +8,12 @@ the section it points to: a card's evidence, a function's callers, a gap's opera
     python tools/studio_synthetic.py --out DIR [--cards 5000] [--components 1000] [--seed 7]
 
 DIR then holds <section>.json, its .js twin and manifest.json, exactly as eaos/studio/export.py lays them out; give it
-to the screen gates with `node studio/scripts/gates.mjs --data DIR`.
+to the screen gate with `python tools/studio_gates.py --studio --data DIR`.
 """
 import argparse
 import hashlib
 import random
+from collections import Counter
 import sys
 from pathlib import Path
 
@@ -21,6 +22,7 @@ sys.path.insert(0, str(ROOT))
 from eaos import artifact_contracts  # noqa: E402
 from eaos.studio import coverage as coverage_section  # noqa: E402
 from eaos.studio import export  # noqa: E402
+from eaos.studio import paths as paths_section  # noqa: E402
 
 DOMAINS = ('work-orders', 'assets', 'vehicles', 'drivers', 'invoices', 'payments', 'inventory', 'reports', 'auth', 'users',
            'billing', 'routes', 'maintenance', 'fuel', 'alerts', 'audit', 'settings', 'notifications', 'contracts', 'suppliers')
@@ -41,6 +43,79 @@ def measure(value, src, unit='count'):
 
 def ratio(value, src):
     return {'value': value, 'src': src}
+
+
+def synthetic_paths(comps, layer, modules, card_rows, pages=250, calls=3):
+    """studio/paths.json for the synthetic project: a page per component (up to `pages`), each through its layers, one
+    call in five with no server route (a gap), laid out and clustered by EAOS's own functions; and the timeline of a
+    plan whose waves run the cards in order."""
+    mods = {}
+    for path, comp in modules: mods.setdefault(comp, []).append(path)
+    on_file = {}
+    for card in card_rows:
+        for path in card['paths']: on_file.setdefault(path, []).append(card)
+    nodes, edges, out = {}, [], []
+
+    def node(nid, lane, label, kind='step', path=None, component=None, **extra):
+        cards = on_file.get(path, []) if path else []
+        nodes.setdefault(nid, {'id': nid, 'lane': lane, 'kind': kind, 'label': label, 'fact': None, 'path': path, 'line': 1 if path else None,
+                               'component': component, 'cards': [c['id'] for c in cards][:20], 'group': extra.pop('group', None),
+                               'steps': sorted({c['milestone'] for c in cards}), 'reason': None, 'detail': None, 'items': [], **extra})
+        return nid
+
+    def link(a, b, how, path=None):
+        edges.append({'from': a, 'to': b, 'how': how, 'fact': None, 'path': path, 'line': 1 if path else None})
+        return len(edges) - 1
+    for i, comp in enumerate(comps[:pages]):
+        domain = comp.rsplit('-', 1)[0]
+        route = f'/{domain}/{i}'
+        part = lambda c: f'src/{layer[c]}/{c}'
+        steps = [link(node(f'S:{route}', 'screen', route, path='src/App.tsx', component='src', group=f'/{domain}'),
+                      node(f'C:{mods[comp][0]}', 'component', comp, path=mods[comp][0], component=part(comp)), 'route', 'src/App.tsx')]
+        for j in range(calls):
+            other = comps[(i * 7 + j * 13 + 1) % len(comps)]
+            h = node(f'H:{mods[other][1]}#fn{j}', 'handler', f'fn{j}', path=mods[other][1], component=part(other))
+            steps.append(link(steps and f'C:{mods[comp][0]}', h, ('call', 'imports', 'contains')[j % 3], mods[comp][0]))
+            url = f'/api/{other.rsplit("-", 1)[0]}/{(i + j) % 40}'
+            a = node(f'A:GET {url}', 'call', f'GET {url}', path=mods[other][1], component=part(other), group=f'/api/{other.rsplit("-", 1)[0]}')
+            steps.append(link(h, a, 'request', mods[other][1]))
+            if (i + j) % 5 == 0:
+                g = node(f'G:endpoint:GET {url}', 'endpoint', f'GET {url}', kind='gap', group=f'/api/{other.rsplit("-", 1)[0]}')
+                nodes[g].update(reason='no_server_route')
+                steps.append(link(a, g, 'gap'))
+                continue
+            server = comps[(i * 3 + j) % len(comps)]
+            e = node(f'E:{mods[server][2]}#handle', 'endpoint', 'handle', path=mods[server][2], component=part(server))
+            steps.append(link(a, e, 'route', mods[server][2]))
+            m = node(f'M:{part(server)}', 'service', part(server), component=part(server))
+            steps.append(link(e, m, 'imports', mods[server][2]))
+            t = node(f'T:{server.replace("-", "_")}', 'data', server.replace('-', '_'), kind='table')
+            steps.append(link(e, t, 'defines', mods[server][2]))
+        ids = {edges[k][end] for k in steps for end in ('from', 'to')}
+        columns = paths_section.layout(ids, {n: nodes[n]['lane'] for n in ids}, [(edges[k]['from'], edges[k]['to']) for k in steps])
+        out.append({'id': f'{domain}-{i}', 'title': route, 'handler': comp, 'surface': 'page', 'entry': f'S:{route}', 'fact': None, 'flow': None, 'flow_fact': None,
+                    'steps': steps, 'columns': columns, 'gaps': sum(nodes[n]['kind'] == 'gap' for n in ids), 'capped': 0,
+                    'unresolved': None, 'reach': 6})
+    used = Counter(n for p in out for column in p['columns'] for n in column)
+    node_rows = [{**nodes[n], 'paths': used[n]} for n in sorted(nodes)]
+    named = {n['component'] for n in node_rows}
+    parts = {f'src/{layer[c]}/{c}': {'op': ('retain', 'refactor', 'rebuild', 'merge', 'delete')[i % 5], 'target': f'{layer[c]}/{c}', 'layer': layer[c]}
+             for i, c in enumerate(comps) if f'src/{layer[c]}/{c}' in named}
+    tasks = [{'id': c['id'], 'paths': c['paths'], 'prerequisites': []} for c in card_rows]
+    plan = {'tasks': tasks, 'milestones': [{'id': f'M{n + 1}', 'goal': f'Step {n + 1}', 'name': f'step-{n + 1}',
+                                            'tasks': [c['id'] for c in card_rows if c['milestone'] == f'M{n + 1}']} for n in range(12)],
+            'waves': [{'wave': w + 1, 'tasks': [c['id'] for c in card_rows[w * 200:(w + 1) * 200]]} for w in range((len(card_rows) + 199) // 200)]}
+    gaps = sum(n['kind'] == 'gap' for n in node_rows)
+    count = lambda value, src: measure(value, f'synthetic: {src}')
+    return {**V2, 'lanes': list(paths_section.LANES), 'paths': out, 'nodes': node_rows, 'edges': edges, 'components': parts, 'new': [],
+            'overview': paths_section.overview(node_rows, edges),
+            'counts': {'paths': count(len(out), 'pages'), 'nodes': count(len(node_rows), 'nodes'), 'links': count(len(edges) - gaps, 'links'),
+                       'gaps': count(gaps, 'gaps'), 'no_server_route': count(gaps, 'gaps'), 'trace_stopped': count(0, 'none'),
+                       'component_not_found': count(0, 'none'), 'handler_not_found': count(0, 'none'),
+                       'unresolved_steps': count(None, 'no flows'), 'calls': count(sum(n['lane'] == 'call' for n in node_rows), 'calls'),
+                       'calls_answered': count(sum(n['lane'] == 'call' for n in node_rows) - gaps, 'calls'), 'by_call': count(0, 'none'),
+                       'by_imports': count(0, 'none')},
+            'src': {'paths': 'synthetic'}, 'timeline': paths_section.timeline(plan, card_rows, 'en')}
 
 
 def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_per_component=3):
@@ -153,6 +228,7 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
                     'capabilities': [{'id': 'C2', 'name': 'Current state', 'value': ratio(0.6, 'synthetic')}],
                     'indicators': [{'id': 'S1', 'name': 'S1', 'value': ratio(0.88, 'synthetic'), 'target': 0.8}]},
     }
+    sections['paths'] = synthetic_paths(comps, layer, modules, card_rows)
     written = list(sections)
     sections['coverage'] = {**V2, **coverage_section.coverage(Path('.'), sections, written, [], 'en')}
     return sections

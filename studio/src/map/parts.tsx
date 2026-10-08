@@ -83,7 +83,7 @@ export function MapCanvas({ system, mode, focus, lit, only, onFocus, title, head
   )
 }
 
-function FitIcon() {
+export function FitIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" className={css.fitIcon}>
       <path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" />
@@ -290,6 +290,9 @@ function CurrentInspector({ system, node, mode, onFocus, touch }: { system: Syst
             {w('showOnTarget')}<Icon name="chevron" />
           </Go>
         )}
+        <Go to="/system/paths" search={{ part: node.id }} className={buttonClass('ghost', { block: true })}>
+          {w('itsPaths')}<Icon name="chevron" />
+        </Go>
       </div>
     </div>
   )

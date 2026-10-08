@@ -39,3 +39,4 @@ one is its record.
 | NS38.T1 labelled precision set | [NS38.T1-precision-harness.md](NS38.T1-precision-harness.md) |
 | NS46.T1 contract v2 and its fixtures | [ns46-t1-contract-v2.md](ns46-t1-contract-v2.md) |
 | The System maps (territory, change, target) | [studio-maps.md](studio-maps.md) |
+| Code paths, sequences and the plan timeline | [studio-map-paths.md](studio-map-paths.md) |

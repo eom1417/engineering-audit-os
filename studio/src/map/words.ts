@@ -60,6 +60,7 @@ export const MAP_WORDS = {
   carried: ['مشاكل تنتقل إليه', 'Findings carried'],
   openItsFindings: ['افتح مشاكله ({n})', 'Open its findings ({n})'],
   showOnTarget: ['اعرضه في الهدف', 'Show it in the target'],
+  itsPaths: ['مسارات الكود التي تمرّ به', 'Code paths through it'],
   showOnToday: ['اعرضه في خريطة اليوم', 'Show it on today’s map'],
   chooseOnMap: ['اختر مكوّنًا على الخريطة لترى جواره ومشاكله وقراره.', 'Choose a component on the map to see its neighbours, findings and decision.'],
   allComponents: ['كل المكوّنات', 'All components'],
@@ -100,13 +101,18 @@ export const OP_WORD: Record<Operation, MapWord> = {
   retain: 'opRetain', modify: 'opModify', rebuild: 'opRebuild', delete: 'opDelete', merge: 'opMerge', introduce: 'opIntroduce',
 }
 
-/** The maps' words in the current language, with {name} placeholders filled in (numbers in the page's digits). */
-export function useMapWords() {
+/** A table of words in the current language, with {name} placeholders filled in (numbers in the page's digits). */
+export function useWordTable<K extends string>(table: Record<K, readonly [string, string]>) {
   const { lang, num } = usePrefs()
   const index = lang === 'ar' ? 0 : 1
-  return (key: MapWord, vars?: Record<string, string | number>) =>
-    MAP_WORDS[key][index].replace(/\{(\w+)\}/g, (_, name: string) => {
+  return (key: K, vars?: Record<string, string | number>) =>
+    table[key][index].replace(/\{(\w+)\}/g, (_, name: string) => {
       const value = vars?.[name]
       return value === undefined ? '' : typeof value === 'number' ? num(value) : value
     })
+}
+
+/** The maps' words in the current language. */
+export function useMapWords() {
+  return useWordTable(MAP_WORDS)
 }

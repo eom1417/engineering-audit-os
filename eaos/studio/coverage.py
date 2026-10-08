@@ -18,7 +18,7 @@ FUNCTION_SCOPES = ('function', 'method')
 PLANNED = {'meta': 'languages', 'head': None, 'health': 'domains', 'cards': 'cards', 'evidence': 'facts', 'story': 'gap',
            'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images',
            'functions': 'functions', 'screens': 'screens', 'gaps': 'gaps', 'operations': 'operations', 'history': 'scans',
-           'quality': 'detectors', 'maps': None}
+           'quality': 'detectors', 'maps': None, 'paths': 'paths'}
 V1_STEP = 'NS36.T2'
 
 
@@ -88,11 +88,30 @@ def _not_exported(section, report, built, lang):
         return ('not_built', _text(lang, 'دقة كاشفات EAOS تُقاس على حالاتها المعلَّمة، ولم تُصدَّر لكل مشروع بعد.',
                                    "EAOS's detector precision is measured on its labelled cases and not exported per project yet."),
                 'NS46.T4', None, _count(None, 'docs/engine-precision.json'), [])
+    if section == 'paths':
+        return ('not_built', _text(lang, 'مسارات الكود لم تُصدَّر في هذا الفحص.', 'The code paths are not exported in this check.'),
+                'NS46.T6', 'audit', _count(None, 'paths.json#paths'), [])
     if section == 'maps':
         return ('not_built', _text(lang, 'خرائط النظام لم تُصدَّر في هذا الفحص.', 'The system maps are not exported in this check.'),
                 'NS46.T6', 'audit', _count(None, 'maps.json'), [])
     return ('not_built', _text(lang, 'هذا القسم لم يُبنَ بعد.', 'This section is not built yet.'),
             V1_STEP, 'audit', _count(None, f'{section}.json'), [])
+
+
+def _paths_parts(body, lang):
+    """The code paths' links measured, and each kind of gap they draw where the records stop: the gaps are counted here,
+    not hidden."""
+    counts = (body or {}).get('counts') or {}
+    value = lambda key: (counts.get(key) or {}).get('value') or 0
+    parts = [{'id': 'links', 'state': 'measured',
+              'detail': _text(lang, f'{value("links")} رابطًا بدليله', f'{value("links")} links with their evidence')}]
+    words = {'no_server_route': ('نداء بلا مسار خادم في الكود المقروء', 'calls with no server route in the code read'),
+             'trace_stopped': ('مسار توقف تتبّعه عند نداء لم يُحلّ', 'paths whose trace stopped at a call it could not resolve'),
+             'component_not_found': ('شاشة لم يُعرف ملف مكوّنها', 'screens whose component file is not known'),
+             'handler_not_found': ('مدخل خادم بلا معالج يمكن تتبّعه', 'server entries with no traceable handler')}
+    for key, (ar, en) in words.items():
+        if value(key): parts.append({'id': key, 'state': 'not_measured', 'detail': _text(lang, f'{value(key)} {ar}', f'{value(key)} {en}')})
+    return parts
 
 
 def coverage(report, built, written, errors, lang='ar'):
@@ -113,7 +132,8 @@ def coverage(report, built, written, errors, lang='ar'):
                          'reason': 'nothing_found' if empty else 'written',
                          'detail': (_text(lang, 'قيس ولم يُوجد شيء.', 'Measured; nothing was found.') if empty else
                                     _text(lang, 'مقيس في هذا الفحص.', 'Measured in this check.')),
-                         'step': None, 'tool': None, 'count': _count(count, f'{section}.json' + (f'#{items}' if items else '')), 'parts': []})
+                         'step': None, 'tool': None, 'count': _count(count, f'{section}.json' + (f'#{items}' if items else '')),
+                         'parts': _paths_parts(body, lang) if section == 'paths' else []})
         elif section in failed:
             rows.append({'section': section, 'state': 'failed', 'reason': 'section_error', 'detail': failed[section][:300],
                          'step': V1_STEP, 'tool': 'audit', 'count': _count(None, 'errors.json'), 'parts': []})

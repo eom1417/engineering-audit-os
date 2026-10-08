@@ -86,7 +86,7 @@
    "spec": "STUDIO-COMPLETE: System -> Paths",
    "section": "system",
    "needs": [
-    "maps"
+    "paths"
    ],
    "task": "NS46.T6"
   },
@@ -102,11 +102,21 @@
   },
   {
    "id": "flow",
-   "studio": "#/flows/<flowId>",
+   "studio": "#/flows/<pathId>",
    "spec": "#/flows/<flowId>",
    "section": "system",
    "needs": [
-    "maps"
+    "paths"
+   ],
+   "task": "NS46.T6"
+  },
+  {
+   "id": "flow-sequence",
+   "studio": "#/flows/<pathId>?view=sequence",
+   "spec": "STUDIO-COMPLETE: Paths -> Sequence view",
+   "section": "system",
+   "needs": [
+    "paths"
    ],
    "task": "NS46.T6"
   },
@@ -210,6 +220,17 @@
     "gaps"
    ],
    "task": "NS46.T3"
+  },
+  {
+   "id": "plan-timeline",
+   "studio": "#/change/timeline",
+   "spec": "STUDIO-COMPLETE: Change -> Plan timeline",
+   "section": "change",
+   "needs": [
+    "plans",
+    "paths"
+   ],
+   "task": "NS46.T6"
   },
   {
    "id": "plans",

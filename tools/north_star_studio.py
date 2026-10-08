@@ -9,8 +9,8 @@
     F14  budgets     Lighthouse mobile on every page it ran on, the 5,000-card filter and Home's time to interactive,
                      each against STUDIO-COMPLETE's budget
 
-A screen-gate run is a gates.json under $EAOS_MEASURE/studio-gates (studio/scripts/gates.mjs, or tools/studio_gates.py
-for the Studio); it counts only when it is complete and of the build shipped in this checkout
+A screen-gate run is a gates.json under $EAOS_MEASURE/studio-gates (tools/studio_gates.py --studio, or the removed
+studio/scripts/gates.mjs for older runs); it counts only when it is complete and of the build shipped in this checkout
 (eaos/data/studio/SOURCE.json). Both layouts of gates.json are read: `results` with `route` and `pass`, and `rows`
 with `page` and `failures`.
 """

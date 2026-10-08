@@ -138,7 +138,12 @@ class GateMatrix(unittest.TestCase):
             (data / 'cards.json').write_text(json.dumps({'cards': cards}), encoding='utf-8')
             story = {'current': {'components': [{'name': n} for n in ('(root)', 'src', 'src/a', 'src/b', 'src/b/c')]}}
             (data / 'story.json').write_text(json.dumps(story), encoding='utf-8')
-            self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'component': 'src/b'})
+            self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'component': 'src/b', 'path': 'none'})
+            paths = [{'id': 'p/short', 'reach': 3, 'steps': [1] * 4}, {'id': 'p/long', 'reach': 3, 'steps': [1] * 90},
+                     {'id': 'p/a', 'reach': 3, 'steps': [1] * 70}, {'id': 'p/near', 'reach': 1, 'steps': [1] * 99}]
+            (data / 'paths.json').write_text(json.dumps({'paths': paths}), encoding='utf-8')
+            self.assertEqual(self.gates.studio_placeholders(data)['path'], 'p/a')   # furthest, then longest within 60
+            (data / 'paths.json').unlink()
             pages = dict((e['name'], e) for e, _ in self.gates.studio_pages(self.matrix, data, 'http://127.0.0.1:1/', data))
         self.assertEqual(pages['system-focus']['url'], 'http://127.0.0.1:1/index.html#/system?focus=src%2Fb')
         self.assertEqual(pages['problem']['url'], 'http://127.0.0.1:1/index.html#/problems?card=TASK-2')
