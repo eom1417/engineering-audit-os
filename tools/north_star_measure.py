@@ -256,27 +256,39 @@ def studio_phase_values(record, only=None):
 
 
 def studio_values(only=None):
-    """F8 from the Studio's screen gates (studio/scripts/gates.mjs -> $EAOS_MEASURE/studio-gates/gates.json), counted
-    only when they ran in full on the build shipped in this checkout."""
+    """F8 from the Studio's screen gate (tools/studio_gates.py --studio -> $EAOS_MEASURE/studio-gates/gates.json),
+    counted only when it ran in full on the build shipped in this checkout."""
     values = {}
     shipped = ROOT / 'eaos/data/studio/SOURCE.json'
     if only in (None, 'F8'):
         gates = REPORTS / 'studio-gates/gates.json'
         run = json.loads(gates.read_text(encoding='utf-8')) if gates.is_file() else None
         built = json.loads(shipped.read_text(encoding='utf-8'))['source_sha256'] if shipped.is_file() else None
+        studio = (run or {}).get('studio') or {}
         if not run:
-            values['F8'] = (None, 'no gate run yet: npm run build && node scripts/gates.mjs in studio/')
-        elif not run.get('complete') or run.get('studio_source_sha256') != built:
-            values['F8'] = (None, 'the last gate run is not of the shipped build, or not complete: run node scripts/gates.mjs again')
+            values['F8'] = (None, 'no gate run yet: python tools/studio_gates.py --studio')
+        elif run.get('status') != 'observed' or not studio.get('complete') or studio.get('source_sha256') != built:
+            values['F8'] = (None, 'the last gate run is not a complete run of the shipped build: python tools/studio_gates.py --studio')
         else:
-            rows = run['results']
-            widths = sorted({v['width'] for v in run['viewports'].values()})
-            variants = sorted({(r['lang'], r['theme']) for r in rows})
-            failed = sorted({r['shot'] for r in rows if not r['pass']})
+            # F8 counts the screens (its definition: overflow, opening shifted, axe, targets and the gate's other
+            # per-screen checks). Lighthouse and the CSS drift counts of the same run are reported beside it, not
+            # counted: they judge the build's weight, not a screen.
+            rows = [r for r in run['rows'] if r['status'] != 'skipped']
+            failed = sorted({f"{r['page']}-{r['variant']}-{r['viewport']}" for r in rows if r['failures']})
+            lighthouse = run.get('lighthouse') or {}
+            css = run.get('css') or {}
+            drift = (f"; CSS drift: {css['colors']['unique']} colours, {css['font_sizes']['unique']} font sizes, "
+                     f"{css['spacings']['unique']} spacings" if css.get('status') == 'observed' else '')
+            scores = '; '.join(f"Lighthouse mobile {name} performance {s['scores'].get('performance')}, accessibility "
+                               f"{s['scores'].get('accessibility')}" + (' (under ' + ', '.join(f'{k} {v}' for k, v in s['minimums'].items()) + ')'
+                                                                        if s['failures'] else '')
+                               for name, s in lighthouse.items() if s.get('status') == 'observed')
             values['F8'] = (ratio(len(rows) - len(failed), len(rows)) if rows else None,
-                            f"Studio shots passing every gate (overflow, initial scroll, axe, 44px targets, Arabic tracking, offline, script errors) "
-                            f"at {'/'.join(map(str, widths))} in {', '.join('-'.join(v) for v in variants)}: {len(rows) - len(failed)}/{len(rows)} "
-                            f"({len({r['route'] for r in rows})} views of {run['data']['project']})" + (f"; failing: {', '.join(failed[:5])}" if failed else ''))
+                            f"Studio screens passing the screen gate (overflow and layout width, initial scroll, axe, 44px targets, clipped "
+                            f"text, Arabic tracking, script errors, offline, language and theme applied) at "
+                            f"{'/'.join(str(v['width']) for v in run['viewports'])} in {', '.join(v['name'] for v in run['variants'])}: "
+                            f"{len(rows) - len(failed)}/{len(rows)} ({len(run['pages'])} views of {studio['data']['project']})"
+                            + (f"; failing: {', '.join(failed[:5])}" if failed else '') + (f"; {scores}" if scores else '') + drift)
     return values
 
 
@@ -314,8 +326,13 @@ def adoption_records(where=None):
         by_name = re.match(r'(?i)(ns\d+)[.-](t\d+)\b', path.stem)
         if not named and by_name: named = [f'{by_name[1].upper()}.{by_name[2].upper()}']
         for task_id in named:
-            records.setdefault(task_id, (path, complete))
-    return records
+            records.setdefault(task_id, []).append((path, complete))
+    # Several records may name one task (NS37.T1 and its finishing); the earliest complete one is the task's record.
+    def order(found):
+        path, complete = found
+        when = git('log', '--reverse', '--format=%ct', '--', path.name, cwd=path.parent).stdout.split()
+        return (not complete, int(when[0]) if when else float('inf'), path.name)
+    return {task_id: min(found, key=order) for task_id, found in records.items()}
 
 
 def adoption_value(record):
@@ -346,34 +363,39 @@ def adoption_value(record):
             packages = packages or studio_packages()
             covered, wanted = packages
             if covered != set(wanted):
-                notes.append(f"{task['id']}: Studio packages without a record written before the Studio's code: "
+                notes.append(f"{task['id']}: Studio packages without a record written before they came in: "
                              f"{', '.join(sorted(set(wanted) - covered))}"); continue
         good.append(task['id'])
     if not begun: return None, 'no task that needs an adoption record has begun'
-    pinned = f"; Studio packages pinned before its code {len(packages[0])}/{len(packages[1])}" if packages else ''
+    pinned = f"; Studio packages pinned before they came in {len(packages[0])}/{len(packages[1])}" if packages else ''
     return ratio(len(good), len(begun)), (f"begun tasks with an adoption record written before their code: {len(good)}/{len(begun)} "
                                           f"({', '.join(good) or 'none'})" + pinned + (f"; {'; '.join(notes)}" if notes else ''))
 
 
 def studio_packages():
     """(covered, wanted): the Studio's packages (studio/package.json) and those pinned at that version in the
-    `**Pinned**` part of a complete capability section of a record committed no later than the Studio's first code
-    (docs/adoption/README.md)."""
+    `**Pinned**` part of a complete capability section of a record committed no later than the commit that first
+    added the package to studio/package.json (docs/adoption/README.md)."""
     import re
     package = json.loads((ROOT / 'studio/package.json').read_text(encoding='utf-8')) if (ROOT / 'studio/package.json').is_file() else {}
     wanted = {**package.get('dependencies', {}), **package.get('devDependencies', {})}
-    first_code = first_commit(['studio/src'])
+
+    def came_in(name):  # the first commit whose studio/package.json names the package
+        found = git('log', '--reverse', '--format=%H', '-G', f'"{re.escape(name)}"', '--', 'studio/package.json', cwd=ROOT).stdout.split()
+        return found[0] if found else None
+    since = {name: came_in(name) for name in wanted}
     covered = set()
     for path in sorted((ROOT / 'docs/adoption').glob('*.md')):
         if path.name == 'README.md': continue
         added = first_commit([path.relative_to(ROOT).as_posix()])
         if added is None: continue  # not committed: it cannot show it came first
-        if first_code and not is_ancestor(added, first_code): continue
         for section in path.read_text(encoding='utf-8').split('\n## ')[1:]:
             if not all(part in section for part in ('**Candidates**', '**Decision**', '**Pinned**')): continue
             pinned = section.split('**Pinned**', 1)[1]
             for name, version in re.findall(r'`(@?[\w./-]+)@(\d+\.\d+\.\d+)`', pinned):
-                if wanted.get(name) == version: covered.add(name)
+                if wanted.get(name) != version: continue
+                if since[name] and not is_ancestor(added, since[name]): continue
+                covered.add(name)
     return covered, wanted
 
 

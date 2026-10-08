@@ -142,6 +142,51 @@ class PageAuditTests(TemporaryWorkspace):
         self.assertEqual([r['failures'] for r in rows.values()], [[]] * 4)
 
 
+@unittest.skipIf(BROWSER_MISSING, f'screen tools not installed: {BROWSER_MISSING}')
+class PageActionTests(unittest.TestCase):
+    """A page given with actions is measured in the state a person reaches: an opened panel, a typed search."""
+
+    @classmethod
+    def setUpClass(cls):
+        phone, one = audit.VIEWPORTS[:1], audit.variants(themes=('light',))
+        page = {'url': url('opened'), 'name': 'opened', 'actions': [{'click': '#open', 'wait': 100}], 'height_budget': 0.1}
+        cls.result = audit.page_audit([url('opened'), page], viewports=phone, page_variants=one)
+
+    def test_the_page_as_loaded_passes(self):
+        plain = next(r for r in self.result['rows'] if r['page'] is None)
+        self.assertEqual(plain['failures'], [])
+
+    def test_the_opened_state_fails_on_what_the_action_revealed(self):
+        opened = next(r for r in self.result['rows'] if r['page'] == 'opened')
+        self.assertEqual(opened['page_errors'], ['opened with an error'])
+        self.assertEqual([s.split(' > ')[-1] for s in opened['arabic_tracking']], ['p.tracked'])
+        self.assertEqual(opened['root_attributes'], {'lang': 'ar', 'dir': 'rtl'})
+        reasons = {f.split(':')[0] for f in opened['failures']}
+        self.assertLessEqual({'overflow', 'arabic_tracking', 'script_errors', 'height'}, reasons)
+
+
+@unittest.skipIf(BROWSER_MISSING, f'screen tools not installed: {BROWSER_MISSING}')
+class PageSubsetTests(unittest.TestCase):
+    def test_a_page_is_audited_only_in_its_named_viewports_and_variants(self):
+        page = {'url': url('clean'), 'name': 'clean', 'viewports': ['phone'], 'variants': ['dark']}
+        result = audit.page_audit([page], page_variants=audit.variants())
+        self.assertEqual([(r['viewport'], r['variant']) for r in result['rows']], [('phone', 'dark')])
+
+
+class ServeTests(unittest.TestCase):
+    def test_text_files_are_sent_gzip_compressed_to_a_browser_that_accepts_it(self):
+        import gzip
+        from urllib.request import Request, urlopen
+        with audit.serve(FIXTURES) as base:
+            with urlopen(Request(base + 'clean.html', headers={'Accept-Encoding': 'gzip'})) as answer:
+                self.assertEqual(answer.headers['Content-Encoding'], 'gzip')
+                body = gzip.decompress(answer.read())
+            with urlopen(base + 'clean.html') as answer:
+                self.assertIsNone(answer.headers['Content-Encoding'])
+                self.assertEqual(answer.read(), body)
+        self.assertEqual(body, (FIXTURES / 'clean.html').read_bytes())
+
+
 LIGHTHOUSE_MISSING = audit.missing('playwright', 'lighthouse')
 
 
@@ -238,6 +283,23 @@ class FailureRuleTests(unittest.TestCase):
     def test_a_url_with_a_fragment_may_open_scrolled(self):
         self.assertEqual(audit.failures(self.row(url='http://127.0.0.1/p.html#details', scroll={'x': 0, 'y': 300})), [])
         self.assertTrue(audit.failures(self.row(scroll={'x': -120, 'y': 0})))
+
+    def test_a_hash_route_is_not_an_anchor_and_must_open_at_the_top(self):
+        self.assertTrue(audit.failures(self.row(url='http://127.0.0.1/index.html#/problems', scroll={'x': 0, 'y': 300})))
+        self.assertEqual(audit.failures(self.row(url='http://127.0.0.1/index.html#/problems')), [])
+
+    def test_arabic_tracking_script_errors_and_blocked_requests_fail(self):
+        for change, reason in (({'arabic_tracking_count': 1, 'arabic_tracking': ['p.x']}, 'arabic_tracking:'),
+                               ({'page_errors': ['TypeError: x is undefined']}, 'script_errors:'),
+                               ({'blocked_requests': ['https://fonts.example/x.woff2']}, 'offline:')):
+            self.assertTrue(audit.failures(self.row(**change))[0].startswith(reason), change)
+
+    def test_a_variant_the_page_did_not_apply_fails(self):
+        expect = {'dir': 'rtl', 'attributes': {'lang': 'ar', 'data-theme': 'dark'}}
+        right = {'dir': 'rtl', 'root_attributes': {'lang': 'ar', 'dir': 'rtl', 'data-theme': 'dark'}}
+        self.assertEqual(audit.failures(self.row(expect=expect, **right)), [])
+        wrong = audit.failures(self.row(expect=expect, dir='ltr', root_attributes={'lang': 'en', 'data-theme': 'dark'}))
+        self.assertEqual(wrong, ["variant: the page did not apply it: dir='ltr' (expected 'rtl'), lang='en' (expected 'ar')"])
 
     def test_small_targets_count_at_phone_width_only(self):
         self.assertTrue(audit.failures(self.row(small_target_count=2)))

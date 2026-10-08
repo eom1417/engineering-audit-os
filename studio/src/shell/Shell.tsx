@@ -119,11 +119,11 @@ function TopBar({ project, current, freshness, onPalette, onProject, onScan }:
           <Go to="/" className={css.crumb}>{project}</Go>
           {current?.id !== 'home' && <><span className={css.crumbSep} aria-hidden="true">/</span>
             {chrome.back ? <Go to={chrome.back.to} search={chrome.back.search} className={css.crumb}>{sectionTitle}</Go> : <span aria-current="page">{sectionTitle}</span>}</>}
-          {chrome.back && <><span className={css.crumbSep} aria-hidden="true">/</span><span aria-current="page" className={css.crumbLast}>{chrome.title}</span></>}
+          {chrome.back && <><span className={css.crumbSep} aria-hidden="true">/</span><span aria-current="page" className={css.crumbLast} title={chrome.title} data-truncate>{chrome.title}</span></>}
         </nav>
         <div className={css.deskEnd}>
           {freshness && <FreshnessChip freshness={freshness} onPress={onScan} />}
-          <AriaButton className={css.cmdk} onPress={onPalette} aria-label={t('searchEverything')}>
+          <AriaButton className={css.cmdk} onPress={onPalette} aria-label={t('searchEverything')} data-truncate>
             <Icon name="search" /><span>{t('searchEverything')}</span><kbd>⌘K</kbd>
           </AriaButton>
         </div>

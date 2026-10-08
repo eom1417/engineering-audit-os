@@ -4,7 +4,7 @@
 import { SECTIONS, type Manifest, type StudioData } from './types'
 
 declare global {
-  interface Window { EAOS_STUDIO?: Record<string, unknown> }
+  interface Window { EAOS_STUDIO?: Record<string, unknown>; EAOS_DATA?: Promise<void> }
 }
 
 export const CONTRACT = 1
@@ -26,6 +26,7 @@ export type Loaded =
   | { kind: 'error'; contract: number }
 
 export async function load(): Promise<Loaded> {
+  await window.EAOS_DATA // public/boot.js started the data scripts before this script arrived; what failed is retried below
   window.EAOS_STUDIO = window.EAOS_STUDIO || {}
   if (!window.EAOS_STUDIO.manifest && !(await script('manifest'))) return { kind: 'empty' }
   const manifest = window.EAOS_STUDIO.manifest as Manifest | undefined

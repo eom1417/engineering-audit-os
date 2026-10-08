@@ -1,0 +1,29 @@
+{
+ "about": "The Studio's routes for the screen gate: python tools/studio_gates.py --studio (studio/README.md). {card} is a problem card with evidence and {component} the component holding the most cards in the report given with --data.",
+ "wait_for": "main#main",
+ "variants": [
+  {"name": "ar-light", "query": {"lang": "ar", "theme": "light"}, "color_scheme": "light", "expect": {"dir": "rtl", "attributes": {"lang": "ar", "data-theme": "light"}}},
+  {"name": "ar-dark", "query": {"lang": "ar", "theme": "dark"}, "color_scheme": "dark", "expect": {"dir": "rtl", "attributes": {"lang": "ar", "data-theme": "dark"}}},
+  {"name": "en-light", "query": {"lang": "en", "theme": "light"}, "color_scheme": "light", "expect": {"dir": "ltr", "attributes": {"lang": "en", "data-theme": "light"}}},
+  {"name": "en-dark", "query": {"lang": "en", "theme": "dark"}, "color_scheme": "dark", "expect": {"dir": "ltr", "attributes": {"lang": "en", "data-theme": "dark"}}}
+ ],
+ "viewports": [
+  {"name": "phone", "width": 390, "height": 844},
+  {"name": "tablet", "width": 768, "height": 1024},
+  {"name": "desktop", "width": 1440, "height": 900}
+ ],
+ "pages": [
+  {"name": "gallery", "path": "index.html#/_gallery"},
+  {"name": "gallery-matrix", "path": "index.html#/_gallery?view=matrix", "viewports": ["desktop"], "variants": ["ar-light"]},
+  {"name": "home", "path": "index.html#/", "height_budget": 2, "lighthouse": true},
+  {"name": "system", "path": "index.html#/system"},
+  {"name": "system-focus", "path": "index.html#/system?focus={component}"},
+  {"name": "problems", "path": "index.html#/problems", "lighthouse": true},
+  {"name": "problem", "path": "index.html#/problems?card={card}"},
+  {"name": "change", "path": "index.html#/change"},
+  {"name": "decisions", "path": "index.html#/decisions"},
+  {"name": "palette", "path": "index.html#/", "actions": [{"press": "Control+k", "wait": 300}, {"type": "مشاكل", "wait": 300}]},
+  {"name": "sheet", "path": "index.html#/", "actions": [{"click": "[data-open=\"project\"]", "wait": 400}]},
+  {"name": "file-home", "file": "index.html#/", "viewports": ["phone"], "variants": ["ar-light"]}
+ ]
+}

@@ -6,6 +6,7 @@
         [--matrix '<json>' | --matrix matrix.json] [--viewports 390x844,768x1024,1440x900]
         [--phone-height-budget SCREENS] [--lighthouse | --lighthouse-pages a.html,b.html]
         [--lighthouse-min performance=90,accessibility=100] [--no-css]
+    python tools/studio_gates.py --studio [--data <report>/studio] [--out <dir>] [--only home,problems] [--quick]
 
 A folder (or one HTML file) is served over loopback HTTP and every HTML page in it is audited; a URL is audited
 as given (several URLs: the routes of one running app). Each page is opened at every viewport, in every language and theme the page supports: a language or
@@ -24,13 +25,25 @@ its height budget, or a page that did not load; and when a page given to Lightho
 --lighthouse-pages: the named ones) scores under its mobile minimums. Exit 2: the gate could not run (a tool is
 not installed; the message names the install command). The CSS design-drift counts are recorded in gates.json
 for reading; they do not decide the exit code.
+
+--studio gates the Studio this checkout ships (eaos/data/studio, built by `npm run build` in studio/): the build and
+a report's data scripts (--data, default $EAOS_MEASURE/FleetManageWeb/studio) are laid out in a temporary folder as
+the exporter lays them out, served over loopback, and every page of studio/gate-matrix.json is audited in its
+variants and viewports (actions open the palette and a sheet; one page is opened from file://); its Lighthouse
+pages are held to the mobile minimums, and the CSS drift counts of the shipped stylesheet are recorded. The result
+(default $EAOS_MEASURE/studio-gates/gates.json) carries the build's source fingerprint, which F8 reads
+(tools/north_star_measure.py); --only and --quick mark it incomplete.
 """
 import argparse
 import json
+import shutil
 import sys
+import tempfile
 from pathlib import Path
+from urllib.parse import quote, urlencode
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 from eaos.screens import audit  # noqa: E402
 
 
@@ -107,6 +120,11 @@ def run(targets, out, args):
     else:
         result = audit_pages('', targets)
         label = {t: t for t in targets}
+    return finish(report, result, label, out)
+
+
+def finish(report, result, label, out):
+    """Write <out>/gates.json from one page_audit result, print the table, and return the exit code."""
     report['tools'] = result.get('tools')
     report['status'] = result['status']
     if result['status'] != 'observed':
@@ -117,7 +135,7 @@ def run(targets, out, args):
     rows = result['rows']
     for row in rows:
         base_url = row['url'].split('?', 1)[0]
-        row['page'] = label.get(base_url, base_url)
+        row['page'] = row.get('page') or label.get(base_url, base_url)
         if row.get('screenshot'): row['screenshot'] = str(Path(row['screenshot']).relative_to(out))
     failed = [r for r in rows if r['failures']]
     slow = [name for name, scores in (report.get('lighthouse') or {}).items() if scores['failures']]
@@ -141,10 +159,94 @@ def run(targets, out, args):
     return 0 if report['ok'] else 1
 
 
+def studio_placeholders(data):
+    """{card}: the first problem card with evidence; {component}: the component holding the most cards (each card's
+    path counted in its deepest component), so the focused System view shows a full inspector."""
+    cards = json.loads((data / 'cards.json').read_text(encoding='utf-8'))['cards']
+    card = next((c for c in cards if c.get('evidence')), cards[0] if cards else {'id': ''})['id']
+    story = json.loads((data / 'story.json').read_text(encoding='utf-8')) if (data / 'story.json').is_file() else {}
+    names = sorted((c['name'] for c in (story.get('current') or {}).get('components') or []), key=len, reverse=True)
+    held = {}
+    for c in cards:
+        for path in c.get('paths') or []:
+            owner = next((n for n in names if path.startswith(n + '/')), None)
+            if owner: held[owner] = held.get(owner, 0) + 1
+    component = max(held, key=lambda n: (held[n], n)) if held else (names[-1] if names else '')
+    return {'card': card, 'component': component}
+
+
+def studio_pages(matrix, data, base, folder, only=None):
+    """The matrix's pages with their URLs: `path` under the served base, `file` as a file:// URL of the folder."""
+    values = {k: quote(v, safe='') for k, v in studio_placeholders(data).items()}
+    pages = []
+    for page in matrix['pages']:
+        if only and page['name'] not in only: continue
+        entry = {k: v for k, v in page.items() if k not in ('path', 'file', 'lighthouse')}
+        entry['url'] = (base + page['path'] if 'path' in page else (folder / page['file'].split('#')[0]).as_uri()
+                        + ('#' + page['file'].split('#', 1)[1] if '#' in page['file'] else '')).format(**values)
+        pages.append((entry, bool(page.get('lighthouse'))))
+    return pages
+
+
+def run_studio(args):
+    """The Studio's own gate run (see --studio above)."""
+    sys.path.insert(0, str(ROOT / 'tools'))
+    import dev_paths
+    shipped = ROOT / 'eaos/data/studio'
+    data = Path(args.data or dev_paths.MEASURE / 'FleetManageWeb/studio').resolve()
+    out = Path(args.out or dev_paths.MEASURE / 'studio-gates').resolve()
+    if not (shipped / 'SOURCE.json').is_file():
+        print(f'no shipped Studio in {shipped}: run npm run build in studio/'); return 2
+    if not (data / 'manifest.json').is_file():
+        print(f'no report data in {data}: export one (eaos/studio/export.py)'); return 2
+    matrix = json.loads((ROOT / 'studio/gate-matrix.json').read_text(encoding='utf-8'))
+    only = set(args.only.split(',')) if args.only else None
+    sizes = [v for v in matrix['viewports'] if not args.quick or v['name'] in ('phone', 'desktop')]
+    page_variants = [v for v in matrix['variants'] if not args.quick or v['name'].endswith('-light')]
+    for row in page_variants: row.setdefault('storage', {})
+    manifest = json.loads((data / 'manifest.json').read_text(encoding='utf-8'))
+    source = json.loads((shipped / 'SOURCE.json').read_text(encoding='utf-8'))
+    shutil.rmtree(out / 'screenshots', ignore_errors=True)
+    shutil.rmtree(out / 'lighthouse', ignore_errors=True)
+    out.mkdir(parents=True, exist_ok=True)
+    floor = minimums(args.lighthouse_min)
+    report = {'schema_version': 1, 'target': 'studio', 'variants': page_variants, 'viewports': sizes,
+              'studio': {'source_sha256': source['source_sha256'], 'complete': not (only or args.quick),
+                         'data': {'project': manifest['project']['name'], 'contract': manifest['contract'],
+                                  'exported': manifest['built'].get('built'), 'exporter': manifest['built'].get('commit'),
+                                  'folder': str(data)}}}
+    with tempfile.TemporaryDirectory(prefix='eaos-studio-gate-') as folder:
+        site = Path(folder)
+        shutil.copytree(shipped, site, dirs_exist_ok=True)
+        for script in data.glob('*.js'): shutil.copy(script, site / script.name)
+        with audit.serve(site) as base:
+            pages = studio_pages(matrix, data, base, site, only)
+            report['pages'] = [entry['name'] for entry, _ in pages]
+            entries = [{**entry, 'wait_for': entry.get('wait_for', matrix.get('wait_for'))} for entry, _ in pages]
+            result = audit.page_audit(entries, sizes, page_variants, out)
+            first = page_variants[0]['query']
+            if result['status'] == 'observed' and not args.quick:
+                report['lighthouse'] = {}
+                for index, (entry, wanted) in enumerate(pages, 1):
+                    if not wanted: continue
+                    address, _, route = entry['url'].partition('#')
+                    scores = audit.lighthouse(f"{address}?{urlencode(first)}#{route}", out / 'lighthouse' / f"{index:02d}-{entry['name']}")
+                    if scores['status'] == 'unavailable':
+                        result = {'status': 'unavailable', 'reason': scores['reason']}; break
+                    if scores.get('report'): scores['report'] = str(Path(scores['report']).relative_to(out))
+                    report['lighthouse'][entry['name']] = {**scores, 'minimums': floor, 'failures': audit.lighthouse_failures(scores, floor)}
+        if not args.no_css: report['css'] = audit.css_stats(site)
+    return finish(report, result, {}, out)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description='The screen gate of EAOS Studio screens and design mockups.')
-    parser.add_argument('target', nargs='+', help='URLs (the routes of a running app), a folder of HTML pages, or one HTML file')
-    parser.add_argument('--out', required=True, help='where gates.json and the screenshots go')
+    parser.add_argument('target', nargs='*', help='URLs (the routes of a running app), a folder of HTML pages, or one HTML file')
+    parser.add_argument('--out', help='where gates.json and the screenshots go (required unless --studio)')
+    parser.add_argument('--studio', action='store_true', help="gate the Studio this checkout ships, on a report's data")
+    parser.add_argument('--data', help="--studio: the report's studio/ folder (default $EAOS_MEASURE/FleetManageWeb/studio)")
+    parser.add_argument('--only', help='--studio: comma-separated page names of studio/gate-matrix.json (an incomplete run)')
+    parser.add_argument('--quick', action='store_true', help='--studio: phone and desktop, light only, no Lighthouse (an incomplete run)')
     parser.add_argument('--lang-key', help='localStorage key that sets the language')
     parser.add_argument('--lang-param', help='query parameter that sets the language')
     parser.add_argument('--langs', default='ar,en')
@@ -160,6 +262,8 @@ def main(argv=None):
                         help='minimum mobile scores, NAME=SCORE comma-separated (default performance=90,accessibility=100)')
     parser.add_argument('--no-css', action='store_true', help='skip the CSS design-drift counts of a folder')
     args = parser.parse_args(argv)
+    if args.studio: return run_studio(args)
+    if not args.target or not args.out: parser.error('a target and --out are required without --studio')
     return run(args.target, args.out, args)
 
 

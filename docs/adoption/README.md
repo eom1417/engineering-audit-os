@@ -26,13 +26,15 @@ for a record (a step naming `docs/adoption/`) and have begun (done, or code comm
 complete (candidates, licence, maintenance, decision) and was committed no later than the task's first code. A record
 names its tasks on a `Task:` line, or by its file name (`ns37-t1-…` is NS37.T1). A task that writes Studio code
 (`studio/`) also needs every package of `studio/package.json` pinned by a complete section of a record committed no
-later than the first commit of the Studio's code (`studio/src/`): a package added without a record, or a record
-written after the code, fails that task.
+later than the commit that first added that package to `studio/package.json`: a package added without a record, or a
+record written after the package came in, fails that task. When several records name one task, the earliest complete
+one is its record.
 
 ## Records
 
 | Task | Record |
 |---|---|
 | NS37.T1 design system and shell | [ns37-t1-studio-shell.md](ns37-t1-studio-shell.md) |
+| NS37.T1 finishing: bundle locales, one screen gate | [ns37-t1-finish.md](ns37-t1-finish.md) |
 | NS38.T1 labelled precision set | [NS38.T1-precision-harness.md](NS38.T1-precision-harness.md) |
 | NS46.T1 contract v2 and its fixtures | [ns46-t1-contract-v2.md](ns46-t1-contract-v2.md) |

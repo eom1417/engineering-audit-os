@@ -52,7 +52,7 @@ export const WORDS = {
   freshFresh: ['الفحص حديث', 'Scan is current'],
   freshBranchMoved: ['الفرع تغيّر بعد الفحص', 'Branch moved since the scan'],
   freshEaosUpdated: ['EAOS تحدّث بعد الفحص', 'EAOS updated since the scan'],
-  freshUnknown: ['الحداثة غير معروفة', 'Freshness unknown'],
+  freshUnknown: ['حداثة الفحص غير معروفة', 'Freshness unknown'],
   isScanCurrent: ['هل الفحص حديث؟', 'Is this scan current?'],
   freshUnknownLead: ['لا نعرف إن تغيّر الكود بعد الفحص: هذا الفحص لم يسجّل الفرع ولا رقم الـ commit، فلا يمكن مقارنته بالكود الحالي.',
     'We cannot tell whether the code changed after the scan: this scan recorded neither the branch nor the commit, so it cannot be compared with the code today.'],

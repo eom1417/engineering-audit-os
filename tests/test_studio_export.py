@@ -42,6 +42,18 @@ class Export(Workspace):
             self.assertTrue(text.startswith(prefix), name)
             self.assertEqual(json.loads(text[len(prefix):].rstrip().rstrip(';')), self.load(name))
 
+    def test_the_version_shown_is_the_installed_eaos(self):
+        from eaos import __version__
+        self.assertEqual(self.load('manifest')['built']['version'], __version__)
+        self.assertEqual(self.load('head')['eaos']['version'], __version__)
+
+    def test_no_arabic_numeral_is_glued_to_a_one_letter_prefix(self):
+        import re
+        export.export(self.out, 'ar', 'shop')
+        head = self.load('head')
+        for text in (head['verdict'], head['next']['action']):
+            self.assertIsNone(re.search(r'(?:^|\s)[\u0644\u0628\u0643\u0648\u0641]\u0640?\d', text), text)
+
     def test_the_studio_and_the_report_show_the_same_score(self):
         m = model.records(self.out)
         self.assertEqual(self.load('health')['score']['value'], m['score']['score'] / 100)

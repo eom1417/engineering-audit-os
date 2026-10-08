@@ -7,17 +7,23 @@ what the package installs. Nothing here runs at EAOS's run time: no Node is need
 cd studio
 npm ci                       # the pinned packages (docs/adoption/ns37-t1-studio-shell.md)
 npm run build                # stylelint, tsc, vitest, vite build, then scripts/ship.mjs -> eaos/data/studio
-node scripts/gates.mjs       # the screen gates (DESIGN.md §7) -> $EAOS_MEASURE/studio-gates/gates.json
+npm run gates                # = python tools/studio_gates.py --studio -> $EAOS_MEASURE/studio-gates/gates.json
 STUDIO_DATA=<report>/studio npm run dev   # live development on a report's data, port 5180
 ```
 
 - `tests/test_studio_assets.py` recomputes the source fingerprint `ship.mjs` records: a change here without
   `npm run build` fails the Python suite.
-- `scripts/gates.mjs` copies the shipped build and a report's data scripts (`--data <report>/studio`, default
-  `$EAOS_MEASURE/FleetManageWeb/studio`) to a temporary folder, serves it on loopback and checks every route and the
-  gallery at 390, 768 and 1440, ar/en, light/dark, plus the palette and the sheet open, and the page opened from a
-  file. Playwright and axe-core come from the EAOS toolchain (`~/.eaos/tools`). `python tools/north_star.py measure
-  --only F8` reads its result, only when it ran in full on the shipped build.
+- The screen gate is EAOS's one gate, `tools/studio_gates.py` (`eaos/screens/`): `--studio` lays out the shipped
+  build with a report's data scripts (`--data <report>/studio`, default `$EAOS_MEASURE/FleetManageWeb/studio`) in a
+  temporary folder, serves it on loopback and audits every page of `gate-matrix.json` at 390, 768 and 1440, ar/en,
+  light/dark: no horizontal overflow (layout width = viewport width), opens at scroll 0, axe with no serious or
+  critical violation, 44px targets on the phone, no clipped text, no letter-spaced Arabic, no script error, no
+  request outside the Studio's folder, the language, direction and theme applied, Home within two phone screens; the
+  palette and a sheet are opened by actions before the check, and Home is also opened from `file://`. Home and
+  Problems are held to Lighthouse mobile ≥ 90 performance and 100 accessibility, and the stylesheet's design-drift
+  counts (css-analyzer) are recorded. `--only home,problems` or `--quick` iterate faster but mark the run
+  incomplete. `python tools/north_star.py measure --only F8` reads the result, only when it ran in full on the
+  shipped build. Playwright, axe-core, Lighthouse and css-analyzer come from the EAOS toolchain (`~/.eaos/tools`).
 
 ## Layout
 
