@@ -1,0 +1,1054 @@
+{
+ "schema_version": 1,
+ "contract": 1,
+ "revision": 2,
+ "counts": {
+  "stores": {
+   "value": 5,
+   "src": "facts/entrypoints.json#data_access (targets) + facts/domain.json#data_table",
+   "unit": "count"
+  },
+  "tables": {
+   "value": 3,
+   "src": "facts/entrypoints.json#data_access (targets) + facts/domain.json#data_table (kind table)",
+   "unit": "count"
+  },
+  "endpoints": {
+   "value": 8,
+   "src": "facts/entrypoints.json#data_access (method and path, or operation and table)",
+   "unit": "count"
+  },
+  "writers": {
+   "value": 6,
+   "src": "facts/entrypoints.json#data_access[operation is a write].location.path (distinct modules)",
+   "unit": "count"
+  },
+  "readers": {
+   "value": 2,
+   "src": "facts/entrypoints.json#data_access[operation is a read].location.path (distinct modules)",
+   "unit": "count"
+  },
+  "write_paths": {
+   "value": 7,
+   "src": "facts/entrypoints.json#data_access[operation is a write].location.path (distinct modules) (call sites)",
+   "unit": "count"
+  },
+  "attributes": {
+   "value": 9,
+   "src": "facts/entrypoints.json#data_access.value.keys (object literal the call sends; names only) (distinct store and key)",
+   "unit": "count"
+  },
+  "multi_writer_endpoints": {
+   "value": 1,
+   "src": "violations[kind=endpoint]",
+   "unit": "count"
+  },
+  "multi_writer_tables": {
+   "value": 1,
+   "src": "violations[kind=table]",
+   "unit": "count"
+  },
+  "gaps": {
+   "value": 21,
+   "src": "paths[].steps[state=gap] (count)",
+   "unit": "count"
+  },
+  "single_in_target": {
+   "value": 2,
+   "src": "target-architecture.json#current_components[].target_component: stores written from one target component",
+   "unit": "count"
+  }
+ },
+ "tiers": [
+  {
+   "id": "field",
+   "state": "not_measured",
+   "known": {
+    "value": 0,
+    "src": "paths[].steps.field.state in known, direct",
+    "unit": "count"
+   },
+   "gaps": [
+    {
+     "reason": "no_ui_extractor",
+     "paths": 7,
+     "step": "NS40.T2"
+    }
+   ]
+  },
+  {
+   "id": "form",
+   "state": "not_measured",
+   "known": {
+    "value": 0,
+    "src": "paths[].steps.form.state in known, direct",
+    "unit": "count"
+   },
+   "gaps": [
+    {
+     "reason": "no_ui_extractor",
+     "paths": 7,
+     "step": "NS40.T2"
+    }
+   ]
+  },
+  {
+   "id": "key",
+   "state": "partial",
+   "known": {
+    "value": 6,
+    "src": "paths[].steps.key.state in known, direct",
+    "unit": "count"
+   },
+   "gaps": [
+    {
+     "reason": "payload_not_literal",
+     "paths": 1,
+     "step": "NS40.T2"
+    }
+   ]
+  },
+  {
+   "id": "caller",
+   "state": "measured",
+   "known": {
+    "value": 7,
+    "src": "paths[].steps.caller.state in known, direct",
+    "unit": "count"
+   },
+   "gaps": []
+  },
+  {
+   "id": "endpoint",
+   "state": "measured",
+   "known": {
+    "value": 7,
+    "src": "paths[].steps.endpoint.state in known, direct",
+    "unit": "count"
+   },
+   "gaps": []
+  },
+  {
+   "id": "handler",
+   "state": "partial",
+   "known": {
+    "value": 4,
+    "src": "paths[].steps.handler.state in known, direct",
+    "unit": "count"
+   },
+   "gaps": [
+    {
+     "reason": "no_matching_route",
+     "paths": 3,
+     "step": "NS40.T1"
+    }
+   ]
+  },
+  {
+   "id": "column",
+   "state": "partial",
+   "known": {
+    "value": 4,
+    "src": "paths[].steps.column.state in known, direct",
+    "unit": "count"
+   },
+   "gaps": [
+    {
+     "reason": "behind_handler",
+     "paths": 3,
+     "step": "NS40.T2"
+    }
+   ]
+  }
+ ],
+ "stores": [
+  {
+   "id": "api:/notes",
+   "kind": "resource",
+   "name": "/notes",
+   "client": "http",
+   "declared": null,
+   "endpoints": [
+    "ep:POST /notes"
+   ],
+   "sites": 1,
+   "writers": [
+    "web/src/lib/notesApi.ts"
+   ],
+   "readers": [],
+   "multi_writer": false,
+   "today": {
+    "writers": 1,
+    "components": [
+     "web/src/lib"
+    ]
+   },
+   "target": {
+    "components": [
+     "api-client"
+    ],
+    "single": true,
+    "unmapped": []
+   },
+   "change": "single_already"
+  },
+  {
+   "id": "api:/orders",
+   "kind": "resource",
+   "name": "/orders",
+   "client": "http",
+   "declared": null,
+   "endpoints": [
+    "ep:POST /orders",
+    "ep:PUT /orders/{}",
+    "ep:GET /orders"
+   ],
+   "sites": 4,
+   "writers": [
+    "web/src/lib/ordersApi.ts",
+    "web/src/pages/Checkout.tsx"
+   ],
+   "readers": [
+    "web/src/lib/ordersApi.ts"
+   ],
+   "multi_writer": true,
+   "today": {
+    "writers": 2,
+    "components": [
+     "web/src/lib",
+     "web/src/pages"
+    ]
+   },
+   "target": {
+    "components": [
+     "api-client",
+     "features"
+    ],
+    "single": false,
+    "unmapped": []
+   },
+   "change": "still_multiple"
+  },
+  {
+   "id": "table:audit_log",
+   "kind": "table",
+   "name": "audit_log",
+   "client": null,
+   "declared": {
+    "path": "db/schema.sql",
+    "line": 9,
+    "fact": "FACT-T-2",
+    "rls": false
+   },
+   "endpoints": [],
+   "sites": 0,
+   "writers": [],
+   "readers": [],
+   "multi_writer": false,
+   "today": {
+    "writers": 0,
+    "components": []
+   },
+   "target": {
+    "components": [],
+    "single": null,
+    "unmapped": []
+   },
+   "change": null
+  },
+  {
+   "id": "table:orders",
+   "kind": "table",
+   "name": "orders",
+   "client": "supabase",
+   "declared": null,
+   "endpoints": [
+    "ep:supabase:insert orders"
+   ],
+   "sites": 1,
+   "writers": [
+    "server/orders.ts"
+   ],
+   "readers": [],
+   "multi_writer": false,
+   "today": {
+    "writers": 1,
+    "components": [
+     "server"
+    ]
+   },
+   "target": {
+    "components": [
+     "routes"
+    ],
+    "single": true,
+    "unmapped": []
+   },
+   "change": "single_already"
+  },
+  {
+   "id": "table:stock",
+   "kind": "table",
+   "name": "stock",
+   "client": "supabase",
+   "declared": {
+    "path": "db/schema.sql",
+    "line": 1,
+    "fact": "FACT-T-1",
+    "rls": true
+   },
+   "endpoints": [
+    "ep:supabase:update stock",
+    "ep:supabase:insert stock",
+    "ep:supabase:select stock"
+   ],
+   "sites": 3,
+   "writers": [
+    "web/src/lib/stock.ts",
+    "web/src/pages/Admin.tsx"
+   ],
+   "readers": [
+    "web/src/pages/Admin.tsx"
+   ],
+   "multi_writer": true,
+   "today": {
+    "writers": 2,
+    "components": [
+     "web/src/lib",
+     "web/src/pages"
+    ]
+   },
+   "target": {
+    "components": [
+     "api-client",
+     "features"
+    ],
+    "single": false,
+    "unmapped": []
+   },
+   "change": "still_multiple"
+  }
+ ],
+ "endpoints": [
+  {
+   "id": "ep:GET /orders",
+   "label": "GET /orders",
+   "store": "api:/orders",
+   "operation": "get",
+   "method": "GET",
+   "writers": [],
+   "readers": [
+    "web/src/lib/ordersApi.ts"
+   ],
+   "keys": null,
+   "sites": [
+    {
+     "path": "web/src/lib/ordersApi.ts",
+     "line": 14,
+     "fact": "FACT-DA-4"
+    }
+   ],
+   "multi_writer": false
+  },
+  {
+   "id": "ep:POST /notes",
+   "label": "POST /notes",
+   "store": "api:/notes",
+   "operation": "post",
+   "method": "POST",
+   "writers": [
+    "web/src/lib/notesApi.ts"
+   ],
+   "readers": [],
+   "keys": [
+    "text"
+   ],
+   "sites": [
+    {
+     "path": "web/src/lib/notesApi.ts",
+     "line": 15,
+     "fact": "FACT-DA-5"
+    }
+   ],
+   "multi_writer": false
+  },
+  {
+   "id": "ep:POST /orders",
+   "label": "POST /orders",
+   "store": "api:/orders",
+   "operation": "post",
+   "method": "POST",
+   "writers": [
+    "web/src/lib/ordersApi.ts",
+    "web/src/pages/Checkout.tsx"
+   ],
+   "readers": [],
+   "keys": [
+    "coupon",
+    "item",
+    "qty"
+   ],
+   "sites": [
+    {
+     "path": "web/src/lib/ordersApi.ts",
+     "line": 11,
+     "fact": "FACT-DA-1"
+    },
+    {
+     "path": "web/src/pages/Checkout.tsx",
+     "line": 12,
+     "fact": "FACT-DA-2"
+    }
+   ],
+   "multi_writer": true
+  },
+  {
+   "id": "ep:PUT /orders/{}",
+   "label": "PUT /orders/{}",
+   "store": "api:/orders",
+   "operation": "put",
+   "method": "PUT",
+   "writers": [
+    "web/src/lib/ordersApi.ts"
+   ],
+   "readers": [],
+   "keys": null,
+   "sites": [
+    {
+     "path": "web/src/lib/ordersApi.ts",
+     "line": 13,
+     "fact": "FACT-DA-3"
+    }
+   ],
+   "multi_writer": false
+  },
+  {
+   "id": "ep:supabase:insert orders",
+   "label": "insert orders",
+   "store": "table:orders",
+   "operation": "insert",
+   "method": null,
+   "writers": [
+    "server/orders.ts"
+   ],
+   "readers": [],
+   "keys": [
+    "item",
+    "qty",
+    "user_id"
+   ],
+   "sites": [
+    {
+     "path": "server/orders.ts",
+     "line": 19,
+     "fact": "FACT-DA-9"
+    }
+   ],
+   "multi_writer": false
+  },
+  {
+   "id": "ep:supabase:insert stock",
+   "label": "insert stock",
+   "store": "table:stock",
+   "operation": "insert",
+   "method": null,
+   "writers": [
+    "web/src/pages/Admin.tsx"
+   ],
+   "readers": [],
+   "keys": [
+    "count",
+    "sku"
+   ],
+   "sites": [
+    {
+     "path": "web/src/pages/Admin.tsx",
+     "line": 17,
+     "fact": "FACT-DA-7"
+    }
+   ],
+   "multi_writer": false
+  },
+  {
+   "id": "ep:supabase:select stock",
+   "label": "select stock",
+   "store": "table:stock",
+   "operation": "select",
+   "method": null,
+   "writers": [],
+   "readers": [
+    "web/src/pages/Admin.tsx"
+   ],
+   "keys": null,
+   "sites": [
+    {
+     "path": "web/src/pages/Admin.tsx",
+     "line": 18,
+     "fact": "FACT-DA-8"
+    }
+   ],
+   "multi_writer": false
+  },
+  {
+   "id": "ep:supabase:update stock",
+   "label": "update stock",
+   "store": "table:stock",
+   "operation": "update",
+   "method": null,
+   "writers": [
+    "web/src/lib/stock.ts"
+   ],
+   "readers": [],
+   "keys": [
+    "count"
+   ],
+   "sites": [
+    {
+     "path": "web/src/lib/stock.ts",
+     "line": 16,
+     "fact": "FACT-DA-6"
+    }
+   ],
+   "multi_writer": false
+  }
+ ],
+ "paths": [
+  {
+   "store": "table:orders",
+   "endpoint": "ep:supabase:insert orders",
+   "site": {
+    "path": "server/orders.ts",
+    "line": 19,
+    "fact": "FACT-DA-9"
+   },
+   "steps": {
+    "field": {
+     "state": "gap",
+     "reason": "no_ui_extractor"
+    },
+    "form": {
+     "state": "gap",
+     "reason": "no_ui_extractor"
+    },
+    "key": {
+     "state": "known",
+     "keys": [
+      "item",
+      "qty",
+      "user_id"
+     ],
+     "partial": false
+    },
+    "caller": {
+     "state": "known",
+     "component": "server"
+    },
+    "endpoint": {
+     "state": "known"
+    },
+    "handler": {
+     "state": "direct",
+     "reason": "direct_database_client"
+    },
+    "column": {
+     "state": "known",
+     "columns": [
+      "item",
+      "qty",
+      "user_id"
+     ]
+    }
+   }
+  },
+  {
+   "store": "api:/notes",
+   "endpoint": "ep:POST /notes",
+   "site": {
+    "path": "web/src/lib/notesApi.ts",
+    "line": 15,
+    "fact": "FACT-DA-5"
+   },
+   "steps": {
+    "field": {
+     "state": "gap",
+     "reason": "no_ui_extractor"
+    },
+    "form": {
+     "state": "gap",
+     "reason": "no_ui_extractor"
+    },
+    "key": {
+     "state": "known",
+     "keys": [
+      "text"
+     ],
+     "partial": false
+    },
+    "caller": {
+     "state": "known",
+     "component": "web/src/lib"
+    },
+    "endpoint": {
+     "state": "known"
+    },
+    "handler": {
+     "state": "gap",
+     "reason": "no_matching_route"
+    },
+    "column": {
+     "state": "gap",
+     "reason": "behind_handler"
+    }
+   }
+  },
+  {
+   "store": "api:/orders",
+   "endpoint": "ep:POST /orders",
+   "site": {
+    "path": "web/src/lib/ordersApi.ts",
+    "line": 11,
+    "fact": "FACT-DA-1"
+   },
+   "steps": {
+    "field": {
+     "state": "gap",
+     "reason": "no_ui_extractor"
+    },
+    "form": {
+     "state": "gap",
+     "reason": "no_ui_extractor"
+    },
+    "key": {
+     "state": "known",
+     "keys": [
+      "item",
+      "qty"
+     ],
+     "partial": false
+    },
+    "caller": {
+     "state": "known",
+     "component": "web/src/lib"
+    },
+    "endpoint": {
+     "state": "known"
+    },
+    "handler": {
+     "state": "gap",
+     "reason": "no_matching_route"
+    },
+    "column": {
+     "state": "gap",
+     "reason": "behind_handler"
+    }
+   }
+  },
+  {
+   "store": "api:/orders",
+   "endpoint": "ep:PUT /orders/{}",
+   "site": {
+    "path": "web/src/lib/ordersApi.ts",
+    "line": 13,
+    "fact": "FACT-DA-3"
+   },
+   "steps": {
+    "field": {
+     "state": "gap",
+     "reason": "no_ui_extractor"
+    },
+    "form": {
+     "state": "gap",
+     "reason": "no_ui_extractor"
+    },
+    "key": {
+     "state": "gap",
+     "reason": "payload_not_literal"
+    },
+    "caller": {
+     "state": "known",
+     "component": "web/src/lib"
+    },
+    "endpoint": {
+     "state": "known"
+    },
+    "handler": {
+     "state": "known",
+     "handler": "updateOrder",
+     "path": "server/orders.ts",
+     "line": 4,
+     "fact": "FACT-EP-1",
+     "flow": "FACT-FL-1"
+    },
+    "column": {
+     "state": "known",
+     "stores": [
+      "table:orders"
+     ],
+     "columns": [
+      "item",
+      "qty",
+      "user_id"
+     ]
+    }
+   }
+  },
+  {
+   "store": "table:stock",
+   "endpoint": "ep:supabase:update stock",
+   "site": {
+    "path": "web/src/lib/stock.ts",
+    "line": 16,
+    "fact": "FACT-DA-6"
+   },
+   "steps": {
+    "field": {
+     "state": "gap",
+     "reason": "no_ui_extractor"
+    },
+    "form": {
+     "state": "gap",
+     "reason": "no_ui_extractor"
+    },
+    "key": {
+     "state": "known",
+     "keys": [
+      "count"
+     ],
+     "partial": false
+    },
+    "caller": {
+     "state": "known",
+     "component": "web/src/lib"
+    },
+    "endpoint": {
+     "state": "known"
+    },
+    "handler": {
+     "state": "direct",
+     "reason": "direct_database_client"
+    },
+    "column": {
+     "state": "known",
+     "columns": [
+      "count"
+     ]
+    }
+   }
+  },
+  {
+   "store": "table:stock",
+   "endpoint": "ep:supabase:insert stock",
+   "site": {
+    "path": "web/src/pages/Admin.tsx",
+    "line": 17,
+    "fact": "FACT-DA-7"
+   },
+   "steps": {
+    "field": {
+     "state": "gap",
+     "reason": "no_ui_extractor"
+    },
+    "form": {
+     "state": "gap",
+     "reason": "no_ui_extractor"
+    },
+    "key": {
+     "state": "known",
+     "keys": [
+      "count",
+      "sku"
+     ],
+     "partial": false
+    },
+    "caller": {
+     "state": "known",
+     "component": "web/src/pages"
+    },
+    "endpoint": {
+     "state": "known"
+    },
+    "handler": {
+     "state": "direct",
+     "reason": "direct_database_client"
+    },
+    "column": {
+     "state": "known",
+     "columns": [
+      "count",
+      "sku"
+     ]
+    }
+   }
+  },
+  {
+   "store": "api:/orders",
+   "endpoint": "ep:POST /orders",
+   "site": {
+    "path": "web/src/pages/Checkout.tsx",
+    "line": 12,
+    "fact": "FACT-DA-2"
+   },
+   "steps": {
+    "field": {
+     "state": "gap",
+     "reason": "no_ui_extractor"
+    },
+    "form": {
+     "state": "gap",
+     "reason": "no_ui_extractor"
+    },
+    "key": {
+     "state": "known",
+     "keys": [
+      "item",
+      "qty",
+      "coupon"
+     ],
+     "partial": false
+    },
+    "caller": {
+     "state": "known",
+     "component": "web/src/pages"
+    },
+    "endpoint": {
+     "state": "known"
+    },
+    "handler": {
+     "state": "gap",
+     "reason": "no_matching_route"
+    },
+    "column": {
+     "state": "gap",
+     "reason": "behind_handler"
+    }
+   }
+  }
+ ],
+ "violations": [
+  {
+   "id": "own:ep:POST /orders",
+   "subject": "ep:POST /orders",
+   "kind": "endpoint",
+   "tier": "client",
+   "writers": [
+    "web/src/lib/ordersApi.ts",
+    "web/src/pages/Checkout.tsx"
+   ]
+  },
+  {
+   "id": "own:table:stock",
+   "subject": "table:stock",
+   "kind": "table",
+   "tier": "client",
+   "writers": [
+    "web/src/lib/stock.ts",
+    "web/src/pages/Admin.tsx"
+   ]
+  }
+ ],
+ "current": {
+  "lanes": {
+   "caller": [
+    "server",
+    "web/src/lib",
+    "web/src/pages"
+   ],
+   "store": [
+    "table:orders",
+    "api:/notes",
+    "api:/orders",
+    "table:stock",
+    "table:audit_log"
+   ]
+  },
+  "place": {
+   "api:/notes": [
+    544,
+    68
+   ],
+   "api:/orders": [
+    544,
+    112
+   ],
+   "server": [
+    24,
+    24
+   ],
+   "table:audit_log": [
+    544,
+    200
+   ],
+   "table:orders": [
+    544,
+    24
+   ],
+   "table:stock": [
+    544,
+    156
+   ],
+   "web/src/lib": [
+    24,
+    68
+   ],
+   "web/src/pages": [
+    24,
+    112
+   ]
+  },
+  "size": [
+   788,
+   258
+  ],
+  "box": [
+   220,
+   34
+  ],
+  "edges": [
+   {
+    "from": "server",
+    "to": "table:orders",
+    "kind": "write",
+    "modules": 1
+   },
+   {
+    "from": "web/src/lib",
+    "to": "api:/notes",
+    "kind": "write",
+    "modules": 1
+   },
+   {
+    "from": "web/src/lib",
+    "to": "api:/orders",
+    "kind": "write",
+    "modules": 1
+   },
+   {
+    "from": "web/src/lib",
+    "to": "table:stock",
+    "kind": "write",
+    "modules": 1
+   },
+   {
+    "from": "web/src/pages",
+    "to": "api:/orders",
+    "kind": "write",
+    "modules": 1
+   },
+   {
+    "from": "web/src/pages",
+    "to": "table:stock",
+    "kind": "write",
+    "modules": 1
+   }
+  ],
+  "clusters": []
+ },
+ "target": {
+  "lanes": {
+   "caller": [
+    "routes",
+    "api-client",
+    "features"
+   ],
+   "store": [
+    "table:orders",
+    "api:/notes",
+    "api:/orders",
+    "table:stock",
+    "table:audit_log"
+   ]
+  },
+  "place": {
+   "api-client": [
+    24,
+    68
+   ],
+   "api:/notes": [
+    544,
+    68
+   ],
+   "api:/orders": [
+    544,
+    112
+   ],
+   "features": [
+    24,
+    112
+   ],
+   "routes": [
+    24,
+    24
+   ],
+   "table:audit_log": [
+    544,
+    200
+   ],
+   "table:orders": [
+    544,
+    24
+   ],
+   "table:stock": [
+    544,
+    156
+   ]
+  },
+  "size": [
+   788,
+   258
+  ],
+  "box": [
+   220,
+   34
+  ],
+  "edges": [
+   {
+    "from": "api-client",
+    "to": "api:/notes",
+    "kind": "write",
+    "modules": 1
+   },
+   {
+    "from": "api-client",
+    "to": "api:/orders",
+    "kind": "write",
+    "modules": 1
+   },
+   {
+    "from": "api-client",
+    "to": "table:stock",
+    "kind": "write",
+    "modules": 1
+   },
+   {
+    "from": "features",
+    "to": "api:/orders",
+    "kind": "write",
+    "modules": 1
+   },
+   {
+    "from": "features",
+    "to": "table:stock",
+    "kind": "write",
+    "modules": 1
+   },
+   {
+    "from": "routes",
+    "to": "table:orders",
+    "kind": "write",
+    "modules": 1
+   }
+  ],
+  "clusters": []
+ },
+ "src": {
+  "stores": "facts/entrypoints.json#data_access (targets) + facts/domain.json#data_table",
+  "endpoints": "facts/entrypoints.json#data_access (method and path, or operation and table)",
+  "writers": "facts/entrypoints.json#data_access[operation is a write].location.path (distinct modules)",
+  "readers": "facts/entrypoints.json#data_access[operation is a read].location.path (distinct modules)",
+  "keys": "facts/entrypoints.json#data_access.value.keys (object literal the call sends; names only)",
+  "handler": "facts/entrypoints.json#entry_point[surface=http] of the same method and normalised path",
+  "columns": "Supabase row keys; or data_access writes in the files the handler's flow touches (facts/flows.json)",
+  "component": "target-architecture.json#current_components (deepest component holding the module)",
+  "target": "target-architecture.json#current_components[].target_component"
+ }
+}

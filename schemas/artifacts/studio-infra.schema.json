@@ -1,0 +1,476 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/infra.json",
+  "description": "Where the project runs and what it depends on outside its code: hosting, CI/CD, environments, databases, queues, external services and observability, each with its evidence, and the target architecture's decision for each area.",
+  "x-artifact": "studio/infra.json",
+  "x-owner": "NS46",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "revision",
+    "app",
+    "lanes",
+    "counts",
+    "target",
+    "src"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "revision": {
+      "const": 2
+    },
+    "app": {
+      "type": "object",
+      "required": [
+        "reference",
+        "src"
+      ],
+      "properties": {
+        "reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "lanes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "relation",
+          "state",
+          "reason",
+          "count",
+          "nodes",
+          "folded"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "hosting",
+              "ci",
+              "environments",
+              "databases",
+              "queues",
+              "services",
+              "observability"
+            ]
+          },
+          "relation": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "measured",
+              "empty"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "count": {
+            "$ref": "#/$defs/measure"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "lane",
+                "name",
+                "kind",
+                "items",
+                "sites",
+                "evidence"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "lane": {
+                  "type": "string",
+                  "enum": [
+                    "hosting",
+                    "ci",
+                    "environments",
+                    "databases",
+                    "queues",
+                    "services",
+                    "observability"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "object"
+                },
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "sites": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "path",
+                      "line",
+                      "fact"
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string"
+                      },
+                      "line": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "fact": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "evidence": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          },
+          "folded": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "lane",
+                "name",
+                "kind",
+                "items",
+                "sites",
+                "evidence"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "lane": {
+                  "type": "string",
+                  "enum": [
+                    "hosting",
+                    "ci",
+                    "environments",
+                    "databases",
+                    "queues",
+                    "services",
+                    "observability"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "object"
+                },
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "sites": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "path",
+                      "line",
+                      "fact"
+                    ],
+                    "properties": {
+                      "path": {
+                        "type": "string"
+                      },
+                      "line": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "fact": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "evidence": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/measure"
+      }
+    },
+    "target": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "lanes"
+      ],
+      "properties": {
+        "reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lanes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "state",
+              "reason",
+              "items"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "enum": [
+                  "hosting",
+                  "ci",
+                  "environments",
+                  "databases",
+                  "queues",
+                  "services",
+                  "observability"
+                ]
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "measured",
+                  "not_measured"
+                ]
+              },
+              "reason": {
+                "type": "string"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "area",
+                    "present",
+                    "op",
+                    "decision",
+                    "tool",
+                    "evidence"
+                  ],
+                  "properties": {
+                    "area": {
+                      "type": "string"
+                    },
+                    "present": {
+                      "type": "boolean"
+                    },
+                    "op": {
+                      "type": "string",
+                      "enum": [
+                        "keep",
+                        "introduce"
+                      ]
+                    },
+                    "decision": {
+                      "type": "string"
+                    },
+                    "tool": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "evidence": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "src": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/source"
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    },
+    "touch": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "table",
+            "file",
+            "env",
+            "network",
+            "store",
+            "storage"
+          ]
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "x-revision": 2
+}

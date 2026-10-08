@@ -167,7 +167,7 @@ SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'pla
 # Contract v2 (docs/STUDIO.md D7): sections added without breaking a v1 reader. They keep "contract": 1 (the number a
 # reader-breaking change raises) and carry "revision": 2; a v1 reader ignores a section it does not know.
 STUDIO_REVISION = 2
-SECTIONS_V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'coverage')
+SECTIONS_V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'data_paths', 'infra', 'coverage')
 REF = lambda name: {'$ref': f'#/$defs/{name}'}
 DEFS = {
     'ratio': {'type': 'number', 'minimum': 0, 'maximum': 1},
@@ -247,7 +247,7 @@ STUDIO = {
            'project': obj({'name': {'type': 'string', 'minLength': 1}}),
            'scanned': REF('scan'),
            'revision': {'type': 'integer', 'minimum': 1},
-           'sections': arr(obj({'name': enum(*SECTIONS, *SECTIONS_V2), 'file': {'type': 'string', 'pattern': '^[a-z]+\\.json$'},
+           'sections': arr(obj({'name': enum(*SECTIONS, *SECTIONS_V2), 'file': {'type': 'string', 'pattern': '^[a-z][a-z_]*\\.json$'},
                                 'sha256': {'type': 'string', 'pattern': '^[0-9a-f]{64}$'},
                                 'bytes': {'type': 'integer', 'minimum': 0}}), 1)},
           ['built', 'project', 'scanned', 'sections'])),
@@ -318,6 +318,53 @@ STUDIO = {
  'system': ('The project as two territory maps, today and the target: components with their files, findings and operation, the weighted imports between them, and the layout computed by EAOS so the Studio only draws. The precursor of NS39.T1\'s unified graph.',
   SYSTEM_SECTION)
 }
+# The data paths and infrastructure maps (eaos/studio/data_paths.py, eaos/studio/infra.py): each element carries its
+# evidence (path, line, fact); a tier or lane the records do not reach is a gap with its reason, never a guessed link.
+_SITE = obj({'path': S, 'line': NI, 'fact': NS}, ['path', 'line', 'fact'])
+_DP_STEP = obj({'state': enum('known', 'gap', 'direct'), 'reason': S}, ['state'])
+_DP_VIEW = {'type': ['object', 'null'], 'required': ['lanes', 'place', 'size', 'box', 'edges', 'clusters'], 'properties': {
+    'lanes': obj({'caller': REFS, 'store': REFS}), 'place': {'type': 'object', 'additionalProperties': arr(N)},
+    'size': arr(N), 'box': arr(N),
+    'edges': arr(obj({'from': S, 'to': S, 'kind': enum('write', 'read'), 'modules': COUNT})),
+    'clusters': arr(obj({'id': S, 'lane': enum('caller', 'store'), 'members': REFS}))}}
+DATA_PATHS = section_v2({
+    'counts': {'type': 'object', 'additionalProperties': REF('measure')},
+    'tiers': arr(obj({'id': enum('field', 'form', 'key', 'caller', 'endpoint', 'handler', 'column'),
+                      'state': enum('measured', 'empty', 'partial', 'not_measured'), 'known': REF('measure'),
+                      'gaps': arr(obj({'reason': S, 'paths': COUNT, 'step': {'type': 'string', 'pattern': '^NS[0-9]+(\\.T[0-9]+)?$'}}))})),
+    'stores': arr(obj({'id': S, 'kind': enum('table', 'resource', 'bucket', 'rpc', 'auth'), 'name': S, 'client': NS,
+                       'declared': {'type': ['object', 'null']}, 'endpoints': REFS, 'sites': COUNT, 'writers': REFS, 'readers': REFS,
+                       'multi_writer': B, 'today': obj({'writers': COUNT, 'components': REFS}),
+                       'target': {'type': ['object', 'null']},
+                       'change': {'type': ['string', 'null'], 'enum': ['single_already', 'merged_in_target', 'still_multiple', None]}},
+                      ['id', 'kind', 'name', 'endpoints', 'writers', 'readers', 'multi_writer', 'today', 'target', 'change'])),
+    'endpoints': arr(obj({'id': S, 'label': S, 'store': S, 'operation': S, 'method': NS, 'writers': REFS, 'readers': REFS,
+                          'keys': {'type': ['array', 'null'], 'items': S}, 'multi_writer': B, 'sites': arr(_SITE)},
+                         ['id', 'label', 'store', 'writers', 'readers', 'keys', 'multi_writer', 'sites'])),
+    'paths': arr(obj({'store': S, 'endpoint': S, 'site': _SITE,
+                      'steps': obj({t: _DP_STEP for t in ('field', 'form', 'key', 'caller', 'endpoint', 'handler', 'column')})},
+                     ['store', 'endpoint', 'site', 'steps'])),
+    'violations': arr(obj({'id': S, 'subject': S, 'kind': enum('endpoint', 'table'), 'tier': S, 'writers': REFS})),
+    'current': _DP_VIEW, 'target': _DP_VIEW,
+    'src': {'type': 'object', 'additionalProperties': REF('source')},
+}, ['counts', 'tiers', 'stores', 'endpoints', 'paths', 'violations', 'current', 'target', 'src'])
+_INFRA_LANES = ('hosting', 'ci', 'environments', 'databases', 'queues', 'services', 'observability')
+_INFRA_NODE = obj({'id': S, 'lane': enum(*_INFRA_LANES), 'name': S, 'kind': S, 'detail': {'type': 'object'}, 'items': REFS,
+                   'sites': arr(_SITE), 'evidence': COUNT}, ['id', 'lane', 'name', 'kind', 'items', 'sites', 'evidence'])
+INFRA = section_v2({
+    'app': obj({'reference': NS, 'src': REF('source')}),
+    'lanes': arr(obj({'id': enum(*_INFRA_LANES), 'relation': S, 'state': enum('measured', 'empty'), 'reason': S,
+                      'count': REF('measure'), 'nodes': arr(_INFRA_NODE), 'folded': arr(_INFRA_NODE)})),
+    'counts': {'type': 'object', 'additionalProperties': REF('measure')},
+    'target': {'type': ['object', 'null'], 'required': ['lanes'], 'properties': {
+        'reference': NS, 'status': NS,
+        'lanes': arr(obj({'id': enum(*_INFRA_LANES), 'state': enum('measured', 'not_measured'), 'reason': S,
+                          'items': arr(obj({'area': S, 'present': B, 'op': enum('keep', 'introduce'), 'decision': S,
+                                            'tool': NS, 'evidence': S}))}))}},
+    'src': {'type': 'object', 'additionalProperties': REF('source')},
+}, ['app', 'lanes', 'counts', 'target', 'src'])
+
+
 STUDIO_V2 = {
  'functions': ('Every function EAOS read, by module: what it is, its signature and summary, who calls it and what it calls, the data it reads and writes, its size and complexity, and the cards on it.',
   section_v2({'modules': arr(obj({'id': REF('path'), 'component': NS, 'language': NS, 'functions': COUNT}, ['id', 'functions'])),
@@ -373,8 +420,12 @@ STUDIO_V2 = {
               'indicators': arr(obj({'id': S, 'name': S, 'value': REF('ratio_measure'), 'target': REF('ratio')},
                                     ['id', 'name', 'value', 'target']))},
              ['detectors', 'capabilities', 'indicators'])),
+ 'data_paths': ('Where each piece of data enters, which code writes and reads it, and where it is kept: every store (table, API resource, bucket), its endpoints with their writers, readers and request keys, every write as a path from input field to column with its gaps, the stores written from more than one module, and the overview laid out by EAOS, today and in the target.',
+  DATA_PATHS),
+ 'infra': ('Where the project runs and what it depends on outside its code: hosting, CI/CD, environments, databases, queues, external services and observability, each with its evidence, and the target architecture\'s decision for each area.',
+  INFRA),
  'coverage': ('What EAOS measured for this report and what it has not measured yet: every Studio section with its state, the reason in a stable code, which step of the plan will produce it, and how to produce it. A page with no data shows this instead of "coming soon".',
-  section_v2({'sections': arr(obj({'section': {'type': 'string', 'pattern': '^[a-z]+$'}, 'state': enum(*COVERAGE_STATES),
+  section_v2({'sections': arr(obj({'section': {'type': 'string', 'pattern': '^[a-z][a-z_]*$'}, 'state': enum(*COVERAGE_STATES),
                                    'reason': enum(*COVERAGE_REASONS), 'detail': S, 'step': {'type': ['string', 'null'], 'pattern': '^NS[0-9]+(\\.T[0-9]+)?$'},
                                    'tool': NS, 'count': REF('measure'),
                                    'parts': arr(obj({'id': S, 'state': enum(*COVERAGE_STATES), 'detail': S}, ['id', 'state']))},

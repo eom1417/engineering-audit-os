@@ -19,7 +19,7 @@ FUNCTION_SCOPES = ('function', 'method')
 PLANNED = {'meta': 'languages', 'head': None, 'health': 'domains', 'cards': 'cards', 'evidence': 'facts', 'story': 'gap',
            'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images',
            'functions': 'functions', 'screens': 'screens', 'gaps': 'gaps', 'operations': 'operations', 'history': 'scans',
-           'quality': 'detectors', 'maps': None}
+           'quality': 'detectors', 'maps': None, 'data_paths': 'stores', 'infra': None}
 V1_STEP = 'NS36.T2'
 
 
@@ -87,11 +87,53 @@ def _not_exported(section, report, built, lang):
         return ('not_built', _text(lang, 'دقة كاشفات EAOS تُقاس على حالاتها المعلَّمة، ولم تُصدَّر لكل مشروع بعد.',
                                    "EAOS's detector precision is measured on its labelled cases and not exported per project yet."),
                 'NS46.T4', None, _count(None, 'docs/engine-precision.json'), [])
+    if section in ('data_paths', 'infra'):
+        return ('not_built', _text(lang, 'خريطة البيانات أو البنية التحتية لم تُصدَّر في هذا الفحص.',
+                                   'The data or infrastructure map is not exported in this check.'),
+                'NS46.T6', 'audit', _count(None, f'{section}.json'), [])
     if section == 'maps':
         return ('not_built', _text(lang, 'خرائط النظام لم تُصدَّر في هذا الفحص.', 'The system maps are not exported in this check.'),
                 'NS46.T6', 'audit', _count(None, 'maps.json'), [])
     return ('not_built', _text(lang, 'هذا القسم لم يُبنَ بعد.', 'This section is not built yet.'),
             V1_STEP, 'audit', _count(None, f'{section}.json'), [])
+
+
+TIER_WORDS = {'field': ('حقل الإدخال', 'input field'), 'form': ('النموذج', 'form'), 'key': ('مفتاح الطلب', 'request key'),
+              'caller': ('الوحدة المرسلة', 'calling module'), 'endpoint': ('نقطة الوصول', 'endpoint'),
+              'handler': ('المعالج في الخادم', 'server handler'), 'column': ('العمود', 'column')}
+LANE_WORDS = {'hosting': ('الاستضافة', 'hosting'), 'ci': ('البناء والنشر', 'CI/CD'), 'environments': ('البيئات', 'environments'),
+              'databases': ('قواعد البيانات', 'databases'), 'queues': ('الطوابير', 'queues'),
+              'services': ('الخدمات الخارجية', 'external services'), 'observability': ('المراقبة', 'observability')}
+
+
+def _data_paths_parts(body, lang):
+    """Each tier of the data paths: how many writes reach it with evidence, and why the others stop (the gaps the map
+    draws are counted here)."""
+    parts = []
+    for tier in body.get('tiers') or []:
+        ar, en = TIER_WORDS.get(tier['id'], (tier['id'], tier['id']))
+        known, gaps = tier['known']['value'], sum(g['paths'] for g in tier.get('gaps') or [])
+        detail = (_text(lang, f'{ar}: {known} معروف بدليله، {gaps} فجوة', f'{en}: {known} known with evidence, {gaps} gaps')
+                  if known is not None else _text(lang, f'{ar}: لا كتابة في هذا المشروع', f'{en}: no write in this project'))
+        parts.append({'id': tier['id'], 'state': tier['state'], 'detail': detail})
+    return parts
+
+
+def _infra_parts(body, lang):
+    """Each lane of the infrastructure: found or measured empty today, and whether the target says anything about it."""
+    target = {lane['id']: lane for lane in ((body.get('target') or {}).get('lanes') or [])}
+    parts = []
+    for lane in body.get('lanes') or []:
+        ar, en = LANE_WORDS.get(lane['id'], (lane['id'], lane['id']))
+        n = lane['count']['value']
+        said = (target.get(lane['id']) or {}).get('state') == 'measured'
+        parts.append({'id': lane['id'], 'state': lane['state'],
+                      'detail': _text(lang, f'{ar}: {n} عنصر اليوم؛ ' + ('الهدف يحددها' if said else 'الهدف لم يقل عنها شيئًا بعد'),
+                                      f'{en}: {n} today; ' + ('the target decides it' if said else 'the target says nothing about it yet'))})
+    return parts
+
+
+PARTS = {'data_paths': _data_paths_parts, 'infra': _infra_parts}
 
 
 def coverage(report, built, written, errors, lang='ar'):
@@ -108,11 +150,16 @@ def coverage(report, built, written, errors, lang='ar'):
             listed = body.get(items) if isinstance(body, dict) and items else body if isinstance(body, list) else None
             count = len(listed) if isinstance(listed, list) else None
             empty = count == 0
-            rows.append({'section': section, 'state': 'empty' if empty else 'measured',
-                         'reason': 'nothing_found' if empty else 'written',
+            parts = PARTS[section](body, lang) if section in PARTS else []
+            # A map whose own tiers stop short (no form extractor yet, a payload sent as a variable) is partial, not measured.
+            partial = section == 'data_paths' and any(part['state'] in ('partial', 'not_measured') for part in parts)
+            rows.append({'section': section, 'state': 'empty' if empty else 'partial' if partial else 'measured',
+                         'reason': 'nothing_found' if empty else 'some_parts_missing' if partial else 'written',
                          'detail': (_text(lang, 'قيس ولم يُوجد شيء.', 'Measured; nothing was found.') if empty else
+                                    _text(lang, 'قيس جزء من المسار؛ الفجوات معدودة في أجزائه.', 'Part of each path is measured; the gaps are counted in its parts.') if partial else
                                     _text(lang, 'مقيس في هذا الفحص.', 'Measured in this check.')),
-                         'step': None, 'tool': None, 'count': _count(count, f'{section}.json' + (f'#{items}' if items else '')), 'parts': []})
+                         'step': 'NS40.T2' if partial else None, 'tool': 'audit' if partial else None,
+                         'count': _count(count, f'{section}.json' + (f'#{items}' if items else '')), 'parts': parts})
         elif section in failed:
             rows.append({'section': section, 'state': 'failed', 'reason': 'section_error', 'detail': failed[section][:300],
                          'step': V1_STEP, 'tool': 'audit', 'count': _count(None, 'errors.json'), 'parts': []})

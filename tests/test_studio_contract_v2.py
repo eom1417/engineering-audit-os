@@ -17,7 +17,7 @@ sys.path.insert(0, str(ROOT / 'tools'))
 import studio_synthetic  # noqa: E402
 
 V1 = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media')
-V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'coverage')
+V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'data_paths', 'infra', 'coverage')
 FIXTURES = ROOT / 'tests/fixtures/studio/v2'
 
 

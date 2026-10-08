@@ -97,12 +97,14 @@
               "operations",
               "history",
               "quality",
+              "data_paths",
+              "infra",
               "coverage"
             ]
           },
           "file": {
             "type": "string",
-            "pattern": "^[a-z]+\\.json$"
+            "pattern": "^[a-z][a-z_]*\\.json$"
           },
           "sha256": {
             "type": "string",
@@ -225,6 +227,8 @@
     "operations",
     "history",
     "quality",
+    "data_paths",
+    "infra",
     "coverage"
   ]
 }

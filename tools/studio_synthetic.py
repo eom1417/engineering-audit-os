@@ -12,14 +12,18 @@ to the screen gates with `node studio/scripts/gates.mjs --data DIR`.
 """
 import argparse
 import hashlib
+import json
 import random
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from eaos import artifact_contracts  # noqa: E402
 from eaos.studio import coverage as coverage_section  # noqa: E402
+from eaos.studio import data_paths as data_map  # noqa: E402
+from eaos.studio import infra as infra_map  # noqa: E402
 from eaos.studio import export  # noqa: E402
 
 DOMAINS = ('work-orders', 'assets', 'vehicles', 'drivers', 'invoices', 'payments', 'inventory', 'reports', 'auth', 'users',
@@ -41,6 +45,39 @@ def measure(value, src, unit='count'):
 
 def ratio(value, src):
     return {'value': value, 'src': src}
+
+
+def maps(comps, layer, modules, rng):
+    """The data paths and infrastructure sections, made by EAOS's own exporters from synthetic records: each module
+    either writes one of its component's two tables or reads any table, and one write in twenty lands in another
+    component's table, so some tables have several writers."""
+    tables = [f'{c.replace("-", "_")}_{k}' for c in comps for k in ('items', 'log')]
+    access, n = [], 0
+    for i, (path, comp) in enumerate(modules):
+        own = [f'{comp.replace("-", "_")}_items', f'{comp.replace("-", "_")}_log']
+        calls = [(own[i % 2], ('insert', 'update')[i % 2]) if rng.random() > 0.05 else (tables[rng.randrange(len(tables))], 'update')]
+        if i % 3 == 2: calls = [(tables[rng.randrange(len(tables))], 'select')]
+        for table, op in calls:
+            n += 1
+            value = {'client': 'supabase', 'target': table, 'operation': op, 'bounded': None, 'category': 'source'}
+            if op != 'select' and rng.random() < 0.6: value.update(keys=sorted(rng.sample(('name', 'state', 'owner', 'due', 'amount'), 2)), keys_partial=False)
+            access.append({'id': f'FACT-DA-{n:06d}', 'kind': 'data_access', 'location': {'path': path, 'start_line': 1 + n % 300}, 'value': value})
+    runtime = [{'id': 'FACT-R-1', 'kind': 'deployment_target', 'location': {'path': 'vercel.json'}, 'value': {'kind': 'hosting', 'host': 'Vercel'}},
+               {'id': 'FACT-R-2', 'kind': 'ci_step', 'location': {'path': '.github/workflows/ci.yml'}, 'value': {'name': 'test'}}]
+    runtime += [{'id': f'FACT-R-H{i}', 'kind': 'integration_target', 'location': {'path': modules[i][0]}, 'value': {'host': f'api.{d}.example-service.io'}}
+                for i, d in enumerate(DOMAINS)]
+    target = {'reference': 'react-vite-spa-rest',
+              'current_components': [{'name': f'src/{layer[c]}/{c}', 'target_component': f'{layer[c]}/{c}', 'paths': []} for c in comps],
+              'target_components': [{'name': f'{layer[c]}/{c}'} for c in comps],
+              'infrastructure': [{'area': 'hosting', 'present': True, 'decision': 'Keep: declared.', 'tool': None, 'evidence': 'vercel.json'},
+                                 {'area': 'observability', 'present': False, 'decision': 'Introduce: errors reported.', 'tool': 'OpenTelemetry', 'evidence': '0'}]}
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp)
+        (out / 'facts').mkdir()
+        (out / 'facts/entrypoints.json').write_text(json.dumps({'facts': access}), encoding='utf-8')
+        (out / 'facts/runtime.json').write_text(json.dumps({'facts': runtime}), encoding='utf-8')
+        (out / 'target-architecture.json').write_text(json.dumps(target), encoding='utf-8')
+        return data_map.data_paths(out, 'en'), infra_map.infra(out, 'en')
 
 
 def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_per_component=3):
@@ -153,6 +190,8 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
                     'capabilities': [{'id': 'C2', 'name': 'Current state', 'value': ratio(0.6, 'synthetic')}],
                     'indicators': [{'id': 'S1', 'name': 'S1', 'value': ratio(0.88, 'synthetic'), 'target': 0.8}]},
     }
+    data_paths, infra = maps(comps, layer, modules, rng)
+    sections.update(data_paths={**V2, **data_paths}, infra={**V2, **infra})
     written = list(sections)
     sections['coverage'] = {**V2, **coverage_section.coverage(Path('.'), sections, written, [], 'en')}
     return sections

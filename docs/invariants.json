@@ -1723,6 +1723,42 @@
       "kind": "invariant",
       "enforced_by": "tests/test_workflow.py::WorkflowTests::test_single_entrypoint_read_only_and_no_script_execution",
       "note": ""
+    },
+    {
+      "id": "INV-e551b2653b",
+      "file": "eaos/facts/frameworks/http_access.py",
+      "symbol": "object_keys",
+      "statement": "Request keys are the payload's names, never its values.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_http_access.py::PayloadKeyTests::test_an_object_literal_payload_gives_its_keys_and_a_spread_marks_them_partial",
+      "note": ""
+    },
+    {
+      "id": "INV-ee22f5eb15",
+      "file": "eaos/studio/data_paths.py",
+      "symbol": "<module>",
+      "statement": "Nothing is invented: a tier the records do not reach is a gap, drawn and counted, never a guessed link.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_data_map.py::DataPaths::test_each_write_is_a_path_whose_unreached_tiers_are_gaps_with_their_step",
+      "note": ""
+    },
+    {
+      "id": "INV-406444b3a9",
+      "file": "eaos/studio/infra.py",
+      "symbol": "<module>",
+      "statement": "hosting facts/runtime.json deployment_target: Dockerfile ports, compose services, hosting manifests ci facts/runtime.json ci_step, by workflow file (GitHub Actions) or package.json scripts environments facts/config.json env_read (variable names, never values; secret-shaped ones counted), the sensitive files no extractor reads, and environments named by the hosts the code calls (`*-staging.*`, `*-production.*`) databases Supabase calls (facts/entrypoints.json data_access), database client packages (facts/resolve.json module_edge EXTERNAL), tables declared in code (facts/domain.json data_table) and migrations (facts/runtime.json migration_step), connection pools queues queue client packages the code imports; none found is a measured empty lane, read only against the packages listed in PACKAGES services outbound hosts (facts/runtime.json integration_target, with its resilience_policy) and service SDK packages observability facts/runtime.json observability_signal, and telemetry packages",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_data_map.py::Infra::test_each_lane_from_its_records",
+      "note": ""
+    },
+    {
+      "id": "INV-7911b2ced3",
+      "file": "eaos/studio/infra.py",
+      "symbol": "<module>",
+      "statement": "A lane the target says nothing about is \"not measured yet\" for the target, never \"fine\".",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_data_map.py::Infra::test_the_target_decides_where_it_speaks_and_is_not_measured_where_it_is_silent",
+      "note": ""
     }
   ],
   "limits": "Extraction is lexical: it finds sentences that assert, not every promise a docstring makes. A sentence it misses is still an invariant."

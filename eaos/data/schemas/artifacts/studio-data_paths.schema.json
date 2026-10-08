@@ -1,0 +1,884 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/data_paths.json",
+  "description": "Where each piece of data enters, which code writes and reads it, and where it is kept: every store (table, API resource, bucket), its endpoints with their writers, readers and request keys, every write as a path from input field to column with its gaps, the stores written from more than one module, and the overview laid out by EAOS, today and in the target.",
+  "x-artifact": "studio/data_paths.json",
+  "x-owner": "NS46",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "revision",
+    "counts",
+    "tiers",
+    "stores",
+    "endpoints",
+    "paths",
+    "violations",
+    "current",
+    "target",
+    "src"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "revision": {
+      "const": 2
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/measure"
+      }
+    },
+    "tiers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "state",
+          "known",
+          "gaps"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "field",
+              "form",
+              "key",
+              "caller",
+              "endpoint",
+              "handler",
+              "column"
+            ]
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "measured",
+              "empty",
+              "partial",
+              "not_measured"
+            ]
+          },
+          "known": {
+            "$ref": "#/$defs/measure"
+          },
+          "gaps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "reason",
+                "paths",
+                "step"
+              ],
+              "properties": {
+                "reason": {
+                  "type": "string"
+                },
+                "paths": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "step": {
+                  "type": "string",
+                  "pattern": "^NS[0-9]+(\\.T[0-9]+)?$"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "stores": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "endpoints",
+          "writers",
+          "readers",
+          "multi_writer",
+          "today",
+          "target",
+          "change"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "table",
+              "resource",
+              "bucket",
+              "rpc",
+              "auth"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "client": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "declared": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "endpoints": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sites": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "writers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "readers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "multi_writer": {
+            "type": "boolean"
+          },
+          "today": {
+            "type": "object",
+            "required": [
+              "writers",
+              "components"
+            ],
+            "properties": {
+              "writers": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "target": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "change": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "single_already",
+              "merged_in_target",
+              "still_multiple",
+              null
+            ]
+          }
+        }
+      }
+    },
+    "endpoints": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "store",
+          "writers",
+          "readers",
+          "keys",
+          "multi_writer",
+          "sites"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "store": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "method": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "writers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "readers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "keys": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "multi_writer": {
+            "type": "boolean"
+          },
+          "sites": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path",
+                "line",
+                "fact"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "fact": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "store",
+          "endpoint",
+          "site",
+          "steps"
+        ],
+        "properties": {
+          "store": {
+            "type": "string"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "site": {
+            "type": "object",
+            "required": [
+              "path",
+              "line",
+              "fact"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "line": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "fact": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "steps": {
+            "type": "object",
+            "required": [
+              "field",
+              "form",
+              "key",
+              "caller",
+              "endpoint",
+              "handler",
+              "column"
+            ],
+            "properties": {
+              "field": {
+                "type": "object",
+                "required": [
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "known",
+                      "gap",
+                      "direct"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              },
+              "form": {
+                "type": "object",
+                "required": [
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "known",
+                      "gap",
+                      "direct"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              },
+              "key": {
+                "type": "object",
+                "required": [
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "known",
+                      "gap",
+                      "direct"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              },
+              "caller": {
+                "type": "object",
+                "required": [
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "known",
+                      "gap",
+                      "direct"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              },
+              "endpoint": {
+                "type": "object",
+                "required": [
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "known",
+                      "gap",
+                      "direct"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              },
+              "handler": {
+                "type": "object",
+                "required": [
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "known",
+                      "gap",
+                      "direct"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              },
+              "column": {
+                "type": "object",
+                "required": [
+                  "state"
+                ],
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "known",
+                      "gap",
+                      "direct"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "violations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "subject",
+          "kind",
+          "tier",
+          "writers"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "endpoint",
+              "table"
+            ]
+          },
+          "tier": {
+            "type": "string"
+          },
+          "writers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "current": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "lanes",
+        "place",
+        "size",
+        "box",
+        "edges",
+        "clusters"
+      ],
+      "properties": {
+        "lanes": {
+          "type": "object",
+          "required": [
+            "caller",
+            "store"
+          ],
+          "properties": {
+            "caller": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "store": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "place": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "size": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "box": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "from",
+              "to",
+              "kind",
+              "modules"
+            ],
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "write",
+                  "read"
+                ]
+              },
+              "modules": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "clusters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "lane",
+              "members"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "lane": {
+                "type": "string",
+                "enum": [
+                  "caller",
+                  "store"
+                ]
+              },
+              "members": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "target": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "lanes",
+        "place",
+        "size",
+        "box",
+        "edges",
+        "clusters"
+      ],
+      "properties": {
+        "lanes": {
+          "type": "object",
+          "required": [
+            "caller",
+            "store"
+          ],
+          "properties": {
+            "caller": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "store": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "place": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "size": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "box": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "from",
+              "to",
+              "kind",
+              "modules"
+            ],
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "write",
+                  "read"
+                ]
+              },
+              "modules": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "clusters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "lane",
+              "members"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "lane": {
+                "type": "string",
+                "enum": [
+                  "caller",
+                  "store"
+                ]
+              },
+              "members": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "src": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/source"
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    },
+    "touch": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "table",
+            "file",
+            "env",
+            "network",
+            "store",
+            "storage"
+          ]
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "x-revision": 2
+}
