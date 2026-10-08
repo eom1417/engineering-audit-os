@@ -72,6 +72,29 @@ so that every later engine step visibly fills a page or raises a measured number
   (F13); Lighthouse mobile and the speed budgets hold (F14); and the owner reviews it. The engine roadmap resumes
   (NS38.T2 onward) after that gate.
 
+### D8: the command centre
+
+Decided by the owner on 2026-10-08: the Studio becomes the place where EAOS is operated, not only read. "Can we
+control it from the UI: see the tasks, press a button to run this step, or pick several tasks or a group and run
+them, so the front end sends the work to the assistant we work with and it does it?" Then: "Build it from the
+start, while designing and finishing the front end; above all it must give a truly world-class, legendary
+experience." The spec is the command-centre section of `eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md`; the
+contract is `docs/studio-actions.json` (`docs/studio-actions.md`); the tasks are NS46.T9 (action API and assistant
+launcher), NS46.T10 (selection, preview, live run, queue, runs history, inbox) and NS46.T11 (the real trial on
+FleetManageWeb), and indicator F15 joins the exit gate of D7.
+
+- **Every MCP tool is an action** with a button, a form or a flow; one card, a selection, a group or a plan step can
+  be fixed, verified, explained or planned; a preview comes before anything that changes code.
+- **The person's own assistant runs it**, headless (Claude Code `claude -p --output-format stream-json`, Codex
+  `codex exec --json`), with the EAOS MCP server and only the EAOS tools to change code; without one, the request is
+  handed to the next `status` call and offered as text to copy. Deterministic actions call EAOS directly.
+- **The guarantees stay**: changes only in the isolated copy, handed over as a new branch; accept and undo only on the
+  person's explicit confirmation; the run consent asked once. The assistant never answers the person's three
+  questions: they come back as decisions in the inbox.
+- **The server's rules** (127.0.0.1 only, launch token, CSRF and origin checks, every action in the event log)
+  supersede the earlier "the Studio only reads" for the local mode: the Studio still never sets a state by hand (no
+  "done" button); every action is an EAOS tool call, recorded like the assistant's.
+
 ## Data contract v1
 
 EAOS writes `studio/` inside the report folder after every check, in the same publishing step as the report, so the
@@ -158,8 +181,8 @@ A task is `todo`, `active`, `done`, `blocked` or `regressed`; a card is `open`, 
   indicators; a conflict in the data is shown, not hidden; one number, one value on every page.
 - Freshness: the scan stamp on every page; a banner when the branch moved or EAOS changed; rebuilt with every check
   and merge.
-- Governance: no "done" button anywhere; the Studio only reads; every action is a sentence copied to the assistant
-  with the tool's name.
+- Governance: no "done" button anywhere; every action is an EAOS tool call through the command centre (D8), run by
+  EAOS or the person's assistant and logged; in snapshot mode it is a sentence copied to the assistant.
 - Clarity: every page answers where we are, where we should be and what is next; one main action per page; every
   chart has a one-sentence title, units, source and a table alternative.
 - Quality: designed empty, loading and error states; every entity has a link that restores its view; crowded charts

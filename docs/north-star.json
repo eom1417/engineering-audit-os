@@ -1568,6 +1568,16 @@
           "measured": "automated"
         },
         {
+          "id": "F15",
+          "name": "مركز التحكم: تشغيل EAOS من الاستوديو",
+          "definition": "تجارب tools/studio_trial.py الحقيقية ($EAOS_MEASURE/studio/<project>/trial.json) التي فُحص فيها المشروع واختيرت مجموعة بطاقات وأصلحها مساعد حقيقي، وأُجيب سؤال من صندوق القرارات، واعتُمد الفرع، كلها من الاستوديو دون كتابة للمساعد، وكل حالة مرت مفهومة ÷ التجارب؛ بلا تجربة على FleetManageWeb لا يُحسب",
+          "target": 1.0,
+          "value": null,
+          "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md (the command centre)",
+          "reads": "${EAOS_MEASURE}/studio/*/trial.json",
+          "measured": "automated"
+        },
+        {
           "id": "W1",
           "name": "المساعد يحسن استخدام الأدوات",
           "definition": "متوسط مؤشرات تجربة الأدوات: نجاح الاستدعاء، و1 − نسبة العمل خارج أدوات EAOS، و1 − الأداة الخطأ، على 11 سيناريو في Claude وCodex",
@@ -5985,13 +5995,14 @@
         "S15"
       ],
       "weight": 6,
-      "goal": "F11 وF13 وF14 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويحكم المالك.",
+      "goal": "F11 وF13 وF14 وF15 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويُشغَّل EAOS كله من الاستوديو، ويحكم المالك.",
       "weight_why": "قرار المالك (2026-10-08): تُكمل الواجهة قبل متابعة المحرك، فيظهر كل تقدم لاحق في صفحة أو رقم. نقطة من كل من NS7 وNS13 وNS14 وNS25 وNS26 وNS29.",
       "does": [
         "عقد البيانات v2 بأقسام إضافية وبيانات تجريبية بحجم شركة",
         "حالات تغطية بدل «قريبًا»، تُعدّ وتهبط",
         "كل صفحات C-experience 2.2 والخرائط المرئية",
         "بوابات الشاشات على خمسة مشاريع وميزانيات السرعة",
+        "مركز التحكم: كل أداة EAOS زر أو نموذج، واختيار وتشغيل وطابور وأسئلة في صندوق القرارات، بالمساعد الحقيقي",
         "مراجعة ذاتية وحكم المالك"
       ],
       "tools": [
@@ -6006,7 +6017,10 @@
         "studio/coverage.json وأقسام v2",
         "docs/studio-routes.json",
         "tools/studio_synthetic.py",
-        "docs/STUDIO-REVIEW.md"
+        "docs/STUDIO-REVIEW.md",
+        "docs/studio-actions.json",
+        "eaos/studio/actions/",
+        "tools/studio_trial.py"
       ],
       "tasks": [
         {
@@ -6272,6 +6286,122 @@
           "rollback": "لا شيء: قياس."
         },
         {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T9",
+          "title": "مركز التحكم: واجهة الأوامر ومشغّل المساعد",
+          "why": "قرار المالك (2026-10-08، D8): الاستوديو مكان تشغيل EAOS لا قراءته فقط. كل أداة EAOS أمر بعقد واحد، والمساعد الحقيقي (Claude Code أو Codex) يُشغَّل في الخلفية من الاختيار، وما يفعله يتحول أحداثًا يفهمها الشخص.",
+          "moves": [
+            "F15"
+          ],
+          "depends_on": [
+            "NS46.T1"
+          ],
+          "size": "L",
+          "files": [
+            "docs/studio-actions.json",
+            "docs/studio-actions.md",
+            "eaos/data/studio-actions.json",
+            "eaos/studio/actions/",
+            "docs/adoption/ns46-t9-command-centre.md",
+            "tests/test_studio_actions.py",
+            "tests/fixtures/studio/actions/"
+          ],
+          "steps": [
+            "سجل استكشاف في docs/adoption/ قبل أي كود: بروتوكول المشغّل، وما يُعاد استخدامه من EAOS (jobs وhandover وguided).",
+            "العقد docs/studio-actions.json: كل أداة MCP أمرًا (المعرّف، الاسم باللغتين، المدخلات، يحتاج مساعدًا، لا رجعة فيه)، والاختيار والأفعال (أصلح، تحقق، اشرح، خطّط)، ودورة حياة التشغيل، والأحداث، والمعاينة، والنقاط، ووضع اللقطة.",
+            "معالجات بلا إطار (dict إلى dict) يركّبها خادم NS37.T2 بأسطر قليلة: 127.0.0.1 فقط، ورمز تشغيل، وCSRF وفحص المصدر، ومقارنة ثابتة الزمن، وكل أمر في سجل الأحداث.",
+            "محوّلات Claude Code (stream-json) وCodex (exec --json): كشف التثبيت والدخول، وبناء الطلب من الاختيار، وتحويل البث إلى أحداث العقد؛ والتسليم للمساعد حين لا يوجد مساعد.",
+            "مدير التشغيل: طابور يُعاد ترتيبه، وإيقاف مؤقت وإيقاف وإعادة، وسؤال ثم جواب يكمل التشغيل، ويبقى بعد إعادة تشغيل الخادم."
+          ],
+          "done_when": [
+            "اختبار القبول ns46_studio.CommandCentreActions يمر: العقد صحيح وكامل، والحماية ترفض بلا رمز أو بمصدر غريب، وتشغيل بمساعد وهمي من البداية للنهاية بأسئلته وإيقافه وتأكيد الاعتماد واستعادته بعد إعادة التشغيل."
+          ],
+          "pitfalls": [
+            "لا تغيير للكود إلا عبر النسخة المعزولة وأدوات EAOS: المساعد بلا Bash ولا Edit ولا Write.",
+            "الاعتماد والرمي يحتاجان تأكيدًا صريحًا، والمساعد لا يجيب أسئلة الشخص الثلاثة عنه.",
+            "لا سر ولا مسار منزل في حدث أو ملف تجربة."
+          ],
+          "acceptance": "python tools/acceptance.py test ns46_studio.CommandCentreActions",
+          "rollback": "احذف eaos/studio/actions/ وdocs/studio-actions.json ونسخته المعبأة."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T10",
+          "title": "مركز التحكم: الاختيار والمعاينة والتشغيل الحي والطابور وسجل التشغيل والصندوق",
+          "why": "الشخص يختار بطاقة أو مجموعة أو خطوة ويضغط، فيرى قبل التشغيل ما سيتغير، ثم يتابع ما يفعله المساعد خطوة بخطوة بكلام بسيط، ويجيب أسئلته بلمسة، ويعتمد أو يرمي.",
+          "moves": [
+            "F15",
+            "F11",
+            "F8"
+          ],
+          "depends_on": [
+            "NS46.T9"
+          ],
+          "size": "L",
+          "files": [
+            "studio/src/pages/runs/",
+            "studio/src/command/",
+            "studio/src/data/",
+            "docs/studio-routes.json"
+          ],
+          "steps": [
+            "يبدأ حين يُدمج خادم NS37.T2 (واجهة القراءة وSSE وeaos studio)، وهو بعد NS46 في ترتيب الخطة فلا يُسجَّل اعتمادًا.",
+            "اختيار بالمربعات وShift في المشاكل والخطة والتغيير وعلى عقد الخرائط، وأفعال أصلح وتحقق واشرح وخطّط، وCmd/Ctrl-K يشغّل أي أمر باسمه.",
+            "ورقة المعاينة: الملفات والدفعات والوقت والخطر وما يحدث عند الفشل والمساعد، وتأكيد صريح لما لا رجعة فيه.",
+            "صفحة التشغيل الحي من SSE: القراءة والتعديل بفرقه والفحوص واللقطات وشريط لكل دفعة، وإيقاف واستئناف وإعادة، وتبقى بعد إغلاق الصفحة.",
+            "الطابور وصفحة سجل التشغيل بالبحث، والأسئلة في صندوق القرارات وتنبيه بالتوصية، والاعتماد أو الرمي في النهاية.",
+            "وضع اللقطة: الأزرار تقول كيف يُشغَّل eaos studio."
+          ],
+          "done_when": [
+            "مسارات NS46.T10 في docs/studio-routes.json (runs وrun) تجتاز البوابات، وصفحات الاستوديو تقرأ العقد docs/studio-actions.json."
+          ],
+          "pitfalls": [
+            "لا زر «تم»: الحالة من الأحداث والبوابات فقط.",
+            "لا شيء يقفز أثناء التشغيل، والتشغيل مقروء على 390."
+          ],
+          "acceptance": "python tools/acceptance.py test ns46_studio.CommandCentrePages && python tools/north_star.py measure --only F8 --min 1.0",
+          "rollback": "ارجع صفحات التشغيل ومكوّنات الأوامر."
+        },
+        {
+          "needs": "human",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T11",
+          "title": "مركز التحكم: تجربة حقيقية على FleetManageWeb مسجلة",
+          "why": "الإثبات لا الاختبار: من الاستوديو وحده يُفحص مشروع المالك، وتُختار مجموعة بطاقات ويصلحها Claude Code الحقيقي (وCodex إن وُجد)، ويُجاب سؤال من الصندوق، ويُعتمد الفرع، دون كتابة للمساعد، مسجلًا بالصور والفيديو.",
+          "moves": [
+            "F15"
+          ],
+          "depends_on": [
+            "NS46.T9",
+            "NS46.T10"
+          ],
+          "size": "M",
+          "files": [
+            "tools/studio_trial.py",
+            "$EAOS_MEASURE/studio/<project>/trial.json"
+          ],
+          "steps": [
+            "يبدأ حين يُدمج خادم NS37.T2 (واجهة القراءة وSSE وeaos studio)، وهو بعد NS46 في ترتيب الخطة فلا يُسجَّل اعتمادًا.",
+            "tools/studio_trial.py يقود الاستوديو الحي بـPlaywright على نسخة من FleetManageWeb: فحص، اختيار مجموعة، معاينة، تشغيل بالمساعد الحقيقي، جواب سؤال، اعتماد.",
+            "يكتب $EAOS_MEASURE/studio/<project>/trial.json: المساعد، والزمن حتى أول أمر، والخطوات لكل مهمة، والإخفاقات، والفرع، والبطاقات المغلقة، وهل كُتب للمساعد شيء، وهل كل حالة مفهومة، واللقطات والفيديو.",
+            "تشغيل المشروع بموافقة المالك المسجلة في live_corpus فقط."
+          ],
+          "done_when": [
+            "اختبار القبول ns46_studio.CommandCentreTrial يمر على trial.json لـFleetManageWeb، وF15 = 1.0."
+          ],
+          "pitfalls": [
+            "لا تجربة بمساعد وهمي تُحسب.",
+            "لا كتابة للمساعد خارج الاستوديو."
+          ],
+          "acceptance": "python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/north_star.py measure --only F15 --min 1.0",
+          "rollback": "لا شيء: تجربة وقياس."
+        },
+        {
           "needs": "human",
           "writes": [],
           "status": "todo",
@@ -6282,10 +6412,12 @@
             "F11",
             "F12",
             "F13",
-            "F14"
+            "F14",
+            "F15"
           ],
           "depends_on": [
-            "NS46.T7"
+            "NS46.T7",
+            "NS46.T11"
           ],
           "size": "M",
           "files": [
@@ -6297,12 +6429,12 @@
             "حكم المالك مسجل بتاريخه، ورقم إصدار جديد."
           ],
           "done_when": [
-            "F11 وF13 وF14 = 1.0، والواجهة حية ومصدرها واحد (F9 وF7)، وحكم المالك مسجل."
+            "F11 وF13 وF14 وF15 = 1.0، ومركز التحكم يشغّل EAOS من الاستوديو، والواجهة حية ومصدرها واحد (F9 وF7)، وحكم المالك مسجل."
           ],
           "pitfalls": [
             "لا يُغلق دون حكم المالك."
           ],
-          "acceptance": "python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview",
+          "acceptance": "python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F15 --min 1.0 && python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/acceptance.py test ns46_studio.SelfReview",
           "rollback": "لا شيء: مراجعة."
         }
       ]
@@ -6781,13 +6913,14 @@
             "واجهة REST للقراءة على 127.0.0.1 برمز تشغيل، مولدة من المخططات.",
             "بث SSE من سجل الأحداث يعيد ما فات.",
             "اللقطة = موارد الواجهة على القرص، ومصدران بواجهة واحدة يعرضان نفس الشيء.",
-            "الأمر eaos studio وأداة open_studio."
+            "الأمر eaos studio وأداة open_studio.",
+            "ركّب أوامر مركز التحكم: eaos.studio.actions.mount(router) بجانب واجهة القراءة (docs/studio-actions.md)."
           ],
           "done_when": [
             "F9 = 1.0."
           ],
           "pitfalls": [
-            "لا كتابة من الاستوديو في الوضع المحلي: الفعل جملة تُنسخ للمساعد."
+            "واجهة الأوامر (NS46.T9، D8) تُركَّب على الخادم نفسه بقواعده: 127.0.0.1 ورمز التشغيل وCSRF والمصدر؛ ولا كتابة إلا عبرها."
           ],
           "acceptance": "python tools/north_star.py measure --only F9 --min 1.0",
           "rollback": "احذف eaos/api/."
@@ -9119,7 +9252,7 @@
         "NS35",
         "NS45"
       ],
-      "exit": "S4 وX13، ثم F11-F14 (الاستوديو أولًا)، ثم A1-A3 وN1-N2، ثم F2-F10 (الاستوديو)، ثم Q1-Q4 وZ1-Z2 وI1-I3 وJ1-J2 وO1-O2، ثم Y1-Y2 وW1-W2 وD4 وE12-E14 وG3-G4"
+      "exit": "S4 وX13، ثم F11-F15 (الاستوديو أولًا ومركز التحكم)، ثم A1-A3 وN1-N2، ثم F2-F10 (الاستوديو)، ثم Q1-Q4 وZ1-Z2 وI1-I3 وJ1-J2 وO1-O2، ثم Y1-Y2 وW1-W2 وD4 وE12-E14 وG3-G4"
     },
     {
       "id": "R7",

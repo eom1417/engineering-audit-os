@@ -8,6 +8,9 @@
                      route and passed every gate
     F14  budgets     Lighthouse mobile on every page it ran on, the 5,000-card filter and Home's time to interactive,
                      each against STUDIO-COMPLETE's budget
+    F15  command     the real trials of the command centre (tools/studio_trial.py -> $EAOS_MEASURE/studio/<project>/
+                     trial.json) that went from the check to an accepted branch from the Studio alone, by a real assistant,
+                     every state understood; none counts until FleetManageWeb has one
 
 A screen-gate run is a gates.json under $EAOS_MEASURE/studio-gates (studio/scripts/gates.mjs, or tools/studio_gates.py
 for the Studio); it counts only when it is complete and of the build shipped in this checkout
@@ -171,6 +174,31 @@ def budgets_value(reports):
     return (round(len(met) / len(rows), 3), f'Studio budgets met: {len(met)}/{len(rows)}' + (f"; not met: {'; '.join(failing[:6])}" if failing else ''))
 
 
+def trial_passed(trial):
+    """One command-centre trial, as NS46.T11's acceptance judges it: (passed, why not)."""
+    checks = [('a real assistant', trial.get('assistant') in ('Claude Code', 'Codex')), ('audited', bool(trial.get('audited'))),
+              ('a selection of 2+ cards', len((trial.get('selection') or {}).get('cards') or []) >= 2),
+              ('a card fixed', bool(trial.get('cards_fixed'))), ('a question answered in the inbox', (trial.get('questions_answered_in_inbox') or 0) >= 1),
+              ('accepted', bool(trial.get('accepted'))), ('nothing typed to the assistant', trial.get('typed_to_assistant') == 0),
+              ('every state understood', bool(trial.get('understood')) and all((trial.get('understood') or {}).values()))]
+    missing = [name for name, ok in checks if not ok]
+    return not missing, ', '.join(missing)
+
+
+def command_value(reports):
+    """F15."""
+    trials = [(path.parent.name, _load(path)) for path in sorted((Path(reports) / 'studio').glob('*/trial.json'))]
+    trials = [(name, trial) for name, trial in trials if isinstance(trial, dict)]
+    if not trials: return None, 'no command-centre trial yet (tools/studio_trial.py)'
+    judged = [(name, *trial_passed(trial)) for name, trial in trials]
+    ok = [name for name, passed, _ in judged if passed]
+    fleet = any(name.lower().startswith('fleetmanageweb') for name in ok)
+    notes = [f'{name}: missing {why}' for name, passed, why in judged if not passed]
+    value = round(len(ok) / len(trials), 3) if fleet else 0.0
+    return value, (f'command-centre trials from the check to an accepted branch, from the Studio alone: {len(ok)}/{len(trials)}'
+                   + ('' if fleet else '; FleetManageWeb has not passed yet') + (f"; {'; '.join(notes)}" if notes else ''))
+
+
 def values(reports, record, only=None):
     names = [spec['name'] for spec in record['corpus']] + [spec['name'] for spec in record.get('live_corpus') or []]
     out = {}
@@ -178,4 +206,5 @@ def values(reports, record, only=None):
     if only in (None, 'F12'): out['F12'] = coverage_value(reports, names)
     if only in (None, 'F13'): out['F13'] = projects_value(reports)
     if only in (None, 'F14'): out['F14'] = budgets_value(reports)
+    if only in (None, 'F15'): out['F15'] = command_value(reports)
     return out

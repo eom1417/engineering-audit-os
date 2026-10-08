@@ -11,9 +11,9 @@ from eaos.cli import check
 PACKAGED_ROOTS=['core','modules','schemas','schemas/artifacts']
 PACKAGED_TOP=['controls.json','sources.json','START-HERE.md']
 # Files whose only home is the package itself: there is no canonical copy elsewhere to go stale against.
-PACKAGED_OWN=['errors.json','intents.json','toolchain.json','stacks.json']
+PACKAGED_OWN=['errors.json','intents.json','toolchain.json','stacks.json','studio-actions.json']
 # Packaged copies of files kept elsewhere in the repository: (packaged name, source).
-PACKAGED_COPIES=[('toolchain.json','upstreams/toolchain.json')]
+PACKAGED_COPIES=[('toolchain.json','upstreams/toolchain.json'),('studio-actions.json','docs/studio-actions.json')]
 # The built Studio (studio/, npm run build): its SOURCE.json names every file it ships, and tests/test_studio_assets.py
 # checks they were built from today's source; there is no copy of them elsewhere to go stale against.
 STUDIO_BUILT='studio/SOURCE.json'

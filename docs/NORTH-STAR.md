@@ -93,7 +93,7 @@ flowchart TB
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 اختبار قبول"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 اختبار قبول"| NS46
-        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +8 اختبار قبول"| NS38
+        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +11 اختبار قبول"| NS38
     end
     subgraph R6G_2["R6G · EAOS v2: تحليل صادق، صورة مثالية، عمليات مرتبة، واستوديو حي (2/5)"]
         direction LR
@@ -200,7 +200,7 @@ flowchart TB
 | 21 | [**NS27** البناء من خطة](#step-21) | R6 | 6 | 93% | 5.6 | 88% | 🟡 قيد العمل | B1=1 · B2=1 · X8=1 · B3=1 · B4=1 · X1=1 · … · +1 اختبار قبول |
 | 22 | [**NS30** الثقة أولًا: كل بطاقة على ملفها، وكل رقم صادق](#step-22) | R6G | 4 | 0% | 0 | 0% | ⬜ التالية | S4=1 · X13=1 · +1 اختبار قبول |
 | 23 | [**NS36** أساس الاستوديو: القرارات والعقد والنموذج](#step-23) | R6G | 3 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | F8=1 · F10=1 · +4 اختبار قبول |
-| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 6 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F11=1 · F9=1 · F7=1 · +8 اختبار قبول |
+| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 6 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F11=1 · F9=1 · … · +11 اختبار قبول |
 | 25 | [**NS38** تحليل صادق: الدقة أولًا](#step-25) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | A1=1 · W2=1 · A2=1 · A3=1 |
 | 26 | [**NS31** أرقام ثابتة وضجيج أقل](#step-26) | R6G | 3 | 26% | 0.8 | 24% | 🔴 تحتاج مدخلًا منك | L7=1 · L8=1 · S5≥0.9 · S1≥0.9 |
 | 27 | [**NS39** خريطة النظام والسجل والأحداث](#step-27) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | N1=1 · N2=1 · +1 اختبار قبول |
@@ -1204,7 +1204,7 @@ flowchart TB
 | --- | --- | --- | --- | --- | --- |
 | 6 | 0% | 0 من 6 | 0% | R6G | S07, S15 |
 
-**الهدف:** F11 وF13 وF14 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويحكم المالك.
+**الهدف:** F11 وF13 وF14 وF15 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويُشغَّل EAOS كله من الاستوديو، ويحكم المالك.
 
 **لماذا هذا الوزن:** قرار المالك (2026-10-08): تُكمل الواجهة قبل متابعة المحرك، فيظهر كل تقدم لاحق في صفحة أو رقم. نقطة من كل من NS7 وNS13 وNS14 وNS25 وNS26 وNS29.
 
@@ -1214,11 +1214,12 @@ flowchart TB
 2. حالات تغطية بدل «قريبًا»، تُعدّ وتهبط
 3. كل صفحات C-experience 2.2 والخرائط المرئية
 4. بوابات الشاشات على خمسة مشاريع وميزانيات السرعة
-5. مراجعة ذاتية وحكم المالك
+5. مركز التحكم: كل أداة EAOS زر أو نموذج، واختيار وتشغيل وطابور وأسئلة في صندوق القرارات، بالمساعد الحقيقي
+6. مراجعة ذاتية وحكم المالك
 
 **الأدوات:** React + TS + Vite · ELK · d3 · axe-core · Lighthouse · Playwright
 
-**المخرج:** `studio/coverage.json وأقسام v2` · `docs/studio-routes.json` · `tools/studio_synthetic.py` · `docs/STUDIO-REVIEW.md`
+**المخرج:** `studio/coverage.json وأقسام v2` · `docs/studio-routes.json` · `tools/studio_synthetic.py` · `docs/STUDIO-REVIEW.md` · `docs/studio-actions.json` · `eaos/studio/actions/` · `tools/studio_trial.py`
 
 **تحتاج منك قبل أن تكتمل:** مراجع بشري من خارج المشروع
 
@@ -1229,6 +1230,7 @@ flowchart TB
 | الواجهة سليمة على كل جهاز | `F8 = 1` | — | ❌ |
 | الاستوديو يجتاز البوابات على عدة مشاريع | `F13 = 1` | — | ❌ |
 | ميزانيات السرعة | `F14 = 1` | — | ❌ |
+| مركز التحكم: تشغيل EAOS من الاستوديو | `F15 = 1` | — | ❌ |
 | كل صفحة في الاستوديو موجودة وتعرض شيئًا صادقًا | `F11 = 1` | — | ❌ |
 | الواجهة حية | `F9 = 1` | — | ❌ |
 | مصدر واحد للتقرير والاستوديو | `F7 = 1` | — | ❌ |
@@ -1239,6 +1241,9 @@ flowchart TB
 | اختبار قبول | `test ns46_studio.LibraryHistoryQuality` | — | ⬜ |
 | اختبار قبول | `test ns46_studio.FunctionsScreens` | — | ⬜ |
 | اختبار قبول | `test ns46_studio.Maps` | — | ⬜ |
+| اختبار قبول | `test ns46_studio.CommandCentreActions` | — | ⬜ |
+| اختبار قبول | `test ns46_studio.CommandCentrePages` | — | ⬜ |
+| اختبار قبول | `test ns46_studio.CommandCentreTrial` | — | ⬜ |
 | اختبار قبول | `test ns46_studio.SelfReview` | — | ⬜ |
 
 **المهام:**
@@ -1252,7 +1257,10 @@ flowchart TB
 | [NS46.T5](#ns46t5) مستكشف الدوال ومعرض الشاشات | L | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.FunctionsScreens && python tools/north_star.py measure --only F8 --min 1.0` |
 | [NS46.T6](#ns46t6) الخرائط المرئية: الرحلات والمسارات والبيانات والبنية | L | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.Maps && python tools/north_star.py measure --only F8 --min 1.0` |
 | [NS46.T7](#ns46t7) عدة مشاريع والحجم الكبير والميزانيات | L | ⬜ | 0% | `python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0` |
-| [NS46.T8](#ns46t8) المراجعة الذاتية وحكم المالك | M | ⬜ | 0% | `python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview` |
+| [NS46.T9](#ns46t9) مركز التحكم: واجهة الأوامر ومشغّل المساعد | L | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.CommandCentreActions` |
+| [NS46.T10](#ns46t10) مركز التحكم: الاختيار والمعاينة والتشغيل الحي والطابور وسجل التشغيل والصندوق | L | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.CommandCentrePages && python tools/north_star.py measure --only F8 --min 1.0` |
+| [NS46.T11](#ns46t11) مركز التحكم: تجربة حقيقية على FleetManageWeb مسجلة | M | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/north_star.py measure --only F15 --min 1.0` |
+| [NS46.T8](#ns46t8) المراجعة الذاتية وحكم المالك | M | ⬜ | 0% | `python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F15 --min 1.0 && python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/acceptance.py test ns46_studio.SelfReview` |
 
 <a id="step-25"></a>
 
@@ -2387,6 +2395,7 @@ flowchart TB
 | F12 ما قاسه الاستوديو فعلًا | صفوف studio/coverage.json بحالة measured أو empty ÷ كل الصفوف، على تقارير العيّنة؛ الباقي هو عدد حالات «لم يُقس بعد»، ولا يصعد أبدًا. تقرير بلا coverage.json يُحسب كله غير مقيس | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md |
 | F13 الاستوديو يجتاز البوابات على عدة مشاريع | مشاريع docs/studio-routes.json (FleetManageWeb وchief-ops وfinance-os وEAOS نفسه ومشروع اصطناعي من 5000 بطاقة و1000 مكوّن) التي صوّر فيها تشغيل كامل للبناء المشحون كل مسار، واجتاز كل بوابة ÷ المشاريع | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md |
 | F14 ميزانيات السرعة | ميزانيات STUDIO-COMPLETE المحققة على البناء المشحون: Lighthouse على الجوال (أداء ≥ 90 ووصول = 100) لكل صفحة قيست، وتصفية 5000 بطاقة ≤ 100 ملي ثانية، والرئيسية تفاعلية ≤ 1.5 ثانية ÷ الميزانيات؛ ميزانية لم تُقس لا تُحسب محققة | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md |
+| F15 مركز التحكم: تشغيل EAOS من الاستوديو | تجارب tools/studio_trial.py الحقيقية ($EAOS_MEASURE/studio/<project>/trial.json) التي فُحص فيها المشروع واختيرت مجموعة بطاقات وأصلحها مساعد حقيقي، وأُجيب سؤال من صندوق القرارات، واعتُمد الفرع، كلها من الاستوديو دون كتابة للمساعد، وكل حالة مرت مفهومة ÷ التجارب؛ بلا تجربة على FleetManageWeb لا يُحسب | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md (the command centre) |
 | W1 المساعد يحسن استخدام الأدوات | متوسط مؤشرات تجربة الأدوات: نجاح الاستدعاء، و1 − نسبة العمل خارج أدوات EAOS، و1 − الأداة الخطأ، على 11 سيناريو في Claude وCodex | 90% | — | not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md |
 | W2 تبني قبل البناء | قدرات الخطة الجديدة التي لها سجل استكشاف مكتوب (المرشحون، الرخصة، الصيانة، القرار) قبل أي كود ÷ القدرات الجديدة | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md |
 
@@ -6090,13 +6099,119 @@ python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_st
 
 **التراجع:** لا شيء: قياس.
 
+<a id="ns46t9"></a>
+
+#### NS46.T9 — مركز التحكم: واجهة الأوامر ومشغّل المساعد ⬜
+
+**لماذا:** قرار المالك (2026-10-08، D8): الاستوديو مكان تشغيل EAOS لا قراءته فقط. كل أداة EAOS أمر بعقد واحد، والمساعد الحقيقي (Claude Code أو Codex) يُشغَّل في الخلفية من الاختيار، وما يفعله يتحول أحداثًا يفهمها الشخص.
+
+**يحرّك:** F15 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS46.T1 · **الحجم:** L
+
+**الملفات:** `docs/studio-actions.json` · `docs/studio-actions.md` · `eaos/data/studio-actions.json` · `eaos/studio/actions/` · `docs/adoption/ns46-t9-command-centre.md` · `tests/test_studio_actions.py` · `tests/fixtures/studio/actions/`
+
+**الخطوات:**
+
+1. سجل استكشاف في docs/adoption/ قبل أي كود: بروتوكول المشغّل، وما يُعاد استخدامه من EAOS (jobs وhandover وguided).
+2. العقد docs/studio-actions.json: كل أداة MCP أمرًا (المعرّف، الاسم باللغتين، المدخلات، يحتاج مساعدًا، لا رجعة فيه)، والاختيار والأفعال (أصلح، تحقق، اشرح، خطّط)، ودورة حياة التشغيل، والأحداث، والمعاينة، والنقاط، ووضع اللقطة.
+3. معالجات بلا إطار (dict إلى dict) يركّبها خادم NS37.T2 بأسطر قليلة: 127.0.0.1 فقط، ورمز تشغيل، وCSRF وفحص المصدر، ومقارنة ثابتة الزمن، وكل أمر في سجل الأحداث.
+4. محوّلات Claude Code (stream-json) وCodex (exec --json): كشف التثبيت والدخول، وبناء الطلب من الاختيار، وتحويل البث إلى أحداث العقد؛ والتسليم للمساعد حين لا يوجد مساعد.
+5. مدير التشغيل: طابور يُعاد ترتيبه، وإيقاف مؤقت وإيقاف وإعادة، وسؤال ثم جواب يكمل التشغيل، ويبقى بعد إعادة تشغيل الخادم.
+
+**تنتهي حين:**
+
+- [ ] اختبار القبول ns46_studio.CommandCentreActions يمر: العقد صحيح وكامل، والحماية ترفض بلا رمز أو بمصدر غريب، وتشغيل بمساعد وهمي من البداية للنهاية بأسئلته وإيقافه وتأكيد الاعتماد واستعادته بعد إعادة التشغيل.
+
+**فخاخ معروفة:**
+
+- لا تغيير للكود إلا عبر النسخة المعزولة وأدوات EAOS: المساعد بلا Bash ولا Edit ولا Write.
+- الاعتماد والرمي يحتاجان تأكيدًا صريحًا، والمساعد لا يجيب أسئلة الشخص الثلاثة عنه.
+- لا سر ولا مسار منزل في حدث أو ملف تجربة.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test ns46_studio.CommandCentreActions
+```
+
+**التراجع:** احذف eaos/studio/actions/ وdocs/studio-actions.json ونسخته المعبأة.
+
+<a id="ns46t10"></a>
+
+#### NS46.T10 — مركز التحكم: الاختيار والمعاينة والتشغيل الحي والطابور وسجل التشغيل والصندوق ⬜
+
+**لماذا:** الشخص يختار بطاقة أو مجموعة أو خطوة ويضغط، فيرى قبل التشغيل ما سيتغير، ثم يتابع ما يفعله المساعد خطوة بخطوة بكلام بسيط، ويجيب أسئلته بلمسة، ويعتمد أو يرمي.
+
+**يحرّك:** F15, F11, F8 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS46.T9 · **الحجم:** L
+
+**الملفات:** `studio/src/pages/runs/` · `studio/src/command/` · `studio/src/data/` · `docs/studio-routes.json`
+
+**الخطوات:**
+
+1. يبدأ حين يُدمج خادم NS37.T2 (واجهة القراءة وSSE وeaos studio)، وهو بعد NS46 في ترتيب الخطة فلا يُسجَّل اعتمادًا.
+2. اختيار بالمربعات وShift في المشاكل والخطة والتغيير وعلى عقد الخرائط، وأفعال أصلح وتحقق واشرح وخطّط، وCmd/Ctrl-K يشغّل أي أمر باسمه.
+3. ورقة المعاينة: الملفات والدفعات والوقت والخطر وما يحدث عند الفشل والمساعد، وتأكيد صريح لما لا رجعة فيه.
+4. صفحة التشغيل الحي من SSE: القراءة والتعديل بفرقه والفحوص واللقطات وشريط لكل دفعة، وإيقاف واستئناف وإعادة، وتبقى بعد إغلاق الصفحة.
+5. الطابور وصفحة سجل التشغيل بالبحث، والأسئلة في صندوق القرارات وتنبيه بالتوصية، والاعتماد أو الرمي في النهاية.
+6. وضع اللقطة: الأزرار تقول كيف يُشغَّل eaos studio.
+
+**تنتهي حين:**
+
+- [ ] مسارات NS46.T10 في docs/studio-routes.json (runs وrun) تجتاز البوابات، وصفحات الاستوديو تقرأ العقد docs/studio-actions.json.
+
+**فخاخ معروفة:**
+
+- لا زر «تم»: الحالة من الأحداث والبوابات فقط.
+- لا شيء يقفز أثناء التشغيل، والتشغيل مقروء على 390.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test ns46_studio.CommandCentrePages && python tools/north_star.py measure --only F8 --min 1.0
+```
+
+**التراجع:** ارجع صفحات التشغيل ومكوّنات الأوامر.
+
+<a id="ns46t11"></a>
+
+#### NS46.T11 — مركز التحكم: تجربة حقيقية على FleetManageWeb مسجلة ⬜
+
+**لماذا:** الإثبات لا الاختبار: من الاستوديو وحده يُفحص مشروع المالك، وتُختار مجموعة بطاقات ويصلحها Claude Code الحقيقي (وCodex إن وُجد)، ويُجاب سؤال من الصندوق، ويُعتمد الفرع، دون كتابة للمساعد، مسجلًا بالصور والفيديو.
+
+**يحرّك:** F15 · **ينفّذه:** يحتاج إنسانًا من خارج المشروع · **يعتمد على:** NS46.T9, NS46.T10 · **الحجم:** M
+
+**الملفات:** `tools/studio_trial.py` · `$EAOS_MEASURE/studio/<project>/trial.json`
+
+**الخطوات:**
+
+1. يبدأ حين يُدمج خادم NS37.T2 (واجهة القراءة وSSE وeaos studio)، وهو بعد NS46 في ترتيب الخطة فلا يُسجَّل اعتمادًا.
+2. tools/studio_trial.py يقود الاستوديو الحي بـPlaywright على نسخة من FleetManageWeb: فحص، اختيار مجموعة، معاينة، تشغيل بالمساعد الحقيقي، جواب سؤال، اعتماد.
+3. يكتب $EAOS_MEASURE/studio/<project>/trial.json: المساعد، والزمن حتى أول أمر، والخطوات لكل مهمة، والإخفاقات، والفرع، والبطاقات المغلقة، وهل كُتب للمساعد شيء، وهل كل حالة مفهومة، واللقطات والفيديو.
+4. تشغيل المشروع بموافقة المالك المسجلة في live_corpus فقط.
+
+**تنتهي حين:**
+
+- [ ] اختبار القبول ns46_studio.CommandCentreTrial يمر على trial.json لـFleetManageWeb، وF15 = 1.0.
+
+**فخاخ معروفة:**
+
+- لا تجربة بمساعد وهمي تُحسب.
+- لا كتابة للمساعد خارج الاستوديو.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/north_star.py measure --only F15 --min 1.0
+```
+
+**التراجع:** لا شيء: تجربة وقياس.
+
 <a id="ns46t8"></a>
 
 #### NS46.T8 — المراجعة الذاتية وحكم المالك ⬜
 
 **لماذا:** المالك يحكم بما يراه: مراجعة مكتوبة بالصور لكل المشاريع، ثم حكمه مسجلًا، ثم يعود العمل إلى المحرك.
 
-**يحرّك:** F11, F12, F13, F14 · **ينفّذه:** يحتاج إنسانًا من خارج المشروع · **يعتمد على:** NS46.T7 · **الحجم:** M
+**يحرّك:** F11, F12, F13, F14, F15 · **ينفّذه:** يحتاج إنسانًا من خارج المشروع · **يعتمد على:** NS46.T7, NS46.T11 · **الحجم:** M
 
 **الملفات:** `docs/STUDIO-REVIEW.md` · `CHANGELOG.md`
 
@@ -6107,7 +6222,7 @@ python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_st
 
 **تنتهي حين:**
 
-- [ ] F11 وF13 وF14 = 1.0، والواجهة حية ومصدرها واحد (F9 وF7)، وحكم المالك مسجل.
+- [ ] F11 وF13 وF14 وF15 = 1.0، ومركز التحكم يشغّل EAOS من الاستوديو، والواجهة حية ومصدرها واحد (F9 وF7)، وحكم المالك مسجل.
 
 **فخاخ معروفة:**
 
@@ -6116,7 +6231,7 @@ python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_st
 **أمر القبول:**
 
 ```bash
-python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview
+python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F15 --min 1.0 && python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/acceptance.py test ns46_studio.SelfReview
 ```
 
 **التراجع:** لا شيء: مراجعة.
@@ -6439,6 +6554,7 @@ python tools/north_star.py measure --only F8 --min 1.0 && python tools/north_sta
 2. بث SSE من سجل الأحداث يعيد ما فات.
 3. اللقطة = موارد الواجهة على القرص، ومصدران بواجهة واحدة يعرضان نفس الشيء.
 4. الأمر eaos studio وأداة open_studio.
+5. ركّب أوامر مركز التحكم: eaos.studio.actions.mount(router) بجانب واجهة القراءة (docs/studio-actions.md).
 
 **تنتهي حين:**
 
@@ -6446,7 +6562,7 @@ python tools/north_star.py measure --only F8 --min 1.0 && python tools/north_sta
 
 **فخاخ معروفة:**
 
-- لا كتابة من الاستوديو في الوضع المحلي: الفعل جملة تُنسخ للمساعد.
+- واجهة الأوامر (NS46.T9، D8) تُركَّب على الخادم نفسه بقواعده: 127.0.0.1 ورمز التشغيل وCSRF والمصدر؛ ولا كتابة إلا عبرها.
 
 **أمر القبول:**
 

@@ -220,7 +220,7 @@ USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'X11', 'X12'
 
 
 STUDIO = ('F8', 'W2')
-STUDIO_PHASE = ('F11', 'F12', 'F13', 'F14')   # the exit gate of NS46, tools/north_star_studio.py
+STUDIO_PHASE = ('F11', 'F12', 'F13', 'F14', 'F15')   # the exit gate of NS46, tools/north_star_studio.py
 
 
 def measure(record, only=None):
@@ -245,7 +245,7 @@ def measure(record, only=None):
 
 
 def studio_phase_values(record, only=None):
-    """F11-F14 from the screen-gate runs and the reports' studio/coverage.json (tools/north_star_studio.py)."""
+    """F11-F15 from the screen-gate runs, the reports' studio/coverage.json and the command-centre trials (tools/north_star_studio.py)."""
     import north_star_studio
     return north_star_studio.values(REPORTS, record, only)
 
