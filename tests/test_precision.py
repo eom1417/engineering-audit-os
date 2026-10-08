@@ -90,6 +90,18 @@ class WithholdTests(unittest.TestCase):
         self.assertEqual(withheld[0]['withheld'], {'detector': 'structural_duplicate', 'why': 'precision 0.1 < 0.8'})
         self.assertEqual(kinds, {'data_model', 'data_table'})
 
+    def test_the_verdicts_in_force_are_the_packaged_file_unless_the_environment_names_others(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            other = Path(tmp) / 'verdicts.json'
+            other.write_text(json.dumps({'hidden': {'hotspot': 'below bar'}}))
+            with mock.patch.dict('os.environ', {'EAOS_DETECTOR_VERDICTS': str(other)}):
+                self.assertEqual(ledger.hidden_detectors(), {'hotspot': 'below bar'})
+            with mock.patch.dict('os.environ', {'EAOS_DETECTOR_VERDICTS': ''}):
+                self.assertIsNone(ledger.verdicts_path())
+                self.assertEqual(ledger.hidden_detectors(), {})
+            with mock.patch.dict('os.environ', clear=True):
+                self.assertEqual(ledger.verdicts_path(), ledger.VERDICTS)
+
     def test_the_verdict_file_the_product_reads_agrees_with_the_record(self):
         record = json.loads((ROOT / 'docs/engine-precision.json').read_text(encoding='utf-8')).get('precision')
         if not record: self.skipTest('the precision set has not been scored on this checkout')
@@ -180,6 +192,21 @@ class ScoreTests(unittest.TestCase):
         self.assertEqual(precision.a1_value(record, {**hidden, 'hotspot': 'below bar'})[0], 1.0)
         small = {**record, 'summary': {**record['summary'], 'labelled_items': 20}}
         self.assertEqual(precision.a1_value(small, hidden)[0], 0.0)
+
+    def test_score_refuses_truth_edited_added_or_removed_after_the_seal(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            (tmp / 'seeded').mkdir()
+            (tmp / 'eaos.A.json').write_text(json.dumps({'project': 'eaos', 'items': []}))
+            (tmp / 'seeded' / 'eaos.json').write_text(json.dumps({'project': 'eaos', 'items': []}))
+            with mock.patch.object(precision, 'TRUTH', tmp), mock.patch.object(precision, 'SEAL', tmp / 'seal.json'):
+                self.assertEqual(precision.unsealed(precision.load_truth()), ['no seal recorded'])
+                with mock.patch('builtins.print'): precision.seal()
+                self.assertEqual(precision.unsealed(precision.load_truth()), [])
+                (tmp / 'seeded' / 'eaos.json').write_text(json.dumps({'project': 'eaos', 'items': [{}]}))
+                self.assertEqual(precision.unsealed(precision.load_truth()), ['seeded/eaos.json'])
+                (tmp / 'eaos.A.json').unlink()
+                self.assertEqual(precision.unsealed(precision.load_truth()), ['eaos.A.json', 'seeded/eaos.json'])
 
 
 class AdoptionTests(unittest.TestCase):

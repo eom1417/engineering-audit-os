@@ -4,6 +4,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
 from pathlib import Path
 
 from eaos import baseline

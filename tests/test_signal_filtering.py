@@ -11,6 +11,7 @@ A structural duplicate is reported when:
 import json
 import tempfile
 import unittest
+import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
 from pathlib import Path
 
 from eaos.dossier import assemble

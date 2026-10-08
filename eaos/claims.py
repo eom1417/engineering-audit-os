@@ -5,6 +5,8 @@ what would disprove it. A question is an admitted gap. Nothing rendered may exis
 """
 from datetime import datetime, timezone
 import json
+import os
+from pathlib import Path
 from .compose.labels import IMPACTS
 from .vocabulary import schema_errors
 from .workspace import DATA, read, write
@@ -40,9 +42,19 @@ def detector_of(claim):
     return 'unattributed'
 
 
+def verdicts_path():
+    """The verdicts in force: $EAOS_DETECTOR_VERDICTS when it is set (empty: none, every detector shown), else the
+    packaged file. The unit tests check each detector on its own fixture, so they run with none."""
+    chosen = os.environ.get('EAOS_DETECTOR_VERDICTS')
+    if chosen is None: return VERDICTS
+    return Path(chosen) if chosen else None
+
+
 def hidden_detectors():
     """{detector: why} for the detectors under their measured bar; empty when nothing was measured."""
-    try: return dict(read(VERDICTS).get('hidden') or {})
+    path = verdicts_path()
+    if path is None: return {}
+    try: return dict(read(path).get('hidden') or {})
     except (OSError, ValueError): return {}
 
 

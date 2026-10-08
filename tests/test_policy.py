@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
+import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
 from eaos import cli
 from eaos.facts.run import collect
 from eaos.policy import check, init, load_policy

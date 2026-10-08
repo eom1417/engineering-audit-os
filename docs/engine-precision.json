@@ -164,5 +164,1772 @@
       "shared_mutable_state"
     ],
     "limits": "Answered means the question produced a value with evidence on a planted case. It does not mean the value is right on code nobody planted."
+  },
+  "precision": {
+    "summary": {
+      "labelled_items": 740,
+      "projects": [
+        "FleetManageWeb",
+        "chief-ops",
+        "eaos",
+        "finance-os-a0192b7b"
+      ],
+      "bar": {
+        "precision": 0.8,
+        "recall": 0.5,
+        "judged": 5
+      },
+      "items_per_project": {
+        "FleetManageWeb": 267,
+        "chief-ops": 197,
+        "eaos": 116,
+        "finance-os-a0192b7b": 160
+      },
+      "detectors": 39,
+      "shown": 8,
+      "hidden": 31,
+      "limits": "Precision is measured on judged outputs only: those that touch a labelled item or a file in which the class was labelled exhaustively. Recall is measured on the planted mutations a detector was built to find, and on the hand labels. Labels are one reviewer's reading of the source."
+    },
+    "classes": {
+      "duplication": {
+        "positive": 44,
+        "negative": 36,
+        "projects": {
+          "FleetManageWeb": 31,
+          "chief-ops": 12,
+          "eaos": 20,
+          "finance-os-a0192b7b": 17
+        },
+        "recall_of_all_detectors": 0.114,
+        "detectors": [
+          "duplicated_rule",
+          "engine_cluster:duplication",
+          "engine_cluster:literal_duplication",
+          "sequence_duplicate",
+          "structural_duplicate"
+        ]
+      },
+      "overlap": {
+        "positive": 17,
+        "negative": 12,
+        "projects": {
+          "FleetManageWeb": 11,
+          "chief-ops": 5,
+          "eaos": 7,
+          "finance-os-a0192b7b": 6
+        },
+        "recall_of_all_detectors": 0.0,
+        "detectors": []
+      },
+      "multiple_writers": {
+        "positive": 19,
+        "negative": 14,
+        "projects": {
+          "FleetManageWeb": 8,
+          "chief-ops": 10,
+          "eaos": 9,
+          "finance-os-a0192b7b": 6
+        },
+        "recall_of_all_detectors": 0.0,
+        "detectors": [
+          "data_owners",
+          "external_write"
+        ]
+      },
+      "ui_defect": {
+        "positive": 32,
+        "negative": 15,
+        "projects": {
+          "FleetManageWeb": 23,
+          "chief-ops": 8,
+          "finance-os-a0192b7b": 16
+        },
+        "recall_of_all_detectors": 0.0,
+        "detectors": []
+      },
+      "redundant_work": {
+        "positive": 19,
+        "negative": 10,
+        "projects": {
+          "FleetManageWeb": 4,
+          "chief-ops": 4,
+          "eaos": 12,
+          "finance-os-a0192b7b": 9
+        },
+        "recall_of_all_detectors": 0.0,
+        "detectors": [
+          "redundant_work"
+        ]
+      },
+      "cycle": {
+        "positive": 8,
+        "negative": 5,
+        "projects": {
+          "FleetManageWeb": 2,
+          "chief-ops": 7,
+          "eaos": 2,
+          "finance-os-a0192b7b": 2
+        },
+        "recall_of_all_detectors": 1.0,
+        "detectors": [
+          "engine_cluster:cycle",
+          "import_cycle"
+        ]
+      },
+      "data_model": {
+        "positive": 80,
+        "negative": 96,
+        "projects": {
+          "FleetManageWeb": 61,
+          "chief-ops": 63,
+          "eaos": 15,
+          "finance-os-a0192b7b": 37
+        },
+        "recall_of_all_detectors": 0.925,
+        "detectors": [
+          "data_model",
+          "data_model:runtime",
+          "data_table"
+        ]
+      },
+      "dead_code": {
+        "positive": 81,
+        "negative": 28,
+        "projects": {
+          "FleetManageWeb": 47,
+          "chief-ops": 18,
+          "eaos": 27,
+          "finance-os-a0192b7b": 17
+        },
+        "recall_of_all_detectors": 0.827,
+        "detectors": [
+          "dead_code",
+          "dead_code_review",
+          "engine_cluster:dead_code"
+        ]
+      },
+      "complexity": {
+        "positive": 40,
+        "negative": 17,
+        "projects": {
+          "FleetManageWeb": 19,
+          "chief-ops": 18,
+          "eaos": 9,
+          "finance-os-a0192b7b": 11
+        },
+        "recall_of_all_detectors": 0.775,
+        "detectors": [
+          "engine_cluster:complexity",
+          "hotspot"
+        ]
+      },
+      "mutable_state": {
+        "positive": 34,
+        "negative": 26,
+        "projects": {
+          "FleetManageWeb": 13,
+          "chief-ops": 29,
+          "eaos": 7,
+          "finance-os-a0192b7b": 11
+        },
+        "recall_of_all_detectors": 0.941,
+        "detectors": [
+          "mutable_global"
+        ]
+      },
+      "broken_code": {
+        "positive": 22,
+        "negative": 14,
+        "projects": {
+          "FleetManageWeb": 16,
+          "chief-ops": 5,
+          "eaos": 8,
+          "finance-os-a0192b7b": 7
+        },
+        "recall_of_all_detectors": 0.273,
+        "detectors": [
+          "broken_code"
+        ]
+      },
+      "access_gap": {
+        "positive": 5,
+        "negative": 21,
+        "projects": {
+          "FleetManageWeb": 3,
+          "chief-ops": 10,
+          "finance-os-a0192b7b": 13
+        },
+        "recall_of_all_detectors": 0.0,
+        "detectors": [
+          "access_gap_no_rls",
+          "access_gap_open_write",
+          "engine_cluster:secret"
+        ]
+      },
+      "vulnerable_dependency": {
+        "positive": 45,
+        "negative": 0,
+        "projects": {
+          "FleetManageWeb": 29,
+          "chief-ops": 8,
+          "finance-os-a0192b7b": 8
+        },
+        "recall_of_all_detectors": 1.0,
+        "detectors": [
+          "vulnerable_dependency"
+        ]
+      }
+    },
+    "detectors": [
+      {
+        "detector": "structural_duplicate",
+        "class": "duplication",
+        "status": "below_bar",
+        "shown": false,
+        "why": "precision 0.375 < 0.8 on 24 judged outputs",
+        "outputs": 261,
+        "judged": 24,
+        "true_positives": 9,
+        "false_positives": 15,
+        "unjudged": 237,
+        "precision": 0.375,
+        "recall": 1.0,
+        "recall_on_planted": 1.0,
+        "planted_targets": 4,
+        "recall_on_labels": 0.091,
+        "labelled_positives": 44,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 4,
+            "fp": 5,
+            "unjudged": 11
+          },
+          "FleetManageWeb:seeded": {
+            "tp": 1,
+            "fp": 1,
+            "unjudged": 0
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 1,
+            "fp": 1,
+            "unjudged": 48
+          },
+          "finance-os-a0192b7b:seeded": {
+            "tp": 1,
+            "fp": 1,
+            "unjudged": 0
+          },
+          "chief-ops:original": {
+            "tp": 0,
+            "fp": 6,
+            "unjudged": 176
+          },
+          "chief-ops:seeded": {
+            "tp": 1,
+            "fp": 1,
+            "unjudged": 0
+          },
+          "eaos:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 2
+          },
+          "eaos:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          }
+        },
+        "false_examples": [
+          "FleetManageWeb: 58 symbols share the same structure up to identifier names (src/components/AddVehicleDialog.tsx:366 ..arrow_function, src/components/EditVeh",
+          "FleetManageWeb: 47 symbols share the same structure up to identifier names (src/components/account/SecuritySection.tsx:45 ..arrow_function, src/components/d",
+          "FleetManageWeb: 23 symbols share the same structure up to identifier names (src/components/VehicleManager.tsx:374 ....arrow_function, src/components/Vehicle",
+          "FleetManageWeb: 6 symbols share the same structure up to identifier names (src/components/shops/AddShopDialog.tsx:866 ..arrow_function, src/components/shops",
+          "FleetManageWeb: 8 symbols share the same structure up to identifier names (src/components/shops/AddShopDialog.tsx:1043 ..arrow_function, src/components/shop"
+        ]
+      },
+      {
+        "detector": "sequence_duplicate",
+        "class": "duplication",
+        "status": "below_bar",
+        "shown": false,
+        "why": "precision 0.071 < 0.8 on 14 judged outputs",
+        "outputs": 24,
+        "judged": 14,
+        "true_positives": 1,
+        "false_positives": 13,
+        "unjudged": 10,
+        "precision": 0.071,
+        "recall": 0.0,
+        "recall_on_planted": 0.0,
+        "planted_targets": 4,
+        "recall_on_labels": 0.023,
+        "labelled_positives": 44,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 1,
+            "fp": 4,
+            "unjudged": 0
+          },
+          "FleetManageWeb:seeded": {
+            "tp": 0,
+            "fp": 1,
+            "unjudged": 0
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 5
+          },
+          "finance-os-a0192b7b:seeded": {
+            "tp": 0,
+            "fp": 1,
+            "unjudged": 0
+          },
+          "chief-ops:original": {
+            "tp": 0,
+            "fp": 2,
+            "unjudged": 3
+          },
+          "chief-ops:seeded": {
+            "tp": 0,
+            "fp": 1,
+            "unjudged": 0
+          },
+          "eaos:original": {
+            "tp": 0,
+            "fp": 3,
+            "unjudged": 2
+          },
+          "eaos:seeded": {
+            "tp": 0,
+            "fp": 1,
+            "unjudged": 0
+          }
+        },
+        "false_examples": [
+          "FleetManageWeb: 54 functions perform the same ordered sequence of calls (src/components/common/AddressAutocomplete.tsx:None, src/components/common/AddressAu",
+          "FleetManageWeb: 80 functions perform the same ordered sequence of calls (src/components/DriverManager.tsx:None, src/components/VehicleManager.tsx:None, src/",
+          "FleetManageWeb: 44 functions perform the same ordered sequence of calls (src/components/DriverManager.tsx:None, src/components/DriverManager.tsx:None, src/c",
+          "FleetManageWeb: 40 functions perform the same ordered sequence of calls (src/components/DriverManager.tsx:None, src/components/DriverManager.tsx:None, src/c",
+          "FleetManageWeb: 82 functions perform the same ordered sequence of calls (src/components/DriverManager.tsx:None, src/components/VehicleManager.tsx:None, src/"
+        ]
+      },
+      {
+        "detector": "duplicated_rule",
+        "class": "duplication",
+        "status": "below_bar",
+        "shown": false,
+        "why": "precision 0.714 < 0.8 on 7 judged outputs",
+        "outputs": 94,
+        "judged": 7,
+        "true_positives": 5,
+        "false_positives": 2,
+        "unjudged": 87,
+        "precision": 0.714,
+        "recall": 1.0,
+        "recall_on_planted": 1.0,
+        "planted_targets": 4,
+        "recall_on_labels": 0.023,
+        "labelled_positives": 44,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 5
+          },
+          "FleetManageWeb:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 9
+          },
+          "finance-os-a0192b7b:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "chief-ops:original": {
+            "tp": 0,
+            "fp": 1,
+            "unjudged": 72
+          },
+          "chief-ops:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "eaos:original": {
+            "tp": 0,
+            "fp": 1,
+            "unjudged": 1
+          },
+          "eaos:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          }
+        },
+        "false_examples": [
+          "chief-ops: MONTH_NAMES is defined in 4 places (app/server/routes/request-links.ts:24, app/server/routes/requests.ts:18, app/src/engine/core.js:59, app/",
+          "eaos: FILENAME is defined in 2 places (eaos/facts/scope.py:15, eaos/policy.py:15) with the same value"
+        ]
+      },
+      {
+        "detector": "engine_cluster:literal_duplication",
+        "class": "duplication",
+        "status": "not_measured",
+        "shown": false,
+        "why": "only 3 judged outputs (bar 5)",
+        "outputs": 22,
+        "judged": 3,
+        "true_positives": 0,
+        "false_positives": 3,
+        "unjudged": 19,
+        "precision": 0.0,
+        "recall": 0.0,
+        "recall_on_planted": 0.0,
+        "planted_targets": 11,
+        "recall_on_labels": 0.0,
+        "labelled_positives": 44,
+        "by_project": {
+          "finance-os-a0192b7b:original": {
+            "tp": 0,
+            "fp": 3,
+            "unjudged": 3
+          },
+          "chief-ops:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 11
+          },
+          "eaos:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 5
+          }
+        },
+        "false_examples": [
+          "finance-os-a0192b7b: 2 محركات مستقلة (jscpd, reforge) تبلّغ عن تكرار حرفي في src/services/MovementService.ts",
+          "finance-os-a0192b7b: 2 محركات مستقلة (jscpd, reforge) تبلّغ عن تكرار حرفي في src/services/CardService.ts",
+          "finance-os-a0192b7b: 2 محركات مستقلة (jscpd, reforge) تبلّغ عن تكرار حرفي في src/services/AssetService.ts"
+        ]
+      },
+      {
+        "detector": "engine_cluster:duplication",
+        "class": "duplication",
+        "status": "not_measured",
+        "shown": false,
+        "why": "it produced no output on the set",
+        "outputs": 0,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": null,
+        "recall": 0.0,
+        "recall_on_planted": 0.0,
+        "planted_targets": 11,
+        "recall_on_labels": 0.0,
+        "labelled_positives": 44,
+        "by_project": {},
+        "false_examples": []
+      },
+      {
+        "detector": "dead_code",
+        "class": "dead_code",
+        "status": "meets_bar",
+        "shown": true,
+        "why": "precision 1.0 on 115 judged, recall 0.984",
+        "outputs": 246,
+        "judged": 115,
+        "true_positives": 115,
+        "false_positives": 0,
+        "unjudged": 131,
+        "precision": 1.0,
+        "recall": 0.984,
+        "recall_on_planted": 0.984,
+        "planted_targets": 64,
+        "recall_on_labels": 0.642,
+        "labelled_positives": 81,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 30,
+            "fp": 0,
+            "unjudged": 78
+          },
+          "FleetManageWeb:seeded": {
+            "tp": 16,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 7,
+            "fp": 0,
+            "unjudged": 26
+          },
+          "finance-os-a0192b7b:seeded": {
+            "tp": 16,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "chief-ops:original": {
+            "tp": 3,
+            "fp": 0,
+            "unjudged": 27
+          },
+          "chief-ops:seeded": {
+            "tp": 16,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "eaos:original": {
+            "tp": 12,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "eaos:seeded": {
+            "tp": 15,
+            "fp": 0,
+            "unjudged": 0
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "dead_code_review",
+        "class": "dead_code",
+        "status": "below_bar",
+        "shown": false,
+        "why": "recall 0.185 < 0.5",
+        "outputs": 53,
+        "judged": 15,
+        "true_positives": 15,
+        "false_positives": 0,
+        "unjudged": 38,
+        "precision": 1.0,
+        "recall": 0.185,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": 0.185,
+        "labelled_positives": 81,
+        "by_project": {
+          "chief-ops:original": {
+            "tp": 6,
+            "fp": 0,
+            "unjudged": 38
+          },
+          "eaos:original": {
+            "tp": 9,
+            "fp": 0,
+            "unjudged": 0
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "engine_cluster:dead_code",
+        "class": "dead_code",
+        "status": "below_bar",
+        "shown": false,
+        "why": "recall 0.0 < 0.5",
+        "outputs": 26,
+        "judged": 11,
+        "true_positives": 11,
+        "false_positives": 0,
+        "unjudged": 15,
+        "precision": 1.0,
+        "recall": 0.0,
+        "recall_on_planted": 0.0,
+        "planted_targets": 64,
+        "recall_on_labels": 0.235,
+        "labelled_positives": 81,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 2,
+            "fp": 0,
+            "unjudged": 1
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 2,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "chief-ops:original": {
+            "tp": 2,
+            "fp": 0,
+            "unjudged": 14
+          },
+          "eaos:original": {
+            "tp": 5,
+            "fp": 0,
+            "unjudged": 0
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "broken_code",
+        "class": "broken_code",
+        "status": "meets_bar",
+        "shown": true,
+        "why": "precision 1.0 on 11 judged, recall 0.667",
+        "outputs": 53,
+        "judged": 11,
+        "true_positives": 11,
+        "false_positives": 0,
+        "unjudged": 42,
+        "precision": 1.0,
+        "recall": 0.667,
+        "recall_on_planted": 0.667,
+        "planted_targets": 3,
+        "recall_on_labels": 0.273,
+        "labelled_positives": 22,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 6,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "chief-ops:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 18
+          },
+          "eaos:original": {
+            "tp": 3,
+            "fp": 0,
+            "unjudged": 24
+          },
+          "eaos:seeded": {
+            "tp": 2,
+            "fp": 0,
+            "unjudged": 0
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "hotspot",
+        "class": "complexity",
+        "status": "meets_bar",
+        "shown": true,
+        "why": "precision 1.0 on 12 judged, recall 0.75",
+        "outputs": 15,
+        "judged": 12,
+        "true_positives": 12,
+        "false_positives": 0,
+        "unjudged": 3,
+        "precision": 1.0,
+        "recall": 0.75,
+        "recall_on_planted": 0.75,
+        "planted_targets": 4,
+        "recall_on_labels": 0.275,
+        "labelled_positives": 40,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 3,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 2
+          },
+          "finance-os-a0192b7b:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "chief-ops:original": {
+            "tp": 2,
+            "fp": 0,
+            "unjudged": 1
+          },
+          "chief-ops:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "eaos:original": {
+            "tp": 3,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "eaos:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "engine_cluster:complexity",
+        "class": "complexity",
+        "status": "meets_bar",
+        "shown": true,
+        "why": "precision 0.931 on 29 judged, recall 0.75",
+        "outputs": 191,
+        "judged": 29,
+        "true_positives": 27,
+        "false_positives": 2,
+        "unjudged": 162,
+        "precision": 0.931,
+        "recall": 0.75,
+        "recall_on_planted": 0.75,
+        "planted_targets": 4,
+        "recall_on_labels": 0.625,
+        "labelled_positives": 40,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 7
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 9,
+            "fp": 1,
+            "unjudged": 50
+          },
+          "finance-os-a0192b7b:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "chief-ops:original": {
+            "tp": 8,
+            "fp": 0,
+            "unjudged": 46
+          },
+          "chief-ops:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "eaos:original": {
+            "tp": 6,
+            "fp": 1,
+            "unjudged": 59
+          },
+          "eaos:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          }
+        },
+        "false_examples": [
+          "finance-os-a0192b7b: 2 محركات مستقلة (codegraph, reforge) تبلّغ عن تعقيد في src/routes/_authenticated/dashboard.tsx",
+          "eaos: 3 محركات مستقلة (codegraph, enola, reforge) تبلّغ عن تعقيد في eaos/cli.py"
+        ]
+      },
+      {
+        "detector": "mutable_global",
+        "class": "mutable_state",
+        "status": "meets_bar",
+        "shown": true,
+        "why": "precision 0.886 on 44 judged, recall 0.778",
+        "outputs": 133,
+        "judged": 44,
+        "true_positives": 39,
+        "false_positives": 5,
+        "unjudged": 89,
+        "precision": 0.886,
+        "recall": 0.778,
+        "recall_on_planted": 0.778,
+        "planted_targets": 9,
+        "recall_on_labels": 0.941,
+        "labelled_positives": 34,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 7,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "FleetManageWeb:seeded": {
+            "tp": 2,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 2,
+            "fp": 3,
+            "unjudged": 0
+          },
+          "finance-os-a0192b7b:seeded": {
+            "tp": 2,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "chief-ops:original": {
+            "tp": 23,
+            "fp": 1,
+            "unjudged": 89
+          },
+          "chief-ops:seeded": {
+            "tp": 2,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "eaos:seeded": {
+            "tp": 1,
+            "fp": 1,
+            "unjudged": 0
+          }
+        },
+        "false_examples": [
+          "finance-os-a0192b7b: _supabase in src/integrations/supabase/client.ts is module-level state changed at runtime (assignment, line 59); private to its module, chan",
+          "finance-os-a0192b7b: _supabaseAdmin in src/integrations/supabase/client.server.ts is module-level state changed at runtime (assignment, line 58); private to its ",
+          "finance-os-a0192b7b: serverEntryPromise in src/server.ts is module-level state changed at runtime (assignment, line 10); private to its module, changed only thro",
+          "chief-ops: installed in app/server/infrastructure/rls.ts is module-level state changed at runtime (mutation, line 170); private to its module, changed ",
+          "eaos: _COUNTER in eaos_seed/state.py is module-level state changed at runtime (global_statement, line 8); private to its module, changed only thro"
+        ]
+      },
+      {
+        "detector": "external_write",
+        "class": "multiple_writers",
+        "status": "not_measured",
+        "shown": false,
+        "why": "only 2 judged outputs (bar 5)",
+        "outputs": 3,
+        "judged": 2,
+        "true_positives": 0,
+        "false_positives": 2,
+        "unjudged": 1,
+        "precision": 0.0,
+        "recall": 0.0,
+        "recall_on_planted": 0.0,
+        "planted_targets": 1,
+        "recall_on_labels": 0.0,
+        "labelled_positives": 19,
+        "by_project": {
+          "eaos:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 1
+          },
+          "eaos:seeded": {
+            "tp": 0,
+            "fp": 2,
+            "unjudged": 0
+          }
+        },
+        "false_examples": [
+          "eaos: eaos_seed/writer_a.py writes into state.LIMIT, state it does not own",
+          "eaos: eaos_seed/writer_b.py writes into state.LIMIT, state it does not own"
+        ]
+      },
+      {
+        "detector": "data_owners",
+        "class": "multiple_writers",
+        "status": "not_measured",
+        "shown": false,
+        "why": "only 1 judged outputs (bar 5)",
+        "outputs": 2,
+        "judged": 1,
+        "true_positives": 1,
+        "false_positives": 0,
+        "unjudged": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "recall_on_planted": 1.0,
+        "planted_targets": 1,
+        "recall_on_labels": 0.0,
+        "labelled_positives": 19,
+        "by_project": {
+          "chief-ops:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 1
+          },
+          "eaos:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "data_model",
+        "class": "data_model",
+        "status": "below_bar",
+        "shown": false,
+        "why": "precision 0.425 < 0.8 on 146 judged outputs",
+        "outputs": 1421,
+        "judged": 146,
+        "true_positives": 62,
+        "false_positives": 84,
+        "unjudged": 1275,
+        "precision": 0.425,
+        "recall": 0.75,
+        "recall_on_planted": 0.75,
+        "planted_targets": 8,
+        "recall_on_labels": 0.7,
+        "labelled_positives": 80,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 23,
+            "fp": 33,
+            "unjudged": 300
+          },
+          "FleetManageWeb:seeded": {
+            "tp": 2,
+            "fp": 2,
+            "unjudged": 0
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 7,
+            "fp": 20,
+            "unjudged": 380
+          },
+          "finance-os-a0192b7b:seeded": {
+            "tp": 2,
+            "fp": 2,
+            "unjudged": 0
+          },
+          "chief-ops:original": {
+            "tp": 26,
+            "fp": 25,
+            "unjudged": 594
+          },
+          "chief-ops:seeded": {
+            "tp": 2,
+            "fp": 2,
+            "unjudged": 0
+          },
+          "eaos:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 1
+          }
+        },
+        "false_examples": [
+          "FleetManageWeb: AssetType",
+          "FleetManageWeb: CostAnalysisProps",
+          "FleetManageWeb: CreateWorkOrderFromDocumentDto",
+          "FleetManageWeb: HistoricalPart",
+          "FleetManageWeb: MaintenancePredictionSummary"
+        ]
+      },
+      {
+        "detector": "data_model:runtime",
+        "class": "data_model",
+        "status": "not_measured",
+        "shown": false,
+        "why": "only 4 judged outputs (bar 5)",
+        "outputs": 251,
+        "judged": 4,
+        "true_positives": 0,
+        "false_positives": 4,
+        "unjudged": 247,
+        "precision": 0.0,
+        "recall": 0.0,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": 0.0,
+        "labelled_positives": 80,
+        "by_project": {
+          "eaos:original": {
+            "tp": 0,
+            "fp": 4,
+            "unjudged": 247
+          }
+        },
+        "false_examples": [
+          "eaos: UnsupportedYaml",
+          "eaos: Context",
+          "eaos: SkipStage",
+          "eaos: NoRedirect"
+        ]
+      },
+      {
+        "detector": "data_table",
+        "class": "data_model",
+        "status": "meets_bar",
+        "shown": true,
+        "why": "precision 1.0 on 20 judged, recall 1.0",
+        "outputs": 100,
+        "judged": 20,
+        "true_positives": 20,
+        "false_positives": 0,
+        "unjudged": 80,
+        "precision": 1.0,
+        "recall": 1.0,
+        "recall_on_planted": 1.0,
+        "planted_targets": 2,
+        "recall_on_labels": 0.225,
+        "labelled_positives": 80,
+        "by_project": {
+          "finance-os-a0192b7b:original": {
+            "tp": 6,
+            "fp": 0,
+            "unjudged": 25
+          },
+          "finance-os-a0192b7b:seeded": {
+            "tp": 2,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "chief-ops:original": {
+            "tp": 12,
+            "fp": 0,
+            "unjudged": 54
+          },
+          "eaos:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 1
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "redundant_work",
+        "class": "redundant_work",
+        "status": "not_measured",
+        "shown": false,
+        "why": "only 4 judged outputs (bar 5)",
+        "outputs": 19,
+        "judged": 4,
+        "true_positives": 3,
+        "false_positives": 1,
+        "unjudged": 15,
+        "precision": 0.75,
+        "recall": 0.6,
+        "recall_on_planted": 0.6,
+        "planted_targets": 5,
+        "recall_on_labels": 0.0,
+        "labelled_positives": 19,
+        "by_project": {
+          "FleetManageWeb:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "finance-os-a0192b7b:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "chief-ops:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 6
+          },
+          "chief-ops:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "eaos:original": {
+            "tp": 0,
+            "fp": 1,
+            "unjudged": 9
+          }
+        },
+        "false_examples": [
+          "eaos: pass_through at eaos/bundles.py:55 in _generate_discovery: write_all"
+        ]
+      },
+      {
+        "detector": "access_gap_no_rls",
+        "class": "access_gap",
+        "status": "not_measured",
+        "shown": false,
+        "why": "only 1 judged outputs (bar 5)",
+        "outputs": 1,
+        "judged": 1,
+        "true_positives": 1,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "recall_on_planted": 1.0,
+        "planted_targets": 1,
+        "recall_on_labels": 0.0,
+        "labelled_positives": 5,
+        "by_project": {
+          "finance-os-a0192b7b:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "access_gap_open_write",
+        "class": "access_gap",
+        "status": "not_measured",
+        "shown": false,
+        "why": "only 1 judged outputs (bar 5)",
+        "outputs": 1,
+        "judged": 1,
+        "true_positives": 1,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "recall_on_planted": 1.0,
+        "planted_targets": 1,
+        "recall_on_labels": 0.0,
+        "labelled_positives": 5,
+        "by_project": {
+          "finance-os-a0192b7b:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "engine_cluster:secret",
+        "class": "access_gap",
+        "status": "not_measured",
+        "shown": false,
+        "why": "only 2 judged outputs (bar 5)",
+        "outputs": 2,
+        "judged": 2,
+        "true_positives": 0,
+        "false_positives": 2,
+        "unjudged": 0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": 0.0,
+        "labelled_positives": 5,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 0,
+            "fp": 1,
+            "unjudged": 0
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 0,
+            "fp": 1,
+            "unjudged": 0
+          }
+        },
+        "false_examples": [
+          "FleetManageWeb: 2 محركات مستقلة (semgrep, trivy) تبلّغ عن secret في unused-archive/supabase-integrations/client.ts",
+          "finance-os-a0192b7b: 2 محركات مستقلة (semgrep, trivy) تبلّغ عن secret في .env"
+        ]
+      },
+      {
+        "detector": "import_cycle",
+        "class": "cycle",
+        "status": "below_bar",
+        "shown": false,
+        "why": "precision 0.75 < 0.8 on 8 judged outputs",
+        "outputs": 11,
+        "judged": 8,
+        "true_positives": 6,
+        "false_positives": 2,
+        "unjudged": 3,
+        "precision": 0.75,
+        "recall": 1.0,
+        "recall_on_planted": 1.0,
+        "planted_targets": 4,
+        "recall_on_labels": 0.5,
+        "labelled_positives": 8,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "FleetManageWeb:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 0,
+            "fp": 2,
+            "unjudged": 0
+          },
+          "finance-os-a0192b7b:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "chief-ops:original": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 3
+          },
+          "chief-ops:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "eaos:seeded": {
+            "tp": 1,
+            "fp": 0,
+            "unjudged": 0
+          }
+        },
+        "false_examples": [
+          "finance-os-a0192b7b: Import cycle between: src/models/Account.ts, src/models/Asset.ts, src/models/Card.ts, src/models/CardInvoice.ts, src/models/Category.ts, src",
+          "finance-os-a0192b7b: Import cycle between: src/routeTree.gen.ts, src/router.tsx"
+        ]
+      },
+      {
+        "detector": "engine_cluster:cycle",
+        "class": "cycle",
+        "status": "meets_bar",
+        "shown": true,
+        "why": "precision 1.0 on 19 judged, recall 1.0",
+        "outputs": 29,
+        "judged": 19,
+        "true_positives": 19,
+        "false_positives": 0,
+        "unjudged": 10,
+        "precision": 1.0,
+        "recall": 1.0,
+        "recall_on_planted": 1.0,
+        "planted_targets": 4,
+        "recall_on_labels": 1.0,
+        "labelled_positives": 8,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 3,
+            "fp": 0,
+            "unjudged": 3
+          },
+          "FleetManageWeb:seeded": {
+            "tp": 2,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 3
+          },
+          "finance-os-a0192b7b:seeded": {
+            "tp": 2,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "chief-ops:original": {
+            "tp": 8,
+            "fp": 0,
+            "unjudged": 3
+          },
+          "chief-ops:seeded": {
+            "tp": 2,
+            "fp": 0,
+            "unjudged": 0
+          },
+          "eaos:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 1
+          },
+          "eaos:seeded": {
+            "tp": 2,
+            "fp": 0,
+            "unjudged": 0
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "vulnerable_dependency",
+        "class": "vulnerable_dependency",
+        "status": "meets_bar",
+        "shown": true,
+        "why": "precision 1.0 on 45 judged, recall 1.0",
+        "outputs": 61,
+        "judged": 45,
+        "true_positives": 45,
+        "false_positives": 0,
+        "unjudged": 16,
+        "precision": 1.0,
+        "recall": 1.0,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": 1.0,
+        "labelled_positives": 45,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 29,
+            "fp": 0,
+            "unjudged": 1
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 8,
+            "fp": 0,
+            "unjudged": 15
+          },
+          "chief-ops:original": {
+            "tp": 8,
+            "fp": 0,
+            "unjudged": 0
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "engine_cluster:coupling",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 46,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 46,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 2
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 6
+          },
+          "chief-ops:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 26
+          },
+          "eaos:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 12
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "engine_cluster:dataflow",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 0,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {},
+        "false_examples": []
+      },
+      {
+        "detector": "engine_cluster:surface",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 0,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {},
+        "false_examples": []
+      },
+      {
+        "detector": "engine_cluster:test_quality",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 0,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {},
+        "false_examples": []
+      },
+      {
+        "detector": "engine_cluster:naming",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 0,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {},
+        "false_examples": []
+      },
+      {
+        "detector": "engine_cluster:boundary",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 0,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {},
+        "false_examples": []
+      },
+      {
+        "detector": "engine_cluster:misconfiguration",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 0,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {},
+        "false_examples": []
+      },
+      {
+        "detector": "engine_cluster:sql_quality",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 0,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {},
+        "false_examples": []
+      },
+      {
+        "detector": "engine_cluster:api_contract",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 0,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {},
+        "false_examples": []
+      },
+      {
+        "detector": "cochange",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 7,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 7,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 2
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 4
+          },
+          "chief-ops:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 1
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "trace_gap",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 40,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 40,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {
+          "FleetManageWeb:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 10
+          },
+          "finance-os-a0192b7b:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 10
+          },
+          "chief-ops:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 10
+          },
+          "eaos:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 10
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "policy",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 0,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {},
+        "false_examples": []
+      },
+      {
+        "detector": "load_blocker",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 1,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 1,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {
+          "finance-os-a0192b7b:original": {
+            "tp": 0,
+            "fp": 0,
+            "unjudged": 1
+          }
+        },
+        "false_examples": []
+      },
+      {
+        "detector": "untested",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 0,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {},
+        "false_examples": []
+      },
+      {
+        "detector": "unattributed",
+        "class": null,
+        "status": "not_measured",
+        "shown": false,
+        "why": "no labelled class for this detector yet",
+        "outputs": 0,
+        "judged": 0,
+        "true_positives": 0,
+        "false_positives": 0,
+        "unjudged": 0,
+        "precision": null,
+        "recall": null,
+        "recall_on_planted": null,
+        "planted_targets": 0,
+        "recall_on_labels": null,
+        "labelled_positives": 0,
+        "by_project": {},
+        "false_examples": []
+      }
+    ],
+    "truth": {
+      "FleetManageWeb": [
+        {
+          "file": "FleetManageWeb.A.json",
+          "sha256": "533a48f1b4e8036d58d55305fc7d1d9f19a69f5f3a47f513fc903fd6911746c9",
+          "labelled_at": "2026-10-08T16:48:53Z",
+          "commit": "e0e257609658e5110023d5b81650ef2d17c4cb59",
+          "report_read_before_labelling": false
+        },
+        {
+          "file": "FleetManageWeb.B.json",
+          "sha256": "46c7ebfde6e9a215fdf2d8388401c0f8fe7f74628d0d2ed39498ff64bee1b111",
+          "labelled_at": "2026-10-08T16:44:15Z",
+          "commit": "e0e257609658e5110023d5b81650ef2d17c4cb59",
+          "report_read_before_labelling": false
+        },
+        {
+          "file": "FleetManageWeb.dependencies.json",
+          "sha256": "f0529a1fd2363dccb1aff565cff5a73a8a048af90c6050230d7e010856ab2c0c",
+          "labelled_at": "2026-10-08T16:44:44+00:00",
+          "commit": "e0e257609658e5110023d5b81650ef2d17c4cb59",
+          "report_read_before_labelling": false
+        }
+      ],
+      "chief-ops": [
+        {
+          "file": "chief-ops.A.json",
+          "sha256": "5ee5602ae7639ce628ab1d903bc70a0537b12f7234b39078f6762dfa62ea4e0c",
+          "labelled_at": "2026-10-08T16:45:48Z",
+          "commit": "29f3d8e4609406d9bf2701dc57f4457e8afb6bd6",
+          "report_read_before_labelling": false
+        },
+        {
+          "file": "chief-ops.B.json",
+          "sha256": "f7af39a0adb382995f3ced6ef3ae9551b412001cbd8171d9c3165d451066e74b",
+          "labelled_at": "2026-10-08T16:47:24Z",
+          "commit": "29f3d8e4609406d9bf2701dc57f4457e8afb6bd6",
+          "report_read_before_labelling": false
+        },
+        {
+          "file": "chief-ops.dependencies.json",
+          "sha256": "51910a0678f8fd36fa17c865159e9ba15b8cf328210be6c4bfb15bd5ea1c3800",
+          "labelled_at": "2026-10-08T16:44:54+00:00",
+          "commit": "29f3d8e4609406d9bf2701dc57f4457e8afb6bd6",
+          "report_read_before_labelling": false
+        }
+      ],
+      "eaos": [
+        {
+          "file": "eaos.A.json",
+          "sha256": "684f6ba3e67a7317e64ee47485b660403a9fdd633fc22cad271ba2b9b61863f0",
+          "labelled_at": "2026-10-08T16:48:50Z",
+          "commit": "879b5625e216568c30ee7fe8b179a1e841886fe6",
+          "report_read_before_labelling": false
+        },
+        {
+          "file": "eaos.B.json",
+          "sha256": "d00ec60fde103ad983ce85ca28b5d1ad46822aa1d6aa4c5d34180fee964b854c",
+          "labelled_at": "2026-10-08T16:44:20Z",
+          "commit": "879b5625e216568c30ee7fe8b179a1e841886fe6",
+          "report_read_before_labelling": false
+        }
+      ],
+      "finance-os-a0192b7b": [
+        {
+          "file": "finance-os-a0192b7b.A.json",
+          "sha256": "32b02698371bf8fee1fc909bb4d00c816d990b7f93f766e6a30d59a3a4348de4",
+          "labelled_at": "2026-10-08T16:46:44Z",
+          "commit": "cc51c1ea7735eb193c4376684a25d1ea02d3e7df",
+          "report_read_before_labelling": false
+        },
+        {
+          "file": "finance-os-a0192b7b.B.json",
+          "sha256": "47533a3d9003fee4db2b4f40a6a9b0217c3973e84e265b5071869727bc3dc2b7",
+          "labelled_at": "2026-10-08T16:44:07Z",
+          "commit": "cc51c1ea7735eb193c4376684a25d1ea02d3e7df",
+          "report_read_before_labelling": false
+        },
+        {
+          "file": "finance-os-a0192b7b.dependencies.json",
+          "sha256": "c8fbf7c15a72d1482b25f9bdf44ad0e91dfb936a6d9ca28b1b501232ee3cb0e4",
+          "labelled_at": "2026-10-08T16:44:50+00:00",
+          "commit": "cc51c1ea7735eb193c4376684a25d1ea02d3e7df",
+          "report_read_before_labelling": false
+        }
+      ]
+    }
   }
 }

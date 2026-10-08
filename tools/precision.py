@@ -181,7 +181,7 @@ def seal():
     SEAL.write_text(json.dumps({'sealed_at': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
                                 'why': 'The truth is fixed before any report of the projects is read; score checks it is unchanged.',
                                 'files': rows}, indent=2) + '\n', encoding='utf-8')
-    print(f'sealed {len(rows)} truth files in {SEAL.relative_to(ROOT)}')
+    print(f'sealed {len(rows)} truth files in {SEAL}')
 
 
 # ---------------------------------------------------------------- audits
@@ -446,11 +446,15 @@ def write(truth, rows, classes):
                                    ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
-def unsealed(truth):
-    """Truth files whose content differs from the seal: labels edited after the reports were read."""
+def unsealed(truth, seeded_dir=None):
+    """Truth files whose content differs from the seal: labels edited after the reports were read. The seeded truth
+    is checked too, and a sealed file that went missing counts as changed."""
     if not SEAL.is_file(): return ['no seal recorded']
     sealed = json.loads(SEAL.read_text(encoding='utf-8'))['files']
-    return [f['file'] for entry in truth.values() for f in entry['files'] if sealed.get(f['file']) != f['sha256']]
+    current = {f['file']: f['sha256'] for entry in truth.values() for f in entry['files']}
+    current.update({'seeded/' + path.name: hashlib.sha256(path.read_bytes()).hexdigest()
+                    for path in truth_files(seeded_dir or TRUTH / 'seeded')})
+    return sorted(name for name in set(current) | set(sealed) if sealed.get(name) != current.get(name))
 
 
 def a1_value(record=None, hidden=None):

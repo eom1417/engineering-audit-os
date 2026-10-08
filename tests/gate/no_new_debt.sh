@@ -3,6 +3,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 EAOS="${EAOS:-.venv/bin/eaos}"
+# The scenario proves the gate's mechanics with a planted duplicate. Which detectors a reader is shown is measured on
+# the labelled precision set (tools/precision.py), so the scenario runs with no detector verdicts.
+export EAOS_DETECTOR_VERDICTS="${EAOS_DETECTOR_VERDICTS-}"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 PROJECT="$WORK/project"

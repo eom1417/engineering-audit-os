@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import shared_fixture  # noqa: F401  (runs without measured detector verdicts)
 from eaos import probes
 from eaos.dossier import assemble
 from eaos.facts.run import collect

@@ -114,7 +114,8 @@ def writers(sets):
         if fact['kind'] == 'mutable_global':
             found[fact['value']['name']].add(fact['location']['path'])
         if fact['kind'] == 'external_state_write':
-            found[(fact['value']['module'], fact['value']['attribute'])].add(fact['location']['path'])
+            # A dotted name, not a tuple: the indicator is written as JSON, whose keys are strings.
+            found[f"{fact['value']['module']}.{fact['value']['attribute']}"].add(fact['location']['path'])
     return {key: sorted(paths) for key, paths in found.items() if len(paths) > 1}
 
 

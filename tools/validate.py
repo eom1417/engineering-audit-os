@@ -11,7 +11,7 @@ from eaos.cli import check
 PACKAGED_ROOTS=['core','modules','schemas','schemas/artifacts']
 PACKAGED_TOP=['controls.json','sources.json','START-HERE.md']
 # Files whose only home is the package itself: there is no canonical copy elsewhere to go stale against.
-PACKAGED_OWN=['errors.json','intents.json','toolchain.json','stacks.json']
+PACKAGED_OWN=['errors.json','intents.json','toolchain.json','stacks.json','detector-verdicts.json']
 # Packaged copies of files kept elsewhere in the repository: (packaged name, source).
 PACKAGED_COPIES=[('toolchain.json','upstreams/toolchain.json')]
 
