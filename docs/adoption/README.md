@@ -41,3 +41,4 @@ one is its record.
 | The System maps (territory, change, target) | [studio-maps.md](studio-maps.md) |
 | Code paths, sequences and the plan timeline | [studio-map-paths.md](studio-map-paths.md) |
 | NS46.T9 command centre: action API and assistant launcher | [ns46-t9-command-centre.md](ns46-t9-command-centre.md) |
+| NS46.T14 the ideal planned with a model | [ns46-t14-ideal-planner.md](ns46-t14-ideal-planner.md) |
