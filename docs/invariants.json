@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "69dd0e5",
+  "extracted_at_commit": "1a909c6",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -1569,6 +1569,24 @@
       "statement": "Paths are relative to the project; an absolute path, a home directory or `..` is never written.",
       "kind": "invariant",
       "enforced_by": "tests/test_studio_export.py::Export::test_no_path_outside_the_project_is_written",
+      "note": ""
+    },
+    {
+      "id": "INV-9ed29e15a9",
+      "file": "eaos/studio/paths.py",
+      "symbol": "<module>",
+      "statement": "Where the records stop, the path draws a gap node in the lane where it stopped, with the reason; it never invents the next step.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_paths.py::Paths::test_where_the_records_stop_the_path_draws_a_gap_never_an_invented_link",
+      "note": ""
+    },
+    {
+      "id": "INV-bb4a19f126",
+      "file": "eaos/studio/paths.py",
+      "symbol": "_folder",
+      "statement": "A part's name cut by `level` folders from its end, never below its first folder: src/pages/settings -> src/pages.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_paths.py::Paths::test_the_overview_clusters_parts_and_cuts_them_to_folders_when_there_are_too_many",
       "note": ""
     },
     {

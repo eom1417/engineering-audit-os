@@ -167,7 +167,7 @@ SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'pla
 # Contract v2 (docs/STUDIO.md D7): sections added without breaking a v1 reader. They keep "contract": 1 (the number a
 # reader-breaking change raises) and carry "revision": 2; a v1 reader ignores a section it does not know.
 STUDIO_REVISION = 2
-SECTIONS_V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'coverage')
+SECTIONS_V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'coverage', 'paths')
 REF = lambda name: {'$ref': f'#/$defs/{name}'}
 DEFS = {
     'ratio': {'type': 'number', 'minimum': 0, 'maximum': 1},
@@ -382,6 +382,49 @@ STUDIO_V2 = {
               'not_measured': REF('measure')},
              ['sections', 'not_measured'])),
 }
+# The code paths (studio/paths.json, eaos/studio/paths.py): each entry through its layers as swimlanes, every node and
+# link with its evidence, a gap node where the records stop; and the fix plan's timeline in waves.
+_LANE = enum('screen', 'component', 'handler', 'call', 'endpoint', 'service', 'data')
+_PATH_EVIDENCE = {'fact': NS, 'path': {'type': ['string', 'null'], 'pattern': r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$))'},
+                  'line': NI}
+STUDIO_V2['paths'] = (
+ 'The code paths: for every page, server route, command or job, the path through its layers (screen, component, handler, call, endpoint, service, data) with the evidence of every node and link, a gap where the records stop (never an invented link), what each step becomes in the target, and the fix plan\'s timeline: its waves and what each task waits for.',
+ section_v2({'lanes': arr(_LANE),
+             'paths': arr(obj({'id': {'type': 'string', 'pattern': '^[a-z0-9-]+$'}, 'title': S, 'surface': S, 'entry': S,
+                               'fact': NS, 'flow': NS, 'flow_fact': NS, 'steps': arr(COUNT), 'columns': arr(REFS), 'gaps': COUNT,
+                               'capped': COUNT, 'unresolved': NI, 'reach': {'type': 'integer', 'minimum': 0, 'maximum': 6}},
+                              ['id', 'title', 'surface', 'entry', 'steps', 'columns', 'gaps', 'capped', 'unresolved', 'reach'])),
+             'nodes': arr(obj({'id': S, 'lane': _LANE, 'kind': enum('step', 'gap', 'table', 'store', 'external'), 'label': S,
+                               **_PATH_EVIDENCE, 'component': NS, 'cards': REFS, 'steps': REFS, 'paths': COUNT,
+                               'reason': {'type': ['string', 'null'], 'enum': ['no_server_route', 'trace_stopped', 'component_not_found',
+                                                                               'handler_not_found', None]},
+                               'detail': NS, 'ar': S, 'group': NS,
+                               'items': arr(obj({'callee': S, 'path': {'type': ['string', 'null']}, 'line': NI, 'resolution': S}, ['callee']))},
+                              ['id', 'lane', 'kind', 'label', 'fact', 'path', 'line', 'component', 'cards', 'steps', 'paths', 'reason'])),
+             'edges': arr(obj({'from': S, 'to': S, 'how': enum('route', 'contains', 'call', 'imports', 'request', 'file_route',
+                                                               'client', 'external', 'defines', 'package', 'gap', 'trace'),
+                               **_PATH_EVIDENCE}, ['from', 'to', 'how', 'fact', 'path', 'line'])),
+             'components': {'type': 'object', 'additionalProperties': obj({'op': enum('retain', 'refactor', 'rebuild', 'merge', 'delete'),
+                                                                           'target': NS, 'layer': NS}, ['op', 'target'])},
+             'new': REFS,
+             'overview': obj({'clusters': arr(obj({'id': S, 'lane': _LANE, 'kind': S, 'label': S, 'component': NS, 'reason': NS,
+                                                   'size': COUNT, 'gaps': COUNT, 'nodes': REFS},
+                                                  ['id', 'lane', 'kind', 'label', 'size', 'gaps', 'nodes'])),
+                              'links': arr(obj({'from': S, 'to': S, 'n': COUNT}, ['from', 'to', 'n'])),
+                              'columns': arr(REFS), 'level': COUNT, 'all': B}, ['clusters', 'links', 'columns', 'level', 'all']),
+             'counts': {'type': 'object', 'additionalProperties': REF('measure')},
+             'src': {'type': 'object', 'additionalProperties': REF('source')},
+             'timeline': {'oneOf': [{'type': 'null'}, obj({
+                 'plan': S,
+                 'waves': arr(obj({'wave': {'type': 'integer', 'minimum': 1}, 'tasks': COUNT,
+                                   'steps': arr(obj({'step': NS, 'tasks': COUNT}, ['step', 'tasks']))}, ['wave', 'tasks', 'steps'])),
+                 'steps': arr(obj({'id': S, 'title': S, 'name': S, 'tasks': COUNT, 'first': NI, 'last': NI}, ['id', 'title', 'tasks'])),
+                 'tasks': arr(obj({'id': S, 'step': NS, 'wave': {'type': 'integer', 'minimum': 1}, 'title': S, 'state': S,
+                                   'waits': arr(obj({'task': S, 'why': enum('prerequisite', 'same_file'), 'detail': S}, ['task', 'why'])),
+                                   'more': COUNT}, ['id', 'step', 'wave', 'title', 'waits'])),
+                 'counts': {'type': 'object', 'additionalProperties': REF('measure')}},
+                 ['plan', 'waves', 'steps', 'tasks', 'counts'])]}},
+            ['lanes', 'paths', 'nodes', 'edges', 'components', 'new', 'overview', 'counts', 'src', 'timeline']))
 DEFS_V2 = {**DEFS, 'touch': obj({'kind': enum('table', 'file', 'env', 'network', 'store', 'storage'), 'name': S}, ['kind', 'name'])}
 for _name, (_description, _schema) in STUDIO.items():
     _schema = {**_schema, '$defs': DEFS}

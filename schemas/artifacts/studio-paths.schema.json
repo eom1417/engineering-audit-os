@@ -1,0 +1,794 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/paths.json",
+  "description": "The code paths: for every page, server route, command or job, the path through its layers (screen, component, handler, call, endpoint, service, data) with the evidence of every node and link, a gap where the records stop (never an invented link), what each step becomes in the target, and the fix plan's timeline: its waves and what each task waits for.",
+  "x-artifact": "studio/paths.json",
+  "x-owner": "NS46",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "revision",
+    "lanes",
+    "paths",
+    "nodes",
+    "edges",
+    "components",
+    "new",
+    "overview",
+    "counts",
+    "src",
+    "timeline"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "revision": {
+      "const": 2
+    },
+    "lanes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "screen",
+          "component",
+          "handler",
+          "call",
+          "endpoint",
+          "service",
+          "data"
+        ]
+      }
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "surface",
+          "entry",
+          "steps",
+          "columns",
+          "gaps",
+          "capped",
+          "unresolved",
+          "reach"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "surface": {
+            "type": "string"
+          },
+          "entry": {
+            "type": "string"
+          },
+          "fact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "flow": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "flow_fact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "columns": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "gaps": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "capped": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unresolved": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "reach": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          }
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "lane",
+          "kind",
+          "label",
+          "fact",
+          "path",
+          "line",
+          "component",
+          "cards",
+          "steps",
+          "paths",
+          "reason"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "lane": {
+            "type": "string",
+            "enum": [
+              "screen",
+              "component",
+              "handler",
+              "call",
+              "endpoint",
+              "service",
+              "data"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "step",
+              "gap",
+              "table",
+              "store",
+              "external"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "fact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "component": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "paths": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "no_server_route",
+              "trace_stopped",
+              "component_not_found",
+              "handler_not_found",
+              null
+            ]
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ar": {
+            "type": "string"
+          },
+          "group": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "callee"
+              ],
+              "properties": {
+                "callee": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "line": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "resolution": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "to",
+          "how",
+          "fact",
+          "path",
+          "line"
+        ],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "how": {
+            "type": "string",
+            "enum": [
+              "route",
+              "contains",
+              "call",
+              "imports",
+              "request",
+              "file_route",
+              "client",
+              "external",
+              "defines",
+              "package",
+              "gap",
+              "trace"
+            ]
+          },
+          "fact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "op",
+          "target"
+        ],
+        "properties": {
+          "op": {
+            "type": "string",
+            "enum": [
+              "retain",
+              "refactor",
+              "rebuild",
+              "merge",
+              "delete"
+            ]
+          },
+          "target": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "layer": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "new": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "overview": {
+      "type": "object",
+      "required": [
+        "clusters",
+        "links",
+        "columns",
+        "level",
+        "all"
+      ],
+      "properties": {
+        "clusters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "lane",
+              "kind",
+              "label",
+              "size",
+              "gaps",
+              "nodes"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "lane": {
+                "type": "string",
+                "enum": [
+                  "screen",
+                  "component",
+                  "handler",
+                  "call",
+                  "endpoint",
+                  "service",
+                  "data"
+                ]
+              },
+              "kind": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "component": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "size": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "gaps": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "nodes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "from",
+              "to",
+              "n"
+            ],
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "n": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "all": {
+          "type": "boolean"
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/measure"
+      }
+    },
+    "src": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/source"
+      }
+    },
+    "timeline": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "plan",
+            "waves",
+            "steps",
+            "tasks",
+            "counts"
+          ],
+          "properties": {
+            "plan": {
+              "type": "string"
+            },
+            "waves": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "wave",
+                  "tasks",
+                  "steps"
+                ],
+                "properties": {
+                  "wave": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "tasks": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "steps": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "step",
+                        "tasks"
+                      ],
+                      "properties": {
+                        "step": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "tasks": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "title",
+                  "tasks"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "tasks": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "first": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "last": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            },
+            "tasks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "step",
+                  "wave",
+                  "title",
+                  "waits"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "step": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "wave": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string"
+                  },
+                  "waits": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "task",
+                        "why"
+                      ],
+                      "properties": {
+                        "task": {
+                          "type": "string"
+                        },
+                        "why": {
+                          "type": "string",
+                          "enum": [
+                            "prerequisite",
+                            "same_file"
+                          ]
+                        },
+                        "detail": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "more": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              }
+            },
+            "counts": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/measure"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    },
+    "touch": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "table",
+            "file",
+            "env",
+            "network",
+            "store",
+            "storage"
+          ]
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "x-revision": 2
+}

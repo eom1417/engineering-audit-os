@@ -97,7 +97,8 @@
               "operations",
               "history",
               "quality",
-              "coverage"
+              "coverage",
+              "paths"
             ]
           },
           "file": {
@@ -225,6 +226,7 @@
     "operations",
     "history",
     "quality",
-    "coverage"
+    "coverage",
+    "paths"
   ]
 }
