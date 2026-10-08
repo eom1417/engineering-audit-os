@@ -64,8 +64,8 @@ def deployment(out, language='ar'):
     if not facts:
         return '# ' + title + '\n\n*' + ('لا أهداف نشر' if ar else 'No deployment targets') + '*\n'
     lines = ['# ' + title, '']
-    note = ('> الميناء من Dockerfile/compose. لا يثبت أن النشر يشتغل فعلًا.' if ar else
-             '> From Dockerfile/compose. Does not prove the deployment actually runs.')
+    note = ('> من Dockerfile وcompose وملفات الاستضافة. لا يثبت أن النشر يشتغل فعلًا.' if ar else
+             '> From Dockerfile, compose and hosting files. Does not prove the deployment actually runs.')
     lines += [note, '']
     for fact in facts:
         v = fact['value']
@@ -73,6 +73,8 @@ def deployment(out, language='ar'):
             lines += ['- `' + fact['location']['path'] + '` exposes port ' + str(v['port'])]
         elif v.get('kind') == 'compose':
             lines += ['- `' + fact['location']['path'] + '` declares service `' + str(v['service']) + '`']
+        elif v.get('kind') == 'hosting':
+            lines += ['- `' + fact['location']['path'] + '` deploys to ' + str(v['host'])]
     return '\n'.join(lines) + '\n'
 
 

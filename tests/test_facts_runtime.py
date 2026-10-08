@@ -34,6 +34,13 @@ class RuntimeFactTests(unittest.TestCase):
         targets = [f for f in data['facts'] if f['kind'] == 'deployment_target' and f['value'].get('kind') == 'compose']
         self.assertEqual({t['value']['service'] for t in targets}, {'api', 'worker'})
 
+    def test_a_hosting_manifest_names_its_host(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data = _collect(tmp, extra_files={'vercel.json': '{"rewrites": []}', 'app/railway.toml': '[build]\n'})
+        hosts = {(f['location']['path'], f['value']['host']) for f in data['facts']
+                 if f['kind'] == 'deployment_target' and f['value'].get('kind') == 'hosting'}
+        self.assertEqual(hosts, {('vercel.json', 'Vercel'), ('app/railway.toml', 'Railway')})
+
     def test_github_actions_steps_become_ci_facts(self):
         with tempfile.TemporaryDirectory() as tmp:
             data = _collect(tmp, extra_files={'.github/workflows/ci.yml':

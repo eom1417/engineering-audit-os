@@ -23,7 +23,10 @@ LIMITATIONS = [
     'names carry a timestamp; a policy created from a dashboard and never written to SQL is not seen.',
 ]
 JS_CONST = re.compile(r'^[ \t]*(?:export\s+)?(?:const|let|var)\s+(?P<name>[A-Z][A-Z0-9_]{2,})\s*=\s*(?P<value>[^;\n]+)', re.M)
-SQL_TABLE = re.compile(r'CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"\[]?(?P<name>[\w.]+)', re.I)
+# The name is never the keyword: `CREATE TABLE IF NOT EXISTS ${name}` (a name built at run time) is no table called "IF".
+SQL_TABLE = re.compile(r'CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`"\[]?(?!IF\b)(?P<name>[\w.]+)', re.I)
+# Prose that quotes a schema (a plan, a README) declares no table.
+PROSE = ('.md', '.mdx', '.markdown', '.txt', '.rst')
 ORM_MODEL = re.compile(r'^[ \t]*class\s+(?P<name>\w+)\s*\(([^)]*(?:Model|Base|Document|Entity)[^)]*)\)', re.M)
 TS_MODEL = re.compile(r'^[ \t]*(?:export\s+)?(?:interface|type)\s+(?P<name>\w+)\s*[={]', re.M)
 MIGRATION = re.compile(r'(migrations?|alembic|flyway|liquibase)/', re.I)
@@ -266,7 +269,7 @@ def run(target, source, **options):
                 constants[match.group('name')].append((rel, text.count('\n', 0, match.start()) + 1, value))
             for match in TS_MODEL.finditer(text):
                 models.append((match.group('name'), rel, text.count('\n', 0, match.start()) + 1, 'ts_type'))
-        if rel.endswith('.sql') or 'CREATE TABLE' in text.upper():
+        if rel.endswith('.sql') or ('CREATE TABLE' in text.upper() and not rel.lower().endswith(PROSE)):
             for match in SQL_TABLE.finditer(text):
                 tables.append((match.group('name'), rel, text.count('\n', 0, match.start()) + 1))
         if MIGRATION.search(rel): migrations.append(rel)

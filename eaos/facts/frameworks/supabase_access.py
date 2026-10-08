@@ -1,6 +1,8 @@
 """Detect Supabase client calls in TypeScript and JavaScript."""
 import re
 
+from .http_access import object_keys
+
 LANGUAGES = ('javascript', 'typescript', 'tsx')
 FACT_KIND = 'data_access'
 
@@ -22,6 +24,9 @@ TYPE_ALIAS = re.compile(r'''\btype\s+([A-Za-z_$][\w$]*)\s*=\s*SupabaseClient\b''
 FROM_FACTORY = re.compile(r'''\b([A-Za-z_$][\w$]*)\s*=\s*(?:await\s+)?(?:createClient|createServerClient|createBrowserClient)\b''')
 NAMED_IMPORT = re.compile(r'''\bimport\s*(?:type\s+)?\{([^}]*)\}\s*from\s*['"]([^'"]*supabase[^'"]*)['"]''', re.I)
 RECEIVER = re.compile(r'''([A-Za-z_$][\w$]*)\s*$''')
+# The row a write sends: `.insert({ ... })`, `.insert([{ ... }])`, `.update({ ... })`; its keys are the table's columns.
+ROW = re.compile(r'''\s*\(\s*\[?\s*''')
+WRITES = ('insert', 'update', 'upsert')
 # Stems too common to carry a binding: importing any `types` or `index` says nothing about Supabase.
 GENERIC_STEMS = {'index', 'types', 'utils', 'constants', 'config', 'helpers'}
 
@@ -110,9 +115,12 @@ def extract_calls(text, names=()):
         chain = re.split(r';|\n\s*\n', text[match.end():match.end() + 600], maxsplit=1)[0]
         bounded = (bool(re.search(r'\.(?:limit|range|single|maybeSingle)\s*\(', chain))
                    if match.group('op') == 'select' else None)
-        yield match.start(), _line_of(text, match.start()), \
-            {'client': 'supabase', 'target': match.group('target'),
-             'operation': match.group('op'), 'symbol': 'from', 'bounded': bounded}
+        record = {'client': 'supabase', 'target': match.group('target'),
+                  'operation': match.group('op'), 'symbol': 'from', 'bounded': bounded}
+        row = ROW.match(text, match.end()) if match.group('op') in WRITES else None
+        found = object_keys(text, row.end()) if row else None
+        if found is not None: record.update(keys=found['keys'], keys_partial=found['partial'])
+        yield match.start(), _line_of(text, match.start()), record
     for match in RPC_CALL.finditer(text):
         if _supabase_prefix(text, match.start()) is None: continue
         yield match.start(), _line_of(text, match.start()), \

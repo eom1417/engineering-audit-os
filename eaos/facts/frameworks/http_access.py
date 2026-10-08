@@ -21,6 +21,11 @@ METHOD_CALL_BY_NAME = re.compile(r'''\b([A-Za-z_$][\w$]*)\s*\.\s*(get|post|put|p
 FETCH_CALL = re.compile(r'''\bfetch\s*\(\s*(['"`])((?:/|\$\{)[^'"`]*)''')
 FETCH_METHOD = re.compile(r'''method\s*:\s*['"](GET|POST|PUT|PATCH|DELETE)['"]''', re.I)
 INTERPOLATION = re.compile(r'\$\{[^}]*\}')
+NEXT_ARGUMENT = re.compile(r'''['"`]?\s*,\s*''')
+FETCH_BODY = re.compile(r'''\bbody\s*:\s*JSON\.stringify\s*\(\s*''')
+PROPERTY = re.compile(r'''\s*(?:(?P<spread>\.\.\.)|(?P<q>['"])(?P<quoted>[^'"\n]+)(?P=q)|(?P<name>[A-Za-z_$][\w$]*))''')
+WRITES = ('post', 'put', 'patch')
+SCAN = 4000  # characters an object literal may span before it is left unread
 GENERIC_STEMS = {'index', 'types', 'utils', 'constants', 'config', 'helpers'}
 
 
@@ -72,6 +77,57 @@ def bounded(method, url):
     return True if endpoint(url).endswith('/{}') else None
 
 
+def object_keys(text, start):
+    """The top-level keys of the object literal opening at text[start] (`{ name, plate: p, 'vin': v }` -> name, plate,
+    vin), sorted; None when no literal opens there or it does not close within SCAN characters. A spread (`...rest`)
+    hides keys, so the keys come back with `partial` true. Request keys are the payload's names, never its values."""
+    if start >= len(text) or text[start] != '{': return None
+    keys, partial, depth, i, end = set(), False, 0, start, min(len(text), start + SCAN)
+    expect = True  # at the start of a property
+    while i < end:
+        ch = text[i]
+        if ch in '\'"`':
+            close = text.find(ch, i + 1)
+            while close != -1 and text[close - 1] == '\\': close = text.find(ch, close + 1)
+            if close == -1: return None
+            if depth == 1 and expect:
+                after = text[close + 1:close + 40].lstrip()
+                if after[:1] == ':' and ch != '`': keys.add(text[i + 1:close])
+                expect = False
+            i = close + 1
+            continue
+        if ch in '{([':
+            if depth == 1 and expect and ch == '[': partial = True  # a computed key: its name is known at run time
+            depth += 1
+            if depth == 1: expect = True
+        elif ch in '})]':
+            depth -= 1
+            if depth == 0: return {'keys': sorted(keys), 'partial': partial}
+        elif depth == 1 and ch == ',': expect = True
+        elif depth == 1 and expect and not ch.isspace():
+            found = PROPERTY.match(text, i)
+            if found and found.group('spread'): partial = True
+            elif found and found.group('name'):
+                after = text[found.end():found.end() + 2].lstrip()[:1]
+                if after in (':', ',', '}', '(', ''): keys.add(found.group('name'))
+            expect = False
+            if found and found.group('name'): i = found.end(); continue
+        i += 1
+    return None
+
+
+def payload(text, after):
+    """The keys of the object literal passed as the next argument after `after` (the end of the URL argument), or
+    None when the payload is a variable, a call, or absent: the keys are then unknown, not empty."""
+    found = NEXT_ARGUMENT.match(text, after)
+    return object_keys(text, found.end()) if found else None
+
+
+def _with_keys(record, found):
+    if found is not None: record.update(keys=found['keys'], keys_partial=found['partial'])
+    return record
+
+
 def _value_of(name, text, before):
     """The string last assigned to `name` before `before` (`const DRIVERS_ENDPOINT = "/drivers"`), or None."""
     found = None
@@ -87,23 +143,28 @@ def extract_calls(text, names=()):
         receiver, method, _, url = match.groups()
         # A literal absolute URL is a third-party host (an integration target), not the app's own back end.
         if receiver not in names or re.match(r'https?://', url): continue
-        yield match.start(), text.count('\n', 0, match.start()) + 1, \
+        yield match.start(), text.count('\n', 0, match.start()) + 1, _with_keys(
             {'client': 'http', 'target': endpoint(url), 'operation': method.lower(), 'symbol': receiver,
-             'bounded': bounded(method.lower(), url)}
+             'bounded': bounded(method.lower(), url)}, payload(text, match.end()) if method.lower() in WRITES else None)
     for match in METHOD_CALL_BY_NAME.finditer(text):
         receiver, method, variable = match.groups()
         if receiver not in names: continue
         value = _value_of(variable, text, match.start())
         if value is not None and re.match(r'https?://', value): continue
-        yield match.start(), text.count('\n', 0, match.start()) + 1, \
+        yield match.start(), text.count('\n', 0, match.start()) + 1, _with_keys(
             {'client': 'http', 'target': endpoint(value) if value is not None else '{dynamic}', 'operation': method.lower(),
-             'symbol': receiver, 'bounded': bounded(method.lower(), value or '')}
+             'symbol': receiver, 'bounded': bounded(method.lower(), value or '')},
+            payload(text, match.end() - 1) if method.lower() in WRITES else None)
     for match in FETCH_CALL.finditer(text):
         window = text[match.end():match.end() + 300]
         method = FETCH_METHOD.search(window.split(');', 1)[0])
-        yield match.start(), text.count('\n', 0, match.start()) + 1, \
-            {'client': 'http', 'target': endpoint(match.group(2)), 'operation': (method.group(1) if method else 'get').lower(),
-             'symbol': 'fetch'}
+        operation = (method.group(1) if method else 'get').lower()
+        following = text.find('fetch(', match.end())
+        body = FETCH_BODY.search(text, match.end(), min(match.end() + 600, following if following != -1 else len(text))) \
+            if operation in WRITES else None
+        yield match.start(), text.count('\n', 0, match.start()) + 1, _with_keys(
+            {'client': 'http', 'target': endpoint(match.group(2)), 'operation': operation, 'symbol': 'fetch'},
+            object_keys(text, body.end()) if body else None)
 
 
 def detect(context):
