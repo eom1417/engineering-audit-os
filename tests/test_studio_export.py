@@ -1,26 +1,22 @@
 """studio/: every section the Studio reads, written from the one model, valid against its contract (NS36.T2)."""
 import json
-import tempfile
 import unittest
-from pathlib import Path
 
 from eaos import artifact_contracts
 from eaos.studio import export, model
+from tests.shared_fixture import Workspace
 from tests.test_human_report import report
 
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media')
 
 
-class Export(unittest.TestCase):
+class Export(Workspace):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.out = report(self.tmp.name)
+        super().setUp()
+        self.out = report(self.tmp)
         (self.out / 'START-HERE.md').write_text('# Start here\n\nSix problems.\n', encoding='utf-8')
         self.result = export.export(self.out, 'en', 'shop')
         self.folder = self.out / 'studio'
-
-    def tearDown(self):
-        self.tmp.cleanup()
 
     def load(self, name):
         return json.loads((self.folder / f'{name}.json').read_text(encoding='utf-8'))
@@ -78,12 +74,20 @@ class Export(unittest.TestCase):
         self.assertIsNone(export.rel('~/x'))
         self.assertEqual(export.rel('src/a.ts'), 'src/a.ts')
         text = ''.join((self.folder / f'{n}.json').read_text(encoding='utf-8') for n in SECTIONS)
-        self.assertNotIn(self.tmp.name, text)
+        self.assertNotIn(self.tmp, text)
 
     def test_the_documents_are_listed_in_reading_order(self):
         docs = {d['path']: d for d in self.load('docs')['docs']}
         self.assertEqual(docs['START-HERE.md']['group'], 'start')
         self.assertEqual(docs['START-HERE.md']['title'], 'Start here')
+
+    def test_a_section_that_fails_is_named_and_the_rest_is_written(self):
+        from unittest import mock
+        with mock.patch.object(export, 'media', side_effect=ValueError('no folder')):
+            result = export.export(self.out, 'en', 'shop')
+        self.assertEqual(result['errors'], [{'section': 'media', 'error': 'ValueError: no folder'}])
+        self.assertEqual(result['written'], [name for name in SECTIONS if name != 'media'])
+        self.assertNotIn('media', {entry['name'] for entry in self.load('manifest')['sections']})
 
     def test_records_that_cannot_be_read_name_the_failure_and_leave_no_manifest(self):
         from unittest import mock

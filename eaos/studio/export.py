@@ -158,7 +158,7 @@ def story(report, m, card_rows):
         comp = current.get(row.get('current_id')) or {}
         relation = 'missing' if row.get('gap') == 'missing' and not comp else RELATION.get(comp.get('relation'), 'modify')
         tasks = [t for t in row.get('blocking_tasks') or [] if isinstance(t, str)]
-        gap.append({'component': row.get('component') or comp.get('name') or '', 'relation': relation,
+        gap.append({'component': comp.get('name') or row.get('current_origin') or row.get('component') or '', 'relation': relation,
                     'to': row.get('target_component'), 'files': comp.get('files') or 0, 'cards': tasks,
                     'closed': sum(t in closed for t in tasks)})
     sustain = M._load(Path(report) / 'sustainability.json', {}) or {}
@@ -319,7 +319,7 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
 
 def freshness(project, state):
     """fresh when the project's branch is still at the scanned commit; branch_moved when it is not; unknown when either
-    is not known. (A report made by another EAOS is rebuilt by guided.publish before it is read, so it is never shown.)"""
+    is not known. A report made by another EAOS is rebuilt by guided.publish before it is read."""
     scanned = (state or {}).get('scanned_commit')
     now = _git(project, 'rev-parse', 'HEAD')
     if not scanned or not now: return 'unknown'

@@ -122,6 +122,7 @@
       "eaos/plain.py",
       "eaos/start_here.py",
       "eaos/human_report.py",
+      "eaos/studio/**",
       "eaos/blueprint.py",
       "eaos/build_tools.py",
       "eaos/menu.py",

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "9c99fe4",
+  "extracted_at_commit": "fdaa31e",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -1176,6 +1176,15 @@
       "note": ""
     },
     {
+      "id": "INV-18af397cf2",
+      "file": "eaos/menu.py",
+      "symbol": "<module>",
+      "statement": "The first option is always the recommended one.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_menu.py::Words::test_only_the_first_is_recommended_in_the_persons_language",
+      "note": ""
+    },
+    {
       "id": "INV-904a0dce25",
       "file": "eaos/pipeline/report.py",
       "symbol": "<module>",
@@ -1419,6 +1428,42 @@
       "note": ""
     },
     {
+      "id": "INV-72b9c08f08",
+      "file": "eaos/studio/export.py",
+      "symbol": "<module>",
+      "statement": "Every file is written to a temporary name and renamed; manifest.json goes last, with the fingerprint of every section, so a reader never sees a half-written set.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_export.py::Export::test_the_manifest_fingerprints_what_was_written",
+      "note": ""
+    },
+    {
+      "id": "INV-b411b723c7",
+      "file": "eaos/studio/export.py",
+      "symbol": "<module>",
+      "statement": "A section that cannot be built or breaks its contract is left out and named in studio/errors.json; the rest is still written, and nothing here stops the step that called it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_export.py::Export::test_a_section_that_fails_is_named_and_the_rest_is_written",
+      "note": ""
+    },
+    {
+      "id": "INV-4ed7485f34",
+      "file": "eaos/studio/export.py",
+      "symbol": "<module>",
+      "statement": "Every number the Studio shows is a measure {value, src}; what was not measured is null, never 0.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_export.py::Export::test_the_studio_and_the_report_show_the_same_score",
+      "note": ""
+    },
+    {
+      "id": "INV-8af171f5e1",
+      "file": "eaos/studio/export.py",
+      "symbol": "<module>",
+      "statement": "Paths are relative to the project; an absolute path, a home directory or `..` is never written.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_export.py::Export::test_no_path_outside_the_project_is_written",
+      "note": ""
+    },
+    {
       "id": "INV-2861e4e651",
       "file": "eaos/surface_records.py",
       "symbol": "surface_check",
@@ -1533,15 +1578,6 @@
       "statement": "Agent-led workflow: deterministic gates and next actions, never an autonomous LLM.",
       "kind": "invariant",
       "enforced_by": "tests/test_workflow.py::WorkflowTests::test_single_entrypoint_read_only_and_no_script_execution",
-      "note": ""
-    },
-    {
-      "id": "INV-18af397cf2",
-      "file": "eaos/menu.py",
-      "symbol": "<module>",
-      "statement": "The first option is always the recommended one.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_menu.py::Words::test_only_the_first_is_recommended_in_the_persons_language",
       "note": ""
     }
   ],
