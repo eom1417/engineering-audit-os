@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Opened state</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; font-size: 16px; color: #1a1a1a; background: #ffffff; }
+    main { padding: 16px; }
+    button { min-width: 44px; min-height: 44px; padding: 10px 18px; font-size: 16px; border: 2px solid #1d4ed8;
+      background: #1d4ed8; color: #ffffff; border-radius: 8px; }
+    #panel { display: none; width: 700px; height: 60px; background: #e5e7eb; }
+    #panel.open { display: block; }
+    .tracked { letter-spacing: 0.2em; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>حالة بعد فعل</h1>
+    <p>The panel opens only after the button is pressed; pressing it also logs a script error.</p>
+    <button id="open" type="button">افتح</button>
+    <div id="panel"><p class="tracked">نص عربي متباعد الحروف</p></div>
+  </main>
+  <script>
+    document.getElementById('open').addEventListener('click', function () {
+      document.getElementById('panel').classList.add('open');
+      console.error('opened with an error');
+    });
+  </script>
+</body>
+</html>

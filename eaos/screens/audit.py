@@ -6,8 +6,9 @@ when it did not observe; a missing tool is reported as unavailable, it is not ra
     page_audit(urls, viewports, variants, out)   Playwright + axe (eaos/templates/screens/audit.mjs): per page,
                                                  variant and viewport, the WCAG 2.2 A/AA violations, horizontal
                                                  overflow, the scroll position after load, interactive targets
-                                                 under 44x44 CSS px at phone width, clipped text, the page height
-                                                 and a full-page screenshot.
+                                                 under 44x44 CSS px at phone width, clipped text, letter-spaced
+                                                 Arabic, the page's script errors, the page height and a
+                                                 full-page screenshot.
     lighthouse(url, out)                         Lighthouse, mobile profile: category scores, LCP and CLS.
     css_stats(folder)                            @projectwallace/css-analyzer (eaos/templates/screens/css.mjs):
                                                  distinct colors, font sizes, spacings and selector specificity.
@@ -15,6 +16,8 @@ when it did not observe; a missing tool is reported as unavailable, it is not ra
 `failures(row)` names what fails the gate in one audited row. The browser is allowed the tested URL's origin
 only (file:// pages: file:// only); every other request is aborted and listed in the row.
 """
+import gzip
+import io
 import json
 import os
 import re
@@ -95,11 +98,16 @@ def page_audit(urls, viewports=VIEWPORTS, page_variants=None, out=None, phone_wi
                timeout=900, height_budget=None):
     """Every URL in every variant at every viewport, through the pinned Playwright and axe. Screenshots go to
     <out>/screenshots when `out` is given. `height_budget` caps a page's height at phone width, in phone screens:
-    one number for every page, or {url: screens} for some (a URL without its query)."""
-    urls = [urls] if isinstance(urls, str) else list(urls)
+    one number for every page, or {url: screens} for some (a URL without its query).
+
+    A URL may also be a page, {'url', 'name', 'actions', 'viewports', 'variants', 'wait_for', 'height_budget'}
+    (eaos/templates/screens/audit.mjs): the actions run before the page is measured, the viewports and variants
+    are the names it is audited in, and its own height budget wins over `height_budget`."""
+    urls = [urls] if isinstance(urls, (str, dict)) else list(urls)
+    own_budget = {u['name']: u['height_budget'] for u in urls if isinstance(u, dict) and u.get('name') and u.get('height_budget')}
     absent = missing('playwright', 'axe-core')
     if absent: return unavailable(absent, rows=[])
-    config = {'urls': urls, 'viewports': list(viewports), 'variants': page_variants or variants(),
+    config = {'urls': [{k: v for k, v in u.items() if k != 'height_budget'} if isinstance(u, dict) else u for u in urls], 'viewports': list(viewports), 'variants': page_variants or variants(),
               'phone_width': phone_width, 'target_min': target_min,
               'screenshots_dir': str(Path(out) / 'screenshots') if out else None,
               'modules': {'playwright': str(toolchain.home() / 'node/node_modules'), 'axe': str(toolchain.node_modules('axe-core'))}}
@@ -108,6 +116,7 @@ def page_audit(urls, viewports=VIEWPORTS, page_variants=None, out=None, phone_wi
     tools = {name: next(t['version'] for t in toolchain.registry()['tools'] if t['name'] == name) for name in ('playwright', 'axe-core')}
     for row in result['rows']:
         budget = height_budget.get(row['url'].split('?', 1)[0]) if isinstance(height_budget, dict) else height_budget
+        budget = own_budget.get(row.get('page'), budget)
         row['failures'] = failures(row, phone_width, budget)
     return {'status': 'observed', 'tools': {**tools, 'chromium': result.get('chromium')}, 'rows': result['rows']}
 
@@ -116,8 +125,10 @@ def failures(row, phone_width=PHONE_WIDTH, height_budget=None):
     """What fails the gate in one audited row: a layout viewport wider than the configured one (mobile emulation
     widens it silently on an overflowing page), overflow, a shifted first scroll position, a serious or critical
     axe violation, an interactive target under 44x44 at phone width, clipped text not marked data-truncate (or
-    marked without a path to its full text), a phone page taller than `height_budget` screens, or a page that did
-    not load."""
+    marked without a path to its full text), letter-spaced Arabic, a script error, a request the gate had to
+    block (the page needs the network), a language, direction or theme other than the variant expects, a phone page
+    taller than `height_budget` screens, or a page that did not load. A fragment that starts with '/' is a route
+    (#/problems), not an anchor: such a page must still open at the top."""
     if row.get('status') == 'skipped': return []
     if row.get('status') != 'observed': return [f"error: {row.get('reason', 'not audited')}"]
     found = []
@@ -128,7 +139,8 @@ def failures(row, phone_width=PHONE_WIDTH, height_budget=None):
         found.append(f"overflow: page {row['scroll_width']}px wide in a {row['inner_width']}px viewport, "
                      f"{row['overflow_element_count']} element(s) outside it")
     scroll = row['scroll']
-    if not urlsplit(row['url']).fragment and (scroll['x'] or scroll['y']):
+    anchor = urlsplit(row['url']).fragment
+    if not (anchor and not anchor.startswith('/')) and (scroll['x'] or scroll['y']):
         found.append(f"initial_scroll: the page opens scrolled to x={scroll['x']}, y={scroll['y']}")
     serious = [v for v in row['axe']['violations'] if v['impact'] in FAILING_IMPACTS]
     if serious:
@@ -138,6 +150,19 @@ def failures(row, phone_width=PHONE_WIDTH, height_budget=None):
     if row.get('truncated_count'):
         found.append(f"truncation: {row['truncated_count']} clipped text element(s) without data-truncate and a full-text path: "
                      + ', '.join(t['selector'] for t in row['truncated'][:3]))
+    if row.get('arabic_tracking_count'):
+        found.append(f"arabic_tracking: letter-spacing on {row['arabic_tracking_count']} Arabic text element(s): "
+                     + ', '.join(row['arabic_tracking'][:3]))
+    if row.get('page_errors'):
+        found.append(f"script_errors: {len(row['page_errors'])}: {row['page_errors'][0][:200]}")
+    if row.get('blocked_requests'):
+        found.append(f"offline: {len(row['blocked_requests'])} request(s) outside the page's origin: {row['blocked_requests'][0][:200]}")
+    expect = row.get('expect') or {}
+    attributes = row.get('root_attributes') or {}
+    wrong = [f'{name}={attributes.get(name)!r} (expected {value!r})' for name, value in (expect.get('attributes') or {}).items()
+             if attributes.get(name) != value]
+    if expect.get('dir') and row.get('dir') != expect['dir']: wrong.insert(0, f"dir={row.get('dir')!r} (expected {expect['dir']!r})")
+    if wrong: found.append('variant: the page did not apply it: ' + ', '.join(wrong))
     if height_budget and row['width'] <= phone_width and row.get('page_height', 0) > height_budget * row['height']:
         found.append(f"height: {row['page_height']}px tall, over the budget of {height_budget:g} x {row['height']}px screens")
     return found
@@ -257,13 +282,33 @@ def css_stats(folder, timeout=180):
             **result, 'spacings': spacings(texts)}
 
 
+COMPRESSED = ('.html', '.htm', '.js', '.mjs', '.css', '.json', '.svg', '.txt', '.map')
+
+
 class _Quiet(SimpleHTTPRequestHandler):
+    """Serves a folder as a static web server does: text files gzip-compressed when the browser accepts it, so
+    Lighthouse weighs the bytes a person's browser would download."""
     def log_message(self, *args): pass
+
+    def send_head(self):
+        path = Path(self.translate_path(self.path))
+        if (path.is_dir() or path.suffix.lower() not in COMPRESSED or not path.is_file()
+                or 'gzip' not in self.headers.get('Accept-Encoding', '')):
+            return super().send_head()
+        body = gzip.compress(path.read_bytes(), compresslevel=6, mtime=0)
+        self.send_response(200)
+        self.send_header('Content-Type', self.guess_type(str(path)))
+        self.send_header('Content-Encoding', 'gzip')
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Vary', 'Accept-Encoding')
+        self.end_headers()
+        return io.BytesIO(body)
 
 
 @contextmanager
 def serve(folder):
-    """A folder served over loopback HTTP for the length of the block: its base URL (http://127.0.0.1:<port>/)."""
+    """A folder served over loopback HTTP for the length of the block: its base URL (http://127.0.0.1:<port>/).
+    Text files are sent gzip-compressed to a browser that accepts it."""
     server = ThreadingHTTPServer(('127.0.0.1', 0), partial(_Quiet, directory=str(folder)))
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
