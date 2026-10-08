@@ -82,6 +82,13 @@ def found_version(tool):
         # A pinned repository of data (rules), not a program: its version is the commit it is at.
         done = subprocess.run(['git', '-C', str(_checkout(tool)), 'rev-parse', 'HEAD'], capture_output=True, text=True)
         return (done.stdout.strip(), '') if done.returncode == 0 else (None, 'not installed')
+    if tool['install'].get('library'):
+        # A Node library EAOS's own helper scripts import (axe, the CSS analyzer): it has no executable, and its
+        # version is the one its package.json declares in the tool's own prefix.
+        found = package_version(tool, tool['install']['package'])
+        if not found: return None, 'not installed'
+        missing = _companions_missing(tool)
+        return (None, missing) if missing else (found, '')
     path = binary_path(tool)
     if not path: return None, 'not installed'
     if tool.get('version_from') == 'package':
@@ -119,20 +126,25 @@ def found_version(tool):
     return match.group(1), ''
 
 
-def package_version(tool):
-    """The version an npm tool's own package.json records in its pinned prefix, or None."""
-    manifest = npm_prefix(tool) / 'node_modules' / tool['install']['package'] / 'package.json'
+def package_version(tool, name=None):
+    """The version of the npm package `name` (default: the tool's own package) installed in the tool's prefix, or
+    None."""
+    manifest = npm_prefix(tool) / 'node_modules' / (name or tool['install']['package']) / 'package.json'
     try: return json.loads(manifest.read_text(encoding='utf-8')).get('version')
     except (OSError, ValueError): return None
+
+
+def node_modules(name):
+    """The node_modules folder of the named npm tool, where a helper script resolves it from."""
+    tool = next(t for t in registry()['tools'] if t['name'] == name)
+    return npm_prefix(tool) / 'node_modules'
 
 
 def _companions_missing(tool):
     """An npm tool's companion packages (install.with) at their pinned versions, or what is not."""
     for spec in tool['install'].get('with', []):
         name, _, wanted = spec.rpartition('@')
-        manifest = npm_prefix(tool) / 'node_modules' / name / 'package.json'
-        try: found = json.loads(manifest.read_text(encoding='utf-8')).get('version')
-        except (OSError, ValueError): found = None
+        found = package_version(tool, name)
         if found != wanted: return f'{name} {wanted} is not installed beside it (found {found})'
     return ''
 
@@ -310,6 +322,7 @@ def _npm(tool):
     env = {**os.environ, **tool['install'].get('env', {})}
     subprocess.run([npm, 'install', '--prefix', str(prefix), '--no-audit', '--no-fund', '--loglevel=error',
                     f"{tool['install']['package']}@{tool['version']}", *tool['install'].get('with', [])], check=True, env=env)
+    if tool['install'].get('library'): return
     _link(prefix / 'node_modules/.bin' / tool['binary'], tool['binary'])
 
 

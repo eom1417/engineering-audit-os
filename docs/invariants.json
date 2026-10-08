@@ -1500,6 +1500,15 @@
       "note": ""
     },
     {
+      "id": "INV-3879174400",
+      "file": "eaos/screens/audit.py",
+      "symbol": "variants",
+      "statement": "A language is set through a localStorage key or a query parameter, when one is named; a theme the same way, and always through prefers-color-scheme.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_screens.py::VariantTests::test_language_and_theme_go_through_the_named_key_or_parameter_and_the_theme_always_through_the_color_scheme",
+      "note": ""
+    },
+    {
       "id": "INV-570f3dae77",
       "file": "eaos/semantic.py",
       "symbol": "<module>",

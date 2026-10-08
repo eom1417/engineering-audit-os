@@ -811,6 +811,61 @@
       "install_note": "Runs the codemods of mechanical cards on an isolated copy (their dry run) and on the execution copy; it parses code, it never runs it."
     },
     {
+      "name": "axe-core",
+      "role": "run",
+      "stages": [
+        "S05",
+        "S09"
+      ],
+      "license": "MPL-2.0",
+      "repository": "https://github.com/dequelabs/axe-core-npm",
+      "version": "4.13.0",
+      "install": {
+        "method": "npm",
+        "package": "@axe-core/playwright",
+        "library": true,
+        "with": [
+          "axe-core@4.13.0",
+          "playwright-core@1.63.0"
+        ]
+      },
+      "install_note": "A library, no executable: eaos/templates/screens/audit.mjs imports @axe-core/playwright and runs WCAG 2.2 A/AA rules on each rendered page through the pinned Playwright. axe-core stays at 4.13.0, the line @axe-core/playwright 4.13.0 depends on (~4.13.0), so one copy of the rules is installed; playwright-core is the pinned Playwright's version, its peer."
+    },
+    {
+      "name": "lighthouse",
+      "role": "run",
+      "stages": [
+        "S05",
+        "S11"
+      ],
+      "license": "Apache-2.0",
+      "repository": "https://github.com/GoogleChrome/lighthouse",
+      "version": "13.5.0",
+      "binary": "lighthouse",
+      "install": {
+        "method": "npm",
+        "package": "lighthouse"
+      },
+      "install_note": "Mobile performance, accessibility and best-practices scores of one URL, as JSON (eaos/screens/audit.py). It drives the Chromium the pinned Playwright installed (CHROME_PATH); it needs Node.js 22.19 or newer."
+    },
+    {
+      "name": "css-analyzer",
+      "role": "run",
+      "stages": [
+        "S05",
+        "S09"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/projectwallace/css-analyzer",
+      "version": "9.9.3",
+      "install": {
+        "method": "npm",
+        "package": "@projectwallace/css-analyzer",
+        "library": true
+      },
+      "install_note": "A library, no executable: eaos/templates/screens/css.mjs imports it to measure design drift in a built site's CSS (distinct colors, font sizes, spacings, specificity)."
+    },
+    {
       "name": "typst",
       "role": "emit",
       "stages": [

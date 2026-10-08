@@ -21,6 +21,20 @@ and the pinned versions, commits and checksums are in `upstreams/registry.yaml`.
 | [knip](https://github.com/webpro-nl/knip) | Lars Kappert | ISC | separate process, every plugin off; JSON report read |
 | [react-docgen](https://github.com/reactjs/react-docgen) (`@react-docgen/cli`) | Facebook, Inc. and its affiliates | MIT | separate process; JSON report read |
 
+### Screen audit tools
+
+The screen audit (`eaos/screens/audit.py`, `tools/studio_gates.py`) runs these in a separate Node.js process
+(`eaos/templates/screens/*.mjs`); none of their code is copied into this repository or into the EAOS Python
+process. axe-core is injected unmodified into the page under test, which MPL-2.0 permits without further
+obligation. Pinned versions are in `upstreams/toolchain.json`.
+
+| Tool | Copyright | Licence | Used how |
+| --- | --- | --- | --- |
+| [Playwright](https://github.com/microsoft/playwright) | Microsoft Corporation | Apache-2.0 | separate process; drives Chromium per page, viewport, language and theme |
+| [axe-core](https://github.com/dequelabs/axe-core) and [@axe-core/playwright](https://github.com/dequelabs/axe-core-npm) | Deque Systems, Inc. | MPL-2.0 | injected unmodified into the page; WCAG violations read as JSON |
+| [Lighthouse](https://github.com/GoogleChrome/lighthouse) | Google LLC | Apache-2.0 | separate process; mobile JSON report read |
+| [@projectwallace/css-analyzer](https://github.com/projectwallace/css-analyzer) | Bart Veneman | MIT | separate process; CSS statistics read as JSON |
+
 Two projects were evaluated and deliberately not used:
 
 - **Serena** — licensed per component: SolidLSP under MIT, the Serena application under

@@ -140,6 +140,7 @@
       "eaos/measurements.py",
       "eaos/report_quality.py",
       "eaos/behavior_lock.py",
+      "eaos/screens/**",
       "eaos/reference_architecture.py",
       "eaos/c4.py",
       "eaos/adr.py"
