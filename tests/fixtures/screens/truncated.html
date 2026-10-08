@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Truncated text</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; font-size: 16px; color: #1a1a1a; background: #ffffff; }
+    main { padding: 16px; }
+    .cut { width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Truncated text</h1>
+    <p class="cut" id="silent">A finding title far too long for its column, cut off without saying so</p>
+    <p class="cut" id="marked" data-truncate>A second long finding title, marked but with no way to read it whole</p>
+    <p class="cut" id="whole" data-truncate title="A third long finding title, marked and readable whole">A third long finding title, marked and readable whole</p>
+  </main>
+</body>
+</html>
