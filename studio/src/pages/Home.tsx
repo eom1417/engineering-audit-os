@@ -13,6 +13,7 @@ import { N, Txt } from '../i18n/text'
 import { usePageChrome } from '../shell/chrome'
 import { layout, MissingBanner, PageTitle, WithData } from '../shell/Layout'
 import { nextRequest } from './requests'
+import { HomeMaps } from '../map/home'
 import css from './Pages.module.css'
 
 const AREA = {
@@ -88,6 +89,7 @@ function HomeBody({ data }: { data: StudioData }) {
               </StatLinks>
             </div>
           </Panel>
+          <HomeMaps data={data} />
         </div>
         <div className={layout.col}>
           {first && (

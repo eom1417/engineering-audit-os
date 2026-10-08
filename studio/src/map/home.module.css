@@ -1,0 +1,68 @@
+/* The journey strip and the land card (DESIGN.md §3 JourneyTiles, LandCard). */
+.journey { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; }
+.tile { display: flex; flex-direction: column; border-radius: var(--radius-12); border: 1px solid var(--border-default); background: var(--bg-surface); min-inline-size: 0; }
+[data-theme="dark"] .tile { border-color: var(--border-subtle); }
+.tileMain { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px 10px; color: inherit; border-radius: var(--radius-12) var(--radius-12) 0 0; }
+.tileMain:hover { background: var(--bg-hover); }
+.tileK { font-size: 12px; color: var(--text-tertiary); font-weight: 500; }
+.tileN { font-size: 28px; font-weight: 600; line-height: 1.2; }
+.tileU { font-size: 13px; color: var(--text-secondary); line-height: 1.35; }
+.tileSub { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; margin-inline: 16px; padding-block: 8px 12px; border-block-start: 1px solid var(--border-subtle); font-size: 12px; color: var(--text-secondary); }
+.opLink { display: inline-flex; align-items: center; gap: 5px; min-block-size: 24px; color: var(--text-secondary); }
+.opLink:hover { color: var(--accent-text); text-decoration: underline; }
+.word { color: var(--text-tertiary); }
+.dot { inline-size: 9px; block-size: 9px; border-radius: 50%; border: 1.5px solid var(--op-keep); background: var(--op-keep-wash); flex: none; }
+.op_modify { background: var(--op-modify-wash); border-color: var(--op-modify); }
+.op_rebuild { background: var(--op-rebuild-wash); border-color: var(--op-rebuild); }
+.op_merge { background: var(--op-merge-wash); border-color: var(--op-merge); }
+.op_introduce { background: var(--op-introduce-wash); border-color: var(--op-introduce); border-style: dashed; }
+.op_delete { border-color: var(--op-delete); background: repeating-linear-gradient(45deg, var(--op-delete) 0 1.5px, var(--op-delete-wash) 1.5px 3.5px); }
+.arrow { display: grid; place-items: center; inline-size: 24px; color: var(--border-strong); }
+
+.land { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); overflow: hidden; }
+.landMap { display: block; border-inline-end: 1px solid var(--border-subtle); background: var(--map-water); }
+.landMap > svg { inline-size: 100%; block-size: auto; aspect-ratio: 1 / .86; }
+.landSide { display: flex; flex-direction: column; padding: 4px 0 8px; min-inline-size: 0; }
+.regions { inline-size: 100%; border-collapse: collapse; font-size: 14px; }
+.regions th, .regions td { padding: 0 16px; block-size: 48px; text-align: end; font-weight: 400; color: var(--text-secondary); }
+.regions tr + tr th, .regions tr + tr td, .regions tbody tr th, .regions tbody tr td { border-block-start: 1px solid var(--border-subtle); }
+.regions thead th { block-size: 32px; font-size: 12px; color: var(--text-tertiary); border: 0; }
+.regions th:first-child { text-align: start; }
+.regions td { padding-inline: 8px; }
+.regions .strong { color: var(--text-primary); font-weight: 600; padding-inline-end: 16px; }
+.regLink { display: inline-flex; align-items: center; min-block-size: 44px; color: var(--text-primary); }
+.regLink:hover { color: var(--accent-text); text-decoration: underline; }
+.open { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin: auto 16px 0; min-block-size: 40px; color: var(--accent-text); font-weight: 500; font-size: 14px; }
+
+.landRow { display: flex; align-items: center; gap: 12px; padding: 8px; padding-inline-end: 14px; min-block-size: 96px; color: inherit; }
+.thumb { flex: none; inline-size: 104px; block-size: 82px; border-radius: var(--radius-8); overflow: hidden; background: var(--map-water); border: 1px solid var(--border-subtle); }
+.thumb > svg { inline-size: 100%; block-size: 100%; }
+.landText { display: flex; flex-direction: column; gap: 2px; flex: 1; min-inline-size: 0; }
+.landTitle { font-weight: 500; font-size: var(--text-row); }
+.landSub { font-size: 12px; color: var(--text-tertiary); line-height: 1.4; }
+.chev { color: var(--text-tertiary); flex: none; }
+
+@media (max-width: 1199px) and (min-width: 768px) {
+  .land { grid-template-columns: minmax(0, 1fr); }
+  .landMap { border-inline-end: 0; border-block-end: 1px solid var(--border-subtle); }
+}
+@media (max-width: 767px) {
+  .journey { grid-template-columns: minmax(0, 1fr) 14px minmax(0, 1fr) 14px minmax(0, 1fr); }
+  .tile { border-radius: var(--radius-8); }
+  .tileMain { padding: 10px; min-block-size: 44px; border-radius: var(--radius-8); }
+  .tileN { font-size: 24px; }
+  .tileU { font-size: 12px; }
+  .tileSub { display: none; }
+  .arrow { inline-size: 14px; }
+  .arrow svg { inline-size: 12px; block-size: 12px; }
+}
+
+.late { display: flex; flex-direction: column; gap: 10px; min-inline-size: 0; }
+.secTitle { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; font-size: var(--text-label); font-weight: 600; color: var(--text-secondary); line-height: 1.3; }
+.secUnit { font-weight: 400; color: var(--text-tertiary); font-size: 12px; }
+.narrow { display: none; }
+@media (max-width: 767px) {
+  .late { order: 5; }
+  .wide { display: none; }
+  .narrow { display: block; }
+}
