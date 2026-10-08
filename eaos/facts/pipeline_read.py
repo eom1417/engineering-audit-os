@@ -2,7 +2,6 @@
 function touches. Shared by the readers of eaos/facts/pipeline_code.py and eaos/facts/pipeline_frameworks.py."""
 import ast
 import re
-from collections import defaultdict
 
 KINDS = (('declared_dag', 'Declared stages with requires, run through a registry'),
          ('registry_loop', 'A loop over stage names dispatching through a table'),
@@ -100,11 +99,11 @@ class Found:
 
 
 class Py:
-    """Every Python file of the project parsed once: its functions, module-level values, imports and the names used."""
+    """Every Python file of the project parsed once: its functions, classes, module-level values and imports."""
 
     def __init__(self, files):
         self.trees, self.lines, self.defs, self.classes, self.assigns, self.imports = {}, {}, {}, {}, {}, {}
-        self.modules, self.used = {}, defaultdict(int)
+        self.modules = {}
         for rel, text in files:
             try: tree = ast.parse(text)
             except (SyntaxError, ValueError): continue
@@ -130,10 +129,6 @@ class Py:
                     for alias in node.names: imports[alias.asname or alias.name] = (base, alias.name)
                 elif isinstance(node, ast.Import):
                     for alias in node.names: imports[alias.asname or alias.name.split('.')[0]] = (alias.name, None)
-                elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load): self.used[node.id] += 1
-                elif isinstance(node, ast.Attribute): self.used[node.attr] += 1
-                elif isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value.isidentifier():
-                    self.used[node.value] += 1
             self.defs[rel], self.classes[rel], self.assigns[rel], self.imports[rel] = defs, classes, assigns, imports
 
     @staticmethod

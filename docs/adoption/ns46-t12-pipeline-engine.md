@@ -25,11 +25,13 @@ the layered ordering of `eaos/arch_map.py`.
 
 **Decision**: build on what EAOS has, no package. `eaos/facts/pipeline.py` reads Python with the standard `ast`, the
 parser `facts/syntax.py` already uses, and follows values only where the code shows them: a name assigned from a
-stage's call and passed to a later stage's call, an accumulator keyed by a stage's name, a declared `requires`. The
-stage functions' reachability comes from the `call_edge` and `symbol` facts the syntax set already holds, so a dead
-stage is judged by the same call graph as dead code. A call EAOS cannot follow (a name looked up at run time) is
-written as an unresolved step, never as an edge. None of the candidates follows values between calls, which is the
-fact the map needs; the call-graph ones repeat what the facts hold.
+stage's call and passed to a later stage's call, an accumulator keyed by a stage's name, a declared `requires`. It
+runs inside the facts stage as one more extractor, so its facts sit beside the others and the cards can cite them. A
+dead stage is one a registry holds that the declared stage list never names; joining the `call_edge` facts of
+`facts/syntax.json` for reachability is left for a later step (amended 2026-10-08: the first version of this record
+said the call facts were used for it, which the code does not do). A call EAOS cannot follow (a name looked up at run
+time) is written as an unresolved step, never as an edge. None of the candidates follows values between calls, which
+is the fact the map needs; the call-graph ones repeat what the facts hold.
 
 **Pinned**: none
 
