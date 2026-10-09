@@ -8,7 +8,7 @@ from tests.shared_fixture import Workspace
 from tests.test_human_report import report
 
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system', 'paths')
-SECTIONS_V2 = ('journeys', 'hidden', 'data_paths', 'infra')          # the v2 maps, written before coverage
+SECTIONS_V2 = ('journeys', 'hidden', 'data_paths', 'infra', 'gaps', 'operations')   # the v2 sections, written before coverage
 
 
 class Export(Workspace):

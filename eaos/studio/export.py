@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .. import artifact_contracts, build_info, indicators
+from . import change as change_map
 from . import coverage as coverage_section
 from . import hidden as hidden_map
 from . import journeys as journeys_map
@@ -31,7 +32,7 @@ from . import system as system_map
 CONTRACT = 1
 REVISION = 2           # contract v2: sections added without breaking a v1 reader (docs/STUDIO.md)
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
-SECTIONS_V2 = ('paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline')   # contract v2 sections written here (coverage is written last, apart)
+SECTIONS_V2 = ('paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'gaps', 'operations')   # contract v2 sections written here (coverage is written last, apart)
 SAFE = re.compile(r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$)).+')
 LANGUAGES = M.LANGUAGES
 SEVERITY_OF_CONFIDENCE = {'CONFIRMED': 1.0, 'LIKELY': 0.7, 'HYPOTHESIS': 0.4}
@@ -318,6 +319,9 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('infra', lambda: infra_map.infra(report, lang))
     attempt('pipeline', lambda: pipeline_map.from_report(report, card_rows, m['plan'], lang))
     if built.get('pipeline', False) is None: built.pop('pipeline')   # the check wrote no facts/pipeline.json
+    attempt('change', lambda: change_map.change(m, card_rows, lang))
+    for section, body in zip(('gaps', 'operations'), built.pop('change', None) or (None, None)):
+        if body is not None: built[section] = body                    # no target: coverage says why
     key = {'cards': 'cards', 'evidence': 'facts', 'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images'}
     def publish(section, data):
         problems = artifact_contracts.validate(data, contracts[f'studio-{section}'])

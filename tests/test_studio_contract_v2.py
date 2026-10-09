@@ -140,7 +140,9 @@ class ExportedCoverage(Workspace):
         self.assertEqual(list(self.rows)[:len(coverage.PLANNED)], list(coverage.PLANNED))
         for name in V1:
             self.assertIn(self.rows[name]['state'], ('measured', 'empty'), name)
-        for name in ('functions', 'screens', 'gaps', 'operations', 'history', 'quality'):
+        for name in ('gaps', 'operations'):
+            self.assertIn(self.rows[name]['state'], ('measured', 'empty'), name)
+        for name in ('functions', 'screens', 'history', 'quality'):
             row = self.rows[name]
             self.assertEqual(row['state'], 'not_measured', name)
             self.assertRegex(row['step'], r'^NS\d+\.T\d+$', name)

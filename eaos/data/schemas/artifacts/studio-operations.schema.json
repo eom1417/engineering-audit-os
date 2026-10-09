@@ -108,6 +108,16 @@
               "type": "string"
             }
           },
+          "files": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "branch": {
             "type": [
               "string",
