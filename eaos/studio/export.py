@@ -24,18 +24,20 @@ from . import coverage as coverage_section
 from . import hidden as hidden_map
 from . import journeys as journeys_map
 from . import data_paths as data_map
+from . import functions as function_explorer
 from . import infra as infra_map
 from . import ideal as planned_ideal
 from .nodes import view as ai_nodes
 from . import model as M
 from . import paths as code_paths
 from . import pipeline as pipeline_map
+from . import screens as screens_gallery
 from . import system as system_map
 
 CONTRACT = 1
 REVISION = 2           # contract v2: sections added without breaking a v1 reader (docs/STUDIO.md)
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
-SECTIONS_V2 = ('paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'ideal', 'nodes', 'gaps', 'operations')   # contract v2 sections written here (coverage is written last, apart)
+SECTIONS_V2 = ('functions', 'screens', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'ideal', 'nodes', 'gaps', 'operations')   # contract v2 sections written here (coverage is written last, apart)
 SAFE = re.compile(r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$)).+')
 LANGUAGES = M.LANGUAGES
 LANGUAGES_SHOWN = ('ar', 'en')     # the Studio's two languages: a sentence written for both, shown in the person's
@@ -393,6 +395,10 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('change', lambda: change_map.change(m, card_rows, lang))
     for section, body in zip(('gaps', 'operations'), built.pop('change', None) or (None, None)):
         if body is not None: built[section] = body                    # no target: coverage says why
+    attempt('functions', lambda: function_explorer.functions(report, card_rows, built.get('evidence') or ()))
+    attempt('screens', lambda: screens_gallery.screens(built.get('journeys'), built.get('media'), (report / 'facts/entrypoints.json').is_file()))
+    for section in ('functions', 'screens'):                         # nothing was read to build it from
+        if built.get(section, False) is None: built.pop(section)
     key = {'cards': 'cards', 'evidence': 'facts', 'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images'}
     def publish(section, data):
         problems = artifact_contracts.validate(data, contracts[f'studio-{section}'])

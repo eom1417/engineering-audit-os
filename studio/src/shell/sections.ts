@@ -25,6 +25,8 @@ export const SECTIONS: SectionDef[] = [
   { id: 'system', to: '/system', icon: 'system', tab: 'system', nav: 'systemMap', group: 'groupCurrent', tabbar: true, built: true, count: (c) => c.components },
   { id: 'paths', to: '/system/paths', icon: 'pulse', tab: 'codePaths', nav: 'codePaths', group: 'groupCurrent', tabbar: false, built: true },
   { id: 'pipeline', to: '/system/pipeline', icon: 'flow', tab: 'pipeline', nav: 'pipeline', group: 'groupCurrent', tabbar: false, built: true },
+  { id: 'functions', to: '/system/functions', icon: 'layers', tab: 'functions', nav: 'functions', group: 'groupCurrent', tabbar: false, built: true },
+  { id: 'screens', to: '/screens', icon: 'eye', tab: 'screens', nav: 'screens', group: 'groupCurrent', tabbar: false, built: true },
   { id: 'problems', to: '/problems', icon: 'problems', tab: 'problems', nav: 'problems', group: 'groupProblems', tabbar: true, built: true, count: (c) => c.cards },
   { id: 'change', to: '/change', icon: 'change', tab: 'change', nav: 'journeyAndPlan', group: 'groupChange', tabbar: true, built: true },
   { id: 'runs', to: '/runs', icon: 'pulse', tab: 'runs', nav: 'runs', group: 'groupInbox', tabbar: false, built: true },
@@ -40,6 +42,6 @@ export function visibleSections(dev: boolean): SectionDef[] {
 /** The section a path belongs to ("/problems?card=…" → problems) */
 export function sectionOf(pathname: string): SectionDef | undefined {
   const first = '/' + (pathname.split('/')[1] ?? '')
-  const head = first === '/flows' ? '/system' : first === '/evidence' ? '/problems' : ['/plans', '/tasks', '/ops'].includes(first) ? '/change' : first   // a code path belongs to System, evidence to Problems
+  const head = first === '/flows' || first === '/screens' ? '/system' : first === '/evidence' ? '/problems' : ['/plans', '/tasks', '/ops'].includes(first) ? '/change' : first   // a code path belongs to System, evidence to Problems
   return SECTIONS.find((section) => section.to === head) ?? (head === '/' ? SECTIONS[0] : undefined)
 }

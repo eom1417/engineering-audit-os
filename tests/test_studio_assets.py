@@ -141,7 +141,7 @@ class GateMatrix(unittest.TestCase):
             (data / 'story.json').write_text(json.dumps(story), encoding='utf-8')
             self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'fact': 'none', 'word': 'none', 'component': 'src/b', 'path': 'none',
                                                                     'task': 'none', 'screen': 'none', 'hidden_group': 'none',
-                                                                    'store': 'none', 'stage': 'none', 'ai_stage': 'none', 'ai_pipeline': 'none', 'gap': 'none', 'op': 'none', 'plan': 'none', 'step': 'none'})
+                                                                    'store': 'none', 'stage': 'none', 'ai_stage': 'none', 'ai_pipeline': 'none', 'gap': 'none', 'op': 'none', 'plan': 'none', 'step': 'none', 'function': 'none', 'screen_page': 'none'})
             # {fact}: the card's first fact with code; {word}: the longest word of its title
             cards[1]['title'] = 'Flow FLOW-003 stops at 10 unresolvable calls'
             (data / 'cards.json').write_text(json.dumps({'cards': cards}), encoding='utf-8')
@@ -184,11 +184,17 @@ class GateMatrix(unittest.TestCase):
                                              encoding='utf-8')
             self.assertEqual([self.gates.studio_placeholders(data)[k] for k in ('gap', 'op', 'plan', 'step')],
                              ['src/b', 'op:b', 'fix', 'M02'])   # the most cards but a retained one, a waiting operation, a step with tasks
+            fns = [{'id': 'a.ts#one', 'callers': ['x'], 'callees': []}, {'id': 'b.ts#hub', 'callers': ['x', 'y'], 'callees': ['z']}]
+            (data / 'functions.json').write_text(json.dumps({'functions': fns}), encoding='utf-8')
+            gallery = [{'id': '/a#A', 'shots': []}, {'id': '/b#B', 'shots': [{'path': 's/b.png', 'width': 390}]}]
+            (data / 'screens.json').write_text(json.dumps({'screens': gallery}), encoding='utf-8')
+            self.assertEqual([self.gates.studio_placeholders(data)[k] for k in ('function', 'screen_page')], ['b.ts#hub', '/b#B'])
             (data / 'paths.json').unlink()
             pages = dict((e['name'], e) for e, _ in self.gates.studio_pages(self.matrix, data, 'http://127.0.0.1:1/', data))
         self.assertEqual(pages['system-focus']['url'], 'http://127.0.0.1:1/index.html#/system?focus=src%2Fb')
         self.assertEqual(pages['problem']['url'], 'http://127.0.0.1:1/index.html#/problems?card=TASK-2')
         self.assertEqual(pages['gap']['url'], 'http://127.0.0.1:1/index.html#/change/gaps/src%2Fb')
         self.assertEqual(pages['operation']['url'], 'http://127.0.0.1:1/index.html#/ops/op%3Ab')
+        self.assertEqual(pages['function']['url'], 'http://127.0.0.1:1/index.html#/system/f/b.ts%23hub')
         self.assertTrue(pages['file-home']['url'].startswith('file://') and pages['file-home']['url'].endswith('/index.html#/'))
         self.assertNotIn('path', pages['home'])

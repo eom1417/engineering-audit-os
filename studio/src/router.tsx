@@ -10,6 +10,7 @@ import { DataPathsPage } from './pages/data/DataPaths'
 import { InfraLensPage } from './pages/infra/InfraLens'
 import { IdealPage } from './pages/ideal/IdealPage'
 import { DecisionsPage } from './pages/Decisions'
+import { FunctionPage, FunctionsPage } from './pages/functions/FunctionsPage'
 import { HomePage } from './pages/Home'
 import { LibraryPage } from './pages/Library'
 import { EvidencePage } from './pages/problems/EvidencePage'
@@ -25,6 +26,7 @@ import { TimelinePage } from './pages/paths/TimelinePage'
 import { HiddenPage } from './pages/system/hidden/HiddenPage'
 import { JourneysPage } from './pages/system/journeys/JourneysPage'
 import { RunPage } from './pages/runs/RunPage'
+import { ScreenPage, ScreensPage } from './pages/screens/ScreensPage'
 import { RunsPage } from './pages/runs/RunsPage'
 import { GalleryPage } from './gallery/Gallery'
 import { Shell } from './shell/Shell'
@@ -64,6 +66,10 @@ export function makeRouter(dev: () => boolean) {
     createRoute({ getParentRoute: () => root, path: '/system/hidden', component: HiddenPage, validateSearch: params('focus', 'only', 'hidden') }),
     createRoute({ getParentRoute: () => root, path: '/system/data', component: DataPathsPage, validateSearch: params('view', 'store', 'show', 'reads') }),
     createRoute({ getParentRoute: () => root, path: '/system/pipeline', component: PipelinePage, validateSearch: params('p', 'view', 'show', 'stage', 'hidden', 'follow') }),
+    createRoute({ getParentRoute: () => root, path: '/system/functions', component: FunctionsPage, validateSearch: params('q', 'sort', 'show', 'kind', 'module') }),
+    createRoute({ getParentRoute: () => root, path: '/system/f/$functionId', component: FunctionPage, validateSearch: params('q', 'sort', 'show', 'kind', 'module') }),
+    createRoute({ getParentRoute: () => root, path: '/screens', component: ScreensPage, validateSearch: params('show') }),
+    createRoute({ getParentRoute: () => root, path: '/screens/$screenId', component: ScreenPage, validateSearch: params('vp', 'compare') }),
     createRoute({ getParentRoute: () => root, path: '/flows/$pathId', component: FlowPage, validateSearch: params('view', 'show', 'node', 'traced') }),
     createRoute({ getParentRoute: () => root, path: '/problems', component: ProblemsPage, validateSearch: params(...PROBLEM_KEYS) }),
     createRoute({ getParentRoute: () => root, path: '/evidence/$factId', component: EvidencePage }),
