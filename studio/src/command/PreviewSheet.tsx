@@ -273,7 +273,8 @@ export function PreviewSheet() {
       const inputs = request.verb ? undefined : inputsOf()
       if (inputs === null) { setBusy(false); return }
       const run = await actions.client.start({ action: request.verb ?? request.action ?? '', verb: request.verb, selection: (request.selection ?? undefined) as Selection | undefined,
-        inputs: inputs ?? undefined, assistant: assistant ?? undefined, confirm: preview.confirm?.token ?? null })
+        // The assistant the preview showed, never the server's own pick at start time (it may differ a minute later)
+        inputs: inputs ?? undefined, assistant: assistant ?? preview.assistant?.id ?? undefined, confirm: preview.confirm?.token ?? null })
       command.close()
       if (request.verb) command.clear()
       toast(run.state === 'queued' && run.position ? w('queuedToast', { label: run.label[lang] }) : w('started', { label: run.label[lang] }))

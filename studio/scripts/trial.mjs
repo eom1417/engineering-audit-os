@@ -127,13 +127,24 @@ async function confirmPreview(page, assistant) {
     await page.waitForTimeout(500)
   }
   if (assistant) {
-    const choice = page.locator('[role="dialog"] [role="radio"], [role="dialog"] [aria-pressed]').filter({ hasText: assistant })
+    // The assistant the owner picks: its toggle when several are ready, else the one the preview names as ready
+    const dialog = page.locator('[role="dialog"]')
+    const choice = dialog.locator('[role="radio"], [aria-pressed], [aria-checked]').filter({ hasText: assistant }).first()
+    const on = async () => (await choice.getAttribute('aria-checked')) === 'true' || (await choice.getAttribute('aria-pressed')) === 'true'
+      || (await choice.getAttribute('data-selected')) !== null
+    let chosen = false
     if (await choice.count()) {
-      if ((await choice.first().getAttribute('aria-checked')) !== 'true' && (await choice.first().getAttribute('aria-pressed')) !== 'true') await press(choice.first(), `assistant ${assistant}`)
-      await page.waitForTimeout(1500)
-      while (await start.isDisabled() && Date.now() < end + 60000) await page.waitForTimeout(500)
+      if (!(await on())) {
+        await press(choice, `assistant ${assistant}`)
+        await page.waitForTimeout(1500)
+        while (await start.isDisabled() && Date.now() < end + 60000) await page.waitForTimeout(500)
+      }
+      chosen = await on()
+    } else {
+      chosen = (await dialog.locator('strong').filter({ hasText: assistant }).count()) > 0
     }
-    result.assistant_shown = await page.locator('[role="dialog"]').innerText().then((t) => t.includes(assistant)).catch(() => false)
+    result.assistant_chosen = chosen
+    if (!chosen) throw new Error(`the preview does not offer ${assistant} as ready`)
   }
   await snap(page, 'preview')
   await press(start, 'confirm')
@@ -241,86 +252,75 @@ async function decisions() {
     result.recommended = out
   }
 
-  // A typed answer, unrelated to the options: saved exactly, queued, still there after a reload
+  // A typed answer, unrelated to the options, with the keyboard alone: Tab to "write a different answer", Enter, type,
+  // Tab to send, Enter. The first send fails (the connection drops): the error shows, the draft stays, nothing is
+  // marked answered. Enter again sends it; it is saved exactly, queued, and still there after a reload.
   if (picked.custom) {
     const row = picked.custom
     const box = card(page, row.id)
-    await box.scrollIntoViewIfNeeded()
-    await press(box.locator('[data-write-answer]'), 'write a different answer')
-    await box.locator('textarea').fill(context.answers.decision)
-    await press(box.locator('[data-send-answer]'), 'send the typed answer')
-    const saved = await savedOf(page, row.id)
-    await snap(page, 'custom-saved')
-    const out = { decision: row.id, saved: saved?.saved === 'text', shown: saved?.text?.includes(context.answers.decision.split('\n')[0]) }
-    await page.reload()
-    await page.waitForSelector('main#main')
-    await go(page, '#/decisions')
-    const again = await savedOf(page, row.id, 60000)
-    out.after_reload = again?.saved === 'text' && again.text.includes(context.answers.decision.split('\n')[0])
-    await snap(page, 'custom-after-reload')
-    result.custom = out
-  }
-
-  // The keyboard alone: Tab to "write a different answer", Enter, type, Tab to send, Enter
-  if (picked.keyboard) {
-    const row = picked.keyboard
-    const out = { decision: row.id, keyboard_only: true }
+    const answerPath = `**/api/decisions/${encodeURIComponent(row.id)}/answer`
+    const keyboard = { decision: row.id, keyboard_only: true }
+    const draft = { decision: row.id, how: 'the browser connection to the answer endpoint was dropped once (Playwright route abort)' }
     await page.mouse.click(5, 5)
     await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo(0, 0) })
     let found = false
-    for (let i = 0; i < 600 && !found; i++) {
+    for (let i = 0; i < 800 && !found; i++) {
       await page.keyboard.press('Tab')
       found = await page.evaluate((id) => {
         const el = document.activeElement
         return Boolean(el && el.hasAttribute('data-write-answer') && el.closest(`[data-hook="decision:${id}"]`))
       }, row.id)
     }
-    out.reached_by_tab = found
+    keyboard.reached_by_tab = found
     if (found) {
-      out.focus_visible = await page.evaluate(() => {
+      keyboard.focus_visible = await page.evaluate(() => {
         const style = getComputedStyle(document.activeElement)
         return (style.outlineStyle !== 'none' && parseFloat(style.outlineWidth) > 0) || style.boxShadow !== 'none'
       })
       await snap(page, 'keyboard-focus')
       await page.keyboard.press('Enter')
       actions += 1
-      await page.waitForTimeout(400)
-      await page.keyboard.type(context.answers.keyboard)
-      for (let i = 0; i < 6; i++) {
+      await page.waitForTimeout(500)
+      if (!(await page.evaluate(() => document.activeElement?.tagName === 'TEXTAREA'))) await page.keyboard.press('Tab')
+      await page.keyboard.type(context.answers.decision)
+      let dropped = 0
+      await page.route(answerPath, (route) => { dropped += 1; return route.abort('connectionreset') })
+      let onSend = false
+      for (let i = 0; i < 6 && !onSend; i++) {
         await page.keyboard.press('Tab')
-        if (await page.evaluate(() => document.activeElement?.hasAttribute('data-send-answer'))) break
+        onSend = await page.evaluate(() => Boolean(document.activeElement?.hasAttribute('data-send-answer')))
+      }
+      keyboard.reached_send = onSend
+      await page.keyboard.press('Enter')
+      actions += 1
+      await page.waitForTimeout(2000)
+      draft.dropped = dropped
+      draft.failed_visibly = await box.locator('[role="alert"]').isVisible().catch(() => false)
+      draft.not_marked_answered = (await box.locator('[data-hook="decision-status"][data-saved]').count()) === 0
+      draft.draft_kept = (await box.locator('textarea').inputValue().catch(() => '')) === context.answers.decision
+      await snap(page, 'draft-failed')
+      await page.unroute(answerPath)
+      if (!(await page.evaluate(() => Boolean(document.activeElement?.hasAttribute('data-send-answer'))))) {
+        keyboard.refocused = true
+        await box.locator('[data-send-answer]').focus()
       }
       await page.keyboard.press('Enter')
       actions += 1
       const saved = await savedOf(page, row.id)
-      out.saved = saved?.saved === 'text' && saved.text.includes(context.answers.keyboard)
-      await snap(page, 'keyboard-saved')
+      draft.saved_after_retry = saved?.saved === 'text'
+      keyboard.saved = saved?.saved === 'text' && saved.text.includes(context.answers.decision.split('\n')[0])
+      await snap(page, 'custom-saved')
+      const custom = { decision: row.id, saved: keyboard.saved, typed_with: 'keyboard' }
+      await page.reload()
+      await page.waitForSelector('main#main')
+      await go(page, '#/decisions')
+      const again = await savedOf(page, row.id, 60000)
+      custom.after_reload = again?.saved === 'text' && again.text.includes(context.answers.decision.split('\n')[0])
+      await snap(page, 'custom-after-reload')
+      result.custom = custom
     }
-    result.keyboard = out
-  }
-
-  // A send that fails (the connection drops): the error shows, the draft stays, nothing is marked answered; then it goes
-  if (picked.draft) {
-    const row = picked.draft
-    const box = card(page, row.id)
-    const out = { decision: row.id, how: 'the browser connection to the answer endpoint was dropped once (Playwright route abort)' }
-    await box.scrollIntoViewIfNeeded()
-    await press(box.locator('[data-write-answer]'), 'write a different answer')
-    await box.locator('textarea').fill(context.answers.draft)
-    let dropped = 0
-    await page.route(`**/api/decisions/${encodeURIComponent(row.id)}/answer`, (route) => { dropped += 1; return route.abort('connectionreset') })
-    await press(box.locator('[data-send-answer]'), 'send (fails)')
-    await page.waitForTimeout(1500)
-    out.dropped = dropped
-    out.failed_visibly = await box.locator('[role="alert"]').isVisible().catch(() => false)
-    out.not_marked_answered = (await box.locator('[data-hook="decision-status"][data-saved]').count()) === 0
-    out.draft_kept = (await box.locator('textarea').inputValue()) === context.answers.draft
-    await snap(page, 'draft-failed')
-    await page.unroute(`**/api/decisions/${encodeURIComponent(row.id)}/answer`)
-    await press(box.locator('[data-send-answer]'), 'send again')
-    const saved = await savedOf(page, row.id)
-    out.saved_after_retry = saved?.saved === 'text'
-    result.draft = out
+    result.keyboard = keyboard
+    result.draft = draft
   }
 
   // The same questions, the same answers, in the other language

@@ -120,8 +120,10 @@ def recommended_option(decision):
 
 
 def pick_decisions(rows):
-    """Distinct waiting report questions for each live case: {role: row}. `recommended` needs a recommendation and a
-    second option; the others any waiting question with options."""
+    """Distinct waiting report questions for the live cases: {role: row}. `recommended` needs a recommendation and a
+    second option; `custom` (typed with the keyboard alone, through a failed send) and `concurrent` (six identical
+    answers at once) any waiting question with options. Without a third question, `concurrent` repeats the answer
+    the recommended case saved, six times at once."""
     waiting = [r for r in rows if not r.get('response') and (r.get('question') or {}).get('state', 'waiting') == 'waiting'
                and len((r.get('question') or {}).get('options') or []) >= 2]
     chosen, used = {}, set()
@@ -129,7 +131,7 @@ def pick_decisions(rows):
     if rec:
         chosen['recommended'] = rec
         used.add(rec['id'])
-    for role in ('custom', 'keyboard', 'draft', 'concurrent'):
+    for role in ('custom', 'concurrent'):
         row = next((r for r in waiting if r['id'] not in used), None)
         if row:
             chosen[role] = row
@@ -467,28 +469,31 @@ def auth_case(api, port):
     return case('auth_origin_csrf', not wrong, {'probes': probes, 'expected': expected, 'wrong': wrong})
 
 
-def concurrency_case(api, row, work):
-    """The same answer sent six times at once: one saved answer, one run; a different answer then refused."""
-    if not row: return case('idempotency_concurrent_answers', False, {}, 'the report has no fifth waiting question with options')
-    option = row['question']['options'][0]['id']
+def concurrency_case(api, row, work, saved=None):
+    """The same answer sent six times at once: one saved answer, one run; a different answer then refused. `saved`:
+    the option the owner already chose on this question in the browser (the answer is then repeated, not first)."""
+    if not row: return case('idempotency_concurrent_answers', False, {}, 'the report has no waiting question with options')
+    option = saved or row['question']['options'][0]['id']
     body = {'scope': row['scope'], 'option': option, 'text': None}
     with concurrent.futures.ThreadPoolExecutor(6) as pool:
         answers = list(pool.map(lambda _: api.post(f"/api/decisions/{row['id']}/answer", body), range(6)))
     runs = {((p or {}).get('decision') or {}).get('response', {}).get('run') for _, p in answers}
-    conflict = api.post(f"/api/decisions/{row['id']}/answer", {'scope': row['scope'], 'option': row['question']['options'][1]['id'], 'text': None})
-    authority = api.post(f"/api/decisions/{row['id']}/answer", {'scope': row['scope'], 'option': row['question']['options'][0].get('label'), 'text': None})
+    other = next(o['id'] for o in row['question']['options'] if o['id'] != option)
+    conflict = api.post(f"/api/decisions/{row['id']}/answer", {'scope': row['scope'], 'option': other, 'text': None})
+    label = next(o.get('label') for o in row['question']['options'] if o['id'] == option)
+    authority = api.post(f"/api/decisions/{row['id']}/answer", {'scope': row['scope'], 'option': label, 'text': None})
     both = api.post(f"/api/decisions/{row['id']}/answer", {'scope': row['scope'], 'option': option, 'text': 'and words'})
     blank = api.post(f"/api/decisions/{row['id']}/answer", {'scope': row['scope'], 'option': None, 'text': '   \n '})
     long = api.post(f"/api/decisions/{row['id']}/answer", {'scope': row['scope'], 'option': None, 'text': 'x' * 4001})
     stale = api.post(f"/api/decisions/{row['id']}/answer", {'scope': 'stale-' + row['scope'], 'option': option, 'text': None})
     rows = (api.get('/api/decisions')[1] or {}).get('decisions') or []
-    saved = next((r for r in rows if r['id'] == row['id']), {})
+    saved_row = next((r for r in rows if r['id'] == row['id']), {})
     all_runs = (api.get('/api/runs?all=1')[1] or {}).get('runs') or []
     made = [r['id'] for r in all_runs if r['id'] in runs]
     evidence = {'decision': row['id'], 'statuses': [s for s, _ in answers], 'runs': sorted(r for r in runs if r), 'runs_created': made,
                 'conflicting_answer': conflict[0], 'label_as_option': authority[0], 'option_and_text': both[0], 'blank_text': blank[0],
-                'text_4001': long[0], 'stale_scope': stale[0], 'saved_label': (saved.get('response') or {}).get('label'),
-                'source_label': row['question']['options'][0].get('label'), 'history': (saved.get('response') or {}).get('history')}
+                'text_4001': long[0], 'stale_scope': stale[0], 'saved_label': (saved_row.get('response') or {}).get('label'),
+                'source_label': label, 'history': (saved_row.get('response') or {}).get('history'), 'first_answer': not saved}
     passed = (all(s == 200 for s, _ in answers) and len(runs) == 1 and len(made) == 1 and conflict[0] == 409
               and authority[0] == 400 and both[0] == 400 and blank[0] == 400 and long[0] == 400 and stale[0] == 409
               and evidence['saved_label'] == evidence['source_label'])
@@ -606,8 +611,9 @@ def trial(name, source, assistant, lang, measure, skip=()):
                       'options': [o['id'] for o in v['question']['options']]} for k, v in picked.items()}}, LIMITS['decisions']) if audited else {}
     screenshots += decided.get('screenshots') or []
     failures += decided.get('errors') or []
-    cases['idempotency_concurrent_answers'] = concurrency_case(api, picked.get('concurrent'), work)
-    answered = [picked[k]['id'] for k in ('recommended', 'custom', 'keyboard', 'draft') if k in picked and (decided.get(k) or {}).get('saved')]
+    cases['idempotency_concurrent_answers'] = concurrency_case(api, picked.get('concurrent') or picked.get('recommended'), work,
+                                                               saved=(decided.get('recommended') or {}).get('chosen') if not picked.get('concurrent') else None)
+    answered = [picked[k]['id'] for k in ('recommended', 'custom') if k in picked and (decided.get(k) or {}).get('saved')]
     saved_rows = {r['id']: r for r in (api.get('/api/decisions')[1] or {}).get('decisions') or []}
     other_server = Server(work, 'other', other, other_home, free_port(), report=studio.parent if studio else None)
     cases['refresh_reconciliation_project_isolation'] = (reconcile_isolation_case(api, info, other_server, answered, home, project) if studio
@@ -653,6 +659,8 @@ def trial(name, source, assistant, lang, measure, skip=()):
     videos += [v for v in [fixed.get('video')] if v]
     failures += fixed.get('errors') or []
     if not allowed['run_code']: failures.append(allowed['why'])
+    if fixed.get('run') and ((api.get(f"/api/runs/{fixed['run']}")[1] or {}).get('run') or {}).get('assistant') != assistant:
+        failures.append(f"the fix ran with another assistant than {ASSISTANTS[assistant]}")
     run = (api.get(f"/api/runs/{fixed['run']}")[1] or {}).get('run') if fixed.get('run') else {}
     result = (run or {}).get('result') or {}
     guided, state = _guided(home, project)

@@ -49,9 +49,9 @@ class Picking(unittest.TestCase):
                 decision('five'), decision('single', options=('a',)), {**decision('done'), 'response': {'option': 'a'}}]
         picked = trial.pick_decisions(rows)
         self.assertEqual(picked['recommended']['id'], 'two')
-        self.assertEqual([picked[k]['id'] for k in ('custom', 'keyboard', 'draft', 'concurrent')], ['one', 'three', 'four', 'five'])
-        self.assertEqual(len({row['id'] for row in picked.values()}), 5)
-        self.assertNotIn('concurrent', trial.pick_decisions(rows[:3]))
+        self.assertEqual([picked[k]['id'] for k in ('custom', 'concurrent')], ['one', 'three'])
+        self.assertEqual(len({row['id'] for row in picked.values()}), 3)
+        self.assertEqual(sorted(trial.pick_decisions(rows[:2])), ['custom', 'recommended'])
 
     def test_the_group_is_the_smallest_whole_group_of_fixable_cards(self):
         cards = [{'id': 'T1', 'category': 'security', 'severity': 'high', 'milestone': 'M1', 'fixable': True},

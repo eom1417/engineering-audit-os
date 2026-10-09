@@ -316,6 +316,13 @@ class Adapters(unittest.TestCase):
         self.assertTrue(adapters.ClaudeCode(command=[sys.executable, str(FAKE)]).available())
         self.assertFalse(adapters.ClaudeCode(command=['/nonexistent/claude']).detect()['installed'])
 
+    def test_a_probe_that_times_out_keeps_the_last_detection(self):
+        ready = adapters.ClaudeCode(command=[sys.executable, str(FAKE)])
+        self.assertTrue(ready.detect(fresh=True)['logged_in'])
+        with mock.patch.object(adapters.ClaudeCode, '_run', return_value=None):
+            self.assertEqual((ready.detect(fresh=True)['installed'], ready.detect(fresh=True)['logged_in']), (True, True))
+            self.assertFalse(adapters.ClaudeCode(command=[sys.executable, str(FAKE)]).detect(fresh=True)['installed'])
+
 
 class Prompts(unittest.TestCase):
     def test_a_question_block_is_read_and_normalised(self):
