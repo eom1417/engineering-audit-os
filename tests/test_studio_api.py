@@ -514,3 +514,18 @@ class KeptToken(unittest.TestCase):
 
     def test_no_path_no_token(self):
         self.assertIsNone(server._kept_token(None))
+
+
+class RemoteLoginBoot(unittest.TestCase):
+    """boot.js carries the launch token only on a remote Studio whose owner opted in (server._remote_login_trusted)."""
+
+    def ctx(self, remote):
+        keys = server.Keys(port=8096, remote_origin='https://p--8096.dev.remote.e-m.sa' if remote else None)
+        return mock.Mock(keys=keys)
+
+    def test_opt_in_on_remote_only(self):
+        with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '1'}):
+            self.assertTrue(server._remote_login_trusted(self.ctx(True)))
+            self.assertFalse(server._remote_login_trusted(self.ctx(False)))
+        with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': ''}):
+            self.assertFalse(server._remote_login_trusted(self.ctx(True)))

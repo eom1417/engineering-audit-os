@@ -162,6 +162,12 @@ def pages(ctx):
         target = (root / name).resolve()
         if not target.is_relative_to(root) or not target.is_file() or target.name == 'index.html':
             return Response(status_code=404)
+        if name == 'boot.js' and _remote_login_trusted(ctx):
+            # The owner's remote address already sits behind the Remote sign-in, which loses the token in the address
+            # on some redirects: the page gets the token from its own boot script instead (opt-in, remote only).
+            given = f"window.EAOS_BOOT_TOKEN={json.dumps(ctx.keys.token)};try{{sessionStorage.setItem('eaos.token',window.EAOS_BOOT_TOKEN)}}catch(e){{}}\n"
+            return Response(given + target.read_text(encoding='utf-8'), media_type='text/javascript',
+                            headers={'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store'})
         return FileResponse(target, headers={'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-cache'})
 
     return [Route('/', index), Route('/index.html', index), Route('/{path:path}', asset)]
@@ -288,6 +294,12 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
     finally:
         launch.record_path(state).unlink(missing_ok=True)
     return 0
+
+
+def _remote_login_trusted(ctx):
+    """EAOS_STUDIO_TRUST_REMOTE_LOGIN=1 on a server started with --remote-origin: the sign-in in front of it guards the
+    Studio, so the launch token travels in boot.js rather than in the address. Never on a local Studio."""
+    return bool(ctx.keys.remote_origin) and os.environ.get('EAOS_STUDIO_TRUST_REMOTE_LOGIN') == '1'
 
 
 def _kept_token(path):
