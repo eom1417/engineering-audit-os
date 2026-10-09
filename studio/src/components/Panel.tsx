@@ -8,9 +8,10 @@ import { Go, type Search } from './Go'
 import { Icon, type IconName } from './Icon'
 import css from './Panel.module.css'
 
-export function Panel({ children, pad, emphasis, className, as: Tag = 'div', label }:
-  { children: ReactNode; pad?: boolean; emphasis?: boolean; className?: string; as?: 'div' | 'section' | 'article' | 'aside'; label?: string }) {
-  return <Tag aria-label={label} className={[css.panel, pad && css.pad, emphasis && css.emphasis, className].filter(Boolean).join(' ')}>{children}</Tag>
+export function Panel({ children, pad, emphasis, className, as: Tag = 'div', label, hook }:
+  { children: ReactNode; pad?: boolean; emphasis?: boolean; className?: string; as?: 'div' | 'section' | 'article' | 'aside'; label?: string; hook?: string }) {
+  // `hook`: a stable data-hook for the real trials (tools/studio_trial.py), the same in every language
+  return <Tag aria-label={label} data-hook={hook} className={[css.panel, pad && css.pad, emphasis && css.emphasis, className].filter(Boolean).join(' ')}>{children}</Tag>
 }
 
 export function Section({ title, count, unit, children, className, id }:
@@ -50,8 +51,8 @@ export function RowLink({ to, search, current, label, compact, ...body }: RowBod
 }
 
 /** A row that selects or opens something in place (a sheet, the inspector). */
-export function RowButton({ onPress, pressed, ...body }: RowBody & { onPress: () => void; pressed?: boolean }) {
-  return <AriaButton className={css.row} onPress={onPress} aria-pressed={pressed}><RowInside {...body} /></AriaButton>
+export function RowButton({ onPress, pressed, hook, ...body }: RowBody & { onPress: () => void; pressed?: boolean; hook?: string }) {
+  return <AriaButton className={css.row} onPress={onPress} aria-pressed={pressed} data-hook={hook}><RowInside {...body} /></AriaButton>
 }
 
 /** The first `first` items, then "Show all N" (DESIGN.md: never a phone list longer than a screen by default). */

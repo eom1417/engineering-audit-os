@@ -50,7 +50,7 @@ export function GroupSheet() {
         <ul className={css.groupList}>
           {KINDS.map((k) => (
             <li key={k.by}>
-              <RowButton icon="layers" title={w(k.word)} end={<N value={groups[k.by].length} />} onPress={() => setKind(k.by)} />
+              <RowButton icon="layers" title={w(k.word)} end={<N value={groups[k.by].length} />} onPress={() => setKind(k.by)} hook={`group-kind:${k.by}`} />
             </li>
           ))}
         </ul>
@@ -62,7 +62,7 @@ export function GroupSheet() {
             <ul className={css.groupList} aria-label={title}>
               {chosen.slice(0, 60).map((group) => (
                 <li key={`${group.by}:${group.value}`}>
-                  <RowButton title={<GroupTitle group={group} />} end={<span className={css.groupCount}>{w('cardsCount', { n: group.ids.length })}</span>}
+                  <RowButton hook={`group:${group.by}:${group.value}`} title={<GroupTitle group={group} />} end={<span className={css.groupCount}>{w('cardsCount', { n: group.ids.length })}</span>}
                     onPress={() => { command.pick(group.ids, { by: group.by, value: group.value, label: group.by === 'severity' ? t(`sev${group.value[0].toUpperCase()}${group.value.slice(1)}` as 'sevHigh') : group.label }); close(false) }} />
                 </li>
               ))}

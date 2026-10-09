@@ -365,10 +365,16 @@ class Actions:
         record = self.store.load(run)
         branch = (record.get('result') or {}).get('branch')
         if not branch: raise LookupError('this run handed no branch over')
+        if record.get('outcome'): raise LookupError(f"this run's branch was already {record['outcome']}")
+        # accept and undo act on the newest waiting branch: refuse when that is not this run's, so a decision on one
+        # run never takes in or throws away another run's work
+        newest = self.manager.newest_waiting()
+        if newest != branch:
+            raise LookupError(f'another branch ({newest}) waits after {branch}: decide that one first' if newest else f'{branch} is not waiting for a decision any more')
         self.store.append(run, 'action', {'en': f'You chose to {operation} {branch}', 'ar': f"اخترت {'اعتماد' if operation == 'accept' else 'رمي'} {branch}"},
                           {'action': operation, 'by': 'person', 'arguments': {'branch': branch}})
         result = self.manager.call(operation, {'person_agreed': True} if operation == 'accept' else {})
-        ok = isinstance(result, dict) and not result.get('error') and result.get('status') not in ('needs_agreement', 'unsaved_changes', 'conflict', 'nothing_waiting')
+        ok = isinstance(result, dict) and not result.get('error') and result.get('status') == {'accept': 'accepted', 'undo': 'undone'}[operation]
         words = {'en': f"{'Taken in' if operation == 'accept' else 'Thrown away'}: {branch}" if ok else f"{operation} did not happen: {result.get('status') or result.get('error')}",
                  'ar': f"{'اعتُمد' if operation == 'accept' else 'رُمي'}: {branch}" if ok else f"ما تم: {result.get('status') or result.get('error')}"}
         self.store.append(run, 'result' if ok else 'error', words,

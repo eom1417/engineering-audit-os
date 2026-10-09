@@ -130,6 +130,11 @@ export function useActions(): Actions {
   return value
 }
 
+/** The command centre where a page may be rendered without it (a test, the gallery): null instead of an error. */
+export function useActionsMaybe(): Actions | null {
+  return useContext(ActionsContext)
+}
+
 export interface FollowedRun {
   run: Run | null
   events: RunEvent[]

@@ -49,7 +49,7 @@ export function QuestionCard({ question, runLabel, compact }: { question: Questi
   // Two short answers sit side by side; longer ones stack, each on its own line
   const stacked = ordered.length !== 2 || ordered.some((o) => o.label[lang].length > 14)
   return (
-    <Panel as="article" emphasis className={css.question} label={question.text[lang]}>
+    <Panel as="article" emphasis className={css.question} label={question.text[lang]} hook={`question:${question.id}`}>
       <div className={css.qHead}>
         <Chip tone="accent">{w('runAsks')}</Chip>
         {runLabel && !compact && <Go to={`/runs/${encodeURIComponent(question.run)}`} className={css.qRun}><span><Txt>{w('fromRun', { label: runLabel })}</Txt></span></Go>}
@@ -61,20 +61,20 @@ export function QuestionCard({ question, runLabel, compact }: { question: Questi
       <div className={[css.qAnswers, stacked && css.qAnswersMany].filter(Boolean).join(' ')}>
         {ordered.map((option) => (
           <Button key={option.id} variant={option === recommended ? 'primary' : 'secondary'} large icon={option === recommended ? 'check' : undefined}
-            className={css.qAnswer} busy={busy} isDisabled={busy} onPress={() => send(option.id)}>
+            className={css.qAnswer} busy={busy} isDisabled={busy} onPress={() => send(option.id)} data-option={option.id} data-recommended={option === recommended || undefined}>
             <span><Txt>{option.label[lang]}</Txt>{option === recommended && <> · {w('recommended')}</>}</span>
           </Button>
         ))}
       </div>
       {!writing ? (
-        <Button variant="ghost" className={css.qMore} onPress={() => setWriting(true)}>{w('writeAnswer')}</Button>
+        <Button variant="ghost" className={css.qMore} onPress={() => setWriting(true)} data-write-answer>{w('writeAnswer')}</Button>
       ) : (
         <form className={css.qWrite} onSubmit={(e) => { e.preventDefault(); if (text.trim()) void send(null, text) }}>
           <TextField value={text} onChange={setText} className={css.qField} autoFocus>
             <Label>{w('customAnswerLabel')}</Label>
             <TextArea className={css.input} maxLength={4000} />
           </TextField>
-          <Button type="submit" variant="secondary" busy={busy} isDisabled={busy || !text.trim()}>{w('send')}</Button>
+          <Button type="submit" variant="secondary" busy={busy} isDisabled={busy || !text.trim()} data-send-answer>{w('send')}</Button>
         </form>
       )}
     </Panel>

@@ -3,7 +3,9 @@
 import type { ReactNode } from 'react'
 import { Icon } from '../components/Icon'
 import { Panel, Skeleton, StateMessage } from '../components/Panel'
-import { CopyRequestButton } from '../components/Button'
+import { Button, CopyRequestButton } from '../components/Button'
+import { useCommandMaybe } from '../command/command'
+import { useActionsMaybe } from '../data/actions/store'
 import { useLoaded, useSections } from '../data/context'
 import type { SectionName, StudioData } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
@@ -12,17 +14,26 @@ import css from './Layout.module.css'
 export { css as layout }
 
 /** Renders children with the loaded report, or the designed state when there is none. `needs` names the sections the
- * page reads (data/stages.ts); without it the page waits for every section of the report. */
-export function WithData({ children, needs = 'all' }: { children: (data: StudioData) => ReactNode; needs?: readonly SectionName[] | 'all' }) {
+ * page reads (data/stages.ts); without it the page waits for every section of the report. `empty`: what a page still
+ * shows above the empty state before the first check (the inbox: a run's question). */
+export function WithData({ children, needs = 'all', empty }: { children: (data: StudioData) => ReactNode; needs?: readonly SectionName[] | 'all'; empty?: ReactNode }) {
   const loaded = useLoaded()
   const waiting = useSections(needs)
   const { t, lang } = usePrefs()
+  const command = useCommandMaybe()
+  const live = useActionsMaybe()?.mode === 'live' && command !== null
   if (loaded.kind === 'loading') return <div className={css.page}><Panel><Skeleton label={t('loading')} /></Panel></div>
   if (loaded.kind === 'empty') {
     const request = lang === 'ar' ? 'افحص هذا المشروع بأداة audit من EAOS، ثم افتح الاستوديو من مجلد التقرير.' : 'Check this project with the EAOS audit tool, then open the Studio from the report folder.'
+    // Live, the check starts from here (its preview first); the request to copy stays as the secondary way
     return (
       <div className={css.page}>
-        <Panel><StateMessage title={t('emptyTitle')} sub={t('emptySub')} action={<div><CopyRequestButton request={request} tool="audit" /></div>} /></Panel>
+        {empty}
+        <Panel><StateMessage title={t('emptyTitle')} sub={t(live ? 'emptySubLive' : 'emptySub')} action={
+          <div className={css.emptyActions}>
+            {live && <Button variant="primary" icon="play" data-start-action="audit" onPress={() => command?.open({ action: 'audit' })}>{t('checkNow')}</Button>}
+            <CopyRequestButton request={request} tool="audit" />
+          </div>} /></Panel>
       </div>
     )
   }

@@ -313,6 +313,8 @@ class Manager:
         if isinstance(result, dict) and result.get('status') == 'needs_agreement':
             question = prompts.consent_question(result)
             return self._ask(run, question)
+        if isinstance(result, dict) and result.get('status') == 'needs_branch' and result.get('branches'):
+            return self._ask(run, prompts.branch_question(result))
         payload = self._outcome(run, answer=result)
         self.store.append(run, 'result', {'en': 'Done', 'ar': 'تم'}, payload)
         self.set_state(run, 'done', result=payload)
@@ -486,7 +488,12 @@ class Manager:
                 threading.Thread(target=self._handoff, args=(run,), daemon=True).start()
             return self.store.load(run)
         if record.get('mode') == 'direct':
-            if question.get('why') == 'run consent' and option == 'yes':
+            if question.get('why') == 'branch':
+                # The person picked the branch in the Studio (their own press, behind the token, CSRF and Origin
+                # checks): it is recorded as their choice, and the step runs again on that branch
+                self._choose_branch(option, label['en'])
+                threading.Thread(target=self._direct, args=(run,), daemon=True).start()
+            elif question.get('why') == 'run consent' and option == 'yes':
                 inputs = {**(record.get('inputs') or {}), 'person_agreed': True}
                 self.store.update(run, inputs=inputs)
                 threading.Thread(target=self._direct, args=(run,), daemon=True).start()
@@ -498,6 +505,12 @@ class Manager:
         if adapter is None: self._fail(run, 'the assistant of this run is not available any more')
         else: threading.Thread(target=self._launch, args=(run, adapter, prompts.answer(question, option, text, self.lang), record.get('session')), daemon=True).start()
         return self.store.load(run)
+
+    def _choose_branch(self, branch, said):
+        from ... import agent_tools, guided
+        state = agent_tools.project_state(str(self.project))
+        state.setdefault('questions', []).append({'id': 'branch', 'kind': 'choice', 'answer': branch, 'said': str(said)[:300], 'via': 'studio'})
+        guided.choose(state, branch)
 
     # the handoff
     def _handoff(self, run):
@@ -552,6 +565,12 @@ class Manager:
         from ... import guided
         state = guided.load(self.project) or {}
         return {wave['branch'] for wave in state.get('waves') or [] if wave.get('status') == 'applied' and wave.get('branch')}
+
+    def newest_waiting(self):
+        """The branch accept and undo act on: the newest wave still waiting for the person, or None."""
+        from ... import guided
+        state = guided.load(self.project) or {}
+        return next((w.get('branch') for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
 
     def _outcome(self, run, answer=None):
         """The result event's data: the new branch, its diff and its checks, the cards it closes, and the assistant's words."""

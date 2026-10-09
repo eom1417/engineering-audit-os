@@ -16,6 +16,7 @@ import difflib
 import json
 import os
 import signal
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -128,9 +129,13 @@ class Adapter:
         except (OSError, subprocess.SubprocessError): return None
 
     def detect(self, fresh=False):
-        """{id, name, installed, logged_in, version}; cached a minute."""
+        """{id, name, installed, logged_in, version}; cached a minute. A probe that does not answer in time (a busy
+        computer) keeps what the last one found rather than calling a ready assistant missing."""
         if self._detected and not fresh and time.monotonic() - self._detected[0] < 60: return self._detected[1]
         version = self._run('--version')
+        if version is None and self._detected and self._detected[1]['installed'] and shutil.which(self.command[0]):
+            self._detected = (time.monotonic(), self._detected[1])
+            return self._detected[1]
         installed = bool(version and version.returncode == 0)
         found = {'id': self.id, 'name': self.name, 'installed': installed, 'logged_in': installed and self.logged_in(),
                  'version': (version.stdout.strip().splitlines() or [''])[0][:80] if installed else None}
@@ -158,7 +163,7 @@ class ClaudeCode(Adapter):
 
     def logged_in(self):
         done = self._run('auth', 'status')
-        if done is None: return False
+        if done is None: return bool(self._detected and self._detected[1]['logged_in'])
         try: return bool(json.loads(done.stdout).get('loggedIn'))
         except ValueError: return done.returncode == 0
 
@@ -249,7 +254,8 @@ class Codex(Adapter):
 
     def logged_in(self):
         done = self._run('login', 'status')
-        return bool(done and done.returncode == 0 and 'not logged in' not in (done.stdout + done.stderr).lower())
+        if done is None: return bool(self._detected and self._detected[1]['logged_in'])
+        return bool(done.returncode == 0 and 'not logged in' not in (done.stdout + done.stderr).lower())
 
     def argv(self, prompt, run, folder, session=None, tools=None):
         """`tools`: the EAOS tools this run may call (None: every one but the person's)."""

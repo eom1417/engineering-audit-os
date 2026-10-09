@@ -37,3 +37,4 @@
   .inspector { display: none; }
   .phoneHidden { display: none; }
 }
+.emptyActions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }

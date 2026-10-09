@@ -87,7 +87,7 @@ function Queue({ queued }: { queued: Run[] }) {
             <span className={css.queueN} aria-hidden="true">{i + 1}</span>
             <div className={css.queueMain}><RunRow run={run} end={null} /></div>
             <div className={css.queueTools}>
-              {i > 0 && <IconButton icon="up" label={w('moveUp', { label: labelOf(run.label, lang) })} onPress={() => move(i, i - 1)} />}
+              {i > 0 && <IconButton icon="up" label={w('moveUp', { label: labelOf(run.label, lang) })} onPress={() => move(i, i - 1)} data-hook={`queue-up:${run.id}`} />}
               {i < queued.length - 1 && <IconButton icon="down" label={w('moveDown', { label: labelOf(run.label, lang) })} onPress={() => move(i, i + 1)} />}
               <IconButton icon="x" label={w('removeFromQueue', { label: labelOf(run.label, lang) })} onPress={() => remove(run)} />
             </div>

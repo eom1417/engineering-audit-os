@@ -101,7 +101,7 @@ export function DecisionCard({ decision, cardsTo, compact }: { decision: Decisio
     finally { setBusy(false) }
   }
   return (
-    <Panel as="article" emphasis className={[css.decision, compact && css.compactDecision].filter(Boolean).join(' ')} label={decision.question}>
+    <Panel as="article" emphasis className={[css.decision, compact && css.compactDecision].filter(Boolean).join(' ')} label={decision.question} hook={`decision:${decision.id}`}>
       <div className={css.decHead}>
         {decision.state === 'waiting' && !saved?.response ? <Chip tone="accent">{t('waiting')}</Chip> : <Chip tone="good">{t('answered')}</Chip>}
         {blocks > 0 && (cardsTo ? <Go {...cardsTo} className={css.decBlocks}>{blocksText}</Go> : <span className={css.decBlocks}>{blocksText}</span>)}
@@ -114,11 +114,11 @@ export function DecisionCard({ decision, cardsTo, compact }: { decision: Decisio
         <>
           <div className={[css.answers, (!twoChoices || long || !recommended) && css.answersMany, long && css.answersLong].filter(Boolean).join(' ')}>
             {shown.map((option) => option === recommended ? (
-              <Button key={option.id} variant="primary" large aria-pressed={saved?.response?.option === option.id} className={css.answer} isDisabled={!live || !saved || busy} busy={busy} icon="check" onPress={() => answer(option)}>
+              <Button key={option.id} variant="primary" large aria-pressed={saved?.response?.option === option.id} className={css.answer} isDisabled={!live || !saved || busy} busy={busy} icon="check" onPress={() => answer(option)} data-option={option.id} data-recommended>
                 <Txt>{option.label}</Txt><span className={css.ansTag}>{t('recommendedTag')}</span>
               </Button>
             ) : (
-              <Button key={option.id} variant="secondary" large aria-pressed={saved?.response?.option === option.id} className={css.answer} isDisabled={!live || !saved || busy} busy={busy} onPress={() => answer(option)}><Txt>{option.label}</Txt></Button>
+              <Button key={option.id} variant="secondary" large aria-pressed={saved?.response?.option === option.id} className={css.answer} isDisabled={!live || !saved || busy} busy={busy} onPress={() => answer(option)} data-option={option.id}><Txt>{option.label}</Txt></Button>
             ))}
           </div>
           {ordered.length > shown.length && (
@@ -131,12 +131,12 @@ export function DecisionCard({ decision, cardsTo, compact }: { decision: Decisio
       )}
       {live && !saved && <p role="status">{say('Connecting to live decision storage…', 'جاري الاتصال بحفظ القرارات…')}</p>}
       {!live && <p>{say('Read-only snapshot. Open this project in live Studio to save an answer.', 'هذه نسخة للقراءة. افتح المشروع في الاستوديو الحي لحفظ الإجابة.')}</p>}
-      {decision.state === 'waiting' && !saved?.response && (!writing ? <Button isDisabled={!live || !saved || busy} onPress={() => setWriting(true)}>{say('Write a different answer', 'اكتب إجابة مختلفة')}</Button> :
+      {decision.state === 'waiting' && !saved?.response && (!writing ? <Button isDisabled={!live || !saved || busy} onPress={() => setWriting(true)} data-write-answer>{say('Write a different answer', 'اكتب إجابة مختلفة')}</Button> :
         <form className={css.writeAnswer} onSubmit={(e) => { e.preventDefault(); if (text.trim()) void answer(null) }}>
           <label>{say('Your answer (up to 4000 characters)', 'إجابتك (حتى ٤٠٠٠ حرف)')}<textarea className={css.answerInput} value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} /></label>
-          <Button type="submit" busy={busy} isDisabled={busy || !saved || !text.trim()}>{say('Send answer', 'أرسل الإجابة')}</Button>
+          <Button type="submit" busy={busy} isDisabled={busy || !saved || !text.trim()} data-send-answer>{say('Send answer', 'أرسل الإجابة')}</Button>
         </form>)}
-      <div role="status" aria-live="polite">
+      <div role="status" aria-live="polite" data-hook="decision-status" data-saved={saved?.response ? (saved.response.option ?? 'text') : undefined}>
         {saved?.response && <p><Txt>{saved.response.option ? decision.options.find((o) => o.id === saved.response?.option)?.label ?? saved.response.label : saved.response.text}</Txt> — {say('Your answer · Saved', 'إجابتك · محفوظة')}
           {saved.execution && <> · <Go to={`/runs/${encodeURIComponent(saved.execution.id)}`}>{labelOf(saved.execution.label, lang)}: {labelOf(STATE_WORDS[saved.execution.state], lang)}</Go></>}
         </p>}

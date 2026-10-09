@@ -70,7 +70,7 @@ function DecideSheet({ run, op, onClose, onDone }: { run: Run; op: 'accept' | 'u
       {problem && <StateMessage kind="error" title={w('decideFailed')} sub={<Txt>{problem}</Txt>} />}
       <div className={css.decideFoot}>
         <Button variant="secondary" onPress={onClose}>{w('cancel')}</Button>
-        <Button variant="primary" busy={busy || (!token && !problem)} isDisabled={!token} onPress={decide}>
+        <Button variant="primary" busy={busy || (!token && !problem)} isDisabled={!token} onPress={decide} data-confirm="decide">
           {w(op === 'accept' ? 'acceptYes' : 'undoYes')}
         </Button>
       </div>
@@ -107,10 +107,10 @@ function Controls({ run, onRun }: { run: Run; onRun: (next: Run) => void }) {
   if (!Object.values(can).some(Boolean)) return null
   return (
     <div className={css.controls}>
-      {can.pause && <Button variant="secondary" icon="pause" busy={busy === 'pause'} onPress={() => press('pause')}>{w('pause')}</Button>}
-      {can.resume && <Button variant="primary" icon="play" busy={busy === 'resume'} onPress={() => press('resume')}>{w('resume')}</Button>}
-      {can.retry && <Button variant="primary" icon="retry" busy={busy === 'retry'} onPress={() => press('retry')}>{w('retry')}</Button>}
-      {can.stop && <Button variant="ghost" icon="stop" busy={busy === 'stop'} onPress={() => press('stop')}>{w('stop')}</Button>}
+      {can.pause && <Button variant="secondary" icon="pause" data-control="pause" busy={busy === 'pause'} onPress={() => press('pause')}>{w('pause')}</Button>}
+      {can.resume && <Button variant="primary" icon="play" data-control="resume" busy={busy === 'resume'} onPress={() => press('resume')}>{w('resume')}</Button>}
+      {can.retry && <Button variant="primary" icon="retry" data-control="retry" busy={busy === 'retry'} onPress={() => press('retry')}>{w('retry')}</Button>}
+      {can.stop && <Button variant="ghost" icon="stop" data-control="stop" busy={busy === 'stop'} onPress={() => press('stop')}>{w('stop')}</Button>}
     </div>
   )
 }
@@ -143,7 +143,7 @@ function RunBody({ id }: { id: string }) {
     <div className={[layout.page, css.runPage].join(' ')}>
       {actions.mode === 'demo' && <DemoBanner />}
       <header className={css.head}>
-        <div className={css.headTop}>
+        <div className={css.headTop} data-run-state={state}>
           <span className={css.kicker}>{run.verb ? verbOf(run.verb).label[lang] : <Id value={run.action} />}</span>
           <StateChip state={state} />
           {run.position && state === 'queued' ? <span className={css.meta}>{w('positionN', { n: run.position })}</span> : null}
@@ -179,8 +179,8 @@ function RunBody({ id }: { id: string }) {
               <ResultFacts result={result} />
               {branchWaiting && (
                 <div className={css.decide}>
-                  <Button variant="primary" large icon="check" onPress={() => setDeciding('accept')}>{w('acceptBranch')}</Button>
-                  <Button variant="secondary" large icon="x" onPress={() => setDeciding('undo')}>{w('undoBranch')}</Button>
+                  <Button variant="primary" large icon="check" data-decide="accept" onPress={() => setDeciding('accept')}>{w('acceptBranch')}</Button>
+                  <Button variant="secondary" large icon="x" data-decide="undo" onPress={() => setDeciding('undo')}>{w('undoBranch')}</Button>
                 </div>
               )}
               {run.outcome && <p className={css.outcome}>{w('decided', { what: run.outcome === 'accepted' ? w('outcomeAccepted') : w('outcomeUndone') })}</p>}
