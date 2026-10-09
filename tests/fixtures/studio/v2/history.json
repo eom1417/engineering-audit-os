@@ -18,7 +18,11 @@
    },
    "added": null,
    "resolved": null,
-   "open_keys": []
+   "open_keys": [],
+   "event": "baseline",
+   "open_total": 40,
+   "closed": 0,
+   "total": 40
   },
   {
    "id": "e4f5a6b",
@@ -35,7 +39,11 @@
    },
    "added": 2,
    "resolved": 6,
-   "open_keys": []
+   "open_keys": [],
+   "event": "recheck",
+   "open_total": 35,
+   "closed": 8,
+   "total": 43
   }
  ],
  "events": [
@@ -63,5 +71,65 @@
    "title": "Check after the merge",
    "ref": "e4f5a6b"
   }
- ]
+ ],
+ "progress": [
+  {
+   "at": "2026-10-01T09:00:00+00:00",
+   "event": "baseline",
+   "closed": 0,
+   "total": 40,
+   "percent": 0.0,
+   "commit": "a1b2c3d"
+  },
+  {
+   "at": "2026-10-04T10:00:00+00:00",
+   "event": "merged",
+   "closed": 6,
+   "total": 40,
+   "percent": 0.15,
+   "commit": "c3d4e5f"
+  },
+  {
+   "at": "2026-10-08T09:00:00+00:00",
+   "event": "recheck",
+   "closed": 8,
+   "total": 43,
+   "percent": 0.186,
+   "commit": "e4f5a6b"
+  }
+ ],
+ "cards": [
+  {
+   "key": "k-001",
+   "id": "TASK-001",
+   "title": "Duplicated validation in two forms",
+   "state": "done",
+   "at": "2026-10-04T10:00:00+00:00",
+   "new": false,
+   "batch": 1
+  },
+  {
+   "key": "k-007",
+   "id": null,
+   "title": "Unused helper in utils",
+   "state": "resolved",
+   "at": "2026-10-08T09:00:00+00:00",
+   "new": false,
+   "batch": null
+  },
+  {
+   "key": "k-041",
+   "id": "TASK-041",
+   "title": "A new import cycle between two pages",
+   "state": "open",
+   "at": null,
+   "new": true,
+   "batch": null
+  }
+ ],
+ "missing": [],
+ "src": {
+  "scans": "ledger.json#history[event in baseline, recheck]",
+  "progress": "ledger.json#history[].closed / total"
+ }
 }

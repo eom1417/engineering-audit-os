@@ -1896,6 +1896,15 @@
       "note": ""
     },
     {
+      "id": "INV-2097fa704a",
+      "file": "eaos/studio/history.py",
+      "symbol": "<module>",
+      "statement": "An older check carries them only when the ledger recorded them (`scores` on its point, NS31.T1); until then they are null, never guessed.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_library.py::History::test_the_ledger_gives_every_check_the_progress_and_the_events",
+      "note": ""
+    },
+    {
       "id": "INV-3f8dce8498",
       "file": "eaos/facts/pipeline.py",
       "symbol": "<module>",

@@ -1,14 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "studio/docs.json",
-  "description": "Every document the check wrote, grouped by purpose, in reading order.",
-  "x-artifact": "studio/docs.json",
-  "x-owner": "NS36",
+  "title": "studio/library.json",
+  "description": "The content of the Library: the text of every document of docs.json and every image or diagram of media.json (an image as a data URI, a diagram as its source), so the reader shows them from the Studio's own folder; what is too large to carry is listed with the reason.",
+  "x-artifact": "studio/library.json",
+  "x-owner": "NS46",
   "type": "object",
   "required": [
     "schema_version",
     "contract",
-    "docs"
+    "revision",
+    "documents",
+    "images"
   ],
   "properties": {
     "schema_version": {
@@ -17,60 +19,98 @@
     "contract": {
       "const": 1
     },
-    "docs": {
+    "revision": {
+      "const": 2
+    },
+    "documents": {
       "type": "array",
       "items": {
         "type": "object",
         "required": [
           "id",
-          "title",
-          "path",
-          "group"
+          "text",
+          "truncated"
         ],
         "properties": {
           "id": {
             "type": "string"
           },
-          "title": {
+          "text": {
             "type": "string"
           },
-          "path": {
-            "$ref": "#/$defs/path"
+          "chars": {
+            "type": "integer",
+            "minimum": 0
           },
-          "group": {
+          "truncated": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "format",
+          "data",
+          "source",
+          "embedded"
+        ],
+        "properties": {
+          "id": {
             "type": "string"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "png",
+              "svg",
+              "jpeg",
+              "gif",
+              "webp",
+              "mermaid"
+            ]
+          },
+          "data": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^data:image/(png|svg\\+xml|jpeg|gif|webp);base64,"
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "bytes": {
             "type": "integer",
             "minimum": 0
           },
-          "order": {
-            "type": [
-              "integer",
-              "null"
-            ]
+          "embedded": {
+            "type": "boolean"
           },
-          "headings": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "level",
-                "text"
-              ],
-              "properties": {
-                "level": {
-                  "type": "integer",
-                  "minimum": 1,
-                  "maximum": 6
-                },
-                "text": {
-                  "type": "string"
-                }
-              }
-            }
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "too_large",
+              null
+            ]
           }
         }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/measure"
       }
     }
   },
@@ -162,6 +202,30 @@
           "type": "string"
         }
       }
+    },
+    "touch": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "table",
+            "file",
+            "env",
+            "network",
+            "store",
+            "storage"
+          ]
+        },
+        "name": {
+          "type": "string"
+        }
+      }
     }
-  }
+  },
+  "x-revision": 2
 }

@@ -49,6 +49,26 @@
               "integer",
               "null"
             ]
+          },
+          "headings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "level",
+                "text"
+              ],
+              "properties": {
+                "level": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 6
+                },
+                "text": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       }

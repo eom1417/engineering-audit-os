@@ -16,7 +16,21 @@
     "value": 1.0,
     "src": "docs/engine-precision.json#rows[engine=enola,kind=complexity]"
    },
-   "labelled": 1
+   "labelled": 1,
+   "shown": true,
+   "status": "meets_bar",
+   "why": "",
+   "judged": 12,
+   "here": {
+    "shown": 4,
+    "withheld": 0,
+    "facts": 0
+   },
+   "project": {
+    "tp": 3,
+    "fp": 0,
+    "unjudged": 1
+   }
   },
   {
    "id": "jscpd.literal_duplication",
@@ -31,7 +45,17 @@
     "value": null,
     "src": "not measured on labelled cases yet"
    },
-   "labelled": null
+   "labelled": null,
+   "shown": false,
+   "status": "not_measured",
+   "why": "only 3 judged outputs (bar 5)",
+   "judged": 3,
+   "here": {
+    "shown": 0,
+    "withheld": 2,
+    "facts": 0
+   },
+   "project": null
   },
   {
    "id": "sqlfluff.style",
@@ -86,5 +110,17 @@
    },
    "target": 0.85
   }
- ]
+ ],
+ "bar": {
+  "precision": 0.8,
+  "recall": 0.5,
+  "judged": 5
+ },
+ "labelled": {
+  "items": 740,
+  "projects": [
+   "FleetManageWeb"
+  ],
+  "this_project": null
+ }
 }

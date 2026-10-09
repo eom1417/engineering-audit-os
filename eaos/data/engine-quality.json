@@ -1,0 +1,1917 @@
+{
+ "bar": {
+  "judged": 5,
+  "precision": 0.8,
+  "recall": 0.5
+ },
+ "capabilities": [
+  {
+   "id": "C2",
+   "indicators": [
+    {
+     "id": "U1",
+     "measured": "automated",
+     "name": {
+      "ar": "تغطية التحليل",
+      "en": "Analysis coverage"
+     },
+     "target": 0.95,
+     "value": 0.951
+    },
+    {
+     "id": "U2",
+     "measured": "automated",
+     "name": {
+      "ar": "أسطح المستخدم المكتشفة",
+      "en": "User surfaces found"
+     },
+     "target": 0.9,
+     "value": 1.0
+    },
+    {
+     "id": "U3",
+     "measured": "automated",
+     "name": {
+      "ar": "نموذج البيانات مقروء",
+      "en": "Data model read"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "U4",
+     "measured": "automated",
+     "name": {
+      "ar": "جرد الوظائف",
+      "en": "Inventory of functions"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "U5",
+     "measured": "automated",
+     "name": {
+      "ar": "المداخل والمخارج والحدود",
+      "en": "Inputs, outputs and limits"
+     },
+     "target": 0.8,
+     "value": 0.918
+    },
+    {
+     "id": "U6",
+     "measured": "automated",
+     "name": {
+      "ar": "الاستلام",
+      "en": "Intake"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "M1",
+     "measured": "automated",
+     "name": {
+      "ar": "القياس لكل ملف مصدر",
+      "en": "Measures for every source file"
+     },
+     "target": 0.95,
+     "value": 1.0
+    },
+    {
+     "id": "A1",
+     "measured": "automated",
+     "name": {
+      "ar": "دقة الكواشف مقاسة",
+      "en": "Detector precision measured"
+     },
+     "target": 1.0,
+     "value": null
+    },
+    {
+     "id": "A2",
+     "measured": "automated",
+     "name": {
+      "ar": "أساس JS/TS سليم",
+      "en": "A sound JS/TS base"
+     },
+     "target": 1.0,
+     "value": null
+    },
+    {
+     "id": "A3",
+     "measured": "automated",
+     "name": {
+      "ar": "أسطح المنتج ومكوّناته الحقيقية",
+      "en": "The product's real surfaces and components"
+     },
+     "target": 1.0,
+     "value": null
+    },
+    {
+     "id": "N1",
+     "measured": "automated",
+     "name": {
+      "ar": "خريطة النظام سليمة",
+      "en": "A sound system map"
+     },
+     "target": 1.0,
+     "value": null
+    },
+    {
+     "id": "N2",
+     "measured": "automated",
+     "name": {
+      "ar": "السجل يُعاد من الأحداث",
+      "en": "The ledger replays from its events"
+     },
+     "target": 1.0,
+     "value": null
+    },
+    {
+     "id": "Q1",
+     "measured": "automated",
+     "name": {
+      "ar": "التتبع يصل",
+      "en": "Tracing reaches the end"
+     },
+     "target": 0.85,
+     "value": null
+    },
+    {
+     "id": "Q2",
+     "measured": "automated",
+     "name": {
+      "ar": "مالك واحد لكل مُدخل",
+      "en": "One owner for each input"
+     },
+     "target": 1.0,
+     "value": null
+    },
+    {
+     "id": "Q3",
+     "measured": "automated",
+     "name": {
+      "ar": "تداخل الصفحات والوظائف",
+      "en": "Overlapping pages and functions"
+     },
+     "target": 0.8,
+     "value": null
+    },
+    {
+     "id": "Q4",
+     "measured": "automated",
+     "name": {
+      "ar": "بطاقة لكل دالة صادقة",
+      "en": "Truthful function cards"
+     },
+     "target": 0.9,
+     "value": null
+    },
+    {
+     "id": "Z1",
+     "measured": "automated",
+     "name": {
+      "ar": "الشاشات مصوّرة",
+      "en": "Screens captured"
+     },
+     "target": 0.9,
+     "value": null
+    },
+    {
+     "id": "Z2",
+     "measured": "automated",
+     "name": {
+      "ar": "كشف مشاكل الاستخدام",
+      "en": "Usability problems found"
+     },
+     "target": 0.9,
+     "value": null
+    }
+   ],
+   "name": {
+    "ar": "تقرير الوضع الراهن: يرى البرنامج كله",
+    "en": "The current-state report: it sees the whole program"
+   }
+  },
+  {
+   "id": "C3",
+   "indicators": [
+    {
+     "id": "S1",
+     "measured": "automated",
+     "name": {
+      "ar": "الادعاءات غير الضجيجية",
+      "en": "Findings that are not noise"
+     },
+     "target": 0.8,
+     "value": 0.883
+    },
+    {
+     "id": "S2",
+     "measured": "automated",
+     "name": {
+      "ar": "دقة مرشحات الكود الميت",
+      "en": "Precision of dead-code candidates"
+     },
+     "target": 0.8,
+     "value": 1.0
+    },
+    {
+     "id": "S3",
+     "measured": "automated",
+     "name": {
+      "ar": "الخطر العالي مؤكد بشاهدين",
+      "en": "High risk confirmed by two witnesses"
+     },
+     "target": 0.8,
+     "value": 1.0
+    },
+    {
+     "id": "S4",
+     "measured": "automated",
+     "name": {
+      "ar": "كل بطاقة على ملفها ودليلها",
+      "en": "Every card on its own file and evidence"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "S5",
+     "measured": "automated",
+     "name": {
+      "ar": "ضجيج منخفض في مشروع حقيقي",
+      "en": "Little noise on a real project"
+     },
+     "target": 0.9,
+     "value": null
+    }
+   ],
+   "name": {
+    "ar": "الإشارة: كل ادعاء مشكلة حقيقية",
+    "en": "Signal: every finding is a real problem"
+   }
+  },
+  {
+   "id": "C4",
+   "indicators": [
+    {
+     "id": "D1",
+     "measured": "automated",
+     "name": {
+      "ar": "استدعاء العيوب المعروفة",
+      "en": "Known defects found"
+     },
+     "target": 0.8,
+     "value": 1.0
+    },
+    {
+     "id": "D2",
+     "measured": "automated",
+     "name": {
+      "ar": "المخلفات المكتشفة",
+      "en": "Leftovers found"
+     },
+     "target": 0.9,
+     "value": 1.0
+    },
+    {
+     "id": "D3",
+     "measured": "automated",
+     "name": {
+      "ar": "بطاقات حذف آمن جاهزة",
+      "en": "Safe-removal cards ready"
+     },
+     "target": 0.9,
+     "value": 1.0
+    },
+    {
+     "id": "D4",
+     "measured": "automated",
+     "name": {
+      "ar": "أرشيف قبل الحذف",
+      "en": "Archived before removal"
+     },
+     "target": 1.0,
+     "value": null
+    }
+   ],
+   "name": {
+    "ar": "الكود الميت والمخلفات: يجدها ويحذفها بأمان",
+    "en": "Dead code and leftovers: found and removed safely"
+   }
+  },
+  {
+   "id": "C5",
+   "indicators": [
+    {
+     "id": "H1",
+     "measured": "automated",
+     "name": {
+      "ar": "مواد الاعتماد المرفوعة بخطورتها الصحيحة",
+      "en": "Committed credentials at their right severity"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "H2",
+     "measured": "automated",
+     "name": {
+      "ar": "تغطية سياسات الوصول مقروءة",
+      "en": "Access-policy coverage read"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "H3",
+     "measured": "automated",
+     "name": {
+      "ar": "سلسلة الإمداد",
+      "en": "Supply chain"
+     },
+     "target": 1.0,
+     "value": 1.0
+    }
+   ],
+   "name": {
+    "ar": "نظافة الأمن الأساسية",
+    "en": "Basic security hygiene"
+   }
+  },
+  {
+   "id": "C6",
+   "indicators": [
+    {
+     "id": "T1",
+     "measured": "automated",
+     "name": {
+      "ar": "مكوّنات مستهدفة ملموسة",
+      "en": "Concrete target components"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "T2",
+     "measured": "automated",
+     "name": {
+      "ar": "قرارات البنية التحتية",
+      "en": "Infrastructure decisions"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "T3",
+     "measured": "automated",
+     "name": {
+      "ar": "قرارات تغيّر البنية",
+      "en": "Decisions that change the structure"
+     },
+     "target": 0.6,
+     "value": 0.808
+    },
+    {
+     "id": "T4",
+     "measured": "automated",
+     "name": {
+      "ar": "قرار لكل مكوّن حالي",
+      "en": "A decision for every component of today"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "T5",
+     "measured": "automated",
+     "name": {
+      "ar": "الوظائف نفسها في الصورة المثالية",
+      "en": "The same functions in the ideal picture"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "T6",
+     "measured": "automated",
+     "name": {
+      "ar": "نموذج C4 حالي ومستهدف",
+      "en": "C4 model of today and the target"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "T7",
+     "measured": "automated",
+     "name": {
+      "ar": "قرارات العمارة بصيغة MADR",
+      "en": "Architecture decisions in MADR form"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "I1",
+     "measured": "automated",
+     "name": {
+      "ar": "وصف النظام مكتمل",
+      "en": "A complete system description"
+     },
+     "target": 1.0,
+     "value": null
+    },
+    {
+     "id": "I2",
+     "measured": "automated",
+     "name": {
+      "ar": "الصورة المثالية بلا اختلاق",
+      "en": "An ideal picture with nothing invented"
+     },
+     "target": 0.9,
+     "value": null
+    },
+    {
+     "id": "I3",
+     "measured": "recorded",
+     "name": {
+      "ar": "تصميم يقبله المالك",
+      "en": "A design the owner accepts"
+     },
+     "target": 1.0,
+     "value": null
+    }
+   ],
+   "name": {
+    "ar": "تقرير الصورة المثالية",
+    "en": "The ideal-picture report"
+   }
+  },
+  {
+   "id": "C7",
+   "indicators": [
+    {
+     "id": "G1",
+     "measured": "automated",
+     "name": {
+      "ar": "فجوة مربوطة بالمكوّنات المستهدفة",
+      "en": "Gap tied to the target components"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "G2",
+     "measured": "automated",
+     "name": {
+      "ar": "مؤشرات الاستدامة المقيسة",
+      "en": "Sustainability indicators measured"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "G3",
+     "measured": "automated",
+     "name": {
+      "ar": "مبادرة قبل الطلب",
+      "en": "Initiative before being asked"
+     },
+     "target": 1.0,
+     "value": null
+    },
+    {
+     "id": "G4",
+     "measured": "automated",
+     "name": {
+      "ar": "قوانين المشروع بوابات",
+      "en": "The project's rules as gates"
+     },
+     "target": 1.0,
+     "value": null
+    },
+    {
+     "id": "J1",
+     "measured": "automated",
+     "name": {
+      "ar": "فجوات مؤكدة بالدليل",
+      "en": "Gaps confirmed by evidence"
+     },
+     "target": 1.0,
+     "value": null
+    },
+    {
+     "id": "J2",
+     "measured": "recorded",
+     "name": {
+      "ar": "الفجوات تصمد للمراجعة",
+      "en": "Gaps that survive review"
+     },
+     "target": 0.85,
+     "value": null
+    }
+   ],
+   "name": {
+    "ar": "تقرير الفجوة والتحول الاستراتيجي",
+    "en": "The gap and the strategic change"
+   }
+  },
+  {
+   "id": "C8",
+   "indicators": [
+    {
+     "id": "P1",
+     "measured": "automated",
+     "name": {
+      "ar": "مهام محددة الحجم",
+      "en": "Tasks with a known size"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "P2",
+     "measured": "automated",
+     "name": {
+      "ar": "إصلاحات جاهزة",
+      "en": "Fixes ready to apply"
+     },
+     "target": 0.5,
+     "value": 0.592
+    },
+    {
+     "id": "P3",
+     "measured": "automated",
+     "name": {
+      "ar": "أوامر قبول قابلة للتشغيل",
+      "en": "Runnable acceptance commands"
+     },
+     "target": 0.8,
+     "value": 1.0
+    },
+    {
+     "id": "P4",
+     "measured": "automated",
+     "name": {
+      "ar": "معالم بأهداف مقيسة",
+      "en": "Milestones with measured goals"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "P5",
+     "measured": "automated",
+     "name": {
+      "ar": "التناسب",
+      "en": "Proportionality"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "P6",
+     "measured": "automated",
+     "name": {
+      "ar": "أقسام الفريق",
+      "en": "Team sections"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "P7",
+     "measured": "automated",
+     "name": {
+      "ar": "التقارير الأربعة",
+      "en": "The four reports"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "P8",
+     "measured": "automated",
+     "name": {
+      "ar": "جودة التقارير الأربعة",
+      "en": "Quality of the four reports"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "P9",
+     "measured": "automated",
+     "name": {
+      "ar": "المهام الآلية معها أداة تحويل",
+      "en": "Mechanical tasks carry a codemod"
+     },
+     "target": 0.8,
+     "value": 0.842
+    },
+    {
+     "id": "K1",
+     "measured": "automated",
+     "name": {
+      "ar": "عدّة التشغيل والتسليم تقبلها أدواتها",
+      "en": "Run and handover kit accepted by its tools"
+     },
+     "target": 1.0,
+     "value": 1.0
+    }
+   ],
+   "name": {
+    "ar": "خطة التنفيذ للفريق",
+    "en": "The team's execution plan"
+   }
+  },
+  {
+   "id": "C10",
+   "indicators": [
+    {
+     "id": "V1",
+     "measured": "recorded",
+     "name": {
+      "ar": "الحتمية",
+      "en": "Determinism"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "V2",
+     "measured": "recorded",
+     "name": {
+      "ar": "دليل وناقض لكل ادعاء",
+      "en": "Evidence and a falsifier for every finding"
+     },
+     "target": 1.0,
+     "value": 1.0
+    },
+    {
+     "id": "V3",
+     "measured": "recorded",
+     "name": {
+      "ar": "مراجعة بشرية مستقلة",
+      "en": "Independent human review"
+     },
+     "target": 1.0,
+     "value": 0.0
+    },
+    {
+     "id": "V4",
+     "measured": "automated",
+     "name": {
+      "ar": "حجم العيّنة الحقيقية",
+      "en": "Size of the real sample"
+     },
+     "target": 1.0,
+     "value": 0.3
+    },
+    {
+     "id": "Y1",
+     "measured": "automated",
+     "name": {
+      "ar": "يتحمل مشروعًا كبيرًا",
+      "en": "Holds a large project"
+     },
+     "target": 1.0,
+     "value": null
+    },
+    {
+     "id": "Y2",
+     "measured": "automated",
+     "name": {
+      "ar": "التنبؤ يصدق بعد التحول",
+      "en": "Predictions come true after the change"
+     },
+     "target": 0.8,
+     "value": null
+    }
+   ],
+   "name": {
+    "ar": "الثقة والإثبات المستقل",
+    "en": "Trust and independent proof"
+   }
+  }
+ ],
+ "detectors": [
+  {
+   "class": "duplication",
+   "false_positives": 15,
+   "id": "structural_duplicate",
+   "judged": 24,
+   "labelled_positives": 44,
+   "name": {
+    "ar": "شيفرة متشابهة البنية",
+    "en": "Code with the same structure"
+   },
+   "outputs": 261,
+   "planted_targets": 4,
+   "precision": 0.375,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 5,
+     "tp": 4,
+     "unjudged": 11
+    },
+    "chief-ops": {
+     "fp": 6,
+     "tp": 0,
+     "unjudged": 176
+    },
+    "eaos": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 2
+    },
+    "finance-os-a0192b7b": {
+     "fp": 1,
+     "tp": 1,
+     "unjudged": 48
+    }
+   },
+   "recall": 1.0,
+   "shown": false,
+   "status": "below_bar",
+   "true_positives": 9,
+   "why": "precision 0.375 < 0.8 on 24 judged outputs"
+  },
+  {
+   "class": "duplication",
+   "false_positives": 13,
+   "id": "sequence_duplicate",
+   "judged": 14,
+   "labelled_positives": 44,
+   "name": {
+    "ar": "تسلسل خطوات مكرر",
+    "en": "Repeated sequence of steps"
+   },
+   "outputs": 24,
+   "planted_targets": 4,
+   "precision": 0.071,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 4,
+     "tp": 1,
+     "unjudged": 0
+    },
+    "chief-ops": {
+     "fp": 2,
+     "tp": 0,
+     "unjudged": 3
+    },
+    "eaos": {
+     "fp": 3,
+     "tp": 0,
+     "unjudged": 2
+    },
+    "finance-os-a0192b7b": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 5
+    }
+   },
+   "recall": 0.0,
+   "shown": false,
+   "status": "below_bar",
+   "true_positives": 1,
+   "why": "precision 0.071 < 0.8 on 14 judged outputs"
+  },
+  {
+   "class": "duplication",
+   "false_positives": 2,
+   "id": "duplicated_rule",
+   "judged": 7,
+   "labelled_positives": 44,
+   "name": {
+    "ar": "قاعدة عمل مكررة",
+    "en": "Duplicated business rule"
+   },
+   "outputs": 94,
+   "planted_targets": 4,
+   "precision": 0.714,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 5
+    },
+    "chief-ops": {
+     "fp": 1,
+     "tp": 0,
+     "unjudged": 72
+    },
+    "eaos": {
+     "fp": 1,
+     "tp": 0,
+     "unjudged": 1
+    },
+    "finance-os-a0192b7b": {
+     "fp": 0,
+     "tp": 1,
+     "unjudged": 9
+    }
+   },
+   "recall": 1.0,
+   "shown": false,
+   "status": "below_bar",
+   "true_positives": 5,
+   "why": "precision 0.714 < 0.8 on 7 judged outputs"
+  },
+  {
+   "class": "duplication",
+   "false_positives": 3,
+   "id": "engine_cluster:literal_duplication",
+   "judged": 3,
+   "labelled_positives": 44,
+   "name": {
+    "ar": "نسخ حرفي للكود",
+    "en": "Literally copied code"
+   },
+   "outputs": 22,
+   "planted_targets": 11,
+   "precision": 0.0,
+   "projects": {
+    "chief-ops": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 11
+    },
+    "eaos": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 5
+    },
+    "finance-os-a0192b7b": {
+     "fp": 3,
+     "tp": 0,
+     "unjudged": 3
+    }
+   },
+   "recall": 0.0,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "only 3 judged outputs (bar 5)"
+  },
+  {
+   "class": "duplication",
+   "false_positives": 0,
+   "id": "engine_cluster:duplication",
+   "judged": 0,
+   "labelled_positives": 44,
+   "name": {
+    "ar": "تكرار تتفق عليه المحركات",
+    "en": "Duplication engines agree on"
+   },
+   "outputs": 0,
+   "planted_targets": 11,
+   "precision": null,
+   "projects": {},
+   "recall": 0.0,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "it produced no output on the set"
+  },
+  {
+   "class": "dead_code",
+   "false_positives": 0,
+   "id": "dead_code",
+   "judged": 115,
+   "labelled_positives": 81,
+   "name": {
+    "ar": "كود لا يستخدمه أحد",
+    "en": "Code nothing uses"
+   },
+   "outputs": 246,
+   "planted_targets": 64,
+   "precision": 1.0,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 0,
+     "tp": 30,
+     "unjudged": 78
+    },
+    "chief-ops": {
+     "fp": 0,
+     "tp": 3,
+     "unjudged": 27
+    },
+    "eaos": {
+     "fp": 0,
+     "tp": 12,
+     "unjudged": 0
+    },
+    "finance-os-a0192b7b": {
+     "fp": 0,
+     "tp": 7,
+     "unjudged": 26
+    }
+   },
+   "recall": 0.984,
+   "shown": true,
+   "status": "meets_bar",
+   "true_positives": 115,
+   "why": "precision 1.0 on 115 judged, recall 0.984"
+  },
+  {
+   "class": "dead_code",
+   "false_positives": 0,
+   "id": "dead_code_review",
+   "judged": 15,
+   "labelled_positives": 81,
+   "name": {
+    "ar": "كود ميت يحتاج مراجعة",
+    "en": "Dead code that needs a review"
+   },
+   "outputs": 53,
+   "planted_targets": 0,
+   "precision": 1.0,
+   "projects": {
+    "chief-ops": {
+     "fp": 0,
+     "tp": 6,
+     "unjudged": 38
+    },
+    "eaos": {
+     "fp": 0,
+     "tp": 9,
+     "unjudged": 0
+    }
+   },
+   "recall": 0.185,
+   "shown": false,
+   "status": "below_bar",
+   "true_positives": 15,
+   "why": "recall 0.185 < 0.5"
+  },
+  {
+   "class": "dead_code",
+   "false_positives": 0,
+   "id": "engine_cluster:dead_code",
+   "judged": 11,
+   "labelled_positives": 81,
+   "name": {
+    "ar": "كود ميت تتفق عليه المحركات",
+    "en": "Dead code engines agree on"
+   },
+   "outputs": 26,
+   "planted_targets": 64,
+   "precision": 1.0,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 0,
+     "tp": 2,
+     "unjudged": 1
+    },
+    "chief-ops": {
+     "fp": 0,
+     "tp": 2,
+     "unjudged": 14
+    },
+    "eaos": {
+     "fp": 0,
+     "tp": 5,
+     "unjudged": 0
+    },
+    "finance-os-a0192b7b": {
+     "fp": 0,
+     "tp": 2,
+     "unjudged": 0
+    }
+   },
+   "recall": 0.0,
+   "shown": false,
+   "status": "below_bar",
+   "true_positives": 11,
+   "why": "recall 0.0 < 0.5"
+  },
+  {
+   "class": "broken_code",
+   "false_positives": 0,
+   "id": "broken_code",
+   "judged": 11,
+   "labelled_positives": 22,
+   "name": {
+    "ar": "كود معطوب",
+    "en": "Broken code"
+   },
+   "outputs": 53,
+   "planted_targets": 3,
+   "precision": 1.0,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 0,
+     "tp": 6,
+     "unjudged": 0
+    },
+    "chief-ops": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 18
+    },
+    "eaos": {
+     "fp": 0,
+     "tp": 3,
+     "unjudged": 24
+    }
+   },
+   "recall": 0.667,
+   "shown": true,
+   "status": "meets_bar",
+   "true_positives": 11,
+   "why": "precision 1.0 on 11 judged, recall 0.667"
+  },
+  {
+   "class": "complexity",
+   "false_positives": 0,
+   "id": "hotspot",
+   "judged": 12,
+   "labelled_positives": 40,
+   "name": {
+    "ar": "ملف معقد كثير التغيير",
+    "en": "Complex file that changes often"
+   },
+   "outputs": 15,
+   "planted_targets": 4,
+   "precision": 1.0,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 0,
+     "tp": 3,
+     "unjudged": 0
+    },
+    "chief-ops": {
+     "fp": 0,
+     "tp": 2,
+     "unjudged": 1
+    },
+    "eaos": {
+     "fp": 0,
+     "tp": 3,
+     "unjudged": 0
+    },
+    "finance-os-a0192b7b": {
+     "fp": 0,
+     "tp": 1,
+     "unjudged": 2
+    }
+   },
+   "recall": 0.75,
+   "shown": true,
+   "status": "meets_bar",
+   "true_positives": 12,
+   "why": "precision 1.0 on 12 judged, recall 0.75"
+  },
+  {
+   "class": "complexity",
+   "false_positives": 2,
+   "id": "engine_cluster:complexity",
+   "judged": 29,
+   "labelled_positives": 40,
+   "name": {
+    "ar": "تعقيد تتفق عليه المحركات",
+    "en": "Complexity engines agree on"
+   },
+   "outputs": 191,
+   "planted_targets": 4,
+   "precision": 0.931,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 0,
+     "tp": 1,
+     "unjudged": 7
+    },
+    "chief-ops": {
+     "fp": 0,
+     "tp": 8,
+     "unjudged": 46
+    },
+    "eaos": {
+     "fp": 1,
+     "tp": 6,
+     "unjudged": 59
+    },
+    "finance-os-a0192b7b": {
+     "fp": 1,
+     "tp": 9,
+     "unjudged": 50
+    }
+   },
+   "recall": 0.75,
+   "shown": true,
+   "status": "meets_bar",
+   "true_positives": 27,
+   "why": "precision 0.931 on 29 judged, recall 0.75"
+  },
+  {
+   "class": "mutable_state",
+   "false_positives": 5,
+   "id": "mutable_global",
+   "judged": 44,
+   "labelled_positives": 34,
+   "name": {
+    "ar": "حالة عامة قابلة للتغيير",
+    "en": "Shared mutable state"
+   },
+   "outputs": 133,
+   "planted_targets": 9,
+   "precision": 0.886,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 0,
+     "tp": 7,
+     "unjudged": 0
+    },
+    "chief-ops": {
+     "fp": 1,
+     "tp": 23,
+     "unjudged": 89
+    },
+    "finance-os-a0192b7b": {
+     "fp": 3,
+     "tp": 2,
+     "unjudged": 0
+    }
+   },
+   "recall": 0.778,
+   "shown": true,
+   "status": "meets_bar",
+   "true_positives": 39,
+   "why": "precision 0.886 on 44 judged, recall 0.778"
+  },
+  {
+   "class": "multiple_writers",
+   "false_positives": 2,
+   "id": "external_write",
+   "judged": 2,
+   "labelled_positives": 19,
+   "name": {
+    "ar": "كتابة من خارج المالك",
+    "en": "Write from outside the owner"
+   },
+   "outputs": 3,
+   "planted_targets": 1,
+   "precision": 0.0,
+   "projects": {
+    "eaos": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 1
+    }
+   },
+   "recall": 0.0,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "only 2 judged outputs (bar 5)"
+  },
+  {
+   "class": "multiple_writers",
+   "false_positives": 0,
+   "id": "data_owners",
+   "judged": 1,
+   "labelled_positives": 19,
+   "name": {
+    "ar": "بيانات لها أكثر من كاتب",
+    "en": "Data with more than one writer"
+   },
+   "outputs": 2,
+   "planted_targets": 1,
+   "precision": 1.0,
+   "projects": {
+    "chief-ops": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 1
+    }
+   },
+   "recall": 1.0,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 1,
+   "why": "only 1 judged outputs (bar 5)"
+  },
+  {
+   "class": "data_model",
+   "false_positives": 84,
+   "id": "data_model",
+   "judged": 146,
+   "labelled_positives": 80,
+   "name": {
+    "ar": "نموذج البيانات",
+    "en": "Data model"
+   },
+   "outputs": 1421,
+   "planted_targets": 8,
+   "precision": 0.425,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 33,
+     "tp": 23,
+     "unjudged": 300
+    },
+    "chief-ops": {
+     "fp": 25,
+     "tp": 26,
+     "unjudged": 594
+    },
+    "eaos": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 1
+    },
+    "finance-os-a0192b7b": {
+     "fp": 20,
+     "tp": 7,
+     "unjudged": 380
+    }
+   },
+   "recall": 0.75,
+   "shown": false,
+   "status": "below_bar",
+   "true_positives": 62,
+   "why": "precision 0.425 < 0.8 on 146 judged outputs"
+  },
+  {
+   "class": "data_model",
+   "false_positives": 4,
+   "id": "data_model:runtime",
+   "judged": 4,
+   "labelled_positives": 80,
+   "name": {
+    "ar": "نموذج البيانات وقت التشغيل",
+    "en": "Data model at run time"
+   },
+   "outputs": 251,
+   "planted_targets": 0,
+   "precision": 0.0,
+   "projects": {
+    "eaos": {
+     "fp": 4,
+     "tp": 0,
+     "unjudged": 247
+    }
+   },
+   "recall": 0.0,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "only 4 judged outputs (bar 5)"
+  },
+  {
+   "class": "data_model",
+   "false_positives": 0,
+   "id": "data_table",
+   "judged": 20,
+   "labelled_positives": 80,
+   "name": {
+    "ar": "جداول البيانات",
+    "en": "Data tables"
+   },
+   "outputs": 100,
+   "planted_targets": 2,
+   "precision": 1.0,
+   "projects": {
+    "chief-ops": {
+     "fp": 0,
+     "tp": 12,
+     "unjudged": 54
+    },
+    "eaos": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 1
+    },
+    "finance-os-a0192b7b": {
+     "fp": 0,
+     "tp": 6,
+     "unjudged": 25
+    }
+   },
+   "recall": 1.0,
+   "shown": true,
+   "status": "meets_bar",
+   "true_positives": 20,
+   "why": "precision 1.0 on 20 judged, recall 1.0"
+  },
+  {
+   "class": "redundant_work",
+   "false_positives": 1,
+   "id": "redundant_work",
+   "judged": 4,
+   "labelled_positives": 19,
+   "name": {
+    "ar": "عمل مكرر بلا داعٍ",
+    "en": "Redundant work"
+   },
+   "outputs": 19,
+   "planted_targets": 5,
+   "precision": 0.75,
+   "projects": {
+    "chief-ops": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 6
+    },
+    "eaos": {
+     "fp": 1,
+     "tp": 0,
+     "unjudged": 9
+    }
+   },
+   "recall": 0.6,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 3,
+   "why": "only 4 judged outputs (bar 5)"
+  },
+  {
+   "class": "access_gap",
+   "false_positives": 0,
+   "id": "access_gap_no_rls",
+   "judged": 1,
+   "labelled_positives": 5,
+   "name": {
+    "ar": "جدول بلا سياسة وصول",
+    "en": "Table with no access policy"
+   },
+   "outputs": 1,
+   "planted_targets": 1,
+   "precision": 1.0,
+   "projects": {},
+   "recall": 1.0,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 1,
+   "why": "only 1 judged outputs (bar 5)"
+  },
+  {
+   "class": "access_gap",
+   "false_positives": 0,
+   "id": "access_gap_open_write",
+   "judged": 1,
+   "labelled_positives": 5,
+   "name": {
+    "ar": "كتابة مفتوحة للجميع",
+    "en": "Write open to anyone"
+   },
+   "outputs": 1,
+   "planted_targets": 1,
+   "precision": 1.0,
+   "projects": {},
+   "recall": 1.0,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 1,
+   "why": "only 1 judged outputs (bar 5)"
+  },
+  {
+   "class": "access_gap",
+   "false_positives": 2,
+   "id": "engine_cluster:secret",
+   "judged": 2,
+   "labelled_positives": 5,
+   "name": {
+    "ar": "سر مكشوف في الكود",
+    "en": "Secret exposed in the code"
+   },
+   "outputs": 2,
+   "planted_targets": 0,
+   "precision": 0.0,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 1,
+     "tp": 0,
+     "unjudged": 0
+    },
+    "finance-os-a0192b7b": {
+     "fp": 1,
+     "tp": 0,
+     "unjudged": 0
+    }
+   },
+   "recall": 0.0,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "only 2 judged outputs (bar 5)"
+  },
+  {
+   "class": "cycle",
+   "false_positives": 2,
+   "id": "import_cycle",
+   "judged": 8,
+   "labelled_positives": 8,
+   "name": {
+    "ar": "دورة استيراد",
+    "en": "Import cycle"
+   },
+   "outputs": 11,
+   "planted_targets": 4,
+   "precision": 0.75,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 0,
+     "tp": 1,
+     "unjudged": 0
+    },
+    "chief-ops": {
+     "fp": 0,
+     "tp": 1,
+     "unjudged": 3
+    },
+    "finance-os-a0192b7b": {
+     "fp": 2,
+     "tp": 0,
+     "unjudged": 0
+    }
+   },
+   "recall": 1.0,
+   "shown": false,
+   "status": "below_bar",
+   "true_positives": 6,
+   "why": "precision 0.75 < 0.8 on 8 judged outputs"
+  },
+  {
+   "class": "cycle",
+   "false_positives": 0,
+   "id": "engine_cluster:cycle",
+   "judged": 19,
+   "labelled_positives": 8,
+   "name": {
+    "ar": "دورة تتفق عليها المحركات",
+    "en": "Cycle engines agree on"
+   },
+   "outputs": 29,
+   "planted_targets": 4,
+   "precision": 1.0,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 0,
+     "tp": 3,
+     "unjudged": 3
+    },
+    "chief-ops": {
+     "fp": 0,
+     "tp": 8,
+     "unjudged": 3
+    },
+    "eaos": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 1
+    },
+    "finance-os-a0192b7b": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 3
+    }
+   },
+   "recall": 1.0,
+   "shown": true,
+   "status": "meets_bar",
+   "true_positives": 19,
+   "why": "precision 1.0 on 19 judged, recall 1.0"
+  },
+  {
+   "class": "vulnerable_dependency",
+   "false_positives": 0,
+   "id": "vulnerable_dependency",
+   "judged": 45,
+   "labelled_positives": 45,
+   "name": {
+    "ar": "اعتمادية فيها ثغرة",
+    "en": "Dependency with a known vulnerability"
+   },
+   "outputs": 61,
+   "planted_targets": 0,
+   "precision": 1.0,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 0,
+     "tp": 29,
+     "unjudged": 1
+    },
+    "chief-ops": {
+     "fp": 0,
+     "tp": 8,
+     "unjudged": 0
+    },
+    "finance-os-a0192b7b": {
+     "fp": 0,
+     "tp": 8,
+     "unjudged": 15
+    }
+   },
+   "recall": 1.0,
+   "shown": true,
+   "status": "meets_bar",
+   "true_positives": 45,
+   "why": "precision 1.0 on 45 judged, recall 1.0"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "engine_cluster:coupling",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "ترابط خفي",
+    "en": "Hidden coupling"
+   },
+   "outputs": 46,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 2
+    },
+    "chief-ops": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 26
+    },
+    "eaos": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 12
+    },
+    "finance-os-a0192b7b": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 6
+    }
+   },
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "engine_cluster:dataflow",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "تدفق بيانات خطر",
+    "en": "Risky data flow"
+   },
+   "outputs": 0,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {},
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "engine_cluster:surface",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "سطح مكشوف",
+    "en": "Exposed surface"
+   },
+   "outputs": 0,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {},
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "engine_cluster:test_quality",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "جودة الاختبارات",
+    "en": "Test quality"
+   },
+   "outputs": 0,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {},
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "engine_cluster:naming",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "التسمية",
+    "en": "Naming"
+   },
+   "outputs": 0,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {},
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "engine_cluster:boundary",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "حدود الطبقات",
+    "en": "Layer boundaries"
+   },
+   "outputs": 0,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {},
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "engine_cluster:misconfiguration",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "إعداد خاطئ",
+    "en": "Misconfiguration"
+   },
+   "outputs": 0,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {},
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "engine_cluster:sql_quality",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "جودة SQL",
+    "en": "SQL quality"
+   },
+   "outputs": 0,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {},
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "engine_cluster:api_contract",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "عقد الواجهة البرمجية",
+    "en": "API contract"
+   },
+   "outputs": 0,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {},
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "engine_cluster:unused_dependency",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "اعتمادية غير مستخدمة",
+    "en": "Unused dependency"
+   },
+   "outputs": 0,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {},
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "cochange",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "ملفات تتغير معًا",
+    "en": "Files that change together"
+   },
+   "outputs": 7,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 2
+    },
+    "chief-ops": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 1
+    },
+    "finance-os-a0192b7b": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 4
+    }
+   },
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "trace_gap",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "مسار انقطع تتبعه",
+    "en": "Path whose trace stops"
+   },
+   "outputs": 40,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {
+    "FleetManageWeb": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 10
+    },
+    "chief-ops": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 10
+    },
+    "eaos": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 10
+    },
+    "finance-os-a0192b7b": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 10
+    }
+   },
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "policy",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "مخالفة قانون المشروع",
+    "en": "Breach of the project's rules"
+   },
+   "outputs": 0,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {},
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "load_blocker",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "عائق تحت الحمل",
+    "en": "Blocker under load"
+   },
+   "outputs": 1,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {
+    "finance-os-a0192b7b": {
+     "fp": 0,
+     "tp": 0,
+     "unjudged": 1
+    }
+   },
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "untested",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "كود بلا اختبار",
+    "en": "Untested code"
+   },
+   "outputs": 0,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {},
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  },
+  {
+   "class": null,
+   "false_positives": 0,
+   "id": "unattributed",
+   "judged": 0,
+   "labelled_positives": 0,
+   "name": {
+    "ar": "ادعاء بلا كاشف معروف",
+    "en": "Finding with no known detector"
+   },
+   "outputs": 0,
+   "planted_targets": 0,
+   "precision": null,
+   "projects": {},
+   "recall": null,
+   "shown": false,
+   "status": "not_measured",
+   "true_positives": 0,
+   "why": "no labelled class for this detector yet"
+  }
+ ],
+ "digests": {
+  "engine-precision": "39da01ba277d01760ffd20ab4690d2372605c9a1808d2df408cb12d856f9f3a4",
+  "north-star": "eba83fb05f2b9d91cfe915fe553de73333aa69b0ba0bd2b11f3baa9b4ea07284"
+ },
+ "labelled_items": 740,
+ "labelled_projects": [
+  "FleetManageWeb",
+  "chief-ops",
+  "eaos",
+  "finance-os-a0192b7b"
+ ],
+ "limits": "Precision is measured on judged outputs only: those that touch a labelled item or a file in which the class was labelled exhaustively. Recall is measured on the planted mutations a detector was built to find, and on the hand labels. Labels are one reviewer's reading of the source.",
+ "north_star_measured_at": "2026-09-30",
+ "source": "docs/engine-precision.json and docs/north-star.json (tools/engine_quality.py)"
+}
