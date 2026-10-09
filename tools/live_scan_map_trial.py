@@ -101,10 +101,12 @@ def judge(report, browser_json, out):
     _case(cases, 'studio_followed_the_run_live', early_running and mid_running and done_rows and all(r['run_state'] == 'done' for r in done_rows),
           f"early: {len(early_running)} views saw it running; middle: {len(mid_running)}; done: "
           f"{sum(r['run_state'] == 'done' for r in done_rows)}/{len(done_rows)} saw it done; moments {seen.get('moments')}")
-    full = [r for r in mid_running if r['ended_on_page'] >= r['ended_in_api'] - 1 and r['ended_in_api'] > 0]
+    # the page's exact state is its stage list; the map shows the same changes in turn, 400 ms apart (motion.ts)
+    full = [r for r in mid_running if r['ended_in_list'] >= r['ended_in_api'] - 1 and r['ended_in_api'] > 0]
     _case(cases, 'page_opened_mid_run_shows_the_full_state', mid_running and len(full) == len(mid_running),
-          '; '.join(f"{r['viewport']}-{r['lang']}-{r['theme']}: page {r['ended_on_page']} ended, api {r['ended_in_api']}" for r in mid_running[:12]))
-    lit = [r for r in mid_running if r['glow'] >= 1 and r['flows'] >= 1 and (r.get('light') or {}).get('moved')]
+          '; '.join(f"{r['viewport']}-{r['lang']}-{r['theme']}: list {r['ended_in_list']} ended, map {r['ended_on_page']}, api {r['ended_in_api']}" for r in mid_running[:12]))
+    # a light runs for 700 ms after each stage ends ok: the browser waits for the next one and reads it twice
+    lit = [r for r in mid_running if r['glow'] >= 1 and (r.get('light') or {}).get('moved')]
     _case(cases, 'glow_and_moving_light_mid_run', bool(lit),
           f"{len(lit)} mid-run views with the glow and a light that moved: " + '; '.join(f"{r['screenshot']} {r['light']}" for r in lit[:3]))
     reduced = [r for r in views if r['reduced']]
@@ -119,16 +121,55 @@ def judge(report, browser_json, out):
 
     # the gated views are the live check's own; the banner rows on other pages are the banner case's evidence only
     view_rows = [{**r, 'pass': bool(r['pass'] and r.get('screenshot') and Path(r['screenshot']).is_file())} for r in views if r['route'] == '/scan']
+    front_end = front_end_checks(seen, view_rows)
     trial = {'kind': 'live', 'mocked': False, 'completed_at': now(), 'studio_source_sha256': studio.shipped(),
              'project': manifest.get('target', '').rsplit('/', 1)[-1], 'run': state['run'], 'status': state['status'],
              'seconds': state['seconds'], 'moments': seen.get('moments'), 'browser_errors': seen.get('errors') or [],
-             'cases': [cases[name] for name in CASES], 'views': view_rows}
+             'cases': [cases[name] for name in CASES], 'views': view_rows, 'front_end': front_end}
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(trial, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    failed = [c['id'] for c in trial['cases'] if not c['pass']] + [f"view {r['moment']} {r['viewport']} {r['lang']} {r['theme']}" for r in view_rows if not r['pass']]
+    failed = [c['id'] for c in trial['cases'] if not c['pass']] + [k for k, v in front_end.items() if not v['pass']] + [f"view {r['moment']} {r['viewport']} {r['lang']} {r['theme']}" for r in view_rows if not r['pass']]
     print(json.dumps({'trial': str(out), 'cases': len(CASES), 'views': len(view_rows), 'failed': failed}, ensure_ascii=False))
     return 0 if not failed else 1
+
+
+def _all_pass(rows, minimum=1):
+    return len(rows) >= minimum and all(r['pass'] for r in rows)
+
+
+def _every(rows, test):
+    return {'pass': bool(rows) and all(test(r) for r in rows), 'views': len(rows)}
+
+
+def _replay_check(replay):
+    """I9: every glow and light of the replayed check matched to its line, and enough of both seen."""
+    return {**replay, 'pass': bool(replay) and not replay.get('unmatched') and replay.get('glows', 0) >= 5
+            and replay.get('lights', 0) >= 1}
+
+
+def _polling_check(rows):
+    """With the stream held back, the page read /api/progress and its stage list kept up with the run."""
+    caught_up = [r for r in rows if r['transport'] == 'polling' and abs(r['ended_in_list'] - r['ended_in_api']) <= 1]
+    return {'pass': _all_pass(rows) and len(caught_up) == len(rows),
+            'views': [{k: r[k] for k in ('transport', 'ended_in_list', 'ended_in_api', 'screenshot')} for r in rows]}
+
+
+def front_end_checks(seen, view_rows):
+    """Plan phase 4's checks of the page, from what the browser saw: I9 on the replay of the finished check, the
+    polling fallback with the stream held back, the toolbar against the stages, the journey, the phone's bottom sheet
+    and a produced file read in its sheet."""
+    checks = seen.get('checks') or {}
+    kind = lambda name: [r for r in view_rows if r.get('kind') == name]
+    return {
+        'i9_every_light_and_glow_matched': _replay_check(checks.get('replay') or {}),
+        'polling_fallback_carries_the_run': _polling_check(kind('polling')),
+        'toolbar_never_covers_a_stage': _every(view_rows, lambda r: r.get('overlaps') == 0),
+        'journey_strip_on_every_map_view': _every(kind('map'), lambda r: r.get('journey') == 4),
+        'phone_bottom_sheet': {'pass': _all_pass(kind('sheet'), 2), 'screenshots': [r['screenshot'] for r in kind('sheet')]},
+        'produced_file_read_in_its_sheet': {'pass': _all_pass(kind('file')) and (checks.get('file') or {}).get('shown', 0) > 0,
+                                            'screenshots': [r['screenshot'] for r in kind('file')]},
+    }
 
 
 def main(argv=None):

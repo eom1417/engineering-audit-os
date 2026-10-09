@@ -506,20 +506,28 @@ This is EAOS's own pipeline, not the audited project's (that is the pipeline map
   with `--remote-origin`); in a run the Studio itself started, no other tab opens. `eaos start` prints and opens the
   same address when the project's Studio is running (`--no-watch` skips it). `open_studio` starts the server from the
   EAOS workspace folder with `PYTHONSAFEPATH=1`, so a check of EAOS's own repository never loads the checked code.
-- **The page.** The map is drawn from that data, so a new stage or tool appears with no front-end change; the
-  orientation is whichever reads larger in the box. The running stage glows; a light runs along each link into it
-  and once along each link out of a stage that just ended to the stages it opened. The panel tells the chosen stage:
-  what it does, its live timer, its steps, what it produced, why it did not run. The stage list under the map is the
-  keyboard and touch path to every stage. The run line says stage n of N, the elapsed time, and a time left only from
-  the last run of the same project. A banner on every page links to it while a check runs. With reduced motion nothing
-  moves. The check's `progress` events go to the map (`studio/src/data/scan.ts`) and never reload the report's sections.
-- **Limits.** Precision is per stage, and per step inside `facts` and `engines`; inside one tool there is no
-  percentage. The snapshot opened from a file says the live map needs the live Studio. A check made before this
-  feature shows the designed empty state. The flows after the scan (setting the app up, screens, fixes) do not write
-  this file yet.
+- **The page.** A journey strip shows the four steps of the work (`journey`): the running one glows, a done one has a
+  tick, one not started says when it comes; each opens its own flow's map, by default the one running. The map is
+  drawn from that data, so a new stage or tool appears with no front-end change (its own name and description until it
+  has words); the orientation is whichever reads larger in the box, and its toolbar (follow, zoom, fit, replay) sits in
+  a row above the canvas, never over a stage. The page's state is the TypeScript fold (`studio/src/data/scan.ts`),
+  held to the same recorded runs as the Python fold. The map shows each change at least 400 ms after the one before
+  (`pages/scan/motion.ts`), so a 50 ms stage is still seen: the running stage glows, a stage ending ok sends a light
+  along each link to the stages it opened (at most three at once), a failure pulses red once, a stage that did not run
+  fades in dashed; the glow and each light carry the time of their line. The panel (beside the map; a bottom sheet on
+  the phone) tells the chosen stage: what it does, its live timer, the external programs running now, its steps with a
+  bar for a counted one, what it produced (the check's files open read-only in a sheet through `/api/report-file`) and
+  why it did not run, worded from its `reason_code` by `errors.json -> reasons`. The run line says stage n of N, the
+  elapsed time and the server's time-left range. After a check, "replay" plays its real progress file at 10x or 30x,
+  labelled as a replay. A banner on every page and the tab's title ("3/26", a tick when it ended well) follow the
+  running work; a polite live region says what started or ended, at most once every 3 s. With reduced motion nothing
+  moves. When the stream says nothing for 8 s (it pings every 5 s), the page reads `/api/progress` every 2 s until the
+  stream delivers again (`data-transport` says which path carries it). The Studio's Re-scan opens the live map.
 - **Proof.** `tests/test_live_scan_map.py` (fake runners, the feed, the stream with Last-Event-ID), `studio/src/data/
-  scan.test.ts`, and the real trial `tools/live_scan_map_trial.py` with `tools/live_scan_map_trial.mjs`, judged by
-  `acceptance/test_live_scan_map.py`.
+  scan.test.ts` (the fold against the recorded runs), `studio/src/pages/scan/live.test.ts` (every glow and light of a
+  recorded run matched to its line; a stage added in a test drawn with no front-end change), and the real trial
+  `tools/live_scan_map_trial.py` with `tools/live_scan_map_trial.mjs` (also the phone sheet, a produced file, the
+  stream held back, and the replay's lights and glows matched to the file), judged by `acceptance/test_live_scan_map.py`.
 
 ## The pipeline map (`studio/pipeline.json`)
 

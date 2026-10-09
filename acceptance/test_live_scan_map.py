@@ -183,3 +183,40 @@ class ServerAndEntry(unittest.TestCase):
         self.assertEqual((progress['status'], progress['stages'], progress['flows']), (200, 26, ['check', 'fix', 'safety', 'setup']))
         self.assertIsNotNone(progress['check_run'], 'the map shows the check the session started')
         self.assertFalse(re.search(r'token=(?!<redacted>)', path.read_text(encoding='utf-8')), 'no launch token is kept')
+
+
+class FrontEnd(unittest.TestCase):
+    """Live scan map v2, phase 4 (eaos-dev/planning/live-scan-map/PLAN-v2.md sections 4, 3.9 and 5), planned
+    2026-10-09: the page.
+
+    The evidence is the real trial's `front_end` checks in $EAOS_MEASURE/live-scan-map/trial.json, from what Chromium
+    saw while a real check ran in the shipped Studio: I9 (the finished check replayed at 30x in the page, every glow and
+    light it drew matched to its line of run-progress.jsonl), the polling fallback (the stream held back, the page read
+    /api/progress and kept up with the run), the map's toolbar covering no stage in any view, the journey's four steps
+    on every map view, the phone's bottom sheet and a produced file read in its sheet, each view passing its gates.
+    I4's TypeScript half (the page's fold equals the Python fold on the recorded runs), I3's page half (a stage added
+    in a test drawn with no front-end change) and the motion rules (400 ms per change, at most 3 lights, every glow and
+    light matched on the recorded runs) are the Studio's own tests, run here."""
+
+    CHECKS = ('i9_every_light_and_glow_matched', 'polling_fallback_carries_the_run', 'toolbar_never_covers_a_stage',
+              'journey_strip_on_every_map_view', 'phone_bottom_sheet', 'produced_file_read_in_its_sheet')
+
+    def test_the_page_passes_its_checks_in_the_real_trial(self):
+        import json
+        path = measure.REPORTS / 'live-scan-map' / 'trial.json'
+        self.assertTrue(path.is_file(), f'no real trial at {path}')
+        checks = json.loads(path.read_text(encoding='utf-8')).get('front_end') or {}
+        self.assertEqual(sorted(checks), sorted(self.CHECKS))
+        self.assertEqual([name for name, check in checks.items() if check.get('pass') is not True], [])
+        replay = checks['i9_every_light_and_glow_matched']
+        self.assertEqual(replay['unmatched'], [])
+        self.assertGreaterEqual(replay['glows'], 5)
+        self.assertGreaterEqual(replay['lights'], 1)
+
+    def test_the_studio_fold_and_motion_hold_on_the_recorded_runs(self):
+        import subprocess
+        studio = ROOT / 'studio'
+        self.assertTrue((studio / 'node_modules/.bin/vitest').is_file(), 'the Studio is not installed (npm ci in studio/)')
+        run = subprocess.run([str(studio / 'node_modules/.bin/vitest'), 'run', 'src/data/scan.test.ts', 'src/pages/scan/live.test.ts'],
+                             cwd=studio, capture_output=True, text=True, timeout=300)
+        self.assertEqual(run.returncode, 0, run.stdout[-3000:] + run.stderr[-2000:])

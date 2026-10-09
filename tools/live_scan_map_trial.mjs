@@ -3,7 +3,10 @@
 // check to start and takes three moments (early, middle, done), each at 390, 768 and 1440 px, Arabic and English, light
 // and dark, plus reduced motion and the banner on another page mid-run. Every view is measured: layout width against
 // the viewport, the initial scroll, axe (WCAG 2.2 AA), targets under 44 px, and on the map the glow and the moving
-// light. Writes TRIAL_OUT/browser.json; prints one JSON line.
+// light, the map's toolbar against every stage it could cover. Phase 4 of the plan adds the phone's bottom sheet, a
+// produced file read in its sheet, the polling fallback with the stream held back, and the replay of the finished
+// check at 30x, every glow and light of which is matched to its line of run-progress.jsonl (I9).
+// Writes TRIAL_OUT/browser.json; prints one JSON line.
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
@@ -27,6 +30,7 @@ const FIRST = (v) => (v.width === 1440 && v.lang === 'en' && v.theme === 'light'
 VIEWS.sort((a, b) => FIRST(a) - FIRST(b))
 const rows = []
 const moments = {}
+const checks = {}
 const errors = []
 const log = (...args) => console.error(new Date().toISOString(), ...args)
 
@@ -64,11 +68,13 @@ async function until(test, ms, every = 500) {
 
 const browser = await chromium.launch()
 
-async function open({ width, lang, theme, route = '/scan', reduced = false }) {
+async function open({ width, lang, theme, route = '/scan', reduced = false, holdStream = false }) {
   const phone = width < 768
   const ctx = await browser.newContext({ viewport: { width, height: phone ? 844 : width < 1200 ? 1024 : 900 }, deviceScaleFactor: phone ? 2 : 1,
     isMobile: phone, hasTouch: phone, colorScheme: theme, reducedMotion: reduced ? 'reduce' : 'no-preference', locale: lang === 'ar' ? 'ar' : 'en-GB' })
   await ctx.addInitScript(([l, t]) => { try { localStorage.setItem('eaos.studio', JSON.stringify({ lang: l, theme: t })) } catch { /* fresh */ } }, [lang, theme])
+  // the stream held back, as a proxy that buffers server-sent events would: the page must fall back to reading
+  if (holdStream) await ctx.route('**/api/events', () => undefined)
   const page = await ctx.newPage()
   page.on('pageerror', (e) => errors.push(`${width}-${lang}-${theme}: ${e}`))
   await page.goto(`${base}/#/${route.replace(/^\//, '')}?token=${token}`, { waitUntil: 'load' })
@@ -93,7 +99,7 @@ async function measure(page, width) {
       if (r.width < 44 || r.height < 44) small.push(`${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 1).join('')} ${Math.round(r.width)}x${Math.round(r.height)} "${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 30)}"`)
     }
     const glow = [...document.querySelectorAll('[data-glow]')]
-    const flows = [...document.querySelectorAll('[data-flow]')]
+    const flows = [...document.querySelectorAll('[data-light]')]
     const halo = glow[0] ? getComputedStyle(glow[0]) : null
     return {
       layout: document.documentElement.scrollWidth, viewport: w, scrollY: window.scrollY, scrollX: window.scrollX, small,
@@ -107,11 +113,28 @@ async function measure(page, width) {
   }, width)
 }
 
-/** Where the first moving light is now, twice, 300 ms apart: it must have moved. */
+/** What phase 4 adds to a view's measure: how many toolbar controls cover a stage (each stage taken where the canvas
+ * shows it), the journey's steps, which path carries the changes, and the stages the list shows ended. */
+async function mapFacts(page) {
+  return page.evaluate(() => {
+    const canvas = document.querySelector('[data-motion]')?.getBoundingClientRect()
+    const meet = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+    const shown = (r) => ({ left: Math.max(r.left, canvas.left), right: Math.min(r.right, canvas.right), top: Math.max(r.top, canvas.top), bottom: Math.min(r.bottom, canvas.bottom) })
+    const stages = canvas ? [...document.querySelectorAll('g[data-stage]')].map((g) => g.getBoundingClientRect()).filter((r) => meet(r, canvas)).map(shown) : []
+    const ended = ['ok', 'skipped', 'unavailable', 'failed', 'not_reached']
+    return { overlaps: [...document.querySelectorAll('[role=toolbar] button')].filter((b) => stages.some((r) => meet(b.getBoundingClientRect(), r))).length,
+      journey: document.querySelectorAll('[data-journey]').length, transport: document.querySelector('[data-transport]')?.getAttribute('data-transport'),
+      endedInList: [...document.querySelectorAll('[data-list-state]')].filter((b) => ended.includes(b.getAttribute('data-list-state'))).length }
+  })
+}
+
+/** The next light that leaves a stage (one runs for 700 ms after each stage ends ok), twice, 150 ms apart: it must
+ * have moved. Waits up to 60 s for a stage to end (the external tools' stage can run that long). */
 async function lightMoves(page) {
-  const at = () => page.evaluate(() => { const c = document.querySelector('[data-flow]'); if (!c) return null; const r = c.getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y)] })
+  const at = () => page.evaluate(() => { const c = document.querySelector('[data-light]'); if (!c) return null; const r = c.getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y)] })
+  await page.waitForSelector('[data-light]', { timeout: 60000 }).catch(() => undefined)
   const a = await at()
-  await page.waitForTimeout(300)
+  await page.waitForTimeout(150)
   const b = await at()
   return { a, b, moved: !!a && !!b && (a[0] !== b[0] || a[1] !== b[1]) }
 }
@@ -122,27 +145,110 @@ async function axe(page) {
     all: result.violations.map((v) => `${v.impact} ${v.id} (${v.nodes.length}) ${v.nodes[0]?.target}`) }
 }
 
+/** What a view does before it is measured: open a stage's bottom sheet on the phone, a produced file's sheet, or wait
+ * for the polling fallback to carry the run. */
+async function act(page, extra) {
+  if (extra.sheet) {
+    await page.locator('[data-list-stage]').first().click()
+    await page.waitForSelector('[role=dialog] [data-hook=scan-stage-panel]', { timeout: 10000 })
+    await page.waitForTimeout(800)             // the sheet's entrance has ended
+  }
+  if (extra.file) {
+    await page.locator('[data-list-stage="facts"]').click()
+    await page.locator('[data-file]').first().click()
+    await page.waitForSelector('[data-file-text]', { timeout: 10000 })
+    checks.file = { shown: (await page.locator('[data-file-text]').textContent()).length }
+  }
+  if (extra.holdStream) {
+    await page.waitForSelector('[data-transport=polling]', { timeout: 20000 })
+    await page.waitForTimeout(6000)
+  }
+}
+
+const KINDS = ['reduced', 'sheet', 'file', 'holdStream']
+/** What a view shows besides the map itself: reduced motion, the phone's sheet, a file, the stream held back. */
+const kindOf = (extra) => ({ holdStream: 'polling' })[KINDS.find((k) => extra[k])] ?? KINDS.find((k) => extra[k]) ?? 'map'
+
+/** The screen gates of a view; a sheet or a file was opened by a tap, which may scroll the page, so the initial scroll
+ * is the map views' gate, and the toolbar is measured on the live map only. */
+function passes(row, extra) {
+  const scrolled = row.initial_scroll_zero || row.kind === 'sheet' || row.kind === 'file'
+  return row.width_equals_viewport && scrolled && row.axe_violations === 0 && row.small_targets === 0 && (!!extra.route || row.overlaps === 0)
+}
+
 async function view(moment, v, extra = {}) {
   const { ctx, page } = await open({ ...v, ...extra })
   try {
-    const m = await measure(page, v.width)
-    const light = moment === 'middle' && !extra.reduced ? await lightMoves(page) : null
+    await act(page, extra)
+    const m = { ...(await measure(page, v.width)), ...(await mapFacts(page)) }
+    const api = await progress()                // the run as the page was measured, before any wait for a light
+    const light = moment === 'middle' && !Object.keys(extra).length && FIRST(v) === 0 ? await lightMoves(page) : null
     const a = await axe(page)
-    const name = `${moment}-${v.width}-${v.lang}-${v.theme}${extra.reduced ? '-reduced' : ''}${extra.route && extra.route !== '/scan' ? '-banner' : ''}.png`
+    const kind = kindOf(extra)
+    const name = `${moment}-${v.width}-${v.lang}-${v.theme}${kind === 'map' ? '' : `-${kind}`}${extra.route ? '-banner' : ''}.png`
     const file = path.join(shots, name)
     await page.screenshot({ path: file })
     let full = null
-    if (v.width < 768 && !extra.route) { full = file.replace(/\.png$/, '-full.png'); await page.screenshot({ path: full, fullPage: true }) }
-    const api = await progress()
-    const row = { moment, viewport: v.width, lang: v.lang, theme: v.theme, reduced: !!extra.reduced, route: extra.route ?? '/scan', screenshot: file, full,
+    if (v.width < 768 && !extra.route && !extra.sheet) { full = file.replace(/\.png$/, '-full.png'); await page.screenshot({ path: full, fullPage: true }) }
+    const row = { moment, viewport: v.width, lang: v.lang, theme: v.theme, reduced: !!extra.reduced, route: extra.route ?? '/scan', kind, screenshot: file, full,
+      overlaps: m.overlaps, journey: m.journey, transport: m.transport,
       width_equals_viewport: m.layout === m.viewport, initial_scroll_zero: m.scrollY === 0 && m.scrollX === 0,
       axe_violations: a.total, axe_serious: a.serious, axe_all: a.all, small_targets: m.small.length, small: m.small.slice(0, 6),
       run_state: m.runState, running_on_page: m.running, glow: m.glow, flows: m.flows, halo_animation: m.haloAnimation, halo_duration: m.haloDuration,
-      motion: m.motion, banner: m.banner, ended_on_page: m.endedOnPage, ended_in_api: ended(api), api_state: api?.state ?? null, light, at: new Date().toISOString() }
-    row.pass = row.width_equals_viewport && row.initial_scroll_zero && row.axe_violations === 0 && row.small_targets === 0
+      motion: m.motion, banner: m.banner, ended_on_page: m.endedOnPage, ended_in_list: m.endedInList, ended_in_api: ended(api), api_state: api?.state ?? null, light, at: new Date().toISOString() }
+    row.pass = passes(row, extra)
     rows.push(row)
-    log(moment, v.width, v.lang, v.theme, extra.reduced ? 'reduced' : '', extra.route ?? '', `run=${m.runState} glow=${m.glow} flows=${m.flows} pass=${row.pass}`, a.all.join('; '), m.small.slice(0, 2).join('; '))
+    log(moment, v.width, v.lang, v.theme, kind, extra.route ?? '', `run=${m.runState} glow=${m.glow} overlaps=${m.overlaps} transport=${m.transport} pass=${row.pass}`, a.all.join('; '), m.small.slice(0, 2).join('; '))
     return row
+  } finally {
+    await ctx.close()
+  }
+}
+
+/** Every glow and light the map draws while the replay plays, until the replay has ended and the map has shown it
+ * all (3 s with nothing drawn). */
+async function watchReplay(page, shot) {
+  const seen = new Map()
+  const start = Date.now()
+  let quietSince = Date.now()
+  while (Date.now() - start < 90000 && Date.now() - quietSince < 3000) {
+    const now = await page.evaluate(() => ({
+      drawn: [...[...document.querySelectorAll('[data-glow]')].map((g) => ['glow', g.closest('[data-stage]').getAttribute('data-stage'), '', g.getAttribute('data-at')]),
+        ...[...document.querySelectorAll('[data-light]')].map((l) => ['light', l.getAttribute('data-from'), l.getAttribute('data-to'), l.getAttribute('data-at')])],
+      done: document.querySelector('[data-replay]')?.getAttribute('data-run-state') === 'done',
+    }))
+    for (const item of now.drawn) seen.set(item.join('|'), item)
+    if (now.drawn.length || !now.done) quietSince = Date.now()
+    if (seen.size > 6 && !fs.existsSync(shot)) await page.screenshot({ path: shot })
+    await sleep(50)
+  }
+  return { items: [...seen.values()], seconds: (Date.now() - start) / 1000 }
+}
+
+/** The drawn items no line explains: a glow without its stage's `stage.started` at that time, a light without its
+ * stage's `stage.ended` ok or towards a stage that does not need it. */
+function unmatched(items, rows) {
+  const needs = new Map((rows[0]?.stages ?? []).map((st) => [st.name, st.requires]))
+  const line = (event, stage, at, status) => rows.some((r) => r.event === event && r.stage === stage && r.at === at && (!status || r.status === status))
+  return items.filter(([kind, stage, to, at]) => (kind === 'glow' ? !line('stage.started', stage, at)
+    : !(line('stage.ended', stage, at, 'ok') && (needs.get(to) ?? []).includes(stage))))
+}
+
+/** I9: the finished check replayed at 30x in the page; every glow and every light seen is matched to its line of the
+ * real progress file. */
+async function replayMatched() {
+  const { ctx, page } = await open({ width: 1440, lang: 'ar', theme: 'dark' })
+  try {
+    await page.locator('[data-replay-speed="30"]').click()
+    await page.waitForSelector('[data-replay]', { timeout: 10000 })
+    const shot = path.join(shots, 'replay-1440-ar-dark.png')
+    const { items, seconds } = await watchReplay(page, shot)
+    const answer = await fetch(`${base}/api/report-file?path=run-progress.jsonl`, { headers: { 'X-EAOS-Token': token } })
+    const rows = (await answer.text()).split('\n').filter(Boolean).map((line) => JSON.parse(line))
+    checks.replay = { speed: 30, seconds, glows: items.filter((i) => i[0] === 'glow').length, lights: items.filter((i) => i[0] === 'light').length,
+      started_lines: rows.filter((r) => r.event === 'stage.started').length, unmatched: unmatched(items, rows).map((i) => i.join(' ')),
+      screenshot: fs.existsSync(shot) ? shot : null }
+    log('replay', JSON.stringify(checks.replay))
   } finally {
     await ctx.close()
   }
@@ -165,17 +271,25 @@ try {
     view('middle', { width: 390, lang: 'ar', theme: 'light' }, { route: '/' }),
     view('middle', { width: 1440, lang: 'en', theme: 'dark' }, { route: '/problems' }),
   ])
+  await Promise.all([
+    view('middle', { width: 390, lang: 'ar', theme: 'light' }, { sheet: true }),
+    view('middle', { width: 390, lang: 'en', theme: 'dark' }, { sheet: true }),
+    view('middle', { width: 1440, lang: 'en', theme: 'light' }, { holdStream: true }),
+  ])
 
   const done = await until((p) => p && p.state !== 'running', 60 * 60 * 1000, 1000)
   moments.done = { at: new Date().toISOString(), state: done?.state ?? null, status: done?.status ?? null, ended: ended(done), total: asked(done) }
   await sleep(4000)            // the report's own reload after the run
   await all('done', VIEWS)
+  await view('done', { width: 1440, lang: 'en', theme: 'light' }, { file: true })
+  await view('done', { width: 390, lang: 'ar', theme: 'dark' }, { sheet: true })
+  await replayMatched()
 } catch (problem) {
   errors.push(String(problem && problem.stack || problem))
 } finally {
   await browser.close()
 }
-const result = { moments, rows, errors }
+const result = { moments, rows, checks, errors }
 fs.writeFileSync(path.join(out, 'browser.json'), JSON.stringify(result, null, 1))
 console.log(JSON.stringify({ rows: rows.length, failed: rows.filter((r) => !r.pass).length, errors: errors.length }))
 process.exit(0)
