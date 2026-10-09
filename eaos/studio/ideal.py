@@ -192,12 +192,20 @@ def _rules_views(report):
     data = _load(studio / 'data_paths.json', {}) or {}
     stores = [s for s in data.get('stores') or [] if isinstance(s, dict)]
     change = {'single_already': 'retain', 'merged_in_target': 'merge', 'still_multiple': 'refactor'}
+    # A store's evidence is on its endpoints' call sites (studio/data_paths.json endpoints[].sites[].fact); `sites` on
+    # the store itself is their count.
+    sites = {}
+    for endpoint in data.get('endpoints') or []:
+        if not isinstance(endpoint, dict): continue
+        sites.setdefault(endpoint.get('store'), []).extend(x.get('fact') for x in endpoint.get('sites') or [] if isinstance(x, dict))
+    count = lambda value: len(value) if isinstance(value, list) else value if isinstance(value, int) else 0
     if stores:
         views['data_paths'] = ('Every store with its writers and its change toward one owner (studio/data_paths.json).',
                                [_element(s.get('id') or s.get('name'), 'store', s.get('name') or s.get('id'),
                                          change.get(s.get('change'), 'retain'), None,
-                                         f"{len(s.get('writers') or [])} writer(s), {len(s.get('readers') or [])} reader(s)",
-                                         [s.get('fact')] + [x.get('fact') for x in s.get('sites') or [] if isinstance(x, dict)])
+                                         f"{count(s.get('writers'))} writer(s), {count(s.get('readers'))} reader(s)",
+                                         [s.get('fact')] + [x.get('fact') for x in (s.get('sites') if isinstance(s.get('sites'), list) else []) if isinstance(x, dict)]
+                                         + sites.get(s.get('id'), []))
                                 for s in stores])
     else:
         stores = {}

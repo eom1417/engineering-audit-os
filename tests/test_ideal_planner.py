@@ -158,6 +158,15 @@ class Planning(unittest.TestCase):
         self.assertEqual(rows, [])
         self.assertIn('found none', summary)
 
+    def test_the_data_view_cites_the_call_sites_of_each_stores_endpoints(self):
+        section = {'stores': [{'id': 'api:/drivers', 'name': '/drivers', 'change': 'still_multiple', 'sites': 2,
+                               'writers': ['src/a.ts', 'src/b.ts'], 'readers': []}],
+                   'endpoints': [{'id': 'ep:POST /drivers', 'store': 'api:/drivers', 'sites': [{'fact': 'FACT-write1', 'line': 3, 'path': 'src/a.ts'}]}]}
+        (self.report / 'studio/data_paths.json').write_text(json.dumps(section), encoding='utf-8')
+        summary, rows = ideal._rules_views(self.report)['data_paths']
+        self.assertEqual([(r['id'], r['operation'], r['cites'], r['detail']) for r in rows],
+                         [('api:/drivers', 'refactor', ['FACT-write1'], '2 writer(s), 0 reader(s)')])
+
     def test_the_bundle_is_grounded_deterministic_and_marks_the_project_text_untrusted(self):
         project = Path(self.tmp.name) / 'project'
         (project / 'docs').mkdir(parents=True)
