@@ -147,7 +147,7 @@ def projects_value(reports):
                          f"{len(ids - {page for page, _ in run['rows']})} routes not shot")
     return (round(len(ok) / len(spec['projects']), 3) if current else None,
             f"projects where the shipped Studio passed every gate on every route: {len(ok)}/{len(spec['projects'])}"
-            + (f"; {'; '.join(notes)}" if notes else '') + '; ' + control_notes)
+            + (f"; {'; '.join(notes)}" if notes else ''))
 
 
 def budgets_value(reports):

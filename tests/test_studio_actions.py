@@ -746,6 +746,13 @@ class Measure(unittest.TestCase):
             (path / 'trial.json').write_text(json.dumps(proof))
             self.assertEqual(north_star_studio.command_value(folder)[0], 0.5)
 
+    def test_f13_and_f14_measure_without_any_run(self):
+        sys.path.insert(0, str(ROOT / 'tools'))
+        import north_star_studio
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertIsNone(north_star_studio.projects_value(folder)[0])
+            self.assertIsNone(north_star_studio.budgets_value(folder)[0])
+
 
 if __name__ == '__main__':
     unittest.main()
