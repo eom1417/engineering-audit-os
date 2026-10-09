@@ -2,16 +2,19 @@
 Target/Ideal view of a project's latest check on top of the rules, and the result is recorded for the plan's acceptance.
 
     python tools/ideal_trial.py FleetManageWeb --report <a full report of its check> [--assistant claude|codex] [--lang ar]
+        [--into ideal|replan] [--project-dir <the project's own folder, for its documents>]
 
-The report is copied once to $EAOS_MEASURE/ideal/<project>/report (its engines/ folder linked, not copied), so the run
+The report is copied once to $EAOS_MEASURE/<into>/<project>/report (its engines/ folder linked, not copied), so the run
 never writes into the folder it was given. The project's own documents are read from the pinned corpus
-($EAOS_CORPUS/<project>) as untrusted data; none of the project's code runs. Then the Studio data is exported again from
-that report, so studio/ideal.json and every section's provenance show the run.
+($EAOS_CORPUS/<project>, or --project-dir) as untrusted data; none of the project's code runs. The Studio data is
+exported from that report before the run, so the rules' views read every map of this EAOS, and again after it, so
+studio/ideal.json and every section's provenance show the run.
 
-Writes $EAOS_MEASURE/ideal/<project>/run.json:
+Writes $EAOS_MEASURE/<into>/<project>/run.json:
   {project, assistant, model, at, real, state, message, passes, seconds, share_with_evidence, raw_share, draft_share,
-   elements, views{<view>: {rules, planned, departures, questions, method}}, dropped[], departures[], open_questions[],
-   critique{missed, risks, order}, bundle_bytes, eaos}
+   elements, views{<view>: {rules, planned, departures, questions, method, summary, why_empty, differences{same, changed,
+   added, rules_only}}}, differences[{view, element, kind, subject, rules, planned}], dropped[], departures[],
+   open_questions[], critique{missed, risks, order}, bundle_bytes, eaos}
 and comparison.md beside it: the rules' target against the planned ideal, view by view.
 """
 import argparse
@@ -27,7 +30,6 @@ import dev_paths  # noqa: E402
 from eaos.studio import export, ideal  # noqa: E402
 from eaos.studio.actions import adapters as assistants  # noqa: E402
 
-MEASURE = dev_paths.MEASURE / 'ideal'
 
 
 def prepare(source, folder):
@@ -67,6 +69,22 @@ def comparison(project, body, record):
     return '\n'.join(lines) + '\n'
 
 
+def view_record(name, view, record):
+    """One view of run.json: its method and counts, and its differences from the rules' target."""
+    kinds = [row['kind'] for row in view['differences']]
+    named = {row['subject'] for row in view['differences'] if row['subject']}
+    planned = (((record.get('ideal') or {}).get('views') or {}).get(name) or {}) if record else {}
+    empty = None
+    if view['provenance']['method'] != 'planned' and not view['rules']['elements']:
+        empty = planned.get('summary') or view['rules']['summary']
+    return {'method': view['provenance']['method'], 'rules': view['rules']['count']['value'],
+            'planned': (view['planned'] or {}).get('count', {}).get('value'),
+            'summary': (view['planned'] or {}).get('summary') or planned.get('summary') or '', 'why_empty': empty,
+            'departures': len(view['provenance']['departures']), 'questions': len(view['provenance']['open_questions']),
+            'differences': {'same': kinds.count('same'), 'changed': kinds.count('changed'), 'added': kinds.count('added'),
+                            'rules_only': sum(e['id'] not in named for e in view['rules']['elements'])}}
+
+
 def main(argv):
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('project')
@@ -75,15 +93,18 @@ def main(argv):
     parser.add_argument('--lang', default='ar', choices=('ar', 'en'))
     parser.add_argument('--timeout', type=int, default=ideal.TIMEOUT)
     parser.add_argument('--commit', help='the commit a frozen copy (no .git) was made from, for the record')
+    parser.add_argument('--into', default='ideal', choices=('ideal', 'replan'), help='the folder of $EAOS_MEASURE the run is recorded in')
+    parser.add_argument('--project-dir', help='the project\'s own folder, read for its documents (default $EAOS_CORPUS/<project>)')
     args = parser.parse_args(argv)
-    folder = MEASURE / args.project
+    folder = dev_paths.MEASURE / args.into / args.project
     folder.mkdir(parents=True, exist_ok=True)
     report = prepare(Path(args.report).expanduser().resolve(), folder)
     adapter = assistants.installed()[args.assistant]
     if not adapter.available():
         print(f'{adapter.name} is not installed and logged in here', file=sys.stderr)
         return 2
-    corpus = dev_paths.CORPUS / args.project
+    corpus = Path(args.project_dir).resolve() if args.project_dir else dev_paths.CORPUS / args.project
+    export.export(report, args.lang, args.project)
     say = lambda en, ar: print(en, flush=True)
     result = ideal.plan(report, project=corpus if corpus.is_dir() else None, lang=args.lang, adapters={args.assistant: adapter},
                         timeout=args.timeout, say=say)
@@ -99,10 +120,8 @@ def main(argv):
            'message': result['message'], 'passes': result.get('passes') or [], 'seconds': result.get('seconds'),
            'share_with_evidence': record.get('share'), 'raw_share': record.get('raw_share'), 'draft_share': record.get('draft_share'),
            'elements': record.get('elements') or 0,
-           'views': {name: {'method': view['provenance']['method'], 'rules': view['rules']['count']['value'],
-                            'planned': (view['planned'] or {}).get('count', {}).get('value'),
-                            'departures': len(view['provenance']['departures']), 'questions': len(view['provenance']['open_questions'])}
-                     for name, view in body['views'].items()},
+           'views': {name: view_record(name, view, record) for name, view in body['views'].items()},
+           'differences': [{'view': name, **row} for name, view in body['views'].items() for row in view['differences']],
            'dropped': record.get('dropped') or [], 'departures': (record.get('ideal') or {}).get('departures') or [],
            'open_questions': (record.get('ideal') or {}).get('open_questions') or [], 'critique': record.get('critique'),
            'bundle_bytes': record.get('bundle_bytes'), 'export_errors': exported['errors'], 'eaos': eaos,
