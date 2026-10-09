@@ -1,6 +1,6 @@
 // Change: from today to the target in components, and the fix plan's steps with their tasks (progress only from the
 // ledger). NS37.T3 and the plan pages of NS32 deepen it.
-import { Panel, Section } from '../components/Panel'
+import { Panel, RowLink, Section } from '../components/Panel'
 import { Journey, PlanStrip } from '../components/Story'
 import type { StudioData } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
@@ -17,12 +17,15 @@ import { GroupBox, ListTools } from '../command/Selectable'
 import { stepCards } from '../command/groups'
 import { useCmdWords } from '../command/words'
 import cmd from '../command/command.module.css'
+import { ChangeNav } from './change/parts'
+import { useChangeWords } from './change/words'
 
 function ChangeBody({ data }: { data: StudioData }) {
   const { t } = usePrefs()
   const w = useMapWords()
   const cw = useCmdWords()
   const phone = usePhone()
+  const cw2 = useChangeWords()
   const system = data.system && data.system.current.nodes.length > 0 ? data.system : undefined
   usePageChrome(t('change'), undefined, data.manifest.project.name)
   const today = data.story?.current.components.length ?? null
@@ -32,6 +35,7 @@ function ChangeBody({ data }: { data: StudioData }) {
   return (
     <div className={layout.page}>
       <MissingBanner data={data} />
+      <ChangeNav />
       <PageTitle title={t('journeyAndPlan')} />
       <Section title={t('fromTodayToTarget')} unit={t('inComponents')}>
         {system ? <JourneyStrip data={data} system={system} /> : (
@@ -50,11 +54,15 @@ function ChangeBody({ data }: { data: StudioData }) {
       {system && (
         <Section title={w('gapList')} count={system.current.nodes.filter((n) => n.op !== 'retain').length}>
           <GapList system={system} />
+          <Panel>
+            <RowLink to="/change/bridge" icon="change" title={cw2('bridgeTitle')} />
+            <RowLink to="/change/gaps" icon="layers" title={cw2('gapsTitle')} />
+          </Panel>
         </Section>
       )}
       {plan && (
         <Section title={t('fixPlan')}>
-          <PlanStrip plan={plan} to="/change" />
+          <PlanStrip plan={plan} to={`/plans/${encodeURIComponent(plan.id)}`} />
           <TimelineEntry data={data} />
           <ListTools shown={[]} />
           <Panel>

@@ -117,7 +117,7 @@ def change(m, card_rows, lang='ar'):
         files = sum(int(c.get('files') or 0) for c in sources)
         names = [c['name'] for c in sources]
         oid, gid = f'{op}:{name}', f'target:{name}'
-        reason = (_text(lang, f'{len(names)} مكوّنات من اليوم تصبح مكوّنًا واحدًا: {", ".join(names[:6])}' + ('…' if len(names) > 6 else ''),
+        reason = (_text(lang, f'{len(names)} مكوّنات من اليوم تصبح مكوّنًا واحدًا: {"، ".join(names[:6])}' + ('…' if len(names) > 6 else ''),
                         f'{len(names)} components of today become one: {", ".join(names[:6])}' + ('…' if len(names) > 6 else ''))
                   if sources else _text(lang, 'الهدف يضيفه ولا يقابله شيء في الكود اليوم.', 'The target adds it; nothing in the code today matches it.'))
         steps = steps_of(cards, name, builds=True)

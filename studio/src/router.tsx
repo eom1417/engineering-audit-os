@@ -2,6 +2,10 @@
 // file. Unbuilt sections have no route unless the developer flag is on (shell/sections.ts).
 import { createHashHistory, createRootRoute, createRoute, createRouter, redirect, useSearch } from '@tanstack/react-router'
 import { ChangePage } from './pages/Change'
+import { BridgePage } from './pages/change/BridgePage'
+import { OpPage, StepPage, TaskPage } from './pages/change/DetailPages'
+import { GapPage, GapsPage } from './pages/change/GapsPage'
+import { PlanPage, PlansPage } from './pages/change/PlansPage'
 import { DataPathsPage } from './pages/data/DataPaths'
 import { InfraLensPage } from './pages/infra/InfraLens'
 import { DecisionsPage } from './pages/Decisions'
@@ -61,6 +65,14 @@ export function makeRouter(dev: () => boolean) {
     createRoute({ getParentRoute: () => root, path: '/problems', component: ProblemsPage, validateSearch: params('card', 'who', 'severity', 'component', 'q') }),
     createRoute({ getParentRoute: () => root, path: '/change', component: ChangePage, validateSearch: params('focus', 'side') }),
     createRoute({ getParentRoute: () => root, path: '/change/timeline', component: TimelinePage, validateSearch: params('step', 'wave') }),
+    createRoute({ getParentRoute: () => root, path: '/change/bridge', component: BridgePage, validateSearch: params('view') }),
+    createRoute({ getParentRoute: () => root, path: '/change/gaps', component: GapsPage, validateSearch: params('relation') }),
+    createRoute({ getParentRoute: () => root, path: '/change/gaps/$gapId', component: GapPage }),
+    createRoute({ getParentRoute: () => root, path: '/plans', component: PlansPage }),
+    createRoute({ getParentRoute: () => root, path: '/plans/$planId', component: PlanPage, validateSearch: params('view') }),
+    createRoute({ getParentRoute: () => root, path: '/plans/$planId/$stepId', component: StepPage }),
+    createRoute({ getParentRoute: () => root, path: '/tasks/$taskId', component: TaskPage }),
+    createRoute({ getParentRoute: () => root, path: '/ops/$opId', component: OpPage }),
     createRoute({ getParentRoute: () => root, path: '/decisions', component: DecisionsPage, validateSearch: params('demo') }),
     createRoute({ getParentRoute: () => root, path: '/runs', component: RunsPage, validateSearch: params('q', 'show', 'demo') }),
     createRoute({ getParentRoute: () => root, path: '/runs/$runId', component: RunPage, validateSearch: params('demo') }),

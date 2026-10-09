@@ -164,7 +164,8 @@ def studio_placeholders(data):
     path counted in its deepest component), so the focused System view shows a full inspector; {path}: the code path
     the flow pages open ('none' without studio/paths.json); {task}, {screen}, {hidden_group}: the journeys and hidden pages'
     subjects; {store}: the data map's store; {stage}: the first router of the pipeline map, else its first stage ('none'
-    without studio/pipeline.json or a pipeline)."""
+    without studio/pipeline.json or a pipeline); {gap}, {op}, {plan}, {step}: Change's subjects (the gap with the most
+    cards, an operation that waits for another, the first plan and its first step with tasks; 'none' without them)."""
     cards = json.loads((data / 'cards.json').read_text(encoding='utf-8'))['cards']
     card = next((c for c in cards if c.get('evidence')), cards[0] if cards else {'id': ''})['id']
     story = json.loads((data / 'story.json').read_text(encoding='utf-8')) if (data / 'story.json').is_file() else {}
@@ -191,8 +192,16 @@ def studio_placeholders(data):
     store = next((s for s in stores if s.get('multi_writer')), stores[0] if stores else {'id': 'none'})
     stages = section('pipeline').get('stages') or []
     stage = next((s for s in stages if s.get('kind') == 'router'), stages[0] if stages else {'id': 'none'})
+    gaps = section('gaps').get('gaps') or []
+    gap = max((g for g in gaps if g.get('operation') != 'retain'), key=lambda g: (len(g.get('cards') or []), g['id']), default={'id': 'none'})
+    ops = sorted(section('operations').get('operations') or [], key=lambda o: o.get('order', 0))
+    op = next((o for o in ops if o.get('after')), ops[0] if ops else {'id': 'none'})
+    plans = section('plans').get('plans') or []
+    plan = plans[0] if plans else {'id': 'none', 'steps': []}
+    step = next((s for s in plan.get('steps') or [] if s.get('tasks')), {'id': 'none'})
     return {'card': card, 'component': component, 'path': chosen['id'], 'task': task['id'], 'screen': screen['id'],
-            'hidden_group': group['id'], 'store': store['id'], 'stage': stage['id']}
+            'hidden_group': group['id'], 'store': store['id'], 'stage': stage['id'], 'gap': gap['id'], 'op': op['id'],
+            'plan': plan['id'], 'step': step['id']}
 
 
 def studio_pages(matrix, data, base, folder, only=None):
