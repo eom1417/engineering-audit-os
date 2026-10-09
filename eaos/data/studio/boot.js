@@ -7,6 +7,13 @@
   if (q.get('lang')) saved.lang = q.get('lang') === 'en' ? 'en' : 'ar';
   if (q.get('theme')) saved.theme = q.get('theme') === 'dark' ? 'dark' : 'light';
   if (q.get('dev') !== null) saved.dev = q.get('dev') === '1';
+  // ?token=… is the remote address's form of the launch token: a sign-in in front of the server keeps the query
+  // through its redirects, where the #token=… fragment is lost. Kept for this tab only, like the fragment below.
+  var asked = /^[A-Za-z0-9_-]{16,128}$/.test(q.get('token') || '') ? q.get('token') : null;
+  if (asked && /^https?:$/.test(location.protocol)) {
+    window.EAOS_BOOT_TOKEN = asked;
+    try { sessionStorage.setItem('eaos.token', asked); } catch (e) { /* storage refused: this visit only */ }
+  }
   if (location.search) {
     try { localStorage.setItem('eaos.studio', JSON.stringify(saved)); } catch (e) { /* private mode */ }
     window.EAOS_BOOT = saved; // this visit's choice even when storage is refused
