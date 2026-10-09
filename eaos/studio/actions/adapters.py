@@ -7,12 +7,18 @@ its output, one JSON object per line, as the contract's events. The run manager 
 Claude Code: `claude -p --output-format stream-json --verbose`, the EAOS server by `--mcp-config --strict-mcp-config`,
 EAOS tools plus Read, Grep and Glob allowed, and Bash, Edit, Write and the person-only EAOS tools refused.
 Codex: `codex exec --json`, the EAOS server by `-c mcp_servers.eaos=...`, a read-only sandbox and no approvals.
+
+`ask(adapter, prompt, schema, folder)` is the other way to use an assistant: one question, no tool, an answer the
+assistant's own CLI holds to a JSON Schema (Claude Code `--json-schema`, Codex `--output-schema`). The planned ideal
+(eaos/studio/ideal.py) asks this way, and so does any AI node after it.
 """
 import difflib
 import json
 import os
+import signal
 import subprocess
 import time
+from pathlib import Path
 
 PERSON_ONLY = ('accept', 'undo', 'choose_branch')
 READS = {'finding': 'id', 'fix_read': 'path', 'build_read': 'path', 'report_file': 'name', 'Read': 'file_path', 'Grep': 'pattern', 'Glob': 'pattern'}
@@ -24,7 +30,6 @@ def eaos_server(run, assistant):
     never another `eaos` on the PATH), the person's EAOS home, and the run's id, which makes the person-only tools refuse
     (eaos/mcp_server.py)."""
     import sys
-    from pathlib import Path
     env = {'EAOS_STUDIO_RUN': run, 'EAOS_ASSISTANT': assistant, 'PYTHONPATH': str(Path(__file__).resolve().parents[3])}
     for name in ('EAOS_HOME', 'EAOS_OUTPUT', 'EAOS_ENGINE_TOOLS'):
         if os.environ.get(name): env[name] = os.environ[name]
@@ -139,6 +144,14 @@ class Adapter:
     def new_state(self):
         return {'session': None, 'resumed': False, 'pending': {}, 'final': None, 'failed': None, 'texts': [], 'eaos_results': []}
 
+    def model(self):
+        """The model this assistant uses when its stream does not say."""
+        return None
+
+    def cost(self, lines):
+        """What the answer cost in US dollars, when the stream says (None otherwise)."""
+        return None
+
 
 class ClaudeCode(Adapter):
     id, name, id_command = 'claude', 'Claude Code', 'claude'
@@ -159,6 +172,42 @@ class ClaudeCode(Adapter):
                                '--disallowedTools', 'Bash', 'Edit', 'Write', 'NotebookEdit', 'WebFetch', 'WebSearch',
                                *[f'mcp__eaos__{tool}' for tool in PERSON_ONLY]]
         return argv + (['--resume', session] if session else [])
+
+    def ask_argv(self, schema, folder, budget_usd=None):
+        """One question on standard input, no tool, no MCP server, nothing kept: the answer held to `schema`, and the
+        spending held to `budget_usd` by Claude Code itself when it is given."""
+        return self.command + ['-p', '--output-format', 'stream-json', '--verbose', '--json-schema', json.dumps(schema),
+                               '--tools', '', '--strict-mcp-config', '--no-session-persistence',
+                               *(['--max-budget-usd', f'{float(budget_usd):.2f}'] if budget_usd else [])]
+
+    def cost(self, lines):
+        """`total_cost_usd` of the stream's result line."""
+        for line in reversed(lines):
+            try: event = json.loads(line)
+            except ValueError: continue
+            if isinstance(event, dict) and event.get('type') == 'result' and isinstance(event.get('total_cost_usd'), (int, float)):
+                return float(event['total_cost_usd'])
+        return None
+
+    def answer(self, lines):
+        """(answer, model, failure) from the stream of an `ask`."""
+        answer, model, failure = None, None, None
+        for line in lines:
+            try: event = json.loads(line)
+            except ValueError: continue
+            if not isinstance(event, dict): continue
+            if event.get('type') == 'system' and event.get('subtype') == 'init': model = event.get('model') or model
+            elif event.get('type') == 'assistant':
+                model = (event.get('message') or {}).get('model') or model
+                for block in (event.get('message') or {}).get('content') or []:
+                    if isinstance(block, dict) and block.get('type') == 'tool_use' and block.get('name') == 'StructuredOutput':
+                        answer = block.get('input')
+            elif event.get('type') == 'result':
+                if event.get('is_error') or event.get('subtype') not in (None, 'success'):
+                    failure = str(event.get('result') or event.get('subtype') or 'the assistant failed')[:500]
+                elif isinstance(event.get('structured_output'), dict): answer = event['structured_output']
+                elif answer is None: answer = _json_object(event.get('result'))
+        return answer, model, failure
 
     def parse(self, line, state, labels):
         """The events of one line of Claude Code's stream-json."""
@@ -214,6 +263,36 @@ class Codex(Adapter):
         if session: return self.command + ['exec', 'resume', *options, session, prompt]
         return self.command + ['exec', *options, prompt]
 
+    def ask_argv(self, schema, folder, budget_usd=None):
+        """One question on standard input (`-`), a read-only sandbox, nothing kept: the answer held to `schema`. Codex has no
+        spending limit of its own, so `budget_usd` is held only by the time limit."""
+        path = folder / 'schema.json'
+        path.write_text(json.dumps(schema), encoding='utf-8')
+        return self.command + ['exec', '--json', '--skip-git-repo-check', '--ephemeral', '--output-schema', str(path),
+                               '-c', 'approval_policy="never"', '-c', 'sandbox_mode="read-only"', '-']
+
+    def model(self):
+        """The `model` of the person's Codex configuration, when they set one."""
+        import re
+        try: text = (Path(os.environ.get('CODEX_HOME') or Path.home() / '.codex') / 'config.toml').read_text(encoding='utf-8')
+        except OSError: return None
+        found = re.search(r'^\s*model\s*=\s*"([^"]+)"', text, re.M)
+        return found.group(1) if found else None
+
+    def answer(self, lines):
+        """(answer, model, failure) from the stream of an `ask`: the last agent message is the answer."""
+        answer, failure = None, None
+        for line in lines:
+            try: event = json.loads(line)
+            except ValueError: continue
+            if not isinstance(event, dict): continue
+            item = event.get('item') or {}
+            if event.get('type') == 'item.completed' and item.get('type') == 'agent_message':
+                answer = _json_object(item.get('text'))
+            elif event.get('type') in ('turn.failed', 'error'):
+                failure = str((event.get('error') or {}).get('message') if isinstance(event.get('error'), dict) else event.get('message') or event['type'])[:500]
+        return answer, self.model(), failure
+
     def parse(self, line, state, labels):
         """The events of one line of `codex exec --json`."""
         try: event = json.loads(line)
@@ -247,6 +326,60 @@ class Codex(Adapter):
 
 
 ADAPTERS = (ClaudeCode, Codex)
+
+
+class AskFailed(Exception):
+    """The assistant did not answer: it failed, was stopped, or said something that is not the asked JSON."""
+
+
+def _json_object(text):
+    """The JSON object in an answer's text (alone, or inside a ```json fence); None when there is none."""
+    text = str(text or '').strip()
+    if text.startswith('```'): text = text.split('\n', 1)[-1].rsplit('```', 1)[0]
+    try: value = json.loads(text)
+    except ValueError:
+        start, end = text.find('{'), text.rfind('}')
+        try: value = json.loads(text[start:end + 1]) if 0 <= start < end else None
+        except ValueError: value = None
+    return value if isinstance(value, dict) else None
+
+
+def ask(adapter, prompt, schema, folder, timeout=900, cancel=None, started=None, budget_usd=None):
+    """Ask the assistant one question and return {answer, model, assistant, seconds, cost_usd}.
+
+    The prompt goes on standard input, so its size never meets the argument limit; the process runs in its own group in
+    `folder` (never in the project, whose instructions are not the planner's); `started(pid)` hears its pid, so the run
+    manager can pause or stop it. A timeout or `cancel` (a threading.Event) kills the whole group and raises
+    TimeoutError or AskFailed; an answer that is not a JSON object raises AskFailed. The stream stays in `folder`."""
+    folder = Path(folder)
+    folder.mkdir(parents=True, exist_ok=True)
+    stream, began = folder / 'stream.jsonl', time.monotonic()
+    with open(stream, 'wb') as out, open(folder / 'stderr.log', 'wb') as err:
+        argv = adapter.ask_argv(schema, folder, budget_usd) if budget_usd else adapter.ask_argv(schema, folder)
+        process = subprocess.Popen(argv, cwd=folder, stdin=subprocess.PIPE, stdout=out, stderr=err,
+                                   start_new_session=True)
+        if started: started(process.pid)
+        try:
+            process.stdin.write(prompt.encode('utf-8'))
+            process.stdin.close()
+        except OSError:
+            pass
+        while process.poll() is None:
+            stopped = cancel is not None and cancel.is_set()
+            if stopped or time.monotonic() - began > timeout:
+                try: os.killpg(process.pid, signal.SIGKILL)
+                except OSError: process.kill()
+                process.wait()
+                if stopped: raise AskFailed('stopped')
+                raise TimeoutError(f'no answer after {int(timeout)} seconds')
+            time.sleep(0.25)
+    lines = stream.read_text(encoding='utf-8', errors='replace').splitlines()
+    answer, model, failure = adapter.answer(lines)
+    if failure or answer is None:
+        tail = (folder / 'stderr.log').read_text(encoding='utf-8', errors='replace')[-400:].strip()
+        raise AskFailed(failure or f'no JSON answer (exit {process.returncode})' + (f': {tail}' if tail else ''))
+    return {'answer': answer, 'model': model or adapter.model(), 'assistant': adapter.name, 'seconds': round(time.monotonic() - began, 1),
+            'cost_usd': adapter.cost(lines)}
 
 
 def installed():

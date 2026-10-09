@@ -11,9 +11,12 @@
 .sub { font-size: 10.5px; fill: var(--text-tertiary); }
 .k_router .box { fill: var(--bg-raised); stroke: var(--text-secondary); stroke-width: 1.4; }
 .k_router .title { font-weight: 600; }
-.k_ai .box { stroke: var(--accent-solid); stroke-width: 1.4; }
-.aiRing { fill: none; stroke: var(--accent-solid); stroke-width: .8; opacity: .55; pointer-events: none; }
-.aiGlyph { fill: var(--accent-text); }
+/* an AI node: its own shape (a card with cut corners) and its own hue */
+.k_ai .box { fill: var(--ai-wash); stroke: var(--ai); stroke-width: 1.6; }
+.node.k_ai:hover .box { fill: var(--ai-wash); stroke-width: 2.2; }
+.aiRing { fill: none; stroke: var(--ai); stroke-width: .8; opacity: .6; pointer-events: none; }
+.aiGlyph { fill: var(--ai-text); }
+.k_ai .title { fill: var(--ai-text); font-weight: 600; }
 .k_source .box, .k_sink .box { fill: var(--bg-sunken); }
 .k_external .box { stroke-dasharray: 3 3; }
 .k_fork .box, .k_join .box { fill: var(--bg-sunken); }
@@ -86,7 +89,7 @@
 
 /* ---------------------------------------------------------------- legend marks */
 .lgBox { inline-size: 16px; block-size: 11px; border-radius: 3px; border: 1.2px solid var(--border-strong); background: var(--bg-surface); flex: none; }
-.lgAi { border-color: var(--accent-solid); }
+.lgAi { border-color: var(--ai); background: var(--ai-wash); border-radius: 0; clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px); }
 .lgDead { border-style: dashed; border-color: var(--text-tertiary); background: var(--bg-sunken); }
 .lgDiamond { inline-size: 11px; block-size: 11px; margin-inline: 2px; transform: rotate(45deg); border: 1.4px solid var(--text-secondary); background: var(--bg-raised); flex: none; }
 .lgFork { inline-size: 12px; block-size: 12px; border-radius: var(--radius-full); border: 1.2px solid var(--text-secondary); flex: none; margin-inline: 2px; }

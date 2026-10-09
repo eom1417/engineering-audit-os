@@ -23,6 +23,9 @@ from .store import ACTIVE, TERMINAL, now
 STUDIO = 'EAOS Studio'                      # eaos/mcp_server.py STUDIO
 
 STOP_GRACE = 5
+# Studio actions that are not an MCP tool: the planner of the ideal, which asks the person's assistant itself
+# (eaos/studio/ideal.py, docs/STUDIO.md D10).
+PLANNERS = ('replan_ideal', 'run_nodes')
 
 
 def alive(pid):
@@ -67,6 +70,7 @@ class Manager:
         self.lang = lang
         self.children = {}                              # run -> Popen started by this process
         self.watched = set()                            # runs a thread of this process follows
+        self.cancels = {}                               # run -> threading.Event of a planner run
         self._lockfile = None
         self._closed = threading.Event()
         self._mutex = threading.RLock()
@@ -152,6 +156,8 @@ class Manager:
     def _start(self, run):
         record = self.store.load(run)
         try:
+            if record.get('action') == 'run_nodes': return self._run_nodes(run)
+            if record.get('action') in PLANNERS: return self._plan_ideal(run)
             if record['mode'] == 'direct': return self._direct(run)
             if record['mode'] == 'handoff': return self._handoff(run)
             adapter = self.adapters.get(record.get('assistant'))
@@ -172,6 +178,91 @@ class Manager:
         self.store.append(run, 'error', {'en': f'It could not go on: {reason}', 'ar': f'ما قدر يكمل: {reason}'},
                           {'reason': reason, 'recoverable': True, 'what_now': what_now or {'en': 'Press Retry, or look at the detail.', 'ar': 'اضغط «أعد»، أو شوف التفاصيل.'}})
         if self.store.load(run).get('state') not in TERMINAL: self.set_state(run, 'failed', reason[:200])
+
+    # the planned ideal
+    def _plan_ideal(self, run):
+        """Re-plan the ideal of the latest check with the run's assistant (or the first one available): its steps are the
+        run's events, stop kills it, and a failure leaves the rules' target in place. The Studio's data is published again
+        from the ledger, so every page shows the new ideal."""
+        from ... import guided
+        from .. import ideal
+        from .selection import studio_folder
+        studio = studio_folder(self.project)
+        report = studio.parent if studio else None
+        if report is None or not (report / 'target-architecture.json').is_file():
+            return self._fail(run, 'there is no check to plan from yet', {'en': 'Run the check first, then re-plan the ideal.',
+                                                                          'ar': 'شغّل الفحص أولًا، ثم أعد تخطيط المثالي.'})
+        wanted = self.store.load(run).get('assistant')
+        adapters = {wanted: self.adapters[wanted]} if wanted in self.adapters else self.adapters
+        cancel = self.cancels[run] = threading.Event()
+        say = lambda en, ar: self.store.append(run, 'step', {'en': en, 'ar': ar}, {'tool': 'replan_ideal'})
+        try:
+            result = ideal.plan(report, project=self.project, lang=self.lang, adapters=adapters, cancel=cancel,
+                                started=lambda pid: self.store.update(run, pid=pid), say=say)
+        finally:
+            self.cancels.pop(run, None)
+            self.store.update(run, pid=None)
+        if self.store.load(run).get('state') in TERMINAL: return
+        words = result['message']
+        if result['state'] != 'planned':
+            return self._fail(run, words['ar' if self.lang == 'ar' else 'en'],
+                              {'en': 'The rules\' target stays in place. Press Retry, or log in to Claude Code or Codex first.',
+                               'ar': 'يبقى هدف القواعد مكانه. اضغط «أعد»، أو سجّل الدخول في Claude Code أو Codex أولًا.'})
+        try: guided.publish(guided.load(self.project), self.lang)
+        except Exception as problem:
+            say(f'The Studio data could not be refreshed: {type(problem).__name__}', f'ما قدرت أحدّث بيانات الاستوديو: {type(problem).__name__}')
+        payload = {**self._outcome(run, answer=words['ar' if self.lang == 'ar' else 'en']),
+                   'ideal': {'elements': result['elements'], 'dropped': len(result['dropped']), 'share': result['share'],
+                             'departures': len(result['departures']), 'questions': len(result['open_questions']),
+                             'assistant': result['assistant'], 'model': result['model']}}
+        self.store.append(run, 'result', {'en': f"The ideal is planned: {result['elements']} elements, each with its evidence",
+                                          'ar': f"تم تخطيط المثالي: {result['elements']} عنصرًا، كل واحد بدليله"}, payload)
+        self.set_state(run, 'done', result=payload)
+
+    # the AI nodes
+    def _run_nodes(self, run):
+        """Run the AI nodes on the latest check (docs/STUDIO.md D11) with the run's assistant: each node's steps are the
+        run's events, the last batch of fixes is the fix reviewer's input, and the Studio's data is published again so the
+        pipeline map, the cards and the inbox show the decisions. Without an assistant every node decides by the rules."""
+        from ... import guided
+        from .. import nodes
+        from .selection import studio_folder
+        studio = studio_folder(self.project)
+        report = studio.parent if studio else None
+        if report is None or not (report / 'plan.json').is_file():
+            return self._fail(run, 'there is no check for the AI nodes to read yet', {'en': 'Run the check first, then the AI nodes.',
+                                                                                      'ar': 'شغّل الفحص أولًا، ثم عُقد الذكاء.'})
+        record = self.store.load(run)
+        inputs = record.get('inputs') or {}
+        names = inputs.get('nodes') or [n.name for n in nodes.NODES if n.name != 'ideal_planner']
+        wanted = record.get('assistant')
+        adapters = {wanted: self.adapters[wanted]} if wanted in self.adapters else self.adapters
+        wave = None
+        try:
+            state = guided.load(self.project)
+            if state.get('waves'): wave = guided.runtime_of(state) / 'waves' / f"wave-{len(state['waves'])}"
+        except Exception:
+            wave = None
+        cancel = self.cancels[run] = threading.Event()
+        say = lambda en, ar: self.store.append(run, 'step', {'en': en, 'ar': ar}, {'tool': 'run_nodes'})
+        try:
+            records = nodes.run(report, names=names, adapters=adapters, project=self.project, lang=self.lang, fresh=bool(inputs.get('fresh')),
+                                say=say, cancel=cancel, started=lambda pid: self.store.update(run, pid=pid), wave=wave)
+        finally:
+            self.cancels.pop(run, None)
+            self.store.update(run, pid=None)
+        if self.store.load(run).get('state') in TERMINAL: return
+        try: guided.publish(guided.load(self.project), self.lang)
+        except Exception as problem:
+            say(f'The Studio data could not be refreshed: {type(problem).__name__}', f'ما قدرت أحدّث بيانات الاستوديو: {type(problem).__name__}')
+        summary = {name: {'state': r['state'], 'method': r['method'], 'model': r['model'], 'cached': r['cached'],
+                          'routes': {x['decision']: len(x['subjects']) for x in r['routes']}, 'dropped': len(r['dropped'])}
+                   for name, r in records.items()}
+        by_model = sum(r['method'] == 'model' for r in records.values())
+        payload = {**self._outcome(run, answer=None), 'nodes': summary}
+        self.store.append(run, 'result', {'en': f'{len(records)} AI nodes decided ({by_model} by your assistant, the rest by the rules only)',
+                                          'ar': f'قرّرت {len(records)} عُقد ذكاء ({by_model} بمساعدك، والباقي بالقواعد فقط)'}, payload)
+        self.set_state(run, 'done', result=payload)
 
     # direct calls
     def call(self, action, inputs):
@@ -455,6 +546,7 @@ class Manager:
         if record.get('state') in TERMINAL: raise LookupError('this run has already ended')
         pid = record.get('pid') or self._job_pid(record)
         self.set_state(run, 'stopped', 'you stopped it')
+        if run in self.cancels: self.cancels[run].set()
         if record.get('mode') == 'handoff': handoff.drop(self.project, run)
         if pid and record.get('state') in ('running', 'paused'):
             if record.get('state') == 'paused': _signal(pid, signal.SIGCONT)

@@ -20,7 +20,7 @@ PLANNED = {'meta': 'languages', 'head': None, 'health': 'domains', 'cards': 'car
            'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images',
            'functions': 'functions', 'screens': 'screens', 'gaps': 'gaps', 'operations': 'operations', 'history': 'scans',
            'quality': 'detectors', 'maps': None, 'paths': 'paths', 'journeys': 'screens', 'hidden': 'items',
-           'data_paths': 'stores', 'infra': None, 'pipeline': 'stages'}
+           'data_paths': 'stores', 'infra': None, 'pipeline': 'stages', 'ideal': None, 'nodes': 'nodes'}
 V1_STEP = 'NS36.T2'
 
 
@@ -103,6 +103,12 @@ def _not_exported(section, report, built, lang):
         return ('not_built', _text(lang, 'هذا الفحص لم يكتب حقائق خط المعالجة (facts/pipeline.json): أعد الفحص بإصدار أحدث من EAOS.',
                                    'This check wrote no pipeline facts (facts/pipeline.json): check again with a newer EAOS.'),
                 'NS46.T12', 'audit', _count(None, 'pipeline.json#stages'), [])
+    if section == 'ideal':
+        return ('not_built', _text(lang, 'المثالي لم يُصدَّر في هذا الفحص.', 'The ideal is not exported in this check.'),
+                'NS46.T14', 'replan_ideal', _count(None, 'ideal.json#views'), [])
+    if section == 'nodes':
+        return ('not_built', _text(lang, 'عُقد الذكاء لم تُصدَّر في هذا الفحص.', 'The AI nodes are not exported in this check.'),
+                'NS46.T15', 'run_nodes', _count(None, 'nodes.json#nodes'), [])
     if section == 'maps':
         return ('not_built', _text(lang, 'خرائط النظام لم تُصدَّر في هذا الفحص.', 'The system maps are not exported in this check.'),
                 'NS46.T6', 'audit', _count(None, 'maps.json'), [])
@@ -176,6 +182,37 @@ def _infra_parts(body, lang):
 PARTS = {'paths': _paths_parts, 'data_paths': _data_paths_parts, 'infra': _infra_parts, 'pipeline': _pipeline_parts}
 
 
+def _nodes_row(body, lang):
+    """The AI nodes are measured when at least one ran for this check; each node's part says how it was decided:
+    by the person's assistant, by the rules alone, or not yet (docs/STUDIO.md D11)."""
+    nodes = (body or {}).get('nodes') or []
+    words = {'model': ('قرّره المساعد', "decided by the person's assistant"), 'rules': ('قُرِّر بالقواعد فقط', 'decided by the rules only'),
+             None: ('لم يعمل بعد', 'not run yet')}
+    parts = [{'id': n['id'], 'state': 'measured' if n['method'] == 'model' else 'partial' if n['method'] == 'rules' else 'not_measured',
+              'detail': _text(lang, *words.get(n['method'], words[None]))} for n in nodes]
+    if any(n['state'] != 'not_run' for n in nodes): return {'parts': parts}
+    return {'state': 'partial', 'reason': 'some_parts_missing', 'parts': parts, 'step': 'NS46.T15', 'tool': 'run_nodes',
+            'detail': _text(lang, 'عُقد الذكاء لم تعمل على هذا الفحص بعد: شغّلها من مركز التحكم.',
+                            'The AI nodes have not run on this check yet: run them from the command centre.')}
+
+
+def _ideal_row(body, lang):
+    """The ideal is measured when the person's assistant planned it for this check; the rules' target alone is partial,
+    with each view's part saying how it was made (docs/STUDIO.md D10)."""
+    views = (body or {}).get('views') or {}
+    planned = [name for name, view in views.items() if (view.get('provenance') or {}).get('method') == 'planned']
+    parts = [{'id': name, 'state': 'measured' if name in planned else 'partial',
+              'detail': _text(lang, 'مخطَّط بنموذج' if name in planned else 'هدف القواعد فقط',
+                              'planned with a model' if name in planned else "the rules' target only")} for name in views]
+    count = _count(sum(len((v.get('planned') or {}).get('elements') or []) for v in views.values()) if planned else None,
+                   'ideal.json#views[].planned.elements')
+    if (body or {}).get('state') == 'planned':
+        return {'count': count, 'parts': parts}
+    return {'state': 'partial', 'reason': 'some_parts_missing', 'detail': ((body or {}).get('message') or {}).get(lang if lang == 'ar' else 'en')
+            or _text(lang, 'المثالي هو هدف القواعد، وما خُطِّط بعد.', "The ideal is the rules' target; it is not planned yet."),
+            'step': 'NS46.T14', 'tool': 'replan_ideal', 'count': count, 'parts': parts}
+
+
 def coverage(report, built, written, errors, lang='ar'):
     """The coverage section's body: one row per planned section, and every other written section, in that order.
 
@@ -206,6 +243,8 @@ def coverage(report, built, written, errors, lang='ar'):
                                     _text(lang, 'مقيس في هذا الفحص.', 'Measured in this check.')),
                          'step': gaps[0]['step'] if gaps else 'NS40.T2' if tiers else None, 'tool': 'audit' if tiers and not gaps else None,
                          'count': _count(count, f'{section}.json' + (f'#{items}' if items else '')), 'parts': parts})
+            if section == 'ideal': rows[-1].update(_ideal_row(body, lang))
+            if section == 'nodes': rows[-1].update(_nodes_row(body, lang))
         elif section in failed:
             rows.append({'section': section, 'state': 'failed', 'reason': 'section_error', 'detail': failed[section][:300],
                          'step': V1_STEP, 'tool': 'audit', 'count': _count(None, 'errors.json'), 'parts': []})

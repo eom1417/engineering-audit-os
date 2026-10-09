@@ -19,7 +19,7 @@ FIXTURES = ROOT / 'tests/fixtures/studio/actions'
 FAKE = FIXTURES / 'fake_assistant.py'
 
 from eaos.studio import actions  # noqa: E402
-from eaos.studio.actions import adapters, handoff, prompts, security, selection, store  # noqa: E402
+from eaos.studio.actions import adapters, handoff, prompts, runs, security, selection, store  # noqa: E402
 
 
 def card(id, **extra):
@@ -96,8 +96,9 @@ class Contract(unittest.TestCase):
         self.assertEqual((ROOT / 'docs/studio-actions.json').read_bytes(), (ROOT / 'eaos/data/studio-actions.json').read_bytes())
         from eaos import mcp_server
         data = actions.contract()
-        names = {action['id'] for action in data['actions']}
+        names = {action['id'] for action in data['actions'] if action['tool']}
         self.assertEqual(set(mcp_server.functions()), names)
+        self.assertEqual({a['id'] for a in data['actions'] if not a['tool']}, set(runs.PLANNERS))
         self.assertLessEqual(mcp_server.reading(), names)
         for action in data['actions']:
             self.assertEqual(action['inputs']['type'], 'object', action['id'])
