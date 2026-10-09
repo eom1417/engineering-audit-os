@@ -12,10 +12,17 @@ import { IdealPage } from './pages/ideal/IdealPage'
 import { DecisionsPage } from './pages/Decisions'
 import { FunctionPage, FunctionsPage } from './pages/functions/FunctionsPage'
 import { HomePage } from './pages/Home'
-import { LibraryPage } from './pages/Library'
 import { EvidencePage } from './pages/problems/EvidencePage'
 import { ProblemsPage } from './pages/problems/ProblemsPage'
 import { SEARCH_KEYS as PROBLEM_KEYS } from './pages/problems/model'
+import { DocumentPage } from './pages/library/DocumentPage'
+import { ImagePage } from './pages/library/ImagePage'
+import { LibraryPage } from './pages/library/LibraryPage'
+import { ComparePage } from './pages/history/ComparePage'
+import { HistoryGalleryPage } from './pages/history/HistoryGallery'
+import { HistoryPage } from './pages/history/HistoryPage'
+import { ScanPage } from './pages/history/ScanPage'
+import { QualityPage } from './pages/quality/QualityPage'
 import { SystemMapPage } from './pages/SystemMap'
 import { FlowPage } from './pages/paths/FlowPage'
 import { PathsGalleryPage } from './pages/paths/PathsGallery'
@@ -87,10 +94,18 @@ export function makeRouter(dev: () => boolean) {
     createRoute({ getParentRoute: () => root, path: '/decisions', component: DecisionsPage, validateSearch: params('demo') }),
     createRoute({ getParentRoute: () => root, path: '/runs', component: RunsPage, validateSearch: params('q', 'show', 'demo') }),
     createRoute({ getParentRoute: () => root, path: '/runs/$runId', component: RunPage, validateSearch: params('demo') }),
-    createRoute({ getParentRoute: () => root, path: '/library', component: LibraryPage, beforeLoad: devOnly('library', dev) }),
+    createRoute({ getParentRoute: () => root, path: '/library', component: LibraryPage, validateSearch: params('group', 'q'), beforeLoad: devOnly('library', dev) }),
+    createRoute({ getParentRoute: () => root, path: '/library/docs', component: LibraryPage, validateSearch: params('group', 'q'), beforeLoad: devOnly('library', dev) }),
+    createRoute({ getParentRoute: () => root, path: '/library/docs/$docId', component: DocumentPage, validateSearch: params('h'), beforeLoad: devOnly('library', dev) }),
+    createRoute({ getParentRoute: () => root, path: '/library/images/$imageId', component: ImagePage, beforeLoad: devOnly('library', dev) }),
+    createRoute({ getParentRoute: () => root, path: '/history', component: HistoryPage, beforeLoad: devOnly('history', dev) }),
+    createRoute({ getParentRoute: () => root, path: '/history/compare/$range', component: ComparePage, beforeLoad: devOnly('history', dev) }),
+    createRoute({ getParentRoute: () => root, path: '/history/$scanId', component: ScanPage, beforeLoad: devOnly('history', dev) }),
+    createRoute({ getParentRoute: () => root, path: '/quality', component: QualityPage, beforeLoad: devOnly('quality', dev) }),
     createRoute({ getParentRoute: () => root, path: '/_gallery', component: GalleryPage, validateSearch: params('view', 'card') }),
     createRoute({ getParentRoute: () => root, path: '/_gallery/paths', component: PathsGalleryPage }),
     createRoute({ getParentRoute: () => root, path: '/_gallery/pipeline', component: PipelineGalleryPage }),
+    createRoute({ getParentRoute: () => root, path: '/_gallery/history', component: HistoryGalleryPage }),
   ])
   return createRouter({ routeTree: tree, history: createHashHistory(), defaultNotFoundComponent: () => { throw redirect({ to: '/' }) }, scrollRestoration: false })
 }

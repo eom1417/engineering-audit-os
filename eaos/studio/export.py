@@ -21,6 +21,9 @@ from .. import artifact_contracts, build_info, indicators
 from ..compose.labels import impact_of
 from . import change as change_map
 from . import coverage as coverage_section
+from . import history as history_section
+from . import library as library_section
+from . import quality as quality_section
 from . import hidden as hidden_map
 from . import journeys as journeys_map
 from . import data_paths as data_map
@@ -37,7 +40,7 @@ from . import system as system_map
 CONTRACT = 1
 REVISION = 2           # contract v2: sections added without breaking a v1 reader (docs/STUDIO.md)
 SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
-SECTIONS_V2 = ('functions', 'screens', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'ideal', 'nodes', 'gaps', 'operations')   # contract v2 sections written here (coverage is written last, apart)
+SECTIONS_V2 = ('functions', 'screens', 'history', 'quality', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'ideal', 'nodes', 'gaps', 'operations', 'library')   # contract v2 sections written here (coverage is written last, apart)
 SAFE = re.compile(r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$)).+')
 LANGUAGES = M.LANGUAGES
 LANGUAGES_SHOWN = ('ar', 'en')     # the Studio's two languages: a sentence written for both, shown in the person's
@@ -47,8 +50,6 @@ TASK_STATE = {'done': 'done', 'resolved': 'done', 'on_branch': 'active', 'in_bat
 RELATION = {'retain': 'retain', 'modify': 'modify', 'rebuild': 'rebuild', 'delete': 'delete', 'retire': 'delete',
             'introduce': 'missing'}
 STAGE_STATE = {'ok': 'done', 'skipped': 'skipped', 'unavailable': 'partial', 'failed': 'failed', 'not_reached': 'skipped'}
-DOC_GROUPS = (('START-HERE.md', 'start'), ('README.md', 'start'), ('EXECUTIVE.md', 'start'), ('CURRENT-STATE.md', 'story'),
-              ('TARGET-STATE.md', 'story'), ('GAP-AND-STRATEGY.md', 'story'), ('EXECUTION-PLAN.md', 'plan'))
 
 
 def rel(path):
@@ -259,21 +260,6 @@ def story(report, m, card_rows):
             'gap': gap, 'indicators': rows}
 
 
-def docs(report):
-    report, order = Path(report), {name: i for i, (name, _) in enumerate(DOC_GROUPS)}
-    groups = dict(DOC_GROUPS)
-    out = []
-    for path in sorted(report.rglob('*.md')):
-        name = path.relative_to(report).as_posix()
-        if name.startswith(('handover/site/', 'studio/', 'bundles/')): continue
-        first = path.read_text(encoding='utf-8', errors='replace').lstrip().split('\n', 1)[0]
-        title = first.lstrip('#').strip() if first.startswith('#') else path.stem
-        group = groups.get(name) or (name.split('/', 1)[0] if '/' in name else 'technical')
-        out.append({'id': name, 'title': title[:200] or path.stem, 'path': name, 'group': group,
-                    'bytes': path.stat().st_size, 'order': order.get(name)})
-    return out
-
-
 def plans(m, card_rows, lang):
     by_id = {c['id']: c for c in card_rows}
     steps = []
@@ -316,17 +302,6 @@ def decisions(m, card_rows, lang):
                     'options': [{'id': d.get('id') or '', 'label': str(d.get('chosen') or '')[:200]}
                                 for d in target.get('decisions') or [] if isinstance(d, dict)],
                     'blocks': ['S06'], 'state': 'waiting', 'answer': None, 'plan': None, 'asked': '', 'tool': None})
-    return out
-
-
-def media(report):
-    report, out = Path(report), []
-    for path in sorted([*report.rglob('*.mmd'), *report.rglob('*.svg'), *report.rglob('*.png')]):
-        name = path.relative_to(report).as_posix()
-        if name.startswith(('handover/site/', 'studio/', 'bundles/')): continue
-        out.append({'id': name, 'path': name, 'title': name.rsplit('/', 2)[-2] if '/' in name else path.stem,
-                    'kind': 'diagram' if path.suffix in ('.mmd', '.svg') else 'screen', 'batch': None, 'phase': None,
-                    'route': None, 'viewport': None, 'pair': None})
     return out
 
 
@@ -376,10 +351,10 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('health', lambda: health(m, history))
     attempt('evidence', lambda: evidence(report, {i for c in card_rows for i in c['evidence']}, sources(project, scan['commit'])))
     attempt('story', lambda: story(report, m, card_rows))
-    attempt('docs', lambda: docs(report))
+    attempt('docs', lambda: library_section.docs(report))
     attempt('plans', lambda: plans(m, card_rows, lang))
     attempt('decisions', lambda: decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang) + ai_nodes.decisions(report, lang))
-    attempt('media', lambda: media(report))
+    attempt('media', lambda: library_section.media(report, lang))
     attempt('system', lambda: system_map.system(report, card_rows))
     attempt('paths', lambda: code_paths.paths(report, card_rows, m['plan'], lang))
     attempt('journeys', lambda: journeys_map.journeys(report, built.get('media')))
@@ -387,6 +362,12 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('data_paths', lambda: data_map.data_paths(report, lang))
     attempt('infra', lambda: infra_map.infra(report, lang))
     attempt('pipeline', lambda: pipeline_map.from_report(report, card_rows, m['plan'], lang))
+    attempt('history', lambda: history_section.history(scan, m['score']['score'], card_rows, (progress or {}).get('ledger'),
+                                                       (progress or {}).get('waves') or ()))
+    attempt('quality', lambda: quality_section.quality(report, m['dossier'], name or Path(str(project or report)).name, lang))
+    if built.get('quality', False) is None: built.pop('quality')     # this EAOS carries no quality record
+    if 'docs' in built and 'media' in built:
+        attempt('library', lambda: library_section.library(report, built['docs'], built['media'], project))
     if built.get('pipeline', False) is None: built.pop('pipeline')   # the check wrote no facts/pipeline.json
     attempt('ideal', lambda: planned_ideal.section(report, lang))
     attempt('nodes', lambda: ai_nodes.section(report, lang))

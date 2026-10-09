@@ -25,6 +25,15 @@ function reportData(): Plugin {
   }
 }
 
+// marked's error message names its repository: the Studio ships no address outside itself (tests/test_studio_assets.py),
+// and its lexer, the only part the reader uses, never reaches that message.
+function noOutsideAddress(): Plugin {
+  return {
+    name: 'eaos-no-outside-address',
+    transform: (code, id) => (id.includes('/node_modules/marked/') ? code.replace('\nPlease report this to https://github.com/markedjs/marked.', '') : null),
+  }
+}
+
 // A classic, deferred script instead of a module one.
 function classicScript(): Plugin {
   return {
@@ -38,7 +47,7 @@ function classicScript(): Plugin {
 export default defineConfig({
   base: './',
   // React Aria's strings only for the two languages the Studio speaks (docs/adoption/ns37-t1-finish.md)
-  plugins: [optimizeLocales.vite({ locales: ['ar', 'en'] }), react(), reportData(), classicScript()],
+  plugins: [optimizeLocales.vite({ locales: ['ar', 'en'] }), react(), reportData(), noOutsideAddress(), classicScript()],
   server: { host: '0.0.0.0', port: 5180, allowedHosts: ['.dev.remote.e-m.sa'] },
   build: {
     outDir: 'dist',

@@ -1,0 +1,231 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "studio/library.json",
+  "description": "The content of the Library: the text of every document of docs.json and every image or diagram of media.json (an image as a data URI, a diagram as its source), so the reader shows them from the Studio's own folder; what is too large to carry is listed with the reason.",
+  "x-artifact": "studio/library.json",
+  "x-owner": "NS46",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "contract",
+    "revision",
+    "documents",
+    "images"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "contract": {
+      "const": 1
+    },
+    "revision": {
+      "const": 2
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "truncated"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "chars": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "format",
+          "data",
+          "source",
+          "embedded"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "png",
+              "svg",
+              "jpeg",
+              "gif",
+              "webp",
+              "mermaid"
+            ]
+          },
+          "data": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^data:image/(png|svg\\+xml|jpeg|gif|webp);base64,"
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "embedded": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "too_large",
+              null
+            ]
+          }
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/measure"
+      }
+    }
+  },
+  "$defs": {
+    "ratio": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "description": "file#field, or the formula, the number comes from"
+    },
+    "measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "count",
+            "seconds",
+            "bytes",
+            "lines"
+          ]
+        }
+      }
+    },
+    "ratio_measure": {
+      "type": "object",
+      "required": [
+        "value",
+        "src"
+      ],
+      "properties": {
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "src": {
+          "$ref": "#/$defs/source"
+        }
+      }
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?![/\\\\~])(?![A-Za-z]:)(?!(.*/)?\\.\\.(/|$))"
+    },
+    "scan": {
+      "type": "object",
+      "required": [
+        "commit",
+        "branch",
+        "at"
+      ],
+      "properties": {
+        "commit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "at": {
+          "type": "string"
+        }
+      }
+    },
+    "touch": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "table",
+            "file",
+            "env",
+            "network",
+            "store",
+            "storage"
+          ]
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "x-revision": 2
+}

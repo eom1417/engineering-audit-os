@@ -405,7 +405,9 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
         'screens': {**V2, 'screens': screens},
         'gaps': {**V2, 'gaps': gaps},
         'operations': {**V2, 'operations': ops},
-        'history': {**V2, 'scans': scans, 'events': [{'at': s['at'], 'kind': 'scan', 'title': f'Check {s["id"]}', 'ref': s['commit']} for s in scans]},
+        'history': {**V2, 'scans': scans, 'events': [{'at': s['at'], 'kind': 'scan', 'title': f'Check {s["id"]}', 'ref': s['commit']} for s in scans],
+                    'progress': [{'at': s['at'], 'event': 'recheck' if n else 'baseline', 'closed': min(cards, 25 * n), 'total': cards,
+                                  'percent': round(min(cards, 25 * n) / cards, 4), 'commit': s['commit']} for n, s in enumerate(scans)]},
         'quality': {**V2, 'detectors': [{'id': f'{k}', 'name': k, 'engine': None, 'applies': True, 'precision': ratio(0.9, 'synthetic'),
                                          'recall': ratio(None, 'not measured'), 'labelled': None} for k in KINDS],
                     'capabilities': [{'id': 'C2', 'name': 'Current state', 'value': ratio(0.6, 'synthetic')}],
@@ -418,6 +420,10 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
     sections['pipeline'] = synthetic_pipeline(stages=max(components, 50))
     sections['ideal'] = synthetic_ideal(comps, layer, card_rows)
     sections['nodes'] = synthetic_nodes(card_rows)
+
+    sections['library'] = {**V2, 'documents': [{'id': d['id'], 'text': f"# {d['title']}\n\n## Summary\n\nSynthetic document {i} of {components} components.\n",
+                                                'chars': 60, 'truncated': False} for i, d in enumerate(sections['docs']['docs'])],
+                           'images': [], 'counts': {}}
     written = list(sections)
     sections['coverage'] = {**V2, **coverage_section.coverage(Path('.'), sections, written, [], 'en')}
     return sections

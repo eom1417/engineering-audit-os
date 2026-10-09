@@ -105,7 +105,8 @@
               "infra",
               "pipeline",
               "ideal",
-              "nodes"
+              "nodes",
+              "library"
             ]
           },
           "file": {
@@ -241,6 +242,7 @@
     "infra",
     "pipeline",
     "ideal",
-    "nodes"
+    "nodes",
+    "library"
   ]
 }

@@ -49,3 +49,5 @@ one is its record.
 | NS46.T14 the ideal planned with a model | [ns46-t14-ideal-planner.md](ns46-t14-ideal-planner.md) |
 | NS46.T14 the ideal planned with a model | [ns46-t14-ideal-planner.md](ns46-t14-ideal-planner.md) |
 | NS46.T15 AI nodes in the EAOS pipeline | [ns46-t15-ai-nodes.md](ns46-t15-ai-nodes.md) |
+
+| NS46.T4 Library reader, History and EAOS quality | [ns46-t4-library-history-quality.md](ns46-t4-library-history-quality.md) |

@@ -167,7 +167,7 @@ def studio_placeholders(data):
     the flow pages open ('none' without studio/paths.json); {task}, {screen}, {hidden_group}: the journeys and hidden pages'
     subjects; {store}: the data map's store; {stage}: the first router of the pipeline map, else its first stage ('none'
     without studio/pipeline.json or a pipeline); {ai_stage} and {ai_pipeline}: its first AI node with a router of its own
-    (else its first AI stage) and that node's pipeline ('none' without one); {gap}, {op}, {plan}, {step}: Change subjects, or none; {function} and {screen_page}: explorer and gallery subjects."""
+    (else its first AI stage) and that node's pipeline ('none' without one); {gap}, {op}, {plan}, {step}: Change subjects, or none; {function} and {screen_page}: explorer and gallery subjects; {doc}, {image}, {scan}, {compare}: Library and History subjects."""
     cards = json.loads((data / 'cards.json').read_text(encoding='utf-8'))['cards']
     chosen = next((c for c in cards if c.get('evidence')), cards[0] if cards else {'id': '', 'title': '', 'evidence': []})
     card = chosen['id']
@@ -216,8 +216,17 @@ def studio_placeholders(data):
     function = max(fns, key=lambda f: (len(f['callers']) + len(f['callees']), f['id']), default={'id': 'none'})
     gallery = section('screens').get('screens') or []
     screen_page = next((s for s in gallery if s.get('shots')), gallery[0] if gallery else {'id': 'none'})
+    # {doc}: the first document in the report's reading order with three headings or more, else the first;
+    # {image}: the first diagram, else the first image; {scan} and {compare}: the last check, and the first..last
+    # (one check: itself twice, which the comparison shows as "needs two checks")
+    docs = sorted(section('docs').get('docs') or [], key=lambda d: (d.get('order') is None, d.get('order') or 0, d['path']))
+    doc = next((d for d in docs if len(d.get('headings') or []) >= 3), docs[0] if docs else {'path': 'none'})
+    images = section('media').get('images') or []
+    image = next((i for i in images if i.get('kind') == 'diagram'), images[0] if images else {'id': 'none'})
+    scans = section('history').get('scans') or []
+    scan = scans[-1]['id'] if scans else 'none'
     return {'card': card, 'fact': fact, 'word': word, 'component': component, 'path': chosen['id'], 'task': task['id'], 'screen': screen['id'],
-            'hidden_group': group['id'], 'store': store['id'], 'stage': stage['id'], 'ai_stage': ai['id'], 'ai_pipeline': ai['pipeline'], 'gap': gap['id'], 'op': op['id'], 'plan': plan['id'], 'step': step['id'], 'function': function['id'], 'screen_page': screen_page['id']}
+            'hidden_group': group['id'], 'store': store['id'], 'stage': stage['id'], 'ai_stage': ai['id'], 'ai_pipeline': ai['pipeline'], 'gap': gap['id'], 'op': op['id'], 'plan': plan['id'], 'step': step['id'], 'function': function['id'], 'screen_page': screen_page['id'], 'doc': doc['path'], 'image': image['id'], 'scan': scan, 'compare': f"{scans[0]['id'] if scans else 'none'}..{scan}"}
 
 
 def studio_pages(matrix, data, base, folder, only=None):

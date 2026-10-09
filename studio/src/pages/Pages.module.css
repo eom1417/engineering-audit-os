@@ -31,8 +31,6 @@
 .stepId { color: var(--text-secondary); font-weight: 500; }
 .stepTitle { line-height: 1.5; }
 
-.docRow { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; font-size: 14px; }
-.docRow + .docRow { border-block-start: 1px solid var(--border-subtle); }
 
 @media (max-width: 1199px) and (min-width: 768px) {
   .status { grid-template-columns: minmax(0, 1fr); }

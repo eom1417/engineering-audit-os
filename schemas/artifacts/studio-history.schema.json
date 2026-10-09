@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "studio/history.json",
-  "description": "The project over time: every scan with its score and open cards by severity, what each scan added and resolved, and the events between scans.",
+  "description": "The project over time, read from the ledger: every check with its score and open cards by severity (null where the ledger did not record them), the progress of the fixes taken in, the events between checks, and the cards that closed or appeared, so two checks can be compared.",
   "x-artifact": "studio/history.json",
   "x-owner": "NS46",
   "type": "object",
@@ -51,6 +51,9 @@
           "at": {
             "type": "string"
           },
+          "event": {
+            "type": "string"
+          },
           "score": {
             "type": [
               "number",
@@ -70,26 +73,54 @@
             ],
             "properties": {
               "critical": {
-                "type": "integer",
-                "minimum": 0
+                "type": [
+                  "integer",
+                  "null"
+                ]
               },
               "high": {
-                "type": "integer",
-                "minimum": 0
+                "type": [
+                  "integer",
+                  "null"
+                ]
               },
               "medium": {
-                "type": "integer",
-                "minimum": 0
+                "type": [
+                  "integer",
+                  "null"
+                ]
               },
               "low": {
-                "type": "integer",
-                "minimum": 0
+                "type": [
+                  "integer",
+                  "null"
+                ]
               },
               "info": {
-                "type": "integer",
-                "minimum": 0
+                "type": [
+                  "integer",
+                  "null"
+                ]
               }
             }
+          },
+          "open_total": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "closed": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "total": {
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "added": {
             "type": [
@@ -108,6 +139,49 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      }
+    },
+    "progress": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "at",
+          "event",
+          "closed",
+          "total",
+          "percent"
+        ],
+        "properties": {
+          "at": {
+            "type": "string"
+          },
+          "event": {
+            "type": "string"
+          },
+          "closed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "percent": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "commit": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       }
@@ -143,8 +217,122 @@
               "string",
               "null"
             ]
+          },
+          "count": {
+            "type": [
+              "integer",
+              "null"
+            ]
           }
         }
+      }
+    },
+    "cards": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "title",
+          "state",
+          "new"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "open",
+              "in_batch",
+              "on_branch",
+              "done",
+              "resolved",
+              "skipped"
+            ]
+          },
+          "at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "new": {
+            "type": "boolean"
+          },
+          "batch": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "missing": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "state",
+          "step",
+          "count",
+          "detail"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "measured",
+              "empty",
+              "partial",
+              "not_measured",
+              "failed"
+            ]
+          },
+          "step": {
+            "type": "string",
+            "pattern": "^NS[0-9]+(\\.T[0-9]+)?$"
+          },
+          "count": {
+            "$ref": "#/$defs/measure"
+          },
+          "detail": {
+            "type": "object",
+            "required": [
+              "ar",
+              "en"
+            ],
+            "properties": {
+              "ar": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "src": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/source"
       }
     }
   },

@@ -18,9 +18,9 @@ import studio_synthetic  # noqa: E402
 
 V1 = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media')
 V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'paths', 'coverage', 'journeys', 'hidden', 'data_paths', 'infra',
-      'pipeline', 'ideal', 'nodes')
+      'pipeline', 'ideal', 'nodes', 'library')
 ORDER = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'paths', 'journeys', 'hidden', 'data_paths', 'infra',
-         'pipeline', 'ideal', 'nodes', 'coverage')   # coverage last
+         'pipeline', 'ideal', 'nodes', 'library', 'coverage')   # coverage last
 FIXTURES = ROOT / 'tests/fixtures/studio/v2'
 
 
@@ -142,7 +142,9 @@ class ExportedCoverage(Workspace):
             self.assertIn(self.rows[name]['state'], ('measured', 'empty'), name)
         for name in ('gaps', 'operations'):
             self.assertIn(self.rows[name]['state'], ('measured', 'empty'), name)
-        for name in ('functions', 'screens', 'history', 'quality'):
+        for name in ('history', 'quality', 'library'):
+            self.assertEqual(self.rows[name]['state'], 'measured', name)
+        for name in ('functions', 'screens'):
             row = self.rows[name]
             self.assertEqual(row['state'], 'not_measured', name)
             self.assertRegex(row['step'], r'^NS\d+\.T\d+$', name)

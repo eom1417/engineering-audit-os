@@ -1,0 +1,62 @@
+{
+ "schema_version": 1,
+ "contract": 1,
+ "revision": 2,
+ "documents": [
+  {
+   "id": "START-HERE.md",
+   "text": "# Start here\n\n## What EAOS found\n\nThe check found **12 problems**; see `TASK-001`.\n\n| Area | Cards |\n|---|---|\n| structure | 7 |\n\n```ts\nexport const a = 1\n```\n",
+   "chars": 120,
+   "truncated": false
+  },
+  {
+   "id": "adr/ADR-001.md",
+   "text": "# ADR-001: One owner for orders\n\n## Context and Problem Statement\n\nTwo modules write the orders table.\n",
+   "chars": 90,
+   "truncated": false
+  }
+ ],
+ "images": [
+  {
+   "id": "architecture/system.mmd",
+   "format": "mermaid",
+   "data": null,
+   "source": "flowchart LR\n  a --> b\n",
+   "bytes": 24,
+   "embedded": true,
+   "reason": null
+  },
+  {
+   "id": "screens/home.png",
+   "format": "png",
+   "data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+   "source": null,
+   "bytes": 68,
+   "embedded": true,
+   "reason": null
+  },
+  {
+   "id": "screens/huge.png",
+   "format": "png",
+   "data": null,
+   "source": null,
+   "bytes": 5000000,
+   "embedded": false,
+   "reason": "too_large"
+  }
+ ],
+ "counts": {
+  "documents": {
+   "value": 2,
+   "src": "docs.json#docs"
+  },
+  "images": {
+   "value": 3,
+   "src": "media.json#images"
+  },
+  "truncated": {
+   "value": 1,
+   "src": "documents over 400000 characters, images over 2000000 bytes"
+  }
+ }
+}

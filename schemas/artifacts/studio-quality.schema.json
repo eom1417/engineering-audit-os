@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "studio/quality.json",
-  "description": "How good EAOS's own analysis is for this project: each detector's precision and recall on labelled cases, how much of each capability was measured, and the product plan's indicators.",
+  "description": "How good EAOS's own analysis is for this project: each detector's precision and recall on EAOS's labelled set, whether it meets the bar the product shows it at, what it produced in this report and, for a labelled project, its own true and false positives; the plan's capabilities that judge the analysis and their indicators.",
   "x-artifact": "studio/quality.json",
   "x-owner": "NS46",
   "type": "object",
@@ -41,6 +41,21 @@
           "name": {
             "type": "string"
           },
+          "names": {
+            "type": "object",
+            "required": [
+              "ar",
+              "en"
+            ],
+            "properties": {
+              "ar": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
+          },
           "engine": {
             "type": [
               "string",
@@ -60,6 +75,71 @@
             "type": [
               "integer",
               "null"
+            ]
+          },
+          "shown": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "meets_bar",
+              "below_bar",
+              "not_measured"
+            ]
+          },
+          "why": {
+            "type": "string"
+          },
+          "judged": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "here": {
+            "type": "object",
+            "required": [
+              "shown",
+              "withheld",
+              "facts"
+            ],
+            "properties": {
+              "shown": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "withheld": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "facts": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "project": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "tp": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "fp": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unjudged": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "tp",
+              "fp",
+              "unjudged"
             ]
           }
         }
@@ -81,8 +161,31 @@
           "name": {
             "type": "string"
           },
+          "names": {
+            "type": "object",
+            "required": [
+              "ar",
+              "en"
+            ],
+            "properties": {
+              "ar": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
+          },
           "value": {
             "$ref": "#/$defs/ratio_measure"
+          },
+          "measured": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "indicators": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       }
@@ -104,14 +207,99 @@
           "name": {
             "type": "string"
           },
+          "names": {
+            "type": "object",
+            "required": [
+              "ar",
+              "en"
+            ],
+            "properties": {
+              "ar": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
+          },
           "value": {
             "$ref": "#/$defs/ratio_measure"
           },
           "target": {
             "$ref": "#/$defs/ratio"
+          },
+          "capability": {
+            "type": "string"
+          },
+          "how": {
+            "type": "string",
+            "enum": [
+              "automated",
+              "recorded"
+            ]
           }
         }
       }
+    },
+    "bar": {
+      "type": "object",
+      "required": [
+        "precision",
+        "recall",
+        "judged"
+      ],
+      "properties": {
+        "precision": {
+          "$ref": "#/$defs/ratio"
+        },
+        "recall": {
+          "$ref": "#/$defs/ratio"
+        },
+        "judged": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "labelled": {
+      "type": "object",
+      "required": [
+        "items",
+        "projects",
+        "this_project"
+      ],
+      "properties": {
+        "items": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "this_project": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/measure"
+      }
+    },
+    "measured_at": {
+      "type": [
+        "string",
+        "null"
+      ]
     }
   },
   "$defs": {

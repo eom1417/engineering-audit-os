@@ -8,8 +8,8 @@ from eaos.studio import export, model
 from tests.shared_fixture import Workspace
 from tests.test_human_report import report
 
-SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system', 'paths')
-SECTIONS_V2 = ('journeys', 'hidden', 'data_paths', 'infra', 'ideal', 'nodes', 'gaps', 'operations')      # the v2 maps, written before coverage
+SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system')
+SECTIONS_V2 = ('history', 'quality', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'ideal', 'nodes', 'gaps', 'operations', 'library')
 
 
 class Export(Workspace):
@@ -97,10 +97,12 @@ class Export(Workspace):
 
     def test_a_section_that_fails_is_named_and_the_rest_is_written(self):
         from unittest import mock
-        with mock.patch.object(export, 'media', side_effect=ValueError('no folder')):
+        with mock.patch.object(export.library_section, 'media', side_effect=ValueError('no folder')):
             result = export.export(self.out, 'en', 'shop')
         self.assertEqual(result['errors'], [{'section': 'media', 'error': 'ValueError: no folder'}])
-        self.assertEqual(result['written'], [name for name in SECTIONS if name != 'media'] + [*SECTIONS_V2, 'coverage'])
+        # the library carries the media's content: without the media it is not written either
+        self.assertEqual(result['written'], [name for name in SECTIONS if name != 'media']
+                         + [name for name in SECTIONS_V2 if name != 'library'] + ['coverage'])
         self.assertNotIn('media', {entry['name'] for entry in self.load('manifest')['sections']})
         rows = {row['section']: row for row in self.load('coverage')['sections']}
         self.assertEqual((rows['media']['state'], rows['media']['reason']), ('failed', 'section_error'))
