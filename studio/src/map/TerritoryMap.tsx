@@ -73,10 +73,10 @@ export function TerritoryMap({ view, mode, variant, focus, lit = [], only, onFoc
   const dim = !mini && (Boolean(focusNode) || lit.length > 0 || Boolean(only))
   const isOn = (n: AnyNode) => (only ? n.op === only : true) && (focusNode || lit.length ? near.has(n.id) : true)
 
-  const edges = variant === 'preview' ? strongEdges(view.edges) : mini ? [] : [...view.edges].sort((a, b) => a.imports - b.imports)
+  const edges = useMemo(() => variant === 'preview' ? strongEdges(view.edges) : mini ? [] : [...view.edges].sort((a, b) => a.imports - b.imports), [view.edges, variant, mini])
   // the import counts of the focus's ten heaviest edges (more would crowd the land around it)
   const focusEdges = focusNode ? view.edges.filter((e) => e.from === focusNode.id || e.to === focusNode.id).sort((a, b) => b.imports - a.imports).slice(0, 10) : []
-  const nodes = [...view.nodes].sort((a, b) => b.r - a.r)
+  const nodes = useMemo(() => [...view.nodes].sort((a, b) => b.r - a.r), [view.nodes])
 
   const nodeName = (n: AnyNode) => isCurrent(n)
     ? w('nodeAria', { id: n.id, files: n.files, n: n.findings.total, op: w(OP_WORD[n.op]) })

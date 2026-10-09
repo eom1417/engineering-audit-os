@@ -109,6 +109,15 @@ class GateMatrix(unittest.TestCase):
         cls.gates = studio_gates
         cls.matrix = json.loads((STUDIO / 'gate-matrix.json').read_text(encoding='utf-8'))
 
+    def test_budget_gate_rejects_missing_nonfinite_and_over_budget_timings(self):
+        valid = {'filter_5000_ms': 100, 'home_interactive_ms': 1500}
+        self.assertEqual(self.gates.budget_failures(valid), [])
+        for value in (None, 0, -1, True, float('nan'), float('inf'), '20', 101):
+            with self.subTest(value=value):
+                self.assertTrue(self.gates.budget_failures({**valid, 'filter_5000_ms': value}))
+        self.assertTrue(self.gates.budget_failures({'filter_5000_ms': 50}))
+        self.assertTrue(self.gates.budget_failures({**valid, 'home_interactive_ms': 1501}))
+
     def test_every_page_is_named_once_and_audited_in_known_viewports_and_variants(self):
         pages = self.matrix['pages']
         self.assertEqual(len({p['name'] for p in pages}), len(pages))

@@ -45,3 +45,7 @@
   .paths { align-items: flex-start; }
   .step { grid-template-columns: 40px minmax(0, 1fr) auto; padding: 10px 14px; }
 }
+
+@media (max-width: 767px) {
+  .homePage { --section-gap: 8px; }
+}

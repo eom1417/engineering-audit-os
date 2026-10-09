@@ -8,7 +8,7 @@ import { Id } from '../../i18n/text'
 import type { Facet } from './model'
 import { PROBLEM_WORDS, useProblemWords, type ProblemWord } from './words'
 
-export const SEVERITY_WORD: Record<Severity, WordKey> = { critical: 'sevCritical', high: 'sevHigh', medium: 'sevMedium', low: 'sevLow' }
+export const SEVERITY_WORD: Record<Severity, WordKey> = { critical: 'sevCritical', high: 'sevHigh', medium: 'sevMedium', low: 'sevLow', info: 'sevInfo' }
 export const STATE_WORD: Record<CardState, WordKey> = {
   open: 'stateOpen', in_batch: 'stateInBatch', on_branch: 'stateOnBranch', done: 'stateDone', resolved: 'stateResolved', skipped: 'stateSkipped',
 }

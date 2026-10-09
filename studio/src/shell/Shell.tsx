@@ -2,7 +2,7 @@
 // sections, sheets from the bottom, pages pushed onto a stack with a back button. Tablet (768–1199): a 56px rail.
 // Desktop (≥ 1200): the 232px sidebar, breadcrumb top bar, Cmd/Ctrl-K palette, split panes and inspector.
 import { Outlet, useRouterState } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { IconButton } from '../components/Button'
 import { Badge, FreshnessChip } from '../components/Chip'
@@ -28,10 +28,12 @@ import { SystemViews } from '../pages/system/SystemViews'
 function useCounts(): Counts | null {
   const data = useStudio()
   const { decisions } = useActions()
-  if (!data) return null
-  const result = counts(data)
-  result.decisionsWaiting -= (data.decisions?.decisions ?? []).filter((d) => d.state === 'waiting' && decisions.some((r) => r.id === d.id && r.response)).length
-  return result
+  return useMemo(() => {
+    if (!data) return null
+    const result = counts(data)
+    result.decisionsWaiting -= (data.decisions?.decisions ?? []).filter((d) => d.state === 'waiting' && decisions.some((r) => r.id === d.id && r.response)).length
+    return result
+  }, [data, decisions])
 }
 
 /** The command centre's counts beside the report's: questions from runs join the inbox, and runs that are not over. */
@@ -233,8 +235,9 @@ export function Shell() {
   const data = useStudio()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const systemWorkspace = pathname.startsWith('/system') || pathname.startsWith('/screens') || pathname.startsWith('/flows')
-  const systemSearch = useRouterState({ select: (s) => s.location.search as { lens?: string } })
-  const systemView = pathname === '/system' ? (systemSearch.lens === 'infra' ? 'infra' : 'map') : pathname.startsWith('/screens') ? 'screens' : pathname.startsWith('/flows') ? 'paths' : pathname.startsWith('/system/f/') ? 'functions' : pathname.split('/')[2] ?? 'map'
+  // Only the lens: selecting the whole search object would draw the frame again on every keystroke of a page's search
+  const lens = useRouterState({ select: (s) => (s.location.search as { lens?: string }).lens })
+  const systemView = pathname === '/system' ? (lens === 'infra' ? 'infra' : 'map') : pathname.startsWith('/screens') ? 'screens' : pathname.startsWith('/flows') ? 'paths' : pathname.startsWith('/system/f/') ? 'functions' : pathname.split('/')[2] ?? 'map'
   const current = pathname.startsWith('/_') ? undefined : sectionOf(pathname)
   const [palette, setPalette] = useState(false)
   const [projectSheet, setProjectSheet] = useState(false)

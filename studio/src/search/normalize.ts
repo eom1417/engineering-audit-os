@@ -13,6 +13,8 @@ const LATIN_MARKS = /[̀-ͯ]/g // combining accents left by NFKD
  * to ya, hamza on waw/ya to the letter, diacritics, tatweel and invisible controls removed, Arabic-Indic digits to
  * 0-9, Latin lower-cased without accents, and runs of space collapsed. */
 export function normalize(text: string): string {
+  // ASCII cannot contain Arabic variants, combining marks or bidi controls.
+  if (/^[\x00-\x7f]*$/.test(text)) return text.toLowerCase().replace(/\s+/g, ' ').trim()
   return text
     .normalize('NFKD')
     .replace(FORMAT, '')

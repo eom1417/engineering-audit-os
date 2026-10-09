@@ -42,7 +42,7 @@ export interface Health {
   history: { at: string; commit: string | null; score: number | null }[]
 }
 
-export type Severity = 'critical' | 'high' | 'medium' | 'low'
+export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'info'
 export type CardState = 'open' | 'in_batch' | 'on_branch' | 'done' | 'resolved' | 'skipped'
 
 export interface Card {
@@ -134,4 +134,6 @@ export interface StudioData {
   quality?: unknown
   /** Sections the manifest lists but whose file did not load */
   missing: SectionName[]
+  /** Sections the manifest lists that are not read yet: they load when a page asks for them (data/stages.ts) */
+  pending?: SectionName[]
 }

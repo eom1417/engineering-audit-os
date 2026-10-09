@@ -57,7 +57,16 @@ export function opCount(system: SystemMap, op: Operation): number {
 /** The component a card belongs to: the deepest one holding its first path, else (root). The exporter counts
  * findings by the same rule (eaos/studio/system.py owner_of), so the map, the list and the problems page agree. */
 export function ownerOf(names: string[]): (path: string) => string | undefined {
-  const ordered = names.filter((n) => n !== '(root)').sort((a, b) => b.length - a.length)
+  const components = new Set(names.filter((n) => n !== '(root)'))
   const root = names.includes('(root)') ? '(root)' : undefined
-  return (path) => ordered.find((name) => path === name || path.startsWith(name + '/')) ?? root
+  return (path) => {
+    // Only slash-boundary ancestors can own a path; inspect deepest first.
+    let ancestor = path
+    while (true) {
+      if (components.has(ancestor)) return ancestor
+      const slash = ancestor.lastIndexOf('/')
+      if (slash < 0) return root
+      ancestor = ancestor.slice(0, slash)
+    }
+  }
 }

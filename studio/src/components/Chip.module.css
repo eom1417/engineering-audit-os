@@ -53,3 +53,5 @@ button.chip[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-
 @media (max-width: 767px) {
   button.chip, a.chip { min-block-size: 44px; padding-inline: 12px; }
 }
+
+.sevInfo { color: var(--text-secondary); }

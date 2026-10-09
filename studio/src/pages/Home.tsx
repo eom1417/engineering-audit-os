@@ -1,9 +1,9 @@
 // Home: where the project stands in one sentence, its health, what waits for the person and the next step. A first
 // composition of the design system on real data; NS37.T3 completes it (journey, land, plan, library).
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { BandChip, BandDot, HealthBlock, StatLink, StatLinks, StatTile, Tiles, useBandWord } from '../components/Health'
 import { SeverityGlyph } from '../components/Chip'
-import { Panel, RowLink, Section } from '../components/Panel'
+import { FoldList, Panel, RowLink, Section } from '../components/Panel'
 import { Sheet, SheetLead } from '../components/Sheet'
 import { DecisionCard, Headline, NextStep, headlineParts } from '../components/Story'
 import { counts } from '../data/context'
@@ -12,6 +12,7 @@ import { usePrefs } from '../i18n/prefs'
 import { N, Txt } from '../i18n/text'
 import { usePageChrome } from '../shell/chrome'
 import { layout, MissingBanner, PageTitle, WithData } from '../shell/Layout'
+import { HOME_NEEDS } from '../data/stages'
 import { nextRequest } from './requests'
 import { HomeMaps } from '../map/home'
 import css from './Pages.module.css'
@@ -49,7 +50,7 @@ function HomeBody({ data }: { data: StudioData }) {
   const [healthOpen, setHealthOpen] = useState(false)
   const project = data.manifest.project.name
   usePageChrome(t('home'), undefined, project)
-  const c = counts(data)
+  const c = useMemo(() => counts(data), [data])
   const bandWord = useBandWord()
   const score = data.health?.score.value
   const scoreN = score === null || score === undefined ? null : Math.round(score * 100)
@@ -62,7 +63,7 @@ function HomeBody({ data }: { data: StudioData }) {
   ])
   const next = data.head?.next
   return (
-    <div className={layout.page}>
+    <div className={[layout.page, css.homePage].join(' ')}>
       <MissingBanner data={data} />
       <div className={layout.titleBlock}>
         <PageTitle title={project} kicker />
@@ -94,10 +95,11 @@ function HomeBody({ data }: { data: StudioData }) {
         <div className={layout.col}>
           {first && (
             <Section title={t('waitingForYou')} count={decisions.length}>
-              <DecisionCard decision={first} cardsTo={{ to: '/problems', search: { who: 'you' } }} />
+              <DecisionCard compact decision={first} cardsTo={{ to: '/problems', search: { who: 'you' } }} />
               {rest.length > 0 && (
                 <Panel>
-                  {rest.map((d) => <RowLink key={d.id} to="/decisions" icon="inbox" title={<Txt>{d.question}</Txt>} sub={<Txt>{d.recommendation}</Txt>} />)}
+                  {/* folded at six with "Show all N" in place (DESIGN.md list folding), so Home stays within two phone screens */}
+                  <FoldList items={rest} label={t('waitingForYou')} render={(d) => <RowLink compact to="/decisions" title={<Txt>{d.question}</Txt>} sub={<Txt>{d.recommendation}</Txt>} />} />
                 </Panel>
               )}
             </Section>
@@ -115,5 +117,5 @@ function HomeBody({ data }: { data: StudioData }) {
 }
 
 export function HomePage() {
-  return <WithData>{(data) => <HomeBody data={data} />}</WithData>
+  return <WithData needs={HOME_NEEDS}>{(data) => <HomeBody data={data} />}</WithData>
 }

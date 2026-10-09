@@ -22,21 +22,36 @@ export interface SearchIndex {
 }
 
 export function buildIndex(entries: Entry[]): SearchIndex {
-  const byId = new Map(entries.map((entry) => [entry.id, entry]))
-  const mini = new MiniSearch<Entry>({
-    fields: ['title', 'keywords'],
-    storeFields: [],
-    tokenize,
-    processTerm: (term) => { const word = normalize(term); return word ? terms(word) : null },
-    // The query keeps only the bare form of each word: the index holds both, so one form always meets the other
-    searchOptions: { processTerm: (term) => { const word = normalize(term); return word ? terms(word).at(-1)! : null }, boost: { title: 2 }, prefix: true, fuzzy: (term) => (term.length > 4 ? 0.15 : 0), combineWith: 'AND' },
-  })
-  mini.addAll(entries)
+  let byId: Map<string, Entry>
+  let mini: MiniSearch<Entry> | undefined
+  const prepare = () => {
+    if (mini) return mini
+    byId = new Map(entries.map((entry) => [entry.id, entry]))
+    const indexedTerms = new Map<string, string[] | null>()
+    mini = new MiniSearch<Entry>({
+      fields: ['title', 'keywords'],
+      storeFields: [],
+      tokenize,
+      processTerm: (term) => {
+        if (indexedTerms.has(term)) return indexedTerms.get(term)!
+        const word = normalize(term)
+        const forms = word ? terms(word) : null
+        indexedTerms.set(term, forms)
+        return forms
+      },
+      // The query keeps only the bare form of each word: the index holds both, so one form always meets the other
+      searchOptions: { processTerm: (term) => { const word = normalize(term); return word ? terms(word).at(-1)! : null }, boost: { title: 2 }, prefix: true, fuzzy: (term) => (term.length > 4 ? 0.15 : 0), combineWith: 'AND' },
+    })
+    mini.addAll(entries)
+    // Normalized terms are already held by MiniSearch; the construction cache is no longer needed.
+    indexedTerms.clear()
+    return mini
+  }
   return {
     size: entries.length,
     search(query, limit = 40) {
       if (!normalize(query)) return entries.filter((entry) => entry.kind === 'page').slice(0, limit)
-      return mini.search(query).slice(0, limit).map((hit) => byId.get(hit.id as string)!).filter(Boolean)
+      return prepare().search(query).slice(0, limit).map((hit) => byId.get(hit.id as string)!).filter(Boolean)
     },
   }
 }

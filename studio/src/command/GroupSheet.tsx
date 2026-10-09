@@ -5,7 +5,9 @@ import { OperationChip, SeverityGlyph } from '../components/Chip'
 import { RowButton, StateMessage } from '../components/Panel'
 import { Sheet, SheetLead } from '../components/Sheet'
 import { Button } from '../components/Button'
-import { useStudio } from '../data/context'
+import { useSections, useStudio } from '../data/context'
+import { GROUP_NEEDS } from '../data/stages'
+import { SectionsLoading } from '../shell/Layout'
 import type { Relation, Severity } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
 import { Id, N, Txt } from '../i18n/text'
@@ -34,13 +36,16 @@ export function GroupSheet() {
   const w = useCmdWords()
   const { t } = usePrefs()
   const [kind, setKind] = useState<GroupKind | null>(null)
-  const groups = useMemo(() => (data ? groupsOf(data) : null), [data])
+  // Groups are counted when the sheet opens, once the sections they read are there
+  const waiting = useSections(command.groupsOpen ? GROUP_NEEDS : [])
+  const groups = useMemo(() => (data && command.groupsOpen && !waiting.length ? groupsOf(data) : null), [data, command.groupsOpen, waiting.length])
   const close = (open: boolean) => { if (!open) { command.openGroups(false); setKind(null) } }
   const chosen = kind && groups ? groups[kind] : []
   const title = kind ? w(KINDS.find((k) => k.by === kind)!.word) : w('selectGroup')
   return (
     <Sheet isOpen={command.groupsOpen} onOpenChange={close} title={title}>
       {!kind && <SheetLead>{w('selectGroupLead')}</SheetLead>}
+      {waiting.length > 0 && <SectionsLoading waiting={waiting} />}
       {!kind && groups && (
         <ul className={css.groupList}>
           {KINDS.map((k) => (

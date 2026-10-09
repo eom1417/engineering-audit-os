@@ -69,7 +69,7 @@ export function recommendedOption(decision: Decision): Decision['options'][numbe
  * One question, its recommendation, large one-tap answers (the option the recommendation names is primary, first,
  * with a "Recommended" tag), durable live answers and the link to the cards it concerns.
  */
-export function DecisionCard({ decision, cardsTo }: { decision: Decision; cardsTo?: { to: string; search?: Search } }) {
+export function DecisionCard({ decision, cardsTo, compact }: { decision: Decision; cardsTo?: { to: string; search?: Search }; compact?: boolean }) {
   const { t, lang } = usePrefs()
   const toast = useToast()
   const actions = useActions()
@@ -100,7 +100,7 @@ export function DecisionCard({ decision, cardsTo }: { decision: Decision; cardsT
     finally { setBusy(false) }
   }
   return (
-    <Panel as="article" emphasis className={css.decision} label={decision.question}>
+    <Panel as="article" emphasis className={[css.decision, compact && css.compactDecision].filter(Boolean).join(' ')} label={decision.question}>
       <div className={css.decHead}>
         {decision.state === 'waiting' && !saved?.response ? <Chip tone="accent">{t('waiting')}</Chip> : <Chip tone="good">{t('answered')}</Chip>}
         {blocks > 0 && (cardsTo ? <Go {...cardsTo} className={css.decBlocks}>{blocksText}</Go> : <span className={css.decBlocks}>{blocksText}</span>)}

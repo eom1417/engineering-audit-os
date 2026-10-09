@@ -1,18 +1,20 @@
 // The loaded report, shared by every page; and the few numbers several places show, computed once here.
 // The report comes through one DataSource (source.ts): a snapshot, or the live server, whose events reload the
 // sections that changed and are announced to screen readers in the person's language.
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { usePrefs } from '../i18n/prefs'
-import type { Loaded } from './load'
+import { readSections, withSections, type Loaded } from './load'
 import { loadReportLocale, localizeReport, type ReportLocale } from './localization'
 import type { LiveEvent, LiveStatus } from './live'
 import { pickSource, type DataSource, type Mode } from './source'
-import type { Card, StudioData } from './types'
+import type { Card, SectionName, StudioData } from './types'
 
 const ReportLocaleContext = createContext<ReportLocale | undefined>(undefined)
 export function useReportLocale(): ReportLocale | undefined { return useContext(ReportLocaleContext) }
 
 const DataContext = createContext<Loaded>({ kind: 'loading' })
+/** Asks for sections still pending (data/stages.ts): each is read once and the report updates when it arrives. */
+const SectionsContext = createContext<(names: readonly SectionName[]) => void>(() => undefined)
 
 export interface Live {
   mode: Mode
@@ -38,6 +40,16 @@ export function DataProvider({ children, preset, source }: { children: ReactNode
     loadReportLocale().then((loaded) => { if (on && loaded) setLocale(loaded) })
     return () => { on = false }
   }, [hasEnglish, localeFingerprint])
+  useEffect(() => { current.current = state.kind === 'ready' ? state.data : null }, [state])
+  const asked = useRef(new Set<SectionName>())
+  const request = useCallback((names: readonly SectionName[]) => {
+    const data = current.current
+    const fresh = names.filter((name) => data?.pending?.includes(name) && !asked.current.has(name))
+    if (!data || !fresh.length) return
+    for (const name of fresh) asked.current.add(name)
+    // Sections arrive into the report as it is then (a live reload may have replaced it meanwhile)
+    void readSections(fresh).then(() => setState((was) => was.kind === 'ready' ? { kind: 'ready', data: withSections(was.data, fresh, window.EAOS_STUDIO ?? {}) } : was))
+  }, [])
   const displayed = useMemo<Loaded>(() => lang === 'en' && hasEnglish && !locale ? { kind: 'loading' } : localizeReport(state, lang, locale), [state, lang, locale, hasEnglish])
 
   useEffect(() => {
@@ -71,10 +83,12 @@ export function DataProvider({ children, preset, source }: { children: ReactNode
   return (
     <ReportLocaleContext.Provider value={locale}>
     <DataContext.Provider value={displayed}>
+      <SectionsContext.Provider value={request}>
       <LiveContext.Provider value={live}>
         {children}
         <div className="sr" role="status" aria-live="polite">{live.last ? live.last.text[lang] : ''}</div>
       </LiveContext.Provider>
+      </SectionsContext.Provider>
     </DataContext.Provider>
     </ReportLocaleContext.Provider>
   )
@@ -82,6 +96,18 @@ export function DataProvider({ children, preset, source }: { children: ReactNode
 
 export function useLoaded(): Loaded {
   return useContext(DataContext)
+}
+
+/** The sections of `needs` (every section when 'all') still being read, after asking for them: [] once they are all
+ * there. A page shows its loading state until then, so it never draws a part of the report as empty. */
+export function useSections(needs: readonly SectionName[] | 'all'): SectionName[] {
+  const loaded = useContext(DataContext)
+  const request = useContext(SectionsContext)
+  const pending = loaded.kind === 'ready' ? loaded.data.pending ?? [] : []
+  const waiting = needs === 'all' ? pending : pending.filter((name) => needs.includes(name))
+  const key = waiting.join(',')
+  useEffect(() => { if (key) request(key.split(',') as SectionName[]) }, [key, request])
+  return waiting
 }
 
 /** Whether the Studio is live or a snapshot, and the last change it shows. */
@@ -107,7 +133,7 @@ export interface Counts {
 
 export function counts(data: StudioData): Counts {
   const cards = data.cards?.cards ?? []
-  const bySeverity = { critical: 0, high: 0, medium: 0, low: 0 }
+  const bySeverity = { critical: 0, high: 0, medium: 0, low: 0, info: 0 }
   for (const card of cards) bySeverity[card.severity] += 1
   return {
     cards: cards.length,

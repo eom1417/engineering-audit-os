@@ -11,7 +11,11 @@ const SEVERITIES = ['critical', 'high', 'medium', 'low'] as const
 
 function bucket(entries: [string, string][]): Map<string, string[]> {
   const out = new Map<string, string[]>()
-  for (const [key, id] of entries) out.set(key, [...(out.get(key) ?? []), id])
+  for (const [key, id] of entries) {
+    const ids = out.get(key)
+    if (ids) ids.push(id)
+    else out.set(key, [id])
+  }
   return out
 }
 
@@ -34,12 +38,17 @@ export function groupsOf(data: StudioData): Record<GroupKind, Group[]> {
     .filter(([value]) => value).map(([value, ids]) => ({ by: 'component' as const, value, label: value, ids }))
   const gaps = (data.story?.gap ?? []).filter((row) => row.relation !== 'retain')
   const gap = gaps.map((row) => ({ by: 'gap' as const, value: row.component, label: row.component, ids: row.cards.filter((id) => known.has(id)) }))
-  const byRelation = new Map<Relation, string[]>()
-  for (const row of gaps) byRelation.set(row.relation, [...new Set([...(byRelation.get(row.relation) ?? []), ...row.cards.filter((id) => known.has(id))])])
-  const operation = [...byRelation.entries()].map(([value, ids]) => ({ by: 'operation' as const, value, label: value, ids }))
+  const byRelation = new Map<Relation, Set<string>>()
+  for (const row of gaps) {
+    let ids = byRelation.get(row.relation)
+    if (!ids) { ids = new Set(); byRelation.set(row.relation, ids) }
+    for (const id of row.cards) if (known.has(id)) ids.add(id)
+  }
+  const operation = [...byRelation.entries()].map(([value, ids]) => ({ by: 'operation' as const, value, label: value, ids: [...ids] }))
   const steps = data.plans?.plans[0]?.steps ?? []
+  const milestones = bucket(cards.map((c) => [c.milestone ?? '', c.id]))
   const step = steps.map((s) => {
-    const ids = cards.filter((c) => c.milestone === s.id).map((c) => c.id)
+    const ids = milestones.get(s.id) ?? []
     return { by: 'step' as const, value: s.id, label: s.title ?? s.gate ?? s.id, ids: ids.length ? ids : s.tasks.map((t) => t.id).filter((id) => known.has(id)) }
   }).filter((g) => g.ids.length)
   return {

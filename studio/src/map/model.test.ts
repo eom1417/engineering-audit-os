@@ -3,6 +3,16 @@ import type { SystemMap } from '../data/system'
 import { counterpart, findingsBin, neighbours, ownerOf } from './model'
 
 describe('the map model', () => {
+  it('matches the longest slash-boundary owner for nested and unusual paths', () => {
+    const names = ['(root)', '', '/', 'src', 'src/', 'src/ui', 'src/ui/old', 'src/uix', 'أصل/واجهة']
+    const reference = (path: string) => names.filter((n) => n !== '(root)').sort((a, b) => b.length - a.length)
+      .find((name) => path === name || path.startsWith(name + '/')) ?? '(root)'
+    const owner = ownerOf(names)
+    for (const path of ['', '/', '//file', 'src', 'src/', 'src//file', 'src/ui/old/a', 'src/uix/a', 'src/uixx/a', 'أصل/واجهة/ملف', 'missing']) {
+      expect(owner(path)).toBe(reference(path))
+    }
+  })
+
   it('gives a card to the deepest component holding its path, else to (root)', () => {
     const owner = ownerOf(['(root)', 'src', 'src/ui', 'src/ui/old'])
     expect(owner('src/ui/old/a.ts')).toBe('src/ui/old')

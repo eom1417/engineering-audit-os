@@ -8,7 +8,7 @@ import { useCommandMaybe } from '../command/command'
 import { ACTIONS, VERBS } from '../data/actions/contract'
 import type { VerbId } from '../data/actions/types'
 import { Icon, type IconName } from '../components/Icon'
-import { useStudio } from '../data/context'
+import { useSections, useStudio } from '../data/context'
 import { WORDS } from '../i18n/catalog'
 import { usePrefs } from '../i18n/prefs'
 import { Id, Txt } from '../i18n/text'
@@ -62,6 +62,8 @@ export function Palette({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChang
   const [query, setQuery] = useState('')
   useEffect(() => { if (!isOpen) setQuery('') }, [isOpen])
   const results = useMemo(() => index.search(query, 40), [index, query])
+  // The palette searches the whole report: opening it reads the sections not read yet, and says so meanwhile
+  const waiting = useSections(isOpen ? 'all' : [])
   const groups = ORDER.map((kind) => ({ kind, items: results.filter((r) => r.kind === kind) })).filter((g) => g.items.length)
 
   const open = (entry: Entry) => {
@@ -98,6 +100,7 @@ export function Palette({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChang
               ))}
             </ListBox>
           </Autocomplete>
+          {waiting.length > 0 && <p className={css.foot} role="status">{t('loadingRest')} {t('loadingParts', { n: waiting.length })}</p>}
           <div className={css.foot} aria-hidden="true">{t('paletteHint')}</div>
         </Dialog>
       </Modal>

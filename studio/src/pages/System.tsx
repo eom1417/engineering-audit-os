@@ -17,7 +17,7 @@ import css from './Pages.module.css'
 
 interface Component { name: string; files: number; relation: Relation; to: string | null; cards: Card[]; weight: number; bySeverity: Record<Severity, number> }
 
-const WEIGHT: Record<Severity, number> = { critical: 8, high: 4, medium: 2, low: 1 }
+const WEIGHT: Record<Severity, number> = { critical: 8, high: 4, medium: 2, low: 1, info: 0 }
 
 /** Components with their cards (a card belongs to the deepest component holding its first path), by severity weight. */
 export function components(data: StudioData): Component[] {
@@ -31,7 +31,7 @@ export function components(data: StudioData): Component[] {
   }
   return (data.story?.current.components ?? []).map((c) => {
     const cards = cardsOf.get(c.name) ?? []
-    const bySeverity = { critical: 0, high: 0, medium: 0, low: 0 }
+    const bySeverity = { critical: 0, high: 0, medium: 0, low: 0, info: 0 }
     for (const card of cards) bySeverity[card.severity] += 1
     const row = gap.get(c.name)
     return { name: c.name, files: c.files, relation: row?.relation ?? 'retain', to: row?.to ?? null, cards, bySeverity,

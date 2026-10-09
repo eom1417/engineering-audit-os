@@ -36,9 +36,9 @@ export function FreshnessChip({ freshness, onPress }: { freshness: Freshness; on
   return <ChipButton tone={tone} onPress={onPress}>{t(word)}</ChipButton>
 }
 
-const SEV_BARS: Record<Severity, number> = { low: 1, medium: 2, high: 3, critical: 4 }
-const SEV_CLASS: Record<Severity, string> = { low: css.sevLow, medium: css.sevMedium, high: css.sevHigh, critical: css.sevCritical }
-const SEV_WORD = { low: 'sevLow', medium: 'sevMedium', high: 'sevHigh', critical: 'sevCritical' } as const
+const SEV_BARS: Record<Severity, number> = { info: 0, low: 1, medium: 2, high: 3, critical: 4 }
+const SEV_CLASS: Record<Severity, string> = { info: css.sevInfo, low: css.sevLow, medium: css.sevMedium, high: css.sevHigh, critical: css.sevCritical }
+const SEV_WORD = { info: 'sevInfo', low: 'sevLow', medium: 'sevMedium', high: 'sevHigh', critical: 'sevCritical' } as const
 
 /** The four bars and the word; a card of severity "info" (the contract allows it) shows no bar lit and its word. */
 export function SeverityGlyph({ severity, word = true }: { severity: Severity; word?: boolean }) {

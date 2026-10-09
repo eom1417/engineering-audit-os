@@ -174,6 +174,8 @@ export const WORDS = {
   nothingWaitsSub: ['حين يحتاج EAOS قرارك يظهر هنا سؤال واحد بتوصيته.', 'When EAOS needs your decision, one question with its recommendation appears here.'],
   // data states
   loading: ['يحمّل التقرير…', 'Loading the report…'],
+  loadingRest: ['يحمّل بقية التقرير…', 'Loading the rest of the report…'],
+  loadingParts: ['أجزاء باقية: {n}', 'Parts left: {n}'],
   emptyTitle: ['لا يوجد تقرير هنا بعد', 'No report here yet'],
   emptySub: ['الاستوديو يقرأ بيانات الفحص من المجلد نفسه. اطلب من المساعد فحص المشروع، ثم افتح الاستوديو من مجلد التقرير.',
     'The Studio reads the scan data from its own folder. Ask the assistant to check the project, then open the Studio from the report folder.'],

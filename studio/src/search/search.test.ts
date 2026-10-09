@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import MiniSearch from 'minisearch'
 import { buildIndex, type Entry } from './search'
 
 const entries: Entry[] = [
@@ -13,6 +14,19 @@ const index = buildIndex(entries)
 const ids = (query: string) => index.search(query).map((entry) => entry.id)
 
 describe('search', () => {
+  it('defers indexing until a nonblank query and reuses it afterwards', () => {
+    const add = vi.spyOn(MiniSearch.prototype, 'addAll')
+    try {
+      const lazy = buildIndex(entries)
+      expect(lazy.size).toBe(entries.length)
+      expect(lazy.search('  ')).toHaveLength(2)
+      expect(add).not.toHaveBeenCalled()
+      expect(lazy.search('home')[0].id).toBe('page:home')
+      expect(lazy.search('خطه الاصلاح')[0].id).toBe('doc:plan')
+      expect(add).toHaveBeenCalledTimes(1)
+    } finally { add.mockRestore() }
+  })
+
   it('finds Arabic whatever the alef, ta marbuta or ya form typed', () => {
     expect(ids('خطه الاصلاح')).toContain('doc:plan')
     expect(ids('خطة الإصلاح')).toContain('doc:plan')

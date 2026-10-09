@@ -27,8 +27,23 @@
 })();
 
 // Starts reading the report's data while the Studio's own script is still downloading (src/data/load.ts waits for
-// it): the manifest, then every section it lists, each a classic script beside index.html. A tab holding the live
+// it): the manifest, then the sections the page being opened shows first (FIRST, the same lists as
+// src/data/stages.ts), each a classic script beside index.html. Home and Problems need only a few of the report's
+// sections; any other page reads every section, as before. What is not read here is read when a page, the palette
+// or a sheet asks for it (src/data/context.tsx), and the page says so while it loads. A tab holding the live
 // server's token (the same test as src/data/live.ts liveToken) reads the server's API instead: nothing to load here.
+(function () {
+  var shell = ['meta', 'head', 'health', 'cards', 'decisions', 'docs', 'story'];
+  var FIRST = {
+    '/': shell.concat(['system']),
+    '/problems': shell.concat(['system', 'plans']),
+    '/problems?card': shell.concat(['system', 'plans', 'evidence', 'hidden'])
+  };
+  var route = /^#?(\/[^?]*)(\?.*)?$/.exec(location.hash || '#/') || [];
+  var path = (route[1] || '/').replace(/(.)\/$/, '$1');
+  var key = path === '/problems' && /[?&]card=/.test(route[2] || '') ? '/problems?card' : path;
+  window.EAOS_FIRST = FIRST[key] || null;
+})();
 window.EAOS_DATA = new Promise(function (done) {
   var token = window.EAOS_BOOT_TOKEN;
   try { token = token || sessionStorage.getItem('eaos.token'); } catch (e) { /* storage refused */ }
@@ -41,9 +56,12 @@ window.EAOS_DATA = new Promise(function (done) {
   }
   add('manifest', function () {
     var manifest = (window.EAOS_STUDIO || {}).manifest;
+    var first = window.EAOS_FIRST;
     // functions.json is the largest section and only its own pages read it: they load it when they open
     // (pages/functions/model.ts useSection), so no other page waits for it.
-    var names = (manifest && manifest.sections || []).map(function (s) { return s.name; }).filter(function (n) { return /^[a-z][a-z_]*$/.test(n) && n !== 'functions' && n !== 'library'; });
+    var names = (manifest && manifest.sections || []).map(function (s) { return s.name; }).filter(function (n) {
+      return /^[a-z][a-z_]*$/.test(n) && n !== 'functions' && n !== 'library' && (!first || first.indexOf(n) >= 0);
+    });
     var left = names.length;
     if (!left) return done();
     names.forEach(function (name) { add(name, function () { if (--left === 0) done(); }); });

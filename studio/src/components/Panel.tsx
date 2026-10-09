@@ -45,8 +45,8 @@ function RowInside({ icon, title, sub, end, chevron = true }: RowBody) {
 }
 
 /** A row that opens a view: icon, title, subtitle, end value, chevron. */
-export function RowLink({ to, search, current, label, ...body }: RowBody & { to: string; search?: Search; current?: boolean; label?: string }) {
-  return <Go to={to} search={search} className={css.row} current={current} label={label}><RowInside {...body} /></Go>
+export function RowLink({ to, search, current, label, compact, ...body }: RowBody & { to: string; search?: Search; current?: boolean; label?: string; compact?: boolean }) {
+  return <Go to={to} search={search} className={[css.row, compact && css.compact].filter(Boolean).join(' ')} current={current} label={label}><RowInside {...body} /></Go>
 }
 
 /** A row that selects or opens something in place (a sheet, the inspector). */

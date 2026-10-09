@@ -43,3 +43,9 @@
 .stateBody { display: flex; flex-direction: column; gap: 8px; min-inline-size: 0; }
 .stateTitle { font-weight: 500; font-size: 14px; }
 .stateSub { font-size: 13px; color: var(--text-tertiary); line-height: 1.5; }
+
+/* Dense secondary summaries retain their full text and a 44px phone target. */
+@media (max-width: 767px) {
+  .compact { min-block-size: 44px; padding: 4px 10px; gap: 8px; }
+  .compact .rowTitle { font-size: 14px; }
+}

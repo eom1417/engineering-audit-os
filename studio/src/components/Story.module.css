@@ -68,3 +68,9 @@ a.decBlocks:hover { color: var(--text-primary); text-decoration: underline; text
 .writeAnswer { display: flex; flex-direction: column; gap: 12px; }
 .writeAnswer label { display: flex; flex-direction: column; gap: 8px; }
 .answerInput { inline-size: 100%; min-block-size: 100px; max-inline-size: 100%; padding: 12px; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: var(--radius-8); font: inherit; }
+
+@media (max-width: 767px) {
+  .compactDecision { padding: 12px; gap: 8px; }
+  .compactDecision .decRec { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+  .compactDecision .decRecLabel { margin-block-end: 0; }
+}

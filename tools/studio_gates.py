@@ -36,7 +36,10 @@ pages are held to the mobile minimums, and the CSS drift counts of the shipped s
 """
 import argparse
 import json
+import math
+import os
 import re
+import subprocess
 import shutil
 import sys
 import tempfile
@@ -68,6 +71,17 @@ def matrix(text):
 
 def minimums(text):
     return {name.strip(): int(value) for name, _, value in (item.partition('=') for item in text.split(',')) if name.strip()}
+
+
+def budget_failures(timing):
+    failures = []
+    for key, limit in (('filter_5000_ms', 100), ('home_interactive_ms', 1500)):
+        value = timing.get(key)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+            failures.append(f'{key}: missing or invalid timing')
+        elif value > limit:
+            failures.append(f'{key}: {value:.1f} ms > {limit} ms')
+    return failures
 
 
 def table(rows, root):
@@ -144,7 +158,7 @@ def finish(report, result, label, out):
     report['summary'] = {'rows': len(rows), 'passed': sum(1 for r in rows if r['status'] == 'observed' and not r['failures']),
                          'failed': len(failed), 'skipped': sum(1 for r in rows if r['status'] == 'skipped'),
                          'lighthouse_failed': len(slow)}
-    report['ok'] = not failed and not slow
+    report['ok'] = not failed and not slow and not report.get('budget_failures')
     (out / 'gates.json').write_text(json.dumps(report, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     print(table(rows, out))
     summary = report['summary']
@@ -157,6 +171,7 @@ def finish(report, result, label, out):
                             if category in scores['minimums']))
         else:
             print(f"lighthouse {name}: {verdict}")
+    for failure in report.get('budget_failures', []): print(f'budget FAIL {failure}')
     return 0 if report['ok'] else 1
 
 
@@ -265,7 +280,7 @@ def run_studio(args):
     out.mkdir(parents=True, exist_ok=True)
     floor = minimums(args.lighthouse_min)
     report = {'schema_version': 1, 'target': 'studio', 'variants': page_variants, 'viewports': sizes,
-              'studio': {'source_sha256': source['source_sha256'], 'complete': not (only or args.quick),
+              'studio': {'source_sha256': source['source_sha256'], 'complete': not (only or args.quick or args.no_lighthouse),
                          'data': {'project': manifest['project']['name'], 'contract': manifest['contract'],
                                   'exported': manifest['built'].get('built'), 'exporter': manifest['built'].get('commit'),
                                   'folder': str(data)}}}
@@ -274,6 +289,29 @@ def run_studio(args):
         shutil.copytree(shipped, site, dirs_exist_ok=True)
         for script in data.glob('*.js'): shutil.copy(script, site / script.name)
         with audit.serve(site) as base:
+            if args.budgets:
+                (out / 'budgets.json').unlink(missing_ok=True)
+                from eaos import toolchain
+                cards = json.loads((data / 'cards.json').read_text(encoding='utf-8'))['cards']
+                if len(cards) != 5000:
+                    print('--budgets requires exactly 5000 cards; no timing written'); return 2
+                absent = audit.missing('playwright')
+                if absent:
+                    print(absent); return 2
+                config = {'base': base, 'source': source['source_sha256'], 'count': len(cards),
+                          'card': cards[-1]['id'], 'other': cards[0]['id'],
+                          'modules': str(toolchain.home() / 'node/node_modules')}
+                trial = site / 'budget-config.json'
+                trial.write_text(json.dumps(config), encoding='utf-8')
+                done = subprocess.run(['node', str(ROOT / 'studio/scripts/gates.mjs'), str(trial)],
+                                      capture_output=True, text=True, timeout=180,
+                                      env={**os.environ, 'PLAYWRIGHT_BROWSERS_PATH': str(toolchain.browsers())})
+                if done.returncode:
+                    print(f'budget trial failed: {done.stderr[-1500:]}'); return 2
+                timing = json.loads(done.stdout.splitlines()[-1])
+                report['budgets'] = timing
+                report['budget_failures'] = budget_failures(timing)
+                (out / 'budgets.json').write_text(json.dumps(timing, indent=1) + '\n', encoding='utf-8')
             pages = studio_pages(matrix, data, base, site, only)
             report['pages'] = [entry['name'] for entry, _ in pages]
             entries = [{**entry, 'wait_for': entry.get('wait_for', matrix.get('wait_for'))} for entry, _ in pages]
@@ -281,7 +319,7 @@ def run_studio(args):
             shots = sum(len(e.get('viewports') or sizes) * len(e.get('variants') or page_variants) for e in entries)
             result = audit.page_audit(entries, sizes, page_variants, out, timeout=max(900, 5 * shots))
             first = page_variants[0]['query']
-            if result['status'] == 'observed' and not args.quick:
+            if result['status'] == 'observed' and not args.quick and not args.no_lighthouse:
                 report['lighthouse'] = {}
                 for index, (entry, wanted) in enumerate(pages, 1):
                     if not wanted: continue
@@ -302,6 +340,8 @@ def main(argv=None):
     parser.add_argument('--studio', action='store_true', help="gate the Studio this checkout ships, on a report's data")
     parser.add_argument('--data', help="--studio: the report's studio/ folder (default $EAOS_MEASURE/FleetManageWeb/studio)")
     parser.add_argument('--only', help='--studio: comma-separated page names of studio/gate-matrix.json (an incomplete run)')
+    parser.add_argument('--no-lighthouse', action='store_true', help='--studio: screens only; marks the run incomplete')
+    parser.add_argument('--budgets', action='store_true', help='--studio: measure cold Home and 5000-card search on shipped assets (4x CPU, loopback network)')
     parser.add_argument('--quick', action='store_true', help='--studio: phone and desktop, light only, no Lighthouse (an incomplete run)')
     parser.add_argument('--lang-key', help='localStorage key that sets the language')
     parser.add_argument('--lang-param', help='query parameter that sets the language')
