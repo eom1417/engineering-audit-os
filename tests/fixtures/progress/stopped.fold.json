@@ -1,0 +1,1159 @@
+{
+ "alive_every": 10.0,
+ "contract": 1,
+ "counts": {},
+ "ended_at": "2026-10-09T20:16:42.939+00:00",
+ "flow": "check",
+ "heard_at": "2026-10-09T20:16:42.939+00:00",
+ "host": "golden-host",
+ "last_seq": 119,
+ "pid": 1000,
+ "previous": {},
+ "previous_steps": {},
+ "reason": "KeyboardInterrupt: ",
+ "requested": [
+  "facts",
+  "features",
+  "lock",
+  "intake",
+  "engines",
+  "verify",
+  "measure",
+  "policy",
+  "load",
+  "claims",
+  "probe",
+  "semantic",
+  "sustainability",
+  "transform",
+  "plan",
+  "target",
+  "reports",
+  "quality",
+  "pdf",
+  "execution_guide",
+  "executive",
+  "compose",
+  "bundles",
+  "emit",
+  "site",
+  "validate"
+ ],
+ "run": "20261009T201630-d31246",
+ "seconds": 12.72,
+ "stages": [
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "facts/index.json"
+   ],
+   "description": "Deterministic extraction over one snapshot",
+   "detail": {
+    "facts": 26107,
+    "sets": 19
+   },
+   "ended_at": "2026-10-09T20:16:34.178+00:00",
+   "name": "facts",
+   "necessity": "required",
+   "produces": [
+    "facts/index.json"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [],
+   "resumed": false,
+   "seconds": 3.96,
+   "started_at": "2026-10-09T20:16:30.222+00:00",
+   "state": "ok",
+   "steps": [
+    {
+     "done": 1,
+     "kind": "item",
+     "name": "syntax",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.28,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 2,
+     "kind": "item",
+     "name": "resolve",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.06,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 3,
+     "kind": "item",
+     "name": "structure",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.25,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 4,
+     "kind": "item",
+     "name": "fingerprint",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.41,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 5,
+     "kind": "item",
+     "name": "sequences",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.21,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 6,
+     "kind": "item",
+     "name": "runtime",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.38,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 7,
+     "kind": "item",
+     "name": "entrypoints",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.04,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 8,
+     "kind": "item",
+     "name": "redundancy",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.56,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 9,
+     "kind": "item",
+     "name": "config",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.0,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 10,
+     "kind": "item",
+     "name": "metrics",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.15,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 11,
+     "kind": "item",
+     "name": "domain",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.48,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 12,
+     "kind": "item",
+     "name": "history",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.08,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 13,
+     "kind": "item",
+     "name": "graph",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.0,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 14,
+     "kind": "item",
+     "name": "flows",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.03,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 15,
+     "kind": "item",
+     "name": "leftovers",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.0,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 16,
+     "kind": "item",
+     "name": "deadcode",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.06,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 17,
+     "kind": "item",
+     "name": "broken",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.38,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 18,
+     "kind": "item",
+     "name": "secrets",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.03,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 19,
+     "kind": "item",
+     "name": "pipeline",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.15,
+     "status": "ok",
+     "total": 19
+    }
+   ]
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "FEATURES.md",
+    "features.json"
+   ],
+   "description": "Group entry points and data accesses into what the program does for a user",
+   "detail": {
+    "critical": 0,
+    "features": 4,
+    "unassigned": 0
+   },
+   "ended_at": "2026-10-09T20:16:34.272+00:00",
+   "name": "features",
+   "necessity": "required",
+   "produces": [
+    "features.json",
+    "FEATURES.md"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "facts"
+   ],
+   "resumed": false,
+   "seconds": 0.09,
+   "started_at": "2026-10-09T20:16:34.178+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "the program has no feature to lock",
+   "activity_note": "",
+   "artifacts": [
+    "behavior-lock/plan.json"
+   ],
+   "description": "A spec per feature, in its own tool, describing what the system does today",
+   "detail": {
+    "specs": 4,
+    "without_spec": 0
+   },
+   "ended_at": "2026-10-09T20:16:34.274+00:00",
+   "name": "lock",
+   "necessity": "optional",
+   "produces": [
+    "behavior-lock/plan.json"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "features"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": "2026-10-09T20:16:34.273+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "intake.json"
+   ],
+   "description": "What the owner must protect: answers, or declared defaults, and the quality scenarios",
+   "detail": {
+    "answered": 0,
+    "scenarios": 3
+   },
+   "ended_at": "2026-10-09T20:16:34.514+00:00",
+   "name": "intake",
+   "necessity": "required",
+   "produces": [
+    "intake.json"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "features"
+   ],
+   "resumed": false,
+   "seconds": 0.24,
+   "started_at": "2026-10-09T20:16:34.274+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "no external engine is installed, or --engines was not asked for",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Pinned external analyzers, normalised into one fact set",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "engines",
+   "necessity": "optional",
+   "produces": [
+    "facts/external.json",
+    "ENGINES.md"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) while this stage ran: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "facts"
+   ],
+   "resumed": false,
+   "seconds": 8.42,
+   "started_at": "2026-10-09T20:16:34.514+00:00",
+   "state": "failed",
+   "steps": [
+    {
+     "done": 1,
+     "kind": "item",
+     "name": "ast-grep",
+     "reason": "nothing here for ast-grep to read (it applies to: js)",
+     "reason_code": "",
+     "seconds": 0.01,
+     "status": "not_applicable",
+     "total": 21
+    },
+    {
+     "done": 2,
+     "kind": "item",
+     "name": "checkov",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 4.5,
+     "status": "observed",
+     "total": 21
+    },
+    {
+     "done": 2,
+     "kind": "item",
+     "name": "codegraph",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "running",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "complexipy",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "dependency-cruiser",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "enola",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "gitnexus",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "jscpd",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "knip",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "lizard",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "oasdiff",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "react-docgen",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "reforge",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "scc",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "semgrep",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "spectral",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "sqlfluff",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "syft",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "osv-scanner",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "trivy",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    },
+    {
+     "done": 0,
+     "kind": "item",
+     "name": "vulture",
+     "reason": "",
+     "reason_code": "",
+     "seconds": null,
+     "status": "waiting",
+     "total": 21
+    }
+   ]
+  },
+  {
+   "absent_when": "no test command was given, or execution was not authorised",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Run the test suite in an isolated copy and map real coverage",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "verify",
+   "necessity": "optional",
+   "produces": [
+    "verification.json"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "facts"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "One row per analysed file: size, complexity, duplication, change and dependency, each with its source",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "measure",
+   "necessity": "required",
+   "produces": [
+    "measurements.json",
+    "MEASUREMENTS.md"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "facts"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "the project declares no eaos.policy.json",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Enforce the declared architecture policy",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "policy",
+   "necessity": "optional",
+   "produces": [
+    "facts/policy.json",
+    "POLICY.md"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "facts"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "A cost record per entry point, with a stated projection at 1000x",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "load",
+   "necessity": "required",
+   "produces": [
+    "load-model.json",
+    "LOAD-MODEL.md"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "facts"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Facts interpreted into a ledger of falsifiable claims",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "claims",
+   "necessity": "required",
+   "produces": [
+    "dossier.json",
+    "DECISION-BRIEF.md",
+    "README.md"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "facts",
+    "load"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Settle every claim whose truth can be decided mechanically",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "probe",
+   "necessity": "required",
+   "produces": [
+    "probes.json"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "claims"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "no model provider was configured",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Model interpretation over the facts; every output stays a hypothesis",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "semantic",
+   "necessity": "optional",
+   "produces": [
+    "SEMANTIC.md"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "claims"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "The six sustainability indicators, measured or declared unmeasured",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "sustainability",
+   "necessity": "required",
+   "produces": [
+    "SUSTAINABILITY.md",
+    "sustainability.json"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "claims"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Canonical homes for repeated definitions, and the move that gets there",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "transform",
+   "necessity": "required",
+   "produces": [
+    "transform-plan.md",
+    "transform-plan.json"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "sustainability"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Confirmed claims become task cards ordered into waves",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "plan",
+   "necessity": "required",
+   "produces": [
+    "plan.json",
+    "PLAN/WAVES.md"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "probe"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Source inventory and explicitly reviewed target decisions; unknowns remain gaps",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "target",
+   "necessity": "required",
+   "produces": [
+    "TARGET-ARCHITECTURE.md",
+    "target-architecture.json"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "plan",
+    "transform"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "The four reports a client reads first; every other document is an appendix to them",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "reports",
+   "necessity": "required",
+   "produces": [
+    "CURRENT-STATE.md",
+    "TARGET-STATE.md",
+    "GAP-AND-STRATEGY.md",
+    "EXECUTION-PLAN.md",
+    "reports.json"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "plan",
+    "target"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "neither Vale nor markdownlint-cli2 is installed",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "The four reports judged by Vale (the EAOS style) and markdownlint-cli2 (their structure)",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "quality",
+   "necessity": "optional",
+   "produces": [
+    "report-quality.json"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "reports"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "Typst, or a font for the report language, is not installed",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "The one-page executive summary, typeset by Typst from the report's own records",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "pdf",
+   "necessity": "optional",
+   "produces": [
+    "EXECUTIVE.pdf"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "reports"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Literal, ordered execution instructions for every task card",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "execution_guide",
+   "necessity": "required",
+   "produces": [
+    "EXECUTION-GUIDE.md"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "plan",
+    "transform",
+    "load"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Executive view of the measured indicators and their limits",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "executive",
+   "necessity": "required",
+   "produces": [
+    "EXECUTIVE.md"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "sustainability"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Human artifacts, each inside its declared line budget",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.938+00:00",
+   "name": "compose",
+   "necessity": "required",
+   "produces": [
+    "PRODUCT-REPORT.md",
+    "BLOCKERS.md",
+    "START-HERE.md",
+    "human/index.html"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "plan",
+    "target",
+    "executive"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Package the same report, preserving the engagement contract",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.939+00:00",
+   "name": "bundles",
+   "necessity": "required",
+   "produces": [
+    "bundles/manifest.json",
+    "CANONICAL-HOMES.md",
+    "canonical-homes.json",
+    "STAGES.md",
+    "WAVES.md",
+    "KPI.md",
+    "gap-matrix.json",
+    "DATA-MODEL.md",
+    "DEPLOYMENT.md",
+    "OBSERVABILITY.md",
+    "SECURITY-SURFACE.md",
+    "INTEGRATIONS.md"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "compose"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "no emitter applies",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Files in other tools' own formats, each judged by its own tool",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.939+00:00",
+   "name": "emit",
+   "necessity": "optional",
+   "produces": [
+    "handover/README.md",
+    "handover/validation.json"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "compose"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "--no-site was given",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "One browsable page over the same records; adds navigation, never content",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.939+00:00",
+   "name": "site",
+   "necessity": "optional",
+   "produces": [
+    "index.html"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "compose"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Write what the run did and did not do, then judge the output contract",
+   "detail": {},
+   "ended_at": "2026-10-09T20:16:42.939+00:00",
+   "name": "validate",
+   "necessity": "required",
+   "produces": [
+    "report-result.json",
+    "RUN.md"
+   ],
+   "programs": [],
+   "reason": "the run ended (STOPPED) before this stage: KeyboardInterrupt: ",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "compose"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": null,
+   "state": "not_reached",
+   "steps": []
+  }
+ ],
+ "started_at": "2026-10-09T20:16:30.222+00:00",
+ "state": "done",
+ "status": "STOPPED"
+}

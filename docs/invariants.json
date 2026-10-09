@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "b950722",
+  "extracted_at_commit": "4ae50d8",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -75,12 +75,15 @@
       "note": ""
     },
     {
-      "id": "INV-b9d4e85927",
+      "id": "INV-0ed525987d",
       "file": "eaos/api/read.py",
       "symbol": "scan_state",
-      "statement": "The folded progress of the report's last (or running) check, each stage placed by the same pinned layered layout as the other maps (longest path, barycentre), the server's clock for the page's timers, and whether a run that never ended is still alive (a stopped process makes it `interrupted`, never a run that glows for ever).",
+      "statement": "The folded progress of the report's last (or running) check, each stage placed by the same pinned layered layout as the other maps (longest path, barycentre), the server's clock for the page's timers, and whether a run that never ended is still heard from (eaos/progress/liveness.py): a stopped process makes it `interrupted`, 30 s without a line from a run that promised heartbeats makes it `stalled`, never a run that glows for ever.",
       "kind": "invariant",
-      "enforced_by": "tests/test_live_scan_map.py::ProgressApi::test_a_page_opened_mid_run_gets_the_whole_state_with_places",
+      "enforced_by": [
+        "tests/test_live_scan_map.py::ProgressFile::test_a_run_whose_process_is_gone_is_interrupted_not_running_for_ever",
+        "tests/test_progress_contract.py::Liveness::test_the_server_shows_a_silent_run_as_stalled"
+      ],
       "note": ""
     },
     {
@@ -975,15 +978,6 @@
       "note": ""
     },
     {
-      "id": "INV-f092b94825",
-      "file": "eaos/facts/run.py",
-      "symbol": "collect",
-      "statement": "It never changes what runs.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_live_scan_map.py::ProgressFile::test_steps_of_the_long_stages_are_folded_with_their_own_status",
-      "note": ""
-    },
-    {
       "id": "INV-7695cab977",
       "file": "eaos/facts/runtime.py",
       "symbol": "<module>",
@@ -1374,28 +1368,10 @@
       "note": ""
     },
     {
-      "id": "INV-fdd2bdea5f",
+      "id": "INV-055261d262",
       "file": "eaos/pipeline/progress.py",
       "symbol": "<module>",
-      "statement": "Writing it never decides the fate of the run: a failure to write is swallowed, and the manifest stays the record.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_live_scan_map.py::ProgressFile::test_writing_progress_never_breaks_the_run",
-      "note": ""
-    },
-    {
-      "id": "INV-484cae46d0",
-      "file": "eaos/pipeline/progress.py",
-      "symbol": "ProgressLog",
-      "statement": "Thread-safe; never raises.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_live_scan_map.py::ProgressFile::test_writing_progress_never_breaks_the_run",
-      "note": ""
-    },
-    {
-      "id": "INV-4ab0429593",
-      "file": "eaos/pipeline/progress.py",
-      "symbol": "alive",
-      "statement": "False when a run that never ended was started by a process on this machine that is gone (it was stopped or crashed); True when it may still be running; None when it cannot be told (another machine, no process number).",
+      "statement": "`execute()` writes `<report>/run-progress.jsonl` with `ProgressLog` (eaos/progress/log.py); readers fold it with `fold()` (eaos/progress/fold.py) and judge a run that never ended with `alive()` (eaos/progress/liveness.py).",
       "kind": "invariant",
       "enforced_by": "tests/test_live_scan_map.py::ProgressFile::test_a_run_whose_process_is_gone_is_interrupted_not_running_for_ever",
       "note": ""
@@ -1506,6 +1482,112 @@
       "statement": "A text search cannot tell a definition from the same words inside a string literal in a test, and acting on that difference is how a true finding gets wrongly withdrawn.",
       "kind": "invariant",
       "enforced_by": "tests/test_probes_and_verify.py::ProbeTests::test_a_mention_inside_a_test_string_cannot_withdraw_a_true_finding",
+      "note": ""
+    },
+    {
+      "id": "INV-04bae34237",
+      "file": "eaos/progress/context.py",
+      "symbol": "<module>",
+      "statement": "Outside a run both are no-ops, so every existing caller and test stays as it was, and a failure of the stepper is swallowed: reporting where a stage is never changes what the stage does.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_contract.py::CountedSteps::test_count_and_step_do_nothing_outside_a_run_and_never_raise",
+      "note": ""
+    },
+    {
+      "id": "INV-2d9142c0d8",
+      "file": "eaos/progress/fold.py",
+      "symbol": "<module>",
+      "statement": "The Studio's TypeScript fold (studio/src/data/scan.ts) applies the same rules to the same lines, and both are tested on the same recorded runs (tests/fixtures/progress/): the page never invents a state the lines do not hold.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_contract.py::GoldenFold::test_the_fold_of_every_recorded_run_equals_its_expected_json",
+      "note": ""
+    },
+    {
+      "id": "INV-2917bb4704",
+      "file": "eaos/progress/liveness.py",
+      "symbol": "<module>",
+      "statement": "Whether a run that has not ended is still heard from: the map never glows for a run nobody hears from.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_contract.py::Liveness::test_stalled_after_thirty_seconds_of_silence_with_an_injected_clock",
+      "note": ""
+    },
+    {
+      "id": "INV-aa364c1137",
+      "file": "eaos/progress/liveness.py",
+      "symbol": "<module>",
+      "statement": "A reader then judges a run that never ended:",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_contract.py::Liveness::test_stalled_after_thirty_seconds_of_silence_with_an_injected_clock",
+      "note": ""
+    },
+    {
+      "id": "INV-5844035e6d",
+      "file": "eaos/progress/liveness.py",
+      "symbol": "<module>",
+      "statement": "A run written without the promise (an older EAOS) is never called stalled: its silence proves nothing.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_contract.py::Liveness::test_stalled_after_thirty_seconds_of_silence_with_an_injected_clock",
+      "note": ""
+    },
+    {
+      "id": "INV-3c127f09a7",
+      "file": "eaos/progress/liveness.py",
+      "symbol": "alive",
+      "statement": "False when a run that never ended was started by a process on this machine that is gone (it was stopped or crashed); True when it may still be running; None when it cannot be told (another machine, no process number).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_scan_map.py::ProgressFile::test_a_run_whose_process_is_gone_is_interrupted_not_running_for_ever",
+      "note": ""
+    },
+    {
+      "id": "INV-aa971e9567",
+      "file": "eaos/progress/log.py",
+      "symbol": "<module>",
+      "statement": "Writing it never decides the fate of the run: a failure to write is swallowed, and the manifest stays the record.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_scan_map.py::ProgressFile::test_writing_progress_never_breaks_the_run",
+      "note": ""
+    },
+    {
+      "id": "INV-2235ad1c3f",
+      "file": "eaos/progress/log.py",
+      "symbol": "<module>",
+      "statement": "Three things keep the file honest and small while a stage runs, all on one background thread per run: - a counted step that only moves forward is written at most 4 times a second per step name (COALESCE), and its last value is always written, at the latest when the stage ends; - a `run.alive` line is written whenever ALIVE_EVERY seconds pass with nothing else written, so a reader can tell a quiet stage from a dead run (liveness.py); - every SAMPLE_EVERY seconds the external programs the run started are looked at (sampler.py) and a `stage.activity` line is written when the set changes.",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_progress_contract.py::Coalescer::test_a_fast_loop_writes_at_most_four_lines_a_second_and_always_its_last_value",
+        "tests/test_progress_contract.py::Liveness::test_a_quiet_run_says_it_is_alive_every_ten_seconds_and_a_busy_one_does_not_need_to",
+        "tests/test_progress_contract.py::Sampling::test_activity_is_written_only_when_the_set_of_programs_changes"
+      ],
+      "note": ""
+    },
+    {
+      "id": "INV-384aff3458",
+      "file": "eaos/progress/log.py",
+      "symbol": "ProgressLog",
+      "statement": "Thread-safe; never raises.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_scan_map.py::ProgressFile::test_writing_progress_never_breaks_the_run",
+      "note": ""
+    },
+    {
+      "id": "INV-605998f9fc",
+      "file": "eaos/progress/log.py",
+      "symbol": "finish",
+      "statement": "`run.ended`, after ending every declared stage that has no end yet: the one running is `failed`, the ones never reached are `not_reached`, each with the reason the run ended.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_contract.py::OneEndPerStage::test_a_stopped_run_ends_the_stage_it_was_in_and_every_stage_it_did_not_reach",
+      "note": ""
+    },
+    {
+      "id": "INV-c9e8c4df27",
+      "file": "eaos/progress/log.py",
+      "symbol": "tick",
+      "statement": "False once the run is over or the file cannot be written.",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_progress_contract.py::Liveness::test_a_quiet_run_says_it_is_alive_every_ten_seconds_and_a_busy_one_does_not_need_to",
+        "tests/test_progress_contract.py::Liveness::test_the_beat_stops_when_the_file_cannot_be_written"
+      ],
       "note": ""
     },
     {

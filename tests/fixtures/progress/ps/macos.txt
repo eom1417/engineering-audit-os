@@ -1,0 +1,14 @@
+    1     0 03-04:12:55 /sbin/launchd
+   88     1 03-04:12:49 /usr/libexec/logd
+  141     1 03-04:12:40 /System/Library/PrivateFrameworks/SkyLight.framework/Resources/WindowServer
+  804     1    01:02:03 /System/Applications/Utilities/Terminal.app/Contents/MacOS/Terminal
+  806   804    01:02:01 login
+  807   806    01:02:01 -zsh
+ 2210     1    45:10 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+ 2231  2210    45:08 /Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/131.0.6778.86/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)
+ 9001   807    04:31 /Library/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python
+ 9050  9001    03:58 /Users/owner/.eaos/tools/venv/bin/python3.12
+ 9061  9050    03:57 /Users/owner/.eaos/tools/venv/lib/python3.12/site-packages/semgrep/bin/semgrep-core
+ 9062  9050    03:57 /Users/owner/.eaos/tools/venv/lib/python3.12/site-packages/semgrep/bin/semgrep-core
+ 9077  9001    00:01 /Users/owner/.eaos/tools/bin/trivy
+ 9080  9001    00:00 ps

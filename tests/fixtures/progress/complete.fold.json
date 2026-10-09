@@ -1,0 +1,1279 @@
+{
+ "alive_every": 10.0,
+ "contract": 1,
+ "counts": {
+  "failed": 0,
+  "not_reached": 0,
+  "ok": 23,
+  "skipped": 0,
+  "unavailable": 3
+ },
+ "ended_at": "2026-10-09T20:13:41.823+00:00",
+ "flow": "check",
+ "heard_at": "2026-10-09T20:13:41.823+00:00",
+ "host": "golden-host",
+ "last_seq": 196,
+ "pid": 1000,
+ "previous": {},
+ "previous_steps": {},
+ "reason": "",
+ "requested": [
+  "facts",
+  "features",
+  "lock",
+  "intake",
+  "engines",
+  "verify",
+  "measure",
+  "policy",
+  "load",
+  "claims",
+  "probe",
+  "semantic",
+  "sustainability",
+  "transform",
+  "plan",
+  "target",
+  "reports",
+  "quality",
+  "pdf",
+  "execution_guide",
+  "executive",
+  "compose",
+  "bundles",
+  "emit",
+  "site",
+  "validate"
+ ],
+ "run": "20261009T201225-adacd3",
+ "seconds": 75.97,
+ "stages": [
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "facts/index.json"
+   ],
+   "description": "Deterministic extraction over one snapshot",
+   "detail": {
+    "facts": 26107,
+    "sets": 19
+   },
+   "ended_at": "2026-10-09T20:12:29.812+00:00",
+   "name": "facts",
+   "necessity": "required",
+   "produces": [
+    "facts/index.json"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [],
+   "resumed": false,
+   "seconds": 3.97,
+   "started_at": "2026-10-09T20:12:25.845+00:00",
+   "state": "ok",
+   "steps": [
+    {
+     "done": 1,
+     "kind": "item",
+     "name": "syntax",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.26,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 2,
+     "kind": "item",
+     "name": "resolve",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.06,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 3,
+     "kind": "item",
+     "name": "structure",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.25,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 4,
+     "kind": "item",
+     "name": "fingerprint",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.39,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 5,
+     "kind": "item",
+     "name": "sequences",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.21,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 6,
+     "kind": "item",
+     "name": "runtime",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.38,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 7,
+     "kind": "item",
+     "name": "entrypoints",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.04,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 8,
+     "kind": "item",
+     "name": "redundancy",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.55,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 9,
+     "kind": "item",
+     "name": "config",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.0,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 10,
+     "kind": "item",
+     "name": "metrics",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.15,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 11,
+     "kind": "item",
+     "name": "domain",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.45,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 12,
+     "kind": "item",
+     "name": "history",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.1,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 13,
+     "kind": "item",
+     "name": "graph",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.0,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 14,
+     "kind": "item",
+     "name": "flows",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.03,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 15,
+     "kind": "item",
+     "name": "leftovers",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.0,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 16,
+     "kind": "item",
+     "name": "deadcode",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.1,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 17,
+     "kind": "item",
+     "name": "broken",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.38,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 18,
+     "kind": "item",
+     "name": "secrets",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.03,
+     "status": "ok",
+     "total": 19
+    },
+    {
+     "done": 19,
+     "kind": "item",
+     "name": "pipeline",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.16,
+     "status": "ok",
+     "total": 19
+    }
+   ]
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "FEATURES.md",
+    "features.json"
+   ],
+   "description": "Group entry points and data accesses into what the program does for a user",
+   "detail": {
+    "critical": 0,
+    "features": 4,
+    "unassigned": 0
+   },
+   "ended_at": "2026-10-09T20:12:29.912+00:00",
+   "name": "features",
+   "necessity": "required",
+   "produces": [
+    "features.json",
+    "FEATURES.md"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "facts"
+   ],
+   "resumed": false,
+   "seconds": 0.1,
+   "started_at": "2026-10-09T20:12:29.812+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "the program has no feature to lock",
+   "activity_note": "",
+   "artifacts": [
+    "behavior-lock/plan.json"
+   ],
+   "description": "A spec per feature, in its own tool, describing what the system does today",
+   "detail": {
+    "specs": 4,
+    "without_spec": 0
+   },
+   "ended_at": "2026-10-09T20:12:29.914+00:00",
+   "name": "lock",
+   "necessity": "optional",
+   "produces": [
+    "behavior-lock/plan.json"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "features"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": "2026-10-09T20:12:29.912+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "intake.json"
+   ],
+   "description": "What the owner must protect: answers, or declared defaults, and the quality scenarios",
+   "detail": {
+    "answered": 0,
+    "scenarios": 3
+   },
+   "ended_at": "2026-10-09T20:12:30.152+00:00",
+   "name": "intake",
+   "necessity": "required",
+   "produces": [
+    "intake.json"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "features"
+   ],
+   "resumed": false,
+   "seconds": 0.24,
+   "started_at": "2026-10-09T20:12:29.914+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "no external engine is installed, or --engines was not asked for",
+   "activity_note": "",
+   "artifacts": [
+    "ENGINES.md",
+    "facts/external.json"
+   ],
+   "description": "Pinned external analyzers, normalised into one fact set",
+   "detail": {
+    "findings": 2894
+   },
+   "ended_at": "2026-10-09T20:13:21.719+00:00",
+   "name": "engines",
+   "necessity": "optional",
+   "produces": [
+    "facts/external.json",
+    "ENGINES.md"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "facts"
+   ],
+   "resumed": false,
+   "seconds": 51.57,
+   "started_at": "2026-10-09T20:12:30.152+00:00",
+   "state": "ok",
+   "steps": [
+    {
+     "done": 1,
+     "kind": "item",
+     "name": "ast-grep",
+     "reason": "nothing here for ast-grep to read (it applies to: js)",
+     "reason_code": "",
+     "seconds": 0.01,
+     "status": "not_applicable",
+     "total": 21
+    },
+    {
+     "done": 2,
+     "kind": "item",
+     "name": "checkov",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 3.84,
+     "status": "observed",
+     "total": 21
+    },
+    {
+     "done": 3,
+     "kind": "item",
+     "name": "codegraph",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 16.32,
+     "status": "observed",
+     "total": 21
+    },
+    {
+     "done": 4,
+     "kind": "item",
+     "name": "complexipy",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.11,
+     "status": "observed",
+     "total": 21
+    },
+    {
+     "done": 5,
+     "kind": "item",
+     "name": "dependency-cruiser",
+     "reason": "nothing here for dependency-cruiser to read (it applies to: js)",
+     "reason_code": "",
+     "seconds": 0.29,
+     "status": "not_applicable",
+     "total": 21
+    },
+    {
+     "done": 6,
+     "kind": "item",
+     "name": "enola",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.3,
+     "status": "observed",
+     "total": 21
+    },
+    {
+     "done": 7,
+     "kind": "item",
+     "name": "gitnexus",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 8.35,
+     "status": "observed",
+     "total": 21
+    },
+    {
+     "done": 8,
+     "kind": "item",
+     "name": "jscpd",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.04,
+     "status": "observed",
+     "total": 21
+    },
+    {
+     "done": 9,
+     "kind": "item",
+     "name": "knip",
+     "reason": "nothing here for knip to read (it applies to: node_package)",
+     "reason_code": "",
+     "seconds": 0.18,
+     "status": "not_applicable",
+     "total": 21
+    },
+    {
+     "done": 10,
+     "kind": "item",
+     "name": "lizard",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.22,
+     "status": "observed",
+     "total": 21
+    },
+    {
+     "done": 11,
+     "kind": "item",
+     "name": "oasdiff",
+     "reason": "nothing here for oasdiff to read (it applies to: openapi)",
+     "reason_code": "",
+     "seconds": 0.01,
+     "status": "not_applicable",
+     "total": 21
+    },
+    {
+     "done": 12,
+     "kind": "item",
+     "name": "react-docgen",
+     "reason": "nothing here for react-docgen to read (it applies to: react)",
+     "reason_code": "",
+     "seconds": 0.01,
+     "status": "not_applicable",
+     "total": 21
+    },
+    {
+     "done": 13,
+     "kind": "item",
+     "name": "reforge",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.68,
+     "status": "observed",
+     "total": 21
+    },
+    {
+     "done": 14,
+     "kind": "item",
+     "name": "scc",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.03,
+     "status": "observed",
+     "total": 21
+    },
+    {
+     "done": 15,
+     "kind": "item",
+     "name": "semgrep",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 15.45,
+     "status": "observed",
+     "total": 21
+    },
+    {
+     "done": 16,
+     "kind": "item",
+     "name": "spectral",
+     "reason": "nothing here for spectral to read (it applies to: openapi)",
+     "reason_code": "",
+     "seconds": 0.3,
+     "status": "not_applicable",
+     "total": 21
+    },
+    {
+     "done": 17,
+     "kind": "item",
+     "name": "sqlfluff",
+     "reason": "nothing here for sqlfluff to read (it applies to: sql)",
+     "reason_code": "",
+     "seconds": 0.14,
+     "status": "not_applicable",
+     "total": 21
+    },
+    {
+     "done": 18,
+     "kind": "item",
+     "name": "syft",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 1.7,
+     "status": "observed",
+     "total": 21
+    },
+    {
+     "done": 19,
+     "kind": "item",
+     "name": "osv-scanner",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 1.16,
+     "status": "observed",
+     "total": 21
+    },
+    {
+     "done": 20,
+     "kind": "item",
+     "name": "trivy",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 1.7,
+     "status": "observed",
+     "total": 21
+    },
+    {
+     "done": 21,
+     "kind": "item",
+     "name": "vulture",
+     "reason": "",
+     "reason_code": "",
+     "seconds": 0.42,
+     "status": "observed",
+     "total": 21
+    }
+   ]
+  },
+  {
+   "absent_when": "no test command was given, or execution was not authorised",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Run the test suite in an isolated copy and map real coverage",
+   "detail": {},
+   "ended_at": "2026-10-09T20:13:21.719+00:00",
+   "name": "verify",
+   "necessity": "optional",
+   "produces": [
+    "verification.json"
+   ],
+   "programs": [],
+   "reason": "no test command was given, so nothing was executed",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "facts"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": "2026-10-09T20:13:21.719+00:00",
+   "state": "unavailable",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "MEASUREMENTS.md",
+    "measurements.json"
+   ],
+   "description": "One row per analysed file: size, complexity, duplication, change and dependency, each with its source",
+   "detail": {
+    "complete": 74,
+    "files": 74
+   },
+   "ended_at": "2026-10-09T20:13:21.861+00:00",
+   "name": "measure",
+   "necessity": "required",
+   "produces": [
+    "measurements.json",
+    "MEASUREMENTS.md"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "facts"
+   ],
+   "resumed": false,
+   "seconds": 0.14,
+   "started_at": "2026-10-09T20:13:21.719+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "the project declares no eaos.policy.json",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Enforce the declared architecture policy",
+   "detail": {},
+   "ended_at": "2026-10-09T20:13:21.861+00:00",
+   "name": "policy",
+   "necessity": "optional",
+   "produces": [
+    "facts/policy.json",
+    "POLICY.md"
+   ],
+   "programs": [],
+   "reason": "the project declares no eaos.policy.json",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "facts"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": "2026-10-09T20:13:21.861+00:00",
+   "state": "unavailable",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "LOAD-MODEL.md",
+    "load-model.json"
+   ],
+   "description": "A cost record per entry point, with a stated projection at 1000x",
+   "detail": {
+    "entry_points": 4,
+    "incomplete": 2
+   },
+   "ended_at": "2026-10-09T20:13:21.909+00:00",
+   "name": "load",
+   "necessity": "required",
+   "produces": [
+    "load-model.json",
+    "LOAD-MODEL.md"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "facts"
+   ],
+   "resumed": false,
+   "seconds": 0.05,
+   "started_at": "2026-10-09T20:13:21.861+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "DECISION-BRIEF.md",
+    "README.md",
+    "dossier.json"
+   ],
+   "description": "Facts interpreted into a ledger of falsifiable claims",
+   "detail": {
+    "claims": 38
+   },
+   "ended_at": "2026-10-09T20:13:22.358+00:00",
+   "name": "claims",
+   "necessity": "required",
+   "produces": [
+    "dossier.json",
+    "DECISION-BRIEF.md",
+    "README.md"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "facts",
+    "load"
+   ],
+   "resumed": false,
+   "seconds": 0.45,
+   "started_at": "2026-10-09T20:13:21.909+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "probes.json"
+   ],
+   "description": "Settle every claim whose truth can be decided mechanically",
+   "detail": {
+    "claims": 38,
+    "confirmed_claims": 14,
+    "probes": 38,
+    "target": "/golden/RendaPerene"
+   },
+   "ended_at": "2026-10-09T20:13:22.506+00:00",
+   "name": "probe",
+   "necessity": "required",
+   "produces": [
+    "probes.json"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "claims"
+   ],
+   "resumed": false,
+   "seconds": 0.15,
+   "started_at": "2026-10-09T20:13:22.358+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "no model provider was configured",
+   "activity_note": "",
+   "artifacts": [],
+   "description": "Model interpretation over the facts; every output stays a hypothesis",
+   "detail": {},
+   "ended_at": "2026-10-09T20:13:22.506+00:00",
+   "name": "semantic",
+   "necessity": "optional",
+   "produces": [
+    "SEMANTIC.md"
+   ],
+   "programs": [],
+   "reason": "no model provider was configured, so no interpretation was attempted",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "claims"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": "2026-10-09T20:13:22.506+00:00",
+   "state": "unavailable",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "SUSTAINABILITY.md",
+    "sustainability.json"
+   ],
+   "description": "The six sustainability indicators, measured or declared unmeasured",
+   "detail": {},
+   "ended_at": "2026-10-09T20:13:22.749+00:00",
+   "name": "sustainability",
+   "necessity": "required",
+   "produces": [
+    "SUSTAINABILITY.md",
+    "sustainability.json"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "claims"
+   ],
+   "resumed": false,
+   "seconds": 0.24,
+   "started_at": "2026-10-09T20:13:22.506+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "transform-plan.json",
+    "transform-plan.md"
+   ],
+   "description": "Canonical homes for repeated definitions, and the move that gets there",
+   "detail": {
+    "moves": 58,
+    "predictions": 0,
+    "predictions_skipped": 21
+   },
+   "ended_at": "2026-10-09T20:13:28.445+00:00",
+   "name": "transform",
+   "necessity": "required",
+   "produces": [
+    "transform-plan.md",
+    "transform-plan.json"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "sustainability"
+   ],
+   "resumed": false,
+   "seconds": 5.7,
+   "started_at": "2026-10-09T20:13:22.749+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "PLAN/WAVES.md",
+    "plan.json"
+   ],
+   "description": "Confirmed claims become task cards ordered into waves",
+   "detail": {
+    "tasks": 37,
+    "waves": 8
+   },
+   "ended_at": "2026-10-09T20:13:29.133+00:00",
+   "name": "plan",
+   "necessity": "required",
+   "produces": [
+    "plan.json",
+    "PLAN/WAVES.md"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "probe"
+   ],
+   "resumed": false,
+   "seconds": 0.69,
+   "started_at": "2026-10-09T20:13:28.445+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "TARGET-ARCHITECTURE.md",
+    "target-architecture.json"
+   ],
+   "description": "Source inventory and explicitly reviewed target decisions; unknowns remain gaps",
+   "detail": {
+    "components": 9,
+    "status": "REVIEW_REQUIRED"
+   },
+   "ended_at": "2026-10-09T20:13:29.287+00:00",
+   "name": "target",
+   "necessity": "required",
+   "produces": [
+    "TARGET-ARCHITECTURE.md",
+    "target-architecture.json"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "plan",
+    "transform"
+   ],
+   "resumed": false,
+   "seconds": 0.15,
+   "started_at": "2026-10-09T20:13:29.134+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "CURRENT-STATE.md",
+    "EXECUTION-PLAN.md",
+    "GAP-AND-STRATEGY.md",
+    "TARGET-STATE.md",
+    "reports.json"
+   ],
+   "description": "The four reports a client reads first; every other document is an appendix to them",
+   "detail": {
+    "reports": 4
+   },
+   "ended_at": "2026-10-09T20:13:29.304+00:00",
+   "name": "reports",
+   "necessity": "required",
+   "produces": [
+    "CURRENT-STATE.md",
+    "TARGET-STATE.md",
+    "GAP-AND-STRATEGY.md",
+    "EXECUTION-PLAN.md",
+    "reports.json"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "plan",
+    "target"
+   ],
+   "resumed": false,
+   "seconds": 0.02,
+   "started_at": "2026-10-09T20:13:29.287+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "neither Vale nor markdownlint-cli2 is installed",
+   "activity_note": "",
+   "artifacts": [
+    "report-quality.json"
+   ],
+   "description": "The four reports judged by Vale (the EAOS style) and markdownlint-cli2 (their structure)",
+   "detail": {
+    "passing": 4,
+    "reports": 4
+   },
+   "ended_at": "2026-10-09T20:13:29.957+00:00",
+   "name": "quality",
+   "necessity": "optional",
+   "produces": [
+    "report-quality.json"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "reports"
+   ],
+   "resumed": false,
+   "seconds": 0.65,
+   "started_at": "2026-10-09T20:13:29.304+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "Typst, or a font for the report language, is not installed",
+   "activity_note": "",
+   "artifacts": [
+    "EXECUTIVE.pdf"
+   ],
+   "description": "The one-page executive summary, typeset by Typst from the report's own records",
+   "detail": {
+    "pages": 1
+   },
+   "ended_at": "2026-10-09T20:13:30.234+00:00",
+   "name": "pdf",
+   "necessity": "optional",
+   "produces": [
+    "EXECUTIVE.pdf"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "reports"
+   ],
+   "resumed": false,
+   "seconds": 0.28,
+   "started_at": "2026-10-09T20:13:29.957+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "EXECUTION-GUIDE.md"
+   ],
+   "description": "Literal, ordered execution instructions for every task card",
+   "detail": {
+    "lines": 47,
+    "tasks": 37
+   },
+   "ended_at": "2026-10-09T20:13:30.238+00:00",
+   "name": "execution_guide",
+   "necessity": "required",
+   "produces": [
+    "EXECUTION-GUIDE.md"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "plan",
+    "transform",
+    "load"
+   ],
+   "resumed": false,
+   "seconds": 0.0,
+   "started_at": "2026-10-09T20:13:30.234+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "EXECUTIVE.md"
+   ],
+   "description": "Executive view of the measured indicators and their limits",
+   "detail": {
+    "cards": 37,
+    "live_claims": 38,
+    "moves": 58,
+    "stages": 58
+   },
+   "ended_at": "2026-10-09T20:13:31.241+00:00",
+   "name": "executive",
+   "necessity": "required",
+   "produces": [
+    "EXECUTIVE.md"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "sustainability"
+   ],
+   "resumed": false,
+   "seconds": 1.0,
+   "started_at": "2026-10-09T20:13:30.238+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "BLOCKERS.md",
+    "PRODUCT-REPORT.md",
+    "START-HERE.md",
+    "human/index.html"
+   ],
+   "description": "Human artifacts, each inside its declared line budget",
+   "detail": {},
+   "ended_at": "2026-10-09T20:13:33.521+00:00",
+   "name": "compose",
+   "necessity": "required",
+   "produces": [
+    "PRODUCT-REPORT.md",
+    "BLOCKERS.md",
+    "START-HERE.md",
+    "human/index.html"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "plan",
+    "target",
+    "executive"
+   ],
+   "resumed": false,
+   "seconds": 2.28,
+   "started_at": "2026-10-09T20:13:31.241+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "CANONICAL-HOMES.md",
+    "DATA-MODEL.md",
+    "DEPLOYMENT.md",
+    "INTEGRATIONS.md",
+    "KPI.md",
+    "OBSERVABILITY.md",
+    "SECURITY-SURFACE.md",
+    "STAGES.md",
+    "WAVES.md",
+    "bundles/manifest.json",
+    "canonical-homes.json",
+    "gap-matrix.json"
+   ],
+   "description": "Package the same report, preserving the engagement contract",
+   "detail": {},
+   "ended_at": "2026-10-09T20:13:34.014+00:00",
+   "name": "bundles",
+   "necessity": "required",
+   "produces": [
+    "bundles/manifest.json",
+    "CANONICAL-HOMES.md",
+    "canonical-homes.json",
+    "STAGES.md",
+    "WAVES.md",
+    "KPI.md",
+    "gap-matrix.json",
+    "DATA-MODEL.md",
+    "DEPLOYMENT.md",
+    "OBSERVABILITY.md",
+    "SECURITY-SURFACE.md",
+    "INTEGRATIONS.md"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "compose"
+   ],
+   "resumed": false,
+   "seconds": 0.49,
+   "started_at": "2026-10-09T20:13:33.521+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "no emitter applies",
+   "activity_note": "",
+   "artifacts": [
+    "handover/README.md",
+    "handover/validation.json"
+   ],
+   "description": "Files in other tools' own formats, each judged by its own tool",
+   "detail": {
+    "accepted": 30,
+    "files": 30
+   },
+   "ended_at": "2026-10-09T20:13:41.798+00:00",
+   "name": "emit",
+   "necessity": "optional",
+   "produces": [
+    "handover/README.md",
+    "handover/validation.json"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "compose"
+   ],
+   "resumed": false,
+   "seconds": 7.78,
+   "started_at": "2026-10-09T20:13:34.014+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "--no-site was given",
+   "activity_note": "",
+   "artifacts": [
+    "index.html"
+   ],
+   "description": "One browsable page over the same records; adds navigation, never content",
+   "detail": {
+    "bytes": 193056
+   },
+   "ended_at": "2026-10-09T20:13:41.807+00:00",
+   "name": "site",
+   "necessity": "optional",
+   "produces": [
+    "index.html"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "compose"
+   ],
+   "resumed": false,
+   "seconds": 0.01,
+   "started_at": "2026-10-09T20:13:41.798+00:00",
+   "state": "ok",
+   "steps": []
+  },
+  {
+   "absent_when": "",
+   "activity_note": "",
+   "artifacts": [
+    "RUN.md",
+    "report-result.json"
+   ],
+   "description": "Write what the run did and did not do, then judge the output contract",
+   "detail": {
+    "violations": 0
+   },
+   "ended_at": "2026-10-09T20:13:41.816+00:00",
+   "name": "validate",
+   "necessity": "required",
+   "produces": [
+    "report-result.json",
+    "RUN.md"
+   ],
+   "programs": [],
+   "reason": "",
+   "reason_code": "",
+   "requested": true,
+   "requires": [
+    "compose"
+   ],
+   "resumed": false,
+   "seconds": 0.01,
+   "started_at": "2026-10-09T20:13:41.807+00:00",
+   "state": "ok",
+   "steps": []
+  }
+ ],
+ "started_at": "2026-10-09T20:12:25.844+00:00",
+ "state": "done",
+ "status": "COMPLETE"
+}
