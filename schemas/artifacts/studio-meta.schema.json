@@ -164,6 +164,21 @@
         },
         "at": {
           "type": "string"
+        },
+        "recorded": {
+          "type": "boolean"
+        },
+        "detached": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "dirty": {
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       }
     }

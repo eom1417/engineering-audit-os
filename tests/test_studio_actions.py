@@ -741,6 +741,18 @@ class Measure(unittest.TestCase):
                          'cases': [{'id': case, 'pass': True, 'evidence': 'live observation', 'kind': 'live'} for case in north_star_studio.OWNER_CONTROL_CASES],
                          'views': [{'viewport': v, 'lang': l, 'theme': t, 'pass': True, 'screenshot': 'shot.png'} for v, l, t in north_star_studio.OWNER_CONTROL_VIEWS]}
                 (path / 'trial.json').write_text(json.dumps(proof))
+            self.assertEqual(north_star_studio.command_value(folder)[0], 0.0, 'branch control and scan freshness are not proven yet')
+            sys.path.insert(0, str(ROOT / 'acceptance'))
+            import test_branch_control, test_scan_freshness
+            shot = Path(folder) / 'shot.png'
+            shot.write_bytes(b'png')
+            for name, module in (('branch-control', test_branch_control), ('scan-freshness', test_scan_freshness)):
+                live = {'kind': 'live', 'mocked': False, 'studio_source_sha256': north_star_studio.shipped(), 'completed_at': '2026-10-09T12:00:00+00:00',
+                        'cases': [{'id': case, 'pass': True, 'kind': 'live', 'evidence': 'observed'} for case in module.CASES],
+                        'views': [{'viewport': v, 'lang': l, 'theme': t, 'pass': True, 'width_equals_viewport': True, 'initial_scroll_zero': True,
+                                   'axe_violations': 0, 'small_targets': 0, 'screenshot': str(shot)} for v, l, t in test_branch_control.VIEWS]}
+                (Path(folder) / name).mkdir()
+                (Path(folder) / name / 'trial.json').write_text(json.dumps(live))
             self.assertEqual(north_star_studio.command_value(folder)[0], 1.0)
             proof['mocked'] = True
             (path / 'trial.json').write_text(json.dumps(proof))

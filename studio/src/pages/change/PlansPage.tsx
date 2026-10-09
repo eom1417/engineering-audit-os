@@ -5,7 +5,8 @@
 // each step's waits written in its row, and the operations as one ordered list.
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { CopyRequestButton } from '../../components/Button'
+import { DirectAction } from '../../command/Direct'
+import { useBranchWords } from '../../branches/words'
 import { OperationChip } from '../../components/Chip'
 import { Segmented } from '../../components/Controls'
 import { Go } from '../../components/Go'
@@ -179,6 +180,7 @@ function Board({ ops, phone, plan }: { ops: Operation[]; phone: boolean; plan: P
 
 function PlanBody({ data, id }: { data: StudioData; id: string }) {
   const w = useChangeWords()
+  const b = useBranchWords()
   const phone = usePhone()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as { view?: string }
@@ -206,7 +208,8 @@ function PlanBody({ data, id }: { data: StudioData; id: string }) {
           <Progress plan={plan} /><span>{w('stepsN', { n: plan.steps.length })}</span><span>{w('tasksN', { n: tasks })}</span>
           {data.operations && <span>{w('opsN', { n: ops.length })}</span>}
         </span>
-        {next && <CopyRequestButton variant="primary" tool="fix_start" label={`${w('copyStep')}: ${next.id}`} request={w('stepRequest', { id: next.id })} />}
+        {next && <DirectAction request={{ verb: 'fix', selection: { kind: 'step', step: next.id } }} label={`${b('startStep')}: ${next.id}`}
+          copy={{ request: w('stepRequest', { id: next.id }), tool: 'fix_start' }} />}
       </div>
       <div className={css.toolbar}>
         <Segmented label={w('planView')} value={view} comfortable={phone}

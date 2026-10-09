@@ -10,15 +10,17 @@ import { Segmented } from '../components/Controls'
 import { Go } from '../components/Go'
 import { Icon } from '../components/Icon'
 import { Props } from '../components/Panel'
-import { Sheet, SheetLead, SheetSub } from '../components/Sheet'
-import { CopyRequestButton } from '../components/Button'
+import { Sheet, SheetSub } from '../components/Sheet'
+import { BranchLiveProvider, useFreshView } from '../branches/live'
+import { ScanSheet } from '../branches/ScanSheet'
+import { BranchChip, BranchSwitcher } from '../branches/Switcher'
+import { useBranchWords } from '../branches/words'
 import { CommandProvider } from '../command/command'
 import { CommandHost } from '../command/CommandHost'
 import { useActions } from '../data/actions/store'
 import { counts, useLoaded, useStudio, type Counts } from '../data/context'
-import type { Freshness } from '../data/types'
-import { usePrefs } from '../i18n/prefs'
-import { Id, N } from '../i18n/text'
+import { deviceZone, usePrefs } from '../i18n/prefs'
+import { Id, N, When } from '../i18n/text'
 import { useChrome } from './chrome'
 import { Palette } from './Palette'
 import { sectionOf, visibleSections, type SectionDef } from './sections'
@@ -124,8 +126,15 @@ function TabBar({ current }: { current?: SectionDef }) {
   )
 }
 
-function TopBar({ project, current, freshness, onPalette, onProject, onScan }:
-  { project: string; current?: SectionDef; freshness: Freshness | null; onPalette: () => void; onProject: () => void; onScan: () => void }) {
+function Freshness({ onScan }: { onScan: () => void }) {
+  const loaded = useLoaded()
+  const view = useFreshView()
+  if (loaded.kind !== 'ready' || !view) return null
+  return <span className={css.freshChip} data-live={view.live ? '' : undefined}><FreshnessChip freshness={view.state} count={view.count} onPress={onScan} /></span>
+}
+
+function TopBar({ project, current, onPalette, onProject, onScan, onBranches }:
+  { project: string; current?: SectionDef; onPalette: () => void; onProject: () => void; onScan: () => void; onBranches: () => void }) {
   const { t } = usePrefs()
   const chrome = useChrome()
   const systemWorkspace = useRouterState({ select: (s) => s.location.pathname.startsWith('/system') || s.location.pathname.startsWith('/screens') || s.location.pathname.startsWith('/flows') })
@@ -141,7 +150,8 @@ function TopBar({ project, current, freshness, onPalette, onProject, onScan }:
           {back && <><span className={css.crumbSep} aria-hidden="true">/</span><span aria-current="page" className={css.crumbLast} title={chrome.title} data-truncate>{chrome.title}</span></>}
         </nav>
         <div className={css.deskEnd}>
-          {freshness && <FreshnessChip freshness={freshness} onPress={onScan} />}
+          <BranchChip onPress={onBranches} />
+          <Freshness onScan={onScan} />
           <AriaButton className={css.cmdk} onPress={onPalette} aria-label={t('searchEverything')} data-truncate>
             <Icon name="search" /><span>{t('searchEverything')}</span><kbd>⌘K</kbd>
           </AriaButton>
@@ -150,7 +160,7 @@ function TopBar({ project, current, freshness, onPalette, onProject, onScan }:
       <div className={css.phone}>
         {back
           ? <Go to={back.to} search={back.search} className={css.back}><Icon name="back" size={20} /><span>{back.label}</span></Go>
-          : freshness && <FreshnessChip freshness={freshness} onPress={onScan} />}
+          : <><BranchChip onPress={onBranches} /><Freshness onScan={onScan} /></>}
         <span className={css.phoneSpacer} />
         <IconButton icon="search" label={t('search')} onPress={onPalette} />
         <IconButton icon="more" label={t('projectAndDisplay')} onPress={onProject} data-open="project" />
@@ -159,8 +169,27 @@ function TopBar({ project, current, freshness, onPalette, onProject, onScan }:
   )
 }
 
+/** Settings: the time zone every time is shown in; the device's unless the person chooses one, and remembered. */
+function TimeZoneSetting() {
+  const { zone, zoneChoice, setZone } = usePrefs()
+  const w = useBranchWords()
+  const device = deviceZone()
+  const zones = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf?.('timeZone') ?? []
+  const options = [...new Set([...(zoneChoice ? [zoneChoice] : []), 'UTC', ...zones])]
+  return (
+    <label className={css.zone}>
+      <span>{w('timeZone')}</span>
+      <select value={zoneChoice ?? ''} onChange={(event) => setZone(event.target.value || null)} data-zone={zone}>
+        <option value="">{w('timeZoneDevice', { z: device })}</option>
+        {options.map((name) => <option key={name} value={name}>{name}</option>)}
+      </select>
+      <small>{w('timeZoneLead')}</small>
+    </label>
+  )
+}
+
 function ProjectSheet({ isOpen, onOpenChange, project }: { isOpen: boolean; onOpenChange: (open: boolean) => void; project: string }) {
-  const { t, date } = usePrefs()
+  const { t } = usePrefs()
   const data = useStudio()
   const rows: [React.ReactNode, React.ReactNode, boolean?][] = []
   if (data?.meta) {
@@ -169,7 +198,7 @@ function ProjectSheet({ isOpen, onOpenChange, project }: { isOpen: boolean; onOp
     rows.push([t('languages'), <bdi dir="ltr">{data.meta.languages.map((l) => `${l.name} ${Math.round(l.share * 100)}%`).join(', ')}</bdi>])
   }
   if (data) {
-    rows.push([t('scanned'), data.manifest.scanned.at ? date(data.manifest.scanned.at) : t('notRecorded'), !data.manifest.scanned.at])
+    rows.push([t('scanned'), data.manifest.scanned.at ? <When iso={data.manifest.scanned.at} /> : t('notRecorded'), !data.manifest.scanned.at])
     rows.push([t('branch'), data.manifest.scanned.branch ? <Id value={data.manifest.scanned.branch} /> : t('notRecorded'), !data.manifest.scanned.branch])
     rows.push([t('eaosVersion'), <Id value={data.manifest.built.version} />])
   }
@@ -178,36 +207,7 @@ function ProjectSheet({ isOpen, onOpenChange, project }: { isOpen: boolean; onOp
       {rows.length > 0 && <Props rows={rows} />}
       <SheetSub>{t('display')}</SheetSub>
       <div className={css.rowSet}><LanguageAndTheme comfortable /></div>
-    </Sheet>
-  )
-}
-
-const FRESH_LEAD = { fresh: 'freshFreshLead', branch_moved: 'freshMovedLead', eaos_updated: 'freshUpdatedLead', unknown: 'freshUnknownLead' } as const
-
-function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange: (open: boolean) => void }) {
-  const { t, date, lang } = usePrefs()
-  const data = useStudio()
-  if (!data) return null
-  const freshness = data.head?.freshness ?? 'unknown'
-  const { scanned, built, project } = data.manifest
-  const request = lang === 'ar'
-    ? `أعد فحص ${project.name} بأداة audit من EAOS على الفرع الحالي.`
-    : `Run the EAOS audit tool on ${project.name} again, on the current branch.`
-  return (
-    <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={t('isScanCurrent')}>
-      <SheetLead>{t(FRESH_LEAD[freshness])}</SheetLead>
-      <Props rows={[
-        [t('scanned'), scanned.at ? date(scanned.at) : t('notRecorded'), !scanned.at],
-        [t('reportBuilt'), date(built.built)],
-        [t('branch'), scanned.branch ? <Id value={scanned.branch} /> : t('notRecorded'), !scanned.branch],
-        ['Commit', scanned.commit ? <Id value={scanned.commit.slice(0, 12)} /> : t('notRecorded'), !scanned.commit],
-      ]} />
-      {freshness !== 'fresh' && (
-        <div className={css.req}>
-          <p>{t('askRecheck')}</p>
-          <CopyRequestButton request={request} tool="audit" label={t('copyShort')} />
-        </div>
-      )}
+      <TimeZoneSetting />
     </Sheet>
   )
 }
@@ -229,7 +229,6 @@ function WorkspaceReportPicker({ project, pathname }: { project: string; pathnam
 
 export function Shell() {
   const { t } = usePrefs()
-  const loaded = useLoaded()
   const data = useStudio()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const systemWorkspace = pathname.startsWith('/system') || pathname.startsWith('/screens') || pathname.startsWith('/flows')
@@ -239,6 +238,7 @@ export function Shell() {
   const [palette, setPalette] = useState(false)
   const [projectSheet, setProjectSheet] = useState(false)
   const [scanSheet, setScanSheet] = useState(false)
+  const [branchSheet, setBranchSheet] = useState(false)
   const project = data?.manifest.project.name ?? t('studio')
 
   useEffect(() => {
@@ -253,12 +253,13 @@ export function Shell() {
 
   return (
     <CommandProvider>
+    <BranchLiveProvider>
       <a className={css.skip} href="#main" onClick={(e) => { e.preventDefault(); document.getElementById('main')?.focus() }}>{t('skip')}</a>
       <div className={css.shell}>
         <Sidebar project={project} current={current} onPalette={() => setPalette(true)} onProject={() => setProjectSheet(true)} />
         <div className={css.frame}>
-          <TopBar project={project} current={current} freshness={loaded.kind === 'ready' ? (data?.head?.freshness ?? 'unknown') : null}
-            onPalette={() => setPalette(true)} onProject={() => setProjectSheet(true)} onScan={() => setScanSheet(true)} />
+          <TopBar project={project} current={current} onPalette={() => setPalette(true)} onProject={() => setProjectSheet(true)}
+            onScan={() => setScanSheet(true)} onBranches={() => setBranchSheet(true)} />
           <main id="main" tabIndex={-1} className={css.main}>
             {systemWorkspace ? <div className={css.workspace}>
               <div className={css.workspaceTabs}><WorkspaceReportPicker project={project} pathname={pathname} /><SystemViews current={systemView} persistent /></div>
@@ -271,7 +272,9 @@ export function Shell() {
       <Palette isOpen={palette} onOpenChange={setPalette} />
       <ProjectSheet isOpen={projectSheet} onOpenChange={setProjectSheet} project={project} />
       <ScanSheet isOpen={scanSheet} onOpenChange={setScanSheet} />
+      <BranchSwitcher isOpen={branchSheet} onOpenChange={setBranchSheet} />
       <CommandHost />
+    </BranchLiveProvider>
     </CommandProvider>
   )
 }

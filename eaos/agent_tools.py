@@ -265,15 +265,18 @@ def _audit_job(project, arguments, progress):
     state = guided.load(project)
     out = guided.report_of(state)
     options = dict(language=state.get('lang') or 'en', engines=[], site=True, progress=progress)
+    source = guided.source(state)
+    # What the scan reads, taken before it reads it: a commit made during a long scan is not in this report.
+    read = {'scanned_commit': _head(state), **branches.scan_provenance(state, source)}
     try:
-        (resume if (out / 'run-manifest.json').is_file() else execute)(str(guided.source(state)), out, **options)
+        (resume if (out / 'run-manifest.json').is_file() else execute)(str(source), out, **options)
     except ValueError:                      # the source changed since a partial run: start afresh
         import shutil
         shutil.rmtree(out, ignore_errors=True)
-        execute(str(guided.source(state)), out, **options)
+        execute(str(source), out, **options)
     if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
     state = guided.load(project)
-    state.update(scanned=_now(), scanned_commit=_head(state), scanned_with=tool_digest())
+    state.update(scanned=_now(), scanned_with=tool_digest(), **read)
     guided.publish(state)
     guided.save(state)
     return overview(project)

@@ -178,7 +178,8 @@ DEFS = {
     'ratio_measure': obj({'value': {'type': ['number', 'null'], 'minimum': 0, 'maximum': 1}, 'src': REF('source')},
                          ['value', 'src']),
     'path': {'type': 'string', 'minLength': 1, 'pattern': r'^(?![/\\~])(?![A-Za-z]:)(?!(.*/)?\.\.(/|$))'},
-    'scan': obj({'commit': NS, 'branch': NS, 'at': S}),
+    'scan': obj({'commit': NS, 'branch': NS, 'at': S, 'recorded': B, 'detached': {'type': ['boolean', 'null']},
+                 'dirty': {'type': ['boolean', 'null']}}, ['commit', 'branch', 'at']),
 }
 CARD_STATES = ('open', 'in_batch', 'on_branch', 'done', 'resolved', 'skipped')
 PLAN_STATES = ('draft', 'registered', 'approved', 'rejected', 'active', 'review', 'merged', 'closed', 'regressed', 'archived')
@@ -261,7 +262,8 @@ STUDIO = {
           ['languages', 'files', 'lines', 'stages'])),
  'head': ('What every page shows on top: the scan, the EAOS that made it, whether it is still fresh, the verdict in one sentence and the next step.',
   section({'scanned': REF('scan'), 'eaos': obj({'version': S, 'commit': S, 'digest': S}),
-           'freshness': enum('fresh', 'branch_moved', 'eaos_updated', 'unknown'),
+           'freshness': enum('fresh', 'behind', 'rewritten', 'dirty', 'other_branch', 'branch_moved', 'eaos_updated', 'unknown'),
+           'freshness_detail': obj({'state': S, 'reason': NS, 'behind': {'type': ['object', 'null']}, 'eaos_updated': B}, ['state']),
            'verdict': S, 'next': obj({'action': S, 'tool': NS}, ['action'])},
           ['scanned', 'eaos', 'freshness', 'verdict', 'next'])),
  'health': ('The project\'s health: one score by one formula, its domains, and the score after every scan.',

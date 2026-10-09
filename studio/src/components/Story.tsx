@@ -8,6 +8,7 @@ import type { Decision, Plan } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
 import { dirOf, Id, N, Txt } from '../i18n/text'
 import { Button, CopyRequestButton, buttonClass, copyText } from './Button'
+import { DirectAction } from '../command/Direct'
 import { Chip } from './Chip'
 import { Go, type Search } from './Go'
 import { Icon } from './Icon'
@@ -159,7 +160,7 @@ export function NextStep({ action, sub, tool, request }: { action: string; sub?:
     <Panel className={css.next}>
       <p className={css.nextText}><Txt>{action}</Txt></p>
       {sub && <p className={css.nextSub}><Txt>{sub}</Txt></p>}
-      <CopyRequestButton request={request} tool={tool} block />
+      {tool ? <DirectAction request={{ action: tool }} label={action} block copy={{ request, tool }} /> : <CopyRequestButton request={request} tool={tool} block />}
     </Panel>
   )
 }

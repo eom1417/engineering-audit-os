@@ -1,5 +1,7 @@
-// The person's display choices (language, theme) and the developer flag, kept in localStorage and on <html>.
+// The person's display choices (language, theme, time zone) and the developer flag, kept in localStorage and on <html>.
 // public/boot.js applies them before the first paint; this context keeps React and <html> in step afterwards.
+// Every time the Studio shows goes through one formatter here, in the device's time zone
+// (Intl.DateTimeFormat().resolvedOptions().timeZone) or the zone chosen in Settings; stored times stay UTC ISO-8601.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { I18nProvider } from 'react-aria-components'
 import { WORDS, type WordKey } from './catalog'
@@ -8,7 +10,7 @@ export type Lang = 'ar' | 'en'
 export type Theme = 'light' | 'dark'
 const KEY = 'eaos.studio'
 
-function saved(): { lang?: Lang; theme?: Theme; dev?: boolean } {
+function saved(): { lang?: Lang; theme?: Theme; dev?: boolean; zone?: string | null } {
   try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {} } catch { return {} }
 }
 
@@ -17,6 +19,49 @@ function save(patch: Record<string, unknown>) {
 }
 
 declare global { interface Window { EAOS_BOOT?: { dev?: boolean } } }
+
+/** The device's own time zone; UTC when the browser cannot say. */
+export function deviceZone(): string {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' } catch { return 'UTC' }
+}
+
+/** Whether the browser knows this IANA zone name. */
+export function validZone(zone: unknown): zone is string {
+  if (typeof zone !== 'string' || !zone) return false
+  try { new Intl.DateTimeFormat('en', { timeZone: zone }); return true } catch { return false }
+}
+
+function savedZone(): string | null {
+  const zone = saved().zone
+  return validZone(zone) ? zone : null
+}
+
+const RELATIVE: [Intl.RelativeTimeFormatUnit, number][] = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400],
+  ['hour', 3600], ['minute', 60]]
+
+/** The formatter every displayed time uses: exact (day, time and zone) and relative ("8 hours ago"), in `zone`. */
+export function timeFormatter(lang: Lang, zone: string) {
+  const locale = lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB'
+  const day = new Intl.DateTimeFormat(locale, { day: 'numeric', month: lang === 'ar' ? 'long' : 'short', year: 'numeric', timeZone: zone })
+  const clock = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: zone, hourCycle: 'h23', timeZoneName: 'short' })
+  const relative = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+  const parse = (iso: string) => { const when = new Date(iso); return Number.isNaN(when.getTime()) ? null : when }
+  return {
+    exact(iso: string, withTime = true): string {
+      const when = parse(iso)
+      if (!when) return iso
+      const d = day.format(when)
+      return withTime ? `${d}${lang === 'ar' ? '،' : ','} ${clock.format(when)}` : d
+    },
+    ago(iso: string, now = Date.now()): string {
+      const when = parse(iso)
+      if (!when) return iso
+      const seconds = (when.getTime() - now) / 1000
+      for (const [unit, size] of RELATIVE) if (Math.abs(seconds) >= size) return relative.format(Math.round(seconds / size), unit)
+      return relative.format(0, 'minute')
+    },
+  }
+}
 
 /** Unbuilt sections are hidden unless the developer flag is on: ?dev=1 in the address once (public/boot.js keeps it). */
 function devFlag(): boolean {
@@ -30,22 +75,33 @@ export interface Prefs {
   dev: boolean
   setLang(lang: Lang): void
   setTheme(theme: Theme): void
+  /** The zone every time is shown in: the Settings choice, else the device's */
+  zone: string
+  /** The Settings choice, or null to follow the device */
+  zoneChoice: string | null
+  setZone(zone: string | null): void
   /** A fixed word in the current language; {name} placeholders are filled from vars */
   t(key: WordKey, vars?: Record<string, string | number>): string
   /** A number with Western digits and the language's grouping */
   num(value: number): string
-  /** A date (and time, in UTC) in the current language */
+  /** A date (and time, with its zone) in the current language and the person's time zone */
   date(iso: string, withTime?: boolean): string
+  /** How long ago (or from now) in the current language: "8 hours ago" */
+  ago(iso: string, now?: number): string
 }
 
 const PrefsContext = createContext<Prefs | null>(null)
 
-function makePrefs(lang: Lang, theme: Theme, dev: boolean, setLang: (lang: Lang) => void, setTheme: (theme: Theme) => void): Prefs {
+interface Setters { setLang(lang: Lang): void; setTheme(theme: Theme): void; setZone(zone: string | null): void }
+
+function makePrefs(lang: Lang, theme: Theme, dev: boolean, zoneChoice: string | null, set: Setters): Prefs {
   const index = lang === 'ar' ? 0 : 1
   const locale = lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB'
   const numbers = new Intl.NumberFormat(locale)
+  const zone = zoneChoice ?? deviceZone()
+  const times = timeFormatter(lang, zone)
   return {
-    lang, theme, dev, setLang, setTheme,
+    lang, theme, dev, zone, zoneChoice, ...set,
     dir: lang === 'ar' ? 'rtl' : 'ltr',
     t(key, vars) {
       let text: string = WORDS[key][index]
@@ -53,14 +109,8 @@ function makePrefs(lang: Lang, theme: Theme, dev: boolean, setLang: (lang: Lang)
       return text
     },
     num: (value) => numbers.format(value),
-    date(iso, withTime = true) {
-      const when = new Date(iso)
-      if (Number.isNaN(when.getTime())) return iso
-      const day = new Intl.DateTimeFormat(locale, { day: 'numeric', month: lang === 'ar' ? 'long' : 'short', year: 'numeric', timeZone: 'UTC' }).format(when)
-      if (!withTime) return day
-      const time = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hourCycle: 'h23' }).format(when)
-      return `${day}${lang === 'ar' ? '،' : ','} ${time} UTC`
-    },
+    date: (iso, withTime = true) => times.exact(iso, withTime),
+    ago: (iso, now) => times.ago(iso, now),
   }
 }
 
@@ -70,6 +120,7 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(html.lang === 'en' ? 'en' : 'ar')
   const [theme, setThemeState] = useState<Theme>(html.dataset.theme === 'dark' ? 'dark' : 'light')
   const [dev] = useState(devFlag)
+  const [zoneChoice, setZoneState] = useState<string | null>(savedZone)
 
   useEffect(() => {
     html.lang = lang
@@ -79,8 +130,12 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
 
   const setLang = useCallback((next: Lang) => { save({ lang: next }); setLangState(next) }, [])
   const setTheme = useCallback((next: Theme) => { save({ theme: next }); setThemeState(next) }, [])
+  const setZone = useCallback((next: string | null) => {
+    const zone = validZone(next) ? next : null
+    save({ zone }); setZoneState(zone)
+  }, [])
 
-  const value = useMemo(() => makePrefs(lang, theme, dev, setLang, setTheme), [lang, theme, dev, setLang, setTheme])
+  const value = useMemo(() => makePrefs(lang, theme, dev, zoneChoice, { setLang, setTheme, setZone }), [lang, theme, dev, zoneChoice, setLang, setTheme, setZone])
 
   return (
     <PrefsContext.Provider value={value}>
@@ -98,7 +153,7 @@ export function usePrefs(): Prefs {
 /** A part of the page in another language or theme (the gallery's frames): words, direction and tokens follow it. */
 export function PrefsScope({ lang, theme, children, className }: { lang: Lang; theme: Theme; children: ReactNode; className?: string }) {
   const parent = usePrefs()
-  const value = useMemo(() => makePrefs(lang, theme, parent.dev, parent.setLang, parent.setTheme), [lang, theme, parent])
+  const value = useMemo(() => makePrefs(lang, theme, parent.dev, parent.zoneChoice, parent), [lang, theme, parent])
   return (
     <PrefsContext.Provider value={value}>
       <I18nProvider locale={lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB'}>

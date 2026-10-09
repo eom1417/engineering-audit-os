@@ -14,7 +14,7 @@ export interface Manifest {
   locales?: { en?: { file: 'locale.js'; sha256: string } }
   built: { built: string; commit: string; digest: string; studio_digest?: string; version: string }
   project: { name: string }
-  scanned: { at: string | null; branch: string | null; commit: string | null }
+  scanned: Scanned
   sections: { name: SectionName; file: string; sha256: string; bytes: number }[]
 }
 
@@ -25,13 +25,18 @@ export interface Meta {
   stages: { id: string; state: string; title: string }[]
 }
 
-export type Freshness = 'fresh' | 'branch_moved' | 'eaos_updated' | 'unknown'
+export type Freshness = 'fresh' | 'behind' | 'rewritten' | 'dirty' | 'other_branch' | 'branch_moved' | 'eaos_updated' | 'unknown'
+
+/** What the scan read. `recorded`: the scan itself wrote down the branch (or a detached HEAD), the full commit and
+ * whether the checkout had unsaved changes; a legacy report has none of these (`recorded` false or absent). */
+export interface Scanned { at: string | null; branch: string | null; commit: string | null; recorded?: boolean; detached?: boolean | null; dirty?: boolean | null }
 
 export interface Head {
   freshness: Freshness
+  freshness_detail?: { state: string; reason: string | null; behind: { commits: number | null; files: number; file_list: string[]; truncated: boolean } | null; eaos_updated: boolean }
   verdict: string
   next: { action: string; tool: string | null } | null
-  scanned: { at: string | null; branch: string | null; commit: string | null }
+  scanned: Scanned
   eaos: { version: string; commit: string; digest: string }
 }
 

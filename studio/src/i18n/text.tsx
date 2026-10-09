@@ -1,6 +1,6 @@
 // Bidi helpers (DESIGN.md §5). Txt isolates every Latin run and every number group with punctuation inside Arabic
 // text, and shows `backticked` spans as identifiers; Id shows one identifier or path. Never hand-wrap <bdi>.
-import { Fragment, type ReactNode } from 'react'
+import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import { usePrefs } from './prefs'
 
 // A Latin run (words, paths, versions, ids) or a group of numbers joined by punctuation ("1 · 3 · 35", "1–47")
@@ -67,4 +67,25 @@ export function Id({ value, keep, className }: { value: string; keep?: number; c
 export function N({ value, className }: { value: number; className?: string }) {
   const { num } = usePrefs()
   return <span className={['num', className].filter(Boolean).join(' ')}>{num(value)}</span>
+}
+
+/** A stored UTC time as the person reads it: relative ("8 hours ago"), with the exact time and zone on hover and on tap
+ * (a touch screen has no hover); assistive technology reads both from its label. It keeps itself current on screen. */
+export function When({ iso, withTime = true, className }: { iso: string | null | undefined; withTime?: boolean; className?: string }) {
+  const { ago, date } = usePrefs()
+  const [exact, setExact] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000)
+    return () => clearInterval(timer)
+  }, [])
+  if (!iso) return null
+  const full = date(iso, withTime)
+  const near = ago(iso, now)
+  return (
+    <time dateTime={iso} title={full} className={['when', className].filter(Boolean).join(' ')} data-exact={exact ? '' : undefined}
+      aria-label={`${near} (${full})`} onClick={() => setExact((v) => !v)}>
+      {exact ? full : near}
+    </time>
+  )
 }

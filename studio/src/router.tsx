@@ -35,6 +35,7 @@ import { JourneysPage } from './pages/system/journeys/JourneysPage'
 import { RunPage } from './pages/runs/RunPage'
 import { ScreenPage, ScreensPage } from './pages/screens/ScreensPage'
 import { RunsPage } from './pages/runs/RunsPage'
+import { BranchesPage } from './pages/branches/BranchesPage'
 import { GalleryPage } from './gallery/Gallery'
 import { Shell } from './shell/Shell'
 import { SECTIONS } from './shell/sections'
@@ -92,6 +93,7 @@ export function makeRouter(dev: () => boolean) {
     createRoute({ getParentRoute: () => root, path: '/tasks/$taskId', component: TaskPage }),
     createRoute({ getParentRoute: () => root, path: '/ops/$opId', component: OpPage }),
     createRoute({ getParentRoute: () => root, path: '/decisions', component: DecisionsPage, validateSearch: params('demo') }),
+    createRoute({ getParentRoute: () => root, path: '/branches', component: BranchesPage, validateSearch: params('show', 'q', 'base', 'b') }),
     createRoute({ getParentRoute: () => root, path: '/runs', component: RunsPage, validateSearch: params('q', 'show', 'demo') }),
     createRoute({ getParentRoute: () => root, path: '/runs/$runId', component: RunPage, validateSearch: params('demo') }),
     createRoute({ getParentRoute: () => root, path: '/library', component: LibraryPage, validateSearch: params('group', 'q'), beforeLoad: devOnly('library', dev) }),

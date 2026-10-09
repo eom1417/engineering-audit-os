@@ -5,7 +5,8 @@
 // What EAOS has not measured (shots, issues, inputs) is said, with the step that brings it, never shown as "none".
 import { Link, useNavigate, useParams, useSearch } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Button, CopyRequestButton } from '../../components/Button'
+import { Button } from '../../components/Button'
+import { DirectAction } from '../../command/Direct'
 import { Chip } from '../../components/Chip'
 import { Segmented } from '../../components/Controls'
 import { Go } from '../../components/Go'
@@ -39,7 +40,7 @@ function NotCaptured({ sx }: { sx: ScreensData }) {
     <Panel>
       <StateMessage icon="eye" title={w('notCaptured')}
         sub={<>{w('notCapturedSub')}<br /><Txt>{gap.detail[lang]}</Txt> · {w('byStep')} <Id value={gap.step} /></>}
-        action={<div><CopyRequestButton request={w('captureRequest')} tool="run_setup" label={w('askCapture')} block /></div>} />
+        action={<div><DirectAction request={{ action: 'run_setup' }} label={w('askCapture')} block copy={{ request: w('captureRequest'), tool: 'run_setup' }} /></div>} />
     </Panel>
   )
 }

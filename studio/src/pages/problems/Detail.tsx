@@ -3,7 +3,7 @@
 // problems in the same file. The primary action is a request copied for the assistant.
 import { useSearch } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { CopyRequestButton } from '../../components/Button'
+import { DirectAction } from '../../command/Direct'
 import { Chip, OperationChip, SeverityGlyph } from '../../components/Chip'
 import { FindingRow } from '../../components/Finding'
 import { Go } from '../../components/Go'
@@ -93,7 +93,8 @@ export function Detail({ card, data }: { card: Card; data: StudioData }) {
         </Section>
       )}
       <div>
-        <CopyRequestButton request={w('askRequest', { id: card.id })} tool="finding" label={w('askAbout')} />
+        <DirectAction request={{ verb: 'explain', selection: { kind: 'card', cards: [card.id] } }} label={w('askAbout')} variant="secondary" icon="explain"
+          copy={{ request: w('askRequest', { id: card.id }), tool: 'finding' }} />
       </div>
     </article>
   )

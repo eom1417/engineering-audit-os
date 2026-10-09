@@ -5,7 +5,9 @@
 // cards and its gap.
 import { useParams } from '@tanstack/react-router'
 import { useMemo, type ReactNode } from 'react'
-import { buttonClass, CopyRequestButton } from '../../components/Button'
+import { buttonClass } from '../../components/Button'
+import { DirectAction } from '../../command/Direct'
+import { useBranchWords } from '../../branches/words'
 import { OperationChip, SeverityGlyph } from '../../components/Chip'
 import { Go } from '../../components/Go'
 import { FoldList, Panel, Props, RowLink, Section, StateMessage } from '../../components/Panel'
@@ -33,6 +35,7 @@ function useTimeline(data: StudioData) {
 
 function StepBody({ data, planId, stepId }: { data: StudioData; planId: string; stepId: string }) {
   const w = useChangeWords()
+  const b = useBranchWords()
   const plan = data.plans?.plans.find((p) => p.id === planId)
   const step = plan?.steps.find((s) => s.id === stepId)
   usePageChrome(w('stepKicker', { id: stepId }), { to: `/plans/${encodeURIComponent(planId)}`, label: plan?.title ?? w('plansTitle') }, data.manifest.project.name)
@@ -52,7 +55,8 @@ function StepBody({ data, planId, stepId }: { data: StudioData; planId: string; 
         <span className={css.kicker}>{w('stepKicker', { id: step.id })}</span>
         <h1 className={css.title}><Txt>{step.title ?? step.id}</Txt></h1>
         <StateBar counts={stateCounts(step)} />
-        {ids.length > 0 && <CopyRequestButton variant="primary" tool="fix_start" label={w('copyStep')} request={w('stepRequest', { id: step.id })} />}
+        {ids.length > 0 && <DirectAction request={{ verb: 'fix', selection: { kind: 'step', step: step.id } }} label={b('startStep')}
+          copy={{ request: w('stepRequest', { id: step.id }), tool: 'fix_start' }} />}
       </div>
       <div className={page.columns}>
         <div className={page.col}>

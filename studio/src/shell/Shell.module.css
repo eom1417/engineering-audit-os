@@ -109,3 +109,13 @@
 @media (max-width: 767px) {
   .workspaceTabs > nav { flex: 0 0 100%; }
 }
+
+/* The freshness chip and the time zone setting (NS46.T19) */
+.freshChip { display: inline-flex; }
+.freshChip button { min-block-size: 44px; padding-inline: 12px; }
+.zone { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-secondary); }
+.zone select {
+  min-block-size: 44px; padding-inline: 10px; border-radius: var(--radius-8); border: 1px solid var(--border-default);
+  background: var(--bg-surface); color: var(--text-primary); font: inherit; max-inline-size: 100%;
+}
+.zone small { color: var(--text-tertiary); }

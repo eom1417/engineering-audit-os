@@ -2225,6 +2225,86 @@
    "method": "POST",
    "path": "/api/decisions/<id>/answer",
    "about": "Save scope plus either authoritative option ID or exact custom text (1–4000 characters); idempotently dispatch a read-only assistant review, never code or merge consent."
+  },
+  {
+   "method": "GET",
+   "path": "/api/freshness",
+   "does": "Whether the scan still holds, from git now (NS46.T19): fresh, behind (commits, files and the files), rewritten, dirty, other_branch, or unknown with its reason (not_scanned, legacy_report, not_git, branch_missing); with the recorded branch or detached HEAD, full commit, dirty state and times."
+  },
+  {
+   "method": "GET",
+   "path": "/api/context",
+   "does": "The checkout, the analysis branch, the report's branch and the scan's, kept apart (NS46.T18)."
+  },
+  {
+   "method": "GET",
+   "path": "/api/branches",
+   "does": "Every local and remote branch as git tells it: roles, protection, ownership from durable provenance only, ahead/behind ?base=, worktrees, linked runs, recovery refs; remote refs as last fetched."
+  },
+  {
+   "method": "GET",
+   "path": "/api/branches/detail",
+   "does": "?name=&kind=local|remote&remote=&base=: commits, files, a bounded diff, recorded checks, runs, lineage, recommended and confirmed destination, and every command with the reasons it is blocked."
+  },
+  {
+   "method": "POST",
+   "path": "/api/branches/analysis",
+   "body": "{branch, scan?, expected_tip?}",
+   "does": "Makes branch the analysis branch without touching the checkout; refused (409 needs in_flight) while a run is queued or working; scan: true queues an audit."
+  },
+  {
+   "method": "POST",
+   "path": "/api/branches/merge/preview",
+   "body": "{source, target?}",
+   "does": "An isolated merge preview (merge-tree): commits, files, conflicts, checks, path (accept or transaction), blocked reasons, and a confirm token bound to both heads."
+  },
+  {
+   "method": "POST",
+   "path": "/api/branches/merge",
+   "body": "{source, target, source_head, target_head, unchecked, unchecked_ack?, confirm}",
+   "does": "Merges a tool-owned branch at the previewed heads under the project lock: an EAOS batch through accept, any other by compare-and-swap; 409 needs refresh when a head moved."
+  },
+  {
+   "method": "POST",
+   "path": "/api/branches/conflict",
+   "body": "{source, target, assistant?}",
+   "does": "Queues a read-only assistant run proposing how to resolve a conflict; nothing changes."
+  },
+  {
+   "method": "POST",
+   "path": "/api/branches/delete/preview",
+   "body": "{branch, where: local|remote, remote?}",
+   "does": "What deleting does: merged or the commits only it holds, blocked reasons, a confirm token, and for unmerged commits a second one."
+  },
+  {
+   "method": "POST",
+   "path": "/api/branches/delete",
+   "body": "{branch, where, remote?, tip, unmerged, confirm, confirm_unmerged?}",
+   "does": "Deletes one tool-owned branch locally, or on one remote (a separate consent), after writing a recovery ref; never a force deletion."
+  },
+  {
+   "method": "POST",
+   "path": "/api/branches/restore",
+   "body": "{recovery, as?}",
+   "does": "Restores a deleted branch from its recovery ref."
+  },
+  {
+   "method": "POST",
+   "path": "/api/branches/fetch",
+   "body": "{remote?}",
+   "does": "git fetch --prune of one remote: the last-known remote branches brought up to date; nothing local changes."
+  },
+  {
+   "method": "POST",
+   "path": "/api/branches/protect/preview",
+   "body": "{branch, protected}",
+   "does": "A confirm token for changing the project's protection policy of one branch."
+  },
+  {
+   "method": "POST",
+   "path": "/api/branches/protect",
+   "body": "{branch, protected, confirm?}",
+   "does": "Protects a branch, or (with its confirm token) removes this project's protection; EAOS's own main always stays protected."
   }
  ],
  "security": {

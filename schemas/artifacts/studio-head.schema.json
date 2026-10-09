@@ -47,10 +47,40 @@
       "type": "string",
       "enum": [
         "fresh",
+        "behind",
+        "rewritten",
+        "dirty",
+        "other_branch",
         "branch_moved",
         "eaos_updated",
         "unknown"
       ]
+    },
+    "freshness_detail": {
+      "type": "object",
+      "required": [
+        "state"
+      ],
+      "properties": {
+        "state": {
+          "type": "string"
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "behind": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "eaos_updated": {
+          "type": "boolean"
+        }
+      }
     },
     "verdict": {
       "type": "string"
@@ -159,6 +189,21 @@
         },
         "at": {
           "type": "string"
+        },
+        "recorded": {
+          "type": "boolean"
+        },
+        "detached": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "dirty": {
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       }
     }

@@ -23,6 +23,8 @@ button { background: none; border: 0; padding: 0; cursor: pointer; text-align: s
 /* Western digits, tabular, in every counter and table */
 .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 /* Identifiers, paths, tool names, commits: LTR-isolated Plex Mono at 0.92em (DESIGN.md §5) */
+/* A time (i18n/text.tsx When): relative, the exact zoned time on hover and tap */
+.when { cursor: help; text-decoration: underline dotted; text-underline-offset: 3px; unicode-bidi: isolate; }
 .id { font-family: var(--font-mono); font-size: .92em; letter-spacing: 0; unicode-bidi: isolate; word-break: normal; overflow-wrap: anywhere; }
 .ltr { unicode-bidi: isolate; }
 /* Report text in its own direction, as its own block aligned to its own start */

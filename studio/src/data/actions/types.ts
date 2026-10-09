@@ -89,8 +89,26 @@ export interface Run {
   ended?: string | null
   result?: RunResult | null
   question?: Question | null
-  outcome?: 'accepted' | 'undone' | null
+  outcome?: 'accepted' | 'undone' | 'merged' | 'deleted' | 'restored' | null
   position?: number
+  /** The branches the run was made on, recorded when it was created: a later change of branch never retargets it */
+  context?: RunContext | null
+  /** The run's own work branch as it is now (eaos/studio/actions/branches.py work_branch) */
+  work_branch?: WorkBranch | null
+  /** A branch operation (select, merge, delete, restore, fetch, protect): the branches it acted on */
+  branch_op?: { branches: string[] } | null
+}
+
+export interface RunContext { analysis_branch: string | null; analysis_commit: string | null; checkout: string | null; detached: boolean | null; at: string }
+
+export interface WorkBranch {
+  state: 'exists' | 'deleted' | 'merged_and_deleted' | 'not_created_yet' | 'not_required' | 'none_created'
+  name?: string
+  tip?: string | null
+  recorded_tip?: string | null
+  recovery?: string | null
+  base?: string | null
+  acted_on?: string[]
 }
 
 export type EventKind = 'state' | 'step' | 'read' | 'edit' | 'check' | 'screenshot' | 'progress' | 'question' | 'answer'
@@ -177,4 +195,172 @@ export interface ActionsClient {
   decide(id: string, op: 'accept' | 'undo', confirm: string): Promise<Run>
   /** Called when the client's runs change by themselves (demo); the live client is polled instead. */
   watch?(onChange: () => void): () => void
+  /** Branch control and live freshness (live only: eaos/studio/actions/branches.py) */
+  branches?: BranchApi
+}
+
+/** A reason in both languages, with a stable code */
+export interface Reason extends Bi { code: string }
+export interface Confirm { token: string; expires?: number }
+
+export type FreshState = 'fresh' | 'behind' | 'rewritten' | 'dirty' | 'other_branch' | 'unknown'
+
+export interface LiveFreshness {
+  state: FreshState
+  reason: string | null
+  scanned_commit: string | null
+  scanned_branch: string | null
+  scanned_detached: boolean | null
+  scanned_dirty: boolean | null
+  scanned_at: string | null
+  recorded: boolean
+  branch: string | null
+  tip: string | null
+  behind: { commits: number | null; files: number; file_list: string[]; truncated: boolean; eaos_only: boolean } | null
+  dirty: { tracked: number; untracked: number } | null
+  since_common?: number | null
+  eaos_updated: boolean
+  report_built?: string | null
+  checked_at: string
+  project?: string
+  project_path?: string
+}
+
+export interface Head { branch: string | null; detached: boolean; commit: string | null; unborn: boolean }
+
+export interface BranchContext {
+  checkout: Head
+  analysis: { branch: string | null; selected: boolean; tip: string | null; detached: boolean }
+  report: { branch: string | null; commit: string | null; at: string | null; recorded: boolean; detached: boolean | null }
+  scan: { branch: string | null; commit: string | null; at: string | null }
+  dirty: { tracked: number; untracked: number } | null
+}
+
+export interface Ownership {
+  owner: 'eaos' | 'shared' | 'unknown'
+  kind: string | null
+  evidence: string | null
+  base: string | null
+  base_commit: string | null
+  foreign_commits: number | null
+  recorded_tip?: string | null
+  run?: string | null
+  wave?: number
+  status?: string
+}
+
+export interface RunLink { id: string; state: RunState; label: Bi; created: string; action: string; role: 'work' | 'base' | 'operation' }
+
+export interface BranchRow {
+  id: string
+  name: string
+  kind: 'local' | 'remote'
+  remote: string | null
+  ref: string
+  tip: string
+  last_commit: string | null
+  subject: string
+  upstream: string | null
+  tracking: string | null
+  roles: ('checkout' | 'analysis' | 'report' | 'base' | 'default')[]
+  protected: Reason | null
+  ownership: Ownership
+  work: boolean
+  compare: { base: string | null; ahead: number | null; behind: number | null; merged: boolean | null }
+  worktree: { path: string; current: boolean; dirty: { tracked: number; untracked: number } | null } | null
+  runs: RunLink[]
+  remote_as_of: string | null
+}
+
+export interface Recovery { id: string; ref: string; branch: string; where: 'local' | 'remote'; remote: string | null; tip: string; at: string; run: string; restored: { at: string; as: string; run: string } | null }
+
+export interface Inventory {
+  git: boolean
+  reason?: Reason
+  project?: string
+  head?: Head
+  context?: BranchContext
+  base?: string | null
+  base_tip?: string | null
+  default?: { name: string | null; source: string | null }
+  remotes?: string[]
+  has_origin?: boolean
+  last_fetch?: string | null
+  worktrees?: { path: string; branch: string | null; head: string | null; detached: boolean; current: boolean; dirty: { tracked: number; untracked: number } | null }[]
+  protected?: Record<string, Reason>
+  branches: BranchRow[]
+  truncated?: boolean
+  recovery?: Recovery[]
+  missing_linked?: { name: string; runs: RunLink[] }[]
+  checked_at?: string
+}
+
+export interface Commit { commit: string; author: string; email?: string; at: string; subject: string }
+
+export interface BranchDetail {
+  branch: BranchRow
+  base: string | null
+  base_tip: string | null
+  commits: Commit[]
+  commits_truncated: boolean
+  files: { status: string; path: string }[]
+  files_total: number
+  diff: string
+  diff_cut: boolean
+  checks: { status: 'passed' | 'failed' | 'not_recorded'; commit: string; at?: string; summary?: string; source?: string }
+  runs: RunLink[]
+  lineage: { parent: string | null; parent_commit: string | null; evidence: string | null } | null
+  destination: { recommended: string | null; confirmed: { branch: string; at?: string; via?: string; commit?: string } | null }
+  commands: Record<string, { available: boolean; blocked: Reason[] }>
+}
+
+export interface MergePreview {
+  source: string
+  target: string
+  source_head: string
+  target_head: string
+  path: 'accept' | 'transaction'
+  fast_forward: boolean
+  commits: Commit[]
+  files: { status: string; path: string }[]
+  conflicts: string[]
+  checks: BranchDetail['checks']
+  needs_unchecked_ack: boolean
+  target_checked_out: boolean
+  blocked: Reason[]
+  recommended_target: string | null
+  protected: Reason | null
+  confirm: Confirm | null
+}
+
+export interface DeletePreview {
+  branch: string
+  where: 'local' | 'remote'
+  remote?: string | null
+  tip: string
+  as_of?: string | null
+  merged_into?: string[]
+  unmerged?: boolean
+  lost_commits?: { commit: string; subject: string; author: string }[]
+  lost_truncated?: boolean
+  local_kept?: boolean
+  remote_kept?: boolean
+  blocked: Reason[]
+  confirm: Confirm | null
+  confirm_unmerged?: Confirm | null
+}
+
+export interface BranchApi {
+  freshness(): Promise<LiveFreshness>
+  context(): Promise<BranchContext | null>
+  inventory(base?: string | null): Promise<Inventory>
+  detail(name: string, kind: 'local' | 'remote', remote?: string | null, base?: string | null): Promise<BranchDetail>
+  select(branch: string, scan: boolean, expectedTip?: string | null): Promise<{ run: Run; scan: Run | null; context: BranchContext }>
+  previewMerge(source: string, target?: string | null): Promise<MergePreview>
+  merge(preview: MergePreview, uncheckedAck: boolean): Promise<{ run: Run }>
+  proposeResolution(source: string, target: string, assistant?: string): Promise<{ run: Run }>
+  previewDelete(branch: string, where: 'local' | 'remote', remote?: string | null): Promise<DeletePreview>
+  remove(preview: DeletePreview, second?: boolean): Promise<{ run: Run }>
+  restore(recovery: string, as?: string): Promise<{ run: Run }>
+  fetch(remote?: string): Promise<{ run: Run }>
 }
