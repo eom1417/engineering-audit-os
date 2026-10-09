@@ -52,10 +52,14 @@ function Badge({ screen, checked }: { screen: Screen; checked: boolean }) {
   return open ? <span className={css.badgeIssues}>{w('issuesN', { n: open })}</span> : <span className={css.badgeOk}>{w('noIssues')}</span>
 }
 
+/** A shot's address from the Studio's folder: shot paths are relative to the report, one folder up (as media.json's). */
+const shotSrc = (shot: Shot) => `../${shot.path}`
+
 function Frame({ screen }: { screen: Screen }) {
   const w = useScreenWords()
   const shot = thumbnail(screen)
-  if (shot) return <img className={css.thumbImg} src={`./${shot.path}`} alt="" loading="lazy" decoding="async" />
+  const [broken, setBroken] = useState(false)
+  if (shot && !broken) return <img className={css.thumbImg} src={shotSrc(shot)} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />
   return (
     <span className={css.thumbEmpty} aria-hidden="true">
       <span className={css.thumbBar} /><span className={css.thumbRoute}><Id value={screen.route} /></span>
@@ -173,7 +177,7 @@ function Viewer({ screen }: { screen: Screen }) {
   const set = (patch: Search) => navigate({ to: '.', replace: true, search: (prev: Search) => ({ ...prev, ...patch }) })
   const list = pins(screen, vp)
   const img = (shot: Shot, extra?: string) => (
-    <img className={[css.shot, extra].filter(Boolean).join(' ')} src={`./${shot.path}`} width={shot.width} alt={w('shotAlt', { r: screen.route, w: shot.width })} />
+    <img className={[css.shot, extra].filter(Boolean).join(' ')} src={shotSrc(shot)} width={shot.width} alt={w('shotAlt', { r: screen.route, w: shot.width })} />
   )
   const shown = mode === 'before' ? at.before : mode === 'after' ? at.after : at.one
   return (
