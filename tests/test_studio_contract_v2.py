@@ -18,9 +18,9 @@ import studio_synthetic  # noqa: E402
 
 V1 = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media')
 V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'paths', 'coverage', 'journeys', 'hidden', 'data_paths', 'infra',
-      'pipeline')
+      'pipeline', 'ideal')
 ORDER = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'paths', 'journeys', 'hidden', 'data_paths', 'infra',
-         'pipeline', 'coverage')   # coverage last
+         'pipeline', 'ideal', 'coverage')   # coverage last
 FIXTURES = ROOT / 'tests/fixtures/studio/v2'
 
 

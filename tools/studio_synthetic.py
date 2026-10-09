@@ -208,6 +208,46 @@ def synthetic_pipeline(stages=1000, width=8):
                       'gap': gap},
             'counts': {'stages': count(stages, 'stages'), 'edges': count(len(edges), 'edges'), 'gaps': count(len(gap), 'gap')},
             'src': {'pipeline': 'synthetic'}}
+def synthetic_ideal(comps, layer, card_rows):
+    """studio/ideal.json at scale: every view's rules target, the system and the plan order planned, each planned element
+    citing cards and facts that exist, and the rest of the views on the rules with their plain "not planned" state."""
+    from eaos.studio import ideal
+    by_comp = {}
+    for card in card_rows: by_comp.setdefault(card['paths'][0].split('/')[2], []).append(card)
+    message = {'en': 'Planned by Claude Code (synthetic) on top of the rules.', 'ar': 'خطّطه Claude Code (اصطناعي) فوق القواعد.'}
+    rules_only = {'en': "The rules' target only.", 'ar': 'هدف القواعد فقط.'}
+    def rules_provenance():
+        return {'method': 'rules', 'state': 'not_planned', 'assistant': None, 'model': None, 'at': None, 'confidence': None,
+                'message': rules_only, 'departures': [], 'open_questions': []}
+    def element(i, c, operation, cites):
+        return {'id': f'{c}', 'kind': 'component', 'title': c, 'operation': operation, 'subject': c, 'detail': f'{layer[c]} part', 'cites': cites}
+    rules_system = [{**element(i, c, 'refactor', [card['evidence'][0] for card in by_comp.get(c, [])[:2]]), 'rules': ['RULE-disposition-modify']}
+                    for i, c in enumerate(comps)]
+    planned_system = [{**element(i, c, ('retain', 'refactor', 'merge', 'rebuild')[i % 4], [card['id'] for card in by_comp.get(c, [])[:3]]),
+                       'id': f'plan-{c}'} for i, c in enumerate(comps) if by_comp.get(c)][:300]
+    questions = [{'id': f'q{i + 1}', 'view': 'system', 'question': f'Keep {comps[i]} apart from {comps[i + 1]}?', 'options': ['yes', 'no'],
+                  'recommendation': 'yes', 'why': 'the facts do not decide it'} for i in range(min(5, len(comps) - 1))]
+    planned = {'method': 'planned', 'state': 'planned', 'assistant': 'Claude Code', 'model': 'synthetic', 'at': WHEN, 'confidence': 0.7,
+               'message': message, 'inputs': 'synthetic',
+               'departures': [{'rule_says': f'modify {e["subject"]}', 'plan_chose': e['operation'], 'because': 'its cards share one owner',
+                               'element': e['id'], 'cites': e['cites'][:1]} for e in planned_system[:10]],
+               'open_questions': [{'id': q['id'], 'question': q['question'], 'recommendation': q['recommendation']} for q in questions]}
+    views = {}
+    for name in ideal.VIEWS:
+        rows = rules_system if name == 'system' else []
+        mine = planned_system if name == 'system' else []
+        views[name] = {'provenance': planned if mine else rules_provenance(),
+                       'rules': {'summary': f'The rules\' {name} target.', 'elements': rows[:400], 'count': measure(len(rows), 'synthetic')},
+                       'planned': {'summary': 'One owner per component.', 'confidence': 0.7, 'elements': mine,
+                                   'count': measure(len(mine), 'synthetic')} if mine else None,
+                       'differences': [{'element': e['id'], 'kind': 'changed' if e['operation'] != 'refactor' else 'same', 'subject': e['subject'],
+                                        'rules': 'refactor', 'planned': e['operation']} for e in mine]}
+    return {**V2, 'state': 'planned', 'message': message, 'provenance': planned, 'views': views,
+            'evidence': {'share': ratio(1.0, 'synthetic'), 'raw_share': ratio(0.98, 'synthetic'), 'elements': measure(len(planned_system), 'synthetic'),
+                         'dropped': [{'view': 'system', 'id': 'invented-1', 'title': 'An invented part', 'why': 'no citation resolves'}]},
+            'critique': {'missed': [], 'risks': [], 'order': []}, 'questions': questions,
+            'runs': [{'at': WHEN, 'state': 'planned', 'assistant': 'Claude Code', 'model': 'synthetic', 'seconds': 120.0,
+                      'passes': ['plan', 'critique'], 'message': f'{len(planned_system)} elements'}]}
 
 
 def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_per_component=3):
@@ -325,6 +365,7 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
     data_paths, infra = data_maps(comps, layer, modules, rng)
     sections.update(data_paths={**V2, **data_paths}, infra={**V2, **infra})
     sections['pipeline'] = synthetic_pipeline(stages=max(components, 50))
+    sections['ideal'] = synthetic_ideal(comps, layer, card_rows)
     written = list(sections)
     sections['coverage'] = {**V2, **coverage_section.coverage(Path('.'), sections, written, [], 'en')}
     return sections
