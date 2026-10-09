@@ -49,5 +49,6 @@ function DecisionsBody({ data }: { data: StudioData }) {
 }
 
 export function DecisionsPage() {
-  return <WithData>{(data) => <DecisionsBody data={data} />}</WithData>
+  // Before the first check there is no report, but the check itself may already ask (which branch): its question shows
+  return <WithData empty={<RunQuestions />}>{(data) => <DecisionsBody data={data} />}</WithData>
 }

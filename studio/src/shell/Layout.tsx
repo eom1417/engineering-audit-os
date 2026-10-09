@@ -14,7 +14,8 @@ import css from './Layout.module.css'
 export { css as layout }
 
 /** Renders children with the loaded report, or the designed state when there is none. */
-export function WithData({ children }: { children: (data: StudioData) => ReactNode }) {
+/** `empty`: what a page still shows above the empty state before the first check (the inbox: a run's question). */
+export function WithData({ children, empty }: { children: (data: StudioData) => ReactNode; empty?: ReactNode }) {
   const loaded = useLoaded()
   const { t, lang } = usePrefs()
   const command = useCommandMaybe()
@@ -25,6 +26,7 @@ export function WithData({ children }: { children: (data: StudioData) => ReactNo
     // Live, the check starts from here (its preview first); the request to copy stays as the secondary way
     return (
       <div className={css.page}>
+        {empty}
         <Panel><StateMessage title={t('emptyTitle')} sub={t(live ? 'emptySubLive' : 'emptySub')} action={
           <div className={css.emptyActions}>
             {live && <Button variant="primary" icon="play" data-start-action="audit" onPress={() => command?.open({ action: 'audit' })}>{t('checkNow')}</Button>}
