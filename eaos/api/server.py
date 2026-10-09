@@ -49,7 +49,7 @@ from .events import Feed
 
 ASSETS = Path(__file__).resolve().parent.parent / 'data' / 'studio'
 POLL = 0.4               # seconds between two looks at the manifest or the event log
-HEARTBEAT = 15           # seconds between two keep-alive comments on an idle stream
+HEARTBEAT = 5            # seconds between two keep-alive comments on an idle stream (the page polls after 8 s of silence)
 SNAPSHOT_CSP = "connect-src 'none'"
 LIVE_CSP = "connect-src 'self'"
 log = logging.getLogger('eaos.studio.server')

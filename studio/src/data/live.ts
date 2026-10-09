@@ -33,6 +33,12 @@ export interface LiveEvent {
 
 export type LiveStatus = 'connecting' | 'connected' | 'reconnecting' | 'refused'
 
+let heard = 0
+/** When the stream last delivered anything, an event or the server's keep-alive ping (Date.now() ms; 0: never). */
+export function streamHeardAt(): number {
+  return heard
+}
+
 // Same-origin credentials: a remote Studio sits behind a sign-in whose cookie must reach the server with every
 // call (omitting it made the sign-in turn each API call away). The API itself trusts only its token headers.
 async function get(token: string, path: string): Promise<Response> {
@@ -107,6 +113,7 @@ export function subscribe(token: string, onEvent: (event: LiveEvent | null) => v
         for (;;) {
           const { value, done } = await reader.read()
           if (done) break
+          heard = Date.now()
           buffer += value
           const held = buffer.endsWith('\r') ? '\r' : ''        // a \r\n split across two chunks
           let text = (held ? buffer.slice(0, -1) : buffer).replace(/\r\n?/g, '\n')

@@ -1,6 +1,8 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { links, place } from '../pages/scan/geometry'
-import { apply, clock, emptyProgress, opened, secondsLeft, summarize, verdict, type ProgressRow, type ScanProgress } from './scan'
+import { apply, clock, emptyProgress, fold, opened, summarize, verdict, type ProgressRow, type ScanProgress } from './scan'
 
 const STAGES = [
   { name: 'facts', requires: [], layer: 0, order: 0 },
@@ -9,15 +11,18 @@ const STAGES = [
   { name: 'claims', requires: ['engines', 'measure'], layer: 2, order: 0 },
   { name: 'semantic', requires: ['claims'], layer: 3, order: 0 },
 ]
+/** The recorded real runs the Python fold is held to (tests/fixtures/progress, tools/progress_golden.py). */
+const GOLDEN = path.resolve(__dirname, '../../../tests/fixtures/progress')
 
-/** The folded state the server gives right after `run.started` (eaos/pipeline/progress.py fold, with places). */
-function started(requested = STAGES.map((s) => s.name), previous: Record<string, number> = {}): ScanProgress {
-  return {
-    ...emptyProgress(), run: 'r1', state: 'running', started_at: '2026-10-09T10:00:00.000+00:00', last_seq: 1, requested, previous,
-    stages: STAGES.map((s) => ({ ...s, produces: [`${s.name}.json`], necessity: 'required' as const, description: '', absent_when: '',
-      requested: requested.includes(s.name), state: 'waiting' as const, started_at: null, ended_at: null, seconds: null, reason: '',
-      artifacts: [], detail: {}, steps: [], resumed: false })),
-  }
+function recording(name: string): ProgressRow[] {
+  return fs.readFileSync(path.join(GOLDEN, `${name}.jsonl`), 'utf-8').split('\n').filter(Boolean).map((line) => JSON.parse(line))
+}
+
+/** The folded state the server gives right after `run.started` (eaos/progress/fold.py, with places). */
+function started(requested = STAGES.map((s) => s.name)): ScanProgress {
+  const stages = STAGES.map(({ name, requires }) => ({ name, requires, produces: [`${name}.json`], necessity: 'required', description: '', absent_when: '' }))
+  const state = apply(emptyProgress(), { seq: 1, run: 'r1', at: '2026-10-09T10:00:00.000+00:00', event: 'run.started', stages, requested })
+  return { ...state, stages: state.stages.map((s, i) => ({ ...s, layer: STAGES[i].layer, order: STAGES[i].order })) }
 }
 
 const row = (seq: number, event: string, extra: Record<string, unknown> = {}): ProgressRow => ({ seq, run: 'r1', at: `2026-10-09T10:00:${String(seq).padStart(2, '0')}.000+00:00`, event, ...extra })
@@ -27,20 +32,36 @@ function replay(state: ScanProgress, rows: ProgressRow[]): ScanProgress {
   return state
 }
 
+describe('one fold, two languages (plan 4.4, I4)', () => {
+  for (const name of fs.readdirSync(GOLDEN).filter((f) => f.endsWith('.jsonl')).map((f) => f.replace(/\.jsonl$/, ''))) {
+    it(`folds the recorded run "${name}" exactly as eaos/progress/fold.py does`, () => {
+      const expected = JSON.parse(fs.readFileSync(path.join(GOLDEN, `${name}.fold.json`), 'utf-8'))
+      expect(JSON.parse(JSON.stringify(fold(recording(name))))).toStrictEqual(expected)
+    })
+  }
+
+  it('leaves out the lines of another run, and starts over on a new one', () => {
+    const rows = recording('complete')
+    const state = fold(rows)
+    expect(apply(state, { ...rows[5], run: 'other', seq: 999 })).toBe(state)
+    expect(fold([...rows, { ...rows[0], run: 'next', seq: 1 }])).toMatchObject({ run: 'next', state: 'running', last_seq: 1 })
+  })
+})
+
 describe('the live check fold', () => {
-  it('applies starts, steps and ends in order, as the server folds them', () => {
+  it('applies starts, counted steps, programs and ends in order', () => {
     const state = replay(started(), [
       row(2, 'stage.started', { stage: 'facts' }),
       row(3, 'stage.step', { stage: 'facts', step: 'syntax', done: 0, total: 2, status: 'waiting' }),
-      row(4, 'stage.step', { stage: 'facts', step: 'graph', done: 0, total: 2, status: 'waiting' }),
-      row(5, 'stage.step', { stage: 'facts', step: 'syntax', done: 0, total: 2, status: 'running' }),
+      row(4, 'stage.step', { stage: 'facts', step: 'homes', kind: 'count', done: 37, total: 156, status: 'running' }),
+      row(5, 'stage.activity', { stage: 'facts', programs: [{ name: 'semgrep-core', pid: 7, since: '2026-10-09T10:00:04+00:00' }] }),
       row(6, 'stage.step', { stage: 'facts', step: 'syntax', done: 1, total: 2, status: 'ok', seconds: 0.4 }),
       row(7, 'stage.ended', { stage: 'facts', status: 'ok', seconds: 3.2, reason: '', artifacts: ['facts/index.json'], detail: { facts: 9 } }),
       row(8, 'stage.started', { stage: 'engines' }),
     ])
     const facts = state.stages[0]
-    expect([facts.state, facts.seconds, facts.artifacts, facts.detail]).toEqual(['ok', 3.2, ['facts/index.json'], { facts: 9 }])
-    expect(facts.steps.map((s) => [s.name, s.status, s.seconds])).toEqual([['syntax', 'ok', 0.4], ['graph', 'waiting', null]])
+    expect([facts.state, facts.seconds, facts.artifacts, facts.detail, facts.programs]).toEqual(['ok', 3.2, ['facts/index.json'], { facts: 9 }, []])
+    expect(facts.steps.map((s) => [s.name, s.kind, s.status, s.done, s.total])).toEqual([['syntax', 'item', 'ok', 1, 2], ['homes', 'count', 'running', 37, 156]])
     expect(state.stages[1].state).toBe('running')
     expect(state.last_seq).toBe(8)
     expect(summarize(state)).toMatchObject({ total: 5, ended: 1, position: 2 })
@@ -55,14 +76,12 @@ describe('the live check fold', () => {
     expect(verdict(emptyProgress(), row(5, 'stage.started', { stage: 'facts' }))).toBe('reload')
   })
 
-  it('carries the reason of a stage that was blocked or unavailable, and the run\'s end', () => {
+  it('carries the reason and its code of a stage that did not run, and the run\'s end', () => {
     const state = replay(started(), [
-      row(2, 'stage.ended', { stage: 'semantic', status: 'unavailable', reason: 'no model provider was configured', seconds: 0 }),
-      row(3, 'stage.ended', { stage: 'claims', status: 'not_reached', reason: 'Prerequisites not completed: engines', seconds: 0 }),
-      row(4, 'run.ended', { status: 'INCOMPLETE', seconds: 12, counts: { ok: 3 } }),
+      row(2, 'stage.ended', { stage: 'semantic', status: 'unavailable', reason: 'no model provider was configured', reason_code: 'no_model_provider', seconds: 0 }),
+      row(3, 'run.ended', { status: 'INCOMPLETE', seconds: 12, counts: { ok: 3 } }),
     ])
-    expect(state.stages.find((s) => s.name === 'semantic')).toMatchObject({ state: 'unavailable', reason: 'no model provider was configured' })
-    expect(state.stages.find((s) => s.name === 'claims')).toMatchObject({ state: 'not_reached', reason: 'Prerequisites not completed: engines' })
+    expect(state.stages.find((s) => s.name === 'semantic')).toMatchObject({ state: 'unavailable', reason_code: 'no_model_provider' })
     expect([state.state, state.status, state.seconds]).toEqual(['done', 'INCOMPLETE', 12])
   })
 
@@ -70,18 +89,9 @@ describe('the live check fold', () => {
     let state = replay(started(), [row(2, 'stage.ended', { stage: 'facts', status: 'ok' })])
     expect(opened(state, 'facts')).toEqual(['engines', 'measure'])
     state = replay(state, [row(3, 'stage.ended', { stage: 'engines', status: 'ok' })])
-    expect(opened(state, 'engines')).toEqual([], )
+    expect(opened(state, 'engines')).toEqual([])
     state = replay(state, [row(4, 'stage.ended', { stage: 'measure', status: 'ok' })])
     expect(opened(state, 'measure')).toEqual(['claims'])
-  })
-
-  it('gives a time left only from a known last run, and never on a first run', () => {
-    const now = Date.parse('2026-10-09T10:01:00.000+00:00')
-    let state = replay(started(undefined, { facts: 100, engines: 50, measure: 10, claims: 5, semantic: 1 }),
-      [row(2, 'stage.started', { stage: 'facts', at: '2026-10-09T10:00:00.000+00:00' })])
-    expect(secondsLeft(state, 0, now)).toBe(40 + 50 + 10 + 5 + 1)
-    state = replay(started(), [row(2, 'stage.started', { stage: 'facts' })])
-    expect(secondsLeft(state, 0, now)).toBeNull()
     expect(clock(3725)).toBe('1:02:05')
     expect(clock(65)).toBe('1:05')
   })

@@ -65,11 +65,11 @@ export function DataProvider({ children, preset, source }: { children: ReactNode
       startTransition(() => setState(next))
     }
     // Events are applied one after another, each on the report the one before it left. Progress (`progress`, many a
-    // minute while work runs) changes no section: the check's goes to the live map (data/scan.ts), and the report
-    // reloads when the check publishes its new data, as before.
+    // minute while work runs) changes no section: it goes to the live map (data/scan.ts), and the report reloads when
+    // the check publishes its new data, as before.
     const reload = (event: LiveEvent | null) => {
       if (event?.kind === 'progress') {
-        if (event.data.flow === 'check') emitScan(event.data as unknown as ProgressRow)
+        emitScan(event.data as unknown as ProgressRow)
         return
       }
       if (!event) emitScan(null)

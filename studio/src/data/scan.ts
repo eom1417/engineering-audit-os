@@ -1,20 +1,28 @@
-// The running check, as EAOS itself records it: run-progress.jsonl folded into one row per stage (eaos/pipeline/
-// progress.py). The server gives the folded state (/api/scan-progress) with each stage's place on the map; after that
-// the page applies the live feed's `progress` events of the check one by one with `apply`, the same fold the server does, so
-// a page opened mid-run and a page that watched from the start show the same thing. Nothing here invents a number:
-// the time left is the last run's seconds of the stages still to come, and only when that run is known.
+// The work EAOS is doing, as it records it itself: each flow's progress file (the check, setting the app up, recording
+// its screens, fixing) folded into one row per declared stage (eaos/progress/fold.py). The server gives every flow
+// folded and placed on its map (/api/progress); after that the page applies the live feed's `progress` events one by
+// one with `apply`, the same fold the server does (tested on the same recorded runs), so a page opened mid-run and a
+// page that watched from the start show the same thing. Nothing here invents a number.
 
 export type StageState = 'waiting' | 'running' | 'ok' | 'skipped' | 'unavailable' | 'failed' | 'not_reached'
-export type RunState = 'none' | 'running' | 'done' | 'interrupted'
+export type RunState = 'none' | 'running' | 'done' | 'interrupted' | 'stalled'
 
 export interface ScanStep {
   name: string
+  /** 'count' for a counted loop (37 of 156), 'item' for one named part of the stage */
+  kind: string
   status: string
   done: number
   total: number
   seconds: number | null
   reason: string
+  reason_code: string
+  /** A file the step produced, relative to its flow's folder (a recorded screen) */
+  artifact?: string
 }
+
+/** An external program the run started, running now (`since`: when it started). */
+export interface Program { name: string; pid: number; since: string }
 
 export interface ScanStage {
   name: string
@@ -29,37 +37,57 @@ export interface ScanStage {
   ended_at: string | null
   seconds: number | null
   reason: string
+  reason_code: string
   artifacts: string[]
   detail: Record<string, string | number>
   steps: ScanStep[]
+  programs: Program[]
+  activity_note: string
   resumed: boolean
-  layer: number
-  order: number
+  /** The place on the map the server computed (absent in a fold the page made itself) */
+  layer?: number
+  order?: number
 }
+
+export interface Estimate { low?: number; high?: number; basis: 'previous_run' | 'first_run'; unknown?: string[] }
 
 export interface ScanProgress {
   contract: number
+  flow: string | null
   run: string | null
   state: RunState
   status: string | null
+  reason: string
   started_at: string | null
   ended_at: string | null
+  heard_at: string | null
+  alive_every: number | null
   seconds: number | null
   last_seq: number
   requested: string[]
   previous: Record<string, number>
+  previous_steps: Record<string, unknown>
   counts: Record<string, number>
   stages: ScanStage[]
-  /** The server's clock when it answered: the page's timers count from it, not from the browser's clock */
-  now?: string
+  pid?: number | null
+  host?: string | null
+  /** The time left the server worked out when it answered (eaos/progress/estimate.py) */
+  estimate?: Estimate | null
 }
 
-/** One line of run-progress.jsonl, as the feed carries it in the data of a `progress` event of the check. */
+/** One step of the journey (eaos/guided.py journey): its flow, whether it is done, and its flow's judged state. */
+export interface JourneyStep { id: string; title: { ar: string; en: string }; flow: string; done: boolean; state: RunState }
+
+/** `GET /api/progress`. */
+export interface AllProgress { journey: JourneyStep[]; flows: Record<string, ScanProgress>; now?: string }
+
+/** One line of a progress file, as the feed carries it in the data of a `progress` event (with its flow). */
 export interface ProgressRow {
   seq: number
   at?: string
-  event: 'run.started' | 'stage.started' | 'stage.step' | 'stage.ended' | 'run.ended' | string
+  event: string
   run?: string
+  flow?: string
   stage?: string
   [key: string]: unknown
 }
@@ -67,8 +95,9 @@ export interface ProgressRow {
 export const ENDED: StageState[] = ['ok', 'skipped', 'unavailable', 'failed', 'not_reached']
 
 export function emptyProgress(): ScanProgress {
-  return { contract: 1, run: null, state: 'none', status: null, started_at: null, ended_at: null, seconds: null, last_seq: 0,
-    requested: [], previous: {}, counts: {}, stages: [] }
+  return { contract: 1, flow: null, run: null, state: 'none', status: null, reason: '', started_at: null, ended_at: null,
+    heard_at: null, alive_every: null, seconds: null, last_seq: 0, requested: [], previous: {}, previous_steps: {}, counts: {},
+    stages: [], pid: null, host: null }
 }
 
 /** What the page does with one row: apply it, ignore it (already shown), or read the whole state again (a gap in the
@@ -81,33 +110,69 @@ export function verdict(state: ScanProgress, row: ProgressRow): 'apply' | 'ignor
   return 'apply'
 }
 
-/** The state after one row: a new object, the stage it touches a new object, everything else shared. */
+const text = (value: unknown) => (value ? String(value) : '')
+
+function declared(row: Record<string, unknown>, requested: string[]): ScanStage {
+  return { ...(row as unknown as ScanStage), requested: requested.includes(String(row.name)), state: 'waiting', started_at: null,
+    ended_at: null, seconds: null, reason: '', reason_code: '', artifacts: [], detail: {}, steps: [], programs: [], activity_note: '',
+    resumed: false }
+}
+
+function started(row: ProgressRow): ScanProgress {
+  const requested = (row.requested as string[]) ?? []
+  const stages = ((row.stages as Record<string, unknown>[]) ?? []).filter((s) => s && s.name).map((s) => declared(s, requested))
+  return { ...emptyProgress(), flow: text(row.flow) || 'check', run: row.run ?? null, state: 'running', started_at: row.at ?? null,
+    requested, previous: (row.previous as Record<string, number>) || {}, previous_steps: (row.previous_steps as Record<string, unknown>) || {},
+    alive_every: (row.alive_every as number) ?? null, pid: (row.pid as number) ?? null, host: (row.host as string) ?? null, stages }
+}
+
+function stepped(stage: ScanStage, row: ProgressRow): ScanStage {
+  const was = stage.steps.find((step) => step.name === row.step)
+  const step: ScanStep = { ...(was ?? { name: row.step as string, kind: text(row.kind) || 'item', status: 'waiting', done: 0, total: 0,
+    seconds: null, reason: '', reason_code: '' }), status: text(row.status) || 'running', done: (row.done as number) ?? 0, total: (row.total as number) ?? 0 }
+  if ('seconds' in row) step.seconds = row.seconds as number | null
+  if (row.reason) step.reason = String(row.reason)
+  if (row.reason_code) step.reason_code = String(row.reason_code)
+  if (row.artifact) step.artifact = String(row.artifact)
+  return { ...stage, steps: was ? stage.steps.map((x) => (x === was ? step : x)) : [...stage.steps, step] }
+}
+
+function ended(stage: ScanStage, row: ProgressRow): ScanStage {
+  return { ...stage, state: row.status as StageState, ended_at: row.at ?? null, seconds: (row.seconds as number) ?? null,
+    reason: text(row.reason), reason_code: text(row.reason_code), artifacts: [...((row.artifacts as string[]) ?? [])],
+    detail: (row.detail as ScanStage['detail']) || {}, resumed: Boolean(row.resumed), programs: [] }
+}
+
+function touched(stage: ScanStage, row: ProgressRow): ScanStage {
+  switch (row.event) {
+    case 'stage.started': return { ...stage, state: 'running', started_at: row.at ?? null }
+    case 'stage.step': return stepped(stage, row)
+    case 'stage.activity': return { ...stage, programs: ((row.programs as Program[]) ?? []).filter((p) => p && typeof p === 'object').map((p) => ({ ...p })),
+      activity_note: row.reason ? String(row.reason) : stage.activity_note }
+    case 'stage.ended': return ended(stage, row)
+    default: return stage
+  }
+}
+
+/** The state after one row, by the rules of eaos/progress/fold.py apply: a new object, the stage it touches a new
+ * object, everything else shared. A line of another run than the one folded is left out. */
 export function apply(state: ScanProgress, row: ProgressRow): ScanProgress {
-  const next: ScanProgress = { ...state, last_seq: Math.max(state.last_seq, row.seq) }
-  const touch = (name: string | undefined, change: (stage: ScanStage) => ScanStage) => {
-    next.stages = state.stages.map((s) => (s.name === name ? change(s) : s))
+  let next: ScanProgress
+  if (row.event === 'run.started') next = started(row)
+  else if (state.run === null || row.run !== state.run) return state
+  else {
+    next = { ...state, stages: row.stage ? state.stages.map((s) => (s.name === row.stage ? touched(s, row) : s)) : state.stages }
+    if (row.event === 'run.ended') Object.assign(next, { state: 'done', status: row.status ?? null, reason: text(row.reason),
+      ended_at: row.at ?? null, seconds: row.seconds ?? null, counts: row.counts || {} })
   }
-  if (row.event === 'stage.started') {
-    touch(row.stage, (s) => ({ ...s, state: 'running', started_at: row.at ?? null }))
-  } else if (row.event === 'stage.step') {
-    touch(row.stage, (s) => {
-      const name = String(row.step ?? '')
-      const was = s.steps.find((step) => step.name === name)
-      const step: ScanStep = { ...(was ?? { name, status: 'waiting', done: 0, total: 0, seconds: null, reason: '' }),
-        status: String(row.status ?? 'running'), done: Number(row.done ?? 0), total: Number(row.total ?? 0) }
-      if (typeof row.seconds === 'number') step.seconds = row.seconds
-      if (row.reason) step.reason = String(row.reason)
-      return { ...s, steps: was ? s.steps.map((x) => (x === was ? step : x)) : [...s.steps, step] }
-    })
-  } else if (row.event === 'stage.ended') {
-    touch(row.stage, (s) => ({ ...s, state: row.status as StageState, ended_at: row.at ?? null, seconds: (row.seconds as number) ?? null,
-      reason: String(row.reason ?? ''), artifacts: (row.artifacts as string[]) ?? [], detail: (row.detail as ScanStage['detail']) ?? {},
-      resumed: Boolean(row.resumed) }))
-  } else if (row.event === 'run.ended') {
-    Object.assign(next, { state: 'done', status: (row.status as string) ?? null, ended_at: row.at ?? null,
-      seconds: (row.seconds as number) ?? null, counts: (row.counts as Record<string, number>) ?? {} })
-  }
+  next.heard_at = row.at || next.heard_at
+  next.last_seq = Math.max(next.last_seq || 0, Number(row.seq) || 0)
   return next
+}
+
+/** The whole state after `rows`, from nothing: what eaos/progress/fold.py fold gives for the same lines. */
+export function fold(rows: ProgressRow[]): ScanProgress {
+  return rows.reduce(apply, emptyProgress())
 }
 
 export interface Summary {
@@ -126,27 +191,16 @@ export function summarize(state: ScanProgress): Summary {
   return { total: asked.length, ended, running, position: Math.min(asked.length, ended + (running.length ? 1 : 0)) }
 }
 
+/** The state a stage is drawn in: a running stage of a run nobody hears from any more is `stopped`. */
+export function shownState(progress: ScanProgress, stage: ScanStage): StageState | 'stopped' {
+  return stage.state === 'running' && (progress.state === 'interrupted' || progress.state === 'stalled') ? 'stopped' : stage.state
+}
+
 /** Seconds since `iso`, by the server's clock (`skew` = server minus browser, in ms). */
 export function secondsSince(iso: string | null, skew: number, now = Date.now()): number | null {
   if (!iso) return null
   const at = Date.parse(iso)
   return Number.isNaN(at) ? null : Math.max(0, (now + skew - at) / 1000)
-}
-
-/** About how many seconds are left: the last run's seconds of every requested stage not ended yet, less what the
- * running one has already spent. null on a first run, or when the last run knew under half of what is left. */
-export function secondsLeft(state: ScanProgress, skew: number, now = Date.now()): number | null {
-  if (state.state !== 'running') return null
-  const left = state.stages.filter((s) => s.requested && !ENDED.includes(s.state))
-  if (!left.length) return null
-  const known = left.filter((s) => typeof state.previous[s.name] === 'number')
-  if (known.length * 2 < left.length) return null
-  let total = 0
-  for (const s of known) {
-    const before = state.previous[s.name]
-    total += s.state === 'running' ? Math.max(0, before - (secondsSince(s.started_at, skew, now) ?? 0)) : before
-  }
-  return total
 }
 
 /** The stages whose requirements are all met once `name` ended ok: where the light travels to. */
@@ -165,12 +219,12 @@ export function clock(seconds: number | null): string {
   return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`
 }
 
-// ---------------------------------------------------------------- the feed's scan events, apart from the report's
+// ---------------------------------------------------------------- the feed's progress events, apart from the report's
 
 type Listener = (row: ProgressRow | null) => void
 const listeners = new Set<Listener>()
 
-/** The data provider hands every `progress` event of the check here (null: the stream was reset) instead of reloading the report. */
+/** The data provider hands every `progress` event here (null: the stream was reset) instead of reloading the report. */
 export function emitScan(row: ProgressRow | null) {
   for (const listener of listeners) listener(row)
 }
