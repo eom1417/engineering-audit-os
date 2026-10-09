@@ -4,6 +4,7 @@ import time as _time
 from pathlib import Path
 from . import broken, config, deadcode, domain, entrypoints, external, fingerprint, flows, graph, history, leftovers, metrics, pipeline, redundancy, resolve, runtime, secrets, sequences, structure, syntax
 from .source import Source
+from .. import progress
 from .store import facts_dir, write_index, write_set
 from hashlib import sha256 as _sha256
 def digest(data): return _sha256(data).hexdigest()
@@ -80,8 +81,9 @@ def add_to_index(out, target, entry):
 
 def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_bytes=2_000_000, source=None,
             exclude=(), engines=None, step=None):
-    """`step(name, done, total, status, seconds)`, when given, hears each extractor start and end (pipeline/progress.py):
-    the live map shows where the facts stage is inside. It never changes what runs."""
+    """Each extractor's start and end is reported as a step of the running stage (eaos/progress/context.py), or to
+    `step(name, done, total, status, seconds)` when given: the live map shows where the facts stage is inside. It
+    does not change what runs."""
     target = Path(target).resolve()
     if not target.is_dir(): raise ValueError('Target must be an existing directory')
     out = Path(out).resolve()
@@ -100,10 +102,11 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
         try: cache = json.loads(cache_path.read_text(encoding='utf-8'))
         except ValueError: cache = {}
     entries, produced, reuse = [], {}, {}
-    step = step or (lambda *args, **kwargs: None)
+    step = step or progress.step
     for name in names: step(name, 0, len(names), 'waiting')
-    for done, name in enumerate(names):
+    for name in names:
         module = EXTRACTORS[name]
+        done = names.index(name)
         step(name, done, len(names), 'running')
         began = _time.monotonic()
         if name == 'history': result = module.run(target, source, max_commits=max_commits)

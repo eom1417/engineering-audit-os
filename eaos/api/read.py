@@ -11,7 +11,7 @@ the Studio shows the honest coverage state instead of a blank page. Nothing here
     GET /api/schemas/<name>     the section's JSON Schema
     GET /api/openapi.json       the OpenAPI 3.1 document of the routes above, each response the section's own schema
     GET /api/events             the live stream (server.py)
-    GET /api/scan-progress      the check's progress folded into one row per stage (eaos/pipeline/progress.py), with
+    GET /api/scan-progress      the check's progress folded into one row per stage (eaos/progress/fold.py), with
                                 each stage's place on the map: the first paint of the live map, before its events
 """
 import json
@@ -126,12 +126,13 @@ def routes(ctx):
 def scan_state(report, last_id=None):
     """The folded progress of the report's last (or running) check, each stage placed by the same pinned layered layout
     as the other maps (longest path, barycentre), the server's clock for the page's timers, and whether a run that never
-    ended is still alive (a stopped process makes it `interrupted`, never a run that glows for ever)."""
-    from ..pipeline import progress
+    ended is still heard from (eaos/progress/liveness.py): a stopped process makes it `interrupted`, 30 s without a
+    line from a run that promised heartbeats makes it `stalled`, never a run that glows for ever."""
+    import time
+    from .. import progress
     from ..studio.pipeline import layout
     state = progress.fold(progress.read(report))
-    alive = progress.alive(state)
-    if alive is False: state['state'] = 'interrupted'
+    state['state'] = progress.judge(state, progress.heard_at(progress.path_for(report)), time.time(), progress.alive(state))
     names = [s['name'] for s in state['stages']]
     places = layout(names, [(need, s['name']) for s in state['stages'] for need in s['requires']])
     for s in state['stages']:

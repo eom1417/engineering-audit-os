@@ -1,0 +1,434 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "https://eaos.local/schemas/progress.json",
+ "title": "Progress event — one line of a flow's progress file (eaos/progress/log.py)",
+ "description": "Every long piece of work EAOS does (a flow: check, setup, safety, fix) appends one JSON line per event to its progress file as it happens. Version 1; run.started carries the version in `schema`. A reader folds the lines into one state per flow (eaos/progress/fold.py, studio/src/data/scan.ts). Every declared stage gets exactly one stage.ended; done never exceeds total; a counted step that ends ok ends with done == total.",
+ "x-version": 1,
+ "oneOf": [
+  {
+   "$ref": "#/$defs/run.started"
+  },
+  {
+   "$ref": "#/$defs/stage.started"
+  },
+  {
+   "$ref": "#/$defs/stage.step"
+  },
+  {
+   "$ref": "#/$defs/stage.activity"
+  },
+  {
+   "$ref": "#/$defs/run.alive"
+  },
+  {
+   "$ref": "#/$defs/stage.ended"
+  },
+  {
+   "$ref": "#/$defs/run.ended"
+  }
+ ],
+ "$defs": {
+  "base": {
+   "type": "object",
+   "required": [
+    "seq",
+    "at",
+    "event",
+    "run"
+   ],
+   "properties": {
+    "seq": {
+     "type": "integer",
+     "minimum": 1,
+     "description": "1, 2, 3, ... with no gap within one run"
+    },
+    "at": {
+     "type": "string",
+     "format": "date-time",
+     "description": "when the line was written, UTC, milliseconds"
+    },
+    "event": {
+     "type": "string"
+    },
+    "run": {
+     "type": "string",
+     "pattern": "^[0-9]{8}T[0-9]{6}-[0-9a-f]{6}$"
+    }
+   }
+  },
+  "stage": {
+   "type": "object",
+   "required": [
+    "name",
+    "requires"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1
+    },
+    "requires": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "produces": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "necessity": {
+     "type": "string"
+    },
+    "description": {
+     "type": "string"
+    },
+    "absent_when": {
+     "type": "string"
+    }
+   }
+  },
+  "program": {
+   "type": "object",
+   "required": [
+    "name",
+    "pid",
+    "since"
+   ],
+   "additionalProperties": false,
+   "properties": {
+    "name": {
+     "type": "string",
+     "minLength": 1
+    },
+    "pid": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "since": {
+     "type": "string",
+     "format": "date-time"
+    }
+   }
+  },
+  "run.started": {
+   "title": "run.started",
+   "description": "A run of a flow began: its declared stages as data, the stages asked for, and the last run's seconds per stage and per step.",
+   "allOf": [
+    {
+     "$ref": "#/$defs/base"
+    }
+   ],
+   "properties": {
+    "event": {
+     "const": "run.started"
+    },
+    "flow": {
+     "type": "string",
+     "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "schema": {
+     "const": 1
+    },
+    "stages": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/stage"
+     }
+    },
+    "requested": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    },
+    "previous": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "number"
+     }
+    },
+    "previous_steps": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "object",
+      "additionalProperties": {
+       "type": "number"
+      }
+     }
+    },
+    "alive_every": {
+     "type": "number",
+     "exclusiveMinimum": 0,
+     "description": "the writer adds run.alive after this many seconds of silence"
+    },
+    "pid": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "host": {
+     "type": "string"
+    }
+   },
+   "required": [
+    "event",
+    "flow",
+    "schema",
+    "stages",
+    "requested",
+    "previous",
+    "pid",
+    "host"
+   ],
+   "unevaluatedProperties": false
+  },
+  "stage.started": {
+   "title": "stage.started",
+   "description": "A declared stage began to run.",
+   "allOf": [
+    {
+     "$ref": "#/$defs/base"
+    }
+   ],
+   "properties": {
+    "event": {
+     "const": "stage.started"
+    },
+    "stage": {
+     "type": "string",
+     "minLength": 1
+    }
+   },
+   "required": [
+    "event",
+    "stage"
+   ],
+   "unevaluatedProperties": false
+  },
+  "stage.step": {
+   "title": "stage.step",
+   "description": "Where a running stage is inside: one named item of a list it walks (kind item: done of total items finished) or a counted loop (kind count: done of total, ok exactly when done == total).",
+   "allOf": [
+    {
+     "$ref": "#/$defs/base"
+    }
+   ],
+   "properties": {
+    "event": {
+     "const": "stage.step"
+    },
+    "stage": {
+     "type": "string",
+     "minLength": 1
+    },
+    "step": {
+     "type": "string",
+     "minLength": 1
+    },
+    "done": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "total": {
+     "type": "integer",
+     "minimum": 0
+    },
+    "status": {
+     "type": "string",
+     "minLength": 1
+    },
+    "kind": {
+     "enum": [
+      "item",
+      "count"
+     ]
+    },
+    "seconds": {
+     "type": "number",
+     "minimum": 0
+    },
+    "reason": {
+     "type": "string",
+     "maxLength": 200
+    },
+    "reason_code": {
+     "type": "string",
+     "maxLength": 80
+    }
+   },
+   "required": [
+    "event",
+    "stage",
+    "step",
+    "done",
+    "total",
+    "status"
+   ],
+   "unevaluatedProperties": false
+  },
+  "stage.activity": {
+   "title": "stage.activity",
+   "description": "The external programs the run has started, written when the set changes; with a reason and no programs when they cannot be seen.",
+   "allOf": [
+    {
+     "$ref": "#/$defs/base"
+    }
+   ],
+   "properties": {
+    "event": {
+     "const": "stage.activity"
+    },
+    "stage": {
+     "type": "string",
+     "minLength": 1
+    },
+    "programs": {
+     "type": "array",
+     "items": {
+      "$ref": "#/$defs/program"
+     }
+    },
+    "reason": {
+     "type": "string",
+     "maxLength": 200
+    }
+   },
+   "required": [
+    "event",
+    "stage",
+    "programs"
+   ],
+   "unevaluatedProperties": false
+  },
+  "run.alive": {
+   "title": "run.alive",
+   "description": "The run is still running: written after alive_every seconds without any other line.",
+   "allOf": [
+    {
+     "$ref": "#/$defs/base"
+    }
+   ],
+   "properties": {
+    "event": {
+     "const": "run.alive"
+    }
+   },
+   "required": [
+    "event"
+   ],
+   "unevaluatedProperties": false
+  },
+  "stage.ended": {
+   "title": "stage.ended",
+   "description": "The fate of one declared stage, exactly once per stage.",
+   "allOf": [
+    {
+     "$ref": "#/$defs/base"
+    }
+   ],
+   "properties": {
+    "event": {
+     "const": "stage.ended"
+    },
+    "stage": {
+     "type": "string",
+     "minLength": 1
+    },
+    "status": {
+     "enum": [
+      "ok",
+      "skipped",
+      "unavailable",
+      "failed",
+      "not_reached"
+     ]
+    },
+    "reason": {
+     "type": "string"
+    },
+    "reason_code": {
+     "type": "string",
+     "maxLength": 80
+    },
+    "seconds": {
+     "type": "number",
+     "minimum": 0
+    },
+    "necessity": {
+     "type": "string"
+    },
+    "artifacts": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "detail": {
+     "type": "object",
+     "maxProperties": 8,
+     "additionalProperties": {
+      "type": [
+       "number",
+       "string"
+      ]
+     }
+    },
+    "resumed": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "event",
+    "stage",
+    "status",
+    "reason",
+    "seconds",
+    "artifacts"
+   ],
+   "unevaluatedProperties": false
+  },
+  "run.ended": {
+   "title": "run.ended",
+   "description": "The run is over: its status (COMPLETE, PARTIAL, INCOMPLETE for a check; STOPPED or ERROR when it was stopped or broke), why, how long, and how many stages ended in each state.",
+   "allOf": [
+    {
+     "$ref": "#/$defs/base"
+    }
+   ],
+   "properties": {
+    "event": {
+     "const": "run.ended"
+    },
+    "status": {
+     "type": "string",
+     "minLength": 1
+    },
+    "reason": {
+     "type": "string",
+     "maxLength": 300
+    },
+    "seconds": {
+     "type": "number",
+     "minimum": 0
+    },
+    "counts": {
+     "type": "object",
+     "additionalProperties": {
+      "type": "integer",
+      "minimum": 0
+     }
+    }
+   },
+   "required": [
+    "event",
+    "status"
+   ],
+   "unevaluatedProperties": false
+  }
+ }
+}

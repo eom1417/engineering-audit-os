@@ -9,7 +9,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .progress import ProgressLog, previous_seconds
+from ..progress import ProgressLog, previous_seconds, using
 from .stages import BY_NAME, ORDER, STAGES, SkipStage, dependents
 
 OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED = 'ok', 'skipped', 'unavailable', 'failed', 'not_reached'
@@ -38,9 +38,12 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     """`progress(done, total, stage)` is called before each stage that will run, so a person waiting sees where
     the run is; it never changes what runs.
 
-    Every event of the run is also appended to `<out>/run-progress.jsonl` (progress.py): the run's start with the
-    declared stages, each stage's start, its steps, its end with its status, reason, seconds and artifacts, and the
-    run's end. Every stage gets exactly one end, so the folded file equals the manifest when the run is over."""
+    Every event of the run is also appended to `<out>/run-progress.jsonl` (eaos/progress/log.py): the run's start
+    with the declared stages, each stage's start, its steps, its end with its status, reason, seconds and artifacts,
+    and the run's end. Every stage gets exactly one end, so the folded file equals the manifest when the run is over;
+    a run stopped or broken midway ends the stage it was in and every stage it did not reach before it says so.
+    While a stage runs it is the current stage of eaos/progress/context.py, so `progress.count()` anywhere below it
+    reports into it."""
     target, out = Path(target).resolve(), Path(out).resolve()
     if out == target or target in out.parents:
         raise ValueError('Pipeline output must live outside the target; the target stays read-only')
@@ -80,9 +83,10 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
             if progress: progress(todo.index(stage.name), len(todo), stage.name)
             context['manifest_so_far'] = {'stages': dict(results), 'seconds': round(time.monotonic() - began, 2),
                                           'status': 'RUNNING'}
-            log.emit('stage.started', stage=stage.name)
+            log.stage_started(stage.name)
             context['step'] = log.stepper(stage.name)
-            results[stage.name] = _one(stage, context, runners, results)
+            with using(context['step']):
+                results[stage.name] = _one(stage, context, runners, results)
             context.pop('step', None)
             log.ended(results[stage.name])
             if results[stage.name]['status'] in (FAILED, UNAVAILABLE, SKIPPED, NOT_REACHED):
@@ -92,10 +96,10 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
         manifest = _manifest(target, out, started_at, began, requested, results, language, exclude, max_files,
                              max_bytes, policy_path, intake)
     except BaseException as problem:                    # stopped or broken: the file says so, then the error goes on
-        log.emit('run.ended', status='STOPPED' if isinstance(problem, KeyboardInterrupt) else 'ERROR',
-                 reason=f'{type(problem).__name__}: {problem}'[:300], seconds=round(time.monotonic() - began, 2))
+        log.finish('STOPPED' if isinstance(problem, KeyboardInterrupt) else 'ERROR',
+                   reason=f'{type(problem).__name__}: {problem}'[:300], seconds=round(time.monotonic() - began, 2))
         raise
-    log.emit('run.ended', status=manifest['status'], seconds=manifest['seconds'], counts=manifest['counts'])
+    log.finish(manifest['status'], seconds=manifest['seconds'], counts=manifest['counts'])
     return manifest
 
 

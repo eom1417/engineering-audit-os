@@ -483,11 +483,16 @@ assistant's job, `eaos start`, the Studio), the Studio shows EAOS's own stage ma
 This is EAOS's own pipeline, not the audited project's (that is the pipeline map below).
 
 - **The record.** `eaos/pipeline/run.py:execute` appends one JSON line per event to `<report>/run-progress.jsonl`
-  (`eaos/pipeline/progress.py`): `run.started` with the declared stages as data (name, requires, produces, necessity,
+  (`eaos/progress/log.py`; the events are declared in `eaos/data/schemas/progress.json`, version 1): `run.started` with the declared stages as data (name, requires, produces, necessity,
   description, absent_when) and the last run's seconds per stage, `stage.started`, `stage.step` (each extractor inside
   `facts`, each tool of the engine registry inside `engines`, with its own status), exactly one `stage.ended` per
   stage with its status, reason, seconds, artifacts and short scalars of what it reported, and `run.ended`. A run
-  replaces the file (a new inode); writing it never fails the run. Folded, it equals `run-manifest.json` at the end.
+  replaces the file (a new inode); writing it never fails the run. Folded (`eaos/progress/fold.py`), it equals
+  `run-manifest.json` at the end. A stopped or broken run ends the stage it was in and every stage it did not reach
+  before `run.ended`. While a stage runs, code inside it reports counted loops with `progress.count(name, done,
+  total)` (at most 4 lines a second per step), the external programs the run started are written as
+  `stage.activity` (read from `ps` every 2 s), and `run.alive` follows 10 s of silence; the server shows a run that
+  promised heartbeats and stayed silent 30 s as `stalled`. Other flows write `<folder>/progress/<flow>.jsonl`.
 - **The server.** The feed tails the file and publishes each new line as a `scan.stage` event (source `progress`) in
   the same numbering and replay; what the file held when the server started is state, not events.
   `GET /api/scan-progress` gives the folded state, each stage's `layer` and `order` from the pinned layered layout,

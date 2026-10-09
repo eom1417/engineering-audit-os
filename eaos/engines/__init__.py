@@ -13,6 +13,7 @@ from . import (ast_grep, checkov, codegraph, complexipy, dependency_cruiser, eno
                osv_scanner, react_docgen, reforge, scc, semgrep, spectral, sqlfluff, syft, trivy, vulture)
 from .contract import NOT_APPLICABLE, OBSERVED, UNAVAILABLE
 from .process import state_digest
+from .. import progress
 
 ADAPTERS = {module.NAME: module for module in (enola, codegraph, reforge, jscpd, syft, osv_scanner, scc, semgrep, trivy, checkov,
                                                dependency_cruiser, sqlfluff, spectral, oasdiff, gitnexus,
@@ -43,7 +44,8 @@ def ordered(names):
 def analyze(target, workdir, exclude=(), only=None, formats=None, step=None):
     """Run every requested engine and return one manifest. The target is proven unchanged afterwards.
 
-    `step(name, done, total, status, seconds, reason)`, when given, hears each engine of the registry start and end
+    Each engine of the registry is reported as a step of the running stage (eaos/progress/context.py), or to
+    `step(name, done, total, status, seconds, reason)` when given: it hears each engine of the registry start and end
     with its own status (observed, not applicable, unavailable, error): the live map shows each tool as it runs."""
     target, workdir = Path(target).resolve(), Path(workdir).resolve()
     workdir.mkdir(parents=True, exist_ok=True)
@@ -51,7 +53,7 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, step=None):
     unknown = sorted(set(only or ()) - set(ADAPTERS))
     before = state_digest(target)
     reports = {}
-    step = step or (lambda *args, **kwargs: None)
+    step = step or progress.step
     for name in selected: step(name, 0, len(selected), 'waiting')
     for done, name in enumerate(selected):
         step(name, done, len(selected), 'running')

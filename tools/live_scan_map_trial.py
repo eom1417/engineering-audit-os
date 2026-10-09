@@ -39,11 +39,11 @@ def now():
 
 
 def replay(source, report, speed=4.0):
-    from eaos.pipeline import progress
+    from eaos import progress
     lines = Path(source).read_text(encoding='utf-8').splitlines() if Path(source).is_file() else []
     rows = [json.loads(line) for line in lines if line.strip()] if lines else progress.read(source)
     if not rows: raise SystemExit(f'{source}: no progress rows')
-    log = progress.ProgressLog(report)
+    log = progress.ProgressLog(report, pulse=False, sampler=None)      # the recording as it was: no beats of its own
     times = [datetime.fromisoformat(r['at']) for r in rows]
     for row, at, before in zip(rows, times, [times[0]] + times[:-1]):
         time.sleep(max(0.0, (at - before).total_seconds() / speed))
@@ -60,7 +60,7 @@ def _case(cases, name, ok, evidence):
 def judge(report, browser_json, out):
     from eaos.engines import ADAPTERS
     from eaos.facts.run import ORDER as EXTRACTORS
-    from eaos.pipeline import progress
+    from eaos import progress
     from eaos.pipeline.stages import ORDER
     import north_star_studio as studio
     report = Path(report)

@@ -18,7 +18,7 @@ being replayed someone else's numbers. The feed keeps the last `KEEP` events; an
 
 The action API (docs/studio-actions.json) publishes its own events through `publish`, into the same numbering.
 
-Beside either source, the feed tails the running check's progress file (`run-progress.jsonl`, eaos/pipeline/progress.py)
+Beside either source, the feed tails the running check's progress file (`run-progress.jsonl`, eaos/progress/log.py)
 and publishes each new line as one `scan.stage` event whose data is the line itself, into the same numbering and the
 same replay. It reads the file, not a process, so a check started from the terminal, the assistant or the Studio is
 followed alike. What the file held when the feed started is the state the server starts from, not an event: a page
@@ -32,7 +32,7 @@ from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..pipeline.progress import PROGRESS
+from ..progress import PROGRESS
 
 KEEP = 2000
 EVENT_LOG = 'events.jsonl'
@@ -49,6 +49,8 @@ STEP_TEXT = {
     'run.started': ('The check started', 'بدأ الفحص'),
     'stage.started': ('Stage {stage} started', 'بدأت مرحلة {stage}'),
     'stage.step': ('{stage}: {step}', '{stage}: {step}'),
+    'stage.activity': ('{stage}: programs running', '{stage}: البرامج الشغّالة'),
+    'run.alive': ('The check is still running', 'الفحص ما زال شغّالًا'),
     'stage.ended': ('Stage {stage}: {status}', 'مرحلة {stage}: {status}'),
     'run.ended': ('The check ended: {status}', 'انتهى الفحص: {status}'),
 }
