@@ -80,17 +80,23 @@ export function ActionsProvider({ children, client: given }: { children: ReactNo
 
   useEffect(() => {
     if (!client) { setRuns([]); setQueueState([]); setQuestions([]); setLoaded(false); return }
-    void refresh()
-    if (client.watch) return client.watch(() => { void refresh() })
-    let timer: ReturnType<typeof setTimeout>
-    const loop = () => {
-      const busy = document.visibilityState === 'visible'
-      timer = setTimeout(async () => { if (busy) await refresh(); loop() }, busy ? 3000 : 15000)
-    }
-    loop()
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let unwatch: (() => void) | undefined
+    let stopped = false
     const back = () => { if (document.visibilityState === 'visible') void refresh() }
-    document.addEventListener('visibilitychange', back)
-    return () => { clearTimeout(timer); document.removeEventListener('visibilitychange', back) }
+    void (client.available ? client.available() : Promise.resolve(true)).then((available) => {
+      if (stopped) return
+      if (!available) { setLoaded(true); return }
+      void refresh()
+      if (client.watch) { unwatch = client.watch(() => { void refresh() }); return }
+      const loop = () => {
+        const busy = document.visibilityState === 'visible'
+        timer = setTimeout(async () => { if (busy) await refresh(); if (!stopped) loop() }, busy ? 3000 : 15000)
+      }
+      loop()
+      document.addEventListener('visibilitychange', back)
+    })
+    return () => { stopped = true; clearTimeout(timer); unwatch?.(); document.removeEventListener('visibilitychange', back) }
   }, [client, refresh])
 
   const value = useMemo<Actions>(() => ({

@@ -153,6 +153,8 @@ export class ActionError extends Error {
 /** The command centre as the pages use it; live (the server), demo (a recorded run replayed) or snapshot. */
 export interface ActionsClient {
   mode: Mode
+  /** Whether the server mounted the action API (GET /api/session `actions`); a client without it always has one. */
+  available?(): Promise<boolean>
   preview(id: string, body: PreviewBody): Promise<Preview>
   start(body: StartBody): Promise<Run>
   runs(): Promise<{ runs: Run[]; queue: string[] }>

@@ -42,7 +42,7 @@ try {
     const ctx = await browser.newContext({ viewport: { width: v.width, height: v.height }, deviceScaleFactor: v.phone ? 2 : 1, isMobile: v.phone, hasTouch: v.phone, colorScheme: v.theme })
     const page = await ctx.newPage()
     page.on('pageerror', (e) => errors.push(`${v.name}: ${e}`))
-    page.on('console', (m) => { if (m.type() === 'error') errors.push(`${v.name}: ${m.text().slice(0, 300)}`) })
+    page.on('console', (m) => { if (m.type() === 'error') errors.push(`${v.name}: ${m.text().slice(0, 300)}${m.location()?.url ? ` (${m.location().url.split('#')[0]})` : ''}`) })
     await page.goto(`${base}?lang=${v.lang}&theme=${v.theme}#token=${token}`, { waitUntil: 'load' })
     await page.waitForSelector('main#main', { timeout: 15000 })
     await page.waitForFunction(() => document.documentElement.dataset.studioLive === 'connected', null, { timeout: 15000 })

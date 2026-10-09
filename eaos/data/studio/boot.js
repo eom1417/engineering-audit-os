@@ -27,8 +27,12 @@
 })();
 
 // Starts reading the report's data while the Studio's own script is still downloading (src/data/load.ts waits for
-// it): the manifest, then every section it lists, each a classic script beside index.html.
+// it): the manifest, then every section it lists, each a classic script beside index.html. A tab holding the live
+// server's token (the same test as src/data/live.ts liveToken) reads the server's API instead: nothing to load here.
 window.EAOS_DATA = new Promise(function (done) {
+  var token = window.EAOS_BOOT_TOKEN;
+  try { token = token || sessionStorage.getItem('eaos.token'); } catch (e) { /* storage refused */ }
+  if (/^https?:$/.test(location.protocol) && token) return done();
   function add(name, then) {
     var tag = document.createElement('script');
     tag.src = './' + name + '.js';

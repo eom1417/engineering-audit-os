@@ -32,6 +32,7 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 export function liveClient(token: string): ActionsClient {
   let csrf: Promise<string> | null = null
   const session = () => (csrf ??= request('GET', '/api/session').then((s) => String((s as { csrf: string }).csrf)))
+  let mounted: Promise<boolean> | null = null
 
   async function request(method: 'GET' | 'POST', path: string, body?: unknown, retried = false): Promise<unknown> {
     const headers: Record<string, string> = { 'X-EAOS-Token': token, Accept: 'application/json' }
@@ -56,6 +57,8 @@ export function liveClient(token: string): ActionsClient {
 
   return {
     mode: 'live',
+    // a read-only server (no project known) has no action API: nothing to poll, nothing to start
+    available: () => (mounted ??= request('GET', '/api/session').then((s) => (s as { actions?: boolean }).actions !== false, () => true)),
     preview: (id: string, body: PreviewBody) => post<Preview>(`/api/actions/${encodeURIComponent(id)}/preview`, body),
     start: (body: StartBody) => post<{ run: Run }>('/api/runs', body).then(runOf),
     runs: () => get<{ runs: Run[]; queue: string[] }>('/api/runs?all=1'),
