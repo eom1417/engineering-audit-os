@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from . import __version__
 from . import claims as ledger
+from . import progress
 from .compose import Document
 from .compose.labels import detail_artifact, impact_of, statement_of
 from .compose.rules import validate
@@ -629,9 +630,15 @@ def refresh_views(out, language='ar'):
             'refreshed': [BRIEF, 'RISK-REGISTER.md', 'README.md']}
 
 
+# The counted steps of assemble(): the structural map, the claims, their ranking, the dossier, the documents.
+CLAIM_STEPS = 5
+
+
 def assemble(target, out, run=None, language='ar', version=None, exclude=(), engines=None, collected=None):
     target, out = Path(target).resolve(), Path(out).resolve()
+    progress.count('claim steps', 0, CLAIM_STEPS)
     map_result, sets = generate(target, out, language, exclude=exclude, engines=engines, collected=collected)
+    progress.count('claim steps', 1, CLAIM_STEPS)
     # A project that declares a policy gets it enforced as part of the dossier, not as a separate step.
     from .policy import FILENAME as POLICY_FILE, check as check_policy
     if (target / POLICY_FILE).is_file():
@@ -644,6 +651,7 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
     # is handed over separately rather than pushed into a map every consumer expects to be uniform.
     load_record = read(out / 'load-model.json') if (out / 'load-model.json').is_file() else None
     rows, fact_index, withheld = build_claims(sets, records, load_record=load_record, target=target)
+    progress.count('claim steps', 2, CLAIM_STEPS)
     from fnmatch import fnmatch
     patterns = [p.strip('/') for p in (exclude or []) if p.strip('/')]
     def source_filter(path): return any(path == p or path.startswith(p + '/') or fnmatch(path, p) for p in patterns)
@@ -660,6 +668,7 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
     rows += runtime
     from .ranking import rank
     rows = rank(rows, sets, fact_index)
+    progress.count('claim steps', 3, CLAIM_STEPS)
     problems = ledger.errors(rows, {e['id'] for e in records['evidence']} if records['evidence'] else (),
                              {f['id'] for data in sets.values() for f in data['facts']})
     if problems: raise ValueError('Claim ledger rejected: ' + '; '.join(problems[:5]))
@@ -703,6 +712,7 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
     for claim in dossier['claims']: claim.setdefault('uid', identity(claim))
     dossier['decisions'] = [decide(claim) for claim in dossier['claims']]
     write(out / 'dossier.json', dossier)
+    progress.count('claim steps', 4, CLAIM_STEPS)
     (out / BRIEF).write_text(brief(str(target), dossier, language).render(), encoding='utf-8')
     for name, builder in [('FLOWS.md', flows_document), ('DOMAIN-AND-DATA.md', domain_document), ('CONTRACTS.md', contracts_document)]:
         (out / name).write_text(builder(dossier, sets, language).render(), encoding='utf-8')
@@ -713,6 +723,7 @@ def assemble(target, out, run=None, language='ar', version=None, exclude=(), eng
     (out / PROVENANCE).write_text(provenance_document(str(target), dossier, language).render(), encoding='utf-8')
     violations = validate(out, dossier)
     result = write_verdict(out, dossier, violations, target=str(target), facts=map_result['facts'])
+    progress.count('claim steps', CLAIM_STEPS, CLAIM_STEPS)
     return result
 
 

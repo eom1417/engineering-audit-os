@@ -18,6 +18,8 @@ RISK-REGISTER.md is rendered from this record; there is one register.
 import json
 from pathlib import Path
 
+from . import progress
+
 FORMULA = 'score = pct(complexity_max) x pct(churn) x (1 + pct(fan_in)), percentile ranks among the analysed files'
 SEVERITIES = ('low', 'medium', 'high', 'critical')
 DETERMINISTIC_FACTS = ('committed_credential', 'broken_code')
@@ -179,10 +181,13 @@ def build(out, dossier):
         if isinstance(probe, dict): probes.setdefault(probe.get('claim_id'), []).append(probe)
     heat = hotspots(_load(out / 'measurements.json', {}))
     items = []
-    for claim in dossier.get('claims') or []:
+    claims = dossier.get('claims') or []
+    for done, claim in enumerate(claims):
+        progress.count('debt items', done, len(claims))
         if claim.get('status') in ('refuted', 'superseded') or claim.get('confidence') == 'REFUTED': continue
         facts = [all_facts[i] for i in claim.get('fact_ids') or [] if i in all_facts]
         items.append(_item(claim, facts, all_facts, probes))
+    progress.count('debt items', len(claims), len(claims))
     # A credential already witnessing an item (the scanners' secret cluster on its file) is that item, not a second one.
     claimed = {i for claim in dossier.get('claims') or [] for i in claim.get('fact_ids') or []}
     claimed |= {w['finding_id'] for item in items for w in item['witnesses']}

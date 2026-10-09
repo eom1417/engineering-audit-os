@@ -21,6 +21,8 @@ import sys
 import tempfile
 from pathlib import Path, PurePosixPath
 
+from . import progress
+
 RULES = Path(__file__).resolve().parent / 'rules/codemods.json'
 TRANSFORM = Path(__file__).resolve().parent / 'templates/codemods/remove-declaration.cjs'
 LANGUAGES = {'.py': 'python', '.js': 'javascript', '.jsx': 'javascript', '.ts': 'typescript', '.tsx': 'tsx', '.mjs': 'javascript'}
@@ -211,11 +213,13 @@ def attach(tasks, out, target):
         # One copy for the whole run, put back after every card: a copy per card on a large project was
         # hundreds of full copies, and none of them was ever removed.
         copy = isolated_copy(Path(target), holder / 'project')
-        for task, card in cards:
+        for done, (task, card) in enumerate(cards):
+            progress.count('codemod trials', done, len(cards))
             result, command = dry_run(card, target, copy)
             if result is None: continue
             task['codemod'] = {'tool': card['kind'], 'command': command, 'dry_run': result}
             attached += 1
+        progress.count('codemod trials', len(cards), len(cards))
     finally:
         shutil.rmtree(holder, ignore_errors=True)
     return attached

@@ -8,6 +8,7 @@ plan stage by stage; nothing requires running the engine again.
 from pathlib import Path
 import json
 import sys
+from . import progress
 from .facts.store import read_set
 from .sustainability import compute, _transformations
 
@@ -106,8 +107,12 @@ def build(out, policy_path=None, targets=None):
     moves = _transformations(out, dashboard)
     stages = []
     index = 0
+    homes = sum(1 for move in moves if move['move'] == 'canonicalize')
+    sought = 0
     for move in moves:
         if move['move'] == 'canonicalize':
+            progress.count('canonical homes', sought, homes)
+            sought += 1
             cluster_sha = move.get('rule')
             cluster = next((f for f in sets.get('fingerprint', {}).get('facts', [])
                              if f['kind'] == 'duplicate_cluster' and f['value']['shape_sha'] == cluster_sha), None)
@@ -153,6 +158,7 @@ def build(out, policy_path=None, targets=None):
                 'predicted': move['predicted'],
                 'indicator': move['indicator'],
             })
+    progress.count('canonical homes', homes, homes)
     summary = {'stages': len(stages),
                 'moves_with_no_viable_candidate': sum(1 for stage in stages
                                                          if stage['move'] == 'canonicalize'

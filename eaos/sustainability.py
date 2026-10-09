@@ -12,6 +12,8 @@ from collections import defaultdict
 import json
 from pathlib import Path
 
+from . import progress
+
 
 NAME = 'sustainability'
 VERSION = '1'
@@ -167,14 +169,14 @@ def _indicator_understandable_units(sets):
 def compute(out, targets=None):
     sets = _read_sets(out)
     targets = dict(DEFAULT_TARGETS, **(targets or {}))
-    indicators = {
-        'single_source': _indicator_single_source(sets),
-        'minimal_path': _indicator_minimal_path(sets),
-        'data_owners': _indicator_data_owners(sets),
-        'honest_boundaries': _indicator_honest_boundaries(sets),
-        'verifiable_paths': _indicator_verifiable_paths(sets),
-        'understandable_units': _indicator_understandable_units(sets),
-    }
+    measures = (('single_source', _indicator_single_source), ('minimal_path', _indicator_minimal_path),
+                ('data_owners', _indicator_data_owners), ('honest_boundaries', _indicator_honest_boundaries),
+                ('verifiable_paths', _indicator_verifiable_paths), ('understandable_units', _indicator_understandable_units))
+    indicators = {}
+    for done, (name, measure) in enumerate(measures):
+        progress.count('indicators', done, len(measures))
+        indicators[name] = measure(sets)
+    progress.count('indicators', len(measures), len(measures))
     rows = []
     for name, indicator in indicators.items():
         target = targets.get(name, DEFAULT_TARGETS[name])

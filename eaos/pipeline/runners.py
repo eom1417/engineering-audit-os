@@ -26,14 +26,14 @@ def facts(context):
     # an empty checkout used to be reported COMPLETE, with claims drawn from git history alone.
     from ..vocabulary import classify
     if not any(classify(item['path']) == 'source' for item in context['source'].readable()):
-        raise SkipStage('the target holds no source file this tool reads, so no project was audited')
+        raise SkipStage('the target holds no source file this tool reads, so no project was audited', code='no_source_files')
     return {'facts': context['collected']['facts'], 'sets': len(context['collected']['sets']),
             'exclude': context['exclude']}
 
 
 def engines(context):
     if context.engines is None:
-        raise SkipStage('external engines were not requested for this run')
+        raise SkipStage('external engines were not requested for this run', code='engines_not_requested')
     from ..facts.run import add_to_index, collect_external
     if 'source' not in context:
         from ..facts.source import Source
@@ -47,7 +47,7 @@ def engines(context):
         if entry['set'] == 'external':
             external_entry = entry
     if external_entry is None or not external_entry['available']:
-        raise SkipStage('no external engine is installed')
+        raise SkipStage('no external engine is installed', code='no_engine_installed')
     # The facts stage handed us its set list; a later stage rebuilding the dossier reads that list,
     # so the set we just added has to join it or the evidence is on disk and invisible.
     collected = context.get('collected')
@@ -63,7 +63,7 @@ def engines(context):
 
 def verify(context):
     if not context.test_command:
-        raise SkipStage('no test command was given, so nothing was executed')
+        raise SkipStage('no test command was given, so nothing was executed', code='no_test_command')
     from ..verify import run
     result = run(context.target, context.out, command=context.test_command, execute=True)
     return {'covered_files': result.get('covered_files'), 'command': context.test_command}
@@ -71,7 +71,7 @@ def verify(context):
 
 def policy(context):
     if not context.policy_path and not (Path(context.target) / POLICY_FILE).is_file():
-        raise SkipStage(f'the project declares no {POLICY_FILE}')
+        raise SkipStage(f'the project declares no {POLICY_FILE}', code='no_policy')
     from ..policy import check
     result = check(context.target, context.out, policy_path=context.policy_path, language=context.language)
     return {'violations': result.get('violations')}
@@ -97,7 +97,7 @@ def probe(context):
 
 def semantic(context):
     if not context.provider:
-        raise SkipStage('no model provider was configured, so no interpretation was attempted')
+        raise SkipStage('no model provider was configured, so no interpretation was attempted', code='no_provider')
     from ..semantic import run
     from ..views import refresh
     result = run(context.target, context.out, context.provider, language=context.language)
@@ -142,7 +142,7 @@ def lock(context):
     from ..behavior_lock import build
     plan = build(context.out, context.target)
     if not plan['specs']:
-        raise SkipStage('the program has no feature to lock')
+        raise SkipStage('the program has no feature to lock', code='no_features')
     return {'specs': len(plan['specs']), 'without_spec': sum(1 for s in plan['specs'] if not s['path'])}
 
 
@@ -155,7 +155,7 @@ def quality(context):
     from ..report_quality import check
     from ..engines.process import which
     if not (which('vale') or which('markdownlint-cli2')):
-        raise SkipStage('neither Vale nor markdownlint-cli2 is installed')
+        raise SkipStage('neither Vale nor markdownlint-cli2 is installed', code='no_report_linters')
     record = check(context.out)
     return {'reports': len(record['reports']), 'passing': record['passing']}
 
@@ -163,7 +163,7 @@ def quality(context):
 def pdf(context):
     from ..compose.pdf import available, write
     reason = available(context.language)
-    if reason: raise SkipStage(reason)
+    if reason: raise SkipStage(reason, code='pdf_unavailable')
     return {'pages': write(context.out, context.language)}
 
 
@@ -179,15 +179,21 @@ def intake(context):
 
 
 def compose(context):
+    from .. import progress
     from ..compose.product_report import render
-    from ..workspace import read
-    render(context.out, read(context.out / 'dossier.json'), context.language)
     from ..human_report import write as human_page
-    human_page(context.out, context.language, Path(context.target).name)
-    from ..studio.export import export as studio
-    studio(context.out, context.language, Path(context.target).name, context.target)
     from ..start_here import start_here
-    start_here(context.out, context.language, Path(context.target).name)
+    from ..studio.export import export as studio
+    from ..workspace import read
+    name = Path(context.target).name
+    writers = (lambda: render(context.out, read(context.out / 'dossier.json'), context.language),
+               lambda: human_page(context.out, context.language, name),
+               lambda: studio(context.out, context.language, name, context.target),
+               lambda: start_here(context.out, context.language, name))
+    for done, write in enumerate(writers):
+        progress.count('artifacts', done, len(writers))
+        write()
+    progress.count('artifacts', len(writers), len(writers))
     return {}
 
 
@@ -198,7 +204,7 @@ def execution_guide(context):
 
 def site(context):
     if not context.site:
-        raise SkipStage('the site was turned off for this run')
+        raise SkipStage('the site was turned off for this run', code='site_off')
     from ..site import build
     result = build(context.out)
     return {'bytes': result.get('bytes')}
@@ -208,7 +214,7 @@ def emit(context):
     from ..emit import emit as run
     written, rows = run(context.out, validate=True)
     if not written:
-        raise SkipStage('no emitter applies')
+        raise SkipStage('no emitter applies', code='no_emitter')
     return {'files': len(written), 'accepted': sum(1 for row in rows if row['ok'])}
 
 

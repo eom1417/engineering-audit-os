@@ -3,6 +3,7 @@ from collections import Counter
 from pathlib import Path
 import json
 import math
+from . import progress
 from .snapshots import snapshot
 from .sustainability import compute as dashboard
 
@@ -86,7 +87,9 @@ def record_predictions(out, plan, budget=PREDICTION_BUDGET):
     stages = plan.get('stages') or []
     before = snapshot(out)
     rows, skipped = [], []
-    for stage in stages[:budget]:
+    simulated = stages[:budget]
+    for done, stage in enumerate(simulated):
+        progress.count('simulations', done, len(simulated))
         try:
             rows.append({'stage': stage.get('stage'), 'move': stage.get('move'),
                          'indicator': stage.get('indicator'),
@@ -94,6 +97,7 @@ def record_predictions(out, plan, budget=PREDICTION_BUDGET):
         except Exception as problem:                 # one unsimulatable stage must not lose the rest
             skipped.append({'stage': stage.get('stage'),
                             'reason': f'{type(problem).__name__}: {problem}'[:200]})
+    progress.count('simulations', len(simulated), len(simulated))
     if len(stages) > budget:
         skipped.append({'stage': None,
                         'reason': f'{len(stages) - budget} stage(s) beyond the budget of {budget} '

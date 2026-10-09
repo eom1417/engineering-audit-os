@@ -2,7 +2,7 @@
 from pathlib import Path
 import shutil
 import json
-from . import discover
+from . import discover, progress
 from .canonical_home import suggest as suggest_canonical
 from .facts.store import read_set
 
@@ -215,19 +215,31 @@ def _generate_waves(out, language):
     return '\n'.join(lines) + '\n'
 
 
+# The artifacts build() generates before it packages the bundles: engagement, discovery, canonical homes, gap matrix,
+# KPI, stages and waves.
+GENERATED = 7
+
+
 def build(out, source_files=None, language='ar'):
     """Create the bundle directories, generating every artifact the engine can produce."""
     out = Path(out)
     bundles_dir = out / 'bundles'
     if bundles_dir.exists(): shutil.rmtree(bundles_dir)
     bundles_dir.mkdir()
-    _generate_engagement(out, language=language)
-    _generate_discovery(out, language=language)
-    canonical_md, canonical_record = _generate_canonical_homes(out, language=language)
-    gap_obj = _generate_gap_matrix(out, language=language)
-    kpi_md = _generate_kpi(out, language=language)
-    stages_md = _generate_stages(out, language=language)
-    waves_md = _generate_waves(out, language=language)
+    made = 0
+    def generated(value):
+        nonlocal made
+        made += 1
+        progress.count('artifacts', made, GENERATED)
+        return value
+    progress.count('artifacts', 0, GENERATED)
+    generated(_generate_engagement(out, language=language))
+    generated(_generate_discovery(out, language=language))
+    canonical_md, canonical_record = generated(_generate_canonical_homes(out, language=language))
+    gap_obj = generated(_generate_gap_matrix(out, language=language))
+    kpi_md = generated(_generate_kpi(out, language=language))
+    stages_md = generated(_generate_stages(out, language=language))
+    waves_md = generated(_generate_waves(out, language=language))
     _write_if_present(out, 'CANONICAL-HOMES.md', canonical_md)
     _write_if_present(out, 'canonical-homes.json', canonical_record, json_mode=True)
     _write_if_present(out, 'gap-matrix.json', gap_obj, json_mode=True)
@@ -236,7 +248,8 @@ def build(out, source_files=None, language='ar'):
     _write_if_present(out, 'WAVES.md', waves_md)
     written = []
     missing = []
-    for name, entries in PLAN:
+    for done, (name, entries) in enumerate(PLAN):
+        progress.count('bundles', done, len(PLAN))
         directory = bundles_dir / name
         directory.mkdir()
         for entry in entries:
@@ -256,6 +269,7 @@ def build(out, source_files=None, language='ar'):
             else:
                 shutil.copy2(source, target)
         written.append(name)
+    progress.count('bundles', len(PLAN), len(PLAN))
     manifest = {'language': language, 'bundles': written, 'missing_artifacts': missing}
     (bundles_dir / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     return {'bundles_dir': str(bundles_dir), 'bundles': written, 'missing_artifacts': missing,

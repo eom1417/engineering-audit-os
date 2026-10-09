@@ -8,6 +8,8 @@ one row per file, with the tool's verdict. A validator that is not installed is 
 """
 from pathlib import Path
 
+from .. import progress
+
 from .base import TEMPLATES, Emitted, render  # noqa: F401  (the emitters' shared vocabulary)
 
 
@@ -84,9 +86,16 @@ def emit(report, only=None, validate=False):
     from .validate import record, verdict
     written = []
     # The handover index runs last, so it lists what every other emitter wrote.
-    for name in sorted(EMITTERS, key=lambda name: (name == 'handover-readme', name == 'site')):
-        if only and name not in only: continue
+    names = [name for name in sorted(EMITTERS, key=lambda name: (name == 'handover-readme', name == 'site'))
+             if not only or name in only]
+    for done, name in enumerate(names):
+        progress.count('emitters', done, len(names))
         written += EMITTERS[name](report)
-    rows = [verdict(report, item) for item in written] if validate else []
+    progress.count('emitters', len(names), len(names))
+    rows = []
+    for done, item in enumerate(written if validate else []):
+        progress.count('files judged', done, len(written))
+        rows.append(verdict(report, item))
+    if validate: progress.count('files judged', len(written), len(written))
     if validate: record(report, rows)
     return written, rows
