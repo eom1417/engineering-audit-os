@@ -318,7 +318,7 @@ flowchart TB
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 acceptance test"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 acceptance tests"| NS46
-        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +17 acceptance tests"| NS38
+        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +19 acceptance tests"| NS38
     end
     subgraph R6G_2["R6G · EAOS v2: truthful analysis, ideal picture, ordered operations, live Studio (2/5)"]
         direction LR

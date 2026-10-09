@@ -1570,11 +1570,11 @@
         {
           "id": "F15",
           "name": "مركز التحكم: تشغيل EAOS من الاستوديو",
-          "definition": "تجارب tools/studio_trial.py الحقيقية ($EAOS_MEASURE/studio/<project>/trial.json) التي فُحص فيها المشروع واختيرت مجموعة بطاقات وأصلحها مساعد حقيقي، وأُجيب سؤال من صندوق القرارات، واعتُمد الفرع، كلها من الاستوديو دون كتابة للمساعد، وكل حالة مرت مفهومة ÷ التجارب؛ بلا تجربة على FleetManageWeb لا يُحسب; additionally NS46.T17 requires current real EAOS and FleetManageWeb owner-control evidence, including custom binary answers without consent, durability, safe queue/retry, auth and the full phone/desktop-language-theme matrix; mocks never count",
+          "definition": "تجارب tools/studio_trial.py الحقيقية ($EAOS_MEASURE/studio/<project>/trial.json) التي فُحص فيها المشروع واختيرت مجموعة بطاقات وأصلحها مساعد حقيقي، وأُجيب سؤال من صندوق القرارات، واعتُمد الفرع، كلها من الاستوديو دون كتابة للمساعد، وكل حالة مرت مفهومة ÷ التجارب؛ بلا تجربة على FleetManageWeb لا يُحسب; additionally NS46.T17 requires current real EAOS and FleetManageWeb owner-control evidence, including custom binary answers without consent, durability, safe queue/retry, auth and the full phone/desktop-language-theme matrix; mocks never count; NS46.T18 (branch control) and NS46.T19 (live scan freshness and local time) also require their live trials ($EAOS_MEASURE/branch-control/trial.json, $EAOS_MEASURE/scan-freshness/trial.json); mocks never count",
           "target": 1.0,
           "value": null,
           "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md (the command centre)",
-          "reads": "${EAOS_MEASURE}/studio/*/trial.json + ${EAOS_MEASURE}/owner-controls/{EAOS,FleetManageWeb}/trial.json",
+          "reads": "${EAOS_MEASURE}/studio/*/trial.json + ${EAOS_MEASURE}/owner-controls/{EAOS,FleetManageWeb}/trial.json + ${EAOS_MEASURE}/branch-control/trial.json + ${EAOS_MEASURE}/scan-freshness/trial.json",
           "measured": "automated"
         },
         {
@@ -6699,6 +6699,116 @@
           ],
           "acceptance": "python tools/acceptance.py test owner_controls.OwnerControls && python tools/north_star.py measure --only F15 --min 1.0",
           "rollback": "Revert the owner-control integration commit; retain saved decision records and static previews."
+        },
+        {
+          "needs": "none",
+          "writes": [
+            "contract:studio-manifest"
+          ],
+          "status": "todo",
+          "id": "NS46.T18",
+          "title": "Studio branch control: analysis context, honest inventory, provenance and guarded work-branch actions",
+          "why": "Owner request 2026-10-09 (eaos-dev/planning/studio-v2/BRANCH-CONTROL.md): show the repository's branches, make the analyzed branch and every task's work branch obvious, and manage work branches from Studio. Checkout, analysis branch, report branch and task branch must never be conflated; names are never ownership evidence; every mutation is guarded by auth/Origin/CSRF, expected heads, a project lock, protected-branch policy and separate explicit consent.",
+          "moves": [
+            "F15"
+          ],
+          "depends_on": [
+            "NS46.T9",
+            "NS46.T10",
+            "NS46.T17"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/studio/actions/branches.py",
+            "eaos/studio/actions/__init__.py",
+            "eaos/studio/actions/runs.py",
+            "eaos/guided.py",
+            "eaos/studio/export.py",
+            "docs/studio-actions.json",
+            "studio/src/pages/branches/",
+            "studio/src/shell/Shell.tsx",
+            "studio/src/pages/runs/",
+            "docs/adoption/ns46-t18-branch-control.md",
+            "docs/STUDIO-BRANCH-CONTROL.md",
+            "tools/studio_branch_trial.py",
+            "tests/test_studio_branches.py",
+            "acceptance/test_branch_control.py"
+          ],
+          "steps": [
+            "Adopt-before-build record in docs/adoption/: reuse git plumbing (for-each-ref, worktree list, merge-tree --write-tree, update-ref with expected old values) and the existing command centre, guided accept pathway and run store; no new runner or package.",
+            "Branch service inside the command centre boundary: complete local/remote inventory with detached HEAD, no origin, dirty checkout, worktrees, last-known remote age, protected/default/base policy and ownership only from durable provenance (EAOS wave records and the provenance registry), never from a name.",
+            "Persistent, distinct context: actual checkout, selected analysis branch, report branch and each run's work branch and base, recorded on the run at creation and outcome, resolved after restart and when refs are missing or deleted.",
+            "Analysis selection changes Studio context without checking out, refuses to silently retarget queued or active runs, and offers a scan of the selected branch through the live command centre.",
+            "Compare/diff/checks drawer; merge preview validated in isolation (merge-tree) with expected source/target heads and a confirm token bound to them; managed waves accept through the existing EAOS accept pathway so ledger and report update once; other tool-owned branches merge by compare-and-swap under the project lock; conflicts change nothing and become a read-only assistant resolution proposal.",
+            "Deletion only of tool-owned, unprotected, not checked-out, inactive branches; a recovery ref is recorded first; unmerged deletion needs the lost-commit preview and a second confirmation; remote deletion is its own operation and consent; restore from the recovery ref; every outcome in the run history.",
+            "Branches workspace (/branches), branch chip and switcher in the header, run/task branch links, Arabic/English, light/dark, 390/768/1440, keyboard, 44px targets; snapshots show captured metadata read-only.",
+            "Live trial on real temporary multi-branch repositories (tools/studio_branch_trial.py) writes $EAOS_MEASURE/branch-control/trial.json with every case and the 12-view screenshot matrix."
+          ],
+          "done_when": [
+            "Acceptance branch_control.BranchControl passes: every case in acceptance/test_branch_control.py ran live on real repositories against the shipped Studio digest, including one managed-wave accept that updates the ledger and report exactly once, and every 390/768/1440 x ar/en x light/dark view has its screenshot with width equal to the viewport, initial scroll zero, zero axe violations and no target under 44px."
+          ],
+          "pitfalls": [
+            "A branch prefix (eaos/, codex/) is never ownership proof.",
+            "A custom typed answer or a recommendation is never merge or deletion consent.",
+            "Local deletion never implies remote deletion; never force-push; main of EAOS itself is never a mutation target.",
+            "Unknown state stays unknown: no guessed readiness, ancestry or fetch age.",
+            "Mocked buttons and unit tests never complete this task."
+          ],
+          "acceptance": "python tools/acceptance.py test branch_control.BranchControl",
+          "rollback": "Revert the branch-control commit; recovery refs under refs/eaos-recovery/ and run history stay for the owner to inspect."
+        },
+        {
+          "needs": "none",
+          "writes": [
+            "contract:studio-manifest"
+          ],
+          "status": "todo",
+          "id": "NS46.T19",
+          "title": "Live scan freshness, local time everywhere and direct governance of every Studio state",
+          "why": "Owner report 2026-10-09 (STUDIO-COMPLETE.md, final owner addition): the 'Is the check current?' dialog said the scan recorded no branch and no commit, times were in UTC, and the only action was 'Copy request'. Every Studio state must be visibly current, directly actionable from the live Studio, with copy only as a labelled fallback.",
+          "moves": [
+            "F15"
+          ],
+          "depends_on": [
+            "NS46.T9",
+            "NS46.T17",
+            "NS46.T18"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/agent_tools.py",
+            "eaos/guided.py",
+            "eaos/branches.py",
+            "eaos/studio/export.py",
+            "eaos/studio/actions/branches.py",
+            "tools/make_contracts.py",
+            "schemas/artifacts/studio-manifest.schema.json",
+            "studio/src/i18n/prefs.tsx",
+            "studio/src/shell/Shell.tsx",
+            "studio/src/data/actions/",
+            "docs/adoption/ns46-t19-scan-freshness.md",
+            "tools/studio_branch_trial.py",
+            "acceptance/test_scan_freshness.py"
+          ],
+          "steps": [
+            "Record what was checked: analyzed branch or named detached HEAD, full commit, dirty state, scan and build times, in the state and the Studio manifest; legacy reports labelled with a one-tap re-scan.",
+            "Live freshness endpoint comparing the recorded commit with the branch head: up to date, N commits and M files behind with the files, moved/rewritten, uncommitted changes, or unknown with its reason; the header pill and dialog refresh on focus, on a modest interval and after any run finishes.",
+            "One shared formatter: device time zone (Intl resolvedOptions) with a remembered Settings override, relative plus exact zoned time on hover/tap; storage stays UTC ISO-8601; the snapshot formats in the reader's browser.",
+            "Re-scan now / Re-scan this branch dispatch the audit through the live command centre with saved, running and done states, a run link and a refreshed report; a complete self-contained copy instruction is a labelled fallback; the static snapshot says read-only and offers Open live Studio.",
+            "Apply current/actionable/direct-control governance to decisions, runs, plan steps, cards and branches: direct live actions first, copy only as a labelled fallback.",
+            "Live trial with real repositories (new commits, branch switch, detached HEAD, dirty tree, rewritten branch, legacy report) and browser time zones pinned to two non-UTC zones including a half-hour offset writes $EAOS_MEASURE/scan-freshness/trial.json."
+          ],
+          "done_when": [
+            "Acceptance scan_freshness.ScanFreshness passes: every case in acceptance/test_scan_freshness.py ran live against the shipped Studio digest with the 12-view screenshot matrix."
+          ],
+          "pitfalls": [
+            "Only display changes time zone; stored times stay UTC.",
+            "'Not recorded' is acceptable only for a legacy report, labelled as such.",
+            "Copy is a fallback, never the primary action in the live Studio.",
+            "Do not claim the release gate from mocks."
+          ],
+          "acceptance": "python tools/acceptance.py test scan_freshness.ScanFreshness",
+          "rollback": "Revert the freshness commit; recorded scan provenance fields are additive and ignored by older readers."
         },
         {
           "needs": "human",

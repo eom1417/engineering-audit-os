@@ -4,6 +4,7 @@
  "fixtures/sandbox-app/server.py": "c4222207b8a0cc5e565156c89e216893eb0280f7a7f44c842eddcd9aca162d1e",
  "fixtures/style/clear.md": "df4c7564a057ab44d9cb1ae2f59247ea768ba2317e72fa0fffb09c7140695077",
  "fixtures/style/vague.md": "1f756dd94e40e2e6f9848075dc740c2fd8c7db028beeb3ec8cf89cdf59ed339c",
+ "test_branch_control.py": "f3408d3f12e5d4b3197b00e5983d1d1bc009cd9f634e9983d757326a6b03a0c5",
  "test_field_report.py": "f3438d48b1826645d23e07d6de6f95371f563537b3e34dcf370822b76bf6ecfe",
  "test_ns14_t1_style.py": "8e7bc3cb8fc13a95f314304aef9560a4bf0633149abafa8f67ff55b6bb1872cf",
  "test_ns17_t2_sarif.py": "e7e95bd40541d637bddf4ebddf6674c1d5bef004d43c8c6e4d2886ce205a7e1c",
@@ -13,5 +14,6 @@
  "test_ns46_studio.py": "42db796ff3573b3f3a5e7434fccb163dac9283189258558b3f61851f5612a7f2",
  "test_ns7_t1_reference.py": "06ba27f950fc92f397d904f62751e2439fd5b8557da6f0da6c5802f259b2fdd7",
  "test_owner_controls.py": "228a84cc34065d85f0bba92e0171480200db32ed83465b51fe0a2df97977705e",
+ "test_scan_freshness.py": "fb807b7f7d647a14439e658903b02025ae9f46df44785817581a698b5e83f2b6",
  "test_studio_contract.py": "72082757f3f1c9df88433976e10527bb902ae1b560e1ef42f91235f3e1f9dc3a"
 }
