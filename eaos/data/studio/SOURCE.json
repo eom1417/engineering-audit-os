@@ -1,5 +1,5 @@
 {
- "source_sha256": "d8b409d26b203599acef59bf0d599bba89c7df7bb5743ee8d5f95a84defb8401",
+ "source_sha256": "9f2d13fe4efa7b8eb27e0e23ade51b32ccfd61c3d1f5bca4f09ac4176b525f2e",
  "files": [
   "assets/BridgePage.js",
   "assets/Change.js",
@@ -58,8 +58,8 @@
   "assets/paths.module.js",
   "assets/studio.js",
   "assets/style.css",
-  "assets/words3.js",
-  "assets/words4.js",
+  "assets/words.js",
+  "assets/words2.js",
   "boot.js",
   "index.html"
  ]
