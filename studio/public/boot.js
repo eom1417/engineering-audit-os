@@ -24,6 +24,17 @@
   var lang = saved.lang === 'en' ? 'en' : 'ar';
   var theme = saved.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   h.lang = lang; h.dir = lang === 'ar' ? 'rtl' : 'ltr'; h.dataset.theme = theme === 'dark' ? 'dark' : 'light';
+  // The fonts the first view draws with start beside the Studio's script rather than after it has drawn (the files of
+  // src/design/fonts.css; tests/test_studio_assets.py checks they ship): the Arabic ones when the Studio speaks
+  // Arabic. A file:// page reads them when it draws, as before (a font preload there is never used).
+  if (!/^https?:$/.test(location.protocol)) return;
+  var fonts = ['ibm-plex-sans-arabic-latin-400-normal', 'ibm-plex-sans-arabic-latin-500-normal', 'ibm-plex-sans-arabic-latin-600-normal', 'ibm-plex-mono-latin-400-normal'];
+  if (lang === 'ar') fonts = fonts.concat(['ibm-plex-sans-arabic-arabic-400-normal', 'ibm-plex-sans-arabic-arabic-500-normal', 'ibm-plex-sans-arabic-arabic-600-normal']);
+  fonts.forEach(function (name) {
+    var link = document.createElement('link');
+    link.rel = 'preload'; link.as = 'font'; link.type = 'font/woff2'; link.crossOrigin = 'anonymous'; link.href = './assets/' + name + '.woff2';
+    document.head.appendChild(link);
+  });
 })();
 
 // Starts reading the report's data while the Studio's own script is still downloading (src/data/load.ts waits for

@@ -2,7 +2,7 @@
 // sections, sheets from the bottom, pages pushed onto a stack with a back button. Tablet (768–1199): a 56px rail.
 // Desktop (≥ 1200): the 232px sidebar, breadcrumb top bar, Cmd/Ctrl-K palette, split panes and inspector.
 import { Outlet, useRouterState } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { IconButton } from '../components/Button'
 import { Badge, FreshnessChip } from '../components/Chip'
@@ -21,10 +21,14 @@ import type { Freshness, StudioData } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
 import { Id, N } from '../i18n/text'
 import { useChrome } from './chrome'
-import { Palette } from './Palette'
+import { useOpenedOnce, whenIdle } from './later'
 import { sectionOf, visibleSections, type SectionDef } from './sections'
 import css from './Shell.module.css'
 import { SystemViews } from '../pages/system/SystemViews'
+
+// The palette is its own chunk (shell/later.ts): read once the report is drawn, drawn from its first opening
+const loadPalette = () => import('./Palette')
+const Palette = lazy(() => loadPalette().then((module) => ({ default: module.Palette })))
 
 function useCounts(): Counts | null {
   const data = useStudio()
@@ -262,8 +266,11 @@ export function Shell() {
   const [projectSheet, setProjectSheet] = useState(false)
   const [scanSheet, setScanSheet] = useState(false)
   const project = data?.manifest.project.name ?? t('studio')
-  // The frame's counts are read once the first page is drawn (data/stages.ts COUNT_NEEDS)
+  // The frame's counts are read once the first page is drawn (data/stages.ts COUNT_NEEDS), and so is the palette
   useSections(COUNT_NEEDS, 'idle')
+  const ready = loaded.kind === 'ready'
+  useEffect(() => (ready ? whenIdle(() => { void loadPalette() }) : undefined), [ready])
+  const paletteOpened = useOpenedOnce(palette)
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -292,7 +299,7 @@ export function Shell() {
         </div>
       </div>
       <TabBar current={current} />
-      <Palette isOpen={palette} onOpenChange={setPalette} />
+      {paletteOpened && <Suspense fallback={null}><Palette isOpen={palette} onOpenChange={setPalette} /></Suspense>}
       <ProjectSheet isOpen={projectSheet} onOpenChange={setProjectSheet} project={project} />
       <ScanSheet isOpen={scanSheet} onOpenChange={setScanSheet} />
       <CommandHost />

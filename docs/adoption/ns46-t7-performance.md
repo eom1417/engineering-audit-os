@@ -79,7 +79,32 @@ D1 and file:// need classic scripts with fixed names, and Rolldown cannot split 
 CommonJS chunks and TanStack Router's lazyRouteComponent and intent preloading: a Vite plugin (vite.config.ts
 classicChunks) wraps each chunk as a classic script registering its body and gives assets/studio.js a 20-line
 loader that reads a page's chunks from its own folder, as boot.js reads data. Home and Problems stay in the entry.
-No new dependency, module script, network service or worker. Rejected: module chunks (refused from file://), a
-second build with shared globals (duplicate React contexts), and idle preloading (bytes during first load).
+No new dependency, module script, network service or worker. Rejected: module chunks (refused from file://) and a
+second build with shared globals (duplicate React contexts). Chunks are read on idle only once the report is drawn
+(below), never during the first load.
+
+Main-thread work at start (CPU profile of a cold Home at 4x). Lighthouse total blocking time was 629 ms: the report
+drawn in one synchronous render, the palette building an entry for every card while closed, closed sheets
+formatting dates, and a new Intl.DateTimeFormat per date. Reuse React's own scheduler: the loaded report and each
+later section are applied in startTransition, so React draws them in slices (time slicing); closed palette and
+sheets draw nothing of their bodies; a prefs object keeps its two date formats. No worker or virtualisation.
+
+Home before its counts. Home and the frame read the cards (139 KB gzipped on 5,000 cards) and the story only to count
+them. Home now draws from the frame's small sections (head's verdict, health, decisions, docs, the map) and the
+cards and story are asked for when the browser is idle after it is drawn (useSections(..., 'idle'), shell/later.ts
+whenIdle over requestIdleCallback, a timer where it is missing). Until they arrive Home's counts show an ellipsis
+announced as "Counting…"/"يحسب…", its sentence has no number links and the navigation shows no count: nothing reads
+as 0 and nothing is dropped. Problems still waits for its cards, story and plans: its rows, matching and facets read
+them, and they are unchanged.
+
+The frame's on-demand parts as chunks. The palette (with React Aria's ListBox and Autocomplete and MiniSearch) and
+the command centre's selection and preview sheets are React.lazy chunks through the same classic loader, drawn from
+their first opening (useOpenedOnce, so they close as they opened) and read on idle once the report is drawn, so
+they open at once later. assets/studio.js: 234.6 KB to 202.5 KB gzipped.
+
+Fonts beside the script. The first view's fonts were requested only after the script had drawn. boot.js, which
+already knows the language, adds preload links for the fonts of src/design/fonts.css the first view uses (Latin and
+Mono, plus Arabic when the Studio speaks Arabic) over HTTP; a file:// page reads them when it draws, as before. A
+test keeps each preloaded name a shipped font of style.css. Lighthouse FCP 1.8 s to 1.05 s, LCP unchanged.
 
 Home folds its secondary decisions at six with "Show all N" (DESIGN.md list folding, two phone screens).

@@ -86,6 +86,16 @@ class Shipped(unittest.TestCase):
         for font in fonts:
             self.assertIn(font, style)
 
+    def test_boot_preloads_only_fonts_the_stylesheet_uses(self):
+        # public/boot.js starts the first view's fonts beside the script: each must be a shipped font of style.css
+        boot = (SHIPPED / 'boot.js').read_text(encoding='utf-8')
+        preloaded = re.findall(r"'(ibm-plex-[a-z0-9-]+-normal)'", boot)
+        self.assertGreaterEqual(len(preloaded), 4, preloaded)
+        style = (SHIPPED / 'assets/style.css').read_text(encoding='utf-8')
+        for name in preloaded:
+            self.assertTrue((SHIPPED / 'assets' / f'{name}.woff2').is_file(), name)
+            self.assertIn(f'{name}.woff2', style)
+
 
 class Source(unittest.TestCase):
     """What the build's own linters enforce, checked again without Node so the suite catches a bypass."""

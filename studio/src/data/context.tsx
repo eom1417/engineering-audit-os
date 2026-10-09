@@ -3,6 +3,7 @@
 // sections that changed and are announced to screen readers in the person's language.
 import { createContext, startTransition, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { usePrefs } from '../i18n/prefs'
+import { whenIdle } from '../shell/later'
 import { readSections, withSections, type Loaded } from './load'
 import { loadReportLocale, localizeReport, type ReportLocale } from './localization'
 import type { LiveEvent, LiveStatus } from './live'
@@ -112,10 +113,7 @@ export function useSections(needs: readonly SectionName[] | 'all', when: 'now' |
     if (!key) return
     const ask = () => request(key.split(',') as SectionName[])
     if (when === 'now') return ask()
-    // (a browser without requestIdleCallback asks after the next frame)
-    if (window.requestIdleCallback) { const id = window.requestIdleCallback(ask, { timeout: 2000 }); return () => window.cancelIdleCallback(id) }
-    const id = window.setTimeout(ask, 50)
-    return () => window.clearTimeout(id)
+    return whenIdle(ask)
   }, [key, request, when])
   return waiting
 }
