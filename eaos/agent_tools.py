@@ -116,12 +116,29 @@ def _job_answer(job, seconds=WAIT):
             'what_now': f'Call `wait` with job="{job}" to follow it; keep going until it is done.'}
 
 
-def _start(kind, state, arguments, seconds=WAIT, runner='eaos.agent_tools'):
+def _start(kind, state, arguments, seconds=WAIT, runner='eaos.agent_tools', watch=False):
+    """Start a job and answer as `_job_answer` does. `watch`: the live Studio is opened on its map first (once, before the
+    job writes anything), and the answer carries its address in `watch`."""
     busy = jobs.running(state['project'])
     if busy:
         return {'job': busy['id'], 'status': 'busy', 'kind': busy['kind'], 'progress': busy['progress'],
                 'what_now': f"Another piece of work is running for this project: call `wait` with job=\"{busy['id']}\" first."}
-    return _job_answer(jobs.start(kind, state['project'], arguments, runner=runner), seconds)
+    studio = _watch(state) if watch else None
+    answer = _job_answer(jobs.start(kind, state['project'], arguments, runner=runner), seconds)
+    if studio:
+        told = ('Tell the person the live map of this work is open in their browser.' if studio['opened_in_browser'] else
+                'Give the person the `watch` address to follow this work live (only to them: it holds the key of this session).')
+        answer.update(watch=studio['studio'], what_now=f"{told} {answer.get('what_now', '')}".strip())
+    return answer
+
+
+def _watch(state):
+    """open_studio on the live map (eaos/api/launch.py), in the browser unless the Studio itself asked (EAOS_STUDIO_RUN);
+    None when it cannot start: the work goes on without its map."""
+    from .api import launch
+    try: opened = launch.open_studio(state['project'], show=not os.environ.get('EAOS_STUDIO_RUN'), route='/scan')
+    except Exception: return None
+    return opened if 'studio' in opened else None
 
 
 def wait(job, seconds=WAIT):
@@ -256,7 +273,7 @@ def audit(project=None, fresh=False):
     if fresh:
         import shutil
         shutil.rmtree(guided.report_of(state), ignore_errors=True)
-    return _start('audit', state, {})
+    return _start('audit', state, {}, watch=True)
 
 
 def _audit_job(project, arguments, progress):
@@ -540,7 +557,7 @@ def run_setup(project=None, person_agreed=False):
     if detected['profile'] is None:
         return {'status': 'cannot_run', 'limitations': detected['limitations']}
     live_setup.write_profile(runtime, detected['profile'])
-    return _start('run_try', state, {'proposal': None, 'mode': 'lock'})
+    return _start('run_try', state, {'proposal': None, 'mode': 'lock'}, watch=True)
 
 
 def run_try(proposal=None, mode='lock', project=None):
@@ -622,7 +639,7 @@ def safety_net(project=None):
     state = project_state(project)
     setup = state.get('setup') or {}
     if not _set_up(state, _head(state)): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
-    return _start('safety_net', state, {})
+    return _start('safety_net', state, {}, watch=True)
 
 
 def _safety_job(project, arguments, progress):
@@ -673,7 +690,7 @@ def fix_start(project=None, cards=None, size=10):
                 'what_now': 'Explain the decision each card needs (see `finding`), plainly, and leave it out of the batch; '
                             'call fix_start again with ready cards only, or with no cards for the next ready batch.'}
     if not chosen: return {'status': 'nothing_to_fix', 'what_now': 'No fixable card is left; the rest need the person\'s decision (see plan).'}
-    return _start('fix_start', state, {'cards': chosen})
+    return _start('fix_start', state, {'cards': chosen}, watch=True)
 
 
 def _fix_start_job(project, arguments, progress):

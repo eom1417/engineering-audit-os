@@ -547,6 +547,7 @@ def main(argv=None):
         q.add_argument('--lang',choices=['ar','en'],default=None)
         q.add_argument('--yes',action='store_true',help='answer yes to the question this step asks')
         if name == 'doctor': q.add_argument('--fix',action='store_true',help='install what is missing')
+        if name == 'start': q.add_argument('--no-watch',action='store_true',help='do not open the live map in the running Studio')
         q.set_defaults(func=guided_command)
     q=s.add_parser('handover',help='Where the work stopped, and what to tell another assistant to go on (after a usage limit)')
     q.add_argument('project',nargs='?',default='.')

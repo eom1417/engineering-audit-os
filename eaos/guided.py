@@ -1012,7 +1012,19 @@ def start(args):
     if any(row['id'] == 'scan_tools' and not row['ok'] for row in doctor_rows(project)):
         say(('   ⚠️ بعض أدوات الفحص غير مثبّتة؛ أفحص بدونها، والتقرير يذكر ما لم يُفحص (لتثبيتها: eaos doctor --fix)' if lang == 'ar'
              else '   ⚠️ Some checking tools are not installed; I check without them, and the report names what was not checked (to install them: eaos doctor --fix)'))
+    watch(state, args)
     return advance(state, args)
+
+
+def watch(state, args):
+    """The live map's address when the project's Studio is running (eaos/api/launch.py), printed and opened, unless
+    `eaos start --no-watch`."""
+    from .api import launch
+    record = None if getattr(args, 'no_watch', False) else launch.running(state)
+    if not record: return
+    url = launch.url_of(record, '/scan')
+    say(f"تابع العمل حيًّا على خريطته: {url}" if state['lang'] == 'ar' else f"Watch the work live on its map: {url}")
+    launch._open(url, True)
 
 
 def next_command(args):

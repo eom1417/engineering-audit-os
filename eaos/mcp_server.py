@@ -172,7 +172,8 @@ def build():
 
     @server.tool(annotations=working, description='Check the whole project (26 stages: files, features, tools, tests, structure, '
                  'security, load, plan). Returns a job to follow with `wait`; when the project was already checked at this commit, '
-                 'returns the overview at once. fresh=true checks again from the start. ' + project_doc)
+                 'returns the overview at once. fresh=true checks again from the start. A started check answers with `watch`, '
+                 'its live map in the EAOS Studio, opened in the person\'s browser. ' + project_doc)
     @_answer
     def audit(project: str | None = None, fresh: bool = False) -> str:
         return tools.audit(project, fresh)

@@ -71,12 +71,15 @@ def _write_record(state, record):
     os.replace(temporary, path)
 
 
-def url_of(record):
+def url_of(record, route=''):
+    """The Studio's address with its launch token; `route` (`/scan`, the live map) opens that page, the token then in
+    the route's query (studio/public/boot.js reads both forms)."""
     origin = record.get('remote_origin')
     if origin:
         from ..studio.actions.security import Locks
         Locks(record['port'], remote_origin=origin)
-    return f"{origin or ('http://127.0.0.1:' + str(record['port']))}/#token={record['token']}"
+    base = origin or f"http://127.0.0.1:{record['port']}"
+    return f"{base}/#{route}?token={record['token']}" if route else f"{base}/#token={record['token']}"
 
 
 def prepare(project=None):
@@ -91,8 +94,10 @@ def prepare(project=None):
     return state, report
 
 
-def open_studio(project=None, show=True):
-    """`open_studio`: the live Studio's address, starting its server in the background when it is not running."""
+def open_studio(project=None, show=True, route=''):
+    """`open_studio`: the live Studio's address (on `route`, when given), starting its server in the background when it
+    is not running. The server runs from the EAOS workspace folder with PYTHONSAFEPATH=1, so neither the folder it
+    starts in nor the project (which may be EAOS's own repository) can put another `eaos` before this one."""
     state, report = prepare(project)
     found = running(state)
     started = False
@@ -102,8 +107,9 @@ def open_studio(project=None, show=True):
         with open(logs / 'studio-server.log', 'ab') as log:
             # The same EAOS as this one, wherever the project folder is
             here = str(Path(__file__).resolve().parents[2])
-            env = {**os.environ, 'PYTHONPATH': os.pathsep.join([here, *filter(None, [os.environ.get('PYTHONPATH')])])}
-            subprocess.Popen([sys.executable, '-m', 'eaos', 'studio', state['project'], '--no-open'], cwd=state['project'], env=env,
+            env = {**os.environ, 'PYTHONSAFEPATH': '1',
+                   'PYTHONPATH': os.pathsep.join([here, *filter(None, [os.environ.get('PYTHONPATH')])])}
+            subprocess.Popen([sys.executable, '-m', 'eaos', 'studio', state['project'], '--no-open'], cwd=state['workspace'], env=env,
                              stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True, close_fds=True)
         deadline = time.monotonic() + STARTUP
         while time.monotonic() < deadline and not found:
@@ -113,7 +119,7 @@ def open_studio(project=None, show=True):
         if not found:
             return {'error': 'the Studio server did not start in time', 'log': str(logs / 'studio-server.log'),
                     'what_now': 'Tell the person the live Studio could not start, and offer open_report (the report page) instead.'}
-    url = url_of(found)
+    url = url_of(found, route)
     opened = _open(url, show)
     return {'studio': url, 'opened_in_browser': opened, 'started': started, 'live': True,
             'checked': guided.scan_done(state),
