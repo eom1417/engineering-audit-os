@@ -288,7 +288,7 @@ def b(x): return x
 def c(x): return x
 RUN = {'one': a, 'two': b, 'three': c}
 STAGES = (
-    Step('one', kind='ai', routes=(('good', 'two'), ('bad', 'review'))),
+    Step('one', kind='ai', budget=60, routes=(('good', 'two'), ('bad', 'review'))),
     Step('two', requires=('one',)),
     Step('three', requires=('two',)),
 )
@@ -306,6 +306,7 @@ def go():
         labels = {s['id']: s['label'] for s in found['stages']}
         self.assertEqual([(b['condition'], labels[b['to']]) for b in router['branches']], [('good', 'two'), ('bad', 'review')])
         self.assertEqual(router['kind'], 'conditional_edges')
+        self.assertEqual([s['timeout'] for s in found['stages'] if s['label'] in ('one', 'two')], [True, False])   # a declared budget is its limit
 
 
 class Studio(Base):

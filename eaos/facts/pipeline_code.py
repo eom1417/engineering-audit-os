@@ -4,7 +4,7 @@ import ast
 import sys
 from collections import defaultdict
 
-from .pipeline_read import (slug, site, Found, _str, _strs, _name, _root, _decorators, _literal_label, _unparse, describe, REQUIRES, PRODUCES, CONSUMES, PIPELINE_WORDS, PHASE_CALLS, FLOW_DECORATORS, ERROR_STATES, CONTEXT_PARAMS, DICT_METHODS, MODEL_WORDS, SIGNATURES)
+from .pipeline_read import (slug, site, Found, _str, _strs, _name, _root, _decorators, _literal_label, _unparse, describe, REQUIRES, PRODUCES, CONSUMES, TIMEOUT_WORDS, PIPELINE_WORDS, PHASE_CALLS, FLOW_DECORATORS, ERROR_STATES, CONTEXT_PARAMS, DICT_METHODS, MODEL_WORDS, SIGNATURES)
 
 
 def _registry_for(py, names):
@@ -70,7 +70,8 @@ def declared_lists(py, out):
                     any(k.arg == 'routes' for k in keywords) and _default_kind(py, rel, element) == 'ai')
                 rows.append({'label': label, 'line': element.lineno, 'requires': requires, 'produces': produces,
                              'consumes': consumes, 'functions': functions, 'optional': optional, 'ai': ai,
-                             'routes': [r for k in keywords if k.arg in ROUTES for r in _routes(k.value)]})
+                             'routes': [r for k in keywords if k.arg in ROUTES for r in _routes(k.value)],
+                             'timeout': any(k.arg in TIMEOUT_WORDS for k in keywords)})
             else:
                 names = [r['label'] for r in rows]
                 if len(set(names)) != len(names): continue
@@ -154,6 +155,7 @@ def _declared_dag(py, rel, var, node, rows, drivers, out):
         if target:
             found.functions.add((target[0], target[1].name))
             describe(py, target[0], target[1], stage)
+        if row['timeout']: stage['timeout'] = True   # a time or cost budget declared on the stage's record
         if row['ai']:
             stage['kind'] = 'ai'
             stage['marks'] = sorted(set(stage['marks']) | {'ai', 'slow'})

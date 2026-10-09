@@ -88,11 +88,13 @@ function AiNodeRun({ label }: { label: string }) {
       </p>
       {run.method === 'rules' && run.why && <p className={frame.insP}><Txt>{run.why}</Txt></p>}
       <h4 className={css.aiRoutesH}>{w('aiRoutes')}</h4>
-      <ul className={css.branches}>
+      <ul className={css.aiRoutes}>
         {run.routes.map((r) => (
           <li key={r.decision}>
-            <span className={css.cond}><Id value={r.decision} /></span>
-            <span><N value={r.subjects} /> → {nodes.sinks.has(r.to) ? pick(nodes.sinks.get(r.to)!) : <Id value={r.to} />}</span>
+            <span className={css.aiRouteHead}>
+              <span className={css.cond}><Id value={r.decision} /></span>
+              <span><N value={r.subjects} /> → {nodes.sinks.has(r.to) ? pick(nodes.sinks.get(r.to)!) : <Id value={r.to} />}</span>
+            </span>
             <span className={css.muted}>{pick(r.when)}</span>
           </li>
         ))}

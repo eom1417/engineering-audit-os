@@ -134,7 +134,7 @@
   "gaps": {
    "src": "pipeline.json#views.gap: one per broken rule of eaos/data/pipeline-rules.json",
    "unit": "count",
-   "value": 23
+   "value": 19
   },
   "hidden": {
    "src": "facts/pipeline.json#pipeline_hidden",
@@ -3483,7 +3483,7 @@
    "why": "A stage nothing reaches, or an output nobody reads, is cost without value and hides what really runs."
   },
   {
-   "broken": 12,
+   "broken": 8,
    "id": "P9",
    "source": "Nygard, Release It!, 2nd edition (2018), Timeouts and Bulkheads",
    "title": "Slow and risky stages are marked",
@@ -7325,74 +7325,6 @@
     "subject_kind": "stage"
    },
    {
-    "card": null,
-    "detail": "card_triage is ai, slow and declares no timeout or budget",
-    "evidence": {
-     "fact": null,
-     "line": 158,
-     "path": "eaos/studio/nodes/triage.py",
-     "text": "def run(node, report, **options):"
-    },
-    "id": "gap:P9:eaos/studio/nodes/__init__.py:NODES/card_triage",
-    "operation": "refactor",
-    "pipeline": "eaos/studio/nodes/__init__.py:NODES",
-    "rule": "P9",
-    "step": null,
-    "subject": "eaos/studio/nodes/__init__.py:NODES/card_triage",
-    "subject_kind": "stage"
-   },
-   {
-    "card": null,
-    "detail": "pipeline_gap_planner is ai, slow and declares no timeout or budget",
-    "evidence": {
-     "fact": null,
-     "line": 87,
-     "path": "eaos/studio/nodes/pipeline_gap_planner.py",
-     "text": "def run(node, report, **options):"
-    },
-    "id": "gap:P9:eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner",
-    "operation": "refactor",
-    "pipeline": "eaos/studio/nodes/__init__.py:NODES",
-    "rule": "P9",
-    "step": null,
-    "subject": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner",
-    "subject_kind": "stage"
-   },
-   {
-    "card": null,
-    "detail": "plan_orderer is ai, slow and declares no timeout or budget",
-    "evidence": {
-     "fact": null,
-     "line": 129,
-     "path": "eaos/studio/nodes/plan_orderer.py",
-     "text": "def run(node, report, **options):"
-    },
-    "id": "gap:P9:eaos/studio/nodes/__init__.py:NODES/plan_orderer",
-    "operation": "refactor",
-    "pipeline": "eaos/studio/nodes/__init__.py:NODES",
-    "rule": "P9",
-    "step": null,
-    "subject": "eaos/studio/nodes/__init__.py:NODES/plan_orderer",
-    "subject_kind": "stage"
-   },
-   {
-    "card": null,
-    "detail": "fix_reviewer is ai, slow and declares no timeout or budget",
-    "evidence": {
-     "fact": null,
-     "line": 96,
-     "path": "eaos/studio/nodes/fix_reviewer.py",
-     "text": "def run(node, report, **options):"
-    },
-    "id": "gap:P9:eaos/studio/nodes/__init__.py:NODES/fix_reviewer",
-    "operation": "refactor",
-    "pipeline": "eaos/studio/nodes/__init__.py:NODES",
-    "rule": "P9",
-    "step": null,
-    "subject": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer",
-    "subject_kind": "stage"
-   },
-   {
     "card": "TASK-032",
     "detail": "source inspection is ai, slow and declares no timeout or budget",
     "evidence": {
@@ -8662,10 +8594,10 @@
       "ai",
       "slow"
      ],
-     "op": "refactor",
+     "op": "retain",
      "pipeline": "eaos/studio/nodes/__init__.py:NODES",
-     "rule": "P9",
-     "why": "card_triage is ai, slow and declares no timeout or budget"
+     "rule": null,
+     "why": null
     },
     {
      "contract": {
@@ -8698,10 +8630,10 @@
       "ai",
       "slow"
      ],
-     "op": "refactor",
+     "op": "retain",
      "pipeline": "eaos/studio/nodes/__init__.py:NODES",
-     "rule": "P9",
-     "why": "pipeline_gap_planner is ai, slow and declares no timeout or budget"
+     "rule": null,
+     "why": null
     },
     {
      "contract": {
@@ -8720,10 +8652,10 @@
       "ai",
       "slow"
      ],
-     "op": "refactor",
+     "op": "retain",
      "pipeline": "eaos/studio/nodes/__init__.py:NODES",
-     "rule": "P9",
-     "why": "plan_orderer is ai, slow and declares no timeout or budget"
+     "rule": null,
+     "why": null
     },
     {
      "contract": {
@@ -8740,10 +8672,10 @@
       "ai",
       "slow"
      ],
-     "op": "refactor",
+     "op": "retain",
      "pipeline": "eaos/studio/nodes/__init__.py:NODES",
-     "rule": "P9",
-     "why": "fix_reviewer is ai, slow and declares no timeout or budget"
+     "rule": null,
+     "why": null
     },
     {
      "contract": {
