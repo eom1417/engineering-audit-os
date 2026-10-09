@@ -1,5 +1,5 @@
 {
- "about": "The Studio's routes for the screen gate: python tools/studio_gates.py --studio (studio/README.md). {card} is a problem card with evidence and {component} the component holding the most cards in the report given with --data; {task}, {screen} and {hidden_group}: a journeys task with a path, a flagged screen and an unseen group with items; {store}: the first data store written from more than one place (tools/studio_gates.py).",
+ "about": "The Studio's routes for the screen gate: python tools/studio_gates.py --studio (studio/README.md). {card} is a problem card with evidence and {component} the component holding the most cards in the report given with --data; {task}, {screen} and {hidden_group}: a journeys task with a path, a flagged screen and an unseen group with items; {function}: the function with the most callers and callees (studio/functions.json); {screen_page}: the first screen with a shot, else the first screen (studio/screens.json); {store}: the first data store written from more than one place (tools/studio_gates.py).",
  "wait_for": "main#main",
  "variants": [
   {"name": "ar-light", "query": {"lang": "ar", "theme": "light"}, "color_scheme": "light", "expect": {"dir": "rtl", "attributes": {"lang": "ar", "data-theme": "light"}}},
@@ -60,6 +60,11 @@
   {"name": "pipeline-steps", "path": "index.html#/system/pipeline?show=steps"},
   {"name": "pipeline-stage", "path": "index.html#/system/pipeline?stage={stage}&hidden=1"},
   {"name": "gallery-pipeline", "path": "index.html#/_gallery/pipeline"},
+  {"name": "functions", "path": "index.html#/system/functions"},
+  {"name": "functions-search", "path": "index.html#/system/functions?q=save&show=data", "viewports": ["phone", "desktop"]},
+  {"name": "function", "path": "index.html#/system/f/{function}"},
+  {"name": "screens", "path": "index.html#/screens"},
+  {"name": "screen", "path": "index.html#/screens/{screen_page}"},
   {"name": "palette", "path": "index.html#/", "actions": [{"press": "Control+k", "wait": 300}, {"type": "مشاكل", "wait": 300}]},
   {"name": "sheet", "path": "index.html#/", "actions": [{"click": "[data-open=\"project\"]", "wait": 400}]},
   {"name": "runs", "path": "index.html#/runs?demo=1"},

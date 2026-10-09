@@ -42,6 +42,8 @@ STUDIO_DATA=<report>/studio npm run dev   # live development on a report's data,
 | `src/data/actions/` | the command centre's client against `docs/studio-actions.json` (bundled from the file): live (launch token, CSRF, SSE over fetch with `Last-Event-ID`) and demo (a recorded run replayed on the open report, `#/runs?demo=1`), the run view derived from events, the shared runs/queue/questions state |
 | `src/command/` | selection (check boxes, shift ranges, groups), the action bar, the preview sheet, run questions and their toast, the run pill |
 | `src/pages/runs/` | Runs (now, queue, history) and the live run |
+| `src/pages/functions/` | System → Functions (`studio/functions.json`, loaded when the page opens): the list, one function with its two-step call graph, the per-language coverage |
+| `src/pages/screens/` | System → Screens (`studio/screens.json`): the gallery, one screen with its shots, pinned issues and before/after slider, and the "not captured yet" states |
 | `src/map/` | the territory map (`studio/system.json`): drawing, pan and zoom, legend, minimap, ego diagram, inspector, ranked list, the Home and Change pieces, and its own word catalogue |
 
 ## Rules the build enforces

@@ -1,0 +1,79 @@
+/* The screens gallery (C-experience 3.4): the cards grid with its frames and badges, one screen's shot at its true
+   viewport with pinned issues and the before/after slider, its issues and inputs. Tokens only; logical properties only. */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chipBtn { min-block-size: 32px; padding: 2px 12px; border-radius: var(--radius-full); border: 1px solid var(--border-default); background: var(--bg-surface); color: var(--text-secondary); font-size: 13px; cursor: pointer; }
+.chipBtn:hover { background: var(--bg-hover); }
+.chipBtn[aria-pressed="true"] { background: var(--accent-subtle); border-color: var(--accent-solid); color: var(--accent-text); font-weight: 500; }
+.count { font-size: 12px; color: var(--text-tertiary); }
+.more { display: flex; justify-content: center; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 14px; }
+.cardItem { min-inline-size: 0; display: flex; }
+.card { display: flex; flex-direction: column; inline-size: 100%; border: 1px solid var(--border-default); border-radius: var(--radius-12); background: var(--bg-surface); color: inherit; text-decoration: none; overflow: hidden; }
+[data-theme="dark"] .card { border-color: var(--border-subtle); }
+.card:hover { border-color: var(--border-strong); }
+.card:hover .thumb { background: var(--bg-hover); }
+.card:focus-visible { outline-offset: 2px; }
+.thumb { display: block; aspect-ratio: 4 / 3; background: var(--bg-sunken); border-block-end: 1px solid var(--border-subtle); overflow: hidden; }
+.thumbImg { display: block; inline-size: 100%; block-size: 100%; object-fit: cover; object-position: top; }
+.thumbEmpty { display: flex; flex-direction: column; gap: 8px; block-size: 100%; padding: 12px; }
+.thumbBar { display: block; block-size: 8px; inline-size: 55%; border-radius: var(--radius-4); background: var(--border-default); }
+.thumbRoute { font-size: 12px; color: var(--text-secondary); overflow-wrap: anywhere; flex: 1; }
+.thumbWord { font-size: 11px; color: var(--text-tertiary); align-self: flex-start; padding: 2px 8px; border: 1px dashed var(--border-strong); border-radius: var(--radius-full); }
+.cardBody { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px 12px; min-inline-size: 0; }
+.cardTitle { font-weight: 500; font-size: var(--text-row); overflow-wrap: anywhere; line-height: 1.35; }
+.cardRoute { font-size: 12px; color: var(--text-tertiary); overflow-wrap: anywhere; }
+.cardMeta { display: flex; flex-wrap: wrap; gap: 6px; margin-block-start: 4px; }
+.badgeMuted, .badgeIssues, .badgeOk, .flag { font-size: 11px; padding: 1px 8px; border-radius: var(--radius-full); white-space: nowrap; }
+.badgeMuted { background: var(--bg-sunken); color: var(--text-tertiary); }
+.badgeIssues { background: var(--status-critical-subtle); color: var(--status-critical-text); }
+.badgeOk { background: var(--status-good-subtle); color: var(--status-good-text); }
+.flag { background: var(--status-warning-subtle); color: var(--status-warning-text); }
+
+.kicker { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+.routeLine { font-size: 14px; color: var(--text-secondary); overflow-wrap: anywhere; }
+.flags { display: flex; flex-wrap: wrap; gap: 6px; }
+.links { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 14px; }
+.inlineLink { color: var(--accent-text); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; padding-block: 4px; overflow-wrap: anywhere; }
+
+.noShot { display: flex; gap: 14px; align-items: center; padding: 16px; }
+.noShotFrame { display: grid; place-items: center; inline-size: 56px; block-size: 72px; flex: none; border: 1px dashed var(--border-strong); border-radius: var(--radius-8); color: var(--text-tertiary); background: var(--bg-sunken); }
+.noShotTitle { font-weight: 500; }
+.noShotSub { font-size: 13px; color: var(--text-tertiary); }
+.empty { padding: 12px 16px; font-size: 13px; color: var(--text-tertiary); }
+
+.viewer { display: flex; flex-direction: column; gap: 12px; min-inline-size: 0; }
+.viewerBar { display: flex; flex-wrap: wrap; gap: 8px; }
+.stage { max-inline-size: 100%; overflow-x: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-12); background: var(--bg-sunken); padding: 12px; }
+.canvas { position: relative; margin-inline: auto; }
+.shot { display: block; inline-size: 100%; block-size: auto; }
+.compare { position: relative; }
+.beforeClip { position: absolute; inset: 0; }
+.range { inline-size: 100%; accent-color: var(--accent-solid); }
+.pin { position: absolute; border: 2px solid var(--status-critical); border-radius: var(--radius-4); background: transparent; cursor: pointer; }
+.pinOn { box-shadow: 0 0 0 3px var(--focus-ring); }
+.pinN { position: absolute; inset-block-start: -12px; inset-inline-start: -12px; inline-size: 22px; block-size: 22px; border-radius: var(--radius-full); background: var(--status-critical); color: var(--text-on-accent); font-size: 12px; font-weight: 600; display: grid; place-items: center; }
+.issue { display: flex; align-items: flex-start; gap: 10px; padding: 10px 16px; }
+.issue + .issue { border-block-start: 1px solid var(--border-subtle); }
+.issueOn { background: var(--accent-subtle); }
+.issueN { inline-size: 22px; block-size: 22px; flex: none; border-radius: var(--radius-full); background: var(--status-critical); color: var(--text-on-accent); font-size: 12px; font-weight: 600; display: grid; place-items: center; }
+.issueMain { display: flex; flex-direction: column; gap: 2px; flex: 1; min-inline-size: 0; }
+.issueTitle { font-weight: 500; overflow-wrap: anywhere; }
+.issueSub { font-size: 12px; color: var(--text-tertiary); overflow-wrap: anywhere; }
+
+.props { display: flex; flex-direction: column; }
+.props > div { display: flex; justify-content: space-between; gap: 16px; padding-block: 8px; border-block-end: 1px solid var(--border-subtle); font-size: 14px; }
+.props > div:last-child { border-block-end: 0; }
+.props dt { color: var(--text-tertiary); flex: none; }
+.props dd { text-align: end; min-inline-size: 0; overflow-wrap: anywhere; }
+
+@media (max-width: 767px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .chipBtn { min-block-size: 44px; padding-inline: 14px; }
+  .inlineLink { display: inline-flex; align-items: center; min-block-size: 44px; min-inline-size: 44px; padding-block: 0; }
+  .cardBody { padding: 8px 10px 10px; }
+  .thumbEmpty { padding: 8px; }
+  .props > div { flex-direction: column; gap: 2px; }
+  .props dd { text-align: start; }
+}
