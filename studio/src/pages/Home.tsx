@@ -6,13 +6,13 @@ import { SeverityGlyph } from '../components/Chip'
 import { FoldList, Panel, RowLink, Section } from '../components/Panel'
 import { Sheet, SheetLead } from '../components/Sheet'
 import { DecisionCard, Headline, NextStep, headlineParts } from '../components/Story'
-import { counts } from '../data/context'
+import { counts, useSections } from '../data/context'
 import type { StudioData } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
 import { N, Txt } from '../i18n/text'
 import { usePageChrome } from '../shell/chrome'
 import { layout, MissingBanner, PageTitle, WithData } from '../shell/Layout'
-import { HOME_NEEDS } from '../data/stages'
+import { COUNT_NEEDS, HOME_NEEDS } from '../data/stages'
 import { nextRequest } from './requests'
 import { HomeMaps } from '../map/home'
 import css from './Pages.module.css'
@@ -51,13 +51,15 @@ function HomeBody({ data }: { data: StudioData }) {
   const project = data.manifest.project.name
   usePageChrome(t('home'), undefined, project)
   const c = useMemo(() => counts(data), [data])
+  // Home draws before the cards are read (data/stages.ts): until then its counts say so and its sentence has no links
+  const counting = useSections(COUNT_NEEDS, 'idle').includes('cards')
   const bandWord = useBandWord()
   const score = data.health?.score.value
   const scoreN = score === null || score === undefined ? null : Math.round(score * 100)
   const decisions = (data.decisions?.decisions ?? []).filter((d) => d.state === 'waiting')
   const [first, ...rest] = decisions
   const verdict = data.head?.verdict ?? ''
-  const parts = headlineParts(verdict, [
+  const parts = counting ? [verdict] : headlineParts(verdict, [
     { value: c.cards, to: '/problems' },
     { value: c.fixable, to: '/problems', search: { who: 'eaos' } },
   ])
@@ -74,17 +76,17 @@ function HomeBody({ data }: { data: StudioData }) {
           <div className={css.phoneOnly}>
             <Tiles>
               <StatTile value={scoreN} of={t('outOf100')} label={scoreN === null ? t('health') : <><BandDot score={scoreN} />{t('health')}: {bandWord(scoreN)}</>} meter={scoreN ?? undefined} onPress={() => setHealthOpen(true)} />
-              <StatTile value={c.needDecision} label={t('needCheck')} to="/problems" search={{ who: 'you' }} />
-              <StatTile value={c.bySeverity.high + c.bySeverity.critical} label={t('highSeverity')} to="/problems" search={{ severity: 'critical,high' }} />
+              <StatTile value={c.needDecision} counting={counting} label={t('needCheck')} to="/problems" search={{ who: 'you' }} />
+              <StatTile value={c.bySeverity.high + c.bySeverity.critical} counting={counting} label={t('highSeverity')} to="/problems" search={{ severity: 'critical,high' }} />
             </Tiles>
           </div>
           <Panel className={[css.status, css.deskOnly].join(' ')}>
             {data.health && <HealthBlock score={data.health.score} history={data.health.history.length} onPress={() => setHealthOpen(true)} />}
             <div className={css.statusSide}>
               <StatLinks label={t('problems')}>
-                <StatLink icon={<SeverityGlyph severity="critical" word={false} />} value={c.needDecision} label={t('needCheck')} to="/problems" search={{ who: 'you' }} />
+                <StatLink icon={<SeverityGlyph severity="critical" word={false} />} value={c.needDecision} counting={counting} label={t('needCheck')} to="/problems" search={{ who: 'you' }} />
                 {(['high', 'medium', 'low'] as const).map((sev) => (
-                  <StatLink key={sev} icon={<SeverityGlyph severity={sev} word={false} />} value={c.bySeverity[sev] + (sev === 'high' ? c.bySeverity.critical : 0)}
+                  <StatLink key={sev} counting={counting} icon={<SeverityGlyph severity={sev} word={false} />} value={c.bySeverity[sev] + (sev === 'high' ? c.bySeverity.critical : 0)}
                     label={t(sev === 'high' ? 'sevHigh' : sev === 'medium' ? 'sevMedium' : 'sevLow')} to="/problems" search={{ severity: sev === 'high' ? 'critical,high' : sev }} />
                 ))}
               </StatLinks>

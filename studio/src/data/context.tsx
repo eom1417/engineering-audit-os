@@ -100,14 +100,23 @@ export function useLoaded(): Loaded {
 }
 
 /** The sections of `needs` (every section when 'all') still being read, after asking for them: [] once they are all
- * there. A page shows its loading state until then, so it never draws a part of the report as empty. */
-export function useSections(needs: readonly SectionName[] | 'all'): SectionName[] {
+ * there. A page shows its loading state until then, so it never draws a part of the report as empty. `when: 'idle'`
+ * asks once the page is drawn and the browser is idle, so what is drawn first does not share the network with them. */
+export function useSections(needs: readonly SectionName[] | 'all', when: 'now' | 'idle' = 'now'): SectionName[] {
   const loaded = useContext(DataContext)
   const request = useContext(SectionsContext)
   const pending = loaded.kind === 'ready' ? loaded.data.pending ?? [] : []
   const waiting = needs === 'all' ? pending : pending.filter((name) => needs.includes(name))
   const key = waiting.join(',')
-  useEffect(() => { if (key) request(key.split(',') as SectionName[]) }, [key, request])
+  useEffect(() => {
+    if (!key) return
+    const ask = () => request(key.split(',') as SectionName[])
+    if (when === 'now') return ask()
+    // (a browser without requestIdleCallback asks after the next frame)
+    if (window.requestIdleCallback) { const id = window.requestIdleCallback(ask, { timeout: 2000 }); return () => window.cancelIdleCallback(id) }
+    const id = window.setTimeout(ask, 50)
+    return () => window.clearTimeout(id)
+  }, [key, request, when])
   return waiting
 }
 

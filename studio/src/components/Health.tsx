@@ -76,13 +76,19 @@ export function Tiles({ children }: { children: ReactNode }) {
 }
 
 /** A phone stat tile: the whole tile is the link to what it counts, or opens the sheet that explains it. */
-export function StatTile({ value, of, label, to, search, meter, onPress }:
-  { value: number | null; of?: string; label: ReactNode; to?: string; search?: Search; meter?: number; onPress?: () => void }) {
+/** A count still being read (data/stages.ts COUNT_NEEDS): an ellipsis, and "counting" for a screen reader. Never 0. */
+function Counting({ className }: { className?: string }) {
+  const { t } = usePrefs()
+  return <span className={className}><span className={css.unmeasured} aria-hidden="true">…</span><span className="sr">{t('counting')}</span></span>
+}
+
+export function StatTile({ value, of, label, to, search, meter, onPress, counting }:
+  { value: number | null; of?: string; label: ReactNode; to?: string; search?: Search; meter?: number; onPress?: () => void; counting?: boolean }) {
   const { t } = usePrefs()
   const body = (
     <>
-      <span className={css.tileN}>{value === null ? <span className={css.unmeasured}>—</span> : <N value={value} />}{of && <span className={css.of}>{of}</span>}</span>
-      <span className={css.tileL}>{label}{value === null && <span className="sr">{t('notMeasured')}</span>}</span>
+      <span className={css.tileN}>{counting ? <Counting /> : value === null ? <span className={css.unmeasured}>—</span> : <N value={value} />}{of && <span className={css.of}>{of}</span>}</span>
+      <span className={css.tileL}>{label}{!counting && value === null && <span className="sr">{t('notMeasured')}</span>}</span>
       {meter !== undefined && <Meter score={meter} ticks={false} />}
     </>
   )
@@ -94,11 +100,11 @@ export function StatLinks({ children, label }: { children: ReactNode; label?: st
   return <nav className={css.statLinks} aria-label={label}>{children}</nav>
 }
 
-export function StatLink({ icon, value, label, to, search }: { icon?: ReactNode; value: number; label: string; to: string; search?: Search }) {
+export function StatLink({ icon, value, label, to, search, counting }: { icon?: ReactNode; value: number; label: string; to: string; search?: Search; counting?: boolean }) {
   return (
     <Go to={to} search={search} className={css.statLink}>
       {icon && <span className={css.statIcon}>{icon}</span>}
-      <N value={value} className={css.statN} />
+      {counting ? <Counting className={css.statN} /> : <N value={value} className={css.statN} />}
       <span className={css.statL}>{label}</span>
       <Icon name="chevron" />
     </Go>

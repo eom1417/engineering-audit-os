@@ -175,6 +175,7 @@ export const WORDS = {
   // data states
   loading: ['يحمّل التقرير…', 'Loading the report…'],
   loadingPage: ['يحمّل الصفحة…', 'Loading the page…'],
+  counting: ['يحسب…', 'Counting…'],
   loadingRest: ['يحمّل بقية التقرير…', 'Loading the rest of the report…'],
   loadingParts: ['أجزاء باقية: {n}', 'Parts left: {n}'],
   emptyTitle: ['لا يوجد تقرير هنا بعد', 'No report here yet'],

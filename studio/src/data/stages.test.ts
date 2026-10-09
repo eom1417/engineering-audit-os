@@ -3,7 +3,7 @@ import path from 'node:path'
 import vm from 'node:vm'
 import { describe, expect, it } from 'vitest'
 import { withSections } from './load'
-import { CARD_NEEDS, GROUP_NEEDS, HOME_NEEDS, PROBLEMS_NEEDS, SHELL_NEEDS } from './stages'
+import { CARD_NEEDS, COUNT_NEEDS, GROUP_NEEDS, HOME_NEEDS, PROBLEMS_NEEDS, SHELL_NEEDS } from './stages'
 import { SECTIONS, type StudioData } from './types'
 
 /** boot.js's FIRST table, read from the shipped boot script itself. */
@@ -26,10 +26,13 @@ describe('the sections a page reads first', () => {
   })
 
   it('names only report sections, and the frame and selection sheet need nothing a first page lacks', () => {
-    for (const list of [SHELL_NEEDS, HOME_NEEDS, PROBLEMS_NEEDS, CARD_NEEDS, GROUP_NEEDS]) {
+    for (const list of [SHELL_NEEDS, COUNT_NEEDS, HOME_NEEDS, PROBLEMS_NEEDS, CARD_NEEDS, GROUP_NEEDS]) {
       for (const name of list) expect(SECTIONS).toContain(name)
     }
     for (const page of [HOME_NEEDS, PROBLEMS_NEEDS]) for (const name of SHELL_NEEDS) expect(page).toContain(name)
+    // Home draws before its counts arrive; the Problems list waits for them
+    for (const name of COUNT_NEEDS) expect(HOME_NEEDS).not.toContain(name)
+    for (const name of COUNT_NEEDS) expect(PROBLEMS_NEEDS).toContain(name)
   })
 
   it('moves a section from pending into the report, or into missing when its file did not load', () => {

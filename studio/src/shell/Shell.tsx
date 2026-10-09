@@ -15,7 +15,8 @@ import { CopyRequestButton } from '../components/Button'
 import { CommandProvider } from '../command/command'
 import { CommandHost } from '../command/CommandHost'
 import { useActions } from '../data/actions/store'
-import { counts, useLoaded, useStudio, type Counts } from '../data/context'
+import { counts, useLoaded, useSections, useStudio, type Counts } from '../data/context'
+import { COUNT_NEEDS } from '../data/stages'
 import type { Freshness, StudioData } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
 import { Id, N } from '../i18n/text'
@@ -63,11 +64,12 @@ function Sidebar({ project, current, onPalette, onProject }: { project: string; 
   const data = useStudio()
   const sections = visibleSections(dev)
   const live = useLiveCounts()
+  const pending = data?.pending ?? []
   const item = (s: SectionDef) => (
     <Go key={s.id} to={s.to} className={css.navItem} current={current?.id === s.id} label={t(s.nav)}>
       <Icon name={s.icon} />
       <span className={css.navLabel}>{t(s.nav)}</span>
-      {c && s.count && <N value={s.count(c) + (live[s.id] ?? 0)} className={css.navCount} />}
+      {c && s.count && !(s.countFrom && pending.includes(s.countFrom)) && <N value={s.count(c) + (live[s.id] ?? 0)} className={css.navCount} />}
       {!s.count && live[s.id] ? <N value={live[s.id]} className={css.navCount} /> : null}
     </Go>
   )
@@ -111,10 +113,11 @@ function TabBar({ current }: { current?: SectionDef }) {
   const { t } = usePrefs()
   const c = useCounts()
   const live = useLiveCounts()
+  const pending = useStudio()?.pending ?? []
   return (
     <nav className={css.tabbar} aria-label={t('mainTabs')}>
       {visibleSections(false).filter((s) => s.tabbar).map((s) => {
-        const badge = (c && s.badge ? s.badge(c) : 0) + (s.badge ? live[s.id] ?? 0 : 0)
+        const badge = (c && s.badge && !(s.countFrom && pending.includes(s.countFrom)) ? s.badge(c) : 0) + (s.badge ? live[s.id] ?? 0 : 0)
         return (
           <Go key={s.id} to={s.to} className={css.tab} current={current?.id === s.id}>
             <span className={css.tabIcon}><Icon name={s.icon} size={22} />{badge > 0 && <span className={css.tabBadge}><Badge count={badge} /></span>}</span>
@@ -259,6 +262,8 @@ export function Shell() {
   const [projectSheet, setProjectSheet] = useState(false)
   const [scanSheet, setScanSheet] = useState(false)
   const project = data?.manifest.project.name ?? t('studio')
+  // The frame's counts are read once the first page is drawn (data/stages.ts COUNT_NEEDS)
+  useSections(COUNT_NEEDS, 'idle')
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
