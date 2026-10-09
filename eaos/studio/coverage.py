@@ -173,7 +173,21 @@ def _infra_parts(body, lang):
     return parts
 
 
-PARTS = {'paths': _paths_parts, 'data_paths': _data_paths_parts, 'infra': _infra_parts, 'pipeline': _pipeline_parts}
+def _functions_parts(body, lang):
+    """Each language of the project: its functions measured with their calls, measured without calls (Lizard only), or not
+    measured, so a language with no function facts is named here rather than left out of an empty list."""
+    words = {'measured': ('دالة بعلاقات استدعائها', 'functions with their calls'), 'partial': ('دالة بلا تتبع للاستدعاءات', 'functions, calls not traced'),
+             'not_measured': ('لا حقائق دوال بعد', 'no function facts yet')}
+    parts = []
+    for row in body.get('languages') or []:
+        ar, en = words[row['state']] if row['state'] in words else (row['state'], row['state'])
+        n = row['functions']['value']
+        parts.append({'id': row['id'], 'state': row['state'],
+                      'detail': _text(lang, f"{row['id']}: " + (f'{n} {ar}' if n is not None else ar), f"{row['id']}: " + (f'{n} {en}' if n is not None else en))})
+    return parts
+
+
+PARTS = {'functions': _functions_parts, 'paths': _paths_parts, 'data_paths': _data_paths_parts, 'infra': _infra_parts, 'pipeline': _pipeline_parts}
 
 
 def coverage(report, built, written, errors, lang='ar'):

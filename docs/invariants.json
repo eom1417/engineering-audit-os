@@ -1921,6 +1921,24 @@
       "kind": "invariant",
       "enforced_by": "tests/test_pipeline_map.py::NothingInvented::test_never_runs_the_project",
       "note": ""
+    },
+    {
+      "id": "INV-ed17045582",
+      "file": "eaos/studio/functions.py",
+      "symbol": "<module>",
+      "statement": "A call that does not resolve is left out, never guessed; the share resolved is counted reads and facts/entrypoints.json data_access (a table read or written, a request sent) and facts/config.json writes env_read, each in the innermost function whose lines hold it cards the cards whose evidence sits on a line of the function (innermost)",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_functions.py::Functions::test_calls_resolve_within_the_file_and_through_imports_and_nothing_is_guessed",
+      "note": ""
+    },
+    {
+      "id": "INV-e98c64897a",
+      "file": "eaos/studio/screens.py",
+      "symbol": "<module>",
+      "statement": "What is not measured is written in `missing` (counted in coverage.json, shown on the page), never as an empty list that would read as \"no issues\".",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_functions.py::Screens::test_every_page_is_a_screen_and_what_was_not_captured_is_named",
+      "note": ""
     }
   ],
   "limits": "Extraction is lexical: it finds sentences that assert, not every promise a docstring makes. A sentence it misses is still an invariant."
