@@ -157,3 +157,29 @@ class BackendCoverage(unittest.TestCase):
             self.assertTrue(counted.get(stage), stage)
             self.assertTrue(all(0 <= done <= total and (status != 'ok' or done == total) for _, done, total, status in counted[stage]), stage)
             self.assertTrue(any(total > 0 and status == 'ok' for _, _, total, status in counted[stage]), stage)
+
+
+class ServerAndEntry(unittest.TestCase):
+    """Live scan map v2, phase 3 (eaos-dev/planning/live-scan-map/PLAN-v2.md sections 3.7, 3.8 and 7.3), planned
+    2026-10-09: the person reaches the live map from the assistant.
+
+    The evidence is $EAOS_MEASURE/live-scan-map/watch.json, written by tools/watch_trial.py from one real headless
+    Claude Code session (`claude -p`, EAOS's MCP server, the EAOS tools and Read only) asked in plain Arabic to check a
+    corpus project. The session called `audit`; its answer carried `watch`, the live map's address on this computer
+    (`#/scan` with the launch token, redacted in the record); the Studio at that address answered /api/progress with
+    that token, giving the check's flow of 26 declared stages beside the setup, safety and fix flows."""
+
+    def test_a_real_assistant_session_gets_the_live_map_address_from_audit(self):
+        import json
+        import re
+        path = measure.REPORTS / 'live-scan-map' / 'watch.json'
+        self.assertTrue(path.is_file(), f'no real session recorded at {path}')
+        record = json.loads(path.read_text(encoding='utf-8'))
+        self.assertTrue(record['session'] and Path(record['transcript']).is_file(), 'the session and its transcript')
+        self.assertTrue(record['audit_answers'], 'the assistant called audit')
+        self.assertRegex(record['watch'], r'^http://127\.0\.0\.1:\d+/#/scan\?token=<redacted>$')
+        self.assertIn(record['watch'], [answer.get('watch') for answer in record['audit_answers']])
+        progress = record['progress']
+        self.assertEqual((progress['status'], progress['stages'], progress['flows']), (200, 26, ['check', 'fix', 'safety', 'setup']))
+        self.assertIsNotNone(progress['check_run'], 'the map shows the check the session started')
+        self.assertFalse(re.search(r'token=(?!<redacted>)', path.read_text(encoding='utf-8')), 'no launch token is kept')

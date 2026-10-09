@@ -493,17 +493,26 @@ This is EAOS's own pipeline, not the audited project's (that is the pipeline map
   total)` (at most 4 lines a second per step), the external programs the run started are written as
   `stage.activity` (read from `ps` every 2 s), and `run.alive` follows 10 s of silence; the server shows a run that
   promised heartbeats and stayed silent 30 s as `stalled`. Other flows write `<folder>/progress/<flow>.jsonl`.
-- **The server.** The feed tails the file and publishes each new line as a `scan.stage` event (source `progress`) in
-  the same numbering and replay; what the file held when the server started is state, not events.
-  `GET /api/scan-progress` gives the folded state, each stage's `layer` and `order` from the pinned layered layout,
-  the server's clock, and `interrupted` when the process that ran the check is gone.
+- **The server.** The feed tails every progress file (the check's, and `<runtime>/progress/<flow>.jsonl` of setting
+  up, recording the screens and fixing) and publishes each new line as a `progress` event (source `progress`, the
+  line plus its `flow`) in the same numbering and replay; what the files held when the server started is state, not
+  events. `GET /api/progress` gives the journey (`eaos/guided.py:journey`) and every flow folded, each stage's `layer`
+  and `order` from the pinned layered layout, its time left, the server's clock, and `interrupted` or `stalled` for a
+  run nobody hears from; a flow that has not run yet is its declared stages, waiting. `GET /api/scan-progress` is its
+  check flow alone. `GET /api/report-file?path=` gives a produced file: a relative path inside the report folder only
+  (resolved, so no `..` and no link leads out), text types only, at most 2 MB, as `text/plain` so it is never rendered.
+- **Getting there.** The assistant's `audit`, `run_setup`, `safety_net` and `fix_start` open the Studio once on
+  `#/scan` (`open_studio`) and answer with its address in `watch` (the routed address when the Studio was started
+  with `--remote-origin`); in a run the Studio itself started, no other tab opens. `eaos start` prints and opens the
+  same address when the project's Studio is running (`--no-watch` skips it). `open_studio` starts the server from the
+  EAOS workspace folder with `PYTHONSAFEPATH=1`, so a check of EAOS's own repository never loads the checked code.
 - **The page.** The map is drawn from that data, so a new stage or tool appears with no front-end change; the
   orientation is whichever reads larger in the box. The running stage glows; a light runs along each link into it
   and once along each link out of a stage that just ended to the stages it opened. The panel tells the chosen stage:
   what it does, its live timer, its steps, what it produced, why it did not run. The stage list under the map is the
   keyboard and touch path to every stage. The run line says stage n of N, the elapsed time, and a time left only from
   the last run of the same project. A banner on every page links to it while a check runs. With reduced motion nothing
-  moves. `scan.stage` events go to the map (`studio/src/data/scan.ts`) and never reload the report's sections.
+  moves. The check's `progress` events go to the map (`studio/src/data/scan.ts`) and never reload the report's sections.
 - **Limits.** Precision is per stage, and per step inside `facts` and `engines`; inside one tool there is no
   percentage. The snapshot opened from a file says the live map needs the live Studio. A check made before this
   feature shows the designed empty state. The flows after the scan (setting the app up, screens, fixes) do not write

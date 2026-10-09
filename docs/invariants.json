@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "3165626",
+  "extracted_at_commit": "2e30ff7",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -48,6 +48,18 @@
       "note": ""
     },
     {
+      "id": "INV-ea16b60af3",
+      "file": "eaos/agent_tools.py",
+      "symbol": "_watch",
+      "statement": "open_studio on the live map (eaos/api/launch.py), in the browser unless the Studio itself asked (EAOS_STUDIO_RUN); None when it cannot start: the work goes on without its map.",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_progress_server.py::Watch::test_the_work_starts_without_its_map_when_the_studio_cannot",
+        "tests/test_progress_server.py::Watch::test_a_run_the_studio_started_does_not_open_another_tab"
+      ],
+      "note": ""
+    },
+    {
       "id": "INV-f671b09e18",
       "file": "eaos/api/guard.py",
       "symbol": "<module>",
@@ -75,14 +87,50 @@
       "note": ""
     },
     {
-      "id": "INV-0ed525987d",
+      "id": "INV-2171dbd4d5",
       "file": "eaos/api/read.py",
-      "symbol": "scan_state",
-      "statement": "The folded progress of the report's last (or running) check, each stage placed by the same pinned layered layout as the other maps (longest path, barycentre), the server's clock for the page's timers, and whether a run that never ended is still heard from (eaos/progress/liveness.py): a stopped process makes it `interrupted`, 30 s without a line from a run that promised heartbeats makes it `stalled`, never a run that glows for ever.",
+      "symbol": "<module>",
+      "statement": "A flow that has not run yet shows its declared stages GET /api/scan-progress the check's flow alone, as /api/progress has it (the v1 route) GET /api/report-file?path= a text file the check produced, by its path inside the report folder: nothing outside it, no `..`, text types only, at most 2 MB, never rendered (text/plain)",
       "kind": "invariant",
       "enforced_by": [
+        "tests/test_progress_server.py::ProgressRoute::test_the_journey_and_every_flow_folded_and_laid_out",
+        "tests/test_progress_server.py::ReportFile::test_paths_that_leave_the_report_are_refused",
+        "tests/test_progress_server.py::ReportFile::test_only_existing_text_files_up_to_two_megabytes"
+      ],
+      "note": ""
+    },
+    {
+      "id": "INV-6c5fc919e2",
+      "file": "eaos/api/read.py",
+      "symbol": "flow_state",
+      "statement": "The folded progress of a flow's last (or running) run, each stage placed by the same pinned layered layout as the other maps (longest path, barycentre), its time left (eaos/progress/estimate.py), and whether a run that never ended is still heard from (eaos/progress/liveness.py): a stopped process makes it `interrupted`, 30 s without a line from a run that promised heartbeats makes it `stalled`, never a run that glows for ever.",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_progress_server.py::ProgressRoute::test_the_journey_and_every_flow_folded_and_laid_out",
+        "tests/test_live_scan_map.py::ProgressApi::test_a_page_opened_mid_run_gets_the_whole_state_with_places",
         "tests/test_live_scan_map.py::ProgressFile::test_a_run_whose_process_is_gone_is_interrupted_not_running_for_ever",
         "tests/test_progress_contract.py::Liveness::test_the_server_shows_a_silent_run_as_stalled"
+      ],
+      "note": ""
+    },
+    {
+      "id": "INV-fdef7e39a2",
+      "file": "eaos/api/read.py",
+      "symbol": "progress_state",
+      "statement": "`/api/progress`: the journey's four steps and every flow, the check from `report` and the others from the project's runtime folder; the check alone when no project is known.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_server.py::ProgressRoute::test_without_a_project_only_the_check",
+      "note": ""
+    },
+    {
+      "id": "INV-9f47994242",
+      "file": "eaos/api/read.py",
+      "symbol": "report_file",
+      "statement": "`/api/report-file`: a file inside the report folder (resolved, so no link leads out of it), a text type, at most MAX_FILE bytes, answered as text/plain so a page never renders it; a refusal says why.",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_progress_server.py::ReportFile::test_paths_that_leave_the_report_are_refused",
+        "tests/test_progress_server.py::ReportFile::test_a_text_file_of_the_report_is_served_as_plain_text"
       ],
       "note": ""
     },
@@ -93,6 +141,18 @@
       "statement": "Never on a local Studio.",
       "kind": "invariant",
       "enforced_by": "tests/test_studio_api.py::RemoteLoginBoot::test_opt_in_on_remote_only",
+      "note": ""
+    },
+    {
+      "id": "INV-88888e8ed7",
+      "file": "eaos/api/server.py",
+      "symbol": "state",
+      "statement": "The project's guided state as it is now (eaos/guided.py), or None when no project is known.",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_progress_server.py::ProgressRoute::test_without_a_project_only_the_check",
+        "tests/test_progress_server.py::ProgressRoute::test_the_journey_and_every_flow_folded_and_laid_out"
+      ],
       "note": ""
     },
     {
