@@ -4,6 +4,7 @@ import { createHashHistory, createRootRoute, createRoute, createRouter, redirect
 import { ChangePage } from './pages/Change'
 import { DataPathsPage } from './pages/data/DataPaths'
 import { InfraLensPage } from './pages/infra/InfraLens'
+import { IdealPage } from './pages/ideal/IdealPage'
 import { DecisionsPage } from './pages/Decisions'
 import { HomePage } from './pages/Home'
 import { LibraryPage } from './pages/Library'
@@ -60,6 +61,7 @@ export function makeRouter(dev: () => boolean) {
     createRoute({ getParentRoute: () => root, path: '/flows/$pathId', component: FlowPage, validateSearch: params('view', 'show', 'node', 'traced') }),
     createRoute({ getParentRoute: () => root, path: '/problems', component: ProblemsPage, validateSearch: params('card', 'who', 'severity', 'component', 'q') }),
     createRoute({ getParentRoute: () => root, path: '/change', component: ChangePage, validateSearch: params('focus', 'side') }),
+    createRoute({ getParentRoute: () => root, path: '/change/ideal', component: IdealPage, validateSearch: params('view') }),
     createRoute({ getParentRoute: () => root, path: '/change/timeline', component: TimelinePage, validateSearch: params('step', 'wave') }),
     createRoute({ getParentRoute: () => root, path: '/decisions', component: DecisionsPage, validateSearch: params('demo') }),
     createRoute({ getParentRoute: () => root, path: '/runs', component: RunsPage, validateSearch: params('q', 'show', 'demo') }),
