@@ -103,10 +103,12 @@ class BackendCoverage(unittest.TestCase):
     every long piece of work says where it is, measured on real checks.
 
     The evidence is $EAOS_MEASURE/live-scan-map/backend.json, written by tools/progress_trial.py collect from one real
-    round: tools/progress_determinism.py on a corpus project with its engines, a check of it killed with SIGKILL while
-    `engines` ran, and two whole checks of EAOS's own repository (progress on, then off). I2: the folded progress equals
-    run-manifest.json on the corpus check and on the EAOS check. I6: the corpus check with progress on and off wrote
-    the same bytes, timestamps, durations and run ids excluded. I7: on the EAOS check, the progress file is under
+    round: tools/progress_determinism.py on a corpus project, without and with its engines, a check of it killed with
+    SIGKILL while `engines` ran, and two whole checks of EAOS's own repository (progress on, then off). I2: the folded
+    progress equals run-manifest.json on the corpus check and on the EAOS check. I6: the corpus check with progress on
+    and off wrote the same bytes, timestamps, durations and run ids excluded; with the external engines, whose own
+    files and facts differ between any two runs of the same check (revised 2026-10-09 after the first round showed
+    it), every file that differs with progress switched also differs between two runs that both write progress. I7: on the EAOS check, the progress file is under
     1 MB and its cost is under 2% of the run, both as measured (on against off) and as bounded (lines written and
     programs sampled, each at its measured cost). I8: the killed run reads `interrupted` within 30 s on the same
     machine, and `stalled` within 31 s (30 s of silence, read every 0.25 s) for a reader that cannot see the process.
@@ -125,10 +127,13 @@ class BackendCoverage(unittest.TestCase):
             self.assertGreaterEqual(record[name]['stages'], 26, name)
 
     def test_progress_changes_no_byte_of_the_report(self):
-        i6 = self.record()['I6']
-        self.assertTrue(i6['engines'], 'the corpus check ran its engines')
+        record = self.record()
+        i6, engines = record['I6'], record['I6_engines']
         self.assertGreater(i6['compared'], 100)
         self.assertEqual((i6['identical'], i6['differ'], i6['only_on'], i6['only_off']), (True, [], [], []))
+        self.assertEqual((engines['engines'], engines['project']), (True, i6['project']))
+        self.assertGreater(engines['compared'], i6['compared'])
+        self.assertEqual((engines['progress_adds_no_difference'], engines['differ_only_with_progress_switched']), (True, []))
 
     def test_the_cost_of_progress_on_a_check_of_eaos_itself(self):
         i7 = self.record()['I7']

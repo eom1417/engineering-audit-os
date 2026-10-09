@@ -3,7 +3,8 @@
     python tools/progress_trial.py overhead <project> <workdir> [--json out.json] [--no-engines]
     python tools/progress_trial.py kill <project> <workdir> [--stage engines] [--after 8] [--json out.json]
     python tools/progress_trial.py judge <report>
-    python tools/progress_trial.py collect --determinism D.json --kill K.json --overhead O.json --corpus-report R
+    python tools/progress_trial.py collect --determinism D.json --determinism-engines E.json --kill K.json \
+        --overhead O.json --corpus-report R
 
 overhead (I7, and I2 on the same run): the whole check of <project> twice, each in its own process and fresh report
 folder, first with progress on (`on/`), then with EAOS_PROGRESS=off (`off/`). It records each run's wall seconds,
@@ -206,7 +207,7 @@ def collect(args):
     """$EAOS_MEASURE/live-scan-map/backend.json from one real round: what each guarantee measured, and its verdict."""
     import dev_paths
     read = lambda path: json.loads(Path(path).read_text(encoding='utf-8'))
-    determinism, killed, cost = read(args.determinism), read(args.kill), read(args.overhead)
+    determinism, engines, killed, cost = read(args.determinism), read(args.determinism_engines), read(args.kill), read(args.overhead)
     counted_steps = cost.get('counted_steps') or {}
     record = {
         'contract': 1, 'at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
@@ -214,6 +215,10 @@ def collect(args):
         'I6': {'project': determinism['project'], 'engines': determinism['engines'], 'identical': determinism['identical'],
                'compared': determinism['on_vs_off']['compared'], 'differ': determinism['on_vs_off']['differ'],
                'only_on': determinism['on_vs_off']['only_left'], 'only_off': determinism['on_vs_off']['only_right']},
+        'I6_engines': {'project': engines['project'], 'engines': engines['engines'], 'compared': engines['on_vs_off']['compared'],
+                       'progress_adds_no_difference': engines['progress_adds_no_difference'],
+                       'differ_only_with_progress_switched': engines['differ_only_with_progress_switched'],
+                       'differ_between_two_runs_with_progress': len(engines['on_vs_on']['differ'])},
         'I7': {'project': cost['project'], 'overhead_measured': cost['overhead_measured'], 'overhead_bound': cost['overhead_bound'],
                'bound_parts': cost['bound_parts'], 'file_bytes': cost['file_bytes'], 'lines': cost['lines'],
                'runs': {k: {'manifest_seconds': v.get('manifest_seconds'), 'exit': v['exit']} for k, v in cost['runs'].items()}},
@@ -241,7 +246,8 @@ def main(argv=None):
     three = sub.add_parser('judge')
     three.add_argument('report')
     four = sub.add_parser('collect')
-    for name in ('--determinism', '--kill', '--overhead', '--corpus-report'): four.add_argument(name, required=True)
+    for name in ('--determinism', '--determinism-engines', '--kill', '--overhead', '--corpus-report'):
+        four.add_argument(name, required=True)
     args = parser.parse_args(argv)
     run = {'overhead': overhead, 'kill': kill, 'collect': collect, 'judge': lambda a: judge(a.report)}[args.command]
     record = run(args)

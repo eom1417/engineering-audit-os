@@ -3,17 +3,20 @@
     python tools/progress_determinism.py <project> <workdir> [--engines] [--json out.json]
 
 Runs the whole check of <project> three times, each in its own process and its own fresh report folder under
-<workdir>: `on-1` and `on-2` with progress written as usual, `off` with EAOS_PROGRESS=off (no progress file, no
+<workdir>: `on1` and `on2` with progress written as usual, `off` with EAOS_PROGRESS=off (the three names have one
+length: a report quotes its own folder, and a byte count of a document must not differ by the name) (no progress file, no
 count or step heard, no sampler, no heartbeat). Then compares every file the runs wrote:
 
 - the progress files themselves (run-progress.jsonl and progress/) are left out: they are what is switched;
 - each run's own folder is replaced by <OUT>, and every timestamp, duration and run id is masked (TIME_PATTERNS):
   they differ between any two runs, with or without progress;
-- every other byte must be equal between `on-1` and `off`. `on-2` shows what differs between two runs that both
-  write progress: a file that differs between on-1 and off but also between on-1 and on-2 is the check's own
-  variance, not progress, and is reported as such, never hidden.
+- every other byte must be equal between `on1` and `off` (`identical`). `on2` shows what differs between two runs
+  that both write progress: the external engines' own files and facts vary between any two runs of the same check.
+  `progress_adds_no_difference` is true when every file that differs between on1 and off (or exists in one only,
+  long numbers in its name masked) also differs between on1 and on2: what progress switches changes nothing more.
 
-Exit 0 when on-1 and off are byte-identical after masking; 1 otherwise. The JSON record lists the files compared,
+Exit 0 when on1 and off are byte-identical after masking (without --engines), or, with --engines, when progress adds
+no difference; 1 otherwise. The JSON record lists the files compared,
 the ones that differ, and the masks used.
 """
 import argparse
@@ -89,24 +92,29 @@ def main(argv=None):
     project, work = Path(args.project).resolve(), Path(args.workdir).resolve()
     work.mkdir(parents=True, exist_ok=True)
     runs = {}
-    for name, on in (('on-1', True), ('off', False), ('on-2', True)):
+    for name, on in (('on1', True), ('off', False), ('on2', True)):
         out = work / name
         if out.exists(): subprocess.run(['rm', '-rf', str(out)], check=True)
         seconds, code = run(project, out, on, args.engines)
         runs[name] = {'seconds': seconds, 'exit': code, 'progress_file': (out / 'run-progress.jsonl').is_file()}
-    progress_vs_off = compare(work / 'on-1', work / 'off')
-    run_vs_run = compare(work / 'on-1', work / 'on-2')
+    progress_vs_off = compare(work / 'on1', work / 'off')
+    run_vs_run = compare(work / 'on1', work / 'on2')
     identical = not (progress_vs_off['only_left'] or progress_vs_off['only_right'] or progress_vs_off['differ'])
+    named = lambda rows: {re.sub(r'\d{6,}', '#', name) for name in rows}
+    variance = set(run_vs_run['differ']) | named(run_vs_run['only_left'] + run_vs_run['only_right'])
+    added = sorted((set(progress_vs_off['differ']) | named(progress_vs_off['only_left'] + progress_vs_off['only_right'])) - variance)
     record = {'project': str(project), 'engines': args.engines, 'runs': runs,
               'on_vs_off': progress_vs_off, 'on_vs_on': run_vs_run,
               'differ_also_between_two_on_runs': sorted(set(progress_vs_off['differ']) & set(run_vs_run['differ'])),
+              'differ_only_with_progress_switched': added,
+              'progress_adds_no_difference': not added and all(r['exit'] == 0 for r in runs.values()),
               'switched_and_left_out': list(SWITCHED), 'masks': [p.pattern.decode() for p, _ in TIME_PATTERNS],
               'identical': identical and all(r['exit'] == 0 for r in runs.values())
-                           and runs['on-1']['progress_file'] and not runs['off']['progress_file']}
+                           and runs['on1']['progress_file'] and not runs['off']['progress_file']}
     text = json.dumps(record, ensure_ascii=False, indent=1)
     if args.json: Path(args.json).write_text(text + '\n', encoding='utf-8')
     print(text)
-    return 0 if record['identical'] else 1
+    return 0 if record['identical'] or (args.engines and record['progress_adds_no_difference']) else 1
 
 
 if __name__ == '__main__':
