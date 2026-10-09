@@ -1,5 +1,5 @@
 {
- "source_sha256": "9f2d13fe4efa7b8eb27e0e23ade51b32ccfd61c3d1f5bca4f09ac4176b525f2e",
+ "source_sha256": "b4263ec90aa25f650fbad01c5c9402cc73bc05638d2f52df0af060a64050c8a8",
  "files": [
   "assets/BridgePage.js",
   "assets/Change.js",
@@ -16,6 +16,7 @@
   "assets/FunctionsPage.js",
   "assets/Gallery.js",
   "assets/GapsPage.js",
+  "assets/GroupSheet.js",
   "assets/HiddenMap.js",
   "assets/HiddenPage.js",
   "assets/HistoryGallery.js",
@@ -27,11 +28,14 @@
   "assets/JourneysPage.js",
   "assets/Lanes.js",
   "assets/LibraryPage.js",
+  "assets/ListBox.js",
+  "assets/Palette.js",
   "assets/PathsGallery.js",
   "assets/PathsPage.js",
   "assets/PipelineGallery.js",
   "assets/PipelinePage.js",
   "assets/PlansPage.js",
+  "assets/PreviewSheet.js",
   "assets/QualityPage.js",
   "assets/RunPage.js",
   "assets/RunsPage.js",
@@ -60,6 +64,7 @@
   "assets/style.css",
   "assets/words.js",
   "assets/words2.js",
+  "assets/words3.js",
   "boot.js",
   "index.html"
  ]

@@ -24,20 +24,32 @@
   var lang = saved.lang === 'en' ? 'en' : 'ar';
   var theme = saved.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   h.lang = lang; h.dir = lang === 'ar' ? 'rtl' : 'ltr'; h.dataset.theme = theme === 'dark' ? 'dark' : 'light';
+  // The fonts the first view draws with start beside the Studio's script rather than after it has drawn (the files of
+  // src/design/fonts.css; tests/test_studio_assets.py checks they ship): the Arabic ones when the Studio speaks
+  // Arabic. A file:// page reads them when it draws, as before (a font preload there is never used).
+  if (!/^https?:$/.test(location.protocol)) return;
+  var fonts = ['ibm-plex-sans-arabic-latin-400-normal', 'ibm-plex-sans-arabic-latin-500-normal', 'ibm-plex-sans-arabic-latin-600-normal', 'ibm-plex-mono-latin-400-normal'];
+  if (lang === 'ar') fonts = fonts.concat(['ibm-plex-sans-arabic-arabic-400-normal', 'ibm-plex-sans-arabic-arabic-500-normal', 'ibm-plex-sans-arabic-arabic-600-normal']);
+  fonts.forEach(function (name) {
+    var link = document.createElement('link');
+    link.rel = 'preload'; link.as = 'font'; link.type = 'font/woff2'; link.crossOrigin = 'anonymous'; link.href = './assets/' + name + '.woff2';
+    document.head.appendChild(link);
+  });
 })();
 
 // Starts reading the report's data while the Studio's own script is still downloading (src/data/load.ts waits for
 // it): the manifest, then the sections the page being opened shows first (FIRST, the same lists as
 // src/data/stages.ts), each a classic script beside index.html. Home and Problems need only a few of the report's
-// sections; any other page reads every section, as before. What is not read here is read when a page, the palette
-// or a sheet asks for it (src/data/context.tsx), and the page says so while it loads. A tab holding the live
+// sections (Home draws before the cards, which it reads next); any other page reads every section, as before. What
+// is not read here is read when a page, the palette or a sheet asks for it (src/data/context.tsx), and the page says
+// so while it loads. A tab holding the live
 // server's token (the same test as src/data/live.ts liveToken) reads the server's API instead: nothing to load here.
 (function () {
-  var shell = ['meta', 'head', 'health', 'cards', 'decisions', 'docs', 'story'];
+  var shell = ['meta', 'head', 'health', 'decisions', 'docs'];
   var FIRST = {
     '/': shell.concat(['system']),
-    '/problems': shell.concat(['system', 'plans']),
-    '/problems?card': shell.concat(['system', 'plans', 'evidence', 'hidden'])
+    '/problems': shell.concat(['cards', 'story', 'system', 'plans']),
+    '/problems?card': shell.concat(['cards', 'story', 'system', 'plans', 'evidence', 'hidden'])
   };
   var route = /^#?(\/[^?]*)(\?.*)?$/.exec(location.hash || '#/') || [];
   var path = (route[1] || '/').replace(/(.)\/$/, '$1');
