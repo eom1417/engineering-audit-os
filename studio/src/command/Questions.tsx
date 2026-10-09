@@ -1,7 +1,7 @@
 // A run's question, as the Decisions inbox, the run page and the toast show it: the question, the recommended
 // answer as the large primary button, the others beside it, and a written answer when none fits. One tap answers;
 // the run continues only after server success. Drafts remain visible after a refusal.
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Label, TextArea, TextField } from 'react-aria-components'
 import { Button, IconButton } from '../components/Button'
 import { Chip } from '../components/Chip'
@@ -81,18 +81,29 @@ export function QuestionCard({ question, runLabel, compact }: { question: Questi
   )
 }
 
-/** The newest question, floating over every page but the inbox and its own run, with the recommended answer. */
+/** The newest question, floating over every page but the inbox and its own run, with the recommended answer. On the
+ * phone it starts as a short notice (the question and an Answer button) so it never covers the page's rows; the button
+ * opens the full question in place. */
 export function QuestionToast({ question, runLabel, onDismiss }: { question: Question; runLabel: string; onDismiss: () => void }) {
+  const { lang } = usePrefs()
   const w = useCmdWords()
+  const [open, setOpen] = useState(false)
+  const full = useId()
   return (
-    <div className={css.qToast} role="region" aria-label={w('runAsks')}>
+    <div className={css.qToast} role="region" aria-label={w('runAsks')} data-open={open || undefined}>
       <div className={css.qToastHead}>
         <Icon name="inbox" />
         <span className={css.qToastKicker} data-truncate title={runLabel}><Txt>{runLabel}</Txt></span>
         <IconButton icon="x" label={w('dismiss')} onPress={onDismiss} small />
       </div>
-      <QuestionCard question={question} compact />
-      <Go to="/decisions" className={css.qToastLink}>{w('otherAnswers')}</Go>
+      <div className={css.qToastBrief}>
+        <p className={css.qToastText}><Txt block>{question.text[lang]}</Txt></p>
+        <Button variant="primary" className={css.qToastGo} aria-expanded={false} aria-controls={full} onPress={() => setOpen(true)}>{w('answerNow')}</Button>
+      </div>
+      <div className={css.qToastFull} id={full}>
+        <QuestionCard question={question} compact />
+        <Go to="/decisions" className={css.qToastLink}>{w('otherAnswers')}</Go>
+      </div>
     </div>
   )
 }

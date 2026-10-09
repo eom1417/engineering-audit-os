@@ -4,7 +4,9 @@
 .dialog { display: flex; flex-direction: column; min-block-size: 0; outline: none; }
 .input { padding: 8px; border-block-end: 1px solid var(--border-subtle); }
 .input > * { border-color: transparent; }
-.list { overflow-y: auto; padding: 6px; max-block-size: 52vh; outline: none; }
+.scroll { overflow-y: auto; max-block-size: 52vh; }
+.scroll:focus-visible { outline-offset: -2px; }
+.list { padding: 6px; outline: none; }
 .section + .section { margin-block-start: 6px; }
 .groupTitle { padding: 6px 10px 4px; font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
 .row { display: flex; align-items: center; gap: 10px; min-block-size: 40px; padding-inline: 10px; border-radius: var(--radius-8); font-size: 14px; cursor: pointer; color: var(--text-secondary); outline: none; }
@@ -18,7 +20,7 @@
 @media (max-width: 767px) {
   .overlay { padding: 8px; }
   .modal { max-block-size: calc(100vh - 16px); }
-  .list { max-block-size: none; flex: 1; }
+  .scroll { max-block-size: none; flex: 1; min-block-size: 0; }
   .row { min-block-size: 48px; }
   .foot { display: none; }
 }

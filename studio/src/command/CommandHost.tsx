@@ -64,7 +64,7 @@ export function CommandHost() {
       <ActionBar />
       {groupsOpened && <Suspense fallback={null}><GroupSheet /></Suspense>}
       {previewOpened && <Suspense fallback={null}><PreviewSheet /></Suspense>}
-      {toast && <QuestionToast question={toast} runLabel={(() => { const run = runOf(toast.run); return run ? labelOf(run.label, lang) : '' })()} onDismiss={() => dismiss(toast.id)} />}
+      {toast && <QuestionToast key={toast.id} question={toast} runLabel={(() => { const run = runOf(toast.run); return run ? labelOf(run.label, lang) : '' })()} onDismiss={() => dismiss(toast.id)} />}
       {pill && (
         <div className={css.pillDock}>
           <Go to={`/runs/${encodeURIComponent(pill.id)}`} className={css.pill} label={`${STATE_WORDS[pill.state][lang]}: ${labelOf(pill.label, lang)}`}>

@@ -154,6 +154,7 @@ export const CMD_WORDS = {
   fromRun: ['من: {label}', 'From: {label}'],
   recommended: ['الموصى به', 'Recommended'],
   answerWith: ['أجب: {label}', 'Answer: {label}'],
+  answerNow: ['أجب', 'Answer'],
   otherAnswers: ['أجوبة أخرى', 'Other answers'],
   writeAnswer: ['اكتب إجابة مختلفة', 'Write a different answer'],
   send: ['أرسل', 'Send'],

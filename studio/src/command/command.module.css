@@ -151,8 +151,9 @@ li.stepRow { grid-template-columns: auto 48px minmax(0, 1fr) auto; align-items: 
 .qToastHead { display: flex; align-items: center; gap: 8px; color: var(--accent-text); }
 .qToastKicker { flex: 1; min-inline-size: 0; font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qToastText { font-size: 14px; font-weight: 500; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.qToastActions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.qToastGo { flex: 1; white-space: normal; min-inline-size: 0; }
+.qToastBrief { display: none; }
+.qToastFull { display: flex; flex-direction: column; gap: 8px; }
+.qToastGo { white-space: normal; min-inline-size: 0; }
 .qToastLink { font-size: 13px; color: var(--accent-text); padding: 10px 8px; min-block-size: 44px; display: inline-flex; align-items: center; }
 .qToastLink:hover { text-decoration: underline; text-underline-offset: 3px; }
 
@@ -175,6 +176,8 @@ li.stepRow { grid-template-columns: auto 48px minmax(0, 1fr) auto; align-items: 
   .boxSpacer { inline-size: 44px; }
   .selRow > .box { margin-inline-start: 2px; }
   .qToast, .pillDock { inset-inline: 12px; inset-block-end: calc(var(--tabbar-h) + 12px + env(safe-area-inset-bottom)); inline-size: auto; }
+  .qToast:not([data-open]) .qToastBrief { display: flex; flex-direction: column; gap: 8px; }
+  .qToast:not([data-open]) .qToastFull { display: none; }
   .pill { max-inline-size: none; }
   .qAnswer { min-block-size: 52px; }
   .qRun { min-block-size: 44px; display: inline-flex; align-items: center; }

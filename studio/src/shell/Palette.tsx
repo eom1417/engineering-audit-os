@@ -94,6 +94,9 @@ function PaletteSearch({ onOpenChange }: { onOpenChange: (open: boolean) => void
         <div className={css.input}>
           <SearchField label={t('searchAndCommands')} placeholder={t('searchPlaceholder')} value={query} onChange={setQuery} autoFocus />
         </div>
+        {/* The results scroll in their own region: the caret stays in the field (virtual focus), so the region itself
+            takes the keyboard to scroll a long list */}
+        <div className={css.scroll} role="region" aria-label={t('paletteResults')} tabIndex={0}>
         <ListBox className={css.list} aria-label={t('searchAndCommands')} selectionMode="none"
           onAction={(key) => { const entry = results.find((r) => r.id === key); if (entry) open(entry) }}
           renderEmptyState={() => <p className={css.empty}>{t('noResults')}</p>}>
@@ -111,6 +114,7 @@ function PaletteSearch({ onOpenChange }: { onOpenChange: (open: boolean) => void
             </ListBoxSection>
           ))}
         </ListBox>
+        </div>
       </Autocomplete>
       {waiting.length > 0 && <p className={css.foot} role="status">{t('loadingRest')} {t('loadingParts', { n: waiting.length })}</p>}
       <div className={css.foot} aria-hidden="true">{t('paletteHint')}</div>

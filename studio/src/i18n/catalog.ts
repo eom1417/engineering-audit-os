@@ -38,6 +38,7 @@ export const WORDS = {
   searchEverything: ['ابحث عن مكوّن أو مشكلة أو وثيقة', 'Search components, findings, docs'],
   searchPlaceholder: ['ابحث في المكوّنات والمشاكل والقرارات…', 'Search components, findings, decisions…'],
   searchAndCommands: ['البحث والأوامر', 'Search and commands'],
+  paletteResults: ['النتائج', 'Results'],
   paletteHint: ['↑↓ للتنقل · Enter للفتح · Esc للإغلاق', '↑↓ to move · Enter to open · Esc to close'],
   noResults: ['لا نتيجة. جرّب كلمة أقصر أو اسم ملف.', 'No result. Try a shorter word or a file name.'],
   kindPage: ['صفحة', 'Page'],
