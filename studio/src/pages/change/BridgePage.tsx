@@ -53,13 +53,13 @@ function Sankey({ b }: { b: Bridge }) {
   const x0 = LABEL_L + BAR
   const x1 = width - LABEL_R - BAR
   const h = placed.height + 4
-  // An identifier is laid out left to right, so its anchor mirrors with the page; a word in the page's own direction
-  // already reads from the inline start, so its anchor stays.
+  // Every label is laid out left to right with a physical anchor that mirrors with the page, so it always grows away
+  // from its bar; an Arabic word keeps its own letter order inside that run, and a right-to-left run would move the anchor.
   const label = (side: Side, at: number, anchor: 'start' | 'end', y: number, hh: number, newOne: boolean) => {
     const word = side.id === REMOVED || side.id === OTHER
     return (
-      <text x={x(at)} y={y + hh / 2} dominantBaseline="middle" textAnchor={rtl && !word ? (anchor === 'start' ? 'end' : 'start') : anchor}
-        className={word ? css.sankeyWord : css.sankeyId} direction={word ? dir : 'ltr'}>
+      <text x={x(at)} y={y + hh / 2} dominantBaseline="middle" textAnchor={rtl ? (anchor === 'start' ? 'end' : 'start') : anchor}
+        className={word ? css.sankeyWord : css.sankeyId} direction="ltr">
         {sideName(side, w)}{newOne ? ` · ${w('newHere')}` : ''}
         {!newOne && <tspan className={css.sankeyNum}>{`  ${side.files}`}</tspan>}
       </text>
