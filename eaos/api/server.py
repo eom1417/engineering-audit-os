@@ -28,6 +28,7 @@ import json
 import logging
 import os
 import re
+import secrets
 import signal
 import socket
 import time
@@ -154,6 +155,12 @@ def pages(ctx):
         if not page.is_file():
             return Response('The Studio is not built in this EAOS (eaos/data/studio is missing).', status_code=503)
         html = page.read_text(encoding='utf-8').replace(SNAPSHOT_CSP, LIVE_CSP)
+        if _remote_login_trusted(ctx):
+            # The owner's remote address sits behind the Remote sign-in, which loses the token in the address on some
+            # redirects: the page reads it from a script whose address changes on every load, so no cache in front of
+            # the server can hand back an old answer (opt-in, remote only).
+            html = html.replace('<script src="./boot.js"></script>',
+                                f'<script src="./live-token.js?n={secrets.token_hex(8)}"></script><script src="./boot.js"></script>', 1)
         return Response(html, media_type='text/html', headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
                                                                 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY'})
 
@@ -162,15 +169,15 @@ def pages(ctx):
         target = (root / name).resolve()
         if not target.is_relative_to(root) or not target.is_file() or target.name == 'index.html':
             return Response(status_code=404)
-        if name == 'boot.js' and _remote_login_trusted(ctx):
-            # The owner's remote address already sits behind the Remote sign-in, which loses the token in the address
-            # on some redirects: the page gets the token from its own boot script instead (opt-in, remote only).
-            given = f"window.EAOS_BOOT_TOKEN={json.dumps(ctx.keys.token)};try{{sessionStorage.setItem('eaos.token',window.EAOS_BOOT_TOKEN)}}catch(e){{}}\n"
-            return Response(given + target.read_text(encoding='utf-8'), media_type='text/javascript',
-                            headers={'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store'})
         return FileResponse(target, headers={'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-cache'})
 
-    return [Route('/', index), Route('/index.html', index), Route('/{path:path}', asset)]
+    async def live_token(request):
+        if not _remote_login_trusted(ctx):
+            return Response(status_code=404)
+        given = f"window.EAOS_BOOT_TOKEN={json.dumps(ctx.keys.token)};try{{sessionStorage.setItem('eaos.token',window.EAOS_BOOT_TOKEN)}}catch(e){{}}\n"
+        return Response(given, media_type='text/javascript', headers={'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store, private'})
+
+    return [Route('/', index), Route('/index.html', index), Route('/live-token.js', live_token), Route('/{path:path}', asset)]
 
 
 def command_centre(ctx):
@@ -298,7 +305,7 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
 
 def _remote_login_trusted(ctx):
     """EAOS_STUDIO_TRUST_REMOTE_LOGIN=1 on a server started with --remote-origin: the sign-in in front of it guards the
-    Studio, so the launch token travels in boot.js rather than in the address. Never on a local Studio."""
+    Studio, so the launch token travels in live-token.js rather than in the address. Never on a local Studio."""
     return bool(ctx.keys.remote_origin) and os.environ.get('EAOS_STUDIO_TRUST_REMOTE_LOGIN') == '1'
 
 

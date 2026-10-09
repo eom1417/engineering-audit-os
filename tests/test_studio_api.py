@@ -529,3 +529,22 @@ class RemoteLoginBoot(unittest.TestCase):
             self.assertFalse(server._remote_login_trusted(self.ctx(False)))
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': ''}):
             self.assertFalse(server._remote_login_trusted(self.ctx(True)))
+
+    def test_page_reads_token_from_an_uncached_script_when_opted_in(self):
+        from eaos.studio.actions import adapters
+        origin = 'https://engineering-audit-os--8096.dev.remote.e-m.sa'
+        with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder}), mock.patch.object(adapters, 'installed', return_value={}):
+            report = report_with_data(folder)
+            keys = server.Keys(port=8096, remote_origin=origin)
+            app = server.create_app(report, keys=keys, watch=False)
+            with TestClient(app, base_url=origin) as remote:
+                with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '1'}):
+                    first, second = remote.get('/').text, remote.get('/').text
+                    self.assertIn('live-token.js?n=', first)
+                    self.assertNotEqual(first, second)  # a new address on every load
+                    given = remote.get('/live-token.js?n=1')
+                    self.assertIn(keys.token, given.text)
+                    self.assertIn('no-store', given.headers['cache-control'])
+                with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': ''}):
+                    self.assertNotIn('live-token.js', remote.get('/').text)
+                    self.assertEqual(remote.get('/live-token.js').status_code, 404)
