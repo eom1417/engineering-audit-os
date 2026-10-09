@@ -191,3 +191,26 @@ class FeatureDataTests(unittest.TestCase):
         self.assertEqual(features._count(2, features._NOUNS['page']), 'صفحتان')
         self.assertEqual(features._count(4, features._NOUNS['page']), '4 صفحات')
         self.assertEqual(features._count(12, features._NOUNS['page']), '12 صفحة')
+
+
+class FeaturesMarkdownBudget(unittest.TestCase):
+    """FEATURES.md stays within its line budget however many features a large program has."""
+
+    def test_many_features_fit_the_budget_and_name_the_rest(self):
+        from eaos.compose.artifacts import BUDGETS
+        from eaos.pipeline.runners import features_markdown
+        record = {'features': [{'name': f'f{i}', 'critical': i % 2 == 0, 'description': 'd', 'surfaces': ['GET /x'],
+                                'tables': ['t'], 'files': ['a.py']} for i in range(80)],
+                  'unassigned_surfaces': [f'GET /u{i}' for i in range(60)]}
+        text = features_markdown(record)
+        self.assertLessEqual(len(text.splitlines()), BUDGETS['FEATURES.md'])
+        self.assertIn('more features in features.json', text)
+        self.assertIn('`GET /u59`', text)
+
+    def test_a_small_program_keeps_every_feature(self):
+        from eaos.pipeline.runners import features_markdown
+        record = {'features': [{'name': 'Orders', 'critical': True, 'description': 'd', 'surfaces': ['GET /o'],
+                                'tables': [], 'files': []}], 'unassigned_surfaces': []}
+        text = features_markdown(record)
+        self.assertIn('## Orders', text)
+        self.assertNotIn('more features', text)

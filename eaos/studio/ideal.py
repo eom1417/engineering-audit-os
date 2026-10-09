@@ -333,12 +333,11 @@ def bundle(report, project=None, lang='en'):
     waiting = [{'id': d.get('id'), 'question': _short(d.get('question'), 200), 'state': d.get('state')}
                for d in (_load(report / 'studio/decisions.json', {}) or {}).get('decisions') or [] if isinstance(d, dict)]
     if project:
-        from .. import guided
-        from .actions import selection
-        from .actions.store import _read_json
-        responses = _read_json(guided.workspace(Path(project).resolve()) / 'runs/decisions.json', {}) or {}
+        from ..places import workspace
+        from .actions.store import _read_json, decision_scope
+        responses = _read_json(workspace(Path(project).resolve()) / 'runs/decisions.json', {}) or {}
         for item, source in zip(waiting, (_load(report / 'studio/decisions.json', {}) or {}).get('decisions') or []):
-            response = responses.get(selection.decision_scope(report / 'studio', source))
+            response = responses.get(decision_scope(report / 'studio', source))
             if response:
                 item['owner_answer'] = response
                 item['state'] = 'owner_answer_saved'

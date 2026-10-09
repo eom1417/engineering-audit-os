@@ -184,3 +184,9 @@ class Store:
     def wait_change(self, timeout):
         with self.changed:
             self.changed.wait(timeout)
+
+
+def decision_scope(folder, question):
+    """The key an owner's answer is kept under: the Studio folder, the question's id and its revision."""
+    identity = question.get('revision') or {k: question.get(k) for k in ('id', 'question', 'options', 'blocks', 'asked', 'tool')}
+    return hashlib.sha256(canonical([str(Path(folder).resolve()), question['id'], identity]).encode()).hexdigest()

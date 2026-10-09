@@ -26,6 +26,7 @@ from pathlib import Path
 
 from . import branches, plain
 from .start_here import start_here, summary_counts  # noqa: F401  (one home: eaos/start_here.py)
+from .places import home, workspace  # noqa: F401  (one home: eaos/places.py; guided.home and guided.workspace stay its API)
 
 ERRORS = Path(__file__).resolve().parent / 'data/errors.json'
 # The commands a user types, each ending with the next-step box (X4 in docs/north-star.json).
@@ -43,19 +44,6 @@ class NeedsAnswer(Exception):
 
 class Declined(Exception):
     """The person said no; nothing was changed."""
-
-
-# ---------------------------------------------------------------- the place EAOS keeps a project's things
-
-def home():
-    return Path(os.environ.get('EAOS_HOME') or Path.home() / '.eaos')
-
-
-def workspace(project):
-    """~/.eaos/projects/<name>-<id>: one per project folder, never inside it."""
-    project = Path(project).resolve()
-    ident = hashlib.sha256(str(project).encode('utf-8')).hexdigest()[:8]
-    return home() / 'projects' / f'{project.name}-{ident}'
 
 
 def outputs_root():

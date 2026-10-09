@@ -1029,8 +1029,8 @@
       "note": ""
     },
     {
-      "id": "INV-3ea6365058",
-      "file": "eaos/guided.py",
+      "id": "INV-760bbe5bf3",
+      "file": "eaos/places.py",
       "symbol": "workspace",
       "statement": "~/.eaos/projects/<name>-<id>: one per project folder, never inside it.",
       "kind": "invariant",
@@ -2176,6 +2176,15 @@
       "statement": "What a new run is made on, recorded on it when it is created so a later change of branch never retargets it silently: {analysis_branch, analysis_commit, checkout, detached, at}.",
       "kind": "invariant",
       "enforced_by": "tests/test_studio_branches.py::Selecting::test_in_flight_runs_are_never_retargeted",
+      "note": ""
+    },
+    {
+      "id": "INV-fe75e286e2",
+      "file": "eaos/api/server.py",
+      "symbol": "_remote_login_trusted",
+      "statement": "Never on a local Studio.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_api.py::RemoteLoginBoot::test_opt_in_on_remote_only",
       "note": ""
     }
   ],

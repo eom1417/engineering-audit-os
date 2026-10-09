@@ -228,6 +228,28 @@ def validate(context):
 
 
 
+def features_markdown(record):
+    """FEATURES.md within its line budget (compose/artifacts.py): every feature while they fit, then a line naming how
+    many more features.json holds; the surfaces no feature claims on one line."""
+    from ..compose.artifacts import BUDGETS
+    budget = BUDGETS['FEATURES.md']
+    tail = []
+    if record['unassigned_surfaces']:
+        tail = ['## Surfaces not assigned to a feature', ', '.join(f"`{s}`" for s in record['unassigned_surfaces'])]
+    lines = ['# Features', '']
+    for shown, feature in enumerate(record['features']):
+        block = [f"## {feature['name']}"] + (['**critical**'] if feature['critical'] else []) + [feature['description'],
+                 'Surfaces: ' + ', '.join(f"`{s}`" for s in feature['surfaces'])]
+        if feature['tables']: block.append('Tables: ' + ', '.join(f"`{t}`" for t in feature['tables']))
+        if feature['files']: block.append('Files: ' + ', '.join(f"`{f}`" for f in feature['files']))
+        block.append('')
+        if len(lines) + len(block) + len(tail) + 2 > budget:
+            lines += [f"… {len(record['features']) - shown} more features in features.json", '']
+            break
+        lines += block
+    return '\n'.join(lines + tail)
+
+
 def features(context):
     """Group user-facing surfaces into the program's features and bind them to data.
 
@@ -250,22 +272,7 @@ def features(context):
             continue
     record = build(facts)
     write(context.out / 'features.json', record)
-    md_lines = ['# Features', '']
-    for feature in record['features']:
-        md_lines.append(f"## {feature['name']}")
-        if feature['critical']: md_lines.append('**critical**')
-        md_lines.append(feature['description'])
-        md_lines.append('Surfaces: ' + ', '.join(f"`{s}`" for s in feature['surfaces']))
-        if feature['tables']:
-            md_lines.append('Tables: ' + ', '.join(f"`{t}`" for t in feature['tables']))
-        if feature['files']:
-            md_lines.append('Files: ' + ', '.join(f"`{f}`" for f in feature['files']))
-        md_lines.append('')
-    if record['unassigned_surfaces']:
-        md_lines.append('## Surfaces not assigned to a feature')
-        for s in record['unassigned_surfaces']:
-            md_lines.append(f"- `{s}`")
-    (context.out / 'FEATURES.md').write_text('\n'.join(md_lines), encoding='utf-8')
+    (context.out / 'FEATURES.md').write_text(features_markdown(record), encoding='utf-8')
     return {'features': len(record['features']),
             'unassigned': len(record['unassigned_surfaces']),
             'critical': sum(1 for f in record['features'] if f['critical'])}
