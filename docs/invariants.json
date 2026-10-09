@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "4ae50d8",
+  "extracted_at_commit": "3165626",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -174,6 +174,15 @@
       "statement": "Sign-in, when the owner grants E2E_USER and E2E_PASSWORD (authorization.json -> env_allow), happens once in auth.setup.ts; no value is written here.",
       "kind": "invariant",
       "enforced_by": "tests/test_behavior_lock.py::BuildTests::test_every_feature_has_a_spec_and_the_plan_keeps_its_contract",
+      "note": ""
+    },
+    {
+      "id": "INV-d53308728f",
+      "file": "eaos/behavior_lock.py",
+      "symbol": "Screens",
+      "statement": "Never raises; a no-op outside a flow.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_coverage.py::Screens::test_following_never_raises_and_does_nothing_outside_a_flow",
       "note": ""
     },
     {
@@ -1167,6 +1176,15 @@
       "note": ""
     },
     {
+      "id": "INV-e34b159744",
+      "file": "eaos/guided.py",
+      "symbol": "journey",
+      "statement": "`done` comes from the step's own *_done(state); a step whose done check cannot be read is not done.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_coverage.py::Journey::test_a_step_whose_done_check_cannot_be_read_is_not_done",
+      "note": ""
+    },
+    {
       "id": "INV-b6454bb8ff",
       "file": "eaos/handover.py",
       "symbol": "record",
@@ -1494,6 +1512,36 @@
       "note": ""
     },
     {
+      "id": "INV-898c0aa6e7",
+      "file": "eaos/progress/estimate.py",
+      "symbol": "<module>",
+      "statement": "Time left, from real history only: a range, never a bare percentage, and nothing on a first run.",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_progress_coverage.py::Estimates::test_a_first_run_says_so_and_a_finished_run_has_no_estimate",
+        "tests/test_progress_coverage.py::Estimates::test_the_range_scales_the_waiting_stages_by_this_runs_pace"
+      ],
+      "note": ""
+    },
+    {
+      "id": "INV-1bd1cfc5e1",
+      "file": "eaos/progress/estimate.py",
+      "symbol": "<module>",
+      "statement": "- the stages still waiting cost what they cost last time, scaled by how this run compares with the last one so far (the stages both runs finished: this run's seconds over last run's, held between 0.25 and 4); - a running stage with a counted step (`progress.count`, 37 of 156) costs the time its done items took, spread over the items left: the stage's own pace, measured now; - any other running stage costs what is left of its scaled last time (none when it already ran longer); - a stage the last run did not finish is unknown and named, never guessed.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_coverage.py::Estimates::test_the_range_scales_the_waiting_stages_by_this_runs_pace",
+      "note": ""
+    },
+    {
+      "id": "INV-3ddaf3bd7b",
+      "file": "eaos/progress/flow.py",
+      "symbol": "<module>",
+      "statement": "The code that does the work marks where it is with the module functions below, which are no-ops when no flow is running, so every caller outside a flow (a test, the CLI, the assistant's tools) is unchanged:",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_coverage.py::FlowDeclarations::test_marks_are_ignored_outside_a_flow_and_for_a_stage_the_flow_does_not_declare",
+      "note": ""
+    },
+    {
       "id": "INV-2d9142c0d8",
       "file": "eaos/progress/fold.py",
       "symbol": "<module>",
@@ -1561,6 +1609,33 @@
       "note": ""
     },
     {
+      "id": "INV-fb03157898",
+      "file": "eaos/progress/log.py",
+      "symbol": "enabled",
+      "statement": "It exists to prove that progress never changes a result (tools/progress_determinism.py).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_coverage.py::Switch::test_progress_switched_off_writes_and_hears_nothing",
+      "note": ""
+    },
+    {
+      "id": "INV-3afc2a9860",
+      "file": "eaos/progress/log.py",
+      "symbol": "first_row",
+      "statement": "The first line of a progress file, parsed ({} when it cannot be read).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_coverage.py::History::test_keeping_a_run_never_fails_the_run",
+      "note": ""
+    },
+    {
+      "id": "INV-2605537948",
+      "file": "eaos/progress/log.py",
+      "symbol": "keep",
+      "statement": "Returns the copy's path, or None (no file, no run id, a failure: history never stops a run).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_coverage.py::History::test_keeping_a_run_never_fails_the_run",
+      "note": ""
+    },
+    {
       "id": "INV-384aff3458",
       "file": "eaos/progress/log.py",
       "symbol": "ProgressLog",
@@ -1588,6 +1663,24 @@
         "tests/test_progress_contract.py::Liveness::test_a_quiet_run_says_it_is_alive_every_ten_seconds_and_a_busy_one_does_not_need_to",
         "tests/test_progress_contract.py::Liveness::test_the_beat_stops_when_the_file_cannot_be_written"
       ],
+      "note": ""
+    },
+    {
+      "id": "INV-838b7b5bae",
+      "file": "eaos/progress/reasons.py",
+      "symbol": "<module>",
+      "statement": "A code the catalog does not know gives None: the reader then shows the sentence EAOS wrote itself, never an empty place.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_coverage.py::ReasonCodes::test_a_skipped_stage_carries_its_code_into_the_manifest_the_file_and_the_fold",
+      "note": ""
+    },
+    {
+      "id": "INV-0739b268f7",
+      "file": "eaos/progress/reasons.py",
+      "symbol": "reasons",
+      "statement": "{code: {'ar': text, 'en': text}} from the catalog; {} when it cannot be read.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_progress_coverage.py::ReasonCodes::test_a_catalog_that_cannot_be_read_gives_no_words_and_no_error",
       "note": ""
     },
     {
