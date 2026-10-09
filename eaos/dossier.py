@@ -291,7 +291,7 @@ def onboarding_document(target, dossier, sets, verification, language):
                      if language == 'ar' else
                      'Generated from facts: commands come from declared manifests, reading order from the graph.'])
     commands = [fact for fact in sets.get('entrypoints', {}).get('facts', [])
-                if fact.get('kind') == 'entry_point'
+                if fact.get('kind') in {'entry_point', 'tool_command'}
                 and fact['value']['framework'] in {'npm_script', 'make', 'console_script', 'docker_cmd', 'docker_entrypoint'}]
     document.section('ابنِ وشغّل' if language == 'ar' else 'Build and run')
     document.table(['الأمر' if language == 'ar' else 'Command', 'المصدر' if language == 'ar' else 'Declared in'],

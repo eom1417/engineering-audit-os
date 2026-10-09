@@ -11,15 +11,16 @@
     "A handler name is the nearest symbol in the same file; indirection through wrappers is not followed."
   ],
   "summary": {
-    "entry_points": 11,
-    "production_entry_points": 11,
+    "entry_points": 10,
+    "production_entry_points": 10,
     "test_only_entry_points": 0,
+    "tool_commands": 1,
     "data_access": 0,
     "data_access_by_client": {},
     "navigation": 0,
     "navigation_by_via": {},
     "by_surface": {
-      "cli": 6,
+      "cli": 5,
       "http": 4,
       "job": 1
     },
@@ -29,7 +30,7 @@
       "express_like": 3,
       "go_http": 1,
       "go_main": 1,
-      "npm_script": 2,
+      "npm_script": 1,
       "python_script": 1
     },
     "languages_with_detections": [
@@ -101,7 +102,7 @@
       ]
     },
     {
-      "id": "FACT-59bbdb430c3ee27c",
+      "id": "FACT-80413f343b9f17b4",
       "kind": "entry_point",
       "extractor": "entrypoints",
       "extractor_version": "4",
@@ -109,19 +110,19 @@
       "location": {
         "path": "package.json",
         "start_line": 1,
-        "symbol": null
+        "symbol": "api/server.js"
       },
       "value": {
         "surface": "cli",
         "route": "npm run start",
         "http_method": null,
-        "handler": null,
+        "handler": "api/server.js",
         "framework": "npm_script",
         "language": null,
         "category": "manifest",
         "note": null
       },
-      "resolution": "UNRESOLVED",
+      "resolution": "RESOLVED",
       "limitations": [
         "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
         "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",
@@ -130,15 +131,14 @@
       ]
     },
     {
-      "id": "FACT-e15d35f061513c1d",
-      "kind": "entry_point",
+      "id": "FACT-2aaaf13237d5015a",
+      "kind": "tool_command",
       "extractor": "entrypoints",
       "extractor_version": "4",
       "input_sha": "1b3ce6ce6859ccd2be87b349098a4067a13a975f2b66ec887e22a2ba6fc8f948",
       "location": {
         "path": "package.json",
-        "start_line": 1,
-        "symbol": null
+        "start_line": 1
       },
       "value": {
         "surface": "cli",
@@ -146,11 +146,13 @@
         "http_method": null,
         "handler": null,
         "framework": "npm_script",
+        "tools": [
+          "jest"
+        ],
         "language": null,
-        "category": "manifest",
-        "note": null
+        "category": "manifest"
       },
-      "resolution": "UNRESOLVED",
+      "resolution": "RESOLVED",
       "limitations": [
         "Only the frameworks with a detector are covered; any other invocation path is undetected, not absent.",
         "Routes assembled at runtime (prefixes, dynamic registration, gateway rewrites) are not reconstructed.",

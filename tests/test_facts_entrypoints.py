@@ -95,6 +95,62 @@ class EntryPointTests(TemporaryWorkspace):
                               if f['value']['framework'] == 'python_script'], [])
 
 
+class TaskRunnerScriptTests(unittest.TestCase):
+    """A package.json script or a Makefile target is an entry point when it runs a file of the repository;
+    when it only runs an external tool it is a tool command, never an entry point without a handler."""
+
+    def facts(self, files):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / 'repo'
+            for name, text in files.items():
+                (repo / name).parent.mkdir(parents=True, exist_ok=True)
+                (repo / name).write_text(text)
+            data = load(tmp, repo)
+        return {f['value']['route']: f for f in data['facts']}, data['summary']
+
+    def test_npm_scripts_are_traced_to_the_program_they_run(self):
+        scripts = {'start': 'node server.js', 'dev': 'vite', 'typecheck': 'tsc --noEmit', 'test': 'vitest run',
+                   'lint': 'eslint src/app.ts', 'ship': 'NODE_ENV=production npx tsx scripts/ship.ts --fast',
+                   'build': 'npm run lint && vite build && node scripts/pack.mjs', 'check': 'pnpm typecheck',
+                   'gates': '../.venv/bin/python ../tools/gates.py --strict', 'outside': 'node ../../elsewhere.js'}
+        facts, summary = self.facts({'web/package.json': json.dumps({'scripts': scripts})})
+        handlers = {route[len('npm run '):]: fact['value']['handler'] for route, fact in facts.items()
+                    if fact['kind'] == 'entry_point'}
+        self.assertEqual(handlers, {'start': 'web/server.js', 'ship': 'web/scripts/ship.ts',
+                                    'build': 'web/scripts/pack.mjs', 'gates': 'tools/gates.py'})
+        tools = {route[len('npm run '):]: fact['value']['tools'] for route, fact in facts.items()
+                 if fact['kind'] == 'tool_command'}
+        # A file handed to a linter is read, not run; a path outside the repository is no handler of it.
+        self.assertEqual(tools, {'dev': ['vite'], 'typecheck': ['tsc'], 'test': ['vitest'], 'lint': ['eslint'],
+                                 'check': ['tsc'], 'outside': ['node']})
+        self.assertEqual(facts['npm run start']['resolution'], 'RESOLVED')
+        self.assertEqual(summary['production_entry_points'], 4)
+        self.assertEqual(summary['tool_commands'], 6)
+        self.assertEqual(summary['by_framework'], {'npm_script': 4})
+
+    def test_make_targets_follow_their_recipes_and_prerequisites(self):
+        makefile = ('.PHONY: all test run serve\n'
+                    'all: run\n'
+                    'test:\n\t@pytest -q\n'
+                    'run:\n\tpython app.py --port 8000\n'
+                    'serve:\n\t$(PYTHON) -m pkg.server\n'
+                    'lint: ; ruff check .\n'
+                    'out.txt:\n')
+        facts, _ = self.facts({'Makefile': makefile})
+        self.assertEqual(facts['make all']['value']['handler'], 'app.py')
+        self.assertEqual(facts['make run']['value']['handler'], 'app.py')
+        self.assertEqual(facts['make serve']['value']['handler'], 'pkg/server.py')
+        self.assertEqual((facts['make test']['kind'], facts['make test']['value']['tools']), ('tool_command', ['pytest']))
+        self.assertEqual((facts['make lint']['kind'], facts['make lint']['value']['tools']), ('tool_command', ['ruff']))
+        # A target with nothing to run is no evidence either way: it stays a declared entry point without a handler.
+        self.assertEqual((facts['make out.txt']['kind'], facts['make out.txt']['value']['handler']), ('entry_point', None))
+        self.assertEqual(facts['make run']['location']['start_line'], 5)
+
+    def test_scripts_that_call_each_other_in_a_cycle_end(self):
+        facts, _ = self.facts({'package.json': json.dumps({'scripts': {'a': 'npm run b', 'b': 'npm run a'}})})
+        self.assertEqual({fact['kind'] for fact in facts.values()}, {'tool_command'})
+
+
 class GoMainPackageTests(TemporaryWorkspace):
     """`package main` + `func main()` is the binary's entry point: surface=cli, framework=go_main.
 

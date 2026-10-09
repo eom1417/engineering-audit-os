@@ -25,6 +25,7 @@
         "import_edge",
         "call_edge",
         "entry_point",
+        "tool_command",
         "config_key",
         "env_read",
         "data_model",

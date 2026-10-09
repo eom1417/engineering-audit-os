@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "extractor": "flows",
-  "extractor_version": "3",
+  "extractor_version": "4",
   "available": true,
-  "input_sha": "ce6f42c3564effba5091bd1ab8874071df7f8e2243c4b6d7537799a2d897f3ef",
+  "input_sha": "b9fdfa2190432ffbb239f054cfe1368fe105b790082416c8c568b50a7c197a7b",
   "limitations": [
     "A trace follows statically resolvable calls; dispatch through variables, callbacks or DI is not followed.",
     "Order inside a function is source order, not proof of runtime order or of the branch actually taken.",
@@ -12,12 +12,12 @@
   ],
   "summary": {
     "flows": 8,
-    "entry_points_considered": 8,
-    "distinct_handlers": 8,
+    "entry_points_considered": 9,
+    "distinct_handlers": 9,
     "flows_reaching_other_code": 3,
     "flows_stopping_at_the_first_boundary": 5,
     "test_entry_points_excluded": 0,
-    "entry_points_without_traceable_handler": 0,
+    "entry_points_without_traceable_handler": 1,
     "total_steps": 27,
     "unresolved_steps": 0,
     "steps_by_resolution": {
@@ -35,10 +35,10 @@
   },
   "facts": [
     {
-      "id": "FACT-63b9449526f5e91d",
+      "id": "FACT-2761cb73fe0f6dfe",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "3",
+      "extractor_version": "4",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -87,10 +87,10 @@
       ]
     },
     {
-      "id": "FACT-a5e0e4fa28e40fce",
+      "id": "FACT-04ee4f25fc0abb3f",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "3",
+      "extractor_version": "4",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -142,10 +142,10 @@
       ]
     },
     {
-      "id": "FACT-fff3f5ad1116f5f1",
+      "id": "FACT-09b23b590de9d938",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "3",
+      "extractor_version": "4",
       "input_sha": "511d26aab7f47e368afca7f10e0e28e6f513267902c03743cc81ed5ea25bfc06",
       "location": {
         "path": "api/server.ts",
@@ -228,10 +228,10 @@
       ]
     },
     {
-      "id": "FACT-ebe9cc7c6d48692f",
+      "id": "FACT-4d8c3527a4f50659",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "3",
+      "extractor_version": "4",
       "input_sha": "d017c73c4709b321e385e2292723d443c03bbddcf9b0a7431f913be53d860dad",
       "location": {
         "path": "worker/tasks.py",
@@ -293,10 +293,10 @@
       ]
     },
     {
-      "id": "FACT-e77a1b28c7e61d9e",
+      "id": "FACT-c1a7063634cf8059",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "3",
+      "extractor_version": "4",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -405,10 +405,10 @@
       ]
     },
     {
-      "id": "FACT-ecf7f01338b8bcc7",
+      "id": "FACT-984b69c68fce52de",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "3",
+      "extractor_version": "4",
       "input_sha": "522cf5c7469f63df1917c973d945934f5f4673dcfe73e5bf31647bc0ea1c5cd4",
       "location": {
         "path": "svc/main.go",
@@ -467,10 +467,10 @@
       ]
     },
     {
-      "id": "FACT-133990b1ce5e3537",
+      "id": "FACT-cedcc86261a8ea3c",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "3",
+      "extractor_version": "4",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -478,7 +478,7 @@
         "symbol": "main"
       },
       "value": {
-        "flow_id": "FLOW-007",
+        "flow_id": "FLOW-008",
         "entry": {
           "surface": "cli",
           "route": "polyglot",
@@ -579,10 +579,10 @@
       ]
     },
     {
-      "id": "FACT-4a2206d613090cad",
+      "id": "FACT-2dc517835836087f",
       "kind": "flow",
       "extractor": "flows",
-      "extractor_version": "3",
+      "extractor_version": "4",
       "input_sha": "906353705bc70171927132808ca931e36d82bc64891c1b31e8e15978913ab9c1",
       "location": {
         "path": "cli.py",
@@ -590,7 +590,7 @@
         "symbol": "quote"
       },
       "value": {
-        "flow_id": "FLOW-008",
+        "flow_id": "FLOW-009",
         "entry": {
           "surface": "cli",
           "route": "quote",

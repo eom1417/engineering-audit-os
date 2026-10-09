@@ -71,6 +71,16 @@ def _entry_point_fact(item, rel, language, entry, category):
                 limitations=LIMITATIONS)
 
 
+def _tool_command_fact(item, rel, language, entry, category):
+    """A declared command that runs only external tools: the project's command, not a way into its code."""
+    return make('tool_command', NAME, VERSION, item['sha256'],
+                {'path': rel, 'start_line': entry['line']},
+                {'surface': entry['surface'], 'route': entry['route'], 'http_method': None, 'handler': None,
+                 'framework': entry['framework'], 'tools': entry.get('tools', []), 'language': language,
+                 'category': category},
+                resolution='RESOLVED', limitations=LIMITATIONS)
+
+
 def _data_access_fact(item, rel, line, call, category):
     return make('data_access', NAME, VERSION, item['sha256'],
                 {'path': rel, 'start_line': line, 'symbol': call.get('symbol') or 'data_access'},
@@ -120,6 +130,9 @@ def run(target, source, symbols=None, **options):
             if kind == 'entry_point':
                 for entry in module.detect(context):
                     fingerprints.append(item['sha256'])
+                    if entry.get('kind') == 'tool_command':
+                        facts.append(_tool_command_fact(item, rel, language, entry, category))
+                        continue
                     surfaces[entry['surface']] = surfaces.get(entry['surface'], 0) + 1
                     frameworks[entry['framework']] = frameworks.get(entry['framework'], 0) + 1
                     covered_languages.add(language or 'manifest')
@@ -141,10 +154,12 @@ def run(target, source, symbols=None, **options):
                               f['location']['path'], f['location'].get('start_line') or 0))
     entry_point_facts = [f for f in facts if f['kind'] == 'entry_point']
     data_access_facts = [f for f in facts if f['kind'] == 'data_access']
+    tool_command_facts = [f for f in facts if f['kind'] == 'tool_command']
     production = [f for f in entry_point_facts if f['value'].get('category') != 'test']
     summary = {'entry_points': len(entry_point_facts),
                'production_entry_points': len(production),
                'test_only_entry_points': len(entry_point_facts) - len(production),
+               'tool_commands': len(tool_command_facts),
                'data_access': len(data_access_facts),
                'data_access_by_client': dict(sorted(data_access_by_client.items())),
                'navigation': sum(navigation_by_via.values()),

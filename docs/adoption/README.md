@@ -51,3 +51,4 @@ one is its record.
 | NS46.T15 AI nodes in the EAOS pipeline | [ns46-t15-ai-nodes.md](ns46-t15-ai-nodes.md) |
 
 | NS46.T4 Library reader, History and EAOS quality | [ns46-t4-library-history-quality.md](ns46-t4-library-history-quality.md) |
+| Task-runner scripts traced to the program they run | [script-handlers.md](script-handlers.md) |
