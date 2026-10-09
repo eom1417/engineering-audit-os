@@ -9,6 +9,7 @@ from eaos import artifact_contracts
 from eaos.studio import coverage
 from eaos.studio.data_paths import MAX_LANE, data_paths, route_key
 from eaos.studio.infra import MAX_LANE_NODES, infra, package_of
+from tests.shared_fixture import Workspace
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / 'tests/fixtures/studio/v2'
@@ -85,15 +86,13 @@ def shop(root, target=True):
     return out
 
 
-class DataPaths(unittest.TestCase):
+class DataPaths(Workspace):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.body = data_paths(shop(self.tmp.name))
+        super().setUp()
+        self.body = data_paths(shop(self.tmp))
         self.stores = {s['id']: s for s in self.body['stores']}
         self.endpoints = {e['id']: e for e in self.body['endpoints']}
 
-    def tearDown(self):
-        self.tmp.cleanup()
 
     def test_routes_have_one_spelling(self):
         self.assertEqual({route_key(r) for r in ('/orders/:id', '/orders/{id}', '/orders/<int:id>', '/Orders/${id}/', '/orders/*')},
@@ -166,21 +165,19 @@ class DataPaths(unittest.TestCase):
         self.assertEqual(artifact_contracts.validate(data, artifact_contracts.contracts()['studio-data_paths']), [])
 
     def test_its_coverage_row_is_partial_while_the_form_tiers_are_unmeasured(self):
-        row = next(r for r in coverage.coverage(Path(self.tmp.name), {'data_paths': self.body}, ['data_paths'], [], 'en')['sections']
+        row = next(r for r in coverage.coverage(Path(self.tmp), {'data_paths': self.body}, ['data_paths'], [], 'en')['sections']
                    if r['section'] == 'data_paths')
         self.assertEqual((row['state'], row['reason'], row['step']), ('partial', 'some_parts_missing', 'NS40.T2'))
         self.assertEqual([p['id'] for p in row['parts']], ['field', 'form', 'key', 'caller', 'endpoint', 'handler', 'column'])
 
 
-class Infra(unittest.TestCase):
+class Infra(Workspace):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.body = infra(shop(self.tmp.name))
+        super().setUp()
+        self.body = infra(shop(self.tmp))
         self.lanes = {lane['id']: lane for lane in self.body['lanes']}
         self.names = {lane: {n['name'] for n in self.lanes[lane]['nodes']} for lane in self.lanes}
 
-    def tearDown(self):
-        self.tmp.cleanup()
 
     def test_each_lane_from_its_records(self):
         self.assertEqual(self.names['hosting'], {'Vercel'}, 'a test fixture\'s Dockerfile is not where the project runs')

@@ -19,6 +19,7 @@ FIXTURES = ROOT / 'tests/fixtures/studio/actions'
 FAKE = FIXTURES / 'fake_assistant.py'
 
 from eaos.studio import actions  # noqa: E402
+from tests.shared_fixture import Workspace  # noqa: E402
 from eaos.studio.actions import adapters, handoff, prompts, security, selection, store  # noqa: E402
 
 
@@ -28,12 +29,12 @@ def card(id, **extra):
             'milestone': 'M1', **extra}
 
 
-class Base(unittest.TestCase):
+class Base(Workspace):
     """A project, its Studio data, a home of its own, and the fake assistant as Claude Code."""
 
     def setUp(self):
-        self.folder = tempfile.TemporaryDirectory()
-        self.base = Path(self.folder.name)
+        super().setUp()
+        self.base = Path(self.tmp)
         saved = {k: os.environ.get(k) for k in ('EAOS_HOME', 'EAOS_OUTPUT', 'FAKE_MODE', 'FAKE_SECONDS', 'FAKE_ARGV', 'FAKE_LOGGED_IN', 'EAOS_ASSISTANT')}
         def restore():
             for key, value in saved.items():
@@ -61,7 +62,7 @@ class Base(unittest.TestCase):
                     except OSError: pass
             app.close()
         time.sleep(0.3)
-        self.folder.cleanup()
+        super().tearDown()
 
     def make(self, adapters_=None, **options):
         app = actions.Actions(self.project, port=8765, studio=self.studio,

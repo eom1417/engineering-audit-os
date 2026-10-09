@@ -1,12 +1,12 @@
 """studio/journeys.json and studio/hidden.json: the user's journeys between screens, and what runs unseen behind them,
 read from the scan's facts with their evidence, never invented (eaos/studio/journeys.py, hidden.py)."""
 import json
-import tempfile
 import unittest
 from pathlib import Path
 
 from eaos import artifact_contracts
 from eaos.studio import coverage, hidden, journeys
+from tests.shared_fixture import TemporaryWorkspace
 
 R = 'src/App.tsx'
 
@@ -74,18 +74,13 @@ def write_report(folder):
     return folder
 
 
-class Journeys(unittest.TestCase):
+class Journeys(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
-        cls.tmp = tempfile.TemporaryDirectory()
-        cls.report = write_report(cls.tmp.name)
+        cls.report = write_report(cls.workspace().name)
         cls.j = journeys.build(cls.report, media=[])
         cls.s = {s['id']: s for s in cls.j['screens']}
         cls.edges = {(e['from'], e['to']): e for e in cls.j['edges']}
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tmp.cleanup()
 
     def test_screens_are_the_full_routes_with_their_component_file_and_kind(self):
         self.assertEqual(self.s['/app/items']['file'], 'src/pages/Items.tsx')
@@ -140,18 +135,13 @@ class Journeys(unittest.TestCase):
         self.assertEqual(artifact_contracts.validate(data, artifact_contracts.contracts()['studio-journeys']), [])
 
 
-class Hidden(unittest.TestCase):
+class Hidden(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
-        cls.tmp = tempfile.TemporaryDirectory()
-        cls.report = write_report(cls.tmp.name)
+        cls.report = write_report(cls.workspace().name)
         cls.j = journeys.build(cls.report, media=[])
         cls.h = hidden.build(cls.report, cls.j, [{'id': 'TASK-1', 'evidence': ['FACT-data_access-src_dead_Widget.tsx-7']}])
         cls.items = {i['id']: i for i in cls.h['items']}
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tmp.cleanup()
 
     def test_unseen_work_is_grouped_with_its_evidence(self):
         groups = {g['id']: g['count']['value'] for g in self.h['groups']}

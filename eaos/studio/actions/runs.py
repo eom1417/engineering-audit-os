@@ -81,10 +81,11 @@ class Manager:
             record.update(fields, state=to)
             if to == 'running' and not record.get('started'): record['started'] = now()
             if to in TERMINAL: record['ended'] = now()
+            # the event first: a stream that ends when it sees a final state has then already read its last event
+            if before != to:
+                self.store.append(run, 'state', {'en': TEXT[to]['en'] + (f': {why}' if why else ''), 'ar': TEXT[to]['ar'] + (f': {why}' if why else '')},
+                                  {'from': before, 'to': to, 'why': why})
             self.store.save(record)
-        if before != to:
-            self.store.append(run, 'state', {'en': TEXT[to]['en'] + (f': {why}' if why else ''), 'ar': TEXT[to]['ar'] + (f': {why}' if why else '')},
-                              {'from': before, 'to': to, 'why': why})
         return record
 
     def close(self):
