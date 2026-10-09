@@ -1,6 +1,6 @@
 // The running check for every page: the live map reads it, and the frame shows a banner while a check runs. Live only
 // (the snapshot has no server to follow); the state is read whole from /api/scan-progress, then follows the feed's
-// `scan.stage` events (data/scan.ts). A gap in the numbers, a new run or a reset reads it whole again, and so does a
+// `progress` events of the check (data/scan.ts). A gap in the numbers, a new run or a reset reads it whole again, and so does a
 // slow look while a run is open, which is how a run whose process stopped turns `interrupted` instead of glowing on.
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { liveToken } from './live'

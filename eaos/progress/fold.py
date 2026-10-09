@@ -34,6 +34,11 @@ def empty():
             'previous': {}, 'previous_steps': {}, 'counts': {}, 'stages': [], 'pid': None, 'host': None}
 
 
+def declared(flow, stages):
+    """The state of a flow that has not run yet: its declared stages (log.stage_rows), all waiting."""
+    return {**empty(), 'flow': flow, 'stages': [_stage(row, ()) for row in stages]}
+
+
 def _stage(declared, requested):
     return {**declared, 'requested': declared['name'] in requested, 'state': WAITING, 'started_at': None,
             'ended_at': None, 'seconds': None, 'reason': '', 'reason_code': '', 'artifacts': [], 'detail': {},

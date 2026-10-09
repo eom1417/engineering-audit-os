@@ -16,13 +16,13 @@ The events are declared in eaos/data/schemas/progress.json.
 from .context import count, current, step, using
 from .estimate import estimate
 from .flow import Flow, Stage, begin, current_flow, end, skip, stage
-from .fold import ENDED, RUNNING, WAITING, apply, empty, fold, fold_file, read
+from .fold import ENDED, RUNNING, WAITING, apply, declared, empty, fold, fold_file, read
 from .liveness import ALIVE_EVERY, STALLED_AFTER, alive, heard_at, judge
 from .log import (HISTORY_KEEP, PROGRESS, SCHEMA, ProgressLog, history_folder, now, path_for, previous_seconds,
                   previous_steps, stage_rows)
 from .reasons import reason_text
 
 __all__ = ['ALIVE_EVERY', 'ENDED', 'HISTORY_KEEP', 'PROGRESS', 'RUNNING', 'SCHEMA', 'STALLED_AFTER', 'WAITING', 'Flow',
-           'ProgressLog', 'Stage', 'alive', 'apply', 'begin', 'count', 'current', 'current_flow', 'empty', 'end',
+           'ProgressLog', 'Stage', 'alive', 'apply', 'begin', 'count', 'current', 'current_flow', 'declared', 'empty', 'end',
            'estimate', 'fold', 'fold_file', 'heard_at', 'history_folder', 'judge', 'now', 'path_for',
            'previous_seconds', 'previous_steps', 'read', 'reason_text', 'skip', 'stage', 'stage_rows', 'step', 'using']

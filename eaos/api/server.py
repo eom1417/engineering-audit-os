@@ -87,6 +87,10 @@ class Context:
     def publish(self, kind, data=None, text=None):
         return self.feed.publish(kind, data=data, text=text)
 
+    def state(self):
+        """The project's guided state as it is now (eaos/guided.py), or None when no project is known."""
+        return guided.load(self.project) if self.project else None
+
 
 def plain(method, path, handler):
     """A Starlette route over a framework-free handler: handler(request: dict) -> (status, payload) or payload.
@@ -209,8 +213,9 @@ def _routes(entries):
 
 def create_app(report, project=None, name=None, keys=None, mounts=None, assets=None, watch=True):
     report = Path(report)
-    ctx = Context(report=report, feed=Feed(report), keys=keys or Keys(), project=Path(project) if project else None,
-                  name=name or (Path(project).name if project else report.name), assets=Path(assets or ASSETS))
+    ctx = Context(report=report, feed=Feed(report, runtime=_runtime(project)), keys=keys or Keys(),
+                  project=Path(project) if project else None, name=name or (Path(project).name if project else report.name),
+                  assets=Path(assets or ASSETS))
     mounted = command_centre(ctx) if mounts is None else [route for mount in mounts for route in _routes(mount(ctx))]
     ctx.actions_mounted = bool(mounted)
     ctx.feed.poll()                                   # the state the server starts from, not an event
@@ -240,6 +245,12 @@ def create_app(report, project=None, name=None, keys=None, mounts=None, assets=N
                     exception_handlers={404: not_found})
     app.state.ctx = ctx
     return app
+
+
+def _runtime(project):
+    """The project's runtime folder, where the flows after the check write their progress; None without a project."""
+    known = guided.load(Path(project)) if project else None
+    return guided.runtime_of(known) if known else None
 
 
 def bind(port=0, host=guard.LOOPBACK, remote_origin=None):

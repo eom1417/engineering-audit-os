@@ -1,6 +1,6 @@
 // The running check, as EAOS itself records it: run-progress.jsonl folded into one row per stage (eaos/pipeline/
 // progress.py). The server gives the folded state (/api/scan-progress) with each stage's place on the map; after that
-// the page applies the `scan.stage` events of the live feed one by one with `apply`, the same fold the server does, so
+// the page applies the live feed's `progress` events of the check one by one with `apply`, the same fold the server does, so
 // a page opened mid-run and a page that watched from the start show the same thing. Nothing here invents a number:
 // the time left is the last run's seconds of the stages still to come, and only when that run is known.
 
@@ -54,7 +54,7 @@ export interface ScanProgress {
   now?: string
 }
 
-/** One line of run-progress.jsonl, as the feed carries it in a `scan.stage` event's data. */
+/** One line of run-progress.jsonl, as the feed carries it in the data of a `progress` event of the check. */
 export interface ProgressRow {
   seq: number
   at?: string
@@ -170,7 +170,7 @@ export function clock(seconds: number | null): string {
 type Listener = (row: ProgressRow | null) => void
 const listeners = new Set<Listener>()
 
-/** The data provider hands every `scan.stage` event here (null: the stream was reset) instead of reloading the report. */
+/** The data provider hands every `progress` event of the check here (null: the stream was reset) instead of reloading the report. */
 export function emitScan(row: ProgressRow | null) {
   for (const listener of listeners) listener(row)
 }

@@ -1,7 +1,7 @@
 """The live scan map (owner request 2026-10-09): the check writes its own progress, the Studio's server follows it.
 
 The pipeline appends one line per event to <report>/run-progress.jsonl (eaos/pipeline/progress.py); the live feed
-publishes each new line as a `scan.stage` event (eaos/api/events.py); /api/scan-progress gives the folded state and
+publishes each new line as a `progress` event (eaos/api/events.py); /api/scan-progress gives the folded state and
 each stage's place (eaos/api/read.py). Fake runners stand in for the real stages, so the order is the declaration's
 own and every case runs in a moment.
 """
@@ -210,10 +210,11 @@ class ProgressApi(unittest.TestCase):
         self.assertEqual(http.get('/api/scan-progress').status_code, 401, 'the token guards it like every /api/ route')
         self.assertIn('/api/scan-progress', http.get('/api/openapi.json', headers={'X-EAOS-Token': keys.token}).json()['paths'])
 
-    def test_no_check_yet_is_an_empty_state(self):
+    def test_no_check_yet_is_the_declared_stages_waiting(self):
         http, keys, _ = client(self.report)
         body = http.get('/api/scan-progress', headers={'X-EAOS-Token': keys.token}).json()
-        self.assertEqual((body['state'], body['stages']), ('none', []))
+        self.assertEqual((body['state'], [s['name'] for s in body['stages']]), ('none', list(ORDER)))
+        self.assertEqual({s['state'] for s in body['stages']}, {'waiting'})
 
     def test_the_feed_publishes_new_lines_only_and_follows_a_new_run(self):
         log = progress.ProgressLog(self.report)
@@ -223,7 +224,7 @@ class ProgressApi(unittest.TestCase):
         self.assertEqual(feed.poll(), [], 'what the file held at start is the starting state, not events')
         log.emit('stage.started', stage='facts')
         added = feed.poll()
-        self.assertEqual([(e['kind'], e['source'], e['data']['event']) for e in added], [('scan.stage', 'progress', 'stage.started')])
+        self.assertEqual([(e['kind'], e['source'], e['data']['event']) for e in added], [('progress', 'progress', 'stage.started')])
         self.assertEqual(added[0]['text'], {'en': 'Stage facts started', 'ar': 'بدأت مرحلة facts'})
         with (self.report / progress.PROGRESS).open('a', encoding='utf-8') as handle:
             handle.write('{"seq": 3, "event": "stage.ste')                       # half a line
@@ -274,7 +275,7 @@ class ProgressStream(unittest.TestCase):
         reader.join(10)
         self.assertLess(time.monotonic() - written, 5)
         got = [json.loads(f['data']) for f in result['frames']]
-        self.assertEqual([(e['kind'], e['data']['event']) for e in got], [('scan.stage', 'run.started'), ('scan.stage', 'stage.started')])
+        self.assertEqual([(e['kind'], e['data']['event']) for e in got], [('progress', 'run.started'), ('progress', 'stage.started')])
         self.assertEqual([s['name'] for s in got[0]['data']['stages']], list(ORDER))
         # the page lost its connection after the first event: it reconnects with that id and gets what it missed
         log.ended({'stage': 'facts', 'status': 'ok', 'reason': '', 'seconds': 1.0, 'necessity': 'required', 'artifacts': []})

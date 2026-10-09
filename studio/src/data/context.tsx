@@ -64,11 +64,14 @@ export function DataProvider({ children, preset, source }: { children: ReactNode
       // A report is a large tree to draw: as a transition React draws it in slices and the page keeps answering
       startTransition(() => setState(next))
     }
-    // Events are applied one after another, each on the report the one before it left. The check's own progress
-    // (`scan.stage`, many a minute while a check runs) changes no section: it goes to the live map (data/scan.ts), and
-    // the report reloads when the check publishes its new data, as before.
+    // Events are applied one after another, each on the report the one before it left. Progress (`progress`, many a
+    // minute while work runs) changes no section: the check's goes to the live map (data/scan.ts), and the report
+    // reloads when the check publishes its new data, as before.
     const reload = (event: LiveEvent | null) => {
-      if (event?.kind === 'scan.stage') { emitScan(event.data as unknown as ProgressRow); return }
+      if (event?.kind === 'progress') {
+        if (event.data.flow === 'check') emitScan(event.data as unknown as ProgressRow)
+        return
+      }
       if (!event) emitScan(null)
       queue = queue.then(() => chosen.load(event ? current.current : null)).then((next) => {
         apply(next)

@@ -18,12 +18,13 @@ being replayed someone else's numbers. The feed keeps the last `KEEP` events; an
 
 The action API (docs/studio-actions.json) publishes its own events through `publish`, into the same numbering.
 
-Beside either source, the feed tails the running check's progress file (`run-progress.jsonl`, eaos/progress/log.py)
-and publishes each new line as one `scan.stage` event whose data is the line itself, into the same numbering and the
-same replay. It reads the file, not a process, so a check started from the terminal, the assistant or the Studio is
-followed alike. What the file held when the feed started is the state the server starts from, not an event: a page
-reads it whole from /api/scan-progress (read.py) and then applies the events after it. A new run replaces the file;
-the feed sees the new inode and reads the new file from its start.
+Beside either source, the feed tails every progress file (eaos/progress/log.py): the check's (`run-progress.jsonl`
+in the report) and each other flow's (`<runtime>/progress/<flow>.jsonl`: setting up, recording the screens, fixing).
+Each new line is published as one `progress` event whose data is the line itself plus its `flow`, into the same
+numbering and the same replay. It reads files, not processes, so work started from the terminal, the assistant or the
+Studio is followed alike. What the files held when the feed started is the state the server starts from, not events:
+a page reads it whole from /api/progress (read.py) and then applies the events after it. A new run replaces its file;
+the feed sees the new inode, or a file it did not know, and reads it from its start.
 """
 import json
 import secrets
@@ -33,6 +34,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ..progress import PROGRESS
+from ..progress.log import FOLDER
 
 KEEP = 2000
 EVENT_LOG = 'events.jsonl'
@@ -43,16 +45,18 @@ TEXT = {
     'decision.asked': ('A decision is waiting for you', 'قرار ينتظرك'),
     'decision.answered': ('A decision was answered', 'تمت الإجابة على قرار'),
     'studio.updated': ('The Studio data was updated', 'تحدّثت بيانات الاستوديو'),
-    'scan.stage': ('The check moved on', 'تقدّم الفحص'),
+    'progress': ('The work moved on', 'تقدّم العمل'),
 }
+FLOW_TEXT = {'check': ('The check', 'الفحص'), 'setup': ('Setting up your app', 'تجهيز برنامجك'),
+             'safety': ('Recording the screens', 'تصوير الشاشات'), 'fix': ('The fix', 'الإصلاح')}
 STEP_TEXT = {
-    'run.started': ('The check started', 'بدأ الفحص'),
+    'run.started': ('{flow} started', 'بدأ {flow}'),
     'stage.started': ('Stage {stage} started', 'بدأت مرحلة {stage}'),
     'stage.step': ('{stage}: {step}', '{stage}: {step}'),
     'stage.activity': ('{stage}: programs running', '{stage}: البرامج الشغّالة'),
-    'run.alive': ('The check is still running', 'الفحص ما زال شغّالًا'),
+    'run.alive': ('{flow} is still running', '{flow} ما زال شغّالًا'),
     'stage.ended': ('Stage {stage}: {status}', 'مرحلة {stage}: {status}'),
-    'run.ended': ('The check ended: {status}', 'انتهى الفحص: {status}'),
+    'run.ended': ('{flow} ended: {status}', 'انتهى {flow}: {status}'),
 }
 BATCH, MERGED = {'in_batch', 'on_branch'}, {'done'}
 
@@ -61,14 +65,32 @@ def now():
     return datetime.now(timezone.utc).isoformat(timespec='milliseconds')
 
 
+def _stat(path):
+    """(inode, size) of a file, or (None, 0) when it is not there."""
+    try: found = path.stat()
+    except OSError: return None, 0
+    return found.st_ino, found.st_size
+
+
+def _rows(chunk):
+    """The progress events in whole lines of bytes; a line that is not one is left out."""
+    rows = []
+    for line in chunk.decode('utf-8', 'replace').splitlines():
+        try: row = json.loads(line)
+        except ValueError: continue
+        if isinstance(row, dict) and row.get('event'): rows.append(row)
+    return rows
+
+
 def _read(path):
     try: return json.loads(Path(path).read_text(encoding='utf-8'))
     except (OSError, ValueError): return None
 
 
 class Feed:
-    def __init__(self, report, keep=KEEP):
+    def __init__(self, report, keep=KEEP, runtime=None):
         self.report = Path(report)
+        self.runtime = Path(runtime) if runtime else None
         self.folder = self.report / 'studio'
         self.epoch = secrets.token_hex(4)
         self.seq = 0
@@ -77,8 +99,8 @@ class Feed:
         self.seen = None            # what the manifest said last time: digest, scan, sections, card and decision states
         self.log_at = 0             # bytes of events.jsonl already read
         self.source = 'events' if self.event_log().is_file() else 'manifest'
-        # the progress file as it is now is the starting state (read whole by /api/scan-progress), not events
-        self.progress_inode, self.progress_at = self._progress_stat()
+        # the progress files as they are now are the starting state (read whole by /api/progress), not events
+        self.tails = {path: _stat(path) for _, path in self.progress_files()}
 
     # ------------------------------------------------------------------ reading
     def event_log(self):
@@ -120,38 +142,38 @@ class Feed:
         self.source = 'manifest'
         return progress + self._poll_manifest()
 
-    def progress_file(self):
-        return self.report / PROGRESS
-
-    def _progress_stat(self):
-        try: found = self.progress_file().stat()
-        except OSError: return None, 0
-        return found.st_ino, found.st_size
+    def progress_files(self):
+        """(flow, path) of every progress file: the check's, then each other flow's in the runtime folder."""
+        files = [('check', self.report / PROGRESS)]
+        if self.runtime: files += [(path.stem, path) for path in sorted((self.runtime / FOLDER).glob('*.jsonl'))]
+        return files
 
     def _poll_progress(self):
-        inode, size = self._progress_stat()
+        return [event for flow, path in self.progress_files() for event in self._tail(flow, path)]
+
+    def _tail(self, flow, path):
+        inode, size = _stat(path)
         if inode is None: return []
-        if inode != self.progress_inode or size < self.progress_at:      # a new run: its file from the start
-            self.progress_inode, self.progress_at = inode, 0
-        if size == self.progress_at: return []
+        known, at = self.tails.get(path, (None, 0))
+        if inode != known or size < at: at = 0         # a new run, or a file that appeared since: from its start
+        self.tails[path] = (inode, at)
+        if size == at: return []
         try:
-            with self.progress_file().open('rb') as handle:
-                handle.seek(self.progress_at)
+            with path.open('rb') as handle:
+                handle.seek(at)
                 chunk = handle.read()
         except OSError:
             return []
         complete = chunk[:chunk.rfind(b'\n') + 1]       # a line still being written waits for the next look
-        self.progress_at += len(complete)
-        added = []
-        for line in complete.decode('utf-8', 'replace').splitlines():
-            try: row = json.loads(line)
-            except ValueError: continue
-            if not isinstance(row, dict) or not row.get('event'): continue
-            en, ar = STEP_TEXT.get(row['event'], (row['event'], row['event']))
-            words = {k: row.get(k, '') for k in ('stage', 'step', 'status')}
-            added.append(self.publish('scan.stage', data=row, source='progress',
-                                      text={'en': en.format(**words), 'ar': ar.format(**words)}))
-        return added
+        self.tails[path] = (inode, at + len(complete))
+        return [self._publish_progress(flow, row) for row in _rows(complete)]
+
+    def _publish_progress(self, flow, row):
+        en, ar = STEP_TEXT.get(row['event'], (row['event'], row['event']))
+        words = {k: row.get(k, '') for k in ('stage', 'step', 'status')}
+        named = FLOW_TEXT.get(flow, (flow, flow))
+        return self.publish('progress', data={**row, 'flow': flow}, source='progress',
+                            text={'en': en.format(flow=named[0], **words), 'ar': ar.format(flow=named[1], **words)})
 
     def _poll_log(self):
         added = []
