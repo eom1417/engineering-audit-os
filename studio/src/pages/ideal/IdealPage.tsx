@@ -12,6 +12,7 @@ import { usePrefs } from '../../i18n/prefs'
 import { Id, N, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, MissingBanner, PageTitle, WithData } from '../../shell/Layout'
+import { usePhone } from '../SystemMap'
 import { asIdeal, counts, differenceOf, RELATION, VIEWS, viewOf, type Element, type Ideal, type View, type ViewName } from './model'
 import { useIdealWords, type IdealWord } from './words'
 import css from './Ideal.module.css'
@@ -41,12 +42,13 @@ function ElementRow({ element, view, planned }: { element: Element; view: View; 
 
 function Side({ title, summary, elements, view, planned, empty }:
   { title: string; summary: string; elements: Element[]; view: View; planned: boolean; empty: string }) {
+  const phone = usePhone()
   return (
     <Panel pad className={planned ? css.plannedSide : css.rulesSide} label={title}>
       <Section title={title} count={elements.length}>
         {summary && <p className={css.summary}><Txt block>{summary}</Txt></p>}
         {elements.length
-          ? <FoldList items={elements} first={8} render={(e) => <ElementRow element={e} view={view} planned={planned} />} />
+          ? <FoldList items={elements} first={phone ? 3 : 8} render={(e) => <ElementRow element={e} view={view} planned={planned} />} />
           : <p className={css.muted}>{empty}</p>}
       </Section>
     </Panel>
