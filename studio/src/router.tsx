@@ -8,6 +8,7 @@ import { GapPage, GapsPage } from './pages/change/GapsPage'
 import { PlanPage, PlansPage } from './pages/change/PlansPage'
 import { DataPathsPage } from './pages/data/DataPaths'
 import { InfraLensPage } from './pages/infra/InfraLens'
+import { IdealPage } from './pages/ideal/IdealPage'
 import { DecisionsPage } from './pages/Decisions'
 import { HomePage } from './pages/Home'
 import { LibraryPage } from './pages/Library'
@@ -67,6 +68,7 @@ export function makeRouter(dev: () => boolean) {
     createRoute({ getParentRoute: () => root, path: '/problems', component: ProblemsPage, validateSearch: params(...PROBLEM_KEYS) }),
     createRoute({ getParentRoute: () => root, path: '/evidence/$factId', component: EvidencePage }),
     createRoute({ getParentRoute: () => root, path: '/change', component: ChangePage, validateSearch: params('focus', 'side') }),
+    createRoute({ getParentRoute: () => root, path: '/change/ideal', component: IdealPage, validateSearch: params('view') }),
     createRoute({ getParentRoute: () => root, path: '/change/timeline', component: TimelinePage, validateSearch: params('step', 'wave') }),
     createRoute({ getParentRoute: () => root, path: '/change/bridge', component: BridgePage, validateSearch: params('view') }),
     createRoute({ getParentRoute: () => root, path: '/change/gaps', component: GapsPage, validateSearch: params('relation') }),

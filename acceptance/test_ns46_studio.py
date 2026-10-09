@@ -89,6 +89,18 @@ AI nodes in the EAOS pipeline (docs/STUDIO.md D11; written by the planner 2026-1
                                                      `ai_stages` and one router per node (table = the node's name)
     $EAOS_MEASURE/nodes/FleetManageWeb/card_triage.json   a real triage run: {project, assistant, model, at, real,
                                                      decisions, share_with_evidence, routes{decision: count}}
+Re-planning every target already built (docs/STUDIO.md D10; written by the planner 2026-10-09 with NS46.T16):
+    $EAOS_MEASURE/replan/<project>/run.json          for FleetManageWeb, chief-ops, finance-os-a0192b7b and EAOS: a real
+                                                     planning run (tools/replan_trial.py) on a fresh check: the fields of
+                                                     the ideal run, with views{<view>: {method, rules, planned, summary,
+                                                     why_empty, differences{same, changed, added, rules_only}}} and
+                                                     differences [{view, element, kind, subject, rules, planned}]
+    docs/roadmap-proposals.json                      the planning and critique pass over EAOS's own roadmap
+                                                     (tools/roadmap_review.py): {run{assistant, model, at, real, passes,
+                                                     share_with_evidence}, proposals [{id, kind, title, detail, cites,
+                                                     recommendation, decision{state, options, owner_verdict}, applied}],
+                                                     dropped}; every cite is an id of docs/north-star.json
+    docs/roadmap-proposals.md                        the same for people, every proposal id in it
 """
 import json
 import re
@@ -801,6 +813,79 @@ class AINodes(unittest.TestCase):
         self.assertGreater(run['decisions'], 0)
         self.assertEqual(run['share_with_evidence'], 1.0)
         self.assertLessEqual(set(run['routes']), {'confirm', 'doubt', 'reject', 'rules only'})
+
+
+REPLANNED = ('FleetManageWeb', 'chief-ops', 'finance-os-a0192b7b', 'EAOS')
+
+
+def _roadmap_ids():
+    record = json.loads((ROOT / 'docs/north-star.json').read_text(encoding='utf-8'))
+    ids = {m['id'] for m in record['milestones']} | {t['id'] for m in record['milestones'] for t in m['tasks']}
+    ids |= {c['id'] for c in record['capabilities']} | {i['id'] for c in record['capabilities'] for i in c.get('indicators') or []}
+    return ids | {r['id'] for r in record.get('roadmap') or []}
+
+
+class ReplanTargets(unittest.TestCase):
+    """NS46.T16: every target already built is planned again by the ideal planner: the four projects (EAOS itself
+    among them) view by view, each with its differences from the rules' target, and EAOS's own roadmap, whose
+    proposals are decisions for the owner and are never applied without the owner."""
+
+    def test_each_project_was_replanned_by_a_real_assistant_on_every_view(self):
+        from eaos.studio import ideal
+        for project in REPLANNED:
+            with self.subTest(project=project):
+                path = reports() / 'replan' / project / 'run.json'
+                self.assertTrue(path.is_file(), f'no recorded re-planning run for {project}')
+                run = json.loads(path.read_text(encoding='utf-8'))
+                self.assertTrue(run['real'])
+                self.assertEqual(run['state'], 'planned')
+                self.assertIn(run['assistant'], ('Claude Code', 'Codex'))
+                self.assertTrue(run['model'] and run['at'])
+                self.assertEqual(run['passes'], ['plan', 'critique'])
+                self.assertGreater(run['elements'], 0)
+                self.assertEqual(run['share_with_evidence'], 1.0)
+                self.assertEqual(set(run['views']), set(ideal.VIEWS))
+                for name, view in run['views'].items():
+                    if view['method'] != 'planned':
+                        # Only a view with nothing in it on either side may stay on the rules, and it says why.
+                        self.assertEqual((view['rules'], view['planned'] or 0), (0, 0), (project, name))
+                        self.assertTrue(view.get('why_empty'), (project, name))
+                    self.assertLessEqual({'same', 'changed', 'added', 'rules_only'}, set(view['differences']), (project, name))
+                planned = [name for name, view in run['views'].items() if view['method'] == 'planned']
+                self.assertGreaterEqual(len(planned), 6, (project, planned))
+                self.assertIsInstance(run['differences'], list)
+                self.assertTrue(run['differences'])
+                for row in run['differences']:
+                    self.assertIn(row['view'], ideal.VIEWS)
+                    self.assertIn(row['kind'], ('same', 'changed', 'added'))
+                self.assertIsInstance(run['departures'], list)
+                self.assertIsInstance(run['open_questions'], list)
+        eaos = json.loads((reports() / 'replan/EAOS/run.json').read_text(encoding='utf-8'))
+        self.assertEqual(eaos['views']['pipeline']['method'], 'planned', 'EAOS is a pipeline: its pipeline view must be planned')
+
+    def test_the_roadmap_proposals_are_decisions_for_the_owner_never_applied(self):
+        data = json.loads((ROOT / 'docs/roadmap-proposals.json').read_text(encoding='utf-8'))
+        run = data['run']
+        self.assertTrue(run['real'])
+        self.assertIn(run['assistant'], ('Claude Code', 'Codex'))
+        self.assertTrue(run['model'] and run['at'])
+        self.assertEqual(run['passes'], ['plan', 'critique'])
+        self.assertEqual(run['share_with_evidence'], 1.0)
+        proposals = data['proposals']
+        self.assertTrue(proposals)
+        known = _roadmap_ids()
+        text = (ROOT / 'docs/roadmap-proposals.md').read_text(encoding='utf-8')
+        for row in proposals:
+            with self.subTest(proposal=row['id']):
+                self.assertTrue(row['title'] and row['detail'] and row['recommendation'])
+                self.assertTrue(row['cites'] and set(row['cites']) <= known, row['cites'])
+                decision = row['decision']
+                self.assertEqual(decision['options'], ['approve', 'reject'])
+                self.assertIn(decision['state'], ('waiting', 'approved', 'rejected'))
+                if decision['state'] != 'waiting':
+                    self.assertRegex((decision.get('owner_verdict') or {}).get('date') or '', r'^\d{4}-\d{2}-\d{2}$')
+                self.assertTrue(row['applied'] is False or decision['state'] == 'approved', row['id'])
+                self.assertIn(row['id'], text)
 
 
 if __name__ == '__main__':

@@ -141,6 +141,32 @@ class Planning(unittest.TestCase):
                               'RULE-plan-order', 'RULE-layer-api-client'}, known)
         self.assertNotIn('FACT-cache', known)
 
+    def test_the_pipeline_view_reads_the_sections_gap_and_says_when_there_is_no_pipeline(self):
+        site = lambda fact: {'path': 'src/a.ts', 'line': 3, 'fact': fact, 'text': None}
+        section = {'detected': True, 'stages': [{'id': 'p/a', 'label': 'a', 'kind': 'stage', 'evidence': site('FACT-graph1')}],
+                   'views': {'gap': [{'id': 'gap:P2:p/a', 'rule': 'P2', 'subject': 'p/a', 'operation': 'refactor',
+                                      'detail': 'no error path', 'evidence': site('FACT-graph1'), 'card': 'TASK-001'}]}}
+        path = self.report / 'studio/pipeline.json'
+        path.write_text(json.dumps(section), encoding='utf-8')
+        summary, rows = ideal._rules_views(self.report)['pipeline']
+        self.assertEqual([(r['id'], r['subject'], r['cites']) for r in rows], [('gap:P2:p/a', 'p/a', ['FACT-graph1', 'TASK-001'])])
+        path.write_text(json.dumps(dict(section, views={'gap': []})), encoding='utf-8')
+        summary, rows = ideal._rules_views(self.report)['pipeline']
+        self.assertEqual([(r['id'], r['operation'], r['cites']) for r in rows], [('p/a', 'retain', ['FACT-graph1'])])
+        path.write_text(json.dumps({'detected': False, 'stages': [], 'views': {'gap': []}}), encoding='utf-8')
+        summary, rows = ideal._rules_views(self.report)['pipeline']
+        self.assertEqual(rows, [])
+        self.assertIn('found none', summary)
+
+    def test_the_data_view_cites_the_call_sites_of_each_stores_endpoints(self):
+        section = {'stores': [{'id': 'api:/drivers', 'name': '/drivers', 'change': 'still_multiple', 'sites': 2,
+                               'writers': ['src/a.ts', 'src/b.ts'], 'readers': []}],
+                   'endpoints': [{'id': 'ep:POST /drivers', 'store': 'api:/drivers', 'sites': [{'fact': 'FACT-write1', 'line': 3, 'path': 'src/a.ts'}]}]}
+        (self.report / 'studio/data_paths.json').write_text(json.dumps(section), encoding='utf-8')
+        summary, rows = ideal._rules_views(self.report)['data_paths']
+        self.assertEqual([(r['id'], r['operation'], r['cites'], r['detail']) for r in rows],
+                         [('api:/drivers', 'refactor', ['FACT-write1'], '2 writer(s), 0 reader(s)')])
+
     def test_the_bundle_is_grounded_deterministic_and_marks_the_project_text_untrusted(self):
         project = Path(self.tmp.name) / 'project'
         (project / 'docs').mkdir(parents=True)

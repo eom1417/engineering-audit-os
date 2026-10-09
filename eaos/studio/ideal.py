@@ -192,12 +192,20 @@ def _rules_views(report):
     data = _load(studio / 'data_paths.json', {}) or {}
     stores = [s for s in data.get('stores') or [] if isinstance(s, dict)]
     change = {'single_already': 'retain', 'merged_in_target': 'merge', 'still_multiple': 'refactor'}
+    # A store's evidence is on its endpoints' call sites (studio/data_paths.json endpoints[].sites[].fact); `sites` on
+    # the store itself is their count.
+    sites = {}
+    for endpoint in data.get('endpoints') or []:
+        if not isinstance(endpoint, dict): continue
+        sites.setdefault(endpoint.get('store'), []).extend(x.get('fact') for x in endpoint.get('sites') or [] if isinstance(x, dict))
+    count = lambda value: len(value) if isinstance(value, list) else value if isinstance(value, int) else 0
     if stores:
         views['data_paths'] = ('Every store with its writers and its change toward one owner (studio/data_paths.json).',
                                [_element(s.get('id') or s.get('name'), 'store', s.get('name') or s.get('id'),
                                          change.get(s.get('change'), 'retain'), None,
-                                         f"{len(s.get('writers') or [])} writer(s), {len(s.get('readers') or [])} reader(s)",
-                                         [s.get('fact')] + [x.get('fact') for x in s.get('sites') or [] if isinstance(x, dict)])
+                                         f"{count(s.get('writers'))} writer(s), {count(s.get('readers'))} reader(s)",
+                                         [s.get('fact')] + [x.get('fact') for x in (s.get('sites') if isinstance(s.get('sites'), list) else []) if isinstance(x, dict)]
+                                         + sites.get(s.get('id'), []))
                                 for s in stores])
     else:
         stores = {}
@@ -221,13 +229,23 @@ def _rules_views(report):
                                 'retain' if i.get('present') else 'new', i['area'], f"{i.get('decision') or ''} ({i.get('evidence') or ''})",
                                 (), [f"RULE-infra-{_slug(i['area'])}"]) for i in infra])
     pipeline = _load(studio / 'pipeline.json', {}) or {}
-    gaps = [g for g in pipeline.get('gap') or pipeline.get('gaps') or [] if isinstance(g, dict)]
+    # The pipeline section keeps its gap under views.gap (eaos/studio/pipeline.py section); a flat `gap` is the older shape.
+    gaps = [g for g in (pipeline.get('views') or {}).get('gap') or pipeline.get('gap') or pipeline.get('gaps') or [] if isinstance(g, dict)]
+    stages = [s for s in pipeline.get('stages') or [] if isinstance(s, dict) and s.get('kind') not in ('router', 'fork', 'join')]
+    fact = lambda row: (row.get('evidence') or {}).get('fact') if isinstance(row.get('evidence'), dict) else None
     if gaps:
-        views['pipeline'] = ("The pipeline rules' gap: one entry per broken rule (studio/pipeline.json).",
-                             [_element(g.get('id'), 'pipeline_gap', g.get('title') or g.get('rule'), g.get('operation') or g.get('op') or 'refactor',
-                                       g.get('stage') or g.get('subject'), g.get('detail') or g.get('why') or '',
-                                       [g.get('fact')] + list(g.get('facts') or []) + list(g.get('cards') or []),
+        views['pipeline'] = ("The pipeline rules' gap: one entry per broken rule (studio/pipeline.json#views.gap).",
+                             [_element(g.get('id'), 'pipeline_gap', g.get('title') or g.get('detail') or g.get('rule'),
+                                       g.get('operation') or g.get('op') or 'refactor', g.get('stage') or g.get('subject'),
+                                       g.get('detail') or g.get('why') or '',
+                                       [g.get('fact'), fact(g), g.get('card')] + list(g.get('facts') or []) + list(g.get('cards') or []),
                                        [f"RULE-pipeline-{_slug(g['rule'])}"] if g.get('rule') else []) for g in gaps])
+    elif pipeline.get('detected') and stages:
+        views['pipeline'] = ("A pipeline that breaks none of the pipeline rules: every stage is kept (studio/pipeline.json).",
+                             [_element(s.get('id'), 'stage', s.get('label') or s.get('title') or s.get('id'), 'retain', s.get('id'),
+                                       s.get('kind') or '', [fact(s)]) for s in stages][:LIMIT['elements']])
+    elif pipeline:
+        views['pipeline'] = ('The check looked for a pipeline and found none: there is no pipeline to plan.', [])
     else:
         views['pipeline'] = ('No pipeline map was written for this check.', [])
     plan = _load(report / 'plan.json', {}) or {}

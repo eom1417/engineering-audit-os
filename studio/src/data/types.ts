@@ -97,7 +97,7 @@ export interface Decision {
   plan: string | null
 }
 
-export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'gaps', 'operations'] as const
+export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'gaps', 'operations', 'ideal'] as const
 export type SectionName = (typeof SECTIONS)[number]
 
 export interface StudioData {
@@ -123,6 +123,8 @@ export interface StudioData {
   pipeline?: unknown
   gaps?: { gaps: Gap[] }
   operations?: { operations: Operation[] }
+  /** studio/ideal.json, typed by its page (pages/ideal/model.ts) */
+  ideal?: unknown
   /** Sections the manifest lists but whose file did not load */
   missing: SectionName[]
 }

@@ -243,6 +243,16 @@
    "task": "NS46.T6"
   },
   {
+   "id": "ideal",
+   "studio": "#/change/ideal?view=<view>",
+   "spec": "STUDIO-COMPLETE: Re-planning every target we already built: rules target against the planned ideal",
+   "section": "change",
+   "needs": [
+    "ideal"
+   ],
+   "task": "NS46.T16"
+  },
+  {
    "id": "plans",
    "studio": "#/plans",
    "spec": "#/plans",

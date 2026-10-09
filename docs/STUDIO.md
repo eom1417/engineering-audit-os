@@ -141,6 +141,12 @@ on top of the rules" of `eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md`; the ta
   `provenance`. Open questions go to the Decisions inbox; the command centre's action `replan_ideal` plans again.
 - **Without an assistant**, or when a run fails or times out, the rules' target stays in place and the Studio says
   plainly that the ideal is not planned yet.
+- **Every target already built is planned again** (owner, 2026-10-08, part 2; NS46.T16). `tools/replan_trial.py`
+  checks each of FleetManageWeb, chief-ops, finance-os and EAOS itself afresh and plans it, one at a time, into
+  `$EAOS_MEASURE/replan/<project>/` with the rules-against-planned differences view by view. `tools/roadmap_review.py`
+  runs a planning and a critique pass over EAOS's own roadmap (`docs/north-star.json`, the Studio master plan); its
+  proposals, each citing the NS steps and indicators it stands on, are written to `docs/roadmap-proposals.json` and
+  `docs/roadmap-proposals.md` as decisions for the owner. None is applied without the owner.
 
 ### D11: AI nodes inside the EAOS pipeline
 

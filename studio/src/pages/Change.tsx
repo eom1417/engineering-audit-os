@@ -13,6 +13,7 @@ import { JourneyStrip } from '../map/home'
 import { useMapWords } from '../map/words'
 import { usePhone } from './SystemMap'
 import { TimelineEntry } from './paths/TimelinePage'
+import { IdealEntry } from './ideal/IdealPage'
 import { GroupBox, ListTools } from '../command/Selectable'
 import { stepCards } from '../command/groups'
 import { useCmdWords } from '../command/words'
@@ -46,6 +47,7 @@ function ChangeBody({ data }: { data: StudioData }) {
           ]} />
         )}
       </Section>
+      <IdealEntry data={data} />
       {system && (
         <Section title={w('twoMaps')}>
           <CompareMaps system={system} phone={phone} />
