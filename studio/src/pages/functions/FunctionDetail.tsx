@@ -128,9 +128,9 @@ export function FunctionDetail({ data, fx, id }: { data: StudioData; fx: Functio
         <h1 id="fn-title" className={css.fnTitle}><Id value={fn.name} /></h1>
         <div className={css.crumbs}>
           <Go to="/system/functions" search={{ module: fn.module }} className={css.inlineLink}>
-            <Id value={fn.module} />{module ? <> · {w('allInFile', { n: module.functions })}</> : null}
+            <span><Id value={fn.module} />{module ? <> · {w('allInFile', { n: module.functions })}</> : null}</span>
           </Go>
-          {module?.component && <Go to="/system" search={{ focus: module.component }} className={css.inlineLink}>{w('component')}: <Id value={module.component} /></Go>}
+          {module?.component && <Go to="/system" search={{ focus: module.component }} className={css.inlineLink}><span>{w('component')}: <Id value={module.component} /></span></Go>}
         </div>
       </div>
       <Summary fn={fn} />

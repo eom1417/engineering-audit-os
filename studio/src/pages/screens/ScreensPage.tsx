@@ -258,7 +258,7 @@ function ScreenDetail({ data, sx, id }: { data: StudioData; sx: ScreensData; id:
       </div>
       <div className={css.links}>
         <Go to="/system/journeys" search={{ focus: screen.id }} className={css.inlineLink}>{w('inJourneys')}</Go>
-        {inFile > 0 && screen.file && <Go to="/system/functions" search={{ module: screen.file }} className={css.inlineLink}>{w('fileFunctions')} (<N value={inFile} />)</Go>}
+        {inFile > 0 && screen.file && <Go to="/system/functions" search={{ module: screen.file }} className={css.inlineLink}><span>{w('fileFunctions')} (<N value={inFile} />)</span></Go>}
       </div>
       {screen.shots.length ? <Viewer screen={screen} /> : (
         <>
