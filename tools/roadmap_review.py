@@ -12,10 +12,12 @@ never changes docs/north-star.json. A verdict the owner gave to a proposal of th
 Writes docs/roadmap-proposals.json, docs/roadmap-proposals.md and $EAOS_MEASURE/replan/roadmap/run.json
 ({assistant, model, at, real, passes, seconds, share_with_evidence, raw_share, proposals, dropped}); the assistant's
 answers stay in $EAOS_MEASURE/replan/roadmap/<pass>/.
+The master plan defaults to $EAOS_MASTER_PLAN, else $EAOS_DEV_HOME/planning/studio-v2/MASTER-PLAN.md.
 """
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -30,7 +32,7 @@ from eaos.studio.nodes.core import AdapterLauncher, lenient  # noqa: E402
 
 PLAN = ROOT / 'docs/north-star.json'
 OUT_JSON, OUT_MD = ROOT / 'docs/roadmap-proposals.json', ROOT / 'docs/roadmap-proposals.md'
-MASTER = Path('/workspace/eaos-dev/planning/studio-v2/MASTER-PLAN.md')
+MASTER = Path(os.environ.get('EAOS_MASTER_PLAN') or dev_paths.HOME / 'planning/studio-v2/MASTER-PLAN.md')
 KINDS = ('reorder', 'merge', 'split', 'drop', 'add', 'reweight', 'gate', 'rescope')
 OPTIONS = ['approve', 'reject']
 LIMIT = {'master_chars': 16000, 'studio_chars': 14000, 'text': 220}

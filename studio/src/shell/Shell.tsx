@@ -74,7 +74,7 @@ function Sidebar({ project, current, onPalette, onProject }: { project: string; 
     <aside className={css.sidebar} aria-label={t('navigation')}>
       <AriaButton className={css.proj} onPress={onProject} data-open="project" aria-label={`${project}: ${t('projectAndDisplay')}`}>
         <span className={css.projMark} aria-hidden="true">{project.slice(0, 1).toUpperCase()}</span>
-        <span className={css.projText}><span className={css.projName}>{project}</span><span className={css.projSub}>{t('studio')}</span></span>
+        <span className={css.projText}><span className={css.projName} title={project} data-truncate>{project}</span><span className={css.projSub}>{t('studio')}</span></span>
         <Icon name="chevronDown" className={css.projChev} />
       </AriaButton>
       <AriaButton className={css.navSearch} onPress={onPalette} aria-label={t('searchCommands')}>
