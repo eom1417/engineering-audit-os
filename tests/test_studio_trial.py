@@ -69,6 +69,19 @@ class Picking(unittest.TestCase):
             self.assertEqual(group['kind'], 'cards')
             self.assertEqual(group['cards'], ['T1', 'T2'])
 
+    def test_cards_on_a_minified_bundle_are_never_picked(self):
+        cards = [{'id': f'T{i}', 'category': 'dead', 'fixable': True, 'paths': [path]} for i, path in
+                 enumerate(('src/a.js', 'src/b.js', 'dist/app.js', 'dist/app.js'))]
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / 'src').mkdir()
+            (Path(folder) / 'dist').mkdir()
+            for name in ('src/a.js', 'src/b.js'): (Path(folder) / name).write_text('export function a() {\n  return 1\n}\n')
+            (Path(folder) / 'dist/app.js').write_text('var a=1;' * 400)
+            (Path(folder) / 'cards.json').write_text(json.dumps({'cards': cards}), encoding='utf-8')
+            self.assertEqual([c['id'] for c in trial.fixable_cards(folder, folder)], ['T0', 'T1'])
+            self.assertEqual(trial.choose_group(folder, project=folder)['cards'], ['T0', 'T1'])
+            self.assertEqual(len(trial.fixable_cards(folder)), 4)
+
     def test_project_code_runs_only_for_eaos_or_an_authorized_live_corpus_project(self):
         record = {'live_corpus': [{'name': 'chief-ops', 'authorization': 'the owner said so', 'commit': 'abc'}, {'name': 'other'}]}
         self.assertTrue(trial.authorization('EAOS', record)['run_code'])

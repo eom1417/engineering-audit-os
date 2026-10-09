@@ -142,16 +142,28 @@ def _studio_rows(studio, name):
     return data
 
 
-def fixable_cards(studio):
+def minified(path):
+    """A built bundle rather than code a person wrote: a line over 1000 characters in its first 64 KB. The check
+    still reports such files (eaos/facts/deadcode.py reads every minified name as a symbol); an owner would not
+    pick those cards, so neither does the trial."""
+    try:
+        with open(path, encoding='utf-8', errors='replace') as handle:
+            return any(len(line) > 1000 for line in handle.read(65536).split('\n'))
+    except OSError:
+        return False
+
+
+def fixable_cards(studio, project=None):
     cards = (_studio_rows(studio, 'cards').get('cards') or [])
-    return [c for c in cards if c.get('fixable') and not c.get('needs_decision') and c.get('state', 'open') == 'open']
+    return [c for c in cards if c.get('fixable') and not c.get('needs_decision') and c.get('state', 'open') == 'open'
+            and not (project and any(minified(Path(project) / p) for p in (c.get('paths') or [])[:3]))]
 
 
-def choose_group(studio, limit=MAX_GROUP):
+def choose_group(studio, limit=MAX_GROUP, project=None):
     """The smallest whole group the Studio offers (studio/src/command/groups.ts: area, severity, plan step) with two to
     `limit` cards, every one fixable and needing no decision; else two such cards picked one by one."""
     cards = _studio_rows(studio, 'cards').get('cards') or []
-    ok = {c['id'] for c in fixable_cards(studio)}
+    ok = {c['id'] for c in fixable_cards(studio, project)}
     groups = []
     for by, key in (('step', 'milestone'), ('area', 'category'), ('severity', 'severity')):
         values = {}
@@ -162,7 +174,7 @@ def choose_group(studio, limit=MAX_GROUP):
     if groups:
         size, by, value, ids = sorted(groups)[0]
         return {'kind': 'step' if by == 'step' else 'group', 'by': by, 'value': value, 'cards': ids}
-    picked = [c['id'] for c in sorted(fixable_cards(studio), key=lambda c: ({'high': 0, 'medium': 1, 'low': 2}.get(c.get('severity'), 3), c['id']))][:2]
+    picked = [c['id'] for c in sorted(fixable_cards(studio, project), key=lambda c: ({'high': 0, 'medium': 1, 'low': 2}.get(c.get('severity'), 3), c['id']))][:2]
     return {'kind': 'cards', 'by': None, 'value': None, 'cards': picked}
 
 
@@ -633,7 +645,7 @@ def trial(name, source, assistant, lang, measure, skip=()):
             'label_as_option_status': cases['idempotency_concurrent_answers']['evidence'].get('label_as_option')})
 
     # 3. a group fixed by the real assistant, its questions answered in the inbox, the branch accepted
-    group = choose_group(studio) if studio else {'kind': None, 'cards': []}
+    group = choose_group(studio, project=project) if studio else {'kind': None, 'cards': []}
     fixed = browser('fix', work, studio_out, {'lang': lang, 'group': group, 'assistant': assistant, 'assistant_name': ASSISTANTS[assistant],
                                              'run_code': allowed['run_code']},
                     LIMITS['fix']) if audited and len(group['cards']) >= 2 else {'errors': ['no group of two fixable cards to fix']}
@@ -665,7 +677,7 @@ def trial(name, source, assistant, lang, measure, skip=()):
 
     # 4. explain, plan and verify through the queue: reorder, pause, resume, stop, retry, a run that dies and its retry
     controls = browser('controls', work, studio_out, {'lang': lang, 'assistant': assistant, 'assistant_name': ASSISTANTS[assistant],
-                                                     'cards': [c['id'] for c in fixable_cards(studio)][-2:] if studio else []},
+                                                     'cards': [c['id'] for c in fixable_cards(studio, project)][-2:] if studio else []},
                        LIMITS['controls']) if audited and 'controls' not in skip else {'errors': ['controls skipped']}
     screenshots += controls.get('screenshots') or []
     failures += controls.get('errors') or []
