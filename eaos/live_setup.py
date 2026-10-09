@@ -16,6 +16,9 @@ this module finds or makes, in three passes:
 
 Nothing is guessed silently: what could not be made to work is written to run.json -> limitations, and shown.
 The project folder is never written; everything goes to the run's folder (the guided workspace's runtime/).
+
+setup() is the flow `setup` of the live map (eaos/progress/flow.py): its stages are FLOW, written as they happen to
+<runtime>/progress/setup.jsonl, each attempt a step with its outcome.
 """
 import json
 import re
@@ -24,6 +27,9 @@ import socket
 import subprocess
 from datetime import date, timedelta
 from pathlib import Path
+
+from . import progress
+from .progress.flow import OPTIONAL, Stage
 
 ATTEMPTS = 5
 APP_FOLDERS = ('.', 'app', 'web', 'client', 'frontend', 'apps/web', 'apps/app', 'apps/frontend', 'packages/web')
@@ -499,6 +505,18 @@ def fixtures_needed(report):
 
 # ---------------------------------------------------------------- consent, and the whole setup
 
+FLOW = (
+    Stage('detect', description='Find, from the files alone, how the app installs, starts and builds, the environment '
+                                'names it reads and the database it needs'),
+    Stage('attempt', requires=('detect',),
+          description=f'Start the app in the separate copy and open its first screens; when it does not answer, ask '
+                      f'the assistant what to change and try again (at most {ATTEMPTS} attempts)'),
+    Stage('baseline', requires=('attempt',), necessity=OPTIONAL,
+          absent_when='the app has no production build, or it did not start in development',
+          description='Build the production version of the app, start it from the build and open its first page, '
+                      'for the speed test'),
+)
+
 def setup_baseline(project, runtime, detected, provider, say, attempts=3):
     """The production run the load baseline needs: built, started from the build, the first page answering.
     Marked in run.json -> baseline.verified, so the load test only runs on a production run that works."""
@@ -506,7 +524,10 @@ def setup_baseline(project, runtime, detected, provider, say, attempts=3):
     (runtime / 'setup').mkdir(parents=True, exist_ok=True)
     for attempt in range(1, attempts + 1):
         say(f'baseline-{attempt}')
+        progress.step(f'attempt {attempt}', attempt - 1, attempts, 'running')
         record = verify(project, runtime, attempt, mode='baseline')
+        progress.step(f'attempt {attempt}', attempt, attempts, 'ok' if record['ok'] else 'failed',
+                      reason=(record.get('failure') or '')[:200], reason_code='' if record['ok'] else 'baseline_failed')
         if record['ok'] or provider is None: break
         failure = record['failure'] + (f'. Your previous proposal was refused and not applied: {refusal}' if refusal else '')
         answer, _ = provider.complete(assist_messages(project, runtime, detected, failure, [], mode='baseline'))
@@ -542,22 +563,36 @@ def authorize(project, runtime, granted_by, days=30):
 
 def setup(project, runtime, report=None, provider=None, say=print):
     """Detect, verify, and ask the assistant when needed: run.json that works, or one whose limits are written.
-    {'ok', 'attempts', 'limitations', 'page'}"""
-    runtime = Path(runtime)
+    {'ok', 'attempts', 'limitations', 'page'}. Written as it happens as the flow `setup` (FLOW)."""
+    with progress.Flow(runtime, 'setup', FLOW):
+        return _setup(project, Path(runtime), report, provider, say)
+
+
+def _setup(project, runtime, report, provider, say):
     (runtime / 'setup').mkdir(parents=True, exist_ok=True)
+    progress.begin('detect')
     detected = detect(project)
     if detected['profile'] is None:
+        why = '; '.join(detected['limitations'])[:300]
+        progress.end('detect', 'unavailable', why, 'no_app_profile')
+        for name in ('attempt', 'baseline'): progress.skip(name, why, 'no_app_profile')
         return {'ok': False, 'attempts': 0, 'limitations': detected['limitations'], 'page': None}
     needs = fixtures_needed(report)
     write_profile(runtime, detected['profile'])
     (runtime / 'setup/detected.json').write_text(json.dumps(detected, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     limitations, attempts, record, refusal = list(detected['limitations']), 0, None, ''
+    progress.begin('attempt')
     while attempts < ATTEMPTS:
         attempts += 1
         say(attempts)
+        progress.step(f'attempt {attempts}', attempts - 1, ATTEMPTS, 'running')
         record = verify(project, runtime, attempts, report)
         known = {**json.loads((runtime / 'run.json').read_text())['env'], **record['fixtures']}
         missing = [name for name in needs if name not in known]
+        progress.step(f'attempt {attempts}', attempts, ATTEMPTS, 'ok' if record['ok'] and not missing else 'failed',
+                      reason=(record.get('failure') or ('the checks need fixture values: ' + ', '.join(missing)))[:200]
+                      if not (record['ok'] and not missing) else '',
+                      reason_code='' if record['ok'] and not missing else 'app_not_answering' if not record['ok'] else 'fixtures_missing')
         if record['ok'] and not missing: break
         if provider is None:
             limitations.append('no AI assistant was available to work out: ' + (record.get('failure') or 'the fixtures ' + ', '.join(missing)))
@@ -572,12 +607,21 @@ def setup(project, runtime, report=None, provider=None, say=print):
         refusal = '; '.join(refused)
         if refused:
             limitations.append('the assistant proposed something unsafe, which was refused: ' + refused[0])
+            progress.step(f'attempt {attempts}', attempts, ATTEMPTS, 'failed', reason=refused[0][:200], reason_code='proposal_refused')
             continue
         apply(runtime, proposal)
     ok = bool(record and record['ok'])
+    if ok: progress.end('attempt')
+    else: progress.end('attempt', 'failed', ((record or {}).get('failure') or 'the app did not answer')[:300],
+                       'no_assistant' if provider is None else 'app_not_answering')
     if ok and (detected['profile'].get('baseline') or {}).get('build'):
+        progress.begin('baseline')
         speed = setup_baseline(project, runtime, detected, provider, say)
         if not speed['ok']: limitations.append('speed cannot be measured: ' + speed['failure'][:300])
+        if speed['ok']: progress.end('baseline')
+        else: progress.end('baseline', 'failed', speed['failure'][:300], 'baseline_failed')
+    elif ok: progress.skip('baseline', 'the app has no production build command', 'no_build')
+    else: progress.skip('baseline', 'the app did not start in development, so its production build was not tried', 'app_not_answering')
     if record and not ok and record.get('failure') and not any(record['failure'] in l for l in limitations):
         limitations.append('the app could not be made to answer: ' + record['failure'][:300])
     profile = json.loads((runtime / 'run.json').read_text(encoding='utf-8'))

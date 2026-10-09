@@ -3,7 +3,7 @@
  "kind": "declared_dag",
  "source": null,
  "commit": null,
- "written": "2026-10-08, by reading eaos/pipeline/stages.py, eaos/pipeline/run.py, eaos/pipeline/runners.py, eaos/facts/run.py, eaos/guided.py, eaos/runtime/pipeline.py, eaos/engage.py and studio/package.json, before the detector existed; the AI nodes' pipeline was added with NS46.T15 from eaos/studio/nodes/__init__.py. It follows the code of this repository: a change to these files changes the truth, in the same commit.",
+ "written": "2026-10-08, by reading eaos/pipeline/stages.py, eaos/pipeline/run.py, eaos/pipeline/runners.py, eaos/facts/run.py, eaos/guided.py, eaos/runtime/pipeline.py, eaos/engage.py and studio/package.json, before the detector existed; the AI nodes' pipeline was added with NS46.T15 from eaos/studio/nodes/__init__.py; the setup, safety and fix flows of the live map were added with NS46.T20 (phase 2) from their FLOW declarations in eaos/live_setup.py, eaos/behavior_lock.py and eaos/waves.py. It follows the code of this repository: a change to these files changes the truth, in the same commit.",
  "pipelines": [
   {
    "anchor": "eaos/pipeline/stages.py",
@@ -107,6 +107,30 @@
    "role": "tooling",
    "stages": ["lint", "typecheck", "test", "vite build", "node scripts/ship.mjs"],
    "edges": [["lint", "typecheck"], ["typecheck", "test"], ["test", "vite build"], ["vite build", "node scripts/ship.mjs"]],
+   "routers": []
+  },
+  {
+   "anchor": "eaos/live_setup.py",
+   "title": "The setup flow of the live map: FLOW, its stages marked by setup() as it detects, attempts and builds the baseline (written 2026-10-09 with NS46.T20 phase 2, from the declaration)",
+   "role": "product",
+   "stages": ["detect", "attempt", "baseline"],
+   "edges": [["detect", "attempt"], ["attempt", "baseline"]],
+   "routers": []
+  },
+  {
+   "anchor": "eaos/behavior_lock.py",
+   "title": "The safety flow of the live map: FLOW, marked by run_lock() for the screens and eaos/guided.py safety_run() for the speed (written 2026-10-09 with NS46.T20 phase 2, from the declaration)",
+   "role": "product",
+   "stages": ["prepare", "start", "record", "verify", "speed"],
+   "edges": [["prepare", "start"], ["start", "record"], ["record", "verify"], ["start", "speed"]],
+   "routers": []
+  },
+  {
+   "anchor": "eaos/waves.py",
+   "title": "The fix flow of the live map: FLOW, marked by run_batch() and finish_batch() card by card, then the handover in eaos/guided.py fix() (written 2026-10-09 with NS46.T20 phase 2, from the declaration)",
+   "role": "product",
+   "stages": ["open", "change", "acceptance", "gates", "culprit", "handover"],
+   "edges": [["open", "change"], ["change", "acceptance"], ["acceptance", "gates"], ["gates", "culprit"], ["gates", "handover"]],
    "routers": []
   }
  ],

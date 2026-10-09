@@ -14,6 +14,9 @@ holds more than a hundred. So a batch (a wave) is executed together, and the exp
 
 apply() fetches that branch into the person's project without touching their current branch or files;
 undo() deletes it again while it is not merged. Nothing else in the project is written.
+
+A wave is the flow `fix` of the live map (FLOW; eaos/guided.py:fix writes it to <runtime>/progress/fix.jsonl): each
+card is a step of `change`, each acceptance a step of `acceptance`, beside the messages `say` already gives.
 """
 import json
 import re
@@ -22,10 +25,25 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+from . import progress
 from .ledger import TRAILER, key, keys
+from .progress.flow import OPTIONAL, Stage
 from .execute import apply_edits, candidate, git, model_messages, new_breakage, original_checks, project_checks, record, regressions, run_codemod
 
 SIZE = 10
+FLOW = (
+    Stage('open', description='Make the separate copy the fixes are tried in, from the commit you allowed'),
+    Stage('change', requires=('open',),
+          description='Change the code card by card, by a codemod or your assistant; a change that breaks something '
+                      'is taken back at once'),
+    Stage('acceptance', requires=('change',), description='Check that each fixed problem is really gone'),
+    Stage('gates', requires=('acceptance',),
+          description="Run your project's own checks and compare every recorded screen, once for the whole batch"),
+    Stage('culprit', requires=('gates',), necessity=OPTIONAL, absent_when='the batch passed its checks',
+          description='Split the batch in half until the change that broke a check is found'),
+    Stage('handover', requires=('gates',),
+          description='Write down every card\'s result and hand the kept changes over as a branch in your project'),
+)
 DEADCODE = re.compile(r"== \('([^']+)', '([^']*)', '([\w-]+)'\)")
 
 
@@ -169,11 +187,17 @@ def run_batch(report, target, runtime, number, card_ids, provider=None, lock=Tru
     """Execute one wave; {'wave', 'branch', 'kept': [...], 'failed': {card: reason}, 'root', 'base'}."""
     report, runtime = Path(report), Path(runtime)
     cards = {card['id']: card for card in plan(report)['tasks'] if card['id'] in set(card_ids)}
-    root, base = open_batch(target, runtime, number)
+    progress.begin('open')
+    try: root, base = open_batch(target, runtime, number)
+    except PermissionError as refused:
+        progress.end('open', 'failed', str(refused)[:300], 'not_authorised')
+        raise
     kept, failed, tools = {}, {}, {}
+    progress.begin('change')
     for index, card_id in enumerate(card_ids, 1):
         card = cards[card_id]
         say('card', index, len(card_ids), card)
+        progress.step(card_id, index - 1, len(card_ids), 'running')
         try:
             tools[card_id], _ = change(card, root, report, provider)
             sha = commit(root, card, tools[card_id])
@@ -181,12 +205,15 @@ def run_batch(report, target, runtime, number, card_ids, provider=None, lock=Tru
             if broke:
                 git(root, 'reset', '--hard', '--quiet', 'HEAD~1')
                 failed[card_id] = f'it broke something: {broke[0]}'
+                progress.step(card_id, index, len(card_ids), 'failed', reason=failed[card_id], reason_code='card_broke_something')
                 continue
             kept[card_id] = sha
+            progress.step(card_id, index, len(card_ids), 'ok')
         except (ValueError, RuntimeError, OSError, subprocess.CalledProcessError) as problem:
             git(root, 'reset', '--hard', '--quiet', 'HEAD')
             git(root, 'clean', '-fdq')
             failed[card_id] = f'{type(problem).__name__}: {problem}'[:300]
+            progress.step(card_id, index, len(card_ids), 'failed', reason=failed[card_id], reason_code='card_error')
     return finish_batch(report, target, runtime, number, root, base, card_ids, kept, failed, tools, lock=lock, say=say)
 
 
@@ -198,6 +225,7 @@ def finish_batch(report, target, runtime, number, root, base, card_ids, kept, fa
     cards = {card['id']: card for card in plan(report)['tasks'] if card['id'] in set(card_ids)}
     kept, failed = dict(kept), dict(failed)
     say('acceptance')
+    progress.begin('acceptance')
     if kept:
         exits = batch_acceptance(report, [cards[c] for c in kept], root)
         for card_id, code in exits.items():     # no check of its own (None): kept on the gates, as fix_edit keeps it
@@ -205,13 +233,21 @@ def finish_batch(report, target, runtime, number, root, base, card_ids, kept, fa
         still = [kept[c] for c in kept if c not in failed]
         for sha in rebuild(root, base, still):
             failed[next(c for c, s in kept.items() if s == sha)] = 'it no longer applies once the others are in'
+        for done, card_id in enumerate(kept, 1):
+            progress.step(card_id, done, len(kept), 'failed' if card_id in failed else 'ok', reason=failed.get(card_id, ''),
+                          reason_code='' if card_id not in failed else
+                          'acceptance_failed' if exits.get(card_id) not in (0, None) else 'no_longer_applies')
         kept = {c: s for c, s in kept.items() if c not in failed}
+    else: progress.skip('acceptance', 'no change was kept to check', 'nothing_kept')
+    progress.begin('gates')
     before = original_checks(target, runtime)
     if kept:
         say('gates')
         name = f'wave-{number}'
         why = gates(report, root, runtime, name, before, lock)
         if why:
+            progress.step('batch', 1, 1, 'failed', reason=str(why)[:200], reason_code='gates_failed')
+            progress.begin('culprit')
             order = list(kept.values())
             bad = culprits(report, root, runtime, base, order, before, lock, name, say)
             for card_id, sha in list(kept.items()):
@@ -222,6 +258,13 @@ def finish_batch(report, target, runtime, number, root, base, card_ids, kept, fa
                 for card_id in kept: failed[card_id] = 'the batch still failed its gates without the cards found responsible'
                 kept = {}
                 rebuild(root, base, [])
+        else:
+            progress.step('batch', 1, 1, 'ok')
+            progress.skip('culprit', 'the batch passed its checks', 'gates_passed')
+    else:
+        progress.skip('gates', 'no change was kept to check', 'nothing_kept')
+        progress.skip('culprit', 'no change was kept to check', 'nothing_kept')
+    progress.begin('handover')
     for card_id in card_ids:
         ok = card_id in kept
         record(runtime, {'id': card_id, 'tool': tools.get(card_id, 'model'), 'status': 'VERIFIED_IN_ISOLATED_COPY' if ok else 'FAILED',

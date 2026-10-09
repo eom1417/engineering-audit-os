@@ -700,7 +700,16 @@ def safety_done(state):
 
 def safety_run(state, step=lambda n: None):
     """The safety net's work, without words: every screen recorded on the original, then its speed under load
-    when a production run works. {'screens', 'passed', 'skipped': [...], 'p95_ms', 'speed', 'speed_error'}"""
+    when a production run works. {'screens', 'passed', 'skipped': [...], 'p95_ms', 'speed', 'speed_error'}
+    Written as it happens as the flow `safety` of the live map (eaos/behavior_lock.py:FLOW)."""
+    from . import progress
+    from .behavior_lock import FLOW
+    with progress.Flow(runtime_of(state), 'safety', FLOW):
+        return _safety_run(state, step)
+
+
+def _safety_run(state, step):
+    from . import progress
     from .behavior_lock import run_lock
     from .runtime_baseline import run_baseline
     runtime = runtime_of(state)
@@ -712,15 +721,20 @@ def safety_run(state, step=lambda n: None):
     baseline = json.loads((runtime / 'run.json').read_text(encoding='utf-8')).get('baseline') or {}
     if baseline.get('build') and baseline.get('verified') and list((report_of(state) / 'nfr/k6').glob('*.js')):
         step(2)
+        progress.begin('speed')
         try:
             performance = run_baseline(report_of(state), source(state), runtime)
             outcome['p95_ms'] = max((s['before']['p95_ms'] for s in performance['scenarios']), default=None)
             outcome['speed'] = 'measured'
+            progress.end('speed', detail={'p95_ms': outcome['p95_ms']})
         except Exception as problem:            # speed is measured when it can be; the screens are the safety net
             outcome.update(speed='failed', speed_error=f'{type(problem).__name__}: {problem}'[:600],
                            speed_log=str(log_failure(outputs(state), problem)))
+            progress.end('speed', 'failed', outcome['speed_error'][:300], 'speed_failed')
     else:
         outcome['speed'] = 'no_production_run' if baseline.get('build') else 'no_build'
+        progress.skip('speed', 'the production build of the app did not run during the setup' if baseline.get('build')
+                      else 'the app has no production build', outcome['speed'])
     state['safety'] = {'commit': state['setup']['commit'], 'screens': len(results), 'passed': passed, 'p95_ms': outcome['p95_ms']}
     save(state)
     return outcome
@@ -790,15 +804,17 @@ def fix(state, args):
         elif kind == 'gates': say('   ' + ('أشغّل فحوص مشروعك وأقارن الشاشات…' if lang == 'ar' else "Running your project's checks and comparing the screens…"))
         elif kind == 'bisect': say('   ' + ('أبحث عن الإصلاح الذي سبّب مشكلة…' if lang == 'ar' else 'Looking for the fix that caused a problem…'))
     _, model = provider()
-    summary = waves.run_batch(report_of(state), source(state), runtime_of(state), number, batch, provider=model, say=progress)
-    keys = {c['id']: c['key'] for c in waves.plan(report_of(state))['tasks'] if c['id'] in set(batch)}
-    wave = {'number': number, 'base': state['setup']['commit'], 'cards': batch, 'kept': summary['kept'],
-            'failed': summary['failed'], 'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty', 'keys': keys}
-    state['tried'] = sorted(set(state.get('tried') or []) | set(batch))
-    if summary['kept']:
-        waves.apply(state['project'], summary)
-        wave.update(status='applied', tip=_git(state['project'], 'rev-parse', summary['branch']).stdout.strip())
-        state['applied'] = True
+    from .progress import Flow
+    with Flow(runtime_of(state), 'fix', waves.FLOW):     # the flow `fix` of the live map; handover ends with apply()
+        summary = waves.run_batch(report_of(state), source(state), runtime_of(state), number, batch, provider=model, say=progress)
+        keys = {c['id']: c['key'] for c in waves.plan(report_of(state))['tasks'] if c['id'] in set(batch)}
+        wave = {'number': number, 'base': state['setup']['commit'], 'cards': batch, 'kept': summary['kept'],
+                'failed': summary['failed'], 'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty', 'keys': keys}
+        state['tried'] = sorted(set(state.get('tried') or []) | set(batch))
+        if summary['kept']:
+            waves.apply(state['project'], summary)
+            wave.update(status='applied', tip=_git(state['project'], 'rev-parse', summary['branch']).stdout.strip())
+            state['applied'] = True
     state.setdefault('waves', []).append(wave)
     save(state)
     publish_fixes(state, wave)
@@ -931,6 +947,34 @@ STEPS = [
 
 def next_step(state):
     return next((step for step in STEPS if not step[3](state)), None)
+
+
+# The live map's journey: each step of STEPS and the flow whose progress file draws it (eaos/progress).
+FLOWS = {'scan': 'check', 'ready': 'setup', 'safety': 'safety', 'fix': 'fix'}
+
+
+def flow_folder(state, flow):
+    """The folder a flow writes its progress under: the report for the check, the runtime for the others."""
+    return report_of(state) if flow == 'check' else runtime_of(state)
+
+
+def journey(state, now=None):
+    """STEPS as data for the live map: [{id, title: {ar, en}, flow, done, state}], `state` being the judged state of the
+    step's flow (none, running, stalled, interrupted, done; eaos/progress/liveness.py). `done` comes from the step's
+    own *_done(state); a step whose done check cannot be read is not done."""
+    import time
+    from . import progress
+    rows = []
+    for name, title_ar, title_en, done, _ in STEPS:
+        flow = FLOWS[name]
+        folder = flow_folder(state, flow)
+        folded = progress.fold(progress.read(folder, flow))
+        try: finished = bool(done(state))
+        except Exception: finished = False
+        rows.append({'id': name, 'title': {'ar': title_ar, 'en': title_en}, 'flow': flow, 'done': finished,
+                     'state': progress.judge(folded, progress.heard_at(progress.path_for(folder, flow)),
+                                             time.time() if now is None else now, progress.alive(folded))})
+    return rows
 
 
 # ---------------------------------------------------------------- the user commands

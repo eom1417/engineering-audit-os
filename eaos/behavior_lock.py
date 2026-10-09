@@ -16,11 +16,22 @@ A route with a parameter ($id, :id) reads it from E2E_<PARAM>; without it the te
 surface is marked needs_fixture in plan.json, never dropped. Sign-in, when the owner grants E2E_USER and
 E2E_PASSWORD (authorization.json -> env_allow), happens once in auth.setup.ts; no value is written here.
 Every spec describes today's behaviour, not the intended one: a console error today is recorded, not fixed.
+
+run_lock() is the screens part of the flow `safety` of the live map (FLOW, written by eaos/guided.py:safety_run to
+<runtime>/progress/safety.jsonl): each pass runs with EAOS's stream reporter (eaos/templates/screens/
+stream-reporter.mjs), which writes a line per test to behavior-lock/stream.jsonl as it begins and ends; Screens
+follows that file and reports one step per spec file, with its shot once written.
 """
 import ast
+import contextvars
 import json
 import re
+import shutil
+import threading
 from pathlib import Path
+
+from . import progress
+from .progress.flow import OPTIONAL, Stage
 
 PAGE, HTTP = 'page', 'http'
 PARAM = re.compile(r'\$(\w+)|:(\w+)')
@@ -250,7 +261,7 @@ LOCK_CONFIG = """import base from './playwright.config';
 const offline = { launchOptions: { args: ['--proxy-server=http://127.0.0.1:9', '--proxy-bypass-list=127.0.0.1;localhost;[::1]'] } };
 export default {
   ...base,
-  reporter: [['json', { outputFile: process.env.EAOS_LOCK_REPORT }]],
+  reporter: [['json', { outputFile: process.env.EAOS_LOCK_REPORT }], ['./stream-reporter.mjs', { outputFile: process.env.EAOS_LOCK_STREAM }]],
   use: { ...base.use, ...offline },
   projects: (base.projects ?? []).map((project) => ({ ...project, use: { ...project.use, ...offline } })),
 };
@@ -283,11 +294,11 @@ def spec_statuses(report):
 
 def _prepare(live, report, snapshots=None):
     """The lock folder in the sandbox copy: the report's specs, the offline config, and recorded snapshots if given."""
-    import shutil
     lock = live.sandbox.copy / '.eaos-lock'
     shutil.rmtree(lock, ignore_errors=True)
     shutil.copytree(Path(report) / 'behavior-lock', lock)
     (lock / 'lock.config.ts').write_text(LOCK_CONFIG, encoding='utf-8')
+    shutil.copyfile(REPORTER, lock / REPORTER.name)
     # The specs import @playwright/test, which most projects do not install; ES modules ignore NODE_PATH. The
     # lock always runs EAOS's pinned Playwright, the version its installed browsers belong to.
     from .toolchain import home
@@ -317,8 +328,15 @@ def _pass(live, lock, base, output, update):
     output.parent.mkdir(parents=True, exist_ok=True)
     argv = ['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1',
             *(['--update-snapshots=all'] if update else [])]
-    code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock',
-                                      env={**live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output)})
+    stream = output.parent / STREAM
+    if stream.exists(): stream.unlink()
+    screens = Screens(stream, lock / '__screenshots__', output.parent / 'snapshots', keep=update).start()
+    try:
+        code, out, err = live.sandbox.run(argv, timeout=3600, network=True, cwd='.eaos-lock',
+                                          env={**live.extra(), 'BASE_URL': base, 'EAOS_LOCK_REPORT': str(output),
+                                               'EAOS_LOCK_STREAM': str(stream)})
+    finally:
+        screens.stop()
     live.log.append({'argv': argv, 'exit': code, 'tail': (out + err)[-3000:]})     # why a spec did not run
     try: return json.loads(output.read_text(encoding='utf-8'))
     except (OSError, ValueError): return {}
@@ -342,6 +360,116 @@ def _write(runtime, name, live, results):
     return record
 
 
+# ── the live map: the safety flow, and each screen as it is recorded ───────────────────────────────────────
+REPORTER = Path(__file__).resolve().parent / 'templates/screens/stream-reporter.mjs'
+STREAM = 'stream.jsonl'
+FLOW = (
+    Stage('prepare', description='Copy the report\'s screen specs into the separate copy, with the offline browser settings'),
+    Stage('start', requires=('prepare',), description='Install, start and sign in to the app in the separate copy'),
+    Stage('record', requires=('start',), description='Open every screen once and record how it looks today'),
+    Stage('verify', requires=('record',),
+          description='Open every screen again and compare it with the recording: a screen that differs between two '
+                      'runs of the same code is not steady and cannot guard a change'),
+    Stage('speed', requires=('start',), necessity=OPTIONAL,
+          absent_when='the app has no production build, or its production run did not work during the setup',
+          description='Measure how fast the production build answers under many users (k6)'),
+)
+FAILED_STATUSES = ('failed', 'timedOut', 'interrupted')
+
+
+class Screens:
+    """Follows the stream reporter's lines while one pass runs, and reports one step per spec file of the running
+    stage (eaos/progress): running at its first test, then ok, failed or skipped once all its tests ended, with the
+    seconds they took and the spec's first shot. With `keep`, the shot is copied at once to where the recording is
+    kept (`snapshots`), the same file run_lock copies there after the pass. Never raises; a no-op outside a flow."""
+
+    def __init__(self, stream, shots, snapshots, keep=False, every=0.5):
+        self.stream, self.shots, self.snapshots, self.keep, self.every = Path(stream), Path(shots), Path(snapshots), keep, every
+        self.offset, self.buffer = 0, b''
+        self.planned, self.outcomes, self.seconds, self.finished = {}, {}, {}, []
+        self.halt = threading.Event()
+        self.thread = None
+
+    def start(self):
+        if progress.current() is None: return self
+        self.thread = threading.Thread(target=contextvars.copy_context().run, args=(self._follow,), daemon=True,
+                                       name='eaos-screens')
+        self.thread.start()
+        return self
+
+    def stop(self):
+        self.halt.set()
+        if self.thread is not None:
+            self.thread.join(timeout=5)
+            self.thread = None
+            try: self.read()
+            except Exception: pass
+        return self
+
+    def _follow(self):
+        while not self.halt.wait(self.every):
+            try: self.read()
+            except Exception: pass
+
+    def read(self):
+        """The lines written since the last read, each reported; a line still being written waits for its end."""
+        try:
+            with self.stream.open('rb') as handle:
+                handle.seek(self.offset)
+                chunk = handle.read()
+        except OSError:
+            return
+        self.offset += len(chunk)
+        self.buffer += chunk
+        *lines, self.buffer = self.buffer.split(b'\n')
+        for line in lines:
+            try: row = json.loads(line)
+            except ValueError: continue
+            if isinstance(row, dict): self.handle(row)
+
+    def handle(self, row):
+        event, name = row.get('event'), row.get('file')
+        total = len(self.planned)
+        if event == 'plan':
+            self.planned = {str(f): int(n) for f, n in (row.get('files') or {}).items()}
+            total = len(self.planned)
+            for name in self.planned: progress.step(name, 0, total, 'waiting')
+        elif event == 'test.begin' and name in self.planned and name not in self.outcomes:
+            self.outcomes[name] = []
+            progress.step(name, len(self.finished), total, 'running')
+        elif event == 'test.end' and name in self.planned and name not in self.finished:
+            self.outcomes.setdefault(name, []).append((row.get('status'), row.get('error') or ''))
+            self.seconds[name] = self.seconds.get(name, 0.0) + (row.get('duration') or 0) / 1000
+            if len(self.outcomes[name]) < self.planned[name]: return
+            self.finished.append(name)
+            status, reason, code = self.verdict(self.outcomes[name])
+            progress.step(name, len(self.finished), total, status, round(self.seconds[name], 2), reason, code,
+                          artifact=self.shot(row.get('shots') or []))
+
+    @staticmethod
+    def verdict(outcomes):
+        """(status, reason, reason_code) of one spec file, by the rule of spec_statuses()."""
+        failed = [error for status, error in outcomes if status in FAILED_STATUSES]
+        if failed: return 'failed', failed[0][:200], 'screen_failed'
+        if any(status == 'passed' for status, _ in outcomes): return 'ok', '', ''
+        return 'skipped', 'every test was skipped: it needs a fixture', 'screen_needs_fixture'
+
+    def shot(self, shots):
+        """The spec's first shot, as a path relative to the run's folder (behavior-lock/snapshots/...), or ''."""
+        for name in shots:
+            source = self.shots / name
+            if '..' in Path(name).parts or not source.is_file(): continue
+            kept = self.snapshots / name
+            if self.keep:
+                try:
+                    kept.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(source, kept)
+                except OSError:
+                    continue
+            return f'{self.snapshots.parent.name}/{self.snapshots.name}/{name}'
+        return ''
+
+
 def run_lock(report, target, runtime):
     """behavior-lock/results.json in `runtime`: the report's specs, run twice on the original code in the sandbox.
 
@@ -349,19 +477,23 @@ def run_lock(report, target, runtime):
     later run); the second must match it. A spec that passes the second pass locks today's behaviour; one that
     differs between two runs of the same code is not deterministic and fails. Needs <runtime>/authorization.json
     granting S05 and <runtime>/run.json."""
-    import shutil
     from .live_run import LiveRun
     report, runtime = Path(report), Path(runtime)
+    progress.begin('prepare')
     live = LiveRun(target, runtime, 'S05')
     lock = _prepare(live, report)
     try:
+        progress.begin('start')
         base = _start(live, lock)
+        progress.begin('record')
         _pass(live, lock, base, runtime / 'behavior-lock/playwright-record.json', update=True)
         snapshots = runtime / 'behavior-lock/snapshots'
         shutil.rmtree(snapshots, ignore_errors=True)
         if (lock / '__screenshots__').is_dir(): shutil.copytree(lock / '__screenshots__', snapshots)
+        progress.begin('verify')
         verify = _pass(live, lock, base, runtime / 'behavior-lock/playwright-verify.json', update=False)
         results = _results(report, spec_statuses(verify))
+        progress.end('verify', detail={'screens': len(results), 'passed': sum(r['status'] == 'passed' for r in results)})
     finally:
         live.stop()
         live.record('behavior-lock/run-log.json')
