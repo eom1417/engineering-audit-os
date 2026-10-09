@@ -6851,6 +6851,57 @@
           ],
           "acceptance": "python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F15 --min 1.0 && python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/north_star.py measure --only F16 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview",
           "rollback": "لا شيء: مراجعة."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T20",
+          "title": "Live scan map: EAOS's own stages drawn live while a check runs",
+          "why": "Owner request 2026-10-09 (eaos-dev/planning/live-scan-map/PLAN.md): while a check runs, started from the assistant, the Studio or eaos start, the Studio shows the check's own stage map live: the running stage glows, a light travels to the next stages, each stage says what it does, its time, its steps, what it produced and why it was skipped; drawn from the stages and tools EAOS really runs.",
+          "moves": [
+            "F15"
+          ],
+          "depends_on": [
+            "NS46.T13",
+            "NS46.T19"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/pipeline/progress.py",
+            "eaos/pipeline/run.py",
+            "eaos/pipeline/runners.py",
+            "eaos/facts/run.py",
+            "eaos/engines/__init__.py",
+            "eaos/api/events.py",
+            "eaos/api/read.py",
+            "studio/src/data/scan.ts",
+            "studio/src/data/ScanProvider.tsx",
+            "studio/src/pages/scan/",
+            "studio/src/shell/ScanBanner.tsx",
+            "docs/adoption/ns46-t20-live-scan-map.md",
+            "tools/live_scan_map_trial.py",
+            "tools/live_scan_map_trial.mjs",
+            "tests/test_live_scan_map.py",
+            "acceptance/test_live_scan_map.py"
+          ],
+          "steps": [
+            "execute() appends run-progress.jsonl: the run's start with the declared stages as data, each stage's start, steps and exactly one end with status, reason, seconds and artifacts, and the run's end; steps per extractor inside facts and per registered tool inside engines.",
+            "The live feed tails the file into scan.stage events with the same numbering and replay; GET /api/scan-progress gives the folded state with each stage placed by the pinned layered layout; a run whose process is gone reads as interrupted.",
+            "The Studio's Live check view: the map from the data, the glow, the light along links, the stage panel, the stage list, the run line with an estimate only from the last run, a banner on every page while a check runs, reduced motion respected.",
+            "A real check of a small corpus project watched in the shipped Studio at 390, 768 and 1440 px, Arabic and English, light and dark, early, middle and done, plus reduced motion and the banner, writes $EAOS_MEASURE/live-scan-map/trial.json."
+          ],
+          "done_when": [
+            "Acceptance live_scan_map.LiveScanMap passes: every case of acceptance/test_live_scan_map.py ran live against the shipped Studio digest, with every view of the three moments passing its gates."
+          ],
+          "pitfalls": [
+            "The map is drawn from the data, never by hand: a new stage or tool must appear with no front-end change.",
+            "No invented percentage: precision is per stage and per step; the time left only from the last run of the same project.",
+            "A run that never ended must not glow for ever.",
+            "Do not claim it from a replay: the trial needs a real check."
+          ],
+          "acceptance": "python tools/acceptance.py test live_scan_map.LiveScanMap",
+          "rollback": "Revert the live scan map commits; run-progress.jsonl is an additive file older readers ignore."
         }
       ]
     },

@@ -4,13 +4,13 @@
 
 ## أين نحن
 
-### التقدم: **33.2 من 100 نقطة**
+### التقدم: **33.1 من 100 نقطة**
 
-`████████░░░░░░░░░░░░░░░░░` 33.2%
+`████████░░░░░░░░░░░░░░░░░` 33.1%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 21 من 45 | 21 · NS27 البناء من خطة | 66.8 | 63 | 2026-09-30 · `0fbc461` |
+| 21 من 45 | 21 · NS27 البناء من خطة | 66.9 | 63 | 2026-09-30 · `0fbc461` |
 
 **كيف يُحسب:**
 
@@ -93,7 +93,7 @@ flowchart TB
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 اختبار قبول"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 اختبار قبول"| NS46
-        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +19 اختبار قبول"| NS38
+        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +20 اختبار قبول"| NS38
     end
     subgraph R6G_2["R6G · EAOS v2: تحليل صادق، صورة مثالية، عمليات مرتبة، واستوديو حي (2/5)"]
         direction LR
@@ -200,7 +200,7 @@ flowchart TB
 | 21 | [**NS27** البناء من خطة](#step-21) | R6 | 6 | 93% | 5.6 | 88% | 🟡 قيد العمل | B1=1 · B2=1 · X8=1 · B3=1 · B4=1 · X1=1 · … · +1 اختبار قبول |
 | 22 | [**NS30** الثقة أولًا: كل بطاقة على ملفها، وكل رقم صادق](#step-22) | R6G | 2 | 100% | 2 | 100% | ✅ مكتملة | S4=1 · X13=1 · +1 اختبار قبول |
 | 23 | [**NS36** أساس الاستوديو: القرارات والعقد والنموذج](#step-23) | R6G | 3 | 42% | 1.26 | 50% | 🔴 تحتاج مدخلًا منك | F8=1 · F10=1 · +4 اختبار قبول |
-| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 10 | 6% | 0.57 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +19 اختبار قبول |
+| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 10 | 6% | 0.55 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +20 اختبار قبول |
 | 25 | [**NS38** تحليل صادق: الدقة أولًا](#step-25) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | A1=1 · W2=1 · A2=1 · A3=1 |
 | 26 | [**NS31** أرقام ثابتة وضجيج أقل](#step-26) | R6G | 3 | 26% | 0.8 | 24% | 🔴 تحتاج مدخلًا منك | L7=1 · L8=1 · S5≥0.9 · S1≥0.9 |
 | 27 | [**NS39** خريطة النظام والسجل والأحداث](#step-27) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | N1=1 · N2=1 · +1 اختبار قبول |
@@ -222,7 +222,7 @@ flowchart TB
 | 43 | [**NS24** الرصد: كل سطح حرج مرئي](#step-43) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E10≥0.9 · +1 اختبار قبول |
 | 44 | [**NS16** الجاهزية للإنتاج: كل بند بأمر](#step-44) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E11=1 · +1 اختبار قبول |
 | 45 | [**NS10** الإثبات المستقل](#step-45) | R8 | 5 | 18% | 0.9 | 15% | 🔴 تحتاج مدخلًا منك | V4=1 · V3=1 |
-| | **المجموع** | | **100** | | **33.2** | | | |
+| | **المجموع** | | **100** | | **33.1** | | | |
 
 ## الخطوات بالتفصيل
 
@@ -1202,7 +1202,7 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 10 | 6% | 0.57 من 10 | 12% | R6G | S07, S15 |
+| 10 | 6% | 0.55 من 10 | 12% | R6G | S07, S15 |
 
 **الهدف:** F11 وF13 وF14 وF15 وF16 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويُشغَّل EAOS كله من الاستوديو، ويحكم المالك.
 
@@ -1258,6 +1258,7 @@ flowchart TB
 | اختبار قبول | `test branch_control.BranchControl` | — | ⬜ |
 | اختبار قبول | `test scan_freshness.ScanFreshness` | — | ⬜ |
 | اختبار قبول | `test ns46_studio.SelfReview` | — | ⬜ |
+| اختبار قبول | `test live_scan_map.LiveScanMap` | — | ⬜ |
 
 **المهام:**
 
@@ -1282,6 +1283,7 @@ flowchart TB
 | [NS46.T18](#ns46t18) Studio branch control: analysis context, honest inventory, provenance and guarded work-branch actions | L | ⬜ | 0% | `python tools/acceptance.py test branch_control.BranchControl` |
 | [NS46.T19](#ns46t19) Live scan freshness, local time everywhere and direct governance of every Studio state | M | ⬜ | 0% | `python tools/acceptance.py test scan_freshness.ScanFreshness` |
 | [NS46.T8](#ns46t8) المراجعة الذاتية وحكم المالك | M | ⬜ | 13% | `python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F15 --min 1.0 && python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/north_star.py measure --only F16 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview` |
+| [NS46.T20](#ns46t20) Live scan map: EAOS's own stages drawn live while a check runs | M | ⬜ | 0% | `python tools/acceptance.py test live_scan_map.LiveScanMap` |
 
 <a id="step-25"></a>
 
@@ -6567,6 +6569,42 @@ python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_st
 ```
 
 **التراجع:** لا شيء: مراجعة.
+
+<a id="ns46t20"></a>
+
+#### NS46.T20 — Live scan map: EAOS's own stages drawn live while a check runs ⬜
+
+**لماذا:** Owner request 2026-10-09 (eaos-dev/planning/live-scan-map/PLAN.md): while a check runs, started from the assistant, the Studio or eaos start, the Studio shows the check's own stage map live: the running stage glows, a light travels to the next stages, each stage says what it does, its time, its steps, what it produced and why it was skipped; drawn from the stages and tools EAOS really runs.
+
+**يحرّك:** F15 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS46.T13, NS46.T19 · **الحجم:** M
+
+**الملفات:** `eaos/pipeline/progress.py` · `eaos/pipeline/run.py` · `eaos/pipeline/runners.py` · `eaos/facts/run.py` · `eaos/engines/__init__.py` · `eaos/api/events.py` · `eaos/api/read.py` · `studio/src/data/scan.ts` · `studio/src/data/ScanProvider.tsx` · `studio/src/pages/scan/` · `studio/src/shell/ScanBanner.tsx` · `docs/adoption/ns46-t20-live-scan-map.md` · `tools/live_scan_map_trial.py` · `tools/live_scan_map_trial.mjs` · `tests/test_live_scan_map.py` · `acceptance/test_live_scan_map.py`
+
+**الخطوات:**
+
+1. execute() appends run-progress.jsonl: the run's start with the declared stages as data, each stage's start, steps and exactly one end with status, reason, seconds and artifacts, and the run's end; steps per extractor inside facts and per registered tool inside engines.
+2. The live feed tails the file into scan.stage events with the same numbering and replay; GET /api/scan-progress gives the folded state with each stage placed by the pinned layered layout; a run whose process is gone reads as interrupted.
+3. The Studio's Live check view: the map from the data, the glow, the light along links, the stage panel, the stage list, the run line with an estimate only from the last run, a banner on every page while a check runs, reduced motion respected.
+4. A real check of a small corpus project watched in the shipped Studio at 390, 768 and 1440 px, Arabic and English, light and dark, early, middle and done, plus reduced motion and the banner, writes $EAOS_MEASURE/live-scan-map/trial.json.
+
+**تنتهي حين:**
+
+- [ ] Acceptance live_scan_map.LiveScanMap passes: every case of acceptance/test_live_scan_map.py ran live against the shipped Studio digest, with every view of the three moments passing its gates.
+
+**فخاخ معروفة:**
+
+- The map is drawn from the data, never by hand: a new stage or tool must appear with no front-end change.
+- No invented percentage: precision is per stage and per step; the time left only from the last run of the same project.
+- A run that never ended must not glow for ever.
+- Do not claim it from a replay: the trial needs a real check.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test live_scan_map.LiveScanMap
+```
+
+**التراجع:** Revert the live scan map commits; run-progress.jsonl is an additive file older readers ignore.
 
 ### الخطوة 25 · NS38 — تحليل صادق: الدقة أولًا ⬜ التالية
 

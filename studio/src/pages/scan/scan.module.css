@@ -20,7 +20,8 @@
 .mapWrap { position: relative; block-size: clamp(420px, calc(100vh - 280px), 720px); }
 .canvas { background: var(--map-water); }
 .mapTools { position: absolute; inset-block-start: 10px; inset-inline-end: 10px; z-index: 1; display: flex; gap: 8px; align-items: center; }
-.followBtn { display: inline-flex; align-items: center; gap: 6px; min-block-size: 30px; padding: 0 12px; border-radius: var(--radius-8); border: 1px solid var(--accent-solid); background: var(--bg-raised); color: var(--accent-text); font-size: 13px; cursor: pointer; }
+.followBtn { display: inline-flex; align-items: center; gap: 6px; min-block-size: 44px; padding: 0 12px; border-radius: var(--radius-8); border: 1px solid var(--accent-solid); background: var(--bg-raised); color: var(--accent-text); font-size: 13px; cursor: pointer; }
+.mapTools [class] button, .bigBtn { min-inline-size: 44px; min-block-size: 44px; }
 .followBtn[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 
 .edge { fill: none; stroke: var(--edge-strong); stroke-width: 1.3; opacity: .35; }
@@ -76,7 +77,7 @@
 .reason, .reasonBad { padding: 8px 12px; border-radius: var(--radius-8); background: var(--bg-sunken); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
 .reasonBad { background: var(--status-critical-subtle); color: var(--status-critical-text); }
 .needs { display: inline-flex; flex-wrap: wrap; gap: 4px 6px; }
-.needLink { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-block-size: 24px; }
+.needLink { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-block-size: 44px; display: inline-flex; align-items: center; }
 .needLink[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .block { display: flex; flex-direction: column; gap: 6px; }
 .blockTitle { font-size: 14px; font-weight: 600; display: flex; gap: 8px; align-items: baseline; padding-inline: 8px; }
@@ -114,7 +115,5 @@
 @media (max-width: 767px) {
   .page { padding-block-start: 16px; padding-block-end: 24px; }
   .mapWrap { block-size: max(340px, 58vh); }
-  .followBtn { min-block-size: 44px; }
-  .needLink { min-block-size: 44px; display: inline-flex; align-items: center; }
   .list { grid-template-columns: minmax(0, 1fr); }
 }

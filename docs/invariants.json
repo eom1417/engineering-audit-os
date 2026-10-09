@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "fdd485a",
+  "extracted_at_commit": "b950722",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -45,6 +45,51 @@
       "statement": "`new`: a project still to be built from its plan, whose folder may be empty or not there yet (it is made); never the home folder or the disk's root.",
       "kind": "invariant",
       "enforced_by": "tests/test_blueprint.py::BuildTests::test_from_a_pasted_plan_to_a_designed_blueprint_in_an_empty_folder",
+      "note": ""
+    },
+    {
+      "id": "INV-f671b09e18",
+      "file": "eaos/api/guard.py",
+      "symbol": "<module>",
+      "statement": "The token is in the address EAOS opens (#token=, never sent to a server, never in a log) and the Studio keeps it for the tab.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_never_reaches_a_log_or_the_page",
+      "note": ""
+    },
+    {
+      "id": "INV-347b9d9a34",
+      "file": "eaos/api/guard.py",
+      "symbol": "<module>",
+      "statement": "- A refusal says why in the server's log, never with the token.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_never_reaches_a_log_or_the_page",
+      "note": ""
+    },
+    {
+      "id": "INV-46695141c9",
+      "file": "eaos/api/guard.py",
+      "symbol": "same",
+      "statement": "Constant-time comparison of two tokens; a missing one never matches.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_is_compared_in_constant_time",
+      "note": ""
+    },
+    {
+      "id": "INV-b9d4e85927",
+      "file": "eaos/api/read.py",
+      "symbol": "scan_state",
+      "statement": "The folded progress of the report's last (or running) check, each stage placed by the same pinned layered layout as the other maps (longest path, barycentre), the server's clock for the page's timers, and whether a run that never ended is still alive (a stopped process makes it `interrupted`, never a run that glows for ever).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_scan_map.py::ProgressApi::test_a_page_opened_mid_run_gets_the_whole_state_with_places",
+      "note": ""
+    },
+    {
+      "id": "INV-fe75e286e2",
+      "file": "eaos/api/server.py",
+      "symbol": "_remote_login_trusted",
+      "statement": "Never on a local Studio.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_api.py::RemoteLoginBoot::test_opt_in_on_remote_only",
       "note": ""
     },
     {
@@ -144,6 +189,15 @@
       "statement": "EAOS lays it out so that what its audits look for never gets in:",
       "kind": "invariant",
       "enforced_by": "tests/test_blueprint.py::GateTests::test_layer_breaks_stray_files_vendors_outside_their_adapter_cycles_and_copies_are_refused",
+      "note": ""
+    },
+    {
+      "id": "INV-efbb9c360d",
+      "file": "eaos/branches.py",
+      "symbol": "dirty",
+      "statement": "{'tracked': n, 'untracked': n} of a checkout's unsaved changes, or None when git cannot say.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Inventory::test_detached_head_no_origin_dirty_checkout_and_worktree",
       "note": ""
     },
     {
@@ -804,6 +858,15 @@
       "note": ""
     },
     {
+      "id": "INV-e551b2653b",
+      "file": "eaos/facts/frameworks/http_access.py",
+      "symbol": "object_keys",
+      "statement": "Request keys are the payload's names, never its values.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_http_access.py::PayloadKeyTests::test_an_object_literal_payload_gives_its_keys_and_a_spread_marks_them_partial",
+      "note": ""
+    },
+    {
       "id": "INV-38206a42b2",
       "file": "eaos/facts/frameworks/supabase_access.py",
       "symbol": "_supabase_prefix",
@@ -838,6 +901,33 @@
       "kind": "rationale",
       "enforced_by": null,
       "note": "Describes how the numbers should be read, not what the extractor does; nothing in the code can be broken to violate it."
+    },
+    {
+      "id": "INV-3f8dce8498",
+      "file": "eaos/facts/pipeline.py",
+      "symbol": "<module>",
+      "statement": "A pipeline is found only from what the code declares or does, never guessed from names alone: - a declared DAG: a list of stage records whose `requires` name other stages, run through a registry of runners; - a declared sequence: a list of steps holding the functions a driver calls one after the other; - a registry loop: a loop over stage names dispatching through a table, each stage's inputs taken from what the earlier stages put in an accumulator; - an orchestrator: a function announcing its phases in order, or one whose calls pass one stage's result to the next; - the frameworks' own declarations (Airflow, Prefect, Dagster, Luigi, Celery canvas, LangGraph, Temporal), queue topologies (a topic both produced and consumed), and the build and CI chains (GitHub Actions `needs`, Make and just targets, npm script chains, n8n / Node-RED / Step Functions exports).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_pipeline_map.py::Orchestrators::test_a_chain_of_calls_without_a_pipeline_signal_is_not_a_pipeline",
+      "note": ""
+    },
+    {
+      "id": "INV-398e27160f",
+      "file": "eaos/facts/pipeline.py",
+      "symbol": "<module>",
+      "statement": "A dispatch EAOS cannot follow is written as an unresolved step, never as an edge.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_pipeline_map.py::RegistryLoop::test_a_dispatch_eaos_cannot_follow_is_an_unresolved_step_never_an_edge",
+      "note": ""
+    },
+    {
+      "id": "INV-37eae478a8",
+      "file": "eaos/facts/pipeline.py",
+      "symbol": "scan",
+      "statement": "Never runs the project.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_pipeline_map.py::NothingInvented::test_never_runs_the_project",
+      "note": ""
     },
     {
       "id": "INV-01f72bf4a5",
@@ -882,6 +972,15 @@
       "statement": "Without either, `@/` and `~/` still point at src/ when it exists: no npm package can be named with an empty scope, so they are never external.",
       "kind": "invariant",
       "enforced_by": "tests/test_facts_resolve.py::PathAliasTests::test_at_slash_points_at_src_without_any_config",
+      "note": ""
+    },
+    {
+      "id": "INV-f092b94825",
+      "file": "eaos/facts/run.py",
+      "symbol": "collect",
+      "statement": "It never changes what runs.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_scan_map.py::ProgressFile::test_steps_of_the_long_stages_are_folded_with_their_own_status",
       "note": ""
     },
     {
@@ -1026,15 +1125,6 @@
       "statement": "A failure is shown in plain words with its fix (eaos/data/errors.json); the technical detail goes to a log file whose path is shown, never to the screen.",
       "kind": "invariant",
       "enforced_by": "tests/test_guided.py::JourneyTests::test_a_failure_reads_in_plain_words_and_the_detail_goes_to_a_log",
-      "note": ""
-    },
-    {
-      "id": "INV-760bbe5bf3",
-      "file": "eaos/places.py",
-      "symbol": "workspace",
-      "statement": "~/.eaos/projects/<name>-<id>: one per project folder, never inside it.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_guided.py::JourneyTests::test_the_project_folder_is_never_written",
       "note": ""
     },
     {
@@ -1284,6 +1374,33 @@
       "note": ""
     },
     {
+      "id": "INV-fdd2bdea5f",
+      "file": "eaos/pipeline/progress.py",
+      "symbol": "<module>",
+      "statement": "Writing it never decides the fate of the run: a failure to write is swallowed, and the manifest stays the record.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_scan_map.py::ProgressFile::test_writing_progress_never_breaks_the_run",
+      "note": ""
+    },
+    {
+      "id": "INV-484cae46d0",
+      "file": "eaos/pipeline/progress.py",
+      "symbol": "ProgressLog",
+      "statement": "Thread-safe; never raises.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_scan_map.py::ProgressFile::test_writing_progress_never_breaks_the_run",
+      "note": ""
+    },
+    {
+      "id": "INV-4ab0429593",
+      "file": "eaos/pipeline/progress.py",
+      "symbol": "alive",
+      "statement": "False when a run that never ended was started by a process on this machine that is gone (it was stopped or crashed); True when it may still be running; None when it cannot be told (another machine, no process number).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_live_scan_map.py::ProgressFile::test_a_run_whose_process_is_gone_is_interrupted_not_running_for_ever",
+      "note": ""
+    },
+    {
       "id": "INV-904a0dce25",
       "file": "eaos/pipeline/report.py",
       "symbol": "<module>",
@@ -1344,6 +1461,15 @@
       "statement": "Every stage that cannot run once this one has failed.",
       "kind": "invariant",
       "enforced_by": "tests/test_pipeline_run.py::ExecutionTests::test_the_dependents_of_a_failed_stage_are_recorded_not_left_blank",
+      "note": ""
+    },
+    {
+      "id": "INV-760bbe5bf3",
+      "file": "eaos/places.py",
+      "symbol": "workspace",
+      "statement": "~/.eaos/projects/<name>-<id>: one per project folder, never inside it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_guided.py::JourneyTests::test_the_project_folder_is_never_written",
       "note": ""
     },
     {
@@ -1536,12 +1662,192 @@
       "note": ""
     },
     {
+      "id": "INV-b4c31d686c",
+      "file": "eaos/studio/actions/adapters.py",
+      "symbol": "eaos_server",
+      "statement": "The EAOS MCP server's argv and environment for a run: this very EAOS (the Python and the package the Studio runs, never another `eaos` on the PATH), the person's EAOS home, and the run's id, which makes the person-only tools refuse (eaos/mcp_server.py).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_actions.py::Adapters::test_the_runs_mcp_server_is_this_eaos_never_another_on_the_path",
+      "note": ""
+    },
+    {
+      "id": "INV-114bac932d",
+      "file": "eaos/studio/actions/adapters.py",
+      "symbol": "ask",
+      "statement": "The prompt goes on standard input, so its size never meets the argument limit; the process runs in its own group in `folder` (never in the project, whose instructions are not the planner's); `started(pid)` hears its pid, so the run manager can pause or stop it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ideal_planner.py::Ask::test_the_answer_and_the_model_come_from_the_stream_and_the_prompt_goes_on_standard_input",
+      "note": ""
+    },
+    {
+      "id": "INV-bcfee08f24",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "<module>",
+      "statement": "Git is called with argv lists, never through a shell.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Guarding::test_invalid_names_cannot_escape_or_run_code",
+      "note": ""
+    },
+    {
+      "id": "INV-3b8dcf95f4",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "<module>",
+      "statement": "Ownership comes only from durable provenance: an EAOS wave or build in the project's state, or an entry EAOS wrote in runs/branch-provenance.json; a name or a prefix is never proof.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Inventory::test_local_and_remote_refs_roles_policy_and_ownership_only_from_provenance",
+      "note": ""
+    },
+    {
+      "id": "INV-4bd2ba57e2",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "Blocked",
+      "statement": "A change that cannot happen now, with every reason in plain words.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Merging::test_human_branch_and_failed_checks_and_conflict_are_refused",
+      "note": ""
+    },
+    {
+      "id": "INV-854b764955",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "git",
+      "statement": "git -C project <args> as argv; a timeout is an exit code of 124, never an exception.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Inventory::test_provenance_is_merged_never_replaced_and_git_timeouts_are_exit_codes",
+      "note": ""
+    },
+    {
+      "id": "INV-cbe02c29bd",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "default_branch",
+      "statement": "{name, source}: origin's HEAD when known; otherwise unknown (None), never guessed from a name.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Inventory::test_detached_head_no_origin_dirty_checkout_and_worktree",
+      "note": ""
+    },
+    {
+      "id": "INV-edb8aa6390",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "counts",
+      "statement": "(behind, ahead) of tip against base_tip, or (None, None) when git cannot say.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Inventory::test_local_and_remote_refs_roles_policy_and_ownership_only_from_provenance",
+      "note": ""
+    },
+    {
+      "id": "INV-e9f14cdc5a",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "record",
+      "statement": "Durable provenance of a branch EAOS made or changed: merged into the existing entry, never replacing it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Inventory::test_provenance_is_merged_never_replaced_and_git_timeouts_are_exit_codes",
+      "note": ""
+    },
+    {
+      "id": "INV-89666f894b",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "context",
+      "statement": "The four branches the Studio never mixes up: the checkout, the analysis branch, the report's branch and the base the person compares against (the analysis branch unless they choose another).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Selecting::test_select_changes_context_not_the_checkout_and_records_a_run",
+      "note": ""
+    },
+    {
+      "id": "INV-a0b752c854",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "run_context",
+      "statement": "What a new run is made on, recorded on it when it is created so a later change of branch never retargets it silently: {analysis_branch, analysis_commit, checkout, detached, at}.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Selecting::test_in_flight_runs_are_never_retargeted",
+      "note": ""
+    },
+    {
+      "id": "INV-f94203cc33",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "delete",
+      "statement": "Never a force deletion.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Deleting::test_unmerged_needs_a_second_confirmation",
+      "note": ""
+    },
+    {
+      "id": "INV-a295ac00cf",
+      "file": "eaos/studio/actions/handoff.py",
+      "symbol": "<module>",
+      "statement": "The request waits in the project's EAOS workspace (`studio-requests.json`, never inside the project).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_actions.py::Handoff::test_the_request_waits_in_the_eaos_workspace_never_in_the_project",
+      "note": ""
+    },
+    {
+      "id": "INV-494f660ca2",
+      "file": "eaos/studio/actions/prompts.py",
+      "symbol": "<module>",
+      "statement": "Every prompt says the same three things: change code only through the EAOS tools, never take the person's decisions (accept, undo, the branch, the run consent), and ask the person with one `eaos-question` block, which the Studio shows in its inbox.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_actions.py::Prompts::test_a_fix_prompt_keeps_the_eaos_way_and_the_persons_decisions",
+      "note": ""
+    },
+    {
+      "id": "INV-81ab834688",
+      "file": "eaos/studio/actions/runs.py",
+      "symbol": "<module>",
+      "statement": "Only the server that holds the project's `dispatch.lock` starts runs, so two Studio servers never start the same one.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_actions.py::Runs::test_two_servers_never_start_the_same_run",
+      "note": ""
+    },
+    {
+      "id": "INV-88b33e6d9d",
+      "file": "eaos/studio/actions/runs.py",
+      "symbol": "recover",
+      "statement": "At the start of the dispatcher: runs this server cannot follow any more are said to have stopped, the rest followed.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_actions.py::Runs::test_a_restart_follows_a_live_assistant_and_fails_a_dead_one_plainly",
+      "note": ""
+    },
+    {
+      "id": "INV-47d795f4e2",
+      "file": "eaos/studio/actions/security.py",
+      "symbol": "check",
+      "statement": "GET needs the token (in the header, or `token=` in the query for an EventSource, which cannot set headers); POST also the CSRF token and the Studio's origin.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_actions.py::Locks::test_a_get_takes_the_token_from_the_query_but_a_post_does_not",
+      "note": ""
+    },
+    {
+      "id": "INV-5726963395",
+      "file": "eaos/studio/actions/store.py",
+      "symbol": "refused",
+      "statement": "A call the locks refused, in runs/refused.jsonl: when, which route, why; never a token or a query.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_actions.py::Locks::test_every_refusal_is_logged_with_its_reason_and_never_the_token",
+      "note": ""
+    },
+    {
+      "id": "INV-5f0f76adc9",
+      "file": "eaos/studio/change.py",
+      "symbol": "<module>",
+      "statement": "- a gap no card covers has no closure measure (null, with the reason in its source), never 0 or 100%; - an operation is placed in the step that holds most of its cards, else in the plan's own \"build:<target>\" step, else in none (shown as not planned); - an operation waits for another only where one of its cards waits for one of the other's: a prerequisite the plan records, or an earlier task on the same file (the order the plan's waves set).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_change.py::Change::test_closure_is_measured_only_from_cards",
+      "note": ""
+    },
+    {
       "id": "INV-9653d5295e",
       "file": "eaos/studio/coverage.py",
       "symbol": "<module>",
       "statement": "A row is never optimistic: a section counts as measured only when it was written and met its contract.",
       "kind": "invariant",
       "enforced_by": "tests/test_studio_contract_v2.py::ExportedCoverage::test_a_section_counts_as_measured_only_when_it_was_written",
+      "note": ""
+    },
+    {
+      "id": "INV-ee22f5eb15",
+      "file": "eaos/studio/data_paths.py",
+      "symbol": "<module>",
+      "statement": "Nothing is invented: a tier the records do not reach is a gap, drawn and counted, never a guessed link.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_data_map.py::DataPaths::test_each_write_is_a_path_whose_unreached_tiers_are_gaps_with_their_step",
       "note": ""
     },
     {
@@ -1581,6 +1887,172 @@
       "note": ""
     },
     {
+      "id": "INV-49418ebcf7",
+      "file": "eaos/studio/export.py",
+      "symbol": "code_excerpt",
+      "statement": "{start, line, lines, hidden}: the lines around `line` of `path` as the check read them, or None: no line, a secret (its value is never written), or a file that cannot be read as text.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_export.py::Evidence::test_no_code_for_a_secret_a_missing_line_or_a_file_not_read",
+      "note": ""
+    },
+    {
+      "id": "INV-8d2505b670",
+      "file": "eaos/studio/export.py",
+      "symbol": "sources",
+      "statement": "path -> text: the file at the scanned commit (git show), else the project's working copy; never a path outside the project.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_export.py::Evidence::test_files_are_read_at_the_scanned_commit_and_never_outside_the_project",
+      "note": ""
+    },
+    {
+      "id": "INV-ed17045582",
+      "file": "eaos/studio/functions.py",
+      "symbol": "<module>",
+      "statement": "A call that does not resolve is left out, never guessed; the share resolved is counted reads and facts/entrypoints.json data_access (a table read or written, a request sent) and facts/config.json writes env_read, each in the innermost function whose lines hold it cards the cards whose evidence sits on a line of the function (innermost)",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_functions.py::Functions::test_calls_resolve_within_the_file_and_through_imports_and_nothing_is_guessed",
+      "note": ""
+    },
+    {
+      "id": "INV-e244b0b236",
+      "file": "eaos/studio/hidden.py",
+      "symbol": "<module>",
+      "statement": "seen the screens of studio/journeys.json (kind page), by area (the first segment of their route), and the dialog and form files they render (a file named …Dialog, …Form, …Modal, …Sheet, …Drawer) unseen triggers background jobs, schedules and containers (entry_point surface job or container), web hooks (a server route whose path names a hook or a callback), edge functions (files under supabase/functions/<name>/, netlify/functions/ or api/cron/) screens routes that are not pages: layouts, redirects and catch-alls (journeys.json) server server routes this repository answers (entry_point surface http) writes the writes the code sends (data_access post, put, patch, delete, insert, update, upsert), by resource outside the outside services the code calls (runtime integration_target), by host config environment variables read (config env_read), secret-shaped settings, committed credentials (facts/secrets.json; the value is never read or written) build CI steps and deployment targets (runtime ci_step, deployment_target), and the commands the manifests declare (entry_point surface cli) dead unreachable modules, unused symbols and unread constants (deadcode), leftovers, broken code links a screen area sets an unseen item of triggers, server, writes, outside or config in motion when a file the area's screens render (three import steps) holds the item's evidence; an item of triggers, writes, outside or config that no screen reaches is flagged `no_screen`: it runs, or waits, with nothing the user sees in front of it components each item is counted in the deepest component of target-architecture.json holding its file, so the System map can mark the components that hold unseen work",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_journeys.py::Hidden::test_a_write_a_screen_sets_in_motion_is_linked_and_one_no_screen_reaches_is_flagged",
+      "note": ""
+    },
+    {
+      "id": "INV-2097fa704a",
+      "file": "eaos/studio/history.py",
+      "symbol": "<module>",
+      "statement": "An older check carries them only when the ledger recorded them (`scores` on its point, NS31.T1); until then they are null, never guessed.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_library.py::History::test_the_ledger_gives_every_check_the_progress_and_the_events",
+      "note": ""
+    },
+    {
+      "id": "INV-f9f3458dc4",
+      "file": "eaos/studio/ideal.py",
+      "symbol": "<module>",
+      "statement": "bundle(report) a compact, grounded picture: the rules' target of every view with the rules it applied, the cards, the facts that matter, the decisions, and the project's own documents as untrusted data pass 'plan' the ideal of every view in a strict JSON schema, every element citing fact, claim, card or rule ids pass 'critique' the same assistant reviews the draft (what was missed, risks, order) and returns the revised ideal check(...) deterministic: a citation resolves only to an id of this report; an element with no resolving citation is dropped and listed, never shown <report>/ideal/plan.json the checked ideal with its inputs, both answers and the dropped elements",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_ideal_planner.py::Planning::test_the_bundle_is_grounded_deterministic_and_marks_the_project_text_untrusted",
+        "tests/test_ideal_planner.py::EvidenceCheck::test_an_element_without_a_resolving_citation_is_dropped_and_listed",
+        "tests/test_ideal_planner.py::Planning::test_two_passes_then_the_check_then_the_plan_is_kept"
+      ],
+      "note": ""
+    },
+    {
+      "id": "INV-406444b3a9",
+      "file": "eaos/studio/infra.py",
+      "symbol": "<module>",
+      "statement": "hosting facts/runtime.json deployment_target: Dockerfile ports, compose services, hosting manifests ci facts/runtime.json ci_step, by workflow file (GitHub Actions) or package.json scripts environments facts/config.json env_read (variable names, never values; secret-shaped ones counted), the sensitive files no extractor reads, and environments named by the hosts the code calls (`*-staging.*`, `*-production.*`) databases Supabase calls (facts/entrypoints.json data_access), database client packages (facts/resolve.json module_edge EXTERNAL), tables declared in code (facts/domain.json data_table) and migrations (facts/runtime.json migration_step), connection pools queues queue client packages the code imports; none found is a measured empty lane, read only against the packages listed in PACKAGES services outbound hosts (facts/runtime.json integration_target, with its resilience_policy) and service SDK packages observability facts/runtime.json observability_signal, and telemetry packages",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_data_map.py::Infra::test_each_lane_from_its_records",
+      "note": ""
+    },
+    {
+      "id": "INV-7911b2ced3",
+      "file": "eaos/studio/infra.py",
+      "symbol": "<module>",
+      "statement": "A lane the target says nothing about is \"not measured yet\" for the target, never \"fine\".",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_data_map.py::Infra::test_the_target_decides_where_it_speaks_and_is_not_measured_where_it_is_silent",
+      "note": ""
+    },
+    {
+      "id": "INV-4ee01b4800",
+      "file": "eaos/studio/journeys.py",
+      "symbol": "matches",
+      "statement": "Whether a link's target opens this route: segment by segment, a route's :param takes any segment, a link's :param only a route's :param; a catch-all never matches.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_journeys.py::Journeys::test_a_link_belongs_to_the_screens_rendering_its_file_and_the_menu_to_the_layout",
+      "note": ""
+    },
+    {
+      "id": "INV-f44a4e156a",
+      "file": "eaos/studio/nodes/core.py",
+      "symbol": "<module>",
+      "statement": "`run_node(node, spec, report, ...)` runs one node with its guards: the evidence check a decision keeps only the ids that resolve; one with none left, an unknown subject, a choice the node does not have or a repeated subject is dropped and listed, never routed the critique pass planning nodes ('critique' in their passes) review their draft before it is checked the rules fallback no assistant, over the time or cost budget, or a failed answer: the rules decide alone and every subject takes the route \"rules only\"; a subject the model left out keeps the rules' decision, marked `source: rules` the run log <report>/nodes/runs.jsonl: the prompt's and inputs' digests, the model, the output the cache <report>/nodes/<node>/cache/<key>.json: the same inputs give the same result, no new call (also when no assistant is here: a decision already made stands); `fresh` asks again",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Framework::test_a_subject_the_model_leaves_out_keeps_the_rules_decision",
+      "note": ""
+    },
+    {
+      "id": "INV-b6e63a22d4",
+      "file": "eaos/studio/nodes/core.py",
+      "symbol": "Bounded",
+      "statement": "A launcher held to a budget: each call waits at most the seconds left (even a launcher that hangs is cut off, and its cancel is set), and what it says it has spent (`cost_usd`, read after each call) may not pass `usd`.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Launcher::test_a_hanging_launcher_is_cut_off_and_an_expensive_one_refused",
+      "note": ""
+    },
+    {
+      "id": "INV-a2f849af28",
+      "file": "eaos/studio/nodes/fix_reviewer.py",
+      "symbol": "<module>",
+      "statement": "The gates stay the judge: a card they failed cannot be accepted, whatever the answer says.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Reviewer::test_the_gates_stay_the_judge",
+      "note": ""
+    },
+    {
+      "id": "INV-dfead6c9f3",
+      "file": "eaos/studio/nodes/fix_reviewer.py",
+      "symbol": "inputs",
+      "statement": "The batch of `wave` (its folder), or None when no batch is given.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Reviewer::test_the_gates_stay_the_judge",
+      "note": ""
+    },
+    {
+      "id": "INV-1183a21ef5",
+      "file": "eaos/studio/nodes/plan_orderer.py",
+      "symbol": "<module>",
+      "statement": "The proposal is written to nodes/plan_orderer/order.json; the plan itself is never changed by it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Planners::test_a_good_order_is_written_with_the_cards_it_left_out_and_without_the_rejected",
+      "note": ""
+    },
+    {
+      "id": "INV-c384201e41",
+      "file": "eaos/studio/nodes/triage.py",
+      "symbol": "<module>",
+      "statement": "Nothing here changes a card: the verdicts, the probe requests and the library's feedback are written beside the report (nodes/card_triage/), and `precision(report)` gives the triage's own column of the precision measure, per kind of card, never mixed with the hand-written labels (tools/precision.py).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Triage::test_doubt_becomes_a_probe_and_reject_library_feedback",
+      "note": ""
+    },
+    {
+      "id": "INV-922850fe66",
+      "file": "eaos/studio/nodes/triage.py",
+      "symbol": "_excerpt",
+      "statement": "A few lines of the project's code around `line`, each cut short; None when the file cannot be read.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Triage::test_the_bundle_holds_the_code_at_each_fact_marked_untrusted",
+      "note": ""
+    },
+    {
+      "id": "INV-09be4a6746",
+      "file": "eaos/studio/nodes/triage.py",
+      "symbol": "by_kind",
+      "statement": "{kind of card: {confirm, doubt, reject, rules only, precision}}: the triage's own estimate of how much of each kind is true (confirmed ÷ confirmed and rejected), a model's opinion beside the labelled precision, never instead of it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Triage::test_doubt_becomes_a_probe_and_reject_library_feedback",
+      "note": ""
+    },
+    {
+      "id": "INV-a32f3b9c61",
+      "file": "eaos/studio/nodes/view.py",
+      "symbol": "<module>",
+      "statement": "`section(report, lang)` lists every declared node (eaos/studio/nodes/__init__.py) with its router's branches and how many subjects took each, and its last run (nodes/<node>/last.json) as it was decided: by which assistant and model, or by the rules alone and why; a node that never ran says so.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Studio::test_the_section_says_what_ran_and_how",
+      "note": ""
+    },
+    {
       "id": "INV-9ed29e15a9",
       "file": "eaos/studio/paths.py",
       "symbol": "<module>",
@@ -1596,6 +2068,15 @@
       "statement": "A part's name cut by `level` folders from its end, never below its first folder: src/pages/settings -> src/pages.",
       "kind": "invariant",
       "enforced_by": "tests/test_studio_paths.py::Paths::test_the_overview_clusters_parts_and_cuts_them_to_folders_when_there_are_too_many",
+      "note": ""
+    },
+    {
+      "id": "INV-e98c64897a",
+      "file": "eaos/studio/screens.py",
+      "symbol": "<module>",
+      "statement": "What is not measured is written in `missing` (counted in coverage.json, shown on the page), never as an empty list that would read as \"no issues\".",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_functions.py::Screens::test_every_page_is_a_screen_and_what_was_not_captured_is_named",
       "note": ""
     },
     {
@@ -1749,442 +2230,6 @@
       "statement": "Agent-led workflow: deterministic gates and next actions, never an autonomous LLM.",
       "kind": "invariant",
       "enforced_by": "tests/test_workflow.py::WorkflowTests::test_single_entrypoint_read_only_and_no_script_execution",
-      "note": ""
-    },
-    {
-      "id": "INV-e244b0b236",
-      "file": "eaos/studio/hidden.py",
-      "symbol": "<module>",
-      "statement": "seen the screens of studio/journeys.json (kind page), by area (the first segment of their route), and the dialog and form files they render (a file named …Dialog, …Form, …Modal, …Sheet, …Drawer) unseen triggers background jobs, schedules and containers (entry_point surface job or container), web hooks (a server route whose path names a hook or a callback), edge functions (files under supabase/functions/<name>/, netlify/functions/ or api/cron/) screens routes that are not pages: layouts, redirects and catch-alls (journeys.json) server server routes this repository answers (entry_point surface http) writes the writes the code sends (data_access post, put, patch, delete, insert, update, upsert), by resource outside the outside services the code calls (runtime integration_target), by host config environment variables read (config env_read), secret-shaped settings, committed credentials (facts/secrets.json; the value is never read or written) build CI steps and deployment targets (runtime ci_step, deployment_target), and the commands the manifests declare (entry_point surface cli) dead unreachable modules, unused symbols and unread constants (deadcode), leftovers, broken code links a screen area sets an unseen item of triggers, server, writes, outside or config in motion when a file the area's screens render (three import steps) holds the item's evidence; an item of triggers, writes, outside or config that no screen reaches is flagged `no_screen`: it runs, or waits, with nothing the user sees in front of it components each item is counted in the deepest component of target-architecture.json holding its file, so the System map can mark the components that hold unseen work",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_journeys.py::Hidden::test_a_write_a_screen_sets_in_motion_is_linked_and_one_no_screen_reaches_is_flagged",
-      "note": ""
-    },
-    {
-      "id": "INV-4ee01b4800",
-      "file": "eaos/studio/journeys.py",
-      "symbol": "matches",
-      "statement": "Whether a link's target opens this route: segment by segment, a route's :param takes any segment, a link's :param only a route's :param; a catch-all never matches.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_journeys.py::Journeys::test_a_link_belongs_to_the_screens_rendering_its_file_and_the_menu_to_the_layout",
-      "note": ""
-    },
-    {
-      "id": "INV-e551b2653b",
-      "file": "eaos/facts/frameworks/http_access.py",
-      "symbol": "object_keys",
-      "statement": "Request keys are the payload's names, never its values.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_http_access.py::PayloadKeyTests::test_an_object_literal_payload_gives_its_keys_and_a_spread_marks_them_partial",
-      "note": ""
-    },
-    {
-      "id": "INV-ee22f5eb15",
-      "file": "eaos/studio/data_paths.py",
-      "symbol": "<module>",
-      "statement": "Nothing is invented: a tier the records do not reach is a gap, drawn and counted, never a guessed link.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_data_map.py::DataPaths::test_each_write_is_a_path_whose_unreached_tiers_are_gaps_with_their_step",
-      "note": ""
-    },
-    {
-      "id": "INV-406444b3a9",
-      "file": "eaos/studio/infra.py",
-      "symbol": "<module>",
-      "statement": "hosting facts/runtime.json deployment_target: Dockerfile ports, compose services, hosting manifests ci facts/runtime.json ci_step, by workflow file (GitHub Actions) or package.json scripts environments facts/config.json env_read (variable names, never values; secret-shaped ones counted), the sensitive files no extractor reads, and environments named by the hosts the code calls (`*-staging.*`, `*-production.*`) databases Supabase calls (facts/entrypoints.json data_access), database client packages (facts/resolve.json module_edge EXTERNAL), tables declared in code (facts/domain.json data_table) and migrations (facts/runtime.json migration_step), connection pools queues queue client packages the code imports; none found is a measured empty lane, read only against the packages listed in PACKAGES services outbound hosts (facts/runtime.json integration_target, with its resilience_policy) and service SDK packages observability facts/runtime.json observability_signal, and telemetry packages",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_data_map.py::Infra::test_each_lane_from_its_records",
-      "note": ""
-    },
-    {
-      "id": "INV-7911b2ced3",
-      "file": "eaos/studio/infra.py",
-      "symbol": "<module>",
-      "statement": "A lane the target says nothing about is \"not measured yet\" for the target, never \"fine\".",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_data_map.py::Infra::test_the_target_decides_where_it_speaks_and_is_not_measured_where_it_is_silent",
-      "note": ""
-    },
-    {
-      "id": "INV-f671b09e18",
-      "file": "eaos/api/guard.py",
-      "symbol": "<module>",
-      "statement": "The token is in the address EAOS opens (#token=, never sent to a server, never in a log) and the Studio keeps it for the tab.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_never_reaches_a_log_or_the_page",
-      "note": ""
-    },
-    {
-      "id": "INV-347b9d9a34",
-      "file": "eaos/api/guard.py",
-      "symbol": "<module>",
-      "statement": "- A refusal says why in the server's log, never with the token.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_never_reaches_a_log_or_the_page",
-      "note": ""
-    },
-    {
-      "id": "INV-46695141c9",
-      "file": "eaos/api/guard.py",
-      "symbol": "same",
-      "statement": "Constant-time comparison of two tokens; a missing one never matches.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_api.py::Guard::test_the_token_is_compared_in_constant_time",
-      "note": ""
-    },
-    {
-      "id": "INV-b4c31d686c",
-      "file": "eaos/studio/actions/adapters.py",
-      "symbol": "eaos_server",
-      "statement": "The EAOS MCP server's argv and environment for a run: this very EAOS (the Python and the package the Studio runs, never another `eaos` on the PATH), the person's EAOS home, and the run's id, which makes the person-only tools refuse (eaos/mcp_server.py).",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_actions.py::Adapters::test_the_runs_mcp_server_is_this_eaos_never_another_on_the_path",
-      "note": ""
-    },
-    {
-      "id": "INV-a295ac00cf",
-      "file": "eaos/studio/actions/handoff.py",
-      "symbol": "<module>",
-      "statement": "The request waits in the project's EAOS workspace (`studio-requests.json`, never inside the project).",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_actions.py::Handoff::test_the_request_waits_in_the_eaos_workspace_never_in_the_project",
-      "note": ""
-    },
-    {
-      "id": "INV-494f660ca2",
-      "file": "eaos/studio/actions/prompts.py",
-      "symbol": "<module>",
-      "statement": "Every prompt says the same three things: change code only through the EAOS tools, never take the person's decisions (accept, undo, the branch, the run consent), and ask the person with one `eaos-question` block, which the Studio shows in its inbox.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_actions.py::Prompts::test_a_fix_prompt_keeps_the_eaos_way_and_the_persons_decisions",
-      "note": ""
-    },
-    {
-      "id": "INV-81ab834688",
-      "file": "eaos/studio/actions/runs.py",
-      "symbol": "<module>",
-      "statement": "Only the server that holds the project's `dispatch.lock` starts runs, so two Studio servers never start the same one.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_actions.py::Runs::test_two_servers_never_start_the_same_run",
-      "note": ""
-    },
-    {
-      "id": "INV-88b33e6d9d",
-      "file": "eaos/studio/actions/runs.py",
-      "symbol": "recover",
-      "statement": "At the start of the dispatcher: runs this server cannot follow any more are said to have stopped, the rest followed.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_actions.py::Runs::test_a_restart_follows_a_live_assistant_and_fails_a_dead_one_plainly",
-      "note": ""
-    },
-    {
-      "id": "INV-47d795f4e2",
-      "file": "eaos/studio/actions/security.py",
-      "symbol": "check",
-      "statement": "GET needs the token (in the header, or `token=` in the query for an EventSource, which cannot set headers); POST also the CSRF token and the Studio's origin.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_actions.py::Locks::test_a_get_takes_the_token_from_the_query_but_a_post_does_not",
-      "note": ""
-    },
-    {
-      "id": "INV-5726963395",
-      "file": "eaos/studio/actions/store.py",
-      "symbol": "refused",
-      "statement": "A call the locks refused, in runs/refused.jsonl: when, which route, why; never a token or a query.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_actions.py::Locks::test_every_refusal_is_logged_with_its_reason_and_never_the_token",
-      "note": ""
-    },
-    {
-      "id": "INV-2097fa704a",
-      "file": "eaos/studio/history.py",
-      "symbol": "<module>",
-      "statement": "An older check carries them only when the ledger recorded them (`scores` on its point, NS31.T1); until then they are null, never guessed.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_library.py::History::test_the_ledger_gives_every_check_the_progress_and_the_events",
-      "note": ""
-    },
-    {
-      "id": "INV-3f8dce8498",
-      "file": "eaos/facts/pipeline.py",
-      "symbol": "<module>",
-      "statement": "A pipeline is found only from what the code declares or does, never guessed from names alone: - a declared DAG: a list of stage records whose `requires` name other stages, run through a registry of runners; - a declared sequence: a list of steps holding the functions a driver calls one after the other; - a registry loop: a loop over stage names dispatching through a table, each stage's inputs taken from what the earlier stages put in an accumulator; - an orchestrator: a function announcing its phases in order, or one whose calls pass one stage's result to the next; - the frameworks' own declarations (Airflow, Prefect, Dagster, Luigi, Celery canvas, LangGraph, Temporal), queue topologies (a topic both produced and consumed), and the build and CI chains (GitHub Actions `needs`, Make and just targets, npm script chains, n8n / Node-RED / Step Functions exports).",
-      "kind": "invariant",
-      "enforced_by": "tests/test_pipeline_map.py::Orchestrators::test_a_chain_of_calls_without_a_pipeline_signal_is_not_a_pipeline",
-      "note": ""
-    },
-    {
-      "id": "INV-398e27160f",
-      "file": "eaos/facts/pipeline.py",
-      "symbol": "<module>",
-      "statement": "A dispatch EAOS cannot follow is written as an unresolved step, never as an edge.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_pipeline_map.py::RegistryLoop::test_a_dispatch_eaos_cannot_follow_is_an_unresolved_step_never_an_edge",
-      "note": ""
-    },
-    {
-      "id": "INV-37eae478a8",
-      "file": "eaos/facts/pipeline.py",
-      "symbol": "scan",
-      "statement": "Never runs the project.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_pipeline_map.py::NothingInvented::test_never_runs_the_project",
-      "note": ""
-    },
-    {
-      "id": "INV-114bac932d",
-      "file": "eaos/studio/actions/adapters.py",
-      "symbol": "ask",
-      "statement": "The prompt goes on standard input, so its size never meets the argument limit; the process runs in its own group in `folder` (never in the project, whose instructions are not the planner's); `started(pid)` hears its pid, so the run manager can pause or stop it.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_ideal_planner.py::Ask::test_the_answer_and_the_model_come_from_the_stream_and_the_prompt_goes_on_standard_input",
-      "note": ""
-    },
-    {
-      "id": "INV-f9f3458dc4",
-      "file": "eaos/studio/ideal.py",
-      "symbol": "<module>",
-      "statement": "bundle(report) a compact, grounded picture: the rules' target of every view with the rules it applied, the cards, the facts that matter, the decisions, and the project's own documents as untrusted data pass 'plan' the ideal of every view in a strict JSON schema, every element citing fact, claim, card or rule ids pass 'critique' the same assistant reviews the draft (what was missed, risks, order) and returns the revised ideal check(...) deterministic: a citation resolves only to an id of this report; an element with no resolving citation is dropped and listed, never shown <report>/ideal/plan.json the checked ideal with its inputs, both answers and the dropped elements",
-      "kind": "invariant",
-      "enforced_by": [
-        "tests/test_ideal_planner.py::Planning::test_the_bundle_is_grounded_deterministic_and_marks_the_project_text_untrusted",
-        "tests/test_ideal_planner.py::EvidenceCheck::test_an_element_without_a_resolving_citation_is_dropped_and_listed",
-        "tests/test_ideal_planner.py::Planning::test_two_passes_then_the_check_then_the_plan_is_kept"
-      ],
-      "note": ""
-    },
-    {
-      "id": "INV-49418ebcf7",
-      "file": "eaos/studio/export.py",
-      "symbol": "code_excerpt",
-      "statement": "{start, line, lines, hidden}: the lines around `line` of `path` as the check read them, or None: no line, a secret (its value is never written), or a file that cannot be read as text.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_export.py::Evidence::test_no_code_for_a_secret_a_missing_line_or_a_file_not_read",
-      "note": ""
-    },
-    {
-      "id": "INV-8d2505b670",
-      "file": "eaos/studio/export.py",
-      "symbol": "sources",
-      "statement": "path -> text: the file at the scanned commit (git show), else the project's working copy; never a path outside the project.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_export.py::Evidence::test_files_are_read_at_the_scanned_commit_and_never_outside_the_project",
-      "note": ""
-    },
-    {
-      "id": "INV-f44a4e156a",
-      "file": "eaos/studio/nodes/core.py",
-      "symbol": "<module>",
-      "statement": "`run_node(node, spec, report, ...)` runs one node with its guards: the evidence check a decision keeps only the ids that resolve; one with none left, an unknown subject, a choice the node does not have or a repeated subject is dropped and listed, never routed the critique pass planning nodes ('critique' in their passes) review their draft before it is checked the rules fallback no assistant, over the time or cost budget, or a failed answer: the rules decide alone and every subject takes the route \"rules only\"; a subject the model left out keeps the rules' decision, marked `source: rules` the run log <report>/nodes/runs.jsonl: the prompt's and inputs' digests, the model, the output the cache <report>/nodes/<node>/cache/<key>.json: the same inputs give the same result, no new call (also when no assistant is here: a decision already made stands); `fresh` asks again",
-      "kind": "invariant",
-      "enforced_by": "tests/test_ai_nodes.py::Framework::test_a_subject_the_model_leaves_out_keeps_the_rules_decision",
-      "note": ""
-    },
-    {
-      "id": "INV-b6e63a22d4",
-      "file": "eaos/studio/nodes/core.py",
-      "symbol": "Bounded",
-      "statement": "A launcher held to a budget: each call waits at most the seconds left (even a launcher that hangs is cut off, and its cancel is set), and what it says it has spent (`cost_usd`, read after each call) may not pass `usd`.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_ai_nodes.py::Launcher::test_a_hanging_launcher_is_cut_off_and_an_expensive_one_refused",
-      "note": ""
-    },
-    {
-      "id": "INV-a2f849af28",
-      "file": "eaos/studio/nodes/fix_reviewer.py",
-      "symbol": "<module>",
-      "statement": "The gates stay the judge: a card they failed cannot be accepted, whatever the answer says.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_ai_nodes.py::Reviewer::test_the_gates_stay_the_judge",
-      "note": ""
-    },
-    {
-      "id": "INV-dfead6c9f3",
-      "file": "eaos/studio/nodes/fix_reviewer.py",
-      "symbol": "inputs",
-      "statement": "The batch of `wave` (its folder), or None when no batch is given.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_ai_nodes.py::Reviewer::test_the_gates_stay_the_judge",
-      "note": ""
-    },
-    {
-      "id": "INV-1183a21ef5",
-      "file": "eaos/studio/nodes/plan_orderer.py",
-      "symbol": "<module>",
-      "statement": "The proposal is written to nodes/plan_orderer/order.json; the plan itself is never changed by it.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_ai_nodes.py::Planners::test_a_good_order_is_written_with_the_cards_it_left_out_and_without_the_rejected",
-      "note": ""
-    },
-    {
-      "id": "INV-c384201e41",
-      "file": "eaos/studio/nodes/triage.py",
-      "symbol": "<module>",
-      "statement": "Nothing here changes a card: the verdicts, the probe requests and the library's feedback are written beside the report (nodes/card_triage/), and `precision(report)` gives the triage's own column of the precision measure, per kind of card, never mixed with the hand-written labels (tools/precision.py).",
-      "kind": "invariant",
-      "enforced_by": "tests/test_ai_nodes.py::Triage::test_doubt_becomes_a_probe_and_reject_library_feedback",
-      "note": ""
-    },
-    {
-      "id": "INV-922850fe66",
-      "file": "eaos/studio/nodes/triage.py",
-      "symbol": "_excerpt",
-      "statement": "A few lines of the project's code around `line`, each cut short; None when the file cannot be read.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_ai_nodes.py::Triage::test_the_bundle_holds_the_code_at_each_fact_marked_untrusted",
-      "note": ""
-    },
-    {
-      "id": "INV-09be4a6746",
-      "file": "eaos/studio/nodes/triage.py",
-      "symbol": "by_kind",
-      "statement": "{kind of card: {confirm, doubt, reject, rules only, precision}}: the triage's own estimate of how much of each kind is true (confirmed ÷ confirmed and rejected), a model's opinion beside the labelled precision, never instead of it.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_ai_nodes.py::Triage::test_doubt_becomes_a_probe_and_reject_library_feedback",
-      "note": ""
-    },
-    {
-      "id": "INV-a32f3b9c61",
-      "file": "eaos/studio/nodes/view.py",
-      "symbol": "<module>",
-      "statement": "`section(report, lang)` lists every declared node (eaos/studio/nodes/__init__.py) with its router's branches and how many subjects took each, and its last run (nodes/<node>/last.json) as it was decided: by which assistant and model, or by the rules alone and why; a node that never ran says so.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_ai_nodes.py::Studio::test_the_section_says_what_ran_and_how",
-      "note": ""
-    },
-    {
-      "id": "INV-5f0f76adc9",
-      "file": "eaos/studio/change.py",
-      "symbol": "<module>",
-      "statement": "- a gap no card covers has no closure measure (null, with the reason in its source), never 0 or 100%; - an operation is placed in the step that holds most of its cards, else in the plan's own \"build:<target>\" step, else in none (shown as not planned); - an operation waits for another only where one of its cards waits for one of the other's: a prerequisite the plan records, or an earlier task on the same file (the order the plan's waves set).",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_change.py::Change::test_closure_is_measured_only_from_cards",
-      "note": ""
-    },
-    {
-      "id": "INV-ed17045582",
-      "file": "eaos/studio/functions.py",
-      "symbol": "<module>",
-      "statement": "A call that does not resolve is left out, never guessed; the share resolved is counted reads and facts/entrypoints.json data_access (a table read or written, a request sent) and facts/config.json writes env_read, each in the innermost function whose lines hold it cards the cards whose evidence sits on a line of the function (innermost)",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_functions.py::Functions::test_calls_resolve_within_the_file_and_through_imports_and_nothing_is_guessed",
-      "note": ""
-    },
-    {
-      "id": "INV-e98c64897a",
-      "file": "eaos/studio/screens.py",
-      "symbol": "<module>",
-      "statement": "What is not measured is written in `missing` (counted in coverage.json, shown on the page), never as an empty list that would read as \"no issues\".",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_functions.py::Screens::test_every_page_is_a_screen_and_what_was_not_captured_is_named",
-      "note": ""
-    },
-    {
-      "id": "INV-efbb9c360d",
-      "file": "eaos/branches.py",
-      "symbol": "dirty",
-      "statement": "{'tracked': n, 'untracked': n} of a checkout's unsaved changes, or None when git cannot say.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_branches.py::Inventory::test_detached_head_no_origin_dirty_checkout_and_worktree",
-      "note": ""
-    },
-    {
-      "id": "INV-3b8dcf95f4",
-      "file": "eaos/studio/actions/branches.py",
-      "symbol": "<module>",
-      "statement": "Ownership comes only from durable provenance: an EAOS wave or build in the project's state, or an entry EAOS wrote in runs/branch-provenance.json; a name or a prefix is never proof.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_branches.py::Inventory::test_local_and_remote_refs_roles_policy_and_ownership_only_from_provenance",
-      "note": ""
-    },
-    {
-      "id": "INV-bcfee08f24",
-      "file": "eaos/studio/actions/branches.py",
-      "symbol": "<module>",
-      "statement": "Git is called with argv lists, never through a shell.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_branches.py::Guarding::test_invalid_names_cannot_escape_or_run_code",
-      "note": ""
-    },
-    {
-      "id": "INV-4bd2ba57e2",
-      "file": "eaos/studio/actions/branches.py",
-      "symbol": "Blocked",
-      "statement": "A change that cannot happen now, with every reason in plain words.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_branches.py::Merging::test_human_branch_and_failed_checks_and_conflict_are_refused",
-      "note": ""
-    },
-    {
-      "id": "INV-89666f894b",
-      "file": "eaos/studio/actions/branches.py",
-      "symbol": "context",
-      "statement": "The four branches the Studio never mixes up: the checkout, the analysis branch, the report's branch and the base the person compares against (the analysis branch unless they choose another).",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_branches.py::Selecting::test_select_changes_context_not_the_checkout_and_records_a_run",
-      "note": ""
-    },
-    {
-      "id": "INV-edb8aa6390",
-      "file": "eaos/studio/actions/branches.py",
-      "symbol": "counts",
-      "statement": "(behind, ahead) of tip against base_tip, or (None, None) when git cannot say.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_branches.py::Inventory::test_local_and_remote_refs_roles_policy_and_ownership_only_from_provenance",
-      "note": ""
-    },
-    {
-      "id": "INV-cbe02c29bd",
-      "file": "eaos/studio/actions/branches.py",
-      "symbol": "default_branch",
-      "statement": "{name, source}: origin's HEAD when known; otherwise unknown (None), never guessed from a name.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_branches.py::Inventory::test_detached_head_no_origin_dirty_checkout_and_worktree",
-      "note": ""
-    },
-    {
-      "id": "INV-f94203cc33",
-      "file": "eaos/studio/actions/branches.py",
-      "symbol": "delete",
-      "statement": "Never a force deletion.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_branches.py::Deleting::test_unmerged_needs_a_second_confirmation",
-      "note": ""
-    },
-    {
-      "id": "INV-854b764955",
-      "file": "eaos/studio/actions/branches.py",
-      "symbol": "git",
-      "statement": "git -C project <args> as argv; a timeout is an exit code of 124, never an exception.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_branches.py::Inventory::test_provenance_is_merged_never_replaced_and_git_timeouts_are_exit_codes",
-      "note": ""
-    },
-    {
-      "id": "INV-e9f14cdc5a",
-      "file": "eaos/studio/actions/branches.py",
-      "symbol": "record",
-      "statement": "Durable provenance of a branch EAOS made or changed: merged into the existing entry, never replacing it.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_branches.py::Inventory::test_provenance_is_merged_never_replaced_and_git_timeouts_are_exit_codes",
-      "note": ""
-    },
-    {
-      "id": "INV-a0b752c854",
-      "file": "eaos/studio/actions/branches.py",
-      "symbol": "run_context",
-      "statement": "What a new run is made on, recorded on it when it is created so a later change of branch never retargets it silently: {analysis_branch, analysis_commit, checkout, detached, at}.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_branches.py::Selecting::test_in_flight_runs_are_never_retargeted",
-      "note": ""
-    },
-    {
-      "id": "INV-fe75e286e2",
-      "file": "eaos/api/server.py",
-      "symbol": "_remote_login_trusted",
-      "statement": "Never on a local Studio.",
-      "kind": "invariant",
-      "enforced_by": "tests/test_studio_api.py::RemoteLoginBoot::test_opt_in_on_remote_only",
       "note": ""
     }
   ],

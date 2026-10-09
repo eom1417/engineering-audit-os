@@ -117,7 +117,8 @@ def judge(report, browser_json, out):
     _case(cases, 'record_kept_after_the_run', done_rows and all(r['ended_on_page'] == len(ORDER) for r in done_rows),
           f"{len(done_rows)} views after the run show {sorted({r['ended_on_page'] for r in done_rows})} ended stages of {len(ORDER)}")
 
-    view_rows = [{**r, 'pass': bool(r['pass'] and r.get('screenshot') and Path(r['screenshot']).is_file())} for r in views]
+    # the gated views are the live check's own; the banner rows on other pages are the banner case's evidence only
+    view_rows = [{**r, 'pass': bool(r['pass'] and r.get('screenshot') and Path(r['screenshot']).is_file())} for r in views if r['route'] == '/scan']
     trial = {'kind': 'live', 'mocked': False, 'completed_at': now(), 'studio_source_sha256': studio.shipped(),
              'project': manifest.get('target', '').rsplit('/', 1)[-1], 'run': state['run'], 'status': state['status'],
              'seconds': state['seconds'], 'moments': seen.get('moments'), 'browser_errors': seen.get('errors') or [],

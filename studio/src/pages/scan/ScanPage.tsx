@@ -156,7 +156,7 @@ function StagePanel({ stage, progress, skew, onSelect }: { stage: ScanStage; pro
             ))}
           </ul>
           {stage.steps.length > STEPS_FIRST && (
-            <Button variant="ghost" onPress={() => setStepsOpen(!stepsOpen)} aria-expanded={stepsOpen}>
+            <Button variant="ghost" className={css.bigBtn} onPress={() => setStepsOpen(!stepsOpen)} aria-expanded={stepsOpen}>
               {stepsOpen ? t('showLess') : t('showAllN', { n: stage.steps.length })}
             </Button>
           )}

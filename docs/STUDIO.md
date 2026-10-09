@@ -476,6 +476,37 @@ counts and chart geometry.
   shown or held back by the bar, this project's own true and false positives when it is a labelled project, the
   coverage rows of this report, and the indicators; every unmeasured value is a counted "not measured yet" state.
 
+## The live check (`run-progress.jsonl`, NS46.T20)
+
+Owner request 2026-10-09 (eaos-dev/planning/live-scan-map/PLAN.md). While a check runs, whoever started it (the
+assistant's job, `eaos start`, the Studio), the Studio shows EAOS's own stage map live at `#/scan` ("الفحص الآن").
+This is EAOS's own pipeline, not the audited project's (that is the pipeline map below).
+
+- **The record.** `eaos/pipeline/run.py:execute` appends one JSON line per event to `<report>/run-progress.jsonl`
+  (`eaos/pipeline/progress.py`): `run.started` with the declared stages as data (name, requires, produces, necessity,
+  description, absent_when) and the last run's seconds per stage, `stage.started`, `stage.step` (each extractor inside
+  `facts`, each tool of the engine registry inside `engines`, with its own status), exactly one `stage.ended` per
+  stage with its status, reason, seconds, artifacts and short scalars of what it reported, and `run.ended`. A run
+  replaces the file (a new inode); writing it never fails the run. Folded, it equals `run-manifest.json` at the end.
+- **The server.** The feed tails the file and publishes each new line as a `scan.stage` event (source `progress`) in
+  the same numbering and replay; what the file held when the server started is state, not events.
+  `GET /api/scan-progress` gives the folded state, each stage's `layer` and `order` from the pinned layered layout,
+  the server's clock, and `interrupted` when the process that ran the check is gone.
+- **The page.** The map is drawn from that data, so a new stage or tool appears with no front-end change; the
+  orientation is whichever reads larger in the box. The running stage glows; a light runs along each link into it
+  and once along each link out of a stage that just ended to the stages it opened. The panel tells the chosen stage:
+  what it does, its live timer, its steps, what it produced, why it did not run. The stage list under the map is the
+  keyboard and touch path to every stage. The run line says stage n of N, the elapsed time, and a time left only from
+  the last run of the same project. A banner on every page links to it while a check runs. With reduced motion nothing
+  moves. `scan.stage` events go to the map (`studio/src/data/scan.ts`) and never reload the report's sections.
+- **Limits.** Precision is per stage, and per step inside `facts` and `engines`; inside one tool there is no
+  percentage. The snapshot opened from a file says the live map needs the live Studio. A check made before this
+  feature shows the designed empty state. The flows after the scan (setting the app up, screens, fixes) do not write
+  this file yet.
+- **Proof.** `tests/test_live_scan_map.py` (fake runners, the feed, the stream with Last-Event-ID), `studio/src/data/
+  scan.test.ts`, and the real trial `tools/live_scan_map_trial.py` with `tools/live_scan_map_trial.mjs`, judged by
+  `acceptance/test_live_scan_map.py`.
+
 ## The pipeline map (`studio/pipeline.json`)
 
 System -> Pipeline and the report's pipeline sheet (NS46.T13) draw what `eaos/studio/pipeline.py` writes from
