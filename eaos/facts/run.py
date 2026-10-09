@@ -1,5 +1,6 @@
 """Run deterministic extractors over one shared snapshot and persist their fact sets."""
 import json
+import time as _time
 from pathlib import Path
 from . import broken, config, deadcode, domain, entrypoints, external, fingerprint, flows, graph, history, leftovers, metrics, pipeline, redundancy, resolve, runtime, secrets, sequences, structure, syntax
 from .source import Source
@@ -41,14 +42,14 @@ def ordered(selected):
     return names
 
 
-def collect_external(target, out, source, only=None):
+def collect_external(target, out, source, only=None, step=None):
     """Run the pinned external engines over the same snapshot and persist their fact set.
 
     Registry-referenced dead-code candidates are tagged ``value.referenced_by_registry``, then every
     dead-code candidate is adjudicated against EAOS's own detector (facts/deadcode): the engine's fields
     stay as written, and value.adjudication says whether EAOS asserts it.
     """
-    result = external.run(target, source, out=out, only=only)
+    result = external.run(target, source, out=out, only=only, step=step)
     from ..correlate import filter_dead_code_references as _filter_dead_code_references
     facts, _dropped = _filter_dead_code_references(result['facts'], source)
     # One verdict per dead-code candidate, whichever engine raised it: EAOS's own detector and the same
@@ -78,7 +79,9 @@ def add_to_index(out, target, entry):
 
 
 def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_bytes=2_000_000, source=None,
-            exclude=(), engines=None):
+            exclude=(), engines=None, step=None):
+    """`step(name, done, total, status, seconds)`, when given, hears each extractor start and end (pipeline/progress.py):
+    the live map shows where the facts stage is inside. It never changes what runs."""
     target = Path(target).resolve()
     if not target.is_dir(): raise ValueError('Target must be an existing directory')
     out = Path(out).resolve()
@@ -97,8 +100,12 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
         try: cache = json.loads(cache_path.read_text(encoding='utf-8'))
         except ValueError: cache = {}
     entries, produced, reuse = [], {}, {}
-    for name in names:
+    step = step or (lambda *args, **kwargs: None)
+    for name in names: step(name, 0, len(names), 'waiting')
+    for done, name in enumerate(names):
         module = EXTRACTORS[name]
+        step(name, done, len(names), 'running')
+        began = _time.monotonic()
         if name == 'history': result = module.run(target, source, max_commits=max_commits)
         elif name == 'resolve':
             ext = []
@@ -122,6 +129,8 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
         elif name == 'deadcode': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'],
                                                       resolved=produced.get('resolve', []), entry_points=produced.get('entrypoints', []))
         else: result = module.run(target, source)
+        step(name, done + 1, len(names), 'ok' if result['available'] else 'unavailable', _time.monotonic() - began,
+             reason='' if result['available'] else result.get('reason') or '')
         produced[name] = result['facts']
         if result.get('reused_from_cache'): reuse[name] = result['reused_from_cache']
         entries.append(write_set(out, name, module.NAME, module.VERSION, result['facts'], result['input_sha'],

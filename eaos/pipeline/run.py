@@ -9,6 +9,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .progress import ProgressLog, previous_seconds
 from .stages import BY_NAME, ORDER, STAGES, SkipStage, dependents
 
 OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED = 'ok', 'skipped', 'unavailable', 'failed', 'not_reached'
@@ -35,7 +36,11 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
             test_command=None, site=True, goal=None, audit_run=None, runners=None, intake=None,
             max_files=100000, max_bytes=2_000_000, policy_path=None, _completed=None, progress=None):
     """`progress(done, total, stage)` is called before each stage that will run, so a person waiting sees where
-    the run is; it never changes what runs."""
+    the run is; it never changes what runs.
+
+    Every event of the run is also appended to `<out>/run-progress.jsonl` (progress.py): the run's start with the
+    declared stages, each stage's start, its steps, its end with its status, reason, seconds and artifacts, and the
+    run's end. Every stage gets exactly one end, so the folded file equals the manifest when the run is over."""
     target, out = Path(target).resolve(), Path(out).resolve()
     if out == target or target in out.parents:
         raise ValueError('Pipeline output must live outside the target; the target stays read-only')
@@ -54,26 +59,48 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     started_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
     began = time.monotonic()
     todo = [stage.name for stage in STAGES if stage.name in requested and stage.name not in completed]
-    for stage in STAGES:
-        if stage.name in completed:
-            results[stage.name] = completed[stage.name]
-            continue
-        if stage.name not in requested:
-            results[stage.name] = _row(stage, SKIPPED, 'not requested in this run')
-            continue
-        unmet = [name for name in stage.requires if not _satisfied(name, results, out)]
-        if unmet: blocked.setdefault(stage.name, 'Prerequisites not completed: ' + ', '.join(unmet))
-        if stage.name in blocked:
-            results[stage.name] = _row(stage, NOT_REACHED, blocked[stage.name])
-            continue
-        if progress: progress(todo.index(stage.name), len(todo), stage.name)
-        context['manifest_so_far'] = {'stages': dict(results), 'seconds': round(time.monotonic() - began, 2),
-                                      'status': 'RUNNING'}
-        results[stage.name] = _one(stage, context, runners, results)
-        if results[stage.name]['status'] in (FAILED, UNAVAILABLE, SKIPPED, NOT_REACHED):
-            reason = f"{stage.name} did not produce its artifacts ({results[stage.name]['status']})"
-            for name in dependents(stage.name):
-                blocked.setdefault(name, reason)
+    log = ProgressLog(out)
+    log.started(STAGES, requested, previous_seconds(out))
+    try:
+        for stage in STAGES:
+            if stage.name in completed:
+                results[stage.name] = completed[stage.name]
+                log.ended(results[stage.name], resumed=True)
+                continue
+            if stage.name not in requested:
+                results[stage.name] = _row(stage, SKIPPED, 'not requested in this run')
+                log.ended(results[stage.name])
+                continue
+            unmet = [name for name in stage.requires if not _satisfied(name, results, out)]
+            if unmet: blocked.setdefault(stage.name, 'Prerequisites not completed: ' + ', '.join(unmet))
+            if stage.name in blocked:
+                results[stage.name] = _row(stage, NOT_REACHED, blocked[stage.name])
+                log.ended(results[stage.name])
+                continue
+            if progress: progress(todo.index(stage.name), len(todo), stage.name)
+            context['manifest_so_far'] = {'stages': dict(results), 'seconds': round(time.monotonic() - began, 2),
+                                          'status': 'RUNNING'}
+            log.emit('stage.started', stage=stage.name)
+            context['step'] = log.stepper(stage.name)
+            results[stage.name] = _one(stage, context, runners, results)
+            context.pop('step', None)
+            log.ended(results[stage.name])
+            if results[stage.name]['status'] in (FAILED, UNAVAILABLE, SKIPPED, NOT_REACHED):
+                reason = f"{stage.name} did not produce its artifacts ({results[stage.name]['status']})"
+                for name in dependents(stage.name):
+                    blocked.setdefault(name, reason)
+        manifest = _manifest(target, out, started_at, began, requested, results, language, exclude, max_files,
+                             max_bytes, policy_path, intake)
+    except BaseException as problem:                    # stopped or broken: the file says so, then the error goes on
+        log.emit('run.ended', status='STOPPED' if isinstance(problem, KeyboardInterrupt) else 'ERROR',
+                 reason=f'{type(problem).__name__}: {problem}'[:300], seconds=round(time.monotonic() - began, 2))
+        raise
+    log.emit('run.ended', status=manifest['status'], seconds=manifest['seconds'], counts=manifest['counts'])
+    return manifest
+
+
+def _manifest(target, out, started_at, began, requested, results, language, exclude, max_files, max_bytes,
+              policy_path, intake):
     manifest = {
         'contract_version': 1, 'target': str(target), 'out': str(out), 'started_at': started_at,
         'seconds': round(time.monotonic() - began, 2), 'requested': requested,

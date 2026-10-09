@@ -17,6 +17,13 @@ client that reconnects with a Last-Event-ID from an earlier server is told to re
 being replayed someone else's numbers. The feed keeps the last `KEEP` events; an older id also gets a reset.
 
 The action API (docs/studio-actions.json) publishes its own events through `publish`, into the same numbering.
+
+Beside either source, the feed tails the running check's progress file (`run-progress.jsonl`, eaos/pipeline/progress.py)
+and publishes each new line as one `scan.stage` event whose data is the line itself, into the same numbering and the
+same replay. It reads the file, not a process, so a check started from the terminal, the assistant or the Studio is
+followed alike. What the file held when the feed started is the state the server starts from, not an event: a page
+reads it whole from /api/scan-progress (read.py) and then applies the events after it. A new run replaces the file;
+the feed sees the new inode and reads the new file from its start.
 """
 import json
 import secrets
@@ -24,6 +31,8 @@ import threading
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
+
+from ..pipeline.progress import PROGRESS
 
 KEEP = 2000
 EVENT_LOG = 'events.jsonl'
@@ -34,6 +43,14 @@ TEXT = {
     'decision.asked': ('A decision is waiting for you', 'قرار ينتظرك'),
     'decision.answered': ('A decision was answered', 'تمت الإجابة على قرار'),
     'studio.updated': ('The Studio data was updated', 'تحدّثت بيانات الاستوديو'),
+    'scan.stage': ('The check moved on', 'تقدّم الفحص'),
+}
+STEP_TEXT = {
+    'run.started': ('The check started', 'بدأ الفحص'),
+    'stage.started': ('Stage {stage} started', 'بدأت مرحلة {stage}'),
+    'stage.step': ('{stage}: {step}', '{stage}: {step}'),
+    'stage.ended': ('Stage {stage}: {status}', 'مرحلة {stage}: {status}'),
+    'run.ended': ('The check ended: {status}', 'انتهى الفحص: {status}'),
 }
 BATCH, MERGED = {'in_batch', 'on_branch'}, {'done'}
 
@@ -58,6 +75,8 @@ class Feed:
         self.seen = None            # what the manifest said last time: digest, scan, sections, card and decision states
         self.log_at = 0             # bytes of events.jsonl already read
         self.source = 'events' if self.event_log().is_file() else 'manifest'
+        # the progress file as it is now is the starting state (read whole by /api/scan-progress), not events
+        self.progress_inode, self.progress_at = self._progress_stat()
 
     # ------------------------------------------------------------------ reading
     def event_log(self):
@@ -92,11 +111,45 @@ class Feed:
     # ------------------------------------------------------------------ watching
     def poll(self):
         """Look once for what changed and publish it; returns the events added. Safe to call from any thread."""
+        progress = self._poll_progress()
         if self.event_log().is_file():
             self.source = 'events'
-            return self._poll_log()
+            return progress + self._poll_log()
         self.source = 'manifest'
-        return self._poll_manifest()
+        return progress + self._poll_manifest()
+
+    def progress_file(self):
+        return self.report / PROGRESS
+
+    def _progress_stat(self):
+        try: found = self.progress_file().stat()
+        except OSError: return None, 0
+        return found.st_ino, found.st_size
+
+    def _poll_progress(self):
+        inode, size = self._progress_stat()
+        if inode is None: return []
+        if inode != self.progress_inode or size < self.progress_at:      # a new run: its file from the start
+            self.progress_inode, self.progress_at = inode, 0
+        if size == self.progress_at: return []
+        try:
+            with self.progress_file().open('rb') as handle:
+                handle.seek(self.progress_at)
+                chunk = handle.read()
+        except OSError:
+            return []
+        complete = chunk[:chunk.rfind(b'\n') + 1]       # a line still being written waits for the next look
+        self.progress_at += len(complete)
+        added = []
+        for line in complete.decode('utf-8', 'replace').splitlines():
+            try: row = json.loads(line)
+            except ValueError: continue
+            if not isinstance(row, dict) or not row.get('event'): continue
+            en, ar = STEP_TEXT.get(row['event'], (row['event'], row['event']))
+            words = {k: row.get(k, '') for k in ('stage', 'step', 'status')}
+            added.append(self.publish('scan.stage', data=row, source='progress',
+                                      text={'en': en.format(**words), 'ar': ar.format(**words)}))
+        return added
 
     def _poll_log(self):
         added = []

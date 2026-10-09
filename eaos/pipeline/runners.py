@@ -21,7 +21,7 @@ def facts(context):
     context['source'] = Source(context.target, exclude=context['exclude'],
                                max_files=context.max_files, max_bytes=context.max_bytes)
     context['collected'] = collect(context.target, context.out, None, source=context['source'],
-                                   exclude=context['exclude'])
+                                   exclude=context['exclude'], step=context.get('step'))
     # A tree with no source file to read is not an audited project, whatever its history says:
     # an empty checkout used to be reported COMPLETE, with claims drawn from git history alone.
     from ..vocabulary import classify
@@ -38,7 +38,8 @@ def engines(context):
     if 'source' not in context:
         from ..facts.source import Source
         context['source'] = Source(context.target, exclude=context.exclude, max_files=context.max_files, max_bytes=context.max_bytes)
-    entries = collect_external(context.target, context.out, context['source'], only=context.engines or None)
+    entries = collect_external(context.target, context.out, context['source'], only=context.engines or None,
+                               step=context.get('step'))
     if not isinstance(entries, list):
         entries = [entries]
     external_entry = None

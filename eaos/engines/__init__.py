@@ -5,6 +5,7 @@ running it, never assumed, and a version that does not match its pin is reported
 recorded — so a reader can tell "we did not look" apart from "we looked and found nothing".
 """
 import json
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -39,20 +40,29 @@ def ordered(names):
     return done
 
 
-def analyze(target, workdir, exclude=(), only=None, formats=None):
-    """Run every requested engine and return one manifest. The target is proven unchanged afterwards."""
+def analyze(target, workdir, exclude=(), only=None, formats=None, step=None):
+    """Run every requested engine and return one manifest. The target is proven unchanged afterwards.
+
+    `step(name, done, total, status, seconds, reason)`, when given, hears each engine of the registry start and end
+    with its own status (observed, not applicable, unavailable, error): the live map shows each tool as it runs."""
     target, workdir = Path(target).resolve(), Path(workdir).resolve()
     workdir.mkdir(parents=True, exist_ok=True)
     selected = ordered(ADAPTERS if not only else [name for name in ADAPTERS if name in set(only)])
     unknown = sorted(set(only or ()) - set(ADAPTERS))
     before = state_digest(target)
     reports = {}
-    for name in selected:
+    step = step or (lambda *args, **kwargs: None)
+    for name in selected: step(name, 0, len(selected), 'waiting')
+    for done, name in enumerate(selected):
+        step(name, done, len(selected), 'running')
+        began = time.monotonic()
         try:
             reports[name] = ADAPTERS[name].analyze(target, workdir, exclude, formats).as_dict()
         except Exception as problem:                       # an engine must never take the run down with it
             reports[name] = {'engine': name, 'status': 'error', 'reason': f'{type(problem).__name__}: {problem}'[:300],
                              'findings': [], 'coverage': {}, 'version': None, 'pinned_version': ADAPTERS[name].PINNED}
+        step(name, done + 1, len(selected), reports[name].get('status') or 'error', time.monotonic() - began,
+             reason=reports[name].get('reason') or '')
     after = state_digest(target)
     manifest = {
         'contract_version': 1,

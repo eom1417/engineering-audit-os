@@ -11,6 +11,8 @@ the Studio shows the honest coverage state instead of a blank page. Nothing here
     GET /api/schemas/<name>     the section's JSON Schema
     GET /api/openapi.json       the OpenAPI 3.1 document of the routes above, each response the section's own schema
     GET /api/events             the live stream (server.py)
+    GET /api/scan-progress      the check's progress folded into one row per stage (eaos/pipeline/progress.py), with
+                                each stage's place on the map: the first paint of the live map, before its events
 """
 import json
 from pathlib import Path
@@ -43,7 +45,9 @@ def openapi(schemas=None):
              '/api/session': {'get': {'summary': 'The mode, the CSRF token, the project and the live feed', 'security': security,
                                       'responses': {'200': {'description': 'the session'}}}},
              '/api/events': {'get': {'summary': 'The live stream (text/event-stream); Last-Event-ID replays what was missed',
-                                     'security': security, 'responses': {'200': {'description': 'server-sent events'}}}}}
+                                     'security': security, 'responses': {'200': {'description': 'server-sent events'}}}},
+             '/api/scan-progress': {'get': {'summary': "The check's progress, one row per stage with its place on the map",
+                                            'security': security, 'responses': {'200': {'description': 'the folded progress'}}}}}
     for name, schema in sorted(schemas.items()):
         paths[f'/api/sections/{name}'] = ok(f'/api/schemas/{name}', schema.get('description') or name)
     return {'openapi': '3.1.0',
@@ -109,8 +113,30 @@ def routes(ctx):
             return JSONResponse({'error': 'not_written'}, status_code=404, headers=NO_STORE)
         return Response(body, media_type='application/json', headers=NO_STORE)
 
+    async def scan_progress(request):
+        return JSONResponse(await run_in_threadpool(scan_state, ctx.report, ctx.feed.last_id()), headers=NO_STORE)
+
     async def spec(request):
         return JSONResponse(document, headers=NO_STORE)
 
     return [Route('/api/locales/{lang}', locale), Route('/api/session', session), Route('/api/manifest', manifest), Route('/api/sections/{name}', section),
-            Route('/api/schemas/{name}', schema), Route('/api/openapi.json', spec)]
+            Route('/api/schemas/{name}', schema), Route('/api/openapi.json', spec), Route('/api/scan-progress', scan_progress)]
+
+
+def scan_state(report, last_id=None):
+    """The folded progress of the report's last (or running) check, each stage placed by the same pinned layered layout
+    as the other maps (longest path, barycentre), the server's clock for the page's timers, and whether a run that never
+    ended is still alive (a stopped process makes it `interrupted`, never a run that glows for ever)."""
+    from ..pipeline import progress
+    from ..studio.pipeline import layout
+    state = progress.fold(progress.read(report))
+    alive = progress.alive(state)
+    if alive is False: state['state'] = 'interrupted'
+    names = [s['name'] for s in state['stages']]
+    places = layout(names, [(need, s['name']) for s in state['stages'] for need in s['requires']])
+    for s in state['stages']:
+        s['layer'], s['order'] = places.get(s['name'], (0, 0))
+    state.pop('pid', None)
+    state.pop('host', None)
+    from .events import now
+    return {**state, 'now': now(), 'feed_last': last_id}
