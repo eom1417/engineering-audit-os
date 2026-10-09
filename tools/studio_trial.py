@@ -548,7 +548,7 @@ def views(info, out, lang_order=('ar', 'en')):
     sizes = [{'name': 'phone', 'width': 390, 'height': 844}, {'name': 'tablet', 'width': 768, 'height': 1024},
              {'name': 'desktop', 'width': 1440, 'height': 900}]
     page = {'url': f"{info['base']}#token={info['token']}", 'name': 'decisions', 'wait_for': 'main#main',
-            'actions': [{'click': 'a[href="#/decisions"]', 'wait': 1500}]}
+            'actions': [{'click': 'a[href$="#/decisions"]', 'wait': 1500}]}
     found = audit.page_audit([page], sizes, variants, Path(out) / 'views')
     rows = []
     for row in found.get('rows') or []:
