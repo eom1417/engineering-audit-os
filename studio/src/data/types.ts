@@ -91,6 +91,7 @@ export interface Decision {
   id: string
   question: string
   recommendation: string
+  recommended_option?: string
   options: { id: string; label: string }[]
   blocks: string[]
   state: 'waiting' | 'answered'

@@ -58,6 +58,12 @@ class Keys:
     token: str = field(default_factory=guard.new_token)
     csrf: str = field(default_factory=guard.new_token)
     port: int = 0
+    remote_origin: str | None = None
+
+    def __post_init__(self):
+        if self.remote_origin:
+            from ..studio.actions.security import Locks
+            Locks(self.port, remote_origin=self.remote_origin)
 
 
 @dataclass
@@ -171,7 +177,7 @@ def command_centre(ctx):
     if ctx.project is None or not hasattr(centre, 'Actions') or not hasattr(centre, 'mount'):
         return []
     from starlette.routing import Router
-    engine = centre.Actions(ctx.project, port=ctx.keys.port, token=ctx.keys.token)
+    engine = centre.Actions(ctx.project, port=ctx.keys.port, token=ctx.keys.token, studio=ctx.report / 'studio', remote_origin=ctx.keys.remote_origin)
     ctx.keys.csrf = engine.csrf
     ctx.session_extra = getattr(engine, 'session', None)
     if hasattr(engine, 'close'): ctx.closers.append(engine.close)
@@ -222,9 +228,12 @@ def create_app(report, project=None, name=None, keys=None, mounts=None, assets=N
     return app
 
 
-def bind(port=0, host=guard.LOOPBACK):
-    """A listening socket on 127.0.0.1 (any other address is refused), on `port` or a free one."""
-    if host != guard.LOOPBACK:
+def bind(port=0, host=guard.LOOPBACK, remote_origin=None):
+    """A loopback socket, or 0.0.0.0 with an exact authenticated Remote origin, on `port` or a free one."""
+    if remote_origin:
+        from ..studio.actions.security import Locks
+        Locks(port, remote_origin=remote_origin)
+    if host != guard.LOOPBACK and not (host == '0.0.0.0' and remote_origin):
         raise ValueError(f'the Studio server listens on {guard.LOOPBACK} only, not {host}')
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -245,24 +254,29 @@ def serve(app, sock=None, ready=None):
     server.run(sockets=[sock])
 
 
-def run_foreground(project=None, port=0, show=True, out=lambda text: print(text, flush=True)):
+def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lambda text: print(text, flush=True)):
     """`eaos studio`: serve until stopped, with the record launch.py reuses. Returns the exit code."""
     state, report = launch.prepare(project)
     found = launch.running(state)
+    if found and (remote_origin or found.get('remote_origin')):
+        out(f'The Studio is already running; use its protected launch record to open it.')
+        return 0
     if found:
         out(f'The Studio of this project is already open: {launch.url_of(found)}')
         launch._open(launch.url_of(found), show)
         return 0
-    sock = bind(port)
-    app = create_app(report, project=state['project'], keys=Keys(port=sock.getsockname()[1]))
+    sock = bind(port, host='0.0.0.0' if remote_origin else guard.LOOPBACK, remote_origin=remote_origin)
+    app = create_app(report, project=state['project'], keys=Keys(port=sock.getsockname()[1], remote_origin=remote_origin))
     ctx = app.state.ctx
     launch._write_record(state, {'pid': os.getpid(), 'port': ctx.keys.port, 'token': ctx.keys.token, 'report': str(report),
-                                 'project': state['project'], 'started': time.time()})
+                                 'project': state['project'], 'started': time.time(), 'remote_origin': remote_origin})
     try:
-        out(f"EAOS Studio, live: {ctx.url}\n(only this computer can open it; press Ctrl-C to stop)")
+        if remote_origin:
+            out(f"EAOS Studio, live on {remote_origin}. Launch token is stored in the protected project launch record; no token is printed.")
+        else: out(f"EAOS Studio, live: {ctx.url}\n(only this computer can open it; press Ctrl-C to stop)")
         if not guided.scan_done(state):
             out('This project has not been checked yet: the Studio opens empty until `eaos start` checks it.')
-        launch._open(ctx.url, show)
+        if not remote_origin: launch._open(ctx.url, show)
         # Uvicorn re-raises the signal it stopped on; a stop (SIGTERM) then ends here like Ctrl-C, and the record goes
         signal.signal(signal.SIGTERM, _interrupt)
         serve(app, sock)

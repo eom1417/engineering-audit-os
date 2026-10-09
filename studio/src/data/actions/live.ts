@@ -4,7 +4,7 @@
 // fetch, and a dropped stream reconnects with Last-Event-ID, so the server replays exactly what was missed.
 import { frameSplitter } from './sse'
 import { ActionError, TERMINAL, type ActionsClient, type Control, type Preview, type PreviewBody, type Question, type Run,
-  type RunEvent, type StartBody, type StreamStatus } from './types'
+  type RunEvent, type StartBody, type StreamStatus, type ReportDecision } from './types'
 
 export const TOKEN_KEY = 'eaos.token'
 
@@ -65,6 +65,8 @@ export function liveClient(token: string): ActionsClient {
     run: (id: string) => get<{ run: Run }>(`/api/runs/${encodeURIComponent(id)}`).then(runOf),
     control: (id: string, op: Control) => post<{ run: Run }>(`/api/runs/${encodeURIComponent(id)}/${op}`).then(runOf),
     reorder: (order: string[]) => post<{ queue: string[] }>('/api/runs/reorder', { order }).then((r) => r.queue),
+    decisions: () => get<{ decisions: ReportDecision[] }>('/api/decisions').then((r) => r.decisions),
+    answerDecision: (id, scope, option, text) => post<{ decision: ReportDecision }>(`/api/decisions/${encodeURIComponent(id)}/answer`, { scope, option, text: text ?? null }).then((r) => r.decision),
     questions: () => get<{ questions: Question[] }>('/api/questions').then((r) => r.questions),
     answer: (question: string, option: string | null, text?: string | null) =>
       post<{ run: Run }>(`/api/questions/${encodeURIComponent(question)}/answer`, { option, text: text ?? null }).then(runOf),

@@ -462,3 +462,32 @@ class Commands(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class RemoteGuard(unittest.TestCase):
+    def test_remote_origin_keeps_outer_and_command_centre_locks(self):
+        from eaos.studio.actions import adapters
+        origin = 'https://engineering-audit-os--8096.dev.remote.e-m.sa'
+        with tempfile.TemporaryDirectory() as folder, mock.patch.dict(os.environ, {'EAOS_HOME': folder}), mock.patch.object(adapters, 'installed', return_value={}):
+            report = report_with_data(folder)
+            project = Path(folder) / 'project'
+            project.mkdir()
+            keys = server.Keys(port=8096, remote_origin=origin)
+            app = server.create_app(report, project=project, keys=keys, watch=False)
+            with TestClient(app, base_url=origin) as remote:
+                headers = {'X-EAOS-Token': keys.token, 'X-EAOS-CSRF': keys.csrf, 'Origin': origin}
+                self.assertEqual(remote.get('/api/decisions', headers=headers).status_code, 200)
+                self.assertEqual(remote.get('/api/decisions').status_code, 401)
+                self.assertEqual(remote.get('/api/decisions', headers={**headers, 'Host': 'other--8096.dev.remote.e-m.sa'}).status_code, 421)
+                for altered in ({'Origin': 'https://evil.example'}, {'X-EAOS-CSRF': 'bad'}):
+                    self.assertEqual(remote.post('/api/decisions/missing/answer', headers={**headers, **altered}, json={}).status_code, 403)
+                self.assertEqual(remote.post('/api/decisions/missing/answer', headers=headers, json={}).status_code, 404)
+            with self.assertRaises(ValueError): server.bind(0, host='0.0.0.0')
+            with self.assertRaises(ValueError): server.Keys(port=8097, remote_origin=origin)
+
+    def test_protected_remote_launch_record_uses_its_exact_routed_origin(self):
+        from eaos.api import launch
+        record = {'port': 8096, 'token': 'fixture-not-a-secret', 'remote_origin': 'https://engineering-audit-os--8096.dev.remote.e-m.sa'}
+        self.assertTrue(launch.url_of(record).startswith(record['remote_origin'] + '/#token='))
+        self.assertTrue(launch.url_of({**record, 'remote_origin': None}).startswith('http://127.0.0.1:8096/'))
+        with self.assertRaises(ValueError): launch.url_of({**record, 'remote_origin': 'https://evil.example'})

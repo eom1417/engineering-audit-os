@@ -4,13 +4,13 @@
 
 ## أين نحن
 
-### التقدم: **33.3 من 100 نقطة**
+### التقدم: **33.2 من 100 نقطة**
 
-`████████░░░░░░░░░░░░░░░░░` 33.3%
+`████████░░░░░░░░░░░░░░░░░` 33.2%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 21 من 45 | 21 · NS27 البناء من خطة | 66.7 | 63 | 2026-09-30 · `0fbc461` |
+| 21 من 45 | 21 · NS27 البناء من خطة | 66.8 | 63 | 2026-09-30 · `0fbc461` |
 
 **كيف يُحسب:**
 
@@ -89,11 +89,11 @@ flowchart TB
         direction LR
         NS30["<b>22 · NS30</b><br/>الثقة أولًا<br/>Trust first<br/>⚖ 2 · ▰ 100%"]:::done
         NS36["<b>23 · NS36</b><br/>أساس الاستوديو<br/>Studio foundation<br/>⚖ 3 · ▰ 42%"]:::owner
-        NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 10 · ▰ 7%"]:::owner
+        NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 10 · ▰ 6%"]:::owner
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 اختبار قبول"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 اختبار قبول"| NS46
-        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +16 اختبار قبول"| NS38
+        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +17 اختبار قبول"| NS38
     end
     subgraph R6G_2["R6G · EAOS v2: تحليل صادق، صورة مثالية، عمليات مرتبة، واستوديو حي (2/5)"]
         direction LR
@@ -200,7 +200,7 @@ flowchart TB
 | 21 | [**NS27** البناء من خطة](#step-21) | R6 | 6 | 93% | 5.6 | 88% | 🟡 قيد العمل | B1=1 · B2=1 · X8=1 · B3=1 · B4=1 · X1=1 · … · +1 اختبار قبول |
 | 22 | [**NS30** الثقة أولًا: كل بطاقة على ملفها، وكل رقم صادق](#step-22) | R6G | 2 | 100% | 2 | 100% | ✅ مكتملة | S4=1 · X13=1 · +1 اختبار قبول |
 | 23 | [**NS36** أساس الاستوديو: القرارات والعقد والنموذج](#step-23) | R6G | 3 | 42% | 1.26 | 50% | 🔴 تحتاج مدخلًا منك | F8=1 · F10=1 · +4 اختبار قبول |
-| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 10 | 7% | 0.67 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +16 اختبار قبول |
+| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 10 | 6% | 0.63 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +17 اختبار قبول |
 | 25 | [**NS38** تحليل صادق: الدقة أولًا](#step-25) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | A1=1 · W2=1 · A2=1 · A3=1 |
 | 26 | [**NS31** أرقام ثابتة وضجيج أقل](#step-26) | R6G | 3 | 26% | 0.8 | 24% | 🔴 تحتاج مدخلًا منك | L7=1 · L8=1 · S5≥0.9 · S1≥0.9 |
 | 27 | [**NS39** خريطة النظام والسجل والأحداث](#step-27) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | N1=1 · N2=1 · +1 اختبار قبول |
@@ -222,7 +222,7 @@ flowchart TB
 | 43 | [**NS24** الرصد: كل سطح حرج مرئي](#step-43) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E10≥0.9 · +1 اختبار قبول |
 | 44 | [**NS16** الجاهزية للإنتاج: كل بند بأمر](#step-44) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E11=1 · +1 اختبار قبول |
 | 45 | [**NS10** الإثبات المستقل](#step-45) | R8 | 5 | 18% | 0.9 | 15% | 🔴 تحتاج مدخلًا منك | V4=1 · V3=1 |
-| | **المجموع** | | **100** | | **33.3** | | | |
+| | **المجموع** | | **100** | | **33.2** | | | |
 
 ## الخطوات بالتفصيل
 
@@ -1202,7 +1202,7 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 10 | 7% | 0.67 من 10 | 12% | R6G | S07, S15 |
+| 10 | 6% | 0.63 من 10 | 12% | R6G | S07, S15 |
 
 **الهدف:** F11 وF13 وF14 وF15 وF16 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويُشغَّل EAOS كله من الاستوديو، ويحكم المالك.
 
@@ -1254,6 +1254,7 @@ flowchart TB
 | اختبار قبول | `test ns46_studio.IdealPlanned` | — | ⬜ |
 | اختبار قبول | `test ns46_studio.AINodes` | — | ⬜ |
 | اختبار قبول | `test ns46_studio.ReplanTargets` | — | ⬜ |
+| اختبار قبول | `test owner_controls.OwnerControls` | — | ⬜ |
 | اختبار قبول | `test ns46_studio.SelfReview` | — | ⬜ |
 
 **المهام:**
@@ -1275,6 +1276,7 @@ flowchart TB
 | [NS46.T14](#ns46t14) المثالي يُخطَّط بنموذج: تمرير تخطيط، وتمرير نقد، وفحص الدليل، والمصدر | L | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.IdealPlanned` |
 | [NS46.T15](#ns46t15) عُقد الذكاء في خط EAOS: مخطط القرار، والموجّهات، والحمايات، وسجل التشغيل | L | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.AINodes` |
 | [NS46.T16](#ns46t16) إعادة تخطيط كل هدف بُني: المشاريع الأربعة وخارطة EAOS نفسها | M | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.ReplanTargets` |
+| [NS46.T17](#ns46t17) Durable owner answers and safe live Studio controls | L | ⬜ | 0% | `python tools/acceptance.py test owner_controls.OwnerControls && python tools/north_star.py measure --only F15 --min 1.0` |
 | [NS46.T8](#ns46t8) المراجعة الذاتية وحكم المالك | M | ⬜ | 13% | `python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F15 --min 1.0 && python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/north_star.py measure --only F16 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview` |
 
 <a id="step-25"></a>
@@ -2119,7 +2121,7 @@ flowchart TB
         direction LR
         S05["<b>S05 · تثبيت السلوك الحالي</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 33%"]:::current
         S06["<b>S06 · الصورة المثالية</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 45%"]:::current
-        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 29%"]:::current
+        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 28%"]:::current
         S05 -->|"✔ أ (ساكن): E4 = 1 · ب (معزول): E5 ≥ 0.8 وخط أساس k6"| S06
         S06 -->|"✔ T1–T7 عند أهدافها، وموافقة بشرية مسجلة"| S07
     end
@@ -2410,7 +2412,7 @@ flowchart TB
 | F12 ما قاسه الاستوديو فعلًا | صفوف studio/coverage.json بحالة measured أو empty ÷ كل الصفوف، على تقارير العيّنة؛ الباقي هو عدد حالات «لم يُقس بعد»، ولا يصعد أبدًا. تقرير بلا coverage.json يُحسب كله غير مقيس | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md |
 | F13 الاستوديو يجتاز البوابات على عدة مشاريع | مشاريع docs/studio-routes.json (FleetManageWeb وchief-ops وfinance-os وEAOS نفسه ومشروع اصطناعي من 5000 بطاقة و1000 مكوّن) التي صوّر فيها تشغيل كامل للبناء المشحون كل مسار، واجتاز كل بوابة ÷ المشاريع | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md |
 | F14 ميزانيات السرعة | ميزانيات STUDIO-COMPLETE المحققة على البناء المشحون: Lighthouse على الجوال (أداء ≥ 90 ووصول = 100) لكل صفحة قيست، وتصفية 5000 بطاقة ≤ 100 ملي ثانية، والرئيسية تفاعلية ≤ 1.5 ثانية ÷ الميزانيات؛ ميزانية لم تُقس لا تُحسب محققة | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md |
-| F15 مركز التحكم: تشغيل EAOS من الاستوديو | تجارب tools/studio_trial.py الحقيقية ($EAOS_MEASURE/studio/<project>/trial.json) التي فُحص فيها المشروع واختيرت مجموعة بطاقات وأصلحها مساعد حقيقي، وأُجيب سؤال من صندوق القرارات، واعتُمد الفرع، كلها من الاستوديو دون كتابة للمساعد، وكل حالة مرت مفهومة ÷ التجارب؛ بلا تجربة على FleetManageWeb لا يُحسب | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md (the command centre) |
+| F15 مركز التحكم: تشغيل EAOS من الاستوديو | تجارب tools/studio_trial.py الحقيقية ($EAOS_MEASURE/studio/<project>/trial.json) التي فُحص فيها المشروع واختيرت مجموعة بطاقات وأصلحها مساعد حقيقي، وأُجيب سؤال من صندوق القرارات، واعتُمد الفرع، كلها من الاستوديو دون كتابة للمساعد، وكل حالة مرت مفهومة ÷ التجارب؛ بلا تجربة على FleetManageWeb لا يُحسب; additionally NS46.T17 requires current real EAOS and FleetManageWeb owner-control evidence, including custom binary answers without consent, durability, safe queue/retry, auth and the full phone/desktop-language-theme matrix; mocks never count | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md (the command centre) |
 | W1 المساعد يحسن استخدام الأدوات | متوسط مؤشرات تجربة الأدوات: نجاح الاستدعاء، و1 − نسبة العمل خارج أدوات EAOS، و1 − الأداة الخطأ، على 11 سيناريو في Claude وCodex | 90% | — | not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md |
 | W2 تبني قبل البناء | قدرات الخطة الجديدة التي لها سجل استكشاف مكتوب (المرشحون، الرخصة، الصيانة، القرار) قبل أي كود ÷ القدرات الجديدة | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md |
 | F16 خريطة خط المعالجة صادقة | فحوص الحقيقة لخريطة خط المعالجة التي تمر ÷ الفحوص: لكل ملف حقيقة مكتوب يدويًا (EAOS نفسه ومستودعان عامّان مثبتان من نوعين مختلفين) استدعاء ≥ 0.8 ودقة ≥ 0.9 للمراحل والحواف وفروع الموجّهات (ستة فحوص لكل ملف)، ولكل مشروع تطبيق في العيّنة (FleetManageWeb وfinance-os وRendaPerene وchief-ops) لا خط معالجة مخترع: كل مرحلة بدليل يُتحقق منه في الكود؛ بلا قياس لا قيمة | 100% | 100% | pipeline map truth checks holding: 32/32 over 5 truth files (python tools/pipeline_truth.py measure, 2026-10-08) |
@@ -6408,6 +6410,45 @@ python tools/acceptance.py test ns46_studio.ReplanTargets
 ```
 
 **التراجع:** احذف tools/replan_trial.py وtools/roadmap_review.py وdocs/roadmap-proposals.*، وسجلات $EAOS_MEASURE/replan.
+
+<a id="ns46t17"></a>
+
+#### NS46.T17 — Durable owner answers and safe live Studio controls ⬜
+
+**لماذا:** Owner request 2026-10-09: report decisions copied text instead of saving and dispatching it. Every report decision and waiting-run question must support exact custom text without inferred consent.
+
+**يحرّك:** F15 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS46.T9, NS46.T10, NS46.T11 · **الحجم:** L
+
+**الملفات:** `eaos/studio/actions/` · `studio/src/components/Story.tsx` · `studio/src/command/Questions.tsx` · `docs/STUDIO-OWNER-CONTROLS.md` · `tools/north_star_studio.py` · `acceptance/test_owner_controls.py`
+
+**يكتب:** `contract:studio-decisions` (العقد: `schemas/artifacts/studio-decisions.schema.json`)
+
+**الخطوات:**
+
+1. Persist authoritative report-scoped answers, stable option IDs, timestamps, provenance and audit history; preserve exact custom text of 1–4000 characters.
+2. Reuse assistant queue and safety boundaries, separate saved/queued/running/failed from implementation, preserve choices and retry without duplicate runs.
+3. Every question exposes supplied options plus a labelled multiline custom answer and explicit send. Custom text never grants binary/setup authorization. Explicit blue recommendation is separate from selection; infer only an unambiguous legacy label.
+4. Verify reload/restart, idempotency, concurrency, refresh reconciliation, project isolation, failure/retry, authentication/Origin/CSRF and draft retention.
+5. Record live EAOS and FleetManageWeb controls, desktop/phone, Arabic/English, both themes and keyboard evidence. Preserve snapshot previews and source translation catalogs.
+6. Document unsupported build/branch workflows and keep completion pending until measured live proof.
+
+**تنتهي حين:**
+
+- [ ] OwnerControls acceptance passes on the shipped digest with a real assistant; mocks and button presence never count. Existing F15 end-to-end acceptance and owner judgement remain required.
+
+**فخاخ معروفة:**
+
+- Answer persistence is not merge authorization.
+- Re-planning proposals await owner judgement.
+- Never replace an authenticated live test with a public login redirect.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test owner_controls.OwnerControls && python tools/north_star.py measure --only F15 --min 1.0
+```
+
+**التراجع:** Revert the owner-control integration commit; retain saved decision records and static previews.
 
 <a id="ns46t8"></a>
 

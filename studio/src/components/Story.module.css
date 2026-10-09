@@ -64,3 +64,7 @@ a.decBlocks:hover { color: var(--text-primary); text-decoration: underline; text
   .legend, .planCap { display: none; }
   .decBlocks { min-block-size: 44px; display: inline-flex; align-items: center; }
 }
+
+.writeAnswer { display: flex; flex-direction: column; gap: 12px; }
+.writeAnswer label { display: flex; flex-direction: column; gap: 8px; }
+.answerInput { inline-size: 100%; min-block-size: 100px; max-inline-size: 100%; padding: 12px; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-strong); border-radius: var(--radius-8); font: inherit; }

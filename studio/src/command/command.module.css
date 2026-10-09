@@ -138,10 +138,12 @@ li.stepRow { grid-template-columns: auto 48px minmax(0, 1fr) auto; align-items: 
 .qAnswersMany { grid-template-columns: minmax(0, 1fr); }
 .qAnswer { white-space: normal; text-align: center; }
 .qMore { align-self: center; }
-.qWrite { display: flex; gap: 8px; align-items: center; }
-.qField { flex: 1; min-inline-size: 0; }
+.qWrite { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+.qField { display: flex; flex-direction: column; gap: 8px; min-inline-size: 0; }
+.qField textarea { min-block-size: 100px; resize: vertical; }
 
 .qToast {
+  max-block-size: 70vh; overflow: auto;
   position: fixed; z-index: var(--z-tabbar); inset-block-end: 16px; inset-inline-end: 16px; inline-size: min(380px, calc(100vw - 32px));
   display: flex; flex-direction: column; gap: 8px; padding: 12px 12px 12px 14px; border-radius: var(--radius-12); background: var(--bg-raised);
   border: 1px solid var(--border-strong); box-shadow: var(--shadow-float); animation: rise var(--dur-base) var(--ease-emphasized);

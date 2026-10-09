@@ -147,7 +147,7 @@ def projects_value(reports):
                          f"{len(ids - {page for page, _ in run['rows']})} routes not shot")
     return (round(len(ok) / len(spec['projects']), 3) if current else None,
             f"projects where the shipped Studio passed every gate on every route: {len(ok)}/{len(spec['projects'])}"
-            + (f"; {'; '.join(notes)}" if notes else ''))
+            + (f"; {'; '.join(notes)}" if notes else '') + '; ' + control_notes)
 
 
 def budgets_value(reports):
@@ -185,6 +185,37 @@ def trial_passed(trial):
     return not missing, ', '.join(missing)
 
 
+OWNER_CONTROL_CASES = (
+    'report_save_queue_reload_restart', 'waiting_custom_exact_text', 'binary_custom_no_consent',
+    'authoritative_ids_language_identity', 'refresh_reconciliation_project_isolation',
+    'idempotency_concurrent_answers', 'failure_retry_draft_retention', 'auth_origin_csrf',
+    'recommendation_separate_selection', 'keyboard_accessibility',
+    'scan_explain_plan_fix_queue_controls', 'diff_tests_accept_undo_guards',
+)
+OWNER_CONTROL_VIEWS = {(viewport, lang, theme) for viewport in ('phone', 'desktop')
+                       for lang in ('ar', 'en') for theme in ('light', 'dark')}
+
+
+def owner_controls_value(reports):
+    """NS46.T17: current live proof, never mocked answers or button presence."""
+    passed, notes = [], []
+    for name in ('EAOS', 'FleetManageWeb'):
+        trial = _load(Path(reports) / 'owner-controls' / name / 'trial.json') or {}
+        cases = {row.get('id'): row for row in trial.get('cases', []) if isinstance(row, dict)}
+        views = {(row.get('viewport'), row.get('lang'), row.get('theme')) for row in trial.get('views', [])
+                 if isinstance(row, dict) and row.get('pass') is True and row.get('screenshot')}
+        missing = [case for case in OWNER_CONTROL_CASES if not (cases.get(case, {}).get('pass') is True
+                   and cases[case].get('evidence') and cases[case].get('kind') == 'live')]
+        if trial.get('assistant') not in ('Codex', 'Claude Code') or trial.get('mocked') is not False:
+            missing.append('a real assistant, explicitly not mocked')
+        if trial.get('studio_source_sha256') != shipped(): missing.append('current shipped digest')
+        if not OWNER_CONTROL_VIEWS <= views: missing.append('phone/desktop × ar/en × light/dark screenshots')
+        if not trial.get('completed_at'): missing.append('completed timestamp')
+        if missing: notes.append(name + ': ' + ', '.join(missing))
+        else: passed.append(name)
+    return len(passed) / 2, f'live owner controls: {len(passed)}/2' + ('; ' + '; '.join(notes) if notes else '')
+
+
 def command_value(reports):
     """F15."""
     trials = [(path.parent.name, _load(path)) for path in sorted((Path(reports) / 'studio').glob('*/trial.json'))]
@@ -194,9 +225,10 @@ def command_value(reports):
     ok = [name for name, passed, _ in judged if passed]
     fleet = any(name.lower().startswith('fleetmanageweb') for name in ok)
     notes = [f'{name}: missing {why}' for name, passed, why in judged if not passed]
-    value = round(len(ok) / len(trials), 3) if fleet else 0.0
+    control_value, control_notes = owner_controls_value(reports)
+    value = min(round(len(ok) / len(trials), 3) if fleet else 0.0, control_value)
     return value, (f'command-centre trials from the check to an accepted branch, from the Studio alone: {len(ok)}/{len(trials)}'
-                   + ('' if fleet else '; FleetManageWeb has not passed yet') + (f"; {'; '.join(notes)}" if notes else ''))
+                   + ('' if fleet else '; FleetManageWeb has not passed yet') + (f"; {'; '.join(notes)}" if notes else '') + '; ' + control_notes)
 
 
 def values(reports, record, only=None):

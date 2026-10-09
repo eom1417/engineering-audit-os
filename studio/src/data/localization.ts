@@ -5,7 +5,7 @@ import { liveToken } from './live'
 import type { Lang } from '../i18n/prefs'
 export interface ReportLocale { schema_version: 1; source_locale: Lang; translations: Partial<Record<Lang, Record<string, string>>> }
 declare global { interface Window { EAOS_LOCALE?: ReportLocale } }
-const IDENTITY = new Set(['id', 'key', 'path', 'paths', 'file', 'sha256', 'digest', 'commit', 'src', 'fact', 'symbol', 'from', 'to', 'parent', 'pipeline', 'stage', 'stages', 'component', 'components', 'cards', 'steps', 'target', 'module', 'signature', 'subject', 'subjects', 'sources', 'after', 'callers', 'callees', 'evidence', 'code', 'line', 'lines'])
+const IDENTITY = new Set(['revision', 'recommended_option', 'id', 'key', 'path', 'paths', 'file', 'sha256', 'digest', 'commit', 'src', 'fact', 'symbol', 'from', 'to', 'parent', 'pipeline', 'stage', 'stages', 'component', 'components', 'cards', 'steps', 'target', 'module', 'signature', 'subject', 'subjects', 'sources', 'after', 'callers', 'callees', 'evidence', 'code', 'line', 'lines'])
 function translate(value: unknown, table: Record<string, string>, key?: string): unknown {
   if (key && IDENTITY.has(key) && (typeof value === 'string' || (Array.isArray(value) && value.every((item) => typeof item === 'string')))) return value
   if (typeof value === 'string') return table[value] ?? value

@@ -1570,11 +1570,11 @@
         {
           "id": "F15",
           "name": "مركز التحكم: تشغيل EAOS من الاستوديو",
-          "definition": "تجارب tools/studio_trial.py الحقيقية ($EAOS_MEASURE/studio/<project>/trial.json) التي فُحص فيها المشروع واختيرت مجموعة بطاقات وأصلحها مساعد حقيقي، وأُجيب سؤال من صندوق القرارات، واعتُمد الفرع، كلها من الاستوديو دون كتابة للمساعد، وكل حالة مرت مفهومة ÷ التجارب؛ بلا تجربة على FleetManageWeb لا يُحسب",
+          "definition": "تجارب tools/studio_trial.py الحقيقية ($EAOS_MEASURE/studio/<project>/trial.json) التي فُحص فيها المشروع واختيرت مجموعة بطاقات وأصلحها مساعد حقيقي، وأُجيب سؤال من صندوق القرارات، واعتُمد الفرع، كلها من الاستوديو دون كتابة للمساعد، وكل حالة مرت مفهومة ÷ التجارب؛ بلا تجربة على FleetManageWeb لا يُحسب; additionally NS46.T17 requires current real EAOS and FleetManageWeb owner-control evidence, including custom binary answers without consent, durability, safe queue/retry, auth and the full phone/desktop-language-theme matrix; mocks never count",
           "target": 1.0,
           "value": null,
           "evidence": "not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md (the command centre)",
-          "reads": "${EAOS_MEASURE}/studio/*/trial.json",
+          "reads": "${EAOS_MEASURE}/studio/*/trial.json + ${EAOS_MEASURE}/owner-controls/{EAOS,FleetManageWeb}/trial.json",
           "measured": "automated"
         },
         {
@@ -6654,6 +6654,51 @@
           ],
           "acceptance": "python tools/acceptance.py test ns46_studio.ReplanTargets",
           "rollback": "احذف tools/replan_trial.py وtools/roadmap_review.py وdocs/roadmap-proposals.*، وسجلات $EAOS_MEASURE/replan."
+        },
+        {
+          "needs": "none",
+          "writes": [
+            "contract:studio-decisions"
+          ],
+          "status": "todo",
+          "id": "NS46.T17",
+          "title": "Durable owner answers and safe live Studio controls",
+          "why": "Owner request 2026-10-09: report decisions copied text instead of saving and dispatching it. Every report decision and waiting-run question must support exact custom text without inferred consent.",
+          "moves": [
+            "F15"
+          ],
+          "depends_on": [
+            "NS46.T9",
+            "NS46.T10",
+            "NS46.T11"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/studio/actions/",
+            "studio/src/components/Story.tsx",
+            "studio/src/command/Questions.tsx",
+            "docs/STUDIO-OWNER-CONTROLS.md",
+            "tools/north_star_studio.py",
+            "acceptance/test_owner_controls.py"
+          ],
+          "steps": [
+            "Persist authoritative report-scoped answers, stable option IDs, timestamps, provenance and audit history; preserve exact custom text of 1–4000 characters.",
+            "Reuse assistant queue and safety boundaries, separate saved/queued/running/failed from implementation, preserve choices and retry without duplicate runs.",
+            "Every question exposes supplied options plus a labelled multiline custom answer and explicit send. Custom text never grants binary/setup authorization. Explicit blue recommendation is separate from selection; infer only an unambiguous legacy label.",
+            "Verify reload/restart, idempotency, concurrency, refresh reconciliation, project isolation, failure/retry, authentication/Origin/CSRF and draft retention.",
+            "Record live EAOS and FleetManageWeb controls, desktop/phone, Arabic/English, both themes and keyboard evidence. Preserve snapshot previews and source translation catalogs.",
+            "Document unsupported build/branch workflows and keep completion pending until measured live proof."
+          ],
+          "done_when": [
+            "OwnerControls acceptance passes on the shipped digest with a real assistant; mocks and button presence never count. Existing F15 end-to-end acceptance and owner judgement remain required."
+          ],
+          "pitfalls": [
+            "Answer persistence is not merge authorization.",
+            "Re-planning proposals await owner judgement.",
+            "Never replace an authenticated live test with a public login redirect."
+          ],
+          "acceptance": "python tools/acceptance.py test owner_controls.OwnerControls && python tools/north_star.py measure --only F15 --min 1.0",
+          "rollback": "Revert the owner-control integration commit; retain saved decision records and static previews."
         },
         {
           "needs": "human",

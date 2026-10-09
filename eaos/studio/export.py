@@ -353,7 +353,21 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('story', lambda: story(report, m, card_rows))
     attempt('docs', lambda: library_section.docs(report))
     attempt('plans', lambda: plans(m, card_rows, lang))
-    attempt('decisions', lambda: decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang) + ai_nodes.decisions(report, lang))
+    def decision_rows():
+        rows = decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang) + ai_nodes.decisions(report, lang)
+        canonical_rows = decisions(m, card_rows, 'en') + planned_ideal.decisions(report, 'en') + ai_nodes.decisions(report, 'en')
+        by_id = {row['id']: row for row in canonical_rows}
+        for row in rows:
+            source = by_id.get(row['id'], row)
+            identity = {k: source.get(k) for k in ('id', 'question', 'options', 'blocks', 'asked', 'tool')}
+            row['revision'] = hashlib.sha256(json.dumps(identity, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+            explicit = source.get('recommended_option')
+            recommendation = str(source.get('recommendation') or '').strip()
+            matches = [o['id'] for o in source.get('options', []) if str(o.get('label') or '').strip() and recommendation.startswith(str(o['label']).strip())
+                       and (not recommendation[len(str(o['label']).strip()):] or recommendation[len(str(o['label']).strip())] in ' :،,.-–')]
+            row['recommended_option'] = explicit if explicit in {o['id'] for o in source.get('options', [])} else (matches[0] if len(matches) == 1 else None)
+        return rows
+    attempt('decisions', decision_rows)
     attempt('media', lambda: library_section.media(report, lang))
     attempt('system', lambda: system_map.system(report, card_rows))
     attempt('paths', lambda: code_paths.paths(report, card_rows, m['plan'], lang))

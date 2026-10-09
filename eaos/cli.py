@@ -193,7 +193,7 @@ def guided_command(args):
 
 def studio_command(args):
     from .api.server import run_foreground
-    return run_foreground(args.project, port=args.port, show=not args.no_open)
+    return run_foreground(args.project, port=args.port, show=not args.no_open, remote_origin=args.remote_origin)
 
 
 def stages_command(args):
@@ -558,6 +558,7 @@ def main(argv=None):
     q.add_argument('project',nargs='?',default='.')
     q.add_argument('--port',type=int,default=0,help='the port on 127.0.0.1 (default: a free one)')
     q.add_argument('--no-open',action='store_true',help='print the address without opening the browser')
+    q.add_argument('--remote-origin', help='one exact https://<project>--<port>.dev.remote.e-m.sa origin; keeps token and CSRF checks')
     q.set_defaults(func=studio_command)
     q=s.add_parser('mcp',help='EAOS as MCP tools for an AI assistant (stdio); eaos assistant install registers it')
     q.set_defaults(func=lambda args: __import__('eaos.mcp_server', fromlist=['main']).main())

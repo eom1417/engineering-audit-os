@@ -30,6 +30,17 @@ class Export(Workspace):
         for name in ('manifest', *SECTIONS, 'coverage'):
             self.assertEqual(artifact_contracts.validate(self.load(name), contracts[f'studio-{name}']), [], name)
 
+    def test_decision_revision_and_recommendation_survive_language_reexport(self):
+        before = {row['id']: row for row in self.load('decisions')['decisions']}
+        self.assertTrue(before)
+        export.export(self.out, 'ar', 'shop')
+        after = {row['id']: row for row in self.load('decisions')['decisions']}
+        self.assertEqual(before.keys(), after.keys())
+        for identity, row in before.items():
+            self.assertEqual(row['revision'], after[identity]['revision'])
+            self.assertEqual(row.get('recommended_option'), after[identity].get('recommended_option'))
+            self.assertEqual([o['id'] for o in row['options']], [o['id'] for o in after[identity]['options']])
+
     def test_the_manifest_fingerprints_what_was_written(self):
         import hashlib
         for entry in self.load('manifest')['sections']:

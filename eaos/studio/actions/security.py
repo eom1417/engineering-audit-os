@@ -8,6 +8,7 @@ selection and the project. Every compare is constant-time.
 import hashlib
 import hmac
 import json
+import re
 import secrets
 import threading
 import time
@@ -30,8 +31,13 @@ def header(headers, name):
 
 
 class Locks:
-    def __init__(self, port, token=None):
+    def __init__(self, port, token=None, remote_origin=None):
         self.port = int(port)
+        self.remote_origin = remote_origin
+        if remote_origin and not re.fullmatch(r'https://[a-z0-9]+(?:-[a-z0-9]+)*--[1-9][0-9]{0,4}\.dev\.remote\.e-m\.sa', remote_origin):
+            raise ValueError('remote_origin must be one exact Remote HTTPS project hostname')
+        if remote_origin and int(urlsplit(remote_origin).hostname.split('--')[-1].split('.')[0]) != self.port:
+            raise ValueError('Remote hostname port must match the listening port')
         self.token = token or secrets.token_urlsafe(32)
         self.csrf = secrets.token_urlsafe(32)
         self._key = hashlib.sha256(('confirm:' + self.token).encode('utf-8')).digest()
@@ -39,13 +45,13 @@ class Locks:
         self._lock = threading.Lock()
 
     def origins(self):
-        return {f'http://{host}:{self.port}' for host in LOOPBACK}
+        return {f'http://{host}:{self.port}' for host in LOOPBACK} | ({self.remote_origin} if self.remote_origin else set())
 
     def check(self, method, path, headers):
         """None when the call may go on, else (status, reason). GET needs the token (in the header, or `token=` in the
         query for an EventSource, which cannot set headers); POST also the CSRF token and the Studio's origin."""
         host = (header(headers, 'Host') or '').strip().lower()
-        if host not in {f'{name}:{self.port}' for name in LOOPBACK}:
+        if host not in {f'{name}:{self.port}' for name in LOOPBACK} | ({urlsplit(self.remote_origin).netloc} if self.remote_origin else set()):
             return 403, 'the Host is not this computer\'s Studio'
         token = header(headers, 'X-EAOS-Token')
         if token is None and method == 'GET':

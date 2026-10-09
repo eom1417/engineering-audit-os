@@ -30,7 +30,8 @@ function RunQuestions() {
 function DecisionsBody({ data }: { data: StudioData }) {
   const { t } = usePrefs()
   usePageChrome(t('decisions'), undefined, data.manifest.project.name)
-  const all = data.decisions?.decisions ?? []
+  const responses = useActions().decisions
+  const all = (data.decisions?.decisions ?? []).map((d) => responses.some((r) => r.id === d.id && r.response) ? { ...d, state: 'answered' as const } : d)
   const ordered = [...all.filter((d) => d.state === 'waiting'), ...all.filter((d) => d.state !== 'waiting')]
   const asked = useActions().questions.length
   return (

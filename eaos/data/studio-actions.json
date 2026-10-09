@@ -2215,6 +2215,16 @@
    "path": "/api/runs/<id>/undo",
    "body": "{confirm}",
    "does": "undo; needs the confirm token from the undo preview."
+  },
+  {
+   "method": "GET",
+   "path": "/api/decisions",
+   "about": "Authoritative current report questions, durable scoped owner responses and their execution status."
+  },
+  {
+   "method": "POST",
+   "path": "/api/decisions/<id>/answer",
+   "about": "Save scope plus either authoritative option ID or exact custom text (1–4000 characters); idempotently dispatch a read-only assistant review, never code or merge consent."
   }
  ],
  "security": {
@@ -2311,6 +2321,14 @@
   "about": "How a question reaches the person.",
   "block": "The assistant ends its turn with one fenced block ```eaos-question {\"text\": {en, ar}, \"options\": [{id, label{en, ar}}], \"recommendation\": id}```; the run waits in waiting_for_person and the question appears in GET /api/questions.",
   "consent": "When the assistant stops on run_setup's needs_agreement without a block, the Studio asks the run consent itself (why: \"run consent\").",
-  "resume": "The answer resumes the same assistant session (claude --resume, codex exec resume) with the person's words."
+  "resume": "The answer resumes the same assistant session (claude --resume, codex exec resume) with the person's words.",
+  "custom_answer": "Every question accepts exact multiline custom text, 1–4000 characters. Send either option or text. Custom answers launch read-only clarification and restore the original explicit question; never infer consent. Drafts remain until server success."
+ },
+ "report_decisions": {
+  "storage": "<project EAOS workspace>/runs/decisions.json",
+  "identity": "report path + stable decision id + canonical source revision; project-scoped Store",
+  "answer": "scope, option ID or exact text; client labels are ignored",
+  "execution": "Deterministic run ID, existing queue, execution state and events; saving is not acknowledgement or implementation",
+  "retry": "POST the same saved response when delivery has not created a run; retry failed execution through existing run retry."
  }
 }

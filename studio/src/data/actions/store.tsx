@@ -7,7 +7,7 @@ import { useLoaded, useStudio } from '../context'
 import { demoClient, type DemoCard } from './demo'
 import { deriveRun, type RunView } from './derive'
 import { liveClient, takeToken } from './live'
-import { ACTIVE, type ActionsClient, type Mode, type Question, type Run, type RunEvent, type StreamStatus } from './types'
+import { ACTIVE, type ActionsClient, type Mode, type Question, type Run, type RunEvent, type StreamStatus, type ReportDecision } from './types'
 
 const DEMO_KEY = 'eaos.demo'
 
@@ -17,10 +17,12 @@ export interface Actions {
   runs: Run[]
   queue: string[]
   questions: Question[]
+  decisions: ReportDecision[]
   loaded: boolean
   /** The run holding the project's slot (running, paused or waiting for an answer), if any */
   active: Run | null
   refresh(): Promise<void>
+  rememberDecision(row: ReportDecision): void
   /** Shows a change at once; the next refresh replaces it with the server's truth */
   patch(id: string, change: Partial<Run>): void
   setQueue(order: string[]): void
@@ -57,6 +59,7 @@ export function ActionsProvider({ children, client: given }: { children: ReactNo
   const [runs, setRuns] = useState<Run[]>([])
   const [queue, setQueueState] = useState<string[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
+  const [decisions, setDecisions] = useState<ReportDecision[]>([])
   const [loaded, setLoaded] = useState(false)
   const pending = useRef(0)
 
@@ -64,11 +67,12 @@ export function ActionsProvider({ children, client: given }: { children: ReactNo
     if (!client) return
     const ticket = ++pending.current
     try {
-      const [listed, asked] = await Promise.all([client.runs(), client.questions()])
+      const [listed, asked, answered] = await Promise.all([client.runs(), client.questions(), client.decisions?.() ?? Promise.resolve([])])
       if (ticket !== pending.current) return // a newer refresh has the newer truth
       setRuns(listed.runs)
       setQueueState(listed.queue)
       setQuestions(asked)
+      setDecisions(answered)
       setLoaded(true)
     } catch { setLoaded(true) }
   }, [client])
@@ -101,15 +105,16 @@ export function ActionsProvider({ children, client: given }: { children: ReactNo
 
   const value = useMemo<Actions>(() => ({
     mode: client?.mode ?? 'snapshot',
-    client, runs, queue, questions, loaded,
+    client, runs, queue, questions, decisions, loaded,
     active: runs.find((run) => ACTIVE.includes(run.state)) ?? null,
     refresh,
+    rememberDecision: (row) => { pending.current++; setDecisions((all) => all.map((current) => current.scope === row.scope ? row : current)) },
     patch: (id, change) => setRuns((all) => all.map((run) => (run.id === id ? { ...run, ...change } : run))),
     setQueue: (order) => setQueueState(order),
     dropQuestion: (id) => setQuestions((all) => all.filter((q) => q.id !== id)),
     startDemo: () => { try { sessionStorage.setItem(DEMO_KEY, '1') } catch { /* this visit only */ } setDemo(true) },
     stopDemo: () => { try { sessionStorage.removeItem(DEMO_KEY) } catch { /* nothing kept */ } demoRef.current = null; setDemo(false) },
-  }), [client, runs, queue, questions, loaded, refresh])
+  }), [client, runs, queue, questions, decisions, loaded, refresh])
 
   return <ActionsContext.Provider value={value}>{children}</ActionsContext.Provider>
 }

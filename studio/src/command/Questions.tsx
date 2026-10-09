@@ -1,8 +1,8 @@
 // A run's question, as the Decisions inbox, the run page and the toast show it: the question, the recommended
 // answer as the large primary button, the others beside it, and a written answer when none fits. One tap answers;
-// the run goes on at once (optimistic), and a refusal brings the question back with the reason.
+// the run continues only after server success. Drafts remain visible after a refusal.
 import { useState } from 'react'
-import { Input, TextField } from 'react-aria-components'
+import { Label, TextArea, TextField } from 'react-aria-components'
 import { Button, IconButton } from '../components/Button'
 import { Chip } from '../components/Chip'
 import { Go } from '../components/Go'
@@ -22,10 +22,9 @@ export function useAnswer() {
   const w = useCmdWords()
   return async (question: Question, option: string | null, text?: string) => {
     if (!actions.client) return false
-    actions.dropQuestion(question.id)
-    actions.patch(question.run, { state: 'running', question: null })
     try {
       await actions.client.answer(question.id, option, text ?? null)
+      actions.dropQuestion(question.id)
       toast(w('answered'))
       void actions.refresh()
       return true
@@ -41,6 +40,8 @@ export function QuestionCard({ question, runLabel, compact }: { question: Questi
   const { lang } = usePrefs()
   const w = useCmdWords()
   const answer = useAnswer()
+  const [busy, setBusy] = useState(false)
+  const send = async (option: string | null, text?: string) => { if (busy) return; setBusy(true); try { await answer(question, option, text) } finally { setBusy(false) } }
   const [writing, setWriting] = useState(false)
   const [text, setText] = useState('')
   const recommended = question.options.find((o) => o.id === question.recommendation)
@@ -60,19 +61,20 @@ export function QuestionCard({ question, runLabel, compact }: { question: Questi
       <div className={[css.qAnswers, stacked && css.qAnswersMany].filter(Boolean).join(' ')}>
         {ordered.map((option) => (
           <Button key={option.id} variant={option === recommended ? 'primary' : 'secondary'} large icon={option === recommended ? 'check' : undefined}
-            className={css.qAnswer} onPress={() => answer(question, option.id)}>
-            <span><Txt>{option.label[lang]}</Txt></span>
+            className={css.qAnswer} busy={busy} isDisabled={busy} onPress={() => send(option.id)}>
+            <span><Txt>{option.label[lang]}</Txt>{option === recommended && <> · {w('recommended')}</>}</span>
           </Button>
         ))}
       </div>
       {!writing ? (
         <Button variant="ghost" className={css.qMore} onPress={() => setWriting(true)}>{w('writeAnswer')}</Button>
       ) : (
-        <form className={css.qWrite} onSubmit={(e) => { e.preventDefault(); if (text.trim()) void answer(question, null, text.trim()) }}>
-          <TextField aria-label={w('writeAnswer')} value={text} onChange={setText} className={css.qField} autoFocus>
-            <Input className={css.input} />
+        <form className={css.qWrite} onSubmit={(e) => { e.preventDefault(); if (text.trim()) void send(null, text) }}>
+          <TextField value={text} onChange={setText} className={css.qField} autoFocus>
+            <Label>{w('customAnswerLabel')}</Label>
+            <TextArea className={css.input} maxLength={4000} />
           </TextField>
-          <Button type="submit" variant="secondary" isDisabled={!text.trim()}>{w('send')}</Button>
+          <Button type="submit" variant="secondary" busy={busy} isDisabled={busy || !text.trim()}>{w('send')}</Button>
         </form>
       )}
     </Panel>
@@ -81,10 +83,7 @@ export function QuestionCard({ question, runLabel, compact }: { question: Questi
 
 /** The newest question, floating over every page but the inbox and its own run, with the recommended answer. */
 export function QuestionToast({ question, runLabel, onDismiss }: { question: Question; runLabel: string; onDismiss: () => void }) {
-  const { lang } = usePrefs()
   const w = useCmdWords()
-  const answer = useAnswer()
-  const recommended = question.options.find((o) => o.id === question.recommendation) ?? question.options[0]
   return (
     <div className={css.qToast} role="region" aria-label={w('runAsks')}>
       <div className={css.qToastHead}>
@@ -92,15 +91,8 @@ export function QuestionToast({ question, runLabel, onDismiss }: { question: Que
         <span className={css.qToastKicker} data-truncate title={runLabel}><Txt>{runLabel}</Txt></span>
         <IconButton icon="x" label={w('dismiss')} onPress={onDismiss} small />
       </div>
-      <p className={css.qToastText}><Txt>{question.text[lang]}</Txt></p>
-      <div className={css.qToastActions}>
-        {recommended && (
-          <Button variant="primary" icon="check" className={css.qToastGo} onPress={() => answer(question, recommended.id)}>
-            <span><Txt>{w('answerWith', { label: recommended.label[lang] })}</Txt></span>
-          </Button>
-        )}
-        <Go to="/decisions" className={css.qToastLink}>{w('otherAnswers')}</Go>
-      </div>
+      <QuestionCard question={question} compact />
+      <Go to="/decisions" className={css.qToastLink}>{w('otherAnswers')}</Go>
     </div>
   )
 }

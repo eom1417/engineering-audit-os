@@ -72,7 +72,11 @@ def _write_record(state, record):
 
 
 def url_of(record):
-    return f"http://127.0.0.1:{record['port']}/#token={record['token']}"
+    origin = record.get('remote_origin')
+    if origin:
+        from ..studio.actions.security import Locks
+        Locks(record['port'], remote_origin=origin)
+    return f"{origin or ('http://127.0.0.1:' + str(record['port']))}/#token={record['token']}"
 
 
 def prepare(project=None):

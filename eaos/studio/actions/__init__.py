@@ -11,6 +11,7 @@ local server (NS37.T2) mounts them with `mount(...)` (eaos/studio/actions/serve.
 Every call passes the locks of eaos/studio/actions/security.py first; every accepted action becomes an `action` event
 before it runs; reading actions answer at once, the others queue as runs (eaos/studio/actions/runs.py).
 """
+import fcntl
 import functools
 import json
 import os
@@ -24,7 +25,7 @@ from . import adapters as adapters_module
 from . import handoff, selection as selecting
 from .runs import PLANNERS, Manager
 from .security import Locks
-from .store import ACTIVE, TERMINAL, Scrubber, Store, now
+from .store import ACTIVE, TERMINAL, Scrubber, Store, now, _read_json, _write_json
 
 CONTRACT = Path(__file__).resolve().parents[2] / 'data/studio-actions.json'
 VERBS = ('fix', 'verify', 'explain', 'plan')
@@ -61,11 +62,11 @@ def _run_id():
 
 
 class Actions:
-    def __init__(self, project, home=None, port=8765, adapters=None, studio=None, lang='ar', token=None):
+    def __init__(self, project, home=None, port=8765, adapters=None, studio=None, lang='ar', token=None, remote_origin=None):
         from ... import guided
         if home: os.environ['EAOS_HOME'] = str(home)
         self.project = Path(project).expanduser().resolve()
-        self.locks = Locks(port, token)
+        self.locks = Locks(port, token, remote_origin)
         self.token, self.csrf = self.locks.token, self.locks.csrf
         self.studio = Path(studio) if studio else None
         self.lang = lang
@@ -112,6 +113,7 @@ class Actions:
             if rest == ['assistants']: return {'assistants': self.assistants()}
             if rest == ['runs']: return self.runs(query)
             if rest == ['questions']: return {'questions': self.questions()}
+            if rest == ['decisions']: return {'decisions': self.report_decisions()}
             if len(rest) == 2 and rest[0] == 'runs': return {'run': self.public(self.store.load(rest[1]))}
             if len(rest) == 3 and rest[0] == 'runs' and rest[2] == 'events':
                 self.store.load(rest[1])
@@ -119,6 +121,8 @@ class Actions:
             raise KeyError(route)
         if len(rest) == 3 and rest[0] == 'actions' and rest[2] == 'preview': return self.preview(rest[1], body)
         if rest == ['runs']: return {'run': self.public(self.create(body))}
+        if len(rest) == 3 and rest[0] == 'decisions' and rest[2] == 'answer':
+            return {'decision': self.answer_decision(rest[1], body)}
         if rest == ['runs', 'reorder']: return {'queue': self.manager.reorder(body.get('order'))}
         if len(rest) == 3 and rest[0] == 'questions' and rest[2] == 'answer':
             return {'run': self.public(self.manager.answer(rest[1], body.get('option'), body.get('text')))}
@@ -157,6 +161,76 @@ class Actions:
 
     def questions(self):
         return [row['question'] for row in self.store.all() if row.get('state') == 'waiting_for_person' and row.get('question')]
+
+    def report_decisions(self):
+        folder = self._studio()
+        rows = (selecting._load(folder, 'decisions') or {}).get('decisions', []) if folder else []
+        saved = _read_json(self.store.folder / 'decisions.json', {}) or {}
+        result = []
+        for question in rows:
+            scope = selecting.decision_scope(folder, question)
+            response = saved.get(scope)
+            run = None
+            if response and response.get('run'):
+                try: run = self.public(self.store.load(response['run']))
+                except KeyError: pass
+            result.append({'id': question['id'], 'scope': scope, 'question': question,
+                           'response': response, 'execution': run})
+        return result
+
+    def answer_decision(self, decision, body):
+        with (self.store.folder / 'decisions.lock').open('a+') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            row = next((r for r in self.report_decisions() if r['id'] == decision), None)
+            if not row: raise KeyError(decision)
+            if body.get('scope') != row['scope']: raise LookupError('the report question changed; reload before answering')
+            question = row['question']
+            option, text = body.get('option'), body.get('text')
+            chosen = next((o for o in question.get('options', []) if o['id'] == option), None)
+            if option is not None and text is not None:
+                raise ValueError('send either an option or a custom answer, not both')
+            if text is not None and (not isinstance(text, str) or not text.strip() or len(text) > 4000):
+                raise ValueError('text must contain 1 to 4000 characters')
+            if not chosen and not (option is None and text):
+                raise ValueError('choose an authoritative option or a custom answer')
+            path = self.store.folder / 'decisions.json'
+            saved = _read_json(path, {}) or {}
+            response = saved.get(row['scope'])
+            if response and (response['option'] != option or response.get('text') != text):
+                raise LookupError('this question already has an owner answer')
+            if not response:
+                response = {'decision': decision, 'scope': row['scope'], 'option': option, 'text': text,
+                            'label': chosen['label'] if chosen else text, 'at': now(), 'provenance': 'owner:studio',
+                            'status': 'saved', 'run': 'd' + row['scope'][:40],
+                            'history': [{'at': now(), 'event': 'saved', 'by': 'owner:studio'}]}
+                saved[row['scope']] = response
+                _write_json(path, saved)
+            run = response['run']
+            try: self.store.load(run)
+            except KeyError:
+                assistant = self._assistant(body.get('assistant'), True)
+                blocked = [c for c in (selecting._load(self._studio(), 'cards') or {}).get('cards', []) if c['id'] in question.get('blocks', [])]
+                evidence_ids = {e for c in blocked for e in c.get('evidence', []) if isinstance(e, str)}
+                facts = (selecting._load(self._studio(), 'evidence') or {}).get('facts', [])
+                context = {'question': question, 'answer': response,
+                           'evidence': [f for f in facts if f.get('id') in evidence_ids][:40],
+                           'project': self.project.name, 'report': Path(self._studio()).parent.name,
+                           'blocked_cards': [{'id': c['id'], 'title': c.get('title'), 'paths': c.get('paths'), 'evidence': c.get('evidence')} for c in blocked]}
+                record = {'id': run, 'action': 'report_decision', 'verb': None,
+                          'label': {'en': 'Review owner answer', 'ar': 'مراجعة إجابة المالك'},
+                          'inputs': {}, 'owner_decision': context, 'cards': question.get('blocks', []),
+                          'assistant': None if assistant == 'handoff' else assistant,
+                          'mode': 'handoff' if assistant == 'handoff' else 'assistant', 'state': 'queued',
+                          'attempt': 1, 'created': now(), 'queued_at': now(), 'read': False}
+                self.store.save(record, new=True)
+                self.store.append(run, 'action', record['label'], {'action': 'report_decision', 'by': 'person'})
+            response['status'] = 'queued'
+            if not any(e['event'] == 'queued' for e in response['history']):
+                response['history'].append({'at': now(), 'event': 'queued', 'run': run})
+            saved[row['scope']] = response
+            _write_json(path, saved)
+            self.store.set_queue(self.store.queue())
+            return next(r for r in self.report_decisions() if r['id'] == decision)
 
     # what a run would be
     def _kind(self, name, body):
@@ -249,6 +323,7 @@ class Actions:
                   'cards': [c['id'] for c in cards], 'cards_detail': [{'id': c['id'], 'title': c.get('title'), 'paths': selecting._paths(c)} for c in cards],
                   'left_out': left, 'assistant': assistant if assistant != 'handoff' else None,
                   'mode': 'planner' if action in PLANNERS else 'direct' if not needed else ('handoff' if assistant == 'handoff' else 'assistant'),
+                  'owner_answers': [{'question': r['question'], 'response': r['response']} for r in self.report_decisions() if r['response']],
                   'state': 'running' if reading else 'queued', 'attempt': 1, 'created': now(), 'queued_at': now(), 'read': reading,
                   **({'started': now()} if reading else {})}
         self.store.save(record, new=True)

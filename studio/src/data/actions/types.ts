@@ -151,6 +151,13 @@ export class ActionError extends Error {
 }
 
 /** The command centre as the pages use it; live (the server), demo (a recorded run replayed) or snapshot. */
+export interface ReportDecision {
+  id: string
+  scope: string
+  response: { option: string | null; text: string | null; label: string; at: string; status: string; run: string } | null
+  execution: Run | null
+}
+
 export interface ActionsClient {
   mode: Mode
   /** Whether the server mounted the action API (GET /api/session `actions`); a client without it always has one. */
@@ -163,6 +170,8 @@ export interface ActionsClient {
   follow(id: string, after: number, onEvent: (event: RunEvent) => void, onStatus: (status: StreamStatus) => void): () => void
   control(id: string, op: Control): Promise<Run>
   reorder(order: string[]): Promise<string[]>
+  decisions?(): Promise<ReportDecision[]>
+  answerDecision?(id: string, scope: string, option: string | null, text?: string): Promise<ReportDecision>
   questions(): Promise<Question[]>
   answer(question: string, option: string | null, text?: string | null): Promise<Run>
   decide(id: string, op: 'accept' | 'undo', confirm: string): Promise<Run>

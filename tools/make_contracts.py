@@ -315,7 +315,7 @@ STUDIO = {
                             ['id', 'title', 'kind', 'state', 'steps', 'progress']))},
           ['plans'])),
  'decisions': ('What waits for the person: one question each, its recommendation, and what it blocks.',
-  section({'decisions': arr(obj({'id': S, 'question': S, 'recommendation': S,
+  section({'decisions': arr(obj({'id': S, 'question': S, 'recommendation': S, 'recommended_option': NS, 'revision': S,
                                  'options': arr(obj({'id': S, 'label': S})), 'blocks': arr(S),
                                  'state': enum('waiting', 'answered', 'withdrawn'), 'answer': NS, 'plan': NS,
                                  'asked': S, 'tool': NS}, ['id', 'question', 'recommendation', 'state']))},

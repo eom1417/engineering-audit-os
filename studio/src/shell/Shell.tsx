@@ -27,7 +27,11 @@ import { SystemViews } from '../pages/system/SystemViews'
 
 function useCounts(): Counts | null {
   const data = useStudio()
-  return data ? counts(data) : null
+  const { decisions } = useActions()
+  if (!data) return null
+  const result = counts(data)
+  result.decisionsWaiting -= (data.decisions?.decisions ?? []).filter((d) => d.state === 'waiting' && decisions.some((r) => r.id === d.id && r.response)).length
+  return result
 }
 
 /** The command centre's counts beside the report's: questions from runs join the inbox, and runs that are not over. */

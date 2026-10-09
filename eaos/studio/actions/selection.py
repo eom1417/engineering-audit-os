@@ -126,3 +126,10 @@ def preview_of(verb, cards, left, past):
             'left_out': left, 'files': files, 'batches': batches,
             'estimate': {'minutes_low': low, 'minutes_high': high, 'basis': basis},
             'risk': risk(verb, cards, files), 'on_failure': ON_FAILURE['fix' if verb == 'fix' else 'read']}
+
+
+def decision_scope(folder, question):
+    import hashlib
+    from .store import canonical
+    identity = question.get('revision') or {k: question.get(k) for k in ('id', 'question', 'options', 'blocks', 'asked', 'tool')}
+    return hashlib.sha256(canonical([str(Path(folder).resolve()), question['id'], identity]).encode()).hexdigest()

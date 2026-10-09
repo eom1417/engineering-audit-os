@@ -1,6 +1,9 @@
 // The pieces that tell where the project stands and what is next: the one-sentence headline whose numbers are
 // links, the decision card (Calm), the next step, the journey Today → Change → Target, and the plan strip.
 import { useState, type ReactNode } from 'react'
+import { useActions } from '../data/actions/store'
+import { STATE_WORDS } from '../data/actions/contract'
+import { labelOf } from '../data/actions/derive'
 import type { Decision, Plan } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
 import { dirOf, Id, N, Txt } from '../i18n/text'
@@ -56,17 +59,27 @@ function answerRequest(decision: Decision, option: { id: string; label: string }
 /** The option the recommendation names: its sentence opens with the option's label ("نعم: …" → "نعم"). The data
  * marks no option itself, so none is promoted when the recommendation names none. */
 export function recommendedOption(decision: Decision): Decision['options'][number] | undefined {
+  if (decision.recommended_option) return decision.options.find((o) => o.id === decision.recommended_option)
   const rec = decision.recommendation.trim()
-  return decision.options.find((o) => o.label && rec.startsWith(o.label.trim()) && /^[\s:،,.\-–]|^$/.test(rec.slice(o.label.trim().length)))
+  const matches = decision.options.filter((o) => o.label && rec.startsWith(o.label.trim()) && /^[\s:،,.\-–]|^$/.test(rec.slice(o.label.trim().length)))
+  return matches.length === 1 ? matches[0] : undefined
 }
 
 /**
  * One question, its recommendation, large one-tap answers (the option the recommendation names is primary, first,
- * with a "Recommended" tag), the hint that a tap only copies the answer, and the link to the cards it concerns.
+ * with a "Recommended" tag), durable live answers and the link to the cards it concerns.
  */
 export function DecisionCard({ decision, cardsTo }: { decision: Decision; cardsTo?: { to: string; search?: Search } }) {
   const { t, lang } = usePrefs()
   const toast = useToast()
+  const actions = useActions()
+  const saved = actions.decisions.find((d) => d.id === decision.id)
+  const live = actions.mode === 'live' && !!actions.client?.answerDecision
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [writing, setWriting] = useState(false)
+  const [text, setText] = useState('')
+  const say = (en: string, ar: string) => lang === 'ar' ? ar : en
   const [allAnswers, setAllAnswers] = useState(false)
   const recommended = recommendedOption(decision)
   const ordered = recommended ? [recommended, ...decision.options.filter((o) => o !== recommended)] : decision.options
@@ -77,27 +90,34 @@ export function DecisionCard({ decision, cardsTo }: { decision: Decision; cardsT
   const blocks = decision.blocks.length
   const tasks = decision.blocks.every((b) => b.startsWith('TASK-'))
   const blocksText = blocks === 1 ? t(tasks ? 'blocksOneTask' : 'blocksOneStep') : t(tasks ? 'blocksTasks' : 'blocksSteps', { n: blocks })
-  const answer = async (option: { id: string; label: string }) =>
-    toast((await copyText(answerRequest(decision, option, lang))) ? t('copiedAnswer') : t('copyFailed'))
+  const answer = async (option: { id: string; label: string } | null) => {
+    if (busy || !live || !saved || !actions.client?.answerDecision) return
+    setBusy(true); setError('')
+    try {
+      actions.rememberDecision(await actions.client.answerDecision(decision.id, saved.scope, option?.id ?? null, option ? undefined : text))
+      await actions.refresh()
+    } catch (problem) { setError(String(problem)) }
+    finally { setBusy(false) }
+  }
   return (
     <Panel as="article" emphasis className={css.decision} label={decision.question}>
       <div className={css.decHead}>
-        {decision.state === 'waiting' ? <Chip tone="accent">{t('waiting')}</Chip> : <Chip tone="good">{t('answered')}</Chip>}
+        {decision.state === 'waiting' && !saved?.response ? <Chip tone="accent">{t('waiting')}</Chip> : <Chip tone="good">{t('answered')}</Chip>}
         {blocks > 0 && (cardsTo ? <Go {...cardsTo} className={css.decBlocks}>{blocksText}</Go> : <span className={css.decBlocks}>{blocksText}</span>)}
       </div>
       <h3 className={css.decQ}><Txt block>{decision.question}</Txt></h3>
       {decision.recommendation && (
         <div className={css.decRec}><span className={css.decRecLabel}>{t('recommended')}</span><Txt block>{decision.recommendation}</Txt></div>
       )}
-      {decision.state === 'waiting' && ordered.length > 0 && (
+      {decision.state === 'waiting' && !saved?.response && ordered.length > 0 && (
         <>
           <div className={[css.answers, (!twoChoices || long || !recommended) && css.answersMany, long && css.answersLong].filter(Boolean).join(' ')}>
             {shown.map((option) => option === recommended ? (
-              <Button key={option.id} variant="primary" large className={css.answer} icon="check" onPress={() => answer(option)}>
+              <Button key={option.id} variant="primary" large aria-pressed={saved?.response?.option === option.id} className={css.answer} isDisabled={!live || !saved || busy} busy={busy} icon="check" onPress={() => answer(option)}>
                 <Txt>{option.label}</Txt><span className={css.ansTag}>{t('recommendedTag')}</span>
               </Button>
             ) : (
-              <Button key={option.id} variant="secondary" large className={css.answer} onPress={() => answer(option)}><Txt>{option.label}</Txt></Button>
+              <Button key={option.id} variant="secondary" large aria-pressed={saved?.response?.option === option.id} className={css.answer} isDisabled={!live || !saved || busy} busy={busy} onPress={() => answer(option)}><Txt>{option.label}</Txt></Button>
             ))}
           </div>
           {ordered.length > shown.length && (
@@ -105,9 +125,26 @@ export function DecisionCard({ decision, cardsTo }: { decision: Decision; cardsT
               {t('showAllAnswers', { n: decision.options.length })}
             </Button>
           )}
-          <p className={css.ansHint}>{t('tapCopies')}</p>
+
         </>
       )}
+      {live && !saved && <p role="status">{say('Connecting to live decision storage…', 'جاري الاتصال بحفظ القرارات…')}</p>}
+      {!live && <p>{say('Read-only snapshot. Open this project in live Studio to save an answer.', 'هذه نسخة للقراءة. افتح المشروع في الاستوديو الحي لحفظ الإجابة.')}</p>}
+      {decision.state === 'waiting' && !saved?.response && (!writing ? <Button isDisabled={!live || !saved || busy} onPress={() => setWriting(true)}>{say('Write a different answer', 'اكتب إجابة مختلفة')}</Button> :
+        <form className={css.writeAnswer} onSubmit={(e) => { e.preventDefault(); if (text.trim()) void answer(null) }}>
+          <label>{say('Your answer (up to 4000 characters)', 'إجابتك (حتى ٤٠٠٠ حرف)')}<textarea className={css.answerInput} value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} /></label>
+          <Button type="submit" busy={busy} isDisabled={busy || !saved || !text.trim()}>{say('Send answer', 'أرسل الإجابة')}</Button>
+        </form>)}
+      <div role="status" aria-live="polite">
+        {saved?.response && <p><Txt>{saved.response.option ? decision.options.find((o) => o.id === saved.response?.option)?.label ?? saved.response.label : saved.response.text}</Txt> — {say('Your answer · Saved', 'إجابتك · محفوظة')}
+          {saved.execution && <> · <Go to={`/runs/${encodeURIComponent(saved.execution.id)}`}>{labelOf(saved.execution.label, lang)}: {labelOf(STATE_WORDS[saved.execution.state], lang)}</Go></>}
+        </p>}
+        {saved?.response && <p>{say('Saving an answer does not mean the assistant acknowledged or implemented it. Changes require a separate preview and confirmation.', 'حفظ الإجابة لا يعني أن المساعد استلمها أو نفّذها. التغييرات تحتاج معاينة وموافقة مستقلة.')}</p>}
+        {saved?.response && !saved.execution && <Button busy={busy} onPress={async () => { setBusy(true); try { const row = await actions.client?.answerDecision?.(decision.id, saved.scope, saved.response!.option, saved.response!.text ?? undefined); if (row) actions.rememberDecision(row); await actions.refresh() } catch (e) { setError(String(e)) } finally { setBusy(false) } }}>{say('Retry delivery', 'أعد إرسال الإجابة')}</Button>}
+        {saved?.execution?.state === 'failed' && <Button busy={busy} onPress={async () => { setBusy(true); try { await actions.client?.control(saved.execution!.id, 'retry'); await actions.refresh() } catch (e) { setError(String(e)) } finally { setBusy(false) } }}>{say('Retry assistant', 'أعد تشغيل المساعد')}</Button>}
+      </div>
+      {error && <p role="alert">{error}</p>}
+      <Button variant="ghost" icon="copy" onPress={async () => toast((await copyText(answerRequest(decision, { id: saved?.response?.option ?? '', label: saved?.response?.label ?? (text || decision.answer || say('No answer selected', 'لم تُحدد إجابة')) }, lang))) ? t('copied') : t('copyFailed'))}>{say('Copy answer for export', 'انسخ الإجابة للتصدير')}</Button>
       {decision.state === 'answered' && decision.answer && <p className={css.answered}><Txt>{decision.answer}</Txt></p>}
       {cardsTo && blocks > 0 && decision.blocks.every((b) => b.startsWith('TASK-')) && (
         <Go {...cardsTo} className={[buttonClass('ghost'), css.decSee].join(' ')}>{t('seeCards', { n: blocks })}<Icon name="chevron" /></Go>

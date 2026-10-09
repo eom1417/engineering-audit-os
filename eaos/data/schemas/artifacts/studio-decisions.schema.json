@@ -37,6 +37,15 @@
           "recommendation": {
             "type": "string"
           },
+          "recommended_option": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "revision": {
+            "type": "string"
+          },
           "options": {
             "type": "array",
             "items": {

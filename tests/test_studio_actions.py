@@ -119,7 +119,7 @@ class Contract(unittest.TestCase):
                     path = row['path'].replace('<id>/answer', 'r-none-q1/answer').replace('<id>', run if row['path'].startswith('/api/runs') else 'status')
                     headers = {'X-EAOS-Token': app.token, 'X-EAOS-CSRF': app.csrf, 'Origin': 'http://127.0.0.1:8765', 'Host': '127.0.0.1:8765'}
                     status, payload = app.handle(row['method'], path, headers, {})
-                    if '<id>' in row['path'] and 'runs' in row['path'] or 'questions/' in path:
+                    if '<id>' in row['path'] and 'runs' in row['path'] or 'questions/' in path or 'decisions/' in path:
                         self.assertIn(status, (403, 404, 409), (row, payload))      # a run that does not exist, not an unknown route
                         if status == 404: self.assertIn('r-none', payload['error'], row)
                     else:
@@ -380,7 +380,8 @@ class Runs(Base):
         self.assertEqual((question['run'], question['recommendation'], question['text']['ar']), (run, 'yes', 'أكمل؟'))
         self.assertEqual(self.post(f"/api/questions/{question['id']}/answer", {'option': 'maybe'})[0], 400)
         self.assertEqual(self.post(f"/api/questions/{question['id']}/answer", {'option': 'yes'})[0], 200)
-        self.assertEqual(self.post(f"/api/questions/{question['id']}/answer", {'option': 'yes'})[0], 409)
+        self.assertEqual(self.post(f"/api/questions/{question['id']}/answer", {'option': 'yes'})[0], 200)
+        self.assertEqual(self.post(f"/api/questions/{question['id']}/answer", {'option': 'no'})[0], 409)
         done = self.app.wait(run, ('done', 'failed'), 30)
         self.assertEqual(done['state'], 'done', self.app.store.events(run))
         self.assertEqual(done['result']['answer'], 'All done.')
@@ -540,6 +541,47 @@ class Direct(Base):
         self.assertEqual(self.app.wait(run, ('done', 'failed'), 10)['state'], 'done')
         self.assertEqual(calls[-1][1].get('person_agreed'), True)
 
+    def test_custom_setup_answer_clarifies_then_still_requires_explicit_consent(self):
+        os.environ.update(FAKE_MODE='slow', FAKE_SECONDS='0.2')
+        self.app.manager.tools, calls = self.fake_tools({'run_setup': lambda a: {'status': 'done'} if a.get('person_agreed')
+                                                         else {'status': 'needs_agreement', 'ask_the_person': 'May EAOS run your app?'}})
+        run = self.post('/api/runs', {'action': 'run_setup'})[1]['run']['id']
+        self.app.wait(run, ('waiting_for_person',), 5)
+        question = self.get('/api/questions')[1]['questions'][0]
+        path = f"/api/questions/{question['id']}/answer"
+        text = '  Yes is a word, but explain first.\nAn unrelated request.  '
+        self.assertEqual(self.post(path, {'option': 'yes', 'text': text})[0], 400)
+        self.assertEqual(self.post(path, {'option': ['yes']})[0], 400)
+        self.assertEqual(self.post(path, {'text': '   '})[0], 400)
+        self.assertEqual(self.post(path, {'text': 'x' * 4001})[0], 400)
+        self.assertEqual(self.post(path, {'text': text})[0], 200)
+        self.assertEqual(self.post(path, {'text': text})[0], 200)
+        record = self.app.wait(run, ('waiting_for_person',), 5)
+        self.assertEqual(record['mode'], 'direct')
+        self.assertNotEqual(record['question']['id'], question['id'])
+        self.assertEqual(record['answered'][0]['text'], text)
+        self.assertEqual(record['question']['why'], 'run consent')
+        self.assertFalse(any(args.get('person_agreed') for _, args in calls))
+        again = self.make()
+        reread = again.store.load(run)
+        self.assertEqual(reread['answered'][0]['text'], text)
+        self.assertEqual(reread['question']['options'], question['options'])
+        self.assertEqual(self.post(f"/api/questions/{reread['question']['id']}/answer", {'option': 'yes'})[0], 200)
+        self.assertEqual(self.app.wait(run, ('done', 'failed'), 5)['state'], 'done')
+        self.assertTrue(calls[-1][1]['person_agreed'])
+
+    def test_failed_custom_clarification_preserves_the_original_question(self):
+        os.environ['FAKE_MODE'] = 'fail'
+        self.app.manager.tools, calls = self.fake_tools({'run_setup': {'status': 'needs_agreement', 'ask_the_person': 'May EAOS run?'}})
+        run = self.post('/api/runs', {'action': 'run_setup'})[1]['run']['id']
+        original = self.app.wait(run, ('waiting_for_person',), 5)['question']
+        self.assertEqual(self.post(f"/api/questions/{original['id']}/answer", {'text': 'Explain first'})[0], 200)
+        record = self.app.wait(run, ('waiting_for_person',), 5)
+        self.assertEqual(record['question']['why'], 'run consent')
+        self.assertEqual(record['answered'][0]['text'], 'Explain first')
+        self.assertFalse(any(args.get('person_agreed') for _, args in calls))
+        self.assertIn('error', self.kinds(run))
+
     def test_accept_and_undo_need_their_confirmation_and_a_branch(self):
         self.app.manager.tools, calls = self.fake_tools({'accept': {'status': 'accepted', 'branch': 'eaos/wave-1'}})
         record = {'id': 'r-fix', 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'done', 'label': {'en': 'x', 'ar': 'x'},
@@ -691,8 +733,153 @@ class Measure(unittest.TestCase):
             self.assertEqual(value, 0.0)
             self.assertIn('a real assistant', why)
             write('FleetManageWeb', good)
+            self.assertEqual(north_star_studio.command_value(folder)[0], 0.0)
+            for name in ('EAOS', 'FleetManageWeb'):
+                path = Path(folder) / 'owner-controls' / name
+                path.mkdir(parents=True)
+                proof = {'assistant': 'Codex', 'mocked': False, 'studio_source_sha256': north_star_studio.shipped(), 'completed_at': 'now',
+                         'cases': [{'id': case, 'pass': True, 'evidence': 'live observation', 'kind': 'live'} for case in north_star_studio.OWNER_CONTROL_CASES],
+                         'views': [{'viewport': v, 'lang': l, 'theme': t, 'pass': True, 'screenshot': 'shot.png'} for v, l, t in north_star_studio.OWNER_CONTROL_VIEWS]}
+                (path / 'trial.json').write_text(json.dumps(proof))
             self.assertEqual(north_star_studio.command_value(folder)[0], 1.0)
+            proof['mocked'] = True
+            (path / 'trial.json').write_text(json.dumps(proof))
+            self.assertEqual(north_star_studio.command_value(folder)[0], 0.5)
 
 
 if __name__ == '__main__':
     unittest.main()
+
+class ReportDecisions(Base):
+    def setUp(self):
+        super().setUp()
+        self.question = {'id': 'ideal-choice', 'question': 'Which design?', 'options': [{'id': 'a', 'label': 'Keep it'}, {'id': 'b', 'label': 'Replace it'}],
+                         'blocks': ['TASK-001'], 'asked': '2026-10-09', 'tool': 'replan_ideal', 'state': 'waiting'}
+        self.write_question()
+
+    def write_question(self):
+        (self.studio / 'decisions.json').write_text(json.dumps({'decisions': [self.question]}))
+
+    def answer_report(self, option='a', text=None, app=None):
+        _, payload = self.get('/api/decisions', app)
+        return self.post('/api/decisions/ideal-choice/answer', {'scope': payload['decisions'][0]['scope'], 'option': option, 'text': text}, app)
+
+    def test_save_queue_exact_input_restart_and_idempotency(self):
+        status, payload = self.answer_report()
+        self.assertEqual(status, 200, payload)
+        row = payload['decision']
+        self.assertEqual(row['response']['label'], 'Keep it')
+        run = row['response']['run']
+        prompt = self.app.manager.prompt_of(self.app.store.load(run))
+        self.assertIn('Which design?', prompt)
+        self.assertIn('Keep it', prompt)
+        self.assertIn('TASK-001', prompt)
+        self.assertIn('not merge', prompt)
+        self.assertEqual(self.answer_report()[1]['decision']['response']['run'], run)
+        self.assertEqual(len(self.app.store.all()), 1)
+        other = self.make()
+        reread = self.get('/api/decisions', other)[1]['decisions'][0]
+        self.assertEqual(reread['response']['run'], run)
+        self.assertEqual(self.question, json.loads((self.studio / 'decisions.json').read_text())['decisions'][0])
+
+    def test_future_plan_fix_and_ideal_planner_receive_saved_owner_context(self):
+        from eaos.studio import ideal
+        self.answer_report(None, '  Preserve this exact planning choice.  ')
+        for verb in ('plan', 'fix'):
+            run = self.start(verb)
+            prompt = self.app.manager.prompt_of(self.app.store.load(run))
+            self.assertIn('Which design?', prompt)
+            self.assertIn('  Preserve this exact planning choice.  ', prompt)
+            self.assertIn('context only, never authorization', prompt)
+        grounded = ideal.bundle(self.studio.parent, project=self.project)
+        waiting = grounded['decisions']['waiting_for_the_person']
+        self.assertEqual(waiting[0]['owner_answer']['text'], '  Preserve this exact planning choice.  ')
+        self.assertEqual(waiting[0]['state'], 'owner_answer_saved')
+
+    def test_invalid_option_scope_conflict_and_csrf(self):
+        self.assertEqual(self.answer_report('missing')[0], 400)
+        self.assertEqual(self.post('/api/decisions/ideal-choice/answer', {'scope': 'wrong', 'option': 'a'})[0], 409)
+        self.assertEqual(self.app.handle('POST', '/api/decisions/ideal-choice/answer', self.headers(**{'X-EAOS-CSRF': 'bad'}), {})[0], 403)
+        self.assertEqual(self.app.handle('GET', '/api/decisions', self.headers(**{'X-EAOS-Token': 'bad'}))[0], 401)
+        self.assertEqual(self.answer_report()[0], 200)
+        self.assertEqual(self.answer_report('b')[0], 409)
+
+    def test_custom_exact_text_even_binary_and_empty_refused(self):
+        self.assertEqual(self.answer_report(None, '   ')[0], 400)
+        self.assertEqual(self.answer_report(None, 'x' * 4001)[0], 400)
+        self.assertEqual(self.answer_report('a', 'arbitrary')[0], 400)
+        text = '  Something entirely different\nPlease explain first.  '
+        row = self.answer_report(None, text)[1]['decision']
+        self.assertEqual(row['response']['text'], text)
+        self.assertIn(text, self.app.store.load(row['response']['run'])['owner_decision']['answer']['text'])
+        self.assertNotIn('person_agreed', self.app.store.load(row['response']['run'])['inputs'])
+
+    def test_refresh_reconciles_and_new_question_does_not_inherit(self):
+        old = self.answer_report()[1]['decision']
+        self.write_question()
+        self.assertEqual(self.get('/api/decisions')[1]['decisions'][0]['response']['run'], old['response']['run'])
+        self.question['question'] = 'A different question with the same id?'
+        self.write_question()
+        self.assertIsNone(self.get('/api/decisions')[1]['decisions'][0]['response'])
+
+    def test_concurrent_answer_has_one_run(self):
+        results = []
+        threads = [threading.Thread(target=lambda: results.append(self.answer_report())) for _ in range(5)]
+        for thread in threads: thread.start()
+        for thread in threads: thread.join()
+        self.assertTrue(all(status == 200 for status, _ in results), results)
+        self.assertEqual(len({p['decision']['response']['run'] for _, p in results}), 1)
+        self.assertEqual(len(self.app.store.all()), 1)
+
+    def test_cross_project_isolation(self):
+        self.answer_report()
+        other_project = self.base / 'another-project'
+        other_project.mkdir()
+        other = actions.Actions(other_project, port=8765, studio=self.studio, adapters={})
+        self.apps.append(other)
+        self.assertIsNone(self.get('/api/decisions', other)[1]['decisions'][0]['response'])
+
+    def test_missing_assistant_retains_answer_and_handoff(self):
+        self.app.close()
+        app = self.make(adapters_={})
+        status, result = self.answer_report(app=app)
+        self.assertEqual(status, 200)
+        row = result['decision']
+        run = app.wait(row['response']['run'], ['waiting_for_person'], timeout=4)
+        self.assertEqual(run['mode'], 'handoff')
+        self.assertEqual(self.get('/api/decisions', app)[1]['decisions'][0]['response']['label'], 'Keep it')
+
+    def test_failure_retry_preserves_choice_and_single_run(self):
+        os.environ['FAKE_MODE'] = 'fail'
+        row = self.answer_report()[1]['decision']
+        run = row['response']['run']
+        self.assertEqual(self.app.wait(run, ['failed'], 5)['state'], 'failed')
+        os.environ['FAKE_MODE'] = 'slow'
+        os.environ['FAKE_SECONDS'] = '0.2'
+        self.assertEqual(self.post(f'/api/runs/{run}/retry')[0], 200)
+        self.assertEqual(self.app.wait(run, ['done'], 5)['state'], 'done')
+        self.assertEqual(self.get('/api/decisions')[1]['decisions'][0]['response']['option'], 'a')
+        self.assertEqual(len(self.app.store.all()), 1)
+        argv = [json.loads(line) for line in (self.base / 'argv.jsonl').read_text().splitlines() if '-p' in json.loads(line)]
+        self.assertTrue(all('mcp__eaos__fix_edit' not in call[call.index('--allowedTools') + 1:call.index('--disallowedTools')] for call in argv))
+
+    def test_revision_is_independent_of_presentation_language(self):
+        self.question['revision'] = 'source-question-v1'
+        self.write_question()
+        run = self.answer_report()[1]['decision']['response']['run']
+        self.question['question'] = 'أي تصميم؟'
+        self.question['options'][0]['label'] = 'احتفظ به'
+        self.write_question()
+        self.assertEqual(self.get('/api/decisions')[1]['decisions'][0]['response']['run'], run)
+
+
+class RemoteLocks(unittest.TestCase):
+    def test_exact_remote_host_with_tokens_csrf_and_origin(self):
+        origin = 'https://engineering-audit-os--8095.dev.remote.e-m.sa'
+        locks = security.Locks(8095, remote_origin=origin)
+        headers = {'Host': origin[8:], 'Origin': origin, 'X-EAOS-Token': locks.token, 'X-EAOS-CSRF': locks.csrf}
+        self.assertIsNone(locks.check('POST', '/api/decisions/d/answer', headers))
+        for changed in ({'Host': 'other--8095.dev.remote.e-m.sa'}, {'Origin': 'https://evil.example'}, {'X-EAOS-CSRF': 'bad'}, {'X-EAOS-Token': 'bad'}):
+            self.assertIsNotNone(locks.check('POST', '/api/decisions/d/answer', {**headers, **changed}))
+        for value in ('https://*.dev.remote.e-m.sa', 'http://engineering-audit-os--8095.dev.remote.e-m.sa', 'https://evil.example'):
+            with self.assertRaises(ValueError): security.Locks(8095, remote_origin=value)

@@ -34,3 +34,13 @@ describe('recommendedOption', () => {
     expect(recommendedOption(d)).toBeUndefined()
   })
 })
+
+describe('decision identity and recommendation', () => {
+  const base = { id: 'd', state: 'waiting' as const, answer: null, tool: null, plan: null, question: 'q', blocks: [] }
+  it('uses a stable recommended option independently of translated labels', () => {
+    expect(recommendedOption({ ...base, recommendation: 'unrelated prose', recommended_option: 'yes', options: [{ id: 'yes', label: 'نعم' }] })?.id).toBe('yes')
+  })
+  it('does not invent a recommendation when a label match is ambiguous', () => {
+    expect(recommendedOption({ ...base, recommendation: 'Yes: go on', options: [{ id: 'a', label: 'Yes' }, { id: 'b', label: 'Yes' }] })).toBeUndefined()
+  })
+})
