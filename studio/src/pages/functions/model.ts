@@ -67,7 +67,7 @@ export function useSection<T>(data: StudioData, name: string): Slot<T> {
     let on = true
     const token = liveToken()
     const read: Promise<T | undefined> = token
-      ? fetch(`/api/sections/${encodeURIComponent(name)}`, { headers: { 'X-EAOS-Token': token }, cache: 'no-store', credentials: 'omit' })
+      ? fetch(`/api/sections/${encodeURIComponent(name)}`, { headers: { 'X-EAOS-Token': token }, cache: 'no-store', credentials: 'same-origin' })
         .then((r) => (r.ok ? (r.json() as Promise<T>) : undefined), () => undefined)
       : held<T>(name) ? Promise.resolve(held<T>(name)) : script(name).then(() => held<T>(name))
     read.then((value) => { if (on) setSlot(value ? { kind: 'ready', value } : { kind: 'absent' }) })

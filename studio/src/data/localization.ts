@@ -29,7 +29,7 @@ export function localizeReport(loaded: Loaded, lang: Lang, locale?: ReportLocale
 export async function loadReportLocale(): Promise<ReportLocale | undefined> {
   const token = liveToken()
   if (token) {
-    const response = await fetch('/api/locales/en', { headers: { 'X-EAOS-Token': token }, cache: 'no-store', credentials: 'omit' })
+    const response = await fetch('/api/locales/en', { headers: { 'X-EAOS-Token': token }, cache: 'no-store', credentials: 'same-origin' })
     return response.ok ? await response.json() as ReportLocale : undefined
   }
   return await script('locale') ? window.EAOS_LOCALE : undefined

@@ -28,7 +28,7 @@ function preset<T>(name: string): T | undefined {
 async function fetchSection<T>(name: string): Promise<T | undefined> {
   const token = liveToken()
   if (token) {
-    const answer = await fetch(`/api/sections/${encodeURIComponent(name)}`, { headers: { 'X-EAOS-Token': token }, cache: 'no-store', credentials: 'omit' })
+    const answer = await fetch(`/api/sections/${encodeURIComponent(name)}`, { headers: { 'X-EAOS-Token': token }, cache: 'no-store', credentials: 'same-origin' })
     return answer.ok ? ((await answer.json()) as T) : undefined
   }
   await script(name)

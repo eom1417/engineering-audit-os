@@ -33,8 +33,10 @@ export interface LiveEvent {
 
 export type LiveStatus = 'connecting' | 'connected' | 'reconnecting' | 'refused'
 
+// Same-origin credentials: a remote Studio sits behind a sign-in whose cookie must reach the server with every
+// call (omitting it made the sign-in turn each API call away). The API itself trusts only its token headers.
 async function get(token: string, path: string): Promise<Response> {
-  return fetch(path, { headers: { 'X-EAOS-Token': token }, cache: 'no-store', credentials: 'omit' })
+  return fetch(path, { headers: { 'X-EAOS-Token': token }, cache: 'no-store', credentials: 'same-origin' })
 }
 
 /** The whole report from the server; a section whose sha256 did not change is kept from `previous`. */
@@ -95,7 +97,7 @@ export function subscribe(token: string, onEvent: (event: LiveEvent | null) => v
       try {
         const headers: Record<string, string> = { 'X-EAOS-Token': token, Accept: 'text/event-stream' }
         if (last) headers['Last-Event-ID'] = last
-        const response = await fetch('/api/events', { headers, cache: 'no-store', credentials: 'omit', signal: controller.signal })
+        const response = await fetch('/api/events', { headers, cache: 'no-store', credentials: 'same-origin', signal: controller.signal })
         if (response.status === 401) { onStatus('refused'); return }
         if (!response.ok || !response.body) throw new Error(`events: ${response.status}`)
         onStatus('connected')

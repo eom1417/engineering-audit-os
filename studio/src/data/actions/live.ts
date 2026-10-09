@@ -41,7 +41,7 @@ export function liveClient(token: string): ActionsClient {
       headers['Content-Type'] = 'application/json'
       headers['X-EAOS-CSRF'] = await session()
     }
-    const response = await fetch(path, { method, headers, body: method === 'POST' ? JSON.stringify(body ?? {}) : undefined, cache: 'no-store', credentials: 'omit' })
+    const response = await fetch(path, { method, headers, body: method === 'POST' ? JSON.stringify(body ?? {}) : undefined, cache: 'no-store', credentials: 'same-origin' })
     let payload: Record<string, unknown> = {}
     try { payload = await response.json() } catch { payload = {} }
     if (response.status === 403 && /csrf/i.test(String(payload.error)) && !retried) {
@@ -104,7 +104,7 @@ export function liveClient(token: string): ActionsClient {
           try {
             const headers: Record<string, string> = { 'X-EAOS-Token': token, Accept: 'text/event-stream' }
             if (last > 0) headers['Last-Event-ID'] = String(last)
-            const response = await fetch(`/api/runs/${encodeURIComponent(id)}/events`, { headers, cache: 'no-store', credentials: 'omit', signal: controller.signal })
+            const response = await fetch(`/api/runs/${encodeURIComponent(id)}/events`, { headers, cache: 'no-store', credentials: 'same-origin', signal: controller.signal })
             if (response.status === 401 || response.status === 404) { onStatus('closed'); return }
             if (!response.ok || !response.body) throw new Error(`events: ${response.status}`)
             onStatus('open')
