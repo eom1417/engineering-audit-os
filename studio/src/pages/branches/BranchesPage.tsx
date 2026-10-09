@@ -13,6 +13,7 @@ import { Sheet, SheetLead, SheetSub } from '../../components/Sheet'
 import { useActions } from '../../data/actions/store'
 import { ActionError, type BranchDetail, type BranchRow, type DeletePreview, type Inventory, type MergePreview, type Reason, type Run, type RunLink } from '../../data/actions/types'
 import { labelOf } from '../../data/actions/derive'
+import { STATE_WORDS } from '../../data/actions/contract'
 import { useStudio } from '../../data/context'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, N, When } from '../../i18n/text'
@@ -76,7 +77,7 @@ function RunLinks({ runs }: { runs: RunLink[] }) {
   if (!runs.length) return null
   return (
     <ul className={css.runLinks}>
-      {runs.slice(0, 6).map((run) => <li key={run.id + run.role}><Go to={`/runs/${encodeURIComponent(run.id)}`} className={css.inlineLink}>{labelOf(run.label, lang)}</Go> <span className={css.muted}>· {run.state}</span></li>)}
+      {runs.slice(0, 6).map((run) => <li key={run.id + run.role}><Go to={`/runs/${encodeURIComponent(run.id)}`} className={css.inlineLink}>{labelOf(run.label, lang)}</Go> <span className={css.muted}>· {STATE_WORDS[run.state]?.[lang] ?? run.state}</span></li>)}
     </ul>
   )
 }
@@ -94,6 +95,7 @@ function MergePanel({ row, target, onDone }: { row: BranchRow; target: string | 
   const load = useCallback(async () => {
     if (!api) return
     setError(null)
+    setAck(false)                       // an acknowledgement belongs to the preview it was given for
     try { setPreview(await api.previewMerge(row.name, target)) } catch (problem) { setError(problem instanceof Error ? problem.message : String(problem)) }
   }, [api, row.name, target])
   useEffect(() => { void load() }, [load])
@@ -223,6 +225,7 @@ function Drawer({ row, base, onClose, onChanged }: { row: BranchRow; base: strin
   const commands = detail?.commands ?? {}
   return (
     <Sheet isOpen onOpenChange={(open) => { if (!open) onClose() }} title={w('details', { b: row.name })}>
+      <div className={[css.tall, css.drawerBody].join(' ')}>
       <Badges row={row} />
       {error && <p role="alert" className={css.error}>{error}</p>}
       {followed && <RescanStatus run={followed} error={null} />}
@@ -233,7 +236,7 @@ function Drawer({ row, base, onClose, onChanged }: { row: BranchRow; base: strin
           ['Commit', <Id value={row.tip} />],
           [w('lastCommit'), row.last_commit ? <><When iso={row.last_commit} /> · {row.subject}</> : '—'],
           [w('base'), detail.base ? <Id value={detail.base} /> : '—', !detail.base],
-          [w('lineage'), detail.lineage ? <>{detail.lineage.parent ?? '—'}{detail.lineage.parent_commit ? <> @ <Id value={detail.lineage.parent_commit.slice(0, 12)} /></> : null} · {detail.lineage.evidence}</> : w('lineageUnknown'), !detail.lineage],
+          [w('lineage'), detail.lineage ? <>{detail.lineage.parent ?? '—'}{detail.lineage.parent_commit ? <> @ <Id value={detail.lineage.parent_commit.slice(0, 12)} /></> : null} · {detail.lineage.evidence}{detail.lineage.recorded_at ? <> · <When iso={detail.lineage.recorded_at} /></> : null}</> : w('lineageUnknown'), !detail.lineage],
           [w('checks'), detail.checks.status === 'passed' ? w('checksPassed', { c: detail.checks.commit.slice(0, 12) }) : detail.checks.status === 'failed' ? w('checksFailed', { c: detail.checks.commit.slice(0, 12) }) : w('checksNone')],
           [w('destination'), <>{detail.destination.recommended ? w('recommended', { b: detail.destination.recommended }) : '—'} · {detail.destination.confirmed ? w('confirmedInto', { b: detail.destination.confirmed.branch }) : w('notMergedYet')}</>],
         ]} />
@@ -270,6 +273,7 @@ function Drawer({ row, base, onClose, onChanged }: { row: BranchRow; base: strin
       </>}
       {!detail && !error && <p className={css.muted}>…</p>}
       <span className="sr" aria-live="polite">{followed ? labelOf(followed.label, lang) : ''}</span>
+      </div>
     </Sheet>
   )
 }
@@ -366,7 +370,7 @@ function LiveBranches() {
     <>
       {inventory.context && <Panel className={css.contextPanel}><ContextRows context={inventory.context} /></Panel>}
       <div className={css.toolbar}>
-        <Segmented label={w('branches')} value={show} onChange={(next) => set({ show: next })} options={[{ id: 'work', label: w('work') }, { id: 'all', label: w('all') }]} />
+        <Segmented comfortable label={w('branches')} value={show} onChange={(next) => set({ show: next })} options={[{ id: 'work', label: w('work') }, { id: 'all', label: w('all') }]} />
         <SearchField label={w('searchBranches')} placeholder={w('searchBranches')} value={q} onChange={(next) => { setQ(next); set({ q: next || undefined }) }} />
         <label className={css.baseSelect}>
           <span>{w('base')}</span>
@@ -433,7 +437,7 @@ export function BranchesPage() {
   const actions = useActions()
   usePageChrome(w('branches'), undefined, data?.manifest.project.name)
   return (
-    <div className={layout.page} data-page="branches">
+    <div className={[layout.page, css.tall].join(' ')} data-page="branches">
       <PageTitle title={w('branches')} lead={w('branchesLead')} />
       {live.api ? <LiveBranches /> : actions.mode === 'live' ? <Panel><p className={css.muted}>…</p></Panel> : <SnapshotBranches />}
     </div>

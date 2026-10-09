@@ -40,7 +40,7 @@ export function FreshnessChip({ freshness, onPress, count }: { freshness: Freshn
   const { t } = usePrefs()
   const { tone, word } = FRESH[freshness] ?? FRESH.unknown
   return <ChipButton tone={tone} onPress={onPress} aria-label={`${t('isScanCurrent')} ${t(word, { n: count ?? 0 })}`} data-fresh={freshness}>
-    {t(word, { n: count ?? 0 })}</ChipButton>
+    <span className={css.chipText}>{t(word, { n: count ?? 0 })}</span></ChipButton>
 }
 
 const SEV_BARS: Record<Severity, number> = { low: 1, medium: 2, high: 3, critical: 4 }

@@ -228,7 +228,7 @@ export function ResultFacts({ result }: { result: RunResult }) {
         {result.diff_stat && <div><dt>{w('changes')}</dt><dd className="num">{w('filesCount', { n: result.diff_stat.files })}<span aria-hidden="true">·</span><bdi dir="ltr" className={css.stat}>+{result.diff_stat.insertions} −{result.diff_stat.deletions}</bdi></dd></div>}
         {result.tests && <div><dt>{w('tests')}</dt><dd>{result.tests.passed === false ? <Chip tone="critical">{w('failed')}</Chip> : <Chip tone="good">{w('passed')}</Chip>}<span className={css.factSub}><Txt>{result.tests.summary}</Txt></span></dd></div>}
       </dl>
-      {result.cards_closed.length > 0 && (
+      {(result.cards_closed ?? []).length > 0 && (
         <section className={css.closed} aria-label={w('cardsClosed', { n: result.cards_closed.length })}>
           <h3 className={css.subTitle}>{w('cardsClosed', { n: result.cards_closed.length })}</h3>
           <ul className={css.chips}>

@@ -108,6 +108,7 @@ export function BranchSwitcher({ isOpen, onOpenChange }: { isOpen: boolean; onOp
   const { name } = useAnalysisName()
   return (
     <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={w('switchBranch')}>
+      <div className={[css.tall, css.drawerBody].join(' ')}>
       {live.context && <ContextRows context={live.context} />}
       {!live.api && <SheetLead>{w('readOnlySnapshot')}</SheetLead>}
       {live.api && <SheetLead>{w('selectLead')}</SheetLead>}
@@ -138,6 +139,7 @@ export function BranchSwitcher({ isOpen, onOpenChange }: { isOpen: boolean; onOp
         </ul>
       )}
       <span onClick={() => onOpenChange(false)} className={css.allLinkWrap}><Go to="/branches" className={css.allLink}><Icon name="branch" />{w('allBranchesLink')}</Go></span>
+      </div>
     </Sheet>
   )
 }

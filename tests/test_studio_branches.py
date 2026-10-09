@@ -271,7 +271,7 @@ class Deleting(Repo):
         self.assertIsNone(preview['confirm_unmerged'])
         status, out = self.post('/api/branches/delete', {'branch': 'eaos/task-1', 'tip': preview['tip'], 'unmerged': False, 'confirm': preview['confirm']['token']})
         self.assertEqual(status, 200, out)
-        recovery = out['run']['result']['recovery']
+        recovery = out['run']['result']['answer']['recovery']
         self.assertEqual(git(self.project, 'rev-parse', f'refs/eaos-recovery/{recovery}'), self.work_tip)
         self.assertIsNone(self.row('eaos/task-1'))
         status, out = self.post('/api/branches/restore', {'recovery': recovery})
@@ -353,6 +353,14 @@ class Freshness(Repo):
         self.scanned()
         guided.save({**guided.load(self.project), 'branch': 'main'})
         self.assertEqual(self.fresh()['state'], 'other_branch')
+        self.app.studio = self.base / 'studio'
+        (self.app.studio).mkdir(exist_ok=True)
+        (self.app.studio / 'manifest.json').write_text(json.dumps({'scanned': {'branch': 'develop', 'commit': git(self.project, 'rev-parse', 'develop'),
+                                                                              'at': '2026-10-09T08:00:00+00:00', 'recorded': True, 'detached': False}}))
+        guided.choose(guided.load(self.project), 'eaos/task-1')
+        found = self.fresh()
+        self.assertEqual((found['state'], found['scanned_branch'], found['branch']), ('other_branch', 'develop', 'eaos/task-1'))
+        guided.choose(guided.load(self.project), 'main')
         legacy = {k: v for k, v in guided.load(self.project).items() if k not in ('scanned_commit', 'scanned_branch', 'scanned_detached', 'scanned_dirty')}
         guided.save(legacy)
         found = self.fresh()

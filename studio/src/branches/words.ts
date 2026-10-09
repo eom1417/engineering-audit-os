@@ -116,6 +116,7 @@ export const BRANCH_WORDS = {
   actedOn: ['عمل على: {b}', 'Acted on: {b}'],
   // freshness sheet
   freshFreshLead: ['الفرع ما زال عند الـcommit الذي فُحص، بلا تعديلات غير محفوظة.', 'The branch is still at the commit that was checked, with no unsaved changes.'],
+  freshFreshDetached: ['الكود المفتوح (HEAD منفصل) ما زال عند الـcommit الذي فُحص، بلا تعديلات غير محفوظة.', 'The checkout (a detached HEAD) is still at the commit that was checked, with no unsaved changes.'],
   freshEaosOnly: ['بعد الفحص جاءت فقط تعديلات EAOS المعتمدة، فالفحص ما زال صالحًا.', 'Only EAOS\'s own accepted fixes came after the scan, so it still holds.'],
   freshBehindLead: ['جاء بعد الفحص {c} commit غيّرت {f} ملف:', '{c} commit(s) came after the scan, changing {f} file(s):'],
   freshRewrittenLead: ['الـcommit الذي فُحص لم يعد في تاريخ هذا الفرع (إعادة كتابة أو reset أو force-push): التقرير قد لا يطابق الكود.', 'The scanned commit is no longer in this branch\'s history (a rewrite, reset or force-push): the report may not match the code.'],

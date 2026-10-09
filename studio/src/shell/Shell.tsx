@@ -160,7 +160,7 @@ function TopBar({ project, current, onPalette, onProject, onScan, onBranches }:
       <div className={css.phone}>
         {back
           ? <Go to={back.to} search={back.search} className={css.back}><Icon name="back" size={20} /><span>{back.label}</span></Go>
-          : <><BranchChip onPress={onBranches} /><Freshness onScan={onScan} /></>}
+          : <span className={css.phoneChips}><BranchChip onPress={onBranches} /><Freshness onScan={onScan} /></span>}
         <span className={css.phoneSpacer} />
         <IconButton icon="search" label={t('search')} onPress={onPalette} />
         <IconButton icon="more" label={t('projectAndDisplay')} onPress={onProject} data-open="project" />

@@ -31,7 +31,14 @@ export function useRescan() {
     if (!actions.client || actions.mode !== 'live') return
     setBusy(true); setError(null)
     try {
-      const made = await actions.client.start({ action: 'audit', inputs: {} })
+      // The scan runs on the analysed branch: pinned first when it was only implied by the checkout, so the audit never
+      // stops to ask which branch to read
+      const ctx = live.context
+      let made: Run
+      if (live.api && ctx?.analysis.branch && !ctx.analysis.selected) {
+        const chosen = await live.api.select(ctx.analysis.branch, true, ctx.analysis.tip)
+        made = chosen.scan ?? chosen.run
+      } else made = await actions.client.start({ action: 'audit', inputs: {} })
       setRun(made)
       await actions.refresh()
     } catch (problem) {
@@ -45,10 +52,13 @@ export function RescanStatus({ run, error }: { run: Run | null; error: string | 
   const w = useBranchWords()
   if (error) return <p role="alert" className={css.error}>{error}</p>
   if (!run) return null
-  const word = run.state === 'queued' ? 'rescanSaved' : run.state === 'done' ? 'rescanDone' : ['failed', 'stopped'].includes(run.state) ? 'rescanFailed' : 'rescanRunning'
-  const tone = run.state === 'done' ? 'good' : ['failed', 'stopped'].includes(run.state) ? 'critical' : 'accent'
+  // a tool can end its run with a question instead of the work (needs_branch, busy): that is not done
+  const asked = String(((run.result?.answer ?? {}) as { status?: unknown }).status ?? '')
+  const unfinished = run.state === 'done' && ['needs_branch', 'busy', 'needs_agreement', 'not_set_up'].includes(asked)
+  const word = run.state === 'queued' ? 'rescanSaved' : run.state === 'done' && !unfinished ? 'rescanDone' : ['failed', 'stopped'].includes(run.state) || unfinished ? 'rescanFailed' : 'rescanRunning'
+  const tone = run.state === 'done' && !unfinished ? 'good' : ['failed', 'stopped'].includes(run.state) || unfinished ? 'critical' : 'accent'
   return (
-    <div className={css.status} role="status" aria-live="polite" data-run-state={run.state}>
+    <div className={css.status} role="status" aria-live="polite" data-run-state={unfinished ? `done:${asked}` : run.state}>
       <Chip tone={tone}>{w(word)}</Chip>
       <Go to={`/runs/${encodeURIComponent(run.id)}`} className={css.inlineLink}>{w('openRun', { id: run.id })}</Go>
     </div>
@@ -86,7 +96,7 @@ function Lead({ fresh, view }: { fresh: LiveFreshness | null; view: NonNullable<
   const detail = data?.head?.freshness_detail
   const behind = fresh?.behind ?? detail?.behind ?? null
   switch (view.state) {
-    case 'fresh': return <SheetLead>{fresh?.behind?.eaos_only ? w('freshEaosOnly') : w('freshFreshLead')}</SheetLead>
+    case 'fresh': return <SheetLead>{fresh?.behind?.eaos_only ? w('freshEaosOnly') : fresh?.scanned_detached ? w('freshFreshDetached') : w('freshFreshLead')}</SheetLead>
     case 'behind':
     case 'branch_moved':
       return <>
@@ -139,6 +149,7 @@ export function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenCha
   const otherBranch = view.state === 'other_branch' && fresh?.branch
   return (
     <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={t('isScanCurrent')}>
+      <div className={[css.tall, css.drawerBody].join(' ')}>
       <Lead fresh={fresh} view={view} />
       {live.offline && <p className={css.note} role="status">{w('freshUnknownLead', { why: w('whyOffline') })}</p>}
       <Props rows={rows} />
@@ -169,6 +180,7 @@ export function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenCha
           <Button variant="secondary" icon="copy" onPress={async () => toast((await copyText(text)) ? w('copied') : t('copyFailed'))}>{w('copyFallback')}</Button>
         </details>
       )}
+      </div>
     </Sheet>
   )
 }

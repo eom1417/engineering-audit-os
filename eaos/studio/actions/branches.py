@@ -225,7 +225,7 @@ class BranchControl:
                    'base': wave.get('target'), 'base_commit': wave.get('base'), 'recorded_tip': wave.get('tip') or (entry or {}).get('tip'),
                    'run': (entry or {}).get('run')}
         else:
-            out = {'owner': 'eaos', 'kind': entry.get('kind') or 'task', 'evidence': f"EAOS provenance record ({entry.get('kind') or 'task'}, {entry.get('at')})",
+            out = {'owner': 'eaos', 'kind': entry.get('kind') or 'task', 'evidence': f"EAOS provenance record ({entry.get('kind') or 'task'})", 'recorded_at': entry.get('at'),
                    'base': entry.get('base'), 'base_commit': entry.get('base_commit'), 'recorded_tip': entry.get('tip'), 'run': entry.get('run')}
         start = out['base_commit']
         foreign = None
@@ -265,7 +265,7 @@ class BranchControl:
             work = work_of(row)
             summary = {'id': row['id'], 'state': row.get('state'), 'label': row.get('label'), 'created': row.get('created'), 'action': row.get('action')}
             if work: links.setdefault(work, []).append({**summary, 'role': 'work'})
-            if context.get('analysis_branch') and context.get('analysis_branch') != work:
+            if context.get('analysis_branch') and context.get('analysis_branch') != work and not row.get('branch_op'):
                 links.setdefault(context['analysis_branch'], []).append({**summary, 'role': 'base'})
             for name in (row.get('branch_op') or {}).get('branches') or []:
                 if name not in (work, context.get('analysis_branch')): links.setdefault(name, []).append({**summary, 'role': 'operation'})
@@ -407,7 +407,8 @@ class BranchControl:
         commands = self.commands(row, inventory)
         return {'branch': row, 'base': inventory['base'], 'base_tip': base_tip, 'commits': commits, 'commits_truncated': len(commits) >= COMMITS_SHOWN,
                 'files': files, 'files_total': len(files), 'diff': diff, 'diff_cut': cut, 'checks': self.checks_of(name, tip),
-                'runs': row['runs'], 'lineage': {'parent': owner.get('base'), 'parent_commit': owner.get('base_commit'), 'evidence': owner.get('evidence')}
+                'runs': row['runs'], 'lineage': {'parent': owner.get('base'), 'parent_commit': owner.get('base_commit'), 'evidence': owner.get('evidence'),
+                                                  'recorded_at': owner.get('recorded_at')}
                 if owner['owner'] != 'unknown' else None,
                 'destination': {'recommended': owner.get('base'), 'confirmed': confirmed}, 'commands': commands, 'checked_at': now()}
 
@@ -508,8 +509,11 @@ class BranchControl:
         return run
 
     def _finish(self, run, ok, text, data, outcome=None):
-        self.store.append(run, 'result' if ok else 'error', text, data if ok else {**data, 'recoverable': True})
-        fields = {'result': data, **({'outcome': outcome} if outcome else {})}
+        # the standard run result (runs.py), in the run and in its result event, so every page reads a branch operation
+        # like any run: it made no work branch of its own; what it did is the answer
+        result = {'branch': None, 'diff_stat': None, 'tests': None, 'cards_closed': [], 'indicators': [], 'answer': data}
+        self.store.append(run, 'result' if ok else 'error', text, result if ok else {**data, 'recoverable': True})
+        fields = {'result': result, **({'outcome': outcome} if outcome else {})}
         self.manager.set_state(run, 'done' if ok else 'failed', '' if ok else str(data.get('reason') or '')[:200], **fields)
         return self.actions.public(self.store.load(run))
 
@@ -878,6 +882,12 @@ class BranchControl:
         state = self.state()
         if not state: return {'state': 'unknown', 'reason': 'not_scanned', 'checked_at': now(), 'eaos_updated': False}
         found = reading.freshness(state)
+        if found['reason'] == 'not_scanned':
+            # the analysis branch has no scan of its own yet, but the report on screen is another branch's: say so
+            shown = self.context(state)['report']
+            if shown['commit'] and shown['branch'] != found['branch']:
+                found = {**found, 'state': 'other_branch', 'reason': 'analysis_branch_not_scanned', 'scanned_commit': shown['commit'],
+                         'scanned_branch': shown['branch'], 'scanned_detached': shown['detached'], 'scanned_at': shown['at'], 'recorded': shown['recorded']}
         stamp = {}
         try:
             from ... import guided

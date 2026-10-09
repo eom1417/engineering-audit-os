@@ -5,6 +5,9 @@
   background: var(--bg-surface); white-space: nowrap;
 }
 button.chip, a.chip { cursor: pointer; min-block-size: 28px; }
+/* a chip's words shrink with an ellipsis where the header is narrow; the full words are in its label */
+.chipText { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-inline-size: 0; }
+button.chip { max-inline-size: 100%; }
 button.chip[data-hovered], a.chip:hover { background: var(--bg-hover); }
 button.chip[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .dot { inline-size: 7px; block-size: 7px; border-radius: 50%; background: currentColor; flex: none; }

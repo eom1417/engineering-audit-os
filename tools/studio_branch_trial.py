@@ -299,14 +299,17 @@ class Trial:
         self.case(B, 'dirty_checkout_reported', context['dirty'] == {'tracked': 1, 'untracked': 0}, f"context dirty {context['dirty']}")
         self.case(B, 'dirty_target_refused', 'dirty_target' in [r['code'] for r in dirty_preview['blocked']] and dirty_preview['confirm'] is None,
                   f"merge preview into the dirty checked-out develop: {[r['code'] for r in dirty_preview['blocked']]}; confirm token {dirty_preview['confirm']}")
-        git(project, 'remote', 'rename', 'origin', 'away')
+        git(project, 'remote', 'remove', 'origin')
         try:
             lone = api.get('/api/branches')[1]
-            self.case(B, 'no_origin_valid_state', lone['git'] and not lone['has_origin'] and lone['default'] == {'name': None, 'source': None}
-                      and lone['branches'] and all(r['kind'] == 'local' or r['remote'] == 'away' for r in lone['branches']),
-                      f"has_origin {lone['has_origin']}; default {lone['default']}; {len(lone['branches'])} branches, local ones listed")
+            self.case(B, 'no_origin_valid_state', lone['git'] and not lone['has_origin'] and lone['remotes'] == [] and lone['default'] == {'name': None, 'source': None}
+                      and lone['branches'] and all(r['kind'] == 'local' for r in lone['branches']),
+                      f"no remote at all: has_origin {lone['has_origin']}, remotes {lone['remotes']}, default {lone['default']} (unknown, not guessed); "
+                      f"{len(lone['branches'])} local branches listed")
         finally:
-            git(project, 'remote', 'rename', 'away', 'origin')
+            git(project, 'remote', 'add', 'origin', str(self.origin))
+            git(project, 'fetch', '-q', 'origin')
+            git(project, 'remote', 'set-head', 'origin', 'main')
 
     def selection_cases(self):
         B = 'branch-control'
@@ -315,14 +318,20 @@ class Trial:
         status, chosen = api.post('/api/branches/analysis', {'branch': 'eaos/not-ours'})
         after = git(project, 'rev-parse', 'HEAD'), git(project, 'symbolic-ref', '--short', 'HEAD')
         api.post('/api/branches/analysis', {'branch': 'develop'})
-        self.case(B, 'select_analysis_without_checkout_change', status == 200 and before == after and chosen['context']['analysis']['branch'] == 'eaos/not-ours',
-                  f"analysis -> {chosen['context']['analysis']['branch']}; checkout {before} == {after}; run {chosen['run']['id']} {chosen['run']['state']}; back to develop")
-        # an in-flight run: a handoff explain run waits for the person
-        cards = [c['id'] for c in json.loads((Path(self.ctx.report) / 'studio' / 'cards.json').read_text())['cards']][:1] if (Path(self.ctx.report) / 'studio' / 'cards.json').is_file() else []
-        run = api.post('/api/runs', {'action': 'explain', 'verb': 'explain', 'selection': {'kind': 'cards', 'cards': cards}, 'assistant': 'handoff'})[1].get('run')
+        analysis = (chosen.get('context') or {}).get('analysis', {}).get('branch')
+        self.case(B, 'select_analysis_without_checkout_change', status == 200 and before == after and analysis == 'eaos/not-ours',
+                  f"analysis -> {analysis}; checkout {before} == {after}; run {(chosen.get('run') or {}).get('id')} {(chosen.get('run') or {}).get('state')}; "
+                  f"{chosen.get('error') or ''} back to develop")
+        # an in-flight run: a real scan started from the Studio (the code moved since the last one)
+        commit(project, 'IN-FLIGHT.md', 'a change so the scan has work to do\n', 'owner change before a scan')
+        made = api.post('/api/runs', {'action': 'audit', 'inputs': {}})
+        run = made[1].get('run')
+        if not run: self.notes.append(f'in-flight run not created: {made}')
+        time.sleep(1)
         refused = api.post('/api/branches/analysis', {'branch': 'main'})
+        if refused[0] == 200: api.post('/api/branches/analysis', {'branch': 'develop'})
         kept = api.get(f"/api/runs/{run['id']}")[1]['run'] if run else {}
-        if run: api.post(f"/api/runs/{run['id']}/stop")
+        if run: api.wait_run(run['id'])
         self.case(B, 'in_flight_runs_not_retargeted', run and refused[0] == 409 and refused[1].get('needs') == 'in_flight' and kept['context']['analysis_branch'] == 'develop'
                   and self.state().get('branch') in (None, 'develop'),
                   f"run {run and run['id']} {kept.get('state')} on {kept.get('context', {}).get('analysis_branch')}; choosing main: {refused[0]} {refused[1].get('needs')}")
@@ -380,7 +389,7 @@ class Trial:
         p = self.preview('eaos/task-1', 'develop')
         status, done = self.merge(p)
         self.merged_run = (done.get('run') or {}).get('id')
-        self.notes.append(f"task merge: {status} {(done.get('run') or {}).get('outcome')} via {(done.get('run') or {}).get('result', {}).get('via')}")
+        self.notes.append(f"task merge: {status} {(done.get('run') or {}).get('outcome')} via {(done.get('run') or {}).get('result', {}).get('answer', {}).get('via')}")
 
     def guard_cases(self):
         B = 'branch-control'
@@ -414,7 +423,7 @@ class Trial:
         api, project = self.api, self.project
         p = api.post('/api/branches/delete/preview', {'branch': 'eaos/task-1'})[1]
         status, done = api.post('/api/branches/delete', {'branch': 'eaos/task-1', 'tip': p['tip'], 'unmerged': p['unmerged'], 'confirm': (p['confirm'] or {}).get('token')})
-        recovery = (done.get('run') or {}).get('result', {}).get('recovery')
+        recovery = (done.get('run') or {}).get('result', {}).get('answer', {}).get('recovery')
         kept = git(project, 'rev-parse', f'refs/eaos-recovery/{recovery}', check=False) if recovery else ''
         self.case(B, 'merged_branch_deleted_with_recovery_ref', p['unmerged'] is False and status == 200 and kept == p['tip']
                   and not git(project, 'rev-parse', '--verify', '--quiet', 'refs/heads/eaos/task-1', check=False),
@@ -436,7 +445,7 @@ class Trial:
         self.case(B, 'unmerged_delete_needs_extra_confirmation', p['unmerged'] and [c['commit'] for c in p['lost_commits']] == [lone] and first[0] == 403
                   and first[1].get('needs') == 'confirm_unmerged' and still == lone and second[0] == 200,
                   f"lost-commit preview {[c['commit'][:12] for c in p['lost_commits']]}; one confirmation: {first[0]} {first[1].get('needs')} (branch kept); "
-                  f"with the second: {second[0]}, recovery {(second[1].get('run') or {}).get('result', {}).get('recovery')}")
+                  f"with the second: {second[0]}, recovery {(second[1].get('run') or {}).get('result', {}).get('answer', {}).get('recovery')}")
         # remote deletion: its own consent
         git(project, 'branch', 'eaos/task-5', 'develop')
         git(project, 'switch', '-q', 'eaos/task-5')
@@ -453,7 +462,7 @@ class Trial:
         gone = not git(self.origin, 'rev-parse', '--verify', '--quiet', 'refs/heads/eaos/task-5', check=False)
         self.case(B, 'remote_delete_separate_consent', wrong[0] == 403 and on_origin == five and right[0] == 200 and gone and git(project, 'rev-parse', 'eaos/task-5') == five,
                   f"the local deletion's consent used for the remote: {wrong[0]} {wrong[1].get('needs')} (origin kept); the remote's own consent: {right[0]}, "
-                  f"gone on origin {gone}, local branch kept, recovery {(right[1].get('run') or {}).get('result', {}).get('recovery')}")
+                  f"gone on origin {gone}, local branch kept, recovery {(right[1].get('run') or {}).get('result', {}).get('answer', {}).get('recovery')}")
 
     def wave_cases(self):
         """One real managed EAOS batch, started and finished from the Studio's command centre, accepted from Branches."""
@@ -463,7 +472,7 @@ class Trial:
         api = self.api
         from eaos import agent_tools
         started = []
-        for action, inputs in (('run_setup', {'person_agreed': True}), ('fix_start', {}), ('fix_finish', {})):
+        for action, inputs in (('run_setup', {'person_agreed': True}), ('safety_net', {}), ('fix_start', {}), ('fix_finish', {})):
             preview = api.post(f'/api/actions/{action}/preview', {'inputs': inputs})[1]
             status, made = api.post('/api/runs', {'action': action, 'inputs': inputs, 'confirm': (preview.get('confirm') or {}).get('token')})
             run = api.wait_run(made['run']['id']) if status == 200 else {'state': f'refused {status} {made}'}
@@ -485,10 +494,16 @@ class Trial:
         api = self.api
         totals = (ledger(self.state()) or {}).get('totals')
         built = guided.report_stamp(self.state()).get('built')
+        studio_data = Path(self.ctx.report) / 'studio'
+        card_state = lambda: {c['id']: c.get('state') for c in json.loads((studio_data / 'cards.json').read_text()).get('cards') or [] if c['id'] in (wave.get('kept') or [])}
+        sections = lambda: {e['name']: e['sha256'] for e in json.loads((studio_data / 'manifest.json').read_text())['sections']}
+        cards_before, sections_before = card_state(), sections()
         p = self.preview(branch, 'develop')
         status, done = self.merge(p)
         after_totals = (ledger(self.state()) or {}).get('totals')
         after_built = guided.report_stamp(self.state()).get('built')
+        cards_after = card_state()
+        changed = sorted(name for name, sha in sections().items() if sections_before.get(name) != sha)
         again = api.post('/api/branches/merge/preview', {'source': branch, 'target': 'develop'})
         accept_again = agent_tools.accept(str(self.project), person_agreed=True)
         once_totals = (ledger(self.state()) or {}).get('totals')
@@ -496,10 +511,11 @@ class Trial:
         history = [w for w in self.state().get('waves') or [] if w.get('branch') == branch]
         self.case(B, 'managed_wave_accept_report_ledger_exactly_once',
                   p['path'] == 'accept' and status == 200 and (done.get('run') or {}).get('outcome') == 'accepted' and (after_totals or {}).get('done', 0) == (totals or {}).get('done', 0) + len(wave.get('kept') or [])
-                  and after_built != built and again[0] in (404, 409, 400) and accept_again.get('status') == 'nothing_waiting' and once_totals == after_totals
+                  and all(v == 'done' for v in cards_after.values()) and cards_after != cards_before and changed and again[0] in (404, 409, 400) and accept_again.get('status') == 'nothing_waiting' and once_totals == after_totals
                   and len(history) == 1 and history[0].get('status') == 'accepted',
                   f"batch {wave['number']} on {branch} made by Studio runs {[r.get('id') for r in started]}; preview path {p['path']}; merge {status} outcome "
-                  f"{(done.get('run') or {}).get('outcome')}; ledger done {(totals or {}).get('done')} -> {(after_totals or {}).get('done')}; report built {built} -> {after_built}; "
+                  f"{(done.get('run') or {}).get('outcome')}; ledger done {(totals or {}).get('done')} -> {(after_totals or {}).get('done')}; report built {built} -> {after_built}, "
+                  f"cards in the report {cards_before} -> {cards_after}, report sections rewritten {changed}; "
                   f"a second merge {again[0]}, a second accept {accept_again.get('status')}, ledger then {once_totals}; wave records {len(history)} ({history[0].get('status') if history else None})")
         self.case(B, 'run_branch_relation_restart_and_deleted_ref', linked.get('name') == branch and linked.get('state') == 'exists' and relinked == linked
                   and gone.get('state') in ('merged_and_deleted', 'deleted') and gone.get('recorded_tip') == linked.get('recorded_tip'),
@@ -582,6 +598,7 @@ def runnable(project):
     """The fixture's start script names api/server.js, which it does not ship: a tiny real HTTP server there, so the
     app answers and EAOS can record its screens (run_setup, then the batch's gates)."""
     (project / 'package.json').write_text(json.dumps({'name': 'shop', 'version': '1.0.0', 'private': True, 'scripts': {'start': 'node api/server.js'}}, indent=1) + '\n')
+    (project / '.env.example').write_text('PORT=3000\n')
     (project / 'api/server.js').write_text(
         "const http = require('http')\nconst port = Number(process.env.PORT || 3000)\n"
         "http.createServer((req, res) => { res.setHeader('content-type', 'text/html; charset=utf-8'); "

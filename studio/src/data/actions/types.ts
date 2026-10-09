@@ -309,7 +309,7 @@ export interface BranchDetail {
   diff_cut: boolean
   checks: { status: 'passed' | 'failed' | 'not_recorded'; commit: string; at?: string; summary?: string; source?: string }
   runs: RunLink[]
-  lineage: { parent: string | null; parent_commit: string | null; evidence: string | null } | null
+  lineage: { parent: string | null; parent_commit: string | null; evidence: string | null; recorded_at?: string | null } | null
   destination: { recommended: string | null; confirmed: { branch: string; at?: string; via?: string; commit?: string } | null }
   commands: Record<string, { available: boolean; blocked: Reason[] }>
 }

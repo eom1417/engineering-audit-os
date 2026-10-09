@@ -11,6 +11,12 @@
 .branchChip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .branchName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-inline-size: 0; font-family: var(--font-mono); }
 
+/* Every control on these surfaces is at least 44px on every width, not only on the phone */
+.drawerBody { display: flex; flex-direction: column; gap: 14px; }
+.tall button, .tall select, .tall input, .tall summary, .tall a[href] { min-block-size: 44px; }
+/* the shared segmented control is 40px "comfortable" on desktop: these surfaces keep 44 there too */
+.tall [role=radio][class] { min-block-size: 44px; }
+
 /* ---------- Shared pieces ---------- */
 .muted { color: var(--text-tertiary); font-size: 13px; }
 .note { padding: 10px 12px; border-radius: var(--radius-8); background: var(--status-warning-subtle); color: var(--status-warning-text); line-height: 1.5; }
@@ -18,7 +24,7 @@
 .status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .inlineLink { display: inline-flex; align-items: center; min-block-size: 44px; color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
 .badges { display: inline-flex; flex-wrap: wrap; gap: 4px; }
-.files { display: flex; flex-direction: column; gap: 4px; font-size: 13px; max-block-size: 240px; overflow-y: auto; padding-inline-start: 4px; }
+.files { display: flex; flex-direction: column; gap: 4px; font-size: 13px; padding-inline-start: 4px; }
 .files li { overflow-wrap: anywhere; }
 .actions { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .req { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px; border-radius: var(--radius-8); background: var(--bg-sunken); color: var(--text-secondary); }
@@ -81,4 +87,8 @@
 @media (max-width: 899px) {
   .tableWrap { display: none; }
   .cards { display: flex; }
+}
+
+@media (max-width: 767px) {
+  .branchChip { max-inline-size: 132px; padding-inline: 8px; }
 }
