@@ -209,6 +209,12 @@ def collect(args):
     read = lambda path: json.loads(Path(path).read_text(encoding='utf-8'))
     determinism, engines, killed, cost = read(args.determinism), read(args.determinism_engines), read(args.kill), read(args.overhead)
     counted_steps = cost.get('counted_steps') or {}
+    stages = {}
+    if args.overhead_dir:
+        for name in ('on', 'off'):
+            manifest = Path(args.overhead_dir) / name / 'run-manifest.json'
+            if manifest.is_file(): stages[name] = {k: v['seconds'] for k, v in read(manifest)['stages'].items()}
+    outside = {name: round(sum(s for k, s in rows.items() if k != 'engines'), 2) for name, rows in stages.items()}
     record = {
         'contract': 1, 'at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
         'I2_corpus': judge(args.corpus_report), 'I2_develop': cost.get('fold_equals_manifest'),
@@ -221,6 +227,10 @@ def collect(args):
                        'differ_between_two_runs_with_progress': len(engines['on_vs_on']['differ'])},
         'I7': {'project': cost['project'], 'overhead_measured': cost['overhead_measured'], 'overhead_bound': cost['overhead_bound'],
                'bound_parts': cost['bound_parts'], 'file_bytes': cost['file_bytes'], 'lines': cost['lines'],
+               'engines_seconds': {name: rows.get('engines') for name, rows in stages.items()},
+               'seconds_outside_engines': outside,
+               'overhead_measured_outside_engines': round((outside['on'] - outside['off']) / outside['off'], 4)
+               if outside.get('on') and outside.get('off') else None,
                'runs': {k: {'manifest_seconds': v.get('manifest_seconds'), 'exit': v['exit']} for k, v in cost['runs'].items()}},
         'I8': {k: killed[k] for k in ('project', 'stage', 'state_before_kill', 'running_stage_at_kill',
                                       'seconds_to_interrupted_same_machine', 'seconds_to_stalled_other_machine')},
@@ -248,6 +258,7 @@ def main(argv=None):
     four = sub.add_parser('collect')
     for name in ('--determinism', '--determinism-engines', '--kill', '--overhead', '--corpus-report'):
         four.add_argument(name, required=True)
+    four.add_argument('--overhead-dir', help='the overhead workdir, for each run\'s stage seconds')
     args = parser.parse_args(argv)
     run = {'overhead': overhead, 'kill': kill, 'collect': collect, 'judge': lambda a: judge(a.report)}[args.command]
     record = run(args)
