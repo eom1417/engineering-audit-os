@@ -2,15 +2,9 @@
 // what separates each component from the ideal, and the operations that close it in the order the plan runs them
 // (eaos/studio/change.py). A closure the cards do not measure is null, never 0.
 import type { Measure } from './measure'
-import type { Relation } from './types'
 
 export type ChangeOp = 'retain' | 'refactor' | 'rebuild' | 'merge' | 'delete' | 'new'
 export type OpState = 'todo' | 'active' | 'done' | 'blocked' | 'regressed'
-
-/** The contract's operation as the operation chip names it (the chip predates contract v2's words). */
-export const RELATION_OF: Record<ChangeOp, Relation> = {
-  retain: 'retain', refactor: 'modify', rebuild: 'rebuild', merge: 'merge', delete: 'delete', new: 'introduce',
-}
 
 export interface Gap {
   id: string

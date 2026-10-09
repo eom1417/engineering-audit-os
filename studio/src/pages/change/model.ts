@@ -5,9 +5,14 @@
 import { useEffect, useState } from 'react'
 import type { ChangeOp, Gap, Operation, OpState } from '../../data/change'
 import { script } from '../../data/load'
-import type { Plan, PlanStep, Story, StudioData } from '../../data/types'
+import type { Plan, PlanStep, Relation, Story, StudioData } from '../../data/types'
 import type { WordKey } from '../../i18n/catalog'
 import type { Timeline } from '../paths/model'
+
+/** The contract's operation as the operation chip names it (the chip predates contract v2's words). */
+export const RELATION_OF: Record<ChangeOp, Relation> = {
+  retain: 'retain', refactor: 'modify', rebuild: 'rebuild', merge: 'merge', delete: 'delete', new: 'introduce',
+}
 
 /** The operation chip's word for each operation of the contract. */
 export const OP_LABEL: Record<ChangeOp, WordKey> = {
