@@ -1,0 +1,82 @@
+{
+ "tool": "fonttools==4.60.1",
+ "files": {
+  "plex-arabic-400": {
+   "source": "@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-400-normal.woff2",
+   "source_sha256": "6010e7fd0dce5d527583951750728cbe3c895efbd16aa0f809ab8c824878c9d8",
+   "unicode_range": "U+0600-06FF, U+200C-200E, U+2010-2011, U+204F, U+2E41",
+   "sha256": "a7c3802277d45c5c05e05de424419c62b277f78f7acadc892076995dfd17494a",
+   "bytes": 28904
+  },
+  "plex-arabic-ext-400": {
+   "source": "@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-400-normal.woff2",
+   "source_sha256": "6010e7fd0dce5d527583951750728cbe3c895efbd16aa0f809ab8c824878c9d8",
+   "unicode_range": "U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC",
+   "sha256": "a24a3c2d31b99a517f000c0fd715581764848d8e4a206a2240b0f4ec56985fb5",
+   "bytes": 27064
+  },
+  "plex-latin-400": {
+   "source": "@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-400-normal.woff2",
+   "source_sha256": "9ed8dcb02e6c7246de4c120295fafa39a7bb73085f4951a4524a07dc911069f2",
+   "unicode_range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+   "sha256": "d8e29e7062d4c1137593521c8a1e1b4a765f2e3d1b4b417995c474ea244a694d",
+   "bytes": 18568
+  },
+  "plex-arabic-500": {
+   "source": "@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-500-normal.woff2",
+   "source_sha256": "90aef64fea9794f232332e907d45810ab268d1a11721340025eba2a2cdb36d5c",
+   "unicode_range": "U+0600-06FF, U+200C-200E, U+2010-2011, U+204F, U+2E41",
+   "sha256": "14035d2ce15c819097aae8f486da2060346b252b8adaaa01d95a62a782d982eb",
+   "bytes": 30592
+  },
+  "plex-arabic-ext-500": {
+   "source": "@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-500-normal.woff2",
+   "source_sha256": "90aef64fea9794f232332e907d45810ab268d1a11721340025eba2a2cdb36d5c",
+   "unicode_range": "U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC",
+   "sha256": "44f0d729f98ca5f2ff5d4b3920d168ab6536d55908e17b0955d04f8a6f2fab64",
+   "bytes": 29080
+  },
+  "plex-latin-500": {
+   "source": "@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-500-normal.woff2",
+   "source_sha256": "be6a3b2e37f3ad67aa822a55ce356d28c416331c97530a1ec076c2118240ca2d",
+   "unicode_range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+   "sha256": "ee37de10eaa371f011a573307adc1571a5d2287ee27e19167c538f6bf5977b7c",
+   "bytes": 19564
+  },
+  "plex-arabic-600": {
+   "source": "@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-600-normal.woff2",
+   "source_sha256": "16734a5adb27b0f363e566cbbeacec480da0dc0baa19c8f0053251c2e2bc0eac",
+   "unicode_range": "U+0600-06FF, U+200C-200E, U+2010-2011, U+204F, U+2E41",
+   "sha256": "0eeac9edb4f461bf18b7578ab880c84182d0a91105e637b7e7a0eb9cce56d972",
+   "bytes": 31056
+  },
+  "plex-arabic-ext-600": {
+   "source": "@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-600-normal.woff2",
+   "source_sha256": "16734a5adb27b0f363e566cbbeacec480da0dc0baa19c8f0053251c2e2bc0eac",
+   "unicode_range": "U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC",
+   "sha256": "0847f9a0347a6532dbe1befbb9bcc2fe3ee9b97d5a4b10864395d7ef8c2a8b69",
+   "bytes": 29408
+  },
+  "plex-latin-600": {
+   "source": "@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-latin-600-normal.woff2",
+   "source_sha256": "63f4757271e403f7baec0862f284ffaa4560ea6096ba9fe8bc6e585ca656e724",
+   "unicode_range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+   "sha256": "032c5426ec46dcef022c42e5b06942f161d033386e98b526d908df27dee08426",
+   "bytes": 19984
+  },
+  "plex-mono-400": {
+   "source": "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2",
+   "source_sha256": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7",
+   "unicode_range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+   "sha256": "9e6e72e43fd619db28486cf418df5ca87264356002294b21792f3fe05bcbf97c",
+   "bytes": 13600
+  },
+  "plex-mono-500": {
+   "source": "@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-500-normal.woff2",
+   "source_sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+   "unicode_range": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+   "sha256": "c3eaba388d3c3e58315d9e833b071d3e790ae641b1d6ccc344ebd23b7bdde41f",
+   "bytes": 13892
+  }
+ }
+}

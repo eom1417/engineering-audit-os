@@ -108,3 +108,34 @@ Mono, plus Arabic when the Studio speaks Arabic) over HTTP; a file:// page reads
 test keeps each preloaded name a shipped font of style.css. Lighthouse FCP 1.8 s to 1.05 s, LCP unchanged.
 
 Home folds its secondary decisions at six with "Show all N" (DESIGN.md list folding, two phone screens).
+
+## Unicode-range font subsets (Claude Code, 2026-10-09)
+
+Before Home's largest paint the browser downloaded the design's seven font files, 210 KB (Fontsource's Arabic file
+of each weight carries Arabic Supplement, Extended-A/B and the presentation forms beside the Arabic block). DESIGN.md
+keeps its families (IBM Plex Sans Arabic, IBM Plex Mono) and weights (400/500/600): the fonts are cut, not changed.
+
+**Candidates**
+
+| Candidate | Licence | Version checked (2026-10-09) | Maintenance |
+|---|---|---|---|
+| fontTools `pyftsubset` (fonttools/fonttools) | MIT | 4.60.1 | Active, monthly releases; the subsetter Google Fonts and Fontsource themselves use |
+| `subset-font` (npm, harfbuzzjs + wawoff2) | BSD-3-Clause | 2.9.0 | Maintained by one author; a new npm dependency in the build for a cut that changes only when Fontsource does |
+| glyphhanger (npm, Puppeteer + pyftsubset) | MIT | 6.0.0 | Last published 2026-06; needs a headless browser and still shells out to fontTools |
+| Fontsource's own range files only | OFL-1.1 | 5.3.0 (already pinned) | The Arabic file mixes the common block with the rare ranges, so every Arabic page reads both |
+
+**Decision**: adopt fontTools as a development tool, not a runtime or build dependency. `tools/studio_fonts.py` cuts
+each pinned Fontsource file into four range files (Arabic block; rarer Arabic ranges and presentation forms; Latin
+and punctuation, which Arabic pages need for digits; Mono) and commits them with `src/design/fonts/SOURCE.json`
+(the digests of the Fontsource sources and outputs; `--check` runs without fontTools and in
+`tests/test_studio_assets.py`). Outputs are byte-reproducible (`recalcTimestamp=False`). Hinting, outlines, advances,
+kerning and every OpenType feature are kept: an unhinted cut saved 41 KB more on an Arabic first view but changed
+Chrome's glyph rasterisation and line wrapping on Linux (Problems on the phone grew 21–103 px), so it was rejected;
+with hinting the phone and desktop screenshots of Home, Problems and Decisions in Arabic and English are
+pixel-identical to the Fontsource files. Each face keeps `font-display: swap`; a local fallback face sized to Plex's
+metrics (`size-adjust`, `ascent-override`, `descent-override`) sits next in `--font-sans`/`--font-mono` so the swap
+does not move the text. boot.js preloads only the first view's faces (Latin 400/500/600 and Mono 400, plus Arabic
+400/500/600 in Arabic); the rare Arabic ranges are read only when text contains them. file:// keeps working: the
+files are local assets like before. Arabic first view: 209 KB of fonts to 162 KB.
+
+**Pinned**: `fonttools@4.60.1`, `brotli@1.1.0` (Python, development only, installed by `tools/dev_setup.sh`).

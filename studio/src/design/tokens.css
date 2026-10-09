@@ -9,8 +9,8 @@
   --orange-1: #fdf1e8; --orange-2: #f9d7bd; --orange-3: #f2ab78; --orange-4: #e07a35; --orange-5: #c2560e;
   --aqua: #1597a5; --violet: #7c5fd6; --red: #d33a3a; --green: #2f8f4e; --amber: #b7791f;
 
-  --font-sans: "IBM Plex Sans Arabic", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-sans: "IBM Plex Sans Arabic", "IBM Plex Sans Arabic Fallback", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", "IBM Plex Mono Fallback", ui-monospace, monospace;
 
   --space-2: 2px; --space-4: 4px; --space-8: 8px; --space-12: 12px; --space-16: 16px; --space-20: 20px;
   --space-24: 24px; --space-32: 32px; --space-40: 40px; --space-56: 56px;

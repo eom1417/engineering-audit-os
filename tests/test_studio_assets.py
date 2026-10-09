@@ -5,6 +5,8 @@ import hashlib
 import json
 import os
 import re
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -80,7 +82,7 @@ class Shipped(unittest.TestCase):
 
     def test_the_fonts_ship_with_their_licence(self):
         fonts = sorted(p.name for p in (SHIPPED / 'assets').glob('*.woff2'))
-        self.assertTrue(any('arabic-arabic' in name for name in fonts) and any('mono' in name for name in fonts), fonts)
+        self.assertTrue(any(name.startswith('plex-arabic-') for name in fonts) and any('mono' in name for name in fonts), fonts)
         self.assertIn('SIL Open Font License', (SHIPPED / 'assets/FONT-LICENSE.txt').read_text(encoding='utf-8'))
         style = (SHIPPED / 'assets/style.css').read_text(encoding='utf-8')
         for font in fonts:
@@ -89,7 +91,7 @@ class Shipped(unittest.TestCase):
     def test_boot_preloads_only_fonts_the_stylesheet_uses(self):
         # public/boot.js starts the first view's fonts beside the script: each must be a shipped font of style.css
         boot = (SHIPPED / 'boot.js').read_text(encoding='utf-8')
-        preloaded = re.findall(r"'(ibm-plex-[a-z0-9-]+-normal)'", boot)
+        preloaded = re.findall(r"'(plex-[a-z]+-[0-9]+)'", boot)
         self.assertGreaterEqual(len(preloaded), 4, preloaded)
         style = (SHIPPED / 'assets/style.css').read_text(encoding='utf-8')
         for name in preloaded:
@@ -110,6 +112,16 @@ class Source(unittest.TestCase):
         found = [f'{p.relative_to(STUDIO)}:{n}' for p in (STUDIO / 'src').rglob('*.css') if p.name != 'tokens.css'
                  for n, line in enumerate(p.read_text(encoding='utf-8').splitlines(), 1) if re.search(r'#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(', line)]
         self.assertEqual(found, [])
+
+    def test_the_subset_fonts_are_the_recorded_cuts_of_the_pinned_fontsource_files(self):
+        # tools/studio_fonts.py cuts each Fontsource face into unicode ranges; fonts.css declares each file once with
+        # the range it was cut to, so a page downloads only what its text uses
+        done = subprocess.run([sys.executable, str(ROOT / 'tools/studio_fonts.py'), '--check'], capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        record = json.loads((STUDIO / 'src/design/fonts/SOURCE.json').read_text(encoding='utf-8'))['files']
+        css = (STUDIO / 'src/design/fonts.css').read_text(encoding='utf-8')
+        for name, entry in record.items():
+            self.assertIn(f"url('./fonts/{name}.woff2') format('woff2'); unicode-range: {entry['unicode_range']};", css, name)
 
     def test_every_dependency_is_pinned_to_one_version(self):
         package = json.loads((STUDIO / 'package.json').read_text(encoding='utf-8'))
