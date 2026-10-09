@@ -91,21 +91,94 @@ class RuleThirteenTests(unittest.TestCase):
 class SingleWriterTests(unittest.TestCase):
     """One artifact, one module. Two writers is how the system map was silently emptied."""
 
-    def _writers(self, kind=contract.DOCUMENT):
-        """Modules that actually call write_text on a path naming a declared artifact."""
+    def _writers(self, kind=contract.DOCUMENT, source=Path('eaos')):
+        """Compare report-relative paths, including local directory aliases, rather than basenames."""
         writers = {}
-        for path in sorted(Path('eaos').rglob('*.py')):
-            tree = ast.parse(path.read_text(encoding='utf-8'))
-            for node in ast.walk(tree):
-                if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+
+        def relative_path(node, aliases, seen=frozenset()):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                return node.value
+            if isinstance(node, ast.Name):
+                if node.id in aliases and node.id not in seen:
+                    return relative_path(aliases[node.id], aliases, seen | {node.id})
+                return ''  # The report root is supplied by the caller.
+            if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+                left = relative_path(node.left, aliases, seen)
+                right = relative_path(node.right, aliases, seen)
+                return '/'.join(part.strip('/') for part in (left, right) if part)
+            if isinstance(node, ast.Call):
+                if isinstance(node.func, ast.Name) and node.func.id == 'Path' and node.args:
+                    return relative_path(node.args[0], aliases, seen)
+                # The node API owns this directory, never the report root (core.folder_of).
+                if (isinstance(node.func, ast.Attribute) and node.func.attr == 'folder_of'
+                        and isinstance(node.func.value, ast.Name) and node.func.value.id == 'core'):
+                    return 'nodes/<node>'
+            return '<dynamic>'
+
+        def scan(scope, inherited):
+            aliases = dict(inherited)
+            nodes = []
+            def visit(node):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    return
+                nodes.append(node)
+                for child in ast.iter_child_nodes(node):
+                    visit(child)
+            for statement in scope.body:
+                visit(statement)
+            for node in sorted(nodes, key=lambda item: getattr(item, 'lineno', 0)):
+                if isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            aliases[target.id] = node.value
+                if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
                         and node.func.attr == 'write_text'):
-                    continue
-                for inner in ast.walk(node.func.value):
-                    if (isinstance(inner, ast.Constant) and isinstance(inner.value, str)
-                            and inner.value in contract.BY_NAME
-                            and contract.BY_NAME[inner.value].kind == kind):
-                        writers.setdefault(inner.value, set()).add(path.as_posix())
+                    # Keep the contract's explicit artifact-name write sites; resolve their directory.
+                    if not any(isinstance(part, ast.Constant) and isinstance(part.value, str)
+                               and part.value in contract.BY_NAME for part in ast.walk(node.func.value)):
+                        continue
+                    name = relative_path(node.func.value, aliases)
+                    if name in contract.BY_NAME and contract.BY_NAME[name].kind == kind:
+                        writers.setdefault(name, set()).add(path.as_posix())
+            for statement in scope.body:
+                if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    local = dict(aliases)
+                    if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        for arg in (*statement.args.posonlyargs, *statement.args.args, *statement.args.kwonlyargs):
+                            local.pop(arg.arg, None)
+                    scan(statement, local)
+
+        for path in sorted(source.rglob('*.py')):
+            scan(ast.parse(path.read_text(encoding='utf-8')), {})
         return writers
+
+    def test_nested_plans_do_not_become_root_writers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            for name, code in {
+                'root': "(report / 'plan.json').write_text('root')",
+                'behavior': "folder = report / 'behavior-lock'\n(folder / 'plan.json').write_text('nested')",
+                'ideal': "folder = Path(report) / 'ideal'\nalias = folder\n(alias / 'plan.json').write_text('nested')",
+                'node': "folder = core.folder_of(report, record['node'])\n(folder / 'plan.json').write_text('nested')",
+                'direct': "(report / 'nodes' / 'planner' / 'plan.json').write_text('nested')",
+                'joined': "(report / 'ideal/plan.json').write_text('nested')",
+            }.items():
+                (source / (name + '.py')).write_text(code, encoding='utf-8')
+            self.assertEqual(self._writers(contract.RECORD, source),
+                             {'plan.json': {(source / 'root.py').as_posix()},
+                              'behavior-lock/plan.json': {(source / 'behavior.py').as_posix()}})
+
+    def test_duplicate_root_writers_remain_visible_without_permission(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            (source / 'first.py').write_text("(report / 'plan.json').write_text('one')", encoding='utf-8')
+            (source / 'second.py').write_text(
+                "def write(report):\n    root = Path(report)\n    (root / 'plan.json').write_text('two')\n"
+                "    root = report / 'ideal'\n    (root / 'plan.json').write_text('nested')", encoding='utf-8')
+            writers = self._writers(contract.RECORD, source)
+            self.assertEqual(writers['plan.json'],
+                             {(source / 'first.py').as_posix(), (source / 'second.py').as_posix()})
+            self.assertFalse(contract.BY_NAME['plan.json'].mutated_by)
 
     def test_no_document_is_named_for_writing_by_two_unrelated_modules(self):
         offenders = {name: sorted(paths) for name, paths in self._writers().items() if len(paths) > 1}
