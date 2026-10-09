@@ -35,7 +35,7 @@ export function ListTools({ shown }: { shown: string[] }) {
           {all ? w('clearSelection') : w('selectShown', { n: shown.length })}
         </Button>
       )}
-      <Button variant="ghost" icon="layers" onPress={() => command.openGroups(true)}>{w('selectGroup')}</Button>
+      <Button variant="ghost" icon="layers" onPress={() => command.openGroups(true)} data-hook="select-group">{w('selectGroup')}</Button>
     </div>
   )
 }

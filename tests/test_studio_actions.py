@@ -587,6 +587,7 @@ class Direct(Base):
         record = {'id': 'r-fix', 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'done', 'label': {'en': 'x', 'ar': 'x'},
                   'created': '0', 'result': {'branch': 'eaos/wave-1'}}
         self.app.store.save(record, new=True)
+        self.app.manager.newest_waiting = lambda: 'eaos/wave-1'
         self.assertEqual(self.post('/api/runs/r-fix/accept', {})[0], 403)
         wrong = self.post('/api/actions/undo/preview')[1]['confirm']['token']
         self.assertEqual(self.post('/api/runs/r-fix/accept', {'confirm': wrong})[0], 403)
@@ -596,6 +597,24 @@ class Direct(Base):
         self.assertEqual(calls, [('accept', {'person_agreed': True, 'project': str(self.project.resolve())})])
         self.assertEqual(self.app.store.load('r-fix')['outcome'], 'accepted')
         self.assertEqual(self.post('/api/runs/r-fix/accept', {'confirm': token})[0], 403)
+
+    def test_undo_after_accept_and_a_decision_on_another_runs_branch_are_refused(self):
+        self.app.manager.tools, calls = self.fake_tools({'undo': {'status': 'nothing_to_undo'}, 'accept': {'status': 'accepted'}})
+        for run, branch, outcome in (('r-old', 'eaos/wave-1', 'accepted'), ('r-two', 'eaos/wave-2', None), ('r-three', 'eaos/wave-3', None)):
+            self.app.store.save({'id': run, 'action': 'fix', 'verb': 'fix', 'mode': 'assistant', 'state': 'done', 'label': {'en': 'x', 'ar': 'x'},
+                                 'created': '0', 'result': {'branch': branch}, **({'outcome': outcome} if outcome else {})}, new=True)
+        self.app.manager.newest_waiting = lambda: 'eaos/wave-3'
+        undo = lambda run: self.post(f'/api/runs/{run}/undo', {'confirm': self.post('/api/actions/undo/preview')[1]['confirm']['token']})
+        self.assertEqual(undo('r-old')[0], 409)
+        self.assertEqual(undo('r-two')[0], 409)
+        self.assertEqual(calls, [])
+        self.app.manager.newest_waiting = lambda: None
+        self.assertEqual(undo('r-three')[0], 409)
+        self.app.manager.newest_waiting = lambda: 'eaos/wave-3'
+        status, payload = undo('r-three')
+        self.assertEqual(status, 200, payload)
+        self.assertNotIn('outcome', self.app.store.load('r-three'))
+        self.assertEqual(self.kinds('r-three')[-1], 'error')
 
 
 class Handoff(Base):

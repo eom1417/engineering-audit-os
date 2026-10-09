@@ -3,7 +3,9 @@
 import type { ReactNode } from 'react'
 import { Icon } from '../components/Icon'
 import { Panel, Skeleton, StateMessage } from '../components/Panel'
-import { CopyRequestButton } from '../components/Button'
+import { Button, CopyRequestButton } from '../components/Button'
+import { useCommandMaybe } from '../command/command'
+import { useActionsMaybe } from '../data/actions/store'
 import { useLoaded } from '../data/context'
 import type { StudioData } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
@@ -15,12 +17,19 @@ export { css as layout }
 export function WithData({ children }: { children: (data: StudioData) => ReactNode }) {
   const loaded = useLoaded()
   const { t, lang } = usePrefs()
+  const command = useCommandMaybe()
+  const live = useActionsMaybe()?.mode === 'live' && command !== null
   if (loaded.kind === 'loading') return <div className={css.page}><Panel><Skeleton label={t('loading')} /></Panel></div>
   if (loaded.kind === 'empty') {
     const request = lang === 'ar' ? 'افحص هذا المشروع بأداة audit من EAOS، ثم افتح الاستوديو من مجلد التقرير.' : 'Check this project with the EAOS audit tool, then open the Studio from the report folder.'
+    // Live, the check starts from here (its preview first); the request to copy stays as the secondary way
     return (
       <div className={css.page}>
-        <Panel><StateMessage title={t('emptyTitle')} sub={t('emptySub')} action={<div><CopyRequestButton request={request} tool="audit" /></div>} /></Panel>
+        <Panel><StateMessage title={t('emptyTitle')} sub={t(live ? 'emptySubLive' : 'emptySub')} action={
+          <div className={css.emptyActions}>
+            {live && <Button variant="primary" icon="play" data-start-action="audit" onPress={() => command?.open({ action: 'audit' })}>{t('checkNow')}</Button>}
+            <CopyRequestButton request={request} tool="audit" />
+          </div>} /></Panel>
       </div>
     )
   }

@@ -4,7 +4,7 @@
 import { Outlet, useRouterState } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
-import { IconButton } from '../components/Button'
+import { Button, IconButton } from '../components/Button'
 import { Badge, FreshnessChip } from '../components/Chip'
 import { Segmented } from '../components/Controls'
 import { Go } from '../components/Go'
@@ -12,7 +12,7 @@ import { Icon } from '../components/Icon'
 import { Props } from '../components/Panel'
 import { Sheet, SheetLead, SheetSub } from '../components/Sheet'
 import { CopyRequestButton } from '../components/Button'
-import { CommandProvider } from '../command/command'
+import { CommandProvider, useCommand } from '../command/command'
 import { CommandHost } from '../command/CommandHost'
 import { useActions } from '../data/actions/store'
 import { counts, useLoaded, useStudio, type Counts } from '../data/context'
@@ -187,6 +187,8 @@ const FRESH_LEAD = { fresh: 'freshFreshLead', branch_moved: 'freshMovedLead', ea
 function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange: (open: boolean) => void }) {
   const { t, date, lang } = usePrefs()
   const data = useStudio()
+  const command = useCommand()
+  const live = useActions().mode === 'live'
   if (!data) return null
   const freshness = data.head?.freshness ?? 'unknown'
   const { scanned, built, project } = data.manifest
@@ -205,6 +207,7 @@ function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange: (o
       {freshness !== 'fresh' && (
         <div className={css.req}>
           <p>{t('askRecheck')}</p>
+          {live && <Button variant="primary" icon="play" data-start-action="audit" onPress={() => { onOpenChange(false); command.open({ action: 'audit', inputs: { fresh: true } }) }}>{t('recheckNow')}</Button>}
           <CopyRequestButton request={request} tool="audit" label={t('copyShort')} />
         </div>
       )}

@@ -546,6 +546,12 @@ class Manager:
         state = guided.load(self.project) or {}
         return {wave['branch'] for wave in state.get('waves') or [] if wave.get('status') == 'applied' and wave.get('branch')}
 
+    def newest_waiting(self):
+        """The branch accept and undo act on: the newest wave still waiting for the person, or None."""
+        from ... import guided
+        state = guided.load(self.project) or {}
+        return next((w.get('branch') for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
+
     def _outcome(self, run, answer=None):
         """The result event's data: the new branch, its diff and its checks, the cards it closes, and the assistant's words."""
         from ... import guided
