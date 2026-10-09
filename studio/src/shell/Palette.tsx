@@ -1,7 +1,7 @@
 // The Cmd/Ctrl-K palette: React Aria's Autocomplete keeps the caret in the field while the arrows move through the
 // results, which come from the Studio's MiniSearch index with Arabic normalisation (src/search).
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Autocomplete, Dialog, Header, ListBox, ListBoxItem, ListBoxSection, Modal, ModalOverlay } from 'react-aria-components'
 import { SearchField } from '../components/Controls'
 import { useCommandMaybe } from '../command/command'
@@ -55,15 +55,29 @@ export function useEntries(): Entry[] {
 
 export function Palette({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange: (open: boolean) => void }) {
   const { t } = usePrefs()
+  return (
+    <ModalOverlay isOpen={isOpen} onOpenChange={onOpenChange} isDismissable className={css.overlay}>
+      <Modal className={css.modal}>
+        <Dialog className={css.dialog} aria-label={t('searchAndCommands')}>
+          <PaletteSearch onOpenChange={onOpenChange} />
+        </Dialog>
+      </Modal>
+    </ModalOverlay>
+  )
+}
+
+/** The palette's field and results, drawn only while it is open: its entries cover every card, so a closed palette
+ * builds none of them, and each opening starts from an empty field. */
+function PaletteSearch({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
+  const { t } = usePrefs()
   const navigate = useNavigate()
   const command = useCommandMaybe()
   const entries = useEntries()
   const index = useMemo(() => buildIndex(entries), [entries])
   const [query, setQuery] = useState('')
-  useEffect(() => { if (!isOpen) setQuery('') }, [isOpen])
   const results = useMemo(() => index.search(query, 40), [index, query])
   // The palette searches the whole report: opening it reads the sections not read yet, and says so meanwhile
-  const waiting = useSections(isOpen ? 'all' : [])
+  const waiting = useSections('all')
   const groups = ORDER.map((kind) => ({ kind, items: results.filter((r) => r.kind === kind) })).filter((g) => g.items.length)
 
   const open = (entry: Entry) => {
@@ -75,35 +89,31 @@ export function Palette({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChang
   }
 
   return (
-    <ModalOverlay isOpen={isOpen} onOpenChange={onOpenChange} isDismissable className={css.overlay}>
-      <Modal className={css.modal}>
-        <Dialog className={css.dialog} aria-label={t('searchAndCommands')}>
-          <Autocomplete inputValue={query} onInputChange={setQuery}>
-            <div className={css.input}>
-              <SearchField label={t('searchAndCommands')} placeholder={t('searchPlaceholder')} value={query} onChange={setQuery} autoFocus />
-            </div>
-            <ListBox className={css.list} aria-label={t('searchAndCommands')} selectionMode="none"
-              onAction={(key) => { const entry = results.find((r) => r.id === key); if (entry) open(entry) }}
-              renderEmptyState={() => <p className={css.empty}>{t('noResults')}</p>}>
-              {groups.map((group) => (
-                <ListBoxSection key={group.kind} id={group.kind} className={css.section}>
-                  <Header className={css.groupTitle}>{t(KIND[group.kind].word)}</Header>
-                  {group.items.map((entry) => (
-                    <ListBoxItem key={entry.id} id={entry.id} textValue={entry.title} className={css.row}>
-                      <Icon name={KIND[entry.kind].icon} />
-                      <span className={css.title}>{entry.kind === 'component' ? <Id value={entry.title} /> : <Txt>{entry.title}</Txt>}</span>
-                      {entry.kind === 'card' && <Id value={entry.id.slice(5)} className={css.kind} />}
-                      {entry.id.startsWith('action:') && <Id value={entry.id.slice(7)} className={css.kind} />}
-                    </ListBoxItem>
-                  ))}
-                </ListBoxSection>
+    <>
+      <Autocomplete inputValue={query} onInputChange={setQuery}>
+        <div className={css.input}>
+          <SearchField label={t('searchAndCommands')} placeholder={t('searchPlaceholder')} value={query} onChange={setQuery} autoFocus />
+        </div>
+        <ListBox className={css.list} aria-label={t('searchAndCommands')} selectionMode="none"
+          onAction={(key) => { const entry = results.find((r) => r.id === key); if (entry) open(entry) }}
+          renderEmptyState={() => <p className={css.empty}>{t('noResults')}</p>}>
+          {groups.map((group) => (
+            <ListBoxSection key={group.kind} id={group.kind} className={css.section}>
+              <Header className={css.groupTitle}>{t(KIND[group.kind].word)}</Header>
+              {group.items.map((entry) => (
+                <ListBoxItem key={entry.id} id={entry.id} textValue={entry.title} className={css.row}>
+                  <Icon name={KIND[entry.kind].icon} />
+                  <span className={css.title}>{entry.kind === 'component' ? <Id value={entry.title} /> : <Txt>{entry.title}</Txt>}</span>
+                  {entry.kind === 'card' && <Id value={entry.id.slice(5)} className={css.kind} />}
+                  {entry.id.startsWith('action:') && <Id value={entry.id.slice(7)} className={css.kind} />}
+                </ListBoxItem>
               ))}
-            </ListBox>
-          </Autocomplete>
-          {waiting.length > 0 && <p className={css.foot} role="status">{t('loadingRest')} {t('loadingParts', { n: waiting.length })}</p>}
-          <div className={css.foot} aria-hidden="true">{t('paletteHint')}</div>
-        </Dialog>
-      </Modal>
-    </ModalOverlay>
+            </ListBoxSection>
+          ))}
+        </ListBox>
+      </Autocomplete>
+      {waiting.length > 0 && <p className={css.foot} role="status">{t('loadingRest')} {t('loadingParts', { n: waiting.length })}</p>}
+      <div className={css.foot} aria-hidden="true">{t('paletteHint')}</div>
+    </>
   )
 }

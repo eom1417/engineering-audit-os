@@ -1,7 +1,7 @@
 // The loaded report, shared by every page; and the few numbers several places show, computed once here.
 // The report comes through one DataSource (source.ts): a snapshot, or the live server, whose events reload the
 // sections that changed and are announced to screen readers in the person's language.
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { createContext, startTransition, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { usePrefs } from '../i18n/prefs'
 import { readSections, withSections, type Loaded } from './load'
 import { loadReportLocale, localizeReport, type ReportLocale } from './localization'
@@ -48,7 +48,7 @@ export function DataProvider({ children, preset, source }: { children: ReactNode
     if (!data || !fresh.length) return
     for (const name of fresh) asked.current.add(name)
     // Sections arrive into the report as it is then (a live reload may have replaced it meanwhile)
-    void readSections(fresh).then(() => setState((was) => was.kind === 'ready' ? { kind: 'ready', data: withSections(was.data, fresh, window.EAOS_STUDIO ?? {}) } : was))
+    void readSections(fresh).then(() => startTransition(() => setState((was) => was.kind === 'ready' ? { kind: 'ready', data: withSections(was.data, fresh, window.EAOS_STUDIO ?? {}) } : was)))
   }, [])
   const displayed = useMemo<Loaded>(() => lang === 'en' && hasEnglish && !locale ? { kind: 'loading' } : localizeReport(state, lang, locale), [state, lang, locale, hasEnglish])
 
@@ -59,7 +59,8 @@ export function DataProvider({ children, preset, source }: { children: ReactNode
     const apply = (next: Loaded) => {
       if (!on) return
       current.current = next.kind === 'ready' ? next.data : null
-      setState(next)
+      // A report is a large tree to draw: as a transition React draws it in slices and the page keeps answering
+      startTransition(() => setState(next))
     }
     // Events are applied one after another, each on the report the one before it left.
     const reload = (event: LiveEvent | null) => {

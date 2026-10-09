@@ -44,6 +44,9 @@ function makePrefs(lang: Lang, theme: Theme, dev: boolean, setLang: (lang: Lang)
   const index = lang === 'ar' ? 0 : 1
   const locale = lang === 'ar' ? 'ar-u-nu-latn' : 'en-GB'
   const numbers = new Intl.NumberFormat(locale)
+  // Building a date format is slow next to using one: each is built on its first use and kept with these prefs
+  let days: Intl.DateTimeFormat | undefined
+  let times: Intl.DateTimeFormat | undefined
   return {
     lang, theme, dev, setLang, setTheme,
     dir: lang === 'ar' ? 'rtl' : 'ltr',
@@ -56,9 +59,11 @@ function makePrefs(lang: Lang, theme: Theme, dev: boolean, setLang: (lang: Lang)
     date(iso, withTime = true) {
       const when = new Date(iso)
       if (Number.isNaN(when.getTime())) return iso
-      const day = new Intl.DateTimeFormat(locale, { day: 'numeric', month: lang === 'ar' ? 'long' : 'short', year: 'numeric', timeZone: 'UTC' }).format(when)
+      days ??= new Intl.DateTimeFormat(locale, { day: 'numeric', month: lang === 'ar' ? 'long' : 'short', year: 'numeric', timeZone: 'UTC' })
+      const day = days.format(when)
       if (!withTime) return day
-      const time = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hourCycle: 'h23' }).format(when)
+      times ??= new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC', hourCycle: 'h23' })
+      const time = times.format(when)
       return `${day}${lang === 'ar' ? '،' : ','} ${time} UTC`
     },
   }

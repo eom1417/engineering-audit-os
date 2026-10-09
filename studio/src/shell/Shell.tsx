@@ -16,7 +16,7 @@ import { CommandProvider } from '../command/command'
 import { CommandHost } from '../command/CommandHost'
 import { useActions } from '../data/actions/store'
 import { counts, useLoaded, useStudio, type Counts } from '../data/context'
-import type { Freshness } from '../data/types'
+import type { Freshness, StudioData } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
 import { Id, N } from '../i18n/text'
 import { useChrome } from './chrome'
@@ -162,6 +162,18 @@ function TopBar({ project, current, freshness, onPalette, onProject, onScan }:
 }
 
 function ProjectSheet({ isOpen, onOpenChange, project }: { isOpen: boolean; onOpenChange: (open: boolean) => void; project: string }) {
+  const { t } = usePrefs()
+  return (
+    <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={project}>
+      <ProjectFacts />
+      <SheetSub>{t('display')}</SheetSub>
+      <div className={css.rowSet}><LanguageAndTheme comfortable /></div>
+    </Sheet>
+  )
+}
+
+/** The project's facts, drawn only while its sheet is open (a closed sheet renders nothing of its body). */
+function ProjectFacts() {
   const { t, date } = usePrefs()
   const data = useStudio()
   const rows: [React.ReactNode, React.ReactNode, boolean?][] = []
@@ -175,28 +187,32 @@ function ProjectSheet({ isOpen, onOpenChange, project }: { isOpen: boolean; onOp
     rows.push([t('branch'), data.manifest.scanned.branch ? <Id value={data.manifest.scanned.branch} /> : t('notRecorded'), !data.manifest.scanned.branch])
     rows.push([t('eaosVersion'), <Id value={data.manifest.built.version} />])
   }
-  return (
-    <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={project}>
-      {rows.length > 0 && <Props rows={rows} />}
-      <SheetSub>{t('display')}</SheetSub>
-      <div className={css.rowSet}><LanguageAndTheme comfortable /></div>
-    </Sheet>
-  )
+  return rows.length > 0 ? <Props rows={rows} /> : null
 }
 
 const FRESH_LEAD = { fresh: 'freshFreshLead', branch_moved: 'freshMovedLead', eaos_updated: 'freshUpdatedLead', unknown: 'freshUnknownLead' } as const
 
 function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange: (open: boolean) => void }) {
-  const { t, date, lang } = usePrefs()
+  const { t } = usePrefs()
   const data = useStudio()
   if (!data) return null
+  return (
+    <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={t('isScanCurrent')}>
+      <ScanFacts data={data} />
+    </Sheet>
+  )
+}
+
+/** The scan's facts and the re-check request, drawn only while its sheet is open. */
+function ScanFacts({ data }: { data: StudioData }) {
+  const { t, date, lang } = usePrefs()
   const freshness = data.head?.freshness ?? 'unknown'
   const { scanned, built, project } = data.manifest
   const request = lang === 'ar'
     ? `أعد فحص ${project.name} بأداة audit من EAOS على الفرع الحالي.`
     : `Run the EAOS audit tool on ${project.name} again, on the current branch.`
   return (
-    <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={t('isScanCurrent')}>
+    <>
       <SheetLead>{t(FRESH_LEAD[freshness])}</SheetLead>
       <Props rows={[
         [t('scanned'), scanned.at ? date(scanned.at) : t('notRecorded'), !scanned.at],
@@ -210,7 +226,7 @@ function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange: (o
           <CopyRequestButton request={request} tool="audit" label={t('copyShort')} />
         </div>
       )}
-    </Sheet>
+    </>
   )
 }
 
