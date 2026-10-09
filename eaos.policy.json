@@ -111,6 +111,7 @@
       "eaos/runtime_baseline.py",
       "eaos/execute.py",
       "eaos/guided.py",
+      "eaos/places.py",
       "eaos/live_setup.py",
       "eaos/local_db.py",
       "eaos/waves.py",
