@@ -45,3 +45,4 @@ one is its record.
 | The data paths map and the infrastructure lens | [studio-map-data.md](studio-map-data.md) |
 | NS46.T9 command centre: action API and assistant launcher | [ns46-t9-command-centre.md](ns46-t9-command-centre.md) |
 | The pipeline map's engine (stages, value flow, routers, declared DAGs, CI and build chains) | [ns46-t12-pipeline-engine.md](ns46-t12-pipeline-engine.md) |
+| NS46.T4 Library reader, History and EAOS quality | [ns46-t4-library-history-quality.md](ns46-t4-library-history-quality.md) |
