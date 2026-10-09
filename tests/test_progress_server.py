@@ -221,7 +221,7 @@ class Watch(Checked):
     def test_an_address_not_opened_is_given_to_the_person(self):
         self.open.return_value = {**self.opened, 'opened_in_browser': False}
         answer = agent_tools.audit(str(self.project), fresh=True)
-        self.assertTrue(answer['what_now'].startswith('Give the person the `watch` address'))
+        self.assertTrue(answer['what_now'].startswith('Before anything else, write the person a message with the `watch` address'))
 
     def test_the_work_starts_without_its_map_when_the_studio_cannot(self):
         for broken in ({'side_effect': OSError('no port')}, {'return_value': {'error': 'did not start in time'}}):

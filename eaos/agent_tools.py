@@ -127,8 +127,8 @@ def _start(kind, state, arguments, seconds=WAIT, runner='eaos.agent_tools', watc
     answer = _job_answer(jobs.start(kind, state['project'], arguments, runner=runner), seconds)
     if studio:
         told = ('Tell the person the live map of this work is open in their browser.' if studio['opened_in_browser'] else
-                'Give the person the `watch` address in your next message, even if the work ends first: it shows this work '
-                'live and how it went (only to them: it holds the key of this session).')
+                'Before anything else, write the person a message with the `watch` address, the live map of this work, which '
+                'still shows how it went once it ends (give it only to them: it holds the key of this session).')
         answer.update(watch=studio['studio'], what_now=f"{told} {answer.get('what_now', '')}".strip())
     return answer
 
