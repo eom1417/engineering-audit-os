@@ -140,4 +140,4 @@ def scan_state(report, last_id=None):
     state.pop('pid', None)
     state.pop('host', None)
     from .events import now
-    return {**state, 'now': now(), 'feed_last': last_id}
+    return {**state, 'estimate': progress.estimate(state, time.time()), 'now': now(), 'feed_last': last_id}

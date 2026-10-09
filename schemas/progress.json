@@ -259,6 +259,12 @@
     "reason_code": {
      "type": "string",
      "maxLength": 80
+    },
+    "artifact": {
+     "description": "What this step produced, relative to the flow's folder: a recorded screen's shot.",
+     "type": "string",
+     "minLength": 1,
+     "maxLength": 300
     }
    },
    "required": [

@@ -34,11 +34,12 @@ def using(stepper):
         _current.reset(token)
 
 
-def step(name, done, total, status=RUNNING, seconds=None, reason='', reason_code=''):
-    """One named item of the stage: `done` of `total` items of the stage are finished. No-op outside a run."""
+def step(name, done, total, status=RUNNING, seconds=None, reason='', reason_code='', artifact=''):
+    """One named item of the stage: `done` of `total` items of the stage are finished; `artifact` is what it produced
+    (a path relative to the flow's folder). No-op outside a run."""
     stepper = _current.get()
     if stepper is None: return
-    try: stepper(name, done, total, status, seconds, reason, reason_code=reason_code)
+    try: stepper(name, done, total, status, seconds, reason, reason_code=reason_code, **({'artifact': artifact} if artifact else {}))
     except Exception:                                   # reporting where a stage is must not change what it does
         pass
 

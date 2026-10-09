@@ -69,6 +69,7 @@ def apply(state, row):
         if 'seconds' in row: found['seconds'] = row['seconds']
         if row.get('reason'): found['reason'] = row['reason']
         if row.get('reason_code'): found['reason_code'] = row['reason_code']
+        if row.get('artifact'): found['artifact'] = row['artifact']
     elif event == 'stage.activity' and stage:
         stage['programs'] = [dict(p) for p in row.get('programs') or [] if isinstance(p, dict)]
         if row.get('reason'): stage['activity_note'] = row['reason']

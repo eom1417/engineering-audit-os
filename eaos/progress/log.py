@@ -22,6 +22,10 @@ The file is replaced (a new inode) when a run starts and appended to, one whole 
 that sees the inode change knows a new run began. Writing it never decides the fate of the run: a failure to write is
 swallowed, and the manifest stays the record.
 
+The last runs of each flow are kept, whole, in `<folder>/progress/history/<flow>/<run>.jsonl` (HISTORY_KEEP of
+them, newest by run id): a run is copied there when it ends, and the file a new run replaces is copied there first, so
+a run that was killed is kept too. history.py reads them back.
+
 Three things keep the file honest and small while a stage runs, all on one background thread per run:
 - a counted step that only moves forward is written at most 4 times a second per step name (COALESCE), and its last
   value is always written, at the latest when the stage ends;
@@ -33,6 +37,7 @@ Three things keep the file honest and small while a stage runs, all on one backg
 import json
 import os
 import secrets
+import shutil
 import socket
 import threading
 import time
@@ -49,6 +54,14 @@ RUNNING = 'running'
 COALESCE = 0.25
 SAMPLE_EVERY = 2.0
 TICK = 0.5
+HISTORY = 'history'
+HISTORY_KEEP = 5
+
+
+def enabled():
+    """False when EAOS_PROGRESS is 0, off, no or false: then no flow writes its progress and `count()` and `step()`
+    hear nothing. It exists to prove that progress never changes a result (tools/progress_determinism.py)."""
+    return os.environ.get('EAOS_PROGRESS', '').strip().lower() not in ('0', 'off', 'no', 'false')
 
 
 def now():
@@ -59,6 +72,34 @@ def path_for(folder, flow='check'):
     """Where a flow writes its progress: the check in `<report>/run-progress.jsonl`, any other flow in
     `<folder>/progress/<flow>.jsonl`."""
     return Path(folder) / PROGRESS if flow == 'check' else Path(folder) / FOLDER / f'{flow}.jsonl'
+
+
+def history_folder(folder, flow='check'):
+    """Where a flow's last runs are kept: `<folder>/progress/history/<flow>/`."""
+    return Path(folder) / FOLDER / HISTORY / flow
+
+
+def first_row(path):
+    """The first line of a progress file, parsed ({} when it cannot be read)."""
+    try:
+        with Path(path).open('r', encoding='utf-8') as handle: return json.loads(handle.readline() or '{}')
+    except (OSError, ValueError): return {}
+
+
+def keep(path, folder, flow, limit=HISTORY_KEEP):
+    """Copy the run held in the progress file at `path` into the flow's history, then keep only the newest `limit`
+    runs there. Returns the copy's path, or None (no file, no run id, a failure: history never stops a run)."""
+    try:
+        run = first_row(path).get('run')
+        if not run or not Path(path).is_file(): return None
+        place = history_folder(folder, flow)
+        place.mkdir(parents=True, exist_ok=True)
+        copy = place / f'{run}.jsonl'
+        shutil.copyfile(path, copy)
+        for old in sorted(place.glob('*.jsonl'))[:-limit]: old.unlink()
+        return copy
+    except OSError:
+        return None
 
 
 def _small(detail):
@@ -106,18 +147,20 @@ class ProgressLog:
 
     def __init__(self, out, flow='check', *, clock=time.monotonic, pulse=True, sampler=True, alive_every=ALIVE_EVERY):
         self.flow = flow
+        self.folder = Path(out)
         self.path = path_for(out, flow)
         self.seq = 0
         self.lock = threading.RLock()
         self.run = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S') + '-' + secrets.token_hex(3)
-        self.broken = False
+        self.enabled = enabled()
+        self.broken = not self.enabled              # turned off: every line is left unwritten, as if it failed
         self.clock = clock
-        self.pulse = pulse
+        self.pulse = pulse and self.enabled
         self.alive_every = alive_every
-        if sampler is True:
+        if sampler is True and self.enabled:
             from .sampler import Sampler
             sampler = Sampler()
-        self.sampler = sampler or None
+        self.sampler = (sampler or None) if self.enabled else None
         self.declared = {}          # name -> necessity, in the declaration's order
         self.ended_stages = set()
         self.current = None
@@ -126,6 +169,7 @@ class ProgressLog:
         self.sampler_said = False
         self.pending = {}           # (stage, step) -> the newest fields not written yet
         self.written = {}           # (stage, step) -> (clock, status) of the last line written
+        self.step_began = {}        # (stage, step) -> clock when it began running, for the seconds of its end
         self.finished = False
         self.stop = threading.Event()
         self.thread = None
@@ -146,7 +190,9 @@ class ProgressLog:
             line = json.dumps(row, ensure_ascii=False, default=str) + '\n'
             try:
                 if self.seq == 1:
-                    # a new run is a new file: written beside, then moved in, so a reader sees a new inode at once
+                    # a new run is a new file: written beside, then moved in, so a reader sees a new inode at once;
+                    # the run it replaces goes to the history first (it may have been killed before its end)
+                    keep(self.path, self.folder, self.flow)
                     self.path.parent.mkdir(parents=True, exist_ok=True)
                     temporary = self.path.with_name(f'.{self.path.name}.{os.getpid()}.tmp')
                     temporary.write_text(line, encoding='utf-8')
@@ -181,23 +227,31 @@ class ProgressLog:
         return self.emit('stage.started', stage=stage)
 
     def stepper(self, stage):
-        """`step(name, done, total, status='running', seconds=None, reason='', reason_code='', kind='')` for one stage:
-        where a long stage is inside. `done` is held between 0 and `total`."""
-        def step(name, done, total, status=RUNNING, seconds=None, reason='', reason_code='', kind=''):
+        """`step(name, done, total, status='running', seconds=None, reason='', reason_code='', kind='', artifact='')`
+        for one stage: where a long stage is inside. `done` is held between 0 and `total`."""
+        def step(name, done, total, status=RUNNING, seconds=None, reason='', reason_code='', kind='', artifact=''):
             done, total = bounded(done, total)
             fields = {'stage': stage, 'step': str(name), 'done': done, 'total': total, 'status': str(status)}
             if kind: fields['kind'] = str(kind)
             if seconds is not None: fields['seconds'] = round(float(seconds), 2)
             if reason: fields['reason'] = str(reason)[:200]
             if reason_code: fields['reason_code'] = str(reason_code)[:80]
+            if artifact: fields['artifact'] = str(artifact)[:300]
             self._step(fields)
         return step
 
     def _step(self, fields):
+        """A step's line, coalesced. A step that ends without saying its seconds gets the time since it began
+        running, so every step that ended ok has seconds the next run's estimate can use (`previous_steps`)."""
         key = (fields['stage'], fields['step'])
         with self.lock:
             moment = self.clock()
             last = self.written.get(key)
+            if fields['status'] == RUNNING:
+                if key not in self.step_began or (last and last[1] != RUNNING): self.step_began[key] = moment
+            elif fields['status'] != 'waiting':
+                began = self.step_began.pop(key, None)
+                if 'seconds' not in fields and began is not None: fields['seconds'] = round(moment - began, 2)
             if fields['status'] == RUNNING and last and last[1] == RUNNING and moment - last[0] < COALESCE:
                 self.pending[key] = fields           # moving forward too fast: keep the newest, write it soon
                 return
@@ -238,15 +292,18 @@ class ProgressLog:
                 if name in self.ended_stages: continue
                 if name == self.current:
                     self.ended({'stage': name, 'status': 'failed', 'reason': f'the run ended ({status}) while this stage ran: {why}',
-                                'seconds': round(self.clock() - self.stage_began, 2), 'necessity': necessity, 'artifacts': []})
+                                'reason_code': 'run_ended', 'seconds': round(self.clock() - self.stage_began, 2),
+                                'necessity': necessity, 'artifacts': []})
                 else:
                     self.ended({'stage': name, 'status': 'not_reached', 'reason': f'the run ended ({status}) before this stage: {why}',
-                                'seconds': 0.0, 'necessity': necessity, 'artifacts': []})
+                                'reason_code': 'run_ended', 'seconds': 0.0, 'necessity': necessity, 'artifacts': []})
             fields = {'status': status}
             if reason: fields['reason'] = reason[:300]
             if seconds is not None: fields['seconds'] = seconds
             if counts is not None: fields['counts'] = counts
-            return self.emit('run.ended', **fields)
+            row = self.emit('run.ended', **fields)
+            if not self.broken and self.enabled: keep(self.path, self.folder, self.flow)
+            return row
 
     def close(self):
         """Stop the background thread without ending the run (a reader will judge it by its silence)."""
