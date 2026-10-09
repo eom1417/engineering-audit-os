@@ -31,6 +31,12 @@ export function WithData({ children, needs = 'all' }: { children: (data: StudioD
   return <>{children(loaded.data)}</>
 }
 
+/** A page whose own code is still being read (router.tsx: every page but Home and Problems is read when opened). */
+export function PageLoading() {
+  const { t } = usePrefs()
+  return <div className={css.page}><Panel><Skeleton label={t('loadingPage')} /></Panel></div>
+}
+
 /** The state of a page (or a part of one) whose sections are still being read: how many parts are left. */
 export function SectionsLoading({ waiting }: { waiting: readonly SectionName[] }) {
   const { t } = usePrefs()

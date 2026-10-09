@@ -1,43 +1,53 @@
 // The Studio's routes on hash history, so a link like #/problems?card=TASK-001 restores its view and works from a
 // file. Unbuilt sections have no route unless the developer flag is on (shell/sections.ts).
-import { createHashHistory, createRootRoute, createRoute, createRouter, redirect, useSearch } from '@tanstack/react-router'
-import { ChangePage } from './pages/Change'
-import { BridgePage } from './pages/change/BridgePage'
-import { OpPage, StepPage, TaskPage } from './pages/change/DetailPages'
-import { GapPage, GapsPage } from './pages/change/GapsPage'
-import { PlanPage, PlansPage } from './pages/change/PlansPage'
-import { DataPathsPage } from './pages/data/DataPaths'
-import { InfraLensPage } from './pages/infra/InfraLens'
-import { IdealPage } from './pages/ideal/IdealPage'
-import { DecisionsPage } from './pages/Decisions'
-import { FunctionPage, FunctionsPage } from './pages/functions/FunctionsPage'
+import { createHashHistory, createRootRoute, createRoute, createRouter, lazyRouteComponent, redirect, useSearch } from '@tanstack/react-router'
 import { HomePage } from './pages/Home'
-import { EvidencePage } from './pages/problems/EvidencePage'
 import { ProblemsPage } from './pages/problems/ProblemsPage'
 import { SEARCH_KEYS as PROBLEM_KEYS } from './pages/problems/model'
-import { DocumentPage } from './pages/library/DocumentPage'
-import { ImagePage } from './pages/library/ImagePage'
-import { LibraryPage } from './pages/library/LibraryPage'
-import { ComparePage } from './pages/history/ComparePage'
-import { HistoryGalleryPage } from './pages/history/HistoryGallery'
-import { HistoryPage } from './pages/history/HistoryPage'
-import { ScanPage } from './pages/history/ScanPage'
-import { QualityPage } from './pages/quality/QualityPage'
-import { SystemMapPage } from './pages/SystemMap'
-import { FlowPage } from './pages/paths/FlowPage'
-import { PathsGalleryPage } from './pages/paths/PathsGallery'
-import { PathsPage } from './pages/paths/PathsPage'
-import { PipelineGalleryPage } from './pages/pipeline/PipelineGallery'
-import { PipelinePage } from './pages/pipeline/PipelinePage'
-import { TimelinePage } from './pages/paths/TimelinePage'
-import { HiddenPage } from './pages/system/hidden/HiddenPage'
-import { JourneysPage } from './pages/system/journeys/JourneysPage'
-import { RunPage } from './pages/runs/RunPage'
-import { ScreenPage, ScreensPage } from './pages/screens/ScreensPage'
-import { RunsPage } from './pages/runs/RunsPage'
-import { GalleryPage } from './gallery/Gallery'
+import { PageLoading } from './shell/Layout'
 import { Shell } from './shell/Shell'
 import { SECTIONS } from './shell/sections'
+
+// Every page but Home and Problems is its own chunk (vite.config.ts classicChunks), read when it is first opened or
+// when a link to it is pointed at or touched (defaultPreload 'intent'); meanwhile the page shows its loading state.
+const ChangePage = lazyRouteComponent(() => import('./pages/Change'), 'ChangePage')
+const BridgePage = lazyRouteComponent(() => import('./pages/change/BridgePage'), 'BridgePage')
+const OpPage = lazyRouteComponent(() => import('./pages/change/DetailPages'), 'OpPage')
+const StepPage = lazyRouteComponent(() => import('./pages/change/DetailPages'), 'StepPage')
+const TaskPage = lazyRouteComponent(() => import('./pages/change/DetailPages'), 'TaskPage')
+const GapPage = lazyRouteComponent(() => import('./pages/change/GapsPage'), 'GapPage')
+const GapsPage = lazyRouteComponent(() => import('./pages/change/GapsPage'), 'GapsPage')
+const PlanPage = lazyRouteComponent(() => import('./pages/change/PlansPage'), 'PlanPage')
+const PlansPage = lazyRouteComponent(() => import('./pages/change/PlansPage'), 'PlansPage')
+const DataPathsPage = lazyRouteComponent(() => import('./pages/data/DataPaths'), 'DataPathsPage')
+const InfraLensPage = lazyRouteComponent(() => import('./pages/infra/InfraLens'), 'InfraLensPage')
+const IdealPage = lazyRouteComponent(() => import('./pages/ideal/IdealPage'), 'IdealPage')
+const DecisionsPage = lazyRouteComponent(() => import('./pages/Decisions'), 'DecisionsPage')
+const FunctionPage = lazyRouteComponent(() => import('./pages/functions/FunctionsPage'), 'FunctionPage')
+const FunctionsPage = lazyRouteComponent(() => import('./pages/functions/FunctionsPage'), 'FunctionsPage')
+const EvidencePage = lazyRouteComponent(() => import('./pages/problems/EvidencePage'), 'EvidencePage')
+const DocumentPage = lazyRouteComponent(() => import('./pages/library/DocumentPage'), 'DocumentPage')
+const ImagePage = lazyRouteComponent(() => import('./pages/library/ImagePage'), 'ImagePage')
+const LibraryPage = lazyRouteComponent(() => import('./pages/library/LibraryPage'), 'LibraryPage')
+const ComparePage = lazyRouteComponent(() => import('./pages/history/ComparePage'), 'ComparePage')
+const HistoryGalleryPage = lazyRouteComponent(() => import('./pages/history/HistoryGallery'), 'HistoryGalleryPage')
+const HistoryPage = lazyRouteComponent(() => import('./pages/history/HistoryPage'), 'HistoryPage')
+const ScanPage = lazyRouteComponent(() => import('./pages/history/ScanPage'), 'ScanPage')
+const QualityPage = lazyRouteComponent(() => import('./pages/quality/QualityPage'), 'QualityPage')
+const SystemMapPage = lazyRouteComponent(() => import('./pages/SystemMap'), 'SystemMapPage')
+const FlowPage = lazyRouteComponent(() => import('./pages/paths/FlowPage'), 'FlowPage')
+const PathsGalleryPage = lazyRouteComponent(() => import('./pages/paths/PathsGallery'), 'PathsGalleryPage')
+const PathsPage = lazyRouteComponent(() => import('./pages/paths/PathsPage'), 'PathsPage')
+const PipelineGalleryPage = lazyRouteComponent(() => import('./pages/pipeline/PipelineGallery'), 'PipelineGalleryPage')
+const PipelinePage = lazyRouteComponent(() => import('./pages/pipeline/PipelinePage'), 'PipelinePage')
+const TimelinePage = lazyRouteComponent(() => import('./pages/paths/TimelinePage'), 'TimelinePage')
+const HiddenPage = lazyRouteComponent(() => import('./pages/system/hidden/HiddenPage'), 'HiddenPage')
+const JourneysPage = lazyRouteComponent(() => import('./pages/system/journeys/JourneysPage'), 'JourneysPage')
+const RunPage = lazyRouteComponent(() => import('./pages/runs/RunPage'), 'RunPage')
+const ScreenPage = lazyRouteComponent(() => import('./pages/screens/ScreensPage'), 'ScreenPage')
+const ScreensPage = lazyRouteComponent(() => import('./pages/screens/ScreensPage'), 'ScreensPage')
+const RunsPage = lazyRouteComponent(() => import('./pages/runs/RunsPage'), 'RunsPage')
+const GalleryPage = lazyRouteComponent(() => import('./gallery/Gallery'), 'GalleryPage')
 
 type Params = Record<string, string | undefined>
 
@@ -107,5 +117,6 @@ export function makeRouter(dev: () => boolean) {
     createRoute({ getParentRoute: () => root, path: '/_gallery/pipeline', component: PipelineGalleryPage }),
     createRoute({ getParentRoute: () => root, path: '/_gallery/history', component: HistoryGalleryPage }),
   ])
-  return createRouter({ routeTree: tree, history: createHashHistory(), defaultNotFoundComponent: () => { throw redirect({ to: '/' }) }, scrollRestoration: false })
+  return createRouter({ routeTree: tree, history: createHashHistory(), defaultNotFoundComponent: () => { throw redirect({ to: '/' }) }, scrollRestoration: false,
+    defaultPreload: 'intent', defaultPendingComponent: PageLoading, defaultPendingMs: 100 })
 }

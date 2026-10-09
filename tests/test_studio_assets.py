@@ -62,8 +62,21 @@ class Shipped(unittest.TestCase):
             self.assertTrue(all(source in ("'self'", "'unsafe-inline'", 'data:') for source in rules[name]), name)
 
     def test_no_asset_names_an_address_outside_the_studio(self):
-        for name in ('index.html', 'boot.js', 'assets/studio.js', 'assets/style.css'):
+        chunks = sorted(p.relative_to(SHIPPED).as_posix() for p in (SHIPPED / 'assets').glob('*.js'))
+        for name in ('index.html', 'boot.js', 'assets/style.css', *chunks):
             self.assertEqual(urls((SHIPPED / name).read_text(encoding='utf-8')), set(), name)
+
+    def test_every_page_chunk_is_a_classic_script_the_entry_can_read(self):
+        # vite.config.ts classicChunks: the entry runs at once, every other chunk only registers its body
+        entry = (SHIPPED / 'assets/studio.js').read_text(encoding='utf-8')
+        self.assertIn('(function(){var chunks=self.EAOS_CHUNKS', entry, 'the entry carries the chunk loader')
+        names = sorted(p.name for p in (SHIPPED / 'assets').glob('*.js') if p.name != 'studio.js')
+        self.assertTrue(names, 'pages other than Home and Problems are their own chunks')
+        for name in names:
+            body = (SHIPPED / 'assets' / name).read_text(encoding='utf-8')
+            self.assertTrue(body.startswith(f'(self.EAOS_CHUNKS=self.EAOS_CHUNKS||{{}})["{name}"]=function(require,exports,module){{'), name)
+            self.assertNotIn('import(', body, name)
+        self.assertNotIn('import(', entry)
 
     def test_the_fonts_ship_with_their_licence(self):
         fonts = sorted(p.name for p in (SHIPPED / 'assets').glob('*.woff2'))

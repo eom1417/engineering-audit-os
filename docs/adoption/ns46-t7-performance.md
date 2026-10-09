@@ -57,3 +57,29 @@ Use a Home-only compact first-decision presentation: tighter spacing and the
 recommendation label beside its full text when it fits, wrapping freely when
 long. Retain the recommended blue answer, all choices, hints and card links.
 Shared Story owner-control work must keep its authority/dispatch implementation.
+
+## Final combined source (Claude Code, 2026-10-09)
+
+Ported onto the integrated Studio (owner controls, the current Problems model) by source review. Not ported: the
+obsolete Problems page and its membership index; the current Problems model matches by normalised substring, and
+its matching, counts, facets and Home's critical,high links are unchanged.
+
+Cold Problems filter. A trace of the first query (4x CPU) showed one 42–75 ms input task, most of it the router
+writing the address on the keystroke and redrawing its subscribers. Reuse React state and memo: the list filters on
+the typed words at once and the words reach the address 300 ms after typing pauses (a change of the address from
+elsewhere still replaces them); the who/filter controls are memoised. No index, prewarming or exact-ID shortcut.
+
+Staged report loading. Lighthouse showed boot reading every section before the first page. boot.js reads the
+frame's sections and the opened page's (Home, Problems, a card's detail; the same lists as src/data/stages.ts,
+kept equal by a test) and the rest load when a page, the palette or the selection sheet asks, with a loading state
+in Arabic and English. A page naming no list waits for the whole report, as before; nothing is dropped.
+
+Code splitting with classic scripts. The monolithic 1.4 MB script was the largest request before the first paint.
+D1 and file:// need classic scripts with fixed names, and Rolldown cannot split IIFE output. Reuse Rolldown's
+CommonJS chunks and TanStack Router's lazyRouteComponent and intent preloading: a Vite plugin (vite.config.ts
+classicChunks) wraps each chunk as a classic script registering its body and gives assets/studio.js a 20-line
+loader that reads a page's chunks from its own folder, as boot.js reads data. Home and Problems stay in the entry.
+No new dependency, module script, network service or worker. Rejected: module chunks (refused from file://), a
+second build with shared globals (duplicate React contexts), and idle preloading (bytes during first load).
+
+Home folds its secondary decisions at six with "Show all N" (DESIGN.md list folding, two phone screens).

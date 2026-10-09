@@ -174,6 +174,7 @@ export const WORDS = {
   nothingWaitsSub: ['حين يحتاج EAOS قرارك يظهر هنا سؤال واحد بتوصيته.', 'When EAOS needs your decision, one question with its recommendation appears here.'],
   // data states
   loading: ['يحمّل التقرير…', 'Loading the report…'],
+  loadingPage: ['يحمّل الصفحة…', 'Loading the page…'],
   loadingRest: ['يحمّل بقية التقرير…', 'Loading the rest of the report…'],
   loadingParts: ['أجزاء باقية: {n}', 'Parts left: {n}'],
   emptyTitle: ['لا يوجد تقرير هنا بعد', 'No report here yet'],
