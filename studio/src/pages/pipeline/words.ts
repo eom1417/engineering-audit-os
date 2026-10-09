@@ -4,7 +4,8 @@ import { useWordTable } from '../../map/words'
 import type { Op, StageKind, View } from './model'
 
 export const PIPELINE_WORDS = {
-  pipeline: ['خط المعالجة', 'Pipeline'],
+  pipeline: ['البايبلاين · خط المعالجة', 'Pipeline'],
+  diagramGuide: ['اقرأ الرسم من بداية المسار واتبع الأسهم. اضغط مرحلة لمعرفة مدخلاتها ومخرجاتها وأدواتها. المعيّن يوزّع المسار، والعقدة المميزة بالنجمة تستخدم الذكاء الاصطناعي. اسحب الرسم أو كبّره لاستكشاف بقية المراحل.', 'Follow the arrows from the start. Select a stage for its inputs, outputs and tools. Diamonds route branches; starred nodes use AI. Drag or zoom to explore the remaining stages.'],
   pipelineLead: ['كيف تمرّ البيانات في المشروع: كل مرحلة وأدواتها، وما تأخذه وما تعطيه، والموجّهات وفروعها، ومسار الخطأ. كل عنصر بدليله في الكود، وما لم يتتبعه EAOS يظهر فجوة.',
     'How the data moves through the project: each stage and its tools, what it takes and gives, the routers and their branches, the failure route. Every element with its evidence in the code; what EAOS could not follow is drawn as a gap.'],
   view: ['ماذا يعرض الرسم', 'What the diagram shows'],

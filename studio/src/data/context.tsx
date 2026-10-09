@@ -1,12 +1,16 @@
 // The loaded report, shared by every page; and the few numbers several places show, computed once here.
 // The report comes through one DataSource (source.ts): a snapshot, or the live server, whose events reload the
 // sections that changed and are announced to screen readers in the person's language.
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { usePrefs } from '../i18n/prefs'
 import type { Loaded } from './load'
+import { loadReportLocale, localizeReport, type ReportLocale } from './localization'
 import type { LiveEvent, LiveStatus } from './live'
 import { pickSource, type DataSource, type Mode } from './source'
 import type { Card, StudioData } from './types'
+
+const ReportLocaleContext = createContext<ReportLocale | undefined>(undefined)
+export function useReportLocale(): ReportLocale | undefined { return useContext(ReportLocaleContext) }
 
 const DataContext = createContext<Loaded>({ kind: 'loading' })
 
@@ -25,6 +29,16 @@ export function DataProvider({ children, preset, source }: { children: ReactNode
   const [live, setLive] = useState<Live>({ mode: preset ? 'snapshot' : chosen.mode, status: null, last: null })
   const current = useRef<StudioData | null>(null)
   const { lang } = usePrefs()
+  const [locale, setLocale] = useState<ReportLocale | undefined>(() => window.EAOS_LOCALE)
+  const localeFingerprint = state.kind === 'ready' ? state.data.manifest.locales?.en?.sha256 : undefined
+  const hasEnglish = !!localeFingerprint
+  useEffect(() => {
+    if (!hasEnglish) return
+    let on = true
+    loadReportLocale().then((loaded) => { if (on && loaded) setLocale(loaded) })
+    return () => { on = false }
+  }, [hasEnglish, localeFingerprint])
+  const displayed = useMemo<Loaded>(() => lang === 'en' && hasEnglish && !locale ? { kind: 'loading' } : localizeReport(state, lang, locale), [state, lang, locale, hasEnglish])
 
   useEffect(() => {
     if (preset) return
@@ -55,12 +69,14 @@ export function DataProvider({ children, preset, source }: { children: ReactNode
   }, [live])
 
   return (
-    <DataContext.Provider value={state}>
+    <ReportLocaleContext.Provider value={locale}>
+    <DataContext.Provider value={displayed}>
       <LiveContext.Provider value={live}>
         {children}
         <div className="sr" role="status" aria-live="polite">{live.last ? live.last.text[lang] : ''}</div>
       </LiveContext.Provider>
     </DataContext.Provider>
+    </ReportLocaleContext.Provider>
   )
 }
 

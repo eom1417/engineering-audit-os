@@ -10,6 +10,8 @@ export type { Measure } from './measure'
 
 export interface Manifest {
   contract: number
+  language?: 'ar' | 'en'
+  locales?: { en?: { file: 'locale.js'; sha256: string } }
   built: { built: string; commit: string; digest: string; studio_digest?: string; version: string }
   project: { name: string }
   scanned: { at: string | null; branch: string | null; commit: string | null }

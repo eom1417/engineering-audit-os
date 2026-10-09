@@ -1,3 +1,4 @@
+import { pipelineTitle, stageTitle } from './names'
 // The details beside the pipeline map. With a stage chosen: its evidence (entry file:line, function, the code line),
 // what it takes and gives, its tools and side effects, a router's branches, its failure routes, the hidden channels
 // and the calls EAOS could not follow on it, its links with how each is known, the gap entries about it, its ideal,
@@ -108,6 +109,7 @@ function AiNodeRun({ label }: { label: string }) {
 export function StageInspector({ data, scope, id, view, onSelect, onEnter, onFollow }:
   { data: PipelineData; scope: Scope; id: string; view: View; onSelect: (id: string) => void; onEnter: (pipeline: string) => void; onFollow: (name: string) => void }) {
   const w = usePipelineWords()
+  const { lang } = usePrefs()
   const s = scope.stage.get(id)
   const ideal = scope.ideal.get(id)
   if (!s) {
@@ -140,7 +142,7 @@ export function StageInspector({ data, scope, id, view, onSelect, onEnter, onFol
     <div className={frame.inspect}>
       <div className={frame.insHead}>
         <span className={frame.insK}>{w(KIND_WORD[s.kind])}{s.optional && <> · {w('optional')}</>}{(s.marks ?? []).map((m) => <span key={m}> · {w.known('mark_', m)}</span>)}</span>
-        <span className={frame.insTitle}><Id value={s.label} /></span>
+        <span className={frame.insTitle}>{stageTitle(s, lang)}</span><Id value={s.label} />
         {view !== 'current' && ideal && <OperationChip relation={RELATION[ideal.op]} />}
       </div>
       {gaps.length > 0 && (
@@ -354,12 +356,13 @@ export function GapPanel({ data, scope, onSelect }: { data: PipelineData; scope:
 /** Every pipeline EAOS found, nested under the stage it runs inside; the current one marked. */
 export function PipelineTree({ data, current, onEnter }: { data: PipelineData; current: string; onEnter: (pipeline: string) => void }) {
   const w = usePipelineWords()
+  const { lang } = usePrefs()
   if (data.pipelines.length < 2) return null
   const parentOf = (p: { parent: string | null }) => (p.parent ? data.stages.find((s) => s.id === p.parent)?.pipeline ?? null : null)
   const row = (id: string | null, depth: number): ReactNode[] => data.pipelines.filter((p) => parentOf(p) === id).flatMap((p) => [
     <li key={p.id} style={{ paddingInlineStart: depth * 14 }}>
       <AriaButton className={[css.treeRow, p.id === current && css.treeOn].filter(Boolean).join(' ')} onPress={() => onEnter(p.id)} aria-current={p.id === current ? 'true' : undefined}>
-        <span><Id value={p.title} /></span>
+        <span>{pipelineTitle(p, lang)}</span>
         <span className={css.muted}>{w('stagesN', { n: p.stages.length })} · {w(p.role === 'product' ? 'role_product' : 'role_tooling')}</span>
       </AriaButton>
     </li>,

@@ -2,9 +2,9 @@
    data in both languages (like the map's geometry); their chrome (toolbar, legend, inspector) follows the page. */
 
 /* ---------------------------------------------------------------- page frames */
-.split { display: grid; grid-template-columns: minmax(0, 1fr) var(--inspector-w); min-block-size: calc(100vh - var(--topbar-h)); }
-.canvasCol { display: flex; flex-direction: column; min-inline-size: 0; border-inline-end: 1px solid var(--border-subtle); position: sticky; inset-block-start: var(--topbar-h); block-size: calc(100vh - var(--topbar-h)); }
-.side { background: var(--bg-surface); padding: 16px; display: flex; flex-direction: column; gap: 16px; position: sticky; inset-block-start: var(--topbar-h); block-size: calc(100vh - var(--topbar-h)); overflow-y: auto; min-inline-size: 0; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) var(--inspector-w); min-block-size: max(520px, calc(100vh - var(--topbar-h) - var(--system-tabs-h, 0px))); }
+.canvasCol { display: flex; flex-direction: column; min-inline-size: 0; border-inline-end: 1px solid var(--border-subtle); position: sticky; inset-block-start: calc(var(--topbar-h) + var(--system-tabs-h, 0px)); block-size: max(620px, calc(100vh - var(--topbar-h) - var(--system-tabs-h, 0px))); }
+.side { background: var(--bg-surface); padding: 16px; display: flex; flex-direction: column; gap: 16px; position: sticky; inset-block-start: calc(var(--topbar-h) + var(--system-tabs-h, 0px)); block-size: max(620px, calc(100vh - var(--topbar-h) - var(--system-tabs-h, 0px))); overflow-y: auto; min-inline-size: 0; }
 .titleRow { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; min-inline-size: 0; }
 .title { font-size: 16px; font-weight: 600; }
 .titleId { font-size: 15px; font-weight: 600; }
@@ -206,7 +206,7 @@
 
 @media (max-width: 1199px) and (min-width: 768px) {
   .split { grid-template-columns: minmax(0, 1fr); }
-  .canvasCol { position: static; block-size: 72vh; border-inline-end: 0; border-block-end: 1px solid var(--border-subtle); }
+  .canvasCol { position: static; block-size: max(620px, 72vh); border-inline-end: 0; border-block-end: 1px solid var(--border-subtle); }
   .side { position: static; block-size: auto; overflow: visible; }
 }
 

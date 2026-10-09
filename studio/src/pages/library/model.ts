@@ -1,7 +1,10 @@
 // The Library's data: the documents (studio/docs.json) and images (studio/media.json) the check wrote, and their content
 // (studio/library.json, contract v2, eaos/studio/library.py). The content is the largest section, so it is not read
 // with the rest at start: the reader asks for it, from the script beside the Studio or from the live server's API.
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useReportLocale } from '../../data/context'
+import { localizeValue } from '../../data/localization'
+import { usePrefs } from '../../i18n/prefs'
 import { liveToken } from '../../data/live'
 import { script } from '../../data/load'
 import type { Doc, StudioData } from '../../data/types'
@@ -34,6 +37,8 @@ async function fetchSection<T>(name: string): Promise<T | undefined> {
 
 /** A section the start does not load (the library, the coverage rows): asked for once, from either data source. */
 export function useLazySection<T>(data: StudioData, name: string): Lazy<T> {
+  const { lang } = usePrefs()
+  const locale = useReportLocale()
   const listed = data.manifest.sections.some((s) => (s.name as string) === name)
   const [state, setState] = useState<Lazy<T>>(() => !listed ? { kind: 'absent' } : preset<T>(name) ? { kind: 'ready', data: preset<T>(name)! } : { kind: 'loading' })
   useEffect(() => {
@@ -43,7 +48,7 @@ export function useLazySection<T>(data: StudioData, name: string): Lazy<T> {
       () => { if (live) setState({ kind: 'absent' }) })
     return () => { live = false }
   }, [state.kind, name])
-  return state
+  return useMemo(() => state.kind === 'ready' ? { ...state, data: localizeValue(state.data, lang, locale) } : state, [state, lang, locale])
 }
 
 /** The coverage row of a section, when the report has one. */

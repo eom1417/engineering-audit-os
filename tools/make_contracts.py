@@ -244,7 +244,9 @@ SYSTEM_SECTION = section({
 
 STUDIO = {
  'manifest': ('The index of the Studio\'s data, written last so a reader never sees a half-written set: which EAOS built it, which scan, and every section with its fingerprint.',
-  section({'built': obj({'version': S, 'commit': S, 'digest': S, 'studio_digest': S, 'built': S}),
+  section({'language': enum('ar', 'en'),
+           'locales': obj({'en': obj({'file': {'const': 'locale.js'}, 'sha256': {'type': 'string', 'pattern': '^[a-f0-9]{64}$'}}, ['file', 'sha256'], extra=False)}, [], extra=False),
+           'built': obj({'version': S, 'commit': S, 'digest': S, 'studio_digest': S, 'built': S}),
            'project': obj({'name': {'type': 'string', 'minLength': 1}}),
            'scanned': REF('scan'),
            'revision': {'type': 'integer', 'minimum': 1},

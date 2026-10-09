@@ -110,3 +110,17 @@
 .aiRoutes li { display: flex; flex-direction: column; gap: 2px; padding-block: 6px; border-block-end: 1px solid var(--border-subtle); min-inline-size: 0; }
 .aiRouteHead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; min-inline-size: 0; }
 .aiRouteHead > * { overflow-wrap: anywhere; }
+
+
+.mobileDiagram { display: flex; block-size: 420px; min-block-size: 320px; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--radius-8); }
+.pipelinePicker { display: flex; align-items: center; gap: 10px; font-size: 13px; min-inline-size: 0; }
+.pipelinePicker select { min-inline-size: 0; max-inline-size: 100%; min-block-size: 44px; border: 1px solid var(--border-default); border-radius: var(--radius-8); padding-inline: 10px; background: var(--bg-surface); color: var(--text-primary); }
+.guide { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+@media (max-width: 767px) { .pipelinePicker { flex-direction: column; align-items: stretch; } }
+
+.explore { font-size: 13px; color: var(--text-secondary); }
+.explore summary { cursor: pointer; min-block-size: 44px; }
+.explore[open] { display: flex; flex-direction: column; gap: 10px; }
+
+.mobileControls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mobileControls > * { flex: 1; }

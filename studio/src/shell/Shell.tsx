@@ -23,6 +23,7 @@ import { useChrome } from './chrome'
 import { Palette } from './Palette'
 import { sectionOf, visibleSections, type SectionDef } from './sections'
 import css from './Shell.module.css'
+import { SystemViews } from '../pages/system/SystemViews'
 
 function useCounts(): Counts | null {
   const data = useStudio()
@@ -40,7 +41,7 @@ function LanguageAndTheme({ comfortable }: { comfortable?: boolean }) {
   return (
     <>
       <Segmented label={t('language')} value={lang} onChange={setLang} comfortable={comfortable}
-        options={[{ id: 'ar', label: 'عربي', lang: 'ar' }, { id: 'en', label: 'English', lang: 'en' }]} />
+        options={[{ id: 'ar', label: lang === 'en' ? 'Arabic' : 'عربي', lang: 'ar' }, { id: 'en', label: 'English', lang: 'en' }]} />
       <Segmented label={t('appearance')} value={theme} onChange={setTheme} comfortable={comfortable}
         options={[
           { id: 'light', label: comfortable ? <><Icon name="sun" />{t('light')}</> : <Icon name="sun" />, aria: comfortable ? undefined : t('light') },
@@ -123,6 +124,8 @@ function TopBar({ project, current, freshness, onPalette, onProject, onScan }:
   { project: string; current?: SectionDef; freshness: Freshness | null; onPalette: () => void; onProject: () => void; onScan: () => void }) {
   const { t } = usePrefs()
   const chrome = useChrome()
+  const systemWorkspace = useRouterState({ select: (s) => s.location.pathname.startsWith('/system') || s.location.pathname.startsWith('/screens') || s.location.pathname.startsWith('/flows') })
+  const back = systemWorkspace ? undefined : chrome.back
   const sectionTitle = current ? t(current.nav) : t('gallery')
   return (
     <header className={css.topbar}>
@@ -130,8 +133,8 @@ function TopBar({ project, current, freshness, onPalette, onProject, onScan }:
         <nav className={css.crumbs} aria-label={t('breadcrumb')}>
           <Go to="/" className={css.crumb}>{project}</Go>
           {current?.id !== 'home' && <><span className={css.crumbSep} aria-hidden="true">/</span>
-            {chrome.back ? <Go to={chrome.back.to} search={chrome.back.search} className={css.crumb}>{sectionTitle}</Go> : <span aria-current="page">{sectionTitle}</span>}</>}
-          {chrome.back && <><span className={css.crumbSep} aria-hidden="true">/</span><span aria-current="page" className={css.crumbLast} title={chrome.title} data-truncate>{chrome.title}</span></>}
+            {back ? <Go to={back.to} search={back.search} className={css.crumb}>{sectionTitle}</Go> : <span aria-current="page">{sectionTitle}</span>}</>}
+          {back && <><span className={css.crumbSep} aria-hidden="true">/</span><span aria-current="page" className={css.crumbLast} title={chrome.title} data-truncate>{chrome.title}</span></>}
         </nav>
         <div className={css.deskEnd}>
           {freshness && <FreshnessChip freshness={freshness} onPress={onScan} />}
@@ -141,8 +144,8 @@ function TopBar({ project, current, freshness, onPalette, onProject, onScan }:
         </div>
       </div>
       <div className={css.phone}>
-        {chrome.back
-          ? <Go to={chrome.back.to} search={chrome.back.search} className={css.back}><Icon name="back" size={20} /><span>{chrome.back.label}</span></Go>
+        {back
+          ? <Go to={back.to} search={back.search} className={css.back}><Icon name="back" size={20} /><span>{back.label}</span></Go>
           : freshness && <FreshnessChip freshness={freshness} onPress={onScan} />}
         <span className={css.phoneSpacer} />
         <IconButton icon="search" label={t('search')} onPress={onPalette} />
@@ -205,11 +208,29 @@ function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange: (o
   )
 }
 
+declare global { interface Window { EAOS_REPORTS?: { name: string; href: string }[] } }
+
+function WorkspaceReportPicker({ project, pathname }: { project: string; pathname: string }) {
+  const { lang } = usePrefs()
+  const reports = window.EAOS_REPORTS ?? []
+  if (reports.length < 2) return null
+  return <label className={css.reportPicker}>
+    <span>{lang === 'ar' ? 'المشروع' : 'Project'}</span>
+    <select aria-label={lang === 'ar' ? 'المشروع' : 'Project'} value={project} onChange={(event) => {
+      const report = reports.find((entry) => entry.name === event.target.value)
+      if (report) window.location.assign(`${report.href}#${pathname}`)
+    }}>{reports.map((report) => <option key={report.name} value={report.name}>{report.name}</option>)}</select>
+  </label>
+}
+
 export function Shell() {
   const { t } = usePrefs()
   const loaded = useLoaded()
   const data = useStudio()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const systemWorkspace = pathname.startsWith('/system') || pathname.startsWith('/screens') || pathname.startsWith('/flows')
+  const systemSearch = useRouterState({ select: (s) => s.location.search as { lens?: string } })
+  const systemView = pathname === '/system' ? (systemSearch.lens === 'infra' ? 'infra' : 'map') : pathname.startsWith('/screens') ? 'screens' : pathname.startsWith('/flows') ? 'paths' : pathname.startsWith('/system/f/') ? 'functions' : pathname.split('/')[2] ?? 'map'
   const current = pathname.startsWith('/_') ? undefined : sectionOf(pathname)
   const [palette, setPalette] = useState(false)
   const [projectSheet, setProjectSheet] = useState(false)
@@ -224,7 +245,7 @@ export function Shell() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
   // A new view opens at its top, as a pushed screen does
-  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  useEffect(() => { if (!systemWorkspace) window.scrollTo(0, 0) }, [pathname, systemWorkspace])
 
   return (
     <CommandProvider>
@@ -234,7 +255,12 @@ export function Shell() {
         <div className={css.frame}>
           <TopBar project={project} current={current} freshness={loaded.kind === 'ready' ? (data?.head?.freshness ?? 'unknown') : null}
             onPalette={() => setPalette(true)} onProject={() => setProjectSheet(true)} onScan={() => setScanSheet(true)} />
-          <main id="main" tabIndex={-1} className={css.main}><Outlet /></main>
+          <main id="main" tabIndex={-1} className={css.main}>
+            {systemWorkspace ? <div className={css.workspace}>
+              <div className={css.workspaceTabs}><WorkspaceReportPicker project={project} pathname={pathname} /><SystemViews current={systemView} persistent /></div>
+              <div id="system-workspace-panel" role="tabpanel" aria-labelledby={`system-tab-${systemView}`}><Outlet /></div>
+            </div> : <Outlet />}
+          </main>
         </div>
       </div>
       <TabBar current={current} />

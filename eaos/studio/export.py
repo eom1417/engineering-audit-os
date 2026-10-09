@@ -400,9 +400,17 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     # Last of the sections: it says which of the others were written, and what is not measured yet.
     attempt('coverage', lambda: coverage_section.coverage(report, built, [e['name'] for e in entries], list(errors), lang))
     if 'coverage' in built: publish('coverage', {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, **built['coverage']})
+    from .localization import publish as publish_locales
+    locales = None
+    try:
+        locales = publish_locales(report, lang)
+    except (OSError, ValueError, TypeError) as error:
+        errors.append({'section': 'locales', 'error': str(error)[:300]})
     (folder / 'errors.json').write_text(json.dumps(errors, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-    manifest = {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, 'built': stamp,
+    manifest = {'schema_version': 1, 'language': lang, 'contract': CONTRACT, 'revision': REVISION, 'built': stamp,
                 'project': {'name': name or Path(str(project or report)).name}, 'scanned': scan, 'sections': entries}
+    if locales:
+        manifest['locales'] = locales
     if entries and not artifact_contracts.validate(manifest, contracts['studio-manifest']): _write(folder, 'manifest', manifest)
     return {'written': [e['name'] for e in entries], 'errors': errors}
 

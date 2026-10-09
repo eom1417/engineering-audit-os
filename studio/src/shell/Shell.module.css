@@ -89,3 +89,23 @@
   .tabBadge { position: absolute; inset-block-start: -4px; inset-inline-end: -10px; }
   .tabLabel { white-space: nowrap; }
 }
+
+/* Shared navigation remains mounted while the system's map panel changes. */
+.workspace { --system-tabs-h: 54px; min-inline-size: 0; }
+.workspaceTabs { position: sticky; inset-block-start: var(--topbar-h); z-index: var(--z-sticky); min-block-size: var(--system-tabs-h); display: flex; align-items: center; padding-inline: 12px; background: var(--bg-canvas); border-block-end: 1px solid var(--border-default); }
+.workspaceTabs > nav { flex: 1; }
+@media (max-width: 767px) {
+  .workspace { --system-tabs-h: 94px; }
+  .workspaceTabs { inset-block-start: var(--topbar-h-phone); padding-inline: 8px; }
+}
+
+.reportPicker { display: flex; align-items: center; gap: 8px; font-size: 12px; padding-inline-end: 12px; }
+.reportPicker select { background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: var(--radius-8); min-block-size: 36px; max-inline-size: 160px; padding-inline: 8px; }
+@media (max-width: 767px) {
+  .workspace:has(.reportPicker) { --system-tabs-h: 136px; }
+  .workspaceTabs { flex-wrap: wrap; }
+  .reportPicker { inline-size: 100%; justify-content: space-between; padding-inline: 4px; padding-block: 4px; }
+}
+@media (max-width: 767px) {
+  .workspaceTabs > nav { flex: 0 0 100%; }
+}

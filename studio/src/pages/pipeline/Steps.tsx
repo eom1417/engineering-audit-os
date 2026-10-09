@@ -5,6 +5,8 @@ import { useMemo, useState } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { Button } from '../../components/Button'
 import { OperationChip } from '../../components/Chip'
+import { stageTitle } from './names'
+import { usePrefs } from '../../i18n/prefs'
 import { Id } from '../../i18n/text'
 import { ordered, where, type Scope, type View } from './model'
 import { RELATION } from './Inspector'
@@ -15,6 +17,7 @@ import css from './panels.module.css'
 export function StepList({ scope, view, selected, onSelect, lit, first = 40 }:
   { scope: Scope; view: View; selected?: string; onSelect: (id: string) => void; lit?: Lit | null; first?: number }) {
   const w = usePipelineWords()
+  const { lang } = usePrefs()
   const [all, setAll] = useState(false)
   const rows = useMemo(() => {
     const list = ordered(scope.stages)
@@ -51,7 +54,7 @@ export function StepList({ scope, view, selected, onSelect, lit, first = 40 }:
                 <span className={[css.glyph, css[`g_${s.kind}`]].filter(Boolean).join(' ')} aria-hidden="true" />
                 <span className={css.stepMain}>
                   <span className={css.stepTitle}>
-                    <Id value={scope.ideal.get(s.id)?.label && view === 'ideal' ? scope.ideal.get(s.id)!.label : s.label} />
+                    <span>{view === 'ideal' && scope.ideal.get(s.id)?.label && scope.ideal.get(s.id)?.label !== s.label ? scope.ideal.get(s.id)!.label : stageTitle(s, lang)}</span>
                     <span className={css.muted}>{w(KIND_WORD[s.kind])}</span>
                     {nos && <bdi dir="ltr" className={css.gapNos}>{nos.join(', ')}</bdi>}
                   </span>

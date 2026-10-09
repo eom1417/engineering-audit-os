@@ -18,8 +18,9 @@ import { layout, MissingBanner, WithData } from '../../shell/Layout'
 import { usePhone } from '../SystemMap'
 import { Flowchart, Legend } from './Flowchart'
 import { GapPanel, LookedFor, PipelineSummary, PipelineTree, StageInspector } from './Inspector'
-import { dataNames, firstPipeline, follow, geometry, NODE_H, NODE_W, scopeOf, trail, usePipeline, VIEWS, type PipelineData, type Scope, type View } from './model'
+import { dataNames, firstPipeline, follow, scopeOf, trail, usePipeline, VIEWS, type PipelineData, type Scope, type View } from './model'
 import { StepList } from './Steps'
+import { pipelineTitle } from './names'
 import { usePipelineWords, VIEW_WORD } from './words'
 import frame from '../paths/paths.module.css'
 import css from './panels.module.css'
@@ -49,7 +50,7 @@ function FollowPicker({ names, value, onChange }: { names: string[]; value?: str
   return (
     <label className={css.follow}>
       <span>{w('followData')}</span>
-      <select value={value ?? ''} onChange={(e) => onChange(e.target.value || undefined)} dir="ltr">
+      <select aria-label={w('followData')} value={value ?? ''} onChange={(e) => onChange(e.target.value || undefined)} dir="ltr">
         <option value="">{w('followNone')}</option>
         {names.map((n) => <option key={n} value={n}>{n}</option>)}
       </select>
@@ -60,6 +61,7 @@ function FollowPicker({ names, value, onChange }: { names: string[]; value?: str
 /** The page's head: where this pipeline sits, its title, the verdict and its facts, each from pipeline.json. */
 function Head({ data, scope, onEnter, compact }: { data: PipelineData; scope: Scope; onEnter: (id: string) => void; compact?: boolean }) {
   const w = usePipelineWords()
+  const { lang } = usePrefs()
   const path = trail(data, scope.pipeline.id)
   const counts = scope.pipeline.counts ?? {}
   const gaps = scope.gap.length
@@ -74,7 +76,7 @@ function Head({ data, scope, onEnter, compact }: { data: PipelineData; scope: Sc
       )}
       <div className={frame.titleRow}>
         {compact ? <h1 className={frame.title}>{w('pipeline')}</h1> : <h1 className={frame.largeTitle}>{w('pipeline')}</h1>}
-        <span className={frame.level}><Id value={scope.pipeline.title} /> · {w.known('pk_', scope.pipeline.kind)}</span>
+        <span className={frame.level}><span>{pipelineTitle(scope.pipeline, lang)}</span> · {w.known('pk_', scope.pipeline.kind)}</span>
       </div>
       {!compact && <p className={css.verdict}><Txt>{data.verdict}</Txt></p>}
       <p className={css.facts}>
@@ -86,30 +88,16 @@ function Head({ data, scope, onEnter, compact }: { data: PipelineData; scope: Sc
   )
 }
 
-/** The phone's picture of the flow: every stage a small box where EAOS placed it, top to bottom (the full map opens on tap). */
-function MiniFlow({ scope }: { scope: Scope }) {
-  const g = useMemo(() => geometry(scope.stages.slice(0, 400), [], true), [scope.stages])
-  const height = Math.min(g.height, 2400)
-  return (
-    <svg viewBox={`0 0 ${g.width} ${height}`} aria-hidden="true" preserveAspectRatio="xMidYMin meet">
-      {[...g.at.entries()].map(([id, at]) => at.y < height && (
-        <rect key={id} x={at.x} y={at.y} width={NODE_W} height={NODE_H} rx={scope.routerOf.has(id) ? 2 : 10}
-          className={scope.unresolved.some((u) => u.stage === id) ? frame.miniGap : frame.miniBox} />
-      ))}
-    </svg>
-  )
-}
-
 function PipelineView({ studio, data }: { studio: StudioData; data: PipelineData }) {
   const w = usePipelineWords()
-  const { t } = usePrefs()
+  const { t, lang } = usePrefs()
   const phone = usePhone()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as PipelineSearch
   const id = search.p && data.pipelines.some((p) => p.id === search.p) ? search.p : firstPipeline(data)!
   const scope = useMemo(() => scopeOf(data, id)!, [data, id])
   const view: View = VIEWS.includes(search.view as View) ? (search.view as View) : 'current'
-  const show: Show = search.show === 'map' || search.show === 'steps' ? search.show : phone ? 'steps' : 'map'
+  const show: Show = search.show === 'map' || search.show === 'steps' ? search.show : 'map'
   const stage = search.stage && (scope.stage.has(search.stage) || scope.ideal.has(search.stage)) ? search.stage : undefined
   const hidden = search.hidden === '1'
   const names = useMemo(() => dataNames(scope), [scope])
@@ -126,7 +114,7 @@ function PipelineView({ studio, data }: { studio: StudioData; data: PipelineData
   const enter = (pid: string) => { go({ p: pid === firstPipeline(data) ? undefined : pid, stage: undefined, follow: undefined }); setSheet(false) }
   const setFollow = (name: string | undefined) => { go({ follow: name }); setSheet(false) }
   const setView = (v: View) => go({ view: v === 'current' ? undefined : v })
-  const setShow = (s: Show) => go({ show: s === (phone ? 'steps' : 'map') ? undefined : s })
+  const setShow = (s: Show) => go({ show: s === 'map' ? undefined : s })
   const setHidden = (on: boolean) => go({ hidden: on ? '1' : undefined })
   const label = w('countsAria', { t: scope.pipeline.title, s: scope.stages.length, e: scope.edges.length })
   const inspector = stage
@@ -139,29 +127,38 @@ function PipelineView({ studio, data }: { studio: StudioData; data: PipelineData
     </div>
   )
   const long = scope.stages.length > 200
+  const picker = <label className={css.pipelinePicker}>
+    <span>{w('pipelines')}</span>
+    <select aria-label={w('pipelines')} value={id} onChange={(event) => enter(event.target.value)}>
+      {data.pipelines.map((pipeline) => <option key={pipeline.id} value={pipeline.id}>{pipelineTitle(pipeline, lang)} · {pipeline.counts?.stages ?? pipeline.stages.length} {w('kind_stage')}</option>)}
+    </select>
+  </label>
 
   if (phone) {
     return (
       <div className={frame.phone}>
         <MissingBanner data={studio} />
-        <Head data={data} scope={scope} onEnter={enter} />
-        <ViewSwitch view={view} onChange={setView} comfortable />
-        <ShowSwitch show={show} onChange={setShow} comfortable />
-        <HiddenSwitch on={hidden} n={scope.hidden.length} onChange={setHidden} />
-        <FollowPicker names={names} value={followed} onChange={setFollow} />
+        <Head data={data} scope={scope} onEnter={enter} compact />
+        {picker}
+        <div className={css.mobileControls}><ViewSwitch view={view} onChange={setView} comfortable /><ShowSwitch show={show} onChange={setShow} comfortable /></div>
+        <details className={css.explore}><summary>{lang === 'ar' ? 'تتبّع البيانات والمسارات الخفية' : 'Trace data and hidden paths'}</summary>
+          <HiddenSwitch on={hidden} n={scope.hidden.length} onChange={setHidden} />
+          <FollowPicker names={names} value={followed} onChange={setFollow} />
+        </details>
         {followBar}
         {show === 'map' && (
-          <figure>
-            <button type="button" className={frame.preview} onClick={() => setFull(true)} aria-label={w('openDiagram')}><MiniFlow scope={scope} /></button>
-            <figcaption className={frame.previewCap}><span>{label}</span><Button variant="ghost" onPress={() => setFull(true)}>{w('openDiagram')}</Button></figcaption>
-          </figure>
+          <div className={css.mobileDiagram}>
+            <Flowchart scope={scope} view={view} down selected={stage} onSelect={pick} hidden={hidden} lit={lit} label={label} legend={false}
+              head={<Button variant="ghost" onPress={() => setFull(true)}>{w('openDiagram')}</Button>} />
+          </div>
         )}
+        <p className={css.guide}>{w('diagramGuide')}</p>
         {show === 'map' && <Legend kinds={new Set(scope.stages.map((s) => s.kind))} scope={scope} view={view} hidden={hidden || view === 'gap'} inline />}
         {view === 'gap' && <Section title={w('gap')} count={scope.gap.length}><GapPanel data={data} scope={scope} onSelect={pick} /></Section>}
-        <Section title={w('asSteps')} count={lit ? lit.stages.size : scope.stages.length}>
+        {show === 'steps' && <Section title={w('asSteps')} count={lit ? lit.stages.size : scope.stages.length}>
           <Panel pad><StepList scope={scope} view={view} selected={stage} onSelect={pick} lit={lit} first={12} /></Panel>
-        </Section>
-        <PipelineTree data={data} current={scope.pipeline.id} onEnter={enter} />
+        </Section>}
+        <details className={css.explore}><summary>{w('pipelines')}</summary><PipelineTree data={data} current={scope.pipeline.id} onEnter={enter} /></details>
         <Sheet isOpen={sheet && !!stage} onOpenChange={setSheet} title={w('inspector')}>
           {stage && <StageInspector data={data} scope={scope} id={stage} view={view} onSelect={(s) => go({ stage: s })} onEnter={enter} onFollow={setFollow} />}
         </Sheet>
@@ -190,13 +187,14 @@ function PipelineView({ studio, data }: { studio: StudioData; data: PipelineData
 
   const head: ReactNode = (
     <>
+      {picker}
       <ViewSwitch view={view} onChange={setView} />
       <ShowSwitch show={show} onChange={setShow} />
       <HiddenSwitch on={hidden} n={scope.hidden.length} onChange={setHidden} />
       <FollowPicker names={names} value={followed} onChange={setFollow} />
     </>
   )
-  const title = <Head data={data} scope={scope} onEnter={enter} compact />
+  const title = <><Head data={data} scope={scope} onEnter={enter} compact /><p className={css.guide}>{w('diagramGuide')}</p></>
   return (
     <div className={frame.split}>
       <section className={frame.canvasCol} aria-label={w('pipeline')}>

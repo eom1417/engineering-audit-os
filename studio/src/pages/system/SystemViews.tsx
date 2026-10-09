@@ -2,7 +2,8 @@
 // paths, the data paths, the infrastructure lens, the pipeline, the functions and the screens. Each
 // map worker adds its own entry here; the current one is marked. Shown at the top of every System map page. And the
 // "show hidden" switch every map carries (STUDIO-COMPLETE: hidden things drawn differently, with a switch and a legend).
-import { Go } from '../../components/Go'
+import { useNavigate, useRouterState } from '@tanstack/react-router'
+import { useEffect, useRef } from 'react'
 import { useJourneyWords, type JourneyWord } from './words'
 import css from './SystemViews.module.css'
 
@@ -20,12 +21,32 @@ export const SYSTEM_VIEWS: SystemView[] = [
   { id: 'screens', to: '/screens', word: 'viewScreens' },
 ]
 
-export function SystemViews({ current }: { current: string }) {
+export function SystemViews({ current, persistent = false }: { current: string; persistent?: boolean }) {
   const w = useJourneyWords()
+  const navigate = useNavigate()
+  const location = useRouterState({ select: (s) => s.location })
+  const remembered = useRef<Record<string, Record<string, unknown>>>({})
+  const nav = useRef<HTMLElement>(null)
+  useEffect(() => {
+    remembered.current[current] = location.search as Record<string, unknown>
+    nav.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [current, location.search])
+  if (!persistent) return null
+  const select = (v: SystemView) => navigate({ to: v.to, search: remembered.current[v.id] ?? v.search ?? {}, replace: true })
   return (
-    <nav className={css.views} aria-label={w('systemViews')}>
-      {SYSTEM_VIEWS.map((v) => (
-        <Go key={v.id} to={v.to} search={v.search} className={[css.view, v.id === current && css.on].filter(Boolean).join(' ')} current={v.id === current}>{w(v.word)}</Go>
+    <nav ref={nav} className={css.views} role="tablist" aria-label={w('systemViews')}>
+      {SYSTEM_VIEWS.map((v, index) => (
+        <button key={v.id} id={`system-tab-${v.id}`} type="button" role="tab" aria-selected={v.id === current} aria-controls="system-workspace-panel"
+          tabIndex={v.id === current ? 0 : -1}
+          className={[css.view, v.id === current && css.on].filter(Boolean).join(' ')}
+          onClick={() => select(v)} onKeyDown={(event) => {
+            const rtl = document.documentElement.dir === 'rtl'
+            const next = event.key === 'Home' ? 0 : event.key === 'End' ? SYSTEM_VIEWS.length - 1
+              : event.key === 'ArrowRight' ? (index + (rtl ? -1 : 1) + SYSTEM_VIEWS.length) % SYSTEM_VIEWS.length
+              : event.key === 'ArrowLeft' ? (index + (rtl ? 1 : -1) + SYSTEM_VIEWS.length) % SYSTEM_VIEWS.length : null
+            if (next === null) return
+            event.preventDefault(); select(SYSTEM_VIEWS[next]); (nav.current?.children[next] as HTMLElement)?.focus()
+          }}>{w(v.word)}</button>
       ))}
     </nav>
   )

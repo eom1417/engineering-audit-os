@@ -20,6 +20,37 @@
     "contract": {
       "const": 1
     },
+    "language": {
+      "type": "string",
+      "enum": [
+        "ar",
+        "en"
+      ]
+    },
+    "locales": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "en": {
+          "type": "object",
+          "required": [
+            "file",
+            "sha256"
+          ],
+          "properties": {
+            "file": {
+              "const": "locale.js"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
     "built": {
       "type": "object",
       "required": [

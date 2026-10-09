@@ -101,8 +101,16 @@ def routes(ctx):
             return JSONResponse({'error': 'unknown'}, status_code=404, headers=NO_STORE)
         return JSONResponse(found, headers=NO_STORE)
 
+    async def locale(request):
+        if request.path_params['lang'] != 'en':
+            return JSONResponse({'error': 'unknown_language'}, status_code=404, headers=NO_STORE)
+        body = _file(folder / 'locale.json')
+        if body is None:
+            return JSONResponse({'error': 'not_written'}, status_code=404, headers=NO_STORE)
+        return Response(body, media_type='application/json', headers=NO_STORE)
+
     async def spec(request):
         return JSONResponse(document, headers=NO_STORE)
 
-    return [Route('/api/session', session), Route('/api/manifest', manifest), Route('/api/sections/{name}', section),
+    return [Route('/api/locales/{lang}', locale), Route('/api/session', session), Route('/api/manifest', manifest), Route('/api/sections/{name}', section),
             Route('/api/schemas/{name}', schema), Route('/api/openapi.json', spec)]

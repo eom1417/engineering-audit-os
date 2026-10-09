@@ -8,6 +8,8 @@ import { Button as AriaButton } from 'react-aria-components'
 import { FitIcon } from '../../map/parts'
 import zoomCss from '../../map/parts.module.css'
 import { useZoom } from '../../map/useZoom'
+import { usePrefs } from '../../i18n/prefs'
+import { stageTitle } from './names'
 import { useMapWords } from '../../map/words'
 import { geometry, link, NODE_H, NODE_W, PILL_W, type At, type Op, type Scope, type Stage, type View } from './model'
 import { KIND_WORD, OP_WORD, usePipelineWords } from './words'
@@ -75,6 +77,7 @@ function stageState(scope: Scope, view: View) {
 
 export function Flowchart({ scope, view, down, selected, onSelect, hidden, lit, label, title, head, legend = true, className }: FlowchartProps) {
   const w = usePipelineWords()
+  const { lang } = usePrefs()
   const mw = useMapWords()
   const svg = useRef<SVGSVGElement>(null)
   const [attach, size] = useBox()
@@ -107,7 +110,7 @@ export function Flowchart({ scope, view, down, selected, onSelect, hidden, lit, 
     const whole = { k, x: Math.max(8, (size.w - world.w * k) / 2), y: Math.max(8, (size.h - world.h * k) / 2) }
     if (k >= (down ? 0.62 : 0.6)) return { fitView: whole, wholeView: whole }
     const start = down ? Math.min(1, Math.max(0.62, (size.w - 16) / world.w)) : 0.85
-    return { fitView: { k: start, x: down ? Math.max(8, (size.w - world.w * start) / 2) : 8, y: 8 }, wholeView: whole }
+    return { fitView: { k: start, x: 8, y: 8 }, wholeView: whole }
   }, [size.w, size.h, world.w, world.h, down])
   useEffect(() => { setT(fitView) }, [fitView, setT])
 
@@ -323,7 +326,7 @@ export function Flowchart({ scope, view, down, selected, onSelect, hidden, lit, 
         {kind === 'ai' && <polygon className={css.aiRing} points={chamfer(3, 10)} />}
         {opOf === 'delete' && <rect width={NODE_W} height={NODE_H} rx={10} fill="url(#pp-hatch)" opacity={0.5} />}
         {dead.has(id) && showHidden && <rect width={NODE_W} height={NODE_H} rx={10} fill="url(#pp-ghost)" />}
-        <text x={kind === 'router' ? NODE_W / 2 : 12} y={sub ? 22 : 31} textAnchor={kind === 'router' ? 'middle' : 'start'} className={css.title}>
+        <text x={kind === 'router' ? NODE_W / 2 : lang === 'ar' ? NODE_W - 12 : 12} direction={lang === 'ar' ? 'rtl' : 'ltr'} y={sub ? 22 : 31} textAnchor={kind === 'router' ? 'middle' : 'start'} className={css.title}>
           {kind === 'ai' && <tspan className={css.aiGlyph}>✦ </tspan>}{fit(labelText, kind === 'router' ? 15 : 18)}
         </text>
         {sub && <text x={kind === 'router' ? NODE_W / 2 : 12} y={39} textAnchor={kind === 'router' ? 'middle' : 'start'} className={css.sub}>{clip(sub, kind === 'router' ? 20 : 24)}</text>}
@@ -342,7 +345,7 @@ export function Flowchart({ scope, view, down, selected, onSelect, hidden, lit, 
     const ideal = view === 'ideal' ? scope.ideal.get(s.id) : undefined
     const router = s.kind === 'router' ? scope.routerOf.get(s.id) : undefined
     const sub = router ? `${router.on} · ${w('branchesN', { n: router.branches.length })}` : s.tools.length ? s.tools.join(' · ') : (s.entry.path ? `${s.entry.path.split('/').pop()}${s.entry.line ? `:${s.entry.line}` : ''}` : null)
-    drawStage(s.id, s, ideal?.label ?? s.label, s.kind, at, sub, op.get(s.id))
+    drawStage(s.id, s, ideal?.label && ideal.label !== s.label ? ideal.label : stageTitle(s, lang), s.kind, at, sub, op.get(s.id))
   }
   for (const s of scope.added) {
     const at = added.get(s.id)
