@@ -347,6 +347,26 @@ its reason and the plan step that will reach it, and counted in the coverage row
   out. The target is `target-architecture.json` `infrastructure` (keep or introduce, per area); a lane the target says
   nothing about (usually queues and services) is "not measured yet" for the target, never shown as fine.
 
+## Change: the Bridge, the gaps, the plan board and the operations (`gaps.json`, `operations.json`)
+
+Written by `eaos/studio/change.py` from the check's own records (NS46.T3); read by `studio/src/pages/change/`.
+
+- **Gaps**: one per component of today (`target-architecture.json` relation: retain, refactor, rebuild, delete), one
+  per target component fed by two or more (merge) or by none (new). Each carries its target and responsibility, why
+  (the target's own reason), its cards (`gap-matrix.json` blocking tasks), how far they cover it (`cover`), its steps,
+  operations and structure decision. `closed` is cards done / cards; a gap no card closes is null with the reason in
+  its source, never 0.
+- **Operations**: one per gap that changes something. An operation sits in the step holding most of its cards, else in
+  the plan's own `build:<target>` step, else in none ("not in a step of the plan"). It waits for another (`after`) only
+  where one of its cards waits for one of the other's (a prerequisite, or an earlier task on the same file); a merge
+  carries its sources' cards but owns none. `order` never puts an operation before what it waits for.
+- **Pages**: `#/change/bridge` (a sankey of files from today's components to the target's, ribbons coloured by
+  operation, the smallest components folded into "Other" past 24 rows; the phone and `?view=table` show the transfer
+  list by target), `#/change/gaps?relation=` and `#/change/gaps/<id>`, `#/plans`, `#/plans/<plan>?view=timeline|graph|board`
+  (steps in order with task states and waits; the step graph where an arrow is a task waiting for another step's task,
+  from `paths.json`'s timeline; the operations in order, a lane per kind), `#/plans/<plan>/<step>`, `#/tasks/<id>` and
+  `#/ops/<id>`. A section the report does not hold shows its `coverage.json` row ("not measured yet"), never a guess.
+
 ## Live: the local server (NS37.T2)
 
 `eaos studio` (and the `open_studio` tool, for an assistant) rebuilds the Studio data from the ledger, starts a server

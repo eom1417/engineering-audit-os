@@ -2042,6 +2042,15 @@
       "kind": "invariant",
       "enforced_by": "tests/test_ai_nodes.py::Studio::test_the_section_says_what_ran_and_how",
       "note": ""
+    },
+    {
+      "id": "INV-5f0f76adc9",
+      "file": "eaos/studio/change.py",
+      "symbol": "<module>",
+      "statement": "- a gap no card covers has no closure measure (null, with the reason in its source), never 0 or 100%; - an operation is placed in the step that holds most of its cards, else in the plan's own \"build:<target>\" step, else in none (shown as not planned); - an operation waits for another only where one of its cards waits for one of the other's: a prerequisite the plan records, or an earlier task on the same file (the order the plan's waves set).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_change.py::Change::test_closure_is_measured_only_from_cards",
+      "note": ""
     }
   ],
   "limits": "Extraction is lexical: it finds sentences that assert, not every promise a docstring makes. A sentence it misses is still an invariant."

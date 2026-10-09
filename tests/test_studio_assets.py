@@ -141,7 +141,7 @@ class GateMatrix(unittest.TestCase):
             (data / 'story.json').write_text(json.dumps(story), encoding='utf-8')
             self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'fact': 'none', 'word': 'none', 'component': 'src/b', 'path': 'none',
                                                                     'task': 'none', 'screen': 'none', 'hidden_group': 'none',
-                                                                    'store': 'none', 'stage': 'none', 'ai_stage': 'none', 'ai_pipeline': 'none'})
+                                                                    'store': 'none', 'stage': 'none', 'ai_stage': 'none', 'ai_pipeline': 'none', 'gap': 'none', 'op': 'none', 'plan': 'none', 'step': 'none'})
             # {fact}: the card's first fact with code; {word}: the longest word of its title
             cards[1]['title'] = 'Flow FLOW-003 stops at 10 unresolvable calls'
             (data / 'cards.json').write_text(json.dumps({'cards': cards}), encoding='utf-8')
@@ -175,9 +175,20 @@ class GateMatrix(unittest.TestCase):
             ai = [{'id': 'g:r', 'kind': 'ai', 'pipeline': 'g', 'label': 'r'}, {'id': 'n:t', 'kind': 'ai', 'pipeline': 'n', 'label': 't'}]
             (data / 'pipeline.json').write_text(json.dumps({'stages': [*stages, *ai], 'routers': [{'pipeline': 'n', 'table': 't'}]}), encoding='utf-8')
             self.assertEqual([self.gates.studio_placeholders(data)[k] for k in ('ai_stage', 'ai_pipeline')], ['n:t', 'n'])   # an AI node with its router
+            gaps = [{'id': 'src/a', 'operation': 'rebuild', 'cards': ['T1']}, {'id': 'src/b', 'operation': 'refactor', 'cards': ['T1', 'T2']},
+                    {'id': 'src/c', 'operation': 'retain', 'cards': ['T1', 'T2', 'T3']}]
+            (data / 'gaps.json').write_text(json.dumps({'gaps': gaps}), encoding='utf-8')
+            ops = [{'id': 'op:b', 'order': 2, 'after': ['op:a']}, {'id': 'op:a', 'order': 1, 'after': []}]
+            (data / 'operations.json').write_text(json.dumps({'operations': ops}), encoding='utf-8')
+            (data / 'plans.json').write_text(json.dumps({'plans': [{'id': 'fix', 'steps': [{'id': 'M01', 'tasks': []}, {'id': 'M02', 'tasks': [{'id': 'T1'}]}]}]}),
+                                             encoding='utf-8')
+            self.assertEqual([self.gates.studio_placeholders(data)[k] for k in ('gap', 'op', 'plan', 'step')],
+                             ['src/b', 'op:b', 'fix', 'M02'])   # the most cards but a retained one, a waiting operation, a step with tasks
             (data / 'paths.json').unlink()
             pages = dict((e['name'], e) for e, _ in self.gates.studio_pages(self.matrix, data, 'http://127.0.0.1:1/', data))
         self.assertEqual(pages['system-focus']['url'], 'http://127.0.0.1:1/index.html#/system?focus=src%2Fb')
         self.assertEqual(pages['problem']['url'], 'http://127.0.0.1:1/index.html#/problems?card=TASK-2')
+        self.assertEqual(pages['gap']['url'], 'http://127.0.0.1:1/index.html#/change/gaps/src%2Fb')
+        self.assertEqual(pages['operation']['url'], 'http://127.0.0.1:1/index.html#/ops/op%3Ab')
         self.assertTrue(pages['file-home']['url'].startswith('file://') and pages['file-home']['url'].endswith('/index.html#/'))
         self.assertNotIn('path', pages['home'])

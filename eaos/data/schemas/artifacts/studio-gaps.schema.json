@@ -64,6 +64,12 @@
               "null"
             ]
           },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "files": {
             "type": "integer",
             "minimum": 0
@@ -77,6 +83,18 @@
           "cards_closed": {
             "type": "integer",
             "minimum": 0
+          },
+          "cover": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "covered",
+              "partial",
+              "missing",
+              null
+            ]
           },
           "steps": {
             "type": "array",

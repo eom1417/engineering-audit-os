@@ -1,5 +1,6 @@
 // Contract v1 (docs/STUDIO.md, schemas/artifacts/studio-*.schema.json): the fields the Studio reads today. Types
 // generated from the schemas replace this file with contract v2 (NS39.T3).
+import type { Gap, Operation } from './change'
 import type { DataPaths, Infra } from './dataMap'
 import type { Hidden, Journeys } from './journeys'
 import type { Measure } from './measure'
@@ -96,7 +97,7 @@ export interface Decision {
   plan: string | null
 }
 
-export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline'] as const
+export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'gaps', 'operations'] as const
 export type SectionName = (typeof SECTIONS)[number]
 
 export interface StudioData {
@@ -120,6 +121,8 @@ export interface StudioData {
   paths?: unknown
   /** studio/pipeline.json, typed by its page (pages/pipeline/model.ts) */
   pipeline?: unknown
+  gaps?: { gaps: Gap[] }
+  operations?: { operations: Operation[] }
   /** Sections the manifest lists but whose file did not load */
   missing: SectionName[]
 }

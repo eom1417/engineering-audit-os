@@ -40,6 +40,6 @@ export function visibleSections(dev: boolean): SectionDef[] {
 /** The section a path belongs to ("/problems?card=…" → problems) */
 export function sectionOf(pathname: string): SectionDef | undefined {
   const first = '/' + (pathname.split('/')[1] ?? '')
-  const head = first === '/flows' ? '/system' : first === '/evidence' ? '/problems' : first   // a code path belongs to System, evidence to Problems
+  const head = first === '/flows' ? '/system' : first === '/evidence' ? '/problems' : ['/plans', '/tasks', '/ops'].includes(first) ? '/change' : first   // a code path belongs to System, evidence to Problems
   return SECTIONS.find((section) => section.to === head) ?? (head === '/' ? SECTIONS[0] : undefined)
 }
