@@ -4,7 +4,7 @@
 // at once (optimistic) where a refusal can simply be undone: pause, resume, stop, reorder and answers.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useLoaded, useStudio } from '../context'
-import { demoClient, type DemoCard } from './demo'
+import type { DemoCard } from './demo'
 import { deriveRun, type RunView } from './derive'
 import { liveClient, takeToken } from './live'
 import { ACTIVE, type ActionsClient, type Mode, type Question, type Run, type RunEvent, type StreamStatus, type ReportDecision } from './types'
@@ -48,14 +48,19 @@ export function ActionsProvider({ children, client: given }: { children: ReactNo
   cards.current = (data?.cards?.cards ?? []) as DemoCard[]
   const [token] = useState(() => (given ? null : takeToken()))
   const [demo, setDemo] = useState(() => !given && !token && demoWanted())
-  const demoRef = useRef<ReturnType<typeof demoClient> | null>(null)
+  // The demo (its client and recorded run) is its own chunk, read only when the demo is asked for
+  const [demoModule, setDemoModule] = useState<typeof import('./demo') | null>(null)
+  useEffect(() => {
+    if (demo && !demoModule) void import('./demo').then((module) => setDemoModule(module))
+  }, [demo, demoModule])
+  const demoRef = useRef<ReturnType<typeof import('./demo').demoClient> | null>(null)
   const client = useMemo<ActionsClient | null>(() => {
     if (given) return given
     if (token) return liveClient(token)
-    if (!demo) return null
-    demoRef.current ??= demoClient(() => cards.current)
+    if (!demo || !demoModule) return null
+    demoRef.current ??= demoModule.demoClient(() => cards.current)
     return demoRef.current
-  }, [given, token, demo])
+  }, [given, token, demo, demoModule])
   const [runs, setRuns] = useState<Run[]>([])
   const [queue, setQueueState] = useState<string[]>([])
   const [questions, setQuestions] = useState<Question[]>([])

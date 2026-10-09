@@ -139,3 +139,12 @@ does not move the text. boot.js preloads only the first view's faces (Latin 400/
 files are local assets like before. Arabic first view: 209 KB of fonts to 162 KB.
 
 **Pinned**: `fonttools@4.60.1`, `brotli@1.1.0` (Python, development only, installed by `tools/dev_setup.sh`).
+
+Lighter first script and faster section parsing. The demo client with its recorded run (src/data/actions/demo.ts,
+recording.ts) is read only when the demo is asked for, and every sheet's React Aria modal parts (SheetDialog, Modal)
+are read on idle once the report is drawn and drawn from the sheet's first opening, through the same classic loader:
+assets/studio.js 202.3 KB to 184.5 KB gzipped. Each section's .js twin (eaos/studio/export.py `_write`) now hands
+its JSON text to JSON.parse as a single-quoted string literal instead of writing it as an object literal: the same
+contract v2 data byte for byte in the .json file and the manifest's digests, about the same size, and V8 parses a
+large JSON string literal faster than the equivalent object literal (cards.js of 5,000 cards, Lighthouse's
+evaluation 82–182 ms at 4x CPU as an object literal). No new dependency.

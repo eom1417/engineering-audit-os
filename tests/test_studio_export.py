@@ -12,6 +12,13 @@ SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'pla
 SECTIONS_V2 = ('history', 'quality', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'ideal', 'nodes', 'gaps', 'operations', 'library')
 
 
+
+def js_string_value(literal):
+    """The text of a single-quoted JavaScript string literal as eaos/studio/export.py writes it."""
+    import re
+    assert literal[0] == literal[-1] == "'", literal[:20]
+    return re.sub(r"\\(\\|'|u2028|u2029)", lambda m: {'u2028': '\u2028', 'u2029': '\u2029'}.get(m.group(1), m.group(1)), literal[1:-1])
+
 class Export(Workspace):
     def setUp(self):
         super().setUp()
@@ -51,9 +58,18 @@ class Export(Workspace):
     def test_each_section_has_a_js_twin_for_a_page_opened_from_a_file(self):
         for name in ('manifest', *SECTIONS):
             text = (self.folder / f'{name}.js').read_text(encoding='utf-8')
-            prefix = f'(window.EAOS_STUDIO=window.EAOS_STUDIO||{{}})["{name}"]='
+            prefix = f"(window.EAOS_STUDIO=window.EAOS_STUDIO||{{}})[\"{name}\"]=JSON.parse('"
             self.assertTrue(text.startswith(prefix), name)
-            self.assertEqual(json.loads(text[len(prefix):].rstrip().rstrip(';')), self.load(name))
+            self.assertTrue(text.endswith("');\n"), name)
+            self.assertEqual(json.loads(js_string_value(text[len(prefix) - 1:-len(');\n')])), self.load(name))
+
+    def test_the_js_twin_keeps_quotes_backslashes_and_line_separators(self):
+        tricky = {'title': "it's a \\ \"path\" \u2028 \u2029 \n </script> ما'"}
+        export._write(self.folder, 'tricky', tricky)
+        text = (self.folder / 'tricky.js').read_text(encoding='utf-8')
+        self.assertNotIn('\u2028', text)
+        literal = text[text.index('JSON.parse(') + len('JSON.parse('):-len(');\n')]
+        self.assertEqual(json.loads(js_string_value(literal)), tricky)
 
     def test_the_version_shown_is_the_installed_eaos(self):
         from eaos import __version__
