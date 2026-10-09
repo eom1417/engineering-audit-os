@@ -82,6 +82,8 @@
 
   /* operations (reserved meanings) */
   --op-keep: #8a8e99; --op-modify: #2a78d6; --op-rebuild: #d9711c; --op-introduce: #1597a5; --op-merge: #7c5fd6; --op-delete: #d33a3a;
+  /* AI nodes (docs/STUDIO.md D11): their own hue, apart from every operation and status */
+  --ai: #c2338f; --ai-wash: #fbeef6; --ai-text: #9e2172;
 
   /* sequential ramp for counts (findings density) */
   --seq-100: #eef1f6; --seq-200: #d5ddeb; --seq-300: #aebfd9; --seq-400: #7d98c4; --seq-500: #4f71aa; --seq-600: #2f4f86; --seq-700: #1d335c;
@@ -142,6 +144,7 @@
   --hc-high-fg: #160b03; --hc-medium-fg: #ffffff; --hc-low-fg: #ffffff;
 
   --op-keep: #7b7f89; --op-modify: #3987e5; --op-rebuild: #e8893a; --op-introduce: #2fb3c1; --op-merge: #9a82ea; --op-delete: #f0625f;
+  --ai: #e463b4; --ai-wash: #36192d; --ai-text: #f08ccb;
 
   --seq-100: #161a22; --seq-200: #1b2536; --seq-300: #22344f; --seq-400: #2c4a72; --seq-500: #3d6499; --seq-600: #5b86c0; --seq-700: #8fb0e0;
 

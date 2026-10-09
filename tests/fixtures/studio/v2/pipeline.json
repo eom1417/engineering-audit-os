@@ -8,7 +8,7 @@
   {
    "condition": "STAGES",
    "evidence": {
-    "fact": "FACT-ec288b22c0c66caf",
+    "fact": null,
     "line": 57,
     "path": "eaos/pipeline/run.py",
     "text": "for stage in STAGES:"
@@ -21,7 +21,7 @@
   {
    "condition": "stage.name in completed",
    "evidence": {
-    "fact": "FACT-94d5d64cb9efe821",
+    "fact": null,
     "line": 58,
     "path": "eaos/pipeline/run.py",
     "text": "if stage.name in completed:"
@@ -34,7 +34,7 @@
   {
    "condition": "stage.name not in requested",
    "evidence": {
-    "fact": "FACT-24f0207177099a20",
+    "fact": null,
     "line": 61,
     "path": "eaos/pipeline/run.py",
     "text": "if stage.name not in requested:"
@@ -47,7 +47,7 @@
   {
    "condition": "stage.name in blocked",
    "evidence": {
-    "fact": "FACT-9b91b7fbfabe0644",
+    "fact": null,
     "line": 66,
     "path": "eaos/pipeline/run.py",
     "text": "if stage.name in blocked:"
@@ -58,9 +58,48 @@
    "stage": "eaos/pipeline/stages.py:STAGES/facts"
   },
   {
+   "condition": "NODES",
+   "evidence": {
+    "fact": null,
+    "line": 102,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "for each in NODES:"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES:loop",
+   "kind": "loop",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "stage": "eaos/studio/nodes/__init__.py:NODES/card_triage"
+  },
+  {
+   "condition": "names and each.name not in names",
+   "evidence": {
+    "fact": null,
+    "line": 103,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "if names and each.name not in names: continue"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES:skip:103",
+   "kind": "conditional_skip",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "stage": "eaos/studio/nodes/__init__.py:NODES/card_triage"
+  },
+  {
+   "condition": "runner is None",
+   "evidence": {
+    "fact": null,
+    "line": 105,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "if runner is None: continue"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES:skip:105",
+   "kind": "conditional_skip",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "stage": "eaos/studio/nodes/__init__.py:NODES/card_triage"
+  },
+  {
    "condition": "for name in names",
    "evidence": {
-    "fact": "FACT-3a37a96f592647ce",
+    "fact": null,
     "line": 100,
     "path": "eaos/facts/run.py",
     "text": "for name in names:"
@@ -75,12 +114,12 @@
   "branches": {
    "src": "facts/pipeline.json#pipeline_router.branches",
    "unit": "count",
-   "value": 62
+   "value": 86
   },
   "edges": {
    "src": "facts/pipeline.json#pipeline_edge",
    "unit": "count",
-   "value": 68
+   "value": 77
   },
   "error_lanes": {
    "src": "facts/pipeline.json#pipeline_error",
@@ -95,7 +134,7 @@
   "gaps": {
    "src": "pipeline.json#views.gap: one per broken rule of eaos/data/pipeline-rules.json",
    "unit": "count",
-   "value": 18
+   "value": 19
   },
   "hidden": {
    "src": "facts/pipeline.json#pipeline_hidden",
@@ -105,22 +144,22 @@
   "pipelines": {
    "src": "facts/pipeline.json#pipeline",
    "unit": "count",
-   "value": 5
+   "value": 6
   },
   "product": {
    "src": "facts/pipeline.json#pipeline[role=product]",
    "unit": "count",
-   "value": 4
+   "value": 5
   },
   "routers": {
    "src": "facts/pipeline.json#pipeline_router",
    "unit": "count",
-   "value": 3
+   "value": 9
   },
   "stages": {
    "src": "facts/pipeline.json#pipeline_stage[kind not router, fork, join]",
    "unit": "count",
-   "value": 61
+   "value": 66
   },
   "tooling": {
    "src": "facts/pipeline.json#pipeline[role=tooling]",
@@ -142,7 +181,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-1d07260ed8496ff5",
+    "fact": null,
     "line": 936,
     "path": "eaos/guided.py",
     "text": "('ready', 'تجهيز تشغيل برنامجك في نسخة منفصلة', 'Set up your app to run in a separate copy', ready_done, ready),"
@@ -161,7 +200,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-98213ce004572584",
+    "fact": null,
     "line": 937,
     "path": "eaos/guided.py",
     "text": "('safety', 'تصوير برنامجك وقياس سرعته قبل أي تغيير', 'Record your app and measure its speed before any change', safety_done, safety),"
@@ -180,7 +219,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-2d84844f5ce81617",
+    "fact": null,
     "line": 938,
     "path": "eaos/guided.py",
     "text": "('fix', 'إصلاح دفعة وتسليمها فرعًا في مشروعك', 'Fix a batch and hand it over as a branch in your project', fix_done, fix),"
@@ -201,7 +240,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-e35747108e32f851",
+    "fact": null,
     "line": 31,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('features', produces=('features.json', 'FEATURES.md'), requires=('facts',),"
@@ -223,7 +262,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-2ff169ea90e4e78b",
+    "fact": null,
     "line": 33,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('lock', produces=('behavior-lock/plan.json',), requires=('features',), necessity=OPTIONAL,"
@@ -245,7 +284,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-cc8cfeea4388562b",
+    "fact": null,
     "line": 36,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('intake', produces=('intake.json',), requires=('features',),"
@@ -266,7 +305,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-5d07e9c134c2c76c",
+    "fact": null,
     "line": 38,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('engines', produces=('facts/external.json', 'ENGINES.md'), requires=('facts',), necessity=OPTIONAL,"
@@ -287,7 +326,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-7e100e5d4a80b5d9",
+    "fact": null,
     "line": 41,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('verify', produces=('verification.json',), requires=('facts',), necessity=OPTIONAL,"
@@ -308,7 +347,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-8f881a4f1697935a",
+    "fact": null,
     "line": 44,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('measure', produces=('measurements.json', 'MEASUREMENTS.md'), requires=('facts',),"
@@ -329,7 +368,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-2c57d94655b3f49c",
+    "fact": null,
     "line": 46,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('policy', produces=('facts/policy.json', 'POLICY.md'), requires=('facts',), necessity=OPTIONAL,"
@@ -350,7 +389,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-e628ea9673003c12",
+    "fact": null,
     "line": 49,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('load', produces=('load-model.json', 'LOAD-MODEL.md'), requires=('facts',),"
@@ -371,7 +410,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-f1251b42671bcc7d",
+    "fact": null,
     "line": 51,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('claims', produces=('dossier.json', 'DECISION-BRIEF.md', 'README.md'), requires=('facts', 'load'),"
@@ -393,7 +432,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-b1ddc928a11bf3ed",
+    "fact": null,
     "line": 51,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('claims', produces=('dossier.json', 'DECISION-BRIEF.md', 'README.md'), requires=('facts', 'load'),"
@@ -416,7 +455,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-ab96e9e777a4a584",
+    "fact": null,
     "line": 53,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('probe', produces=('probes.json',), requires=('claims',),"
@@ -439,7 +478,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-0176288fcad59786",
+    "fact": null,
     "line": 55,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('semantic', produces=('SEMANTIC.md',), requires=('claims',), necessity=OPTIONAL,"
@@ -462,7 +501,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-921e085cc634d1f6",
+    "fact": null,
     "line": 58,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('sustainability', produces=('SUSTAINABILITY.md', 'sustainability.json'), requires=('claims',),"
@@ -484,7 +523,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-decd539612e0ae86",
+    "fact": null,
     "line": 60,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('transform', produces=('transform-plan.md', 'transform-plan.json'), requires=('sustainability',),"
@@ -505,7 +544,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-ed3c4bceb2eb224e",
+    "fact": null,
     "line": 62,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('plan', produces=('plan.json', 'PLAN/WAVES.md'), requires=('probe',),"
@@ -527,7 +566,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-e74b1c4aaf1aa59e",
+    "fact": null,
     "line": 64,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('target', produces=('TARGET-ARCHITECTURE.md', 'target-architecture.json'), requires=('plan', 'transform'),"
@@ -549,7 +588,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-5f7ece42ac383acc",
+    "fact": null,
     "line": 64,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('target', produces=('TARGET-ARCHITECTURE.md', 'target-architecture.json'), requires=('plan', 'transform'),"
@@ -571,7 +610,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-ffb2c4d6d0adaaa1",
+    "fact": null,
     "line": 66,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('reports', produces=('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md', 'reports.json'),"
@@ -593,7 +632,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-2c56476814a18779",
+    "fact": null,
     "line": 66,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('reports', produces=('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md', 'reports.json'),"
@@ -616,7 +655,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-fc96e51f9c967dc1",
+    "fact": null,
     "line": 69,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('quality', produces=('report-quality.json',), requires=('reports',), necessity=OPTIONAL,"
@@ -639,7 +678,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-43cf6932c8bba3dc",
+    "fact": null,
     "line": 72,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('pdf', produces=('EXECUTIVE.pdf',), requires=('reports',), necessity=OPTIONAL,"
@@ -661,7 +700,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-60c560ebe986ab64",
+    "fact": null,
     "line": 75,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('execution_guide', produces=('EXECUTION-GUIDE.md',), requires=('plan', 'transform', 'load'),"
@@ -683,7 +722,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-b4ec80b6193dfa79",
+    "fact": null,
     "line": 75,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('execution_guide', produces=('EXECUTION-GUIDE.md',), requires=('plan', 'transform', 'load'),"
@@ -705,7 +744,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-eccef51b29d0abf2",
+    "fact": null,
     "line": 75,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('execution_guide', produces=('EXECUTION-GUIDE.md',), requires=('plan', 'transform', 'load'),"
@@ -727,7 +766,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-547760c859b23bc8",
+    "fact": null,
     "line": 77,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('executive', produces=('EXECUTIVE.md',), requires=('sustainability',),"
@@ -749,7 +788,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-37fc7d0a42009caf",
+    "fact": null,
     "line": 79,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('compose', produces=('PRODUCT-REPORT.md', 'BLOCKERS.md', 'START-HERE.md', 'human/index.html'), requires=('plan', 'target', 'executive'),"
@@ -771,7 +810,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-d42e3f88283392fe",
+    "fact": null,
     "line": 79,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('compose', produces=('PRODUCT-REPORT.md', 'BLOCKERS.md', 'START-HERE.md', 'human/index.html'), requires=('plan', 'target', 'executive'),"
@@ -792,7 +831,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-11dd0809c6d03fe2",
+    "fact": null,
     "line": 79,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('compose', produces=('PRODUCT-REPORT.md', 'BLOCKERS.md', 'START-HERE.md', 'human/index.html'), requires=('plan', 'target', 'executive'),"
@@ -815,7 +854,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-fe903ced1a571f2a",
+    "fact": null,
     "line": 81,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('bundles', produces=('bundles/manifest.json', 'CANONICAL-HOMES.md', 'canonical-homes.json',"
@@ -838,7 +877,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-9b2d1ce18249b80e",
+    "fact": null,
     "line": 86,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('emit', produces=('handover/README.md', 'handover/validation.json'), requires=('compose',), necessity=OPTIONAL,"
@@ -861,7 +900,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-1ac347c566ffe640",
+    "fact": null,
     "line": 89,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('site', produces=('index.html',), requires=('compose',), necessity=OPTIONAL,"
@@ -884,7 +923,7 @@
     "shape": "files"
    },
    "evidence": {
-    "fact": "FACT-b6c8450970dbf905",
+    "fact": null,
     "line": 92,
     "path": "eaos/pipeline/stages.py",
     "text": "Stage('validate', produces=('report-result.json', 'RUN.md'), requires=('compose',),"
@@ -897,6 +936,185 @@
    "to": "eaos/pipeline/stages.py:STAGES/validate"
   },
   {
+   "condition": null,
+   "data": {
+    "names": [
+     "nodes/card_triage/verdicts.json"
+    ],
+    "shape": "files"
+   },
+   "evidence": {
+    "fact": null,
+    "line": 65,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('plan_orderer', 'Plan orderer', passes=('plan', 'critique'), requires=('card_triage', 'ideal_planner', 'pipeline_gap_planner'),"
+   },
+   "from": "eaos/studio/nodes/__init__.py:NODES/card_triage",
+   "id": "eaos/studio/nodes/__init__.py:NODES/card_triage->plan_orderer",
+   "kind": "data",
+   "matched_by": "declared",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer"
+  },
+  {
+   "condition": null,
+   "data": {
+    "names": [
+     "ideal/plan.json"
+    ],
+    "shape": "files"
+   },
+   "evidence": {
+    "fact": null,
+    "line": 65,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('plan_orderer', 'Plan orderer', passes=('plan', 'critique'), requires=('card_triage', 'ideal_planner', 'pipeline_gap_planner'),"
+   },
+   "from": "eaos/studio/nodes/__init__.py:NODES/ideal_planner",
+   "id": "eaos/studio/nodes/__init__.py:NODES/ideal_planner->plan_orderer",
+   "kind": "data",
+   "matched_by": "declared",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer"
+  },
+  {
+   "condition": null,
+   "data": {
+    "names": [
+     "nodes/pipeline_gap_planner/plan.json"
+    ],
+    "shape": "files"
+   },
+   "evidence": {
+    "fact": null,
+    "line": 65,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('plan_orderer', 'Plan orderer', passes=('plan', 'critique'), requires=('card_triage', 'ideal_planner', 'pipeline_gap_planner'),"
+   },
+   "from": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner",
+   "id": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner->plan_orderer",
+   "kind": "data",
+   "matched_by": "declared",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer"
+  },
+  {
+   "condition": null,
+   "data": {
+    "names": [
+     "nodes/plan_orderer/order.json"
+    ],
+    "shape": "files"
+   },
+   "evidence": {
+    "fact": null,
+    "line": 72,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('fix_reviewer', 'Fix reviewer', requires=('plan_orderer',), consumes=('waves/wave-N/wave.json', 'waves/wave-N/*.patch'),"
+   },
+   "from": "eaos/studio/nodes/__init__.py:NODES/plan_orderer",
+   "id": "eaos/studio/nodes/__init__.py:NODES/plan_orderer->fix_reviewer",
+   "kind": "data",
+   "matched_by": "declared",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "to": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer"
+  },
+  {
+   "condition": null,
+   "data": {
+    "names": [],
+    "shape": null
+   },
+   "evidence": {
+    "fact": null,
+    "line": 46,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('card_triage', 'Card triage', consumes=('studio/cards.json', 'studio/evidence.json'), produces=('nodes/card_triage/verdicts.json',),"
+   },
+   "from": "eaos/studio/nodes/__init__.py:NODES/card_triage",
+   "id": "eaos/studio/nodes/__init__.py:NODES/card_triage->card_triage-router",
+   "kind": "control",
+   "matched_by": "declared",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "to": "eaos/studio/nodes/__init__.py:NODES/card_triage-router"
+  },
+  {
+   "condition": null,
+   "data": {
+    "names": [],
+    "shape": null
+   },
+   "evidence": {
+    "fact": null,
+    "line": 52,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('ideal_planner', 'Ideal planner', passes=('plan', 'critique'), consumes=('target-architecture.json', 'plan.json', 'studio/'),"
+   },
+   "from": "eaos/studio/nodes/__init__.py:NODES/ideal_planner",
+   "id": "eaos/studio/nodes/__init__.py:NODES/ideal_planner->ideal_planner-router",
+   "kind": "control",
+   "matched_by": "declared",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "to": "eaos/studio/nodes/__init__.py:NODES/ideal_planner-router"
+  },
+  {
+   "condition": null,
+   "data": {
+    "names": [],
+    "shape": null
+   },
+   "evidence": {
+    "fact": null,
+    "line": 58,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('pipeline_gap_planner', 'Pipeline gap planner', passes=('plan', 'critique'), consumes=('studio/pipeline.json',),"
+   },
+   "from": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner",
+   "id": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner->pipeline_gap_planner-router",
+   "kind": "control",
+   "matched_by": "declared",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "to": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner-router"
+  },
+  {
+   "condition": null,
+   "data": {
+    "names": [],
+    "shape": null
+   },
+   "evidence": {
+    "fact": null,
+    "line": 65,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('plan_orderer', 'Plan orderer', passes=('plan', 'critique'), requires=('card_triage', 'ideal_planner', 'pipeline_gap_planner'),"
+   },
+   "from": "eaos/studio/nodes/__init__.py:NODES/plan_orderer",
+   "id": "eaos/studio/nodes/__init__.py:NODES/plan_orderer->plan_orderer-router",
+   "kind": "control",
+   "matched_by": "declared",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer-router"
+  },
+  {
+   "condition": null,
+   "data": {
+    "names": [],
+    "shape": null
+   },
+   "evidence": {
+    "fact": null,
+    "line": 72,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('fix_reviewer', 'Fix reviewer', requires=('plan_orderer',), consumes=('waves/wave-N/wave.json', 'waves/wave-N/*.patch'),"
+   },
+   "from": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer",
+   "id": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer->fix_reviewer-router",
+   "kind": "control",
+   "matched_by": "declared",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "to": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer-router"
+  },
+  {
    "condition": "name == 'resolve'",
    "data": {
     "names": [
@@ -905,7 +1123,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-7acea0908c128c1b",
+    "fact": null,
     "line": 107,
     "path": "eaos/facts/run.py",
     "text": "result = module.run(target, source, imports=[f for f in produced.get('syntax', []) if f['kind'] == 'import_edge'] or None,"
@@ -926,7 +1144,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-d9faa000cb62562c",
+    "fact": null,
     "line": 110,
     "path": "eaos/facts/run.py",
     "text": "structure=produced.get('structure'), entrypoints=produced.get('entrypoints'))"
@@ -947,7 +1165,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-ff020d41ca975aeb",
+    "fact": null,
     "line": 110,
     "path": "eaos/facts/run.py",
     "text": "structure=produced.get('structure'), entrypoints=produced.get('entrypoints'))"
@@ -968,7 +1186,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-80b581e80438a9c8",
+    "fact": null,
     "line": 109,
     "path": "eaos/facts/run.py",
     "text": "elif name == 'redundancy': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None,"
@@ -989,7 +1207,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-63d700253c8bca1a",
+    "fact": null,
     "line": 111,
     "path": "eaos/facts/run.py",
     "text": "elif name in {'structure', 'fingerprint', 'sequences', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind"
@@ -1010,7 +1228,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-77a6565a60654a81",
+    "fact": null,
     "line": 111,
     "path": "eaos/facts/run.py",
     "text": "elif name in {'structure', 'fingerprint', 'sequences', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind"
@@ -1031,7 +1249,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-34b47ec802f3f251",
+    "fact": null,
     "line": 111,
     "path": "eaos/facts/run.py",
     "text": "elif name in {'structure', 'fingerprint', 'sequences', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind"
@@ -1052,7 +1270,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-120e035bf68c8a66",
+    "fact": null,
     "line": 111,
     "path": "eaos/facts/run.py",
     "text": "elif name in {'structure', 'fingerprint', 'sequences', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind"
@@ -1073,7 +1291,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-48c29abf3e9a9ef5",
+    "fact": null,
     "line": 112,
     "path": "eaos/facts/run.py",
     "text": "elif name in {'entrypoints', 'metrics'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)"
@@ -1094,7 +1312,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-ed7e7456958365d6",
+    "fact": null,
     "line": 112,
     "path": "eaos/facts/run.py",
     "text": "elif name in {'entrypoints', 'metrics'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)"
@@ -1115,7 +1333,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-15d80728c5225f80",
+    "fact": null,
     "line": 115,
     "path": "eaos/facts/run.py",
     "text": "edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), env=produced.get('config', []),"
@@ -1136,7 +1354,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-e693f01200842716",
+    "fact": null,
     "line": 115,
     "path": "eaos/facts/run.py",
     "text": "edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), env=produced.get('config', []),"
@@ -1157,7 +1375,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-fd8a7b36103a1b75",
+    "fact": null,
     "line": 115,
     "path": "eaos/facts/run.py",
     "text": "edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), env=produced.get('config', []),"
@@ -1178,7 +1396,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-af28ce6d5f8a6aa8",
+    "fact": null,
     "line": 113,
     "path": "eaos/facts/run.py",
     "text": "elif name == 'flows': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'],"
@@ -1199,7 +1417,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-1434ed022dc09a38",
+    "fact": null,
     "line": 117,
     "path": "eaos/facts/run.py",
     "text": "elif name == 'graph': result = module.run(target, source, edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), metrics=produced.get("
@@ -1220,7 +1438,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-094502c434b71187",
+    "fact": null,
     "line": 117,
     "path": "eaos/facts/run.py",
     "text": "elif name == 'graph': result = module.run(target, source, edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), metrics=produced.get("
@@ -1241,7 +1459,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-ab6cc59e95a081d6",
+    "fact": null,
     "line": 117,
     "path": "eaos/facts/run.py",
     "text": "elif name == 'graph': result = module.run(target, source, edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), metrics=produced.get("
@@ -1262,7 +1480,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-41640c15888de5c6",
+    "fact": null,
     "line": 117,
     "path": "eaos/facts/run.py",
     "text": "elif name == 'graph': result = module.run(target, source, edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), metrics=produced.get("
@@ -1283,7 +1501,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-8cbf44628ec884c3",
+    "fact": null,
     "line": 119,
     "path": "eaos/facts/run.py",
     "text": "elif name == 'leftovers': result = module.run(target, source, resolve_facts=produced.get('resolve', []))"
@@ -1304,7 +1522,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-f786859f92a06819",
+    "fact": null,
     "line": 121,
     "path": "eaos/facts/run.py",
     "text": "elif name == 'broken': result = module.run(target, source, resolved=produced.get('resolve', []))"
@@ -1325,7 +1543,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-9bb7a49194b2e5fd",
+    "fact": null,
     "line": 123,
     "path": "eaos/facts/run.py",
     "text": "resolved=produced.get('resolve', []), entry_points=produced.get('entrypoints', []))"
@@ -1346,7 +1564,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-8280caa494398355",
+    "fact": null,
     "line": 123,
     "path": "eaos/facts/run.py",
     "text": "resolved=produced.get('resolve', []), entry_points=produced.get('entrypoints', []))"
@@ -1367,7 +1585,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-305b36e30a9e5da6",
+    "fact": null,
     "line": 122,
     "path": "eaos/facts/run.py",
     "text": "elif name == 'deadcode': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'],"
@@ -1386,7 +1604,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-b491bc630e3b9819",
+    "fact": null,
     "line": 53,
     "path": "eaos/runtime/pipeline.py",
     "text": "phase('source inspection')"
@@ -1405,7 +1623,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-b32f43703a42894f",
+    "fact": null,
     "line": 90,
     "path": "eaos/runtime/pipeline.py",
     "text": "phase('architecture reconstruction')"
@@ -1424,7 +1642,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-622ba5be4a26da5e",
+    "fact": null,
     "line": 107,
     "path": "eaos/runtime/pipeline.py",
     "text": "phase('scope and review module '+mid)"
@@ -1443,7 +1661,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-a05268a512d4f4b0",
+    "fact": null,
     "line": 155,
     "path": "eaos/runtime/pipeline.py",
     "text": "phase('root-cause challenge')"
@@ -1462,7 +1680,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-9c66be63513d6b68",
+    "fact": null,
     "line": 182,
     "path": "eaos/runtime/pipeline.py",
     "text": "phase('target architecture and migration design')"
@@ -1481,7 +1699,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-1467f9fe40e797b7",
+    "fact": null,
     "line": 210,
     "path": "eaos/runtime/pipeline.py",
     "text": "phase('migration challenge and final verification')"
@@ -1500,7 +1718,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-7afa53d59106c526",
+    "fact": null,
     "line": 12,
     "path": "studio/package.json",
     "text": "\"build\": \"npm run lint && npm run typecheck && npm test && vite build && node scripts/ship.mjs\","
@@ -1519,7 +1737,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-e58ee246906439da",
+    "fact": null,
     "line": 12,
     "path": "studio/package.json",
     "text": "\"build\": \"npm run lint && npm run typecheck && npm test && vite build && node scripts/ship.mjs\","
@@ -1538,7 +1756,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-f9c91942490ec5b2",
+    "fact": null,
     "line": 12,
     "path": "studio/package.json",
     "text": "\"build\": \"npm run lint && npm run typecheck && npm test && vite build && node scripts/ship.mjs\","
@@ -1557,7 +1775,7 @@
     "shape": null
    },
    "evidence": {
-    "fact": "FACT-5ba001482dca49a6",
+    "fact": null,
     "line": 12,
     "path": "studio/package.json",
     "text": "\"build\": \"npm run lint && npm run typecheck && npm test && vite build && node scripts/ship.mjs\","
@@ -1574,7 +1792,7 @@
   {
    "condition": "stage.name not in requested",
    "evidence": {
-    "fact": "FACT-2497d0e0b24b96ab",
+    "fact": null,
     "line": 61,
     "path": "eaos/pipeline/run.py",
     "text": "if stage.name not in requested:"
@@ -1588,7 +1806,7 @@
   {
    "condition": "stage.name in blocked",
    "evidence": {
-    "fact": "FACT-c80854e19a5aa62b",
+    "fact": null,
     "line": 66,
     "path": "eaos/pipeline/run.py",
     "text": "if stage.name in blocked:"
@@ -1602,7 +1820,7 @@
   {
    "condition": "runner is None",
    "evidence": {
-    "fact": "FACT-016546127492267a",
+    "fact": null,
     "line": 125,
     "path": "eaos/pipeline/run.py",
     "text": "if runner is None:"
@@ -1616,7 +1834,7 @@
   {
    "condition": "missing",
    "evidence": {
-    "fact": "FACT-1c613217e349c238",
+    "fact": null,
     "line": 137,
     "path": "eaos/pipeline/run.py",
     "text": "if missing:"
@@ -1630,7 +1848,7 @@
   {
    "condition": "SkipStage",
    "evidence": {
-    "fact": "FACT-f16366ca8d689081",
+    "fact": null,
     "line": 130,
     "path": "eaos/pipeline/run.py",
     "text": "except SkipStage as reason:"
@@ -1644,7 +1862,7 @@
   {
    "condition": "Exception",
    "evidence": {
-    "fact": "FACT-76ade7c52ff69a93",
+    "fact": null,
     "line": 132,
     "path": "eaos/pipeline/run.py",
     "text": "except Exception as problem:                       # one stage must not decide the fate of the rest"
@@ -1658,7 +1876,7 @@
   {
    "condition": "(ValueError, OSError, KeyError)",
    "evidence": {
-    "fact": "FACT-32f64e1b93163bd1",
+    "fact": null,
     "line": 50,
     "path": "eaos/runtime/pipeline.py",
     "text": "except (ValueError,OSError,KeyError) as exc:"
@@ -1685,6 +1903,12 @@
   },
   {
    "fact": null,
+   "line": 45,
+   "path": "eaos/studio/nodes/__init__.py",
+   "text": "NODES = ("
+  },
+  {
+   "fact": null,
    "line": 10,
    "path": "eaos/facts/run.py",
    "text": "EXTRACTORS = {'history': history, 'syntax': syntax, 'structure': structure, 'resolve': resolve, 'entrypoints': entrypoints,"
@@ -1701,7 +1925,7 @@
   {
    "channel": "context",
    "evidence": {
-    "fact": "FACT-6c9a44145cd160af",
+    "fact": null,
     "line": 23,
     "path": "eaos/pipeline/runners.py",
     "text": "context['collected'] = collect(context.target, context.out, None, source=context['source'],"
@@ -1720,7 +1944,7 @@
   {
    "channel": "context",
    "evidence": {
-    "fact": "FACT-7e349da0a213c6e7",
+    "fact": null,
     "line": 89,
     "path": "eaos/pipeline/runners.py",
     "text": "context['dossier_status'] = result['status']"
@@ -1736,7 +1960,7 @@
   {
    "channel": "context",
    "evidence": {
-    "fact": "FACT-e7e4840c98eee177",
+    "fact": null,
     "line": 20,
     "path": "eaos/pipeline/runners.py",
     "text": "context['exclude'] = sorted({*context.exclude, *declared_exclusions(context.target)})"
@@ -1754,7 +1978,7 @@
   {
    "channel": "context",
    "evidence": {
-    "fact": "FACT-92889df2ac8cbc11",
+    "fact": null,
     "line": 21,
     "path": "eaos/pipeline/runners.py",
     "text": "context['source'] = Source(context.target, exclude=context['exclude'],"
@@ -1777,7 +2001,7 @@
  ],
  "looked_for": [
   {
-   "found": 2,
+   "found": 3,
    "how": "read from the code without running it",
    "kind": "declared_dag",
    "label": "Declared stages with requires, run through a registry"
@@ -1902,7 +2126,7 @@
     "unresolved": 0
    },
    "entry": {
-    "fact": "FACT-1a83d9d23551cdcf",
+    "fact": null,
     "line": 942,
     "path": "eaos/guided.py",
     "text": "def next_step(state):"
@@ -1937,7 +2161,7 @@
     "unresolved": 0
    },
    "entry": {
-    "fact": "FACT-6e28fefa239f51c8",
+    "fact": null,
     "line": 34,
     "path": "eaos/pipeline/run.py",
     "text": "def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines=None, provider=None,"
@@ -1986,6 +2210,55 @@
    "title": "STAGES (eaos/pipeline/stages.py)"
   },
   {
+   "confidence": 0.95,
+   "counts": {
+    "branches": 24,
+    "edges": 9,
+    "routers": 6,
+    "stages": 5,
+    "unresolved": 0
+   },
+   "entry": {
+    "fact": null,
+    "line": 99,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "def run(report, names=None, launcher=None, adapters=None, project=None, lang='en', budget=None, fresh=False, say=None, **inputs):"
+   },
+   "evidence": [
+    {
+     "fact": null,
+     "line": 45,
+     "path": "eaos/studio/nodes/__init__.py",
+     "text": "NODES = ("
+    }
+   ],
+   "id": "eaos/studio/nodes/__init__.py:NODES",
+   "kind": "declared_dag",
+   "parent": null,
+   "role": "product",
+   "stages": [
+    "eaos/studio/nodes/__init__.py:NODES/card_triage",
+    "eaos/studio/nodes/__init__.py:NODES/ideal_planner",
+    "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner",
+    "eaos/studio/nodes/__init__.py:NODES/plan_orderer",
+    "eaos/studio/nodes/__init__.py:NODES/fix_reviewer",
+    "eaos/studio/nodes/__init__.py:NODES/NODE_RUNNERS",
+    "eaos/studio/nodes/__init__.py:NODES/card_triage-router",
+    "eaos/studio/nodes/__init__.py:NODES/probe",
+    "eaos/studio/nodes/__init__.py:NODES/library_feedback",
+    "eaos/studio/nodes/__init__.py:NODES/ideal_planner-router",
+    "eaos/studio/nodes/__init__.py:NODES/inbox",
+    "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner-router",
+    "eaos/studio/nodes/__init__.py:NODES/plan_orderer-router",
+    "eaos/studio/nodes/__init__.py:NODES/plan",
+    "eaos/studio/nodes/__init__.py:NODES/fix_reviewer-router",
+    "eaos/studio/nodes/__init__.py:NODES/handover",
+    "eaos/studio/nodes/__init__.py:NODES/fix",
+    "eaos/studio/nodes/__init__.py:NODES/gates"
+   ],
+   "title": "NODES (eaos/studio/nodes/__init__.py)"
+  },
+  {
    "confidence": 0.9,
    "counts": {
     "branches": 36,
@@ -1995,7 +2268,7 @@
     "unresolved": 1
    },
    "entry": {
-    "fact": "FACT-353f45a1e4b27571",
+    "fact": null,
     "line": 80,
     "path": "eaos/facts/run.py",
     "text": "def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_bytes=2_000_000, source=None,"
@@ -2053,7 +2326,7 @@
     "unresolved": 0
    },
    "entry": {
-    "fact": "FACT-026dfb8e16115c4d",
+    "fact": null,
     "line": 25,
     "path": "eaos/runtime/pipeline.py",
     "text": "def _execute(run,state,provider,budget,max_rounds,max_inspect_files=None):"
@@ -2091,7 +2364,7 @@
     "unresolved": 0
    },
    "entry": {
-    "fact": "FACT-c753a5769261eaa0",
+    "fact": null,
     "line": 12,
     "path": "studio/package.json",
     "text": "\"build\": \"npm run lint && npm run typecheck && npm test && vite build && node scripts/ship.mjs\","
@@ -2385,7 +2658,7 @@
    ],
    "default": "failed",
    "entry": {
-    "fact": "FACT-fa8c802e7edb4c80",
+    "fact": null,
     "line": 124,
     "path": "eaos/pipeline/run.py",
     "text": "runner = runners.get(stage.name)"
@@ -2396,6 +2669,360 @@
    "pipeline": "eaos/pipeline/stages.py:STAGES",
    "stage": "eaos/pipeline/stages.py:STAGES/RUNNERS",
    "table": "RUNNERS",
+   "total": true,
+   "unhandled": []
+  },
+  {
+   "branches": [
+    {
+     "condition": "card_triage",
+     "evidence": {
+      "fact": null,
+      "line": 81,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "NODE_RUNNERS = {'card_triage': triage_cards, 'ideal_planner': plan_ideal, 'pipeline_gap_planner': plan_pipeline_gaps,"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/card_triage"
+    },
+    {
+     "condition": "ideal_planner",
+     "evidence": {
+      "fact": null,
+      "line": 81,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "NODE_RUNNERS = {'card_triage': triage_cards, 'ideal_planner': plan_ideal, 'pipeline_gap_planner': plan_pipeline_gaps,"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/ideal_planner"
+    },
+    {
+     "condition": "pipeline_gap_planner",
+     "evidence": {
+      "fact": null,
+      "line": 81,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "NODE_RUNNERS = {'card_triage': triage_cards, 'ideal_planner': plan_ideal, 'pipeline_gap_planner': plan_pipeline_gaps,"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner"
+    },
+    {
+     "condition": "plan_orderer",
+     "evidence": {
+      "fact": null,
+      "line": 82,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "'plan_orderer': order_plan, 'fix_reviewer': review_fix}"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer"
+    },
+    {
+     "condition": "fix_reviewer",
+     "evidence": {
+      "fact": null,
+      "line": 82,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "'plan_orderer': order_plan, 'fix_reviewer': review_fix}"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer"
+    }
+   ],
+   "default": "failed",
+   "entry": {
+    "fact": null,
+    "line": 104,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "runner = NODE_RUNNERS.get(each.name)"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES:NODE_RUNNERS",
+   "kind": "registry",
+   "on": "stage name",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "stage": "eaos/studio/nodes/__init__.py:NODES/NODE_RUNNERS",
+   "table": "NODE_RUNNERS",
+   "total": true,
+   "unhandled": []
+  },
+  {
+   "branches": [
+    {
+     "condition": "confirm",
+     "evidence": {
+      "fact": null,
+      "line": 47,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "routes=(Route('confirm', 'plan_orderer', 'the evidence holds: the card goes on to the plan'),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer"
+    },
+    {
+     "condition": "doubt",
+     "evidence": {
+      "fact": null,
+      "line": 48,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "Route('doubt', 'probe', 'the evidence does not settle it: a probe does, before the person sees the card'),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/probe"
+    },
+    {
+     "condition": "reject",
+     "evidence": {
+      "fact": null,
+      "line": 49,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "Route('reject', 'library_feedback', 'the evidence contradicts the card: it is set aside and its rule is told'),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/library_feedback"
+    },
+    {
+     "condition": "rules only",
+     "evidence": {
+      "fact": null,
+      "line": 50,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "Route('rules only', 'plan_orderer', 'no assistant decided: the card goes on as the engines wrote it')),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer"
+    }
+   ],
+   "default": null,
+   "entry": {
+    "fact": null,
+    "line": 46,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('card_triage', 'Card triage', consumes=('studio/cards.json', 'studio/evidence.json'), produces=('nodes/card_triage/verdicts.json',),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES:card_triage:routes",
+   "kind": "conditional_edges",
+   "on": "decision",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "stage": "eaos/studio/nodes/__init__.py:NODES/card_triage-router",
+   "table": "card_triage",
+   "total": true,
+   "unhandled": []
+  },
+  {
+   "branches": [
+    {
+     "condition": "accept",
+     "evidence": {
+      "fact": null,
+      "line": 54,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "routes=(Route('accept', 'plan_orderer', 'every view planned on evidence, no question left: the ideal goes on to the plan'),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer"
+    },
+    {
+     "condition": "ask",
+     "evidence": {
+      "fact": null,
+      "line": 55,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "Route('ask', 'inbox', 'the ideal leaves questions: they wait for the person in the Decisions inbox'),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/inbox"
+    },
+    {
+     "condition": "rules only",
+     "evidence": {
+      "fact": null,
+      "line": 56,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "Route('rules only', 'plan_orderer', \"not planned: the rules' target stands\")),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer"
+    }
+   ],
+   "default": null,
+   "entry": {
+    "fact": null,
+    "line": 52,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('ideal_planner', 'Ideal planner', passes=('plan', 'critique'), consumes=('target-architecture.json', 'plan.json', 'studio/'),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES:ideal_planner:routes",
+   "kind": "conditional_edges",
+   "on": "decision",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "stage": "eaos/studio/nodes/__init__.py:NODES/ideal_planner-router",
+   "table": "ideal_planner",
+   "total": true,
+   "unhandled": []
+  },
+  {
+   "branches": [
+    {
+     "condition": "plan",
+     "evidence": {
+      "fact": null,
+      "line": 60,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "routes=(Route('plan', 'plan_orderer', 'the gap is closed by a step, which goes on to the plan'),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer"
+    },
+    {
+     "condition": "ask",
+     "evidence": {
+      "fact": null,
+      "line": 61,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "Route('ask', 'inbox', 'closing the gap is a choice for the person'),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/inbox"
+    },
+    {
+     "condition": "not a gap",
+     "evidence": {
+      "fact": null,
+      "line": 62,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "Route('not a gap', 'library_feedback', 'the pipeline rule does not fit here: its rule is told'),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/library_feedback"
+    },
+    {
+     "condition": "rules only",
+     "evidence": {
+      "fact": null,
+      "line": 63,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "Route('rules only', 'plan_orderer', \"no assistant decided: the rules' gap stands\")),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer"
+    }
+   ],
+   "default": null,
+   "entry": {
+    "fact": null,
+    "line": 58,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('pipeline_gap_planner', 'Pipeline gap planner', passes=('plan', 'critique'), consumes=('studio/pipeline.json',),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES:pipeline_gap_planner:routes",
+   "kind": "conditional_edges",
+   "on": "decision",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "stage": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner-router",
+   "table": "pipeline_gap_planner",
+   "total": true,
+   "unhandled": []
+  },
+  {
+   "branches": [
+    {
+     "condition": "reorder",
+     "evidence": {
+      "fact": null,
+      "line": 67,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "routes=(Route('reorder', 'plan', 'a better order and grouping of the steps, every prerequisite kept'),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/plan"
+    },
+    {
+     "condition": "keep",
+     "evidence": {
+      "fact": null,
+      "line": 68,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "Route('keep', 'plan', \"the rules' order is already right\"),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/plan"
+    },
+    {
+     "condition": "ask",
+     "evidence": {
+      "fact": null,
+      "line": 69,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "Route('ask', 'inbox', 'the order depends on a choice for the person'),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/inbox"
+    },
+    {
+     "condition": "rules only",
+     "evidence": {
+      "fact": null,
+      "line": 70,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "Route('rules only', 'plan', \"no assistant decided: the rules' order stands\")),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/plan"
+    }
+   ],
+   "default": null,
+   "entry": {
+    "fact": null,
+    "line": 65,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('plan_orderer', 'Plan orderer', passes=('plan', 'critique'), requires=('card_triage', 'ideal_planner', 'pipeline_gap_planner'),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES:plan_orderer:routes",
+   "kind": "conditional_edges",
+   "on": "decision",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "stage": "eaos/studio/nodes/__init__.py:NODES/plan_orderer-router",
+   "table": "plan_orderer",
+   "total": true,
+   "unhandled": []
+  },
+  {
+   "branches": [
+    {
+     "condition": "accept",
+     "evidence": {
+      "fact": null,
+      "line": 74,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "routes=(Route('accept', 'handover', 'the diff does what the card asks and the checks hold: offered to the person'),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/handover"
+    },
+    {
+     "condition": "retry",
+     "evidence": {
+      "fact": null,
+      "line": 75,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "Route('retry', 'fix', 'the fix is wrong or incomplete: it is made again'),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/fix"
+    },
+    {
+     "condition": "ask",
+     "evidence": {
+      "fact": null,
+      "line": 76,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "Route('ask', 'inbox', 'the fix needs a choice from the person'),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/inbox"
+    },
+    {
+     "condition": "rules only",
+     "evidence": {
+      "fact": null,
+      "line": 77,
+      "path": "eaos/studio/nodes/__init__.py",
+      "text": "Route('rules only', 'gates', \"no assistant decided: the gates' verdict stands\")),"
+     },
+     "to": "eaos/studio/nodes/__init__.py:NODES/gates"
+    }
+   ],
+   "default": null,
+   "entry": {
+    "fact": null,
+    "line": 72,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('fix_reviewer', 'Fix reviewer', requires=('plan_orderer',), consumes=('waves/wave-N/wave.json', 'waves/wave-N/*.patch'),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES:fix_reviewer:routes",
+   "kind": "conditional_edges",
+   "on": "decision",
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "stage": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer-router",
+   "table": "fix_reviewer",
    "total": true,
    "unhandled": []
   },
@@ -2594,7 +3221,7 @@
    ],
    "default": null,
    "entry": {
-    "fact": "FACT-6c6dafccfc8cc9d7",
+    "fact": null,
     "line": 101,
     "path": "eaos/facts/run.py",
     "text": "module = EXTRACTORS[name]"
@@ -2783,7 +3410,7 @@
    ],
    "default": null,
    "entry": {
-    "fact": "FACT-cb401a4f311770fe",
+    "fact": null,
     "line": 102,
     "path": "eaos/facts/run.py",
     "text": "if name == 'history': result = module.run(target, source, max_commits=max_commits)"
@@ -2842,7 +3469,7 @@
    "why": "A stage that can be run again on the same input with the same result can be retried, resumed and tested without the whole run."
   },
   {
-   "broken": 2,
+   "broken": 3,
    "id": "P7",
    "source": "Hohpe and Woolf, Enterprise Integration Patterns (2003), Dead Letter Channel",
    "title": "Every failure has a route",
@@ -4468,6 +5095,527 @@
    "tools": []
   },
   {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 158,
+    "path": "eaos/studio/nodes/triage.py",
+    "text": "def run(node, report, **options):"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/card_triage",
+   "inputs": [],
+   "kind": "ai",
+   "label": "card_triage",
+   "layer": 0,
+   "marks": [
+    "ai",
+    "slow"
+   ],
+   "optional": false,
+   "order": 0,
+   "outputs": [
+    {
+     "kind": "artifact",
+     "name": "nodes/card_triage/verdicts.json",
+     "shape": null
+    }
+   ],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": "eaos.studio.nodes.triage.run",
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 50,
+    "path": "eaos/studio/nodes/ideal_planner.py",
+    "text": "def run(node, report, launcher=None, adapters=None, project=None, lang='en', budget=None, fresh=False, say=None, cancel=None,"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/ideal_planner",
+   "inputs": [],
+   "kind": "ai",
+   "label": "ideal_planner",
+   "layer": 0,
+   "marks": [
+    "ai",
+    "slow"
+   ],
+   "optional": false,
+   "order": 1,
+   "outputs": [
+    {
+     "kind": "artifact",
+     "name": "ideal/plan.json",
+     "shape": null
+    }
+   ],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": "eaos.studio.nodes.ideal_planner.run",
+   "tools": [
+    "pathlib",
+    "threading",
+    "time"
+   ]
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 87,
+    "path": "eaos/studio/nodes/pipeline_gap_planner.py",
+    "text": "def run(node, report, **options):"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner",
+   "inputs": [],
+   "kind": "ai",
+   "label": "pipeline_gap_planner",
+   "layer": 0,
+   "marks": [
+    "ai",
+    "slow"
+   ],
+   "optional": false,
+   "order": 2,
+   "outputs": [
+    {
+     "kind": "artifact",
+     "name": "nodes/pipeline_gap_planner/plan.json",
+     "shape": null
+    }
+   ],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": "eaos.studio.nodes.pipeline_gap_planner.run",
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 129,
+    "path": "eaos/studio/nodes/plan_orderer.py",
+    "text": "def run(node, report, **options):"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/plan_orderer",
+   "inputs": [
+    {
+     "kind": "artifact",
+     "name": "nodes/card_triage/verdicts.json",
+     "shape": null
+    },
+    {
+     "kind": "artifact",
+     "name": "ideal/plan.json",
+     "shape": null
+    },
+    {
+     "kind": "artifact",
+     "name": "nodes/pipeline_gap_planner/plan.json",
+     "shape": null
+    }
+   ],
+   "kind": "ai",
+   "label": "plan_orderer",
+   "layer": 1,
+   "marks": [
+    "ai",
+    "slow"
+   ],
+   "optional": false,
+   "order": 0,
+   "outputs": [
+    {
+     "kind": "artifact",
+     "name": "nodes/plan_orderer/order.json",
+     "shape": null
+    }
+   ],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": "eaos.studio.nodes.plan_orderer.run",
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 96,
+    "path": "eaos/studio/nodes/fix_reviewer.py",
+    "text": "def run(node, report, **options):"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer",
+   "inputs": [
+    {
+     "kind": "artifact",
+     "name": "nodes/plan_orderer/order.json",
+     "shape": null
+    }
+   ],
+   "kind": "ai",
+   "label": "fix_reviewer",
+   "layer": 2,
+   "marks": [
+    "ai",
+    "slow"
+   ],
+   "optional": false,
+   "order": 0,
+   "outputs": [
+    {
+     "kind": "artifact",
+     "name": "nodes/fix_reviewer/review.json",
+     "shape": null
+    }
+   ],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": "eaos.studio.nodes.fix_reviewer.run",
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 81,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "NODE_RUNNERS = {'card_triage': triage_cards, 'ideal_planner': plan_ideal, 'pipeline_gap_planner': plan_pipeline_gaps,"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/NODE_RUNNERS",
+   "inputs": [],
+   "kind": "router",
+   "label": "NODE_RUNNERS",
+   "layer": 0,
+   "marks": [],
+   "optional": false,
+   "order": 3,
+   "outputs": [],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": "eaos.studio.nodes.__init__.NODE_RUNNERS",
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 46,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('card_triage', 'Card triage', consumes=('studio/cards.json', 'studio/evidence.json'), produces=('nodes/card_triage/verdicts.json',),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/card_triage-router",
+   "inputs": [],
+   "kind": "router",
+   "label": "card_triage router",
+   "layer": 1,
+   "marks": [],
+   "optional": false,
+   "order": 1,
+   "outputs": [],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": null,
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 48,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Route('doubt', 'probe', 'the evidence does not settle it: a probe does, before the person sees the card'),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/probe",
+   "inputs": [],
+   "kind": "sink",
+   "label": "probe",
+   "layer": 0,
+   "marks": [],
+   "optional": false,
+   "order": 4,
+   "outputs": [],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": null,
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 49,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Route('reject', 'library_feedback', 'the evidence contradicts the card: it is set aside and its rule is told'),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/library_feedback",
+   "inputs": [],
+   "kind": "sink",
+   "label": "library_feedback",
+   "layer": 0,
+   "marks": [],
+   "optional": false,
+   "order": 5,
+   "outputs": [],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": null,
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 52,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('ideal_planner', 'Ideal planner', passes=('plan', 'critique'), consumes=('target-architecture.json', 'plan.json', 'studio/'),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/ideal_planner-router",
+   "inputs": [],
+   "kind": "router",
+   "label": "ideal_planner router",
+   "layer": 1,
+   "marks": [],
+   "optional": false,
+   "order": 2,
+   "outputs": [],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": null,
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 55,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Route('ask', 'inbox', 'the ideal leaves questions: they wait for the person in the Decisions inbox'),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/inbox",
+   "inputs": [],
+   "kind": "sink",
+   "label": "inbox",
+   "layer": 0,
+   "marks": [],
+   "optional": false,
+   "order": 6,
+   "outputs": [],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": null,
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 58,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('pipeline_gap_planner', 'Pipeline gap planner', passes=('plan', 'critique'), consumes=('studio/pipeline.json',),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner-router",
+   "inputs": [],
+   "kind": "router",
+   "label": "pipeline_gap_planner router",
+   "layer": 1,
+   "marks": [],
+   "optional": false,
+   "order": 3,
+   "outputs": [],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": null,
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 65,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('plan_orderer', 'Plan orderer', passes=('plan', 'critique'), requires=('card_triage', 'ideal_planner', 'pipeline_gap_planner'),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/plan_orderer-router",
+   "inputs": [],
+   "kind": "router",
+   "label": "plan_orderer router",
+   "layer": 0,
+   "marks": [],
+   "optional": false,
+   "order": 7,
+   "outputs": [],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": null,
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 67,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "routes=(Route('reorder', 'plan', 'a better order and grouping of the steps, every prerequisite kept'),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/plan",
+   "inputs": [],
+   "kind": "sink",
+   "label": "plan",
+   "layer": 0,
+   "marks": [],
+   "optional": false,
+   "order": 8,
+   "outputs": [],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": null,
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 72,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Node('fix_reviewer', 'Fix reviewer', requires=('plan_orderer',), consumes=('waves/wave-N/wave.json', 'waves/wave-N/*.patch'),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer-router",
+   "inputs": [],
+   "kind": "router",
+   "label": "fix_reviewer router",
+   "layer": 0,
+   "marks": [],
+   "optional": false,
+   "order": 9,
+   "outputs": [],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": null,
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 74,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "routes=(Route('accept', 'handover', 'the diff does what the card asks and the checks hold: offered to the person'),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/handover",
+   "inputs": [],
+   "kind": "sink",
+   "label": "handover",
+   "layer": 0,
+   "marks": [],
+   "optional": false,
+   "order": 10,
+   "outputs": [],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": null,
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 75,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Route('retry', 'fix', 'the fix is wrong or incomplete: it is made again'),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/fix",
+   "inputs": [],
+   "kind": "sink",
+   "label": "fix",
+   "layer": 0,
+   "marks": [],
+   "optional": false,
+   "order": 11,
+   "outputs": [],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": null,
+   "tools": []
+  },
+  {
+   "cards": [],
+   "coverage": "measured",
+   "entry": {
+    "fact": null,
+    "line": 77,
+    "path": "eaos/studio/nodes/__init__.py",
+    "text": "Route('rules only', 'gates', \"no assistant decided: the gates' verdict stands\")),"
+   },
+   "id": "eaos/studio/nodes/__init__.py:NODES/gates",
+   "inputs": [],
+   "kind": "sink",
+   "label": "gates",
+   "layer": 0,
+   "marks": [],
+   "optional": false,
+   "order": 12,
+   "outputs": [],
+   "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+   "side_effects": [],
+   "steps": [],
+   "sub_pipeline": null,
+   "symbol": null,
+   "tools": []
+  },
+  {
    "cards": [
     "TASK-032",
     "TASK-034"
@@ -4682,8 +5830,8 @@
    ],
    "coverage": "measured",
    "entry": {
-    "fact": "FACT-7f995e70b22c52a4",
-    "line": 592,
+    "fact": null,
+    "line": 599,
     "path": "eaos/facts/runtime.py",
     "text": "def run(target, source, symbols=None, **options):"
    },
@@ -4725,8 +5873,8 @@
    ],
    "coverage": "measured",
    "entry": {
-    "fact": "FACT-7c02e8865e0d3608",
-    "line": 80,
+    "fact": null,
+    "line": 92,
     "path": "eaos/facts/entrypoints.py",
     "text": "def run(target, source, symbols=None, **options):"
    },
@@ -4903,8 +6051,8 @@
    ],
    "coverage": "measured",
    "entry": {
-    "fact": "FACT-eae03f2d43c2893b",
-    "line": 231,
+    "fact": null,
+    "line": 234,
     "path": "eaos/facts/domain.py",
     "text": "def run(target, source, **options):"
    },
@@ -5759,7 +6907,7 @@
   {
    "call": "produced['external']",
    "evidence": {
-    "fact": "FACT-9557c342eac06e86",
+    "fact": null,
     "line": 105,
     "path": "eaos/facts/run.py",
     "text": "if 'external' in produced:"
@@ -5770,7 +6918,7 @@
    "stage": "eaos/facts/run.py:collect/resolve"
   }
  ],
- "verdict": "This project is a pipeline: EAOS found 4 pipelines with 61 stages (STEPS (eaos/guided.py), STAGES (eaos/pipeline/stages.py), EXTRACTORS (eaos/facts/run.py)).",
+ "verdict": "This project is a pipeline: EAOS found 5 pipelines with 66 stages (STEPS (eaos/guided.py), STAGES (eaos/pipeline/stages.py), NODES (eaos/studio/nodes/__init__.py)).",
  "views": {
   "current": {
    "edges": [
@@ -5809,6 +6957,15 @@
     "eaos/pipeline/stages.py:STAGES/compose->emit",
     "eaos/pipeline/stages.py:STAGES/compose->site",
     "eaos/pipeline/stages.py:STAGES/compose->validate",
+    "eaos/studio/nodes/__init__.py:NODES/card_triage->plan_orderer",
+    "eaos/studio/nodes/__init__.py:NODES/ideal_planner->plan_orderer",
+    "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner->plan_orderer",
+    "eaos/studio/nodes/__init__.py:NODES/plan_orderer->fix_reviewer",
+    "eaos/studio/nodes/__init__.py:NODES/card_triage->card_triage-router",
+    "eaos/studio/nodes/__init__.py:NODES/ideal_planner->ideal_planner-router",
+    "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner->pipeline_gap_planner-router",
+    "eaos/studio/nodes/__init__.py:NODES/plan_orderer->plan_orderer-router",
+    "eaos/studio/nodes/__init__.py:NODES/fix_reviewer->fix_reviewer-router",
     "eaos/facts/run.py:collect/syntax->resolve",
     "eaos/facts/run.py:collect/structure->redundancy",
     "eaos/facts/run.py:collect/entrypoints->redundancy",
@@ -5875,6 +7032,24 @@
     "eaos/pipeline/stages.py:STAGES/site",
     "eaos/pipeline/stages.py:STAGES/validate",
     "eaos/pipeline/stages.py:STAGES/RUNNERS",
+    "eaos/studio/nodes/__init__.py:NODES/card_triage",
+    "eaos/studio/nodes/__init__.py:NODES/ideal_planner",
+    "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner",
+    "eaos/studio/nodes/__init__.py:NODES/plan_orderer",
+    "eaos/studio/nodes/__init__.py:NODES/fix_reviewer",
+    "eaos/studio/nodes/__init__.py:NODES/NODE_RUNNERS",
+    "eaos/studio/nodes/__init__.py:NODES/card_triage-router",
+    "eaos/studio/nodes/__init__.py:NODES/probe",
+    "eaos/studio/nodes/__init__.py:NODES/library_feedback",
+    "eaos/studio/nodes/__init__.py:NODES/ideal_planner-router",
+    "eaos/studio/nodes/__init__.py:NODES/inbox",
+    "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner-router",
+    "eaos/studio/nodes/__init__.py:NODES/plan_orderer-router",
+    "eaos/studio/nodes/__init__.py:NODES/plan",
+    "eaos/studio/nodes/__init__.py:NODES/fix_reviewer-router",
+    "eaos/studio/nodes/__init__.py:NODES/handover",
+    "eaos/studio/nodes/__init__.py:NODES/fix",
+    "eaos/studio/nodes/__init__.py:NODES/gates",
     "eaos/facts/run.py:collect/syntax",
     "eaos/facts/run.py:collect/resolve",
     "eaos/facts/run.py:collect/structure",
@@ -5963,6 +7138,23 @@
     "subject_kind": "pipeline"
    },
    {
+    "card": null,
+    "detail": "no stage of this pipeline routes its failures anywhere: a failure stops the run unnamed",
+    "evidence": {
+     "fact": null,
+     "line": 99,
+     "path": "eaos/studio/nodes/__init__.py",
+     "text": "def run(report, names=None, launcher=None, adapters=None, project=None, lang='en', budget=None, fresh=False, say=None, **inputs):"
+    },
+    "id": "gap:P7:eaos/studio/nodes/__init__.py:NODES",
+    "operation": "new",
+    "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+    "rule": "P7",
+    "step": null,
+    "subject": "eaos/studio/nodes/__init__.py:NODES",
+    "subject_kind": "pipeline"
+   },
+   {
     "card": "TASK-022",
     "detail": "19 stages take their inputs from an accumulator by an if-chain on the stage name, not from a declared contract",
     "evidence": {
@@ -6017,7 +7209,7 @@
     "card": "TASK-034",
     "detail": "context['collected'] carries data between 4 stages beside the declared edges",
     "evidence": {
-     "fact": "FACT-6c9a44145cd160af",
+     "fact": null,
      "line": 23,
      "path": "eaos/pipeline/runners.py",
      "text": "context['collected'] = collect(context.target, context.out, None, source=context['source'],"
@@ -6034,7 +7226,7 @@
     "card": "TASK-034",
     "detail": "context['dossier_status'] is written and never read",
     "evidence": {
-     "fact": "FACT-7e349da0a213c6e7",
+     "fact": null,
      "line": 89,
      "path": "eaos/pipeline/runners.py",
      "text": "context['dossier_status'] = result['status']"
@@ -6051,7 +7243,7 @@
     "card": "TASK-034",
     "detail": "context['exclude'] carries data between 3 stages beside the declared edges",
     "evidence": {
-     "fact": "FACT-e7e4840c98eee177",
+     "fact": null,
      "line": 20,
      "path": "eaos/pipeline/runners.py",
      "text": "context['exclude'] = sorted({*context.exclude, *declared_exclusions(context.target)})"
@@ -6068,7 +7260,7 @@
     "card": "TASK-034",
     "detail": "context['source'] carries data between 2 stages beside the declared edges",
     "evidence": {
-     "fact": "FACT-92889df2ac8cbc11",
+     "fact": null,
      "line": 21,
      "path": "eaos/pipeline/runners.py",
      "text": "context['source'] = Source(context.target, exclude=context['exclude'],"
@@ -6464,6 +7656,69 @@
      "pipeline": "eaos/pipeline/stages.py:STAGES",
      "rule": null,
      "to": "eaos/pipeline/stages.py:STAGES/validate"
+    },
+    {
+     "from": "eaos/studio/nodes/__init__.py:NODES/card_triage",
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer"
+    },
+    {
+     "from": "eaos/studio/nodes/__init__.py:NODES/ideal_planner",
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer"
+    },
+    {
+     "from": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner",
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer"
+    },
+    {
+     "from": "eaos/studio/nodes/__init__.py:NODES/plan_orderer",
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "to": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer"
+    },
+    {
+     "from": "eaos/studio/nodes/__init__.py:NODES/card_triage",
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "to": "eaos/studio/nodes/__init__.py:NODES/card_triage-router"
+    },
+    {
+     "from": "eaos/studio/nodes/__init__.py:NODES/ideal_planner",
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "to": "eaos/studio/nodes/__init__.py:NODES/ideal_planner-router"
+    },
+    {
+     "from": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner",
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "to": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner-router"
+    },
+    {
+     "from": "eaos/studio/nodes/__init__.py:NODES/plan_orderer",
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "to": "eaos/studio/nodes/__init__.py:NODES/plan_orderer-router"
+    },
+    {
+     "from": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer",
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "to": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer-router"
     },
     {
      "from": "eaos/facts/run.py:collect/syntax",
@@ -7330,6 +8585,271 @@
      "contract": {
       "inputs": [],
       "outputs": [
+       "nodes/card_triage/verdicts.json"
+      ]
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/card_triage",
+     "label": "card_triage",
+     "marks": [
+      "ai",
+      "slow"
+     ],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": [
+       "ideal/plan.json"
+      ]
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/ideal_planner",
+     "label": "ideal_planner",
+     "marks": [
+      "ai",
+      "slow"
+     ],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": [
+       "nodes/pipeline_gap_planner/plan.json"
+      ]
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner",
+     "label": "pipeline_gap_planner",
+     "marks": [
+      "ai",
+      "slow"
+     ],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [
+       "nodes/card_triage/verdicts.json",
+       "ideal/plan.json",
+       "nodes/pipeline_gap_planner/plan.json"
+      ],
+      "outputs": [
+       "nodes/plan_orderer/order.json"
+      ]
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/plan_orderer",
+     "label": "plan_orderer",
+     "marks": [
+      "ai",
+      "slow"
+     ],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [
+       "nodes/plan_orderer/order.json"
+      ],
+      "outputs": [
+       "nodes/fix_reviewer/review.json"
+      ]
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer",
+     "label": "fix_reviewer",
+     "marks": [
+      "ai",
+      "slow"
+     ],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": []
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/NODE_RUNNERS",
+     "label": "NODE_RUNNERS",
+     "marks": [],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": []
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/card_triage-router",
+     "label": "card_triage router",
+     "marks": [],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": []
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/probe",
+     "label": "probe",
+     "marks": [],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": []
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/library_feedback",
+     "label": "library_feedback",
+     "marks": [],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": []
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/ideal_planner-router",
+     "label": "ideal_planner router",
+     "marks": [],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": []
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/inbox",
+     "label": "inbox",
+     "marks": [],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": []
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/pipeline_gap_planner-router",
+     "label": "pipeline_gap_planner router",
+     "marks": [],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": []
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/plan_orderer-router",
+     "label": "plan_orderer router",
+     "marks": [],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": []
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/plan",
+     "label": "plan",
+     "marks": [],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": []
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/fix_reviewer-router",
+     "label": "fix_reviewer router",
+     "marks": [],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": []
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/handover",
+     "label": "handover",
+     "marks": [],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": []
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/fix",
+     "label": "fix",
+     "marks": [],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": []
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/gates",
+     "label": "gates",
+     "marks": [],
+     "op": "retain",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
+     "rule": null,
+     "why": null
+    },
+    {
+     "contract": {
+      "inputs": [],
+      "outputs": [
        "produced['syntax']"
       ]
      },
@@ -7861,6 +9381,24 @@
      "marks": [],
      "op": "new",
      "pipeline": "eaos/guided.py:STEPS",
+     "rule": "P7",
+     "why": "every failure needs a route"
+    },
+    {
+     "contract": {
+      "inputs": [
+       "failed stage",
+       "error"
+      ],
+      "outputs": [
+       "recorded failure"
+      ]
+     },
+     "id": "eaos/studio/nodes/__init__.py:NODES/failure-lane",
+     "label": "failure lane",
+     "marks": [],
+     "op": "new",
+     "pipeline": "eaos/studio/nodes/__init__.py:NODES",
      "rule": "P7",
      "why": "every failure needs a route"
     },

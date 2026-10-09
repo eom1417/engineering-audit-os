@@ -12,6 +12,8 @@ import type { Relation } from '../../data/types'
 import { Id, N, Txt } from '../../i18n/text'
 import { gapsAbout, ordered, where, type GapEntry, type Op, type PipelineData, type Scope, type Site, type View } from './model'
 import { KIND_WORD, usePipelineWords } from './words'
+import { useNodeRuns } from './aiNodes'
+import { usePrefs } from '../../i18n/prefs'
 import frame from '../paths/paths.module.css'
 import css from './panels.module.css'
 
@@ -64,6 +66,45 @@ export function GapItem({ g, n, onSubject }: { g: GapEntry; n: number; onSubject
   )
 }
 
+/** An AI node's last run (studio/nodes.json): who decided it, how, and how many subjects each branch took. */
+function AiNodeRun({ label }: { label: string }) {
+  const w = usePipelineWords()
+  const { lang } = usePrefs()
+  const { state, nodes } = useNodeRuns(true)
+  if (state === 'absent') return null
+  if (!nodes) return <Sec title={w('aiNode')}><p className={frame.insP}>{w('aiLoading')}</p></Sec>
+  const run = nodes.runs.get(label)
+  if (!run) return null
+  const pick = (words: { en: string; ar: string }) => (lang === 'ar' ? words.ar : words.en)
+  if (run.state === 'not_run') return <Sec title={w('aiNode')}><p className={frame.insP}>{w('aiNotRun')}</p></Sec>
+  const questions = run.decisions.reduce((n, d) => n + (d.open_questions?.length ?? 0), 0)
+  return (
+    <Sec title={w('aiNode')}>
+      <p className={frame.insP}>
+        {run.method === 'model' ? w('aiByModel', { who: run.assistant ?? '?', model: run.model ?? '?' }) : w('aiByRules')}
+        {run.cached && <> · {w('aiCached')}</>}
+        {run.at && <> · <Id value={w('aiAt', { at: run.at.slice(0, 16).replace('T', ' ') })} /></>}
+        {run.seconds != null && <> · {w('aiCost', { s: Math.round(run.seconds), c: run.cost_usd != null ? run.cost_usd.toFixed(2) : '—' })}</>}
+      </p>
+      {run.method === 'rules' && run.why && <p className={frame.insP}><Txt>{run.why}</Txt></p>}
+      <h4 className={css.aiRoutesH}>{w('aiRoutes')}</h4>
+      <ul className={css.aiRoutes}>
+        {run.routes.map((r) => (
+          <li key={r.decision}>
+            <span className={css.aiRouteHead}>
+              <span className={css.cond}><Id value={r.decision} /></span>
+              <span><N value={r.subjects} /> → {nodes.sinks.has(r.to) ? pick(nodes.sinks.get(r.to)!) : <Id value={r.to} />}</span>
+            </span>
+            <span className={css.muted}>{pick(r.when)}</span>
+          </li>
+        ))}
+      </ul>
+      {run.dropped.length > 0 && <p className={frame.insP}>{w('aiDropped', { n: run.dropped.length })}</p>}
+      {questions > 0 && <><p className={frame.insP}>{w('aiQuestions', { n: questions })}</p><Go to="/decisions" className={css.aiInbox}>{w('aiToInbox')}</Go></>}
+    </Sec>
+  )
+}
+
 export function StageInspector({ data, scope, id, view, onSelect, onEnter, onFollow }:
   { data: PipelineData; scope: Scope; id: string; view: View; onSelect: (id: string) => void; onEnter: (pipeline: string) => void; onFollow: (name: string) => void }) {
   const w = usePipelineWords()
@@ -107,6 +148,7 @@ export function StageInspector({ data, scope, id, view, onSelect, onEnter, onFol
           <ol className={css.gapList}>{gaps.map((g) => <GapItem key={g.id} g={g} n={scope.gap.indexOf(g) + 1} />)}</ol>
         </Sec>
       )}
+      {s.kind === 'ai' && <AiNodeRun label={s.label} />}
       <Sec title={w('evidence')}>
         <Evidence site={s.entry} label={w('entry')} />
         {s.symbol && <dl className={frame.evid}><dt>{w('symbol')}</dt><dd><Id value={s.symbol} /></dd></dl>}

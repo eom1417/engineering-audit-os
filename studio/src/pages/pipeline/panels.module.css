@@ -95,8 +95,18 @@
 
 @media (max-width: 767px) {
   .crumb, .inline { min-block-size: 44px; min-inline-size: 44px; }
-  .follow select { min-block-size: 44px; max-inline-size: none; flex: 1; font-size: 16px; }
+  .follow select { min-block-size: 44px; flex: 1 1 12rem; min-inline-size: 0; max-inline-size: 100%; font-size: 16px; }   /* a long data name never widens the page */
   .follow { flex-wrap: wrap; }
   .ports { grid-template-columns: minmax(0, 1fr); }
   .treeRow { min-block-size: 44px; }
 }
+
+/* an AI node's last run (docs/STUDIO.md D11) */
+.aiRoutesH { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-block: 8px 2px; }
+.aiInbox { display: inline-flex; align-items: center; min-block-size: 44px; color: var(--ai-text); font-weight: 600; cursor: pointer; }
+.aiInbox:hover { text-decoration: underline; }
+.aiInbox:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-4); }
+.aiRoutes { display: flex; flex-direction: column; font-size: 12.5px; }
+.aiRoutes li { display: flex; flex-direction: column; gap: 2px; padding-block: 6px; border-block-end: 1px solid var(--border-subtle); min-inline-size: 0; }
+.aiRouteHead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; min-inline-size: 0; }
+.aiRouteHead > * { overflow-wrap: anywhere; }

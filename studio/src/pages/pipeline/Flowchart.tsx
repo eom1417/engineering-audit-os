@@ -302,6 +302,9 @@ export function Flowchart({ scope, view, down, selected, onSelect, hidden, lit, 
   }
 
   const nodes: ReactNode[] = []
+  // An AI node's card: its corners cut by `c`, inset by `i` (docs/STUDIO.md D11).
+  const chamfer = (i: number, c: number) => [[i + c, i], [NODE_W - i - c, i], [NODE_W - i, i + c], [NODE_W - i, NODE_H - i - c], [NODE_W - i - c, NODE_H - i],
+    [i + c, NODE_H - i], [i, NODE_H - i - c], [i, i + c]].map(([x, y]) => `${x},${y}`).join(' ')
   const drawStage = (id: string, s: Stage | null, labelText: string, kind: Stage['kind'], at: At, sub: string | null, opOf: Op | undefined, extra?: { isNew?: boolean }) => {
     if (culled && !inView(at)) return
     const cls = [css.node, css[`k_${kind}`], opOf && opOf !== 'retain' && css[`op_${opOf}`], opOf === 'retain' && view === 'ideal' && css.op_retain,
@@ -312,11 +315,12 @@ export function Flowchart({ scope, view, down, selected, onSelect, hidden, lit, 
       router ? w('branchesN', { n: router.branches.length }) : null, s?.sub_pipeline ? w('lgSub') : null].filter(Boolean).join(' · ')
     const shape = kind === 'router'
       ? <polygon className={css.box} points={`${NODE_W / 2},-6 ${NODE_W + 4},${NODE_H / 2} ${NODE_W / 2},${NODE_H + 6} -4,${NODE_H / 2}`} />
+      : kind === 'ai' ? <polygon className={css.box} points={chamfer(0, 12)} />
       : <rect className={css.box} width={NODE_W} height={NODE_H} rx={kind === 'source' || kind === 'sink' ? NODE_H / 2 : 10} />
     nodes.push(
       <g key={id} className={cls} transform={`translate(${at.x},${at.y})`} {...target(at, aria, id === selected, () => onSelect(id))} onClick={() => onSelect(id)}>
         {shape}
-        {kind === 'ai' && <rect className={css.aiRing} x={3} y={3} width={NODE_W - 6} height={NODE_H - 6} rx={8} />}
+        {kind === 'ai' && <polygon className={css.aiRing} points={chamfer(3, 10)} />}
         {opOf === 'delete' && <rect width={NODE_W} height={NODE_H} rx={10} fill="url(#pp-hatch)" opacity={0.5} />}
         {dead.has(id) && showHidden && <rect width={NODE_W} height={NODE_H} rx={10} fill="url(#pp-ghost)" />}
         <text x={kind === 'router' ? NODE_W / 2 : 12} y={sub ? 22 : 31} textAnchor={kind === 'router' ? 'middle' : 'start'} className={css.title}>

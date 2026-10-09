@@ -1961,6 +1961,87 @@
       "kind": "invariant",
       "enforced_by": "tests/test_studio_export.py::Evidence::test_files_are_read_at_the_scanned_commit_and_never_outside_the_project",
       "note": ""
+    },
+    {
+      "id": "INV-f44a4e156a",
+      "file": "eaos/studio/nodes/core.py",
+      "symbol": "<module>",
+      "statement": "`run_node(node, spec, report, ...)` runs one node with its guards: the evidence check a decision keeps only the ids that resolve; one with none left, an unknown subject, a choice the node does not have or a repeated subject is dropped and listed, never routed the critique pass planning nodes ('critique' in their passes) review their draft before it is checked the rules fallback no assistant, over the time or cost budget, or a failed answer: the rules decide alone and every subject takes the route \"rules only\"; a subject the model left out keeps the rules' decision, marked `source: rules` the run log <report>/nodes/runs.jsonl: the prompt's and inputs' digests, the model, the output the cache <report>/nodes/<node>/cache/<key>.json: the same inputs give the same result, no new call (also when no assistant is here: a decision already made stands); `fresh` asks again",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Framework::test_a_subject_the_model_leaves_out_keeps_the_rules_decision",
+      "note": ""
+    },
+    {
+      "id": "INV-b6e63a22d4",
+      "file": "eaos/studio/nodes/core.py",
+      "symbol": "Bounded",
+      "statement": "A launcher held to a budget: each call waits at most the seconds left (even a launcher that hangs is cut off, and its cancel is set), and what it says it has spent (`cost_usd`, read after each call) may not pass `usd`.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Launcher::test_a_hanging_launcher_is_cut_off_and_an_expensive_one_refused",
+      "note": ""
+    },
+    {
+      "id": "INV-a2f849af28",
+      "file": "eaos/studio/nodes/fix_reviewer.py",
+      "symbol": "<module>",
+      "statement": "The gates stay the judge: a card they failed cannot be accepted, whatever the answer says.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Reviewer::test_the_gates_stay_the_judge",
+      "note": ""
+    },
+    {
+      "id": "INV-dfead6c9f3",
+      "file": "eaos/studio/nodes/fix_reviewer.py",
+      "symbol": "inputs",
+      "statement": "The batch of `wave` (its folder), or None when no batch is given.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Reviewer::test_the_gates_stay_the_judge",
+      "note": ""
+    },
+    {
+      "id": "INV-1183a21ef5",
+      "file": "eaos/studio/nodes/plan_orderer.py",
+      "symbol": "<module>",
+      "statement": "The proposal is written to nodes/plan_orderer/order.json; the plan itself is never changed by it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Planners::test_a_good_order_is_written_with_the_cards_it_left_out_and_without_the_rejected",
+      "note": ""
+    },
+    {
+      "id": "INV-c384201e41",
+      "file": "eaos/studio/nodes/triage.py",
+      "symbol": "<module>",
+      "statement": "Nothing here changes a card: the verdicts, the probe requests and the library's feedback are written beside the report (nodes/card_triage/), and `precision(report)` gives the triage's own column of the precision measure, per kind of card, never mixed with the hand-written labels (tools/precision.py).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Triage::test_doubt_becomes_a_probe_and_reject_library_feedback",
+      "note": ""
+    },
+    {
+      "id": "INV-922850fe66",
+      "file": "eaos/studio/nodes/triage.py",
+      "symbol": "_excerpt",
+      "statement": "A few lines of the project's code around `line`, each cut short; None when the file cannot be read.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Triage::test_the_bundle_holds_the_code_at_each_fact_marked_untrusted",
+      "note": ""
+    },
+    {
+      "id": "INV-09be4a6746",
+      "file": "eaos/studio/nodes/triage.py",
+      "symbol": "by_kind",
+      "statement": "{kind of card: {confirm, doubt, reject, rules only, precision}}: the triage's own estimate of how much of each kind is true (confirmed ÷ confirmed and rejected), a model's opinion beside the labelled precision, never instead of it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Triage::test_doubt_becomes_a_probe_and_reject_library_feedback",
+      "note": ""
+    },
+    {
+      "id": "INV-a32f3b9c61",
+      "file": "eaos/studio/nodes/view.py",
+      "symbol": "<module>",
+      "statement": "`section(report, lang)` lists every declared node (eaos/studio/nodes/__init__.py) with its router's branches and how many subjects took each, and its last run (nodes/<node>/last.json) as it was decided: by which assistant and model, or by the rules alone and why; a node that never ran says so.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_nodes.py::Studio::test_the_section_says_what_ran_and_how",
+      "note": ""
     }
   ],
   "limits": "Extraction is lexical: it finds sentences that assert, not every promise a docstring makes. A sentence it misses is still an invariant."

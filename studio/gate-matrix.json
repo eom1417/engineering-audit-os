@@ -63,6 +63,7 @@
   {"name": "pipeline-gap", "path": "index.html#/system/pipeline?view=gap"},
   {"name": "pipeline-steps", "path": "index.html#/system/pipeline?show=steps"},
   {"name": "pipeline-stage", "path": "index.html#/system/pipeline?stage={stage}&hidden=1"},
+  {"name": "pipeline-ai-node", "path": "index.html#/system/pipeline?p={ai_pipeline}&stage={ai_stage}"},
   {"name": "gallery-pipeline", "path": "index.html#/_gallery/pipeline"},
   {"name": "palette", "path": "index.html#/", "actions": [{"press": "Control+k", "wait": 300}, {"type": "مشاكل", "wait": 300}]},
   {"name": "sheet", "path": "index.html#/", "actions": [{"click": "[data-open=\"project\"]", "wait": 400}]},

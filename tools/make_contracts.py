@@ -168,7 +168,7 @@ SECTIONS = ('meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'pla
 # reader-breaking change raises) and carry "revision": 2; a v1 reader ignores a section it does not know.
 STUDIO_REVISION = 2
 SECTIONS_V2 = ('functions', 'screens', 'gaps', 'operations', 'history', 'quality', 'coverage', 'paths', 'journeys', 'hidden', 'data_paths', 'infra',
-               'pipeline', 'ideal')
+               'pipeline', 'ideal', 'nodes')
 REF = lambda name: {'$ref': f'#/$defs/{name}'}
 DEFS = {
     'ratio': {'type': 'number', 'minimum': 0, 'maximum': 1},
@@ -653,6 +653,49 @@ STUDIO_V2['ideal'] = (
              'runs': arr(obj({'at': S, 'state': enum(*IDEAL_STATES), 'assistant': NS, 'model': NS, 'seconds': NN,
                               'passes': REFS, 'message': S}, ['at', 'state', 'passes']))},
             ['state', 'message', 'provenance', 'views', 'evidence', 'critique', 'questions', 'runs']))
+# The AI nodes (eaos/studio/nodes/, docs/STUDIO.md D11): a stage whose input is a deterministic output and whose output is
+# a structured decision, routed on by declared branches. `ai-node` is one node's run (<report>/nodes/<node>/last.json),
+# whose decisions all share one shape; `studio-nodes` is what the Studio draws of every node.
+NODE_STATES = ('decided', 'rules_only', 'failed')
+_QUESTION = obj({'id': S, 'question': S, 'options': REFS, 'recommendation': NS}, ['id', 'question', 'options', 'recommendation'])
+DECISION = obj({'subject': S, 'decision': S, 'options': REFS, 'evidence': arr(S, 1),
+                'confidence': {'type': 'number', 'minimum': 0, 'maximum': 1}, 'why': S, 'open_questions': arr(_QUESTION),
+                'source': enum('model', 'rules'), 'detail': {'type': 'object'}},
+               ['subject', 'decision', 'options', 'evidence', 'confidence', 'why', 'open_questions', 'source'])
+_DROPPED = obj({'subject': NS, 'decision': NS, 'evidence': REFS, 'why': S}, ['subject', 'decision', 'evidence', 'why'])
+_ROUTE = obj({'decision': S, 'to': S, 'when': S, 'subjects': REFS}, ['decision', 'to', 'when', 'subjects'])
+_BUDGET = obj({'seconds': N, 'usd': NN}, ['seconds', 'usd'])
+CONTRACTS['ai-node'] = ('nodes/<node>/last.json', 'NS46.T15',
+ "One AI node's run: what it read (the inputs' digest) and asked (the prompt's digest), which assistant and model answered or "
+ "that the rules decided alone, its time and cost against its budget, whether it came from the cache, every decision in the "
+ "shared shape (the decision, its options, the evidence ids it stands on, the confidence, why, the open questions), what "
+ "the evidence check dropped and why, and where the router sent each subject.",
+ obj({'schema_version': {'const': 1}, 'node': S, 'title': S, 'kind': {'const': 'ai'}, 'state': enum(*NODE_STATES),
+      'method': enum('model', 'rules'), 'assistant': NS, 'model': NS, 'at': S, 'inputs': S, 'prompt': NS, 'schema': NS,
+      'passes': REFS, 'cached': B, 'seconds': NN, 'cost_usd': NN, 'budget': _BUDGET, 'over_budget': B, 'why': NS, 'summary': S,
+      'decisions': arr(DECISION), 'dropped': arr(_DROPPED), 'routes': arr(_ROUTE, 1), 'critique': {'type': ['object', 'null']}},
+     ['schema_version', 'node', 'kind', 'state', 'method', 'assistant', 'model', 'at', 'inputs', 'prompt', 'cached', 'seconds',
+      'cost_usd', 'budget', 'why', 'decisions', 'dropped', 'routes']))
+_NODE_LOG = obj({'at': S, 'state': enum(*NODE_STATES), 'assistant': NS, 'model': NS, 'prompt': NS, 'inputs': S, 'cached': B,
+                 'seconds': NN, 'cost_usd': NN}, ['at', 'state', 'model', 'prompt', 'inputs', 'cached'])
+STUDIO_V2['nodes'] = (
+ "The AI nodes of EAOS's pipeline: each node with its title, the passes it makes, the nodes it waits for, its router's declared "
+ "branches (the decision, where it sends the work, the condition in plain words, how many subjects took it), how its last run "
+ "was decided (by which assistant and model, or by the rules alone, and why), its budget and cost, its decisions with their "
+ "evidence, what the evidence check dropped, and its run log; the questions that wait for the person go to the Decisions inbox.",
+ section_v2({'nodes': arr(obj({'id': S, 'title': _WORDS, 'kind': {'const': 'ai'}, 'passes': REFS, 'requires': REFS,
+                               'routes': arr(obj({'decision': S, 'to': S, 'when': _WORDS, 'subjects': COUNT},
+                                                 ['decision', 'to', 'when', 'subjects']), 1),
+                               'state': enum(*NODE_STATES, 'not_run'), 'method': {'type': ['string', 'null'], 'enum': ['model', 'rules', None]},
+                               'assistant': NS, 'model': NS, 'at': NS, 'cached': B, 'seconds': NN, 'cost_usd': NN, 'budget': _BUDGET,
+                               'why': NS, 'summary': NS, 'decisions': arr(DECISION), 'dropped': arr(_DROPPED), 'log': arr(_NODE_LOG)},
+                              ['id', 'title', 'kind', 'passes', 'requires', 'routes', 'state', 'method', 'assistant', 'model', 'at',
+                               'cached', 'budget', 'why', 'decisions', 'dropped', 'log'])),
+             'sinks': arr(obj({'id': S, 'title': _WORDS}, ['id', 'title'])),
+             'questions': arr(obj({'id': S, 'node': S, 'subject': S, 'question': S, 'options': REFS, 'recommendation': NS},
+                                  ['id', 'node', 'subject', 'question', 'options'])),
+             'counts': {'type': 'object', 'additionalProperties': REF('measure')}},
+            ['nodes', 'sinks', 'questions', 'counts']))
 # The sections that draw a target, and the ideal view whose provenance they carry (eaos/studio/ideal.py SECTION_VIEWS).
 TARGET_SECTIONS = ('system', 'story', 'plans', 'gaps', 'operations', 'paths', 'journeys', 'data_paths', 'infra', 'pipeline')
 for _sections in (STUDIO, STUDIO_V2):

@@ -47,3 +47,5 @@ one is its record.
 | The pipeline map's engine (stages, value flow, routers, declared DAGs, CI and build chains) | [ns46-t12-pipeline-engine.md](ns46-t12-pipeline-engine.md) |
 | NS46.T9 command centre: action API and assistant launcher | [ns46-t9-command-centre.md](ns46-t9-command-centre.md) |
 | NS46.T14 the ideal planned with a model | [ns46-t14-ideal-planner.md](ns46-t14-ideal-planner.md) |
+| NS46.T14 the ideal planned with a model | [ns46-t14-ideal-planner.md](ns46-t14-ideal-planner.md) |
+| NS46.T15 AI nodes in the EAOS pipeline | [ns46-t15-ai-nodes.md](ns46-t15-ai-nodes.md) |

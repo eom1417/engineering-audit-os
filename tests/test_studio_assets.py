@@ -141,7 +141,7 @@ class GateMatrix(unittest.TestCase):
             (data / 'story.json').write_text(json.dumps(story), encoding='utf-8')
             self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'fact': 'none', 'word': 'none', 'component': 'src/b', 'path': 'none',
                                                                     'task': 'none', 'screen': 'none', 'hidden_group': 'none',
-                                                                    'store': 'none', 'stage': 'none'})
+                                                                    'store': 'none', 'stage': 'none', 'ai_stage': 'none', 'ai_pipeline': 'none'})
             # {fact}: the card's first fact with code; {word}: the longest word of its title
             cards[1]['title'] = 'Flow FLOW-003 stops at 10 unresolvable calls'
             (data / 'cards.json').write_text(json.dumps({'cards': cards}), encoding='utf-8')
@@ -172,6 +172,9 @@ class GateMatrix(unittest.TestCase):
             stages = [{'id': 'm:a', 'kind': 'stage'}, {'id': 'm:r', 'kind': 'router'}]
             (data / 'pipeline.json').write_text(json.dumps({'stages': stages}), encoding='utf-8')
             self.assertEqual(self.gates.studio_placeholders(data)['stage'], 'm:r')  # the pipeline page opens on a router
+            ai = [{'id': 'g:r', 'kind': 'ai', 'pipeline': 'g', 'label': 'r'}, {'id': 'n:t', 'kind': 'ai', 'pipeline': 'n', 'label': 't'}]
+            (data / 'pipeline.json').write_text(json.dumps({'stages': [*stages, *ai], 'routers': [{'pipeline': 'n', 'table': 't'}]}), encoding='utf-8')
+            self.assertEqual([self.gates.studio_placeholders(data)[k] for k in ('ai_stage', 'ai_pipeline')], ['n:t', 'n'])   # an AI node with its router
             (data / 'paths.json').unlink()
             pages = dict((e['name'], e) for e, _ in self.gates.studio_pages(self.matrix, data, 'http://127.0.0.1:1/', data))
         self.assertEqual(pages['system-focus']['url'], 'http://127.0.0.1:1/index.html#/system?focus=src%2Fb')
