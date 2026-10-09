@@ -1,0 +1,15 @@
+/* The running check's line under the top bar (ScanBanner.tsx): the accent's quiet wash, a breathing dot, one line. */
+.banner {
+  display: flex; align-items: center; gap: 10px; min-block-size: 44px; padding: 6px var(--page-pad); background: var(--accent-subtle);
+  color: var(--accent-text); font-size: 13px; border-block-end: 1px solid var(--border-subtle); text-decoration: none;
+}
+.banner:hover { color: var(--accent-text); }
+.banner:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.pulse { inline-size: 10px; block-size: 10px; border-radius: var(--radius-full); background: var(--accent-solid); flex: none; animation: breathe 1.2s var(--ease-standard) infinite alternate; }
+@keyframes breathe {
+  from { opacity: .35; }
+  to { opacity: 1; }
+}
+.text { flex: 1; min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary); }
+.of { color: var(--text-secondary); }
+.watch { flex: none; font-weight: 600; }

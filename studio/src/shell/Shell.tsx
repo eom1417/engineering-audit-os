@@ -24,6 +24,7 @@ import { deviceZone, usePrefs } from '../i18n/prefs'
 import { Id, N, When } from '../i18n/text'
 import { useChrome } from './chrome'
 import { useOpenedOnce, whenIdle } from './later'
+import { ScanBanner } from './ScanBanner'
 import { sectionOf, visibleSections, type SectionDef } from './sections'
 import css from './Shell.module.css'
 import { SystemViews } from '../pages/system/SystemViews'
@@ -282,6 +283,7 @@ export function Shell() {
         <div className={css.frame}>
           <TopBar project={project} current={current} onPalette={() => setPalette(true)} onProject={() => setProjectSheet(true)}
             onScan={() => setScanSheet(true)} onBranches={() => setBranchSheet(true)} />
+          <ScanBanner />
           <main id="main" tabIndex={-1} className={css.main}>
             {systemWorkspace ? <div className={css.workspace}>
               <div className={css.workspaceTabs}><WorkspaceReportPicker project={project} pathname={pathname} /><SystemViews current={systemView} persistent /></div>

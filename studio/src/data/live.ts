@@ -25,7 +25,7 @@ export interface LiveEvent {
   id: string
   at: string
   kind: string
-  source: 'manifest' | 'events' | 'action'
+  source: 'manifest' | 'events' | 'action' | 'progress'
   sections: string[]
   text: { en: string; ar: string }
   data: Record<string, unknown>

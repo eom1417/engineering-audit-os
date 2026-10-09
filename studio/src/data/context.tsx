@@ -7,6 +7,7 @@ import { whenIdle } from '../shell/later'
 import { readSections, withSections, type Loaded } from './load'
 import { loadReportLocale, localizeReport, type ReportLocale } from './localization'
 import type { LiveEvent, LiveStatus } from './live'
+import { emitScan, type ProgressRow } from './scan'
 import { pickSource, type DataSource, type Mode } from './source'
 import type { Card, SectionName, StudioData } from './types'
 
@@ -63,8 +64,12 @@ export function DataProvider({ children, preset, source }: { children: ReactNode
       // A report is a large tree to draw: as a transition React draws it in slices and the page keeps answering
       startTransition(() => setState(next))
     }
-    // Events are applied one after another, each on the report the one before it left.
+    // Events are applied one after another, each on the report the one before it left. The check's own progress
+    // (`scan.stage`, many a minute while a check runs) changes no section: it goes to the live map (data/scan.ts), and
+    // the report reloads when the check publishes its new data, as before.
     const reload = (event: LiveEvent | null) => {
+      if (event?.kind === 'scan.stage') { emitScan(event.data as unknown as ProgressRow); return }
+      if (!event) emitScan(null)
       queue = queue.then(() => chosen.load(event ? current.current : null)).then((next) => {
         apply(next)
         if (on && event) setLive((was) => ({ ...was, last: event }))

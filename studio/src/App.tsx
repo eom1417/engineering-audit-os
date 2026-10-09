@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { ToastProvider } from './components/Toast'
 import { ActionsProvider } from './data/actions/store'
 import { DataProvider } from './data/context'
+import { ScanProvider } from './data/ScanProvider'
 import { PrefsProvider, usePrefs } from './i18n/prefs'
 import { makeRouter } from './router'
 import { ChromeProvider } from './shell/chrome'
@@ -17,6 +18,7 @@ export function App() {
   return (
     <PrefsProvider>
       <DataProvider>
+        <ScanProvider>
         <ActionsProvider>
           <ToastProvider>
             <ChromeProvider>
@@ -24,6 +26,7 @@ export function App() {
             </ChromeProvider>
           </ToastProvider>
         </ActionsProvider>
+        </ScanProvider>
       </DataProvider>
     </PrefsProvider>
   )

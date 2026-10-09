@@ -1,0 +1,120 @@
+/* The live check. The canvas, its frame and the zoom buttons are the code paths' and the maps' (paths.module.css,
+   map/parts.module.css); this file holds what only the live check draws: stage cards in their state, the glow of the
+   running stage, the light on the links, the run line, the stage panel and the stage list. The map's geometry does
+   not mirror; its text and chrome do. Only the glow and the light move, and nothing moves with reduced motion. */
+
+.page { gap: 16px; }
+.head { display: flex; flex-direction: column; gap: 6px; }
+.title { font-size: var(--text-large-title); font-weight: 600; line-height: var(--leading-tight); }
+.lead { color: var(--text-secondary); max-inline-size: 75ch; }
+.runLine { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-block-start: 4px; font-size: var(--text-meta); color: var(--text-secondary); }
+.runFact { white-space: nowrap; }
+.warn { padding: 10px 14px; border-radius: var(--radius-8); background: var(--status-warning-subtle); color: var(--status-warning-text); font-size: 13px; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) var(--inspector-w); grid-template-areas: "map side" "list side"; gap: 16px; align-items: start; }
+.mapPanel { grid-area: map; padding: 0; overflow: hidden; }
+.stagePanel { grid-area: side; padding: 16px; display: flex; flex-direction: column; gap: 12px; position: sticky; inset-block-start: calc(var(--topbar-h) + 12px); max-block-size: calc(100vh - var(--topbar-h) - 24px); overflow-y: auto; }
+.listPanel { grid-area: list; padding: 12px 8px; }
+
+/* ---------------------------------------------------------------- the map */
+.mapWrap { position: relative; block-size: clamp(420px, calc(100vh - 280px), 720px); }
+.canvas { background: var(--map-water); }
+.mapTools { position: absolute; inset-block-start: 10px; inset-inline-end: 10px; z-index: 1; display: flex; gap: 8px; align-items: center; }
+.followBtn { display: inline-flex; align-items: center; gap: 6px; min-block-size: 30px; padding: 0 12px; border-radius: var(--radius-8); border: 1px solid var(--accent-solid); background: var(--bg-raised); color: var(--accent-text); font-size: 13px; cursor: pointer; }
+.followBtn[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+.edge { fill: none; stroke: var(--edge-strong); stroke-width: 1.3; opacity: .35; }
+.edgeOff { stroke-dasharray: 3 4; opacity: .18; }
+.edgePassed { stroke: var(--status-good); opacity: .55; }
+.edgeInto { stroke: var(--accent-solid); stroke-width: 2.4; opacity: .95; }
+.edgeNear { stroke-width: 2.4; opacity: .9; }
+
+.flow { fill: var(--accent-solid); stroke: var(--bg-surface); stroke-width: 1.5; }
+.burst { fill: var(--status-good); stroke: var(--bg-surface); stroke-width: 1.5; }
+
+.node { cursor: pointer; }
+.box { fill: var(--bg-surface); stroke: var(--border-strong); stroke-width: 1.2; }
+.node:hover .box { stroke-width: 2; }
+.stateDot { fill: var(--status-neutral); }
+.nodeTitle { font-size: 13px; font-weight: 600; fill: var(--text-primary); }
+.nodeSub { font-size: 11.5px; fill: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.sel .box { stroke: var(--accent-solid); stroke-width: 2.6; }
+
+.st_waiting .box { fill: var(--bg-surface); stroke: var(--border-default); }
+.st_waiting .nodeTitle { fill: var(--text-secondary); }
+.st_running .box { fill: var(--accent-subtle); stroke: var(--accent-solid); stroke-width: 2.4; }
+.st_running .stateDot { fill: var(--accent-solid); }
+.st_running .nodeSub { fill: var(--accent-text); }
+.st_ok .box { fill: var(--status-good-subtle); stroke: var(--status-good); }
+.st_ok .stateDot { fill: var(--status-good); }
+.st_skipped .box, .st_unavailable .box, .st_not_reached .box { fill: var(--bg-sunken); stroke-dasharray: 5 4; }
+.st_unavailable .box { stroke: var(--status-warning); }
+.st_unavailable .stateDot { fill: var(--status-warning); }
+.st_not_reached .box { stroke: var(--border-strong); stroke-dasharray: 2 4; }
+.st_not_reached .nodeTitle, .st_skipped .nodeTitle { fill: var(--text-tertiary); }
+.st_failed .box { fill: var(--status-critical-subtle); stroke: var(--status-critical); stroke-width: 2; }
+.st_failed .stateDot { fill: var(--status-critical); }
+.st_stopped .box { fill: var(--status-warning-subtle); stroke: var(--status-warning); stroke-width: 2; }
+.st_stopped .stateDot { fill: var(--status-warning); }
+.notAsked { opacity: .55; }
+.sel.notAsked { opacity: 1; }
+
+/* the glow of the running stage: a halo breathing behind its card */
+.halo { fill: var(--accent-subtle); stroke: var(--accent-solid); stroke-width: 2; opacity: .7; animation: glow 1.2s var(--ease-standard) infinite alternate; }
+@keyframes glow {
+  from { opacity: .25; stroke-width: 1; }
+  to { opacity: .95; stroke-width: 5; }
+}
+[data-motion="reduced"] .halo { animation: none; opacity: .8; stroke-width: 3; }
+
+/* ---------------------------------------------------------------- the stage panel */
+.stageHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.stageTitle { font-size: var(--text-section); font-weight: 600; line-height: 1.35; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.stageId { font-size: 12px; font-weight: 400; color: var(--text-tertiary); }
+.about { color: var(--text-secondary); line-height: var(--leading-body); }
+.muted { color: var(--text-tertiary); }
+.reason, .reasonBad { padding: 8px 12px; border-radius: var(--radius-8); background: var(--bg-sunken); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.reasonBad { background: var(--status-critical-subtle); color: var(--status-critical-text); }
+.needs { display: inline-flex; flex-wrap: wrap; gap: 4px 6px; }
+.needLink { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-block-size: 24px; }
+.needLink[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.block { display: flex; flex-direction: column; gap: 6px; }
+.blockTitle { font-size: 14px; font-weight: 600; display: flex; gap: 8px; align-items: baseline; padding-inline: 8px; }
+.stagePanel .blockTitle { padding-inline: 0; }
+.steps { display: flex; flex-direction: column; }
+.stepRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; padding-block: 6px; border-block-start: 1px solid var(--border-subtle); font-size: 13px; }
+.stepName { font-family: var(--font-mono); font-size: 12.5px; overflow-wrap: anywhere; }
+.stepEnd { display: inline-flex; align-items: center; gap: 8px; }
+.stepWhy { grid-column: 1 / -1; font-size: 12px; color: var(--text-tertiary); overflow-wrap: anywhere; }
+.files { display: flex; flex-direction: column; gap: 2px; font-family: var(--font-mono); font-size: 12.5px; color: var(--text-secondary); overflow-wrap: anywhere; }
+
+/* ---------------------------------------------------------------- the stage list */
+.list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px 8px; margin-block-start: 6px; }
+.listRow { display: flex; align-items: center; gap: 10px; inline-size: 100%; min-block-size: 44px; padding: 4px 8px; border-radius: var(--radius-8); text-align: start; color: inherit; cursor: pointer; }
+.listRow[data-hovered] { background: var(--bg-hover); }
+.listRow[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.listSel { background: var(--bg-selected); }
+.listDot { inline-size: 10px; block-size: 10px; border-radius: var(--radius-full); flex: none; background: var(--status-neutral); border: 2px solid transparent; }
+.dot_running { background: var(--accent-solid); }
+.dot_ok { background: var(--status-good); }
+.dot_failed { background: var(--status-critical); }
+.dot_unavailable, .dot_stopped { background: var(--status-warning); }
+.dot_waiting { background: transparent; border-color: var(--border-strong); }
+.dot_skipped, .dot_not_reached { background: transparent; border-color: var(--status-neutral); border-style: dashed; }
+.listMain { display: flex; flex-direction: column; min-inline-size: 0; line-height: 1.35; }
+.listTitle { font-size: var(--text-row); font-weight: 500; overflow-wrap: anywhere; }
+.listSub { font-size: 12px; color: var(--text-tertiary); }
+
+@media (max-width: 1199px) {
+  .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "map" "side" "list"; }
+  .stagePanel { position: static; max-block-size: none; overflow: visible; }
+  .mapWrap { block-size: 520px; }
+}
+
+@media (max-width: 767px) {
+  .page { padding-block-start: 16px; padding-block-end: 24px; }
+  .mapWrap { block-size: max(340px, 58vh); }
+  .followBtn { min-block-size: 44px; }
+  .needLink { min-block-size: 44px; display: inline-flex; align-items: center; }
+  .list { grid-template-columns: minmax(0, 1fr); }
+}

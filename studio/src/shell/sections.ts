@@ -33,6 +33,7 @@ export const SECTIONS: SectionDef[] = [
   { id: 'problems', to: '/problems', icon: 'problems', tab: 'problems', nav: 'problems', group: 'groupProblems', tabbar: true, built: true, count: (c) => c.cards, countFrom: 'cards' },
   { id: 'change', to: '/change', icon: 'change', tab: 'change', nav: 'journeyAndPlan', group: 'groupChange', tabbar: true, built: true },
   { id: 'branches', to: '/branches', icon: 'branch', tab: 'branches', nav: 'branches', group: 'groupChange', tabbar: false, built: true },
+  { id: 'scan', to: '/scan', icon: 'live', tab: 'liveCheck', nav: 'liveCheck', group: 'groupInbox', tabbar: false, built: true },
   { id: 'runs', to: '/runs', icon: 'pulse', tab: 'runs', nav: 'runs', group: 'groupInbox', tabbar: false, built: true },
   { id: 'decisions', to: '/decisions', icon: 'inbox', tab: 'decisions', nav: 'waitingForYou', group: 'groupInbox', tabbar: true, built: true, count: (c) => c.decisionsWaiting, countFrom: 'decisions', badge: (c) => c.decisionsWaiting },
   { id: 'library', to: '/library', icon: 'book', tab: 'library', nav: 'documents', group: 'groupLibrary', tabbar: false, built: true, count: (c) => c.docs, countFrom: 'docs' },

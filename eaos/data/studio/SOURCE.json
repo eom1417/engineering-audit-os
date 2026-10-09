@@ -1,5 +1,5 @@
 {
- "source_sha256": "3ba647d0bb65440aca9e5a28d8117bd504428ff8791a5a607a2ce1b80f39f097",
+ "source_sha256": "92873c740d513b3e4b061c878f272cd394245f9620672735463a37bb7722d327",
  "files": [
   "assets/BranchesPage.js",
   "assets/BridgePage.js",
@@ -42,6 +42,7 @@
   "assets/RunPage.js",
   "assets/RunsPage.js",
   "assets/ScanPage.js",
+  "assets/ScanPage2.js",
   "assets/ScreensPage.js",
   "assets/Sequence.js",
   "assets/SheetDialog.js",
