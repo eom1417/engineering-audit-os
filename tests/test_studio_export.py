@@ -1,5 +1,6 @@
 """studio/: every section the Studio reads, written from the one model, valid against its contract (NS36.T2)."""
 import json
+from pathlib import Path
 import unittest
 
 from eaos import artifact_contracts
@@ -111,6 +112,72 @@ class Export(Workspace):
         self.assertEqual(result, {'written': [], 'errors': [{'section': 'records', 'error': 'OSError: disk gone'}]})
         self.assertFalse((self.folder / 'manifest.json').exists())
         self.assertEqual(json.loads((self.folder / 'errors.json').read_text(encoding='utf-8')), result['errors'])
+
+
+class Evidence(unittest.TestCase):
+    """NS46.T2: a card says why it matters in both languages; a fact carries the code around its line, never a secret."""
+
+    TEXT = 'import a\n\nconst KEY = "sk_live_123"\nfunction f() {\n  return 1\n}\n'
+
+    def source(self, path):
+        return {'src/a.ts': self.TEXT, 'bin.dat': 'x\0y'}.get(path)
+
+    def test_the_code_around_the_line_is_written_with_its_numbers(self):
+        code = export.code_excerpt(self.source, 'src/a.ts', 5, 'complexity')
+        self.assertEqual(code, {'start': 3, 'line': 5, 'lines': ['const KEY = "sk_live_123"', 'function f() {', '  return 1', '}'], 'hidden': []})
+        self.assertEqual(export.code_excerpt(self.source, 'src/a.ts', 1, 'complexity')['lines'][0], 'import a')
+        long = export.code_excerpt(lambda path: 'x' * 1000, 'min.js', 1, 'complexity')
+        self.assertEqual(len(long['lines'][0]), export.CODE_WIDTH)
+
+    def test_no_code_for_a_secret_a_missing_line_or_a_file_not_read(self):
+        self.assertIsNone(export.code_excerpt(self.source, 'src/a.ts', 3, 'secret'))
+        self.assertIsNone(export.code_excerpt(self.source, 'src/a.ts', None, 'complexity'))
+        self.assertIsNone(export.code_excerpt(self.source, 'src/a.ts', 99, 'complexity'))
+        self.assertIsNone(export.code_excerpt(self.source, 'gone.ts', 1, 'complexity'))
+        self.assertIsNone(export.code_excerpt(self.source, 'bin.dat', 1, 'complexity'))
+
+    def test_a_line_where_any_fact_found_a_secret_is_hidden_in_every_excerpt(self):
+        code = export.code_excerpt(self.source, 'src/a.ts', 4, 'complexity', {('src/a.ts', 3)})
+        self.assertEqual(code['hidden'], [3])
+        self.assertEqual(code['lines'][code['hidden'][0] - code['start']], '')
+        self.assertNotIn('sk_live', ''.join(code['lines']))
+
+    def test_the_evidence_section_hides_secret_lines_and_meets_its_contract(self):
+        from unittest import mock
+        facts = [{'id': 'F1', 'kind': 'engine_finding', 'location': {'path': 'src/a.ts', 'line': 4}, 'value': {'kind': 'complexity', 'message': 'complex'}},
+                 {'id': 'F2', 'kind': 'engine_finding', 'location': {'path': 'src/a.ts'}, 'value': {'kind': 'secret', 'sites': [{'path': 'src/a.ts', 'line': 3}]}}]
+        with mock.patch.object(export.indicators, 'facts', return_value=facts):
+            rows = {f['id']: f for f in export.evidence('report', {'F1', 'F2'}, self.source)}
+        self.assertEqual(rows['F1']['line'], 4)
+        self.assertEqual(rows['F1']['code']['hidden'], [3])
+        self.assertIsNone(rows['F2']['code'])
+        self.assertNotIn('sk_live', json.dumps(rows))
+        body = {'schema_version': 1, 'contract': 1, 'facts': list(rows.values())}
+        self.assertEqual(artifact_contracts.validate(body, artifact_contracts.contracts()['studio-evidence']), [])
+
+    def test_files_are_read_at_the_scanned_commit_and_never_outside_the_project(self):
+        import subprocess
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder:
+            project = Path(folder) / 'p'
+            (project / 'src').mkdir(parents=True)
+            (Path(folder) / 'outside.txt').write_text('secret', encoding='utf-8')
+            (project / 'src/a.ts').write_text('old\n', encoding='utf-8')
+            git = lambda *a: subprocess.run(['git', '-C', str(project), *a], check=True, capture_output=True)
+            git('init', '-q'); git('add', '.'); git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'one')
+            commit = subprocess.run(['git', '-C', str(project), 'rev-parse', 'HEAD'], capture_output=True, text=True).stdout.strip()
+            (project / 'src/a.ts').write_text('new\n', encoding='utf-8')
+            self.assertEqual(export.sources(project, commit)('src/a.ts'), 'old\n')
+            self.assertEqual(export.sources(project, None)('src/a.ts'), 'new\n')
+            self.assertIsNone(export.sources(project, None)('../outside.txt'))
+            self.assertIsNone(export.sources(None, None)('src/a.ts'))
+
+    def test_why_a_card_matters_is_written_in_both_languages_from_its_render_key(self):
+        why = export.why_of({'impact': 'Code nobody runs is still read.', 'impact_render': {'key': 'dead_code', 'params': {}}})['why']
+        self.assertEqual(set(why), {'ar', 'en'})
+        self.assertRegex(why['ar'], '[\u0600-\u06FF]')
+        self.assertEqual(export.why_of({}), {})
+
 
 if __name__ == '__main__':
     unittest.main()

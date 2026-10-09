@@ -153,8 +153,8 @@ reader raises the version.
 | `studio/meta.json` | Languages, size, the stages of the check. |
 | `studio/head.json` | The scan stamp, freshness (`fresh`, `branch_moved`, `eaos_updated`, `unknown`), the verdict in one sentence, the next step. |
 | `studio/health.json` | One score by one formula, its domains, the score after every scan. |
-| `studio/cards.json` | Every card on its own file and evidence, its scope (`place` or `group`) and its state from the ledger. |
-| `studio/evidence.json` | The facts the cards cite: engine, kind, sites. |
+| `studio/cards.json` | Every card on its own file and evidence, its scope (`place` or `group`), its state from the ledger and `why` it matters (`{ar, en}`, from the plan's impact sentence). |
+| `studio/evidence.json` | The facts the cards cite: engine, kind, sites, and `code`: the lines around the fact's line as the check read them (`git show <scanned commit>:<path>`, else the working copy; never for a secret, and a line where any fact found a secret is written empty and named in `hidden`). |
 | `studio/story.json` | Current state, target state, the gap per component, indicators today / expected / target. |
 | `studio/docs.json` | Every document the check wrote, grouped by purpose, in reading order. |
 | `studio/plans.json` | Every plan in one model (below). |
@@ -201,6 +201,27 @@ a whole data folder of 5,000 cards and 1,000 components, every reference resolve
 
 `build_info.studio_digest()` fingerprints the built assets and the Studio's schemas apart from `build_info.digest()`,
 so a change to the interface alone rebuilds the Studio without forcing a new check.
+
+## Problems and evidence (NS46.T2)
+
+`#/problems` lists the cards: search (the Studio's Arabic normaliser: hamza, ta marbuta, alef maqsura, diacritics,
+tatweel and the article folded on both sides; every word must appear in the title, id, paths, kind, area or why it
+matters), who acts, and the facets severity, area, state, plan step and component (the map's owner of the card's
+first path), each value with the number of cards choosing it would show given the other filters, and grouping by
+area, component or plan step. Every choice is in the address (`q`, `who`, `severity`, `area`, `state`, `step`,
+`component`, `group`, `card`; a facet takes several values joined by commas). Facet values and groups keep one order
+for the report, so nothing moves under the person's finger; the list draws 30 rows and "show more" adds to the end;
+a newer check arriving while the list is open waits behind "Show changes". `?card=` opens the detail: why it matters,
+place and component, confidence in words with its meter and source, the evidence with the code at its line, its place
+in the plan (step, task k of n, the step's gate, the operation on its component) and the other problems in the same
+file. `#/evidence/<factId>` shows one fact with its code, the other places it names and every card resting on it.
+The code is in `studio/src/pages/problems/`; the list logic (`model.ts`) is pure and unit-tested at 5,000 cards.
+
+`python tools/studio_budgets.py` measures the filter budget in a browser on the shipped build and a synthetic report
+of 5,000 cards (typing Arabic and Latin searches, ticking facets, grouping, clearing; each step from the input event
+to the first frame painted after the list changed, on a desktop and on a phone profile with the CPU slowed four times)
+and writes `filter_5000_ms` (the slowest step median on the phone profile) to `$EAOS_MEASURE/studio-gates/budgets.json`
+with the build's source fingerprint (F14, NS46.T2's acceptance).
 
 ## The system maps (`studio/system.json`)
 

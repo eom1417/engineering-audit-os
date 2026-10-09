@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "studio/cards.json",
-  "description": "Every card of the plan on its own file and evidence, with its state read from the ledger.",
+  "description": "Every card of the plan on its own file and evidence, with its state read from the ledger and why it matters in both languages.",
   "x-artifact": "studio/cards.json",
   "x-owner": "NS36",
   "type": "object",
@@ -114,6 +114,21 @@
             ],
             "minimum": 0,
             "maximum": 1
+          },
+          "why": {
+            "type": "object",
+            "required": [
+              "ar",
+              "en"
+            ],
+            "properties": {
+              "ar": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
           }
         }
       }

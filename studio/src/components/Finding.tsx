@@ -1,4 +1,5 @@
 // A finding in a list (severity glyph, title, path · id, who acts on it) and the evidence card that backs it.
+import type { ReactNode } from 'react'
 import type { Card, Fact } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
 import { Id, Txt } from '../i18n/text'
@@ -22,8 +23,9 @@ export function FindingRow({ card, to, search, current }: { card: Card; to: stri
   )
 }
 
-/** One fact a card cites: its kind, engine and id, the sentence, and the code (always LTR, its own scroll). */
-export function EvidenceCard({ fact, code }: { fact: Fact; code?: string }) {
+/** One fact a card cites: its kind, engine and id, the sentence, and the code (always LTR, its own scroll); `children`
+ * follow the place (a page's code excerpt with its line numbers, its links). */
+export function EvidenceCard({ fact, code, children }: { fact: Fact; code?: string; children?: ReactNode }) {
   const { t } = usePrefs()
   const where = fact.path ? `${fact.path}${fact.line ? `:${fact.line}` : ''}` : null
   return (
@@ -36,6 +38,7 @@ export function EvidenceCard({ fact, code }: { fact: Fact; code?: string }) {
       <p className={css.evText}><Txt block>{fact.summary}</Txt></p>
       {where && <div className={css.evHead}><span>{t('where')}</span><Id value={where} /></div>}
       {code && <pre className={css.code} data-scroll-x="" tabIndex={0} aria-label={where ?? fact.id}><code>{code}</code></pre>}
+      {children}
     </Panel>
   )
 }

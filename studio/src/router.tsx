@@ -7,7 +7,9 @@ import { InfraLensPage } from './pages/infra/InfraLens'
 import { DecisionsPage } from './pages/Decisions'
 import { HomePage } from './pages/Home'
 import { LibraryPage } from './pages/Library'
-import { ProblemsPage } from './pages/Problems'
+import { EvidencePage } from './pages/problems/EvidencePage'
+import { ProblemsPage } from './pages/problems/ProblemsPage'
+import { SEARCH_KEYS as PROBLEM_KEYS } from './pages/problems/model'
 import { SystemMapPage } from './pages/SystemMap'
 import { FlowPage } from './pages/paths/FlowPage'
 import { PathsGalleryPage } from './pages/paths/PathsGallery'
@@ -58,7 +60,8 @@ export function makeRouter(dev: () => boolean) {
     createRoute({ getParentRoute: () => root, path: '/system/data', component: DataPathsPage, validateSearch: params('view', 'store', 'show', 'reads') }),
     createRoute({ getParentRoute: () => root, path: '/system/pipeline', component: PipelinePage, validateSearch: params('p', 'view', 'show', 'stage', 'hidden', 'follow') }),
     createRoute({ getParentRoute: () => root, path: '/flows/$pathId', component: FlowPage, validateSearch: params('view', 'show', 'node', 'traced') }),
-    createRoute({ getParentRoute: () => root, path: '/problems', component: ProblemsPage, validateSearch: params('card', 'who', 'severity', 'component', 'q') }),
+    createRoute({ getParentRoute: () => root, path: '/problems', component: ProblemsPage, validateSearch: params(...PROBLEM_KEYS) }),
+    createRoute({ getParentRoute: () => root, path: '/evidence/$factId', component: EvidencePage }),
     createRoute({ getParentRoute: () => root, path: '/change', component: ChangePage, validateSearch: params('focus', 'side') }),
     createRoute({ getParentRoute: () => root, path: '/change/timeline', component: TimelinePage, validateSearch: params('step', 'wave') }),
     createRoute({ getParentRoute: () => root, path: '/decisions', component: DecisionsPage, validateSearch: params('demo') }),

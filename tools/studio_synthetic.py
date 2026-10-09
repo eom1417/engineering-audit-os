@@ -41,6 +41,14 @@ TASK_STATE = export.TASK_STATE
 HEAD = {'schema_version': 1, 'contract': export.CONTRACT}
 V2 = {**HEAD, 'revision': export.REVISION}
 WHEN = '2026-10-08T09:00:00+00:00'
+WHY = {'complexity': ('دالة معقّدة يصعب اختبارها ويكثر فيها الخطأ عند التعديل.', 'A complex function is hard to test and easy to break when changed.'),
+       'dead_code': ('كود لا يشغّله أحد يبقى يُقرأ ويُصان.', 'Code nobody runs is still read and maintained.'),
+       'literal_duplication': ('نسختان من القاعدة نفسها تتباعدان مع الوقت.', 'Two copies of one rule drift apart over time.'),
+       'secret': ('مفتاح سرّي في الكود يصل إلى كل من يقرأ المستودع.', 'A secret in the code reaches everyone who reads the repository.'),
+       'missing_rls': ('جدول بلا أمان صفوف يقرؤه أي مستخدم.', 'A table without row security is readable by any user.'),
+       'layer_violation': ('طبقة تتجاوز أخرى فيصعب تغيير أيّ منهما وحدها.', 'A layer that skips another makes either hard to change alone.'),
+       'cycle': ('حلقة استيراد تمنع فصل الوحدتين.', 'An import cycle keeps the two modules from being separated.'),
+       'unused_dependency': ('مكتبة لا تُستعمل تكبّر البناء وتزيد الثغرات المحتملة.', 'An unused library grows the build and the attack surface.')}
 
 
 def measure(value, src, unit='count'):
@@ -263,13 +271,17 @@ def build(cards=5000, components=1000, seed=7, functions_per_module=2, modules_p
         path, comp = modules[rng.randrange(len(modules))]
         kind, severity = KINDS[i % len(KINDS)], SEVERITIES[min(int(rng.random() ** 2 * 5), 4)]
         fact = f'FACT-{i:06d}'
+        line = 1 + rng.randrange(400)
         facts.append({'id': fact, 'kind': 'engine_finding', 'engine': ('enola', 'jscpd', 'semgrep', 'knip')[i % 4], 'path': path,
-                      'line': 1 + rng.randrange(400), 'summary': f'{kind.replace("_", " ")} in {path}', 'sites': [{'path': path, 'line': 1}]})
+                      'line': line, 'summary': f'{kind.replace("_", " ")} in {path}', 'sites': [{'path': path, 'line': 1}],
+                      'code': {'start': max(1, line - 2), 'line': line, 'hidden': [],
+                               'lines': [f'const v{n} = step{n}(input)  // m{i % 3}' for n in range(max(1, line - 2), line + 3)]}})
         card_rows.append({'id': f'TASK-{i + 1:05d}', 'key': f'k{i:06d}', 'title': f'{kind.replace("_", " ").capitalize()} in {comp} (m{i % 3})',
                           'kind': kind, 'category': ('structure', 'security', 'performance', 'cleanup')[i % 4], 'severity': severity,
                           'fixable': i % 3 == 0, 'needs_decision': i % 11 == 0, 'scope': 'group' if i % 17 == 0 else 'place',
                           'place': path, 'paths': [path], 'evidence': [fact], 'state': STATES[i % len(STATES)],
-                          'milestone': f'M{i % 12 + 1}', 'confidence': (1.0, 0.7, 0.4)[i % 3], '_component': comp})
+                          'milestone': f'M{i % 12 + 1}', 'confidence': (1.0, 0.7, 0.4)[i % 3], '_component': comp,
+                          'why': dict(zip(('ar', 'en'), WHY[kind]))})
     by_comp = {}
     for card in card_rows: by_comp.setdefault(card.pop('_component'), []).append(card)
     closed = lambda rows: sum(c['state'] in ('done', 'resolved') for c in rows)
