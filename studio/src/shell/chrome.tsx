@@ -17,13 +17,26 @@ export function useChrome(): Chrome {
   return useContext(ChromeContext).chrome
 }
 
+// The tab's title: the page's own, after the running work's progress when there is one ("3/26", "✓": ScanBanner).
+const tabTitle = { page: typeof document === 'undefined' ? '' : document.title, progress: '' }
+function showTitle() {
+  document.title = [tabTitle.progress, tabTitle.page].filter(Boolean).join(' · ')
+}
+
+/** Puts the running work's progress before the page's title in the tab ('' takes it away). */
+export function setTitleProgress(progress: string) {
+  tabTitle.progress = progress
+  showTitle()
+}
+
 /** Called by every page: sets the document title and the shell's title and back target. */
 export function usePageChrome(title: string, back?: Back, project?: string) {
   const { set } = useContext(ChromeContext)
   const backKey = back ? `${back.to}|${JSON.stringify(back.search ?? {})}|${back.label}` : ''
   useEffect(() => {
     set({ title, back })
-    document.title = [title, project, 'EAOS Studio'].filter(Boolean).join(' · ')
+    tabTitle.page = [title, project, 'EAOS Studio'].filter(Boolean).join(' · ')
+    showTitle()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, backKey, project, set])
 }

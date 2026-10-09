@@ -170,7 +170,8 @@
     "studio": [
       "studio/**",
       "eaos/data/studio/**",
-      "docs/studio-actions.json"
+      "docs/studio-actions.json",
+      "eaos/data/errors.json"
     ]
   },
   "rules": [

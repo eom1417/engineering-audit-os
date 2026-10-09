@@ -1,56 +1,103 @@
-// "Live check": EAOS's own stages as the check runs, whoever started it (the assistant, `eaos start`, the Studio).
-// The header says where the run is (stage n of N, elapsed, and a time left only when the last run of this project is
-// known); the map draws the stages with their states; the panel tells the chosen stage: what it does, its timer, its
-// steps (each tool inside `engines`, each extractor inside `facts`), what it produced, and why it did not run. The
-// stage list under the map is the same stages as rows, the way to every stage by keyboard and touch.
-// It stays after the run as the record of the last check.
+// "Live check": EAOS's own work as it runs, whoever started it (the assistant, `eaos start`, the Studio). The journey
+// strip shows the four steps of the work; the map below draws the chosen step's flow (by default the one running), its
+// toolbar in a row above it. The run line says where the flow is (stage n of N, elapsed, and a time left only from the
+// last run of this project); the panel tells the chosen stage (beside the map on the desktop, a bottom sheet on the
+// phone); the stage list under the map is the way to every stage by keyboard and touch. After a check, "replay" plays
+// its real progress file again, faster, labelled as a replay. It stays after the run as the record of the last one.
 import { useNavigate, useSearch } from '@tanstack/react-router'
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { Button } from '../../components/Button'
 import { Chip, type Tone } from '../../components/Chip'
-import { Panel, Props, Skeleton, StateMessage } from '../../components/Panel'
+import { Panel, Skeleton, StateMessage } from '../../components/Panel'
+import { Sheet } from '../../components/Sheet'
 import { useLive } from '../../data/context'
-import { ENDED, clock, secondsLeft, summarize, type ScanProgress, type ScanStage } from '../../data/scan'
-import { useScan } from '../../data/ScanProvider'
+import { clock, ENDED, shownState, summarize, type AllProgress, type Estimate, type JourneyStep, type RunState, type ScanProgress, type ScanStage } from '../../data/scan'
+import { runningFlow, useScan, type Transport } from '../../data/ScanProvider'
 import { usePrefs } from '../../i18n/prefs'
-import { Id, Txt, When } from '../../i18n/text'
+import { When } from '../../i18n/text'
+import { usePageChrome } from '../../shell/chrome'
 import { layout } from '../../shell/Layout'
+import { usePhone } from '../SystemMap'
+import { Journey } from './Journey'
 import { LiveMap } from './LiveMap'
+import { useReplay, type Replay } from './replay'
+import { StagePanel } from './StagePanel'
 import { TickerText } from './Ticker'
 import { useScanWords } from './words'
 import css from './scan.module.css'
 
-export const STATE_TONE: Record<string, Tone> = {
-  waiting: 'neutral', running: 'accent', ok: 'good', skipped: 'neutral', unavailable: 'warning', failed: 'critical',
-  not_reached: 'neutral', stopped: 'warning',
-}
-const STEP_TONE: Record<string, Tone> = {
-  waiting: 'neutral', running: 'accent', ok: 'good', observed: 'good', unavailable: 'warning', not_applicable: 'neutral', error: 'critical',
-}
-/** Steps shown before "show all": a long stage (21 tools) folds, as every long phone list does (DESIGN.md). */
-const STEPS_FIRST = 8
 const RUN_TONE: Record<string, Tone> = { COMPLETE: 'good', PARTIAL: 'warning', INCOMPLETE: 'warning', ERROR: 'critical', STOPPED: 'warning' }
+const SPEEDS = [10, 30]
+const ANNOUNCE_MS = 3000
+
+/** Why the page cannot draw a flow yet: a snapshot, the first read, or no stages to draw; null when it can. */
+function blocked(mode: string, all: AllProgress | null, flow: string): 'snapshot' | 'loading' | 'none' | null {
+  if (mode !== 'live') return 'snapshot'
+  if (!all) return 'loading'
+  return all.flows[flow]?.stages.length ? null : 'none'
+}
+
+function Blocked({ why }: { why: 'snapshot' | 'loading' | 'none' }) {
+  const w = useScanWords()
+  if (why === 'loading') return <div className={layout.page}><Head /><Panel><Skeleton label={w('loading')} /></Panel></div>
+  return <div className={layout.page}><Head /><Panel><StateMessage icon="live" title={w(`${why}Title`)} sub={w(`${why}Sub`)} /></Panel></div>
+}
 
 export function ScanPage() {
   const w = useScanWords()
   const { mode } = useLive()
-  const { progress, skew, lastEnded } = useScan()
-  const search = useSearch({ strict: false }) as { stage?: string }
+  const { all, skew, transport } = useScan()
+  const search = useSearch({ strict: false }) as { stage?: string; flow?: string }
   const navigate = useNavigate()
-  const select = (name: string) => void navigate({ to: '/scan', search: { stage: name }, replace: true })
-
-  if (mode !== 'live') {
-    return <div className={layout.page}><Head /><Panel><StateMessage icon="live" title={w('snapshotTitle')} sub={w('snapshotSub')} /></Panel></div>
-  }
-  if (!progress) return <div className={layout.page}><Head /><Panel><Skeleton label={w('loading')} /></Panel></div>
-  if (progress.state === 'none' || !progress.stages.length) {
-    return <div className={layout.page}><Head /><Panel><StateMessage icon="live" title={w('noneTitle')} sub={w('noneSub')} /></Panel></div>
-  }
-  return <Live progress={progress} skew={skew} lastEnded={lastEnded} chosen={search.stage ?? null} select={select} />
+  const flow = search.flow || runningFlow(all) || 'check'
+  usePageChrome(w('title'))
+  const why = blocked(mode, all, flow)
+  if (why || !all) return <Blocked why={why ?? 'loading'} />
+  const show = (next: { flow?: string; stage?: string }) => void navigate({ to: '/scan', search: { flow: next.flow || flow, stage: next.stage }, replace: true })
+  return <Flow all={all} flow={flow} skew={skew} transport={transport} stage={search.stage || null} show={show} />
 }
 
-function Head({ children }: { children?: ReactNode }) {
+interface FlowProps { all: AllProgress; flow: string; skew: number; transport: Transport; stage: string | null; show: (next: { flow?: string; stage?: string }) => void }
+
+function Flow({ all, flow, skew, transport, stage, show }: FlowProps) {
+  const replay = useReplay(all.flows.check)
+  const live = all.flows[flow]
+  const shown = flow === 'check' ? replay.replay : null
+  const view = shown ?? { id: 0, speed: undefined, progress: live, skew }
+  const tools = flow === 'check' && live.run && live.state !== 'running' && !shown ? <ReplayTools start={replay.start} /> : null
+  return (
+    <div className={[layout.page, css.page].join(' ')} data-run={view.progress.run} data-run-state={view.progress.state} data-flow={flow}
+      data-transport={transport} data-replay={view.speed}>
+      <Head><RunLine progress={view.progress} skew={view.skew} journey={all.journey} /></Head>
+      <Journey steps={all.journey} flow={flow} onFlow={(next) => show({ flow: next })} />
+      <Notes progress={view.progress} replay={shown} stop={replay.stop} />
+      <Live key={`${flow}-${view.id}`} progress={view.progress} skew={view.skew} chosen={stage} select={(name) => show({ stage: name })} tools={tools} />
+      <Announcer progress={view.progress} journey={all.journey} />
+    </div>
+  )
+}
+
+interface NotesProps { progress: ScanProgress; replay: Replay | null; stop: () => void }
+
+/** The lines above the map: a replay says it is one, and a run nobody hears from says so. */
+function Notes({ progress, replay, stop }: NotesProps) {
+  const w = useScanWords()
+  const quiet = progress.state === 'interrupted' || progress.state === 'stalled'
+  return (
+    <>
+      {replay && (
+        <div className={css.replayNote} role="note">
+          <span>{w('replaying', { s: replay.speed })}</span>
+          <Button variant="secondary" className={css.bigBtn} onPress={stop}>{w('replayEnd')}</Button>
+        </div>
+      )}
+      {quiet && <div className={css.warn} role="note">{w(progress.state === 'stalled' ? 'stalledSub' : 'interruptedSub')}</div>}
+    </>
+  )
+}
+
+function Head({ children }: { children?: React.ReactNode }) {
   const w = useScanWords()
   return (
     <div className={css.head}>
@@ -61,141 +108,127 @@ function Head({ children }: { children?: ReactNode }) {
   )
 }
 
-function Live({ progress, skew, lastEnded, chosen, select }:
-  { progress: ScanProgress; skew: number; lastEnded: { stage: string; at: number } | null; chosen: string | null; select: (name: string) => void }) {
+interface ReplayToolsProps { start: (speed: number) => Promise<void> }
+
+function ReplayTools({ start }: ReplayToolsProps) {
   const w = useScanWords()
-  const sum = summarize(progress)
-  const interrupted = progress.state === 'interrupted'
-  const running = sum.running[0]
-  const fallback = running ?? progress.stages.find((s) => s.state === 'failed') ?? [...progress.stages].reverse().find((s) => s.requested && ENDED.includes(s.state)) ?? progress.stages[0]
-  const selected = progress.stages.find((s) => s.name === chosen) ?? fallback
-  const words = running ? w('stageOf', { n: sum.position, t: sum.total }) : w('endedOf', { n: sum.ended, t: sum.total })
-  const mapSummary = `${w.known('run_', progress.state)}. ${running ? `${w.stageTitle(running.name)}: ${w('state_running')}. ` : ''}${words}`
   return (
-    <div className={[layout.page, css.page].join(' ')} data-run={progress.run ?? ''} data-run-state={progress.state}>
-      <Head><RunLine progress={progress} skew={skew} /></Head>
-      {interrupted && <div className={css.warn} role="note">{w('interruptedSub')}</div>}
-      <div className={css.grid}>
-        <Panel className={css.mapPanel} label={w('map')}>
-          <LiveMap progress={progress} skew={skew} lastEnded={lastEnded} selected={selected?.name ?? null} onSelect={select} summary={mapSummary} />
-        </Panel>
-        {selected && <StagePanel stage={selected} progress={progress} skew={skew} onSelect={select} />}
-        <StageList progress={progress} selected={selected?.name ?? null} onSelect={select} />
-      </div>
-      <Announcer progress={progress} />
+    <span className={css.replayTools} role="group" aria-label={w('replay')}>
+      <span className={css.replayLabel}>{w('replay')}</span>
+      {SPEEDS.map((speed) => (
+        <AriaButton key={speed} className={css.toolBtn} onPress={() => void start(speed)} data-replay-speed={speed}
+          aria-label={w('replay') + ' ' + w('replayAt', { s: speed })}><bdi dir="ltr">{w('replayAt', { s: speed })}</bdi></AriaButton>
+      ))}
+    </span>
+  )
+}
+
+/** Chooses a stage (undefined: none, which closes the phone's sheet). */
+type Select = (name: string | undefined) => void
+
+/** The stage the panel shows when none is chosen: the running one, else the one that failed, else the last ended. */
+function fallbackStage(progress: ScanProgress): ScanStage {
+  return progress.stages.find((s) => s.state === 'running') ?? progress.stages.find((s) => s.state === 'failed')
+    ?? [...progress.stages].reverse().find((s) => s.requested && ENDED.includes(s.state)) ?? progress.stages[0]
+}
+
+interface LiveProps { progress: ScanProgress; skew: number; chosen: string | null; select: Select; tools: React.ReactNode }
+interface StageSideProps { stage: ScanStage; picked: boolean; progress: ScanProgress; skew: number; select: Select }
+
+/** "Stage n of N" while it runs, "n of N stages" ended once it has stopped. */
+function whereWords(progress: ScanProgress, w: ReturnType<typeof useScanWords>): string {
+  const sum = summarize(progress)
+  return sum.running.length ? w('stageOf', { n: sum.position, t: sum.total }) : w('endedOf', { n: sum.ended, t: sum.total })
+}
+
+/** What the map's picture says to a screen reader: the flow's state, its running stage, where it is. */
+function mapSummary(progress: ScanProgress, w: ReturnType<typeof useScanWords>): string {
+  const running = progress.stages.find((s) => s.state === 'running')
+  const now = running ? w.stageTitle(running.name, progress.flow ?? 'check') + ': ' + w('state_running') + '. ' : ''
+  return w.known('run_', progress.state) + '. ' + now + whereWords(progress, w)
+}
+
+/** The chosen stage's panel: beside the map, or on the phone a bottom sheet that opens when a stage is chosen. */
+function StageSide({ stage, picked, progress, skew, select }: StageSideProps) {
+  const w = useScanWords()
+  const phone = usePhone()
+  const panel = <StagePanel stage={stage} progress={progress} skew={skew} onSelect={select} />
+  const title = w.stageTitle(stage.name, progress.flow ?? 'check')
+  if (phone) return <Sheet isOpen={picked} onOpenChange={(open) => { if (!open) select(undefined) }} title={title}>{panel}</Sheet>
+  return <Panel className={css.stagePanel} label={title}>{panel}</Panel>
+}
+
+function Live({ progress, skew, chosen, select, tools }: LiveProps) {
+  const w = useScanWords()
+  const picked = progress.stages.find((s) => s.name === chosen)
+  const selected = picked ?? fallbackStage(progress)
+  return (
+    <div className={css.grid}>
+      <Panel className={css.mapPanel} label={w('map')}>
+        <LiveMap progress={progress} skew={skew} selected={selected.name} onSelect={select} summary={mapSummary(progress, w)} tools={tools} />
+      </Panel>
+      <StageSide stage={selected} picked={!!picked} progress={progress} skew={skew} select={select} />
+      <StageList progress={progress} selected={selected.name} onSelect={select} />
     </div>
   )
 }
 
-function RunLine({ progress, skew }: { progress: ScanProgress; skew: number }) {
+function runTone(progress: ScanProgress): Tone {
+  const tones: Partial<Record<RunState, Tone>> = { running: 'accent', none: 'neutral', done: RUN_TONE[String(progress.status)] || 'neutral' }
+  return tones[progress.state] || 'warning'
+}
+
+/** The time left: a range from the server's estimate, or why there is none. */
+function Left({ estimate }: { estimate: Estimate }) {
   const w = useScanWords()
   const { num } = usePrefs()
-  const sum = summarize(progress)
-  const running = progress.state === 'running'
-  const left = secondsLeft(progress, skew)
-  const tone: Tone = running ? 'accent' : progress.state === 'interrupted' ? 'warning' : RUN_TONE[progress.status ?? ''] ?? 'neutral'
+  const [low, high] = [estimate.low ?? 0, estimate.high ?? 0]
+  const text = estimate.basis === 'first_run' ? w('firstRun')
+    : 60 > high ? w('leftLess') : w('left', { a: num(Math.max(1, Math.round(low / 60))), b: num(Math.ceil(high / 60)) })
+  return <span className={css.runFact} title={w('leftWhy')}>{text}</span>
+}
+
+function RunLine({ progress, skew, journey }: { progress: ScanProgress; skew: number; journey: JourneyStep[] }) {
+  const w = useScanWords()
+  const { lang } = usePrefs()
+  const state = progress.state
+  const step = journey.find((s) => s.flow === progress.flow)
+  const status = state === 'done' && progress.status ? ` · ${w.known('status_', progress.status)}` : ''
   return (
     <div className={css.runLine} data-hook="scan-run-line">
-      <Chip tone={tone}>{w.known('run_', progress.state)}{progress.state === 'done' && progress.status ? ` · ${w.known('status_', progress.status)}` : ''}</Chip>
-      <span className={css.runFact}>{running ? w('stageOf', { n: sum.position, t: sum.total }) : w('endedOf', { n: sum.ended, t: sum.total })}</span>
-      <span className={css.runFact}>
-        {running
-          ? <>{w('elapsed')} <TickerText since={progress.started_at} skew={skew} /></>
-          : <>{w('took')} <bdi dir="ltr">{clock(progress.seconds)}</bdi></>}
-      </span>
-      {running && (left === null
-        ? <span className={css.runFact}>{Object.keys(progress.previous).length ? null : w('firstRun')}</span>
-        : <span className={css.runFact} title={w('leftWhy')}>{left < 60 ? w('leftLess') : w('left', { m: num(Math.ceil(left / 60)) })}</span>)}
+      <Chip tone={runTone(progress)}>{step ? `${step.title[lang]} · ` : ''}{w.known('run_', state)}{status}</Chip>
+      {state !== 'none' && <span className={css.runFact}>{whereWords(progress, w)}</span>}
+      {state === 'running' && <span className={css.runFact}>{w('elapsed')} <TickerText since={progress.started_at} skew={skew} /></span>}
+      {state === 'done' && <span className={css.runFact}>{w('took')} <bdi dir="ltr">{clock(progress.seconds)}</bdi></span>}
+      {state === 'running' && progress.estimate && <Left estimate={progress.estimate} />}
       {progress.started_at && <span className={css.runFact}>{w('started')} <When iso={progress.started_at} /></span>}
     </div>
   )
 }
 
-function StagePanel({ stage, progress, skew, onSelect }: { stage: ScanStage; progress: ScanProgress; skew: number; onSelect: (name: string) => void }) {
-  const w = useScanWords()
-  const { lang, t } = usePrefs()
-  const [stepsOpen, setStepsOpen] = useState(false)
-  const state = progress.state === 'interrupted' && stage.state === 'running' ? 'stopped' : stage.state
-  const last = progress.previous[stage.name]
-  const unit = lang === 'ar' ? ' ث' : ' s'
-  const rows: [ReactNode, ReactNode, boolean?][] = []
-  rows.push([w('needs'), stage.requires.length
-    ? <span className={css.needs}>{stage.requires.map((name) => (
-        <AriaButton key={name} className={css.needLink} onPress={() => onSelect(name)}>{w.stageTitle(name)}</AriaButton>))}</span>
-    : w('needsNothing')])
-  rows.push([w('necessity'), <>{w(stage.necessity === 'optional' ? 'optional' : 'required')}{stage.necessity === 'optional' && stage.absent_when
-    ? <span className={css.muted}> · {w('absentWhen')}: <Txt>{w.absent(stage.name, stage.absent_when)}</Txt></span> : null}</>])
-  const time = state === 'running' ? <TickerText since={stage.started_at} skew={skew} />
-    : stage.seconds !== null && ENDED.includes(stage.state) && stage.state !== 'not_reached' && stage.state !== 'skipped' ? <bdi dir="ltr">{stage.seconds}{unit}</bdi> : null
-  if (time || last !== undefined) rows.push([w('time'), <>{time}{last !== undefined ? <span className={css.muted}>{time ? ' · ' : ''}{w('lastTime', { t: `${last}${unit}` })}</span> : null}</>])
-  const reasonShown = stage.reason && state !== 'ok'
-  const detail = Object.entries(stage.detail ?? {})
-  return (
-    <Panel className={css.stagePanel} label={w.stageTitle(stage.name)}>
-      <div className={css.stageHead} data-hook="scan-stage-panel" data-stage={stage.name}>
-        <h2 className={css.stageTitle}>{w.stageTitle(stage.name)} <Id value={stage.name} className={css.stageId} /></h2>
-        <Chip tone={STATE_TONE[state] ?? 'neutral'}>{w.known('state_', state)}</Chip>
-      </div>
-      <p className={css.about}>{w.about(stage.name, stage.description)}</p>
-      {stage.resumed && <p className={css.muted}>{w('keptFromBefore')}</p>}
-      {reasonShown && <div className={state === 'failed' ? css.reasonBad : css.reason}><strong>{w('why')}:</strong> <Txt>{stage.reason}</Txt></div>}
-      <Props rows={rows} />
-      {stage.steps.length > 0 && (
-        <section className={css.block} aria-label={w('steps')}>
-          <h3 className={css.blockTitle}>{w('steps')} <span className={css.muted}>{w('stepsOf', { d: stage.steps.filter((s) => !['waiting', 'running'].includes(s.status)).length, t: stage.steps.length })}</span></h3>
-          <ul className={css.steps}>
-            {(stepsOpen || stage.steps.length <= STEPS_FIRST ? stage.steps : stage.steps.filter((x, i) => i < STEPS_FIRST || x.status === 'running')).map((step) => (
-              <li key={step.name} className={css.stepRow} data-step-status={step.status}>
-                <bdi dir="ltr" className={css.stepName}>{step.name}</bdi>
-                <span className={css.stepEnd}>
-                  {step.seconds !== null && <bdi dir="ltr" className={css.muted}>{step.seconds}{unit}</bdi>}
-                  <Chip tone={STEP_TONE[step.status] ?? 'neutral'}>{w.known('step_', step.status)}</Chip>
-                </span>
-                {step.reason && step.status !== 'ok' && step.status !== 'observed' && <span className={css.stepWhy}><Txt>{step.reason}</Txt></span>}
-              </li>
-            ))}
-          </ul>
-          {stage.steps.length > STEPS_FIRST && (
-            <Button variant="ghost" className={css.bigBtn} onPress={() => setStepsOpen(!stepsOpen)} aria-expanded={stepsOpen}>
-              {stepsOpen ? t('showLess') : t('showAllN', { n: stage.steps.length })}
-            </Button>
-          )}
-        </section>
-      )}
-      <section className={css.block} aria-label={w(state === 'ok' ? 'produced' : 'producesWhenDone')}>
-        <h3 className={css.blockTitle}>{w(state === 'ok' ? 'produced' : 'producesWhenDone')}</h3>
-        {state === 'ok' && !stage.artifacts.length
-          ? <p className={css.muted}>{w('producedNothing')}</p>
-          : <ul className={css.files}>{(state === 'ok' ? stage.artifacts : stage.produces).map((file) => <li key={file}><bdi dir="ltr">{file}</bdi></li>)}</ul>}
-      </section>
-      {detail.length > 0 && (
-        <section className={css.block} aria-label={w('reported')}>
-          <h3 className={css.blockTitle}>{w('reported')}</h3>
-          <ul className={css.files}>{detail.map(([key, value]) => <li key={key}><bdi dir="ltr">{key}: {String(value)}</bdi></li>)}</ul>
-        </section>
-      )}
-    </Panel>
-  )
-}
+interface StageListProps { progress: ScanProgress; selected: string | null; onSelect: (name: string) => void }
 
-function StageList({ progress, selected, onSelect }: { progress: ScanProgress; selected: string | null; onSelect: (name: string) => void }) {
+function StageList({ progress, selected, onSelect }: StageListProps) {
   const w = useScanWords()
   const { lang } = usePrefs()
-  const ordered = useMemo(() => [...progress.stages].sort((a, b) => a.layer - b.layer || a.order - b.order), [progress.stages])
+  const flow = progress.flow ?? 'check'
+  const ordered = useMemo(() => [...progress.stages].sort((a, b) => (a.layer ?? 0) - (b.layer ?? 0) || (a.order ?? 0) - (b.order ?? 0)), [progress.stages])
   return (
     <Panel className={css.listPanel} as="section" label={w('stages')}>
       <h2 className={css.blockTitle}>{w('stages')}</h2>
       <ul className={css.list}>
         {ordered.map((s) => {
-          const state = progress.state === 'interrupted' && s.state === 'running' ? 'stopped' : s.state
+          const state = shownState(progress, s)
+          const counted = state === 'running' ? s.steps.find((x) => x.status === 'running' && x.kind === 'count') : undefined
           return (
             <li key={s.name}>
               <AriaButton className={[css.listRow, s.name === selected && css.listSel].filter(Boolean).join(' ')} onPress={() => onSelect(s.name)}
-                aria-pressed={s.name === selected} data-list-stage={s.name}>
+                aria-pressed={s.name === selected} data-list-stage={s.name} data-list-state={state}>
                 <span className={[css.listDot, css[`dot_${state}`]].join(' ')} aria-hidden="true" />
                 <span className={css.listMain}>
-                  <span className={css.listTitle}>{w.stageTitle(s.name)}</span>
-                  <span className={css.listSub}>{w.known('state_', state)}{state === 'ok' && s.seconds !== null ? ` · ${s.seconds}${lang === 'ar' ? ' ث' : ' s'}` : ''}</span>
+                  <span className={css.listTitle}>{w.stageTitle(s.name, flow)}</span>
+                  <span className={css.listSub}>{w.known('state_', state)}{state === 'ok' && s.seconds !== null ? ` · ${s.seconds}${lang === 'ar' ? ' ث' : ' s'}` : ''}
+                    {counted ? <> · <bdi dir="ltr">{counted.done}/{counted.total}</bdi></> : null}</span>
                 </span>
               </AriaButton>
             </li>
@@ -206,15 +239,30 @@ function StageList({ progress, selected, onSelect }: { progress: ScanProgress; s
   )
 }
 
-/** Says politely what ended, in the person's language: one line per stage end and one for the run's end. */
-function Announcer({ progress }: { progress: ScanProgress }) {
-  const w = useScanWords()
-  let text = ''
-  if (progress.state === 'done') text = w('announceRun', { w: w.known('status_', progress.status ?? '') })
-  else {
-    const last = progress.stages.filter((s) => s.ended_at && s.requested && s.state !== 'skipped')
-      .sort((a, b) => (a.ended_at ?? '').localeCompare(b.ended_at ?? '')).pop()
-    if (last) text = w('announceEnded', { s: w.stageTitle(last.name), w: w.known('state_', last.state) })
+/** The latest thing that happened in the flow, in words: a stage that started or ended, or the flow's end. */
+function latest(progress: ScanProgress, journey: JourneyStep[], w: ReturnType<typeof useScanWords>, lang: 'ar' | 'en'): string {
+  const flow = progress.flow ?? 'check'
+  if (progress.state === 'done') {
+    const step = journey.find((s) => s.flow === flow)
+    return w('announceRun', { f: step ? step.title[lang] : flow, w: w.known('status_', progress.status ?? '') })
   }
-  return <div className="sr" role="status" aria-live="polite">{text}</div>
+  const moments = progress.stages.filter((s) => s.requested && s.state !== 'skipped')
+    .flatMap((s) => [{ at: s.started_at, text: w('announceStarted', { s: w.stageTitle(s.name, flow) }) },
+      { at: s.ended_at, text: w('announceEnded', { s: w.stageTitle(s.name, flow), w: w.known('state_', s.state) }) }])
+    .filter((m) => m.at)
+  return moments.sort((a, b) => (a.at ?? '').localeCompare(b.at ?? '')).pop()?.text ?? ''
+}
+
+/** Says politely what happened, in the person's language, at most once every 3 s (the newest news wins). */
+function Announcer({ progress, journey }: { progress: ScanProgress; journey: JourneyStep[] }) {
+  const w = useScanWords()
+  const { lang } = usePrefs()
+  const text = latest(progress, journey, w, lang)
+  const [said, setSaid] = useState(text)
+  const last = useRef(0)
+  useEffect(() => {
+    const timer = window.setTimeout(() => { last.current = Date.now(); setSaid(text) }, Math.max(0, last.current + ANNOUNCE_MS - Date.now()))
+    return () => window.clearTimeout(timer)
+  }, [text])
+  return <div className="sr" role="status" aria-live="polite">{said}</div>
 }

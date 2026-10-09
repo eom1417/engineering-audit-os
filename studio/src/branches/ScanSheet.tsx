@@ -1,7 +1,9 @@
 // "Is this scan current?" (NS46.T19): what the scan read (branch or detached HEAD, full commit, unsaved changes, scan
 // and build times), whether it still holds now, and the direct action: Re-scan now through the live command centre,
-// with saved, running and done states, a link to the run and the report refreshed. Copying an instruction for an
-// assistant stays as a labelled fallback; a snapshot says it is read-only and offers to open the live Studio.
+// with saved, running and done states, a link to the run and the report refreshed; once it starts, the live map opens
+// (#/scan). Copying an instruction for an assistant stays as a labelled fallback; a snapshot says it is read-only and
+// offers to open the live Studio.
+import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Button, copyText } from '../components/Button'
 import { Chip } from '../components/Chip'
@@ -28,7 +30,7 @@ export function useRescan() {
   const [busy, setBusy] = useState(false)
   const current = run ? actions.runs.find((r) => r.id === run.id) ?? run : null
   async function start() {
-    if (!actions.client || actions.mode !== 'live') return
+    if (!actions.client || actions.mode !== 'live') return false
     setBusy(true); setError(null)
     try {
       // The scan runs on the analysed branch: pinned first when it was only implied by the checkout, so the audit never
@@ -41,9 +43,11 @@ export function useRescan() {
       } else made = await actions.client.start({ action: 'audit', inputs: {} })
       setRun(made)
       await actions.refresh()
+      return true
     } catch (problem) {
       setError(problem instanceof ActionError ? problem.message : String(problem))
     } finally { setBusy(false) }
+    return false
   }
   return { run: current, error, busy, start, live: actions.mode === 'live' && Boolean(live.api), reset: () => { setRun(null); setError(null) } }
 }
@@ -123,6 +127,7 @@ export function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenCha
   const live = useBranchLive()
   const view = useFreshView()
   const rescan = useRescan()
+  const navigate = useNavigate()
   if (!data || !view) return null
   const fresh = live.freshness
   const scanned = data.head?.scanned ?? data.manifest.scanned
@@ -155,7 +160,9 @@ export function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenCha
       <Props rows={rows} />
       {rescan.live ? (
         <div className={css.actions} data-fresh-actions="live">
-          <Button variant="primary" icon="retry" busy={rescan.busy} onPress={() => void rescan.start()}
+          <Button variant="primary" icon="retry" busy={rescan.busy} onPress={async () => {
+            if (await rescan.start()) { onOpenChange(false); void navigate({ to: '/scan', search: { flow: 'check' } }) }
+          }}
             isDisabled={Boolean(rescan.run && !['done', 'failed', 'stopped'].includes(rescan.run.state))}>
             {otherBranch ? w('rescanBranch', { b: fresh.branch as string }) : w('rescanNow')}
           </Button>

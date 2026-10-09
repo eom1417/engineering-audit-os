@@ -1,7 +1,8 @@
-/* The live check. The canvas, its frame and the zoom buttons are the code paths' and the maps' (paths.module.css,
-   map/parts.module.css); this file holds what only the live check draws: stage cards in their state, the glow of the
-   running stage, the light on the links, the run line, the stage panel and the stage list. The map's geometry does
-   not mirror; its text and chrome do. Only the glow and the light move, and nothing moves with reduced motion. */
+/* The live map. The canvas, its frame and the zoom buttons are the code paths' and the maps' (paths.module.css,
+   map/parts.module.css); this file holds what only the live map draws: the journey strip, the toolbar row above the
+   canvas, stage cards in their state, the glow of the running stage, the lights on the links, the run line, the stage
+   panel and the stage list. The map's geometry does not mirror; its text and chrome do. Only the glow, the lights, a
+   failure's pulse, an absent stage's fade and the bars move, and nothing moves with reduced motion. */
 
 .page { gap: 16px; }
 .head { display: flex; flex-direction: column; gap: 6px; }
@@ -16,13 +17,43 @@
 .stagePanel { grid-area: side; padding: 16px; display: flex; flex-direction: column; gap: 12px; position: sticky; inset-block-start: calc(var(--topbar-h) + 12px); max-block-size: calc(100vh - var(--topbar-h) - 24px); overflow-y: auto; }
 .listPanel { grid-area: list; padding: 12px 8px; }
 
+/* ---------------------------------------------------------------- the journey */
+.journeyList { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.journeyStep { display: flex; align-items: flex-start; gap: 10px; inline-size: 100%; block-size: 100%; min-block-size: 56px; padding: 10px 12px;
+  border: 1px solid var(--border-default); border-radius: var(--radius-12); background: var(--bg-surface); color: inherit; text-align: start; cursor: pointer; }
+.journeyStep[data-hovered] { background: var(--bg-hover); }
+.journeyStep[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.journeySel { border-color: var(--accent-solid); box-shadow: inset 0 0 0 1px var(--accent-solid); }
+.journeyMark { flex: none; display: inline-grid; place-items: center; inline-size: 20px; block-size: 20px; margin-block-start: 1px; border-radius: var(--radius-full);
+  border: 2px solid var(--border-strong); color: var(--bg-surface); }
+.journeyMain { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; }
+.journeyTitle { font-size: var(--text-row); font-weight: 600; line-height: 1.4; }
+.journeySub { font-size: 12px; color: var(--text-secondary); line-height: 1.45; }
+.journey_done .journeyMark { background: var(--status-good); border-color: var(--status-good); }
+.journey_running .journeyMark { background: var(--accent-solid); border-color: var(--accent-solid); animation: breathe 1.2s var(--ease-standard) infinite alternate; }
+.journey_running .journeySub { color: var(--accent-text); }
+.journey_stopped .journeyMark { background: var(--status-warning); border-color: var(--status-warning); }
+.journey_later .journeyTitle { color: var(--text-secondary); }
+@keyframes breathe {
+  from { opacity: .4; }
+  to { opacity: 1; }
+}
+
 /* ---------------------------------------------------------------- the map */
-.mapWrap { position: relative; block-size: clamp(420px, calc(100vh - 280px), 720px); }
+.mapWrap { display: flex; flex-direction: column; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-block-end: 1px solid var(--border-subtle); background: var(--bg-surface); }
+.toolbarEnd { display: inline-flex; align-items: center; gap: 8px; margin-inline-start: auto; }
+.canvasWrap { position: relative; display: flex; flex-direction: column; block-size: clamp(380px, calc(100vh - 340px), 680px); }
 .canvas { background: var(--map-water); }
-.mapTools { position: absolute; inset-block-start: 10px; inset-inline-end: 10px; z-index: 1; display: flex; gap: 8px; align-items: center; }
-.followBtn { display: inline-flex; align-items: center; gap: 6px; min-block-size: 44px; padding: 0 12px; border-radius: var(--radius-8); border: 1px solid var(--accent-solid); background: var(--bg-raised); color: var(--accent-text); font-size: 13px; cursor: pointer; }
-.mapTools [class] button, .bigBtn { min-inline-size: 44px; min-block-size: 44px; }
-.followBtn[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.followBtn, .toolBtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-block-size: 44px; min-inline-size: 44px; padding: 0 12px;
+  border-radius: var(--radius-8); border: 1px solid var(--border-default); background: var(--bg-raised); color: var(--text-primary); font-size: 13px; cursor: pointer; }
+.followBtn[aria-pressed="true"] { border-color: var(--accent-solid); color: var(--accent-text); background: var(--accent-subtle); }
+.followBtn[data-focus-visible], .toolBtn[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.toolbar [class] button, .bigBtn { min-inline-size: 44px; min-block-size: 44px; }
+.replayTools { display: inline-flex; align-items: center; gap: 6px; }
+.replayLabel { font-size: 13px; color: var(--text-secondary); }
+.replayNote { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding-block: 6px; padding-inline: 14px 6px;
+  border-radius: var(--radius-8); background: var(--accent-subtle); color: var(--accent-text); font-size: 13px; font-weight: 600; }
 
 .edge { fill: none; stroke: var(--edge-strong); stroke-width: 1.3; opacity: .35; }
 .edgeOff { stroke-dasharray: 3 4; opacity: .18; }
@@ -30,8 +61,7 @@
 .edgeInto { stroke: var(--accent-solid); stroke-width: 2.4; opacity: .95; }
 .edgeNear { stroke-width: 2.4; opacity: .9; }
 
-.flow { fill: var(--accent-solid); stroke: var(--bg-surface); stroke-width: 1.5; }
-.burst { fill: var(--status-good); stroke: var(--bg-surface); stroke-width: 1.5; }
+.light { fill: var(--status-good); stroke: var(--bg-surface); stroke-width: 1.5; }
 
 .node { cursor: pointer; }
 .box { fill: var(--bg-surface); stroke: var(--border-strong); stroke-width: 1.2; }
@@ -66,7 +96,19 @@
   from { opacity: .25; stroke-width: 1; }
   to { opacity: .95; stroke-width: 5; }
 }
+/* a change the map has just shown: a failure pulses red once, a stage that did not run fades in dashed */
+[data-fresh].st_failed .box { animation: failed 600ms var(--ease-standard); }
+[data-fresh].st_skipped, [data-fresh].st_unavailable, [data-fresh].st_not_reached { animation: fade 300ms var(--ease-standard); }
+@keyframes failed {
+  from { stroke-width: 7; }
+  to { stroke-width: 2; }
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 [data-motion="reduced"] .halo { animation: none; opacity: .8; stroke-width: 3; }
+[data-motion="reduced"] [data-fresh], [data-motion="reduced"] [data-fresh] .box { animation: none; }
 
 /* ---------------------------------------------------------------- the stage panel */
 .stageHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
@@ -80,14 +122,21 @@
 .needLink { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-block-size: 44px; display: inline-flex; align-items: center; }
 .needLink[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 .block { display: flex; flex-direction: column; gap: 6px; }
-.blockTitle { font-size: 14px; font-weight: 600; display: flex; gap: 8px; align-items: baseline; padding-inline: 8px; }
-.stagePanel .blockTitle { padding-inline: 0; }
+.blockTitle { font-size: 14px; font-weight: 600; display: flex; gap: 8px; align-items: baseline; }
+.listPanel .blockTitle { padding-inline: 8px; }
 .steps { display: flex; flex-direction: column; }
 .stepRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 8px; padding-block: 6px; border-block-start: 1px solid var(--border-subtle); font-size: 13px; }
 .stepName { font-family: var(--font-mono); font-size: 12.5px; overflow-wrap: anywhere; }
 .stepEnd { display: inline-flex; align-items: center; gap: 8px; }
 .stepWhy { grid-column: 1 / -1; font-size: 12px; color: var(--text-tertiary); overflow-wrap: anywhere; }
 .files { display: flex; flex-direction: column; gap: 2px; font-family: var(--font-mono); font-size: 12.5px; color: var(--text-secondary); overflow-wrap: anywhere; }
+.fileLink { display: inline-flex; align-items: center; min-block-size: 44px; color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; text-align: start; cursor: pointer; }
+.fileLink[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.fileText { max-block-size: 60vh; overflow: auto; padding: 12px; border-radius: var(--radius-8); background: var(--bg-sunken); font-family: var(--font-mono);
+  font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.bar { grid-column: 1 / -1; block-size: 6px; border-radius: var(--radius-full); background: var(--bg-sunken); overflow: hidden; }
+.barFill { display: block; block-size: 100%; border-radius: var(--radius-full); background: var(--accent-solid); transition: inline-size 200ms var(--ease-standard); }
+[data-motion="reduced"] .barFill { transition: none; }
 
 /* ---------------------------------------------------------------- the stage list */
 .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 2px 8px; margin-block-start: 6px; }
@@ -109,11 +158,16 @@
 @media (max-width: 1199px) {
   .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "map" "side" "list"; }
   .stagePanel { position: static; max-block-size: none; overflow: visible; }
-  .mapWrap { block-size: 520px; }
+  .canvasWrap { block-size: 480px; }
 }
 
 @media (max-width: 767px) {
   .page { padding-block-start: 16px; padding-block-end: 24px; }
-  .mapWrap { block-size: max(340px, 58vh); }
+  .journeyList { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .canvasWrap { block-size: max(320px, 52vh); }
   .list { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journey_running .journeyMark, .barFill { animation: none; transition: none; }
 }

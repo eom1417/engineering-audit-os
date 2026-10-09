@@ -19,10 +19,10 @@ export function place(stages: Pick<ScanStage, 'name' | 'layer' | 'order'>[], acr
   const at = new Map<string, At>()
   let layers = 0
   let rows = 0
-  for (const s of stages) {
-    layers = Math.max(layers, s.layer + 1)
-    rows = Math.max(rows, s.order + 1)
-    at.set(s.name, across ? { x: PAD + s.layer * STEP_X, y: PAD + s.order * STEP_Y } : { x: PAD + s.order * DOWN_X, y: PAD + s.layer * DOWN_Y })
+  for (const { name, layer = 0, order = 0 } of stages) {
+    layers = Math.max(layers, layer + 1)
+    rows = Math.max(rows, order + 1)
+    at.set(name, across ? { x: PAD + layer * STEP_X, y: PAD + order * STEP_Y } : { x: PAD + order * DOWN_X, y: PAD + layer * DOWN_Y })
   }
   const width = PAD * 2 + NODE_W + Math.max(0, (across ? layers : rows) - 1) * (across ? STEP_X : DOWN_X)
   const height = PAD * 2 + NODE_H + Math.max(0, (across ? rows : layers) - 1) * (across ? STEP_Y : DOWN_Y)

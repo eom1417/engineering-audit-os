@@ -1,16 +1,30 @@
-// The words of the live check, Arabic first and English equally finished. A key missing in one language is a type
-// error. The stages themselves come from EAOS (eaos/pipeline/stages.py, through the progress file): a stage this table
-// does not know yet is shown by its own name and description, so a new stage appears with no change here.
+// The words of the live map, Arabic first and English equally finished. A key missing in one language is a type
+// error. The stages themselves come from EAOS (eaos/pipeline/stages.py and each later step's FLOW, through the progress
+// files): a stage this table does not know yet is shown by its own name and description, so a new stage appears with
+// no change here. Why a stage or step did not run is worded from its reason_code by EAOS's own catalog
+// (eaos/data/errors.json -> reasons); a code it does not know shows the sentence EAOS wrote.
+import { reasons } from '../../../../eaos/data/errors.json'
+import { usePrefs } from '../../i18n/prefs'
 import { makeWords } from '../../map/words'
 
 export const SCAN_WORDS = {
   title: ['الفحص الآن', 'Live check'],
-  lead: ['مراحل فحص EAOS كما تجري الآن: المرحلة التي تعمل تتوهّج، وحين تنتهي ينتقل الضوء إلى المراحل التي بعدها. اضغط أي مرحلة لترى ما تفعله وما أنتجته.',
-    'EAOS\'s own stages as the check runs: the running stage glows, and when it ends the light travels on to the stages after it. Select any stage to see what it does and what it produced.'],
-  run_none: ['لا يوجد فحص بعد', 'No check yet'],
-  run_running: ['الفحص يعمل', 'Check running'],
-  run_done: ['انتهى الفحص', 'Check finished'],
-  run_interrupted: ['توقّف الفحص قبل أن ينتهي', 'The check stopped before it ended'],
+  lead: ['ما يفعله EAOS الآن، مرحلة مرحلة: المرحلة التي تعمل تتوهّج، وحين تنتهي ينتقل الضوء إلى المراحل التي بعدها. اضغط أي مرحلة لترى ما تفعله وما أنتجته.',
+    'What EAOS is doing now, stage by stage: the running stage glows, and when it ends the light travels on to the stages after it. Select any stage to see what it does and what it produced.'],
+  journey: ['خطوات العمل', 'The steps of the work'],
+  stepDone: ['تمّت', 'Done'],
+  stepRunning: ['تعمل الآن', 'Running now'],
+  stepStopped: ['توقّفت', 'Stopped'],
+  stepNotYet: ['لم تبدأ', 'Not started'],
+  notYet_scan: ['تبدأ حين تطلب فحص مشروعك.', 'Starts when you ask for a check of your project.'],
+  notYet_ready: ['تأتي بعد الفحص: تجهّز برنامجك ليعمل في نسخة منفصلة.', 'Comes after the check: sets your app up to run in a separate copy.'],
+  notYet_safety: ['تأتي بعد تجهيز برنامجك: تصوّر شاشاته وتقيس سرعته.', 'Comes after your app is set up: records its screens and measures its speed.'],
+  notYet_fix: ['تأتي بعد التصوير: تصلح دفعة وتسلّمها فرعًا.', 'Comes after the recording: fixes a batch and hands it over as a branch.'],
+  run_none: ['لم تعمل بعد', 'Not run yet'],
+  run_running: ['تعمل الآن', 'Running'],
+  run_done: ['انتهت', 'Finished'],
+  run_interrupted: ['توقّفت قبل أن تنتهي', 'Stopped before it ended'],
+  run_stalled: ['لا خبر منها منذ 30 ثانية', 'Not heard from for 30 s'],
   status_COMPLETE: ['مكتمل', 'complete'],
   status_PARTIAL: ['جزئي', 'partial'],
   status_INCOMPLETE: ['ناقص', 'incomplete'],
@@ -20,10 +34,10 @@ export const SCAN_WORDS = {
   endedOf: ['{n} من {t} مرحلة', '{n} of {t} stages'],
   elapsed: ['مضى', 'Elapsed'],
   took: ['استغرق', 'Took'],
-  left: ['يتبقّى نحو {m} دقيقة', 'about {m} min left'],
+  left: ['يتبقّى نحو {a} إلى {b} دقيقة', 'about {a} to {b} min left'],
   leftLess: ['يتبقّى أقل من دقيقة', 'under a minute left'],
-  leftWhy: ['تقدير من مدة آخر فحص لهذا المشروع، مرحلة مرحلة', 'An estimate from the last check of this project, stage by stage'],
-  firstRun: ['أول فحص: لا تقدير للوقت المتبقي', 'First check: no estimate of the time left'],
+  leftWhy: ['تقدير من مدة آخر مرة لهذا المشروع، وسرعة هذه المرة حتى الآن', 'An estimate from the last run of this project, and this run\'s pace so far'],
+  firstRun: ['أول مرة: لا تقدير للوقت المتبقي', 'First run: no estimate of the time left'],
   started: ['بدأ', 'Started'],
   state_waiting: ['تنتظر', 'Waiting'],
   state_running: ['تعمل الآن', 'Running'],
@@ -40,11 +54,13 @@ export const SCAN_WORDS = {
   step_unavailable: ['غير مثبتة', 'not installed'],
   step_not_applicable: ['لا تنطبق', 'not applicable'],
   step_error: ['خطأ', 'error'],
-  map: ['خريطة مراحل الفحص', 'Map of the check\'s stages'],
-  mapAria: ['خريطة مراحل الفحص: {n} مرحلة. {s}', 'Map of the check\'s stages: {n} stages. {s}'],
+  step_failed: ['فشلت', 'failed'],
+  step_skipped: ['تُركت', 'skipped'],
+  map: ['خريطة المراحل', 'Map of the stages'],
+  mapAria: ['خريطة المراحل: {n} مرحلة. {s}', 'Map of the stages: {n} stages. {s}'],
+  tools: ['أدوات الخريطة', 'Map tools'],
   follow: ['تابع المرحلة الجارية', 'Follow the running stage'],
   stages: ['المراحل', 'Stages'],
-  whatItDoes: ['ماذا تفعل', 'What it does'],
   needs: ['تحتاج', 'Needs'],
   needsNothing: ['لا شيء: هي البداية', 'Nothing: it is the start'],
   necessity: ['ضرورتها', 'Necessity'],
@@ -53,29 +69,44 @@ export const SCAN_WORDS = {
   absentWhen: ['قد تغيب حين', 'May be absent when'],
   time: ['الوقت', 'Time'],
   lastTime: ['آخر مرة: {t}', 'Last time: {t}'],
+  runningNow: ['يعمل الآن', 'Running now'],
+  programFor: ['منذ', 'for'],
   steps: ['خطواتها', 'Its steps'],
   stepsOf: ['{d} من {t}', '{d} of {t}'],
   produced: ['ما أنتجته', 'What it produced'],
   producesWhenDone: ['ستنتج', 'Will produce'],
-  producedNothing: ['لم تنتج شيئًا في هذا الفحص', 'Produced nothing in this check'],
+  producedNothing: ['لم تنتج شيئًا هذه المرة', 'Produced nothing this time'],
+  openFile: ['افتح {f} للقراءة', 'Open {f} to read'],
+  fileLoading: ['يقرأ الملف…', 'Reading the file…'],
+  file_path: ['هذا الملف خارج مجلد التقرير، فلا يُعرض.', 'This file is outside the report folder, so it is not shown.'],
+  file_not_found: ['الملف لم يعد موجودًا.', 'The file is not there any more.'],
+  file_type: ['هذا ليس ملفًا نصيًا، فلا يُعرض هنا.', 'This is not a text file, so it is not shown here.'],
+  file_size: ['الملف أكبر من 2 ميغابايت، فلا يُعرض هنا.', 'The file is larger than 2 MB, so it is not shown here.'],
+  file_failed: ['تعذّرت قراءة الملف الآن.', 'The file could not be read now.'],
   reported: ['ما أبلغت عنه', 'What it reported'],
   why: ['السبب', 'Why'],
-  keptFromBefore: ['أُخذت كما هي من فحص سابق لم يكتمل', 'Kept as it was from an earlier check that did not finish'],
-  noneTitle: ['لم يسجّل EAOS تقدّم أي فحص هنا بعد', 'EAOS has not recorded the progress of a check here yet'],
+  keptFromBefore: ['أُخذت كما هي من مرة سابقة لم تكتمل', 'Kept as it was from an earlier run that did not finish'],
+  noneTitle: ['لم يسجّل EAOS أي عمل هنا بعد', 'EAOS has not recorded any work here yet'],
   noneSub: ['ابدأ فحصًا (من المساعد، أو eaos start، أو من هنا) وستظهر مراحله هنا وهي تجري. الفحوص التي سبقت هذه الميزة لا تظهر.',
     'Start a check (from the assistant, eaos start, or from here) and its stages show here as they run. Checks made before this feature do not show.'],
   snapshotTitle: ['الخريطة الحية تعمل في الاستوديو الحي فقط', 'The live map works in the live Studio only'],
-  snapshotSub: ['هذه نسخة ثابتة من التقرير. افتح الاستوديو الحي (eaos studio، أو اطلب من مساعدك open_studio) لترى الفحص وهو يجري.',
-    'This is a fixed copy of the report. Open the live Studio (eaos studio, or ask your assistant for open_studio) to watch the check as it runs.'],
-  loading: ['يقرأ تقدّم الفحص…', 'Reading the check\'s progress…'],
-  interruptedSub: ['العملية التي كانت تشغّل الفحص لم تعد تعمل. ما تمّ قبل توقّفها محفوظ؛ ابدأ الفحص من جديد ليكمل.',
-    'The process that ran the check is gone. What finished before it stopped is kept; start the check again to finish it.'],
-  banner: ['فحص يعمل الآن: {s}', 'A check is running: {s}'],
+  snapshotSub: ['هذه نسخة ثابتة من التقرير. افتح الاستوديو الحي (eaos studio، أو اطلب من مساعدك open_studio) لترى العمل وهو يجري.',
+    'This is a fixed copy of the report. Open the live Studio (eaos studio, or ask your assistant for open_studio) to watch the work as it runs.'],
+  loading: ['يقرأ تقدّم العمل…', 'Reading the progress…'],
+  interruptedSub: ['العملية التي كانت تشغّل هذه الخطوة لم تعد تعمل. ما تمّ قبل توقّفها محفوظ؛ ابدأها من جديد لتكمل.',
+    'The process that ran this step is gone. What finished before it stopped is kept; start it again to finish it.'],
+  stalledSub: ['لم يصل أي خبر من هذه الخطوة منذ 30 ثانية: ربما توقّفت، أو تعمل على جهاز لا يراه الاستوديو.',
+    'Nothing has been heard from this step for 30 s: it may have stopped, or it runs on a machine the Studio cannot see.'],
+  banner: ['يعمل الآن: {f}، {s}', 'Running now: {f}, {s}'],
   bannerOf: ['({n} من {t})', '({n} of {t})'],
   watch: ['شاهده', 'Watch it'],
+  replay: ['أعد عرض آخر فحص', 'Replay the last check'],
+  replayAt: ['×{s}', '×{s}'],
+  replaying: ['إعادة عرض آخر فحص ×{s}: ليس فحصًا يجري الآن', 'Replay of the last check ×{s}: not a check running now'],
+  replayEnd: ['عُد إلى الحي', 'Back to live'],
   announceEnded: ['انتهت مرحلة {s}: {w}', 'Stage {s} ended: {w}'],
-  announceRun: ['انتهى الفحص: {w}', 'The check ended: {w}'],
-  legend: ['دليل الألوان', 'Legend'],
+  announceStarted: ['بدأت مرحلة {s}', 'Stage {s} started'],
+  announceRun: ['انتهت {f}: {w}', '{f} ended: {w}'],
   // when an optional stage may be absent (eaos/pipeline/stages.py absent_when), in plain words
   absent_lock: ['حين لا يملك البرنامج ميزة تُثبَّت', 'when the program has no feature to lock'],
   absent_engines: ['حين لا تكون أي أداة خارجية مثبتة، أو لم تُطلب الأدوات', 'when no external tool is installed, or the tools were not asked for'],
@@ -139,19 +170,58 @@ export const SCAN_WORDS = {
   about_site: ['صفحة واحدة تتصفح فيها السجلات نفسها.', 'One page to browse the same records.'],
   stage_validate: ['التحقق الأخير', 'Final check'],
   about_validate: ['يكتب ما فعله الفحص وما لم يفعله، ثم يحكم على المخرجات.', 'Writes what the run did and did not do, then judges the output.'],
+  // the stages of the steps after the check (eaos/live_setup.py, eaos/behavior_lock.py, eaos/waves.py FLOW)
+  stage_setup_detect: ['التعرّف على برنامجك', 'Read how your app runs'],
+  about_setup_detect: ['يعرف من الملفات وحدها كيف يُثبَّت برنامجك ويعمل ويُبنى، وما يقرؤه من إعدادات وقاعدة بيانات.', 'Finds, from the files alone, how the app installs, starts and builds, the settings it reads and the database it needs.'],
+  stage_setup_attempt: ['محاولات التشغيل', 'Start attempts'],
+  about_setup_attempt: ['يشغّل البرنامج في النسخة المنفصلة ويفتح أول شاشاته؛ إن لم يستجب سأل المساعد ماذا يغيّر وحاول من جديد.', 'Starts the app in the separate copy and opens its first screens; when it does not answer, asks the assistant what to change and tries again.'],
+  stage_setup_baseline: ['نسخة الإنتاج', 'Production build'],
+  about_setup_baseline: ['يبني نسخة الإنتاج ويشغّلها ويفتح أول صفحة، لاختبار السرعة.', 'Builds the production version, starts it and opens its first page, for the speed test.'],
+  absent_setup_baseline: ['حين لا يكون للبرنامج بناء إنتاج، أو لم يعمل أثناء التطوير', 'when the app has no production build, or it did not start in development'],
+  stage_safety_prepare: ['تحضير الشاشات', 'Prepare the screens'],
+  about_safety_prepare: ['ينسخ مواصفات الشاشات إلى النسخة المنفصلة بإعدادات متصفح بلا إنترنت.', 'Copies the screen specs into the separate copy, with offline browser settings.'],
+  stage_safety_start: ['تشغيل برنامجك', 'Start your app'],
+  about_safety_start: ['يثبّت البرنامج ويشغّله ويسجّل الدخول إليه في النسخة المنفصلة.', 'Installs, starts and signs in to the app in the separate copy.'],
+  stage_safety_record: ['تصوير الشاشات', 'Record the screens'],
+  about_safety_record: ['يفتح كل شاشة مرة ويسجّل شكلها اليوم.', 'Opens every screen once and records how it looks today.'],
+  stage_safety_verify: ['التصوير الثاني للمقارنة', 'Record again to compare'],
+  about_safety_verify: ['يفتح كل شاشة مرة ثانية ويقارنها بالتسجيل: الشاشة التي تختلف بين تشغيلين للكود نفسه لا تصلح حارسًا.', 'Opens every screen again and compares it with the recording: a screen that differs between two runs of the same code cannot guard a change.'],
+  stage_safety_speed: ['قياس السرعة', 'Measure the speed'],
+  about_safety_speed: ['يقيس سرعة نسخة الإنتاج مع مستخدمين كثيرين (k6).', 'Measures how fast the production build answers under many users (k6).'],
+  absent_safety_speed: ['حين لا يكون للبرنامج بناء إنتاج، أو لم يعمل أثناء التجهيز', 'when the app has no production build, or it did not work during the setup'],
+  stage_fix_open: ['فتح نسخة العمل', 'Open the work copy'],
+  about_fix_open: ['يصنع النسخة المنفصلة التي تُجرَّب فيها الإصلاحات، من الـcommit الذي سمحت به.', 'Makes the separate copy the fixes are tried in, from the commit you allowed.'],
+  stage_fix_change: ['التعديل بطاقة بطاقة', 'Change card by card'],
+  about_fix_change: ['يعدّل الكود بطاقة بطاقة؛ التعديل الذي يكسر شيئًا يُتراجع عنه فورًا.', 'Changes the code card by card; a change that breaks something is taken back at once.'],
+  stage_fix_acceptance: ['التأكد من كل إصلاح', 'Check each fix'],
+  about_fix_acceptance: ['يتأكد أن كل مشكلة أُصلحت قد زالت فعلًا.', 'Checks that each fixed problem is really gone.'],
+  stage_fix_gates: ['فحوص مشروعك وشاشاته', 'Your checks and screens'],
+  about_fix_gates: ['يشغّل فحوص مشروعك ويقارن كل شاشة مسجّلة، مرة للدفعة كلها.', 'Runs your project\'s own checks and compares every recorded screen, once for the whole batch.'],
+  stage_fix_culprit: ['البحث عن سبب الكسر', 'Find what broke'],
+  about_fix_culprit: ['يقسم الدفعة نصفين حتى يجد التعديل الذي كسر فحصًا.', 'Splits the batch in half until the change that broke a check is found.'],
+  absent_fix_culprit: ['حين تنجح الدفعة في فحوصها', 'when the batch passed its checks'],
+  stage_fix_handover: ['التسليم فرعًا', 'Hand over as a branch'],
+  about_fix_handover: ['يكتب نتيجة كل بطاقة ويسلّم التعديلات المقبولة فرعًا في مشروعك.', 'Writes down every card\'s result and hands the kept changes over as a branch in your project.'],
 } satisfies Record<string, readonly [string, string]>
 
 export type ScanWord = keyof typeof SCAN_WORDS
 
 const base = makeWords<ScanWord>(SCAN_WORDS)
 
-/** The words, and the two lookups by a key the data writes: a stage's title and what it does, a state, a step. */
+/** The words, and the lookups by a key the data writes: a stage's title, what it does and when it may be absent (by its
+ * flow: the check's stages by name, the others' by flow and name), a state, a step. */
 export function useScanWords() {
   const w = base()
+  const { lang } = usePrefs()
   const has = (key: string): key is ScanWord => key in SCAN_WORDS
-  const stageTitle = (name: string) => (has(`stage_${name}`) ? w(`stage_${name}` as ScanWord) : name.replace(/_/g, ' '))
-  const about = (name: string, fallback: string) => (has(`about_${name}`) ? w(`about_${name}` as ScanWord) : fallback)
-  const absent = (name: string, fallback: string) => (has(`absent_${name}`) ? w(`absent_${name}` as ScanWord) : fallback)
   const known = (prefix: string, key: string | null | undefined) => (key && has(`${prefix}${key}`) ? w(`${prefix}${key}` as ScanWord) : (key ?? '').replace(/_/g, ' '))
-  return Object.assign(w, { stageTitle, about, absent, known })
+  const of = (kind: string, name: string, flow: string, fallback: string) => {
+    const key = `${kind}_${flow === 'check' ? '' : `${flow}_`}${name}`
+    return has(key) ? w(key) : fallback
+  }
+  const stageTitle = (name: string, flow = 'check') => of('stage', name, flow, name.replace(/_/g, ' '))
+  const about = (name: string, flow: string, fallback: string) => of('about', name, flow, fallback)
+  const absent = (name: string, flow: string, fallback: string) => of('absent', name, flow, fallback)
+  const reason = (code: string, fallback: string) => (reasons as Record<string, { ar: string; en: string }>)[code]?.[lang] ?? fallback
+  return Object.assign(w, { has, stageTitle, about, absent, known, reason })
 }
