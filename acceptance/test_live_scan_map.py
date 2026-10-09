@@ -96,3 +96,59 @@ class ProgressContract(unittest.TestCase):
         for name, rows in self.recordings().items():
             expected = json.loads((ROOT / f'tests/fixtures/progress/{name}.fold.json').read_text(encoding='utf-8'))
             self.assertEqual(fold(rows), expected, name)
+
+
+class BackendCoverage(unittest.TestCase):
+    """Live scan map v2, phase 2 (eaos-dev/planning/live-scan-map/PLAN-v2.md sections 2, 3 and 5), planned 2026-10-09:
+    every long piece of work says where it is, measured on real checks.
+
+    The evidence is $EAOS_MEASURE/live-scan-map/backend.json, written by tools/progress_trial.py collect from one real
+    round: tools/progress_determinism.py on a corpus project with its engines, a check of it killed with SIGKILL while
+    `engines` ran, and two whole checks of EAOS's own repository (progress on, then off). I2: the folded progress equals
+    run-manifest.json on the corpus check and on the EAOS check. I6: the corpus check with progress on and off wrote
+    the same bytes, timestamps, durations and run ids excluded. I7: on the EAOS check, the progress file is under
+    1 MB and its cost is under 2% of the run, both as measured (on against off) and as bounded (lines written and
+    programs sampled, each at its measured cost). I8: the killed run reads `interrupted` within 30 s on the same
+    machine, and `stalled` within 31 s (30 s of silence, read every 0.25 s) for a reader that cannot see the process.
+    Counted steps are seen in `plan` and `transform` of the EAOS check, each ending at its total."""
+
+    def record(self):
+        import json
+        path = measure.REPORTS / 'live-scan-map' / 'backend.json'
+        self.assertTrue(path.is_file(), f'no real round recorded at {path}')
+        return json.loads(path.read_text(encoding='utf-8'))
+
+    def test_the_folded_progress_equals_the_manifest_on_real_checks(self):
+        record = self.record()
+        for name in ('I2_corpus', 'I2_develop'):
+            self.assertEqual(((record.get(name) or {}).get('equal'), (record.get(name) or {}).get('differences')), (True, []), name)
+            self.assertGreaterEqual(record[name]['stages'], 26, name)
+
+    def test_progress_changes_no_byte_of_the_report(self):
+        i6 = self.record()['I6']
+        self.assertTrue(i6['engines'], 'the corpus check ran its engines')
+        self.assertGreater(i6['compared'], 100)
+        self.assertEqual((i6['identical'], i6['differ'], i6['only_on'], i6['only_off']), (True, [], [], []))
+
+    def test_the_cost_of_progress_on_a_check_of_eaos_itself(self):
+        i7 = self.record()['I7']
+        self.assertIn('engineering-audit-os', i7['project'])
+        self.assertEqual({k: v['exit'] for k, v in i7['runs'].items()}, {'on': 0, 'off': 0})
+        self.assertLess(i7['file_bytes'], 1_000_000)
+        self.assertLess(i7['overhead_bound'], 0.02)
+        self.assertLess(i7['overhead_measured'], 0.02)
+
+    def test_a_killed_check_is_shown_stopped_within_thirty_seconds(self):
+        i8 = self.record()['I8']
+        self.assertEqual((i8['state_before_kill'], i8['running_stage_at_kill']), ('running', i8['stage']))
+        self.assertIsNotNone(i8['seconds_to_interrupted_same_machine'])
+        self.assertLessEqual(i8['seconds_to_interrupted_same_machine'], 30)
+        self.assertIsNotNone(i8['seconds_to_stalled_other_machine'])
+        self.assertLessEqual(i8['seconds_to_stalled_other_machine'], 31)
+
+    def test_counted_steps_inside_plan_and_transform(self):
+        counted = self.record()['counted_steps']
+        for stage in ('plan', 'transform'):
+            self.assertTrue(counted.get(stage), stage)
+            self.assertTrue(all(0 <= done <= total and (status != 'ok' or done == total) for _, done, total, status in counted[stage]), stage)
+            self.assertTrue(any(total > 0 and status == 'ok' for _, _, total, status in counted[stage]), stage)

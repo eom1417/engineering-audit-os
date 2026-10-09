@@ -3,6 +3,7 @@
     python tools/progress_trial.py overhead <project> <workdir> [--json out.json] [--no-engines]
     python tools/progress_trial.py kill <project> <workdir> [--stage engines] [--after 8] [--json out.json]
     python tools/progress_trial.py judge <report>
+    python tools/progress_trial.py collect --determinism D.json --kill K.json --overhead O.json --corpus-report R
 
 overhead (I7, and I2 on the same run): the whole check of <project> twice, each in its own process and fresh report
 folder, first with progress on (`on/`), then with EAOS_PROGRESS=off (`off/`). It records each run's wall seconds,
@@ -17,6 +18,9 @@ records how many seconds after the kill it says `interrupted` (same machine: the
 that cannot see the process (another machine) would say `stalled` (progress.judge with living=None).
 
 judge (I2): the folded progress of a finished report against its run-manifest.json, stage by stage.
+
+collect: the records of one real round (determinism from tools/progress_determinism.py, kill, overhead) joined into
+$EAOS_MEASURE/live-scan-map/backend.json, which acceptance/test_live_scan_map.py BackendCoverage reads.
 
 Every run is started from a folder outside the project with PYTHONSAFEPATH=1, so a check of EAOS itself runs this
 EAOS, never the checked code.
@@ -33,6 +37,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
+if str(ROOT / 'tools') not in sys.path: sys.path.insert(0, str(ROOT / 'tools'))
 
 COMPARED = ('status', 'reason', 'seconds', 'artifacts')
 
@@ -197,6 +202,33 @@ def kill(args):
                          and seen['stalled'] is not None and seen['stalled'] <= 30)}
 
 
+def collect(args):
+    """$EAOS_MEASURE/live-scan-map/backend.json from one real round: what each guarantee measured, and its verdict."""
+    import dev_paths
+    read = lambda path: json.loads(Path(path).read_text(encoding='utf-8'))
+    determinism, killed, cost = read(args.determinism), read(args.kill), read(args.overhead)
+    counted_steps = cost.get('counted_steps') or {}
+    record = {
+        'contract': 1, 'at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+        'I2_corpus': judge(args.corpus_report), 'I2_develop': cost.get('fold_equals_manifest'),
+        'I6': {'project': determinism['project'], 'engines': determinism['engines'], 'identical': determinism['identical'],
+               'compared': determinism['on_vs_off']['compared'], 'differ': determinism['on_vs_off']['differ'],
+               'only_on': determinism['on_vs_off']['only_left'], 'only_off': determinism['on_vs_off']['only_right']},
+        'I7': {'project': cost['project'], 'overhead_measured': cost['overhead_measured'], 'overhead_bound': cost['overhead_bound'],
+               'bound_parts': cost['bound_parts'], 'file_bytes': cost['file_bytes'], 'lines': cost['lines'],
+               'runs': {k: {'manifest_seconds': v.get('manifest_seconds'), 'exit': v['exit']} for k, v in cost['runs'].items()}},
+        'I8': {k: killed[k] for k in ('project', 'stage', 'state_before_kill', 'running_stage_at_kill',
+                                      'seconds_to_interrupted_same_machine', 'seconds_to_stalled_other_machine')},
+        'counted_steps': {stage: counted_steps.get(stage, []) for stage in ('plan', 'transform', 'executive', 'claims',
+                                                                            'sustainability', 'compose', 'bundles', 'emit')},
+    }
+    folder = dev_paths.MEASURE / 'live-scan-map'
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / 'backend.json').write_text(json.dumps(record, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    record['written'] = str(folder / 'backend.json')
+    return record
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest='command', required=True)
@@ -208,8 +240,12 @@ def main(argv=None):
     two.add_argument('--timeout', type=float, default=1800.0)
     three = sub.add_parser('judge')
     three.add_argument('report')
+    four = sub.add_parser('collect')
+    for name in ('--determinism', '--kill', '--overhead', '--corpus-report'): four.add_argument(name, required=True)
     args = parser.parse_args(argv)
-    record = overhead(args) if args.command == 'overhead' else kill(args) if args.command == 'kill' else judge(args.report)
+    run = {'overhead': overhead, 'kill': kill, 'collect': collect, 'judge': lambda a: judge(a.report)}[args.command]
+    record = run(args)
+    if args.command == 'collect': record['pass'] = True
     text = json.dumps(record, ensure_ascii=False, indent=1)
     if getattr(args, 'json', None): Path(args.json).write_text(text + '\n', encoding='utf-8')
     print(text)
