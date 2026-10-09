@@ -21,13 +21,14 @@ def fixture():
 
 
 def gallery_fixture():
-    """What the Studio's gallery draws: the contract fixture cut to its pipeline holding `claims` (EAOS's STAGES), so the
-    shipped bundle carries one pipeline, not all. Rewrite it with: python -m tests.test_pipeline_sheet --write"""
+    """The gallery keeps the claims pipeline and the AI-node registry pipeline from the contract fixture.
+    Rewrite it with: python -m tests.test_pipeline_sheet --write"""
     data = fixture()
-    keep = next(s['pipeline'] for s in data['stages'] if s['label'] == 'claims')
-    mine = lambda rows: [r for r in rows if r.get('pipeline') == keep]
+    keep = {next(s['pipeline'] for s in data['stages'] if s['label'] == 'claims')}
+    keep.update(p['id'] for p in data['pipelines'] if p['id'].endswith(':NODES'))
+    mine = lambda rows: [r for r in rows if r.get('pipeline') in keep]
     views = data['views']
-    return {**data, 'pipelines': [p for p in data['pipelines'] if p['id'] == keep],
+    return {**data, 'pipelines': [p for p in data['pipelines'] if p['id'] in keep],
             **{k: mine(data[k]) for k in ('stages', 'edges', 'routers', 'fans', 'control', 'error_lanes', 'hidden', 'unresolved')},
             'views': {'current': {'stages': [s['id'] for s in mine(data['stages'])], 'edges': [e['id'] for e in mine(data['edges'])]},
                       'ideal': {**views['ideal'], 'stages': mine(views['ideal']['stages']), 'edges': mine(views['ideal']['edges'])},
