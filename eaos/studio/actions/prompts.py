@@ -96,3 +96,21 @@ def consent_question(payload):
     return {'text': words, 'options': [{'id': 'yes', 'label': {'en': 'Yes, go ahead', 'ar': 'نعم، موافق'}},
                                        {'id': 'no', 'label': {'en': 'No', 'ar': 'لا'}}],
             'recommendation': 'yes', 'why': 'run consent'}
+
+
+def branch_question(payload):
+    """The check's own question when the project has several live branches (agent_tools._branch): which one EAOS
+    checks and fixes. The options are the branches; the recommendation is the one EAOS would pick."""
+    rows = [row for row in payload.get('branches') or [] if row.get('name')]
+    options = []
+    for row in rows:
+        ahead = row.get('ahead_of_main')
+        extra_en = ' (main)' if row.get('main') else f' ({ahead} ahead of main)' if ahead else ''
+        extra_ar = ' (الرئيسي)' if row.get('main') else f' (متقدم {ahead} عن الرئيسي)' if ahead else ''
+        options.append({'id': row['name'], 'label': {'en': row['name'] + extra_en, 'ar': row['name'] + extra_ar}})
+    recommended = payload.get('recommended')
+    recommended = recommended.get('name') if isinstance(recommended, dict) else recommended
+    return {'text': {'en': 'Which branch should EAOS check and fix? The check, the fixes, the progress and every merge will follow '
+                           'that branch. Your checkout is not switched.',
+                     'ar': 'أي فرع يفحصه EAOS ويصلحه؟ الفحص والإصلاحات والتقدم وكل دمج تتبع هذا الفرع. نسختك الحالية لا تتغير.'},
+            'options': options, 'recommendation': recommended if recommended in {o['id'] for o in options} else None, 'why': 'branch'}

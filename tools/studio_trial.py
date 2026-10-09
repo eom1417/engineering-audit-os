@@ -577,7 +577,8 @@ def trial(name, source, assistant, lang, measure, skip=()):
         failures.append(f'{ASSISTANTS[assistant]} is not installed and logged in here: {detected.get(assistant)}')
 
     # 1. the check, from the empty Studio
-    scan = browser('scan', work, studio_out, {'lang': lang}, LIMITS['scan'])
+    branch = subprocess.run(['git', '-C', str(project), 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True).stdout.strip()
+    scan = browser('scan', work, studio_out, {'lang': lang, 'branch': branch}, LIMITS['scan'])
     screenshots += scan.get('screenshots') or []
     videos += [v for v in [scan.get('video')] if v]
     failures += scan.get('errors') or []

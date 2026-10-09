@@ -570,6 +570,21 @@ class Direct(Base):
         self.assertEqual(self.app.wait(run, ('done', 'failed'), 5)['state'], 'done')
         self.assertTrue(calls[-1][1]['person_agreed'])
 
+    def test_the_checks_branch_question_is_asked_in_the_studio_and_the_choice_runs_it_again(self):
+        branches = [{'name': 'main', 'main': True}, {'name': 'work', 'ahead_of_main': 3}]
+        asked = {'status': 'needs_branch', 'branches': branches, 'recommended': 'work'}
+        chosen = []
+        self.app.manager._choose_branch = lambda branch, said: chosen.append((branch, said))
+        self.app.manager.tools, calls = self.fake_tools({'audit': lambda arguments: asked if not chosen else {'status': 'started', 'checked': True}})
+        run = self.post('/api/runs', {'action': 'audit'})[1]['run']['id']
+        question = self.app.wait(run, ('waiting_for_person', 'done'), 5)['question']
+        self.assertEqual((question['why'], question['recommendation']), ('branch', 'work'))
+        self.assertEqual([o['id'] for o in question['options']], ['main', 'work'])
+        self.assertEqual(self.post(f"/api/questions/{question['id']}/answer", {'option': 'main'})[0], 200)
+        self.assertEqual(self.app.wait(run, ('done', 'failed'), 5)['state'], 'done')
+        self.assertEqual(chosen, [('main', 'main (main)')])
+        self.assertEqual([name for name, _ in calls], ['audit', 'audit'])
+
     def test_failed_custom_clarification_preserves_the_original_question(self):
         os.environ['FAKE_MODE'] = 'fail'
         self.app.manager.tools, calls = self.fake_tools({'run_setup': {'status': 'needs_agreement', 'ask_the_person': 'May EAOS run?'}})

@@ -169,7 +169,25 @@ async function scan() {
   const run = await confirmPreview(page, null)
   result.audit_run = run
   log('audit run', run)
-  const state = await until(page, run, ['done', 'failed', 'stopped'], Number(given.limit_ms || 3 * 3600 * 1000) - 120000)
+  // The check may first ask which branch to work on: answered in the inbox, with the branch the copy has checked out
+  const end = Date.now() + Number(given.limit_ms || 3 * 3600 * 1000) - 300000
+  let state = null
+  result.scan_questions = []
+  while (Date.now() < end) {
+    state = await until(page, run, ['done', 'failed', 'stopped', 'waiting_for_person'], Math.max(1000, end - Date.now()))
+    if (state !== 'waiting_for_person') break
+    await go(page, '#/decisions')
+    const box = page.locator(`[data-hook^="question:${run}-q"]`).first()
+    await box.waitFor({ state: 'visible', timeout: 60000 })
+    const options = await box.locator('[data-option]').evaluateAll((els) => els.map((el) => ({ id: el.getAttribute('data-option'), recommended: el.hasAttribute('data-recommended') })))
+    const choice = options.find((o) => o.id === given.branch) || options.find((o) => o.recommended) || options[0]
+    result.scan_questions.push({ question: (await box.getAttribute('data-hook')).slice('question:'.length), text: (await box.innerText()).slice(0, 400), options, answered: choice?.id })
+    await snap(page, 'scan-question')
+    if (!choice) throw new Error('the check asked a question with no option')
+    await press(box.locator(`[data-option="${choice.id}"]`), `answer ${choice.id}`)
+    await page.waitForTimeout(2000)
+    await go(page, `#/runs/${encodeURIComponent(run)}`)
+  }
   await snap(page, `audit-${state}`)
   result.audit_state = state
   if (state !== 'done') throw new Error(`the check ended ${state}`)
