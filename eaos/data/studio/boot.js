@@ -41,7 +41,8 @@ window.EAOS_DATA = new Promise(function (done) {
   }
   add('manifest', function () {
     var manifest = (window.EAOS_STUDIO || {}).manifest;
-    var names = (manifest && manifest.sections || []).map(function (s) { return s.name; }).filter(function (n) { return /^[a-z][a-z_]*$/.test(n); });
+    // The documents' text (library) is read only when the reader opens it (src/pages/library/model.ts)
+    var names = (manifest && manifest.sections || []).map(function (s) { return s.name; }).filter(function (n) { return /^[a-z][a-z_]*$/.test(n) && n !== 'library'; });
     var left = names.length;
     if (!left) return done();
     names.forEach(function (name) { add(name, function () { if (--left === 0) done(); }); });

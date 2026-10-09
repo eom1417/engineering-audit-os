@@ -1,5 +1,5 @@
 {
- "about": "The Studio's routes for the screen gate: python tools/studio_gates.py --studio (studio/README.md). {card} is a problem card with evidence and {component} the component holding the most cards in the report given with --data; {task}, {screen} and {hidden_group}: a journeys task with a path, a flagged screen and an unseen group with items; {store}: the first data store written from more than one place (tools/studio_gates.py).",
+ "about": "The Studio's routes for the screen gate: python tools/studio_gates.py --studio (studio/README.md). {card} is a problem card with evidence and {component} the component holding the most cards in the report given with --data; {task}, {screen} and {hidden_group}: a journeys task with a path, a flagged screen and an unseen group with items; {store}: the first data store written from more than one place; {doc}, {image}, {scan}, {compare}: a document with headings, a diagram, the last check and first..last (tools/studio_gates.py).",
  "wait_for": "main#main",
  "variants": [
   {"name": "ar-light", "query": {"lang": "ar", "theme": "light"}, "color_scheme": "light", "expect": {"dir": "rtl", "attributes": {"lang": "ar", "data-theme": "light"}}},
@@ -60,6 +60,16 @@
   {"name": "pipeline-steps", "path": "index.html#/system/pipeline?show=steps"},
   {"name": "pipeline-stage", "path": "index.html#/system/pipeline?stage={stage}&hidden=1"},
   {"name": "gallery-pipeline", "path": "index.html#/_gallery/pipeline"},
+  {"name": "library", "path": "index.html#/library/docs"},
+  {"name": "library-search", "path": "index.html#/library/docs?q=%D8%A7%D9%84%D8%AE%D8%B7%D8%A9", "viewports": ["phone", "desktop"]},
+  {"name": "document", "path": "index.html#/library/docs/{doc}"},
+  {"name": "document-contents", "path": "index.html#/library/docs/{doc}", "viewports": ["phone"], "actions": [{"click": "[data-open=\"contents\"]", "wait": 400}]},
+  {"name": "image", "path": "index.html#/library/images/{image}"},
+  {"name": "history", "path": "index.html#/history"},
+  {"name": "history-scan", "path": "index.html#/history/{scan}"},
+  {"name": "history-compare", "path": "index.html#/history/compare/{compare}"},
+  {"name": "quality", "path": "index.html#/quality"},
+  {"name": "gallery-history", "path": "index.html#/_gallery/history"},
   {"name": "palette", "path": "index.html#/", "actions": [{"press": "Control+k", "wait": 300}, {"type": "مشاكل", "wait": 300}]},
   {"name": "sheet", "path": "index.html#/", "actions": [{"click": "[data-open=\"project\"]", "wait": 400}]},
   {"name": "runs", "path": "index.html#/runs?demo=1"},

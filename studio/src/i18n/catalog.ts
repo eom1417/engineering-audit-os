@@ -28,6 +28,8 @@ export const WORDS = {
   runs: ['التشغيل', 'Runs'],
   kindAction: ['أمر', 'Action'],
   groupLibrary: ['المكتبة', 'Library'],
+  history: ['التاريخ', 'History'],
+  eaosQuality: ['جودة EAOS', 'EAOS quality'],
   // search and palette
   search: ['بحث', 'Search'],
   searchCommands: ['بحث وأوامر', 'Search, commands'],

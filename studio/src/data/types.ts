@@ -69,7 +69,7 @@ export interface Story {
   gap: { component: string; relation: Relation; to: string | null; files: number; cards: string[]; closed: number }[]
 }
 
-export interface Doc { id: string; title: string; group: string; order: number | null; path: string; bytes: number }
+export interface Doc { id: string; title: string; group: string; order: number | null; path: string; bytes: number; headings?: { level: number; text: string }[] }
 
 export interface PlanStep { id: string; state: string; title?: string; gate: string; tasks: { id: string; state: string; title: string }[] }
 export interface Plan { id: string; kind: string; title?: string; state: string; progress: Measure; steps: PlanStep[] }
@@ -86,7 +86,7 @@ export interface Decision {
   plan: string | null
 }
 
-export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline'] as const
+export const SECTIONS = ['meta', 'head', 'health', 'cards', 'evidence', 'story', 'docs', 'plans', 'decisions', 'media', 'system', 'paths', 'journeys', 'hidden', 'data_paths', 'infra', 'pipeline', 'history', 'quality'] as const
 export type SectionName = (typeof SECTIONS)[number]
 
 export interface StudioData {
@@ -110,6 +110,10 @@ export interface StudioData {
   paths?: unknown
   /** studio/pipeline.json, typed by its page (pages/pipeline/model.ts) */
   pipeline?: unknown
+  /** studio/history.json and studio/quality.json, typed by their pages (pages/history/model.ts, pages/quality/model.ts);
+   * studio/library.json (the documents' text) is loaded only when the reader opens (pages/library/model.ts) */
+  history?: unknown
+  quality?: unknown
   /** Sections the manifest lists but whose file did not load */
   missing: SectionName[]
 }

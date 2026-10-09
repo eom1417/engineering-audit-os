@@ -141,7 +141,15 @@ class GateMatrix(unittest.TestCase):
             (data / 'story.json').write_text(json.dumps(story), encoding='utf-8')
             self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'component': 'src/b', 'path': 'none',
                                                                     'task': 'none', 'screen': 'none', 'hidden_group': 'none',
-                                                                    'store': 'none', 'stage': 'none'})
+                                                                    'store': 'none', 'stage': 'none', 'doc': 'none', 'image': 'none',
+                                                                    'scan': 'none', 'compare': 'none..none'})
+            docs = [{'path': 'A.md', 'order': 1, 'headings': [1, 2, 3]}, {'path': 'B.md', 'order': 0, 'headings': [1]},
+                    {'path': 'adr/C.md', 'order': None, 'headings': [1, 2, 3, 4]}]
+            (data / 'docs.json').write_text(json.dumps({'docs': docs}), encoding='utf-8')
+            (data / 'media.json').write_text(json.dumps({'images': [{'id': 's.png', 'kind': 'screen'}, {'id': 'a/d.mmd', 'kind': 'diagram'}]}), encoding='utf-8')
+            (data / 'history.json').write_text(json.dumps({'scans': [{'id': 'c1'}, {'id': 'c2'}]}), encoding='utf-8')
+            self.assertEqual([self.gates.studio_placeholders(data)[k] for k in ('doc', 'image', 'scan', 'compare')],
+                             ['A.md', 'a/d.mmd', 'c2', 'c1..c2'])   # reading order first, a diagram first, last check, first..last
             journeys = {'tasks': [{'id': 't/one', 'path': ['s/a']}, {'id': 't/two', 'path': ['s/a', 's/b']}],
                         'screens': [{'id': 's/a', 'kind': 'page', 'flags': []}, {'id': 's/b', 'kind': 'page', 'flags': ['broken_link']}]}
             (data / 'journeys.json').write_text(json.dumps(journeys), encoding='utf-8')

@@ -29,8 +29,9 @@ export const SECTIONS: SectionDef[] = [
   { id: 'change', to: '/change', icon: 'change', tab: 'change', nav: 'journeyAndPlan', group: 'groupChange', tabbar: true, built: true },
   { id: 'runs', to: '/runs', icon: 'pulse', tab: 'runs', nav: 'runs', group: 'groupInbox', tabbar: false, built: true },
   { id: 'decisions', to: '/decisions', icon: 'inbox', tab: 'decisions', nav: 'waitingForYou', group: 'groupInbox', tabbar: true, built: true, count: (c) => c.decisionsWaiting, badge: (c) => c.decisionsWaiting },
-  // The document reader is NS37.T3's: listed for developers only until it is built.
-  { id: 'library', to: '/library', icon: 'book', tab: 'library', nav: 'documents', group: 'groupLibrary', tabbar: false, built: false, count: (c) => c.docs },
+  { id: 'library', to: '/library', icon: 'book', tab: 'library', nav: 'documents', group: 'groupLibrary', tabbar: false, built: true, count: (c) => c.docs },
+  { id: 'history', to: '/history', icon: 'clock', tab: 'history', nav: 'history', group: 'groupLibrary', tabbar: false, built: true },
+  { id: 'quality', to: '/quality', icon: 'verify', tab: 'eaosQuality', nav: 'eaosQuality', group: 'groupLibrary', tabbar: false, built: true },
 ]
 
 export function visibleSections(dev: boolean): SectionDef[] {

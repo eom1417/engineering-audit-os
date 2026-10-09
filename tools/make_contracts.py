@@ -325,6 +325,7 @@ STUDIO = {
 # (eaos/studio/journeys.py) and what the user sees against what runs unseen (eaos/studio/hidden.py). Every element
 # carries its evidence (fact, file, line); a gap in the engine's data is written in `missing` and counted in coverage.
 _EVIDENCE = obj({'file': NS, 'line': NI, 'fact': NS}, ['file'])
+_NAMES2 = obj({'ar': S, 'en': S}, ['ar', 'en'])   # a name in both languages, the page picks the person's
 _MAP_GAP = obj({'id': S, 'state': enum(*COVERAGE_STATES), 'step': {'type': 'string', 'pattern': '^NS[0-9]+(\\.T[0-9]+)?$'},
                 'count': REF('measure'), 'detail': obj({'ar': S, 'en': S})}, ['id', 'state', 'step', 'count', 'detail'])
 _LINK_SITE = obj({'file': S, 'line': NI, 'fact': NS, 'via': S, 'target': NS}, ['file', 'via'])
@@ -471,16 +472,16 @@ STUDIO_V2 = {
               'src': {'type': 'object', 'additionalProperties': REF('source')}},
              ['scans', 'events'])),
  'quality': ("How good EAOS's own analysis is for this project: each detector's precision and recall on EAOS's labelled set, whether it meets the bar the product shows it at, what it produced in this report and, for a labelled project, its own true and false positives; the plan's capabilities that judge the analysis and their indicators.",
-  section_v2({'detectors': arr(obj({'id': S, 'name': S, 'engine': NS, 'applies': B,
+  section_v2({'detectors': arr(obj({'id': S, 'name': S, 'names': _NAMES2, 'engine': NS, 'applies': B,
                                     'precision': REF('ratio_measure'), 'recall': REF('ratio_measure'), 'labelled': NI,
                                     'shown': B, 'status': enum('meets_bar', 'below_bar', 'not_measured'), 'why': S, 'judged': COUNT,
                                     'here': obj({'shown': COUNT, 'withheld': COUNT, 'facts': COUNT}, ['shown', 'withheld', 'facts']),
                                     'project': {'type': ['object', 'null'], 'properties': {'tp': COUNT, 'fp': COUNT, 'unjudged': COUNT},
                                                 'required': ['tp', 'fp', 'unjudged']}},
                                    ['id', 'name', 'applies', 'precision', 'recall'])),
-              'capabilities': arr(obj({'id': S, 'name': S, 'value': REF('ratio_measure'), 'measured': COUNT, 'indicators': COUNT},
+              'capabilities': arr(obj({'id': S, 'name': S, 'names': _NAMES2, 'value': REF('ratio_measure'), 'measured': COUNT, 'indicators': COUNT},
                                       ['id', 'name', 'value'])),
-              'indicators': arr(obj({'id': S, 'name': S, 'value': REF('ratio_measure'), 'target': REF('ratio'), 'capability': S,
+              'indicators': arr(obj({'id': S, 'name': S, 'names': _NAMES2, 'value': REF('ratio_measure'), 'target': REF('ratio'), 'capability': S,
                                      'how': enum('automated', 'recorded')}, ['id', 'name', 'value', 'target'])),
               'bar': obj({'precision': REF('ratio'), 'recall': REF('ratio'), 'judged': COUNT}),
               'labelled': obj({'items': NI, 'projects': REFS, 'this_project': NS}),

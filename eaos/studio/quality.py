@@ -54,6 +54,12 @@ def outputs(report, dossier):
     return out
 
 
+def _names(names, fallback):
+    """Both languages of a name, so the page reads in the person's language whatever the report's."""
+    names = names if isinstance(names, dict) else {}
+    return {'ar': names.get('ar') or fallback, 'en': names.get('en') or fallback}
+
+
 def _labelled(name, projects):
     name = str(name or '').lower()
     return next((p for p in projects if name and (name == p.lower() or name.startswith(p.lower()) or p.lower().startswith(name))), None)
@@ -73,7 +79,7 @@ def quality(report, dossier, name=None, lang='ar', record=None):
         src = f"{SRC}#detectors[{row['id']}]"
         mine = (row.get('projects') or {}).get(labelled) if labelled else None
         detectors.append({
-            'id': row['id'], 'name': (row.get('name') or {}).get(lang) or row['id'], 'engine': None,
+            'id': row['id'], 'name': (row.get('name') or {}).get(lang) or row['id'], 'names': _names(row.get('name'), row['id']), 'engine': None,
             'applies': bool(here['shown'] or here['withheld'] or here['facts']),
             'precision': _ratio(row.get('precision') if judged else None, f'{src}.precision' if judged else 'no judged output on the labelled set yet'),
             'recall': _ratio(row.get('recall'), f'{src}.recall' if row.get('recall') is not None else 'no labelled or planted case for it yet'),
@@ -84,13 +90,13 @@ def quality(report, dossier, name=None, lang='ar', record=None):
     for capability in record.get('capabilities') or []:
         values = [row.get('value') for row in capability.get('indicators') or []]
         measured = [v for v in values if isinstance(v, (int, float))]
-        capabilities.append({'id': capability['id'], 'name': capability['name'].get(lang) or capability['id'],
+        capabilities.append({'id': capability['id'], 'name': capability['name'].get(lang) or capability['id'], 'names': _names(capability['name'], capability['id']),
                              'value': _ratio(sum(measured) / len(values) if values else None,
                                              f"docs/north-star.json#capabilities[{capability['id']}]: mean of its indicators, an unmeasured one counted as 0"),
                              'measured': len(measured), 'indicators': len(values)})
         for row in capability.get('indicators') or []:
             value = row.get('value')
-            rows.append({'id': row['id'], 'name': row['name'].get(lang) or row['id'], 'capability': capability['id'],
+            rows.append({'id': row['id'], 'name': row['name'].get(lang) or row['id'], 'names': _names(row['name'], row['id']), 'capability': capability['id'],
                          'value': _ratio(value, f"docs/north-star.json#{row['id']}" if value is not None else 'not measured yet'),
                          'target': row['target'] if isinstance(row.get('target'), (int, float)) and 0 <= row['target'] <= 1 else 1.0,
                          'how': 'recorded' if row.get('measured') == 'recorded' else 'automated'})

@@ -41,6 +41,21 @@
           "name": {
             "type": "string"
           },
+          "names": {
+            "type": "object",
+            "required": [
+              "ar",
+              "en"
+            ],
+            "properties": {
+              "ar": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
+          },
           "engine": {
             "type": [
               "string",
@@ -146,6 +161,21 @@
           "name": {
             "type": "string"
           },
+          "names": {
+            "type": "object",
+            "required": [
+              "ar",
+              "en"
+            ],
+            "properties": {
+              "ar": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
+          },
           "value": {
             "$ref": "#/$defs/ratio_measure"
           },
@@ -176,6 +206,21 @@
           },
           "name": {
             "type": "string"
+          },
+          "names": {
+            "type": "object",
+            "required": [
+              "ar",
+              "en"
+            ],
+            "properties": {
+              "ar": {
+                "type": "string"
+              },
+              "en": {
+                "type": "string"
+              }
+            }
           },
           "value": {
             "$ref": "#/$defs/ratio_measure"

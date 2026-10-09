@@ -164,7 +164,7 @@ def studio_placeholders(data):
     path counted in its deepest component), so the focused System view shows a full inspector; {path}: the code path
     the flow pages open ('none' without studio/paths.json); {task}, {screen}, {hidden_group}: the journeys and hidden pages'
     subjects; {store}: the data map's store; {stage}: the first router of the pipeline map, else its first stage ('none'
-    without studio/pipeline.json or a pipeline)."""
+    without studio/pipeline.json or a pipeline); {doc}, {image}, {scan}, {compare}: the Library's and History's subjects."""
     cards = json.loads((data / 'cards.json').read_text(encoding='utf-8'))['cards']
     card = next((c for c in cards if c.get('evidence')), cards[0] if cards else {'id': ''})['id']
     story = json.loads((data / 'story.json').read_text(encoding='utf-8')) if (data / 'story.json').is_file() else {}
@@ -191,8 +191,18 @@ def studio_placeholders(data):
     store = next((s for s in stores if s.get('multi_writer')), stores[0] if stores else {'id': 'none'})
     stages = section('pipeline').get('stages') or []
     stage = next((s for s in stages if s.get('kind') == 'router'), stages[0] if stages else {'id': 'none'})
+    # {doc}: the first document in the report's reading order with three headings or more, else the first;
+    # {image}: the first diagram, else the first image; {scan} and {compare}: the last check, and the first..last
+    # (one check: itself twice, which the comparison shows as "needs two checks")
+    docs = sorted(section('docs').get('docs') or [], key=lambda d: (d.get('order') is None, d.get('order') or 0, d['path']))
+    doc = next((d for d in docs if len(d.get('headings') or []) >= 3), docs[0] if docs else {'path': 'none'})
+    images = section('media').get('images') or []
+    image = next((i for i in images if i.get('kind') == 'diagram'), images[0] if images else {'id': 'none'})
+    scans = section('history').get('scans') or []
+    scan = scans[-1]['id'] if scans else 'none'
     return {'card': card, 'component': component, 'path': chosen['id'], 'task': task['id'], 'screen': screen['id'],
-            'hidden_group': group['id'], 'store': store['id'], 'stage': stage['id']}
+            'hidden_group': group['id'], 'store': store['id'], 'stage': stage['id'], 'doc': doc['path'], 'image': image['id'],
+            'scan': scan, 'compare': f"{scans[0]['id'] if scans else 'none'}..{scan}"}
 
 
 def studio_pages(matrix, data, base, folder, only=None):

@@ -1,0 +1,50 @@
+/* The EAOS-quality page (STUDIO-COMPLETE: "EAOS quality"; DESIGN.md §2–§4): tiles, detector rows with two meters and
+   the bar's threshold marked, the coverage rows and the plan's indicators. Logical properties and tokens only. */
+
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tile { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; min-block-size: 96px; justify-content: center; }
+.tileLabel { font-size: var(--text-label); color: var(--text-secondary); font-weight: 500; }
+.tileValue { font-size: var(--text-tile); font-weight: 600; line-height: 1.1; }
+.tileSub { font-size: var(--text-caption); color: var(--text-tertiary); line-height: 1.4; }
+.columns { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: var(--section-gap); align-items: start; }
+.col { display: flex; flex-direction: column; gap: var(--section-gap); min-inline-size: 0; }
+.lead { font-size: var(--text-meta); color: var(--text-secondary); line-height: 1.55; max-inline-size: 70ch; }
+.note { font-size: var(--text-caption); color: var(--text-tertiary); }
+
+.detector, .covRow { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; }
+li + li > .detector, li + li > .covRow { border-block-start: 1px solid var(--border-subtle); }
+.detHead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.detName { font-weight: 500; font-size: var(--text-row); min-inline-size: 0; overflow-wrap: anywhere; }
+.detMeta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: var(--text-meta); color: var(--text-secondary); }
+.covDetail { font-size: var(--text-meta); color: var(--text-secondary); line-height: 1.5; }
+
+.meters { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 24px; }
+.meter { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "label track value" "sub sub sub"; gap: 4px 10px; align-items: center; min-inline-size: 0; }
+.meterLabel { grid-area: label; font-size: var(--text-meta); color: var(--text-secondary); }
+.track { grid-area: track; position: relative; display: block; block-size: 8px; border-radius: 4px; background: var(--bg-selected); min-inline-size: 48px; }
+.track i { position: absolute; inset-block: 0; inset-inline-start: 0; border-radius: 4px; background: var(--status-good); }
+.track i[data-low] { background: var(--status-warning); }
+.track b { position: absolute; inset-block: -3px; inline-size: 2px; background: var(--text-secondary); border-radius: 1px; }
+.meterValue { grid-area: value; font-weight: 600; font-size: var(--text-meta); font-variant-numeric: tabular-nums; }
+.meterSub { grid-area: sub; font-size: var(--text-caption); color: var(--text-tertiary); }
+.unmeasured { grid-column: 2 / 4; font-size: var(--text-meta); color: var(--text-tertiary); font-weight: 500; }
+
+.capability { display: flex; flex-direction: column; }
+li + li > .capability { margin-block-start: 12px; }
+.capHead { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 10px; border-block-end: 1px solid var(--border-subtle); }
+.indicator { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; min-block-size: 48px; font-size: var(--text-meta); }
+li + li > .indicator { border-block-start: 1px solid var(--border-subtle); }
+.indName { min-inline-size: 0; line-height: 1.45; }
+.indValue { font-weight: 600; white-space: nowrap; color: var(--status-good-text); }
+.indValue[data-low] { color: var(--status-warning-text); }
+
+@media (max-width: 1199px) {
+  .columns { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 767px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .tile { min-block-size: 88px; padding: 12px 14px; }
+  .meters { grid-template-columns: minmax(0, 1fr); }
+  .indicator { flex-direction: column; align-items: flex-start; gap: 4px; }
+}

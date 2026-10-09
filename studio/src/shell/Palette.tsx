@@ -48,7 +48,7 @@ export function useEntries(): Entry[] {
     for (const c of data.story?.current.components ?? []) entries.push({ id: `component:${c.name}`, kind: 'component', title: c.name, to: `/system?focus=${encodeURIComponent(c.name)}` })
     for (const d of data.decisions?.decisions ?? []) entries.push({ id: `decision:${d.id}`, kind: 'decision', title: d.question, keywords: d.recommendation, to: '/decisions' })
     for (const c of data.cards?.cards ?? []) entries.push({ id: `card:${c.id}`, kind: 'card', title: c.title, keywords: [c.id, ...c.paths, c.kind].join(' '), to: `/problems?card=${encodeURIComponent(c.id)}` })
-    if (dev) for (const d of data.docs?.docs ?? []) entries.push({ id: `doc:${d.id}`, kind: 'doc', title: d.title, keywords: d.path, to: '/library' })
+    for (const d of data.docs?.docs ?? []) entries.push({ id: `doc:${d.id}`, kind: 'doc', title: d.title, keywords: [d.path, ...(d.headings ?? []).map((h) => h.text)].join(' '), to: `/library/docs/${encodeURIComponent(d.path)}` })
     return entries
   }, [data, lang, dev, selected])
 }
