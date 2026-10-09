@@ -27,6 +27,7 @@ import inspect
 import json
 import logging
 import os
+import re
 import signal
 import socket
 import time
@@ -266,7 +267,9 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
         launch._open(launch.url_of(found), show)
         return 0
     sock = bind(port, host='0.0.0.0' if remote_origin else guard.LOOPBACK, remote_origin=remote_origin)
-    app = create_app(report, project=state['project'], keys=Keys(port=sock.getsockname()[1], remote_origin=remote_origin))
+    keys = Keys(port=sock.getsockname()[1], remote_origin=remote_origin)
+    if remote_origin: keys.token = _kept_token(os.environ.get('EAOS_STUDIO_TOKEN_FILE')) or keys.token
+    app = create_app(report, project=state['project'], keys=keys)
     ctx = app.state.ctx
     launch._write_record(state, {'pid': os.getpid(), 'port': ctx.keys.port, 'token': ctx.keys.token, 'report': str(report),
                                  'project': state['project'], 'started': time.time(), 'remote_origin': remote_origin})
@@ -285,6 +288,23 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
     finally:
         launch.record_path(state).unlink(missing_ok=True)
     return 0
+
+
+def _kept_token(path):
+    """A remote Studio's launch token kept across restarts, so the owner's address keeps working: read from (or first
+    written to) a file only its owner can read. None without a path."""
+    if not path: return None
+    file = Path(path)
+    try:
+        token = file.read_text(encoding='utf-8').strip()
+        if re.fullmatch(r'[A-Za-z0-9_-]{32,128}', token) and (file.stat().st_mode & 0o077) == 0: return token
+    except OSError:
+        pass
+    token = guard.new_token()
+    fd = os.open(file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, 'w', encoding='utf-8') as out: out.write(token + '\n')
+    os.chmod(file, 0o600)
+    return token
 
 
 def _interrupt(number, frame):

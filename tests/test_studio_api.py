@@ -491,3 +491,26 @@ class RemoteGuard(unittest.TestCase):
         self.assertTrue(launch.url_of(record).startswith(record['remote_origin'] + '/#token='))
         self.assertTrue(launch.url_of({**record, 'remote_origin': None}).startswith('http://127.0.0.1:8096/'))
         with self.assertRaises(ValueError): launch.url_of({**record, 'remote_origin': 'https://evil.example'})
+
+
+class KeptToken(unittest.TestCase):
+    """A remote Studio keeps its launch token across restarts in a file only its owner reads (server._kept_token)."""
+
+    def test_written_once_then_reused_and_private(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'token'
+            first = server._kept_token(str(path))
+            self.assertEqual(first, server._kept_token(str(path)))
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
+    def test_a_readable_or_malformed_file_gets_a_new_token(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'token'
+            path.write_text('x' * 40)
+            path.chmod(0o644)
+            fresh = server._kept_token(str(path))
+            self.assertNotEqual(fresh, 'x' * 40)
+            self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+
+    def test_no_path_no_token(self):
+        self.assertIsNone(server._kept_token(None))
