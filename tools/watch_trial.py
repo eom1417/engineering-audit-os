@@ -43,10 +43,15 @@ def audit_answers(events):
     for block in blocks(events, 'user'):
         if block.get('tool_use_id') not in calls: continue
         content = block.get('content')
-        text = content if isinstance(content, str) else ''.join(part.get('text', '') for part in content or [])
-        try: answers.append(json.loads(text))
-        except ValueError: answers.append({'unreadable': text[:500]})
+        answers.append(answer_of(content if isinstance(content, str) else ''.join(part.get('text', '') for part in content or [])))
     return answers
+
+
+def answer_of(text):
+    """A tool's JSON answer; Claude Code may hand it over wrapped as {"result": "<the JSON text>"}."""
+    try: answer = json.loads(text)
+    except ValueError: return {'unreadable': text[:500]}
+    return answer_of(answer['result']) if isinstance(answer, dict) and isinstance(answer.get('result'), str) else answer
 
 
 def read_progress(watch):
