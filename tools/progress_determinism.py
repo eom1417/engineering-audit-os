@@ -9,7 +9,10 @@ count or step heard, no sampler, no heartbeat). Then compares every file the run
 
 - the progress files themselves (run-progress.jsonl and progress/) are left out: they are what is switched;
 - each run's own folder is replaced by <OUT>, and every timestamp, duration and run id is masked (TIME_PATTERNS):
-  they differ between any two runs, with or without progress;
+  they differ between any two runs, with or without progress. A PDF is compared by its text (pdftotext -layout; its
+  glyphs encode the printed generation time, so its bytes differ by the minute), or, without pdftotext, by its
+  inflated streams; a .pyc's header time is zeroed; a sha256 written in a record is masked,
+  because the file it hashes is compared here on its own;
 - every other byte must be equal between `on1` and `off` (`identical`). `on2` shows what differs between two runs
   that both write progress: the external engines' own files and facts vary between any two runs of the same check.
   `progress_adds_no_difference` is true when every file that differs between on1 and off (or exists in one only,
@@ -27,6 +30,7 @@ import re
 import subprocess
 import sys
 import time
+import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -59,8 +63,30 @@ def run(project, out, progress_on, engines):
     return round(time.monotonic() - began, 1), done.returncode
 
 
+STREAM = re.compile(rb'stream\r?\n(.*?)\r?\nendstream', re.S)
+HASH = (re.compile(rb'"sha256": ?"[0-9a-f]{64}"'), b'"sha256": "<SHA>"')
+
+
+def inflated(data):
+    """A PDF with every FlateDecode stream it can inflate written out as text, and its /Length entries masked."""
+    def open_stream(found):
+        try: return b'stream\n' + zlib.decompress(found.group(1)) + b'\nendstream'
+        except zlib.error: return found.group(0)
+    return re.sub(rb'/Length \d+', b'/Length <N>', STREAM.sub(open_stream, data))
+
+
+def pdf_text(path):
+    """The PDF's text as pdftotext lays it out, or None when pdftotext is not installed or fails."""
+    try: done = subprocess.run(['pdftotext', '-layout', str(path), '-'], capture_output=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired): return None
+    return done.stdout if done.returncode == 0 and done.stdout else None
+
+
 def masked(path, out):
     data = path.read_bytes()
+    if path.suffix == '.pdf': data = pdf_text(path) or inflated(data)
+    if path.suffix == '.pyc' and len(data) >= 12: data = data[:8] + b'\0\0\0\0' + data[12:]
+    data = HASH[0].sub(HASH[1], data)
     data = data.replace(str(out).encode(), b'<OUT>')
     for pattern, replacement in TIME_PATTERNS: data = pattern.sub(replacement, data)
     return data
