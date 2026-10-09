@@ -1258,7 +1258,7 @@ flowchart TB
 | اختبار قبول | `test branch_control.BranchControl` | — | ⬜ |
 | اختبار قبول | `test scan_freshness.ScanFreshness` | — | ⬜ |
 | اختبار قبول | `test ns46_studio.SelfReview` | — | ⬜ |
-| اختبار قبول | `test live_scan_map.LiveScanMap` | — | ⬜ |
+| اختبار قبول | `test live_scan_map` | — | ⬜ |
 
 **المهام:**
 
@@ -1283,7 +1283,7 @@ flowchart TB
 | [NS46.T18](#ns46t18) Studio branch control: analysis context, honest inventory, provenance and guarded work-branch actions | L | ⬜ | 0% | `python tools/acceptance.py test branch_control.BranchControl` |
 | [NS46.T19](#ns46t19) Live scan freshness, local time everywhere and direct governance of every Studio state | M | ⬜ | 0% | `python tools/acceptance.py test scan_freshness.ScanFreshness` |
 | [NS46.T8](#ns46t8) المراجعة الذاتية وحكم المالك | M | ⬜ | 13% | `python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F15 --min 1.0 && python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/north_star.py measure --only F16 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview` |
-| [NS46.T20](#ns46t20) Live scan map: EAOS's own stages drawn live while a check runs | M | ⬜ | 0% | `python tools/acceptance.py test live_scan_map.LiveScanMap` |
+| [NS46.T20](#ns46t20) Live scan map: EAOS's own stages drawn live while a check runs | M | ⬜ | 0% | `python tools/acceptance.py test live_scan_map` |
 
 <a id="step-25"></a>
 
@@ -6574,11 +6574,11 @@ python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_st
 
 #### NS46.T20 — Live scan map: EAOS's own stages drawn live while a check runs ⬜
 
-**لماذا:** Owner request 2026-10-09 (eaos-dev/planning/live-scan-map/PLAN.md): while a check runs, started from the assistant, the Studio or eaos start, the Studio shows the check's own stage map live: the running stage glows, a light travels to the next stages, each stage says what it does, its time, its steps, what it produced and why it was skipped; drawn from the stages and tools EAOS really runs.
+**لماذا:** Owner request 2026-10-09 (eaos-dev/planning/live-scan-map/PLAN.md): while a check runs, started from the assistant, the Studio or eaos start, the Studio shows the check's own stage map live: the running stage glows, a light travels to the next stages, each stage says what it does, its time, its steps, what it produced and why it was skipped; drawn from the stages and tools EAOS really runs. Version 2 (eaos-dev/planning/live-scan-map/PLAN-v2.md, approved 2026-10-09) generalises it to every flow; phase 1 is the progress contract.
 
 **يحرّك:** F15 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS46.T13, NS46.T19 · **الحجم:** M
 
-**الملفات:** `eaos/pipeline/progress.py` · `eaos/pipeline/run.py` · `eaos/pipeline/runners.py` · `eaos/facts/run.py` · `eaos/engines/__init__.py` · `eaos/api/events.py` · `eaos/api/read.py` · `studio/src/data/scan.ts` · `studio/src/data/ScanProvider.tsx` · `studio/src/pages/scan/` · `studio/src/shell/ScanBanner.tsx` · `docs/adoption/ns46-t20-live-scan-map.md` · `tools/live_scan_map_trial.py` · `tools/live_scan_map_trial.mjs` · `tests/test_live_scan_map.py` · `acceptance/test_live_scan_map.py`
+**الملفات:** `eaos/progress/` · `eaos/pipeline/progress.py` · `eaos/data/schemas/progress.json` · `schemas/progress.json` · `eaos/pipeline/run.py` · `eaos/pipeline/runners.py` · `eaos/facts/run.py` · `eaos/engines/__init__.py` · `eaos/api/events.py` · `eaos/api/read.py` · `studio/src/data/scan.ts` · `studio/src/data/ScanProvider.tsx` · `studio/src/pages/scan/` · `studio/src/shell/ScanBanner.tsx` · `docs/adoption/ns46-t20-live-scan-map.md` · `tools/live_scan_map_trial.py` · `tools/live_scan_map_trial.mjs` · `tests/test_live_scan_map.py` · `acceptance/test_live_scan_map.py` · `tools/progress_golden.py` · `tests/test_progress_contract.py` · `tests/fixtures/progress/`
 
 **الخطوات:**
 
@@ -6586,10 +6586,12 @@ python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_st
 2. The live feed tails the file into scan.stage events with the same numbering and replay; GET /api/scan-progress gives the folded state with each stage placed by the pinned layered layout; a run whose process is gone reads as interrupted.
 3. The Studio's Live check view: the map from the data, the glow, the light along links, the stage panel, the stage list, the run line with an estimate only from the last run, a banner on every page while a check runs, reduced motion respected.
 4. A real check of a small corpus project watched in the shipped Studio at 390, 768 and 1440 px, Arabic and English, light and dark, early, middle and done, plus reduced motion and the banner, writes $EAOS_MEASURE/live-scan-map/trial.json.
+5. v2 phase 1, the contract: eaos/progress/ (the writer generalised to flows with <folder>/progress/<flow>.jsonl, the check keeping run-progress.jsonl; progress.count() through a ContextVar stepper; a coalescer of 4 lines a second per step; a ps sampler of the run's child programs; run.alive after 10 s of silence and `stalled` after 30 s; the single Python fold), the versioned event schema, and three recorded real checks (ended, stopped, killed) with their expected folds.
 
 **تنتهي حين:**
 
 - [ ] Acceptance live_scan_map.LiveScanMap passes: every case of acceptance/test_live_scan_map.py ran live against the shipped Studio digest, with every view of the three moments passing its gates.
+- [ ] Acceptance live_scan_map.ProgressContract passes: on the recorded real checks every line validates against eaos/data/schemas/progress.json, every declared stage ends exactly once (also when stopped), counted steps stay bounded, and the Python fold equals the committed expected JSON.
 
 **فخاخ معروفة:**
 
@@ -6601,7 +6603,7 @@ python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_st
 **أمر القبول:**
 
 ```bash
-python tools/acceptance.py test live_scan_map.LiveScanMap
+python tools/acceptance.py test live_scan_map
 ```
 
 **التراجع:** Revert the live scan map commits; run-progress.jsonl is an additive file older readers ignore.
