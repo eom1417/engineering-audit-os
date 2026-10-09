@@ -174,12 +174,14 @@ function Viewer({ screen }: { screen: Screen }) {
   const mode = pair && (search.compare === 'before' || search.compare === 'after' || search.compare === 'slider') ? search.compare : pair ? 'slider' : 'one'
   const [cut, setCut] = useState(50)
   const [picked, setPicked] = useState<string>()
+  const [failed, setFailed] = useState<string[]>([])
   const set = (patch: Search) => navigate({ to: '.', replace: true, search: (prev: Search) => ({ ...prev, ...patch }) })
   const list = pins(screen, vp)
   const img = (shot: Shot, extra?: string) => (
-    <img className={[css.shot, extra].filter(Boolean).join(' ')} src={shotSrc(shot)} width={shot.width} alt={w('shotAlt', { r: screen.route, w: shot.width })} />
+    <img className={[css.shot, extra].filter(Boolean).join(' ')} src={shotSrc(shot)} width={shot.width} alt={w('shotAlt', { r: screen.route, w: shot.width })} onError={() => setFailed((f) => [...f, shot.path])} />
   )
   const shown = mode === 'before' ? at.before : mode === 'after' ? at.after : at.one
+  const broken = (mode === 'slider' ? [at.before, at.after] : [shown]).some((shot) => shot && failed.includes(shot.path))
   return (
     <div className={css.viewer}>
       <div className={css.viewerBar}>
@@ -192,7 +194,17 @@ function Viewer({ screen }: { screen: Screen }) {
             options={[{ id: 'before', label: w('before') }, { id: 'slider', label: w('slider') }, { id: 'after', label: w('after') }]} />
         )}
       </div>
-      <div className={css.stage} dir="ltr">
+      {broken ? (
+        <Panel>
+          <div className={css.noShot}>
+            <span className={css.noShotFrame} aria-hidden="true"><Icon name="eye" size={20} /></span>
+            <div>
+              <p className={css.noShotTitle}>{w('shotUnreadable')}</p>
+              <p className={css.noShotSub}>{w('shotUnreadableSub')}</p>
+            </div>
+          </div>
+        </Panel>
+      ) : <div className={css.stage} dir="ltr">
         <div className={css.canvas} style={{ inlineSize: `${vp}px` }}>
           {mode === 'slider' && at.before && at.after ? (
             <div className={css.compare}>
@@ -202,8 +214,8 @@ function Viewer({ screen }: { screen: Screen }) {
           ) : shown ? img(shown) : null}
           <Pins list={list} onPick={setPicked} picked={picked} />
         </div>
-      </div>
-      {mode === 'slider' && (
+      </div>}
+      {mode === 'slider' && !broken && (
         <input type="range" className={css.range} min={0} max={100} value={cut} onChange={(e) => setCut(Number(e.target.value))} aria-label={w('sliderAria')} />
       )}
       <IssueList screen={screen} numbered={list} picked={picked} />
@@ -260,7 +272,7 @@ function ScreenDetail({ data, sx, id }: { data: StudioData; sx: ScreensData; id:
         <Go to="/system/journeys" search={{ focus: screen.id }} className={css.inlineLink}>{w('inJourneys')}</Go>
         {inFile > 0 && screen.file && <Go to="/system/functions" search={{ module: screen.file }} className={css.inlineLink}><span>{w('fileFunctions')} (<N value={inFile} />)</span></Go>}
       </div>
-      {screen.shots.length ? <Viewer screen={screen} /> : (
+      {screen.shots.length ? <Viewer key={screen.id} screen={screen} /> : (
         <>
           <Panel>
             <div className={css.noShot}>
