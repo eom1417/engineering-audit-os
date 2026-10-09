@@ -475,7 +475,7 @@ def bundles_command(args):
 
 
 def progress_command(args):
-    from .progress import render
+    from .progress_report import render
     result = render(args.previous, args.current, language=args.lang)
     if result is None:
         print(json.dumps({'error': 'previous snapshot has no facts'}, ensure_ascii=False))

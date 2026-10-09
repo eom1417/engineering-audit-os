@@ -55,7 +55,7 @@ class AuditPipelineTests(Workspace):
         self.assertGreaterEqual(len(target['decisions']), 0)
 
     def test_progress_module(self):
-        from eaos.progress import render as render_progress
+        from eaos.progress_report import render as render_progress
         run_audit(Path('tests/fixtures/sustainability'), Path(self.tmp) / 'a', language='en')
         run_audit(Path('tests/fixtures/sustainability'), Path(self.tmp) / 'b', language='en')
         result = render_progress(Path(self.tmp) / 'a', Path(self.tmp) / 'b', language='en')

@@ -4,7 +4,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import unittest
-from eaos.progress import _LOWER_IS_BETTER
+from eaos.progress_report import _LOWER_IS_BETTER
 from eaos.sustainability import DEFAULT_TARGETS
 
 
