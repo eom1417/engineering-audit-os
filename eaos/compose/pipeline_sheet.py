@@ -5,6 +5,8 @@ records or computes a number: the section is given, once per language, by the ca
 """
 import html
 
+from ..studio import model as M
+
 NODE_W, NODE_H, STEP_X, STEP_Y, PAD = 150, 46, 200, 66, 16
 MOST_DRAWN = 60      # a longer pipeline is a table here; the Studio draws it with pan and zoom
 MOST_ROWS = 60
@@ -36,6 +38,11 @@ def where(site):
 def fit(text, room):
     text = str(text)
     return text if len(text) <= room else '…' + text[-(room - 1):]
+
+
+def number(value, meaning):
+    cls = "" if meaning in ("pipeline verdict", "pipeline gap explanation") else "n"
+    return f'<span class="{cls}" data-meaning="{esc(meaning)}">{esc(value)}</span>'
 
 
 def flowchart(section, pipeline):
@@ -70,8 +77,8 @@ def flowchart(section, pipeline):
         parts.append(f'<g>{box}<text x="{tx}" y="{y + 20}" text-anchor="{anchor}" class="ps-t">{esc(fit(s["label"], 17))}</text>'
                      f'<text x="{tx}" y="{y + 36}" text-anchor="{anchor}" class="ps-s">{esc(fit(sub, 24))}</text>'
                      f'<title>{esc(s["label"])} · {esc(where(s.get("entry")))}</title></g>')
-    return (f'<svg class="ps-svg" viewBox="0 0 {width} {height}" role="img" direction="ltr" '
-            f'aria-label="{esc(pipeline["title"])}: {len(stages)} stages">'
+    return (f'<svg class="ps-svg" data-literal="pipeline stage labels and evidence" viewBox="0 0 {width} {height}" role="img" direction="ltr" '
+            f'aria-label="{esc(pipeline["title"])}: {M.pipeline_counts(section)['drawn'][pipeline['id']]} stages">'
             '<defs><marker id="ps-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">'
             '<path d="M0,0 L8,4 L0,8 z" class="ps-arrow"/></marker></defs>' + ''.join(parts) + '</svg>')
 
@@ -85,8 +92,9 @@ def stage_table(section, pipelines):
         f'<tr><td>{code(titles[s["pipeline"]])}</td><td>{code(s["label"])}</td><td>{both(*KIND.get(s["kind"], (s["kind"], s["kind"])))}</td>'
         f'<td>{names(s["inputs"])}</td><td>{names(s["outputs"])}</td><td>{", ".join(code(t) for t in s["tools"][:4])}</td>'
         f'<td>{code(where(s["entry"]))}</td></tr>' for s in rows[:MOST_ROWS])
-    more = (f'<p class="muted small">{both(f"و{len(rows) - MOST_ROWS} مرحلة أخرى في الاستوديو.", f"and {len(rows) - MOST_ROWS} more stages in the Studio.")}</p>'
-            if len(rows) > MOST_ROWS else '')
+    more_count = M.pipeline_counts(section, pipelines, MOST_ROWS)['more']
+    more = (f'<p class="muted small">{both(f"و{number(more_count, "more pipeline stages in the Studio")} مرحلة أخرى في الاستوديو.", f"and {number(more_count, "more pipeline stages in the Studio")} more stages in the Studio.")}</p>'
+            if more_count else '')
     head = ''.join(f'<th>{both(ar, en)}</th>' for ar, en in (('خط المعالجة', 'Pipeline'), ('المرحلة', 'Stage'), ('النوع', 'Kind'),
                                                              ('تأخذ', 'Takes'), ('تعطي', 'Gives'), ('الأدوات', 'Tools'), ('الدليل', 'Evidence')))
     return f'<div class="ps-scroll"><table class="ps-table"><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>{more}'
@@ -100,8 +108,8 @@ def gap_table(section):
     head = ''.join(f'<th>{both(ar, en)}</th>' for ar, en in (('#', '#'), ('القاعدة', 'Rule'), ('العملية', 'Operation'), ('ما يكسرها', 'What breaks it'),
                                                              ('الدليل', 'Evidence'), ('البطاقة', 'Card')))
     body = ''.join(
-        f'<tr><td>{n}</td><td>{code(g["rule"])} <span dir="ltr" lang="en">{esc((rules.get(g["rule"]) or {}).get("title", ""))}</span></td>'
-        f'<td>{both(*OP.get(g["operation"], (g["operation"], g["operation"])))}</td><td dir="ltr" lang="en">{esc(g["detail"])}</td>'
+        f'<tr><td>{number(n, "pipeline gap order")}</td><td>{code(g["rule"])} <span dir="ltr" lang="en">{esc((rules.get(g["rule"]) or {}).get("title", ""))}</span></td>'
+        f'<td>{both(*OP.get(g["operation"], (g["operation"], g["operation"])))}</td><td dir="ltr" lang="en">{number(g["detail"], "pipeline gap explanation")}</td>'
         f'<td>{code(where(g["evidence"]))}</td><td>{code(g["card"]) if g.get("card") else "—"}</td></tr>'
         for n, g in enumerate(gap[:MOST_ROWS], 1))
     return f'<div class="ps-scroll"><table class="ps-table"><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>'
@@ -113,23 +121,25 @@ def sheet(sections):
     if not ar or not en or not en.get('pipelines'): return ''
     product = [p for p in en['pipelines'] if p['role'] == 'product'] or en['pipelines']
     top = [p for p in product if not p.get('parent')] or product
+    counts = M.pipeline_counts(en)
     def figure(p):
-        n = len(p['stages'])
+        n = counts['stages'][p['id']]
+        label = number(n, 'stages in this pipeline')
         body = (flowchart(en, p) if n <= MOST_DRAWN else
                 both('أطول من أن يُرسم في صفحة واحدة: افتحه في الاستوديو (النظام ← خط المعالجة).',
                      'Too long to draw on one page: open it in the Studio (System → Pipeline).', 'p', 'muted small'))
-        return f'<figure class="ps-fig"><figcaption>{code(p["title"])} · {both(f"{n} مرحلة", f"{n} stages")}</figcaption>{body}</figure>'
+        return f'<figure class="ps-fig"><figcaption>{code(p["title"])} · {both(f"{label} مرحلة", f"{label} stages")}</figcaption>{body}</figure>'
     drawn = ''.join(figure(p) for p in top)
     subs = [p for p in product if p.get('parent')]
     sub_line = (f'<p class="small">{both("خطوط معالجة داخل مراحلها:", "Pipelines inside its stages:")} '
-                + ', '.join(f'{code(p["title"])} ({len(p["stages"])})' for p in subs) + '</p>') if subs else ''
-    confidence = en['confidence'].get('value')
-    facts = (f'<p class="muted small">{both("الثقة", "Confidence")} <span class="n">{round(confidence * 100) if confidence is not None else "—"}%</span> · '
-             + ' · '.join(f'{both(a, b)} <span class="n">{(en["counts"].get(key) or {}).get("value", "—")}</span>'
+                + ', '.join(f'{code(p["title"])} ({number(counts['stages'][p['id']], "stages in this pipeline")})' for p in subs) + '</p>') if subs else ''
+    confidence = counts['confidence']
+    facts = (f'<p class="muted small">{both("الثقة", "Confidence")} {number(confidence, "pipeline confidence percent")}% · '
+             + ' · '.join(f'{both(a, b)} {number((en["counts"].get(key) or {}).get("value", "—"), f"pipeline {key}")}'
                           for key, a, b in (('stages', 'مراحل', 'stages'), ('edges', 'روابط', 'links'), ('unresolved', 'لم يُتتبع', 'not followed'),
                                             ('gaps', 'فجوات', 'gaps')) if key in en['counts']) + '</p>')
     return (f'<section id="pipeline-sheet" class="card ps" data-part="pipeline-sheet"><h3>{both("خط المعالجة", "The pipeline")}</h3>'
-            f'<p>{both(esc(ar["verdict"]), esc(en["verdict"]))}</p>{facts}'
+            f'<p>{both(number(ar["verdict"], "pipeline verdict"), number(en["verdict"], "pipeline verdict"))}</p>{facts}'
             f'<p class="muted small">{both("كل مرحلة في مكانها الذي حسبه EAOS، من اليسار إلى اليمين: المعيّنات موجّهات، والخطوط المتقطعة تحكّم أو خطأ. التفاصيل الكاملة والعروض الثلاثة (الحالي والمثالي والفجوة) في الاستوديو.", "Every stage where EAOS placed it, left to right: diamonds are routers, dashed lines are control or failure. The full detail and the three views (current, ideal, gap) are in the Studio.")}</p>'
             f'{drawn}{sub_line}<h4>{both("المراحل", "The stages")}</h4>{stage_table(en, product)}'
             f'<h4>{both("الفجوة بين الحالي والمثالي", "The gap between the current pipeline and its ideal")}</h4>{gap_table(en)}</section>')

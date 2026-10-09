@@ -26,8 +26,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from . import plain
+from .studio import model as M
 from .compose import pipeline_sheet
-from .ranking import CONFIDENCE_WEIGHT
 from .studio.model import (AREAS, CLOSED, CRITICAL_CAP, HALF_POINT, SEVERITIES, SEVERITY_WEIGHT, gap_totals, ledger_of, records,
                           score, task_cards, waves_state)
 
@@ -91,36 +91,12 @@ OUTCOME = {'repair': ('إصلاحه', 'fix it'), 'retain': ('إبقاؤه كما
 def model(report, progress=None):
     """The one model (eaos/studio/model.py), with the maps this page draws."""
     m = records(report, progress)
-    return {**m, **maps(Path(report), m['target'])}
+    return {**m, **M.maps(Path(report), m['target'], pipeline_builder=pipeline_sections)}
 
 
-def maps(report, target):
-    """The architecture maps (eaos/arch_map.py) and the system map (eaos/system_map.py); a missing or broken fact
-    record leaves its map None, and what failed is kept in map_errors for the page's warning and errors.json."""
-    from . import arch_map, system_map
-    out = {'cmap': None, 'drill': None, 'flows': None, 'system': None, 'system_layout': None, 'pipeline': None, 'map_errors': []}
-    def attempt(part, build):
-        try: build()
-        except Exception as error: out['map_errors'].append({'section': part, 'error': f'{type(error).__name__}: {error}'[:300]})
-    def components():
-        out['cmap'] = arch_map.component_map(report, target)
-        out['drill'] = arch_map.drill_data(report, out['cmap'])
-    def system():
-        out['system'] = system_map.build(report)
-        out['system_layout'] = system_map.layout(out['system'])
-    attempt('architecture map', components)
-    attempt('page flows', lambda: out.update(flows=arch_map.flow_charts(report)))
-    attempt('system map', system)
-    attempt('pipeline map', lambda: out.update(pipeline=pipeline_sections(report)))
-    return out
-
-
-def pipeline_sections(report):
-    """The Studio's pipeline section in both languages (eaos/studio/pipeline.py), for the pipeline sheet; None when the
-    check wrote no facts/pipeline.json."""
-    from .studio import pipeline
-    sections = {lang: pipeline.from_report(report, lang=lang) for lang in ('ar', 'en')}
-    return sections if all(sections.values()) else None
+maps = M.maps
+pipeline_sections = M.pipeline_sections
+component_problems = M.component_problems
 
 
 # ---------------------------------------------------------------- html helpers
@@ -320,10 +296,11 @@ def layer_diagram(target_components, rtl):
              f'aria-label="{esc("طبقات البنية المستهدفة" if rtl else "Layers of the target structure")}">']
     for index, name in enumerate(order):
         members = layers[name]
-        files = sum(c.get('files') or 0 for c in members)
+        counts = M.layer_counts(members)
+        files = counts['files']
         y = index * row + 2
-        words = (f'الأجزاء: {len(members)} · الملفات: {files}' if rtl else f'{len(members)} parts · {files} files')
-        meaning = f'{len(members)} target parts and {files} files in the {name} layer'
+        words = (f'الأجزاء: {counts["parts"]} · الملفات: {files}' if rtl else f'{counts["parts"]} parts · {files} files')
+        meaning = f'{counts["parts"]} target parts and {files} files in the {name} layer'
         parts.append(f'<g data-meaning="{esc(meaning)}"><rect x="2" y="{y}" width="{width - 4}" height="{row - 4}" rx="4" class="layer"/>'
                      + svg_text(width - 12 if rtl else 12, y + 18, words, 'layer-count', 'right' if rtl else 'left', rtl)
                      + svg_text(12 if rtl else width - 12, y + 18, name, 'layer-name', 'left' if rtl else 'right') + '</g>')
@@ -380,8 +357,8 @@ def section_summary(m, name):
                      f'<p class="muted small">{T(*map(esc, AREA_WHAT[area]))}</p></div>')
     out.append(f'<h3>{T("المجالات الخمسة", "The five areas")}</h3><div class="grid areas">' + ''.join(cards) + '</div>')
     out.append(top_problems(rows))
-    auto = sum(r['auto'] for r in rows)
-    decide = len(rows) - auto
+    counts = M.group_counts(rows)
+    auto, decide = counts['automatic'], counts['decision']
     out.append(f'<div class="grid two"><div class="card stat good-bg"><div class="stat-n">{num(auto, "problems EAOS can fix automatically")}</div>'
                f'<p>{T("مشاكل يستطيع EAOS إصلاحها آليًا، ويتحقق بعد كل إصلاح أن البرنامج لم ينكسر.", "problems EAOS can fix automatically, checking after each fix that the program still works.")}</p></div>'
                f'<div class="card stat warn-bg"><div class="stat-n">{num(decide, "problems that need the owner or a person to decide")}</div>'
@@ -401,7 +378,7 @@ def meter(value):
 def top_problems(rows):
     groups = {}
     for r in rows: groups.setdefault(r['pattern'], []).append(r)
-    def weight(group): return sum(SEVERITY_WEIGHT[r['severity']] * CONFIDENCE_WEIGHT.get(r['confidence'], 1.0) for r in group)
+    def weight(group): return M.group_counts(group)['weight']
     ordered = sorted(groups, key=lambda p: (min(SEVERITIES.index(r['severity']) for r in groups[p]), -weight(groups[p]),
                                             plain.ORDER.index(p) if p in plain.ORDER else len(plain.ORDER)))
     if not ordered:
@@ -410,9 +387,9 @@ def top_problems(rows):
     for index, pattern in enumerate(ordered[:5], 1):
         group = groups[pattern]
         worst = next(s for s in SEVERITIES if any(r['severity'] == s for r in group))
-        ready = sum(r['auto'] for r in group)
+        ready = M.group_counts(group)['automatic']
         (tar, why_ar), (ten, why_en) = plain.problem(pattern, 'ar'), plain.problem(pattern, 'en')
-        count, fixed = num(len(group), 'cards of this kind'), num(ready, 'cases EAOS fixes automatically')
+        count, fixed = num(M.collection_count(group), 'cards of this kind'), num(ready, 'cases EAOS fixes automatically')
         counts = T(f'عدد الحالات: {count} · يصلحها EAOS آليًا: {fixed}', f'Cases: {count} · EAOS fixes automatically: {fixed}')
         items.append(f'<li class="card problem"><span class="rank" data-meaning="position in the list of main problems">{index}</span>'
                      f'<div><h4>{T(esc(tar), esc(ten))} {sev_chip(worst)}</h4><p>{T(esc(why_ar), esc(why_en))}</p>'
@@ -441,7 +418,7 @@ def not_checked(m):
         if not coverage.get('runtime_confirmation'):
             items.append(T('لم نراقب البرنامج وهو يعمل: كل ما هنا من قراءة الكود، لا من تشغيله.',
                            'We did not watch the program running: everything here comes from reading the code, not running it.', 'li'))
-        unparsed = (coverage.get('source_files') or 0) - (coverage.get('files_parsed') or 0)
+        unparsed = M.unparsed_count(coverage)
         if unparsed > 0:
             items.append(T(f'ملفات لم نستطع قراءتها: {num(unparsed, "source files that could not be read")}.',
                            f'{num(unparsed, "source files that could not be read")} source files could not be read.', 'li'))
@@ -529,14 +506,14 @@ def section_gaps(m):
         for pattern in sorted(groups, key=lambda p: (min(SEVERITIES.index(r['severity']) for r in groups[p]), -len(groups[p]))):
             group = sorted(groups[pattern], key=lambda r: (SEVERITIES.index(r['severity']), r['top'], r['id']))
             (tar, why_ar), (ten, why_en) = plain.problem(pattern, 'ar'), plain.problem(pattern, 'en')
-            ready = sum(r['auto'] for r in group)
-            count, fixed = num(len(group), 'problems of this kind'), num(ready, 'cases fixed automatically')
+            ready = M.group_counts(group)['automatic']
+            count, fixed = num(M.collection_count(group), 'problems of this kind'), num(ready, 'cases fixed automatically')
             meta = T(f'الحالات: {count} · آليًا: {fixed}', f'Cases: {count} · automatic: {fixed}')
             head = (f'<summary><span class="g-title">{T(esc(tar), esc(ten))}</span>'
                     f'<span class="g-meta">{meta}</span></summary>')
             items = ''.join(gap_row(r) for r in group)
             blocks.append(f'<details class="group" open>{head}<p class="why">{T(esc(why_ar), esc(why_en))}</p><div class="rows">{items}</div></details>')
-        count = num(len(mine), 'problems in this area')
+        count = num(M.collection_count(mine), 'problems in this area')
         out.append(f'<h3 class="area-title" data-area-block="{area}">{w("structure_area" if area == "structure" else area)} '
                    f'<span class="muted">{T(f"— عدد المشاكل: {count}", f"— problems: {count}")}</span></h3>' + ''.join(blocks))
     out.append(component_gaps(m))
@@ -545,7 +522,7 @@ def section_gaps(m):
 
 def gap_row(r):
     where = ' '.join(lit(p) for p in r['paths'][:3])
-    more = len(r['paths']) - 3
+    more = M.remaining(r['paths'], 3)
     if more > 0: where += ' ' + T(f'و{num(more, "more files")} ملفات أخرى', f'and {num(more, "more files")} more files')
     auto = (T('يصلحه EAOS آليًا', 'EAOS fixes it automatically', cls='yes') if r['auto']
             else T('يحتاج قرار شخص', 'Needs a person to decide', cls='no'))
@@ -567,7 +544,7 @@ def component_gaps(m):
     matrix = target.get('gap_matrix') or (m['gap_matrix'] or {}).get('rows') or []
     if not matrix:
         return f'<h3>{T("الفجوات حسب أجزاء البرنامج", "Gaps by part of the program")}</h3>{unavailable("components")}'
-    counts = component_problems(m)
+    counts = M.component_problems(m)
     rows = []
     for g in sorted(matrix, key=lambda g: -counts.get(g.get('component'), (0, 0))[1]):
         relation = RELATION.get((g.get('current') or {}).get('relation'), (esc((g.get('current') or {}).get('relation', '')),) * 2)
@@ -586,34 +563,19 @@ def component_gaps(m):
             f'<tbody>{"".join(rows)}</tbody></table></div>')
 
 
-def component_problems(m):
-    """{component id: (files, problems)}: a card counts in every part one of its files belongs to."""
-    target = m['target']
-    components = target.get('current_components') or target.get('components') or []
-    owner = {}
-    for c in components:
-        for path in c.get('paths') or []: owner[path] = c.get('id')
-    counts = {c.get('id'): [c.get('files') or len(c.get('paths') or []), 0] for c in components}
-    for r in m['rows']:
-        for cid in {owner.get(p) for p in r['paths']} - {None}:
-            counts[cid][1] += 1
-    return {k: tuple(v) for k, v in counts.items()}
-
-
 def section_structure(m):
     target = m['target']
     components = target.get('current_components') or target.get('components') or []
     if not components:
         return unavailable('structure')
-    counts = component_problems(m)
+    counts = M.component_problems(m)
     root = target.get('root') or ''
     items = []
     for c in components:
         files, found = counts.get(c.get('id'), (0, 0))
         name = c.get('name') or c.get('id') or ''
         short = name[len(root):] if root and name.startswith(root) and len(name) > len(root) else name
-        items.append({'name': name, 'short': short or name, 'files': files, 'size': max(files, 1), 'problems': found,
-                      'density': found / max(files, 1), 'relation': c.get('relation'), 'target': c.get('target_component')})
+        items.append({'name': name, 'short': short or name, 'files': files, 'problems': found, **M.density_counts(files, found), 'relation': c.get('relation'), 'target': c.get('target_component')})
     legend_steps = ''.join(
         f'<span class="heat-key"><i style="background:{HEAT[i]}"></i>{T(label_ar, label_en)}</span>'
         for i, (label_ar, label_en) in enumerate(heat_labels()))
@@ -636,7 +598,7 @@ def section_structure(m):
     out.append(f'<details class="card"><summary>{T("كل الأجزاء كجدول", "All parts as a table")}</summary><table class="tbl"><thead><tr>'
                f'<th>{T("الجزء", "Part")}</th><th>{T("الملفات", "Files")}</th><th>{T("المشاكل", "Problems")}</th><th>{T("مشاكل لكل عشرة ملفات", "Problems per ten files")}</th></tr></thead><tbody>'
                + ''.join(f'<tr><td>{lit(i["name"])}</td><td>{num(i["files"], "files in this part")}</td><td>{num(i["problems"], "problems in this part")}</td>'
-                         f'<td>{num(round(i["density"] * 10), "problems per ten files in this part")}</td></tr>'
+                         f'<td>{num(i["per_ten"], "problems per ten files in this part")}</td></tr>'
                          for i in sorted(items, key=lambda i: -i['problems'])) + '</tbody></table></details>')
     return ''.join(out)
 
@@ -657,24 +619,23 @@ def heat_labels():
 def differences(m, items):
     target = m['target']
     lines = []
-    relations = {}
-    for c in target.get('current_components') or target.get('components') or []:
-        relations[c.get('relation')] = relations.get(c.get('relation'), 0) + 1
+    counts = M.structure_counts(target)
+    relations = counts['relations']
     if relations:
         ar = '، '.join(f'{num(n, "parts with this fate")} {esc(RELATION.get(k, (k, k))[0])}' for k, n in sorted(relations.items(), key=lambda kv: -kv[1]))
         en = ', '.join(f'{num(n, "parts with this fate")} {esc(RELATION.get(k, (k, k))[1])}' for k, n in sorted(relations.items(), key=lambda kv: -kv[1]))
-        total = sum(relations.values())
+        total = counts['current']
         lines.append(T(f'من {num(total, "parts of the project today")} جزءًا اليوم: {ar}.', f'Of the {num(total, "parts of the project today")} parts today: {en}.', 'li'))
     tcomps = target.get('target_components') or []
     if tcomps:
-        layers = len({c.get('layer') for c in tcomps})
-        lines.append(T(f'البنية المستهدفة فيها {num(len(tcomps), "parts in the target structure")} جزءًا في {num(layers, "layers in the target structure")} طبقة، لكل منها مسؤولية واحدة.',
-                       f'The target structure has {num(len(tcomps), "parts in the target structure")} parts in {num(layers, "layers in the target structure")} layers, each with one responsibility.', 'li'))
+        layers = counts['layers']
+        lines.append(T(f'البنية المستهدفة فيها {num(M.collection_count(tcomps), "parts in the target structure")} جزءًا في {num(layers, "layers in the target structure")} طبقة، لكل منها مسؤولية واحدة.',
+                       f'The target structure has {num(M.collection_count(tcomps), "parts in the target structure")} parts in {num(layers, "layers in the target structure")} layers, each with one responsibility.', 'li'))
     forbidden = target.get('forbidden_edges')
     if isinstance(forbidden, int) and forbidden:
         lines.append(T(f'{num(forbidden, "imports that go the wrong way between layers")} استيرادًا يسير في الاتجاه الخطأ بين الطبقات، ويجب قلبه.',
                        f'{num(forbidden, "imports that go the wrong way between layers")} imports go the wrong way between layers and have to be turned around.', 'li'))
-    moves = sum((g.get('files_to_move') or 0) for g in target.get('gap_matrix') or [])
+    moves = counts['moves']
     if moves:
         lines.append(T(f'{num(moves, "files that move to another place")} ملفًا ينتقل إلى مكان آخر.', f'{num(moves, "files that move to another place")} files move to another place.', 'li'))
     for item in sorted(items, key=lambda i: -i['problems'])[:3]:
@@ -686,7 +647,7 @@ def differences(m, items):
     missing = [i for i in target.get('infrastructure') or [] if not i.get('present')]
     if missing:
         names = ' '.join(lit(i.get('area', '')) for i in missing)
-        count = num(len(missing), 'pieces of infrastructure the target adds')
+        count = num(M.collection_count(missing), 'pieces of infrastructure the target adds')
         words = T(f'ينقص المشروع {count} من أساسيات البنية التحتية:', f'The project lacks {count} pieces of basic infrastructure:')
         lines.append(f'<li>{words} {names}</li>')
     return lines or [T('لا توجد بيانات كافية للمقارنة.', 'Not enough data to compare.', 'li')]
@@ -703,7 +664,7 @@ def cycles(m):
         folder = paths[0].rsplit('/', 1)[0] + '/' if len(paths) > 1 and '/' in paths[0] else ''
         shared = folder if folder and all(p.startswith(folder) for p in paths) else ''
         names = [p[len(shared):] for p in paths]
-        size = num(len(paths), 'files in this loop')
+        size = num(M.collection_count(paths), 'files in this loop')
         where = T(f'في {lit(shared)}', f'in {lit(shared)}') if shared else ''
         if len(paths) == 2:
             body = f'<span dir="ltr" class="pair">{lit(names[0])}<span class="arrow" aria-hidden="true">⇄</span>{lit(names[1])}</span>'
@@ -723,23 +684,19 @@ def section_plan(m):
     cards = m.get('cards') or []
     t = gap_totals(m, cards)
     out = [work_log(progress), f'<div class="grid three"><div class="card stat good-bg"><div class="stat-n">{num(t["closed"], "problems fixed and merged, or no longer found, so far")}</div><p>{T("مشاكل أُغلقت حتى الآن: أُصلحت ودُمجت أو لم تعد موجودة", "problems closed so far: fixed and merged, or no longer found")}</p></div>'
-           f'<div class="card stat"><div class="stat-n">{num(t["total"] - t["closed"], "problems left")}</div><p>{T("مشاكل باقية", "problems left")}</p></div>'
+           f'<div class="card stat"><div class="stat-n">{num(M.problems_left(t), "problems left")}</div><p>{T("مشاكل باقية", "problems left")}</p></div>'
            f'<div class="card stat"><div class="stat-n">{num(t["on_branch"], "fixes on a branch waiting for your decision")}</div><p>{T("إصلاحات على فرع تنتظر قرارك، لا تُحسب حتى تُدمج", "fixes on a branch waiting for your decision; not counted until merged")}</p></div>'
-           f'<div class="card stat warn-bg"><div class="stat-n">{num(len(failed), "fixes that were tried and did not pass")}</div><p>{T("إصلاحات جُرّبت ولم تنجح", "fixes tried that did not pass")}</p></div></div>']
+           f'<div class="card stat warn-bg"><div class="stat-n">{num(M.collection_count(failed), "fixes that were tried and did not pass")}</div><p>{T("إصلاحات جُرّبت ولم تنجح", "fixes tried that did not pass")}</p></div></div>']
     milestones = plan.get('milestones') or []
     if not milestones:
         out.append(f'<h3>{T("المراحل", "Milestones")}</h3>{unavailable("milestones")}')
     else:
         steps = []
         for index, stone in enumerate(milestones, 1):
-            mine = [c for c in cards if c['milestone'] == stone.get('id')]
-            tasks = mine or list(stone.get('tasks') or [])
-            finished = sum(c['state'] in CLOSED for c in mine)
-            share = round(100 * finished / len(tasks)) if tasks else 0
+            counts = M.milestone_counts(stone, cards, by_id)
+            finished, share, ready, state = (counts[key] for key in ('closed', 'percent', 'automatic', 'state'))
             label = milestone_label(stone)
-            ready = sum(by_id[t]['auto'] for t in stone.get('tasks') or [] if t in by_id)
-            state = 'done' if tasks and finished == len(tasks) else 'active' if finished else 'todo'
-            n_done, n_all = num(finished, 'cards finished in this milestone'), num(len(tasks), 'cards in this milestone')
+            n_done, n_all = num(finished, 'cards finished in this milestone'), num(counts["total"], 'cards in this milestone')
             n_share, n_auto = num(f'{share}%', 'share finished'), num(ready, 'cards EAOS can fix automatically here')
             tally = T(f'المنجز: {n_done} من {n_all} ({n_share}) · يصلحها EAOS آليًا: {n_auto}',
                       f'{n_done} of {n_all} done ({n_share}) · {n_auto} automatic')
@@ -766,7 +723,7 @@ def waves_block(progress, failed, by_id):
                     'failed': ('فشلت', 'failed'), 'pending': ('تنتظر', 'waiting')}
     rows = ''.join(
         f'<tr><td>{num(wave.get("number", i), "batch number")}</td><td>{T(*map(esc, status_words.get(wave.get("status"), (wave.get("status") or "—",) * 2)))}</td>'
-        f'<td>{num(len(wave.get("kept") or []), "fixes kept in this batch")}</td><td>{num(len(wave.get("failed") or {}), "fixes that did not pass in this batch")}</td>'
+        f'<td>{num(M.collection_count(wave.get("kept") or []), "fixes kept in this batch")}</td><td>{num(M.collection_count(wave.get("failed") or {}), "fixes that did not pass in this batch")}</td>'
         f'<td>{lit(wave.get("branch") or "—")}</td></tr>' for i, wave in enumerate(waves, 1))
     fails = ''.join(f'<li>{lit(card)} {tech(reason)}</li>' for card, reason in sorted(failed.items()))
     return head + (f'<div class="card scroll"><table class="tbl"><thead><tr><th>{T("الدفعة", "Batch")}</th><th>{T("الحالة", "Status")}</th>'
@@ -794,8 +751,8 @@ def decisions_block(rows):
             options = (f'<details><summary>{T("الخيارات المقترحة لمثال منها", "The suggested options, for one example")} {lit(sample["id"])}</summary><ul class="options">'
                        + ''.join(f'<li><b>{esc(o.get("option", ""))}</b> <span class="muted">{esc(o.get("verdict", ""))}</span></li>'
                                  for o in sample['options'] if isinstance(o, dict)) + '</ul></details>')
-        ids = ' '.join(lit(r['id']) for r in group[:40]) + (T(f' و{num(len(group) - 40, "more cards")} غيرها', f' and {num(len(group) - 40, "more cards")} more') if len(group) > 40 else '')
-        count = num(len(group), 'cards waiting for a decision')
+        ids = ' '.join(lit(r['id']) for r in group[:40]) + (T(f' و{num(M.remaining(group, 40), "more cards")} غيرها', f' and {num(M.remaining(group, 40), "more cards")} more') if len(group) > 40 else '')
+        count = num(M.collection_count(group), 'cards waiting for a decision')
         cards.append(f'<div class="card decision"><h4>{T(esc(tar), esc(ten))} <span class="count">{T(f"البطاقات: {count}", f"cards: {count}")}</span></h4>'
                      f'<p>{T(esc(why_ar), esc(why_en))}</p>'
                      + (f'<p class="small">{T("المطلوب منك أن تختار لكل حالة:", "For each case you choose:")}</p><ul class="answers">{answers}</ul>' if answers else '')
@@ -888,14 +845,13 @@ def history_chart(points):
         except ValueError: return None
     times = [when(h) for h in points]
     if None in times or max(times) == min(times): times = list(range(len(points)))
-    top_value = max(h['percent'] for h in points)
-    scale = next((s for s in (5, 10, 20, 25, 50, 100) if s >= top_value * 1.1), 100)
+    scale = M.history_scale(points)
     span = (max(times) - min(times)) or 1
     X = lambda t: left + (width - left - right) * ((t - min(times)) / span if len(points) > 1 else 0.5)
     Y = lambda v: top + (height - top - bottom) * (1 - min(v, scale) / scale)
     out = [f'<svg viewBox="0 0 {width} {height}" direction="ltr" role="img" class="chart history" '
            f'aria-label="{esc("share of the gap closed over time")}">']
-    for tick in (0, scale / 2, scale):
+    for tick in M.history_ticks(points):
         label = f'{tick:g}%'
         out.append(f'<line x1="{left}" x2="{width - right}" y1="{Y(tick):.1f}" y2="{Y(tick):.1f}" class="grid"/>'
                    f'<text x="{left - 8}" y="{Y(tick) + 4:.1f}" text-anchor="end" class="tick" data-meaning="share of the gap closed">{label}</text>')
@@ -920,7 +876,7 @@ def card_item(c, words=CARD_STATE, extra=''):
     """One task card, collapsed: its state and title; open, what it is, where, now and should-be, and when."""
     new = f' <span class="chip st st-accent">{T("جديدة", "New")}</span>' if c.get('new') else ''
     where = ' '.join(lit(p) for p in c['paths'][:6])
-    if len(c['paths']) > 6: where += ' ' + T(f'و{num(len(c["paths"]) - 6, "more files")} ملفات أخرى', f'and {num(len(c["paths"]) - 6, "more files")} more files')
+    if len(c['paths']) > 6: where += ' ' + T(f'و{num(M.remaining(c["paths"], 6), "more files")} ملفات أخرى', f'and {num(M.remaining(c["paths"], 6), "more files")} more files')
     lines = []
     if c.get('pattern') in plain.TEXT:
         (tar, why_ar), (ten, why_en) = plain.problem(c['pattern'], 'ar'), plain.problem(c['pattern'], 'en')
@@ -944,18 +900,19 @@ def card_item(c, words=CARD_STATE, extra=''):
 
 def cards_block(groups, words=CARD_STATE, total=None):
     """"All task cards": collapsed; inside, a status filter, a search, and one collapsed group per milestone."""
-    count = num(total if total is not None else sum(len(cards) for _, _, cards in groups), 'all task cards')
+    count = num(total if total is not None else M.all_card_count(groups), 'all task cards')
     options = ''.join(f'<option value="{s}" data-ar="{esc(words[s][0])}" data-en="{esc(words[s][1])}">{esc(words[s][0])}</option>'
                       for s in STATE_ORDER if s in words)
     if words is CARD_STATE: options += '<option value="new" data-ar="جديدة" data-en="New">جديدة</option>'
     blocks = []
     for label, stone, cards in groups:
         if not cards: continue
-        closed = sum(c['state'] in CLOSED for c in cards)
-        tally = T(f'المغلق: {num(closed, "cards closed in this milestone")} من {num(len(cards), "cards in this milestone")}',
-                  f'{num(closed, "cards closed in this milestone")} of {num(len(cards), "cards in this milestone")} closed')
+        counts = M.card_counts(cards)
+        closed = counts['closed']
+        tally = T(f'المغلق: {num(closed, "cards closed in this milestone")} من {num(M.collection_count(cards), "cards in this milestone")}',
+                  f'{num(closed, "cards closed in this milestone")} of {num(M.collection_count(cards), "cards in this milestone")} closed')
         blocks.append(f'<details class="mgroup"><summary><span>{T(esc(label[0]), esc(label[1]))} {lit(stone) if stone else ""}</span>'
-                      f'<span class="g-meta">{tally}</span></summary>{bar(100 * closed / len(cards), "thin")}'
+                      f'<span class="g-meta">{tally}</span></summary>{bar(counts["percent"], "thin")}'
                       f'<div class="tcards">{"".join(card_item(c, words) for c in cards)}</div></details>')
     return (f'<details class="card allcards" id="allcards" data-part="cards"><summary>{T("كل بطاقات المهام", "All task cards")} '
             f'<span class="g-meta">{T(f"البطاقات: {count}", f"{count} cards")}</span></summary>'
@@ -1109,9 +1066,9 @@ def architecture_map(m):
     head = f'<h3 id="arch-map">{T("كيف تعتمد الأجزاء بعضها على بعض", "How the parts depend on each other")}</h3>'
     if not cmap:
         return head + unavailable('architecture map')
-    loops = sum(e['cycle'] for e in cmap['edges'])
-    wrong = sum(e['wrong'] for e in cmap['edges'])
-    parts, links = num(len(cmap['nodes']), 'parts drawn'), num(len(cmap['edges']), 'links between parts')
+    counts = M.architecture_counts(cmap)
+    loops, wrong = counts['loops'], counts['wrong']
+    parts, links = num(M.collection_count(cmap['nodes']), 'parts drawn'), num(M.collection_count(cmap['edges']), 'links between parts')
     n_loops, n_wrong = num(loops, 'links inside a loop'), num(wrong, 'links against the target layering')
     summary = T(f'الأجزاء: {parts} · الروابط بينها: {links} · روابط داخل حلقات: {n_loops} · روابط عكس الطبقات المستهدفة: {n_wrong}',
                 f'{parts} parts · {links} links between them · {n_loops} links inside loops · {n_wrong} links against the target layering')
@@ -1228,7 +1185,7 @@ def target_svg(rows, edges, progress, rtl, done=('أُغلق', 'closed')):
 def target_detail(c, progress, sources):
     name = c.get('name') or ''
     closed, total = progress.get(name, (0, 0))
-    share = 100 * closed / total if total else 0
+    share = M.closed_share(closed, total)
     from_today = ' '.join(lit(s) for s in sources) or T('لا جزء اليوم؛ يُبنى جديدًا', 'no part today; it is built new')
     tally = (T(f'أُغلق {num(closed, "problems closed in this target part")} من {num(total, "problems in this target part")} ({num(pct(share), "share closed")})',
                f'{num(closed, "problems closed in this target part")} of {num(total, "problems in this target part")} closed ({num(pct(share), "share closed")})')
@@ -1288,7 +1245,7 @@ def section_target(m):
     current = [c for c in target.get('current_components') or [] if isinstance(c, dict)]
     sources = {}
     for c in current: sources.setdefault(c.get('target_component'), []).append(c.get('name') or c.get('id') or '')
-    n_parts, n_layers, n_links = num(len(tcomps), 'parts in the target structure'), num(len(rows), 'layers in the target'), num(len(edges), 'links the target allows')
+    n_parts, n_layers, n_links = num(M.collection_count(tcomps), 'parts in the target structure'), num(M.collection_count(rows), 'layers in the target'), num(M.collection_count(edges), 'links the target allows')
     out.append(f'<h3>{T("البنية المستهدفة: ما سيصبح عليه البرنامج", "The target structure: what the program will become")}</h3>'
                f'<div class="card graph-wrap" data-part="target-map"><p class="muted small">{T("كل صف طبقة، من الأعلى (ما يراه المستخدم) إلى الأسفل (الأساس)، وكل مربع جزء له مسؤولية واحدة. الشريط الأخضر في المربع: كم أُغلق من المشاكل في ملفاته. مرّر المؤشر أو اضغط على جزء لترى مسؤوليته وروابطه المسموحة ومن أين يأتي من البنية اليوم.", "Each row is a layer, from the top (what users see) to the bottom (the foundation); each box is a part with one job. The green bar in a box: how much of the problems in its files is closed. Hover or click a part to see its job, its allowed links and where it comes from in today’s structure.")}</p>'
                f'<p class="small">{T(f"الأجزاء: {n_parts} · الطبقات: {n_layers} · الروابط المسموحة: {n_links}", f"{n_parts} parts · {n_layers} layers · {n_links} allowed links")}</p>'
@@ -1305,7 +1262,7 @@ def section_target(m):
         f'<tr><td>{lit(c["name"])}</td><td>{lit(c.get("layer") or "")}</td><td>{num(c.get("files") or 0, "files in this target part")}</td>'
         f'<td>{" ".join(lit(s) for s in sources.get(c["name"], [])) or T("جديد", "new")}</td>'
         f'<td>{num(progress.get(c["name"], (0, 0))[0], "problems closed here")} / {num(progress.get(c["name"], (0, 0))[1], "problems in this part")}'
-        f'{bar(100 * progress[c["name"]][0] / progress[c["name"]][1], "thin") if progress.get(c["name"], (0, 0))[1] else ""}</td></tr>'
+        f'{bar(M.closed_share(*progress[c["name"]]), "thin") if progress.get(c["name"], (0, 0))[1] else ""}</td></tr>'
         for _, comps in rows for c in comps)
     out.append(f'<h3>{T("إغلاق الفجوة في كل جزء مستهدف", "The gap closed in each target part")}</h3><div class="card scroll"><p class="muted small">'
                f'{T("تُحسب المشكلة في كل جزء مستهدف تذهب إليه أحد ملفاتها. المغلق: ما أُصلح ودُمج أو لم يعد موجودًا.", "A problem counts in every target part one of its files goes to. Closed: fixed and merged, or no longer found.")}</p>'
@@ -1393,7 +1350,7 @@ def api_table(sm):
     short = {h['path']: h['short'] for h in sm['handlers']}
     def some(items, meaning, limit=5):
         shown = ' '.join(lit(i) for i in items[:limit])
-        more = len(items) - limit
+        more = M.remaining(items, limit)
         return shown + (' ' + T(f'و{num(more, meaning)} غيرها', f'and {num(more, meaning)} more') if more > 0 else '') if items else '—'
     rows = []
     for a in sm['apis']:
@@ -1410,7 +1367,7 @@ def api_table(sm):
                     f'<td>{some(sorted(set(reached)), "more pages")}<div class="small muted">{some(callers, "more files", 3)}</div></td>'
                     f'<td>{handler}</td><td>{some(data, "more tables and services")}</td><td>{some(a["features"], "more features", 3)}</td></tr>')
     return (f'<details class="card" data-part="system-apis"><summary>{T("كل نقاط API كجدول", "Every API as a table")} '
-            f'<span class="g-meta">{T(f"النقاط: {num(len(sm["apis"]), "APIs in the table")}", f"{num(len(sm["apis"]), "APIs in the table")} APIs")}</span></summary>'
+            f'<span class="g-meta">{T(f"النقاط: {num(M.collection_count(sm["apis"]), "APIs in the table")}", f"{num(M.collection_count(sm["apis"]), "APIs in the table")} APIs")}</span></summary>'
             f'<div class="scroll"><table class="tbl sm-table"><thead><tr><th>{T("الطريقة", "Method")}</th><th>{T("المسار", "Path")}</th>'
             f'<th>{T("من يستدعيها (صفحات، ثم ملفات)", "Called from (pages, then files)")}</th><th>{T("ما يجيبها في الخادم", "Server handler")}</th>'
             f'<th>{T("الجداول والخدمات", "Tables and services")}</th><th>{T("الميزة", "Feature")}</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div></details>')
@@ -1435,20 +1392,20 @@ def section_system(m):
         return unavailable('system map')
     from .system_map import COLUMNS, WIDTH
     from .arch_map import json_script
-    answered = sum(1 for a in sm['apis'] if a['handlers'])
-    tables = sum(1 for d in sm['data'] if d['id'].startswith('T:'))
+    metrics = M.system_counts(sm)
+    answered, tables = metrics['answered'], metrics['tables']
     n = lambda v, meaning: num(v, meaning)
-    summary = T(f'الصفحات: {n(len(sm["pages"]), "pages")} · نقاط API: {n(len(sm["apis"]), "APIs")} · وجدنا في الخادم ما يجيب {n(answered, "APIs with a server handler found")} منها · '
-                f'ملفات الخادم: {n(len(sm["handlers"]), "server files that answer requests")} · الجداول: {n(tables, "tables")} · الخدمات: {n(len(sm["data"]) - tables, "services and storage")}',
-                f'{n(len(sm["pages"]), "pages")} pages · {n(len(sm["apis"]), "APIs")} APIs · a server handler found for {n(answered, "APIs with a server handler found")} of them · '
-                f'{n(len(sm["handlers"]), "server files that answer requests")} server files · {n(tables, "tables")} tables · {n(len(sm["data"]) - tables, "services and storage")} services')
+    summary = T(f'الصفحات: {n(metrics["pages"], "pages")} · نقاط API: {n(metrics["apis"], "APIs")} · وجدنا في الخادم ما يجيب {n(answered, "APIs with a server handler found")} منها · '
+                f'ملفات الخادم: {n(metrics["handlers"], "server files that answer requests")} · الجداول: {n(tables, "tables")} · الخدمات: {n(metrics["services"], "services and storage")}',
+                f'{n(metrics["pages"], "pages")} pages · {n(metrics["apis"], "APIs")} APIs · a server handler found for {n(answered, "APIs with a server handler found")} of them · '
+                f'{n(metrics["handlers"], "server files that answer requests")} server files · {n(tables, "tables")} tables · {n(metrics["services"], "services and storage")} services')
     notes = []
     if sm['unknown']:
         notes.append(T(f'لم نجد في الخادم ما يجيب {n(sm["unknown"], "APIs whose handler is unknown")} من نقاط API: قد يأتي جوابها من خادم آخر أو من مسار يُبنى وقت التشغيل. تظهر منقّطة.',
                        f'For {n(sm["unknown"], "APIs whose handler is unknown")} APIs no server code was found that answers them: the answer may come from another server, or from a route built at run time. They are drawn dotted.'))
     if sm['guessed']:
         notes.append(T(f'{n(sm["guessed"], "APIs matched by file name only")} منها رُبطت بملف من اسمه فقط؛ تحقق منها.', f'{n(sm["guessed"], "APIs matched by file name only")} of them are matched to a file by its name only; check them.'))
-    untraced = sum(1 for p in sm['pages'] if not p['traced'])
+    untraced = metrics['untraced']
     if untraced:
         notes.append(T(f'{n(untraced, "pages whose component file was not found")} صفحة لم نجد ملف مكوّنها، فلم نتتبع ما تستدعيه (تظهر باهتة).',
                        f'{n(untraced, "pages whose component file was not found")} pages: their component file was not found, so what they call is not traced (drawn faded).'))
@@ -1480,13 +1437,14 @@ def section_system(m):
         spans += [x - edge, width]; edge = x + width
     spans.append(WIDTH - edge)
     fr = ' '.join(f'{max(s, 0)}fr' for s in spans)
-    counts = (len(sm['pages']), len(sm['apis']), len(sm['handlers']), len(sm['modules']), len(sm['data']))
+    counts = metrics['columns']
     meanings = ('pages and shared files drawn', 'APIs drawn', 'server files drawn', 'parts drawn', 'tables and services drawn')
-    heads = ''.join(f'<div></div><div>{T(esc(ar), esc(en))} {num(counts[c] + (len(sm["callers"]) if c == 0 else 0), meanings[c])}</div>'
+    heads = ''.join(f'<div></div><div>{T(esc(ar), esc(en))} {num(counts[c], meanings[c])}</div>'
                     for c, (ar, en) in enumerate(SM_HEADS)) + '<div></div>'
     info = {x['id']: x for group in ('pages', 'callers', 'apis', 'handlers', 'modules', 'data') for x in sm[group]}
     info = {k: {kk: vv for kk, vv in v.items() if kk not in ('reach',)} for k, v in info.items()}
-    data = {'rel': sm['related'], 'info': info, 'features': {f['name']: f['pages'] for f in sm['features']}}
+    data = {'rel': sm['related'], 'info': info, 'features': {f['name']: f['pages'] for f in sm['features']},
+            'feature_counts': sm['feature_counts']}
     return (f'<div class="card graph-wrap sm-wrap" data-part="system-map"><h3 class="sm-title">{T("كل الروابط: من الصفحة إلى البيانات", "Every link: from the page to the data")}</h3>'
             f'<p class="muted small">{T("من اليمين إلى اليسار: الصفحة، ونقطة API التي تستدعيها، والملف في الخادم الذي يجيبها، والأجزاء التي يستخدمها، والجداول والخدمات التي يصل إليها. مرّر المؤشر على أي مربع لتضيء سلسلته كلها، أو اضغط عليه لتثبيتها وترى تفاصيله تحت الرسم.", "From left to right: the page, the API it calls, the server file that answers it, the parts that file uses, and the tables and services it reaches. Hover any box to light its whole chain, or click it to keep it and see its details under the drawing.")}</p>'
             f'<p class="small">{summary}</p>' + ''.join(f'<p class="muted small">{x}</p>' for x in notes) + controls + legend
@@ -1540,8 +1498,8 @@ def work_log(progress):
         number = work.get('number') if work.get('number') is not None else work.get('milestone')
         label = (T(f'{esc(kind[0])} مفتوحة', f'Open {esc(kind[1])}') + (' ' + (num(number, 'the number of the open batch') if isinstance(number, int) else lit(number)) if number is not None else ''))
         kept, not_kept, left = work.get('kept') or [], work.get('not_kept') or {}, work.get('left') or []
-        now.append(f'<li>{label}: ' + T(f'نجح {num(len(kept), "cards kept in the open batch")}، ولم ينجح {num(len(not_kept), "cards not kept in the open batch")}، وبقي {num(len(left), "cards left in the open batch")}',
-                                         f'{num(len(kept), "cards kept in the open batch")} kept, {num(len(not_kept), "cards not kept in the open batch")} not kept, {num(len(left), "cards left in the open batch")} left') + '</li>')
+        now.append(f'<li>{label}: ' + T(f'نجح {num(M.collection_count(kept), "cards kept in the open batch")}، ولم ينجح {num(M.collection_count(not_kept), "cards not kept in the open batch")}، وبقي {num(M.collection_count(left), "cards left in the open batch")}',
+                                         f'{num(M.collection_count(kept), "cards kept in the open batch")} kept, {num(M.collection_count(not_kept), "cards not kept in the open batch")} not kept, {num(M.collection_count(left), "cards left in the open batch")} left') + '</li>')
         if left: now.append(f'<li>{T("الباقي:", "Left:", cls="lbl")} {cards(left)}</li>')
         for card, why in list(not_kept.items())[:8] if isinstance(not_kept, dict) else []:
             now.append(f'<li>{T("لم ينجح:", "Not kept:", cls="lbl")} {lit(card)} {tech(str(why)[:200])}</li>')
@@ -1555,7 +1513,7 @@ def work_log(progress):
         read = [f for f in busy.get('files_read') or [] if isinstance(f, str)]
         now.append(f'<li>{T(f"كان يعمل على البطاقة {lit(busy["card"])}", f"Was working on card {lit(busy["card"])}")}{by}{since}'
                    + (f'<div class="small">{T("قرأ من الملفات:", "Files it read:", cls="lbl")} {" ".join(lit(f) for f in read[:8])}'
-                      + (T(f' و{num(len(read) - 8, "more files read")} غيرها', f' and {num(len(read) - 8, "more files read")} more') if len(read) > 8 else '') + '</div>' if read else '')
+                      + (T(f' و{num(M.remaining(read, 8), "more files read")} غيرها', f' and {num(M.remaining(read, 8), "more files read")} more') if len(read) > 8 else '') + '</div>' if read else '')
                    + (f'<div class="small">{T("آخر محاولة:", "Last try:", cls="lbl")} {tech(str(busy["last_try"])[:300])}</div>' if busy.get('last_try') else '')
                    + '</li>')
     if not now: now.append(T('لا شيء مفتوح الآن.', 'Nothing is open now.', 'li'))
@@ -2041,10 +1999,10 @@ var root=C.name.replace(/\/?$/,'/');
 var o={label:C.name,left:left.map(function(p){return{label:D.comps[p[0]].name,title:D.comps[p[0]].name+' → '+C.name+': '+p[1]}}),
 right:right.map(function(p){return{label:D.comps[p[0]].name,title:C.name+' → '+D.comps[p[0]].name+': '+p[1]}}),
 mid:files.map(function(f){var p=D.files[f];return{label:p.indexOf(root)===0?p.slice(root.length):p,title:p,pick:f,cls:D.cycle[f]?'cyc':''}}),lm:pairs(lm),mr:pairs(mr),mm:mm};
-var inside=mm.length,more=C.files.length-files.length,coh=C.cohesion==null?B('لا يستورد شيئًا','it imports nothing'):B(N(C.cohesion+'%','share of its imports that stay inside it')+' من استيراداته تبقى داخله',N(C.cohesion+'%','share of its imports that stay inside it')+' of its imports stay inside it');
+var inside=C.counts.inside,more=C.counts.more,coh=C.cohesion==null?B('لا يستورد شيئًا','it imports nothing'):B(N(C.cohesion+'%','share of its imports that stay inside it')+' من استيراداته تبقى داخله',N(C.cohesion+'%','share of its imports that stay inside it')+' of its imports stay inside it');
 view.innerHTML='<p class="small"><code class="lit" dir="ltr" data-literal="1">'+E(C.name)+'</code> — '+B('الملفات: '+N(C.filecount,'files in this part')+' · استيرادات داخلية مرسومة: '+N(inside,'imports between its files drawn'),N(C.filecount,'files in this part')+' files · '+N(inside,'imports between its files drawn')+' imports between them drawn')+' · '+coh+
-(more>0?' · '+B('عُرض أكثر '+N(files.length,'files shown')+' ملفًا ارتباطًا','showing the '+N(files.length,'files shown')+' most connected files'):'')+'</p>'+
-heads(B('أجزاء تستخدمه','Parts that use it')+' '+N(C.used_by.length,'parts that use it'),B('ملفاته — اضغط على ملف','Its files — click a file'),B('أجزاء يستخدمها','Parts it uses')+' '+N(C.uses.length,'parts it uses'))+both(o);
+(more>0?' · '+B('عُرض أكثر '+N(C.counts.shown,'files shown')+' ملفًا ارتباطًا','showing the '+N(C.counts.shown,'files shown')+' most connected files'):'')+'</p>'+
+heads(B('أجزاء تستخدمه','Parts that use it')+' '+N(C.counts.used_by,'parts that use it'),B('ملفاته — اضغط على ملف','Its files — click a file'),B('أجزاء يستخدمها','Parts it uses')+' '+N(C.counts.uses,'parts it uses'))+both(o);
 view.querySelectorAll('[data-pick]').forEach(function(g){function go(){file(+g.dataset.pick)}g.addEventListener('click',go);g.addEventListener('keydown',function(e){if(e.key==='Enter'){go()}})});
 if(files.length)file(files[0]);else document.getElementById('dfile').innerHTML=''}
 function file(f){var view=document.getElementById('dfile'),own=D.functions[f]||[],touched={};
@@ -2061,8 +2019,8 @@ Object.keys(mr).forEach(function(q){var p=q.split('|'),k=p[1]+'|'+p[2];if(k in r
 var head='<h4><code class="lit" dir="ltr" data-literal="1">'+E(D.files[f])+'</code></h4>';
 if(!own.length){view.innerHTML=head+'<p class="muted small">'+B('لم نجد دوال مسمّاة في هذا الملف.','No named function was found in this file.')+'</p>';return}
 var o={label:D.files[f],left:lk.map(function(k){return L[k]}),right:rk.map(function(k){return R[k]}),mid:names.map(function(n){return{label:n,cls:touched[n]?'':'quiet'}}),lm:LM,mr:MR,mm:mm};
-view.innerHTML=head+'<p class="small">'+B('الدوال: '+N(own.length,'named functions in this file')+' · تستدعيها دوال من ملفات أخرى: '+N(lk.length,'functions elsewhere that call this file')+' · تستدعي هي: '+N(rk.length,'functions elsewhere this file calls'),
-N(own.length,'named functions in this file')+' functions · called by '+N(lk.length,'functions elsewhere that call this file')+' functions elsewhere · they call '+N(rk.length,'functions elsewhere this file calls')+' elsewhere')+'</p>'+
+view.innerHTML=head+'<p class="small">'+B('الدوال: '+N(D.file_counts[f].own,'named functions in this file')+' · تستدعيها دوال من ملفات أخرى: '+N(D.file_counts[f].left,'functions elsewhere that call this file')+' · تستدعي هي: '+N(D.file_counts[f].right,'functions elsewhere this file calls'),
+N(D.file_counts[f].own,'named functions in this file')+' functions · called by '+N(D.file_counts[f].left,'functions elsewhere that call this file')+' functions elsewhere · they call '+N(D.file_counts[f].right,'functions elsewhere this file calls')+' elsewhere')+'</p>'+
 heads(B('من يستدعيها','Who calls them'),B('دوال هذا الملف (الأقواس: استدعاءات بينها)','This file’s functions (arcs: calls between them)'),B('ما تستدعيه','What they call'))+both(o)}
 var dc=document.getElementById('dcomp');if(dc&&D.comps.length){dc.addEventListener('change',function(){comp(+dc.value)});comp(+dc.value||0)}}
 var F=J('eaos-flows');
@@ -2151,9 +2109,9 @@ function detail(id){if(!panel)return;if(!id){panel.innerHTML=hint;return}
 var o=D.info[id]||{},k=id.charAt(0),lines=[],r=D.rel[id]||[];
 if(k==='P'){lines.push(B('ملف المكوّن:','Component file:')+' '+L(o.file));
 if(!o.traced)lines.push(B('لم نجد ملف مكوّنها، فلم نتتبع ما تستدعيه.','Its component file was not found, so what it calls is not traced.'));
-lines.push(B('تستدعي من ملفاتها: '+N(o.calls.length,'APIs called from this page’s own files')+' · تصل إلى كود مشترك يستدعي الخادم: '+N(o.shared.length,'shared files this page reaches'),
-N(o.calls.length,'APIs called from this page’s own files')+' APIs called from its own files · '+N(o.shared.length,'shared files this page reaches')+' shared files that call the server'))}
-if(k==='C'){lines.push(B('تصل إليه صفحات: '+N(o.pages.length,'pages that reach this file')+' · يستدعي: '+N(o.calls.length,'APIs this file calls'),N(o.pages.length,'pages that reach this file')+' pages reach it · it calls '+N(o.calls.length,'APIs this file calls')+' APIs'))}
+lines.push(B('تستدعي من ملفاتها: '+N(o.counts.calls,'APIs called from this page’s own files')+' · تصل إلى كود مشترك يستدعي الخادم: '+N(o.counts.shared,'shared files this page reaches'),
+N(o.counts.calls,'APIs called from this page’s own files')+' APIs called from its own files · '+N(o.counts.shared,'shared files this page reaches')+' shared files that call the server'))}
+if(k==='C'){lines.push(B('تصل إليه صفحات: '+N(o.counts.pages,'pages that reach this file')+' · يستدعي: '+N(o.counts.calls,'APIs this file calls'),N(o.counts.pages,'pages that reach this file')+' pages reach it · it calls '+N(o.counts.calls,'APIs this file calls')+' APIs'))}
 if(k==='A'){lines.push(B('يستدعيها من الملفات:','Called in the files:')+' '+(o.callers.length?o.callers.map(L).join(' '):B('لا أحد وجدناه','none we found')));
 if(o.handlers.length){lines.push(B('يجيبها في الخادم:','Answered on the server by:')+' '+o.handlers.map(function(h){return L(h.path)+(h.function?' '+L(h.function):'')}).join(' ')+(o.exact?'':' '+B('(من اسم الملف فقط؛ تحقق منه)','(from the file name only; check it)')))}
 else lines.push(B('لم نجد في الخادم ما يجيبها: قد يأتي جوابها من خادم آخر، أو من مسار يُبنى وقت التشغيل.','No server code was found that answers it: the answer may come from another server, or from a route built at run time.'));
@@ -2161,7 +2119,7 @@ if(o.features&&o.features.length)lines.push(B('الميزة:','Feature:')+' '+o.
 if(k==='H'&&!o.apis.length)lines.push(B('لم نجد في الكود من يستدعيه: قد يُستدعى من خارج البرنامج (رابط، أو webhook، أو مهمة مجدولة).','No call to it was found in the code: it may be called from outside the program (a link, a webhook, a scheduled job).'));
 if(k==='T'&&o.files)lines.push(B('معرّف في:','Defined in:')+' '+o.files.map(L).join(' ')+' · '+B('لا نفرّق هنا بين القراءة والكتابة.','reading and writing are not told apart here.'));
 var groups='';'PCAHMTS'.split('').forEach(function(g){var list=r.filter(function(x){return x.charAt(0)===g&&x!==id});if(!list.length)return;
-groups+='<div class="sm-group"><b>'+B(GROUP[g][0],GROUP[g][1])+' '+N(list.length,'related items of this kind')+'</b>'+list.slice(0,40).map(chip).join('')+(list.length>40?' '+B('و'+N(list.length-40,'more items')+' غيرها','and '+N(list.length-40,'more items')+' more'):'')+'</div>'});
+groups+='<div class="sm-group"><b>'+B(GROUP[g][0],GROUP[g][1])+' '+N(o.counts.groups[g],'related items of this kind')+'</b>'+list.slice(0,40).map(chip).join('')+(list.length>40?' '+B('و'+N(o.counts.more[g],'more items')+' غيرها','and '+N(o.counts.more[g],'more items')+' more'):'')+'</div>'});
 panel.innerHTML='<h4>'+B(KIND[k][0],KIND[k][1])+' '+L(name(id))+'</h4>'+lines.map(p).join('')+groups;
 panel.querySelectorAll('.sm-chip').forEach(function(b){b.addEventListener('click',function(){select(b.dataset.to,true)})})}
 function select(id,scroll){pinned=id;mark(id?rel(id):base);detail(id);if(scroll&&id){svgs.forEach(function(svg){if(!svg.getBoundingClientRect().width)return;
@@ -2171,7 +2129,7 @@ n.addEventListener('mouseenter',function(){if(!pinned)mark(rel(id))});n.addEvent
 function pick(){select(pinned===id?null:id)}n.addEventListener('click',pick);n.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}})})});
 var q=document.getElementById('smq'),f=document.getElementById('smf'),out=document.getElementById('smshown'),lang=function(){return document.documentElement.getAttribute('data-lang')};
 function filter(){var text=(q&&q.value||'').trim().toLowerCase(),feature=f&&f.value||'',set=null,count=0;hits=null;
-if(feature){set=new Set();(D.features[feature]||[]).forEach(function(id){rel(id).forEach(function(x){set.add(x)})});count=(D.features[feature]||[]).length}
+if(feature){set=new Set();(D.features[feature]||[]).forEach(function(id){rel(id).forEach(function(x){set.add(x)})});count=D.feature_counts[feature]||0}
 if(text){hits=new Set();(svgs[0]?svgs[0].querySelectorAll('.sm-node'):[]).forEach(function(n){if(n.dataset.search.indexOf(text)>=0)hits.add(n.dataset.node)});
 if(!set){set=new Set(hits);if(hits.size<=5)hits.forEach(function(h){rel(h).forEach(function(x){set.add(x)})})}count=hits.size}
 document.querySelectorAll('.sm-table tbody tr').forEach(function(row){row.hidden=!!text&&row.dataset.search.indexOf(text)<0});

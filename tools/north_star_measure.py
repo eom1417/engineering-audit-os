@@ -219,7 +219,7 @@ def card_values(projects, record):
 USABILITY = ('X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X8', 'X9', 'X10', 'X11', 'X12', 'X13', 'B1', 'B2', 'B3', 'B4', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6')
 
 
-STUDIO = ('F8', 'F9')
+STUDIO = ('F7', 'F8', 'F9')
 STUDIO_PHASE = ('F11', 'F12', 'F13', 'F14', 'F15')   # the exit gate of NS46, tools/north_star_studio.py
 
 
@@ -271,6 +271,9 @@ def studio_values(only=None):
     values = {}
     shipped = ROOT / 'eaos/data/studio/SOURCE.json'
     built = json.loads(shipped.read_text(encoding='utf-8'))['source_sha256'] if shipped.is_file() else None
+    if only in (None, 'F7'):
+        import report_source
+        values['F7'] = report_source.value(REPORTS)
     if only in (None, 'F8'):
         gates = REPORTS / 'studio-gates/gates.json'
         run = json.loads(gates.read_text(encoding='utf-8')) if gates.is_file() else None
