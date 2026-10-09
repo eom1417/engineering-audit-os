@@ -133,7 +133,8 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
                                                       resolved=produced.get('resolve', []), entry_points=produced.get('entrypoints', []))
         else: result = module.run(target, source)
         step(name, done + 1, len(names), 'ok' if result['available'] else 'unavailable', _time.monotonic() - began,
-             reason='' if result['available'] else result.get('reason') or '')
+             reason='' if result['available'] else result.get('reason') or '',
+             reason_code='' if result['available'] else 'extractor_unavailable')
         produced[name] = result['facts']
         if result.get('reused_from_cache'): reuse[name] = result['reused_from_cache']
         entries.append(write_set(out, name, module.NAME, module.VERSION, result['facts'], result['input_sha'],

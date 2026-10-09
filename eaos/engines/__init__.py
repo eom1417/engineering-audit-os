@@ -63,8 +63,9 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, step=None):
         except Exception as problem:                       # an engine must never take the run down with it
             reports[name] = {'engine': name, 'status': 'error', 'reason': f'{type(problem).__name__}: {problem}'[:300],
                              'findings': [], 'coverage': {}, 'version': None, 'pinned_version': ADAPTERS[name].PINNED}
-        step(name, done + 1, len(selected), reports[name].get('status') or 'error', time.monotonic() - began,
-             reason=reports[name].get('reason') or '')
+        status = reports[name].get('status') or 'error'
+        step(name, done + 1, len(selected), status, time.monotonic() - began, reason=reports[name].get('reason') or '',
+             reason_code='' if status == 'observed' else f'engine_{status}')
     after = state_digest(target)
     manifest = {
         'contract_version': 1,

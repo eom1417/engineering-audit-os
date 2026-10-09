@@ -10,7 +10,14 @@ REQUIRED, OPTIONAL = 'required', 'optional'
 
 
 class SkipStage(Exception):
-    """Raised by a runner that cannot apply here — no provider, no policy, no engine installed."""
+    """Raised by a runner that cannot apply here — no provider, no policy, no engine installed.
+
+    `code` names the reason in a stable word (`no_provider`): the Studio shows the person the text for that code in
+    their language (the `reasons` of eaos/data/errors.json), and EAOS's own sentence when the code is unknown."""
+
+    def __init__(self, reason='', code=''):
+        super().__init__(reason)
+        self.code = code
 
 
 

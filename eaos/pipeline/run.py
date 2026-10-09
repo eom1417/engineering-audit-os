@@ -71,13 +71,14 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
                 log.ended(results[stage.name], resumed=True)
                 continue
             if stage.name not in requested:
-                results[stage.name] = _row(stage, SKIPPED, 'not requested in this run')
+                results[stage.name] = _row(stage, SKIPPED, 'not requested in this run', code='not_requested')
                 log.ended(results[stage.name])
                 continue
             unmet = [name for name in stage.requires if not _satisfied(name, results, out)]
-            if unmet: blocked.setdefault(stage.name, 'Prerequisites not completed: ' + ', '.join(unmet))
+            if unmet: blocked.setdefault(stage.name, ('Prerequisites not completed: ' + ', '.join(unmet), 'prerequisites_missing'))
             if stage.name in blocked:
-                results[stage.name] = _row(stage, NOT_REACHED, blocked[stage.name])
+                reason, code = blocked[stage.name]
+                results[stage.name] = _row(stage, NOT_REACHED, reason, code=code)
                 log.ended(results[stage.name])
                 continue
             if progress: progress(todo.index(stage.name), len(todo), stage.name)
@@ -85,14 +86,14 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
                                           'status': 'RUNNING'}
             log.stage_started(stage.name)
             context['step'] = log.stepper(stage.name)
-            with using(context['step']):
+            with using(context['step'] if log.enabled else None):
                 results[stage.name] = _one(stage, context, runners, results)
             context.pop('step', None)
             log.ended(results[stage.name])
             if results[stage.name]['status'] in (FAILED, UNAVAILABLE, SKIPPED, NOT_REACHED):
                 reason = f"{stage.name} did not produce its artifacts ({results[stage.name]['status']})"
                 for name in dependents(stage.name):
-                    blocked.setdefault(name, reason)
+                    blocked.setdefault(name, (reason, 'prerequisite_failed'))
         manifest = _manifest(target, out, started_at, began, requested, results, language, exclude, max_files,
                              max_bytes, policy_path, intake)
     except BaseException as problem:                    # stopped or broken: the file says so, then the error goes on
@@ -145,29 +146,33 @@ def completion_status(results):
     return 'COMPLETE'
 
 
-def _row(stage, status, reason, seconds=0.0, artifacts=(), detail=None):
-    return {'stage': stage.name, 'status': status, 'reason': reason, 'seconds': round(seconds, 2),
-            'necessity': stage.necessity, 'produces': list(stage.produces),
-            'artifacts': sorted(artifacts), 'detail': detail or {}}
+def _row(stage, status, reason, seconds=0.0, artifacts=(), detail=None, code=''):
+    """One stage's row of the manifest. `code` is the stable word for the reason (`reason_code`), present only when
+    the stage has a reason: the Studio shows its text from eaos/data/errors.json in the person's language."""
+    row = {'stage': stage.name, 'status': status, 'reason': reason, 'seconds': round(seconds, 2),
+           'necessity': stage.necessity, 'produces': list(stage.produces),
+           'artifacts': sorted(artifacts), 'detail': detail or {}}
+    if code: row['reason_code'] = code
+    return row
 
 
 def _one(stage, context, runners, results):
     runner = runners.get(stage.name)
     if runner is None:
-        return _row(stage, FAILED, 'no runner is registered for this stage')
+        return _row(stage, FAILED, 'no runner is registered for this stage', code='no_runner')
     began = time.monotonic()
     try:
         outcome = runner(context) or {}
     except SkipStage as reason:
-        return _row(stage, UNAVAILABLE, str(reason), time.monotonic() - began)
+        return _row(stage, UNAVAILABLE, str(reason), time.monotonic() - began, code=reason.code or 'not_applicable')
     except Exception as problem:                       # one stage must not decide the fate of the rest
-        return _row(stage, FAILED, f'{type(problem).__name__}: {problem}'[:300], time.monotonic() - began)
+        return _row(stage, FAILED, f'{type(problem).__name__}: {problem}'[:300], time.monotonic() - began, code='stage_error')
     seconds = time.monotonic() - began
     present = [name for name in stage.produces if (context.out / name).exists()]
     missing = [name for name in stage.produces if name not in present]
     if missing:
         return _row(stage, FAILED, 'declared artifacts were not written: ' + ', '.join(missing),
-                    seconds, present, outcome)
+                    seconds, present, outcome, code='artifacts_missing')
     return _row(stage, OK, '', seconds, present, outcome)
 
 

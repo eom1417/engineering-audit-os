@@ -381,5 +381,180 @@
     "after": "If it happens again, send the log file named in the box to whoever helps you."
    }
   }
- ]
+ ],
+ "reasons_description": "Why a stage or a step of the live map did not run, or did not pass, in the person's words: each key is a stable `reason_code` written in the progress files (eaos/progress) and in run-manifest.json; eaos/progress/reasons.py reads it. An unknown code shows the sentence EAOS wrote itself.",
+ "reasons": {
+  "not_requested": {
+   "ar": "لم تُطلب هذه المرحلة في هذا الفحص.",
+   "en": "This stage was not asked for in this run."
+  },
+  "prerequisites_missing": {
+   "ar": "لم تعمل لأن مرحلة تحتاجها قبلها لم تكتمل.",
+   "en": "It did not run because a stage it needs did not finish."
+  },
+  "prerequisite_failed": {
+   "ar": "لم تعمل لأن مرحلة تحتاجها لم تُخرج نتائجها.",
+   "en": "It did not run because a stage it needs did not produce its results."
+  },
+  "no_runner": {
+   "ar": "لا يوجد في EAOS ما ينفّذ هذه المرحلة.",
+   "en": "EAOS has nothing that runs this stage."
+  },
+  "not_applicable": {
+   "ar": "هذه المرحلة لا تنطبق على مشروعك.",
+   "en": "This stage does not apply to your project."
+  },
+  "stage_error": {
+   "ar": "حدث خطأ داخل هذه المرحلة، والتفاصيل في سجل الفحص.",
+   "en": "Something went wrong inside this stage; the details are in the run's record."
+  },
+  "artifacts_missing": {
+   "ar": "انتهت المرحلة لكنها لم تكتب كل ملفاتها.",
+   "en": "The stage ended but did not write all its files."
+  },
+  "run_ended": {
+   "ar": "توقف العمل قبل أن تنتهي هذه المرحلة.",
+   "en": "The run stopped before this stage finished."
+  },
+  "no_source_files": {
+   "ar": "لم أجد في المجلد ملفات برمجية أقرؤها، فلم أفحص شيئًا.",
+   "en": "The folder holds no source file I can read, so nothing was checked."
+  },
+  "engines_not_requested": {
+   "ar": "الأدوات الخارجية لم تُطلب في هذا الفحص.",
+   "en": "The external tools were not asked for in this run."
+  },
+  "no_engine_installed": {
+   "ar": "لا توجد أداة خارجية مثبّتة على هذا الجهاز.",
+   "en": "No external tool is installed on this computer."
+  },
+  "no_test_command": {
+   "ar": "لم يُحدَّد أمر لتشغيل اختبارات مشروعك، فلم أشغّل شيئًا.",
+   "en": "No command to run your project's tests was given, so nothing was run."
+  },
+  "no_policy": {
+   "ar": "مشروعك لا يعلن قواعد لبنيته (eaos.policy.json).",
+   "en": "Your project declares no architecture rules (eaos.policy.json)."
+  },
+  "no_provider": {
+   "ar": "لم يُضبط مساعد ذكي، فلم أطلب تفسيرًا.",
+   "en": "No AI assistant is set up, so no interpretation was asked for."
+  },
+  "no_features": {
+   "ar": "لم أجد في برنامجك ميزات أكتب لها اختبارات تحفظ سلوكها.",
+   "en": "I found no feature in your program to write behaviour-keeping tests for."
+  },
+  "no_report_linters": {
+   "ar": "أدوات تدقيق كتابة التقارير (Vale وmarkdownlint) غير مثبّتة.",
+   "en": "The report-writing checkers (Vale, markdownlint) are not installed."
+  },
+  "pdf_unavailable": {
+   "ar": "لم أستطع إخراج ملف PDF: برنامج Typst أو خط اللغة غير مثبّت.",
+   "en": "The PDF could not be made: Typst, or a font for the language, is not installed."
+  },
+  "site_off": {
+   "ar": "طُلب ألا تُبنى صفحة التقرير.",
+   "en": "The report page was turned off for this run."
+  },
+  "no_emitter": {
+   "ar": "لا يوجد ملف بصيغة أداة أخرى ينطبق على مشروعك.",
+   "en": "No file in another tool's format applies to your project."
+  },
+  "engine_unavailable": {
+   "ar": "هذه الأداة غير مثبّتة على هذا الجهاز.",
+   "en": "This tool is not installed on this computer."
+  },
+  "engine_not_applicable": {
+   "ar": "هذه الأداة لا تنطبق على لغات مشروعك.",
+   "en": "This tool does not apply to your project's languages."
+  },
+  "engine_error": {
+   "ar": "توقفت هذه الأداة بخطأ، وأكمل بقية الفحص.",
+   "en": "This tool stopped with an error; the rest of the check went on."
+  },
+  "engine_partial": {
+   "ar": "هذه الأداة فحصت جزءًا من المشروع فقط.",
+   "en": "This tool checked only part of the project."
+  },
+  "extractor_unavailable": {
+   "ar": "هذا الجزء من القراءة لم يعمل على مشروعك.",
+   "en": "This part of the reading did not run on your project."
+  },
+  "no_app_profile": {
+   "ar": "لم أعرف كيف أشغّل برنامجك: أشغّل الآن تطبيقات الويب المكتوبة بـ JavaScript أو TypeScript فقط.",
+   "en": "I could not tell how to start your app: for now I run JavaScript and TypeScript web apps only."
+  },
+  "app_not_answering": {
+   "ar": "شغّلت برنامجك لكن صفحته الأولى لم تفتح كما يجب.",
+   "en": "Your app was started but its first page did not open as it should."
+  },
+  "fixtures_missing": {
+   "ar": "الشاشات تحتاج بيانات تجريبية لم تُجهَّز بعد.",
+   "en": "The screens need sample values that are not ready yet."
+  },
+  "no_assistant": {
+   "ar": "لا يوجد مساعد ذكي ليساعد في تشغيل برنامجك.",
+   "en": "No AI assistant was available to help start your app."
+  },
+  "proposal_refused": {
+   "ar": "اقترح المساعد تغييرًا غير آمن فرفضته ولم أطبّقه.",
+   "en": "The assistant proposed something unsafe; it was refused and not applied."
+  },
+  "no_build": {
+   "ar": "برنامجك ليس له أمر بناء لنسخة الإنتاج، فلم أقس السرعة.",
+   "en": "Your app has no production build command, so speed is not measured."
+  },
+  "baseline_failed": {
+   "ar": "لم تعمل نسخة الإنتاج من برنامجك هنا.",
+   "en": "The production build of your app did not run here."
+  },
+  "no_production_run": {
+   "ar": "نسخة الإنتاج لم تعمل أثناء التجهيز، فلم أقس السرعة.",
+   "en": "The production build did not run during the setup, so speed was not measured."
+  },
+  "speed_failed": {
+   "ar": "لم أستطع قياس السرعة، والسبب في السجل.",
+   "en": "Speed could not be measured; the reason is in the record."
+  },
+  "screen_failed": {
+   "ar": "هذه الشاشة لم تُفتح، أو اختلفت بين مرتين على نفس الكود.",
+   "en": "This screen did not open, or differed between two runs of the same code."
+  },
+  "screen_needs_fixture": {
+   "ar": "هذه الشاشة تحتاج بيانات تجريبية، فلم تُصوَّر.",
+   "en": "This screen needs sample values, so it was not recorded."
+  },
+  "not_authorised": {
+   "ar": "لا توجد موافقة على الإصلاح في هذه النسخة من مشروعك.",
+   "en": "There is no permission to fix this version of your project."
+  },
+  "card_broke_something": {
+   "ar": "هذا الإصلاح كسر شيئًا فتراجعت عنه.",
+   "en": "This fix broke something, so it was taken back."
+  },
+  "card_error": {
+   "ar": "لم يكتمل هذا الإصلاح، والسبب في السجل.",
+   "en": "This fix could not be made; the reason is in the record."
+  },
+  "acceptance_failed": {
+   "ar": "المشكلة ما زالت موجودة بعد الإصلاح.",
+   "en": "The problem is still there after the fix."
+  },
+  "no_longer_applies": {
+   "ar": "هذا الإصلاح لم يعد ينطبق بعد دخول الإصلاحات الأخرى.",
+   "en": "This fix no longer applies once the others are in."
+  },
+  "gates_failed": {
+   "ar": "فشل أحد فحوص مشروعك أو تغيّرت شاشة، فأبحث عن الإصلاح المسبّب.",
+   "en": "One of your project's checks failed or a screen changed, so the responsible fix is looked for."
+  },
+  "gates_passed": {
+   "ar": "نجحت الدفعة في كل الفحوص، فلا حاجة للبحث.",
+   "en": "The batch passed every check, so there was nothing to look for."
+  },
+  "nothing_kept": {
+   "ar": "لم ينجح أي إصلاح، فلا يوجد ما أفحصه أو أسلّمه.",
+   "en": "No fix passed, so there was nothing to check or hand over."
+  }
+ }
 }
