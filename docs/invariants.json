@@ -2078,6 +2078,105 @@
       "kind": "invariant",
       "enforced_by": "tests/test_studio_functions.py::Screens::test_every_page_is_a_screen_and_what_was_not_captured_is_named",
       "note": ""
+    },
+    {
+      "id": "INV-efbb9c360d",
+      "file": "eaos/branches.py",
+      "symbol": "dirty",
+      "statement": "{'tracked': n, 'untracked': n} of a checkout's unsaved changes, or None when git cannot say.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Inventory::test_detached_head_no_origin_dirty_checkout_and_worktree",
+      "note": ""
+    },
+    {
+      "id": "INV-3b8dcf95f4",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "<module>",
+      "statement": "Ownership comes only from durable provenance: an EAOS wave or build in the project's state, or an entry EAOS wrote in runs/branch-provenance.json; a name or a prefix is never proof.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Inventory::test_local_and_remote_refs_roles_policy_and_ownership_only_from_provenance",
+      "note": ""
+    },
+    {
+      "id": "INV-bcfee08f24",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "<module>",
+      "statement": "Git is called with argv lists, never through a shell.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Guarding::test_invalid_names_cannot_escape_or_run_code",
+      "note": ""
+    },
+    {
+      "id": "INV-4bd2ba57e2",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "Blocked",
+      "statement": "A change that cannot happen now, with every reason in plain words.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Merging::test_human_branch_and_failed_checks_and_conflict_are_refused",
+      "note": ""
+    },
+    {
+      "id": "INV-89666f894b",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "context",
+      "statement": "The four branches the Studio never mixes up: the checkout, the analysis branch, the report's branch and the base the person compares against (the analysis branch unless they choose another).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Selecting::test_select_changes_context_not_the_checkout_and_records_a_run",
+      "note": ""
+    },
+    {
+      "id": "INV-edb8aa6390",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "counts",
+      "statement": "(behind, ahead) of tip against base_tip, or (None, None) when git cannot say.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Inventory::test_local_and_remote_refs_roles_policy_and_ownership_only_from_provenance",
+      "note": ""
+    },
+    {
+      "id": "INV-cbe02c29bd",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "default_branch",
+      "statement": "{name, source}: origin's HEAD when known; otherwise unknown (None), never guessed from a name.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Inventory::test_detached_head_no_origin_dirty_checkout_and_worktree",
+      "note": ""
+    },
+    {
+      "id": "INV-f94203cc33",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "delete",
+      "statement": "Never a force deletion.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Deleting::test_unmerged_needs_a_second_confirmation",
+      "note": ""
+    },
+    {
+      "id": "INV-854b764955",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "git",
+      "statement": "git -C project <args> as argv; a timeout is an exit code of 124, never an exception.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Inventory::test_provenance_is_merged_never_replaced_and_git_timeouts_are_exit_codes",
+      "note": ""
+    },
+    {
+      "id": "INV-e9f14cdc5a",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "record",
+      "statement": "Durable provenance of a branch EAOS made or changed: merged into the existing entry, never replacing it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Inventory::test_provenance_is_merged_never_replaced_and_git_timeouts_are_exit_codes",
+      "note": ""
+    },
+    {
+      "id": "INV-a0b752c854",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "run_context",
+      "statement": "What a new run is made on, recorded on it when it is created so a later change of branch never retargets it silently: {analysis_branch, analysis_commit, checkout, detached, at}.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Selecting::test_in_flight_runs_are_never_retargeted",
+      "note": ""
     }
   ],
   "limits": "Extraction is lexical: it finds sentences that assert, not every promise a docstring makes. A sentence it misses is still an invariant."

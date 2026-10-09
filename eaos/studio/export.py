@@ -76,11 +76,17 @@ def _git(project, *args):
 
 
 def scan_of(project, state=None):
-    """{commit, branch, at} of the check: the state's when a guided session made it, else the project's git now."""
+    """{commit, branch, at, recorded, detached, dirty} of the check. `recorded` is true when the scan itself wrote down
+    the branch (or a detached HEAD), the full commit and whether the checkout had unsaved changes (eaos/branches.py
+    scan_provenance); otherwise commit and branch are what git says at export time, and detached and dirty are None."""
     state = state or {}
+    if state.get('scanned_commit') and ('scanned_branch' in state or 'scanned_detached' in state):
+        return {'commit': state['scanned_commit'], 'branch': state.get('scanned_branch'), 'at': state.get('scanned') or '',
+                'recorded': True, 'detached': state.get('scanned_detached'), 'dirty': state.get('scanned_dirty')}
     commit = state.get('scanned_commit') or _git(project, 'rev-parse', 'HEAD')
     branch = state.get('branch') or _git(project, 'rev-parse', '--abbrev-ref', 'HEAD')
-    return {'commit': commit, 'branch': None if branch == 'HEAD' else branch, 'at': state.get('scanned') or ''}
+    return {'commit': commit, 'branch': None if branch == 'HEAD' else branch, 'at': state.get('scanned') or '',
+            'recorded': False, 'detached': None, 'dirty': None}
 
 
 # ---------------------------------------------------------------- the sections
@@ -103,7 +109,8 @@ def meta(report, m):
             'stages': stages}
 
 
-def head(m, scan, lang, stamp, freshness):
+def head(m, scan, lang, stamp, fresh):
+    freshness, detail = fresh
     s = m['score']
     fixable = sum(1 for r in m['rows'] if r['auto'])
     if s['score'] is None:
@@ -121,7 +128,7 @@ def head(m, scan, lang, stamp, freshness):
         step = {'action': ('راجع البطاقات التي تحتاج قرارًا' if lang == 'ar' else 'Review the cards that need a decision'), 'tool': 'findings'}
     else:
         step = {'action': ('لا شيء ينتظر: افحص بعد التغيير التالي' if lang == 'ar' else 'Nothing waits: check again after the next change'), 'tool': 'audit'}
-    return {'scanned': scan, 'eaos': {k: stamp[k] for k in ('version', 'commit', 'digest')}, 'freshness': freshness,
+    return {'scanned': scan, 'eaos': {k: stamp[k] for k in ('version', 'commit', 'digest')}, 'freshness': freshness, 'freshness_detail': detail,
             'verdict': verdict, 'next': step}
 
 
@@ -437,9 +444,13 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
 
 
 def freshness(project, state):
-    """fresh when the project's branch is still at the scanned commit; branch_moved when it is not; unknown when either
-    is not known. A report made by another EAOS is rebuilt by guided.publish before it is read."""
-    scanned = (state or {}).get('scanned_commit')
-    now = _git(project, 'rev-parse', 'HEAD')
-    if not scanned or not now: return 'unknown'
-    return 'fresh' if now.startswith(scanned) or scanned.startswith(now) else 'branch_moved'
+    """(freshness, detail) at export time, from eaos/branches.py freshness: fresh, behind, rewritten, dirty, other_branch or
+    unknown with its reason; eaos_updated when the scan was made by another EAOS. The live Studio asks the server again
+    (GET /api/freshness) instead of trusting this snapshot."""
+    from .. import branches
+    if not project or not (state or {}).get('scanned'): return 'unknown', {'state': 'unknown', 'reason': 'not_scanned', 'behind': None, 'eaos_updated': False}
+    found = branches.freshness({**(state or {}), 'project': str(project)})
+    updated = bool((state or {}).get('scanned_with')) and state.get('scanned_with') != build_info.digest()
+    detail = {'state': found['state'], 'reason': found['reason'], 'behind': found['behind'], 'eaos_updated': updated}
+    if found['state'] == 'fresh' and updated: return 'eaos_updated', detail
+    return found['state'], detail

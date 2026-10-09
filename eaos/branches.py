@@ -18,7 +18,11 @@ NOT_THE_PERSONS = ('eaos/', 'dependabot/', 'renovate/', 'snyk-', 'greenkeeper/',
 # Branches kept only for the record: never a choice of where the work goes on.
 ARCHIVED = ('archive/', 'archived/')
 # What each branch keeps of its own in state.json; the others are the project's (consent, language, questions).
-KEYS = ('scanned', 'scanned_commit', 'scanned_with', 'setup', 'safety', 'waves', 'open_wave', 'tried', 'applied')
+KEYS = ('scanned', 'scanned_commit', 'scanned_with', 'scanned_branch', 'scanned_detached', 'scanned_dirty', 'setup', 'safety',
+        'waves', 'open_wave', 'tried', 'applied')
+# EAOS's own commits (eaos/waves.commit, guided.merge): code the person did not write, so a scan still holds after them.
+EAOS_EMAIL = 'eaos@localhost'
+FILES_SHOWN = 50
 
 
 def _git(project, *args):
@@ -109,3 +113,76 @@ def choice(project):
     rows = [row for row in inventory(project) if _a_choice(row)]
     if len({r['tip'] for r in rows}) <= 1: return None
     return {'branches': rows, 'recommended': recommend(rows), 'main': next((r['name'] for r in rows if r['main']), None)}
+
+
+def dirty(folder):
+    """{'tracked': n, 'untracked': n} of a checkout's unsaved changes, or None when git cannot say."""
+    done = _git(folder, '-c', 'core.quotePath=false', 'status', '--porcelain=v1', '--untracked-files=normal')
+    if done.returncode: return None
+    lines = [line for line in done.stdout.splitlines() if line.strip()]
+    untracked = sum(1 for line in lines if line.startswith('??'))
+    return {'tracked': len(lines) - untracked, 'untracked': untracked}
+
+
+def scan_provenance(state, folder):
+    """What a scan read, recorded beside scanned_commit: the branch (None on a detached HEAD, which is said as such),
+    and whether the folder the scan read had unsaved changes. `folder` is the checkout the scan read (guided.source)."""
+    if _git(state['project'], 'rev-parse', '--git-dir').returncode:
+        return {'scanned_branch': None, 'scanned_detached': None, 'scanned_dirty': None}
+    branch = state.get('branch') or checked_out(state['project'])
+    detached = not state.get('branch') and branch is None
+    changes = dirty(folder)
+    return {'scanned_branch': branch, 'scanned_detached': detached,
+            'scanned_dirty': None if changes is None else bool(changes['tracked'] or changes['untracked'])}
+
+
+def _commits_by_others(project, since, until):
+    authors = _git(project, 'log', '--no-merges', '--format=%ae', f'{since}..{until}')
+    return None if authors.returncode else [a for a in authors.stdout.split() if a != EAOS_EMAIL]
+
+
+def freshness(state, tip=None):
+    """Whether the scan of the branch EAOS works on still holds, from git now: {state, reason, ...}.
+
+    state: fresh (the branch is at the scanned commit, or only EAOS's own accepted fixes came after it); behind (N
+    commits and M files came after it, the files listed); rewritten (the scanned commit is no longer in the branch's
+    history: a reset, a rebase or a force-push); dirty (at the scanned commit, with unsaved changes in the checkout);
+    other_branch (the report is of another branch than the one EAOS works on now); unknown, with the reason
+    (not_scanned, legacy_report, not_git, branch_missing). `tip` is the branch's commit now (guided.tip)."""
+    project = state.get('project')
+    scanned, recorded = state.get('scanned_commit'), 'scanned_branch' in state or 'scanned_detached' in state
+    out = {'state': 'unknown', 'reason': None, 'scanned_commit': scanned, 'scanned_branch': state.get('scanned_branch'),
+           'scanned_detached': state.get('scanned_detached'), 'scanned_dirty': state.get('scanned_dirty'),
+           'scanned_at': state.get('scanned'), 'recorded': recorded, 'branch': state.get('branch') or checked_out(project) if project else None,
+           'tip': tip, 'behind': None, 'dirty': None}
+    if not state.get('scanned'): return {**out, 'reason': 'not_scanned'}
+    if not scanned: return {**out, 'reason': 'legacy_report'}
+    if not project or _git(project, 'rev-parse', '--git-dir').returncode: return {**out, 'reason': 'not_git'}
+    detached = bool(state.get('scanned_detached'))
+    if tip is None:
+        done = _git(project, 'rev-parse', '--verify', '--quiet', ('HEAD' if detached or not state.get('branch') else ref(state)) + '^{commit}')
+        tip = done.stdout.strip() if done.returncode == 0 else ''
+        out['tip'] = tip
+    if not tip: return {**out, 'reason': 'branch_missing'}
+    if recorded and not detached and state.get('scanned_branch') and out['branch'] and state['scanned_branch'] != out['branch']:
+        return {**out, 'state': 'other_branch'}
+    if _git(project, 'cat-file', '-e', scanned + '^{commit}').returncode:
+        return {**out, 'state': 'rewritten', 'reason': 'scanned_commit_gone'}
+    if tip != scanned:
+        if _git(project, 'merge-base', '--is-ancestor', scanned, tip).returncode:
+            base = _git(project, 'merge-base', scanned, tip).stdout.strip()
+            count = _git(project, 'rev-list', '--count', f'{base}..{tip}').stdout.strip() if base else ''
+            return {**out, 'state': 'rewritten', 'reason': 'not_in_history', 'since_common': int(count) if count.isdigit() else None}
+        others = _commits_by_others(project, scanned, tip)
+        count = _git(project, 'rev-list', '--count', f'{scanned}..{tip}').stdout.strip()
+        files = _git(project, '-c', 'core.quotePath=false', 'diff', '--name-only', scanned, tip).stdout.splitlines()
+        behind = {'commits': int(count) if count.isdigit() else None, 'files': len(files), 'file_list': files[:FILES_SHOWN],
+                  'truncated': len(files) > FILES_SHOWN, 'eaos_only': others == []}
+        if others != []: return {**out, 'state': 'behind', 'behind': behind}
+        out['behind'] = behind
+    here = checked_out(project)
+    if (detached and here is None) or (out['branch'] and here == out['branch']):
+        changes = dirty(project)
+        out['dirty'] = changes
+        if changes and (changes['tracked'] or changes['untracked']): return {**out, 'state': 'dirty'}
+    return {**out, 'state': 'fresh'}

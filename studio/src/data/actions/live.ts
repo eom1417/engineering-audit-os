@@ -3,8 +3,9 @@
 // returned for this launch; the browser adds the Origin the server checks. A run's events come over SSE read with
 // fetch, and a dropped stream reconnects with Last-Event-ID, so the server replays exactly what was missed.
 import { frameSplitter } from './sse'
-import { ActionError, TERMINAL, type ActionsClient, type Control, type Preview, type PreviewBody, type Question, type Run,
-  type RunEvent, type StartBody, type StreamStatus, type ReportDecision } from './types'
+import { ActionError, TERMINAL, type ActionsClient, type BranchApi, type BranchContext, type BranchDetail, type Control, type DeletePreview,
+  type Inventory, type LiveFreshness, type MergePreview, type Preview, type PreviewBody, type Question, type Run, type RunEvent,
+  type StartBody, type StreamStatus, type ReportDecision } from './types'
 
 export const TOKEN_KEY = 'eaos.token'
 
@@ -54,6 +55,24 @@ export function liveClient(token: string): ActionsClient {
   const post = <T>(path: string, body?: unknown) => request('POST', path, body) as Promise<T>
   const get = <T>(path: string) => request('GET', path) as Promise<T>
   const runOf = (payload: { run: Run }) => payload.run
+  const query = (values: Record<string, string | null | undefined>) =>
+    Object.entries(values).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(v as string)}`).join('&')
+  const branches: BranchApi = {
+    freshness: () => get<{ freshness: LiveFreshness }>('/api/freshness').then((r) => r.freshness),
+    context: () => get<{ context: BranchContext | null }>('/api/context').then((r) => r.context),
+    inventory: (base) => get<Inventory>(`/api/branches?${query({ base })}`),
+    detail: (name, kind, remote, base) => get<BranchDetail>(`/api/branches/detail?${query({ name, kind, remote, base })}`),
+    select: (branch, scan, expectedTip) => post('/api/branches/analysis', { branch, scan, expected_tip: expectedTip ?? null }),
+    previewMerge: (source, target) => post<MergePreview>('/api/branches/merge/preview', { source, target: target ?? null }),
+    merge: (p, uncheckedAck) => post('/api/branches/merge', { source: p.source, target: p.target, source_head: p.source_head, target_head: p.target_head,
+      unchecked: p.needs_unchecked_ack, unchecked_ack: uncheckedAck, confirm: p.confirm?.token ?? null }),
+    proposeResolution: (source, target, assistant) => post('/api/branches/conflict', { source, target, assistant: assistant ?? null }),
+    previewDelete: (branch, where, remote) => post<DeletePreview>('/api/branches/delete/preview', { branch, where, remote: remote ?? null }),
+    remove: (p, second) => post('/api/branches/delete', { branch: p.branch, where: p.where, remote: p.remote ?? null, tip: p.tip, unmerged: Boolean(p.unmerged),
+      confirm: p.confirm?.token ?? null, confirm_unmerged: second ? p.confirm_unmerged?.token ?? null : null }),
+    restore: (recovery, as) => post('/api/branches/restore', { recovery, as: as ?? null }),
+    fetch: (remote) => post('/api/branches/fetch', { remote: remote ?? 'origin' }),
+  }
 
   return {
     mode: 'live',
@@ -71,6 +90,7 @@ export function liveClient(token: string): ActionsClient {
     answer: (question: string, option: string | null, text?: string | null) =>
       post<{ run: Run }>(`/api/questions/${encodeURIComponent(question)}/answer`, { option, text: text ?? null }).then(runOf),
     decide: (id: string, op: 'accept' | 'undo', confirm: string) => post<{ run: Run }>(`/api/runs/${encodeURIComponent(id)}/${op}`, { confirm }).then(runOf),
+    branches,
 
     follow(id: string, after: number, onEvent: (event: RunEvent) => void, onStatus: (status: StreamStatus) => void) {
       let last = after

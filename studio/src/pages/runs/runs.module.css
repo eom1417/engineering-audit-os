@@ -145,3 +145,6 @@ li + li > .row { border-block-start: 1px solid var(--border-subtle); }
   .decideFoot > * { flex: 1; }
   .cardLink { min-block-size: 44px; padding-inline: 14px; }
 }
+
+/* The run's work branch and base (NS46.T18) */
+.branchLink { display: inline-flex; align-items: center; min-block-size: 44px; color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }

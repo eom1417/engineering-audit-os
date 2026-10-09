@@ -93,7 +93,7 @@ flowchart TB
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 اختبار قبول"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 اختبار قبول"| NS46
-        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +17 اختبار قبول"| NS38
+        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +19 اختبار قبول"| NS38
     end
     subgraph R6G_2["R6G · EAOS v2: تحليل صادق، صورة مثالية، عمليات مرتبة، واستوديو حي (2/5)"]
         direction LR
@@ -200,7 +200,7 @@ flowchart TB
 | 21 | [**NS27** البناء من خطة](#step-21) | R6 | 6 | 93% | 5.6 | 88% | 🟡 قيد العمل | B1=1 · B2=1 · X8=1 · B3=1 · B4=1 · X1=1 · … · +1 اختبار قبول |
 | 22 | [**NS30** الثقة أولًا: كل بطاقة على ملفها، وكل رقم صادق](#step-22) | R6G | 2 | 100% | 2 | 100% | ✅ مكتملة | S4=1 · X13=1 · +1 اختبار قبول |
 | 23 | [**NS36** أساس الاستوديو: القرارات والعقد والنموذج](#step-23) | R6G | 3 | 42% | 1.26 | 50% | 🔴 تحتاج مدخلًا منك | F8=1 · F10=1 · +4 اختبار قبول |
-| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 10 | 6% | 0.63 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +17 اختبار قبول |
+| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 10 | 6% | 0.57 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +19 اختبار قبول |
 | 25 | [**NS38** تحليل صادق: الدقة أولًا](#step-25) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | A1=1 · W2=1 · A2=1 · A3=1 |
 | 26 | [**NS31** أرقام ثابتة وضجيج أقل](#step-26) | R6G | 3 | 26% | 0.8 | 24% | 🔴 تحتاج مدخلًا منك | L7=1 · L8=1 · S5≥0.9 · S1≥0.9 |
 | 27 | [**NS39** خريطة النظام والسجل والأحداث](#step-27) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | N1=1 · N2=1 · +1 اختبار قبول |
@@ -1202,7 +1202,7 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 10 | 6% | 0.63 من 10 | 12% | R6G | S07, S15 |
+| 10 | 6% | 0.57 من 10 | 12% | R6G | S07, S15 |
 
 **الهدف:** F11 وF13 وF14 وF15 وF16 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويُشغَّل EAOS كله من الاستوديو، ويحكم المالك.
 
@@ -1255,6 +1255,8 @@ flowchart TB
 | اختبار قبول | `test ns46_studio.AINodes` | — | ⬜ |
 | اختبار قبول | `test ns46_studio.ReplanTargets` | — | ⬜ |
 | اختبار قبول | `test owner_controls.OwnerControls` | — | ⬜ |
+| اختبار قبول | `test branch_control.BranchControl` | — | ⬜ |
+| اختبار قبول | `test scan_freshness.ScanFreshness` | — | ⬜ |
 | اختبار قبول | `test ns46_studio.SelfReview` | — | ⬜ |
 
 **المهام:**
@@ -1277,6 +1279,8 @@ flowchart TB
 | [NS46.T15](#ns46t15) عُقد الذكاء في خط EAOS: مخطط القرار، والموجّهات، والحمايات، وسجل التشغيل | L | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.AINodes` |
 | [NS46.T16](#ns46t16) إعادة تخطيط كل هدف بُني: المشاريع الأربعة وخارطة EAOS نفسها | M | ⬜ | 0% | `python tools/acceptance.py test ns46_studio.ReplanTargets` |
 | [NS46.T17](#ns46t17) Durable owner answers and safe live Studio controls | L | ⬜ | 0% | `python tools/acceptance.py test owner_controls.OwnerControls && python tools/north_star.py measure --only F15 --min 1.0` |
+| [NS46.T18](#ns46t18) Studio branch control: analysis context, honest inventory, provenance and guarded work-branch actions | L | ⬜ | 0% | `python tools/acceptance.py test branch_control.BranchControl` |
+| [NS46.T19](#ns46t19) Live scan freshness, local time everywhere and direct governance of every Studio state | M | ⬜ | 0% | `python tools/acceptance.py test scan_freshness.ScanFreshness` |
 | [NS46.T8](#ns46t8) المراجعة الذاتية وحكم المالك | M | ⬜ | 13% | `python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F15 --min 1.0 && python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/north_star.py measure --only F16 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview` |
 
 <a id="step-25"></a>
@@ -2412,7 +2416,7 @@ flowchart TB
 | F12 ما قاسه الاستوديو فعلًا | صفوف studio/coverage.json بحالة measured أو empty ÷ كل الصفوف، على تقارير العيّنة؛ الباقي هو عدد حالات «لم يُقس بعد»، ولا يصعد أبدًا. تقرير بلا coverage.json يُحسب كله غير مقيس | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md |
 | F13 الاستوديو يجتاز البوابات على عدة مشاريع | مشاريع docs/studio-routes.json (FleetManageWeb وchief-ops وfinance-os وEAOS نفسه ومشروع اصطناعي من 5000 بطاقة و1000 مكوّن) التي صوّر فيها تشغيل كامل للبناء المشحون كل مسار، واجتاز كل بوابة ÷ المشاريع | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md |
 | F14 ميزانيات السرعة | ميزانيات STUDIO-COMPLETE المحققة على البناء المشحون: Lighthouse على الجوال (أداء ≥ 90 ووصول = 100) لكل صفحة قيست، وتصفية 5000 بطاقة ≤ 100 ملي ثانية، والرئيسية تفاعلية ≤ 1.5 ثانية ÷ الميزانيات؛ ميزانية لم تُقس لا تُحسب محققة | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md |
-| F15 مركز التحكم: تشغيل EAOS من الاستوديو | تجارب tools/studio_trial.py الحقيقية ($EAOS_MEASURE/studio/<project>/trial.json) التي فُحص فيها المشروع واختيرت مجموعة بطاقات وأصلحها مساعد حقيقي، وأُجيب سؤال من صندوق القرارات، واعتُمد الفرع، كلها من الاستوديو دون كتابة للمساعد، وكل حالة مرت مفهومة ÷ التجارب؛ بلا تجربة على FleetManageWeb لا يُحسب; additionally NS46.T17 requires current real EAOS and FleetManageWeb owner-control evidence, including custom binary answers without consent, durability, safe queue/retry, auth and the full phone/desktop-language-theme matrix; mocks never count | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md (the command centre) |
+| F15 مركز التحكم: تشغيل EAOS من الاستوديو | تجارب tools/studio_trial.py الحقيقية ($EAOS_MEASURE/studio/<project>/trial.json) التي فُحص فيها المشروع واختيرت مجموعة بطاقات وأصلحها مساعد حقيقي، وأُجيب سؤال من صندوق القرارات، واعتُمد الفرع، كلها من الاستوديو دون كتابة للمساعد، وكل حالة مرت مفهومة ÷ التجارب؛ بلا تجربة على FleetManageWeb لا يُحسب; additionally NS46.T17 requires current real EAOS and FleetManageWeb owner-control evidence, including custom binary answers without consent, durability, safe queue/retry, auth and the full phone/desktop-language-theme matrix; mocks never count; NS46.T18 (branch control) and NS46.T19 (live scan freshness and local time) also require their live trials ($EAOS_MEASURE/branch-control/trial.json, $EAOS_MEASURE/scan-freshness/trial.json); mocks never count | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/STUDIO-COMPLETE.md (the command centre) |
 | W1 المساعد يحسن استخدام الأدوات | متوسط مؤشرات تجربة الأدوات: نجاح الاستدعاء، و1 − نسبة العمل خارج أدوات EAOS، و1 − الأداة الخطأ، على 11 سيناريو في Claude وCodex | 90% | — | not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md |
 | W2 تبني قبل البناء | قدرات الخطة الجديدة التي لها سجل استكشاف مكتوب (المرشحون، الرخصة، الصيانة، القرار) قبل أي كود ÷ القدرات الجديدة | 100% | — | not measured yet; target from eaos-dev/planning/studio-v2/MASTER-PLAN.md |
 | F16 خريطة خط المعالجة صادقة | فحوص الحقيقة لخريطة خط المعالجة التي تمر ÷ الفحوص: لكل ملف حقيقة مكتوب يدويًا (EAOS نفسه ومستودعان عامّان مثبتان من نوعين مختلفين) استدعاء ≥ 0.8 ودقة ≥ 0.9 للمراحل والحواف وفروع الموجّهات (ستة فحوص لكل ملف)، ولكل مشروع تطبيق في العيّنة (FleetManageWeb وfinance-os وRendaPerene وchief-ops) لا خط معالجة مخترع: كل مرحلة بدليل يُتحقق منه في الكود؛ بلا قياس لا قيمة | 100% | 100% | pipeline map truth checks holding: 32/32 over 5 truth files (python tools/pipeline_truth.py measure, 2026-10-08) |
@@ -6449,6 +6453,89 @@ python tools/acceptance.py test owner_controls.OwnerControls && python tools/nor
 ```
 
 **التراجع:** Revert the owner-control integration commit; retain saved decision records and static previews.
+
+<a id="ns46t18"></a>
+
+#### NS46.T18 — Studio branch control: analysis context, honest inventory, provenance and guarded work-branch actions ⬜
+
+**لماذا:** Owner request 2026-10-09 (eaos-dev/planning/studio-v2/BRANCH-CONTROL.md): show the repository's branches, make the analyzed branch and every task's work branch obvious, and manage work branches from Studio. Checkout, analysis branch, report branch and task branch must never be conflated; names are never ownership evidence; every mutation is guarded by auth/Origin/CSRF, expected heads, a project lock, protected-branch policy and separate explicit consent.
+
+**يحرّك:** F15 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS46.T9, NS46.T10, NS46.T17 · **الحجم:** L
+
+**الملفات:** `eaos/studio/actions/branches.py` · `eaos/studio/actions/__init__.py` · `eaos/studio/actions/runs.py` · `eaos/guided.py` · `eaos/studio/export.py` · `docs/studio-actions.json` · `studio/src/pages/branches/` · `studio/src/shell/Shell.tsx` · `studio/src/pages/runs/` · `docs/adoption/ns46-t18-branch-control.md` · `docs/STUDIO-BRANCH-CONTROL.md` · `tools/studio_branch_trial.py` · `tests/test_studio_branches.py` · `acceptance/test_branch_control.py`
+
+**يكتب:** `contract:studio-manifest` (العقد: `schemas/artifacts/studio-manifest.schema.json`)
+
+**الخطوات:**
+
+1. Adopt-before-build record in docs/adoption/: reuse git plumbing (for-each-ref, worktree list, merge-tree --write-tree, update-ref with expected old values) and the existing command centre, guided accept pathway and run store; no new runner or package.
+2. Branch service inside the command centre boundary: complete local/remote inventory with detached HEAD, no origin, dirty checkout, worktrees, last-known remote age, protected/default/base policy and ownership only from durable provenance (EAOS wave records and the provenance registry), never from a name.
+3. Persistent, distinct context: actual checkout, selected analysis branch, report branch and each run's work branch and base, recorded on the run at creation and outcome, resolved after restart and when refs are missing or deleted.
+4. Analysis selection changes Studio context without checking out, refuses to silently retarget queued or active runs, and offers a scan of the selected branch through the live command centre.
+5. Compare/diff/checks drawer; merge preview validated in isolation (merge-tree) with expected source/target heads and a confirm token bound to them; managed waves accept through the existing EAOS accept pathway so ledger and report update once; other tool-owned branches merge by compare-and-swap under the project lock; conflicts change nothing and become a read-only assistant resolution proposal.
+6. Deletion only of tool-owned, unprotected, not checked-out, inactive branches; a recovery ref is recorded first; unmerged deletion needs the lost-commit preview and a second confirmation; remote deletion is its own operation and consent; restore from the recovery ref; every outcome in the run history.
+7. Branches workspace (/branches), branch chip and switcher in the header, run/task branch links, Arabic/English, light/dark, 390/768/1440, keyboard, 44px targets; snapshots show captured metadata read-only.
+8. Live trial on real temporary multi-branch repositories (tools/studio_branch_trial.py) writes $EAOS_MEASURE/branch-control/trial.json with every case and the 12-view screenshot matrix.
+
+**تنتهي حين:**
+
+- [ ] Acceptance branch_control.BranchControl passes: every case in acceptance/test_branch_control.py ran live on real repositories against the shipped Studio digest, including one managed-wave accept that updates the ledger and report exactly once, and every 390/768/1440 x ar/en x light/dark view has its screenshot with width equal to the viewport, initial scroll zero, zero axe violations and no target under 44px.
+
+**فخاخ معروفة:**
+
+- A branch prefix (eaos/, codex/) is never ownership proof.
+- A custom typed answer or a recommendation is never merge or deletion consent.
+- Local deletion never implies remote deletion; never force-push; main of EAOS itself is never a mutation target.
+- Unknown state stays unknown: no guessed readiness, ancestry or fetch age.
+- Mocked buttons and unit tests never complete this task.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test branch_control.BranchControl
+```
+
+**التراجع:** Revert the branch-control commit; recovery refs under refs/eaos-recovery/ and run history stay for the owner to inspect.
+
+<a id="ns46t19"></a>
+
+#### NS46.T19 — Live scan freshness, local time everywhere and direct governance of every Studio state ⬜
+
+**لماذا:** Owner report 2026-10-09 (STUDIO-COMPLETE.md, final owner addition): the 'Is the check current?' dialog said the scan recorded no branch and no commit, times were in UTC, and the only action was 'Copy request'. Every Studio state must be visibly current, directly actionable from the live Studio, with copy only as a labelled fallback.
+
+**يحرّك:** F15 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS46.T9, NS46.T17, NS46.T18 · **الحجم:** M
+
+**الملفات:** `eaos/agent_tools.py` · `eaos/guided.py` · `eaos/branches.py` · `eaos/studio/export.py` · `eaos/studio/actions/branches.py` · `tools/make_contracts.py` · `schemas/artifacts/studio-manifest.schema.json` · `studio/src/i18n/prefs.tsx` · `studio/src/shell/Shell.tsx` · `studio/src/data/actions/` · `docs/adoption/ns46-t19-scan-freshness.md` · `tools/studio_branch_trial.py` · `acceptance/test_scan_freshness.py`
+
+**يكتب:** `contract:studio-manifest` (العقد: `schemas/artifacts/studio-manifest.schema.json`)
+
+**الخطوات:**
+
+1. Record what was checked: analyzed branch or named detached HEAD, full commit, dirty state, scan and build times, in the state and the Studio manifest; legacy reports labelled with a one-tap re-scan.
+2. Live freshness endpoint comparing the recorded commit with the branch head: up to date, N commits and M files behind with the files, moved/rewritten, uncommitted changes, or unknown with its reason; the header pill and dialog refresh on focus, on a modest interval and after any run finishes.
+3. One shared formatter: device time zone (Intl resolvedOptions) with a remembered Settings override, relative plus exact zoned time on hover/tap; storage stays UTC ISO-8601; the snapshot formats in the reader's browser.
+4. Re-scan now / Re-scan this branch dispatch the audit through the live command centre with saved, running and done states, a run link and a refreshed report; a complete self-contained copy instruction is a labelled fallback; the static snapshot says read-only and offers Open live Studio.
+5. Apply current/actionable/direct-control governance to decisions, runs, plan steps, cards and branches: direct live actions first, copy only as a labelled fallback.
+6. Live trial with real repositories (new commits, branch switch, detached HEAD, dirty tree, rewritten branch, legacy report) and browser time zones pinned to two non-UTC zones including a half-hour offset writes $EAOS_MEASURE/scan-freshness/trial.json.
+
+**تنتهي حين:**
+
+- [ ] Acceptance scan_freshness.ScanFreshness passes: every case in acceptance/test_scan_freshness.py ran live against the shipped Studio digest with the 12-view screenshot matrix.
+
+**فخاخ معروفة:**
+
+- Only display changes time zone; stored times stay UTC.
+- 'Not recorded' is acceptable only for a legacy report, labelled as such.
+- Copy is a fallback, never the primary action in the live Studio.
+- Do not claim the release gate from mocks.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test scan_freshness.ScanFreshness
+```
+
+**التراجع:** Revert the freshness commit; recorded scan provenance fields are additive and ignored by older readers.
 
 <a id="ns46t8"></a>
 

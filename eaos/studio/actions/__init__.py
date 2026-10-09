@@ -23,6 +23,7 @@ from urllib.parse import parse_qs, urlsplit
 
 from . import adapters as adapters_module
 from . import handoff, selection as selecting
+from .branches import BranchControl, Blocked
 from .runs import PLANNERS, Manager
 from .security import Locks
 from .store import ACTIVE, TERMINAL, Scrubber, Store, now, _read_json, _write_json
@@ -76,6 +77,8 @@ class Actions:
         self.verbs = {verb['id']: verb for verb in self.contract['verbs']}
         self.store = Store(guided.workspace(self.project) / 'runs', Scrubber(self.project, [self.token, self.csrf]))
         self.manager = Manager(self.project, self.store, self.adapters, self.contract, _server_tools, lang)
+        self.branches = BranchControl(self)
+        self.manager.branch_control = self.branches
 
     def close(self):
         self.manager.close()
@@ -92,6 +95,8 @@ class Actions:
         body = body if isinstance(body, dict) else {}
         try:
             return 200, self._route(method, route, query, body)
+        except Blocked as problem:
+            return (403 if problem.needs in ('confirm', 'confirm_unmerged') else 409), {'error': str(problem), 'reasons': problem.reasons, 'needs': problem.needs}
         except Refused as problem:
             return problem.status, {'error': problem.reason, **problem.extra}
         except selecting.SelectionError as problem:
@@ -114,12 +119,25 @@ class Actions:
             if rest == ['runs']: return self.runs(query)
             if rest == ['questions']: return {'questions': self.questions()}
             if rest == ['decisions']: return {'decisions': self.report_decisions()}
+            if rest == ['freshness']: return {'freshness': self.branches.freshness()}
+            if rest == ['context']: return {'context': self.branches.context() if self.branches.is_repo() else None}
+            if rest == ['branches']: return self.branches.inventory(query.get('base') or None)
+            if rest == ['branches', 'detail']:
+                return self.branches.detail(query.get('name'), query.get('kind') or 'local', query.get('remote'), query.get('base') or None, query.get('path') or None)
             if len(rest) == 2 and rest[0] == 'runs': return {'run': self.public(self.store.load(rest[1]))}
             if len(rest) == 3 and rest[0] == 'runs' and rest[2] == 'events':
                 self.store.load(rest[1])
                 return {'events': self.store.events(rest[1], int(query.get('after') or 0))}
             raise KeyError(route)
         if len(rest) == 3 and rest[0] == 'actions' and rest[2] == 'preview': return self.preview(rest[1], body)
+        if rest[:1] == ['branches']:
+            change = {('analysis',): self.branches.select, ('merge', 'preview'): self.branches.preview_merge, ('merge',): self.branches.merge,
+                      ('conflict',): self.branches.propose_resolution, ('delete', 'preview'): self.branches.preview_delete,
+                      ('delete',): self.branches.delete, ('restore',): self.branches.restore, ('fetch',): self.branches.fetch,
+                      ('protect', 'preview'): self.branches.preview_protect, ('protect',): self.branches.protect}.get(tuple(rest[1:]))
+            if change is None: raise KeyError(route)
+            if not self.branches.is_repo(): raise LookupError('this project folder is not a git repository')
+            return change(body)
         if rest == ['runs']: return {'run': self.public(self.create(body))}
         if len(rest) == 3 and rest[0] == 'decisions' and rest[2] == 'answer':
             return {'decision': self.answer_decision(rest[1], body)}
@@ -138,7 +156,7 @@ class Actions:
     # reading
     def session(self):
         return {'csrf': self.csrf, 'mode': 'live', 'project': self.project.name, 'contract': self.contract['revision'],
-                'assistants': self.assistants(), 'lang': self.lang}
+                'assistants': self.assistants(), 'lang': self.lang, 'branch_control': True}
 
     def assistants(self):
         return [adapter.detect() for adapter in self.adapters.values()]
@@ -146,6 +164,8 @@ class Actions:
     def public(self, record):
         hidden = ('offset', 'pid', 'paused_pid', 'inputs_secret', 'branches_before')
         out = {key: value for key, value in record.items() if key not in hidden}
+        try: out['work_branch'] = self.branches.work_branch(record)
+        except Exception: out['work_branch'] = None
         queue = self.store.queue()
         if record['id'] in queue: out['position'] = queue.index(record['id']) + 1
         return out
@@ -324,6 +344,7 @@ class Actions:
                   'left_out': left, 'assistant': assistant if assistant != 'handoff' else None,
                   'mode': 'planner' if action in PLANNERS else 'direct' if not needed else ('handoff' if assistant == 'handoff' else 'assistant'),
                   'owner_answers': [{'question': r['question'], 'response': r['response']} for r in self.report_decisions() if r['response']],
+                  'context': self.branches.run_context(),
                   'state': 'running' if reading else 'queued', 'attempt': 1, 'created': now(), 'queued_at': now(), 'read': reading,
                   **({'started': now()} if reading else {})}
         self.store.save(record, new=True)

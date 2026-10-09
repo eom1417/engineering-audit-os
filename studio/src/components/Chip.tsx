@@ -22,18 +22,25 @@ export function ChipButton({ tone = 'neutral', children, ...rest }: Omit<ButtonP
   )
 }
 
-const FRESH: Record<Freshness, { tone: Tone; word: 'freshFresh' | 'freshBranchMoved' | 'freshEaosUpdated' | 'freshUnknown' }> = {
+type FreshWord = 'freshFresh' | 'freshBranchMoved' | 'freshEaosUpdated' | 'freshUnknown' | 'freshBehind' | 'freshRewritten' | 'freshDirty' | 'freshOtherBranch' | 'freshLegacy'
+export const FRESH: Record<Freshness | 'legacy', { tone: Tone; word: FreshWord }> = {
   fresh: { tone: 'good', word: 'freshFresh' },
+  behind: { tone: 'warning', word: 'freshBehind' },
+  rewritten: { tone: 'serious', word: 'freshRewritten' },
+  dirty: { tone: 'warning', word: 'freshDirty' },
+  other_branch: { tone: 'warning', word: 'freshOtherBranch' },
   branch_moved: { tone: 'warning', word: 'freshBranchMoved' },
   eaos_updated: { tone: 'warning', word: 'freshEaosUpdated' },
+  legacy: { tone: 'neutral', word: 'freshLegacy' },
   unknown: { tone: 'neutral', word: 'freshUnknown' },
 }
 
-/** The scan's freshness; pressing it opens the sheet that explains it. */
-export function FreshnessChip({ freshness, onPress }: { freshness: Freshness; onPress?: () => void }) {
+/** The scan's freshness; pressing it opens the sheet that explains it. `count` is the commits behind, when known. */
+export function FreshnessChip({ freshness, onPress, count }: { freshness: Freshness | 'legacy'; onPress?: () => void; count?: number | null }) {
   const { t } = usePrefs()
-  const { tone, word } = FRESH[freshness]
-  return <ChipButton tone={tone} onPress={onPress}>{t(word)}</ChipButton>
+  const { tone, word } = FRESH[freshness] ?? FRESH.unknown
+  return <ChipButton tone={tone} onPress={onPress} aria-label={`${t('isScanCurrent')} ${t(word, { n: count ?? 0 })}`} data-fresh={freshness}>
+    <span className={css.chipText}>{t(word, { n: count ?? 0 })}</span></ChipButton>
 }
 
 const SEV_BARS: Record<Severity, number> = { info: 0, low: 1, medium: 2, high: 3, critical: 4 }

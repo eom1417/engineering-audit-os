@@ -11,6 +11,7 @@ import type { Bi, Run, RunEvent, RunResult, RunState } from '../../data/actions/
 import { usePrefs } from '../../i18n/prefs'
 import { Id, N, Txt } from '../../i18n/text'
 import { useCmdWords } from '../../command/words'
+import { useBranchWords } from '../../branches/words'
 import css from './runs.module.css'
 
 const TONE: Record<RunState, Tone> = {
@@ -34,17 +35,17 @@ export function OutcomeChip({ run }: { run: Run }) {
 const VERB_ICON: Record<string, IconName> = { fix: 'fix', verify: 'verify', explain: 'explain', plan: 'plan' }
 
 export function RunRow({ run, end }: { run: Run; end?: ReactNode }) {
-  const { lang, date } = usePrefs()
+  const { lang, date, ago } = usePrefs()
   const w = useCmdWords()
   const took = duration(run.started, run.ended, lang)
-  const sub = [date(run.created), took && run.ended ? w('took', { d: took }) : null, run.cards.length ? w('cardsCount', { n: run.cards.length }) : null,
+  const sub = [ago(run.created), took && run.ended ? w('took', { d: took }) : null, run.cards.length ? w('cardsCount', { n: run.cards.length }) : null,
     run.attempt > 1 ? w('attempt', { n: run.attempt }) : null].filter(Boolean).join(' · ')
   return (
     <Go to={`/runs/${encodeURIComponent(run.id)}`} className={css.row}>
       <span className={css.rowIcon}><Icon name={VERB_ICON[run.verb ?? ''] ?? 'command'} /></span>
       <span className={css.rowMain}>
         <span className={css.rowTitle}><Txt>{labelOf(run.label, lang)}</Txt></span>
-        <span className={css.rowSub}>{sub}</span>
+        <span className={css.rowSub} title={date(run.created)}>{sub}{run.work_branch?.name && <> · <Id value={run.work_branch.name} /></>}</span>
       </span>
       <span className={css.rowEnd}>{end ?? <OutcomeChip run={run} />}</span>
     </Go>
@@ -88,9 +89,10 @@ const KIND_ICON: Record<string, IconName> = {
   result: 'branch', error: 'fail', action: 'command', say: 'say', progress: 'pulse',
 }
 
-function time(at: string): string {
+/** An event's clock time in the person's time zone (prefs.zone); the full date and zone are in its title. */
+function time(at: string, zone: string): string {
   const when = new Date(at)
-  return Number.isNaN(when.getTime()) ? '' : when.toISOString().slice(11, 19)
+  return Number.isNaN(when.getTime()) ? '' : new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23', timeZone: zone }).format(when)
 }
 
 function Disclosure({ open, label, onToggle }: { open: boolean; label: string; onToggle: () => void }) {
@@ -114,7 +116,7 @@ export function Diff({ text, label }: { text: string; label: string }) {
 }
 
 function EventRow({ event }: { event: RunEvent }) {
-  const { lang } = usePrefs()
+  const { lang, zone, date } = usePrefs()
   const w = useCmdWords()
   const [open, setOpen] = useState(false)
   const [detail, setDetail] = useState(false)
@@ -150,13 +152,13 @@ function EventRow({ event }: { event: RunEvent }) {
           </>
         )}
       </div>
-      <time className={css.evTime} dateTime={event.at}>{time(event.at)}</time>
+      <time className={css.evTime} dateTime={event.at} title={date(event.at)}>{time(event.at, zone)}</time>
     </li>
   )
 }
 
 function ReadsRow({ events }: { events: RunEvent[] }) {
-  const { lang } = usePrefs()
+  const { lang, zone, date } = usePrefs()
   const w = useCmdWords()
   const [open, setOpen] = useState(false)
   if (events.length === 1) return <EventRow event={events[0]} />
@@ -168,7 +170,7 @@ function ReadsRow({ events }: { events: RunEvent[] }) {
         <Disclosure open={open} label={open ? w('hideDetail') : w('showDetail')} onToggle={() => setOpen(!open)} />
         {open && <ul className={css.reads}>{events.map((e) => <li key={e.seq}>{typeof e.data.path === 'string' ? <Id value={e.data.path} /> : <Txt>{e.text[lang]}</Txt>}</li>)}</ul>}
       </div>
-      <time className={css.evTime} dateTime={events[0].at}>{time(events[0].at)}</time>
+      <time className={css.evTime} dateTime={events[0].at} title={date(events[0].at)}>{time(events[0].at, zone)}</time>
     </li>
   )
 }
@@ -226,7 +228,7 @@ export function ResultFacts({ result }: { result: RunResult }) {
         {result.diff_stat && <div><dt>{w('changes')}</dt><dd className="num">{w('filesCount', { n: result.diff_stat.files })}<span aria-hidden="true">·</span><bdi dir="ltr" className={css.stat}>+{result.diff_stat.insertions} −{result.diff_stat.deletions}</bdi></dd></div>}
         {result.tests && <div><dt>{w('tests')}</dt><dd>{result.tests.passed === false ? <Chip tone="critical">{w('failed')}</Chip> : <Chip tone="good">{w('passed')}</Chip>}<span className={css.factSub}><Txt>{result.tests.summary}</Txt></span></dd></div>}
       </dl>
-      {result.cards_closed.length > 0 && (
+      {(result.cards_closed ?? []).length > 0 && (
         <section className={css.closed} aria-label={w('cardsClosed', { n: result.cards_closed.length })}>
           <h3 className={css.subTitle}>{w('cardsClosed', { n: result.cards_closed.length })}</h3>
           <ul className={css.chips}>
@@ -250,5 +252,27 @@ export function ResultFacts({ result }: { result: RunResult }) {
         </section>
       )}
     </div>
+  )
+}
+
+/** A run's actual work branch and the base it was made on, linked to #/branches; or why it has none. */
+export function RunBranches({ run }: { run: Run }) {
+  const b = useBranchWords()
+  const { ago, date } = usePrefs()
+  const work = run.work_branch
+  const base = work?.base ?? run.context?.analysis_branch ?? null
+  const link = (name: string) => <Go to="/branches" search={{ show: 'all', q: name }} className={css.branchLink}><Id value={name} /></Go>
+  let state: ReactNode
+  if (!work) state = null
+  else if (work.state === 'not_created_yet') state = b('notCreatedYet')
+  else if (work.state === 'not_required') state = work.acted_on?.length ? <>{b('actedOn', { b: '' })}{work.acted_on.map((name, i) => <span key={name}>{i ? ', ' : ''}{link(name)}</span>)}</> : b('noBranchRequired')
+  else if (work.state === 'none_created') state = b('noneCreated')
+  else if (work.name) state = <>{link(work.name)}{work.state === 'deleted' ? ` · ${b('branchDeleted')}` : work.state === 'merged_and_deleted' ? ` · ${b('branchMergedDeleted')}` : ''}</>
+  return (
+    <p className={css.meta} data-run-branches>
+      <Icon name="branch" /> {b('workBranch')}: {state ?? '—'}
+      {base && <> · {b('runBase', { b: '' })}{link(base)}</>}
+      {run.context?.at && <> · <span title={date(run.context.at)}>{ago(run.context.at)}</span></>}
+    </p>
   )
 }

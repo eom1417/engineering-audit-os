@@ -3,7 +3,8 @@
 // draw between; one check shows its numbers and the designed "one check so far" state. A report without the section
 // shows its coverage row: why it is missing and which step writes it.
 import { useState, type ReactNode } from 'react'
-import { buttonClass, CopyRequestButton } from '../../components/Button'
+import { buttonClass } from '../../components/Button'
+import { DirectAction } from '../../command/Direct'
 import { Go } from '../../components/Go'
 import { Icon, type IconName } from '../../components/Icon'
 import { FoldList, Panel, RowLink, Section, StateMessage } from '../../components/Panel'
@@ -91,7 +92,7 @@ export function HistoryCharts({ history, project }: { history: HistoryData; proj
           <StateMessage icon="clock" title={history.scans.length < 2 ? w('oneScan') : w('unscored')}
             sub={<>{history.scans.length < 2 ? w('oneScanSub') : (history.missing ?? []).map((m) => m.detail[lang]).join(' ')}
               {history.scans.length >= 2 && history.missing?.[0] && <> · <Id value={history.missing[0].step} /></>}</>}
-            action={history.scans.length < 2 ? <div><CopyRequestButton request={w('checkAgainRequest', { p: project })} tool="audit" label={w('checkAgain')} /></div> : undefined} />
+            action={history.scans.length < 2 ? <div><DirectAction request={{ action: 'audit' }} label={w('checkAgain')} copy={{ request: w('checkAgainRequest', { p: project }), tool: 'audit' }} /></div> : undefined} />
         </Panel>
       )}
       {withOpen.length >= 2 && (

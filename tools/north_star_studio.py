@@ -10,7 +10,8 @@
                      each against STUDIO-COMPLETE's budget
     F15  command     the real trials of the command centre (tools/studio_trial.py -> $EAOS_MEASURE/studio/<project>/
                      trial.json) that went from the check to an accepted branch from the Studio alone, by a real assistant,
-                     every state understood; none counts until FleetManageWeb has one
+                     every state understood; none counts until FleetManageWeb has one; with the live owner-control,
+                     branch-control (NS46.T18) and scan-freshness (NS46.T19) trials
 
 A screen-gate run is a gates.json under $EAOS_MEASURE/studio-gates (tools/studio_gates.py --studio, or the removed
 studio/scripts/gates.mjs for older runs); it counts only when it is complete and of the build shipped in this checkout
@@ -216,6 +217,16 @@ def owner_controls_value(reports):
     return len(passed) / 2, f'live owner controls: {len(passed)}/2' + ('; ' + '; '.join(notes) if notes else '')
 
 
+def live_trial_value(reports, folder, module):
+    """NS46.T18/T19: a live trial judged by its locked acceptance module (acceptance/test_<module>.py): (1.0 or 0.0, why)."""
+    import importlib
+    import sys
+    sys.path.insert(0, str(ROOT / 'acceptance'))
+    accepted = importlib.import_module(f'test_{module}')
+    missing = accepted.judge(Path(reports) / folder / 'trial.json', accepted.CASES)
+    return (0.0 if missing else 1.0), f'{folder}: ' + ('live trial passed' if not missing else f'{len(missing)} requirement(s) missing, first: ' + '; '.join(missing[:3]))
+
+
 def command_value(reports):
     """F15."""
     trials = [(path.parent.name, _load(path)) for path in sorted((Path(reports) / 'studio').glob('*/trial.json'))]
@@ -226,7 +237,10 @@ def command_value(reports):
     fleet = any(name.lower().startswith('fleetmanageweb') for name in ok)
     notes = [f'{name}: missing {why}' for name, passed, why in judged if not passed]
     control_value, control_notes = owner_controls_value(reports)
-    value = min(round(len(ok) / len(trials), 3) if fleet else 0.0, control_value)
+    branch_value, branch_notes = live_trial_value(reports, 'branch-control', 'branch_control')
+    fresh_value, fresh_notes = live_trial_value(reports, 'scan-freshness', 'scan_freshness')
+    control_notes = '; '.join((control_notes, branch_notes, fresh_notes))
+    value = min(round(len(ok) / len(trials), 3) if fleet else 0.0, control_value, branch_value, fresh_value)
     return value, (f'command-centre trials from the check to an accepted branch, from the Studio alone: {len(ok)}/{len(trials)}'
                    + ('' if fleet else '; FleetManageWeb has not passed yet') + (f"; {'; '.join(notes)}" if notes else '') + '; ' + control_notes)
 

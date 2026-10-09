@@ -1,6 +1,7 @@
 {
- "source_sha256": "cc9a25b5b354d36ca1beeb887e1f39721b7de527c968ed13880e30caf9541311",
+ "source_sha256": "40c7b53ed5d4bdc5885968fecf5acd9251b25f0ed8a1159645e1a4598b381075",
  "files": [
+  "assets/BranchesPage.js",
   "assets/BridgePage.js",
   "assets/Change.js",
   "assets/ComparePage.js",
@@ -29,6 +30,7 @@
   "assets/Lanes.js",
   "assets/LibraryPage.js",
   "assets/ListBox.js",
+  "assets/Modal.js",
   "assets/Palette.js",
   "assets/PathsGallery.js",
   "assets/PathsPage.js",
@@ -42,9 +44,11 @@
   "assets/ScanPage.js",
   "assets/ScreensPage.js",
   "assets/Sequence.js",
+  "assets/SheetDialog.js",
   "assets/Steps.js",
   "assets/SystemMap.js",
   "assets/TimelinePage.js",
+  "assets/demo.js",
   "assets/model.js",
   "assets/model2.js",
   "assets/model3.js",

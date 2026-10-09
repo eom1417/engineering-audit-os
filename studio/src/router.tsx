@@ -47,6 +47,7 @@ const RunPage = lazyRouteComponent(() => import('./pages/runs/RunPage'), 'RunPag
 const ScreenPage = lazyRouteComponent(() => import('./pages/screens/ScreensPage'), 'ScreenPage')
 const ScreensPage = lazyRouteComponent(() => import('./pages/screens/ScreensPage'), 'ScreensPage')
 const RunsPage = lazyRouteComponent(() => import('./pages/runs/RunsPage'), 'RunsPage')
+const BranchesPage = lazyRouteComponent(() => import('./pages/branches/BranchesPage'), 'BranchesPage')
 const GalleryPage = lazyRouteComponent(() => import('./gallery/Gallery'), 'GalleryPage')
 
 type Params = Record<string, string | undefined>
@@ -102,6 +103,7 @@ export function makeRouter(dev: () => boolean) {
     createRoute({ getParentRoute: () => root, path: '/tasks/$taskId', component: TaskPage }),
     createRoute({ getParentRoute: () => root, path: '/ops/$opId', component: OpPage }),
     createRoute({ getParentRoute: () => root, path: '/decisions', component: DecisionsPage, validateSearch: params('demo') }),
+    createRoute({ getParentRoute: () => root, path: '/branches', component: BranchesPage, validateSearch: params('show', 'q', 'base', 'b') }),
     createRoute({ getParentRoute: () => root, path: '/runs', component: RunsPage, validateSearch: params('q', 'show', 'demo') }),
     createRoute({ getParentRoute: () => root, path: '/runs/$runId', component: RunPage, validateSearch: params('demo') }),
     createRoute({ getParentRoute: () => root, path: '/library', component: LibraryPage, validateSearch: params('group', 'q'), beforeLoad: devOnly('library', dev) }),

@@ -455,6 +455,7 @@ def scan(state, args):
     from .pipeline import execute, resume
     out = report_of(state)
     partial = (out / 'run-manifest.json').is_file()
+    read = {'scanned_commit': tip(state) or None, **branches.scan_provenance(state, source(state))}
     say(('أفحص مشروعك الآن. يأخذ هذا عادة من 5 إلى 30 دقيقة حسب حجمه، ولن يتغير فيه شيء.' if lang == 'ar' else
          'Checking your project now. This usually takes 5 to 30 minutes depending on its size; nothing in it changes.'))
     options = dict(language=lang, engines=[], site=True, progress=progress_printer(lang))
@@ -465,6 +466,7 @@ def scan(state, args):
         manifest = execute(str(source(state)), out, **options)
     if not (out / 'START-HERE.md').is_file(): start_here(out, lang, Path(state['project']).name)   # compose did not run: still one page
     state['scanned'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    state.update(read)
     page = publish(state)
     save(state)
     counts = summary_counts(out)

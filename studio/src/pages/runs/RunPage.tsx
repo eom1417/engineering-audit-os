@@ -19,7 +19,7 @@ import { usePrefs } from '../../i18n/prefs'
 import { Id, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout } from '../../shell/Layout'
-import { Batches, ResultFacts, ScreenPairs, StateChip, Timeline } from './parts'
+import { Batches, ResultFacts, RunBranches, ScreenPairs, StateChip, Timeline } from './parts'
 import { DemoBanner, SnapshotPanel } from './RunsPage'
 import css from './runs.module.css'
 
@@ -154,6 +154,7 @@ function RunBody({ id }: { id: string }) {
             elapsed ? w(run.ended ? 'took' : 'elapsed', { d: elapsed }) : null, run.attempt > 1 ? w('attempt', { n: run.attempt }) : null].filter(Boolean).join(' · ')}
           {status === 'reconnecting' && <span className={css.reconnect} role="status"> · {w('reconnecting')}</span>}
         </p>
+        {actions.mode === 'live' && <RunBranches run={run} />}
         <Controls run={run} onRun={(next) => followed.reload(next)} />
       </header>
 

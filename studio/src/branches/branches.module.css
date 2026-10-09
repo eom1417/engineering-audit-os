@@ -1,0 +1,94 @@
+/* Branch control and scan freshness (NS46.T18, NS46.T19): the header chip, the switcher, the scan sheet and the
+   Branches page. Every control is at least 44px on every width; the page never scrolls sideways. */
+
+/* ---------- Header chip ---------- */
+.branchChip {
+  display: inline-flex; align-items: center; gap: 6px; min-block-size: 44px; max-inline-size: 220px; padding-inline: 10px;
+  border-radius: var(--radius-full); border: 1px solid var(--border-default); background: var(--bg-surface); color: var(--text-secondary);
+  font-size: 12px; font-weight: 500; cursor: pointer;
+}
+.branchChip:hover { background: var(--bg-hover); }
+.branchChip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.branchName { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-inline-size: 0; font-family: var(--font-mono); }
+
+/* Every control on these surfaces is at least 44px on every width, not only on the phone */
+.drawerBody { display: flex; flex-direction: column; gap: 14px; }
+.tall button, .tall select, .tall input, .tall summary, .tall a[href] { min-block-size: 44px; }
+/* the shared segmented control is 40px "comfortable" on desktop: these surfaces keep 44 there too */
+.tall [role=radio][class] { min-block-size: 44px; }
+
+/* ---------- Shared pieces ---------- */
+.muted { color: var(--text-tertiary); font-size: 13px; }
+.note { padding: 10px 12px; border-radius: var(--radius-8); background: var(--status-warning-subtle); color: var(--status-warning-text); line-height: 1.5; }
+.error { padding: 10px 12px; border-radius: var(--radius-8); background: var(--status-critical-subtle); color: var(--status-critical-text); line-height: 1.5; }
+.status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.inlineLink { display: inline-flex; align-items: center; min-block-size: 44px; color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
+.badges { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.files { display: flex; flex-direction: column; gap: 4px; font-size: 13px; padding-inline-start: 4px; }
+.files li { overflow-wrap: anywhere; }
+.actions { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.req { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px; border-radius: var(--radius-8); background: var(--bg-sunken); color: var(--text-secondary); }
+.command { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; max-inline-size: 100%; }
+.command code { font-family: var(--font-mono); font-size: 14px; padding: 8px 12px; border-radius: var(--radius-8); background: var(--code-bg); border: 1px solid var(--border-subtle); overflow-wrap: anywhere; }
+.fallback { border-block-start: 1px solid var(--border-subtle); padding-block-start: 10px; display: flex; flex-direction: column; gap: 10px; }
+.fallback summary { min-block-size: 44px; display: flex; align-items: center; cursor: pointer; color: var(--text-secondary); font-weight: 500; }
+.fallback summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.fallback[open] { gap: 10px; }
+.instruction { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; padding: 10px 12px; border-radius: var(--radius-8); background: var(--bg-sunken); margin-block: 8px; }
+.check { display: flex; align-items: center; gap: 10px; min-block-size: 44px; cursor: pointer; }
+.check input { inline-size: 22px; block-size: 22px; flex: none; }
+.panel { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-8); }
+.blocked { font-size: 13px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 4px; }
+.blocked ul { list-style: disc; padding-inline-start: 18px; display: flex; flex-direction: column; gap: 2px; }
+.diff { font-family: var(--font-mono); font-size: 12px; white-space: pre; overflow: auto; max-block-size: 360px; padding: 10px; border-radius: var(--radius-8); background: var(--code-bg); }
+.diff:focus-visible { outline: 2px solid var(--focus-ring); }
+.commandList { display: flex; flex-direction: column; gap: 10px; }
+
+/* ---------- Context: the four branches never mixed up ---------- */
+.contextPanel { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.context { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px 16px; }
+.context div { display: flex; flex-direction: column; gap: 2px; min-inline-size: 0; }
+.context dt { font-size: 12px; color: var(--text-tertiary); }
+.context dd { font-family: var(--font-mono); font-size: 14px; overflow-wrap: anywhere; }
+
+/* ---------- Switcher ---------- */
+.switchList { display: flex; flex-direction: column; }
+.switchRow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding-block: 10px; }
+.switchRow + .switchRow { border-block-start: 1px solid var(--border-subtle); }
+.switchMain { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; }
+.switchActions { display: flex; flex-wrap: wrap; gap: 6px; }
+.allLinkWrap { display: flex; }
+.allLink { display: inline-flex; align-items: center; gap: 8px; min-block-size: 44px; color: var(--accent-text); font-weight: 500; }
+
+/* ---------- Branches page ---------- */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.toolbar > :nth-child(2) { flex: 1 1 220px; }
+.baseSelect { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); }
+.baseSelect select {
+  min-block-size: 44px; max-inline-size: 220px; padding-inline: 10px; border-radius: var(--radius-8); border: 1px solid var(--border-default);
+  background: var(--bg-surface); color: var(--text-primary); font: inherit;
+}
+.remoteLine { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; color: var(--text-secondary); }
+.tableWrap { overflow-x: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-12); background: var(--bg-surface); }
+.table { inline-size: 100%; border-collapse: collapse; font-size: 14px; }
+.table th, .table td { text-align: start; padding: 10px 12px; vertical-align: top; border-block-end: 1px solid var(--border-subtle); }
+.table thead th { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
+.table tbody th { font-weight: 500; min-inline-size: 200px; }
+.table tbody th > div { margin-block-start: 6px; }
+.runLinks { display: flex; flex-direction: column; font-size: 13px; }
+.cards { display: none; flex-direction: column; gap: 10px; }
+.card { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--border-subtle); border-radius: var(--radius-12); background: var(--bg-surface); min-inline-size: 0; }
+.cardHead { font-weight: 600; overflow-wrap: anywhere; }
+.cardMeta { font-size: 13px; color: var(--text-secondary); }
+.recoveries { display: flex; flex-direction: column; }
+.recoveries li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px; }
+.recoveries li + li { border-block-start: 1px solid var(--border-subtle); }
+
+@media (max-width: 899px) {
+  .tableWrap { display: none; }
+  .cards { display: flex; }
+}
+
+@media (max-width: 767px) {
+  .branchChip { max-inline-size: 132px; padding-inline: 8px; }
+}
