@@ -80,6 +80,21 @@ def _stage_ended(stage, row):
                  detail=row.get('detail') or {}, resumed=bool(row.get('resumed')), programs=[])
 
 
+def _on_stage(state, row, handler):
+    stage = next((s for s in state['stages'] if s['name'] == row.get('stage')), None)
+    if stage: handler(stage, row)
+
+
+def _run_ended(state, row):
+    state.update(state='done', status=row.get('status'), reason=row.get('reason') or '', ended_at=row.get('at'),
+                 seconds=row.get('seconds'), counts=row.get('counts') or {})
+
+
+def _heard(state, row):
+    state['heard_at'] = row.get('at') or state.get('heard_at')
+    state['last_seq'] = max(state.get('last_seq') or 0, int(row.get('seq') or 0))
+
+
 STAGE_EVENTS = {'stage.started': _stage_started, 'stage.step': _stage_step, 'stage.activity': _stage_activity,
                 'stage.ended': _stage_ended}
 
@@ -90,13 +105,9 @@ def apply(state, row):
     event = row.get('event')
     if event == 'run.started': _run_started(state, row)
     elif state.get('run') is None or row.get('run') != state.get('run'): return state
-    stage = next((s for s in state['stages'] if s['name'] == row.get('stage')), None) if event in STAGE_EVENTS else None
-    if stage: STAGE_EVENTS[event](stage, row)
-    elif event == 'run.ended':
-        state.update(state='done', status=row.get('status'), reason=row.get('reason') or '', ended_at=row.get('at'),
-                     seconds=row.get('seconds'), counts=row.get('counts') or {})
-    state['heard_at'] = row.get('at') or state.get('heard_at')
-    state['last_seq'] = max(state.get('last_seq') or 0, int(row.get('seq') or 0))
+    if event in STAGE_EVENTS: _on_stage(state, row, STAGE_EVENTS[event])
+    elif event == 'run.ended': _run_ended(state, row)
+    _heard(state, row)
     return state
 
 

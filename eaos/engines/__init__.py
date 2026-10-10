@@ -49,6 +49,20 @@ def _report(name, target, workdir, exclude, formats):
                 'findings': [], 'coverage': {}, 'version': None, 'pinned_version': ADAPTERS[name].PINNED}
 
 
+def _run_all(selected, target, workdir, exclude, formats, step):
+    """Each selected engine's report, in order, each one a step from waiting to its own status."""
+    reports = {}
+    for name in selected: step(name, 0, len(selected), 'waiting')
+    for done, name in enumerate(selected):
+        step(name, done, len(selected), 'running')
+        began = time.monotonic()
+        reports[name] = _report(name, target, workdir, exclude, formats)
+        status = reports[name].get('status') or 'error'
+        step(name, done + 1, len(selected), status, time.monotonic() - began, reason=reports[name].get('reason') or '',
+             reason_code='' if status == 'observed' else f'engine_{status}')
+    return reports
+
+
 def analyze(target, workdir, exclude=(), only=None, formats=None, step=None):
     """Run every requested engine and return one manifest. The target is proven unchanged afterwards.
 
@@ -60,16 +74,7 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, step=None):
     selected = ordered(ADAPTERS if not only else [name for name in ADAPTERS if name in set(only)])
     unknown = sorted(set(only or ()) - set(ADAPTERS))
     before = state_digest(target)
-    reports = {}
-    step = step or progress.step
-    for name in selected: step(name, 0, len(selected), 'waiting')
-    for done, name in enumerate(selected):
-        step(name, done, len(selected), 'running')
-        began = time.monotonic()
-        reports[name] = _report(name, target, workdir, exclude, formats)
-        status = reports[name].get('status') or 'error'
-        step(name, done + 1, len(selected), status, time.monotonic() - began, reason=reports[name].get('reason') or '',
-             reason_code='' if status == 'observed' else f'engine_{status}')
+    reports = _run_all(selected, target, workdir, exclude, formats, step or progress.step)
     after = state_digest(target)
     manifest = {
         'contract_version': 1,
