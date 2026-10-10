@@ -16,6 +16,8 @@
   summary reuses the plan the check already made; a check of EAOS itself went from 17 to 12.5 minutes.
 - **The same project gives the same numbers**: the engines' findings no longer depend on when the files were
   copied, so a complexity a card quotes is the same on every fresh copy of the same commit.
+- **A fresh tools install works on its own**: Python tools install and run without EAOS's own packages on their
+  path, so none misses a library (Semgrep failed on a new computer without attrs).
 - **The live check map**: while a check runs, from the assistant, the Studio or `eaos start`, the Studio draws
   EAOS's own stages live: the running stage glows, a light moves to the next ones, and each stage says what it does,
   how long it took, its steps, what it produced and why it was skipped. The setup, safety and fix flows have their

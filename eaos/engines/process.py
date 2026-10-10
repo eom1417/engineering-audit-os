@@ -30,7 +30,7 @@ def run(command, cwd=None, timeout=DEFAULT_TIMEOUT, env=None):
     started = time.monotonic()
     try:
         done = subprocess.run(command, cwd=cwd, capture_output=True, text=True, timeout=timeout,
-                              check=False, env={**os.environ, 'NO_COLOR': '1', **(env or {})})
+                              check=False, env={**toolchain.tool_env(), 'NO_COLOR': '1', **(env or {})})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return 127, '', str(problem), time.monotonic() - started
     return done.returncode, done.stdout, done.stderr, time.monotonic() - started

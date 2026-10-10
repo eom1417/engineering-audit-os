@@ -363,16 +363,23 @@ def _pip(tool):
     with _PIP: _pip_one(tool)
 
 
+def tool_env():
+    """The environment a pinned tool runs or installs in: without the PYTHONPATH that points at this EAOS's own
+    packages. With it, pip took a dependency EAOS happens to carry (attrs for Semgrep) as already installed, so a fresh
+    tools folder missed it and the tool failed once run on its own."""
+    return {name: value for name, value in os.environ.items() if name != 'PYTHONPATH'}
+
+
 def _pip_one(tool):
-    venv, wanted = home() / 'venv', f"{tool['install']['package']}=={tool['version']}"
+    venv, wanted, env = home() / 'venv', f"{tool['install']['package']}=={tool['version']}", tool_env()
     runner = uv()
     if not (venv / 'bin/python').exists():
-        if runner: subprocess.run([runner, 'venv', '--quiet', '--python', sys.executable, str(venv)], check=True)
-        else: subprocess.run([sys.executable, '-m', 'venv', str(venv)], check=True)
+        if runner: subprocess.run([runner, 'venv', '--quiet', '--python', sys.executable, str(venv)], check=True, env=env)
+        else: subprocess.run([sys.executable, '-m', 'venv', str(venv)], check=True, env=env)
     if runner and not (venv / 'bin/pip').exists():
-        subprocess.run([runner, 'pip', 'install', '--quiet', '--python', str(venv / 'bin/python'), wanted], check=True)
+        subprocess.run([runner, 'pip', 'install', '--quiet', '--python', str(venv / 'bin/python'), wanted], check=True, env=env)
     else:
-        subprocess.run([str(venv / 'bin/pip'), 'install', '-q', wanted], check=True)
+        subprocess.run([str(venv / 'bin/pip'), 'install', '-q', wanted], check=True, env=env)
     _link(venv / 'bin' / tool['binary'], tool['binary'])
 
 

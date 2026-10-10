@@ -90,6 +90,20 @@ class ToolchainTests(Workspace):
 
 
 
+class ToolEnvironment(unittest.TestCase):
+    def test_a_python_tool_installs_and_runs_without_the_pythonpath_of_eaos(self):
+        # pip took a dependency EAOS carries as installed, so a fresh tools folder missed it (Semgrep without attrs).
+        from eaos.engines import process
+        tool = {'name': 'semgrep', 'version': '1.0.0', 'binary': 'semgrep', 'install': {'package': 'semgrep'}}
+        with mock.patch.dict(os.environ, {'PYTHONPATH': '/eaos/site-packages'}), \
+                mock.patch.object(toolchain, 'uv', return_value=None), mock.patch.object(toolchain, '_link'), \
+                mock.patch.object(toolchain.subprocess, 'run') as installed, mock.patch.object(process.subprocess, 'run') as ran:
+            toolchain._pip_one(tool)
+            process.run(['semgrep', '--version'])
+        for call in installed.call_args_list + ran.call_args_list:
+            self.assertNotIn('PYTHONPATH', call.kwargs['env'])
+
+
 class Ranged(http.server.BaseHTTPRequestHandler):
     """Serves `body`, honouring `Range: bytes=N-` as GitHub's release downloads do; records the starts asked for."""
     body, asked = b'', []
