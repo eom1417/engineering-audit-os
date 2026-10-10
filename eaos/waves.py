@@ -148,7 +148,7 @@ def gates(report, root, runtime, name, before, lock):
     if lock:
         from .behavior_lock import verify_lock
         verdict = verify_lock(report, root, runtime, name=name)
-        if verdict['failed']: return f"the behaviour lock broke on {verdict['failed']} of {verdict['specs']} screens"
+        if verdict['failed']: return f"the behaviour lock broke on {verdict['failed']} of {verdict['specs']} specs"
     return ''
 
 

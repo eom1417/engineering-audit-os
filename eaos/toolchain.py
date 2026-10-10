@@ -178,12 +178,21 @@ def node_modules(name):
 
 
 def _companions_missing(tool):
-    """An npm tool's companion packages (install.with) at their pinned versions, or what is not."""
+    """A tool's companion packages (install.with: npm `name@version`, pip `name==version`) at their pinned versions,
+    or what is not."""
+    pip = tool['install']['method'] == 'pip'
     for spec in tool['install'].get('with', []):
-        name, _, wanted = spec.rpartition('@')
-        found = package_version(tool, name)
+        name, _, wanted = spec.partition('==') if pip else spec.rpartition('@')
+        found = pip_version(name) if pip else package_version(tool, name)
         if found != wanted: return f'{name} {wanted} is not installed beside it (found {found})'
     return ''
+
+
+def pip_version(name):
+    """The version of the Python package `name` installed in the tools' virtualenv, or None."""
+    for record in (home() / 'venv/lib').glob(f"python*/site-packages/{name.replace('-', '_')}-*.dist-info"):
+        return record.name[len(name) + 1:-len('.dist-info')]
+    return None
 
 
 def selected(names=None, stage=None, skip=()):
@@ -371,15 +380,16 @@ def tool_env():
 
 
 def _pip_one(tool):
-    venv, wanted, env = home() / 'venv', f"{tool['install']['package']}=={tool['version']}", tool_env()
+    venv, env = home() / 'venv', tool_env()
+    wanted = [f"{tool['install']['package']}=={tool['version']}", *tool['install'].get('with', [])]
     runner = uv()
     if not (venv / 'bin/python').exists():
         if runner: subprocess.run([runner, 'venv', '--quiet', '--python', sys.executable, str(venv)], check=True, env=env)
         else: subprocess.run([sys.executable, '-m', 'venv', str(venv)], check=True, env=env)
     if runner and not (venv / 'bin/pip').exists():
-        subprocess.run([runner, 'pip', 'install', '--quiet', '--python', str(venv / 'bin/python'), wanted], check=True, env=env)
+        subprocess.run([runner, 'pip', 'install', '--quiet', '--python', str(venv / 'bin/python'), *wanted], check=True, env=env)
     else:
-        subprocess.run([str(venv / 'bin/pip'), 'install', '-q', wanted], check=True, env=env)
+        subprocess.run([str(venv / 'bin/pip'), 'install', '-q', *wanted], check=True, env=env)
     _link(venv / 'bin' / tool['binary'], tool['binary'])
 
 

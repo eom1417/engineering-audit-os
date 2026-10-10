@@ -115,10 +115,31 @@ class VerifyLockTests(Workspace):
         (runtime / 'behavior-lock/snapshots').mkdir(parents=True)
         with mock.patch('eaos.live_run.LiveRun'), mock.patch.object(behavior_lock, '_prepare'), \
                 mock.patch.object(behavior_lock, '_start'), mock.patch.object(behavior_lock, '_pass') as passed, \
+                mock.patch.object(behavior_lock, '_approvals', return_value={}) as approved, \
                 mock.patch.object(behavior_lock, 'spec_statuses'), mock.patch.object(behavior_lock, '_results', return_value=[]), \
                 mock.patch.object(behavior_lock, '_write'):
             behavior_lock.verify_lock(self.tmp, self.tmp, runtime)
         self.assertIs(passed.call_args.kwargs['update'], False)
+        self.assertIs(approved.call_args.args[3], False)
+
+    def test_a_project_without_screens_is_verified_on_its_approved_interfaces_alone(self):
+        # EAOS's own repository recorded no screen, so every fix was refused: "no snapshots recorded on the original".
+        from unittest import mock
+        from eaos import behavior_lock
+        runtime = Path(self.tmp)
+        (runtime / 'behavior-lock/approved').mkdir(parents=True)
+        now = [{'path': 'approvals/test_cli.py', 'status': 'passed'}]
+        with mock.patch('eaos.live_run.LiveRun'), mock.patch.object(behavior_lock, '_prepare') as prepared, \
+                mock.patch.object(behavior_lock, '_start'), mock.patch.object(behavior_lock, '_run_specs', return_value={}), \
+                mock.patch.object(behavior_lock, '_results', return_value=now), mock.patch.object(behavior_lock, '_write'):
+            verdict = behavior_lock.verify_lock(self.tmp, self.tmp, runtime)
+        self.assertEqual((verdict['specs'], verdict['passed'], verdict['failed']), (1, 1, 0))
+        self.assertEqual(prepared.call_args.args[2], runtime / 'behavior-lock')
+
+    def test_with_nothing_recorded_on_the_original_the_reason_is_said(self):
+        from eaos import behavior_lock
+        with self.assertRaisesRegex(RuntimeError, 'neither a screen nor an interface of the code: run `eaos live lock` first'):
+            behavior_lock.verify_lock(self.tmp, self.tmp, self.tmp)
 
     def test_a_screen_that_already_failed_on_the_original_is_not_counted_against_the_change(self):
         from unittest import mock
@@ -129,8 +150,8 @@ class VerifyLockTests(Workspace):
             {'path': 'home.spec.ts', 'status': 'passed'}, {'path': 'sessions.spec.ts', 'status': 'failed'}]}))
         now = [{'path': 'home.spec.ts', 'status': 'failed'}, {'path': 'sessions.spec.ts', 'status': 'failed'}]
         with mock.patch('eaos.live_run.LiveRun'), mock.patch.object(behavior_lock, '_prepare'), \
-                mock.patch.object(behavior_lock, '_start'), mock.patch.object(behavior_lock, '_pass'), \
-                mock.patch.object(behavior_lock, 'spec_statuses'), mock.patch.object(behavior_lock, '_results', return_value=now), \
+                mock.patch.object(behavior_lock, '_start'), mock.patch.object(behavior_lock, '_run_specs', return_value={}), \
+                mock.patch.object(behavior_lock, '_results', return_value=now), \
                 mock.patch.object(behavior_lock, '_write'):
             verdict = behavior_lock.verify_lock(self.tmp, self.tmp, runtime)
         self.assertEqual((verdict['failed'], verdict['already_failing']), (1, ['sessions.spec.ts']))
