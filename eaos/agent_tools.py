@@ -10,6 +10,7 @@ started with `eaos start` is the one `overview` reads, and the other way round.
 """
 import json
 import os
+import shutil
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -269,10 +270,13 @@ def status(project=None):
     if busy: step = ('wait', f"a {busy['kind']} is running")
     elif not checked: step = ('audit', 'the project has not been checked')
     elif waiting: step = ('accept or undo', f"the fixes on {waiting['branch']} wait for the person's decision")
+    elif wave and (_no_safety_net(state) or {}).get('recorded') == 0:
+        step = ('fix_abandon', f"batch {wave['number']} cannot be closed: the safety net recorded nothing")
     elif wave: step = ('fix_edit, then fix_finish', f"batch {wave['number']} is open")
     elif not _set_up(state, head): step = ('run_setup', "the app has not been run for this commit (ask the person's agreement first)")
     elif not setup.get('ok'): step = ('run_try', 'the app does not run yet: read the last failure and propose a fix')
     elif not guided.same_code(state, safety.get('commit'), head): step = ('safety_net', 'record the screens before any fix')
+    elif not safety.get('passed'): step = ('none', 'the safety net recorded nothing: EAOS cannot protect this project yet, so no fix starts')
     else: step = ('fix_start', 'open the next batch of fixes')
     answer['next'] = {'tool': step[0], 'why': step[1]}
     if checked: answer.update(_older_check(state))
@@ -722,6 +726,8 @@ def fix_start(project=None, cards=None, size=10):
     if not _consented(state): return {'status': 'needs_agreement', 'ask_the_person': CONSENT,
                                       'what_now': 'Ask the person; if they agree, call run_setup with person_agreed=true.'}
     if not _set_up(state, _head(state)): return {'status': 'not_set_up', 'what_now': 'Call run_setup first.'}
+    unsafe = _no_safety_net(state)
+    if unsafe: return unsafe
     waiting = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
     if waiting: return {'status': 'waiting_decision', 'branch': waiting['branch'],
                         'what_now': f"The fixes on {waiting['branch']} wait for the person's decision: ask them, then accept or undo."}
@@ -738,6 +744,34 @@ def fix_start(project=None, cards=None, size=10):
                             'call fix_start again with ready cards only, or with no cards for the next ready batch.'}
     if not chosen: return {'status': 'nothing_to_fix', 'what_now': 'No fixable card is left; the rest need the person\'s decision (see plan).'}
     return _start('fix_start', state, {'cards': chosen}, watch=True)
+
+
+def _no_safety_net(state):
+    """Why no batch may open: the safety net of this code is missing, or recorded nothing, so fix_finish would refuse
+    every change after the work was done (owner's trial, 2026-10-10); None when it holds."""
+    safety = state.get('safety') or {}
+    if not guided.same_code(state, safety.get('commit'), _head(state)):
+        return {'status': 'no_safety_net', 'what_now': 'Call safety_net first: it records what the program does today.'}
+    if safety.get('passed'): return None
+    why = '; '.join(f"{row.get('path')}: {row.get('reason') or row.get('status')}" for row in (safety.get('skipped') or [])[:3])
+    return {'status': 'no_safety_net', 'recorded': 0, 'specs': safety.get('screens', 0), 'why': why,
+            'what_now': 'The safety net recorded nothing, so no fix could be checked: no batch was opened. Tell the person '
+                        'plainly that EAOS cannot protect this project yet and why (why); do not retry the fixes.'}
+
+
+def fix_abandon(project=None):
+    """Close the open batch without handing anything over: its copy is removed and its cards can be picked again."""
+    state = project_state(project)
+    wave = _open(state)
+    root, runtime = Path(wave['root']).resolve(), guided.runtime_of(state).resolve()
+    if runtime in root.parents: shutil.rmtree(root, ignore_errors=True)
+    state.setdefault('waves', []).append({'number': wave['number'], 'base': wave['base'], 'cards': wave['cards'], 'kept': {},
+                                          'failed': wave['failed'], 'branch': None, 'status': 'abandoned', 'via': 'assistant'})
+    state.pop('open_wave', None)
+    guided.save(state)
+    guided.publish(state)
+    return {'status': 'abandoned', 'batch': wave['number'], 'cards': wave['cards'],
+            'what_now': 'Tell the person the batch was closed and nothing in their project changed.'}
 
 
 def _fix_start_job(project, arguments, progress):

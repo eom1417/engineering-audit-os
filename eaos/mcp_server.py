@@ -59,7 +59,7 @@ CAPABILITIES = {'where things stand': 'status', 'read any plan': 'blueprint_star
                 'show the report for people': 'open_report', 'offer what EAOS can do now': 'menu',
                 'what a change touches': 'impact', 'answer from the records': 'ask', 'check the tools': 'tools_check',
                 'read the evidence': 'finding', 'run the app': 'run_try', 'record the screens': 'safety_net',
-                'fix a card': 'fix_edit', 'hand fixes over': 'fix_finish', 'accept': 'accept', 'undo': 'undo',
+                'fix a card': 'fix_edit', 'hand fixes over': 'fix_finish', 'close a stuck batch': 'fix_abandon', 'accept': 'accept', 'undo': 'undo',
                 'hand the work to another assistant': 'note', 'choose the branch': 'choose_branch'}
 
 
@@ -300,6 +300,13 @@ def build():
     @_answer
     def fix_finish(project: str | None = None) -> str:
         return tools.fix_finish(project)
+
+    @server.tool(annotations=working, description='Close the open batch without handing anything over, when fix_finish cannot close it '
+                 '(its reason says EAOS cannot check the changes): its copy is removed, the person\'s project is not touched, and '
+                 'its cards can be picked again.')
+    @_answer
+    def fix_abandon(project: str | None = None) -> str:
+        return tools.fix_abandon(project)
 
     @server.tool(annotations=working, description='Take the waiting branch into the person\'s current branch (whenever they say take it '
                  'in, merge, or accept; never merge it with git yourself), then delete the branch and bring the report and the '

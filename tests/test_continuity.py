@@ -176,6 +176,7 @@ class Continuity(Base):
         state = guided.load(self.project)
         state['consent'] = {'run_and_fix': True}
         state['setup'] = {'commit': state['scanned_commit'], 'ok': True}
+        state['safety'] = {'commit': state['scanned_commit'], 'screens': 1, 'passed': 1}
         guided.save(state)
         self.assertEqual(agent_tools.fix_start(str(self.project))['status'], 'waiting_decision')
 
@@ -206,10 +207,26 @@ class FieldEdges(Base):
         self.assertEqual([p.name for p in several.exception.projects], ['other', 'shop'])
         self.assertEqual(agent_tools.status(str(above))['status'], 'needs_project')
 
+    def test_a_batch_that_cannot_close_is_closed_without_touching_the_project(self):
+        # A batch whose fix_finish was refused stayed open, and every later fix_start answered "not in batch 1".
+        state = guided.load(self.project)
+        root = guided.runtime_of(state) / 'candidates/WAVE-1'
+        root.mkdir(parents=True)
+        state['open_wave'] = {'number': 1, 'root': str(root), 'base': state['scanned_commit'], 'cards': ['TASK-001'],
+                              'kept': {'TASK-001': 'abc'}, 'failed': {}, 'tools': {}}
+        guided.save(state)
+        head = git(self.project, 'rev-parse', 'HEAD')
+        self.assertEqual(agent_tools.fix_abandon(str(self.project))['status'], 'abandoned')
+        state = guided.load(self.project)
+        self.assertNotIn('open_wave', state)
+        self.assertEqual((state['waves'][-1]['status'], root.exists()), ('abandoned', False))
+        self.assertEqual((git(self.project, 'rev-parse', 'HEAD'), git(self.project, 'status', '--porcelain')), (head, ''))
+
     def test_a_ready_card_still_opens_its_batch_past_the_decision_check(self):
         state = guided.load(self.project)
         state['setup'] = {'commit': state['scanned_commit'], 'ok': True}
         state['consent'] = {'run_and_fix': True}
+        state['safety'] = {'commit': state['scanned_commit'], 'screens': 1, 'passed': 1}
         guided.save(state)
         with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as started:
             self.assertEqual(agent_tools.fix_start(str(self.project), cards=['TASK-001'])['status'], 'started')

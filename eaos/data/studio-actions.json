@@ -1006,6 +1006,39 @@
    }
   },
   {
+   "id": "fix_abandon",
+   "tool": "fix_abandon",
+   "group": "fix",
+   "label": {
+    "en": "Close a stuck batch",
+    "ar": "أغلق دفعة عالقة"
+   },
+   "description": {
+    "en": "Closes the open batch without handing anything over, when it cannot be checked. Your project is not touched.",
+    "ar": "يغلق الدفعة المفتوحة بدون ما يسلّم شي، لما ما ينقدر التحقق منها. مشروعك ما يُلمس."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
    "id": "accept",
    "tool": "accept",
    "group": "handover",
