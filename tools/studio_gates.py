@@ -236,12 +236,18 @@ def studio_placeholders(data):
     # (one check: itself twice, which the comparison shows as "needs two checks")
     docs = sorted(section('docs').get('docs') or [], key=lambda d: (d.get('order') is None, d.get('order') or 0, d['path']))
     doc = next((d for d in docs if len(d.get('headings') or []) >= 3), docs[0] if docs else {'path': 'none'})
+    # {doc_diagram}: the first document in reading order whose text holds a Mermaid diagram and a table (else only a
+    # diagram), so the reader's drawn diagrams and tables are audited
+    texts = {d.get('id'): d.get('text') or '' for d in section('library').get('documents') or []}
+    drawing = [d for d in docs if '```mermaid' in texts.get(d.get('id', d['path']), '')]
+    table = re.compile(r'^\|.*\|[ \t]*\n\|[ \t:|-]+\|', re.M)
+    doc_diagram = next((d for d in drawing if table.search(texts.get(d.get('id', d['path']), ''))), drawing[0] if drawing else {'path': 'none'})
     images = section('media').get('images') or []
     image = next((i for i in images if i.get('kind') == 'diagram'), images[0] if images else {'id': 'none'})
     scans = section('history').get('scans') or []
     scan = scans[-1]['id'] if scans else 'none'
     return {'card': card, 'fact': fact, 'word': word, 'component': component, 'path': chosen['id'], 'task': task['id'], 'screen': screen['id'],
-            'hidden_group': group['id'], 'store': store['id'], 'stage': stage['id'], 'ai_stage': ai['id'], 'ai_pipeline': ai['pipeline'], 'gap': gap['id'], 'op': op['id'], 'plan': plan['id'], 'step': step['id'], 'function': function['id'], 'screen_page': screen_page['id'], 'doc': doc['path'], 'image': image['id'], 'scan': scan, 'compare': f"{scans[0]['id'] if scans else 'none'}..{scan}"}
+            'hidden_group': group['id'], 'store': store['id'], 'stage': stage['id'], 'ai_stage': ai['id'], 'ai_pipeline': ai['pipeline'], 'gap': gap['id'], 'op': op['id'], 'plan': plan['id'], 'step': step['id'], 'function': function['id'], 'screen_page': screen_page['id'], 'doc': doc['path'], 'doc_diagram': doc_diagram['path'], 'image': image['id'], 'scan': scan, 'compare': f"{scans[0]['id'] if scans else 'none'}..{scan}"}
 
 
 def studio_pages(matrix, data, base, folder, only=None):

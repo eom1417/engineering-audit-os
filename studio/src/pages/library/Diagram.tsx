@@ -9,7 +9,7 @@ import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
 import { usePrefs } from '../../i18n/prefs'
 import { useOpenedOnce } from '../../shell/later'
-import { diagramKind, readTheme, READABLE, ZOOM, type DiagramKind, type Size } from './diagram'
+import { diagramKind, floorFor, readTheme, ZOOM, type DiagramKind, type Size } from './diagram'
 import type { Drawing } from './diagramEngine'
 import { usePanZoom } from './usePanZoom'
 import { useLibraryWords } from './words'
@@ -23,7 +23,7 @@ type State = { kind: 'loading' } | { kind: 'drawn'; drawing: Drawing } | { kind:
 /** The first line of an engine's error: what a person can act on, without its stack. */
 function reason(error: unknown): string {
   const text = error instanceof Error ? error.message : String(error)
-  return text.split('\n').map((line) => line.trim()).find(Boolean)?.slice(0, 240) ?? ''
+  return (text.split('\n').map((line) => line.trim()).find(Boolean) ?? '').replace(/[:\s]+$/, '').slice(0, 240)
 }
 
 export function useKindWord() {
@@ -74,7 +74,7 @@ export function Diagram({ source, n }: { source: string; n: number }) {
 
   const drawing = state.kind === 'drawn' ? state.drawing : null
   const natural = useMemo(() => (drawing && drawing.width > 0 ? { width: drawing.width, height: drawing.height } : null), [drawing])
-  const view = usePanZoom(box, natural, { floor: READABLE })
+  const view = usePanZoom(box, natural, { floor: floorFor(kind) })
   const copy = async () => toast((await copyText(source)) ? w('copiedSource') : w('copyFailed'))
 
   return (

@@ -185,7 +185,7 @@ class GateMatrix(unittest.TestCase):
             (data / 'story.json').write_text(json.dumps(story), encoding='utf-8')
             self.assertEqual(self.gates.studio_placeholders(data), {'card': 'TASK-2', 'fact': 'none', 'word': 'none', 'component': 'src/b', 'path': 'none',
                                                                     'task': 'none', 'screen': 'none', 'hidden_group': 'none',
-                                                                    'store': 'none', 'stage': 'none', 'ai_stage': 'none', 'ai_pipeline': 'none', 'gap': 'none', 'op': 'none', 'plan': 'none', 'step': 'none', 'function': 'none', 'screen_page': 'none', 'doc': 'none', 'image': 'none', 'scan': 'none', 'compare': 'none..none'})
+                                                                    'store': 'none', 'stage': 'none', 'ai_stage': 'none', 'ai_pipeline': 'none', 'gap': 'none', 'op': 'none', 'plan': 'none', 'step': 'none', 'function': 'none', 'screen_page': 'none', 'doc': 'none', 'doc_diagram': 'none', 'image': 'none', 'scan': 'none', 'compare': 'none..none'})
             # {fact}: the card's first fact with code; {word}: the longest word of its title
             cards[1]['title'] = 'Flow FLOW-003 stops at 10 unresolvable calls'
             (data / 'cards.json').write_text(json.dumps({'cards': cards}), encoding='utf-8')
@@ -203,6 +203,11 @@ class GateMatrix(unittest.TestCase):
             (data / 'history.json').write_text(json.dumps({'scans': [{'id': 'c1'}, {'id': 'c2'}]}), encoding='utf-8')
             self.assertEqual([self.gates.studio_placeholders(data)[k] for k in ('doc', 'image', 'scan', 'compare')],
                              ['A.md', 'a/d.mmd', 'c2', 'c1..c2'])   # reading order first, a diagram first, last check, first..last
+            texts = [{'id': 'A.md', 'text': '# A\n```mermaid\npie\n```'}, {'id': 'B.md', 'text': '| a |\n|---|\n| 1 |\n```mermaid\npie\n```'}]
+            (data / 'library.json').write_text(json.dumps({'documents': texts}), encoding='utf-8')
+            self.assertEqual(self.gates.studio_placeholders(data)['doc_diagram'], 'B.md')   # a diagram and a table first
+            (data / 'library.json').write_text(json.dumps({'documents': texts[:1]}), encoding='utf-8')
+            self.assertEqual(self.gates.studio_placeholders(data)['doc_diagram'], 'A.md')   # else the first diagram
             journeys = {'tasks': [{'id': 't/one', 'path': ['s/a']}, {'id': 't/two', 'path': ['s/a', 's/b']}],
                         'screens': [{'id': 's/a', 'kind': 'page', 'flags': []}, {'id': 's/b', 'kind': 'page', 'flags': ['broken_link']}]}
             (data / 'journeys.json').write_text(json.dumps(journeys), encoding='utf-8')

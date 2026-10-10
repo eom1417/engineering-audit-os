@@ -3,7 +3,7 @@ import { createElement, Fragment } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { languageOf, tokenKind } from './code'
-import { clampZoom, diagramKind, fitScale, mermaidConfig, READABLE, renameIds, svgSize, zoomScroll } from './diagram'
+import { clampZoom, diagramKind, fitScale, floorFor, mermaidConfig, READABLE, renameIds, svgSize, zoomScroll } from './diagram'
 import { alertOf, footnotes, isNumeric, numericColumns } from './gfm'
 import { drawMarkdown } from './markdown'
 
@@ -140,6 +140,7 @@ describe('diagrams', () => {
     expect(fitScale({ width: 3000, height: 800 }, { width: 600, height: 0 }, { floor: READABLE })).toBe(READABLE)
     expect(fitScale({ width: 1000, height: 2000 }, { width: 1000, height: 1000 })).toBe(0.5) // full screen fits the height too
     expect(clampZoom(100)).toBe(4)
+    expect([floorFor('pie'), floorFor('xychart'), floorFor('flowchart'), floorFor('c4')]).toEqual([0, 0, READABLE, READABLE])
   })
 
   it('zooms around the pointer and renames a copy\'s ids', () => {

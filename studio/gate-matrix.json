@@ -88,6 +88,8 @@
   {"name": "library", "path": "index.html#/library/docs"},
   {"name": "library-search", "path": "index.html#/library/docs?q=%D8%A7%D9%84%D8%AE%D8%B7%D8%A9", "viewports": ["phone", "desktop"]},
   {"name": "document", "path": "index.html#/library/docs/{doc}"},
+  {"name": "document-diagram", "path": "index.html#/library/docs/{doc_diagram}", "wait_for": "figure[data-state=\"drawn\"], figure[data-state=\"failed\"]"},
+  {"name": "document-diagram-full", "path": "index.html#/library/docs/{doc_diagram}", "viewports": ["phone", "desktop"], "wait_for": "figure[data-state=\"drawn\"]", "actions": [{"click": "[data-open=\"diagram\"]", "wait": 600}]},
   {"name": "document-contents", "path": "index.html#/library/docs/{doc}", "viewports": ["phone"], "actions": [{"click": "[data-open=\"contents\"]", "wait": 400}]},
   {"name": "image", "path": "index.html#/library/images/{image}"},
   {"name": "history", "path": "index.html#/history"},

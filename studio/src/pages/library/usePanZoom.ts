@@ -3,7 +3,7 @@
 // trackpad, a finger); a mouse drags it; Ctrl/Cmd + wheel, a pinch (full screen) or + and − zoom around the pointer.
 // The box is left to right whatever the page's direction, so the drawing never mirrors.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react'
-import { clampZoom, fitScale, zoomScroll, ZOOM, type Size } from './diagram'
+import { busiest, clampZoom, fitScale, zoomScroll, ZOOM, type Size } from './diagram'
 
 export interface PanZoom {
   /** The scale, or null before the box is measured */
@@ -20,6 +20,7 @@ export function usePanZoom(box: RefObject<HTMLDivElement | null>, natural: Size 
   const [pans, setPans] = useState(false)
   const chosen = useRef(false) // the reader zoomed: a resize no longer refits
   const focus = useRef<{ at: { x: number; y: number }; from: number } | null>(null)
+  const first = useRef(true) // the first fit of a drawing wider than its box opens on its middle, not its empty corner
   const kRef = useRef(k)
   kRef.current = k
 
@@ -50,6 +51,7 @@ export function usePanZoom(box: RefObject<HTMLDivElement | null>, natural: Size 
   useEffect(() => {
     const el = box.current
     if (!el || !natural) return
+    first.current = true
     setK(fitted())
     const watch = new ResizeObserver(() => { if (!chosen.current) setK(fitted()) })
     watch.observe(el)
@@ -67,7 +69,19 @@ export function usePanZoom(box: RefObject<HTMLDivElement | null>, natural: Size 
       el.scrollLeft = next.left
       el.scrollTop = next.top
     }
-    setPans(natural.width * k > el.clientWidth + 1 || natural.height * k > el.clientHeight + 1)
+    const wide = natural.width * k > el.clientWidth + 1
+    if (first.current && wide) {
+      const origin = el.firstElementChild?.getBoundingClientRect()
+      const nodes = [...el.querySelectorAll('svg g.node, svg g.cluster-label, svg .actor, svg .er.entityBox, svg g.classGroup')].map((node) => {
+        const r = node.getBoundingClientRect()
+        return { x: r.left + r.width / 2 - (origin?.left ?? 0), y: r.top + r.height / 2 - (origin?.top ?? 0) }
+      })
+      const start = busiest(nodes, { width: el.clientWidth, height: el.clientHeight }, { width: natural.width * k, height: natural.height * k })
+      el.scrollLeft = start.left
+      el.scrollTop = start.top
+    }
+    first.current = false
+    setPans(wide || natural.height * k > el.clientHeight + 1)
   }, [box, k, natural])
 
   // A mouse drags the drawing; two fingers pinch it (full screen); Ctrl/Cmd + wheel (or any wheel, full screen) zooms

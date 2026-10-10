@@ -47,7 +47,7 @@ STUDIO_DATA=<report>/studio npm run dev   # live development on a report's data,
 | `src/pages/functions/` | System → Functions (`studio/functions.json`, loaded when the page opens): the list, one function with its two-step call graph, the per-language coverage |
 | `src/pages/screens/` | System → Screens (`studio/screens.json`): the gallery, one screen with its shots, pinned issues and before/after slider, and the "not captured yet" states |
 
-| `src/pages/library/` | Library (`studio/docs.json`, `media.json`, `library.json` loaded on demand): the documents in reading order with search, the reader (marked's lexer drawn as Studio elements, contents, next in reading order), images and diagrams |
+| `src/pages/library/` | Library (`studio/docs.json`, `media.json`, `library.json` loaded on demand): the documents in reading order with search, the reader (marked's lexer drawn as Studio elements, contents, next in reading order; alerts, footnotes, tables with number columns; code highlighted by `highlight.ts` and Mermaid diagrams drawn by `diagramEngine.ts`, each a lazy chunk), images and diagrams |
 | `src/pages/history/` | History (`studio/history.json`): checks, the score, open problems and progress charts (two points or more), a check, two checks compared, the gallery fixture |
 | `src/pages/quality/` | EAOS quality (`studio/quality.json`, `coverage.json`): detectors here with precision and recall against the bar, coverage rows, the plan's indicators |
 | `src/map/` | the territory map (`studio/system.json`): drawing, pan and zoom, legend, minimap, ego diagram, inspector, ranked list, the Home and Change pieces, and its own word catalogue |

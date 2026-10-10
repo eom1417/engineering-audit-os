@@ -459,9 +459,16 @@ counts and chart geometry.
   documents and are left out. Search folds Arabic spellings over titles, paths and headings. The reader draws the
   Markdown with `marked`'s lexer into the Studio's own elements (no HTML string is injected): 68ch measure, contents
   beside it on a wide screen and in a sheet on the phone, card ids and document links as Studio links, code and tables
-  with their own left-to-right scroll, the previous and next documents in reading order. `library.json` carries the
-  text (and images as data URIs, a Mermaid diagram as its source, with a link to the Studio map that draws the same
-  facts); the machine's folders in the text become the project name and `~`. It is the largest section, so `boot.js`
+  with their own left-to-right scroll, the previous and next documents in reading order. GitHub's additions are read
+  too: alerts (`> [!NOTE]` and the four others), task lists, footnotes; code blocks are highlighted (lowlight, a lazy
+  chunk) with a copy button; tables keep a sticky header, quiet stripes and number columns aligned; an image alone in
+  its paragraph is a figure with its caption. Mermaid diagrams and charts (flowchart, sequence, class, state, ER, gantt,
+  pie, xychart, mindmap, C4 and the rest) are drawn by Mermaid in the Studio's theme and font, left to right, read
+  only when a document holds one (`docs/adoption/docs-reader.md`): a graph fits the column but never below a readable
+  scale (a large map pans, opening on its busiest part), a chart fits whole; each has zoom, full screen with pan and
+  pinch, its source and a copy button, and one that cannot be drawn shows its source and why. `library.json` carries
+  the text (and images as data URIs, a Mermaid diagram as its source, drawn the same way, with a link to the Studio
+  map that draws the same facts); the machine's folders in the text become the project name and `~`. It is the largest section, so `boot.js`
   leaves it out and the reader loads it on demand (the snapshot's script or the live API).
 - **History** (`#/history`, `#/history/<check>`, `#/history/compare/<a>..<b>`). From the ledger: every `baseline` and
   `recheck` point is a check; the last is this report, with its score and open cards by severity. An older check has
