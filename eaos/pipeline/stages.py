@@ -87,10 +87,18 @@ STAGES = (
           description='Executive view of the measured indicators and their limits'),
     Stage('compose', produces=('PRODUCT-REPORT.md', 'BLOCKERS.md', 'START-HERE.md', 'human/index.html'), requires=('plan', 'target', 'executive'),
           description='Human artifacts, each inside its declared line budget'),
+    Stage('triage', produces=('nodes/card_triage/verdicts.json',), requires=('compose',), necessity=OPTIONAL,
+          absent_when='no assistant was installed or allowed, or its verdicts could not be used',
+          description='The assistant confirms, doubts or rejects every open card on its own evidence, and says why; '
+                      'the cards stay as the engines wrote them', ai=True),
     Stage('ideal', produces=('ideal/plan.json',), requires=('compose',), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, or its plan could not be used',
           description="The assistant plans the ideal of every view on top of the rules' target, then reviews it; "
                       'every element cites its evidence', ai=True),
+    Stage('order', produces=('nodes/plan_orderer/order.json',), requires=('compose',), necessity=OPTIONAL,
+          absent_when='no assistant was installed or allowed, or its order could not be used',
+          description="The assistant orders and groups the plan's cards, reading the triage and the ideal, then reviews "
+                      'the order; every prerequisite is kept', ai=True),
     Stage('bundles', produces=('bundles/manifest.json', 'CANONICAL-HOMES.md', 'canonical-homes.json',
                               'STAGES.md', 'WAVES.md', 'KPI.md', 'gap-matrix.json', 'DATA-MODEL.md',
                               'DEPLOYMENT.md', 'OBSERVABILITY.md', 'SECURITY-SURFACE.md',

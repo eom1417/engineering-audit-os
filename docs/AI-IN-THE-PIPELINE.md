@@ -24,12 +24,32 @@ them.
 |---|---|---|---|---|
 | 1 | Ideal planning (check stage `ideal`) | The target of every view, planned on top of the rules' target and then critiqued (what was missed, risks, order). The rules alone give a generic target. | Plan + critique passes; elements without a resolving citation are dropped; node budget 2400 s and 10 USD; the result is cached on the same inputs. | `eaos/studio/ideal.py`, node `ideal_planner` |
 | 2 | Semantic reading (check stage `semantic`) | Responsibilities, boundaries, contracts and root causes, which no rule can read from facts. | At most 3 rounds, one call of up to 600 s each; invented fact ids are sent back and the answer is rejected if they stay; every claim is a HYPOTHESIS with a falsifier. | `eaos/semantic.py` |
-| 3 | Setup (`eaos next`, step `ready`) | How to start an unfamiliar app when detection fails. | Proposals are tried in an isolated copy and refused when unsafe. | `eaos/live_setup.py` |
-| 4 | Fixes | Writing the change a card asks for. | The gates and the behaviour lock judge every change; it reaches the project only as a branch. | `eaos/agent_tools.py` `fix_*` |
-| 5 | AI nodes from the Studio (`run_nodes`) | Card triage, pipeline gaps, plan order and fix review. | Same citation check, rules fallback and budget per node; started by the person. | `eaos/studio/nodes/` |
+| 3 | Card triage (check stage `triage`) | Each open card confirmed, doubted or rejected as a false alarm on its own evidence and the code at it, with why in the person's words. The engines cannot judge their own findings. | A verdict that does not cite the card or one of its facts falls back to the rules; batches of 40 cards; node budget 1800 s and 6 USD; cached; the cards are never changed. | `eaos/studio/nodes/triage.py`, node `card_triage` |
+| 4 | Plan order (check stage `order`) | The cards ordered and grouped into steps with why, reading the triage (rejected cards set aside) and the planned ideal. The rules order by milestone and wave only. | Plan + critique passes; an order that breaks a prerequisite, names a card twice or one outside the plan is dropped; node budget 1200 s and 4 USD; cached; the plan itself is never changed. | `eaos/studio/nodes/plan_orderer.py`, node `plan_orderer` |
+| 5 | Setup (`eaos next`, step `ready`) | How to start an unfamiliar app when detection fails. | Proposals are tried in an isolated copy and refused when unsafe. | `eaos/live_setup.py` |
+| 6 | Fixes | Writing the change a card asks for. | The gates and the behaviour lock judge every change; it reaches the project only as a branch. | `eaos/agent_tools.py` `fix_*` |
+| 7 | AI nodes from the Studio (`run_nodes`) | Pipeline gaps and fix review, and the nodes above again on demand. | Same citation check, rules fallback and budget per node; started by the person. | `eaos/studio/nodes/` |
 
-Ranks 1 and 2 run inside every check once the person said yes. Ranks 3 to 5 already used the assistant before this
-change.
+Ranks 1 to 4 run inside every check once the person said yes, in the order semantic, triage, ideal, order (the order
+reads what the triage and the ideal decided). Ranks 5 to 7 already used the assistant before. Each AI stage reports its
+calls, seconds, assistant and model to the live map; a node's record keeps its `calls`.
+
+## Measured on a small project
+
+Corpus project RendaPerene (45 cards, 5 milestones), Claude Code `claude-opus-5-5`, 2026-10-10:
+
+| Stage | Calls | Seconds | Rules alone | With the assistant |
+|---|---|---|---|---|
+| `semantic` | 2 | 139 | No reading of responsibilities or causes | 8 hypotheses, 5 questions for the person |
+| `ideal` | 2 | 820 | The rules' generic target | 60 cited elements over 7 views, 3 departures, 9 questions |
+| `triage` | 2 | 114 | 45 cards, all shown as the engines wrote them | 28 confirmed, 16 doubted with what their evidence fails to show, 1 rejected |
+| `order` | 2 | 104 | 5 groups, one per milestone, no reason | 17 steps with reasons: cards on the same file together, doubted cards after their probe, the rejected card set aside |
+
+Limit seen: the triage reads the first 4 facts of a card. A hotspot card whose first facts were simple functions was
+rejected although the same file is the subject of a confirmed complexity card.
+
+Not built: the executive summary in plain words and choosing the screens and journeys to record. Neither was measured
+yet, so neither is claimed.
 
 ## Where AI adds nothing
 

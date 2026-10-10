@@ -409,7 +409,8 @@ def run_node(node, spec, report, launcher=None, adapters=None, project=None, lan
     decided = {d['subject'] for d in kept}
     left = rules_decisions(node, spec, data, 'The assistant left this subject undecided, so the rules decided it.', decided)
     row = record(node, {**base, 'state': 'decided', 'method': 'model', 'assistant': bounded.assistant, 'model': bounded.model,
-                        'prompt': digest(asked), 'schema': digest([s for _, s, _ in asks]), 'cached': False, 'seconds': round(time.monotonic() - began, 1),
+                        'prompt': digest(asked), 'schema': digest([s for _, s, _ in asks]), 'cached': False, 'calls': len(asked),
+                        'seconds': round(time.monotonic() - began, 1),
                         'cost_usd': bounded.cost_usd, 'why': None, 'summary': short((answer or {}).get('summary'), 800)},
                  kept + left, dropped, critique=critique if isinstance(critique, dict) else None)
     tell(f'{node.title}: {len(kept)} decisions with their evidence, {len(dropped)} dropped without it',

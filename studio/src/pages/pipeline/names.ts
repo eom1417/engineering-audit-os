@@ -7,7 +7,7 @@ const stages: Record<string, [string, string]> = {
   claims: ['تجميع الأدلة', 'Collect evidence'], probe: ['فحص إضافي', 'Run probes'], semantic: ['تحليل بالذكاء', 'AI analysis'],
   sustainability: ['فحص الاستدامة', 'Check sustainability'], plan: ['إعداد الخطة', 'Build plan'], transform: ['تخطيط التغيير', 'Plan changes'],
   executive: ['ملخص تنفيذي', 'Executive summary'], execution_guide: ['دليل التنفيذ', 'Execution guide'], target: ['تصميم الهدف', 'Design target'],
-  compose: ['تجميع المخرجات', 'Compose outputs'], ideal: ['تخطيط المثالي بالذكاء', 'AI ideal planning'], reports: ['إعداد التقارير', 'Write reports'], bundles: ['تجهيز الحزم', 'Build bundles'],
+  compose: ['تجميع المخرجات', 'Compose outputs'], triage: ['فرز البطاقات بالذكاء', 'AI card triage'], ideal: ['تخطيط المثالي بالذكاء', 'AI ideal planning'], order: ['ترتيب الخطة بالذكاء', 'AI plan order'], reports: ['إعداد التقارير', 'Write reports'], bundles: ['تجهيز الحزم', 'Build bundles'],
   emit: ['إخراج الملفات', 'Emit artifacts'], site: ['بناء العرض', 'Build report site'], validate: ['فحص المخرجات', 'Validate outputs'],
   pdf: ['تصدير PDF', 'Export PDF'], quality: ['قياس الجودة', 'Check quality'], RUNNERS: ['توزيع المراحل', 'Route stages'],
 }

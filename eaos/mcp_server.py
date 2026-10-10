@@ -170,7 +170,7 @@ def build():
     def ask(question: str, project: str | None = None) -> str:
         return tools.ask(question, project)
 
-    @server.tool(annotations=working, description='Check the whole project (27 stages: files, features, tools, tests, structure, '
+    @server.tool(annotations=working, description='Check the whole project (29 stages: files, features, tools, tests, structure, '
                  'security, load, plan). Returns a job to follow with `wait`; when the project was already checked at this commit, '
                  'returns the overview at once. fresh=true checks again from the start. A started check answers with `watch`, '
                  'its live map in the EAOS Studio, opened in the person\'s browser. use_assistant: before their first check, ask the '

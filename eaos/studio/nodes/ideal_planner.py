@@ -88,6 +88,6 @@ def run(node, report, launcher=None, adapters=None, project=None, lang='en', bud
         return core.keep(report, node, core.record(node, {**base, **fields, 'state': state, 'method': 'rules', 'why': why},
                                                    _decisions(node, report, None, why), [], over_budget=why_raw.startswith('OverBudget')))
     planned, _ = ideal.current(report)
-    return core.keep(report, node, core.record(node, {**base, **fields, 'state': 'decided', 'method': 'model', 'why': None,
+    return core.keep(report, node, core.record(node, {**base, **fields, 'state': 'decided', 'method': 'model', 'why': None, 'calls': len(node.passes),
                                                       'summary': core.short(f"{result.get('elements', 0)} elements", 200)},
                                                _decisions(node, report, planned), _dropped(planned), critique=None))

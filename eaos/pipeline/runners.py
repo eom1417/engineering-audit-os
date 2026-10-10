@@ -111,18 +111,40 @@ def semantic(context):
     return {'hypotheses': result['claims'], 'questions': result['questions'], 'calls': result['calls']}
 
 
-def ideal(context):
-    """The ideal planner node (eaos/studio/nodes/ideal_planner.py) right after the check: plan, critique and the
-    evidence check, held to the node's time and cost budget; without an assistant or on a failure the rules' target stands."""
+def _node(context, name):
+    """Run one AI node of eaos/studio/nodes inside the check, held to the node's budget, cache and evidence check; return
+    its record and what the live map reports. Without an assistant or on a failure the rules' result stands."""
     if not context.provider:
         raise SkipStage(NO_ASSISTANT, code='no_provider')
     from ..studio.nodes import run
-    record = run(context.out, names=['ideal_planner'], project=str(context.target), lang=context.language)['ideal_planner']
+    record = run(context.out, names=[name], project=str(context.target), lang=context.language).get(name)
+    if record is None:
+        raise SkipStage('there was nothing for the assistant to decide', code='not_applicable')
     if record['method'] != 'model':
         raise SkipStage(record['why'], code='ai_failed')
-    decision = record['decisions'][0]['detail']
-    return {'elements': decision['elements'], 'dropped': decision['dropped'], 'calls': 0 if record['cached'] else len(record['passes']),
-            'assistant': record['assistant'], 'model': record['model']}
+    return record, {'dropped': len(record['dropped']), 'calls': 0 if record['cached'] else record['calls'],
+                    'assistant': record['assistant'], 'model': record['model']}
+
+
+def ideal(context):
+    """The ideal planner node (eaos/studio/nodes/ideal_planner.py) right after the check: plan, critique and the
+    evidence check; the rules' target stands without it."""
+    record, detail = _node(context, 'ideal_planner')
+    return {'elements': record['decisions'][0]['detail']['elements'], **detail}
+
+
+def triage(context):
+    """The card triage node (eaos/studio/nodes/triage.py): each open card confirmed, doubted or rejected on its own
+    evidence, with why in the person's words; the cards themselves stay as the engines wrote them."""
+    record, detail = _node(context, 'card_triage')
+    return {**{row['decision']: len(row['subjects']) for row in record['routes']}, **detail}
+
+
+def order(context):
+    """The plan orderer node (eaos/studio/nodes/plan_orderer.py): the order and grouping of the plan's cards, every
+    prerequisite kept; the plan itself is not changed."""
+    record, detail = _node(context, 'plan_orderer')
+    return {'decision': record['decisions'][0]['decision'], **detail}
 
 
 def load(context):
@@ -327,4 +349,4 @@ def bundles(context):
     return build(context.out, language=context.language)
 
 
-RUNNERS.update(target=target, executive=executive, bundles=bundles, ideal=ideal)
+RUNNERS.update(target=target, executive=executive, bundles=bundles, ideal=ideal, triage=triage, order=order)

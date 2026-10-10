@@ -98,6 +98,10 @@
         "null"
       ]
     },
+    "calls": {
+      "type": "integer",
+      "minimum": 0
+    },
     "cost_usd": {
       "type": [
         "number",

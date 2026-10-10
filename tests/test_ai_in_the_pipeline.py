@@ -1,6 +1,7 @@
 """The person's assistant inside the check (docs/AI-IN-THE-PIPELINE.md): asked about once, passed to the check so the
-semantic stage runs, the ideal planned right after the check, invented citations dropped, and the rules standing alone
-without an assistant or on a failure."""
+semantic stage runs, the cards triaged, the ideal planned and the plan ordered right after the check, invented citations
+dropped, and the rules standing alone without an assistant or on a failure."""
+import json
 import os
 import subprocess
 import tempfile
@@ -14,8 +15,10 @@ from eaos.pipeline import runners
 from eaos.pipeline.run import Context, _one
 from eaos.pipeline.stages import BY_NAME, STAGES, SkipStage
 from eaos.progress import stage_rows
+from eaos.progress.log import _small
 from eaos.studio import ideal
 from eaos.studio.nodes import core
+from test_ai_nodes import Answer, _nodes_report, decision
 from test_ideal_planner import Launcher, make_report
 from test_semantic import FIXTURE, ScriptedSemanticProvider, grounded
 
@@ -84,8 +87,63 @@ class IdealStage(unittest.TestCase):
         self.assertEqual(ideal.current(self.report), (None, 'failed'))
 
     def test_the_live_map_marks_the_ai_stages_from_their_declaration(self):
-        self.assertEqual([row['name'] for row in stage_rows(STAGES) if row['ai']], ['semantic', 'ideal'])
-        self.assertEqual(BY_NAME['ideal'].requires, ('compose',))
+        self.assertEqual([row['name'] for row in stage_rows(STAGES) if row['ai']], ['semantic', 'triage', 'ideal', 'order'])
+        self.assertEqual({BY_NAME[name].requires for name in ('triage', 'ideal', 'order')}, {('compose',)})
+
+
+def answers(name, schema):
+    """The fake assistant of the triage and the order: one verdict per card, one with an invented citation, and an order
+    that keeps the prerequisite of TASK-003."""
+    if 'plan' in str(schema):
+        steps = [{'id': 's1', 'title': 'Dead code first', 'tasks': ['TASK-001', 'TASK-002'], 'why': 'small and safe'},
+                 {'id': 's2', 'title': 'Then', 'tasks': ['TASK-003'], 'why': 'needs TASK-001'}]
+        return {'summary': '', 'decisions': [decision('plan', 'reorder', ['TASK-001', 'TASK-003'], detail={'steps': steps})]}
+    return {'summary': '', 'decisions': [decision('TASK-001', 'confirm', ['TASK-001', 'FACT-0001'], detail={'falsifier': 'a caller'}),
+                                         decision('TASK-002', 'reject', ['TASK-002'], detail={'falsifier': 'no caller'}),
+                                         decision('TASK-003', 'doubt', ['FACT-invented'], detail={'falsifier': '?'})]}
+
+
+class TriageAndOrderStages(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.report, _ = _nodes_report(Path(self.tmp.name))
+        self.context = Context(target=Path(self.tmp.name), out=self.report, provider=object(), language='en')
+
+    def stage(self, name, launcher):
+        with mock.patch.object(core, 'pick', return_value=object()), mock.patch.object(core, 'AdapterLauncher', return_value=launcher):
+            return _one(BY_NAME[name], self.context, runners.RUNNERS, {})
+
+    def read(self, path):
+        return json.loads((self.report / path).read_text(encoding='utf-8'))
+
+    def test_the_triage_judges_every_card_and_a_verdict_without_its_own_evidence_falls_back_to_the_rules(self):
+        row = self.stage('triage', Answer(answers))
+        self.assertEqual(row['status'], 'ok')
+        self.assertEqual(_small(row['detail']), row['detail'], 'the live map shows all the stage reported')
+        self.assertEqual({k: row['detail'][k] for k in ('confirm', 'reject', 'rules only', 'dropped', 'calls', 'model')},
+                         {'confirm': 1, 'reject': 1, 'rules only': 1, 'dropped': 1, 'calls': 1, 'model': 'test-model'})
+        self.assertEqual(self.read('nodes/card_triage/library-feedback.json')['rejected'][0]['card'], 'TASK-002')
+
+    def test_the_order_reads_the_triage_keeps_prerequisites_and_leaves_the_plan_alone(self):
+        plan = (self.report / 'plan.json').read_bytes()
+        self.stage('triage', Answer(answers))
+        launcher = Answer(answers)
+        row = self.stage('order', launcher)
+        self.assertEqual((row['status'], row['detail']['decision'], row['detail']['calls']), ('ok', 'reorder', 2))
+        self.assertIn('"triage": "reject"', launcher.calls[0][1])
+        order = self.read('nodes/plan_orderer/order.json')
+        self.assertEqual(([s['tasks'] for s in order['steps']], order['set_aside']), ([['TASK-001', 'TASK-002'], ['TASK-003']], ['TASK-002']))
+        self.assertEqual((self.report / 'plan.json').read_bytes(), plan)
+
+    def test_without_an_assistant_or_on_a_failure_both_are_unavailable_and_the_check_goes_on(self):
+        failing = Answer(lambda name, schema: {'decisions': 'not a list'})
+        for name in ('triage', 'order'):
+            self.assertEqual(self.stage(name, failing)['reason_code'], 'ai_failed')
+            row = _one(BY_NAME[name], Context(self.context, provider=None), runners.RUNNERS, {})
+            self.assertEqual((row['status'], row['reason_code']), ('unavailable', 'no_provider'))
+        (self.report / 'plan.json').write_text('{}', encoding='utf-8')
+        self.assertEqual(self.stage('order', Answer(answers))['reason_code'], 'not_applicable')
 
 
 class Consent(unittest.TestCase):
