@@ -5,11 +5,11 @@ project, and the MCP `audit` answer carries `watch`, the live map's address, whi
 
 The person's part is one plain request in Arabic; the assistant has the EAOS tools and Read only. After the session,
 the trial reads the address the `audit` answer gave, asks that Studio for /api/progress with the address's own token,
-and stops the Studio it started.
+opens the address in Chromium (phase 5: the page is the live map), and stops the Studio it started.
 
 Writes $EAOS_MEASURE/live-scan-map/watch.json:
   {project, session, transcript, audit_answers, watch, progress: {status, check_state, check_run, stages, flows},
-   final_answer, minutes}
+   page: {run_state, flow, journey, screenshot, ...}, final_answer, minutes}
 """
 import json
 import os
@@ -67,6 +67,17 @@ def read_progress(watch):
             'stages': len(check['stages']), 'flows': sorted(body['flows'])}
 
 
+def look(watch, out):
+    """The page at the `watch` address opened in Chromium (tools/live_scan_map_trial.mjs TRIAL_MODE=look): its run,
+    its flow, its journey and a screenshot."""
+    found = ADDRESS.match(watch or '')
+    if not found: return None
+    port, token = found.groups()
+    env = {**os.environ, 'TRIAL_MODE': 'look', 'TRIAL_BASE': f'http://127.0.0.1:{port}', 'TRIAL_TOKEN': token, 'TRIAL_OUT': str(out)}
+    subprocess.run(['node', str(ROOT / 'tools' / 'live_scan_map_trial.mjs')], env=env, capture_output=True, timeout=300)
+    return (json.loads((out / 'browser.json').read_text(encoding='utf-8')).get('checks') or {}).get('look')
+
+
 def run_session(source, out):
     """A fresh clone of the project and one headless Claude Code session in it, its transcript kept: (where, events,
     errors)."""
@@ -99,13 +110,13 @@ def main(name, source):
     answers = audit_answers(events)
     watch = next((a['watch'] for a in answers if a.get('watch')), None)
     record = launch.running(agent_tools.project_state(str(where)))
-    try: progress = read_progress(watch)
+    try: progress, page = read_progress(watch), look(watch, out / 'look')
     finally:
         if record: os.kill(record['pid'], signal.SIGTERM)
     session, final = ending(events)
     result = {'project': name, 'session': session, 'transcript': str(out / 'transcript.jsonl'), 'errors': errors,
               'audit_answers': [{k: a.get(k) for k in ('status', 'job', 'watch', 'what_now', 'already_checked')} for a in answers],
-              'watch': watch, 'progress': progress, 'final_answer': final, 'minutes': round((time.monotonic() - began) / 60, 1)}
+              'watch': watch, 'progress': progress, 'page': page, 'final_answer': final, 'minutes': round((time.monotonic() - began) / 60, 1)}
     text = re.sub(r'token=[A-Za-z0-9_-]+', 'token=<redacted>', json.dumps(result, ensure_ascii=False, indent=1))
     (OUT / 'watch.json').write_text(text + '\n', encoding='utf-8')
     print(json.dumps({k: json.loads(text)[k] for k in ('session', 'watch', 'progress', 'minutes')}, ensure_ascii=False))

@@ -6,8 +6,8 @@
 // light, the map's toolbar against every stage it could cover. Phase 4 of the plan adds the phone's bottom sheet, a
 // produced file read in its sheet, the polling fallback with the stream held back, and the replay of the finished
 // check at 30x, every glow and light of which is matched to its line of run-progress.jsonl (I9). Phase 5 adds two modes
-// (TRIAL_MODE): `watch`, one long check watched from start to end (plan 7.1 and 7.7), and `look`, the page at a given
-// address (7.3).
+// (TRIAL_MODE): `watch`, one long check watched from start to end (plan 7.1 and 7.7), `look`, the page at a given
+// address (7.3, 7.4, 7.5), and `button`, a check started by the Studio's own button (7.3).
 // Writes TRIAL_OUT/browser.json; prints one JSON line.
 import fs from 'node:fs'
 import path from 'node:path'
@@ -79,9 +79,9 @@ async function open({ width, lang, theme, route = '/scan', reduced = false, hold
   if (holdStream) await ctx.route('**/api/events', () => undefined)
   const page = await ctx.newPage()
   page.on('pageerror', (e) => errors.push(`${width}-${lang}-${theme}: ${e}`))
-  await page.goto(`${base}/#/${route.replace(/^\//, '')}?token=${token}`, { waitUntil: 'load' })
+  await page.goto(`${base}/#/${route.replace(/^\//, '')}${route.includes('?') ? '&' : '?'}token=${token}`, { waitUntil: 'load' })
   await page.waitForSelector('main#main', { timeout: 30000 })
-  if (route === '/scan') await page.waitForSelector('[data-run-state]', { timeout: 30000 })
+  if (route.startsWith('/scan')) await page.waitForSelector('[data-run-state]', { timeout: 30000 })
   await page.waitForTimeout(1500)
   return { ctx, page }
 }
@@ -374,15 +374,34 @@ async function watchRun() {
  * its journey; one screenshot. */
 async function look() {
   const { ctx, page } = await open({ width: 1440, lang: 'ar', theme: 'light', route: process.env.TRIAL_ROUTE || '/scan' })
+  if (process.env.TRIAL_STAGE) await page.locator(`[data-list-stage="${process.env.TRIAL_STAGE}"]`).click()
   const shot = path.join(shots, `look-${Date.now()}.png`)
   await page.screenshot({ path: shot })
   checks.look = { url: page.url().replace(/token=[^&]+/, 'token=<redacted>'), screenshot: shot, ...(await mapFacts(page)),
-    ...(await page.evaluate(() => { const run = document.querySelector('[data-run-state]'); return { run_state: run?.getAttribute('data-run-state'), flow: run?.getAttribute('data-flow'), stages: document.querySelectorAll('g[data-stage]').length } })) }
+    ...(await page.evaluate(() => { const run = document.querySelector('[data-run-state]'); return { run_state: run?.getAttribute('data-run-state'), flow: run?.getAttribute('data-flow'), stages: document.querySelectorAll('g[data-stage]').length,
+      panel: document.querySelector('[data-hook=scan-stage-panel]')?.parentElement?.textContent ?? '', shots: document.querySelectorAll('img[data-shot]').length } })) }
+  await ctx.close()
+}
+
+/** Plan 7.3: the Studio's own Check button (the freshness chip's sheet, "Re-scan now") opens the live map on the
+ * check it started. */
+async function button() {
+  const { ctx, page } = await open({ width: 1440, lang: 'ar', theme: 'light', route: '/' })
+  const before = (await progress())?.run ?? null
+  await page.locator('span[data-live] button, span[data-live] [role=button]').first().click()
+  await page.locator('[data-fresh-actions=live] button').first().click()
+  await page.waitForFunction(() => location.hash.startsWith('#/scan'), null, { timeout: 30000 })
+  const started = await until((p) => p && p.run && p.run !== before, 120000)
+  await page.waitForSelector('[data-run-state]', { timeout: 30000 })
+  const shot = path.join(shots, 'button-scan.png')
+  await page.screenshot({ path: shot })
+  checks.button = { hash: await page.evaluate(() => location.hash.replace(/token=[^&]+/, 'token=<redacted>')), run_before: before, run_started: started?.run ?? null,
+    run_state: await page.locator('[data-run-state]').getAttribute('data-run-state'), flow: await page.locator('[data-run-state]').getAttribute('data-flow'), screenshot: shot }
   await ctx.close()
 }
 
 try {
-  await ({ watch: watchRun, look }[process.env.TRIAL_MODE] ?? threeMoments)()
+  await ({ watch: watchRun, look, button }[process.env.TRIAL_MODE] ?? threeMoments)()
 } catch (problem) {
   errors.push(String(problem && problem.stack || problem))
 } finally {
