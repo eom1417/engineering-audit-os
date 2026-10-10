@@ -358,8 +358,9 @@ class MenuAndQuestionTests(Home):
         self.assertEqual(checked['total'], len(checked['tools']))
         needed = {row['name']: row['needed_here'] for row in checked['tools']}
         self.assertFalse(needed['sqlfluff'], 'a project without SQL does not need the SQL linter')
-        if checked['missing_for_the_check']:
-            self.assertEqual(checked['install'], 'eaos tools install --stage assessment')
+        self.assertNotIn('sqlfluff', checked['for_the_check']['needed'])
+        if checked['for_the_check']['failed']:
+            self.assertEqual(checked['install'], 'eaos tools install')
 
 
 if __name__ == '__main__':

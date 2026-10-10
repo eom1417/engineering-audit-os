@@ -158,6 +158,19 @@
 .listTitle { font-size: var(--text-row); font-weight: 500; overflow-wrap: anywhere; }
 .listSub { font-size: 12px; color: var(--text-tertiary); }
 
+/* ---------------------------------------------------------------- preparing the tools */
+.toolsTop { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.toolsStart { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.toolList { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+.toolRow { display: flex; align-items: center; gap: 10px; min-block-size: 44px; padding: 6px 8px; }
+.toolRow .listMain { flex: 1; gap: 4px; }
+.strip { display: flex; flex-wrap: wrap; gap: 6px; margin-block-start: 6px; padding-inline: 8px; }
+.chip { padding: 4px 10px; border-radius: var(--radius-full); border: 1px solid var(--status-good); background: var(--status-good-subtle);
+  font-family: var(--font-mono); font-size: 12px; transition: opacity 300ms var(--ease-standard); }
+.faded { opacity: .35; border-color: var(--border-default); background: var(--bg-sunken); }
+.chipBad { opacity: 1; border-color: var(--status-critical); background: var(--status-critical-subtle); color: var(--status-critical-text); }
+[data-motion="reduced"] .chip { transition: none; }
+
 @media (max-width: 1199px) {
   .grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "map" "side" "list"; }
   .stagePanel { position: static; max-block-size: none; overflow: visible; }
@@ -177,5 +190,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .journey_running .journeyMark, .barFill { animation: none; transition: none; }
+  .journey_running .journeyMark, .barFill, .chip { animation: none; transition: none; }
 }

@@ -26,6 +26,7 @@ import { LiveMap } from './LiveMap'
 import { useReplay, type Replay } from './replay'
 import { StagePanel } from './StagePanel'
 import { TickerText } from './Ticker'
+import { ToolStrip } from './ToolsPage'
 import { useScanWords } from './words'
 import css from './scan.module.css'
 
@@ -81,6 +82,7 @@ function Flow({ all, flow, skew, transport, stage, show }: FlowProps) {
       <Head><RunLine progress={view.progress} skew={view.skew} journey={all.journey} /></Head>
       <Journey steps={all.journey} flow={flow} onFlow={(next) => show({ flow: next })} />
       <Notes progress={view.progress} replay={shown} stop={replay.stop} starting={flow === 'check' && starting(active, live)} />
+      {flow === 'check' && <ToolStrip all={all} />}
       <Live key={`${flow}-${view.id}`} progress={view.progress} skew={view.skew} chosen={stage} select={(name) => show({ stage: name })} tools={tools} />
       <Announcer progress={view.progress} journey={all.journey} />
     </div>

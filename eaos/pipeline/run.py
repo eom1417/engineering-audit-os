@@ -35,9 +35,10 @@ def _runners():
 
 def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines=None, provider=None,
             test_command=None, site=True, goal=None, audit_run=None, runners=None, intake=None,
-            max_files=100000, max_bytes=2_000_000, policy_path=None, _completed=None, progress=None):
+            max_files=100000, max_bytes=2_000_000, policy_path=None, _completed=None, progress=None, without_tools=()):
     """`progress(done, total, stage)` is called before each stage that will run, so a person waiting sees where
-    the run is; it never changes what runs.
+    the run is; it never changes what runs. `without_tools`: the tools whose install failed and the person started
+    without; the manifest records them (`options`).
 
     Every event of the run is also appended to `<out>/run-progress.jsonl` (eaos/progress/log.py): the run's start
     with the declared stages, each stage's start, its steps, its end with its status, reason, seconds and artifacts,
@@ -64,6 +65,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     began = time.monotonic()
     todo = [stage.name for stage in STAGES if stage.name in requested and stage.name not in completed]
     head = _head(target, out, started_at, requested, language, exclude, max_files, max_bytes, policy_path, intake)
+    head['options']['without_tools'] = sorted(without_tools)
     log = ProgressLog(out)
     log.started(STAGES, requested, previous_seconds(out))
     try:

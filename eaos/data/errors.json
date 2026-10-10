@@ -362,6 +362,28 @@
    }
   },
   {
+   "id": "tools_missing",
+   "match": [
+    "ToolsMissing"
+   ],
+   "ar": {
+    "message": "ما بدأ الفحص: أدوات يحتاجها ما قدرت أثبّتها، وكل وحدة مكتوب سببها.",
+    "fix": "في الاستوديو اضغط «أعد المحاولة»، أو «ابدأ بدونها» والتقرير يذكر أنه فحص بدونها. أو من الطرفية:",
+    "commands": [
+     "eaos tools install",
+     "eaos start ."
+    ]
+   },
+   "en": {
+    "message": "The check did not start: tools it needs could not be installed, each with its reason.",
+    "fix": "In the Studio press Retry, or \"Start without it\" and the report records that it ran without them. Or in the terminal:",
+    "commands": [
+     "eaos tools install",
+     "eaos start ."
+    ]
+   }
+  },
+  {
    "id": "unknown",
    "match": [],
    "ar": {
@@ -563,6 +585,14 @@
   "nothing_kept": {
    "ar": "لم ينجح أي إصلاح، فلا يوجد ما أفحصه أو أسلّمه.",
    "en": "No fix passed, so there was nothing to check or hand over."
+  },
+  "tool_failed": {
+   "ar": "ما انثبتت هذه الأداة؛ السبب تحت. جرّب «أعد المحاولة».",
+   "en": "This tool did not install; the reason is below. Try Retry."
+  },
+  "tool_unavailable": {
+   "ar": "هذه الأداة ما لها نسخة لجهازك، والفحص يكمل بدونها ويذكر ذلك.",
+   "en": "This tool has no build for this computer; the check goes on without it and says so."
   }
  }
 }

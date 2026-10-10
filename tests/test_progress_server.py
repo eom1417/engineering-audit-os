@@ -13,7 +13,7 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'tests'))
 
-from eaos import agent_tools, behavior_lock, cli, guided, jobs, live_setup, progress, waves  # noqa: E402
+from eaos import agent_tools, behavior_lock, cli, guided, jobs, live_setup, progress, toolchain, waves  # noqa: E402
 from eaos.api import launch, server  # noqa: E402
 from eaos.pipeline import STAGES  # noqa: E402
 from eaos.pipeline.stages import ORDER  # noqa: E402
@@ -22,7 +22,8 @@ from test_mcp import git_project  # noqa: E402
 from test_studio_api import PORT, report_with_data  # noqa: E402
 from starlette.testclient import TestClient  # noqa: E402
 
-FLOWS = {'check': STAGES, 'setup': live_setup.FLOW, 'safety': behavior_lock.FLOW, 'fix': waves.FLOW}
+FLOWS = {'check': STAGES, 'setup': live_setup.FLOW, 'safety': behavior_lock.FLOW, 'fix': waves.FLOW,
+         'tools': toolchain.stages(toolchain.ordered(toolchain.registry()['tools']))}
 
 
 class Project(unittest.TestCase):
@@ -31,7 +32,8 @@ class Project(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        env = mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp.name) / 'home')})
+        env = mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(self.tmp.name) / 'home'),
+                                           'EAOS_ENGINE_TOOLS': str(Path(self.tmp.name) / 'tools')})
         env.start()
         self.addCleanup(env.stop)
         self.project = git_project(Path(self.tmp.name) / 'shop')
@@ -88,10 +90,10 @@ class ProgressRoute(Project):
         whole, alone = self.get('/api/progress').json()['flows']['check'], self.get('/api/scan-progress').json()
         self.assertEqual({k: v for k, v in alone.items() if k not in ('now', 'feed_last')}, whole)
 
-    def test_without_a_project_only_the_check(self):
+    def test_without_a_project_only_the_check_and_the_tools(self):
         http, keys, _ = report_client(self.report)
         body = http.get('/api/progress', headers={'X-EAOS-Token': keys.token}).json()
-        self.assertEqual((body['journey'], list(body['flows'])), ([], ['check']))
+        self.assertEqual((body['journey'], list(body['flows'])), ([], ['check', 'tools']))
 
     def test_the_token_guards_it_and_the_document_lists_it(self):
         http, keys, _ = self.client()
@@ -198,6 +200,9 @@ class Watch(Checked):
         self.studio = mock.patch.object(agent_tools, 'open_studio', return_value=self.opened)
         self.open = self.studio.start()
         self.addCleanup(self.studio.stop)
+        ready = mock.patch.object(toolchain, 'ready', return_value=True)
+        ready.start()
+        self.addCleanup(ready.stop)
 
     @staticmethod
     def fake(name):
@@ -271,6 +276,7 @@ class Addresses(unittest.TestCase):
         address = f"http://127.0.0.1:8123/#/scan?token={'t' * 32}"
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(tmp) / 'home')}), \
                 mock.patch.object(guided, 'doctor_rows', return_value=[]), mock.patch.object(guided, 'advance', return_value=0), \
+                mock.patch.object(toolchain, 'ready', return_value=True), mock.patch.object(toolchain, 'prepare'), \
                 mock.patch.object(launch, 'running', return_value={'port': 8123, 'token': 't' * 32}), \
                 mock.patch.object(launch, '_open') as opened, mock.patch.object(guided, 'say') as said:
             project = git_project(Path(tmp) / 'shop')
@@ -278,11 +284,12 @@ class Addresses(unittest.TestCase):
             opened.assert_not_called()
             cli.main(['start', str(project), '--lang', 'en'])
         opened.assert_called_once_with(address, True)
-        self.assertIn(mock.call(f'Watch the work live on its map: {address}'), said.call_args_list)
+        self.assertIn(mock.call(f'Watch the work live: {address}'), said.call_args_list)
 
-    def test_nothing_is_said_when_the_studio_is_not_running(self):
-        with mock.patch.object(launch, 'running', return_value=None), mock.patch.object(guided, 'say') as said:
-            guided.watch({'lang': 'ar'}, None)
+    def test_nothing_is_started_or_said_with_no_watch(self):
+        with mock.patch.object(agent_tools, 'open_studio') as open_studio, mock.patch.object(guided, 'say') as said:
+            guided.watch({'lang': 'ar'}, cli.argparse.Namespace(no_watch=True))
+        open_studio.assert_not_called()
         said.assert_not_called()
 
 

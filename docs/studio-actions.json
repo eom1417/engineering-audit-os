@@ -177,6 +177,10 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {
+     "retry": {
+      "type": "boolean",
+      "description": "Start the install again: the tools that failed are tried again."
+     },
      "project": {
       "type": [
        "string",
@@ -291,6 +295,10 @@
      },
      "use_assistant": {
       "type": "boolean"
+     },
+     "without_tools": {
+      "type": "boolean",
+      "description": "Only when the person chose to start without the tools whose install failed; the report records it."
      },
      "project": {
       "type": [

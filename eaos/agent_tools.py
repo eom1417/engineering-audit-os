@@ -17,7 +17,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import branches, guided, handover, jobs, plain
+from . import branches, guided, handover, jobs, plain, toolchain
 from .api import launch
 
 # A person's answer comes at least this long after the question: sooner, nobody was asked (EAOS_ANSWER_SECONDS: tests).
@@ -127,9 +127,12 @@ def _start(kind, state, arguments, seconds=WAIT, runner='eaos.agent_tools', watc
     if busy:
         return {'job': busy['id'], 'status': 'busy', 'kind': busy['kind'], 'progress': busy['progress'],
                 'what_now': f"Another piece of work is running for this project: call `wait` with job=\"{busy['id']}\" first."}
-    studio = _watch(state) if watch else None
+    route = '/scan' if kind != 'audit' or toolchain.ready(state['project']) else '/tools'
+    studio = _watch(state, route) if watch else None
     answer = _job_answer(jobs.start(kind, state['project'], arguments, runner=runner), seconds)
-    if studio:
+    if studio and route == '/tools':
+        answer.update(watch=studio['studio'], what_now=TOOLS_FIRST)
+    elif studio:
         told = ('Tell the person the live map of this work is open in their browser.' if studio['opened_in_browser'] else
                 'Before anything else, write the person a message with the `watch` address, the live map of this work, which '
                 'still shows how it went once it ends (give it only to them: it holds the key of this session).')
@@ -137,10 +140,17 @@ def _start(kind, state, arguments, seconds=WAIT, runner='eaos.agent_tools', watc
     return answer
 
 
-def _watch(state):
-    """open_studio on the live map, in the browser unless the Studio itself asked (EAOS_STUDIO_RUN);
-    None when it cannot start: the work goes on without its map."""
-    try: opened = open_studio(state['project'], show=not os.environ.get('EAOS_STUDIO_RUN'), route='/scan')
+TOOLS_FIRST = ('Tell the person the EAOS Studio is open on "Preparing the tools" (give them the `watch` address if it did not '
+               'open in their browser): every tool it installs, live; the check starts by itself once the tools it needs '
+               'are ready. Then call `wait` with the job to follow it. If it fails because a tool could not be installed, '
+               'the person picks Retry or "Start without it" there, or tells you, and you call `tools_check` with '
+               'retry=true, or `audit` with without_tools=true.')
+
+
+def _watch(state, route='/scan'):
+    """open_studio on `route` (the live map, or "Preparing the tools"), in the browser unless the Studio itself asked
+    (EAOS_STUDIO_RUN); None when it cannot start: the work goes on without its map."""
+    try: opened = open_studio(state['project'], show=not os.environ.get('EAOS_STUDIO_RUN'), route=route)
     except Exception: return None
     return opened if 'studio' in opened else None
 
@@ -305,7 +315,7 @@ def _fresh_report(state):
 
 # ---------------------------------------------------------------- diagnosis
 
-def audit(project=None, fresh=False, use_assistant=None):
+def audit(project=None, fresh=False, use_assistant=None, without_tools=False):
     state = project_state(project)
     asking = _branch(state)
     if asking: return asking
@@ -316,16 +326,22 @@ def audit(project=None, fresh=False, use_assistant=None):
     head = _head(state)
     if guided.scan_done(state) and not fresh and _current(state, head):
         return {'status': 'done', 'already_checked': True, **overview(project)}
-    return _start('audit', state, {}, watch=True)
+    return _start('audit', state, {'without_tools': True} if without_tools else {}, watch=True)
 
 
 def _audit_job(project, arguments, progress):
+    """The check, once none of the tools it needs here is still being installed; without those that failed only when
+    the person chose to start without them (`without_tools`)."""
     from .pipeline import check
     from .start_here import start_here
     state = guided.load(project)
     out = guided.report_of(state)
+    without = arguments.get('without_tools')
+    failed = guided.tools_for_check(state, lambda done, total: progress and progress(done, total, 'tools'), install=not without)
+    if failed and not without:
+        raise guided.ToolsMissing('these tools could not be installed: ' + '; '.join(f'{n}: {r}' for n, r in sorted(failed.items())))
     options = dict(language=state.get('lang') or 'en', engines=[], site=True, progress=progress,
-                   provider=guided.check_provider(state))
+                   provider=guided.check_provider(state), without_tools=sorted(failed))
     source = guided.source(state)
     # What the scan reads, taken before it reads it: a commit made during a long scan is not in this report.
     read = {'scanned_commit': _head(state), **branches.scan_provenance(state, source)}
@@ -500,26 +516,28 @@ def ask(question, project=None):
     return answer(_report(project_state(project)), question)
 
 
-def tools_check(project=None):
+def tools_check(project=None, retry=False):
     """This EAOS (version, commit) and every external tool it runs: installed or not, at which version, and whether this
-    project needs it (its files decide: a JavaScript linter is not needed by a Go project); what this project needs
-    first, and the one command that installs what it misses."""
-    from . import build_info, toolchain
+    project needs it (its files decide: a JavaScript linter is not needed by a Go project); what the check waits for
+    here (`for_the_check`: ready, still coming, failed with why). `retry`: start the install again (the tools that
+    failed are tried again; an install already running goes on)."""
+    from . import build_info
     folder = Path(project or os.getcwd()).expanduser().resolve()
     files = toolchain.project_files(folder) if guided.looks_like_project(folder) else None
+    if retry: toolchain.prepare(folder if files is not None else None)
     rows = toolchain.doctor()['tools']
-    rules = {t['name']: t.get('applies', 'all') for t in toolchain.registry()['tools']}
+    rules = {t['name']: t for t in toolchain.registry()['tools']}
     for row in rows:
-        row['needed_here'] = None if files is None else toolchain.rule_applies(rules.get(row['name'], 'all'), files)
-        row['for_the_check'] = any(stage <= 'S07' for stage in row['stages'])   # eaos tools install --stage assessment
+        row['needed_here'] = None if files is None else toolchain.rule_applies(rules[row['name']].get('applies', 'all'), files)
+        row['for_the_check'] = bool(rules[row['name']].get('check'))
     rows.sort(key=lambda r: (r['needed_here'] is False, not r['for_the_check'], r['ok'], r['name']))
     wanted = [r for r in rows if not r['ok'] and not r['unavailable'] and r['needed_here'] is not False]
-    for_check, later = [r['name'] for r in wanted if r['for_the_check']], [r['name'] for r in wanted if not r['for_the_check']]
+    later = [r['name'] for r in wanted if not r['for_the_check']]
+    gate = toolchain.readiness(files or ())
     return {'eaos': {'version': build_info.__version__, 'commit': build_info.commit()}, 'tools_folder': str(toolchain.home()),
-            'installed': sum(r['ok'] for r in rows), 'total': len(rows), 'tools': rows,
-            'missing_for_the_check': for_check, 'missing_for_later_steps': later,
-            'install': ('eaos tools install --stage assessment' if for_check else
-                        f"eaos tools install {' '.join(later)}" if later else None)}
+            'installed': sum(r['ok'] for r in rows), 'total': len(rows), 'tools': rows, 'installing': toolchain.installing(),
+            'for_the_check': gate, 'missing_for_later_steps': later,
+            'install': 'eaos tools install' if wanted or gate['failed'] else None}
 
 
 def report_file(name='', project=None, offset=0, limit=20000):

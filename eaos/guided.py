@@ -46,6 +46,10 @@ class Declined(Exception):
     """The person said no; nothing was changed."""
 
 
+class ToolsMissing(RuntimeError):
+    """Tools the check needs on this project could not be installed, and the person did not choose to start without."""
+
+
 def outputs_root():
     """~/EAOS: everything EAOS makes for a person, in one folder they can see and open (EAOS_OUTPUT moves it;
     beside EAOS_HOME when that is set, so a trial or a test never writes into the real home)."""
@@ -158,6 +162,11 @@ AI_QUESTION = {'ar': 'أبغى أستعين بمساعدك الذكي ({name}) �
                'en': 'May I use your AI assistant ({name}) in the check: it reads the facts and interprets them, and plans '
                      'the ideal of your project. Everything it says stays a hypothesis tied to its evidence, and without it '
                      'the check goes on with the rules. OK?'}
+
+
+WITHOUT_QUESTION = {'ar': 'ما قدرت أثبّت أدوات يحتاجها الفحص: {names}. أبدأ الفحص بدونها؟ التقرير يذكر أنه فحص بدونها.',
+                    'en': 'Some tools the check needs could not be installed: {names}. Start the check without them? The '
+                          'report records that it ran without them.'}
 
 
 def progress_printer(lang):
@@ -311,9 +320,8 @@ def doctor(args):
             import subprocess
             say('…' + ('أثبّت PostgreSQL المؤقت' if lang == 'ar' else 'Installing the temporary PostgreSQL'))
             _pip_install('pgserver>=0.1.4')
-        stages = ['assessment'] + (['execution'] if any(row['id'] == 'fix_tools' for row in tools_missing) else [])
         say('…' + ('أثبّت الأدوات الناقصة' if lang == 'ar' else 'Installing the missing tools'))
-        for stage in stages: install(stage=stage, echo=lambda line: say('   ' + str(line)))
+        install(echo=lambda line: say('   ' + str(line)))
         return doctor(type(args)(project=args.project, lang=lang, fix=False))
     blocking = [row for row in rows if not row['ok'] and row['when'] == 'now']
     if blocking:
@@ -467,16 +475,47 @@ def agree_to_assistant(state, yes):
     except Declined: pass
 
 
+def tools_for_check(state, echo=lambda done, total: None, install=True):
+    """Waits until none of the tools the check needs on this project is still being installed (eaos/toolchain.py);
+    {name: reason} of those that could not be. `install=False` once the person chose to start without them."""
+    from . import toolchain
+    return toolchain.wait_for_check(source(state), echo, install)['failed']
+
+
+def start_without(state, failed, yes):
+    """Whether the person starts the check without the tools that failed (asked each time, never kept)."""
+    names = ', '.join(sorted(failed))
+    for name, reason in sorted(failed.items()): say(f"❌ {name}: {reason}")
+    state['questions'] = [q for q in state.get('questions') or [] if q['id'] != 'start_without_tools']
+    try: return ask(state, 'start_without_tools', WITHOUT_QUESTION['ar' if state['lang'] == 'ar' else 'en'].format(names=names), yes)
+    except Declined: return False
+
+
+def check_tools(state, args):
+    """{name: reason} of the tools that failed and the check starts without (the person said so), or None when the
+    check does not start."""
+    lang = state['lang']
+    failed = tools_for_check(state, lambda done, total: say(f"   {'أدوات الفحص الجاهزة' if lang == 'ar' else 'Checking tools ready'}: {done}/{total}"))
+    if not failed or start_without(state, failed, args.yes): return failed
+    box(lang, 'لم يبدأ الفحص: تنقصه أدوات' if lang == 'ar' else 'The check did not start: tools are missing',
+        commands=['eaos tools install', 'eaos start .'], status='fail')
+    return None
+
+
 def scan(state, args):
-    """Step 1: the whole audit, with progress, then START-HERE.md in plain words."""
+    """Step 1: the whole audit, with progress, then START-HERE.md in plain words. It starts once the tools it needs
+    here are installed, or without those that failed when the person says so."""
     lang = state['lang']
     from .pipeline import check
     out = report_of(state)
     read = {'scanned_commit': tip(state) or None, **branches.scan_provenance(state, source(state))}
+    failed = check_tools(state, args)
+    if failed is None: return 1
     agree_to_assistant(state, args.yes)
     say(('أفحص مشروعك الآن. يأخذ هذا عادة من 5 إلى 30 دقيقة حسب حجمه، ولن يتغير فيه شيء.' if lang == 'ar' else
          'Checking your project now. This usually takes 5 to 30 minutes depending on its size; nothing in it changes.'))
-    options = dict(language=lang, engines=[], site=True, progress=progress_printer(lang), provider=check_provider(state))
+    options = dict(language=lang, engines=[], site=True, progress=progress_printer(lang), provider=check_provider(state),
+                   without_tools=sorted(failed))
     manifest = check(str(source(state)), out, **options)
     if not (out / 'START-HERE.md').is_file(): start_here(out, lang, Path(state['project']).name)   # compose did not run: still one page
     state['scanned'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
@@ -1037,22 +1076,21 @@ def start(args):
             box(lang, 'ينقص جهازك شيء قبل الفحص' if lang == 'ar' else 'Your computer is missing something first',
                 commands=[blocking[0]['fix'], 'eaos start .'], status='fail')
             return 1
-    if any(row['id'] == 'scan_tools' and not row['ok'] for row in doctor_rows(project)):
-        say(('   ⚠️ بعض أدوات الفحص غير مثبّتة؛ أفحص بدونها، والتقرير يذكر ما لم يُفحص (لتثبيتها: eaos doctor --fix)' if lang == 'ar'
-             else '   ⚠️ Some checking tools are not installed; I check without them, and the report names what was not checked (to install them: eaos doctor --fix)'))
     watch(state, args)
     return advance(state, args)
 
 
 def watch(state, args):
-    """The live map's address when the project's Studio is running (eaos/api/launch.py), printed and opened, unless
-    `eaos start --no-watch`."""
-    from .api import launch
-    record = None if getattr(args, 'no_watch', False) else launch.running(state)
-    if not record: return
-    url = launch.url_of(record, '/scan')
-    say(f"تابع العمل حيًّا على خريطته: {url}" if state['lang'] == 'ar' else f"Watch the work live on its map: {url}")
-    launch._open(url, True)
+    """Interface first: the install of the tools starts in the background (eaos/toolchain.py), and the project's Studio,
+    started when it is not running, is printed and opened in the browser, unless `eaos start --no-watch`: on
+    "Preparing the tools" while a tool the check needs here is not ready, else on the live map."""
+    if getattr(args, 'no_watch', False): return
+    from . import toolchain
+    from .agent_tools import open_studio
+    toolchain.prepare(state['project'])
+    opened = open_studio(state['project'], show=True, route='/scan' if toolchain.ready(state['project']) else '/tools')
+    if 'studio' not in opened: return
+    say((f"تابع العمل حيًّا: {opened['studio']}" if state['lang'] == 'ar' else f"Watch the work live: {opened['studio']}"))
 
 
 def next_command(args):

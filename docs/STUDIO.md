@@ -507,8 +507,23 @@ This is EAOS's own pipeline, not the audited project's (that is the pipeline map
   next `eaos start` or `audit` resumes from it, and the map marks the stages it kept.
 - **Getting there.** The assistant's `audit`, `run_setup`, `safety_net` and `fix_start` open the Studio once on
   `#/scan` (`open_studio`) and answer with its address in `watch` (the routed address when the Studio was started
-  with `--remote-origin`); in a run the Studio itself started, no other tab opens. `eaos start` prints and opens the
-  same address when the project's Studio is running (`--no-watch` skips it). `open_studio` starts the server from the
+  with `--remote-origin`); in a run the Studio itself started, no other tab opens. `eaos start` starts the project's
+  Studio when it is not running, prints its address and opens it (`--no-watch` skips it).
+- **Preparing the tools (`#/tools`, owner request 2026-10-10).** Whenever EAOS is called on a project, the interface
+  comes first: `eaos start`, the assistant's `audit` and the page itself start the install of every external tool in
+  the background (`toolchain.prepare`: one install per computer, under its lock, in the shared tools home), and the
+  Studio opens on "Preparing the tools" while a tool the check needs on this project is not ready. The install
+  (`toolchain.install`) runs three tools at once, the check's first (each tool's `check` in `upstreams/toolchain.json`,
+  on a project its `applies` rule holds for), then the rest by stage number; a release download resumes from what an
+  earlier attempt left (an HTTP range) and is still checked against its sha256. Each tool is a stage of the `tools`
+  flow (`<tools home>/progress/tools.jsonl`), followed by the same feed and fold as the check; `/api/progress` adds
+  that flow and `tools_needed`. "Start the check" unlocks by itself once every tool the check needs here is ready
+  (`toolchain.readiness`, `studio/src/data/scan.ts:toolsOf`); the rest go on installing, faded on the live map until
+  each lights up. A failed tool is red with its reason and Retry (`tools_check` with `retry`); a failed tool the check
+  needs keeps it locked unless the person picks "Start without it" (`audit` with `without_tools`, or a yes to the
+  question in `eaos start`), and the manifest's `options.without_tools` and RUN.md record it. A second start installs
+  nothing (`toolchain.stale`), so the button is ready at once; the vulnerability database is refreshed in the
+  background once a day (`eaos tools refresh`) and a check uses the one it has (`trivy --skip-db-update`). `open_studio` starts the server from the
   EAOS workspace folder with `PYTHONSAFEPATH=1`, so a check of EAOS's own repository never loads the checked code.
 - **The page.** A journey strip shows the four steps of the work (`journey`): the running one glows, a done one has a
   tick, one not started says when it comes; each opens its own flow's map, by default the one running. The map is

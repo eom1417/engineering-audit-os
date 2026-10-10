@@ -20,6 +20,7 @@ The action API (docs/studio-actions.json) publishes its own events through `publ
 
 Beside either source, the feed tails every progress file (eaos/progress/log.py): the check's (`run-progress.jsonl`
 in the report) and each other flow's (`<runtime>/progress/<flow>.jsonl`: setting up, recording the screens, fixing).
+The install of the tools (`<tools home>/progress/tools.jsonl`) is tailed the same way.
 Each new line is published as one `progress` event whose data is the line itself plus its `flow`, into the same
 numbering and the same replay. It reads files, not processes, so work started from the terminal, the assistant or the
 Studio is followed alike. What the files held when the feed started is the state the server starts from, not events:
@@ -33,7 +34,8 @@ from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ..progress import PROGRESS
+from .. import toolchain
+from ..progress import PROGRESS, path_for
 from ..progress.log import FOLDER
 
 KEEP = 2000
@@ -48,7 +50,8 @@ TEXT = {
     'progress': ('The work moved on', 'تقدّم العمل'),
 }
 FLOW_TEXT = {'check': ('The check', 'الفحص'), 'setup': ('Setting up your app', 'تجهيز برنامجك'),
-             'safety': ('Recording the screens', 'تصوير الشاشات'), 'fix': ('The fix', 'الإصلاح')}
+             'safety': ('Recording the screens', 'تصوير الشاشات'), 'fix': ('The fix', 'الإصلاح'),
+             'tools': ('Preparing the tools', 'تجهيز الأدوات')}
 STEP_TEXT = {
     'run.started': ('{flow} started', 'بدأ {flow}'),
     'stage.started': ('Stage {stage} started', 'بدأت مرحلة {stage}'),
@@ -143,10 +146,11 @@ class Feed:
         return progress + self._poll_manifest()
 
     def progress_files(self):
-        """(flow, path) of every progress file: the check's, then each other flow's in the runtime folder."""
+        """(flow, path) of every progress file: the check's, each other flow's in the runtime folder, and the install of
+        the tools, shared by every project on this computer (eaos/toolchain.py)."""
         files = [('check', self.report / PROGRESS)]
         if self.runtime: files += [(path.stem, path) for path in sorted((self.runtime / FOLDER).glob('*.jsonl'))]
-        return files
+        return files + [(toolchain.FLOW, path_for(toolchain.home(), toolchain.FLOW))]
 
     def _poll_progress(self):
         return [event for flow, path in self.progress_files() for event in self._tail(flow, path)]

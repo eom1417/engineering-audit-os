@@ -5,7 +5,7 @@
 import { useRouterState } from '@tanstack/react-router'
 import { useEffect, useRef } from 'react'
 import { Go } from '../components/Go'
-import { summarize, type AllProgress, type Summary } from '../data/scan'
+import { summarize, TOOLS, type AllProgress, type Summary } from '../data/scan'
 import { runningFlow, useScan } from '../data/ScanProvider'
 import { usePrefs } from '../i18n/prefs'
 import { useScanWords } from '../pages/scan/words'
@@ -25,19 +25,20 @@ export function ScanBanner() {
   const { all } = useScan()
   const w = useScanWords()
   const { lang } = usePrefs()
-  const here = useRouterState({ select: (s) => s.location.pathname === '/scan' })
-  const flow = runningFlow(all)
+  const flow = runningFlow(all) ?? (all?.flows[TOOLS]?.state === 'running' ? TOOLS : null)
+  const to = flow === TOOLS ? '/tools' : '/scan'
+  const here = useRouterState({ select: (s) => s.location.pathname === to })
   const progress = flow ? all?.flows[flow] : undefined
   const sum = progress ? summarize(progress) : null
   useTabProgress(all, flow, sum)
   if (!flow || !sum || here) return null
   const step = all?.journey.find((s) => s.flow === flow)
   const running = sum.running[0]
-  const text = w('banner', { f: step ? step.title[lang] : flow, s: running ? w.stageTitle(running.name, flow) : '' })
-  const of = w('bannerOf', { n: sum.position, t: sum.total })
+  const text = w('banner', { f: step ? step.title[lang] : w('toolsTitle'), s: running ? w.stageTitle(running.name, flow) : '' })
+  const of = w('bannerOf', { n: flow === TOOLS ? sum.ended : sum.position, t: sum.total })
   return (
     <div data-scan-banner="">
-    <Go to="/scan" search={{ flow }} className={css.banner} label={`${text} ${of} · ${w('watch')}`}>
+    <Go to={to} search={flow === TOOLS ? undefined : { flow }} className={css.banner} label={`${text} ${of} · ${w('watch')}`}>
       <span className={css.pulse} aria-hidden="true" />
       <span className={css.text}>{text} <span className={css.of}>{of}</span></span>
       <span className={css.watch}>{w('watch')}</span>

@@ -25,7 +25,8 @@ class PlatformTests(unittest.TestCase):
         syft = next(t for t in toolchain.registry()['tools'] if t['name'] == 'syft')
         with mock.patch.object(toolchain, 'platform_key', return_value='darwin-arm64'):
             self.assertIn('darwin_arm64', toolchain.release_spec(syft)['url'])
-        with mock.patch.object(toolchain, 'platform_key', return_value='windows-arm64'):
+        with mock.patch.object(toolchain, 'platform_key', return_value='windows-arm64'), tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': tmp}):
             with self.assertRaises(toolchain.Unavailable):
                 toolchain.release_spec(syft)
             with mock.patch.object(toolchain, 'found_version', return_value=(None, 'not installed')):
@@ -81,10 +82,11 @@ class PlatformTests(unittest.TestCase):
         self.assertEqual(toolchain._member(tool, {'archive': 'zip', 'member': 'demo-v1-macos-arm64/demo'}, buffer.getvalue()), b'zipped')
 
     def test_one_tool_that_fails_never_stops_the_others(self):
-        tools = [{'name': 'first', 'version': '1', 'install': {'method': 'release'}},
-                 {'name': 'second', 'version': '1', 'install': {'method': 'pip'}}]
+        tools = [{'name': 'first', 'version': '1', 'stages': ['S01'], 'install': {'method': 'release'}},
+                 {'name': 'second', 'version': '1', 'stages': ['S01'], 'install': {'method': 'pip'}}]
         installed = []
-        with mock.patch.object(toolchain, 'selected', return_value=tools), \
+        with mock.patch.object(toolchain, 'selected', return_value=tools), tempfile.TemporaryDirectory() as tmp, \
+                mock.patch.dict('os.environ', {'EAOS_ENGINE_TOOLS': tmp}), \
                 mock.patch.object(toolchain, 'found_version', side_effect=lambda t: ('1', '') if t['name'] in installed else (None, '')), \
                 mock.patch.object(toolchain, '_release', side_effect=KeyError('zip')), \
                 mock.patch.object(toolchain, '_pip', side_effect=lambda t: installed.append(t['name'])):

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "30dde15",
+  "extracted_at_commit": "0ce9c3d",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -48,15 +48,12 @@
       "note": ""
     },
     {
-      "id": "INV-791f540b6b",
+      "id": "INV-602bf85f92",
       "file": "eaos/agent_tools.py",
       "symbol": "_watch",
-      "statement": "open_studio on the live map, in the browser unless the Studio itself asked (EAOS_STUDIO_RUN); None when it cannot start: the work goes on without its map.",
+      "statement": "open_studio on `route` (the live map, or \"Preparing the tools\"), in the browser unless the Studio itself asked (EAOS_STUDIO_RUN); None when it cannot start: the work goes on without its map.",
       "kind": "invariant",
-      "enforced_by": [
-        "tests/test_progress_server.py::Watch::test_the_work_starts_without_its_map_when_the_studio_cannot",
-        "tests/test_progress_server.py::Watch::test_a_run_the_studio_started_does_not_open_another_tab"
-      ],
+      "enforced_by": "tests/test_progress_server.py::Watch::test_the_work_starts_without_its_map_when_the_studio_cannot",
       "note": ""
     },
     {
@@ -115,12 +112,12 @@
       "note": ""
     },
     {
-      "id": "INV-fdef7e39a2",
+      "id": "INV-cb770cc09a",
       "file": "eaos/api/read.py",
       "symbol": "progress_state",
-      "statement": "`/api/progress`: the journey's four steps and every flow, the check from `report` and the others from the project's runtime folder; the check alone when no project is known.",
+      "statement": "`/api/progress`: the journey's four steps and every flow, the check from `report`, the others from the project's runtime folder, and the install of the tools with the ones the check needs on this project (`tools_needed`); the check and the tools alone when no project is known.",
       "kind": "invariant",
-      "enforced_by": "tests/test_progress_server.py::ProgressRoute::test_without_a_project_only_the_check",
+      "enforced_by": "tests/test_progress_server.py::ProgressRoute::test_without_a_project_only_the_check_and_the_tools",
       "note": ""
     },
     {
@@ -151,7 +148,7 @@
       "statement": "The project's guided state as it is now (eaos/guided.py), or None when no project is known.",
       "kind": "invariant",
       "enforced_by": [
-        "tests/test_progress_server.py::ProgressRoute::test_without_a_project_only_the_check",
+        "tests/test_progress_server.py::ProgressRoute::test_without_a_project_only_the_check_and_the_tools",
         "tests/test_progress_server.py::ProgressRoute::test_the_journey_and_every_flow_folded_and_laid_out"
       ],
       "note": ""
@@ -1216,6 +1213,15 @@
       "statement": "It is never a reason for a step to fail: without it, the technical report is still there.",
       "kind": "invariant",
       "enforced_by": "tests/test_mcp.py::OutputsTests::test_a_report_page_that_cannot_be_built_never_stops_the_step",
+      "note": ""
+    },
+    {
+      "id": "INV-f44b55559e",
+      "file": "eaos/guided.py",
+      "symbol": "start_without",
+      "statement": "Whether the person starts the check without the tools that failed (asked each time, never kept).",
+      "kind": "invariant",
+      "enforced_by": "tests/test_tools_first.py::Terminal::test_eaos_start_asks_before_checking_without_a_tool_and_never_keeps_the_answer",
       "note": ""
     },
     {
@@ -2504,6 +2510,15 @@
       "statement": "Where an npm tool is installed: its own folder, so two tools never share (and clash over) one dependency's version; Playwright stays in node/, where the lock and NODE_PATH find it.",
       "kind": "invariant",
       "enforced_by": "tests/test_platforms.py::PlatformTests::test_each_npm_tool_has_its_own_folder_so_versions_never_clash",
+      "note": ""
+    },
+    {
+      "id": "INV-68f88a73ef",
+      "file": "eaos/toolchain.py",
+      "symbol": "refresh_db",
+      "statement": "A new vulnerability database, downloaded beside the one in use and moved in whole, so a check reading the old one (`--skip-db-update`) is never disturbed; nothing while an install runs.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_toolchain.py::PreparingTests::test_the_vulnerability_database_is_refreshed_daily_beside_the_one_in_use",
       "note": ""
     },
     {

@@ -80,8 +80,8 @@ export interface ScanProgress {
 /** One step of the journey (eaos/guided.py journey): its flow, whether it is done, and its flow's judged state. */
 export interface JourneyStep { id: string; title: { ar: string; en: string }; flow: string; done: boolean; state: RunState }
 
-/** `GET /api/progress`. */
-export interface AllProgress { journey: JourneyStep[]; flows: Record<string, ScanProgress>; now?: string }
+/** `GET /api/progress`; `tools_needed`: the tools the check needs on this project (eaos/toolchain.py needed). */
+export interface AllProgress { journey: JourneyStep[]; flows: Record<string, ScanProgress>; tools_needed?: string[]; now?: string }
 
 /** One line of a progress file, as the feed carries it in the data of a `progress` event (with its flow). */
 export interface ProgressRow {
@@ -219,6 +219,56 @@ export function clock(seconds: number | null): string {
   const m = Math.floor((s % 3600) / 60)
   const pad = (n: number) => String(n).padStart(2, '0')
   return h ? `${h}:${pad(m)}:${pad(s % 60)}` : `${m}:${pad(s % 60)}`
+}
+
+// ---------------------------------------------------------------- the install of the tools (the `tools` flow)
+
+export const TOOLS = 'tools'
+export type ToolState = 'waiting' | 'downloading' | 'ready' | 'failed'
+
+/** One tool as "Preparing the tools" shows it; `done`/`total` are the bytes of its download when they are known. */
+export interface ToolRow { name: string; version: string; state: ToolState; done: number; total: number; reason: string; reasonCode: string; needed: boolean }
+
+export interface Tools {
+  rows: ToolRow[]
+  needed: { ready: number; total: number }
+  all: { ready: number; total: number }
+  /** Tools the check needs here whose install failed */
+  failed: ToolRow[]
+  /** Every tool the check needs here is ready: "Start the check" unlocks */
+  unlocked: boolean
+  /** Seconds left until the tools waited for now (the check's, then all) are ready, at the pace so far; null before any */
+  left: number | null
+}
+
+function toolState(stage: ScanStage, over: boolean): ToolState {
+  if (stage.state === 'ok' || stage.state === 'unavailable') return 'ready'
+  if (stage.state === 'running') return 'downloading'
+  return stage.state === 'waiting' && !over ? 'waiting' : 'failed'
+}
+
+/** The tools flow as the page shows it, by the rule of eaos/toolchain.py readiness: a tool is ready once its stage ended
+ * ok (or it has no build for this computer); failed when its install failed, or the install is over without it. */
+export function toolsOf(flow: ScanProgress, needed: string[], now: number): Tools {
+  const over = flow.state !== 'running' && flow.state !== 'none'
+  const rows = flow.stages.map((stage): ToolRow => {
+    const download = stage.steps.find((step) => step.name === 'download')
+    return { name: stage.name, version: stage.description, state: toolState(stage, over), done: download?.done ?? 0, total: download?.total ?? 0,
+      reason: stage.reason, reasonCode: stage.reason_code, needed: needed.includes(stage.name) }
+  })
+  const count = (list: ToolRow[]) => ({ ready: list.filter((row) => row.state === 'ready').length, total: list.length })
+  const wanted = rows.filter((row) => row.needed)
+  const failed = wanted.filter((row) => row.state === 'failed')
+  const unlocked = wanted.every((row) => row.state === 'ready')
+  return { rows, needed: count(wanted), all: count(rows), failed, unlocked, left: timeLeft(flow, unlocked ? rows : wanted, now) }
+}
+
+/** The time the tools still coming will take, at this install's pace so far: its elapsed time per tool ended. */
+function timeLeft(flow: ScanProgress, rows: ToolRow[], now: number): number | null {
+  const began = flow.started_at ? Date.parse(flow.started_at) : NaN
+  const ended = rows.filter((row) => row.state === 'ready' || row.state === 'failed').length
+  if (flow.state !== 'running' || Number.isNaN(began) || !ended || ended === rows.length) return null
+  return ((now - began) / 1000) * (rows.length - ended) / ended
 }
 
 // ---------------------------------------------------------------- the feed's progress events, apart from the report's

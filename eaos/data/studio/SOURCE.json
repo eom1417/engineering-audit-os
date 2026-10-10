@@ -1,5 +1,5 @@
 {
- "source_sha256": "121d50b00d57b38c28bdab532ca5957c70d34c577a3d871ad807ddb208beb88b",
+ "source_sha256": "562a746fb43b4a85ee082f6e29b81d02a2d6b6ba6d99b4072bc7cbcd702b61f2",
  "files": [
   "assets/BranchesPage.js",
   "assets/BridgePage.js",
@@ -49,6 +49,7 @@
   "assets/Steps.js",
   "assets/SystemMap.js",
   "assets/TimelinePage.js",
+  "assets/ToolsPage.js",
   "assets/demo.js",
   "assets/model.js",
   "assets/model2.js",

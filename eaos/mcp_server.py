@@ -149,12 +149,13 @@ def build():
         from .menu import menu as offer
         return offer(project, lang)
 
-    @server.tool(annotations=reading, description='This EAOS (version, commit) and every external tool it runs: installed or not, '
-                 'at which version, whether this project needs it (needed_here), and the one command that installs what it '
-                 'misses. ' + project_doc)
+    @server.tool(annotations=working, description='This EAOS (version, commit) and every external tool it runs: installed or not, '
+                 'at which version, whether this project needs it (needed_here), what the check waits for here (for_the_check: '
+                 'pending, failed with why, ready), and the one command that installs what it misses. retry=true starts the '
+                 'install again (what failed is tried again). ' + project_doc)
     @_answer
-    def tools_check(project: str | None = None) -> str:
-        return tools.tools_check(project)
+    def tools_check(project: str | None = None, retry: bool = False) -> str:
+        return tools.tools_check(project, retry)
 
     @server.tool(annotations=reading, description='What changing a file or a symbol touches, from the check\'s facts: the files that '
                  'import it (direct and further), the flows and entry points through it, the tests that cover it, and the files '
@@ -173,12 +174,14 @@ def build():
     @server.tool(annotations=working, description='Check the whole project (29 stages: files, features, tools, tests, structure, '
                  'security, load, plan). Returns a job to follow with `wait`; when the project was already checked at this commit, '
                  'returns the overview at once. fresh=true checks again from the start. A started check answers with `watch`, '
-                 'its live map in the EAOS Studio, opened in the person\'s browser. use_assistant: before their first check, ask the '
+                 'its live map in the EAOS Studio, opened in the person\'s browser (first "Preparing the tools" while the tools the check '
+                 'needs are installing: the check starts by itself once they are ready). use_assistant: before their first check, ask the '
                  'person once whether EAOS may use their AI assistant in it (it interprets the facts and plans the ideal; '
-                 'everything it says stays a hypothesis tied to evidence) and pass their answer; it is kept. ' + project_doc)
+                 'everything it says stays a hypothesis tied to evidence) and pass their answer; it is kept. without_tools=true: '
+                 'only when the person chose to start without tools whose install failed (the report records it). ' + project_doc)
     @_answer
-    def audit(project: str | None = None, fresh: bool = False, use_assistant: bool | None = None) -> str:
-        return tools.audit(project, fresh, use_assistant)
+    def audit(project: str | None = None, fresh: bool = False, use_assistant: bool | None = None, without_tools: bool = False) -> str:
+        return tools.audit(project, fresh, use_assistant, without_tools)
 
     @server.tool(annotations=reading, description='Follow a job (audit, run_setup, run_try, safety_net, fix_start, fix_edit, fix_finish): '
                  'waits up to `seconds` (default 50) and returns its progress, or its result once done.')

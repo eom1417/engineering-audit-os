@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { links, place } from '../pages/scan/geometry'
-import { apply, clock, emptyProgress, fold, opened, summarize, verdict, type ProgressRow, type ScanProgress } from './scan'
+import { apply, clock, emptyProgress, fold, opened, summarize, toolsOf, verdict, type ProgressRow, type ScanProgress } from './scan'
 
 const STAGES = [
   { name: 'facts', requires: [], layer: 0, order: 0 },
@@ -105,5 +105,29 @@ describe('the live check geometry', () => {
     const down = place(STAGES, false)
     expect(down.at.get('engines')!.y).toBeGreaterThan(down.at.get('facts')!.y)
     expect(links(STAGES, across).map((l) => `${l.from}>${l.to}`)).toEqual(['facts>engines', 'facts>measure', 'engines>claims', 'measure>claims', 'claims>semantic'])
+  })
+})
+
+describe('preparing the tools (eaos/toolchain.py readiness)', () => {
+  const tools = ['semgrep', 'knip', 'k6'].map((name) => ({ name, requires: [], produces: [], necessity: 'required', description: '1.0.0', absent_when: '' }))
+  const install = (...rows: ProgressRow[]) => fold([{ seq: 0, run: 'r1', at: '2026-10-09T10:00:00.000+00:00', event: 'run.started', flow: 'tools', stages: tools,
+    requested: tools.map((t) => t.name) }, ...rows])
+  const at = Date.parse('2026-10-09T10:00:30.000+00:00')
+
+  it('unlocks the check once every tool it needs here is ready, the others still installing', () => {
+    const running = install(row(1, 'stage.started', { stage: 'semgrep' }), row(2, 'stage.step', { stage: 'semgrep', step: 'download', done: 50, total: 200, kind: 'count' }))
+    const before = toolsOf(running, ['semgrep'], at)
+    expect([before.unlocked, before.rows[0].state, before.rows[0].done, before.rows[0].total, before.left]).toEqual([false, 'downloading', 50, 200, null])
+    const after = toolsOf(install(row(1, 'stage.started', { stage: 'semgrep' }), row(2, 'stage.ended', { stage: 'semgrep', status: 'ok' })), ['semgrep'], at)
+    expect([after.unlocked, after.needed, after.all, after.rows[1].state]).toEqual([true, { ready: 1, total: 1 }, { ready: 1, total: 3 }, 'waiting'])
+    expect(after.left).toBe(60)
+  })
+
+  it('a failed tool the check needs keeps it locked, with its reason; an install over without a tool is a failure', () => {
+    const failed = toolsOf(install(row(1, 'stage.ended', { stage: 'semgrep', status: 'failed', reason: 'no network', reason_code: 'tool_failed' })), ['semgrep'], at)
+    expect([failed.unlocked, failed.failed.map((t) => [t.name, t.reason, t.reasonCode])]).toEqual([false, [['semgrep', 'no network', 'tool_failed']]])
+    const over = toolsOf(install(row(1, 'run.ended', { status: 'STOPPED' })), ['knip'], at)
+    expect([over.unlocked, over.failed.map((t) => t.name)]).toEqual([false, ['knip']])
+    expect(toolsOf(emptyProgress(), [], at).unlocked).toBe(true)
   })
 })

@@ -53,11 +53,13 @@ def analyze(target, workdir, exclude=(), formats=None):
     declined = tool.declined(NAME, BINARY, target)
     if declined: return declined
     found = version()
-    from ..toolchain import home
+    from ..toolchain import TRIVY_CACHE, home, trivy_db
     output = Path(workdir) / NAME / 'trivy.sarif'
     output.parent.mkdir(parents=True, exist_ok=True)
     command = [which(BINARY), 'fs', '--format', 'sarif', '--scanners', 'vuln,secret,misconfig', '--quiet',
-               '--cache-dir', str(home() / 'cache/trivy'), '--output', str(output)]
+               '--cache-dir', str(home() / TRIVY_CACHE), '--output', str(output)]
+    # A database already here is used as it is: the install refreshes it daily in the background, never in a check
+    if trivy_db(): command.append('--skip-db-update')
     for directory in EXCLUDED + tuple(exclude): command += ['--skip-dirs', directory]
     code, _, error, seconds = run(command + [str(target)])
     if code or not output.is_file():

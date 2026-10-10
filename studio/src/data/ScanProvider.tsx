@@ -6,7 +6,7 @@
 // holds server-sent events back), the page reads /api/progress every 2 s until the stream delivers again.
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { liveToken, streamHeardAt } from './live'
-import { apply, emptyProgress, onScan, verdict, type AllProgress, type ProgressRow } from './scan'
+import { apply, emptyProgress, onScan, TOOLS, verdict, type AllProgress, type ProgressRow } from './scan'
 
 export type Transport = 'stream' | 'polling'
 
@@ -68,7 +68,7 @@ export function ScanProvider({ children, preset }: { children: ReactNode; preset
         .then((body) => {
           if (!on) return
           const skew = body.now ? Date.parse(body.now) - (sent + Date.now()) / 2 : 0
-          const all = withRows({ journey: body.journey ?? [], flows: body.flows ?? {} }, held)
+          const all = withRows({ journey: body.journey ?? [], flows: body.flows ?? {}, tools_needed: body.tools_needed ?? [] }, held)
           held = []
           current.current = all
           setScan((was) => ({ ...was, all, skew: Number.isFinite(skew) ? skew : 0 }))
@@ -105,7 +105,7 @@ export function useScan(): Scan {
   return useContext(ScanContext)
 }
 
-/** The flow running now, else null. */
+/** The step of the work running now (the install of the tools is not one: it has its own page), else null. */
 export function runningFlow(all: AllProgress | null): string | null {
-  return Object.entries(all?.flows ?? {}).find(([, f]) => f.state === 'running')?.[0] ?? null
+  return Object.entries(all?.flows ?? {}).find(([name, f]) => name !== TOOLS && f.state === 'running')?.[0] ?? null
 }

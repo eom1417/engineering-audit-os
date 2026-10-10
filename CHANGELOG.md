@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- **The interface first, the tools in the order they are needed**: whenever EAOS is called on a project, the Studio
+  opens at once on "Preparing the tools": every tool with its state, overall progress and time left. Tools install
+  three at a time, the check's first, once per computer for every project, resumable and checked by sha256. "Start
+  the check" unlocks by itself once the tools this project needs are ready; the rest keep installing, faded on the
+  live map until each is ready. A failed tool shows its reason and Retry; the check does not start without a tool it
+  needs unless the person picks "Start without it", and the report records it. A second start is ready at once, and
+  the vulnerability database refreshes itself daily in the background.
+
 ## 0.0.4 (2026-10-10)
 
 - **The live check map**: while a check runs, from the assistant, the Studio or `eaos start`, the Studio draws

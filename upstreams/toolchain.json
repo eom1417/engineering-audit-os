@@ -4,7 +4,7 @@
     "env": "EAOS_ENGINE_TOOLS",
     "default": "~/.eaos/tools"
   },
-  "description": "Every external tool EAOS runs or validates with, at its pinned version, and how to install it without root. upstreams/registry.yaml keeps the provenance narrative; this file is what eaos tools install and doctor read. A release is accepted only if its sha256 matches the one pinned here, copied from the checksums the project publishes.",
+  "description": "Every external tool EAOS runs or validates with, at its pinned version, and how to install it without root. upstreams/registry.yaml keeps the provenance narrative; this file is what eaos tools install and doctor read. A release is accepted only if its sha256 matches the one pinned here, copied from the checksums the project publishes. `check` names the stage of the check that runs a tool (eaos/pipeline/stages.py): the check waits for those tools, on a project they apply to, before it starts.",
   "tools": [
     {
       "name": "codegraph",
@@ -14,6 +14,7 @@
         "S03",
         "S04"
       ],
+      "check": "engines",
       "license": "Apache-2.0",
       "repository": "https://github.com/codegraph-ai/CodeGraph",
       "version": "0.20.1",
@@ -54,6 +55,7 @@
         "S02",
         "S04"
       ],
+      "check": "engines",
       "license": "Apache-2.0",
       "repository": "https://github.com/enola-labs/enola",
       "version": "0.4.21",
@@ -94,6 +96,7 @@
         "S03",
         "S04"
       ],
+      "check": "engines",
       "license": "Apache-2.0",
       "repository": "https://github.com/LyleMi/Reforge",
       "version": "0.3.0",
@@ -134,6 +137,7 @@
         "S03",
         "S04"
       ],
+      "check": "engines",
       "license": "MIT",
       "repository": "https://github.com/kucherenko/jscpd",
       "version": "5.3.0",
@@ -150,6 +154,7 @@
         "S01"
       ],
       "applies": "all",
+      "check": "engines",
       "license": "Apache-2.0",
       "repository": "https://github.com/anchore/syft",
       "version": "1.52.0",
@@ -192,6 +197,7 @@
         "S10"
       ],
       "applies": "all",
+      "check": "engines",
       "license": "Apache-2.0",
       "repository": "https://github.com/google/osv-scanner",
       "version": "2.6.0",
@@ -233,6 +239,7 @@
         "S03"
       ],
       "applies": "all",
+      "check": "engines",
       "license": "MIT",
       "repository": "https://github.com/boyter/scc",
       "version": "4.1.0",
@@ -275,6 +282,7 @@
         "S15"
       ],
       "applies": "all",
+      "check": "engines",
       "license": "LGPL-2.1",
       "repository": "https://github.com/semgrep/semgrep",
       "version": "1.178.0",
@@ -291,6 +299,7 @@
         "S04",
         "S10"
       ],
+      "check": "engines",
       "license": "Semgrep Rules License v1.0",
       "repository": "https://github.com/semgrep/semgrep-rules",
       "version": "a84ff9cc2453ca91d581380de4b8b3f272f6f4be",
@@ -309,6 +318,7 @@
         "S10"
       ],
       "applies": "all",
+      "check": "engines",
       "license": "Apache-2.0",
       "repository": "https://github.com/aquasecurity/trivy",
       "version": "0.74.0",
@@ -350,6 +360,7 @@
         "S10"
       ],
       "applies": "ci_or_iac",
+      "check": "engines",
       "license": "Apache-2.0",
       "repository": "https://github.com/bridgecrewio/checkov",
       "version": "3.3.19",
@@ -368,6 +379,7 @@
         "S15"
       ],
       "applies": "js",
+      "check": "engines",
       "license": "MIT",
       "repository": "https://github.com/sverweij/dependency-cruiser",
       "version": "18.4.0",
@@ -388,6 +400,7 @@
         "S04"
       ],
       "applies": "sql",
+      "check": "engines",
       "license": "MIT",
       "repository": "https://github.com/sqlfluff/sqlfluff",
       "version": "4.3.0",
@@ -404,6 +417,7 @@
         "S04"
       ],
       "applies": "openapi",
+      "check": "engines",
       "license": "Apache-2.0",
       "repository": "https://github.com/stoplightio/spectral",
       "version": "6.16.3",
@@ -421,6 +435,7 @@
         "S09"
       ],
       "applies": "openapi",
+      "check": "engines",
       "license": "Apache-2.0",
       "repository": "https://github.com/oasdiff/oasdiff",
       "version": "1.32.1",
@@ -462,6 +477,7 @@
         "S04"
       ],
       "applies": "all",
+      "check": "engines",
       "license": "PolyForm-Noncommercial-1.0.0",
       "repository": "https://github.com/abhigyanpatwari/GitNexus",
       "version": "1.6.12",
@@ -484,6 +500,7 @@
         "S04"
       ],
       "applies": "js",
+      "check": "engines",
       "license": "MIT",
       "repository": "https://github.com/ast-grep/ast-grep",
       "version": "0.45.3",
@@ -502,6 +519,7 @@
         "S04"
       ],
       "applies": "all",
+      "check": "engines",
       "license": "MIT",
       "repository": "https://github.com/terryyin/lizard",
       "version": "1.24.1",
@@ -519,6 +537,7 @@
         "S04"
       ],
       "applies": "python",
+      "check": "engines",
       "license": "MIT",
       "repository": "https://github.com/rohaquinlop/complexipy",
       "version": "8.0.1",
@@ -536,6 +555,7 @@
         "S04"
       ],
       "applies": "python",
+      "check": "engines",
       "license": "MIT",
       "repository": "https://github.com/jendrikseipp/vulture",
       "version": "2.16",
@@ -554,6 +574,7 @@
         "S04"
       ],
       "applies": "node_package",
+      "check": "engines",
       "license": "ISC",
       "repository": "https://github.com/webpro-nl/knip",
       "version": "6.40.0",
@@ -571,6 +592,7 @@
         "S03"
       ],
       "applies": "react",
+      "check": "engines",
       "license": "MIT",
       "repository": "https://github.com/reactjs/react-docgen",
       "version": "3.0.7",
@@ -588,6 +610,7 @@
       "stages": [
         "S07"
       ],
+      "check": "quality",
       "license": "MIT",
       "repository": "https://github.com/errata-ai/vale",
       "version": "3.22.0",
@@ -628,6 +651,7 @@
         "S07",
         "S15"
       ],
+      "check": "quality",
       "license": "MIT",
       "repository": "https://github.com/DavidAnson/markdownlint-cli2",
       "version": "0.23.3",
@@ -871,6 +895,7 @@
       "stages": [
         "S07"
       ],
+      "check": "pdf",
       "license": "Apache-2.0",
       "repository": "https://github.com/typst/typst",
       "version": "0.15.1",

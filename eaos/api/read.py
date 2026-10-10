@@ -166,9 +166,10 @@ def progress_routes(ctx):
 
 
 def declaration(flow):
-    """The declared stages of a flow: the check's (eaos/pipeline/stages.py) or a later step's FLOW."""
-    from .. import behavior_lock, live_setup, waves
+    """The declared stages of a flow: the check's (eaos/pipeline/stages.py), a later step's FLOW, or the tools'."""
+    from .. import behavior_lock, live_setup, toolchain, waves
     from ..pipeline.stages import STAGES
+    if flow == toolchain.FLOW: return toolchain.stages(toolchain.ordered(toolchain.registry()['tools']))
     return {'check': STAGES, 'setup': live_setup.FLOW, 'safety': behavior_lock.FLOW, 'fix': waves.FLOW}[flow]
 
 
@@ -198,12 +199,15 @@ def scan_state(report, last_id=None):
 
 
 def progress_state(report, state, last_id=None):
-    """`/api/progress`: the journey's four steps and every flow, the check from `report` and the others from the
-    project's runtime folder; the check alone when no project is known."""
+    """`/api/progress`: the journey's four steps and every flow, the check from `report`, the others from the
+    project's runtime folder, and the install of the tools with the ones the check needs on this project
+    (`tools_needed`); the check and the tools alone when no project is known."""
+    from .. import toolchain
     from .events import now
-    flows = {'check': flow_state(report)}
+    flows = {'check': flow_state(report), toolchain.FLOW: flow_state(toolchain.home(), toolchain.FLOW)}
     if state: flows.update((flow, flow_state(guided.runtime_of(state), flow)) for flow in guided.FLOWS.values() if flow != 'check')
-    return {'journey': guided.journey(state) if state else [], 'flows': flows, 'now': now(), 'feed_last': last_id}
+    needed = toolchain.needed(toolchain.project_files(state['project']) if state else ())
+    return {'journey': guided.journey(state) if state else [], 'flows': flows, 'tools_needed': needed, 'now': now(), 'feed_last': last_id}
 
 
 def report_file(report, path):

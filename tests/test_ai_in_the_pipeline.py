@@ -174,7 +174,8 @@ class Consent(unittest.TestCase):
     def test_the_mcp_audit_keeps_the_persons_answer_and_passes_the_assistant_to_the_check(self):
         with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}):
             agent_tools.audit(str(self.project), use_assistant=True)
-        with mock.patch('eaos.pipeline.check', side_effect=RuntimeError('stop here')) as check, self.assertRaises(RuntimeError):
+        with mock.patch('eaos.pipeline.check', side_effect=RuntimeError('stop here')) as check, self.assertRaises(RuntimeError), \
+                mock.patch.object(guided, 'tools_for_check', return_value={}):
             agent_tools._audit_job(str(self.project), {}, None)
         self.assertIsNotNone(check.call_args.kwargs['provider'])
         with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}):
