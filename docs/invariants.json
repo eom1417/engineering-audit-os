@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "0ce9c3d",
+  "extracted_at_commit": "ad283db",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -235,6 +235,15 @@
       "note": ""
     },
     {
+      "id": "INV-2e722272c0",
+      "file": "eaos/behavior_lock.py",
+      "symbol": "_approvals",
+      "statement": "The project's own modules import from the copy's root, never EAOS's; no pytest setting, conftest or plugin of the project's takes part.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_behavior_lock.py::ApprovalRunTests::test_the_first_pass_records_the_interfaces_the_second_matches_and_a_change_fails",
+      "note": ""
+    },
+    {
       "id": "INV-d53308728f",
       "file": "eaos/behavior_lock.py",
       "symbol": "Screens",
@@ -244,12 +253,21 @@
       "note": ""
     },
     {
-      "id": "INV-21b43af617",
+      "id": "INV-f769fcef60",
       "file": "eaos/behavior_lock.py",
       "symbol": "verify_lock",
-      "statement": "No snapshot is ever updated here.",
+      "statement": "No recording is ever updated here.",
       "kind": "invariant",
       "enforced_by": "tests/test_execute.py::VerifyLockTests::test_verifying_never_updates_a_snapshot",
+      "note": ""
+    },
+    {
+      "id": "INV-b88b9a9998",
+      "file": "eaos/behavior_lock.py",
+      "symbol": "_judged",
+      "statement": "A spec that did not pass on the original (its recording failed, or it never had one) cannot be broken by a change: only a spec that passed there and fails here counts against it.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_execute.py::VerifyLockTests::test_a_screen_that_already_failed_on_the_original_is_not_counted_against_the_change",
       "note": ""
     },
     {

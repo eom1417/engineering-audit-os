@@ -109,6 +109,25 @@ class ToolEnvironment(unittest.TestCase):
             self.assertNotIn('PYTHONPATH', call.kwargs['env'])
 
 
+    def test_a_python_tool_installs_its_companions_and_is_not_ready_without_them(self):
+        # The lock's pytest needs ApprovalTests beside it in the same virtualenv.
+        import tempfile
+        tool = {'name': 'pytest', 'version': '9.1.1', 'binary': 'pytest',
+                'install': {'method': 'pip', 'package': 'pytest', 'with': ['approvaltests==19.1.1']}}
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_ENGINE_TOOLS': tmp}), \
+                mock.patch.object(toolchain, 'uv', return_value=None), mock.patch.object(toolchain, '_link'), \
+                mock.patch('subprocess.run') as run:
+            (Path(tmp) / 'venv/bin').mkdir(parents=True)
+            (Path(tmp) / 'venv/bin/python').touch()
+            toolchain._pip_one(tool)
+            self.assertEqual(run.call_args.args[0][-2:], ['pytest==9.1.1', 'approvaltests==19.1.1'])
+            packages = Path(tmp) / 'venv/lib/python3.12/site-packages'
+            (packages / 'approvaltests-19.0.0.dist-info').mkdir(parents=True)
+            self.assertEqual(toolchain._companions_missing(tool), 'approvaltests 19.1.1 is not installed beside it (found 19.0.0)')
+            (packages / 'approvaltests-19.0.0.dist-info').rename(packages / 'approvaltests-19.1.1.dist-info')
+            self.assertEqual(toolchain._companions_missing(tool), '')
+
+
 class Ranged(http.server.BaseHTTPRequestHandler):
     """Serves `body`, honouring `Range: bytes=N-` as GitHub's release downloads do; records the starts asked for."""
     body, asked = b'', []

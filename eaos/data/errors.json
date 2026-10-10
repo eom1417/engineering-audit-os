@@ -554,6 +554,10 @@
    "ar": "هذه الشاشة تحتاج بيانات تجريبية، فلم تُصوَّر.",
    "en": "This screen needs sample values, so it was not recorded."
   },
+  "approval_failed": {
+   "ar": "هذا الجزء من الكود لم يُحمَّل، أو اختلف بين مرتين على نفس الكود.",
+   "en": "This part of the code did not load, or differed between two runs of the same code."
+  },
   "not_authorised": {
    "ar": "لا توجد موافقة على الإصلاح في هذه النسخة من مشروعك.",
    "en": "There is no permission to fix this version of your project."
