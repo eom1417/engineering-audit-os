@@ -426,11 +426,19 @@ def _approvals(live, lock, output, update):
         'APPROVAL_TESTS_USE_REPORTER': APPROVE if update else COMPARE})
     live.log.append({'argv': argv, 'exit': code, 'tail': (out + err)[-3000:]})
     statuses = approval_statuses(output)
+    if update: statuses = _approved(lock, statuses)
     for done, name in enumerate(names, 1):
         status, reason = statuses.get(name, ('error', 'the spec did not run'))
         progress.step(name, done, len(names), 'ok' if status == 'passed' else 'failed', reason=reason[:200],
                       reason_code='' if status == 'passed' else 'approval_failed')
     return statuses
+
+
+def _approved(lock, statuses):
+    """The recording pass's statuses: ApprovalTests fails a test whose received text it has just approved, so a spec
+    whose interface is now approved passed; one that wrote nothing keeps its failure."""
+    return {name: ('passed', '') if any((lock / name).parent.glob(f'{Path(name).stem}.*.approved.txt')) else status
+            for name, status in statuses.items()}
 
 
 def _run_specs(live, lock, base, recorded, stem, update):

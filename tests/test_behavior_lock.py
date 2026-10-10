@@ -209,11 +209,13 @@ class ApprovalRunTests(Workspace):
         from eaos import behavior_lock
         # The project's own pytest settings and conftest must not take part: either one would break the run.
         files = {'pkg/__init__.py': '', 'pkg/prices.py': 'def total(a, b=1):\n    return a + b\n',
+                 'pkg/broken.py': 'import not_installed_anywhere\n',
                  'conftest.py': 'raise SystemExit("the project conftest was loaded")\n',
                  'pyproject.toml': '[tool.pytest.ini_options]\naddopts = "--no-such-option"\n'}
-        features = [{'name': 'cli:pkg/prices.py', 'surfaces': ['pkg/prices.py'], 'files': ['pkg/prices.py']}]
+        features = [{'name': 'cli:pkg/prices.py', 'surfaces': ['pkg/prices.py'], 'files': ['pkg/prices.py']},
+                    {'name': 'cli:pkg/broken.py', 'surfaces': ['pkg/broken.py'], 'files': ['pkg/broken.py']}]
         out, project, plan = self.report(features, [entry('pkg/prices.py', 'cli', path='pkg/prices.py')], files)
-        [spec] = plan['specs']
+        spec, broken = plan['specs']
         live, recorded = self.live(project), Path(self.tmp) / 'runtime/behavior-lock'
         # EAOS's own packages on its PYTHONPATH must not reach the project's run: this one would shadow its module.
         shadow = Path(self.tmp) / 'eaos-site/pkg'
@@ -223,13 +225,18 @@ class ApprovalRunTests(Workspace):
         try:
             lock = behavior_lock._prepare(live, out)
             with mock.patch.dict(os.environ, {'PYTHONPATH': str(shadow.parent)}):
-                behavior_lock._run_specs(live, lock, None, recorded, 'record', update=True)
+                record = behavior_lock._run_specs(live, lock, None, recorded, 'record', update=True)
+            # Recorded is passed, as Playwright's pass that writes the snapshots; a module that does not import is not.
+            self.assertEqual(record[spec['path']], ('passed', ''), live.log)
+            self.assertEqual(record[broken['path']][0], 'failed')
+            self.assertIn('not_installed_anywhere', record[broken['path']][1])
             behavior_lock._keep(lock, recorded)
             self.assertEqual([p.name for p in (recorded / 'approved').iterdir()],
                              ['test_cli_pkg_prices_py.test_the_public_interface_is_as_it_was.approved.txt'])
             self.assertEqual(next((recorded / 'approved').iterdir()).read_text().strip(), 'pkg.prices.total(a, b=1)')
             verify = behavior_lock._run_specs(live, lock, None, recorded, 'verify', update=False)
-            self.assertEqual(verify, {spec['path']: ('passed', '')}, live.log)
+            self.assertEqual(verify[spec['path']], ('passed', ''), live.log)
+            self.assertEqual(verify[broken['path']][0], 'failed')
             # Another size as well: the bytecode the first runs cached is checked by size and second.
             (live.sandbox.copy / 'pkg/prices.py').write_text('def total(a, b=1, c=0):\n    return a + b + c\n')
             lock = behavior_lock._prepare(live, out, recorded)
