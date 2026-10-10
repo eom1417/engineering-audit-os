@@ -49,9 +49,9 @@ def _report(name, target, workdir, exclude, formats):
                 'findings': [], 'coverage': {}, 'version': None, 'pinned_version': ADAPTERS[name].PINNED}
 
 
-def _run_all(selected, target, workdir, exclude, formats, step):
-    """Each selected engine's report, in order, each one a step from waiting to its own status."""
-    reports = {}
+def _run_all(selected, target, workdir, exclude, formats):
+    """Each selected engine's report, in order, each one a step of the running stage from waiting to its own status."""
+    step, reports = progress.step, {}
     for name in selected: step(name, 0, len(selected), 'waiting')
     for done, name in enumerate(selected):
         step(name, done, len(selected), 'running')
@@ -63,18 +63,17 @@ def _run_all(selected, target, workdir, exclude, formats, step):
     return reports
 
 
-def analyze(target, workdir, exclude=(), only=None, formats=None, step=None):
+def analyze(target, workdir, exclude=(), only=None, formats=None):
     """Run every requested engine and return one manifest. The target is proven unchanged afterwards.
 
-    Each engine of the registry is reported as a step of the running stage (eaos/progress/context.py), or to
-    `step(name, done, total, status, seconds, reason)` when given: it hears each engine of the registry start and end
-    with its own status (observed, not applicable, unavailable, error): the live map shows each tool as it runs."""
+    Each engine of the registry is reported as a step of the running stage (eaos/progress/context.py), from waiting
+    to its own status (observed, not applicable, unavailable, error): the live map shows each tool as it runs."""
     target, workdir = Path(target).resolve(), Path(workdir).resolve()
     workdir.mkdir(parents=True, exist_ok=True)
     selected = ordered(ADAPTERS if not only else [name for name in ADAPTERS if name in set(only)])
     unknown = sorted(set(only or ()) - set(ADAPTERS))
     before = state_digest(target)
-    reports = _run_all(selected, target, workdir, exclude, formats, step or progress.step)
+    reports = _run_all(selected, target, workdir, exclude, formats)
     after = state_digest(target)
     manifest = {
         'contract_version': 1,

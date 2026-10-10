@@ -43,14 +43,14 @@ def ordered(selected):
     return names
 
 
-def collect_external(target, out, source, only=None, step=None):
+def collect_external(target, out, source, only=None):
     """Run the pinned external engines over the same snapshot and persist their fact set.
 
     Registry-referenced dead-code candidates are tagged ``value.referenced_by_registry``, then every
     dead-code candidate is adjudicated against EAOS's own detector (facts/deadcode): the engine's fields
     stay as written, and value.adjudication says whether EAOS asserts it.
     """
-    result = external.run(target, source, out=out, only=only, step=step)
+    result = external.run(target, source, out=out, only=only)
     from ..correlate import filter_dead_code_references as _filter_dead_code_references
     facts, _dropped = _filter_dead_code_references(result['facts'], source)
     # One verdict per dead-code candidate, whichever engine raised it: EAOS's own detector and the same

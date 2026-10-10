@@ -26,13 +26,13 @@ def source_formats():
     return sorted(set(LANGUAGE_BY_SUFFIX.values()))
 
 
-def run(target, source, out=None, only=None, step=None):
+def run(target, source, out=None, only=None):
     from ..engines import analyze, missing, not_applicable, observed
     workdir = str(out) if out else None
     if workdir is None:
         return {'facts': [], 'input_sha': digest(b'external:no-workdir'), 'summary': {}, 'available': False,
                 'reason': 'external engines need a report directory to write their raw artifacts into'}
-    manifest = analyze(target, workdir + '/engines', exclude=source.exclude, only=only, formats=source_formats(), step=step)
+    manifest = analyze(target, workdir + '/engines', exclude=source.exclude, only=only, formats=source_formats())
     # What an engine produced for the report itself (Syft's SBOM) is copied in under its declared name.
     import shutil
     for name, report in manifest['engines'].items():
