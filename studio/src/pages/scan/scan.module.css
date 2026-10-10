@@ -69,6 +69,7 @@
 .stateDot { fill: var(--status-neutral); }
 .nodeTitle { font-size: 13px; font-weight: 600; fill: var(--text-primary); }
 .nodeSub { font-size: 11.5px; fill: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.aiMark { font-size: 10.5px; font-weight: 700; fill: var(--accent-solid); }
 .sel .box { stroke: var(--accent-solid); stroke-width: 2.6; }
 
 .st_waiting .box { fill: var(--bg-surface); stroke: var(--border-default); }

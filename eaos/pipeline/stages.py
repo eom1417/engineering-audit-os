@@ -31,6 +31,8 @@ class Stage:
     # stage somebody did not want to pay for.
     absent_when: str = ''
     description: str = ''
+    # Done by the person's assistant (docs/AI-IN-THE-PIPELINE.md): the live map marks it, and without one the rules stand.
+    ai: bool = False
 
 
 STAGES = (
@@ -60,8 +62,8 @@ STAGES = (
     Stage('probe', produces=('probes.json',), requires=('claims',),
           description='Settle every claim whose truth can be decided mechanically'),
     Stage('semantic', produces=('SEMANTIC.md',), requires=('claims',), necessity=OPTIONAL,
-          absent_when='no model provider was configured',
-          description='Model interpretation over the facts; every output stays a hypothesis'),
+          absent_when='no assistant was installed or allowed, or its answer could not be used',
+          description='Model interpretation over the facts; every output stays a hypothesis', ai=True),
     Stage('sustainability', produces=('SUSTAINABILITY.md', 'sustainability.json'), requires=('claims',),
           description='The six sustainability indicators, measured or declared unmeasured'),
     Stage('transform', produces=('transform-plan.md', 'transform-plan.json'), requires=('sustainability',),
@@ -85,6 +87,10 @@ STAGES = (
           description='Executive view of the measured indicators and their limits'),
     Stage('compose', produces=('PRODUCT-REPORT.md', 'BLOCKERS.md', 'START-HERE.md', 'human/index.html'), requires=('plan', 'target', 'executive'),
           description='Human artifacts, each inside its declared line budget'),
+    Stage('ideal', produces=('ideal/plan.json',), requires=('compose',), necessity=OPTIONAL,
+          absent_when='no assistant was installed or allowed, or its plan could not be used',
+          description="The assistant plans the ideal of every view on top of the rules' target, then reviews it; "
+                      'every element cites its evidence', ai=True),
     Stage('bundles', produces=('bundles/manifest.json', 'CANONICAL-HOMES.md', 'canonical-homes.json',
                               'STAGES.md', 'WAVES.md', 'KPI.md', 'gap-matrix.json', 'DATA-MODEL.md',
                               'DEPLOYMENT.md', 'OBSERVABILITY.md', 'SECURITY-SURFACE.md',

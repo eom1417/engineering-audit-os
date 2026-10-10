@@ -95,14 +95,34 @@ def probe(context):
     return run_all(context.target, context.out)
 
 
+NO_ASSISTANT = 'no assistant was installed or allowed for this check, so the rules stand alone'
+
+
 def semantic(context):
     if not context.provider:
-        raise SkipStage('no model provider was configured, so no interpretation was attempted', code='no_provider')
+        raise SkipStage(NO_ASSISTANT, code='no_provider')
     from ..semantic import run
     from ..views import refresh
-    result = run(context.target, context.out, context.provider, language=context.language)
+    try: result = run(context.target, context.out, context.provider, language=context.language)
+    except Exception as problem:                       # the assistant never decides the fate of the check
+        raise SkipStage(f'the assistant\'s reading could not be used ({type(problem).__name__}: {problem})'[:300],
+                        code='ai_failed') from None
     refresh(context.out, context.language)
-    return {'hypotheses': result.get('claims')}
+    return {'hypotheses': result['claims'], 'questions': result['questions'], 'calls': result['calls']}
+
+
+def ideal(context):
+    """The ideal planner node (eaos/studio/nodes/ideal_planner.py) right after the check: plan, critique and the
+    evidence check, held to the node's time and cost budget; without an assistant or on a failure the rules' target stands."""
+    if not context.provider:
+        raise SkipStage(NO_ASSISTANT, code='no_provider')
+    from ..studio.nodes import run
+    record = run(context.out, names=['ideal_planner'], project=str(context.target), lang=context.language)['ideal_planner']
+    if record['method'] != 'model':
+        raise SkipStage(record['why'], code='ai_failed')
+    decision = record['decisions'][0]['detail']
+    return {'elements': decision['elements'], 'dropped': decision['dropped'], 'calls': 0 if record['cached'] else len(record['passes']),
+            'assistant': record['assistant'], 'model': record['model']}
 
 
 def load(context):
@@ -307,4 +327,4 @@ def bundles(context):
     return build(context.out, language=context.language)
 
 
-RUNNERS.update(target=target, executive=executive, bundles=bundles)
+RUNNERS.update(target=target, executive=executive, bundles=bundles, ideal=ideal)

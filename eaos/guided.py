@@ -152,18 +152,31 @@ def box(lang, happened, where=None, commands=(), status='ok', note=None, stream=
     say('\n'.join(lines), stream)
 
 
+# Whether the check may use the person's assistant (docs/AI-IN-THE-PIPELINE.md), asked once.
+AI_QUESTION = {'ar': 'أبغى أستعين بمساعدك الذكي ({name}) في الفحص: يقرأ الحقائق ويفسّرها، ويخطّط الصورة المثالية لمشروعك. '
+                     'كل ما يقوله يبقى فرضية مربوطة بدليلها، وبدونه يكمل الفحص بالقواعد. أوافق؟',
+               'en': 'May I use your AI assistant ({name}) in the check: it reads the facts and interprets them, and plans '
+                     'the ideal of your project. Everything it says stays a hypothesis tied to its evidence, and without it '
+                     'the check goes on with the rules. OK?'}
+
+
 def progress_printer(lang):
     def show(done, total, stage):
         say(f"   [{done + 1}/{total}] {plain.stage(stage, lang)}…")
     return show
 
 
+def answered(state, qid):
+    """The answer kept for question `qid` (None: not answered yet)."""
+    return next((q['answer'] for q in state.get('questions') or [] if q['id'] == qid and q.get('answer') is not None), None)
+
+
 def ask(state, qid, text, yes=False, kind='yes_no'):
     """A yes/no question: answered by --yes, by a person at a terminal, or returned to whoever runs us."""
     question = {'id': qid, 'kind': kind, 'text': text}
     asked = state.setdefault('questions', [])
-    earlier = next((q for q in asked if q['id'] == qid and q.get('answer') is not None), None)
-    if earlier: return earlier['answer']
+    earlier = answered(state, qid)
+    if earlier is not None: return earlier
     if yes: answer = True
     elif sys.stdin.isatty():
         reply = input(f"❓ {text} [{'نعم/لا' if state.get('lang') == 'ar' else 'yes/no'}] ").strip().lower()
@@ -437,15 +450,33 @@ def scan_done(state):
         and (report_of(state) / 'START-HERE.md').is_file()
 
 
+def check_provider(state):
+    """The provider of the person's assistant for the check's AI stages (docs/AI-IN-THE-PIPELINE.md), only once they
+    said yes to `use_assistant`; None otherwise, and the rules stand alone."""
+    from .runtime.assistants import provider
+    return provider()[1] if answered(state, 'use_assistant') else None
+
+
+def agree_to_assistant(state, yes):
+    """Asks once, when an assistant is installed, whether the check may use it; a no is kept and the check goes on."""
+    from .runtime.assistants import available
+    found = available()
+    if not found: return
+    words = AI_QUESTION['ar' if state['lang'] == 'ar' else 'en'].format(name=found[0])
+    try: ask(state, 'use_assistant', words, yes)
+    except Declined: pass
+
+
 def scan(state, args):
     """Step 1: the whole audit, with progress, then START-HERE.md in plain words."""
     lang = state['lang']
     from .pipeline import check
     out = report_of(state)
     read = {'scanned_commit': tip(state) or None, **branches.scan_provenance(state, source(state))}
+    agree_to_assistant(state, args.yes)
     say(('أفحص مشروعك الآن. يأخذ هذا عادة من 5 إلى 30 دقيقة حسب حجمه، ولن يتغير فيه شيء.' if lang == 'ar' else
          'Checking your project now. This usually takes 5 to 30 minutes depending on its size; nothing in it changes.'))
-    options = dict(language=lang, engines=[], site=True, progress=progress_printer(lang))
+    options = dict(language=lang, engines=[], site=True, progress=progress_printer(lang), provider=check_provider(state))
     manifest = check(str(source(state)), out, **options)
     if not (out / 'START-HERE.md').is_file(): start_here(out, lang, Path(state['project']).name)   # compose did not run: still one page
     state['scanned'] = datetime.now(timezone.utc).isoformat(timespec='seconds')

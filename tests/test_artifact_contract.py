@@ -166,7 +166,8 @@ class SingleWriterTests(unittest.TestCase):
                 (source / (name + '.py')).write_text(code, encoding='utf-8')
             self.assertEqual(self._writers(contract.RECORD, source),
                              {'plan.json': {(source / 'root.py').as_posix()},
-                              'behavior-lock/plan.json': {(source / 'behavior.py').as_posix()}})
+                              'behavior-lock/plan.json': {(source / 'behavior.py').as_posix()},
+                              'ideal/plan.json': {(source / 'ideal.py').as_posix(), (source / 'joined.py').as_posix()}})
 
     def test_duplicate_root_writers_remain_visible_without_permission(self):
         with tempfile.TemporaryDirectory() as directory:

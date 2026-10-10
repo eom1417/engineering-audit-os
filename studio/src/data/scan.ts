@@ -31,6 +31,8 @@ export interface ScanStage {
   necessity: 'required' | 'optional'
   description: string
   absent_when: string
+  /** done by the person's assistant (eaos/pipeline/stages.py `ai`) */
+  ai?: boolean
   requested: boolean
   state: StageState
   started_at: string | null

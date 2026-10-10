@@ -89,6 +89,9 @@
     },
     "absent_when": {
      "type": "string"
+    },
+    "ai": {
+     "type": "boolean"
     }
    }
   },

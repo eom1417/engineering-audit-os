@@ -153,6 +153,8 @@ ARTIFACTS = (
              absent_when='no test command was given'),
     Artifact('semantic.json', 'semantic', RECORD, 'Raw model output', required=False,
              absent_when='no model provider was configured'),
+    Artifact('ideal/plan.json', 'ideal', RECORD, "The ideal planned by the person's assistant on top of the rules, every element with its evidence",
+             required=False, absent_when='no assistant was installed or allowed, or its plan could not be used'),
     Artifact('MEASUREMENTS.md', 'measure', DOCUMENT, 'Which files are largest, most complex, most changed and most depended on',
              26, 80, record='measurements.json'),
     Artifact('measurements.json', 'measure', RECORD, 'Every analysed file with its measurements, each field naming its source'),

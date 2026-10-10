@@ -170,13 +170,15 @@ def build():
     def ask(question: str, project: str | None = None) -> str:
         return tools.ask(question, project)
 
-    @server.tool(annotations=working, description='Check the whole project (26 stages: files, features, tools, tests, structure, '
+    @server.tool(annotations=working, description='Check the whole project (27 stages: files, features, tools, tests, structure, '
                  'security, load, plan). Returns a job to follow with `wait`; when the project was already checked at this commit, '
                  'returns the overview at once. fresh=true checks again from the start. A started check answers with `watch`, '
-                 'its live map in the EAOS Studio, opened in the person\'s browser. ' + project_doc)
+                 'its live map in the EAOS Studio, opened in the person\'s browser. use_assistant: before their first check, ask the '
+                 'person once whether EAOS may use their AI assistant in it (it interprets the facts and plans the ideal; '
+                 'everything it says stays a hypothesis tied to evidence) and pass their answer; it is kept. ' + project_doc)
     @_answer
-    def audit(project: str | None = None, fresh: bool = False) -> str:
-        return tools.audit(project, fresh)
+    def audit(project: str | None = None, fresh: bool = False, use_assistant: bool | None = None) -> str:
+        return tools.audit(project, fresh, use_assistant)
 
     @server.tool(annotations=reading, description='Follow a job (audit, run_setup, run_try, safety_net, fix_start, fix_edit, fix_finish): '
                  'waits up to `seconds` (default 50) and returns its progress, or its result once done.')

@@ -264,10 +264,14 @@ def _fresh_report(state):
 
 # ---------------------------------------------------------------- diagnosis
 
-def audit(project=None, fresh=False):
+def audit(project=None, fresh=False, use_assistant=None):
     state = project_state(project)
     asking = _branch(state)
     if asking: return asking
+    if use_assistant is not None:
+        state['questions'] = [q for q in state.get('questions') or [] if q['id'] != 'use_assistant'] + [
+            {'id': 'use_assistant', 'kind': 'yes_no', 'answer': bool(use_assistant), 'via': 'assistant', 'at': _now()}]
+        guided.save(state)
     head = _head(state)
     if guided.scan_done(state) and not fresh and _current(state, head):
         return {'status': 'done', 'already_checked': True, **overview(project)}
@@ -279,7 +283,8 @@ def _audit_job(project, arguments, progress):
     from .start_here import start_here
     state = guided.load(project)
     out = guided.report_of(state)
-    options = dict(language=state.get('lang') or 'en', engines=[], site=True, progress=progress)
+    options = dict(language=state.get('lang') or 'en', engines=[], site=True, progress=progress,
+                   provider=guided.check_provider(state))
     source = guided.source(state)
     # What the scan reads, taken before it reads it: a commit made during a long scan is not in this report.
     read = {'scanned_commit': _head(state), **branches.scan_provenance(state, source)}

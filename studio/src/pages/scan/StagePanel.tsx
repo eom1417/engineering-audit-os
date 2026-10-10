@@ -171,6 +171,7 @@ function Facts({ stage, state, flow, skew, last, unit, onSelect }: FactsProps) {
       [w('necessity'), <>{w(optional ? 'optional' : 'required')}{optional && stage.absent_when
         ? <span className={css.muted}> · {w('absentWhen')}: <Txt>{w.absent(stage.name, flow, stage.absent_when)}</Txt></span> : null}</>],
       [w('time'), <Time stage={stage} state={state} skew={skew} last={last} unit={unit} />],
+      ...(stage.ai ? [[w('ai'), w('aiNote')] as [string, string]] : []),
     ]} />
   )
 }

@@ -289,6 +289,9 @@
      "fresh": {
       "type": "boolean"
      },
+     "use_assistant": {
+      "type": "boolean"
+     },
      "project": {
       "type": [
        "string",

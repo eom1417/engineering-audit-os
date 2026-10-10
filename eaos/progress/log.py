@@ -116,7 +116,7 @@ def stage_rows(stages):
     """The declaration as data, in its order: what a reader needs to draw the map and explain each stage."""
     return [{'name': s.name, 'requires': list(s.requires), 'produces': list(getattr(s, 'produces', ()) or ()),
              'necessity': getattr(s, 'necessity', 'required'), 'description': getattr(s, 'description', ''),
-             'absent_when': getattr(s, 'absent_when', '')} for s in stages]
+             'absent_when': getattr(s, 'absent_when', ''), 'ai': getattr(s, 'ai', False)} for s in stages]
 
 
 def previous_seconds(out):

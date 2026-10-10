@@ -437,8 +437,12 @@
    "en": "Your project declares no architecture rules (eaos.policy.json)."
   },
   "no_provider": {
-   "ar": "لم يُضبط مساعد ذكي، فلم أطلب تفسيرًا.",
-   "en": "No AI assistant is set up, so no interpretation was asked for."
+   "ar": "ما فيه مساعد ذكي مثبّت أو ما سمحت به لهذا الفحص، فبقيت القواعد وحدها.",
+   "en": "No AI assistant was installed or allowed for this check, so the rules stand alone."
+  },
+  "ai_failed": {
+   "ar": "مساعدك الذكي ما أعطى جوابًا صالحًا هالمرة (تأخر أو تعطل)، فبقيت القواعد وحدها والفحص كمل.",
+   "en": "Your AI assistant gave no usable answer this time (too slow or failed), so the rules stand alone and the check went on."
   },
   "no_features": {
    "ar": "لم أجد في برنامجك ميزات أكتب لها اختبارات تحفظ سلوكها.",

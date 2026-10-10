@@ -110,7 +110,8 @@ function StageNode({ stage, state, at, flow, selected, fresh, skew, onSelect }: 
       {state === 'running' && <rect className={css.halo} x={-7} y={-7} width={NODE_W + 14} height={NODE_H + 14} rx={16} data-glow="" data-at={stage.started_at ?? ''} />}
       <rect className={css.box} width={NODE_W} height={NODE_H} rx={11} />
       <circle className={css.stateDot} cx={dot} cy={20} r={4.5} />
-      <text className={css.nodeTitle} x={x} y={24} direction={dir}>{fit(w.stageTitle(stage.name, flow), 17)}</text>
+      <text className={css.nodeTitle} x={x} y={24} direction={dir}>{fit(w.stageTitle(stage.name, flow), stage.ai ? 13 : 17)}</text>
+      {stage.ai && <text className={css.aiMark} x={NODE_W - end} y={24} direction={dir} textAnchor="end" data-ai=""><title>{w('aiNote')}</title>{w('ai')}</text>}
       <text className={css.nodeSub} x={end} y={44} direction={dir}><Line2 stage={stage} state={state} skew={skew} /></text>
     </g>
   )

@@ -367,9 +367,10 @@ def bundle(report, project=None, lang='en'):
 
 
 def scan_key(report):
-    """What a plan was made for: the records of the check that the rules' target is read from. A new check changes it."""
+    """What a plan was made for: the records of the check that the rules' target is read from. A check that changes them
+    changes it; the run's manifest is left out, since the check plans its ideal before that manifest is written."""
     h = hashlib.sha256()
-    for name in ('target-architecture.json', 'plan.json', 'run-manifest.json'):
+    for name in ('target-architecture.json', 'plan.json'):
         try: h.update(name.encode() + (Path(report) / name).read_bytes())
         except OSError: h.update(name.encode() + b'-')
     return h.hexdigest()[:16]

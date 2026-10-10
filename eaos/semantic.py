@@ -224,7 +224,7 @@ def run(target, out, provider, max_rounds=MAX_ROUNDS, language='ar'):
                                   'provider': provider.identity(), 'digest_components': len(digest['components']), 'source_omissions': sources.omissions,
                                   'digest_omissions': digest['omissions'], 'source_ranges': digest.get('source_ranges', [])})
     render(out, added, questions, provider, language)
-    return {'target': str(target), 'out': str(out), 'claims': len(added), 'questions': len(questions),
+    return {'target': str(target), 'out': str(out), 'claims': len(added), 'questions': len(questions), 'calls': attempt + 1,
             'confidence': 'HYPOTHESIS for every semantic claim; only a probe can raise it',
             'limits': 'Interpretation over facts. Source ranges are budgeted, revision-checked and redacted; runtime behavior remains unverified.'}
 
