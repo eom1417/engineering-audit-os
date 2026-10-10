@@ -130,14 +130,21 @@ async function mapFacts(page) {
   })
 }
 
-/** The next light that leaves a stage (one runs for 700 ms after each stage ends ok), twice, 150 ms apart: it must
- * have moved. Waits up to 60 s for a stage to end (the external tools' stage can run that long). */
+/** A light that leaves a stage (one runs for 700 ms after each stage ends ok), read twice 100 ms apart: it must have
+ * moved. A light caught at its very end is read again on the next one, for up to 3 minutes (the external tools' stage
+ * can run that long without a stage ending). */
 async function lightMoves(page) {
   const at = () => page.evaluate(() => { const c = document.querySelector('[data-light]'); if (!c) return null; const r = c.getBoundingClientRect(); return [Math.round(r.x), Math.round(r.y)] })
-  await page.waitForSelector('[data-light]', { timeout: 60000 }).catch(() => undefined)
-  const a = await at()
-  await page.waitForTimeout(150)
-  const b = await at()
+  const end = Date.now() + 180000
+  let a = null
+  let b = null
+  while (!(a && b) && Date.now() < end) {
+    await page.waitForSelector('[data-light]', { timeout: end - Date.now() }).catch(() => undefined)
+    a = await at()
+    await page.waitForTimeout(100)
+    b = await at()
+    if (!(a && b)) await page.waitForTimeout(800)            // that light has ended; wait for the next
+  }
   return { a, b, moved: !!a && !!b && (a[0] !== b[0] || a[1] !== b[1]) }
 }
 
