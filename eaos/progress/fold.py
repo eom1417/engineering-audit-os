@@ -45,43 +45,53 @@ def _stage(declared, requested):
             'steps': [], 'programs': [], 'activity_note': '', 'resumed': False}
 
 
+def _run_started(state, row):
+    requested = row.get('requested') or []
+    state.clear()
+    state.update(empty(), flow=row.get('flow') or 'check', run=row.get('run'), state=RUNNING, started_at=row.get('at'),
+                 requested=list(requested), previous=row.get('previous') or {}, previous_steps=row.get('previous_steps') or {},
+                 alive_every=row.get('alive_every'), pid=row.get('pid'), host=row.get('host'))
+    state['stages'] = [_stage(s, set(requested)) for s in row.get('stages') or [] if isinstance(s, dict) and s.get('name')]
+
+
+def _stage_started(stage, row):
+    stage.update(state=RUNNING, started_at=row.get('at'))
+
+
+def _stage_step(stage, row):
+    found = next((s for s in stage['steps'] if s['name'] == row.get('step')), None)
+    if found is None:
+        found = {'name': row.get('step'), 'kind': row.get('kind') or 'item', 'status': WAITING, 'done': 0, 'total': 0,
+                 'seconds': None, 'reason': '', 'reason_code': ''}
+        stage['steps'].append(found)
+    found.update(status=row.get('status') or RUNNING, done=row.get('done', 0), total=row.get('total', 0))
+    if 'seconds' in row: found['seconds'] = row['seconds']
+    found.update({key: row[key] for key in ('reason', 'reason_code', 'artifact') if row.get(key)})
+
+
+def _stage_activity(stage, row):
+    stage['programs'] = [dict(p) for p in row.get('programs') or [] if isinstance(p, dict)]
+    if row.get('reason'): stage['activity_note'] = row['reason']
+
+
+def _stage_ended(stage, row):
+    stage.update(state=row.get('status'), ended_at=row.get('at'), seconds=row.get('seconds'), reason=row.get('reason') or '',
+                 reason_code=row.get('reason_code') or '', artifacts=list(row.get('artifacts') or []),
+                 detail=row.get('detail') or {}, resumed=bool(row.get('resumed')), programs=[])
+
+
+STAGE_EVENTS = {'stage.started': _stage_started, 'stage.step': _stage_step, 'stage.activity': _stage_activity,
+                'stage.ended': _stage_ended}
+
+
 def apply(state, row):
     """One event onto the folded state (in place); the state it returns. Unknown events and stages are ignored, and a
     line of another run than the one folded is left out."""
     event = row.get('event')
-    if event == 'run.started':
-        state.clear()
-        state.update(empty())
-        requested = set(row.get('requested') or [])
-        state.update(flow=row.get('flow') or 'check', run=row.get('run'), state=RUNNING, started_at=row.get('at'),
-                     requested=list(row.get('requested') or []), previous=row.get('previous') or {},
-                     previous_steps=row.get('previous_steps') or {}, alive_every=row.get('alive_every'),
-                     pid=row.get('pid'), host=row.get('host'))
-        state['stages'] = [_stage(s, requested) for s in row.get('stages') or [] if isinstance(s, dict) and s.get('name')]
-    elif state.get('run') is None or row.get('run') != state.get('run'):
-        return state
-    stage = next((s for s in state['stages'] if s['name'] == row.get('stage')), None) if row.get('stage') else None
-    if event == 'stage.started' and stage:
-        stage.update(state=RUNNING, started_at=row.get('at'))
-    elif event == 'stage.step' and stage:
-        steps = stage['steps']
-        found = next((s for s in steps if s['name'] == row.get('step')), None)
-        if found is None:
-            found = {'name': row.get('step'), 'kind': row.get('kind') or 'item', 'status': WAITING, 'done': 0, 'total': 0,
-                     'seconds': None, 'reason': '', 'reason_code': ''}
-            steps.append(found)
-        found.update(status=row.get('status') or RUNNING, done=row.get('done', 0), total=row.get('total', 0))
-        if 'seconds' in row: found['seconds'] = row['seconds']
-        if row.get('reason'): found['reason'] = row['reason']
-        if row.get('reason_code'): found['reason_code'] = row['reason_code']
-        if row.get('artifact'): found['artifact'] = row['artifact']
-    elif event == 'stage.activity' and stage:
-        stage['programs'] = [dict(p) for p in row.get('programs') or [] if isinstance(p, dict)]
-        if row.get('reason'): stage['activity_note'] = row['reason']
-    elif event == 'stage.ended' and stage:
-        stage.update(state=row.get('status'), ended_at=row.get('at'), seconds=row.get('seconds'), reason=row.get('reason') or '',
-                     reason_code=row.get('reason_code') or '', artifacts=list(row.get('artifacts') or []),
-                     detail=row.get('detail') or {}, resumed=bool(row.get('resumed')), programs=[])
+    if event == 'run.started': _run_started(state, row)
+    elif state.get('run') is None or row.get('run') != state.get('run'): return state
+    stage = next((s for s in state['stages'] if s['name'] == row.get('stage')), None) if event in STAGE_EVENTS else None
+    if stage: STAGE_EVENTS[event](stage, row)
     elif event == 'run.ended':
         state.update(state='done', status=row.get('status'), reason=row.get('reason') or '', ended_at=row.get('at'),
                      seconds=row.get('seconds'), counts=row.get('counts') or {})

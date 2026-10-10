@@ -50,6 +50,17 @@ def _counted(stage, elapsed):
     return None
 
 
+def _left(stage, before, scale, now):
+    """Seconds a waiting or running stage still costs, or None when the last run gives nothing to go by."""
+    known = isinstance(before, (int, float))
+    if stage.get('state') == 'waiting': return before * scale if known else None
+    began = _at(stage.get('started_at'))
+    elapsed = max(now - began, 0.0) if began is not None else 0.0
+    counted = _counted(stage, elapsed)
+    if counted is not None: return counted
+    return max(before * scale - elapsed, 0.0) if known else None
+
+
 def estimate(state, now):
     """{'low', 'high', 'basis', 'pace', 'unknown'} for a running flow (`now`: seconds since the epoch), or
     {'basis': 'first_run'} when there is no last run to learn from, or None when nothing is running."""
@@ -59,17 +70,10 @@ def estimate(state, now):
     scale = pace(state)
     left, unknown = 0.0, []
     for stage in state.get('stages') or []:
-        before = previous.get(stage['name'])
-        if stage.get('state') == 'waiting' and stage.get('requested', True):
-            if isinstance(before, (int, float)): left += before * scale
-            else: unknown.append(stage['name'])
-        elif stage.get('state') == 'running':
-            began = _at(stage.get('started_at'))
-            elapsed = max(now - began, 0.0) if began is not None else 0.0
-            counted = _counted(stage, elapsed)
-            if counted is not None: left += counted
-            elif isinstance(before, (int, float)): left += max(before * scale - elapsed, 0.0)
-            else: unknown.append(stage['name'])
+        if stage.get('state') != 'running' and not (stage.get('state') == 'waiting' and stage.get('requested', True)): continue
+        cost = _left(stage, previous.get(stage['name']), scale, now)
+        if cost is None: unknown.append(stage['name'])
+        else: left += cost
     band = max(left * BAND, MIN_BAND)
     return {'low': int(max(left - band, 0)), 'high': int(left + band + 0.5), 'basis': 'previous_run',
             'pace': round(scale, 2), 'unknown': unknown}

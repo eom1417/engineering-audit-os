@@ -41,6 +41,14 @@ def ordered(names):
     return done
 
 
+def _report(name, target, workdir, exclude, formats):
+    try:
+        return ADAPTERS[name].analyze(target, workdir, exclude, formats).as_dict()
+    except Exception as problem:                           # an engine must never take the run down with it
+        return {'engine': name, 'status': 'error', 'reason': f'{type(problem).__name__}: {problem}'[:300],
+                'findings': [], 'coverage': {}, 'version': None, 'pinned_version': ADAPTERS[name].PINNED}
+
+
 def analyze(target, workdir, exclude=(), only=None, formats=None, step=None):
     """Run every requested engine and return one manifest. The target is proven unchanged afterwards.
 
@@ -58,11 +66,7 @@ def analyze(target, workdir, exclude=(), only=None, formats=None, step=None):
     for done, name in enumerate(selected):
         step(name, done, len(selected), 'running')
         began = time.monotonic()
-        try:
-            reports[name] = ADAPTERS[name].analyze(target, workdir, exclude, formats).as_dict()
-        except Exception as problem:                       # an engine must never take the run down with it
-            reports[name] = {'engine': name, 'status': 'error', 'reason': f'{type(problem).__name__}: {problem}'[:300],
-                             'findings': [], 'coverage': {}, 'version': None, 'pinned_version': ADAPTERS[name].PINNED}
+        reports[name] = _report(name, target, workdir, exclude, formats)
         status = reports[name].get('status') or 'error'
         step(name, done + 1, len(selected), status, time.monotonic() - began, reason=reports[name].get('reason') or '',
              reason_code='' if status == 'observed' else f'engine_{status}')

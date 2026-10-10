@@ -319,21 +319,24 @@ class ProgressLog:
             self._flush()
             stage = self.current
             due = bool(stage and self.sampler and not self.sampler_said and self.clock() - self.sampled_at >= SAMPLE_EVERY)
-        if due:
-            found = self.sampler.sample()               # outside the lock: ps takes a moment
-            with self.lock:
-                if self.current == stage and not self.finished:
-                    self.sampled_at = self.clock()
-                    if found is None:
-                        self.sampler_said = True
-                        self.emit('stage.activity', stage=stage, programs=[], reason=self.sampler.reason)
-                    elif [(p['pid'], p['name']) for p in found] != [(p['pid'], p['name']) for p in self.programs]:
-                        self.programs = found
-                        self.emit('stage.activity', stage=stage, programs=found)
+        if due: self._look(stage)
         with self.lock:
             if self.finished or self.broken: return False
             if self.clock() - self.wrote_at >= self.alive_every: self.emit('run.alive')
         return True
+
+    def _look(self, stage):
+        """The running programs of `stage`, written when they changed (or once why they cannot be seen)."""
+        found = self.sampler.sample()                   # outside the lock: ps takes a moment
+        with self.lock:
+            if self.current != stage or self.finished: return
+            self.sampled_at = self.clock()
+            if found is None:
+                self.sampler_said = True
+                self.emit('stage.activity', stage=stage, programs=[], reason=self.sampler.reason)
+            elif [(p['pid'], p['name']) for p in found] != [(p['pid'], p['name']) for p in self.programs]:
+                self.programs = found
+                self.emit('stage.activity', stage=stage, programs=found)
 
     def _beat(self):
         while not self.stop.wait(TICK):

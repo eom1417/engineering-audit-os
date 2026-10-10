@@ -30,7 +30,6 @@ CASES = (
     'glow_and_moving_light_mid_run', 'reduced_motion_stops_all_motion', 'banner_on_other_pages_while_running',
     'record_kept_after_the_run',
 )
-MOMENTS = ('early', 'middle', 'done')
 VIEWS = [(width, lang, theme) for width in (390, 768, 1440) for lang in ('ar', 'en') for theme in ('light', 'dark')]
 
 
