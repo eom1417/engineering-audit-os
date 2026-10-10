@@ -42,16 +42,12 @@ def read(path):
     return json.loads(path.read_text(encoding='utf-8')) if path.is_file() else {}
 
 
-def studio(base, token):
-    """The Studio's /api/progress at `base`, or {} when it does not answer."""
+def check_of(base, token):
+    """The check's flow as the Studio at `base` serves it (/api/progress), or {} when it does not answer."""
     request = urllib.request.Request(f'{base}/api/progress', headers={'X-EAOS-Token': token})
     try:
-        with urllib.request.urlopen(request, timeout=10) as answer: return json.loads(answer.read())
+        with urllib.request.urlopen(request, timeout=10) as answer: return json.loads(answer.read())['flows']['check']
     except OSError: return {}
-
-
-def check_of(base, token):
-    return (studio(base, token).get('flows') or {}).get('check') or {}
 
 
 def start(project):
@@ -206,10 +202,10 @@ def resume_after_kill(evidence):
     record = read(evidence / '74/kill.json')
     look = (read(evidence / '74/look/browser.json').get('checks') or {}).get('look') or {}
     after = record.get('after') or {}
-    panel = look.get('panel', '')
+    panel = look.get('panel', '')                   # the page in Arabic: "kept as it was from an earlier run"
     return _item({'interrupted': record.get('shown') == 'interrupted', 'within_30s': (record.get('seconds_to_shown') or 99) <= 30,
                   'every_finished_stage_kept': record.get('ok_at_kill') and set(record['ok_at_kill']) <= set(after.get('kept', [])),
-                  'resumed_run_complete': after.get('status') == 'COMPLETE', 'page_says_kept': 'Kept as it was' in panel or 'أُخذت كما هي' in panel},
+                  'resumed_run_complete': after.get('status') == 'COMPLETE', 'page_says_kept': 'أُخذت كما هي' in panel},
                  **{k: record.get(k) for k in ('stage', 'shown', 'seconds_to_shown', 'ok_at_kill')}, after=after,
                  page={k: look.get(k) for k in ('screenshot', 'run_state')})
 
@@ -224,7 +220,7 @@ def later_flows(evidence):
     cards = (flows.get('fix') or {}).get('change', [])
     return _item({'setup_ran': (flows.get('setup') or {}).get('status'), 'screens_are_steps': screens,
                   'screen_pictures_on_the_page': safety.get('shots', 0) >= 1, 'fix_card_by_card': len(cards) >= 2,
-                  'fix_map_on_the_page': fix.get('flow') == 'fix'}, project=flows.get('project'), flows=flows, safety_page=safety, fix_page=fix)
+                  'fix_map_on_the_page': fix.get('flow') == 'fix'}, flows=flows, safety_page=safety, fix_page=fix)
 
 
 def flow_steps(runtime):
