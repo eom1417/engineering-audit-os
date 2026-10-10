@@ -48,10 +48,10 @@
       "note": ""
     },
     {
-      "id": "INV-ea16b60af3",
+      "id": "INV-791f540b6b",
       "file": "eaos/agent_tools.py",
       "symbol": "_watch",
-      "statement": "open_studio on the live map (eaos/api/launch.py), in the browser unless the Studio itself asked (EAOS_STUDIO_RUN); None when it cannot start: the work goes on without its map.",
+      "statement": "open_studio on the live map, in the browser unless the Studio itself asked (EAOS_STUDIO_RUN); None when it cannot start: the work goes on without its map.",
       "kind": "invariant",
       "enforced_by": [
         "tests/test_progress_server.py::Watch::test_the_work_starts_without_its_map_when_the_studio_cannot",

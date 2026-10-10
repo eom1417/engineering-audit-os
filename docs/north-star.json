@@ -5062,8 +5062,8 @@
         "S09",
         "S15"
       ],
-      "weight": 2,
-      "weight_why": "من تجربة المالك (2026-09-29): بعد أول دفعة بقي الفرع، ولم يتحدث التقرير، وسُجّلت ثلاث بطاقات منجزة والباقي كما هو؛ والعمل الطويل يتجاوز حد استخدام المساعد. بدون هذا لا يثق الشخص بأي رقم. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.) (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)",
+      "weight": 1,
+      "weight_why": "من تجربة المالك (2026-09-29): بعد أول دفعة بقي الفرع، ولم يتحدث التقرير، وسُجّلت ثلاث بطاقات منجزة والباقي كما هو؛ والعمل الطويل يتجاوز حد استخدام المساعد. بدون هذا لا يثق الشخص بأي رقم. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.) (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.) (1 من نقاطه إلى NS46: الذكاء في خطوات الفحص، قرار المالك 2026-10-10.)",
       "does": [
         "سجل للبطاقات بمفتاح ثابت يقرأ المنجز من git",
         "الدمج يحذف الفرع ويحدّث التقرير والتقدم في الخطوة نفسها",
@@ -6004,9 +6004,9 @@
         "S07",
         "S15"
       ],
-      "weight": 10,
+      "weight": 11,
       "goal": "F11 وF13 وF14 وF15 وF16 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويُشغَّل EAOS كله من الاستوديو، ويحكم المالك.",
-      "weight_why": "قرار المالك (2026-10-08): تُكمل الواجهة قبل متابعة المحرك، فيظهر كل تقدم لاحق في صفحة أو رقم. نقطة من كل من NS7 وNS13 وNS14 وNS25 وNS26 وNS29. ونقطة من NS8 لخريطة خط المعالجة (قرار المالك 2026-10-08، D9). ونقطة من NS30 للمثالي المخطَّط بنموذج (قرار المالك 2026-10-08، D10). ونقطة من NS9 لعُقد الذكاء في خط EAOS (قرار المالك 2026-10-08، D11). ونقطة أخرى من NS30 لإعادة تخطيط كل هدف بُني وخارطة EAOS نفسها (قرار المالك 2026-10-08، الجزء الثاني).",
+      "weight_why": "قرار المالك (2026-10-08): تُكمل الواجهة قبل متابعة المحرك، فيظهر كل تقدم لاحق في صفحة أو رقم. نقطة من كل من NS7 وNS13 وNS14 وNS25 وNS26 وNS29. ونقطة من NS8 لخريطة خط المعالجة (قرار المالك 2026-10-08، D9). ونقطة من NS30 للمثالي المخطَّط بنموذج (قرار المالك 2026-10-08، D10). ونقطة من NS9 لعُقد الذكاء في خط EAOS (قرار المالك 2026-10-08، D11). ونقطة أخرى من NS30 لإعادة تخطيط كل هدف بُني وخارطة EAOS نفسها (قرار المالك 2026-10-08، الجزء الثاني). ونقطة من NS28 للذكاء في خطوات الفحص نفسها (قرار المالك 2026-10-10، NS46.T21).",
       "does": [
         "عقد البيانات v2 بأقسام إضافية وبيانات تجريبية بحجم شركة",
         "حالات تغطية بدل «قريبًا»، تُعدّ وتهبط",
@@ -6952,6 +6952,50 @@
           ],
           "acceptance": "python tools/acceptance.py test live_scan_map",
           "rollback": "Revert the live scan map commits; run-progress.jsonl is an additive file older readers ignore."
+        },
+        {
+          "needs": "model_provider",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T21",
+          "title": "AI in the check: the person's assistant reads, plans, triages and orders, the rules stand alone without it",
+          "why": "Owner request 2026-10-10: use AI in the planning, not only the ideal picture, in every step where the outcome is better with it (docs/AI-IN-THE-PIPELINE.md). The check asks once to use the person's assistant; then semantic reads the facts, ideal plans the target right after the check, triage judges every card on its evidence and order sets the plan's steps, each citing ids, each a hypothesis, each falling back to the rules with its reason.",
+          "moves": [
+            "F15"
+          ],
+          "depends_on": [
+            "NS46.T20"
+          ],
+          "size": "M",
+          "files": [
+            "docs/AI-IN-THE-PIPELINE.md",
+            "eaos/guided.py",
+            "eaos/agent_tools.py",
+            "eaos/mcp_server.py",
+            "eaos/pipeline/runners.py",
+            "eaos/pipeline/stages.py",
+            "eaos/semantic.py",
+            "eaos/studio/ideal.py",
+            "eaos/studio/nodes/core.py",
+            "eaos/studio/nodes/ideal_planner.py",
+            "studio/src/pages/scan/",
+            "tests/test_ai_in_the_pipeline.py",
+            "acceptance/test_ai_in_the_pipeline.py"
+          ],
+          "steps": [
+            "t1: consent asked once (use_assistant, --yes answers it, MCP audit passes it); semantic and the new ideal stage run with the provider; any AI error is unavailable/ai_failed and the check goes on; the live map marks AI stages.",
+            "t2: the triage stage (card_triage) and the order stage (plan_orderer) on the shared node runner; calls recorded per node.",
+            "Real runs on RendaPerene with Claude Code (t1: semantic 8 claims, ideal 60 elements; t2: triage 28/16/1, order 17 steps) recorded in the workers reports; the acceptance needs one real check running all four."
+          ],
+          "done_when": [
+            "Acceptance ai_in_the_pipeline.AiInThePipeline passes on $EAOS_MEASURE/ai-in-the-pipeline/run-manifest.json: one real `eaos start --yes` check with the assistant, COMPLETE, with semantic, triage, ideal and order ok, each with its own calls."
+          ],
+          "pitfalls": [
+            "A fake provider never closes it.",
+            "The check never fails because of AI: a failure is a stage unavailable with its reason."
+          ],
+          "acceptance": "python tools/acceptance.py test ai_in_the_pipeline",
+          "rollback": "Revert the AI-in-the-check commits; the use_assistant answer and the new stages are additive."
         }
       ]
     },

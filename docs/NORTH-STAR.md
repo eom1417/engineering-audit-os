@@ -4,13 +4,13 @@
 
 ## أين نحن
 
-### التقدم: **33.1 من 100 نقطة**
+### التقدم: **32.2 من 100 نقطة**
 
-`████████░░░░░░░░░░░░░░░░░` 33.1%
+`████████░░░░░░░░░░░░░░░░░` 32.2%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 21 من 45 | 21 · NS27 البناء من خطة | 66.9 | 63 | 2026-09-30 · `0fbc461` |
+| 21 من 45 | 21 · NS27 البناء من خطة | 67.8 | 64 | 2026-09-30 · `0fbc461` |
 
 **كيف يُحسب:**
 
@@ -75,7 +75,7 @@ flowchart TB
         direction LR
         NS26["<b>17 · NS26</b><br/>خط الأساس الحي<br/>Live baseline<br/>⚖ 1 · ▰ 100%"]:::done
         NS9["<b>18 · NS9</b><br/>إثبات التنفيذ<br/>Proven execution<br/>⚖ 1 · ▰ 100%"]:::done
-        NS28["<b>19 · NS28</b><br/>الاستمرارية والتقدم الصادق<br/>Continuity and true progress<br/>⚖ 2 · ▰ 100%"]:::done
+        NS28["<b>19 · NS28</b><br/>الاستمرارية والتقدم الصادق<br/>Continuity and true progress<br/>⚖ 1 · ▰ 100%"]:::done
         NS29["<b>20 · NS29</b><br/>قائمة /eaos<br/>The /eaos menu<br/>⚖ 1 · ▰ 100%"]:::done
         NS26 -->|"✔ E5≥0.8 · +2 اختبار قبول"| NS9
         NS9 -->|"✔ E1=1 · X4=1 · X5=1 · … · +7 اختبار قبول"| NS28
@@ -89,11 +89,11 @@ flowchart TB
         direction LR
         NS30["<b>22 · NS30</b><br/>الثقة أولًا<br/>Trust first<br/>⚖ 2 · ▰ 100%"]:::done
         NS36["<b>23 · NS36</b><br/>أساس الاستوديو<br/>Studio foundation<br/>⚖ 3 · ▰ 42%"]:::owner
-        NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 10 · ▰ 6%"]:::owner
+        NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 11 · ▰ 5%"]:::owner
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 اختبار قبول"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 اختبار قبول"| NS46
-        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +20 اختبار قبول"| NS38
+        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +21 اختبار قبول"| NS38
     end
     subgraph R6G_2["R6G · EAOS v2: تحليل صادق، صورة مثالية، عمليات مرتبة، واستوديو حي (2/5)"]
         direction LR
@@ -195,12 +195,12 @@ flowchart TB
 | 16 | [**NS25** عدّة التشغيل والتسليم: ملفات بصيغ الأدوات تعمل كما هي](#step-16) | R5 | 1 | 100% | 1 | 100% | ✅ مكتملة | K1=1 · +4 اختبار قبول |
 | 17 | [**NS26** خط الأساس الحي: السلوك والأرقام قبل أي تغيير](#step-17) | R6 | 1 | 100% | 1 | 100% | ✅ مكتملة | E5≥0.8 · +2 اختبار قبول |
 | 18 | [**NS9** إثبات التنفيذ](#step-18) | R6 | 1 | 100% | 1 | 100% | ✅ مكتملة | E1=1 · X4=1 · X5=1 · X2=1 · X1=1 · X6≥0.9 · … · +7 اختبار قبول |
-| 19 | [**NS28** الاستمرارية والتقدم الصادق](#step-19) | R6 | 2 | 100% | 2 | 100% | ✅ مكتملة | L1=1 · L2=1 · L3=1 · L4=1 · L5=1 · L6=1 · +5 اختبار قبول |
+| 19 | [**NS28** الاستمرارية والتقدم الصادق](#step-19) | R6 | 1 | 100% | 1 | 100% | ✅ مكتملة | L1=1 · L2=1 · L3=1 · L4=1 · L5=1 · L6=1 · +5 اختبار قبول |
 | 20 | [**NS29** قائمة /eaos: ما يقدمه EAOS الآن، بخيار واحد](#step-20) | R6 | 1 | 100% | 1 | 100% | ✅ مكتملة | X11=1 · X12=1 · X8=1 · +2 اختبار قبول |
 | 21 | [**NS27** البناء من خطة](#step-21) | R6 | 6 | 93% | 5.6 | 88% | 🟡 قيد العمل | B1=1 · B2=1 · X8=1 · B3=1 · B4=1 · X1=1 · … · +1 اختبار قبول |
 | 22 | [**NS30** الثقة أولًا: كل بطاقة على ملفها، وكل رقم صادق](#step-22) | R6G | 2 | 100% | 2 | 100% | ✅ مكتملة | S4=1 · X13=1 · +1 اختبار قبول |
 | 23 | [**NS36** أساس الاستوديو: القرارات والعقد والنموذج](#step-23) | R6G | 3 | 42% | 1.26 | 50% | 🔴 تحتاج مدخلًا منك | F8=1 · F10=1 · +4 اختبار قبول |
-| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 10 | 6% | 0.55 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +20 اختبار قبول |
+| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 11 | 5% | 0.58 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +21 اختبار قبول |
 | 25 | [**NS38** تحليل صادق: الدقة أولًا](#step-25) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | A1=1 · W2=1 · A2=1 · A3=1 |
 | 26 | [**NS31** أرقام ثابتة وضجيج أقل](#step-26) | R6G | 3 | 26% | 0.8 | 24% | 🔴 تحتاج مدخلًا منك | L7=1 · L8=1 · S5≥0.9 · S1≥0.9 |
 | 27 | [**NS39** خريطة النظام والسجل والأحداث](#step-27) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | N1=1 · N2=1 · +1 اختبار قبول |
@@ -222,7 +222,7 @@ flowchart TB
 | 43 | [**NS24** الرصد: كل سطح حرج مرئي](#step-43) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E10≥0.9 · +1 اختبار قبول |
 | 44 | [**NS16** الجاهزية للإنتاج: كل بند بأمر](#step-44) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E11=1 · +1 اختبار قبول |
 | 45 | [**NS10** الإثبات المستقل](#step-45) | R8 | 5 | 18% | 0.9 | 15% | 🔴 تحتاج مدخلًا منك | V4=1 · V3=1 |
-| | **المجموع** | | **100** | | **33.1** | | | |
+| | **المجموع** | | **100** | | **32.2** | | | |
 
 ## الخطوات بالتفصيل
 
@@ -976,11 +976,11 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 2 | 100% | 2 من 2 | 100% | R6 | S08, S09, S15 |
+| 1 | 100% | 1 من 1 | 100% | R6 | S08, S09, S15 |
 
 **الهدف:** L1 إلى L6 عند أهدافها: التقدم يُحسب مما في فرع الشخص، والدمج يحذف الفرع ويحدّث التقرير، ومساعد يكمل عمل آخر، والعمل يتبع الفرع الذي يختاره الشخص، والتقرير يُري البطاقات والبنية الحالية والمستهدفة والتقدم.
 
-**لماذا هذا الوزن:** من تجربة المالك (2026-09-29): بعد أول دفعة بقي الفرع، ولم يتحدث التقرير، وسُجّلت ثلاث بطاقات منجزة والباقي كما هو؛ والعمل الطويل يتجاوز حد استخدام المساعد. بدون هذا لا يثق الشخص بأي رقم. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.) (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.)
+**لماذا هذا الوزن:** من تجربة المالك (2026-09-29): بعد أول دفعة بقي الفرع، ولم يتحدث التقرير، وسُجّلت ثلاث بطاقات منجزة والباقي كما هو؛ والعمل الطويل يتجاوز حد استخدام المساعد. بدون هذا لا يثق الشخص بأي رقم. (نقطة منه إلى NS29: قائمة /eaos، 2026-10-03.) (1 من نقاطه إلى NS30-NS35: خطة تقرير الميدان، 2026-10-07.) (1 من نقاطه إلى NS38-NS45: EAOS v2، 2026-10-08.) (1 من نقاطه إلى NS46: الذكاء في خطوات الفحص، قرار المالك 2026-10-10.)
 
 **ماذا تفعل:**
 
@@ -1202,11 +1202,11 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 10 | 6% | 0.55 من 10 | 12% | R6G | S07, S15 |
+| 11 | 5% | 0.58 من 11 | 12% | R6G | S07, S15 |
 
 **الهدف:** F11 وF13 وF14 وF15 وF16 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويُشغَّل EAOS كله من الاستوديو، ويحكم المالك.
 
-**لماذا هذا الوزن:** قرار المالك (2026-10-08): تُكمل الواجهة قبل متابعة المحرك، فيظهر كل تقدم لاحق في صفحة أو رقم. نقطة من كل من NS7 وNS13 وNS14 وNS25 وNS26 وNS29. ونقطة من NS8 لخريطة خط المعالجة (قرار المالك 2026-10-08، D9). ونقطة من NS30 للمثالي المخطَّط بنموذج (قرار المالك 2026-10-08، D10). ونقطة من NS9 لعُقد الذكاء في خط EAOS (قرار المالك 2026-10-08، D11). ونقطة أخرى من NS30 لإعادة تخطيط كل هدف بُني وخارطة EAOS نفسها (قرار المالك 2026-10-08، الجزء الثاني).
+**لماذا هذا الوزن:** قرار المالك (2026-10-08): تُكمل الواجهة قبل متابعة المحرك، فيظهر كل تقدم لاحق في صفحة أو رقم. نقطة من كل من NS7 وNS13 وNS14 وNS25 وNS26 وNS29. ونقطة من NS8 لخريطة خط المعالجة (قرار المالك 2026-10-08، D9). ونقطة من NS30 للمثالي المخطَّط بنموذج (قرار المالك 2026-10-08، D10). ونقطة من NS9 لعُقد الذكاء في خط EAOS (قرار المالك 2026-10-08، D11). ونقطة أخرى من NS30 لإعادة تخطيط كل هدف بُني وخارطة EAOS نفسها (قرار المالك 2026-10-08، الجزء الثاني). ونقطة من NS28 للذكاء في خطوات الفحص نفسها (قرار المالك 2026-10-10، NS46.T21).
 
 **ماذا تفعل:**
 
@@ -1225,7 +1225,7 @@ flowchart TB
 
 **المخرج:** `studio/coverage.json وأقسام v2` · `docs/studio-routes.json` · `tools/studio_synthetic.py` · `docs/STUDIO-REVIEW.md` · `docs/studio-actions.json` · `eaos/studio/actions/` · `tools/studio_trial.py` · `studio/pipeline.json` · `facts/pipeline.json` · `evaluations/pipelines/` · `tools/pipeline_truth.py` · `studio/ideal.json` · `eaos/studio/ideal.py` · `$EAOS_MEASURE/ideal/<project>/run.json` · `eaos/studio/nodes/` · `studio/nodes.json` · `<report>/nodes/runs.jsonl` · `$EAOS_MEASURE/nodes/<project>/card_triage.json` · `$EAOS_MEASURE/replan/<project>/run.json` · `docs/roadmap-proposals.json` · `docs/roadmap-proposals.md` · `tools/replan_trial.py` · `tools/roadmap_review.py`
 
-**تحتاج منك قبل أن تكتمل:** مراجع بشري من خارج المشروع
+**تحتاج منك قبل أن تكتمل:** مراجع بشري من خارج المشروع، مزوّد نموذج (مفتاح API)
 
 **بوابة الانتقال إلى الخطوة التالية** (تتحقق كلها، وإلا لا انتقال):
 
@@ -1259,6 +1259,7 @@ flowchart TB
 | اختبار قبول | `test scan_freshness.ScanFreshness` | — | ⬜ |
 | اختبار قبول | `test ns46_studio.SelfReview` | — | ⬜ |
 | اختبار قبول | `test live_scan_map` | — | ⬜ |
+| اختبار قبول | `test ai_in_the_pipeline` | — | ⬜ |
 
 **المهام:**
 
@@ -1284,6 +1285,7 @@ flowchart TB
 | [NS46.T19](#ns46t19) Live scan freshness, local time everywhere and direct governance of every Studio state | M | ⬜ | 0% | `python tools/acceptance.py test scan_freshness.ScanFreshness` |
 | [NS46.T8](#ns46t8) المراجعة الذاتية وحكم المالك | M | ⬜ | 13% | `python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F15 --min 1.0 && python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/north_star.py measure --only F16 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview` |
 | [NS46.T20](#ns46t20) Live scan map: EAOS's own stages drawn live while a check runs | M | ⬜ | 0% | `python tools/acceptance.py test live_scan_map` |
+| [NS46.T21](#ns46t21) AI in the check: the person's assistant reads, plans, triages and orders, the rules stand alone without it | M | ⬜ | 0% | `python tools/acceptance.py test ai_in_the_pipeline` |
 
 <a id="step-25"></a>
 
@@ -2127,14 +2129,14 @@ flowchart TB
         direction LR
         S05["<b>S05 · تثبيت السلوك الحالي</b><br/>📄 behavior-lock/plan.json · nfr/ …<br/>▰ 33%"]:::current
         S06["<b>S06 · الصورة المثالية</b><br/>📄 TARGET-STATE.md · target-architecture.json …<br/>▰ 45%"]:::current
-        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 28%"]:::current
+        S07["<b>S07 · الفجوة وخطة التحول</b><br/>📄 GAP-AND-STRATEGY.md · EXECUTION-PLAN.md …<br/>▰ 27%"]:::current
         S05 -->|"✔ أ (ساكن): E4 = 1 · ب (معزول): E5 ≥ 0.8 وخط أساس k6"| S06
         S06 -->|"✔ T1–T7 عند أهدافها، وموافقة بشرية مسجلة"| S07
     end
     subgraph P3["التنفيذ: بيئة معزولة بتفويض المالك (1/2)"]
         direction LR
-        S08["<b>S08 · التنفيذ</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 64%"]:::current
-        S09["<b>S09 · التحقق الوظيفي</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 29%"]:::current
+        S08["<b>S08 · التنفيذ</b><br/>📄 التزامات في نسخة منفصلة · سجل التنفيذ<br/>▰ 62%"]:::current
+        S09["<b>S09 · التحقق الوظيفي</b><br/>📄 VERIFICATION.md · behavior-lock/results-after.json …<br/>▰ 23%"]:::current
         S10["<b>S10 · الأمن</b><br/>📄 runtime/security.json<br/>▰ 0%"]:::next
         S11["<b>S11 · الحمل</b><br/>📄 runtime/performance.json (قبل وبعد) · PERFORMANCE.md<br/>▰ 0%"]:::next
         S08 -->|"✔ لكل مهمة: قبولها يمر، وشبكة الأمان تمر، ولا ادعاء حرج جديد. E1 = 1"| S09
@@ -2151,7 +2153,7 @@ flowchart TB
     end
     subgraph P5["الحوكمة والتسليم"]
         direction LR
-        S15["<b>S15 · الحوكمة المستمرة والتسليم</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 24%"]:::current
+        S15["<b>S15 · الحوكمة المستمرة والتسليم</b><br/>📄 handover/ · handover/validation.json …<br/>▰ 20%"]:::current
         LOOP["↺ إعادة التدقيق بعد كل تغيير: يعود إلى S01"]:::next
         S15 -->|"✔ K1 = 1، وخط الأساس مثبّت، وبوابة الدَّين الجديد في CI"| LOOP
     end
@@ -6616,6 +6618,39 @@ python tools/acceptance.py test live_scan_map
 ```
 
 **التراجع:** Revert the live scan map commits; run-progress.jsonl is an additive file older readers ignore.
+
+<a id="ns46t21"></a>
+
+#### NS46.T21 — AI in the check: the person's assistant reads, plans, triages and orders, the rules stand alone without it ⬜
+
+**لماذا:** Owner request 2026-10-10: use AI in the planning, not only the ideal picture, in every step where the outcome is better with it (docs/AI-IN-THE-PIPELINE.md). The check asks once to use the person's assistant; then semantic reads the facts, ideal plans the target right after the check, triage judges every card on its evidence and order sets the plan's steps, each citing ids, each a hypothesis, each falling back to the rules with its reason.
+
+**يحرّك:** F15 · **ينفّذه:** يحتاج مزوّد نموذج · **يعتمد على:** NS46.T20 · **الحجم:** M
+
+**الملفات:** `docs/AI-IN-THE-PIPELINE.md` · `eaos/guided.py` · `eaos/agent_tools.py` · `eaos/mcp_server.py` · `eaos/pipeline/runners.py` · `eaos/pipeline/stages.py` · `eaos/semantic.py` · `eaos/studio/ideal.py` · `eaos/studio/nodes/core.py` · `eaos/studio/nodes/ideal_planner.py` · `studio/src/pages/scan/` · `tests/test_ai_in_the_pipeline.py` · `acceptance/test_ai_in_the_pipeline.py`
+
+**الخطوات:**
+
+1. t1: consent asked once (use_assistant, --yes answers it, MCP audit passes it); semantic and the new ideal stage run with the provider; any AI error is unavailable/ai_failed and the check goes on; the live map marks AI stages.
+2. t2: the triage stage (card_triage) and the order stage (plan_orderer) on the shared node runner; calls recorded per node.
+3. Real runs on RendaPerene with Claude Code (t1: semantic 8 claims, ideal 60 elements; t2: triage 28/16/1, order 17 steps) recorded in the workers reports; the acceptance needs one real check running all four.
+
+**تنتهي حين:**
+
+- [ ] Acceptance ai_in_the_pipeline.AiInThePipeline passes on $EAOS_MEASURE/ai-in-the-pipeline/run-manifest.json: one real `eaos start --yes` check with the assistant, COMPLETE, with semantic, triage, ideal and order ok, each with its own calls.
+
+**فخاخ معروفة:**
+
+- A fake provider never closes it.
+- The check never fails because of AI: a failure is a stage unavailable with its reason.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test ai_in_the_pipeline
+```
+
+**التراجع:** Revert the AI-in-the-check commits; the use_assistant answer and the new stages are additive.
 
 ### الخطوة 25 · NS38 — تحليل صادق: الدقة أولًا ⬜ التالية
 

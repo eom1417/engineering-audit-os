@@ -141,9 +141,8 @@ class Trial:
 
     # ------------------------------------------------------------------ the live Studio
     def serve(self):
-        from eaos.api import launch
-        from eaos.api.server import Keys, bind, create_app, serve
-        state, report = launch.prepare(str(self.project))
+        from eaos.api.server import Keys, bind, create_app, prepare, serve
+        state, report = prepare(str(self.project))
         sock = bind(0)
         self.app = create_app(report, project=state['project'], keys=Keys(port=sock.getsockname()[1]))
         self.ctx = self.app.state.ctx

@@ -195,7 +195,7 @@ class Watch(Checked):
             patcher = mock.patch.object(target, value, side_effect=self.fake(value))
             patcher.start()
             self.addCleanup(patcher.stop)
-        self.studio = mock.patch.object(launch, 'open_studio', return_value=self.opened)
+        self.studio = mock.patch.object(agent_tools, 'open_studio', return_value=self.opened)
         self.open = self.studio.start()
         self.addCleanup(self.studio.stop)
 
@@ -296,7 +296,7 @@ class StudioProcess(unittest.TestCase):
             (project / 'eaos').mkdir()
             (project / 'eaos' / '__init__.py').write_text(f'open({str(marker)!r}, "w").write("the checked code")\nraise SystemExit(3)\n')
             (project / 'eaos' / '__main__.py').write_text(f'open({str(marker)!r}, "w").write("the checked code")\n')
-            opened = launch.open_studio(str(project), show=False, route='/scan')
+            opened = agent_tools.open_studio(str(project), show=False, route='/scan')
             record = launch.running(agent_tools.project_state(str(project)))
             try:
                 self.assertEqual((opened.get('started'), opened.get('error')), (True, None), opened)

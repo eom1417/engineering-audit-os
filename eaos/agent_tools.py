@@ -12,15 +12,19 @@ import json
 import os
 import re
 import subprocess
+import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 from . import branches, guided, handover, jobs, plain
+from .api import launch
 
 # A person's answer comes at least this long after the question: sooner, nobody was asked (EAOS_ANSWER_SECONDS: tests).
 ANSWER_SECONDS = int(os.environ.get('EAOS_ANSWER_SECONDS') or 30)
 WAIT = 50                   # seconds a tool call waits for its job before answering with the job to follow
 PAGE = 30
+STUDIO_STARTUP = 15.0       # seconds open_studio waits for the server it started to answer
 
 
 # ---------------------------------------------------------------- the project and its state
@@ -134,12 +138,49 @@ def _start(kind, state, arguments, seconds=WAIT, runner='eaos.agent_tools', watc
 
 
 def _watch(state):
-    """open_studio on the live map (eaos/api/launch.py), in the browser unless the Studio itself asked (EAOS_STUDIO_RUN);
+    """open_studio on the live map, in the browser unless the Studio itself asked (EAOS_STUDIO_RUN);
     None when it cannot start: the work goes on without its map."""
-    from .api import launch
-    try: opened = launch.open_studio(state['project'], show=not os.environ.get('EAOS_STUDIO_RUN'), route='/scan')
+    try: opened = open_studio(state['project'], show=not os.environ.get('EAOS_STUDIO_RUN'), route='/scan')
     except Exception: return None
     return opened if 'studio' in opened else None
+
+
+def open_studio(project=None, show=True, route=''):
+    """`open_studio`: the live Studio's address (on `route`, when given), starting its server in the background when it
+    is not running. The server runs from the EAOS workspace folder with PYTHONSAFEPATH=1, so neither the folder it
+    starts in nor the project (which may be EAOS's own repository) can put another `eaos` before this one. It rebuilds
+    no data: a server it starts does (run_foreground), and a running one's is kept by every step that changes it, so a
+    check asked for starts at once."""
+    state = project_state(project)
+    found = launch.running(state)
+    started = False
+    if not found:
+        logs = Path(state['workspace']) / 'logs'
+        logs.mkdir(parents=True, exist_ok=True)
+        with open(logs / 'studio-server.log', 'ab') as log:
+            # The same EAOS as this one, wherever the project folder is
+            here = str(Path(__file__).resolve().parents[1])
+            env = {**os.environ, 'PYTHONSAFEPATH': '1',
+                   'PYTHONPATH': os.pathsep.join([here, *filter(None, [os.environ.get('PYTHONPATH')])])}
+            subprocess.Popen([sys.executable, '-m', 'eaos', 'studio', state['project'], '--no-open'], cwd=state['workspace'], env=env,
+                             stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True, close_fds=True)
+        deadline = time.monotonic() + STUDIO_STARTUP
+        while time.monotonic() < deadline and not found:
+            time.sleep(0.25)
+            found = launch.running(state)
+        started = bool(found)
+        if not found:
+            return {'error': 'the Studio server did not start in time', 'log': str(logs / 'studio-server.log'),
+                    'what_now': 'Tell the person the live Studio could not start, and offer open_report (the report page) instead.'}
+    url = launch.url_of(found, route)
+    opened = launch._open(url, show)
+    return {'studio': url, 'opened_in_browser': opened, 'started': started, 'live': True,
+            'checked': guided.scan_done(state),
+            'what_now': ('Tell the person the Studio is open in their browser' if opened else
+                         'Give the person this address to open in their browser on this computer (it works only here)')
+                        + '; it updates by itself after every check, batch, merge and decision. '
+                        + ('' if guided.scan_done(state) else 'The project is not checked yet: offer audit first. ')
+                        + 'Do not paste the address anywhere else: it holds the key of this session.'}
 
 
 def wait(job, seconds=WAIT):

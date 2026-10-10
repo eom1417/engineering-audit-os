@@ -431,8 +431,9 @@ class Commands(unittest.TestCase):
         self.assertEqual(self.records(), [], 'a stopped server leaves no record behind')
 
     def test_open_studio_starts_it_in_the_background_and_reuses_it(self):
+        from eaos import agent_tools
         from eaos.api import launch
-        first = launch.open_studio(str(self.project), show=False)
+        first = agent_tools.open_studio(str(self.project), show=False)
         [record] = self.records()
         pid = json.loads(record.read_text(encoding='utf-8'))['pid']
         def stop():
@@ -442,12 +443,12 @@ class Commands(unittest.TestCase):
         self.assertTrue(first['started'] and first['live'])
         self.assertFalse(first['checked'])
         self.assertTrue(first['studio'].startswith('http://127.0.0.1:'))
-        second = launch.open_studio(str(self.project), show=False)
+        second = agent_tools.open_studio(str(self.project), show=False)
         self.assertEqual((second['studio'], second['started']), (first['studio'], False))
         stop()
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline and launch._alive(pid): time.sleep(0.1)
-        self.assertIsNone(launch.running(launch.prepare(str(self.project))[0]), 'a dead server is not reused')
+        self.assertIsNone(launch.running(server.prepare(str(self.project))[0]), 'a dead server is not reused')
 
     def test_open_studio_is_an_mcp_tool_and_eaos_studio_a_grouped_command(self):
         import asyncio

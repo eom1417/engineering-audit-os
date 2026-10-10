@@ -6,8 +6,8 @@
     events.py  the live feed: the project's event log when there is one, else the Studio manifest's digests
     server.py  the app: the Studio's assets, the read API, the stream, the mount point of the action API, and
                `eaos studio` (run_foreground)
-    launch.py  the `open_studio` tool and the server's record: start or reuse the server of a project, open its
-               address, without importing the server
+    launch.py  the server's record: find, reuse and open the running server of a project, without importing
+               the server (agent_tools.open_studio starts one)
 
 Starlette, Uvicorn and sse-starlette are adopted (docs/adoption/ns37-t2-live-server.md); they come with `mcp`.
 """

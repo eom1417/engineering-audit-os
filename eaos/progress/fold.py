@@ -10,22 +10,8 @@ run-manifest.json.
 import json
 from pathlib import Path
 
-from .log import path_for
-
 WAITING, RUNNING = 'waiting', 'running'
 ENDED = ('ok', 'skipped', 'unavailable', 'failed', 'not_reached')
-
-
-def read(folder, flow='check'):
-    """The rows of a flow's progress file, in order; [] when there is none. A line still being written is left."""
-    try: raw = path_for(folder, flow).read_bytes()
-    except OSError: return []
-    rows = []
-    for line in raw[:raw.rfind(b'\n') + 1].decode('utf-8', 'replace').splitlines():
-        try: row = json.loads(line)
-        except ValueError: continue
-        if isinstance(row, dict): rows.append(row)
-    return rows
 
 
 def empty():

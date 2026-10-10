@@ -240,8 +240,7 @@ def build():
                  'It runs on this computer only (127.0.0.1) and is reused while it runs. Offer it with open_report.')
     @_answer
     def open_studio(show: bool = True, project: str | None = None) -> str:
-        from .api.launch import open_studio as launch
-        return launch(project, show)
+        return tools.open_studio(project, show)
 
     @server.tool(annotations=working, description='Run the app in an isolated copy (a temporary local database, no secrets, nothing '
                  'reaches the internet), found from its files. Needs the person\'s agreement once: without it, returns the question to '

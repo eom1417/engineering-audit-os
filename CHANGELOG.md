@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.0.4 (2026-10-10)
+
+- **The live check map**: while a check runs, from the assistant, the Studio or `eaos start`, the Studio draws
+  EAOS's own stages live: the running stage glows, a light moves to the next ones, and each stage says what it does,
+  how long it took, its steps, what it produced and why it was skipped. The setup, safety and fix flows have their
+  own maps, a check stopped midway resumes from the stages it finished, and recorded screens show as pictures.
+- **AI in the check**: EAOS asks once whether to use the person's assistant (Claude Code or Codex; `--yes` answers
+  yes). With a yes, the assistant reads the facts (`semantic`), plans the ideal picture right after the check
+  (`ideal`), judges every card on its evidence (`triage`) and orders the plan's steps (`order`). Everything it says
+  cites its evidence and stays a hypothesis; anything without evidence is dropped. Without an assistant, or when it
+  fails, the rules decide alone, the stage says why, and the check still finishes. AI stages carry an "AI" mark on
+  the live map.
+
 ## 0.0.3 (2026-10-08)
 
 - **Six code-understanding engines** run inside EAOS, each at a pinned version with its licence recorded:

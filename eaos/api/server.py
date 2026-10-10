@@ -44,6 +44,7 @@ from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Route
 
 from .. import guided
+from ..agent_tools import project_state
 from . import guard, launch, read
 from .events import Feed
 
@@ -279,9 +280,20 @@ def serve(app, sock=None, ready=None):
     server.run(sockets=[sock])
 
 
+def prepare(project=None):
+    """The project's state and its report folder, with the Studio data rebuilt from the ledger when it was checked."""
+    state = project_state(project)
+    report = guided.report_of(state)
+    if guided.scan_done(state):
+        guided.reconcile(state)
+        guided.publish(state)
+        guided.save(state)
+    return state, report
+
+
 def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lambda text: print(text, flush=True)):
     """`eaos studio`: serve until stopped, with the record launch.py reuses. Returns the exit code."""
-    state, report = launch.prepare(project)
+    state, report = prepare(project)
     found = launch.running(state)
     if found and (remote_origin or found.get('remote_origin')):
         out(f'The Studio is already running; use its protected launch record to open it.')

@@ -1,11 +1,11 @@
-"""Tests for the top-level modules: engagement, target_architecture, executive, bundles, progress."""
+"""Tests for the top-level modules: engagement, target_architecture, executive, bundles, progress_report."""
 import json
 from pathlib import Path
 import shutil
 import tempfile
 import unittest
 from shared_fixture import Workspace
-from eaos import engagement, target_architecture, executive, bundles, progress, guarantee
+from eaos import engagement, target_architecture, executive, bundles, progress_report, guarantee
 from eaos.audit import run as run_audit
 
 
@@ -74,7 +74,7 @@ class ProgressTests(Workspace):
     def test_progress_reports_per_indicator(self):
         run_audit(Path('tests/fixtures/sustainability'), Path(self.tmp) / 'a', language='en')
         run_audit(Path('tests/fixtures/sustainability'), Path(self.tmp) / 'b', language='en')
-        result = progress.render(Path(self.tmp) / 'a', Path(self.tmp) / 'b', language='en')
+        result = progress_report.render(Path(self.tmp) / 'a', Path(self.tmp) / 'b', language='en')
         for row in result['rows']:
             self.assertIn('indicator', row)
             self.assertIn('direction', row)

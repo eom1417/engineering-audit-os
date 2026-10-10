@@ -45,6 +45,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .context import bounded
+from .fold import fold_file
 from .liveness import ALIVE_EVERY
 
 PROGRESS = 'run-progress.jsonl'
@@ -72,6 +73,18 @@ def path_for(folder, flow='check'):
     """Where a flow writes its progress: the check in `<report>/run-progress.jsonl`, any other flow in
     `<folder>/progress/<flow>.jsonl`."""
     return Path(folder) / PROGRESS if flow == 'check' else Path(folder) / FOLDER / f'{flow}.jsonl'
+
+
+def read(folder, flow='check'):
+    """The rows of a flow's progress file, in order; [] when there is none. A line still being written is left."""
+    try: raw = path_for(folder, flow).read_bytes()
+    except OSError: return []
+    rows = []
+    for line in raw[:raw.rfind(b'\n') + 1].decode('utf-8', 'replace').splitlines():
+        try: row = json.loads(line)
+        except ValueError: continue
+        if isinstance(row, dict): rows.append(row)
+    return rows
 
 
 def history_folder(folder, flow='check'):
@@ -129,7 +142,6 @@ def previous_seconds(out):
 
 def previous_steps(path):
     """{stage: {step: seconds}} of the steps that ended ok in the progress file at `path` (the last run), {} if none."""
-    from .fold import fold_file
     out = {}
     for stage in fold_file(path)['stages']:
         kept = {s['name']: s['seconds'] for s in stage['steps']
