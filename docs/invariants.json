@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "32168e3",
+  "extracted_at_commit": "fedbf9c",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -1997,6 +1997,18 @@
       "statement": "What a new run is made on, recorded on it when it is created so a later change of branch never retargets it silently: {analysis_branch, analysis_commit, checkout, detached, at}.",
       "kind": "invariant",
       "enforced_by": "tests/test_studio_branches.py::Selecting::test_in_flight_runs_are_never_retargeted",
+      "note": ""
+    },
+    {
+      "id": "INV-d4f12db35f",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "_refuse_in_flight",
+      "statement": "Blocked while any run is queued or working, naming each by its label and giving its id for its stop; choosing the branch already analysed moves no run, so it is never refused.",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_studio_branches.py::Selecting::test_in_flight_runs_are_never_retargeted",
+        "tests/test_studio_branches.py::Selecting::test_rescanning_the_branch_already_analysed_waits_for_no_run"
+      ],
       "note": ""
     },
     {
