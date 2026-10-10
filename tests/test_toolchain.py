@@ -92,15 +92,20 @@ class ToolchainTests(Workspace):
 
 class ToolEnvironment(unittest.TestCase):
     def test_a_python_tool_installs_and_runs_without_the_pythonpath_of_eaos(self):
-        # pip took a dependency EAOS carries as installed, so a fresh tools folder missed it (Semgrep without attrs).
+        # pip took a dependency EAOS carries as installed, so a fresh tools folder missed it (Semgrep without attrs), and
+        # its version check then imported EAOS's own mcp 2 instead of Semgrep's mcp 1.
         from eaos.engines import process
-        tool = {'name': 'semgrep', 'version': '1.0.0', 'binary': 'semgrep', 'install': {'package': 'semgrep'}}
+        tool = {'name': 'semgrep', 'version': '1.0.0', 'binary': 'semgrep', 'install': {'method': 'pip', 'package': 'semgrep'}}
+        done = mock.Mock(returncode=0, stdout='1.0.0', stderr='')
         with mock.patch.dict(os.environ, {'PYTHONPATH': '/eaos/site-packages'}), \
                 mock.patch.object(toolchain, 'uv', return_value=None), mock.patch.object(toolchain, '_link'), \
-                mock.patch.object(toolchain.subprocess, 'run') as installed, mock.patch.object(process.subprocess, 'run') as ran:
+                mock.patch.object(toolchain, 'binary_path', return_value='/tools/bin/semgrep'), \
+                mock.patch('subprocess.run', return_value=done) as run:
             toolchain._pip_one(tool)
+            toolchain.found_version(tool)
             process.run(['semgrep', '--version'])
-        for call in installed.call_args_list + ran.call_args_list:
+        self.assertGreaterEqual(len(run.call_args_list), 3, 'pip, the version check and the engine run')
+        for call in run.call_args_list:
             self.assertNotIn('PYTHONPATH', call.kwargs['env'])
 
 

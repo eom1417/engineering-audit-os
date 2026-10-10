@@ -135,7 +135,7 @@ def found_version(tool):
     try:
         # A tool that runs on another (the Structurizr CLI on the JRE) finds it in the pinned bin first.
         done = subprocess.run([path, *tool.get('version_args', ['--version'])], capture_output=True, text=True, timeout=120,
-                              env={**os.environ, 'NO_COLOR': '1', 'PATH': str(home() / 'bin') + os.pathsep + os.environ.get('PATH', '')})
+                              env={**tool_env(), 'NO_COLOR': '1', 'PATH': str(home() / 'bin') + os.pathsep + os.environ.get('PATH', '')})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return None, f'{path} --version failed: {problem}'
     output = done.stdout + done.stderr
@@ -246,7 +246,7 @@ def install_browsers(echo=print):
     if not browser_missing(): return
     playwright = home() / 'bin/playwright'
     done = subprocess.run([str(playwright), 'install', 'chromium', 'chromium-headless-shell'], capture_output=True, text=True,
-                          env={**os.environ, 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())}, timeout=1800)
+                          env={**tool_env(), 'PLAYWRIGHT_BROWSERS_PATH': str(browsers())}, timeout=1800)
     if done.returncode: raise RuntimeError('the browser did not install: ' + (done.stdout + done.stderr)[-400:])
     echo(f"install chromium for playwright in {browsers()}")
 
@@ -394,7 +394,7 @@ def _npm(tool):
     prefix.mkdir(parents=True, exist_ok=True)
     npm = shutil.which('npm')
     if not npm: raise RuntimeError(f"{tool['name']}: npm is not installed; install Node.js 18 or newer, then run this again")
-    env = {**os.environ, **tool['install'].get('env', {})}
+    env = {**tool_env(), **tool['install'].get('env', {})}
     subprocess.run([npm, 'install', '--prefix', str(prefix), '--no-audit', '--no-fund', '--loglevel=error',
                     f"{tool['install']['package']}@{tool['version']}", *tool['install'].get('with', [])], check=True, env=env)
     if tool['install'].get('library'): return
