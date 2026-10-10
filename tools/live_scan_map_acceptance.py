@@ -255,19 +255,24 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest='command', required=True)
     one = sub.add_parser('kill')
+    one.set_defaults(func=kill)
     one.add_argument('--base', required=True); one.add_argument('--token-file', required=True)
     one.add_argument('--project', required=True); one.add_argument('--json', required=True)
     one.add_argument('--stage', default='plan'); one.add_argument('--after', type=float, default=20.0)
     two = sub.add_parser('judge')
+    two.set_defaults(func=judge)
     two.add_argument('--evidence', required=True)
     two.add_argument('--out', default=str(dev_paths.MEASURE / 'live-scan-map' / 'acceptance.json'))
     three = sub.add_parser('flows')
+    three.set_defaults(func=write_flows)
     three.add_argument('runtime'); three.add_argument('--json', required=True)
     args = parser.parse_args(argv)
-    if args.command == 'flows':
-        Path(args.json).write_text(json.dumps(flow_steps(args.runtime), ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
-        return 0
-    return {'kill': kill, 'judge': judge}[args.command](args)
+    return args.func(args)
+
+
+def write_flows(args):
+    Path(args.json).write_text(json.dumps(flow_steps(args.runtime), ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+    return 0
 
 
 if __name__ == '__main__':

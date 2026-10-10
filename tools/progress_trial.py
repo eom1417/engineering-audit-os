@@ -268,24 +268,31 @@ def collect(args):
     return record
 
 
+def judge_report(args):
+    return judge(args.report)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest='command', required=True)
     one = sub.add_parser('overhead')
+    one.set_defaults(func=overhead)
     one.add_argument('project'); one.add_argument('workdir'); one.add_argument('--json'); one.add_argument('--no-engines', action='store_true')
     two = sub.add_parser('kill')
+    two.set_defaults(func=kill)
     two.add_argument('project'); two.add_argument('workdir'); two.add_argument('--json')
     two.add_argument('--stage', default='engines'); two.add_argument('--after', type=float, default=8.0)
     two.add_argument('--timeout', type=float, default=1800.0)
     three = sub.add_parser('judge')
+    three.set_defaults(func=judge_report)
     three.add_argument('report')
     four = sub.add_parser('collect')
+    four.set_defaults(func=collect)
     for name in ('--determinism', '--determinism-engines', '--kill', '--overhead', '--corpus-report'):
         four.add_argument(name, required=True)
     four.add_argument('--overhead-dir', help='the overhead workdir, for each run\'s stage seconds')
     args = parser.parse_args(argv)
-    run = {'overhead': overhead, 'kill': kill, 'collect': collect, 'judge': lambda a: judge(a.report)}[args.command]
-    record = run(args)
+    record = args.func(args)
     if args.command == 'collect': record['pass'] = True
     text = json.dumps(record, ensure_ascii=False, indent=1)
     if getattr(args, 'json', None): Path(args.json).write_text(text + '\n', encoding='utf-8')

@@ -197,21 +197,30 @@ def front_end_checks(seen, view_rows):
     }
 
 
+def replay_command(args):
+    return replay(args.progress, args.report, args.speed) or 0
+
+
+def judge_command(args):
+    return judge(args.report, args.browser, args.out)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest='command', required=True)
     one = sub.add_parser('replay')
+    one.set_defaults(func=replay_command)
     one.add_argument('progress')
     one.add_argument('report')
     one.add_argument('--speed', type=float, default=4.0)
     two = sub.add_parser('judge')
+    two.set_defaults(func=judge_command)
     two.add_argument('--report', required=True)
     two.add_argument('--browser', required=True)
     import north_star_measure as measure
     two.add_argument('--out', default=str(measure.REPORTS / 'live-scan-map' / 'trial.json'))
     args = parser.parse_args(argv)
-    if args.command == 'replay': return replay(args.progress, args.report, args.speed) or 0
-    return judge(args.report, args.browser, args.out)
+    return args.func(args)
 
 
 if __name__ == '__main__':
