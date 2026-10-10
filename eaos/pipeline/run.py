@@ -190,13 +190,19 @@ def _one(stage, context, runners, results):
     return _row(stage, OK, '', seconds, present, outcome)
 
 
+def _previous(out):
+    """The record a resume starts from: the checkpoint of a run stopped midway, else the last manifest; None."""
+    for name in (CHECKPOINT, MANIFEST):
+        if (Path(out) / name).is_file(): return json.loads((Path(out) / name).read_text(encoding='utf-8'))
+    return None
+
+
 def resume(target, out, **options):
     """Re-run only what a previous attempt did not complete: a run stopped or killed midway from the checkpoint it
     left after its last stage, else the last manifest."""
-    path = next((Path(out) / name for name in (CHECKPOINT, MANIFEST) if (Path(out) / name).is_file()), None)
-    if path is None:
+    previous = _previous(out)
+    if previous is None:
         return execute(target, out, **options)
-    previous = json.loads(path.read_text(encoding='utf-8'))
     from ..workspace import inventory
     stored = previous.get('options', {})
     if str(Path(target).resolve()) != previous['target']:
