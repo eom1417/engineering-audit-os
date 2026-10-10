@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "2e30ff7",
+  "extracted_at_commit": "f6a55c0",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -87,15 +87,16 @@
       "note": ""
     },
     {
-      "id": "INV-2171dbd4d5",
+      "id": "INV-84f47fcbae",
       "file": "eaos/api/read.py",
       "symbol": "<module>",
-      "statement": "A flow that has not run yet shows its declared stages GET /api/scan-progress the check's flow alone, as /api/progress has it (the v1 route) GET /api/report-file?path= a text file the check produced, by its path inside the report folder: nothing outside it, no `..`, text types only, at most 2 MB, never rendered (text/plain)",
+      "statement": "A flow that has not run yet shows its declared stages GET /api/scan-progress the check's flow alone, as /api/progress has it (the v1 route) GET /api/report-file?path= a text file the check produced, by its path inside the report folder: nothing outside it, no `..`, text types only, at most 2 MB, never rendered (text/plain) GET /api/screen?path= a screen the safety flow recorded (a PNG under the runtime folder's behavior-lock/snapshots), at most 2 MB",
       "kind": "invariant",
       "enforced_by": [
         "tests/test_progress_server.py::ProgressRoute::test_the_journey_and_every_flow_folded_and_laid_out",
         "tests/test_progress_server.py::ReportFile::test_paths_that_leave_the_report_are_refused",
-        "tests/test_progress_server.py::ReportFile::test_only_existing_text_files_up_to_two_megabytes"
+        "tests/test_progress_server.py::ReportFile::test_only_existing_text_files_up_to_two_megabytes",
+        "tests/test_progress_server.py::ReportFile::test_a_recorded_screen_is_served_and_nothing_else_of_the_runtime_folder"
       ],
       "note": ""
     },
