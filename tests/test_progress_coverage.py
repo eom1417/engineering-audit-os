@@ -668,6 +668,20 @@ class Journey(unittest.TestCase):
         self.assertFalse(steps[1]['done'], 'no setup recorded: not ready')
         log.finish('STOPPED')
 
+    def test_a_later_step_is_never_done_while_an_earlier_one_waits_or_runs(self):
+        report, runtime = Path(tempfile.mkdtemp()), Path(tempfile.mkdtemp())
+        everything_done = [(name, ar, en, (lambda state: True), run) for name, ar, en, _, run in guided.STEPS]
+        with mock.patch.object(guided, 'report_of', return_value=report), mock.patch.object(guided, 'runtime_of', return_value=runtime):
+            self.assertEqual([s['done'] for s in guided.journey({})], [False] * 4,
+                             'no report yet: no ready card is left, yet the fix has not run')
+            with mock.patch.object(guided, 'STEPS', everything_done):
+                self.assertEqual([s['done'] for s in guided.journey({})], [True] * 4)
+                log = progress.ProgressLog(report, 'check', pulse=False, sampler=None)
+                log.started(STAGES, [s.name for s in STAGES], {})
+                self.assertEqual([s['done'] for s in guided.journey({})], [True, False, False, False],
+                                 'the check runs again: the steps after it wait for it')
+                log.finish('STOPPED')
+
     def test_a_step_whose_done_check_cannot_be_read_is_not_done(self):
         broken = [(name, ar, en, (lambda state: 1 / 0), run) for name, ar, en, _, run in guided.STEPS]
         folder = Path(tempfile.mkdtemp())

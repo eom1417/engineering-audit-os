@@ -960,19 +960,21 @@ def flow_folder(state, flow):
 def journey(state, now=None):
     """STEPS as data for the live map: [{id, title: {ar, en}, flow, done, state}], `state` being the judged state of the
     step's flow (none, running, stalled, interrupted, done; eaos/progress/liveness.py). `done` comes from the step's
-    own *_done(state); a step whose done check cannot be read is not done."""
+    own *_done(state), and only once every earlier step is done and not running again; a step whose done check cannot
+    be read is not done."""
     import time
     from . import progress
-    rows = []
+    rows, clear = [], True
     for name, title_ar, title_en, done, _ in STEPS:
         flow = FLOWS[name]
         folder = flow_folder(state, flow)
         folded = progress.fold(progress.read(folder, flow))
-        try: finished = bool(done(state))
+        judged = progress.judge(folded, progress.heard_at(progress.path_for(folder, flow)),
+                                time.time() if now is None else now, progress.alive(folded))
+        try: finished = clear and bool(done(state))
         except Exception: finished = False
-        rows.append({'id': name, 'title': {'ar': title_ar, 'en': title_en}, 'flow': flow, 'done': finished,
-                     'state': progress.judge(folded, progress.heard_at(progress.path_for(folder, flow)),
-                                             time.time() if now is None else now, progress.alive(folded))})
+        clear = finished and judged not in ('running', 'stalled')
+        rows.append({'id': name, 'title': {'ar': title_ar, 'en': title_en}, 'flow': flow, 'done': finished, 'state': judged})
     return rows
 
 
