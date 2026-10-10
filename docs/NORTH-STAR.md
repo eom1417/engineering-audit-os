@@ -4,13 +4,13 @@
 
 ## أين نحن
 
-### التقدم: **32.2 من 100 نقطة**
+### التقدم: **32.1 من 100 نقطة**
 
-`████████░░░░░░░░░░░░░░░░░` 32.2%
+`████████░░░░░░░░░░░░░░░░░` 32.1%
 
 | الخطوات المكتملة | الخطوة الحالية | النقاط الباقية | منها تنتظر مدخلًا منك | آخر قياس |
 |---|---|---|---|---|
-| 21 من 45 | 21 · NS27 البناء من خطة | 67.8 | 64 | 2026-09-30 · `0fbc461` |
+| 21 من 45 | 21 · NS27 البناء من خطة | 67.9 | 64 | 2026-09-30 · `0fbc461` |
 
 **كيف يُحسب:**
 
@@ -93,7 +93,7 @@ flowchart TB
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 اختبار قبول"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 اختبار قبول"| NS46
-        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +21 اختبار قبول"| NS38
+        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +23 اختبار قبول"| NS38
     end
     subgraph R6G_2["R6G · EAOS v2: تحليل صادق، صورة مثالية، عمليات مرتبة، واستوديو حي (2/5)"]
         direction LR
@@ -200,7 +200,7 @@ flowchart TB
 | 21 | [**NS27** البناء من خطة](#step-21) | R6 | 6 | 93% | 5.6 | 88% | 🟡 قيد العمل | B1=1 · B2=1 · X8=1 · B3=1 · B4=1 · X1=1 · … · +1 اختبار قبول |
 | 22 | [**NS30** الثقة أولًا: كل بطاقة على ملفها، وكل رقم صادق](#step-22) | R6G | 2 | 100% | 2 | 100% | ✅ مكتملة | S4=1 · X13=1 · +1 اختبار قبول |
 | 23 | [**NS36** أساس الاستوديو: القرارات والعقد والنموذج](#step-23) | R6G | 3 | 42% | 1.26 | 50% | 🔴 تحتاج مدخلًا منك | F8=1 · F10=1 · +4 اختبار قبول |
-| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 11 | 5% | 0.58 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +21 اختبار قبول |
+| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 11 | 5% | 0.54 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +23 اختبار قبول |
 | 25 | [**NS38** تحليل صادق: الدقة أولًا](#step-25) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | A1=1 · W2=1 · A2=1 · A3=1 |
 | 26 | [**NS31** أرقام ثابتة وضجيج أقل](#step-26) | R6G | 3 | 26% | 0.8 | 24% | 🔴 تحتاج مدخلًا منك | L7=1 · L8=1 · S5≥0.9 · S1≥0.9 |
 | 27 | [**NS39** خريطة النظام والسجل والأحداث](#step-27) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | N1=1 · N2=1 · +1 اختبار قبول |
@@ -222,7 +222,7 @@ flowchart TB
 | 43 | [**NS24** الرصد: كل سطح حرج مرئي](#step-43) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E10≥0.9 · +1 اختبار قبول |
 | 44 | [**NS16** الجاهزية للإنتاج: كل بند بأمر](#step-44) | R7 | 2 | 0% | 0 | 0% | 🔴 تحتاج مدخلًا منك | E11=1 · +1 اختبار قبول |
 | 45 | [**NS10** الإثبات المستقل](#step-45) | R8 | 5 | 18% | 0.9 | 15% | 🔴 تحتاج مدخلًا منك | V4=1 · V3=1 |
-| | **المجموع** | | **100** | | **32.2** | | | |
+| | **المجموع** | | **100** | | **32.1** | | | |
 
 ## الخطوات بالتفصيل
 
@@ -1202,7 +1202,7 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 11 | 5% | 0.58 من 11 | 12% | R6G | S07, S15 |
+| 11 | 5% | 0.54 من 11 | 12% | R6G | S07, S15 |
 
 **الهدف:** F11 وF13 وF14 وF15 وF16 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويُشغَّل EAOS كله من الاستوديو، ويحكم المالك.
 
@@ -1260,6 +1260,8 @@ flowchart TB
 | اختبار قبول | `test ns46_studio.SelfReview` | — | ⬜ |
 | اختبار قبول | `test live_scan_map` | — | ⬜ |
 | اختبار قبول | `test ai_in_the_pipeline` | — | ⬜ |
+| اختبار قبول | `test robust_fixing` | — | ⬜ |
+| اختبار قبول | `test docs_reader` | — | ⬜ |
 
 **المهام:**
 
@@ -1286,6 +1288,8 @@ flowchart TB
 | [NS46.T8](#ns46t8) المراجعة الذاتية وحكم المالك | M | ⬜ | 13% | `python tools/north_star.py measure --only F11 --min 1.0 && python tools/north_star.py measure --only F13 --min 1.0 && python tools/north_star.py measure --only F14 --min 1.0 && python tools/north_star.py measure --only F12 && python tools/north_star.py measure --only F9 --min 1.0 && python tools/north_star.py measure --only F7 --min 1.0 && python tools/north_star.py measure --only F15 --min 1.0 && python tools/acceptance.py test ns46_studio.CommandCentreTrial && python tools/north_star.py measure --only F16 --min 1.0 && python tools/acceptance.py test ns46_studio.SelfReview` |
 | [NS46.T20](#ns46t20) Live scan map: EAOS's own stages drawn live while a check runs | M | ⬜ | 0% | `python tools/acceptance.py test live_scan_map` |
 | [NS46.T21](#ns46t21) AI in the check: the person's assistant reads, plans, triages and orders, the rules stand alone without it | M | ⬜ | 0% | `python tools/acceptance.py test ai_in_the_pipeline` |
+| [NS46.T22](#ns46t22) Fixing that holds: a batch the person asks for runs to its branch, or stops before any work with its reason | M | ⬜ | 0% | `python tools/acceptance.py test robust_fixing` |
+| [NS46.T23](#ns46t23) A professional document reader: diagrams drawn, charts, tables, callouts and highlighted code | M | ⬜ | 0% | `python tools/acceptance.py test docs_reader` |
 
 <a id="step-25"></a>
 
@@ -6651,6 +6655,68 @@ python tools/acceptance.py test ai_in_the_pipeline
 ```
 
 **التراجع:** Revert the AI-in-the-check commits; the use_assistant answer and the new stages are additive.
+
+<a id="ns46t22"></a>
+
+#### NS46.T22 — Fixing that holds: a batch the person asks for runs to its branch, or stops before any work with its reason ⬜
+
+**لماذا:** Owner request 2026-10-10 after the trial on EAOS itself: fixes kept failing midway (a check nobody asked for, a branch choice not recorded, a safety net that recorded nothing for a Python CLI project, a batch left open for good). The fixing must be steady and independent: never re-check unasked, never open a batch it cannot close, and always leave a way out.
+
+**يحرّك:** F15 · **ينفّذه:** يحتاج مزوّد نموذج · **يعتمد على:** NS46.T21 · **الحجم:** M
+
+**الملفات:** `eaos/agent_tools.py` · `eaos/behavior_lock.py` · `eaos/guided.py` · `eaos/mcp_server.py` · `eaos/studio/actions/runs.py` · `eaos/toolchain.py` · `eaos/waves.py` · `acceptance/test_robust_fixing.py`
+
+**الخطوات:**
+
+1. Done 2026-10-10: a check on record stands until the person asks (b0d7ea5); the Studio records a branch an assistant run needs (ad283db); no batch opens without a working safety net, fix_abandon closes a stuck batch (49bc794); the lock runs the approval tests of a Python project (safety-net branch); the safety net writes its specs again from the check on record (3262e38).
+2. Left: one real trial on EAOS itself through the Studio with Claude Code, from the request to the branch eaos/wave-N.
+
+**تنتهي حين:**
+
+- [ ] A real Studio fix run on EAOS itself with Claude Code, from the person's request to a branch eaos/wave-N with kept fixes, with no re-check, no stuck batch and no manual step, recorded in the workers reports.
+
+**فخاخ معروفة:**
+
+- A unit test alone never closes it.
+- A batch must never open when its changes cannot be checked.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test robust_fixing
+```
+
+**التراجع:** Revert the commits named in steps; each is independent.
+
+<a id="ns46t23"></a>
+
+#### NS46.T23 — A professional document reader: diagrams drawn, charts, tables, callouts and highlighted code ⬜
+
+**لماذا:** Owner request 2026-10-10: the Studio's documents must read any .md professionally; a mermaid diagram showed as raw source.
+
+**يحرّك:** F8 · **ينفّذه:** نموذج أو مطوّر · **الحجم:** M
+
+**الملفات:** `studio/src/pages/library/` · `eaos/data/studio/` · `acceptance/test_docs_reader.py`
+
+**الخطوات:**
+
+1. Mermaid drawn (lazy chunk, light/dark, full screen with zoom, source on demand, a broken diagram shows its source), professional tables, GitHub callouts, task lists, highlighted code with copy (docs-reader branch).
+
+**تنتهي حين:**
+
+- [ ] The studio screen gate passes with a document holding a diagram and a table, and screenshots at 390 and 1440 show them drawn and legible.
+
+**فخاخ معروفة:**
+
+- No address outside the Studio in shipped files; Home stays within its Lighthouse budget.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test docs_reader
+```
+
+**التراجع:** Revert the docs-reader commits; the reader falls back to the source view.
 
 ### الخطوة 25 · NS38 — تحليل صادق: الدقة أولًا ⬜ التالية
 

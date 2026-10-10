@@ -6996,6 +6996,73 @@
           ],
           "acceptance": "python tools/acceptance.py test ai_in_the_pipeline",
           "rollback": "Revert the AI-in-the-check commits; the use_assistant answer and the new stages are additive."
+        },
+        {
+          "needs": "model_provider",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T22",
+          "title": "Fixing that holds: a batch the person asks for runs to its branch, or stops before any work with its reason",
+          "why": "Owner request 2026-10-10 after the trial on EAOS itself: fixes kept failing midway (a check nobody asked for, a branch choice not recorded, a safety net that recorded nothing for a Python CLI project, a batch left open for good). The fixing must be steady and independent: never re-check unasked, never open a batch it cannot close, and always leave a way out.",
+          "moves": [
+            "F15"
+          ],
+          "depends_on": [
+            "NS46.T21"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/agent_tools.py",
+            "eaos/behavior_lock.py",
+            "eaos/guided.py",
+            "eaos/mcp_server.py",
+            "eaos/studio/actions/runs.py",
+            "eaos/toolchain.py",
+            "eaos/waves.py",
+            "acceptance/test_robust_fixing.py"
+          ],
+          "steps": [
+            "Done 2026-10-10: a check on record stands until the person asks (b0d7ea5); the Studio records a branch an assistant run needs (ad283db); no batch opens without a working safety net, fix_abandon closes a stuck batch (49bc794); the lock runs the approval tests of a Python project (safety-net branch); the safety net writes its specs again from the check on record (3262e38).",
+            "Left: one real trial on EAOS itself through the Studio with Claude Code, from the request to the branch eaos/wave-N."
+          ],
+          "done_when": [
+            "A real Studio fix run on EAOS itself with Claude Code, from the person's request to a branch eaos/wave-N with kept fixes, with no re-check, no stuck batch and no manual step, recorded in the workers reports."
+          ],
+          "pitfalls": [
+            "A unit test alone never closes it.",
+            "A batch must never open when its changes cannot be checked."
+          ],
+          "acceptance": "python tools/acceptance.py test robust_fixing",
+          "rollback": "Revert the commits named in steps; each is independent."
+        },
+        {
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T23",
+          "title": "A professional document reader: diagrams drawn, charts, tables, callouts and highlighted code",
+          "why": "Owner request 2026-10-10: the Studio's documents must read any .md professionally; a mermaid diagram showed as raw source.",
+          "moves": [
+            "F8"
+          ],
+          "depends_on": [],
+          "size": "M",
+          "files": [
+            "studio/src/pages/library/",
+            "eaos/data/studio/",
+            "acceptance/test_docs_reader.py"
+          ],
+          "steps": [
+            "Mermaid drawn (lazy chunk, light/dark, full screen with zoom, source on demand, a broken diagram shows its source), professional tables, GitHub callouts, task lists, highlighted code with copy (docs-reader branch)."
+          ],
+          "done_when": [
+            "The studio screen gate passes with a document holding a diagram and a table, and screenshots at 390 and 1440 show them drawn and legible."
+          ],
+          "pitfalls": [
+            "No address outside the Studio in shipped files; Home stays within its Lighthouse budget."
+          ],
+          "acceptance": "python tools/acceptance.py test docs_reader",
+          "rollback": "Revert the docs-reader commits; the reader falls back to the source view.",
+          "needs": "none"
         }
       ]
     },

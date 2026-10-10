@@ -6,6 +6,7 @@
  "fixtures/style/vague.md": "1f756dd94e40e2e6f9848075dc740c2fd8c7db028beeb3ec8cf89cdf59ed339c",
  "test_ai_in_the_pipeline.py": "e12942f7afaa0ecd518294eb638baf5eac9fbd3da55ccb0d18fa0ef480b1d729",
  "test_branch_control.py": "f3408d3f12e5d4b3197b00e5983d1d1bc009cd9f634e9983d757326a6b03a0c5",
+ "test_docs_reader.py": "43c7d437dbd12c443c8a86ebe58529e617101e0b47fbc794c0b8b6e3d2d2aeea",
  "test_field_report.py": "f3438d48b1826645d23e07d6de6f95371f563537b3e34dcf370822b76bf6ecfe",
  "test_live_scan_map.py": "85bab9c212502cd5d8e1e809fd526a8c0e5e32c620b23e2334a6fec0c08e27e4",
  "test_ns14_t1_style.py": "8e7bc3cb8fc13a95f314304aef9560a4bf0633149abafa8f67ff55b6bb1872cf",
@@ -16,6 +17,7 @@
  "test_ns46_studio.py": "26b918796191972cc8cc03c14ea44ef76bc7a52c682f7936d68554d49d290dc4",
  "test_ns7_t1_reference.py": "06ba27f950fc92f397d904f62751e2439fd5b8557da6f0da6c5802f259b2fdd7",
  "test_owner_controls.py": "228a84cc34065d85f0bba92e0171480200db32ed83465b51fe0a2df97977705e",
+ "test_robust_fixing.py": "79870ce984de08901ed82d2ae07a3438447b0a15365befda765537dab6077b7b",
  "test_scan_freshness.py": "fb807b7f7d647a14439e658903b02025ae9f46df44785817581a698b5e83f2b6",
  "test_studio_contract.py": "72082757f3f1c9df88433976e10527bb902ae1b560e1ef42f91235f3e1f9dc3a"
 }
