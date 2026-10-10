@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'tests'))
 
 from eaos import agent_tools, guided, jobs, progress, toolchain  # noqa: E402
+from eaos.api import launch  # noqa: E402
 from eaos.engines import trivy  # noqa: E402
 from eaos.pipeline import report as run_report  # noqa: E402
 from test_progress_server import Project  # noqa: E402
@@ -90,12 +91,12 @@ class Terminal(unittest.TestCase):
     def test_eaos_start_opens_preparing_the_tools_first(self):
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(toolchain, 'prepare') as prepare, \
                 mock.patch.object(toolchain, 'ready', return_value=False), \
-                mock.patch.object(agent_tools, 'open_studio', return_value={'studio': 'http://x/#/tools'}) as open_studio, \
-                mock.patch.object(guided, 'say') as said:
+                mock.patch.object(launch, 'start', return_value=({'port': 9, 'token': 'k'}, True)), \
+                mock.patch.object(launch, '_open') as opened, mock.patch.object(guided, 'say') as said:
             guided.watch({**self.state, 'project': tmp}, Namespace(no_watch=False))
         prepare.assert_called_once_with(tmp)
-        self.assertEqual(open_studio.call_args.kwargs['route'], '/tools')
-        said.assert_called_once_with('Watch the work live: http://x/#/tools')
+        opened.assert_called_once_with('http://127.0.0.1:9/#/tools?token=k', True)
+        said.assert_called_once_with('Watch the work live: http://127.0.0.1:9/#/tools?token=k')
 
 
 class Record(unittest.TestCase):

@@ -10,10 +10,7 @@ started with `eaos start` is the one `overview` reads, and the other way round.
 """
 import json
 import os
-import re
 import subprocess
-import sys
-import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -24,7 +21,6 @@ from .api import launch
 ANSWER_SECONDS = int(os.environ.get('EAOS_ANSWER_SECONDS') or 30)
 WAIT = 50                   # seconds a tool call waits for its job before answering with the job to follow
 PAGE = 30
-STUDIO_STARTUP = 15.0       # seconds open_studio waits for the server it started to answer
 
 
 # ---------------------------------------------------------------- the project and its state
@@ -162,26 +158,10 @@ def open_studio(project=None, show=True, route=''):
     no data: a server it starts does (run_foreground), and a running one's is kept by every step that changes it, so a
     check asked for starts at once."""
     state = project_state(project)
-    found = launch.running(state)
-    started = False
+    found, started = launch.start(state)
     if not found:
-        logs = Path(state['workspace']) / 'logs'
-        logs.mkdir(parents=True, exist_ok=True)
-        with open(logs / 'studio-server.log', 'ab') as log:
-            # The same EAOS as this one, wherever the project folder is
-            here = str(Path(__file__).resolve().parents[1])
-            env = {**os.environ, 'PYTHONSAFEPATH': '1',
-                   'PYTHONPATH': os.pathsep.join([here, *filter(None, [os.environ.get('PYTHONPATH')])])}
-            subprocess.Popen([sys.executable, '-m', 'eaos', 'studio', state['project'], '--no-open'], cwd=state['workspace'], env=env,
-                             stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True, close_fds=True)
-        deadline = time.monotonic() + STUDIO_STARTUP
-        while time.monotonic() < deadline and not found:
-            time.sleep(0.25)
-            found = launch.running(state)
-        started = bool(found)
-        if not found:
-            return {'error': 'the Studio server did not start in time', 'log': str(logs / 'studio-server.log'),
-                    'what_now': 'Tell the person the live Studio could not start, and offer open_report (the report page) instead.'}
+        return {'error': 'the Studio server did not start in time', 'log': str(Path(state['workspace']) / 'logs/studio-server.log'),
+                'what_now': 'Tell the person the live Studio could not start, and offer open_report (the report page) instead.'}
     url = launch.url_of(found, route)
     opened = launch._open(url, show)
     return {'studio': url, 'opened_in_browser': opened, 'started': started, 'live': True,

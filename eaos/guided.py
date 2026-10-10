@@ -1086,11 +1086,13 @@ def watch(state, args):
     "Preparing the tools" while a tool the check needs here is not ready, else on the live map."""
     if getattr(args, 'no_watch', False): return
     from . import toolchain
-    from .agent_tools import open_studio
+    from .api import launch
     toolchain.prepare(state['project'])
-    opened = open_studio(state['project'], show=True, route='/scan' if toolchain.ready(state['project']) else '/tools')
-    if 'studio' not in opened: return
-    say((f"تابع العمل حيًّا: {opened['studio']}" if state['lang'] == 'ar' else f"Watch the work live: {opened['studio']}"))
+    record, _ = launch.start(state)
+    if not record: return
+    url = launch.url_of(record, '/scan' if toolchain.ready(state['project']) else '/tools')
+    say(f"تابع العمل حيًّا: {url}" if state['lang'] == 'ar' else f"Watch the work live: {url}")
+    launch._open(url, True)
 
 
 def next_command(args):

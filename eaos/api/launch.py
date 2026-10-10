@@ -7,10 +7,15 @@ imports neither the server nor the tools, so the guided commands, the tools and 
 """
 import json
 import os
+import subprocess
+import sys
+import time
 import urllib.request
 from pathlib import Path
 
 from ..places import home
+
+STARTUP = 15.0       # seconds `start` waits for the server it started to answer
 
 
 def records_folder():
@@ -45,6 +50,26 @@ def running(state):
     if _alive(record.get('pid')) and answers(record): return record
     path.unlink(missing_ok=True)
     return None
+
+
+def start(state):
+    """(record, started): the project's live server, started in the background when it is not running; (None, False)
+    when it did not answer in time. It runs from the EAOS workspace folder with PYTHONSAFEPATH=1, so neither the folder
+    it starts in nor the project (which may be EAOS's own repository) can put another `eaos` before this one."""
+    found = running(state)
+    if found: return found, False
+    logs = Path(state['workspace']) / 'logs'
+    logs.mkdir(parents=True, exist_ok=True)
+    with open(logs / 'studio-server.log', 'ab') as log:
+        here = str(Path(__file__).resolve().parents[2])
+        env = {**os.environ, 'PYTHONSAFEPATH': '1', 'PYTHONPATH': os.pathsep.join([here, *filter(None, [os.environ.get('PYTHONPATH')])])}
+        subprocess.Popen([sys.executable, '-m', 'eaos', 'studio', state['project'], '--no-open'], cwd=state['workspace'], env=env,
+                         stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True, close_fds=True)
+    deadline = time.monotonic() + STARTUP
+    while time.monotonic() < deadline and not found:
+        time.sleep(0.25)
+        found = running(state)
+    return found, bool(found)
 
 
 def _write_record(state, record):

@@ -287,9 +287,9 @@ class Addresses(unittest.TestCase):
         self.assertIn(mock.call(f'Watch the work live: {address}'), said.call_args_list)
 
     def test_nothing_is_started_or_said_with_no_watch(self):
-        with mock.patch.object(agent_tools, 'open_studio') as open_studio, mock.patch.object(guided, 'say') as said:
+        with mock.patch.object(launch, 'start') as started, mock.patch.object(guided, 'say') as said:
             guided.watch({'lang': 'ar'}, cli.argparse.Namespace(no_watch=True))
-        open_studio.assert_not_called()
+        started.assert_not_called()
         said.assert_not_called()
 
 
