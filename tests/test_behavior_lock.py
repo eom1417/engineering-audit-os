@@ -161,19 +161,47 @@ class ApprovalRunTests(Workspace):
             self.skipTest('pytest is not installed: python -m eaos tools install --only pytest')
 
     def live(self, project):
-        import os
         from datetime import date
-        from unittest import mock
-        from eaos import toolchain
-        from eaos.sandbox import Sandbox
         git(project, 'init', '-q'); git(project, 'add', '.')
         git(project, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'project')
         grant = Path(self.tmp) / 'authorization.json'
         grant.write_text(json.dumps({'schema_version': 1, 'project': 'p', 'commit': git(project, 'rev-parse', 'HEAD'),
                                      'granted_by': 'owner', 'stages': ['S05'], 'env_allow': [], 'expires': date.today().isoformat()}))
-        live = mock.Mock(log=[], sandbox=Sandbox(project, grant, Path(self.tmp) / 'sandbox', 'S05'))
+        return self.another_copy(project)
+
+    def another_copy(self, project):
+        """A run in a new sandbox copy of the committed project, as verify_lock makes for each candidate."""
+        import os
+        from unittest import mock
+        from eaos import toolchain
+        from eaos.sandbox import Sandbox
+        live = mock.Mock(log=[], sandbox=Sandbox(project, Path(self.tmp) / 'authorization.json', Path(self.tmp) / 'sandbox', 'S05'))
         live.extra.return_value = {'PATH': f"{toolchain.home() / 'bin'}{os.pathsep}{os.environ['PATH']}"}
         return live
+
+    def test_the_same_code_in_another_copy_matches_its_recording(self):
+        # On EAOS itself a default naming a file of the copy, and a default function with its address, failed an
+        # unchanged candidate: each run has its own copy and its own memory.
+        from eaos import behavior_lock
+        files = {'pkg/__init__.py': '', 'pkg/paths.py': 'from pathlib import Path\n\n\n'
+                 'def where(root=Path(__file__).parent, pick=lambda x: x):\n    return root\n'}
+        features = [{'name': 'cli:pkg/paths.py', 'surfaces': ['pkg/paths.py'], 'files': ['pkg/paths.py']}]
+        out, project, plan = self.report(features, [entry('pkg/paths.py', 'cli', path='pkg/paths.py')], files)
+        recorded, first = Path(self.tmp) / 'runtime/behavior-lock', self.live(project)
+        try:
+            lock = behavior_lock._prepare(first, out)
+            behavior_lock._run_specs(first, lock, None, recorded, 'record', update=True)
+            behavior_lock._keep(lock, recorded)
+        finally:
+            first.sandbox.dispose()
+        self.assertEqual(next((recorded / 'approved').iterdir()).read_text().strip(),
+                         "pkg.paths.where(root=PosixPath('<root>/pkg'), pick=<function <lambda>>)")
+        second = self.another_copy(project)
+        try:
+            statuses = behavior_lock._run_specs(second, behavior_lock._prepare(second, out, recorded), None, recorded, 'after', update=False)
+        finally:
+            second.sandbox.dispose()
+        self.assertEqual(statuses, {plan['specs'][0]['path']: ('passed', '')}, second.log)
 
     def test_the_first_pass_records_the_interfaces_the_second_matches_and_a_change_fails(self):
         import os
