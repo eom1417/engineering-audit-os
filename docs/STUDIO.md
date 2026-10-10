@@ -501,6 +501,10 @@ This is EAOS's own pipeline, not the audited project's (that is the pipeline map
   run nobody hears from; a flow that has not run yet is its declared stages, waiting. `GET /api/scan-progress` is its
   check flow alone. `GET /api/report-file?path=` gives a produced file: a relative path inside the report folder only
   (resolved, so no `..` and no link leads out), text types only, at most 2 MB, as `text/plain` so it is never rendered.
+  `GET /api/screen?path=` gives a screen the safety flow recorded: a PNG under the runtime folder's
+  `behavior-lock/snapshots` only, at most 2 MB. A check stopped or killed midway leaves `run-checkpoint.json` (the
+  manifest's head and the stages it finished, written after each stage, removed once the manifest is written); the
+  next `eaos start` or `audit` resumes from it, and the map marks the stages it kept.
 - **Getting there.** The assistant's `audit`, `run_setup`, `safety_net` and `fix_start` open the Studio once on
   `#/scan` (`open_studio`) and answer with its address in `watch` (the routed address when the Studio was started
   with `--remote-origin`); in a run the Studio itself started, no other tab opens. `eaos start` prints and opens the
@@ -516,7 +520,7 @@ This is EAOS's own pipeline, not the audited project's (that is the pipeline map
   along each link to the stages it opened (at most three at once), a failure pulses red once, a stage that did not run
   fades in dashed; the glow and each light carry the time of their line. The panel (beside the map; a bottom sheet on
   the phone) tells the chosen stage: what it does, its live timer, the external programs running now, its steps with a
-  bar for a counted one, what it produced (the check's files open read-only in a sheet through `/api/report-file`) and
+  bar for a counted one (a recorded screen with its picture), what it produced (the check's files open read-only in a sheet through `/api/report-file`) and
   why it did not run, worded from its `reason_code` by `errors.json -> reasons`. The run line says stage n of N, the
   elapsed time and the server's time-left range. After a check, "replay" plays its real progress file at 10x or 30x,
   labelled as a replay. A banner on every page and the tab's title ("3/26", a tick when it ended well) follow the
@@ -528,6 +532,8 @@ This is EAOS's own pipeline, not the audited project's (that is the pipeline map
   recorded run matched to its line; a stage added in a test drawn with no front-end change), and the real trial
   `tools/live_scan_map_trial.py` with `tools/live_scan_map_trial.mjs` (also the phone sheet, a produced file, the
   stream held back, and the replay's lights and glows matched to the file), judged by `acceptance/test_live_scan_map.py`.
+  The real acceptance of plan section 7 is `tools/live_scan_map_acceptance.py` (a check of EAOS itself watched from
+  start to end, the three ways in, a check killed and resumed, the later flows on a corpus web app, the page's cost).
 
 ## The pipeline map (`studio/pipeline.json`)
 

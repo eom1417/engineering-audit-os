@@ -91,10 +91,11 @@
 .sel.notAsked { opacity: 1; }
 
 /* the glow of the running stage: a halo breathing behind its card */
-.halo { fill: var(--accent-subtle); stroke: var(--accent-solid); stroke-width: 2; opacity: .7; animation: glow 1.2s var(--ease-standard) infinite alternate; }
+.halo { fill: var(--accent-subtle); stroke: var(--accent-solid); stroke-width: 3; opacity: .7; animation: glow 1.2s var(--ease-standard) infinite alternate; }
+/* opacity only: a stroke width that moves repaints the map on the main thread every frame (plan 7.7) */
 @keyframes glow {
-  from { opacity: .25; stroke-width: 1; }
-  to { opacity: .95; stroke-width: 5; }
+  from { opacity: .25; }
+  to { opacity: .95; }
 }
 /* a change the map has just shown: a failure pulses red once, a stage that did not run fades in dashed */
 [data-fresh].st_failed .box { animation: failed 600ms var(--ease-standard); }

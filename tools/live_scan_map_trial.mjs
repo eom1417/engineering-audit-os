@@ -301,7 +301,7 @@ function shownNow() {
     panel: panel?.getAttribute('data-stage') ?? null,
     counted: [...(steps?.querySelectorAll('[data-step-status] bdi:first-child') ?? [])].map((b) => b.textContent).filter((t) => /\d+\/\d+$/.test(t)),
     stepsOf: steps?.querySelector('h3 span')?.textContent ?? '',
-    programs: [...document.querySelectorAll('[data-programs] li bdi')].map((b) => b.textContent),
+    programs: [...document.querySelectorAll('[data-programs] li > bdi:first-child')].map((b) => b.textContent),
   }
 }
 

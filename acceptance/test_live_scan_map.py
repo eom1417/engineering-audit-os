@@ -220,3 +220,28 @@ class FrontEnd(unittest.TestCase):
         run = subprocess.run([str(studio / 'node_modules/.bin/vitest'), 'run', 'src/data/scan.test.ts', 'src/pages/scan/live.test.ts'],
                              cwd=studio, capture_output=True, text=True, timeout=300)
         self.assertEqual(run.returncode, 0, run.stdout[-3000:] + run.stderr[-2000:])
+
+
+class RealAcceptance(unittest.TestCase):
+    """Live scan map v2, phase 5 (eaos-dev/planning/live-scan-map/PLAN-v2.md section 7), planned 2026-10-09: real
+    acceptance, end to end.
+
+    The evidence is $EAOS_MEASURE/live-scan-map/acceptance.json, written by tools/live_scan_map_acceptance.py from real
+    runs only: 7.1 a check of EAOS's own develop watched from start to end (I2, I7, I9 on the live page, counted steps
+    shown in plan, transform and engines, the running program shown in engines, a light seen leaving facts, a photo every
+    30 s); 7.3 the live map reached from a real Claude Code `audit`, from `eaos start` and from the Studio's button; 7.4
+    a check killed with SIGKILL shown interrupted within 30 s and resumed keeping every finished stage; 7.5 setup,
+    safety and fix run on a corpus web app, each screen a step with its picture, the fix card by card; 7.6 the gated
+    views of the same check; 7.7 the page open for the whole check, its main thread idle over 95% and its heap grown
+    under 20 MB. 7.2 (through the Remote sign-in) needs the owner's signed-in browser: until it is run it is pending,
+    never passed."""
+
+    def test_every_item_of_section_seven_passes_on_real_runs(self):
+        import json
+        path = measure.REPORTS / 'live-scan-map' / 'acceptance.json'
+        self.assertTrue(path.is_file(), f'no real acceptance at {path}')
+        record = json.loads(path.read_text(encoding='utf-8'))
+        self.assertEqual((record.get('kind'), record.get('mocked')), ('live', False))
+        items = record.get('items') or {}
+        self.assertEqual(sorted(items), ['7.1', '7.2', '7.3', '7.4', '7.5', '7.6', '7.7'])
+        self.assertEqual([k for k, v in items.items() if v.get('pass') is not True and not (k == '7.2' and v.get('pending') == 'owner')], [])
