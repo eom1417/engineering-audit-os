@@ -14,7 +14,6 @@ Create a provider config OUTSIDE the target repository using the model you have 
   "endpoint": "https://api.openai.com/v1/chat/completions",
   "model": "YOUR_MODEL_ID",
   "api_key_env": "OPENAI_API_KEY",
-  "timeout_seconds": 120,
   "max_calls": 400,
   "max_response_bytes": 2000000
 }
@@ -34,7 +33,7 @@ After interruption:
 eaos continue /absolute/audit --provider /absolute/provider.json
 ```
 
-Completed jobs are reused only when input identity, result checksum, references and record dependencies remain valid. Source changes require a fresh run. Transport timeout and max_calls can be increased without changing semantic model identity. Budget exhaustion preserves work; it does not become a false completed audit. Engine lock files prevent overlapping runs; remove a stale lock only after confirming its process is gone.
+Completed jobs are reused only when input identity, result checksum, references and record dependencies remain valid. Source changes require a fresh run. max_calls can be increased without changing semantic model identity. A model is never cut off for taking long: only one that gives no output at all for 20 minutes is ended as stuck. Budget exhaustion preserves work; it does not become a false completed audit. Engine lock files prevent overlapping runs; remove a stale lock only after confirming its process is gone.
 
 ## What the engine executes
 
@@ -128,7 +127,6 @@ A user-selected command can adapt an already installed agent/model:
 {
   "kind": "command",
   "argv": ["/absolute/path/to/your-model-adapter"],
-  "timeout_seconds": 120,
   "max_calls": 400
 }
 ```
@@ -143,7 +141,7 @@ Or it requests bounded source/record reads using the supplied protocol. It is in
 
 ## Context and failure behavior
 
-Default request budget: 96,000 characters; this is NOT a token measurement. Default per-job bound: 8 model rounds. Model response size, network/command timeouts, run max_calls and campaign max_steps are explicit. Whole-repository text is streamed, not kept in one prompt. Large briefs are reduced into an index while originals remain retrievable. Oversized single source lines, binary/sensitive content and inventory truncation are reported rather than silently counted reviewed.
+Default request budget: 96,000 characters; this is NOT a token measurement. Default per-job bound: 8 model rounds. Model response size, run max_calls and campaign max_steps are explicit. Whole-repository text is streamed, not kept in one prompt. Large briefs are reduced into an index while originals remain retrievable. Oversized single source lines, binary/sensitive content and inventory truncation are reported rather than silently counted reviewed.
 
 Commands/providers may fail. Jobs persist before subsequent work; a malformed response receives contract feedback, while transport failure preserves the run for `continue`. Raising a budget does not make missing evidence pass. Provider error bodies and stderr are withheld to avoid printing credentials.
 

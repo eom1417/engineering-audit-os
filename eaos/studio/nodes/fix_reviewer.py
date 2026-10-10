@@ -77,8 +77,7 @@ def check(data, decision):
 
 
 def prompt(data):
-    return (TASK + '\n\n' + core.rules_of_the_answer(data['lang']) + '\n\nAnswer with the JSON object of the schema only.\n\n'
-            'The bundle:\n' + json.dumps({k: v for k, v in data.items() if k != 'lang'}, ensure_ascii=False))
+    return core.prompt(TASK, data)
 
 
 def finish(report, record, data):

@@ -3,8 +3,9 @@
 The same contract as eaos/runtime/claude_adapter.py: {"messages": [...]} on stdin, one JSON object on stdout.
 Codex runs `exec` in a read-only sandbox, in an empty folder, without keeping the session (--ephemeral), and
 without the user's own rules or config (--ignore-rules --ignore-user-config), so it reads only what EAOS sends
-and changes nothing itself. No key is read or written: the CLI uses the sign-in it has. $EAOS_CODEX_MODEL
-picks the model; each call is appended to $EAOS_MODEL_USAGE when that names a file.
+and changes nothing itself; its progress goes to stderr, so the provider sees the work go on. No key is read or
+written: the CLI uses the sign-in it has. $EAOS_CODEX_MODEL picks the model; each call is appended to
+$EAOS_MODEL_USAGE when that names a file.
 """
 import json
 import os
@@ -16,7 +17,7 @@ import time
 from .claude_adapter import ANSWER, parse, render
 
 
-def call(messages, timeout=600):
+def call(messages):
     system, conversation = render(messages)
     with tempfile.TemporaryDirectory(prefix='eaos-codex-') as empty:
         answer = os.path.join(empty, 'answer.txt')
@@ -24,8 +25,8 @@ def call(messages, timeout=600):
                 '-s', 'read-only', '--color', 'never', '-C', empty, '-o', answer]
         if os.environ.get('EAOS_CODEX_MODEL'): argv += ['-m', os.environ['EAOS_CODEX_MODEL']]
         began = time.monotonic()
-        done = subprocess.run(argv + ['-'], input=f'{system}\n\n{conversation}\n\n{ANSWER}', capture_output=True,
-                              text=True, timeout=timeout, cwd=empty)
+        done = subprocess.run(argv + ['-'], input=f'{system}\n\n{conversation}\n\n{ANSWER}', stdout=sys.stderr, stderr=sys.stderr,
+                              text=True, cwd=empty)
         if done.returncode != 0: raise RuntimeError(f'codex exited {done.returncode}')
         text = open(answer, encoding='utf-8').read() if os.path.exists(answer) else ''
     usage = os.environ.get('EAOS_MODEL_USAGE')

@@ -140,10 +140,12 @@ class AdapterIsolationTests(Workspace):
     def test_the_model_runs_with_every_tool_off_no_session_and_the_cli_s_own_sign_in(self):
         from unittest import mock
         from eaos.runtime import claude_adapter
-        done = mock.Mock(returncode=0, stdout=json.dumps({'result': '{"action": "final"}', 'total_cost_usd': 0.01}))
-        with mock.patch.object(claude_adapter.subprocess, 'run', return_value=done) as run:
+        result = json.dumps({'type': 'result', 'result': '{"action": "final"}', 'total_cost_usd': 0.01}) + '\n'
+        process = mock.MagicMock(stdout=iter([result]), returncode=0)
+        process.wait.return_value = 0
+        with mock.patch.object(claude_adapter.subprocess, 'Popen', return_value=process) as popen, mock.patch('sys.stderr'):
             self.assertEqual(claude_adapter.call([{'role': 'user', 'content': 'hi'}]), {'action': 'final'})
-        argv, kwargs = run.call_args.args[0], run.call_args.kwargs
+        argv, kwargs = popen.call_args.args[0], popen.call_args.kwargs
         self.assertEqual(argv[argv.index('--tools') + 1], '')
         self.assertIn('--no-session-persistence', argv)
         self.assertNotIn('env', kwargs, 'no key is put in the environment: the CLI uses the sign-in it has')

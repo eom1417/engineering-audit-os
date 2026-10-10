@@ -55,7 +55,7 @@ The planned ideal (docs/STUDIO.md D10; written by the planner 2026-10-08 with NS
         prompt, schema) -> dict` asks the assistant (pass 'plan' -> an ideal; pass 'critique' -> {critique, ideal});
         `launcher.assistant` and `launcher.model` name it, read after each call. Without a launcher, the first available
         adapter of `adapters` (eaos.studio.actions.adapters.installed() by default) runs headless; with none, nothing
-        is planned. A failure or timeout leaves the rules' target in place.
+        is planned. A failure, a stuck assistant or a stop leaves the rules' target in place.
         An ideal: {views: {<view>: {summary, confidence, elements: [{id, kind, title, operation, subject, detail,
         cites: [ids]}]}}, departures: [{view, element, rule_says, plan_chose, because, cites}],
         open_questions: [{id, view, question, options, recommendation, why}], confidence}
@@ -68,19 +68,19 @@ The planned ideal (docs/STUDIO.md D10; written by the planner 2026-10-08 with NS
 
 AI nodes in the EAOS pipeline (docs/STUDIO.md D11; written by the planner 2026-10-08 with NS46.T15):
     eaos.studio.nodes.NODES                          the AI nodes, in order, as declared data: Node(name, title, kind='ai',
-                                                     passes, requires, consumes, produces, routes, budget); `routes` is a
+                                                     passes, requires, consumes, produces, routes); `routes` is a
                                                      tuple of Route(decision, to, when): `to` is another node or one of
                                                      eaos.studio.nodes.SINKS; each node has exactly one 'rules only' route
-    eaos.studio.nodes.Budget(seconds, usd)           the time and cost budget of one node's run
-    eaos.studio.nodes.run(report, names=None, launcher=None, adapters=None, project=None, lang='en', budget=None,
-                          fresh=False, **inputs) -> {name: record}
+    eaos.studio.nodes.run(report, names=None, launcher=None, adapters=None, project=None, lang='en', fresh=False,
+                          **inputs) -> {name: record}
         runs the named nodes (all by default) whose inputs exist; `launcher(pass, prompt, schema) -> dict` is the
-        assistant (its optional `cost_usd` read after each call); without one, the first available adapter of
+        assistant (its optional `cost_usd` read after each call), given the time the work needs: time and cost are
+        recorded, never cut (owner, 2026-10-10); without one, the first available adapter of
         `adapters`; with none, every node takes its rules-only route. `inputs`: wave=<folder of a fix batch>.
         A schema asks for {summary, decisions: [decision]}; a decision's `subject` is held to an enum of the subjects.
     record (contract ai-node)                        {node, state: decided|rules_only|failed, method: model|rules, assistant,
                                                      model, at, inputs (digest), prompt (digest), cached, seconds, cost_usd,
-                                                     budget, why, decisions, dropped, routes: [{decision, to, when,
+                                                     why, decisions, dropped, routes: [{decision, to, when,
                                                      subjects}]}
     eaos.studio.nodes.core.DECISION                  the shared decision: {subject, decision, options, evidence (ids, at
                                                      least one), confidence, why, open_questions, source: model|rules}
@@ -699,7 +699,7 @@ class _NodeLauncher:
 
 class AINodes(unittest.TestCase):
     """NS46.T15: AI nodes are first-class stages of EAOS's pipeline: a shared decision schema, a router of declared
-    branches after each node with a rules-only fallback, guards (evidence, budget, run log, cache), and the nodes drawn
+    branches after each node with a rules-only fallback, guards (evidence, run log, cache; time and cost recorded, never cut), and the nodes drawn
     on EAOS's own pipeline map and in its truth file."""
 
     def setUp(self):
@@ -746,18 +746,11 @@ class AINodes(unittest.TestCase):
             self.assertEqual([r['decision'] for r in record['routes'] if r['subjects']], ['rules only'], name)
             self.assertTrue(record['decisions'] and all(row['source'] == 'rules' for row in record['decisions']), name)
 
-    def test_budget_run_log_and_cache_hold_with_a_fake_launcher(self):
-        import time
-        Budget = self.nodes.Budget
-        began = time.monotonic()
-        slow = self.nodes.run(self.report, names=['card_triage'], launcher=_NodeLauncher(sleep=5), budget=Budget(seconds=1, usd=1.0))
-        self.assertLess(time.monotonic() - began, 4.5)
-        self.assertEqual(slow['card_triage']['state'], 'rules_only')
-        self.assertIn('time', slow['card_triage']['why'])
-        costly = self.nodes.run(self.report, names=['card_triage'], launcher=_NodeLauncher(cost=5.0), budget=Budget(seconds=60, usd=1.0),
-                                fresh=True)
-        self.assertEqual(costly['card_triage']['state'], 'rules_only')
-        self.assertIn('budget', costly['card_triage']['why'])
+    def test_time_and_cost_recorded_not_cut_run_log_and_cache_hold_with_a_fake_launcher(self):
+        slow = self.nodes.run(self.report, names=['card_triage'], launcher=_NodeLauncher(sleep=2, cost=5.0))['card_triage']
+        self.assertEqual(slow['state'], 'decided', 'a slow, costly answer is used: the work takes what it needs')
+        self.assertGreaterEqual(slow['seconds'], 2)
+        self.assertEqual(slow['cost_usd'], 5.0)
         launcher = _NodeLauncher()
         first = self.nodes.run(self.report, names=['card_triage'], launcher=launcher, fresh=True)['card_triage']
         entry = self.nodes.core.log(self.report)[-1]

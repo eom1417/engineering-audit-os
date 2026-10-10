@@ -1,12 +1,13 @@
 """A command-kind model adapter over the Claude Code CLI already signed in on this machine.
 
 provider.json:
-    {"kind": "command", "argv": ["<python>", "-m", "eaos.runtime.claude_adapter"], "timeout_seconds": 600}
+    {"kind": "command", "argv": ["<python>", "-m", "eaos.runtime.claude_adapter"]}
 
 The provider (eaos/runtime/provider.py) writes {"messages": [...]} to stdin and reads one JSON object from stdout.
 This adapter hands the conversation to `claude -p` as a plain model: every tool is turned off (--tools ""), the
 default system prompt is replaced by the conversation's own, and no session is kept. So the model reads only what
-EAOS sends and edits nothing itself; every change it proposes goes back through `eaos implement`'s checks.
+EAOS sends and edits nothing itself; every change it proposes goes back through `eaos implement`'s checks. Its stream
+is copied to stderr as it comes, so the provider sees the work go on, however long it takes.
 
 No key is read or written here: the CLI uses the sign-in it already has. Each call's reported cost is appended
 to $EAOS_MODEL_USAGE when that names a file, so what a run spent is on record.
@@ -39,13 +40,25 @@ def parse(text):
     return value
 
 
-def call(messages, timeout=600):
+def stream(argv, conversation):
+    """Run `claude` on the conversation, copying its stream to stderr as it comes; return the stream's result event."""
+    process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+    with process.stdin: process.stdin.write(conversation)
+    result = {}
+    for line in process.stdout:
+        sys.stderr.write(line)
+        event = json.loads(line) if line.startswith('{') else None
+        if isinstance(event, dict) and event.get('type') == 'result': result = event
+    if process.wait() != 0: raise RuntimeError(f'claude exited {process.returncode}')
+    return result
+
+
+def call(messages):
     system, conversation = render(messages)
-    argv = ['claude', '-p', '--tools', '', '--no-session-persistence', '--output-format', 'json', '--system-prompt', system]
+    argv = ['claude', '-p', '--tools', '', '--no-session-persistence', '--output-format', 'stream-json', '--verbose',
+            '--include-partial-messages', '--system-prompt', system]
     if os.environ.get('EAOS_CLAUDE_MODEL'): argv += ['--model', os.environ['EAOS_CLAUDE_MODEL']]
-    done = subprocess.run(argv, input=conversation, capture_output=True, text=True, timeout=timeout)
-    if done.returncode != 0: raise RuntimeError(f'claude exited {done.returncode}')
-    envelope = json.loads(done.stdout)
+    envelope = stream(argv, conversation)
     if envelope.get('is_error'): raise RuntimeError('claude reported an error: ' + str(envelope.get('result'))[:200])
     usage = os.environ.get('EAOS_MODEL_USAGE')
     if usage:

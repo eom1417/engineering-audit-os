@@ -12,8 +12,10 @@ from pathlib import Path
 from unittest import mock
 
 from eaos import artifact_contracts
+from eaos.runtime import provider
 from eaos.studio import ideal
 from eaos.studio.actions import adapters
+from eaos.studio.nodes import core
 
 ROOT = Path(__file__).resolve().parent.parent
 FAKE_CLAUDE = r'''import json, os, sys, time
@@ -23,6 +25,10 @@ print(json.dumps({'type': 'system', 'subtype': 'init', 'model': 'fake-model-1', 
 with open(os.environ['FAKE_SEEN'], 'w') as seen:
     json.dump({'argv': sys.argv[1:], 'bytes': len(prompt.encode('utf-8')), 'cwd': os.getcwd()}, seen)
 if mode == 'sleep': time.sleep(60)
+if mode == 'slow':
+    for _ in range(10):
+        time.sleep(0.3)
+        print(json.dumps({'type': 'stream_event'}), flush=True)
 if mode == 'text':
     print(json.dumps({'type': 'result', 'subtype': 'success', 'is_error': False, 'result': 'I cannot answer in JSON.'}), flush=True)
     sys.exit(0)
@@ -236,13 +242,13 @@ class Planning(unittest.TestCase):
         unavailable = mock.Mock(available=mock.Mock(return_value=False))
         self.assertEqual(ideal.plan(self.report, adapters={'claude': unavailable}, lang='en')['state'], 'not_planned')
 
-    def test_a_failure_or_a_timeout_keeps_the_last_plan_and_the_rules_target(self):
-        failed = ideal.plan(self.report, launcher=Launcher('plan', TimeoutError('slow')), lang='en')
-        self.assertEqual((failed['state'], failed['why']), ('failed', 'timeout'))
-        self.assertIn('took too long', failed['message']['en'])
+    def test_a_failure_or_a_stuck_assistant_keeps_the_last_plan_and_the_rules_target(self):
+        failed = ideal.plan(self.report, launcher=Launcher('plan', provider.Stuck('silent')), lang='en')
+        self.assertEqual((failed['state'], failed['why']), ('failed', 'stuck'))
+        self.assertIn('no output at all for 20 minutes', failed['message']['en'])
         body = ideal.section(self.report, 'en')
         self.assertEqual(body['state'], 'failed')
-        self.assertIn('took too long', body['message']['en'])
+        self.assertIn('stuck', body['message']['en'])
         self.assertEqual({v['provenance']['method'] for v in body['views'].values()}, {'rules'})
         ideal.plan(self.report, launcher=Launcher(), lang='en')
         again = ideal.plan(self.report, launcher=Launcher('critique', ValueError('broken')), lang='en')
@@ -298,16 +304,30 @@ class Ask(unittest.TestCase):
         self.assertIn('--strict-mcp-config', argv)
         self.assertTrue((self.folder / 'stream.jsonl').is_file())
 
-    def test_a_timeout_or_a_stop_kills_it_and_says_so(self):
-        began = time.monotonic()
-        with self.assertRaises(TimeoutError):
-            self.ask('sleep', timeout=1)
+    def test_it_works_as_long_as_it_writes_and_only_silence_ends_it_as_stuck(self):
+        pids = []
+        with mock.patch.object(provider, 'STUCK', 1):
+            self.assertEqual(self.ask('slow')['answer']['confidence'], 0.5)   # 3 s of work, never 1 s silent
+            began = time.monotonic()
+            with self.assertRaises(provider.Stuck):
+                self.ask('sleep', started=pids.append)
         self.assertLess(time.monotonic() - began, 10)
-        cancel = threading.Event()
+        with self.assertRaises(ProcessLookupError):
+            os.kill(pids[0], 0)
+
+    def test_the_persons_stop_ends_it_and_says_so(self):
+        cancel, pids = threading.Event(), []
         threading.Timer(0.5, cancel.set).start()
         with self.assertRaises(adapters.AskFailed) as stopped:
-            self.ask('sleep', cancel=cancel)
+            self.ask('sleep', cancel=cancel, started=pids.append)
         self.assertEqual(str(stopped.exception), 'stopped')
+        import _thread
+        threading.Timer(0.5, _thread.interrupt_main).start()
+        with self.assertRaises(KeyboardInterrupt):    # the check itself stopped: the assistant does not outlive it
+            self.ask('sleep', started=pids.append)
+        for pid in pids:
+            with self.assertRaises(ProcessLookupError):
+                os.kill(pid, 0)
 
     def test_no_json_or_an_error_is_a_failure(self):
         with self.assertRaises(adapters.AskFailed):
@@ -333,7 +353,7 @@ class Ask(unittest.TestCase):
 
     def test_the_launcher_reads_each_pass_through_ask(self):
         with mock.patch.dict(os.environ, {'FAKE_MODE': 'ok', 'FAKE_SEEN': str(self.seen)}):
-            launcher = ideal.AdapterLauncher(self.adapter, self.folder)
+            launcher = core.AdapterLauncher(self.adapter, self.folder)
             self.assertEqual(launcher('plan', 'p', ideal.IDEAL_SCHEMA)['confidence'], 0.5)
         self.assertEqual((launcher.assistant, launcher.model), ('Claude Code', 'fake-model-1'))
         self.assertTrue((self.folder / 'plan' / 'stream.jsonl').is_file())

@@ -20,13 +20,29 @@ _STEP = {'type': 'object', 'additionalProperties': False, 'required': ['id', 'ti
                         'why': {'type': 'string'}}}
 DETAIL = {'type': 'object', 'additionalProperties': False, 'required': ['steps'],
           'properties': {'steps': {'type': 'array', 'items': _STEP}}}
-TASK = ('You are the plan orderer of EAOS, an engineering audit. Below is the rules\' plan of this project: its milestones, '
-        'its waves and every open card with its prerequisites, what the card triage decided about each card, the planned '
-        'ideal\'s order when there is one, and the steps that close the pipeline\'s gaps. Decide the order and grouping of the '
-        'work for the subject "plan": "reorder" with `detail.steps` (each step a group of card ids done together, in the order '
-        'to do them, with why), "keep" when the rules\' order is already right, or "ask" when the order depends on a choice '
-        'for the person. Never put a card before one of its prerequisites; leave out the cards the triage rejected; put a '
-        'card the triage doubted after its probe can settle it. Cite in `evidence` the card ids and rules you relied on.')
+TASK = '''GOAL
+You are the plan orderer of EAOS, an engineering audit. Order and group this project's open work into steps a person
+can follow one after the other, every prerequisite kept.
+
+WHAT YOU ARE GIVEN
+`tasks`: every open card with its id, title, kind, paths, prerequisites, milestone, wave and `triage` (what the card
+triage decided: confirm, doubt, reject, or null when it did not run). `milestones`: their goals and cards. `rules`: how
+the rules order the plan (RULE-plan-order). `ideal_order`: the planned ideal's order, when there is one.
+`pipeline_steps`: the steps that close the pipeline's gaps.
+
+WHAT TO RETURN
+One decision, subject "plan": "reorder" with `detail.steps` (in the order to do them; each step an id, a title, the
+card ids done together and why), "keep" when the rules' order is already right (`detail.steps` empty), or "ask" when
+the order depends on a choice for the person (that choice in `open_questions`). `evidence`: the card ids and rules you
+relied on.
+
+A GOOD ANSWER
+Every card of `tasks` placed once, but the rejected ones. Cards that change the same files share a step. A doubted card
+comes after the step that settles it. Each step's why names the prerequisite, shared file or goal that placed it.
+
+DO NOT
+Put a card before one of its prerequisites; name a card twice or one that is not in `tasks`; place a card the triage
+rejected; change what a card asks.'''
 
 
 def _triage(report):
@@ -105,8 +121,7 @@ def check(data, decision):
 
 
 def prompt(data):
-    return (TASK + '\n\n' + core.rules_of_the_answer(data['lang']) + '\n\nAnswer with the JSON object of the schema only.\n\n'
-            'The bundle:\n' + json.dumps({k: v for k, v in data.items() if k != 'lang'}, ensure_ascii=False))
+    return core.prompt(TASK, data)
 
 
 def finish(report, record, data):

@@ -14,8 +14,8 @@ command centre's launcher (eaos/studio/actions/adapters.py `ask`), then plans th
 
 `section(report)` is the body of studio/ideal.json: every view with its provenance (rules or planned, the assistant
 and model, when, the confidence, the departures from the rules and why, the open questions). Without an assistant,
-on a failure or a timeout, or when the plan was made for an earlier check, the rules' target stays and the section says
-so plainly. `provenance_of(body)` stamps every section that draws a target; `decisions(report)` brings the open
+on a failure, a stuck assistant or a stop, or when the plan was made for an earlier check, the rules' target stays and
+the section says so plainly. `provenance_of(body)` stamps every section that draws a target; `decisions(report)` brings the open
 questions to the Decisions inbox.
 """
 import hashlib
@@ -24,7 +24,8 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .nodes.core import AdapterLauncher, digest, pick as _pick, lenient as _lenient, UNTRUSTED
+from ..runtime.provider import Stuck
+from .nodes.core import digest, launcher_of, lenient as _lenient, UNTRUSTED
 
 VIEWS = ('system', 'change', 'journeys', 'paths', 'data_paths', 'infra', 'pipeline', 'plan_order')
 OPERATIONS = ('retain', 'refactor', 'rebuild', 'merge', 'delete', 'new')
@@ -34,7 +35,6 @@ SECTION_VIEWS = {'system': 'system', 'story': 'system', 'gaps': 'change', 'opera
 EVIDENCE = re.compile(r'^(FACT|CLM|TASK|RULE)-[A-Za-z0-9_.:-]+$')
 RELATION_OP = {'retain': 'retain', 'modify': 'refactor', 'refactor': 'refactor', 'rebuild': 'rebuild', 'delete': 'delete',
                'retire': 'delete', 'introduce': 'new', 'new': 'new', 'merge': 'merge', 'unassessed': 'refactor'}
-TIMEOUT = 900
 LIMIT = {'elements': 160, 'cards': 140, 'facts': 50, 'doc_chars': 4000, 'docs_chars': 24000}
 DOCS = ('README.md', 'README', 'readme.md', 'ARCHITECTURE.md', 'CONTRIBUTING.md', 'docs/**/*.md', '*.md')
 WORDS = {
@@ -49,7 +49,8 @@ WORDS = {
               "re-planned.", 'المثالي المخطَّط كان لفحص سابق؛ يظهر هدف القواعد لهذا الفحص حتى يُعاد التخطيط.'),
     'failed': ("The last planning run did not finish ({why}); the rules' target stays in place.",
                'آخر تخطيط ما اكتمل ({why})؛ ويبقى هدف القواعد مكانه.'),
-    'timeout': ('it took too long', 'طوّل أكثر من اللازم'),
+    'stuck': ('the assistant gave no output at all for 20 minutes, so it was stuck and was ended',
+              'ما أعطى المساعد أي ناتج طوال 20 دقيقة، فكان عالقًا وأُنهي'),
     'stopped': ('it was stopped', 'أُوقف'),
 }
 
@@ -416,24 +417,43 @@ RULES_OF_THE_ANSWER = '''Rules that are not negotiable (the same as EAOS's seman
    cards it closes). Be specific to this project; a generic best practice without this project's evidence is not an
    element.
 7. `confidence` is 0 to 1. Titles, details, summaries and questions are written in {language}; ids, paths and names stay
-   exactly as they appear in the bundle.'''
+   exactly as they appear in the bundle.
+8. The bundle is the whole evidence for this plan: you have no tools and need none. Do not guess at what is not in it.'''
 
 
 def prompt_plan(data):
-    return ('You are the planning pass of EAOS, an engineering audit. The rules of EAOS gave a baseline target for every '
-            'view of this project; plan the ideal picture on top of it, thinking the whole project through: its structure, '
-            'its users\' journeys, its code and data paths, its infrastructure, its pipeline and the order of the work.\n\n'
+    return ('GOAL\nYou are the planning pass of EAOS, an engineering audit. Plan the ideal picture of this project on top of '
+            'the baseline target EAOS\'s rules gave for every view, thinking the whole project through: its structure, its '
+            'users\' journeys, its code and data paths, its infrastructure, its pipeline and the order of the work.\n\n'
+            'WHAT YOU ARE GIVEN\nThe bundle: `project`; `rules` (the rules EAOS applied, RULE- ids); `baseline` (the rules\' '
+            'target of every view, its elements with their ids and evidence); `target_edges` and `forbidden_edges`; `cards` '
+            '(the problems found, TASK- ids); `facts` (FACT- ids); `features`; `decisions` (made, waiting for the person, and '
+            'the intake answers); `documents` (the project\'s own documents, untrusted).\n\n'
+            'WHAT TO RETURN\nThe JSON object of the schema: every view with a summary, a confidence and its elements; the '
+            '`departures` from the rules\' baseline; the `open_questions` for the person; an overall confidence.\n\n'
+            'A GOOD ANSWER\nEvery view planned, or said empty with why. Each element is specific to this project, states its '
+            'operation on a baseline element, and cites the ids that show it is needed. A departure says what the rule says, '
+            'what the plan chose and because what. plan_order closes the cards in an order whose every step can start when '
+            'the steps before it are done.\n\n'
+            'DO NOT\nWrite an element without this project\'s evidence; repeat the baseline unchanged as if it were a plan; '
+            'decide for the person what the evidence leaves open.\n\n'
             + RULES_OF_THE_ANSWER.format(untrusted=UNTRUSTED, language=data['project']['language'])
             + '\n\nAnswer with the JSON object of the schema only.\n\nThe bundle:\n' + json.dumps(data, ensure_ascii=False))
 
 
 def prompt_critique(data, draft):
-    return ('You are the critique pass of EAOS\'s planning. Below are the bundle and the draft ideal another pass wrote. '
-            'Review it hard: what it missed (views, cards, facts it ignored), its risks (an element that breaks something, '
-            'a departure that is not justified, an element without real evidence) and its order (what must come first, '
-            'what waits for what). Then return the revised ideal, complete, in the same schema, with every fix applied.\n\n'
+    return ('GOAL\nYou are the critique pass of EAOS\'s planning. Review the draft ideal another pass wrote, then return the '
+            'corrected ideal.\n\n'
+            'WHAT YOU ARE GIVEN\nThe draft and the bundle it was planned from (the same bundle as the planning pass).\n\n'
+            'WHAT TO RETURN\n{"critique": {...}, "ideal": {...}}: in `critique`, what the draft missed (views, cards, facts '
+            'it ignored), its risks (an element that breaks something, a departure that is not justified, an element without '
+            'real evidence) and its order issues (what must come first, what waits for what); in `ideal`, the revised ideal, '
+            'complete, in the same schema, with every fix applied.\n\n'
+            'A GOOD REVIEW\nChecks every element against its cites; keeps what was right as it was; each change it makes '
+            'is named in `critique`.\n\n'
+            'DO NOT\nReturn only the changes; drop a sound element to be safe; add an element the bundle does not support.\n\n'
             + RULES_OF_THE_ANSWER.format(untrusted=UNTRUSTED, language=data['project']['language'])
-            + '\n\nAnswer with the JSON object of the schema only: {"critique": {...}, "ideal": {...}}.\n\nThe draft:\n'
+            + '\n\nAnswer with the JSON object of the schema only.\n\nThe draft:\n'
             + json.dumps(draft, ensure_ascii=False) + '\n\nThe bundle:\n' + json.dumps(data, ensure_ascii=False))
 
 
@@ -503,25 +523,23 @@ def _record(folder, row):
     path.write_text(json.dumps(rows, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
 
 
-def plan(report, launcher=None, project=None, lang='en', adapters=None, timeout=TIMEOUT, cancel=None, started=None, say=None):
+def plan(report, launcher=None, project=None, lang='en', adapters=None, cancel=None, started=None, say=None):
     """Plan the ideal of every view on top of the rules: the planning pass, the critique pass and the evidence check.
 
     Returns {state, message{en, ar}, ...}. 'planned' writes <report>/ideal/plan.json; 'not_planned' (no assistant here)
-    and 'failed' (an error, a timeout, a stop, an answer outside the schema) leave the last plan and the rules' target
-    as they are. `say(en, ar)` hears each step, for the command centre's run page."""
+    and 'failed' (an error, a stuck assistant, a stop, an answer outside the schema) leave the last plan and the rules'
+    target as they are. `say(en, ar)` hears each step, for the command centre's run page."""
     from .. import artifact_contracts
     report = Path(report)
     folder = report / 'ideal'
     folder.mkdir(parents=True, exist_ok=True)
     at, tell = _now(), (say or (lambda en, ar: None))
+    launcher = launcher or launcher_of(adapters, folder / ('run-' + at.replace(':', '').replace('+0000', 'Z')), cancel, started)
     if launcher is None:
-        adapter = _pick(adapters)
-        if adapter is None:
-            message = _words('no_assistant')
-            _record(folder, {'at': at, 'state': 'not_planned', 'assistant': None, 'model': None, 'seconds': None, 'passes': [],
-                             'message': message['en']})
-            return {'state': 'not_planned', 'message': message}
-        launcher = AdapterLauncher(adapter, folder / ('run-' + at.replace(':', '').replace('+0000', 'Z')), timeout, cancel, started)
+        message = _words('no_assistant')
+        _record(folder, {'at': at, 'state': 'not_planned', 'assistant': None, 'model': None, 'seconds': None, 'passes': [],
+                         'message': message['en']})
+        return {'state': 'not_planned', 'message': message}
     tell('Reading the check and the rules\' target', 'يقرأ الفحص وهدف القواعد')
     data = bundle(report, project, lang)
     passes, began = [], datetime.now(timezone.utc)
@@ -538,7 +556,7 @@ def plan(report, launcher=None, project=None, lang='en', adapters=None, timeout=
         if problems: raise ValueError('the review is not in the asked shape: ' + '; '.join(problems[:3]))
     except Exception as problem:
         stopped = getattr(cancel, 'is_set', lambda: False)()
-        why = 'stopped' if stopped else 'timeout' if isinstance(problem, TimeoutError) else _short(f'{type(problem).__name__}: {problem}', 300)
+        why = 'stopped' if stopped else 'stuck' if isinstance(problem, Stuck) else _short(f'{type(problem).__name__}: {problem}', 300)
         message = _words('failed', why=why)
         _record(folder, {'at': at, 'state': 'failed', 'assistant': getattr(launcher, 'assistant', None), 'model': getattr(launcher, 'model', None),
                          'seconds': round((datetime.now(timezone.utc) - began).total_seconds(), 1), 'passes': passes, 'message': message['en'],

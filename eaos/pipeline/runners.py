@@ -101,9 +101,12 @@ NO_ASSISTANT = 'no assistant was installed or allowed for this check, so the rul
 def semantic(context):
     if not context.provider:
         raise SkipStage(NO_ASSISTANT, code='no_provider')
+    from ..runtime.provider import Stuck
     from ..semantic import run
     from ..views import refresh
     try: result = run(context.target, context.out, context.provider, language=context.language)
+    except Stuck as problem:
+        raise SkipStage(str(problem), code='ai_stuck') from None
     except Exception as problem:                       # the assistant never decides the fate of the check
         raise SkipStage(f'the assistant\'s reading could not be used ({type(problem).__name__}: {problem})'[:300],
                         code='ai_failed') from None
@@ -112,16 +115,17 @@ def semantic(context):
 
 
 def _node(context, name):
-    """Run one AI node of eaos/studio/nodes inside the check, held to the node's budget, cache and evidence check; return
-    its record and what the live map reports. Without an assistant or on a failure the rules' result stands."""
+    """Run one AI node of eaos/studio/nodes inside the check, with its cache and evidence check, as long as the assistant
+    works; return its record and what the live map reports. Without an assistant, stuck or on a failure the rules'
+    result stands."""
     if not context.provider:
         raise SkipStage(NO_ASSISTANT, code='no_provider')
-    from ..studio.nodes import run
+    from ..studio.nodes import core, run
     record = run(context.out, names=[name], project=str(context.target), lang=context.language).get(name)
     if record is None:
         raise SkipStage('there was nothing for the assistant to decide', code='not_applicable')
     if record['method'] != 'model':
-        raise SkipStage(record['why'], code='ai_failed')
+        raise SkipStage(record['why'], code='ai_stuck' if record['why'] == core.WORDS['stuck'] else 'ai_failed')
     return record, {'dropped': len(record['dropped']), 'calls': 0 if record['cached'] else record['calls'],
                     'assistant': record['assistant'], 'model': record['model']}
 

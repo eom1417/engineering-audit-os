@@ -2,7 +2,7 @@
 project's latest check, and the result is recorded for the plan's acceptance.
 
     python tools/node_trial.py FleetManageWeb --report <a full report of its check> [--node card_triage]
-                               [--assistant claude|codex] [--lang ar] [--seconds 3000] [--usd 15] [--limit N]
+                               [--assistant claude|codex] [--lang ar] [--limit N]
 
 The report is copied once to $EAOS_MEASURE/nodes/<project>/report (its engines/ folder linked, not copied), so the run
 never writes into the folder it was given. The project's code is read from the pinned corpus ($EAOS_CORPUS/<project>)
@@ -66,8 +66,6 @@ def main(argv):
     parser.add_argument('--node', default='card_triage', choices=[n.name for n in nodes.NODES])
     parser.add_argument('--assistant', default='claude', choices=('claude', 'codex'))
     parser.add_argument('--lang', default='ar', choices=('ar', 'en'))
-    parser.add_argument('--seconds', type=float, help="the node's time budget (its declared one by default)")
-    parser.add_argument('--usd', type=float, help="the node's cost budget (its declared one by default)")
     parser.add_argument('--limit', type=int, help='the card triage reads at most this many cards, most severe first')
     parser.add_argument('--commit', help='the commit a frozen copy (no .git) was made from, for the record')
     args = parser.parse_args(argv)
@@ -78,13 +76,11 @@ def main(argv):
     if not adapter.available():
         print(f'{adapter.name} is not installed and logged in here', file=sys.stderr)
         return 2
-    node = nodes.node(args.node)
-    budget = nodes.Budget(args.seconds or node.budget.seconds, args.usd if args.usd is not None else node.budget.usd)
     corpus = dev_paths.CORPUS / args.project
     say = lambda en, ar: print(en, flush=True)
     extra = {'limit': args.limit} if args.limit else {}
     records = nodes.run(report, names=[args.node], adapters={args.assistant: adapter}, project=corpus if corpus.is_dir() else None,
-                        lang=args.lang, budget=budget, fresh=True, say=say, **extra)
+                        lang=args.lang, fresh=True, say=say, **extra)
     record = records.get(args.node)
     if record is None:
         print(f'{args.node} had nothing to read in this report', file=sys.stderr)
@@ -102,7 +98,7 @@ def main(argv):
            'routes': {r['decision']: len(r['subjects']) for r in record['routes']}, 'dropped': record['dropped'],
            'by_kind': triage.precision(report) if args.node == 'card_triage' else None,
            'omitted': (data or {}).get('omitted'), 'batches': len(triage.batches(data)) if data else None,
-           'budget': record['budget'], 'export_errors': exported['errors'],
+           'export_errors': exported['errors'],
            'eaos': {'commit': commit or args.commit or None, 'digest': build_info.digest()}, 'corpus_code': corpus.is_dir()}
     (folder / f'{args.node}.json').write_text(json.dumps(run, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
     cards = {c['id']: c for c in ideal._cards(report)}

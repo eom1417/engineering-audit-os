@@ -63,7 +63,6 @@ def section(report, lang='ar'):
                      'state': last['state'] if last else 'not_run', 'method': last['method'] if last else None,
                      'assistant': (last or {}).get('assistant'), 'model': (last or {}).get('model'), 'at': (last or {}).get('at'),
                      'cached': bool((last or {}).get('cached')), 'seconds': (last or {}).get('seconds'), 'cost_usd': (last or {}).get('cost_usd'),
-                     'budget': (last or {}).get('budget') or {'seconds': float(node.budget.seconds), 'usd': node.budget.usd},
                      'why': (last or {}).get('why'), 'summary': (last or {}).get('summary') or None,
                      'decisions': decisions[:LIMIT['decisions']], 'dropped': list((last or {}).get('dropped') or [])[:LIMIT['dropped']],
                      'log': [{k: e.get(k) for k in ('at', 'state', 'assistant', 'model', 'prompt', 'inputs', 'cached', 'seconds', 'cost_usd')}

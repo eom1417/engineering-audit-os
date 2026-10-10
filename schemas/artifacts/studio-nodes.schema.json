@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "studio/nodes.json",
-  "description": "The AI nodes of EAOS's pipeline: each node with its title, the passes it makes, the nodes it waits for, its router's declared branches (the decision, where it sends the work, the condition in plain words, how many subjects took it), how its last run was decided (by which assistant and model, or by the rules alone, and why), its budget and cost, its decisions with their evidence, what the evidence check dropped, and its run log; the questions that wait for the person go to the Decisions inbox.",
+  "description": "The AI nodes of EAOS's pipeline: each node with its title, the passes it makes, the nodes it waits for, its router's declared branches (the decision, where it sends the work, the condition in plain words, how many subjects took it), how its last run was decided (by which assistant and model, or by the rules alone, and why), its time and cost, its decisions with their evidence, what the evidence check dropped, and its run log; the questions that wait for the person go to the Decisions inbox.",
   "x-artifact": "studio/nodes.json",
   "x-owner": "NS46",
   "type": "object",
@@ -41,7 +41,6 @@
           "model",
           "at",
           "cached",
-          "budget",
           "why",
           "decisions",
           "dropped",
@@ -173,24 +172,6 @@
               "number",
               "null"
             ]
-          },
-          "budget": {
-            "type": "object",
-            "required": [
-              "seconds",
-              "usd"
-            ],
-            "properties": {
-              "seconds": {
-                "type": "number"
-              },
-              "usd": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              }
-            }
           },
           "why": {
             "type": [

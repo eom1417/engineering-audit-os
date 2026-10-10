@@ -16,11 +16,10 @@ def available():
     return [name for name in names if shutil.which(name)]
 
 
-def provider(max_calls=20, timeout=600):
+def provider(max_calls=20):
     """(name, provider) for the preferred installed assistant, or (None, None)."""
     from .provider import Provider
     found = available()
     if not found: return None, None
     name = found[0]
-    return name, Provider({'kind': 'command', 'argv': [sys.executable, '-m', ADAPTERS[name]],
-                           'timeout_seconds': timeout, 'max_calls': max_calls})
+    return name, Provider({'kind': 'command', 'argv': [sys.executable, '-m', ADAPTERS[name]], 'max_calls': max_calls})

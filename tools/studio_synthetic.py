@@ -241,7 +241,6 @@ def synthetic_nodes(card_rows):
                      'state': 'decided' if model else 'rules_only', 'method': 'model' if model else 'rules',
                      'assistant': 'Claude Code' if model else None, 'model': 'synthetic' if model else None, 'at': WHEN, 'cached': False,
                      'seconds': 420.0 if model else 0.1, 'cost_usd': 1.2 if model else None,
-                     'budget': {'seconds': float(node.budget.seconds), 'usd': node.budget.usd},
                      'why': None if model else 'No assistant is installed and logged in here, so the rules decided alone.',
                      'summary': None, 'decisions': decisions,
                      'dropped': [{'subject': card_rows[i]['id'], 'decision': 'confirm', 'evidence': ['FACT-invented'],

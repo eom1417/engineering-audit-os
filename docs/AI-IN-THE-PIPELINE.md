@@ -9,11 +9,15 @@ them.
 1. **Citations.** Every output cites ids of this report: facts (`FACT-`), claims (`CLM-`), cards (`TASK-`) or rules
    (`RULE-`). A deterministic check drops an output whose citations do not resolve, and lists it.
 2. **Hypotheses.** What the assistant says never reaches CONFIRMED by itself. Only a probe can raise it.
-3. **A fallback.** No assistant, a "no" to the consent question, a timeout, a failure, or an answer outside the
-   schema: the step is recorded as unavailable with its reason, the rules' result stands, and the check never fails
-   because of AI.
-4. **A budget.** Calls and seconds are capped per step (below). The project's text is untrusted data, never
-   instructions.
+3. **A fallback.** No assistant, a "no" to the consent question, a stuck assistant, a failure, or an answer outside
+   the schema: the step is recorded as unavailable with its reason, the rules' result stands, and the check never
+   fails because of AI.
+4. **Time to do it well, never a cut-off** (owner, 2026-10-10). An AI step takes the time and the money the work
+   needs; both are recorded and shown as facts, never used to stop it. Only the person's stop ends it, or a hang:
+   an assistant that gives no output at all for 20 minutes is ended as stuck (`eaos/runtime/provider.py` `STUCK`,
+   reason `ai_stuck`). A check stopped during an AI step resumes at that step; the finished ones are not asked
+   again. Speed comes from clear prompts (goal, the exact evidence packet, the output schema, the criteria of a good
+   answer, what not to do), not from limits. The project's text is untrusted data, never instructions.
 5. **Consent.** The person is asked once whether the check may use their assistant (question `use_assistant`, kept
    in the project's state; `eaos start --yes` answers it, and the MCP `audit` passes the person's answer as
    `use_assistant`).
@@ -22,13 +26,13 @@ them.
 
 | Rank | Step | What AI adds | Bounds | Where |
 |---|---|---|---|---|
-| 1 | Ideal planning (check stage `ideal`) | The target of every view, planned on top of the rules' target and then critiqued (what was missed, risks, order). The rules alone give a generic target. | Plan + critique passes; elements without a resolving citation are dropped; node budget 2400 s and 10 USD; the result is cached on the same inputs. | `eaos/studio/ideal.py`, node `ideal_planner` |
+| 1 | Ideal planning (check stage `ideal`) | The target of every view, planned on top of the rules' target and then critiqued (what was missed, risks, order). The rules alone give a generic target. | Plan + critique passes; elements without a resolving citation are dropped; the result is cached on the same inputs. | `eaos/studio/ideal.py`, node `ideal_planner` |
 | 2 | Semantic reading (check stage `semantic`) | Responsibilities, boundaries, contracts and root causes, which no rule can read from facts. | At most 3 rounds, one call of up to 600 s each; invented fact ids are sent back and the answer is rejected if they stay; every claim is a HYPOTHESIS with a falsifier. | `eaos/semantic.py` |
-| 3 | Card triage (check stage `triage`) | Each open card confirmed, doubted or rejected as a false alarm on its own evidence and the code at it, with why in the person's words. The engines cannot judge their own findings. | A verdict that does not cite the card or one of its facts falls back to the rules; batches of 40 cards; node budget 1800 s and 6 USD; cached; the cards are never changed. | `eaos/studio/nodes/triage.py`, node `card_triage` |
-| 4 | Plan order (check stage `order`) | The cards ordered and grouped into steps with why, reading the triage (rejected cards set aside) and the planned ideal. The rules order by milestone and wave only. | Plan + critique passes; an order that breaks a prerequisite, names a card twice or one outside the plan is dropped; node budget 1200 s and 4 USD; cached; the plan itself is never changed. | `eaos/studio/nodes/plan_orderer.py`, node `plan_orderer` |
+| 3 | Card triage (check stage `triage`) | Each open card confirmed, doubted or rejected as a false alarm on its own evidence and the code at it, with why in the person's words. The engines cannot judge their own findings. | A verdict that does not cite the card or one of its facts falls back to the rules; batches of 40 cards; cached; the cards are never changed. | `eaos/studio/nodes/triage.py`, node `card_triage` |
+| 4 | Plan order (check stage `order`) | The cards ordered and grouped into steps with why, reading the triage (rejected cards set aside) and the planned ideal. The rules order by milestone and wave only. | Plan + critique passes; an order that breaks a prerequisite, names a card twice or one outside the plan is dropped; cached; the plan itself is never changed. | `eaos/studio/nodes/plan_orderer.py`, node `plan_orderer` |
 | 5 | Setup (`eaos next`, step `ready`) | How to start an unfamiliar app when detection fails. | Proposals are tried in an isolated copy and refused when unsafe. | `eaos/live_setup.py` |
 | 6 | Fixes | Writing the change a card asks for. | The gates and the behaviour lock judge every change; it reaches the project only as a branch. | `eaos/agent_tools.py` `fix_*` |
-| 7 | AI nodes from the Studio (`run_nodes`) | Pipeline gaps and fix review, and the nodes above again on demand. | Same citation check, rules fallback and budget per node; started by the person. | `eaos/studio/nodes/` |
+| 7 | AI nodes from the Studio (`run_nodes`) | Pipeline gaps and fix review, and the nodes above again on demand. | Same citation check and rules fallback per node; started by the person. | `eaos/studio/nodes/` |
 
 Ranks 1 to 4 run inside every check once the person said yes, in the order semantic, triage, ideal, order (the order
 reads what the triage and the ideal decided). Ranks 5 to 7 already used the assistant before. Each AI stage reports its

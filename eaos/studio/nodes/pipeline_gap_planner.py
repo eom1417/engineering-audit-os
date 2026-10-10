@@ -19,11 +19,28 @@ LIMIT = {'gaps': 200}
 OPERATIONS = ('retain', 'refactor', 'rebuild', 'merge', 'delete', 'new')
 DETAIL = {'type': 'object', 'additionalProperties': False, 'required': ['operation', 'step'],
           'properties': {'operation': {'type': 'string', 'enum': list(OPERATIONS)}, 'step': {'type': 'string'}}}
-TASK = ('You are the pipeline-gap planner of EAOS, an engineering audit. Below are the gaps of this project\'s pipeline map: '
-        'each is a pipeline rule the code breaks, with where, and the rules themselves with their sources. Decide for each gap: '
-        '"plan" with `detail.operation` and `detail.step` (the concrete step that closes it, in plain words), "ask" when '
-        'closing it is a choice for the person (say the choice in `open_questions`), or "not a gap" when the rule does not fit '
-        'this pipeline (say why). Cite in `evidence` the gap id and its rule id (RULE-pipeline-P...).')
+TASK = '''GOAL
+You are the pipeline-gap planner of EAOS, an engineering audit. Decide how each gap of this project's pipeline map is
+closed.
+
+WHAT YOU ARE GIVEN
+`gaps`: each a pipeline rule the code breaks, with its id, rule id, the stage or router it is about (`subject`), the
+operation the rules propose, what is missing (`detail`), its evidence and its card. `rules`: those rules, with why and
+their sources.
+
+WHAT TO RETURN
+One decision per gap, subject = the gap id: "plan" with `detail.operation` and `detail.step` (the concrete step that
+closes it, in plain words), "ask" when closing it is a choice for the person (that choice in `open_questions`), or "not
+a gap" when the rule does not fit this pipeline (why, in `why`). `evidence`: the gap id and its rule id
+(RULE-pipeline-P...).
+
+A GOOD ANSWER
+Every gap decided once. A step names the stage it changes and what it adds there, small enough to do in one change. A
+"not a gap" says what in this pipeline makes the rule not apply.
+
+DO NOT
+Propose a step the gap's evidence does not call for; plan a step for a rule that does not fit; write a generic best
+practice in place of a step for this pipeline.'''
 
 
 def _gaps(report):
@@ -69,8 +86,7 @@ def check(data, decision):
 
 
 def prompt(data):
-    return (TASK + '\n\n' + core.rules_of_the_answer(data['lang']) + '\n\nAnswer with the JSON object of the schema only.\n\n'
-            'The bundle:\n' + json.dumps({k: v for k, v in data.items() if k != 'lang'}, ensure_ascii=False))
+    return core.prompt(TASK, data)
 
 
 def finish(report, record, data):

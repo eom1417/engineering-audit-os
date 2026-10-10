@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "de8fc2e",
+  "extracted_at_commit": "30dde15",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -2235,21 +2235,39 @@
       "note": ""
     },
     {
-      "id": "INV-f44a4e156a",
+      "id": "INV-5d10596d94",
       "file": "eaos/studio/nodes/core.py",
       "symbol": "<module>",
-      "statement": "`run_node(node, spec, report, ...)` runs one node with its guards: the evidence check a decision keeps only the ids that resolve; one with none left, an unknown subject, a choice the node does not have or a repeated subject is dropped and listed, never routed the critique pass planning nodes ('critique' in their passes) review their draft before it is checked the rules fallback no assistant, over the time or cost budget, or a failed answer: the rules decide alone and every subject takes the route \"rules only\"; a subject the model left out keeps the rules' decision, marked `source: rules` the run log <report>/nodes/runs.jsonl: the prompt's and inputs' digests, the model, the output the cache <report>/nodes/<node>/cache/<key>.json: the same inputs give the same result, no new call (also when no assistant is here: a decision already made stands); `fresh` asks again",
+      "statement": "`run_node(node, spec, report, ...)` runs one node with its guards: the evidence check a decision keeps only the ids that resolve; one with none left, an unknown subject, a choice the node does not have or a repeated subject is dropped and listed, never routed the critique pass planning nodes ('critique' in their passes) review their draft before it is checked the rules fallback no assistant, a stuck or stopped assistant, or a failed answer: the rules decide alone and every subject takes the route \"rules only\"; a subject the model left out keeps the rules' decision, marked `source: rules`.",
       "kind": "invariant",
-      "enforced_by": "tests/test_ai_nodes.py::Framework::test_a_subject_the_model_leaves_out_keeps_the_rules_decision",
+      "enforced_by": [
+        "tests/test_ai_nodes.py::Framework::test_a_subject_the_model_leaves_out_keeps_the_rules_decision",
+        "tests/test_ai_nodes.py::IdealNode::test_without_an_assistant_or_with_a_stuck_one_the_rules_target_stands"
+      ],
       "note": ""
     },
     {
-      "id": "INV-b6e63a22d4",
+      "id": "INV-c0de827c12",
       "file": "eaos/studio/nodes/core.py",
-      "symbol": "Bounded",
-      "statement": "A launcher held to a budget: each call waits at most the seconds left (even a launcher that hangs is cut off, and its cancel is set), and what it says it has spent (`cost_usd`, read after each call) may not pass `usd`.",
+      "symbol": "<module>",
+      "statement": "The assistant takes the time the work needs: its time and cost are recorded, never cut.",
       "kind": "invariant",
-      "enforced_by": "tests/test_ai_nodes.py::Launcher::test_a_hanging_launcher_is_cut_off_and_an_expensive_one_refused",
+      "enforced_by": [
+        "tests/test_ai_nodes.py::Launcher::test_claude_code_is_asked_without_a_limit_and_its_cost_is_read",
+        "tests/test_ideal_planner.py::Ask::test_it_works_as_long_as_it_writes_and_only_silence_ends_it_as_stuck"
+      ],
+      "note": ""
+    },
+    {
+      "id": "INV-c03c0b1f0a",
+      "file": "eaos/studio/nodes/core.py",
+      "symbol": "<module>",
+      "statement": "the run log <report>/nodes/runs.jsonl: the prompt's and inputs' digests, the model, the output the cache <report>/nodes/<node>/cache/<key>.json: the same inputs give the same result, no new call (also when no assistant is here: a decision already made stands); `fresh` asks again",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_ai_nodes.py::Framework::test_the_record_meets_its_contract_and_the_log_keeps_every_run",
+        "tests/test_ai_nodes.py::Framework::test_a_changed_prompt_or_schema_asks_again"
+      ],
       "note": ""
     },
     {
@@ -2268,6 +2286,17 @@
       "statement": "The batch of `wave` (its folder), or None when no batch is given.",
       "kind": "invariant",
       "enforced_by": "tests/test_ai_nodes.py::Reviewer::test_the_gates_stay_the_judge",
+      "note": ""
+    },
+    {
+      "id": "INV-ebb7d13638",
+      "file": "eaos/studio/nodes/ideal_planner.py",
+      "symbol": "<module>",
+      "statement": "As a node it gains the framework's guards: the time and cost recorded (never cut), the cache (a current plan made from the same bundle is not asked again), the run log, and one decision in the shared shape, subject \"ideal\": \"accept\" (every view planned on evidence and no question left: on to the plan orderer), \"ask\" (its questions wait in the Decisions inbox) or \"rules only\" (not planned: the rules' target stands).",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_ai_nodes.py::IdealNode::test_without_an_assistant_or_with_a_stuck_one_the_rules_target_stands"
+      ],
       "note": ""
     },
     {

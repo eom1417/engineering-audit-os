@@ -300,6 +300,18 @@ class JobTests(Home):
         self.assertEqual(jobs.read(job)['status'], 'failed')
         self.assertIn('start it again', jobs.read(job)['error'])
 
+    def test_a_stop_ends_the_work_as_an_interrupt_so_what_it_started_ends_with_it(self):
+        import signal
+        import time
+        job = jobs.start('audit', str(self.project), {})
+        self.addCleanup(signal.signal, signal.SIGTERM, signal.getsignal(signal.SIGTERM))
+        def work(project, arguments, progress):
+            os.kill(os.getpid(), signal.SIGTERM)
+            time.sleep(5)
+        with mock.patch.dict(agent_tools.JOBS, {'audit': work}):
+            self.assertEqual(jobs.run(job), 1)
+        self.assertIn('KeyboardInterrupt', jobs.read(job)['error'])
+
     def test_a_job_name_cannot_reach_outside_the_jobs_folder(self):
         with self.assertRaises(ValueError): jobs.read('../state')
 

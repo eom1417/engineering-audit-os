@@ -1,12 +1,11 @@
 """The ideal planner as an AI node: node 1 (docs/STUDIO.md D10 and D11).
 
 The planning itself is eaos/studio/ideal.py `plan`, unchanged: the bundle, the plan and critique passes and the
-evidence check of every element. As a node it gains the framework's guards: the launcher held to the node's time and
-cost budget, the cache (a current plan made from the same bundle is not asked again), the run log, and one decision in
+evidence check of every element. As a node it gains the framework's guards: the time and cost recorded (never cut),
+the cache (a current plan made from the same bundle is not asked again), the run log, and one decision in
 the shared shape, subject "ideal": "accept" (every view planned on evidence and no question left: on to the plan
 orderer), "ask" (its questions wait in the Decisions inbox) or "rules only" (not planned: the rules' target stands).
 """
-import threading
 import time
 from pathlib import Path
 
@@ -47,14 +46,11 @@ def _dropped(plan_record):
             for row in (plan_record or {}).get('dropped') or []]
 
 
-def run(node, report, launcher=None, adapters=None, project=None, lang='en', budget=None, fresh=False, say=None, cancel=None,
-        started=None, **_):
+def run(node, report, launcher=None, adapters=None, project=None, lang='en', fresh=False, say=None, cancel=None, started=None, **_):
     report = Path(report)
-    budget = budget or node.budget
     data = ideal.bundle(report, project, lang)
     prompt, at, began = ideal.prompt_plan(data), core.now(), time.monotonic()
-    base = {'at': at, 'inputs': core.digest(data), 'passes': list(node.passes), 'summary': '',
-            'budget': {'seconds': float(budget.seconds), 'usd': budget.usd}}
+    base = {'at': at, 'inputs': core.digest(data), 'passes': list(node.passes), 'summary': ''}
     asked = core.digest([prompt])
     schema = core.digest([ideal.IDEAL_SCHEMA, ideal.CRITIQUE_SCHEMA])
     current, state = ideal.current(report)
@@ -63,30 +59,16 @@ def run(node, report, launcher=None, adapters=None, project=None, lang='en', bud
                                                           'model': current.get('model'), 'prompt': asked, 'schema': schema, 'cached': True,
                                                           'seconds': 0.0, 'cost_usd': None, 'why': None},
                                                    _decisions(node, report, current), _dropped(current)))
-    if launcher is None:
-        adapter = core.pick(adapters)
-        if adapter is not None:
-            stamp = at.replace(':', '').replace('+0000', 'Z')
-            launcher = core.AdapterLauncher(adapter, report / 'ideal' / f'run-{stamp}', timeout=budget.seconds, cancel=cancel,
-                                            started=started, budget_usd=budget.usd)
-    cancel = cancel or threading.Event()
-    bounded = core.Bounded(launcher, budget.seconds, budget.usd, cancel) if launcher is not None else None
-    result = ideal.plan(report, launcher=bounded, project=project, lang=lang, adapters={} if bounded is None else adapters, cancel=cancel,
-                        say=say)
-    seconds = round(time.monotonic() - began, 1)
-    fields = {'assistant': result.get('assistant') or (bounded and bounded.assistant), 'model': result.get('model') or (bounded and bounded.model),
-              'prompt': asked if bounded else None, 'schema': schema, 'cached': False, 'seconds': seconds,
-              'cost_usd': bounded.cost_usd if bounded else None}
+    stamp = at.replace(':', '').replace('+0000', 'Z')
+    launcher = launcher or core.launcher_of(adapters, report / 'ideal' / f'run-{stamp}', cancel, started)
+    result = ideal.plan(report, launcher=launcher, project=project, lang=lang, adapters={}, cancel=cancel, say=say)
+    fields = {'assistant': getattr(launcher, 'assistant', None), 'model': getattr(launcher, 'model', None),
+              'prompt': asked if launcher else None, 'schema': schema, 'cached': False, 'seconds': round(time.monotonic() - began, 1),
+              'cost_usd': core.spent(launcher)}
     if result['state'] != 'planned':
-        why_raw = str(result.get('why') or '')
-        if bounded is None: why, state = core.WORDS['no_assistant'], 'rules_only'
-        elif why_raw == 'timeout': why, state = core.WORDS['time'].format(seconds=int(budget.seconds)), 'rules_only'
-        elif why_raw.startswith('OverBudget'):
-            why, state = core.WORDS['budget'].format(cost=f'{bounded.cost_usd or 0:.2f}', usd=f'{budget.usd:.2f}'), 'rules_only'
-        elif why_raw == 'stopped': why, state = core.WORDS['stopped'], 'rules_only'
-        else: why, state = core.WORDS['failed'].format(why=core.short(why_raw, 300)), 'failed'
+        why, state = (core.WORDS['no_assistant'], 'rules_only') if launcher is None else core.fallback(str(result.get('why') or ''))
         return core.keep(report, node, core.record(node, {**base, **fields, 'state': state, 'method': 'rules', 'why': why},
-                                                   _decisions(node, report, None, why), [], over_budget=why_raw.startswith('OverBudget')))
+                                                   _decisions(node, report, None, why), []))
     planned, _ = ideal.current(report)
     return core.keep(report, node, core.record(node, {**base, **fields, 'state': 'decided', 'method': 'model', 'why': None, 'calls': len(node.passes),
                                                       'summary': core.short(f"{result.get('elements', 0)} elements", 200)},

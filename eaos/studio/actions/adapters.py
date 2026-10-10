@@ -15,7 +15,6 @@ assistant's own CLI holds to a JSON Schema (Claude Code `--json-schema`, Codex `
 import difflib
 import json
 import os
-import signal
 import shutil
 import subprocess
 import time
@@ -178,12 +177,11 @@ class ClaudeCode(Adapter):
                                *[f'mcp__eaos__{tool}' for tool in PERSON_ONLY]]
         return argv + (['--resume', session] if session else [])
 
-    def ask_argv(self, schema, folder, budget_usd=None):
-        """One question on standard input, no tool, no MCP server, nothing kept: the answer held to `schema`, and the
-        spending held to `budget_usd` by Claude Code itself when it is given."""
-        return self.command + ['-p', '--output-format', 'stream-json', '--verbose', '--json-schema', json.dumps(schema),
-                               '--tools', '', '--strict-mcp-config', '--no-session-persistence',
-                               *(['--max-budget-usd', f'{float(budget_usd):.2f}'] if budget_usd else [])]
+    def ask_argv(self, schema, folder):
+        """One question on standard input, no tool, no MCP server, nothing kept: the answer held to `schema`, streamed
+        as it is written."""
+        return self.command + ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages',
+                               '--json-schema', json.dumps(schema), '--tools', '', '--strict-mcp-config', '--no-session-persistence']
 
     def cost(self, lines):
         """`total_cost_usd` of the stream's result line."""
@@ -269,9 +267,8 @@ class Codex(Adapter):
         if session: return self.command + ['exec', 'resume', *options, session, prompt]
         return self.command + ['exec', *options, prompt]
 
-    def ask_argv(self, schema, folder, budget_usd=None):
-        """One question on standard input (`-`), a read-only sandbox, nothing kept: the answer held to `schema`. Codex has no
-        spending limit of its own, so `budget_usd` is held only by the time limit."""
+    def ask_argv(self, schema, folder):
+        """One question on standard input (`-`), a read-only sandbox, nothing kept: the answer held to `schema`."""
         path = folder / 'schema.json'
         path.write_text(json.dumps(schema), encoding='utf-8')
         return self.command + ['exec', '--json', '--skip-git-repo-check', '--ephemeral', '--output-schema', str(path),
@@ -350,19 +347,20 @@ def _json_object(text):
     return value if isinstance(value, dict) else None
 
 
-def ask(adapter, prompt, schema, folder, timeout=900, cancel=None, started=None, budget_usd=None):
+def ask(adapter, prompt, schema, folder, cancel=None, started=None):
     """Ask the assistant one question and return {answer, model, assistant, seconds, cost_usd}.
 
     The prompt goes on standard input, so its size never meets the argument limit; the process runs in its own group in
     `folder` (never in the project, whose instructions are not the planner's); `started(pid)` hears its pid, so the run
-    manager can pause or stop it. A timeout or `cancel` (a threading.Event) kills the whole group and raises
-    TimeoutError or AskFailed; an answer that is not a JSON object raises AskFailed. The stream stays in `folder`."""
+    manager can pause or stop it. It works as long as it needs: `cancel` (a threading.Event) ends the whole group and
+    raises AskFailed('stopped'), and only an assistant silent for eaos/runtime/provider.py STUCK seconds is ended as
+    stuck (Stuck). An answer that is not a JSON object raises AskFailed. The stream stays in `folder`."""
+    from ...runtime.provider import wait
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
     stream, began = folder / 'stream.jsonl', time.monotonic()
     with open(stream, 'wb') as out, open(folder / 'stderr.log', 'wb') as err:
-        argv = adapter.ask_argv(schema, folder, budget_usd) if budget_usd else adapter.ask_argv(schema, folder)
-        process = subprocess.Popen(argv, cwd=folder, stdin=subprocess.PIPE, stdout=out, stderr=err,
+        process = subprocess.Popen(adapter.ask_argv(schema, folder), cwd=folder, stdin=subprocess.PIPE, stdout=out, stderr=err,
                                    start_new_session=True)
         if started: started(process.pid)
         try:
@@ -370,15 +368,8 @@ def ask(adapter, prompt, schema, folder, timeout=900, cancel=None, started=None,
             process.stdin.close()
         except OSError:
             pass
-        while process.poll() is None:
-            stopped = cancel is not None and cancel.is_set()
-            if stopped or time.monotonic() - began > timeout:
-                try: os.killpg(process.pid, signal.SIGKILL)
-                except OSError: process.kill()
-                process.wait()
-                if stopped: raise AskFailed('stopped')
-                raise TimeoutError(f'no answer after {int(timeout)} seconds')
-            time.sleep(0.25)
+        wait(process, (out, err), cancel)
+    if cancel is not None and cancel.is_set(): raise AskFailed('stopped')
     lines = stream.read_text(encoding='utf-8', errors='replace').splitlines()
     answer, model, failure = adapter.answer(lines)
     if failure or answer is None:

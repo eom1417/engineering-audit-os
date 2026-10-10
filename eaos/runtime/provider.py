@@ -5,9 +5,39 @@ from pathlib import Path
 import subprocess
 import signal
 import tempfile
+import time
 from urllib.request import Request, build_opener, HTTPRedirectHandler
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
+
+STUCK = 1200   # seconds with no output at all from the assistant: it is stuck, however long the work may take
+
+
+class Stuck(Exception):
+    """The assistant gave no output at all for STUCK seconds, so it was ended."""
+
+
+def _end(process):
+    try: os.killpg(process.pid, signal.SIGKILL)
+    except OSError: process.kill()
+    process.wait()
+
+
+def wait(process, outputs, cancel=None):
+    """Wait for `process` (started in its own session) however long it works. Its whole group is ended only when the
+    person stops it (`cancel` set, or a stop reaching this process), or when nothing is written to any of `outputs`
+    (open files) for STUCK seconds: then Stuck is raised."""
+    sizes, quiet = None, time.monotonic()
+    try:
+        while process.poll() is None and not (cancel is not None and cancel.is_set()):
+            now = [os.fstat(output.fileno()).st_size for output in outputs]
+            if now != sizes: sizes, quiet = now, time.monotonic()
+            elif time.monotonic() - quiet > STUCK:
+                raise Stuck(f'the assistant gave no output at all for {STUCK // 60} minutes, so it was stuck and was ended')
+            time.sleep(0.25)
+    finally:
+        if process.poll() is None: _end(process)
+
 
 class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):return None
@@ -18,8 +48,6 @@ class Provider:
         self.kind=config.get('kind','chat_completions')
         max_calls=config.get('max_calls',400)
         if type(max_calls) is not int or not 1<=max_calls<=100000:raise ValueError('max_calls must be an integer between 1 and 100000')
-        self.timeout=config.get('timeout_seconds',120)
-        if type(self.timeout) not in (int,float) or not 1<=self.timeout<=600:raise ValueError('Provider timeout must be 1–600 seconds')
         self.limit=config.get('max_response_bytes',2_000_000)
         if type(self.limit) is not int or not 1024<=self.limit<=8_000_000:raise ValueError('Invalid provider response limit')
         if self.kind=='chat_completions':
@@ -42,17 +70,16 @@ class Provider:
 
     def complete(self,messages):
         if self.kind=='command':
-            # A user-selected adapter receives JSON on stdin and emits JSON on stdout.
+            # A user-selected adapter receives JSON on stdin and emits JSON on stdout; it may work as long as it needs
+            # while it writes anything (its progress on stderr counts): only silence for STUCK seconds ends it.
             # CWD is empty so repository code cannot be imported accidentally by the adapter.
             with tempfile.TemporaryDirectory(prefix='eaos-adapter-') as cwd, tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
                 try:
                     p=subprocess.Popen(self.config['argv'],stdin=subprocess.PIPE,stdout=out,stderr=err,cwd=cwd,shell=False,start_new_session=(os.name=='posix'))
-                    try:p.communicate(json.dumps({'messages':messages}).encode(),timeout=self.timeout)
-                    except subprocess.TimeoutExpired:
-                        if os.name=='posix':os.killpg(p.pid,signal.SIGKILL)
-                        else:p.kill()
-                        p.wait()
-                        raise ValueError('Model adapter timed out; no raw stderr exposed') from None
+                    try:
+                        with p.stdin:p.stdin.write(json.dumps({'messages':messages}).encode())
+                    except BrokenPipeError:pass   # it ended before reading: its exit code says why
+                    wait(p,(out,err))
                 except OSError:raise ValueError('Model adapter could not start; no raw stderr exposed') from None
                 if p.returncode:raise ValueError('Model adapter exited unsuccessfully; no raw stderr exposed')
                 out.seek(0);raw=out.read(self.limit+1)
@@ -66,7 +93,7 @@ class Provider:
         if self.key:headers['Authorization']='Bearer '+self.key
         req=Request(self.endpoint,data=json.dumps(body).encode(),headers=headers,method='POST')
         try:
-            with build_opener(NoRedirect()).open(req,timeout=self.timeout) as response:raw=response.read(self.limit+1)
+            with build_opener(NoRedirect()).open(req,timeout=STUCK) as response:raw=response.read(self.limit+1)   # silence only, never length
         except (HTTPError,URLError,TimeoutError):raise ValueError('Model endpoint request failed; endpoint error body and credentials withheld') from None
         if len(raw)>self.limit:raise ValueError('Model response exceeds configured limit')
         data=json.loads(raw)

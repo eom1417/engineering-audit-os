@@ -3,7 +3,7 @@ reads the plan (docs/north-star.json: milestones, tasks, capabilities and indica
 master plan and the owner's Studio decisions, and proposes changes to the roadmap. Every proposal cites the NS steps,
 tasks, capabilities or indicators it stands on; one that cites none of them is dropped before anyone sees it.
 
-    python tools/roadmap_review.py [--master-plan <MASTER-PLAN.md>] [--assistant claude|codex] [--timeout 1800]
+    python tools/roadmap_review.py [--master-plan <MASTER-PLAN.md>] [--assistant claude|codex]
     python tools/roadmap_review.py --render      # docs/roadmap-proposals.md again from the .json
 
 Every proposal is a decision for the owner: it is written with state "waiting" and `applied` false, and this tool
@@ -186,7 +186,6 @@ def main(argv):
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('--master-plan', default=str(MASTER))
     parser.add_argument('--assistant', default='claude', choices=('claude', 'codex'))
-    parser.add_argument('--timeout', type=int, default=1800)
     parser.add_argument('--render', action='store_true', help='write docs/roadmap-proposals.md again from the .json')
     args = parser.parse_args(argv)
     if args.render:
@@ -201,7 +200,7 @@ def main(argv):
     data = bundle(record, args.master_plan, _replans())
     folder = dev_paths.MEASURE / 'replan/roadmap'
     folder.mkdir(parents=True, exist_ok=True)
-    launcher = AdapterLauncher(adapter, folder, timeout=args.timeout)
+    launcher = AdapterLauncher(adapter, folder)
     print('planning pass', flush=True)
     draft = launcher('plan', prompt_plan(data), lenient(PLAN_SCHEMA))
     print('critique pass', flush=True)

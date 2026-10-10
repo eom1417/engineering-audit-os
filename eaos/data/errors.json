@@ -441,8 +441,12 @@
    "en": "No AI assistant was installed or allowed for this check, so the rules stand alone."
   },
   "ai_failed": {
-   "ar": "مساعدك الذكي ما أعطى جوابًا صالحًا هالمرة (تأخر أو تعطل)، فبقيت القواعد وحدها والفحص كمل.",
-   "en": "Your AI assistant gave no usable answer this time (too slow or failed), so the rules stand alone and the check went on."
+   "ar": "مساعدك الذكي ما أعطى جوابًا صالحًا هالمرة، فبقيت القواعد وحدها والفحص كمل.",
+   "en": "Your AI assistant gave no usable answer this time, so the rules stand alone and the check went on."
+  },
+  "ai_stuck": {
+   "ar": "مساعدك الذكي علق: ما أعطى أي ناتج طوال 20 دقيقة، فأُنهي وبقيت القواعد وحدها والفحص كمل.",
+   "en": "Your AI assistant was stuck: it gave no output at all for 20 minutes, so it was ended, the rules stand alone and the check went on."
   },
   "no_features": {
    "ar": "لم أجد في برنامجك ميزات أكتب لها اختبارات تحفظ سلوكها.",

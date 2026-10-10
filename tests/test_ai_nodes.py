@@ -5,13 +5,14 @@ import json
 import os
 import sys
 import tempfile
-import threading
 import time
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from eaos import artifact_contracts
+from eaos.runtime import provider
+from eaos.runtime.provider import Provider
 from eaos.studio import ideal, nodes
 from eaos.studio.actions import adapters
 from eaos.studio.nodes import core, triage, view
@@ -70,41 +71,34 @@ class Base(unittest.TestCase):
 
 
 class Launcher(unittest.TestCase):
-    """The launcher holds a node to its budget: Claude Code is given the limit and its cost is read back; a launcher
-    that hangs is cut off at the budget's seconds and its cancel is set."""
+    """The launcher asks with no time or cost limit and reads back what each pass cost; the semantic stage's provider
+    lets its assistant work as long as it writes anything and ends it only after STUCK seconds of silence."""
 
-    def test_claude_code_is_asked_with_the_budget_and_its_cost_is_read(self):
+    def test_claude_code_is_asked_without_a_limit_and_its_cost_is_read(self):
         with tempfile.TemporaryDirectory() as folder:
             base = Path(folder)
             (base / 'fake.py').write_text(FAKE_CLAUDE, encoding='utf-8')
             adapter = adapters.ClaudeCode(command=[sys.executable, str(base / 'fake.py')])
+            launcher = core.AdapterLauncher(adapter, base / 'node')
             with mock.patch.dict(os.environ, {'FAKE_SEEN': str(base / 'seen.json')}):
-                answer = adapters.ask(adapter, 'p', {'type': 'object'}, base / 'run', budget_usd=1.5)
-            argv = json.loads((base / 'seen.json').read_text(encoding='utf-8'))
-            self.assertEqual(argv[argv.index('--max-budget-usd') + 1], '1.50')
-            self.assertEqual((answer['cost_usd'], answer['model']), (0.42, 'fake-model-2'))
-            launcher = core.AdapterLauncher(adapter, base / 'node', budget_usd=1.0)
-            with mock.patch.dict(os.environ, {'FAKE_SEEN': str(base / 'seen.json')}):
-                launcher('decide', 'p', {'type': 'object'})
+                self.assertEqual(launcher('decide', 'p', {'type': 'object'})['decisions'], [])
                 launcher('critique', 'p', {'type': 'object'})
-            self.assertAlmostEqual(launcher.cost_usd, 0.84)
+            self.assertEqual((launcher.cost_usd, launcher.model), (0.84, 'fake-model-2'))
             argv = json.loads((base / 'seen.json').read_text(encoding='utf-8'))
-            self.assertEqual(argv[argv.index('--max-budget-usd') + 1], '0.58')
-        self.assertNotIn('--max-budget-usd', adapters.ClaudeCode(command=['claude']).ask_argv({}, Path('.')))
+            self.assertNotIn('--max-budget-usd', argv)
+            self.assertIn('--include-partial-messages', argv)    # the stream shows the work go on, token by token
         with tempfile.TemporaryDirectory() as folder:
-            self.assertEqual(adapters.Codex(command=['codex']).ask_argv({}, Path(folder), 2.0)[-1], '-')
+            self.assertEqual(adapters.Codex(command=['codex']).ask_argv({}, Path(folder))[-1], '-')
 
-    def test_a_hanging_launcher_is_cut_off_and_an_expensive_one_refused(self):
-        cancel = threading.Event()
-        bounded = core.Bounded(lambda *a: time.sleep(10), 0.5, None, cancel)
-        began = time.monotonic()
-        with self.assertRaises(TimeoutError):
-            bounded('decide', 'p', {})
-        self.assertLess(time.monotonic() - began, 3)
-        self.assertTrue(cancel.is_set())
-        costly = _NodeLauncher(cost=3.0)
-        with self.assertRaises(core.OverBudget):
-            core.Bounded(costly, 10, 1.0)('decide', 'p', {'type': 'object'})
+    def test_the_semantic_provider_waits_while_it_writes_and_ends_a_silent_one_as_stuck(self):
+        talk = 'import json, sys, time\nfor _ in range(10): time.sleep(0.3); print(".", file=sys.stderr, flush=True)\nprint(json.dumps({"ok": 1}))'
+        silent = 'import time; time.sleep(60)'
+        with mock.patch.object(provider, 'STUCK', 1):
+            self.assertEqual(Provider({'kind': 'command', 'argv': [sys.executable, '-c', talk]}).complete([])[0], {'ok': 1})
+            began = time.monotonic()
+            with self.assertRaises(provider.Stuck):
+                Provider({'kind': 'command', 'argv': [sys.executable, '-c', silent]}).complete([])
+        self.assertLess(time.monotonic() - began, 10)
 
 
 class Framework(Base):
@@ -131,7 +125,7 @@ class Framework(Base):
         self.assertEqual((record['state'], record['method']), ('failed', 'rules'))
         self.assertIn('could not be used', record['why'])
 
-    def test_a_long_list_is_asked_in_batches_under_one_budget(self):
+    def test_a_long_list_is_asked_in_batches(self):
         cards = json.loads((self.report / 'studio/cards.json').read_text(encoding='utf-8'))
         cards['cards'] += [dict(cards['cards'][0], id=f'TASK-{n:03d}') for n in range(10, 10 + triage.BATCH)]
         (self.report / 'studio/cards.json').write_text(json.dumps(cards), encoding='utf-8')
@@ -264,16 +258,15 @@ class IdealNode(Base):
         nodes.run(self.report, names=['ideal_planner'], launcher=launcher, fresh=True)
         self.assertEqual(len(launcher.calls), 4)
 
-    def test_without_an_assistant_or_over_budget_the_rules_target_stands(self):
+    def test_without_an_assistant_or_with_a_stuck_one_the_rules_target_stands(self):
         record = nodes.run(self.report, names=['ideal_planner'], adapters={})['ideal_planner']
         self.assertEqual((record['state'], record['decisions'][0]['decision']), ('rules_only', 'rules only'))
         self.assertEqual(ideal.section(self.report, 'en')['state'], 'not_planned')
-        costly = Answer(self.plan_answer)
-        costly.cost_usd = 99.0
-        record = nodes.run(self.report, names=['ideal_planner'], launcher=costly, budget=nodes.Budget(60, 1.0))['ideal_planner']
-        self.assertEqual(record['state'], 'rules_only')
-        self.assertTrue(record['over_budget'])
-        self.assertIn('budget', record['why'])
+        def stuck(name, schema): raise provider.Stuck('silent')
+        record = nodes.run(self.report, names=['ideal_planner'], launcher=Answer(stuck))['ideal_planner']
+        self.assertEqual((record['state'], record['why']), ('rules_only', core.WORDS['stuck']))
+        record = nodes.run(self.report, names=['card_triage'], launcher=Answer(stuck))['card_triage']
+        self.assertEqual((record['state'], record['why']), ('rules_only', core.WORDS['stuck']))
 
 
 class Detector(unittest.TestCase):

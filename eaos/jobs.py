@@ -12,6 +12,7 @@ and writes what it has done to ~/.eaos/jobs/<id>.json:
 """
 import json
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -108,8 +109,10 @@ def progress(job, done, total, stage):
 
 
 def run(job):
-    """The job process: the work, then its result or its error in the record."""
+    """The job process: the work, then its result or its error in the record. A stop (SIGTERM, the Studio's stop)
+    ends the work as an interrupt does, so what it started, such as an assistant in its own session, is ended too."""
     import importlib
+    signal.signal(signal.SIGTERM, signal.default_int_handler)
     record = json.loads(_path(job).read_text(encoding='utf-8'))
     try:
         work = importlib.import_module(record.get('runner') or 'eaos.agent_tools').JOBS[record['kind']]

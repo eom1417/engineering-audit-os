@@ -19,13 +19,29 @@ LIMIT = {'cards': 400, 'facts': 4, 'excerpt': 6, 'line': 200, 'summary': 300}
 SEVERITY = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'info': 4}
 DETAIL = {'type': 'object', 'additionalProperties': False, 'required': ['falsifier'],
           'properties': {'falsifier': {'type': 'string'}}}
-TASK = ('You are the card triage of EAOS, an engineering audit. Each card below is a problem EAOS\'s engines found in this '
-        'project, with the facts it stands on and the code at each fact. Before the person sees a card, decide for each: '
-        '"confirm" when its evidence really shows the problem it names; "doubt" when the evidence does not settle it (a '
-        'probe will, before the person sees it); "reject" when the evidence contradicts it (a false alarm: the card is set '
-        'aside and its rule is told). Judge only from the evidence given; a card whose evidence you cannot see is a doubt, '
-        'not a confirm. In `detail.falsifier`, write what would show your decision wrong. Cite in `evidence` the card id '
-        'and the fact ids you relied on.')
+TASK = '''GOAL
+You are the card triage of EAOS, an engineering audit. Each card below is a problem EAOS's engines found in this project.
+Before the person sees it, judge each card: does its own evidence show the problem it names?
+
+WHAT YOU ARE GIVEN
+`cards`: each with its id, title, kind, severity, the engines' confidence, paths, and `evidence`: up to 4 of its facts,
+each with its summary, path, line and `code` (a few lines of the project's code at that line). `batch` says which part
+of the list this is. A card may stand on more facts than the ones shown.
+
+WHAT TO RETURN
+One decision per card, subject = the card id: "confirm" when the evidence shows the problem the card names; "doubt" when
+it neither shows nor contradicts it (a probe will settle it before the person sees the card); "reject" when it
+contradicts it (a false alarm: the card is set aside and its rule is told). `why`: one or two plain sentences naming what
+in the evidence decided it. `detail.falsifier`: the observation that would show your decision wrong. `evidence`: the
+card id and the fact ids you relied on.
+
+A GOOD ANSWER
+Every card decided once. A confirm points at the fact or code line that shows the problem. A doubt says exactly what is
+missing (which fact, number or line would settle it). A reject names the fact or line that contradicts the card.
+
+DO NOT
+Confirm a card because it is plausible or common. Reject a card only because the facts shown are weak: weak or missing
+evidence is a doubt, and only a contradiction is a reject. Judge anything outside the card's own evidence.'''
 
 
 def _facts(report):
@@ -100,8 +116,7 @@ def rules(data):
 
 
 def prompt(data):
-    return (TASK + '\n\n' + core.rules_of_the_answer(data['lang']) + '\n\nAnswer with the JSON object of the schema only.\n\n'
-            'The bundle:\n' + json.dumps({k: v for k, v in data.items() if k != 'lang'}, ensure_ascii=False))
+    return core.prompt(TASK, data)
 
 
 def check(data, decision):

@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from eaos.pipeline import MANIFEST, STAGES, SkipStage, execute, resume
+from eaos.pipeline import MANIFEST, STAGES, SkipStage, check, execute, resume
 from eaos.pipeline.run import CHECKPOINT, FAILED, NOT_REACHED, OK, SKIPPED, UNAVAILABLE
 
 
@@ -130,6 +130,19 @@ class ResumeTests(unittest.TestCase):
             self.assertEqual(ran, order[order.index('probe'):])
             self.assertEqual(second['counts'][OK], len(STAGES))
             self.assertFalse((out / CHECKPOINT).exists())
+
+    def test_a_check_stopped_in_an_ai_stage_resumes_at_it_and_never_asks_a_finished_one_again(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaises(KeyboardInterrupt):
+                execute('.', directory, runners=fake_runners(ideal=KeyboardInterrupt()))
+            ran = []
+            runners = fake_runners()
+            for name, runner in list(runners.items()):
+                runners[name] = lambda context, name=name, runner=runner: ran.append(name) or runner(context)
+            second = check('.', directory, runners=runners)
+            self.assertEqual(ran[0], 'ideal')
+            self.assertFalse({'semantic', 'triage'} & set(ran), 'a finished AI stage was asked again')
+            self.assertEqual(second['counts'][OK], len(STAGES))
 
     def test_resume_without_a_previous_manifest_runs_everything(self):
         with tempfile.TemporaryDirectory() as directory:
