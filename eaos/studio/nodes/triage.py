@@ -25,8 +25,10 @@ Before the person sees it, judge each card: does its own evidence show the probl
 
 WHAT YOU ARE GIVEN
 `cards`: each with its id, title, kind, severity, the engines' confidence, paths, and `evidence`: up to 4 of its facts,
-each with its summary, path, line and `code` (a few lines of the project's code at that line). `batch` says which part
-of the list this is. A card may stand on more facts than the ones shown.
+each with its summary, path, line and `code` (a few lines of the project's code at that line). A fact's summary is what
+a deterministic engine found over the whole project: its message, its measurements and how it knows (for example "the
+name occurs nowhere in product code or configuration except line 76"). `batch` says which part of the list this is. A
+card may stand on more facts than the ones shown.
 
 WHAT TO RETURN
 One decision per card, subject = the card id: "confirm" when the evidence shows the problem the card names; "doubt" when
@@ -36,12 +38,14 @@ in the evidence decided it. `detail.falsifier`: the observation that would show 
 card id and the fact ids you relied on.
 
 A GOOD ANSWER
-Every card decided once. A confirm points at the fact or code line that shows the problem. A doubt says exactly what is
-missing (which fact, number or line would settle it). A reject names the fact or line that contradicts the card.
+Every card decided once. A confirm points at the fact (its message, measurement or how the engine knows) and the code
+line that show the problem. A doubt says exactly what is missing or what in the code questions it (a name used
+dynamically, a generic name, a number the facts do not give). A reject names the fact or line that contradicts the card.
 
 DO NOT
-Confirm a card because it is plausible or common. Reject a card only because the facts shown are weak: weak or missing
-evidence is a doubt, and only a contradiction is a reject. Judge anything outside the card's own evidence.'''
+Confirm a card on its title alone or because it is plausible or common. Reject a card only because the facts shown are
+weak: weak or missing evidence is a doubt, and only a contradiction is a reject. Judge a card on another card's
+evidence or on anything outside its own.'''
 
 
 def _facts(report):

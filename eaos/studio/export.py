@@ -212,6 +212,13 @@ def sources(project, commit):
     return read
 
 
+def summary(value, kind):
+    """What a fact says: its message, its measurements, and how its engine knows it."""
+    numbers = ', '.join(f'{k} {v}' for k, v in value.items() if isinstance(v, (int, float)) and not isinstance(v, bool))
+    how = value.get('evidence') if isinstance(value.get('evidence'), str) else ''
+    return '; '.join(part for part in (str(value.get('message') or value.get('rule') or kind or ''), numbers, how) if part)[:400]
+
+
 def evidence(report, cited, source=None):
     source = source or (lambda path: None)
     rows = indicators.facts(report)
@@ -230,7 +237,7 @@ def evidence(report, cited, source=None):
                  for s in value.get('sites') or [] if isinstance(s, dict) and rel(s.get('path'))]
         out.append({'id': row['id'], 'kind': value.get('kind') or row.get('kind') or '', 'engine': value.get('engine'),
                     'path': rel(where.get('path')), 'line': next((n for n in (where.get('start_line'), where.get('line')) if isinstance(n, int)), None),
-                    'summary': str(value.get('message') or value.get('rule') or row.get('kind') or '')[:400], 'sites': sites[:20]})
+                    'summary': summary(value, row.get('kind')), 'sites': sites[:20]})
         fact = out[-1]
         # the code around the fact's line, else around its first site in the same file
         line = fact['line'] or next((site['line'] for site in sites if site['path'] == fact['path'] and site['line']), None)
