@@ -5,6 +5,7 @@ import {
   FileText, Folder, Globe, House, Inbox, LayoutGrid, Moon, Pencil, Plus, RefreshCw, Search, Sun, Trash2,
   TriangleAlert, Workflow, X, GitMerge, Activity, Command, Wrench, ShieldCheck, Lightbulb, ListOrdered, Play, Pause, Square,
   RotateCcw, GitBranch, ArrowUp, ArrowDown, SquareTerminal, Layers, CircleCheck, CircleX, FilePen, MessageSquare, Eye, Waypoints, Radar,
+  ZoomIn, ZoomOut, Maximize, Scan, CodeXml, Info, MessageSquareWarning, OctagonAlert,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -16,6 +17,7 @@ const ICONS = {
   fix: Wrench, verify: ShieldCheck, explain: Lightbulb, plan: ListOrdered, play: Play, pause: Pause, stop: Square, retry: RotateCcw,
   branch: GitBranch, up: ArrowUp, down: ArrowDown, terminal: SquareTerminal, layers: Layers, pass: CircleCheck, fail: CircleX,
   edit: FilePen, say: MessageSquare, eye: Eye, live: Radar,
+  zoomIn: ZoomIn, zoomOut: ZoomOut, fullScreen: Maximize, fit: Scan, code: CodeXml, info: Info, important: MessageSquareWarning, caution: OctagonAlert,
   opKeep: Circle, opModify: Pencil, opRebuild: RefreshCw, opDelete: Trash2, opMerge: GitMerge, opIntroduce: Plus,
 } satisfies Record<string, LucideIcon>
 

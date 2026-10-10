@@ -9,6 +9,7 @@ import { Go } from '../../components/Go'
 import { Panel, Skeleton, StateMessage } from '../../components/Panel'
 import { Sheet } from '../../components/Sheet'
 import type { Doc, StudioData } from '../../data/types'
+import { usePrefs } from '../../i18n/prefs'
 import { Id, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, WithData } from '../../shell/Layout'
@@ -70,11 +71,16 @@ function Reader({ data, doc, h }: { data: StudioData; doc: Doc; h?: string }) {
   const docs = useMemo(() => data.docs?.docs ?? [], [data.docs])
   const list = useMemo(() => readingList(docs), [docs])
   const text = library.kind === 'ready' ? library.data.documents.find((d) => d.id === doc.id) : undefined
+  // the words change with the language only: the document is drawn again then, not on every render (a scroll that
+  // moves the contents' mark would otherwise redraw it and bring ?h= back)
+  const { lang } = usePrefs()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const words = useMemo(() => w, [lang])
   const ctx = useMemo(() => ({
     path: doc.path, title: doc.title, docs: new Set(docs.map((d) => d.path)), cards: new Set((data.cards?.cards ?? []).map((c) => c.id)),
     images: new Map((library.kind === 'ready' ? library.data.images : []).map((i) => [i.id, i])),
-    label: { table: (n: number) => w('tableN', { n }), code: (n: number) => w('codeN', { n }), diagram: w('diagramSource'), diagramNote: w('diagramNote') },
-  }), [doc, docs, data.cards, library, w])
+    w: words,
+  }), [doc, docs, data.cards, library, words])
   const drawn = useMemo(() => (text ? drawMarkdown(text.text, ctx) : null), [text, ctx])
   const headings = drawn?.headings ?? []
   const current = useCurrentHeading(headings)

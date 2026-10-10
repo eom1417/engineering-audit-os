@@ -17,7 +17,7 @@ SHIPPED = ROOT / 'eaos/data/studio'
 SOURCES = ['index.html', 'package.json', 'package-lock.json', 'tsconfig.json', 'vite.config.ts', '.stylelintrc.json', 'public',
            'scripts/ship.mjs', 'src', '../docs/studio-actions.json']
 NAMESPACES = {'http://www.w3.org/1998/Math/MathML', 'http://www.w3.org/1999/xlink', 'http://www.w3.org/2000/svg',
-              'http://www.w3.org/XML/1998/namespace', 'http://www.w3.org/1999/xhtml', 'https://react.dev/errors/',
+              'http://www.w3.org/XML/1998/namespace', 'http://www.w3.org/2000/xmlns/', 'http://www.w3.org/1999/xhtml', 'https://react.dev/errors/',
               # TanStack Router's base for parsing a URL when the page's origin is opaque (file://): never requested
               'http://localhost'}
 
