@@ -287,7 +287,7 @@ def _audit_job(project, arguments, progress):
     # What the scan reads, taken before it reads it: a commit made during a long scan is not in this report.
     read = {'scanned_commit': _head(state), **branches.scan_provenance(state, source)}
     try:
-        (resume if (out / 'run-manifest.json').is_file() else execute)(str(source), out, **options)
+        resume(str(source), out, **options)
     except ValueError:                      # the source changed since a partial run: start afresh
         import shutil
         shutil.rmtree(out, ignore_errors=True)

@@ -14,6 +14,7 @@ from .stages import BY_NAME, ORDER, STAGES, SkipStage, dependents
 
 OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED = 'ok', 'skipped', 'unavailable', 'failed', 'not_reached'
 MANIFEST = 'run-manifest.json'
+CHECKPOINT = 'run-checkpoint.json'
 
 
 class Context(dict):
@@ -62,6 +63,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     started_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
     began = time.monotonic()
     todo = [stage.name for stage in STAGES if stage.name in requested and stage.name not in completed]
+    head = _head(target, out, started_at, requested, language, exclude, max_files, max_bytes, policy_path, intake)
     log = ProgressLog(out)
     log.started(STAGES, requested, previous_seconds(out))
     try:
@@ -90,12 +92,13 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
                 results[stage.name] = _one(stage, context, runners, results)
             context.pop('step', None)
             log.ended(results[stage.name])
+            _write(out / CHECKPOINT, {**head, 'stages': results})
             if results[stage.name]['status'] in (FAILED, UNAVAILABLE, SKIPPED, NOT_REACHED):
                 reason = f"{stage.name} did not produce its artifacts ({results[stage.name]['status']})"
                 for name in dependents(stage.name):
                     blocked.setdefault(name, (reason, 'prerequisite_failed'))
-        manifest = _manifest(target, out, started_at, began, requested, results, language, exclude, max_files,
-                             max_bytes, policy_path, intake)
+        manifest = _manifest(head, began, results)
+        (out / CHECKPOINT).unlink(missing_ok=True)
     except BaseException as problem:                    # stopped or broken: the file says so, then the error goes on
         log.finish('STOPPED' if isinstance(problem, KeyboardInterrupt) else 'ERROR',
                    reason=f'{type(problem).__name__}: {problem}'[:300], seconds=round(time.monotonic() - began, 2))
@@ -104,25 +107,36 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     return manifest
 
 
-def _manifest(target, out, started_at, began, requested, results, language, exclude, max_files, max_bytes,
-              policy_path, intake):
+def _head(target, out, started_at, requested, language, exclude, max_files, max_bytes, policy_path, intake):
+    """What the manifest says of the run whatever its stages do; with the stages so far it is also the checkpoint
+    written after each stage, which a run stopped or killed midway is resumed from."""
+    from ..workspace import inventory
+    return {'contract_version': 1, 'target': str(target), 'out': str(out), 'started_at': started_at,
+            'requested': requested,
+            'options': {'language': language, 'exclude': list(exclude), 'max_files': max_files, 'max_bytes': max_bytes,
+                        'policy_path': str(policy_path) if policy_path else None,
+                        'intake': str(Path(intake).resolve()) if intake else None},
+            'source_fingerprint': inventory(target, max_files=max_files, max_bytes=max_bytes)['fingerprint']}
+
+
+def _manifest(head, began, results):
     manifest = {
-        'contract_version': 1, 'target': str(target), 'out': str(out), 'started_at': started_at,
-        'seconds': round(time.monotonic() - began, 2), 'requested': requested,
+        **{key: head[key] for key in ('contract_version', 'target', 'out', 'started_at')},
+        'seconds': round(time.monotonic() - began, 2), 'requested': head['requested'],
         'stages': results,
         'counts': {state: sum(1 for row in results.values() if row['status'] == state)
                    for state in (OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED)},
         'status': completion_status(results),
         'limits': 'A stage that did not run proves nothing. Read the skipped and unavailable rows before '
                   'reading the findings: they are the shape of what this run could not see.',
+        'options': head['options'], 'source_fingerprint': head['source_fingerprint'],
     }
-    manifest['options'] = {'language': language, 'exclude': list(exclude), 'max_files': max_files,
-                           'max_bytes': max_bytes, 'policy_path': str(policy_path) if policy_path else None,
-                           'intake': str(Path(intake).resolve()) if intake else None}
-    from ..workspace import inventory
-    manifest['source_fingerprint'] = inventory(target, max_files=max_files, max_bytes=max_bytes)['fingerprint']
-    (out / MANIFEST).write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding='utf-8')
+    _write(Path(head['out']) / MANIFEST, manifest)
     return manifest
+
+
+def _write(path, record):
+    path.write_text(json.dumps(record, ensure_ascii=False, indent=1), encoding='utf-8')
 
 
 def _satisfied(name, results, out):
@@ -177,9 +191,10 @@ def _one(stage, context, runners, results):
 
 
 def resume(target, out, **options):
-    """Re-run only what a previous attempt did not complete."""
-    path = Path(out) / MANIFEST
-    if not path.is_file():
+    """Re-run only what a previous attempt did not complete: a run stopped or killed midway from the checkpoint it
+    left after its last stage, else the last manifest."""
+    path = next((Path(out) / name for name in (CHECKPOINT, MANIFEST) if (Path(out) / name).is_file()), None)
+    if path is None:
         return execute(target, out, **options)
     previous = json.loads(path.read_text(encoding='utf-8'))
     from ..workspace import inventory
@@ -203,5 +218,5 @@ def resume(target, out, **options):
     merged['counts'] = {state: sum(1 for row in merged['stages'].values() if row['status'] == state)
                         for state in (OK, SKIPPED, UNAVAILABLE, FAILED, NOT_REACHED)}
     merged['resumed_from'] = previous['started_at']
-    (Path(out) / MANIFEST).write_text(json.dumps(merged, ensure_ascii=False, indent=1), encoding='utf-8')
+    _write(Path(out) / MANIFEST, merged)
     return merged

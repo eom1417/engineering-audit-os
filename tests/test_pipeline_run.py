@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from eaos.pipeline import MANIFEST, STAGES, SkipStage, execute, resume
-from eaos.pipeline.run import FAILED, NOT_REACHED, OK, SKIPPED, UNAVAILABLE
+from eaos.pipeline.run import CHECKPOINT, FAILED, NOT_REACHED, OK, SKIPPED, UNAVAILABLE
 
 
 def writer(*, raises=None, writes=True):
@@ -114,6 +114,22 @@ class ResumeTests(unittest.TestCase):
             self.assertEqual(second['stages']['probe']['status'], OK)
             self.assertEqual(second['counts'][OK], len(STAGES))
             self.assertIn('resumed_from', second)
+
+    def test_a_run_stopped_midway_resumes_from_the_stages_it_finished(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaises(KeyboardInterrupt):
+                execute('.', directory, runners=fake_runners(probe=KeyboardInterrupt()))
+            out = Path(directory)
+            self.assertFalse((out / MANIFEST).exists())
+            ran = []
+            runners = fake_runners()
+            for name, runner in list(runners.items()):
+                runners[name] = lambda context, name=name, runner=runner: ran.append(name) or runner(context)
+            second = resume('.', directory, runners=runners)
+            order = [stage.name for stage in STAGES]
+            self.assertEqual(ran, order[order.index('probe'):])
+            self.assertEqual(second['counts'][OK], len(STAGES))
+            self.assertFalse((out / CHECKPOINT).exists())
 
     def test_resume_without_a_previous_manifest_runs_everything(self):
         with tempfile.TemporaryDirectory() as directory:

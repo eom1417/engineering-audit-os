@@ -442,13 +442,12 @@ def scan(state, args):
     lang = state['lang']
     from .pipeline import execute, resume
     out = report_of(state)
-    partial = (out / 'run-manifest.json').is_file()
     read = {'scanned_commit': tip(state) or None, **branches.scan_provenance(state, source(state))}
     say(('أفحص مشروعك الآن. يأخذ هذا عادة من 5 إلى 30 دقيقة حسب حجمه، ولن يتغير فيه شيء.' if lang == 'ar' else
          'Checking your project now. This usually takes 5 to 30 minutes depending on its size; nothing in it changes.'))
     options = dict(language=lang, engines=[], site=True, progress=progress_printer(lang))
     try:
-        manifest = (resume if partial else execute)(str(source(state)), out, **options)
+        manifest = resume(str(source(state)), out, **options)
     except ValueError:                                  # the source changed since the partial run: start afresh
         shutil.rmtree(out, ignore_errors=True)
         manifest = execute(str(source(state)), out, **options)
