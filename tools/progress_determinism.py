@@ -108,6 +108,19 @@ def compare(left, right):
     return {'only_left': sorted(set(a) - set(b)), 'only_right': sorted(set(b) - set(a)), 'differ': differ, 'compared': len(set(a) & set(b))}
 
 
+def _check(project, out, on, engines):
+    if out.exists(): subprocess.run(['rm', '-rf', str(out)], check=True)
+    seconds, code = run(project, out, on, engines)
+    return {'seconds': seconds, 'exit': code, 'progress_file': (out / 'run-progress.jsonl').is_file()}
+
+
+def _added(progress_vs_off, run_vs_run):
+    """The files that differ only when progress is switched: what differs between two runs with it is left out."""
+    named = lambda rows: {re.sub(r'\d{6,}', '#', name) for name in rows}
+    variance = set(run_vs_run['differ']) | named(run_vs_run['only_left'] + run_vs_run['only_right'])
+    return sorted((set(progress_vs_off['differ']) | named(progress_vs_off['only_left'] + progress_vs_off['only_right'])) - variance)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('project')
@@ -117,18 +130,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     project, work = Path(args.project).resolve(), Path(args.workdir).resolve()
     work.mkdir(parents=True, exist_ok=True)
-    runs = {}
-    for name, on in (('on1', True), ('off', False), ('on2', True)):
-        out = work / name
-        if out.exists(): subprocess.run(['rm', '-rf', str(out)], check=True)
-        seconds, code = run(project, out, on, args.engines)
-        runs[name] = {'seconds': seconds, 'exit': code, 'progress_file': (out / 'run-progress.jsonl').is_file()}
+    runs = {name: _check(project, work / name, on, args.engines) for name, on in (('on1', True), ('off', False), ('on2', True))}
     progress_vs_off = compare(work / 'on1', work / 'off')
     run_vs_run = compare(work / 'on1', work / 'on2')
     identical = not (progress_vs_off['only_left'] or progress_vs_off['only_right'] or progress_vs_off['differ'])
-    named = lambda rows: {re.sub(r'\d{6,}', '#', name) for name in rows}
-    variance = set(run_vs_run['differ']) | named(run_vs_run['only_left'] + run_vs_run['only_right'])
-    added = sorted((set(progress_vs_off['differ']) | named(progress_vs_off['only_left'] + progress_vs_off['only_right'])) - variance)
+    added = _added(progress_vs_off, run_vs_run)
     record = {'project': str(project), 'engines': args.engines, 'runs': runs,
               'on_vs_off': progress_vs_off, 'on_vs_on': run_vs_run,
               'differ_also_between_two_on_runs': sorted(set(progress_vs_off['differ']) & set(run_vs_run['differ'])),

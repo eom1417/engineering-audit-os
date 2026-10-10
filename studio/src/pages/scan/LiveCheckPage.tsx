@@ -44,7 +44,7 @@ function Blocked({ why }: { why: 'snapshot' | 'loading' | 'none' }) {
   return <div className={layout.page}><Head /><Panel><StateMessage icon="live" title={w(`${why}Title`)} sub={w(`${why}Sub`)} /></Panel></div>
 }
 
-export function ScanPage() {
+export function LiveCheckPage() {
   const w = useScanWords()
   const { mode } = useLive()
   const { all, skew, transport } = useScan()

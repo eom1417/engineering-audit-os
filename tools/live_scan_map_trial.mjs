@@ -25,15 +25,12 @@ const waitStartMs = Number(process.env.TRIAL_WAIT_START_MS || 20 * 60 * 1000)
 const shots = path.join(out, 'shots')
 fs.mkdirSync(shots, { recursive: true })
 const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa']
-const VIEWS = []
-for (const width of [390, 768, 1440]) for (const lang of ['ar', 'en']) for (const theme of ['light', 'dark']) VIEWS.push({ width, lang, theme })
+const VIEWS = [390, 768, 1440].flatMap((width) => ['ar', 'en'].flatMap((lang) => ['light', 'dark'].map((theme) => ({ width, lang, theme }))))
 // the views the moment cannot miss come first, while the run is surely still in that moment
 const FIRST = (v) => (v.width === 1440 && v.lang === 'en' && v.theme === 'light') || (v.width === 390 && v.lang === 'ar' && v.theme === 'light') ? 0 : 1
 VIEWS.sort((a, b) => FIRST(a) - FIRST(b))
-const rows = []
-const moments = {}
-const checks = {}
-const errors = []
+// browser.json, filled as the trial runs
+const result = { moments: {}, rows: [], checks: {}, errors: [] }
 const log = (...args) => console.error(new Date().toISOString(), ...args)
 
 async function progress() {
@@ -53,7 +50,7 @@ async function all(moment, views, extra) {
   await Promise.all(Array.from({ length: POOL }, async () => {
     while (queue.length) {
       const v = queue.shift()
-      try { await view(moment, v, extra) } catch (problem) { errors.push(`${moment} ${v.width}-${v.lang}-${v.theme}: ${problem}`) }
+      try { await view(moment, v, extra) } catch (problem) { result.errors.push(`${moment} ${v.width}-${v.lang}-${v.theme}: ${problem}`) }
     }
   }))
 }
@@ -78,7 +75,7 @@ async function open({ width, lang, theme, route = '/scan', reduced = false, hold
   // the stream held back, as a proxy that buffers server-sent events would: the page must fall back to reading
   if (holdStream) await ctx.route('**/api/events', () => undefined)
   const page = await ctx.newPage()
-  page.on('pageerror', (e) => errors.push(`${width}-${lang}-${theme}: ${e}`))
+  page.on('pageerror', (e) => result.errors.push(`${width}-${lang}-${theme}: ${e}`))
   await page.goto(`${base}/#/${route.replace(/^\//, '')}${route.includes('?') ? '&' : '?'}token=${token}`, { waitUntil: 'load' })
   await page.waitForSelector('main#main', { timeout: 30000 })
   if (route.startsWith('/scan')) await page.waitForSelector('[data-run-state]', { timeout: 30000 })
@@ -86,33 +83,37 @@ async function open({ width, lang, theme, route = '/scan', reduced = false, hold
   return { ctx, page }
 }
 
-async function measure(page, width) {
+/** The visible controls under 44 px, as the Studio gate measures them (the phone: everything on screen; wider: the page
+ * itself, not the shared chrome). A link inside a sentence is left out. */
+async function smallTargets(page, width) {
   return page.evaluate((w) => {
-    const visible = (el) => { const s = getComputedStyle(el); if (s.display === 'none' || s.visibility === 'hidden') return false; const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1 }
     const interactive = 'a[href], button, input:not([type=hidden]), select, textarea, summary, [role=button], [role=link], [role=checkbox], [role=tab], [tabindex]:not([tabindex="-1"])'
-    // the phone: everything on screen, as the Studio gate measures it; wider: the page itself (not the shared chrome)
-    const scope = w <= 480 ? [...document.querySelectorAll('main#main, header, [role=dialog]')] : [...document.querySelectorAll('main#main, [role=dialog]')]
-    const small = []
-    for (const el of scope.flatMap((root) => [...root.querySelectorAll(interactive)])) {
-      if (!visible(el) || el.disabled || el.closest('[inert], [aria-hidden="true"]')) continue
-      const s = getComputedStyle(el)
-      if (el.tagName === 'A' && s.display === 'inline' && [...(el.parentElement?.childNodes ?? [])].some((n) => n.nodeType === 3 && n.textContent.trim())) continue
-      const r = el.getBoundingClientRect()
-      if (r.width < 44 || r.height < 44) small.push(`${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 1).join('')} ${Math.round(r.width)}x${Math.round(r.height)} "${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 30)}"`)
-    }
+    const scope = [...document.querySelectorAll(w <= 480 ? 'main#main, header, [role=dialog]' : 'main#main, [role=dialog]')]
+    const hidden = (el) => { const s = getComputedStyle(el); const r = el.getBoundingClientRect(); return s.display === 'none' || s.visibility === 'hidden' || r.width <= 1 || r.height <= 1 }
+    const inText = (el) => el.tagName === 'A' && getComputedStyle(el).display === 'inline' && [...(el.parentElement?.childNodes ?? [])].some((n) => n.nodeType === 3 && n.textContent.trim())
+    const skipped = (el) => hidden(el) || el.disabled || el.closest('[inert], [aria-hidden="true"]') || inText(el)
+    const label = (el, r) => `${el.tagName.toLowerCase()}.${[...el.classList].slice(0, 1).join('')} ${Math.round(r.width)}x${Math.round(r.height)} "${(el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 30)}"`
+    return scope.flatMap((root) => [...root.querySelectorAll(interactive)]).filter((el) => !skipped(el))
+      .map((el) => [el, el.getBoundingClientRect()]).filter(([, r]) => r.width < 44 || r.height < 44).map(([el, r]) => label(el, r))
+  }, width)
+}
+
+async function measure(page, width) {
+  const small = await smallTargets(page, width)
+  return page.evaluate(([w, small]) => {
     const glow = [...document.querySelectorAll('[data-glow]')]
-    const flows = [...document.querySelectorAll('[data-light]')]
     const halo = glow[0] ? getComputedStyle(glow[0]) : null
+    const attribute = (selector, name) => document.querySelector(selector)?.getAttribute(name) ?? null
     return {
       layout: document.documentElement.scrollWidth, viewport: w, scrollY: window.scrollY, scrollX: window.scrollX, small,
-      runState: document.querySelector('[data-run-state]')?.getAttribute('data-run-state') ?? null,
-      running: document.querySelectorAll('[data-state=running]').length, glow: glow.length, flows: flows.length,
-      haloAnimation: halo ? halo.animationName : null, haloDuration: halo ? halo.animationDuration : null,
-      motion: document.querySelector('[data-motion]')?.getAttribute('data-motion') ?? null,
+      runState: attribute('[data-run-state]', 'data-run-state'),
+      running: document.querySelectorAll('[data-state=running]').length, glow: glow.length, flows: document.querySelectorAll('[data-light]').length,
+      haloAnimation: halo?.animationName ?? null, haloDuration: halo?.animationDuration ?? null,
+      motion: attribute('[data-motion]', 'data-motion'),
       banner: !!document.querySelector('[data-scan-banner] a'),
       endedOnPage: document.querySelectorAll('[data-state=ok],[data-state=skipped],[data-state=unavailable],[data-state=failed],[data-state=not_reached]').length,
     }
-  }, width)
+  }, [width, small])
 }
 
 /** What phase 4 adds to a view's measure: how many toolbar controls cover a stage (each stage taken where the canvas
@@ -149,9 +150,9 @@ async function lightMoves(page) {
 }
 
 async function axe(page) {
-  const result = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
-  return { total: result.violations.length, serious: result.violations.filter((v) => ['serious', 'critical'].includes(v.impact)).map((v) => `${v.id} (${v.nodes.length}) ${v.nodes[0]?.target}`),
-    all: result.violations.map((v) => `${v.impact} ${v.id} (${v.nodes.length}) ${v.nodes[0]?.target}`) }
+  const found = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze()
+  return { total: found.violations.length, serious: found.violations.filter((v) => ['serious', 'critical'].includes(v.impact)).map((v) => `${v.id} (${v.nodes.length}) ${v.nodes[0]?.target}`),
+    all: found.violations.map((v) => `${v.impact} ${v.id} (${v.nodes.length}) ${v.nodes[0]?.target}`) }
 }
 
 /** What a view does before it is measured: open a stage's bottom sheet on the phone, a produced file's sheet, or wait
@@ -166,7 +167,7 @@ async function act(page, extra) {
     await page.locator('[data-list-stage="facts"]').click()
     await page.locator('[data-file]').first().click()
     await page.waitForSelector('[data-file-text]', { timeout: 10000 })
-    checks.file = { shown: (await page.locator('[data-file-text]').textContent()).length }
+    result.checks.file = { shown: (await page.locator('[data-file-text]').textContent()).length }
   }
   if (extra.holdStream) {
     await page.waitForSelector('[data-transport=polling]', { timeout: 20000 })
@@ -206,7 +207,7 @@ async function view(moment, v, extra = {}) {
       run_state: m.runState, running_on_page: m.running, glow: m.glow, flows: m.flows, halo_animation: m.haloAnimation, halo_duration: m.haloDuration,
       motion: m.motion, banner: m.banner, ended_on_page: m.endedOnPage, ended_in_list: m.endedInList, ended_in_api: ended(api), api_state: api?.state ?? null, light, at: new Date().toISOString() }
     row.pass = passes(row, extra)
-    rows.push(row)
+    result.rows.push(row)
     log(moment, v.width, v.lang, v.theme, kind, extra.route ?? '', `run=${m.runState} glow=${m.glow} overlaps=${m.overlaps} transport=${m.transport} pass=${row.pass}`, a.all.join('; '), m.small.slice(0, 2).join('; '))
     return row
   } finally {
@@ -257,10 +258,10 @@ async function replayMatched() {
     const { items, seconds } = await watchReplay(page, shot)
     const answer = await fetch(`${base}/api/report-file?path=run-progress.jsonl`, { headers: { 'X-EAOS-Token': token } })
     const rows = (await answer.text()).split('\n').filter(Boolean).map((line) => JSON.parse(line))
-    checks.replay = { speed: 30, seconds, glows: items.filter((i) => i[0] === 'glow').length, lights: items.filter((i) => i[0] === 'light').length,
+    result.checks.replay = { speed: 30, seconds, glows: items.filter((i) => i[0] === 'glow').length, lights: items.filter((i) => i[0] === 'light').length,
       started_lines: rows.filter((r) => r.event === 'stage.started').length, unmatched: unmatched(items, rows).map((i) => i.join(' ')),
       screenshot: fs.existsSync(shot) ? shot : null }
-    log('replay', JSON.stringify(checks.replay))
+    log('replay', JSON.stringify(result.checks.replay))
   } finally {
     await ctx.close()
   }
@@ -270,12 +271,12 @@ async function threeMoments() {
   log('waiting for the check to start')
   const first = await until((p) => p && p.state === 'running', waitStartMs)
   if (!first) throw new Error('the check did not start in time')
-  moments.early = { at: new Date().toISOString(), ended: ended(first), total: asked(first) }
+  result.moments.early = { at: new Date().toISOString(), ended: ended(first), total: asked(first) }
   await all('early', VIEWS)
 
   // the middle: once a stage or more has ended and one runs; a page opened now must show at once what the run did
   const mid = await until((p) => p && (p.state !== 'running' || (ended(p) >= 1 && p.stages.some((s) => s.state === 'running'))), 30 * 60 * 1000)
-  moments.middle = { at: new Date().toISOString(), ended: ended(mid), total: asked(mid), state: mid?.state ?? null }
+  result.moments.middle = { at: new Date().toISOString(), ended: ended(mid), total: asked(mid), state: mid?.state ?? null }
   await all('middle', [...VIEWS.filter((v) => FIRST(v) === 0), ...VIEWS.filter((v) => FIRST(v) === 1)])
   await Promise.all([
     view('middle', { width: 1440, lang: 'ar', theme: 'light' }, { reduced: true }),
@@ -290,7 +291,7 @@ async function threeMoments() {
   ])
 
   const done = await until((p) => p && p.state !== 'running', 60 * 60 * 1000, 1000)
-  moments.done = { at: new Date().toISOString(), state: done?.state ?? null, status: done?.status ?? null, ended: ended(done), total: asked(done) }
+  result.moments.done = { at: new Date().toISOString(), state: done?.state ?? null, status: done?.status ?? null, ended: ended(done), total: asked(done) }
   await sleep(4000)            // the report's own reload after the run
   await all('done', VIEWS)
   await view('done', { width: 1440, lang: 'en', theme: 'light' }, { file: true })
@@ -371,7 +372,7 @@ async function watchRun() {
   const answer = await fetch(`${base}/api/report-file?path=run-progress.jsonl`, { headers: { 'X-EAOS-Token': token } })
   const lines = (await answer.text()).split('\n').filter(Boolean).map((line) => JSON.parse(line))
   const items = [...drawn.values()]
-  checks.watch = { state, photos, seen, usages, lines: lines.length, glows: items.filter((i) => i[0] === 'glow').length,
+  result.checks.watch = { state, photos, seen, usages, lines: lines.length, glows: items.filter((i) => i[0] === 'glow').length,
     lights: items.filter((i) => i[0] === 'light').length, lights_from: [...new Set(items.filter((i) => i[0] === 'light').map((i) => i[1]))],
     unmatched: unmatched(items, lines).map((i) => i.join(' ')) }
   for (const view of [desk, phone, quiet]) await view.ctx.close()
@@ -384,7 +385,7 @@ async function look() {
   if (process.env.TRIAL_STAGE) await page.locator(`[data-list-stage="${process.env.TRIAL_STAGE}"]`).click()
   const shot = path.join(shots, `look-${Date.now()}.png`)
   await page.screenshot({ path: shot })
-  checks.look = { url: page.url().replace(/token=[^&]+/, 'token=<redacted>'), screenshot: shot, ...(await mapFacts(page)),
+  result.checks.look = { url: page.url().replace(/token=[^&]+/, 'token=<redacted>'), screenshot: shot, ...(await mapFacts(page)),
     ...(await page.evaluate(() => { const run = document.querySelector('[data-run-state]'); return { run_state: run?.getAttribute('data-run-state'), flow: run?.getAttribute('data-flow'), stages: document.querySelectorAll('g[data-stage]').length,
       panel: document.querySelector('[data-hook=scan-stage-panel]')?.parentElement?.textContent ?? '', shots: [...document.querySelectorAll('img[data-shot]')].filter((img) => img.complete && img.naturalWidth > 0).length } })) }
   await ctx.close()
@@ -402,7 +403,7 @@ async function button() {
   await page.waitForSelector('[data-run-state]', { timeout: 30000 })
   const shot = path.join(shots, 'button-scan.png')
   await page.screenshot({ path: shot })
-  checks.button = { hash: await page.evaluate(() => location.hash.replace(/token=[^&]+/, 'token=<redacted>')), run_before: before, run_started: started?.run ?? null,
+  result.checks.button = { hash: await page.evaluate(() => location.hash.replace(/token=[^&]+/, 'token=<redacted>')), run_before: before, run_started: started?.run ?? null,
     run_state: await page.locator('[data-run-state]').getAttribute('data-run-state'), flow: await page.locator('[data-run-state]').getAttribute('data-flow'), screenshot: shot }
   await ctx.close()
 }
@@ -410,11 +411,10 @@ async function button() {
 try {
   await ({ watch: watchRun, look, button }[process.env.TRIAL_MODE] ?? threeMoments)()
 } catch (problem) {
-  errors.push(String(problem && problem.stack || problem))
+  result.errors.push(String(problem && problem.stack || problem))
 } finally {
   await browser.close()
 }
-const result = { moments, rows, checks, errors }
 fs.writeFileSync(path.join(out, 'browser.json'), JSON.stringify(result, null, 1))
-console.log(JSON.stringify({ rows: rows.length, failed: rows.filter((r) => !r.pass).length, errors: errors.length }))
+console.log(JSON.stringify({ rows: result.rows.length, failed: result.rows.filter((r) => !r.pass).length, errors: result.errors.length }))
 process.exit(0)

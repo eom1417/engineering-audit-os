@@ -46,7 +46,7 @@ const JourneysPage = lazyRouteComponent(() => import('./pages/system/journeys/Jo
 const RunPage = lazyRouteComponent(() => import('./pages/runs/RunPage'), 'RunPage')
 const ScreenPage = lazyRouteComponent(() => import('./pages/screens/ScreensPage'), 'ScreenPage')
 const ScreensPage = lazyRouteComponent(() => import('./pages/screens/ScreensPage'), 'ScreensPage')
-const LiveCheckPage = lazyRouteComponent(() => import('./pages/scan/ScanPage'), 'ScanPage')
+const LiveCheckPage = lazyRouteComponent(() => import('./pages/scan/LiveCheckPage'), 'LiveCheckPage')
 const RunsPage = lazyRouteComponent(() => import('./pages/runs/RunsPage'), 'RunsPage')
 const BranchesPage = lazyRouteComponent(() => import('./pages/branches/BranchesPage'), 'BranchesPage')
 const GalleryPage = lazyRouteComponent(() => import('./gallery/Gallery'), 'GalleryPage')

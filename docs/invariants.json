@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "fedbf9c",
+  "extracted_at_commit": "de8fc2e",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -1726,6 +1726,18 @@
       "enforced_by": [
         "tests/test_progress_contract.py::Liveness::test_a_quiet_run_says_it_is_alive_every_ten_seconds_and_a_busy_one_does_not_need_to",
         "tests/test_progress_contract.py::Liveness::test_the_beat_stops_when_the_file_cannot_be_written"
+      ],
+      "note": ""
+    },
+    {
+      "id": "INV-ea02f27c56",
+      "file": "eaos/progress/log.py",
+      "symbol": "_look",
+      "statement": "The running programs of `stage`, written when they changed (or once why they cannot be seen).",
+      "kind": "invariant",
+      "enforced_by": [
+        "tests/test_progress_contract.py::Sampling::test_activity_is_written_only_when_the_set_of_programs_changes",
+        "tests/test_progress_contract.py::Sampling::test_a_ps_that_is_missing_fails_or_prints_nonsense_turns_the_sampler_off_with_one_line"
       ],
       "note": ""
     },

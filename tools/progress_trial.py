@@ -118,20 +118,30 @@ def sample_cost(samples=20):
     return (time.perf_counter() - began) / samples
 
 
+def _check(project, work, name, on, engines):
+    """One check of `project` into work/name, progress on or off: its wall time, exit, and the manifest's seconds."""
+    out = fresh(work / name)
+    out.mkdir(parents=True)
+    began = time.monotonic()
+    done = subprocess.run(check_command(project, out, engines), cwd=str(work), env=environment(on), capture_output=True, text=True)
+    run = {'wall_seconds': round(time.monotonic() - began, 1), 'exit': done.returncode,
+           'said': done.stdout.strip()[-200:], 'error': done.stderr.strip()[-1500:] if done.returncode else ''}
+    manifest = out / 'run-manifest.json'
+    if manifest.is_file(): run['manifest_seconds'] = json.loads(manifest.read_text(encoding='utf-8'))['seconds']
+    return run
+
+
+def _passes(record, runs):
+    return bool(record['overhead_bound'] is not None and record['overhead_bound'] < 0.02
+                and record['file_bytes'] is not None and record['file_bytes'] < 1_000_000
+                and (record['fold_equals_manifest'] or {}).get('equal') and record['off_wrote_no_progress']
+                and all(r['exit'] == 0 for r in runs.values()))
+
+
 def overhead(args):
     project, work = Path(args.project).resolve(), Path(args.workdir).resolve()
     work.mkdir(parents=True, exist_ok=True)
-    runs = {}
-    for name, on in (('on', True), ('off', False)):
-        out = fresh(work / name)
-        out.mkdir(parents=True)
-        began = time.monotonic()
-        done = subprocess.run(check_command(project, out, not args.no_engines), cwd=str(work), env=environment(on),
-                              capture_output=True, text=True)
-        runs[name] = {'wall_seconds': round(time.monotonic() - began, 1), 'exit': done.returncode,
-                      'said': done.stdout.strip()[-200:], 'error': done.stderr.strip()[-1500:] if done.returncode else ''}
-        manifest = out / 'run-manifest.json'
-        if manifest.is_file(): runs[name]['manifest_seconds'] = json.loads(manifest.read_text(encoding='utf-8'))['seconds']
+    runs = {name: _check(project, work, name, on, not args.no_engines) for name, on in (('on', True), ('off', False))}
     report = work / 'on'
     progress_file = report / 'run-progress.jsonl'
     history = sorted((report / 'progress').rglob('*.jsonl')) if (report / 'progress').is_dir() else []
@@ -154,11 +164,36 @@ def overhead(args):
         'fold_equals_manifest': judge(report) if (report / 'run-manifest.json').is_file() else None,
         'off_wrote_no_progress': not (work / 'off' / 'run-progress.jsonl').exists(),
     }
-    record['pass'] = bool(record['overhead_bound'] is not None and record['overhead_bound'] < 0.02
-                          and record['file_bytes'] is not None and record['file_bytes'] < 1_000_000
-                          and (record['fold_equals_manifest'] or {}).get('equal') and record['off_wrote_no_progress']
-                          and all(r['exit'] == 0 for r in runs.values()))
+    record['pass'] = _passes(record, runs)
     return record
+
+
+def _wait_inside(process, out, args):
+    """Until the check has run `args.after` seconds inside `args.stage` (or ended, or `args.timeout` passed)."""
+    from eaos import progress
+    began, stage_seen = time.monotonic(), None
+    while time.monotonic() - began < args.timeout and process.poll() is None:
+        state = progress.fold(progress.read(out))
+        running = next((s for s in state['stages'] if s['name'] == args.stage and s['state'] == 'running'), None)
+        if running and stage_seen is None: stage_seen = time.monotonic()
+        if stage_seen and time.monotonic() - stage_seen >= args.after: return
+        time.sleep(0.2)
+
+
+def _seen_stopped(out, killed):
+    """Seconds after the kill until the server said `interrupted` (same machine) and `stalled` (another machine)."""
+    from eaos import progress
+    from eaos.api.read import scan_state
+    path = progress.path_for(out)
+    seen = {'interrupted': None, 'stalled': None}
+    while time.monotonic() - killed < 45 and None in seen.values():
+        if seen['interrupted'] is None and scan_state(out)['state'] == 'interrupted':
+            seen['interrupted'] = round(time.monotonic() - killed, 2)
+        folded = progress.fold(progress.read(out))
+        if seen['stalled'] is None and progress.judge(folded, progress.heard_at(path), time.time(), None) == 'stalled':
+            seen['stalled'] = round(time.monotonic() - killed, 2)
+        time.sleep(0.25)
+    return seen
 
 
 def kill(args):
@@ -169,15 +204,8 @@ def kill(args):
     out.mkdir(parents=True)
     process = subprocess.Popen(check_command(project, out), cwd=str(work), env=environment(True),
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-    began, stage_seen = time.monotonic(), None
     try:
-        while time.monotonic() - began < args.timeout:
-            state = progress.fold(progress.read(out))
-            running = next((s for s in state['stages'] if s['name'] == args.stage and s['state'] == 'running'), None)
-            if running and stage_seen is None: stage_seen = time.monotonic()
-            if stage_seen and time.monotonic() - stage_seen >= args.after: break
-            if process.poll() is not None: break
-            time.sleep(0.2)
+        _wait_inside(process, out, args)
         before = scan_state(out)['state']
         os.killpg(process.pid, signal.SIGKILL)
         killed = time.monotonic()
@@ -186,15 +214,7 @@ def kill(args):
         if process.poll() is None:
             os.killpg(process.pid, signal.SIGKILL)
             process.wait()
-    path = progress.path_for(out)
-    seen = {'interrupted': None, 'stalled': None}
-    while time.monotonic() - killed < 45 and None in seen.values():
-        if seen['interrupted'] is None and scan_state(out)['state'] == 'interrupted':
-            seen['interrupted'] = round(time.monotonic() - killed, 2)
-        folded = progress.fold(progress.read(out))
-        if seen['stalled'] is None and progress.judge(folded, progress.heard_at(path), time.time(), None) == 'stalled':
-            seen['stalled'] = round(time.monotonic() - killed, 2)
-        time.sleep(0.25)
+    seen = _seen_stopped(out, killed)
     folded = progress.fold(progress.read(out))
     return {'project': str(project), 'stage': args.stage, 'after_seconds': args.after,
             'state_before_kill': before, 'running_stage_at_kill': next((s['name'] for s in folded['stages'] if s['state'] == 'running'), None),
@@ -203,18 +223,28 @@ def kill(args):
                          and seen['stalled'] is not None and seen['stalled'] <= 30)}
 
 
+def _i7(cost, overhead_dir):
+    """I7 as measured: the overhead run, with each stage's seconds of the runs with and without progress."""
+    stages = {}
+    for name in ('on', 'off') if overhead_dir else ():
+        manifest = Path(overhead_dir) / name / 'run-manifest.json'
+        if manifest.is_file(): stages[name] = {k: v['seconds'] for k, v in json.loads(manifest.read_text(encoding='utf-8'))['stages'].items()}
+    outside = {name: round(sum(s for k, s in rows.items() if k != 'engines'), 2) for name, rows in stages.items()}
+    return {'project': cost['project'], 'overhead_measured': cost['overhead_measured'], 'overhead_bound': cost['overhead_bound'],
+            'bound_parts': cost['bound_parts'], 'file_bytes': cost['file_bytes'], 'lines': cost['lines'],
+            'engines_seconds': {name: rows.get('engines') for name, rows in stages.items()},
+            'seconds_outside_engines': outside,
+            'overhead_measured_outside_engines': round((outside['on'] - outside['off']) / outside['off'], 4)
+            if outside.get('on') and outside.get('off') else None,
+            'runs': {k: {'manifest_seconds': v.get('manifest_seconds'), 'exit': v['exit']} for k, v in cost['runs'].items()}}
+
+
 def collect(args):
     """$EAOS_MEASURE/live-scan-map/backend.json from one real round: what each guarantee measured, and its verdict."""
     import dev_paths
     read = lambda path: json.loads(Path(path).read_text(encoding='utf-8'))
     determinism, engines, killed, cost = read(args.determinism), read(args.determinism_engines), read(args.kill), read(args.overhead)
     counted_steps = cost.get('counted_steps') or {}
-    stages = {}
-    if args.overhead_dir:
-        for name in ('on', 'off'):
-            manifest = Path(args.overhead_dir) / name / 'run-manifest.json'
-            if manifest.is_file(): stages[name] = {k: v['seconds'] for k, v in read(manifest)['stages'].items()}
-    outside = {name: round(sum(s for k, s in rows.items() if k != 'engines'), 2) for name, rows in stages.items()}
     record = {
         'contract': 1, 'at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
         'I2_corpus': judge(args.corpus_report), 'I2_develop': cost.get('fold_equals_manifest'),
@@ -225,13 +255,7 @@ def collect(args):
                        'progress_adds_no_difference': engines['progress_adds_no_difference'],
                        'differ_only_with_progress_switched': engines['differ_only_with_progress_switched'],
                        'differ_between_two_runs_with_progress': len(engines['on_vs_on']['differ'])},
-        'I7': {'project': cost['project'], 'overhead_measured': cost['overhead_measured'], 'overhead_bound': cost['overhead_bound'],
-               'bound_parts': cost['bound_parts'], 'file_bytes': cost['file_bytes'], 'lines': cost['lines'],
-               'engines_seconds': {name: rows.get('engines') for name, rows in stages.items()},
-               'seconds_outside_engines': outside,
-               'overhead_measured_outside_engines': round((outside['on'] - outside['off']) / outside['off'], 4)
-               if outside.get('on') and outside.get('off') else None,
-               'runs': {k: {'manifest_seconds': v.get('manifest_seconds'), 'exit': v['exit']} for k, v in cost['runs'].items()}},
+        'I7': _i7(cost, args.overhead_dir),
         'I8': {k: killed[k] for k in ('project', 'stage', 'state_before_kill', 'running_stage_at_kill',
                                       'seconds_to_interrupted_same_machine', 'seconds_to_stalled_other_machine')},
         'counted_steps': {stage: counted_steps.get(stage, []) for stage in ('plan', 'transform', 'executive', 'claims',

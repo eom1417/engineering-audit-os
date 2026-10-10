@@ -30,7 +30,6 @@ CASES = (
     'glow_and_moving_light_mid_run', 'reduced_motion_stops_all_motion', 'banner_on_other_pages_while_running',
     'record_kept_after_the_run',
 )
-VIEWS = [(width, lang, theme) for width in (390, 768, 1440) for lang in ('ar', 'en') for theme in ('light', 'dark')]
 
 
 def now():
@@ -56,19 +55,9 @@ def _case(cases, name, ok, evidence):
     cases[name] = {'id': name, 'pass': bool(ok), 'kind': 'live', 'evidence': str(evidence)[:1500]}
 
 
-def judge(report, browser_json, out):
-    from eaos.engines import ADAPTERS
-    from eaos.facts.run import ORDER as EXTRACTORS
-    from eaos import progress
+def _record_cases(cases, rows, state, manifest):
+    """What the check wrote: the progress file, one end per declared stage, the fold equal to the manifest."""
     from eaos.pipeline.stages import ORDER
-    import north_star_studio as studio
-    report = Path(report)
-    rows = progress.read(report)
-    manifest = json.loads((report / 'run-manifest.json').read_text(encoding='utf-8'))
-    seen = json.loads(Path(browser_json).read_text(encoding='utf-8'))
-    state = progress.fold(rows)
-    by = {s['name']: s for s in state['stages']}
-    cases = {}
     events = [r['event'] for r in rows]
     _case(cases, 'progress_file_written_by_the_pipeline', rows and events[0] == 'run.started' and events[-1] == 'run.ended'
           and [r['seq'] for r in rows] == list(range(1, len(rows) + 1)),
@@ -81,6 +70,13 @@ def judge(report, browser_json, out):
           f'differ: {differ}; status {state["status"]} = {manifest["status"]}; counts {state["counts"]}')
     _case(cases, 'stages_come_from_the_declaration', [s['name'] for s in rows[0]['stages']] == list(ORDER),
           f'run.started lists {len(rows[0]["stages"])} stages in the order of eaos/pipeline/stages.py')
+
+
+def _step_cases(cases, state):
+    """The steps inside facts and engines, and a reason for every stage that did not run."""
+    from eaos.engines import ADAPTERS
+    from eaos.facts.run import ORDER as EXTRACTORS
+    by = {s['name']: s for s in state['stages']}
     engines = by.get('engines', {})
     names = [s['name'] for s in engines.get('steps', [])]
     _case(cases, 'engines_steps_from_the_tool_registry', engines.get('state') == 'ok' and sorted(names) == sorted(ADAPTERS),
@@ -91,15 +87,27 @@ def judge(report, browser_json, out):
     _case(cases, 'absent_stages_carry_their_reason', all(s['reason'].strip() for s in absent),
           '; '.join(f"{s['name']} {s['state']}: {s['reason']}" for s in absent) or 'every stage ran')
 
-    views = seen.get('rows') or []
-    at = lambda moment, **kw: [r for r in views if r['moment'] == moment and r['route'] == '/scan' and not r['reduced']
-                               and all(r.get(k) == v for k, v in kw.items())]
-    early_running = [r for r in at('early') if r['run_state'] == 'running']
-    mid_running = [r for r in at('middle') if r['run_state'] == 'running']
-    done_rows = at('done')
+
+def _scan_views(views, moment, running=False):
+    """The live check's own views of a moment (reduced motion apart); with `running`, those that saw the run running."""
+    return [r for r in views if r['moment'] == moment and r['route'] == '/scan' and not r['reduced']
+            and (not running or r['run_state'] == 'running')]
+
+
+def _live_cases(cases, views, moments):
+    """The page followed the run from start to end, and kept the record after it."""
+    from eaos.pipeline.stages import ORDER
+    early_running, mid_running, done_rows = _scan_views(views, 'early', True), _scan_views(views, 'middle', True), _scan_views(views, 'done')
     _case(cases, 'studio_followed_the_run_live', early_running and mid_running and done_rows and all(r['run_state'] == 'done' for r in done_rows),
           f"early: {len(early_running)} views saw it running; middle: {len(mid_running)}; done: "
-          f"{sum(r['run_state'] == 'done' for r in done_rows)}/{len(done_rows)} saw it done; moments {seen.get('moments')}")
+          f"{sum(r['run_state'] == 'done' for r in done_rows)}/{len(done_rows)} saw it done; moments {moments}")
+    _case(cases, 'record_kept_after_the_run', done_rows and all(r['ended_on_page'] == len(ORDER) for r in done_rows),
+          f"{len(done_rows)} views after the run show {sorted({r['ended_on_page'] for r in done_rows})} ended stages of {len(ORDER)}")
+    _mid_run_cases(cases, mid_running)
+
+
+def _mid_run_cases(cases, mid_running):
+    """A page opened mid-run has the full state; the glow and a light that moved."""
     # the page's exact state is its stage list; the map shows the same changes in turn, 400 ms apart (motion.ts)
     full = [r for r in mid_running if r['ended_in_list'] >= r['ended_in_api'] - 1 and r['ended_in_api'] > 0]
     _case(cases, 'page_opened_mid_run_shows_the_full_state', mid_running and len(full) == len(mid_running),
@@ -108,6 +116,10 @@ def judge(report, browser_json, out):
     lit = [r for r in mid_running if r['glow'] >= 1 and (r.get('light') or {}).get('moved')]
     _case(cases, 'glow_and_moving_light_mid_run', bool(lit),
           f"{len(lit)} mid-run views with the glow and a light that moved: " + '; '.join(f"{r['screenshot']} {r['light']}" for r in lit[:3]))
+
+
+def _motion_cases(cases, views):
+    """Reduced motion stops all motion; the banner shows on other pages."""
     reduced = [r for r in views if r['reduced']]
     still = [r for r in reduced if r['flows'] == 0 and r['motion'] == 'reduced' and (r['halo_animation'] in (None, 'none'))]
     _case(cases, 'reduced_motion_stops_all_motion', reduced and len(still) == len(reduced),
@@ -115,8 +127,22 @@ def judge(report, browser_json, out):
     banner = [r for r in views if r['route'] != '/scan']
     _case(cases, 'banner_on_other_pages_while_running', banner and all(r.get('banner') for r in banner),
           '; '.join(f"{r['route']} {r['viewport']}: banner {r.get('banner')} {r['screenshot']}" for r in banner))
-    _case(cases, 'record_kept_after_the_run', done_rows and all(r['ended_on_page'] == len(ORDER) for r in done_rows),
-          f"{len(done_rows)} views after the run show {sorted({r['ended_on_page'] for r in done_rows})} ended stages of {len(ORDER)}")
+
+
+def judge(report, browser_json, out):
+    from eaos import progress
+    import north_star_studio as studio
+    report = Path(report)
+    rows = progress.read(report)
+    manifest = json.loads((report / 'run-manifest.json').read_text(encoding='utf-8'))
+    seen = json.loads(Path(browser_json).read_text(encoding='utf-8'))
+    state = progress.fold(rows)
+    cases = {}
+    _record_cases(cases, rows, state, manifest)
+    _step_cases(cases, state)
+    views = seen.get('rows') or []
+    _live_cases(cases, views, seen.get('moments'))
+    _motion_cases(cases, views)
 
     # the gated views are the live check's own; the banner rows on other pages are the banner case's evidence only
     view_rows = [{**r, 'pass': bool(r['pass'] and r.get('screenshot') and Path(r['screenshot']).is_file())} for r in views if r['route'] == '/scan']
