@@ -75,29 +75,6 @@ export function RescanStatus({ run }: { run: Run | null }) {
   )
 }
 
-export function SelectError({ error }: { error: Refusal | null }) {
-  const w = useBranchWords()
-  const { lang } = usePrefs()
-  const actions = useActions()
-  const toast = useToast()
-  const [stopped, setStopped] = useState<string[]>([])
-  if (!error) return null
-  async function stop(id: string) {
-    try { await actions.client?.control(id, 'stop'); setStopped((ids) => [...ids, id]); await actions.refresh() } catch (problem) { toast(refusal(problem).text) }
-  }
-  return (
-    <div role="alert" className={css.error}>
-      <p>{error.text}</p>
-      {error.runs.map((run) => (
-        <Button key={run.id} variant="secondary" icon="stop" data-stop-run={run.id} isDisabled={stopped.includes(run.id)} onPress={() => stop(run.id)}>
-          {w('stopRun', { l: run.label[lang] })}
-        </Button>
-      ))}
-      {error.runs.length > 0 && <Go to="/runs" className={css.inlineLink}>{w('openRuns')}</Go>}
-    </div>
-  )
-}
-
 function why(reason: string | null, w: ReturnType<typeof useBranchWords>): string {
   if (reason === 'not_scanned') return w('whyNotScanned')
   if (reason === 'not_git') return w('whyNotGit')
@@ -146,6 +123,28 @@ function Lead({ fresh, view }: { fresh: LiveFreshness | null; view: NonNullable<
     case 'legacy': return <SheetLead>{w('freshLegacyLead')}</SheetLead>
     default: return <SheetLead>{w('freshUnknownLead', { why: why(fresh?.reason ?? null, w) })}</SheetLead>
   }
+}
+
+export function SelectError({ error }: { error: Refusal | null }) {
+  const w = useBranchWords()
+  const { lang } = usePrefs()
+  const actions = useActions()
+  const toast = useToast()
+  const [stopped, setStopped] = useState<string[]>([])
+  if (!error) return null
+  const stop = (id: string) => actions.client?.control(id, 'stop')
+    .then(() => { setStopped((ids) => [...ids, id]); return actions.refresh() }, (problem: unknown) => toast(refusal(problem).text))
+  return (
+    <div role="alert" className={css.error}>
+      <p>{error.text}</p>
+      {error.runs.map((run) => (
+        <Button key={run.id} variant="secondary" icon="stop" data-stop-run={run.id} isDisabled={stopped.includes(run.id)} onPress={() => stop(run.id)}>
+          {w('stopRun', { l: run.label[lang] })}
+        </Button>
+      ))}
+      {error.runs.length > 0 && <Go to="/runs" className={css.inlineLink}>{w('openRuns')}</Go>}
+    </div>
+  )
 }
 
 export function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenChange: (open: boolean) => void }) {

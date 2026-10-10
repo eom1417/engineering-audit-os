@@ -28,6 +28,14 @@ export function takeToken(): string | null {
   try { return sessionStorage.getItem(TOKEN_KEY) || window.EAOS_BOOT_TOKEN || null } catch { return window.EAOS_BOOT_TOKEN || null }
 }
 
+/** A refused call; one with reasons is said in the page's language (i18n/prefs keeps <html lang>), not the server's English. */
+function refused(response: Response, payload: Record<string, unknown>): ActionError {
+  const reasons = (payload.reasons ?? []) as Reason[]
+  const lang = globalThis.document?.documentElement.lang === 'en' ? 'en' : 'ar'
+  const message = reasons.length ? reasons.map((r) => r[lang]).join(' ') : String(payload.error ?? response.statusText)
+  return new ActionError(response.status, message, payload.needs as string | undefined, reasons)
+}
+
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export function liveClient(token: string): ActionsClient {
@@ -48,13 +56,7 @@ export function liveClient(token: string): ActionsClient {
       csrf = null // a new launch: the CSRF token of this page went stale
       return request(method, path, body, true)
     }
-    if (!response.ok) {
-      // a refusal with reasons is said in the page's language (i18n/prefs keeps <html lang>); the server's error is English
-      const reasons = (payload.reasons ?? []) as Reason[]
-      const lang = globalThis.document?.documentElement.lang === 'en' ? 'en' : 'ar'
-      const message = reasons.length ? reasons.map((r) => r[lang]).join(' ') : String(payload.error ?? response.statusText)
-      throw new ActionError(response.status, message, payload.needs as string | undefined, reasons)
-    }
+    if (!response.ok) throw refused(response, payload)
     return payload
   }
 

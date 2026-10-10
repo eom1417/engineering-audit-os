@@ -523,6 +523,18 @@ class BranchControl:
                           needs='confirm')
 
     # ------------------------------------------------------------------ the analysis branch
+    def _refuse_in_flight(self, name):
+        """Blocked while any run is queued or working, naming each by its label and giving its id for its stop; choosing
+        the branch already analysed moves no run, so it is never refused."""
+        waiting = self.active_runs(queued=True)
+        if not waiting or name == ((self.state() or {}).get('branch') or self.head()['branch']): return
+        runs = [{'id': r['id'], 'label': r.get('label') or {'en': r['action'], 'ar': r['action']}} for r in waiting[:3]]
+        named = {lang: ('، ' if lang == 'ar' else ', ').join(run['label'][lang] for run in runs) for lang in ('en', 'ar')}
+        raise Blocked([{**say(f"Work is still open on the current branch: {named['en']}. Let it finish or stop it, then choose again. "
+                              'EAOS never moves work to another branch on its own.',
+                              f"فيه شغل ما خلص على الفرع الحالي: {named['ar']}. اتركه ينتهي أو أوقفه، ثم اختر من جديد. "
+                              'EAOS لا ينقل الشغل إلى فرع آخر بنفسه.', 'in_flight'), 'runs': runs}], needs='in_flight')
+
     def select(self, body):
         """Make `branch` the analysis branch: the Studio's context changes, the person's checkout does not. Moving to
         another branch is refused while any run is queued or working, so none is retargeted without the person deciding;
@@ -531,14 +543,7 @@ class BranchControl:
         name = valid_name(self.project, body.get('branch'))
         local, remote = self.tip(f'refs/heads/{name}'), next((r for r in self.remotes() if self.tip(f'refs/remotes/{r}/{name}')), None)
         if not local and not remote: raise KeyError(name)
-        waiting = self.active_runs(queued=True) if name != ((self.state() or {}).get('branch') or self.head()['branch']) else []
-        if waiting:
-            runs = [{'id': r['id'], 'label': r.get('label') or {'en': r['action'], 'ar': r['action']}} for r in waiting[:3]]
-            named = {lang: ('، ' if lang == 'ar' else ', ').join(run['label'][lang] for run in runs) for lang in ('en', 'ar')}
-            raise Blocked([{**say(f'Work is still open on the current branch: {named['en']}. Let it finish or stop it, then choose again. '
-                                  'EAOS never moves work to another branch on its own.',
-                                  f'فيه شغل ما خلص على الفرع الحالي: {named['ar']}. اتركه ينتهي أو أوقفه، ثم اختر من جديد. '
-                                  'EAOS لا ينقل الشغل إلى فرع آخر بنفسه.', 'in_flight'), 'runs': runs}], needs='in_flight')
+        self._refuse_in_flight(name)
         expected = body.get('expected_tip')
         if expected and expected != (local or self.tip(f'refs/remotes/{remote}/{name}')):
             raise Blocked([say('The branch moved since you looked at it: refresh.', 'الفرع تغيّر منذ نظرت إليه: حدّث.', 'stale')], needs='refresh')
