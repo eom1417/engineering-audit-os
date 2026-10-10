@@ -105,7 +105,7 @@ class MarkPoints(unittest.TestCase):
     def test_a_real_check_shows_counted_steps_in_each_long_stage(self):
         expected = {'claims': {'claim steps', 'debt items'}, 'sustainability': {'indicators'},
                     'transform': {'indicators', 'canonical homes', 'simulations'}, 'plan': {'debt items'},
-                    'executive': {'canonical homes'}, 'compose': {'artifacts'}, 'bundles': {'artifacts', 'bundles'},
+                    'executive': {'indicators'}, 'compose': {'artifacts'}, 'bundles': {'artifacts', 'bundles'},
                     'emit': {'emitters', 'files judged'}}
         self.assertEqual(self.manifest['status'], 'COMPLETE')
         for stage, names in expected.items():

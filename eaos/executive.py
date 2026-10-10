@@ -33,7 +33,8 @@ LIMITATIONS = [
 ]
 
 
-def render(out, language='ar'):
+def render(out, language='ar', transform_plan=None):
+    """`transform_plan` is the plan the transform stage of the same run wrote; without it the plan is built here."""
     out = Path(out)
     sets = {name: read_set(out, name) for name in ['syntax', 'structure', 'fingerprint',
                                                      'sequences', 'redundancy', 'runtime',
@@ -41,7 +42,7 @@ def render(out, language='ar'):
             if (out / 'facts' / f'{name}.json').is_file()}
     if not sets: return None
     dash = dashboard(out)
-    plan_result = plan(out)
+    plan_result = transform_plan or plan(out)
     dossier_path = out / 'dossier.json'
     dossier = {}
     if dossier_path.is_file():

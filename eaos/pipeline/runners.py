@@ -3,6 +3,7 @@
 A runner may raise SkipStage when the stage does not apply to this project — no policy declared,
 no provider configured, no engine installed. That is a recorded absence, not a failure.
 """
+import json
 from pathlib import Path
 
 from .stages import SkipStage
@@ -345,7 +346,9 @@ def target(context):
 
 def executive(context):
     from ..executive import render
-    return render(context.out, language=context.language)
+    # The transform stage wrote this run's plan; building it again took as long as that stage (45 s on EAOS itself).
+    plan = json.loads((context.out / 'transform-plan.json').read_text(encoding='utf-8'))
+    return render(context.out, language=context.language, transform_plan=plan)
 
 
 def bundles(context):

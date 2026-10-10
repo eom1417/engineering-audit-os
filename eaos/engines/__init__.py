@@ -4,8 +4,10 @@ A missing engine reduces coverage; it never fails the run. Every engine's versio
 running it, never assumed, and a version that does not match its pin is reported as such and still
 recorded — so a reader can tell "we did not look" apart from "we looked and found nothing".
 """
+import contextvars
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -18,6 +20,9 @@ from .. import progress
 ADAPTERS = {module.NAME: module for module in (enola, codegraph, reforge, jscpd, syft, osv_scanner, scc, semgrep, trivy, checkov,
                                                dependency_cruiser, sqlfluff, spectral, oasdiff, gitnexus,
                                                ast_grep, lizard, complexipy, vulture, knip, react_docgen)}
+# CodeGraph takes about half the stage (147 of 308 s on EAOS itself) and reads no other engine's output: it runs on
+# a second thread beside the others, which still run one after another, so at most two engines share the memory.
+BESIDE = codegraph.NAME
 
 
 def health():
@@ -49,18 +54,26 @@ def _report(name, target, workdir, exclude, formats):
                 'findings': [], 'coverage': {}, 'version': None, 'pinned_version': ADAPTERS[name].PINNED}
 
 
+def _run_one(name, selected, reports, target, workdir, exclude, formats):
+    progress.step(name, len(reports), len(selected), 'running')
+    began = time.monotonic()
+    reports[name] = _report(name, target, workdir, exclude, formats)
+    status = reports[name].get('status') or 'error'
+    progress.step(name, len(reports), len(selected), status, time.monotonic() - began,
+                  reason=reports[name].get('reason') or '', reason_code='' if status == 'observed' else f'engine_{status}')
+
+
 def _run_all(selected, target, workdir, exclude, formats):
     """Each selected engine's report, in order, each one a step of the running stage from waiting to its own status."""
-    step, reports = progress.step, {}
-    for name in selected: step(name, 0, len(selected), 'waiting')
-    for done, name in enumerate(selected):
-        step(name, done, len(selected), 'running')
-        began = time.monotonic()
-        reports[name] = _report(name, target, workdir, exclude, formats)
-        status = reports[name].get('status') or 'error'
-        step(name, done + 1, len(selected), status, time.monotonic() - began, reason=reports[name].get('reason') or '',
-             reason_code='' if status == 'observed' else f'engine_{status}')
-    return reports
+    reports = {}
+    args = (selected, reports, target, workdir, exclude, formats)
+    for name in selected: progress.step(name, 0, len(selected), 'waiting')
+    with ThreadPoolExecutor(1) as pool:
+        beside = [pool.submit(contextvars.copy_context().run, _run_one, name, *args) for name in selected if name == BESIDE]
+        for name in selected:
+            if name != BESIDE: _run_one(name, *args)
+        for future in beside: future.result()
+    return {name: reports[name] for name in selected}
 
 
 def analyze(target, workdir, exclude=(), only=None, formats=None):
