@@ -89,6 +89,7 @@ class Terminal(unittest.TestCase):
 
     def test_eaos_start_opens_preparing_the_tools_first(self):
         with tempfile.TemporaryDirectory() as tmp, mock.patch.object(toolchain, 'prepare') as prepare, \
+                mock.patch.object(toolchain, 'ready', return_value=False), \
                 mock.patch.object(agent_tools, 'open_studio', return_value={'studio': 'http://x/#/tools'}) as open_studio, \
                 mock.patch.object(guided, 'say') as said:
             guided.watch({**self.state, 'project': tmp}, Namespace(no_watch=False))
