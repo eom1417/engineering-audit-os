@@ -17,6 +17,8 @@ the Studio shows the honest coverage state instead of a blank page. Nothing here
     GET /api/scan-progress      the check's flow alone, as /api/progress has it (the v1 route)
     GET /api/report-file?path=  a text file the check produced, by its path inside the report folder: nothing outside
                                 it, no `..`, text types only, at most 2 MB, never rendered (text/plain)
+    GET /api/screen?path=       a screen the safety flow recorded (a PNG under the runtime folder's
+                                behavior-lock/snapshots), at most 2 MB
 """
 import json
 from pathlib import Path
@@ -32,6 +34,7 @@ PREFIX = 'studio-'
 NO_STORE = {'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'}
 TEXT_TYPES = ('.md', '.json', '.jsonl', '.txt', '.csv', '.html', '.yaml', '.yml', '.sarif', '.xml', '.log')
 MAX_FILE = 2 * 2 ** 20
+SHOTS = 'behavior-lock/snapshots'
 
 
 def section_schemas():
@@ -63,7 +66,13 @@ def openapi(schemas=None):
                                           'responses': {'200': {'description': 'the file, as text/plain'},
                                                         '400': {'description': 'the path leaves the report folder'},
                                                         '404': {'description': 'no such file'}, '413': {'description': 'over 2 MB'},
-                                                        '415': {'description': 'not a text file'}}}}}
+                                                        '415': {'description': 'not a text file'}}}},
+             '/api/screen': {'get': {'summary': 'A screen the safety flow recorded, by its path inside the runtime folder',
+                                     'security': security,
+                                     'parameters': [{'name': 'path', 'in': 'query', 'required': True, 'schema': {'type': 'string'}}],
+                                     'responses': {'200': {'description': 'the screen, as image/png'},
+                                                   '400': {'description': 'not a recorded screen'},
+                                                   '404': {'description': 'no such screen'}, '413': {'description': 'over 2 MB'}}}}}
     for name, schema in sorted(schemas.items()):
         paths[f'/api/sections/{name}'] = ok(f'/api/schemas/{name}', schema.get('description') or name)
     return {'openapi': '3.1.0',
@@ -137,7 +146,8 @@ def routes(ctx):
 
 
 def progress_routes(ctx):
-    """The live map's routes: the progress of every flow, the check's alone, and the files the check produced."""
+    """The live map's routes: the progress of every flow, the check's alone, the files the check produced and the
+    screens the safety flow recorded."""
     async def scan_progress(request):
         return JSONResponse(await run_in_threadpool(scan_state, ctx.report, ctx.feed.last_id()), headers=NO_STORE)
 
@@ -147,7 +157,12 @@ def progress_routes(ctx):
     async def produced(request):
         return await run_in_threadpool(report_file, ctx.report, request.query_params.get('path') or '')
 
-    return [Route('/api/scan-progress', scan_progress), Route('/api/progress', all_progress), Route('/api/report-file', produced)]
+    async def screen(request):
+        state = ctx.state()
+        return await run_in_threadpool(screen_file, guided.runtime_of(state) if state else None, request.query_params.get('path') or '')
+
+    return [Route('/api/scan-progress', scan_progress), Route('/api/progress', all_progress), Route('/api/report-file', produced),
+            Route('/api/screen', screen)]
 
 
 def declaration(flow):
@@ -194,15 +209,33 @@ def progress_state(report, state, last_id=None):
 def report_file(report, path):
     """`/api/report-file`: a file inside the report folder (resolved, so no link leads out of it), a text type, at
     most MAX_FILE bytes, answered as text/plain so a page never renders it; a refusal says why."""
-    def refuse(status, error, message):
-        return JSONResponse({'error': error, 'message': message}, status_code=status, headers=NO_STORE)
-    root = Path(report).resolve()
-    target = (root / path).resolve() if path and '\0' not in path and SAFE.match(path) else None
-    if target is None or not target.is_relative_to(root):
-        return refuse(400, 'path', 'only a relative path inside the report folder is served')
-    if not target.is_file(): return refuse(404, 'not_found', 'no such file in the report')
-    if target.suffix.lower() not in TEXT_TYPES: return refuse(415, 'type', 'only text files are served')
-    if target.stat().st_size > MAX_FILE: return refuse(413, 'size', 'the file is larger than 2 MB')
+    target = _inside(report, path)
+    if target is None: return _refuse(400, 'path', 'only a relative path inside the report folder is served')
+    if not target.is_file(): return _refuse(404, 'not_found', 'no such file in the report')
+    if target.suffix.lower() not in TEXT_TYPES: return _refuse(415, 'type', 'only text files are served')
+    if target.stat().st_size > MAX_FILE: return _refuse(413, 'size', 'the file is larger than 2 MB')
     try: text = target.read_bytes().decode('utf-8')
-    except UnicodeDecodeError: return refuse(415, 'type', 'the file is not UTF-8 text')
+    except UnicodeDecodeError: return _refuse(415, 'type', 'the file is not UTF-8 text')
     return Response(text, media_type='text/plain; charset=utf-8', headers={**NO_STORE, 'Content-Security-Policy': 'sandbox'})
+
+
+def screen_file(runtime, path):
+    """`/api/screen`: a screen the safety flow recorded (a step's `artifact`, relative to the runtime folder), a PNG
+    inside its behavior-lock/snapshots folder, at most MAX_FILE bytes."""
+    target = _inside(runtime, path) if runtime else None
+    if target is None or target.suffix.lower() != '.png' or not target.is_relative_to((Path(runtime) / SHOTS).resolve()):
+        return _refuse(400, 'path', 'only a recorded screen is served')
+    if not target.is_file(): return _refuse(404, 'not_found', 'no such screen')
+    if target.stat().st_size > MAX_FILE: return _refuse(413, 'size', 'the file is larger than 2 MB')
+    return Response(target.read_bytes(), media_type='image/png', headers=NO_STORE)
+
+
+def _inside(root, path):
+    """The file `path` names inside `root`, resolved so no link leads out of it; None for any other path."""
+    root = Path(root).resolve()
+    target = (root / path).resolve() if path and '\0' not in path and SAFE.match(path) else None
+    return target if target is not None and target.is_relative_to(root) else None
+
+
+def _refuse(status, error, message):
+    return JSONResponse({'error': error, 'message': message}, status_code=status, headers=NO_STORE)

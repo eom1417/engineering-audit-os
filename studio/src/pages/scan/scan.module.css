@@ -129,6 +129,7 @@
 .stepName { font-family: var(--font-mono); font-size: 12.5px; overflow-wrap: anywhere; }
 .stepEnd { display: inline-flex; align-items: center; gap: 8px; }
 .stepWhy { grid-column: 1 / -1; font-size: 12px; color: var(--text-tertiary); overflow-wrap: anywhere; }
+.shot { grid-column: 1 / -1; inline-size: 100%; max-inline-size: 240px; block-size: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-8); }
 .files { display: flex; flex-direction: column; gap: 2px; font-family: var(--font-mono); font-size: 12.5px; color: var(--text-secondary); overflow-wrap: anywhere; }
 .fileLink { display: inline-flex; align-items: center; min-block-size: 44px; color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; text-align: start; cursor: pointer; }
 .fileLink[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }

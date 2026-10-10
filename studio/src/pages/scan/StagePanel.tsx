@@ -1,5 +1,5 @@
 // The chosen stage: what it does, its live timer, the external programs it runs now, its steps (a counted one with its
-// bar), what it produced (the check's files open to read in a sheet, through /api/report-file) and why it did not run,
+// bar, a recorded screen with its picture), what it produced (the check's files open to read in a sheet, through /api/report-file) and why it did not run,
 // in the person's language from its reason_code. On the desktop it sits beside the map; on the phone it is a bottom
 // sheet the person opens by choosing a stage.
 import { useEffect, useState } from 'react'
@@ -68,6 +68,24 @@ function Programs({ stage, skew }: { stage: ScanStage; skew: number }) {
   )
 }
 
+/** A screen the safety flow recorded, fetched with the launch token (an image address cannot carry it) and shown small;
+ * its path until it has loaded or when it cannot be read. */
+function Shot({ path, name }: { path: string; name: string }) {
+  const [src, setSrc] = useState<string | null>(null)
+  useEffect(() => {
+    let on = true
+    let url = ''
+    fetch(`/api/screen?path=${encodeURIComponent(path)}`, { headers: { 'X-EAOS-Token': liveToken() ?? '' }, cache: 'no-store', credentials: 'same-origin' })
+      .then(async (answer) => {
+        const blob = answer.ok ? await answer.blob() : null
+        if (on && blob) { url = URL.createObjectURL(blob); setSrc(url) }
+      })
+      .catch(() => undefined)
+    return () => { on = false; if (url) URL.revokeObjectURL(url) }
+  }, [path])
+  return src ? <img className={css.shot} src={src} alt={name} data-shot="" /> : <Id value={path} className={css.stepWhy} />
+}
+
 function StepRow({ step, unit }: { step: ScanStep; unit: string }) {
   const w = useScanWords()
   const counted = step.kind === 'count' && step.total > 0
@@ -79,7 +97,7 @@ function StepRow({ step, unit }: { step: ScanStep; unit: string }) {
         <Chip tone={STEP_TONE[step.status] ?? 'neutral'}>{w.known('step_', step.status)}</Chip>
       </span>
       {counted && <span className={css.bar} aria-hidden="true"><span className={css.barFill} style={{ inlineSize: `${(100 * step.done) / step.total}%` }} /></span>}
-      {step.artifact && <Id value={step.artifact} className={css.stepWhy} />}
+      {step.artifact && (step.artifact.endsWith('.png') ? <Shot path={step.artifact} name={step.name} /> : <Id value={step.artifact} className={css.stepWhy} />)}
       {step.reason && !['ok', 'observed'].includes(step.status) && <span className={css.stepWhy}><Txt>{w.reason(step.reason_code, step.reason)}</Txt></span>}
     </li>
   )

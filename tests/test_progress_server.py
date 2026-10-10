@@ -96,9 +96,9 @@ class ProgressRoute(Project):
     def test_the_token_guards_it_and_the_document_lists_it(self):
         http, keys, _ = self.client()
         self.assertEqual(http.get('/api/progress').status_code, 401)
-        self.assertEqual(http.get('/api/report-file', params={'path': 'a.md'}).status_code, 401)
+        for route in ('/api/report-file', '/api/screen'): self.assertEqual(http.get(route, params={'path': 'a.md'}).status_code, 401)
         paths = http.get('/api/openapi.json', headers={'X-EAOS-Token': keys.token}).json()['paths']
-        self.assertTrue({'/api/progress', '/api/scan-progress', '/api/report-file'} <= set(paths))
+        self.assertTrue({'/api/progress', '/api/scan-progress', '/api/report-file', '/api/screen'} <= set(paths))
 
 
 def report_client(report):
@@ -137,6 +137,18 @@ class ReportFile(Project):
             answer = self.get('/api/report-file', path=path)
             self.assertEqual((answer.status_code, answer.json()['error']), (status, error), path)
         self.assertEqual(self.get('/api/report-file', path='edge.json').status_code, 200)
+
+    def test_a_recorded_screen_is_served_and_nothing_else_of_the_runtime_folder(self):
+        shots = self.runtime / 'behavior-lock' / 'snapshots' / 'home.spec.ts'
+        shots.mkdir(parents=True)
+        (shots / 'home.png').write_bytes(b'\x89PNG\r\n')
+        (self.runtime / 'run.png').write_bytes(b'\x89PNG\r\n')
+        (shots / 'notes.txt').write_text('x')
+        answer = self.get('/api/screen', path='behavior-lock/snapshots/home.spec.ts/home.png')
+        self.assertEqual((answer.status_code, answer.content, answer.headers['content-type']), (200, b'\x89PNG\r\n', 'image/png'))
+        for path, status in (('run.png', 400), ('behavior-lock/snapshots/home.spec.ts/notes.txt', 400),
+                             ('behavior-lock/snapshots/../../run.png', 400), ('behavior-lock/snapshots/gone.png', 404)):
+            self.assertEqual(self.get('/api/screen', path=path).status_code, status, path)
 
 
 class FeedOverFlows(Project):
