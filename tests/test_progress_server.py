@@ -213,6 +213,7 @@ class Watch(Checked):
         state = guided.load(self.project)
         state['setup'] = {'commit': state['scanned_commit'], 'ok': True}
         state['consent'] = {'run_and_fix': True}
+        state['safety'] = {'commit': state['scanned_commit'], 'screens': 1, 'passed': 1}
         guided.save(state)
 
     def test_each_long_tool_answers_with_the_live_map(self):

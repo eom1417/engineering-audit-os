@@ -775,10 +775,13 @@ def safety_run(state, step=lambda n: None):
 
 def _safety_run(state, step):
     from . import progress
-    from .behavior_lock import run_lock
+    from .behavior_lock import build, run_lock
     from .runtime_baseline import run_baseline
     runtime = runtime_of(state)
     step(1)
+    # The specs are written again from the check on record by this EAOS: an update to how they are written (the
+    # approval tests of a CLI project) reaches the safety net without a new check.
+    build(report_of(state), source(state))
     results = run_lock(report_of(state), source(state), runtime)['results']
     passed = sum(r['status'] == 'passed' for r in results)
     outcome = {'screens': len(results), 'passed': passed, 'p95_ms': None, 'speed_error': None,
