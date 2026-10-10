@@ -9,9 +9,9 @@ the person only, so a second `eaos studio` (or `open_studio`) reopens the runnin
 A record whose process is gone, or whose server does not answer with its token, is replaced.
 
 `eaos studio` runs the server in the terminal until Ctrl-C. `open_studio` starts it as its own process (the assistant's
-call must return) and waits until it answers. Both rebuild the Studio data from the ledger first, as open_report
-does, so the Studio shows what is in the person's branch now; a project not checked yet opens on the Studio's empty
-state, which says how to start.
+call must return) and waits until it answers. The server rebuilds the Studio data from the ledger first, as
+open_report does, so the Studio shows what is in the person's branch now; a project not checked yet opens on the
+Studio's empty state, which says how to start.
 """
 import json
 import os
@@ -97,8 +97,11 @@ def prepare(project=None):
 def open_studio(project=None, show=True, route=''):
     """`open_studio`: the live Studio's address (on `route`, when given), starting its server in the background when it
     is not running. The server runs from the EAOS workspace folder with PYTHONSAFEPATH=1, so neither the folder it
-    starts in nor the project (which may be EAOS's own repository) can put another `eaos` before this one."""
-    state, report = prepare(project)
+    starts in nor the project (which may be EAOS's own repository) can put another `eaos` before this one. It rebuilds
+    no data: a server it starts does (run_foreground), and a running one's is kept by every step that changes it, so a
+    check asked for starts at once."""
+    from ..agent_tools import project_state
+    state = project_state(project)
     found = running(state)
     started = False
     if not found:

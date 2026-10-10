@@ -5,6 +5,7 @@
 import { useParams } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { Button } from '../../components/Button'
+import { Go } from '../../components/Go'
 import { Panel, Section, StateMessage } from '../../components/Panel'
 import { Sheet, SheetLead } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
@@ -117,7 +118,7 @@ function Controls({ run, onRun }: { run: Run; onRun: (next: Run) => void }) {
 
 function RunBody({ id }: { id: string }) {
   const actions = useActions()
-  const { lang } = usePrefs()
+  const { lang, t } = usePrefs()
   const w = useCmdWords()
   const followed = useRun(id)
   const { run, view, status } = followed
@@ -156,6 +157,7 @@ function RunBody({ id }: { id: string }) {
         </p>
         {actions.mode === 'live' && <RunBranches run={run} />}
         <Controls run={run} onRun={(next) => followed.reload(next)} />
+        {run.action === 'audit' && <Go to="/scan" search={{ flow: 'check' }} className={css.branchLink}>{t('liveCheck')}</Go>}
       </header>
 
       <div className={css.now} aria-live="polite">

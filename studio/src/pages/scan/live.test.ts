@@ -4,9 +4,11 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { apply, emptyProgress, fold, type ProgressRow, type ScanProgress } from '../../data/scan'
+import { starting } from './LiveCheckPage'
 import { LiveMap } from './LiveMap'
 import { follow, MAX_LIGHTS, nextDue, release, SLOT_MS, still, type Motion } from './motion'
 import { StagePanel } from './StagePanel'
+import type { Run } from '../../data/actions/types'
 
 // The page's words in English, without the browser the preferences read
 vi.mock('../../i18n/prefs', () => ({ usePrefs: () => ({ lang: 'en', dir: 'ltr', t: (key: string) => key, num: String, date: String, ago: String }) }))
@@ -108,5 +110,18 @@ describe('a stage EAOS adds appears with no front-end change (I3)', () => {
     expect(html).toContain('A stage a test added')
     expect(html).toContain('fixture.json')
     expect(html).toContain('data-glow=""')
+  })
+})
+
+describe('a check asked for', () => {
+  const run = { action: 'audit', created: '2026-10-10T03:16:32.197+00:00', started: '2026-10-10T03:16:32.201+00:00' } as Run
+  const last = { ...emptyProgress(), state: 'done', started_at: '2026-10-10T02:00:00+00:00' } as ScanProgress
+
+  it('says it is starting from the press until its own run writes its first line', () => {
+    expect(starting(run, last)).toBe(true)
+    expect(starting(run, { ...last, state: 'running', started_at: '2026-10-10T03:16:33+00:00' })).toBe(false)
+    expect(starting(run, { ...last, started_at: '2026-10-10T03:16:32+00:00' }), 'its own run, ended in the second it began').toBe(false)
+    expect(starting(null, last)).toBe(false)
+    expect(starting({ ...run, action: 'run_setup' }, last)).toBe(false)
   })
 })

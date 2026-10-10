@@ -11,6 +11,8 @@ import { Button } from '../../components/Button'
 import { Chip, type Tone } from '../../components/Chip'
 import { Panel, Skeleton, StateMessage } from '../../components/Panel'
 import { Sheet } from '../../components/Sheet'
+import { useActions } from '../../data/actions/store'
+import type { Run } from '../../data/actions/types'
 import { useLive } from '../../data/context'
 import { clock, ENDED, shownState, summarize, type AllProgress, type Estimate, type JourneyStep, type RunState, type ScanProgress, type ScanStage } from '../../data/scan'
 import { runningFlow, useScan, type Transport } from '../../data/ScanProvider'
@@ -60,8 +62,15 @@ export function LiveCheckPage() {
 
 interface FlowProps { all: AllProgress; flow: string; skew: number; transport: Transport; stage: string | null; show: (next: { flow?: string; stage?: string }) => void }
 
+/** From the press of Check until the check it asked for writes its first line: until then the page holds the last run. */
+export function starting(active: Run | null, progress: ScanProgress): boolean {
+  if (active?.action !== 'audit' || progress.state === 'running') return false
+  return !progress.started_at || Date.parse(active.started ?? active.created) > Date.parse(progress.started_at) + 1000
+}
+
 function Flow({ all, flow, skew, transport, stage, show }: FlowProps) {
   const replay = useReplay(all.flows.check)
+  const { active } = useActions()
   const live = all.flows[flow]
   const shown = flow === 'check' ? replay.replay : null
   const view = shown ?? { id: 0, speed: undefined, progress: live, skew }
@@ -71,21 +80,23 @@ function Flow({ all, flow, skew, transport, stage, show }: FlowProps) {
       data-transport={transport} data-replay={view.speed}>
       <Head><RunLine progress={view.progress} skew={view.skew} journey={all.journey} /></Head>
       <Journey steps={all.journey} flow={flow} onFlow={(next) => show({ flow: next })} />
-      <Notes progress={view.progress} replay={shown} stop={replay.stop} />
+      <Notes progress={view.progress} replay={shown} stop={replay.stop} starting={flow === 'check' && starting(active, live)} />
       <Live key={`${flow}-${view.id}`} progress={view.progress} skew={view.skew} chosen={stage} select={(name) => show({ stage: name })} tools={tools} />
       <Announcer progress={view.progress} journey={all.journey} />
     </div>
   )
 }
 
-interface NotesProps { progress: ScanProgress; replay: Replay | null; stop: () => void }
+interface NotesProps { progress: ScanProgress; replay: Replay | null; stop: () => void; starting: boolean }
 
-/** The lines above the map: a replay says it is one, and a run nobody hears from says so. */
-function Notes({ progress, replay, stop }: NotesProps) {
+/** The lines above the map: a check asked for says it is starting, a replay says it is one, and a run nobody hears
+ * from says so. */
+function Notes({ progress, replay, stop, starting }: NotesProps) {
   const w = useScanWords()
   const quiet = progress.state === 'interrupted' || progress.state === 'stalled'
   return (
     <>
+      {starting && <div className={css.replayNote} role="status" data-starting="">{w('starting')}</div>}
       {replay && (
         <div className={css.replayNote} role="note">
           <span>{w('replaying', { s: replay.speed })}</span>

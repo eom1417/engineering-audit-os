@@ -74,7 +74,7 @@
   .topbar { background: var(--bg-canvas); border-block-end-color: transparent; backdrop-filter: none; }
   .phone { display: flex; align-items: center; gap: 2px; block-size: var(--topbar-h-phone); padding-inline: 8px 4px; }
   .phoneSpacer { flex: 1; }
-  .phone > button { flex: none; }
+  .phone > button, .liveLink { flex: none; }
   .phoneChips { display: flex; align-items: center; gap: 4px; min-inline-size: 0; flex: 0 1 auto; }
   .phoneChips > * { min-inline-size: 0; }
   .phoneChips .freshChip { flex: 0 1 auto; }

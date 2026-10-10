@@ -271,14 +271,11 @@ def audit(project=None, fresh=False):
     head = _head(state)
     if guided.scan_done(state) and not fresh and _current(state, head):
         return {'status': 'done', 'already_checked': True, **overview(project)}
-    if fresh:
-        import shutil
-        shutil.rmtree(guided.report_of(state), ignore_errors=True)
     return _start('audit', state, {}, watch=True)
 
 
 def _audit_job(project, arguments, progress):
-    from .pipeline import execute, resume
+    from .pipeline import check
     from .start_here import start_here
     state = guided.load(project)
     out = guided.report_of(state)
@@ -286,12 +283,7 @@ def _audit_job(project, arguments, progress):
     source = guided.source(state)
     # What the scan reads, taken before it reads it: a commit made during a long scan is not in this report.
     read = {'scanned_commit': _head(state), **branches.scan_provenance(state, source)}
-    try:
-        resume(str(source), out, **options)
-    except ValueError:                      # the source changed since a partial run: start afresh
-        import shutil
-        shutil.rmtree(out, ignore_errors=True)
-        execute(str(source), out, **options)
+    check(str(source), out, **options)
     if not (out / 'START-HERE.md').is_file(): start_here(out, state.get('lang') or 'en', Path(state['project']).name)
     state = guided.load(project)
     state.update(scanned=_now(), scanned_with=tool_digest(), **read)

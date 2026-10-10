@@ -20,7 +20,7 @@ sys.path.insert(0, str(ROOT / 'tests'))
 sys.path.insert(0, str(ROOT / 'tools'))
 
 from eaos.api import read, server  # noqa: E402
-from eaos.pipeline import MANIFEST, STAGES, SkipStage, execute, progress, resume  # noqa: E402
+from eaos.pipeline import MANIFEST, STAGES, SkipStage, check, execute, progress, resume  # noqa: E402
 from eaos.pipeline.stages import ORDER  # noqa: E402
 from test_pipeline_run import fake_runners  # noqa: E402
 from test_studio_api import _get, client, report_with_data, sse_frames  # noqa: E402
@@ -133,6 +133,21 @@ class ProgressFile(unittest.TestCase):
         self.assertFalse(by['probe']['resumed'])
         self.assertEqual(again['stages']['probe']['status'], 'ok')
         self.assertEqual(len([r for r in rows if r['event'] == 'stage.ended']), len(STAGES))
+
+    def test_a_check_asked_for_starts_afresh_unless_the_last_run_did_not_end(self):
+        folder, out = project(), Path(tempfile.mkdtemp())
+        execute(folder, out, runners=fake_runners())
+        check(folder, out, runners=fake_runners())
+        rows = progress.read(out)
+        started = {r['stage'] for r in rows if r['event'] == 'stage.started'}
+        self.assertEqual(started, set(ORDER), 'a complete report is checked again from the start')
+        self.assertFalse(any(r.get('resumed') for r in rows))
+        with self.assertRaises(KeyboardInterrupt):
+            execute(folder, out, runners=fake_runners(probe=KeyboardInterrupt()))
+        check(folder, out, runners=fake_runners())
+        by = {s['name']: s for s in progress.fold(progress.read(out))['stages']}
+        self.assertTrue(by['facts']['resumed'], 'a stopped run goes on from where it stopped')
+        self.assertFalse(by['probe']['resumed'])
 
     def test_a_run_that_breaks_says_so_and_a_new_run_is_a_new_file(self):
         out = Path(tempfile.mkdtemp())

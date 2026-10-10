@@ -5,6 +5,7 @@ import { Outlet, useRouterState } from '@tanstack/react-router'
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Button as AriaButton } from 'react-aria-components'
 import { IconButton } from '../components/Button'
+import buttonCss from '../components/Button.module.css'
 import { Badge, FreshnessChip } from '../components/Chip'
 import { Segmented } from '../components/Controls'
 import { Go } from '../components/Go'
@@ -172,6 +173,7 @@ function TopBar({ project, current, onPalette, onProject, onScan, onBranches }:
           ? <Go to={back.to} search={back.search} className={css.back}><Icon name="back" size={20} /><span>{back.label}</span></Go>
           : <span className={css.phoneChips}><BranchChip onPress={onBranches} /><Freshness onScan={onScan} /></span>}
         <span className={css.phoneSpacer} />
+        <Go to="/scan" className={[buttonCss.iconBtn, css.liveLink].join(' ')} label={t('liveCheck')} current={current?.id === 'scan'}><Icon name="live" /></Go>
         <IconButton icon="search" label={t('search')} onPress={onPalette} />
         <IconButton icon="more" label={t('projectAndDisplay')} onPress={onProject} data-open="project" />
       </div>

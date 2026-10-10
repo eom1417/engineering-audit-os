@@ -31,7 +31,7 @@ export function WithData({ children, needs = 'all', empty }: { children: (data: 
         {empty}
         <Panel><StateMessage title={t('emptyTitle')} sub={t(live ? 'emptySubLive' : 'emptySub')} action={
           <div className={css.emptyActions}>
-            {live && <Button variant="primary" icon="play" data-start-action="audit" onPress={() => command?.open({ action: 'audit' })}>{t('checkNow')}</Button>}
+            {live && <Button variant="primary" icon="play" data-start-action="audit" onPress={() => command?.open({ action: 'audit', inputs: { fresh: true } })}>{t('checkNow')}</Button>}
             <CopyRequestButton request={request} tool="audit" />
           </div>} /></Panel>
       </div>

@@ -92,7 +92,7 @@ export function HistoryCharts({ history, project }: { history: HistoryData; proj
           <StateMessage icon="clock" title={history.scans.length < 2 ? w('oneScan') : w('unscored')}
             sub={<>{history.scans.length < 2 ? w('oneScanSub') : (history.missing ?? []).map((m) => m.detail[lang]).join(' ')}
               {history.scans.length >= 2 && history.missing?.[0] && <> · <Id value={history.missing[0].step} /></>}</>}
-            action={history.scans.length < 2 ? <div><DirectAction request={{ action: 'audit' }} label={w('checkAgain')} copy={{ request: w('checkAgainRequest', { p: project }), tool: 'audit' }} /></div> : undefined} />
+            action={history.scans.length < 2 ? <div><DirectAction request={{ action: 'audit', inputs: { fresh: true } }} label={w('checkAgain')} copy={{ request: w('checkAgainRequest', { p: project }), tool: 'audit' }} /></div> : undefined} />
         </Panel>
       )}
       {withOpen.length >= 2 && (

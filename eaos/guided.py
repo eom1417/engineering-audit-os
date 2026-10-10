@@ -440,17 +440,13 @@ def scan_done(state):
 def scan(state, args):
     """Step 1: the whole audit, with progress, then START-HERE.md in plain words."""
     lang = state['lang']
-    from .pipeline import execute, resume
+    from .pipeline import check
     out = report_of(state)
     read = {'scanned_commit': tip(state) or None, **branches.scan_provenance(state, source(state))}
     say(('أفحص مشروعك الآن. يأخذ هذا عادة من 5 إلى 30 دقيقة حسب حجمه، ولن يتغير فيه شيء.' if lang == 'ar' else
          'Checking your project now. This usually takes 5 to 30 minutes depending on its size; nothing in it changes.'))
     options = dict(language=lang, engines=[], site=True, progress=progress_printer(lang))
-    try:
-        manifest = resume(str(source(state)), out, **options)
-    except ValueError:                                  # the source changed since the partial run: start afresh
-        shutil.rmtree(out, ignore_errors=True)
-        manifest = execute(str(source(state)), out, **options)
+    manifest = check(str(source(state)), out, **options)
     if not (out / 'START-HERE.md').is_file(): start_here(out, lang, Path(state['project']).name)   # compose did not run: still one page
     state['scanned'] = datetime.now(timezone.utc).isoformat(timespec='seconds')
     state.update(read)

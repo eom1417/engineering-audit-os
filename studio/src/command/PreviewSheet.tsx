@@ -279,7 +279,7 @@ export function PreviewSheet() {
       if (request.verb) command.clear()
       toast(run.state === 'queued' && run.position ? w('queuedToast', { label: run.label[lang] }) : w('started', { label: run.label[lang] }))
       void actions.refresh()
-      navigate({ to: `/runs/${encodeURIComponent(run.id)}` })
+      navigate(run.action === 'audit' ? { to: '/scan', search: { flow: 'check' } } : { to: `/runs/${encodeURIComponent(run.id)}` })
     } catch (error) {
       setProblem(error instanceof ActionError ? error.message : String(error))
       setBusy(false)

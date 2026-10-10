@@ -40,11 +40,11 @@
 }
 
 /* ---------------------------------------------------------------- the map */
-.mapWrap { display: flex; flex-direction: column; }
+.mapWrap { display: flex; flex-direction: column; scroll-margin-block: calc(var(--topbar-h) + 8px) 8px; }
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-block-end: 1px solid var(--border-subtle); background: var(--bg-surface); }
 .toolbarEnd { display: inline-flex; align-items: center; gap: 8px; margin-inline-start: auto; }
 .canvasWrap { position: relative; display: flex; flex-direction: column; block-size: clamp(380px, calc(100vh - 340px), 680px); }
-.canvas { background: var(--map-water); }
+.canvas { background: var(--map-water); user-select: none; }
 .followBtn, .toolBtn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-block-size: 44px; min-inline-size: 44px; padding: 0 12px;
   border-radius: var(--radius-8); border: 1px solid var(--border-default); background: var(--bg-raised); color: var(--text-primary); font-size: 13px; cursor: pointer; }
 .followBtn[aria-pressed="true"] { border-color: var(--accent-solid); color: var(--accent-text); background: var(--accent-subtle); }
@@ -168,6 +168,11 @@
   .journeyList { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .canvasWrap { block-size: max(320px, 52vh); }
   .list { grid-template-columns: minmax(0, 1fr); }
+  .mapWrap { scroll-margin-block: calc(var(--topbar-h-phone) + 8px) calc(var(--tabbar-h) + 8px); }
+  /* While a flow runs the journey is one compact row, so the map is on the first screen */
+  .page[data-run-state="running"] .lead, .page[data-run-state="running"] .journeySub { display: none; }
+  .page[data-run-state="running"] .journeyList { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+  .page[data-run-state="running"] .journeyStep { min-block-size: 44px; padding: 6px; gap: 6px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

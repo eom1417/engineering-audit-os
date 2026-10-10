@@ -20,6 +20,7 @@ export const SCAN_WORDS = {
   notYet_ready: ['تأتي بعد الفحص: تجهّز برنامجك ليعمل في نسخة منفصلة.', 'Comes after the check: sets your app up to run in a separate copy.'],
   notYet_safety: ['تأتي بعد تجهيز برنامجك: تصوّر شاشاته وتقيس سرعته.', 'Comes after your app is set up: records its screens and measures its speed.'],
   notYet_fix: ['تأتي بعد التصوير: تصلح دفعة وتسلّمها فرعًا.', 'Comes after the recording: fixes a batch and hands it over as a branch.'],
+  starting: ['يبدأ الفحص الآن…', 'The check is starting…'],
   run_none: ['لم تعمل بعد', 'Not run yet'],
   run_running: ['تعمل الآن', 'Running'],
   run_done: ['انتهت', 'Finished'],

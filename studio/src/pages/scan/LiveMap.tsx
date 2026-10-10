@@ -199,11 +199,16 @@ export function LiveMap({ progress, skew, selected, onSelect, summary, tools }: 
   const running = stages.find((s) => looks.get(s.name) === 'running')
   const camera = useCamera(layout, box, running?.name ?? selected ?? lastMoved(stages), progress.state !== 'running', zoom.setT)
   const takeOver = () => camera.setFollowing(false)
+  const wrap = useRef<HTMLDivElement>(null)
+  const runningName = running?.name
+  useEffect(() => {        // following, the page too brings the map into view each time a stage starts
+    if (camera.following && runningName) wrap.current?.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' })
+  }, [camera.following, runningName, reduced])
   const fitAll = () => { takeOver(); zoom.setT(centred(layout, box, camera.focus, Math.max(0.7, Math.min(1, (box.w - 16) / layout.width, (box.h - 16) / layout.height)))) }
   const t = zoom.t
 
   return (
-    <div className={css.mapWrap}>
+    <div className={css.mapWrap} ref={wrap}>
       <Toolbar tools={tools} following={running ? camera.following : null} onFollow={() => camera.setFollowing(!camera.following)}
         zoomBy={(factor) => { takeOver(); zoom.zoomBy(factor) }} fit={fitAll} />
       <div className={css.canvasWrap}>

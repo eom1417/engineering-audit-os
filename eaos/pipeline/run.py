@@ -197,6 +197,15 @@ def _previous(out):
     return None
 
 
+def check(target, out, **options):
+    """A check the person asked for: a run that did not end (stopped, broken or killed midway: its checkpoint is there)
+    goes on from that checkpoint; otherwise, or when the source changed since, a fresh full run."""
+    if (Path(out) / CHECKPOINT).is_file():
+        try: return resume(target, out, **options)
+        except ValueError: pass                         # the source or the options changed since: its evidence is stale
+    return execute(target, out, **options)
+
+
 def resume(target, out, **options):
     """Re-run only what a previous attempt did not complete: a run stopped or killed midway from the checkpoint it
     left after its last stage, else the last manifest."""

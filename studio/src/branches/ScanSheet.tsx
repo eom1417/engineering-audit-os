@@ -47,7 +47,7 @@ export function useRescan() {
       if (live.api && ctx?.analysis.branch && !ctx.analysis.selected) {
         const chosen = await live.api.select(ctx.analysis.branch, true, ctx.analysis.tip)
         made = chosen.scan ?? chosen.run
-      } else made = await actions.client.start({ action: 'audit', inputs: {} })
+      } else made = await actions.client.start({ action: 'audit', inputs: { fresh: true } })
       setRun(made)
       await actions.refresh()
       return true

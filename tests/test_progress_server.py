@@ -242,6 +242,15 @@ class Watch(Checked):
             self.assertEqual(answer['status'], 'running')
             self.assertNotIn('watch', answer)
 
+    def test_a_running_studio_is_reused_without_rebuilding_its_data(self):
+        open_studio = self.studio.temp_original
+        self.assertTrue(guided.scan_done(guided.load(self.project)))
+        with mock.patch.object(launch, 'running', return_value={'port': 8123, 'token': 't' * 32}), \
+                mock.patch.object(guided, 'publish') as publish:
+            opened = open_studio(str(self.project), show=False, route='/scan')
+        publish.assert_not_called()
+        self.assertEqual((opened['started'], opened['studio']), (False, f"http://127.0.0.1:8123/#/scan?token={'t' * 32}"))
+
     def test_busy_or_short_tools_do_not_open_it(self):
         with mock.patch.object(jobs, 'running', return_value={'id': 'audit-0', 'kind': 'audit', 'progress': {}}):
             self.assertEqual(agent_tools.audit(str(self.project), fresh=True)['status'], 'busy')
