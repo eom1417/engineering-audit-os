@@ -24,7 +24,7 @@ OPTIONS = {
                'Say in plain words what the waiting branch fixes (plan, findings), then offer three choices: take it in '
                '(accept with person_agreed=true), throw it away (undo), or decide later. Act only on their choice.'),
     'audit': ('افحص المشروع', 'Check the project',
-              'audit (fresh=true when status says the code changed), wait until it is done, then explain how healthy the '
+              'audit (fresh=true: the person picked this, so a new check runs even when one is on record), wait until it is done, then explain how healthy the '
               'project is and its five most important problems simply, with evidence from finding.'),
     'fix': ('أصلح الدفعة التالية', 'Fix the next batch',
             'Fix the next batch end to end, following status: run_setup (its one question), run_try, safety_net, fix_start, '
@@ -94,8 +94,9 @@ def _numbers(answer, lang):
                          f"{progress['closed']} of {progress['total']} done ({progress['percent']}%), {left} left")
         if left: said['fix'] = (f"باقي {left} مشكلة. الإصلاح في نسخة معزولة ويصلك كفرع جديد" if ar else
                                 f"{left} problems left; fixed in an isolated copy, handed over as a new branch")
-    if answer.get('checked') and (answer.get('next') or {}).get('tool') == 'audit':
-        said['audit'] = ('تغيّر الكود أو EAOS بعد آخر فحص: افحص من جديد' if ar else 'The code or EAOS changed since the last check: check again')
+    if answer.get('older_check'):
+        said['audit'] = ('تغيّر الكود أو EAOS بعد آخر فحص: افحص من جديد متى ما بغيت' if ar else
+                         'The code or EAOS changed since the last check: check again whenever you want')
     return said
 
 

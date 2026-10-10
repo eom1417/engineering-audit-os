@@ -268,7 +268,6 @@ def status(project=None):
               'running_job': busy['id'] if busy else None}
     if busy: step = ('wait', f"a {busy['kind']} is running")
     elif not checked: step = ('audit', 'the project has not been checked')
-    elif not _current(state, head): step = ('audit', 'the project or EAOS changed since the last check: call audit with fresh=true')
     elif waiting: step = ('accept or undo', f"the fixes on {waiting['branch']} wait for the person's decision")
     elif wave: step = ('fix_edit, then fix_finish', f"batch {wave['number']} is open")
     elif not _set_up(state, head): step = ('run_setup', "the app has not been run for this commit (ask the person's agreement first)")
@@ -276,6 +275,7 @@ def status(project=None):
     elif not guided.same_code(state, safety.get('commit'), head): step = ('safety_net', 'record the screens before any fix')
     else: step = ('fix_start', 'open the next batch of fixes')
     answer['next'] = {'tool': step[0], 'why': step[1]}
+    if checked: answer.update(_older_check(state))
     answer['report'] = _fresh_report(state) if checked else None
     answer['handover'] = handover.brief(state)
     return answer
@@ -303,10 +303,20 @@ def audit(project=None, fresh=False, use_assistant=None, without_tools=False):
         state['questions'] = [q for q in state.get('questions') or [] if q['id'] != 'use_assistant'] + [
             {'id': 'use_assistant', 'kind': 'yes_no', 'answer': bool(use_assistant), 'via': 'assistant', 'at': _now()}]
         guided.save(state)
-    head = _head(state)
-    if guided.scan_done(state) and not fresh and _current(state, head):
-        return {'status': 'done', 'already_checked': True, **overview(project)}
+    # A check on record stands until the person asks for a new one (fresh): a check takes up to an hour, and one started
+    # because the code moved on stopped the person's fixes midway (owner, 2026-10-10).
+    if guided.scan_done(state) and not fresh:
+        return {'status': 'done', 'already_checked': True, **overview(project), **_older_check(state)}
     return _start('audit', state, {'without_tools': True} if without_tools else {}, watch=True)
+
+
+OLDER_CHECK = ('The check on record is from an earlier commit or EAOS. Go on with it; check again (audit with fresh=true) '
+               'only when the person asks for a new check.')
+
+
+def _older_check(state):
+    """{older_check, what_now} when the check on record is not of this code by this EAOS; else {}."""
+    return {} if _current(state, _head(state)) else {'older_check': True, 'what_now_about_the_check': OLDER_CHECK}
 
 
 def _audit_job(project, arguments, progress):
@@ -552,7 +562,7 @@ def open_report(project=None, show=True):
             'what_now': 'Tell the person where it is' + ('' if opened else ' and how to open it (double-click the file)') + '.'
                         + (' Some parts could not be built: tell the person which, plainly (report_errors).' if made.get('errors') else '')
                         + (' The branch has moved on with new work since this check: say the report shows the code as it was '
-                           'then, and offer a new check (audit with fresh=true).' if stale else '')}
+                           'then; a new check (audit with fresh=true) runs only when the person asks for it.' if stale else '')}
 
 
 def _stale(state, made):

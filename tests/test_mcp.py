@@ -187,9 +187,15 @@ class ToolTests(Home):
         state = guided.load(self.project)
         with mock.patch.object(guided, 'scan_done', return_value=True):
             state['scanned_commit'], state['scanned_with'] = agent_tools._head(state), 'an-older-eaos'; guided.save(state)
-            self.assertEqual(agent_tools.status(project)['next']['tool'], 'audit', 'a report by an older EAOS is checked again')
+            older = agent_tools.status(project)
+            self.assertEqual((older['next']['tool'], older['older_check']), ('run_setup', True),
+                             'a report by an older EAOS stands: a new check runs only when the person asks')
+            with mock.patch.object(agent_tools, 'overview', return_value={}), mock.patch.object(jobs, 'start') as started:
+                self.assertTrue(agent_tools.audit(project)['already_checked'])
+            started.assert_not_called()
             state['scanned_with'] = agent_tools.tool_digest(); guided.save(state)
             self.assertEqual(agent_tools.status(project)['next']['tool'], 'run_setup')
+            self.assertNotIn('older_check', agent_tools.status(project))
             state['setup'] = {'commit': state['scanned_commit'], 'ok': True}; guided.save(state)
             self.assertEqual(agent_tools.status(project)['next']['tool'], 'safety_net')
             state['safety'] = {'commit': state['scanned_commit']}; guided.save(state)

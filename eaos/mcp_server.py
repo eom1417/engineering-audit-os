@@ -173,7 +173,8 @@ def build():
 
     @server.tool(annotations=working, description='Check the whole project (29 stages: files, features, tools, tests, structure, '
                  'security, load, plan). Returns a job to follow with `wait`; when the project was already checked at this commit, '
-                 'returns the overview at once. fresh=true checks again from the start. A started check answers with `watch`, '
+                 'returns the overview at once, also when the code moved on since (it says so): fresh=true checks again from the '
+                 'start, only when the person asks for a new check. A started check answers with `watch`, '
                  'its live map in the EAOS Studio, opened in the person\'s browser (first "Preparing the tools" while the tools the check '
                  'needs are installing: the check starts by itself once they are ready). use_assistant: before their first check, ask the '
                  'person once whether EAOS may use their AI assistant in it (it interprets the facts and plans the ideal; '
