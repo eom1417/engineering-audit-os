@@ -524,18 +524,21 @@ class BranchControl:
 
     # ------------------------------------------------------------------ the analysis branch
     def select(self, body):
-        """Make `branch` the analysis branch: the Studio's context changes, the person's checkout does not. Refused while
-        any run is queued or working, so none is retargeted without the person deciding; `scan: true` queues the scan."""
+        """Make `branch` the analysis branch: the Studio's context changes, the person's checkout does not. Moving to
+        another branch is refused while any run is queued or working, so none is retargeted without the person deciding;
+        choosing the branch already analysed moves nothing. `scan: true` queues the scan."""
         from ... import guided
         name = valid_name(self.project, body.get('branch'))
         local, remote = self.tip(f'refs/heads/{name}'), next((r for r in self.remotes() if self.tip(f'refs/remotes/{r}/{name}')), None)
         if not local and not remote: raise KeyError(name)
-        waiting = self.active_runs(queued=True)
+        waiting = self.active_runs(queued=True) if name != ((self.state() or {}).get('branch') or self.head()['branch']) else []
         if waiting:
-            raise Blocked([say(f"{len(waiting)} run(s) are queued or working on the current branch ({', '.join(r['id'] for r in waiting[:3])}): "
-                               'let them finish or stop them, then choose again. EAOS never moves them to another branch on its own.',
-                               f"{len(waiting)} تشغيل في الانتظار أو يعمل على الفرع الحالي ({', '.join(r['id'] for r in waiting[:3])}): "
-                               'اتركها تنتهي أو أوقفها ثم اختر من جديد. EAOS لا ينقلها إلى فرع آخر بنفسه.', 'in_flight')], needs='in_flight')
+            runs = [{'id': r['id'], 'label': r.get('label') or {'en': r['action'], 'ar': r['action']}} for r in waiting[:3]]
+            named = {lang: ('، ' if lang == 'ar' else ', ').join(run['label'][lang] for run in runs) for lang in ('en', 'ar')}
+            raise Blocked([{**say(f'Work is still open on the current branch: {named['en']}. Let it finish or stop it, then choose again. '
+                                  'EAOS never moves work to another branch on its own.',
+                                  f'فيه شغل ما خلص على الفرع الحالي: {named['ar']}. اتركه ينتهي أو أوقفه، ثم اختر من جديد. '
+                                  'EAOS لا ينقل الشغل إلى فرع آخر بنفسه.', 'in_flight'), 'runs': runs}], needs='in_flight')
         expected = body.get('expected_tip')
         if expected and expected != (local or self.tip(f'refs/remotes/{remote}/{name}')):
             raise Blocked([say('The branch moved since you looked at it: refresh.', 'الفرع تغيّر منذ نظرت إليه: حدّث.', 'stale')], needs='refresh')

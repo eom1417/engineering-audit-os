@@ -148,6 +148,18 @@ class Selecting(Repo):
         self.assertEqual(status, 409, out)
         self.assertEqual(out['needs'], 'in_flight')
         self.assertEqual(self.app.store.load('r1')['context']['analysis_branch'], 'develop')
+        reason = out['reasons'][0]
+        self.assertEqual(reason['runs'], [{'id': 'r1', 'label': {'en': 'a', 'ar': 'a'}}], 'the refusal names the work and offers its stop')
+        self.assertIn('فيه شغل ما خلص على الفرع الحالي: a.', reason['ar'])
+        self.assertNotIn('r1', reason['ar'] + reason['en'], 'plain words, never an id')
+
+    def test_rescanning_the_branch_already_analysed_waits_for_no_run(self):
+        run = {'id': 'r3', 'action': 'report_decision', 'mode': 'handoff', 'state': 'waiting_for_person', 'read': False, 'created': 'x',
+               'label': {'en': 'Review owner answer', 'ar': 'مراجعة إجابة المالك'}, 'context': self.app.branches.run_context()}
+        self.app.store.save(run, new=True)
+        status, out = self.post('/api/branches/analysis', {'branch': 'develop'})
+        self.assertEqual(status, 200, out)
+        self.assertEqual((out['context']['analysis']['branch'], self.app.store.load('r3')['state']), ('develop', 'waiting_for_person'))
 
     def test_run_keeps_its_branch_relation_after_restart_and_deletion(self):
         run = {'id': 'r2', 'action': 'fix_finish', 'state': 'done', 'read': False, 'created': 'x', 'label': {'en': 'a', 'ar': 'a'},

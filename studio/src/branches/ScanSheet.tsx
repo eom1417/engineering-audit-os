@@ -13,7 +13,7 @@ import { Sheet, SheetLead, SheetSub } from '../components/Sheet'
 import { useToast } from '../components/Toast'
 import { SNAPSHOT } from '../data/actions/contract'
 import { useActions } from '../data/actions/store'
-import { ActionError, type LiveFreshness, type Run } from '../data/actions/types'
+import { ActionError, type Bi, type LiveFreshness, type Run } from '../data/actions/types'
 import { useStudio } from '../data/context'
 import { usePrefs } from '../i18n/prefs'
 import { Id, When } from '../i18n/text'
@@ -21,12 +21,19 @@ import { useBranchLive, useFreshView } from './live'
 import { useBranchWords } from './words'
 import css from './branches.module.css'
 
+/** A refusal in the page's language and the runs it waits for, each of which the person can stop right there. */
+export interface Refusal { text: string; runs: { id: string; label: Bi }[] }
+
+export function refusal(problem: unknown): Refusal {
+  return { text: problem instanceof Error ? problem.message : String(problem), runs: problem instanceof ActionError ? problem.reasons.flatMap((r) => r.runs ?? []) : [] }
+}
+
 /** The run a Re-scan started, followed through the command centre's run list until it is over. */
 export function useRescan() {
   const actions = useActions()
   const live = useBranchLive()
   const [run, setRun] = useState<Run | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<Refusal | null>(null)
   const [busy, setBusy] = useState(false)
   const current = run ? actions.runs.find((r) => r.id === run.id) ?? run : null
   async function start() {
@@ -45,16 +52,15 @@ export function useRescan() {
       await actions.refresh()
       return true
     } catch (problem) {
-      setError(problem instanceof ActionError ? problem.message : String(problem))
+      setError(refusal(problem))
     } finally { setBusy(false) }
     return false
   }
   return { run: current, error, busy, start, live: actions.mode === 'live' && Boolean(live.api), reset: () => { setRun(null); setError(null) } }
 }
 
-export function RescanStatus({ run, error }: { run: Run | null; error: string | null }) {
+export function RescanStatus({ run }: { run: Run | null }) {
   const w = useBranchWords()
-  if (error) return <p role="alert" className={css.error}>{error}</p>
   if (!run) return null
   // a tool can end its run with a question instead of the work (needs_branch, busy): that is not done
   const asked = String(((run.result?.answer ?? {}) as { status?: unknown }).status ?? '')
@@ -65,6 +71,29 @@ export function RescanStatus({ run, error }: { run: Run | null; error: string | 
     <div className={css.status} role="status" aria-live="polite" data-run-state={unfinished ? `done:${asked}` : run.state}>
       <Chip tone={tone}>{w(word)}</Chip>
       <Go to={`/runs/${encodeURIComponent(run.id)}`} className={css.inlineLink}>{w('openRun', { id: run.id })}</Go>
+    </div>
+  )
+}
+
+export function SelectError({ error }: { error: Refusal | null }) {
+  const w = useBranchWords()
+  const { lang } = usePrefs()
+  const actions = useActions()
+  const toast = useToast()
+  const [stopped, setStopped] = useState<string[]>([])
+  if (!error) return null
+  async function stop(id: string) {
+    try { await actions.client?.control(id, 'stop'); setStopped((ids) => [...ids, id]); await actions.refresh() } catch (problem) { toast(refusal(problem).text) }
+  }
+  return (
+    <div role="alert" className={css.error}>
+      <p>{error.text}</p>
+      {error.runs.map((run) => (
+        <Button key={run.id} variant="secondary" icon="stop" data-stop-run={run.id} isDisabled={stopped.includes(run.id)} onPress={() => stop(run.id)}>
+          {w('stopRun', { l: run.label[lang] })}
+        </Button>
+      ))}
+      {error.runs.length > 0 && <Go to="/runs" className={css.inlineLink}>{w('openRuns')}</Go>}
     </div>
   )
 }
@@ -166,7 +195,8 @@ export function ScanSheet({ isOpen, onOpenChange }: { isOpen: boolean; onOpenCha
             isDisabled={Boolean(rescan.run && !['done', 'failed', 'stopped'].includes(rescan.run.state))}>
             {otherBranch ? w('rescanBranch', { b: fresh.branch as string }) : w('rescanNow')}
           </Button>
-          <RescanStatus run={rescan.run} error={rescan.error} />
+          <SelectError error={rescan.error} />
+          <RescanStatus run={rescan.run} />
         </div>
       ) : (
         <div className={css.req} data-fresh-actions="snapshot">

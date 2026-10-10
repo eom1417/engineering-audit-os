@@ -4,7 +4,7 @@
 // fetch, and a dropped stream reconnects with Last-Event-ID, so the server replays exactly what was missed.
 import { frameSplitter } from './sse'
 import { ActionError, TERMINAL, type ActionsClient, type BranchApi, type BranchContext, type BranchDetail, type Control, type DeletePreview,
-  type Inventory, type LiveFreshness, type MergePreview, type Preview, type PreviewBody, type Question, type Run, type RunEvent,
+  type Inventory, type LiveFreshness, type MergePreview, type Preview, type PreviewBody, type Question, type Reason, type Run, type RunEvent,
   type StartBody, type StreamStatus, type ReportDecision } from './types'
 
 export const TOKEN_KEY = 'eaos.token'
@@ -48,7 +48,13 @@ export function liveClient(token: string): ActionsClient {
       csrf = null // a new launch: the CSRF token of this page went stale
       return request(method, path, body, true)
     }
-    if (!response.ok) throw new ActionError(response.status, String(payload.error ?? response.statusText), payload.needs as string | undefined)
+    if (!response.ok) {
+      // a refusal with reasons is said in the page's language (i18n/prefs keeps <html lang>); the server's error is English
+      const reasons = (payload.reasons ?? []) as Reason[]
+      const lang = globalThis.document?.documentElement.lang === 'en' ? 'en' : 'ar'
+      const message = reasons.length ? reasons.map((r) => r[lang]).join(' ') : String(payload.error ?? response.statusText)
+      throw new ActionError(response.status, message, payload.needs as string | undefined, reasons)
+    }
     return payload
   }
 

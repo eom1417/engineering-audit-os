@@ -161,10 +161,12 @@ export type Control = 'pause' | 'resume' | 'stop' | 'retry'
 export class ActionError extends Error {
   status: number
   needs?: string
-  constructor(status: number, message: string, needs?: string) {
+  reasons: Reason[]
+  constructor(status: number, message: string, needs?: string, reasons: Reason[] = []) {
     super(message)
     this.status = status
     this.needs = needs
+    this.reasons = reasons
   }
 }
 
@@ -200,7 +202,8 @@ export interface ActionsClient {
 }
 
 /** A reason in both languages, with a stable code */
-export interface Reason extends Bi { code: string }
+/** Why a change cannot happen now; `runs` are the queued or working runs it waits for (each can be stopped). */
+export interface Reason extends Bi { code: string; runs?: { id: string; label: Bi }[] }
 export interface Confirm { token: string; expires?: number }
 
 export type FreshState = 'fresh' | 'behind' | 'rewritten' | 'dirty' | 'other_branch' | 'unknown'

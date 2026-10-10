@@ -2250,7 +2250,7 @@
    "method": "POST",
    "path": "/api/branches/analysis",
    "body": "{branch, scan?, expected_tip?}",
-   "does": "Makes branch the analysis branch without touching the checkout; refused (409 needs in_flight) while a run is queued or working; scan: true queues an audit."
+   "does": "Makes branch the analysis branch without touching the checkout; moving to another branch is refused (409 needs in_flight, naming the runs) while a run is queued or working; scan: true queues an audit."
   },
   {
    "method": "POST",

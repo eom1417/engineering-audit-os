@@ -36,7 +36,8 @@ local time and full governance"). Adoption records: `docs/adoption/ns46-t18-bran
   a recovery ref `refs/eaos-recovery/<id>` is written first; unmerged commits need a second confirm token; remote
   deletion is its own preview, consent and `--force-with-lease` push; local and remote never imply each other.
 - In-flight runs are never retargeted: a run records `context` (analysis branch and commit, checkout) when created; the
-  analysis branch cannot change while any run is queued or working.
+  analysis branch cannot change while any run is queued or working (the refusal names each run and offers its stop);
+  choosing the branch already analysed changes nothing, so a re-scan never waits for a run.
 
 ## Freshness
 

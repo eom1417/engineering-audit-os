@@ -21,8 +21,8 @@ import { normalize } from '../../search/normalize'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, PageTitle } from '../../shell/Layout'
 import { useBranchLive } from '../../branches/live'
-import { ContextRows, SelectError, useSelect } from '../../branches/Switcher'
-import { RescanStatus } from '../../branches/ScanSheet'
+import { ContextRows, useSelect } from '../../branches/Switcher'
+import { RescanStatus, SelectError } from '../../branches/ScanSheet'
 import { SnapshotPanel } from '../runs/RunsPage'
 import { useBranchWords } from '../../branches/words'
 import css from '../../branches/branches.module.css'
@@ -228,8 +228,8 @@ function Drawer({ row, base, onClose, onChanged }: { row: BranchRow; base: strin
       <div className={[css.tall, css.drawerBody].join(' ')}>
       <Badges row={row} />
       {error && <p role="alert" className={css.error}>{error}</p>}
-      {followed && <RescanStatus run={followed} error={null} />}
-      {select.scan && <RescanStatus run={select.scan} error={null} />}
+      {followed && <RescanStatus run={followed} />}
+      {select.scan && <RescanStatus run={select.scan} />}
       <SelectError error={select.error} />
       {detail && <>
         <Props rows={[
@@ -387,7 +387,7 @@ function LiveBranches() {
             setFetching(true)
             try { setFetchRun((await live.api.fetch((inventory.remotes ?? [])[0])).run) } catch (problem) { setError(problem instanceof Error ? problem.message : String(problem)) } finally { setFetching(false); changed() }
           }}>{w('refreshRemote')}</Button>
-          {fetchRun && <RescanStatus run={fetchRun} error={null} />}
+          {fetchRun && <RescanStatus run={fetchRun} />}
         </>}
       </div>
       {error && <p role="alert" className={css.error}>{error}</p>}
