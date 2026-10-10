@@ -69,7 +69,8 @@ const browser = await chromium.launch()
 
 async function open({ width, lang, theme, route = '/scan', reduced = false, holdStream = false }) {
   const phone = width < 768
-  const ctx = await browser.newContext({ viewport: { width, height: phone ? 844 : width < 1200 ? 1024 : 900 }, deviceScaleFactor: phone ? 2 : 1,
+  const height = phone ? 844 : width >= 1200 ? 900 : 1024
+  const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: phone ? 2 : 1,
     isMobile: phone, hasTouch: phone, colorScheme: theme, reducedMotion: reduced ? 'reduce' : 'no-preference', locale: lang === 'ar' ? 'ar' : 'en-GB' })
   await ctx.addInitScript(([l, t]) => { try { localStorage.setItem('eaos.studio', JSON.stringify({ lang: l, theme: t })) } catch { /* fresh */ } }, [lang, theme])
   // the stream held back, as a proxy that buffers server-sent events would: the page must fall back to reading
