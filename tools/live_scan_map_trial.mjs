@@ -379,7 +379,7 @@ async function look() {
   await page.screenshot({ path: shot })
   checks.look = { url: page.url().replace(/token=[^&]+/, 'token=<redacted>'), screenshot: shot, ...(await mapFacts(page)),
     ...(await page.evaluate(() => { const run = document.querySelector('[data-run-state]'); return { run_state: run?.getAttribute('data-run-state'), flow: run?.getAttribute('data-flow'), stages: document.querySelectorAll('g[data-stage]').length,
-      panel: document.querySelector('[data-hook=scan-stage-panel]')?.parentElement?.textContent ?? '', shots: document.querySelectorAll('img[data-shot]').length } })) }
+      panel: document.querySelector('[data-hook=scan-stage-panel]')?.parentElement?.textContent ?? '', shots: [...document.querySelectorAll('img[data-shot]')].filter((img) => img.complete && img.naturalWidth > 0).length } })) }
   await ctx.close()
 }
 
