@@ -5,7 +5,9 @@
 // the viewport, the initial scroll, axe (WCAG 2.2 AA), targets under 44 px, and on the map the glow and the moving
 // light, the map's toolbar against every stage it could cover. Phase 4 of the plan adds the phone's bottom sheet, a
 // produced file read in its sheet, the polling fallback with the stream held back, and the replay of the finished
-// check at 30x, every glow and light of which is matched to its line of run-progress.jsonl (I9).
+// check at 30x, every glow and light of which is matched to its line of run-progress.jsonl (I9). Phase 5 adds two modes
+// (TRIAL_MODE): `watch`, one long check watched from start to end (plan 7.1 and 7.7), and `look`, the page at a given
+// address (7.3).
 // Writes TRIAL_OUT/browser.json; prints one JSON line.
 import fs from 'node:fs'
 import path from 'node:path'
@@ -205,6 +207,12 @@ async function view(moment, v, extra = {}) {
   }
 }
 
+/** In the page: every glow and light drawn now, [kind, stage, to, the time of the line that drew it]. */
+function drawnNow() {
+  return [...[...document.querySelectorAll('[data-glow]')].map((g) => ['glow', g.closest('[data-stage]').getAttribute('data-stage'), '', g.getAttribute('data-at')]),
+    ...[...document.querySelectorAll('[data-light]')].map((l) => ['light', l.getAttribute('data-from'), l.getAttribute('data-to'), l.getAttribute('data-at')])]
+}
+
 /** Every glow and light the map draws while the replay plays, until the replay has ended and the map has shown it
  * all (3 s with nothing drawn). */
 async function watchReplay(page, shot) {
@@ -212,11 +220,8 @@ async function watchReplay(page, shot) {
   const start = Date.now()
   let quietSince = Date.now()
   while (Date.now() - start < 90000 && Date.now() - quietSince < 3000) {
-    const now = await page.evaluate(() => ({
-      drawn: [...[...document.querySelectorAll('[data-glow]')].map((g) => ['glow', g.closest('[data-stage]').getAttribute('data-stage'), '', g.getAttribute('data-at')]),
-        ...[...document.querySelectorAll('[data-light]')].map((l) => ['light', l.getAttribute('data-from'), l.getAttribute('data-to'), l.getAttribute('data-at')])],
-      done: document.querySelector('[data-replay]')?.getAttribute('data-run-state') === 'done',
-    }))
+    const now = { drawn: await page.evaluate(drawnNow),
+      done: await page.evaluate(() => document.querySelector('[data-replay]')?.getAttribute('data-run-state') === 'done') }
     for (const item of now.drawn) seen.set(item.join('|'), item)
     if (now.drawn.length || !now.done) quietSince = Date.now()
     if (seen.size > 6 && !fs.existsSync(shot)) await page.screenshot({ path: shot })
@@ -254,7 +259,7 @@ async function replayMatched() {
   }
 }
 
-try {
+async function threeMoments() {
   log('waiting for the check to start')
   const first = await until((p) => p && p.state === 'running', waitStartMs)
   if (!first) throw new Error('the check did not start in time')
@@ -284,6 +289,100 @@ try {
   await view('done', { width: 1440, lang: 'en', theme: 'light' }, { file: true })
   await view('done', { width: 390, lang: 'ar', theme: 'dark' }, { sheet: true })
   await replayMatched()
+}
+
+/** In the page: what the map and the panel show of the run now: each running stage's card line, the stage the panel
+ * follows, its counted steps, its "n of N" steps and the programs it runs. */
+function shownNow() {
+  const panel = document.querySelector('[data-hook=scan-stage-panel]')
+  const steps = [...(panel?.parentElement?.querySelectorAll('section') ?? [])].find((s) => s.querySelector('[data-step-status]'))
+  return {
+    cards: [...document.querySelectorAll('g[data-stage][data-state=running]')].map((g) => [g.getAttribute('data-stage'), g.querySelectorAll('text')[1]?.textContent ?? '']),
+    panel: panel?.getAttribute('data-stage') ?? null,
+    counted: [...(steps?.querySelectorAll('[data-step-status] bdi:first-child') ?? [])].map((b) => b.textContent).filter((t) => /\d+\/\d+$/.test(t)),
+    stepsOf: steps?.querySelector('h3 span')?.textContent ?? '',
+    programs: [...document.querySelectorAll('[data-programs] li bdi')].map((b) => b.textContent),
+  }
+}
+
+/** Keeps, per stage, the distinct texts the page showed of it (at most 40 of each kind). */
+function note(seen, now) {
+  const add = (stage, key, value) => {
+    const kept = ((seen[stage] ??= {})[key] ??= [])
+    if (value && !kept.includes(value) && kept.length < 40) kept.push(value)
+  }
+  for (const [stage, line] of now.cards) add(stage, 'card', line)
+  if (!now.panel) return
+  for (const text of now.counted) add(now.panel, 'counted', text)
+  add(now.panel, 'steps_of', now.stepsOf)
+  for (const name of now.programs) add(now.panel, 'programs', name)
+}
+
+/** Chrome's own measure of a page: main-thread task seconds and the JS heap (after a full collection when asked). */
+async function usage(chrome, collect = false) {
+  if (collect) await chrome.send('HeapProfiler.collectGarbage')
+  const metrics = Object.fromEntries((await chrome.send('Performance.getMetrics')).metrics.map((m) => [m.name, m.value]))
+  return { at: Date.now(), task_seconds: metrics.TaskDuration, heap_bytes: metrics.JSHeapUsedSize }
+}
+
+async function photo(desk, phone, n) {
+  const name = (width) => path.join(shots, `watch-${String(n).padStart(3, '0')}-${width}.png`)
+  await desk.screenshot({ path: name(1440) })
+  await phone.screenshot({ path: name(390) })
+  return { at: new Date().toISOString(), desk: name(1440), phone: name(390) }
+}
+
+/** Plan 7.1 and 7.7: one long real check watched from its start to its end. A desktop and a phone page are
+ * photographed every 30 s; the desktop page is read every 250 ms (every glow and light drawn, the running stages'
+ * cards, the panel); a third page is left alone and measured by Chrome: its main thread's task time against the wall
+ * clock, and its heap after a full collection at the start and the end. Every glow and light is then matched to its
+ * line of the run's progress file (I9). */
+async function watchRun() {
+  const first = await until((p) => p && p.state === 'running', waitStartMs)
+  if (!first) throw new Error('the check did not start in time')
+  const desk = await open({ width: 1440, lang: 'ar', theme: 'light' })
+  const phone = await open({ width: 390, lang: 'ar', theme: 'dark' })
+  const quiet = await open({ width: 1440, lang: 'en', theme: 'light' })
+  const chrome = await quiet.ctx.newCDPSession(quiet.page)
+  await chrome.send('Performance.enable')
+  const usages = [await usage(chrome, true)]
+  const drawn = new Map()
+  const seen = {}
+  const photos = []
+  let state = 'running'
+  for (let nextPhoto = 0, nextUsage = Date.now() + 60000, nextState = 0; state === 'running';) {
+    if (Date.now() >= nextPhoto) { photos.push(await photo(desk.page, phone.page, photos.length)); nextPhoto = Date.now() + 30000 }
+    if (Date.now() >= nextUsage) { usages.push(await usage(chrome)); nextUsage += 60000 }
+    if (Date.now() >= nextState) { state = (await progress())?.state ?? state; nextState = Date.now() + 2000 }
+    for (const item of await desk.page.evaluate(drawnNow)) drawn.set(item.join('|'), item)
+    note(seen, await desk.page.evaluate(shownNow))
+    await sleep(250)
+  }
+  await sleep(5000)                                // the map's queue shows the last changes
+  photos.push(await photo(desk.page, phone.page, photos.length))
+  usages.push(await usage(chrome, true))
+  const answer = await fetch(`${base}/api/report-file?path=run-progress.jsonl`, { headers: { 'X-EAOS-Token': token } })
+  const lines = (await answer.text()).split('\n').filter(Boolean).map((line) => JSON.parse(line))
+  const items = [...drawn.values()]
+  checks.watch = { state, photos, seen, usages, lines: lines.length, glows: items.filter((i) => i[0] === 'glow').length,
+    lights: items.filter((i) => i[0] === 'light').length, lights_from: [...new Set(items.filter((i) => i[0] === 'light').map((i) => i[1]))],
+    unmatched: unmatched(items, lines).map((i) => i.join(' ')) }
+  for (const view of [desk, phone, quiet]) await view.ctx.close()
+}
+
+/** Plan 7.3: the page at a given address (TRIAL_BASE, TRIAL_TOKEN, TRIAL_ROUTE) is the live map: its run, its flow,
+ * its journey; one screenshot. */
+async function look() {
+  const { ctx, page } = await open({ width: 1440, lang: 'ar', theme: 'light', route: process.env.TRIAL_ROUTE || '/scan' })
+  const shot = path.join(shots, `look-${Date.now()}.png`)
+  await page.screenshot({ path: shot })
+  checks.look = { url: page.url().replace(/token=[^&]+/, 'token=<redacted>'), screenshot: shot, ...(await mapFacts(page)),
+    ...(await page.evaluate(() => { const run = document.querySelector('[data-run-state]'); return { run_state: run?.getAttribute('data-run-state'), flow: run?.getAttribute('data-flow'), stages: document.querySelectorAll('g[data-stage]').length } })) }
+  await ctx.close()
+}
+
+try {
+  await ({ watch: watchRun, look }[process.env.TRIAL_MODE] ?? threeMoments)()
 } catch (problem) {
   errors.push(String(problem && problem.stack || problem))
 } finally {
