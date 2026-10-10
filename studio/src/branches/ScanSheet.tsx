@@ -137,12 +137,14 @@ export function SelectError({ error }: { error: Refusal | null }) {
   return (
     <div role="alert" className={css.error}>
       <p>{error.text}</p>
-      {error.runs.map((run) => (
-        <Button key={run.id} variant="secondary" icon="stop" data-stop-run={run.id} isDisabled={stopped.includes(run.id)} onPress={() => stop(run.id)}>
-          {w('stopRun', { l: run.label[lang] })}
-        </Button>
-      ))}
-      {error.runs.length > 0 && <Go to="/runs" className={css.inlineLink}>{w('openRuns')}</Go>}
+      {error.runs.length > 0 && <div className={css.actions}>
+        {error.runs.map((run) => (
+          <Button key={run.id} variant="secondary" icon="stop" data-stop-run={run.id} isDisabled={stopped.includes(run.id)} onPress={() => stop(run.id)}>
+            {w('stopRun', { l: run.label[lang] })}
+          </Button>
+        ))}
+        <Go to="/runs" className={css.inlineLink}>{w('openRuns')}</Go>
+      </div>}
     </div>
   )
 }
