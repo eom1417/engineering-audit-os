@@ -39,7 +39,7 @@ def run(target, source, out=None, only=None):
         for artifact, path in (report.get('artifacts') or {}).items():
             if Path(path).is_file(): shutil.copyfile(path, Path(out) / artifact)
     versions = ''.join(f"{name}={detail.get('version')};" for name, detail in sorted(manifest['coverage'].items()))
-    input_sha = digest((source.fingerprint + '|' + versions).encode('utf-8'))
+    input_sha = digest((source.content_fingerprint + '|' + versions).encode('utf-8'))
     facts = []
     present, absent = observed(manifest), missing(manifest)
     edge_merge = {'status': 'not_available', 'reason': 'codegraph was not observed in this run',

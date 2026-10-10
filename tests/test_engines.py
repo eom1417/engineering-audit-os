@@ -216,6 +216,21 @@ class InstalledEngineTests(unittest.TestCase):
                 digests.append(Path(out, 'facts/external.json').read_bytes())
         self.assertEqual(digests[0], digests[1])
 
+    def test_a_fresh_copy_of_the_same_files_gives_the_same_fact_ids(self):
+        # A fact id hashing modification times changed with every clone, and with it the measurement a claim shows.
+        import json, os, shutil
+        from eaos.facts.run import collect
+        ids = []
+        with tempfile.TemporaryDirectory() as tmp:
+            for name, mtime in (('a', 1_000_000), ('b', 2_000_000)):
+                target = shutil.copytree('eaos/compose', Path(tmp, name, 'compose'))
+                for path in target.rglob('*'): os.utime(path, (mtime, mtime))
+                collect(target, Path(tmp, name, 'out'), engines=['enola'])
+                facts = json.loads(Path(tmp, name, 'out', 'facts/external.json').read_text())['facts']
+                ids.append(sorted(fact['id'] for fact in facts))
+        self.assertTrue(ids[0])
+        self.assertEqual(ids[0], ids[1])
+
     def test_an_engine_asked_for_by_name_is_the_only_one_that_runs(self):
         with tempfile.TemporaryDirectory() as workdir:
             manifest = analyze('eaos/compose', workdir, only=['jscpd'], formats=['python'])

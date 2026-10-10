@@ -46,7 +46,7 @@ class SccTests(Workspace):
         manifest = {'engines': {'scc': {'version': '4.1.0', 'metrics': [
             {'path': 'a.py', 'granularity': 'file', 'measurements': {'code': 10}}]}}, 'findings': [],
                     'coverage': {'scc': {'status': 'observed', 'evaluated_kinds': {}}}, 'target_unchanged': True}
-        source = mock.Mock(exclude=(), fingerprint='f')
+        source = mock.Mock(exclude=(), content_fingerprint='f')
         with mock.patch('eaos.engines.analyze', return_value=manifest):
             result = external.run(self.tmp, source, out=self.tmp)
         kinds = {fact['kind'] for fact in result['facts']}
