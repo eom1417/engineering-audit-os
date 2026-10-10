@@ -592,6 +592,21 @@ class Direct(Base):
         self.assertEqual(chosen, [('main', 'main (main)')])
         self.assertEqual([name for name, _ in calls], ['audit', 'audit'])
 
+    def test_a_branch_the_assistant_needs_is_the_studios_own_question_and_the_answer_is_recorded(self):
+        # Answered as text to the assistant, the choice never reached EAOS, and status kept asking for the branch.
+        run = self.start('explain')
+        self.app.wait(run, ('waiting_for_person', 'done', 'failed'), 30)
+        chosen, manager = [], self.app.manager
+        manager._choose_branch = lambda branch, said: chosen.append(branch)
+        manager._launch = lambda *args: None
+        asked = {'status': 'needs_branch', 'recommended': 'develop',
+                 'branches': [{'name': 'main', 'main': True}, {'name': 'develop', 'ahead_of_main': 9}]}
+        manager._end_turn(run, {'eaos_results': [('status', asked)], 'texts': ['EAOS needs the branch first.']}, 0)
+        question = self.app.store.load(run)['question']
+        self.assertEqual((question['why'], question['recommendation']), ('branch', 'develop'))
+        self.assertEqual(self.post(f"/api/questions/{question['id']}/answer", {'option': 'develop'})[0], 200)
+        self.assertEqual(chosen, ['develop'])
+
     def test_failed_custom_clarification_preserves_the_original_question(self):
         os.environ['FAKE_MODE'] = 'fail'
         self.app.manager.tools, calls = self.fake_tools({'run_setup': {'status': 'needs_agreement', 'ask_the_person': 'May EAOS run?'}})

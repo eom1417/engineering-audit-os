@@ -414,6 +414,12 @@ class Manager:
             return self._restore_question(run)
         question = prompts.question_in(words)
         if question is None:
+            # The branch is the person's to choose (choose_branch is person-only): the Studio asks it as its own question,
+            # so the answer is recorded before the assistant goes on
+            branch = next((payload for tool, payload in reversed(state['eaos_results'])
+                           if isinstance(payload, dict) and payload.get('status') == 'needs_branch' and payload.get('branches')), None)
+            if branch: question = prompts.branch_question(branch)
+        if question is None:
             asked = next((payload for tool, payload in reversed(state['eaos_results'])
                           if isinstance(payload, dict) and payload.get('status') == 'needs_agreement'), None)
             if asked and not self._waiting_branches() - set(record.get('branches_before') or []):
@@ -487,11 +493,13 @@ class Manager:
             else:
                 threading.Thread(target=self._handoff, args=(run,), daemon=True).start()
             return self.store.load(run)
+        if question.get('why') == 'branch':
+            # The person picked the branch in the Studio (their own press, behind the token, CSRF and Origin checks): it
+            # is recorded as their choice whoever asked, then the step runs again on that branch. Recorded for direct runs
+            # only, an assistant asking it got the answer as text and status kept asking for the branch.
+            self._choose_branch(option, label['en'])
         if record.get('mode') == 'direct':
             if question.get('why') == 'branch':
-                # The person picked the branch in the Studio (their own press, behind the token, CSRF and Origin
-                # checks): it is recorded as their choice, and the step runs again on that branch
-                self._choose_branch(option, label['en'])
                 threading.Thread(target=self._direct, args=(run,), daemon=True).start()
             elif question.get('why') == 'run consent' and option == 'yes':
                 inputs = {**(record.get('inputs') or {}), 'person_agreed': True}
