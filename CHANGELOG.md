@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.0.4 (2026-10-10)
 
 - **The interface first, the tools in the order they are needed**: whenever EAOS is called on a project, the Studio
   opens at once on "Preparing the tools": every tool with its state, overall progress and time left. Tools install
@@ -9,9 +9,13 @@
   live map until each is ready. A failed tool shows its reason and Retry; the check does not start without a tool it
   needs unless the person picks "Start without it", and the report records it. A second start is ready at once, and
   the vulnerability database refreshes itself daily in the background.
-
-## 0.0.4 (2026-10-10)
-
+- **AI stages take the time the work needs**: no time or cost cut-off; an assistant is ended only when it writes
+  nothing at all for 20 minutes, or when the person stops it, and the stop ends the assistant too. Each AI stage's
+  prompt says its goal, what it is given, what to return and what a good answer is.
+- **A faster check, the same findings**: the slowest engine (CodeGraph) runs beside the others, and the executive
+  summary reuses the plan the check already made; a check of EAOS itself went from 17 to 12.5 minutes.
+- **The same project gives the same numbers**: the engines' findings no longer depend on when the files were
+  copied, so a complexity a card quotes is the same on every fresh copy of the same commit.
 - **The live check map**: while a check runs, from the assistant, the Studio or `eaos start`, the Studio draws
   EAOS's own stages live: the running stage glows, a light moves to the next ones, and each stage says what it does,
   how long it took, its steps, what it produced and why it was skipped. The setup, safety and fix flows have their
