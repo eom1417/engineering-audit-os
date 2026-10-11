@@ -124,6 +124,15 @@ class Tools(unittest.TestCase):
         with mock.patch.object(crawl, 'which', return_value=None):
             self.assertEqual(crawl.crawl('http://127.0.0.1:9', '/nonexistent')['status'], 'unavailable')
 
+    def test_a_python_tool_with_its_own_environment_is_checked_there(self):
+        from eaos import toolchain
+        with tempfile.TemporaryDirectory() as folder, mock.patch.object(toolchain, 'home', return_value=Path(folder)):
+            tool = {'name': 'emerge', 'install': {'method': 'pip', 'own_venv': True, 'with': ['setuptools==80.10.2']}}
+            record = Path(folder) / 'venv-emerge/lib/python3.12/site-packages/setuptools-80.10.2.dist-info'
+            record.mkdir(parents=True)
+            self.assertEqual((toolchain.venv_of(tool), toolchain._companions_missing(tool)), (Path(folder) / 'venv-emerge', ''))
+            self.assertIsNone(toolchain.pip_version('setuptools'))
+
     def test_emerge_reads_one_analysis_per_language_of_the_project(self):
         text = architecture._config(Path('/p'), Path('/o'), ['python', 'typescript'])
         self.assertEqual([line for line in text.splitlines() if line.startswith('- analysis_name')],

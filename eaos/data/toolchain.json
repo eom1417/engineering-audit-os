@@ -1237,10 +1237,15 @@
         "method": "pip",
         "package": "emerge-viz",
         "with": [
-          "setuptools==80.10.2"
-        ]
+          "setuptools==80.10.2",
+          "pip==24.0"
+        ],
+        "own_venv": true
       },
-      "install_note": "The dependency graph with its clusters (Louvain modularity), as JSON and as a local interactive page (eaos/engines/architecture.py). setuptools 80 is installed beside it: emerge imports pkg_resources, which setuptools 81 removes. At its end it tries to copy a path to the clipboard and fails on a computer without one; its files are already written, and EAOS judges it by them."
+      "install_note": "The dependency graph with its clusters (Louvain modularity), as JSON and as a local interactive page (eaos/engines/architecture.py). Its own environment: its dependencies would move packaging (23.2 to 26.3) in the one the other Python tools share. setuptools 80 is installed beside it: emerge imports pkg_resources, which setuptools 81 removes, and pip 24.0, whose internals it reads to list the Python packages it sees. At its end it tries to copy a path to the clipboard and fails on a computer without one; its files are already written, and EAOS judges it by them.",
+      "version_args": [
+        "--help"
+      ]
     }
   ]
 }
