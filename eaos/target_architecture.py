@@ -10,6 +10,7 @@ The matrix is the gap between current and target: every current component has
 an origin in the target, every target component has an origin in the current.
 The matrix is a fact about plans, not a claim about the future.
 """
+import re
 from collections import defaultdict
 from pathlib import Path
 from .facts.store import read_set
@@ -245,6 +246,34 @@ def render_decisions(out, records):
     return write_all(out, records)
 
 
+def current_gap(current, target_ids, claims, tasks):
+    """The gap row of one of today's components: covered when it is retained with no open claim on its files, partial
+    when a card closes its open claims, missing otherwise."""
+    paths = set(current.get('paths') or [])
+    open_claims = [claim for claim in claims
+                   if claim.get('confidence') in {'CONFIRMED', 'LIKELY', 'HYPOTHESIS'}
+                   and claim.get('status') != 'withdrawn'
+                   and paths & set((claim.get('priority_factors') or {}).get('paths') or [])]
+    claim_ids = {claim['id'] for claim in open_claims}
+    blocking = sorted(task['id'] for task in tasks if task.get('claim_id') in claim_ids)
+    if current.get('relation') == 'retain' and not open_claims:
+        gap = 'covered'
+    elif open_claims and blocking:
+        gap = 'partial'
+    else:
+        gap = 'missing'
+    return {'component': current['id'],
+            'current': {'relation': current.get('relation'), 'origin': current.get('origin'),
+                        'reason': current.get('reason')},
+            'target': target_ids or [f"{current.get('relation')} {current['id']}"],
+            'gap': gap,
+            'evidence': sorted(set(current.get('evidence_ids') or []) | claim_ids),
+            'blocking_tasks': blocking,
+            # Compatibility names used by older machine consumers.
+            'current_id': current['id'], 'current_origin': current['origin'],
+            'target_ids': target_ids}
+
+
 def gap_matrix(current_components, target_components, claims=None, tasks=None, stages=None):
     """Map every component to the evidence and executable work that closes its gap."""
     claims, tasks, stages = claims or [], tasks or [], stages or []
@@ -252,33 +281,8 @@ def gap_matrix(current_components, target_components, claims=None, tasks=None, s
     for target in target_components:
         if target.get('source_component_id'):
             by_source[target['source_component_id']].append(target)
-    rows = []
-    for current in current_components:
-        matches = by_source[current['id']]
-        paths = set(current.get('paths') or [])
-        open_claims = [claim for claim in claims
-                       if claim.get('confidence') in {'CONFIRMED', 'LIKELY', 'HYPOTHESIS'}
-                       and claim.get('status') != 'withdrawn'
-                       and paths & set((claim.get('priority_factors') or {}).get('paths') or [])]
-        claim_ids = {claim['id'] for claim in open_claims}
-        blocking = sorted(task['id'] for task in tasks if task.get('claim_id') in claim_ids)
-        if current.get('relation') == 'retain' and not open_claims:
-            gap = 'covered'
-        elif open_claims and blocking:
-            gap = 'partial'
-        else:
-            gap = 'missing'
-        target_ids = [target['id'] for target in matches]
-        rows.append({'component': current['id'],
-                     'current': {'relation': current.get('relation'), 'origin': current.get('origin'),
-                                 'reason': current.get('reason')},
-                     'target': target_ids or [f"{current.get('relation')} {current['id']}"],
-                     'gap': gap,
-                     'evidence': sorted(set(current.get('evidence_ids') or []) | claim_ids),
-                     'blocking_tasks': blocking,
-                     # Compatibility names used by older machine consumers.
-                     'current_id': current['id'], 'current_origin': current['origin'],
-                     'target_ids': target_ids})
+    rows = [current_gap(current, [target['id'] for target in by_source[current['id']]], claims, tasks)
+            for current in current_components]
     for target in target_components:
         if target.get('relation') != 'introduce': continue
         paths = set(target.get('paths') or [])
@@ -366,6 +370,152 @@ def build(out, contracts_by_path=None, target_components=None, target=None):
                       target_edges=projection['target_edges'])
         place_features(out, projection['features'])
     return result
+
+
+# The ideal planner's operations as the target's relations; "new" names no component of today's code.
+RELATION_OF = {'retain': 'retain', 'refactor': 'modify', 'merge': 'modify', 'rebuild': 'rebuild', 'delete': 'delete'}
+
+
+def _slug(text):
+    return re.sub(r'[^A-Za-z0-9_.:-]+', '-', str(text)).strip('-') or 'root'
+
+
+def protected_paths(out, policy_path=None):
+    """The files the owner protects: those of the critical features (features.json, and the intake's answer) and those
+    the project's architecture policy places in a layer. A decision may not delete them."""
+    import json
+    from fnmatch import fnmatch
+    out = Path(out)
+    def load(path):
+        try: return json.loads(Path(path).read_text(encoding='utf-8'))
+        except (OSError, ValueError): return {}
+    named = {q.get('id'): q.get('answer') for q in load(out / 'intake.json').get('questions') or [] if isinstance(q, dict)}
+    critical = set(named.get('critical_features') or []) if isinstance(named.get('critical_features'), list) else set()
+    files = {f for feature in load(out / 'features.json').get('features') or [] if isinstance(feature, dict)
+             and (feature.get('critical') or feature.get('name') in critical) for f in feature.get('files') or []}
+    policy = load(policy_path) if policy_path else {}
+    globs = [g for paths in (policy.get('layers') or {}).values() for g in paths or []]
+    return lambda path: path in files or any(fnmatch(path, g) for g in globs)
+
+
+def _view(out):
+    """The system view of this check's planned ideal, with the departures that say why: ([elements], {id: why})."""
+    import json
+    try: record = json.loads((Path(out) / 'ideal/plan.json').read_text(encoding='utf-8'))
+    except (OSError, ValueError): return [], {}
+    ideal = record.get('ideal') or {}
+    because = {str(d.get('element')): d.get('because') for d in ideal.get('departures') or []
+               if isinstance(d, dict) and d.get('view') == 'system'}
+    return [e for e in ((ideal.get('views') or {}).get('system') or {}).get('elements') or [] if isinstance(e, dict)], because
+
+
+def _decide_current(component, element, why, protected):
+    """(label, why) of one of today's components: the rule stands when the assistant said nothing or when its decision
+    breaks a guard; otherwise the assistant's relation is the target's and the rule's is kept beside it."""
+    rule = component['relation']
+    if element is None: return 'rule_only', ''
+    relation = RELATION_OF.get(element.get('operation'))
+    if relation is None:
+        return 'disagreement', f"\"{element.get('operation')}\" is not an operation on a component that exists today"
+    if relation == 'delete' and any(protected(path) for path in component.get('paths') or []):
+        return 'disagreement', 'it would delete files the owner protects (a critical feature or the architecture policy)'
+    if relation == rule: return 'agreed', why
+    component.update(relation=relation, reason=why or element.get('detail') or component.get('reason'),
+                     evidence_ids=sorted(set(component.get('evidence_ids') or []) | set(element.get('cites') or [])))
+    return 'ai_modified', why
+
+
+def _decide_targets(targets, on, because, moving_to, disagreements):
+    """The reference's target components the assistant kept, rejected or did not judge: a rejected one leaves the
+    target unless today's components still move into it, then it stays as a disagreement."""
+    kept = []
+    for key, target in targets.items():
+        element = on.get(key)
+        rejected = element is not None and element.get('operation') == 'delete'
+        label = 'rule_only' if element is None else 'agreed' if not rejected else \
+            'disagreement' if target.get('name') in moving_to else 'ai_modified'
+        why = because.get(str((element or {}).get('id'))) or (element or {}).get('detail') or ''
+        if label == 'disagreement': why = "today's components still move into it, so it stays: " + why
+        target['decided_by'] = {'label': label, 'rule': 'new', 'assistant': (element or {}).get('operation'), 'why': why,
+                                'cites': list((element or {}).get('cites') or [])}
+        if rejected:
+            disagreements.append({'element': key, 'rule': 'new', 'assistant': 'delete', 'label': label, 'why': why,
+                                  'final': 'new' if label == 'disagreement' else 'delete', 'cites': target['decided_by']['cites']})
+        if label != 'ai_modified': kept.append(target)
+    return kept
+
+
+def _added(elements, known, because):
+    """The target components the assistant added: operation "new" on nothing that exists, each with its evidence."""
+    out, seen = [], set()
+    for element in elements:
+        if element.get('operation') != 'new' or element.get('id') in known | seen or element.get('subject') in known: continue
+        seen.add(element.get('id'))
+        out.append({'name': element.get('title') or element['id'], 'layer': None, 'responsibility': element.get('detail', ''),
+                    'paths': [], 'evidence_ids': list(element.get('cites') or []),
+                    'decided_by': {'label': 'ai_added', 'rule': None, 'assistant': 'new', 'cites': list(element.get('cites') or []),
+                                   'why': because.get(element['id']) or element.get('detail', '')}})
+    return out
+
+
+def _redraw_gaps(out, record, current):
+    """The gap rows of today's components drawn again from their final relation, the confirmed cards and the claims
+    the triage did not set aside; the rows of introduced components stay as proposed."""
+    import json
+    out = Path(out)
+    def load(name, default):
+        try: return json.loads((out / name).read_text(encoding='utf-8'))
+        except (OSError, ValueError): return default
+    aside = {row.get('claim_id') for row in load('cards.json', {}).get('set_aside') or []}
+    claims = [c for c in load('dossier.json', {}).get('claims', []) if c.get('id') not in aside]
+    tasks = load('plan.json', {}).get('tasks', [])
+    by_id = {c['id']: c for c in current}
+    rows = []
+    for row in record.get('gap_matrix') or []:
+        component = by_id.get(row.get('current_id'))
+        if component is not None:
+            row = {**row, **current_gap(component, row.get('target_ids') or [], claims, tasks),
+                   'decided_by': component['decided_by']['label']}
+        rows.append(row)
+    return rows
+
+
+def reconcile(out, planned=False, policy_path=None):
+    """The final target from the rules' proposal (target-proposal.json) and, when the ideal was planned in this check,
+    the assistant's decision on each of its components; the gap matrix is drawn again from it, without the claims of
+    the cards the triage set aside (cards.json). Returns the record (render writes it) with `decided`, the count per
+    label: agreed, ai_modified, rule_only, disagreement, ai_added, and `disagreements`, the rule's view beside the
+    assistant's wherever they differ."""
+    import json
+    out = Path(out)
+    source = out / 'target-proposal.json'
+    record = json.loads((source if source.is_file() else out / 'target-architecture.json').read_text(encoding='utf-8'))
+    elements, because = _view(out) if planned else ([], {})
+    current = record['current_components']
+    ids = {c['id'] for c in current}
+    targets = {f"TC-{_slug(t.get('name') or t.get('id'))}": t for t in record.get('target_components') or [] if isinstance(t, dict)}
+    on = {}
+    for element in elements:
+        on.setdefault(element.get('id') if element.get('id') in ids | set(targets) else element.get('subject'), element)
+    protected, disagreements = protected_paths(out, policy_path), []
+    for component in current:
+        element = on.get(component['id'])
+        rule, why = component['relation'], because.get(str((element or {}).get('id'))) or (element or {}).get('detail') or ''
+        label, said = _decide_current(component, element, why, protected)
+        component['decided_by'] = {'label': label, 'rule': rule, 'why': said, 'cites': list((element or {}).get('cites') or []),
+                                   'assistant': RELATION_OF.get((element or {}).get('operation'), (element or {}).get('operation'))}
+        if label in ('ai_modified', 'disagreement'):
+            disagreements.append({'element': component['id'], 'rule': rule, 'assistant': component['decided_by']['assistant'],
+                                  'final': component['relation'], 'label': label, 'why': said, 'cites': component['decided_by']['cites']})
+    final = _decide_targets(targets, on, because, {c.get('target_component') for c in current}, disagreements)
+    final += _added(elements, ids | set(targets), because)
+    explicit = [c for c in record.get('components') or [] if c.get('id') not in ids]
+    counts = {}
+    for row in [*current, *final]: counts[row['decided_by']['label']] = counts.get(row['decided_by']['label'], 0) + 1
+    record.update(target_components=final, components=explicit or current, gap_matrix=_redraw_gaps(out, record, current),
+                  decisions=decisions([*current, *explicit]), decided={'by': 'assistant' if elements else 'rules', **counts},
+                  disagreements=disagreements)
+    return record
 
 
 def place_features(out, placement):

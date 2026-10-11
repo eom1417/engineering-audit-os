@@ -132,22 +132,22 @@ def _node(context, name):
 
 
 def ideal(context):
-    """The ideal planner node (eaos/studio/nodes/ideal_planner.py) right after the check: plan, critique and the
-    evidence check; the rules' target stands without it."""
+    """The ideal planner node (eaos/studio/nodes/ideal_planner.py) before the target is final: plan, critique and the
+    evidence check; the reconcile stage turns its decisions into the target, and the rules' target stands without it."""
     record, detail = _node(context, 'ideal_planner')
     return {'elements': record['decisions'][0]['detail']['elements'], **detail}
 
 
 def triage(context):
     """The card triage node (eaos/studio/nodes/triage.py): each open card confirmed, doubted or rejected on its own
-    evidence, with why in the person's words; the cards themselves stay as the engines wrote them."""
+    evidence, with why in the person's words; the cards stage then sets the rejected ones aside."""
     record, detail = _node(context, 'card_triage')
     return {**{row['decision']: len(row['subjects']) for row in record['routes']}, **detail}
 
 
 def order(context):
     """The plan orderer node (eaos/studio/nodes/plan_orderer.py): the order and grouping of the plan's cards, every
-    prerequisite kept; the plan itself is not changed."""
+    prerequisite kept; the steps stage writes it into the plan."""
     record, detail = _node(context, 'plan_orderer')
     return {'decision': record['decisions'][0]['decision'], **detail}
 
@@ -338,10 +338,55 @@ RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': me
 
 
 def target(context):
-    from ..target_architecture import build, render
+    """The rules' proposal, kept as it was (target-proposal.json) and as the target until the reconcile decides it."""
+    from ..target_architecture import build
+    from ..workspace import write
     result = build(context.out, target=context.target)
-    render(context.out, result, language=context.language)
+    write(context.out / 'target-proposal.json', result)
+    write(context.out / 'target-architecture.json', result)
     return {'components': len(result['components']), 'status': result['status']}
+
+
+def proposals(context):
+    """The Studio's records of this check so far: what the triage, the ideal and the pipeline-gap planner read."""
+    if not context.provider:
+        raise SkipStage(NO_ASSISTANT, code='no_provider')
+    from ..studio.export import export
+    result = export(context.out, context.language, Path(context.target).name, context.target)
+    return {'sections': len(result['written']), 'errors': len(result['errors'])}
+
+
+def _ran(context, name):
+    """Whether stage `name` ended ok in this run: a record an earlier check left on disk is never read as this one's."""
+    return ((context.get('manifest_so_far') or {}).get('stages') or {}).get(name, {}).get('status') == 'ok'
+
+
+def cards(context):
+    from ..plan import confirm
+    record = confirm(context.target, context.out, context.language, triaged=_ran(context, 'triage'))
+    return {'kept': len(record['kept']), 'set_aside': len(record['set_aside']), 'doubted': len(record['doubted']),
+            'decided_by': record['decided_by']}
+
+
+def pipeline_gaps(context):
+    """The pipeline-gap planner node (eaos/studio/nodes/pipeline_gap_planner.py): how each broken pipeline rule is
+    closed; the plan orderer reads its steps."""
+    record, detail = _node(context, 'pipeline_gap_planner')
+    return {**{row['decision']: len(row['subjects']) for row in record['routes']}, **detail}
+
+
+def reconcile(context):
+    from ..target_architecture import reconcile as decide, render
+    policy_path = Path(context.policy_path) if context.policy_path else Path(context.target) / POLICY_FILE
+    result = decide(context.out, planned=_ran(context, 'ideal'), policy_path=policy_path if policy_path.is_file() else None)
+    render(context.out, result, language=context.language)
+    return result['decided']
+
+
+def steps(context):
+    from ..plan import sequence
+    record = sequence(context.out, context.language, ordered=_ran(context, 'order'))
+    return {'steps': len(record['steps']), 'decided_by': record['source']}
 
 
 def executive(context):
@@ -356,4 +401,5 @@ def bundles(context):
     return build(context.out, language=context.language)
 
 
-RUNNERS.update(target=target, executive=executive, bundles=bundles, ideal=ideal, triage=triage, order=order)
+RUNNERS.update(target=target, proposals=proposals, cards=cards, pipeline_gaps=pipeline_gaps, reconcile=reconcile,
+               steps=steps, executive=executive, bundles=bundles, ideal=ideal, triage=triage, order=order)
