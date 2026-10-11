@@ -161,27 +161,93 @@ class Consent(unittest.TestCase):
         subprocess.run(['git', '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'one', '--allow-empty'], cwd=self.project,
                        check=True)
 
+    def probe(self, ready, code=None):
+        row = {'id': 'claude', 'name': 'Claude Code', 'ready': ready, 'installed': True, 'code': code or 'claude_ready',
+               'reason': {'en': 'Claude Code is not signed in. Run `claude` once', 'ar': 'غير مسجّل'}}
+        return mock.patch('eaos.runtime.readiness.probe', return_value=row)
+
     def test_eaos_start_asks_once_and_yes_answers_it(self):
         state = {'lang': 'en', 'project': str(self.project), 'workspace': str(Path(self.tmp.name) / 'ws'), 'questions': []}
         with mock.patch.object(guided.sys.stdin, 'isatty', return_value=False), self.assertRaises(guided.NeedsAnswer):
             guided.agree_to_assistant(state, yes=False)
         self.assertIsNone(guided.check_provider(state))
-        guided.agree_to_assistant(state, yes=True)
-        self.assertIn('claude_adapter', guided.check_provider(state).identity()['argv'][-1])
+        with self.probe(True):
+            self.assertTrue(guided.agree_to_assistant(state, yes=True))
+            provider = guided.check_provider(state)
+        self.assertIn('claude_adapter', provider.identity()['argv'][-1])
+        self.assertEqual(provider.config['assistant'], 'claude')
         state['questions'][-1]['answer'] = False
-        self.assertIsNone(guided.check_provider(state))
+        self.assertEqual(guided.check_provider(state).code, 'ai_declined')
+
+    def test_a_chosen_assistant_that_is_not_ready_is_never_used_silently(self):
+        state = {'lang': 'en', 'project': str(self.project), 'workspace': str(Path(self.tmp.name) / 'ws'), 'questions': []}
+        guided.choose_assistant(state, True, 'claude')
+        with self.probe(False, 'claude_not_signed_in'):
+            found = guided.check_provider(state)
+            self.assertFalse(found)
+            self.assertEqual(found.code, 'claude_not_signed_in')
+            with mock.patch.object(guided.sys.stdin, 'isatty', return_value=True), mock.patch('builtins.input', return_value='no'), \
+                    mock.patch.object(guided, 'say') as said, mock.patch.object(guided, 'box') as box:
+                self.assertFalse(guided.agree_to_assistant(state, yes=False))
+            self.assertIn('Run `claude` once', said.call_args_list[0].args[0])
+            self.assertIn('did not start', box.call_args.args[1])
+            with mock.patch.object(guided, 'say'):
+                self.assertTrue(guided.agree_to_assistant(state, yes=True), '--yes: the check starts without AI, and says why')
+
+    def test_the_choice_is_kept_per_project(self):
+        state = {'lang': 'en', 'project': str(self.project), 'workspace': str(Path(self.tmp.name) / 'ws'), 'questions': []}
+        guided.choose_assistant(state, True, 'codex', via='studio')
+        kept = guided.load(self.project)
+        self.assertEqual((kept['assistant'], guided.answered(kept, 'use_assistant')), ('codex', True))
+        with mock.patch('eaos.runtime.assistants.shutil.which', return_value='/bin/x'):
+            self.assertEqual(guided.chosen_assistant(kept), 'codex', 'the project\'s choice wins over $EAOS_ASSISTANT')
+        guided.choose_assistant(kept, False)
+        kept = guided.load(self.project)
+        self.assertEqual((kept['assistant'], guided.answered(kept, 'use_assistant')), ('codex', False))
+        self.assertEqual([q['id'] for q in kept['questions']].count('use_assistant'), 1)
+        with self.assertRaises(ValueError): guided.choose_assistant(kept, True, 'gemini')
 
     def test_the_mcp_audit_keeps_the_persons_answer_and_passes_the_assistant_to_the_check(self):
-        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}):
+        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}), self.probe(True):
             agent_tools.audit(str(self.project), use_assistant=True)
         with mock.patch('eaos.pipeline.check', side_effect=RuntimeError('stop here')) as check, self.assertRaises(RuntimeError), \
-                mock.patch.object(guided, 'tools_for_check', return_value={}):
+                mock.patch.object(guided, 'tools_for_check', return_value={}), self.probe(True):
             agent_tools._audit_job(str(self.project), {}, None)
-        self.assertIsNotNone(check.call_args.kwargs['provider'])
+        self.assertTrue(check.call_args.kwargs['provider'])
         with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}):
             agent_tools.audit(str(self.project), use_assistant=False)
-        self.assertIsNone(guided.check_provider(guided.load(self.project)))
+        self.assertEqual(guided.check_provider(guided.load(self.project)).code, 'ai_declined')
 
+    def test_the_mcp_audit_does_not_start_with_an_assistant_that_is_not_ready(self):
+        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as start, self.probe(False, 'claude_not_signed_in'):
+            answer = agent_tools.audit(str(self.project), use_assistant=True, assistant='claude')
+        start.assert_not_called()
+        self.assertEqual((answer['status'], answer['assistant']['code']), ('assistant_not_ready', 'claude_not_signed_in'))
+        self.assertIn('Run `claude` once', answer['what_now'])
+        self.assertIn('use_assistant=false', answer['what_now'])
+        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as start, self.probe(False, 'claude_not_signed_in'):
+            self.assertEqual(agent_tools.audit(str(self.project), use_assistant=False)['status'], 'started')
+
+    def test_assistant_check_shows_each_assistant_the_choice_and_the_permission(self):
+        rows = [{'id': 'claude', 'ready': True}, {'id': 'codex', 'ready': False, 'code': 'codex_sign_in_expired'}]
+        with mock.patch('eaos.runtime.readiness.probe_all', return_value=rows) as probed:
+            answer = agent_tools.assistant_check(str(self.project), fresh=True)
+        probed.assert_called_once_with(fresh=True, names=None)
+        self.assertEqual(answer['assistants'], rows)
+        self.assertEqual(answer['choice'], {'use_assistant': None, 'assistant': 'claude', 'kept': False})
+        self.assertIn('changes no file', answer['permission']['en'])
+        self.assertTrue(answer['permission']['ar'])
+
+    def test_the_doctor_asks_each_assistant(self):
+        rows = [{'id': 'claude', 'name': 'Claude Code', 'ready': False, 'installed': False, 'code': 'claude_not_installed', 'reason': {'en': 'no claude'}},
+                {'id': 'codex', 'name': 'Codex', 'ready': False, 'installed': True, 'code': 'codex_sign_in_expired', 'reason': {'en': 'run codex login'}}]
+        with mock.patch('eaos.runtime.readiness.probe_all', return_value=rows):
+            row = guided.assistant_row(probe=True)
+        self.assertFalse(row['ok'])
+        self.assertIn('Codex: sign-in expired', row['en'])
+        self.assertEqual(row['fix'], 'run codex login')
+        with mock.patch('eaos.runtime.readiness.probe_all', side_effect=AssertionError('no probe without asking')):
+            self.assertTrue(guided.assistant_row(probe=False)['ok'])
 
 if __name__ == '__main__':
     unittest.main()

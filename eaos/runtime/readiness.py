@@ -22,6 +22,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import tempfile
 import threading
@@ -78,14 +79,21 @@ def classify(text):
 
 
 def _run(argv, timeout, stdin=None, cwd=None):
-    """(returncode, stdout, stderr) or (None, '', why) when it could not run or did not end in time."""
+    """(returncode, stdout, stderr) or (None, '', why) when it could not run or did not end in time: then its whole
+    process group is ended, so a child it started cannot hold the probe."""
     try:
-        done = subprocess.run(argv, input=stdin, capture_output=True, text=True, timeout=timeout, cwd=cwd)
-        return done.returncode, done.stdout or '', done.stderr or ''
-    except subprocess.TimeoutExpired:
-        return None, '', 'timeout'
+        process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=cwd,
+                                   start_new_session=(os.name == 'posix'))
     except (OSError, subprocess.SubprocessError) as problem:
         return None, '', type(problem).__name__
+    try:
+        out, err = process.communicate(stdin, timeout=timeout)
+        return process.returncode, out or '', err or ''
+    except subprocess.TimeoutExpired:
+        try: os.killpg(process.pid, signal.SIGKILL)
+        except OSError: process.kill()
+        process.communicate()
+        return None, '', 'timeout'
 
 
 def _claude_status(path):

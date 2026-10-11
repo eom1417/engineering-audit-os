@@ -538,10 +538,6 @@
    "ar": "اخترت أن يكون الفحص بدون ذكاء، فبقيت القواعد وحدها.",
    "en": "You chose to check without AI, so the rules stand alone."
   },
-  "ai_not_ready": {
-   "ar": "مساعدك الذكي ما كان جاهزًا، واخترت أن يبدأ الفحص بدونه، فبقيت القواعد وحدها.",
-   "en": "Your AI assistant was not ready and you chose to start without it, so the rules stand alone."
-  },
   "no_features": {
    "ar": "لم أجد في برنامجك ميزات أكتب لها اختبارات تحفظ سلوكها.",
    "en": "I found no feature in your program to write behaviour-keeping tests for."

@@ -37,7 +37,8 @@ def starlette_routes(actions, prefix=''):
             try: body = await request.json()
             except ValueError: return JSONResponse({'error': 'the body must be JSON'}, 400, headers=HEADERS)
         stream = _events_of(path) if request.method == 'GET' else None
-        status, payload = actions.handle(request.method, path, headers, body)
+        from starlette.concurrency import run_in_threadpool
+        status, payload = await run_in_threadpool(actions.handle, request.method, path, headers, body)   # a probe takes seconds
         if stream and status == 200:
             run, after = stream
             last = headers.get('last-event-id') or after
