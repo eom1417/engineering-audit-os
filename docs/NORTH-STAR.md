@@ -93,7 +93,7 @@ flowchart TB
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 اختبار قبول"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 اختبار قبول"| NS46
-        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +23 اختبار قبول"| NS38
+        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +24 اختبار قبول"| NS38
     end
     subgraph R6G_2["R6G · EAOS v2: تحليل صادق، صورة مثالية، عمليات مرتبة، واستوديو حي (2/5)"]
         direction LR
@@ -200,7 +200,7 @@ flowchart TB
 | 21 | [**NS27** البناء من خطة](#step-21) | R6 | 6 | 93% | 5.6 | 88% | 🟡 قيد العمل | B1=1 · B2=1 · X8=1 · B3=1 · B4=1 · X1=1 · … · +1 اختبار قبول |
 | 22 | [**NS30** الثقة أولًا: كل بطاقة على ملفها، وكل رقم صادق](#step-22) | R6G | 2 | 100% | 2 | 100% | ✅ مكتملة | S4=1 · X13=1 · +1 اختبار قبول |
 | 23 | [**NS36** أساس الاستوديو: القرارات والعقد والنموذج](#step-23) | R6G | 3 | 42% | 1.26 | 50% | 🔴 تحتاج مدخلًا منك | F8=1 · F10=1 · +4 اختبار قبول |
-| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 11 | 5% | 0.54 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +23 اختبار قبول |
+| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 11 | 5% | 0.52 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +24 اختبار قبول |
 | 25 | [**NS38** تحليل صادق: الدقة أولًا](#step-25) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | A1=1 · W2=1 · A2=1 · A3=1 |
 | 26 | [**NS31** أرقام ثابتة وضجيج أقل](#step-26) | R6G | 3 | 26% | 0.8 | 24% | 🔴 تحتاج مدخلًا منك | L7=1 · L8=1 · S5≥0.9 · S1≥0.9 |
 | 27 | [**NS39** خريطة النظام والسجل والأحداث](#step-27) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | N1=1 · N2=1 · +1 اختبار قبول |
@@ -1202,7 +1202,7 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 11 | 5% | 0.54 من 11 | 12% | R6G | S07, S15 |
+| 11 | 5% | 0.52 من 11 | 12% | R6G | S07, S15 |
 
 **الهدف:** F11 وF13 وF14 وF15 وF16 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويُشغَّل EAOS كله من الاستوديو، ويحكم المالك.
 
@@ -1262,6 +1262,7 @@ flowchart TB
 | اختبار قبول | `test ai_in_the_pipeline` | — | ⬜ |
 | اختبار قبول | `test robust_fixing` | — | ⬜ |
 | اختبار قبول | `test docs_reader` | — | ⬜ |
+| اختبار قبول | `test pipeline_v2` | — | ⬜ |
 
 **المهام:**
 
@@ -1290,6 +1291,7 @@ flowchart TB
 | [NS46.T21](#ns46t21) AI in the check: the person's assistant reads, plans, triages and orders, the rules stand alone without it | M | ⬜ | 0% | `python tools/acceptance.py test ai_in_the_pipeline` |
 | [NS46.T22](#ns46t22) Fixing that holds: a batch the person asks for runs to its branch, or stops before any work with its reason | M | ⬜ | 0% | `python tools/acceptance.py test robust_fixing` |
 | [NS46.T23](#ns46t23) A professional document reader: diagrams drawn, charts, tables, callouts and highlighted code | M | ⬜ | 0% | `python tools/acceptance.py test docs_reader` |
+| [NS46.T24](#ns46t24) Pipeline v2: the evidence first, the assistant decides with the tools before the target, the gaps and the plan, the reports last | L | ⬜ | 0% | `python tools/acceptance.py test pipeline_v2` |
 
 <a id="step-25"></a>
 
@@ -6717,6 +6719,42 @@ python tools/acceptance.py test docs_reader
 ```
 
 **التراجع:** Revert the docs-reader commits; the reader falls back to the source view.
+
+<a id="ns46t24"></a>
+
+#### NS46.T24 — Pipeline v2: the evidence first, the assistant decides with the tools before the target, the gaps and the plan, the reports last ⬜
+
+**لماذا:** Owner request 2026-10-11 (eaos-dev/planning/ai-joint-planning/PLAN.md and pipeline-ideal.html): the assistant's triage, ideal and order were written after the target, the gaps, the plan and the reports, and nothing read them; the app's own run came after the report. Re-order the check around the tools EAOS already has: static and live evidence first, the tools propose, the assistant accepts, modifies or rejects with evidence, guards settle the final target with who decided each part, the gaps and the plan are derived from it, and the reports are written last.
+
+**يحرّك:** F15 · **ينفّذه:** يحتاج مزوّد نموذج · **يعتمد على:** NS46.T21 · **الحجم:** L
+
+**الملفات:** `eaos/pipeline/stages.py` · `eaos/pipeline/runners.py` · `eaos/pipeline/run.py` · `eaos/plan.py` · `eaos/target_architecture.py` · `eaos/studio/ideal.py` · `eaos/studio/nodes/visual_reviewer.py` · `eaos/engines/architecture.py` · `eaos/screens/crawl.py` · `eaos/behavior_lock.py` · `eaos/compose/gallery.py` · `upstreams/toolchain.json` · `studio/src/pages/scan/words.ts` · `docs/AI-IN-THE-PIPELINE.md` · `tests/test_joint_decision.py` · `tests/test_live_in_the_check.py` · `tests/test_visual_evidence.py` · `acceptance/test_pipeline_v2.py`
+
+**الخطوات:**
+
+1. P1: triage on the candidate cards, cards (a rejected card leaves the plan and the gaps), ideal on the target proposal, reconcile (the final target with who decided each component, the gap matrix drawn again), order into the plan's steps, reports after them; an optional stage absent with its reason does not block.
+2. P2: setup, record, journeys, crawl, screens and baseline inside the check once the person agreed to run the app; each says why when it cannot.
+3. P3: rrweb, Unlighthouse, CodeCharta and Emerge pinned; the architecture map; the visual reviewer opens exactly the screen pictures and each finding becomes a design card.
+4. P4: every report says who decided; the UI gallery; the Studio names the new stages and lists the disagreements.
+
+**تنتهي حين:**
+
+- [ ] Without an assistant the claims, cards, plan tasks, transform stages and internal facts of EAOS, RendaPerene and chief-ops equal develop's by id.
+- [ ] With Claude Code on two projects, every component the assistant changed differs from the rules' proposal and every other equals it, and no card it rejected is in the plan or the gaps.
+- [ ] On a web app the app ran inside the check, its screens were pictured and judged by the assistant, and the gallery shows them.
+
+**فخاخ معروفة:**
+
+- A record an earlier check left on disk is never read as this check's decision.
+- Lighthouse numbers are only comparable on an idle computer.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test pipeline_v2
+```
+
+**التراجع:** Revert the pipeline-v2 branch: the check returns to deciding by the rules first and the assistant after the reports.
 
 ### الخطوة 25 · NS38 — تحليل صادق: الدقة أولًا ⬜ التالية
 

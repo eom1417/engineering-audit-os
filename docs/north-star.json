@@ -7063,6 +7063,58 @@
           "acceptance": "python tools/acceptance.py test docs_reader",
           "rollback": "Revert the docs-reader commits; the reader falls back to the source view.",
           "needs": "none"
+        },
+        {
+          "needs": "model_provider",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T24",
+          "title": "Pipeline v2: the evidence first, the assistant decides with the tools before the target, the gaps and the plan, the reports last",
+          "why": "Owner request 2026-10-11 (eaos-dev/planning/ai-joint-planning/PLAN.md and pipeline-ideal.html): the assistant's triage, ideal and order were written after the target, the gaps, the plan and the reports, and nothing read them; the app's own run came after the report. Re-order the check around the tools EAOS already has: static and live evidence first, the tools propose, the assistant accepts, modifies or rejects with evidence, guards settle the final target with who decided each part, the gaps and the plan are derived from it, and the reports are written last.",
+          "moves": [
+            "F15"
+          ],
+          "depends_on": [
+            "NS46.T21"
+          ],
+          "size": "L",
+          "files": [
+            "eaos/pipeline/stages.py",
+            "eaos/pipeline/runners.py",
+            "eaos/pipeline/run.py",
+            "eaos/plan.py",
+            "eaos/target_architecture.py",
+            "eaos/studio/ideal.py",
+            "eaos/studio/nodes/visual_reviewer.py",
+            "eaos/engines/architecture.py",
+            "eaos/screens/crawl.py",
+            "eaos/behavior_lock.py",
+            "eaos/compose/gallery.py",
+            "upstreams/toolchain.json",
+            "studio/src/pages/scan/words.ts",
+            "docs/AI-IN-THE-PIPELINE.md",
+            "tests/test_joint_decision.py",
+            "tests/test_live_in_the_check.py",
+            "tests/test_visual_evidence.py",
+            "acceptance/test_pipeline_v2.py"
+          ],
+          "steps": [
+            "P1: triage on the candidate cards, cards (a rejected card leaves the plan and the gaps), ideal on the target proposal, reconcile (the final target with who decided each component, the gap matrix drawn again), order into the plan's steps, reports after them; an optional stage absent with its reason does not block.",
+            "P2: setup, record, journeys, crawl, screens and baseline inside the check once the person agreed to run the app; each says why when it cannot.",
+            "P3: rrweb, Unlighthouse, CodeCharta and Emerge pinned; the architecture map; the visual reviewer opens exactly the screen pictures and each finding becomes a design card.",
+            "P4: every report says who decided; the UI gallery; the Studio names the new stages and lists the disagreements."
+          ],
+          "done_when": [
+            "Without an assistant the claims, cards, plan tasks, transform stages and internal facts of EAOS, RendaPerene and chief-ops equal develop's by id.",
+            "With Claude Code on two projects, every component the assistant changed differs from the rules' proposal and every other equals it, and no card it rejected is in the plan or the gaps.",
+            "On a web app the app ran inside the check, its screens were pictured and judged by the assistant, and the gallery shows them."
+          ],
+          "pitfalls": [
+            "A record an earlier check left on disk is never read as this check's decision.",
+            "Lighthouse numbers are only comparable on an idle computer."
+          ],
+          "acceptance": "python tools/acceptance.py test pipeline_v2",
+          "rollback": "Revert the pipeline-v2 branch: the check returns to deciding by the rules first and the assistant after the reports."
         }
       ]
     },
