@@ -38,3 +38,4 @@
   .phoneHidden { display: none; }
 }
 .emptyActions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.emptyActions > * { min-block-size: 44px; }  /* the first actions a person meets: full-size targets at every width */

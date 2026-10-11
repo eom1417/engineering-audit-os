@@ -202,8 +202,10 @@ export function LiveMap({ progress, skew, selected, onSelect, summary, tools }: 
   const takeOver = () => camera.setFollowing(false)
   const wrap = useRef<HTMLDivElement>(null)
   const runningName = running?.name
-  useEffect(() => {        // following, the page too brings the map into view each time a stage starts
-    if (camera.following && runningName) wrap.current?.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' })
+  useEffect(() => {        // following, a stage that starts brings the map back into view when it was scrolled away;
+    const box = wrap.current?.getBoundingClientRect()   // the camera already follows the stage inside a visible map
+    const away = box && (box.bottom <= 0 || box.top >= window.innerHeight)
+    if (camera.following && runningName && away) wrap.current?.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' })
   }, [camera.following, runningName, reduced])
   const fitAll = () => { takeOver(); zoom.setT(centred(layout, box, camera.focus, Math.max(0.7, Math.min(1, (box.w - 16) / layout.width, (box.h - 16) / layout.height)))) }
   const t = zoom.t
