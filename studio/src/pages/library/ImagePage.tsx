@@ -1,6 +1,6 @@
 // #/library/images/<id>: one image or diagram of the report. An image is shown from the Studio's own data (a data URI,
-// which runs nothing); a Mermaid diagram shows its source and opens the Studio's own drawing of the same facts (the
-// Studio does not carry Mermaid: docs/adoption/ns46-t4-library-history-quality.md).
+// which runs nothing); a Mermaid diagram is drawn by the reader's diagram engine (Diagram, docs/adoption/docs-reader.md)
+// and links to the Studio's own interactive drawing of the same facts.
 import { useParams } from '@tanstack/react-router'
 import { Chip } from '../../components/Chip'
 import { Go } from '../../components/Go'
@@ -11,6 +11,7 @@ import type { StudioData } from '../../data/types'
 import { Id, Txt } from '../../i18n/text'
 import { usePageChrome } from '../../shell/chrome'
 import { layout, WithData } from '../../shell/Layout'
+import { Diagram } from './Diagram'
 import { mediaOf } from './LibraryPage'
 import { decoded, useLazySection, type LibraryData } from './model'
 import { useLibraryWords } from './words'
@@ -55,8 +56,7 @@ function ImageBody({ data }: { data: StudioData }) {
         <figure className={css.figure}>
           <div className={css.notice} role="note"><Icon name="flow" /><span>{w('diagramNote')}</span></div>
           <div className={css.actions}><Go to={map.to} search={map.search} className={buttonClass('primary')}><Icon name="system" />{w(map.word)}</Go></div>
-          <figcaption className={css.caption}>{w('diagramSource')} · {w('lines', { n: content.source.trimEnd().split('\n').length })}</figcaption>
-          <pre className={css.pre} dir="ltr" tabIndex={0} aria-label={w('diagramSource')}><code>{content.source}</code></pre>
+          <Diagram source={content.source} n={1} />
         </figure>
       )}
     </div>

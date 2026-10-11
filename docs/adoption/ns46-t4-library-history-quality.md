@@ -36,7 +36,8 @@ links, code and tables keep their own left-to-right scroll, and raw HTML in a do
 
 **Decision**: reject Mermaid for now. A diagram's page shows its source, readable and copyable, and links to the
 Studio's own map that draws the same facts. Revisit if the report writes a diagram the Studio cannot draw, with a lazily
-loaded Mermaid chunk once the build can split one that a page opened from a file still loads.
+loaded Mermaid chunk once the build can split one that a page opened from a file still loads. (Revisited on
+2026-10-10: adopted as lazy chunks, `docs-reader.md`.)
 
 **Pinned**: none
 

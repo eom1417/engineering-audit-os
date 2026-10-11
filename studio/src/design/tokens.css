@@ -104,6 +104,22 @@
   --code-bg: var(--gray-2);
   --code-hl: #fff4e8;
   --code-hl-bar: var(--sev-3);
+
+  /* documents (pages/library): syntax colours on --code-bg (AA), table rows, callouts */
+  --syntax-keyword: #a3249a; --syntax-string: #1f6b39; --syntax-number: #9c4a06; --syntax-comment: #62666f;
+  --syntax-title: #1d5fb3; --syntax-type: #7a4a00; --syntax-attr: #0d6e78; --syntax-meta: #5d4fb0;
+  --syntax-deletion: #a32020; --syntax-deletion-bg: #fbe5e5; --syntax-addition: #1f6b39; --syntax-addition-bg: #e7f4ec;
+  --table-stripe: var(--gray-2); --table-hover: var(--gray-3);
+  --alert-note: var(--accent-solid); --alert-tip: var(--status-good); --alert-important: var(--violet);
+  --alert-warning: var(--status-warning); --alert-caution: var(--status-critical);
+  --alert-note-text: var(--accent-text); --alert-tip-text: var(--status-good-text); --alert-important-text: #5b3fb8;
+  --alert-warning-text: var(--status-warning-text); --alert-caution-text: var(--status-critical-text);
+  /* Mermaid diagrams (pages/library/diagram.ts reads these): nodes, groups, lines, notes, and the categorical
+     order of charts (pie, xychart), validated for colour-vision deficiency on both surfaces */
+  --diagram-node: var(--blue-3); --diagram-node-border: var(--blue-8); --diagram-line: var(--gray-10);
+  --diagram-cluster: var(--gray-2); --diagram-cluster-border: var(--gray-6); --diagram-note: #fff6db; --diagram-note-border: #e3c56b;
+  --chart-1: #2a78d6; --chart-2: #eb6834; --chart-3: #1baf7a; --chart-4: #eda100;
+  --chart-5: #e87ba4; --chart-6: #008300; --chart-7: #4a3aa7; --chart-8: #e34948;
 }
 
 /* ---------- Semantic: dark (stepped, not inverted) ---------- */
@@ -162,6 +178,19 @@
   --code-bg: #0b0c0e;
   --code-hl: #2a1b10;
   --code-hl-bar: #e07a35;
+
+  --syntax-keyword: #e48ae0; --syntax-string: #7fcf97; --syntax-number: #f0b070; --syntax-comment: #8a8f99;
+  --syntax-title: #7fb2f0; --syntax-type: #e6c26e; --syntax-attr: #6fd0d8; --syntax-meta: #b3a6f2;
+  --syntax-deletion: #f6837f; --syntax-deletion-bg: #2e1414; --syntax-addition: #6fd08f; --syntax-addition-bg: #11281a;
+  --table-stripe: #18191c; --table-hover: var(--bg-hover);
+  --alert-note: var(--accent-solid); --alert-tip: var(--status-good); --alert-important: #9a82ea;
+  --alert-warning: var(--status-warning); --alert-caution: var(--status-critical);
+  --alert-note-text: var(--accent-text); --alert-tip-text: var(--status-good-text); --alert-important-text: #b3a6f2;
+  --alert-warning-text: var(--status-warning-text); --alert-caution-text: var(--status-critical-text);
+  --diagram-node: #152844; --diagram-node-border: #3d6499; --diagram-line: #8a8f99;
+  --diagram-cluster: #18191c; --diagram-cluster-border: #31343a; --diagram-note: #2c2410; --diagram-note-border: #7a6224;
+  --chart-1: #3987e5; --chart-2: #d95926; --chart-3: #199e70; --chart-4: #c98500;
+  --chart-5: #d55181; --chart-6: #008300; --chart-7: #9085e9; --chart-8: #e66767;
 }
 
 @media (prefers-reduced-motion: reduce) {

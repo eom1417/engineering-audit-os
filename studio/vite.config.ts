@@ -26,13 +26,40 @@ function reportData(): Plugin {
   }
 }
 
-// marked's error message names its repository: the Studio ships no address outside itself (tests/test_studio_assets.py),
-// and its lexer, the only part the reader uses, never reaches that message.
+// No address outside the Studio is shipped (tests/test_studio_assets.py). The libraries name their repositories and
+// documentation in error and warning messages only: marked's lexer, Mermaid and its parser (chevrotain, langium) and
+// highlight.js never request them, so those words are taken out of the bundle; behaviour is unchanged. XML namespaces stay (test allowlist).
+const NAMED = /https?:\/\/(github\.com|chevrotain\.io|langium\.org|en\.wikipedia\.org)\/[^\s"'`)<>\\]*/g
 function noOutsideAddress(): Plugin {
   return {
     name: 'eaos-no-outside-address',
-    transform: (code, id) => (id.includes('/node_modules/marked/') ? code.replace('\nPlease report this to https://github.com/markedjs/marked.', '') : null),
+    transform(code, id) {
+      if (id.includes('/node_modules/marked/')) return code.replace('\nPlease report this to https://github.com/markedjs/marked.', '')
+      if (/\/node_modules\/(mermaid|@mermaid-js|chevrotain|@chevrotain|langium|highlight\.js)\//.test(id)) return code.replace(NAMED, '')
+      return null
+    },
   }
+}
+
+// Mermaid registers ELK as a layout it loads on demand: elkjs is 1.5 MB (EPL-2.0) for a layout the reports never ask
+// for. Without it Mermaid falls back to its default layout, as its own small build does (docs/adoption/docs-reader.md).
+const ELK = '      ...elkLayoutLoaders()\n'
+function noElk(): Plugin {
+  return {
+    name: 'eaos-no-elk',
+    transform(code, id) {
+      if (!/\/node_modules\/mermaid\/dist\/chunks\/mermaid\.core\/chunk-[\w]+\.mjs$/.test(id) || !code.includes('var registerDefaultLayoutLoaders')) return null
+      if (!code.includes(ELK)) this.error('Mermaid changed how it registers ELK: update noElk in vite.config.ts')
+      return code.replace(ELK, '')
+    },
+  }
+}
+
+// Mermaid's own chunks (its diagram types, read when a document draws one) carry its name, apart from the Studio's.
+function chunkName(chunk: { name: string; moduleIds: string[] }): string {
+  const third = chunk.moduleIds.length > 0 && chunk.moduleIds.every((id) => id.includes('/node_modules/'))
+  return third && chunk.moduleIds.some((id) => /\/node_modules\/(mermaid|@mermaid-js|cytoscape|katex|dagre-d3-es|d3-|khroma|roughjs|chevrotain|langium)/.test(id))
+    ? 'assets/mermaid.[name].js' : 'assets/[name].js'
 }
 
 // A classic, deferred script instead of a module one.
@@ -77,13 +104,21 @@ function classicChunks(): Plugin {
       const inside = needs(entry!.fileName)
       // (every chunk is listed: one a page imports may also be imported statically by another, and rolldown then
       // does not mark it a dynamic entry)
-      const deps = Object.fromEntries(chunks.filter((chunk) => chunk !== entry && !inside.has(chunk.fileName))
+      const all = Object.fromEntries(chunks.filter((chunk) => chunk !== entry && !inside.has(chunk.fileName))
         .map((chunk) => [name(chunk.fileName), [...needs(chunk.fileName)].filter((file) => !inside.has(file)).map(name)]))
+      // A library's own chunks (mermaid.*, chunkName) are read only through the Studio chunk that imports the library:
+      // their list travels in that chunk, which adds it to the loader when it runs, not in the entry every page reads
+      const island = (file: string) => file.startsWith('mermaid.')
+      const deps = Object.fromEntries(Object.entries(all).filter(([file]) => !island(file)))
+      const islandDeps = Object.fromEntries(Object.entries(all).filter(([file]) => island(file)))
+      const carriers = new Set(chunks.filter((chunk) => chunk !== entry && !island(name(chunk.fileName)) && chunk.dynamicImports.some((file) => island(name(file))))
+        .map((chunk) => chunk.fileName))
       const carried = chunks.filter((chunk) => inside.has(chunk.fileName)).map(register).join('')
       for (const file of inside) delete bundle[file]
       for (const chunk of chunks) {
         if (inside.has(chunk.fileName)) continue
         if (chunk !== entry) {
+          if (carriers.has(chunk.fileName)) chunk.code = `self.EAOS_CHUNK_DEPS(${JSON.stringify(islandDeps)});\n${chunk.code}`
           chunk.code = register(chunk)
           continue
         }
@@ -95,6 +130,7 @@ function read(name){return reading[name]||(reading[name]=new Promise(function(do
 var s=document.createElement("script");s.src=new URL(name,folder).href;
 s.onload=function(){chunks[name]?done():fail(new Error("EAOS Studio: "+name+" is not a Studio chunk"))};
 s.onerror=function(){delete reading[name];fail(new Error("EAOS Studio: "+name+" did not load"))};document.head.appendChild(s)}))}
+self.EAOS_CHUNK_DEPS=function(more){for(var k in more)deps[k]=more[k]};
 self.EAOS_CHUNK=function(name){return Promise.all([name].concat(deps[name]||[]).map(read)).then(function(){return require(name)})};
 var module=ran[${JSON.stringify(name(entry!.fileName))}]={exports:{}};
 (function(require,exports,module){${chunk.code}
@@ -108,7 +144,7 @@ var module=ran[${JSON.stringify(name(entry!.fileName))}]={exports:{}};
 export default defineConfig({
   base: './',
   // React Aria's strings only for the two languages the Studio speaks (docs/adoption/ns37-t1-finish.md)
-  plugins: [optimizeLocales.vite({ locales: ['ar', 'en'] }), react(), reportData(), noOutsideAddress(), classicScript(), classicChunks()],
+  plugins: [optimizeLocales.vite({ locales: ['ar', 'en'] }), react(), reportData(), noOutsideAddress(), noElk(), classicScript(), classicChunks()],
   server: { host: '0.0.0.0', port: 5180, allowedHosts: ['.dev.remote.e-m.sa'] },
   build: {
     outDir: 'dist',
@@ -121,7 +157,7 @@ export default defineConfig({
         format: 'cjs',
         dynamicImportInCjs: false,
         entryFileNames: 'assets/studio.js',
-        chunkFileNames: 'assets/[name].js',
+        chunkFileNames: chunkName,
         // Everything the first page needs stays together (and travels inside assets/studio.js), in the order one
         // bundle would hold it, so style.css keeps the cascade it had before the pages were split off
         codeSplitting: { groups: [{ name: 'initial', tags: ['$initial'] }] },

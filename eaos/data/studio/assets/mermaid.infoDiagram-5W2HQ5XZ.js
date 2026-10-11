@@ -1,0 +1,3 @@
+(self.EAOS_CHUNKS=self.EAOS_CHUNKS||{})["mermaid.infoDiagram-5W2HQ5XZ.js"]=function(require,exports,module){const e=require("./mermaid.mermaid-parser.core.js"),t=require("./mermaid.chunk-Y2CYZVJY.js"),n=require("./mermaid.src.js"),r=require("./mermaid.chunk-VPRB5NB3.js"),i=require("./diagramEngine.js");var a={parse:t.n(async t=>{let r=await e.n(`info`,t);n.m.debug(r)},`parse`)},o={version:`12.1.0`},s={parser:a,db:{getVersion:t.n(()=>o.version,`getVersion`)},renderer:{draw:t.n((e,t,a)=>{n.m.debug(`rendering info diagram
+`+e);let o=i.o(t);r.c(o,100,400,!0),o.append(`g`).append(`text`).attr(`x`,100).attr(`y`,40).attr(`class`,`version`).attr(`font-size`,32).style(`text-anchor`,`middle`).text(`v${a}`)},`draw`)}};exports.diagram=s;
+};

@@ -64,18 +64,100 @@ ol.list { list-style: decimal; }
 .quote { border-inline-start: 3px solid var(--border-strong); padding-inline-start: 14px; color: var(--text-secondary); display: flex; flex-direction: column; gap: 8px; }
 .hr { border: 0; border-block-start: 1px solid var(--border-subtle); margin-block: 6px; }
 .raw { color: var(--text-secondary); font-family: var(--font-mono); font-size: 13px; }
-.pre { margin: 0; padding: 12px 14px; background: var(--code-bg); border: 1px solid var(--border-subtle); border-radius: var(--radius-8); overflow-x: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.55; text-align: start; unicode-bidi: isolate; max-block-size: 520px; }
+.pre { margin: 0; padding: 12px 14px; background: var(--code-bg); border: 1px solid var(--border-subtle); border-radius: var(--radius-8); overflow: auto; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.55; text-align: start; unicode-bidi: isolate; max-block-size: 520px; overflow-wrap: normal; }
 .pre code { white-space: pre; }
-.diagram { display: flex; flex-direction: column; gap: 6px; }
 .caption { font-size: var(--text-meta); color: var(--text-tertiary); }
-.tableWrap { overflow-x: auto; border: 1px solid var(--border-default); border-radius: var(--radius-8); background: var(--bg-surface); }
-[data-theme="dark"] .tableWrap { border-color: var(--border-subtle); }
-.table { border-collapse: collapse; inline-size: 100%; font-size: 13.5px; line-height: 1.5; }
-.table th, .table td { padding: 8px 12px; border-block-end: 1px solid var(--border-subtle); text-align: start; vertical-align: top; min-inline-size: 72px; }
-.table th { background: var(--bg-sunken); font-weight: 600; color: var(--text-secondary); font-size: var(--text-label); }
+
+/* code blocks: the language and a copy button above the code; highlight.js's scopes in the Studio's colours */
+.codeBlock { display: flex; flex-direction: column; border: 1px solid var(--border-subtle); border-radius: var(--radius-8); background: var(--code-bg); min-inline-size: 0; }
+.codeBlock .pre { border: 0; border-radius: 0 0 var(--radius-8) var(--radius-8); background: transparent; padding-block-start: 4px; }
+.codeBar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-inline: 12px 4px; min-block-size: 36px; border-block-end: 1px solid var(--border-subtle); }
+.codeLang { font-family: var(--font-mono); font-size: var(--text-caption); color: var(--text-tertiary); text-transform: lowercase; }
+.tKeyword { color: var(--syntax-keyword); }
+.tString { color: var(--syntax-string); }
+.tNumber { color: var(--syntax-number); }
+.tComment { color: var(--syntax-comment); font-style: italic; }
+.tTitle { color: var(--syntax-title); }
+.tType { color: var(--syntax-type); }
+.tAttr { color: var(--syntax-attr); }
+.tMeta { color: var(--syntax-meta); }
+.tDeletion { color: var(--syntax-deletion); background: var(--syntax-deletion-bg); }
+.tAddition { color: var(--syntax-addition); background: var(--syntax-addition-bg); }
+
+/* diagrams and charts (Diagram.tsx): a toolbar, the drawing in a box that pans, its source on demand */
+.diagram { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border-default); border-radius: var(--radius-12); background: var(--bg-surface); min-inline-size: 0; overflow: hidden; }
+[data-theme="dark"] .diagram { border-color: var(--border-strong); }
+.diagramBar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; padding-block: 2px; padding-inline: 12px 4px; border-block-end: 1px solid var(--border-subtle); background: var(--bg-sunken); }
+.diagramName { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-label); font-weight: 600; color: var(--text-secondary); min-inline-size: 0; }
+.diagramName svg { flex: none; color: var(--text-tertiary); }
+.diagramTools { display: inline-flex; align-items: center; gap: 2px; margin-inline-start: auto; }
+.diagramTools [aria-pressed="true"] { background: var(--accent-subtle); color: var(--accent-text); }
+.zoomLevel { min-inline-size: 44px; text-align: center; font-size: var(--text-caption); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.drawingBox { display: flex; overflow: auto; max-block-size: min(70vh, 640px); padding: 12px; background: var(--bg-surface); cursor: default; overscroll-behavior: contain; }
+.drawingBox[data-pans] { cursor: grab; }
+.drawingBox[data-dragging] { cursor: grabbing; user-select: none; }
+.drawingBox:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.drawing { flex: none; margin: auto; visibility: hidden; }
+.drawing[data-ready] { visibility: visible; }
+.drawing svg { display: block; inline-size: 100%; block-size: 100%; max-inline-size: none; }
+.diagramLoading { padding: 28px 16px; color: var(--text-tertiary); font-size: var(--text-meta); text-align: center; }
+.diagramHint { padding: 6px 12px 8px; color: var(--text-tertiary); font-size: var(--text-caption); border-block-start: 1px solid var(--border-subtle); }
+.diagramFailed { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; background: var(--status-warning-subtle); color: var(--text-primary); font-size: var(--text-meta); }
+.diagramFailed svg { flex: none; color: var(--status-warning-text); margin-block-start: 2px; }
+.diagramWhy { color: var(--text-secondary); }
+.diagram .pre { border: 0; border-block-start: 1px solid var(--border-subtle); border-radius: 0; }
+
+/* a diagram full screen (DiagramViewer.tsx) */
+.viewerOverlay { position: fixed; inset: 0; z-index: var(--z-overlay); background: var(--scrim); display: flex; }
+.viewer { flex: 1; display: flex; margin: 12px; border: 1px solid var(--border-default); border-radius: var(--radius-12); background: var(--bg-surface); box-shadow: var(--shadow-float); overflow: hidden; }
+.viewerDialog { flex: 1; display: flex; flex-direction: column; min-inline-size: 0; min-block-size: 0; outline: none; }
+.viewerHead { display: flex; align-items: center; gap: 8px; padding-block: 4px; padding-inline: 16px 4px; border-block-end: 1px solid var(--border-subtle); background: var(--bg-sunken); }
+.viewerTitle { flex: 1; min-inline-size: 0; font-size: var(--text-section); font-weight: 600; overflow-wrap: anywhere; }
+.viewerBox { flex: 1; max-block-size: none; touch-action: none; }
+
+/* alerts (> [!NOTE] …): a coloured edge, an icon and the kind's name */
+.alert { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px; border-inline-start: 4px solid var(--alert-note); border-radius: var(--radius-8); background: var(--bg-sunken); }
+.alertTitle { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--alert-note-text); }
+.alertTitle svg { flex: none; }
+.alert[data-kind="tip"] { border-inline-start-color: var(--alert-tip); }
+.alert[data-kind="tip"] .alertTitle { color: var(--alert-tip-text); }
+.alert[data-kind="important"] { border-inline-start-color: var(--alert-important); }
+.alert[data-kind="important"] .alertTitle { color: var(--alert-important-text); }
+.alert[data-kind="warning"] { border-inline-start-color: var(--alert-warning); }
+.alert[data-kind="warning"] .alertTitle { color: var(--alert-warning-text); }
+.alert[data-kind="caution"] { border-inline-start-color: var(--alert-caution); }
+.alert[data-kind="caution"] .alertTitle { color: var(--alert-caution-text); }
+
+/* tables: a header that stays while the rows scroll, quiet stripes, number columns aligned on their digits */
+.tableWrap { overflow: auto; max-block-size: min(75vh, 720px); border: 1px solid var(--border-default); border-radius: var(--radius-8); background: var(--bg-surface); overscroll-behavior-inline: contain; }
+[data-theme="dark"] .tableWrap { border-color: var(--border-strong); }
+.tableWrap:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.table { border-collapse: separate; border-spacing: 0; inline-size: 100%; font-size: 13.5px; line-height: 1.5; overflow-wrap: normal; word-break: normal; }
+.table th, .table td { padding: 8px 12px; border-block-end: 1px solid var(--border-subtle); text-align: start; vertical-align: top; }
+.table th { position: sticky; inset-block-start: 0; z-index: 1; background: var(--bg-sunken); font-weight: 600; color: var(--text-primary); font-size: var(--text-label); white-space: nowrap; border-block-end-color: var(--border-default); }
+.table tbody tr:nth-child(even) td { background: var(--table-stripe); }
+.table tbody tr:hover td { background: var(--table-hover); }
 .table tr:last-child td { border-block-end: 0; }
+.table td:has(> .codespan:only-child) { white-space: nowrap; }
+.table .start { text-align: start; }
 .table .end { text-align: end; }
 .table .center { text-align: center; }
+.table .num { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* footnotes: numbered buttons in the text, the notes at the end with a way back */
+.fnRef { line-height: 0; }
+.fnRef button { min-inline-size: 18px; padding-inline: 2px; color: var(--accent-text); font-size: .78em; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.footnotes { border-block-start: 1px solid var(--border-subtle); padding-block-start: 12px; margin-block-start: 8px; font-size: var(--text-meta); color: var(--text-secondary); }
+.footnoteList { display: flex; flex-direction: column; gap: 8px; }
+.footnoteList li { display: flex; gap: 8px; align-items: flex-start; scroll-margin-block-start: calc(var(--topbar-h) + 16px); }
+.footnoteList li:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.footnoteN { flex: none; min-inline-size: 18px; font-weight: 600; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.footnoteText { flex: 1; display: flex; flex-direction: column; gap: 6px; min-inline-size: 0; }
+.footnoteBack { flex: none; min-inline-size: 24px; min-block-size: 24px; color: var(--accent-text); cursor: pointer; border-radius: var(--radius-4); }
+
+/* an image alone in its paragraph: a figure with its caption */
+.figureInline { display: flex; flex-direction: column; gap: 8px; align-items: center; padding: 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-12); background: var(--bg-sunken); }
+.figureInline .caption { text-align: center; }
 .inlineImage { max-inline-size: 100%; block-size: auto; border-radius: var(--radius-8); }
 
 /* ---------------------------------------------------------------- an image or diagram */
@@ -97,6 +179,13 @@ ol.list { list-style: decimal; }
   .metaLink { min-block-size: 44px; }
   .h2 { font-size: 19px; }
   .pre { font-size: 12px; }
+  .drawingBox { max-block-size: 60vh; padding: 8px; }
+  .viewer { margin: 0; border-radius: 0; border: 0; }
+  .viewerHead { padding-inline: 12px 0; }
+  .zoomLevel { display: none; }
+  .codeBar { min-block-size: 44px; }
+  .fnRef button { min-inline-size: 24px; min-block-size: 24px; }
+  .footnoteBack { min-inline-size: 44px; min-block-size: 44px; }
   .pager { grid-template-columns: minmax(0, 1fr); }
   .pagerNext { grid-column: auto; }
   /* A link alone in its cell or item is a target of its own: 44 px on the phone; a link inside a sentence is not (WCAG 2.5.8) */

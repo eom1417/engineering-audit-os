@@ -1,9 +1,13 @@
 import { createElement, Fragment } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { Doc } from '../../data/types'
 import { drawMarkdown, plain, unescape } from './markdown'
 import { byReading, grouped, readingList, resolveLink, searchDocs } from './model'
+
+// the diagram and code components need the Studio's providers: their own tests are in markdown.test.ts
+vi.mock('./Diagram', () => ({ Diagram: ({ n }: { n: number }) => `Diagram ${n}` }))
+vi.mock('./CodeBlock', () => ({ CodeBlock: ({ label }: { label: string }) => label }))
 
 const doc = (path: string, group: string, order: number | null, title = path, headings: Doc['headings'] = []): Doc =>
   ({ id: path, path, group, order, title, bytes: 2400, headings })
@@ -13,7 +17,7 @@ const DOCS = [doc('adr/ADR-001.md', 'adr', null), doc('README.md', 'start', 1, '
 
 const ctx = {
   path: 'docs/a.md', title: 'Title', docs: new Set<string>(), cards: new Set<string>(), images: new Map(),
-  label: { table: (n: number) => `Table ${n}`, code: (n: number) => `Code ${n}`, diagram: 'Mermaid', diagramNote: 'note' },
+  w: (key: string, vars?: Record<string, string | number>) => (key === 'tableN' ? `Table ${vars?.n}` : key),
 }
 
 describe('the library', () => {
@@ -47,7 +51,7 @@ describe('the reader', () => {
     expect(html).not.toContain('<div onclick')
     expect(html).toContain('&lt;script&gt;')
     expect(html).toContain('aria-label="Table 1"')
-    expect(html).toContain('Mermaid · note')
+    expect(html).toContain('Diagram 1')
     expect(html).not.toContain('<h1')
   })
 
