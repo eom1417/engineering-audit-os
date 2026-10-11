@@ -132,10 +132,18 @@ def url(route):
     return '`' + literal.replace('`', '\\`') + '`', params
 
 
-# A journey run (run_journeys) sets EAOS_RRWEB: each page is recorded with rrweb and its events kept beside the trace;
-# the lock's own runs leave both variables unset, and these hooks do nothing.
+# A journey run (run_journeys) sets EAOS_RRWEB to rrweb's bundle: once each page has loaded, the bundle is added to it
+# and records it, and the events are kept beside the trace; the lock's own runs leave both variables unset, and these
+# hooks do nothing. (Given to the page before it exists, rrweb 2.1.7 recurses until the stack overflows.)
 JOURNEY_HOOKS = [
-    "  test.beforeEach(async ({ page }) => { if (process.env.EAOS_RRWEB) await page.addInitScript({ path: process.env.EAOS_RRWEB }); });",
+    "  test.beforeEach(async ({ page }) => {",
+    "    const rrweb = process.env.EAOS_RRWEB;",
+    "    if (!rrweb) return;",
+    "    page.on('load', () => page.addScriptTag({ path: rrweb })",
+    "      .then(() => page.evaluate(() => { const w = window as any; w.__eaosEvents = [];",
+    "        w.rrweb.record({ emit: (event: unknown) => w.__eaosEvents.push(event) }); }))",
+    "      .catch(() => {}));",
+    "  });",
     "  test.afterEach(async ({ page }, info) => {",
     "    if (!process.env.EAOS_RRWEB || !process.env.EAOS_JOURNEYS) return;",
     "    const events = await page.evaluate(() => (window as any).__eaosEvents ?? []).catch(() => []);",
@@ -143,13 +151,6 @@ JOURNEY_HOOKS = [
     "                     JSON.stringify({ title: info.titlePath.slice(1).join(' > '), events }));",
     "  });",
 ]
-# rrweb's recorder as a page's first script: it starts once the document exists and keeps every event in the page.
-RECORDER = """;(function () {
-  window.__eaosEvents = [];
-  var start = function () { rrweb.record({ emit: function (event) { window.__eaosEvents.push(event); } }); };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
-})();
-"""
 
 
 def playwright_spec(feature, rows):
@@ -644,8 +645,8 @@ def run_journeys(report, target, runtime, folder):
     (folder / 'rrweb').mkdir(parents=True)
     live = LiveRun(target, runtime, 'S05')
     lock = _prepare(live, report, Path(runtime) / 'behavior-lock')
-    recorder = lock / 'rrweb-record.js'
-    recorder.write_text((node_modules('rrweb') / 'rrweb/dist/rrweb.umd.min.cjs').read_text(encoding='utf-8') + RECORDER, encoding='utf-8')
+    recorder = lock / 'rrweb.js'
+    shutil.copyfile(node_modules('rrweb') / 'rrweb/dist/rrweb.umd.cjs', recorder)
     try:
         base = _start(live, lock)
         argv = ['playwright', 'test', '--config', 'lock.config.ts', '--project=lock', '--no-deps', '--workers=1', '--trace=on',
