@@ -452,7 +452,7 @@ class Commands(unittest.TestCase):
         restarted.terminate()
         restarted.wait(10)
 
-    def test_on_a_remote_server_the_studio_gives_its_remote_address_with_its_token(self):
+    def test_on_a_remote_server_the_studio_gives_its_plain_remote_address(self):
         env = {**self.env, 'EAOS_REMOTE_ORIGIN': 'https://shop--{port}.dev.remote.e-m.sa'}
         done = subprocess.run([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--background', '--no-open'], env=env,
                               capture_output=True, text=True, timeout=60)
@@ -463,7 +463,7 @@ class Commands(unittest.TestCase):
             except OSError: pass
         self.addCleanup(stop)
         address = done.stdout.strip().split('EAOS Studio: ', 1)[1]
-        self.assertEqual(address, f"https://shop--{saved['port']}.dev.remote.e-m.sa/#token={saved['token']}")
+        self.assertEqual(address, f"https://shop--{saved['port']}.dev.remote.e-m.sa/", 'the Remote address carries no token')
         host = {'Host': f"shop--{saved['port']}.dev.remote.e-m.sa"}
         self.assertEqual(_fetch(f"http://127.0.0.1:{saved['port']}/", host)[0], 200, 'it answers to its Remote name')
         self.assertIn('live-token.js', _fetch(f"http://127.0.0.1:{saved['port']}/", host)[1].decode('utf-8'),
@@ -598,8 +598,11 @@ class RemoteLoginBoot(unittest.TestCase):
         with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '1'}):
             self.assertTrue(server._remote_login_trusted(self.ctx(True)))
             self.assertFalse(server._remote_login_trusted(self.ctx(False)))
-        with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': ''}):
+        with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '', 'EAOS_REMOTE_ORIGIN': ''}):
             self.assertFalse(server._remote_login_trusted(self.ctx(True)))
+        with mock.patch.dict(os.environ, {'EAOS_STUDIO_TRUST_REMOTE_LOGIN': '', 'EAOS_REMOTE_ORIGIN': 'https://p--{port}.dev.remote.e-m.sa'}):
+            self.assertTrue(server._remote_login_trusted(self.ctx(True)), 'a computer set up for Remote opts in')
+            self.assertFalse(server._remote_login_trusted(self.ctx(False)))
 
     def test_page_reads_token_from_an_uncached_script_when_opted_in(self):
         from eaos.studio.actions import adapters

@@ -313,9 +313,10 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
     app = create_app(report, project=state['project'], keys=keys)
     ctx = app.state.ctx
     launch._write_record(state, {'pid': os.getpid(), 'port': ctx.keys.port, 'token': ctx.keys.token, 'report': str(report),
-                                 'project': state['project'], 'started': time.time(), 'remote_origin': remote_origin})
+                                 'project': state['project'], 'started': time.time(), 'remote_origin': remote_origin,
+                                 'page_reads_token': _remote_login_trusted(ctx)})
     try:
-        if template: out(f"EAOS Studio, live: {launch.url_of({'port': keys.port, 'token': keys.token, 'remote_origin': remote_origin})}")
+        if template: out(f"EAOS Studio, live: {launch.url_of({'port': keys.port, 'remote_origin': remote_origin, 'page_reads_token': True})}")
         elif remote_origin:
             out(f"EAOS Studio, live on {remote_origin}. Launch token is stored in the protected project launch record; no token is printed.")
         else: out(f"EAOS Studio, live: {ctx.url}\n(only this computer can open it; press Ctrl-C to stop)")

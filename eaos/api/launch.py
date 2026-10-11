@@ -121,12 +121,15 @@ def _write_record(state, record):
 
 def url_of(record, route=''):
     """The Studio's address; `route` (`/scan`, the live map) opens that page. On this computer it is the plain address,
-    the same on every start: the page itself gets the token from its own server (eaos/api/server.py pages). A remote
-    address carries the launch token, in the route's query when there is a route (studio/public/boot.js reads both)."""
+    the same on every start: the page itself gets the token from its own server (eaos/api/server.py pages); so does a
+    Remote address behind the Remote sign-in (`page_reads_token`). Any other remote address carries the launch token,
+    in the route's query when there is a route (studio/public/boot.js reads both)."""
     origin = record.get('remote_origin')
     if not origin: return f"http://127.0.0.1:{record['port']}/" + (f'#{route}' if route else '')
     from ..studio.actions.security import Locks
     Locks(record['port'], remote_origin=origin)
+    if record.get('page_reads_token'):     # behind the Remote sign-in the page reads its token from its server
+        return f"{origin}/" + (f'#{route}' if route else '')
     return f"{origin}/#{route}?token={record['token']}" if route else f"{origin}/#token={record['token']}"
 
 
