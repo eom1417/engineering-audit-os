@@ -18,9 +18,10 @@ CATEGORIES = ('performance', 'accessibility', 'best-practices', 'seo')
 
 
 def config(base, out, chrome, max_routes):
-    """Unlighthouse's configuration: the pinned Chromium, one sample, no throttling, no sitemap or robots.txt."""
+    """Unlighthouse's configuration: the pinned Chromium, one browser at a time (by default it opens one per processor,
+    beside the running app and the assistant), one sample, no throttling, no sitemap or robots.txt."""
     return {'site': base, 'outputPath': str(out), 'puppeteerOptions': {'executablePath': chrome, 'args': ['--no-sandbox']},
-            'chrome': {'useSystem': False},
+            'puppeteerClusterOptions': {'maxConcurrency': 1}, 'chrome': {'useSystem': False},
             'scanner': {'device': 'mobile', 'samples': 1, 'throttle': False, 'sitemap': False, 'robotsTxt': False,
                         'maxRoutes': max_routes},
             'ci': {'buildStatic': False, 'reporter': 'jsonExpanded'}}

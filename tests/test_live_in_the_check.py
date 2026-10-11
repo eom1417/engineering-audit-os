@@ -31,6 +31,12 @@ def started(target, runtime, report=None, provider=None, say=None):
     return {'ok': True, 'attempts': 1, 'limitations': [], 'page': None}
 
 
+def scenario(report):
+    (Path(report) / 'nfr/k6').mkdir(parents=True, exist_ok=True)
+    (Path(report) / 'nfr/k6/qs-001.js').write_text('// k6', encoding='utf-8')
+    return []
+
+
 def audited(urls, viewports, variants, out=None):
     shot = Path(out) / 'screenshots/00-index-light-phone.png'
     shot.parent.mkdir(parents=True, exist_ok=True)
@@ -66,6 +72,18 @@ class LiveInTheCheck(unittest.TestCase):
         self.assertEqual(json.loads((self.base / 'down/live/setup.json').read_text())['limitations'], ['npm ci failed'])
         self.assertEqual(manifest['status'], 'COMPLETE')
 
+    def test_an_app_with_no_load_scenario_is_not_measured_and_says_why(self):
+        with mock.patch('eaos.live_setup.authorize'), mock.patch('eaos.live_setup.setup', side_effect=started), \
+                mock.patch('eaos.behavior_lock.run_lock', return_value={'results': []}), mock.patch('eaos.live_run.LiveRun', FakeRun), \
+                mock.patch('eaos.screens.audit.page_audit', side_effect=audited), mock.patch('eaos.screens.audit.lighthouse', return_value={}), \
+                mock.patch('eaos.screens.crawl.crawl', return_value={'status': 'observed', 'routes': []}), \
+                mock.patch('eaos.behavior_lock.run_journeys', return_value={'specs': 0, 'traces': [], 'recordings': []}), \
+                mock.patch('eaos.emit.nfr.write', return_value=[]), mock.patch('eaos.runtime_baseline.run_baseline') as measured:
+            manifest, live = self.run_check('no-scenario', runtime=self.base / 'runtime')
+        self.assertEqual(live['baseline'], ('unavailable', 'no_load_scenario'))
+        measured.assert_not_called()
+        self.assertEqual(manifest['status'], 'COMPLETE')
+
     def test_a_running_app_is_recorded_pictured_and_measured_before_the_claims(self):
         lock = {'results': [{'path': 'a.spec.ts', 'status': 'passed'}, {'path': 'b.spec.ts', 'status': 'failed'}]}
         speed = {'conditions': {'vus': 100}, 'scenarios': [{'id': 'QS-001', 'threshold': 800, 'before': {'p95_ms': 312.5, 'error_rate': 0}}]}
@@ -73,8 +91,12 @@ class LiveInTheCheck(unittest.TestCase):
                 mock.patch('eaos.behavior_lock.run_lock', return_value=lock), mock.patch('eaos.live_run.LiveRun', FakeRun), \
                 mock.patch('eaos.screens.audit.page_audit', side_effect=audited), \
                 mock.patch('eaos.screens.audit.lighthouse', return_value={'status': 'observed', 'scores': {'performance': 91}}), \
-                mock.patch('eaos.emit.nfr.write'), mock.patch('eaos.runtime_baseline.run_baseline', return_value=speed):
+                mock.patch('eaos.screens.crawl.crawl', return_value={'status': 'observed', 'routes': [{'path': '/about'}]}), \
+                mock.patch('eaos.behavior_lock.run_journeys', return_value={'specs': 1, 'traces': ['001.zip'], 'recordings': ['a.rrweb.json']}), \
+                mock.patch('eaos.emit.nfr.write', side_effect=scenario), mock.patch('eaos.runtime_baseline.run_baseline', return_value=speed):
             manifest, live = self.run_check('up', runtime=self.base / 'runtime')
+        self.assertEqual(manifest['status'], 'COMPLETE')
+        self.assertEqual(manifest['stages']['crawl']['detail'], {'pages': 1})
         self.assertEqual({stage: status for stage, (status, _) in live.items()}, {stage: 'ok' for stage in LIVE})
         self.assertEqual({k: manifest['stages']['record']['detail'][k] for k in ('specs', 'passed')}, {'specs': 2, 'passed': 1})
         screens = json.loads((self.base / 'up/live/screens.json').read_text())

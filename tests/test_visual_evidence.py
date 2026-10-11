@@ -138,7 +138,9 @@ class Tools(unittest.TestCase):
             with mock.patch.object(crawl, 'which', return_value='/bin/unlighthouse-ci'), mock.patch.object(crawl, 'chromium_path', return_value='/bin/chrome'), \
                     mock.patch.object(crawl, 'run', side_effect=unlighthouse):
                 found = crawl.crawl('http://127.0.0.1:9', folder)
+                config = (Path(folder) / 'unlighthouse.config.ts').read_text(encoding='utf-8')
         self.assertEqual((found['status'], len(calls), [r['path'] for r in found['routes']]), ('observed', 2, ['/']))
+        self.assertIn('"maxConcurrency": 1', config)
 
     def test_a_python_tool_with_its_own_environment_is_checked_there(self):
         from eaos import toolchain

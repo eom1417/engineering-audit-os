@@ -617,6 +617,10 @@
   "no_pages": {
    "ar": "برنامجك ما فيه صفحات يمشي فيها المستخدم، فما فيه رحلات تُسجَّل.",
    "en": "Your app has no pages a user walks through, so there is no journey to record."
+  },
+  "no_load_scenario": {
+   "ar": "ما فيه صفحة أو مسار في برنامجك يقدر اختبار الضغط يطلبه، فما انقاست السرعة تحت الضغط.",
+   "en": "No page or route of your app is one a load test can request, so speed under load was not measured."
   }
  }
 }

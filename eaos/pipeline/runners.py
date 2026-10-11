@@ -198,6 +198,8 @@ def baseline(context):
     from ..emit.nfr import write as scenarios
     from ..runtime_baseline import run_baseline
     scenarios(context.out)
+    if not list((context.out / 'nfr/k6').glob('*.js')):
+        raise SkipStage("the intake's load scenarios name no route of the app a load test can request", code='no_load_scenario')
     record = run_baseline(context.out, context.target, runtime)
     _keep(context, 'baseline.json', record)
     return {'scenarios': len(record['scenarios']),
