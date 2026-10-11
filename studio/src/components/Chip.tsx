@@ -39,7 +39,7 @@ export const FRESH: Record<Freshness | 'legacy', { tone: Tone; word: FreshWord }
 export function FreshnessChip({ freshness, onPress, count }: { freshness: Freshness | 'legacy'; onPress?: () => void; count?: number | null }) {
   const { t } = usePrefs()
   const { tone, word } = FRESH[freshness] ?? FRESH.unknown
-  return <ChipButton tone={tone} onPress={onPress} aria-label={`${t('isScanCurrent')} ${t(word, { n: count ?? 0 })}`} data-fresh={freshness}>
+  return <ChipButton tone={tone} onPress={onPress} aria-label={`${t('isScanCurrent')} ${t(word, { n: count ?? 0 })}`} data-fresh={freshness} data-truncate>
     <span className={css.chipText}>{t(word, { n: count ?? 0 })}</span></ChipButton>
 }
 

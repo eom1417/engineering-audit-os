@@ -4,10 +4,10 @@ import type { ReactNode } from 'react'
 
 export type Search = Record<string, string | undefined>
 
-export function Go({ to, search, className, children, label, current, replace }:
-  { to: string; search?: Search; className?: string; children: ReactNode; label?: string; current?: boolean; replace?: boolean }) {
+export function Go({ to, search, className, children, label, current, replace, onClick }:
+  { to: string; search?: Search; className?: string; children: ReactNode; label?: string; current?: boolean; replace?: boolean; onClick?: () => void }) {
   return (
-    <Link to={to} search={search ?? {}} className={className} aria-label={label} replace={replace}
+    <Link to={to} search={search ?? {}} className={className} aria-label={label} replace={replace} onClick={onClick}
       aria-current={current ? 'page' : undefined} activeOptions={{ exact: true, includeSearch: true }}>
       {children}
     </Link>

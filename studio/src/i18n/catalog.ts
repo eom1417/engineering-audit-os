@@ -51,6 +51,7 @@ export const WORDS = {
   // shell
   back: ['رجوع', 'Back'],
   more: ['المزيد', 'More'],
+  allSections: ['كل الأقسام', 'All sections'],
   close: ['إغلاق', 'Close'],
   language: ['اللغة', 'Language'],
   appearance: ['المظهر', 'Appearance'],

@@ -33,7 +33,7 @@ export function BranchChip({ onPress }: { onPress: () => void }) {
   const label = name ?? (detached ? w('detached', { c: (commit ?? '').slice(0, 7) }) : null)
   if (!label) return null
   return (
-    <button type="button" className={css.branchChip} onClick={onPress} aria-label={w('branchChip', { b: label })} data-open="branches">
+    <button type="button" className={css.branchChip} onClick={onPress} aria-label={w('branchChip', { b: label })} data-open="branches" data-truncate>
       <Icon name="branch" /><bdi dir="ltr" className={css.branchName}>{label}</bdi><Icon name="chevronDown" />
     </button>
   )
