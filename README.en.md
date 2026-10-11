@@ -231,13 +231,13 @@ No command modifies the original project, publishes anything or merges anything.
 <!-- north-star:progress:start -->
 <!-- generated from docs/north-star.json by python tools/north_star.py; do not edit by hand -->
 
-### Progress: **32.2 of 100 points**
+### Progress: **32.1 of 100 points**
 
-`████████░░░░░░░░░░░░░░░░░` 32.2%
+`████████░░░░░░░░░░░░░░░░░` 32.1%
 
 | Steps done | Current step | Points left | Of which wait on the owner | Last measured |
 |---|---|---|---|---|
-| 21 of 45 | 21 · NS27 Build from a plan | 67.8 | 64 | 2026-09-30 · `0fbc461` |
+| 21 of 45 | 21 · NS27 Build from a plan | 67.9 | 64 | 2026-09-30 · `0fbc461` |
 
 **How it is computed:**
 
@@ -318,7 +318,7 @@ flowchart TB
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 acceptance test"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 acceptance tests"| NS46
-        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +21 acceptance tests"| NS38
+        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +23 acceptance tests"| NS38
     end
     subgraph R6G_2["R6G · EAOS v2: truthful analysis, ideal picture, ordered operations, live Studio (2/5)"]
         direction LR

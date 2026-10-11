@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "ad283db",
+  "extracted_at_commit": "5f2add5",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -54,6 +54,15 @@
       "statement": "open_studio on `route` (the live map, or \"Preparing the tools\"), in the browser unless the Studio itself asked (EAOS_STUDIO_RUN); None when it cannot start: the work goes on without its map.",
       "kind": "invariant",
       "enforced_by": "tests/test_progress_server.py::Watch::test_the_work_starts_without_its_map_when_the_studio_cannot",
+      "note": ""
+    },
+    {
+      "id": "INV-ad095d72aa",
+      "file": "eaos/agent_tools.py",
+      "symbol": "_no_safety_net",
+      "statement": "Why no batch may open: the safety net of this code is missing, or recorded nothing, so fix_finish would refuse every change after the work was done (owner's trial, 2026-10-10); None when it holds.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_mcp.py::ToolTests::test_status_names_the_next_tool_at_each_point",
       "note": ""
     },
     {
