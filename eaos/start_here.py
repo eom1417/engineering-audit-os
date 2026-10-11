@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 from . import plain
+from .compose.labels import who_decided
 
 
 def summary_counts(report):
@@ -49,6 +50,9 @@ def start_here(report, lang, name):
         rest = [f"{plain.problem(p, lang)[0]} ({len(groups[p])})" for p in ordered[5:]]
         if rest:
             lines += [('وأنواع أخرى: ' if ar else 'And other kinds: ') + ('، ' if ar else ', ').join(rest), '']
+        target = json.loads((report / 'target-architecture.json').read_text(encoding='utf-8')) \
+            if (report / 'target-architecture.json').is_file() else {}
+        lines += ['## ' + ('من قرر' if ar else 'Who decided'), '', who_decided(target, lang), '']
         lines += ['## ' + ('ما أنصح به' if ar else 'What I recommend'), '',
                   ('ابدأ بالإصلاحات الآلية: هي الأكثر أمانًا، وكل واحدة تُجرَّب في نسخة منفصلة من مشروعك قبل أن تراها.' if ar else
                    'Start with the automatic fixes: they are the safest, and each is tried on a separate copy of your project before you see it.'), '']

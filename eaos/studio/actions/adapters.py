@@ -177,11 +177,14 @@ class ClaudeCode(Adapter):
                                *[f'mcp__eaos__{tool}' for tool in PERSON_ONLY]]
         return argv + (['--resume', session] if session else [])
 
-    def ask_argv(self, schema, folder):
-        """One question on standard input, no tool, no MCP server, nothing kept: the answer held to `schema`, streamed
-        as it is written."""
+    def ask_argv(self, schema, folder, images=()):
+        """One question on standard input, no MCP server, nothing kept: the answer held to `schema`, streamed as it is
+        written. No tool, but Read on exactly `images` when the question is about pictures (Read elsewhere is refused;
+        an absolute path in a permission rule starts with //, a single / is relative to the working folder)."""
+        tools = ['--tools', 'Read', '--allowedTools', *[f'Read(/{Path(image).resolve()})' for image in images],
+                 '--permission-mode', 'dontAsk'] if images else ['--tools', '']
         return self.command + ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages',
-                               '--json-schema', json.dumps(schema), '--tools', '', '--strict-mcp-config', '--no-session-persistence']
+                               '--json-schema', json.dumps(schema), *tools, '--strict-mcp-config', '--no-session-persistence']
 
     def cost(self, lines):
         """`total_cost_usd` of the stream's result line."""
@@ -267,12 +270,14 @@ class Codex(Adapter):
         if session: return self.command + ['exec', 'resume', *options, session, prompt]
         return self.command + ['exec', *options, prompt]
 
-    def ask_argv(self, schema, folder):
-        """One question on standard input (`-`), a read-only sandbox, nothing kept: the answer held to `schema`."""
+    def ask_argv(self, schema, folder, images=()):
+        """One question on standard input (`-`), a read-only sandbox, nothing kept: the answer held to `schema`; the
+        pictures of a question about them attached with -i."""
         path = folder / 'schema.json'
         path.write_text(json.dumps(schema), encoding='utf-8')
         return self.command + ['exec', '--json', '--skip-git-repo-check', '--ephemeral', '--output-schema', str(path),
-                               '-c', 'approval_policy="never"', '-c', 'sandbox_mode="read-only"', '-']
+                               '-c', 'approval_policy="never"', '-c', 'sandbox_mode="read-only"',
+                               *[part for image in images for part in ('-i', str(image))], '-']
 
     def model(self):
         """The `model` of the person's Codex configuration, when they set one."""
@@ -347,20 +352,21 @@ def _json_object(text):
     return value if isinstance(value, dict) else None
 
 
-def ask(adapter, prompt, schema, folder, cancel=None, started=None):
+def ask(adapter, prompt, schema, folder, cancel=None, started=None, images=()):
     """Ask the assistant one question and return {answer, model, assistant, seconds, cost_usd}.
 
     The prompt goes on standard input, so its size never meets the argument limit; the process runs in its own group in
     `folder` (never in the project, whose instructions are not the planner's); `started(pid)` hears its pid, so the run
     manager can pause or stop it. It works as long as it needs: `cancel` (a threading.Event) ends the whole group and
     raises AskFailed('stopped'), and only an assistant silent for eaos/runtime/provider.py STUCK seconds is ended as
-    stuck (Stuck). An answer that is not a JSON object raises AskFailed. The stream stays in `folder`."""
+    stuck (Stuck). An answer that is not a JSON object raises AskFailed. The stream stays in `folder`. `images`: the
+    pictures the question is about, the only files the assistant may open."""
     from ...runtime.provider import wait
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
     stream, began = folder / 'stream.jsonl', time.monotonic()
     with open(stream, 'wb') as out, open(folder / 'stderr.log', 'wb') as err:
-        process = subprocess.Popen(adapter.ask_argv(schema, folder), cwd=folder, stdin=subprocess.PIPE, stdout=out, stderr=err,
+        process = subprocess.Popen(adapter.ask_argv(schema, folder, images), cwd=folder, stdin=subprocess.PIPE, stdout=out, stderr=err,
                                    start_new_session=True)
         if started: started(process.pid)
         try:

@@ -254,3 +254,27 @@ def detail_artifact(claim):
 
 
 def labels(language): return LABELS.get(language, LABELS['ar'])
+
+
+# Who decided an element of the final target (eaos/target_architecture.py reconcile), in the person's two languages.
+DECIDED = {'agreed': ('اتفقت عليه الأدوات ومساعدك', 'agreed by the tools and your assistant'),
+           'ai_modified': ('عدّله مساعدك بدليل', 'changed by your assistant, with evidence'),
+           'rule_only': ('القواعد وحدها', 'the rules alone'),
+           'disagreement': ('خلاف: بقي رأي القواعد بضابط', "disagreement: a guard kept the rules' view"),
+           'ai_added': ('أضافه مساعدك بدليل', 'added by your assistant, with evidence')}
+
+
+def decided(label, language):
+    words = DECIDED.get(label)
+    return label if words is None else words[0 if language == 'ar' else 1]
+
+
+def who_decided(target, language):
+    """One sentence: who decided the final target, from its `decided` counts."""
+    ar, counts = language == 'ar', dict((target or {}).get('decided') or {})
+    by = counts.pop('by', 'rules')
+    if by != 'assistant':
+        return ('ما حكم مساعد على هذا المستهدف: القواعد قررت كل جزء فيه.' if ar else
+                'No assistant judged this target: the rules decided every part of it.')
+    parts = [f'{n} {decided(label, language)}' for label, n in sorted(counts.items(), key=lambda row: -row[1])]
+    return ('من قرر المستهدف: ' + '، '.join(parts) + '.') if ar else ('Who decided the target: ' + ', '.join(parts) + '.')

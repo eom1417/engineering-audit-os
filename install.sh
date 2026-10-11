@@ -14,6 +14,7 @@ stop() { line; say "❌ ما حدث: $1" "❌ What happened: $2"; say "   $3" " 
 
 SOURCE="${EAOS_SOURCE:-git+https://github.com/eom1417/engineering-audit-os@main}"
 APP="${EAOS_APP:-$HOME/.eaos/app}"
+STARTED_IN="$PWD"   # the folder the person ran the installer from: their project, when it is one
 BIN="$HOME/.local/bin"
 
 say "أثبّت EAOS على جهازك. يأخذ هذا بضع دقائق." "Installing EAOS on your computer. This takes a few minutes."
@@ -116,5 +117,10 @@ if [ -n "$ASSISTANTS" ]; then
 else
   say "⏭️  الخطوة التالية: افتح مجلد مشروعك في الطرفية، ثم انسخ والصق:" "⏭️  Next step: open your project folder in the terminal, then copy and paste:"
   printf '   %s\n' "eaos start ."
+fi
+# Installed from inside a project: its Studio opens now, on "Preparing the tools", with an address that stays the same.
+if [ -z "${EAOS_NO_STUDIO:-}" ] && git -C "$STARTED_IN" rev-parse --git-dir >/dev/null 2>&1 && [ "$STARTED_IN" != "$HOME" ]; then
+  STUDIO="$("$APP/venv/bin/eaos" studio "$STARTED_IN" --background 2>>"$LOG" | sed -n 's/^EAOS Studio: //p')"
+  if [ -n "$STUDIO" ]; then say "🖥️  واجهة مشروعك مفتوحة الآن: $STUDIO" "🖥️  Your project's Studio is open now: $STUDIO"; fi
 fi
 line

@@ -70,6 +70,159 @@ def verify(context):
     return {'covered_files': result.get('covered_files'), 'command': context.test_command}
 
 
+NO_RUN = ('the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and '
+          'the check reads the code alone')
+
+
+def _owner(target):
+    import subprocess
+    done = subprocess.run(['git', '-C', str(target), 'config', 'user.name'], capture_output=True, text=True)
+    return done.stdout.strip() or 'the owner'
+
+
+def _keep(context, name, record):
+    """A live stage's record under <out>/live/."""
+    from ..workspace import write
+    (context.out / 'live').mkdir(exist_ok=True)
+    write(context.out / 'live' / name, record)
+
+
+def setup(context):
+    """The app installed and started in an isolated copy (eaos/live_setup.py), once the person agreed to it."""
+    if not context.get('runtime'):
+        raise SkipStage(NO_RUN, code='no_run_consent')
+    from ..live_setup import authorize, setup as start
+    authorize(context.target, context.runtime, _owner(context.target))
+    result = start(context.target, Path(context.runtime), report=context.out, provider=context.provider, say=lambda n: None)
+    _keep(context, 'setup.json', result)
+    if not result['ok']:
+        raise SkipStage('the app did not start in the isolated copy: ' + '; '.join(result['limitations'])[:250], code='app_not_running')
+    return {'attempts': result['attempts'], 'limitations': len(result['limitations'])}
+
+
+def _live(context):
+    """The runtime folder of an app this check started; else the reason no live stage can run."""
+    if not context.get('runtime'):
+        raise SkipStage(NO_RUN, code='no_run_consent')
+    if not _ran(context, 'setup'):
+        raise SkipStage('the app is not running in an isolated copy in this check: ' + (
+            (context.get('manifest_so_far') or {}).get('stages', {}).get('setup', {}).get('reason') or 'its setup did not end ok'),
+            code='app_not_running')
+    return Path(context.runtime)
+
+
+def record(context):
+    """The lock run twice on today's code (eaos/behavior_lock.py run_lock): the screens and interfaces it recorded."""
+    runtime = _live(context)
+    if not (context.out / 'behavior-lock/plan.json').is_file():
+        raise SkipStage('the program has no feature to lock', code='no_features')
+    from ..behavior_lock import run_lock
+    result = run_lock(context.out, context.target, runtime)
+    passed = sum(r['status'] == 'passed' for r in result['results'])
+    _keep(context, 'lock.json', {**result, 'specs': len(result['results']), 'passed': passed})
+    return {'specs': len(result['results']), 'passed': passed}
+
+
+def screens(context):
+    """Each known page of the running app at phone and desktop width with axe, and the first with Lighthouse
+    (eaos/screens/audit.py)."""
+    runtime = _live(context)
+    from ..behavior_lock import surfaces
+    from ..live_run import LiveRun
+    from ..screens.audit import VIEWPORTS, lighthouse, page_audit, variants
+    pages = ['/'] + [route for route, (kind, _, _) in surfaces(context.out).items()
+                     if kind == 'page' and route.startswith('/') and ':' not in route and '*' not in route and '[' not in route]
+    if _ran(context, 'crawl'):
+        pages += [row['path'] for row in json.loads((context.out / 'live/crawl.json').read_text(encoding='utf-8'))['routes']]
+    live = LiveRun(context.target, runtime, 'S05')
+    try:
+        live.setup()
+        base = live.start()
+        live.seed(base)
+        folder = context.out / 'live/screens'
+        audit = page_audit([base + page for page in dict.fromkeys(pages)], [v for v in VIEWPORTS if v['name'] != 'tablet'],
+                           variants(), out=folder)
+        speed = lighthouse(base + '/', out=folder)
+    finally:
+        live.stop()
+    if audit['status'] != 'observed':
+        raise SkipStage(f"the pages could not be opened: {audit.get('reason')}"[:300], code='screens_unavailable')
+    rows = [{**row, 'screenshot': Path(row['screenshot']).relative_to(context.out).as_posix() if row.get('screenshot') else None}
+            for row in audit['rows']]
+    _keep(context, 'screens.json', {'schema_version': 1, 'base': '/', 'tools': audit['tools'], 'rows': rows,
+                                              'lighthouse': {k: v for k, v in speed.items() if k != 'report'}})
+    return {'pages': len(dict.fromkeys(pages)), 'screens': len(rows), 'failing': sum(bool(r.get('failures')) for r in rows),
+            'lighthouse': (speed.get('scores') or {}).get('performance')}
+
+
+def journeys(context):
+    """Each feature's pages walked once more with the trace on and rrweb recording (eaos/behavior_lock.py run_journeys)."""
+    runtime = _live(context)
+    plan = json.loads((context.out / 'behavior-lock/plan.json').read_text(encoding='utf-8')) \
+        if (context.out / 'behavior-lock/plan.json').is_file() else {}
+    if not any(spec.get('tool') == 'playwright' for spec in plan.get('specs') or []):
+        raise SkipStage('the lock has no page to walk through', code='no_pages')
+    from ..behavior_lock import run_journeys
+    result = run_journeys(context.out, context.target, runtime, context.out / 'live/journeys')
+    _keep(context, 'journeys.json', result)
+    return {'specs': result['specs'], 'traces': len(result['traces']), 'recordings': len(result['recordings'])}
+
+
+def crawl(context):
+    """Every page of the running app found by Unlighthouse, each measured by Lighthouse (eaos/screens/crawl.py)."""
+    runtime = _live(context)
+    from ..live_run import LiveRun
+    from ..screens.crawl import crawl as find
+    live = LiveRun(context.target, runtime, 'S05')
+    try:
+        live.setup()
+        base = live.start()
+        live.seed(base)
+        found = find(base, context.out / 'live/crawl')
+    finally:
+        live.stop()
+    if found['status'] != 'observed':
+        raise SkipStage(f"the pages could not be crawled: {found.get('reason')}"[:300], code='screens_unavailable')
+    _keep(context, 'crawl.json', {'schema_version': 1, **found})
+    return {'pages': len(found['routes'])}
+
+
+def baseline(context):
+    """Today's speed under the intake's load scenarios (eaos/runtime_baseline.py), on a production build that started."""
+    runtime = _live(context)
+    import json as _json
+    profile = _json.loads((runtime / 'run.json').read_text(encoding='utf-8'))
+    if not (profile.get('baseline') or {}).get('verified'):
+        raise SkipStage('the production build of the app did not start in the isolated copy, so its speed was not measured',
+                        code='no_production_run')
+    from ..emit.nfr import write as scenarios
+    from ..runtime_baseline import run_baseline
+    scenarios(context.out)
+    if not list((context.out / 'nfr/k6').glob('*.js')):
+        raise SkipStage("the intake's load scenarios name no route of the app a load test can request", code='no_load_scenario')
+    record = run_baseline(context.out, context.target, runtime)
+    _keep(context, 'baseline.json', record)
+    return {'scenarios': len(record['scenarios']),
+            'p95_ms': max((s['before']['p95_ms'] for s in record['scenarios'] if s.get('before')), default=None)}
+
+
+def architecture(context):
+    """The city and the clusters of the code (eaos/engines/architecture.py), and how many findings the two dependency
+    engines already gave, in architecture/map.json."""
+    from ..engines.architecture import city, clusters
+    from ..facts.store import read_set
+    from ..workspace import write
+    folder = context.out / 'architecture'
+    drawn = {'city': city(context.target, folder), 'clusters': clusters(context.target, folder)}
+    if all(row['status'] != 'observed' for row in drawn.values()):
+        raise SkipStage('; '.join(row.get('reason', '') for row in drawn.values())[:300], code='no_architecture_map')
+    try: external = read_set(context.out, 'external').get('facts') or []
+    except (OSError, ValueError): external = []
+    engines = {name: sum((f.get('value') or {}).get('engine') == name for f in external) for name in ('dependency-cruiser', 'gitnexus')}
+    write(folder / 'map.json', {'schema_version': 1, **drawn, 'dependency_findings': engines})
+    return {name: row['status'] for name, row in drawn.items()}
+
+
 def policy(context):
     if not context.policy_path and not (Path(context.target) / POLICY_FILE).is_file():
         raise SkipStage(f'the project declares no {POLICY_FILE}', code='no_policy')
@@ -132,22 +285,22 @@ def _node(context, name):
 
 
 def ideal(context):
-    """The ideal planner node (eaos/studio/nodes/ideal_planner.py) right after the check: plan, critique and the
-    evidence check; the rules' target stands without it."""
+    """The ideal planner node (eaos/studio/nodes/ideal_planner.py) before the target is final: plan, critique and the
+    evidence check; the reconcile stage turns its decisions into the target, and the rules' target stands without it."""
     record, detail = _node(context, 'ideal_planner')
     return {'elements': record['decisions'][0]['detail']['elements'], **detail}
 
 
 def triage(context):
     """The card triage node (eaos/studio/nodes/triage.py): each open card confirmed, doubted or rejected on its own
-    evidence, with why in the person's words; the cards themselves stay as the engines wrote them."""
+    evidence, with why in the person's words; the cards stage then sets the rejected ones aside."""
     record, detail = _node(context, 'card_triage')
     return {**{row['decision']: len(row['subjects']) for row in record['routes']}, **detail}
 
 
 def order(context):
     """The plan orderer node (eaos/studio/nodes/plan_orderer.py): the order and grouping of the plan's cards, every
-    prerequisite kept; the plan itself is not changed."""
+    prerequisite kept; the steps stage writes it into the plan."""
     record, detail = _node(context, 'plan_orderer')
     return {'decision': record['decisions'][0]['decision'], **detail}
 
@@ -157,6 +310,11 @@ def load(context):
     from ..load_report import write
     record = compute(context.out)
     record = project(record)
+    if _ran(context, 'baseline'):
+        measured = json.loads((context.out / 'live/baseline.json').read_text(encoding='utf-8'))
+        record['measured'] = {'source': 'live/baseline.json', 'conditions': measured['conditions'],
+                              'scenarios': [{'id': s['id'], 'threshold': s['threshold'], **(s.get('before') or {})}
+                                            for s in measured['scenarios']]}
     write(context.out, record, language=context.language)
     return {'entry_points': len(record.get('entry_points', [])),
             'incomplete': sum(1 for e in record.get('entry_points', []) if (e.get('projection') or {}).get('incomplete'))}
@@ -227,6 +385,7 @@ def intake(context):
 
 def compose(context):
     from .. import progress
+    from ..compose.gallery import write as gallery
     from ..compose.product_report import render
     from ..human_report import write as human_page
     from ..start_here import start_here
@@ -236,7 +395,8 @@ def compose(context):
     writers = (lambda: render(context.out, read(context.out / 'dossier.json'), context.language),
                lambda: human_page(context.out, context.language, name),
                lambda: studio(context.out, context.language, name, context.target),
-               lambda: start_here(context.out, context.language, name))
+               lambda: start_here(context.out, context.language, name),
+               lambda: gallery(context.out, context.language))
     for done, write in enumerate(writers):
         progress.count('artifacts', done, len(writers))
         write()
@@ -331,17 +491,72 @@ def features(context):
             'critical': sum(1 for f in record['features'] if f['critical'])}
 
 
-RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
+RUNNERS = {'setup': setup, 'architecture': architecture, 'journeys': journeys, 'crawl': crawl, 'record': record, 'screens': screens, 'baseline': baseline,
+           'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
            'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,
            'transform': transform, 'plan': plan, 'execution_guide': execution_guide,
            'compose': compose, 'emit': emit, 'site': site, 'validate': validate}
 
 
 def target(context):
-    from ..target_architecture import build, render
+    """The rules' proposal, kept as it was (target-proposal.json) and as the target until the reconcile decides it."""
+    from ..target_architecture import build
+    from ..workspace import write
     result = build(context.out, target=context.target)
-    render(context.out, result, language=context.language)
+    write(context.out / 'target-proposal.json', result)
+    write(context.out / 'target-architecture.json', result)
     return {'components': len(result['components']), 'status': result['status']}
+
+
+def proposals(context):
+    """The Studio's records of this check so far: what the triage, the ideal and the pipeline-gap planner read."""
+    if not context.provider:
+        raise SkipStage(NO_ASSISTANT, code='no_provider')
+    from ..studio.export import export
+    from ..workspace import write
+    result = export(context.out, context.language, Path(context.target).name, context.target)
+    write(context.out / 'proposals.json', result)
+    return {'sections': len(result['written']), 'errors': len(result['errors'])}
+
+
+def _ran(context, name):
+    """Whether stage `name` ended ok in this run: a record an earlier check left on disk is never read as this one's."""
+    return ((context.get('manifest_so_far') or {}).get('stages') or {}).get(name, {}).get('status') == 'ok'
+
+
+def cards(context):
+    from ..plan import confirm
+    record = confirm(context.target, context.out, context.language, triaged=_ran(context, 'triage'), reviewed=_ran(context, 'visual'))
+    return {'kept': len(record['kept']), 'set_aside': len(record['set_aside']), 'doubted': len(record['doubted']),
+            'design': len(record['design']), 'decided_by': record['decided_by']}
+
+
+def visual(context):
+    """The visual reviewer node (eaos/studio/nodes/visual_reviewer.py): the assistant opens each picture of the app's
+    screens, and only those, and names what a person would notice there; the cards stage makes each a design card."""
+    record, detail = _node(context, 'visual_reviewer')
+    return {**{row['decision']: len(row['subjects']) for row in record['routes']}, **detail}
+
+
+def pipeline_gaps(context):
+    """The pipeline-gap planner node (eaos/studio/nodes/pipeline_gap_planner.py): how each broken pipeline rule is
+    closed; the plan orderer reads its steps."""
+    record, detail = _node(context, 'pipeline_gap_planner')
+    return {**{row['decision']: len(row['subjects']) for row in record['routes']}, **detail}
+
+
+def reconcile(context):
+    from ..target_architecture import reconcile as decide, render
+    policy_path = Path(context.policy_path) if context.policy_path else Path(context.target) / POLICY_FILE
+    result = decide(context.out, planned=_ran(context, 'ideal'), policy_path=policy_path if policy_path.is_file() else None)
+    render(context.out, result, language=context.language)
+    return result['decided']
+
+
+def steps(context):
+    from ..plan import sequence
+    record = sequence(context.out, context.language, ordered=_ran(context, 'order'))
+    return {'steps': len(record['steps']), 'decided_by': record['source']}
 
 
 def executive(context):
@@ -356,4 +571,5 @@ def bundles(context):
     return build(context.out, language=context.language)
 
 
-RUNNERS.update(target=target, executive=executive, bundles=bundles, ideal=ideal, triage=triage, order=order)
+RUNNERS.update(target=target, proposals=proposals, cards=cards, pipeline_gaps=pipeline_gaps, reconcile=reconcile, steps=steps)
+RUNNERS.update(executive=executive, bundles=bundles, ideal=ideal, triage=triage, visual=visual, order=order)

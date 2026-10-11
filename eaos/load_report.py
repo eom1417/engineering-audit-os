@@ -25,6 +25,9 @@ def render(record, language='en'):
              'Every figure below carries the fact IDs that justify it.',
              '']
 
+    for scenario in (record.get('measured') or {}).get('scenarios') or []:
+        lines += [f"Measured under load ({scenario['id']}, k6 on the production build): p95 "
+                  f"{scenario.get('p95_ms')} ms against a threshold of {scenario.get('threshold')} ms (live/baseline.json).", '']
     if record.get('projection'):
         method = record['projection'].get('method', '')
         if method:

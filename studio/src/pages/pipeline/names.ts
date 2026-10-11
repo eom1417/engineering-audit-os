@@ -10,6 +10,11 @@ const stages: Record<string, [string, string]> = {
   compose: ['تجميع المخرجات', 'Compose outputs'], triage: ['فرز البطاقات بالذكاء', 'AI card triage'], ideal: ['تخطيط المثالي بالذكاء', 'AI ideal planning'], order: ['ترتيب الخطة بالذكاء', 'AI plan order'], reports: ['إعداد التقارير', 'Write reports'], bundles: ['تجهيز الحزم', 'Build bundles'],
   emit: ['إخراج الملفات', 'Emit artifacts'], site: ['بناء العرض', 'Build report site'], validate: ['فحص المخرجات', 'Validate outputs'],
   pdf: ['تصدير PDF', 'Export PDF'], quality: ['قياس الجودة', 'Check quality'], RUNNERS: ['توزيع المراحل', 'Route stages'],
+  setup: ['تشغيل البرنامج', 'Run the app'], record: ['تسجيل السلوك', 'Record behavior'], journeys: ['رحلات المستخدم', 'User journeys'],
+  crawl: ['مسح الصفحات', 'Crawl pages'], screens: ['صور الشاشات', 'Screen pictures'], baseline: ['السرعة تحت الضغط', 'Speed under load'],
+  architecture: ['خريطة البنية', 'Architecture map'], proposals: ['اقتراحات الأدوات', 'Tool proposals'], visual: ['المراجع البصري بالذكاء', 'AI visual review'],
+  cards: ['البطاقات المؤكدة', 'Confirmed cards'], pipeline_gaps: ['فجوات المسارات بالذكاء', 'AI pipeline gaps'], reconcile: ['المستهدف النهائي', 'Final target'],
+  steps: ['ترتيب الخطة', 'Plan order'],
 }
 export function stageTitle(stage: Stage, lang: string): string {
   const name = stages[stage.label]

@@ -15,7 +15,7 @@ from . import core
 from .. import ideal
 
 VERSION = '1'
-LIMIT = {'cards': 400, 'facts': 4, 'excerpt': 6, 'line': 200, 'summary': 300}
+LIMIT = {'facts': 4, 'excerpt': 6, 'line': 200, 'summary': 300}
 SEVERITY = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3, 'info': 4}
 DETAIL = {'type': 'object', 'additionalProperties': False, 'required': ['falsifier'],
           'properties': {'falsifier': {'type': 'string'}}}
@@ -79,10 +79,9 @@ def inputs(report, project=None, lang='en', cards=None, limit=None, **_):
     rows = [c for c in ideal._cards(report) if c.get('state', 'open') not in ('done', 'resolved')]
     if cards: rows = [c for c in rows if c['id'] in set(cards)]
     rows.sort(key=lambda c: (SEVERITY.get(c.get('severity'), 5), c['id']))
-    cap = limit or LIMIT['cards']
     facts = _facts(report)
     out = []
-    for card in rows[:cap]:
+    for card in rows[:limit] if limit else rows:
         evidence = []
         for fact in [f for f in card.get('evidence') or [] if isinstance(f, str)][:LIMIT['facts']]:
             known = facts.get(fact) or {}
@@ -92,7 +91,7 @@ def inputs(report, project=None, lang='en', cards=None, limit=None, **_):
                     'confidence': card.get('confidence'), 'paths': (card.get('paths') or [])[:3], 'evidence': evidence})
     if not out: return None
     return {'project': {'name': (project and Path(project).name) or report.name, 'language': 'Arabic' if lang == 'ar' else 'English'},
-            'trust': {'code': core.UNTRUSTED, 'titles': core.UNTRUSTED}, 'cards': out, 'omitted': max(0, len(rows) - cap), 'lang': lang}
+            'trust': {'code': core.UNTRUSTED, 'titles': core.UNTRUSTED}, 'cards': out, 'omitted': len(rows) - len(out), 'lang': lang}
 
 
 BATCH = 40

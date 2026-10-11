@@ -401,3 +401,141 @@ def build(target, out, language='ar'):
             'cards': [str(directory / (task['id'] + '.md')) for task in tasks],
             'limits': 'Repairs require evidenced violations and independent checks. Investigations may conclude no change. '
                       'Effort is an estimate with declared confidence, not a commitment.'}
+
+
+def _load(path, default):
+    try: return read(path)
+    except (OSError, ValueError): return default
+
+
+def _verdicts(out):
+    """{card: verdict} of this check's triage when the assistant made it; {} when the rules decided alone."""
+    body = _load(Path(out) / 'nodes/card_triage/verdicts.json', {})
+    if body.get('method') != 'model': return {}
+    return {v['card']: v for v in body.get('verdicts') or [] if isinstance(v, dict) and v.get('source') == 'model'}
+
+
+SEVERITY_PRIORITY = {'high': 0.6, 'medium': 0.4, 'low': 0.2}
+
+
+def design_card(number, finding):
+    """A card for one finding of the visual reviewer: an investigation, done when its decision is recorded, citing its
+    picture and the region of it."""
+    region = finding['region']
+    where = f"{finding['file']} ({region['x']:.2f}, {region['y']:.2f}, {region['width']:.2f} x {region['height']:.2f})"
+    return {'id': f'TASK-V{number:03d}', 'claim_id': None, 'title': finding['title'][:120], 'render': None, 'kind': 'investigate',
+            'contract_version': 1,
+            'decision': {'contract_version': 1, 'kind': 'investigate', 'readiness': 'needs_review', 'blockers': [], 'checks': [],
+                         'reason': 'A design finding of the visual reviewer: confirm it on the screen before changing it.',
+                         'allowed_outcomes': ['repair', 'retain', 'blocked_missing_requirement']},
+            'prerequisites': [], 'before': None, 'after': None, 'requirement_refs': [], 'status': 'planned',
+            'priority': SEVERITY_PRIORITY.get(finding['severity'], 0.2), 'pattern': 'design_review', 'paths': [], 'origin': 'visual_review',
+            'impact': finding['why'], 'impact_render': None,
+            'evidence': {'fact_ids': [], 'evidence_ids': [finding['image']], 'probe_ids': [], 'images': [finding['file']],
+                         'region': region, 'falsifier': f"The picture {where} does not show it."},
+            'blast_radius': {'direct_dependents': [], 'transitive_dependents': [], 'flows': [], 'entry_points': [],
+                             'covering_tests': [], 'coverage': {}, 'change_partners': [], 'total': 0},
+            'change': f"{finding['why']} ({finding['page']}, {finding['viewport']}, {finding['theme']}: {where})",
+            'options': [], 'rollback': 'No code changes while the finding is confirmed.', 'acceptance': [{'command': 'human review',
+            'expect': f'The screen no longer shows it: {where}'}], 'verify_command': [], 'effort': 'S', 'effort_basis': {'files': 0, 'dependents': 0},
+            'effort_confidence': 'Not measured: a design change on one screen.', 'invariants': [], 'harm': {},
+            'finding_ids': [finding['image']], 'section': 'frontend', 'design': {k: finding.get(k) for k in ('kind', 'severity', 'page', 'viewport', 'theme')}}
+
+
+def _design_cards(out):
+    """The visual reviewer's findings of this check, as design cards."""
+    body = _load(Path(out) / 'nodes/visual_reviewer/findings.json', {})
+    if body.get('method') != 'model': return []
+    return [design_card(number, finding) for number, finding in enumerate(body.get('findings') or [], 1)]
+
+
+def confirm(target, out, language='ar', triaged=False, reviewed=False):
+    """The confirmed cards: when the triage ran in this check, a card it rejected leaves the plan (and with it the
+    gaps), a prerequisite on it is dropped with why, and every other card carries its verdict; when the visual reviewer
+    ran, each of its findings joins the plan as a design card. The waves, milestones and cards are then drawn again.
+    Without either every card stands as the rules wrote it. Writes cards.json, the record of who decided each card,
+    and returns it."""
+    target, out = Path(target).resolve(), Path(out).resolve()
+    plan = read(out / 'plan.json')
+    verdicts = _verdicts(out) if triaged else {}
+    tasks = plan['tasks']
+    rejected = {t['id'] for t in tasks if (verdicts.get(t['id']) or {}).get('decision') == 'reject'}
+    design = _design_cards(out) if reviewed else []
+    kept = [t for t in tasks if t['id'] not in rejected] + design
+    for task in kept:
+        verdict = verdicts.get(task['id'])
+        if verdict: task['triage'] = {k: verdict.get(k) for k in ('decision', 'why', 'evidence', 'confidence')}
+        dropped = [ref for ref in task['prerequisites'] if ref.get('task_id') in rejected]
+        if dropped:
+            task['prerequisites'] = [ref for ref in task['prerequisites'] if ref not in dropped]
+            task['dropped_prerequisites'] = [{**ref, 'why': 'the triage set this card aside'} for ref in dropped]
+    if rejected or verdicts or design:
+        _publish_plan(target, out, plan, kept, language)
+    record = {'schema_version': 1, 'decided_by': 'assistant' if verdicts or design else 'rules', 'kept': [t['id'] for t in kept],
+              'design': [t['id'] for t in design],
+              'set_aside': [{'card': t['id'], 'claim_id': t.get('claim_id'), 'title': t.get('title'),
+                             'why': verdicts[t['id']].get('why'), 'evidence': verdicts[t['id']].get('evidence') or []}
+                            for t in tasks if t['id'] in rejected],
+              'doubted': [{'card': card, 'why': v.get('why')} for card, v in sorted(verdicts.items())
+                          if v.get('decision') == 'doubt' and card not in rejected],
+              'why': ('The assistant triaged every card on its own evidence: the rejected ones left the plan.' if verdicts else
+                      'No triage by an assistant in this check: every card stands as the rules wrote it.')}
+    write(out / 'cards.json', record)
+    return record
+
+
+def _publish_plan(target, out, plan, tasks, language):
+    """plan.json, the dossier's cards and PLAN/ drawn again for `tasks`."""
+    order = waves(tasks)
+    publish(out / PLAN_DIR, tasks, order, language)
+    dossier = read(out / 'dossier.json')
+    dossier['tasks'], dossier['waves'] = tasks, order
+    write(out / 'dossier.json', dossier)
+    milestones, sections = schedule(out, target, tasks, language)
+    write(out / 'plan.json', {**plan, 'tasks': tasks, 'waves': order, 'milestones': milestones, 'sections': sections})
+
+
+def _ordered(out, plan):
+    """The plan orderer's steps of this check when they hold, with the cards it did not see after them in the rules'
+    waves: every card of the plan once, none before its prerequisites; else None."""
+    body = _load(Path(out) / 'nodes/plan_orderer/order.json', {})
+    if body.get('method') != 'model' or body.get('source') != 'model' or body.get('decision') != 'reorder': return None
+    tasks = {t['id']: t for t in plan['tasks']}
+    steps = [dict(step) for step in body.get('steps') or []]
+    seen = {task for step in steps for task in step.get('tasks') or []}
+    left = [task for wave in plan.get('waves') or [] for task in wave.get('tasks') or [] if task not in seen]
+    if left: steps.append({'id': 'not-placed', 'title': 'Not placed by the order', 'tasks': left,
+                           'why': "The order did not place these cards; they follow in the rules' waves."})
+    place = {}
+    for index, step in enumerate(steps):
+        for task in step.get('tasks') or []:
+            if task not in tasks or task in place: return None
+            place[task] = index
+    if set(place) != set(tasks): return None
+    if any(place.get(ref.get('task_id'), -1) > place[task] for task in tasks for ref in tasks[task].get('prerequisites') or []):
+        return None
+    return {**body, 'steps': steps}
+
+
+SOURCE_WORDS = {'assistant': ("The assistant's order: every prerequisite kept, each step says why.",
+                              'ترتيب المساعد: كل متطلب مسبق محفوظ، وكل خطوة تقول ليش.'),
+                'rules': ("The rules' order: the waves of PLAN/WAVES.md.", 'ترتيب القواعد: موجات PLAN/WAVES.md.')}
+
+
+def sequence(out, language='ar', ordered=False):
+    """The plan's order: the plan orderer's steps when it ran in this check and its steps hold, else the rules' waves.
+    Writes plan.json `order` ({source, steps, why}) and PLAN/STEPS.md; returns the order."""
+    out = Path(out)
+    plan = read(out / 'plan.json')
+    body = _ordered(out, plan) if ordered else None
+    source = 'assistant' if body else 'rules'
+    steps = [{k: step.get(k) for k in ('id', 'title', 'tasks', 'why')} for step in (body or {}).get('steps') or []]
+    plan['order'] = {'source': source, 'steps': steps, 'why': (body or {}).get('why') or SOURCE_WORDS[source][0]}
+    write(out / 'plan.json', plan)
+    ar = language == 'ar'
+    lines = ['# ' + ('خطوات الخطة' if ar else 'Plan steps'), '', SOURCE_WORDS[source][1 if ar else 0], '']
+    for number, step in enumerate(steps, 1):
+        lines += [f"## {number}. {step['title']}", '', step['why'] or '', '', ', '.join(f'`{t}`' for t in step['tasks']), '']
+    (out / PLAN_DIR).mkdir(parents=True, exist_ok=True)
+    (out / PLAN_DIR / 'STEPS.md').write_text('\n'.join(lines), encoding='utf-8')
+    return plan['order']

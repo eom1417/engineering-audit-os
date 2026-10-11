@@ -183,14 +183,20 @@ def _companions_missing(tool):
     pip = tool['install']['method'] == 'pip'
     for spec in tool['install'].get('with', []):
         name, _, wanted = spec.partition('==') if pip else spec.rpartition('@')
-        found = pip_version(name) if pip else package_version(tool, name)
+        found = pip_version(name, venv_of(tool)) if pip else package_version(tool, name)
         if found != wanted: return f'{name} {wanted} is not installed beside it (found {found})'
     return ''
 
 
-def pip_version(name):
-    """The version of the Python package `name` installed in the tools' virtualenv, or None."""
-    for record in (home() / 'venv/lib').glob(f"python*/site-packages/{name.replace('-', '_')}-*.dist-info"):
+def venv_of(tool):
+    """The virtualenv of a Python tool: the shared one, or its own (install.own_venv) when its dependencies would move a
+    version another tool there relies on."""
+    return home() / (f"venv-{tool['name']}" if tool['install'].get('own_venv') else 'venv')
+
+
+def pip_version(name, venv=None):
+    """The version of the Python package `name` installed in the tools' virtualenv (or `venv`), or None."""
+    for record in ((venv or home() / 'venv') / 'lib').glob(f"python*/site-packages/{name.replace('-', '_')}-*.dist-info"):
         return record.name[len(name) + 1:-len('.dist-info')]
     return None
 
@@ -380,7 +386,7 @@ def tool_env():
 
 
 def _pip_one(tool):
-    venv, env = home() / 'venv', tool_env()
+    venv, env = venv_of(tool), tool_env()
     wanted = [f"{tool['install']['package']}=={tool['version']}", *tool['install'].get('with', [])]
     runner = uv()
     if not (venv / 'bin/python').exists():

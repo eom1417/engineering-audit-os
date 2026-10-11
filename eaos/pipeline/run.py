@@ -35,10 +35,12 @@ def _runners():
 
 def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines=None, provider=None,
             test_command=None, site=True, goal=None, audit_run=None, runners=None, intake=None,
-            max_files=100000, max_bytes=2_000_000, policy_path=None, _completed=None, progress=None, without_tools=()):
+            max_files=100000, max_bytes=2_000_000, policy_path=None, _completed=None, progress=None, without_tools=(),
+            runtime=None):
     """`progress(done, total, stage)` is called before each stage that will run, so a person waiting sees where
     the run is; it never changes what runs. `without_tools`: the tools whose install failed and the person started
-    without; the manifest records them (`options`).
+    without; the manifest records them (`options`). `runtime`: the folder the app is run in, an isolated copy, given only
+    once the person agreed to run it; without it every live stage says so.
 
     Every event of the run is also appended to `<out>/run-progress.jsonl` (eaos/progress/log.py): the run's start
     with the declared stages, each stage's start, its steps, its end with its status, reason, seconds and artifacts,
@@ -57,7 +59,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     context = Context(target=target, out=out, language=language, exclude=list(exclude), engines=engines,
                       provider=provider, test_command=test_command, site=site, goal=goal,
                       audit_run=audit_run, max_files=max_files, max_bytes=max_bytes, policy_path=policy_path,
-                      intake=str(Path(intake).resolve()) if intake else None)
+                      intake=str(Path(intake).resolve()) if intake else None, runtime=str(runtime) if runtime else None)
     requested = [name for name in ORDER if (not only or name in set(only)) and name not in set(skip)]
     results, blocked = {}, {}
     completed = _completed or {}
@@ -95,7 +97,7 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
             context.pop('step', None)
             log.ended(results[stage.name])
             _write(out / CHECKPOINT, {**head, 'stages': results})
-            if results[stage.name]['status'] in (FAILED, UNAVAILABLE, SKIPPED, NOT_REACHED):
+            if results[stage.name]['status'] in (FAILED, UNAVAILABLE, SKIPPED, NOT_REACHED) and not _absent(stage.name, results):
                 reason = f"{stage.name} did not produce its artifacts ({results[stage.name]['status']})"
                 for name in dependents(stage.name):
                     blocked.setdefault(name, (reason, 'prerequisite_failed'))
@@ -141,13 +143,21 @@ def _write(path, record):
     path.write_text(json.dumps(record, ensure_ascii=False, indent=1), encoding='utf-8')
 
 
+def _absent(name, results):
+    """An optional stage that did not apply here (no assistant, no engine) and said why: the stages after it run without
+    its output. Only a failure of it, or a stage it could not reach, holds them back."""
+    stage = BY_NAME.get(name)
+    return bool(stage) and stage.necessity == 'optional' and results.get(name, {}).get('status') in (UNAVAILABLE, SKIPPED)
+
+
 def _satisfied(name, results, out):
-    """A prerequisite is met when it ran here, or when an earlier run already left its artifacts.
+    """A prerequisite is met when it ran here, when an earlier run already left its artifacts, or when it is optional
+    and absent here with its reason.
 
     Requiring it to run in this run made --only unusable: re-rendering one stage over a finished
     report reported "prerequisites not completed" while every input sat on disk beside it.
     """
-    if results.get(name, {}).get('status') == OK:
+    if results.get(name, {}).get('status') == OK or _absent(name, results):
         return True
     stage = BY_NAME.get(name)
     return bool(stage) and bool(stage.produces) and all((out / artifact).exists() for artifact in stage.produces)

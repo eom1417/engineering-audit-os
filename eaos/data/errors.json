@@ -597,6 +597,30 @@
   "tool_unavailable": {
    "ar": "هذه الأداة ما لها نسخة لجهازك، والفحص يكمل بدونها ويذكر ذلك.",
    "en": "This tool has no build for this computer; the check goes on without it and says so."
+  },
+  "no_run_consent": {
+   "ar": "ما وافقت على تشغيل برنامجك في نسخة منفصلة، فقرأ الفحص الكود فقط بدون تشغيله.",
+   "en": "You have not agreed to run your app in a separate copy, so the check read the code alone without running it."
+  },
+  "app_not_running": {
+   "ar": "ما اشتغل برنامجك في النسخة المنفصلة، فما انأخذ دليل من تشغيله؛ السبب مكتوب في live/setup.json.",
+   "en": "Your app did not start in the separate copy, so no evidence was taken from running it; the reason is in live/setup.json."
+  },
+  "screens_unavailable": {
+   "ar": "ما قدرت أفتح صفحات برنامجك لتصويرها؛ السبب مكتوب في السجل.",
+   "en": "The pages of your app could not be opened to picture them; the reason is in the log."
+  },
+  "no_architecture_map": {
+   "ar": "ما انرسمت خريطة البنية: أداتا CodeCharta وEmerge غير مثبتتين أو ما تقرآن لغة هذا المشروع.",
+   "en": "The architecture map was not drawn: CodeCharta and Emerge are not installed, or neither reads this project's language."
+  },
+  "no_pages": {
+   "ar": "برنامجك ما فيه صفحات يمشي فيها المستخدم، فما فيه رحلات تُسجَّل.",
+   "en": "Your app has no pages a user walks through, so there is no journey to record."
+  },
+  "no_load_scenario": {
+   "ar": "ما فيه صفحة أو مسار في برنامجك يقدر اختبار الضغط يطلبه، فما انقاست السرعة تحت الضغط.",
+   "en": "No page or route of your app is one a load test can request, so speed under load was not measured."
   }
  }
 }

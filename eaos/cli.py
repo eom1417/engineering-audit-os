@@ -144,7 +144,7 @@ def audit_command(args):
     run = resume if args.resume else execute
     manifest = run(args.target, args.out, only=args.only or (), skip=args.skip or (), language=args.lang,
                    exclude=args.exclude, engines=args.engines, provider=_provider(args),
-                   test_command=args.test_command, site=not args.no_site, goal=args.goal,
+                   test_command=args.test_command, site=not args.no_site, goal=args.goal, runtime=args.run_app,
                    **({'intake': args.intake} if args.intake else {}))
     from .product_review import summarise
     summary = summarise(Path(args.out).resolve(), manifest, args.goal, bool(args.provider))
@@ -192,8 +192,24 @@ def guided_command(args):
 
 
 def studio_command(args):
+    if args.background: return studio_in_background(args)
     from .api.server import run_foreground
     return run_foreground(args.project, port=args.port, show=not args.no_open, remote_origin=args.remote_origin)
+
+
+def studio_in_background(args):
+    """`eaos studio --background`: the project's Studio started (or found running), opened on "Preparing the tools"
+    while the tools the check needs are installing, its address printed, and back at once; the tools' install starts."""
+    from . import toolchain
+    from .agent_tools import open_studio, project_state
+    project = project_state(args.project)['project']
+    toolchain.prepare(project)
+    opened = open_studio(project, show=not args.no_open, route='' if toolchain.ready(project) else '/tools')
+    if 'studio' not in opened:
+        print(opened.get('error'), opened.get('log'), sep='\n')
+        return 1
+    print(f"EAOS Studio: {opened['studio']}")
+    return 0
 
 
 def stages_command(args):
@@ -559,6 +575,7 @@ def main(argv=None):
     q.add_argument('project',nargs='?',default='.')
     q.add_argument('--port',type=int,default=0,help='the port on 127.0.0.1 (default: a free one)')
     q.add_argument('--no-open',action='store_true',help='print the address without opening the browser')
+    q.add_argument('--background',action='store_true',help='start it in the background, print its address and return')
     q.add_argument('--remote-origin', help='one exact https://<project>--<port>.dev.remote.e-m.sa origin; keeps token and CSRF checks')
     q.set_defaults(func=studio_command)
     q=s.add_parser('mcp',help='EAOS as MCP tools for an AI assistant (stdio); eaos assistant install registers it')
@@ -697,6 +714,8 @@ def main(argv=None):
     q.add_argument('--exclude',action='append',default=[])
     q.add_argument('--engines',nargs='*',default=None,metavar='ENGINE')
     q.add_argument('--provider');q.add_argument('--test-command')
+    q.add_argument('--run-app',default=None,metavar='FOLDER',
+                   help='run the app in an isolated copy under FOLDER during the check (your consent): setup, lock, screens, speed')
     q.add_argument('--intake',default=None,metavar='FILE',help="the owner's answers to the intake questions: JSON {question id: answer}")
     q.add_argument('--only',action='append',default=[],metavar='STAGE')
     q.add_argument('--skip',action='append',default=[],metavar='STAGE')

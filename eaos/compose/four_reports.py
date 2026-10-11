@@ -16,6 +16,8 @@ import re
 import textwrap
 from pathlib import Path
 
+from .labels import decided, who_decided
+
 WIDTH = 80
 NAMES = ('CURRENT-STATE.md', 'TARGET-STATE.md', 'GAP-AND-STRATEGY.md', 'EXECUTION-PLAN.md')
 
@@ -173,6 +175,7 @@ def target_state(out, ar):
         'features_placed': (f"{sum(1 for f in features if f.get('target_component'))}/{len(features)}", 'features.json → target_component'),
         'infrastructure_absent': (f"{len(absent)}/{len(infrastructure)}", 'target-architecture.json → infrastructure'),
         'forbidden_imports': (target.get('forbidden_edges', 0), 'target-architecture.json → forbidden_edges'),
+        'decided': (who_decided(target, 'ar' if ar else 'en'), 'target-architecture.json → decided'),
     }
     page = Page('الصورة المثالية' if ar else 'Target state')
     page.heading(L['summary'])
@@ -181,7 +184,8 @@ def target_state(out, ar):
     page.heading(L['numbers'], 3)
     page.items([f"{numbers['components'][0]} " + ('مكوّنًا مستهدفًا' if ar else 'target components') + f" ({numbers['components'][1]})",
                 f"{numbers['features_placed'][0]} " + ('وظيفة لها مكان' if ar else 'features placed') + f" ({numbers['features_placed'][1]})",
-                f"{numbers['forbidden_imports'][0]} " + ('استيرادًا ممنوعًا يزول' if ar else 'forbidden imports removed') + f" ({numbers['forbidden_imports'][1]})"])
+                f"{numbers['forbidden_imports'][0]} " + ('استيرادًا ممنوعًا يزول' if ar else 'forbidden imports removed') + f" ({numbers['forbidden_imports'][1]})",
+                f"{numbers['decided'][0]} ({numbers['decided'][1]})"])
     page.heading(L['risks'], 3)
     page.items([clip(f"{i['area']}: {i['decision']}", 150) for i in absent[:3]] or ['—'])
     page.heading(L['evidence'])
@@ -237,6 +241,7 @@ def gap_and_strategy(out, ar):
                'Each current component, its disposition and its numbers (delete, rebuild, modify, retain):'))
     order = {'delete': 0, 'rebuild': 1, 'modify': 2, 'retain': 3}
     page.items([f"{c['origin']}: {c.get('relation')} → {c.get('target_component') or '—'}"
+                + (f" ({decided(c['decided_by']['label'], 'ar' if ar else 'en')})" if c.get('decided_by') else '')
                 for c in sorted(current, key=lambda c: (order.get(c.get('relation'), 9), c['origin']))[:20]])
     page.heading(L['impact'])
     page.para(('المكوّن الذي يُعاد بناؤه يُبنى بنمط Strangler Fig: المسار الجديد خلف علم، والقديم يُزال بعد تكافؤ السلوك فقط.' if ar else
@@ -259,8 +264,13 @@ def execution_plan(out, ar):
     ready = sum(1 for t in tasks if (t.get('decision') or {}).get('readiness') == 'ready')
     sizes = {}
     for t in tasks: sizes[t.get('effort')] = sizes.get(t.get('effort'), 0) + 1
+    cards = _load(out, 'cards.json', {}) or {}
+    steps = plan.get('order') or {}
     numbers = {
         'cards': (len(tasks), 'plan.json → tasks'),
+        'set_aside': (len(cards.get('set_aside') or []), 'cards.json → set_aside'),
+        'design': (len(cards.get('design') or []), 'cards.json → design'),
+        'order': (steps.get('source') or 'rules', 'plan.json → order.source'),
         'ready': (ready, 'plan.json → tasks[].decision.readiness'),
         'sizes': (sizes, 'plan.json → tasks[].effort'),
     }
@@ -271,7 +281,13 @@ def execution_plan(out, ar):
     page.heading(L['numbers'], 3)
     page.items([f"{len(tasks)} " + ('بطاقة' if ar else 'cards') + f" ({numbers['cards'][1]})",
                 f"{ready} " + ('جاهزة بأمر قبول يقرر' if ar else 'ready, with an acceptance command that decides') + f" ({numbers['ready'][1]})",
-                ', '.join(f'{k} {v}' for k, v in sorted((k or '?', v) for k, v in sizes.items())) + f" ({numbers['sizes'][1]})"])
+                ', '.join(f'{k} {v}' for k, v in sorted((k or '?', v) for k, v in sizes.items())) + f" ({numbers['sizes'][1]})",
+                (f"{numbers['set_aside'][0]} بطاقة رفضها مساعدك فخرجت من الخطة، و{numbers['design'][0]} بطاقة تصميم من صور الشاشات" if ar else
+                 f"{numbers['set_aside'][0]} cards your assistant rejected left the plan; {numbers['design'][0]} design cards came from the screens")
+                + f" ({numbers['set_aside'][1]}, {numbers['design'][1]})",
+                (('الترتيب: خطوات مساعدك، وكل متطلب مسبق محفوظ' if numbers['order'][0] == 'assistant' else 'الترتيب: دفعات القواعد') if ar else
+                 ("Order: your assistant's steps, every prerequisite kept" if numbers['order'][0] == 'assistant' else "Order: the rules' waves"))
+                + f" ({numbers['order'][1]}, PLAN/STEPS.md)"])
     page.heading(L['risks'], 3)
     investigations = [t for t in tasks if t.get('kind') == 'investigate']
     page.items([(f"{len(investigations)} بطاقة تحقيق تنتظر قرارًا مسجلًا (eaos decision-review)." if ar else
@@ -295,7 +311,7 @@ def execution_plan(out, ar):
     page.items([('لم تُشغَّل أي بطاقة على كود المشروع بعد؛ التنفيذ يحتاج تفويض المالك (authorization.json).' if ar else
                  'No card has run against the project yet; execution needs the owner\'s authorization.json.')])
     page.heading(L['appendices'])
-    page.items(['[ROADMAP.md](ROADMAP.md)', '[PLAN/WAVES.md](PLAN/WAVES.md)', '[EXECUTION-GUIDE.md](EXECUTION-GUIDE.md)'])
+    page.items(['[ROADMAP.md](ROADMAP.md)', '[PLAN/STEPS.md](PLAN/STEPS.md)', '[PLAN/WAVES.md](PLAN/WAVES.md)', '[EXECUTION-GUIDE.md](EXECUTION-GUIDE.md)'])
     return page.text(), numbers
 
 

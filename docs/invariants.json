@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "5f2add5",
+  "extracted_at_commit": "d182698",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -1528,6 +1528,15 @@
       "note": ""
     },
     {
+      "id": "INV-17c8d2f2ed",
+      "file": "eaos/pipeline/runners.py",
+      "symbol": "_ran",
+      "statement": "Whether stage `name` ended ok in this run: a record an earlier check left on disk is never read as this one's.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_joint_decision.py::JointDecision::test_a_decision_an_earlier_check_left_on_disk_is_never_read_as_this_ones",
+      "note": ""
+    },
+    {
       "id": "INV-84a60556a2",
       "file": "eaos/pipeline/stages.py",
       "symbol": "<module>",
@@ -2501,6 +2510,15 @@
       "statement": "A verdict with no evidence is refused by the tests, because a target architecture whose every entry is a guess is worse than none.",
       "kind": "invariant",
       "enforced_by": "tests/test_target_architecture.py::ComponentGranularityTests::test_every_component_in_a_real_report_carries_a_relation_and_a_reason",
+      "note": ""
+    },
+    {
+      "id": "INV-1aeacb9cce",
+      "file": "eaos/target_architecture.py",
+      "symbol": "protected_paths",
+      "statement": "A decision may not delete them.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_joint_decision.py::JointDecision::test_the_assistants_answers_become_the_final_target_and_its_gaps_with_who_decided",
       "note": ""
     },
     {

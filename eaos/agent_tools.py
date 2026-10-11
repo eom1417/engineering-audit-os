@@ -132,7 +132,7 @@ def _start(kind, state, arguments, seconds=WAIT, runner='eaos.agent_tools', watc
     elif studio:
         told = ('Tell the person the live map of this work is open in their browser.' if studio['opened_in_browser'] else
                 'Before anything else, write the person a message with the `watch` address, the live map of this work, which '
-                'still shows how it went once it ends (give it only to them: it holds the key of this session).')
+                'still shows how it went once it ends and stays the same every time (it opens on this computer only).')
         answer.update(watch=studio['studio'], what_now=f"{told} {answer.get('what_now', '')}".strip())
     return answer
 
@@ -335,7 +335,7 @@ def _audit_job(project, arguments, progress):
     if failed and not without:
         raise guided.ToolsMissing('these tools could not be installed: ' + '; '.join(f'{n}: {r}' for n, r in sorted(failed.items())))
     options = dict(language=state.get('lang') or 'en', engines=[], site=True, progress=progress,
-                   provider=guided.check_provider(state), without_tools=sorted(failed))
+                   provider=guided.check_provider(state), runtime=guided.check_runtime(state), without_tools=sorted(failed))
     source = guided.source(state)
     # What the scan reads, taken before it reads it: a commit made during a long scan is not in this report.
     read = {'scanned_commit': _head(state), **branches.scan_provenance(state, source)}

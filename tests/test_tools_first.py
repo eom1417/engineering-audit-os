@@ -37,7 +37,7 @@ class Entry(Project):
         log.finish('STOPPED')
 
     def test_the_assistant_opens_preparing_the_tools_and_the_check_starts_once_they_are_ready(self):
-        opened = {'studio': 'http://127.0.0.1:9/#/tools?token=k', 'opened_in_browser': True}
+        opened = {'studio': 'http://127.0.0.1:9/#/tools', 'opened_in_browser': True}
         with mock.patch.object(toolchain, 'ready', return_value=False), \
                 mock.patch.object(agent_tools, 'open_studio', return_value=opened) as open_studio, \
                 mock.patch.object(jobs, 'start', return_value='audit-1') as start, \
@@ -95,8 +95,8 @@ class Terminal(unittest.TestCase):
                 mock.patch.object(launch, '_open') as opened, mock.patch.object(guided, 'say') as said:
             guided.watch({**self.state, 'project': tmp}, Namespace(no_watch=False))
         prepare.assert_called_once_with(tmp)
-        opened.assert_called_once_with('http://127.0.0.1:9/#/tools?token=k', True)
-        said.assert_called_once_with('Watch the work live: http://127.0.0.1:9/#/tools?token=k')
+        opened.assert_called_once_with('http://127.0.0.1:9/#/tools', True)
+        said.assert_called_once_with('Watch the work live: http://127.0.0.1:9/#/tools')
 
 
 class Record(unittest.TestCase):

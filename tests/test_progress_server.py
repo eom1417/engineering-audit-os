@@ -255,7 +255,7 @@ class Watch(Checked):
                 mock.patch.object(guided, 'publish') as publish:
             opened = open_studio(str(self.project), show=False, route='/scan')
         publish.assert_not_called()
-        self.assertEqual((opened['started'], opened['studio']), (False, f"http://127.0.0.1:8123/#/scan?token={'t' * 32}"))
+        self.assertEqual((opened['started'], opened['studio']), (False, 'http://127.0.0.1:8123/#/scan'))
 
     def test_busy_or_short_tools_do_not_open_it(self):
         with mock.patch.object(jobs, 'running', return_value={'id': 'audit-0', 'kind': 'audit', 'progress': {}}):
@@ -265,16 +265,16 @@ class Watch(Checked):
 
 
 class Addresses(unittest.TestCase):
-    def test_the_live_map_address_carries_the_token_in_its_route(self):
+    def test_the_address_on_this_computer_is_plain_and_a_remote_one_carries_the_token(self):
         record = {'port': 8123, 'token': 't' * 32}
-        self.assertEqual(launch.url_of(record), f"http://127.0.0.1:8123/#token={'t' * 32}")
-        self.assertEqual(launch.url_of(record, '/scan'), f"http://127.0.0.1:8123/#/scan?token={'t' * 32}")
+        self.assertEqual(launch.url_of(record), 'http://127.0.0.1:8123/')
+        self.assertEqual(launch.url_of(record, '/scan'), 'http://127.0.0.1:8123/#/scan')
         routed = {**record, 'remote_origin': 'https://shop--8123.dev.remote.e-m.sa'}
         self.assertEqual(launch.url_of(routed, '/scan'), f"https://shop--8123.dev.remote.e-m.sa/#/scan?token={'t' * 32}",
                          'a Remote record gives its routed address')
 
     def test_eaos_start_prints_and_opens_the_live_map_when_the_studio_runs(self):
-        address = f"http://127.0.0.1:8123/#/scan?token={'t' * 32}"
+        address = 'http://127.0.0.1:8123/#/scan'
         with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {'EAOS_HOME': str(Path(tmp) / 'home')}), \
                 mock.patch.object(guided, 'doctor_rows', return_value=[]), mock.patch.object(guided, 'advance', return_value=0), \
                 mock.patch.object(toolchain, 'ready', return_value=True), mock.patch.object(toolchain, 'prepare'), \
@@ -308,7 +308,7 @@ class StudioProcess(unittest.TestCase):
             record = launch.running(agent_tools.project_state(str(project)))
             try:
                 self.assertEqual((opened.get('started'), opened.get('error')), (True, None), opened)
-                self.assertIn('/#/scan?token=', opened['studio'])
+                self.assertTrue(opened['studio'].endswith('/#/scan') and 'token' not in opened['studio'])
                 self.assertFalse(marker.exists(), 'the started Studio imported the project\'s own eaos')
             finally:
                 if record: os.kill(record['pid'], signal.SIGTERM)

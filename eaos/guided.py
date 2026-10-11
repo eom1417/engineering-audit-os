@@ -465,6 +465,12 @@ def check_provider(state):
     return provider()[1] if answered(state, 'use_assistant') else None
 
 
+def check_runtime(state):
+    """The folder the check runs the app in, an isolated copy, once the person agreed to run it (question `run_app`);
+    None otherwise, and the check reads the code alone."""
+    return runtime_of(state) if answered(state, 'run_app') else None
+
+
 def agree_to_assistant(state, yes):
     """Asks once, when an assistant is installed, whether the check may use it; a no is kept and the check goes on."""
     from .runtime.assistants import available
@@ -515,7 +521,7 @@ def scan(state, args):
     say(('أفحص مشروعك الآن. يأخذ هذا عادة من 5 إلى 30 دقيقة حسب حجمه، ولن يتغير فيه شيء.' if lang == 'ar' else
          'Checking your project now. This usually takes 5 to 30 minutes depending on its size; nothing in it changes.'))
     options = dict(language=lang, engines=[], site=True, progress=progress_printer(lang), provider=check_provider(state),
-                   without_tools=sorted(failed))
+                   runtime=check_runtime(state), without_tools=sorted(failed))
     manifest = check(str(source(state)), out, **options)
     if not (out / 'START-HERE.md').is_file(): start_here(out, lang, Path(state['project']).name)   # compose did not run: still one page
     state['scanned'] = datetime.now(timezone.utc).isoformat(timespec='seconds')

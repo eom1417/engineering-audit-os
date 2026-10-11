@@ -26,10 +26,13 @@ def _code(value):
 
 
 def _wave_order(plan):
+    """{card: (group, position)}: the plan's steps when the assistant ordered them (plan.json `order`), else its waves."""
+    steps = (plan.get('order') or {}).get('steps')
+    groups = [(n, step.get('tasks', [])) for n, step in enumerate(steps, 1)] if steps else \
+        [(wave.get('wave', 0), wave.get('tasks', [])) for wave in plan.get('waves', [])]
     positions = {}
-    for wave in plan.get('waves', []):
-        number = wave.get('wave', 0)
-        for position, task_id in enumerate(wave.get('tasks', [])):
+    for number, members in groups:
+        for position, task_id in enumerate(members):
             positions.setdefault(task_id, (number, position))
     return positions
 
@@ -128,6 +131,7 @@ def document(plan, transform_plan, load_model, language='ar', budget_lines=None)
             '## Ordered cards', '',
         ]
     positions = _wave_order(plan)
+    group = 'step' if (plan.get('order') or {}).get('steps') else 'wave'
     stages = transform_plan.get('stages', [])
     entries = load_model.get('entry_points', [])
     tasks = sorted(plan.get('tasks', []),
@@ -148,7 +152,7 @@ def document(plan, transform_plan, load_model, language='ar', budget_lines=None)
         numbered = ' '.join(f'{index}. {_one_line(step)}' for index, step in enumerate(steps, 1) if step)
         rollback = rollback or (transform or {}).get('rollback') or 'none'
         lines.append(
-            f"- **{task_id} / wave {wave}** — Goal: {_one_line(goal)}<br>"
+            f"- **{task_id} / {group} {wave}** — Goal: {_one_line(goal)}<br>"
             f"Files: {files}<br>Steps: {numbered}<br>"
             f"Acceptance: {_code(command)} → {_one_line(expected)}<br>"
             f"Rollback: {_one_line(rollback)}<br>Dependencies: {_dependencies(task)}<br>"

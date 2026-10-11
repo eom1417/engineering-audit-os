@@ -311,6 +311,19 @@ def _get(url, token=None, timeout=5):
     except urllib.error.HTTPError as error: return error.code, error.read()
 
 
+def _fetch(url, headers=None, timeout=5):
+    request = urllib.request.Request(url, headers=headers or {})
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response: return response.status, response.read()
+    except urllib.error.HTTPError as error: return error.code, error.read()
+
+
+def _page_token(base):
+    """The launch token as the Studio's own page reads it from its server (live-token.js, same origin)."""
+    body = _fetch(f'{base}/live-token.js', {'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-Dest': 'script'})[1].decode('utf-8')
+    return json.loads(body.split('window.EAOS_BOOT_TOKEN=', 1)[1].split(';', 1)[0])
+
+
 def sse_frames(port, token, last=None, count=1, timeout=10):
     """The first `count` named frames of the stream, read off a real socket."""
     import http.client
@@ -415,7 +428,9 @@ class Commands(unittest.TestCase):
         line = process.stdout.readline()
         self.assertIn('EAOS Studio, live: http://127.0.0.1:', line)
         url = line.split('live: ', 1)[1].strip()
-        base, token = url.split('/#token=')
+        self.assertNotIn('token', url, 'the address on this computer is plain')
+        base = url.rstrip('/')
+        token = _page_token(base)
         self.assertEqual(_get(f'{base}/api/session')[0], 401)
         status, body = _get(f'{base}/api/session', token)
         self.assertEqual((status, json.loads(body)['project']['name']), (200, 'shop'))
@@ -425,10 +440,48 @@ class Commands(unittest.TestCase):
         again = subprocess.run([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--no-open'], env=self.env,
                                capture_output=True, text=True, timeout=60)
         self.assertIn('already open', again.stdout)
-        self.assertIn(token, again.stdout)
+        self.assertIn(url, again.stdout)
         process.terminate()
         process.wait(10)
         self.assertEqual(self.records(), [], 'a stopped server leaves no record behind')
+        restarted = subprocess.Popen([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--no-open'], env=self.env,
+                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.addCleanup(lambda: restarted.poll() is None and restarted.kill())
+        self.assertIn(url, restarted.stdout.readline(), 'a restarted Studio keeps its address')
+        self.assertEqual(_get(f'{base}/api/session', token)[0], 200, 'and its token: a saved address keeps working')
+        restarted.terminate()
+        restarted.wait(10)
+
+    def test_studio_in_the_background_prints_its_address_and_returns(self):
+        done = subprocess.run([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--background', '--no-open'], env=self.env,
+                              capture_output=True, text=True, timeout=60)
+        [record] = self.records()
+        pid = json.loads(record.read_text(encoding='utf-8'))['pid']
+        def stop():
+            try: os.kill(pid, 15)
+            except OSError: pass
+        self.addCleanup(stop)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        address = done.stdout.strip().split('EAOS Studio: ', 1)[1]
+        self.assertTrue(address.startswith('http://127.0.0.1:') and 'token' not in address, address)
+        base = address.split('/#', 1)[0].rstrip('/')
+        self.assertEqual(_get(f'{base}/api/session', _page_token(base))[0], 200, 'the server it left running answers')
+
+    def test_the_plain_address_gives_the_token_to_the_studios_own_page_only(self):
+        process = subprocess.Popen([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--no-open'], env=self.env,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.addCleanup(lambda: process.poll() is None and process.kill())
+        base = process.stdout.readline().split('live: ', 1)[1].strip().rstrip('/')
+        page = _fetch(f'{base}/', {'Sec-Fetch-Site': 'none', 'Sec-Fetch-Dest': 'document'})[1].decode('utf-8')
+        self.assertIn('live-token.js', page, 'the person opening the address')
+        other = _fetch(f'{base}/', {'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Dest': 'document'})[1].decode('utf-8')
+        self.assertNotIn('live-token.js', other, 'a link from another site')
+        self.assertEqual(_fetch(f'{base}/live-token.js', {'Sec-Fetch-Site': 'cross-site', 'Sec-Fetch-Dest': 'script'})[0], 404,
+                         "another site's page including the script")
+        self.assertEqual(_fetch(f'{base}/live-token.js')[0], 404, 'a client that does not say where the request comes from')
+        self.assertEqual(_get(f'{base}/api/session', _page_token(base))[0], 200)
+        process.terminate()
+        process.wait(10)
 
     def test_open_studio_starts_it_in_the_background_and_reuses_it(self):
         from eaos import agent_tools

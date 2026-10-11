@@ -16,6 +16,7 @@ from .ideal_planner import run as plan_ideal
 from .pipeline_gap_planner import run as plan_pipeline_gaps
 from .plan_orderer import run as order_plan
 from .triage import run as triage_cards
+from .visual_reviewer import run as review_screens
 
 
 class Route(NamedTuple):
@@ -42,6 +43,11 @@ NODES = (
                  Route('doubt', 'probe', 'the evidence does not settle it: a probe does, before the person sees the card'),
                  Route('reject', 'library_feedback', 'the evidence contradicts the card: it is set aside and its rule is told'),
                  Route('rules only', 'plan_orderer', 'no assistant decided: the card goes on as the engines wrote it'))),
+    Node('visual_reviewer', 'Visual reviewer', consumes=('live/screens.json', 'live/screens/screenshots/*.png'),
+         produces=('nodes/visual_reviewer/findings.json',),
+         routes=(Route('cards', 'plan', 'the picture shows what a person would notice: each finding becomes a design card'),
+                 Route('clean', 'plan', 'the picture shows nothing to change'),
+                 Route('rules only', 'plan', "no assistant looked: only the axe and Lighthouse numbers stand"))),
     Node('ideal_planner', 'Ideal planner', passes=('plan', 'critique'), consumes=('target-architecture.json', 'plan.json', 'studio/'),
          produces=('ideal/plan.json',),
          routes=(Route('accept', 'plan_orderer', 'every view planned on evidence, no question left: the ideal goes on to the plan'),
@@ -67,14 +73,14 @@ NODES = (
                  Route('rules only', 'gates', "no assistant decided: the gates' verdict stands"))),
 )
 
-NODE_RUNNERS = {'card_triage': triage_cards, 'ideal_planner': plan_ideal, 'pipeline_gap_planner': plan_pipeline_gaps,
+NODE_RUNNERS = {'card_triage': triage_cards, 'visual_reviewer': review_screens, 'ideal_planner': plan_ideal, 'pipeline_gap_planner': plan_pipeline_gaps,
                 'plan_orderer': order_plan, 'fix_reviewer': review_fix}
 
 # Where the work leaves the AI nodes, in the person's language.
 SINKS = {'plan': ('The plan', 'الخطة'), 'probe': ('A probe', 'فحص يحسمها'), 'library_feedback': ("The library's feedback", 'ملاحظات للمكتبة'),
          'inbox': ('The Decisions inbox', 'صندوق القرارات'), 'handover': ('Offered to the person', 'تُعرض على الشخص'),
          'fix': ('Fixed again', 'يُصلَح من جديد'), 'gates': ("The gates' verdict", 'حكم البوابات')}
-TITLES_AR = {'card_triage': 'فرز البطاقات', 'ideal_planner': 'مخطِّط المثالي', 'pipeline_gap_planner': 'مخطِّط فجوات خط المعالجة',
+TITLES_AR = {'card_triage': 'فرز البطاقات', 'visual_reviewer': 'المراجع البصري', 'ideal_planner': 'مخطِّط المثالي', 'pipeline_gap_planner': 'مخطِّط فجوات خط المعالجة',
              'plan_orderer': 'مرتّب الخطة', 'fix_reviewer': 'مراجع الإصلاح'}
 
 

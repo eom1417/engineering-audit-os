@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.0.5 (2026-10-11)
+
+- **The assistant decides before the target, the gaps and the plan; the reports come last** (pipeline v2): the
+  check gathers the evidence first, lets the tools propose, lets the person's assistant decide with them, derives
+  the gaps and the plan from that joint decision, and writes every report from the final records. The triage now
+  runs on the candidate cards and a card it rejects leaves the plan and the gaps; the ideal planner answers each of
+  the tools' proposals for the target (accept, modify, reject) and a `reconcile` stage builds the final target from
+  those answers, keeping the rule's view beside each change; the plan orderer's steps become the plan's order.
+  Every component of the target, and every report, says who decided: agreed, changed by the assistant, the rules
+  alone, or a disagreement a guard settled. Without an assistant the path is the same and the findings are those
+  of the rules alone, identical to 0.0.4's.
+- **The app runs inside the check** once the person agreed (the existing run consent): set up in an isolated copy,
+  its behaviour recorded, its journeys recorded with Playwright's trace and rrweb, every page found by Unlighthouse
+  and pictured in light and dark at phone and desktop width with axe, its speed measured with k6 and read by the
+  load model. Without consent, or when the app does not start, each live stage says why.
+- **Visual evidence**: the person's assistant looks at the screen pictures (it may open them and nothing else) and
+  every finding names its picture and region and becomes a design card; the architecture map draws the code as a
+  city (CodeCharta) and its dependency clusters (Emerge); the report's UI gallery shows the screens with the
+  findings drawn on them, replays the journeys from local files and draws the city.
+- **The Studio opens from a plain address that keeps working**: on this computer the address is
+  `http://127.0.0.1:<port>/`, with no token at its end, and it stays the same when the Studio restarts (an address
+  saved before keeps opening it). Installed from inside a project, EAOS opens that project's Studio at once, on
+  "Preparing the tools"; `eaos studio --background` does the same from anywhere.
+- **The Studio** names the new stages on the live map and lists every rule-vs-assistant disagreement, with both
+  views, on the decisions page.
+
 ## 0.0.4 (2026-10-10)
 
 - **The interface first, the tools in the order they are needed**: whenever EAOS is called on a project, the Studio
