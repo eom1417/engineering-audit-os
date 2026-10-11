@@ -32,7 +32,9 @@ def route_of(report, out):
     data = json.loads(report.read_text(encoding='utf-8'))
     audits = data.get('audits') or {}
     value = lambda key: (audits.get(key) or {}).get('numericValue')
-    return {'path': urlsplit(data.get('finalDisplayedUrl') or data.get('requestedUrl') or '').path or '/',
+    url = urlsplit(data.get('finalDisplayedUrl') or data.get('requestedUrl') or '')
+    # A single-page app routes by the fragment (/#/branches): it is part of the page's address.
+    return {'path': (url.path or '/') + (f'#{url.fragment}' if url.fragment else ''),
             'scores': {name: None if (data.get('categories', {}).get(name) or {}).get('score') is None
                        else round(data['categories'][name]['score'] * 100) for name in CATEGORIES},
             'lcp_ms': None if value('largest-contentful-paint') is None else round(value('largest-contentful-paint')),

@@ -125,6 +125,12 @@ class Tools(unittest.TestCase):
         with mock.patch.object(crawl, 'which', return_value=None):
             self.assertEqual(crawl.crawl('http://127.0.0.1:9', '/nonexistent')['status'], 'unavailable')
 
+    def test_a_page_routed_by_its_fragment_keeps_it(self):
+        with tempfile.TemporaryDirectory() as folder:
+            report = Path(folder) / 'lighthouse.json'
+            report.write_text(json.dumps({'finalDisplayedUrl': 'http://127.0.0.1:9/#/branches'}), encoding='utf-8')
+            self.assertEqual(crawl.route_of(report, Path(folder))['path'], '/#/branches')
+
     def test_a_crawl_that_measured_nothing_is_run_once_more(self):
         with tempfile.TemporaryDirectory() as folder:
             calls = []
