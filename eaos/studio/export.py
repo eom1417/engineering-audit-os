@@ -375,8 +375,10 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('docs', lambda: library_section.docs(report))
     attempt('plans', lambda: plans(m, card_rows, lang))
     def decision_rows():
-        rows = decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang) + ai_nodes.decisions(report, lang)
-        canonical_rows = decisions(m, card_rows, 'en') + planned_ideal.decisions(report, 'en') + ai_nodes.decisions(report, 'en')
+        rows = (decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang) + ai_nodes.decisions(report, lang)
+                + planned_ideal.disagreements(report, lang))
+        canonical_rows = (decisions(m, card_rows, 'en') + planned_ideal.decisions(report, 'en') + ai_nodes.decisions(report, 'en')
+                          + planned_ideal.disagreements(report, 'en'))
         by_id = {row['id']: row for row in canonical_rows}
         for row in rows:
             source = by_id.get(row['id'], row)

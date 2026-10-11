@@ -723,3 +723,33 @@ def decisions(report, lang='ar'):
                      'blocks': [], 'state': 'waiting', 'answer': None, 'plan': None, 'asked': record.get('at') or '',
                      'tool': 'replan_ideal'})
     return rows
+
+
+def disagreements(report, lang='ar'):
+    """Rows of studio/decisions.json for every place the assistant and the rules differ (eaos/target_architecture.py
+    reconcile, eaos/plan.py confirm): both views, and the one the check kept as the answer: the assistant's where it
+    cited evidence and passed the guards, the rule's where a guard kept it."""
+    ar = lang == 'ar'
+    target = _load(Path(report) / 'target-architecture.json', {}) or {}
+    rows = []
+    for row in target.get('disagreements') or []:
+        kept = 'assistant' if row['label'] == 'ai_modified' else 'rule'
+        question = (f"{row['element']}: القواعد تقول «{row['rule']}» ومساعدك قال «{row['assistant']}». {row['why']}" if ar else
+                    f"{row['element']}: the rules say \"{row['rule']}\" and your assistant said \"{row['assistant']}\". {row['why']}")
+        rows.append({'id': f"disagree-{_slug(row['element'])}", 'question': _short(question, 600),
+                     'recommendation': ('رأي مساعدك، لأن له دليلًا ومرّ الضوابط' if kept == 'assistant' else 'رأي القواعد، لأن ضابطًا منع رأي مساعدك')
+                     if ar else ("your assistant's view: it cites evidence and passed the guards" if kept == 'assistant'
+                                 else "the rules' view: a guard kept it"),
+                     'options': [{'id': 'assistant', 'label': f"{'مساعدك' if ar else 'your assistant'}: {row['assistant']}"},
+                                 {'id': 'rule', 'label': f"{'القواعد' if ar else 'the rules'}: {row['rule']}"}],
+                     'blocks': [], 'state': 'answered', 'answer': kept, 'plan': None, 'asked': '', 'tool': None})
+    cards = _load(Path(report) / 'cards.json', {}) or {}
+    for row in cards.get('set_aside') or []:
+        question = (f"{row['card']}: القواعد كتبت البطاقة «{_short(row.get('title'), 160)}» ومساعدك رفضها. {row.get('why') or ''}" if ar else
+                    f"{row['card']}: the rules wrote the card \"{_short(row.get('title'), 160)}\" and your assistant rejected it. {row.get('why') or ''}")
+        rows.append({'id': f"disagree-{_slug(row['card'])}", 'question': _short(question, 600),
+                     'recommendation': 'رأي مساعدك: البطاقة خارج الخطة' if ar else "your assistant's view: the card is out of the plan",
+                     'options': [{'id': 'assistant', 'label': 'خارج الخطة' if ar else 'out of the plan'},
+                                 {'id': 'rule', 'label': 'في الخطة' if ar else 'in the plan'}],
+                     'blocks': [], 'state': 'answered', 'answer': 'assistant', 'plan': None, 'asked': '', 'tool': None})
+    return rows

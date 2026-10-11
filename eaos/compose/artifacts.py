@@ -44,6 +44,8 @@ ARTIFACTS = (
              0, 80, record='plan.json'),
     Artifact('human/index.html', 'compose', DOCUMENT, 'The report for a person, in one page: health score, gaps and risks, '
              'structure map, plan and progress, in Arabic and English (eaos/human_report.py)', 0, 100000, record='plan.json'),
+    Artifact('gallery/index.html', 'compose', DOCUMENT, "The UI gallery: every screen in its states with the visual reviewer's findings drawn "
+             'on it, the journeys replayed from local files, and the code city', 0, 100000, record='live/screens.json'),
     Artifact('studio/manifest.json', 'compose', RECORD, 'The index of the Studio\'s data: one contract-checked file per section, '
              'written from the one model (eaos/studio/export.py, docs/STUDIO.md)'),
     Artifact('README.md', 'claims', DOCUMENT, 'What this report holds and in what order to read it', 1, 120,

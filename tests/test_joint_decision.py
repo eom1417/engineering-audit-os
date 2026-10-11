@@ -99,12 +99,14 @@ class JointDecision(unittest.TestCase):
 
     def test_a_card_the_triage_rejected_leaves_the_plan_and_the_gaps(self):
         plan, cards = self.read('joint', 'plan.json'), self.read('joint', 'cards.json')
-        core = next(t for t in self.read('rules', 'plan.json')['tasks'] if t['paths'] == ['core/audit.py'])
-        self.assertNotIn(core['id'], [t['id'] for t in plan['tasks']])
-        self.assertEqual([(row['card'], row['claim_id']) for row in cards['set_aside']], [(core['id'], core['claim_id'])])
+        core = {t['id']: t['claim_id'] for t in self.read('rules', 'plan.json')['tasks'] if t['paths'] == ['core/audit.py']}
+        self.assertTrue(core)
+        self.assertFalse(core.keys() & {t['id'] for t in plan['tasks']})
+        self.assertEqual({row['card']: row['claim_id'] for row in cards['set_aside']}, core)
         self.assertEqual(next(t for t in plan['tasks'] if t['id'] == 'TASK-002')['triage']['decision'], 'doubt')
-        core_gap = {r['component']: r for r in self.read('joint', 'target-architecture.json')['gap_matrix']}['T-core']
-        self.assertEqual((core_gap['gap'], core_gap['blocking_tasks']), ('covered', []))
+        gap = lambda run: {r['component']: r for r in self.read(run, 'target-architecture.json')['gap_matrix']}['T-core']
+        self.assertTrue(core.keys() <= set(gap('rules')['blocking_tasks']))
+        self.assertFalse(core.keys() & set(gap('joint')['blocking_tasks']))
 
     def test_the_assistants_answers_become_the_final_target_and_its_gaps_with_who_decided(self):
         target = self.read('joint', 'target-architecture.json')

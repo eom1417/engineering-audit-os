@@ -145,7 +145,7 @@ STAGES = (
           description='The one-page executive summary, typeset by Typst from the report\'s own records'),
     Stage('executive', produces=('EXECUTIVE.md',), requires=('reconcile', 'transform'),
           description='Executive view of the measured indicators and their limits'),
-    Stage('compose', produces=('PRODUCT-REPORT.md', 'BLOCKERS.md', 'START-HERE.md', 'human/index.html'),
+    Stage('compose', produces=('PRODUCT-REPORT.md', 'BLOCKERS.md', 'START-HERE.md', 'human/index.html', 'gallery/index.html'),
           requires=('reconcile', 'steps', 'executive'),
           description='Human artifacts, each inside its declared line budget'),
     Stage('bundles', produces=('bundles/manifest.json', 'CANONICAL-HOMES.md', 'canonical-homes.json',

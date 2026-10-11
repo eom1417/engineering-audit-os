@@ -13,7 +13,7 @@ summary.
 from pathlib import Path
 import json
 from .facts.store import read_set
-from .compose.labels import falsifier_of, impact_of, statement_of
+from .compose.labels import falsifier_of, impact_of, statement_of, who_decided
 from .sustainability import compute as dashboard
 from .transform_plan import build as plan
 
@@ -63,6 +63,8 @@ def render(out, language='ar', transform_plan=None):
                 if ar else
                 '> One page: status, the three biggest risks with impact, the investment, '
                 'and what happens if we do nothing.'), '']
+    target_path = Path(out) / 'target-architecture.json'
+    lines += [who_decided(json.loads(target_path.read_text(encoding='utf-8')) if target_path.is_file() else {}, language), '']
     lines += ['## ' + ('الوضع' if ar else 'Status')]
     indicators = {row['indicator']: row for row in dash['rows']}
     if ar:

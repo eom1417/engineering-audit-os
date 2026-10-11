@@ -534,6 +534,11 @@ SHOWN_COMPONENTS = 12
 SHOWN_DECISIONS = 8
 
 
+def clip_why(text, limit=160):
+    text = ' '.join(str(text or '').split())
+    return text if len(text) <= limit else text[:limit - 1] + '…'
+
+
 def render(out, target, language='ar'):
     """Render the target architecture as a Markdown document."""
     ar = language == 'ar'
@@ -568,6 +573,13 @@ def render(out, target, language='ar'):
             lines.append(f"- {mark} **{item['area']}**: {item['decision']} ({tool}). "
                          + ('الدليل: ' if ar else 'Evidence: ') + item['evidence'])
         lines.append('')
+    from .compose.labels import decided, who_decided
+    lines += ['## ' + ('من قرر' if ar else 'Who decided'), '', who_decided(target, language), '']
+    for row in (target.get('disagreements') or [])[:SHOWN_DECISIONS]:
+        lines.append(f"- `{row['element']}`: " + (f"القواعد «{row['rule']}»، مساعدك «{row['assistant']}»، النهائي «{row['final']}» ({decided(row['label'], language)}). "
+                                                   if ar else f"the rules \"{row['rule']}\", your assistant \"{row['assistant']}\", final "
+                                                   f"\"{row['final']}\" ({decided(row['label'], language)}). ") + clip_why(row['why']))
+    lines.append('')
     lines += ['## ' + ('البنية المحفوظة' if ar else 'Retained structure'), '']
     lines += [target['retained_structure']]
     lines += ['', '## ' + ('المكوّنات' if ar else 'Components')]
@@ -580,7 +592,8 @@ def render(out, target, language='ar'):
         lines += ['', '### ' + relation.capitalize() + f' ({len(rows)})']
         for component in rows[:SHOWN_COMPONENTS]:
             where = f" → `{component['target_component']}`" if component.get('target_component') else ''
-            lines += [f"- `{component['id']}` ← `{component['origin']}`{where}: {component['name']}"]
+            who = f" · {decided(component['decided_by']['label'], language)}" if component.get('decided_by') else ''
+            lines += [f"- `{component['id']}` ← `{component['origin']}`{where}: {component['name']}{who}"]
         if len(rows) > SHOWN_COMPONENTS:
             lines += [('- … البقية في `target-architecture.json`' if ar
                        else '- … the rest are in `target-architecture.json`')]

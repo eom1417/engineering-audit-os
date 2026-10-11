@@ -383,6 +383,7 @@ def intake(context):
 
 def compose(context):
     from .. import progress
+    from ..compose.gallery import write as gallery
     from ..compose.product_report import render
     from ..human_report import write as human_page
     from ..start_here import start_here
@@ -392,7 +393,8 @@ def compose(context):
     writers = (lambda: render(context.out, read(context.out / 'dossier.json'), context.language),
                lambda: human_page(context.out, context.language, name),
                lambda: studio(context.out, context.language, name, context.target),
-               lambda: start_here(context.out, context.language, name))
+               lambda: start_here(context.out, context.language, name),
+               lambda: gallery(context.out, context.language))
     for done, write in enumerate(writers):
         progress.count('artifacts', done, len(writers))
         write()

@@ -93,6 +93,29 @@ class VisualReviewer(unittest.TestCase):
         self.assertEqual(json.loads((self.out / 'cards.json').read_text(encoding='utf-8'))['design'], ['TASK-V001'])
 
 
+    def test_the_gallery_draws_each_finding_on_its_picture(self):
+        page = (self.out / 'gallery/index.html').read_text(encoding='utf-8')
+        self.assertIn('src="../live/screens/screenshots/00-index-light-phone.png"', page)
+        self.assertEqual(page.count('class="box high"'), 1)
+        self.assertIn('left:0.0%;top:0.0%;width:100.0%;height:20.0%', page)
+
+
+class Gallery(unittest.TestCase):
+    def test_the_city_is_a_rectangle_per_file_sized_by_its_lines(self):
+        from eaos.compose import gallery
+        city = {'files': [{'id': 'r', 'name': 'root', 'type': 'Folder', 'children': [
+                    {'id': 'a', 'name': 'a.py', 'type': 'File'}, {'id': 'b', 'name': 'b.py', 'type': 'File'}]}],
+                'lenses': {'metrics': {'attributes': {'a': {'rloc': 300, 'number_of_commits': 9, 'complexity': 12},
+                                                      'b': {'rloc': 100, 'number_of_commits': 1, 'complexity': 2}}}}}
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder) / 'architecture').mkdir()
+            (Path(folder) / 'architecture/city.cc.json').write_text(json.dumps(city), encoding='utf-8')
+            page = gallery.city(Path(folder), ar=False)
+        self.assertIn('width="1000.00" height="450.00"', page)
+        self.assertIn('root/a.py: 300 lines, 9 changes, complexity 12', page)
+        self.assertIn('width="1000.00" height="150.00"', page)
+
+
 class Tools(unittest.TestCase):
     def test_a_tool_that_is_not_installed_is_unavailable_with_its_install_command(self):
         with mock.patch.object(architecture, 'which', return_value=None), tempfile.TemporaryDirectory() as folder:
