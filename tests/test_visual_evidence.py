@@ -76,7 +76,8 @@ class VisualReviewer(unittest.TestCase):
         self.assertEqual(sorted(Path(p).name for p in self.images[0]), sorted(p.name for p in (self.out / 'live/screens/screenshots').glob('*.png')))
         argv = adapters.ClaudeCode().ask_argv({}, self.out, self.images[0])
         allowed = argv[argv.index('--allowedTools') + 1:argv.index('--permission-mode')]
-        self.assertEqual((argv[argv.index('--tools') + 1], allowed), ('Read', [f'Read({p})' for p in self.images[0]]))
+        self.assertEqual((argv[argv.index('--tools') + 1], allowed), ('Read', [f'Read(/{p})' for p in self.images[0]]))
+        self.assertTrue(all(rule.startswith('Read(//') for rule in allowed))
         self.assertEqual(adapters.ClaudeCode().ask_argv({}, self.out)[-4:-2], ['--tools', ''])
 
     def test_a_finding_outside_its_picture_is_dropped_and_each_other_becomes_a_design_card(self):

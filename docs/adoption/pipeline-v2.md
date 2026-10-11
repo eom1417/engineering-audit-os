@@ -16,9 +16,12 @@ Release downloads: none of the four ships a release archive EAOS downloads; npm 
 above, as for the other npm and pip tools of the toolchain.
 
 The visual reviewer (node `visual_reviewer`) uses the person's own assistant. Headless Claude Code reads a picture
-when its Read tool is allowed on exactly that file (`--tools Read --allowedTools "Read(<file>)" --permission-mode
-dontAsk`); a read of any other file is refused. Proven on 2026-10-11 with a test page (button text, colour and small
-print read correctly; the read outside refused): eaos-dev/workers/pipeline-v2/p3/image-reading-proof.md. Codex gets
+when its Read tool is allowed on exactly that file (`--tools Read --allowedTools "Read(//<absolute file>)"
+--permission-mode dontAsk`, run from a folder that is not the pictures'); a read of any other file is refused. In a
+permission rule an absolute path starts with `//`: `Read(/tmp/x.png)` names a path inside the working folder, and
+the first check on chief-ops had every read refused that way (the reviewer said so, and the guard dropped all 56
+decisions: none was invented). Proven on 2026-10-11 from another folder with a test page (button text read; the
+file outside refused): eaos-dev/workers/pipeline-v2/p3/image-reading-proof.md. Codex gets
 the same pictures attached with `-i`; Codex sign-in was broken on the development computer, so that path is not yet
 proven.
 

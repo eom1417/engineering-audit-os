@@ -179,8 +179,9 @@ class ClaudeCode(Adapter):
 
     def ask_argv(self, schema, folder, images=()):
         """One question on standard input, no MCP server, nothing kept: the answer held to `schema`, streamed as it is
-        written. No tool, but Read on exactly `images` when the question is about pictures (Read elsewhere is refused)."""
-        tools = ['--tools', 'Read', '--allowedTools', *[f'Read({Path(image).resolve()})' for image in images],
+        written. No tool, but Read on exactly `images` when the question is about pictures (Read elsewhere is refused;
+        an absolute path in a permission rule starts with //, a single / is relative to the working folder)."""
+        tools = ['--tools', 'Read', '--allowedTools', *[f'Read(/{Path(image).resolve()})' for image in images],
                  '--permission-mode', 'dontAsk'] if images else ['--tools', '']
         return self.command + ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages',
                                '--json-schema', json.dumps(schema), *tools, '--strict-mcp-config', '--no-session-persistence']
