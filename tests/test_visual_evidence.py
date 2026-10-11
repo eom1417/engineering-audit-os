@@ -9,6 +9,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from shared_fixture import TemporaryWorkspace
+
 from eaos import plan as plan_module
 from eaos.behavior_lock import JOURNEY_HOOKS, playwright_spec
 from eaos.engines import architecture
@@ -41,10 +43,10 @@ class Reviewer:
                                               'open_questions': [], **row} for row in rows]}
 
 
-class VisualReviewer(unittest.TestCase):
+class VisualReviewer(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
-        cls.tmp = tempfile.TemporaryDirectory()
+        cls.workspace()
         base = Path(cls.tmp.name)
         target = base / 'shop'
         shutil.copytree(ROOT / 'tests/fixtures/sustainability/redundant', target)
@@ -66,10 +68,6 @@ class VisualReviewer(unittest.TestCase):
                 mock.patch('eaos.pipeline.runners._ran', side_effect=lambda context, name: name in ('screens', 'visual')):
             cls.manifest = execute(target, cls.out, language='en', provider=object(), skip=['semantic', 'triage', 'ideal', 'order', 'pipeline_gaps'])
         cls.images = made
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tmp.cleanup()
 
     def test_the_assistant_may_open_exactly_the_pictures(self):
         self.assertEqual(self.manifest['stages']['visual']['status'], 'ok')

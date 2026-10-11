@@ -8,6 +8,8 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from shared_fixture import TemporaryWorkspace
+
 from eaos.pipeline.run import execute
 from eaos.pipeline.stages import BY_NAME, ORDER
 from eaos.studio.nodes import core
@@ -68,20 +70,16 @@ def decision(subject, choice, evidence, detail):
             'open_questions': [], 'detail': detail}
 
 
-class JointDecision(unittest.TestCase):
+class JointDecision(TemporaryWorkspace):
     @classmethod
     def setUpClass(cls):
-        cls.tmp = tempfile.TemporaryDirectory()
+        cls.workspace()
         base = Path(cls.tmp.name)
         target = project(base)
         cls.rules = execute(target, base / 'rules', language='en')
         with mock.patch.object(core, 'pick', return_value=object()), mock.patch.object(core, 'AdapterLauncher', return_value=Assistant()):
             cls.joint = execute(target, base / 'joint', language='en', provider=object())
         cls.base = base
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.tmp.cleanup()
 
     def read(self, run, name):
         return json.loads((self.base / run / name).read_text(encoding='utf-8'))
