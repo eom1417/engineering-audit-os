@@ -70,6 +70,106 @@ def verify(context):
     return {'covered_files': result.get('covered_files'), 'command': context.test_command}
 
 
+NO_RUN = ('the person has not agreed to run the app in an isolated copy (eaos next asks once), so nothing was run and '
+          'the check reads the code alone')
+
+
+def _owner(target):
+    import subprocess
+    done = subprocess.run(['git', '-C', str(target), 'config', 'user.name'], capture_output=True, text=True)
+    return done.stdout.strip() or 'the owner'
+
+
+def _keep(context, name, record):
+    """A live stage's record under <out>/live/."""
+    from ..workspace import write
+    (context.out / 'live').mkdir(exist_ok=True)
+    write(context.out / 'live' / name, record)
+
+
+def setup(context):
+    """The app installed and started in an isolated copy (eaos/live_setup.py), once the person agreed to it."""
+    if not context.get('runtime'):
+        raise SkipStage(NO_RUN, code='no_run_consent')
+    from ..live_setup import authorize, setup as start
+    authorize(context.target, context.runtime, _owner(context.target))
+    result = start(context.target, Path(context.runtime), report=context.out, provider=context.provider, say=lambda n: None)
+    _keep(context, 'setup.json', result)
+    if not result['ok']:
+        raise SkipStage('the app did not start in the isolated copy: ' + '; '.join(result['limitations'])[:250], code='app_not_running')
+    return {'attempts': result['attempts'], 'limitations': len(result['limitations'])}
+
+
+def _live(context):
+    """The runtime folder of an app this check started; else the reason no live stage can run."""
+    if not context.get('runtime'):
+        raise SkipStage(NO_RUN, code='no_run_consent')
+    if not _ran(context, 'setup'):
+        raise SkipStage('the app is not running in an isolated copy in this check: ' + (
+            (context.get('manifest_so_far') or {}).get('stages', {}).get('setup', {}).get('reason') or 'its setup did not end ok'),
+            code='app_not_running')
+    return Path(context.runtime)
+
+
+def record(context):
+    """The lock run twice on today's code (eaos/behavior_lock.py run_lock): the screens and interfaces it recorded."""
+    runtime = _live(context)
+    if not (context.out / 'behavior-lock/plan.json').is_file():
+        raise SkipStage('the program has no feature to lock', code='no_features')
+    from ..behavior_lock import run_lock
+    result = run_lock(context.out, context.target, runtime)
+    passed = sum(r['status'] == 'passed' for r in result['results'])
+    _keep(context, 'lock.json', {**result, 'specs': len(result['results']), 'passed': passed})
+    return {'specs': len(result['results']), 'passed': passed}
+
+
+def screens(context):
+    """Each known page of the running app at phone and desktop width with axe, and the first with Lighthouse
+    (eaos/screens/audit.py)."""
+    runtime = _live(context)
+    from ..behavior_lock import surfaces
+    from ..live_run import LiveRun
+    from ..screens.audit import VIEWPORTS, lighthouse, page_audit, variants
+    pages = ['/'] + [route for route, (kind, _, _) in surfaces(context.out).items()
+                     if kind == 'page' and route.startswith('/') and ':' not in route and '*' not in route and '[' not in route]
+    live = LiveRun(context.target, runtime, 'S05')
+    try:
+        live.setup()
+        base = live.start()
+        live.seed(base)
+        folder = context.out / 'live/screens'
+        audit = page_audit([base + page for page in dict.fromkeys(pages)], [v for v in VIEWPORTS if v['name'] != 'tablet'],
+                           variants(themes=('light',)), out=folder)
+        speed = lighthouse(base + '/', out=folder)
+    finally:
+        live.stop()
+    if audit['status'] != 'observed':
+        raise SkipStage(f"the pages could not be opened: {audit.get('reason')}"[:300], code='screens_unavailable')
+    rows = [{**row, 'screenshot': Path(row['screenshot']).relative_to(context.out).as_posix() if row.get('screenshot') else None}
+            for row in audit['rows']]
+    _keep(context, 'screens.json', {'schema_version': 1, 'base': '/', 'tools': audit['tools'], 'rows': rows,
+                                              'lighthouse': {k: v for k, v in speed.items() if k != 'report'}})
+    return {'pages': len(dict.fromkeys(pages)), 'screens': len(rows), 'failing': sum(bool(r.get('failures')) for r in rows),
+            'lighthouse': (speed.get('scores') or {}).get('performance')}
+
+
+def baseline(context):
+    """Today's speed under the intake's load scenarios (eaos/runtime_baseline.py), on a production build that started."""
+    runtime = _live(context)
+    import json as _json
+    profile = _json.loads((runtime / 'run.json').read_text(encoding='utf-8'))
+    if not (profile.get('baseline') or {}).get('verified'):
+        raise SkipStage('the production build of the app did not start in the isolated copy, so its speed was not measured',
+                        code='no_production_run')
+    from ..emit.nfr import write as scenarios
+    from ..runtime_baseline import run_baseline
+    scenarios(context.out)
+    record = run_baseline(context.out, context.target, runtime)
+    _keep(context, 'baseline.json', record)
+    return {'scenarios': len(record['scenarios']),
+            'p95_ms': max((s['before']['p95_ms'] for s in record['scenarios'] if s.get('before')), default=None)}
+
+
 def policy(context):
     if not context.policy_path and not (Path(context.target) / POLICY_FILE).is_file():
         raise SkipStage(f'the project declares no {POLICY_FILE}', code='no_policy')
@@ -157,6 +257,11 @@ def load(context):
     from ..load_report import write
     record = compute(context.out)
     record = project(record)
+    if _ran(context, 'baseline'):
+        measured = json.loads((context.out / 'live/baseline.json').read_text(encoding='utf-8'))
+        record['measured'] = {'source': 'live/baseline.json', 'conditions': measured['conditions'],
+                              'scenarios': [{'id': s['id'], 'threshold': s['threshold'], **(s.get('before') or {})}
+                                            for s in measured['scenarios']]}
     write(context.out, record, language=context.language)
     return {'entry_points': len(record.get('entry_points', [])),
             'incomplete': sum(1 for e in record.get('entry_points', []) if (e.get('projection') or {}).get('incomplete'))}
@@ -331,7 +436,8 @@ def features(context):
             'critical': sum(1 for f in record['features'] if f['critical'])}
 
 
-RUNNERS = {'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
+RUNNERS = {'setup': setup, 'record': record, 'screens': screens, 'baseline': baseline,
+           'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
            'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,
            'transform': transform, 'plan': plan, 'execution_guide': execution_guide,
            'compose': compose, 'emit': emit, 'site': site, 'validate': validate}

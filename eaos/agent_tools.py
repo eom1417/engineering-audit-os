@@ -335,7 +335,7 @@ def _audit_job(project, arguments, progress):
     if failed and not without:
         raise guided.ToolsMissing('these tools could not be installed: ' + '; '.join(f'{n}: {r}' for n, r in sorted(failed.items())))
     options = dict(language=state.get('lang') or 'en', engines=[], site=True, progress=progress,
-                   provider=guided.check_provider(state), without_tools=sorted(failed))
+                   provider=guided.check_provider(state), runtime=guided.check_runtime(state), without_tools=sorted(failed))
     source = guided.source(state)
     # What the scan reads, taken before it reads it: a commit made during a long scan is not in this report.
     read = {'scanned_commit': _head(state), **branches.scan_provenance(state, source)}

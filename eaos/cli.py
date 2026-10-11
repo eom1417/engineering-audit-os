@@ -144,7 +144,7 @@ def audit_command(args):
     run = resume if args.resume else execute
     manifest = run(args.target, args.out, only=args.only or (), skip=args.skip or (), language=args.lang,
                    exclude=args.exclude, engines=args.engines, provider=_provider(args),
-                   test_command=args.test_command, site=not args.no_site, goal=args.goal,
+                   test_command=args.test_command, site=not args.no_site, goal=args.goal, runtime=args.run_app,
                    **({'intake': args.intake} if args.intake else {}))
     from .product_review import summarise
     summary = summarise(Path(args.out).resolve(), manifest, args.goal, bool(args.provider))
@@ -697,6 +697,8 @@ def main(argv=None):
     q.add_argument('--exclude',action='append',default=[])
     q.add_argument('--engines',nargs='*',default=None,metavar='ENGINE')
     q.add_argument('--provider');q.add_argument('--test-command')
+    q.add_argument('--run-app',default=None,metavar='FOLDER',
+                   help='run the app in an isolated copy under FOLDER during the check (your consent): setup, lock, screens, speed')
     q.add_argument('--intake',default=None,metavar='FILE',help="the owner's answers to the intake questions: JSON {question id: answer}")
     q.add_argument('--only',action='append',default=[],metavar='STAGE')
     q.add_argument('--skip',action='append',default=[],metavar='STAGE')
