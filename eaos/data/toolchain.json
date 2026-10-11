@@ -1165,6 +1165,82 @@
         "method": "pip",
         "package": "zensical"
       }
+    },
+    {
+      "name": "rrweb",
+      "role": "run",
+      "stages": [
+        "S05",
+        "S09"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/rrweb-io/rrweb",
+      "version": "2.1.7",
+      "install": {
+        "method": "npm",
+        "package": "rrweb",
+        "library": true,
+        "with": [
+          "rrweb-player@2.1.7"
+        ]
+      },
+      "install_note": "Libraries, no executable: eaos/templates/screens/journey.mjs injects rrweb's recorder unmodified into each page of a journey and keeps its events as JSON; the report's UI gallery replays them with rrweb-player from local files, never from a network."
+    },
+    {
+      "name": "unlighthouse",
+      "role": "run",
+      "stages": [
+        "S05",
+        "S09"
+      ],
+      "license": "MIT",
+      "repository": "https://github.com/harlan-zw/unlighthouse",
+      "version": "0.19.1",
+      "binary": "unlighthouse-ci",
+      "install": {
+        "method": "npm",
+        "package": "@unlighthouse/cli"
+      },
+      "install_note": "Finds every page of the running app by itself and runs Lighthouse on each (eaos/screens/crawl.py), driving the Chromium of the pinned Playwright; it resolves the pinned lighthouse 13.5.0 (it asks for ^13.5.0). Only the app's own address, on this computer, is opened."
+    },
+    {
+      "name": "codecharta",
+      "role": "read",
+      "stages": [
+        "S02",
+        "S03"
+      ],
+      "check": "architecture",
+      "license": "BSD-3-Clause",
+      "repository": "https://github.com/MaibornWolff/codecharta",
+      "version": "2.1.0",
+      "binary": "ccsh",
+      "install": {
+        "method": "npm",
+        "package": "codecharta-analysis"
+      },
+      "install_note": "The analysis CLI (ccsh): unifiedparser (size and complexity per file) and gitlogparser (change frequency) merged into one cc.json, the architecture city (eaos/engines/architecture.py). Needs temurin-jre."
+    },
+    {
+      "name": "emerge",
+      "role": "read",
+      "stages": [
+        "S02",
+        "S03"
+      ],
+      "check": "architecture",
+      "license": "MIT",
+      "repository": "https://github.com/glato/emerge",
+      "version": "2.0.7",
+      "binary": "emerge",
+      "install": {
+        "method": "pip",
+        "package": "emerge-viz",
+        "with": [
+          "setuptools==80.10.2"
+        ]
+      },
+      "install_note": "The dependency graph with its clusters (Louvain modularity), as JSON and as a local interactive page (eaos/engines/architecture.py). setuptools 80 is installed beside it: emerge imports pkg_resources, which setuptools 81 removes. At its end it tries to copy a path to the clipboard and fails on a computer without one; its files are already written, and EAOS judges it by them."
     }
   ]
 }

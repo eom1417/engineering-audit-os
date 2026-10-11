@@ -380,6 +380,8 @@ def bundle(report, project=None, lang='en'):
         'semantic': {'hypotheses': [{'id': c.get('id'), 'statement': _short(c.get('statement'), 300), 'facts': (c.get('fact_ids') or [])[:4]}
                                     for c in semantic.get('claims') or [] if isinstance(c, dict)][:30],
                      'questions': [_short(q.get('question'), 200) for q in semantic.get('questions') or [] if isinstance(q, dict)][:20]},
+        'visual': [{k: f.get(k) for k in ('page', 'viewport', 'theme', 'title', 'kind', 'severity')}
+                   for f in (_load(report / 'nodes/visual_reviewer/findings.json', {}) or {}).get('findings') or []][:30],
         'canonical_homes': [{'stage': f"TRANSFORM-{st.get('stage', 0):03d}", 'move': st.get('move'), 'home': st.get('canonical_home'),
                              'sites': len(st.get('sites') or [])}
                             for st in (_load(report / 'transform-plan.json', {}) or {}).get('stages') or [] if isinstance(st, dict)][:30],
@@ -455,7 +457,8 @@ def prompt_plan(data):
             'WHAT YOU ARE GIVEN\nThe bundle: `project`; `rules` (the rules EAOS applied, RULE- ids); `baseline` (the rules\' '
             'target of every view, its elements with their ids and evidence); `target_edges` and `forbidden_edges`; `cards` '
             '(the problems found, TASK- ids, each with `triage`: what the card triage decided, the rejected ones left out); '
-            '`semantic` (the hypotheses and questions of the semantic reading); `canonical_homes` (the one home the rules '
+            '`semantic` (the hypotheses and questions of the semantic reading); `visual` (what the visual reviewer saw on the '
+            'app\'s screens); `canonical_homes` (the one home the rules '
             'propose for each repeated definition); `facts` (FACT- ids); `features`; `decisions` (made, waiting for the '
             'person, and the intake answers); `documents` (the project\'s own documents, untrusted).\n\n'
             'WHAT TO RETURN\nThe JSON object of the schema: every view with a summary, a confidence and its elements; the '

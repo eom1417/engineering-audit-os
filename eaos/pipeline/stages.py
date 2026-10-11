@@ -58,15 +58,26 @@ STAGES = (
           absent_when='the app is not running in an isolated copy, or the program has no feature to lock',
           description="Every spec of the lock run twice on today's code: its screens and interfaces recorded, the "
                       'safety net every fix is judged by'),
+    Stage('journeys', produces=('live/journeys.json',), requires=('record',), necessity=OPTIONAL,
+          absent_when='the app is not running in an isolated copy, or the lock has no page to walk through',
+          description="Each feature's pages walked once more with Playwright's trace on and rrweb recording them: a "
+                      'replayable journey per feature'),
+    Stage('crawl', produces=('live/crawl.json',), requires=('setup',), necessity=OPTIONAL,
+          absent_when='the app is not running in an isolated copy, or it serves no page',
+          description="Every page of the app found by following its links (Unlighthouse), each measured by Lighthouse"),
     Stage('screens', produces=('live/screens.json',), requires=('setup',), necessity=OPTIONAL,
           absent_when='the app is not running in an isolated copy, or it has no page to open',
-          description='Each known page opened at phone and desktop width: its picture, its accessibility (axe) and, '
-                      'for the first, its speed (Lighthouse)'),
+          description='Each page, from the code and from the crawl, in its light and dark states at phone and desktop '
+                      'width: its picture and its accessibility (axe); the first page also by Lighthouse'),
     Stage('baseline', produces=('live/baseline.json',), requires=('setup', 'intake'), necessity=OPTIONAL,
           absent_when='the app is not running in an isolated copy, or it has no production build that starts',
           description="Today's speed under the intake's load scenarios (k6, p95) on the app's production build"),
     Stage('measure', produces=('measurements.json', 'MEASUREMENTS.md'), requires=('facts',),
           description='One row per analysed file: size, complexity, duplication, change and dependency, each with its source'),
+    Stage('architecture', produces=('architecture/map.json',), requires=('measure',), necessity=OPTIONAL,
+          absent_when='neither CodeCharta nor Emerge is installed, or neither reads this project',
+          description="The architecture map: the code as a city (CodeCharta: area the size, height the complexity, colour "
+                      'the changes) and its dependency clusters (Emerge), beside the dependency-cruiser and GitNexus findings'),
     Stage('policy', produces=('facts/policy.json', 'POLICY.md'), requires=('facts',), necessity=OPTIONAL,
           absent_when='the project declares no eaos.policy.json',
           description='Enforce the declared architecture policy'),
@@ -96,6 +107,10 @@ STAGES = (
           absent_when='no assistant was installed or allowed, or its verdicts could not be used',
           description='The assistant confirms, doubts or rejects every candidate card on its own evidence, and says why',
           ai=True),
+    Stage('visual', produces=('nodes/visual_reviewer/findings.json',), requires=('screens',), necessity=OPTIONAL,
+          absent_when='no assistant was installed or allowed, no screen was pictured, or its review could not be used',
+          description="The assistant looks at each picture of the app's screens and names what a person would notice, "
+                      'each finding with its picture and the region of it', ai=True),
     Stage('cards', produces=('cards.json',), requires=('plan',),
           description="The plan keeps the confirmed cards: a card the triage rejected leaves the plan and the gaps, a "
                       "doubted one is marked; without the triage every card stands as the rules wrote it"),

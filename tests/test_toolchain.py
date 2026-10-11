@@ -250,11 +250,12 @@ class PreparingTests(ToolchainTests):
         self.assertIn('2099', toolchain.trivy_db().read_text())
         self.assertFalse((self.home / 'cache/trivy-next').exists())
 
-    def test_every_engine_and_the_report_tools_are_the_checks_the_engines_before_the_ai_and_the_report_tools_after(self):
+    def test_the_checks_tools_read_the_code_before_the_ai_and_write_the_reports_after_it(self):
         toolchain.REGISTRY = self.saved[0]
         check = {t['name']: t['check'] for t in toolchain.registry()['tools'] if t.get('check')}
         self.assertLessEqual(set(ADAPTERS), set(check))
-        self.assertEqual({name for name, stage in check.items() if stage != 'engines'}, {'vale', 'markdownlint-cli2', 'typst'})
+        reading = {'engines', 'architecture'}
+        self.assertEqual({name for name, stage in check.items() if stage not in reading}, {'vale', 'markdownlint-cli2', 'typst'})
         ai = [ORDER.index(stage.name) for stage in STAGES if stage.ai]
-        self.assertLess(ORDER.index('engines'), min(ai))
-        self.assertTrue(all(ORDER.index(stage) > max(ai) for name, stage in check.items() if stage != 'engines'))
+        self.assertTrue(all(ORDER.index(stage) < min(ai) for stage in reading))
+        self.assertTrue(all(ORDER.index(stage) > max(ai) for name, stage in check.items() if stage not in reading))

@@ -415,17 +415,53 @@ def _verdicts(out):
     return {v['card']: v for v in body.get('verdicts') or [] if isinstance(v, dict) and v.get('source') == 'model'}
 
 
-def confirm(target, out, language='ar', triaged=False):
+SEVERITY_PRIORITY = {'high': 0.6, 'medium': 0.4, 'low': 0.2}
+
+
+def design_card(number, finding):
+    """A card for one finding of the visual reviewer: an investigation, done when its decision is recorded, citing its
+    picture and the region of it."""
+    region = finding['region']
+    where = f"{finding['file']} ({region['x']:.2f}, {region['y']:.2f}, {region['width']:.2f} x {region['height']:.2f})"
+    return {'id': f'TASK-V{number:03d}', 'claim_id': None, 'title': finding['title'][:120], 'render': None, 'kind': 'investigate',
+            'contract_version': 1,
+            'decision': {'contract_version': 1, 'kind': 'investigate', 'readiness': 'needs_review', 'blockers': [], 'checks': [],
+                         'reason': 'A design finding of the visual reviewer: confirm it on the screen before changing it.',
+                         'allowed_outcomes': ['repair', 'retain', 'blocked_missing_requirement']},
+            'prerequisites': [], 'before': None, 'after': None, 'requirement_refs': [], 'status': 'planned',
+            'priority': SEVERITY_PRIORITY.get(finding['severity'], 0.2), 'pattern': 'design_review', 'paths': [], 'origin': 'visual_review',
+            'impact': finding['why'], 'impact_render': None,
+            'evidence': {'fact_ids': [], 'evidence_ids': [finding['image']], 'probe_ids': [], 'images': [finding['file']],
+                         'region': region, 'falsifier': f"The picture {where} does not show it."},
+            'blast_radius': {'direct_dependents': [], 'transitive_dependents': [], 'flows': [], 'entry_points': [],
+                             'covering_tests': [], 'coverage': {}, 'change_partners': [], 'total': 0},
+            'change': f"{finding['why']} ({finding['page']}, {finding['viewport']}, {finding['theme']}: {where})",
+            'options': [], 'rollback': 'No code changes while the finding is confirmed.', 'acceptance': [{'command': 'human review',
+            'expect': f'The screen no longer shows it: {where}'}], 'verify_command': [], 'effort': 'S', 'effort_basis': {'files': 0, 'dependents': 0},
+            'effort_confidence': 'Not measured: a design change on one screen.', 'invariants': [], 'harm': {},
+            'finding_ids': [finding['image']], 'section': 'frontend', 'design': {k: finding.get(k) for k in ('kind', 'severity', 'page', 'viewport', 'theme')}}
+
+
+def _design_cards(out):
+    """The visual reviewer's findings of this check, as design cards."""
+    body = _load(Path(out) / 'nodes/visual_reviewer/findings.json', {})
+    if body.get('method') != 'model': return []
+    return [design_card(number, finding) for number, finding in enumerate(body.get('findings') or [], 1)]
+
+
+def confirm(target, out, language='ar', triaged=False, reviewed=False):
     """The confirmed cards: when the triage ran in this check, a card it rejected leaves the plan (and with it the
-    gaps), a prerequisite on it is dropped with why, and every other card carries its verdict; the waves, milestones
-    and cards are drawn again. Without the triage every card stands as the rules wrote it. Writes cards.json, the
-    record of who decided each card, and returns it."""
+    gaps), a prerequisite on it is dropped with why, and every other card carries its verdict; when the visual reviewer
+    ran, each of its findings joins the plan as a design card. The waves, milestones and cards are then drawn again.
+    Without either every card stands as the rules wrote it. Writes cards.json, the record of who decided each card,
+    and returns it."""
     target, out = Path(target).resolve(), Path(out).resolve()
     plan = read(out / 'plan.json')
     verdicts = _verdicts(out) if triaged else {}
     tasks = plan['tasks']
     rejected = {t['id'] for t in tasks if (verdicts.get(t['id']) or {}).get('decision') == 'reject'}
-    kept = [t for t in tasks if t['id'] not in rejected]
+    design = _design_cards(out) if reviewed else []
+    kept = [t for t in tasks if t['id'] not in rejected] + design
     for task in kept:
         verdict = verdicts.get(task['id'])
         if verdict: task['triage'] = {k: verdict.get(k) for k in ('decision', 'why', 'evidence', 'confidence')}
@@ -433,9 +469,10 @@ def confirm(target, out, language='ar', triaged=False):
         if dropped:
             task['prerequisites'] = [ref for ref in task['prerequisites'] if ref not in dropped]
             task['dropped_prerequisites'] = [{**ref, 'why': 'the triage set this card aside'} for ref in dropped]
-    if rejected or verdicts:
+    if rejected or verdicts or design:
         _publish_plan(target, out, plan, kept, language)
-    record = {'schema_version': 1, 'decided_by': 'assistant' if verdicts else 'rules', 'kept': [t['id'] for t in kept],
+    record = {'schema_version': 1, 'decided_by': 'assistant' if verdicts or design else 'rules', 'kept': [t['id'] for t in kept],
+              'design': [t['id'] for t in design],
               'set_aside': [{'card': t['id'], 'claim_id': t.get('claim_id'), 'title': t.get('title'),
                              'why': verdicts[t['id']].get('why'), 'evidence': verdicts[t['id']].get('evidence') or []}
                             for t in tasks if t['id'] in rejected],

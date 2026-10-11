@@ -132,6 +132,8 @@ def screens(context):
     from ..screens.audit import VIEWPORTS, lighthouse, page_audit, variants
     pages = ['/'] + [route for route, (kind, _, _) in surfaces(context.out).items()
                      if kind == 'page' and route.startswith('/') and ':' not in route and '*' not in route and '[' not in route]
+    if _ran(context, 'crawl'):
+        pages += [row['path'] for row in json.loads((context.out / 'live/crawl.json').read_text(encoding='utf-8'))['routes']]
     live = LiveRun(context.target, runtime, 'S05')
     try:
         live.setup()
@@ -139,7 +141,7 @@ def screens(context):
         live.seed(base)
         folder = context.out / 'live/screens'
         audit = page_audit([base + page for page in dict.fromkeys(pages)], [v for v in VIEWPORTS if v['name'] != 'tablet'],
-                           variants(themes=('light',)), out=folder)
+                           variants(), out=folder)
         speed = lighthouse(base + '/', out=folder)
     finally:
         live.stop()
@@ -151,6 +153,38 @@ def screens(context):
                                               'lighthouse': {k: v for k, v in speed.items() if k != 'report'}})
     return {'pages': len(dict.fromkeys(pages)), 'screens': len(rows), 'failing': sum(bool(r.get('failures')) for r in rows),
             'lighthouse': (speed.get('scores') or {}).get('performance')}
+
+
+def journeys(context):
+    """Each feature's pages walked once more with the trace on and rrweb recording (eaos/behavior_lock.py run_journeys)."""
+    runtime = _live(context)
+    plan = json.loads((context.out / 'behavior-lock/plan.json').read_text(encoding='utf-8')) \
+        if (context.out / 'behavior-lock/plan.json').is_file() else {}
+    if not any(spec.get('tool') == 'playwright' for spec in plan.get('specs') or []):
+        raise SkipStage('the lock has no page to walk through', code='no_pages')
+    from ..behavior_lock import run_journeys
+    result = run_journeys(context.out, context.target, runtime, context.out / 'live/journeys')
+    _keep(context, 'journeys.json', result)
+    return {'specs': result['specs'], 'traces': len(result['traces']), 'recordings': len(result['recordings'])}
+
+
+def crawl(context):
+    """Every page of the running app found by Unlighthouse, each measured by Lighthouse (eaos/screens/crawl.py)."""
+    runtime = _live(context)
+    from ..live_run import LiveRun
+    from ..screens.crawl import crawl as find
+    live = LiveRun(context.target, runtime, 'S05')
+    try:
+        live.setup()
+        base = live.start()
+        live.seed(base)
+        found = find(base, context.out / 'live/crawl')
+    finally:
+        live.stop()
+    if found['status'] != 'observed':
+        raise SkipStage(f"the pages could not be crawled: {found.get('reason')}"[:300], code='screens_unavailable')
+    _keep(context, 'crawl.json', {'schema_version': 1, **found})
+    return {'pages': len(found['routes'])}
 
 
 def baseline(context):
@@ -168,6 +202,23 @@ def baseline(context):
     _keep(context, 'baseline.json', record)
     return {'scenarios': len(record['scenarios']),
             'p95_ms': max((s['before']['p95_ms'] for s in record['scenarios'] if s.get('before')), default=None)}
+
+
+def architecture(context):
+    """The city and the clusters of the code (eaos/engines/architecture.py), and how many findings the two dependency
+    engines already gave, in architecture/map.json."""
+    from ..engines.architecture import city, clusters
+    from ..facts.store import read_set
+    from ..workspace import write
+    folder = context.out / 'architecture'
+    drawn = {'city': city(context.target, folder), 'clusters': clusters(context.target, folder)}
+    if all(row['status'] != 'observed' for row in drawn.values()):
+        raise SkipStage('; '.join(row.get('reason', '') for row in drawn.values())[:300], code='no_architecture_map')
+    try: external = read_set(context.out, 'external').get('facts') or []
+    except (OSError, ValueError): external = []
+    engines = {name: sum((f.get('value') or {}).get('engine') == name for f in external) for name in ('dependency-cruiser', 'gitnexus')}
+    write(folder / 'map.json', {'schema_version': 1, **drawn, 'dependency_findings': engines})
+    return {name: row['status'] for name, row in drawn.items()}
 
 
 def policy(context):
@@ -436,7 +487,7 @@ def features(context):
             'critical': sum(1 for f in record['features'] if f['critical'])}
 
 
-RUNNERS = {'setup': setup, 'record': record, 'screens': screens, 'baseline': baseline,
+RUNNERS = {'setup': setup, 'architecture': architecture, 'journeys': journeys, 'crawl': crawl, 'record': record, 'screens': screens, 'baseline': baseline,
            'facts': facts, 'features': features, 'intake': intake, 'measure': measure, 'lock': lock, 'reports': reports, 'quality': quality, 'pdf': pdf, 'engines': engines, 'verify': verify, 'policy': policy, 'claims': claims,
            'probe': probe, 'load': load, 'semantic': semantic, 'sustainability': sustainability,
            'transform': transform, 'plan': plan, 'execution_guide': execution_guide,
@@ -471,9 +522,16 @@ def _ran(context, name):
 
 def cards(context):
     from ..plan import confirm
-    record = confirm(context.target, context.out, context.language, triaged=_ran(context, 'triage'))
+    record = confirm(context.target, context.out, context.language, triaged=_ran(context, 'triage'), reviewed=_ran(context, 'visual'))
     return {'kept': len(record['kept']), 'set_aside': len(record['set_aside']), 'doubted': len(record['doubted']),
-            'decided_by': record['decided_by']}
+            'design': len(record['design']), 'decided_by': record['decided_by']}
+
+
+def visual(context):
+    """The visual reviewer node (eaos/studio/nodes/visual_reviewer.py): the assistant opens each picture of the app's
+    screens, and only those, and names what a person would notice there; the cards stage makes each a design card."""
+    record, detail = _node(context, 'visual_reviewer')
+    return {**{row['decision']: len(row['subjects']) for row in record['routes']}, **detail}
 
 
 def pipeline_gaps(context):
@@ -510,4 +568,4 @@ def bundles(context):
 
 
 RUNNERS.update(target=target, proposals=proposals, cards=cards, pipeline_gaps=pipeline_gaps, reconcile=reconcile, steps=steps)
-RUNNERS.update(executive=executive, bundles=bundles, ideal=ideal, triage=triage, order=order)
+RUNNERS.update(executive=executive, bundles=bundles, ideal=ideal, triage=triage, visual=visual, order=order)

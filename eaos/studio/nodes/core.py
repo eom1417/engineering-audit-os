@@ -19,7 +19,8 @@ then sends each subject on by its decision.
 
 A node's `spec` is a module with VERSION, inputs(report, project, lang, **inputs) -> data or None, subjects(data),
 known(report, data), rules(data) -> {subject: (evidence, why, confidence, detail)}, prompt(data) and optionally
-DETAIL (the JSON Schema of a decision's `detail`), check(data, decision) -> why or None and finish(report, record, data).
+DETAIL (the JSON Schema of a decision's `detail`), check(data, decision) -> why or None, finish(report, record, data)
+and images(data) -> the pictures the assistant reads (the only files it may open).
 """
 import hashlib
 import json
@@ -73,13 +74,13 @@ class AdapterLauncher:
     """The person's assistant as a node's launcher: each pass is one `ask` in its own folder; `cost_usd` adds up what
     the passes cost when the stream says."""
 
-    def __init__(self, adapter, folder, cancel=None, started=None):
-        self.adapter, self.folder, self.cancel, self.started = adapter, Path(folder), cancel, started
+    def __init__(self, adapter, folder, cancel=None, started=None, images=()):
+        self.adapter, self.folder, self.cancel, self.started, self.images = adapter, Path(folder), cancel, started, tuple(images)
         self.assistant, self.model, self.seconds, self.cost_usd = adapter.name, None, 0.0, None
 
     def __call__(self, name, prompt, schema):
         from ..actions.adapters import ask
-        answer = ask(self.adapter, prompt, schema, self.folder / name, self.cancel, self.started)
+        answer = ask(self.adapter, prompt, schema, self.folder / name, self.cancel, self.started, self.images)
         self.model, self.seconds = answer['model'] or self.model, self.seconds + answer['seconds']
         if answer.get('cost_usd') is not None: self.cost_usd = (self.cost_usd or 0.0) + answer['cost_usd']
         return answer['answer']
@@ -93,10 +94,11 @@ def pick(adapters):
     return next((adapter for adapter in adapters.values() if adapter.available()), None)
 
 
-def launcher_of(adapters, folder, cancel=None, started=None):
-    """The first available assistant of `adapters` as a launcher asking in `folder`, or None when there is none."""
+def launcher_of(adapters, folder, cancel=None, started=None, images=()):
+    """The first available assistant of `adapters` as a launcher asking in `folder`, or None when there is none;
+    `images`, the only files it may open."""
     adapter = pick(adapters)
-    return None if adapter is None else AdapterLauncher(adapter, folder, cancel, started)
+    return None if adapter is None else AdapterLauncher(adapter, folder, cancel, started, images)
 
 
 def spent(launcher):
@@ -349,7 +351,8 @@ def run_node(node, spec, report, launcher=None, adapters=None, project=None, lan
         tell(f'{node.title}: the same inputs as before, the cached decision stands', f'{node.title}: المدخلات نفسها، فيبقى القرار المحفوظ')
         return done({**hit, 'at': at, 'cached': True})
     stamp = at.replace(':', '').replace('+0000', 'Z')
-    launcher = launcher or launcher_of(adapters, folder_of(report, node) / 'runs' / stamp, cancel, started)
+    images = spec.images(data) if hasattr(spec, 'images') else ()
+    launcher = launcher or launcher_of(adapters, folder_of(report, node) / 'runs' / stamp, cancel, started, images)
     if launcher is None: return rules_only('rules_only', WORDS['no_assistant'])
     who, asked, critique, answers = getattr(launcher, 'assistant', None), [p for _, _, p in asks], None, []
     try:

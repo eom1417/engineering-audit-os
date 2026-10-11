@@ -609,6 +609,14 @@
   "screens_unavailable": {
    "ar": "ما قدرت أفتح صفحات برنامجك لتصويرها؛ السبب مكتوب في السجل.",
    "en": "The pages of your app could not be opened to picture them; the reason is in the log."
+  },
+  "no_architecture_map": {
+   "ar": "ما انرسمت خريطة البنية: أداتا CodeCharta وEmerge غير مثبتتين أو ما تقرآن لغة هذا المشروع.",
+   "en": "The architecture map was not drawn: CodeCharta and Emerge are not installed, or neither reads this project's language."
+  },
+  "no_pages": {
+   "ar": "برنامجك ما فيه صفحات يمشي فيها المستخدم، فما فيه رحلات تُسجَّل.",
+   "en": "Your app has no pages a user walks through, so there is no journey to record."
   }
  }
 }

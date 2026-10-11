@@ -57,8 +57,9 @@ class Assistant:
                      {'id': 's2', 'title': 'The rest', 'tasks': tasks[:-1], 'why': 'same file'}]
             return {'summary': '', 'decisions': [decision('plan', 'reorder', tasks[:1], {'steps': steps})]}
         if all(s.startswith('TASK-') for s in subjects):
-            verdict = {'TASK-008': 'reject', 'TASK-002': 'doubt'}
-            return {'summary': '', 'decisions': [decision(s, verdict.get(s, 'confirm'), [s], {'falsifier': 'a caller'}) for s in subjects]}
+            on_core = {c['id'] for c in bundle(prompt)['cards'] if 'core/audit.py' in c['paths']}
+            verdict = lambda card: 'reject' if card in on_core else 'doubt' if card == 'TASK-002' else 'confirm'
+            return {'summary': '', 'decisions': [decision(s, verdict(s), [s], {'falsifier': 'a caller'}) for s in subjects]}
         return {'summary': '', 'decisions': []}
 
 
@@ -98,9 +99,9 @@ class JointDecision(unittest.TestCase):
 
     def test_a_card_the_triage_rejected_leaves_the_plan_and_the_gaps(self):
         plan, cards = self.read('joint', 'plan.json'), self.read('joint', 'cards.json')
-        self.assertIn('TASK-008', [t['id'] for t in self.read('rules', 'plan.json')['tasks']])
-        self.assertNotIn('TASK-008', [t['id'] for t in plan['tasks']])
-        self.assertEqual([(row['card'], row['claim_id']) for row in cards['set_aside']], [('TASK-008', 'CLM-008')])
+        core = next(t for t in self.read('rules', 'plan.json')['tasks'] if t['paths'] == ['core/audit.py'])
+        self.assertNotIn(core['id'], [t['id'] for t in plan['tasks']])
+        self.assertEqual([(row['card'], row['claim_id']) for row in cards['set_aside']], [(core['id'], core['claim_id'])])
         self.assertEqual(next(t for t in plan['tasks'] if t['id'] == 'TASK-002')['triage']['decision'], 'doubt')
         core_gap = {r['component']: r for r in self.read('joint', 'target-architecture.json')['gap_matrix']}['T-core']
         self.assertEqual((core_gap['gap'], core_gap['blocking_tasks']), ('covered', []))
@@ -136,7 +137,7 @@ class JointDecision(unittest.TestCase):
         shutil.copytree(self.base / 'joint/ideal', out / 'ideal')
         again = execute(self.base / 'shop', out, language='en')
         self.assertEqual((again['stages']['triage']['status'], self.read('stale', 'cards.json')['set_aside']), ('unavailable', []))
-        self.assertIn('TASK-008', [t['id'] for t in self.read('stale', 'plan.json')['tasks']])
+        self.assertEqual(len(self.read('stale', 'plan.json')['tasks']), len(self.read('rules', 'plan.json')['tasks']))
         self.assertEqual(self.read('stale', 'target-architecture.json')['decided']['by'], 'rules')
         self.assertEqual(self.read('stale', 'plan.json')['order']['source'], 'rules')
 

@@ -21,6 +21,20 @@ and the pinned versions, commits and checksums are in `upstreams/registry.yaml`.
 | [knip](https://github.com/webpro-nl/knip) | Lars Kappert | ISC | separate process, every plugin off; JSON report read |
 | [react-docgen](https://github.com/reactjs/react-docgen) (`@react-docgen/cli`) | Facebook, Inc. and its affiliates | MIT | separate process; JSON report read |
 
+### Visual evidence tools (pipeline v2)
+
+The live journeys, the crawl and the architecture map run these as separate processes; none of their code is copied
+into this repository or into the EAOS Python process. rrweb's recorder is injected unmodified into the pages of the
+app under test, and its player is copied unmodified beside the report to replay them. Full licence texts are in
+`upstreams/licenses/`, pinned versions in `upstreams/toolchain.json`.
+
+| Tool | Copyright | Licence | Used how |
+| --- | --- | --- | --- |
+| [rrweb](https://github.com/rrweb-io/rrweb) and rrweb-player | rrweb contributors | MIT | recorder injected unmodified into each page of a journey; events read as JSON; player replays them in the report |
+| [Unlighthouse](https://github.com/harlan-zw/unlighthouse) (`@unlighthouse/cli`) | Harlan Wilton | MIT | separate process on the app's own address; per-page Lighthouse JSON read |
+| [CodeCharta](https://github.com/MaibornWolff/codecharta) (`codecharta-analysis`, ccsh) | MaibornWolff GmbH | BSD-3-Clause | separate process; cc.json written and kept as the architecture city |
+| [Emerge](https://github.com/glato/emerge) (`emerge-viz`) | Grzegorz Lato | MIT | separate process; dependency graph JSON read, its local page kept |
+
 ### Screen audit tools
 
 The screen audit (`eaos/screens/audit.py`, `tools/studio_gates.py`) runs these in a separate Node.js process

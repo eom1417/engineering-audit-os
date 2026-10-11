@@ -87,7 +87,7 @@ class IdealStage(unittest.TestCase):
         self.assertEqual(ideal.current(self.report), (None, 'failed'))
 
     def test_the_live_map_marks_the_ai_stages_from_their_declaration(self):
-        self.assertEqual([row['name'] for row in stage_rows(STAGES) if row['ai']], ['semantic', 'triage', 'ideal', 'pipeline_gaps', 'order'])
+        self.assertEqual([row['name'] for row in stage_rows(STAGES) if row['ai']], ['semantic', 'triage', 'visual', 'ideal', 'pipeline_gaps', 'order'])
         self.assertEqual({BY_NAME[name].requires for name in ('triage', 'ideal', 'pipeline_gaps')}, {('proposals',)})
         self.assertEqual(BY_NAME['order'].requires, ('cards',))
 
