@@ -11,7 +11,7 @@ import { Go } from '../../components/Go'
 import { Panel, Props, Section, StateMessage } from '../../components/Panel'
 import { Sheet, SheetLead, SheetSub } from '../../components/Sheet'
 import { useActions } from '../../data/actions/store'
-import { ActionError, type BranchDetail, type BranchRow, type DeletePreview, type Inventory, type MergePreview, type Reason, type Run, type RunLink } from '../../data/actions/types'
+import { ActionError, type BranchDetail, type BranchRow, type CleanupPreview, type DeletePreview, type Inventory, type MergePreview, type Reason, type Run, type RunLink } from '../../data/actions/types'
 import { labelOf } from '../../data/actions/derive'
 import { STATE_WORDS } from '../../data/actions/contract'
 import { useStudio } from '../../data/context'
@@ -156,6 +156,7 @@ function ResolutionButton({ source, target, onDone }: { source: string; target: 
 
 function DeletePanel({ row, onDone }: { row: BranchRow; onDone: (run: Run) => void }) {
   const w = useBranchWords()
+  const { lang } = usePrefs()
   const { api } = useBranchLive()
   const where = row.kind
   const [preview, setPreview] = useState<DeletePreview | null>(null)
@@ -189,8 +190,10 @@ function DeletePanel({ row, onDone }: { row: BranchRow; onDone: (run: Run) => vo
           ? <p className={css.note}>{w('deleteUnmerged', { n: preview.lost_commits?.length ?? 0 })}</p>
           : <p>{w('deleteMerged', { b: (preview.merged_into ?? []).join(', ') || '—' })}</p>}
         {preview.unmerged && <ul className={css.files}>{(preview.lost_commits ?? []).map((c) => <li key={c.commit}><Id value={c.commit.slice(0, 12)} /> {c.subject}</li>)}</ul>}
+        {preview.worktree && <p className={css.note}>{w('worktreeGoes', { p: preview.worktree })}</p>}
         <p>{w('remoteKept')}</p>
       </>}
+      {preview.whose && <p className={css.muted} data-whose={preview.whose.code}>{preview.whose[lang]}</p>}
       <Reasons reasons={preview.blocked} />
       {preview.unmerged && !preview.blocked.length && (
         <label className={css.check}><input type="checkbox" checked={second} onChange={(e) => setSecond(e.target.checked)} />{w('confirmUnmerged')}</label>
@@ -307,6 +310,60 @@ function Card({ row, onOpen }: { row: BranchRow; onOpen: () => void }) {
   )
 }
 
+function Cleanup({ onChanged }: { onChanged: () => void }) {
+  const w = useBranchWords()
+  const { lang } = usePrefs()
+  const { api } = useBranchLive()
+  const [open, setOpen] = useState(false)
+  const [preview, setPreview] = useState<CleanupPreview | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [run, setRun] = useState<Run | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const load = useCallback(async () => {
+    if (!api) return
+    setError(null)
+    try { setPreview(await api.previewCleanup()) } catch (problem) { setError(problem instanceof Error ? problem.message : String(problem)) }
+  }, [api])
+  useEffect(() => { if (open) void load() }, [open, load])
+  async function confirm() {
+    if (!api || !preview) return
+    setBusy(true); setError(null)
+    try { setRun((await api.cleanup(preview)).run); onChanged(); await load() } catch (problem) {
+      if (problem instanceof ActionError && problem.needs === 'refresh') await load()
+      setError(problem instanceof Error ? problem.message : String(problem))
+    } finally { setBusy(false) }
+  }
+  const goes = preview ? preview.branches.length + preview.worktrees.length : 0
+  return (
+    <div className={css.cleanup} data-cleanup={open ? (preview ? (goes ? 'ready' : 'nothing') : 'loading') : 'closed'}>
+      <Button variant="secondary" icon="opDelete" onPress={() => setOpen(!open)} aria-expanded={open}>{w('cleanup')}</Button>
+      {open && <Panel>
+        <SheetSub>{w('cleanup')}</SheetSub>
+        {!preview ? (error ? <p role="alert" className={css.error}>{error}</p> : <p className={css.muted}>…</p>) : <>
+          <p>{w('cleanupLead', { b: [preview.base, ...preview.kept_branches.filter((b) => b !== preview.base)].filter(Boolean).join(lang === 'ar' ? '، ' : ', ') })}</p>
+          {run && <RescanStatus run={run} />}
+          {goes === 0 && <p className={css.note}>{w('cleanupNothing')}</p>}
+          {preview.branches.length > 0 && <>
+            <SheetSub>{w('cleanupGoes', { n: preview.branches.length })}</SheetSub>
+            <ul className={css.files}>{preview.branches.map((b) => <li key={b.branch} data-goes={b.branch}><Id value={b.branch} /> · {w('cleanupMergedInto', { b: b.merged_into })}{b.worktree ? ` · ${w('worktreeGoes', { p: b.worktree })}` : ''}</li>)}</ul>
+          </>}
+          {preview.worktrees.length > 0 && <>
+            <SheetSub>{w('cleanupWorktrees', { n: preview.worktrees.length })}</SheetSub>
+            <ul className={css.files}>{preview.worktrees.map((t) => <li key={t.path}><Id value={t.path} /></li>)}</ul>
+          </>}
+          {preview.kept.length > 0 && <>
+            <SheetSub>{w('cleanupStays', { n: preview.kept.length })}</SheetSub>
+            <ul className={css.files}>{preview.kept.map((k) => <li key={k.branch} data-stays={k.branch}><Id value={k.branch} />: {k.reasons.map((r) => r[lang]).join(' · ')}</li>)}</ul>
+          </>}
+          <Reasons reasons={preview.blocked} />
+          {error && <p role="alert" className={css.error}>{error}</p>}
+          {goes > 0 && preview.confirm && <Button variant="primary" icon="opDelete" busy={busy} onPress={() => void confirm()}>{w('cleanupConfirm')}</Button>}
+        </>}
+      </Panel>}
+    </div>
+  )
+}
+
 function Recoveries({ inventory, onChanged }: { inventory: Inventory; onChanged: () => void }) {
   const w = useBranchWords()
   const { api } = useBranchLive()
@@ -390,6 +447,7 @@ function LiveBranches() {
           {fetchRun && <RescanStatus run={fetchRun} />}
         </>}
       </div>
+      <Cleanup onChanged={changed} />
       {error && <p role="alert" className={css.error}>{error}</p>}
       {inventory.truncated && <p className={css.note}>{w('truncated', { n: inventory.branches.length })}</p>}
       {rows.length === 0 ? <Panel><StateMessage title={show === 'work' ? w('noBranchesWork') : w('noBranches')} /></Panel> : <>

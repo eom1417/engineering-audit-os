@@ -92,3 +92,7 @@
 @media (max-width: 767px) {
   .branchChip { max-inline-size: 132px; padding-inline: 8px; }
 }
+
+.cleanup { display: grid; gap: 12px; justify-items: start; }
+.cleanup > :global(*) { max-inline-size: 100%; }
+.cleanup ul li { overflow-wrap: anywhere; }

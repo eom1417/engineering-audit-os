@@ -134,7 +134,8 @@ class Actions:
             change = {('analysis',): self.branches.select, ('merge', 'preview'): self.branches.preview_merge, ('merge',): self.branches.merge,
                       ('conflict',): self.branches.propose_resolution, ('delete', 'preview'): self.branches.preview_delete,
                       ('delete',): self.branches.delete, ('restore',): self.branches.restore, ('fetch',): self.branches.fetch,
-                      ('protect', 'preview'): self.branches.preview_protect, ('protect',): self.branches.protect}.get(tuple(rest[1:]))
+                      ('protect', 'preview'): self.branches.preview_protect, ('protect',): self.branches.protect,
+                      ('cleanup', 'preview'): self.branches.preview_cleanup, ('cleanup',): self.branches.cleanup}.get(tuple(rest[1:]))
             if change is None: raise KeyError(route)
             if not self.branches.is_repo(): raise LookupError('this project folder is not a git repository')
             return change(body)

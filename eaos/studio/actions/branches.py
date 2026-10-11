@@ -21,6 +21,7 @@ What git does not say stays unknown.
     refs/eaos-recovery/<id>        the commit of a deleted branch, kept so the deletion can be undone
 """
 import fcntl
+import hashlib
 import json
 import os
 import re
@@ -426,15 +427,18 @@ class BranchControl:
         return {name: {'available': not reasons, 'blocked': reasons} for name, reasons in out.items()}
 
     # ------------------------------------------------------------------ guards
-    def _owned(self, row):
+    @staticmethod
+    def whose(row):
+        """What the person is told about whose branch this is before they confirm a change to it. Ownership never blocks a
+        change the person confirms (merge, delete): it is their repository. It only decides what EAOS may do on its own."""
         owner = row['ownership']
         if owner['owner'] == 'unknown':
-            return [say('EAOS has no record of making this branch: a name alone is not proof, so it is left to you.',
-                        'ما عند EAOS سجل أنه أنشأ هذا الفرع، والاسم وحده ليس دليلًا، فهو متروك لك.', 'not_owned')]
+            return say('EAOS did not make this branch: it is yours, and only your confirmation changes it.',
+                       'هذا الفرع ما أنشأه EAOS: هو فرعك، ولا يتغيّر إلا بتأكيدك.', 'yours')
         if owner['owner'] == 'shared':
-            return [say(f"Someone else added {owner['foreign_commits']} commit(s) to this branch: EAOS does not change it.",
-                        f"أحد غير EAOS أضاف {owner['foreign_commits']} commit إلى هذا الفرع، فلا يغيّره EAOS.", 'shared')]
-        return []
+            return say(f"EAOS made this branch and someone else added {owner['foreign_commits']} commit(s) to it.",
+                       f"أنشأ EAOS هذا الفرع وأضاف إليه غيره {owner['foreign_commits']} commit.", 'shared')
+        return say(f"EAOS made this branch ({owner.get('evidence')}).", f"أنشأ EAOS هذا الفرع ({owner.get('evidence')}).", 'eaos')
 
     def _busy(self, names, exclude=None):
         busy = [r for r in self.active_runs(exclude) if {work_of(r), (r.get('context') or {}).get('analysis_branch')} & set(names)
@@ -443,7 +447,7 @@ class BranchControl:
                     f"فيه تشغيل يعمل الآن ({busy[0]['id']}): انتظره حتى ينتهي أو أوقفه.", 'active_run')] if busy else []
 
     def _merge_blocks(self, row, target, inventory, preview=True):
-        reasons = list(self._owned(row))
+        reasons = []
         if not target: reasons.append(say('No destination: choose the branch to merge into.', 'ما فيه وجهة: اختر الفرع الذي يُدمج فيه.', 'no_target'))
         elif target == row['name']: reasons.append(say('A branch cannot be merged into itself.', 'لا يُدمج الفرع في نفسه.', 'same'))
         elif inventory['protected'].get(target):
@@ -453,21 +457,24 @@ class BranchControl:
         return reasons
 
     def _delete_blocks(self, row, inventory):
-        reasons = list(self._owned(row))
+        reasons = []
         name = row['name']
         if inventory['protected'].get(name): reasons.append(say('This branch is protected.', 'هذا الفرع محمي.', 'protected'))
         if 'default' in row['roles']: reasons.append(say('This is the default branch.', 'هذا الفرع الافتراضي.', 'default'))
         if 'analysis' in row['roles']: reasons.append(say('This is the analysis branch: choose another one first.', 'هذا فرع التحليل: اختر غيره أولًا.', 'analysis'))
-        if row['worktree']:
-            reasons.append(say(f"It is checked out in {'your project folder' if row['worktree']['current'] else 'another worktree: ' + row['worktree']['path']}.",
-                               f"مفتوح في {'مجلد مشروعك' if row['worktree']['current'] else 'نسخة عمل أخرى: ' + row['worktree']['path']}.", 'checked_out'))
+        held = row['worktree']
+        if held and held['current']:
+            reasons.append(say('It is checked out in your project folder.', 'مفتوح في مجلد مشروعك.', 'checked_out'))
+        elif held and (held['dirty'] is None or held['dirty']['tracked'] or held['dirty']['untracked']):
+            reasons.append(say(f"It is checked out in another worktree with unsaved changes: {held['path']}. Save or remove them first.",
+                               f"مفتوح في نسخة عمل أخرى فيها تعديلات غير محفوظة: {held['path']}. احفظها أو احذفها أولًا.", 'worktree_dirty'))
         if any(r['state'] in ACTIVE + ('queued',) for r in row['runs']):
             reasons.append(say('A run that is not over uses this branch.', 'فيه تشغيل لم ينته يستخدم هذا الفرع.', 'run_uses_it'))
         reasons += self._busy([name])
         return reasons
 
     def _remote_blocks(self, row, inventory):
-        reasons = list(self._owned(row))
+        reasons = []
         if inventory['protected'].get(row['name']): reasons.append(say('This branch is protected.', 'هذا الفرع محمي.', 'protected'))
         if 'default' in row['roles']: reasons.append(say('This is the default branch on the remote.', 'هذا الفرع الافتراضي في المستودع البعيد.', 'default'))
         recorded = row['ownership'].get('recorded_tip')
@@ -570,7 +577,8 @@ class BranchControl:
                                               'ar': f'الاستوديو يعمل الآن على {name}؛ والفرع المفتوح عندك يبقى {before["branch"] or "منفصلًا"}.'}, data)
         finally:
             handle.close()
-        scan = self.actions.create({'action': 'audit', 'inputs': {}}) if body.get('scan') and needs_scan else None
+        # the person asked for this scan, and the check on record is of another commit: a new check, never the one on record
+        scan = self.actions.create({'action': 'audit', 'inputs': {'fresh': True}}) if body.get('scan') and needs_scan else None
         return {'run': result, 'scan': self.actions.public(scan) if scan else None, 'context': self.context()}
 
     # ------------------------------------------------------------------ merging
@@ -710,6 +718,116 @@ class BranchControl:
         return {'run': self.actions.public(self.store.load(run))}
 
     # ------------------------------------------------------------------ deleting and recovering
+    def _remove_worktree_of(self, name):
+        """Remove the clean worktree (not the project folder) that has `name` checked out: `git worktree remove` without
+        --force, so git itself refuses when anything unsaved is in it. None when no worktree holds the branch."""
+        held = next((w for w in self._worktrees() if w['branch'] == name and not w['current']), None)
+        if not held: return None
+        return self._remove_worktree(held['path'])
+
+    def _remove_worktree(self, path):
+        done = git(self.project, 'worktree', 'remove', path)
+        if done.returncode:
+            return {'error': f"git kept the worktree {self.store.scrub(path)}: {done.stderr.strip()[-200:]}",
+                    'ar': f"git أبقى نسخة العمل {self.store.scrub(path)}: {done.stderr.strip()[-200:]}"}
+        return {'path': self.store.scrub(path)}
+
+    def _cleanup_plan(self):
+        """What "clean up" would remove, from what git says now: every local branch whose last commit is already in the
+        base or a protected branch (so no commit is lost), that is not protected, the default, the analysis branch,
+        checked out in the project folder or in a worktree with unsaved changes, nor used by a run; and every clean,
+        detached worktree whose commit is in one of those branches. Everything else is listed with why it stays."""
+        inventory = self.inventory()
+        keepers = {}
+        for row in inventory['branches']:
+            if row['kind'] == 'local' and (row['name'] == inventory['base'] or row['protected']): keepers[row['name']] = row['tip']
+        def holder(tip):
+            return next((name for name, kept in keepers.items() if git(self.project, 'merge-base', '--is-ancestor', tip, kept).returncode == 0), None)
+        branches, kept = [], []
+        for row in inventory['branches']:
+            if row['kind'] != 'local' or row['name'] in keepers: continue
+            into = holder(row['tip'])
+            reasons = self._delete_blocks(row, inventory)
+            if not into:
+                ahead = len(git(self.project, 'rev-list', row['tip'], '--not', *keepers.values()).stdout.split()) if keepers else None
+                reasons = [say(f'{ahead} commit(s) of it are in no kept branch: merge it or delete it on its own.',
+                               f'فيه {ahead} commit ليست في أي فرع باقٍ: ادمجه أو احذفه وحده.', 'not_merged')] + reasons
+            if reasons:
+                kept.append({'branch': row['name'], 'reasons': reasons})
+                continue
+            worktree = bool(row['worktree'])
+            branches.append({'branch': row['name'], 'tip': row['tip'], 'merged_into': into, 'whose': self.whose(row),
+                             'worktree': row['worktree']['path'] if worktree else None, '_worktree': worktree})
+        worktrees = []
+        for row in self._worktrees():
+            if row['current'] or row['branch'] or row['locked']: continue
+            if row['prunable']:
+                worktrees.append({'path': self.store.scrub(row['path']), '_path': row['path'], 'head': row['head'], 'prunable': True})
+                continue
+            if row['dirty'] is None or row['dirty']['tracked'] or row['dirty']['untracked'] or not row['head'] or not holder(row['head']): continue
+            worktrees.append({'path': self.store.scrub(row['path']), '_path': row['path'], 'head': row['head'], 'prunable': False})
+        selection = {'branches': [[b['branch'], b['tip'], b['_worktree']] for b in branches], 'worktrees': [[w['_path'], w['head']] for w in worktrees]}
+        digest = hashlib.sha256(json.dumps(selection, sort_keys=True).encode('utf-8')).hexdigest()
+        return {'base': inventory['base'], 'kept_branches': sorted(keepers), 'branches': branches, 'worktrees': worktrees,
+                'kept': kept, 'digest': digest}
+
+    @staticmethod
+    def _public(plan):
+        return {**plan, 'branches': [{k: v for k, v in b.items() if not k.startswith('_')} for b in plan['branches']],
+                'worktrees': [{k: v for k, v in w.items() if not k.startswith('_')} for w in plan['worktrees']]}
+
+    def preview_cleanup(self, body=None):
+        """The cleanup's preview: what goes, what stays and why, and a confirm token bound to exactly that list."""
+        plan = self._cleanup_plan()
+        empty = not plan['branches'] and not plan['worktrees']
+        return {**self._public(plan), 'confirm': None if empty or self._busy([]) else self.locks.confirm('branch_cleanup', {'digest': plan['digest']}, self.project),
+                'blocked': self._busy([]), 'checked_at': now()}
+
+    def cleanup(self, body):
+        """Remove the merged branches and the clean worktrees the preview listed, only if git still says exactly that:
+        a recovery ref for each branch first, each worktree removed by git without --force, each branch removed only at
+        the commit the preview showed. One run in the history, with what was done and how to restore each branch."""
+        self._spend(body, 'branch_cleanup', {'digest': body.get('digest')})
+        handle = self._locked()
+        try:
+            plan = self._cleanup_plan()
+            if plan['digest'] != body.get('digest'):
+                raise Blocked([say('The branches changed since the preview: look again.', 'الفروع تغيّرت بعد المعاينة: شوف من جديد.', 'stale')], needs='refresh')
+            busy = self._busy([])
+            if busy: raise Blocked(busy, needs='blocked')
+            names = [b['branch'] for b in plan['branches']]
+            run = self._start('branch_cleanup', {'en': f'Clean up {len(names)} merged branch(es) and {len(plan["worktrees"])} old worktree(s)',
+                                                 'ar': f'نظّف {len(names)} فرعًا مدموجًا و{len(plan["worktrees"])} نسخة عمل قديمة'}, names,
+                              {'branches': names, 'worktrees': [w['path'] for w in plan['worktrees']]})
+            deleted, failed, removed = [], [], []
+            for worktree in plan['worktrees']:
+                done = git(self.project, 'worktree', 'prune') if worktree['prunable'] else git(self.project, 'worktree', 'remove', worktree['_path'])
+                (removed if done.returncode == 0 else failed).append({'worktree': worktree['path'], **({} if done.returncode == 0 else {'reason': done.stderr.strip()[-200:]})})
+            for branch in plan['branches']:
+                kept = self._keep(branch['branch'], 'local', None, branch['tip'], run)
+                if branch['_worktree']:
+                    out = self._remove_worktree_of(branch['branch'])
+                    if out and out.get('error'):
+                        failed.append({'branch': branch['branch'], 'reason': out['error'], 'recovery': kept['id']})
+                        continue
+                    if out: removed.append({'worktree': out['path']})
+                gone = git(self.project, 'update-ref', '-m', f"EAOS Studio: clean up {branch['branch']} (run {run})", '-d', f"refs/heads/{branch['branch']}", branch['tip'])
+                if gone.returncode:
+                    failed.append({'branch': branch['branch'], 'reason': 'the branch moved', 'recovery': kept['id']})
+                    continue
+                self.record(branch['branch'], history={'at': now(), 'event': 'deleted', 'where': 'local', 'run': run, 'recovery': kept['id'], 'via': 'cleanup'})
+                deleted.append({'branch': branch['branch'], 'tip': branch['tip'], 'merged_into': branch['merged_into'], 'recovery': kept['id']})
+            git(self.project, 'worktree', 'prune')
+            ok = not failed
+            text = {'en': f"Deleted {len(deleted)} merged branch(es) and removed {len(removed)} worktree(s); each branch can be restored."
+                          + (f" {len(failed)} could not be done." if failed else ''),
+                    'ar': f"حُذف {len(deleted)} فرع مدموج وأُزيلت {len(removed)} نسخة عمل، وكل فرع يمكن استرجاعه."
+                          + (f" وما تم {len(failed)}." if failed else '')}
+            return {'run': self._finish(run, ok, text, {'deleted': deleted, 'worktrees_removed': removed, 'failed': failed, 'branches': names,
+                                                        'reason': None if ok else f'{len(failed)} item(s) could not be removed'}, outcome='cleaned' if ok else None)}
+        finally:
+            handle.close()
+
     def recoveries(self):
         return _read_json(self.store.folder / 'branch-recovery.json', []) or []
 
@@ -733,7 +851,7 @@ class BranchControl:
             reasons = self._remote_blocks(row, inventory)
             bound = {'branch': name, 'remote': row['remote'], 'tip': row['tip']}
             return {'branch': name, 'where': 'remote', 'remote': row['remote'], 'tip': row['tip'], 'as_of': row['remote_as_of'],
-                    'blocked': reasons, 'local_kept': bool(self.tip(f'refs/heads/{name}')),
+                    'whose': self.whose(row), 'blocked': reasons, 'local_kept': bool(self.tip(f'refs/heads/{name}')),
                     'confirm': None if reasons else self.locks.confirm('branch_delete_remote', bound, self.project), 'checked_at': now()}
         if where != 'local': raise ValueError('where must be local or remote')
         row, inventory = self._row(name)
@@ -746,8 +864,10 @@ class BranchControl:
         commits = [dict(zip(('commit', 'subject', 'author'), (_out(self.project, 'log', '-1', '--format=%H%x00%s%x00%an', c) or '').split('\x00')))
                    for c in lost[:COMMITS_SHOWN]]
         unmerged = bool(lost)
-        bound = {'branch': name, 'tip': row['tip'], 'unmerged': unmerged}
-        return {'branch': name, 'where': 'local', 'tip': row['tip'], 'merged_into': holders, 'unmerged': unmerged,
+        worktree = bool(row['worktree']) and not row['worktree']['current']
+        bound = {'branch': name, 'tip': row['tip'], 'unmerged': unmerged, 'worktree': worktree}
+        return {'branch': name, 'where': 'local', 'tip': row['tip'], 'merged_into': holders, 'unmerged': unmerged, 'whose': self.whose(row),
+                'worktree': row['worktree']['path'] if worktree else None,
                 'lost_commits': commits, 'lost_truncated': len(lost) > COMMITS_SHOWN, 'blocked': reasons, 'remote_kept': True,
                 'confirm': None if reasons else self.locks.confirm('branch_delete', bound, self.project),
                 'confirm_unmerged': None if reasons or not unmerged else self.locks.confirm('branch_delete_unmerged', bound, self.project),
@@ -760,7 +880,7 @@ class BranchControl:
         name = valid_name(self.project, body.get('branch'))
         if where == 'remote': return self._delete_remote(name, body)
         if where != 'local': raise ValueError('where must be local or remote')
-        bound = {'branch': name, 'tip': body.get('tip'), 'unmerged': bool(body.get('unmerged'))}
+        bound = {'branch': name, 'tip': body.get('tip'), 'unmerged': bool(body.get('unmerged')), 'worktree': bool(body.get('worktree'))}
         self._spend(body, 'branch_delete', bound)
         if bound['unmerged'] and not self.locks.spend(body.get('confirm_unmerged'), 'branch_delete_unmerged', bound, self.project):
             raise Blocked([say('Its commits are in no other branch: confirm a second time that you delete them (they stay recoverable).',
@@ -769,12 +889,16 @@ class BranchControl:
         handle = self._locked()
         try:
             preview = self.preview_delete({'branch': name, 'where': 'local'})
-            if preview['tip'] != bound['tip'] or preview['unmerged'] != bound['unmerged']:
+            if preview['tip'] != bound['tip'] or preview['unmerged'] != bound['unmerged'] or bool(preview['worktree']) != bound['worktree']:
                 raise Blocked([say('The branch moved since the preview: look again.', 'الفرع تغيّر بعد المعاينة: شوف من جديد.', 'stale')], needs='refresh')
             if preview['blocked']: raise Blocked(preview['blocked'], needs='blocked')
             run = self._start('branch_delete', {'en': f'Delete the branch {name} here', 'ar': f'احذف الفرع {name} هنا'}, [name],
                               {'branch': name, 'tip': bound['tip'], 'unmerged': bound['unmerged']})
             kept = self._keep(name, 'local', None, bound['tip'], run)
+            removed = self._remove_worktree_of(name) if bound['worktree'] else None
+            if removed and removed.get('error'):
+                return {'run': self._finish(run, False, {'en': f"Not deleted: {removed['error']}", 'ar': f"ما انحذف: {removed['ar']}"},
+                                            {'reason': removed['error'], 'branch': name, 'recovery': kept['id'], 'branches': [name]})}
             gone = git(self.project, 'update-ref', '-m', f'EAOS Studio: delete {name} (run {run})', '-d', f'refs/heads/{name}', bound['tip'])
             if gone.returncode:
                 return {'run': self._finish(run, False, {'en': 'Not deleted: the branch moved.', 'ar': 'ما انحذف: الفرع تغيّر.'},
@@ -783,7 +907,7 @@ class BranchControl:
             return {'run': self._finish(run, True, {'en': f'Deleted {name}; it can be restored ({kept["id"]}). The remote copy, if any, is untouched.',
                                                     'ar': f'حُذف {name}، ويمكن استرجاعه ({kept["id"]}). والنسخة البعيدة، إن وُجدت، لم تُمس.'},
                                         {'branch': name, 'where': 'local', 'tip': bound['tip'], 'recovery': kept['id'], 'unmerged': bound['unmerged'],
-                                         'branches': [name]}, outcome='deleted')}
+                                         'worktree_removed': (removed or {}).get('path'), 'branches': [name]}, outcome='deleted')}
         finally:
             handle.close()
 

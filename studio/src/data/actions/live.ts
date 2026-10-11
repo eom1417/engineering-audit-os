@@ -3,7 +3,7 @@
 // returned for this launch; the browser adds the Origin the server checks. A run's events come over SSE read with
 // fetch, and a dropped stream reconnects with Last-Event-ID, so the server replays exactly what was missed.
 import { frameSplitter } from './sse'
-import { ActionError, TERMINAL, type ActionsClient, type BranchApi, type BranchContext, type BranchDetail, type Control, type DeletePreview,
+import { ActionError, TERMINAL, type ActionsClient, type BranchApi, type BranchContext, type BranchDetail, type Control, type CleanupPreview, type DeletePreview,
   type Inventory, type LiveFreshness, type MergePreview, type Preview, type PreviewBody, type Question, type Reason, type Run, type RunEvent,
   type StartBody, type StreamStatus, type ReportDecision } from './types'
 
@@ -76,9 +76,11 @@ export function liveClient(token: string): ActionsClient {
       unchecked: p.needs_unchecked_ack, unchecked_ack: uncheckedAck, confirm: p.confirm?.token ?? null }),
     proposeResolution: (source, target, assistant) => post('/api/branches/conflict', { source, target, assistant: assistant ?? null }),
     previewDelete: (branch, where, remote) => post<DeletePreview>('/api/branches/delete/preview', { branch, where, remote: remote ?? null }),
-    remove: (p, second) => post('/api/branches/delete', { branch: p.branch, where: p.where, remote: p.remote ?? null, tip: p.tip, unmerged: Boolean(p.unmerged),
+    remove: (p, second) => post('/api/branches/delete', { branch: p.branch, where: p.where, remote: p.remote ?? null, tip: p.tip, unmerged: Boolean(p.unmerged), worktree: Boolean(p.worktree),
       confirm: p.confirm?.token ?? null, confirm_unmerged: second ? p.confirm_unmerged?.token ?? null : null }),
     restore: (recovery, as) => post('/api/branches/restore', { recovery, as: as ?? null }),
+    previewCleanup: () => post<CleanupPreview>('/api/branches/cleanup/preview', {}),
+    cleanup: (p) => post('/api/branches/cleanup', { digest: p.digest, confirm: p.confirm?.token ?? null }),
     fetch: (remote) => post('/api/branches/fetch', { remote: remote ?? 'origin' }),
   }
 

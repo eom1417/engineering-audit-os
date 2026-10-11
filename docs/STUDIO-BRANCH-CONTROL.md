@@ -22,7 +22,10 @@ local time and full governance"). Adoption records: `docs/adoption/ns46-t18-bran
   report's branch (the manifest's `scanned`) and the base chosen for comparison. Selecting an analysis branch calls
   `guided.choose`; the checkout is compared before and after and the run fails if it moved.
 - Ownership comes only from durable provenance: an EAOS wave or build in the state, or `runs/branch-provenance.json`.
-  A name or prefix is never proof. A tool-owned branch with commits by any other author is `shared` and not changed.
+  A name or prefix is never proof. A tool-owned branch with commits by any other author is `shared`. Ownership decides
+  what EAOS may do on its own; it never blocks a change the person confirms (owner's request of 2026-10-11: "full
+  governance of the branches, merge, delete and the rest, easily"). Every merge and deletion preview says whose branch
+  it is (`whose`: eaos, shared, yours) before the person confirms.
 - Every mutation passes the command centre's locks first (launch token, CSRF, Origin, Host), then a confirm token bound
   to the exact heads its preview showed, then the project's branch lock (`runs/branches.lock`), and is written to the
   run history as a run with `branch_op`. Git runs as argv; names pass `git check-ref-format --branch` and are only used
@@ -32,9 +35,17 @@ local time and full governance"). Adoption records: `docs/adoption/ns46-t18-bran
   the target checked out. Conflicts change nothing and can become a read-only assistant review run.
 - Protected: the remote's default branch, `main`/`master` unless the project unprotects them, the project's own list,
   and EAOS's own `main` always. Enforced by the backend, not only by disabled buttons.
-- Deletion: only tool-owned, unprotected, not checked out anywhere, not the analysis or default branch, no run using it;
-  a recovery ref `refs/eaos-recovery/<id>` is written first; unmerged commits need a second confirm token; remote
-  deletion is its own preview, consent and `--force-with-lease` push; local and remote never imply each other.
+- Deletion: any branch the person confirms that is unprotected, not the analysis or default branch, not checked out in
+  the project folder, and not used by a run. A branch checked out in another worktree is deleted together with that
+  worktree when it is clean (`git worktree remove`, never `--force`, and the worktree is part of what was confirmed);
+  a worktree with unsaved changes blocks it. A recovery ref `refs/eaos-recovery/<id>` is written first; unmerged
+  commits need a second confirm token; remote deletion is its own preview, consent and `--force-with-lease` push;
+  local and remote never imply each other.
+- Cleanup (`/api/branches/cleanup`): one preview lists every local branch whose commits are all in the base or a
+  protected branch (so nothing is lost) and that deletion would allow, the clean detached worktrees whose commit is
+  kept, and every branch that stays with its reasons; its confirm token is bound to the sha256 of that exact list, and
+  the cleanup runs only if git still says the same. Each branch gets its recovery ref, and the whole cleanup is one run
+  in the history. Remote branches are never touched by it.
 - In-flight runs are never retargeted: a run records `context` (analysis branch and commit, checkout) when created; the
   analysis branch cannot change while any run is queued or working (the refusal names each run and offers its stop);
   choosing the branch already analysed changes nothing, so a re-scan never waits for a run.

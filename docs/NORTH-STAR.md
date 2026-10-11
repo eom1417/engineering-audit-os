@@ -89,11 +89,11 @@ flowchart TB
         direction LR
         NS30["<b>22 · NS30</b><br/>الثقة أولًا<br/>Trust first<br/>⚖ 2 · ▰ 100%"]:::done
         NS36["<b>23 · NS36</b><br/>أساس الاستوديو<br/>Studio foundation<br/>⚖ 3 · ▰ 42%"]:::owner
-        NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 11 · ▰ 5%"]:::owner
+        NS46["<b>24 · NS46</b><br/>الاستوديو أولًا<br/>Studio first<br/>⚖ 11 · ▰ 4%"]:::owner
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 اختبار قبول"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 اختبار قبول"| NS46
-        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +25 اختبار قبول"| NS38
+        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +26 اختبار قبول"| NS38
     end
     subgraph R6G_2["R6G · EAOS v2: تحليل صادق، صورة مثالية، عمليات مرتبة، واستوديو حي (2/5)"]
         direction LR
@@ -200,7 +200,7 @@ flowchart TB
 | 21 | [**NS27** البناء من خطة](#step-21) | R6 | 6 | 93% | 5.6 | 88% | 🟡 قيد العمل | B1=1 · B2=1 · X8=1 · B3=1 · B4=1 · X1=1 · … · +1 اختبار قبول |
 | 22 | [**NS30** الثقة أولًا: كل بطاقة على ملفها، وكل رقم صادق](#step-22) | R6G | 2 | 100% | 2 | 100% | ✅ مكتملة | S4=1 · X13=1 · +1 اختبار قبول |
 | 23 | [**NS36** أساس الاستوديو: القرارات والعقد والنموذج](#step-23) | R6G | 3 | 42% | 1.26 | 50% | 🔴 تحتاج مدخلًا منك | F8=1 · F10=1 · +4 اختبار قبول |
-| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 11 | 5% | 0.51 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +25 اختبار قبول |
+| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 11 | 4% | 0.49 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +26 اختبار قبول |
 | 25 | [**NS38** تحليل صادق: الدقة أولًا](#step-25) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | A1=1 · W2=1 · A2=1 · A3=1 |
 | 26 | [**NS31** أرقام ثابتة وضجيج أقل](#step-26) | R6G | 3 | 26% | 0.8 | 24% | 🔴 تحتاج مدخلًا منك | L7=1 · L8=1 · S5≥0.9 · S1≥0.9 |
 | 27 | [**NS39** خريطة النظام والسجل والأحداث](#step-27) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | N1=1 · N2=1 · +1 اختبار قبول |
@@ -1202,7 +1202,7 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 11 | 5% | 0.51 من 11 | 12% | R6G | S07, S15 |
+| 11 | 4% | 0.49 من 11 | 12% | R6G | S07, S15 |
 
 **الهدف:** F11 وF13 وF14 وF15 وF16 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويُشغَّل EAOS كله من الاستوديو، ويحكم المالك.
 
@@ -1264,6 +1264,7 @@ flowchart TB
 | اختبار قبول | `test docs_reader` | — | ⬜ |
 | اختبار قبول | `test pipeline_v2` | — | ⬜ |
 | اختبار قبول | `test studio_open` | — | ⬜ |
+| اختبار قبول | `test branch_control` | — | ⬜ |
 
 **المهام:**
 
@@ -1294,6 +1295,7 @@ flowchart TB
 | [NS46.T23](#ns46t23) A professional document reader: diagrams drawn, charts, tables, callouts and highlighted code | M | ⬜ | 0% | `python tools/acceptance.py test docs_reader` |
 | [NS46.T24](#ns46t24) Pipeline v2: the evidence first, the assistant decides with the tools before the target, the gaps and the plan, the reports last | L | ⬜ | 0% | `python tools/acceptance.py test pipeline_v2` |
 | [NS46.T25](#ns46t25) The Studio on this computer opens from a plain address that keeps working, and opens at once after the install | S | ⬜ | 0% | `python tools/acceptance.py test studio_open` |
+| [NS46.T26](#ns46t26) Full governance of the branches from the Studio: the person's own branches too, a clean worktree with its branch, and one-step cleanup | M | ⬜ | 0% | `python tools/acceptance.py test branch_control` |
 
 <a id="step-25"></a>
 
@@ -6789,6 +6791,38 @@ python tools/acceptance.py test studio_open
 ```
 
 **التراجع:** Revert the commit; the Studio goes back to a new token and port on every start.
+
+<a id="ns46t26"></a>
+
+#### NS46.T26 — Full governance of the branches from the Studio: the person's own branches too, a clean worktree with its branch, and one-step cleanup ⬜
+
+**لماذا:** Owner request 2026-10-11: the branch picker listed branches that are not on GitHub (local branches of finished work and their worktrees), and the Studio refused to delete or merge any branch EAOS had not made, so the person could not tidy their own repository. Full governance of the branches, merge, delete and the rest, easily, and proven real.
+
+**يحرّك:** F8 · **ينفّذه:** نموذج أو مطوّر · **يعتمد على:** NS46.T18 · **الحجم:** M
+
+**الملفات:** `eaos/studio/actions/branches.py` · `eaos/studio/actions/__init__.py` · `docs/studio-actions.json` · `studio/src/pages/branches/BranchesPage.tsx` · `studio/src/branches/words.ts` · `studio/src/data/actions/` · `docs/STUDIO-BRANCH-CONTROL.md` · `tests/test_studio_branches.py` · `tools/studio_branch_trial.py` · `tools/studio_branch_trial.mjs` · `acceptance/test_branch_control.py`
+
+**الخطوات:**
+
+1. Ownership decides only what EAOS does on its own; a merge or deletion the person confirms works on any unprotected branch, and its preview says whose branch it is.
+2. A branch checked out in another clean worktree is deleted together with it (git worktree remove, never --force); unsaved changes block.
+3. Clean up merged branches: one preview of what goes (every commit already in the base or a protected branch), what stays and why, bound to that exact list; each branch keeps a recovery ref.
+
+**تنتهي حين:**
+
+- [ ] The live branch trial passes every case of acceptance/test_branch_control.py, including the person's own branch deleted and restored, a clean worktree removed with its branch, and the cleanup confirmed from the page at 390 and 1440.
+
+**فخاخ معروفة:**
+
+- Never a force deletion; the base, the default, protected and analysis branches and the project folder's checkout are never removed; remote branches are not touched by the cleanup.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test branch_control
+```
+
+**التراجع:** Revert the commit; deletions made meanwhile stay restorable from refs/eaos-recovery.
 
 ### الخطوة 25 · NS38 — تحليل صادق: الدقة أولًا ⬜ التالية
 

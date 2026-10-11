@@ -25,6 +25,8 @@ CASES = (
     'merged_branch_deleted_with_recovery_ref', 'unmerged_delete_needs_extra_confirmation', 'remote_delete_separate_consent',
     'recovery_restores_branch', 'ui_selected_branch_report_consistency', 'ui_task_run_branch_links', 'ui_realtime_state',
     'ui_error_recovery', 'keyboard_and_44px_targets',
+    # owner request 2026-10-11 (NS46.T26): full governance of the branches, easily
+    'persons_branch_deleted_on_confirmation', 'clean_worktree_goes_with_branch', 'cleanup_merged_only_and_restorable',
 )
 VIEWS = {(width, lang, theme) for width in (390, 768, 1440) for lang in ('ar', 'en') for theme in ('light', 'dark')}
 

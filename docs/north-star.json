@@ -7151,6 +7151,47 @@
           ],
           "acceptance": "python tools/acceptance.py test studio_open",
           "rollback": "Revert the commit; the Studio goes back to a new token and port on every start."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T26",
+          "title": "Full governance of the branches from the Studio: the person's own branches too, a clean worktree with its branch, and one-step cleanup",
+          "why": "Owner request 2026-10-11: the branch picker listed branches that are not on GitHub (local branches of finished work and their worktrees), and the Studio refused to delete or merge any branch EAOS had not made, so the person could not tidy their own repository. Full governance of the branches, merge, delete and the rest, easily, and proven real.",
+          "moves": [
+            "F8"
+          ],
+          "depends_on": [
+            "NS46.T18"
+          ],
+          "size": "M",
+          "files": [
+            "eaos/studio/actions/branches.py",
+            "eaos/studio/actions/__init__.py",
+            "docs/studio-actions.json",
+            "studio/src/pages/branches/BranchesPage.tsx",
+            "studio/src/branches/words.ts",
+            "studio/src/data/actions/",
+            "docs/STUDIO-BRANCH-CONTROL.md",
+            "tests/test_studio_branches.py",
+            "tools/studio_branch_trial.py",
+            "tools/studio_branch_trial.mjs",
+            "acceptance/test_branch_control.py"
+          ],
+          "steps": [
+            "Ownership decides only what EAOS does on its own; a merge or deletion the person confirms works on any unprotected branch, and its preview says whose branch it is.",
+            "A branch checked out in another clean worktree is deleted together with it (git worktree remove, never --force); unsaved changes block.",
+            "Clean up merged branches: one preview of what goes (every commit already in the base or a protected branch), what stays and why, bound to that exact list; each branch keeps a recovery ref."
+          ],
+          "done_when": [
+            "The live branch trial passes every case of acceptance/test_branch_control.py, including the person's own branch deleted and restored, a clean worktree removed with its branch, and the cleanup confirmed from the page at 390 and 1440."
+          ],
+          "pitfalls": [
+            "Never a force deletion; the base, the default, protected and analysis branches and the project folder's checkout are never removed; remote branches are not touched by the cleanup."
+          ],
+          "acceptance": "python tools/acceptance.py test branch_control",
+          "rollback": "Revert the commit; deletions made meanwhile stay restorable from refs/eaos-recovery."
         }
       ]
     },

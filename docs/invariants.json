@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "extracted_at_commit": "d182698",
+  "extracted_at_commit": "50616d8",
   "invariants": [
     {
       "id": "INV-def1ea7c0e",
@@ -1996,7 +1996,7 @@
       "symbol": "Blocked",
       "statement": "A change that cannot happen now, with every reason in plain words.",
       "kind": "invariant",
-      "enforced_by": "tests/test_studio_branches.py::Merging::test_human_branch_and_failed_checks_and_conflict_are_refused",
+      "enforced_by": "tests/test_studio_branches.py::Merging::test_failed_checks_and_conflict_are_refused_and_a_persons_branch_merges_on_their_confirmation",
       "note": ""
     },
     {
@@ -2054,6 +2054,15 @@
       "note": ""
     },
     {
+      "id": "INV-3531b77ee4",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "whose",
+      "statement": "Ownership never blocks a change the person confirms (merge, delete): it is their repository.",
+      "kind": "invariant",
+      "enforced_by": null,
+      "note": ""
+    },
+    {
       "id": "INV-d4f12db35f",
       "file": "eaos/studio/actions/branches.py",
       "symbol": "_refuse_in_flight",
@@ -2063,6 +2072,15 @@
         "tests/test_studio_branches.py::Selecting::test_in_flight_runs_are_never_retargeted",
         "tests/test_studio_branches.py::Selecting::test_rescanning_the_branch_already_analysed_waits_for_no_run"
       ],
+      "note": ""
+    },
+    {
+      "id": "INV-c457a88f8f",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "_cleanup_plan",
+      "statement": "What \"clean up\" would remove, from what git says now: every local branch whose last commit is already in the base or a protected branch (so no commit is lost), that is not protected, the default, the analysis branch, checked out in the project folder or in a worktree with unsaved changes, nor used by a run; and every clean, detached worktree whose commit is in one of those branches.",
+      "kind": "invariant",
+      "enforced_by": null,
       "note": ""
     },
     {
@@ -2582,6 +2600,24 @@
       "statement": "Agent-led workflow: deterministic gates and next actions, never an autonomous LLM.",
       "kind": "invariant",
       "enforced_by": "tests/test_workflow.py::WorkflowTests::test_single_entrypoint_read_only_and_no_script_execution",
+      "note": ""
+    },
+    {
+      "id": "INV-3531b77ee4",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "whose",
+      "statement": "Ownership never blocks a change the person confirms (merge, delete): it is their repository.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::Deleting::test_a_persons_own_branch_is_deleted_on_their_confirmation_and_restorable",
+      "note": ""
+    },
+    {
+      "id": "INV-c457a88f8f",
+      "file": "eaos/studio/actions/branches.py",
+      "symbol": "_cleanup_plan",
+      "statement": "What \"clean up\" would remove, from what git says now: every local branch whose last commit is already in the base or a protected branch (so no commit is lost), that is not protected, the default, the analysis branch, checked out in the project folder or in a worktree with unsaved changes, nor used by a run; and every clean, detached worktree whose commit is in one of those branches.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_studio_branches.py::CleaningUp::test_merged_branches_and_clean_detached_worktrees_go_unmerged_and_dirty_stay",
       "note": ""
     }
   ],

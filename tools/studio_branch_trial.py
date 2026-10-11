@@ -289,7 +289,7 @@ class Trial:
         held, _ = self.row('eaos/task-2')
         blocked = api.post('/api/branches/delete/preview', {'branch': 'eaos/task-2'})[1]['blocked']
         self.case(B, 'worktree_status', held['worktree'] and not held['worktree']['current'] and held['worktree']['dirty'] == {'tracked': 0, 'untracked': 1}
-                  and 'checked_out' in [r['code'] for r in blocked],
+                  and 'worktree_dirty' in [r['code'] for r in blocked],
                   f"worktree {held['worktree']}; deletion blocked: {[r['code'] for r in blocked]}")
         (self.project / 'package.json').write_text((self.project / 'package.json').read_text() + '\n')
         context = api.get('/api/context')[1]['context']
@@ -463,6 +463,48 @@ class Trial:
                   f"the local deletion's consent used for the remote: {wrong[0]} {wrong[1].get('needs')} (origin kept); the remote's own consent: {right[0]}, "
                   f"gone on origin {gone}, local branch kept, recovery {(right[1].get('run') or {}).get('result', {}).get('answer', {}).get('recovery')}")
 
+    def governance_cases(self):
+        """Owner request 2026-10-11: full governance of the branches, easily. The person's own branch is deleted on their
+        confirmation and stays restorable; a clean worktree goes with its branch; one cleanup removes exactly the merged
+        branches and old clean worktrees, from the page itself, and nothing else."""
+        B = 'branch-control'
+        api, project = self.api, self.project
+        git(project, 'switch', '-q', '-c', 'feature/mine', 'develop')
+        mine = commit(project, 'mine.js', 'export const mine = 1\n', 'the owner works on a branch EAOS did not make', env=OWNER)
+        git(project, 'switch', '-q', 'develop')
+        p = api.post('/api/branches/delete/preview', {'branch': 'feature/mine'})[1]
+        body = {'branch': 'feature/mine', 'tip': p['tip'], 'unmerged': p['unmerged'], 'worktree': False, 'confirm': (p['confirm'] or {}).get('token'),
+                'confirm_unmerged': (p.get('confirm_unmerged') or {}).get('token')}
+        status, done = api.post('/api/branches/delete', body)
+        recovery = (done.get('run') or {}).get('result', {}).get('answer', {}).get('recovery')
+        kept = git(project, 'rev-parse', f'refs/eaos-recovery/{recovery}', check=False) if recovery else ''
+        gone = not git(project, 'rev-parse', '--verify', '--quiet', 'refs/heads/feature/mine', check=False)
+        back = api.post('/api/branches/restore', {'recovery': recovery})[0] if recovery else None
+        self.case(B, 'persons_branch_deleted_on_confirmation', (p.get('whose') or {}).get('code') == 'yours' and p['blocked'] == [] and status == 200
+                  and kept == mine and gone and back == 200 and git(project, 'rev-parse', 'feature/mine') == mine,
+                  f"preview: {(p.get('whose') or {}).get('en')} blocked {p['blocked']}; deleted {status} (gone {gone}); recovery ref -> {kept[:12]}; restored {back}")
+        tree = self.work / 'wt-task-2'
+        dirty = api.post('/api/branches/delete/preview', {'branch': 'eaos/task-2'})[1]
+        (tree / 'scratch.txt').unlink()
+        p = api.post('/api/branches/delete/preview', {'branch': 'eaos/task-2'})[1]
+        status, done = api.post('/api/branches/delete', {'branch': 'eaos/task-2', 'tip': p['tip'], 'unmerged': p['unmerged'], 'worktree': bool(p.get('worktree')),
+                                                         'confirm': (p['confirm'] or {}).get('token'), 'confirm_unmerged': (p.get('confirm_unmerged') or {}).get('token')})
+        self.case(B, 'clean_worktree_goes_with_branch', 'worktree_dirty' in [r['code'] for r in dirty['blocked']] and p['blocked'] == [] and p.get('worktree')
+                  and status == 200 and not tree.exists() and not git(project, 'rev-parse', '--verify', '--quiet', 'refs/heads/eaos/task-2', check=False),
+                  f"with an unsaved file: blocked {[r['code'] for r in dirty['blocked']]}; clean: removed with it {p.get('worktree')}; deleted {status}, folder gone {not tree.exists()}")
+        for name in ('old/merged-a', 'old/merged-b'): git(project, 'branch', name, 'develop')
+        git(project, 'worktree', 'add', '-q', '--detach', str(self.work / 'wt-old'), 'develop')
+        preview = api.post('/api/branches/cleanup/preview', {})[1]
+        goes = sorted(b['branch'] for b in preview['branches'])
+        stays = [row['branch'] for row in preview['kept']]
+        answer = self.browser('cleanup_ui', {'project': str(project), 'goes': goes, 'stays': ['feature/mine']})
+        got = (answer.get('checks') or {}).get('cleanup_ui') or {'pass': False, 'evidence': answer.get('errors')}
+        inventory = api.get('/api/branches')[1]
+        restorable = {r['branch'] for r in inventory['recovery'] if not r.get('restored')}
+        self.case(B, 'cleanup_merged_only_and_restorable', got['pass'] and {'old/merged-a', 'old/merged-b'} <= set(goes) and 'feature/mine' in stays
+                  and not (self.work / 'wt-old').exists() and set(goes) <= restorable and 'develop' not in goes and 'main' not in goes,
+                  f"{got['evidence']}; old worktree removed {not (self.work / 'wt-old').exists()}; restorable now: {sorted(set(goes) & restorable)}")
+
     def wave_cases(self):
         """One real managed EAOS batch, started and finished from the Studio's command centre, accepted from Branches."""
         from eaos import guided
@@ -618,7 +660,7 @@ def main(argv=None):
         trial.build()
         trial.serve()
         for name in ('detached_first', 'rescan', 'freshness_cases', 'legacy', 'wave_cases', 'rescan_branch', 'zones', 'snapshot',
-                     'inventory_cases', 'selection_cases', 'merge_cases', 'guard_cases', 'delete_cases', 'ui', 'realtime', 'views'):
+                     'inventory_cases', 'selection_cases', 'merge_cases', 'guard_cases', 'delete_cases', 'ui', 'realtime', 'governance_cases', 'views'):
             t = time.monotonic()
             try: getattr(trial, name)()
             except Exception as problem:

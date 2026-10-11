@@ -351,6 +351,22 @@ export interface DeletePreview {
   blocked: Reason[]
   confirm: Confirm | null
   confirm_unmerged?: Confirm | null
+  /** whose branch it is (eaos, shared, yours): told before confirming; it never blocks the person's own change */
+  whose?: Reason
+  /** the clean worktree (not the project folder) removed together with the branch */
+  worktree?: string | null
+}
+
+/** The one-step cleanup: merged branches and old clean worktrees that go, what stays and why. */
+export interface CleanupPreview {
+  base: string | null
+  kept_branches: string[]
+  branches: { branch: string; tip: string; merged_into: string; whose: Reason; worktree: string | null }[]
+  worktrees: { path: string; head: string; prunable: boolean }[]
+  kept: { branch: string; reasons: Reason[] }[]
+  digest: string
+  blocked: Reason[]
+  confirm: Confirm | null
 }
 
 export interface BranchApi {
@@ -365,5 +381,7 @@ export interface BranchApi {
   previewDelete(branch: string, where: 'local' | 'remote', remote?: string | null): Promise<DeletePreview>
   remove(preview: DeletePreview, second?: boolean): Promise<{ run: Run }>
   restore(recovery: string, as?: string): Promise<{ run: Run }>
+  previewCleanup(): Promise<CleanupPreview>
+  cleanup(preview: CleanupPreview): Promise<{ run: Run }>
   fetch(remote?: string): Promise<{ run: Run }>
 }

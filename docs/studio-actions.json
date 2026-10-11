@@ -2318,13 +2318,13 @@
    "method": "POST",
    "path": "/api/branches/delete/preview",
    "body": "{branch, where: local|remote, remote?}",
-   "does": "What deleting does: merged or the commits only it holds, blocked reasons, a confirm token, and for unmerged commits a second one."
+   "does": "What deleting does: whose branch it is, merged or the commits only it holds, the clean worktree removed with it, blocked reasons, a confirm token, and for unmerged commits a second one."
   },
   {
    "method": "POST",
    "path": "/api/branches/delete",
-   "body": "{branch, where, remote?, tip, unmerged, confirm, confirm_unmerged?}",
-   "does": "Deletes one tool-owned branch locally, or on one remote (a separate consent), after writing a recovery ref; never a force deletion."
+   "body": "{branch, where, remote?, tip, unmerged, worktree, confirm, confirm_unmerged?}",
+   "does": "Deletes one branch the person chose (EAOS's or their own) locally, or on one remote (a separate consent), after writing a recovery ref; a clean worktree holding it is removed by git without --force; never a force deletion."
   },
   {
    "method": "POST",
@@ -2349,6 +2349,18 @@
    "path": "/api/branches/protect",
    "body": "{branch, protected, confirm?}",
    "does": "Protects a branch, or (with its confirm token) removes this project's protection; EAOS's own main always stays protected."
+  },
+  {
+   "method": "POST",
+   "path": "/api/branches/cleanup/preview",
+   "body": "{}",
+   "does": "What cleaning up removes: every local branch already in the base or a protected branch (no commit lost) that is not protected, default, analysed, checked out in the project folder or a dirty worktree, nor used by a run; the clean detached worktrees whose commit is kept; what stays and why; a confirm token bound to that exact list (digest)."
+  },
+  {
+   "method": "POST",
+   "path": "/api/branches/cleanup",
+   "body": "{digest, confirm}",
+   "does": "Removes exactly the previewed list if git still says the same: a recovery ref per branch first, worktrees removed by git without --force, each branch only at its previewed commit; one run in the history."
   }
  ],
  "security": {

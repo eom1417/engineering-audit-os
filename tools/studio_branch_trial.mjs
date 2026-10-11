@@ -387,6 +387,37 @@ try {
     await ctx.close()
   }
 
+  if (phase === 'cleanup_ui') {
+    // the person's one step: open Branches, "Clean up merged branches", read what goes and what stays, confirm
+    const seen = []
+    for (const [width, lang, theme] of [[390, 'ar', 'dark'], [1440, 'en', 'light']]) {
+      const { ctx, page } = await open({ width, lang, theme, route: '/branches?show=all' })
+      await page.locator('[data-cleanup] > button').first().click()
+      await page.waitForSelector('[data-cleanup=ready]', { timeout: 20000 })
+      await page.waitForTimeout(400)
+      const m = await measure(page, width)
+      const violations = await axe(page)
+      const goes = await page.locator('[data-goes]').evaluateAll((els) => els.map((el) => el.getAttribute('data-goes')))
+      const stays = await page.locator('[data-stays]').evaluateAll((els) => els.map((el) => el.getAttribute('data-stays')))
+      await page.screenshot({ path: path.join(shots, `cleanup-${width}-${lang}-${theme}.png`), fullPage: true })
+      seen.push({ width, lang, theme, goes, stays, layout: m.layout, small: m.small, axe: violations })
+      if (width === 1440) {
+        await page.locator('[data-cleanup] button', { hasText: 'Confirm the cleanup' }).click()
+        await page.waitForSelector('[data-cleanup=nothing]', { timeout: 30000 })
+        await page.waitForTimeout(400)
+        await page.screenshot({ path: path.join(shots, `cleanup-done-${width}-${lang}-${theme}.png`), fullPage: true })
+      }
+      await ctx.close()
+    }
+    const left = git('for-each-ref', '--format=%(refname:short)', 'refs/heads').split('\n')
+    const want = extra.goes.slice().sort()
+    const ok = seen.every((v) => JSON.stringify(v.goes.slice().sort()) === JSON.stringify(want) && extra.stays.every((s) => v.stays.includes(s))
+      && v.layout === v.width && v.small.length === 0 && v.axe.length === 0)
+      && extra.goes.every((b) => !left.includes(b)) && extra.stays.every((s) => left.includes(s))
+    check('cleanup_ui', ok, `shown to go: ${JSON.stringify(seen.map((v) => v.goes))}; shown to stay with reasons: ${JSON.stringify(seen.map((v) => v.stays))}; `
+      + `after confirming in the page, branches left: ${left.join(' ')}; layout ${seen.map((v) => `${v.layout}/${v.width}`)}; small targets ${seen.map((v) => v.small.length)}; axe ${seen.map((v) => v.axe.length)}`)
+  }
+
   if (phase === 'realtime_branches') {
     // the Branches page follows a branch created outside the Studio without a reload (focus refresh)
     const { ctx, page } = await open({ route: '/branches?show=all' })
