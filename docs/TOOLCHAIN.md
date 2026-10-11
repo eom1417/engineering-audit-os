@@ -136,6 +136,8 @@
 | knip | npm، مشروع فيه `package.json` | `knip --config <workdir>/knip-config.json --reporter json` وكل الإضافات مطفأة كي لا يُشغَّل أي ملف إعداد من المشروع | JSON | `dead_code` (ملفات وexports) و`unused_dependency`؛ ويحلّ أسماء `@/` من `tsconfig` بنفسه |
 | ast-grep | pip (`ast-grep-cli`) | `ast-grep scan --config eaos/rules/ast-grep/sgconfig.yml --json=stream --include-metadata .` | JSON سطرًا سطرًا | سجلات بنيوية: المكوّنات بأسمائها، و`useEffect` الذي ينسخ الحالة؛ القاعدة التي تسمّي `kind` تصير نتيجة |
 | react-docgen | npm (`@react-docgen/cli`) | `react-docgen --resolver find-all-exported-components --out <workdir> <ملفات .tsx/.jsx>` على دفعات | JSON | سجل لكل مكوّن بخصائصه وأنواعها، ليُفرَّق بين خصائص المكوّن ونماذج البيانات |
+| CodeCharta | npm (`codecharta-analysis`)، ويعمل على Temurin JRE المثبّت | `ccsh unifiedparser TARGET -nc`، و`ccsh gitlogparser repo-scan --repo-path TARGET -nc`، ثم `ccsh merge` | `cc.json` | مدينة الكود في مرحلة `architecture`: حجم كل ملف وتعقيده وكم يتغيّر، تُرسم في معرض التقرير |
+| Emerge | pip (`emerge-viz`) في بيئة خاصة به | `emerge -c <workdir>/emerge.yaml`، تحليل لكل لغة في المشروع | JSON وصفحة HTML محلية | عناقيد الاعتماد (Louvain) وfan-in وfan-out لكل ملف في مرحلة `architecture` |
 
 ### ما يولّده EAOS، والمدقق الذي يحكم عليه
 
@@ -163,6 +165,8 @@
 | الأداة | التثبيت | الأمر | يُكتب إلى |
 |---|---|---|---|
 | Playwright | npm مع متصفحاته | `npx playwright test --reporter=json` | `behavior-lock/results*.json` |
+| rrweb (مع rrweb-player) | npm، مكتبة تُحقن في الصفحة | تُضاف إلى كل صفحة بعد تحميلها أثناء رحلات Playwright (مرحلة `journeys`) | `*.rrweb.json` لكل رحلة، تُعاد في معرض التقرير من ملفات محلية |
+| Unlighthouse | npm (`@unlighthouse/cli`) | `unlighthouse-ci --config-file <workdir>/unlighthouse.config.ts` على عنوان التطبيق المحلي، صفحة واحدة في كل مرة | تقرير Lighthouse لكل صفحة، وقائمة الصفحات التي تصوّرها مرحلة `screens` |
 | Schemathesis | pip | `schemathesis run <openapi> --url BASE_URL` | `behavior-lock/results*.json` |
 | k6 | release | `k6 run --summary-export out.json nfr/k6/<s>.js` | `runtime/performance.json` |
 | OWASP ZAP | tarball، ويحتاج Java 17 | `zap.sh -cmd -autorun nfr/zap.yaml` | `runtime/security.json` |

@@ -404,7 +404,10 @@ System -> Functions (`#/system/functions`, `#/system/f/<functionId>`) and System
 ## Live: the local server (NS37.T2)
 
 `eaos studio` (and the `open_studio` tool, for an assistant) rebuilds the Studio data from the ledger, starts a server
-for the project on 127.0.0.1 and opens `http://127.0.0.1:<port>/#token=<launch token>` in the browser. The server is
+for the project on 127.0.0.1 and opens `http://127.0.0.1:<port>/` in the browser: a plain address, with no token at
+its end. The launch token and the port are kept per project, so the address stays the same across restarts and a
+saved one keeps opening it; `eaos studio --background` starts it and prints the address, and the installer does that
+for the project it was run from. The server is
 `eaos/api/` on Starlette, Uvicorn and sse-starlette, which come with `mcp` (docs/adoption/ns37-t2-live-server.md). One
 server runs per project: its record (port, process, token) is `~/.eaos/studio/<workspace>.json`, readable by the person
 only, and a second `eaos studio` or `open_studio` reopens it.
@@ -421,9 +424,17 @@ only, and a second `eaos studio` or `open_studio` reopens it.
 Rules, enforced by `eaos/api/guard.py` and `tests/test_studio_api.py`:
 
 - It listens on 127.0.0.1 only, and answers only to the Host `127.0.0.1:<port>` or `localhost:<port>` (DNS rebinding).
-- Every `/api/` call carries `X-EAOS-Token`, compared in constant time. The token travels in the address's fragment,
-  which no browser sends to a server; `boot.js` keeps it in the tab's session storage and removes it from the address
-  (`#token=…`, or `#/<route>?…&token=…` to open a route). It never reaches a log, the page or the session answer.
+- Every `/api/` call carries `X-EAOS-Token`, compared in constant time. The Studio's page gets the token from
+  `live-token.js`, which the server gives only to the person's own navigation or the page's own request
+  (`Sec-Fetch-Site` none or same-origin, with the matching `Sec-Fetch-Dest`); another site can neither include it nor
+  read the page. An address carrying the token in its fragment (`#token=…`, or `#/<route>?…&token=…`) still works:
+  `boot.js` keeps it in the tab's session storage and removes it from the address. It never reaches a log or the
+  session answer.
+- **On a remote server.** With a Remote address template in `~/.eaos/remote-origin` or `$EAOS_REMOTE_ORIGIN` (for
+  example `https://<project>--{port}.dev.remote.e-m.sa`), the Studio listens on 0.0.0.0, answers to that exact host
+  (besides 127.0.0.1 and localhost), and gives that address with no token at its end: the sign-in in front of the
+  server guards it, and the page reads its token from `live-token.js` (`page_reads_token` in the record). `--remote-origin` without a template, and
+  without `EAOS_STUDIO_TRUST_REMOTE_LOGIN=1`, keeps the token in the address.
 - The read API has no write. A write that is mounted beside it (the action API) needs `X-EAOS-CSRF`, from
   `/api/session`, and an Origin (or a Referer) of this server.
 

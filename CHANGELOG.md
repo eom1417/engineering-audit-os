@@ -23,8 +23,9 @@
   `http://127.0.0.1:<port>/`, with no token at its end, and it stays the same when the Studio restarts (an address
   saved before keeps opening it). Installed from inside a project, EAOS opens that project's Studio at once, on
   "Preparing the tools"; `eaos studio --background` does the same from anywhere. On a remote server, the Studio
-  gives its server address instead, with its key, as before: set it once in `~/.eaos/remote-origin` (or
-  `$EAOS_REMOTE_ORIGIN`), for example `https://<project>--{port}.dev.remote.e-m.sa`.
+  gives its server address instead, also with no token at its end (it listens on every interface, and the page
+  receives its token itself): set it once in `~/.eaos/remote-origin` (or `$EAOS_REMOTE_ORIGIN`), for example
+  `https://<project>--{port}.dev.remote.e-m.sa`.
 - **The Studio** names the new stages on the live map and lists every rule-vs-assistant disagreement, with both
   views, on the decisions page.
 

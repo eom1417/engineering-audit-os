@@ -8,15 +8,17 @@ the rest.
 
 ## 1. Install EAOS (once)
 
-Open the Terminal, paste this line, and press Enter:
+Open the Terminal **in your project folder**, paste this line, and press Enter:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/main/install.sh | bash
 ```
 
-- **Takes:** 3 to 10 minutes.
-- **You should see:** ✅ "EAOS is installed", then "EAOS is now inside your AI assistant: Claude Code".
+- **You should see:** ✅ "EAOS is installed", then "EAOS is now inside your AI assistant: Claude Code", and then
+  **the Studio** opens in your browser on "Preparing the tools" (see "Follow it in the Studio" below).
 - **Needs:** git, and Claude Code or Codex installed and signed in. If something is missing, the line says where to get it.
+- **The newest version:** the line installs from the `main` branch. To try the newest before it reaches `main`, use:
+  `curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/develop/install.sh | EAOS_SOURCE=git+https://github.com/eom1417/engineering-audit-os@develop bash`
 
 ## 2. Open your assistant in your project folder
 
@@ -27,25 +29,51 @@ If your assistant was open before the install, close it and open it again so it 
 
 > **How do I open the Terminal in my project folder?** Type `cd` and a space, drag the project folder from Finder into the Terminal window, and press Enter.
 
-## 3. Ask in your own words
+## 3. Ask in your own words, or pick from the menu
 
-Write to your assistant:
+**Not sure where to start?** Type `/eaos` alone and press Enter (in Codex: `$eaos`). A menu shows what EAOS can do
+for your project now, the fitting step first (marked "recommended"): check, continue where we stopped, review the
+ready fixes, open the report, done and coming next, ask about your project, tools. In Claude Code you move with the
+arrows and pick with Enter; in Codex you reply with the option's number. "More options…" shows the rest.
+
+Or write to your assistant:
 
 > **Check my project with EAOS and fix its problems**
 
 What happens next:
 
-| Step | What the assistant does | Takes |
-| --- | --- | --- |
-| Check | Checks the whole project, then explains the main problems in plain words | 5 to 30 minutes |
-| One question | Asks: "May I run your app in a separate copy, with a temporary database and none of your secrets, and prepare fixes there?" Answer: **yes** | — |
-| Run | Runs your app in the separate copy. If it needs a sign-in or data, it reads your code and prepares them itself | 5 to 20 minutes |
-| Record | Records every screen of your app before any change | 5 to 15 minutes |
-| Fix | Writes the fixes; EAOS checks each one: the problem is gone, nothing broke, every screen is the same. What fails is left out | 20 to 60 minutes |
-| Hand over | Puts what passed on a new branch in your project (`eaos/wave-1`) and tells you what changed | — |
+| Step | What happens |
+| --- | --- |
+| Two questions | "May I use your assistant to judge the findings?" and "May I run your app in a separate copy, with a temporary database and none of your secrets?" Answer: **yes** |
+| Evidence | The tools read the whole code. With your consent it runs your app in the separate copy, records the user journeys, pictures every screen light and dark at phone and desktop width, and measures its speed |
+| Judgement | The tools propose the problems, the cards and the target structure, and your assistant judges each proposal on its evidence: accepts, changes or rejects it. It also looks at the screen pictures and notes what it sees |
+| Explanation | It explains the main problems in plain words |
+| Fix | It writes the fixes; EAOS checks each one: the problem is gone, nothing broke, every screen is the same. What fails is left out |
+| Hand over | It puts what passed on a new branch in your project (`eaos/wave-1`) and tells you what changed |
+
+How long it takes depends on your project's size. You do not need to guess: the Studio shows every stage as it runs,
+what is finished and what is left. If you say "no" to either question, the check goes on without it, and the report
+says plainly what was not done and why.
 
 At the end it asks: **take the fixes in, or throw them away?** Tell it what you want. Your current branch and
 files do not change until you agree.
+
+## Follow it in the Studio
+
+The Studio is a page in your browser that shows everything about your project, updated as it happens:
+
+- **Preparing the tools:** every tool with its state. "Start the check" unlocks by itself once your project's tools are ready.
+- **The live map:** the check's stages as they run: what each does, how long it took, what it produced, and why it was skipped if it was.
+- **The project:** the current state, the ideal picture, the screens, the cards with their evidence, and the plan.
+- **Decisions:** what waits for you, and every disagreement between the rules and your assistant, with both views, for you to settle.
+
+**How to open it:** it opens by itself after the install. To open it any time, say "open the Studio" to your
+assistant, or type `eaos studio` in the Terminal inside your project folder.
+
+| Where you work | The address |
+| --- | --- |
+| On your own computer | `http://127.0.0.1:<number>/`: a plain address with no token at its end, the same after a restart, so bookmark it |
+| On a remote server | the server's own address, with no token at its end, guarded by the sign-in in front of the server. Write its pattern once in the file `~/.eaos/remote-origin` (for example `https://<project>--{port}.dev.remote.e-m.sa`) |
 
 ## 4. Read the report
 
@@ -60,14 +88,17 @@ Say to your assistant: **"Open the report"**. It opens one page in your browser 
 5. **Plan and progress:** the stages and what is done, the decisions that need you, and **every task card**, folded:
    open one to see its state (fixed and merged, on a branch waiting for you, open, needs your decision) and details.
 
-The report updates itself after every merge, and counts only what is in your branch.
+The report updates itself after every merge, and counts only what is in your branch. Every decision in it says
+**who made it**: the tools and your assistant agreed, your assistant changed it with evidence, the rules alone, or a
+disagreement where the rules' view was kept.
 
 Everything EAOS makes is in one folder: **`~/EAOS/<your project name>/`**
 
 | In it | What it is |
 | --- | --- |
 | `REPORT.html` | The report for you: double-click to open |
-| `technical/` | The full technical report, for your assistant and developers. You do not need to open it |
+| `HANDOVER.md` | Where the work stopped and what is left, to carry on with any assistant |
+| `technical/` | The full technical report, for your assistant and developers. In it, `gallery/index.html`: your app's screens with the problems drawn on them, and the user journeys replayed |
 | `fixes/` | Every batch of fixes: what changed, what did not pass and why |
 | `logs/` | Technical logs, for whoever helps you if something goes wrong |
 
@@ -138,12 +169,15 @@ assistant "change the database to …" and it knows where.
 | Write to your assistant | What it does |
 | --- | --- |
 | "Where are we?" | Where the project is and what comes next |
+| "Open the Studio" | Opens the live interface and gives you its address |
 | "Open the report" | Opens REPORT.html |
 | "What is the most important problem? Show me the evidence" | Explains one problem with its evidence and code |
 | "Take the fixes in" or "Merge it" | Merges the branch of fixes into yours, deletes the branch, updates the report |
 | "Continue the EAOS work" | Goes on from where it, or another assistant, stopped |
 | "Undo the fixes" | Deletes the branch of fixes; your project is as it was |
 | "Build my project from this plan" | Build from a plan (step 6) |
+| `/eaos` alone (or `$eaos` in Codex) | A menu of what fits your project now, to pick from |
+| "What is affected if I change this file?" | The files that import it, the tests that cover it, and the files that usually change with it, from the check's records |
 
 ## If you see…
 
@@ -163,6 +197,6 @@ The same way works as commands in the Terminal: `eaos start .`, then `eaos next`
 ## What EAOS never does
 
 - It does not change your project's files or your current branch. Fixes reach you as a separate branch, and you decide.
-- It does not use your secrets or your `.env` file, and never connects to your real database.
+- It does not run your app without your consent, does not use your secrets or your `.env` file, and never connects to your real database.
 - It publishes nothing and never touches production (Railway, Vercel or any other).
 - It does not delete a feature or a screen to hide a problem: a fix that does is refused.

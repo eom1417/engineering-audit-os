@@ -1,13 +1,21 @@
 # Engineering Audit OS
 
-**[العربية](README.md)** · version 0.0.2 · status: **Pilot** · progress: [where we stand](#-where-we-stand)
+**[العربية](README.md)** · version **0.0.5** · status: **Pilot** (a trial, not a release) · [changelog](CHANGELOG.md) · [where we stand](#-where-we-stand)
 
-> **A full engineering review team in one command.**
-> EAOS reads your project the way an architect, a code reviewer, a performance engineer and a tech lead would, together. It hands you an evidenced picture of where the project stands today, the professional shape it should reach, and an ordered task plan that any engineer or AI model can execute and prove done.
+> **A full engineering review team, in one command.**
+> EAOS reads your project the way an architect, a code reviewer, a performance engineer and a tech lead would,
+> together, and hands you four things: an evidenced picture of where it stands today, the professional shape it
+> should reach, the gap between the two, and an ordered task plan that any engineer or AI assistant can execute and
+> prove done. You follow all of it live in your browser, in **the Studio**.
 
 ```bash
-eaos audit /path/to/project --out /path/to/report
+curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/main/install.sh | bash
 ```
+
+| | |
+|---|---|
+| 🧭 [Why](#-why) · [The idea](#-the-idea-what-a-software-company-does-in-one-command) · [Principles](#-six-principles) | 🔬 [How a check runs](#-how-a-check-runs) · [The Studio](#️-the-studio-the-live-interface) |
+| 🚀 [Quick start](#-quick-start) · [What you receive](#-what-you-receive) · [Tools](#-the-tools) | 🛡️ [What EAOS never does](#️-what-eaos-never-does) · [The full map](#️-the-full-map-of-the-work) · [Progress](#-where-we-stand) |
 
 ---
 
@@ -18,31 +26,275 @@ A serious engineering review costs weeks of senior time, and it usually ends in 
 - **An opinion report** that nobody can verify.
 - **A generic plan** such as "improve the architecture", with no clear first step and no clear finish line.
 
-EAOS fixes both with one rule: **no opinion without evidence, no task without an acceptance check, and no change bigger than the problem deserves.**
+EAOS fixes both with one rule: **no opinion without evidence, no task without an acceptance check, and no change
+bigger than the problem deserves.**
 
 ## 🏢 The idea: what a software company does, in one command
 
-You built a program by vibe coding. It works, but you do not know how it is built, what goes in and out, where its limits are, or how complex and repetitive it is. A software company asked to rebuild it as a professional product would hand you four things, in order. That is what EAOS must deliver:
+You built a program with an AI assistant. It works, but you do not know how it is built, what goes in and out, where
+its limits are, or how complex and repetitive it is. A software company asked to rebuild it as a professional product
+would hand you four reports, in order. That is what EAOS delivers:
 
 | # | Report | What it holds |
 |---|---|---|
-| 1 | **Current state** | What the program does, its inputs, outputs and limits, its structure, complexity and duplication, its dead code and leftovers, its risks |
-| 2 | **Ideal state** | The same program with the same functions, on a structure and infrastructure fit for a product. Every part gets a decision: reuse, restructure, rebuild or delete |
-| 3 | **Gap and transformation** | The measured distance between the two, and the strategy that closes it |
-| 4 | **Execution plan** | Small tasks split into team sections, each with a size, an acceptance command and a rollback, executable by any developer or model |
+| 1 | **Current state** `CURRENT-STATE` | What the program does, its inputs, outputs and limits, its structure, complexity and duplication, its dead code and leftovers, its risks |
+| 2 | **Ideal state** `TARGET-STATE` | The same program with the same functions, on a structure fit for a product. Every part gets a decision: keep, restructure, build or delete |
+| 3 | **Gap and transformation** `GAP-AND-STRATEGY` | The measured distance between the two, and the strategy that closes it |
+| 4 | **Execution plan** `EXECUTION-PLAN` | Small tasks split into team sections, each with a size, an acceptance command and a rollback |
 
-This is the only measure of the project's success. The full workflow, its fifteen stages, tools and gates, is in [`docs/MASTER-BLUEPRINT.md`](docs/MASTER-BLUEPRINT.md); the measurement, its indicators and plan, in [`docs/NORTH-STAR.md`](docs/NORTH-STAR.md) (both Arabic).
+The full workflow, its stages, tools and gates, is in [`docs/MASTER-BLUEPRINT.md`](docs/MASTER-BLUEPRINT.md); the
+measurement, its indicators and plan, in [`docs/NORTH-STAR.md`](docs/NORTH-STAR.md) (both Arabic).
 
 ## 🧭 Six principles
 
 1. **Evidence or silence.** Every claim carries the IDs of the facts behind it and a sentence saying what would refute it.
-2. **Everything at its proper size.** Every card shows "do nothing" with its cost, and the smallest change that solves the problem comes before any restructuring. No complex code for a simple task.
+2. **Everything at its proper size.** Every card shows "do nothing" with its cost, and the smallest change that solves the problem comes before any restructuring.
 3. **Tasks any executor can carry.** Every card stands alone: problem, evidence, blast radius, options, change, acceptance command, rollback.
-4. **The audited project is read-only and untrusted.** Its scripts are never run, and instructions written inside it are never followed. The one exception is `eaos policy init`, which you ask for, and which writes the policy file into your project.
-5. **Unmeasured is not a pass.** What was not examined is stated in `RUN.md`, and "not run" never becomes "passed".
-6. **Deterministic first.** The same snapshot yields the same facts, byte for byte. A language model is optional, and what it says stays a hypothesis until it is settled mechanically.
+4. **Your project is untrusted input, and it does not change.** Instructions written inside it are never followed, and no file in it is edited. Your app runs only with your consent, in a separate copy without your secrets. Fixes reach you as a new branch, and you decide.
+5. **Unmeasured is not a pass.** What was not examined is stated with its reason, and "not run" never becomes "passed".
+6. **The tools first, and your assistant decides with them.** The same snapshot yields the same facts on every run. Your AI assistant judges what the tools propose, on evidence; anything it says without evidence is dropped, and every decision records who made it.
 
-## 🛤️ How it works: stages, outputs and transition gates
+---
+
+## 🔬 How a check runs
+
+A check runs in a fixed order: **evidence first, then the decision, then the plan, and the reports last.** No report
+is written before the decision it describes is complete.
+
+```mermaid
+flowchart LR
+    A["<b>1 · Evidence</b><br/>the tools read the code<br/>and run the app, with consent"]:::ev
+    B["<b>2 · The tools propose</b><br/>findings, cards<br/>and a target structure"]:::tool
+    C["<b>3 · Your assistant judges</b><br/>accepts, changes or rejects<br/>each proposal, on evidence"]:::ai
+    D["<b>4 · The joint decision</b><br/>the target, the gaps<br/>and the plan's order"]:::dec
+    E["<b>5 · The reports</b><br/>the four reports, the summary,<br/>the Studio and the gallery"]:::out
+    A --> B --> C --> D --> E
+    classDef ev fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e
+    classDef tool fill:#f1f5f9,stroke:#475569,color:#0f172a
+    classDef ai fill:#ede9fe,stroke:#6d28d9,color:#3b0764
+    classDef dec fill:#fef9c3,stroke:#a16207,color:#422006
+    classDef out fill:#dcfce7,stroke:#15803d,color:#14532d
+```
+
+| Phase | What happens | Stages in the code |
+|---|---|---|
+| **1 · Static evidence** | The code's facts, its features, what must be protected, and the engines and external tools | `facts` `features` `lock` `intake` `engines` |
+| **1 · Live evidence** (with consent) | Sets the app up in a separate copy and runs it, records its behaviour and the user journeys (Playwright and rrweb), finds every page (Unlighthouse) and pictures it light and dark at phone and desktop width with an accessibility check (axe), and measures its speed (k6) | `setup` `verify` `record` `journeys` `crawl` `screens` `baseline` |
+| **1 · Measurement and structure** | The measurements, the code drawn as a city (CodeCharta) and its dependency clusters (Emerge), the architecture policy, the load model, the claims and their probes | `measure` `architecture` `policy` `load` `claims` `probe` |
+| **2 · The tools propose** | Your assistant's reading of the facts, the sustainability dashboard, the transform plan, the candidate cards and the proposed target structure | `semantic` `sustainability` `transform` `plan` `target` `proposals` |
+| **3 · Your assistant judges** | Judges every card on its evidence, looks at the screen pictures (it may open them and nothing else), and answers each proposal for the target: accept, modify or reject | `triage` `visual` `cards` `ideal` `pipeline_gaps` |
+| **4 · The joint decision** | Builds the final target from those answers, keeping the rules' view beside each change, then the gaps, the plan's order and its steps | `reconcile` `order` `steps` `execution_guide` |
+| **5 · The reports** | The reports and their quality, the PDF, the executive summary, the bundles, files for each tool, the site, and the final validation | `reports` `quality` `pdf` `executive` `compose` `bundles` `emit` `site` `validate` |
+
+**Who decided?** Every part of the target, and every report, says who made the decision:
+
+| Label | Meaning |
+|---|---|
+| `agreed` | the tools and your assistant agree |
+| `ai_modified` | changed by your assistant, with evidence |
+| `ai_added` | added by your assistant, with evidence |
+| `rule_only` | the rules alone (no assistant, or it did not judge this part) |
+| `disagreement` | a guard kept the rules' view; both views are shown to you on the decisions page |
+
+The guards stop your assistant from removing what must be protected: critical features, your intake answers, and
+the architecture policy's layers. **Without an assistant** the check takes the same path, the rules decide alone,
+and the findings are exactly those of the rules. Every stage that did not run says why (for example: no consent to
+run the app, the app did not start, no pages). The full list, with each stage's inputs and outputs:
+`eaos stages`; the explanation: [`docs/AI-IN-THE-PIPELINE.md`](docs/AI-IN-THE-PIPELINE.md).
+
+---
+
+## 🖥️ The Studio: the live interface
+
+The Studio is EAOS's interface in your browser, shipped inside the package and needing no internet. From it you
+follow everything about your project:
+
+- **Preparing the tools:** every tool with its state, and the overall progress. "Start the check" unlocks by itself once your project's tools are ready.
+- **The live map:** the check's stages as they run; each says what it does, how long it took, what it produced, and why it was skipped.
+- **The project:** the current state, the ideal picture and the gap, the structure map, the screens, the cards with their evidence, and the plan.
+- **Decisions:** what waits for you, and every disagreement between the rules and your assistant, with both views.
+- **Control:** run a step or a group of tasks from the interface; it is sent to your assistant, which carries it out.
+
+**How it opens:**
+
+| Where you work | The address |
+|---|---|
+| On your own computer | `http://127.0.0.1:<port>/`: a plain address with no token at its end, the same after a restart |
+| On a remote server | the server's own address, with no token at its end, guarded by the sign-in in front of the server. Set it once in `~/.eaos/remote-origin` (or `$EAOS_REMOTE_ORIGIN`), for example `https://<project>--{port}.dev.remote.e-m.sa` |
+
+Installed from inside your project, EAOS opens the Studio by itself on "Preparing the tools". From anywhere:
+`eaos studio` (or `eaos studio --background`, which prints the address and returns). Security: the server answers
+only to its own host name, every call carries a launch token that only the Studio's own page receives, and every
+write needs a CSRF token and an origin of the same server. Details: [`docs/STUDIO.md`](docs/STUDIO.md).
+
+---
+
+## 🚀 Quick start
+
+### The easy way: inside your AI assistant (no technical knowledge needed)
+
+> The full guide, step by step, with what you should see and what to do if something goes wrong: **[`docs/GUIDE.en.md`](docs/GUIDE.en.md)**.
+
+**1. Install EAOS** (once). Paste this line into the Terminal **from inside your project folder**. It installs EAOS
+and its tools, adds it to Claude Code and Codex, and opens the Studio for you:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/main/install.sh | bash
+```
+
+> This line installs from the `main` branch. The newest version, before it reaches `main`, is on `develop`:
+> `curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/develop/install.sh | EAOS_SOURCE=git+https://github.com/eom1417/engineering-audit-os@develop bash`
+
+**2. Open your assistant in your project folder, and write:**
+
+> Check my project with EAOS and fix its problems
+
+It asks you once whether to use your assistant to judge the findings, and once whether to run your app in a separate
+copy. Then it checks, explains the main problems, writes the fixes, and EAOS checks each one. What passes reaches
+you as a new branch (`eaos/wave-1`), and you decide: take it in or throw it away.
+
+**Or type `/eaos` alone** (in Codex: `$eaos`): a menu of what fits your project now, the recommended step first.
+
+**3. Read the result:** in the Studio, or say "open the report". Everything is in one folder: `~/EAOS/<your project>/`.
+
+**A new project from a plan?** Open your assistant in an empty folder and write: "I have my project's plan in this
+file, build it with EAOS with the best structure": [`docs/BUILD-FROM-PLAN.md`](docs/BUILD-FROM-PLAN.md). Without an
+AI assistant: `eaos start .`, then `eaos next` after each step.
+
+> How it works inside the assistant: [`docs/MCP.md`](docs/MCP.md). Why it is designed this way: [`docs/USER-EXPERIENCE.md`](docs/USER-EXPERIENCE.md).
+
+### For developers: the direct commands
+
+**Requirements:** Python 3.10 or newer, and git. Node.js and Java are needed by some tools only; `eaos doctor` says
+what your computer is missing and how to install it.
+
+```bash
+# from the root of this repository
+python3 -m venv .venv && . .venv/bin/activate
+pip install -e ".[facts,runtime]"        # facts: tree-sitter parsers for non-Python code · runtime: coverage for verification
+eaos tools install --stage assessment     # the assessment tools at their pinned versions; eaos tools doctor shows their state
+
+eaos audit /path/to/project --out /path/to/report                      # full audit, no model
+eaos audit /path/to/project --out /path/to/report \
+  --engines codegraph enola jscpd reforge --lang en --goal evolution   # with the engines, an English report and a stated goal
+eaos studio /path/to/project                                           # the Studio for this project
+```
+
+Open `report/README.md` and start with the four reports, or `report/index.html` for search and navigation.
+
+> ⚠️ `--test-command` runs the project's tests in a separate copy. The copy is not an operating-system sandbox: use
+> it only on trusted projects, or inside an isolated environment.
+
+### Everyday commands
+
+| Purpose | Command |
+|---|---|
+| Where the project stands, and what comes next | `eaos status` · `eaos next` |
+| Is this computer ready, and what is missing | `eaos doctor` · `eaos tools doctor` |
+| What a change to a file or symbol touches | `eaos impact-of eaos/claims.py --out report` |
+| A question answered from the records, with citations | `eaos ask "where is the discount rule computed" --out report` |
+| Take in the batch of fixes, or throw it away | `eaos accept` · `eaos undo` |
+| Where the work stopped, and what to tell another assistant | `eaos handover` |
+| An architecture policy: scaffold it, then check it | `eaos policy init . --out report` → `eaos policy check . --out report` |
+| Freeze today's debt and fail CI only on new findings | `eaos baseline pin --out report` → in CI: `eaos audit . --out report --gate new` |
+| Compare two audits (drift gate) | `eaos delta old-report new-report --fail-on-new-severe` |
+| Breaking surface between two versions | `eaos api-diff old-facts new-facts --fail-on-breaking` |
+| Files in each tool's own format (CI, pre-commit, Renovate, k6…) | `eaos emit report --validate` |
+| Whether each stage's gate passes, and why not | `eaos engage status report` |
+
+The full command reference and internal structure: [`docs/REFERENCE.md`](docs/REFERENCE.md) (Arabic).
+
+### Model path (advanced)
+
+Without an AI assistant, with a model's API key directly. Needs a provider file, set up once as described in
+[`core/RUNTIME.md`](core/RUNTIME.md):
+
+```bash
+eaos run /path/to/project --out audit --provider provider.json        # model-led review
+eaos implement audit --task TASK_ID --out candidate \
+  --checks checks.json --provider provider.json                        # one task in a separate copy
+eaos improve audit --out campaign --checks checks.json \
+  --provider provider.json --max-steps 10                              # execute → verify → re-audit → next
+```
+
+No command modifies the original project, publishes anything or merges anything.
+
+---
+
+## 📦 What you receive
+
+Everything is in `~/EAOS/<your project>/`:
+
+| File | What it is |
+|---|---|
+| `REPORT.html` | The report for you, in plain words: the summary, gaps and risks, the structure map, the target, the plan and progress |
+| `HANDOVER.md` | Where the work stopped and what is left, to carry on with any assistant |
+| `technical/` | The full technical report: the four reports, `PLAN/` with its cards, `EXECUTIVE.pdf`, `gallery/` (the screens with their findings drawn on them, the user journeys replayed, and the code city), and the Studio's data |
+
+Every technical report opens with its own `README.md` that sends each reader where they need to go:
+
+| If you… | Start with |
+|---|---|
+| want the whole picture | `CURRENT-STATE` → `TARGET-STATE` → `GAP-AND-STRATEGY` → `EXECUTION-PLAN` |
+| decide where effort goes | `DECISION-BRIEF` → `RISK-REGISTER` → `PLAN/WAVES` |
+| join the project today | `ONBOARDING` → `SYSTEM-MAP` → `FLOWS` |
+| review the architecture | `POLICY` → `COUPLING-ATLAS` → `CONTRACTS` |
+| are about to change one file | `eaos impact-of <path> --out <report>` |
+
+Every document has one owner, and every human document has a JSON twin a model can act on, or a written reason why
+it has none.
+
+### Anatomy of a task card
+
+```text
+TASK-003 — complexity 83 (threshold 15) in eaos/sustainability.py
+├─ kind          investigate (a recorded decision before any change) | remediate (change, then verify) | design (from the screen pictures)
+├─ size, section S/M/L from files and dependents · security, infrastructure, data, backend, frontend, quality
+├─ evidence      fact IDs + probe + what would refute the claim + your assistant's verdict, when it judged
+├─ blast radius  files, direct and indirect importers, flows, covering tests
+├─ options       smallest change → restructuring → "do nothing", each with its cost
+├─ acceptance    a runnable command: `eaos recheck` re-checks the problem itself, or `eaos decided` for an investigation
+└─ rollback      how to take one step back
+```
+
+---
+
+## 🧰 The tools
+
+EAOS **orchestrates, it does not rebuild**: it runs well-known open-source tools, each at a pinned version with a
+verified sha256 checksum and a recorded licence, installed once in `~/.eaos/tools` for every project on the
+computer. A missing tool is stated in the report and does not stop it. **45 tools** are pinned today:
+
+| Area | Tools |
+|---|---|
+| Understanding the code and its structure | CodeGraph · Enola · Reforge · GitNexus · ast-grep · dependency-cruiser · react-docgen · CodeCharta · Emerge |
+| Complexity, duplication and dead code | Lizard · complexipy · jscpd · scc · vulture · knip |
+| Security and dependencies | Semgrep (and its rules) · OSV-Scanner · Syft · Trivy · Checkov |
+| Contracts and data | Spectral · oasdiff · SQLFluff |
+| Running the app and its screens | Playwright · rrweb · Unlighthouse · Lighthouse · axe-core · css-analyzer · pytest · k6 |
+| Architecture models | Structurizr CLI (with the Temurin JRE) · jscodeshift |
+| Delivery and operations | pre-commit · actionlint · Renovate · OpenTelemetry Collector · Sloth · goss |
+| Documents | Vale · markdownlint-cli2 · Typst · Zensical |
+
+Versions, checksums, licences and the stage each tool runs in: [`docs/TOOLCHAIN.md`](docs/TOOLCHAIN.md),
+[`upstreams/toolchain.json`](upstreams/toolchain.json) and [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+---
+
+## 🛡️ What EAOS never does
+
+- It never changes your project's files or your current branch. Fixes are a separate branch, and nothing is merged until you say "merge".
+- It never runs your app without your consent, never uses your secrets or `.env`, and never connects to your real database.
+- It never publishes anything, and never touches production.
+- It never removes a feature or a screen to hide a problem: a fix that does is rejected.
+- It never calls something "passed" that was not measured.
+
+---
+
+## 🗺️ The full map of the work
+
+The check above is the start of a longer piece of work, from assessment to handover. These are its fifteen stages
+as the project's plan defines them, with how far each one is today:
 
 <!-- north-star:pipeline:start -->
 <!-- generated from docs/north-star.json by python tools/north_star.py; do not edit by hand -->
@@ -106,123 +358,7 @@ flowchart TB
 
 <!-- north-star:pipeline:end -->
 
-See the stages exactly as the code declares them: `eaos stages` · and whether each stage's gate passes, and why not: `eaos engage status report`
-
----
-
-## 📦 What you receive
-
-Every report opens with its own `README.md` that sends each reader where they need to go:
-
-| If you… | Start with | Time |
-|---|---|---|
-| want the whole picture | `CURRENT-STATE` → `TARGET-STATE` → `GAP-AND-STRATEGY` → `EXECUTION-PLAN` | 20 min |
-| decide where effort goes | `DECISION-BRIEF` → `RISK-REGISTER` → `PLAN/WAVES` | 5 min |
-| join the project today | `ONBOARDING` → `SYSTEM-MAP` → `FLOWS` | 45 min |
-| review the architecture | `POLICY` → `COUPLING-ATLAS` → `CONTRACTS` | 30 min |
-| are about to change one file | `eaos impact-of <path> --out <report>` | 1 min |
-
-Every document has one owner and a line budget it stays inside, and every human document has a JSON twin a model can act on, or a written reason why it has none.
-
-### Anatomy of a task card
-
-```text
-TASK-003 — complexity 83 (threshold 15) in eaos/sustainability.py
-├─ kind          investigate (a recorded decision before any change) | remediate (change, then verify)
-├─ size, section S/M/L from files and dependents · security, infrastructure, data, backend, frontend, quality
-├─ evidence      fact IDs + probe + what would refute the claim
-├─ blast radius  files, direct and indirect importers, flows, covering tests
-├─ options       smallest change → restructuring → "do nothing", each with its cost
-├─ acceptance    a runnable command: `eaos recheck` re-checks the problem itself, or `eaos decided` for an investigation
-└─ rollback      how to take one step back
-```
-
-## 🚀 Quick start
-
-### The easy way: inside your AI assistant (no technical knowledge needed)
-
-> The full guide, step by step with how long each takes, what you should see, and what to do if something goes wrong: **[`docs/GUIDE.en.md`](docs/GUIDE.en.md)**.
-
-**1. Install EAOS** (once). Paste this line into the Terminal. It installs EAOS and adds it to Claude Code and Codex by itself:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/eom1417/engineering-audit-os/main/install.sh | bash
-```
-
-**2. Open your assistant in your project folder, and write:**
-
-> Check my project with EAOS and fix its problems
-
-The assistant checks your project, explains the main problems, and asks you one question before running your app in a separate
-copy. Then it carries on alone: it runs the app, records its screens, writes the fixes, and EAOS checks each one. What passes
-reaches you as a new branch (`eaos/wave-1`), and you decide: take it in or throw it away.
-
-**Or type `/eaos` alone** (in Codex: `$eaos`): a menu you move through with the arrows, its first option the step that fits
-your project now (check, continue where we stopped, review the ready fixes, open the report, done and coming next, ask about
-your project, tools). In Claude Code, `/eaos` also lists a direct command for each (`/eaos:report`, `/eaos:ask`, …); pick it
-from the list.
-
-**3. Read the report:** say "open the report". Everything is in one folder, `~/EAOS/<your project>/`, with `REPORT.html`
-(project summary, gaps and risks, structure map, plan and progress) in plain words.
-
-**A new project from a plan?** Open your assistant in an empty folder and write: "I have my project's plan in this file, build
-it with EAOS with the best structure". It reads the plan in any format, draws the structure and the technologies, and
-builds milestone by milestone, every card through gates that keep out copies, dead code and tangles:
-[`docs/BUILD-FROM-PLAN.md`](docs/BUILD-FROM-PLAN.md).
-
-No AI assistant? The same way as commands in the Terminal: `eaos start .`, then `eaos next` after each step.
-
-> How it works inside the assistant: [`docs/MCP.md`](docs/MCP.md). Why it is designed this way: [`docs/USER-EXPERIENCE.md`](docs/USER-EXPERIENCE.md).
-
-### For developers: the direct commands
-
-**Requirements:** Python 3.10 or newer. The external tools (Semgrep, Syft, OSV-Scanner, jscpd, dependency-cruiser, Structurizr and more) install with one command at their pinned versions and verified checksums; their sources and licences are in [`upstreams/toolchain.json`](upstreams/toolchain.json) and [`docs/TOOLCHAIN.md`](docs/TOOLCHAIN.md). When one is missing, the report says so and carries on.
-
-```bash
-# from the root of this repository
-python3 -m venv .venv && . .venv/bin/activate
-pip install -e ".[facts,runtime]"    # facts: tree-sitter parsers for non-Python code · runtime: coverage for the verify stage
-eaos tools install --stage assessment  # the assessment tools; eaos tools doctor shows what is installed, at which version
-
-# full audit, no model
-eaos audit /path/to/project --out /path/to/report
-
-# with the four engines, an English report and a stated goal
-eaos audit /path/to/project --out /path/to/report \
-  --engines codegraph enola jscpd reforge --lang en --goal evolution
-```
-
-Open `report/README.md` and start with the four reports (`CURRENT-STATE.md` → `TARGET-STATE.md` → `GAP-AND-STRATEGY.md` → `EXECUTION-PLAN.md`), or `report/index.html` for search and navigation.
-
-> ⚠️ `--test-command` runs the project's tests in an isolated copy. The copy is not an operating-system sandbox: use it only on trusted projects, or inside an isolated environment.
-
-### Everyday commands
-
-| Purpose | Command |
-|---|---|
-| What a change to a file or symbol touches | `eaos impact-of eaos/claims.py --out report` |
-| A question answered from the records, with citations | `eaos ask "where is the discount rule computed" --out report` |
-| Scaffold an architecture policy, then check it | `eaos facts . --out report` → `eaos policy init . --out report` (writes `eaos.policy.json` into your project; add your rules and their reasons) → `eaos policy check . --out report` |
-| Freeze today's debt and fail CI only on new findings | `eaos audit . --out report` → `eaos baseline pin --out report` → in CI: `eaos audit . --out report --gate new` |
-| Compare two audits (drift gate) | `eaos delta old-report new-report --fail-on-new-severe` |
-| Breaking surface between two versions (fact sets from `eaos facts`) | `eaos api-diff old-facts new-facts --fail-on-breaking` |
-| Installed engines and their versions | `eaos engines list` · `eaos tools doctor` |
-| Files in each tool's own format (CI, pre-commit, Renovate, k6…), judged by that tool | `eaos emit report --validate` |
-| Whether each stage's gate passes, and why not | `eaos engage status report` |
-
-### Model path (advanced)
-
-Needs a provider file, set up once as described in [`core/RUNTIME.md`](core/RUNTIME.md):
-
-```bash
-eaos run /path/to/project --out audit --provider provider.json        # model-led review
-eaos implement audit --task TASK_ID --out candidate \
-  --checks checks.json --provider provider.json                        # one task in a separate copy
-eaos improve audit --out campaign --checks checks.json \
-  --provider provider.json --max-steps 10                              # execute → verify → re-audit → next
-```
-
-No command modifies the original project, publishes anything or merges anything.
+Whether each stage's gate passes, and why not: `eaos engage status report`
 
 ---
 
@@ -400,11 +536,17 @@ flowchart TB
 
 <!-- north-star:progress:end -->
 
-**Status, plainly:** this is a pilot, not a release. The numbers are measured on 3 real hobby projects pinned at their commits, and on this repository itself. What was not measured meets no criterion, and a step that needs a real project's code to run closes only when it has actually run.
+**Status, plainly:** this is a pilot, not a release. The numbers are measured on 3 real projects pinned at their
+commits, and on this repository itself. What was not measured meets no criterion, and a step that needs a real
+project's code to run closes only when it has actually run. Version `1.0.0` is declared by the owner alone, once
+progress reaches 100%.
+
+---
 
 ## 🛠️ For developers
 
 ```bash
+bash tools/dev_setup.sh          # the environment, every tool at its pinned version, and the development material
 python -m unittest discover -s tests -q \
   && python tools/validate.py && python tools/invariants.py \
   && python tools/render_capability_plan.py --check \
@@ -412,17 +554,19 @@ python -m unittest discover -s tests -q \
   && bash tests/gate/self_audit.sh
 ```
 
+All work happens on the `develop` branch; `main` is the owner's copy and is not touched. Details in
+[`CONTRIBUTING.md`](CONTRIBUTING.md) and [`AGENTS.md`](AGENTS.md).
+
 | Document | What it holds |
 |---|---|
-| [`docs/NORTH-STAR.md`](docs/NORTH-STAR.md) | The destination: 10 capabilities, 54 indicators, and the twenty-five milestones with their tasks and acceptance commands (Arabic) |
+| [`docs/NORTH-STAR.md`](docs/NORTH-STAR.md) | The destination: 12 capabilities, 128 indicators, and the forty-five steps with their tasks and acceptance commands (Arabic) |
 | [`docs/MASTER-BLUEPRINT.md`](docs/MASTER-BLUEPRINT.md) | The fifteen stages, their tools and gates (Arabic) |
-| [`docs/TOOLCHAIN.md`](docs/TOOLCHAIN.md) | Every external tool: version, checksum, licence, and the stage it runs in |
+| [`docs/AI-IN-THE-PIPELINE.md`](docs/AI-IN-THE-PIPELINE.md) | Where your assistant works in the check, what it is given, and how its decisions are guarded |
+| [`docs/STUDIO.md`](docs/STUDIO.md) | The Studio: its decisions, its data contract and its server |
+| [`docs/TOOLCHAIN.md`](docs/TOOLCHAIN.md) | Every external tool: version, checksum, licence and stage |
 | [`docs/REFERENCE.md`](docs/REFERENCE.md) | Full command reference and internal structure (Arabic) |
-| [`tools/upstream_check.py`](tools/upstream_check.py) | Is an engine upgrade safe? Runs the pinned adapter contracts first (`--offline`) |
 | [`docs/CAPABILITY-PLAN.md`](docs/CAPABILITY-PLAN.md) | The capability plan: 49 tasks, 46 done and 3 blocked for measured reasons |
-| [`docs/CAPABILITY-SCORE.md`](docs/CAPABILITY-SCORE.md) | Today's measurement of the nine domains |
+| [`docs/CAPABILITY-SCORE.md`](docs/CAPABILITY-SCORE.md) | Today's measurement of the capabilities |
 | [`evaluations/release-evidence.json`](evaluations/release-evidence.json) | What the evidence supports, and what it does not |
-| [`design/output-first/OUTPUT-SPEC.md`](design/output-first/OUTPUT-SPEC.md) | The target output specification |
 | [`MASTER-MANUAL.md`](MASTER-MANUAL.md) | The 27 domains and 165 engineering rules the analysis draws on |
-
-What the evidence supports, and what it does not, is recorded in `evaluations/release-evidence.json`.
+| [`CHANGELOG.md`](CHANGELOG.md) | What changed in each version |
