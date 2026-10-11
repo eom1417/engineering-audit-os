@@ -22,21 +22,48 @@ them.
    in the project's state; `eaos start --yes` answers it, and the MCP `audit` passes the person's answer as
    `use_assistant`).
 
+## Where the assistant decides in the check
+
+The check gathers the evidence first, lets the tools propose, lets the assistant decide with them, derives the gaps
+and the plan from that joint decision, and writes the reports last (eaos/pipeline/stages.py):
+
+| Order | Stage | Kind | What it decides or reads | What changes downstream |
+|---|---|---|---|---|
+| 1 | `facts` … `probe`, `sustainability`, `transform` | rules | The evidence and the measures | The current state |
+| 2 | `semantic` | AI | Responsibilities, boundaries, root causes, as hypotheses | Investigation cards; the ideal reads them |
+| 3 | `plan`, `target` | rules | The candidate cards; the target proposal (`target-proposal.json`) | Nothing is final yet |
+| 4 | `proposals` | rules | The Studio's records of the proposals, which the assistant reads | |
+| 5 | `triage` | AI | Each candidate card confirmed, doubted or rejected on its own evidence | |
+| 6 | `cards` | guard | A rejected card leaves the plan and the gaps; a doubted one is marked; a prerequisite on a rejected card is dropped with why (`cards.json`) | plan.json, dossier.json, PLAN/ |
+| 7 | `ideal` | AI | Each proposal of the target accepted (same operation), modified (another operation) or rejected (delete), with why and evidence | |
+| 8 | `pipeline_gaps` | AI | How each broken pipeline rule is closed | The order reads its steps |
+| 9 | `reconcile` | guard | The final target: the assistant's decision where it passes the guards (a component that exists, an operation it can take, no deletion of what the owner protects: critical features, the intake's answer, the architecture policy's layers), the rule's elsewhere; every component says who decided it: `agreed`, `ai_modified`, `rule_only`, `disagreement` (the guard kept the rule), `ai_added`; the gap matrix is drawn again from it | target-architecture.json, TARGET-ARCHITECTURE.md, ADRs, gap-matrix.json |
+| 10 | `order` | AI | The confirmed cards ordered and grouped into steps with why | |
+| 11 | `steps` | guard | The assistant's steps when every card is placed once and no prerequisite is broken, else the rules' waves (`plan.json` `order`, PLAN/STEPS.md) | EXECUTION-GUIDE.md follows them |
+| 12 | `execution_guide`, `reports`, `executive`, `compose`, `bundles`, `site`, `validate` | rules | Written from the final records | |
+
+When the rule and the assistant differ, the assistant decides if it cites evidence and passes the guards; the rule's
+view is kept beside it (`decided_by.rule`, `disagreements`). A record an earlier check left on disk is never read as
+this check's decision: the guards read an AI stage's output only when that stage ended ok in this run.
+
+Without an assistant the path is the same: the AI stages say `no_provider`, the guards keep every card and every
+proposal (`rule_only`), and the findings, cards and plan are those of the rules alone.
+
 ## The steps, ranked by value
 
 | Rank | Step | What AI adds | Bounds | Where |
 |---|---|---|---|---|
-| 1 | Ideal planning (check stage `ideal`) | The target of every view, planned on top of the rules' target and then critiqued (what was missed, risks, order). The rules alone give a generic target. | Plan + critique passes; elements without a resolving citation are dropped; the result is cached on the same inputs. | `eaos/studio/ideal.py`, node `ideal_planner` |
+| 1 | Target decision (check stage `ideal`) | Each of the tools' proposals for the target judged, and the other views planned, then critiqued (what was missed, risks, order). The rules alone give a generic target. | Plan + critique passes; elements without a resolving citation are dropped; the reconcile guards decide what reaches the target; cached on the same inputs. | `eaos/studio/ideal.py`, node `ideal_planner`, `eaos/target_architecture.py` `reconcile` |
 | 2 | Semantic reading (check stage `semantic`) | Responsibilities, boundaries, contracts and root causes, which no rule can read from facts. | At most 3 rounds, one call of up to 600 s each; invented fact ids are sent back and the answer is rejected if they stay; every claim is a HYPOTHESIS with a falsifier. | `eaos/semantic.py` |
-| 3 | Card triage (check stage `triage`) | Each open card confirmed, doubted or rejected as a false alarm on its own evidence and the code at it, with why in the person's words. The engines cannot judge their own findings. | A verdict that does not cite the card or one of its facts falls back to the rules; batches of 40 cards; cached; the cards are never changed. | `eaos/studio/nodes/triage.py`, node `card_triage` |
-| 4 | Plan order (check stage `order`) | The cards ordered and grouped into steps with why, reading the triage (rejected cards set aside) and the planned ideal. The rules order by milestone and wave only. | Plan + critique passes; an order that breaks a prerequisite, names a card twice or one outside the plan is dropped; cached; the plan itself is never changed. | `eaos/studio/nodes/plan_orderer.py`, node `plan_orderer` |
-| 5 | Setup (`eaos next`, step `ready`) | How to start an unfamiliar app when detection fails. | Proposals are tried in an isolated copy and refused when unsafe. | `eaos/live_setup.py` |
-| 6 | Fixes | Writing the change a card asks for. | The gates and the behaviour lock judge every change; it reaches the project only as a branch. | `eaos/agent_tools.py` `fix_*` |
-| 7 | AI nodes from the Studio (`run_nodes`) | Pipeline gaps and fix review, and the nodes above again on demand. | Same citation check and rules fallback per node; started by the person. | `eaos/studio/nodes/` |
+| 3 | Card triage (check stage `triage`) | Each candidate card confirmed, doubted or rejected as a false alarm on its own evidence and the code at it, with why in the person's words. The engines cannot judge their own findings. | A verdict that does not cite the card or one of its facts falls back to the rules; every card is read, in batches of 40; cached. | `eaos/studio/nodes/triage.py`, node `card_triage`, `eaos/plan.py` `confirm` |
+| 4 | Plan order (check stage `order`) | The cards ordered and grouped into steps with why, reading the triage, the ideal and the pipeline steps. The rules order by milestone and wave only. | Plan + critique passes; an order that breaks a prerequisite, names a card twice or one outside the plan is dropped; cached. | `eaos/studio/nodes/plan_orderer.py`, node `plan_orderer`, `eaos/plan.py` `sequence` |
+| 5 | Pipeline gaps (check stage `pipeline_gaps`) | How each broken pipeline rule is closed, as a step the order places. | Plan + critique passes; a decision must cite its gap or its rule. | `eaos/studio/nodes/pipeline_gap_planner.py` |
+| 6 | Setup (`eaos next`, step `ready`) | How to start an unfamiliar app when detection fails. | Proposals are tried in an isolated copy and refused when unsafe. | `eaos/live_setup.py` |
+| 7 | Fixes | Writing the change a card asks for. | The gates and the behaviour lock judge every change; it reaches the project only as a branch. | `eaos/agent_tools.py` `fix_*` |
+| 8 | AI nodes from the Studio (`run_nodes`) | Fix review, and the nodes above again on demand. | Same citation check and rules fallback per node; started by the person. | `eaos/studio/nodes/` |
 
-Ranks 1 to 4 run inside every check once the person said yes, in the order semantic, triage, ideal, order (the order
-reads what the triage and the ideal decided). Ranks 5 to 7 already used the assistant before. Each AI stage reports its
-calls, seconds, assistant and model to the live map; a node's record keeps its `calls`.
+Ranks 1 to 5 run inside every check once the person said yes. Ranks 6 to 8 already used the assistant before. Each AI
+stage reports its calls, seconds, assistant and model to the live map; a node's record keeps its `calls`.
 
 ## Measured on a small project
 

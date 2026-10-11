@@ -352,7 +352,9 @@ def proposals(context):
     if not context.provider:
         raise SkipStage(NO_ASSISTANT, code='no_provider')
     from ..studio.export import export
+    from ..workspace import write
     result = export(context.out, context.language, Path(context.target).name, context.target)
+    write(context.out / 'proposals.json', result)
     return {'sections': len(result['written']), 'errors': len(result['errors'])}
 
 
@@ -401,5 +403,5 @@ def bundles(context):
     return build(context.out, language=context.language)
 
 
-RUNNERS.update(target=target, proposals=proposals, cards=cards, pipeline_gaps=pipeline_gaps, reconcile=reconcile,
-               steps=steps, executive=executive, bundles=bundles, ideal=ideal, triage=triage, order=order)
+RUNNERS.update(target=target, proposals=proposals, cards=cards, pipeline_gaps=pipeline_gaps, reconcile=reconcile, steps=steps)
+RUNNERS.update(executive=executive, bundles=bundles, ideal=ideal, triage=triage, order=order)

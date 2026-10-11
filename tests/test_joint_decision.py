@@ -129,6 +129,17 @@ class JointDecision(unittest.TestCase):
         self.assertIn(f'**{first} / step 1**', guide)
         self.assertIn('The last card first', (self.base / 'joint/PLAN/STEPS.md').read_text(encoding='utf-8'))
 
+    def test_a_decision_an_earlier_check_left_on_disk_is_never_read_as_this_ones(self):
+        out = self.base / 'stale'
+        shutil.copytree(self.base / 'rules', out)
+        shutil.copytree(self.base / 'joint/nodes', out / 'nodes')
+        shutil.copytree(self.base / 'joint/ideal', out / 'ideal')
+        again = execute(self.base / 'shop', out, language='en')
+        self.assertEqual((again['stages']['triage']['status'], self.read('stale', 'cards.json')['set_aside']), ('unavailable', []))
+        self.assertIn('TASK-008', [t['id'] for t in self.read('stale', 'plan.json')['tasks']])
+        self.assertEqual(self.read('stale', 'target-architecture.json')['decided']['by'], 'rules')
+        self.assertEqual(self.read('stale', 'plan.json')['order']['source'], 'rules')
+
     def test_the_reports_are_written_after_every_decision(self):
         decided = ('triage', 'cards', 'ideal', 'pipeline_gaps', 'reconcile', 'order', 'steps')
         for report in ('execution_guide', 'reports', 'executive', 'compose', 'bundles', 'site', 'validate'):

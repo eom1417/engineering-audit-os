@@ -73,7 +73,7 @@ STAGES = (
     Stage('target', produces=('target-architecture.json', 'target-proposal.json'), requires=('plan', 'transform'),
           description="The rules' target proposal: today's components with their disposition and the reference's target "
                       'components; the assistant judges it before it is final'),
-    Stage('proposals', produces=('studio/manifest.json',), requires=('plan', 'target'), necessity=OPTIONAL,
+    Stage('proposals', produces=('proposals.json',), requires=('plan', 'target'), necessity=OPTIONAL,
           absent_when='no assistant was installed or allowed, so nobody reads the proposals before the reports',
           description="The tools' proposals as the Studio draws them (cards with their evidence, system, journeys, "
                       'paths, data, infrastructure, pipeline gaps), which the assistant reads'),
