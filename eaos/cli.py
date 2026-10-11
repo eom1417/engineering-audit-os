@@ -192,8 +192,24 @@ def guided_command(args):
 
 
 def studio_command(args):
+    if args.background: return studio_in_background(args)
     from .api.server import run_foreground
     return run_foreground(args.project, port=args.port, show=not args.no_open, remote_origin=args.remote_origin)
+
+
+def studio_in_background(args):
+    """`eaos studio --background`: the project's Studio started (or found running), opened on "Preparing the tools"
+    while the tools the check needs are installing, its address printed, and back at once; the tools' install starts."""
+    from . import toolchain
+    from .agent_tools import open_studio, project_state
+    project = project_state(args.project)['project']
+    toolchain.prepare(project)
+    opened = open_studio(project, show=not args.no_open, route='' if toolchain.ready(project) else '/tools')
+    if 'studio' not in opened:
+        print(opened.get('error'), opened.get('log'), sep='\n')
+        return 1
+    print(f"EAOS Studio: {opened['studio']}")
+    return 0
 
 
 def stages_command(args):
@@ -559,6 +575,7 @@ def main(argv=None):
     q.add_argument('project',nargs='?',default='.')
     q.add_argument('--port',type=int,default=0,help='the port on 127.0.0.1 (default: a free one)')
     q.add_argument('--no-open',action='store_true',help='print the address without opening the browser')
+    q.add_argument('--background',action='store_true',help='start it in the background, print its address and return')
     q.add_argument('--remote-origin', help='one exact https://<project>--<port>.dev.remote.e-m.sa origin; keeps token and CSRF checks')
     q.set_defaults(func=studio_command)
     q=s.add_parser('mcp',help='EAOS as MCP tools for an AI assistant (stdio); eaos assistant install registers it')

@@ -132,7 +132,7 @@ def _start(kind, state, arguments, seconds=WAIT, runner='eaos.agent_tools', watc
     elif studio:
         told = ('Tell the person the live map of this work is open in their browser.' if studio['opened_in_browser'] else
                 'Before anything else, write the person a message with the `watch` address, the live map of this work, which '
-                'still shows how it went once it ends (give it only to them: it holds the key of this session).')
+                'still shows how it went once it ends and stays the same every time (it opens on this computer only).')
         answer.update(watch=studio['studio'], what_now=f"{told} {answer.get('what_now', '')}".strip())
     return answer
 

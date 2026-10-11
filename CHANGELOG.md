@@ -19,6 +19,10 @@
   every finding names its picture and region and becomes a design card; the architecture map draws the code as a
   city (CodeCharta) and its dependency clusters (Emerge); the report's UI gallery shows the screens with the
   findings drawn on them, replays the journeys from local files and draws the city.
+- **The Studio opens from a plain address that keeps working**: on this computer the address is
+  `http://127.0.0.1:<port>/`, with no token at its end, and it stays the same when the Studio restarts (an address
+  saved before keeps opening it). Installed from inside a project, EAOS opens that project's Studio at once, on
+  "Preparing the tools"; `eaos studio --background` does the same from anywhere.
 - **The Studio** names the new stages on the live map and lists every rule-vs-assistant disagreement, with both
   views, on the decisions page.
 

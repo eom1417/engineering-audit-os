@@ -93,7 +93,7 @@ flowchart TB
         NS38["<b>25 · NS38</b><br/>تحليل صادق<br/>Truthful analysis<br/>⚖ 2 · ▰ 0%"]:::next
         NS30 -->|"✔ S4=1 · X13=1 · +1 اختبار قبول"| NS36
         NS36 -->|"✔ F8=1 · F10=1 · +4 اختبار قبول"| NS46
-        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +24 اختبار قبول"| NS38
+        NS46 -->|"✔ F8=1 · F13=1 · F14=1 · … · +25 اختبار قبول"| NS38
     end
     subgraph R6G_2["R6G · EAOS v2: تحليل صادق، صورة مثالية، عمليات مرتبة، واستوديو حي (2/5)"]
         direction LR
@@ -200,7 +200,7 @@ flowchart TB
 | 21 | [**NS27** البناء من خطة](#step-21) | R6 | 6 | 93% | 5.6 | 88% | 🟡 قيد العمل | B1=1 · B2=1 · X8=1 · B3=1 · B4=1 · X1=1 · … · +1 اختبار قبول |
 | 22 | [**NS30** الثقة أولًا: كل بطاقة على ملفها، وكل رقم صادق](#step-22) | R6G | 2 | 100% | 2 | 100% | ✅ مكتملة | S4=1 · X13=1 · +1 اختبار قبول |
 | 23 | [**NS36** أساس الاستوديو: القرارات والعقد والنموذج](#step-23) | R6G | 3 | 42% | 1.26 | 50% | 🔴 تحتاج مدخلًا منك | F8=1 · F10=1 · +4 اختبار قبول |
-| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 11 | 5% | 0.52 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +24 اختبار قبول |
+| 24 | [**NS46** الاستوديو أولًا: واجهة كاملة واحترافية](#step-24) | R6G | 11 | 5% | 0.51 | 12% | 🔴 تحتاج مدخلًا منك | F8=1 · F13=1 · F14=1 · F15=1 · F16=1 · F11=1 · … · +25 اختبار قبول |
 | 25 | [**NS38** تحليل صادق: الدقة أولًا](#step-25) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | A1=1 · W2=1 · A2=1 · A3=1 |
 | 26 | [**NS31** أرقام ثابتة وضجيج أقل](#step-26) | R6G | 3 | 26% | 0.8 | 24% | 🔴 تحتاج مدخلًا منك | L7=1 · L8=1 · S5≥0.9 · S1≥0.9 |
 | 27 | [**NS39** خريطة النظام والسجل والأحداث](#step-27) | R6G | 2 | 0% | 0 | 0% | ⬜ التالية | N1=1 · N2=1 · +1 اختبار قبول |
@@ -1202,7 +1202,7 @@ flowchart TB
 
 | الوزن | الإنجاز | النقاط | جودة المخرج | الحزمة | مراحل خط الإنتاج |
 | --- | --- | --- | --- | --- | --- |
-| 11 | 5% | 0.52 من 11 | 12% | R6G | S07, S15 |
+| 11 | 5% | 0.51 من 11 | 12% | R6G | S07, S15 |
 
 **الهدف:** F11 وF13 وF14 وF15 وF16 عند أهدافها وF12 مقيس: كل صفحة موجودة وتعرض بيانات حقيقية أو حالة تغطية صادقة، على خمسة مشاريع، بسرعة محسوبة، ويُشغَّل EAOS كله من الاستوديو، ويحكم المالك.
 
@@ -1263,6 +1263,7 @@ flowchart TB
 | اختبار قبول | `test robust_fixing` | — | ⬜ |
 | اختبار قبول | `test docs_reader` | — | ⬜ |
 | اختبار قبول | `test pipeline_v2` | — | ⬜ |
+| اختبار قبول | `test studio_open` | — | ⬜ |
 
 **المهام:**
 
@@ -1292,6 +1293,7 @@ flowchart TB
 | [NS46.T22](#ns46t22) Fixing that holds: a batch the person asks for runs to its branch, or stops before any work with its reason | M | ⬜ | 0% | `python tools/acceptance.py test robust_fixing` |
 | [NS46.T23](#ns46t23) A professional document reader: diagrams drawn, charts, tables, callouts and highlighted code | M | ⬜ | 0% | `python tools/acceptance.py test docs_reader` |
 | [NS46.T24](#ns46t24) Pipeline v2: the evidence first, the assistant decides with the tools before the target, the gaps and the plan, the reports last | L | ⬜ | 0% | `python tools/acceptance.py test pipeline_v2` |
+| [NS46.T25](#ns46t25) The Studio on this computer opens from a plain address that keeps working, and opens at once after the install | S | ⬜ | 0% | `python tools/acceptance.py test studio_open` |
 
 <a id="step-25"></a>
 
@@ -6755,6 +6757,38 @@ python tools/acceptance.py test pipeline_v2
 ```
 
 **التراجع:** Revert the pipeline-v2 branch: the check returns to deciding by the rules first and the assistant after the reports.
+
+<a id="ns46t25"></a>
+
+#### NS46.T25 — The Studio on this computer opens from a plain address that keeps working, and opens at once after the install ⬜
+
+**لماذا:** Owner request 2026-10-11: a local check needed an address ending in a token; the token and the port changed on every start, so the address stopped opening the project's page. Any person must open their project's front end plainly and easily, and once EAOS and its tools are installed the front end opens (or its address is given) at once, not after a check.
+
+**يحرّك:** F8 · **ينفّذه:** نموذج أو مطوّر · **الحجم:** S
+
+**الملفات:** `eaos/api/launch.py` · `eaos/api/server.py` · `eaos/cli.py` · `eaos/agent_tools.py` · `install.sh` · `tests/test_studio_api.py` · `tests/test_progress_server.py` · `acceptance/test_studio_open.py`
+
+**الخطوات:**
+
+1. The launch token and the port are kept per project; the local address is plain (http://127.0.0.1:<port>/) and the Studio's own page gets the token from live-token.js, only for the person's own navigation or the page's own request (Sec-Fetch-Site).
+2. eaos studio --background starts the Studio, prints its address and returns; the installer, run from a project, opens that project's Studio on Preparing the tools.
+
+**تنتهي حين:**
+
+- [ ] The plain address opens the live Studio, and after a restart the same address and token still open it.
+- [ ] The installer run from a project opens its Studio before any check.
+
+**فخاخ معروفة:**
+
+- Another site must not get the token: no script inclusion cross-site, no frames, no CORS.
+
+**أمر القبول:**
+
+```bash
+python tools/acceptance.py test studio_open
+```
+
+**التراجع:** Revert the commit; the Studio goes back to a new token and port on every start.
 
 ### الخطوة 25 · NS38 — تحليل صادق: الدقة أولًا ⬜ التالية
 

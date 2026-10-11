@@ -7115,6 +7115,42 @@
           ],
           "acceptance": "python tools/acceptance.py test pipeline_v2",
           "rollback": "Revert the pipeline-v2 branch: the check returns to deciding by the rules first and the assistant after the reports."
+        },
+        {
+          "needs": "none",
+          "writes": [],
+          "status": "todo",
+          "id": "NS46.T25",
+          "title": "The Studio on this computer opens from a plain address that keeps working, and opens at once after the install",
+          "why": "Owner request 2026-10-11: a local check needed an address ending in a token; the token and the port changed on every start, so the address stopped opening the project's page. Any person must open their project's front end plainly and easily, and once EAOS and its tools are installed the front end opens (or its address is given) at once, not after a check.",
+          "moves": [
+            "F8"
+          ],
+          "depends_on": [],
+          "size": "S",
+          "files": [
+            "eaos/api/launch.py",
+            "eaos/api/server.py",
+            "eaos/cli.py",
+            "eaos/agent_tools.py",
+            "install.sh",
+            "tests/test_studio_api.py",
+            "tests/test_progress_server.py",
+            "acceptance/test_studio_open.py"
+          ],
+          "steps": [
+            "The launch token and the port are kept per project; the local address is plain (http://127.0.0.1:<port>/) and the Studio's own page gets the token from live-token.js, only for the person's own navigation or the page's own request (Sec-Fetch-Site).",
+            "eaos studio --background starts the Studio, prints its address and returns; the installer, run from a project, opens that project's Studio on Preparing the tools."
+          ],
+          "done_when": [
+            "The plain address opens the live Studio, and after a restart the same address and token still open it.",
+            "The installer run from a project opens its Studio before any check."
+          ],
+          "pitfalls": [
+            "Another site must not get the token: no script inclusion cross-site, no frames, no CORS."
+          ],
+          "acceptance": "python tools/acceptance.py test studio_open",
+          "rollback": "Revert the commit; the Studio goes back to a new token and port on every start."
         }
       ]
     },

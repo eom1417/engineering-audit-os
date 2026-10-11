@@ -20,5 +20,6 @@
  "test_pipeline_v2.py": "5711f202171874b771a242cdb4c0bb63692d7441e3b68ddcbfb79abc2d464284",
  "test_robust_fixing.py": "79870ce984de08901ed82d2ae07a3438447b0a15365befda765537dab6077b7b",
  "test_scan_freshness.py": "fb807b7f7d647a14439e658903b02025ae9f46df44785817581a698b5e83f2b6",
- "test_studio_contract.py": "72082757f3f1c9df88433976e10527bb902ae1b560e1ef42f91235f3e1f9dc3a"
+ "test_studio_contract.py": "72082757f3f1c9df88433976e10527bb902ae1b560e1ef42f91235f3e1f9dc3a",
+ "test_studio_open.py": "fe2b269e45b561b08b236331c739d5a723bf7f128963868c41cd20e9ceb42f9a"
 }

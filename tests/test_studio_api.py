@@ -452,6 +452,21 @@ class Commands(unittest.TestCase):
         restarted.terminate()
         restarted.wait(10)
 
+    def test_studio_in_the_background_prints_its_address_and_returns(self):
+        done = subprocess.run([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--background', '--no-open'], env=self.env,
+                              capture_output=True, text=True, timeout=60)
+        [record] = self.records()
+        pid = json.loads(record.read_text(encoding='utf-8'))['pid']
+        def stop():
+            try: os.kill(pid, 15)
+            except OSError: pass
+        self.addCleanup(stop)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        address = done.stdout.strip().split('EAOS Studio: ', 1)[1]
+        self.assertTrue(address.startswith('http://127.0.0.1:') and 'token' not in address, address)
+        base = address.split('/#', 1)[0].rstrip('/')
+        self.assertEqual(_get(f'{base}/api/session', _page_token(base))[0], 200, 'the server it left running answers')
+
     def test_the_plain_address_gives_the_token_to_the_studios_own_page_only(self):
         process = subprocess.Popen([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--no-open'], env=self.env,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
