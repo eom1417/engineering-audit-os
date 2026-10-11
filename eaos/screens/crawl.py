@@ -48,8 +48,11 @@ def crawl(base, out, max_routes=200):
     out.mkdir(parents=True, exist_ok=True)
     (out / 'unlighthouse.config.ts').write_text('export default ' + json.dumps(config(base, out / 'unlighthouse', chrome, max_routes)) + '\n',
                                                 encoding='utf-8')
-    code, stdout, stderr, _ = run([binary, '--config-file', str(out / 'unlighthouse.config.ts')], cwd=out, timeout=3600)
-    reports = sorted((out / 'unlighthouse/reports').glob('**/lighthouse.json'))
+    # Its browser pool sometimes loses the browser while it starts ("socket hang up"); a second run starts afresh.
+    for _ in range(2):
+        code, stdout, stderr, _ = run([binary, '--config-file', str(out / 'unlighthouse.config.ts')], cwd=out, timeout=3600)
+        reports = sorted((out / 'unlighthouse/reports').glob('**/lighthouse.json'))
+        if reports: break
     if not reports: return {'status': 'error', 'reason': f'unlighthouse-ci exited {code} and measured no page: {(stderr or stdout)[-400:]}',
                             'routes': []}
     return {'status': 'observed', 'routes': [route_of(report, out) for report in reports]}

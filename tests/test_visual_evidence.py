@@ -124,6 +124,21 @@ class Tools(unittest.TestCase):
         with mock.patch.object(crawl, 'which', return_value=None):
             self.assertEqual(crawl.crawl('http://127.0.0.1:9', '/nonexistent')['status'], 'unavailable')
 
+    def test_a_crawl_that_measured_nothing_is_run_once_more(self):
+        with tempfile.TemporaryDirectory() as folder:
+            calls = []
+            def unlighthouse(argv, cwd=None, timeout=None):
+                calls.append(argv)
+                if len(calls) == 1: return 1, '', 'socket hang up', 1.0
+                report = Path(folder) / 'unlighthouse/reports/lighthouse.json'
+                report.parent.mkdir(parents=True)
+                report.write_text('{"finalDisplayedUrl": "http://127.0.0.1:9/"}')
+                return 0, '', '', 1.0
+            with mock.patch.object(crawl, 'which', return_value='/bin/unlighthouse-ci'), mock.patch.object(crawl, 'chromium_path', return_value='/bin/chrome'), \
+                    mock.patch.object(crawl, 'run', side_effect=unlighthouse):
+                found = crawl.crawl('http://127.0.0.1:9', folder)
+        self.assertEqual((found['status'], len(calls), [r['path'] for r in found['routes']]), ('observed', 2, ['/']))
+
     def test_a_python_tool_with_its_own_environment_is_checked_there(self):
         from eaos import toolchain
         with tempfile.TemporaryDirectory() as folder, mock.patch.object(toolchain, 'home', return_value=Path(folder)):
