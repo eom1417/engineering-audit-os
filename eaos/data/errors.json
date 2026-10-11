@@ -470,6 +470,78 @@
    "ar": "مساعدك الذكي علق: ما أعطى أي ناتج طوال 20 دقيقة، فأُنهي وبقيت القواعد وحدها والفحص كمل.",
    "en": "Your AI assistant was stuck: it gave no output at all for 20 minutes, so it was ended, the rules stand alone and the check went on."
   },
+  "claude_ready": {
+   "ar": "Claude Code جاهز: سجّل دخوله وجاوب الآن.",
+   "en": "Claude Code is ready: signed in and answering now."
+  },
+  "claude_not_installed": {
+   "ar": "Claude Code غير مثبّت على هذا الجهاز. ثبّته من https://claude.com/claude-code ثم جرّب مرة ثانية.",
+   "en": "Claude Code is not installed on this computer. Install it from https://claude.com/claude-code, then try again."
+  },
+  "claude_not_working": {
+   "ar": "Claude Code مثبّت لكنه ما اشتغل (أمر claude --version ما جاوب). أعد تثبيته من https://claude.com/claude-code ثم جرّب مرة ثانية.",
+   "en": "Claude Code is installed but does not run (`claude --version` did not answer). Reinstall it from https://claude.com/claude-code, then try again."
+  },
+  "claude_not_signed_in": {
+   "ar": "Claude Code غير مسجّل الدخول. شغّل claude مرة في الطرفية وسجّل دخولك، ثم جرّب مرة ثانية.",
+   "en": "Claude Code is not signed in. Run `claude` once in a terminal and sign in, then try again."
+  },
+  "claude_sign_in_expired": {
+   "ar": "دخول Claude Code انتهى. شغّل claude في الطرفية وسجّل من جديد، ثم جرّب مرة ثانية.",
+   "en": "Claude Code's sign-in has expired. Run `claude` in a terminal and sign in again, then try again."
+  },
+  "claude_limit": {
+   "ar": "Claude Code وصل حدّ استخدامه الآن. انتظر حتى يتجدد الحد، أو اختر المساعد الآخر، أو ابدأ بدون ذكاء.",
+   "en": "Claude Code has reached its usage limit for now. Wait until it resets, choose the other assistant, or start without AI."
+  },
+  "claude_no_answer": {
+   "ar": "Claude Code ما جاوب خلال 30 ثانية. تأكد من الإنترنت ثم جرّب مرة ثانية.",
+   "en": "Claude Code gave no answer in 30 seconds. Check the internet connection, then try again."
+  },
+  "claude_failed": {
+   "ar": "Claude Code توقف بخطأ لما سألته كلمة واحدة. شغّل claude في الطرفية لترى السبب، ثم جرّب مرة ثانية.",
+   "en": "Claude Code stopped with an error when asked for one word. Run `claude` in a terminal to see why, then try again."
+  },
+  "codex_ready": {
+   "ar": "Codex جاهز: سجّل دخوله وجاوب الآن.",
+   "en": "Codex is ready: signed in and answering now."
+  },
+  "codex_not_installed": {
+   "ar": "Codex غير مثبّت على هذا الجهاز. ثبّته من https://github.com/openai/codex ثم جرّب مرة ثانية.",
+   "en": "Codex is not installed on this computer. Install it from https://github.com/openai/codex, then try again."
+  },
+  "codex_not_working": {
+   "ar": "Codex مثبّت لكنه ما اشتغل (أمر codex --version ما جاوب). أعد تثبيته من https://github.com/openai/codex ثم جرّب مرة ثانية.",
+   "en": "Codex is installed but does not run (`codex --version` did not answer). Reinstall it from https://github.com/openai/codex, then try again."
+  },
+  "codex_not_signed_in": {
+   "ar": "Codex غير مسجّل الدخول. شغّل codex login في الطرفية وسجّل دخولك، ثم جرّب مرة ثانية.",
+   "en": "Codex is not signed in. Run `codex login` in a terminal and sign in, then try again."
+  },
+  "codex_sign_in_expired": {
+   "ar": "دخول Codex انتهى: رمز التجديد استُعمل من قبل. شغّل في الطرفية codex logout ثم codex login وسجّل من جديد، ثم جرّب مرة ثانية.",
+   "en": "Codex's sign-in has expired: its refresh token was already used. Run `codex logout`, then `codex login` in a terminal and sign in again, then try again."
+  },
+  "codex_limit": {
+   "ar": "Codex وصل حدّ استخدامه الآن. انتظر حتى يتجدد الحد، أو اختر المساعد الآخر، أو ابدأ بدون ذكاء.",
+   "en": "Codex has reached its usage limit for now. Wait until it resets, choose the other assistant, or start without AI."
+  },
+  "codex_no_answer": {
+   "ar": "Codex ما جاوب خلال 30 ثانية. تأكد من الإنترنت ثم جرّب مرة ثانية.",
+   "en": "Codex gave no answer in 30 seconds. Check the internet connection, then try again."
+  },
+  "codex_failed": {
+   "ar": "Codex توقف بخطأ لما سألته كلمة واحدة. شغّل codex في الطرفية لترى السبب، ثم جرّب مرة ثانية.",
+   "en": "Codex stopped with an error when asked for one word. Run `codex` in a terminal to see why, then try again."
+  },
+  "ai_declined": {
+   "ar": "اخترت أن يكون الفحص بدون ذكاء، فبقيت القواعد وحدها.",
+   "en": "You chose to check without AI, so the rules stand alone."
+  },
+  "ai_not_ready": {
+   "ar": "مساعدك الذكي ما كان جاهزًا، واخترت أن يبدأ الفحص بدونه، فبقيت القواعد وحدها.",
+   "en": "Your AI assistant was not ready and you chose to start without it, so the rules stand alone."
+  },
   "no_features": {
    "ar": "لم أجد في برنامجك ميزات أكتب لها اختبارات تحفظ سلوكها.",
    "en": "I found no feature in your program to write behaviour-keeping tests for."

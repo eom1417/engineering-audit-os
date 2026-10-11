@@ -193,6 +193,55 @@
    }
   },
   {
+   "id": "assistant_check",
+   "tool": "assistant_check",
+   "group": "understand",
+   "label": {
+    "en": "Is my assistant ready?",
+    "ar": "هل مساعدي جاهز؟"
+   },
+   "description": {
+    "en": "Each AI assistant asked for one word: ready, or why not and how to fix it.",
+    "ar": "يسأل كل مساعد ذكي كلمة وحدة: جاهز، أو ليش لا وكيف تصلحه."
+   },
+   "mode": "direct",
+   "needs_assistant": false,
+   "irreversible": false,
+   "needs_consent": false,
+   "returns_job": false,
+   "changes_code": false,
+   "inputs": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+     "fresh": {
+      "type": "boolean",
+      "description": "Ask again now instead of the answer of the last few minutes."
+     },
+     "assistant": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "enum": [
+       "claude",
+       "codex",
+       null
+      ],
+      "description": "Ask only this assistant."
+     },
+     "project": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "description": "The project folder; the Studio fills it with the project it serves."
+     }
+    },
+    "required": []
+   }
+  },
+  {
    "id": "impact",
    "tool": "impact",
    "group": "understand",
@@ -294,7 +343,20 @@
       "type": "boolean"
      },
      "use_assistant": {
-      "type": "boolean"
+      "type": "boolean",
+      "description": "The person's choice: the check uses their AI assistant (kept for the project)."
+     },
+     "assistant": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "enum": [
+       "claude",
+       "codex",
+       null
+      ],
+      "description": "Which assistant the check uses (kept for the project); with use_assistant true. Not ready: the check does not start and says why."
      },
      "without_tools": {
       "type": "boolean",

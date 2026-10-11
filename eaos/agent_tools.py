@@ -299,19 +299,60 @@ def _fresh_report(state):
 
 # ---------------------------------------------------------------- diagnosis
 
-def audit(project=None, fresh=False, use_assistant=None, without_tools=False):
+def audit(project=None, fresh=False, use_assistant=None, without_tools=False, assistant=None):
+    """`use_assistant` and `assistant` (claude or codex) are the person's choice for the check's AI, kept for the
+    project. When they chose an assistant that is not ready (eaos/runtime/readiness.py), the check does not start: the
+    answer says why and how to fix it, and the person decides (fix it and call again, or use_assistant=false)."""
     state = project_state(project)
     asking = _branch(state)
     if asking: return asking
-    if use_assistant is not None:
-        state['questions'] = [q for q in state.get('questions') or [] if q['id'] != 'use_assistant'] + [
-            {'id': 'use_assistant', 'kind': 'yes_no', 'answer': bool(use_assistant), 'via': 'assistant', 'at': _now()}]
-        guided.save(state)
+    if use_assistant is not None or assistant:
+        state = guided.choose_assistant(state, True if use_assistant is None else use_assistant, assistant, via='assistant')
     # A check on record stands until the person asks for a new one (fresh): a check takes up to an hour, and one started
     # because the code moved on stopped the person's fixes midway (owner, 2026-10-10).
     if guided.scan_done(state) and not fresh:
         return {'status': 'done', 'already_checked': True, **overview(project), **_older_check(state)}
+    blocked = _assistant_not_ready(state)
+    if blocked: return blocked
     return _start('audit', state, {'without_tools': True} if without_tools else {}, watch=True)
+
+
+def _assistant_not_ready(state):
+    """{status: assistant_not_ready, ...} when the person said yes to their assistant and it does not answer now."""
+    from .runtime import readiness
+    if not guided.answered(state, 'use_assistant'): return None
+    name = guided.chosen_assistant(state)
+    if not name: return None
+    found = readiness.probe(name)
+    if found['ready']: return None
+    return {'status': 'assistant_not_ready', 'assistant': found, 'why': (found.get('reason') or {}).get('en') or found['code'],
+            'what_now': f"The check did not start: {found['name']} is not ready. Tell the person, in their language and plain words, "
+                        f"what is wrong and how to fix it: {(found.get('reason') or {}).get('en') or found['code']} Then ask them: fix it and "
+                        'check again (call audit again), use the other assistant (audit with assistant=claude or codex), or start '
+                        'without AI (audit with use_assistant=false). End your turn until they answer.'}
+
+
+def assistant_check(project=None, fresh=False, assistant=None):
+    """Before a check: each AI assistant's readiness on this computer (installed, version, signed in and answering a
+    one-word question, else the exact reason and its fix), the person's choice for this project, and what the
+    assistant may do in the check. `fresh` asks again instead of the answer of the last few minutes; `assistant`
+    asks only that one."""
+    from .runtime import readiness
+    state = project_state(project)
+    rows = readiness.probe_all(fresh=fresh, names=[assistant] if assistant else None)
+    said = guided.answered(state, 'use_assistant')
+    chosen = guided.chosen_assistant(state)
+    return {'assistants': rows, 'choice': {'use_assistant': said, 'assistant': chosen if said is not False else state.get('assistant'),
+                                           'kept': said is not None},
+            'permission': PERMISSION,
+            'what_now': 'Show the person each assistant with its readiness; when the one they want is not ready, its reason says how to fix '
+                        'it. Their choice goes to audit (use_assistant, assistant).'}
+
+
+PERMISSION = {'en': 'In the check the assistant only reads the facts EAOS gives it and answers: it has no tool, changes no file and '
+                    'runs nothing; everything it says stays a hypothesis tied to its evidence.',
+              'ar': 'في الفحص المساعد يقرأ فقط الحقائق اللي يعطيه إياها EAOS ويجاوب: ما عنده أي أداة، وما يغيّر أي ملف، وما يشغّل '
+                    'شيء؛ وكل ما يقوله يبقى فرضية مربوطة بدليلها.'}
 
 
 OLDER_CHECK = ('The check on record is from an earlier commit or EAOS. Go on with it; check again (audit with fresh=true) '
