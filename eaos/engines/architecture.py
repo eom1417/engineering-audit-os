@@ -27,19 +27,25 @@ def _files(target):
         for name in files: yield Path(root) / name
 
 
+def _java():
+    """ccsh runs on the pinned JRE, which the tools' bin folder holds."""
+    from .. import toolchain
+    return {'PATH': str(toolchain.home() / 'bin') + os.pathsep + os.environ.get('PATH', '')}
+
+
 def city(target, folder):
     ccsh = which('ccsh')
     if not ccsh: return {'status': 'unavailable', 'reason': 'ccsh is not installed: python -m eaos tools install --only codecharta'}
     folder.mkdir(parents=True, exist_ok=True)
     parts = [folder / 'code.cc.json']
-    code, _, err, _ = run([ccsh, 'unifiedparser', str(target), '-o', str(parts[0]), '-nc'], timeout=1800)
+    code, _, err, _ = run([ccsh, 'unifiedparser', str(target), '-o', str(parts[0]), '-nc'], timeout=1800, env=_java())
     if code or not parts[0].is_file(): return {'status': 'error', 'reason': f'ccsh unifiedparser exited {code}: {err[-400:]}'}
     if (Path(target) / '.git').exists():
         code, _, err, _ = run([ccsh, 'gitlogparser', 'repo-scan', '--repo-path', str(target), '-o', str(folder / 'git.cc.json'), '-nc'],
-                              timeout=1800)
+                              timeout=1800, env=_java())
         if code == 0 and (folder / 'git.cc.json').is_file(): parts.append(folder / 'git.cc.json')
     merged = folder / 'city.cc.json'
-    code, _, err, _ = run([ccsh, 'merge', *map(str, parts), '-o', str(merged), '-nc'], timeout=600)
+    code, _, err, _ = run([ccsh, 'merge', *map(str, parts), '-o', str(merged), '-nc'], timeout=600, env=_java())
     if code or not merged.is_file(): return {'status': 'error', 'reason': f'ccsh merge exited {code}: {err[-400:]}'}
     for part in parts: part.unlink(missing_ok=True)
     (folder / 'git.cc.json').unlink(missing_ok=True)
