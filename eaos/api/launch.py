@@ -72,6 +72,21 @@ def start(state):
     return found, bool(found)
 
 
+REMOTE_ORIGIN = 'EAOS_REMOTE_ORIGIN'
+
+
+def remote_template():
+    """The address every Studio of this computer is reached at when it runs on a remote server: $EAOS_REMOTE_ORIGIN, else
+    the one line of ~/.eaos/remote-origin, a Remote project address with {port} for the Studio's port
+    (https://<project>--{port}.dev.remote.e-m.sa); None on a person's own computer, where the address is localhost."""
+    text = os.environ.get(REMOTE_ORIGIN)
+    if text is None:
+        try: text = (home() / 'remote-origin').read_text(encoding='utf-8')
+        except OSError: return None
+    text = text.strip()
+    return text if '{port}' in text else None
+
+
 def token_path(state):
     """The project's launch token, kept across restarts (read only by the person), so an address that carries it, saved
     or bookmarked, keeps opening the Studio."""

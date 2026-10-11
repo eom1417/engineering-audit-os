@@ -413,7 +413,7 @@ class Commands(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         from test_mcp import git_project
         self.project = git_project(Path(self.tmp.name) / 'shop')
-        self.env = {**os.environ, 'EAOS_HOME': str(Path(self.tmp.name) / 'home'), 'PYTHONPATH': str(ROOT)}
+        self.env = {**{k: v for k, v in os.environ.items() if k != 'EAOS_REMOTE_ORIGIN'}, 'EAOS_HOME': str(Path(self.tmp.name) / 'home'), 'PYTHONPATH': str(ROOT)}
         patcher = mock.patch.dict(os.environ, {'EAOS_HOME': self.env['EAOS_HOME']})
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -451,6 +451,23 @@ class Commands(unittest.TestCase):
         self.assertEqual(_get(f'{base}/api/session', token)[0], 200, 'and its token: a saved address keeps working')
         restarted.terminate()
         restarted.wait(10)
+
+    def test_on_a_remote_server_the_studio_gives_its_remote_address_with_its_token(self):
+        env = {**self.env, 'EAOS_REMOTE_ORIGIN': 'https://shop--{port}.dev.remote.e-m.sa'}
+        done = subprocess.run([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--background', '--no-open'], env=env,
+                              capture_output=True, text=True, timeout=60)
+        [record] = self.records()
+        saved = json.loads(record.read_text(encoding='utf-8'))
+        def stop():
+            try: os.kill(saved['pid'], 15)
+            except OSError: pass
+        self.addCleanup(stop)
+        address = done.stdout.strip().split('EAOS Studio: ', 1)[1]
+        self.assertEqual(address, f"https://shop--{saved['port']}.dev.remote.e-m.sa/#token={saved['token']}")
+        host = {'Host': f"shop--{saved['port']}.dev.remote.e-m.sa"}
+        self.assertEqual(_fetch(f"http://127.0.0.1:{saved['port']}/", host)[0], 200, 'it answers to its Remote name')
+        self.assertIn('live-token.js', _fetch(f"http://127.0.0.1:{saved['port']}/", host)[1].decode('utf-8'),
+                      'behind the Remote sign-in the page also reads its token from its server')
 
     def test_studio_in_the_background_prints_its_address_and_returns(self):
         done = subprocess.run([sys.executable, '-m', 'eaos', 'studio', str(self.project), '--background', '--no-open'], env=self.env,

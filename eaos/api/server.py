@@ -254,12 +254,13 @@ def _runtime(project):
     return guided.runtime_of(known) if known else None
 
 
-def bind(port=0, host=guard.LOOPBACK, remote_origin=None):
-    """A loopback socket, or 0.0.0.0 with an exact authenticated Remote origin, on `port` or a free one."""
+def bind(port=0, host=guard.LOOPBACK, remote_origin=None, routed=False):
+    """A loopback socket, or 0.0.0.0 with an exact authenticated Remote origin (or `routed`: one made from the port once
+    bound, launch.remote_template), on `port` or a free one."""
     if remote_origin:
         from ..studio.actions.security import Locks
         Locks(port, remote_origin=remote_origin)
-    if host != guard.LOOPBACK and not (host == '0.0.0.0' and remote_origin):
+    if host != guard.LOOPBACK and not (host == '0.0.0.0' and (remote_origin or routed)):
         raise ValueError(f'the Studio server listens on {guard.LOOPBACK} only, not {host}')
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -295,26 +296,27 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
     """`eaos studio`: serve until stopped, with the record launch.py reuses. Returns the exit code."""
     state, report = prepare(project)
     found = launch.running(state)
-    if found and (remote_origin or found.get('remote_origin')):
+    if found and (remote_origin or found.get('remote_origin')) and not launch.remote_template():
         out(f'The Studio is already running; use its protected launch record to open it.')
         return 0
     if found:
         out(f'The Studio of this project is already open: {launch.url_of(found)}')
         launch._open(launch.url_of(found), show)
         return 0
-    sock = _bind_kept(state, port, remote_origin)
+    template = None if remote_origin else launch.remote_template()
+    sock = _bind_kept(state, port, remote_origin, remote=bool(template))
+    if template: remote_origin = template.format(port=sock.getsockname()[1])
     keys = Keys(port=sock.getsockname()[1], remote_origin=remote_origin)
-    if remote_origin: keys.token = _kept_token(os.environ.get('EAOS_STUDIO_TOKEN_FILE')) or keys.token
-    else:
-        launch.records_folder().mkdir(parents=True, exist_ok=True)
-        keys.token = _kept_token(launch.token_path(state))
-        launch.keep_port(state, keys.port)
+    launch.records_folder().mkdir(parents=True, exist_ok=True)
+    keys.token = _kept_token(os.environ.get('EAOS_STUDIO_TOKEN_FILE') or launch.token_path(state))
+    launch.keep_port(state, keys.port)
     app = create_app(report, project=state['project'], keys=keys)
     ctx = app.state.ctx
     launch._write_record(state, {'pid': os.getpid(), 'port': ctx.keys.port, 'token': ctx.keys.token, 'report': str(report),
                                  'project': state['project'], 'started': time.time(), 'remote_origin': remote_origin})
     try:
-        if remote_origin:
+        if template: out(f"EAOS Studio, live: {launch.url_of({'port': keys.port, 'token': keys.token, 'remote_origin': remote_origin})}")
+        elif remote_origin:
             out(f"EAOS Studio, live on {remote_origin}. Launch token is stored in the protected project launch record; no token is printed.")
         else: out(f"EAOS Studio, live: {ctx.url}\n(only this computer can open it; press Ctrl-C to stop)")
         if not guided.scan_done(state):
@@ -330,14 +332,15 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
     return 0
 
 
-def _bind_kept(state, port, remote_origin):
-    """The socket of `port`, or on this computer the port the project's Studio used last when it is free, so its
-    address stays the same; else a free one."""
-    host = '0.0.0.0' if remote_origin else guard.LOOPBACK
+def _bind_kept(state, port, remote_origin, remote=False):
+    """The socket of `port`, or the port the project's Studio used last when it is free, so its address stays the same;
+    else a free one. `remote`: a server whose Remote address is made from its port (launch.remote_template), so it
+    listens beyond loopback like one given --remote-origin."""
+    host = '0.0.0.0' if remote_origin or remote else guard.LOOPBACK
     if not port and not remote_origin and launch.kept_port(state):
-        try: return bind(launch.kept_port(state), host=host)
+        try: return bind(launch.kept_port(state), host=host, routed=remote)
         except OSError: pass
-    return bind(port, host=host, remote_origin=remote_origin)
+    return bind(port, host=host, remote_origin=remote_origin, routed=remote)
 
 
 def _same_computer_page(ctx, request, dest):
@@ -353,7 +356,7 @@ def _same_computer_page(ctx, request, dest):
 def _remote_login_trusted(ctx):
     """EAOS_STUDIO_TRUST_REMOTE_LOGIN=1 on a server started with --remote-origin: the sign-in in front of it guards the
     Studio, so the launch token travels in live-token.js rather than in the address. Never on a local Studio."""
-    return bool(ctx.keys.remote_origin) and os.environ.get('EAOS_STUDIO_TRUST_REMOTE_LOGIN') == '1'
+    return bool(ctx.keys.remote_origin) and (os.environ.get('EAOS_STUDIO_TRUST_REMOTE_LOGIN') == '1' or bool(launch.remote_template()))
 
 
 def _kept_token(path):
