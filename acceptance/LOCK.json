@@ -6,7 +6,7 @@
  "fixtures/style/vague.md": "1f756dd94e40e2e6f9848075dc740c2fd8c7db028beeb3ec8cf89cdf59ed339c",
  "test_ai_in_the_pipeline.py": "e12942f7afaa0ecd518294eb638baf5eac9fbd3da55ccb0d18fa0ef480b1d729",
  "test_branch_control.py": "f3408d3f12e5d4b3197b00e5983d1d1bc009cd9f634e9983d757326a6b03a0c5",
- "test_docs_reader.py": "43c7d437dbd12c443c8a86ebe58529e617101e0b47fbc794c0b8b6e3d2d2aeea",
+ "test_docs_reader.py": "46cf08dff0076918b4a296506bd3d9648d7bbcace7153dab212d5ed8236bf560",
  "test_field_report.py": "f3438d48b1826645d23e07d6de6f95371f563537b3e34dcf370822b76bf6ecfe",
  "test_live_scan_map.py": "85bab9c212502cd5d8e1e809fd526a8c0e5e32c620b23e2334a6fec0c08e27e4",
  "test_ns14_t1_style.py": "8e7bc3cb8fc13a95f314304aef9560a4bf0633149abafa8f67ff55b6bb1872cf",

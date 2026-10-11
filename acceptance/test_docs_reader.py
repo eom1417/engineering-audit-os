@@ -23,7 +23,7 @@ class DocsReader(unittest.TestCase):
         self.assertEqual(trial.get('diagrams_drawn'), trial.get('diagrams'))
         self.assertGreaterEqual(trial.get('tables') or 0, 1)
         gates = json.loads(gates_path.read_text(encoding='utf-8'))
-        self.assertTrue(gates.get('pass'), 'the screen gate passed')
+        self.assertTrue(gates.get('ok'), 'the screen gate passed in full')
         self.assertIn('document-diagram', json.dumps(gates.get('pages') or gates))
 
 

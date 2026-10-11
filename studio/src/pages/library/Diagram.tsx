@@ -3,14 +3,15 @@
 // but never below a readable scale: a large map then pans inside its box. Its toolbar zooms, opens it full screen
 // (DiagramViewer, its own chunk), shows its source and copies it. A diagram the engine cannot read shows its source
 // and why, never a broken page.
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { copyText, IconButton } from '../../components/Button'
 import { Icon } from '../../components/Icon'
 import { useToast } from '../../components/Toast'
 import { usePrefs } from '../../i18n/prefs'
 import { useOpenedOnce } from '../../shell/later'
-import { diagramKind, floorFor, readTheme, ZOOM, type DiagramKind, type Size } from './diagram'
+import { diagramKind, floorFor, readTheme, ZOOM, type DiagramKind } from './diagram'
 import type { Drawing } from './diagramEngine'
+import { DrawingBox } from './DrawingBox'
 import { usePanZoom } from './usePanZoom'
 import { useLibraryWords } from './words'
 import css from './library.module.css'
@@ -29,19 +30,6 @@ function reason(error: unknown): string {
 export function useKindWord() {
   const w = useLibraryWords()
   return (kind: DiagramKind) => (kind === 'diagram' ? w('kind_any') : w(`kind_${kind}`))
-}
-
-/** The drawing, placed at `k` times its natural size in a box that scrolls. Mermaid's SVG is sanitised by Mermaid
- * itself (strict security, DOMPurify) before it is placed: it is the one markup the reader does not build itself. */
-export function DrawingBox({ svg, natural, k, box, label, pans, className }:
-  { svg: string; natural: Size; k: number | null; box: RefObject<HTMLDivElement | null>; label: string; pans: boolean; className?: string }) {
-  const size: CSSProperties | undefined = k === null ? undefined : { inlineSize: `${natural.width * k}px`, blockSize: `${natural.height * k}px` }
-  return (
-    <div ref={box} className={[css.drawingBox, className].filter(Boolean).join(' ')} dir="ltr" role="region" aria-label={label} tabIndex={0}
-      data-pans={pans ? '' : undefined}>
-      <div className={css.drawing} style={size} data-ready={k === null ? undefined : ''} dangerouslySetInnerHTML={{ __html: svg }} />
-    </div>
-  )
 }
 
 function Source({ source, label }: { source: string; label: string }) {

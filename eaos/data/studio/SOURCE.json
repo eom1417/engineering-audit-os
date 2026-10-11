@@ -1,5 +1,5 @@
 {
- "source_sha256": "94ff6ab807c8250b30bc37549f5517c054240ccfaa52ddf29e8e1eebdb9a38e2",
+ "source_sha256": "06a049dadb3621cdd2843161e14f10e82ed87fda8aba3ce9b5435da098939dd3",
  "files": [
   "assets/BranchesPage.js",
   "assets/BridgePage.js",
@@ -10,7 +10,7 @@
   "assets/DataPaths.js",
   "assets/Decisions.js",
   "assets/DetailPages.js",
-  "assets/Diagram.js",
+  "assets/Diagram2.js",
   "assets/DiagramViewer.js",
   "assets/DocumentPage.js",
   "assets/EvidencePage.js",
@@ -53,9 +53,9 @@
   "assets/TimelinePage.js",
   "assets/ToolsPage.js",
   "assets/demo.js",
+  "assets/diagram.js",
   "assets/diagramEngine.js",
   "assets/highlight.js",
-  "assets/library.module.js",
   "assets/mermaid.abnfDiagram-YUKMZFIV.js",
   "assets/mermaid.arc.js",
   "assets/mermaid.architecture-WOLXFQ4H.js",
@@ -171,6 +171,7 @@
   "assets/style.css",
   "assets/words.js",
   "assets/words2.js",
+  "assets/words3.js",
   "boot.js",
   "index.html"
  ]
