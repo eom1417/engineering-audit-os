@@ -72,6 +72,27 @@ def start(state):
     return found, bool(found)
 
 
+def token_path(state):
+    """The project's launch token, kept across restarts (read only by the person), so an address that carries it, saved
+    or bookmarked, keeps opening the Studio."""
+    return records_folder() / f"{Path(state['workspace']).name}.token"
+
+
+def port_path(state):
+    return records_folder() / f"{Path(state['workspace']).name}.port"
+
+
+def kept_port(state):
+    """The port the project's Studio used last, so its address stays the same; 0 (any free one) the first time."""
+    try: return int(port_path(state).read_text(encoding='utf-8').strip())
+    except (OSError, ValueError): return 0
+
+
+def keep_port(state, port):
+    records_folder().mkdir(parents=True, exist_ok=True)
+    port_path(state).write_text(f'{port}\n', encoding='utf-8')
+
+
 def _write_record(state, record):
     folder = records_folder()
     folder.mkdir(parents=True, exist_ok=True)
@@ -84,14 +105,14 @@ def _write_record(state, record):
 
 
 def url_of(record, route=''):
-    """The Studio's address with its launch token; `route` (`/scan`, the live map) opens that page, the token then in
-    the route's query (studio/public/boot.js reads both forms)."""
+    """The Studio's address; `route` (`/scan`, the live map) opens that page. On this computer it is the plain address,
+    the same on every start: the page itself gets the token from its own server (eaos/api/server.py pages). A remote
+    address carries the launch token, in the route's query when there is a route (studio/public/boot.js reads both)."""
     origin = record.get('remote_origin')
-    if origin:
-        from ..studio.actions.security import Locks
-        Locks(record['port'], remote_origin=origin)
-    base = origin or f"http://127.0.0.1:{record['port']}"
-    return f"{base}/#{route}?token={record['token']}" if route else f"{base}/#token={record['token']}"
+    if not origin: return f"http://127.0.0.1:{record['port']}/" + (f'#{route}' if route else '')
+    from ..studio.actions.security import Locks
+    Locks(record['port'], remote_origin=origin)
+    return f"{origin}/#{route}?token={record['token']}" if route else f"{origin}/#token={record['token']}"
 
 
 def _open(url, show):

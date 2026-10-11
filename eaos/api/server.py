@@ -83,7 +83,7 @@ class Context:
 
     @property
     def url(self):
-        return f'http://127.0.0.1:{self.keys.port}/#token={self.keys.token}'
+        return f'http://127.0.0.1:{self.keys.port}/'
 
     def publish(self, kind, data=None, text=None):
         return self.feed.publish(kind, data=data, text=text)
@@ -160,10 +160,10 @@ def pages(ctx):
         if not page.is_file():
             return Response('The Studio is not built in this EAOS (eaos/data/studio is missing).', status_code=503)
         html = page.read_text(encoding='utf-8').replace(SNAPSHOT_CSP, LIVE_CSP)
-        if _remote_login_trusted(ctx):
+        if _remote_login_trusted(ctx) or _same_computer_page(ctx, request, 'document'):
             # The owner's remote address sits behind the Remote sign-in, which loses the token in the address on some
-            # redirects: the page reads it from a script whose address changes on every load, so no cache in front of
-            # the server can hand back an old answer (opt-in, remote only).
+            # redirects; on this computer the plain address carries none. The page reads it from a script whose address
+            # changes on every load, so no cache in front of the server can hand back an old answer.
             html = html.replace('<script src="./boot.js"></script>',
                                 f'<script src="./live-token.js?n={secrets.token_hex(8)}"></script><script src="./boot.js"></script>', 1)
         return Response(html, media_type='text/html', headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
@@ -177,7 +177,7 @@ def pages(ctx):
         return FileResponse(target, headers={'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-cache'})
 
     async def live_token(request):
-        if not _remote_login_trusted(ctx):
+        if not (_remote_login_trusted(ctx) or _same_computer_page(ctx, request, 'script')):
             return Response(status_code=404)
         given = f"window.EAOS_BOOT_TOKEN={json.dumps(ctx.keys.token)};try{{sessionStorage.setItem('eaos.token',window.EAOS_BOOT_TOKEN)}}catch(e){{}}\n"
         return Response(given, media_type='text/javascript', headers={'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store, private'})
@@ -302,9 +302,13 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
         out(f'The Studio of this project is already open: {launch.url_of(found)}')
         launch._open(launch.url_of(found), show)
         return 0
-    sock = bind(port, host='0.0.0.0' if remote_origin else guard.LOOPBACK, remote_origin=remote_origin)
+    sock = _bind_kept(state, port, remote_origin)
     keys = Keys(port=sock.getsockname()[1], remote_origin=remote_origin)
     if remote_origin: keys.token = _kept_token(os.environ.get('EAOS_STUDIO_TOKEN_FILE')) or keys.token
+    else:
+        launch.records_folder().mkdir(parents=True, exist_ok=True)
+        keys.token = _kept_token(launch.token_path(state))
+        launch.keep_port(state, keys.port)
     app = create_app(report, project=state['project'], keys=keys)
     ctx = app.state.ctx
     launch._write_record(state, {'pid': os.getpid(), 'port': ctx.keys.port, 'token': ctx.keys.token, 'report': str(report),
@@ -324,6 +328,26 @@ def run_foreground(project=None, port=0, show=True, remote_origin=None, out=lamb
     finally:
         launch.record_path(state).unlink(missing_ok=True)
     return 0
+
+
+def _bind_kept(state, port, remote_origin):
+    """The socket of `port`, or on this computer the port the project's Studio used last when it is free, so its
+    address stays the same; else a free one."""
+    host = '0.0.0.0' if remote_origin else guard.LOOPBACK
+    if not port and not remote_origin and launch.kept_port(state):
+        try: return bind(launch.kept_port(state), host=host)
+        except OSError: pass
+    return bind(port, host=host, remote_origin=remote_origin)
+
+
+def _same_computer_page(ctx, request, dest):
+    """A request of the Studio's own page on this computer: a local server, the browser saying the request is the
+    person's own navigation (Sec-Fetch-Site none) or the page's own (same-origin) and what it fetches (`dest`). Another
+    site's page can neither include the token script (cross-site) nor read the page (no CORS, frames refused), and the
+    Host check already refused every other name; a browser that sends no Sec-Fetch headers gets no token this way."""
+    if ctx.keys.remote_origin: return False
+    site, kind = request.headers.get('sec-fetch-site'), request.headers.get('sec-fetch-dest')
+    return kind == dest and site in (('none', 'same-origin') if dest == 'document' else ('same-origin',))
 
 
 def _remote_login_trusted(ctx):
