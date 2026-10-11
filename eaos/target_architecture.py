@@ -508,10 +508,12 @@ def reconcile(out, planned=False, policy_path=None):
             disagreements.append({'element': component['id'], 'rule': rule, 'assistant': component['decided_by']['assistant'],
                                   'final': component['relation'], 'label': label, 'why': said, 'cites': component['decided_by']['cites']})
     final = _decide_targets(targets, on, because, {c.get('target_component') for c in current}, disagreements)
-    final += _added(elements, ids | set(targets), because)
+    added = _added(elements, ids | set(targets), because)
+    final += added
     explicit = [c for c in record.get('components') or [] if c.get('id') not in ids]
     counts = {}
-    for row in [*current, *final]: counts[row['decided_by']['label']] = counts.get(row['decided_by']['label'], 0) + 1
+    # Every proposal is counted, the target components the assistant rejected (no longer in the target) too.
+    for row in [*current, *targets.values(), *added]: counts[row['decided_by']['label']] = counts.get(row['decided_by']['label'], 0) + 1
     record.update(target_components=final, components=explicit or current, gap_matrix=_redraw_gaps(out, record, current),
                   decisions=decisions([*current, *explicit]), decided={'by': 'assistant' if elements else 'rules', **counts},
                   disagreements=disagreements)

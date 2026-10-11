@@ -122,6 +122,8 @@ class JointDecision(unittest.TestCase):
         names = {t['name']: t['decided_by']['label'] for t in target['target_components']}
         self.assertEqual((names['domain'], names['TC-events']), ('disagreement', 'ai_added'))
         self.assertEqual({d['element'] for d in target['disagreements']}, {'T-api', 'T-worker', 'TC-domain'})
+        self.assertEqual({k: target['decided'][k] for k in ('ai_modified', 'disagreement', 'ai_added')},
+                         {'ai_modified': 1, 'disagreement': 2, 'ai_added': 1})
         self.assertIn('Rebuild `api` as `interface`', (self.base / 'joint/TARGET-ARCHITECTURE.md').read_text(encoding='utf-8'))
 
     def test_the_order_becomes_the_plans_steps_and_the_guide_follows_them(self):
