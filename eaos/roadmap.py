@@ -67,18 +67,32 @@ def effort(paths, dependents):
     return size, {'files': files, 'dependents': dependents}
 
 
+def _secret(task, paths):
+    text = str(task.get('render') or '') + ' ' + str(task.get('title') or '')
+    return task.get('pattern') in SECURITY or 'committed_credential' in text or ' secret ' in f' {text} '
+
+
+def _frontend(paths):
+    return any(p.endswith(FRONTEND_SUFFIXES) or (p.endswith(SCRIPT_SUFFIXES) and FRONTEND_FOLDERS & set(p.split('/')[:-1]))
+               for p in paths)
+
+
+# The section of a card: the first rule that holds, in this order.
+SECTION_RULES = (
+    ('security', _secret),
+    ('infrastructure', lambda task, paths: any(p.startswith('.github/') or p.endswith(('Dockerfile', 'vercel.json', 'netlify.toml'))
+                                               for p in paths)),
+    ('data', lambda task, paths: any(p.endswith('.sql') or p.startswith('supabase/') for p in paths)),
+    ('backend', lambda task, paths: any(part in ('server', 'api', 'functions') for p in paths for part in p.split('/')[:-1])),
+    ('quality', lambda task, paths: task.get('pattern') in SAFETY_NET),
+    ('general', lambda task, paths: not paths),
+    ('frontend', lambda task, paths: _frontend(paths)),
+)
+
+
 def section(task):
     paths = task.get('paths') or []
-    text = str(task.get('render') or '') + ' ' + str(task.get('title') or '')
-    if task.get('pattern') in SECURITY or 'committed_credential' in text or ' secret ' in f' {text} ': return 'security'
-    if any(p.startswith('.github/') or p.endswith(('Dockerfile', 'vercel.json', 'netlify.toml')) for p in paths): return 'infrastructure'
-    if any(p.endswith('.sql') or p.startswith('supabase/') for p in paths): return 'data'
-    if any(part in ('server', 'api', 'functions') for p in paths for part in p.split('/')[:-1]): return 'backend'
-    if task.get('pattern') in SAFETY_NET: return 'quality'
-    if not paths: return 'general'
-    if any(p.endswith(FRONTEND_SUFFIXES) or (p.endswith(SCRIPT_SUFFIXES) and FRONTEND_FOLDERS & set(p.split('/')[:-1]))
-           for p in paths): return 'frontend'
-    return 'backend'
+    return next((name for name, holds in SECTION_RULES if holds(task, paths)), 'backend')
 
 
 def milestone_of(task, placements):
@@ -94,6 +108,16 @@ def milestone_of(task, placements):
 def milestones(tasks, placements=None, dispositions=None):
     """[{id, goal, exit, tasks, strangler}] in the fixed order; each card in exactly one milestone."""
     placements, dispositions = placements or {}, dispositions or {}
+    groups, order = _grouped(tasks, placements)
+    out = []
+    for name in order:
+        members = sorted(groups.get(name) or [], key=lambda t: (-(t.get('priority') or 0), t['id']))
+        if members: out.append(_milestone(len(out) + 1, name, members, dispositions))
+    return out
+
+
+def _grouped(tasks, placements):
+    """({milestone: its cards}, the milestones in order): the builds with the most priority shown, the rest together."""
     groups = defaultdict(list)
     for task in tasks: groups[milestone_of(task, placements)].append(task)
     builds = sorted((name for name in groups if name.startswith('build:')),
@@ -102,32 +126,30 @@ def milestones(tasks, placements=None, dispositions=None):
     if rest:
         groups['build:other'] = [task for name in rest for task in groups.pop(name)]
         kept.append('build:other')
-    order = ['stabilize', 'safety_net', 'boundaries', *kept, 'hardening']
-    out = []
-    for name in order:
-        members = sorted(groups.get(name) or [], key=lambda t: (-(t.get('priority') or 0), t['id']))
-        if not members: continue
-        if name.startswith('build:'):
-            component = name.split(':', 1)[1]
-            rebuild = dispositions.get(component) == 'rebuild'
-            goal = (f"`{component}` is rebuilt in its target layer, behind a flag (Strangler Fig), with the same behaviour."
-                    if rebuild else f"`{component}` is reshaped to its target: its cards done, its files in place.")
-            exit_ = ('Every card here passes; the behaviour lock matches on the new path; the old path is removed '
-                     'in its own step only after parity (E7).' if rebuild else
-                     'Every card here passes, and the next audit places every file of the component in its target layer.')
-        else:
-            goal, exit_ = GOALS[name]
-            rebuild = False
-        if name.startswith('build:'):
-            goal_ar = (f"إعادة بناء `{component}` في طبقته المستهدفة خلف علم (Strangler Fig)، بالسلوك نفسه." if rebuild
+    return groups, ['stabilize', 'safety_net', 'boundaries', *kept, 'hardening']
+
+
+def _milestone(number, name, members, dispositions):
+    """One milestone: its goal and exit in both languages, its cards, and whether it rebuilds behind a flag."""
+    rebuild = name.startswith('build:') and dispositions.get(name.split(':', 1)[1]) == 'rebuild'
+    goal, exit_, goal_ar, exit_ar = _build_words(name.split(':', 1)[1], rebuild) if name.startswith('build:') else (*GOALS[name], *GOALS_AR[name])
+    return {'id': f'M{number:02d}', 'name': name, 'goal': goal, 'exit': exit_, 'goal_ar': goal_ar, 'exit_ar': exit_ar,
+            'tasks': [t['id'] for t in members], 'strangler': rebuild}
+
+
+def _build_words(component, rebuild):
+    """(goal, exit, goal_ar, exit_ar) of the milestone that builds one component: rebuilt behind a flag, or reshaped."""
+    goal = (f"`{component}` is rebuilt in its target layer, behind a flag (Strangler Fig), with the same behaviour."
+            if rebuild else f"`{component}` is reshaped to its target: its cards done, its files in place.")
+    exit_ = ('Every card here passes; the behaviour lock matches on the new path; the old path is removed '
+             'in its own step only after parity (E7).' if rebuild else
+             'Every card here passes, and the next audit places every file of the component in its target layer.')
+    if True:
+        goal_ar = (f"إعادة بناء `{component}` في طبقته المستهدفة خلف علم (Strangler Fig)، بالسلوك نفسه." if rebuild
                        else f"تشكيل `{component}` على صورته المستهدفة: بطاقاته منجزة وملفاته في أماكنها.")
             exit_ar = ('كل بطاقة هنا تمر، وتثبيت السلوك يطابق على المسار الجديد، والمسار القديم يُزال في خطوة مستقلة بعد التكافؤ (E7).'
                        if rebuild else 'كل بطاقة هنا تمر، ويضع التدقيق التالي كل ملف من المكوّن في طبقته المستهدفة.')
-        else:
-            goal_ar, exit_ar = GOALS_AR[name]
-        out.append({'id': f'M{len(out) + 1:02d}', 'name': name, 'goal': goal, 'exit': exit_, 'goal_ar': goal_ar, 'exit_ar': exit_ar,
-                    'tasks': [t['id'] for t in members], 'strangler': rebuild})
-    return out
+    return goal, exit_, goal_ar, exit_ar
 
 
 def sections(tasks):
@@ -158,8 +180,13 @@ def render(plan_milestones, tasks, language='ar', shown=5):
                                  'Every card is in exactly one.')])
     for milestone in plan_milestones:
         document.section(f"{milestone['id']} · {milestone['name']} ({len(milestone['tasks'])})")
-        document.bullets([('الهدف: ' if ar else 'Goal: ') + milestone['goal_ar' if ar else 'goal'],
-                          ('الخروج: ' if ar else 'Exit: ') + milestone['exit_ar' if ar else 'exit']]
-                         + [f"{tid} [{by_id[tid].get('effort', '?')}/{by_id[tid].get('section', '?')}] {clip(by_id[tid].get('title', ''), 80)}"
-                            for tid in milestone['tasks'][:shown]])
+        document.bullets(_milestone_lines(milestone, by_id, ar, shown))
     return document
+
+
+def _milestone_lines(milestone, by_id, ar, shown):
+    """A milestone's goal and exit, then its first cards with their size and section."""
+    return ([('الهدف: ' if ar else 'Goal: ') + milestone['goal_ar' if ar else 'goal'],
+             ('الخروج: ' if ar else 'Exit: ') + milestone['exit_ar' if ar else 'exit']]
+            + [f"{tid} [{by_id[tid].get('effort', '?')}/{by_id[tid].get('section', '?')}] {clip(by_id[tid].get('title', ''), 80)}"
+               for tid in milestone['tasks'][:shown]])
