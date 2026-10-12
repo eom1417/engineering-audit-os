@@ -152,7 +152,7 @@ function TimelineView({ data, timeline }: { data: StudioData; timeline: Timeline
                 <li key={wv.wave}>
                   <AriaButton className={[css.waveRow, css.stepBtn].join(' ')} onPress={() => pick(undefined, wv.wave)}>
                     <span className={css.waveHead}><span>{w('wave', { n: wv.wave })}</span><span>{w('tasksN', { n: wv.tasks })}</span></span>
-                    <span className={css.waveSteps}>{wv.steps.map((s) => <span key={s.step ?? 'none'}><Id value={s.step ?? '—'} /> <N value={s.tasks} /></span>)}</span>
+                    <span className={css.waveSteps}>{wv.steps.map((s, i) => <span key={s.step ?? 'none'}>{i > 0 && ' · '}<Id value={s.step ?? '—'} />: {w('tasksN', { n: s.tasks })}</span>)}</span>
                   </AriaButton>
                 </li>
               ))}
