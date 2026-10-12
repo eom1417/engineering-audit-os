@@ -63,45 +63,57 @@ def parser_for(language):
 def python_units(text):
     """Symbols, imports and calls from the standard library parser, with real qualified names."""
     tree = ast.parse(text)
-    symbols, imports, calls = [], [], []
-    scope = []
+    units = {'symbols': [], 'imports': [], 'calls': [], 'scope': []}
+    for child in ast.iter_child_nodes(tree): _visit_python(child, None, units)
+    return units['symbols'], units['imports'], units['calls']
 
-    def visit(node, parent):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            kind = 'class' if isinstance(node, ast.ClassDef) else ('method' if parent else 'function')
-            qualified = '.'.join(scope + [node.name])
-            signature = None
-            if not isinstance(node, ast.ClassDef):
-                arguments = node.args
-                names = [a.arg for a in [*arguments.posonlyargs, *arguments.args]]
-                if arguments.vararg: names.append('*' + arguments.vararg.arg)
-                names += [a.arg for a in arguments.kwonlyargs]
-                if arguments.kwarg: names.append('**' + arguments.kwarg.arg)
-                required = len(names) - len(arguments.defaults) - len(arguments.kw_defaults or [])
-                signature = {'parameters': names, 'required': max(required, 0)}
-            symbols.append({'name': node.name, 'qualified_name': qualified, 'kind': kind, 'parent': parent,
-                            'start_line': node.lineno, 'end_line': node.end_lineno,
-                            'exported': not node.name.startswith('_'), 'signature': signature,
-                            'decorators': [ast.unparse(d) for d in node.decorator_list][:8]})
-            scope.append(node.name)
-            for child in ast.iter_child_nodes(node): visit(child, qualified)
-            scope.pop()
-            return
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                imports.append({'module': alias.name, 'names': [], 'level': 0, 'line': node.lineno, 'style': 'absolute'})
-        elif isinstance(node, ast.ImportFrom):
-            imports.append({'module': node.module or '', 'names': [a.name for a in node.names], 'level': node.level,
-                            'line': node.lineno, 'style': 'relative' if node.level else 'absolute'})
-        elif isinstance(node, ast.Call):
-            callee = node.func
-            name = getattr(callee, 'id', None) or getattr(callee, 'attr', None)
-            if name: calls.append({'caller': parent, 'callee': name, 'line': node.lineno,
-                                   'attribute': isinstance(callee, ast.Attribute)})
-        for child in ast.iter_child_nodes(node): visit(child, parent)
 
-    for child in ast.iter_child_nodes(tree): visit(child, None)
-    return symbols, imports, calls
+def _python_signature(node):
+    if isinstance(node, ast.ClassDef): return None
+    arguments = node.args
+    names = [a.arg for a in [*arguments.posonlyargs, *arguments.args]]
+    if arguments.vararg: names.append('*' + arguments.vararg.arg)
+    names += [a.arg for a in arguments.kwonlyargs]
+    if arguments.kwarg: names.append('**' + arguments.kwarg.arg)
+    required = len(names) - len(arguments.defaults) - len(arguments.kw_defaults or [])
+    return {'parameters': names, 'required': max(required, 0)}
+
+
+def _python_symbol(node, parent, units):
+    kind = 'class' if isinstance(node, ast.ClassDef) else ('method' if parent else 'function')
+    qualified = '.'.join(units['scope'] + [node.name])
+    units['symbols'].append({'name': node.name, 'qualified_name': qualified, 'kind': kind, 'parent': parent,
+                             'start_line': node.lineno, 'end_line': node.end_lineno,
+                             'exported': not node.name.startswith('_'), 'signature': _python_signature(node),
+                             'decorators': [ast.unparse(d) for d in node.decorator_list][:8]})
+    units['scope'].append(node.name)
+    for child in ast.iter_child_nodes(node): _visit_python(child, qualified, units)
+    units['scope'].pop()
+
+
+def _python_import(node, units):
+    if isinstance(node, ast.Import):
+        units['imports'] += [{'module': alias.name, 'names': [], 'level': 0, 'line': node.lineno, 'style': 'absolute'}
+                             for alias in node.names]
+    else:
+        units['imports'].append({'module': node.module or '', 'names': [a.name for a in node.names], 'level': node.level,
+                                 'line': node.lineno, 'style': 'relative' if node.level else 'absolute'})
+
+
+def _python_call(node, parent, units):
+    callee = node.func
+    name = getattr(callee, 'id', None) or getattr(callee, 'attr', None)
+    if name: units['calls'].append({'caller': parent, 'callee': name, 'line': node.lineno,
+                                    'attribute': isinstance(callee, ast.Attribute)})
+
+
+def _visit_python(node, parent, units):
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        _python_symbol(node, parent, units)
+        return
+    if isinstance(node, (ast.Import, ast.ImportFrom)): _python_import(node, units)
+    elif isinstance(node, ast.Call): _python_call(node, parent, units)
+    for child in ast.iter_child_nodes(node): _visit_python(child, parent, units)
 
 
 def node_text(node, blob): return blob[node.start_byte:node.end_byte].decode('utf-8', errors='replace')
@@ -171,60 +183,89 @@ def tree_sitter_units(language, text, config):
     if parser is None: return None
     blob = text.encode('utf-8')
     tree = parser.parse(blob)
-    symbols, imports, calls = [], [], []
+    walker = {'config': config, 'blob': blob, 'symbols': [], 'imports': [], 'calls': []}
+    _walk_tree(tree.root_node, None, walker)
+    return walker['symbols'], walker['imports'], walker['calls']
 
-    def walk(node, enclosing):
-        kind = None
-        if node.type in config['functions']: kind = 'method' if enclosing else 'function'
-        elif node.type in config['classes']: kind = 'class'
-        current = enclosing
-        if kind:
-            name = named_child(node, blob) or anonymous_name(node, blob)
-            if name:
-                qualified = (enclosing + '.' + name) if enclosing else name
-                parameters = node.child_by_field_name('parameters') or node.child_by_field_name('formal_parameters')
-                signature = None
-                if parameters is not None:
-                    names = [node_text(child, blob).split(':')[0].strip()
-                             for child in parameters.named_children if child.type != 'comment']
-                    signature = {'parameters': [name for name in names if name], 'required': None}
-                symbols.append({'name': name, 'qualified_name': qualified, 'kind': kind, 'parent': enclosing,
-                                'start_line': node.start_point[0] + 1, 'end_line': node.end_point[0] + 1,
-                                'exported': True, 'signature': signature, 'decorators': []})
-                current = qualified
-        if node.type in config['imports']:
-            module = first_string(node, blob)
-            if module is None and node.named_children:
-                module = node_text(node.named_children[0], blob).strip('\'"`;')
-            if module:
-                imports.append({'module': module, 'names': imported_names(node, blob), 'level': 0,
-                                'line': node.start_point[0] + 1,
-                                'style': 'relative' if module.startswith('.') else 'absolute'})
-        elif node.type == 'export_statement' and node.child_by_field_name('source') is not None:
-            # A re-export (`export { Dialog } from "./Dialog"`, `export * from "./types"`) depends on its source
-            # exactly as an import does. A barrel index.ts made only of these was a file with no edges, and every
-            # module behind it looked unreachable.
-            module = node_text(node.child_by_field_name('source'), blob).strip('\'"`')
-            clause = re.search(r'\{([^}]*)\}', node_text(node, blob))
-            names = [part.split(' as ')[0].strip() for part in clause.group(1).split(',') if part.strip()] if clause else ['*']
-            imports.append({'module': module, 'names': [n for n in names if n == '*' or n.isidentifier()], 'level': 0,
-                            'line': node.start_point[0] + 1, 'style': 'relative' if module.startswith('.') else 'absolute'})
-        elif node.type in config['calls']:
-            target = node.child_by_field_name('function') or node.child_by_field_name('method') or (node.named_children[0] if node.named_children else None)
-            if target is not None:
-                raw_callee = node_text(target, blob).split('(')[0].strip()
-                callee = raw_callee.split('.')[-1].split('::')[-1].split('->')[-1].strip()
-                if callee and callee.isidentifier():
-                    if callee in {'require', 'import'}:
-                        module = literal_argument(node, blob)
-                        if module: imports.append({'module': module, 'names': [], 'level': 0, 'line': node.start_point[0] + 1,
-                                                   'style': 'relative' if module.startswith('.') else 'absolute'})
-                    calls.append({'caller': current, 'callee': callee, 'line': node.start_point[0] + 1,
-                                  'attribute': raw_callee != callee})
-        for child in node.named_children: walk(child, current)
 
-    walk(tree.root_node, None)
-    return symbols, imports, calls
+def _module_import(module, names, line):
+    return {'module': module, 'names': names, 'level': 0, 'line': line,
+            'style': 'relative' if module.startswith('.') else 'absolute'}
+
+
+def _tree_kind(node, config, enclosing):
+    if node.type in config['functions']: return 'method' if enclosing else 'function'
+    if node.type in config['classes']: return 'class'
+    return None
+
+
+def _tree_signature(node, blob):
+    parameters = node.child_by_field_name('parameters') or node.child_by_field_name('formal_parameters')
+    if parameters is None: return None
+    names = [node_text(child, blob).split(':')[0].strip()
+             for child in parameters.named_children if child.type != 'comment']
+    return {'parameters': [name for name in names if name], 'required': None}
+
+
+def _tree_symbol(node, kind, enclosing, walker):
+    """Record the symbol `node` declares; its qualified name, or `enclosing` when it has no name."""
+    blob = walker['blob']
+    name = named_child(node, blob) or anonymous_name(node, blob)
+    if not name: return enclosing
+    qualified = (enclosing + '.' + name) if enclosing else name
+    walker['symbols'].append({'name': name, 'qualified_name': qualified, 'kind': kind, 'parent': enclosing,
+                              'start_line': node.start_point[0] + 1, 'end_line': node.end_point[0] + 1,
+                              'exported': True, 'signature': _tree_signature(node, blob), 'decorators': []})
+    return qualified
+
+
+def _tree_import(node, blob):
+    module = first_string(node, blob)
+    if module is None and node.named_children:
+        module = node_text(node.named_children[0], blob).strip('\'"`;')
+    return _module_import(module, imported_names(node, blob), node.start_point[0] + 1) if module else None
+
+
+def _tree_reexport(node, blob):
+    # A re-export (`export { Dialog } from "./Dialog"`, `export * from "./types"`) depends on its source
+    # exactly as an import does. A barrel index.ts made only of these was a file with no edges, and every
+    # module behind it looked unreachable.
+    module = node_text(node.child_by_field_name('source'), blob).strip('\'"`')
+    clause = re.search(r'\{([^}]*)\}', node_text(node, blob))
+    names = [part.split(' as ')[0].strip() for part in clause.group(1).split(',') if part.strip()] if clause else ['*']
+    return _module_import(module, [n for n in names if n == '*' or n.isidentifier()], node.start_point[0] + 1)
+
+
+def _tree_call(node, current, walker):
+    blob = walker['blob']
+    target = node.child_by_field_name('function') or node.child_by_field_name('method') or (node.named_children[0] if node.named_children else None)
+    if target is None: return
+    raw_callee = node_text(target, blob).split('(')[0].strip()
+    callee = raw_callee.split('.')[-1].split('::')[-1].split('->')[-1].strip()
+    if not (callee and callee.isidentifier()): return
+    if callee in {'require', 'import'}:
+        module = literal_argument(node, blob)
+        if module: walker['imports'].append(_module_import(module, [], node.start_point[0] + 1))
+    walker['calls'].append({'caller': current, 'callee': callee, 'line': node.start_point[0] + 1,
+                            'attribute': raw_callee != callee})
+
+
+def _tree_edges(node, current, walker):
+    config, blob = walker['config'], walker['blob']
+    if node.type in config['imports']:
+        found = _tree_import(node, blob)
+        if found: walker['imports'].append(found)
+    elif node.type == 'export_statement' and node.child_by_field_name('source') is not None:
+        walker['imports'].append(_tree_reexport(node, blob))
+    elif node.type in config['calls']:
+        _tree_call(node, current, walker)
+
+
+def _walk_tree(node, enclosing, walker):
+    kind = _tree_kind(node, walker['config'], enclosing)
+    current = _tree_symbol(node, kind, enclosing, walker) if kind else enclosing
+    _tree_edges(node, current, walker)
+    for child in node.named_children: _walk_tree(child, current, walker)
 
 
 def parse_text(path, text):
@@ -254,60 +295,70 @@ def run(target, source, cache=None, **options):
     reused = 0
     for item in source.readable():
         rel = item['path']
-        if source.category(rel) not in {'source', 'test', 'manifest'} and language_of(rel) is None: continue
+        if not _considered(source, rel): continue
         text = source.text(rel)
         if text is None:
-            statuses['BLOCKED'] = statuses.get('BLOCKED', 0) + 1
+            _count(statuses, 'BLOCKED')
             continue
         fingerprints.append(item['sha256'])
         key = item['sha256'] + '|' + rel + '|' + VERSION
-        cached = cache.get(key)
-        if cached is not None:
-            reused += 1
-            statuses[cached['status']] = statuses.get(cached['status'], 0) + 1
-            languages[cached['language'] or 'unknown'] = languages.get(cached['language'] or 'unknown', 0) + 1
-            facts.extend(cached['facts'])
-            continue
-        produced_before = len(facts)
-        units, parser_name, status, language = parse_text(rel, text)
-        if language is None and source.category(rel) in {'manifest', 'configuration'}:
-            status, parser_name = 'NOT_SOURCE', 'not_a_source_language'
-        statuses[status] = statuses.get(status, 0) + 1
-        languages[language or 'unknown'] = languages.get(language or 'unknown', 0) + 1
-        lines = text.count('\n') + 1
-        facts.append(make('source_file', NAME, VERSION, item['sha256'], {'path': rel},
-                          {'language': language, 'lines': lines, 'parse_status': status, 'parser': parser_name,
-                           'category': source.category(rel)}, limitations=LIMITATIONS))
-        if units is None: continue
-        symbols, imports, calls = units
-        for symbol in symbols:
-            facts.append(make('symbol', NAME, VERSION, item['sha256'],
-                              {'path': rel, 'start_line': symbol['start_line'], 'end_line': symbol['end_line'], 'symbol': symbol['qualified_name']},
-                              {k: symbol[k] for k in ['name', 'kind', 'parent', 'exported', 'decorators', 'signature']} | {'language': language},
-                              limitations=LIMITATIONS))
-        for entry in imports:
-            facts.append(make('import_edge', NAME, VERSION, item['sha256'], {'path': rel, 'start_line': entry['line']},
-                              {'module': entry['module'], 'names': entry['names'], 'level': entry['level'],
-                               'style': entry['style'], 'language': language},
-                              resolution='UNRESOLVED', limitations=LIMITATIONS))
-        for entry in calls:
-            facts.append(make('call_edge', NAME, VERSION, item['sha256'], {'path': rel, 'start_line': entry['line'], 'symbol': entry['caller']},
-                              {'callee': entry['callee'], 'attribute': entry.get('attribute', False), 'language': language},
-                              resolution='UNRESOLVED', limitations=LIMITATIONS))
-        cache[key] = {'status': status, 'language': language, 'facts': facts[produced_before:]}
+        entry = cache.get(key)
+        if entry is not None: reused += 1
+        else: entry = cache[key] = _parsed_file(item, rel, text, source)
+        _count(statuses, entry['status'])
+        _count(languages, entry['language'] or 'unknown')
+        facts.extend(entry['facts'])
     facts.sort(key=lambda f: (f['location']['path'], f['location'].get('start_line', 0), f['kind'], f['id']))
+    # The cache counter is run telemetry, not a fact about the code: keeping it out of the fact set
+    # means a cached run and a cold run produce byte-identical output.
+    return {'facts': facts, 'summary': _summary(facts, statuses, languages), 'available': True, 'reused_from_cache': reused,
+            'input_sha': digest(''.join(sorted(fingerprints)).encode('utf-8')), 'reason': None}
+
+
+def _count(table, key): table[key] = table.get(key, 0) + 1
+
+
+def _considered(source, rel):
+    return source.category(rel) in {'source', 'test', 'manifest'} or language_of(rel) is not None
+
+
+def _unit_facts(item, rel, language, units):
+    symbols, imports, calls = units
+    facts = [make('symbol', NAME, VERSION, item['sha256'],
+                  {'path': rel, 'start_line': symbol['start_line'], 'end_line': symbol['end_line'], 'symbol': symbol['qualified_name']},
+                  {k: symbol[k] for k in ['name', 'kind', 'parent', 'exported', 'decorators', 'signature']} | {'language': language},
+                  limitations=LIMITATIONS) for symbol in symbols]
+    facts += [make('import_edge', NAME, VERSION, item['sha256'], {'path': rel, 'start_line': entry['line']},
+                   {'module': entry['module'], 'names': entry['names'], 'level': entry['level'],
+                    'style': entry['style'], 'language': language},
+                   resolution='UNRESOLVED', limitations=LIMITATIONS) for entry in imports]
+    facts += [make('call_edge', NAME, VERSION, item['sha256'], {'path': rel, 'start_line': entry['line'], 'symbol': entry['caller']},
+                   {'callee': entry['callee'], 'attribute': entry.get('attribute', False), 'language': language},
+                   resolution='UNRESOLVED', limitations=LIMITATIONS) for entry in calls]
+    return facts
+
+
+def _parsed_file(item, rel, text, source):
+    """The cache entry of one file parsed now: its status, language and facts."""
+    units, parser_name, status, language = parse_text(rel, text)
+    if language is None and source.category(rel) in {'manifest', 'configuration'}:
+        status, parser_name = 'NOT_SOURCE', 'not_a_source_language'
+    facts = [make('source_file', NAME, VERSION, item['sha256'], {'path': rel},
+                  {'language': language, 'lines': text.count('\n') + 1, 'parse_status': status, 'parser': parser_name,
+                   'category': source.category(rel)}, limitations=LIMITATIONS)]
+    if units is not None: facts += _unit_facts(item, rel, language, units)
+    return {'status': status, 'language': language, 'facts': facts}
+
+
+def _summary(facts, statuses, languages):
     parsed = statuses.get('OBSERVED', 0)
     considered = sum(statuses.values())
     source_files = considered - statuses.get('NOT_SOURCE', 0)
-    summary = {'files_considered': considered, 'source_files': source_files, 'files_parsed': parsed,
-               'parse_coverage': round(parsed / source_files, 3) if source_files else 0.0,
-               'by_status': dict(sorted(statuses.items())), 'by_language': dict(sorted(languages.items())),
-               'symbols': sum(f['kind'] == 'symbol' for f in facts),
-               'imports': sum(f['kind'] == 'import_edge' for f in facts),
-               'calls': sum(f['kind'] == 'call_edge' for f in facts),
-               'tree_sitter_available': parser_for('typescript') is not None,
-               'interpretation': 'Structural observations only. No responsibility, boundary or defect is implied by any symbol or edge.'}
-    # The cache counter is run telemetry, not a fact about the code: keeping it out of the fact set
-    # means a cached run and a cold run produce byte-identical output.
-    return {'facts': facts, 'summary': summary, 'available': True, 'reused_from_cache': reused,
-            'input_sha': digest(''.join(sorted(fingerprints)).encode('utf-8')), 'reason': None}
+    return {'files_considered': considered, 'source_files': source_files, 'files_parsed': parsed,
+            'parse_coverage': round(parsed / source_files, 3) if source_files else 0.0,
+            'by_status': dict(sorted(statuses.items())), 'by_language': dict(sorted(languages.items())),
+            'symbols': sum(f['kind'] == 'symbol' for f in facts),
+            'imports': sum(f['kind'] == 'import_edge' for f in facts),
+            'calls': sum(f['kind'] == 'call_edge' for f in facts),
+            'tree_sitter_available': parser_for('typescript') is not None,
+            'interpretation': 'Structural observations only. No responsibility, boundary or defect is implied by any symbol or edge.'}
