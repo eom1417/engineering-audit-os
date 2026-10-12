@@ -73,6 +73,11 @@ function ScanBody({ data }: { data: StudioData }) {
           {scan.branch && <Id value={scan.branch} />}
         </div>
       </header>
+      <nav className={css.nav} aria-label={w('checks')}>
+        {previous && <Go to={scanPath(previous)} className={buttonClass('secondary')}><Icon name="back" />{w('previousCheck')}</Go>}
+        {next && <Go to={scanPath(next)} className={buttonClass('secondary')}>{w('nextCheck')}<Icon name="chevron" /></Go>}
+        {previous && <Go to={rangePath(previous, scan)} className={buttonClass('primary')}><Icon name="change" />{w('compareWithPrevious')}</Go>}
+      </nav>
       <div className={css.columns}>
         <div className={css.col}>
           <Section title={w('check')} id="s-check">
@@ -93,11 +98,6 @@ function ScanBody({ data }: { data: StudioData }) {
           </Section>
         </div>
         <div className={css.col}>
-          <nav className={css.nav} aria-label={w('checks')}>
-            {previous && <Go to={scanPath(previous)} className={buttonClass('secondary')}><Icon name="back" />{w('previousCheck')}</Go>}
-            {next && <Go to={scanPath(next)} className={buttonClass('secondary')}>{w('nextCheck')}<Icon name="chevron" /></Go>}
-            {previous && <Go to={rangePath(previous, scan)} className={buttonClass('primary')}><Icon name="change" />{w('compareWithPrevious')}</Go>}
-          </nav>
           <Section title={w('events')} count={around.length} id="s-around">
             <Panel>
               {around.length ? <FoldList items={around} first={6} render={(event) => <EventRow event={event} />} label={w('events')} />
