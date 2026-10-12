@@ -115,17 +115,56 @@ def aspect_section(page, out, ar):
     page.heading('كل جانب من البرنامج: يبقى أو يتحسّن' if ar else 'Every aspect of the program: keep or improve')
     page.para('حكم مساعدك على كل جانب حيث حكم، وحكم القواعد في الباقي (target-architecture.json → aspects).' if ar else
               "Your assistant's verdict on each aspect it judged, the rules' on the rest (target-architecture.json → aspects).")
-    items = []
-    for row in rows:
-        label = row['label'][1 if ar else 0] if isinstance(row.get('label'), (list, tuple)) else row.get('label') or row['aspect']
-        words = VERDICT_WORDS.get(row['verdict'], (row['verdict'], row['verdict']))[1 if ar else 0]
-        who = ('مساعدك' if ar else 'your assistant') if row.get('decided_by') == 'assistant' else ('القواعد' if ar else 'the rules')
-        line = f"{label}: {words}. {clip(row.get('why'), 220)}"
-        if row['verdict'] == 'improve' and row.get('plan'): line += (' الخطة: ' if ar else ' Plan: ') + clip(row['plan'], 220)
-        if row.get('cards'): line += ' (' + ', '.join(row['cards'][:4]) + ')'
-        items.append(line + f" ({who})")
-    page.items(items)
+    page.items([_aspect_line(row, ar) for row in rows])
     return {verdict: sum(1 for row in rows if row['verdict'] == verdict) for verdict in ('keep', 'improve', 'unmeasured')}
+
+
+def _aspect_line(row, ar):
+    """An aspect, its verdict and why, its plan and cards when it is to improve, and who decided."""
+    label = row['label'][1 if ar else 0] if isinstance(row.get('label'), (list, tuple)) else row.get('label') or row['aspect']
+    words = VERDICT_WORDS.get(row['verdict'], (row['verdict'], row['verdict']))[1 if ar else 0]
+    who = ('مساعدك' if ar else 'your assistant') if row.get('decided_by') == 'assistant' else ('القواعد' if ar else 'the rules')
+    line = f"{label}: {words}. {clip(row.get('why'), 220)}"
+    if row['verdict'] == 'improve' and row.get('plan'): line += (' الخطة: ' if ar else ' Plan: ') + clip(row['plan'], 220)
+    if row.get('cards'): line += ' (' + ', '.join(row['cards'][:4]) + ')'
+    return line + f" ({who})"
+
+
+def _diagram(page, out, which, ar):
+    """The C4 diagram of `which` (current or target) as a mermaid block, when it was drawn."""
+    diagram = Path(out) / f'architecture/{which}/diagram.mmd'
+    if diagram.is_file():
+        page.heading('C4' if not ar else 'خريطة C4', 3)
+        page.block('mermaid', diagram.read_text(encoding='utf-8'))
+
+
+def _current_numbers(coverage, features, items, severe, external):
+    return {
+        'files_parsed': (f"{coverage.get('files_parsed')}/{coverage.get('source_files')}", 'dossier.json → coverage'),
+        'features': (len(features), 'features.json'),
+        'critical_features': (sum(1 for f in features if f.get('critical')), 'features.json → critical'),
+        'debt_items': (len(items), 'debt-register.json'),
+        'high_or_critical': (len(severe), 'debt-register.json → severity'),
+        'engines': (len(external.get('engines_observed') or []), 'facts/external.json → engines_observed'),
+    }
+
+
+def _baseline_decision(severe, ar):
+    if severe:
+        return (f"قبول هذا الوصف أساسًا للتحول، ومعالجة البنود العالية الخطورة ({len(severe)}) أولًا." if ar else
+                f"accept this description as the baseline, and treat the {len(severe)} high or critical items first.")
+    return ('قبول هذا الوصف أساسًا للتحول؛ لا بند عالي الخطورة بشاهد كافٍ، فالبداية بمعلم التثبيت.' if ar else
+            'accept this description as the baseline; no high item has enough witnesses, so start with the stabilize milestone.')
+
+
+def _feature_items(features, ar):
+    return ([clip(f"{f['name']}: {f.get('description', '')}", 160) for f in features[:12]]
+            + ([f"… {len(features) - 12} " + ('أخرى في FEATURES.md' if ar else 'more in FEATURES.md')] if len(features) > 12 else []))
+
+
+def _unexamined(coverage, external, ar):
+    return (list(coverage.get('not_examined') or [])[:8]
+            + [('محرك غير مثبت: ' if ar else 'engine not installed: ') + name for name in external.get('engines_unavailable') or []])
 
 
 def current_state(out, ar):
@@ -138,23 +177,10 @@ def current_state(out, ar):
     severe = [i for i in items if i['severity'] in ('high', 'critical')]
     external = (_load(out, 'facts/external.json', {}) or {}).get('summary') or {}
     measured = (_load(out, 'measurements.json', {}) or {}).get('files') or []
-    numbers = {
-        'files_parsed': (f"{coverage.get('files_parsed')}/{coverage.get('source_files')}", 'dossier.json → coverage'),
-        'features': (len(features), 'features.json'),
-        'critical_features': (sum(1 for f in features if f.get('critical')), 'features.json → critical'),
-        'debt_items': (len(items), 'debt-register.json'),
-        'high_or_critical': (len(severe), 'debt-register.json → severity'),
-        'engines': (len(external.get('engines_observed') or []), 'facts/external.json → engines_observed'),
-    }
+    numbers = _current_numbers(coverage, features, items, severe, external)
     page = Page('الوضع الراهن' if ar else 'Current state')
     page.heading(L['summary'])
-    if severe:
-        decision = (f"قبول هذا الوصف أساسًا للتحول، ومعالجة البنود العالية الخطورة ({len(severe)}) أولًا." if ar else
-                    f"accept this description as the baseline, and treat the {len(severe)} high or critical items first.")
-    else:
-        decision = ('قبول هذا الوصف أساسًا للتحول؛ لا بند عالي الخطورة بشاهد كافٍ، فالبداية بمعلم التثبيت.' if ar else
-                    'accept this description as the baseline; no high item has enough witnesses, so start with the stabilize milestone.')
-    page.para(f"{L['decision']}: " + decision)
+    page.para(f"{L['decision']}: " + _baseline_decision(severe, ar))
     page.heading(L['numbers'], 3)
     page.items([f"{numbers['files_parsed'][0]} " + ('ملفًا محللًا' if ar else 'files analysed') + f" ({numbers['files_parsed'][1]})",
                 f"{numbers['features'][0]} " + ('وظيفة، منها' if ar else 'features, of which') + f" {numbers['critical_features'][0]} "
@@ -166,8 +192,7 @@ def current_state(out, ar):
     page.heading(L['evidence'])
     page.para(('الوظائف التي يقدمها البرنامج اليوم، بأسطحها والبيانات التي تمسها:' if ar else
                'What the program does today, by its surfaces and the data each feature touches:'))
-    page.items([clip(f"{f['name']}: {f.get('description', '')}", 160) for f in features[:12]]
-               + ([f"… {len(features) - 12} " + ('أخرى في FEATURES.md' if ar else 'more in FEATURES.md')] if len(features) > 12 else []))
+    page.items(_feature_items(features, ar))
     by_category = {}
     for item in items: by_category[item['category']] = by_category.get(item['category'], 0) + 1
     page.para(('الدَّين حسب الفئة (debt-register.json): ' if ar else 'Debt by category (debt-register.json): ')
@@ -176,18 +201,14 @@ def current_state(out, ar):
     if hottest:
         page.para(('أعقد الملفات وأكثرها تغيّرًا (measurements.json):' if ar else 'The most complex, most changed files (measurements.json):'))
         page.items([f"{r['path']}: complexity {r.get('complexity_max')}, commits {r.get('churn')}, fan-in {r.get('fan_in')}" for r in hottest])
-    diagram = Path(out) / 'architecture/current/diagram.mmd'
-    if diagram.is_file():
-        page.heading('C4' if not ar else 'خريطة C4', 3)
-        page.block('mermaid', diagram.read_text(encoding='utf-8'))
+    _diagram(page, out, 'current', ar)
     page.heading(L['impact'])
     page.para(('كل بند عالي الخطورة في السجل له شاهد حتمي أو أداتان؛ تركه يعني أن الخطر المعروف يبقى في كل إصدار.' if ar else
                'Every high item in the register has a deterministic witness or two tools; leaving one means a known risk ships in every release.'))
     page.heading(L['recommendation'])
     page.para(('ابدأ بمعلم التثبيت في EXECUTION-PLAN.md.' if ar else 'Start with the stabilize milestone in EXECUTION-PLAN.md.'))
     page.heading(L['unexamined'])
-    page.items(list(coverage.get('not_examined') or [])[:8]
-               + [('محرك غير مثبت: ' if ar else 'engine not installed: ') + name for name in external.get('engines_unavailable') or []])
+    page.items(_unexamined(coverage, external, ar))
     page.heading(L['appendices'])
     page.items(['[FEATURES.md](FEATURES.md)', '[MEASUREMENTS.md](MEASUREMENTS.md)', '[RISK-REGISTER.md](RISK-REGISTER.md)',
                 '[LOAD-MODEL.md](LOAD-MODEL.md)', '[ENGINES.md](ENGINES.md)'])
@@ -201,14 +222,7 @@ def target_state(out, ar):
     features = (_load(out, 'features.json', {}) or {}).get('features') or []
     infrastructure = target.get('infrastructure') or []
     absent = [i for i in infrastructure if not i['present']]
-    numbers = {
-        'reference': (target.get('reference') or '—', 'target-architecture.json → reference'),
-        'components': (len(components), 'target-architecture.json → target_components'),
-        'features_placed': (f"{sum(1 for f in features if f.get('target_component'))}/{len(features)}", 'features.json → target_component'),
-        'infrastructure_absent': (f"{len(absent)}/{len(infrastructure)}", 'target-architecture.json → infrastructure'),
-        'forbidden_imports': (target.get('forbidden_edges', 0), 'target-architecture.json → forbidden_edges'),
-        'decided': (who_decided(target, 'ar' if ar else 'en'), 'target-architecture.json → decided'),
-    }
+    numbers = _target_numbers(target, components, features, infrastructure, absent, ar)
     page = Page('الصورة المثالية' if ar else 'Target state')
     page.heading(L['summary'])
     page.para(f"{L['decision']}: " + (f"اعتماد النوع المرجعي `{numbers['reference'][0]}` كوحدة واحدة معيارية، بالوظائف نفسها." if ar else
@@ -225,10 +239,7 @@ def target_state(out, ar):
                'The largest components (names and responsibilities in TARGET-ARCHITECTURE.md):'))
     page.items([f"{c['name']} ({c['layer']}): {c.get('files', 0)} files, {c.get('moves_in', 0)} moving in"
                 for c in sorted(components, key=lambda c: -c.get('files', 0))[:8]])
-    diagram = Path(out) / 'architecture/target/diagram.mmd'
-    if diagram.is_file():
-        page.heading('C4' if not ar else 'خريطة C4', 3)
-        page.block('mermaid', diagram.read_text(encoding='utf-8'))
+    _diagram(page, out, 'target', ar)
     page.heading(('البنية التحتية' if ar else 'Infrastructure'))
     page.items([clip(f"{'✅' if i['present'] else '⬜'} {i['area']}: {i.get('tool') or '—'}. {i['evidence']}", 170) for i in infrastructure])
     numbers['aspects'] = (aspect_section(page, out, ar), 'target-architecture.json → aspects')
@@ -242,6 +253,17 @@ def target_state(out, ar):
     page.heading(L['appendices'])
     page.items(['[TARGET-ARCHITECTURE.md](TARGET-ARCHITECTURE.md)', '[adr/](adr/)', '[architecture/](architecture/)'])
     return page.text(), numbers
+
+
+def _target_numbers(target, components, features, infrastructure, absent, ar):
+    return {
+        'reference': (target.get('reference') or '—', 'target-architecture.json → reference'),
+        'components': (len(components), 'target-architecture.json → target_components'),
+        'features_placed': (f"{sum(1 for f in features if f.get('target_component'))}/{len(features)}", 'features.json → target_component'),
+        'infrastructure_absent': (f"{len(absent)}/{len(infrastructure)}", 'target-architecture.json → infrastructure'),
+        'forbidden_imports': (target.get('forbidden_edges', 0), 'target-architecture.json → forbidden_edges'),
+        'decided': (who_decided(target, 'ar' if ar else 'en'), 'target-architecture.json → decided'),
+    }
 
 
 def gap_and_strategy(out, ar):
@@ -295,19 +317,8 @@ def execution_plan(out, ar):
     plan = _load(out, 'plan.json', {}) or {}
     tasks = plan.get('tasks') or []
     by_id = {t['id']: t for t in tasks}
-    ready = sum(1 for t in tasks if (t.get('decision') or {}).get('readiness') == 'ready')
-    sizes = {}
-    for t in tasks: sizes[t.get('effort')] = sizes.get(t.get('effort'), 0) + 1
-    cards = _load(out, 'cards.json', {}) or {}
-    steps = plan.get('order') or {}
-    numbers = {
-        'cards': (len(tasks), 'plan.json → tasks'),
-        'set_aside': (len(cards.get('set_aside') or []), 'cards.json → set_aside'),
-        'design': (len(cards.get('design') or []), 'cards.json → design'),
-        'order': (steps.get('source') or 'rules', 'plan.json → order.source'),
-        'ready': (ready, 'plan.json → tasks[].decision.readiness'),
-        'sizes': (sizes, 'plan.json → tasks[].effort'),
-    }
+    numbers = _plan_numbers(plan, tasks, _load(out, 'cards.json', {}) or {})
+    ready, sizes = numbers['ready'][0], numbers['sizes'][0]
     page = Page('خطة التنفيذ' if ar else 'Execution plan')
     page.heading(L['summary'])
     page.para(f"{L['decision']}: " + (f"تخصيص فريق للمعلم الأول ({(plan.get('milestones') or [{}])[0].get('name', '—')})." if ar else
@@ -319,21 +330,13 @@ def execution_plan(out, ar):
                 (f"{numbers['set_aside'][0]} بطاقة رفضها مساعدك فخرجت من الخطة، و{numbers['design'][0]} بطاقة تصميم من صور الشاشات" if ar else
                  f"{numbers['set_aside'][0]} cards your assistant rejected left the plan; {numbers['design'][0]} design cards came from the screens")
                 + f" ({numbers['set_aside'][1]}, {numbers['design'][1]})",
-                (('الترتيب: خطوات مساعدك، وكل متطلب مسبق محفوظ' if numbers['order'][0] == 'assistant' else 'الترتيب: دفعات القواعد') if ar else
-                 ("Order: your assistant's steps, every prerequisite kept" if numbers['order'][0] == 'assistant' else "Order: the rules' waves"))
-                + f" ({numbers['order'][1]}, PLAN/STEPS.md)"])
+                _order_line(numbers['order'][0] == 'assistant', ar) + f" ({numbers['order'][1]}, PLAN/STEPS.md)"])
     page.heading(L['risks'], 3)
     investigations = [t for t in tasks if t.get('kind') == 'investigate']
     page.items([(f"{len(investigations)} بطاقة تحقيق تنتظر قرارًا مسجلًا (eaos decision-review)." if ar else
                  f"{len(investigations)} investigation cards wait for a recorded decision (eaos decision-review).")])
     page.heading(('المعالم' if ar else 'Milestones'))
-    for milestone in plan.get('milestones') or []:
-        page.heading(f"{milestone['id']} · {milestone['name']}", 3)
-        page.para(f"{milestone.get('goal_ar' if ar else 'goal', milestone['goal'])} " + ('الخروج: ' if ar else 'Exit: ')
-                  + milestone.get('exit_ar' if ar else 'exit', milestone['exit']))
-        page.items([f"{tid} [{by_id[tid].get('effort')}/{by_id[tid].get('section')}] {clip(by_id[tid].get('title'), 90)}"
-                    for tid in milestone['tasks'][:4]]
-                   + ([f"… +{len(milestone['tasks']) - 4}"] if len(milestone['tasks']) > 4 else []))
+    for milestone in plan.get('milestones') or []: _milestone_section(page, milestone, by_id, ar)
     page.heading(('الأقسام' if ar else 'Sections'))
     page.items([f"{s['section']}: {len(s['tasks'])} " + ('بطاقة' if ar else 'cards')
                 + (f", {'تنتظر' if ar else 'waits for'} {', '.join(s['depends_on'])}" if s['depends_on'] else '')
@@ -347,6 +350,34 @@ def execution_plan(out, ar):
     page.heading(L['appendices'])
     page.items(['[ROADMAP.md](ROADMAP.md)', '[PLAN/STEPS.md](PLAN/STEPS.md)', '[PLAN/WAVES.md](PLAN/WAVES.md)'])
     return page.text(), numbers
+
+
+def _plan_numbers(plan, tasks, cards):
+    sizes = {}
+    for t in tasks: sizes[t.get('effort')] = sizes.get(t.get('effort'), 0) + 1
+    return {
+        'cards': (len(tasks), 'plan.json → tasks'),
+        'set_aside': (len(cards.get('set_aside') or []), 'cards.json → set_aside'),
+        'design': (len(cards.get('design') or []), 'cards.json → design'),
+        'order': ((plan.get('order') or {}).get('source') or 'rules', 'plan.json → order.source'),
+        'ready': (sum(1 for t in tasks if (t.get('decision') or {}).get('readiness') == 'ready'), 'plan.json → tasks[].decision.readiness'),
+        'sizes': (sizes, 'plan.json → tasks[].effort'),
+    }
+
+
+def _order_line(by_assistant, ar):
+    if ar: return 'الترتيب: خطوات مساعدك، وكل متطلب مسبق محفوظ' if by_assistant else 'الترتيب: دفعات القواعد'
+    return "Order: your assistant's steps, every prerequisite kept" if by_assistant else "Order: the rules' waves"
+
+
+def _milestone_section(page, milestone, by_id, ar):
+    """A milestone: its goal and exit, and its first four cards."""
+    page.heading(f"{milestone['id']} · {milestone['name']}", 3)
+    page.para(f"{milestone.get('goal_ar' if ar else 'goal', milestone['goal'])} " + ('الخروج: ' if ar else 'Exit: ')
+              + milestone.get('exit_ar' if ar else 'exit', milestone['exit']))
+    page.items([f"{tid} [{by_id[tid].get('effort')}/{by_id[tid].get('section')}] {clip(by_id[tid].get('title'), 90)}"
+                for tid in milestone['tasks'][:4]]
+               + ([f"… +{len(milestone['tasks']) - 4}"] if len(milestone['tasks']) > 4 else []))
 
 
 def write(out, language='ar'):
