@@ -105,14 +105,19 @@ def _measurements(report, wanted):
     from ... import indicators
     out = {}
     for row in indicators.facts(report):
-        if row.get('id') not in wanted: continue
-        value = row.get('value') or {}
-        found = [{'name': m.get('name'), 'value': m['value'], 'threshold': m.get('threshold') if _number(m.get('threshold')) else None}
-                 for m in value.get('measurements') or [] if isinstance(m, dict) and _number(m.get('value'))]
-        if row.get('kind') == 'metric' and _number(value.get('branches')):
-            found.append({'name': 'branches', 'value': value['branches'], 'threshold': None})
+        found = _measured(row) if row.get('id') in wanted else []
         if found: out[row['id']] = found
     return out
+
+
+def _measured(row):
+    """[{name, value, threshold}] of one fact: an engine finding's numeric measurements, a metric's branches."""
+    value = row.get('value') or {}
+    found = [{'name': m.get('name'), 'value': m['value'], 'threshold': m.get('threshold') if _number(m.get('threshold')) else None}
+             for m in value.get('measurements') or [] if isinstance(m, dict) and _number(m.get('value'))]
+    if row.get('kind') == 'metric' and _number(value.get('branches')):
+        found.append({'name': 'branches', 'value': value['branches'], 'threshold': None})
+    return found
 
 
 def _weight(measured):
@@ -126,22 +131,13 @@ def inputs(report, project=None, lang='en', cards=None, limit=None, rejudge=None
     """The open cards (or those of `cards`), most severe first, each with its facts and their code, those carrying the
     measurement first. `rejudge` ({card: why it was doubted}): only those cards, each with all its facts and its doubt."""
     report = Path(report)
-    rows = [c for c in ideal._cards(report) if c.get('state', 'open') not in ('done', 'resolved')]
-    if cards: rows = [c for c in rows if c['id'] in set(cards)]
-    if rejudge: rows = [c for c in rows if c['id'] in rejudge]
-    rows.sort(key=lambda c: (SEVERITY.get(c.get('severity'), 5), c['id']))
+    rows = _open_cards(report, cards, rejudge)
     facts = _facts(report)
     cited = {card['id']: [f for f in card.get('evidence') or [] if isinstance(f, str)] for card in rows}
     measured = _measurements(report, {f for ids in cited.values() for f in ids})
     out = []
     for card in rows[:limit] if limit else rows:
-        evidence = []
-        ordered = sorted(cited[card['id']], key=lambda f: _weight(measured.get(f) or []))
-        for fact in ordered[:LIMIT['rejudge_facts' if rejudge else 'facts']]:
-            known = facts.get(fact) or {}
-            evidence.append({'id': fact, 'summary': known.get('summary'), 'path': known.get('path'), 'line': known.get('line'),
-                             'measurements': (measured.get(fact) or [])[:LIMIT['measurements']],
-                             'code': _excerpt(project, known.get('path'), known.get('line'))})
+        evidence = _card_evidence(cited[card['id']], measured, facts, project, LIMIT['rejudge_facts' if rejudge else 'facts'])
         out.append({'id': card['id'], 'title': core.short(card.get('title'), 200), 'kind': card.get('kind'), 'severity': card.get('severity'),
                     'confidence': card.get('confidence'), 'paths': (card.get('paths') or [])[:3], 'evidence': evidence,
                     **({'first_doubt': core.short(rejudge[card['id']], 400)} if rejudge else {})})
@@ -149,6 +145,26 @@ def inputs(report, project=None, lang='en', cards=None, limit=None, rejudge=None
     return {'project': {'name': (project and Path(project).name) or report.name, 'language': 'Arabic' if lang == 'ar' else 'English'},
             'trust': {'code': core.UNTRUSTED, 'titles': core.UNTRUSTED}, 'cards': out, 'omitted': len(rows) - len(out), 'lang': lang,
             **({'rejudge': True} if rejudge else {})}
+
+
+def _open_cards(report, cards, rejudge):
+    """The cards not done yet (only `cards`, only those to judge again, when given), most severe first."""
+    rows = [c for c in ideal._cards(report) if c.get('state', 'open') not in ('done', 'resolved')]
+    if cards: rows = [c for c in rows if c['id'] in set(cards)]
+    if rejudge: rows = [c for c in rows if c['id'] in rejudge]
+    rows.sort(key=lambda c: (SEVERITY.get(c.get('severity'), 5), c['id']))
+    return rows
+
+
+def _card_evidence(cited, measured, facts, project, most):
+    """A card's first `most` facts, the measured ones first, each with its summary, place, measurements and code."""
+    evidence = []
+    for fact in sorted(cited, key=lambda f: _weight(measured.get(f) or []))[:most]:
+        known = facts.get(fact) or {}
+        evidence.append({'id': fact, 'summary': known.get('summary'), 'path': known.get('path'), 'line': known.get('line'),
+                         'measurements': (measured.get(fact) or [])[:LIMIT['measurements']],
+                         'code': _excerpt(project, known.get('path'), known.get('line'))})
+    return evidence
 
 
 BATCH = 40
@@ -191,19 +207,8 @@ def finish(report, record, data):
     from ...probes import probe
     folder = core.folder_of(report, record['node'])
     folder.mkdir(parents=True, exist_ok=True)
-    cards = {c['id']: c for c in data['cards']}
-    claims = _claims(report)
-    route = {s: r['decision'] for r in record['routes'] for s in r['subjects']}
-    verdicts = [{'card': d['subject'], 'decision': route[d['subject']], 'kind': cards[d['subject']]['kind'],
-                 'severity': cards[d['subject']]['severity'], 'confidence': d['confidence'], 'why': d['why'],
-                 'evidence': d['evidence'], 'source': d['source'], 'rejudged': 'first_doubt' in (d.get('detail') or {}),
-                 **resolution(route[d['subject']], d.get('detail') or {})}
-                for d in record['decisions']]
-    doubted = [v for v in verdicts if v['decision'] == 'doubt']
-    probes = [probe(i + 1, claims.get(v['card']) or v['card'], 'falsification',
-                    {'card': v['card'], 'question': v['why'], 'falsifier': next((d['detail'].get('falsifier') for d in record['decisions']
-                                                                               if d['subject'] == v['card']), None), 'from': 'card_triage'})
-              for i, v in enumerate(doubted)]
+    verdicts = _verdicts(record, {c['id']: c for c in data['cards']})
+    probes = _probe_requests(record, verdicts, _claims(report), probe)
     feedback = [{'card': v['card'], 'kind': v['kind'], 'why': v['why'], 'evidence': v['evidence']} for v in verdicts if v['decision'] == 'reject']
     body = {'schema_version': 1, 'at': record['at'], 'method': record['method'], 'assistant': record['assistant'], 'model': record['model'],
             'verdicts': verdicts, 'counts': {r['decision']: len(r['subjects']) for r in record['routes']}, 'by_kind': by_kind(verdicts),
@@ -212,6 +217,25 @@ def finish(report, record, data):
     for name, value in (('verdicts.json', body), ('probes.json', {'schema_version': 1, 'at': record['at'], 'probes': probes}),
                         ('library-feedback.json', {'schema_version': 1, 'at': record['at'], 'rejected': feedback})):
         (folder / name).write_text(json.dumps(value, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
+
+
+def _verdicts(record, cards):
+    """One verdict per decision: its route, the card's kind and severity, why, its evidence and what settles it."""
+    route = {s: r['decision'] for r in record['routes'] for s in r['subjects']}
+    return [{'card': d['subject'], 'decision': route[d['subject']], 'kind': cards[d['subject']]['kind'],
+             'severity': cards[d['subject']]['severity'], 'confidence': d['confidence'], 'why': d['why'],
+             'evidence': d['evidence'], 'source': d['source'], 'rejudged': 'first_doubt' in (d.get('detail') or {}),
+             **resolution(route[d['subject']], d.get('detail') or {})}
+            for d in record['decisions']]
+
+
+def _probe_requests(record, verdicts, claims, probe):
+    """A falsification probe for each doubted card, with the doubt as its question and the assistant's falsifier."""
+    falsifier = lambda card: next((d['detail'].get('falsifier') for d in record['decisions'] if d['subject'] == card), None)
+    doubted = [v for v in verdicts if v['decision'] == 'doubt']
+    return [probe(i + 1, claims.get(v['card']) or v['card'], 'falsification',
+                  {'card': v['card'], 'question': v['why'], 'falsifier': falsifier(v['card']), 'from': 'card_triage'})
+            for i, v in enumerate(doubted)]
 
 
 def resolution(decision, detail):
@@ -241,6 +265,16 @@ def by_kind(verdicts):
 
 
 
+def _merge_second(node, first, second):
+    """The first run with each card judged again by the assistant taking its second verdict (the doubt kept in its detail)."""
+    again = {d['subject']: d for d in second.get('decisions') or [] if second.get('method') == 'model' and d['source'] == 'model'}
+    decisions = [{**again[d['subject']], 'detail': {**(again[d['subject']].get('detail') or {}), 'first_doubt': d['why']}}
+                 if d['subject'] in again else d for d in first['decisions']]
+    return {**first, 'decisions': decisions, 'routes': core.routes(node, decisions),
+            'dropped': first['dropped'] + (second.get('dropped') or [] if again else []),
+            'calls': (first.get('calls') or 0) + (second.get('calls') or 0)}
+
+
 def run(node, report, **options):
     """The triage, then a second look at the cards it doubted, each with every fact it stands on: the second verdict
     replaces the doubt (its detail keeps `first_doubt`), and a card doubted again stays doubted. Without a second answer
@@ -251,14 +285,7 @@ def run(node, report, **options):
     doubted = {d['subject']: d['why'] for d in first['decisions'] if d['source'] == 'model' and d['decision'] == 'doubt'}
     if not doubted: return first
     second = core.run_node(node, spec, report, **{**options, 'rejudge': doubted})
-    again = {d['subject']: d for d in (second or {}).get('decisions') or []
-             if (second or {}).get('method') == 'model' and d['source'] == 'model'}
-    decisions = [{**again[d['subject']], 'detail': {**(again[d['subject']].get('detail') or {}), 'first_doubt': d['why']}}
-                 if d['subject'] in again else d for d in first['decisions']]
-    merged = {**first, 'decisions': decisions, 'routes': core.routes(node, decisions),
-              'dropped': first['dropped'] + ((second or {}).get('dropped') or [] if again else []),
-              'calls': (first.get('calls') or 0) + ((second or {}).get('calls') or 0)}
-    row = core.keep(report, node, merged)
+    row = core.keep(report, node, _merge_second(node, first, second or {}))
     finish(report, row, inputs(report, project=options.get('project'), lang=options.get('lang', 'en'), cards=options.get('cards'),
                                limit=options.get('limit')))
     return row

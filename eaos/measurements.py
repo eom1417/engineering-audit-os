@@ -161,7 +161,6 @@ def render(record, language='ar', top=20):
     for row in ranked:
         lines.append(f"| `{row['path']}` | {show(row['loc'])} | {show(row['complexity_max'])} | {show(row['churn'])} | "
                      f"{show(row['fan_in'])} | {show(row['duplicated_lines'])} |")
-    _not_measured_line = None
     return _render_tail(record, ar, lines)
 
 
