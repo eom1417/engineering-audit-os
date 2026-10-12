@@ -67,25 +67,44 @@ def group(names, share=0.45):
     if not names: return {}, []
     groups = defaultdict(list)
     for name in names: groups[('dir', tuple(_segments(name)[:1]))].append(name)
-    while True:
-        big = max(groups, key=lambda k: (len(groups[k]), k))
-        members = groups[big]
-        if big[0] != 'dir' or len(members) <= max(8, share * len(names)): break
-        prefix = big[1]
-        own, children = [], defaultdict(list)
-        for name in members:
-            seg = _segments(name)
-            (own if len(seg) <= len(prefix) else children[tuple(seg[:len(prefix) + 1])]).append(name)
-        new = {('dir', key): m for key, m in children.items() if len(m) > 1}
-        rest = own + [n for m in children.values() if len(m) == 1 for n in m]
-        if rest: new[('rest', prefix)] = rest
-        if len(new) < 2 or len(groups) - 1 + len(new) > territory.MAX_REGIONS: break
-        del groups[big]
-        groups.update(new)
+    while _split_largest(groups, max(8, share * len(names))): pass
+    _merge_small(groups)
+    return _regions(groups)
+
+
+def _children(prefix, members):
+    """The folder's subfolders with more than one component, and its rest: its own files and single-folder children."""
+    own, children = [], defaultdict(list)
+    for name in members:
+        seg = _segments(name)
+        (own if len(seg) <= len(prefix) else children[tuple(seg[:len(prefix) + 1])]).append(name)
+    new = {('dir', key): m for key, m in children.items() if len(m) > 1}
+    rest = own + [n for m in children.values() if len(m) == 1 for n in m]
+    if rest: new[('rest', prefix)] = rest
+    return new
+
+
+def _split_largest(groups, most):
+    """Split the largest folder region one level down; False when it holds `most` or fewer, or splitting cannot help."""
+    big = max(groups, key=lambda k: (len(groups[k]), k))
+    members = groups[big]
+    if big[0] != 'dir' or len(members) <= most: return False
+    new = _children(big[1], members)
+    if len(new) < 2 or len(groups) - 1 + len(new) > territory.MAX_REGIONS: return False
+    del groups[big]
+    groups.update(new)
+    return True
+
+
+def _merge_small(groups):
+    """Small top-level folders share one region."""
     small = [k for k, m in groups.items() if k[0] == 'dir' and len(k[1]) <= 1 and len(m) <= 2]
     if len(small) >= 2:
         merged = [n for k in sorted(small) for n in groups.pop(k)]
         groups[('top', ())] = merged
+
+
+def _regions(groups):
     region_of, regions = {}, []
     for key in sorted(groups, key=lambda k: (-len(groups[k]), k)):
         kind, prefix = key
@@ -136,47 +155,76 @@ def _measure(value, src, unit='count'):
     return {'value': value, 'src': src, 'unit': unit}
 
 
-def _views(current, between, groups, card_rows, target, decision_of):
-    names = [c['name'] for c in current]
-    region_of, regions = group(names)
-    by_region = {r['id']: r for r in regions}
+def _findings(names, card_rows):
+    """{component: Counter of the severities of its cards}: a card counts in the deepest component holding its first path."""
     find = owner_of(set(names))
     findings = defaultdict(Counter)
     for card in card_rows:
         if not card.get('paths'): continue
         home = find(card['paths'][0])
         if home is not None and card.get('severity') in SEVERITIES: findings[home][card['severity']] += 1
-    by_name = {c['name']: c for c in current}
+    return findings
+
+
+def _views(current, links, card_rows, target, decision_of):
+    """(today's map, the target's map); `links`: (imports between components, their cycle groups)."""
+    names = [c['name'] for c in current]
+    findings = _findings(names, card_rows)
     sources = defaultdict(list)
     for c in current:
         if c.get('target_component'): sources[c['target_component']].append(c['name'])
+    current_view = _current_view(current, links, findings, (sources, decision_of))
+    return current_view, _target_view(target, sources, {c['name']: c for c in current}, findings)
+
+
+def _current_node(n, c, g, sev, context):
+    """One component of today's map: its files, findings, what happens to it, and where it is drawn."""
+    sources, decision_of = context
+    return {'id': n['id'], 'short': n['short'], 'kind': c.get('kind') or 'package', 'region': n['region'],
+            'files': n['files'], 'fan_in': c.get('fan_in'), 'fan_out': c.get('fan_out'),
+            'findings': {**{s: sev.get(s, 0) for s in SEVERITIES}, 'total': sum(sev.values())},
+            'op': RELATION.get(c.get('relation'), 'modify'), 'target': c.get('target_component'),
+            'merged_with': max(len(sources.get(c.get('target_component'), [])) - 1, 0),
+            'reason': str(c.get('reason') or '').split(' (', 1)[0][:300],
+            'decision': decision_of.get(c.get('id')),
+            'x': g['x'], 'y': g['y'], 'r': g['r'], 'label': g['label']}
+
+
+def _current_view(current, links, findings, context):
+    between, groups = links
+    names = [c['name'] for c in current]
+    region_of, regions = group(names)
+    by_region = {r['id']: r for r in regions}
+    by_name = {c['name']: c for c in current}
     nodes = [{'id': c['name'], 'short': short(c['name'], by_region[region_of[c['name']]]), 'files': int(c.get('files') or 0),
               'region': region_of[c['name']]} for c in current]
     family = [(a, b) for a in names for b in names if a != b and b.startswith(a + '/') and b.count('/') == a.count('/') + 1
               and region_of[a] == region_of[b]]
     edges = [(a, b, n) for (a, b), n in sorted(between.items())]
     pic = territory.draw(nodes, edges, regions, family)
-    cur_nodes = []
-    for n in nodes:
-        c, g = by_name[n['id']], pic['nodes'][n['id']]
-        sev = findings[n['id']]
-        relation = RELATION.get(c.get('relation'), 'modify')
-        cur_nodes.append({'id': n['id'], 'short': n['short'], 'kind': c.get('kind') or 'package', 'region': n['region'],
-                          'files': n['files'], 'fan_in': c.get('fan_in'), 'fan_out': c.get('fan_out'),
-                          'findings': {**{s: sev.get(s, 0) for s in SEVERITIES}, 'total': sum(sev.values())},
-                          'op': relation, 'target': c.get('target_component'),
-                          'merged_with': max(len(sources.get(c.get('target_component'), [])) - 1, 0),
-                          'reason': str(c.get('reason') or '').split(' (', 1)[0][:300],
-                          'decision': decision_of.get(c.get('id')),
-                          'x': g['x'], 'y': g['y'], 'r': g['r'], 'label': g['label']})
+    cur_nodes = [_current_node(n, by_name[n['id']], pic['nodes'][n['id']], findings[n['id']], context) for n in nodes]
     cur_edges = [{'from': a, 'to': b, 'imports': n, 'cycle': groups.get(a) is not None and groups.get(a) == groups.get(b),
                   **pic['edges'][(a, b)]} for a, b, n in edges if (a, b) in pic['edges']]
-    current_view = {'regions': [{**r, 'components': sum(region_of[x] == r['id'] for x in names),
-                                 'files': sum(n['files'] for n in nodes if n['region'] == r['id']),
-                                 'findings': sum(sum(findings[x].values()) for x in names if region_of[x] == r['id']),
-                                 'lead': max((n for n in nodes if n['region'] == r['id']), key=lambda n: (n['files'], n['id']))['id'],
-                                 **pic['regions'][r['id']]} for r in regions if r['id'] in pic['regions']],
-                    'nodes': cur_nodes, 'edges': cur_edges, 'scale': pic['scale'], 'bounds': pic['bounds']}
+    return {'regions': [{**r, 'components': sum(region_of[x] == r['id'] for x in names),
+                         'files': sum(n['files'] for n in nodes if n['region'] == r['id']),
+                         'findings': sum(sum(findings[x].values()) for x in names if region_of[x] == r['id']),
+                         'lead': max((n for n in nodes if n['region'] == r['id']), key=lambda n: (n['files'], n['id']))['id'],
+                         **pic['regions'][r['id']]} for r in regions if r['id'] in pic['regions']],
+            'nodes': cur_nodes, 'edges': cur_edges, 'scale': pic['scale'], 'bounds': pic['bounds']}
+
+
+def _target_node(t, n, g, feeds, known):
+    """One target component: the components of today that feed it, and so what it takes (introduce, merge, or theirs)."""
+    by_name, findings = known
+    ops = {RELATION.get(by_name[s].get('relation'), 'modify') for s in feeds}
+    op = 'introduce' if not feeds else 'merge' if len(feeds) > 1 else ops.pop()
+    return {'id': t['name'], 'short': n['short'], 'layer': t.get('layer'), 'region': n['region'], 'files': n['files'],
+            'responsibility': str(t.get('responsibility') or '')[:400], 'sources': feeds, 'op': op,
+            'carried': sum(sum(findings[s].values()) for s in feeds),
+            'x': g['x'], 'y': g['y'], 'r': g['r'], 'label': g['label']}
+
+
+def _target_view(target, sources, by_name, findings):
     # the target: its own territory, one region per layer
     tcomps = [t for t in target.get('target_components') or [] if isinstance(t, dict) and t.get('name')]
     tnames = {t['name'] for t in tcomps}
@@ -187,17 +235,9 @@ def _views(current, between, groups, card_rows, target, decision_of):
     tedges = [(e['from'], e['to'], int(e.get('imports') or 1)) for e in target.get('target_edges') or []
               if isinstance(e, dict) and e.get('from') in tnames and e.get('to') in tnames]
     tpic = territory.draw(tnodes, tedges, tregions)
-    out_t = []
-    for t, n in zip(tcomps, tnodes):
-        feeds = sorted(sources.get(t['name'], []))
-        ops = {RELATION.get(by_name[s].get('relation'), 'modify') for s in feeds}
-        op = 'introduce' if not feeds else 'merge' if len(feeds) > 1 else ops.pop()
-        g = tpic['nodes'][t['name']]
-        out_t.append({'id': t['name'], 'short': n['short'], 'layer': t.get('layer'), 'region': n['region'], 'files': n['files'],
-                      'responsibility': str(t.get('responsibility') or '')[:400], 'sources': feeds, 'op': op,
-                      'carried': sum(sum(findings[s].values()) for s in feeds),
-                      'x': g['x'], 'y': g['y'], 'r': g['r'], 'label': g['label']})
-    target_view = {'regions': [{**r, 'components': sum(n['region'] == r['id'] for n in tnodes),
+    out_t = [_target_node(t, n, tpic['nodes'][t['name']], sorted(sources.get(t['name'], [])), (by_name, findings))
+             for t, n in zip(tcomps, tnodes)]
+    return {'regions': [{**r, 'components': sum(n['region'] == r['id'] for n in tnodes),
                                 'files': sum(n['files'] for n in tnodes if n['region'] == r['id']), 'findings': None,
                                 'lead': max((n for n in tnodes if n['region'] == r['id']), key=lambda n: (n['files'], n['id']))['id'],
                                 **tpic['regions'][r['id']]} for r in tregions if r['id'] in tpic['regions']],
@@ -205,7 +245,45 @@ def _views(current, between, groups, card_rows, target, decision_of):
                    'edges': [{'from': a, 'to': b, 'imports': n, 'cycle': False, **tpic['edges'][(a, b)]}
                              for a, b, n in tedges if (a, b) in tpic['edges']],
                    'scale': tpic['scale'], 'bounds': tpic['bounds']}
-    return current_view, target_view
+
+
+def _between(graph_nodes, current):
+    """Counter {(component, component): imports} between the components that own the two files."""
+    owner = {p: c['name'] for c in current for p in c.get('paths') or [] if isinstance(p, str)}
+    between = Counter()
+    for node in graph_nodes:
+        here = owner.get(arch_map.path_of(node))
+        if not here: continue
+        for there in (owner.get(dep) if isinstance(dep, str) else None for dep in (node.get('value') or {}).get('depends_on') or []):
+            if there and there != here: between[(here, there)] += 1
+    return between
+
+
+def _cycle_groups(names, between):
+    """{component: its strongly connected group}, for the groups of more than one component."""
+    groups = arch_map.strong_groups(sorted(names), list(between)) if between else {}
+    sizes = Counter(groups.values())
+    return {k: v for k, v in groups.items() if sizes[v] > 1}
+
+
+def _decisions(target, current):
+    """{component id: the first structure decision about it}."""
+    by_id = {c.get('id'): c for c in current}
+    decision_of = {}
+    for d in target.get('decisions') or []:
+        if isinstance(d, dict) and d.get('component_id') in by_id and d.get('component_id') not in decision_of:
+            decision_of[d['component_id']] = {'id': str(d.get('id') or ''), 'chosen': str(d.get('chosen') or '')[:400]}
+    return decision_of
+
+
+CURRENT_OPERATIONS = ('retain', 'modify', 'rebuild', 'delete')
+
+
+def _operation(op, ops, tops):
+    """How many components take an operation: today's for retain..delete, the target's for merge and introduce."""
+    if op in CURRENT_OPERATIONS: return _measure(ops.get(op, 0), 'target-architecture.json#current_components[].relation (count)')
+    return _measure(tops.get(op, 0), 'target-architecture.json#target_components fed by ' + ('2 or more' if op == 'merge' else 'no')
+                    + ' current components (count)')
 
 
 def system(report, card_rows):
@@ -216,24 +294,10 @@ def system(report, card_rows):
     ranked = sorted(comps, key=lambda c: (-(c.get('files') or 0), c['name']))
     current = sorted(ranked[:MAX_NODES], key=lambda c: c['name'])
     names = {c['name'] for c in current}
-    owner = {p: c['name'] for c in current for p in c.get('paths') or [] if isinstance(p, str)}
-    between = Counter()
     graph_nodes = arch_map.facts(report, 'graph', 'graph_node')
-    for node in graph_nodes:
-        here = owner.get(arch_map.path_of(node))
-        if not here: continue
-        for dep in (node.get('value') or {}).get('depends_on') or []:
-            there = owner.get(dep) if isinstance(dep, str) else None
-            if there and there != here: between[(here, there)] += 1
-    groups = arch_map.strong_groups(sorted(names), list(between)) if between else {}
-    sizes = Counter(groups.values())
-    groups = {k: v for k, v in groups.items() if sizes[v] > 1}
-    by_id = {c.get('id'): c for c in current}
-    decision_of = {}
-    for d in target.get('decisions') or []:
-        if isinstance(d, dict) and d.get('component_id') in by_id and d.get('component_id') not in decision_of:
-            decision_of[d['component_id']] = {'id': str(d.get('id') or ''), 'chosen': str(d.get('chosen') or '')[:400]}
-    current_view, target_view = _views(current, between, groups, card_rows, target, decision_of)
+    between = _between(graph_nodes, current)
+    links = (between, _cycle_groups(names, between))
+    current_view, target_view = _views(current, links, card_rows, target, _decisions(target, current))
     ops = Counter(n['op'] for n in current_view['nodes'])
     tops = Counter(n['op'] for n in target_view['nodes'])
     have_graph = bool(graph_nodes)
@@ -249,11 +313,7 @@ def system(report, card_rows):
             'target_edges': _measure(len(target_view['edges']), 'target-architecture.json#target_edges (count)'),
             'target_regions': _measure(len(target_view['regions']), 'target-architecture.json#target_components[].layer (distinct)'),
         },
-        'operations': {op: _measure(ops.get(op, 0) if op in ('retain', 'modify', 'rebuild', 'delete') else tops.get(op, 0),
-                                    'target-architecture.json#current_components[].relation (count)'
-                                    if op in ('retain', 'modify', 'rebuild', 'delete') else
-                                    'target-architecture.json#target_components fed by ' + ('2 or more' if op == 'merge' else 'no') + ' current components (count)')
-                       for op in OPERATIONS},
+        'operations': {op: _operation(op, ops, tops) for op in OPERATIONS},
         'src': SRC,
         'capped': max(len(comps) - len(current), 0),
         'current': current_view,
