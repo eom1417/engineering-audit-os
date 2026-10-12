@@ -289,12 +289,19 @@ def assistant_row(probe=False):
     """The doctor's row for the AI assistants: with `probe`, each one's readiness in a word and, when none is ready, the
     first one's reason and fix; without, whether one is installed."""
     from .assistants import readiness
-    if not probe:
-        found = next((name for name in readiness.NAMES if shutil.which(name)), None)
-        return {'id': 'assistant', 'ok': bool(found), 'when': 'later',
-                'ar': 'مساعد ذكي للإصلاح' + (f' ({readiness.NAMES[found]})' if found else ' (Claude Code أو Codex)'),
-                'en': 'An AI assistant for fixes' + (f' ({readiness.NAMES[found]})' if found else ' (Claude Code or Codex)'),
-                'fix': 'https://claude.com/claude-code  ·  https://github.com/openai/codex'}
+    return _probed_assistants(readiness) if probe else _installed_assistant(readiness)
+
+
+def _installed_assistant(readiness):
+    found = next((name for name in readiness.NAMES if shutil.which(name)), None)
+    named = f' ({readiness.NAMES[found]})' if found else None
+    return {'id': 'assistant', 'ok': bool(found), 'when': 'later',
+            'ar': 'مساعد ذكي للإصلاح' + (named or ' (Claude Code أو Codex)'),
+            'en': 'An AI assistant for fixes' + (named or ' (Claude Code or Codex)'),
+            'fix': 'https://claude.com/claude-code  ·  https://github.com/openai/codex'}
+
+
+def _probed_assistants(readiness):
     rows = readiness.probe_all()
     shown = {lang: ' · '.join(f"{row['name']}: {READY_WORD[lang][row['code'].split('_', 1)[1]]}" for row in rows) for lang in ('ar', 'en')}
     blocked = next((row for row in rows if row['installed']), rows[0])
@@ -681,25 +688,7 @@ def reconcile(state):
     """Bring the state up to what git says, however the person or their assistant merged: a batch whose branch (or
     whose last commit) is in the current branch is accepted, and its branch deleted; one whose branch is gone without
     that is undone. When something changed, the ledger and REPORT.html follow at once. The changed batches."""
-    changed = []
-    for wave in state.get('waves') or []:
-        branch, status = wave.get('branch'), wave.get('status')
-        if not branch or status not in ('applied', 'superseded', 'accepted'): continue
-        exists = _branch_exists(state, branch)
-        tip = _git(state['project'], 'rev-parse', branch).stdout.strip() if exists else wave.get('tip')
-        into = f"refs/heads/{wave['merge_into']}" if wave.get('merge_into') else branches.ref(state)
-        inside = bool(tip) and not _git(state['project'], 'merge-base', '--is-ancestor', tip, into).returncode
-        keep = wave.get('keep_branch')                      # the person chose to keep it after merging
-        if status == 'accepted':
-            if exists and inside and not keep: _git(state['project'], 'branch', '-D', branch)
-            continue
-        if inside:                                          # merged into the branch EAOS works on: its branch goes
-            wave.update(status='accepted', merged_at=datetime.now(timezone.utc).isoformat(timespec='seconds'), tip=tip)
-            if exists and not keep: _git(state['project'], 'branch', '-D', branch)
-            changed.append(wave)
-        elif not exists and status == 'applied':
-            wave['status'] = 'undone'
-            changed.append(wave)
+    changed = [wave for wave in state.get('waves') or [] if _settle(state, wave)]
     if changed:
         save(state)
         if state.get('mode') in PUBLISHERS: PUBLISHERS[state['mode']](state)
@@ -707,6 +696,28 @@ def reconcile(state):
             publish(state, event='merged')
         save(state)
     return changed
+
+
+def _settle(state, wave):
+    """Whether git just accepted the batch (its branch, or its last commit, is in the branch it goes into) or undid it
+    (its branch is gone without that); an accepted batch's branch is deleted unless the person keeps it."""
+    branch, status = wave.get('branch'), wave.get('status')
+    if not branch or status not in ('applied', 'superseded', 'accepted'): return False
+    exists = _branch_exists(state, branch)
+    last = _git(state['project'], 'rev-parse', branch).stdout.strip() if exists else wave.get('tip')
+    into = f"refs/heads/{wave['merge_into']}" if wave.get('merge_into') else branches.ref(state)
+    inside = bool(last) and not _git(state['project'], 'merge-base', '--is-ancestor', last, into).returncode
+    drop = exists and not wave.get('keep_branch')       # the person may have chosen to keep it after merging
+    if status == 'accepted':
+        if drop and inside: _git(state['project'], 'branch', '-D', branch)
+        return False
+    if inside:                                          # merged into the branch EAOS works on: its branch goes
+        wave.update(status='accepted', merged_at=datetime.now(timezone.utc).isoformat(timespec='seconds'), tip=last)
+        if drop: _git(state['project'], 'branch', '-D', branch)
+        return True
+    if exists or status != 'applied': return False
+    wave['status'] = 'undone'
+    return True
 
 
 def merge(state, wave, into=None, delete_after=True):
@@ -792,21 +803,30 @@ def choose(state, name):
     if working_on != name and (state.get('open_wave') or any(w.get('status') == 'applied' for w in state.get('waves') or [])):
         raise ValueError(f"the work on {working_on} is not finished: close the open batch, and accept or undo the "
                          'waiting branch, before moving to another branch')
-    if _git(project, 'rev-parse', '--verify', '--quiet', f'refs/heads/{name}').returncode:
-        if _git(project, 'rev-parse', '--verify', '--quiet', f'refs/remotes/origin/{name}').returncode:
-            raise ValueError(f'no branch named {name} in this project')
-        _git(project, 'branch', '--quiet', '--track', name, f'origin/{name}')
-    if not state.get('branch'):                     # the first choice: work done before it was on the branch checked out then
-        had = any(k in state for k in branches.KEYS)
-        state['branch'] = state['home_branch'] = (branches.checked_out(project) if had else None) or name
-        if state['branch'] == name:
-            save(state)
-            return state
+    _local_branch(project, name)
+    if not state.get('branch') and _first_choice(state, project, name):
+        save(state)
+        return state
     state.setdefault('by_branch', {})[state['branch']] = {k: state.pop(k) for k in branches.KEYS if k in state}
     state.update(state['by_branch'].pop(name, {}))
     state['branch'] = name
     save(state)
     return state
+
+
+def _local_branch(project, name):
+    """The branch `name` in the project: a branch only on origin gets its local branch, at the same commit."""
+    if not _git(project, 'rev-parse', '--verify', '--quiet', f'refs/heads/{name}').returncode: return
+    if _git(project, 'rev-parse', '--verify', '--quiet', f'refs/remotes/origin/{name}').returncode:
+        raise ValueError(f'no branch named {name} in this project')
+    _git(project, 'branch', '--quiet', '--track', name, f'origin/{name}')
+
+
+def _first_choice(state, project, name):
+    """The first choice of a branch: work done before it was on the branch checked out then. True when that is `name`."""
+    had = any(k in state for k in branches.KEYS)
+    state['branch'] = state['home_branch'] = (branches.checked_out(project) if had else None) or name
+    return state['branch'] == name
 
 
 def _git(project, *args):
@@ -839,28 +859,39 @@ def ready(state, args):
     from . import live_setup
     from .assistants import available, provider
     lang, commit = state['lang'], _commit(state)
-    assistant = (available() or [None])[0]
-    ask(state, 'run_app',
-        (f"لأصلح بأمان، أحتاج أن أشغّل برنامجك في نسخة منفصلة على جهازك، بقاعدة بيانات مؤقتة وبلا أسرارك"
-         + (f"، وقد أستعين بمساعدك الذكي ({assistant}) لأفهم طريقة تشغيله" if assistant else '') + '. أوافق؟')
-        if lang == 'ar' else
-        ("To fix safely I need to run your app in a separate copy on this computer, with a temporary database and none of your secrets"
-         + (f"; I may ask your AI assistant ({assistant}) how it runs" if assistant else '') + '. OK?'), args.yes)
+    ask(state, 'run_app', _run_question(lang, (available() or [None])[0]), args.yes)
     runtime = runtime_of(state)
     who = _git(state['project'], 'config', 'user.name').stdout.strip() or os.environ.get('USER') or 'the owner'
     live_setup.authorize(source(state), runtime, who)
     say(('أجهّز تشغيل برنامجك. قد يأخذ هذا من 5 إلى 20 دقيقة.' if lang == 'ar'
          else 'Setting up your app to run. This can take 5 to 20 minutes.'))
     _, model = provider()
-    def progress(n):
-        if str(n).startswith('baseline'):
-            say('   ' + ('أجهّز نسخة الإنتاج من برنامجك لقياس سرعته…' if lang == 'ar' else 'Preparing the production build of your app, to measure its speed…'))
-        else:
-            say(f"   [{n}/{live_setup.ATTEMPTS}] " + ('أشغّل برنامجك وأفتح بعض شاشاته…' if lang == 'ar' else 'Starting your app and opening some of its screens…'))
-    result = live_setup.setup(source(state), runtime, report=report_of(state), provider=model, say=progress)
+    result = live_setup.setup(source(state), runtime, report=report_of(state), provider=model,
+                              say=lambda n: _setup_progress(lang, n, live_setup.ATTEMPTS))
     state['setup'] = {'commit': commit, 'ok': result['ok'], 'attempts': result['attempts'], 'limitations': result['limitations']}
     state.pop('safety', None)
     save(state)
+    _setup_box(state, lang, result, runtime)
+    return 0
+
+
+def _run_question(lang, assistant):
+    if lang == 'ar':
+        return (f"لأصلح بأمان، أحتاج أن أشغّل برنامجك في نسخة منفصلة على جهازك، بقاعدة بيانات مؤقتة وبلا أسرارك"
+                + (f"، وقد أستعين بمساعدك الذكي ({assistant}) لأفهم طريقة تشغيله" if assistant else '') + '. أوافق؟')
+    return ("To fix safely I need to run your app in a separate copy on this computer, with a temporary database and none of your secrets"
+            + (f"; I may ask your AI assistant ({assistant}) how it runs" if assistant else '') + '. OK?')
+
+
+def _setup_progress(lang, n, attempts):
+    if str(n).startswith('baseline'):
+        say('   ' + ('أجهّز نسخة الإنتاج من برنامجك لقياس سرعته…' if lang == 'ar' else 'Preparing the production build of your app, to measure its speed…'))
+    else:
+        say(f"   [{n}/{attempts}] " + ('أشغّل برنامجك وأفتح بعض شاشاته…' if lang == 'ar' else 'Starting your app and opening some of its screens…'))
+
+
+def _setup_box(state, lang, result, runtime):
+    """How the setup ended, with the unsaved edits and the limitations noted."""
     notes = [n for n in [_saved_note(state)] if n]
     if result['limitations']:
         notes.append((f"{len(result['limitations'])} ملاحظة عمّا لم يكتمل، مكتوبة في الملف أدناه (limitations)" if lang == 'ar'
@@ -868,11 +899,10 @@ def ready(state, args):
     if result['ok']:
         box(lang, 'برنامجك يعمل في النسخة المنفصلة' if lang == 'ar' else 'Your app runs in the separate copy',
             where=runtime / 'run.json', commands=['eaos next'], note=notes or None)
-    else:
-        box(lang, ('لم أستطع تشغيل برنامجك كاملًا؛ سأكمل بما أمكن، والقيود مكتوبة' if lang == 'ar'
-                   else 'I could not get your app fully running; I will go on with what works, and the limits are written down'),
-            where=runtime / 'run.json', commands=['eaos next'], status='warn', note=notes)
-    return 0
+        return
+    box(lang, ('لم أستطع تشغيل برنامجك كاملًا؛ سأكمل بما أمكن، والقيود مكتوبة' if lang == 'ar'
+               else 'I could not get your app fully running; I will go on with what works, and the limits are written down'),
+        where=runtime / 'run.json', commands=['eaos next'], status='warn', note=notes)
 
 
 def safety_done(state):
@@ -1145,16 +1175,19 @@ def start(args):
     lang = state['lang']
     say((f"مرحبًا. سأفحص مشروع «{project.name}» وأكتب لك تقريرًا بكلام بسيط. لن أغيّر شيئًا في مشروعك." if lang == 'ar' else
          f"Hello. I will check «{project.name}» and write you a report in plain words. I will not change anything in your project."))
-    blocking = [row for row in doctor_rows(project) if not row['ok'] and row['when'] == 'now']
-    if blocking:
-        tools_only = all(row['fix'] == 'eaos doctor --fix' for row in blocking)
-        if not tools_only:
-            for row in blocking: say(f"❌ {row[lang]}\n     → {row['fix']}")
-            box(lang, 'ينقص جهازك شيء قبل الفحص' if lang == 'ar' else 'Your computer is missing something first',
-                commands=[blocking[0]['fix'], 'eaos start .'], status='fail')
-            return 1
+    if _missing_first(project, lang): return 1
     watch(state, args)
     return advance(state, args)
+
+
+def _missing_first(project, lang):
+    """Whether the computer misses something the check needs now that `eaos doctor --fix` cannot install; said, with its fix."""
+    blocking = [row for row in doctor_rows(project) if not row['ok'] and row['when'] == 'now']
+    if not blocking or all(row['fix'] == 'eaos doctor --fix' for row in blocking): return False
+    for row in blocking: say(f"❌ {row[lang]}\n     → {row['fix']}")
+    box(lang, 'ينقص جهازك شيء قبل الفحص' if lang == 'ar' else 'Your computer is missing something first',
+        commands=[blocking[0]['fix'], 'eaos start .'], status='fail')
+    return True
 
 
 def watch(state, args):
