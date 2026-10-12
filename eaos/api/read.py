@@ -87,62 +87,74 @@ def _file(path):
     except OSError: return None
 
 
-def routes(ctx):
-    schemas = section_schemas()
-    folder = Path(ctx.report) / 'studio'
-    document = openapi(schemas)
+def _not_found(payload):
+    return JSONResponse(payload, status_code=404, headers=NO_STORE)
 
-    def listed():
-        manifest = json.loads(_file(folder / 'manifest.json') or b'null')
-        return {s.get('name') for s in (manifest or {}).get('sections') or [] if isinstance(s, dict)}
 
-    def coverage_row(name):
-        coverage = json.loads(_file(folder / 'coverage.json') or b'null') or {}
+def _json_file(body):
+    return Response(body, media_type='application/json', headers=NO_STORE)
+
+
+class _Read:
+    """The read routes over one report's studio folder: each route is a method."""
+
+    def __init__(self, ctx):
+        self.ctx, self.schemas = ctx, section_schemas()
+        self.folder = Path(ctx.report) / 'studio'
+        self.document = openapi(self.schemas)
+
+    def _record(self, name):
+        return json.loads(_file(self.folder / name) or b'null')
+
+    def listed(self):
+        return {s.get('name') for s in (self._record('manifest.json') or {}).get('sections') or [] if isinstance(s, dict)}
+
+    def coverage_row(self, name):
+        coverage = self._record('coverage.json') or {}
         return next((row for row in coverage.get('sections') or [] if isinstance(row, dict) and row.get('section') == name), None)
 
-    async def session(request):
-        manifest = json.loads(_file(folder / 'manifest.json') or b'null') or {}
+    async def session(self, request):
+        ctx = self.ctx
+        manifest = self._record('manifest.json') or {}
         extra = await run_in_threadpool(ctx.session_extra) if ctx.session_extra else {}
         return JSONResponse({**(extra if isinstance(extra, dict) else {}), 'mode': 'live', 'version': __version__, 'csrf': ctx.keys.csrf,
                              'project': manifest.get('project') or {'name': ctx.name},
                              'feed': {'source': ctx.feed.source, 'last': ctx.feed.last_id()},
-                             'sections': sorted(listed() - {None}), 'actions': ctx.actions_mounted}, headers=NO_STORE)
+                             'sections': sorted(self.listed() - {None}), 'actions': ctx.actions_mounted}, headers=NO_STORE)
 
-    async def manifest(request):
-        body = _file(folder / 'manifest.json')
-        if body is None:
-            return JSONResponse({'error': 'empty', 'message': 'no check has written the Studio data yet'}, status_code=404, headers=NO_STORE)
-        return Response(body, media_type='application/json', headers=NO_STORE)
+    async def manifest(self, request):
+        body = _file(self.folder / 'manifest.json')
+        if body is None: return _not_found({'error': 'empty', 'message': 'no check has written the Studio data yet'})
+        return _json_file(body)
 
-    async def section(request):
+    async def section(self, request):
         name = request.path_params['name']
-        if name not in schemas:
-            return JSONResponse({'error': 'unknown', 'message': f'{name} is not a section of the contract'}, status_code=404, headers=NO_STORE)
-        body = _file(folder / f'{name}.json') if name in listed() or name == 'coverage' else None
-        if body is None:
-            return JSONResponse({'error': 'not_written', 'section': name, 'coverage': coverage_row(name)}, status_code=404, headers=NO_STORE)
-        return Response(body, media_type='application/json', headers=NO_STORE)
+        if name not in self.schemas: return _not_found({'error': 'unknown', 'message': f'{name} is not a section of the contract'})
+        body = _file(self.folder / f'{name}.json') if name in self.listed() or name == 'coverage' else None
+        if body is None: return _not_found({'error': 'not_written', 'section': name, 'coverage': self.coverage_row(name)})
+        return _json_file(body)
 
-    async def schema(request):
+    async def schema(self, request):
         name = request.path_params['name']
-        found = schemas.get(name) or (artifact_contracts.contracts().get(f'{PREFIX}manifest') if name == 'manifest' else None)
-        if found is None:
-            return JSONResponse({'error': 'unknown'}, status_code=404, headers=NO_STORE)
+        found = self.schemas.get(name) or (artifact_contracts.contracts().get(f'{PREFIX}manifest') if name == 'manifest' else None)
+        if found is None: return _not_found({'error': 'unknown'})
         return JSONResponse(found, headers=NO_STORE)
 
-    async def locale(request):
-        if request.path_params['lang'] != 'en':
-            return JSONResponse({'error': 'unknown_language'}, status_code=404, headers=NO_STORE)
-        body = _file(folder / 'locale.json')
-        if body is None:
-            return JSONResponse({'error': 'not_written'}, status_code=404, headers=NO_STORE)
-        return Response(body, media_type='application/json', headers=NO_STORE)
+    async def locale(self, request):
+        if request.path_params['lang'] != 'en': return _not_found({'error': 'unknown_language'})
+        body = _file(self.folder / 'locale.json')
+        if body is None: return _not_found({'error': 'not_written'})
+        return _json_file(body)
 
-    async def spec(request):
-        return JSONResponse(document, headers=NO_STORE)
+    async def spec(self, request):
+        return JSONResponse(self.document, headers=NO_STORE)
 
-    return [Route('/api/locales/{lang}', locale), Route('/api/session', session), Route('/api/manifest', manifest), Route('/api/sections/{name}', section),
-            Route('/api/schemas/{name}', schema), Route('/api/openapi.json', spec)] + progress_routes(ctx)
+
+def routes(ctx):
+    read = _Read(ctx)
+    return [Route('/api/locales/{lang}', read.locale), Route('/api/session', read.session), Route('/api/manifest', read.manifest),
+            Route('/api/sections/{name}', read.section), Route('/api/schemas/{name}', read.schema),
+            Route('/api/openapi.json', read.spec)] + progress_routes(ctx)
 
 
 def progress_routes(ctx):
