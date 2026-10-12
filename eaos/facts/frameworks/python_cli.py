@@ -2,7 +2,8 @@
 import re
 
 LANGUAGES = ('python',)
-SUBPARSER = re.compile(r'add_parser\(\s*(?P<quote>[\'"])(?P<name>[^\'"]+)(?P=quote)', re.M)
+# A command's name is one word: the text `'add_parser('` quoted inside a line of code is not a command.
+SUBPARSER = re.compile(r'add_parser\(\s*(?P<quote>[\'"])(?P<name>\w[\w:.-]*)(?P=quote)', re.M)
 # argparse dispatches through set_defaults(func=...); without binding it, every command traces to
 # the same parser function and the real handlers are never reached.
 HANDLER = re.compile(r'set_defaults\(\s*func\s*=\s*(?P<handler>[A-Za-z_]\w*)')

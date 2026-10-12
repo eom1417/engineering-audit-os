@@ -43,11 +43,16 @@ class EntryPointTests(unittest.TestCase):
     def test_runtime_registered_commands_are_declared_as_gaps_not_hidden(self):
         data = load_files({'tool.py': 'import argparse\n\n\ndef main():\n    parser = argparse.ArgumentParser(prog="tool")\n'
                                       '    sub = parser.add_subparsers()\n    for command in ["a", "b"]:\n'
-                                      '        sub.add_parser(command)\n'})
+                                      '        sub.add_parser(command)\n',
+                          # The self-check of 2026-10-12: a quoted `'add_parser('` inside a line of code became a command
+                          # named after the next 200 characters, and the behaviour lock failed on that file name.
+                          'check.py': "import re\n\n\ndef cli(text):\n    if 'add_parser(' in text:\n"
+                                      "        return re.findall(r'x', text)\n"})
         dynamic = [f for f in data['facts'] if f['value']['framework'] == 'argparse_dynamic']
         self.assertEqual(len(dynamic), 1)
         self.assertIsNone(dynamic[0]['value']['route'])
         self.assertEqual(dynamic[0]['resolution'], 'UNRESOLVED')
+        self.assertFalse([f for f in data['facts'] if f['location']['path'] == 'check.py'])
 
     def test_dockerfile_makefile_and_main_guarded_scripts_are_surfaces(self):
         rows = [f['value'] for f in load_files({

@@ -84,8 +84,12 @@ setup('sign in once, if credentials were granted', async ({ page }) => {
 """
 
 
-def slug(text):
-    return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-') or 'root'
+def slug(text, limit=80):
+    """A file-name part from any text; a long one is cut and keeps a short hash, so it never exceeds a file name."""
+    out = re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-') or 'root'
+    if len(out) <= limit: return out
+    import hashlib
+    return out[:limit - 9].rstrip('-') + '-' + hashlib.sha256(out.encode('utf-8')).hexdigest()[:8]
 
 
 def surfaces(out):
