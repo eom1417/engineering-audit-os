@@ -51,7 +51,9 @@ def declared_exclusions(target, path=None):
             raise ValueError('analysis.exclude must be an array of path patterns')
         declared = sorted({item.strip('/') for item in patterns if item.strip('/')})
     vendored = [] if _include_vendored(target, path) else list(VENDORED)
-    return sorted({*declared, *vendored, *GENERATED, *git_ignored(target)})
+    # The minified-file patterns (GENERATED) are file globs, applied by facts/source.py itself; the engines receive
+    # folder names, and a glob there broke Checkov (it reads --skip-path as a regular expression).
+    return sorted({*declared, *vendored, *git_ignored(target)})
 
 
 def vendored_patterns():

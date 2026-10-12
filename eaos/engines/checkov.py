@@ -4,6 +4,7 @@ It applies only where such files exist (.github/workflows, a Dockerfile, Terrafo
 not applicable, not absent. A run that finds nothing is still evidence: the coverage records how many
 checks passed per framework, so a clean result reads apart from a check that never ran.
 """
+import re
 import json
 import shutil
 from pathlib import Path
@@ -34,7 +35,7 @@ def analyze(target, workdir, exclude=(), formats=None):
     workdir.mkdir(parents=True)
     command = [which(BINARY), '-d', str(target), '-o', 'sarif', '-o', 'json', '--output-file-path', str(workdir),
                '--quiet', '--compact', '--skip-download', '--skip-path', 'node_modules']
-    for pattern in exclude: command += ['--skip-path', pattern]
+    for pattern in exclude: command += ['--skip-path', re.escape(pattern)]     # Checkov reads it as a regular expression
     # Checkov exits 1 when a check fails; that is a result, not an error.
     code, _, error, seconds = run(command, cwd=workdir)
     output, summary = workdir / 'results_sarif.sarif', workdir / 'results_json.json'

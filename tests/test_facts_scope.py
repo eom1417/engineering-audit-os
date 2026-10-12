@@ -39,6 +39,9 @@ class ScopeTests(Workspace):
         self.assertIn('.claude/worktrees', exclusions)
         self.assertEqual(sorted(item['path'] for item in Source(repo).files), ['app.py', 'lib/util.py', 'web/app.js'])
         self.assertIn('*.min.js', reasons)
+        # The self-check of 2026-10-12: the file globs reached the engines' folder excludes and Checkov, which reads a
+        # skip-path as a regular expression, crashed on `*.min.js`. The engines get folder names only.
+        self.assertFalse([pattern for pattern in exclusions if '*' in pattern])
         result, paths = self.syntax_paths(repo, Path(self.tmp) / 'out')
         self.assertGreater(result['excluded_paths'], 0)
         self.assertTrue({'testdata', 'vendor'} <= set(result['exclusion_reasons']))
