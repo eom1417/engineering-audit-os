@@ -658,23 +658,25 @@ def cycles(m):
     head = f'<h3>{T("ملفات متشابكة (دورات استيراد)", "Tangled files (import cycles)")}</h3>'
     if not rows:
         return head + f'<div class="card">{T("لا توجد ملفات يعتمد بعضها على بعض في حلقة.", "No files depend on each other in a loop.", "p")}</div>'
-    items = []
-    for r in rows:
-        paths = r['paths']
-        folder = paths[0].rsplit('/', 1)[0] + '/' if len(paths) > 1 and '/' in paths[0] else ''
-        shared = folder if folder and all(p.startswith(folder) for p in paths) else ''
-        names = [p[len(shared):] for p in paths]
-        size = num(M.collection_count(paths), 'files in this loop')
-        where = T(f'في {lit(shared)}', f'in {lit(shared)}') if shared else ''
-        if len(paths) == 2:
-            body = f'<span dir="ltr" class="pair">{lit(names[0])}<span class="arrow" aria-hidden="true">⇄</span>{lit(names[1])}</span>'
-        else:
-            body = '<span class="ring">' + ''.join(lit(n) for n in names) + '</span>'
-        items.append(f'<li class="cycle"><div class="cycle-head"><span class="loop" aria-hidden="true">↻</span>'
-                     f'{T(f"حلقة ملفاتها: {size}", f"A loop of {size} files")} {where}</div>{body}</li>')
-    items = ''.join(items)
+    items = ''.join(_cycle_item(r['paths']) for r in rows)
     return head + (f'<div class="card"><p>{T(esc(plain.problem("import_cycle", "ar")[1]), esc(plain.problem("import_cycle", "en")[1]))}</p>'
                    f'<ul class="cycles">{items}</ul></div>')
+
+
+def _cycle_body(names):
+    if len(names) == 2:
+        return f'<span dir="ltr" class="pair">{lit(names[0])}<span class="arrow" aria-hidden="true">⇄</span>{lit(names[1])}</span>'
+    return '<span class="ring">' + ''.join(lit(n) for n in names) + '</span>'
+
+
+def _cycle_item(paths):
+    """One import loop: its files, named from the folder they share."""
+    folder = paths[0].rsplit('/', 1)[0] + '/' if len(paths) > 1 and '/' in paths[0] else ''
+    shared = folder if folder and all(p.startswith(folder) for p in paths) else ''
+    size = num(M.collection_count(paths), 'files in this loop')
+    where = T(f'في {lit(shared)}', f'in {lit(shared)}') if shared else ''
+    return (f'<li class="cycle"><div class="cycle-head"><span class="loop" aria-hidden="true">↻</span>'
+            f'{T(f"حلقة ملفاتها: {size}", f"A loop of {size} files")} {where}</div>{_cycle_body([p[len(shared):] for p in paths])}</li>')
 
 
 def section_plan(m):
@@ -738,25 +740,7 @@ def decisions_block(rows):
         return head + f'<div class="card">{T("لا توجد قرارات معلقة.", "No decision is waiting.", "p")}</div>'
     groups = {}
     for r in waiting: groups.setdefault(r['pattern'], []).append(r)
-    cards = []
-    for pattern in sorted(groups, key=lambda p: -len(groups[p])):
-        group = groups[pattern]
-        (tar, why_ar), (ten, why_en) = plain.problem(pattern, 'ar'), plain.problem(pattern, 'en')
-        found = {o for r in group for o in r['outcomes']}
-        outcomes = [o for o in OUTCOME if o in found] + sorted(found - set(OUTCOME))
-        answers = ''.join(f'<li>{T(*map(esc, OUTCOME.get(o, (o, o))))}</li>' for o in outcomes)
-        sample = next((r for r in group if r['options']), None)
-        options = ''
-        if sample:
-            options = (f'<details><summary>{T("الخيارات المقترحة لمثال منها", "The suggested options, for one example")} {lit(sample["id"])}</summary><ul class="options">'
-                       + ''.join(f'<li><b>{esc(o.get("option", ""))}</b> <span class="muted">{esc(o.get("verdict", ""))}</span></li>'
-                                 for o in sample['options'] if isinstance(o, dict)) + '</ul></details>')
-        ids = ' '.join(lit(r['id']) for r in group[:40]) + (T(f' و{num(M.remaining(group, 40), "more cards")} غيرها', f' and {num(M.remaining(group, 40), "more cards")} more') if len(group) > 40 else '')
-        count = num(M.collection_count(group), 'cards waiting for a decision')
-        cards.append(f'<div class="card decision"><h4>{T(esc(tar), esc(ten))} <span class="count">{T(f"البطاقات: {count}", f"cards: {count}")}</span></h4>'
-                     f'<p>{T(esc(why_ar), esc(why_en))}</p>'
-                     + (f'<p class="small">{T("المطلوب منك أن تختار لكل حالة:", "For each case you choose:")}</p><ul class="answers">{answers}</ul>' if answers else '')
-                     + options + f'<details><summary>{T("البطاقات", "The cards")}</summary><p class="ids">{ids}</p></details></div>')
+    cards = [_decision_card(pattern, groups[pattern]) for pattern in sorted(groups, key=lambda p: -len(groups[p]))]
     return head + (f'<p class="muted">{T("هذه المشاكل لا يغيّرها EAOS وحده: تحتاج أن يقرر شخص هل هي مطلوبة، وما الصحيح.", "EAOS does not change these alone: a person has to decide whether they are wanted, and what is right.")}</p>'
                    f'<div class="grid two">{"".join(cards)}</div>')
 
@@ -836,37 +820,77 @@ def history_block(history):
     return title + history_chart(points) + table
 
 
-def history_chart(points):
-    """A step line of the share closed over time: it holds its value until the next event. One colour, labelled axes."""
+def _decision_options(group):
+    """The suggested options of the first card of a group that has some; '' when none has."""
+    sample = next((r for r in group if r['options']), None)
+    if not sample: return ''
+    return (f'<details><summary>{T("الخيارات المقترحة لمثال منها", "The suggested options, for one example")} {lit(sample["id"])}</summary><ul class="options">'
+            + ''.join(f'<li><b>{esc(o.get("option", ""))}</b> <span class="muted">{esc(o.get("verdict", ""))}</span></li>'
+                      for o in sample['options'] if isinstance(o, dict)) + '</ul></details>')
+
+
+def _decision_card(pattern, group):
+    """One kind of problem waiting for a decision: what it is, what the person chooses, and its cards."""
+    (tar, why_ar), (ten, why_en) = plain.problem(pattern, 'ar'), plain.problem(pattern, 'en')
+    found = {o for r in group for o in r['outcomes']}
+    outcomes = [o for o in OUTCOME if o in found] + sorted(found - set(OUTCOME))
+    answers = ''.join(f'<li>{T(*map(esc, OUTCOME.get(o, (o, o))))}</li>' for o in outcomes)
+    ids = ' '.join(lit(r['id']) for r in group[:40]) + (T(f' و{num(M.remaining(group, 40), "more cards")} غيرها', f' and {num(M.remaining(group, 40), "more cards")} more') if len(group) > 40 else '')
+    count = num(M.collection_count(group), 'cards waiting for a decision')
+    return (f'<div class="card decision"><h4>{T(esc(tar), esc(ten))} <span class="count">{T(f"البطاقات: {count}", f"cards: {count}")}</span></h4>'
+            f'<p>{T(esc(why_ar), esc(why_en))}</p>'
+            + (f'<p class="small">{T("المطلوب منك أن تختار لكل حالة:", "For each case you choose:")}</p><ul class="answers">{answers}</ul>' if answers else '')
+            + _decision_options(group) + f'<details><summary>{T("البطاقات", "The cards")}</summary><p class="ids">{ids}</p></details></div>')
+
+
+def _history_times(points):
+    """Each event's time as a number; their order instead when one has no time or all share one."""
     from datetime import datetime
-    width, height, left, right, top, bottom = 760, 230, 52, 70, 16, 34
     def when(h):
         try: return datetime.fromisoformat(str(h['at']).replace('Z', '+00:00')).timestamp()
         except ValueError: return None
     times = [when(h) for h in points]
-    if None in times or max(times) == min(times): times = list(range(len(points)))
+    return list(range(len(points))) if None in times or max(times) == min(times) else times
+
+
+def _history_axes(points, times, X, Y, box):
+    """The share's grid lines and the first, middle and last dates; `box`: (width, height, left, right)."""
+    width, height, left, right = box
+    out = [f'<line x1="{left}" x2="{width - right}" y1="{Y(tick):.1f}" y2="{Y(tick):.1f}" class="grid"/>'
+           f'<text x="{left - 8}" y="{Y(tick) + 4:.1f}" text-anchor="end" class="tick" data-meaning="share of the gap closed">{tick:g}%</text>'
+           for tick in M.history_ticks(points)]
+    out += [f'<text x="{X(times[i]):.1f}" y="{height - 10}" text-anchor="middle" class="tick" data-meaning="date of this event">{esc(str(points[i]["at"])[:10])}</text>'
+            for i in sorted({0, len(points) - 1, (len(points) - 1) // 2})]
+    return out
+
+
+def _history_line(points, times, X, Y):
+    path = f'M{X(times[0]):.1f},{Y(points[0]["percent"]):.1f}'
+    for t, h in zip(times[1:], points[1:]):
+        path += f' H{X(t):.1f} V{Y(h["percent"]):.1f}'
+    area = path + f' V{Y(0):.1f} H{X(times[0]):.1f} Z'
+    return f'<path d="{area}" class="area"/><path d="{path}" class="line"/>'
+
+
+def _history_dot(t, h, X, Y):
+    words = f'{str(h["at"])[:10]}: {pct(h["percent"])} ({EVENT.get(h.get("event"), ("", h.get("event") or ""))[1]})'
+    return (f'<circle cx="{X(t):.1f}" cy="{Y(h["percent"]):.1f}" r="4.5" class="dot-pt" data-meaning="share of the gap closed on this date">'
+            f'<title>{esc(words)}</title></circle>')
+
+
+def history_chart(points):
+    """A step line of the share closed over time: it holds its value until the next event. One colour, labelled axes."""
+    width, height, left, right, top, bottom = 760, 230, 52, 70, 16, 34
+    times = _history_times(points)
     scale = M.history_scale(points)
     span = (max(times) - min(times)) or 1
     X = lambda t: left + (width - left - right) * ((t - min(times)) / span if len(points) > 1 else 0.5)
     Y = lambda v: top + (height - top - bottom) * (1 - min(v, scale) / scale)
     out = [f'<svg viewBox="0 0 {width} {height}" direction="ltr" role="img" class="chart history" '
            f'aria-label="{esc("share of the gap closed over time")}">']
-    for tick in M.history_ticks(points):
-        label = f'{tick:g}%'
-        out.append(f'<line x1="{left}" x2="{width - right}" y1="{Y(tick):.1f}" y2="{Y(tick):.1f}" class="grid"/>'
-                   f'<text x="{left - 8}" y="{Y(tick) + 4:.1f}" text-anchor="end" class="tick" data-meaning="share of the gap closed">{label}</text>')
-    marks = sorted({0, len(points) - 1, (len(points) - 1) // 2})
-    for i in marks:
-        out.append(f'<text x="{X(times[i]):.1f}" y="{height - 10}" text-anchor="middle" class="tick" data-meaning="date of this event">{esc(str(points[i]["at"])[:10])}</text>')
-    path = f'M{X(times[0]):.1f},{Y(points[0]["percent"]):.1f}'
-    for t, h in zip(times[1:], points[1:]):
-        path += f' H{X(t):.1f} V{Y(h["percent"]):.1f}'
-    area = path + f' V{Y(0):.1f} H{X(times[0]):.1f} Z'
-    out.append(f'<path d="{area}" class="area"/><path d="{path}" class="line"/>')
-    for t, h in zip(times, points):
-        words = f'{str(h["at"])[:10]}: {pct(h["percent"])} ({EVENT.get(h.get("event"), ("", h.get("event") or ""))[1]})'
-        out.append(f'<circle cx="{X(t):.1f}" cy="{Y(h["percent"]):.1f}" r="4.5" class="dot-pt" data-meaning="share of the gap closed on this date">'
-                   f'<title>{esc(words)}</title></circle>')
+    out += _history_axes(points, times, X, Y, (width, height, left, right))
+    out.append(_history_line(points, times, X, Y))
+    out += [_history_dot(t, h, X, Y) for t, h in zip(times, points)]
     last = points[-1]
     out.append(f'<text x="{X(times[-1]) + 10:.1f}" y="{Y(last["percent"]) + 4:.1f}" class="end-label" data-meaning="share of the gap closed now">{esc(pct(last["percent"]))}</text>')
     return ''.join(out) + '</svg>'
@@ -1381,24 +1405,60 @@ def pipeline_part(m):
 def section_system(m):
     """The whole system in one drawing, with a search, a feature filter, what a click reaches, and every API as a table."""
     sm, lay = m.get('system'), m.get('system_layout')
-    if not sm or not lay:
-        if (m.get('coverage') or {}).get('source_files') and not any(e.get('section') == 'system map' for e in m.get('map_errors') or []):
+    if not sm or not lay: return _system_missing(m)
+    from .arch_map import json_script
+    metrics = M.system_counts(sm)
+    info = {x['id']: x for group in ('pages', 'callers', 'apis', 'handlers', 'modules', 'data') for x in sm[group]}
+    info = {k: {kk: vv for kk, vv in v.items() if kk not in ('reach',)} for k, v in info.items()}
+    data = {'rel': sm['related'], 'info': info, 'features': {f['name']: f['pages'] for f in sm['features']},
+            'feature_counts': sm['feature_counts']}
+    return (f'<div class="card graph-wrap sm-wrap" data-part="system-map"><h3 class="sm-title">{T("كل الروابط: من الصفحة إلى البيانات", "Every link: from the page to the data")}</h3>'
+            f'<p class="muted small">{T("من اليمين إلى اليسار: الصفحة، ونقطة API التي تستدعيها، والملف في الخادم الذي يجيبها، والأجزاء التي يستخدمها، والجداول والخدمات التي يصل إليها. مرّر المؤشر على أي مربع لتضيء سلسلته كلها، أو اضغط عليه لتثبيتها وترى تفاصيله تحت الرسم.", "From left to right: the page, the API it calls, the server file that answers it, the parts that file uses, and the tables and services it reaches. Hover any box to light its whole chain, or click it to keep it and see its details under the drawing.")}</p>'
+            f'<p class="small">{_system_summary(metrics)}</p>' + ''.join(f'<p class="muted small">{x}</p>' for x in _system_notes(sm, metrics))
+            + _system_controls(sm) + _system_legend()
+            + f'<div class="graph-scroll sm-scroll">{_system_heads(metrics)}'
+            f'{system_svg(sm, lay, True)}{system_svg(sm, lay, False)}</div>'
+            f'<div id="smd" class="node-detail card sm-detail">{T("اضغط على صفحة أو نقطة API أو ملف أو جدول لترى ما يصل إليه ومن يصل إليه.", "Click a page, an API, a file or a table to see what it reaches and what reaches it.", "p", "muted small")}</div>'
+            f'</div>{api_table(sm)}' + json_script('eaos-system', data))
+
+
+def _system_missing(m):
+    """Why there is no system map: a project with no pages and no API, or a map that could not be built."""
+    if (m.get('coverage') or {}).get('source_files') and not any(e.get('section') == 'system map' for e in m.get('map_errors') or []):
             return (f'<div class="card" data-part="system-map"><h3>{T("كل الروابط: من الصفحة إلى البيانات", "Every link: from the page to the data")}</h3>'
                     + T('لم نجد في هذا المشروع صفحات ويب ولا نقاط API يستدعيها أحد: هو مكتبة أو أداة أوامر أو خدمة بلا واجهة. '
                         'أجزاؤه والعلاقات بينها، وملفاته ودواله، مرسومة في «خريطة البنية».',
                         'This project has no web pages and no API that anything calls: it is a library, a command-line tool or a '
                         'service without a front end. Its parts and the links between them, its files and functions, are drawn in '
                         'the "Structure map".', 'p') + '</div>')
-        return unavailable('system map')
-    from .system_map import COLUMNS, WIDTH
-    from .arch_map import json_script
-    metrics = M.system_counts(sm)
+    return unavailable('system map')
+
+
+def _system_summary(metrics):
     answered, tables = metrics['answered'], metrics['tables']
     n = lambda v, meaning: num(v, meaning)
-    summary = T(f'الصفحات: {n(metrics["pages"], "pages")} · نقاط API: {n(metrics["apis"], "APIs")} · وجدنا في الخادم ما يجيب {n(answered, "APIs with a server handler found")} منها · '
+    return T(f'الصفحات: {n(metrics["pages"], "pages")} · نقاط API: {n(metrics["apis"], "APIs")} · وجدنا في الخادم ما يجيب {n(answered, "APIs with a server handler found")} منها · '
                 f'ملفات الخادم: {n(metrics["handlers"], "server files that answer requests")} · الجداول: {n(tables, "tables")} · الخدمات: {n(metrics["services"], "services and storage")}',
                 f'{n(metrics["pages"], "pages")} pages · {n(metrics["apis"], "APIs")} APIs · a server handler found for {n(answered, "APIs with a server handler found")} of them · '
                 f'{n(metrics["handlers"], "server files that answer requests")} server files · {n(tables, "tables")} tables · {n(metrics["services"], "services and storage")} services')
+
+
+SM_LEFT_OUT = {'pages': ('صفحة', 'pages'), 'callers': ('ملفًا مشتركًا', 'shared files'), 'apis': ('نقطة API', 'APIs'),
+               'handlers': ('ملف خادم', 'server files'), 'modules': ('جزءًا', 'parts'), 'data': ('جدولًا أو خدمة', 'tables or services')}
+
+
+def _system_capped(sm, n):
+    """What the drawing left out to stay readable; None when nothing was."""
+    capped = {k: v for k, v in (sm.get('capped') or {}).items() if v}
+    if not capped: return None
+    words = SM_LEFT_OUT
+    ar = '، '.join(f'{n(v, "items left out of the drawing")} {words[k][0]}' for k, v in capped.items())
+    en = ', '.join(f'{n(v, "items left out of the drawing")} {words[k][1]}' for k, v in capped.items())
+    return T(f'الرسم محدود الحجم ليبقى مقروءًا؛ لم يُرسم: {ar}.', f'The drawing is capped to stay readable; left out: {en}.')
+
+
+def _system_notes(sm, metrics):
+    n = lambda v, meaning: num(v, meaning)
     notes = []
     if sm['unknown']:
         notes.append(T(f'لم نجد في الخادم ما يجيب {n(sm["unknown"], "APIs whose handler is unknown")} من نقاط API: قد يأتي جوابها من خادم آخر أو من مسار يُبنى وقت التشغيل. تظهر منقّطة.',
@@ -1409,21 +1469,24 @@ def section_system(m):
     if untraced:
         notes.append(T(f'{n(untraced, "pages whose component file was not found")} صفحة لم نجد ملف مكوّنها، فلم نتتبع ما تستدعيه (تظهر باهتة).',
                        f'{n(untraced, "pages whose component file was not found")} pages: their component file was not found, so what they call is not traced (drawn faded).'))
-    capped = {k: v for k, v in (sm.get('capped') or {}).items() if v}
-    words = {'pages': ('صفحة', 'pages'), 'callers': ('ملفًا مشتركًا', 'shared files'), 'apis': ('نقطة API', 'APIs'),
-             'handlers': ('ملف خادم', 'server files'), 'modules': ('جزءًا', 'parts'), 'data': ('جدولًا أو خدمة', 'tables or services')}
-    if capped:
-        ar = '، '.join(f'{n(v, "items left out of the drawing")} {words[k][0]}' for k, v in capped.items())
-        en = ', '.join(f'{n(v, "items left out of the drawing")} {words[k][1]}' for k, v in capped.items())
-        notes.append(T(f'الرسم محدود الحجم ليبقى مقروءًا؛ لم يُرسم: {ar}.', f'The drawing is capped to stay readable; left out: {en}.'))
+    capped = _system_capped(sm, n)
+    if capped: notes.append(capped)
     notes.append(T('الجداول: المعرّفة في ملفات البيانات التي يستخدمها كود الخادم؛ لا نفرّق هنا بين القراءة والكتابة.',
                    'Tables: those defined in the data files the server code uses; reading and writing are not told apart here.'))
+    return notes
+
+
+def _system_controls(sm):
     features = ''.join(f'<option value="{esc(f["name"])}" data-literal="1">{esc(f["name"])}</option>' for f in sm['features'])
     controls = (f'<div class="filters sm-tools" role="search"><input type="search" id="smq" data-ph-ar="ابحث عن صفحة أو API أو ملف أو جدول…" '
                 f'data-ph-en="Search a page, an API, a file or a table…" placeholder="ابحث عن صفحة أو API أو ملف أو جدول…">'
                 + (f'<select id="smf"><option value="" data-ar="كل الميزات" data-en="All features">كل الميزات</option>{features}</select>' if features else '')
                 + f'<button type="button" class="btn ghost" id="smclear">{T("إظهار الكل", "Show all")}</button>'
                 f'<span class="muted" id="smshown" aria-live="polite"></span></div>')
+    return controls
+
+
+def _system_legend():
     sample = lambda cls: f'<svg width="40" height="12" aria-hidden="true" class="key-line"><path d="M2,6 H38" class="sm-edge {cls}"/></svg>'
     legend = (f'<div class="heat-legend">'
               f'<span class="heat-key">{sample("k-call")}{T("صفحة أو ملف يستدعي API", "a page or a file calls an API")}</span>'
@@ -1432,6 +1495,12 @@ def section_system(m):
               f'<span class="heat-key">{sample("k-use")}{T("يستخدم جزءًا آخر", "uses another part")}</span>'
               f'<span class="heat-key">{sample("k-data")}{T("يصل إلى جدول أو خدمة", "reaches a table or a service")}</span>'
               f'<span class="heat-key"><i class="key-box sm-unknown"></i>{T("لا نعرف من يجيبها", "no known handler")}</span></div>')
+    return legend
+
+
+def _system_heads(metrics):
+    """The columns' titles over the drawing, spaced as the drawing spaces its columns."""
+    from .system_map import COLUMNS, WIDTH
     spans, edge = [], 0                          # the columns and the gaps between them, as the drawing has them
     for x, width in COLUMNS:
         spans += [x - edge, width]; edge = x + width
@@ -1441,17 +1510,7 @@ def section_system(m):
     meanings = ('pages and shared files drawn', 'APIs drawn', 'server files drawn', 'parts drawn', 'tables and services drawn')
     heads = ''.join(f'<div></div><div>{T(esc(ar), esc(en))} {num(counts[c], meanings[c])}</div>'
                     for c, (ar, en) in enumerate(SM_HEADS)) + '<div></div>'
-    info = {x['id']: x for group in ('pages', 'callers', 'apis', 'handlers', 'modules', 'data') for x in sm[group]}
-    info = {k: {kk: vv for kk, vv in v.items() if kk not in ('reach',)} for k, v in info.items()}
-    data = {'rel': sm['related'], 'info': info, 'features': {f['name']: f['pages'] for f in sm['features']},
-            'feature_counts': sm['feature_counts']}
-    return (f'<div class="card graph-wrap sm-wrap" data-part="system-map"><h3 class="sm-title">{T("كل الروابط: من الصفحة إلى البيانات", "Every link: from the page to the data")}</h3>'
-            f'<p class="muted small">{T("من اليمين إلى اليسار: الصفحة، ونقطة API التي تستدعيها، والملف في الخادم الذي يجيبها، والأجزاء التي يستخدمها، والجداول والخدمات التي يصل إليها. مرّر المؤشر على أي مربع لتضيء سلسلته كلها، أو اضغط عليه لتثبيتها وترى تفاصيله تحت الرسم.", "From left to right: the page, the API it calls, the server file that answers it, the parts that file uses, and the tables and services it reaches. Hover any box to light its whole chain, or click it to keep it and see its details under the drawing.")}</p>'
-            f'<p class="small">{summary}</p>' + ''.join(f'<p class="muted small">{x}</p>' for x in notes) + controls + legend
-            + f'<div class="graph-scroll sm-scroll"><div class="sm-heads" style="grid-template-columns:{fr}">{heads}</div>'
-            f'{system_svg(sm, lay, True)}{system_svg(sm, lay, False)}</div>'
-            f'<div id="smd" class="node-detail card sm-detail">{T("اضغط على صفحة أو نقطة API أو ملف أو جدول لترى ما يصل إليه ومن يصل إليه.", "Click a page, an API, a file or a table to see what it reaches and what reaches it.", "p", "muted small")}</div>'
-            f'</div>{api_table(sm)}' + json_script('eaos-system', data))
+    return f'<div class="sm-heads" style="grid-template-columns:{fr}">{heads}</div>'
 
 
 # ---------------------------------------------------------------- the work log: who did what, when, and where it stopped
@@ -1487,68 +1546,104 @@ def work_log(progress):
     head = f'<h3 id="work-log">{T("سجل العمل وأين وقفنا", "Work log and where we stopped")}</h3>'
     if not isinstance(h, dict) or not (h.get('last_steps') or h.get('open_work') or h.get('last_assistant') or h.get('notes') or h.get('in_progress')):
         return head + (f'<div class="card" data-part="work-log">{T("لم يبدأ أي عمل بعد: حين يبدأ مساعد ذكي (Claude Code أو Codex) الفحص أو الإصلاح، تظهر هنا كل خطوة، ومن قام بها، ومتى، وأين وقف.", "No work has started yet: when an AI assistant (Claude Code or Codex) starts the check or the fixes, every step shows here, who took it, when, and where it stopped.", "p")}</div>')
-    now, work = [], h.get('open_work') if isinstance(h.get('open_work'), dict) else None
-    job = h.get('running_job') if isinstance(h.get('running_job'), dict) else None
-    waiting = h.get('waiting_for_the_person') if isinstance(h.get('waiting_for_the_person'), dict) else None
-    cards = lambda ids: ' '.join(lit(c) for c in list(ids)[:20]) or T('لا شيء', 'none')
-    if job:
-        now.append(T(f'عمل جارٍ الآن: {lit(job.get("kind") or job.get("id") or "")}', f'A job is running now: {lit(job.get("kind") or job.get("id") or "")}', 'li'))
-    if work:
-        kind = JOB_WORDS.get(work.get('kind'), (work.get('kind') or '', work.get('kind') or ''))
-        number = work.get('number') if work.get('number') is not None else work.get('milestone')
-        label = (T(f'{esc(kind[0])} مفتوحة', f'Open {esc(kind[1])}') + (' ' + (num(number, 'the number of the open batch') if isinstance(number, int) else lit(number)) if number is not None else ''))
-        kept, not_kept, left = work.get('kept') or [], work.get('not_kept') or {}, work.get('left') or []
-        now.append(f'<li>{label}: ' + T(f'نجح {num(M.collection_count(kept), "cards kept in the open batch")}، ولم ينجح {num(M.collection_count(not_kept), "cards not kept in the open batch")}، وبقي {num(M.collection_count(left), "cards left in the open batch")}',
-                                         f'{num(M.collection_count(kept), "cards kept in the open batch")} kept, {num(M.collection_count(not_kept), "cards not kept in the open batch")} not kept, {num(M.collection_count(left), "cards left in the open batch")} left') + '</li>')
-        if left: now.append(f'<li>{T("الباقي:", "Left:", cls="lbl")} {cards(left)}</li>')
-        for card, why in list(not_kept.items())[:8] if isinstance(not_kept, dict) else []:
-            now.append(f'<li>{T("لم ينجح:", "Not kept:", cls="lbl")} {lit(card)} {tech(str(why)[:200])}</li>')
-    if waiting:
-        now.append(T(f'ينتظر قرارك: أدخل الفرع {lit(waiting.get("branch") or "")} في فرعك أو ألغِه.', f'Waiting for you: take branch {lit(waiting.get("branch") or "")} into yours, or throw it away.', 'li'))
-    busy = h.get('in_progress') if isinstance(h.get('in_progress'), dict) else None
-    if busy and busy.get('card'):
-        since = (T(f' منذ {num(when(busy.get("since")), "when this card was started (UTC)")}', f' since {num(when(busy.get("since")), "when this card was started (UTC)")}')
-                 if busy.get('since') else '')
-        by = f' {who(busy["by"])}' if busy.get('by') else ''
-        read = [f for f in busy.get('files_read') or [] if isinstance(f, str)]
-        now.append(f'<li>{T(f"كان يعمل على البطاقة {lit(busy["card"])}", f"Was working on card {lit(busy["card"])}")}{by}{since}'
-                   + (f'<div class="small">{T("قرأ من الملفات:", "Files it read:", cls="lbl")} {" ".join(lit(f) for f in read[:8])}'
-                      + (T(f' و{num(M.remaining(read, 8), "more files read")} غيرها', f' and {num(M.remaining(read, 8), "more files read")} more') if len(read) > 8 else '') + '</div>' if read else '')
-                   + (f'<div class="small">{T("آخر محاولة:", "Last try:", cls="lbl")} {tech(str(busy["last_try"])[:300])}</div>' if busy.get('last_try') else '')
-                   + '</li>')
-    if not now: now.append(T('لا شيء مفتوح الآن.', 'Nothing is open now.', 'li'))
-    if job: step = T('انتظار العمل الجاري حتى ينتهي، ثم المتابعة.', 'Wait for the running job to finish, then go on.')
-    elif busy and busy.get('card'): step = T(f'إكمال البطاقة {lit(busy["card"])} من حيث توقفت، ثم البقية.', f'Finish card {lit(busy["card"])} from where it stopped, then the rest.')
-    elif work and work.get('left'): step = T('إصلاح البطاقات الباقية واحدة واحدة، ثم إغلاق الدفعة وفحصها كلها.', 'Fix the cards left one by one, then close the batch and check it whole.')
-    elif work: step = T('إغلاق الدفعة المفتوحة وفحصها كلها.', 'Close the open batch and check it whole.')
-    elif waiting: step = T('قرارك في الفرع المنتظر: أدخله أو ألغِه.', 'Your decision on the waiting branch: take it in or throw it away.')
-    else: step = T('بدء الدفعة التالية من الخطة.', 'Start the next batch of the plan.')
+    work, job, waiting, busy = (_dict_of(h, k) for k in ('open_work', 'running_job', 'waiting_for_the_person', 'in_progress'))
+    now = _wl_now(job, work, waiting, busy)
+    step = _wl_next_step(job, busy, work, waiting)
     p = h.get('progress') if isinstance(h.get('progress'), dict) else {}
     tally = (f'<p class="small">{T(f"التقدم في فرعك: أُغلق {num(p.get("closed", 0), "cards closed")} من {num(p.get("total", 0), "cards in the plan")}", f"Progress in your branch: {num(p.get("closed", 0), "cards closed")} of {num(p.get("total", 0), "cards in the plan")} closed")}</p>' if p else '')
-    last = (f'<p class="small">{T("آخر من عمل:", "Last to work:", cls="lbl")} {who(h.get("last_assistant"))} '
-            + (T(f'في {num(when(h.get("last_activity")), "the time of the last step (UTC)")}', f'at {num(when(h.get("last_activity")), "the time of the last step (UTC)")}') if h.get('last_activity') else '')
-            + (f' · {T("الفرع:", "branch:", cls="lbl")} {lit(h["branch"])}' if isinstance(h.get('branch'), str) and h.get('branch') else '') + '</p>')
-    status = (f'<div class="card wl-status"><h4>{T("أين وقفنا", "Where we stopped")}</h4>{last}<ul class="small wl-now">{"".join(now)}</ul>'
+    status = (f'<div class="card wl-status"><h4>{T("أين وقفنا", "Where we stopped")}</h4>{_wl_last(h)}<ul class="small wl-now">{"".join(now)}</ul>'
               f'<p class="small"><b>{T("الخطوة التالية:", "The next step:")}</b> {step}</p>{tally}'
               + (f'<details><summary>{T("للمساعد الذكي الذي يكمل", "For the AI assistant that continues")}</summary>{tech(h["how_to_continue"])}</details>' if h.get('how_to_continue') else '')
               + '</div>')
-    steps = [s for s in h.get('last_steps') or [] if isinstance(s, dict)]
-    items = []
-    for s in reversed(steps):
-        tool = s.get('tool') or ''
-        words = TOOL_WORDS.get(tool)
-        what = T(*map(esc, words)) if words else lit(tool)
-        items.append(f'<li class="wl-step"><span class="wl-dot" aria-hidden="true"></span><div><div class="wl-head">{who(s.get("by"))} '
-                     f'<span class="muted small">{num(when(s.get("at")), "the time of this step (UTC)")}</span></div>'
-                     f'<div>{what}{(" " + lit(s["card"])) if s.get("card") else ""}</div>'
-                     + (f'<div class="small muted">{T("النتيجة:", "Result:", cls="lbl")} {tech(str(s["outcome"])[:300])}</div>' if s.get('outcome') else '') + '</div></li>')
-    timeline = (f'<h4>{T("آخر الخطوات، الأحدث أولًا", "The last steps, newest first")}</h4><ol class="timeline">{"".join(items)}</ol>' if items
-                else T('لا خطوات مسجلة بعد.', 'No step recorded yet.', 'p', 'muted small'))
-    notes = [x for x in h.get('notes') or [] if isinstance(x, dict) and x.get('note')]
-    notes_html = (f'<h4>{T("ملاحظات المساعدين", "Notes from the assistants")}</h4><ul class="wl-notes">'
-                  + ''.join(f'<li>{who(x.get("by"))} <span class="muted small">{num(when(x.get("at")), "the time of this note (UTC)")}</span>'
-                            f'{(" " + lit(x["card"])) if x.get("card") else ""}<div>{said(x["note"])}</div></li>' for x in reversed(notes)) + '</ul>') if notes else ''
+    timeline = _wl_timeline([s for s in h.get('last_steps') or [] if isinstance(s, dict)])
+    notes_html = _wl_notes([x for x in h.get('notes') or [] if isinstance(x, dict) and x.get('note')])
     return head + f'<div class="card wl" data-part="work-log">{status}<div class="wl-body">{timeline}{notes_html}</div></div>'
+
+
+def _dict_of(h, key):
+    return h.get(key) if isinstance(h.get(key), dict) else None
+
+
+def _wl_open_work(work):
+    """The open batch or milestone: what was kept, not kept and left, and why each was not kept."""
+    kind = JOB_WORDS.get(work.get('kind'), (work.get('kind') or '', work.get('kind') or ''))
+    number = work.get('number') if work.get('number') is not None else work.get('milestone')
+    label = (T(f'{esc(kind[0])} مفتوحة', f'Open {esc(kind[1])}') + (' ' + (num(number, 'the number of the open batch') if isinstance(number, int) else lit(number)) if number is not None else ''))
+    kept, not_kept, left = work.get('kept') or [], work.get('not_kept') or {}, work.get('left') or []
+    rows = [f'<li>{label}: ' + T(f'نجح {num(M.collection_count(kept), "cards kept in the open batch")}، ولم ينجح {num(M.collection_count(not_kept), "cards not kept in the open batch")}، وبقي {num(M.collection_count(left), "cards left in the open batch")}',
+                                     f'{num(M.collection_count(kept), "cards kept in the open batch")} kept, {num(M.collection_count(not_kept), "cards not kept in the open batch")} not kept, {num(M.collection_count(left), "cards left in the open batch")} left') + '</li>']
+    if left: rows.append(f'<li>{T("الباقي:", "Left:", cls="lbl")} {" ".join(lit(c) for c in list(left)[:20]) or T("لا شيء", "none")}</li>')
+    rows += [f'<li>{T("لم ينجح:", "Not kept:", cls="lbl")} {lit(card)} {tech(str(why)[:200])}</li>'
+             for card, why in (list(not_kept.items())[:8] if isinstance(not_kept, dict) else [])]
+    return rows
+
+
+def _wl_files_read(read):
+    if not read: return ''
+    return (f'<div class="small">{T("قرأ من الملفات:", "Files it read:", cls="lbl")} {" ".join(lit(f) for f in read[:8])}'
+            + (T(f' و{num(M.remaining(read, 8), "more files read")} غيرها', f' and {num(M.remaining(read, 8), "more files read")} more') if len(read) > 8 else '') + '</div>')
+
+
+def _wl_busy(busy):
+    """The card the last assistant was on, since when, the files it read and how its last try ended."""
+    since = (T(f' منذ {num(when(busy.get("since")), "when this card was started (UTC)")}', f' since {num(when(busy.get("since")), "when this card was started (UTC)")}')
+             if busy.get('since') else '')
+    by = f' {who(busy["by"])}' if busy.get('by') else ''
+    read = [f for f in busy.get('files_read') or [] if isinstance(f, str)]
+    return (f'<li>{T(f"كان يعمل على البطاقة {lit(busy["card"])}", f"Was working on card {lit(busy["card"])}")}{by}{since}'
+            + _wl_files_read(read)
+            + (f'<div class="small">{T("آخر محاولة:", "Last try:", cls="lbl")} {tech(str(busy["last_try"])[:300])}</div>' if busy.get('last_try') else '')
+            + '</li>')
+
+
+def _wl_now(job, work, waiting, busy):
+    """What is open now: a running job, the open batch, a branch waiting for the person, the card in progress."""
+    now = []
+    if job:
+        now.append(T(f'عمل جارٍ الآن: {lit(job.get("kind") or job.get("id") or "")}', f'A job is running now: {lit(job.get("kind") or job.get("id") or "")}', 'li'))
+    if work: now += _wl_open_work(work)
+    if waiting:
+        now.append(T(f'ينتظر قرارك: أدخل الفرع {lit(waiting.get("branch") or "")} في فرعك أو ألغِه.', f'Waiting for you: take branch {lit(waiting.get("branch") or "")} into yours, or throw it away.', 'li'))
+    if busy and busy.get('card'): now.append(_wl_busy(busy))
+    return now or [T('لا شيء مفتوح الآن.', 'Nothing is open now.', 'li')]
+
+
+def _wl_next_step(job, busy, work, waiting):
+    if job: return T('انتظار العمل الجاري حتى ينتهي، ثم المتابعة.', 'Wait for the running job to finish, then go on.')
+    if busy and busy.get('card'): return T(f'إكمال البطاقة {lit(busy["card"])} من حيث توقفت، ثم البقية.', f'Finish card {lit(busy["card"])} from where it stopped, then the rest.')
+    if work and work.get('left'): return T('إصلاح البطاقات الباقية واحدة واحدة، ثم إغلاق الدفعة وفحصها كلها.', 'Fix the cards left one by one, then close the batch and check it whole.')
+    if work: return T('إغلاق الدفعة المفتوحة وفحصها كلها.', 'Close the open batch and check it whole.')
+    if waiting: return T('قرارك في الفرع المنتظر: أدخله أو ألغِه.', 'Your decision on the waiting branch: take it in or throw it away.')
+    return T('بدء الدفعة التالية من الخطة.', 'Start the next batch of the plan.')
+
+
+def _wl_last(h):
+    return (f'<p class="small">{T("آخر من عمل:", "Last to work:", cls="lbl")} {who(h.get("last_assistant"))} '
+            + (T(f'في {num(when(h.get("last_activity")), "the time of the last step (UTC)")}', f'at {num(when(h.get("last_activity")), "the time of the last step (UTC)")}') if h.get('last_activity') else '')
+            + (f' · {T("الفرع:", "branch:", cls="lbl")} {lit(h["branch"])}' if isinstance(h.get('branch'), str) and h.get('branch') else '') + '</p>')
+
+
+def _wl_step(s):
+    tool = s.get('tool') or ''
+    words = TOOL_WORDS.get(tool)
+    what = T(*map(esc, words)) if words else lit(tool)
+    return (f'<li class="wl-step"><span class="wl-dot" aria-hidden="true"></span><div><div class="wl-head">{who(s.get("by"))} '
+            f'<span class="muted small">{num(when(s.get("at")), "the time of this step (UTC)")}</span></div>'
+            f'<div>{what}{(" " + lit(s["card"])) if s.get("card") else ""}</div>'
+            + (f'<div class="small muted">{T("النتيجة:", "Result:", cls="lbl")} {tech(str(s["outcome"])[:300])}</div>' if s.get('outcome') else '') + '</div></li>')
+
+
+def _wl_timeline(steps):
+    items = [_wl_step(s) for s in reversed(steps)]
+    if not items: return T('لا خطوات مسجلة بعد.', 'No step recorded yet.', 'p', 'muted small')
+    return f'<h4>{T("آخر الخطوات، الأحدث أولًا", "The last steps, newest first")}</h4><ol class="timeline">{"".join(items)}</ol>'
+
+
+def _wl_notes(notes):
+    if not notes: return ''
+    return (f'<h4>{T("ملاحظات المساعدين", "Notes from the assistants")}</h4><ul class="wl-notes">'
+            + ''.join(f'<li>{who(x.get("by"))} <span class="muted small">{num(when(x.get("at")), "the time of this note (UTC)")}</span>'
+                      f'{(" " + lit(x["card"])) if x.get("card") else ""}<div>{said(x["note"])}</div></li>' for x in reversed(notes)) + '</ul>')
 
 
 # ---------------------------------------------------------------- page
@@ -1604,13 +1699,17 @@ def failure(section, error):
     return {'section': section, 'error': f'{type(error).__name__}: {error}'[:300]}
 
 
-def render_parts(m, name, lang='ar'):
-    """(the page, [{section, error}] of every part that could not be built): a section that fails shows "not available"."""
-    parts, errors = {}, list(m.get('map_errors') or [])
-    try: m = dict(m, cards=task_cards(m))
+def _with_cards(m, errors):
+    """The model with its task cards; none, with the failure noted, when they cannot be built."""
+    try: return dict(m, cards=task_cards(m))
     except Exception as error:
-        m = dict(m, cards=[])
         errors.append(failure('cards', error))
+        return dict(m, cards=[])
+
+
+def _parts(m, name, errors):
+    """{section: its HTML}; a section that cannot be built says "not available" and its failure is noted."""
+    parts = {}
     for section, build in (('summary', lambda: section_summary(m, name)), ('gaps', lambda: section_gaps(m)),
                            ('structure', lambda: section_structure(m)), ('system', lambda: section_system(m) + pipeline_part(m)),
                            ('target', lambda: section_target(m)), ('plan', lambda: section_plan(m))):
@@ -1618,6 +1717,14 @@ def render_parts(m, name, lang='ar'):
         except Exception as error:     # one broken record costs its section, not the page or the audit
             parts[section] = unavailable(section, error)
             errors.append(failure(section, error))
+    return parts
+
+
+def render_parts(m, name, lang='ar'):
+    """(the page, [{section, error}] of every part that could not be built): a section that fails shows "not available"."""
+    errors = list(m.get('map_errors') or [])
+    m = _with_cards(m, errors)
+    parts = _parts(m, name, errors)
     progress = m.get('progress') or {}
     told = [e for e in progress.get('report_errors') or [] if isinstance(e, str) and e.strip()]
     nav = ''.join(f'<a href="#{s}" data-tab="{s}">{w(s)}</a>' for s in SECTIONS)
