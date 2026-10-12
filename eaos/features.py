@@ -78,14 +78,18 @@ def _table_access(files, data_access_by_path):
     """
     reads, writes, endpoints = OrderedDict(), OrderedDict(), OrderedDict()
     for f in files:
-        for access in data_access_by_path.get(f, []):
-            target, operation = access.get('target'), access.get('operation')
-            if not target: continue
-            if access.get('client') == 'http':
-                endpoints[f'{operation.upper()} {target}'] = operation != 'get'
-            elif operation in _TABLE_OPERATIONS:
-                (reads if operation == 'select' else writes)[target] = True
+        for access in data_access_by_path.get(f, []): _note_access(access, reads, writes, endpoints)
     return list(reads), list(writes), endpoints
+
+
+def _note_access(access, reads, writes, endpoints):
+    """One data access: an endpoint the app calls (a write unless it is a GET), or a table read or written."""
+    target, operation = access.get('target'), access.get('operation')
+    if not target: return
+    if access.get('client') == 'http':
+        endpoints[f'{operation.upper()} {target}'] = operation != 'get'
+    elif operation in _TABLE_OPERATIONS:
+        (reads if operation == 'select' else writes)[target] = True
 
 
 def _import_graph(facts):
@@ -209,34 +213,45 @@ def _namer(surface_facts):
     (studio/src/App.tsx is `studio`)."""
     commands = any((f.get('value') or {}).get('surface') == 'cli' and (f.get('value') or {}).get('framework') in _COMMANDS
                    and (f.get('value') or {}).get('route') for f in surface_facts)
+    return lambda fact: _feature_of(fact, commands)
 
-    def name(fact):
-        value, path = fact.get('value') or {}, (fact.get('location') or {}).get('path') or ''
-        if value.get('surface') == 'cli':
-            if _DEV_TOOLING & set(path.split('/')[:-1]): return None
-            if value.get('framework') in _COMMANDS and value.get('route'): return f"cli:{value['route']}"
-            return None if commands else f"cli:{_surface_identifier(fact)}"
-        feature = _feature_name(_surface_identifier(fact))
-        if feature == 'home' and commands and '/' in path: return path.split('/', 1)[0]
-        return feature
-    return name
+
+def _feature_of(fact, commands):
+    """The feature of one surface (see _namer); `commands`: the program has commands of its own."""
+    value, path = fact.get('value') or {}, (fact.get('location') or {}).get('path') or ''
+    if value.get('surface') == 'cli':
+        if _DEV_TOOLING & set(path.split('/')[:-1]): return None
+        if value.get('framework') in _COMMANDS and value.get('route'): return f"cli:{value['route']}"
+        return None if commands else f"cli:{_surface_identifier(fact)}"
+    feature = _feature_name(_surface_identifier(fact))
+    if feature == 'home' and commands and '/' in path: return path.split('/', 1)[0]
+    return feature
 
 
 def build(facts):
     """Group user-facing surfaces into features and bind them to files, tables, and evidence."""
     surface_facts = _user_facing_surfaces(facts)
     feature_of = _namer(surface_facts)
-    flow_index = _index_flows_by_route(facts)
     data_access_index = _index_data_access(facts)
-    by_feature = OrderedDict()
-    unassigned = []
-    consumed = set()
-    kinds_by_feature = {}
+    by_feature, kinds_by_feature, consumed = _group(surface_facts, feature_of)
+    feature_paths = _feature_paths(facts, [f for f in surface_facts if f.get('id') in consumed], feature_of)
+    reached = _reached(by_feature, feature_paths, _index_flows_by_route(facts), _import_graph(facts))
+    nearest = _nearest(reached)
+    for feature, record in by_feature.items():
+        _bind(feature, record, reached[feature], nearest, data_access_index)
+        record['kinds'] = kinds_by_feature.get(feature, {})
+    unassigned = [(fact.get('location') or {}).get('path') or '' for fact in surface_facts if fact.get('id') not in consumed]
+    return {'schema_version': 1,
+            'features': [_feature_row(feature, record) for feature, record in by_feature.items()],
+            'unassigned_surfaces': sorted(set([s for s in unassigned if s]))}
+
+
+def _group(surface_facts, feature_of):
+    """({feature: its record}, {feature: {surface kind: count}}, the ids of the surfaces some feature took)."""
+    by_feature, kinds_by_feature, consumed = OrderedDict(), {}, set()
     for fact in surface_facts:
         identifier = _surface_identifier(fact)
-        if not identifier:
-            continue
-        fact_value = fact.get('value') or {}
+        if not identifier: continue
         feature = feature_of(fact)
         if not feature: continue
         record = by_feature.setdefault(feature, {'surfaces': [], 'evidence': [], 'files': [],
@@ -244,23 +259,29 @@ def build(facts):
         record['surfaces'].append(identifier)
         record['evidence'].append(fact.get('id'))
         kinds = kinds_by_feature.setdefault(feature, {})
-        kinds[fact_value.get('surface')] = kinds.get(fact_value.get('surface'), 0) + 1
+        surface = (fact.get('value') or {}).get('surface')
+        kinds[surface] = kinds.get(surface, 0) + 1
         consumed.add(fact.get('id'))
+    return by_feature, kinds_by_feature, consumed
+
+
+def _feature_paths(facts, taken, feature_of):
+    """{feature: the files its surfaces start in}: a routed page's component file, else the surface's own file."""
     feature_paths = {}
     components, by_stem = _component_files(facts)
-    for fact in surface_facts:
-        if fact.get('id') not in consumed: continue
-        value = fact.get('value') or {}
-        feature = feature_of(fact)
+    for fact in taken:
         location_path = (fact.get('location') or {}).get('path')
-        handler = value.get('handler')
+        handler = (fact.get('value') or {}).get('handler')
         component = components.get((location_path, handler)) or by_stem.get((location_path, handler))
-        if component or location_path: feature_paths.setdefault(feature, []).append(component or location_path)
-    graph = _import_graph(facts)
+        if component or location_path: feature_paths.setdefault(feature_of(fact), []).append(component or location_path)
+    return feature_paths
+
+
+def _reached(by_feature, feature_paths, flow_index, graph):
+    """{feature: (its own files, {file: hops} of what it reaches)}. Only the surface files are the feature's own;
+    what their flows touch and what they import is reached, and goes through the shared-file rule like any other."""
     reached = {}
     for feature, record in by_feature.items():
-        # Only the surface files are the feature's own; what their flows touch and what they import is
-        # reached, and goes through the shared-file rule below like any other reached file.
         seeds = list(feature_paths.get(feature, []))
         touched = []
         for identifier in record['surfaces']:
@@ -274,47 +295,53 @@ def build(facts):
         for path in touched: hops[path] = min(hops.get(path, 1), 1)
         for path in seeds: hops[path] = 0
         reached[feature] = (seeds, hops)
-    # A file's data belongs to the features that reach it most directly. A page that imports operatorsApi
-    # owns what it calls; a page that meets it three imports deep through a shared component does not.
-    # A context or provider (AuthContext.tsx) wraps the whole app and every page reaches it through a hook:
-    # its data goes only to the feature its own path names (components/auth/ belongs to `auth`).
+    return reached
+
+
+def _nearest(reached):
+    """{file: the fewest hops any feature reaches it in}."""
     nearest = {}
     for _, hops in reached.values():
         for path, hop in hops.items(): nearest[path] = min(nearest.get(path, hop), hop)
-    def owned(feature, path):
-        return feature.lower() in {part.lower() for part in path.split('/')[:-1]}
-    for feature, record in by_feature.items():
-        seeds, hops = reached[feature]
-        kept = {path for path, hop in hops.items() if path not in seeds and hop == nearest[path]
-                and (not _PROVIDER.search(path.rsplit('/', 1)[-1]) or owned(feature, path))}
-        files = list(OrderedDict.fromkeys(seeds + sorted(kept)))
-        record['files'] = files
-        record['tables'], record['writes_tables'], endpoints = _table_access(files, data_access_index)
-        # Its own endpoints first (/operators for drivers is not guessable, /settlements for settlements is).
-        stem = feature.lower().rstrip('s')
-        record['endpoints'] = sorted(endpoints, key=lambda e: (stem not in e.lower(), list(endpoints).index(e)))
-        record['writes'] = bool(record['writes_tables']) or any(endpoints.values())
-        record['kinds'] = kinds_by_feature.get(feature, {})
-        for path in files:
-            for access in data_access_index.get(path, []):
-                if access.get('fact_id') and access['fact_id'] not in record['evidence']:
-                    record['evidence'].append(access['fact_id'])
-        record['critical'] = record['writes'] or feature == 'auth' or _is_critical(record['surfaces'])
-    for fact in surface_facts:
-        if fact.get('id') not in consumed:
-            unassigned.append((fact.get('location') or {}).get('path') or '')
-    return {'schema_version': 1,
-            'features': [{'name': feature,
-                          'description': _describe(record),
-                          'surfaces': sorted(set(record['surfaces'])),
-                          'tables': sorted(set(record['tables']) | set(record['writes_tables'])),
-                          'writes': sorted(set(record['writes_tables'])),
-                          'endpoints': record['endpoints'],
-                          'files': sorted(set(record['files'])),
-                          'evidence': sorted(set(record['evidence'])),
-                          'critical': bool(record['critical'])}
-                         for feature, record in by_feature.items()],
-            'unassigned_surfaces': sorted(set([s for s in unassigned if s]))}
+    return nearest
+
+
+def _owned(feature, path):
+    return feature.lower() in {part.lower() for part in path.split('/')[:-1]}
+
+
+def _bind(feature, record, reach, nearest, data_access_index):
+    """A feature's files, tables, endpoints and evidence. A file's data belongs to the features that reach it most
+    directly: a page that imports operatorsApi owns what it calls; a page that meets it three imports deep through a
+    shared component does not. A context or provider (AuthContext.tsx) wraps the whole app and every page reaches it
+    through a hook: its data goes only to the feature its own path names (components/auth/ belongs to `auth`)."""
+    seeds, hops = reach
+    kept = {path for path, hop in hops.items() if path not in seeds and hop == nearest[path]
+            and (not _PROVIDER.search(path.rsplit('/', 1)[-1]) or _owned(feature, path))}
+    files = list(OrderedDict.fromkeys(seeds + sorted(kept)))
+    record['files'] = files
+    record['tables'], record['writes_tables'], endpoints = _table_access(files, data_access_index)
+    # Its own endpoints first (/operators for drivers is not guessable, /settlements for settlements is).
+    stem = feature.lower().rstrip('s')
+    record['endpoints'] = sorted(endpoints, key=lambda e: (stem not in e.lower(), list(endpoints).index(e)))
+    record['writes'] = bool(record['writes_tables']) or any(endpoints.values())
+    for path in files:
+        for access in data_access_index.get(path, []):
+            if access.get('fact_id') and access['fact_id'] not in record['evidence']:
+                record['evidence'].append(access['fact_id'])
+    record['critical'] = record['writes'] or feature == 'auth' or _is_critical(record['surfaces'])
+
+
+def _feature_row(feature, record):
+    return {'name': feature,
+            'description': _describe(record),
+            'surfaces': sorted(set(record['surfaces'])),
+            'tables': sorted(set(record['tables']) | set(record['writes_tables'])),
+            'writes': sorted(set(record['writes_tables'])),
+            'endpoints': record['endpoints'],
+            'files': sorted(set(record['files'])),
+            'evidence': sorted(set(record['evidence'])),
+            'critical': bool(record['critical'])}
 
 
 _NOUNS = {'page': ('صفحة', 'صفحتان', 'صفحات'), 'http': ('مسار', 'مساران', 'مسارات'),
