@@ -1682,7 +1682,6 @@ def write(report, lang='ar', name=None, progress=None):
 # ---------------------------------------------------------------- the readability indicator
 
 NUMBER = re.compile(r'\d+(?:[.,]\d+)?')
-RAW_FRACTION = re.compile(r'(?<![\w.@/-])0\.\d+\b')
 
 
 
