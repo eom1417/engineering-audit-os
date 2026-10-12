@@ -130,15 +130,47 @@ export function RunMarkdown({ text }: { text: string }) {
   return <div className={css.md} data-markdown="">{body}</div>
 }
 
+type CmdWords = ReturnType<typeof useCmdWords>
+
+/** How an event row looks: failed (a check that did not pass, an error), its icon, and quiet for state and actions. */
+function eventLook(event: RunEvent): { failed: boolean; icon: IconName; quiet: boolean } {
+  const passed = event.data.passed
+  const failed = (event.kind === 'check' && passed === false) || event.kind === 'error'
+  const icon: IconName = event.kind === 'check' ? (passed === false ? 'fail' : 'pass') : KIND_ICON[event.kind] ?? 'chevron'
+  return { failed, icon, quiet: event.kind === 'state' || event.kind === 'action' }
+}
+
+/** The files an edit touched, and whether it was kept. */
+function EditMeta({ data, w }: { data: RunEvent['data']; w: CmdWords }) {
+  return (
+    <div className={css.evMeta}>
+      {(data.paths as string[]).map((p) => <Id key={p} value={p} keep={3} />)}
+      {data.kept === true && <Chip tone="good">{w('kept')}</Chip>}
+      {data.kept === false && <Chip tone="critical">{w('leftOut')}</Chip>}
+    </div>
+  )
+}
+
+function CheckMeta({ data }: { data: RunEvent['data'] }) {
+  return <div className={css.evMeta}><Id value={String(data.name ?? '')} /><span>{String(data.summary)}</span></div>
+}
+
+/** A part of an event folded away until the person asks for it. */
+function Unfolding({ show, hide, children }: { show: string; hide: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <Disclosure open={open} label={open ? hide : show} onToggle={() => setOpen(!open)} />
+      {open && children}
+    </>
+  )
+}
+
 function EventRow({ event }: { event: RunEvent }) {
   const { lang, zone, date } = usePrefs()
   const w = useCmdWords()
-  const [open, setOpen] = useState(false)
-  const [detail, setDetail] = useState(false)
   const data = event.data
-  const failed = (event.kind === 'check' && data.passed === false) || event.kind === 'error'
-  const icon: IconName = event.kind === 'check' ? (data.passed === false ? 'fail' : 'pass') : KIND_ICON[event.kind] ?? 'chevron'
-  const quiet = event.kind === 'state' || event.kind === 'action'
+  const { failed, icon, quiet } = eventLook(event)
   return (
     <li className={[css.ev, quiet && css.evQuiet, failed && css.evBad, event.kind === 'check' && !failed && css.evGood].filter(Boolean).join(' ')}>
       <span className={css.evIcon}><Icon name={icon} /></span>
@@ -146,27 +178,13 @@ function EventRow({ event }: { event: RunEvent }) {
         {event.kind === 'say' || event.kind === 'answer'
           ? <div className={css.evText}><RunMarkdown text={event.text[lang]} /></div>
           : <p className={css.evText}><Txt>{event.text[lang]}</Txt></p>}
-        {event.kind === 'edit' && Array.isArray(data.paths) && (
-          <div className={css.evMeta}>
-            {(data.paths as string[]).map((p) => <Id key={p} value={p} keep={3} />)}
-            {data.kept === true && <Chip tone="good">{w('kept')}</Chip>}
-            {data.kept === false && <Chip tone="critical">{w('leftOut')}</Chip>}
-          </div>
-        )}
-        {event.kind === 'check' && typeof data.summary === 'string' && data.summary && (
-          <div className={css.evMeta}><Id value={String(data.name ?? '')} /><span>{data.summary}</span></div>
-        )}
+        {event.kind === 'edit' && Array.isArray(data.paths) && <EditMeta data={data} w={w} />}
+        {event.kind === 'check' && typeof data.summary === 'string' && data.summary && <CheckMeta data={data} />}
         {event.kind === 'edit' && typeof data.diff === 'string' && data.diff && (
-          <>
-            <Disclosure open={open} label={open ? w('hideChange') : w('showChange')} onToggle={() => setOpen(!open)} />
-            {open && <Diff text={data.diff} label={w('showChange')} />}
-          </>
+          <Unfolding show={w('showChange')} hide={w('hideChange')}><Diff text={data.diff} label={w('showChange')} /></Unfolding>
         )}
         {event.detail && (
-          <>
-            <Disclosure open={detail} label={detail ? w('hideDetail') : w('showDetail')} onToggle={() => setDetail(!detail)} />
-            {detail && <pre className={css.detail} tabIndex={0}>{event.detail}</pre>}
-          </>
+          <Unfolding show={w('showDetail')} hide={w('hideDetail')}><pre className={css.detail} tabIndex={0}>{event.detail}</pre></Unfolding>
         )}
       </div>
       <time className={css.evTime} dateTime={event.at} title={date(event.at)}>{time(event.at, zone)}</time>
@@ -240,22 +258,47 @@ export function ResultFacts({ result }: { result: RunResult }) {
   return (
     <div className={css.result}>
       {words && <div className={css.answer}><RunMarkdown text={words} /></div>}
-      <dl className={css.facts}>
-        {result.branch && <div><dt>{w('branch')}</dt><dd><Icon name="branch" /><Id value={result.branch} /></dd></div>}
-        {result.landed_on && <div><dt>{w('landedOn')}</dt><dd><Icon name="branch" /><Id value={result.landed_on} /></dd></div>}
-        {result.diff_stat && <div><dt>{w('changes')}</dt><dd className="num">{w('filesCount', { n: result.diff_stat.files })}<span aria-hidden="true">·</span><bdi dir="ltr" className={css.stat}>+{result.diff_stat.insertions} −{result.diff_stat.deletions}</bdi></dd></div>}
-        {result.tests && <div><dt>{w('tests')}</dt><dd>{result.tests.passed === false ? <Chip tone="critical">{w('failed')}</Chip> : <Chip tone="good">{w('passed')}</Chip>}<span className={css.factSub}><Txt>{result.tests.summary}</Txt></span></dd></div>}
-      </dl>
-      {(result.cards_closed ?? []).length > 0 && (
-        <section className={css.closed} aria-label={w('cardsClosed', { n: result.cards_closed.length })}>
-          <h3 className={css.subTitle}>{w('cardsClosed', { n: result.cards_closed.length })}</h3>
-          <ul className={css.chips}>
-            {result.cards_closed.map((id) => <li key={id}><Go to="/problems" search={{ card: id }} className={css.cardLink}><Id value={id} /></Go></li>)}
-          </ul>
-        </section>
-      )}
+      <ResultList result={result} w={w} />
+      {(result.cards_closed ?? []).length > 0 && <ClosedCards ids={result.cards_closed} w={w} />}
     </div>
   )
+}
+
+/** The branch it made, where it landed, how much it changed and whether the tests passed. */
+function ResultList({ result, w }: { result: RunResult; w: CmdWords }) {
+  return (
+    <dl className={css.facts}>
+      {result.branch && <div><dt>{w('branch')}</dt><dd><Icon name="branch" /><Id value={result.branch} /></dd></div>}
+      {result.landed_on && <div><dt>{w('landedOn')}</dt><dd><Icon name="branch" /><Id value={result.landed_on} /></dd></div>}
+      {result.diff_stat && <div><dt>{w('changes')}</dt><dd className="num">{w('filesCount', { n: result.diff_stat.files })}<span aria-hidden="true">·</span><bdi dir="ltr" className={css.stat}>+{result.diff_stat.insertions} −{result.diff_stat.deletions}</bdi></dd></div>}
+      {result.tests && <div><dt>{w('tests')}</dt><dd>{result.tests.passed === false ? <Chip tone="critical">{w('failed')}</Chip> : <Chip tone="good">{w('passed')}</Chip>}<span className={css.factSub}><Txt>{result.tests.summary}</Txt></span></dd></div>}
+    </dl>
+  )
+}
+
+function ClosedCards({ ids, w }: { ids: string[]; w: CmdWords }) {
+  return (
+    <section className={css.closed} aria-label={w('cardsClosed', { n: ids.length })}>
+      <h3 className={css.subTitle}>{w('cardsClosed', { n: ids.length })}</h3>
+      <ul className={css.chips}>
+        {ids.map((id) => <li key={id}><Go to="/problems" search={{ card: id }} className={css.cardLink}><Id value={id} /></Go></li>)}
+      </ul>
+    </section>
+  )
+}
+
+/** What became of a run's work branch: its link (and whether it was deleted or merged), the branches it acted on,
+ * or why it has none; null when the run has no work branch at all. */
+function branchState(work: Run['work_branch'], b: ReturnType<typeof useBranchWords>, link: (name: string) => ReactNode): ReactNode {
+  if (!work) return null
+  if (work.state === 'not_created_yet') return b('notCreatedYet')
+  if (work.state === 'not_required') {
+    return work.acted_on?.length ? <>{b('actedOn', { b: '' })}{work.acted_on.map((name, i) => <span key={name}>{i ? ', ' : ''}{link(name)}</span>)}</> : b('noBranchRequired')
+  }
+  if (work.state === 'none_created') return b('noneCreated')
+  if (!work.name) return undefined
+  const after = work.state === 'deleted' ? ` · ${b('branchDeleted')}` : work.state === 'merged_and_deleted' ? ` · ${b('branchMergedDeleted')}` : ''
+  return <>{link(work.name)}{after}</>
 }
 
 /** A run's actual work branch and the base it was made on, linked to #/branches; or why it has none. */
@@ -265,12 +308,7 @@ export function RunBranches({ run }: { run: Run }) {
   const work = run.work_branch
   const base = work?.base ?? run.context?.analysis_branch ?? null
   const link = (name: string) => <Go to="/branches" search={{ show: 'all', q: name }} className={css.branchLink}><Id value={name} /></Go>
-  let state: ReactNode
-  if (!work) state = null
-  else if (work.state === 'not_created_yet') state = b('notCreatedYet')
-  else if (work.state === 'not_required') state = work.acted_on?.length ? <>{b('actedOn', { b: '' })}{work.acted_on.map((name, i) => <span key={name}>{i ? ', ' : ''}{link(name)}</span>)}</> : b('noBranchRequired')
-  else if (work.state === 'none_created') state = b('noneCreated')
-  else if (work.name) state = <>{link(work.name)}{work.state === 'deleted' ? ` · ${b('branchDeleted')}` : work.state === 'merged_and_deleted' ? ` · ${b('branchMergedDeleted')}` : ''}</>
+  const state = branchState(work, b, link)
   return (
     <p className={css.meta} data-run-branches>
       <Icon name="branch" /> {b('workBranch')}: {state ?? '—'}
