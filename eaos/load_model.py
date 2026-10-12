@@ -92,24 +92,274 @@ def validate(record):
     The check is the only contract; nothing else may silently accept a record.
     """
     problems = []
-    for index, entry in enumerate(record.get('entry_points', [])):
-        eid = entry.get('id', f'#{index}')
-        answers = entry.get('answers') or {}
-        missing = [q for q in QUESTIONS if q not in answers]
-        if missing:
-            problems.append(f'entry_point {eid} is missing answers for {missing}')
-        for question, answer in answers.items():
-            if question not in QUESTIONS:
-                problems.append(f'entry_point {eid} answers an unknown question: {question}')
-            status = answer.get('status')
-            if status not in ANSWER_STATUSES:
-                problems.append(f'entry_point {eid}/{question} has invalid status {status!r}')
-            if status == 'undetectable' and not (answer.get('reason') or '').strip():
-                problems.append(f'entry_point {eid}/{question} is undetectable but has no reason')
-            evidence = answer.get('evidence') or []
-            if status == 'answered' and not evidence:
-                problems.append(f'entry_point {eid}/{question} is answered but has no evidence')
+    for index, entry in enumerate(record.get('entry_points', [])): problems += _entry_problems(index, entry)
     return problems
+
+
+def _entry_problems(index, entry):
+    eid = entry.get('id', f'#{index}')
+    answers = entry.get('answers') or {}
+    missing = [q for q in QUESTIONS if q not in answers]
+    problems = [f'entry_point {eid} is missing answers for {missing}'] if missing else []
+    for question, answer in answers.items(): problems += _answer_problems(eid, question, answer)
+    return problems
+
+
+def _answer_problems(eid, question, answer):
+    problems = []
+    if question not in QUESTIONS:
+        problems.append(f'entry_point {eid} answers an unknown question: {question}')
+    status = answer.get('status')
+    if status not in ANSWER_STATUSES:
+        problems.append(f'entry_point {eid}/{question} has invalid status {status!r}')
+    if status == 'undetectable' and not (answer.get('reason') or '').strip():
+        problems.append(f'entry_point {eid}/{question} is undetectable but has no reason')
+    if status == 'answered' and not (answer.get('evidence') or []):
+        problems.append(f'entry_point {eid}/{question} is answered but has no evidence')
+    return problems
+
+
+# NS3.T5: build the load model on user-reachable surfaces only. NPM scripts and library
+# entry points (a public API exposed to other code, not a person) are declared so the audit
+# knows they exist; they are not what a load model is for.
+USER_REACHABLE_SURFACES = {'page', 'http', 'cli'}
+NON_USER_FRAMEWORKS = {'npm_script', 'public_api'}
+DATA_ACCESS_NAMES = {
+    'execute', 'executemany', 'fetchone', 'fetchall', 'fetchmany',
+    'query', 'save', 'create', 'update', 'delete', 'insert', 'get', 'find', 'findOne', 'findMany',
+    'select', 'all', 'one',
+    'Exec', 'Query', 'QueryRow', 'Scan', 'Find', 'First',
+}
+LOOKED = '; the detector looked, the path is in a language whose vocabulary it covers'
+OUTSIDE = ' and the path is outside the detectors vocabulary'
+
+
+def _read_facts(facts_dir, name):
+    import json
+    path = facts_dir / f'{name}.json'
+    if not path.is_file(): return {'facts': [], 'summary': {}}
+    return json.loads(path.read_text(encoding='utf-8'))
+
+
+def _user_reachable(fact):
+    value = fact['value']
+    return (fact['kind'] == 'entry_point' and value.get('category') != 'test'
+            and value.get('surface') in USER_REACHABLE_SURFACES and value.get('framework') not in NON_USER_FRAMEWORKS)
+
+
+def _last_by_path(payload, kind):
+    return {f['location']['path']: f for f in payload.get('facts', []) if f['kind'] == kind}
+
+
+def _bucket(facts, keep):
+    """path -> every fact `keep` accepts there, in order."""
+    out = {}
+    for fact in facts:
+        if keep(fact): out.setdefault(fact['location']['path'], []).append(fact)
+    return out
+
+
+def _flows_by_handler(flows):
+    out = {}
+    for flow in flows:
+        out.setdefault((flow['location']['path'], flow['location'].get('symbol')), []).append(flow)
+    return out
+
+
+def _is_n_plus_one(fact):
+    # A redundancy fact's kind is 'redundancy'; which redundancy it is lives in value.kind.
+    # Testing the outer kind meant repeats_per_iteration never fired, on any project.
+    return fact['kind'] == 'redundancy' and (fact.get('value') or {}).get('kind') == 'n_plus_one'
+
+
+def _index(read):
+    """Every fact the eight answers read, bucketed by path once."""
+    entries, runtime, domain = read('entrypoints'), read('runtime'), read('domain')
+    return {
+        'entries': [f for f in entries.get('facts', []) if _user_reachable(f)],
+        'flows_by_handler': _flows_by_handler(read('flows').get('facts', [])),
+        'query_bound': _last_by_path(runtime, 'query_bound'),
+        # Reads through Supabase or the app's own HTTP client carry whether their result is bounded
+        # (entrypoints.py, from facts/frameworks): a select with .limit/.range/.single, a GET of one resource.
+        'reads': _bucket(entries.get('facts', []),
+                         lambda f: f['kind'] == 'data_access' and f['value'].get('operation') in ('select', 'get')),
+        'resilience': _last_by_path(runtime, 'resilience_policy'),
+        'cache': _last_by_path(runtime, 'cache_policy'),
+        'rate_limit': _last_by_path(runtime, 'rate_limit'),
+        # Shared mutable state is a domain fact, not a runtime one. Looking for it in the runtime set
+        # meant shared_mutable_state answered "undetectable" on every project that has it.
+        'mutable': _last_by_path(domain, 'mutable_global'),
+        'external_write': _last_by_path(domain, 'external_state_write'),
+        'call_sites': _bucket(read('structure').get('facts', []), lambda f: f['kind'] == 'call_site'),
+        'n_plus_one': _bucket(read('redundancy').get('facts', []), _is_n_plus_one),
+        # Engine rule=performance facts
+        'perf': [f for f in read('external').get('facts', [])
+                 if f['value'].get('rule') == 'performance' or 'complexity' in str(f.get('value', {}))],
+    }
+
+
+def _paths_for(entry, flows_by_handler):
+    """Files reachable from this entry point, plus the entry file itself."""
+    handler = entry['location'].get('symbol') or entry['value'].get('handler')
+    flow = flows_by_handler.get((entry['location']['path'], handler), [None])[0]
+    if not flow:
+        return [], []
+    steps = flow['value'].get('steps', [])
+    in_codebase = [s for s in steps if s.get('resolution') in {'local', 'imported'}]
+    files = {entry['location']['path']} | {s['path'] for s in in_codebase if s.get('path')}
+    return sorted(files), in_codebase
+
+
+def _on_path(table, files): return [table[p] for p in files if p in table]
+
+
+def _nothing_found(question, ctx, what):
+    """No observation: answered no when the detector covers every file on the path, else undetectable."""
+    if _supported(question, ctx['files']): return _no_answer(question, [ctx['own']], what + LOOKED)
+    return blank_answer(question, status='undetectable', reason=what + OUTSIDE)
+
+
+def _data_access_calls(ctx):
+    # Count call_sites in the entry point's own file that match DATA_ACCESS_NAMES.
+    path = ctx['path']
+    ids = [cs['id'] for cs in ctx['index']['call_sites'].get(path, [])
+           if (cs['value'].get('callee') or '').split('.')[-1] in DATA_ACCESS_NAMES]
+    if ids:
+        return {'status': 'answered', 'value': len(ids), 'evidence': ids,
+                'reason': f'{len(ids)} data-access call sites in {path}'}
+    return _nothing_found('data_access_calls', ctx, 'no data-access call sites recorded in this entry path')
+
+
+def _repeats_per_iteration(ctx):
+    # Any n_plus_one fact on the entry path -> True; False otherwise.
+    n1 = ctx['index']['n_plus_one'].get(ctx['path'], [])
+    if n1:
+        return {'status': 'answered', 'value': True, 'evidence': [f['id'] for f in n1],
+                'reason': f'{len(n1)} n+1 redundancy site(s) in this entry'}
+    return _nothing_found('repeats_per_iteration', ctx, 'no n+1 redundancy observation in this entry path')
+
+
+def _bounded_verdict(verdicts, evidence):
+    if False in verdicts:
+        unbounded = sum(v is False for v in verdicts)
+        return {'status': 'answered', 'value': False, 'evidence': evidence,
+                'reason': f'{unbounded} of {len(verdicts)} read(s) on this path return every matching row'}
+    if all(v is True for v in verdicts):
+        return {'status': 'answered', 'value': True, 'evidence': evidence,
+                'reason': f'every read on this path ({len(verdicts)}) is limited or fetches one row'}
+    return {'status': 'undetectable', 'value': None, 'evidence': evidence,
+            'reason': 'a collection read whose size only the server decides'}
+
+
+def _result_is_bounded(ctx):
+    # Every read on the path, from SQL query_bound facts and from Supabase and HTTP reads. One unbounded read
+    # answers no: that read is the risk. All bounded answers yes. A read whose bound only the server knows (a
+    # collection GET) leaves it undetectable. No read at all, on a path the detectors cover, answers yes: there is
+    # nothing to bound, and the evidence is the searched path.
+    index, files = ctx['index'], ctx['files']
+    found = _on_path(index['query_bound'], files) + [f for p in files for f in index['reads'].get(p, [])]
+    if found: return _bounded_verdict([f['value'].get('bounded') for f in found], [f['id'] for f in found])
+    if _supported('result_is_bounded', files):
+        return {'status': 'answered', 'value': True, 'evidence': [ctx['own']],
+                'reason': 'no data read on this path: the SQL, Supabase and HTTP-client detectors covered every file'}
+    return blank_answer('result_is_bounded', status='undetectable',
+                        reason='the path is in a language outside the read detectors')
+
+
+def _complexity_class(ctx):
+    perf = [f for f in ctx['index']['perf'] if f['location']['path'] in ctx['files']]
+    if not perf:
+        return blank_answer('complexity_class', status='undetectable',
+                            reason='no engine performance observation on this path')
+    return {'status': 'answered', 'value': perf[0]['value'].get('complexity') or perf[0]['value'].get('kind') or 'measured',
+            'evidence': [f['id'] for f in perf],
+            'reason': f'{len(perf)} performance observation(s) on the path'}
+
+
+def _shared_mutable_state(ctx):
+    # domain.py models module-level state for Python, Go, JavaScript and TypeScript;
+    # for other languages the question is honestly 'not applicable'.
+    if not _supported('shared_mutable_state', ctx['files']):
+        return {'question': 'shared_mutable_state', 'status': 'not_applicable', 'value': None,
+                'evidence': [ctx['own']],
+                'reason': 'the entry path is in a language outside the shared_mutable_state vocabulary (Python, Go, JavaScript, TypeScript)'}
+    mut = _on_path(ctx['index']['mutable'], ctx['files'])
+    ext_w = _on_path(ctx['index']['external_write'], ctx['files'])
+    if not (mut or ext_w):
+        return _no_answer('shared_mutable_state', [ctx['own']],
+                          'no mutable_global or external_state_write on this path' + LOOKED)
+    return {'status': 'answered', 'value': True, 'evidence': [f['id'] for f in mut + ext_w],
+            'reason': f'{len(mut)} mutable global(s), {len(ext_w)} external-state write(s)'}
+
+
+def _outbound_calls_protected(ctx):
+    protections = _on_path(ctx['index']['resilience'], ctx['files'])
+    if protections:
+        value = {'timeout': any(f['value'].get('has_timeout') for f in protections),
+                 'retry': any(f['value'].get('has_retry') for f in protections),
+                 'circuit_breaker': any(f['value'].get('has_circuit_breaker') for f in protections)}
+        return {'status': 'answered', 'value': value, 'evidence': [f['id'] for f in protections],
+                'reason': 'resilience policy observed for at least one outbound call on the path'}
+    if _supported('outbound_calls_protected', ctx['files']):
+        # No outbound call on the path: nothing is left unprotected. Answering False here read as
+        # "an unprotected call" and made every page without a call a load blocker.
+        return {'status': 'answered', 'value': True, 'evidence': [ctx['own']],
+                'reason': 'no outbound call on this path, so none is unprotected' + LOOKED}
+    return blank_answer('outbound_calls_protected', status='undetectable',
+                        reason='no integration_target on this path' + OUTSIDE)
+
+
+def _cached(ctx):
+    caches = _on_path(ctx['index']['cache'], ctx['files'])
+    if caches:
+        return {'status': 'answered', 'value': True, 'evidence': [f['id'] for f in caches],
+                'reason': f'{len(caches)} cache site(s) on the path'}
+    if _supported('cached', ctx['files']):
+        return _no_answer('cached', [ctx['own']], 'no cache site found on this path' + LOOKED)
+    return blank_answer('cached', status='undetectable', reason='no cache site on this path' + OUTSIDE)
+
+
+def _rate_limited(ctx):
+    limits = _on_path(ctx['index']['rate_limit'], ctx['files'])
+    if limits:
+        return {'status': 'answered', 'value': True, 'evidence': [f['id'] for f in limits],
+                'reason': f'{len(limits)} rate-limit site(s) on the path'}
+    if ctx['surface'] in UNTHROTTLED_SURFACES:
+        # A command-line program answers one invocation from one operator. Reporting "no rate
+        # limit" for it produced a bottleneck on every row of a CLI project's load table and
+        # recommended throttling a script. The question does not apply, and saying so is an
+        # answer rather than a finding.
+        return {'question': 'rate_limited', 'status': 'not_applicable', 'value': None,
+                'evidence': [ctx['own']],
+                'reason': f"a {ctx['surface']} entry point has no inbound request rate to bound"}
+    return _nothing_found('rate_limited', ctx, 'no rate-limit or concurrency bound on this path')
+
+
+# One function per question, in QUESTIONS order.
+ANSWERERS = (('data_access_calls', _data_access_calls), ('repeats_per_iteration', _repeats_per_iteration),
+             ('result_is_bounded', _result_is_bounded), ('complexity_class', _complexity_class),
+             ('shared_mutable_state', _shared_mutable_state), ('outbound_calls_protected', _outbound_calls_protected),
+             ('cached', _cached), ('rate_limited', _rate_limited))
+
+
+def _entry_record(entry, index):
+    handler = entry['location'].get('symbol') or entry['value'].get('handler') or entry.get('id', '?')
+    surface = entry['value'].get('surface') or 'unknown'
+    path = entry['location']['path']
+    files, _steps = _paths_for(entry, index['flows_by_handler'])
+    if files:
+        ctx = {'index': index, 'path': path, 'files': files, 'surface': surface, 'own': entry.get('id') or f'EP-{path}'}
+        answers = {question: answer(ctx) for question, answer in ANSWERERS}
+    else:
+        answers = {q: blank_answer(q, status='undetectable', reason='the flow could not be traced from this entry point')
+                   for q in QUESTIONS}
+    return {'id': entry.get('id', f'EP-{path}:{handler}'),
+            # A reader ranking entry points needs to know which entry point, not which fact.
+            'label': entry['value'].get('route') or handler or path,
+            'surface': surface,
+            'handler': handler,
+            'path': path,
+            'answers': answers}
 
 
 def compute(record_root):
@@ -121,297 +371,12 @@ def compute(record_root):
 
     This module only reads the facts; it never makes a measurement of its own.
     """
-    import json
     from pathlib import Path
     facts_dir = Path(record_root) / 'facts'
     if not facts_dir.is_dir():
         return {'schema_version': 1, 'entry_points': []}
-
-    def _read(name):
-        path = facts_dir / f'{name}.json'
-        if not path.is_file(): return {'facts': [], 'summary': {}}
-        return json.loads(path.read_text(encoding='utf-8'))
-
-    entries_payload = _read('entrypoints')
-    flows_payload = _read('flows')
-    structure_payload = _read('structure')
-    redundancy_payload = _read('redundancy')
-    runtime_payload = _read('runtime')
-    domain_payload = _read('domain')
-    external_payload = _read('external')
-
-    # NS3.T5: build the load model on user-reachable surfaces only. NPM scripts and library
-    # entry points (a public API exposed to other code, not a person) are declared so the audit
-    # knows they exist; they are not what a load model is for.
-    USER_REACHABLE_SURFACES = {'page', 'http', 'cli'}
-    NON_USER_FRAMEWORKS = {'npm_script', 'public_api'}
-    entries = [f for f in entries_payload.get('facts', [])
-               if f['kind'] == 'entry_point' and f['value'].get('category') != 'test'
-               and f['value'].get('surface') in USER_REACHABLE_SURFACES
-               and f['value'].get('framework') not in NON_USER_FRAMEWORKS]
-    flows_by_handler = {}
-    for flow in flows_payload.get('facts', []):
-        key = (flow['location']['path'], flow['location'].get('symbol'))
-        flows_by_handler.setdefault(key, []).append(flow)
-
-    # Pre-bucket runtime facts by path
-    def _by_path(name, payload=None):
-        return {f['location']['path']: f for f in (payload or runtime_payload).get('facts', [])
-                if f['kind'] == name}
-
-    query_bound_by_path = _by_path('query_bound')
-    # Reads through Supabase or the app's own HTTP client carry whether their result is bounded
-    # (entrypoints.py, from facts/frameworks): a select with .limit/.range/.single, a GET of one resource.
-    reads_by_path = {}
-    for fact in entries_payload.get('facts', []):
-        if fact['kind'] == 'data_access' and fact['value'].get('operation') in ('select', 'get'):
-            reads_by_path.setdefault(fact['location']['path'], []).append(fact)
-    resilience_by_path = _by_path('resilience_policy')
-    cache_by_path = _by_path('cache_policy')
-    rate_limit_by_path = _by_path('rate_limit')
-    # Shared mutable state is a domain fact, not a runtime one. Looking for it in the runtime set
-    # meant shared_mutable_state answered "undetectable" on every project that has it.
-    mutable_by_path = _by_path('mutable_global', domain_payload)
-    external_write_by_path = _by_path('external_state_write', domain_payload)
-    call_sites_by_path = {}
-    for fact in structure_payload.get('facts', []):
-        if fact['kind'] == 'call_site':
-            call_sites_by_path.setdefault(fact['location']['path'], []).append(fact)
-    loops_by_path = {}
-    for fact in structure_payload.get('facts', []):
-        if fact['kind'] == 'loop':
-            loops_by_path.setdefault(fact['location']['path'], []).append(fact)
-    # A redundancy fact's kind is 'redundancy'; which redundancy it is lives in value.kind.
-    # Testing the outer kind meant repeats_per_iteration never fired, on any project.
-    n_plus_one_by_path = {}
-    for fact in redundancy_payload.get('facts', []):
-        if fact['kind'] == 'redundancy' and (fact.get('value') or {}).get('kind') == 'n_plus_one':
-            n_plus_one_by_path.setdefault(fact['location']['path'], []).append(fact)
-    # Engine rule=performance facts
-    perf_facts = [f for f in external_payload.get('facts', [])
-                  if f['value'].get('rule') == 'performance' or 'complexity' in str(f.get('value', {}))]
-
-    DATA_ACCESS_NAMES = {
-        'execute', 'executemany', 'fetchone', 'fetchall', 'fetchmany',
-        'query', 'save', 'create', 'update', 'delete', 'insert', 'get', 'find', 'findOne', 'findMany',
-        'select', 'all', 'one',
-        'Exec', 'Query', 'QueryRow', 'Scan', 'Find', 'First',
-    }
-
-    def _paths_for(entry):
-        """Files reachable from this entry point, plus the entry file itself."""
-        handler = entry['location'].get('symbol') or entry['value'].get('handler')
-        flow_key = (entry['location']['path'], handler)
-        flow = flows_by_handler.get(flow_key, [None])[0]
-        if not flow:
-            return [], []
-        steps = flow['value'].get('steps', [])
-        in_codebase = [s for s in steps if s.get('resolution') in {'local', 'imported'}]
-        files = {entry['location']['path']} | {s['path'] for s in in_codebase if s.get('path')}
-        return sorted(files), in_codebase
-
-    out_entries = []
-    for entry in entries:
-        handler = entry['location'].get('symbol') or entry['value'].get('handler') or entry.get('id', '?')
-        surface = entry['value'].get('surface') or 'unknown'
-        path = entry['location']['path']
-        files, steps = _paths_for(entry)
-        if not files:
-            out_entries.append({
-                'id': entry.get('id', f'EP-{path}:{handler}'),
-                'label': entry['value'].get('route') or handler or path,
-                'surface': surface,
-                'handler': handler,
-                'path': path,
-                'answers': {q: blank_answer(q, status='undetectable',
-                                              reason='the flow could not be traced from this entry point')
-                             for q in QUESTIONS},
-            })
-            continue
-
-        # Build each answer
-        answers = {}
-
-        # data_access_calls: count call_sites in entry point's own file that match DATA_ACCESS_NAMES
-        data_access_ids = []
-        access_count = 0
-        for cs in call_sites_by_path.get(path, []):
-            callee = (cs['value'].get('callee') or '').split('.')[-1]
-            if callee in DATA_ACCESS_NAMES:
-                access_count += 1
-                data_access_ids.append(cs['id'])
-        if data_access_ids:
-            answers['data_access_calls'] = {
-                'status': 'answered', 'value': access_count, 'evidence': data_access_ids,
-                'reason': f'{access_count} data-access call sites in {path}',
-            }
-        elif _supported('data_access_calls', files):
-            answers['data_access_calls'] = _no_answer(
-                'data_access_calls', [entry.get('id') or f'EP-{path}'],
-                'no data-access call sites recorded in this entry path; the detector looked, the path is in a language whose vocabulary it covers')
-        else:
-            answers['data_access_calls'] = blank_answer(
-                'data_access_calls', status='undetectable',
-                reason='no data-access call sites recorded in this entry path and the path is outside the detectors vocabulary')
-
-        # repeats_per_iteration: any n_plus_one fact on the entry path -> True; False otherwise
-        n1 = n_plus_one_by_path.get(path, [])
-        if n1:
-            answers['repeats_per_iteration'] = {
-                'status': 'answered', 'value': True,
-                'evidence': [f['id'] for f in n1],
-                'reason': f'{len(n1)} n+1 redundancy site(s) in this entry',
-            }
-        elif _supported('repeats_per_iteration', files):
-            answers['repeats_per_iteration'] = _no_answer(
-                'repeats_per_iteration', [entry.get('id') or f'EP-{path}'],
-                'no n+1 redundancy observation in this entry path; the detector looked, the path is in a language whose vocabulary it covers')
-        else:
-            answers['repeats_per_iteration'] = blank_answer(
-                'repeats_per_iteration', status='undetectable',
-                reason='no n+1 redundancy observation in this entry path and the path is outside the detectors vocabulary')
-
-        # result_is_bounded: every read on the path, from SQL query_bound facts and from Supabase and HTTP
-        # reads. One unbounded read answers no: that read is the risk. All bounded answers yes. A read whose
-        # bound only the server knows (a collection GET) leaves it undetectable. No read at all, on a path the
-        # detectors cover, answers yes: there is nothing to bound, and the evidence is the searched path.
-        bounds = [query_bound_by_path[p] for p in files if p in query_bound_by_path]
-        reads = [f for p in files for f in reads_by_path.get(p, [])]
-        verdicts = [f['value'].get('bounded') for f in bounds] + [f['value'].get('bounded') for f in reads]
-        evidence = [f['id'] for f in bounds + reads]
-        if False in verdicts:
-            unbounded = sum(v is False for v in verdicts)
-            answers['result_is_bounded'] = {'status': 'answered', 'value': False, 'evidence': evidence,
-                                            'reason': f'{unbounded} of {len(verdicts)} read(s) on this path return every matching row'}
-        elif verdicts and all(v is True for v in verdicts):
-            answers['result_is_bounded'] = {'status': 'answered', 'value': True, 'evidence': evidence,
-                                            'reason': f'every read on this path ({len(verdicts)}) is limited or fetches one row'}
-        elif verdicts:
-            answers['result_is_bounded'] = {'status': 'undetectable', 'value': None, 'evidence': evidence,
-                                            'reason': 'a collection read whose size only the server decides'}
-        elif _supported('result_is_bounded', files):
-            answers['result_is_bounded'] = {'status': 'answered', 'value': True, 'evidence': [entry.get('id') or f'EP-{path}'],
-                                            'reason': 'no data read on this path: the SQL, Supabase and HTTP-client detectors covered every file'}
-        else:
-            answers['result_is_bounded'] = blank_answer(
-                'result_is_bounded', status='undetectable',
-                reason='the path is in a language outside the read detectors')
-
-        # complexity_class: any perf fact on the path
-        perf = [f for f in perf_facts if f['location']['path'] in files]
-        if perf:
-            answers['complexity_class'] = {
-                'status': 'answered', 'value': perf[0]['value'].get('complexity') or perf[0]['value'].get('kind') or 'measured',
-                'evidence': [f['id'] for f in perf],
-                'reason': f'{len(perf)} performance observation(s) on the path',
-            }
-        else:
-            answers['complexity_class'] = blank_answer(
-                'complexity_class',
-                status='undetectable',
-                reason='no engine performance observation on this path')
-
-        # shared_mutable_state: domain.py models module-level state for Python, Go, JavaScript and TypeScript;
-        # for other languages the question is honestly 'not applicable'.
-        if not _supported('shared_mutable_state', files):
-            # No language in the detector scope: the question does not apply to this path.
-            answers['shared_mutable_state'] = {
-                'question': 'shared_mutable_state', 'status': 'not_applicable', 'value': None,
-                'evidence': [entry.get('id') or f'EP-{path}'],
-                'reason': 'the entry path is in a language outside the shared_mutable_state vocabulary (Python, Go, JavaScript, TypeScript)',
-            }
-        else:
-            mut = [mutable_by_path[p] for p in files if p in mutable_by_path]
-            ext_w = [external_write_by_path[p] for p in files if p in external_write_by_path]
-            if mut or ext_w:
-                answers['shared_mutable_state'] = {
-                    'status': 'answered', 'value': bool(mut or ext_w),
-                    'evidence': [f['id'] for f in mut + ext_w],
-                    'reason': f'{len(mut)} mutable global(s), {len(ext_w)} external-state write(s)',
-                }
-            else:
-                answers['shared_mutable_state'] = _no_answer(
-                    'shared_mutable_state', [entry.get('id') or f'EP-{path}'],
-                    'no mutable_global or external_state_write on this path; the detector looked, the path is in a language whose vocabulary it covers')
-
-        # outbound_calls_protected
-        protections = [resilience_by_path[p] for p in files if p in resilience_by_path]
-        if protections:
-            any_timeout = any(f['value'].get('has_timeout') for f in protections)
-            any_retry = any(f['value'].get('has_retry') for f in protections)
-            any_breaker = any(f['value'].get('has_circuit_breaker') for f in protections)
-            value = {'timeout': any_timeout, 'retry': any_retry, 'circuit_breaker': any_breaker}
-            answers['outbound_calls_protected'] = {
-                'status': 'answered', 'value': value,
-                'evidence': [f['id'] for f in protections],
-                'reason': 'resilience policy observed for at least one outbound call on the path',
-            }
-        elif _supported('outbound_calls_protected', files):
-            # No outbound call on the path: nothing is left unprotected. Answering False here read as
-            # "an unprotected call" and made every page without a call a load blocker.
-            answers['outbound_calls_protected'] = {
-                'status': 'answered', 'value': True, 'evidence': [entry.get('id') or f'EP-{path}'],
-                'reason': 'no outbound call on this path, so none is unprotected; the detector looked, the path is in a language whose vocabulary it covers'}
-        else:
-            answers['outbound_calls_protected'] = blank_answer(
-                'outbound_calls_protected', status='undetectable',
-                reason='no integration_target on this path and the path is outside the detectors vocabulary')
-
-        # cached
-        caches = [cache_by_path[p] for p in files if p in cache_by_path]
-        if caches:
-            answers['cached'] = {
-                'status': 'answered', 'value': True,
-                'evidence': [f['id'] for f in caches],
-                'reason': f'{len(caches)} cache site(s) on the path',
-            }
-        elif _supported('cached', files):
-            answers['cached'] = _no_answer(
-                'cached', [entry.get('id') or f'EP-{path}'],
-                'no cache site found on this path; the detector looked, the path is in a language whose vocabulary it covers')
-        else:
-            answers['cached'] = blank_answer(
-                'cached', status='undetectable',
-                reason='no cache site on this path and the path is outside the detectors vocabulary')
-
-        # rate_limited
-        limits = [rate_limit_by_path[p] for p in files if p in rate_limit_by_path]
-        if limits:
-            answers['rate_limited'] = {
-                'status': 'answered', 'value': True,
-                'evidence': [f['id'] for f in limits],
-                'reason': f'{len(limits)} rate-limit site(s) on the path',
-            }
-        elif surface in UNTHROTTLED_SURFACES:
-            # A command-line program answers one invocation from one operator. Reporting "no rate
-            # limit" for it produced a bottleneck on every row of a CLI project's load table and
-            # recommended throttling a script. The question does not apply, and saying so is an
-            # answer rather than a finding.
-            answers['rate_limited'] = {
-                'question': 'rate_limited', 'status': 'not_applicable', 'value': None,
-                'evidence': [entry.get('id') or f'EP-{path}'],
-                'reason': f'a {surface} entry point has no inbound request rate to bound',
-            }
-        elif _supported('rate_limited', files):
-            answers['rate_limited'] = _no_answer(
-                'rate_limited', [entry.get('id') or f'EP-{path}'],
-                'no rate-limit or concurrency bound on this path; the detector looked, the path is in a language whose vocabulary it covers')
-        else:
-            answers['rate_limited'] = blank_answer(
-                'rate_limited', status='undetectable',
-                reason='no rate-limit or concurrency bound on this path and the path is outside the detectors vocabulary')
-
-        out_entries.append({
-            'id': entry.get('id', f'EP-{path}:{handler}'),
-            # A reader ranking entry points needs to know which entry point, not which fact.
-            'label': entry['value'].get('route') or handler or path,
-            'surface': surface,
-            'handler': handler,
-            'path': path,
-            'answers': answers,
-        })
-
-    return {'schema_version': 1, 'entry_points': out_entries}
+    index = _index(lambda name: _read_facts(facts_dir, name))
+    return {'schema_version': 1, 'entry_points': [_entry_record(entry, index) for entry in index['entries']]}
 
 
 # A simple, stated projection: we do not measure performance. We combine the load-model
@@ -431,91 +396,8 @@ def project(record, multiplier=1000):
 
     We rank bottlenecks in this order: missing rate limit > n+1 > unbounded query > shared state.
     """
-    out_entry_points = []
-    for entry in record.get('entry_points', []):
-        answers = entry.get('answers') or {}
-        cost = 0.0
-        unknown = []
-
-        dac = answers.get('data_access_calls', {})
-        access_count = dac.get('value') if dac.get('status') == 'answered' else None
-        if access_count is None:
-            unknown.append('data_access_calls')
-            access_count = 0
-        else:
-            cost += access_count * multiplier
-
-        rep = answers.get('repeats_per_iteration', {})
-        if rep.get('status') != 'answered':
-            unknown.append('repeats_per_iteration')
-            n_plus_one_factor = 0
-        elif rep.get('value') is True:
-            # n+1 multiplies per iteration: the effective cost scales by `m * n_iterations`
-            n_plus_one_factor = multiplier * 100
-            cost += n_plus_one_factor
-        else:
-            n_plus_one_factor = 0
-
-        rib = answers.get('result_is_bounded', {})
-        if rib.get('status') != 'answered':
-            unknown.append('result_is_bounded')
-            unbounded = False
-        else:
-            unbounded = rib.get('value') is False
-            if unbounded: cost += multiplier  # result grows with data, not with m
-
-        sm = answers.get('shared_mutable_state', {})
-        if sm.get('status') != 'answered':
-            unknown.append('shared_mutable_state')
-            shared = False
-        else:
-            shared = sm.get('value') is True
-            if shared: cost += multiplier * 10  # serialization pressure
-
-        rl = answers.get('rate_limited', {})
-        if rl.get('status') != 'answered':
-            unknown.append('rate_limited')
-            no_limit = False
-        else:
-            no_limit = rl.get('value') is False
-            if no_limit: cost += multiplier * 50  # one burst and you're done
-
-        # Rank bottlenecks: missing limit > n+1 > unbounded > shared
-        bottlenecks = []
-        if no_limit: bottlenecks.append('no_rate_limit')
-        if rep.get('status') == 'answered' and rep.get('value') is True:
-            bottlenecks.append('n_plus_one')
-        if unbounded: bottlenecks.append('unbounded_query')
-        if shared: bottlenecks.append('shared_mutable_state')
-
-        projection = {
-            'multiplier': multiplier,
-            'cost_score': round(cost, 2),
-            'interpretation': (
-                f'projected ceiling of {round(cost, 2)} cost units at {multiplier}x traffic '
-                f'(data_access_calls={access_count}, n_plus_one={rep.get("value") if rep.get("status") == "answered" else "?"}, '
-                f'unbounded={unbounded}, shared_state={shared}, rate_limited={not no_limit})'
-            ),
-            'bottlenecks': bottlenecks,
-            'caveats': [
-                'This is a structural projection, not a performance measurement.',
-                'Cost is in arbitrary units that rank entries, not seconds or RPS.',
-                'An undetectable answer becomes a caveat: the entry is "incomplete" in the projection.',
-            ],
-        }
-        # Completeness covers every question, not only the ones whose answers
-        # affect the cost score.
-        all_unknown = []
-        for question, answer in answers.items():
-            if answer.get('status') != 'answered' and answer.get('status') != 'not_applicable':
-                all_unknown.append(question)
-        if all_unknown:
-            projection['incomplete'] = True
-            projection['unanswered_questions'] = sorted(all_unknown)
-        else:
-            projection['incomplete'] = False
-        out_entry_points.append({**entry, 'projection': projection})
-
+    out_entry_points = [{**entry, 'projection': _projection(entry.get('answers') or {}, multiplier)}
+                        for entry in record.get('entry_points', [])]
     return {**record, 'entry_points': out_entry_points, 'projection': {
         'multiplier': multiplier,
         'method': (
@@ -524,6 +406,54 @@ def project(record, multiplier=1000):
             f'×50 per missing rate limit'
         ),
     }}
+
+
+def _answer_is(answers, question, value):
+    answer = answers.get(question, {})
+    return answer.get('status') == 'answered' and answer.get('value') is value
+
+
+def _projection(answers, multiplier):
+    """One entry's cost ceiling at `multiplier` times today's traffic (see project)."""
+    dac = answers.get('data_access_calls', {})
+    access_count = dac.get('value') if dac.get('status') == 'answered' else None
+    if access_count is None: access_count = 0
+    rep = answers.get('repeats_per_iteration', {})
+    n_plus_one = _answer_is(answers, 'repeats_per_iteration', True)
+    unbounded = _answer_is(answers, 'result_is_bounded', False)
+    shared = _answer_is(answers, 'shared_mutable_state', True)
+    no_limit = _answer_is(answers, 'rate_limited', False)
+    cost = 0.0 + access_count * multiplier
+    # n+1 multiplies per iteration (m * n_iterations); an unbounded result grows with data, not with m;
+    # shared state adds serialization pressure; with no rate limit one burst and you're done.
+    for flag, weight in ((n_plus_one, 100), (unbounded, 1), (shared, 10), (no_limit, 50)):
+        if flag: cost += multiplier * weight
+    # Rank bottlenecks: missing limit > n+1 > unbounded > shared
+    bottlenecks = [name for flag, name in ((no_limit, 'no_rate_limit'), (n_plus_one, 'n_plus_one'),
+                                           (unbounded, 'unbounded_query'), (shared, 'shared_mutable_state')) if flag]
+    shown = rep.get('value') if rep.get('status') == 'answered' else '?'
+    projection = {
+        'multiplier': multiplier,
+        'cost_score': round(cost, 2),
+        'interpretation': (
+            f'projected ceiling of {round(cost, 2)} cost units at {multiplier}x traffic '
+            f'(data_access_calls={access_count}, n_plus_one={shown}, '
+            f'unbounded={unbounded}, shared_state={shared}, rate_limited={not no_limit})'
+        ),
+        'bottlenecks': bottlenecks,
+        'caveats': [
+            'This is a structural projection, not a performance measurement.',
+            'Cost is in arbitrary units that rank entries, not seconds or RPS.',
+            'An undetectable answer becomes a caveat: the entry is "incomplete" in the projection.',
+        ],
+    }
+    # Completeness covers every question, not only the ones whose answers
+    # affect the cost score.
+    all_unknown = [question for question, answer in answers.items()
+                   if answer.get('status') not in ('answered', 'not_applicable')]
+    projection['incomplete'] = bool(all_unknown)
+    if all_unknown: projection['unanswered_questions'] = sorted(all_unknown)
+    return projection
 
 
 # A load blocker is an answered question whose answer means the entry point gets worse as traffic
