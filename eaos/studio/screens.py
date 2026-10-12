@@ -59,27 +59,38 @@ def gallery(report):
     review = _load(report / 'nodes/visual_reviewer/findings.json') or {}
     reviewed = review.get('method') == 'model'
     clean = {_address(page) for page in review.get('clean') or []} if reviewed else set()
-    on = {}
-    for finding in review.get('findings') or [] if reviewed else []:
-        for shown in finding.get('pictures') or [{'file': finding.get('file'), 'region': finding.get('region')}]:
-            on.setdefault(shown.get('file'), []).append({'id': finding.get('id') or finding.get('image'), 'region': shown.get('region'),
-                                                         **{k: finding.get(k) for k in ('title', 'kind', 'severity', 'why')}})
+    on = _findings_on(review.get('findings') or [] if reviewed else [])
     known = {row.get('path'): row for row in body.get('pages') or [] if isinstance(row, dict)}
     pages = {}
     for row in body.get('rows') or []:
         if not isinstance(row, dict) or not row.get('screenshot') or not (report / row['screenshot']).is_file(): continue
         address = _address(row.get('url'))
-        page = pages.get(address)
-        if page is None:
-            given = known.get(address) or {}
-            page = pages[address] = {'path': address, 'template': given.get('template') or address,
-                                     'same_as': list(given.get('same_as') or []), 'state': 'not_reviewed', 'findings': 0, 'pictures': []}
-        found = on.get(row['screenshot'], [])
-        page['pictures'].append({'path': row['screenshot'], 'viewport': row.get('viewport'), 'width': row.get('width'),
-                                 'height': row.get('height'), 'checks': list(row.get('failures') or []), 'findings': found})
-        page['findings'] += len(found)
-        page['state'] = 'findings' if page['findings'] else 'clean' if address in clean else 'not_reviewed'
+        page = pages.get(address) or pages.setdefault(address, _page(address, known.get(address) or {}))
+        _picture(page, row, on.get(row['screenshot'], []), address in clean)
     return list(pages.values())
+
+
+def _findings_on(findings):
+    """{picture file: the reviewer's findings on it, each with its region there}."""
+    on = {}
+    for finding in findings:
+        for shown in finding.get('pictures') or [{'file': finding.get('file'), 'region': finding.get('region')}]:
+            on.setdefault(shown.get('file'), []).append({'id': finding.get('id') or finding.get('image'), 'region': shown.get('region'),
+                                                         **{k: finding.get(k) for k in ('title', 'kind', 'severity', 'why')}})
+    return on
+
+
+def _page(address, given):
+    return {'path': address, 'template': given.get('template') or address,
+            'same_as': list(given.get('same_as') or []), 'state': 'not_reviewed', 'findings': 0, 'pictures': []}
+
+
+def _picture(page, row, found, clean):
+    """One picture of a page, with the findings on it; the page's state follows."""
+    page['pictures'].append({'path': row['screenshot'], 'viewport': row.get('viewport'), 'width': row.get('width'),
+                             'height': row.get('height'), 'checks': list(row.get('failures') or []), 'findings': found})
+    page['findings'] += len(found)
+    page['state'] = 'findings' if page['findings'] else 'clean' if clean else 'not_reviewed'
 
 
 def screens(journeys, media=None, read=True, report=None):
@@ -91,16 +102,26 @@ def screens(journeys, media=None, read=True, report=None):
         if not pages: return None
         journeys = {}
     images = [i for i in media or [] if isinstance(i, dict) and i.get('kind') == 'screen' and i.get('route')]
-    out = []
-    for s in journeys.get('screens') or []:
-        if s.get('kind') != 'page': continue
-        shots = [{'path': i['path'], 'width': i['viewport'] if isinstance(i.get('viewport'), int) and i['viewport'] > 0 else 390,
-                  'phase': i.get('phase') if i.get('phase') in ('before', 'after', 'baseline') else None, 'batch': i.get('batch')}
-                 for i in images if i['route'] == s['route']]
-        out.append({'id': s['id'], 'route': s['route'], 'title': s.get('title') or s['route'], 'component': s.get('component'),
-                    'file': s.get('file'), 'router': s.get('router'), 'line': s.get('line'), 'fact': s.get('fact'),
-                    'flags': list(s.get('flags') or []), 'shots': shots, 'inputs': [], 'issues': []})
+    out = [_screen(s, images) for s in journeys.get('screens') or [] if s.get('kind') == 'page']
     shot = sum(1 for s in out if s['shots'])
+    return {'screens': out, 'missing': _missing(out, shot), 'pages': pages,
+            'counts': {'screens': _count(len(out), 'screens'), 'shot': _count(shot, 'shots'),
+                       'issues': _count(sum(len(s['issues']) for s in out) if shot else None, 'issues')}}
+
+
+def _shot(image):
+    return {'path': image['path'], 'width': image['viewport'] if isinstance(image.get('viewport'), int) and image['viewport'] > 0 else 390,
+            'phase': image.get('phase') if image.get('phase') in ('before', 'after', 'baseline') else None, 'batch': image.get('batch')}
+
+
+def _screen(s, images):
+    return {'id': s['id'], 'route': s['route'], 'title': s.get('title') or s['route'], 'component': s.get('component'),
+            'file': s.get('file'), 'router': s.get('router'), 'line': s.get('line'), 'fact': s.get('fact'),
+            'flags': list(s.get('flags') or []), 'shots': [_shot(i) for i in images if i['route'] == s['route']], 'inputs': [], 'issues': []}
+
+
+def _missing(out, shot):
+    """What is not measured yet about the screens: their shots and issues while some are not pictured, and their inputs."""
     missing = []
     if out and shot < len(out):
         missing.append({'id': 'shots', 'state': 'not_measured' if not shot else 'partial', 'step': CAPTURE_STEP,
@@ -113,6 +134,4 @@ def screens(journeys, media=None, read=True, report=None):
     if out:
         missing.append({'id': 'inputs', 'state': 'not_measured', 'step': INPUTS_STEP, 'count': {'value': None, 'src': 'no UI extractor yet', 'unit': 'count'},
                         'detail': {'ar': 'حقول الإدخال وتسمياتها لا يقرؤها EAOS بعد', 'en': 'EAOS does not read input fields and their labels yet'}})
-    return {'screens': out, 'missing': missing, 'pages': pages,
-            'counts': {'screens': _count(len(out), 'screens'), 'shot': _count(shot, 'shots'),
-                       'issues': _count(sum(len(s['issues']) for s in out) if shot else None, 'issues')}}
+    return missing
