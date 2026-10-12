@@ -58,6 +58,12 @@ def route_tags(text):
                'path': path.group('route') if path else None}
         tags.append(tag)
         if not closed: events.append((match.start(), 'open', tag))
+    _close(text, tags, events)
+    return tags
+
+
+def _close(text, tags, events):
+    """Each open tag ends at the closing tag that pairs with it; one never closed holds the rest of the text."""
     events += [(m.start(), 'close', m.end()) for m in ROUTE_CLOSE.finditer(text)]
     stack = []
     for _, kind, item in sorted(events, key=lambda e: e[0]):
@@ -65,7 +71,6 @@ def route_tags(text):
         elif stack: stack.pop()['end'] = item
     for tag in tags:
         if tag['end'] is None: tag['end'] = len(text)
-    return tags
 
 
 def _join(base, child):
@@ -80,50 +85,66 @@ def full_paths(text):
     for tag in sorted(tags, key=lambda t: t['start']):
         holders = [t for t in tags if t is not tag and t['start'] < tag['start'] < t['end']]
         parent = max(holders, key=lambda t: t['start']) if holders else None
-        path = tag['path']
-        if parent is None:
-            tag['full'] = path if path is not None else ''
-        else:
-            base = re.sub(r'/?\*$', '', parent['full'])
-            if path is None: tag['full'] = base
-            elif tag['start'] < parent['open_end'] or not path.startswith('/'): tag['full'] = _join(base, path)
-            else: tag['full'] = path if path.startswith(base.rstrip('/') + '/') or path == base else _join(base, path)
+        tag['full'] = _full_of(tag, parent)
         out[tag['start']] = tag['full'] or '/'
     return out
 
 
+def _full_of(tag, parent):
+    """A route's full path: its own under no holder, else joined to its holder's (an absolute child path that already
+    starts with the holder's is kept)."""
+    path = tag['path']
+    if parent is None: return path if path is not None else ''
+    base = re.sub(r'/?\*$', '', parent['full'])
+    if path is None: return base
+    if tag['start'] < parent['open_end'] or not path.startswith('/'): return _join(base, path)
+    return path if path.startswith(base.rstrip('/') + '/') or path == base else _join(base, path)
+
+
 def detect(context):
+    return [*_react_router(context), *_tanstack(context), *_nextjs(context)]
+
+
+def _react_router(context):
+    """The pages of <Route> tags at their full path, then of route objects given to a router."""
+    if not REACT_ROUTER.search(context.text): return []
     found = []
-    if REACT_ROUTER.search(context.text):
-        full = full_paths(context.text)
-        for match in JSX_ROUTE.finditer(context.text):
-            element = ELEMENT.search(match.group('attributes'))
-            declared = match.group('route')
-            page = _page(context, match.start(), full.get(match.start(), declared), element and element.group('name'), 'react_router')
-            if page['route'] != declared: page['declared'] = declared
-            found.append(page)
-        if re.search(r'\b(createBrowserRouter|createHashRouter|createMemoryRouter|useRoutes)\b', context.text):
-            for match in OBJECT_ROUTE.finditer(context.text):
-                element = OBJECT_ELEMENT.search(match.group('rest'))
-                found.append(_page(context, match.start(), match.group('route'), element and element.group('name'), 'react_router'))
-    route = TANSTACK.search(context.text)
-    if route and '@tanstack/' in context.text:
-        path = route.group('route') if route.group('route') is not None else '__root__'
-        methods = sorted({m.group('method') for m in SERVER_METHOD.finditer(context.text)}) if 'handlers' in context.text else []
-        line = context.line_of(route.start())
-        for method in methods:
-            found.append({'surface': 'http', 'route': path, 'http_method': method, 'handler': method,
-                          'framework': 'tanstack_router', 'line': line})
-        if not methods:
-            component = TANSTACK_COMPONENT.search(context.text) or FUNCTION.search(context.text)
-            found.append(_page(context, route.start(), path, component and component.group('name'), 'tanstack_router'))
-    page = NEXT_PAGE.search(context.rel)
-    if page and (page.group('app') is not None or NEXT_MARK.search(context.text)):
-        segment = page.group('app') if page.group('app') is not None else page.group('pages')
-        path = '/' + re.sub(r'(^|/)index$', '', (segment or '').rstrip('/'))
-        component = re.search(r'export\s+default\s+(?:async\s+)?function\s+(?P<name>\w+)', context.text)
-        found.append(_page(context, 0, path, component and component.group('name'), 'nextjs'))
+    full = full_paths(context.text)
+    for match in JSX_ROUTE.finditer(context.text):
+        element = ELEMENT.search(match.group('attributes'))
+        declared = match.group('route')
+        page = _page(context, match.start(), full.get(match.start(), declared), element and element.group('name'), 'react_router')
+        if page['route'] != declared: page['declared'] = declared
+        found.append(page)
+    if re.search(r'\b(createBrowserRouter|createHashRouter|createMemoryRouter|useRoutes)\b', context.text):
+        for match in OBJECT_ROUTE.finditer(context.text):
+            element = OBJECT_ELEMENT.search(match.group('rest'))
+            found.append(_page(context, match.start(), match.group('route'), element and element.group('name'), 'react_router'))
     return found
+
+
+def _tanstack(context):
+    """A TanStack file route: its server handlers as http surfaces, else the page it draws."""
+    route = TANSTACK.search(context.text)
+    if not (route and '@tanstack/' in context.text): return []
+    path = route.group('route') if route.group('route') is not None else '__root__'
+    methods = sorted({m.group('method') for m in SERVER_METHOD.finditer(context.text)}) if 'handlers' in context.text else []
+    line = context.line_of(route.start())
+    if methods:
+        return [{'surface': 'http', 'route': path, 'http_method': method, 'handler': method,
+                 'framework': 'tanstack_router', 'line': line} for method in methods]
+    component = TANSTACK_COMPONENT.search(context.text) or FUNCTION.search(context.text)
+    return [_page(context, route.start(), path, component and component.group('name'), 'tanstack_router')]
+
+
+def _nextjs(context):
+    """A Next.js page file: its route from its place under app/ or pages/."""
+    page = NEXT_PAGE.search(context.rel)
+    if not (page and (page.group('app') is not None or NEXT_MARK.search(context.text))): return []
+    segment = page.group('app') if page.group('app') is not None else page.group('pages')
+    path = '/' + re.sub(r'(^|/)index$', '', (segment or '').rstrip('/'))
+    component = re.search(r'export\s+default\s+(?:async\s+)?function\s+(?P<name>\w+)', context.text)
+    return [_page(context, 0, path, component and component.group('name'), 'nextjs')]
 
 
 def _page(context, offset, route, handler, framework):
