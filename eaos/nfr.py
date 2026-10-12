@@ -28,12 +28,16 @@ def routes(report):
     known = surfaces(report)
     found = []
     for feature in (_load(Path(report) / 'features.json', {}) or {}).get('features') or []:
-        for surface in feature.get('surfaces') or []:
-            kind, method, _ = kind_of(surface, known)
-            path = path_of(surface) if surface != '*' else None
-            if kind in ('page', 'http') and method == 'GET' and path and not PARAM.search(path) and path not in found:
-                found.append(path)
+        for path in (_loadable(surface, known, kind_of, path_of, PARAM) for surface in feature.get('surfaces') or []):
+            if path and path not in found: found.append(path)
     return found
+
+
+def _loadable(surface, known, kind_of, path_of, param):
+    """The path of a page or GET route that needs no fixture; None for any other surface."""
+    kind, method, _ = kind_of(surface, known)
+    path = path_of(surface) if surface != '*' else None
+    return path if kind in ('page', 'http') and method == 'GET' and path and not param.search(path) else None
 
 
 def dependencies(report):
@@ -48,17 +52,25 @@ def dependencies(report):
         found.append(('supabase', 'SUPABASE_UPSTREAM', [f['name'] for f in features if f.get('tables')]))
     if 'http' in clients:
         found.append(('api', 'API_UPSTREAM', [f['name'] for f in features if f.get('endpoints')]))
-    hosts = {}
-    for fact in _facts(report, 'integration_target'):
-        host, path = (fact.get('value') or {}).get('host') or '', (fact.get('location') or {}).get('path') or ''
-        if ('.' not in host or NOT_HOSTS.search(host) or host.endswith('.supabase.co') or path in unreachable
-                or re.search(r'(^|/)(tests?|__tests__|fixtures)/', path)):
-            continue
-        hosts.setdefault(host, set()).add(path)
-    for host, paths in sorted(hosts.items()):
+    for host, paths in sorted(_hosts(report, unreachable).items()):
         variable = re.sub(r'[^A-Z0-9]+', '_', host.upper()).strip('_') + '_UPSTREAM'
         found.append((host, variable, [f['name'] for f in features if paths & set(f.get('files') or [])]))
     return found
+
+
+def _counted_host(host, path, unreachable):
+    """A real outside host named by code the running program reaches, outside the tests."""
+    if '.' not in host or NOT_HOSTS.search(host) or host.endswith('.supabase.co'): return False
+    return path not in unreachable and not re.search(r'(^|/)(tests?|__tests__|fixtures)/', path)
+
+
+def _hosts(report, unreachable):
+    """{host: the files that name it}."""
+    hosts = {}
+    for fact in _facts(report, 'integration_target'):
+        host, path = (fact.get('value') or {}).get('host') or '', (fact.get('location') or {}).get('path') or ''
+        if _counted_host(host, path, unreachable): hosts.setdefault(host, set()).add(path)
+    return hosts
 
 
 def scenarios(report):
