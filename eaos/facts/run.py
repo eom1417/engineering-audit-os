@@ -79,15 +79,89 @@ def add_to_index(out, target, entry):
     return write_index(out, target, keep + [entry])
 
 
+def _syntax_of(produced, kind):
+    return [f for f in produced.get('syntax', []) if f['kind'] == kind]
+
+
+def _symbols_or_none(produced, context):
+    return {'symbols': _syntax_of(produced, 'symbol') or None}
+
+
+def _resolve_args(produced, context):
+    ext = [f for f in produced.get('external', []) if f.get('resolution') == 'RESOLVED_BY_ENGINE']
+    return {'imports': _syntax_of(produced, 'import_edge') or None, 'external_edges': ext or None}
+
+
+def _redundancy_args(produced, context):
+    return {'symbols': _syntax_of(produced, 'symbol') or None, 'structure': produced.get('structure'),
+            'entrypoints': produced.get('entrypoints')}
+
+
+def _flows_args(produced, context):
+    return {'symbols': _syntax_of(produced, 'symbol'), 'calls': _syntax_of(produced, 'call_edge'),
+            'edges': produced.get('resolve', []), 'entry_points': produced.get('entrypoints', []), 'env': produced.get('config', []),
+            'imports': _syntax_of(produced, 'import_edge')}
+
+
+def _graph_args(produced, context):
+    return {'edges': produced.get('resolve', []), 'entry_points': produced.get('entrypoints', []),
+            'metrics': produced.get('metrics', []), 'history': produced.get('history', [])}
+
+
+def _deadcode_args(produced, context):
+    return {'symbols': _syntax_of(produced, 'symbol'), 'resolved': produced.get('resolve', []),
+            'entry_points': produced.get('entrypoints', [])}
+
+
+# What each extractor reads from the sets produced before it; an extractor absent here reads only the snapshot.
+EXTRACTOR_ARGS = {
+    'history': lambda produced, context: {'max_commits': context['max_commits']},
+    'resolve': _resolve_args,
+    'redundancy': _redundancy_args,
+    'structure': _symbols_or_none, 'fingerprint': _symbols_or_none, 'sequences': _symbols_or_none,
+    'runtime': _symbols_or_none, 'entrypoints': _symbols_or_none, 'metrics': _symbols_or_none,
+    'flows': _flows_args,
+    'graph': _graph_args,
+    'syntax': lambda produced, context: {'cache': context['cache']},
+    'leftovers': lambda produced, context: {'resolve_facts': produced.get('resolve', [])},
+    'broken': lambda produced, context: {'resolved': produced.get('resolve', [])},
+    'deadcode': _deadcode_args,
+}
+
+
+def _checked_paths(target, out):
+    target = Path(target).resolve()
+    if not target.is_dir(): raise ValueError('Target must be an existing directory')
+    out = Path(out).resolve()
+    if out == target or target in out.parents: raise ValueError('Write facts outside the target; the target stays read-only')
+    return target, out
+
+
+def _load_cache(cache_path):
+    if not cache_path.is_file(): return {}
+    try: return json.loads(cache_path.read_text(encoding='utf-8'))
+    except ValueError: return {}
+
+
+def _run_extractor(name, target, source, produced, context, step, done, total):
+    module = EXTRACTORS[name]
+    step(name, done, total, 'running')
+    began = _time.monotonic()
+    arguments = EXTRACTOR_ARGS.get(name, lambda produced, context: {})(produced, context)
+    result = module.run(target, source, **arguments)
+    available = result['available']
+    step(name, done + 1, total, 'ok' if available else 'unavailable', _time.monotonic() - began,
+         reason='' if available else result.get('reason') or '',
+         reason_code='' if available else 'extractor_unavailable')
+    return module, result
+
+
 def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_bytes=2_000_000, source=None,
             exclude=(), engines=None, step=None):
     """Each extractor's start and end is reported as a step of the running stage (eaos/progress/context.py), or to
     `step(name, done, total, status, seconds)` when given: the live map shows where the facts stage is inside. It
     does not change what runs."""
-    target = Path(target).resolve()
-    if not target.is_dir(): raise ValueError('Target must be an existing directory')
-    out = Path(out).resolve()
-    if out == target or target in out.parents: raise ValueError('Write facts outside the target; the target stays read-only')
+    target, out = _checked_paths(target, out)
     # What the project declared out of scope applies to every caller, not only the ones that
     # remembered to ask. Two commands honoured it and three did not.
     from .scope import declared_exclusions
@@ -97,52 +171,19 @@ def collect(target, out, selected=None, max_commits=2000, max_files=100000, max_
     names = ordered(selected)
     source = source or Source(target, max_files=max_files, max_bytes=max_bytes, exclude=exclude)
     cache_path = facts_dir(out) / 'syntax-cache.json'
-    cache = {}
-    if cache_path.is_file():
-        try: cache = json.loads(cache_path.read_text(encoding='utf-8'))
-        except ValueError: cache = {}
+    context = {'cache': _load_cache(cache_path), 'max_commits': max_commits}
     entries, produced, reuse = [], {}, {}
     step = step or progress.step
     for name in names: step(name, 0, len(names), 'waiting')
-    for name in names:
-        module = EXTRACTORS[name]
-        done = names.index(name)
-        step(name, done, len(names), 'running')
-        began = _time.monotonic()
-        if name == 'history': result = module.run(target, source, max_commits=max_commits)
-        elif name == 'resolve':
-            ext = []
-            if 'external' in produced:
-                ext = [f for f in produced['external'] if f.get('resolution') == 'RESOLVED_BY_ENGINE']
-            result = module.run(target, source, imports=[f for f in produced.get('syntax', []) if f['kind'] == 'import_edge'] or None,
-                                external_edges=ext or None)
-        elif name == 'redundancy': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None,
-                                                         structure=produced.get('structure'), entrypoints=produced.get('entrypoints'))
-        elif name in {'structure', 'fingerprint', 'sequences', 'runtime'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)
-        elif name in {'entrypoints', 'metrics'}: result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'] or None)
-        elif name == 'flows': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'],
-                                                   calls=[f for f in produced.get('syntax', []) if f['kind'] == 'call_edge'],
-                                                   edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), env=produced.get('config', []),
-                                                   imports=[f for f in produced.get('syntax', []) if f['kind'] == 'import_edge'])
-        elif name == 'graph': result = module.run(target, source, edges=produced.get('resolve', []), entry_points=produced.get('entrypoints', []), metrics=produced.get('metrics', []), history=produced.get('history', []))
-        elif name == 'syntax': result = module.run(target, source, cache=cache)
-        elif name == 'leftovers': result = module.run(target, source, resolve_facts=produced.get('resolve', []))
-        elif name == 'secrets': result = module.run(target, source)
-        elif name == 'broken': result = module.run(target, source, resolved=produced.get('resolve', []))
-        elif name == 'deadcode': result = module.run(target, source, symbols=[f for f in produced.get('syntax', []) if f['kind'] == 'symbol'],
-                                                      resolved=produced.get('resolve', []), entry_points=produced.get('entrypoints', []))
-        else: result = module.run(target, source)
-        step(name, done + 1, len(names), 'ok' if result['available'] else 'unavailable', _time.monotonic() - began,
-             reason='' if result['available'] else result.get('reason') or '',
-             reason_code='' if result['available'] else 'extractor_unavailable')
+    for done, name in enumerate(names):
+        module, result = _run_extractor(name, target, source, produced, context, step, done, len(names))
         produced[name] = result['facts']
         if result.get('reused_from_cache'): reuse[name] = result['reused_from_cache']
         entries.append(write_set(out, name, module.NAME, module.VERSION, result['facts'], result['input_sha'],
                                  module.LIMITATIONS, result['summary'], result['available'], result['reason']))
     if engines is not None:
-        for entry in collect_external(target, out, source, only=engines or None):
-            entries.append(entry)
-    cache_path.write_text(json.dumps(cache, ensure_ascii=False), encoding='utf-8')
+        entries += collect_external(target, out, source, only=engines or None)
+    cache_path.write_text(json.dumps(context['cache'], ensure_ascii=False), encoding='utf-8')
     index = write_index(out, target, entries)
     return {'target': str(target), 'out': str(out), 'fingerprint': source.fingerprint, 'sets': index['sets'],
             'facts': sum(e['facts'] for e in entries), 'reused_from_cache': reuse,
