@@ -235,7 +235,6 @@ def lighthouse(url, out=None, timeout=300):
 
 STYLE = re.compile(r'<style[^>]*>(.*?)</style>', re.S | re.I)
 SPACING = re.compile(r'(?:^|[;{\s])(?:margin|padding|gap|row-gap|column-gap)(?:-[a-z-]+)?\s*:\s*([^;}!]+)', re.I)
-LENGTH = re.compile(r'-?\d*\.?\d+(?:px|rem|em|%|vh|vw|ch)\b|var\(--[\w-]+\)')
 
 
 
