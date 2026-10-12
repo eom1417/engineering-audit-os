@@ -476,10 +476,9 @@ def _card_row(c, done, skipped, batch):
     """One build card as the report's card block draws it: its state, its batch and its acceptance."""
     from html import escape
     from .human_report import T
-    if True:
-        state = 'done' if c['id'] in done else 'skipped' if c['id'] in skipped else 'open'
-        checks = ''.join(f'<li>{escape(str(a))}</li>' for a in c.get('acceptance') or [])
-        extra = f'<p class="small"><b>{T("يُقبل حين:", "Accepted when:")}</b></p><ul class="small">{checks}</ul>' if checks else ''
+    state = 'done' if c['id'] in done else 'skipped' if c['id'] in skipped else 'open'
+    checks = ''.join(f'<li>{escape(str(a))}</li>' for a in c.get('acceptance') or [])
+    extra = f'<p class="small"><b>{T("يُقبل حين:", "Accepted when:")}</b></p><ul class="small">{checks}</ul>' if checks else ''
     return {'id': c['id'], 'key': c['id'], 'title': c['title'], 'pattern': None, 'milestone': c.get('milestone'), 'paths': c.get('paths') or [],
             'before': '', 'after': '', 'state': state, 'new': False, 'batch': batch.get(c['id']), 'at': None,
             'why': skipped.get(c['id']) or '', 'commit': None, 'module': c.get('module'), 'extra': extra}

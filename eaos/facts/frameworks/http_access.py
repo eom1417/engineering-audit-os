@@ -48,17 +48,21 @@ def prepare(texts):
         if names and _stem(rel) not in GENERIC_STEMS: exported.setdefault(_stem(rel), set()).update(names)
     bound = {}
     for rel, text in texts.items():
-        inherited = set()
-        for default, listed, spec in IMPORT.findall(text):
-            offered = exported.get(_stem(spec), set())
-            names = {part.split(' as ')[0].strip() for part in listed.split(',') if part.strip()} | ({default} if default else set())
-            for part in listed.split(','):
-                original, _, alias = part.strip().partition(' as ')
-                if original.strip() in offered: inherited.add((alias or original).strip())
-            if default and offered: inherited.add(default)  # `import api from "@/lib/Api"`: the default export
-        names = clients(text, inherited)
+        names = clients(text, _inherited(text, exported))
         if names: bound[rel] = names
     return bound
+
+
+def _inherited(text, exported):
+    """The client names a file imports by name (or as a default export) from a file that makes them."""
+    inherited = set()
+    for default, listed, spec in IMPORT.findall(text):
+        offered = exported.get(_stem(spec), set())
+        for part in listed.split(','):
+            original, _, alias = part.strip().partition(' as ')
+            if original.strip() in offered: inherited.add((alias or original).strip())
+        if default and offered: inherited.add(default)  # `import api from "@/lib/Api"`: the default export
+    return inherited
 
 
 def endpoint(raw):
@@ -82,38 +86,65 @@ def object_keys(text, start):
     vin), sorted; None when no literal opens there or it does not close within SCAN characters. A spread (`...rest`)
     hides keys, so the keys come back with `partial` true. Request keys are the payload's names, never its values."""
     if start >= len(text) or text[start] != '{': return None
-    keys, partial, depth, i, end = set(), False, 0, start, min(len(text), start + SCAN)
-    expect = True  # at the start of a property
-    while i < end:
-        ch = text[i]
-        if ch in '\'"`':
-            close = text.find(ch, i + 1)
-            while close != -1 and text[close - 1] == '\\': close = text.find(ch, close + 1)
-            if close == -1: return None
-            if depth == 1 and expect:
-                after = text[close + 1:close + 40].lstrip()
-                if after[:1] == ':' and ch != '`': keys.add(text[i + 1:close])
-                expect = False
-            i = close + 1
-            continue
+    return _ObjectKeys(text).scan(start)
+
+
+class _ObjectKeys:
+    """One scan of an object literal's top-level keys: the depth it is at, and whether a property starts next."""
+
+    def __init__(self, text):
+        self.text, self.keys, self.partial, self.depth = text, set(), False, 0
+        self.expect = True  # at the start of a property
+
+    def string(self, i, ch):
+        """The index after the string opening at i, kept as a key when a colon follows it; None when it never closes."""
+        text = self.text
+        close = text.find(ch, i + 1)
+        while close != -1 and text[close - 1] == '\\': close = text.find(ch, close + 1)
+        if close == -1: return None
+        if self.depth == 1 and self.expect:
+            after = text[close + 1:close + 40].lstrip()
+            if after[:1] == ':' and ch != '`': self.keys.add(text[i + 1:close])
+            self.expect = False
+        return close + 1
+
+    def bracket(self, ch):
+        """An opening or a closing bracket; the keys once the literal closes, else None."""
         if ch in '{([':
-            if depth == 1 and expect and ch == '[': partial = True  # a computed key: its name is known at run time
-            depth += 1
-            if depth == 1: expect = True
-        elif ch in '})]':
-            depth -= 1
-            if depth == 0: return {'keys': sorted(keys), 'partial': partial}
-        elif depth == 1 and ch == ',': expect = True
-        elif depth == 1 and expect and not ch.isspace():
-            found = PROPERTY.match(text, i)
-            if found and found.group('spread'): partial = True
-            elif found and found.group('name'):
-                after = text[found.end():found.end() + 2].lstrip()[:1]
-                if after in (':', ',', '}', '(', ''): keys.add(found.group('name'))
-            expect = False
-            if found and found.group('name'): i = found.end(); continue
-        i += 1
-    return None
+            if self.depth == 1 and self.expect and ch == '[': self.partial = True  # a computed key: its name is known at run time
+            self.depth += 1
+            if self.depth == 1: self.expect = True
+            return None
+        self.depth -= 1
+        return {'keys': sorted(self.keys), 'partial': self.partial} if self.depth == 0 else None
+
+    def bare(self, i):
+        """A property that is a name or a spread, at i: the index to go on from."""
+        found = PROPERTY.match(self.text, i)
+        if found and found.group('spread'): self.partial = True
+        elif found and found.group('name'):
+            after = self.text[found.end():found.end() + 2].lstrip()[:1]
+            if after in (':', ',', '}', '(', ''): self.keys.add(found.group('name'))
+        self.expect = False
+        return found.end() if found and found.group('name') else i + 1
+
+    def scan(self, start):
+        text, i, end = self.text, start, min(len(self.text), start + SCAN)
+        while i < end:
+            ch = text[i]
+            if ch in '\'"`':
+                i = self.string(i, ch)
+                if i is None: return None
+                continue
+            if ch in '{([})]':
+                closed = self.bracket(ch)
+                if closed: return closed
+            elif self.depth == 1 and ch == ',': self.expect = True
+            elif self.depth == 1 and self.expect and not ch.isspace():
+                i = self.bare(i)
+                continue
+            i += 1
+        return None
 
 
 def payload(text, after):
