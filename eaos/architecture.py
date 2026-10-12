@@ -4,7 +4,6 @@ from collections import deque
 VERSION = 1
 RELATIONS = {'imports','calls','uses_contract','reads','writes','configures'}
 STATIC_RELATIONS = {'imports','uses_contract'}
-CORE_MODULES = {'01','02','03','04','15','22','26','27'}
 
 
 def adjacency(model,relations=None):
