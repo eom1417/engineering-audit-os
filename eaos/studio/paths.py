@@ -164,14 +164,17 @@ def components(report):
     current = [c for c in target.get('current_components') or [] if isinstance(c, dict) and c.get('name')]
     layers = {t['name']: t.get('layer') for t in target.get('target_components') or [] if isinstance(t, dict) and t.get('name')}
     feeds = Counter(c.get('target_component') for c in current if c.get('target_component'))
-    out = {}
-    for c in current:
-        to = c.get('target_component')
-        relation = OPERATION.get(c.get('relation'), 'refactor')
-        # a part kept or refactored into a target that others feed too is merged; a rebuild or a delete says more
-        out[c['name']] = {'op': 'merge' if to and feeds[to] > 1 and relation in ('retain', 'refactor') else relation, 'target': to,
-                          'layer': layers.get(to)}
+    out = {c['name']: {'op': _operation(c, feeds), 'target': c.get('target_component'), 'layer': layers.get(c.get('target_component'))}
+           for c in current}
     return out, system_section.owner_of(set(out)), sorted(name for name in layers if not feeds.get(name))
+
+
+def _operation(c, feeds):
+    """A part's operation: a part kept or refactored into a target that others feed too is merged; a rebuild or a
+    delete says more."""
+    to = c.get('target_component')
+    relation = OPERATION.get(c.get('relation'), 'refactor')
+    return 'merge' if to and feeds[to] > 1 and relation in ('retain', 'refactor') else relation
 
 
 # ---------------------------------------------------------------- the graph of every path
@@ -183,8 +186,11 @@ class _Graph:
         self.nodes, self.edges, self.index = {}, [], {}
         self.owner, self.cards_of = owner, cards_of
 
-    def node(self, nid, lane, label, kind='step', path=None, line=None, fact=None, part=None, **extra):
+    def node(self, nid, lane, label, kind='step', **more):
+        """A node, once. `more`, by name: path, line, fact, part (the part of today owning it) and any extra field."""
         if nid not in self.nodes:
+            path, line, fact, part = (more.pop(key, None) for key in ('path', 'line', 'fact', 'part'))
+            extra = more
             cards, steps = self.cards_of(path) if path and kind != 'gap' else ([], [])
             self.nodes[nid] = {'id': nid, 'lane': lane, 'kind': kind, 'label': str(label)[:200], 'path': path or None,
                                'line': _line(line), 'fact': _fact_id(fact),
@@ -225,37 +231,49 @@ class _Builder:
     def server_side(self, origin, start, flow):
         """The links behind a server-side handler file: the parts it calls or imports, the tables and services."""
         if origin in self.behind: return self.behind[origin]
-        g, r, steps = self.g, self.r, []
-        called = []
-        for step in ((flow or {}).get('value') or {}).get('steps') or []:
-            to = step.get('to_path') if isinstance(step, dict) else None
-            if step.get('resolution') in ('local', 'imported') and to and to != start and not sm.is_test(to): called.append((to, step))
-        reached = {to for to, _ in called}
-        home, seen = self.owner(start), set()
+        imports = self.r['imports']
+        called = _called(flow, start)
+        steps = self._part_links(origin, start, flow, called)
+        near = {start} | {to for to, _ in called} | sm._reach(start, imports, SERVER_STEPS - 1)
+        steps += self._table_links(origin, near)
+        steps += self._service_links(origin, near | sm._reach(start, imports, SERVER_STEPS + 1))
+        self.behind[origin] = steps
+        return steps
+
+    def _part_links(self, origin, start, flow, called):
+        """A link to each other part the handler calls (traced), then to each it imports, once per part."""
+        g, home, seen, steps = self.g, self.owner(start), set(), []
         for to, step in called:
             part = self.owner(to)
             if not part or part == home or part in seen: continue
             seen.add(part)
             steps.append(g.link(origin, g.node(f'M:{part}', 'service', part, part=part), 'call', flow, step.get('from_path'), step.get('line')))
-        for to in sorted(sm._reach(start, r['imports'], SERVER_STEPS) - {start}):
+        for to in sorted(sm._reach(start, self.r['imports'], SERVER_STEPS) - {start}):
             part = self.owner(to)
             if not part or part == home or part in seen or sm.is_test(to): continue
             seen.add(part)
             steps.append(g.link(origin, g.node(f'M:{part}', 'service', part, part=part), 'imports', None, start, None))
-        near = {start} | reached | sm._reach(start, r['imports'], SERVER_STEPS - 1)
+        return steps
+
+    def _table_links(self, origin, near):
+        g, steps = self.g, []
         for file in sorted(near):
-            for name, fact in r['tables'].get(file, ()):
+            for name, fact in self.r['tables'].get(file, ()):
                 where, line = sm._path(fact), (fact.get('location') or {}).get('start_line')
                 steps.append(g.link(origin, g.node(f'T:{name}', 'data', name, kind='table', path=where, line=line, fact=fact),
                                     'defines', fact, where, line))
+        return steps
+
+    def _service_links(self, origin, files_near):
+        """A link to each outside service or store a package of the nearby files talks to."""
         services = defaultdict(set)
-        for file in sorted(near | sm._reach(start, r['imports'], SERVER_STEPS + 1)):
-            for package in r['packages'].get(file, ()):
+        for file in sorted(files_near):
+            for package in self.r['packages'].get(file, ()):
                 if package in sm.SERVICES: services[sm.SERVICES[package]].add(file)
+        steps = []
         for (kind, en, ar), files in sorted(services.items()):
-            nid = g.node(f'X:{en}', 'data', en, kind='store' if kind == 'storage' else 'external', ar=ar)
-            steps.append(g.link(origin, nid, 'package', None, sorted(files)[0], None))
-        self.behind[origin] = steps
+            nid = self.g.node(f'X:{en}', 'data', en, kind='store' if kind == 'storage' else 'external', ar=ar)
+            steps.append(self.g.link(origin, nid, 'package', None, sorted(files)[0], None))
         return steps
 
     def onward(self, aid, call):
@@ -302,29 +320,30 @@ class _Builder:
             return sid, steps, flow, 0, None
         cid = g.node(f'C:{comp}', 'component', entry['handler'] or Path(comp).stem, path=comp)
         steps.append(g.link(sid, cid, 'route', entry['fact'], entry['path'], entry['line']))
-        traced = {}
-        for step in ((flow or {}).get('value') or {}).get('steps') or []:
-            if not isinstance(step, dict): continue
-            for file in (step.get('to_path'), step.get('from_path')):
-                if file and file not in traced: traced[file] = step
+        traced = _traced_files(flow)
         reach = sm._reach(comp, r['imports'], IMPORT_STEPS)
         files = sorted({comp} | set(traced) | reach, key=lambda f: (f != comp, f not in traced, f))
         calls = [(file, call) for file in files if not sm.is_test(file) for call in r['calls'].get(file, ())]
         capped = max(len(calls) - MAX_CALLS, 0)
-        for file, call in calls[:MAX_CALLS]:
-            how = 'contains' if file == comp else 'call' if file in traced else 'imports'
-            hid = g.node(f"H:{file}#{call['function'] or call['line']}", 'handler', call['function'] or Path(file).name, path=file,
-                         line=next((f['start'] for f in r['functions'].get(file, ()) if f['name'] == call['function']), call['line']))
-            if how == 'call':
-                step = traced[file]
-                steps.append(g.link(cid, hid, how, flow, step.get('from_path'), step.get('line')))
-            else:
-                steps.append(g.link(cid, hid, how, None, comp, None))
-            aid = g.node(call['id'], 'call', call['label'], path=call['path'], line=call['line'], fact=call['fact'], group=call['group'])
-            steps.append(g.link(hid, aid, 'request', call['fact'], call['path'], call['line']))
-            steps += self.onward(aid, call)
+        for file, call in calls[:MAX_CALLS]: steps += self._call_links(cid, comp, (file, call), traced, flow)
         unresolved = self.trace_gap(pid, 'handler', cid, flow, steps) if flow else None
         return sid, steps, flow, capped, unresolved
+
+    def _call_links(self, cid, comp, found, traced, flow):
+        """The component to the handler holding a call, the handler to the call, and what the call reaches."""
+        g, r = self.g, self.r
+        file, call = found
+        how = 'contains' if file == comp else 'call' if file in traced else 'imports'
+        hid = g.node(f"H:{file}#{call['function'] or call['line']}", 'handler', call['function'] or Path(file).name, path=file,
+                     line=next((f['start'] for f in r['functions'].get(file, ()) if f['name'] == call['function']), call['line']))
+        if how == 'call':
+            step = traced[file]
+            steps = [g.link(cid, hid, how, flow, step.get('from_path'), step.get('line'))]
+        else:
+            steps = [g.link(cid, hid, how, None, comp, None)]
+        aid = g.node(call['id'], 'call', call['label'], path=call['path'], line=call['line'], fact=call['fact'], group=call['group'])
+        steps.append(g.link(hid, aid, 'request', call['fact'], call['path'], call['line']))
+        return steps + self.onward(aid, call)
 
     def server(self, pid, entry):
         g, r = self.g, self.r
@@ -339,6 +358,25 @@ class _Builder:
         steps += self.server_side(eid, first or entry['path'], flow)
         unresolved = self.trace_gap(pid, 'service', eid, flow, steps)
         return eid, steps, flow, 0, unresolved
+
+
+def _called(flow, start):
+    """[(file, step)] the traced flow calls into, other than the handler's own file and test files."""
+    called = []
+    for step in ((flow or {}).get('value') or {}).get('steps') or []:
+        to = step.get('to_path') if isinstance(step, dict) else None
+        if step.get('resolution') in ('local', 'imported') and to and to != start and not sm.is_test(to): called.append((to, step))
+    return called
+
+
+def _traced_files(flow):
+    """{file: the first traced step touching it}."""
+    traced = {}
+    for step in ((flow or {}).get('value') or {}).get('steps') or []:
+        if not isinstance(step, dict): continue
+        for file in (step.get('to_path'), step.get('from_path')):
+            if file and file not in traced: traced[file] = step
+    return traced
 
 
 def _cards_index(card_rows):
@@ -359,37 +397,51 @@ def code_paths(report, card_rows):
     comps, owner, new = components(report)
     b = _Builder(r, owner, _cards_index(card_rows))
     out, used = [], set()
-
-    def add(kind, entry, title):
-        base = _slug(f"{entry['route']} {entry['handler'] or ''}")
-        pid, n = base, 2
-        while pid in used: pid, n = f'{base}-{n}', n + 1
-        used.add(pid)
-        start, steps, flow, capped, unresolved = (b.page if kind == 'page' else b.server)(pid, entry)
-        steps = list(dict.fromkeys(steps))
-        nodes = {start} | {b.g.edges[i][end] for i in steps for end in ('from', 'to')}
-        lanes = {b.g.nodes[n]['lane'] for n in nodes if b.g.nodes[n]['kind'] != 'gap'}
-        columns = layout(nodes, {n: b.g.nodes[n]['lane'] for n in nodes}, [(b.g.edges[i]['from'], b.g.edges[i]['to']) for i in steps])
-        out.append({'id': pid, 'title': title, 'handler': entry['handler'], 'surface': entry['surface'], 'entry': start,
-                    'fact': _fact_id(entry['fact']), 'flow': ((flow or {}).get('value') or {}).get('flow_id'),
-                    'flow_fact': _fact_id(flow), 'steps': steps, 'columns': columns,
-                    'gaps': sum(b.g.nodes[n]['kind'] == 'gap' for n in nodes), 'capped': capped,
-                    'unresolved': unresolved, 'reach': max((LANES.index(l) for l in lanes), default=0)})
-
-    seen = set()
-    for entry in sorted(r['pages'], key=lambda e: (e['route'] == '*', e['route'], str(e['handler']), e['path'], e['line'] or 0)):
-        if (entry['route'], entry['handler']) in seen: continue
-        seen.add((entry['route'], entry['handler']))
-        add('page', entry, entry['route'] or '/')
-    seen = set()
-    for entry in sorted(r['servers'], key=lambda e: (e['surface'], e['route'], str(e['method']), e['path'])):
-        if (entry['path'], entry['handler']) in seen: continue
-        seen.add((entry['path'], entry['handler']))
-        add('server', entry, f"{entry['method']} {entry['route']}" if entry['method'] else entry['route'] or str(entry['handler']))
+    pages = _first_of(r['pages'], lambda e: (e['route'] == '*', e['route'], str(e['handler']), e['path'], e['line'] or 0),
+                      lambda e: (e['route'], e['handler']))
+    for entry in pages: out.append(_path_row(b, _unique(entry, used), b.page, entry, entry['route'] or '/'))
+    servers = _first_of(r['servers'], lambda e: (e['surface'], e['route'], str(e['method']), e['path']), lambda e: (e['path'], e['handler']))
+    for entry in servers:
+        title = f"{entry['method']} {entry['route']}" if entry['method'] else entry['route'] or str(entry['handler'])
+        out.append(_path_row(b, _unique(entry, used), b.server, entry, title))
     on_path = Counter(n for p in out for column in p['columns'] for n in column)
     nodes = [{**node, 'paths': on_path[nid]} for nid, node in sorted(b.g.nodes.items()) if on_path[nid]]
     parts = sorted({n['component'] for n in nodes if n['component']})
     return out, nodes, b.g.edges, {name: comps[name] for name in parts if name in comps}, new, r
+
+
+def _first_of(entries, order, same):
+    """The entries in `order`, the first of each `same` key only."""
+    seen, kept = set(), []
+    for entry in sorted(entries, key=order):
+        if same(entry) in seen: continue
+        seen.add(same(entry))
+        kept.append(entry)
+    return kept
+
+
+def _unique(entry, used):
+    """A path id from the entry's route and handler, numbered when another path has it."""
+    base = _slug(f"{entry['route']} {entry['handler'] or ''}")
+    pid, n = base, 2
+    while pid in used: pid, n = f'{base}-{n}', n + 1
+    used.add(pid)
+    return pid
+
+
+def _path_row(b, pid, walk, entry, title):
+    """One path: the links `walk` (the builder's page or server) finds from the entry, laid out in lanes."""
+    g = b.g
+    start, steps, flow, capped, unresolved = walk(pid, entry)
+    steps = list(dict.fromkeys(steps))
+    nodes = {start} | {g.edges[i][end] for i in steps for end in ('from', 'to')}
+    lanes = {g.nodes[n]['lane'] for n in nodes if g.nodes[n]['kind'] != 'gap'}
+    columns = layout(nodes, {n: g.nodes[n]['lane'] for n in nodes}, [(g.edges[i]['from'], g.edges[i]['to']) for i in steps])
+    return {'id': pid, 'title': title, 'handler': entry['handler'], 'surface': entry['surface'], 'entry': start,
+            'fact': _fact_id(entry['fact']), 'flow': ((flow or {}).get('value') or {}).get('flow_id'),
+            'flow_fact': _fact_id(flow), 'steps': steps, 'columns': columns,
+            'gaps': sum(g.nodes[n]['kind'] == 'gap' for n in nodes), 'capped': capped,
+            'unresolved': unresolved, 'reach': max((LANES.index(l) for l in lanes), default=0)}
 
 
 # ---------------------------------------------------------------- the layout
