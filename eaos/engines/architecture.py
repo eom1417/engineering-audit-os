@@ -42,10 +42,7 @@ def city(target, folder):
     parts = [folder / 'code.cc.json']
     code, _, err, _ = run([ccsh, 'unifiedparser', str(target), '-o', str(parts[0]), '-nc'], timeout=1800, env=_java())
     if code or not parts[0].is_file(): return {'status': 'error', 'reason': f'ccsh unifiedparser exited {code}: {err[-400:]}'}
-    if (Path(target) / '.git').exists():
-        code, _, err, _ = run([ccsh, 'gitlogparser', 'repo-scan', '--repo-path', str(target), '-o', str(folder / 'git.cc.json'), '-nc'],
-                              timeout=1800, env=_java())
-        if code == 0 and (folder / 'git.cc.json').is_file(): parts.append(folder / 'git.cc.json')
+    if (Path(target) / '.git').exists(): parts += _with_history(ccsh, target, folder)
     merged = folder / 'city.cc.json'
     code, _, err, _ = run([ccsh, 'merge', *map(str, parts), '-o', str(merged), '-nc'], timeout=600, env=_java())
     if code or not merged.is_file(): return {'status': 'error', 'reason': f'ccsh merge exited {code}: {err[-400:]}'}
@@ -53,6 +50,13 @@ def city(target, folder):
     (folder / 'git.cc.json').unlink(missing_ok=True)
     files = sum(1 for _ in _leaves(json.loads(merged.read_text(encoding='utf-8')).get('files') or []))
     return {'status': 'observed', 'file': 'city.cc.json', 'buildings': files, 'with_changes': len(parts) > 1}
+
+
+def _with_history(ccsh, target, folder):
+    """[git.cc.json] when ccsh's history parser read how often each file changed, else []."""
+    code, _, err, _ = run([ccsh, 'gitlogparser', 'repo-scan', '--repo-path', str(target), '-o', str(folder / 'git.cc.json'), '-nc'],
+                          timeout=1800, env=_java())
+    return [folder / 'git.cc.json'] if code == 0 and (folder / 'git.cc.json').is_file() else []
 
 
 def _leaves(nodes):
@@ -108,16 +112,13 @@ def _paths(nodes, prefix=''):
 
 def _attributes(city_record):
     """{path: metrics} from a cc.json: its lenses (API 2.x, keyed by node id) or the attributes on each file node."""
-    paths = _paths(city_record.get('files') or city_record.get('nodes') or [])
-    lenses = city_record.get('lenses') or {}
+    nodes = city_record.get('files') or city_record.get('nodes') or []
+    paths = _paths(nodes)
     merged = {}
-    for lens in lenses.values():
+    for lens in (city_record.get('lenses') or {}).values():
         for node, values in ((lens or {}).get('attributes') or {}).items():
             if node in paths: merged.setdefault(paths[node], {}).update(values)
-    if not merged:
-        for leaf in _leaves(city_record.get('files') or city_record.get('nodes') or []):
-            if paths.get(leaf.get('id')): merged[paths[leaf['id']]] = leaf.get('attributes') or {}
-    return merged
+    return merged or {paths[leaf['id']]: leaf.get('attributes') or {} for leaf in _leaves(nodes) if paths.get(leaf.get('id'))}
 
 
 def digest(folder):
@@ -125,30 +126,47 @@ def digest(folder):
     emerge's Louvain clusters, largest first, each with its members and its most depended-on file. Empty parts when a
     tool did not draw its part."""
     folder = Path(folder)
-    out = {'hotspots': [], 'clusters': [], 'modularity': None}
-    city_file = folder / 'city.cc.json'
-    if city_file.is_file():
-        rows = []
-        for path, values in _attributes(json.loads(city_file.read_text(encoding='utf-8'))).items():
-            complexity, commits = values.get('complexity') or 0, values.get('number_of_commits') or 0
-            size = values.get('rloc') or values.get('loc') or 0
-            rows.append({'path': path, 'complexity': complexity, 'commits': commits, 'rloc': size,
-                         'authors': values.get('number_of_authors'), 'score': complexity * max(1, commits)})
-        rows.sort(key=lambda r: (-r['score'], -r['rloc'], r['path']))
-        out['hotspots'] = [r for r in rows if r['score'] or r['rloc']][:HOTSPOTS]
+    out = {'hotspots': _hotspots(folder / 'city.cc.json'), 'clusters': [], 'modularity': None}
     for stats in sorted((folder / 'emerge').glob('*/' + STATISTICS)):
         record = json.loads(stats.read_text(encoding='utf-8'))
-        groups = {}
-        for name, values in (record.get('local-metrics') or {}).items():
-            key = next((v for k, v in values.items() if 'louvain' in k), None)
-            if key is None: continue
-            groups.setdefault(key, []).append({'path': str(name).split('/', 1)[-1],
-                                               'fan_in': next((v for k, v in values.items() if k.startswith('fan-in')), 0) or 0})
-        for key, members in groups.items():
-            members.sort(key=lambda m: (-m['fan_in'], m['path']))
-            out['clusters'].append({'id': f'{stats.parent.name}-{key}', 'files': len(members), 'members': [m['path'] for m in members[:MEMBERS]],
-                                    'most_depended_on': members[0]['path'] if members[0]['fan_in'] else None})
+        out['clusters'] += _clusters_of(stats.parent.name, record)
         value = (record.get('overall-metrics') or {}).get('louvain-modularity-dependency-graph')
         if isinstance(value, (int, float)): out['modularity'] = value if out['modularity'] is None else min(out['modularity'], value)
     out['clusters'] = sorted(out['clusters'], key=lambda c: (-c['files'], c['id']))[:CLUSTERS]
     return out
+
+
+def _hotspot_row(path, values):
+    complexity, commits = values.get('complexity') or 0, values.get('number_of_commits') or 0
+    size = values.get('rloc') or values.get('loc') or 0
+    return {'path': path, 'complexity': complexity, 'commits': commits, 'rloc': size,
+            'authors': values.get('number_of_authors'), 'score': complexity * max(1, commits)}
+
+
+def _hotspots(city_file):
+    """The city's files ranked by complexity times changes, size breaking a tie; [] when there is no city."""
+    if not city_file.is_file(): return []
+    rows = [_hotspot_row(path, values) for path, values in _attributes(json.loads(city_file.read_text(encoding='utf-8'))).items()]
+    rows.sort(key=lambda r: (-r['score'], -r['rloc'], r['path']))
+    return [r for r in rows if r['score'] or r['rloc']][:HOTSPOTS]
+
+
+def _louvain_groups(record):
+    """{Louvain module: [{path, fan_in}]} of one emerge record's files."""
+    groups = {}
+    for name, values in (record.get('local-metrics') or {}).items():
+        key = next((v for k, v in values.items() if 'louvain' in k), None)
+        if key is None: continue
+        groups.setdefault(key, []).append({'path': str(name).split('/', 1)[-1],
+                                           'fan_in': next((v for k, v in values.items() if k.startswith('fan-in')), 0) or 0})
+    return groups
+
+
+def _clusters_of(language, record):
+    """One emerge record's clusters, each with its first members and its most depended-on file."""
+    clusters = []
+    for key, members in _louvain_groups(record).items():
+        members.sort(key=lambda m: (-m['fan_in'], m['path']))
+        clusters.append({'id': f'{language}-{key}', 'files': len(members), 'members': [m['path'] for m in members[:MEMBERS]],
+                         'most_depended_on': members[0]['path'] if members[0]['fan_in'] else None})
+    return clusters
