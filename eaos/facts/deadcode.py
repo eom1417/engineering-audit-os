@@ -118,27 +118,43 @@ def _commanded(source, known, folders):
 
 def _seeds(source, known, entry_points):
     """Production entry points, plus the files a runtime loads first: __main__.py, index.html scripts, manifests."""
-    seeds = {(f.get('location') or {}).get('path') for f in entry_points
-             if f.get('kind') == 'entry_point' and (f.get('value') or {}).get('category') != 'test'
-             and (f.get('value') or {}).get('framework') not in ('npm_script',)}
-    for path in known:
-        name = PurePosixPath(path).name
-        if name in ENTRY_FILES and not _is_test(path): seeds.add(path)
-        if name == 'index.html':
-            for src in re.findall(r'''<script[^>]*\bsrc=["']/?([^"']+)["']''', source.text(path) or ''):
-                seeds.add(str(PurePosixPath(path).parent / src).lstrip('./') if '/' in path else src)
-        if name == 'package.json':
-            import json
-            try: manifest = json.loads(source.text(path) or '{}')
-            except ValueError: manifest = {}
-            base = PurePosixPath(path).parent
-            bins = manifest.get('bin') if isinstance(manifest.get('bin'), dict) else {'': manifest.get('bin')}
-            for entry in [manifest.get('main'), manifest.get('module'), *bins.values()]:
-                if isinstance(entry, str): seeds.add(str(base / entry).lstrip('./'))
-            for script in (manifest.get('scripts') or {}).values():
-                for file in re.findall(r'[\w./-]+\.(?:[cm]?[jt]sx?|py)\b', str(script)):
-                    seeds.add(_source_of(base, file, known) or str(base / file).lstrip('./'))
+    seeds = _declared_entries(entry_points)
+    for path in known: seeds |= _file_seeds(source, path, known)
     return {seed for seed in seeds if seed in known}
+
+
+def _declared_entries(entry_points):
+    return {(f.get('location') or {}).get('path') for f in entry_points
+            if f.get('kind') == 'entry_point' and (f.get('value') or {}).get('category') != 'test'
+            and (f.get('value') or {}).get('framework') not in ('npm_script',)}
+
+
+def _html_scripts(path, text):
+    return {str(PurePosixPath(path).parent / src).lstrip('./') if '/' in path else src
+            for src in re.findall(r'''<script[^>]*\bsrc=["']/?([^"']+)["']''', text)}
+
+
+def _manifest_seeds(path, text, known):
+    """What a package.json runs: its main, module and bin files, and the source of every file a script names."""
+    import json
+    try: manifest = json.loads(text or '{}')
+    except ValueError: manifest = {}
+    base = PurePosixPath(path).parent
+    bins = manifest.get('bin') if isinstance(manifest.get('bin'), dict) else {'': manifest.get('bin')}
+    seeds = {str(base / entry).lstrip('./') for entry in [manifest.get('main'), manifest.get('module'), *bins.values()]
+             if isinstance(entry, str)}
+    for script in (manifest.get('scripts') or {}).values():
+        seeds |= {_source_of(base, file, known) or str(base / file).lstrip('./')
+                  for file in re.findall(r'[\w./-]+\.(?:[cm]?[jt]sx?|py)\b', str(script))}
+    return seeds
+
+
+def _file_seeds(source, path, known):
+    name = PurePosixPath(path).name
+    if name in ENTRY_FILES: return set() if _is_test(path) else {path}
+    if name == 'index.html': return _html_scripts(path, source.text(path) or '')
+    if name == 'package.json': return _manifest_seeds(path, source.text(path), known)
+    return set()
 
 
 def _edges(resolved):
@@ -162,17 +178,19 @@ def _relative(path, text, texts):
     """Files a module names by a literal path relative to itself: `new URL("./server/index.mjs", import.meta.url)`,
     `new Worker("./worker.js")`. The import graph does not see these loads; the literal says what they load."""
     base = PurePosixPath(path).parent
-    out = set()
-    for literal in RELATIVE_LITERAL.findall(text):
-        parts = []
-        for part in (base / literal).parts:
-            if part == '..':
-                if not parts: break
-                parts.pop()
-            elif part != '.': parts.append(part)
-        else:
-            if parts and '/'.join(parts) in texts: out.add('/'.join(parts))
-    return out
+    named = (_normalised(base, literal) for literal in RELATIVE_LITERAL.findall(text))
+    return {found for found in named if found and found in texts}
+
+
+def _normalised(base, literal):
+    """The snapshot path `literal` names from `base`, or None when it climbs above the root."""
+    parts = []
+    for part in (base / literal).parts:
+        if part == '..':
+            if not parts: return None
+            parts.pop()
+        elif part != '.': parts.append(part)
+    return '/'.join(parts)
 
 
 def _loaded(path, text, texts):
@@ -196,15 +214,29 @@ def _package_data(source, known):
     `[tool.setuptools.package-data]` glob. They are loaded by path at run time; no import names them."""
     data = {path for path in known if DATA_FOLDERS & set(PurePosixPath(path).parts[:-1]) and not _is_test(path)}
     for manifest in (path for path in known if PurePosixPath(path).name == 'pyproject.toml'):
-        section = re.search(r'^\[tool\.setuptools\.package-data\]\s*$(.*?)(?=^\[|\Z)', source.text(manifest) or '', re.M | re.S)
-        for package, globs in re.findall(r'^\s*"?([\w.*-]+)"?\s*=\s*\[([^\]]*)\]', section.group(1) if section else '', re.M):
-            root = PurePosixPath(manifest).parent
-            bases = ({PurePosixPath(p).parent for p in known if PurePosixPath(p).name == '__init__.py'} if package == '*'
-                     else {root / package.replace('.', '/'), root / 'src' / package.replace('.', '/')})
-            for glob in re.findall(r'["\']([^"\']+)["\']', globs):
-                pattern = _glob(glob)
-                data |= {path for path in known for base in bases
-                         if PurePosixPath(path).is_relative_to(base) and pattern.fullmatch(str(PurePosixPath(path).relative_to(base)))}
+        data |= _declared_data(source, manifest, known)
+    return data
+
+
+def _package_bases(known, root, package):
+    if package == '*': return {PurePosixPath(p).parent for p in known if PurePosixPath(p).name == '__init__.py'}
+    return {root / package.replace('.', '/'), root / 'src' / package.replace('.', '/')}
+
+
+def _matching(known, bases, glob):
+    pattern = _glob(glob)
+    return {path for path in known for base in bases
+            if PurePosixPath(path).is_relative_to(base) and pattern.fullmatch(str(PurePosixPath(path).relative_to(base)))}
+
+
+def _declared_data(source, manifest, known):
+    """The files one pyproject.toml's `[tool.setuptools.package-data]` globs match."""
+    section = re.search(r'^\[tool\.setuptools\.package-data\]\s*$(.*?)(?=^\[|\Z)', source.text(manifest) or '', re.M | re.S)
+    root = PurePosixPath(manifest).parent
+    data = set()
+    for package, globs in re.findall(r'^\s*"?([\w.*-]+)"?\s*=\s*\[([^\]]*)\]', section.group(1) if section else '', re.M):
+        bases = _package_bases(known, root, package)
+        for glob in re.findall(r'["\']([^"\']+)["\']', globs): data |= _matching(known, bases, glob)
     return data
 
 
@@ -275,6 +307,95 @@ class References:
 GLOBAL_OBJECTS = {'window', 'globalThis', 'self', 'global', 'document', 'navigator', 'console', 'process'}
 
 
+def _roots(source, known, seeds):
+    """Where the walk starts: the production entry points and, when there are any, the tool configurations and the
+    programs a CI step or a document says to run."""
+    # A tool configuration (vite.config.ts, next.config.mjs) is loaded by the tool itself whenever it runs; what it
+    # imports (a dev-server plugin, the API it mounts) is reached through it. It is a root to walk from, not an entry
+    # point: a library with only a test-runner config still has no production entry, and is judged as a library.
+    # A program a CI step or a document says to run is walked from the same way.
+    if not seeds: return seeds
+    configs = {path for path in known if NOT_CANDIDATES[0].search(path) and not _is_test(path)}
+    folders = {PurePosixPath(path).parent for path in known if PurePosixPath(path).name == 'package.json'}
+    commanded = {path for path in _commanded(source, known, folders) if not _is_test(path)}
+    return seeds | configs | commanded
+
+
+def _candidate_file(path):
+    return not _is_test(path) and classify(path) == 'source' and not any(rule.search(path) for rule in NOT_CANDIDATES)
+
+
+def _module_finding(path, test_importers, seeds, sha):
+    tests = sorted(test_importers.get(path, ()))
+    why = f'imported only by tests ({", ".join(tests[:3])})' if tests else 'no production entry point imports it'
+    program = bool(PROGRAM_FOLDERS & set(PurePosixPath(path).parts[:-1]))
+    if program and not tests: why = 'a program nothing in CI, the manifests or the docs runs'
+    return _finding('unreachable-module', path, 1, path, f'unreachable module `{path}`: {why}', 'module',
+                    f'{len(seeds)} production entry points and the resolved import graph do not reach it', sha,
+                    tests, program)
+
+
+def _judgeable_name(name, judged):
+    if not name or name.startswith('__') or name in ('main', 'default') or not judged(name): return False
+    # `{'past-empty': (m) => ...}` names a function by a quoted key: it is reached by a computed lookup
+    # (`MESSAGES[state]`), never by its name, so no text search can say it is unused.
+    if not TOKEN.fullmatch(name.rsplit('.', 1)[-1]): return False
+    # `window.alert = ...` replaces a platform global: every bare `alert()` reaches it, and none names it.
+    return not (name.split('.', 1)[0] in GLOBAL_OBJECTS and '.' in name)
+
+
+def _judgeable_symbol(path, value, name, scope):
+    if not path or path in scope['dead_modules'] or path in scope['skipped'] or path not in scope['code']: return False
+    if not _candidate_file(path): return False
+    if value.get('kind') not in ('function', 'class') or value.get('parent') or value.get('decorators'): return False
+    return _judgeable_name(name, scope['judged'])
+
+
+def _declares(text, start):
+    # `declare global { interface Window {...} }` extends a type the platform owns; nothing names it to use it.
+    return 'declare ' in '\n'.join(text.split('\n')[max(0, start - 4):start])
+
+
+def _noun(text, start, kind):
+    # TypeScript's `type`, `interface` and `enum` are parsed as classes; the reader is told what it is.
+    declared = (text.split('\n')[start - 1:start] or [''])[0]
+    word = re.match(r'\s*(?:export\s+)?(?:declare\s+)?(?:const\s+)?(type|interface|enum)\b', declared)
+    return word.group(1) if word and kind == 'class' else kind
+
+
+def _symbol_finding(fact, scope):
+    value, location = fact.get('value') or {}, fact.get('location') or {}
+    path, name = location.get('path'), value.get('name')
+    if not _judgeable_symbol(path, value, name, scope): return None
+    text = scope['refs'].texts.get(path) or ''
+    start = location.get('start_line') or 1
+    if _declares(text, start): return None
+    count, tests = scope['refs'].outside(name, path, (start, location.get('end_line') or 0))
+    if count: return None
+    module = str(PurePosixPath(path).with_suffix(''))
+    how = f'referenced only by tests ({", ".join(tests[:3])})' if tests else 'no reference outside its definition'
+    return _finding('unused-symbol', path, location.get('start_line') or 1, name,
+                    f'unused {_noun(text, start, value["kind"])} `{module}.{name}`: {how}', 'symbol',
+                    f'the name occurs nowhere in product code or configuration outside lines '
+                    f'{location.get("start_line")}-{location.get("end_line")}', scope['sha'], tests)
+
+
+def _constant_findings(path, scope):
+    text = scope['refs'].texts.get(path) or ''
+    pattern = PY_CONSTANT if language_of(path) == 'python' else JS_CONSTANT
+    module = str(PurePosixPath(path).with_suffix(''))
+    out = []
+    for match in pattern.finditer(text):
+        name, line = match.group(1), text.count('\n', 0, match.start()) + 1
+        if not scope['judged'](name): continue
+        count, tests = scope['refs'].outside(name, path, (line, line))
+        if count: continue
+        out.append(_finding('unread-constant', path, line, name,
+                            f'constant `{module}.{name}` is never read' + (f' outside tests ({", ".join(tests[:3])})' if tests else ''),
+                            'symbol', f'the name occurs nowhere in product code or configuration except line {line}', scope['sha'], tests))
+    return out
+
+
 def run(target, source, symbols=None, resolved=None, entry_points=None, **options):
     symbols = [f for f in (symbols or []) if f.get('kind') == 'symbol']
     known = {item['path'] for item in source.readable()}
@@ -286,74 +407,24 @@ def run(target, source, symbols=None, resolved=None, entry_points=None, **option
     # imports (a dev-server plugin, the API it mounts) is reached through it. It is a root to walk from, not an entry
     # point: a library with only a test-runner config still has no production entry, and is judged as a library.
     # A program a CI step or a document says to run is walked from the same way.
-    configs = {path for path in known if NOT_CANDIDATES[0].search(path) and not _is_test(path)}
-    folders = {PurePosixPath(path).parent for path in known if PurePosixPath(path).name == 'package.json'}
-    commanded = {path for path in _commanded(source, known, folders) if not _is_test(path)}
     texts = {p: refs.texts[p] for p in code if p in refs.texts}
-    reached = _reachable(seeds | configs | commanded if seeds else seeds, graph, texts)
+    reached = _reachable(_roots(source, known, seeds), graph, texts)
     # Package data and files loaded by a path literal are run or read whole by something else (a test runner, k6,
     # a codemod engine): they are reached, and their names are not judged one by one. A semgrep rule test is a
     # fixture for its rule: it is never a candidate.
     whole = _package_data(source, known) | {found for path in reached if path in texts for found in _loaded(path, texts[path], texts)}
     reached |= whole
     fixtures = {path for path in code if RULE_FIXTURE.search(texts.get(path) or '')}
-    skipped = whole | fixtures
     sha = source.content_fingerprint
-    facts = []
     # With no production entry point, nothing says who uses the code: a library's public names serve callers
     # outside the snapshot. Then only what is private by convention (`_name`) is judged, and no module is.
     judged = (lambda name: True) if seeds else (lambda name: name.startswith('_'))
-    unreachable = sorted(path for path in code if seeds and path not in reached and not _is_test(path) and path not in fixtures
-                         and classify(path) == 'source' and not any(rule.search(path) for rule in NOT_CANDIDATES))
-    for path in unreachable:
-        tests = sorted(test_importers.get(path, ()))
-        why = f'imported only by tests ({", ".join(tests[:3])})' if tests else 'no production entry point imports it'
-        program = bool(PROGRAM_FOLDERS & set(PurePosixPath(path).parts[:-1]))
-        if program and not tests: why = 'a program nothing in CI, the manifests or the docs runs'
-        facts.append(_finding('unreachable-module', path, 1, path, f'unreachable module `{path}`: {why}', 'module',
-                              f'{len(seeds)} production entry points and the resolved import graph do not reach it', sha,
-                              tests, program))
-    dead_modules = set(unreachable)
-    for fact in symbols:
-        value, location = fact.get('value') or {}, fact.get('location') or {}
-        path, name = location.get('path'), value.get('name')
-        if (not path or path in dead_modules or path in skipped or path not in code or _is_test(path) or classify(path) != 'source'
-                or any(rule.search(path) for rule in NOT_CANDIDATES)): continue
-        if value.get('kind') not in ('function', 'class') or value.get('parent') or value.get('decorators'): continue
-        if not name or name.startswith('__') or name in ('main', 'default') or not judged(name): continue
-        # `{'past-empty': (m) => ...}` names a function by a quoted key: it is reached by a computed lookup
-        # (`MESSAGES[state]`), never by its name, so no text search can say it is unused.
-        if not TOKEN.fullmatch(name.rsplit('.', 1)[-1]): continue
-        # `window.alert = ...` replaces a platform global: every bare `alert()` reaches it, and none names it.
-        if name.split('.', 1)[0] in GLOBAL_OBJECTS and '.' in name: continue
-        # `declare global { interface Window {...} }` extends a type the platform owns; nothing names it to use it.
-        start = location.get('start_line') or 1
-        if 'declare ' in '\n'.join((refs.texts.get(path) or '').split('\n')[max(0, start - 4):start]): continue
-        count, tests = refs.outside(name, path, (start, location.get('end_line') or 0))
-        if count: continue
-        module = str(PurePosixPath(path).with_suffix(''))
-        how = f'referenced only by tests ({", ".join(tests[:3])})' if tests else 'no reference outside its definition'
-        # TypeScript's `type`, `interface` and `enum` are parsed as classes; the reader is told what it is.
-        declared = ((refs.texts.get(path) or '').split('\n')[start - 1:start] or [''])[0]
-        word = re.match(r'\s*(?:export\s+)?(?:declare\s+)?(?:const\s+)?(type|interface|enum)\b', declared)
-        noun = word.group(1) if word and value['kind'] == 'class' else value['kind']
-        facts.append(_finding('unused-symbol', path, location.get('start_line') or 1, name,
-                              f'unused {noun} `{module}.{name}`: {how}', 'symbol',
-                              f'the name occurs nowhere in product code or configuration outside lines '
-                              f'{location.get("start_line")}-{location.get("end_line")}', sha, tests))
-    for path in sorted(code - dead_modules - skipped):
-        if _is_test(path) or classify(path) != 'source' or any(rule.search(path) for rule in NOT_CANDIDATES): continue
-        text = refs.texts.get(path) or ''
-        pattern = PY_CONSTANT if language_of(path) == 'python' else JS_CONSTANT
-        for match in pattern.finditer(text):
-            name, line = match.group(1), text.count('\n', 0, match.start()) + 1
-            if not judged(name): continue
-            count, tests = refs.outside(name, path, (line, line))
-            if count: continue
-            module = str(PurePosixPath(path).with_suffix(''))
-            facts.append(_finding('unread-constant', path, line, name,
-                                  f'constant `{module}.{name}` is never read' + (f' outside tests ({", ".join(tests[:3])})' if tests else ''),
-                                  'symbol', f'the name occurs nowhere in product code or configuration except line {line}', sha, tests))
+    unreachable = sorted(path for path in code if seeds and path not in reached and path not in fixtures and _candidate_file(path))
+    facts = [_module_finding(path, test_importers, seeds, sha) for path in unreachable]
+    scope = {'code': code, 'dead_modules': set(unreachable), 'skipped': whole | fixtures, 'judged': judged, 'refs': refs, 'sha': sha}
+    facts += [found for found in (_symbol_finding(fact, scope) for fact in symbols) if found]
+    for path in sorted(code - scope['dead_modules'] - scope['skipped']):
+        if _candidate_file(path): facts += _constant_findings(path, scope)
     summary = {'production_entry_points': len(seeds), 'modules_reached': len(reached & code), 'code_modules': len(code),
                'unreachable_modules': len(unreachable),
                'unused_symbols': sum(f['value']['rule'] == 'unused-symbol' for f in facts),
@@ -377,18 +448,26 @@ def adjudicate(findings, source, own=()):
         value = fact.get('value') or {}
         if fact.get('kind') != 'engine_finding' or value.get('kind') != 'dead_code' or value.get('engine') == 'eaos': continue
         location = fact.get('location') or {}
-        path, symbol = location.get('path'), location.get('symbol')
-        qualified = re.search(r'(?:function|method|class)\s+`?([\w./$]+)`?|`([\w./$]+)`', value.get('message') or '')
-        name = (symbol if symbol and symbol != path else None) or (next(g for g in qualified.groups() if g) if qualified else None)
-        name = name.rsplit('.', 1)[-1].rsplit('/', 1)[-1] if name else None
-        if not name or not TOKEN.fullmatch(name):
-            value['adjudication'] = {'verdict': 'not_a_symbol', 'reason': 'the finding names no symbol or module'}
-        elif value.get('referenced_by_registry'):
-            value['adjudication'] = {'verdict': 'refuted', 'reason': 'held in a registry the import graph cannot see'}
-        elif (path, name) in ours:
-            value['adjudication'] = {'verdict': 'confirmed', 'reason': 'EAOS finds no reference outside its definition either'}
-        else:
-            count, _ = refs.outside(name, path, (location.get('start_line') or 1, location.get('end_line') or location.get('start_line') or 0))
-            value['adjudication'] = ({'verdict': 'refuted', 'reason': f'the name occurs {count} time(s) in product text outside its definition'}
-                                     if count else {'verdict': 'unconfirmed', 'reason': 'the engine alone reports it'})
+        value['adjudication'] = _verdict(value, location, _candidate_name(value, location), ours, refs)
     return findings
+
+
+def _candidate_name(value, location):
+    """The bare name an engine's dead-code finding is about: its symbol, else the first name its message quotes."""
+    path, symbol = location.get('path'), location.get('symbol')
+    qualified = re.search(r'(?:function|method|class)\s+`?([\w./$]+)`?|`([\w./$]+)`', value.get('message') or '')
+    name = (symbol if symbol and symbol != path else None) or (next(g for g in qualified.groups() if g) if qualified else None)
+    return name.rsplit('.', 1)[-1].rsplit('/', 1)[-1] if name else None
+
+
+def _verdict(value, location, name, ours, refs):
+    path = location.get('path')
+    if not name or not TOKEN.fullmatch(name):
+        return {'verdict': 'not_a_symbol', 'reason': 'the finding names no symbol or module'}
+    if value.get('referenced_by_registry'):
+        return {'verdict': 'refuted', 'reason': 'held in a registry the import graph cannot see'}
+    if (path, name) in ours:
+        return {'verdict': 'confirmed', 'reason': 'EAOS finds no reference outside its definition either'}
+    count, _ = refs.outside(name, path, (location.get('start_line') or 1, location.get('end_line') or location.get('start_line') or 0))
+    if count: return {'verdict': 'refuted', 'reason': f'the name occurs {count} time(s) in product text outside its definition'}
+    return {'verdict': 'unconfirmed', 'reason': 'the engine alone reports it'}
