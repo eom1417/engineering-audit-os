@@ -557,7 +557,7 @@ function SnapshotBranches() {
         <SheetLead>{w('readOnlySnapshot')}</SheetLead>
         <Props rows={[
           [w('scannedBranch'), scanned?.detached ? w('detachedShort') : scanned?.branch ? <Id value={scanned.branch} /> : w('legacyNotRecorded'), !scanned?.branch],
-          [w('scannedCommit'), scanned?.commit && scanned.recorded ? <Id value={scanned.commit} /> : w('legacyNotRecorded'), !scanned?.recorded],
+          [w('scannedCommit'), scanned?.commit && scanned.recorded ? <span title={scanned.commit}><Id value={scanned.commit.slice(0, 12)} /></span> : w('legacyNotRecorded'), !scanned?.recorded],
           [w('scannedDirty'), scanned?.dirty === true ? w('yes') : scanned?.dirty === false ? w('no') : w('legacyNotRecorded'), scanned?.dirty == null],
         ]} />
       </Panel>
