@@ -88,8 +88,8 @@
 .table .numCol { text-align: end; }
 
 /* The plan board */
-.stepper { display: flex; flex-wrap: wrap; gap: 4px 0; font-size: 12px; color: var(--text-tertiary); }
-.stepper li { display: inline-flex; align-items: center; gap: 6px; padding-inline-end: 14px; }
+.stepper { display: flex; flex-wrap: nowrap; gap: 4px 0; font-size: 12px; color: var(--text-tertiary); overflow-x: auto; max-inline-size: 100%; }
+.stepper li { display: inline-flex; align-items: center; gap: 6px; padding-inline-end: 10px; white-space: nowrap; flex: none; }
 .stepper i { inline-size: 10px; block-size: 10px; border-radius: 50%; border: 2px solid var(--border-strong); }
 .stepper li[data-past] i { background: var(--text-tertiary); border-color: var(--text-tertiary); }
 .stepper li[aria-current="step"] { color: var(--text-primary); font-weight: 600; }

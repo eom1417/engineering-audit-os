@@ -80,7 +80,7 @@ function Stepper({ state }: { state: string }) {
   const w = useChangeWords()
   const at = PLAN_STATES.indexOf(state as (typeof PLAN_STATES)[number])
   return (
-    <ol className={css.stepper} aria-label={w('planState')}>
+    <ol className={css.stepper} aria-label={w('planState')} data-scroll-x="">
       {PLAN_STATES.map((s, i) => (
         <li key={s} data-past={i < at ? '' : undefined} aria-current={i === at ? 'step' : undefined}>
           <i aria-hidden="true" /><span>{w(`ps_${s}`)}</span>
