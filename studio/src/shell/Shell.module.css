@@ -77,7 +77,7 @@
   .phone > button, .liveLink { flex: none; }
   .phoneChips { display: flex; align-items: center; gap: 4px; min-inline-size: 0; flex: 0 1 auto; }
   .phoneChips > * { min-inline-size: 0; }
-  .phoneChips .freshChip { flex: 0 1 auto; }
+  .phoneChips .freshChip { flex: 0 3 auto; }
   .phoneChips .freshChip button { max-inline-size: 100%; overflow: hidden; }
   .back { display: inline-flex; align-items: center; gap: 2px; min-block-size: 44px; padding-inline: 4px 10px; color: var(--accent-text); font-size: 16px; font-weight: 500; min-inline-size: 0; }
   .back span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
