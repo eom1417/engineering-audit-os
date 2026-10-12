@@ -302,7 +302,7 @@ def _not_measured_row(section, report, built, lang):
 
 def _written_detail(lang, empty, gaps, tiers, parts):
     return (_text(lang, 'قيس ولم يُوجد شيء.', 'Measured; nothing was found.') if empty else
-                                    _text(lang, 'مقيس، وأجزاء منه لم تُقس بعد: ', 'Measured; parts are not measured yet: ')
-                                    + _text(lang, '؛ ', '; ').join(p['detail'].rstrip('.') for p in parts) + '.' if gaps else
-                                    _text(lang, 'قيس جزء من المسار؛ الفجوات معدودة في أجزائه.', 'Part of each path is measured; the gaps are counted in its parts.') if tiers else
-                                    _text(lang, 'مقيس في هذا الفحص.', 'Measured in this check.'))
+            _text(lang, 'مقيس، وأجزاء منه لم تُقس بعد: ', 'Measured; parts are not measured yet: ')
+            + _text(lang, '؛ ', '; ').join(p['detail'].rstrip('.') for p in parts) + '.' if gaps else
+            _text(lang, 'قيس جزء من المسار؛ الفجوات معدودة في أجزائه.', 'Part of each path is measured; the gaps are counted in its parts.') if tiers else
+            _text(lang, 'مقيس في هذا الفحص.', 'Measured in this check.'))
