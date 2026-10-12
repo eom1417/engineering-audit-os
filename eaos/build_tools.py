@@ -171,30 +171,19 @@ def _ensure_git(state):
     return True
 
 
-def build_start(project=None, person_agreed=False):
-    state = _state(project)
-    if state.get('open_build'):
-        build = state['open_build']
-        return {'status': 'open', 'milestone': build['milestone'], 'to_do': _left(build), 'kept': list(build['kept']),
-                'what_now': 'This milestone is open: build the cards left with build_edit, then build_finish.'}
-    plan = _plan(state)
-    if not plan: return {'status': 'no_blueprint', 'what_now': 'Call blueprint_start, blueprint_spec and blueprint_design first.'}
-    if not person_agreed and not (state.get('consent') or {}).get('build'):
-        return {'status': 'needs_agreement', 'ask_the_person': CONSENT,
-                'what_now': 'Ask the person this, in their language. Only if they say yes, call build_start with person_agreed=true.'}
-    state['consent'] = {**(state.get('consent') or {}), 'build': True, 'at': agent_tools._now()}
-    started = _ensure_git(state)
+def _open_answer(build):
+    return {'status': 'open', 'milestone': build['milestone'], 'to_do': _left(build), 'kept': list(build['kept']),
+            'what_now': 'This milestone is open: build the cards left with build_edit, then build_finish.'}
+
+
+def _next_milestone(state, plan):
+    """The first milestone with a card neither kept nor skipped yet, or None."""
     done = {card for record in state.get('built') or [] for card in record['kept'] + list(record['skipped'])}
-    milestone = next((m for m in plan['milestones'] if any(c not in done for c in m['tasks'])), None)
-    if milestone is None:
-        guided.save(state)
-        return {'status': 'built', 'what_now': 'Every milestone is built. Ask the person whether to take the last branch in '
-                                               '(accept with person_agreed=true), then offer the audit of the built project.'}
-    from .live_setup import authorize
-    runtime = guided.runtime_of(state)
-    who = _git(state['project'], 'config', 'user.name').stdout.strip() or os.environ.get('USER') or 'the owner'
-    authorize(state['project'], runtime, who)
-    number = len(state.get('built') or []) + 1
+    return next((m for m in plan['milestones'] if any(c not in done for c in m['tasks'])), None)
+
+
+def _milestone_copy(state, runtime, number):
+    """The isolated copy of milestone `number` on its own branch, stacked on the branch the last milestone ended on."""
     root = runtime / 'candidates' / f'BUILD-{number}'
     shutil.rmtree(root, ignore_errors=True)
     root.parent.mkdir(parents=True, exist_ok=True)
@@ -206,6 +195,30 @@ def build_start(project=None, person_agreed=False):
         _git(root, 'checkout', '-q', previous['branch'])
     _git(root, 'checkout', '-q', '-b', f'eaos/build-{number}')
     if number == 1: _commit_blueprint(state, root)
+    return root
+
+
+def build_start(project=None, person_agreed=False):
+    state = _state(project)
+    if state.get('open_build'): return _open_answer(state['open_build'])
+    plan = _plan(state)
+    if not plan: return {'status': 'no_blueprint', 'what_now': 'Call blueprint_start, blueprint_spec and blueprint_design first.'}
+    if not person_agreed and not (state.get('consent') or {}).get('build'):
+        return {'status': 'needs_agreement', 'ask_the_person': CONSENT,
+                'what_now': 'Ask the person this, in their language. Only if they say yes, call build_start with person_agreed=true.'}
+    state['consent'] = {**(state.get('consent') or {}), 'build': True, 'at': agent_tools._now()}
+    started = _ensure_git(state)
+    milestone = _next_milestone(state, plan)
+    if milestone is None:
+        guided.save(state)
+        return {'status': 'built', 'what_now': 'Every milestone is built. Ask the person whether to take the last branch in '
+                                               '(accept with person_agreed=true), then offer the audit of the built project.'}
+    from .live_setup import authorize
+    runtime = guided.runtime_of(state)
+    who = _git(state['project'], 'config', 'user.name').stdout.strip() or os.environ.get('USER') or 'the owner'
+    authorize(state['project'], runtime, who)
+    number = len(state.get('built') or []) + 1
+    root = _milestone_copy(state, runtime, number)
     build = {'number': number, 'milestone': milestone['id'], 'root': str(root), 'base': _git(root, 'rev-parse', 'HEAD').stdout.strip(),
              'cards': milestone['tasks'], 'kept': {}, 'skipped': {}, 'installed': None}
     state['open_build'] = build
@@ -251,14 +264,18 @@ def build_read(path, project=None, start=1, end=None):
     state = _state(project)
     root = Path(_open(state)['root'])
     file = agent_tools._inside(root, path or '.') if path not in ('', '.') else root
-    if file.is_dir():
-        return {'folder': path or '.', 'entries': sorted(p.name + ('/' if p.is_dir() else '') for p in file.iterdir()
-                                                         if p.name not in ('.git', 'node_modules'))[:500]}
+    if file.is_dir(): return _folder_listing(path, file)
     if not file.is_file(): raise ValueError(f'{path} does not exist in the copy yet')
     lines = file.read_text(encoding='utf-8', errors='replace').splitlines()
     start = max(int(start or 1), 1)
     end = min(int(end or len(lines)), len(lines), start + 1999)
     return {'path': path, 'lines': len(lines), 'text': '\n'.join(f'{n:>5}  {lines[n - 1]}' for n in range(start, end + 1))}
+
+
+def _folder_listing(path, folder_path):
+    """A folder of the copy: its entries, sub-folders marked with '/', without .git and node_modules."""
+    return {'folder': path or '.', 'entries': sorted(p.name + ('/' if p.is_dir() else '') for p in folder_path.iterdir()
+                                                     if p.name not in ('.git', 'node_modules'))[:500]}
 
 
 def build_edit(card, edits, summary='', project=None):
@@ -279,23 +296,34 @@ def _checks(root, build, progress):
     stamp = ''.join(sorted(_git(root, 'ls-files', '-s', '--', '*package.json', 'package-lock.json').stdout.split()))
     env = {k: v for k, v in os.environ.items() if k in ('PATH', 'HOME', 'LANG', 'TMPDIR', 'PLAYWRIGHT_BROWSERS_PATH')}
     env.update(CI='1', NODE_ENV='test')
-    failed = []
     if build.get('installed') != stamp or not (root / 'node_modules').is_dir():
-        progress(0, 4, 'installing the libraries')
-        done = subprocess.run(['npm', 'install', '--no-audit', '--no-fund', '--loglevel=error'], cwd=root, capture_output=True,
-                              text=True, timeout=1800, env=env)
-        if done.returncode:
-            return [{'gate': 'install', 'where': 'package.json', 'what': 'npm install failed: ' + (done.stdout + done.stderr)[-1500:]}], build
+        failure = _install(root, env, progress)
+        if failure: return [failure], build
         build = {**build, 'installed': stamp}
-    for index, script in enumerate(CHECK_SCRIPTS, start=1):
-        if script not in scripts:
-            failed.append({'gate': 'scripts', 'where': 'package.json', 'what': f'there is no "{script}" script: the skeleton declares it'})
-            continue
-        progress(index, 4, f'npm run {script}')
-        done = subprocess.run(['npm', 'run', script], cwd=root, capture_output=True, text=True, timeout=1800, env=env)
-        if done.returncode:
-            failed.append({'gate': script, 'where': 'package.json', 'what': f'npm run {script} failed: ' + (done.stdout + done.stderr)[-2000:]})
+    failed = [problem for index, script in enumerate(CHECK_SCRIPTS, start=1)
+              for problem in [_run_script(root, env, scripts, script, lambda text, n=index: progress(n, 4, text))] if problem]
     return failed, build
+
+
+def _install(root, env, progress):
+    """npm install in the copy; the problem when it fails, else None."""
+    progress(0, 4, 'installing the libraries')
+    done = subprocess.run(['npm', 'install', '--no-audit', '--no-fund', '--loglevel=error'], cwd=root, capture_output=True,
+                          text=True, timeout=1800, env=env)
+    if done.returncode:
+        return {'gate': 'install', 'where': 'package.json', 'what': 'npm install failed: ' + (done.stdout + done.stderr)[-1500:]}
+    return None
+
+
+def _run_script(root, env, scripts, script, say):
+    """One of the project's check scripts; the problem when it is missing or fails, else None."""
+    if script not in scripts:
+        return {'gate': 'scripts', 'where': 'package.json', 'what': f'there is no "{script}" script: the skeleton declares it'}
+    say(f'npm run {script}')
+    done = subprocess.run(['npm', 'run', script], cwd=root, capture_output=True, text=True, timeout=1800, env=env)
+    if done.returncode:
+        return {'gate': script, 'where': 'package.json', 'what': f'npm run {script} failed: ' + (done.stdout + done.stderr)[-2000:]}
+    return None
 
 
 def _gates(state, root, card=None, closing=False, progress=lambda *_: None):
@@ -399,17 +427,22 @@ def status(project=None):
     answer = {'project': state['project'], 'mode': 'build from a plan', 'outputs_folder': str(guided.outputs(state)),
               'blueprint': str(folder(state) / 'BLUEPRINT.md') if bp.get('designed') else None,
               'milestones_built': done, 'open_milestone': build['milestone'] if build else None}
-    if not (folder(state) / 'SOURCE.md').is_file(): step = ('blueprint_start', 'no plan has been read yet')
-    elif not bp.get('spec_ok'): step = ('blueprint_spec', 'the product spec is missing or incomplete')
-    elif not bp.get('designed'): step = ('blueprint_design', 'the target and the build plan are not drawn yet')
-    elif build: step = ('build_edit, then build_finish', f"milestone {build['milestone']} is open")
-    elif plan and len(done) < len(plan['milestones']): step = ('build_start', 'the next milestone is waiting')
-    elif any(w.get('status') == 'applied' for w in state.get('waves') or []):
-        step = ('accept', 'everything is built: the person decides whether to take the last branch in')
-    else: step = ('audit', 'everything is built and taken in: offer the check of the finished project')
+    step = _next_step(state, plan, bp, build, done)
     answer['next'] = {'tool': step[0], 'why': step[1]}
     answer['handover'] = handover.brief(state)
     return answer
+
+
+def _next_step(state, plan, bp, build, done):
+    """(tool, why) of the next step of building from a plan."""
+    if not (folder(state) / 'SOURCE.md').is_file(): return 'blueprint_start', 'no plan has been read yet'
+    if not bp.get('spec_ok'): return 'blueprint_spec', 'the product spec is missing or incomplete'
+    if not bp.get('designed'): return 'blueprint_design', 'the target and the build plan are not drawn yet'
+    if build: return 'build_edit, then build_finish', f"milestone {build['milestone']} is open"
+    if plan and len(done) < len(plan['milestones']): return 'build_start', 'the next milestone is waiting'
+    if any(w.get('status') == 'applied' for w in state.get('waves') or []):
+        return 'accept', 'everything is built: the person decides whether to take the last branch in'
+    return 'audit', 'everything is built and taken in: offer the check of the finished project'
 
 
 def status_of(project=None):
