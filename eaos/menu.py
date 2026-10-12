@@ -75,28 +75,37 @@ def _status(project):
 
 def _numbers(answer, lang):
     """The descriptions made from this project's own numbers, where they say more than the generic one."""
-    ar, said = lang == 'ar', {}
-    progress = answer.get('progress') or {}
-    handover = answer.get('handover') or {}
-    work, busy = handover.get('open_work'), handover.get('running_job')
-    if busy:
-        said['continue'] = (f"{busy['kind']} يعمل الآن، وأتابعه من حيث وصل" if ar else f"A {busy['kind']} is running: I follow it from where it is")
-    elif work:
-        number = work.get('number') or work.get('milestone')
-        said['continue'] = (f"الدفعة {number} مفتوحة: حُفظ {len(work['kept'])}، باقي {len(work['left'])}" if ar else
-                            f"Batch {number} is open: {len(work['kept'])} kept, {len(work['left'])} left")
+    ar = lang == 'ar'
+    said = _continue_words(answer.get('handover') or {}, ar)
     if answer.get('waiting_branch'):
         said['decide'] = (f"الفرع {answer['waiting_branch']} ينتظر قرارك: تدمجه أو تتراجع عنه" if ar else
                           f"{answer['waiting_branch']} waits for you: take it in or throw it away")
-    if progress.get('total'):
-        left = progress['total'] - progress['closed']
-        said['tasks'] = (f"انتهى {progress['closed']} من {progress['total']} ({progress['percent']}%)، وباقي {left}" if ar else
-                         f"{progress['closed']} of {progress['total']} done ({progress['percent']}%), {left} left")
-        if left: said['fix'] = (f"باقي {left} مشكلة. الإصلاح في نسخة معزولة ويصلك كفرع جديد" if ar else
-                                f"{left} problems left; fixed in an isolated copy, handed over as a new branch")
+    said.update(_progress_words(answer.get('progress') or {}, ar))
     if answer.get('older_check'):
         said['audit'] = ('تغيّر الكود أو EAOS بعد آخر فحص: افحص من جديد متى ما بغيت' if ar else
                          'The code or EAOS changed since the last check: check again whenever you want')
+    return said
+
+
+def _continue_words(handover, ar):
+    """{continue: what is running, or the open batch with how many cards are kept and left}; {} when nothing is open."""
+    work, busy = handover.get('open_work'), handover.get('running_job')
+    if busy:
+        return {'continue': (f"{busy['kind']} يعمل الآن، وأتابعه من حيث وصل" if ar else f"A {busy['kind']} is running: I follow it from where it is")}
+    if not work: return {}
+    number = work.get('number') or work.get('milestone')
+    return {'continue': (f"الدفعة {number} مفتوحة: حُفظ {len(work['kept'])}، باقي {len(work['left'])}" if ar else
+                         f"Batch {number} is open: {len(work['kept'])} kept, {len(work['left'])} left")}
+
+
+def _progress_words(progress, ar):
+    """{tasks: how many are done, fix: how many are left} from the plan's progress; {} before a plan."""
+    if not progress.get('total'): return {}
+    left = progress['total'] - progress['closed']
+    said = {'tasks': (f"انتهى {progress['closed']} من {progress['total']} ({progress['percent']}%)، وباقي {left}" if ar else
+                      f"{progress['closed']} of {progress['total']} done ({progress['percent']}%), {left} left")}
+    if left: said['fix'] = (f"باقي {left} مشكلة. الإصلاح في نسخة معزولة ويصلك كفرع جديد" if ar else
+                            f"{left} problems left; fixed in an isolated copy, handed over as a new branch")
     return said
 
 
@@ -111,19 +120,22 @@ def _available(answer, folder):
     if answer.get('mode') == 'build from a plan':         # its plan is read already: the build goes on from status's next step
         waiting = (answer.get('next') or {}).get('tool') == 'accept'
         return ['decide' if waiting and not open_work else 'continue', 'status', 'tools']
+    return _check_order(answer, open_work)
+
+
+def _check_order(answer, open_work):
+    """A checked (or not yet checked) project's options: open work, a waiting branch, the check, then fixing."""
     checked = bool(answer.get('checked'))
     step = (answer.get('next') or {}).get('tool') or ''
     left = (answer.get('progress') or {}).get('total', 0) - (answer.get('progress') or {}).get('closed', 0)
-    order = []
-    if open_work: order.append('continue')
-    if answer.get('waiting_branch'): order.append('decide')
+    waiting = bool(answer.get('waiting_branch'))
+    order = (['continue'] if open_work else []) + (['decide'] if waiting else [])
     if not checked or step == 'audit': order.append('audit')
-    if checked and not open_work and not answer.get('waiting_branch') and left > 0 and step != 'audit': order.append('fix')
+    if checked and not open_work and not waiting and left > 0 and step != 'audit': order.append('fix')
     if checked: order += ['report', 'tasks', 'ask']
     order.append('status')
     if checked and 'audit' not in order: order.append('audit')
-    order += ['build', 'tools']
-    return order
+    return order + ['build', 'tools']
 
 
 def pages(ids):
@@ -139,31 +151,50 @@ def pages(ids):
 def menu(project=None, lang=None):
     from . import guided
     folder = Path(project or os.getcwd()).expanduser().resolve()
-    state = guided.load(folder) if folder.is_dir() else None
-    try:
-        answer = _status(str(folder)) if state or guided.looks_like_project(folder) else None
-    except ValueError:                                      # not a project folder after all
-        answer = None
+    answer = _answer_of(folder)
     lang = guided.language(lang, guided.load(folder) if folder.is_dir() else None)
     ar = lang == 'ar'
     ids = _available(answer, folder)
     said = _numbers(answer or {}, lang)
-    recommended = ' (موصى به)' if ar else ' (Recommended)'
-
-    def option(key, first=False):
-        if key == MORE:
-            return {'id': MORE, 'label': MORE_WORDS[0][0 if ar else 1], 'description': MORE_WORDS[1][0 if ar else 1],
-                    'do': 'Show the next page of this menu, the same way.'}
-        return {'id': key, 'label': OPTIONS[key][0 if ar else 1] + (recommended if first else ''),
-                'description': said.get(key) or DESCRIBE[key][0 if ar else 1], 'do': OPTIONS[key][2]}
     return {'project': folder.name, 'language': lang, 'state': _headline(folder.name, answer, ar),
             'question': 'ماذا تريد أن نفعل؟' if ar else 'What would you like to do?',
-            'pages': [[option(key, first=(n == 0 and i == 0)) for i, key in enumerate(page)] for n, page in enumerate(pages(ids))],
+            'pages': [[_option(key, n == 0 and i == 0, ar, said) for i, key in enumerate(page)] for n, page in enumerate(pages(ids))],
             'how_to_show': ('Show pages[0] as one choice (in Claude Code: AskUserQuestion with header "EAOS", the question '
                             'preceded by `state`, and each option\'s label and description as they are, in this order). Without '
                             'a choice tool, write `state`, then the options numbered with their descriptions, and wait for '
                             'the person\'s answer. "more" shows the next page. Once they chose, do what the option\'s `do` says '
                             'at once, without asking again; their own words instead of a choice are a request: do it.')}
+
+
+def _answer_of(folder):
+    """The project's status, or None when the folder is no project."""
+    from . import guided
+    state = guided.load(folder) if folder.is_dir() else None
+    try:
+        return _status(str(folder)) if state or guided.looks_like_project(folder) else None
+    except ValueError:                                      # not a project folder after all
+        return None
+
+
+def _option(key, first, ar, said):
+    """One option in the person's language; the first is marked recommended, MORE shows the next page."""
+    if key == MORE:
+        return {'id': MORE, 'label': MORE_WORDS[0][0 if ar else 1], 'description': MORE_WORDS[1][0 if ar else 1],
+                'do': 'Show the next page of this menu, the same way.'}
+    recommended = ' (موصى به)' if ar else ' (Recommended)'
+    return {'id': key, 'label': OPTIONS[key][0 if ar else 1] + (recommended if first else ''),
+            'description': said.get(key) or DESCRIBE[key][0 if ar else 1], 'do': OPTIONS[key][2]}
+
+
+def _progress_part(answer, ar):
+    """How much of the plan is done, that the project is not checked yet, or None."""
+    progress = answer.get('progress') or {}
+    if progress.get('total'):
+        return (f"المنجز {progress['closed']} من {progress['total']} ({progress['percent']}%)" if ar else
+                f"{progress['closed']} of {progress['total']} done ({progress['percent']}%)")
+    if answer.get('mode') != 'build from a plan' and answer.get('status') != 'needs_branch' and not answer.get('checked'):
+        return 'لم يُفحص بعد' if ar else 'not checked yet'
+    return None
 
 
 def _headline(name, answer, ar):
@@ -173,12 +204,8 @@ def _headline(name, answer, ar):
         parts.append('ليس مشروعًا بعد' if ar else 'not a project yet')
         return ' · '.join(parts)
     if answer.get('branch'): parts.append(answer['branch'])
-    progress = answer.get('progress') or {}
-    if progress.get('total'):
-        parts.append(f"المنجز {progress['closed']} من {progress['total']} ({progress['percent']}%)" if ar else
-                     f"{progress['closed']} of {progress['total']} done ({progress['percent']}%)")
-    elif answer.get('mode') != 'build from a plan' and answer.get('status') != 'needs_branch' and not answer.get('checked'):
-        parts.append('لم يُفحص بعد' if ar else 'not checked yet')
+    progress = _progress_part(answer, ar)
+    if progress: parts.append(progress)
     if answer.get('waiting_branch'): parts.append('فرع ينتظر قرارك' if ar else 'a branch waits for you')
     if (answer.get('handover') or {}).get('open_work'): parts.append('عمل مفتوح' if ar else 'work open')
     return ' · '.join(parts)
