@@ -114,20 +114,7 @@ function ProblemsBody({ data }: { data: StudioData }) {
   const w = useProblemWords()
   const address = useSearch({ strict: false }) as ProblemsSearch
   const navigate = useNavigate()
-  // The search words filter as they are typed and reach the address a moment later: writing the address on every
-  // keystroke draws the router's subscribers again before the list can answer. A change of the address from
-  // elsewhere (back, a link, the address bar) replaces the words.
-  const [typed, setTyped] = useState(address.q ?? '')
-  const seen = useRef(address.q)
-  if (seen.current !== address.q) { seen.current = address.q; if ((address.q ?? '') !== typed) setTyped(address.q ?? '') }
-  useEffect(() => {
-    if ((address.q ?? '') === typed) return
-    const timer = setTimeout(() => {
-      seen.current = typed || undefined
-      navigate({ to: '/problems', search: (was: ProblemsSearch) => ({ ...was, q: typed || undefined }), replace: true })
-    }, TYPING_MS)
-    return () => clearTimeout(timer)
-  }, [typed, address.q, navigate])
+  const [typed, setTyped] = useTypedSearch(address, navigate)
   const search = useMemo(() => ({ ...address, q: typed || undefined }), [address, typed])
   // The cards the list shows stay those it opened with until the person asks for a newer check's
   const [pinned, setPinned] = useState(() => data.cards)
@@ -162,16 +149,7 @@ function ProblemsBody({ data }: { data: StudioData }) {
   const total = list.rows.length
   const active = activeCount(filters) - (filters.who !== 'all' ? 1 : 0)
 
-  // Draw the first `limit` items, as segments under their group headings
-  const segments: { head?: Item & { kind: 'group' }; items: (Item & { kind: 'row' })[] }[] = []
-  let drawn = 0
-  for (const item of items) {
-    if (item.kind === 'group') { segments.push({ head: item, items: [] }); continue }
-    if (drawn >= limit) break
-    if (!segments.length) segments.push({ items: [] })
-    segments[segments.length - 1].items.push(item)
-    drawn += 1
-  }
+  const { segments, drawn } = segmentsOf(items, limit)
   const left = result.rows.length - drawn
 
   return (
@@ -196,29 +174,77 @@ function ProblemsBody({ data }: { data: StudioData }) {
           <Controls who={filters.who} group={filters.group} chosen={chosen} active={active} onSet={onSet} onFilters={openSheet} />
           <ListTools shown={ids} />
         </div>
-        {result.rows.length === 0 ? <div className={css.empty}><StateMessage title={t('noResults')} /></div> : (
-          <div className={css.list} aria-label={listName} role="region">
-            {segments.map((segment, i) => <Segment key={segment.head ? `g:${segment.head.key}` : `r:${i}`} head={segment.head} items={segment.items} search={search} order={ids} />)}
-            {left > 0 && (
-              <div className={css.more}>
-                <Button variant="secondary" onPress={() => setLimit(limit + MORE)}>{w('showMore', { n: Math.min(MORE, left) })}</Button>
-                <span className={css.muted}>{w('remaining', { n: left })}</span>
-              </div>
-            )}
-          </div>
-        )}
+        {result.rows.length === 0 ? <div className={css.empty}><StateMessage title={t('noResults')} /></div>
+          : <ProblemList name={listName} segments={segments} search={search} ids={ids} left={left} onMore={() => setLimit(limit + MORE)} />}
         <FilterSheet open={sheet} onOpenChange={setSheet} facets={result.facets} chosen={filters.chosen} group={filters.group}
           onFacet={setFacet} onGroup={(group: GroupBy | null) => set({ group: group ?? undefined })} onClear={clear} />
       </div>
       <div className={[layout.detailPane, !selected && layout.phoneHidden].filter(Boolean).join(' ')}>
         <div className={layout.page}>
-          {selected ? (detailWaiting.length ? <SectionsLoading waiting={detailWaiting} /> : <Detail card={selected} data={data} />)
-            : search.card ? <Panel><StateMessage kind="error" title={t('notFoundCard')} /></Panel>
-              : <Panel><StateMessage icon="problems" title={t('chooseProblem')} /></Panel>}
+          <DetailSide selected={selected} asked={search.card} waiting={detailWaiting} data={data} />
         </div>
       </div>
     </div>
   )
+}
+
+/** The search words filter as they are typed and reach the address a moment later: writing the address on every
+ * keystroke draws the router's subscribers again before the list can answer. A change of the address from
+ * elsewhere (back, a link, the address bar) replaces the words. */
+function useTypedSearch(address: ProblemsSearch, navigate: ReturnType<typeof useNavigate>) {
+  const [typed, setTyped] = useState(address.q ?? '')
+  const seen = useRef(address.q)
+  if (seen.current !== address.q) { seen.current = address.q; if ((address.q ?? '') !== typed) setTyped(address.q ?? '') }
+  useEffect(() => {
+    if ((address.q ?? '') === typed) return
+    const timer = setTimeout(() => {
+      seen.current = typed || undefined
+      navigate({ to: '/problems', search: (was: ProblemsSearch) => ({ ...was, q: typed || undefined }), replace: true })
+    }, TYPING_MS)
+    return () => clearTimeout(timer)
+  }, [typed, address.q, navigate])
+  return [typed, setTyped] as const
+}
+
+type Segments = { head?: Item & { kind: 'group' }; items: (Item & { kind: 'row' })[] }[]
+
+/** The first `limit` rows, as segments under their group headings, and how many rows were drawn. */
+function segmentsOf(items: Item[], limit: number): { segments: Segments; drawn: number } {
+  const segments: Segments = []
+  let drawn = 0
+  for (const item of items) {
+    if (item.kind === 'group') { segments.push({ head: item, items: [] }); continue }
+    if (drawn >= limit) break
+    if (!segments.length) segments.push({ items: [] })
+    segments[segments.length - 1].items.push(item)
+    drawn += 1
+  }
+  return { segments, drawn }
+}
+
+/** The drawn rows under their headings, and "show more" while rows are left. */
+function ProblemList({ name, segments, search, ids, left, onMore }:
+  { name: string; segments: Segments; search: ProblemsSearch; ids: string[]; left: number; onMore: () => void }) {
+  const w = useProblemWords()
+  return (
+    <div className={css.list} aria-label={name} role="region">
+      {segments.map((segment, i) => <Segment key={segment.head ? `g:${segment.head.key}` : `r:${i}`} head={segment.head} items={segment.items} search={search} order={ids} />)}
+      {left > 0 && (
+        <div className={css.more}>
+          <Button variant="secondary" onPress={onMore}>{w('showMore', { n: Math.min(MORE, left) })}</Button>
+          <span className={css.muted}>{w('remaining', { n: left })}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** The detail side: the chosen card (once its sections arrived), a card the address names that is not there, or a hint. */
+function DetailSide({ selected, asked, waiting, data }: { selected?: Card; asked?: string; waiting: ReturnType<typeof useSections>; data: StudioData }) {
+  const { t } = usePrefs()
+  if (selected) return waiting.length ? <SectionsLoading waiting={waiting} /> : <Detail card={selected} data={data} />
+  return asked ? <Panel><StateMessage kind="error" title={t('notFoundCard')} /></Panel>
+    : <Panel><StateMessage icon="problems" title={t('chooseProblem')} /></Panel>
 }
 
 export function ProblemsPage() {
