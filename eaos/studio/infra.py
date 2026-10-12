@@ -101,17 +101,23 @@ class _Lanes:
     def __init__(self):
         self.nodes = {lane: {} for lane in LANES}
 
-    def add(self, lane, nid, name, kind, fact=None, detail=None, item=None):
-        node = self.nodes[lane].setdefault(nid, {'id': nid, 'lane': lane, 'name': name, 'kind': kind, 'detail': {},
-                                                 'items': [], 'sites': [], 'evidence': 0})
+    def add(self, lane, node, fact=None, **more):
+        """`node`: (id, name, kind); `more`: detail (a count adds up, any other value replaces) and item."""
+        nid, name, kind = node
+        entry = self.nodes[lane].setdefault(nid, {'id': nid, 'lane': lane, 'name': name, 'kind': kind, 'detail': {},
+                                                  'items': [], 'sites': [], 'evidence': 0})
         if fact is not None:
-            node['evidence'] += 1
-            if len(node['sites']) < SHOWN: node['sites'].append(_site(fact))
-        for key, value in (detail or {}).items():
-            if isinstance(value, int) and not isinstance(value, bool): node['detail'][key] = node['detail'].get(key, 0) + value
-            else: node['detail'][key] = value
-        if item and item not in node['items']: node['items'].append(item)
-        return node
+            entry['evidence'] += 1
+            if len(entry['sites']) < SHOWN: entry['sites'].append(_site(fact))
+        for key, value in (more.get('detail') or {}).items(): _merge(entry['detail'], key, value)
+        item = more.get('item')
+        if item and item not in entry['items']: entry['items'].append(item)
+        return entry
+
+
+def _merge(detail, key, value):
+    if isinstance(value, int) and not isinstance(value, bool): detail[key] = detail.get(key, 0) + value
+    else: detail[key] = value
 
 
 def _tests(report):
@@ -120,118 +126,160 @@ def _tests(report):
     return lambda path: path in files or bool(TEST_PATH.search(path))
 
 
-def infra(report, lang='ar'):
-    """The section's body: {app, lanes, counts, target, src}."""
-    report = Path(report)
-    is_test = _tests(report)
-    live = lambda rows: [f for f in rows if not is_test(arch_map.path_of(f))]
-    lanes = _Lanes()
-
+def _hosting(report, lanes, live):
     for fact in live(arch_map.facts(report, 'runtime', 'deployment_target')):
         v = fact.get('value') or {}
         if v.get('kind') == 'dockerfile':
-            lanes.add('hosting', f'host:docker:{arch_map.path_of(fact)}', 'Docker', 'container', fact, item=f"port {v.get('port')}")
+            lanes.add('hosting', (f'host:docker:{arch_map.path_of(fact)}', 'Docker', 'container'), fact, item=f"port {v.get('port')}")
         elif v.get('kind') == 'compose':
-            lanes.add('hosting', f'host:compose:{v.get("service")}', str(v.get('service')), 'compose_service', fact)
+            lanes.add('hosting', (f'host:compose:{v.get("service")}', str(v.get('service')), 'compose_service'), fact)
         elif v.get('kind') == 'hosting':
-            lanes.add('hosting', f'host:{v.get("host")}', str(v.get('host')), 'platform', fact)
+            lanes.add('hosting', (f'host:{v.get("host")}', str(v.get('host')), 'platform'), fact)
 
+
+def _ci(report, lanes, live):
     for fact in live(arch_map.facts(report, 'runtime', 'ci_step')):
         path, name = arch_map.path_of(fact), str((fact.get('value') or {}).get('name') or '')
         if name.startswith('npm:'):
-            lanes.add('ci', f'ci:{path}', 'npm scripts', 'scripts', fact, {'steps': 1}, item=name[4:])
+            lanes.add('ci', (f'ci:{path}', 'npm scripts', 'scripts'), fact, detail={'steps': 1}, item=name[4:])
         else:
             label = name if name and name != 'run: ' else None
-            lanes.add('ci', f'ci:{path}', 'GitHub Actions · ' + Path(path).stem, 'workflow', fact, {'steps': 1}, item=label)
+            lanes.add('ci', (f'ci:{path}', 'GitHub Actions · ' + Path(path).stem, 'workflow'), fact, detail={'steps': 1}, item=label)
 
+
+def _environments(report, lanes, live):
+    """The environment variables the code reads (names only, the secret-shaped and those with no default counted),
+    and the sensitive configuration files nothing reads."""
     names, secret = defaultdict(list), set()
     for fact in live(arch_map.facts(report, 'config', 'env_read')):
         v = fact.get('value') or {}
-        if v.get('name'):
-            names[v['name']].append(fact)
-            if v.get('secret_shaped'): secret.add(v['name'])
+        if not v.get('name'): continue
+        names[v['name']].append(fact)
+        if v.get('secret_shaped'): secret.add(v['name'])
     if names:
-        node = lanes.add('environments', 'env:variables', 'Environment variables', 'variables', None,
-                         {'variables': len(names), 'secret_shaped': len(secret),
+        lanes.add('environments', ('env:variables', 'Environment variables', 'variables'), None,
+                  detail={'variables': len(names), 'secret_shaped': len(secret),
                           'without_default': sum(1 for n in names if not any((f.get('value') or {}).get('has_default') for f in names[n]))})
         for name in sorted(names):
-            lanes.add('environments', 'env:variables', '', 'variables', names[name][0], item=name)
+            lanes.add('environments', ('env:variables', '', 'variables'), names[name][0], item=name)
     for fact in arch_map.facts(report, 'config', 'config_file_unread'):
-        lanes.add('environments', f'env:file:{arch_map.path_of(fact)}', arch_map.path_of(fact), 'sensitive_file', fact)
+        lanes.add('environments', (f'env:file:{arch_map.path_of(fact)}', arch_map.path_of(fact), 'sensitive_file'), fact)
 
-    hosts = defaultdict(list)
-    for fact in live(arch_map.facts(report, 'runtime', 'integration_target')):
-        host = str((fact.get('value') or {}).get('host') or '').lower()
-        if host and not NOT_SERVICES.search(host): hosts[host].append(fact)
+
+def _resilience(report):
+    """{host: {timeout, retry}}: whether any call to it sets a timeout, and any retries."""
     resilience = defaultdict(lambda: {'timeout': False, 'retry': False})
     for fact in arch_map.facts(report, 'runtime', 'resilience_policy'):
         v = fact.get('value') or {}
         flags = resilience[str(v.get('host') or '').lower()]
         flags['timeout'] |= bool(v.get('has_timeout'))
         flags['retry'] |= bool(v.get('has_retry'))
-    for host, facts in sorted(hosts.items()):
-        if host.endswith('.supabase.co'):  # the project's own Supabase: its database, not a service beside it
-            for fact in facts: lanes.add('databases', 'databases:Supabase', 'Supabase', 'database', fact, item=host)
-            continue
-        for fact in facts:
-            lanes.add('services', f'svc:{host}', host, 'host', fact, {'timeout': resilience[host]['timeout'], 'retry': resilience[host]['retry']})
-        named = ENVIRONMENT.search(host.split('.')[0])  # the host's own name: `.dev` is a top-level domain, not an environment
-        if named:
-            word = ENV_WORD.get(named.group(1), named.group(1))
-            lanes.add('environments', f'env:named:{word}', word, 'environment', facts[0], item=host)
+    return resilience
 
-    sb = live([f for f in arch_map.facts(report, 'entrypoints', 'data_access') if (f.get('value') or {}).get('client') == 'supabase'])
-    for fact in sb:
-        lanes.add('databases', 'databases:Supabase', 'Supabase', 'database', fact, {'calls': 1})
-    for fact in live(arch_map.facts(report, 'resolve', 'module_edge')):
-        if fact.get('resolution') != 'EXTERNAL': continue
+
+def _service(host, facts, lanes, resilience):
+    """An outside host the code calls, and the environment its name says it is."""
+    for fact in facts:
+        lanes.add('services', (f'svc:{host}', host, 'host'), fact, detail={'timeout': resilience[host]['timeout'], 'retry': resilience[host]['retry']})
+    named = ENVIRONMENT.search(host.split('.')[0])  # the host's own name: `.dev` is a top-level domain, not an environment
+    if named:
+        word = ENV_WORD.get(named.group(1), named.group(1))
+        lanes.add('environments', (f'env:named:{word}', word, 'environment'), facts[0], item=host)
+
+
+def _hosts(report, lanes, live):
+    hosts = defaultdict(list)
+    for fact in live(arch_map.facts(report, 'runtime', 'integration_target')):
+        host = str((fact.get('value') or {}).get('host') or '').lower()
+        if host and not NOT_SERVICES.search(host): hosts[host].append(fact)
+    resilience = _resilience(report)
+    for host, facts in sorted(hosts.items()):
+        if not host.endswith('.supabase.co'):
+            _service(host, facts, lanes, resilience)
+            continue
+        for fact in facts:  # the project's own Supabase: its database, not a service beside it
+            lanes.add('databases', ('databases:Supabase', 'Supabase', 'database'), fact, item=host)
+
+
+def _supabase_calls(report, lanes, live):
+    for fact in live([f for f in arch_map.facts(report, 'entrypoints', 'data_access') if (f.get('value') or {}).get('client') == 'supabase']):
+        lanes.add('databases', ('databases:Supabase', 'Supabase', 'database'), fact, detail={'calls': 1})
+
+
+def _packages(report, lanes, live):
+    """The packages the code imports that name a piece of infrastructure, in their lane."""
+    for fact in (f for f in live(arch_map.facts(report, 'resolve', 'module_edge')) if f.get('resolution') == 'EXTERNAL'):
         package = package_of((fact.get('value') or {}).get('module'))
         known = _known(package)
-        if known:
-            lane, name = known
-            lanes.add(lane, f'{lane}:{name}', name, 'package', fact, item=package)
+        if not known: continue
+        lane, name = known
+        lanes.add(lane, (f'{lane}:{name}', name, 'package'), fact, item=package)
+
+
+def _tables(report, lanes, live):
+    """The tables declared in the code, and how many have row-level security when the records say."""
     tables = live(arch_map.facts(report, 'domain', 'data_table'))
-    if tables:
-        keys = {str((f.get('value') or {}).get('name') or '').lower() for f in tables if not (f.get('value') or {}).get('dropped')}
-        rls = {str((f.get('value') or {}).get('name') or '').lower() for f in tables if (f.get('value') or {}).get('rls_enabled')}
-        node = lanes.add('databases', 'db:schema', 'Tables declared in code', 'schema', None,
-                         {'tables': len(keys), 'row_level_security': len(rls & keys) if any('rls_enabled' in (f.get('value') or {}) for f in tables) else None})
-        for fact in tables[:SHOWN]: node['sites'].append(_site(fact))
-        node['evidence'] = len(tables)
+    if not tables: return
+    keys = {str((f.get('value') or {}).get('name') or '').lower() for f in tables if not (f.get('value') or {}).get('dropped')}
+    rls = {str((f.get('value') or {}).get('name') or '').lower() for f in tables if (f.get('value') or {}).get('rls_enabled')}
+    node = lanes.add('databases', ('db:schema', 'Tables declared in code', 'schema'), None,
+                     detail={'tables': len(keys), 'row_level_security': len(rls & keys) if any('rls_enabled' in (f.get('value') or {}) for f in tables) else None})
+    for fact in tables[:SHOWN]: node['sites'].append(_site(fact))
+    node['evidence'] = len(tables)
+
+
+def _databases(report, lanes, live):
+    """The migrations and the connection pools."""
     for fact in live(arch_map.facts(report, 'runtime', 'migration_step')):
-        lanes.add('databases', 'db:migrations', 'Migrations', 'migrations', fact, {'files': 1})
+        lanes.add('databases', ('db:migrations', 'Migrations', 'migrations'), fact, detail={'files': 1})
     for fact in live(arch_map.facts(report, 'runtime', 'connection_pool')):
         v = fact.get('value') or {}
-        lanes.add('databases', 'db:pool', 'Connection pool', 'pool', fact, item=f"{v.get('resource')} {v.get('declared_size') or ''}".strip())
+        lanes.add('databases', ('db:pool', 'Connection pool', 'pool'), fact, item=f"{v.get('resource')} {v.get('declared_size') or ''}".strip())
 
+
+def _observability(report, lanes, live):
     for fact in live(arch_map.facts(report, 'runtime', 'observability_signal')):
         kind = str((fact.get('value') or {}).get('kind') or '')
-        lanes.add('observability', f'obs:{kind}', kind, 'signal', fact, {'files': 1})
+        lanes.add('observability', (f'obs:{kind}', kind, 'signal'), fact, detail={'files': 1})
 
-    out_lanes = []
-    for lane in LANES:
-        nodes = sorted(lanes.nodes[lane].values(), key=lambda n: (-n['evidence'], n['id']))
-        for node in nodes: node['items'] = node['items'][:40]
-        state = 'measured' if nodes else 'empty'
-        reason = 'found' if nodes else ('no_known_queue_library' if lane == 'queues' else 'nothing_found')
-        shown, folded = nodes[:MAX_LANE_NODES - 1] if len(nodes) > MAX_LANE_NODES else nodes, nodes[MAX_LANE_NODES - 1:] if len(nodes) > MAX_LANE_NODES else []
-        out_lanes.append({'id': lane, 'relation': RELATION[lane], 'state': state, 'reason': reason,
-                          'count': _measure(len(nodes), SRC[lane] + ' (distinct nodes)'),
-                          'nodes': shown, 'folded': folded})
 
-    record = arch_map._load(report / 'target-architecture.json', {}) or {}
+def _lane(lane, lanes):
+    """One lane: its nodes, the most evidenced first, those past MAX_LANE_NODES folded."""
+    nodes = sorted(lanes.nodes[lane].values(), key=lambda n: (-n['evidence'], n['id']))
+    for node in nodes: node['items'] = node['items'][:40]
+    state = 'measured' if nodes else 'empty'
+    reason = 'found' if nodes else ('no_known_queue_library' if lane == 'queues' else 'nothing_found')
+    shown, folded = (nodes[:MAX_LANE_NODES - 1], nodes[MAX_LANE_NODES - 1:]) if len(nodes) > MAX_LANE_NODES else (nodes, [])
+    return {'id': lane, 'relation': RELATION[lane], 'state': state, 'reason': reason,
+            'count': _measure(len(nodes), SRC[lane] + ' (distinct nodes)'),
+            'nodes': shown, 'folded': folded}
+
+
+def _target(record):
+    """The target's infrastructure, per lane: each area present (keep) or not (introduce), with its decision."""
     items = [i for i in record.get('infrastructure') or [] if isinstance(i, dict) and i.get('area')]
-    target = None
-    if record:
-        by_lane = defaultdict(list)
-        for item in items:
-            by_lane[AREA_LANE.get(item['area'], 'observability')].append({
-                'area': item['area'], 'present': bool(item.get('present')), 'op': 'keep' if item.get('present') else 'introduce',
-                'decision': str(item.get('decision') or '')[:400], 'tool': item.get('tool'), 'evidence': str(item.get('evidence') or '')[:300]})
-        target = {'reference': record.get('reference'), 'status': record.get('status'),
-                  'lanes': [{'id': lane, 'state': 'measured' if by_lane.get(lane) else 'not_measured',
-                             'reason': 'decided' if by_lane.get(lane) else 'target_silent', 'items': by_lane.get(lane, [])}
-                            for lane in LANES]}
+    by_lane = defaultdict(list)
+    for item in items:
+        by_lane[AREA_LANE.get(item['area'], 'observability')].append({
+            'area': item['area'], 'present': bool(item.get('present')), 'op': 'keep' if item.get('present') else 'introduce',
+            'decision': str(item.get('decision') or '')[:400], 'tool': item.get('tool'), 'evidence': str(item.get('evidence') or '')[:300]})
+    return {'reference': record.get('reference'), 'status': record.get('status'),
+            'lanes': [{'id': lane, 'state': 'measured' if by_lane.get(lane) else 'not_measured',
+                       'reason': 'decided' if by_lane.get(lane) else 'target_silent', 'items': by_lane.get(lane, [])}
+                      for lane in LANES]}
+
+
+def infra(report, lang='ar'):
+    """The section's body: {app, lanes, counts, target, src}."""
+    report = Path(report)
+    is_test = _tests(report)
+    live = lambda rows: [f for f in rows if not is_test(arch_map.path_of(f))]
+    lanes = _Lanes()
+    for read in (_hosting, _ci, _environments, _hosts, _supabase_calls, _packages, _tables, _databases, _observability):
+        read(report, lanes, live)
+    out_lanes = [_lane(lane, lanes) for lane in LANES]
+    record = arch_map._load(report / 'target-architecture.json', {}) or {}
+    target = _target(record) if record else None
     total = sum(len(lanes.nodes[lane]) for lane in LANES)
     return {
         'app': {'reference': record.get('reference'), 'src': 'target-architecture.json#reference'},
