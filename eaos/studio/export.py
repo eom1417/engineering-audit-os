@@ -90,12 +90,21 @@ def scan_of(project, state=None):
 
 # ---------------------------------------------------------------- the sections
 
-def meta(report, m):
-    nodes = indicators.facts(report, 'graph_node')
+def _in(lang, ar, en):
+    """The Arabic words for an Arabic page, else the English."""
+    return ar if lang == 'ar' else en
+
+
+def _language_counts(nodes):
     counts = {}
     for row in nodes:
         name = LANGUAGES.get(Path(str((row.get('location') or {}).get('path') or '')).suffix.lower())
         if name: counts[name] = counts.get(name, 0) + 1
+    return counts
+
+
+def meta(report, m):
+    counts = _language_counts(indicators.facts(report, 'graph_node'))
     total = sum(counts.values())
     stages = [{'id': name, 'title': name, 'state': STAGE_STATE.get((row or {}).get('status'), 'partial')}
               for name, row in (m['manifest'].get('stages') or {}).items()]
@@ -110,26 +119,32 @@ def meta(report, m):
 
 def head(m, scan, lang, stamp, fresh):
     freshness, detail = fresh
-    s = m['score']
     counted = M.problem_counts(m)
-    fixable = counted['fixable']
-    if s['score'] is None:
-        verdict = ('لم تُحسب درجة لهذا الفحص.' if lang == 'ar' else 'This check has no score.')
-    else:
-        verdict = (f"{counted['problems']} مشكلة، منها {fixable} يصلحها EAOS وحده." if lang == 'ar' else
-                   f"{counted['problems']} problems; EAOS fixes {fixable} of them by itself.")
-    if fixable:
-        # A numeral never sits glued to a one-letter prefix (لـ165): it stands alone after a word, and the noun agrees with it.
-        cards = ('بطاقة واحدة' if fixable == 1 else 'بطاقتين' if fixable == 2 else
-                 f"{fixable} {'بطاقات' if fixable <= 10 else 'بطاقة'}")
-        step = {'action': (f'ابدأ دفعة إصلاح تشمل {cards}' if lang == 'ar' else f'Start a fix batch for {fixable} cards'),
-                'tool': 'fix_start'}
-    elif m['rows']:
-        step = {'action': ('راجع البطاقات التي تحتاج قرارًا' if lang == 'ar' else 'Review the cards that need a decision'), 'tool': 'findings'}
-    else:
-        step = {'action': ('لا شيء ينتظر: افحص بعد التغيير التالي' if lang == 'ar' else 'Nothing waits: check again after the next change'), 'tool': 'audit'}
     return {'scanned': scan, 'eaos': {k: stamp[k] for k in ('version', 'commit', 'digest')}, 'freshness': freshness, 'freshness_detail': detail,
-            'verdict': verdict, 'next': step}
+            'verdict': _verdict(m['score'], counted, lang), 'next': _next_step(counted['fixable'], m['rows'], lang)}
+
+
+def _verdict(s, counted, lang):
+    if s['score'] is None: return _in(lang, 'لم تُحسب درجة لهذا الفحص.', 'This check has no score.')
+    fixable = counted['fixable']
+    return _in(lang, f"{counted['problems']} مشكلة، منها {fixable} يصلحها EAOS وحده.",
+               f"{counted['problems']} problems; EAOS fixes {fixable} of them by itself.")
+
+
+def _cards_ar(count):
+    # A numeral never sits glued to a one-letter prefix (لـ165): it stands alone after a word, and the noun agrees with it.
+    if count == 1: return 'بطاقة واحدة'
+    if count == 2: return 'بطاقتين'
+    return f"{count} {'بطاقات' if count <= 10 else 'بطاقة'}"
+
+
+def _next_step(fixable, rows, lang):
+    if fixable:
+        return {'action': _in(lang, f'ابدأ دفعة إصلاح تشمل {_cards_ar(fixable)}', f'Start a fix batch for {fixable} cards'),
+                'tool': 'fix_start'}
+    if rows:
+        return {'action': _in(lang, 'راجع البطاقات التي تحتاج قرارًا', 'Review the cards that need a decision'), 'tool': 'findings'}
+    return {'action': _in(lang, 'لا شيء ينتظر: افحص بعد التغيير التالي', 'Nothing waits: check again after the next change'), 'tool': 'audit'}
 
 
 def health(m, history):
@@ -147,22 +162,30 @@ def cards(m, claims):
     plan = {t.get('id'): t for t in m['plan'].get('tasks') or [] if isinstance(t, dict)}
     out = []
     for card in M.task_cards(m):
-        row, task = rows.get(card['id']) or {}, plan.get(card['id']) or {}
-        claim = claims.get(task.get('claim_id')) or {}
-        params = (claim.get('render') or task.get('render') or {}).get('params') or {}
-        place = rel(params.get('place'))
-        evidence = list((task.get('evidence') or {}).get('fact_ids') or claim.get('fact_ids') or [])
-        out.append({'id': card['id'], 'key': card['key'], 'title': card['title'], 'kind': card['pattern'],
-                    'category': row.get('area') or M.classify({'pattern': card['pattern']})[0], 'severity': card['severity'],
-                    'fixable': bool(row.get('auto')),
-                    'needs_decision': (task['resolution']['resolution'] == 'owner' if task.get('resolution') else task.get('kind') == 'investigate')
-                                      or card['state'] == 'skipped',
-                    **({'resolution': resolution_of(task['resolution'])} if task.get('resolution') else {}),
-                    'scope': 'group' if str(params.get('place') or '').startswith('group:') else 'place',
-                    'place': place, 'paths': [p for p in map(rel, card['paths']) if p], 'evidence': evidence,
-                    'state': card['state'], 'milestone': card.get('milestone'),
-                    'confidence': SEVERITY_OF_CONFIDENCE.get(row.get('confidence')), **why_of(task)})
+        task = plan.get(card['id']) or {}
+        out.append(_card(card, rows.get(card['id']) or {}, task, claims.get(task.get('claim_id')) or {}))
     return out
+
+
+def _needs_decision(task, card):
+    """The owner's to decide (or, before cards were resolved, an investigation), or a card a batch could not fix."""
+    owner = task['resolution']['resolution'] == 'owner' if task.get('resolution') else task.get('kind') == 'investigate'
+    return owner or card['state'] == 'skipped'
+
+
+def _card(card, row, task, claim):
+    params = (claim.get('render') or task.get('render') or {}).get('params') or {}
+    place = rel(params.get('place'))
+    evidence = list((task.get('evidence') or {}).get('fact_ids') or claim.get('fact_ids') or [])
+    return {'id': card['id'], 'key': card['key'], 'title': card['title'], 'kind': card['pattern'],
+            'category': row.get('area') or M.classify({'pattern': card['pattern']})[0], 'severity': card['severity'],
+            'fixable': bool(row.get('auto')),
+            'needs_decision': _needs_decision(task, card),
+            **({'resolution': resolution_of(task['resolution'])} if task.get('resolution') else {}),
+            'scope': 'group' if str(params.get('place') or '').startswith('group:') else 'place',
+            'place': place, 'paths': [p for p in map(rel, card['paths']) if p], 'evidence': evidence,
+            'state': card['state'], 'milestone': card.get('milestone'),
+            'confidence': SEVERITY_OF_CONFIDENCE.get(row.get('confidence')), **why_of(task)}
 
 
 def resolution_of(row):
@@ -237,41 +260,46 @@ def summary(value, kind):
 def evidence(report, cited, source=None):
     source = source or (lambda path: None)
     rows = indicators.facts(report)
+    secrets = _secret_lines(rows)
+    return [_fact_evidence(row, source, secrets) for row in rows if row.get('id') in cited]
+
+
+def _site_lines(where, value):
+    """{(path, line)} of a fact's location and its sites."""
+    lines = set()
+    for site in [where, *(s for s in value.get('sites') or [] if isinstance(s, dict))]:
+        path = rel(site.get('path'))
+        lines |= {(path, n) for n in (site.get('start_line'), site.get('line')) if isinstance(n, int) and path}
+    return lines
+
+
+def _secret_lines(rows):
+    """{(path, line)} where any fact found a secret: those lines are never written."""
     secrets = set()
     for row in rows:
         value, where = row.get('value') or {}, row.get('location') or {}
-        if (value.get('kind') or row.get('kind')) not in SECRET_KINDS: continue
-        for site in [where, *(s for s in value.get('sites') or [] if isinstance(s, dict))]:
-            for n in (site.get('start_line'), site.get('line')):
-                if isinstance(n, int) and rel(site.get('path')): secrets.add((rel(site.get('path')), n))
-    out = []
-    for row in rows:
-        if row.get('id') not in cited: continue
-        value, where = row.get('value') or {}, row.get('location') or {}
-        sites = [{'path': rel(s.get('path')), 'line': s.get('line') if isinstance(s.get('line'), int) else None}
-                 for s in value.get('sites') or [] if isinstance(s, dict) and rel(s.get('path'))]
-        out.append({'id': row['id'], 'kind': value.get('kind') or row.get('kind') or '', 'engine': value.get('engine'),
-                    'path': rel(where.get('path')), 'line': next((n for n in (where.get('start_line'), where.get('line')) if isinstance(n, int)), None),
-                    'summary': summary(value, row.get('kind')), 'sites': sites[:20]})
-        fact = out[-1]
-        # the code around the fact's line, else around its first site in the same file
-        line = fact['line'] or next((site['line'] for site in sites if site['path'] == fact['path'] and site['line']), None)
-        fact['code'] = code_excerpt(source, fact['path'], line, fact['kind'], secrets)
-    return out
+        if (value.get('kind') or row.get('kind')) in SECRET_KINDS: secrets |= _site_lines(where, value)
+    return secrets
+
+
+def _fact_evidence(row, source, secrets):
+    value, where = row.get('value') or {}, row.get('location') or {}
+    sites = [{'path': rel(s.get('path')), 'line': s.get('line') if isinstance(s.get('line'), int) else None}
+             for s in value.get('sites') or [] if isinstance(s, dict) and rel(s.get('path'))]
+    fact = {'id': row['id'], 'kind': value.get('kind') or row.get('kind') or '', 'engine': value.get('engine'),
+            'path': rel(where.get('path')), 'line': next((n for n in (where.get('start_line'), where.get('line')) if isinstance(n, int)), None),
+            'summary': summary(value, row.get('kind')), 'sites': sites[:20]}
+    # the code around the fact's line, else around its first site in the same file
+    line = fact['line'] or next((site['line'] for site in sites if site['path'] == fact['path'] and site['line']), None)
+    fact['code'] = code_excerpt(source, fact['path'], line, fact['kind'], secrets)
+    return fact
 
 
 def story(report, m, card_rows):
     target = m['target']
     closed = {c['id'] for c in card_rows if c['state'] in M.CLOSED}
     current = {c.get('id'): c for c in target.get('current_components') or [] if isinstance(c, dict)}
-    gap = []
-    for row in m['gap_matrix'].get('rows') or target.get('gap_matrix') or []:
-        comp = current.get(row.get('current_id')) or {}
-        relation = 'missing' if row.get('gap') == 'missing' and not comp else RELATION.get(comp.get('relation'), 'modify')
-        tasks = [t for t in row.get('blocking_tasks') or [] if isinstance(t, str)]
-        gap.append({'component': comp.get('name') or row.get('current_origin') or row.get('component') or '', 'relation': relation,
-                    'to': row.get('target_component'), 'files': comp.get('files') or 0, 'cards': tasks,
-                    'closed': sum(t in closed for t in tasks)})
+    gap = [_gap_row(row, current, closed) for row in m['gap_matrix'].get('rows') or target.get('gap_matrix') or []]
     return {'current': {'summary': str(target.get('retained_structure') or '')[:600],
                         'components': [{'name': c.get('name') or c.get('id') or '', 'layer': c.get('kind'), 'files': c.get('files') or 0}
                                        for c in current.values()]},
@@ -281,19 +309,33 @@ def story(report, m, card_rows):
             'gap': gap, 'indicators': []}
 
 
+def _gap_row(row, current, closed):
+    comp = current.get(row.get('current_id')) or {}
+    relation = 'missing' if row.get('gap') == 'missing' and not comp else RELATION.get(comp.get('relation'), 'modify')
+    tasks = [t for t in row.get('blocking_tasks') or [] if isinstance(t, str)]
+    return {'component': comp.get('name') or row.get('current_origin') or row.get('component') or '', 'relation': relation,
+            'to': row.get('target_component'), 'files': comp.get('files') or 0, 'cards': tasks,
+            'closed': sum(t in closed for t in tasks)}
+
+
+def _milestone_state(tasks):
+    states = {t['state'] for t in tasks}
+    if tasks and states == {'done'}: return 'done'
+    if states & {'active', 'done'}: return 'active'
+    return 'blocked' if tasks and states == {'blocked'} else 'todo'
+
+
+def _milestone(stone, by_id, lang):
+    tasks = [{'id': t, 'title': by_id[t]['title'], 'state': TASK_STATE[by_id[t]['state']], 'acceptance': None, 'depends_on': []}
+             for t in stone.get('tasks') or [] if t in by_id]
+    return {'id': stone.get('id') or '', 'title': stone.get(_in(lang, 'goal_ar', 'goal')) or stone.get('name') or '',
+            'state': _milestone_state(tasks), 'weight': len(tasks), 'gate': stone.get(_in(lang, 'exit_ar', 'exit')),
+            'depends_on': [], 'sub_plan': None, 'tasks': tasks}
+
+
 def plans(m, card_rows, lang):
     by_id = {c['id']: c for c in card_rows}
-    steps = []
-    for stone in m['plan'].get('milestones') or []:
-        if not isinstance(stone, dict): continue
-        tasks = [{'id': t, 'title': by_id[t]['title'], 'state': TASK_STATE[by_id[t]['state']], 'acceptance': None, 'depends_on': []}
-                 for t in stone.get('tasks') or [] if t in by_id]
-        states = {t['state'] for t in tasks}
-        state = ('done' if tasks and states == {'done'} else 'active' if states & {'active', 'done'} else
-                 'blocked' if tasks and states == {'blocked'} else 'todo')
-        steps.append({'id': stone.get('id') or '', 'title': stone.get('goal_ar' if lang == 'ar' else 'goal') or stone.get('name') or '',
-                      'state': state, 'weight': len(tasks), 'gate': stone.get('exit_ar' if lang == 'ar' else 'exit'),
-                      'depends_on': [], 'sub_plan': None, 'tasks': tasks})
+    steps = [_milestone(stone, by_id, lang) for stone in m['plan'].get('milestones') or [] if isinstance(stone, dict)]
     total, closed = len(card_rows), sum(c['state'] in M.CLOSED for c in card_rows)
     touched = any(c['state'] not in ('open',) for c in card_rows)
     state = 'closed' if total and closed == total else 'active' if touched else 'registered'
@@ -302,39 +344,47 @@ def plans(m, card_rows, lang):
              'progress': ratio(closed / total if total else None, 'ledger: (done + resolved) / every card in scope')}]
 
 
+def _owner_question(card):
+    """A real product choice the assistant left to the person on one card; None for any other resolution."""
+    asked = card.get('resolution') or {}
+    if asked.get('kind') != 'owner': return None
+    options = [{'id': f'o{i + 1}', 'label': text} for i, text in enumerate(asked['options'])]
+    return {'id': f"card:{card['id']}", 'question': asked['question'], 'recommendation': asked['recommendation'],
+            'options': options, 'recommended_option': next((o['id'] for o in options if o['label'] == asked['recommendation']), None),
+            'blocks': [card['id']], 'state': 'waiting', 'answer': None, 'plan': 'fix', 'asked': '', 'tool': 'findings'}
+
+
+def _investigations(review, lang):
+    return {'id': 'investigations',
+            'question': _in(lang, f'{len(review)} بطاقة تحتاج تحققًا قبل أي تغيير. هل يتولاها المساعد؟',
+                            f'{len(review)} cards need checking before any change. Should the assistant take them on?'),
+            'recommendation': _in(lang, 'نعم: يتحقق المساعد من كل بطاقة بدليلها ويعرض عليك ما يحتاج قرارك فقط.',
+                                  'Yes: the assistant checks each card against its evidence and brings you only what needs you.'),
+            'options': [{'id': 'yes', 'label': _in(lang, 'نعم', 'Yes')}, {'id': 'later', 'label': _in(lang, 'لاحقًا', 'Later')}],
+            'blocks': [c['id'] for c in review][:200], 'state': 'waiting', 'answer': None, 'plan': 'fix',
+            'asked': '', 'tool': 'findings'}
+
+
+def _target_question(target, lang):
+    return {'id': 'target-architecture',
+            'question': _in(lang, 'هل تعتمد البنية المستهدفة؟', 'Do you approve the target structure?'),
+            'recommendation': _in(lang, 'راجع قرارات البنية في القصة، ثم اعتمدها أو اطلب تعديلها.',
+                                  'Review the structure decisions in the story, then approve them or ask for changes.'),
+            # one approval, never one option per structure decision (the incident: 51 English ADR sentences)
+            'options': [{'id': 'approve', 'label': _in(lang, 'اعتمدها', 'Approve')},
+                        {'id': 'changes', 'label': _in(lang, 'اطلب تعديلًا', 'Ask for changes')},
+                        {'id': 'review', 'label': _in(lang, 'أراجعها أولًا', 'Review them first')}],
+            'recommended_option': 'review', 'decisions_count': len([d for d in target.get('decisions') or [] if isinstance(d, dict)]),
+            'blocks': ['S06'], 'state': 'waiting', 'answer': None, 'plan': None, 'asked': '', 'tool': None}
+
+
 def decisions(m, card_rows, lang):
-    out = []
     review = [c for c in card_rows if c['needs_decision'] and c['state'] not in M.CLOSED]
     resolved = any(c.get('resolution') for c in card_rows)
-    for card in review if resolved else []:
-        # The assistant resolved the cards: only a real product choice it left to the person is asked, one card each.
-        asked = card.get('resolution') or {}
-        if asked.get('kind') != 'owner': continue
-        options = [{'id': f'o{i + 1}', 'label': text} for i, text in enumerate(asked['options'])]
-        out.append({'id': f"card:{card['id']}", 'question': asked['question'], 'recommendation': asked['recommendation'],
-                    'options': options, 'recommended_option': next((o['id'] for o in options if o['label'] == asked['recommendation']), None),
-                    'blocks': [card['id']], 'state': 'waiting', 'answer': None, 'plan': 'fix', 'asked': '', 'tool': 'findings'})
-    if review and not resolved:
-        out.append({'id': 'investigations',
-                    'question': (f'{len(review)} بطاقة تحتاج تحققًا قبل أي تغيير. هل يتولاها المساعد؟' if lang == 'ar' else
-                                 f'{len(review)} cards need checking before any change. Should the assistant take them on?'),
-                    'recommendation': ('نعم: يتحقق المساعد من كل بطاقة بدليلها ويعرض عليك ما يحتاج قرارك فقط.' if lang == 'ar' else
-                                       'Yes: the assistant checks each card against its evidence and brings you only what needs you.'),
-                    'options': [{'id': 'yes', 'label': 'نعم' if lang == 'ar' else 'Yes'}, {'id': 'later', 'label': 'لاحقًا' if lang == 'ar' else 'Later'}],
-                    'blocks': [c['id'] for c in review][:200], 'state': 'waiting', 'answer': None, 'plan': 'fix',
-                    'asked': '', 'tool': 'findings'})
-    target = m['target']
-    if target.get('status') == 'REVIEW_REQUIRED':
-        out.append({'id': 'target-architecture',
-                    'question': ('هل تعتمد البنية المستهدفة؟' if lang == 'ar' else 'Do you approve the target structure?'),
-                    'recommendation': ('راجع قرارات البنية في القصة، ثم اعتمدها أو اطلب تعديلها.' if lang == 'ar' else
-                                       'Review the structure decisions in the story, then approve them or ask for changes.'),
-                    # one approval, never one option per structure decision (the incident: 51 English ADR sentences)
-                    'options': [{'id': 'approve', 'label': 'اعتمدها' if lang == 'ar' else 'Approve'},
-                                {'id': 'changes', 'label': 'اطلب تعديلًا' if lang == 'ar' else 'Ask for changes'},
-                                {'id': 'review', 'label': 'أراجعها أولًا' if lang == 'ar' else 'Review them first'}],
-                    'recommended_option': 'review', 'decisions_count': len([d for d in target.get('decisions') or [] if isinstance(d, dict)]),
-                    'blocks': ['S06'], 'state': 'waiting', 'answer': None, 'plan': None, 'asked': '', 'tool': None})
+    # The assistant resolved the cards: only a real product choice it left to the person is asked, one card each.
+    out = [q for q in map(_owner_question, review) if q] if resolved else []
+    if review and not resolved: out.append(_investigations(review, lang))
+    if m['target'].get('status') == 'REVIEW_REQUIRED': out.append(_target_question(m['target'], lang))
     return out
 
 
@@ -361,21 +411,80 @@ def tidy_decisions(rows):
     kept = []
     for row in rows:
         if str(row.get('id', '')).startswith('node-card_triage:'): continue
-        if row.get('state') == 'waiting':
-            key = str(row.get('id', '')).rsplit(':', 1)[-1].removeprefix('ideal-')
-            words = _words(row.get('question'))
-            same = next((k for k in kept if k.get('state') == 'waiting' and (
-                key and str(k.get('id', '')).rsplit(':', 1)[-1].removeprefix('ideal-') == key
-                or len(words) >= 3 and len(k['_words']) >= 3 and len(words & k['_words']) / min(len(words), len(k['_words'])) >= 0.5)), None)
-            if same is not None:
-                same.setdefault('merged', []).append(row['id'])
-                continue
-            row = {**row, '_words': words}
-        kept.append(row)
+        if row.get('state') == 'waiting': row = _first_asking(row, kept)
+        if row is not None: kept.append(row)
     return [{k: v for k, v in row.items() if k != '_words'} for row in kept]
 
 
+def _topic_key(row):
+    return str(row.get('id', '')).rsplit(':', 1)[-1].removeprefix('ideal-')
+
+
+def _same_topic(kept, key, words):
+    """A waiting question already kept with the same key, or most of the same words."""
+    if kept.get('state') != 'waiting': return False
+    if key and _topic_key(kept) == key: return True
+    mine = kept['_words']
+    return len(words) >= 3 and len(mine) >= 3 and len(words & mine) / min(len(words), len(mine)) >= 0.5
+
+
+def _first_asking(row, kept):
+    """The row with its words, when it is the first asking of its topic; None when an earlier one takes it in."""
+    key, words = _topic_key(row), _words(row.get('question'))
+    same = next((k for k in kept if _same_topic(k, key, words)), None)
+    if same is None: return {**row, '_words': words}
+    same.setdefault('merged', []).append(row['id'])
+    return None
+
+
 # ---------------------------------------------------------------- writing
+
+def _asked(report, m, card_rows, lang):
+    """Every question of the inbox in one language, each asked once."""
+    return tidy_decisions(decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang) + ai_nodes.decisions(report, lang)
+                          + planned_ideal.disagreements(report, lang))
+
+
+def _recommends(recommendation, label):
+    """Whether a recommendation opens with an option's label, as a whole word."""
+    if not label or not recommendation.startswith(label): return False
+    rest = recommendation[len(label):]
+    return not rest or rest[0] in ' :،,.-–'
+
+
+def _recommended(source):
+    """The option a question recommends: the one it names, else the only option its recommendation opens with."""
+    options = source.get('options', [])
+    explicit = source.get('recommended_option')
+    if explicit in {o['id'] for o in options}: return explicit
+    recommendation = str(source.get('recommendation') or '').strip()
+    matches = [o['id'] for o in options if _recommends(recommendation, str(o.get('label') or '').strip())]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _decision_rows(report, m, card_rows, lang):
+    """The inbox in the page's language, each row with the revision and recommended option of its English asking."""
+    rows = _asked(report, m, card_rows, lang)
+    by_id = {row['id']: row for row in _asked(report, m, card_rows, 'en')}
+    for row in rows:
+        source = by_id.get(row['id'], row)
+        identity = {k: source.get(k) for k in ('id', 'question', 'options', 'blocks', 'asked', 'tool')}
+        row['revision'] = hashlib.sha256(json.dumps(identity, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+        row['recommended_option'] = _recommended(source)
+    return rows
+
+
+def _published(built, stamps):
+    """(section, body) of every built section, the contract v1 sections first."""
+    key = {'cards': 'cards', 'evidence': 'facts', 'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images'}
+    for section in (s for s in SECTIONS if s in built):
+        body = built[section]
+        made = {'provenance': stamps[section]} if section in stamps else {}
+        yield section, {'schema_version': 1, 'contract': CONTRACT, **({key[section]: body} if section in key else body), **made}
+    for section in (s for s in SECTIONS_V2 if s in built):
+        made = {'provenance': stamps[section]} if section in stamps else {}
+        yield section, {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, **built[section], **made}
+
 
 def _js_string(text):
     """A JavaScript single-quoted string literal holding `text` exactly."""
@@ -430,23 +539,7 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('story', lambda: story(report, m, card_rows))
     attempt('docs', lambda: library_section.docs(report))
     attempt('plans', lambda: plans(m, card_rows, lang))
-    def decision_rows():
-        rows = tidy_decisions(decisions(m, card_rows, lang) + planned_ideal.decisions(report, lang) + ai_nodes.decisions(report, lang)
-                              + planned_ideal.disagreements(report, lang))
-        canonical_rows = tidy_decisions(decisions(m, card_rows, 'en') + planned_ideal.decisions(report, 'en') + ai_nodes.decisions(report, 'en')
-                                        + planned_ideal.disagreements(report, 'en'))
-        by_id = {row['id']: row for row in canonical_rows}
-        for row in rows:
-            source = by_id.get(row['id'], row)
-            identity = {k: source.get(k) for k in ('id', 'question', 'options', 'blocks', 'asked', 'tool')}
-            row['revision'] = hashlib.sha256(json.dumps(identity, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-            explicit = source.get('recommended_option')
-            recommendation = str(source.get('recommendation') or '').strip()
-            matches = [o['id'] for o in source.get('options', []) if str(o.get('label') or '').strip() and recommendation.startswith(str(o['label']).strip())
-                       and (not recommendation[len(str(o['label']).strip()):] or recommendation[len(str(o['label']).strip())] in ' :،,.-–')]
-            row['recommended_option'] = explicit if explicit in {o['id'] for o in source.get('options', [])} else (matches[0] if len(matches) == 1 else None)
-        return rows
-    attempt('decisions', decision_rows)
+    attempt('decisions', lambda: _decision_rows(report, m, card_rows, lang))
     attempt('media', lambda: library_section.media(report, lang))
     attempt('system', lambda: system_map.system(report, card_rows))
     attempt('paths', lambda: code_paths.paths(report, card_rows, m['plan'], lang))
@@ -471,7 +564,6 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
     attempt('screens', lambda: screens_gallery.screens(built.get('journeys'), built.get('media'), (report / 'facts/entrypoints.json').is_file(), report))
     for section in ('functions', 'screens'):                         # nothing was read to build it from
         if built.get(section, False) is None: built.pop(section)
-    key = {'cards': 'cards', 'evidence': 'facts', 'docs': 'docs', 'plans': 'plans', 'decisions': 'decisions', 'media': 'images'}
     def publish(section, data):
         problems = artifact_contracts.validate(data, contracts[f'studio-{section}'])
         if problems:
@@ -480,14 +572,7 @@ def export(report, lang='ar', name=None, project=None, progress=None, state=None
         blob = _write(folder, section, data)
         entries.append({'name': section, 'file': f'{section}.json', 'sha256': hashlib.sha256(blob).hexdigest(), 'bytes': len(blob)})
 
-    for section in SECTIONS:
-        if section not in built: continue
-        body = built[section]
-        made = {'provenance': stamps[section]} if section in stamps else {}
-        publish(section, {'schema_version': 1, 'contract': CONTRACT, **({key[section]: body} if section in key else body), **made})
-    for section in SECTIONS_V2:
-        made = {'provenance': stamps[section]} if section in stamps else {}
-        if section in built: publish(section, {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, **built[section], **made})
+    for section, body in _published(built, stamps): publish(section, body)
     # Last of the sections: it says which of the others were written, and what is not measured yet.
     attempt('coverage', lambda: coverage_section.coverage(report, built, [e['name'] for e in entries], list(errors), lang))
     if 'coverage' in built: publish('coverage', {'schema_version': 1, 'contract': CONTRACT, 'revision': REVISION, **built['coverage']})
