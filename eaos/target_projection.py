@@ -126,20 +126,30 @@ def disposition(stats, rules):
                f"{stats['critical']} critical debt item(s)")
     for relation in rules['order']:
         rule = rules[relation]
-        if relation == 'delete' and stats['files'] and stats['unreachable'] / stats['files'] >= rule['unreachable_share_at_least']:
-            return 'delete', f"{rule['why']} ({numbers})"
-        # Rebuild needs a structural reason. Complexity alone, or a critical item, is changed in place (modify):
-        # one function past the threshold sent a whole package to rebuild. Moving one or two files is a modify too.
-        if relation == 'rebuild' and stats['moved_share'] > rule['moved_share_above'] \
-                and stats['moved'] >= rule.get('moved_files_at_least', 1):
-            return 'rebuild', f"{rule['why']} ({numbers})"
-        if relation == 'retain' and (stats['moved_share'] <= rule['moved_share_at_most'] and stats['forbidden'] <= rule['forbidden_edges_at_most']
-                                     and stats['critical'] <= rule.get('critical_debt_at_most', 0)
-                                     and stats['complexity_max'] < rule['complexity_max_below']
-                                     and stats['duplicated_lines'] < rule['duplicated_lines_below']):
-            return 'retain', f"{rule['why']} ({numbers})"
-        if relation == 'modify': return 'modify', f"{rule['why']} ({numbers})"
+        holds = RELATION_HOLDS.get(relation)
+        if holds and holds(stats, rule): return relation, f"{rule['why']} ({numbers})"
     return 'modify', numbers
+
+
+def _deletes(stats, rule):
+    return bool(stats['files']) and stats['unreachable'] / stats['files'] >= rule['unreachable_share_at_least']
+
+
+def _rebuilds(stats, rule):
+    # Rebuild needs a structural reason. Complexity alone, or a critical item, is changed in place (modify):
+    # one function past the threshold sent a whole package to rebuild. Moving one or two files is a modify too.
+    return stats['moved_share'] > rule['moved_share_above'] and stats['moved'] >= rule.get('moved_files_at_least', 1)
+
+
+def _retains(stats, rule):
+    return (stats['moved_share'] <= rule['moved_share_at_most'] and stats['forbidden'] <= rule['forbidden_edges_at_most']
+            and stats['critical'] <= rule.get('critical_debt_at_most', 0)
+            and stats['complexity_max'] < rule['complexity_max_below']
+            and stats['duplicated_lines'] < rule['duplicated_lines_below'])
+
+
+# relation -> whether a component's numbers call for it; 'modify' always does.
+RELATION_HOLDS = {'delete': _deletes, 'rebuild': _rebuilds, 'retain': _retains, 'modify': lambda stats, rule: True}
 
 
 def _tool(area, reference_id):
@@ -157,53 +167,76 @@ def infrastructure(reference, facts, target, files, prefix=''):
     """One decision per baseline item (and hosting), each present or absent by evidence. A file counts at the
     repository root or under the app root (chief-ops keeps its app in app/ and its Dockerfile at the root)."""
     target = Path(target) if target else None
-    exists = lambda *names: [n for n in names for base in dict.fromkeys(('', prefix))
-                             if target and (target / base / n).exists()]
+    observed = {**_observed_in_facts(facts), **_observed_in_files(_existing(target, prefix), files)}
+    return [_infrastructure_row(item, observed, reference['id']) for item in _baseline_items(reference)]
+
+
+DEPENDENCY_BOTS = ('renovate.json', '.github/renovate.json', '.github/dependabot.yml')
+
+
+def _existing(target, prefix):
+    """exists(*names): the names found at the repository root or under the app root."""
+    def exists(*names):
+        return [n for n in names for base in dict.fromkeys(('', prefix)) if target and (target / base / n).exists()]
+    return exists
+
+
+def _observed_in_facts(facts):
     tests = [f for f in facts['source_file'] if (f.get('value') or {}).get('category') == 'test']
     env_files = sorted({f['location']['path'] for f in facts['env_read']})
     secrets = [f for f in facts['committed_credential'] if (f.get('value') or {}).get('severity') not in ('public', 'test')]
     tables = [f for f in facts['data_table'] if 'rls_enabled' in (f.get('value') or {})]
-    observed = {
+    return {
         'ci': (bool(facts['ci_step']), f"{len(facts['ci_step'])} CI step(s) in the repository"),
         'configuration': (len(env_files) <= 1, f"the environment is read in {len(env_files)} file(s)"
                           + (f": {', '.join(env_files[:4])}" if env_files else '')),
         'tests': (bool(tests), f"{len(tests)} test file(s)"),
         'observability': (bool(facts['observability_signal']), f"{len(facts['observability_signal'])} observability signal(s)"),
         'secrets': (not secrets, f"{len(secrets)} secret-class credential(s) committed"),
-        'dependencies': (bool(exists('renovate.json', '.github/renovate.json', '.github/dependabot.yml')),
-                         'renovate or dependabot configuration: ' + (', '.join(exists('renovate.json', '.github/renovate.json', '.github/dependabot.yml')) or 'none')),
-        'migrations': (bool(exists(*MIGRATIONS)), 'migrations folder: ' + (', '.join(exists(*MIGRATIONS)) or 'none')),
-        'identity': ((bool(tables) and all(f['value']['rls_enabled'] for f in tables)) if tables else False,
+        'identity': (bool(tables) and all(f['value']['rls_enabled'] for f in tables),
                      f"{sum(1 for f in tables if f['value']['rls_enabled'])} of {len(tables)} tables with row-level security"),
-        'data': (any(re.search(r'(supabase/types\.ts|openapi\.(ya?ml|json)|schema\.prisma|alembic/)', p) for p in files),
-                 'typed schema source: ' + (next((p for p in files if re.search(r'(supabase/types\.ts|openapi\.|schema\.prisma|alembic/)', p)), None) or 'none')),
-        'backup': (any('backup' in p.lower() for p in files), 'backup code: ' + (next((p for p in files if 'backup' in p.lower()), None) or 'none')),
-        'hosting': (bool(exists(*HOSTING)), 'hosting configuration: ' + (', '.join(exists(*HOSTING)) or 'none')),
     }
-    rows = []
+
+
+def _observed_in_files(exists, files):
+    bots, migrations, hosting = exists(*DEPENDENCY_BOTS), exists(*MIGRATIONS), exists(*HOSTING)
+    schema = next((p for p in files if re.search(r'(supabase/types\.ts|openapi\.|schema\.prisma|alembic/)', p)), None)
+    backup = next((p for p in files if 'backup' in p.lower()), None)
+    return {
+        'dependencies': (bool(bots), 'renovate or dependabot configuration: ' + (', '.join(bots) or 'none')),
+        'migrations': (bool(migrations), 'migrations folder: ' + (', '.join(migrations) or 'none')),
+        'data': (any(re.search(r'(supabase/types\.ts|openapi\.(ya?ml|json)|schema\.prisma|alembic/)', p) for p in files),
+                 'typed schema source: ' + (schema or 'none')),
+        'backup': (any('backup' in p.lower() for p in files), 'backup code: ' + (backup or 'none')),
+        'hosting': (bool(hosting), 'hosting configuration: ' + (', '.join(hosting) or 'none')),
+    }
+
+
+def _baseline_items(reference):
     items = list(reference['infrastructure_baseline'])
     # A desktop program or a command is not hosted; it is released as a build, which the ci item covers.
     if reference['id'].startswith(HOSTED) and not any(item['area'] == 'hosting' for item in items):
         items.append({'area': 'hosting', 'item': 'The deployment target is declared in the repository',
                       'reason': 'A host configured only in a dashboard cannot be rebuilt or reviewed.',
                       'success_measure': 'A clean checkout deploys with one documented command.'})
-    for item in items:
-        present, evidence = observed.get(item['area'], (False, 'no fact reads this area'))
-        tool = _tool(item['area'], reference['id'])
-        rows.append({'area': item['area'], 'present': bool(present),
-                     'decision': (f"Keep: {item['item']}. The check: {item['success_measure']}" if present
-                                  else f"Introduce: {item['item']}. Why: {item['reason']}"),
-                     'tool': tool, 'tool_reason': None if tool else NO_TOOL.get(item['area'], 'no adopted tool fits this item'),
-                     'evidence': evidence,
-                     'alternative': f"Do nothing: {item['reason'][0].lower() + item['reason'][1:]}"})
-    return rows
+    return items
+
+
+def _infrastructure_row(item, observed, reference_id):
+    present, evidence = observed.get(item['area'], (False, 'no fact reads this area'))
+    tool = _tool(item['area'], reference_id)
+    return {'area': item['area'], 'present': bool(present),
+            'decision': (f"Keep: {item['item']}. The check: {item['success_measure']}" if present
+                         else f"Introduce: {item['item']}. Why: {item['reason']}"),
+            'tool': tool, 'tool_reason': None if tool else NO_TOOL.get(item['area'], 'no adopted tool fits this item'),
+            'evidence': evidence,
+            'alternative': f"Do nothing: {item['reason'][0].lower() + item['reason'][1:]}"}
 
 
 def project(out, target=None):
     """The whole projection for one report: reference, components, placements, dispositions, infrastructure."""
     out = Path(out)
-    target = target or ((_load(out / 'dossier.json', {}) or {}).get('provenance') or {}).get('target')
-    reference_id, prefix = locate(target) if target and Path(target).is_dir() else (None, '')
+    target, reference_id, prefix = _reference_of(out, target)
     if reference_id is None: return None
     reference = rooted(by_id(reference_id), prefix)
     facts = _facts(out)
@@ -213,13 +246,37 @@ def project(out, target=None):
     placed = place(files, features, reference)
     edges = [(path, sink) for path, node in nodes.items() for sink in node.get('depends_on') or []]
     bad = forbidden(edges, placed, reference)
-    measured = {row['path']: row for row in (_load(out / 'measurements.json', {}) or {}).get('files') or []}
-    unreachable = {f['location']['path'] for f in facts['engine_finding'] if (f.get('value') or {}).get('rule') == 'unreachable-module'}
-    critical = defaultdict(int)
-    for item in (_load(out / 'debt-register.json', {}) or {}).get('items') or []:
-        if item['severity'] == 'critical':
-            for path in item['files']: critical[path] += 1
+    known = {'measured': {row['path']: row for row in (_load(out / 'measurements.json', {}) or {}).get('files') or []},
+             'unreachable': {f['location']['path'] for f in facts['engine_finding'] if (f.get('value') or {}).get('rule') == 'unreachable-module'},
+             'critical': _critical_by_file(out)}
+    components = _target_components(features, placed, reference, reference_id)
+    _fill_components(components, placed, bad, reference)
+    rules = json.loads(RULES.read_text(encoding='utf-8'))
+    return {'reference': reference_id, 'root': prefix, 'target_components': sorted(components.values(), key=lambda c: c['name']),
+            'target_edges': _target_edges(edges, placed, bad),
+            'placements': {p: c for p, (c, _) in placed.items()}, 'forbidden_edges': bad,
+            'current': _current_packages(files, placed, reference, bad, known, rules),
+            'features': {f['name']: f"feature:{slug(f['name'])}" for f in features},
+            'infrastructure': infrastructure(reference, facts, target, files, prefix)}
 
+
+def _reference_of(out, target):
+    """(the target folder, its reference type, its app root); the type is None when the target is not a folder."""
+    target = target or ((_load(out / 'dossier.json', {}) or {}).get('provenance') or {}).get('target')
+    reference_id, prefix = locate(target) if target and Path(target).is_dir() else (None, '')
+    return target, reference_id, prefix
+
+
+def _critical_by_file(out):
+    critical = defaultdict(int)
+    items = (_load(out / 'debt-register.json', {}) or {}).get('items') or []
+    for item in (item for item in items if item['severity'] == 'critical'):
+        for path in item['files']: critical[path] += 1
+    return critical
+
+
+def _target_components(features, placed, reference, reference_id):
+    """One component per feature, then one per layer (or the platform) a file is placed in."""
     layers = {layer['name']: layer for layer in reference['layers']}
     feature_layer = _feature_layer(reference)
     components = {}
@@ -233,6 +290,10 @@ def project(out, target=None):
         components[name] = {'name': name, 'layer': name if layer else PLATFORM, 'reference': reference_id,
                             'responsibility': layer['responsibility'] if layer else
                             'Build, deployment and repository configuration: what no code layer holds'}
+    return components
+
+
+def _fill_components(components, placed, bad, reference):
     by_component = defaultdict(list)
     for path, (component, _) in placed.items(): by_component[component].append(path)
     for name, component in components.items():
@@ -242,27 +303,34 @@ def project(out, target=None):
         component['forbidden_edges_removed'] = sum(1 for source, _ in bad if source in members)
         component['paths'] = members[:50]
 
-    rules = json.loads(RULES.read_text(encoding='utf-8'))
+
+def _package_stats(members, placed, reference, bad, known):
+    moved = sum(moves(p, placed[p][0], placed[p][1], reference) for p in members)
+    measured = known['measured']
+    return {'files': len(members), 'moved': moved, 'moved_share': moved / len(members),
+            'forbidden': sum(1 for source, _ in bad if source in members),
+            'complexity_max': max([measured.get(p, {}).get('complexity_max') or 0 for p in members] or [0]),
+            'duplicated_lines': sum(measured.get(p, {}).get('duplicated_lines') or 0 for p in members),
+            'unreachable': sum(1 for p in members if p in known['unreachable']),
+            'critical': sum(known['critical'][p] for p in members)}
+
+
+def _current_packages(files, placed, reference, bad, known, rules):
+    """Each of today's packages: what happens to it, why, and the target component most of its files go to."""
     packages = defaultdict(list)
     for path in files: packages[package_of(path)].append(path)
     current = {}
     for package, members in packages.items():
-        moved = sum(moves(p, placed[p][0], placed[p][1], reference) for p in members)
-        stats = {'files': len(members), 'moved': moved, 'moved_share': moved / len(members),
-                 'forbidden': sum(1 for source, _ in bad if source in members),
-                 'complexity_max': max([measured.get(p, {}).get('complexity_max') or 0 for p in members] or [0]),
-                 'duplicated_lines': sum(measured.get(p, {}).get('duplicated_lines') or 0 for p in members),
-                 'unreachable': sum(1 for p in members if p in unreachable),
-                 'critical': sum(critical[p] for p in members)}
+        stats = _package_stats(members, placed, reference, bad, known)
         relation, reason = disposition(stats, rules)
         home = Counter(placed[p][0] for p in members).most_common(1)[0][0]
         current[package] = {'relation': relation, 'reason': reason, 'target_component': home, 'stats': stats}
+    return current
+
+
+def _target_edges(edges, placed, bad):
     # The target's own dependencies: imports between different target components that the layer rules allow.
+    refused = set(bad)
     flows = Counter((placed[a][0], placed[b][0]) for a, b in edges
-                    if a in placed and b in placed and placed[a][0] != placed[b][0] and (a, b) not in set(bad))
-    target_edges = [{'from': a, 'to': b, 'imports': n} for (a, b), n in sorted(flows.items())]
-    return {'reference': reference_id, 'root': prefix, 'target_components': sorted(components.values(), key=lambda c: c['name']),
-            'target_edges': target_edges,
-            'placements': {p: c for p, (c, _) in placed.items()}, 'forbidden_edges': bad, 'current': current,
-            'features': {f['name']: f"feature:{slug(f['name'])}" for f in features},
-            'infrastructure': infrastructure(reference, facts, target, files, prefix)}
+                    if a in placed and b in placed and placed[a][0] != placed[b][0] and (a, b) not in refused)
+    return [{'from': a, 'to': b, 'imports': n} for (a, b), n in sorted(flows.items())]
