@@ -66,10 +66,8 @@ def _configuration(exclude):
             '[codebase]\npreset = "balanced"\n')
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    found = version()
-    if found is None:
-        return Report(NAME, None, PINNED, UNAVAILABLE, reason='reforge is not installed')
+def _run_report(target, workdir, exclude):
+    """Run the binary with the configuration that enables every rule: (exit code, stderr, seconds, report path)."""
     workdir = Path(workdir) / 'reforge'
     workdir.mkdir(parents=True, exist_ok=True)
     # The binary refuses any configuration file not named exactly reforge.toml.
@@ -77,40 +75,48 @@ def analyze(target, workdir, exclude=(), formats=None):
     report_path = workdir / 'report.json'
     code, _, error, seconds = run([which(BINARY), 'analyze', str(target), '--config', str(workdir / 'reforge.toml'),
                                    '--output', 'json', '--output-file', str(report_path), '--reproducible'])
-    if not report_path.is_file():
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
-    report = json.loads(report_path.read_text(encoding='utf-8'))
-    if report.get('schema_version') != SCHEMA:
-        return Report(NAME, found, PINNED, SCHEMA_MISMATCH, seconds=seconds,
-                      reason=f"report schema {report.get('schema_version')} is not the pinned {SCHEMA}")
-    findings, unmapped = [], {}
-    for issue in report.get('issues', []):
-        family = issue['family'].rsplit('.', 1)[-1]
-        kind = KIND_BY_FAMILY.get(family)
-        if kind is None:
-            unmapped[family] = unmapped.get(family, 0) + 1
-            continue
-        holder = issue.get('subject') or {}
-        entity = holder.get('entity') or {}
-        # A group issue names every member; a single issue names one entity. Both must land as places.
-        members = [{'path': member.get('path'), 'line': None} for member in holder.get('members', [])]
-        for evidence in issue.get('evidence', []):
-            sites = members + [{'path': spot.get('path'), 'line': spot.get('line')}
-                               for spot in evidence.get('locations', [])]
-            if not sites:
-                sites = [{'path': entity.get('path'), 'line': None}] if entity.get('path') else []
-            if not sites:
-                unmapped[family + ':unlocated'] = unmapped.get(family + ':unlocated', 0) + 1
-                continue
-            anchor = sorted(sites, key=lambda spot: (str(spot['path']), spot['line'] or 0))[0]
-            findings.append(finding(
-                NAME, found, evidence['rule'], kind,
-                subject(holder.get('kind', 'file'), entity.get('key') or anchor['path'],
-                        anchor['path'], anchor['line']),
-                evidence.get('message', issue['title']),
-                measurements=[measurement(m['name'], m.get('value'), m.get('threshold'), m.get('unit'))
-                              for m in evidence.get('measurements', [])],
-                raw_ref='reforge/report.json', sites=sites))
+    return code, error, seconds, report_path
+
+
+def _count(unmapped, key):
+    unmapped[key] = unmapped.get(key, 0) + 1
+
+
+def _evidence_finding(found, issue, kind, members, evidence):
+    """One finding for one piece of an issue's evidence, at its places; None when it has no place at all."""
+    holder = issue.get('subject') or {}
+    entity = holder.get('entity') or {}
+    sites = members + [{'path': spot.get('path'), 'line': spot.get('line')} for spot in evidence.get('locations', [])]
+    if not sites:
+        sites = [{'path': entity.get('path'), 'line': None}] if entity.get('path') else []
+    if not sites: return None
+    anchor = sorted(sites, key=lambda spot: (str(spot['path']), spot['line'] or 0))[0]
+    return finding(
+        NAME, found, evidence['rule'], kind,
+        subject(holder.get('kind', 'file'), entity.get('key') or anchor['path'], anchor['path'], anchor['line']),
+        evidence.get('message', issue['title']),
+        measurements=[measurement(m['name'], m.get('value'), m.get('threshold'), m.get('unit'))
+                      for m in evidence.get('measurements', [])],
+        raw_ref='reforge/report.json', sites=sites)
+
+
+def _issue_findings(found, issue, findings, unmapped):
+    """An issue's findings added to `findings`; a family EAOS does not map, or evidence with no place, is counted."""
+    family = issue['family'].rsplit('.', 1)[-1]
+    kind = KIND_BY_FAMILY.get(family)
+    if kind is None:
+        _count(unmapped, family)
+        return
+    # A group issue names every member; a single issue names one entity. Both must land as places.
+    members = [{'path': member.get('path'), 'line': None} for member in (issue.get('subject') or {}).get('members', [])]
+    for evidence in issue.get('evidence', []):
+        made = _evidence_finding(found, issue, kind, members, evidence)
+        if made is None: _count(unmapped, family + ':unlocated')
+        else: findings.append(made)
+
+
+def _evaluated(report):
+    """{kind: status} for each question some rule that ran answers."""
     status_by_rule = {}
     for section in ('codebase', 'dataflow'):
         for rule, detail in (((report.get('coverage') or {}).get(section) or {}).get('rules', {})).items():
@@ -119,11 +125,29 @@ def analyze(target, workdir, exclude=(), formats=None):
     for kind, rules in _RULES_BY_KIND.items():
         seen = {status_by_rule[rule] for rule in rules if rule in status_by_rule}
         if seen:
-            evaluated[kind] = {'status': 'observed' if 'observed' in seen else sorted(seen)[0],
-                               'granularity': FILE}
-    coverage = {'status': 'observed', 'scanned_files': (report.get('summary') or {}).get('scanned_files'),
-                'rules': {rule: detail.get('status') for rule, detail
-                          in ((report.get('coverage') or {}).get('codebase') or {}).get('rules', {}).items()},
-                'languages': ((report.get('coverage') or {}).get('codebase') or {}).get('languages', {})}
-    return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, coverage=coverage,
-                  provenance=report.get('provenance', {}), raw=str(report_path), unmapped=unmapped, evaluated=evaluated)
+            evaluated[kind] = {'status': 'observed' if 'observed' in seen else sorted(seen)[0], 'granularity': FILE}
+    return evaluated
+
+
+def _coverage(report):
+    codebase = (report.get('coverage') or {}).get('codebase') or {}
+    return {'status': 'observed', 'scanned_files': (report.get('summary') or {}).get('scanned_files'),
+            'rules': {rule: detail.get('status') for rule, detail in codebase.get('rules', {}).items()},
+            'languages': codebase.get('languages', {})}
+
+
+def analyze(target, workdir, exclude=(), formats=None):
+    found = version()
+    if found is None:
+        return Report(NAME, None, PINNED, UNAVAILABLE, reason='reforge is not installed')
+    code, error, seconds, report_path = _run_report(target, workdir, exclude)
+    if not report_path.is_file():
+        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+    report = json.loads(report_path.read_text(encoding='utf-8'))
+    if report.get('schema_version') != SCHEMA:
+        return Report(NAME, found, PINNED, SCHEMA_MISMATCH, seconds=seconds,
+                      reason=f"report schema {report.get('schema_version')} is not the pinned {SCHEMA}")
+    findings, unmapped = [], {}
+    for issue in report.get('issues', []): _issue_findings(found, issue, findings, unmapped)
+    return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, coverage=_coverage(report),
+                  provenance=report.get('provenance', {}), raw=str(report_path), unmapped=unmapped, evaluated=_evaluated(report))
