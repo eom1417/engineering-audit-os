@@ -97,8 +97,8 @@ function CompareBody({ data }: { data: StudioData }) {
               <table className={css.compare}>
                 <thead><tr>
                   <th scope="col">{w('measure')}</th>
-                  <th scope="col" className={css.n}>{date(from.at)}</th>
-                  <th scope="col" className={css.n}>{date(to.at)}</th>
+                  <th scope="col" className={css.n} title={date(from.at)}>{w('earlier')}</th>
+                  <th scope="col" className={css.n} title={date(to.at)}>{w('later')}</th>
                   <th scope="col" className={css.n}>{w('change')}</th>
                 </tr></thead>
                 <tbody>{rows.map(([label, a, b, d], i) => (

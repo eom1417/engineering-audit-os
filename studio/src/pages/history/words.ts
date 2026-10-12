@@ -44,6 +44,8 @@ export const HISTORY_WORDS = {
   compareTwo: ['قارن فحصين', 'Compare two checks'],
   compareFirstLast: ['قارن الأول بالأخير', 'Compare the first with the last'],
   from: ['من', 'From'],
+  earlier: ['السابق', 'Earlier'],
+  later: ['الحالي', 'Later'],
   to: ['إلى', 'To'],
   compare: ['قارن', 'Compare'],
   // one check
