@@ -220,7 +220,6 @@ function Drawer({ row, base, onClose, onChanged }: { row: BranchRow; base: strin
   const { api } = useBranchLive()
   const [detail, setDetail] = useState<BranchDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [diff, setDiff] = useState(false)
   const [panel, setPanel] = useState<'merge' | 'delete' | null>(null)
   const [more, setMore] = useState(false)
   const [result, setResult] = useState<Run | null>(null)
@@ -244,26 +243,9 @@ function Drawer({ row, base, onClose, onChanged }: { row: BranchRow; base: strin
       {select.scan && <RescanStatus run={select.scan} />}
       <SelectError error={select.error} />
       {detail && <>
-        {/* what is known, in plain words: a short commit, the subject in its own direction, and no row for what nobody knows */}
-        <Props rows={[
-          ['Commit', <Id value={row.tip.slice(0, 7)} />],
-          [w('lastCommit'), row.last_commit ? <><When iso={row.last_commit} /> · <Subject text={row.subject} /></> : '—'],
-          ...(detail.base && detail.base !== row.name ? [[w('base'), <Id value={detail.base} />] as [string, ReactNode]] : []),
-          ...(detail.lineage ? [[w('lineage'), <>{detail.lineage.parent ?? '—'}{detail.lineage.parent_commit ? <> @ <Id value={detail.lineage.parent_commit.slice(0, 7)} /></> : null}{detail.lineage.recorded_at ? <> · <When iso={detail.lineage.recorded_at} /></> : null}</>] as [string, ReactNode]] : []),
-          ...(detail.checks.status !== 'not_recorded' ? [[w('checks'), detail.checks.status === 'passed' ? w('checksPassed', { c: detail.checks.commit.slice(0, 7) }) : w('checksFailed', { c: detail.checks.commit.slice(0, 7) })] as [string, ReactNode]] : []),
-          ...(detail.destination.recommended || detail.destination.confirmed ? [[w('destination'), detail.destination.confirmed ? w('confirmedInto', { b: detail.destination.confirmed.branch }) : w('recommended', { b: detail.destination.recommended ?? '' })] as [string, ReactNode]] : []),
-        ]} />
+        <DetailProps row={row} detail={detail} />
         {row.worktree && <WorktreeNote row={row} />}
-        {detail.commits.length > 0 && <>
-          <SheetSub>{w('commitsAhead', { b: detail.base ?? '' })} (<N value={detail.commits.length} />)</SheetSub>
-          <ul className={css.files}>{detail.commits.map((c) => <li key={c.commit}><Id value={c.commit.slice(0, 7)} /> <Subject text={c.subject} /> <span className={css.muted}>· {c.author}</span></li>)}</ul>
-        </>}
-        {detail.files.length > 0 && <>
-          <SheetSub>{w('filesChanged')} (<N value={detail.files_total} />)</SheetSub>
-          <ul className={css.files}>{detail.files.slice(0, 40).map((f) => <li key={f.path}><span className={css.muted}>{f.status}</span> <Id value={f.path} /></li>)}</ul>
-          <Button variant="ghost" onPress={() => setDiff(!diff)} aria-expanded={diff}>{diff ? w('hideDiff') : w('showDiff')}</Button>
-          {diff && <>{detail.diff_cut && <p className={css.muted}>{w('diffCut')}</p>}<pre className={css.diff} tabIndex={0} dir="ltr">{detail.diff}</pre></>}
-        </>}
+        <ChangesList detail={detail} />
         {detail.runs.length > 0 && <><SheetSub>{w('linkedRuns')}</SheetSub><RunLinks runs={detail.runs} all /></>}
         <SheetSub>{w('commands')}</SheetSub>
         <div className={css.commandList}>
@@ -291,6 +273,41 @@ function Drawer({ row, base, onClose, onChanged }: { row: BranchRow; base: strin
       <span className="sr" aria-live="polite">{followed ? labelOf(followed.label, lang) : ''}</span>
       </div>
     </Sheet>
+  )
+}
+
+/** What is known, in plain words: a short commit, the subject in its own direction, and no row for what nobody knows. */
+function DetailProps({ row, detail }: { row: BranchRow; detail: BranchDetail }) {
+  const w = useBranchWords()
+  return (
+    <Props rows={[
+      ['Commit', <Id value={row.tip.slice(0, 7)} />],
+      [w('lastCommit'), row.last_commit ? <><When iso={row.last_commit} /> · <Subject text={row.subject} /></> : '—'],
+      ...(detail.base && detail.base !== row.name ? [[w('base'), <Id value={detail.base} />] as [string, ReactNode]] : []),
+      ...(detail.lineage ? [[w('lineage'), <>{detail.lineage.parent ?? '—'}{detail.lineage.parent_commit ? <> @ <Id value={detail.lineage.parent_commit.slice(0, 7)} /></> : null}{detail.lineage.recorded_at ? <> · <When iso={detail.lineage.recorded_at} /></> : null}</>] as [string, ReactNode]] : []),
+      ...(detail.checks.status !== 'not_recorded' ? [[w('checks'), detail.checks.status === 'passed' ? w('checksPassed', { c: detail.checks.commit.slice(0, 7) }) : w('checksFailed', { c: detail.checks.commit.slice(0, 7) })] as [string, ReactNode]] : []),
+      ...(detail.destination.recommended || detail.destination.confirmed ? [[w('destination'), detail.destination.confirmed ? w('confirmedInto', { b: detail.destination.confirmed.branch }) : w('recommended', { b: detail.destination.recommended ?? '' })] as [string, ReactNode]] : []),
+    ]} />
+  )
+}
+
+/** The commits ahead of the base, the files changed and, on request, the diff. */
+function ChangesList({ detail }: { detail: BranchDetail }) {
+  const w = useBranchWords()
+  const [diff, setDiff] = useState(false)
+  return (
+    <>
+      {detail.commits.length > 0 && <>
+        <SheetSub>{w('commitsAhead', { b: detail.base ?? '' })} (<N value={detail.commits.length} />)</SheetSub>
+        <ul className={css.files}>{detail.commits.map((c) => <li key={c.commit}><Id value={c.commit.slice(0, 7)} /> <Subject text={c.subject} /> <span className={css.muted}>· {c.author}</span></li>)}</ul>
+      </>}
+      {detail.files.length > 0 && <>
+        <SheetSub>{w('filesChanged')} (<N value={detail.files_total} />)</SheetSub>
+        <ul className={css.files}>{detail.files.slice(0, 40).map((f) => <li key={f.path}><span className={css.muted}>{f.status}</span> <Id value={f.path} /></li>)}</ul>
+        <Button variant="ghost" onPress={() => setDiff(!diff)} aria-expanded={diff}>{diff ? w('hideDiff') : w('showDiff')}</Button>
+        {diff && <>{detail.diff_cut && <p className={css.muted}>{w('diffCut')}</p>}<pre className={css.diff} tabIndex={0} dir="ltr">{detail.diff}</pre></>}
+      </>}
+    </>
   )
 }
 
@@ -425,8 +442,6 @@ function LiveBranches() {
   const [inventory, setInventory] = useState<Inventory | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [round, setRound] = useState(0)
-  const [fetching, setFetching] = useState(false)
-  const [fetchRun, setFetchRun] = useState<Run | null>(null)
   const base = search.base ?? null
   useEffect(() => {
     if (!live.api) return
@@ -441,55 +456,94 @@ function LiveBranches() {
   if (error && !inventory) return <Panel><StateMessage kind="error" title={w('failed')} sub={error} action={<Button variant="secondary" icon="retry" onPress={changed}>{w('retry')}</Button>} /></Panel>
   if (!inventory) return <Panel><p className={css.muted}>…</p></Panel>
   if (!inventory.git) return <Panel><StateMessage title={w('notGit')} /></Panel>
-  const locals = inventory.branches.filter((b) => b.kind === 'local')
   return (
     <>
       {inventory.context && <Panel className={css.contextPanel}><ContextRows context={inventory.context} /></Panel>}
-      <div className={css.toolbar}>
-        <Segmented comfortable label={w('branches')} value={show} onChange={(next) => set({ show: next })} options={[{ id: 'work', label: w('work') }, { id: 'all', label: w('all') }]} />
-        <SearchField label={w('searchBranches')} placeholder={w('searchBranches')} value={q} onChange={(next) => { setQ(next); set({ q: next || undefined }) }} />
-        <label className={css.baseSelect}>
-          <span>{w('base')}</span>
-          <select value={inventory.base ?? ''} onChange={(event) => set({ base: event.target.value || undefined })}>
-            {locals.map((b) => <option key={b.ref} value={b.name}>{b.name}</option>)}
-          </select>
-        </label>
-      </div>
-      <div className={css.remoteLine}>
-        {!inventory.has_origin && (inventory.remotes ?? []).length === 0 ? <span>{w('noOrigin')}</span> : <>
-          <span>{inventory.last_fetch ? <>{w('remoteAsOf', { d: '' })}<When iso={inventory.last_fetch} /></> : w('remoteNever')}</span>
-          <Button variant="secondary" icon="retry" busy={fetching} onPress={async () => {
-            if (!live.api) return
-            setFetching(true)
-            try { setFetchRun((await live.api.fetch((inventory.remotes ?? [])[0])).run) } catch (problem) { setError(problem instanceof Error ? problem.message : String(problem)) } finally { setFetching(false); changed() }
-          }}>{w('refreshRemote')}</Button>
-          {fetchRun && <RescanStatus run={fetchRun} />}
-        </>}
-      </div>
+      <BranchToolbar inventory={inventory} show={show} q={q} onQ={(next) => { setQ(next); set({ q: next || undefined }) }} set={set} />
+      <RemoteLine inventory={inventory} onError={setError} onChanged={changed} />
       <Cleanup onChanged={changed} />
       {error && <p role="alert" className={css.error}>{error}</p>}
       {inventory.truncated && <p className={css.note}>{w('truncated', { n: inventory.branches.length })}</p>}
-      {shown.local.length + shown.remote.length === 0 ? <Panel><StateMessage title={show === 'work' ? w('noBranchesWork') : w('noBranches')} /></Panel> : <>
-        {([['local', w('onComputer'), shown.local], ['remote', w('onRemote'), shown.remote]] as const).filter(([, , rows]) => rows.length > 0).map(([kind, title, rows]) => (
-          <section key={kind} data-group={kind}>
-            <h2 className={css.groupTitle}>{title}</h2>
-            <div className={css.tableWrap}>
-              <table className={css.table}>
-                <thead><tr><th scope="col">{w('branches')}</th><th scope="col">{w('lastCommit')}</th><th scope="col">{w('base')}: {inventory.base ?? '—'}</th><th scope="col">{w('linkedRuns')}</th><th scope="col"><span className="sr">{w('commands')}</span></th></tr></thead>
-                <tbody>{rows.map((row) => <Row key={row.id} row={row} onOpen={() => set({ b: row.id })} />)}</tbody>
-              </table>
-            </div>
-            <ul className={css.cards}>{rows.map((row) => <Card key={row.id} row={row} onOpen={() => set({ b: row.id })} />)}</ul>
-          </section>
-        ))}
-      </>}
+      {shown.local.length + shown.remote.length === 0 ? <Panel><StateMessage title={show === 'work' ? w('noBranchesWork') : w('noBranches')} /></Panel>
+        : <BranchGroups shown={shown} base={inventory.base} onOpen={(id) => set({ b: id })} />}
       <Recoveries inventory={inventory} onChanged={changed} />
-      {(inventory.missing_linked ?? []).length > 0 && <Section title={w('missingLinked')} count={inventory.missing_linked!.length}>
-        <Panel><ul className={css.recoveries}>{inventory.missing_linked!.map((m) => <li key={m.name}><Id value={m.name} /><RunLinks runs={m.runs} /></li>)}</ul></Panel>
-      </Section>}
+      <MissingLinked inventory={inventory} />
       {opened && <Drawer row={opened} base={inventory.base ?? null} onClose={() => set({ b: undefined })} onChanged={changed} />}
       <span className="sr" aria-live="polite">{t('branch')}: {inventory.context?.analysis.branch ?? ''}</span>
     </>
+  )
+}
+
+/** Work or every branch, the search, and the base the branches are compared with. */
+function BranchToolbar({ inventory, show, q, onQ, set }:
+  { inventory: Inventory; show: Show; q: string; onQ: (next: string) => void; set: (patch: Record<string, string | undefined>) => void }) {
+  const w = useBranchWords()
+  const locals = inventory.branches.filter((b) => b.kind === 'local')
+  return (
+    <div className={css.toolbar}>
+      <Segmented comfortable label={w('branches')} value={show} onChange={(next) => set({ show: next })} options={[{ id: 'work', label: w('work') }, { id: 'all', label: w('all') }]} />
+      <SearchField label={w('searchBranches')} placeholder={w('searchBranches')} value={q} onChange={onQ} />
+      <label className={css.baseSelect}>
+        <span>{w('base')}</span>
+        <select value={inventory.base ?? ''} onChange={(event) => set({ base: event.target.value || undefined })}>
+          {locals.map((b) => <option key={b.ref} value={b.name}>{b.name}</option>)}
+        </select>
+      </label>
+    </div>
+  )
+}
+
+/** When the remote was last fetched, and fetching it again; or that there is no remote. */
+function RemoteLine({ inventory, onError, onChanged }: { inventory: Inventory; onError: (error: string) => void; onChanged: () => void }) {
+  const w = useBranchWords()
+  const live = useBranchLive()
+  const [fetching, setFetching] = useState(false)
+  const [fetchRun, setFetchRun] = useState<Run | null>(null)
+  return (
+    <div className={css.remoteLine}>
+      {!inventory.has_origin && (inventory.remotes ?? []).length === 0 ? <span>{w('noOrigin')}</span> : <>
+        <span>{inventory.last_fetch ? <>{w('remoteAsOf', { d: '' })}<When iso={inventory.last_fetch} /></> : w('remoteNever')}</span>
+        <Button variant="secondary" icon="retry" busy={fetching} onPress={async () => {
+          if (!live.api) return
+          setFetching(true)
+          try { setFetchRun((await live.api.fetch((inventory.remotes ?? [])[0])).run) } catch (problem) { onError(problem instanceof Error ? problem.message : String(problem)) } finally { setFetching(false); onChanged() }
+        }}>{w('refreshRemote')}</Button>
+        {fetchRun && <RescanStatus run={fetchRun} />}
+      </>}
+    </div>
+  )
+}
+
+/** The branches on this computer, then on the remote: a table on the desktop and cards on the phone. */
+function BranchGroups({ shown, base, onOpen }: { shown: ReturnType<typeof shownBranches>; base?: string | null; onOpen: (id: string) => void }) {
+  const w = useBranchWords()
+  return (
+    <>
+      {([['local', w('onComputer'), shown.local], ['remote', w('onRemote'), shown.remote]] as const).filter(([, , rows]) => rows.length > 0).map(([kind, title, rows]) => (
+        <section key={kind} data-group={kind}>
+          <h2 className={css.groupTitle}>{title}</h2>
+          <div className={css.tableWrap}>
+            <table className={css.table}>
+              <thead><tr><th scope="col">{w('branches')}</th><th scope="col">{w('lastCommit')}</th><th scope="col">{w('base')}: {base ?? '—'}</th><th scope="col">{w('linkedRuns')}</th><th scope="col"><span className="sr">{w('commands')}</span></th></tr></thead>
+              <tbody>{rows.map((row) => <Row key={row.id} row={row} onOpen={() => onOpen(row.id)} />)}</tbody>
+            </table>
+          </div>
+          <ul className={css.cards}>{rows.map((row) => <Card key={row.id} row={row} onOpen={() => onOpen(row.id)} />)}</ul>
+        </section>
+      ))}
+    </>
+  )
+}
+
+/** Branches runs were linked to that no longer exist here. */
+function MissingLinked({ inventory }: { inventory: Inventory }) {
+  const w = useBranchWords()
+  const missing = inventory.missing_linked ?? []
+  if (!missing.length) return null
+  return (
+    <Section title={w('missingLinked')} count={missing.length}>
+      <Panel><ul className={css.recoveries}>{missing.map((m) => <li key={m.name}><Id value={m.name} /><RunLinks runs={m.runs} /></li>)}</ul></Panel>
+    </Section>
   )
 }
 
