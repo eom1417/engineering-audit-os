@@ -47,10 +47,37 @@ def excluded(path, patterns):
     return any(f'/{pattern.strip("/")}/' in f'/{path}' for pattern in patterns)
 
 
-def analyze(target, workdir, exclude=(), formats=None):
-    declined = tool.declined(NAME, BINARY, target)
-    if declined: return declined
-    found = version()
+class _Index:
+    """The copy GitNexus indexed, and the seconds its commands have taken so far."""
+
+    def __init__(self, binary, copy, env, seconds):
+        self.binary, self.copy, self.env, self.seconds = binary, copy, env, seconds
+
+    def cypher(self, query):
+        """All rows of a query, a page at a time: piped, the CLI stops writing at 64 KiB, so a page that
+        reaches that size is an error, never a silently shorter answer."""
+        rows, offset = [], 0
+        while True:
+            code_, out, error_, spent = run([self.binary, 'cypher', '-r', str(self.copy), f'{query} SKIP {offset} LIMIT {PAGE}'],
+                                            cwd=self.copy, env=self.env, timeout=600)
+            self.seconds += spent
+            if code_: raise RuntimeError(error_.strip()[-300:] or f'cypher exit {code_}')
+            if len(out.encode()) >= PIPE_LIMIT: raise RuntimeError(f'a page of {PAGE} rows reached the {PIPE_LIMIT}-byte output limit')
+            page = table(json.loads(out[out.index('{'):]).get('markdown'))
+            rows += page
+            if len(page) < PAGE: return rows
+            offset += PAGE
+
+    def check_cycles(self):
+        """(the cycles, or None when the answer is not JSON; the command's error output)."""
+        code, out, error, spent = run([self.binary, 'check', '--cycles', '--json', '-r', str(self.copy)], cwd=self.copy, env=self.env, timeout=600)
+        self.seconds += spent
+        try: return json.loads(out[out.index('{'):]).get('cycles') or [], error
+        except ValueError: return None, error
+
+
+def _indexed(target, workdir):
+    """(the index of a fresh copy of the project, why indexing failed or None)."""
     workdir = Path(workdir).resolve() / NAME
     if workdir.exists(): shutil.rmtree(workdir)
     copy, home = workdir / 'copy', workdir / 'home'
@@ -60,37 +87,20 @@ def analyze(target, workdir, exclude=(), formats=None):
     binary = which(BINARY)
     code, _, error, seconds = run([binary, 'analyze', '.', '--index-only', '--skip-git', '--skip-fts'], cwd=copy, env=env,
                                   timeout=1800)
-    if code:
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=error.strip()[-300:] or f'exit {code}')
+    return _Index(binary, copy, env, seconds), ((error.strip()[-300:] or f'exit {code}') if code else None)
 
-    def cypher(query):
-        """All rows of a query, a page at a time: piped, the CLI stops writing at 64 KiB, so a page that
-        reaches that size is an error, never a silently shorter answer."""
-        nonlocal seconds
-        rows, offset = [], 0
-        while True:
-            code_, out, error_, spent = run([binary, 'cypher', '-r', str(copy), f'{query} SKIP {offset} LIMIT {PAGE}'],
-                                            cwd=copy, env=env, timeout=600)
-            seconds += spent
-            if code_: raise RuntimeError(error_.strip()[-300:] or f'cypher exit {code_}')
-            if len(out.encode()) >= PIPE_LIMIT: raise RuntimeError(f'a page of {PAGE} rows reached the {PIPE_LIMIT}-byte output limit')
-            page = table(json.loads(out[out.index('{'):]).get('markdown'))
-            rows += page
-            if len(page) < PAGE: return rows
-            offset += PAGE
 
-    try:
-        imports = cypher("MATCH (a:File)-[r]->(b:File) WHERE r.type='IMPORTS' RETURN a.filePath AS source, b.filePath AS sink ORDER BY source, sink")
-        members = cypher("MATCH (s)-[r]->(c:Community) WHERE r.type='MEMBER_OF' RETURN DISTINCT c.id AS cid, c.label AS clabel, "
-                         "s.filePath AS path ORDER BY cid, path")
-        relations = dict((kind, int(count)) for kind, count in cypher("MATCH ()-[r]->() RETURN r.type AS kind, count(*) AS n ORDER BY kind"))
-    except (RuntimeError, ValueError) as problem:
-        return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=f'query failed: {problem}'[:300])
-    code, out, error, spent = run([binary, 'check', '--cycles', '--json', '-r', str(copy)], cwd=copy, env=env, timeout=600)
-    seconds += spent
-    try: cycles = json.loads(out[out.index('{'):]).get('cycles') or []
-    except ValueError: return Report(NAME, found, PINNED, ERROR, seconds=seconds, reason=f'check --cycles: {error.strip()[-200:]}')
+def _graph(index):
+    """(import edges, community members, {relation kind: count}) of the indexed copy."""
+    imports = index.cypher("MATCH (a:File)-[r]->(b:File) WHERE r.type='IMPORTS' RETURN a.filePath AS source, b.filePath AS sink ORDER BY source, sink")
+    members = index.cypher("MATCH (s)-[r]->(c:Community) WHERE r.type='MEMBER_OF' RETURN DISTINCT c.id AS cid, c.label AS clabel, "
+                           "s.filePath AS path ORDER BY cid, path")
+    relations = dict((kind, int(count)) for kind, count in index.cypher("MATCH ()-[r]->() RETURN r.type AS kind, count(*) AS n ORDER BY kind"))
+    return imports, members, relations
 
+
+def _cycle_findings(cycles, exclude, found):
+    """One finding per distinct cycle with a file outside the excluded folders."""
     findings, seen = [], set()
     for cycle in cycles:
         members_ = cycle.get('files') or []
@@ -100,25 +110,53 @@ def analyze(target, workdir, exclude=(), formats=None):
         findings.append(finding(NAME, found, 'gitnexus.check.cycles', 'cycle', subject('module', ' -> '.join(key), key[0]),
                                 'import cycle (type imports included): ' + ' -> '.join(members_),
                                 raw_ref=f'{NAME}/check-cycles', sites=[{'path': path, 'line': None} for path in key]))
+    return findings
+
+
+def _fans(imports):
     fan_in, fan_out = {}, {}
     for source, sink in imports:
         fan_in[sink] = fan_in.get(sink, 0) + 1
         fan_out[source] = fan_out.get(source, 0) + 1
-    for path, count in sorted(fan_in.items(), key=lambda item: (-item[1], item[0])):
-        if count < FAN_IN or excluded(path, exclude): continue
-        findings.append(finding(NAME, found, f'gitnexus.fan_in>={FAN_IN}', 'coupling', subject('file', path, path),
-                                f'{path}: imported by {count} files (fan-in {count}); a change to it reaches all of them',
-                                measurements=[measurement('fan_in', count, threshold=FAN_IN)], raw_ref=f'{NAME}/imports'))
+    return fan_in, fan_out
+
+
+def _fan_findings(fan_in, exclude, found):
+    """A coupling finding for each file at least FAN_IN files import, the most imported first."""
+    return [finding(NAME, found, f'gitnexus.fan_in>={FAN_IN}', 'coupling', subject('file', path, path),
+                    f'{path}: imported by {count} files (fan-in {count}); a change to it reaches all of them',
+                    measurements=[measurement('fan_in', count, threshold=FAN_IN)], raw_ref=f'{NAME}/imports')
+            for path, count in sorted(fan_in.items(), key=lambda item: (-item[1], item[0]))
+            if count >= FAN_IN and not excluded(path, exclude)]
+
+
+def _communities(members, exclude):
     communities = {}
     for identifier, label, path in members:
         if path and not excluded(path, exclude):
             communities.setdefault((identifier, label), set()).add(path)
+    return [{'name': f'{label} ({identifier})', 'files': sorted(files)} for (identifier, label), files in sorted(communities.items())]
+
+
+def analyze(target, workdir, exclude=(), formats=None):
+    declined = tool.declined(NAME, BINARY, target)
+    if declined: return declined
+    found = version()
+    index, failure = _indexed(target, workdir)
+    if failure:
+        return Report(NAME, found, PINNED, ERROR, seconds=index.seconds, reason=failure)
+    try: imports, members, relations = _graph(index)
+    except (RuntimeError, ValueError) as problem:
+        return Report(NAME, found, PINNED, ERROR, seconds=index.seconds, reason=f'query failed: {problem}'[:300])
+    cycles, error = index.check_cycles()
+    if cycles is None: return Report(NAME, found, PINNED, ERROR, seconds=index.seconds, reason=f'check --cycles: {error.strip()[-200:]}')
+    fan_in, fan_out = _fans(imports)
+    findings = _cycle_findings(cycles, exclude, found) + _fan_findings(fan_in, exclude, found)
     metrics = [{'path': path, 'granularity': 'file', 'measurements': {'fan_in': fan_in.get(path, 0), 'fan_out': fan_out.get(path, 0)}}
                for path in sorted(set(fan_in) | set(fan_out)) if not excluded(path, exclude)]
-    return Report(NAME, found, PINNED, OBSERVED, seconds=seconds, findings=findings, metrics=metrics,
+    return Report(NAME, found, PINNED, OBSERVED, seconds=index.seconds, findings=findings, metrics=metrics,
                   coverage={'status': 'observed', 'relations': relations, 'import_edges': len(imports),
                             'cycles': len(cycles), 'fan_in_threshold': FAN_IN,
-                            'communities': [{'name': f'{label} ({identifier})', 'files': sorted(files)}
-                                            for (identifier, label), files in sorted(communities.items())]},
+                            'communities': _communities(members, exclude)},
                   evaluated={'cycle': {'status': 'observed', 'granularity': FILE},
                              'coupling': {'status': 'observed', 'granularity': FILE}})
