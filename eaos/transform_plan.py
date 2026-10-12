@@ -37,24 +37,35 @@ def _canonical_home_for(out, cluster, policy_path=None):
     return suggest(out, cluster, policy_path)
 
 
+# A manifest that declares the project's tests, and the command that runs them.
+MANIFEST_TESTS = (('go.mod', ['go', 'test', './...']), ('Cargo.toml', ['cargo', 'test']), ('pom.xml', ['mvn', 'test']))
+
+
+def _npm_test(target):
+    """True when package.json declares a real test script, not npm's placeholder."""
+    package = target / 'package.json'
+    if not package.is_file(): return False
+    try: scripts = json.loads(package.read_text(encoding='utf-8')).get('scripts', {})
+    except (ValueError, OSError): scripts = {}
+    return bool(scripts.get('test')) and 'no test specified' not in scripts['test'].lower()
+
+
+def _python_tests(target):
+    """True when a tests/ folder holds Python tests, or pyproject.toml names pytest."""
+    if not (target / 'tests').is_dir(): return False
+    pyproject = target / 'pyproject.toml'
+    text = pyproject.read_text(encoding='utf-8', errors='replace') if pyproject.is_file() else ''
+    return 'pytest' in text or any((target / 'tests').glob('test_*.py'))
+
+
 def _declared_test_command(out):
     run_path = Path(out) / 'facts' / 'run.json'
     if not run_path.is_file(): return None
     target = Path(json.loads(run_path.read_text(encoding='utf-8'))['target'])
-    package = target / 'package.json'
-    if package.is_file():
-        try: scripts = json.loads(package.read_text(encoding='utf-8')).get('scripts', {})
-        except (ValueError, OSError): scripts = {}
-        if scripts.get('test') and 'no test specified' not in scripts['test'].lower():
-            return ['npm', 'test', '--silent'], 'project_manifest'
-    if (target / 'go.mod').is_file(): return ['go', 'test', './...'], 'project_manifest'
-    if (target / 'Cargo.toml').is_file(): return ['cargo', 'test'], 'project_manifest'
-    if (target / 'pom.xml').is_file(): return ['mvn', 'test'], 'project_manifest'
-    if (target / 'tests').is_dir():
-        pyproject = target / 'pyproject.toml'
-        text = pyproject.read_text(encoding='utf-8', errors='replace') if pyproject.is_file() else ''
-        if 'pytest' in text or any((target / 'tests').glob('test_*.py')):
-            return [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-q'], 'discovered_tests'
+    if _npm_test(target): return ['npm', 'test', '--silent'], 'project_manifest'
+    declared = next((argv for name, argv in MANIFEST_TESTS if (target / name).is_file()), None)
+    if declared: return declared, 'project_manifest'
+    if _python_tests(target): return [sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-q'], 'discovered_tests'
     return None
 
 
@@ -100,64 +111,72 @@ def _rollback_for(kind):
     return 'Revert one commit; no stage alters files outside its scope.'
 
 
+def _canonicalize_stage(out, sets, move, index, policy_path):
+    """The stage that gives a duplicated rule one home, the best candidate first; None when its cluster is gone."""
+    cluster_sha = move.get('rule')
+    cluster = next((f for f in sets.get('fingerprint', {}).get('facts', [])
+                    if f['kind'] == 'duplicate_cluster' and f['value']['shape_sha'] == cluster_sha), None)
+    if cluster is None: return None
+    canonical = _canonical_home_for(out, cluster, policy_path)
+    best = canonical['candidates'][0] if canonical['candidates'] else None
+    sites = move['occurrences']
+    return {
+        'stage': index,
+        'move': move['move'],
+        'rule': cluster_sha,
+        'canonical_home': best['path'] if best else None,
+        'canonical_home_layer': best['layer'] if best else None,
+        'canonical_home_score': best['score'] if best else None,
+        'all_candidates': [{'path': c['path'], 'layer': c['layer'],
+                            'policy_violations': c['policy_violations'],
+                            'home_already': c['home_already']}
+                           for c in canonical['candidates']][:5],
+        'sites': sites,
+        'steps': ['Place the canonical definition at the chosen home (if not already there).',
+                  'Replace every duplicate with an import-and-call.',
+                  'Run the equivalence test set generated for this stage.'],
+        'acceptance': _stage_acceptance('canonicalize', sites, out, index),
+        'rollback': _rollback_for('canonicalize'),
+        'falsifier': move['falsifier'],
+        'predicted': move['predicted'],
+        'indicator': move['indicator'],
+    }
+
+
+def _redundancy_stage(out, move, index):
+    sites = move.get('sites', [])
+    return {
+        'stage': index,
+        'move': move['move'],
+        'redundancy_kind': move.get('kind'),
+        'sites': sites,
+        'steps': ['Inspect each site; remove or hoist the redundant call.',
+                  'Keep the public signature stable; the call site is the only changed file.'],
+        'acceptance': _stage_acceptance(move.get('kind'), sites, out, index),
+        'rollback': _rollback_for(move.get('kind')),
+        'falsifier': move['falsifier'],
+        'predicted': move['predicted'],
+        'indicator': move['indicator'],
+    }
+
+
 def build(out, policy_path=None, targets=None):
     """Build a transform plan from the current sustainability dashboard."""
     sets = _gather(out)
     dashboard = compute(out, targets)
     moves = _transformations(out, dashboard)
     stages = []
-    index = 0
     homes = sum(1 for move in moves if move['move'] == 'canonicalize')
     sought = 0
     for move in moves:
+        stage = None
         if move['move'] == 'canonicalize':
             progress.count('canonical homes', sought, homes)
             sought += 1
-            cluster_sha = move.get('rule')
-            cluster = next((f for f in sets.get('fingerprint', {}).get('facts', [])
-                             if f['kind'] == 'duplicate_cluster' and f['value']['shape_sha'] == cluster_sha), None)
-            if cluster is None: continue
-            canonical = _canonical_home_for(out, cluster, policy_path)
-            best = canonical['candidates'][0] if canonical['candidates'] else None
-            sites = move['occurrences']
-            index += 1
-            stages.append({
-                'stage': index,
-                'move': move['move'],
-                'rule': cluster_sha,
-                'canonical_home': best['path'] if best else None,
-                'canonical_home_layer': best['layer'] if best else None,
-                'canonical_home_score': best['score'] if best else None,
-                'all_candidates': [{'path': c['path'], 'layer': c['layer'],
-                                     'policy_violations': c['policy_violations'],
-                                     'home_already': c['home_already']}
-                                    for c in canonical['candidates']][:5],
-                'sites': sites,
-                'steps': ['Place the canonical definition at the chosen home (if not already there).',
-                          'Replace every duplicate with an import-and-call.',
-                          'Run the equivalence test set generated for this stage.'],
-                'acceptance': _stage_acceptance('canonicalize', sites, out, index),
-                'rollback': _rollback_for('canonicalize'),
-                'falsifier': move['falsifier'],
-                'predicted': move['predicted'],
-                'indicator': move['indicator'],
-            })
+            stage = _canonicalize_stage(out, sets, move, len(stages) + 1, policy_path)
         elif move['move'] == 'eliminate_redundancy':
-            sites = move.get('sites', [])
-            index += 1
-            stages.append({
-                'stage': index,
-                'move': move['move'],
-                'redundancy_kind': move.get('kind'),
-                'sites': sites,
-                'steps': ['Inspect each site; remove or hoist the redundant call.',
-                          'Keep the public signature stable; the call site is the only changed file.'],
-                'acceptance': _stage_acceptance(move.get('kind'), sites, out, index),
-                'rollback': _rollback_for(move.get('kind')),
-                'falsifier': move['falsifier'],
-                'predicted': move['predicted'],
-                'indicator': move['indicator'],
-            })
+            stage = _redundancy_stage(out, move, len(stages) + 1)
+        if stage: stages.append(stage)
     progress.count('canonical homes', homes, homes)
     summary = {'stages': len(stages),
                 'moves_with_no_viable_candidate': sum(1 for stage in stages
@@ -185,6 +204,35 @@ def render(out, plan, language='ar'):
     ar = language == 'ar'
     Path(out, 'transform-plan.json').write_text(
         json_dumps(plan), encoding='utf-8')
+    header = _render_header(plan, ar)
+    blocks = [_stage_block(stage, ar) for stage in plan['stages'][:SHOWN_STAGES]]
+    # A stage is shown whole or not at all: half a stage is a step list with no acceptance under
+    # it. A fixed count of stages cannot hold a budget, because one stage may print twenty sites.
+    # The tail is built first, so the stages fill exactly what it leaves.
+    limits = ['', '## ' + ('الحدود' if ar else 'Limits'), ''] + [f"- {line}" for line in LIMITATIONS]
+    lines, shown = _fit(header, blocks, len(limits))
+    if shown < len(plan['stages']):
+        lines += ['', (f"عُرضت {shown} مرحلة من {len(plan['stages'])}؛ البقية في `transform-plan.json`."
+                       if ar else
+                       f"Showing {shown} of {len(plan['stages'])} stages; the rest are in "
+                       f"`transform-plan.json`.")]
+    lines += limits
+    Path(out, 'transform-plan.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+    return {'json': str(Path(out, 'transform-plan.json')),
+            'markdown': str(Path(out, 'transform-plan.md'))}
+
+
+def _fit(header, blocks, tail):
+    """(lines, stages shown): the header and the whole stage blocks that fit the budget beside a note and the tail."""
+    note, lines, shown = 2, header, 0
+    for block in blocks:
+        if len(lines) + len(block) + note + tail > _budget(): break
+        lines += block
+        shown += 1
+    return lines, shown
+
+
+def _render_header(plan, ar):
     lines = []
     if ar:
         lines += ['# خطة التحويل القابلة للتنفيذ آليًا', '',
@@ -198,56 +246,41 @@ def render(out, plan, language='ar'):
     lines += ["- " + ('عدد المراحل' if ar else 'stages') + f": {plan['summary']['stages']}"]
     lines += ["- " + ('حركات بلا موضع مرجحي' if ar else 'moves with no viable candidate')
               + f": {plan['summary']['moves_with_no_viable_candidate']}"]
-    header = lines
-    blocks = []
-    for stage in plan['stages'][:SHOWN_STAGES]:
-        lines = []
-        lines += ['', '## ' + ('مرحلة' if ar else 'Stage') + f" {stage['stage']}: {stage['move']}"]
-        if 'rule' in stage:
-            lines += ["- " + ('القاعدة' if ar else 'rule') + f": {stage['rule'][:16]}"]
-        if 'redundancy_kind' in stage:
-            lines += ["- " + ('نوع التكرار' if ar else 'redundancy kind') + f": {stage['redundancy_kind']}"]
-        if stage.get('canonical_home') is not None:
-            lines += ["- " + ('الموضع المرجعي' if ar else 'canonical home') + f": {stage['canonical_home']}"]
-        lines += ["- " + ('المواضع' if ar else 'sites') + ":"]
-        for site in stage['sites'][:20]:
-            lines += [f"  - {site.get('path')}:{site.get('line') or site.get('start_line')} {site.get('symbol', '')}"]
-        lines += ["- " + ('الخطوات' if ar else 'steps') + ":"]
-        for step in stage.get('steps', []):
-            lines += [f"  - {step}"]
-        if stage.get('acceptance'):
-            lines += ["- " + ('معيار القبول' if ar else 'acceptance') + ":"]
-            for k, v in stage['acceptance'].items():
-                lines += [f"  - {k}: {v}"]
-        if stage.get('rollback'):
-            lines += ["- " + ('التراجع' if ar else 'rollback') + f": {stage['rollback']}"]
-        if stage.get('falsifier'):
-            lines += ["- " + ('ناقض' if ar else 'falsifier') + f": {stage['falsifier']}"]
-        if stage.get('predicted'):
-            lines += ["- " + ('التأثير المتوقع' if ar else 'predicted') + ":"]
-            for k, v in stage['predicted'].items():
-                lines += [f"  - {k}: {v}"]
-        blocks.append(lines)
-    # A stage is shown whole or not at all: half a stage is a step list with no acceptance under
-    # it. A fixed count of stages cannot hold a budget, because one stage may print twenty sites.
-    # The tail is built first, so the stages fill exactly what it leaves.
-    limits = ['', '## ' + ('الحدود' if ar else 'Limits'), ''] + [f"- {line}" for line in LIMITATIONS]
-    note = 2
-    lines = header
-    shown = 0
-    for block in blocks:
-        if len(lines) + len(block) + note + len(limits) > _budget(): break
-        lines += block
-        shown += 1
-    if shown < len(plan['stages']):
-        lines += ['', (f"عُرضت {shown} مرحلة من {len(plan['stages'])}؛ البقية في `transform-plan.json`."
-                       if ar else
-                       f"Showing {shown} of {len(plan['stages'])} stages; the rest are in "
-                       f"`transform-plan.json`.")]
-    lines += limits
-    Path(out, 'transform-plan.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
-    return {'json': str(Path(out, 'transform-plan.json')),
-            'markdown': str(Path(out, 'transform-plan.md'))}
+    return lines
+
+
+def _stage_identity(stage, ar):
+    """The rule, the redundancy kind and the canonical home a stage names, when it names them."""
+    lines = []
+    if 'rule' in stage:
+        lines += ["- " + ('القاعدة' if ar else 'rule') + f": {stage['rule'][:16]}"]
+    if 'redundancy_kind' in stage:
+        lines += ["- " + ('نوع التكرار' if ar else 'redundancy kind') + f": {stage['redundancy_kind']}"]
+    if stage.get('canonical_home') is not None:
+        lines += ["- " + ('الموضع المرجعي' if ar else 'canonical home') + f": {stage['canonical_home']}"]
+    return lines
+
+
+def _stage_checks(stage, ar):
+    """A stage's acceptance, rollback, falsifier and predicted effect, when it has them."""
+    lines = []
+    if stage.get('acceptance'):
+        lines += ["- " + ('معيار القبول' if ar else 'acceptance') + ":"] + [f"  - {k}: {v}" for k, v in stage['acceptance'].items()]
+    if stage.get('rollback'):
+        lines += ["- " + ('التراجع' if ar else 'rollback') + f": {stage['rollback']}"]
+    if stage.get('falsifier'):
+        lines += ["- " + ('ناقض' if ar else 'falsifier') + f": {stage['falsifier']}"]
+    if stage.get('predicted'):
+        lines += ["- " + ('التأثير المتوقع' if ar else 'predicted') + ":"] + [f"  - {k}: {v}" for k, v in stage['predicted'].items()]
+    return lines
+
+
+def _stage_block(stage, ar):
+    lines = ['', '## ' + ('مرحلة' if ar else 'Stage') + f" {stage['stage']}: {stage['move']}"] + _stage_identity(stage, ar)
+    lines += ["- " + ('المواضع' if ar else 'sites') + ":"]
+    lines += [f"  - {site.get('path')}:{site.get('line') or site.get('start_line')} {site.get('symbol', '')}" for site in stage['sites'][:20]]
+    lines += ["- " + ('الخطوات' if ar else 'steps') + ":"] + [f"  - {step}" for step in stage.get('steps', [])]
+    return lines + _stage_checks(stage, ar)
 
 
 def json_dumps(obj):

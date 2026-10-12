@@ -155,7 +155,19 @@ def build(out):
 
 def render(record, language='ar', top=20):
     ar = language == 'ar'
-    lines = ['# ' + ('القياس لكل ملف' if ar else 'Measurements per file'), '',
+    lines = _render_head(record, ar)
+    show = lambda value: '—' if value is None else str(value)
+    ranked = sorted(record['files'], key=lambda r: (-(r['complexity_max'] or 0), -(r['churn'] or 0), r['path']))[:top]
+    for row in ranked:
+        lines.append(f"| `{row['path']}` | {show(row['loc'])} | {show(row['complexity_max'])} | {show(row['churn'])} | "
+                     f"{show(row['fan_in'])} | {show(row['duplicated_lines'])} |")
+    _not_measured_line = None
+    return _render_tail(record, ar, lines)
+
+
+def _render_head(record, ar):
+    """The page's title, how many files are measured whole, and the head of the table of the most complex files."""
+    return ['# ' + ('القياس لكل ملف' if ar else 'Measurements per file'), '',
              (f"{record['complete']} من {len(record['files'])} ملفًا محللًا لها الحجم والتعقيد والتغيّر والاعتماد كلها. "
               if ar else f"{record['complete']} of {len(record['files'])} analysed files have size, complexity, change and dependency. ")
              + ('التفصيل الكامل في measurements.json.' if ar else 'The full table is measurements.json.'), '',
@@ -163,11 +175,9 @@ def render(record, language='ar', top=20):
              '| ' + (' | '.join(['الملف', 'الأسطر', 'أعلى تعقيد', 'مرات التغيير', 'يعتمد عليه', 'مكرر']) if ar else
                     ' | '.join(['File', 'Lines', 'Max complexity', 'Commits', 'Fan-in', 'Duplicated'])) + ' |',
              '|---|---:|---:|---:|---:|---:|']
-    show = lambda value: '—' if value is None else str(value)
-    ranked = sorted(record['files'], key=lambda r: (-(r['complexity_max'] or 0), -(r['churn'] or 0), r['path']))[:top]
-    for row in ranked:
-        lines.append(f"| `{row['path']}` | {show(row['loc'])} | {show(row['complexity_max'])} | {show(row['churn'])} | "
-                     f"{show(row['fan_in'])} | {show(row['duplicated_lines'])} |")
+
+
+def _render_tail(record, ar, lines):
     if record['not_measured']:
         lines += ['', ('غير مقيس: ' if ar else 'Not measured: ') + f"{len(record['not_measured'])} " +
                   ('ملفًا لم يُحلَّل (السبب لكل ملف في measurements.json).' if ar else 'files not parsed (each reason is in measurements.json).')]
