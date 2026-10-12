@@ -84,22 +84,30 @@ def inventory(project):
     current = checked_out(project)
     rows = {}
     for kind, pattern in (('local', 'refs/heads'), ('origin', 'refs/remotes/origin')):
-        listed = _git(project, 'for-each-ref', '--format=%(refname:short)%00%(objectname)%00%(committerdate:iso-strict)%00%(subject)', pattern)
-        for line in listed.stdout.splitlines():
-            name, tip, when, subject = (line.split('\x00') + ['', '', ''])[:4]
-            if kind == 'origin': name = name.split('/', 1)[-1] if '/' in name else ''
+        for name, tip, when, subject in _refs(project, kind, pattern):
             if not name or not _persons(name) or name in rows: continue
             rows[name] = {'name': name, 'tip': tip, 'last_commit': when, 'last_subject': subject[:120], 'where': kind,
                           'checked_out': name == current, 'main': name == main}
     main_tip = rows.get(main, {}).get('tip')
     for row in rows.values():
         row['commits'] = int(_git(project, 'rev-list', '--count', row['tip']).stdout.strip() or 0)
-        if main_tip and row['tip'] != main_tip:
-            counts = _git(project, 'rev-list', '--left-right', '--count', f"{main_tip}...{row['tip']}").stdout.split()
-            row['behind_main'], row['ahead_of_main'] = (int(counts[0]), int(counts[1])) if len(counts) == 2 else (None, None)
-        else:
-            row['behind_main'], row['ahead_of_main'] = 0, 0
+        row['behind_main'], row['ahead_of_main'] = _behind_ahead(project, main_tip, row['tip'])
     return sorted(rows.values(), key=lambda r: r['last_commit'], reverse=True)
+
+
+def _refs(project, kind, pattern):
+    """(name, tip, date, subject) of each branch under `pattern`; an origin branch named without its remote."""
+    listed = _git(project, 'for-each-ref', '--format=%(refname:short)%00%(objectname)%00%(committerdate:iso-strict)%00%(subject)', pattern)
+    for line in listed.stdout.splitlines():
+        name, tip, when, subject = (line.split('\x00') + ['', '', ''])[:4]
+        if kind == 'origin': name = name.split('/', 1)[-1] if '/' in name else ''
+        yield name, tip, when, subject
+
+
+def _behind_ahead(project, main_tip, tip):
+    if not main_tip or tip == main_tip: return 0, 0
+    counts = _git(project, 'rev-list', '--left-right', '--count', f"{main_tip}...{tip}").stdout.split()
+    return (int(counts[0]), int(counts[1])) if len(counts) == 2 else (None, None)
 
 
 def recommend(rows):
@@ -158,39 +166,75 @@ def freshness(state, tip=None):
     other_branch (the report is of another branch than the one EAOS works on now); unknown, with the reason
     (not_scanned, legacy_report, not_git, branch_missing). `tip` is the branch's commit now (guided.tip)."""
     project = state.get('project')
-    scanned, recorded = state.get('scanned_commit'), 'scanned_branch' in state or 'scanned_detached' in state
-    out = {'state': 'unknown', 'reason': None, 'scanned_commit': scanned, 'scanned_branch': state.get('scanned_branch'),
-           'scanned_detached': state.get('scanned_detached'), 'scanned_dirty': state.get('scanned_dirty'),
-           'scanned_at': state.get('scanned'), 'recorded': recorded, 'branch': state.get('branch') or checked_out(project) if project else None,
-           'tip': tip, 'behind': None, 'dirty': None}
-    if not state.get('scanned'): return {**out, 'reason': 'not_scanned'}
-    if not scanned: return {**out, 'reason': 'legacy_report'}
-    if not project or _git(project, 'rev-parse', '--git-dir').returncode: return {**out, 'reason': 'not_git'}
+    scanned = state.get('scanned_commit')
+    out = _freshness_record(state, project, tip)
+    reason = _unknown_reason(state, project, scanned)
+    if reason: return {**out, 'reason': reason}
     detached = bool(state.get('scanned_detached'))
-    if tip is None:
-        done = _git(project, 'rev-parse', '--verify', '--quiet', ('HEAD' if detached or not state.get('branch') else ref(state)) + '^{commit}')
-        tip = done.stdout.strip() if done.returncode == 0 else ''
-        out['tip'] = tip
+    if tip is None: tip = out['tip'] = _tip_now(state, project, detached)
     if not tip: return {**out, 'reason': 'branch_missing'}
-    if recorded and not detached and state.get('scanned_branch') and out['branch'] and state['scanned_branch'] != out['branch']:
-        return {**out, 'state': 'other_branch'}
+    if _on_other_branch(state, out, detached): return {**out, 'state': 'other_branch'}
     if _git(project, 'cat-file', '-e', scanned + '^{commit}').returncode:
         return {**out, 'state': 'rewritten', 'reason': 'scanned_commit_gone'}
-    if tip != scanned:
-        if _git(project, 'merge-base', '--is-ancestor', scanned, tip).returncode:
-            base = _git(project, 'merge-base', scanned, tip).stdout.strip()
-            count = _git(project, 'rev-list', '--count', f'{base}..{tip}').stdout.strip() if base else ''
-            return {**out, 'state': 'rewritten', 'reason': 'not_in_history', 'since_common': int(count) if count.isdigit() else None}
-        others = _commits_by_others(project, scanned, tip)
-        count = _git(project, 'rev-list', '--count', f'{scanned}..{tip}').stdout.strip()
-        files = _git(project, '-c', 'core.quotePath=false', 'diff', '--name-only', scanned, tip).stdout.splitlines()
-        behind = {'commits': int(count) if count.isdigit() else None, 'files': len(files), 'file_list': files[:FILES_SHOWN],
-                  'truncated': len(files) > FILES_SHOWN, 'eaos_only': others == []}
-        if others != []: return {**out, 'state': 'behind', 'behind': behind}
-        out['behind'] = behind
+    moved = _moved_on(project, scanned, tip, out) if tip != scanned else None
+    if moved: return moved
+    return _dirty_verdict(project, detached, out) or {**out, 'state': 'fresh'}
+
+
+def _freshness_record(state, project, tip):
+    branch = (state.get('branch') or checked_out(project)) if project else None
+    return {'state': 'unknown', 'reason': None, 'scanned_commit': state.get('scanned_commit'),
+            'scanned_branch': state.get('scanned_branch'), 'scanned_detached': state.get('scanned_detached'),
+            'scanned_dirty': state.get('scanned_dirty'), 'scanned_at': state.get('scanned'),
+            'recorded': 'scanned_branch' in state or 'scanned_detached' in state, 'branch': branch,
+            'tip': tip, 'behind': None, 'dirty': None}
+
+
+def _unknown_reason(state, project, scanned):
+    if not state.get('scanned'): return 'not_scanned'
+    if not scanned: return 'legacy_report'
+    if not project or _git(project, 'rev-parse', '--git-dir').returncode: return 'not_git'
+    return None
+
+
+def _tip_now(state, project, detached):
+    branch = 'HEAD' if detached or not state.get('branch') else ref(state)
+    done = _git(project, 'rev-parse', '--verify', '--quiet', branch + '^{commit}')
+    return done.stdout.strip() if done.returncode == 0 else ''
+
+
+def _on_other_branch(state, out, detached):
+    scanned_branch = state.get('scanned_branch')
+    return bool(out['recorded'] and not detached and scanned_branch and out['branch'] and scanned_branch != out['branch'])
+
+
+def _rewritten_since(project, scanned, tip):
+    base = _git(project, 'merge-base', scanned, tip).stdout.strip()
+    count = _git(project, 'rev-list', '--count', f'{base}..{tip}').stdout.strip() if base else ''
+    return int(count) if count.isdigit() else None
+
+
+def _what_came_after(project, scanned, tip):
+    """(the authors other than EAOS, the commits and files after the scanned commit)."""
+    others = _commits_by_others(project, scanned, tip)
+    count = _git(project, 'rev-list', '--count', f'{scanned}..{tip}').stdout.strip()
+    files = _git(project, '-c', 'core.quotePath=false', 'diff', '--name-only', scanned, tip).stdout.splitlines()
+    return others, {'commits': int(count) if count.isdigit() else None, 'files': len(files), 'file_list': files[:FILES_SHOWN],
+                    'truncated': len(files) > FILES_SHOWN, 'eaos_only': others == []}
+
+
+def _moved_on(project, scanned, tip, out):
+    """The verdict when the branch is past the scanned commit; None when only EAOS's own fixes came after it."""
+    if _git(project, 'merge-base', '--is-ancestor', scanned, tip).returncode:
+        return {**out, 'state': 'rewritten', 'reason': 'not_in_history', 'since_common': _rewritten_since(project, scanned, tip)}
+    others, behind = _what_came_after(project, scanned, tip)
+    out['behind'] = behind
+    return {**out, 'state': 'behind'} if others != [] else None
+
+
+def _dirty_verdict(project, detached, out):
     here = checked_out(project)
-    if (detached and here is None) or (out['branch'] and here == out['branch']):
-        changes = dirty(project)
-        out['dirty'] = changes
-        if changes and (changes['tracked'] or changes['untracked']): return {**out, 'state': 'dirty'}
-    return {**out, 'state': 'fresh'}
+    if not ((detached and here is None) or (out['branch'] and here == out['branch'])): return None
+    changes = dirty(project)
+    out['dirty'] = changes
+    return {**out, 'state': 'dirty'} if changes and (changes['tracked'] or changes['untracked']) else None
