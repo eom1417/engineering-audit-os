@@ -108,27 +108,27 @@ def problems(report):
     register = _load(report / 'debt-register.json', {}) or {}
     claims = {c.get('id'): c for c in dossier.get('claims') or [] if isinstance(c, dict)}
     debt = {i.get('claim_id'): i for i in register.get('items') or [] if isinstance(i, dict) and i.get('claim_id')}
-    rows = []
-    for task in plan.get('tasks') or []:
-        if not isinstance(task, dict): continue
-        claim = claims.get(task.get('claim_id')) or {}
-        item = debt.get(task.get('claim_id')) or {}
-        area, severity = classify(task, item.get('severity'), item.get('category'))
-        assessment = claim.get('assessment') or {}
-        decision = task.get('decision') or {}
-        rows.append({'id': task.get('id', ''), 'pattern': plain_kind(task), 'area': area, 'severity': severity,
-                     'confidence': claim.get('confidence') or task.get('confidence') or 'CONFIRMED',
-                     'auto': task.get('kind') == 'remediate' and decision.get('readiness') == 'ready',
-                     'outcomes': decision.get('allowed_outcomes') or [], 'options': task.get('options') or [],
-                     'effort': task.get('effort'), 'change': assessment.get('proposed_change') or task.get('change') or '', 'priority': task.get('priority') or 0,
-                     'title': task.get('title') or claim.get('statement') or '', 'paths': task.get('paths') or [],
-                     'before': assessment.get('before') or task.get('before') or '',
-                     'after': assessment.get('after') or task.get('after') or ''})
+    rows = [_problem_row(task, claims.get(task.get('claim_id')) or {}, debt.get(task.get('claim_id')) or {})
+            for task in plan.get('tasks') or [] if isinstance(task, dict)]
     ranked = sorted((r['priority'] for r in rows), reverse=True)
     for row in rows:
         above = sum(1 for p in ranked if p > row['priority'])
         row['top'] = max(1, math.ceil((above + 1) * 100 / len(ranked)))
     return rows
+
+
+def _problem_row(task, claim, item):
+    area, severity = classify(task, item.get('severity'), item.get('category'))
+    assessment = claim.get('assessment') or {}
+    decision = task.get('decision') or {}
+    return {'id': task.get('id', ''), 'pattern': plain_kind(task), 'area': area, 'severity': severity,
+            'confidence': claim.get('confidence') or task.get('confidence') or 'CONFIRMED',
+            'auto': task.get('kind') == 'remediate' and decision.get('readiness') == 'ready',
+            'outcomes': decision.get('allowed_outcomes') or [], 'options': task.get('options') or [],
+            'effort': task.get('effort'), 'change': assessment.get('proposed_change') or task.get('change') or '', 'priority': task.get('priority') or 0,
+            'title': task.get('title') or claim.get('statement') or '', 'paths': task.get('paths') or [],
+            'before': assessment.get('before') or task.get('before') or '',
+            'after': assessment.get('after') or task.get('after') or ''}
 
 
 def stage_status(report):
@@ -143,24 +143,33 @@ def score(rows, source_files, statuses=None, known=True):
     """
     statuses = statuses or {}
     size = max(source_files or 0, 100) / 100
-    areas = {}
-    for area in AREAS:
-        mine = [r for r in rows if r['area'] == area]
-        points = sum(SEVERITY_WEIGHT[r['severity']] * CONFIDENCE_WEIGHT.get(r['confidence'], 1.0) for r in mine)
-        density = points / size
-        measured = known and statuses.get(AREA_STAGE[area]) not in ('failed', 'not_reached') \
-            and (area not in AREA_OPTIONAL or statuses.get(AREA_STAGE[area]) == 'ok')
-        value = round(100 * HALF_POINT / (HALF_POINT + density))
-        counts = {s: sum(r['severity'] == s for r in mine) for s in SEVERITIES}
-        light = ('red' if value < 50 or counts['critical'] else 'green' if value >= 80 and not counts['high'] else 'amber')
-        areas[area] = {'score': value if measured else None, 'points': round(points), 'density': round(density),
-                       'counts': counts, 'total': len(mine), 'light': light if measured else 'grey', 'measured': measured}
+    areas = {area: _area_score(area, rows, size, known and _area_measured(area, statuses)) for area in AREAS}
     measured = [a['score'] for a in areas.values() if a['score'] is not None]
     overall = round(sum(measured) / len(measured)) if measured else None
     capped = any(r['severity'] == 'critical' and r['confidence'] == 'CONFIRMED' for r in rows)
     if overall is not None and capped: overall = min(overall, CRITICAL_CAP)
     grade = next(name for floor, name in GRADES if (overall or 0) >= floor) if overall is not None else None
     return {'score': overall, 'grade': grade, 'areas': areas, 'capped': capped, 'size': round(size * 100)}
+
+
+def _area_measured(area, statuses):
+    status = statuses.get(AREA_STAGE[area])
+    return status not in ('failed', 'not_reached') and (area not in AREA_OPTIONAL or status == 'ok')
+
+
+def _light(value, counts):
+    if value < 50 or counts['critical']: return 'red'
+    return 'green' if value >= 80 and not counts['high'] else 'amber'
+
+
+def _area_score(area, rows, size, measured):
+    mine = [r for r in rows if r['area'] == area]
+    points = sum(SEVERITY_WEIGHT[r['severity']] * CONFIDENCE_WEIGHT.get(r['confidence'], 1.0) for r in mine)
+    density = points / size
+    value = round(100 * HALF_POINT / (HALF_POINT + density))
+    counts = {s: sum(r['severity'] == s for r in mine) for s in SEVERITIES}
+    return {'score': value if measured else None, 'points': round(points), 'density': round(density),
+            'counts': counts, 'total': len(mine), 'light': _light(value, counts) if measured else 'grey', 'measured': measured}
 
 
 def records(report, progress=None):
@@ -203,15 +212,22 @@ def task_cards(m):
     ledger = ledger_of(m)
     kept, failed = waves_state(m['progress'])
     mine = {c.get('id'): c for c in (ledger or {}).get('cards') or [] if isinstance(c, dict) and c.get('id')}
-    out = []
-    for r in m['rows']:
-        c = mine.get(r['id']) or {}
-        state = c.get('state') if ledger else 'done' if r['id'] in kept else 'skipped' if r['id'] in failed else 'open'
-        out.append({'id': r['id'], 'key': c.get('key') or r['id'], 'title': r['title'], 'pattern': r['pattern'], 'severity': r['severity'],
-                    'milestone': c.get('milestone') or stones.get(r['id']), 'paths': r['paths'], 'before': r['before'], 'after': r['after'] or r['change'],
-                    'state': state if state in CARD_STATES and state != 'resolved' else 'open', 'new': bool(c.get('new')), 'batch': c.get('batch'), 'at': c.get('at'),
-                    'why': c.get('why') or ('' if ledger else failed.get(r['id'], '')), 'commit': c.get('commit')})
-    return out
+    return [_task_card(r, mine.get(r['id']) or {}, stones, ledger, (kept, failed)) for r in m['rows']]
+
+
+def _card_state(r, c, ledger, kept, failed):
+    """The ledger's state; with no ledger, done when a batch kept it, skipped when one failed it, else open."""
+    if ledger: state = c.get('state')
+    else: state = 'done' if r['id'] in kept else 'skipped' if r['id'] in failed else 'open'
+    return state if state in CARD_STATES and state != 'resolved' else 'open'
+
+
+def _task_card(r, c, stones, ledger, waves):
+    kept, failed = waves
+    return {'id': r['id'], 'key': c.get('key') or r['id'], 'title': r['title'], 'pattern': r['pattern'], 'severity': r['severity'],
+            'milestone': c.get('milestone') or stones.get(r['id']), 'paths': r['paths'], 'before': r['before'], 'after': r['after'] or r['change'],
+            'state': _card_state(r, c, ledger, kept, failed), 'new': bool(c.get('new')), 'batch': c.get('batch'), 'at': c.get('at'),
+            'why': c.get('why') or ('' if ledger else failed.get(r['id'], '')), 'commit': c.get('commit')}
 
 
 def problem_counts(m):
@@ -375,42 +391,49 @@ def drill_counts(drill):
     reverse = [[] for _ in drill['files']]
     for source, imports in enumerate(drill['imports']):
         for destination in imports: reverse[destination].append(source)
-    for component in drill['comps']:
-        files = sorted(component['files'], key=lambda f: -(len(reverse[f]) + len(drill['imports'][f])))[:30]
-        selected = set(files)
-        component['counts'] = {'inside': sum(g in selected for f in files for g in drill['imports'][f]),
-                               'shown': len(files), 'more': len(component['files']) - len(files),
-                               'used_by': len(component['used_by']), 'uses': len(component['uses'])}
+    for component in drill['comps']: component['counts'] = _component_counts(component, drill['imports'], reverse)
     outgoing, incoming = {}, {}
     for call in drill['calls']:
         outgoing.setdefault(call[0], []).append(call)
         incoming.setdefault(call[2], []).append(call)
-    counts = []
-    for f, own in enumerate(drill['functions']):
-        touched = {}
-        for call in outgoing.get(f, []): touched[call[1]] = touched.get(call[1], 0) + 1
-        for call in incoming.get(f, []): touched[call[3]] = touched.get(call[3], 0) + 1
-        selected = set(sorted(own, key=lambda name: -touched.get(name, 0))[:30])
-        left = {(c[0], c[1]) for c in incoming.get(f, []) if c[0] != f and c[3] in selected}
-        right = {(c[2], c[3]) for c in outgoing.get(f, []) if c[2] != f and c[1] in selected}
-        counts.append({'own': len(own), 'left': min(len(left), 14), 'right': min(len(right), 14)})
-    drill['file_counts'] = counts
+    drill['file_counts'] = [_file_counts(f, own, outgoing.get(f, []), incoming.get(f, [])) for f, own in enumerate(drill['functions'])]
     return drill
+
+
+def _component_counts(component, imports, reverse):
+    files = sorted(component['files'], key=lambda f: -(len(reverse[f]) + len(imports[f])))[:30]
+    selected = set(files)
+    return {'inside': sum(g in selected for f in files for g in imports[f]),
+            'shown': len(files), 'more': len(component['files']) - len(files),
+            'used_by': len(component['used_by']), 'uses': len(component['uses'])}
+
+
+def _file_counts(f, own, outgoing, incoming):
+    """A file's functions, and the calls in and out of the 30 it draws (at most 14 a side)."""
+    touched = {}
+    for call in outgoing: touched[call[1]] = touched.get(call[1], 0) + 1
+    for call in incoming: touched[call[3]] = touched.get(call[3], 0) + 1
+    selected = set(sorted(own, key=lambda name: -touched.get(name, 0))[:30])
+    left = {(c[0], c[1]) for c in incoming if c[0] != f and c[3] in selected}
+    right = {(c[2], c[3]) for c in outgoing if c[2] != f and c[1] in selected}
+    return {'own': len(own), 'left': min(len(left), 14), 'right': min(len(right), 14)}
 
 
 def system_details(sm):
     """Counts shown by each selectable system node and feature."""
     if not sm: return sm
-    for group in ('pages', 'callers', 'apis', 'handlers', 'modules', 'data'):
-        for node in sm[group]:
-            related = sm['related'].get(node['id'], [])
-            groups = {kind: sum(item.startswith(kind) and item != node['id'] for item in related) for kind in 'PCAHMTS'}
-            node['counts'] = {'calls': len(node.get('calls') or []), 'shared': len(node.get('shared') or []),
-                              'pages': len(node.get('pages') or []), 'groups': groups,
-                              'more': {kind: max(0, count - 40) for kind, count in groups.items()}}
+    for node in (node for group in ('pages', 'callers', 'apis', 'handlers', 'modules', 'data') for node in sm[group]):
+        node['counts'] = _node_counts(node, sm['related'].get(node['id'], []))
     sm['feature_counts'] = {feature['name']: len(feature['pages']) for feature in sm['features']}
     return sm
 
+
+
+def _node_counts(node, related):
+    groups = {kind: sum(item.startswith(kind) and item != node['id'] for item in related) for kind in 'PCAHMTS'}
+    return {'calls': len(node.get('calls') or []), 'shared': len(node.get('shared') or []),
+            'pages': len(node.get('pages') or []), 'groups': groups,
+            'more': {kind: max(0, count - 40) for kind, count in groups.items()}}
 
 
 def pipeline_counts(section, pipelines=None, shown=60):
