@@ -86,29 +86,36 @@ def _python_signature(call):
 
 def _exclusive_branches(func_node):
     """Pairs of statement groups that never both execute: if/elif/else arms and try/except arms."""
-    groups = []
-    for node in ast.walk(func_node):
-        if isinstance(node, ast.If): groups.append([node.body, node.orelse])
-        elif isinstance(node, ast.Try): groups.append([node.body] + [h.body for h in node.handlers])
     spans = []
-    for arms in groups:
-        arm_spans = []
-        for arm in arms:
-            lines = {line for statement in arm for node in ast.walk(statement)
-                     for line in [getattr(node, 'lineno', None)] if line}
-            if lines: arm_spans.append(lines)
+    for arms in _branch_groups(func_node):
+        arm_spans = [lines for lines in (_arm_lines(arm) for arm in arms) if lines]
         if len(arm_spans) > 1: spans.append(arm_spans)
     return spans
 
 
+def _branch_groups(func_node):
+    for node in ast.walk(func_node):
+        if isinstance(node, ast.If): yield [node.body, node.orelse]
+        elif isinstance(node, ast.Try): yield [node.body] + [h.body for h in node.handlers]
+
+
+def _arm_lines(arm):
+    return {line for statement in arm for node in ast.walk(statement)
+            for line in [getattr(node, 'lineno', None)] if line}
+
+
+def _apart_in(arms, line_a, line_b):
+    """Whether the two lines sit in different arms of one branch, and in no arm together."""
+    homes = [index for index, lines in enumerate(arms) if line_a in lines or line_b in lines]
+    if not (len(set(homes)) > 1 and any(line_a in arms[i] for i in homes) and any(line_b in arms[i] for i in homes)):
+        return False
+    in_a = {index for index, lines in enumerate(arms) if line_a in lines}
+    in_b = {index for index, lines in enumerate(arms) if line_b in lines}
+    return bool(in_a and in_b and not (in_a & in_b))
+
+
 def _mutually_exclusive(line_a, line_b, spans):
-    for arms in spans:
-        homes = [index for index, lines in enumerate(arms) if line_a in lines or line_b in lines]
-        if len(set(homes)) > 1 and any(line_a in arms[i] for i in homes) and any(line_b in arms[i] for i in homes):
-            in_a = {index for index, lines in enumerate(arms) if line_a in lines}
-            in_b = {index for index, lines in enumerate(arms) if line_b in lines}
-            if in_a and in_b and not (in_a & in_b): return True
-    return False
+    return any(_apart_in(arms, line_a, line_b) for arms in spans)
 
 
 def _python_repeated_calls(func_node):
@@ -145,24 +152,24 @@ def _python_loop_vars(loop_node):
     The loop target alone is not enough: a value assigned inside the body changes on every pass,
     so a call using it is not loop-invariant. Missing that produced most of the false hoists.
     """
-    bound = set()
-    if isinstance(loop_node, (ast.For, ast.AsyncFor)):
-        for node in ast.walk(loop_node.target):
-            if isinstance(node, ast.Name): bound.add(node.id)
+    bound = _names_in(loop_node.target) if isinstance(loop_node, (ast.For, ast.AsyncFor)) else set()
     for statement in _python_loop_body(loop_node):
-        for node in ast.walk(statement):
-            if isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
-                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-                for target in targets:
-                    for inner in ast.walk(target):
-                        if isinstance(inner, ast.Name): bound.add(inner.id)
-            elif isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension)):
-                for inner in ast.walk(node.target):
-                    if isinstance(inner, ast.Name): bound.add(inner.id)
-            elif isinstance(node, ast.withitem) and node.optional_vars is not None:
-                for inner in ast.walk(node.optional_vars):
-                    if isinstance(inner, ast.Name): bound.add(inner.id)
+        for node in ast.walk(statement): bound |= _bound_by(node)
     return bound
+
+
+def _names_in(node):
+    return {inner.id for inner in ast.walk(node) if isinstance(inner, ast.Name)}
+
+
+def _bound_by(node):
+    """The names a statement or clause (re)binds: assignment targets, loop and comprehension targets, `with ... as`."""
+    if isinstance(node, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        return set().union(*(_names_in(target) for target in targets))
+    if isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension)): return _names_in(node.target)
+    if isinstance(node, ast.withitem) and node.optional_vars is not None: return _names_in(node.optional_vars)
+    return set()
 
 
 def _python_loop_body(loop_node):
@@ -187,44 +194,41 @@ def _value_producing_calls(node):
 
 def _python_hoistable_calls(func_node):
     """Loop-invariant computations whose value is stored, and could be computed once."""
-    rows = []
     value_calls = _value_producing_calls(func_node)
+    return [{'callee': callee, 'loop_line': loop.lineno, 'call_line': sub.lineno}
+            for loop, sub, bound in _loop_calls(func_node, (ast.For, ast.AsyncFor, ast.While))
+            if (callee := _hoistable(sub, bound, value_calls))]
+
+
+def _loop_calls(func_node, kinds):
+    """(loop, call, the names that vary between its iterations) for every call in the body of every loop of `kinds`."""
     for loop in ast.walk(func_node):
-        if not isinstance(loop, (ast.For, ast.AsyncFor, ast.While)): continue
+        if not isinstance(loop, kinds): continue
         bound = _python_loop_vars(loop)
         for statement in _python_loop_body(loop):
-          for sub in ast.walk(statement):
-            if not isinstance(sub, ast.Call): continue
-            names = {n.id for n in ast.walk(sub) if isinstance(n, ast.Name)}
-            if names & bound: continue
-            callee = _python_call_name(sub.func) or '<expr>'
-            # A call kept for its effect cannot be hoisted, however loop-invariant its arguments are;
-            # and hoisting a cheap builtin is not a finding.
-            if callee.lower() in _SIDE_EFFECTS or callee.lower() in _TRIVIAL: continue
-            if id(sub) not in value_calls: continue  # kept for its effect, not its value
-            rows.append({'callee': callee, 'loop_line': loop.lineno, 'call_line': sub.lineno})
-    return rows
+            yield from ((loop, sub, bound) for sub in ast.walk(statement) if isinstance(sub, ast.Call))
+
+
+def _hoistable(sub, bound, value_calls):
+    """The callee of a loop-invariant call whose value is stored, or None."""
+    if _names_in(sub) & bound: return None
+    callee = _python_call_name(sub.func) or '<expr>'
+    # A call kept for its effect cannot be hoisted, however loop-invariant its arguments are;
+    # and hoisting a cheap builtin is not a finding.
+    if callee.lower() in _SIDE_EFFECTS or callee.lower() in _TRIVIAL: return None
+    if id(sub) not in value_calls: return None  # kept for its effect, not its value
+    return callee
 
 
 def _python_n_plus_one(func_node):
     """Calls to data-access functions inside a loop."""
     rows = []
-    for loop in ast.walk(func_node):
-        if not isinstance(loop, (ast.For, ast.AsyncFor)): continue
-        bound = _python_loop_vars(loop)
-        for statement in _python_loop_body(loop):
-          for sub in ast.walk(statement):
-            if not isinstance(sub, ast.Call): continue
-            callee = _python_call_name(sub.func) or ''
-            # Attribute calls (self.x, order.get, profile.fetch) on a loop-bound value are the N+1 idiom.
-            varies_with_loop = bool({n.id for n in ast.walk(sub) if isinstance(n, ast.Name)} & bound)
-            if not varies_with_loop: continue  # invariant work is hoistable, not an N+1
-            if callee.lower() in _N1_NAMES:
-                rows.append({'callee': callee, 'loop_line': loop.lineno, 'call_line': sub.lineno})
-                continue
-            # An attribute call on the loop value counts only when it plausibly reaches a store.
-            if isinstance(sub.func, ast.Attribute) and callee.lower() in _N1_NAMES:
-                rows.append({'callee': callee, 'loop_line': loop.lineno, 'call_line': sub.lineno})
+    for loop, sub, bound in _loop_calls(func_node, (ast.For, ast.AsyncFor)):
+        callee = _python_call_name(sub.func) or ''
+        # Attribute calls (self.x, order.get, profile.fetch) on a loop-bound value are the N+1 idiom;
+        # invariant work is hoistable, not an N+1.
+        if _names_in(sub) & bound and callee.lower() in _N1_NAMES:
+            rows.append({'callee': callee, 'loop_line': loop.lineno, 'call_line': sub.lineno})
     return rows
 
 
@@ -307,20 +311,31 @@ ITERATORS = {'map', 'forEach', 'flatMap', 'reduce', 'filter', 'some', 'every', '
 JS_LANGUAGES = {'javascript', 'typescript', 'tsx', 'jsx'}
 
 
+def _span(fact):
+    location = fact['location']
+    return (location.get('start_line') or 0), (location.get('end_line') or location.get('start_line') or 0)
+
+
+def _index_call(fact, value, index):
+    """An iterator call spanning lines is a loop; a fetch is an HTTP read."""
+    path, span = fact['location']['path'], _span(fact)
+    if value.get('callee') in ITERATORS and span[1] > span[0]: index[path]['loops'].append(span)
+    elif value.get('callee') == 'fetch': index[path]['data'].append((span[0], 'http', 'get', 'fetch'))
+
+
+def _index_structure(fact, index):
+    path, value, kind = fact['location']['path'], fact.get('value') or {}, fact['kind']
+    if kind == 'loop': index[path]['loops'].append(_span(fact))
+    elif kind == 'branch': index[path]['branches'].append(_span(fact))
+    elif kind == 'scope' and value.get('kind') == 'function':
+        index[path]['scopes'].append((*_span(fact), fact['location'].get('symbol') or value.get('name')))
+    elif kind == 'call_site': _index_call(fact, value, index)
+
+
 def _index_js(structure, entrypoints):
     """{path: {'loops', 'branches', 'scopes', 'data'}} from the structure and entry-point facts."""
     index = defaultdict(lambda: {'loops': [], 'branches': [], 'scopes': [], 'data': []})
-    span = lambda fact: ((fact['location'].get('start_line') or 0), (fact['location'].get('end_line') or fact['location'].get('start_line') or 0))
-    for fact in structure or []:
-        path, value = fact['location']['path'], fact.get('value') or {}
-        if fact['kind'] == 'loop': index[path]['loops'].append(span(fact))
-        elif fact['kind'] == 'branch': index[path]['branches'].append(span(fact))
-        elif fact['kind'] == 'scope' and value.get('kind') == 'function':
-            index[path]['scopes'].append((*span(fact), fact['location'].get('symbol') or value.get('name')))
-        elif fact['kind'] == 'call_site':
-            if value.get('callee') in ITERATORS and span(fact)[1] > span(fact)[0]: index[path]['loops'].append(span(fact))
-            elif value.get('callee') == 'fetch':
-                index[path]['data'].append((span(fact)[0], 'http', 'get', 'fetch'))
+    for fact in structure or []: _index_structure(fact, index)
     for fact in entrypoints or []:
         if fact['kind'] != 'data_access': continue
         value = fact.get('value') or {}
