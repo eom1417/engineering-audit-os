@@ -199,40 +199,128 @@ def _transformations(out, dashboard):
     ids it would touch, and the falsifier a human reviewer can use to reject it.
     """
     sets = _read_sets(out)
-    rows = dashboard['rows']
-    by_indicator = {row['indicator']: row for row in rows}
+    by_indicator = {row['indicator']: row for row in dashboard['rows']}
     moves = []
-    fingerprint_clusters = [f for f in sets.get('fingerprint', {}).get('facts', [])
-                              if f['kind'] == 'duplicate_cluster']
-    redundancy = sets.get('redundancy', {}).get('facts', [])
     if (by_indicator['single_source']['gap'] or 0) > 0:
-        for cluster in fingerprint_clusters:
-            occs = cluster['value']['occurrences']
-            if len(occs) < 2: continue
-            moves.append({'move': 'canonicalize', 'indicator': 'single_source',
-                          'rule': cluster['value']['shape_sha'],
-                          'occurrences': [{'path': o['path'], 'line': o['start_line'], 'symbol': o['symbol']}
-                                          for o in occs],
-                          'canonical_home_candidates': occs,
-                          'predicted': {'single_source': round(by_indicator['single_source']['gap']
-                                                                  - 1.0 / max(1, by_indicator['single_source']['details'].get('symbols', 1)), 3)},
-                          'falsifier': 'Demonstrate the two occurrences compute a different rule (different units, '
-                                       'ranges, or business meanings).'})
+        clusters = [f for f in sets.get('fingerprint', {}).get('facts', []) if f['kind'] == 'duplicate_cluster']
+        moves += _canonicalize_moves(clusters, by_indicator['single_source'])
     if (by_indicator['minimal_path']['gap'] or 0) > 0:
-        by_kind = defaultdict(list)
-        for fact in redundancy:
-            by_kind[fact['value']['kind']].append(fact)
-        for kind, facts in by_kind.items():
-            moves.append({'move': 'eliminate_redundancy', 'indicator': 'minimal_path',
-                          'kind': kind,
-                          'sites': [{'path': f['location']['path'], 'line': f['location']['start_line'],
-                                       'symbol': f['location'].get('symbol'), 'callee': f['value'].get('callee')}
-                                      for f in facts[:20]],
-                          'predicted': {'minimal_path': round(by_indicator['minimal_path']['gap']
-                                                                 - len(facts) / max(1, by_indicator['minimal_path']['details'].get('functions', 1)), 3)},
-                          'falsifier': 'Show that the call depends on loop-local state and cannot be hoisted, or that '
-                                       'the "redundant" call returns a different value across iterations.'})
+        moves += _redundancy_moves(sets.get('redundancy', {}).get('facts', []), by_indicator['minimal_path'])
     return moves
+
+
+def _canonicalize_moves(clusters, row):
+    """One move per duplicate cluster of two occurrences or more: give the rule one home."""
+    return [{'move': 'canonicalize', 'indicator': 'single_source',
+             'rule': cluster['value']['shape_sha'],
+             'occurrences': [{'path': o['path'], 'line': o['start_line'], 'symbol': o['symbol']}
+                             for o in cluster['value']['occurrences']],
+             'canonical_home_candidates': cluster['value']['occurrences'],
+             'predicted': {'single_source': round(row['gap'] - 1.0 / max(1, row['details'].get('symbols', 1)), 3)},
+             'falsifier': 'Demonstrate the two occurrences compute a different rule (different units, '
+                          'ranges, or business meanings).'}
+            for cluster in clusters if len(cluster['value']['occurrences']) >= 2]
+
+
+def _redundancy_moves(redundancy, row):
+    """One move per kind of redundant work: hoist or drop the repeated call."""
+    by_kind = defaultdict(list)
+    for fact in redundancy:
+        by_kind[fact['value']['kind']].append(fact)
+    return [{'move': 'eliminate_redundancy', 'indicator': 'minimal_path',
+             'kind': kind,
+             'sites': [{'path': f['location']['path'], 'line': f['location']['start_line'],
+                        'symbol': f['location'].get('symbol'), 'callee': f['value'].get('callee')}
+                       for f in facts[:20]],
+             'predicted': {'minimal_path': round(row['gap'] - len(facts) / max(1, row['details'].get('functions', 1)), 3)},
+             'falsifier': 'Show that the call depends on loop-local state and cannot be hoisted, or that '
+                          'the "redundant" call returns a different value across iterations.'}
+            for kind, facts in by_kind.items()]
+
+
+NAME_AR = {'single_source': 'P1 تعريف واحد', 'minimal_path': 'P2 مسار أدنى',
+           'data_owners': 'P3 مالك واحد للبيانات', 'honest_boundaries': 'P4 حدود صادقة',
+           'verifiable_paths': 'P5 قابلية التحقق', 'understandable_units': 'P6 قابلية الفهم'}
+NAME_EN = {'single_source': 'P1 Single source', 'minimal_path': 'P2 Minimal path',
+           'data_owners': 'P3 Single owner per field', 'honest_boundaries': 'P4 Honest boundaries',
+           'verifiable_paths': 'P5 Verifiable paths', 'understandable_units': 'P6 Understandable units'}
+
+
+def _label(indicator, ar):
+    return NAME_AR.get(indicator) if ar else NAME_EN.get(indicator)
+
+
+def _header(ar):
+    if ar:
+        return ['# لوحة الاستدامة', '',
+                '> الخصائص الست قابلة للقياس. القيم من الحقائق الحتمية، والأهداف من عقد الارتباط. الفجوة هي '
+                'المسافة إلى الهدف؛ الحركة المقترحة تقلبها.', '']
+    return ['# Sustainability dashboard', '',
+            '> Six measurable properties. Values come from deterministic facts; targets from the engagement '
+            'contract. The gap is the distance to the target; a proposed move closes it.', '']
+
+
+def _indicator_table(rows, ar):
+    lines = ['## ' + ('المؤشرات' if ar else 'Indicators'), '']
+    lines += ['| ' + ('المؤشر' if ar else 'Indicator') + ' | ' + ('القيمة' if ar else 'Current')
+              + ' | ' + ('الهدف' if ar else 'Target') + ' | ' + ('الفجوة' if ar else 'Gap') + ' |']
+    lines += ['| --- | --- | --- | --- |']
+    for row in rows:
+        shown = row['value'] if row['measured'] else ('لم يُقَس' if ar else 'not measured')
+        gap = row['gap'] if row['measured'] else '—'
+        lines += [f"| {_label(row['indicator'], ar)} | {shown} | {row['target']} | {gap} |"]
+    return lines
+
+
+def _more(rows, ar):
+    """The line saying how many sites are left out of the document, when any are."""
+    if len(rows) <= SHOWN_SITES: return []
+    return [f"  - … {len(rows) - SHOWN_SITES} " + ('أخرى في `sustainability.json`' if ar else 'more in `sustainability.json`')]
+
+
+def _move_lines(index, move, ar):
+    lines = [f"### Move {index}: {move['move']}",
+             "- " + ('مؤشر' if ar else 'indicator') + f": {move['indicator']}"]
+    if 'rule' in move:
+        lines += [f"- cluster: {move['rule'][:16]}"]
+        lines += ["- " + ('المواضع' if ar else 'sites') + ":"]
+        lines += [f"  - {occ['path']}:{occ['line']} {occ['symbol']}" for occ in move['occurrences'][:SHOWN_SITES]]
+        lines += _more(move['occurrences'], ar)
+    if 'kind' in move:
+        lines += [f"- kind: {move['kind']}",
+                  "- " + ('المواضع' if ar else 'sites') + ":"]
+        lines += [f"  - {site['path']}:{site['line']} {site['symbol']} ({site['callee']})" for site in move['sites'][:SHOWN_SITES]]
+        lines += _more(move['sites'], ar)
+    lines += [f"- predicted {k}: {v}" for k, v in (move.get('predicted') or {}).items()]
+    if 'falsifier' in move:
+        lines += ["- " + ('ناقض' if ar else 'falsifier') + f": {move['falsifier']}"]
+    return lines + ['']
+
+
+def _moves_section(moves, ar):
+    lines = ['', '## ' + ('الحركات المقترحة' if ar else 'Proposed moves'), '']
+    if not moves:
+        return lines + [('لا حركات مطلوبة؛ الفجوات صفر.' if ar else 'No moves required; every gap is zero.')]
+    # The document shows the moves a reader can act on today; sustainability.json holds them all.
+    # Printing 60 moves produced a 664-line document nobody reads and the contract never checked.
+    for index, move in enumerate(moves[:SHOWN_MOVES], start=1): lines += _move_lines(index, move, ar)
+    if len(moves) > SHOWN_MOVES:
+        lines += [(f'عُرضت {SHOWN_MOVES} حركة من {len(moves)}؛ البقية في `sustainability.json`.' if ar else
+                   f'Showing {SHOWN_MOVES} of {len(moves)} moves; the rest are in `sustainability.json`.'), '']
+    return lines
+
+
+def _details(rows, ar):
+    lines = ['## ' + ('التفاصيل' if ar else 'Details'), '']
+    # The measured detail behind each indicator is a record, not prose: R8 forbids dumping it here.
+    lines += [('قياس كل مؤشر بالكامل — المدخلات والعتبات والمواضع — في `sustainability.json`.' if ar else
+               'The full measurement behind every indicator — inputs, thresholds and sites — is in '
+               '`sustainability.json`.'), '']
+    for row in rows:
+        summary = ', '.join(f'{key}={value}' for key, value in sorted(row['details'].items())
+                            if isinstance(value, (int, float, str, bool)) and key != 'note')
+        lines += [f"- **{_label(row['indicator'], ar)}** — {summary or ('لا تفاصيل' if ar else 'no detail')}"]
+    return lines
 
 
 def render(out, targets=None, language='ar'):
@@ -240,75 +328,7 @@ def render(out, targets=None, language='ar'):
     dashboard = compute(out, targets)
     moves = dashboard['moves']
     ar = language == 'ar'
-    lines = []
-    if ar:
-        lines += ['# لوحة الاستدامة', '',
-                  '> الخصائص الست قابلة للقياس. القيم من الحقائق الحتمية، والأهداف من عقد الارتباط. الفجوة هي '
-                  'المسافة إلى الهدف؛ الحركة المقترحة تقلبها.', '']
-    else:
-        lines += ['# Sustainability dashboard', '',
-                  '> Six measurable properties. Values come from deterministic facts; targets from the engagement '
-                  'contract. The gap is the distance to the target; a proposed move closes it.', '']
-    lines += ['## ' + ('المؤشرات' if ar else 'Indicators'), '']
-    lines += ['| ' + ('المؤشر' if ar else 'Indicator') + ' | ' + ('القيمة' if ar else 'Current')
-              + ' | ' + ('الهدف' if ar else 'Target') + ' | ' + ('الفجوة' if ar else 'Gap') + ' |']
-    lines += ['| --- | --- | --- | --- |']
-    name_ar = {'single_source': 'P1 تعريف واحد', 'minimal_path': 'P2 مسار أدنى',
-                'data_owners': 'P3 مالك واحد للبيانات', 'honest_boundaries': 'P4 حدود صادقة',
-                'verifiable_paths': 'P5 قابلية التحقق', 'understandable_units': 'P6 قابلية الفهم'}
-    name_en = {'single_source': 'P1 Single source', 'minimal_path': 'P2 Minimal path',
-                'data_owners': 'P3 Single owner per field', 'honest_boundaries': 'P4 Honest boundaries',
-                'verifiable_paths': 'P5 Verifiable paths', 'understandable_units': 'P6 Understandable units'}
-    for row in dashboard['rows']:
-        label = (name_ar.get(row['indicator']) if ar else name_en.get(row['indicator']))
-        shown = row['value'] if row['measured'] else ('لم يُقَس' if ar else 'not measured')
-        gap = row['gap'] if row['measured'] else '—'
-        lines += [f"| {label} | {shown} | {row['target']} | {gap} |"]
-    lines += ['', '## ' + ('الحركات المقترحة' if ar else 'Proposed moves'), '']
-    if not moves:
-        lines += [('لا حركات مطلوبة؛ الفجوات صفر.' if ar else 'No moves required; every gap is zero.')]
-    else:
-        # The document shows the moves a reader can act on today; sustainability.json holds them all.
-        # Printing 60 moves produced a 664-line document nobody reads and the contract never checked.
-        for index, move in enumerate(moves[:SHOWN_MOVES], start=1):
-            lines += [f"### Move {index}: {move['move']}",
-                       "- " + ('مؤشر' if ar else 'indicator') + f": {move['indicator']}"]
-            if 'rule' in move:
-                lines += [f"- cluster: {move['rule'][:16]}"]
-                lines += ["- " + ('المواضع' if ar else 'sites') + ":"]
-                for occ in move['occurrences'][:SHOWN_SITES]:
-                    lines += [f"  - {occ['path']}:{occ['line']} {occ['symbol']}"]
-                if len(move['occurrences']) > SHOWN_SITES:
-                    lines += [f"  - … {len(move['occurrences']) - SHOWN_SITES} "
-                              + ('أخرى في `sustainability.json`' if ar else 'more in `sustainability.json`')]
-            if 'kind' in move:
-                lines += [f"- kind: {move['kind']}",
-                           "- " + ('المواضع' if ar else 'sites') + ":"]
-                for site in move['sites'][:SHOWN_SITES]:
-                    lines += [f"  - {site['path']}:{site['line']} {site['symbol']} ({site['callee']})"]
-                if len(move['sites']) > SHOWN_SITES:
-                    lines += [f"  - … {len(move['sites']) - SHOWN_SITES} "
-                              + ('أخرى في `sustainability.json`' if ar else 'more in `sustainability.json`')]
-            if 'predicted' in move:
-                for k, v in move['predicted'].items():
-                    lines += [f"- predicted {k}: {v}"]
-            if 'falsifier' in move:
-                lines += ["- " + ('ناقض' if ar else 'falsifier') + f": {move['falsifier']}"]
-            lines += ['']
-        if len(moves) > SHOWN_MOVES:
-            lines += [(f'عُرضت {SHOWN_MOVES} حركة من {len(moves)}؛ البقية في `sustainability.json`.' if ar else
-                       f'Showing {SHOWN_MOVES} of {len(moves)} moves; the rest are in `sustainability.json`.'), '']
-    lines += ['## ' + ('التفاصيل' if ar else 'Details'), '']
-    # The measured detail behind each indicator is a record, not prose: R8 forbids dumping it here.
-    lines += [('قياس كل مؤشر بالكامل — المدخلات والعتبات والمواضع — في `sustainability.json`.' if ar else
-               'The full measurement behind every indicator — inputs, thresholds and sites — is in '
-               '`sustainability.json`.'), '']
-    for row in dashboard['rows']:
-        label = (name_ar.get(row['indicator']) if ar else name_en.get(row['indicator']))
-        detail = row['details']
-        summary = ', '.join(f'{key}={value}' for key, value in sorted(detail.items())
-                            if isinstance(value, (int, float, str, bool)) and key != 'note')
-        lines += [f"- **{label}** — {summary or ('لا تفاصيل' if ar else 'no detail')}"]
+    lines = _header(ar) + _indicator_table(dashboard['rows'], ar) + _moves_section(moves, ar) + _details(dashboard['rows'], ar)
     lines += ['', '## ' + ('الحدود' if ar else 'Limits'), '']
     for line in LIMITATIONS: lines += [f"- {line}"]
     (Path(out) / 'SUSTAINABILITY.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
