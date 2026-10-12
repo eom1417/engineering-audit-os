@@ -31,32 +31,47 @@ def bounded_int(value):
     if n<1: raise argparse.ArgumentTypeError('must be positive')
     return n
 
+def _prune_dirs(root, base, dirs, exclusions):
+    for name in list(dirs):
+        p=Path(base)/name
+        if name in SKIP_DIRS or p.is_symlink():
+            exclusions.append({'path':p.relative_to(root).as_posix(),'reason':'symlink' if p.is_symlink() else 'generated/dependency/VCS directory; external verification may be required'})
+            dirs.remove(name)
+
+def _capture(p, name, size, max_bytes):
+    if SENSITIVE.search(name): return 'sensitive_metadata_only',None
+    if size>max_bytes: return 'oversize_metadata_only',None
+    with p.open('rb') as f: b=f.read(max_bytes+1)
+    if len(b)>max_bytes: return 'oversize_metadata_only',None
+    return 'hashed',digest(b)
+
+def _scan_file(root, base, name, max_bytes, found):
+    p=Path(base)/name;rel=p.relative_to(root).as_posix()
+    if p.is_symlink(): found['exclusions'].append({'path':rel,'reason':'symlink'});return
+    if not p.is_file(): found['exclusions'].append({'path':rel,'reason':'not regular file'});return
+    try:
+        st=p.stat()
+        capture,sha=_capture(p,name,st.st_size,max_bytes)
+        found['files'].append({'path':rel,'size':st.st_size,'mtime_ns':st.st_mtime_ns,'sha256':sha,'capture':capture})
+    except OSError as e: found['errors'].append({'path':rel,'error':str(e)})
+
+def _scan_names(root, base, names, limits, found):
+    """False when the file limit stopped the scan."""
+    for name in names:
+        if len(found['files'])>=limits['max_files']: return False
+        _scan_file(root,base,name,limits['max_bytes'],found)
+    return True
+
 def inventory(root, max_files=100000, max_bytes=2_000_000):
     root=Path(root).resolve()
     if not root.is_dir(): raise ValueError('Target must be a directory')
-    files=[]; exclusions=[]; errors=[]; limited=False
-    for base,dirs,names in os.walk(root,followlinks=False,onerror=lambda e:errors.append(str(e))):
+    found={'files':[],'exclusions':[],'errors':[]}; limited=False
+    limits={'max_files':max_files,'max_bytes':max_bytes}
+    for base,dirs,names in os.walk(root,followlinks=False,onerror=lambda e:found['errors'].append(str(e))):
         dirs.sort();names.sort()
-        for name in list(dirs):
-            p=Path(base)/name
-            if name in SKIP_DIRS or p.is_symlink():
-                exclusions.append({'path':p.relative_to(root).as_posix(),'reason':'symlink' if p.is_symlink() else 'generated/dependency/VCS directory; external verification may be required'})
-                dirs.remove(name)
-        for name in names:
-            if len(files)>=max_files: limited=True;break
-            p=Path(base)/name;rel=p.relative_to(root).as_posix()
-            if p.is_symlink(): exclusions.append({'path':rel,'reason':'symlink'});continue
-            if not p.is_file(): exclusions.append({'path':rel,'reason':'not regular file'});continue
-            try:
-                st=p.stat(); sensitive=bool(SENSITIVE.search(name))
-                item={'path':rel,'size':st.st_size,'mtime_ns':st.st_mtime_ns,'sha256':None,'capture':'sensitive_metadata_only' if sensitive else 'oversize_metadata_only' if st.st_size>max_bytes else 'hashed'}
-                if item['capture']=='hashed':
-                    with p.open('rb') as f: b=f.read(max_bytes+1)
-                    if len(b)>max_bytes: item['capture']='oversize_metadata_only'
-                    else: item['sha256']=digest(b)
-                files.append(item)
-            except OSError as e: errors.append({'path':rel,'error':str(e)})
-        if limited: break
+        _prune_dirs(root,base,dirs,found['exclusions'])
+        if not _scan_names(root,base,names,limits,found): limited=True;break
+    files,exclusions,errors=found['files'],found['exclusions'],found['errors']
     manifest_names=sorted({f['path'] for f in files if Path(f['path']).name in STACKS or f['path'].endswith(('.csproj','.fsproj','.sln'))})
     stack_hints=sorted({STACKS.get(Path(p).name,'.NET') for p in manifest_names})
     fingerprint=digest(json.dumps(files,sort_keys=True).encode())
@@ -71,13 +86,16 @@ def fresh(state, inv):
     current=inventory(state['target'],**inv['limits'])
     return current['fingerprint']==inv['fingerprint'] and not current['truncated'] and not current['errors'],current
 
+def _refuse_symlinks(root, raw):
+    for p in [raw,*raw.parents]:
+        if p==root: return
+        if p.is_symlink(): raise ValueError('Symlink content capture prohibited')
+
 def safe_file(root,relative):
     rel=Path(relative)
     if rel.is_absolute() or '..' in rel.parts: raise ValueError('Only relative in-target paths accepted')
     raw=root/rel
-    for p in [raw,*raw.parents]:
-        if p==root: break
-        if p.is_symlink(): raise ValueError('Symlink content capture prohibited')
+    _refuse_symlinks(root,raw)
     resolved=raw.resolve()
     if root not in resolved.parents or not resolved.is_file(): raise ValueError('Not a regular in-target file')
     if any(SENSITIVE.search(p) for p in rel.parts): raise ValueError('Sensitive path: metadata only; do not capture contents')
