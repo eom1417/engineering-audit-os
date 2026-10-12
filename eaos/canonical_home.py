@@ -110,44 +110,51 @@ def _directory_candidates(members):
     """Candidate paths that are directories shared by every member's path."""
     paths = [m['path'] for m in members]
     if not paths: return set()
-    parts_list = [Path(p).parts for p in paths]
-    shortest = min(parts_list, key=len)
-    prefix = list(shortest[:-1])
-    for parts in parts_list:
-        new_prefix = []
-        for i, component in enumerate(prefix):
-            if i < len(parts) - 1 and parts[i] == component:
-                new_prefix.append(component)
-            else:
-                break
-        prefix = new_prefix
-    lca = '/'.join(prefix)
-    candidates = {lca} if lca else {''}  # '' represents the project root
+    lca = '/'.join(_shared_prefix([Path(p).parts for p in paths]))
+    candidates = {lca}  # '' represents the project root
     # Also include each member's parent directory.
-    for path in paths:
-        parent = str(Path(path).parent)
-        if parent == '.':
-            parent = ''
-        if lca == '' or parent.startswith(lca) or lca == '':
-            candidates.add(parent)
-    return {c for c in candidates if c is not None}
+    candidates |= {parent for parent in map(_parent, paths) if parent.startswith(lca)}
+    return candidates
+
+
+def _shared_prefix(parts_list):
+    """The folders every path starts with (a path's own file name never counts)."""
+    prefix = list(min(parts_list, key=len)[:-1])
+    for parts in parts_list:
+        prefix = _common(prefix, parts)
+    return prefix
+
+
+def _common(prefix, parts):
+    """The start of `prefix` that the folders of `parts` share."""
+    out = []
+    for i, component in enumerate(prefix):
+        if not (i < len(parts) - 1 and parts[i] == component): break
+        out.append(component)
+    return out
+
+
+def _parent(path):
+    parent = str(Path(path).parent)
+    return '' if parent == '.' else parent
+
+
+def _viable(candidate, members, adjacency, layers, deny):
+    """A place every member can import without a cycle, with how many policy rules it would break; None if it cycles."""
+    if any(_would_cycle(candidate, site['path'], adjacency) for site in members): return None
+    violations = sum(1 for site in members
+                     if _violates_policy(site['path'], candidate, layers, deny))
+    return {'path': candidate, 'layer': _layer_of(candidate, layers),
+            'reachable_sites': sorted({m['path'] for m in members}),
+            'policy_violations': violations}
 
 
 def _candidates(members, adjacency, rev, layers, deny):
     file_candidates = set()
     for member in members:
-        ancestors = _ancestors_of(member['path'], rev) | {member['path']}
-        file_candidates.update(ancestors)
+        file_candidates.update(_ancestors_of(member['path'], rev) | {member['path']})
     file_candidates |= _directory_candidates(members)
-    viable = []
-    for candidate in file_candidates:
-        cycle_with = [site for site in members if _would_cycle(candidate, site['path'], adjacency)]
-        if cycle_with: continue
-        violations = sum(1 for site in members
-                          if _violates_policy(site['path'], candidate, layers, deny))
-        viable.append({'path': candidate, 'layer': _layer_of(candidate, layers),
-                        'reachable_sites': sorted({m['path'] for m in members}),
-                        'policy_violations': violations})
+    viable = [row for row in (_viable(c, members, adjacency, layers, deny) for c in file_candidates) if row]
     paths = {member['path'] for member in members}
     for candidate in viable:
         candidate['home_already'] = candidate['path'] in paths
