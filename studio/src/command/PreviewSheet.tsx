@@ -27,7 +27,7 @@ const RISK_TONE: Record<Preview['risk']['level'], Tone> = { low: 'good', medium:
 /** The request a person pastes to their assistant, in both languages: the verb or action, the cards, the EAOS way. */
 export function requestText(request: CommandRequest, preview?: Preview | null): Bi {
   if (preview?.handoff.request) return preview.handoff.request
-  const cards = request.selection?.cards?.join(', ') ?? (request.selection?.step ? `step ${request.selection.step}` : request.selection?.group ? `${request.selection.group.by} ${request.selection.group.value}` : '')
+  const cards = selectionText(request.selection)
   if (request.verb) {
     const verb = verbOf(request.verb)
     return {
@@ -41,6 +41,13 @@ export function requestText(request: CommandRequest, preview?: Preview | null): 
     en: `Use the EAOS tool ${action?.tool ?? request.action}${inputs ? ` with ${inputs}` : ''}: ${action?.label.en ?? ''}.`,
     ar: `استخدم أداة EAOS ${action?.tool ?? request.action}${inputs ? ` مع ${inputs}` : ''}: ${action?.label.ar ?? ''}.`,
   }
+}
+
+/** What a request is about, in a few words: its cards, else its plan step, else its group. */
+function selectionText(selection: CommandRequest['selection']): string {
+  if (selection?.cards) return selection.cards.join(', ')
+  if (selection?.step) return `step ${selection.step}`
+  return selection?.group ? `${selection.group.by} ${selection.group.value}` : ''
 }
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
@@ -227,32 +234,66 @@ function PreviewBody({ preview, request, onWhere }: { preview: Preview; request:
   return (
     <div className={css.pvBody}>
       {lead && <p className={css.pvLead}><Txt>{lead}</Txt></p>}
-      <dl className={css.facts}>
-        {preview.verb && <div><dt>{w('cardsN', { n: preview.cards.length })}</dt><dd><N value={preview.cards.length} /></dd></div>}
-        {preview.files.length > 0 && <div><dt>{w('filesN', { n: preview.files.length })}</dt><dd><N value={preview.files.length} /></dd></div>}
-        {preview.batches.length > 0 && <div><dt>{w('batchesN', { n: preview.batches.length })}</dt><dd><N value={preview.batches.length} /></dd></div>}
-        <div><dt>{w('time')}</dt><dd className="num">{minutes(preview, w)}</dd></div>
-      </dl>
+      <PreviewFacts preview={preview} />
       {preview.where && <WhereBlock where={preview.where} onChange={onWhere} />}
-      <Block title={w('risk')}>
-        <div className={css.risk}>
-          <Chip tone={RISK_TONE[preview.risk.level]}>{w(preview.risk.level === 'low' ? 'riskLow' : preview.risk.level === 'medium' ? 'riskMedium' : 'riskHigh')}</Chip>
-          <span><Txt>{preview.risk.why[lang]}</Txt></span>
-        </div>
-      </Block>
+      <RiskBlock preview={preview} />
       <Block title={w('onFailure')}><p className={css.pvText}><Txt>{preview.on_failure[lang]}</Txt></p></Block>
-      {preview.cards.length > 0 && (
-        <Block title={w('cardsN', { n: preview.cards.length })}>
-          <div className={css.pvList}>
-            <FoldList items={preview.cards} first={4} render={(card) => (
-              <div className={css.pvCard}>
-                {card.severity && <SeverityGlyph severity={card.severity as Severity} word={false} />}
-                <span className={css.pvCardMain}><span className={css.pvCardTitle}><Txt block>{card.title ?? card.id}</Txt></span><Id value={card.id} className={css.pvMuted} /></span>
-              </div>
-            )} />
+      {preview.cards.length > 0 && <CardsBlock preview={preview} />}
+      <PreviewLists preview={preview} />
+      {(preview.assistant || preview.handoff.available) && <AssistantBlock preview={preview} request={request} />}
+      {preview.needs_consent && <p className={css.pvNote}>{w('consentLead')}</p>}
+      {preview.irreversible && <p className={css.pvWarn} role="note">{w('irreversibleLead')}</p>}
+    </div>
+  )
+}
+
+/** The cards, files and batches counted, and the time it may take. */
+function PreviewFacts({ preview }: { preview: Preview }) {
+  const w = useCmdWords()
+  return (
+    <dl className={css.facts}>
+      {preview.verb && <div><dt>{w('cardsN', { n: preview.cards.length })}</dt><dd><N value={preview.cards.length} /></dd></div>}
+      {preview.files.length > 0 && <div><dt>{w('filesN', { n: preview.files.length })}</dt><dd><N value={preview.files.length} /></dd></div>}
+      {preview.batches.length > 0 && <div><dt>{w('batchesN', { n: preview.batches.length })}</dt><dd><N value={preview.batches.length} /></dd></div>}
+      <div><dt>{w('time')}</dt><dd className="num">{minutes(preview, w)}</dd></div>
+    </dl>
+  )
+}
+
+function RiskBlock({ preview }: { preview: Preview }) {
+  const w = useCmdWords()
+  const { lang } = usePrefs()
+  return (
+    <Block title={w('risk')}>
+      <div className={css.risk}>
+        <Chip tone={RISK_TONE[preview.risk.level]}>{w(preview.risk.level === 'low' ? 'riskLow' : preview.risk.level === 'medium' ? 'riskMedium' : 'riskHigh')}</Chip>
+        <span><Txt>{preview.risk.why[lang]}</Txt></span>
+      </div>
+    </Block>
+  )
+}
+
+function CardsBlock({ preview }: { preview: Preview }) {
+  const w = useCmdWords()
+  return (
+    <Block title={w('cardsN', { n: preview.cards.length })}>
+      <div className={css.pvList}>
+        <FoldList items={preview.cards} first={4} render={(card) => (
+          <div className={css.pvCard}>
+            {card.severity && <SeverityGlyph severity={card.severity as Severity} word={false} />}
+            <span className={css.pvCardMain}><span className={css.pvCardTitle}><Txt block>{card.title ?? card.id}</Txt></span><Id value={card.id} className={css.pvMuted} /></span>
           </div>
-        </Block>
-      )}
+        )} />
+      </div>
+    </Block>
+  )
+}
+
+/** The cards left out and why, the files it may touch, and its batches. */
+function PreviewLists({ preview }: { preview: Preview }) {
+  const w = useCmdWords()
+  return (
+    <>
       {preview.left_out.length > 0 && (
         <Block title={w('leftOutN', { n: preview.left_out.length })}>
           <ul className={css.plain}>{preview.left_out.slice(0, 8).map((row) => <li key={row.id}><Id value={row.id} /> · <Txt>{row.why}</Txt></li>)}</ul>
@@ -268,24 +309,28 @@ function PreviewBody({ preview, request, onWhere }: { preview: Preview; request:
           <ol className={css.plain}>{preview.batches.map((b) => <li key={b.number}>{w('batchCards', { n: b.number, c: b.cards.length })}</li>)}</ol>
         </Block>
       )}
-      {(preview.assistant || preview.handoff.available) && (
-        <Block title={w('assistant')}>
-          {preview.assistant ? (
-            <p className={css.pvText}><strong>{preview.assistant.name}</strong>{preview.assistant.version ? <> · <Id value={preview.assistant.version} /></> : null} · {preview.assistant.logged_in ? w('ready') : w('notLoggedIn')}</p>
-          ) : (
-            <div className={css.handoff}>
-              <p>{w('handoffLead')}</p>
-              <CopyRequestButton request={requestText(request, preview)[lang]} label={w('copyRequest')} block />
-            </div>
-          )}
-          {(preview.assistants ?? []).filter((a) => a.id !== preview.assistant?.id).map((a) => (
-            <p key={a.id} className={css.pvMuted}>{a.name} · {!a.installed ? w('notInstalled') : !a.logged_in ? w('notLoggedIn') : w('ready')}</p>
-          ))}
-        </Block>
+    </>
+  )
+}
+
+/** The assistant that will do it (or the request to hand to one), and the others with their state. */
+function AssistantBlock({ preview, request }: { preview: Preview; request: CommandRequest }) {
+  const w = useCmdWords()
+  const { lang } = usePrefs()
+  return (
+    <Block title={w('assistant')}>
+      {preview.assistant ? (
+        <p className={css.pvText}><strong>{preview.assistant.name}</strong>{preview.assistant.version ? <> · <Id value={preview.assistant.version} /></> : null} · {preview.assistant.logged_in ? w('ready') : w('notLoggedIn')}</p>
+      ) : (
+        <div className={css.handoff}>
+          <p>{w('handoffLead')}</p>
+          <CopyRequestButton request={requestText(request, preview)[lang]} label={w('copyRequest')} block />
+        </div>
       )}
-      {preview.needs_consent && <p className={css.pvNote}>{w('consentLead')}</p>}
-      {preview.irreversible && <p className={css.pvWarn} role="note">{w('irreversibleLead')}</p>}
-    </div>
+      {(preview.assistants ?? []).filter((a) => a.id !== preview.assistant?.id).map((a) => (
+        <p key={a.id} className={css.pvMuted}>{a.name} · {!a.installed ? w('notInstalled') : !a.logged_in ? w('notLoggedIn') : w('ready')}</p>
+      ))}
+    </Block>
   )
 }
 
