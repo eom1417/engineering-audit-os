@@ -2,7 +2,7 @@
    viewport with pinned issues and the before/after slider, its issues and inputs. Tokens only; logical properties only. */
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chipBtn { min-block-size: 32px; padding: 2px 12px; border-radius: var(--radius-full); border: 1px solid var(--border-default); background: var(--bg-surface); color: var(--text-secondary); font-size: 13px; cursor: pointer; }
+.chipBtn { min-block-size: 44px; padding: 2px 12px; border-radius: var(--radius-full); border: 1px solid var(--border-default); background: var(--bg-surface); color: var(--text-secondary); font-size: 13px; cursor: pointer; }
 .chipBtn:hover { background: var(--bg-hover); }
 .chipBtn[aria-pressed="true"] { background: var(--accent-subtle); border-color: var(--accent-solid); color: var(--accent-text); font-weight: 500; }
 .count { font-size: 12px; color: var(--text-tertiary); }
@@ -35,7 +35,7 @@
 .routeLine { font-size: 14px; color: var(--text-secondary); overflow-wrap: anywhere; }
 .flags { display: flex; flex-wrap: wrap; gap: 6px; }
 .links { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 14px; }
-.inlineLink { color: var(--accent-text); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; padding-block: 4px; overflow-wrap: anywhere; }
+.inlineLink { color: var(--accent-text); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; padding-block: 4px; overflow-wrap: anywhere; display: inline-flex; align-items: center; min-block-size: 44px; }
 
 .noShot { display: flex; gap: 14px; align-items: center; padding: 16px; }
 .noShotFrame { display: grid; place-items: center; inline-size: 56px; block-size: 72px; flex: none; border: 1px dashed var(--border-strong); border-radius: var(--radius-8); color: var(--text-tertiary); background: var(--bg-sunken); }
