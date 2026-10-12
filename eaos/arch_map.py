@@ -113,16 +113,22 @@ def order_columns(layer, edges, passes=6):
     columns = [columns[i] for i in range(max(columns) + 1)] if columns else []
     neighbours = defaultdict(list)
     for a, b in edges: neighbours[a].append(b); neighbours[b].append(a)
-    for sweep in range(passes):
-        forward = sweep % 2 == 0
-        span = range(1, len(columns)) if forward else range(len(columns) - 2, -1, -1)
-        for i in span:
-            fixed = {v: p for p, v in enumerate(columns[i - 1 if forward else i + 1])}
-            def centre(v, here=i):
-                places = [fixed[u] for u in neighbours[v] if u in fixed]
-                return sum(places) / len(places) if places else columns[here].index(v)
-            columns[i] = sorted(columns[i], key=centre)
+    for sweep in range(passes): _sweep(columns, neighbours, sweep % 2 == 0)
     return columns
+
+
+def _sweep(columns, neighbours, forward):
+    """One barycentre pass, left to right when forward, else right to left."""
+    span = range(1, len(columns)) if forward else range(len(columns) - 2, -1, -1)
+    for i in span: columns[i] = _by_barycentre(columns[i], columns[i - 1 if forward else i + 1], neighbours)
+
+
+def _by_barycentre(column, beside, neighbours):
+    fixed = {v: p for p, v in enumerate(beside)}
+    def centre(v):
+        places = [fixed[u] for u in neighbours[v] if u in fixed]
+        return sum(places) / len(places) if places else column.index(v)
+    return sorted(column, key=centre)
 
 
 def crossings(columns, edges):
@@ -168,61 +174,88 @@ def allowed_layers(target):
         return {}
 
 
-def component_map(report, target=None):
-    """The parts of the project today and the imports between them, laid out; None when the records are missing."""
-    target = target if target is not None else _load(Path(report) / 'target-architecture.json', {})
-    components = [c for c in (target or {}).get('current_components') or [] if isinstance(c, dict) and c.get('id')]
-    nodes = facts(report, 'graph', 'graph_node')
-    if not components or not nodes: return None
-    owner = {p: c['id'] for c in components for p in c.get('paths') or [] if isinstance(p, str)}
-    between, inside, files_of = Counter(), Counter(), defaultdict(list)
-    imports = {}
+def _current_components(target):
+    return [c for c in (target or {}).get('current_components') or [] if isinstance(c, dict) and c.get('id')]
+
+
+def _file_owner(components):
+    return {p: c['id'] for c in components for p in c.get('paths') or [] if isinstance(p, str)}
+
+
+def _count_imports(here, depends, owner, between, inside):
+    for d in depends:
+        there = owner.get(d)
+        if not there: continue
+        if there == here: inside[here] += 1
+        else: between[(here, there)] += 1
+
+
+def _tally_imports(nodes, owner):
+    """(imports between parts, imports inside each part, each part's files, each file's imports)."""
+    between, inside, files_of, imports = Counter(), Counter(), defaultdict(list), {}
     for node in nodes:
         here = owner.get(path_of(node))
         depends = [d for d in (node.get('value') or {}).get('depends_on') or [] if isinstance(d, str)]
         imports[path_of(node)] = depends
         if not here: continue
         files_of[here].append(path_of(node))
-        for d in depends:
-            there = owner.get(d)
-            if not there: continue
-            if there == here: inside[here] += 1
-            else: between[(here, there)] += 1
-    ranked = sorted(components, key=lambda c: -(c.get('files') or len(files_of[c['id']])))
-    kept = ranked[:MAX_COMPONENTS]
-    ids = [c['id'] for c in kept]
-    shown = set(ids)
-    edges = {e: n for e, n in between.items() if e[0] in shown and e[1] in shown}
-    group = strong_groups(ids, list(edges))
-    sizes = Counter(group.values())
+        _count_imports(here, depends, owner, between, inside)
+    return between, inside, files_of, imports
+
+
+def _wrong_way(target, by_id):
+    """wrong(a, b): the reference architecture forbids part a's target layer from using part b's."""
     layer_by_name = {c.get('name'): c.get('layer') for c in target.get('target_components') or [] if isinstance(c, dict)}
     rules = allowed_layers(target)
     def wrong(a, b):
         la, lb = (layer_by_name.get(by_id[x].get('target_component')) for x in (a, b))
         return bool(rules) and la in rules and lb in rules and la != lb and lb not in rules[la]
-    by_id = {c['id']: c for c in kept}
+    return wrong
+
+
+def _short(name, root):
+    return (name[len(root):] if root and name.startswith(root) and name != root else name) or name
+
+
+def _component_node(c, drawing):
+    cid, between, inside = c['id'], drawing['between'], drawing['inside']
+    ce, ca = sum(n for (a, _), n in between.items() if a == cid), sum(n for (_, b), n in between.items() if b == cid)
+    total = inside[cid] + ce
+    share = round(100 * inside[cid] / total) if total else None
+    name = c.get('name') or cid
+    x, y = drawing['place'][cid]
+    return {'id': cid, 'name': name, 'short': _short(name, drawing['root']),
+            'files': c.get('files') or len(drawing['files_of'][cid]), 'x': x, 'y': y, 'layer': drawing['layer'][cid],
+            'uses': len({b for (a, b) in between if a == cid}), 'used_by': len({a for (a, b) in between if b == cid}),
+            'ca': ca, 'ce': ce, 'inside': inside[cid], 'cohesion': share, 'cohesion_word': cohesion_word(share),
+            'instability': instability_word(ca, ce), 'cycle': drawing['sizes'][drawing['group'][cid]] > 1,
+            'relation': c.get('relation'), 'target': c.get('target_component')}
+
+
+def component_map(report, target=None):
+    """The parts of the project today and the imports between them, laid out; None when the records are missing."""
+    target = target if target is not None else _load(Path(report) / 'target-architecture.json', {})
+    components = _current_components(target)
+    nodes = facts(report, 'graph', 'graph_node')
+    if not components or not nodes: return None
+    owner = _file_owner(components)
+    between, inside, files_of, imports = _tally_imports(nodes, owner)
+    kept = sorted(components, key=lambda c: -(c.get('files') or len(files_of[c['id']])))[:MAX_COMPONENTS]
+    ids = [c['id'] for c in kept]
+    shown = set(ids)
+    edges = {e: n for e, n in between.items() if e[0] in shown and e[1] in shown}
+    group = strong_groups(ids, list(edges))
     back = feedback_edges(ids, edges)
     layer = layer_of(ids, [e for e in edges if e not in back])
     columns = order_columns(layer, list(edges))
     place, width, height = positions(columns)
-    root = target.get('root') or ''
-    out_nodes = []
-    for c in kept:
-        cid = c['id']
-        ce, ca = sum(n for (a, _), n in between.items() if a == cid), sum(n for (_, b), n in between.items() if b == cid)
-        total = inside[cid] + ce
-        share = round(100 * inside[cid] / total) if total else None
-        name = c.get('name') or cid
-        x, y = place[cid]
-        out_nodes.append({'id': cid, 'name': name, 'short': (name[len(root):] if root and name.startswith(root) and name != root else name) or name,
-                          'files': c.get('files') or len(files_of[cid]), 'x': x, 'y': y, 'layer': layer[cid],
-                          'uses': len({b for (a, b) in between if a == cid}), 'used_by': len({a for (a, b) in between if b == cid}),
-                          'ca': ca, 'ce': ce, 'inside': inside[cid], 'cohesion': share, 'cohesion_word': cohesion_word(share),
-                          'instability': instability_word(ca, ce), 'cycle': sizes[group[cid]] > 1,
-                          'relation': c.get('relation'), 'target': c.get('target_component')})
+    drawing = {'between': between, 'inside': inside, 'files_of': files_of, 'place': place, 'layer': layer,
+               'group': group, 'sizes': Counter(group.values()), 'root': target.get('root') or ''}
+    wrong = _wrong_way(target, {c['id']: c for c in kept})
     out_edges = [{'from': a, 'to': b, 'n': n, 'cycle': group[a] == group[b], 'back': (a, b) in back or layer[b] <= layer[a],
                   'wrong': wrong(a, b)} for (a, b), n in sorted(edges.items(), key=lambda kv: -kv[1])]
-    return {'nodes': out_nodes, 'edges': out_edges, 'width': width, 'height': height, 'crossings': crossings(columns, list(edges)),
+    return {'nodes': [_component_node(c, drawing) for c in kept], 'edges': out_edges, 'width': width, 'height': height,
+            'crossings': crossings(columns, list(edges)),
             'capped': len(components) - len(kept), 'owner': owner, 'files_of': files_of, 'imports': imports,
             'cycle_files': {path_of(n) for n in nodes if (n.get('value') or {}).get('cycle_group') is not None}}
 
@@ -258,22 +291,30 @@ def function_calls(report, imports):
     return functions, [(*key, n) for key, n in calls.items()]
 
 
+def _drill_files(cmap):
+    """Every shown part's files, in part order and capped per part: (files, file -> position, files left out)."""
+    files, index, capped = [], {}, 0
+    for node in cmap['nodes']:
+        mine = sorted(cmap['files_of'].get(node['id']) or [])
+        capped += max(len(mine) - MAX_FILES, 0)
+        for path in mine[:MAX_FILES]:
+            index[path] = len(files); files.append(path)
+    return files, index, capped
+
+
+def _drill_component(node, cmap, index, position):
+    return {'id': node['id'], 'name': node['name'], 'files': [index[p] for p in sorted(cmap['files_of'].get(node['id']) or []) if p in index],
+            'uses': [[position[e['to']], e['n']] for e in cmap['edges'] if e['from'] == node['id']],
+            'used_by': [[position[e['from']], e['n']] for e in cmap['edges'] if e['to'] == node['id']],
+            'cohesion': node['cohesion'], 'instability': node['instability'], 'filecount': node['files']}
+
+
 def drill_data(report, cmap):
     """The embedded JSON the drill-down draws from: parts, their files, imports, functions and calls, capped."""
     if not cmap: return None
-    files, index = [], {}
-    comps, capped_files = [], 0
-    for node in cmap['nodes']:
-        mine = sorted(cmap['files_of'].get(node['id']) or [])
-        capped_files += max(len(mine) - MAX_FILES, 0)
-        for path in mine[:MAX_FILES]:
-            index[path] = len(files); files.append(path)
+    files, index, capped_files = _drill_files(cmap)
     position = {n['id']: i for i, n in enumerate(cmap['nodes'])}
-    for node in cmap['nodes']:
-        comps.append({'id': node['id'], 'name': node['name'], 'files': [index[p] for p in sorted(cmap['files_of'].get(node['id']) or []) if p in index],
-                      'uses': [[position[e['to']], e['n']] for e in cmap['edges'] if e['from'] == node['id']],
-                      'used_by': [[position[e['from']], e['n']] for e in cmap['edges'] if e['to'] == node['id']],
-                      'cohesion': node['cohesion'], 'instability': node['instability'], 'filecount': node['files']})
+    comps = [_drill_component(node, cmap, index, position) for node in cmap['nodes']]
     owner_of = [position.get(cmap['owner'].get(p)) for p in files]
     imports = [[index[d] for d in cmap['imports'].get(p) or [] if d in index] for p in files]
     functions, calls = function_calls(report, cmap['imports'])
@@ -295,53 +336,87 @@ def flow_charts(report):
     """One vertical chart per page or endpoint: its route, its handler, then each called function by depth, grouped by
     file; where the trace cannot follow a call, a box says it stops there. None when there is no flow record."""
     out = []
-    for flow in facts(report, 'flows', 'flow'):
-        value = flow.get('value') or {}
-        entry = value.get('entry') or {}
-        steps = [s for s in value.get('steps') or [] if isinstance(s, dict)]
-        handler = (entry.get('path') or path_of(flow), entry.get('handler') or (flow.get('location') or {}).get('symbol') or '?')
-        handler_file = next((s.get('from_path') for s in steps if s.get('from') == handler[1] and s.get('from_path')), handler[0])
-        handler = (handler_file, handler[1])
-        nodes = {'entry': {'id': 'entry', 'kind': 'entry', 'label': entry.get('route') or '', 'sub': entry.get('http_method') or entry.get('surface') or '', 'level': 0},
-                 handler: {'id': 'h', 'kind': 'handler', 'label': handler[1], 'sub': handler[0], 'level': 1, 'library': 0}}
-        edges, stops = [('entry', handler)], defaultdict(list)
-        for step in sorted(steps, key=lambda s: s.get('depth') or 0):
-            caller = (step.get('from_path') or '', step.get('from') or '')
-            if caller not in nodes:
-                nodes[caller] = {'id': f'n{len(nodes)}', 'kind': 'fn', 'label': caller[1], 'sub': caller[0], 'level': (step.get('depth') or 0) + 1, 'library': 0}
-            resolution = step.get('resolution')
-            if resolution in LIBRARY: nodes[caller]['library'] = nodes[caller].get('library', 0) + 1; continue
-            if resolution in STOP or not step.get('to_path'):
-                if step.get('callee') and step['callee'] not in stops[caller]: stops[caller].append(step['callee'])
-                continue
-            callee = (step['to_path'], step.get('to_symbol') or step.get('callee') or '?')
-            if callee not in nodes:
-                nodes[callee] = {'id': f'n{len(nodes)}', 'kind': 'fn', 'label': callee[1], 'sub': callee[0], 'level': nodes[caller]['level'] + 1, 'library': 0}
-            if (caller, callee) not in edges and caller != callee: edges.append((caller, callee))
-        for caller, names in stops.items():
-            key = ('stop', caller)
-            nodes[key] = {'id': f's{len(nodes)}', 'kind': 'stop', 'label': ', '.join(names[:3]), 'more': max(len(names) - 3, 0),
-                          'sub': '', 'level': nodes[caller]['level'] + 1, 'count': len(names)}
-            edges.append((caller, key))
-        rows = defaultdict(list)
-        for key, node in nodes.items(): rows[node['level']].append(key)
-        y, drawn = PAD, []
-        for level in sorted(rows):
-            members = sorted(rows[level], key=lambda k: (nodes[k]['kind'] == 'stop', nodes[k].get('sub') or '', nodes[k]['label']))
-            for start in range(0, len(members), FLOW_PER_ROW):
-                line = members[start:start + FLOW_PER_ROW]
-                left = PAD + (FLOW_PER_ROW - len(line)) * (FLOW_W + FLOW_GAP_X) / 2
-                for p, key in enumerate(line):
-                    nodes[key]['x'], nodes[key]['y'] = round(left + p * (FLOW_W + FLOW_GAP_X)), y
-                    drawn.append(nodes[key])
-                y += FLOW_H + FLOW_GAP_Y
-        width = PAD * 2 + FLOW_PER_ROW * FLOW_W + (FLOW_PER_ROW - 1) * FLOW_GAP_X
-        out.append({'id': value.get('flow_id') or flow.get('id') or f'FLOW-{len(out) + 1}', 'surface': entry.get('surface') or '',
-                    'route': entry.get('route') or '', 'method': entry.get('http_method') or '', 'handler': handler[1], 'path': handler[0],
-                    'found': bool(value.get('handler_found', True)), 'nodes': [{k: v for k, v in n.items() if k != 'level'} for n in drawn],
-                    'edges': [[nodes[a]['id'], nodes[b]['id']] for a, b in edges], 'width': width, 'height': y - FLOW_GAP_Y + PAD,
-                    'steps': len(steps), 'stops': sum(len(v) for v in stops.values())})
+    for flow in facts(report, 'flows', 'flow'): out.append(_flow_chart(flow, len(out) + 1))
     return out or None
+
+
+def _flow_handler(flow, entry, steps):
+    """(file, name) of the handler, the file taken from the trace when the entry record names another."""
+    name = entry.get('handler') or (flow.get('location') or {}).get('symbol') or '?'
+    declared = entry.get('path') or path_of(flow)
+    return next((s.get('from_path') for s in steps if s.get('from') == name and s.get('from_path')), declared), name
+
+
+def _fn_node(nodes, key, level):
+    return {'id': f'n{len(nodes)}', 'kind': 'fn', 'label': key[1], 'sub': key[0], 'level': level, 'library': 0}
+
+
+def _note_stop(step, caller, stops):
+    if step.get('callee') and step['callee'] not in stops[caller]: stops[caller].append(step['callee'])
+
+
+def _add_step(step, nodes, edges, stops):
+    caller = (step.get('from_path') or '', step.get('from') or '')
+    if caller not in nodes: nodes[caller] = _fn_node(nodes, caller, (step.get('depth') or 0) + 1)
+    resolution = step.get('resolution')
+    if resolution in LIBRARY:
+        nodes[caller]['library'] = nodes[caller].get('library', 0) + 1
+        return
+    if resolution in STOP or not step.get('to_path'):
+        _note_stop(step, caller, stops)
+        return
+    callee = (step['to_path'], step.get('to_symbol') or step.get('callee') or '?')
+    if callee not in nodes: nodes[callee] = _fn_node(nodes, callee, nodes[caller]['level'] + 1)
+    if (caller, callee) not in edges and caller != callee: edges.append((caller, callee))
+
+
+def _add_stops(nodes, edges, stops):
+    for caller, names in stops.items():
+        key = ('stop', caller)
+        nodes[key] = {'id': f's{len(nodes)}', 'kind': 'stop', 'label': ', '.join(names[:3]), 'more': max(len(names) - 3, 0),
+                      'sub': '', 'level': nodes[caller]['level'] + 1, 'count': len(names)}
+        edges.append((caller, key))
+
+
+def _place_level(nodes, members, y, drawn):
+    """Lay one level's boxes out, FLOW_PER_ROW to a line; the y below the last line."""
+    for start in range(0, len(members), FLOW_PER_ROW):
+        line = members[start:start + FLOW_PER_ROW]
+        left = PAD + (FLOW_PER_ROW - len(line)) * (FLOW_W + FLOW_GAP_X) / 2
+        for p, key in enumerate(line):
+            nodes[key]['x'], nodes[key]['y'] = round(left + p * (FLOW_W + FLOW_GAP_X)), y
+            drawn.append(nodes[key])
+        y += FLOW_H + FLOW_GAP_Y
+    return y
+
+
+def _place_flow(nodes):
+    rows = defaultdict(list)
+    for key, node in nodes.items(): rows[node['level']].append(key)
+    y, drawn = PAD, []
+    for level in sorted(rows):
+        members = sorted(rows[level], key=lambda k: (nodes[k]['kind'] == 'stop', nodes[k].get('sub') or '', nodes[k]['label']))
+        y = _place_level(nodes, members, y, drawn)
+    return drawn, y
+
+
+def _flow_chart(flow, number):
+    value = flow.get('value') or {}
+    entry = value.get('entry') or {}
+    steps = [s for s in value.get('steps') or [] if isinstance(s, dict)]
+    handler = _flow_handler(flow, entry, steps)
+    nodes = {'entry': {'id': 'entry', 'kind': 'entry', 'label': entry.get('route') or '', 'sub': entry.get('http_method') or entry.get('surface') or '', 'level': 0},
+             handler: {'id': 'h', 'kind': 'handler', 'label': handler[1], 'sub': handler[0], 'level': 1, 'library': 0}}
+    edges, stops = [('entry', handler)], defaultdict(list)
+    for step in sorted(steps, key=lambda s: s.get('depth') or 0): _add_step(step, nodes, edges, stops)
+    _add_stops(nodes, edges, stops)
+    drawn, y = _place_flow(nodes)
+    width = PAD * 2 + FLOW_PER_ROW * FLOW_W + (FLOW_PER_ROW - 1) * FLOW_GAP_X
+    return {'id': value.get('flow_id') or flow.get('id') or f'FLOW-{number}', 'surface': entry.get('surface') or '',
+            'route': entry.get('route') or '', 'method': entry.get('http_method') or '', 'handler': handler[1], 'path': handler[0],
+            'found': bool(value.get('handler_found', True)), 'nodes': [{k: v for k, v in n.items() if k != 'level'} for n in drawn],
+            'edges': [[nodes[a]['id'], nodes[b]['id']] for a, b in edges], 'width': width, 'height': y - FLOW_GAP_Y + PAD,
+            'steps': len(steps), 'stops': sum(len(v) for v in stops.values())}
 
 
 # ---------------------------------------------------------------- the target, and the gap closed in each part
