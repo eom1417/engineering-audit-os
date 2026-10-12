@@ -66,28 +66,33 @@ def violations(policy, sets):
     found = []
     unmatched = {f['location']['path'] for f in sets.get('graph', {}).get('facts', [])
                  if f['kind'] == 'graph_node' and layer_of(f['location']['path'], layers) is None}
-    for edge in sets['resolve']['facts']:
-        if edge['resolution'] != 'RESOLVED': continue
-        source_path, target_path = edge['location']['path'], edge['value'].get('to_path')
-        if not target_path: continue
-        source_layer, target_layer = layer_of(source_path, layers), layer_of(target_path, layers)
-        if source_layer is None: unmatched.add(source_path)
-        if target_layer is None: unmatched.add(target_path)
-        if source_layer is None or target_layer is None: continue
-        for rule in policy.get('rules', []):
-            deny = rule.get('deny')
-            allow_only = rule.get('allow_only')
-            broken = False
-            if deny and deny.get('from') == source_layer and deny.get('to') == target_layer: broken = True
-            if allow_only and allow_only.get('from') == source_layer:
-                permitted = allow_only.get('to') or []
-                if target_layer not in permitted and target_layer != source_layer: broken = True
-            if broken:
-                found.append({'from_path': source_path, 'to_path': target_path,
-                              'from_layer': source_layer, 'to_layer': target_layer,
-                              'reason': rule['reason'], 'line': edge['location'].get('start_line'),
-                              'module': edge['value']['module'], 'edge_fact_id': edge['id']})
+    for edge in sets['resolve']['facts']: found += _edge_violations(edge, policy, layers, unmatched)
     return found, sorted(unmatched)
+
+
+def _breaks(rule, source_layer, target_layer):
+    """Whether an import from one layer to another breaks a deny or an allow_only rule."""
+    deny = rule.get('deny')
+    allow_only = rule.get('allow_only')
+    if deny and deny.get('from') == source_layer and deny.get('to') == target_layer: return True
+    if not (allow_only and allow_only.get('from') == source_layer): return False
+    return target_layer not in (allow_only.get('to') or []) and target_layer != source_layer
+
+
+def _edge_violations(edge, policy, layers, unmatched):
+    """The rules one resolved import breaks; a path in no layer is noted in `unmatched` instead."""
+    if edge['resolution'] != 'RESOLVED': return []
+    source_path, target_path = edge['location']['path'], edge['value'].get('to_path')
+    if not target_path: return []
+    source_layer, target_layer = layer_of(source_path, layers), layer_of(target_path, layers)
+    if source_layer is None: unmatched.add(source_path)
+    if target_layer is None: unmatched.add(target_path)
+    if source_layer is None or target_layer is None: return []
+    return [{'from_path': source_path, 'to_path': target_path,
+             'from_layer': source_layer, 'to_layer': target_layer,
+             'reason': rule['reason'], 'line': edge['location'].get('start_line'),
+             'module': edge['value']['module'], 'edge_fact_id': edge['id']}
+            for rule in policy.get('rules', []) if _breaks(rule, source_layer, target_layer)]
 
 
 def run(target, out, policy_path=None, **options):
@@ -121,30 +126,41 @@ def check(target, out, policy_path=None, language='ar'):
     result = run(target, out, policy_path)
     write_set(out, NAME, NAME, VERSION, result['facts'], result['input_sha'], LIMITATIONS,
               result['summary'], result['available'], result['reason'])
-    document = Document('السياسة المعمارية' if language == 'ar' else 'Architecture policy', language, budget_lines=160)
+    ar = language == 'ar'
+    document = Document('السياسة المعمارية' if ar else 'Architecture policy', language, budget_lines=160)
     summary = result['summary']
     if not summary.get('declared'):
         document.header([summary['interpretation']])
         document.text(f"expected at: {summary['expected_at']}")
     else:
-        document.header([f"{summary['policy_file']} · layers {len(summary['layers'])} · rules {summary['rules']} · "
-                         f"violations {summary['violations']}"])
-        document.section('الطبقات المعلنة' if language == 'ar' else 'Declared layers')
-        document.bullets(summary['layers'])
-        document.section('المخالفات' if language == 'ar' else 'Violations')
-        document.table(['من' if language == 'ar' else 'from', 'إلى' if language == 'ar' else 'to',
-                        'السبب' if language == 'ar' else 'reason'],
-                       [[f"{fact['location']['path']}:{fact['location'].get('start_line') or 1} [{fact['value']['from_layer']}]",
-                         f"{fact['value']['to_path']} [{fact['value']['to_layer']}]", fact['value']['reason']]
-                        for fact in result['facts']], limit=30)
-        if summary['paths_outside_every_layer']:
-            document.section('خارج كل طبقة' if language == 'ar' else 'Outside every layer')
-            document.bullets(summary['paths_outside_every_layer'][:15])
+        _write_policy(document, summary, result['facts'], ar)
     (out / 'POLICY.md').write_text(document.render(), encoding='utf-8')
     return {'target': str(target), 'out': str(out), 'declared': summary.get('declared', False),
             'violations': summary.get('violations', 0), 'unclassified_count': summary.get('unclassified_count', 0), 'artifact': str(out / 'POLICY.md'),
-            'status': 'VIOLATED' if summary.get('violations') else ('INCOMPLETE' if summary.get('unclassified_count') else 'OK' if summary.get('declared') else 'NO_POLICY'),
+            'status': _status(summary),
             'limits': 'Statically resolved imports only; a policy cannot see dynamic wiring.'}
+
+
+def _write_policy(document, summary, facts, ar):
+    """The declared layers, every violation and the paths outside every layer."""
+    document.header([f"{summary['policy_file']} · layers {len(summary['layers'])} · rules {summary['rules']} · "
+                     f"violations {summary['violations']}"])
+    document.section('الطبقات المعلنة' if ar else 'Declared layers')
+    document.bullets(summary['layers'])
+    document.section('المخالفات' if ar else 'Violations')
+    document.table(['من' if ar else 'from', 'إلى' if ar else 'to', 'السبب' if ar else 'reason'],
+                   [[f"{fact['location']['path']}:{fact['location'].get('start_line') or 1} [{fact['value']['from_layer']}]",
+                     f"{fact['value']['to_path']} [{fact['value']['to_layer']}]", fact['value']['reason']]
+                    for fact in facts], limit=30)
+    if summary['paths_outside_every_layer']:
+        document.section('خارج كل طبقة' if ar else 'Outside every layer')
+        document.bullets(summary['paths_outside_every_layer'][:15])
+
+
+def _status(summary):
+    if summary.get('violations'): return 'VIOLATED'
+    if summary.get('unclassified_count'): return 'INCOMPLETE'
+    return 'OK' if summary.get('declared') else 'NO_POLICY'
 
 
 def init(target, out, policy_path=None):
