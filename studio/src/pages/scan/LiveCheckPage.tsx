@@ -44,7 +44,7 @@ function blocked(mode: string, all: AllProgress | null, flow: string): 'snapshot
 function Blocked({ why }: { why: 'snapshot' | 'loading' | 'none' }) {
   const w = useScanWords()
   if (why === 'loading') return <div className={layout.page}><Head /><Panel><Skeleton label={w('loading')} /></Panel></div>
-  return <div className={layout.page}><Head /><Panel><StateMessage icon="live" title={w(`${why}Title`)} sub={w(`${why}Sub`)} /></Panel></div>
+  return <div className={layout.page}><Head lead={why === 'snapshot' ? w('snapshotLead') : undefined} /><Panel><StateMessage icon="live" title={w(`${why}Title`)} sub={w(`${why}Sub`)} /></Panel></div>
 }
 
 export function LiveCheckPage() {
@@ -110,12 +110,12 @@ function Notes({ progress, replay, stop, starting }: NotesProps) {
   )
 }
 
-function Head({ children }: { children?: React.ReactNode }) {
+function Head({ lead, children }: { lead?: string; children?: React.ReactNode }) {
   const w = useScanWords()
   return (
     <div className={css.head}>
       <h1 className={css.title}>{w('title')}</h1>
-      <p className={css.lead}>{w('lead')}</p>
+      <p className={css.lead}>{lead ?? w('lead')}</p>
       {children}
     </div>
   )

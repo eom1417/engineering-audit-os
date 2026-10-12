@@ -11,6 +11,8 @@ export const SCAN_WORDS = {
   title: ['الفحص الآن', 'Live check'],
   lead: ['ما يفعله EAOS الآن، مرحلة مرحلة: المرحلة التي تعمل تتوهّج، وحين تنتهي ينتقل الضوء إلى المراحل التي بعدها. اضغط أي مرحلة لترى ما تفعله وما أنتجته.',
     'What EAOS is doing now, stage by stage: the running stage glows, and when it ends the light travels on to the stages after it. Select any stage to see what it does and what it produced.'],
+  snapshotLead: ['هذه نسخة ثابتة من التقرير: خريطة المراحل تظهر في الاستوديو الحي فقط، وهناك تضغط أي مرحلة لترى ما تفعله.',
+    'This is a static copy of the report: the map of stages appears in the live Studio only, where you can select any stage to see what it does.'],
   journey: ['خطوات العمل', 'The steps of the work'],
   stepDone: ['تمّت', 'Done'],
   stepRunning: ['تعمل الآن', 'Running now'],
