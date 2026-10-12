@@ -22,7 +22,7 @@ import css from './history.module.css'
 export function ScoreTag({ score }: { score: number | null }) {
   const w = useHistoryWords()
   if (score === null) return <span className={css.tileMuted}>{w('notRecorded')}</span>
-  return <span className={css.scoreTag}><N value={Math.round(score * 100)} /><small>/100</small></span>
+  return <bdi dir="ltr" className={css.scoreTag}><N value={Math.round(score * 100)} /><small>/100</small></bdi>
 }
 
 function Tile({ label, children }: { label: string; children: ReactNode }) {
