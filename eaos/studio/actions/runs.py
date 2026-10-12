@@ -58,6 +58,43 @@ TEXT = {
 }
 
 
+def _read_from(path, offset):
+    """What the file holds past `offset`, or None when it cannot be read."""
+    try:
+        with open(path, 'rb') as stream:
+            stream.seek(offset)
+            return stream.read()
+    except OSError:
+        return None
+
+
+def _fresh_waves(record, state):
+    """The batches this run made: those past the count it saw at its start on the same branch, else those on a branch
+    that did not exist then."""
+    before = set(record.get('branches_before') or [])
+    seen, waves = record.get('waves_before'), state.get('waves') or []
+    return (waves[seen.get('count') or 0:] if isinstance(seen, dict) and seen.get('branch') == state.get('branch')
+            else [w for w in waves if w.get('branch') not in before])
+
+
+def _tests(kept, failed):
+    """A batch's checks: passed when a change was kept, with the changes left out and why."""
+    return {'passed': bool(kept), 'summary': f'{len(kept)} change(s) passed every check; {len(failed)} left out',
+            'left_out': {str(k): str(v)[:300] for k, v in (failed.items() if isinstance(failed, dict) else [])}}
+
+
+def _diff_stat(project, branch):
+    """{files, insertions, deletions} the branch changes since it left HEAD, from git's short stat."""
+    shortstat = subprocess.run(['git', '-C', str(project), 'diff', '--shortstat', f"HEAD...{branch}"],
+                               capture_output=True, text=True).stdout
+    numbers = [int(part.split()[0]) for part in shortstat.split(',') if part.strip()[:1].isdigit()]
+    labels = [part.split()[1] for part in shortstat.split(',') if part.strip()[:1].isdigit()]
+    stat = {'files': 0, 'insertions': 0, 'deletions': 0}
+    for number, label in zip(numbers, labels):
+        stat['files' if label.startswith('file') else 'insertions' if label.startswith('insertion') else 'deletions'] = number
+    return stat
+
+
 class Manager:
     def __init__(self, project, store, adapters, contract, tools, lang='ar'):
         self.project = Path(project).resolve()
@@ -390,19 +427,12 @@ class Manager:
         try:
             while True:
                 finished = not (self.children[run].poll() is None if run in self.children else alive(pid))
-                try:
-                    with open(folder / 'stream.jsonl', 'rb') as stream:
-                        stream.seek(offset)
-                        chunk = stream.read()
-                except OSError:
-                    return
+                chunk = _read_from(folder / 'stream.jsonl', offset)
+                if chunk is None: return
                 offset += len(chunk)
                 buffer += chunk
                 *lines, buffer = buffer.split(b'\n')
-                for line in lines:
-                    text = line.decode('utf-8', 'replace').strip()
-                    if not text: continue
-                    self._record(run, record, adapter.parse(text, state, self.labels), state)
+                self._parse_lines(run, record, adapter, state, lines)
                 if lines: self.store.update(run, offset=offset - len(buffer), session=state['session'])
                 if finished and not chunk:
                     if buffer.strip():
@@ -415,6 +445,13 @@ class Manager:
             self._end_turn(run, state, code)
         finally:
             self.watched.discard(run)
+
+    def _parse_lines(self, run, record, adapter, state, lines):
+        """Each non-empty line of the assistant's stream, parsed by its adapter, into the run."""
+        for line in lines:
+            text = line.decode('utf-8', 'replace').strip()
+            if not text: continue
+            self._record(run, record, adapter.parse(text, state, self.labels), state)
 
     def _record(self, run, record, parsed, state):
         """The assistant's events into the run. A Fix run's progress is its batch: the cards tried (kept, taken back or
@@ -678,10 +715,7 @@ class Manager:
         from ... import guided
         record = self.store.load(run)
         state = guided.load(self.project) or {}
-        before = set(record.get('branches_before') or [])
-        seen, waves = record.get('waves_before'), state.get('waves') or []
-        fresh = (waves[seen.get('count') or 0:] if isinstance(seen, dict) and seen.get('branch') == state.get('branch')
-                 else [w for w in waves if w.get('branch') not in before])
+        fresh = _fresh_waves(record, state)
         wave = next((w for w in reversed(fresh) if w.get('status') == 'applied'), None)
         # a direct batch: it landed on the base branch itself and left no branch
         landed = None if wave else next((w for w in reversed(fresh) if w.get('direct') and w.get('status') == 'accepted'), None)
@@ -689,29 +723,23 @@ class Manager:
         if landed:
             kept = list(landed.get('kept') or [])
             out.update(landed_on=landed.get('merge_into'), target=landed.get('merge_into'), cards_closed=kept,
-                       tests={'passed': bool(kept), 'summary': f"{len(kept)} change(s) passed every check; {len(landed.get('failed') or {})} left out",
-                              'left_out': {str(k): str(v)[:300] for k, v in (landed.get('failed') or {}).items()}})
-        if wave:
-            out['branch'] = wave['branch']
-            out['branch_tip'] = subprocess.run(['git', '-C', str(self.project), 'rev-parse', '--verify', '--quiet', f"refs/heads/{wave['branch']}^{{commit}}"],
-                                               capture_output=True, text=True).stdout.strip() or None
-            out['target'] = state.get('branch') or state.get('home_branch')
-            if self.branch_control:
-                self.branch_control.record(wave['branch'], kind='build' if wave.get('via') == 'build' else 'wave', run=run,
-                                           tip=out['branch_tip'], base=out['target'], base_commit=wave.get('base'))
-            kept, failed = list(wave.get('kept') or []), wave.get('failed') or {}
-            out['cards_closed'] = kept
-            out['tests'] = {'passed': bool(kept), 'summary': f'{len(kept)} change(s) passed every check; {len(failed)} left out',
-                            'left_out': {str(k): str(v)[:300] for k, v in (failed.items() if isinstance(failed, dict) else [])}}
-            shortstat = subprocess.run(['git', '-C', str(self.project), 'diff', '--shortstat', f"HEAD...{wave['branch']}"],
-                                       capture_output=True, text=True).stdout
-            numbers = [int(part.split()[0]) for part in shortstat.split(',') if part.strip()[:1].isdigit()]
-            labels = [part.split()[1] for part in shortstat.split(',') if part.strip()[:1].isdigit()]
-            stat = {'files': 0, 'insertions': 0, 'deletions': 0}
-            for number, label in zip(numbers, labels):
-                stat['files' if label.startswith('file') else 'insertions' if label.startswith('insertion') else 'deletions'] = number
-            out['diff_stat'] = stat
+                       tests=_tests(kept, landed.get('failed') or {}))
+        if wave: self._wave_outcome(run, wave, state, out)
         return out
+
+    def _wave_outcome(self, run, wave, state, out):
+        """A batch handed over as a branch: its tip, the branch it merges into, its record, its checks and its diff."""
+        out['branch'] = wave['branch']
+        out['branch_tip'] = subprocess.run(['git', '-C', str(self.project), 'rev-parse', '--verify', '--quiet', f"refs/heads/{wave['branch']}^{{commit}}"],
+                                           capture_output=True, text=True).stdout.strip() or None
+        out['target'] = state.get('branch') or state.get('home_branch')
+        if self.branch_control:
+            self.branch_control.record(wave['branch'], kind='build' if wave.get('via') == 'build' else 'wave', run=run,
+                                       tip=out['branch_tip'], base=out['target'], base_commit=wave.get('base'))
+        kept = list(wave.get('kept') or [])
+        out['cards_closed'] = kept
+        out['tests'] = _tests(kept, wave.get('failed') or {})
+        out['diff_stat'] = _diff_stat(self.project, wave['branch'])
 
     # the person's controls
     def pause(self, run):
