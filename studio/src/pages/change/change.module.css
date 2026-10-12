@@ -103,6 +103,7 @@
 .stepTitle { font-weight: 500; font-size: 15px; line-height: 1.45; }
 .stepGate { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
 .stepMeta { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--text-tertiary); }
+.stepMain .stateBar { max-inline-size: none; }
 
 .lanes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: start; }
 .lane { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-radius: var(--radius-12); background: var(--bg-sunken); min-inline-size: 0; }
