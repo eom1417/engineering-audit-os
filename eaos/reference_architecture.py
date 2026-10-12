@@ -72,20 +72,32 @@ def matches(rule, root):
     # A server kept in its own folder declares its database driver in its own package.json.
     for folder in rule.get('dirs_any') or ():
         packages |= _package_names(root / folder)
+    return _packages_fit(rule, packages) and _python_fits(rule, root, python) and _shape_fits(rule, root) and bool(rule)
+
+
+def _packages_fit(rule, packages):
     if rule.get('package_json_all') and not set(rule['package_json_all']) <= packages: return False
     if rule.get('package_json_any') and not set(rule['package_json_any']) & packages: return False
-    if set(rule.get('package_json_none') or ()) & packages: return False
-    has_python_rule = 'python_deps_any' in rule or 'files_any' in rule
-    if has_python_rule:
+    return not set(rule.get('package_json_none') or ()) & packages
+
+
+def _python_fits(rule, root, python):
+    """A Python rule holds by a declared dependency or by a file it names; and a Python program is one when asked."""
+    if 'python_deps_any' in rule or 'files_any' in rule:
         by_deps = bool(set(rule.get('python_deps_any') or ()) & python)
-        by_files = any(list(root.glob(pattern)) for pattern in rule.get('files_any') or ())
-        if not (by_deps or by_files): return False
-    if rule.get('python_files') and not _python_program(root): return False
+        if not by_deps and not any(list(root.glob(pattern)) for pattern in rule.get('files_any') or ()): return False
+    return not rule.get('python_files') or _python_program(root)
+
+
+def _has_source(root):
+    return any(p.suffix in SOURCE_SUFFIXES for p in root.rglob('*') if 'node_modules' not in p.parts)
+
+
+def _shape_fits(rule, root):
     if rule.get('dirs_any') and not any((root / name).is_dir() for name in rule['dirs_any']): return False
     if rule.get('workspace') and not _workspace(root): return False
     # The last type of the catalogue: any project with a source file gets a target, read from its folder names.
-    if rule.get('any_source') and not any(p.suffix in SOURCE_SUFFIXES for p in root.rglob('*') if 'node_modules' not in p.parts): return False
-    return bool(rule)
+    return not rule.get('any_source') or _has_source(root)
 
 
 # Where an application may sit inside its repository: at the root, or in one conventional folder
@@ -99,13 +111,16 @@ def locate(project_dir):
     types = catalogue()['types']
     # Every specific type in every conventional folder first; the fallback (any_source) only when none fits,
     # or an app kept in app/ would be read as a generic project from the repository root.
-    for fallback in (False, True):
-        for folder in APP_ROOTS:
-            base = root / folder if folder else root
-            if not base.is_dir(): continue
-            found = next((t['id'] for t in types if bool(t['detect'].get('any_source')) == fallback and matches(t['detect'], base)), None)
-            if found: return found, f'{folder}/' if folder else ''
+    for fallback, folder in ((fallback, folder) for fallback in (False, True) for folder in APP_ROOTS):
+        base = root / folder if folder else root
+        found = _fitting_type(types, base, fallback) if base.is_dir() else None
+        if found: return found, f'{folder}/' if folder else ''
     return None, ''
+
+
+def _fitting_type(types, base, fallback):
+    """The first type of the catalogue (the fallback types, or the others) whose detection fits `base`."""
+    return next((t['id'] for t in types if bool(t['detect'].get('any_source')) == fallback and matches(t['detect'], base)), None)
 
 
 def choose(project_dir):
@@ -126,10 +141,12 @@ def rooted(reference, prefix):
 
 def layer_of(path, reference):
     """(layer name, pattern) placing a path in a reference type's layers; the most specific pattern wins."""
-    best = None
-    for layer in reference['layers']:
-        for pattern in layer.get('paths') or ():
-            if fnmatch(path, pattern) or (pattern.endswith('/**') and path.startswith(pattern[:-3] + '/')):
-                weight = len(pattern.replace('*', ''))
-                if best is None or weight > best[2]: best = (layer['name'], pattern, weight)
-    return (best[0], best[1]) if best else (None, None)
+    fits = [(len(pattern.replace('*', '')), layer['name'], pattern)
+            for layer in reference['layers'] for pattern in layer.get('paths') or () if _covers(pattern, path)]
+    if not fits: return None, None
+    _, name, pattern = max(fits, key=lambda fit: fit[0])     # the first of the most specific
+    return name, pattern
+
+
+def _covers(pattern, path):
+    return fnmatch(path, pattern) or (pattern.endswith('/**') and path.startswith(pattern[:-3] + '/'))
