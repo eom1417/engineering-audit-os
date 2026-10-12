@@ -88,6 +88,7 @@ export const CMD_WORDS = {
   // runs
   runs: ['التشغيل', 'Runs'],
   runsLead: ['كل ما طلبته من EAOS: ما يشتغل الآن، وما ينتظر دوره، وما انتهى.', 'Everything you asked EAOS to do: what runs now, what waits its turn, and what is done.'],
+  runsSnapshotLead: ['هذه نسخة ثابتة من التقرير: قائمة التشغيل تظهر في الاستوديو الحي فقط.', 'This is a static copy of the report: the runs are listed in the live Studio only.'],
   now: ['الآن', 'Now'],
   nothingRunning: ['لا شيء يشتغل الآن.', 'Nothing is running now.'],
   nothingRunningSub: ['اختر بطاقات في المشاكل أو خطوة في الخطة، ثم اختر أمرًا. أو افتح البحث (⌘K) واكتب اسم الأمر.', 'Select cards on Problems or a step of the plan, then pick a verb. Or open search (⌘K) and type the action’s name.'],

@@ -134,7 +134,7 @@ export function RunsPage() {
   usePageChrome(w('runs'), undefined, data?.manifest.project.name)
   return (
     <div className={layout.page}>
-      <PageTitle title={w('runs')} lead={w('runsLead')} />
+      <PageTitle title={w('runs')} lead={w(actions.mode === 'snapshot' ? 'runsSnapshotLead' : 'runsLead')} />
       {actions.mode === 'snapshot' ? <SnapshotPanel /> : <RunsBody />}
     </div>
   )
