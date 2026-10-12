@@ -54,21 +54,8 @@ LANGUAGE_NAMES = {'ar': 'Arabic', 'en': 'English'}
 
 def digest_of(sets, dossier, limit=60):
     """A compact, bounded picture of the system: components, surfaces, rules, and what is already proven."""
-    graph = {fact['location']['path']: fact['value'] for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
-    symbols = {}
-    for fact in sets['syntax']['facts']:
-        if fact['kind'] != 'symbol': continue
-        symbols.setdefault(fact['location']['path'], []).append(fact['location'].get('symbol') or fact['value']['name'])
-    components = []
-    for path in sorted(graph, key=lambda p: graph[p].get('attention_rank', 999))[:limit]:
-        value = graph[path]
-        components.append({'path': path, 'fan_in': value['fan_in'], 'fan_out': value['fan_out'],
-                           'depends_on': value['depends_on'][:8], 'attention_rank': value['attention_rank'],
-                           'symbols': sorted(symbols.get(path, []))[:12],
-                           'fact_id': next((fact['id'] for fact in sets['syntax']['facts']
-                                            if fact['kind'] == 'source_file' and fact['location']['path'] == path), None)})
     return {
-        'components': components,
+        'components': _components(sets, limit),
         'entry_points': [{'surface': fact['value']['surface'], 'route': fact['value']['route'],
                           'handler': fact['value']['handler'], 'path': fact['location']['path'],
                           'fact_id': fact['id']}
@@ -84,6 +71,21 @@ def digest_of(sets, dossier, limit=60):
         'coverage': dossier['coverage'],
         'policy': (sets.get('policy', {}).get('summary') or {}),
     }
+
+
+def _components(sets, limit):
+    """The `limit` files that most need attention, with their links, their symbols and their source-file fact."""
+    graph = {fact['location']['path']: fact['value'] for fact in sets['graph']['facts'] if fact['kind'] == 'graph_node'}
+    symbols, files = {}, {}
+    for fact in sets['syntax']['facts']:
+        if fact['kind'] == 'symbol':
+            symbols.setdefault(fact['location']['path'], []).append(fact['location'].get('symbol') or fact['value']['name'])
+        elif fact['kind'] == 'source_file':
+            files.setdefault(fact['location']['path'], fact['id'])
+    return [{'path': path, 'fan_in': graph[path]['fan_in'], 'fan_out': graph[path]['fan_out'],
+             'depends_on': graph[path]['depends_on'][:8], 'attention_rank': graph[path]['attention_rank'],
+             'symbols': sorted(symbols.get(path, []))[:12], 'fact_id': files.get(path)}
+            for path in sorted(graph, key=lambda p: graph[p].get('attention_rank', 999))[:limit]]
 
 
 # Where a statement comes from. Inventing a historical reason is the failure this separates out:
@@ -115,37 +117,42 @@ GOAL_QUESTIONS = {
 }
 
 
-def errors_in(response, known_facts):
+def _sentence(value):
+    return isinstance(value, str) and len(value.strip()) >= 10
+
+
+def _claim_errors(row, known_facts):
+    """What is wrong with one claim the model returned."""
+    if not isinstance(row, dict): return ['each claim must be an object']
+    name = str(row.get('statement', '?'))[:40]
     problems = []
+    if not _sentence(row.get('statement')): problems.append(f'{name}: statement must be a sentence')
+    if row.get('claim_type') not in TYPES: problems.append(f'{name}: claim_type must be one of {sorted(TYPES)}')
+    if not _sentence(row.get('falsifier')): problems.append(f'{name}: a claim must state what would disprove it')
+    if row.get('basis') not in BASIS:
+        problems.append(f'{name}: basis must be one of {sorted(BASIS)} — say whether this is written '
+                        f'down, observed in the code, or inferred')
+    if row.get('basis') == 'documented' and not row.get('basis_source'):
+        problems.append(f'{name}: a documented basis must name where it is written down')
+    references = row.get('fact_ids')
+    if not isinstance(references, list) or not references:
+        return problems + [f'{name}: cite at least one fact id from the digest']
+    unknown = [reference for reference in references if not isinstance(reference, str) or reference not in known_facts]
+    if unknown: problems.append(f'{name}: unknown fact ids {unknown[:3]}')
+    assessment = row.get('assessment', {})
+    if not isinstance(assessment, dict): return problems + [f'{name}: assessment must be an object']
+    for field in ('requirement_refs', 'evidence_refs'):
+        refs = assessment.get(field, [])
+        if not isinstance(refs, list) or any(not isinstance(ref, str) or ref not in known_facts for ref in refs):
+            problems.append(f'{name}: unknown assessment references')
+    return problems
+
+
+def errors_in(response, known_facts):
     if not isinstance(response, dict): return ['response must be a JSON object']
     rows = response.get('claims')
     if not isinstance(rows, list): return ['claims must be an array']
-    for row in rows:
-        if not isinstance(row, dict): problems.append('each claim must be an object'); continue
-        name = str(row.get('statement', '?'))[:40]
-        if not isinstance(row.get('statement'), str) or len(row['statement'].strip()) < 10:
-            problems.append(f'{name}: statement must be a sentence')
-        if row.get('claim_type') not in TYPES:
-            problems.append(f'{name}: claim_type must be one of {sorted(TYPES)}')
-        if not isinstance(row.get('falsifier'), str) or len(row['falsifier'].strip()) < 10:
-            problems.append(f'{name}: a claim must state what would disprove it')
-        if row.get('basis') not in BASIS:
-            problems.append(f'{name}: basis must be one of {sorted(BASIS)} — say whether this is written '
-                            f'down, observed in the code, or inferred')
-        if row.get('basis') == 'documented' and not row.get('basis_source'):
-            problems.append(f'{name}: a documented basis must name where it is written down')
-        references = row.get('fact_ids')
-        if not isinstance(references, list) or not references:
-            problems.append(f'{name}: cite at least one fact id from the digest')
-            continue
-        unknown = [reference for reference in references if not isinstance(reference, str) or reference not in known_facts]
-        if unknown: problems.append(f'{name}: unknown fact ids {unknown[:3]}')
-        assessment = row.get('assessment', {})
-        if not isinstance(assessment, dict): problems.append(f'{name}: assessment must be an object'); continue
-        for field in ('requirement_refs', 'evidence_refs'):
-            refs = assessment.get(field, [])
-            if not isinstance(refs, list) or any(not isinstance(ref, str) or ref not in known_facts for ref in refs):
-                problems.append(f'{name}: unknown assessment references')
+    problems = [problem for row in rows for problem in _claim_errors(row, known_facts)]
     if not isinstance(response.get('questions', []), list) or not all(isinstance(question, str) for question in response.get('questions', [])):
         problems.append('questions must be an array of strings')
     return problems
@@ -162,13 +169,17 @@ def request(provider, digest, feedback=None, language='ar'):
     return response
 
 
-def run(target, out, provider, max_rounds=MAX_ROUNDS, language='ar'):
-    target, out = Path(target).resolve(), Path(out).resolve()
-    dossier_path = out / 'dossier.json'
-    if not dossier_path.is_file(): raise ValueError('Build a dossier before the semantic pass: eaos dossier')
-    dossier = read(dossier_path)
-    sets = {name: read_set(out, name) for name in SETS if (out / 'facts' / (name + '.json')).is_file()}
-    known = {fact['id'] for data in sets.values() for fact in data['facts']}
+def _supplied_ids(value):
+    """Every fact id given to the model inside `value`: citations must refer to facts actually supplied."""
+    if isinstance(value, dict):
+        return ({value['fact_id']} if value.get('fact_id') else set()).union(*(_supplied_ids(v) for v in value.values()))
+    if isinstance(value, list): return set().union(*(_supplied_ids(v) for v in value))
+    return set()
+
+
+def _full_digest(target, out, sets, dossier, known):
+    """(digest, source session): the digest with the goal's questions, the aspects and the source catalog. The
+    catalog's facts are added to `known`."""
     digest = digest_of(sets, dossier)
     goal = dossier.get('review_goal', 'evolution')
     digest['review_goal'] = goal
@@ -182,54 +193,72 @@ def run(target, out, provider, max_rounds=MAX_ROUNDS, language='ar'):
     catalog = [{'path': f['location']['path'], 'fact_id': f['id'], 'kind': f['kind']} for f in sources.allowed.values()]
     digest['source_catalog'] = catalog[:2000]
     digest['omissions'] = {'catalog_files': max(0, len(catalog) - 2000), 'summary_components': max(0, len(catalog) - len(digest['components']))}
-    # Citations must refer to facts actually supplied, not merely known internally.
-    def supplied_ids(value):
-        if isinstance(value, dict):
-            return ({value['fact_id']} if value.get('fact_id') else set()).union(*(supplied_ids(v) for v in value.values()))
-        if isinstance(value, list): return set().union(*(supplied_ids(v) for v in value))
-        return set()
-    supplied = supplied_ids(digest)
+    return digest, sources
+
+
+def _converse(provider, digest, sources, max_rounds, language):
+    """(the model's accepted answer, the calls it took): source ranges it asks for are supplied, and what a check
+    rejects is sent back; ValueError when no answer passes within `max_rounds`."""
+    supplied = _supplied_ids(digest)
     feedback, response, problems = [], None, ['not attempted']
     for attempt in range(max_rounds):
         response = request(provider, digest, feedback, language)
         if isinstance(response, dict) and response.get('source_requests'):
             blocks = sources.retrieve(response['source_requests'])
-            for block in blocks:
-                block['trust'] = UNTRUSTED
+            for block in blocks: block['trust'] = UNTRUSTED
             digest.setdefault('source_ranges', []).extend(blocks)
             digest['source_omissions'] = sources.omissions
-            supplied.update(supplied_ids(blocks))
+            supplied.update(_supplied_ids(blocks))
             feedback = ['Requested ranges supplied where allowed; produce grounded claims or explicit questions.']
             problems = ['Source retrieval needs a subsequent synthesis round']
             continue
         problems = errors_in(response, supplied)
-        if not problems: break
+        if not problems: return response, attempt + 1
         feedback = problems[:8]
-    if problems:
-        raise ValueError('Semantic pass rejected after %d attempts: %s' % (max_rounds, '; '.join(problems[:5])))
-    index = len(dossier['claims'])
-    produced = []
-    for row in response['claims']:
-        index += 1
-        produced.append(ledger.make(index, row['statement'][:600], row['claim_type'], 'HYPOTHESIS',
-                                    ['model_inference'], [], row['falsifier'],
-                                    fact_ids=row['fact_ids'], origin='source',
-                                    probe_spec=row.get('probe_suggestion') if isinstance(row.get('probe_suggestion'), dict) else None,
-                                    disposition={'kind': 'investigate',
-                                                 'reason': 'Model interpretation: confirm with a probe before acting.'},
-                                    assessment={key: value for key, value in row.get('assessment', {}).items()
-                                                if key in {'violated_invariant','requirement_refs','evidence_refs','before','after','proposed_change'}},
-                                    basis=row['basis'], basis_source=row.get('basis_source'),
-                                    artifacts=['SEMANTIC.md']))
+    raise ValueError('Semantic pass rejected after %d attempts: %s' % (max_rounds, '; '.join(problems[:5])))
+
+
+ASSESSMENT_KEYS = {'violated_invariant', 'requirement_refs', 'evidence_refs', 'before', 'after', 'proposed_change'}
+
+
+def _claims_of(response, first):
+    """The model's claims as ledger claims, numbered from `first`, every one a hypothesis to investigate."""
+    return [ledger.make(index, row['statement'][:600], row['claim_type'], 'HYPOTHESIS',
+                        ['model_inference'], [], row['falsifier'],
+                        fact_ids=row['fact_ids'], origin='source',
+                        probe_spec=row.get('probe_suggestion') if isinstance(row.get('probe_suggestion'), dict) else None,
+                        disposition={'kind': 'investigate',
+                                     'reason': 'Model interpretation: confirm with a probe before acting.'},
+                        assessment={key: value for key, value in row.get('assessment', {}).items() if key in ASSESSMENT_KEYS},
+                        basis=row['basis'], basis_source=row.get('basis_source'),
+                        artifacts=['SEMANTIC.md'])
+            for index, row in enumerate(response['claims'], start=first)]
+
+
+def _count_claims(dossier, calls):
+    calls_before = dossier['provenance'].get('model_calls', 0)
+    dossier['provenance']['model_calls'] = (calls_before if isinstance(calls_before, int) else 0) + calls
+    dossier['claim_counts'] = {}
+    for claim in dossier['claims']:
+        dossier['claim_counts'][claim['confidence']] = dossier['claim_counts'].get(claim['confidence'], 0) + 1
+
+
+def run(target, out, provider, max_rounds=MAX_ROUNDS, language='ar'):
+    target, out = Path(target).resolve(), Path(out).resolve()
+    dossier_path = out / 'dossier.json'
+    if not dossier_path.is_file(): raise ValueError('Build a dossier before the semantic pass: eaos dossier')
+    dossier = read(dossier_path)
+    sets = {name: read_set(out, name) for name in SETS if (out / 'facts' / (name + '.json')).is_file()}
+    known = {fact['id'] for data in sets.values() for fact in data['facts']}
+    digest, sources = _full_digest(target, out, sets, dossier, known)
+    response, calls = _converse(provider, digest, sources, max_rounds, language)
+    produced = _claims_of(response, len(dossier['claims']) + 1)
     problems = ledger.errors(produced, (), known)
     if problems: raise ValueError('Semantic claims rejected by the ledger: ' + '; '.join(problems[:5]))
     existing = {claim['statement'] for claim in dossier['claims']}
     added = [claim for claim in produced if claim['statement'] not in existing]
     dossier['claims'] += added
-    dossier['provenance']['model_calls'] = (dossier['provenance'].get('model_calls', 0) if isinstance(dossier['provenance'].get('model_calls'), int) else 0) + attempt + 1
-    dossier['claim_counts'] = {}
-    for claim in dossier['claims']:
-        dossier['claim_counts'][claim['confidence']] = dossier['claim_counts'].get(claim['confidence'], 0) + 1
+    _count_claims(dossier, calls)
     questions = [{'id': 'Q-S%02d' % (number + 1), 'question': text, 'source': 'semantic pass'}
                  for number, text in enumerate(response.get('questions', []) or [])]
     dossier['questions'] += questions
@@ -238,7 +267,7 @@ def run(target, out, provider, max_rounds=MAX_ROUNDS, language='ar'):
                                   'provider': provider.identity(), 'digest_components': len(digest['components']), 'source_omissions': sources.omissions,
                                   'digest_omissions': digest['omissions'], 'source_ranges': digest.get('source_ranges', [])})
     render(out, added, questions, provider, language)
-    return {'target': str(target), 'out': str(out), 'claims': len(added), 'questions': len(questions), 'calls': attempt + 1,
+    return {'target': str(target), 'out': str(out), 'claims': len(added), 'questions': len(questions), 'calls': calls,
             'confidence': 'HYPOTHESIS for every semantic claim; only a probe can raise it',
             'limits': 'Interpretation over facts. Source ranges are budgeted, revision-checked and redacted; runtime behavior remains unverified.'}
 
