@@ -312,8 +312,8 @@ def functions(report, card_rows=(), evidence=()):
     # Calls, resolved as the flow tracer resolves them; what each function reads and writes, and the cards resting on it.
     callers, callees, sites, resolved = _calls(report, syntax, key_of)
     links = (callers, callees, _touches(report, by_file), _cards(card_rows, evidence, by_file))
-    owners = _owners(report)
-    out = [_function(row, (_metrics(report), components), links) for row in sorted(rows, key=lambda r: (r['path'], r['start'], r['id']))]
+    owners, known = _owners(report), (_metrics(report), components)
+    out = [_function(row, known, links) for row in sorted(rows, key=lambda r: (r['path'], r['start'], r['id']))]
     modules = defaultdict(int)
     for fn in out: modules[fn['module']] += 1
     module_rows = [{'id': path, 'component': owners.get(path), 'language': _language(path), 'functions': n} for path, n in sorted(modules.items())]

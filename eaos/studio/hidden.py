@@ -64,84 +64,128 @@ def _resource(target):
     return '/' + segs[0] if segs else str(target or '/')
 
 
-def items_of(report, journeys):
-    """[{id, group, kind, name, files, file, line, fact, detail}] of every unseen item, before the links."""
-    report = Path(report)
-    out = []
+def _item(group, kind, name, fact, more=None):
+    """One unseen item; `more`: its detail, its files (else the fact's own file) and its id (else one made of the
+    group, kind, name and place)."""
+    more = more or {}
+    loc = (fact or {}).get('location') or {}
+    file = loc.get('path')
+    return {'id': more.get('id') or f"{group}:{kind}:{name}:{file}:{loc.get('start_line') or ''}", 'group': group, 'kind': kind,
+            'name': str(name)[:160], 'file': file, 'line': loc.get('start_line'), 'fact': (fact or {}).get('id'),
+            'files': sorted(set(more.get('files') or ([file] if file else [])))[:40], 'detail': more.get('detail')}
 
-    def add(group, kind, name, fact, detail=None, files=None, item_id=None):
-        loc = (fact or {}).get('location') or {}
-        file = loc.get('path')
-        out.append({'id': item_id or f"{group}:{kind}:{name}:{file}:{loc.get('start_line') or ''}", 'group': group, 'kind': kind,
-                    'name': str(name)[:160], 'file': file, 'line': loc.get('start_line'), 'fact': (fact or {}).get('id'),
-                    'files': sorted(set(files or ([file] if file else [])))[:40], 'detail': detail})
 
-    for fact in arch_map.facts(report, 'entrypoints', 'entry_point'):
-        v = fact.get('value') or {}
-        if v.get('category') == 'test': continue
-        if v.get('surface') in ('job', 'container'):
-            add('triggers', v['surface'], v.get('route') or v.get('handler') or '?', fact, v.get('framework'))
-        elif v.get('surface') == 'http':
-            route = str(v.get('route') or '')
-            kind = 'webhook' if HOOK.search(route) else 'endpoint'
-            add('triggers' if kind == 'webhook' else 'server', kind, f"{v.get('http_method') or 'ANY'} {route}", fact, v.get('framework'))
-        elif v.get('surface') == 'cli':
-            add('build', 'command', v.get('route') or '?', fact, v.get('framework'))
+def _entry_item(fact):
+    """A job or container (a trigger), a web hook (a trigger) or another server route, or a command; None otherwise."""
+    v = fact.get('value') or {}
+    if v.get('category') == 'test': return None
+    if v.get('surface') in ('job', 'container'):
+        return _item('triggers', v['surface'], v.get('route') or v.get('handler') or '?', fact, {'detail': v.get('framework')})
+    if v.get('surface') == 'http':
+        route = str(v.get('route') or '')
+        kind = 'webhook' if HOOK.search(route) else 'endpoint'
+        return _item('triggers' if kind == 'webhook' else 'server', kind, f"{v.get('http_method') or 'ANY'} {route}", fact, {'detail': v.get('framework')})
+    if v.get('surface') == 'cli':
+        return _item('build', 'command', v.get('route') or '?', fact, {'detail': v.get('framework')})
+    return None
+
+
+def _edge_function_items(report):
     edge_fns = defaultdict(list)
     for node in arch_map.facts(report, 'graph', 'graph_node'):
         m = EDGE_FN.match(arch_map.path_of(node))
         if m: edge_fns[m.group('s') or m.group('n') or m.group('c')].append(node)
+    items = []
     for name, nodes in sorted(edge_fns.items()):
         nodes.sort(key=arch_map.path_of)
-        add('triggers', 'edge_function', name, nodes[0], None, [arch_map.path_of(n) for n in nodes], f'triggers:edge_function:{name}')
-    for s in journeys.get('screens') or []:
-        if s['kind'] != 'page':
-            out.append({'id': f"screens:{s['id']}", 'group': 'screens', 'kind': s['kind'], 'name': s['route'] + (f" ({s['title']})" if s.get('title') else ''),
-                        'file': s['router'], 'line': s['line'], 'fact': s['fact'], 'files': [f for f in (s['router'], s.get('file')) if f], 'detail': None})
+        items.append(_item('triggers', 'edge_function', name, nodes[0],
+                           {'files': [arch_map.path_of(n) for n in nodes], 'id': f'triggers:edge_function:{name}'}))
+    return items
+
+
+def _screen_items(journeys):
+    """The screens a person never lands on: layouts, redirects and fallbacks."""
+    return [{'id': f"screens:{s['id']}", 'group': 'screens', 'kind': s['kind'], 'name': s['route'] + (f" ({s['title']})" if s.get('title') else ''),
+             'file': s['router'], 'line': s['line'], 'fact': s['fact'], 'files': [f for f in (s['router'], s.get('file')) if f], 'detail': None}
+            for s in journeys.get('screens') or [] if s['kind'] != 'page']
+
+
+def _write_items(report):
+    """One item per client and resource written to, with every write operation on it."""
     writes = defaultdict(list)
     for fact in arch_map.facts(report, 'entrypoints', 'data_access'):
         v = fact.get('value') or {}
         if str(v.get('operation') or '').lower() in WRITES and v.get('category') != 'test':
             writes[(str(v.get('client') or 'http'), _resource(v.get('target')))].append(fact)
+    items = []
     for (client, resource), facts in sorted(writes.items()):
         facts.sort(key=lambda f: (arch_map.path_of(f), (f.get('location') or {}).get('start_line') or 0))
         ops = sorted({f"{str(f['value'].get('operation')).upper()} {f['value'].get('target')}" for f in facts})
-        add('writes', client, resource, facts[0], '; '.join(ops[:8]) + (f' (+{len(ops) - 8})' if len(ops) > 8 else ''),
-            [arch_map.path_of(f) for f in facts], f'writes:{client}:{resource}')
+        items.append(_item('writes', client, resource, facts[0],
+                           {'detail': '; '.join(ops[:8]) + (f' (+{len(ops) - 8})' if len(ops) > 8 else ''),
+                            'files': [arch_map.path_of(f) for f in facts], 'id': f'writes:{client}:{resource}'}))
+    return items
+
+
+def _host_items(report):
     hosts = defaultdict(list)
     for fact in arch_map.facts(report, 'runtime', 'integration_target'):
         host = (fact.get('value') or {}).get('host')
         if host: hosts[str(host)].append(fact)
+    items = []
     for host, facts in sorted(hosts.items()):
         facts.sort(key=arch_map.path_of)
-        add('outside', 'host', host, facts[0], None, [arch_map.path_of(f) for f in facts], f'outside:{host}')
+        items.append(_item('outside', 'host', host, facts[0], {'files': [arch_map.path_of(f) for f in facts], 'id': f'outside:{host}'}))
+    return items
+
+
+def _env_items(report):
     envs = defaultdict(list)
     for fact in arch_map.facts(report, 'config', 'env_read'):
         name = (fact.get('value') or {}).get('name') or (fact.get('value') or {}).get('key')
         if name: envs[str(name)].append(fact)
+    items = []
     for name, facts in sorted(envs.items()):
         facts.sort(key=lambda f: (arch_map.path_of(f), (f.get('location') or {}).get('start_line') or 0))
-        add('config', 'env', name, facts[0], None, [arch_map.path_of(f) for f in facts], f'config:env:{name}')
-    for fact in arch_map.facts(report, 'config', 'config_key'):
-        v = fact.get('value') or {}
-        if v.get('secret_shaped'): add('config', 'secret_name', v.get('key') or '?', fact)
-    for fact in arch_map.facts(report, 'config', 'config_file_unread'):
-        add('config', 'unread_file', arch_map.path_of(fact), fact)
-    for fact in arch_map.facts(report, 'secrets', 'committed_credential'):
-        v = fact.get('value') or {}
-        add('config', 'credential', v.get('key_family') or 'credential', fact, v.get('severity'))
-    for kind in ('ci_step', 'deployment_target'):
-        for fact in arch_map.facts(report, 'runtime', kind):
-            v = fact.get('value') or {}
-            add('build', kind, v.get('name') or v.get('target') or v.get('platform') or arch_map.path_of(fact), fact)
-    for fact in arch_map.facts(report, 'deadcode', 'engine_finding'):
-        v = fact.get('value') or {}
-        add('dead', v.get('rule') or 'dead_code', (fact.get('location') or {}).get('symbol') or arch_map.path_of(fact), fact)
-    for fact in arch_map.facts(report, 'leftovers', 'leftover'):
-        add('dead', 'leftover', arch_map.path_of(fact), fact, (fact.get('value') or {}).get('reason'))
-    for fact in arch_map.facts(report, 'broken', 'broken_code'):
-        v = fact.get('value') or {}
-        add('dead', 'broken', (fact.get('location') or {}).get('symbol') or arch_map.path_of(fact), fact, v.get('rule'))
+        items.append(_item('config', 'env', name, facts[0], {'files': [arch_map.path_of(f) for f in facts], 'id': f'config:env:{name}'}))
+    return items
+
+
+def _config_items(report):
+    """Secret-shaped configuration names, configuration files nothing reads, and committed credentials."""
+    items = [_item('config', 'secret_name', (fact.get('value') or {}).get('key') or '?', fact)
+             for fact in arch_map.facts(report, 'config', 'config_key') if (fact.get('value') or {}).get('secret_shaped')]
+    items += [_item('config', 'unread_file', arch_map.path_of(fact), fact) for fact in arch_map.facts(report, 'config', 'config_file_unread')]
+    items += [_item('config', 'credential', (fact.get('value') or {}).get('key_family') or 'credential', fact,
+                    {'detail': (fact.get('value') or {}).get('severity')})
+              for fact in arch_map.facts(report, 'secrets', 'committed_credential')]
+    return items
+
+
+def _build_items(report):
+    return [_item('build', kind, (fact.get('value') or {}).get('name') or (fact.get('value') or {}).get('target')
+                  or (fact.get('value') or {}).get('platform') or arch_map.path_of(fact), fact)
+            for kind in ('ci_step', 'deployment_target') for fact in arch_map.facts(report, 'runtime', kind)]
+
+
+def _dead_items(report):
+    """Code nothing reaches, leftovers, and broken references."""
+    where = lambda fact: (fact.get('location') or {}).get('symbol') or arch_map.path_of(fact)
+    items = [_item('dead', (fact.get('value') or {}).get('rule') or 'dead_code', where(fact), fact)
+             for fact in arch_map.facts(report, 'deadcode', 'engine_finding')]
+    items += [_item('dead', 'leftover', arch_map.path_of(fact), fact, {'detail': (fact.get('value') or {}).get('reason')})
+              for fact in arch_map.facts(report, 'leftovers', 'leftover')]
+    items += [_item('dead', 'broken', where(fact), fact, {'detail': (fact.get('value') or {}).get('rule')})
+              for fact in arch_map.facts(report, 'broken', 'broken_code')]
+    return items
+
+
+def items_of(report, journeys):
+    """[{id, group, kind, name, files, file, line, fact, detail}] of every unseen item, before the links."""
+    report = Path(report)
+    out = [item for item in map(_entry_item, arch_map.facts(report, 'entrypoints', 'entry_point')) if item]
+    out += _edge_function_items(report) + _screen_items(journeys) + _write_items(report) + _host_items(report)
+    out += _env_items(report) + _config_items(report) + _build_items(report) + _dead_items(report)
     used = defaultdict(int)
     for item in out:
         used[item['id']] += 1
@@ -159,42 +203,53 @@ def build(report, journeys, card_rows=()):
     return assemble(items_of(report, journeys), journeys, reach, owners, card_rows)
 
 
-def assemble(items, journeys, reach, owners, card_rows=()):
-    """The body from the unseen items, the screens' reach ({screen id: files}) and the owner component of each file."""
-    screens = [s for s in journeys.get('screens') or [] if s['kind'] == 'page']
+def _seen(screens, reach):
+    """(the areas a person sees, with their screens and the dialogs they render; {area id: the files it reaches})."""
     areas = defaultdict(list)
     for s in screens: areas[s['group']].append(s)
-    seen = []
-    area_files = {}
+    seen, area_files = [], {}
     for name, members in sorted(areas.items()):
         files = set().union(*(reach[s['id']] for s in members)) if members else set()
         area_files[f'area:{name}'] = files
         dialogs = sorted({m.group('name') for f in files for m in [DIALOG.search(f)] if m})
         seen.append({'id': f'area:{name}', 'name': name, 'screens': [s['id'] for s in members],
                      'routes': [s['route'] for s in members][:12], 'dialogs': dialogs[:24], 'dialog_count': len(dialogs)})
+    return seen, area_files
+
+
+def _place(item, area_files, owners, card_of):
+    """An item's card, the areas whose screens reach it, whether no screen does, and its component."""
+    item['card'] = card_of.get(item['fact'])
+    item['areas'] = sorted(a for a, files in area_files.items() if any(f in files for f in item['files']))
+    item['no_screen'] = item['group'] in LINKABLE and not item['areas'] and item['kind'] not in ('webhook', 'edge_function', 'job', 'container')
+    item['component'] = owners.get(item['file'] or '')
+
+
+def _group(g, items):
+    mine = [i for i in items if i['group'] == g]
+    mine.sort(key=lambda i: (not i['no_screen'], not i['card'], i['kind'], i['name']))
+    return {'id': g, 'count': _measure(len(mine), SRC[g]), 'kinds': dict(sorted(_count(i['kind'] for i in mine).items())),
+            'no_screen': sum(i['no_screen'] for i in mine), 'items': [i['id'] for i in mine[:MAX_ITEMS]],
+            'capped': max(len(mine) - MAX_ITEMS, 0)}
+
+
+def assemble(items, journeys, reach, owners, card_rows=()):
+    """The body from the unseen items, the screens' reach ({screen id: files}) and the owner component of each file."""
+    screens = [s for s in journeys.get('screens') or [] if s['kind'] == 'page']
+    seen, area_files = _seen(screens, reach)
     card_of = {}
     for card in card_rows or []:
         for fid in card.get('evidence') or []: card_of.setdefault(fid, card.get('id'))
     links = defaultdict(lambda: {'items': [], 'count': 0})
     components = defaultdict(lambda: defaultdict(int))
     for item in items:
-        item['card'] = card_of.get(item['fact'])
-        item['areas'] = sorted(a for a, files in area_files.items() if any(f in files for f in item['files']))
-        item['no_screen'] = item['group'] in LINKABLE and not item['areas'] and item['kind'] not in ('webhook', 'edge_function', 'job', 'container')
-        comp = owners.get(item['file'] or '')
-        item['component'] = comp
-        if comp: components[comp][item['group']] += 1
+        _place(item, area_files, owners, card_of)
+        if item['component']: components[item['component']][item['group']] += 1
         for a in item['areas'] if item['group'] in LINKABLE else ():
             link = links[(a, item['group'])]
             link['count'] += 1
             if len(link['items']) < 12: link['items'].append(item['id'])
-    groups = []
-    for g in GROUPS:
-        mine = [i for i in items if i['group'] == g]
-        mine.sort(key=lambda i: (not i['no_screen'], not i['card'], i['kind'], i['name']))
-        groups.append({'id': g, 'count': _measure(len(mine), SRC[g]), 'kinds': dict(sorted(_count(i['kind'] for i in mine).items())),
-                       'no_screen': sum(i['no_screen'] for i in mine), 'items': [i['id'] for i in mine[:MAX_ITEMS]],
-                       'capped': max(len(mine) - MAX_ITEMS, 0)})
+    groups = [_group(g, items) for g in GROUPS]
     shown = {i for g in groups for i in g['items']}
     missing = [{'id': 'controls', 'state': 'not_measured', 'step': 'NS40.T1', 'count': _measure(None, 'screens.json#screens[].inputs'),
              'detail': {'ar': 'الأزرار والحقول على كل شاشة لم تُقرأ بعد.', 'en': 'The buttons and inputs on each screen are not read yet.'}}] if screens else []
