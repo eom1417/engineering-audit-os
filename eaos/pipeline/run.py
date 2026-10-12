@@ -48,20 +48,14 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     a run stopped or broken midway ends the stage it was in and every stage it did not reach before it says so.
     While a stage runs it is the current stage of eaos/progress/context.py, so `progress.count()` anywhere below it
     reports into it."""
-    target, out = Path(target).resolve(), Path(out).resolve()
-    if out == target or target in out.parents:
-        raise ValueError('Pipeline output must live outside the target; the target stays read-only')
-    out.mkdir(parents=True, exist_ok=True)
+    target, out = _outside(target, out)
     runners = runners if runners is not None else _runners()
-    unknown = sorted((set(only) | set(skip)) - set(ORDER))
-    if unknown:
-        raise ValueError('Unknown stage: ' + ', '.join(unknown))
+    _refuse_unknown(only, skip)
     context = Context(target=target, out=out, language=language, exclude=list(exclude), engines=engines,
                       provider=provider, goal=goal,
                       audit_run=audit_run, max_files=max_files, max_bytes=max_bytes, policy_path=policy_path,
-                      intake=str(Path(intake).resolve()) if intake else None, runtime=str(runtime) if runtime else None)
-    requested = [name for name in ORDER if (not only or name in set(only)) and name not in set(skip)]
-    results, blocked = {}, {}
+                      intake=_resolved(intake), runtime=str(runtime) if runtime else None)
+    requested = _requested(only, skip)
     completed = _completed or {}
     started_at = datetime.now(timezone.utc).isoformat(timespec='seconds')
     began = time.monotonic()
@@ -70,38 +64,11 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
     head['options']['without_tools'] = sorted(without_tools)
     log = ProgressLog(out)
     log.started(STAGES, requested, previous_seconds(out))
+    run = {'completed': completed, 'requested': requested, 'results': {}, 'blocked': {}, 'log': log, 'context': context,
+           'runners': runners, 'progress': progress, 'todo': todo, 'out': out, 'began': began, 'head': head}
     try:
-        for stage in STAGES:
-            if stage.name in completed:
-                results[stage.name] = completed[stage.name]
-                log.ended(results[stage.name], resumed=True)
-                continue
-            if stage.name not in requested:
-                results[stage.name] = _row(stage, SKIPPED, 'not requested in this run', code='not_requested')
-                log.ended(results[stage.name])
-                continue
-            unmet = [name for name in stage.requires if not _satisfied(name, results, out)]
-            if unmet: blocked.setdefault(stage.name, ('Prerequisites not completed: ' + ', '.join(unmet), 'prerequisites_missing'))
-            if stage.name in blocked:
-                reason, code = blocked[stage.name]
-                results[stage.name] = _row(stage, NOT_REACHED, reason, code=code)
-                log.ended(results[stage.name])
-                continue
-            if progress: progress(todo.index(stage.name), len(todo), stage.name)
-            context['manifest_so_far'] = {'stages': dict(results), 'seconds': round(time.monotonic() - began, 2),
-                                          'status': 'RUNNING'}
-            log.stage_started(stage.name)
-            context['step'] = log.stepper(stage.name)
-            with using(context['step'] if log.enabled else None):
-                results[stage.name] = _one(stage, context, runners, results)
-            context.pop('step', None)
-            log.ended(results[stage.name])
-            _write(out / CHECKPOINT, {**head, 'stages': results})
-            if results[stage.name]['status'] in (FAILED, UNAVAILABLE, SKIPPED, NOT_REACHED) and not _absent(stage.name, results):
-                reason = f"{stage.name} did not produce its artifacts ({results[stage.name]['status']})"
-                for name in dependents(stage.name):
-                    blocked.setdefault(name, (reason, 'prerequisite_failed'))
-        manifest = _manifest(head, began, results)
+        for stage in STAGES: _stage(stage, run)
+        manifest = _manifest(head, began, run['results'])
         (out / CHECKPOINT).unlink(missing_ok=True)
     except BaseException as problem:                    # stopped or broken: the file says so, then the error goes on
         log.finish('STOPPED' if isinstance(problem, KeyboardInterrupt) else 'ERROR',
@@ -109,6 +76,74 @@ def execute(target, out, *, only=(), skip=(), language='ar', exclude=(), engines
         raise
     log.finish(manifest['status'], seconds=manifest['seconds'], counts=manifest['counts'])
     return manifest
+
+
+def _outside(target, out):
+    target, out = Path(target).resolve(), Path(out).resolve()
+    if out == target or target in out.parents:
+        raise ValueError('Pipeline output must live outside the target; the target stays read-only')
+    out.mkdir(parents=True, exist_ok=True)
+    return target, out
+
+
+def _refuse_unknown(only, skip):
+    unknown = sorted((set(only) | set(skip)) - set(ORDER))
+    if unknown:
+        raise ValueError('Unknown stage: ' + ', '.join(unknown))
+
+
+def _resolved(intake): return str(Path(intake).resolve()) if intake else None
+
+
+def _requested(only, skip):
+    wanted, skipped = set(only), set(skip)
+    return [name for name in ORDER if (not only or name in wanted) and name not in skipped]
+
+
+def _settled(stage, run):
+    """(row, resumed) of a stage that does not run here: resumed, not requested, or blocked; None when it runs."""
+    if stage.name in run['completed']: return run['completed'][stage.name], True
+    if stage.name not in run['requested']:
+        return _row(stage, SKIPPED, 'not requested in this run', code='not_requested'), False
+    unmet = [name for name in stage.requires if not _satisfied(name, run['results'], run['out'])]
+    if unmet: run['blocked'].setdefault(stage.name, ('Prerequisites not completed: ' + ', '.join(unmet), 'prerequisites_missing'))
+    if stage.name not in run['blocked']: return None
+    reason, code = run['blocked'][stage.name]
+    return _row(stage, NOT_REACHED, reason, code=code), False
+
+
+def _stage(stage, run):
+    settled = _settled(stage, run)
+    if settled is None:
+        _run_stage(stage, run)
+        return
+    row, resumed = settled
+    run['results'][stage.name] = row
+    if resumed: run['log'].ended(row, resumed=True)
+    else: run['log'].ended(row)
+
+
+def _run_stage(stage, run):
+    context, log, results = run['context'], run['log'], run['results']
+    if run['progress']: run['progress'](run['todo'].index(stage.name), len(run['todo']), stage.name)
+    context['manifest_so_far'] = {'stages': dict(results), 'seconds': round(time.monotonic() - run['began'], 2),
+                                  'status': 'RUNNING'}
+    log.stage_started(stage.name)
+    context['step'] = log.stepper(stage.name)
+    with using(context['step'] if log.enabled else None):
+        results[stage.name] = _one(stage, context, run['runners'], results)
+    context.pop('step', None)
+    log.ended(results[stage.name])
+    _write(run['out'] / CHECKPOINT, {**run['head'], 'stages': results})
+    _block_dependents(stage, results, run['blocked'])
+
+
+def _block_dependents(stage, results, blocked):
+    status = results[stage.name]['status']
+    if status not in (FAILED, UNAVAILABLE, SKIPPED, NOT_REACHED) or _absent(stage.name, results): return
+    reason = f"{stage.name} did not produce its artifacts ({status})"
+    for name in dependents(stage.name):
+        blocked.setdefault(name, (reason, 'prerequisite_failed'))
 
 
 def _head(target, out, started_at, requested, language, exclude, max_files, max_bytes, policy_path, intake):
@@ -256,17 +291,8 @@ def resume(target, out, **options):
     previous = _previous(out)
     if previous is None:
         return execute(target, out, **options)
-    from ..workspace import inventory
-    stored = previous.get('options', {})
-    if str(Path(target).resolve()) != previous['target']:
-        raise ValueError('Resume target differs from the original target')
-    if inventory(target, max_files=stored.get('max_files', 100000), max_bytes=stored.get('max_bytes', 2_000_000))['fingerprint'] != previous.get('source_fingerprint'):
-        raise ValueError('Source changed; start a fresh run instead of resuming stale evidence')
-    for key, value in stored.items():
-        if key in options and options[key] != value: raise ValueError('Resume option changed: ' + key)
-        options.setdefault(key, value)
-    done = {name for name, row in previous['stages'].items() if row['status'] == OK
-            and all((Path(out) / artifact).exists() for artifact in row['produces'])}
+    _merge_options(_resumable(target, previous), options)
+    done = _done_stages(previous, out)
     remaining = [name for name in ORDER if name not in done]
     if not remaining:
         return previous
@@ -279,3 +305,26 @@ def resume(target, out, **options):
     merged['resumed_from'] = previous['started_at']
     _write(Path(out) / MANIFEST, merged)
     return merged
+
+
+def _resumable(target, previous):
+    """The previous run's options, once it is shown to be about this target at this source."""
+    from ..workspace import inventory
+    stored = previous.get('options', {})
+    if str(Path(target).resolve()) != previous['target']:
+        raise ValueError('Resume target differs from the original target')
+    fingerprint = inventory(target, max_files=stored.get('max_files', 100000), max_bytes=stored.get('max_bytes', 2_000_000))['fingerprint']
+    if fingerprint != previous.get('source_fingerprint'):
+        raise ValueError('Source changed; start a fresh run instead of resuming stale evidence')
+    return stored
+
+
+def _merge_options(stored, options):
+    for key, value in stored.items():
+        if key in options and options[key] != value: raise ValueError('Resume option changed: ' + key)
+        options.setdefault(key, value)
+
+
+def _done_stages(previous, out):
+    return {name for name, row in previous['stages'].items() if row['status'] == OK
+            and all((Path(out) / artifact).exists() for artifact in row['produces'])}
