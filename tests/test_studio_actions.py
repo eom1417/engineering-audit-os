@@ -770,6 +770,11 @@ class ReportDecisions(Base):
         saved = app.store.load(row['response']['run'])
         self.assertIn(text, saved['owner_decision']['answer']['text'])
         self.assertNotIn('person_agreed', saved['inputs'])
+        # The trial of 2026-10-12: a review of the owner's answer followed `status` into running the app, was refused the
+        # tool (its run reads only) and then asked the owner to edit Claude Code's permission files.
+        prompt = app.manager.prompt_of(saved)
+        self.assertIn('start nothing', prompt)
+        self.assertIn('never ask the person to change permissions', prompt)
         self.assertEqual(app.wait(row['response']['run'], ['waiting_for_person'], timeout=4)['mode'], 'handoff', 'no assistant: handed over')
         self.assertEqual(self.answer_report('b', None, app)[0], 409, 'already answered')
         other_project = self.base / 'another-project'

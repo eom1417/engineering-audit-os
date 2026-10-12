@@ -18,7 +18,10 @@ ASK = ('When you need the person (their agreement to run the app, a choice only 
        '```\n'
        'When an option means closing the open batch of fixes (fix_abandon), give it "action": "fix_abandon": the Studio '
        'closes the batch itself when the person picks it, before you go on. '
-       'Never answer for the person. Do not call accept, undo or choose_branch: the person decides those in the Studio.')
+       'Never answer for the person. Do not call accept, undo or choose_branch: the person decides those in the Studio. '
+       'If a tool you need is refused or is not among your tools, never ask the person to change permissions, settings or '
+       'files: that is never theirs to do. Say plainly which step of the Studio does it (for example "Run the app safely") '
+       'and end your turn.')
 ACTS = ('fix_abandon',)                    # what an answer may make the Studio do itself (eaos/studio/actions/runs.py)
 
 VERBS = {
