@@ -53,49 +53,79 @@ class Context:
 
     def chunks(self,order=None,max_files=None):
         """Inspect in declared attention order; anything beyond the budget is deferred visibly, not dropped."""
-        omissions=[]
-        paths=list(self.files)
-        if order:
-            ranked=[p for p in order if p in self.files]
-            paths=ranked+[p for p in paths if p not in set(ranked)]
+        paths=_ordered(list(self.files),order,self.files)
         deferred=[]
         if max_files is not None and max_files < len(paths):
             paths,deferred=paths[:max_files],paths[max_files:]
-        for path in deferred:
-            omissions.append({'path':path,'reason':'Deferred by the declared attention budget; this file was not semantically reviewed'})
-        def stream():
-            batch=[];size=0
-            for path in paths:
-                item=self.files[path]
-                if item['capture']!='hashed':omissions.append({'path':path,'reason':item['capture']});continue
-                try:lines=self.lines(path)
-                except (ValueError,UnicodeError,OSError):omissions.append({'path':path,'reason':'Sensitive, binary, unreadable or changed source'});continue
-                if not lines:omissions.append({'path':path,'reason':'empty file; metadata only'});continue
-                start=1
-                while start<=len(lines):
-                    end=start;amount=0
-                    while end<=len(lines) and amount+len(lines[end-1])+20<self.budget//5:
-                        amount+=len(lines[end-1])+20;end+=1
-                    if end==start:
-                        omissions.append({'path':path,'start_line':start,'end_line':start,'reason':'Single line exceeds budget; explicit alternate inspection required'});start+=1;continue
-                    block=self.source(path,start,end-1,persist=False);amount=len(json.dumps(block,ensure_ascii=False))
-                    if batch and size+amount>self.budget//2:
-                        write(self.run/'evidence.json',list(self.evidence.values()))
-                        yield batch
-                        batch=[];size=0
-                    batch.append(block);size+=amount;start=end
-            write(self.run/'evidence.json',list(self.evidence.values()))
-            if batch:yield batch
-        return stream(),omissions
+        omissions=[{'path':path,'reason':'Deferred by the declared attention budget; this file was not semantically reviewed'} for path in deferred]
+        return _stream(self,paths,omissions),omissions
 
     def verify_refs(self,value):
         errors=[]
-        def walk(obj):
-            if isinstance(obj,dict):
-                for k,v in obj.items():
-                    if k=='evidence_ids':
-                        if not isinstance(v,list) or not all(isinstance(e,str) and e in self.evidence for e in v):errors.append('Unknown or invalid evidence_ids')
-                    walk(v)
-            elif isinstance(obj,list):
-                for item in obj:walk(item)
-        walk(value);return errors
+        _walk_refs(value,self.evidence,errors)
+        return errors
+
+
+def _ordered(paths,order,files):
+    """The declared attention order first, then every other file in inventory order."""
+    if not order:return paths
+    ranked=[p for p in order if p in files]
+    return ranked+[p for p in paths if p not in set(ranked)]
+
+
+def _readable(context,path,omissions):
+    """The lines of a file the model may read; None, with the reason in `omissions`, for any other."""
+    item=context.files[path]
+    if item['capture']!='hashed':omissions.append({'path':path,'reason':item['capture']});return None
+    try:lines=context.lines(path)
+    except (ValueError,UnicodeError,OSError):omissions.append({'path':path,'reason':'Sensitive, binary, unreadable or changed source'});return None
+    if not lines:omissions.append({'path':path,'reason':'empty file; metadata only'});return None
+    return lines
+
+
+def _span_end(lines,start,limit):
+    """The line after the longest run from `start` whose size (each line and 20) stays under `limit`."""
+    end=start;amount=0
+    while end<=len(lines) and amount+len(lines[end-1])+20<limit:
+        amount+=len(lines[end-1])+20;end+=1
+    return end
+
+
+def _file_blocks(context,path,lines,omissions):
+    """(block, its size) of each run of a file's lines that fits the budget; a line alone too long is omitted."""
+    start=1
+    while start<=len(lines):
+        end=_span_end(lines,start,context.budget//5)
+        if end==start:
+            omissions.append({'path':path,'start_line':start,'end_line':start,'reason':'Single line exceeds budget; explicit alternate inspection required'});start+=1;continue
+        block=context.source(path,start,end-1,persist=False)
+        yield block,len(json.dumps(block,ensure_ascii=False))
+        start=end
+
+
+def _stream(context,paths,omissions):
+    """Batches of blocks, each within half the budget; the evidence is saved before each batch is handed on."""
+    batch=[];size=0
+    for path in paths:
+        for block,amount in _file_blocks(context,path,_readable(context,path,omissions) or [],omissions):
+            if batch and size+amount>context.budget//2:
+                write(context.run/'evidence.json',list(context.evidence.values()))
+                yield batch
+                batch=[];size=0
+            batch.append(block);size+=amount
+    write(context.run/'evidence.json',list(context.evidence.values()))
+    if batch:yield batch
+
+
+def _valid_ids(ids,evidence):
+    return isinstance(ids,list) and all(isinstance(e,str) and e in evidence for e in ids)
+
+
+def _walk_refs(obj,evidence,errors):
+    """An error for every `evidence_ids` in `obj`, at any depth, that names an id the context does not hold."""
+    if isinstance(obj,dict):
+        for k,v in obj.items():
+            if k=='evidence_ids' and not _valid_ids(v,evidence):errors.append('Unknown or invalid evidence_ids')
+            _walk_refs(v,evidence,errors)
+    elif isinstance(obj,list):
+        for item in obj:_walk_refs(item,evidence,errors)
