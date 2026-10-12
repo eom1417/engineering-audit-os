@@ -105,7 +105,7 @@ function Reader({ data, doc, h }: { data: StudioData; doc: Doc; h?: string }) {
       <div className={css.reader}>
         <div className={css.readerMain}>
           <header className={css.docHead}>
-            <h1 className={css.docTitle} dir="auto"><Txt>{doc.title}</Txt></h1>
+            <h1 className={css.docTitle} dir={dirOf(text?.text ?? doc.title)}><Txt>{doc.title}</Txt></h1>
             <div className={css.docMeta}>
               <Go to="/library/docs" search={{ group: doc.group }} className={css.metaLink}><Chip>{groupWord(w, doc.group)}</Chip></Go>
               <span title={w('reportPath')}><Id value={doc.path} /></span>
@@ -118,8 +118,8 @@ function Reader({ data, doc, h }: { data: StudioData; doc: Doc; h?: string }) {
             <Panel><StateMessage icon="book" title={w('textMissing')} sub={<>{w('textMissingSub')} <Id value={doc.path} /></>} /></Panel>
           )}
           {text?.truncated && <div className={css.notice} role="note">{w('truncated', { n: text.text.length })}</div>}
-          {drawn && <article className={css.article} aria-label={doc.title}>{drawn.body}</article>}
-          <Pager list={list} doc={doc} />
+          {drawn && <article className={css.article} aria-label={doc.title} dir={dirOf(text?.text ?? doc.title)}>{drawn.body}</article>}
+          <div dir={dirOf(text?.text ?? doc.title)}><Pager list={list} doc={doc} /></div>
         </div>
         {headings.length > 1 && (
           <aside className={css.aside} aria-label={w('onThisPage')}>

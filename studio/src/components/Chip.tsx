@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { Button as AriaButton, type ButtonProps } from 'react-aria-components'
 import type { Freshness, Relation, Severity } from '../data/types'
 import { usePrefs } from '../i18n/prefs'
-import { Id } from '../i18n/text'
+import { Id, Txt } from '../i18n/text'
 import { Icon, type IconName } from './Icon'
 import css from './Chip.module.css'
 
