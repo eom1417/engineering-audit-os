@@ -74,23 +74,22 @@ def verdict(kind, asserted_by, evaluated, over=None):
     silent = {engine: state for engine in evaluated
               if (state := _status(evaluated, engine, kind)) and engine not in asserted_by}
     asserted_at = {_resolution(evaluated, engine, kind) for engine in asserted_by}
-    same_resolution = sorted(engine for engine, state in silent.items()
-                             if state == OBSERVED and _resolution(evaluated, engine, kind) in asserted_at)
-    other_resolution = sorted(engine for engine, state in silent.items()
-                              if state == OBSERVED and _resolution(evaluated, engine, kind) not in asserted_at)
+    observed = [engine for engine, state in silent.items() if state == OBSERVED]
+    same_resolution = sorted(engine for engine in observed if _resolution(evaluated, engine, kind) in asserted_at)
+    other_resolution = sorted(engine for engine in observed if _resolution(evaluated, engine, kind) not in asserted_at)
     denied_fully = same_resolution if kind in DENIABLE else []
-    if len(asserted_by) > 1 and (kind not in MEASURED or over is None or over):
-        decision = CORROBORATED
-    elif denied_fully:
-        decision = CONTESTED
-    elif kind in DENIABLE and other_resolution:
-        decision = GRANULARITY_GAP
-    else:
-        decision = SINGLE
+    decision = _decision(kind, asserted_by, over, denied_fully, other_resolution)
     return {'verdict': decision, 'asserted_by': sorted(asserted_by),
             'asserted_at': sorted(level for level in asserted_at if level),
             'evaluated_and_silent': dict(sorted(silent.items())), 'denied_by': denied_fully,
             'silent_at_another_resolution': other_resolution}
+
+
+def _decision(kind, asserted_by, over, denied_fully, other_resolution):
+    if len(asserted_by) > 1 and (kind not in MEASURED or over is None or over): return CORROBORATED
+    if denied_fully: return CONTESTED
+    if kind in DENIABLE and other_resolution: return GRANULARITY_GAP
+    return SINGLE
 
 
 # --------------------------------------------------------------------------
@@ -198,34 +197,35 @@ def _walk_json_names(obj):
     return found
 
 
+def _dict_lookup_names(text):
+    return {token for match in _DICT_GET.finditer(text)
+            for token in _re.findall(r"\b[A-Za-z_][\w.]*\b", match.group(0)) if token != match.group('key')}
+
+
+def _python_registry(text, symbols, modules):
+    for module_name in _module_names_in_list(text):
+        modules.add(module_name)
+        symbols.update((f"{module_name}.detect", f"{module_name}.capabilities"))
+    symbols.update(_all_names(text))
+    symbols.update(_dynamic_import_names(text))
+    symbols.update(_dict_lookup_names(text))
+    symbols.update(_GETATTR_STRING.findall(text))
+
+
+def _json_registry(text):
+    try: return _walk_json_names(json.loads(text))
+    except (ValueError, TypeError): return _json_string_keys(text)
+
+
 def _registry_symbols(source):
-    symbols = set()
-    modules = set()
+    symbols, modules = set(), set()
     for item in source.readable():
         rel = item['path']
         text = source.text(rel)
         if text is None: continue
-        if rel.endswith('.py'):
-            for module_name in _module_names_in_list(text):
-                modules.add(module_name)
-                symbols.add(f"{module_name}.detect")
-                symbols.add(f"{module_name}.capabilities")
-            symbols.update(_all_names(text))
-            symbols.update(_dynamic_import_names(text))
-            for match in _DICT_GET.finditer(text):
-                for token in _re.findall(r"\b[A-Za-z_][\w.]*\b", match.group(0)):
-                    if token != match.group('key'):
-                        symbols.add(token)
-            for match in _GETATTR_STRING.findall(text):
-                symbols.add(match)
-        elif rel == 'pyproject.toml' or rel.endswith('/pyproject.toml'):
-            symbols.update(_pyproject_entry_points(text))
-        elif rel.endswith('.json'):
-            try:
-                parsed = json.loads(text)
-                symbols.update(_walk_json_names(parsed))
-            except (ValueError, TypeError):
-                symbols.update(_json_string_keys(text))
+        if rel.endswith('.py'): _python_registry(text, symbols, modules)
+        elif rel == 'pyproject.toml' or rel.endswith('/pyproject.toml'): symbols.update(_pyproject_entry_points(text))
+        elif rel.endswith('.json'): symbols.update(_json_registry(text))
     return symbols, modules
 
 
@@ -239,32 +239,46 @@ def _is_real_dead_code_finding(fact):
 def _is_referenced_dead_code(fact, symbols, modules):
     """A candidate reachable through a registry invocation is not actually dead."""
     value = fact.get('value') or {}
-    if value.get('kind') != 'dead_code':
+    if value.get('kind') != 'dead_code' or not _is_real_dead_code_finding(fact):
         return False
-    message = value.get('message') or ''
-    if not ('function' in message or 'method' in message
-            or value.get('rule') in ('unreachable-module', 'unreachable-symbol')):
-        return False
-    # The qualified name is either inside backticks (``.detect in module.x``) or after the
-    # ``function `` / ``method `` keyword in the prose form.
-    qualified = None
-    if '`' in message:
-        qualified = message.split('`')[1]
-    else:
-        for keyword in ('function', 'method'):
-            head, sep, tail = message.rpartition(keyword)
-            if sep and tail.strip():
-                qualified = tail.strip().rstrip('.').split(' ', 1)[0]
-                break
+    qualified = _qualified_name(value.get('message') or '')
     if not qualified:
         return False
     bare = qualified.rsplit('.', 1)[-1].rsplit('/', 1)[-1]
     if bare in symbols or qualified in symbols: return True
-    if bare in {'detect', 'capabilities'} and qualified.endswith('.' + bare):
-        prefix = qualified[:-(len(bare) + 1)]
-        module_segment = prefix.rsplit('.', 1)[-1].rsplit('/', 1)[-1]
-        if module_segment in modules: return True
-    return False
+    return _registered_hook(qualified, bare, modules)
+
+
+def _qualified_name(message):
+    # The qualified name is either inside backticks (``.detect in module.x``) or after the
+    # ``function `` / ``method `` keyword in the prose form.
+    if '`' in message: return message.split('`')[1]
+    for keyword in ('function', 'method'):
+        head, sep, tail = message.rpartition(keyword)
+        if sep and tail.strip(): return tail.strip().rstrip('.').split(' ', 1)[0]
+    return None
+
+
+def _registered_hook(qualified, bare, modules):
+    """`<module>.detect` or `<module>.capabilities` of a module a registry lists."""
+    if bare not in {'detect', 'capabilities'} or not qualified.endswith('.' + bare): return False
+    prefix = qualified[:-(len(bare) + 1)]
+    return prefix.rsplit('.', 1)[-1].rsplit('/', 1)[-1] in modules
+
+
+def _mark_registry_referenced(facts, source):
+    """(the facts, how many were marked): each dead-code fact a registry reaches gets value.referenced_by_registry."""
+    symbols, modules = _registry_symbols(source)
+    symbols.update(_recursive_callers(source))
+    marked = 0
+    for fact in facts:
+        if not (_is_real_dead_code_finding(fact) and _is_referenced_dead_code(fact, symbols, modules)): continue
+        value = fact.get('value') or {}
+        value['referenced_by_registry'] = True
+        value['registry_symbols_seen'] = sorted(list(symbols))[:8]
+        fact['value'] = value
+        marked += 1
+    return list(facts), marked
 
 
 def _filter_registry_referenced_dead_code(facts, sets):
@@ -278,19 +292,7 @@ def _filter_registry_referenced_dead_code(facts, sets):
     source = _source_from_sets(sets)
     if source is None:
         return facts
-    symbols, modules = _registry_symbols(source)
-    symbols.update(_recursive_callers(source))
-    out = []
-    for fact in facts:
-        if not _is_real_dead_code_finding(fact):
-            out.append(fact); continue
-        if _is_referenced_dead_code(fact, symbols, modules):
-            value = fact.get('value') or {}
-            value['referenced_by_registry'] = True
-            value['registry_symbols_seen'] = sorted(list(symbols))[:8]
-            fact['value'] = value
-        out.append(fact)
-    return out
+    return _mark_registry_referenced(facts, source)[0]
 
 
 def _source_from_sets(sets):
@@ -308,21 +310,7 @@ def _source_from_sets(sets):
 def filter_dead_code_references(facts, source):
     if source is None:
         return facts, 0
-    symbols, modules = _registry_symbols(source)
-    symbols.update(_recursive_callers(source))
-    dropped = 0
-    kept = []
-    for fact in facts:
-        if not _is_real_dead_code_finding(fact):
-            kept.append(fact); continue
-        if _is_referenced_dead_code(fact, symbols, modules):
-            value = fact.get('value') or {}
-            value['referenced_by_registry'] = True
-            value['registry_symbols_seen'] = sorted(list(symbols))[:8]
-            fact['value'] = value
-            dropped += 1
-        kept.append(fact)
-    return kept, dropped
+    return _mark_registry_referenced(facts, source)
 
 
 def is_wide(fact):
@@ -338,54 +326,64 @@ def clusters(sets):
     """One cluster per place, holding every engine's evidence about it; a wide group finding is a cluster of its own."""
     evaluated = _evaluated(sets)
     filtered = _filter_registry_referenced_dead_code(_findings(sets), sets)
-    by_place = {}
-    for fact in filtered:
-        if is_wide(fact):
-            by_place.setdefault('group:' + fact['id'], []).append(fact)
-            continue
-        for place in _places(fact):
-            by_place.setdefault(place, []).append(fact)
-    built = []
-    for place, facts in sorted(by_place.items()):
-        kinds = {}
-        for fact in facts:
-            # A registry-referenced fact is by name still alive, so it does not contribute
-            # to any finding-kind cluster: keep the fact on disk but skip the cluster slot.
-            if (fact.get('value') or {}).get('referenced_by_registry'):
-                continue
-            kinds.setdefault(fact['value']['kind'], set()).add(fact['value']['engine'])
-        over = {}
-        for fact in facts:
-            if fact['value']['kind'] in MEASURED and over_threshold(fact):
-                over.setdefault(fact['value']['kind'], set()).add(fact['value']['engine'])
-        corroboration = {kind: verdict(kind, engines, evaluated, over.get(kind, set()) if kind in MEASURED else None)
-                         for kind, engines in sorted(kinds.items())}
-        if not corroboration:
-            continue
-        engines = sorted({fact['value']['engine'] for fact in facts
-                          if not (fact.get('value') or {}).get('referenced_by_registry')})
-        built.append({
-            'id': 'CLU-' + sha1(place.encode('utf-8')).hexdigest()[:10],
-            'place': place,
-            'engines': engines,
-            'kinds': sorted(kinds),
-            'corroboration': corroboration,
-            'fact_ids': sorted(fact['id'] for fact in facts
-                               if not (fact.get('value') or {}).get('referenced_by_registry')),
-            # A claim about one kind cites only the evidence of that kind, so its files are where that evidence lies.
-            'fact_ids_by_kind': {kind: sorted(fact['id'] for fact in facts if fact['value']['kind'] == kind
-                                              and not (fact.get('value') or {}).get('referenced_by_registry'))
-                                 for kind in sorted(kinds)},
-            'scope': 'group' if place.startswith('group:') else 'place',
-            'findings': len([f for f in facts if not (f.get('value') or {}).get('referenced_by_registry')]),
-            'weight': round(sum(2.0 if detail['verdict'] == CORROBORATED else
-                                0.5 if detail['verdict'] in (CONTESTED, GRANULARITY_GAP) else 1.0
-                                for detail in corroboration.values()), 2),
-            'measurements': sorted({(m['name'], m.get('unit')) for fact in facts
-                                    for m in fact['value'].get('measurements', []) if m.get('name')}),
-        })
+    built = [cluster for place, facts in sorted(_by_place(filtered).items())
+             if (cluster := _cluster(place, facts, evaluated))]
     built.sort(key=lambda cluster: (-cluster['weight'], -cluster['findings'], cluster['place']))
     return built
+
+
+def _by_place(facts):
+    by_place = {}
+    for fact in facts:
+        for place in (['group:' + fact['id']] if is_wide(fact) else _places(fact)):
+            by_place.setdefault(place, []).append(fact)
+    return by_place
+
+
+def _alive(fact):
+    # A registry-referenced fact is by name still alive, so it does not contribute
+    # to any finding-kind cluster: keep the fact on disk but skip the cluster slot.
+    return not (fact.get('value') or {}).get('referenced_by_registry')
+
+
+def _engines_by_kind(facts, keep):
+    out = {}
+    for fact in facts:
+        if keep(fact): out.setdefault(fact['value']['kind'], set()).add(fact['value']['engine'])
+    return out
+
+
+def _weight(corroboration):
+    return round(sum(2.0 if detail['verdict'] == CORROBORATED else
+                     0.5 if detail['verdict'] in (CONTESTED, GRANULARITY_GAP) else 1.0
+                     for detail in corroboration.values()), 2)
+
+
+def _cluster(place, facts, evaluated):
+    """Every engine's evidence about one place, with a verdict per kind of finding; None when none is alive."""
+    kinds = _engines_by_kind(facts, _alive)
+    over = _engines_by_kind(facts, lambda fact: fact['value']['kind'] in MEASURED and over_threshold(fact))
+    corroboration = {kind: verdict(kind, engines, evaluated, over.get(kind, set()) if kind in MEASURED else None)
+                     for kind, engines in sorted(kinds.items())}
+    if not corroboration:
+        return None
+    alive = [fact for fact in facts if _alive(fact)]
+    return {
+        'id': 'CLU-' + sha1(place.encode('utf-8')).hexdigest()[:10],
+        'place': place,
+        'engines': sorted({fact['value']['engine'] for fact in alive}),
+        'kinds': sorted(kinds),
+        'corroboration': corroboration,
+        'fact_ids': sorted(fact['id'] for fact in alive),
+        # A claim about one kind cites only the evidence of that kind, so its files are where that evidence lies.
+        'fact_ids_by_kind': {kind: sorted(fact['id'] for fact in alive if fact['value']['kind'] == kind)
+                             for kind in sorted(kinds)},
+        'scope': 'group' if place.startswith('group:') else 'place',
+        'findings': len(alive),
+        'weight': _weight(corroboration),
+        'measurements': sorted({(m['name'], m.get('unit')) for fact in facts
+                                for m in fact['value'].get('measurements', []) if m.get('name')}),
+    }
 
 
 def summary(sets):
