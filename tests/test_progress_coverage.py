@@ -475,7 +475,14 @@ class ReasonCodes(unittest.TestCase):
                 owner = getattr(getattr(node.func, 'value', None), 'id', '')
                 if position is not None and owner == 'progress' and len(node.args) > position:
                     found |= outcomes(node.args[position])
-        return found
+                # an AI stage's own reasons: _lost(context, problem, code) and NoAssistant(code, reason)
+                at = {'_lost': 2, 'NoAssistant': 0}.get(name)
+                if at is not None and len(node.args) > at:
+                    found |= outcomes(node.args[at])
+        # the readiness of each assistant is `<assistant>_<problem>` (eaos/runtime/readiness.py)
+        from eaos.runtime import readiness
+        problems = ('ready', 'not_installed', 'not_working', 'not_signed_in', 'sign_in_expired', 'limit', 'no_answer', 'failed')
+        return found | {f'{name}_{problem}' for name in readiness.NAMES for problem in problems}
 
     def test_every_skip_stage_raised_by_a_runner_names_its_code(self):
         tree = ast.parse((ROOT / 'eaos/pipeline/runners.py').read_text(encoding='utf-8'))

@@ -164,6 +164,11 @@ AI_QUESTION = {'ar': 'أبغى أستعين بمساعدك الذكي ({name}) �
                      'the check goes on with the rules. OK?'}
 
 
+WITHOUT_AI_QUESTION = {'ar': '{name} غير جاهز الآن. أبدأ هذا الفحص بدون ذكاء؟ التقرير يذكر السبب، وتقدر تفحص مرة ثانية بعد ما تصلحه.',
+                       'en': '{name} is not ready now. Start this check without AI? The report records why, and you can check again '
+                             'once it is fixed.'}
+
+
 WITHOUT_QUESTION = {'ar': 'ما قدرت أثبّت أدوات يحتاجها الفحص: {names}. أبدأ الفحص بدونها؟ التقرير يذكر أنه فحص بدونها.',
                     'en': 'Some tools the check needs could not be installed: {names}. Start the check without them? The '
                           'report records that it ran without them.'}
@@ -247,8 +252,9 @@ def node_major():
     return int(found.group(1)) if found else 0
 
 
-def doctor_rows(project=None):
-    """What each part of the journey needs, and whether it is here: [{id, ok, when, ar, en, fix}]."""
+def doctor_rows(project=None, probe=False):
+    """What each part of the journey needs, and whether it is here: [{id, ok, when, ar, en, fix}]. `probe`: ask each AI
+    assistant for one word (eaos/runtime/readiness.py) instead of only looking for its command."""
     from .toolchain import doctor as tools
     js = bool(project) and any((Path(project) / folder / 'package.json').is_file() for folder in ('.', 'app', 'web', 'client', 'frontend'))
     rows = [
@@ -280,15 +286,36 @@ def doctor_rows(project=None):
     rows.append({'id': 'database', 'ok': binaries() is not None, 'when': 'later',
                  'ar': 'قاعدة بيانات مؤقتة لتشغيل برنامجك (PostgreSQL)', 'en': 'A temporary database to run your app (PostgreSQL)',
                  'fix': 'eaos doctor --fix'})
-    assistant = next((name for name in ('claude', 'codex') if shutil.which(name)), None)
-    rows.append({'id': 'assistant', 'ok': bool(assistant), 'when': 'later',
-                 'ar': 'مساعد ذكي للإصلاح' + (f' ({assistant})' if assistant else ' (Claude Code أو Codex)'),
-                 'en': 'An AI assistant for fixes' + (f' ({assistant})' if assistant else ' (Claude Code or Codex)'),
-                 'fix': 'https://claude.com/claude-code  ·  https://github.com/openai/codex'})
+    rows.append(assistant_row(probe))
     free = shutil.disk_usage(str(home().parent if not home().exists() else home())).free / 2 ** 30
     rows.append({'id': 'disk', 'ok': free >= 5, 'when': 'now', 'ar': f'مساحة فارغة 5 GB على الأقل (المتاح {free:.0f} GB)',
                  'en': f'At least 5 GB free (you have {free:.0f} GB)', 'fix': 'eaos clean'})
     return rows
+
+
+def assistant_row(probe=False):
+    """The doctor's row for the AI assistants: with `probe`, each one's readiness in a word and, when none is ready, the
+    first one's reason and fix; without, whether one is installed."""
+    from .runtime import readiness
+    if not probe:
+        found = next((name for name in readiness.NAMES if shutil.which(name)), None)
+        return {'id': 'assistant', 'ok': bool(found), 'when': 'later',
+                'ar': 'مساعد ذكي للإصلاح' + (f' ({readiness.NAMES[found]})' if found else ' (Claude Code أو Codex)'),
+                'en': 'An AI assistant for fixes' + (f' ({readiness.NAMES[found]})' if found else ' (Claude Code or Codex)'),
+                'fix': 'https://claude.com/claude-code  ·  https://github.com/openai/codex'}
+    rows = readiness.probe_all()
+    shown = {lang: ' · '.join(f"{row['name']}: {READY_WORD[lang][row['code'].split('_', 1)[1]]}" for row in rows) for lang in ('ar', 'en')}
+    blocked = next((row for row in rows if row['installed']), rows[0])
+    return {'id': 'assistant', 'ok': any(row['ready'] for row in rows), 'when': 'later', 'assistants': rows,
+            'ar': f"مساعد ذكي للفحص والإصلاح ({shown['ar']})", 'en': f"An AI assistant for the check and fixes ({shown['en']})",
+            'fix': (blocked.get('reason') or {}).get('en') or blocked['code']}
+
+
+# One word for each readiness problem (eaos/runtime/readiness.py), for a line that lists every assistant.
+READY_WORD = {'ar': {'ready': 'جاهز', 'not_installed': 'غير مثبّت', 'not_working': 'لا يعمل', 'not_signed_in': 'غير مسجّل الدخول',
+                     'sign_in_expired': 'دخوله انتهى', 'limit': 'وصل حدّه', 'no_answer': 'ما جاوب', 'failed': 'توقف بخطأ'},
+              'en': {'ready': 'ready', 'not_installed': 'not installed', 'not_working': 'does not run', 'not_signed_in': 'not signed in',
+                     'sign_in_expired': 'sign-in expired', 'limit': 'usage limit reached', 'no_answer': 'no answer', 'failed': 'stopped with an error'}}
 
 
 def _pip_install(*packages):
@@ -303,7 +330,7 @@ def _pip_install(*packages):
 def doctor(args):
     lang = language(args.lang)
     project = Path(args.project).resolve() if args.project else None
-    rows = doctor_rows(project)
+    rows = doctor_rows(project, probe=True)
     from . import __version__
     from .build_info import commit
     say(f"ℹ️ EAOS {__version__} · {commit() or ('commit غير معروف' if lang == 'ar' else 'commit unknown')}")
@@ -458,11 +485,43 @@ def scan_done(state):
         and (report_of(state) / 'START-HERE.md').is_file()
 
 
+def chosen_assistant(state):
+    """The assistant the check asks: the person's own choice for this project (`assistant` in state.json), else
+    $EAOS_ASSISTANT, else the first installed (eaos/runtime/assistants.py); None when none is installed."""
+    from .runtime.assistants import ADAPTERS, available
+    if state.get('assistant') in ADAPTERS: return state['assistant']
+    found = available()
+    return found[0] if found else None
+
+
+def choose_assistant(state, use, name=None, via='person'):
+    """Keeps the person's choice for the check's AI on this project: whether to use an assistant (`use_assistant`) and
+    which one (`assistant`: claude or codex). Asked again only when they change it."""
+    from .runtime.assistants import ADAPTERS
+    if name is not None and name not in ADAPTERS: raise ValueError(f'no assistant named {name}: claude or codex')
+    state['questions'] = [q for q in state.get('questions') or [] if q['id'] != 'use_assistant'] + [
+        {'id': 'use_assistant', 'kind': 'yes_no', 'answer': bool(use), 'via': via, 'at': datetime.now(timezone.utc).isoformat(timespec='seconds')}]
+    if name: state['assistant'] = name
+    save(state)
+    return state
+
+
 def check_provider(state):
-    """The provider of the person's assistant for the check's AI stages (docs/AI-IN-THE-PIPELINE.md), only once they
-    said yes to `use_assistant`; None otherwise, and the rules stand alone."""
+    """The provider of the person's assistant for the check's AI stages (docs/AI-IN-THE-PIPELINE.md): on unless they
+    said no to `use_assistant`, as long as the assistant they chose answers (eaos/runtime/readiness.py). Otherwise a
+    falsy NoAssistant that says why (they said no, it is not signed in, not answering), or None when no assistant is
+    installed: the rules stand alone and the live map and the report name the reason."""
+    from .runtime import readiness
     from .runtime.assistants import provider
-    return provider()[1] if answered(state, 'use_assistant') else None
+    # The assistant is on by default (owner, 2026-10-11): only the person's explicit no turns it off.
+    said = answered(state, 'use_assistant')
+    if said is False: return readiness.NoAssistant('ai_declined', 'the person chose to check without AI, so the rules stand alone')
+    if said is None and not chosen_assistant(state): return None
+    name = chosen_assistant(state) or state.get('assistant') or 'claude'
+    found = readiness.probe(name)
+    if not found['ready']:
+        return readiness.NoAssistant(found['code'], f"{found['name']} was not ready ({found['code']}), so the rules stand alone")
+    return provider(name=name)[1]
 
 
 def check_runtime(state):
@@ -472,13 +531,27 @@ def check_runtime(state):
 
 
 def agree_to_assistant(state, yes):
-    """Asks once, when an assistant is installed, whether the check may use it; a no is kept and the check goes on."""
-    from .runtime.assistants import available
-    found = available()
-    if not found: return
-    words = AI_QUESTION['ar' if state['lang'] == 'ar' else 'en'].format(name=found[0])
-    try: ask(state, 'use_assistant', words, yes)
-    except Declined: pass
+    """Asks once, when an assistant is installed, whether the check may use it; a no is kept and the check goes on. Then
+    the assistant chosen is asked for one word (eaos/runtime/readiness.py): when it is not ready, the reason and its fix
+    are said and the person decides whether this check starts without AI. False: they said no, the check does not start."""
+    from .runtime import readiness
+    lang = 'ar' if state['lang'] == 'ar' else 'en'
+    name = chosen_assistant(state)
+    if not name: return True
+    try: ask(state, 'use_assistant', AI_QUESTION[lang].format(name=readiness.NAMES[name]), yes)
+    except Declined: return True
+    if not answered(state, 'use_assistant'): return True
+    found = readiness.probe(name)
+    if found['ready']: return True
+    say(f"❌ {(found.get('reason') or {}).get(lang) or found['code']}")
+    state['questions'] = [q for q in state.get('questions') or [] if q['id'] != 'start_without_ai']
+    try: return ask(state, 'start_without_ai', WITHOUT_AI_QUESTION[lang].format(name=found['name']), yes)
+    except Declined:
+        box(lang, f"لم يبدأ الفحص: {found['name']} غير جاهز" if lang == 'ar' else f"The check did not start: {found['name']} is not ready",
+            commands=['eaos start .'], status='fail',
+            note=('أصلحه كما في السطر أعلاه ثم أعد الأمر، أو أعده واختر البدء بدون ذكاء' if lang == 'ar'
+                  else 'Fix it as the line above says and run the command again, or run it again and start without AI'))
+        return False
 
 
 def tools_for_check(state, echo=lambda done, total: None, install=True):
@@ -517,7 +590,7 @@ def scan(state, args):
     read = {'scanned_commit': tip(state) or None, **branches.scan_provenance(state, source(state))}
     failed = check_tools(state, args)
     if failed is None: return 1
-    agree_to_assistant(state, args.yes)
+    if not agree_to_assistant(state, args.yes): return 1
     say(('أفحص مشروعك الآن. يأخذ هذا عادة من 5 إلى 30 دقيقة حسب حجمه، ولن يتغير فيه شيء.' if lang == 'ar' else
          'Checking your project now. This usually takes 5 to 30 minutes depending on its size; nothing in it changes.'))
     options = dict(language=lang, engines=[], site=True, progress=progress_printer(lang), provider=check_provider(state),
@@ -1074,6 +1147,8 @@ def start(args):
                               'started': datetime.now(timezone.utc).isoformat(timespec='seconds'), 'questions': []}
     state['lang'] = language(args.lang, state if not args.lang else None)
     save(state)
+    if getattr(args, 'assistant', None):
+        choose_assistant(state, args.assistant != 'none', None if args.assistant == 'none' else args.assistant, via='command')
     lang = state['lang']
     say((f"مرحبًا. سأفحص مشروع «{project.name}» وأكتب لك تقريرًا بكلام بسيط. لن أغيّر شيئًا في مشروعك." if lang == 'ar' else
          f"Hello. I will check «{project.name}» and write you a report in plain words. I will not change anything in your project."))

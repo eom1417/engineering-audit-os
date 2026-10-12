@@ -58,6 +58,7 @@ CAPABILITIES = {'where things stand': 'status', 'read any plan': 'blueprint_star
                 'hand a milestone over': 'build_finish', 'check the project': 'audit', 'follow long work': 'wait',
                 'show the report for people': 'open_report', 'offer what EAOS can do now': 'menu',
                 'what a change touches': 'impact', 'answer from the records': 'ask', 'check the tools': 'tools_check',
+                'check the assistant before the check': 'assistant_check',
                 'read the evidence': 'finding', 'run the app': 'run_try', 'record the screens': 'safety_net',
                 'fix a card': 'fix_edit', 'hand fixes over': 'fix_finish', 'close a stuck batch': 'fix_abandon', 'accept': 'accept', 'undo': 'undo',
                 'hand the work to another assistant': 'note', 'choose the branch': 'choose_branch'}
@@ -178,11 +179,22 @@ def build():
                  'its live map in the EAOS Studio, opened in the person\'s browser (first "Preparing the tools" while the tools the check '
                  'needs are installing: the check starts by itself once they are ready). use_assistant: before their first check, ask the '
                  'person once whether EAOS may use their AI assistant in it (it interprets the facts and plans the ideal; '
-                 'everything it says stays a hypothesis tied to evidence) and pass their answer; it is kept. without_tools=true: '
+                 'everything it says stays a hypothesis tied to evidence) and pass their answer; it is kept. assistant: which one '
+                 '(claude or codex), when they say; `assistant_check` shows which is ready. A chosen assistant that is not ready '
+                 'stops the check before it starts (status assistant_not_ready, with the reason and its fix). without_tools=true: '
                  'only when the person chose to start without tools whose install failed (the report records it). ' + project_doc)
     @_answer
-    def audit(project: str | None = None, fresh: bool = False, use_assistant: bool | None = None, without_tools: bool = False) -> str:
-        return tools.audit(project, fresh, use_assistant, without_tools)
+    def audit(project: str | None = None, fresh: bool = False, use_assistant: bool | None = None, without_tools: bool = False,
+              assistant: str | None = None, without_ai: bool = False) -> str:
+        return tools.audit(project, fresh, use_assistant, without_tools, assistant, without_ai)
+
+    @server.tool(annotations=reading, description='Before a check: each AI assistant (Claude Code, Codex) on this computer, really asked '
+                 'for one word: ready, or the exact reason (not installed, not signed in, sign-in expired, usage limit, no answer) '
+                 'with its fix; the person\'s choice for this project, and what the assistant may do in the check. fresh=true asks '
+                 'again (an answer is kept a few minutes); assistant=claude|codex asks only that one. ' + project_doc)
+    @_answer
+    def assistant_check(project: str | None = None, fresh: bool = False, assistant: str | None = None) -> str:
+        return tools.assistant_check(project, fresh, assistant)
 
     @server.tool(annotations=reading, description='Follow a job (audit, run_setup, run_try, safety_net, fix_start, fix_edit, fix_finish): '
                  'waits up to `seconds` (default 50) and returns its progress, or its result once done.')

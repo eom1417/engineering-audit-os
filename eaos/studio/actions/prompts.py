@@ -98,6 +98,21 @@ def consent_question(payload):
             'recommendation': 'yes', 'why': 'run consent'}
 
 
+def assistant_question(payload):
+    """The check's own stop when the person's assistant does not answer (agent_tools._assistant_not_ready): what is
+    wrong, how to fix it, and their choice: check again once fixed, or this one check without AI."""
+    found = payload.get('assistant') or {}
+    reason = found.get('reason') or {}
+    name = found.get('name') or 'Your assistant'
+    return {'text': {'en': f"The check did not start: {name} is not answering. {reason.get('en') or found.get('code') or ''} "
+                           'Fix it and check again, or start this check without AI (the report says why).',
+                     'ar': f"ما بدأ الفحص: {name} ما يرد. {reason.get('ar') or reason.get('en') or found.get('code') or ''} "
+                           'صلّحه وأعد الفحص، أو ابدأ هذا الفحص بدون ذكاء (التقرير يذكر السبب).'},
+            'options': [{'id': 'retry', 'label': {'en': 'I fixed it: check again', 'ar': 'صلّحته: افحص من جديد'}},
+                        {'id': 'without_ai', 'label': {'en': 'Start this check without AI', 'ar': 'ابدأ هذا الفحص بدون ذكاء'}}],
+            'recommendation': 'retry', 'why': 'assistant'}
+
+
 def branch_question(payload):
     """The check's own question when the project has several live branches (agent_tools._branch): which one EAOS
     checks and fixes. The options are the branches; the recommendation is the one EAOS would pick."""

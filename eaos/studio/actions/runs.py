@@ -315,6 +315,8 @@ class Manager:
             return self._ask(run, question)
         if isinstance(result, dict) and result.get('status') == 'needs_branch' and result.get('branches'):
             return self._ask(run, prompts.branch_question(result))
+        if isinstance(result, dict) and result.get('status') == 'assistant_not_ready':
+            return self._ask(run, prompts.assistant_question(result))
         payload = self._outcome(run, answer=result)
         self.store.append(run, 'result', {'en': 'Done', 'ar': 'تم'}, payload)
         self.set_state(run, 'done', result=payload)
@@ -500,6 +502,11 @@ class Manager:
             self._choose_branch(option, label['en'])
         if record.get('mode') == 'direct':
             if question.get('why') == 'branch':
+                threading.Thread(target=self._direct, args=(run,), daemon=True).start()
+            elif question.get('why') == 'assistant' and option in ('retry', 'without_ai'):
+                # asked again on retry; without_ai is this one check with the rules alone, the person's choice kept
+                inputs = {**(record.get('inputs') or {}), **({'without_ai': True} if option == 'without_ai' else {})}
+                self.store.update(run, inputs=inputs)
                 threading.Thread(target=self._direct, args=(run,), daemon=True).start()
             elif question.get('why') == 'run consent' and option == 'yes':
                 inputs = {**(record.get('inputs') or {}), 'person_agreed': True}

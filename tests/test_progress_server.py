@@ -203,6 +203,9 @@ class Watch(Checked):
         ready = mock.patch.object(toolchain, 'ready', return_value=True)
         ready.start()
         self.addCleanup(ready.stop)
+        answering = mock.patch.object(agent_tools, '_assistant_not_ready', return_value=None)   # the assistant answers
+        answering.start()
+        self.addCleanup(answering.stop)
 
     @staticmethod
     def fake(name):

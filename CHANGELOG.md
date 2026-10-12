@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.0.6 (2026-10-11)
+
+- **The check uses the person's assistant unless they said no, and never turns it off silently**: before a check
+  starts, the assistant is asked for one word (installed, signed in, answering). When it does not answer, the check
+  does not start; the person is told what is wrong and how to fix it, and chooses: check again once fixed, the other
+  assistant, or this one check without AI. An assistant that stops answering midway names its reason on the live map
+  and in the report (a sign-in that expired, a usage limit, no answer). `eaos doctor` asks each assistant for one
+  word, and the MCP tool `assistant_check` shows which is ready.
+- **Full governance of the branches from the Studio**: the person's own branches are merged and deleted on their
+  confirmation, each preview saying whose branch it is; a branch held by another clean worktree is deleted with it;
+  "Clean up merged branches" removes, in one confirmed step, every local branch already in the base or a protected
+  branch and the old clean worktrees, each branch kept in a recovery ref so it can be restored.
+- **Re-scanning a branch is a new check**, never the check on record.
+
 ## 0.0.5 (2026-10-11)
 
 - **The assistant decides before the target, the gaps and the plan; the reports come last** (pipeline v2): the

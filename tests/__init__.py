@@ -5,3 +5,6 @@ from pathlib import Path
 
 HERE = str(Path(__file__).resolve().parent)
 if HERE not in sys.path: sys.path.insert(0, HERE)
+# The check uses the person's assistant unless they said no; a test never calls the real one unless it says so.
+import os
+os.environ.setdefault('EAOS_ASSISTANT', 'none')

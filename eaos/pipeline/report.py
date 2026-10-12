@@ -21,6 +21,13 @@ STATE = {'ar': {'ok': 'تمّت', 'skipped': 'مُستبعدة', 'unavailable': 
                 'not_reached': 'not reached'}}
 
 
+def _reason(row, language):
+    """Why a stage did not run, in the reader's language from its reason_code (an AI stage names the assistant and what
+    is wrong with it), else EAOS's own sentence."""
+    from ..progress.reasons import reason_text
+    return reason_text(row.get('reason_code'), language) or row['reason']
+
+
 def document(manifest, language='ar'):
     words = WORDS.get(language, WORDS['ar'])
     states = STATE.get(language, STATE['ar'])
@@ -36,5 +43,5 @@ def document(manifest, language='ar'):
               [[name, f"{row['seconds']:.2f}", ', '.join(row['artifacts']) or '—'] for name, row in ran])
     doc.section(words['absent'])
     doc.table([words['stage'], words['status'], words['reason']],
-              [[name, states.get(row['status'], row['status']), row['reason']] for name, row in absent])
+              [[name, states.get(row['status'], row['status']), _reason(row, language)] for name, row in absent])
     return doc

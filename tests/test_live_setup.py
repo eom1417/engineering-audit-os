@@ -1,6 +1,7 @@
 """Automatic run setup (NS9.T3): found from the files, never a real .env, never a deploy, and the assistant's
 proposals held to 127.0.0.1."""
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -238,7 +239,8 @@ class LocalDatabaseTests(unittest.TestCase):
 class AssistantTests(unittest.TestCase):
     def test_the_installed_assistant_is_used_and_none_means_none(self):
         from eaos.runtime import assistants
-        with mock.patch.object(assistants.shutil, 'which', side_effect=lambda n: '/bin/codex' if n == 'codex' else None):
+        with mock.patch.object(assistants.shutil, 'which', side_effect=lambda n: '/bin/codex' if n == 'codex' else None), \
+                mock.patch.dict(os.environ, {'EAOS_ASSISTANT': ''}):
             name, provider = assistants.provider()
         self.assertEqual(name, 'codex')
         self.assertIn('eaos.runtime.codex_adapter', provider.config['argv'])

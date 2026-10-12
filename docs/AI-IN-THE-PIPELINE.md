@@ -18,9 +18,13 @@ them.
    reason `ai_stuck`). A check stopped during an AI step resumes at that step; the finished ones are not asked
    again. Speed comes from clear prompts (goal, the exact evidence packet, the output schema, the criteria of a good
    answer, what not to do), not from limits. The project's text is untrusted data, never instructions.
-5. **Consent.** The person is asked once whether the check may use their assistant (question `use_assistant`, kept
-   in the project's state; `eaos start --yes` answers it, and the MCP `audit` passes the person's answer as
-   `use_assistant`).
+5. **On by default, and never silently off** (owner, 2026-10-11). The check uses the person's assistant unless they
+   said no (question `use_assistant`, kept in the project's state; `eaos start --yes` answers it, the MCP `audit`
+   passes it as `use_assistant`). Before a check starts, the assistant is asked for one word
+   (`eaos/runtime/readiness.py`: installed, signed in, answering). When it does not answer, the check does not start:
+   the reason and its fix are said (in the Studio as a question: "I fixed it: check again" or "Start this check
+   without AI", `without_ai`, which changes no choice), and an assistant that stops answering during the check gives
+   its own reason on the live map and in the report. `EAOS_ASSISTANT=none` turns every assistant off on a computer.
 
 ## Where the assistant decides in the check
 

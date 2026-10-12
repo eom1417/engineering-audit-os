@@ -2619,6 +2619,51 @@
       "kind": "invariant",
       "enforced_by": "tests/test_studio_branches.py::CleaningUp::test_merged_branches_and_clean_detached_worktrees_go_unmerged_and_dirty_stay",
       "note": ""
+    },
+    {
+      "id": "INV-99c4112151",
+      "file": "eaos/guided.py",
+      "symbol": "check_provider",
+      "statement": "Otherwise a falsy NoAssistant that says why (they said no, it is not signed in, not answering), or None when no assistant is installed: the rules stand alone and the live map and the report name the reason.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_ai_in_the_pipeline.py::Consent::test_a_chosen_assistant_that_is_not_ready_is_never_used_silently",
+      "note": ""
+    },
+    {
+      "id": "INV-2adc8f92cf",
+      "file": "eaos/runtime/readiness.py",
+      "symbol": "<module>",
+      "statement": "A result is cached in ~/.eaos/assistants/readiness.json for a few minutes (`fresh=True` asks again); the cache is keyed by the command's place and the environment that decides its sign-in (HOME, CLAUDE_CONFIG_DIR, CODEX_HOME), which the probe inherits as it is and never sets.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_readiness.py::Probe::test_the_answer_is_kept_a_few_minutes_and_fresh_asks_again",
+      "note": ""
+    },
+    {
+      "id": "INV-c4ce4bbfc1",
+      "file": "eaos/runtime/readiness.py",
+      "symbol": "<module>",
+      "statement": "Only codes, versions and times are written: the probe's raw output can hold an account, so it never leaves this module.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_readiness.py::Probe::test_the_raw_output_never_leaves_the_module",
+      "note": ""
+    },
+    {
+      "id": "INV-2ea7363bba",
+      "file": "eaos/runtime/readiness.py",
+      "symbol": "_run",
+      "statement": "(returncode, stdout, stderr) or (None, '', why) when it could not run or did not end in time: then its whole process group is ended, so a child it started cannot hold the probe.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_readiness.py::Probe::test_no_answer_in_time",
+      "note": ""
+    },
+    {
+      "id": "INV-7d98f4bff0",
+      "file": "eaos/runtime/readiness.py",
+      "symbol": "check",
+      "statement": "The probe itself, never cached: the readiness of assistant `name` (claude or codex) on this computer now.",
+      "kind": "invariant",
+      "enforced_by": "tests/test_readiness.py::Probe::test_the_answer_is_kept_a_few_minutes_and_fresh_asks_again",
+      "note": ""
     }
   ],
   "limits": "Extraction is lexical: it finds sentences that assert, not every promise a docstring makes. A sentence it misses is still an invariant."

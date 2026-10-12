@@ -252,18 +252,38 @@ def probe(context):
 NO_ASSISTANT = 'no assistant was installed or allowed for this check, so the rules stand alone'
 
 
+def _absent(provider):
+    """SkipStage for an AI stage without its assistant: the reason the provider carries (eaos/runtime/readiness.py
+    NoAssistant: the person said no, the assistant is not signed in, ...), else nobody allowed one."""
+    code = getattr(provider, 'code', None)
+    return SkipStage(provider.reason, code=code) if code else SkipStage(NO_ASSISTANT, code='no_provider')
+
+
+def _lost(context, problem, code):
+    """SkipStage for an AI stage whose assistant failed midway: asked for one word again, an assistant that is no
+    longer ready gives its own reason (signed out during the check, its limit reached); else `problem` and `code`."""
+    name = (getattr(context.provider, 'config', None) or {}).get('assistant')
+    if name:
+        from ..runtime import readiness
+        try: found = readiness.probe(name, fresh=True)
+        except Exception: found = {'ready': True}
+        if not found['ready']:
+            return SkipStage(f"during the check {found['name']} stopped answering ({found['code']}): {problem}"[:300], code=found['code'])
+    return SkipStage(problem, code=code)
+
+
 def semantic(context):
     if not context.provider:
-        raise SkipStage(NO_ASSISTANT, code='no_provider')
+        raise _absent(context.provider)
     from ..runtime.provider import Stuck
     from ..semantic import run
     from ..views import refresh
     try: result = run(context.target, context.out, context.provider, language=context.language)
     except Stuck as problem:
-        raise SkipStage(str(problem), code='ai_stuck') from None
+        raise _lost(context, str(problem), 'ai_stuck') from None
     except Exception as problem:                       # the assistant never decides the fate of the check
-        raise SkipStage(f'the assistant\'s reading could not be used ({type(problem).__name__}: {problem})'[:300],
-                        code='ai_failed') from None
+        raise _lost(context, f'the assistant\'s reading could not be used ({type(problem).__name__}: {problem})'[:300],
+                    'ai_failed') from None
     refresh(context.out, context.language)
     return {'hypotheses': result['claims'], 'questions': result['questions'], 'calls': result['calls']}
 
@@ -273,13 +293,18 @@ def _node(context, name):
     works; return its record and what the live map reports. Without an assistant, stuck or on a failure the rules'
     result stands."""
     if not context.provider:
-        raise SkipStage(NO_ASSISTANT, code='no_provider')
+        raise _absent(context.provider)
     from ..studio.nodes import core, run
-    record = run(context.out, names=[name], project=str(context.target), lang=context.language).get(name)
+    chosen = (getattr(context.provider, 'config', None) or {}).get('assistant')
+    adapters = None
+    if chosen:
+        from ..studio.actions.adapters import installed
+        adapters = {key: adapter for key, adapter in installed().items() if key == chosen}
+    record = run(context.out, names=[name], project=str(context.target), lang=context.language, adapters=adapters).get(name)
     if record is None:
         raise SkipStage('there was nothing for the assistant to decide', code='not_applicable')
     if record['method'] != 'model':
-        raise SkipStage(record['why'], code='ai_stuck' if record['why'] == core.WORDS['stuck'] else 'ai_failed')
+        raise _lost(context, record['why'], 'ai_stuck' if record['why'] == core.WORDS['stuck'] else 'ai_failed')
     return record, {'dropped': len(record['dropped']), 'calls': 0 if record['cached'] else record['calls'],
                     'assistant': record['assistant'], 'model': record['model']}
 
@@ -511,7 +536,7 @@ def target(context):
 def proposals(context):
     """The Studio's records of this check so far: what the triage, the ideal and the pipeline-gap planner read."""
     if not context.provider:
-        raise SkipStage(NO_ASSISTANT, code='no_provider')
+        raise _absent(context.provider)
     from ..studio.export import export
     from ..workspace import write
     result = export(context.out, context.language, Path(context.target).name, context.target)
