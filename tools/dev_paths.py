@@ -30,7 +30,6 @@ UPSTREAMS = place('EAOS_UPSTREAMS', 'upstream-src')
 TRUTH = place('EAOS_TRUTH', 'truth')
 # Public pipeline projects pinned for the pipeline map's truth files (evaluations/pipelines/, tools/pipeline_truth.py).
 PIPELINES = place('EAOS_PIPELINES', 'pipelines')
-ENOLA = UPSTREAMS / 'enola'
 
 
 def pinned_upstreams(registry=ROOT / 'upstreams/registry.yaml'):
