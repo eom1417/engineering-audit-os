@@ -56,7 +56,7 @@ function GapTable({ gaps }: { gaps: Gap[] }) {
               <td className={css.numCol}><N value={g.files} /></td>
               <td><Closure gap={g} /></td>
               <td><LinkList>{(g.steps ?? []).map((s) => <StepLink key={s} plan={PLAN} step={s} />)}</LinkList></td>
-              <td>{g.decision ? <Id value={g.decision} /> : null}</td>
+              <td style={{ whiteSpace: 'nowrap' }}>{g.decision ? <Id value={g.decision} /> : null}</td>
             </tr>
           ))}
         </tbody>
