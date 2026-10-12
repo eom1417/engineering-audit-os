@@ -82,6 +82,11 @@ export const BRANCH_WORDS = {
   // actions
   useForAnalysis: ['حلّل هذا الفرع', 'Analyse this branch'],
   useForAnalysisScan: ['حلّله وأعد الفحص', 'Analyse and re-scan'],
+  yourBranches: ['فروعك', 'Your branches'],
+  waitingWork: ['فروع EAOS تنتظر قرارك', 'EAOS branches waiting for your decision'],
+  waitingWorkLead: ['اعتمدها (تندمج وتنحذف) أو ارمها من صفحة التشغيل أو صفحة الفروع، عشان ما تتكدّس.', 'Accept them (merged, then deleted) or undo them from their run or the branches page, so none piles up.'],
+  openBranch: ['افتحه', 'Open it'],
+  protectedNoWork: ['محمي: ما يُحلَّل ولا يُصلَح من هنا', 'Protected: no analysis or fixes from here'],
   selectLead: ['يتغيّر ما يحلّله الاستوديو فقط؛ الفرع المفتوح عندك لا يتغيّر.', 'Only what the Studio analyses changes; your checkout does not.'],
   stopRun: ['أوقف «{l}»', 'Stop “{l}”'],
   openRuns: ['افتح التشغيل', 'Open runs'],

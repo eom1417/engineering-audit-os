@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.11 (2026-10-12)
+
+- **Branches under control from the Studio**: a group of fixes is built on a new branch named from the group, on an
+  EAOS branch still waiting (continue on it, one accept), or directly on the base branch (checked in the isolated copy,
+  then landed with no extra branch). Accept chooses the branch to merge into and deletes the branch after merging by
+  default. The branch picker lists only the person's branches; a protected branch offers no analysis or fix.
+
 ## 0.0.10 (2026-10-12)
 
 - **An efficient, complete check**: one theme, one picture per distinct page (46 instead of 308 on EAOS itself);

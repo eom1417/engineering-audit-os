@@ -60,6 +60,7 @@
 .switchRow + .switchRow { border-block-start: 1px solid var(--border-subtle); }
 .switchMain { display: flex; flex-direction: column; gap: 4px; min-inline-size: 0; }
 .switchActions { display: flex; flex-wrap: wrap; gap: 6px; }
+.switchHead { margin-block: 16px 4px; font-size: 14px; font-weight: 600; color: var(--text-primary); }
 .allLinkWrap { display: flex; }
 .allLink { display: inline-flex; align-items: center; gap: 8px; min-block-size: 44px; color: var(--accent-text); font-weight: 500; }
 

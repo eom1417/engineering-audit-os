@@ -665,8 +665,9 @@ def retire_stale_batch(state):
     if not wave: return None
     now = tip(state)
     why = None
-    if now and not same_code(state, wave.get('base'), now):
-        why = f"the code moved on since the batch opened (it was built on {str(wave.get('base'))[:12]}, the branch is at {now[:12]})"
+    built_on = wave.get('source_commit') or wave.get('base')         # a batch continued on a work branch: its branch's commit
+    if now and not same_code(state, built_on, now):
+        why = f"the code moved on since the batch opened (it was built on {str(built_on)[:12]}, the branch is at {now[:12]})"
     elif wave.get('keys') and (report_of(state) / 'plan.json').is_file():
         from .waves import plan as read_plan
         try: keys = {t['id']: t['key'] for t in read_plan(report_of(state))['tasks']}
@@ -688,12 +689,13 @@ def reconcile(state):
         tip = _git(state['project'], 'rev-parse', branch).stdout.strip() if exists else wave.get('tip')
         into = f"refs/heads/{wave['merge_into']}" if wave.get('merge_into') else branches.ref(state)
         inside = bool(tip) and not _git(state['project'], 'merge-base', '--is-ancestor', tip, into).returncode
+        keep = wave.get('keep_branch')                      # the person chose to keep it after merging
         if status == 'accepted':
-            if exists and inside: _git(state['project'], 'branch', '-D', branch)
+            if exists and inside and not keep: _git(state['project'], 'branch', '-D', branch)
             continue
         if inside:                                          # merged into the branch EAOS works on: its branch goes
             wave.update(status='accepted', merged_at=datetime.now(timezone.utc).isoformat(timespec='seconds'), tip=tip)
-            if exists: _git(state['project'], 'branch', '-D', branch)
+            if exists and not keep: _git(state['project'], 'branch', '-D', branch)
             changed.append(wave)
         elif not exists and status == 'applied':
             wave['status'] = 'undone'
@@ -707,12 +709,16 @@ def reconcile(state):
     return changed
 
 
-def merge(state, wave):
-    """The batch's branch into the branch it was to be merged into (wave['merge_into'], chosen in the fix preview; else
-    the branch EAOS works on): a fast-forward when it can, else a merge commit when git merges it cleanly (a conflict is
-    taken back, and nothing changes); then reconcile deletes the branch and updates the ledger and the report.
-    'merged', 'unsaved_changes' or 'conflict'."""
+def merge(state, wave, into=None, delete_after=True):
+    """The batch's branch into `into` (the person's choice at accept), else the branch it was to be merged into
+    (wave['merge_into'], chosen in the fix preview), else the branch EAOS works on: a fast-forward when it can, else a
+    merge commit when git merges it cleanly (a conflict is taken back, and nothing changes); then reconcile deletes the
+    branch (kept when `delete_after` is false) and updates the ledger and the report. 'merged', 'unsaved_changes' or
+    'conflict'."""
     project = state['project']
+    for each in [w for w in state.get('waves') or [] if w.get('status') == 'applied' and w.get('branch') == wave['branch']] + [wave]:
+        if into or wave.get('merge_into'): each['merge_into'] = into or wave['merge_into']     # batches continued on one branch
+        if not delete_after: each['keep_branch'] = True                                       # go in together
     into = wave.get('merge_into') or state.get('branch')
     if into and branches.checked_out(project) != into: return _merge_elsewhere(state, wave, into)
     if _git(project, 'status', '--porcelain', '--untracked-files=no').stdout.strip(): return 'unsaved_changes'

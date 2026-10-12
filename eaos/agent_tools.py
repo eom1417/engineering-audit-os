@@ -265,7 +265,7 @@ def status(project=None):
               'app_runs': setup.get('ok') if _set_up(state, head) else None,
               'safety_net': safety if guided.same_code(state, safety.get('commit'), head) else None,
               'progress': ((ledger.load(state) or {}).get('totals') if checked else None),
-              'open_batch': {k: wave.get(k) for k in ('number', 'cards', 'kept', 'failed', 'last_error', 'deliver_as', 'merge_into')} if wave else None,
+              'open_batch': {k: wave.get(k) for k in ('number', 'cards', 'kept', 'failed', 'last_error', 'deliver_as', 'merge_into', 'direct', 'continues')} if wave else None,
               'retired_batch': {k: retired.get(k) for k in ('number', 'why')} if retired else None,
               'waiting_branch': waiting['branch'] if waiting else None,
               'running_job': busy['id'] if busy else None}
@@ -776,17 +776,40 @@ def _commit_of(project, branch):
     return ''
 
 
+def waiting_on(state, name):
+    """The batch waiting for the person's decision on the EAOS work branch `name` (applied, its branch still there and
+    not merged): a new batch may continue on it. None otherwise."""
+    if not name or not guided._branch_exists(state, name): return None
+    return next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied' and w.get('branch') == name), None)
+
+
+def work_branches(state):
+    """The EAOS work branches of the branch EAOS works on that wait for the person's decision: a new batch may continue
+    on any of them (the fix preview offers them)."""
+    names = dict.fromkeys(w.get('branch') for w in state.get('waves') or [] if w.get('status') == 'applied' and w.get('branch'))
+    return [name for name in names if waiting_on(state, name)]
+
+
 def delivery(state, deliver_as=None, merge_into=None):
     """Where a new batch goes, as the fix preview shows it: (deliver_as, merge_into). deliver_as is
     `eaos/<branch>/wave-N` by default: N counts the batches of the branch EAOS works on, and the branch's name keeps a
     second branch's batch 1 from overwriting the first's waiting one; merge_into is the branch open in the project
-    folder (else the branch EAOS works on). ValueError for a name git refuses, or a branch that already exists."""
+    folder (else the branch EAOS works on). deliver_as may also be an EAOS work branch waiting for the person's decision
+    (the batch continues on it, on top of its commits; it merges where that batch was to merge), or the branch EAOS
+    works on itself: direct, the batch lands on it once every gate passed (never on a protected branch), so merge_into
+    is that branch. ValueError for a name git refuses, a branch that already exists, or a protected direct target."""
     project = state['project']
     working = state.get('branch') or branches.checked_out(project) or 'HEAD'
     name = (deliver_as or '').strip() or f"eaos/{branches.slug(working)}/wave-{len(state.get('waves') or []) + 1}"
     if guided._git(project, 'check-ref-format', '--branch', name).returncode: raise ValueError(f'{name} is not a valid branch name')
-    if guided._branch_exists(state, name): raise ValueError(f'a branch named {name} already exists: choose another name')
-    target = (merge_into or '').strip() or branches.checked_out(project) or state.get('branch')
+    if name == working:
+        why = branches.protected(project, name)
+        if why: raise ValueError(f'{name} is protected ({why}): the fixes cannot land on it directly; deliver them on a new branch')
+        return name, name
+    continued = waiting_on(state, name)
+    if guided._branch_exists(state, name) and not continued:
+        raise ValueError(f'a branch named {name} already exists and is not an EAOS work branch waiting for a decision: choose another name')
+    target = (merge_into or '').strip() or (continued or {}).get('merge_into') or branches.checked_out(project) or state.get('branch')
     if target and not _commit_of(project, target): raise ValueError(f'no branch named {target} to merge into')
     return name, target
 
@@ -794,7 +817,8 @@ def delivery(state, deliver_as=None, merge_into=None):
 def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, merge_into=None, base_commit=None):
     """Open the next batch. As the fix preview set it: `base`, the branch to build on (by default the branch EAOS works
     on; another one becomes the branch EAOS works on, as choose_branch does); `deliver_as`, the new branch the fixes
-    arrive on (default `eaos/<branch>/wave-N`); `merge_into`, the branch accept merges them into (default the branch
+    arrive on (default `eaos/<branch>/wave-N`), or an EAOS work branch waiting for a decision (the batch continues on
+    it), or the base branch itself (direct: the batch lands on it once it passes, no branch is left); `merge_into`, the branch accept merges them into (default the branch
     open in the project folder); `base_commit`, the commit the preview showed for `base`: when the branch moved since,
     nothing opens (status base_moved) and the preview is made again."""
     from .waves import next_batch, plan as read_plan, ready
@@ -825,8 +849,10 @@ def fix_start(project=None, cards=None, size=10, base=None, deliver_as=None, mer
     unsafe = _no_safety_net(state)
     if unsafe: return unsafe
     waiting = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
-    if waiting: return {'status': 'waiting_decision', 'branch': waiting['branch'],
-                        'what_now': f"The fixes on {waiting['branch']} wait for the person's decision: ask them, then accept or undo."}
+    if waiting and waiting['branch'] != deliver_as:
+        return {'status': 'waiting_decision', 'branch': waiting['branch'],
+                'what_now': f"The fixes on {waiting['branch']} wait for the person's decision: ask them, then accept or undo; "
+                            f"or, if they want this batch on the same branch, call fix_start again with deliver_as={waiting['branch']}."}
     report = _report(state)
     known = {t['id']: t for t in read_plan(report)['tasks']}
     chosen = list(dict.fromkeys(cards)) if cards else next_batch(report, state.get('tried') or [], size=min(max(int(size), 1), 25))
@@ -886,6 +912,17 @@ def _fix_start_job(project, arguments, progress):
             'base_branch': state.get('branch') or branches.checked_out(state['project']),
             'deliver_as': arguments.get('deliver_as'), 'merge_into': arguments.get('merge_into')}
     if not wave['deliver_as']: wave['deliver_as'], wave['merge_into'] = delivery(state, None, wave['merge_into'])
+    if wave['deliver_as'] == wave['base_branch']:
+        # direct: the batch is still built and checked here, handed over on a branch of its own and merged into the base
+        # branch at once by fix_finish, which deletes that branch
+        wave.update(direct=True, merge_into=wave['base_branch'], deliver_as=delivery(state, None, wave['base_branch'])[0])
+    elif waiting_on(state, wave['deliver_as']):
+        # continue on an EAOS work branch waiting for a decision: the copy starts from its tip, the kept commits go on top
+        tip = _commit_of(state['project'], wave['deliver_as'])
+        fetched = guided._git(root, 'fetch', '--quiet', str(state['project']), f"+refs/heads/{wave['deliver_as']}:refs/eaos/continued")
+        if fetched.returncode or guided._git(root, 'reset', '--hard', '--quiet', tip).returncode:
+            raise RuntimeError(f"could not start from {wave['deliver_as']}: {fetched.stderr[-300:]}")
+        wave.update(base=tip, source_commit=base, continues=wave['deliver_as'])
     automatic = [c for c in arguments['cards'] if ((cards[c].get('codemod') or {}).get('dry_run') or {}).get('files_changed', 0) > 0]
     for index, card_id in enumerate(automatic, 1):
         progress(index, len(automatic) + 1, f'automatic fix of {card_id}')
@@ -1057,7 +1094,7 @@ def _fix_finish_job(project, arguments, progress):
     state = guided.load(project)
     record = {'number': wave['number'], 'base': wave['base'], 'cards': wave['cards'], 'kept': summary['kept'], 'failed': summary['failed'],
               'branch': summary['branch'], 'stat': summary['stat'], 'status': 'empty', 'via': 'assistant', 'keys': wave.get('keys') or {},
-              **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch') if wave.get(k)}}
+              **{k: wave[k] for k in ('deliver_as', 'merge_into', 'base_branch', 'direct', 'continues') if wave.get(k)}}
     if summary['kept']:
         hand_over(state['project'], summary)
         record['status'] = 'applied'
@@ -1070,26 +1107,57 @@ def _fix_finish_job(project, arguments, progress):
     guided.publish_fixes(state, record)
     guided.save(state)
     files = guided._git(state['project'], 'diff', '--stat', f"{wave['base']}..{summary['branch']}").stdout.strip() if summary['kept'] else ''
+    if wave.get('direct') and record['status'] == 'applied':
+        return _land(state['project'], record, files)
     return {'batch': wave['number'], 'branch': summary['branch'] if summary['kept'] else None, 'kept': summary['kept'],
             'failed': summary['failed'], 'changes': summary['stat'], 'files': files[-4000:],
+            **({'continued_on': wave['continues']} if wave.get('continues') else {}),
             'what_now': (f"Tell the person, in plain words, what was fixed and that it is on the branch {summary['branch']}; "
                          "their current branch is unchanged. Ask whether to take it in (accept) or throw it away (undo). "
                          "The report counts these fixes as done only once they are taken in."
                          if summary['kept'] else 'No change passed every gate; nothing reached the project.')}
 
 
-def accept(project=None, person_agreed=False):
-    """The waiting branch into the person's current branch; then its branch is deleted and the report brought up to
-    date, in the same call (eaos/guided.merge)."""
+def _land(project, record, files):
+    """A direct batch, its gates passed: its branch merged into the base branch at once (guided.merge: a fast-forward,
+    or a merge commit when git merges cleanly) and deleted, so no branch is left. When it cannot land (unsaved changes
+    in the checked-out base, or a conflict), the branch stays and waits for the person like any batch."""
+    state = guided.load(project)
+    wave = next(w for w in reversed(state['waves']) if w['number'] == record['number'] and w.get('branch') == record['branch'])
+    outcome = guided.merge(state, wave)
+    state = guided.load(project)
+    wave = next(w for w in reversed(state['waves']) if w['number'] == record['number'] and w.get('branch') == record['branch'])
+    base = wave['merge_into']
+    if outcome == 'merged':
+        return {'batch': wave['number'], 'branch': None, 'landed_on': base, 'kept': wave['kept'], 'failed': wave['failed'],
+                'changes': wave.get('stat'), 'files': files[-4000:], 'branch_deleted': not guided._branch_exists(state, wave['branch']),
+                'what_now': f"Tell the person, in plain words, what was fixed: it passed every check and is now on {base} itself, "
+                            'as they chose; no extra branch was left. The report counts these fixes as done.'}
+    wave['direct_failed'] = outcome
+    guided.save(state)
+    return {'batch': wave['number'], 'branch': wave['branch'], 'landed_on': None, 'kept': wave['kept'], 'failed': wave['failed'],
+            'changes': wave.get('stat'), 'files': files[-4000:], 'not_landed': outcome,
+            'what_now': f"The fixes passed every check but could not land on {base} directly ("
+                        + ('it has unsaved changes' if outcome == 'unsaved_changes' else 'it changed in the same places') +
+                        f"): they wait on the branch {wave['branch']}. Tell the person, then accept or undo as they decide."}
+
+
+def accept(project=None, person_agreed=False, merge_into=None, delete_after=True):
+    """The waiting branch into the branch the person chose (`merge_into`; by default the one the fix preview named, else
+    the person's current branch); then its branch is deleted (unless `delete_after` is false: it stays, merged) and the
+    report brought up to date, in the same call (eaos/guided.merge)."""
     from .ledger import load
     state = project_state(project)
     guided.reconcile(state)
     wave = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
     if wave is None: return {'status': 'nothing_waiting', 'progress': (load(state) or {}).get('totals')}
+    into = (merge_into or '').strip() or None
+    if into and not _commit_of(state['project'], into): return {'status': 'error', 'error': f'no branch named {into} to merge into'}
+    if into == wave['branch']: return {'status': 'error', 'error': 'a branch cannot be merged into itself'}
     if not person_agreed:
-        return {'status': 'needs_agreement', 'ask_the_person': f"Take the fixes on {wave['branch']} into {wave.get('merge_into') or 'your current branch'}?",
+        return {'status': 'needs_agreement', 'ask_the_person': f"Take the fixes on {wave['branch']} into {into or wave.get('merge_into') or 'your current branch'}?",
                 'what_now': 'Only if the person says yes, call accept again with person_agreed=true.'}
-    outcome = guided.merge(state, wave)
+    outcome = guided.merge(state, wave, into=into, delete_after=delete_after is not False)
     if outcome == 'unsaved_changes':
         return {'status': 'unsaved_changes', 'what_now': 'The project has unsaved changes; ask the person to save (commit) them first.'}
     if outcome == 'conflict':
@@ -1098,10 +1166,12 @@ def accept(project=None, person_agreed=False):
                             f"{wave['branch']} by hand, resolving the conflict; once it is merged, `status` records it and deletes the branch."}
     state = guided.load(state['project'])
     page = branches.home(state) / 'REPORT.html'
-    return {'status': 'accepted', 'branch': wave['branch'], 'branch_deleted': not guided._branch_exists(state, wave['branch']),
-            'progress': (load(state) or {}).get('totals'), 'report_for_people': str(page),
-            'what_now': 'Done: the branch is merged and deleted, and the report is up to date. Tell the person the progress in '
-                        'plain words (closed of total, percent), then fix_start opens the next batch (no new check is needed).'}
+    deleted = not guided._branch_exists(state, wave['branch'])
+    return {'status': 'accepted', 'branch': wave['branch'], 'merged_into': into or wave.get('merge_into') or state.get('branch'),
+            'branch_deleted': deleted, 'progress': (load(state) or {}).get('totals'), 'report_for_people': str(page),
+            'what_now': (f"Done: the branch is merged{' and deleted' if deleted else ' and kept, as the person chose'}, and the report is "
+                         'up to date. Tell the person the progress in plain words (closed of total, percent), then fix_start opens '
+                         'the next batch (no new check is needed).')}
 
 
 def undo(project=None):
@@ -1112,7 +1182,8 @@ def undo(project=None):
     if wave is None: return {'status': 'nothing_to_undo'}
     outcome = drop(state['project'], wave['branch'])
     if outcome == 'merged': return {'status': 'merged', 'what_now': 'It is merged already; undoing it is a git revert, the person\'s decision.'}
-    wave['status'] = 'undone'
+    for each in state.get('waves') or []:                  # every batch continued on that branch goes with it
+        if each.get('status') == 'applied' and each.get('branch') == wave['branch']: each['status'] = 'undone'
     guided.save(state)
     guided.publish(state)
     return {'status': 'undone', 'branch': wave['branch']}

@@ -1,6 +1,7 @@
 // The persistent branch chip in the header and its switcher (NS46.T18): the analysis branch (or a named detached
-// HEAD), which opens the list of local branches to analyse instead and a link to #/branches. Choosing changes what the
-// Studio analyses, never the person's checkout, and is refused while a run is queued or working (never retargeted).
+// HEAD), which opens the person's own branches to analyse instead (main listed, never analysed or fixed from here), the
+// EAOS work branches still waiting for a decision apart, and a link to #/branches. Choosing changes what the Studio
+// analyses, never the person's checkout, and is refused while a run is queued or working (never retargeted).
 import { useEffect, useState } from 'react'
 import { Button } from '../components/Button'
 import { Chip } from '../components/Chip'
@@ -12,6 +13,7 @@ import { useActions } from '../data/actions/store'
 import { useStudio } from '../data/context'
 import { Id } from '../i18n/text'
 import { useBranchLive } from './live'
+import { canWorkOn, pickerBranches } from './model'
 import { refusal, RescanStatus, SelectError, type Refusal } from './ScanSheet'
 import { useBranchWords } from './words'
 import css from './branches.module.css'
@@ -94,10 +96,11 @@ export function BranchSwitcher({ isOpen, onOpenChange }: { isOpen: boolean; onOp
   useEffect(() => {
     if (!isOpen || !live.api) return
     let on = true
-    live.api.inventory().then((inv) => { if (on) { setRows(inv.branches.filter((b) => b.kind === 'local')); setFailed(false) } }, () => { if (on) setFailed(true) })
+    live.api.inventory().then((inv) => { if (on) { setRows(inv.branches); setFailed(false) } }, () => { if (on) setFailed(true) })
     return () => { on = false }
   }, [isOpen, live.api, live.context?.analysis.branch])
   const { name } = useAnalysisName()
+  const picked = rows ? pickerBranches(rows) : null
   return (
     <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={w('switchBranch')}>
       <div className={[css.tall, css.drawerBody].join(' ')}>
@@ -107,10 +110,11 @@ export function BranchSwitcher({ isOpen, onOpenChange }: { isOpen: boolean; onOp
       <SelectError error={select.error} />
       <RescanStatus run={select.scan} />
       {failed && <p role="alert" className={css.error}>{w('whyOffline')}</p>}
-      {live.api && rows && (
-        <ul className={css.switchList} aria-label={w('switchBranch')}>
-          {rows.map((row) => {
+      {live.api && picked && (
+        <ul className={css.switchList} aria-label={w('yourBranches')}>
+          {picked.mine.map((row) => {
             const current = row.name === name
+            const workable = canWorkOn(row)
             return (
               <li key={row.ref} className={css.switchRow} data-branch={row.name}>
                 <span className={css.switchMain}>
@@ -118,10 +122,10 @@ export function BranchSwitcher({ isOpen, onOpenChange }: { isOpen: boolean; onOp
                   <span className={css.badges}>
                     {current && <Chip tone="accent">{w('analysis')}</Chip>}
                     {row.roles.includes('checkout') && <Chip>{w('checkout')}</Chip>}
-                    {row.protected && <Chip tone="warning">{w('protected')}</Chip>}
+                    {row.protected && <Chip tone="warning">{workable ? w('protected') : w('protectedNoWork')}</Chip>}
                   </span>
                 </span>
-                {!current && <span className={css.switchActions}>
+                {!current && workable && <span className={css.switchActions}>
                   <Button variant="secondary" busy={select.busy === row.name} onPress={() => void select.choose(row.name, false, row.tip)}>{w('useForAnalysis')}</Button>
                   <Button variant="primary" busy={select.busy === row.name + ':scan'} onPress={() => void select.choose(row.name, true, row.tip)}>{w('useForAnalysisScan')}</Button>
                 </span>}
@@ -129,6 +133,22 @@ export function BranchSwitcher({ isOpen, onOpenChange }: { isOpen: boolean; onOp
             )
           })}
         </ul>
+      )}
+      {live.api && picked && picked.waiting.length > 0 && (
+        <section data-branches="waiting">
+          <h3 className={css.switchHead}>{w('waitingWork')}</h3>
+          <p className={css.muted}>{w('waitingWorkLead')}</p>
+          <ul className={css.switchList} aria-label={w('waitingWork')}>
+            {picked.waiting.map((row) => (
+              <li key={row.ref} className={css.switchRow} data-branch={row.name}>
+                <span className={css.switchMain}><Id value={row.name} /></span>
+                <span className={css.switchActions} onClick={() => onOpenChange(false)}>
+                  <Go to="/branches" search={{ b: row.id }} className={css.allLink}>{w('openBranch')}</Go>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       <span onClick={() => onOpenChange(false)} className={css.allLinkWrap}><Go to="/branches" className={css.allLink}><Icon name="branch" />{w('allBranchesLink')}</Go></span>
       </div>

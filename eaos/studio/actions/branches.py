@@ -319,12 +319,25 @@ class BranchControl:
         if changes and record.get('state') not in TERMINAL: return {'state': 'not_created_yet', 'base': (record.get('context') or {}).get('analysis_branch')}
         return {'state': 'not_required' if not changes else 'none_created', 'base': (record.get('context') or {}).get('analysis_branch')}
 
-    def fix_where(self, wanted=None):
+    def blocked_target(self, name, protected=None, head=None):
+        """Why nothing is merged into (or built on, or landed on) `name` from here, or None: a protected branch, except
+        the branch open in the project folder when only its name protects it (a project with main alone): accept merges
+        there, as it always did."""
+        protected = self.policy()['protected'] if protected is None else protected
+        head = head or self.head()
+        reason = protected.get(name)
+        return reason if reason and (reason['code'] in ('eaos_main', 'policy') or name != head['branch']) else None
+
+    def fix_where(self, wanted=None, hint=None):
         """Where a Fix run builds and delivers, as its preview shows and the person may change it:
-        {base: {branch, commit, short, when, checked_out}, deliver_as, merge_into, branches: [{name, short, blocked}],
-        problem}. base defaults to the analysis branch, deliver_as to `eaos/<base>/wave-N` (agent_tools.delivery),
-        merge_into to the branch open in the project folder; a protected target is refused with its reason. The base
-        commit is what the confirm token pins, so a branch that moves after the preview is caught before anything runs."""
+        {base: {branch, commit, short, when, checked_out}, mode, deliver_as, merge_into, branches: [{name, short, blocked}],
+        continuable: [{name, short}], direct_blocked, problem}. base defaults to the analysis branch; mode is `new` (a new
+        branch, by default `eaos/<base>/<group>` for a group of cards when that name is free, else `eaos/<base>/wave-N`:
+        agent_tools.delivery), `continue` (an EAOS work branch still waiting for a decision: deliver_as names it) or
+        `direct` (deliver_as is the base itself: the batch lands on it once it passes; never a protected one); merge_into
+        defaults to the branch open in the project folder. The branches offered are the person's own (no EAOS, bot or
+        archive branch); a protected one is shown with its reason, never as a base or a target. The base commit is what the
+        confirm token pins, so a branch that moves after the preview is caught before anything runs."""
         from ... import agent_tools
         from ... import branches as reading
         wanted = wanted if isinstance(wanted, dict) else {}
@@ -334,13 +347,10 @@ class BranchControl:
         base = str(wanted.get('base') or '').strip() or working
         locals_ = [(name, tip, when) for kind, _, name, _, tip, when, *_ in self.refs() if kind == 'local']
         protected = self.policy()['protected']
-        # a protected branch takes no merge from here, except the branch open in the project folder when only its name
-        # protects it (a project with main alone): accept merges there, as it always did
-        def blocked(name):
-            reason = protected.get(name)
-            return reason if reason and (reason['code'] in ('eaos_main', 'policy') or name != head['branch']) else None
-        out = {'base': None, 'deliver_as': None, 'merge_into': None, 'problem': None,
-               'branches': [{'name': name, 'short': tip[:7], 'blocked': blocked(name)} for name, tip, _ in locals_]}
+        blocked = lambda name: self.blocked_target(name, protected, head)
+        persons = [row for row in locals_ if reading._persons(row[0]) and not row[0].startswith(reading.ARCHIVED)]
+        out = {'base': None, 'mode': 'new', 'deliver_as': None, 'merge_into': None, 'problem': None, 'direct_blocked': None,
+               'continuable': [], 'branches': [{'name': name, 'short': tip[:7], 'blocked': blocked(name)} for name, tip, _ in persons]}
         row = next((r for r in locals_ if r[0] == base), None)
         if row is None:
             out['problem'] = say(f'There is no branch named {base} in this project.', f'ما فيه فرع اسمه {base} في هذا المشروع.', 'no_base')
@@ -351,17 +361,46 @@ class BranchControl:
         if base != working and state:
             view = {k: v for k, v in view.items() if k not in reading.KEYS}
             view.update((state.get('by_branch') or {}).get(base, {}), branch=base)
+        elif not state: view['branch'] = base
+        tips = {name: tip for name, tip, _ in locals_}
+        out['continuable'] = [{'name': name, 'short': (tips.get(name) or '')[:7]} for name in agent_tools.work_branches(view)]
+        why = blocked(base) or ({'code': 'main', 'en': reading.protected(self.project, base), 'ar': 'الفرع الرئيسي'} if reading.protected(self.project, base) else None)
+        if why: out['direct_blocked'] = say(f"{base} is protected ({why['en']}): fixes never land on it directly.",
+                                            f"{base} محمي ({why['ar']}): الإصلاحات ما تنزل عليه مباشرة أبدًا.", 'protected_direct')
+        asked = str(wanted.get('deliver_as') or '').strip()
+        if asked == base and out['direct_blocked']:
+            out.update(mode='direct', deliver_as=base, merge_into=base, problem=out['direct_blocked'])
+            return out
+        named = f"eaos/{reading.slug(base)}/{reading.slug(str(hint)).lower()[:40]}" if hint and not asked else ''
+        if named and (agent_tools.guided._branch_exists(view, named) or git(self.project, 'check-ref-format', '--branch', named).returncode): named = ''
         try:
-            out['deliver_as'], out['merge_into'] = agent_tools.delivery(view, wanted.get('deliver_as'), wanted.get('merge_into') or head['branch'])
+            out['deliver_as'], out['merge_into'] = agent_tools.delivery(view, asked or named or None, wanted.get('merge_into') or head['branch'])
         except ValueError as problem:
             out['problem'] = say(str(problem), str(problem), 'delivery')
-            out['deliver_as'], out['merge_into'] = str(wanted.get('deliver_as') or '') or None, str(wanted.get('merge_into') or '') or head['branch']
+            out['deliver_as'], out['merge_into'] = asked or None, str(wanted.get('merge_into') or '') or head['branch']
+            out['mode'] = 'direct' if asked == base else 'new'
             return out
+        out['mode'] = 'direct' if out['deliver_as'] == base else 'continue' if out['deliver_as'] in {c['name'] for c in out['continuable']} else 'new'
         target = blocked(out['merge_into'])
         if target:
             out['problem'] = say(f"{out['merge_into']} is protected ({target['en']}): choose another branch to merge into.",
                                  f"{out['merge_into']} محمي ({target['ar']}): اختر فرعًا ثانيًا يُدمج فيه.", 'protected_target')
         return out
+
+    def accept_where(self):
+        """What Accept shows before it merges: the waiting branch, the branch it merges into (the fix preview's choice,
+        else the branch open in the project folder), the person's branches to choose from (a protected one shown with its
+        reason, not choosable) and the choice to delete the branch after merging (on by default)."""
+        from ... import branches as reading
+        state = self.state()
+        head = self.head()
+        wave = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied'), None)
+        protected = self.policy()['protected']
+        rows = [(name, tip) for kind, _, name, _, tip, *_ in self.refs() if kind == 'local' and reading._persons(name)
+                and not name.startswith(reading.ARCHIVED)]
+        target = (wave or {}).get('merge_into') or head['branch'] or state.get('branch')
+        return {'branch': (wave or {}).get('branch'), 'target': target, 'delete_after': True,
+                'targets': [{'name': name, 'short': tip[:7], 'blocked': self.blocked_target(name, protected, head)} for name, tip in rows]}
 
     # ------------------------------------------------------------------ reading
     def inventory(self, base=None):

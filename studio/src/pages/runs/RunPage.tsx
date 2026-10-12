@@ -10,11 +10,13 @@ import { Panel, Section, StateMessage } from '../../components/Panel'
 import { Sheet, SheetLead } from '../../components/Sheet'
 import { useToast } from '../../components/Toast'
 import { QuestionCard } from '../../command/Questions'
+import { SelectBox } from '../../command/SelectBox'
+import cmd from '../../command/command.module.css'
 import { useCmdWords } from '../../command/words'
 import { verbOf } from '../../data/actions/contract'
 import { duration, labelOf } from '../../data/actions/derive'
 import { useActions, useRun } from '../../data/actions/store'
-import { ActionError, TERMINAL, type Control, type Run } from '../../data/actions/types'
+import { ActionError, TERMINAL, type AcceptWhere, type Control, type Run } from '../../data/actions/types'
 import { useStudio } from '../../data/context'
 import { usePrefs } from '../../i18n/prefs'
 import { Id, Txt } from '../../i18n/text'
@@ -34,28 +36,39 @@ function useNow(on: boolean): number {
   return now
 }
 
+/** Accept or undo, behind an explicit confirm. Accept shows where it merges (one of the person's branches, the fix
+ * preview's choice first; a protected one shown with its reason, never choosable) and "delete the branch after
+ * merging", on by default: anything merged goes, so no EAOS branch is left forking. */
 function DecideSheet({ run, op, onClose, onDone }: { run: Run; op: 'accept' | 'undo' | null; onClose: () => void; onDone: (next: Run) => void }) {
   const { client } = useActions()
   const w = useCmdWords()
   const toast = useToast()
   const { lang } = usePrefs()
   const [token, setToken] = useState<string | null>(null)
+  const [merge, setMerge] = useState<AcceptWhere | null>(null)
+  const [target, setTarget] = useState<string>('')
+  const [remove, setRemove] = useState(true)
   const [problem, setProblem] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const branch = run.result?.branch ?? ''
   useEffect(() => {
-    setToken(null); setProblem(null); setBusy(false)
+    setToken(null); setProblem(null); setBusy(false); setMerge(null); setTarget(''); setRemove(true)
     if (!op || !client) return
     let on = true
-    client.preview(op, { inputs: {} }).then((p) => { if (on) setToken(p.confirm?.token ?? null) }, (e) => { if (on) setProblem(e instanceof ActionError ? e.message : String(e)) })
+    client.preview(op, { inputs: {} }).then((p) => {
+      if (!on) return
+      setToken(p.confirm?.token ?? null)
+      if (p.merge) { setMerge(p.merge); setTarget(p.merge.target ?? ''); setRemove(p.merge.delete_after) }
+    }, (e) => { if (on) setProblem(e instanceof ActionError ? e.message : String(e)) })
     return () => { on = false }
   }, [op, client])
   if (!op) return null
+  const blocked = merge?.targets.find((t) => t.name === target)?.blocked ?? null
   const decide = async () => {
     if (!client || !token) return
     setBusy(true)
     try {
-      const next = await client.decide(run.id, op, token)
+      const next = await client.decide(run.id, op, token, op === 'accept' ? { ...(target ? { merge_into: target } : {}), delete_after: remove } : undefined)
       toast(w('decided', { what: op === 'accept' ? w('outcomeAccepted') : w('outcomeUndone') }))
       onDone(next)
       onClose()
@@ -68,11 +81,28 @@ function DecideSheet({ run, op, onClose, onDone }: { run: Run; op: 'accept' | 'u
     <Sheet isOpen onOpenChange={(open) => { if (!open) onClose() }} title={w(op === 'accept' ? 'acceptTitle' : 'undoTitle', { branch })}>
       <SheetLead>{w(op === 'accept' ? 'acceptLead' : 'undoLead')}</SheetLead>
       <p className={css.decideBranch}><Id value={branch} /> · <Txt>{labelOf(run.label, lang)}</Txt></p>
+      {op === 'accept' && merge && (
+        <div className={cmd.form} data-accept="where">
+          <label className={cmd.field}>
+            <span className={cmd.fieldLabel}>{w('mergeTarget')}</span>
+            <select className={cmd.select} data-accept="target" value={target} onChange={(e) => setTarget(e.target.value)}>
+              {merge.targets.map((t) => (
+                <option key={t.name} value={t.name} disabled={Boolean(t.blocked)}>{t.blocked ? `${t.name} · ${t.blocked[lang]}` : `${t.name} · ${t.short}`}</option>
+              ))}
+            </select>
+          </label>
+          <div className={cmd.check} data-accept="delete-after">
+            <SelectBox checked={remove} label={w('deleteAfter')} onToggle={() => setRemove(!remove)} />
+            <span>{w('deleteAfter')}<span className={cmd.hint}>{w('deleteAfterHint')}</span></span>
+          </div>
+        </div>
+      )}
+      {blocked && <p className={cmd.pvWarn} role="note"><Txt>{blocked[lang]}</Txt></p>}
       {problem && <StateMessage kind="error" title={w('decideFailed')} sub={<Txt>{problem}</Txt>} />}
       <div className={css.decideFoot}>
         <Button variant="secondary" onPress={onClose}>{w('cancel')}</Button>
-        <Button variant="primary" busy={busy || (!token && !problem)} isDisabled={!token} onPress={decide} data-confirm="decide">
-          {w(op === 'accept' ? 'acceptYes' : 'undoYes')}
+        <Button variant="primary" busy={busy || (!token && !problem)} isDisabled={!token || Boolean(blocked)} onPress={decide} data-confirm="decide">
+          {op === 'accept' && target ? w('mergeIntoB', { b: target }) : w(op === 'accept' ? 'acceptYes' : 'undoYes')}
         </Button>
       </div>
     </Sheet>
@@ -179,6 +209,7 @@ function RunBody({ id }: { id: string }) {
             <Panel className={css.resultPanel} label={w('result')}>
               <h2 className={css.panelTitle}>{w('result')}</h2>
               <ResultFacts result={result} />
+              {result.landed_on && <p className={css.outcome} data-landed={result.landed_on}>{w('landedLead', { b: result.landed_on })}</p>}
               {branchWaiting && (
                 <div className={css.decide}>
                   <Button variant="primary" large icon="check" data-decide="accept" onPress={() => setDeciding('accept')}>{w('acceptBranch')}</Button>

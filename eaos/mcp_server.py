@@ -284,7 +284,9 @@ def build():
     @server.tool(annotations=working, description='Open a batch of fixes in an isolated copy: the next cards EAOS can fix (or the card ids '
                  'you pass), with their automatic fixes (codemods) applied and checked. Returns the cards left for you. Returns a job. '
                  'Optional, as the person set them in the fix preview: base (the branch to build on; default the branch EAOS works '
-                 'on), deliver_as (the new branch the fixes arrive on; default eaos/<branch>/wave-N), merge_into (the branch accept '
+                 'on), deliver_as (the new branch the fixes arrive on; default eaos/<branch>/wave-N; or an EAOS work branch '
+                 'waiting for a decision, to continue on it; or the base branch itself, direct: the fixes land on it once every '
+                 'check passed and no branch is left), merge_into (the branch accept '
                  'merges into; default the branch open in the project folder), base_commit (the commit the preview showed for base: '
                  'status base_moved when the branch moved since).')
     @_answer
@@ -327,10 +329,12 @@ def build():
 
     @server.tool(annotations=working, description='Take the waiting branch into the person\'s current branch (whenever they say take it '
                  'in, merge, or accept; never merge it with git yourself), then delete the branch and bring the report and the '
-                 'progress up to date, all in this call. Only after they said yes: person_agreed=true.')
+                 'progress up to date, all in this call. Only after they said yes: person_agreed=true. Optional, as the person '
+                 'chose: merge_into (the branch to merge into; default the one the fix preview named), delete_after (default '
+                 'true; false keeps the branch after merging).')
     @_answer
-    def accept(person_agreed: bool = False, project: str | None = None) -> str:
-        return tools.accept(project, person_agreed)
+    def accept(person_agreed: bool = False, project: str | None = None, merge_into: str | None = None, delete_after: bool = True) -> str:
+        return tools.accept(project, person_agreed, merge_into=merge_into, delete_after=delete_after)
 
     @server.tool(annotations=working, description='Leave a note for whoever continues this work (you after a break, or another '
                  'assistant when your usage limit runs out): what you found, what you decided, what you were about to do. One or '

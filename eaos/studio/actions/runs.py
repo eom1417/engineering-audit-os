@@ -355,6 +355,10 @@ class Manager:
         record = self.store.load(run)
         if not record.get('branches_before'):
             self.store.update(run, branches_before=sorted(self._waiting_branches()))
+        if not record.get('waves_before'):         # a batch continued on a waiting branch is new though its branch is not
+            from ... import guided
+            state = guided.load(self.project) or {}
+            self.store.update(run, waves_before={'branch': state.get('branch'), 'count': len(state.get('waves') or [])})
         verb = next((v for v in self.contract['verbs'] if v['id'] == record.get('verb')), None)
         tools = [tool for tool in verb['tools'] if tool not in adapters.PERSON_ONLY] if verb else None
         if record.get('owner_decision') or record.get('review'): tools = ['status', 'overview', 'finding', 'findings', 'impact', 'structure']
@@ -464,8 +468,10 @@ class Manager:
                                'what_now': {'en': 'Read the assistant\'s words for why, then try again or pick other cards.',
                                             'ar': 'اقرأ كلام المساعد لتعرف السبب، ثم أعد المحاولة أو اختر بطاقات ثانية.'}})
             return self.set_state(run, 'failed', 'nothing changed', result={**payload, 'nothing_changed': True})
-        self.store.append(run, 'result', {'en': 'Done' + (f": the branch {payload['branch']} waits for you" if payload.get('branch') else ''),
-                                          'ar': 'تم' + (f": الفرع {payload['branch']} ينتظرك" if payload.get('branch') else '')}, payload)
+        self.store.append(run, 'result', {'en': 'Done' + (f": the branch {payload['branch']} waits for you" if payload.get('branch') else
+                                                          f": the fixes are on {payload['landed_on']} itself" if payload.get('landed_on') else ''),
+                                          'ar': 'تم' + (f": الفرع {payload['branch']} ينتظرك" if payload.get('branch') else
+                                                        f": الإصلاحات صارت في {payload['landed_on']} نفسه" if payload.get('landed_on') else '')}, payload)
         self.set_state(run, 'done', result=payload)
         self._auto_accept(run, payload)
 
@@ -673,8 +679,18 @@ class Manager:
         record = self.store.load(run)
         state = guided.load(self.project) or {}
         before = set(record.get('branches_before') or [])
-        wave = next((w for w in reversed(state.get('waves') or []) if w.get('status') == 'applied' and w.get('branch') not in before), None)
+        seen, waves = record.get('waves_before'), state.get('waves') or []
+        fresh = (waves[seen.get('count') or 0:] if isinstance(seen, dict) and seen.get('branch') == state.get('branch')
+                 else [w for w in waves if w.get('branch') not in before])
+        wave = next((w for w in reversed(fresh) if w.get('status') == 'applied'), None)
+        # a direct batch: it landed on the base branch itself and left no branch
+        landed = None if wave else next((w for w in reversed(fresh) if w.get('direct') and w.get('status') == 'accepted'), None)
         out = {'branch': None, 'diff_stat': None, 'tests': None, 'cards_closed': [], 'indicators': [], 'answer': answer}
+        if landed:
+            kept = list(landed.get('kept') or [])
+            out.update(landed_on=landed.get('merge_into'), target=landed.get('merge_into'), cards_closed=kept,
+                       tests={'passed': bool(kept), 'summary': f"{len(kept)} change(s) passed every check; {len(landed.get('failed') or {})} left out",
+                              'left_out': {str(k): str(v)[:300] for k, v in (landed.get('failed') or {}).items()}})
         if wave:
             out['branch'] = wave['branch']
             out['branch_tip'] = subprocess.run(['git', '-C', str(self.project), 'rev-parse', '--verify', '--quiet', f"refs/heads/{wave['branch']}^{{commit}}"],
@@ -739,7 +755,7 @@ class Manager:
         if record.get('state') not in ('failed', 'stopped'): raise LookupError('only a run that failed or was stopped can be tried again')
         record = self.set_state(run, 'queued', 'tried again', attempt=(record.get('attempt') or 1) + 1, session=None, pid=None, job=None,
                                 question=None, queued_at=now(), mode='assistant' if record.get('assistant') else record.get('mode'),
-                                branches_before=None)
+                                branches_before=None, waves_before=None)
         self.store.set_queue(self.store.queue())
         return record
 

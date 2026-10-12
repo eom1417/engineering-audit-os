@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from eaos import agent_tools, branches, guided, ledger
+from eaos import agent_tools, branches, guided, ledger, live_setup
 from eaos.waves import commit as eaos_commit, plan as read_plan
 
 
@@ -171,6 +171,74 @@ class Branches(unittest.TestCase):
         guided.save(state)
         self.assertEqual(agent_tools.accept(str(self.project), person_agreed=True)['status'], 'accepted')
         self.assertEqual((git(self.project, 'show', 'release:fix.js'), git(self.project, 'rev-parse', 'develop')), ('// a fix', develop))
+
+    def ready_to_fix(self):
+        """develop chosen and checked, the person agreed, the app runs and its screens are recorded."""
+        self.choose('develop', self.project, 'develop please')
+        state = self.check()
+        state.update(consent={'run_and_fix': True}, setup={'commit': state['scanned_commit'], 'ok': True},
+                     safety={'commit': state['scanned_commit'], 'screens': 1, 'passed': 1})
+        guided.save(state)
+        live_setup.authorize(guided.source(state), guided.runtime_of(state), 'tester')
+
+    def batch(self, card, **where):
+        """One batch of `card` through the real jobs: its change made in the copy as an assistant would, every gate passing."""
+        agent_tools._fix_start_job(str(self.project), {'cards': [card], **where}, lambda *_: None)
+        state = guided.load(self.project)
+        wave = state['open_wave']
+        root = Path(wave['root'])
+        (root / f'{card}.js').write_text(f'// {card} fixed\n')
+        cards = {c['id']: c for c in read_plan(guided.report_of(state))['tasks']}
+        wave['kept'][card] = eaos_commit(root, cards[card], 'assistant')
+        guided.save(state)
+        with mock.patch('eaos.waves.gates', return_value=''), mock.patch('eaos.waves.original_checks', return_value={}), \
+                mock.patch('eaos.waves.batch_acceptance', side_effect=lambda report, chosen, root, collected=None: {c['id']: None for c in chosen}):
+            return agent_tools._fix_finish_job(str(self.project), {}, lambda *_: None)
+
+    def work_branches(self):
+        return sorted(set(git(self.project, 'for-each-ref', '--format=%(refname:short)', 'refs/heads/eaos/').split()) - {'eaos/wave-9'})
+
+    def test_a_group_continues_on_a_waiting_work_branch_and_one_accept_takes_both(self):
+        """The owner (2026-10-12): branches where features are built and never merged must not pile up; a group may go on
+        on the EAOS branch still waiting, on top of its commits."""
+        self.ready_to_fix()
+        first = self.batch('TASK-001')
+        self.assertEqual(first['branch'], 'eaos/develop/wave-1')
+        with mock.patch.object(agent_tools, '_start', return_value={'status': 'started'}) as started:
+            agent_tools.fix_start(str(self.project), cards=['TASK-002'], deliver_as='eaos/develop/wave-1')
+        self.assertEqual(started.call_args[0][2], {'cards': ['TASK-002'], 'deliver_as': 'eaos/develop/wave-1', 'merge_into': 'main'},
+                         'a waiting work branch is no refusal when the batch goes on it')
+        second = self.batch('TASK-002', deliver_as='eaos/develop/wave-1', merge_into='develop')
+        self.assertEqual((second['branch'], second['continued_on']), ('eaos/develop/wave-1', 'eaos/develop/wave-1'))
+        self.assertEqual(git(self.project, 'rev-parse', 'eaos/develop/wave-1~1'), guided.load(self.project)['waves'][0]['tip'],
+                         'the second batch is on top of the first')
+        self.assertEqual(self.work_branches(), ['eaos/develop/wave-1'])
+        self.assertEqual(agent_tools.accept(str(self.project), person_agreed=True)['status'], 'accepted')
+        self.assertEqual((git(self.project, 'show', 'develop:TASK-001.js'), git(self.project, 'show', 'develop:TASK-002.js')),
+                         ('// TASK-001 fixed', '// TASK-002 fixed'))
+        self.assertEqual([w['status'] for w in guided.load(self.project)['waves']], ['accepted', 'accepted'])
+        self.assertEqual(self.work_branches(), [])
+
+    def test_a_direct_group_lands_on_the_base_branch_and_leaves_no_branch(self):
+        self.ready_to_fix()
+        with self.assertRaises(ValueError): agent_tools.delivery({**guided.load(self.project), 'branch': 'main'}, 'main')
+        main = git(self.project, 'rev-parse', 'main')
+        done = self.batch('TASK-001', deliver_as='develop', merge_into='develop')
+        self.assertEqual((done['branch'], done['landed_on'], done['kept']), (None, 'develop', ['TASK-001']), done)
+        self.assertEqual(git(self.project, 'show', 'develop:TASK-001.js'), '// TASK-001 fixed')
+        self.assertEqual((self.work_branches(), git(self.project, 'rev-parse', 'main')), ([], main), 'no branch left, main untouched')
+        self.assertEqual(guided.load(self.project)['waves'][-1]['status'], 'accepted')
+        self.assertEqual(ledger.load(guided.load(self.project))['totals']['done'], 1)
+
+    def test_accept_merges_into_the_chosen_branch_and_keeps_the_branch_when_asked(self):
+        self.ready_to_fix()
+        git(self.project, 'branch', 'release', 'develop')
+        self.batch('TASK-001')
+        answer = agent_tools.accept(str(self.project), person_agreed=True, merge_into='release', delete_after=False)
+        self.assertEqual((answer['status'], answer['merged_into'], answer['branch_deleted']), ('accepted', 'release', False), answer)
+        self.assertEqual(git(self.project, 'show', 'release:TASK-001.js'), '// TASK-001 fixed')
+        agent_tools.status(str(self.project))
+        self.assertEqual(self.work_branches(), ['eaos/develop/wave-1'], 'kept, merged, after the next status too')
 
     def test_each_branch_keeps_its_own_check_progress_and_report(self):
         self.choose('develop', self.project, 'develop please')

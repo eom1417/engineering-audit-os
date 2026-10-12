@@ -1,6 +1,6 @@
 # Engineering Audit OS
 
-**[العربية](README.md)** · version **0.0.10** · status: **Pilot** (a trial, not a release) · [changelog](CHANGELOG.md) · [roadmap](ROADMAP.md)
+**[العربية](README.md)** · version **0.0.11** · status: **Pilot** (a trial, not a release) · [changelog](CHANGELOG.md) · [roadmap](ROADMAP.md)
 
 > **A full engineering review team, in one command.**
 > EAOS reads your project the way an architect, a code reviewer, a performance engineer and a tech lead would,

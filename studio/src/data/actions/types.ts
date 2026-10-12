@@ -63,6 +63,8 @@ export interface Question {
 
 export interface RunResult {
   branch: string | null
+  /** A Fix delivered directly: the base branch its fixes landed on (no branch is left to accept) */
+  landed_on?: string | null
   diff_stat: { files: number; insertions: number; deletions: number } | null
   tests: { passed: boolean | null; summary: string } | null
   cards_closed: string[]
@@ -148,12 +150,31 @@ export interface Preview {
   where?: FixWhere | null
   /** Fix only: this preview's confirmation carries the person's choice to accept the batch when its checks pass */
   auto_accept?: boolean
+  /** Accept only: the waiting branch, where it merges and the person's branches to choose from */
+  merge?: AcceptWhere | null
 }
+
+/** What Accept shows before merging (eaos/studio/actions/branches.py accept_where). */
+export interface AcceptWhere {
+  branch: string | null
+  target: string | null
+  delete_after: boolean
+  targets: { name: string; short: string; blocked: Reason | null }[]
+}
+
+/** The person's choice in the Accept sheet. */
+export interface AcceptChoice { merge_into?: string; delete_after?: boolean }
 
 /** A Fix preview's place (eaos/studio/actions/branches.py fix_where): every part editable; the base commit is pinned. */
 export interface FixWhere {
   base: { branch: string; commit: string; short: string; when: string | null; checked_out: boolean } | null
+  /** new: a new branch; continue: an EAOS work branch still waiting; direct: on the base branch itself */
+  mode: 'new' | 'continue' | 'direct'
   deliver_as: string | null
+  /** The EAOS work branches not merged yet that this group may continue on */
+  continuable: { name: string; short: string }[]
+  /** Why the fixes cannot land directly on the base (a protected branch), or null */
+  direct_blocked: Reason | null
   merge_into: string | null
   branches: { name: string; short: string; blocked: Reason | null }[]
   problem: Reason | null
@@ -209,7 +230,7 @@ export interface ActionsClient {
   answerDecision?(id: string, scope: string, option: string | null, text?: string): Promise<ReportDecision>
   questions(): Promise<Question[]>
   answer(question: string, option: string | null, text?: string | null): Promise<Run>
-  decide(id: string, op: 'accept' | 'undo', confirm: string): Promise<Run>
+  decide(id: string, op: 'accept' | 'undo', confirm: string, choice?: AcceptChoice): Promise<Run>
   /** Branch control and live freshness (live only: eaos/studio/actions/branches.py) */
   branches?: BranchApi
 }

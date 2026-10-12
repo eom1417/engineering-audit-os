@@ -903,7 +903,7 @@
        "null"
       ],
       "maxLength": 200,
-      "description": "The new branch the fixes arrive on; by default eaos/<branch>/wave-N."
+      "description": "The new branch the fixes arrive on; by default eaos/<branch>/wave-N. Or an EAOS work branch waiting for a decision: the batch continues on it. Or the base branch itself: direct, the fixes land on it once every check passed and no branch is left (never a protected branch)."
      },
      "merge_into": {
       "type": [
@@ -1145,8 +1145,8 @@
     "ar": "اعتمد الفرع"
    },
    "description": {
-    "en": "Merges the waiting branch into your current branch, deletes it, and updates the report and the progress.",
-    "ar": "يدمج الفرع المنتظر في فرعك الحالي، ويحذفه، ويحدّث التقرير والتقدم."
+    "en": "Merges the waiting branch into the branch you choose, deletes it unless you keep it, and updates the report and the progress.",
+    "ar": "يدمج الفرع المنتظر في الفرع اللي تختاره، ويحذفه إلا إذا اخترت تبقيه، ويحدّث التقرير والتقدم."
    },
    "mode": "direct",
    "needs_assistant": false,
@@ -1160,6 +1160,18 @@
     "properties": {
      "person_agreed": {
       "type": "boolean"
+     },
+     "merge_into": {
+      "type": [
+       "string",
+       "null"
+      ],
+      "maxLength": 200,
+      "description": "The branch to merge into; by default the one the fix preview named."
+     },
+     "delete_after": {
+      "type": "boolean",
+      "description": "Delete the branch after merging (default true); false keeps it."
      },
      "project": {
       "type": [

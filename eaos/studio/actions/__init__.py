@@ -60,6 +60,12 @@ def _where_of(where):
             'merge_into': where.get('merge_into')}
 
 
+def _group_name(selection):
+    """The name of the group a Fix was chosen as (an area, a component, ...): its new branch is named after it."""
+    group = (selection or {}).get('group') if isinstance(selection, dict) and selection.get('kind') == 'group' else None
+    return str((group or {}).get('value') or '') or None
+
+
 def _auto_accept(verb, inputs):
     """Whether the person chose, in a Fix preview, to accept the batch automatically when its checks pass."""
     return verb == 'fix' and (inputs or {}).get('auto_accept') is True
@@ -183,7 +189,7 @@ class Actions:
         return [adapter.detect() for adapter in self.adapters.values()]
 
     def public(self, record):
-        hidden = ('offset', 'pid', 'paused_pid', 'inputs_secret', 'branches_before')
+        hidden = ('offset', 'pid', 'paused_pid', 'inputs_secret', 'branches_before', 'waves_before')
         out = {key: value for key, value in record.items() if key not in hidden}
         try: out['work_branch'] = self.branches.work_branch(record)
         except Exception: out['work_branch'] = None
@@ -329,7 +335,7 @@ class Actions:
         if verb:
             cards, left = selecting.resolve(body.get('selection'), self._studio())
             out.update(selecting.preview_of(verb, cards, left, self._past(verb)))
-            if verb == 'fix' and self._has_commits(): out['where'] = self.branches.fix_where(body.get('where'))
+            if verb == 'fix' and self._has_commits(): out['where'] = self.branches.fix_where(body.get('where'), _group_name(body.get('selection')))
         else:
             spec = self.actions[action]
             low, high = (5, 30) if action == 'audit' else (10, 40) if action in ('run_setup', 'run_try', 'safety_net', 'fix_finish', 'build_finish') else (0, 1)
@@ -337,6 +343,7 @@ class Actions:
                        risk={'level': 'high' if spec['irreversible'] else 'medium' if spec['changes_code'] else 'low',
                              'why': spec['description'] if spec['description']['en'] else spec['label']},
                        on_failure=selecting.ON_FAILURE['fix' if spec['changes_code'] else 'read'])
+            if action == 'accept' and self._has_commits(): out['merge'] = self.branches.accept_where()
         from .prompts import build
         cards_detail = out['cards']
         prompt = build(verb, cards_detail, self.project, self.lang, action=action, inputs={} if verb else inputs, labels={k: v['label'] for k, v in self.actions.items()},
@@ -370,7 +377,7 @@ class Actions:
         where = None
         if verb == 'fix' and self._has_commits():
             asked = body.get('where') if isinstance(body.get('where'), dict) else {}
-            now_at = self.branches.fix_where(asked)
+            now_at = self.branches.fix_where(asked, _group_name(selection))
             where = _where_of(now_at)
             if asked.get('base_commit') and where['base_commit'] != asked['base_commit']:
                 raise Refused(409, f"the branch {where['base']} moved since the preview: preview again", needs='preview')
@@ -417,9 +424,22 @@ class Actions:
         newest = self.manager.newest_waiting()
         if newest != branch:
             raise LookupError(f'another branch ({newest}) waits after {branch}: decide that one first' if newest else f'{branch} is not waiting for a decision any more')
+        # Accept merges where the person chose in its sheet (one of their branches, never a protected one) and deletes the
+        # branch after merging unless they unticked it
+        chosen = {}
+        if operation == 'accept':
+            target = str(body.get('merge_into') or '').strip()
+            if target:
+                from .branches import valid_name
+                valid_name(self.project, target)
+                if not self.branches.tip(f'refs/heads/{target}'): raise LookupError(f'no branch named {target} to merge into')
+                reason = self.branches.blocked_target(target)
+                if reason: raise Refused(409, f"{target} is protected ({reason['en']}): choose another branch to merge into", reasons=[reason])
+                chosen['merge_into'] = target
+            if body.get('delete_after') is False: chosen['delete_after'] = False
         self.store.append(run, 'action', {'en': f'You chose to {operation} {branch}', 'ar': f"اخترت {'اعتماد' if operation == 'accept' else 'رمي'} {branch}"},
-                          {'action': operation, 'by': 'person', 'arguments': {'branch': branch}})
-        result = self.manager.call(operation, {'person_agreed': True} if operation == 'accept' else {})
+                          {'action': operation, 'by': 'person', 'arguments': {'branch': branch, **chosen}})
+        result = self.manager.call(operation, {'person_agreed': True, **chosen} if operation == 'accept' else {})
         ok = isinstance(result, dict) and not result.get('error') and result.get('status') == {'accept': 'accepted', 'undo': 'undone'}[operation]
         words = {'en': f"{'Taken in' if operation == 'accept' else 'Thrown away'}: {branch}" if ok else f"{operation} did not happen: {result.get('status') or result.get('error')}",
                  'ar': f"{'اعتُمد' if operation == 'accept' else 'رُمي'}: {branch}" if ok else f"ما تم: {result.get('status') or result.get('error')}"}

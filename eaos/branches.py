@@ -65,6 +65,14 @@ def default_branch(project):
     return next((name for name in ('main', 'master', 'trunk', 'develop') if name in local), checked_out(project))
 
 
+def protected(project, name):
+    """Why `name` takes no fix directly ('' when it may): main and master, and the remote's default branch. The Studio
+    adds the project's own policy (eaos/studio/actions/branches.py BranchControl.policy)."""
+    if name in ('main', 'master'): return 'the main branch'
+    done = _git(project, 'symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD')
+    return "the remote's default branch" if done.returncode == 0 and done.stdout.strip().split('/', 1)[-1] == name else ''
+
+
 def _persons(name):
     return not any(name == bot.rstrip('/') or name.startswith(bot) for bot in NOT_THE_PERSONS)
 

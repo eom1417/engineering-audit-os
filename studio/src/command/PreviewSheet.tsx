@@ -135,40 +135,78 @@ function InputsForm({ fields, required, values, onChange }:
   )
 }
 
-/** Where a Fix is built, the branch it arrives on and the branch Accept merges it into: each one editable, the base
- * with its short commit (the one the confirmation pins), a protected target shown but not choosable, with its reason. */
+/** Where a Fix is built and where its fixes arrive: on a new branch (named after the group, editable), on an EAOS
+ * branch still waiting for a decision (the fixes go on top of it), or directly on the base branch (built and checked in
+ * the isolated copy as always, landing on the base once every check passes; never a protected branch). The base comes
+ * with its short commit (the one the confirmation pins); a protected branch is shown with its reason, never choosable. */
 function WhereBlock({ where, onChange }: { where: FixWhere; onChange: (next: WhereChoice) => void }) {
   const w = useCmdWords()
   const { lang } = usePrefs()
-  const [name, setName] = useState(where.deliver_as ?? '')
-  useEffect(() => { setName(where.deliver_as ?? '') }, [where.deliver_as])
+  const base = where.base?.branch ?? ''
+  const mode = where.mode ?? 'new'
+  const [name, setName] = useState(mode === 'new' ? where.deliver_as ?? '' : '')
+  useEffect(() => { if (mode === 'new') setName(where.deliver_as ?? '') }, [where.deliver_as, mode])
+  // an empty deliver_as asks the server for the default name again (the group's, else wave-N)
+  const pick = (next: string) => {
+    if (next === mode) return
+    if (next === 'direct') onChange({ deliver_as: base })
+    else if (next === 'continue') onChange({ deliver_as: where.continuable[0]?.name ?? '' })
+    else onChange({ deliver_as: '' })
+  }
+  const options = [
+    { id: 'new', label: w('modeNew') },
+    ...(where.continuable.length ? [{ id: 'continue', label: w('modeContinue') }] : []),
+    ...(!where.direct_blocked && base ? [{ id: 'direct', label: w('modeDirect', { b: base }) }] : []),
+  ]
   return (
     <Block title={w('where')}>
       <div className={css.form} data-where="block">
         <label className={css.field}>
           <span className={css.fieldLabel}>{w('buildOn')}</span>
-          <select className={css.select} data-where="base" value={where.base?.branch ?? ''} onChange={(e) => onChange({ base: e.target.value })}>
-            {where.branches.map((b) => <option key={b.name} value={b.name}>{`${b.name} · ${b.short}`}</option>)}
-          </select>
-          {where.base && <span className={css.hint}><bdi dir="ltr">{where.base.short}</bdi>{where.base.checked_out ? ` · ${w('openInFolder')}` : ` · ${w('notOpenBase')}`}</span>}
-        </label>
-        <TextField className={css.field} value={name} onChange={setName}>
-          <Label className={css.fieldLabel}>{w('deliverAs')}</Label>
-          <Input className={css.input} dir="ltr" data-where="deliver" />
-        </TextField>
-        {name.trim() && name.trim() !== where.deliver_as && (
-          <Button variant="secondary" icon="eye" onPress={() => onChange({ deliver_as: name.trim() })}>{w('updatePreview')}</Button>
-        )}
-        <label className={css.field}>
-          <span className={css.fieldLabel}>{w('mergeInto')}</span>
-          <select className={css.select} data-where="target" value={where.merge_into ?? ''} onChange={(e) => onChange({ merge_into: e.target.value })}>
+          <select className={css.select} data-where="base" value={base} onChange={(e) => onChange({ base: e.target.value, deliver_as: '' })}>
             {where.branches.map((b) => (
-              <option key={b.name} value={b.name} disabled={Boolean(b.blocked) && b.name !== where.merge_into}>
-                {b.blocked ? `${b.name} · ${b.blocked[lang]}` : b.name}
+              <option key={b.name} value={b.name} disabled={Boolean(b.blocked) && b.name !== base}>
+                {b.blocked ? `${b.name} · ${b.blocked[lang]}` : `${b.name} · ${b.short}`}
               </option>
             ))}
           </select>
+          {where.base && <span className={css.hint}><bdi dir="ltr">{where.base.short}</bdi>{where.base.checked_out ? ` · ${w('openInFolder')}` : ` · ${w('notOpenBase')}`}</span>}
         </label>
+        <Segmented label={w('deliverMode')} value={mode} onChange={pick} comfortable options={options} />
+        {mode === 'new' && (
+          <>
+            <TextField className={css.field} value={name} onChange={setName}>
+              <Label className={css.fieldLabel}>{w('deliverAs')}</Label>
+              <Input className={css.input} dir="ltr" data-where="deliver" />
+              <span className={css.hint}>{w('modeNewHint')}</span>
+            </TextField>
+            {name.trim() && name.trim() !== where.deliver_as && (
+              <Button variant="secondary" icon="eye" onPress={() => onChange({ deliver_as: name.trim() })}>{w('updatePreview')}</Button>
+            )}
+          </>
+        )}
+        {mode === 'continue' && (
+          <label className={css.field}>
+            <span className={css.fieldLabel}>{w('continueOn')}</span>
+            <select className={css.select} data-where="continue" value={where.deliver_as ?? ''} onChange={(e) => onChange({ deliver_as: e.target.value })}>
+              {where.continuable.map((b) => <option key={b.name} value={b.name}>{`${b.name} · ${b.short}`}</option>)}
+            </select>
+            <span className={css.hint}>{w('modeContinueHint')}</span>
+          </label>
+        )}
+        {mode === 'direct' ? <p className={css.pvNote} data-where="direct">{w('modeDirectHint', { b: base })}</p> : (
+          <label className={css.field}>
+            <span className={css.fieldLabel}>{w('mergeInto')}</span>
+            <select className={css.select} data-where="target" value={where.merge_into ?? ''} onChange={(e) => onChange({ merge_into: e.target.value })}>
+              {where.branches.map((b) => (
+                <option key={b.name} value={b.name} disabled={Boolean(b.blocked) && b.name !== where.merge_into}>
+                  {b.blocked ? `${b.name} · ${b.blocked[lang]}` : b.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {where.direct_blocked && mode !== 'direct' && <p className={css.hint}><Txt>{where.direct_blocked[lang]}</Txt></p>}
         {where.problem && <p className={css.pvWarn} role="note"><Txt>{where.problem[lang]}</Txt></p>}
       </div>
     </Block>
