@@ -170,40 +170,51 @@ def fact_index_of(sets):
     return index
 
 
-def build_claims(sets, records, load_record=None, target=None):
+def _gathered_claims(sets, records, load_record, target):
+    """Every claim before merging: from the facts, the load model and the legacy records."""
     rows = ledger.from_facts(sets, target=target)
     if load_record:
         rows += ledger.from_load_model({'load_model': load_record}, len(rows))
     if records['findings'] or records['architecture']:
         rows += ledger.from_legacy(records['findings'], records['architecture'] or {}, records['flows'],
                                    records['coverage'], (records['state'] or {}).get('revision'))
+    return rows
+
+
+def _settle_claim(row, fact_index):
+    """A numbered claim's origin, the artifact that shows it, and a disposition when it asserts a problem."""
+    row['origin'] = origin_of(row, fact_index)
+    row.setdefault('artifacts', [BRIEF if asserts_a_problem(row) else (detail_artifact(row) or 'SYSTEM-MAP.md')])
+    if asserts_a_problem(row) and (row.get('disposition') or {}).get('kind') in (None, 'none_yet'):
+        row['disposition'] = {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'}
+
+
+def _assess_mechanically(rows, sets, target):
+    from .mechanical_assessment import build_assessment as mechanical
+    for row in rows:
+        built = mechanical(row, sets, target)
+        if built: row['assessment'], row['checks'] = built['assessment'], built['checks']
+
+
+def build_claims(sets, records, load_record=None, target=None):
+    rows = _gathered_claims(sets, records, load_record, target)
     fact_index = fact_index_of(sets)
     # A claim from a detector under its measured precision bar is set aside before numbering: it is never
     # shown, planned or counted, and the precision set (tools/precision.py) still reads it.
     rows, withheld = ledger.withhold(ledger.merge(rows))
     rows = ledger.renumber(rows)
     for number, row in enumerate(withheld, start=1): row['id'] = 'WHD-%03d' % number
-    for row in rows:
-        row['origin'] = origin_of(row, fact_index)
-        row.setdefault('artifacts', [BRIEF if asserts_a_problem(row) else (detail_artifact(row) or 'SYSTEM-MAP.md')])
-        if asserts_a_problem(row) and (row.get('disposition') or {}).get('kind') in (None, 'none_yet'):
-            row['disposition'] = {'kind': 'investigate', 'reason': 'Ranked for review; no owner assigned yet in this run.'}
+    for row in rows: _settle_claim(row, fact_index)
     # After numbering and origin are settled: a confirmed product observation whose evidence is mechanical
     # carries a ready repair under its family's engagement rule (eaos/mechanical_assessment.py).
-    if target is not None:
-        from .mechanical_assessment import build_assessment as mechanical
-        for row in rows:
-            built = mechanical(row, sets, target)
-            if built: row['assessment'], row['checks'] = built['assessment'], built['checks']
+    if target is not None: _assess_mechanically(rows, sets, target)
     return rows, fact_index, withheld
 
 
-def brief(target, dossier, language):
-    document = Document(Document('', language).words['decision_brief'], language, budget_lines=120)
-    words = document.words
+def _brief_header(target, dossier, words):
     coverage = dossier['coverage']
     counts = dossier['claim_counts']
-    document.header([
+    return [
         f"{target}  ·  {dossier['provenance']['generated_at']}  ·  eaos {dossier['provenance']['tool_version']}",
         f"{words['coverage']}: {coverage['files_parsed']}/{coverage['source_files']} "
         f"({round(coverage['parse_coverage'] * 100)}%) · internal imports resolved "
@@ -214,7 +225,34 @@ def brief(target, dossier, language):
         + f" · runtime-confirmed {coverage['runtime_confirmation']}",
         '⬤ %d · ◐ %d · ○ %d · ؟ %d' % (counts.get('CONFIRMED', 0), counts.get('LIKELY', 0), counts.get('HYPOTHESIS', 0), len(dossier['questions'])),
         f"model calls: {dossier['provenance']['model_calls']}",
-    ])
+    ]
+
+
+ORIGIN_TAGS = {('test', True): ' [كود اختبارات]', ('test', False): ' [test code]',
+               ('archive', True): ' [كود مؤرشف]', ('archive', False): ' [archived code]'}
+
+
+def _brief_row(claim, language):
+    return [claim['id'], shorten(statement_of(claim, language), 150) + ORIGIN_TAGS.get((claim.get('origin'), language == 'ar'), ''),
+            MARKER[claim['confidence']] + ' ' + claim['confidence'],
+            shorten(impact_of(claim, language), 120),
+            f"[{detail_artifact(claim) or 'dossier.json'}]({detail_artifact(claim) or 'dossier.json'})"]
+
+
+def _do_now(dossier, top, language):
+    """The first three tasks, else the first three ranked claims with where to read them."""
+    return ([f"{task['id']} — {task.get('kind', 'legacy')}: "
+             f"{statement_of({'statement': task['title'], 'render': task.get('render')}, language)[:120]}"
+             for task in dossier['tasks'][:3]] or
+            [claim['id'] + ' — ' + shorten(statement_of(claim, language), 120)
+             + f" → [{detail_artifact(claim) or 'PLAN/'}]({detail_artifact(claim) or 'PLAN/WAVES.md'})" for claim in top[:3]])
+
+
+def brief(target, dossier, language):
+    document = Document(Document('', language).words['decision_brief'], language, budget_lines=120)
+    words = document.words
+    coverage = dossier['coverage']
+    document.header(_brief_header(target, dossier, words))
     document.section('ما هذا النظام' if language == 'ar' else 'What this system is')
     document.text(dossier['description'])
     document.section('ملاحظات تستحق المراجعة' if language == 'ar' else 'Observations for review')
@@ -223,25 +261,13 @@ def brief(target, dossier, language):
     top = [c for c in ranked if c['claim_type'] in {'risk', 'cause', 'structure'} or (c.get('impact') or {}).get('scenario')][:5]
     document.table(['#', 'الادعاء' if language == 'ar' else 'Claim', 'الثقة' if language == 'ar' else 'Confidence',
                     'الأثر' if language == 'ar' else 'Impact', 'التفصيل' if language == 'ar' else 'Detail'],
-                   [[claim['id'], shorten(statement_of(claim, language), 150)
-                     + (' [كود اختبارات]' if language == 'ar' and claim.get('origin') == 'test'
-                        else ' [test code]' if claim.get('origin') == 'test'
-                        else ' [كود مؤرشف]' if language == 'ar' and claim.get('origin') == 'archive'
-                        else ' [archived code]' if claim.get('origin') == 'archive' else ''),
-                     MARKER[claim['confidence']] + ' ' + claim['confidence'],
-                     shorten(impact_of(claim, language), 120),
-                     f"[{detail_artifact(claim) or 'dossier.json'}]({detail_artifact(claim) or 'dossier.json'})"]
-                    for claim in top])
+                   [_brief_row(claim, language) for claim in top])
     from .decisions import decide
     decisions = [decide(claim) for claim in ranked]
     document.bullets([('القرارات: ' if language == 'ar' else 'Decisions: ') +
                       ', '.join(f"{kind}: {sum(d['kind'] == kind for d in decisions)}" for kind in ('repair', 'investigate', 'retain'))])
     document.section('افعل الآن' if language == 'ar' else 'Do now')
-    document.bullets([f"{task['id']} — {task.get('kind', 'legacy')}: "
-                      f"{statement_of({'statement': task['title'], 'render': task.get('render')}, language)[:120]}"
-                      for task in dossier['tasks'][:3]] or
-                     [claim['id'] + ' — ' + shorten(statement_of(claim, language), 120)
-                      + f" → [{detail_artifact(claim) or 'PLAN/'}]({detail_artifact(claim) or 'PLAN/WAVES.md'})" for claim in top[:3]])
+    document.bullets(_do_now(dossier, top, language))
     document.section('لا تفعل (الآن)' if language == 'ar' else 'Do not do (yet)')
     document.bullets(dossier['do_not'])
     document.section('أسئلة مفتوحة' if language == 'ar' else 'Open questions')
@@ -436,10 +462,9 @@ def flows_document(dossier, sets, language):
     words = Document('', language).words
     document = Document(words['flows'], language, budget_lines=300)
     document.header([words['flow_note']])
-    informative = {'local', 'imported'}
     rows = sorted((f['value'] for f in sets['flows']['facts']),
                   key=lambda flow: (-len({step['to_path'] for step in flow['steps']
-                                          if step['resolution'] in informative and step['to_path']}),
+                                          if step['resolution'] in INFORMATIVE_STEPS and step['to_path']}),
                                     flow['flow_id']))
     if not rows:
         document.text(words['no_rows'])
@@ -450,31 +475,40 @@ def flows_document(dossier, sets, language):
     document.section(words['coverage'])
     document.table([words['flows'], 'steps', 'unresolved', 'stop at first boundary'],
                    [[len(rows), summary['total_steps'], summary['unresolved_steps'], len(shallow)]])
-    if shallow:
-        document.text(('هذه المداخل لم يصل تتبعها إلى كود آخر داخل المشروع (توزيع ديناميكي أو استدعاءات مكتبة فقط): '
-                       if language == 'ar' else
-                       'These entry points reach no further code in the project (dynamic dispatch or library calls only): ')
-                      + ', '.join(f"{flow['entry']['path']}:{flow['entry']['line']}" for flow in shallow[:8])
-                      + (' …' if len(shallow) > 8 else ''))
-    for flow in rows[:12]:
-        entry = flow['entry']
-        document.section(f"{flow['flow_id']} — {entry['surface']} {entry['http_method'] or ''} {entry['route']}".strip(), level=2)
-        document.bullets([f"{words['entry']}: {entry['path']}:{entry['line']} [{entry['framework']}]",
-                          f"{words['handler']}: {entry['handler']}",
-                          f"{words['touched']}: {', '.join(flow['touched_files'])}",
-                          (f"{words['env']}: {', '.join(flow['environment_reads'])}" if flow['environment_reads'] else None)])
-        # Calls into the codebase carry the behaviour; framework plumbing is counted, not listed.
-        traced = [step for step in flow['steps'] if step['resolution'] in informative]
-        plumbing = len(flow['steps']) - len(traced)
-        document.table([words['step'], words['call'], words['location'], words['resolution']],
-                       [[step['from'], step['callee'],
-                         f"{step['to_path'] or step['from_path']}:{step['line']}", step['resolution']]
-                        for step in traced], limit=12)
-        if plumbing:
-            document.text(f"+{plumbing} library or method calls on this path (in the fact records)"
-                          if language != 'ar' else
-                          f"+{plumbing} استدعاء مكتبة أو دالة عضو على هذا المسار (في سجلات الحقائق)")
+    if shallow: document.text(_shallow_note(shallow, language))
+    for flow in rows[:12]: _flow_section(document, words, flow, language)
     return document
+
+
+INFORMATIVE_STEPS = {'local', 'imported'}
+
+
+def _shallow_note(shallow, language):
+    return (('هذه المداخل لم يصل تتبعها إلى كود آخر داخل المشروع (توزيع ديناميكي أو استدعاءات مكتبة فقط): '
+             if language == 'ar' else
+             'These entry points reach no further code in the project (dynamic dispatch or library calls only): ')
+            + ', '.join(f"{flow['entry']['path']}:{flow['entry']['line']}" for flow in shallow[:8])
+            + (' …' if len(shallow) > 8 else ''))
+
+
+def _flow_section(document, words, flow, language):
+    entry = flow['entry']
+    document.section(f"{flow['flow_id']} — {entry['surface']} {entry['http_method'] or ''} {entry['route']}".strip(), level=2)
+    document.bullets([f"{words['entry']}: {entry['path']}:{entry['line']} [{entry['framework']}]",
+                      f"{words['handler']}: {entry['handler']}",
+                      f"{words['touched']}: {', '.join(flow['touched_files'])}",
+                      (f"{words['env']}: {', '.join(flow['environment_reads'])}" if flow['environment_reads'] else None)])
+    # Calls into the codebase carry the behaviour; framework plumbing is counted, not listed.
+    traced = [step for step in flow['steps'] if step['resolution'] in INFORMATIVE_STEPS]
+    plumbing = len(flow['steps']) - len(traced)
+    document.table([words['step'], words['call'], words['location'], words['resolution']],
+                   [[step['from'], step['callee'],
+                     f"{step['to_path'] or step['from_path']}:{step['line']}", step['resolution']]
+                    for step in traced], limit=12)
+    if plumbing:
+        document.text(f"+{plumbing} library or method calls on this path (in the fact records)"
+                      if language != 'ar' else
+                      f"+{plumbing} استدعاء مكتبة أو دالة عضو على هذا المسار (في سجلات الحقائق)")
 
 
 def domain_document(dossier, sets, language):
@@ -566,13 +600,7 @@ def refresh_views(out, language='ar'):
     # A claim added after assembly — by the semantic pass or by a later probe — must be ranked too,
     # or it sorts at zero and lands wherever the list happens to put it.
     from .ranking import rank
-    for claim in dossier['claims']:
-        claim.setdefault('artifacts', [BRIEF if asserts_a_problem(claim) else (detail_artifact(claim) or 'SYSTEM-MAP.md')])
-        if needs_a_disposition(claim) and (claim.get('disposition') or {}).get('kind') in (None, 'none_yet'):
-            claim['disposition'] = {'kind': 'investigate',
-                                    'reason': ('Not established yet; decide it before acting on it.'
-                                               if claim.get('confidence') in {'HYPOTHESIS', 'LIKELY'}
-                                               else 'Ranked for review; no owner assigned yet in this run.')}
+    for claim in dossier['claims']: _settle_disposition(claim)
     dossier['claims'] = rank(dossier['claims'], sets, fact_index_of(sets))
     counts = {}
     for claim in dossier['claims']: counts[claim['confidence']] = counts.get(claim['confidence'], 0) + 1
@@ -580,17 +608,7 @@ def refresh_views(out, language='ar'):
     if verification and verification.get('executed'):
         dossier['coverage']['runtime_confirmation'] = sum(
             1 for claim in dossier['claims'] if {'test_evidence', 'runtime_probe'} & set(claim.get('method', [])))
-    semantic_ran = any('model_inference' in claim.get('method', []) for claim in dossier['claims'])
-    dossier['coverage']['not_examined'] = [note for note in dossier['coverage']['not_examined']
-                                           if not (semantic_ran and note.startswith('semantic review'))]
-    if semantic_ran:
-        dossier['questions'] = [question for question in dossier['questions']
-                                if not question['question'].startswith('No semantic review was run')]
-        # The one-line description also claimed nothing had been interpreted.
-        dossier['description'] = dossier['description'].replace(
-            '○ Responsibilities and contracts are not assessed in a facts-only run.',
-            f'○ {semantic_claims(dossier)} responsibility and contract claims come from model inference '
-            'and none is confirmed by inference alone.')
+    _note_semantic(dossier)
     from .decisions import decide, identity
     for claim in dossier['claims']: claim.setdefault('uid', identity(claim))
     dossier['decisions'] = [decide(claim) for claim in dossier['claims']]
@@ -600,6 +618,31 @@ def refresh_views(out, language='ar'):
     (out / 'README.md').write_text(index_document(target, dossier, sets, verification, language).render(), encoding='utf-8')
     return {'out': str(out), 'claims': len(dossier['claims']), 'tasks': len(dossier.get('tasks', [])),
             'refreshed': [BRIEF, 'RISK-REGISTER.md', 'README.md']}
+
+
+def _settle_disposition(claim):
+    """A claim added after assembly gets the artifact that shows it and, when it needs one, a disposition."""
+    claim.setdefault('artifacts', [BRIEF if asserts_a_problem(claim) else (detail_artifact(claim) or 'SYSTEM-MAP.md')])
+    if needs_a_disposition(claim) and (claim.get('disposition') or {}).get('kind') in (None, 'none_yet'):
+        claim['disposition'] = {'kind': 'investigate',
+                                'reason': ('Not established yet; decide it before acting on it.'
+                                           if claim.get('confidence') in {'HYPOTHESIS', 'LIKELY'}
+                                           else 'Ranked for review; no owner assigned yet in this run.')}
+
+
+def _note_semantic(dossier):
+    """Once the semantic review ran, the notes saying it did not are taken out of the dossier."""
+    semantic_ran = any('model_inference' in claim.get('method', []) for claim in dossier['claims'])
+    dossier['coverage']['not_examined'] = [note for note in dossier['coverage']['not_examined']
+                                           if not (semantic_ran and note.startswith('semantic review'))]
+    if not semantic_ran: return
+    dossier['questions'] = [question for question in dossier['questions']
+                            if not question['question'].startswith('No semantic review was run')]
+    # The one-line description also claimed nothing had been interpreted.
+    dossier['description'] = dossier['description'].replace(
+        '○ Responsibilities and contracts are not assessed in a facts-only run.',
+        f'○ {semantic_claims(dossier)} responsibility and contract claims come from model inference '
+        'and none is confirmed by inference alone.')
 
 
 # The counted steps of assemble(): the structural map, the claims, their ranking, the dossier, the documents.
