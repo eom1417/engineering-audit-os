@@ -12,22 +12,25 @@ def _registry_for(py, names):
     best = None
     for rel, assigns in py.assigns.items():
         for var, node in assigns.items():
-            value = node.value
-            if not isinstance(value, ast.Dict) or len(value.keys) < 3: continue
-            keys = {}
-            for key, item in zip(value.keys, value.values):
-                label = _str(key) if key is not None else None
-                if label is None or not isinstance(item, ast.Name): continue
-                keys[label] = (item, key.lineno)
-            for sub in ast.walk(py.trees[rel]):   # REGISTRY.update(a=a, b=b)
-                if (isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and sub.func.attr == 'update'
-                        and isinstance(sub.func.value, ast.Name) and sub.func.value.id == var):
-                    for keyword in sub.keywords:
-                        if keyword.arg and isinstance(keyword.value, ast.Name): keys[keyword.arg] = (keyword.value, sub.lineno)
+            if not isinstance(node.value, ast.Dict) or len(node.value.keys) < 3: continue
+            keys = _registry_keys(py, rel, var, node.value)
             share = len(set(keys) & set(names)) / max(len(names), 1)
             if share >= 0.6 and (best is None or share > best[0]):
                 best = (share, rel, var, node, keys)
     return best
+
+
+def _registry_keys(py, rel, var, value):
+    """{key: (the function's name node, line)} of a registry dict, with the keys a later REGISTRY.update(a=a) adds."""
+    keys = {}
+    for key, item in zip(value.keys, value.values):
+        label = _str(key) if key is not None else None
+        if label is not None and isinstance(item, ast.Name): keys[label] = (item, key.lineno)
+    for sub in ast.walk(py.trees[rel]):
+        if (isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and sub.func.attr == 'update'
+                and isinstance(sub.func.value, ast.Name) and sub.func.value.id == var):
+            keys.update({k.arg: (k.value, sub.lineno) for k in sub.keywords if k.arg and isinstance(k.value, ast.Name)})
+    return keys
 
 
 def _drivers(py, list_rel, list_var):
@@ -81,7 +84,7 @@ def declared_lists(py, out):
                              and _root(call.func) == target
                              for _, _, fn, _, target in drivers for call in ast.walk(fn) if target)
                 sequence = not dag and all(r['functions'] for r in rows) and called
-                if dag: _declared_dag(py, rel, var, node, rows, drivers, out)
+                if dag: _declared_dag(py, (rel, var, node), rows, drivers, out)
                 elif sequence: _declared_sequence(py, rel, var, node, rows, drivers, out)
 
 
@@ -132,33 +135,50 @@ def _declared_routes(py, rel, found, by_label):
                               'unhandled': []})
 
 
-def _declared_dag(py, rel, var, node, rows, drivers, out):
+def _declared_dag(py, declared, rows, drivers, out):
+    """A module-level list of stage records with requirements between them (`declared`: its file, name and node)."""
+    rel, var, node = declared
     names = [r['label'] for r in rows]
     driver = drivers[0] if drivers else None
     entry = site(driver[0], driver[2].lineno, py.line(driver[0], driver[2].lineno)) if driver else site(rel, node.lineno, py.line(rel, node.lineno))
     found = Found(f'{rel}:{var}', f'{var} ({rel})', 'declared_dag', entry, [site(rel, node.lineno, py.line(rel, node.lineno))])
     registry = _registry_for(py, names)
-    by_label = {}
-    for row in rows:
-        where = site(rel, row['line'], py.line(rel, row['line']))
-        target = None
-        if registry and row['label'] in registry[4]:
-            function = py.resolve(registry[1], registry[4][row['label']][0].id)
-            if function: target = function
-        if target:
-            where = site(target[0], target[1].lineno, py.line(target[0], target[1].lineno))
-        key = found.stage(row['label'], where, symbol=f"{target[0][:-3].replace('/', '.')}.{target[1].name}" if target else None,
-                          optional=row['optional'])
-        stage = found.stages[key]
-        stage['outputs'] = [{'name': name, 'kind': 'artifact', 'shape': None} for name in row['produces']]
-        by_label[row['label']] = (key, row, target)
-        if target:
-            found.functions.add((target[0], target[1].name))
-            describe(py, target[0], target[1], stage)
-        if row['timeout']: stage['timeout'] = True   # a time or cost budget declared on the stage's record
-        if row['ai']:
-            stage['kind'] = 'ai'
-            stage['marks'] = sorted(set(stage['marks']) | {'ai', 'slow'})
+    by_label = {row['label']: _dag_stage(py, found, rel, row, registry) for row in rows}
+    _dag_edges(py, found, rel, by_label)
+    if driver: _driver_controls(py, found, driver)
+    if registry: _registry_router(py, found, registry, by_label, names)
+    else:
+        for label, (key, _, _) in by_label.items():
+            found.unresolved.append({'id': f'{key}:runner', 'pipeline': found.id, 'stage': key, 'call': label,
+                                     'reason': 'no registry maps this stage to the function that runs it',
+                                     'evidence': found.stages[key]['entry']})
+    _declared_routes(py, rel, found, by_label)
+    _context_channels(py, found, [(t[0], t[1]) for _, _, t in by_label.values() if t])
+    out.append(found)
+
+
+def _dag_stage(py, found, rel, row, registry):
+    """One stage record as a stage, at the function the registry runs for it when there is one: (key, row, function)."""
+    target = None
+    if registry and row['label'] in registry[4]:
+        target = py.resolve(registry[1], registry[4][row['label']][0].id) or None
+    where = site(target[0], target[1].lineno, py.line(target[0], target[1].lineno)) if target else site(rel, row['line'], py.line(rel, row['line']))
+    key = found.stage(row['label'], where, symbol=f"{target[0][:-3].replace('/', '.')}.{target[1].name}" if target else None,
+                      optional=row['optional'])
+    stage = found.stages[key]
+    stage['outputs'] = [{'name': name, 'kind': 'artifact', 'shape': None} for name in row['produces']]
+    if target:
+        found.functions.add((target[0], target[1].name))
+        describe(py, target[0], target[1], stage)
+    if row['timeout']: stage['timeout'] = True   # a time or cost budget declared on the stage's record
+    if row['ai']:
+        stage['kind'] = 'ai'
+        stage['marks'] = sorted(set(stage['marks']) | {'ai', 'slow'})
+    return key, row, target
+
+
+def _dag_edges(py, found, rel, by_label):
+    """An edge from each required stage, carrying the first artifacts it produces."""
     for label, (key, row, _) in by_label.items():
         for need in row['requires']:
             if need not in by_label: continue
@@ -168,52 +188,56 @@ def _declared_dag(py, rel, var, node, rows, drivers, out):
                                             if a not in {i['name'] for i in found.stages[key]['inputs']}]
             found.edge(source[0], key, 'declared', site(rel, row['line'], py.line(rel, row['line'])), names=artifacts[:3],
                        shape='files' if artifacts else None)
-    for fn_rel, fn_name, fn_node, loop, _ in drivers:
-        found.functions.add((fn_rel, fn_name))
-        found.control.append({'id': f'{found.id}:loop', 'pipeline': found.id, 'stage': found.order[0], 'kind': 'loop',
-                              'condition': _unparse(loop.iter if isinstance(loop, ast.For) else loop, 60),
-                              'evidence': site(fn_rel, loop.lineno, py.line(fn_rel, loop.lineno))})
-        if isinstance(loop, ast.For):
-            for sub in loop.body:
-                if isinstance(sub, ast.If) and any(isinstance(s, ast.Continue) for s in sub.body):
-                    found.control.append({'id': f'{found.id}:skip:{sub.lineno}', 'pipeline': found.id, 'stage': found.order[0],
-                                          'kind': 'conditional_skip', 'condition': _unparse(sub.test),
-                                          'evidence': site(fn_rel, sub.lineno, py.line(fn_rel, sub.lineno))})
-        _error_lanes(py, fn_rel, fn_node, found)
-        break
-    if registry:
-        share, reg_rel, reg_var, reg_node, keys = registry
-        router_key = found.stage(reg_var, site(reg_rel, reg_node.lineno, py.line(reg_rel, reg_node.lineno)), kind='router',
-                                 symbol=f"{reg_rel[:-3].replace('/', '.')}.{reg_var}")
-        lookup = _lookup(py, reg_var)
-        if lookup: _error_lanes(py, lookup[0], lookup[1], found); found.functions.add((lookup[0], lookup[1].name))
-        branches = []
-        for label, (item, line) in keys.items():
-            to = by_label.get(label, (None,))[0]
-            branches.append({'condition': label, 'to': to, 'evidence': site(reg_rel, line, py.line(reg_rel, line))})
-            if to is None:
-                found.hidden.append({'id': f'{found.id}:dead:{slug(label)}', 'pipeline': found.id, 'kind': 'dead_stage',
-                                     'channel': None, 'name': label, 'stages': [router_key],
-                                     'evidence': site(reg_rel, line, py.line(reg_rel, line))})
-        has_default = bool(lookup) and any(isinstance(s, ast.Compare) and any(isinstance(o, (ast.Is, ast.Eq)) for o in s.ops)
-                                           and any(isinstance(c, ast.Constant) and c.value is None for c in s.comparators)
-                                           for s in ast.walk(lookup[1]))
-        missing = [name for name in names if name not in keys]
-        found.routers.append({'id': f'{found.id}:{slug(reg_var)}', 'pipeline': found.id, 'stage': router_key, 'kind': 'registry',
-                              'table': reg_var, 'on': 'stage name',
-                              'entry': site(lookup[0], lookup[2], py.line(lookup[0], lookup[2])) if lookup else
-                              site(reg_rel, reg_node.lineno, py.line(reg_rel, reg_node.lineno)),
-                              'branches': branches, 'total': not missing, 'default': 'failed' if has_default else None,
-                              'unhandled': missing})
-        found.functions.add((reg_rel, reg_var))
-    else:
-        for label, (key, _, _) in by_label.items():
-            found.unresolved.append({'id': f'{key}:runner', 'pipeline': found.id, 'stage': key, 'call': label,
-                                     'reason': 'no registry maps this stage to the function that runs it',
-                                     'evidence': found.stages[key]['entry']})
-    _declared_routes(py, rel, found, by_label)
-    _context_channels(py, found, [(t[0], t[1]) for _, _, t in by_label.values() if t])
-    out.append(found)
+
+
+def _driver_controls(py, found, driver):
+    """The loop of the function that runs the stages, the stages it skips on a condition, and where its failures go."""
+    fn_rel, fn_name, fn_node, loop, _ = driver
+    found.functions.add((fn_rel, fn_name))
+    found.control.append({'id': f'{found.id}:loop', 'pipeline': found.id, 'stage': found.order[0], 'kind': 'loop',
+                          'condition': _unparse(loop.iter if isinstance(loop, ast.For) else loop, 60),
+                          'evidence': site(fn_rel, loop.lineno, py.line(fn_rel, loop.lineno))})
+    skips = [sub for sub in loop.body if isinstance(sub, ast.If) and any(isinstance(s, ast.Continue) for s in sub.body)] \
+        if isinstance(loop, ast.For) else []
+    for sub in skips:
+        found.control.append({'id': f'{found.id}:skip:{sub.lineno}', 'pipeline': found.id, 'stage': found.order[0],
+                              'kind': 'conditional_skip', 'condition': _unparse(sub.test),
+                              'evidence': site(fn_rel, sub.lineno, py.line(fn_rel, sub.lineno))})
+    _error_lanes(py, fn_rel, fn_node, found)
+
+
+def _returns_none_default(lookup):
+    """True when the lookup function compares its result with None: a missing stage has a default."""
+    return any(isinstance(s, ast.Compare) and any(isinstance(o, (ast.Is, ast.Eq)) for o in s.ops)
+               and any(isinstance(c, ast.Constant) and c.value is None for c in s.comparators)
+               for s in ast.walk(lookup[1]))
+
+
+def _registry_router(py, found, registry, by_label, names):
+    """The registry as a router: a branch per key, a dead stage per key no record names, the stages it misses."""
+    share, reg_rel, reg_var, reg_node, keys = registry
+    router_key = found.stage(reg_var, site(reg_rel, reg_node.lineno, py.line(reg_rel, reg_node.lineno)), kind='router',
+                             symbol=f"{reg_rel[:-3].replace('/', '.')}.{reg_var}")
+    lookup = _lookup(py, reg_var)
+    if lookup:
+        _error_lanes(py, lookup[0], lookup[1], found)
+        found.functions.add((lookup[0], lookup[1].name))
+    branches = []
+    for label, (item, line) in keys.items():
+        to = by_label.get(label, (None,))[0]
+        branches.append({'condition': label, 'to': to, 'evidence': site(reg_rel, line, py.line(reg_rel, line))})
+        if to is None:
+            found.hidden.append({'id': f'{found.id}:dead:{slug(label)}', 'pipeline': found.id, 'kind': 'dead_stage',
+                                 'channel': None, 'name': label, 'stages': [router_key],
+                                 'evidence': site(reg_rel, line, py.line(reg_rel, line))})
+    missing = [name for name in names if name not in keys]
+    found.routers.append({'id': f'{found.id}:{slug(reg_var)}', 'pipeline': found.id, 'stage': router_key, 'kind': 'registry',
+                          'table': reg_var, 'on': 'stage name',
+                          'entry': site(lookup[0], lookup[2], py.line(lookup[0], lookup[2])) if lookup else
+                          site(reg_rel, reg_node.lineno, py.line(reg_rel, reg_node.lineno)),
+                          'branches': branches, 'total': not missing,
+                          'default': 'failed' if lookup and _returns_none_default(lookup) else None, 'unhandled': missing})
+    found.functions.add((reg_rel, reg_var))
 
 
 def _lookup(py, registry_var):
@@ -277,41 +301,50 @@ def _error_lanes(py, rel, node, found):
 
 def _context_channels(py, found, functions):
     """Keys of one shared context a stage writes and another reads: side channels beside the declared edges."""
-    writes, reads = defaultdict(set), defaultdict(set)
-    lines = {}
+    writes, reads, lines = defaultdict(set), defaultdict(set), {}
     stage_of = {(rel, node.name): key for key in found.order for rel, node in functions
                 if found.stages[key]['entry']['path'] == rel and found.stages[key]['entry']['line'] == node.lineno}
     for (rel, name), key in stage_of.items():
         node = py.defs[rel].get(name)
-        params = [a.arg for a in node.args.args]
-        param = next((p for p in params if p in CONTEXT_PARAMS), None)
+        param = next((a.arg for a in node.args.args if a.arg in CONTEXT_PARAMS), None)
         if not param: continue
         for sub in ast.walk(node):
-            if isinstance(sub, ast.Subscript) and isinstance(sub.value, ast.Name) and sub.value.id == param and _str(sub.slice):
-                (writes if isinstance(sub.ctx, ast.Store) else reads)[_str(sub.slice)].add(key)
-                lines.setdefault((_str(sub.slice), key), (rel, sub.lineno))
-            elif isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and isinstance(sub.func.value, ast.Name) \
-                    and sub.func.value.id == param and sub.func.attr == 'get' and sub.args and _str(sub.args[0]):
-                reads[_str(sub.args[0])].add(key); lines.setdefault((_str(sub.args[0]), key), (rel, sub.lineno))
-            elif isinstance(sub, ast.Compare) and any(isinstance(o, (ast.In, ast.NotIn)) for o in sub.ops) and _str(sub.left) \
-                    and any(isinstance(c, ast.Name) and c.id == param for c in sub.comparators):
-                reads[_str(sub.left)].add(key)
-            elif isinstance(sub, ast.Attribute) and isinstance(sub.value, ast.Name) and sub.value.id == param \
-                    and isinstance(sub.ctx, ast.Load) and sub.attr not in DICT_METHODS:
-                reads[sub.attr].add(key); lines.setdefault((sub.attr, key), (rel, sub.lineno))
-    for name in sorted(writes):
-        writers = writes[name]
-        readers = {r for r in reads.get(name, set()) if any(r != w for w in writers)}
-        first = sorted(writers, key=found.order.index)[0]
-        rel, line = lines.get((name, first), (found.stages[first]['entry']['path'], found.stages[first]['entry']['line']))
-        if readers:
-            found.hidden.append({'id': f'{found.id}:ctx:{slug(name)}', 'pipeline': found.id, 'kind': 'side_channel',
-                                 'channel': 'context', 'name': f"context['{name}']",
-                                 'stages': sorted(writers | readers, key=found.order.index), 'evidence': site(rel, line, py.line(rel, line))})
-        elif not reads.get(name):
-            found.hidden.append({'id': f'{found.id}:ctx:{slug(name)}', 'pipeline': found.id, 'kind': 'unread_output',
-                                 'channel': 'context', 'name': f"context['{name}']", 'stages': sorted(writers, key=found.order.index),
-                                 'evidence': site(rel, line, py.line(rel, line))})
+            used, written, noted = _context_use(sub, param)
+            if used is None: continue
+            (writes if written else reads)[used].add(key)
+            if noted: lines.setdefault((used, key), (rel, sub.lineno))
+    for name in sorted(writes): _context_channel(py, found, name, writes[name], reads.get(name, set()), lines)
+
+
+def _context_use(sub, param):
+    """(key, written, its line noted) when `sub` writes or reads a key of the context parameter; (None, ...) otherwise."""
+    if isinstance(sub, ast.Subscript) and isinstance(sub.value, ast.Name) and sub.value.id == param and _str(sub.slice):
+        return _str(sub.slice), isinstance(sub.ctx, ast.Store), True
+    if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and isinstance(sub.func.value, ast.Name) \
+            and sub.func.value.id == param and sub.func.attr == 'get' and sub.args and _str(sub.args[0]):
+        return _str(sub.args[0]), False, True
+    if isinstance(sub, ast.Compare) and any(isinstance(o, (ast.In, ast.NotIn)) for o in sub.ops) and _str(sub.left) \
+            and any(isinstance(c, ast.Name) and c.id == param for c in sub.comparators):
+        return _str(sub.left), False, False
+    if isinstance(sub, ast.Attribute) and isinstance(sub.value, ast.Name) and sub.value.id == param \
+            and isinstance(sub.ctx, ast.Load) and sub.attr not in DICT_METHODS:
+        return sub.attr, False, True
+    return None, False, False
+
+
+def _context_channel(py, found, name, writers, read_by, lines):
+    """A context key read by a stage other than its writer is a side channel; one nobody reads is an unread output."""
+    readers = {r for r in read_by if any(r != w for w in writers)}
+    first = sorted(writers, key=found.order.index)[0]
+    rel, line = lines.get((name, first), (found.stages[first]['entry']['path'], found.stages[first]['entry']['line']))
+    if readers:
+        found.hidden.append({'id': f'{found.id}:ctx:{slug(name)}', 'pipeline': found.id, 'kind': 'side_channel',
+                             'channel': 'context', 'name': f"context['{name}']",
+                             'stages': sorted(writers | readers, key=found.order.index), 'evidence': site(rel, line, py.line(rel, line))})
+    elif not read_by:
+        found.hidden.append({'id': f'{found.id}:ctx:{slug(name)}', 'pipeline': found.id, 'kind': 'unread_output',
+                             'channel': 'context', 'name': f"context['{name}']", 'stages': sorted(writers, key=found.order.index),
+                             'evidence': site(rel, line, py.line(rel, line))})
 
 
 def _declared_sequence(py, rel, var, node, rows, drivers, out):
@@ -336,73 +369,116 @@ def registry_loops(py, out):
     for rel, name, node in py.functions():
         for loop in ast.walk(node):
             if not isinstance(loop, ast.For) or not isinstance(loop.target, ast.Name): continue
-            var = loop.target.id
-            table = None
-            for sub in ast.walk(loop):
-                key = None
-                if isinstance(sub, ast.Subscript) and isinstance(sub.value, ast.Name) and isinstance(sub.slice, ast.Name) and sub.slice.id == var:
-                    key = sub.value.id
-                elif isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and sub.func.attr == 'get' and sub.args \
-                        and isinstance(sub.args[0], ast.Name) and sub.args[0].id == var and isinstance(sub.func.value, ast.Name):
-                    key = sub.func.value.id
-                if key and isinstance(sub.ctx if isinstance(sub, ast.Subscript) else ast.Load(), ast.Load):
-                    found_value = py.value(rel, key)
-                    if found_value and isinstance(found_value[1], ast.Dict) and len(found_value[1].keys) >= 3 and \
-                            all(_str(k) is not None and isinstance(v, ast.Name) for k, v in zip(found_value[1].keys, found_value[1].values)):
-                        table = (key, sub.lineno, found_value)
-                        break
-            if table: _registry_loop(py, rel, name, node, loop, var, table, out)
+            table = _table_of(py, rel, loop, loop.target.id)
+            if table: _registry_loop(py, (rel, name, node), loop, table, out)
 
 
-def _registry_loop(py, rel, fn_name, fn, loop, var, table, out):
-    key, line, (table_rel, table_node) = table
-    keys = [_str(k) for k in table_node.keys]
-    values = dict(zip(keys, table_node.values))
-    accumulators = set()
+def _looked_up(sub, var):
+    """The name of the dict `sub` looks `var` up in (`table[var]` or `table.get(var)`), else None."""
+    if isinstance(sub, ast.Subscript) and isinstance(sub.value, ast.Name) and isinstance(sub.slice, ast.Name) and sub.slice.id == var:
+        return sub.value.id
+    if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and sub.func.attr == 'get' and sub.args \
+            and isinstance(sub.args[0], ast.Name) and sub.args[0].id == var and isinstance(sub.func.value, ast.Name):
+        return sub.func.value.id
+    return None
+
+
+def _table_of(py, rel, loop, var):
+    """(table name, line, (file, dict)) of the registry of three or more functions the loop looks each `var` up in."""
     for sub in ast.walk(loop):
-        if isinstance(sub, ast.Assign):
-            for target in sub.targets:
-                if isinstance(target, ast.Subscript) and isinstance(target.slice, ast.Name) and target.slice.id == var \
-                        and isinstance(target.value, ast.Name):
-                    accumulators.add(target.value.id)
-    if not accumulators: return
-    order = keys
+        key = _looked_up(sub, var)
+        if not key or not isinstance(sub.ctx if isinstance(sub, ast.Subscript) else ast.Load(), ast.Load): continue
+        found_value = py.value(rel, key)
+        if found_value and isinstance(found_value[1], ast.Dict) and len(found_value[1].keys) >= 3 and \
+                all(_str(k) is not None and isinstance(v, ast.Name) for k, v in zip(found_value[1].keys, found_value[1].values)):
+            return key, sub.lineno, found_value
+    return None
+
+
+def _accumulators(loop, var):
+    """The names the loop keeps each stage's result in: `results[name] = ...`."""
+    return {target.value.id for sub in ast.walk(loop) if isinstance(sub, ast.Assign) for target in sub.targets
+            if isinstance(target, ast.Subscript) and isinstance(target.slice, ast.Name) and target.slice.id == var
+            and isinstance(target.value, ast.Name)}
+
+
+def _table_order(py, table_rel, keys):
+    """The order the stages run in: a module-level list of most of the table's keys, else the table's own order."""
     for candidate in py.assigns.get(table_rel, {}).values():
         items = _strs(candidate.value) if isinstance(candidate.value, (ast.List, ast.Tuple)) else []
-        if len(items) >= 3 and set(items) <= set(keys) and len(items) >= 0.5 * len(keys): order = items; break
-    found = Found(f'{rel}:{fn_name}', f'{key} ({rel})', 'registry_loop', site(rel, fn.lineno, py.line(rel, fn.lineno)),
-                  [site(table_rel, table_node.lineno, py.line(table_rel, table_node.lineno)), site(rel, loop.lineno, py.line(rel, loop.lineno))])
-    found.functions.add((rel, fn_name))
-    for label in order:
-        target = values[label]
+        if len(items) >= 3 and set(items) <= set(keys) and len(items) >= 0.5 * len(keys): return items
+    return keys
+
+
+def _registry_loop(py, function, loop, table, out):
+    accumulators = _accumulators(loop, loop.target.id)
+    if not accumulators: return
+    reader = _RegistryLoop(py, function, loop, table, accumulators)
+    reader.stages()
+    reader.dispatch()
+    reader.flows()
+    out.append(reader.found)
+
+
+class _RegistryLoop:
+    """A loop over a registry table whose body runs each stage: its stages, its dispatch router and the values one stage
+    hands the next through the loop's accumulators."""
+
+    def __init__(self, py, function, loop, table, accumulators):
+        self.py, (self.rel, self.fn_name, self.fn) = py, function
+        self.loop, self.var, self.accumulators = loop, loop.target.id, accumulators
+        self.key, self.line, (self.table_rel, self.table_node) = table
+        self.keys = [_str(k) for k in self.table_node.keys]
+        self.order = _table_order(py, self.table_rel, self.keys)
+        self.found = Found(f'{self.rel}:{self.fn_name}', f'{self.key} ({self.rel})', 'registry_loop', self.at(self.rel, self.fn.lineno),
+                           [self.at(self.table_rel, self.table_node.lineno), self.at(self.rel, loop.lineno)])
+        self.found.functions.add((self.rel, self.fn_name))
+        self.by_label, self.router = {}, None
+
+    def at(self, rel, line):
+        return site(rel, line, self.py.line(rel, line))
+
+    def _stage_place(self, target):
+        """(where, symbol) of what a table entry runs: its module's `run`, the function it names, or the entry itself."""
+        py, table_rel = self.py, self.table_rel
         module_rel = py.resolve_module(table_rel, target.id)
         function = py.resolve(table_rel, target.id)
         if module_rel and 'run' in py.defs.get(module_rel, {}):
-            run = py.defs[module_rel]['run']
-            where, symbol = site(module_rel, run.lineno, py.line(module_rel, run.lineno)), f"{module_rel[:-3].replace('/', '.')}.run"
-        elif function:
-            where, symbol = site(function[0], function[1].lineno, py.line(function[0], function[1].lineno)), f"{function[0][:-3].replace('/', '.')}.{function[1].name}"
-        else:
-            where, symbol = site(table_rel, target.lineno, py.line(table_rel, target.lineno)), None
-        stage_key = found.stage(label, where, symbol=symbol)
-        found.stages[stage_key]['outputs'] = [{'name': f"{sorted(accumulators)[0]}[{label!r}]", 'kind': 'value', 'shape': None}]
-    by_label = {found.stages[k]['label']: k for k in found.order}
-    router = found.stage(key, site(table_rel, table_node.lineno, py.line(table_rel, table_node.lineno)), kind='router',
-                         symbol=f"{table_rel[:-3].replace('/', '.')}.{key}")
-    found.routers.append({'id': f'{found.id}:{slug(key)}', 'pipeline': found.id, 'stage': router, 'kind': 'dict_dispatch',
-                          'table': key, 'on': var, 'entry': site(rel, line, py.line(rel, line)),
-                          'branches': [{'condition': label, 'to': by_label.get(label),
-                                        'evidence': site(table_rel, k.lineno, py.line(table_rel, k.lineno))}
-                                       for label, k in zip(keys, table_node.keys)],
-                          'total': set(order) <= set(keys), 'default': None, 'unhandled': [l for l in order if l not in keys]})
-    for label in keys:
-        if label not in order:
-            found.hidden.append({'id': f'{found.id}:dead:{slug(label)}', 'pipeline': found.id, 'kind': 'dead_stage', 'channel': None,
-                                 'name': label, 'stages': [router], 'evidence': site(table_rel, table_node.lineno, None)})
-    found.control.append({'id': f'{found.id}:loop', 'pipeline': found.id, 'stage': router, 'kind': 'loop',
-                          'condition': f'for {var} in {_unparse(loop.iter, 40)}', 'evidence': site(rel, loop.lineno, py.line(rel, loop.lineno))})
+            return self.at(module_rel, py.defs[module_rel]['run'].lineno), f"{module_rel[:-3].replace('/', '.')}.run"
+        if function:
+            return self.at(function[0], function[1].lineno), f"{function[0][:-3].replace('/', '.')}.{function[1].name}"
+        return self.at(table_rel, target.lineno), None
 
-    def reads(body):
+    def stages(self):
+        values = dict(zip(self.keys, self.table_node.values))
+        accumulator = sorted(self.accumulators)[0]
+        for label in self.order:
+            where, symbol = self._stage_place(values[label])
+            stage_key = self.found.stage(label, where, symbol=symbol)
+            self.found.stages[stage_key]['outputs'] = [{'name': f"{accumulator}[{label!r}]", 'kind': 'value', 'shape': None}]
+        self.by_label = {self.found.stages[k]['label']: k for k in self.found.order}
+
+    def dispatch(self):
+        """The table as a router, a dead stage per key the run order leaves out, and the loop itself."""
+        found, key, table_rel, table_node = self.found, self.key, self.table_rel, self.table_node
+        self.router = found.stage(key, self.at(table_rel, table_node.lineno), kind='router',
+                                  symbol=f"{table_rel[:-3].replace('/', '.')}.{key}")
+        found.routers.append({'id': f'{found.id}:{slug(key)}', 'pipeline': found.id, 'stage': self.router, 'kind': 'dict_dispatch',
+                              'table': key, 'on': self.var, 'entry': self.at(self.rel, self.line),
+                              'branches': [{'condition': label, 'to': self.by_label.get(label), 'evidence': self.at(table_rel, k.lineno)}
+                                           for label, k in zip(self.keys, table_node.keys)],
+                              'total': set(self.order) <= set(self.keys), 'default': None,
+                              'unhandled': [l for l in self.order if l not in self.keys]})
+        for label in self.keys:
+            if label not in self.order:
+                found.hidden.append({'id': f'{found.id}:dead:{slug(label)}', 'pipeline': found.id, 'kind': 'dead_stage', 'channel': None,
+                                     'name': label, 'stages': [self.router], 'evidence': site(table_rel, table_node.lineno, None)})
+        found.control.append({'id': f'{found.id}:loop', 'pipeline': found.id, 'stage': self.router, 'kind': 'loop',
+                              'condition': f'for {self.var} in {_unparse(self.loop.iter, 40)}', 'evidence': self.at(self.rel, self.loop.lineno)})
+
+    def reads(self, body):
+        """(stage label, line, accumulator) of each read of an earlier stage's result in `body`."""
+        accumulators = self.accumulators
         for sub in ast.walk(ast.Module(body=body, type_ignores=[])):
             if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute) and sub.func.attr == 'get' \
                     and isinstance(sub.func.value, ast.Name) and sub.func.value.id in accumulators and sub.args and _str(sub.args[0]):
@@ -412,47 +488,54 @@ def _registry_loop(py, rel, fn_name, fn, loop, var, table, out):
             elif isinstance(sub, ast.Compare) and _str(sub.left) and any(isinstance(c, ast.Name) and c.id in accumulators for c in sub.comparators):
                 yield _str(sub.left), sub.lineno, next(c.id for c in sub.comparators if isinstance(c, ast.Name))
 
-    def flow(read_list, targets, condition):
-        for label, line, acc in read_list:
-            where = site(rel, line, py.line(rel, line))
-            if label not in by_label:
-                if not any(u['call'] == f"{acc}[{label!r}]" for u in found.unresolved):
-                    found.unresolved.append({'id': f'{found.id}:unresolved:{slug(label)}', 'pipeline': found.id,
-                                             'stage': by_label.get(targets[0]) if targets else router, 'call': f"{acc}[{label!r}]",
-                                             'reason': 'read here, but no stage of this loop writes it', 'evidence': where})
-                continue
-            for target in targets:
-                if target in by_label:
-                    found.edge(by_label[label], by_label[target], 'value', where, names=[f"{acc}[{label!r}]"], condition=condition)
-                    found.stages[by_label[target]]['inputs'].append({'name': f"{acc}[{label!r}]", 'kind': 'value', 'shape': None})
+    def _unresolved(self, label, acc, targets, where):
+        found, call = self.found, f"{acc}[{label!r}]"
+        if any(u['call'] == call for u in found.unresolved): return
+        found.unresolved.append({'id': f'{found.id}:unresolved:{slug(label)}', 'pipeline': found.id,
+                                 'stage': self.by_label.get(targets[0]) if targets else self.router, 'call': call,
+                                 'reason': 'read here, but no stage of this loop writes it', 'evidence': where})
 
-    for statement in loop.body:
-        if isinstance(statement, ast.If) and _tests(statement, var):
-            branches, node, covered = [], statement, set()
-            while True:
-                labels = _tests(node, var)
-                if not labels: break
-                covered |= set(labels)
-                for label in labels:
-                    branches.append({'condition': label, 'to': by_label.get(label), 'evidence': site(rel, node.lineno, py.line(rel, node.lineno))})
-                flow(list(reads(node.body)), labels, _unparse(node.test))
-                if len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If): node = node.orelse[0]; continue
-                if node.orelse:
-                    line = node.orelse[0].lineno
-                    rest = [l for l in order if l not in covered]
-                    branches.append({'condition': 'else', 'to': None, 'evidence': site(rel, line, py.line(rel, line))})
-                    flow(list(reads(node.orelse)), rest, 'else')
-                break
-            if branches:
-                router_key = found.stage(f'if {var} ==', site(rel, statement.lineno, py.line(rel, statement.lineno)), kind='router')
-                found.routers.append({'id': f'{found.id}:{slug(var)}-chain', 'pipeline': found.id, 'stage': router_key, 'kind': 'if_chain',
-                                      'table': var, 'on': var, 'entry': site(rel, statement.lineno, py.line(rel, statement.lineno)),
-                                      'branches': branches, 'total': any(b['condition'] == 'else' for b in branches),
-                                      'default': None, 'unhandled': []})
-        elif not isinstance(statement, ast.If):
-            if not _writes_acc(statement, accumulators, var):   # read outside the if-chain: an input of every stage
-                flow(list(reads([statement])), order, None)
-    out.append(found)
+    def flow(self, read_list, targets, condition):
+        """A value edge from the stage each read names to each target stage; a read of no stage is unresolved."""
+        found, by_label = self.found, self.by_label
+        for label, line, acc in read_list:
+            where = self.at(self.rel, line)
+            if label not in by_label:
+                self._unresolved(label, acc, targets, where)
+                continue
+            for target in (t for t in targets if t in by_label):
+                found.edge(by_label[label], by_label[target], 'value', where, names=[f"{acc}[{label!r}]"], condition=condition)
+                found.stages[by_label[target]]['inputs'].append({'name': f"{acc}[{label!r}]", 'kind': 'value', 'shape': None})
+
+    def if_chain(self, statement):
+        """An `if var == ...: elif ...: else:` chain: a branch per tested label, the values each branch reads."""
+        branches, node, covered = [], statement, set()
+        while True:
+            labels = _tests(node, self.var)
+            if not labels: break
+            covered |= set(labels)
+            branches += [{'condition': label, 'to': self.by_label.get(label), 'evidence': self.at(self.rel, node.lineno)} for label in labels]
+            self.flow(list(self.reads(node.body)), labels, _unparse(node.test))
+            if len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
+                node = node.orelse[0]
+                continue
+            if node.orelse:
+                branches.append({'condition': 'else', 'to': None, 'evidence': self.at(self.rel, node.orelse[0].lineno)})
+                self.flow(list(self.reads(node.orelse)), [l for l in self.order if l not in covered], 'else')
+            break
+        if branches:
+            found, at = self.found, self.at(self.rel, statement.lineno)
+            router_key = found.stage(f'if {self.var} ==', at, kind='router')
+            found.routers.append({'id': f'{found.id}:{slug(self.var)}-chain', 'pipeline': found.id, 'stage': router_key, 'kind': 'if_chain',
+                                  'table': self.var, 'on': self.var, 'entry': at,
+                                  'branches': branches, 'total': any(b['condition'] == 'else' for b in branches),
+                                  'default': None, 'unhandled': []})
+
+    def flows(self):
+        for statement in self.loop.body:
+            if isinstance(statement, ast.If) and _tests(statement, self.var): self.if_chain(statement)
+            elif not isinstance(statement, ast.If) and not _writes_acc(statement, self.accumulators, self.var):
+                self.flow(list(self.reads([statement])), self.order, None)   # read outside the if-chain: an input of every stage
 
 
 def _writes_acc(statement, accumulators, var):
