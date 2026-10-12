@@ -83,29 +83,32 @@ def batch_acceptance(report, cards, root, collected=None):
     when the caller already made it). A `recheck --spec` acceptance and the dead-code check are read from that
     collection; anything else runs as written."""
     from .facts.run import collect, read_available
-    from .probes import decide_probe
     out = Path(collected) if collected else Path(tempfile.mkdtemp(prefix='eaos-wave-facts-'))
     if not collected: collect(Path(root).resolve(), out)
     sets = read_available(out)
     dead = {(f['location'].get('path'), f['location'].get('symbol'), f['value'].get('rule'))
             for f in (sets.get('deadcode') or {}).get('facts', [])}
-    exits = {}
-    for card in cards:
-        argv = card.get('verify_command') or []
-        if 'recheck' in argv and '--spec' in argv:
-            spec = json.loads(argv[argv.index('--spec') + 1])
-            if (spec.get('specification') or {}).get('query') == 'load_blocker_present' and 'load_model' not in sets:
-                from .load_model import compute, project
-                sets['load_model'] = project(compute(out))
-            status, _ = decide_probe(spec, sets)
-            exits[card['id']] = 0 if status == 'REFUTED' else 1 if status in ('CONFIRMED', 'PARTIAL') else 2
-        elif argv and (found := DEADCODE.search(argv[-1])):
-            exits[card['id']] = 1 if found.groups() in dead else 0
-        elif argv:
-            exits[card['id']] = subprocess.run(argv, cwd=root, capture_output=True, text=True, timeout=1800).returncode
-        else:
-            exits[card['id']] = None
-    return exits
+    return {card['id']: _acceptance_exit(card, sets, dead, out, root) for card in cards}
+
+
+def _probe_exit(spec, sets, out):
+    from .probes import decide_probe
+    if (spec.get('specification') or {}).get('query') == 'load_blocker_present' and 'load_model' not in sets:
+        from .load_model import compute, project
+        sets['load_model'] = project(compute(out))
+    status, _ = decide_probe(spec, sets)
+    return 0 if status == 'REFUTED' else 1 if status in ('CONFIRMED', 'PARTIAL') else 2
+
+
+def _acceptance_exit(card, sets, dead, out, root):
+    """One card's acceptance exit: read from the collection when it is a probe or the dead-code check, else run."""
+    argv = card.get('verify_command') or []
+    if 'recheck' in argv and '--spec' in argv:
+        return _probe_exit(json.loads(argv[argv.index('--spec') + 1]), sets, out)
+    found = DEADCODE.search(argv[-1]) if argv else None
+    if found: return 1 if found.groups() in dead else 0
+    if argv: return subprocess.run(argv, cwd=root, capture_output=True, text=True, timeout=1800).returncode
+    return None
 
 
 # ---------------------------------------------------------------- the batch
@@ -191,49 +194,73 @@ def finish_batch(report, target, runtime, number, root, base, card_ids, kept, fa
     kept, failed = dict(kept), dict(failed)
     say('acceptance')
     progress.begin('acceptance')
-    if kept:
-        exits = batch_acceptance(report, [cards[c] for c in kept], root)
-        for card_id, code in exits.items():     # no check of its own (None): kept on the gates, as fix_edit keeps it
-            if code not in (0, None): failed[card_id] = f'its problem is still there (acceptance exited {code})'
-        still = [kept[c] for c in kept if c not in failed]
-        for sha in rebuild(root, base, still):
-            failed[next(c for c, s in kept.items() if s == sha)] = 'it no longer applies once the others are in'
-        for done, card_id in enumerate(kept, 1):
-            progress.step(card_id, done, len(kept), 'failed' if card_id in failed else 'ok', reason=failed.get(card_id, ''),
-                          reason_code='' if card_id not in failed else
-                          'acceptance_failed' if exits.get(card_id) not in (0, None) else 'no_longer_applies')
-        kept = {c: s for c, s in kept.items() if c not in failed}
+    if kept: kept = _accepted(report, cards, root, base, kept, failed)
     else: progress.skip('acceptance', 'no change was kept to check', 'nothing_kept')
     progress.begin('gates')
-    before = original_checks(target, runtime)
-    if kept:
-        say('gates')
-        name = f'wave-{number}'
-        why = gates(report, root, runtime, name, before, lock)
-        if why:
-            progress.step('batch', 1, 1, 'failed', reason=str(why)[:200], reason_code='gates_failed')
-            progress.begin('culprit')
-            order = list(kept.values())
-            bad = culprits(report, root, runtime, base, order, before, lock, name, say)
-            for card_id, sha in list(kept.items()):
-                if sha in bad: failed[card_id] = why
-            kept = {c: s for c, s in kept.items() if c not in failed}
-            rebuild(root, base, list(kept.values()))
-            if kept and gates(report, root, runtime, name, before, lock):
-                for card_id in kept: failed[card_id] = 'the batch still failed its gates without the cards found responsible'
-                kept = {}
-                rebuild(root, base, [])
-        else:
-            progress.step('batch', 1, 1, 'ok')
-            progress.skip('culprit', 'the batch passed its checks', 'gates_passed')
-    else:
+    batch = {'report': report, 'root': root, 'runtime': runtime, 'base': base, 'name': f'wave-{number}',
+             'before': original_checks(target, runtime), 'lock': lock, 'say': say}
+    kept = _through_gates(batch, kept, failed)
+    progress.begin('handover')
+    _record_cards(runtime, card_ids, kept, failed, tools, number)
+    return _write_wave(runtime, root, base, number, kept, failed, branch)
+
+
+def _accepted(report, cards, root, base, kept, failed):
+    """The kept cards whose problem is gone and whose commit still applies beside the others."""
+    exits = batch_acceptance(report, [cards[c] for c in kept], root)
+    for card_id, code in exits.items():     # no check of its own (None): kept on the gates, as fix_edit keeps it
+        if code not in (0, None): failed[card_id] = f'its problem is still there (acceptance exited {code})'
+    still = [kept[c] for c in kept if c not in failed]
+    for sha in rebuild(root, base, still):
+        failed[next(c for c, s in kept.items() if s == sha)] = 'it no longer applies once the others are in'
+    for done, card_id in enumerate(kept, 1):
+        code = '' if card_id not in failed else 'acceptance_failed' if exits.get(card_id) not in (0, None) else 'no_longer_applies'
+        progress.step(card_id, done, len(kept), 'failed' if card_id in failed else 'ok', reason=failed.get(card_id, ''),
+                      reason_code=code)
+    return {c: s for c, s in kept.items() if c not in failed}
+
+
+def _through_gates(batch, kept, failed):
+    """The kept cards once the project's checks and the lock ran on all of them together."""
+    if not kept:
         progress.skip('gates', 'no change was kept to check', 'nothing_kept')
         progress.skip('culprit', 'no change was kept to check', 'nothing_kept')
-    progress.begin('handover')
+        return kept
+    batch['say']('gates')
+    why = gates(batch['report'], batch['root'], batch['runtime'], batch['name'], batch['before'], batch['lock'])
+    if not why:
+        progress.step('batch', 1, 1, 'ok')
+        progress.skip('culprit', 'the batch passed its checks', 'gates_passed')
+        return kept
+    progress.step('batch', 1, 1, 'failed', reason=str(why)[:200], reason_code='gates_failed')
+    progress.begin('culprit')
+    return _without_culprits(batch, kept, failed, why)
+
+
+def _without_culprits(batch, kept, failed, why):
+    report, root, runtime, base = batch['report'], batch['root'], batch['runtime'], batch['base']
+    name, before, lock = batch['name'], batch['before'], batch['lock']
+    bad = culprits(report, root, runtime, base, list(kept.values()), before, lock, name, batch['say'])
+    for card_id, sha in list(kept.items()):
+        if sha in bad: failed[card_id] = why
+    kept = {c: s for c, s in kept.items() if c not in failed}
+    rebuild(root, base, list(kept.values()))
+    if kept and gates(report, root, runtime, name, before, lock):
+        for card_id in kept: failed[card_id] = 'the batch still failed its gates without the cards found responsible'
+        kept = {}
+        rebuild(root, base, [])
+    return kept
+
+
+def _record_cards(runtime, card_ids, kept, failed, tools, number):
     for card_id in card_ids:
         ok = card_id in kept
         record(runtime, {'id': card_id, 'tool': tools.get(card_id, 'assistant'), 'status': 'VERIFIED_IN_ISOLATED_COPY' if ok else 'FAILED',
                          'acceptance_exit': 0 if ok else -1, 'result': (f'wave {number}' if ok else failed.get(card_id, ''))[:400]})
+
+
+def _write_wave(runtime, root, base, number, kept, failed, branch):
+    """The wave's patches and wave.json beside the run; the summary."""
     patches = runtime / 'waves' / f'wave-{number}'
     subprocess.run(['rm', '-rf', str(patches)])
     patches.mkdir(parents=True, exist_ok=True)
