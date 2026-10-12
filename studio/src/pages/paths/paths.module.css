@@ -172,7 +172,7 @@
 [data-theme="dark"] .tlScroll { border-color: var(--border-subtle); }
 .tlGrid { border-collapse: separate; border-spacing: 0; font-size: 12px; }
 .tlGrid th, .tlGrid td { padding: 0; border-block-end: 1px solid var(--border-subtle); }
-.tlCorner, .tlStep { position: sticky; inset-inline-start: 0; z-index: 1; background: var(--bg-surface); text-align: start; padding: 8px 12px; min-inline-size: 180px; max-inline-size: 240px; border-inline-end: 1px solid var(--border-subtle); font-weight: 400; }
+.tlCorner, .tlStep { position: sticky; inset-inline-start: 0; z-index: 1; background: var(--bg-surface); text-align: start; padding: 8px 12px; min-inline-size: 260px; max-inline-size: 380px; border-inline-end: 1px solid var(--border-subtle); font-weight: 400; }
 .tlStep { vertical-align: middle; }
 .tlStepId { display: block; font-size: 12px; color: var(--text-tertiary); }
 .tlStepName { display: block; font-size: 13px; line-height: 1.4; color: var(--text-primary); overflow-wrap: anywhere; }
