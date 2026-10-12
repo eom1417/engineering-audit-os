@@ -89,23 +89,32 @@ def js_aliases(source, known):
     for path in sorted(known):
         name = PurePosixPath(path).name
         if '/node_modules/' in '/' + path: continue
-        if name.startswith(('tsconfig', 'jsconfig')) and name.endswith('.json'):
-            options = (_jsonc(source.text(path) or '') or {}).get('compilerOptions') or {}
-            base = PurePosixPath(path).parent / (options.get('baseUrl') or '.')
-            for pattern, targets in (options.get('paths') or {}).items():
-                if not isinstance(targets, list): continue
-                prefix = pattern.rstrip('*')
-                for target in targets:
-                    folder = js_directory((base / 'x').as_posix(), './' + str(target).rstrip('*'))
-                    aliases.setdefault(prefix, []).append((folder + '/') if folder and str(target).endswith('/*') else folder)
-        elif name.startswith('vite.config.'):
-            for prefix, folder in VITE_ALIAS.findall(source.text(path) or ''):
-                folder = js_directory(path, './' + folder)
-                aliases.setdefault(prefix + '/', []).append(folder + '/' if folder else '')
+        if name.startswith(('tsconfig', 'jsconfig')) and name.endswith('.json'): _config_aliases(source, path, aliases)
+        elif name.startswith('vite.config.'): _vite_aliases(source, path, aliases)
     has_src = any(p.startswith('src/') for p in known)
     for prefix in ('@/', '~/'):
         if prefix not in aliases and has_src: aliases[prefix] = ['src/']
     return sorted(((prefix, list(dict.fromkeys(folders))) for prefix, folders in aliases.items()), key=lambda row: -len(row[0]))
+
+
+def _alias_folder(base, target):
+    folder = js_directory((base / 'x').as_posix(), './' + str(target).rstrip('*'))
+    return (folder + '/') if folder and str(target).endswith('/*') else folder
+
+
+def _config_aliases(source, path, aliases):
+    """compilerOptions.paths of one tsconfig or jsconfig, relative to it and its baseUrl."""
+    options = (_jsonc(source.text(path) or '') or {}).get('compilerOptions') or {}
+    base = PurePosixPath(path).parent / (options.get('baseUrl') or '.')
+    for pattern, targets in (options.get('paths') or {}).items():
+        if not isinstance(targets, list): continue
+        for target in targets: aliases.setdefault(pattern.rstrip('*'), []).append(_alias_folder(base, target))
+
+
+def _vite_aliases(source, path, aliases):
+    for prefix, folder in VITE_ALIAS.findall(source.text(path) or ''):
+        folder = js_directory(path, './' + folder)
+        aliases.setdefault(prefix + '/', []).append(folder + '/' if folder else '')
 
 
 def alias_of(module, aliases):
@@ -127,19 +136,24 @@ def js_expand(target):
 def js_candidates(importer, module, aliases=()):
     # A bundler query (`./styles.css?url`, `./worker?raw`) names the same file.
     module = module.split('?', 1)[0]
-    prefix = alias_of(module, aliases) if not module.startswith('.') else None
-    if prefix is not None:
-        rest = module[len(prefix):] if module.startswith(prefix) else ''
-        out = []
-        for _, folders in (row for row in aliases if row[0] == prefix):
-            for folder in folders:
-                target = (folder + rest).strip('/') if folder.endswith('/') or not rest else (folder + '/' + rest).strip('/')
-                out += js_expand(target)
-        return out
-    if not module.startswith('.'): return []
-    target = js_directory(importer, module)
-    if not target: return ['index.js', 'index.ts', 'index.mjs']
-    return js_expand(target)
+    if module.startswith('.'):
+        target = js_directory(importer, module)
+        return js_expand(target) if target else ['index.js', 'index.ts', 'index.mjs']
+    prefix = alias_of(module, aliases)
+    return _alias_candidates(module, prefix, aliases) if prefix is not None else []
+
+
+def _alias_target(folder, rest):
+    return (folder + rest).strip('/') if folder.endswith('/') or not rest else (folder + '/' + rest).strip('/')
+
+
+def _alias_candidates(module, prefix, aliases):
+    rest = module[len(prefix):] if module.startswith(prefix) else ''
+    out = []
+    for row_prefix, folders in aliases:
+        if row_prefix != prefix: continue
+        for folder in folders: out += js_expand(_alias_target(folder, rest))
+    return out
 
 
 def package_main(directory, source, known):
@@ -183,6 +197,102 @@ def go_module_name(source):
     return None
 
 
+JS_LANGUAGES = {'javascript', 'typescript', 'tsx'}
+JVM_LANGUAGES = {'java', 'kotlin', 'scala'}
+
+
+def _submodule(row, base, name):
+    return dict(row, value=dict(row['value'], module=(base + '.' + name) if base else name, names=[]))
+
+
+def _with_submodules(row, known):
+    """`from package import submodule` depends on the submodule, not on the package __init__: one edge per
+    imported name that is a submodule, then the package import unless every name was one."""
+    names = row['value'].get('names') or []
+    if row['value'].get('language') != 'python' or not names: return [row]
+    level = row['value'].get('level', 0)
+    children = [child for child in (_submodule(row, row['value']['module'], name) for name in names)
+                if any(candidate in known for candidate in python_candidates(row['location']['path'], child['value']['module'], level))]
+    # Only when every imported name is a submodule does the package import add nothing further.
+    return children if len(children) == len(names) else children + [row]
+
+
+def _candidates(language, importer, module, level, context):
+    if language == 'python': return python_candidates(importer, module, level)
+    if language in JS_LANGUAGES: return js_candidates(importer, module, context['aliases'])
+    if language == 'go': return go_candidates(module, context['go_module'])
+    if language in JVM_LANGUAGES: return jvm_candidates(module)
+    if language in {'c', 'cpp'}: return js_candidates(importer, './' + module) if not module.startswith('<') else []
+    return js_candidates(importer, module) if module.startswith('.') else []
+
+
+def _matches(language, importer, module, candidates, context):
+    """The snapshot files an import may name; when none is a candidate, the language's own fallback."""
+    known = context['known']
+    matches = [c for c in dict.fromkeys(candidates) if c in known]
+    if matches: return matches
+    if language in JVM_LANGUAGES:
+        suffix = jvm_candidates(module)
+        return sorted(p for p in known if any(p.endswith('/' + s) for s in suffix))
+    if language in JS_LANGUAGES and module.startswith('.'):
+        return [c for c in dict.fromkeys(package_main(js_directory(importer, module), context['source'], known)) if c in known]
+    if language == 'go' and candidates:
+        return sorted(p for p in known if p.startswith(candidates[0]) and language_of(p) == 'go')
+    return matches
+
+
+def _go_package(matches):
+    """A Go import `import ".../internal/config"` resolves to a package, not a single file. When every candidate is in
+    the same directory it is not ambiguity: the directory IS the target. Real ambiguity only exists when candidates
+    span multiple directories."""
+    folders = {PurePosixPath(p).parent.as_posix() for p in matches}
+    if len(folders) != 1: return 'AMBIGUOUS', None, None, None
+    # `to_path` has to stay a file: the graph, the policy and the tracer all follow it.
+    # It stands in for the package, so it must never be a test file while a source file
+    # exists -- an edge into `_test.go` would put somebody else's fixtures on the
+    # architecture picture. `package_path` carries the target the import actually names.
+    return 'RESOLVED', sorted(non_test_files(matches) or matches)[0], 'package', folders.pop()
+
+
+def _external(language, module, level, candidates, context):
+    if not candidates: return True
+    if language in JS_LANGUAGES and not module.startswith('.') and alias_of(module, context['aliases']) is None: return True
+    return language == 'python' and not level and module.split('.')[0] not in context['roots']
+
+
+def _resolution(edge, candidates, matches, context):
+    """(resolution, to_path, target_kind, package_path) of one import."""
+    language, module, level = edge
+    if language == 'go' and len(matches) > 1: return _go_package(matches)
+    if len(matches) == 1: return 'RESOLVED', matches[0], None, None
+    out_of_scope = context['out_of_scope']
+    if not matches and any(c in out_of_scope for c in candidates):
+        # The target exists but sits in an excluded vendored directory (components/ui): outside the
+        # analysed system like a package, not an unresolved import. package_path keeps where it points.
+        return 'EXTERNAL', None, 'excluded', next(c for c in dict.fromkeys(candidates) if c in out_of_scope)
+    if len(matches) > 1: return 'AMBIGUOUS', None, None, None
+    if _external(language, module, level, candidates, context): return 'EXTERNAL', None, None, None
+    return 'UNRESOLVED', None, None, None
+
+
+def _module_edge(row, context):
+    """(resolution, module_edge fact) of one import observation."""
+    importer = row['location']['path']
+    module = row['value']['module']
+    language = row['value'].get('language') or language_of(importer)
+    level = row['value'].get('level', 0)
+    candidates = _candidates(language, importer, module, level, context)
+    matches = _matches(language, importer, module, candidates, context)
+    resolution, value, target_kind, package_path = _resolution((language, module, level), candidates, matches, context)
+    return resolution, make('module_edge', NAME, VERSION, row['input_sha'],
+                            {'path': importer, 'start_line': row['location'].get('start_line')},
+                            {'module': module, 'language': language, 'to_path': value,
+                             'target_kind': target_kind, 'package_path': package_path,
+                             'candidates': matches[:5] if resolution == 'AMBIGUOUS' else matches,
+                             'import_fact_id': row['id']},
+                            resolution=resolution, limitations=LIMITATIONS)
+
+
 def run(target, source, imports=None, external_edges=None, **options):
     """Augment our import graph with what the external engine resolved.
 
@@ -196,83 +306,18 @@ def run(target, source, imports=None, external_edges=None, **options):
     known = {item['path'] for item in source.readable()}
     directories = {PurePosixPath(p).parent.as_posix() for p in known}
     go_module = go_module_name(source)
-    aliases = js_aliases(source, known)
-    out_of_scope = set(getattr(source, 'excluded_files', ()))
+    context = {'source': source, 'known': known, 'go_module': go_module, 'aliases': js_aliases(source, known),
+               'out_of_scope': set(getattr(source, 'excluded_files', ())),
+               'roots': {PurePosixPath(p).parts[0] for p in known} | {d.split('/')[0] for d in directories}}
     rows = imports if imports is not None else [f for f in syntax.run(target, source)['facts'] if f['kind'] == 'import_edge']
     counts = {'RESOLVED': 0, 'EXTERNAL': 0, 'AMBIGUOUS': 0, 'UNRESOLVED': 0,
                 'RESOLVED_BY_ENGINE': 0}
-    expanded = []
-    for row in sorted(rows, key=lambda f: (f['location']['path'], f['location'].get('start_line', 0), f['value']['module'])):
-        names = row['value'].get('names') or []
-        # `from package import submodule` depends on the submodule, not on the package __init__.
-        if row['value'].get('language') == 'python' and names:
-            base = row['value']['module']
-            matched = 0
-            for name in names:
-                child = dict(row, value=dict(row['value'], module=(base + '.' + name) if base else name, names=[]))
-                if any(candidate in known
-                       for candidate in python_candidates(row['location']['path'], child['value']['module'], row['value'].get('level', 0))):
-                    expanded.append(child)
-                    matched += 1
-            # Only when every imported name is a submodule does the package import add nothing further.
-            if matched == len(names): continue
-        expanded.append(row)
-    for row in expanded:
-        importer = row['location']['path']
-        module = row['value']['module']
-        language = row['value'].get('language') or language_of(importer)
-        level = row['value'].get('level', 0)
-        if language == 'python': candidates = python_candidates(importer, module, level)
-        elif language in {'javascript', 'typescript', 'tsx'}: candidates = js_candidates(importer, module, aliases)
-        elif language == 'go': candidates = go_candidates(module, go_module)
-        elif language in {'java', 'kotlin', 'scala'}: candidates = jvm_candidates(module)
-        elif language in {'c', 'cpp'}: candidates = js_candidates(importer, './' + module) if not module.startswith('<') else []
-        else: candidates = js_candidates(importer, module) if module.startswith('.') else []
-        matches = [c for c in dict.fromkeys(candidates) if c in known]
-        if language in {'java', 'kotlin', 'scala'} and not matches:
-            suffix = jvm_candidates(module)
-            matches = sorted(p for p in known if any(p.endswith('/' + s) for s in suffix))
-        if language in {'javascript', 'typescript', 'tsx'} and not matches and module.startswith('.'):
-            matches = [c for c in dict.fromkeys(package_main(js_directory(importer, module), source, known)) if c in known]
-        if language == 'go' and not matches and candidates:
-            prefix = candidates[0]
-            matches = sorted(p for p in known if p.startswith(prefix) and language_of(p) == 'go')
-        # A Go import `import ".../internal/config"` resolves to a package, not a single file.
-        # When every candidate is in the same directory it is not ambiguity: the directory
-        # IS the target. Real ambiguity only exists when candidates span multiple directories.
-        package_path = None
-        if language == 'go' and len(matches) > 1:
-            folders = {PurePosixPath(p).parent.as_posix() for p in matches}
-            if len(folders) == 1:
-                # `to_path` has to stay a file: the graph, the policy and the tracer all follow it.
-                # It stands in for the package, so it must never be a test file while a source file
-                # exists -- an edge into `_test.go` would put somebody else's fixtures on the
-                # architecture picture. `package_path` carries the target the import actually names.
-                resolution, target_kind = 'RESOLVED', 'package'
-                package_path = folders.pop()
-                value = sorted(non_test_files(matches) or matches)[0]
-            else:
-                resolution, value = 'AMBIGUOUS', None
-                target_kind = None
-        elif len(matches) == 1: resolution, value, target_kind = 'RESOLVED', matches[0], None
-        elif not matches and any(c in out_of_scope for c in candidates):
-            # The target exists but sits in an excluded vendored directory (components/ui): outside the
-            # analysed system like a package, not an unresolved import. package_path keeps where it points.
-            resolution, value, target_kind = 'EXTERNAL', None, 'excluded'
-            package_path = next(c for c in dict.fromkeys(candidates) if c in out_of_scope)
-        elif len(matches) > 1: resolution, value, target_kind = 'AMBIGUOUS', None, None
-        elif not candidates or (language in {'javascript', 'typescript', 'tsx'} and not module.startswith('.') and alias_of(module, aliases) is None) or (language == 'python' and not level and module.split('.')[0] not in {PurePosixPath(p).parts[0] for p in known} | {d.split('/')[0] for d in directories}):
-            resolution, value, target_kind = 'EXTERNAL', None, None
-        else: resolution, value, target_kind = 'UNRESOLVED', None, None
+    ordered = sorted(rows, key=lambda f: (f['location']['path'], f['location'].get('start_line', 0), f['value']['module']))
+    for row in (edge for row in ordered for edge in _with_submodules(row, known)):
+        resolution, fact = _module_edge(row, context)
         counts[resolution] += 1
         fingerprints.append(row['id'])
-        facts.append(make('module_edge', NAME, VERSION, row['input_sha'],
-                          {'path': importer, 'start_line': row['location'].get('start_line')},
-                          {'module': module, 'language': language, 'to_path': value,
-                           'target_kind': target_kind, 'package_path': package_path,
-                           'candidates': matches[:5] if resolution == 'AMBIGUOUS' else matches,
-                           'import_fact_id': row['id']},
-                          resolution=resolution, limitations=LIMITATIONS))
+        facts.append(fact)
     # Layer in what the external engine resolved. Each carries its own resolution marker.
     engine_facts = list(external_edges or [])
     facts.extend(engine_facts)
