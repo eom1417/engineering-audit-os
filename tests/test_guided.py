@@ -198,3 +198,13 @@ class Pages(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class RunConsent(unittest.TestCase):
+    def test_a_yes_given_in_the_studio_or_to_the_assistant_lets_the_check_run_the_app(self):
+        """The self-check of 2026-10-12: the owner agreed in the Studio (run_setup, consent run_and_fix), yet the check
+        read only the terminal's question run_app and said the person had not agreed, so nothing ran."""
+        with mock.patch.object(guided, 'runtime_of', return_value='runtime'):
+            self.assertIsNone(guided.check_runtime({'questions': []}))
+            self.assertEqual(guided.check_runtime({'questions': [], 'consent': {'run_and_fix': True}}), 'runtime')
+            self.assertEqual(guided.check_runtime({'questions': [{'id': 'run_app', 'answer': True}]}), 'runtime')
