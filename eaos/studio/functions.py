@@ -59,12 +59,19 @@ def _language(path):
     return LANGUAGES.get(Path(path).suffix.lower())
 
 
+def _is_component(short, kind, path, components):
+    return (path, short) in components or (kind == 'function' and path.endswith(COMPONENT_SUFFIXES) and short[:1].isupper())
+
+
+def _is_handler(short):
+    return (short.startswith('handle') and short[6:7].isupper()) or (short.startswith('on') and short[2:3].isupper())
+
+
 def _kind(name, kind, path, components):
     short = name.rsplit('.', 1)[-1]
-    if (path, short) in components or (kind == 'function' and path.endswith(COMPONENT_SUFFIXES) and short[:1].isupper()):
-        return 'component'
+    if _is_component(short, kind, path, components): return 'component'
     if short.startswith('use') and short[3:4].isupper(): return 'hook'
-    if (short.startswith('handle') and short[6:7].isupper()) or (short.startswith('on') and short[2:3].isupper()): return 'handler'
+    if _is_handler(short): return 'handler'
     return 'method' if kind == 'method' else 'function'
 
 
@@ -88,6 +95,208 @@ def _touch(fact):
     return ('writes' if operation in WRITES else 'reads'), {'kind': kind, 'name': target}
 
 
+def _external(report):
+    """({file: Lizard's function rows}, {(file, name): react-docgen's component})."""
+    lizard, components = defaultdict(list), {}
+    for f in indicators.facts(report, 'symbol_metric_external'):
+        where, value = f.get('location') or {}, f.get('value') or {}
+        if value.get('engine') not in ('lizard', 'react-docgen'): continue
+        if value['engine'] == 'lizard' and isinstance(where.get('line'), int): lizard[where.get('path')].append(f)
+        elif value.get('record') == 'react_component' and where.get('symbol'): components[(where.get('path'), where['symbol'])] = value
+    return lizard, components
+
+
+def _metrics(report):
+    metrics = {}
+    for f in indicators.facts(report, 'metric'):
+        where, value = f.get('location') or {}, f.get('value') or {}
+        if value.get('scope') in ('function', 'method'): metrics[(where.get('path'), where.get('start_line'), where.get('symbol'))] = value
+    return metrics
+
+
+def _symbol_row(f):
+    where, value = f['location'], f['value']
+    return {'path': where['path'], 'symbol': where.get('symbol') or value['name'], 'name': value['name'], 'start': where['start_line'],
+            'end': where.get('end_line'), 'kind': value['kind'], 'value': value, 'lizard': None}
+
+
+def _match_lizard(row, found, taken):
+    """Lizard's row of a parsed function: the one on its first line, else the one of its name starting within NEAR
+    lines (Lizard and the parser can disagree on where a `const name = () =>` begins). An anonymous row is never
+    matched by name."""
+    match = next((f for f in found if f['location']['line'] == row['start'] and f['id'] not in taken), None) or \
+        next((f for f in found if f['location'].get('symbol') == row['name'] and abs(f['location']['line'] - row['start']) <= NEAR
+              and f['id'] not in taken), None)
+    if match: row['lizard'] = match['value']; taken.add(match['id'])
+
+
+def _lizard_only(lizard, parsed, taken):
+    """Lizard's rows in the files the parser did not read: functions in a language only Lizard measured."""
+    rows = []
+    for path, found in lizard.items():
+        if path in parsed: continue          # the parser read this file; a Lizard row it did not match is not a new function
+        for f in (f for f in found if f['id'] not in taken):
+            name = str(f['location'].get('symbol') or '')
+            rows.append({'path': path, 'symbol': name, 'name': name.rsplit('::', 1)[-1].rsplit('.', 1)[-1], 'start': f['location']['line'],
+                         'end': f['value'].get('end_line'), 'kind': 'function', 'value': {}, 'lizard': f['value']})
+    return rows
+
+
+def _rows(symbols, lizard):
+    rows, taken = [_symbol_row(f) for f in symbols], set()
+    for row in rows: _match_lizard(row, lizard.get(row['path'], ()), taken)
+    return rows + _lizard_only(lizard, {row['path'] for row in rows}, taken)
+
+
+def _by_file(rows):
+    by_file = defaultdict(list)
+    for row in rows: by_file[row['path']].append(row)
+    for found in by_file.values(): found.sort(key=lambda r: (r['start'], -(r['end'] or r['start'])))
+    return by_file
+
+
+def _assign_ids(rows):
+    """One id per function: file#symbol, and the first line when the same symbol is defined twice in one file."""
+    seen = defaultdict(int)
+    for row in rows: seen[(row['path'], row['symbol'])] += 1
+    for row in rows:
+        row['id'] = f"{row['path']}#{row['symbol']}" + (f"@{row['start']}" if seen[(row['path'], row['symbol'])] > 1 else '')
+    return {(row['path'], row['symbol']): row['id'] for row in rows}
+
+
+def _resolve_call(call, key_of, index):
+    """(the calling function's id or None when the call is not in a function, the called function's id or None)."""
+    where, value = call.get('location') or {}, call.get('value') or {}
+    caller = key_of.get((where.get('path'), where.get('symbol')))
+    if not caller or not value.get('callee'): return None, None
+    target, how = flows.resolve_callee(value['callee'], where['path'], *index, value.get('attribute', False))
+    if how not in ('local', 'imported') or not target: return caller, None
+    callee = key_of.get((target['path'], target['symbol']))
+    return caller, (callee if callee and callee != caller else None)
+
+
+def _calls(report, syntax, key_of):
+    """(callers of each function, callees of each function, call sites, calls resolved), as the flow tracer resolves."""
+    edges = indicators.facts(report, 'module_edge')
+    index_file, index_name = flows.index_symbols([f for f in syntax if isinstance((f.get('location') or {}).get('end_line'), int)])
+    index = (index_file, index_name, flows.imported_files(edges, syntax), flows.external_name_index(indicators.facts(report, 'import_edge'), edges))
+    callers, callees = defaultdict(set), defaultdict(set)
+    sites = resolved = 0
+    for caller, callee in (_resolve_call(call, key_of, index) for call in indicators.facts(report, 'call_edge')):
+        if not caller: continue
+        sites += 1
+        if not callee: continue
+        resolved += 1
+        callees[caller].add(callee)
+        callers[callee].add(caller)
+    return callers, callees, sites, resolved
+
+
+def _holder(fact, by_file):
+    where = fact.get('location') or {}
+    line = where.get('start_line')
+    return _innermost(by_file.get(where.get('path'), ()), line) if isinstance(line, int) else None
+
+
+def _touches(report, by_file):
+    """{function id: {reads, writes}} of the data and environment each function touches."""
+    touches = defaultdict(lambda: {'reads': [], 'writes': []})
+    for fact in indicators.facts(report, 'data_access') + indicators.facts(report, 'env_read'):
+        holder = _holder(fact, by_file)
+        if not holder: continue
+        side, touch = _touch(fact)
+        if touch['name'] and touch not in touches[holder['id']][side]: touches[holder['id']][side].append(touch)
+    return touches
+
+
+def _places(fact):
+    places = [(fact.get('path'), fact.get('line'))] + [(s.get('path'), s.get('line')) for s in fact.get('sites') or []]
+    return [(p, n) for p, n in places if p and isinstance(n, int)]
+
+
+def _cards(card_rows, evidence, by_file):
+    """{function id: the cards whose evidence sits on one of its lines}."""
+    sites_of = {fact.get('id'): _places(fact) for fact in evidence or ()}
+    cards = defaultdict(list)
+    for card in card_rows or ():
+        for path, line in (site for fact in card.get('evidence') or () for site in sites_of.get(fact, ())):
+            holder = _innermost(by_file.get(path, ()), line)
+            if holder and card['id'] not in cards[holder['id']]: cards[holder['id']].append(card['id'])
+    return cards
+
+
+def _signature(short, value, component):
+    if component is not None:
+        props = component.get('props') or []
+        return short + '({ ' + ', '.join(p['name'] + ('' if p.get('required') else '?') for p in props) + ' })' if props else f'{short}()'
+    if value.get('signature') is not None:
+        return f"{short}({', '.join(str(p) for p in (value.get('signature') or {}).get('parameters') or [])})"
+    return None
+
+
+def _lines(row, liz, metric):
+    if liz and liz.get('nloc') is not None: return {'value': liz['nloc'], 'src': 'engines lizard#nloc', 'unit': 'lines'}
+    if metric.get('lines') is not None: return {'value': metric['lines'], 'src': 'facts/metrics.json#metric.value.lines', 'unit': 'lines'}
+    span = (row['end'] - row['start'] + 1) if row['end'] else None
+    return {'value': span, 'src': 'facts/syntax.json#symbol end_line - start_line + 1', 'unit': 'lines'}
+
+
+def _complexity(liz, metric):
+    if liz and liz.get('cyclomatic_complexity') is not None:
+        return {'value': liz['cyclomatic_complexity'], 'src': 'engines lizard#cyclomatic_complexity', 'unit': 'count'}
+    if metric.get('branches') is not None:
+        return {'value': metric['branches'] + 1, 'src': 'facts/metrics.json#metric.value.branches + 1 (lexical)', 'unit': 'count'}
+    return {'value': None, 'src': 'not measured: no Lizard row and no metric for this function', 'unit': 'count'}
+
+
+def _function(row, known, links):
+    """One function's row; `known`: (metrics, components); `links`: (callers, callees, touches, cards)."""
+    metrics, components = known
+    callers, callees, touches, cards = links
+    value, liz = row['value'], row['lizard']
+    metric = metrics.get((row['path'], row['start'], row['symbol'])) or {}
+    return {'id': row['id'], 'name': row['symbol'], 'module': row['path'], 'line': row['start'], 'end_line': row['end'],
+            'language': _language(row['path']), 'kind': _kind(row['symbol'], row['kind'], row['path'], components),
+            'signature': _signature(row['name'], value, components.get((row['path'], row['name']))), 'summary': None,
+            'exported': value.get('exported') if isinstance(value.get('exported'), bool) else None,
+            'lines': _lines(row, liz, metric), 'complexity': _complexity(liz, metric),
+            'callers': sorted(callers.get(row['id'], ())), 'callees': sorted(callees.get(row['id'], ())),
+            'reads': touches[row['id']]['reads'] if row['id'] in touches else [],
+            'writes': touches[row['id']]['writes'] if row['id'] in touches else [],
+            'cards': cards.get(row['id'], [])}
+
+
+def _language_gap(name, state, n):
+    """What `missing` says of a language not measured, or measured only by Lizard; None for one measured."""
+    if state == 'not_measured':
+        return {'id': f'language:{name}', 'state': 'not_measured', 'step': STEP, 'count': {'value': None, 'src': SRC['functions'], 'unit': 'count'},
+                'detail': {'ar': f'{name}: لا حقائق دوال لهذه اللغة بعد', 'en': f'{name}: no function facts for this language yet'}}
+    if state == 'partial':
+        return {'id': f'calls:{name}', 'state': 'partial', 'step': STEP, 'count': {'value': n, 'src': SRC['functions'], 'unit': 'count'},
+                'detail': {'ar': f'{name}: {n} دالة قاسها Lizard، واستدعاءاتها لم تُتتبع', 'en': f'{name}: {n} functions measured by Lizard, their calls not traced'}}
+    return None
+
+
+def _languages(report, out):
+    """Each language of the project: measured (the parser read it: its functions and calls), partial (only Lizard
+    measured its functions: no calls), or not measured (its files were not read for functions); and what is missing."""
+    read, unread = set(), set()
+    for f in indicators.facts(report, 'source_file'):
+        name, status = _language(str((f.get('location') or {}).get('path') or '')), (f.get('value') or {}).get('parse_status')
+        if name: (read if status == 'OBSERVED' else unread).add(name)
+    with_functions = defaultdict(int)
+    for fn in (fn for fn in out if fn['language']): with_functions[fn['language']] += 1
+    languages, missing = [], []
+    for name in sorted(read | unread | set(with_functions)):
+        n = with_functions.get(name, 0)
+        state = 'measured' if name in read else 'partial' if n else 'not_measured'
+        languages.append({'id': name, 'state': state, 'functions': {'value': n if state != 'not_measured' else None,
+                                                                        'src': SRC['functions'], 'unit': 'count'}})
+        gap = _language_gap(name, state, n)
+        if gap: missing.append(gap)
+    return languages, missing
+
+
 def functions(report, card_rows=(), evidence=()):
     """The body of functions.json (without the contract fields), or None when the check read no source file and no
     engine measured a function: nothing was measured, which is not the same as "no functions"."""
@@ -96,153 +305,19 @@ def functions(report, card_rows=(), evidence=()):
     syntax = indicators.facts(report, 'symbol')
     symbols = [f for f in syntax if (f.get('value') or {}).get('kind') in ('function', 'method')
                and isinstance((f.get('location') or {}).get('start_line'), int)]
-    external = [f for f in indicators.facts(report, 'symbol_metric_external') if (f.get('value') or {}).get('engine') in ('lizard', 'react-docgen')]
-    lizard = defaultdict(list)
-    components = {}
-    for f in external:
-        where, value = f.get('location') or {}, f.get('value') or {}
-        if value['engine'] == 'lizard' and isinstance(where.get('line'), int): lizard[where.get('path')].append(f)
-        elif value.get('record') == 'react_component' and where.get('symbol'): components[(where.get('path'), where['symbol'])] = value
-    metrics = {}
-    for f in indicators.facts(report, 'metric'):
-        where, value = f.get('location') or {}, f.get('value') or {}
-        if value.get('scope') in ('function', 'method'): metrics[(where.get('path'), where.get('start_line'), where.get('symbol'))] = value
-
-    rows, by_file, taken = [], defaultdict(list), set()
-    for f in symbols:
-        where, value = f['location'], f['value']
-        path, symbol = where['path'], where.get('symbol') or value['name']
-        rows.append({'path': path, 'symbol': symbol, 'name': value['name'], 'start': where['start_line'],
-                     'end': where.get('end_line'), 'kind': value['kind'], 'value': value, 'lizard': None})
-    # Lizard's row of each parsed function: the one on its first line, else the one of its name starting within NEAR
-    # lines (Lizard and the parser can disagree on where a `const name = () =>` begins). An anonymous row is never
-    # matched by name.
-    for row in rows:
-        found = lizard.get(row['path'], ())
-        match = next((f for f in found if f['location']['line'] == row['start'] and f['id'] not in taken), None) or \
-            next((f for f in found if f['location'].get('symbol') == row['name'] and abs(f['location']['line'] - row['start']) <= NEAR
-                  and f['id'] not in taken), None)
-        if match: row['lizard'] = match['value']; taken.add(match['id'])
-    parsed = {row['path'] for row in rows}
-    for path, found in lizard.items():
-        if path in parsed: continue          # the parser read this file; a Lizard row it did not match is not a new function
-        for f in found:
-            if f['id'] in taken: continue
-            name = str(f['location'].get('symbol') or '')
-            rows.append({'path': path, 'symbol': name, 'name': name.rsplit('::', 1)[-1].rsplit('.', 1)[-1], 'start': f['location']['line'],
-                         'end': f['value'].get('end_line'), 'kind': 'function', 'value': {}, 'lizard': f['value']})
-    for row in rows: by_file[row['path']].append(row)
-    for found in by_file.values(): found.sort(key=lambda r: (r['start'], -(r['end'] or r['start'])))
-
-    # One id per function: file#symbol, and the first line when the same symbol is defined twice in one file.
-    seen = defaultdict(int)
-    for row in rows: seen[(row['path'], row['symbol'])] += 1
-    for row in rows:
-        row['id'] = f"{row['path']}#{row['symbol']}" + (f"@{row['start']}" if seen[(row['path'], row['symbol'])] > 1 else '')
-    key_of = {(row['path'], row['symbol']): row['id'] for row in rows}
-
-    # Calls, resolved as the flow tracer resolves them.
-    calls = indicators.facts(report, 'call_edge')
-    imports = indicators.facts(report, 'import_edge')
-    edges = indicators.facts(report, 'module_edge')
-    index_file, index_name = flows.index_symbols([f for f in syntax if isinstance((f.get('location') or {}).get('end_line'), int)])
-    imported = flows.imported_files(edges, syntax)
-    external_names = flows.external_name_index(imports, edges)
-    callers, callees = defaultdict(set), defaultdict(set)
-    sites = resolved = 0
-    for call in calls:
-        where, value = call.get('location') or {}, call.get('value') or {}
-        caller = key_of.get((where.get('path'), where.get('symbol')))
-        if not caller or not value.get('callee'): continue
-        sites += 1
-        target, how = flows.resolve_callee(value['callee'], where['path'], index_file, index_name, imported, external_names,
-                                           value.get('attribute', False))
-        if how not in ('local', 'imported') or not target: continue
-        callee = key_of.get((target['path'], target['symbol']))
-        if not callee or callee == caller: continue
-        resolved += 1
-        callees[caller].add(callee)
-        callers[callee].add(caller)
-
-    # What each function reads and writes, and the cards resting on it.
-    touches = defaultdict(lambda: {'reads': [], 'writes': []})
-    for fact in indicators.facts(report, 'data_access') + indicators.facts(report, 'env_read'):
-        where = fact.get('location') or {}
-        line = where.get('start_line')
-        if not isinstance(line, int): continue
-        holder = _innermost(by_file.get(where.get('path'), ()), line)
-        if not holder: continue
-        side, touch = _touch(fact)
-        if touch['name'] and touch not in touches[holder['id']][side]: touches[holder['id']][side].append(touch)
-    sites_of = {}
-    for fact in evidence or ():
-        places = [(fact.get('path'), fact.get('line'))] + [(s.get('path'), s.get('line')) for s in fact.get('sites') or []]
-        sites_of[fact.get('id')] = [(p, n) for p, n in places if p and isinstance(n, int)]
-    cards = defaultdict(list)
-    for card in card_rows or ():
-        for fact in card.get('evidence') or ():
-            for path, line in sites_of.get(fact, ()):
-                holder = _innermost(by_file.get(path, ()), line)
-                if holder and card['id'] not in cards[holder['id']]: cards[holder['id']].append(card['id'])
-
+    lizard, components = _external(report)
+    rows = _rows(symbols, lizard)
+    by_file = _by_file(rows)
+    key_of = _assign_ids(rows)
+    # Calls, resolved as the flow tracer resolves them; what each function reads and writes, and the cards resting on it.
+    callers, callees, sites, resolved = _calls(report, syntax, key_of)
+    links = (callers, callees, _touches(report, by_file), _cards(card_rows, evidence, by_file))
     owners = _owners(report)
-    out = []
-    for row in sorted(rows, key=lambda r: (r['path'], r['start'], r['id'])):
-        value, liz = row['value'], row['lizard']
-        metric = metrics.get((row['path'], row['start'], row['symbol'])) or {}
-        short = row['name']
-        component = components.get((row['path'], short))
-        if component is not None:
-            props = component.get('props') or []
-            signature = short + '({ ' + ', '.join(p['name'] + ('' if p.get('required') else '?') for p in props) + ' })' if props else f'{short}()'
-        elif value.get('signature') is not None:
-            signature = f"{short}({', '.join(str(p) for p in (value.get('signature') or {}).get('parameters') or [])})"
-        else:
-            signature = None
-        span = (row['end'] - row['start'] + 1) if row['end'] else None
-        if liz and liz.get('nloc') is not None: lines = {'value': liz['nloc'], 'src': 'engines lizard#nloc', 'unit': 'lines'}
-        elif metric.get('lines') is not None: lines = {'value': metric['lines'], 'src': 'facts/metrics.json#metric.value.lines', 'unit': 'lines'}
-        else: lines = {'value': span, 'src': 'facts/syntax.json#symbol end_line - start_line + 1', 'unit': 'lines'}
-        if liz and liz.get('cyclomatic_complexity') is not None:
-            complexity = {'value': liz['cyclomatic_complexity'], 'src': 'engines lizard#cyclomatic_complexity', 'unit': 'count'}
-        elif metric.get('branches') is not None:
-            complexity = {'value': metric['branches'] + 1, 'src': 'facts/metrics.json#metric.value.branches + 1 (lexical)', 'unit': 'count'}
-        else:
-            complexity = {'value': None, 'src': 'not measured: no Lizard row and no metric for this function', 'unit': 'count'}
-        out.append({'id': row['id'], 'name': row['symbol'], 'module': row['path'], 'line': row['start'], 'end_line': row['end'],
-                    'language': _language(row['path']), 'kind': _kind(row['symbol'], row['kind'], row['path'], components),
-                    'signature': signature, 'summary': None,
-                    'exported': value.get('exported') if isinstance(value.get('exported'), bool) else None,
-                    'lines': lines, 'complexity': complexity,
-                    'callers': sorted(callers.get(row['id'], ())), 'callees': sorted(callees.get(row['id'], ())),
-                    'reads': touches[row['id']]['reads'] if row['id'] in touches else [],
-                    'writes': touches[row['id']]['writes'] if row['id'] in touches else [],
-                    'cards': cards.get(row['id'], [])})
+    out = [_function(row, (_metrics(report), components), links) for row in sorted(rows, key=lambda r: (r['path'], r['start'], r['id']))]
     modules = defaultdict(int)
     for fn in out: modules[fn['module']] += 1
     module_rows = [{'id': path, 'component': owners.get(path), 'language': _language(path), 'functions': n} for path, n in sorted(modules.items())]
-
-    # Each language of the project: measured (the parser read it: its functions and calls), partial (only Lizard
-    # measured its functions: no calls), or not measured (its files were not read for functions).
-    read, unread = set(), set()
-    for f in indicators.facts(report, 'source_file'):
-        name, status = _language(str((f.get('location') or {}).get('path') or '')), (f.get('value') or {}).get('parse_status')
-        if name: (read if status == 'OBSERVED' else unread).add(name)
-    with_functions = defaultdict(int)
-    for fn in out:
-        if fn['language']: with_functions[fn['language']] += 1
-    languages, missing = [], []
-    for name in sorted(read | unread | set(with_functions)):
-        n = with_functions.get(name, 0)
-        state = 'measured' if name in read else 'partial' if n else 'not_measured'
-        languages.append({'id': name, 'state': state, 'functions': {'value': n if state != 'not_measured' else None,
-                                                                        'src': SRC['functions'], 'unit': 'count'}})
-        if state == 'not_measured':
-            missing.append({'id': f'language:{name}', 'state': 'not_measured', 'step': STEP, 'count': {'value': None, 'src': SRC['functions'], 'unit': 'count'},
-                            'detail': {'ar': f'{name}: لا حقائق دوال لهذه اللغة بعد', 'en': f'{name}: no function facts for this language yet'}})
-        elif state == 'partial':
-            missing.append({'id': f'calls:{name}', 'state': 'partial', 'step': STEP, 'count': {'value': n, 'src': SRC['functions'], 'unit': 'count'},
-                            'detail': {'ar': f'{name}: {n} دالة قاسها Lizard، واستدعاءاتها لم تُتتبع', 'en': f'{name}: {n} functions measured by Lizard, their calls not traced'}})
+    languages, missing = _languages(report, out)
     measure = lambda value, key: {'value': value, 'src': SRC[key], 'unit': 'count'}
     return {'modules': module_rows, 'functions': out, 'languages': languages, 'missing': missing,
             'counts': {'functions': measure(len(out), 'functions'), 'modules': measure(len(module_rows), 'modules'),
