@@ -34,6 +34,7 @@
 .journey_running .journeySub { color: var(--accent-text); }
 .journey_stopped .journeyMark { background: var(--status-warning); border-color: var(--status-warning); }
 .journey_later .journeyTitle { color: var(--text-secondary); }
+.journeyNum, .journeyNow { display: none; }
 @keyframes breathe {
   from { opacity: .4; }
   to { opacity: 1; }
@@ -179,14 +180,28 @@
 
 @media (max-width: 767px) {
   .page { padding-block-start: 16px; padding-block-end: 24px; }
-  .journeyList { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* The journey as a stepper: numbered marks joined by a line, the chosen step told under them */
+  .journeyList { display: flex; }
+  .journeyList > li { position: relative; flex: 1; display: flex; justify-content: center; }
+  .journeyList > li + li::before {
+    content: ""; position: absolute; inset-block-start: 21px; inset-inline-end: 50%; inline-size: 100%; block-size: 2px; background: var(--border-default);
+  }
+  .journeyStep { position: relative; justify-content: center; align-items: center; inline-size: 44px; block-size: 44px; min-block-size: 44px; padding: 0;
+    border: 0; border-radius: var(--radius-full); background: none; }
+  .journeyStep[data-hovered] { background: none; }
+  .journeySel { box-shadow: none; }
+  .journeyMark { inline-size: 32px; block-size: 32px; margin: 0; background: var(--bg-canvas); font-size: 13px; font-weight: 600; }
+  .journey_later .journeyMark { color: var(--text-secondary); }
+  .journeySel .journeyMark { border-color: var(--accent-solid); box-shadow: 0 0 0 4px var(--accent-subtle); }
+  .journeyNum { display: inline; }
+  .journeyMain { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .journeyNow { display: flex; flex-direction: column; gap: 2px; margin-block-start: 6px; text-align: center; }
+  .journeyNowTitle { font-size: var(--text-row); font-weight: 600; line-height: 1.4; }
   .canvasWrap { block-size: max(320px, 52vh); }
   .list { grid-template-columns: minmax(0, 1fr); }
   .mapWrap { scroll-margin-block: calc(var(--topbar-h-phone) + 8px) calc(var(--tabbar-h) + 8px); }
-  /* While a flow runs the journey is one compact row, so the map is on the first screen */
-  .page[data-run-state="running"] .lead, .page[data-run-state="running"] .journeySub { display: none; }
-  .page[data-run-state="running"] .journeyList { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
-  .page[data-run-state="running"] .journeyStep { min-block-size: 44px; padding: 6px; gap: 6px; }
+  /* While a flow runs the lead gives way, so the map is on the first screen */
+  .page[data-run-state="running"] .lead { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -16,6 +16,7 @@ export const SCAN_WORDS = {
   stepRunning: ['تعمل الآن', 'Running now'],
   stepStopped: ['توقّفت', 'Stopped'],
   stepNotYet: ['لم تبدأ', 'Not started'],
+  stepOf: ['الخطوة {n} من {t}', 'Step {n} of {t}'],
   notYet_scan: ['تبدأ حين تطلب فحص مشروعك.', 'Starts when you ask for a check of your project.'],
   notYet_ready: ['تأتي بعد الفحص: تجهّز برنامجك ليعمل في نسخة منفصلة.', 'Comes after the check: sets your app up to run in a separate copy.'],
   notYet_safety: ['تأتي بعد تجهيز برنامجك: تصوّر شاشاته وتقيس سرعته.', 'Comes after your app is set up: records its screens and measures its speed.'],

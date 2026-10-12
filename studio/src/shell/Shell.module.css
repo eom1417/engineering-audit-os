@@ -83,31 +83,52 @@
   .back span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .main { padding-block-end: calc(var(--tabbar-h) + 24px + env(safe-area-inset-bottom)); }
   .tabbar {
-    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); position: fixed; inset-inline: 0; inset-block-end: 0; z-index: var(--z-tabbar);
+    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); position: fixed; inset-inline: 0; inset-block-end: 0; z-index: var(--z-tabbar);
     block-size: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); padding-block-end: env(safe-area-inset-bottom);
     background: color-mix(in srgb, var(--bg-surface) 94%, transparent); backdrop-filter: blur(14px); border-block-start: 1px solid var(--border-default);
   }
-  .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-block-size: 44px; color: var(--text-tertiary); font-size: 11px; line-height: 1.2; }
-  .tab[aria-current="page"] { color: var(--accent-text); font-weight: 500; }
-  .tab:focus-visible { outline-offset: -2px; }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-block-size: 44px; min-inline-size: 0;
+    color: var(--text-tertiary); font-size: 11px; line-height: 1.2; cursor: pointer;
+  }
+  .tab[aria-current="page"], .tab[data-current] { color: var(--accent-text); font-weight: 500; }
+  .tab:focus-visible, .tab[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
   .tabIcon { position: relative; display: grid; }
   .tabBadge { position: absolute; inset-block-start: -4px; inset-inline-end: -10px; }
   .tabLabel { white-space: nowrap; }
 }
+
+/* The phone's "More" sheet: the sections in the sidebar's groups, two to a row */
+.moreSearch {
+  display: flex; align-items: center; gap: 10px; min-block-size: 44px; padding-inline: 12px; border: 1px solid var(--border-default);
+  border-radius: var(--radius-8); background: var(--bg-canvas); color: var(--text-tertiary); font-size: 14px; text-align: start; cursor: pointer;
+}
+.moreGroup { display: flex; flex-direction: column; gap: 6px; }
+.moreGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.moreItem, .moreProject {
+  display: flex; align-items: center; gap: 10px; min-block-size: 52px; padding: 6px 10px; border-radius: var(--radius-12);
+  border: 1px solid var(--border-subtle); background: var(--bg-surface); color: var(--text-primary); font-size: 14px; line-height: 1.3; cursor: pointer;
+}
+.moreItem:hover, .moreProject[data-hovered] { background: var(--bg-hover); }
+.moreItem[aria-current="page"] { border-color: var(--accent-solid); background: var(--accent-subtle); color: var(--accent-text); font-weight: 500; }
+.moreSearch[data-focus-visible], .moreProject[data-focus-visible] { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.moreIcon { display: grid; place-items: center; flex: none; inline-size: 32px; block-size: 32px; border-radius: var(--radius-8); background: var(--bg-sunken); color: var(--text-secondary); }
+.moreItem[aria-current="page"] .moreIcon { background: var(--bg-surface); color: var(--accent-text); }
+.moreLabel { flex: 1; min-inline-size: 0; overflow-wrap: anywhere; text-align: start; }
+.moreProject { inline-size: 100%; }
 
 /* Shared navigation remains mounted while the system's map panel changes. */
 .workspace { --system-tabs-h: 54px; min-inline-size: 0; }
 .workspaceTabs { position: sticky; inset-block-start: var(--topbar-h); z-index: var(--z-sticky); min-block-size: var(--system-tabs-h); display: flex; align-items: center; padding-inline: 12px; background: var(--bg-canvas); border-block-end: 1px solid var(--border-default); }
 .workspaceTabs > nav { flex: 1; }
 @media (max-width: 767px) {
-  .workspace { --system-tabs-h: 94px; }
   .workspaceTabs { inset-block-start: var(--topbar-h-phone); padding-inline: 8px; }
 }
 
 .reportPicker { display: flex; align-items: center; gap: 8px; font-size: 12px; padding-inline-end: 12px; }
 .reportPicker select { background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: var(--radius-8); min-block-size: 36px; max-inline-size: 160px; padding-inline: 8px; }
 @media (max-width: 767px) {
-  .workspace:has(.reportPicker) { --system-tabs-h: 136px; }
+  .workspace:has(.reportPicker) { --system-tabs-h: 104px; }
   .workspaceTabs { flex-wrap: wrap; }
   .reportPicker { inline-size: 100%; justify-content: space-between; padding-inline: 4px; padding-block: 4px; }
 }

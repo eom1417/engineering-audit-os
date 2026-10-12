@@ -26,7 +26,3 @@
   .switch[data-selected] .thumb { inset-inline-start: 18px; }
 }
 
-@media (max-width: 767px) {
-  .views { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: visible; inline-size: 100%; gap: 2px; }
-  .view { justify-content: center; padding-inline: 3px; font-size: 11px; border-radius: var(--radius-8); }
-}

@@ -26,7 +26,7 @@ import { Id, N, When } from '../i18n/text'
 import { useChrome } from './chrome'
 import { useOpenedOnce, whenIdle } from './later'
 import { ScanBanner } from './ScanBanner'
-import { sectionOf, visibleSections, type SectionDef } from './sections'
+import { grouped, sectionOf, visibleSections, type SectionDef } from './sections'
 import css from './Shell.module.css'
 import { SystemViews } from '../pages/system/SystemViews'
 
@@ -66,27 +66,35 @@ function LanguageAndTheme({ comfortable }: { comfortable?: boolean }) {
   )
 }
 
+/** What a section's link carries: the count beside its name (null while it is still being read, or none), and the
+ * badge of things waiting for the person. */
+function useNavNumbers(): (s: SectionDef) => { count: number | null; badge: number } {
+  const c = useCounts()
+  const live = useLiveCounts()
+  const pending = useStudio()?.pending ?? []
+  return (s) => {
+    const read = c && !(s.countFrom && pending.includes(s.countFrom)) ? c : null
+    const count = s.count ? (read ? s.count(read) + (live[s.id] ?? 0) : null) : live[s.id] || null
+    const badge = s.badge ? (read ? s.badge(read) : 0) + (live[s.id] ?? 0) : 0
+    return { count, badge }
+  }
+}
+
 function Sidebar({ project, current, onPalette, onProject }: { project: string; current?: SectionDef; onPalette: () => void; onProject: () => void }) {
   const { t, dev } = usePrefs()
-  const c = useCounts()
+  const numbers = useNavNumbers()
   const data = useStudio()
-  const sections = visibleSections(dev)
-  const live = useLiveCounts()
-  const pending = data?.pending ?? []
-  const item = (s: SectionDef) => (
-    <Go key={s.id} to={s.to} className={css.navItem} current={current?.id === s.id} label={t(s.nav)}>
-      <Icon name={s.icon} />
-      <span className={css.navLabel}>{t(s.nav)}</span>
-      {c && s.count && !(s.countFrom && pending.includes(s.countFrom)) && <N value={s.count(c) + (live[s.id] ?? 0)} className={css.navCount} />}
-      {!s.count && live[s.id] ? <N value={live[s.id]} className={css.navCount} /> : null}
-    </Go>
-  )
-  const groups: SectionDef[][] = []
-  for (const s of sections) {
-    const last = groups[groups.length - 1]
-    if (last && s.group && last[0].group === s.group) last.push(s)
-    else groups.push([s])
+  const item = (s: SectionDef) => {
+    const { count } = numbers(s)
+    return (
+      <Go key={s.id} to={s.to} className={css.navItem} current={current?.id === s.id} label={t(s.nav)}>
+        <Icon name={s.icon} />
+        <span className={css.navLabel}>{t(s.nav)}</span>
+        {count !== null && <N value={count} className={css.navCount} />}
+      </Go>
+    )
   }
+  const groups = grouped(visibleSections(dev))
   return (
     <aside className={css.sidebar} aria-label={t('navigation')}>
       <AriaButton className={css.proj} onPress={onProject} data-open="project" aria-label={`${project}: ${t('projectAndDisplay')}`}>
@@ -117,23 +125,68 @@ function Sidebar({ project, current, onPalette, onProject }: { project: string; 
   )
 }
 
-function TabBar({ current }: { current?: SectionDef }) {
+/** The phone's tab bar: the five sections most used, then "More", which holds them all and is marked while the page
+ * open is one of the others. Its badge sums the badges of the sections it holds. */
+function TabBar({ current, onMore }: { current?: SectionDef; onMore: () => void }) {
   const { t } = usePrefs()
-  const c = useCounts()
-  const live = useLiveCounts()
-  const pending = useStudio()?.pending ?? []
+  const numbers = useNavNumbers()
+  const sections = visibleSections(false)
+  const tabs = sections.filter((s) => s.tabbar)
+  const more = sections.filter((s) => !s.tabbar).reduce((sum, s) => sum + numbers(s).badge, 0)
+  const mark = (badge: number) => badge > 0 && <span className={css.tabBadge}><Badge count={badge} /></span>
+  const said = (badge: number) => badge > 0 && <span className="sr"> ({badge})</span>
   return (
     <nav className={css.tabbar} aria-label={t('mainTabs')}>
-      {visibleSections(false).filter((s) => s.tabbar).map((s) => {
-        const badge = (c && s.badge && !(s.countFrom && pending.includes(s.countFrom)) ? s.badge(c) : 0) + (s.badge ? live[s.id] ?? 0 : 0)
+      {tabs.map((s) => {
+        const { badge } = numbers(s)
         return (
           <Go key={s.id} to={s.to} className={css.tab} current={current?.id === s.id}>
-            <span className={css.tabIcon}><Icon name={s.icon} size={22} />{badge > 0 && <span className={css.tabBadge}><Badge count={badge} /></span>}</span>
-            <span className={css.tabLabel}>{t(s.tab)}{badge > 0 && <span className="sr"> ({badge})</span>}</span>
+            <span className={css.tabIcon}><Icon name={s.icon} size={22} />{mark(badge)}</span>
+            <span className={css.tabLabel}>{t(s.tab)}{said(badge)}</span>
           </Go>
         )
       })}
+      <AriaButton className={css.tab} onPress={onMore} data-open="more" data-current={current && !current.tabbar ? '' : undefined}>
+        <span className={css.tabIcon}><Icon name="gallery" size={22} />{mark(more)}</span>
+        <span className={css.tabLabel}>{t('more')}{said(more)}</span>
+      </AriaButton>
     </nav>
+  )
+}
+
+/** The phone's "More": every section in the sidebar's groups and order with its count, search, and the display. */
+function MoreSheet({ isOpen, onOpenChange, current, onPalette, onProject, project }:
+  { isOpen: boolean; onOpenChange: (open: boolean) => void; current?: SectionDef; onPalette: () => void; onProject: () => void; project: string }) {
+  const { t, dev } = usePrefs()
+  const numbers = useNavNumbers()
+  const close = () => onOpenChange(false)
+  return (
+    <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={t('allSections')}>
+      <AriaButton className={css.moreSearch} onPress={onPalette}><Icon name="search" /><span>{t('searchEverything')}</span></AriaButton>
+      {grouped(visibleSections(dev)).map((group) => (
+        <div key={group[0].id} className={css.moreGroup}>
+          {group[0].group && <SheetSub>{t(group[0].group)}</SheetSub>}
+          <div className={css.moreGrid}>
+            {group.map((s) => {
+              const { count, badge } = numbers(s)
+              return (
+                <Go key={s.id} to={s.to} className={css.moreItem} current={current?.id === s.id} onClick={close}>
+                  <span className={css.moreIcon}><Icon name={s.icon} size={20} /></span>
+                  <span className={css.moreLabel}>{t(s.nav)}</span>
+                  {badge > 0 ? <Badge count={badge} /> : count !== null && <N value={count} className={css.navCount} />}
+                </Go>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+      <SheetSub>{t('display')}</SheetSub>
+      <div className={css.rowSet}><LanguageAndTheme comfortable /></div>
+      <AriaButton className={css.moreProject} onPress={onProject} data-open="project">
+        <span className={css.projMark} aria-hidden="true">{project.slice(0, 1).toUpperCase()}</span>
+        <span className={css.moreLabel}>{t('projectAndDisplay')}</span><Icon name="chevron" />
+      </AriaButton>
+    </Sheet>
   )
 }
 
@@ -144,8 +197,8 @@ function Freshness({ onScan }: { onScan: () => void }) {
   return <span className={css.freshChip} data-live={view.live ? '' : undefined}><FreshnessChip freshness={view.state} count={view.count} onPress={onScan} /></span>
 }
 
-function TopBar({ project, current, onPalette, onProject, onScan, onBranches }:
-  { project: string; current?: SectionDef; onPalette: () => void; onProject: () => void; onScan: () => void; onBranches: () => void }) {
+function TopBar({ project, current, onPalette, onScan, onBranches }:
+  { project: string; current?: SectionDef; onPalette: () => void; onScan: () => void; onBranches: () => void }) {
   const { t } = usePrefs()
   const chrome = useChrome()
   const systemWorkspace = useRouterState({ select: (s) => s.location.pathname.startsWith('/system') || s.location.pathname.startsWith('/screens') || s.location.pathname.startsWith('/flows') })
@@ -175,7 +228,6 @@ function TopBar({ project, current, onPalette, onProject, onScan, onBranches }:
         <span className={css.phoneSpacer} />
         <Go to="/scan" className={[buttonCss.iconBtn, css.liveLink].join(' ')} label={t('liveCheck')} current={current?.id === 'scan'}><Icon name="live" /></Go>
         <IconButton icon="search" label={t('search')} onPress={onPalette} />
-        <IconButton icon="more" label={t('projectAndDisplay')} onPress={onProject} data-open="project" />
       </div>
     </header>
   )
@@ -259,6 +311,7 @@ export function Shell() {
   const [projectSheet, setProjectSheet] = useState(false)
   const [scanSheet, setScanSheet] = useState(false)
   const [branchSheet, setBranchSheet] = useState(false)
+  const [moreSheet, setMoreSheet] = useState(false)
   const project = data?.manifest.project.name ?? t('studio')
   // The frame's counts are read once the first page is drawn (data/stages.ts COUNT_NEEDS), and so is the palette
   useSections(COUNT_NEEDS, 'idle')
@@ -283,7 +336,7 @@ export function Shell() {
       <div className={css.shell}>
         <Sidebar project={project} current={current} onPalette={() => setPalette(true)} onProject={() => setProjectSheet(true)} />
         <div className={css.frame}>
-          <TopBar project={project} current={current} onPalette={() => setPalette(true)} onProject={() => setProjectSheet(true)}
+          <TopBar project={project} current={current} onPalette={() => setPalette(true)}
             onScan={() => setScanSheet(true)} onBranches={() => setBranchSheet(true)} />
           <ScanBanner />
           <main id="main" tabIndex={-1} className={css.main}>
@@ -294,8 +347,10 @@ export function Shell() {
           </main>
         </div>
       </div>
-      <TabBar current={current} />
+      <TabBar current={current} onMore={() => setMoreSheet(true)} />
       {paletteOpened && <Suspense fallback={null}><Palette isOpen={palette} onOpenChange={setPalette} /></Suspense>}
+      <MoreSheet isOpen={moreSheet} onOpenChange={setMoreSheet} current={current} project={project}
+        onPalette={() => { setMoreSheet(false); setPalette(true) }} onProject={() => { setMoreSheet(false); setProjectSheet(true) }} />
       <ProjectSheet isOpen={projectSheet} onOpenChange={setProjectSheet} project={project} />
       <ScanSheet isOpen={scanSheet} onOpenChange={setScanSheet} />
       <BranchSwitcher isOpen={branchSheet} onOpenChange={setBranchSheet} />
