@@ -22,70 +22,92 @@ def validate(out, dossier):
     """Return a list of rule violations; an empty list means the output may be published."""
     documents = rendered(out)
     known = {claim['id'] for claim in dossier.get('claims', [])}
+    claims = dossier.get('claims', [])
     problems = []
-    for name, text in sorted(documents.items()):
-        lines = text.count('\n')
-        if lines > BUDGETS.get(name, 200):
-            problems.append(f'R2 {name}: {lines} lines exceeds the budget of {BUDGETS.get(name, 200)}')
-        if name not in BY_NAME and not name.startswith('PLAN/'):
-            problems.append(f'R13 {name}: produced but not declared in the artifact contract, '
-                            f'so no stage owns it and no budget applies')
-        if '```json' in text:
-            problems.append(f'R8 {name}: raw record dump in a human artifact')
-        for reference in sorted(set(CLAIM_REFERENCE.findall(text))):
-            if reference not in known:
-                problems.append(f'R1 {name}: references {reference}, which is absent from the ledger')
+    for name, text in sorted(documents.items()): problems += _document_rules(name, text, known)
     if 'README.md' not in documents:
         problems.append('R12 README.md: the dossier has no index or reading order')
     problems += missing_required(out, documents)
     problems += documents_without_a_record_twin()
-    for name, text in sorted(documents.items()):
-        if name in {'README.md', 'PROVENANCE.md'}: continue
-        # A brief with nothing to report has nothing to link to; the rule applies when claims exist.
-        if name == 'DECISION-BRIEF.md' and dossier.get('claims') and '](' not in text:
-            problems.append('R12 DECISION-BRIEF.md: no cross-reference to the artifact holding the detail')
+    problems += _brief_rules(documents, claims)
+    problems += [f"R5 {claim['id']}: a live risk needs a task or a documented acceptance" for claim in claims if _undecided_risk(claim)]
+    for task in dossier.get('tasks', []): problems += _task_rules(task)
+    problems += [f"R11 {claim['id']}: priority without the inputs it was computed from"
+                 for claim in claims if 'priority' in claim and not claim.get('priority_factors')]
+    problems += _duplicate_rules(claims)
+    return sorted(set(problems))
+
+
+def _document_rules(name, text, known):
+    """R2, R13, R8 and R1 on one rendered document."""
+    problems = []
+    lines = text.count('\n')
+    if lines > BUDGETS.get(name, 200):
+        problems.append(f'R2 {name}: {lines} lines exceeds the budget of {BUDGETS.get(name, 200)}')
+    if name not in BY_NAME and not name.startswith('PLAN/'):
+        problems.append(f'R13 {name}: produced but not declared in the artifact contract, '
+                        f'so no stage owns it and no budget applies')
+    if '```json' in text:
+        problems.append(f'R8 {name}: raw record dump in a human artifact')
+    problems += [f'R1 {name}: references {reference}, which is absent from the ledger'
+                 for reference in sorted(set(CLAIM_REFERENCE.findall(text))) if reference not in known]
+    return problems
+
+
+def _brief_rules(documents, claims):
+    """R12, R6 and R3 on the decision brief."""
     brief = documents.get('DECISION-BRIEF.md')
-    if brief is None:
-        problems.append('R6 DECISION-BRIEF.md: the decision artifact is missing')
-    else:
-        if not any(marker in brief for marker in COVERAGE_MARKERS):
-            problems.append('R6 DECISION-BRIEF.md: no coverage header')
-        if not any(marker in brief for marker in GAP_MARKERS):
-            problems.append('R6 DECISION-BRIEF.md: the unexamined-scope section may not be omitted')
-        if not any(marker in brief for marker in MARKERS):
-            problems.append('R3 DECISION-BRIEF.md: no confidence markers on stated claims')
-    problem_types = {'risk', 'cause', 'business_rule', 'structure', 'capability_gap'}
-    for claim in dossier.get('claims', []):
-        states_a_problem = (claim.get('claim_type') in problem_types
-                            or bool((claim.get('impact') or {}).get('scenario'))
-                            or claim.get('confidence') in {'HYPOTHESIS', 'LIKELY'})
-        if states_a_problem and claim.get('confidence') != 'REFUTED':
-            disposition = (claim.get('disposition') or {}).get('kind')
-            if disposition in (None, 'none_yet'):
-                problems.append(f"R5 {claim['id']}: a live risk needs a task or a documented acceptance")
-    for task in dossier.get('tasks', []):
-        if task.get('contract_version') == 1:
-            decision = task.get('decision') or {}
-            if decision.get('kind') not in {'repair', 'investigate', 'retain'}:
-                problems.append(f"R7 {task.get('id', '?')}: missing typed decision")
-            if decision.get('readiness') == 'ready' and (not decision.get('checks') or decision.get('blockers')):
-                problems.append(f"R7 {task.get('id', '?')}: ready task lacks checks or has blockers")
-        elif not task.get('verify_command'):
-            problems.append(f"R7 {task.get('id', '?')}: the acceptance criterion is not a runnable command")
-    for claim in dossier.get('claims', []):
-        if 'priority' in claim and not claim.get('priority_factors'):
-            problems.append(f"R11 {claim['id']}: priority without the inputs it was computed from")
-    seen = {}
-    for claim in dossier.get('claims', []):
+    if brief is None: return ['R6 DECISION-BRIEF.md: the decision artifact is missing']
+    problems = []
+    # A brief with nothing to report has nothing to link to; the rule applies when claims exist.
+    if claims and '](' not in brief:
+        problems.append('R12 DECISION-BRIEF.md: no cross-reference to the artifact holding the detail')
+    if not any(marker in brief for marker in COVERAGE_MARKERS):
+        problems.append('R6 DECISION-BRIEF.md: no coverage header')
+    if not any(marker in brief for marker in GAP_MARKERS):
+        problems.append('R6 DECISION-BRIEF.md: the unexamined-scope section may not be omitted')
+    if not any(marker in brief for marker in MARKERS):
+        problems.append('R3 DECISION-BRIEF.md: no confidence markers on stated claims')
+    return problems
+
+
+PROBLEM_TYPES = {'risk', 'cause', 'business_rule', 'structure', 'capability_gap'}
+
+
+def _undecided_risk(claim):
+    """R5: a live claim that states a problem and has no disposition yet."""
+    states_a_problem = (claim.get('claim_type') in PROBLEM_TYPES
+                        or bool((claim.get('impact') or {}).get('scenario'))
+                        or claim.get('confidence') in {'HYPOTHESIS', 'LIKELY'})
+    return (states_a_problem and claim.get('confidence') != 'REFUTED'
+            and (claim.get('disposition') or {}).get('kind') in (None, 'none_yet'))
+
+
+def _task_rules(task):
+    """R7 on one task: a typed, checkable decision, or a runnable acceptance command for an older task."""
+    if task.get('contract_version') != 1:
+        return [] if task.get('verify_command') else [f"R7 {task.get('id', '?')}: the acceptance criterion is not a runnable command"]
+    problems = []
+    decision = task.get('decision') or {}
+    if decision.get('kind') not in {'repair', 'investigate', 'retain'}:
+        problems.append(f"R7 {task.get('id', '?')}: missing typed decision")
+    if decision.get('readiness') == 'ready' and (not decision.get('checks') or decision.get('blockers')):
+        problems.append(f"R7 {task.get('id', '?')}: ready task lacks checks or has blockers")
+    return problems
+
+
+def _duplicate_rules(claims):
+    """R4: a claim shown in full in one artifact only, and no statement made twice."""
+    import json
+    problems, seen = [], {}
+    for claim in claims:
         artifacts = claim.get('artifacts') or []
         if len(artifacts) > 1:
             problems.append(f"R4 {claim['id']}: presented in full in more than one artifact ({', '.join(artifacts)})")
-        import json
         seen.setdefault((claim.get('statement'), json.dumps(claim.get('probe_spec') or {}, sort_keys=True)), []).append(claim['id'])
-    for statement, identifiers in sorted(seen.items()):
-        if len(identifiers) > 1:
-            problems.append('R4 duplicate statement across ' + ', '.join(identifiers))
-    return sorted(set(problems))
+    problems += ['R4 duplicate statement across ' + ', '.join(identifiers)
+                 for _, identifiers in sorted(seen.items()) if len(identifiers) > 1]
+    return problems
 
 
 def missing_required(out, documents):
@@ -102,18 +124,17 @@ def missing_required(out, documents):
         manifest = json.loads(manifest_path.read_text(encoding='utf-8')).get('stages', {})
     except ValueError:
         return []
-    found = []
-    for artifact in BY_NAME.values():
-        if not artifact.required or not artifact.checked or (Path(out) / artifact.name).exists():
-            continue
-        if artifact.kind == DOCUMENT and artifact.name in documents:
-            continue
-        status = (manifest.get(artifact.owner) or {}).get('status')
-        if status in ('skipped', 'unavailable', 'failed', 'not_reached'):
-            continue
-        found.append(f"R13 {artifact.name}: required, absent, and stage '{artifact.owner}' "
-                     f"does not explain it (status {status or 'unknown'})")
+    found = [f"R13 {artifact.name}: required, absent, and stage '{artifact.owner}' "
+             f"does not explain it (status {(manifest.get(artifact.owner) or {}).get('status') or 'unknown'})"
+             for artifact in BY_NAME.values() if not _explained(artifact, out, documents, manifest)]
     return sorted(found)
+
+
+def _explained(artifact, out, documents, manifest):
+    """True when the artifact is not required, is there, or its stage's status says why it is not."""
+    if not artifact.required or not artifact.checked or (Path(out) / artifact.name).exists(): return True
+    if artifact.kind == DOCUMENT and artifact.name in documents: return True
+    return (manifest.get(artifact.owner) or {}).get('status') in ('skipped', 'unavailable', 'failed', 'not_reached')
 
 
 def documents_without_a_record_twin():
