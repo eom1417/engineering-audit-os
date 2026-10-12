@@ -51,20 +51,21 @@ def _run(tool, args, workspace, timeout=600, index_home=None):
         import os
         environment = dict(os.environ, HOME=str(index_home))
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=environment)
-        out = result.stdout.strip()
-        err = result.stderr.strip()
-        if 'Tool ' in err and ' failed: ' in err:
-            return out or None, err.split('Tool ', 1)[-1].split(' failed: ', 1)[-1].strip()
-        if result.returncode != 0 and not out:
-            return None, err or f'exit {result.returncode}'
-        if not out:
-            return None, 'empty payload'
-        return out, None
+        return _outcome(subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=environment))
     except subprocess.TimeoutExpired:
         return None, f'timeout after {timeout}s'
     except FileNotFoundError:
         return None, f'binary missing at {BINARY}'
+
+
+def _outcome(result):
+    """(payload, None), or (what came out, why the tool failed)."""
+    out, err = result.stdout.strip(), result.stderr.strip()
+    if 'Tool ' in err and ' failed: ' in err:
+        return out or None, err.split('Tool ', 1)[-1].split(' failed: ', 1)[-1].strip()
+    if result.returncode != 0 and not out:
+        return None, err or f'exit {result.returncode}'
+    return (out, None) if out else (None, 'empty payload')
 
 
 def _parse_payload(text):
@@ -89,22 +90,24 @@ def _module_edges_from_dep_graph(payload, root):
     """
     if not isinstance(payload, dict): return []
     nodes = {str(node.get('id')): node for node in payload.get('nodes') or []}
-    facts = []
-    for edge in payload.get('edges') or []:
-        if edge.get('type') not in (None, 'import'): continue
-        source, destination = nodes.get(str(edge.get('from'))), nodes.get(str(edge.get('to')))
-        if not source or not destination: continue
-        from_path = source.get('path') or ''
-        to_name = destination.get('name') or destination.get('path') or ''
-        if not from_path or not to_name: continue
-        facts.append({'kind': 'module_edge_external',
-                      'location': {'path': _relative(from_path, root)},
-                      'value': {'from': _relative(from_path, root), 'to': to_name,
-                                'to_path': _relative(destination.get('path') or '', root) or None,
-                                'to_is_external': bool(destination.get('is_external')),
-                                'language': destination.get('language') or source.get('language') or '',
-                                'weight': 1, 'tool': 'codegraph_get_dependency_graph'}})
-    return facts
+    edges = (_dep_edge(edge, nodes, root) for edge in payload.get('edges') or [] if edge.get('type') in (None, 'import'))
+    return [fact for fact in edges if fact]
+
+
+def _dep_edge(edge, nodes, root):
+    """The module edge between two named ends; None when either end cannot be named."""
+    source, destination = nodes.get(str(edge.get('from'))), nodes.get(str(edge.get('to')))
+    if not source or not destination: return None
+    from_path = source.get('path') or ''
+    to_name = destination.get('name') or destination.get('path') or ''
+    if not from_path or not to_name: return None
+    return {'kind': 'module_edge_external',
+            'location': {'path': _relative(from_path, root)},
+            'value': {'from': _relative(from_path, root), 'to': to_name,
+                      'to_path': _relative(destination.get('path') or '', root) or None,
+                      'to_is_external': bool(destination.get('is_external')),
+                      'language': destination.get('language') or source.get('language') or '',
+                      'weight': 1, 'tool': 'codegraph_get_dependency_graph'}}
 
 
 def _relative(path, root):
@@ -229,80 +232,92 @@ def run(target, out, tools=None, files=None, **options):
     summary['files_offered'] = len(files or [])
     asked = sorted(dict.fromkeys(asked))[:FILE_BUDGET]
     summary['files_asked'] = len(asked)
-    if not asked:
-        # A tool we chose not to run is absent from the record; a tool we wanted to run and could
-        # not ask is present and says why. Conflating the two would hide a silent skip.
-        for tool, selector in (('codegraph_get_dependency_graph', 'get_dependency_graph'),
-                               ('codegraph_analyze_complexity', 'analyze_complexity'),
-                               ('codegraph_get_call_graph', 'get_call_graph')):
-            if not tool_selection.get(selector, True): continue
-            summary['tools'][tool] = 'partial'
-            summary['partial'].append({'tool': tool, 'reason': 'no file was named for this run'})
-
+    if not asked: _nothing_asked(summary, tool_selection)
+    context = (target, index_home)
     if asked and tool_selection.get('get_dependency_graph', True):
-        errors, produced = [], 0
-        for path in asked:
-            text, err = _run('codegraph_get_dependency_graph',
-                             {'uri': f'file://{target / path}', 'direction': 'both', 'depth': 1}, target,
-                             index_home=index_home)
-            if err: errors.append(err); continue
-            payload = _parse_payload(text)
-            if payload:
-                new_facts = CONVERTERS['codegraph_get_dependency_graph'](payload, target)
-                produced += len(new_facts)
-                facts.extend(new_facts)
-        _record_many(summary, 'codegraph_get_dependency_graph', produced, errors, len(asked))
-
+        facts += _per_file(summary, 'codegraph_get_dependency_graph', asked, context,
+                           ({'direction': 'both', 'depth': 1}, lambda payload, path: CONVERTERS['codegraph_get_dependency_graph'](payload, target)))
     if asked and tool_selection.get('analyze_complexity', True):
-        errors, produced = [], 0
-        for path in asked:
-            text, err = _run('codegraph_analyze_complexity', {'uri': f'file://{target / path}'}, target, index_home=index_home)
-            if err: errors.append(err); continue
-            payload = _parse_payload(text)
-            if payload:
-                new_facts = _complexity_facts(payload, target, path=path)
-                produced += len(new_facts)
-                facts.extend(new_facts)
-        _record_many(summary, 'codegraph_analyze_complexity', produced, errors, len(asked))
-
-    if tool_selection.get('find_hot_paths', True):
-        text, err = _run('codegraph_find_hot_paths', {'limit': 20, 'depth': 3}, target, index_home=index_home)
-        _record(summary, 'codegraph_find_hot_paths', text, err)
-        payload = _parse_payload(text)
-        if payload:
-            hot = CONVERTERS['codegraph_find_hot_paths'](payload, str(target))
-            kept = [fact for fact in hot if _is_the_reader_s_code(fact['value'].get('path') or fact['location']['path'])]
-            if len(kept) < len(hot):
-                summary['hot_paths_in_somebody_elses_code'] = len(hot) - len(kept)
-            facts.extend(kept)
-
-    if asked and tool_selection.get('get_call_graph', True):
-        # Ask about the symbols the report already names. On Go the engine answers with an empty
-        # edge list and a diagnostic saying its parser extracts no call edges; that is a measured
-        # limit of the engine, and it is recorded as one rather than retried against more files.
-        landed, diagnostics = 0, []
-        for path in asked[:10]:
-            text, err = _run('codegraph_get_call_graph',
-                             {'uri': f'file://{target / path}', 'name': Path(path).stem, 'depth': 2}, target,
-                             index_home=index_home)
-            if err: diagnostics.append(err); continue
-            payload = _parse_payload(text)
-            if not payload: continue
-            produced = CONVERTERS['codegraph_get_call_graph'](payload, path)
-            if produced:
-                facts.extend(produced); landed += 1
-            elif isinstance(payload.get('diagnostic'), dict):
-                note = payload['diagnostic'].get('note')
-                if note and note not in diagnostics: diagnostics.append(note)
-        if landed:
-            summary['tools']['codegraph_get_call_graph'] = 'ok'
-        else:
-            summary['tools']['codegraph_get_call_graph'] = 'partial'
-            summary['partial'].append({'tool': 'codegraph_get_call_graph',
-                                        'reason': diagnostics[0] if diagnostics
-                                                  else 'the engine returned no call edge for any file asked'})
+        facts += _per_file(summary, 'codegraph_analyze_complexity', asked, context,
+                           ({}, lambda payload, path: _complexity_facts(payload, target, path=path)))
+    if tool_selection.get('find_hot_paths', True): facts += _hot_path_facts(summary, context)
+    if asked and tool_selection.get('get_call_graph', True): facts += _call_graph_facts(summary, asked, context)
     return {'facts': facts, 'summary': summary,
             'available': True, 'input_sha': '', 'reason': None}
+
+
+def _nothing_asked(summary, tool_selection):
+    # A tool we chose not to run is absent from the record; a tool we wanted to run and could
+    # not ask is present and says why. Conflating the two would hide a silent skip.
+    for tool, selector in (('codegraph_get_dependency_graph', 'get_dependency_graph'),
+                           ('codegraph_analyze_complexity', 'analyze_complexity'),
+                           ('codegraph_get_call_graph', 'get_call_graph')):
+        if not tool_selection.get(selector, True): continue
+        summary['tools'][tool] = 'partial'
+        summary['partial'].append({'tool': tool, 'reason': 'no file was named for this run'})
+
+
+def _per_file(summary, tool, asked, context, how):
+    """One tool asked about each file, recorded once. `how`: (its arguments besides the file, payload -> facts)."""
+    (target, index_home), (arguments, convert) = context, how
+    facts, errors = [], []
+    for path in asked:
+        text, err = _run(tool, {'uri': f'file://{target / path}', **arguments}, target, index_home=index_home)
+        if err: errors.append(err); continue
+        payload = _parse_payload(text)
+        if payload: facts.extend(convert(payload, path))
+    _record_many(summary, tool, len(facts), errors, len(asked))
+    return facts
+
+
+def _hot_path_facts(summary, context):
+    """The hot paths through the reader's own code; those through somebody else's are only counted."""
+    target, index_home = context
+    text, err = _run('codegraph_find_hot_paths', {'limit': 20, 'depth': 3}, target, index_home=index_home)
+    _record(summary, 'codegraph_find_hot_paths', text, err)
+    payload = _parse_payload(text)
+    if not payload: return []
+    hot = CONVERTERS['codegraph_find_hot_paths'](payload, str(target))
+    kept = [fact for fact in hot if _is_the_reader_s_code(fact['value'].get('path') or fact['location']['path'])]
+    if len(kept) < len(hot):
+        summary['hot_paths_in_somebody_elses_code'] = len(hot) - len(kept)
+    return kept
+
+
+def _call_graph_facts(summary, asked, context):
+    # Ask about the symbols the report already names. On Go the engine answers with an empty
+    # edge list and a diagnostic saying its parser extracts no call edges; that is a measured
+    # limit of the engine, and it is recorded as one rather than retried against more files.
+    target, index_home = context
+    facts, landed, diagnostics = [], 0, []
+    for path in asked[:10]:
+        text, err = _run('codegraph_get_call_graph',
+                         {'uri': f'file://{target / path}', 'name': Path(path).stem, 'depth': 2}, target,
+                         index_home=index_home)
+        if err: diagnostics.append(err); continue
+        payload = _parse_payload(text)
+        if not payload: continue
+        produced = CONVERTERS['codegraph_get_call_graph'](payload, path)
+        if produced:
+            facts.extend(produced); landed += 1
+        else: _note_diagnostic(payload, diagnostics)
+    _record_calls(summary, landed, diagnostics)
+    return facts
+
+
+def _note_diagnostic(payload, diagnostics):
+    note = payload['diagnostic'].get('note') if isinstance(payload.get('diagnostic'), dict) else None
+    if note and note not in diagnostics: diagnostics.append(note)
+
+
+def _record_calls(summary, landed, diagnostics):
+    if landed:
+        summary['tools']['codegraph_get_call_graph'] = 'ok'
+        return
+    summary['tools']['codegraph_get_call_graph'] = 'partial'
+    summary['partial'].append({'tool': 'codegraph_get_call_graph',
+                                'reason': diagnostics[0] if diagnostics
+                                          else 'the engine returned no call edge for any file asked'})
 
 
 def _record_many(summary, tool, produced, errors, asked):
@@ -413,22 +428,26 @@ def files_of_interest(workdir):
     facts_dir = Path(workdir).parent.parent / 'facts'
     paths = []
     for name, kind in (('entrypoints', 'entry_point'), ('flows', 'flow')):
-        source = facts_dir / f'{name}.json'
-        if not source.is_file(): continue
-        try: payload = json.loads(source.read_text(encoding='utf-8'))
-        except (ValueError, OSError): continue
-        for fact in payload.get('facts', []):
-            if fact.get('kind') != kind: continue
-            if kind == 'entry_point':
-                if fact['value'].get('category') == 'test': continue
-                paths.append(fact['location']['path'])
-            else:
-                # The flow fact names its path set `touched_files`. Reading `files` here returned
-                # an empty list on every project, so the engine was only ever asked about entry
-                # points -- the same producer/reader name mismatch this module was fixed for.
-                paths.extend(fact['value'].get('touched_files') or [])
-                paths.append(((fact['value'].get('entry') or {}).get('path')) or '')
+        for fact in _facts_in(facts_dir / f'{name}.json'):
+            if fact.get('kind') == kind: paths += _paths_of(fact, kind)
     return list(dict.fromkeys(path for path in paths if path))
+
+
+def _facts_in(source):
+    if not source.is_file(): return []
+    try: payload = json.loads(source.read_text(encoding='utf-8'))
+    except (ValueError, OSError): return []
+    return payload.get('facts', [])
+
+
+def _paths_of(fact, kind):
+    """An entry point's file (none for one in the tests), or the files a flow touches and its entry's."""
+    if kind == 'entry_point':
+        return [] if fact['value'].get('category') == 'test' else [fact['location']['path']]
+    # The flow fact names its path set `touched_files`. Reading `files` here returned
+    # an empty list on every project, so the engine was only ever asked about entry
+    # points -- the same producer/reader name mismatch this module was fixed for.
+    return list(fact['value'].get('touched_files') or []) + [((fact['value'].get('entry') or {}).get('path')) or '']
 
 
 def read_graph_facts(workdir):
