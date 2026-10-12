@@ -38,18 +38,9 @@ def _checks_command():
 
 def build_assessment(claim, fact_sets, target):
     """Return ``{'assessment': ..., 'checks': [...]}`` for a policy claim, or ``None``."""
-    if not isinstance(claim, dict):
+    fact = _violation(claim, fact_sets, target)
+    if fact is None:
         return None
-    if target is None:
-        return None
-    if (claim.get('render') or {}).get('key') != 'policy':
-        return None
-    own = set(claim.get('fact_ids') or [])
-    facts = [fact for fact in (fact_sets.get('policy') or {}).get('facts', [])
-             if fact.get('kind') == 'policy_violation' and fact.get('id') in own]
-    if not facts:
-        return None
-    fact = facts[0]
     edge_fact_id = (fact.get('value') or {}).get('edge_fact_id')
     if not edge_fact_id:
         return None
@@ -59,6 +50,22 @@ def build_assessment(claim, fact_sets, target):
     resolve_ids = {row.get('id') for row in (fact_sets.get('resolve') or {}).get('facts', [])}
     if edge_fact_id not in resolve_ids:
         return None
+    return _assessment(fact, edge_fact_id, digest, location, target)
+
+
+def _violation(claim, fact_sets, target):
+    """The policy_violation fact a policy claim stands on, or None."""
+    if not isinstance(claim, dict) or target is None:
+        return None
+    if (claim.get('render') or {}).get('key') != 'policy':
+        return None
+    own = set(claim.get('fact_ids') or [])
+    facts = [fact for fact in (fact_sets.get('policy') or {}).get('facts', [])
+             if fact.get('kind') == 'policy_violation' and fact.get('id') in own]
+    return facts[0] if facts else None
+
+
+def _assessment(fact, edge_fact_id, digest, location, target):
     reason = (fact.get('value') or {}).get('reason') or ''
     invariant = reason.strip() or 'A declared layering rule was contradicted by a resolved import.'
     before = (
