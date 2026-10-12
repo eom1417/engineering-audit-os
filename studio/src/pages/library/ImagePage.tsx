@@ -24,13 +24,23 @@ function drawnBy(id: string): { to: string; search?: Record<string, string>; wor
   return { to: '/system', word: 'mapToday' }
 }
 
+/** The diagrams EAOS names itself, worded in the interface language; any other image keeps its own title. */
+const DIAGRAM_WORD = {
+  'architecture/current/diagram.mmd': 'diagram_current', 'architecture/target/diagram.mmd': 'diagram_target', 'architecture/system.mmd': 'diagram_system',
+} as const
+
+function diagramTitle(image: { id: string; title: string }, w: ReturnType<typeof useLibraryWords>): string {
+  const word = DIAGRAM_WORD[image.id as keyof typeof DIAGRAM_WORD]
+  return word ? w(word) : image.title
+}
+
 function ImageBody({ data }: { data: StudioData }) {
   const w = useLibraryWords()
   const { imageId } = useParams({ strict: false }) as { imageId?: string }
   const id = decoded(imageId ?? '')
   const image = mediaOf(data).find((i) => i.id === id)
   const library = useLazySection<LibraryData>(data, 'library')
-  usePageChrome(image?.title ?? w('imageNotFound'), { to: '/library/docs', label: w('library') }, data.manifest.project.name)
+  usePageChrome(image ? diagramTitle(image, w) : w('imageNotFound'), { to: '/library/docs', label: w('library') }, data.manifest.project.name)
   if (!image) {
     return <div className={layout.page}><Panel><StateMessage icon="eye" title={w('imageNotFound')} sub={<Id value={id || '—'} />} /></Panel></div>
   }
@@ -39,7 +49,7 @@ function ImageBody({ data }: { data: StudioData }) {
   return (
     <div className={layout.page}>
       <header className={css.docHead}>
-        <h1 className={css.docTitle}><Txt>{image.title}</Txt></h1>
+        <h1 className={css.docTitle}><Txt>{diagramTitle(image, w)}</Txt></h1>
         <div className={css.docMeta}><Chip>{w(`kind_${image.kind}`)}</Chip><Id value={image.path} /></div>
       </header>
       {library.kind === 'loading' && <Panel><Skeleton label={w('loadingText')} /></Panel>}

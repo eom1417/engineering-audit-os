@@ -26,6 +26,9 @@ export const LIBRARY_WORDS = {
   noMatch: ['لا وثيقة تطابق هذا البحث. جرّب كلمة أقصر.', 'No document matches. Try a shorter word.'],
   inSection: ['في القسم:', 'In:'],
   images: ['الصور والرسوم', 'Images and diagrams'],
+  diagram_current: ['البنية اليوم', 'The architecture today'],
+  diagram_target: ['البنية المستهدفة', 'The target architecture'],
+  diagram_system: ['خريطة الصفحات والواجهات البرمجية', 'Map of pages and APIs'],
   noDocs: ['لم يكتب هذا الفحص وثائق بعد', 'This check wrote no documents yet'],
   noDocsSub: ['تظهر الوثائق هنا بعد أن يكتب EAOS تقريره عن المشروع.', 'The documents appear here once EAOS writes its report on the project.'],
   // reader
