@@ -92,64 +92,108 @@ def _link_sub_pipelines(found):
     for f in found:
         for path_name in f.functions: by_function.setdefault(path_name, f)
     for f in found:
-        for stage in f.stages.values():
-            target = stage.pop('callable', None)
-            symbol = stage.get('symbol') or ''
-            candidates = [target] if target else []
-            if symbol and '.' in symbol:
-                module, name = symbol.rsplit('.', 1)
-                candidates.append((module.replace('.', '/') + '.py', name))
-            for candidate in candidates:
-                child = by_function.get(candidate)
-                if child is not None and child is not f and child.parent is None:
-                    stage['sub_pipeline'], child.parent = child.id, stage['id']
-                    break
+        for stage in f.stages.values(): _open_sub_pipeline(f, stage, by_function)
+
+
+def _stage_candidates(stage):
+    """The (file, function) pairs a stage may run: its callable, and the function its symbol names."""
+    target = stage.pop('callable', None)
+    symbol = stage.get('symbol') or ''
+    candidates = [target] if target else []
+    if symbol and '.' in symbol:
+        module, name = symbol.rsplit('.', 1)
+        candidates.append((module.replace('.', '/') + '.py', name))
+    return candidates
+
+
+def _open_sub_pipeline(f, stage, by_function):
+    for candidate in _stage_candidates(stage):
+        child = by_function.get(candidate)
+        if child is not None and child is not f and child.parent is None:
+            stage['sub_pipeline'], child.parent = child.id, stage['id']
+            return
+
+
+FAN_KINDS = ('declared_dag', 'registry_loop', 'orchestrator', 'airflow', 'langgraph', 'prefect', 'dagster')
+
+
+def _stage_links(found):
+    real = {k for k, s in found.stages.items() if s['kind'] not in ('router', 'fork', 'join')}
+    outgoing, incoming = defaultdict(list), defaultdict(set)
+    for a, b in found.edges:
+        if a in real and b in real: outgoing[a].append(b); incoming[b].add(a)
+    return outgoing, incoming
+
+
+def _fan(found, fork, branches, incoming):
+    if len(branches) < 2: return None
+    joins = [s for s, sources in incoming.items() if set(branches) <= sources]
+    if found.kind not in ('airflow', 'langgraph') and not joins:
+        # Elsewhere one value read by two later stages is not a parallel fan-out: only a fork whose branches meet
+        # again is drawn as one.
+        return None
+    return {'id': f'{fork}:fan', 'pipeline': found.id, 'fork': fork, 'join': joins[0] if joins else None,
+            'branches': sorted(branches, key=found.order.index), 'matched': bool(joins),
+            'kind': 'parallel' if found.kind == 'airflow' else 'collect', 'evidence': found.stages[fork]['entry']}
 
 
 def _fans_from_edges(found):
-    if found.kind in ('declared_dag', 'registry_loop', 'orchestrator', 'airflow', 'langgraph', 'prefect', 'dagster'):
-        real = {k for k, s in found.stages.items() if s['kind'] not in ('router', 'fork', 'join')}
-        outgoing, incoming = defaultdict(list), defaultdict(set)
-        for a, b in found.edges:
-            if a in real and b in real: outgoing[a].append(b); incoming[b].add(a)
-        for fork, branches in sorted(outgoing.items()):
-            if len(branches) < 2: continue
-            joins = [s for s, sources in incoming.items() if set(branches) <= sources]
-            if found.kind not in ('airflow', 'langgraph') and not joins:
-                # Elsewhere one value read by two later stages is not a parallel fan-out: only a fork whose branches meet
-                # again is drawn as one.
-                continue
-            found.fans.append({'id': f'{fork}:fan', 'pipeline': found.id, 'fork': fork, 'join': joins[0] if joins else None,
-                               'branches': sorted(branches, key=found.order.index), 'matched': bool(joins),
-                               'kind': 'parallel' if found.kind == 'airflow' else 'collect', 'evidence': found.stages[fork]['entry']})
+    if found.kind not in FAN_KINDS: return
+    outgoing, incoming = _stage_links(found)
+    for fork, branches in sorted(outgoing.items()):
+        fan = _fan(found, fork, branches, incoming)
+        if fan: found.fans.append(fan)
+
+
+def _stage_node(py, stage):
+    """(file, function node) a stage's symbol names in its own entry file, or (None, None)."""
+    symbol = stage.get('symbol') or ''
+    if '.' not in symbol: return None, None
+    module, name = symbol.rsplit('.', 1)
+    rel = module.replace('.', '/') + '.py'
+    node = py.defs.get(rel, {}).get(name)
+    if node is None or rel != stage['entry']['path']: return None, None
+    return rel, node
+
+
+def _global_use(sub, declared, py, rel):
+    """(writes, channel, located) when the node uses a module global; None otherwise."""
+    if not isinstance(sub, ast.Name): return None
+    if sub.id in declared: return isinstance(sub.ctx, ast.Store), ('global', sub.id), True
+    if isinstance(sub.ctx, ast.Load) and sub.id in py.assigns.get(rel, {}) and sub.id.isupper() is False and sub.id.islower():
+        return False, ('global', sub.id), False
+    return None
+
+
+def _env_use(sub):
+    """(writes, channel, located) when the node uses an environment variable; None otherwise."""
+    if isinstance(sub, ast.Subscript) and _unparse(sub.value) == 'os.environ' and _str(sub.slice):
+        return isinstance(sub.ctx, ast.Store), ('env', _str(sub.slice)), True
+    if isinstance(sub, ast.Call) and _unparse(sub.func) in ('os.environ.get', 'os.getenv') and sub.args and _str(sub.args[0]):
+        return False, ('env', _str(sub.args[0])), False
+    return None
+
+
+def _stage_channels(py, key, stage, channels):
+    rel, node = _stage_node(py, stage)
+    if node is None: return
+    declared = {n for s in ast.walk(node) if isinstance(s, ast.Global) for n in s.names}
+    for sub in ast.walk(node):
+        use = _global_use(sub, declared, py, rel) or _env_use(sub)
+        if use is None: continue
+        writes, channel, located = use
+        (channels['writes'] if writes else channels['reads'])[channel].add(key)
+        if located: channels['where'].setdefault(channel, (rel, sub.lineno))
 
 
 def _globals_and_env(py, found):
     """Module globals and environment variables one stage writes and another reads, beside the declared flow."""
-    writes, reads = defaultdict(set), defaultdict(set)
-    where = {}
-    for key, stage in found.stages.items():
-        symbol = stage.get('symbol') or ''
-        if '.' not in symbol: continue
-        module, name = symbol.rsplit('.', 1)
-        rel = module.replace('.', '/') + '.py'
-        node = py.defs.get(rel, {}).get(name)
-        if node is None or rel != stage['entry']['path']: continue
-        declared = {n for s in ast.walk(node) if isinstance(s, ast.Global) for n in s.names}
-        for sub in ast.walk(node):
-            if isinstance(sub, ast.Name) and sub.id in declared:
-                (writes if isinstance(sub.ctx, ast.Store) else reads)[('global', sub.id)].add(key); where.setdefault(('global', sub.id), (rel, sub.lineno))
-            elif isinstance(sub, ast.Name) and isinstance(sub.ctx, ast.Load) and sub.id in py.assigns.get(rel, {}) and sub.id.isupper() is False \
-                    and sub.id.islower():
-                reads[('global', sub.id)].add(key)
-            elif isinstance(sub, ast.Subscript) and _unparse(sub.value) == 'os.environ' and _str(sub.slice):
-                (writes if isinstance(sub.ctx, ast.Store) else reads)[('env', _str(sub.slice))].add(key); where.setdefault(('env', _str(sub.slice)), (rel, sub.lineno))
-            elif isinstance(sub, ast.Call) and _unparse(sub.func) in ('os.environ.get', 'os.getenv') and sub.args and _str(sub.args[0]):
-                reads[('env', _str(sub.args[0]))].add(key)
-    for (channel, name), writers in writes.items():
-        readers = reads.get((channel, name), set()) - writers
+    channels = {'writes': defaultdict(set), 'reads': defaultdict(set), 'where': {}}
+    for key, stage in found.stages.items(): _stage_channels(py, key, stage, channels)
+    for (channel, name), writers in channels['writes'].items():
+        readers = channels['reads'].get((channel, name), set()) - writers
         if not readers: continue
-        rel, line = where[(channel, name)]
+        rel, line = channels['where'][(channel, name)]
         found.hidden.append({'id': f'{found.id}:{channel}:{slug(name)}', 'pipeline': found.id, 'kind': 'side_channel', 'channel': channel,
                              'name': name, 'stages': sorted(writers | readers, key=found.order.index), 'evidence': site(rel, line, py.line(rel, line))})
 
@@ -184,23 +228,30 @@ ELEMENTS = (('stages', 'pipeline_stage', 'entry'), ('edges', 'pipeline_edge', 'e
             ('hidden', 'pipeline_hidden', 'evidence'), ('unresolved', 'pipeline_unresolved', 'evidence'))
 
 
-def facts_of(record, sha=''):
-    def located(where):
-        return {'path': where.get('path'), 'start_line': where.get('line')}
-    rows = [make('pipeline_scan', NAME, VERSION, sha, {'path': '.', 'start_line': None},
-                 {k: record[k] for k in ('detected', 'confidence', 'kinds', 'evidence', 'looked_for', 'read')})]
-    for pipeline in record['pipelines']:
-        head = {k: v for k, v in pipeline.items() if k not in dict((e[0], 1) for e in ELEMENTS)}
-        rows.append(make('pipeline', NAME, VERSION, sha, located(pipeline['entry']), head))
-        for field, kind, at in ELEMENTS:
-            for index, item in enumerate(pipeline[field]):
-                rows.append(make(kind, NAME, VERSION, sha, located(item.get(at) or {}), {**item, 'index': index}))
+ELEMENT_FIELDS = {field for field, _, _ in ELEMENTS}
+
+
+def _located(where):
+    return {'path': where.get('path'), 'start_line': where.get('line')}
+
+
+def _pipeline_facts(pipeline, sha):
+    head = {k: v for k, v in pipeline.items() if k not in ELEMENT_FIELDS}
+    rows = [make('pipeline', NAME, VERSION, sha, _located(pipeline['entry']), head)]
+    rows += [make(kind, NAME, VERSION, sha, _located(item.get(at) or {}), {**item, 'index': index})
+             for field, kind, at in ELEMENTS for index, item in enumerate(pipeline[field])]
     return rows
 
 
-def record_of(facts):
-    """The record back from facts/pipeline.json's facts, each element with the id of its fact."""
-    record = {'detected': False, 'confidence': None, 'kinds': [], 'evidence': [], 'looked_for': [], 'pipelines': []}
+def facts_of(record, sha=''):
+    rows = [make('pipeline_scan', NAME, VERSION, sha, {'path': '.', 'start_line': None},
+                 {k: record[k] for k in ('detected', 'confidence', 'kinds', 'evidence', 'looked_for', 'read')})]
+    for pipeline in record['pipelines']: rows += _pipeline_facts(pipeline, sha)
+    return rows
+
+
+def _pipelines_of(facts, record):
+    """Fill `record` from the scan and pipeline facts; {pipeline id: its record}."""
     by_id = {}
     for row in facts:
         if row.get('kind') == 'pipeline_scan': record.update(row['value'])
@@ -208,6 +259,10 @@ def record_of(facts):
             pipeline = {**row['value'], 'fact': row['id'], **{field: [] for field, _, _ in ELEMENTS}}
             by_id[pipeline['id']] = pipeline
             record['pipelines'].append(pipeline)
+    return by_id
+
+
+def _attach_elements(facts, by_id):
     kinds = {kind: field for field, kind, _ in ELEMENTS}
     for row in facts:
         field = kinds.get(row.get('kind'))
@@ -217,9 +272,18 @@ def record_of(facts):
         if pipeline is None: continue
         item['fact'] = row['id']
         pipeline[field].append((row['value'].get('index', 0), item))
-    for pipeline in record['pipelines']:
-        for field, _, _ in ELEMENTS:
-            pipeline[field] = [item for _, item in sorted(pipeline[field], key=lambda pair: pair[0])]
+
+
+def _order_elements(pipeline):
+    for field, _, _ in ELEMENTS:
+        pipeline[field] = [item for _, item in sorted(pipeline[field], key=lambda pair: pair[0])]
+
+
+def record_of(facts):
+    """The record back from facts/pipeline.json's facts, each element with the id of its fact."""
+    record = {'detected': False, 'confidence': None, 'kinds': [], 'evidence': [], 'looked_for': [], 'pipelines': []}
+    _attach_elements(facts, _pipelines_of(facts, record))
+    for pipeline in record['pipelines']: _order_elements(pipeline)
     return record
 
 
