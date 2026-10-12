@@ -42,7 +42,6 @@ CONTEXT_PARAMS = {'context', 'ctx', 'state'}
 DICT_METHODS = {'get', 'items', 'keys', 'values', 'setdefault', 'update', 'pop', 'copy'}
 MODEL_WORDS = re.compile(r'provider|llm|openai|anthropic|claude|codex|gpt|prompt|completion', re.I)
 NETWORK = {'requests', 'httpx', 'urllib', 'aiohttp', 'boto3', 's3fs', 'praw', 'smtplib', 'socket'}
-PROCESS = {'subprocess', 'os.system', 'popen'}
 DB_CALLS = {'execute', 'executemany', 'save', 'get_or_create', 'update_or_create', 'bulk_create', 'commit', 'insert', 'upsert'}
 TIMEOUT_WORDS = {'timeout', 'execution_timeout', 'soft_time_limit', 'time_limit', 'budget', 'deadline'}
 SIGNATURES = {'s', 'si', 'signature', 'delay', 'apply_async'}
