@@ -37,16 +37,26 @@ def score(row, wanted):
 
 def artifact_sections(out):
     """The rendered artifacts are part of the record, and they are the only Arabic surface we have."""
-    rows = []
-    for path in sorted(Path(out).glob('*.md')):
-        heading = path.stem
-        for number, line in enumerate(path.read_text(encoding='utf-8').split('\n'), start=1):
-            if line.startswith('#'): heading = line.lstrip('#').strip()
-            elif line.strip().startswith('|') and len(line) > 12:
-                cells = [cell.strip() for cell in line.strip().strip('|').split('|')]
-                if all(set(cell) <= {'-', ':'} for cell in cells if cell): continue  # table rule, not content
-                rows.append({'kind': 'artifact section', 'id': heading[:40], 'text': ' · '.join(cells)[:200],
-                             'detail': path.name, 'citation': f'{path.name}:{number}'})
+    return [row for path in sorted(Path(out).glob('*.md')) for row in _artifact_rows(path)]
+
+
+def _table_cells(line):
+    """The cells of a table line that holds content; None for any other line, and for a table rule."""
+    if not (line.strip().startswith('|') and len(line) > 12): return None
+    cells = [cell.strip() for cell in line.strip().strip('|').split('|')]
+    return None if all(set(cell) <= {'-', ':'} for cell in cells if cell) else cells
+
+
+def _artifact_rows(path):
+    rows, heading = [], path.stem
+    for number, line in enumerate(path.read_text(encoding='utf-8').split('\n'), start=1):
+        if line.startswith('#'):
+            heading = line.lstrip('#').strip()
+            continue
+        cells = _table_cells(line)
+        if cells is None: continue
+        rows.append({'kind': 'artifact section', 'id': heading[:40], 'text': ' · '.join(cells)[:200],
+                     'detail': path.name, 'citation': f'{path.name}:{number}'})
     return rows
 
 
@@ -59,51 +69,76 @@ def records(out):
     return dossier, sets
 
 
+def _claim_row(claim):
+    return {'kind': 'claim', 'id': claim['id'], 'text': claim['statement'],
+            'detail': f"{claim['confidence']} · {claim['claim_type']}",
+            'citation': ', '.join(claim.get('evidence_ids', []) or claim.get('fact_ids', []))[:80]}
+
+
+def _question_row(question):
+    return {'kind': 'open question', 'id': question['id'], 'text': question['question'],
+            'detail': question['source'], 'citation': ''}
+
+
+def _entry_row(fact):
+    value = fact['value']
+    return {'kind': 'entry point', 'id': fact['id'][:12], 'detail': f"{value['surface']} {value['http_method'] or ''}".strip(),
+            'text': f"{value['route']} → {value['handler']} [{value['framework']}]",
+            'route': str(value['route'] or ''),
+            'citation': f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"}
+
+
+def _flow_row(fact):
+    value = fact['value']
+    return {'kind': 'flow', 'id': value['flow_id'],
+            'text': f"{value['entry']['surface']} {value['entry']['route']} touches " + ', '.join(value['touched_files']),
+            'detail': f"{len(value['steps'])} steps", 'route': str(value['entry']['route'] or ''),
+            'citation': f"{value['entry']['path']}:{value['entry']['line']}"}
+
+
+def _domain_row(fact):
+    """A rule constant, or another domain fact by its name; None for a fact with no name."""
+    value = fact['value']
+    if fact['kind'] == 'domain_constant':
+        return {'kind': 'rule constant', 'id': value['name'],
+                'text': f"{value['name']} defined in " + ', '.join(f"{d['path']}:{d['line']}" for d in value['definitions']),
+                'detail': 'duplicated' if value['duplicated'] else 'single definition',
+                'citation': f"{fact['location']['path']}:{fact['location']['start_line']}"}
+    # Domain facts are not all named the same way: a cross-module write has a module and an attribute.
+    name = value.get('name') or f"{value.get('module', '')}.{value.get('attribute', '')}".strip('.')
+    if not name: return None
+    return {'kind': fact['kind'], 'id': name, 'text': name, 'detail': str(value.get('kind') or value.get('shape') or ''),
+            'citation': f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"}
+
+
+def _symbol_row(fact):
+    return {'kind': 'symbol', 'id': fact['location'].get('symbol') or fact['value']['name'],
+            'text': f"{fact['location'].get('symbol')} ({fact['value']['kind']})",
+            'detail': fact['value']['language'] or '',
+            'citation': f"{fact['location']['path']}:{fact['location']['start_line']}-{fact['location']['end_line']}"}
+
+
+def _config_row(fact):
+    return {'kind': 'configuration', 'id': fact['value']['name'], 'text': fact['value']['name'] + ' is read here',
+            'detail': 'has default' if fact['value']['has_default'] else 'no default',
+            'citation': f"{fact['location']['path']}:{fact['location']['start_line']}"}
+
+
+# (fact set, the only fact kind it reads or None for every kind, the row it makes), in the order rows are listed
+FACT_ROWS = (('entrypoints', 'entry_point', _entry_row), ('flows', None, _flow_row), ('domain', None, _domain_row),
+             ('syntax', 'symbol', _symbol_row), ('config', 'env_read', _config_row))
+
+
+def _fact_rows(sets, name, kind, row):
+    facts = sets.get(name, {}).get('facts', [])
+    made = (row(fact) for fact in facts if kind is None or fact['kind'] == kind)
+    return [r for r in made if r is not None]
+
+
 def candidates(dossier, sets):
-    rows = []
-    for claim in dossier.get('claims', []):
-        rows.append({'kind': 'claim', 'id': claim['id'], 'text': claim['statement'],
-                     'detail': f"{claim['confidence']} · {claim['claim_type']}",
-                     'citation': ', '.join(claim.get('evidence_ids', []) or claim.get('fact_ids', []))[:80]})
-    for question in dossier.get('questions', []):
-        rows.append({'kind': 'open question', 'id': question['id'], 'text': question['question'],
-                     'detail': question['source'], 'citation': ''})
-    for fact in [f for f in sets.get('entrypoints', {}).get('facts', []) if f['kind'] == 'entry_point']:
-        value = fact['value']
-        rows.append({'kind': 'entry point', 'id': fact['id'][:12], 'detail': f"{value['surface']} {value['http_method'] or ''}".strip(),
-                     'text': f"{value['route']} → {value['handler']} [{value['framework']}]",
-                     'route': str(value['route'] or ''),
-                     'citation': f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"})
-    for fact in sets.get('flows', {}).get('facts', []):
-        value = fact['value']
-        rows.append({'kind': 'flow', 'id': value['flow_id'],
-                     'text': f"{value['entry']['surface']} {value['entry']['route']} touches " + ', '.join(value['touched_files']),
-                     'detail': f"{len(value['steps'])} steps", 'route': str(value['entry']['route'] or ''),
-                     'citation': f"{value['entry']['path']}:{value['entry']['line']}"})
-    for fact in sets.get('domain', {}).get('facts', []):
-        value = fact['value']
-        if fact['kind'] == 'domain_constant':
-            rows.append({'kind': 'rule constant', 'id': value['name'],
-                         'text': f"{value['name']} defined in " + ', '.join(f"{d['path']}:{d['line']}" for d in value['definitions']),
-                         'detail': 'duplicated' if value['duplicated'] else 'single definition',
-                         'citation': f"{fact['location']['path']}:{fact['location']['start_line']}"})
-        else:
-            # Domain facts are not all named the same way: a cross-module write has a module and an attribute.
-            name = value.get('name') or f"{value.get('module', '')}.{value.get('attribute', '')}".strip('.')
-            if not name: continue
-            rows.append({'kind': fact['kind'], 'id': name, 'text': name, 'detail': str(value.get('kind') or value.get('shape') or ''),
-                         'citation': f"{fact['location']['path']}:{fact['location'].get('start_line') or 1}"})
-    for fact in sets.get('syntax', {}).get('facts', []):
-        if fact['kind'] != 'symbol': continue
-        rows.append({'kind': 'symbol', 'id': fact['location'].get('symbol') or fact['value']['name'],
-                     'text': f"{fact['location'].get('symbol')} ({fact['value']['kind']})",
-                     'detail': fact['value']['language'] or '',
-                     'citation': f"{fact['location']['path']}:{fact['location']['start_line']}-{fact['location']['end_line']}"})
-    for fact in sets.get('config', {}).get('facts', []):
-        if fact['kind'] != 'env_read': continue
-        rows.append({'kind': 'configuration', 'id': fact['value']['name'], 'text': fact['value']['name'] + ' is read here',
-                     'detail': 'has default' if fact['value']['has_default'] else 'no default',
-                     'citation': f"{fact['location']['path']}:{fact['location']['start_line']}"})
+    rows = [_claim_row(claim) for claim in dossier.get('claims', [])]
+    rows += [_question_row(question) for question in dossier.get('questions', [])]
+    for name, kind, row in FACT_ROWS: rows += _fact_rows(sets, name, kind, row)
     return rows
 
 
