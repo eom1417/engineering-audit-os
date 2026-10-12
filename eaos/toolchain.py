@@ -62,17 +62,22 @@ def project_files(target):
     return found
 
 
+RULES = {
+    'all': lambda files: True,
+    'js': lambda files: any(f.endswith(('.ts', '.tsx', '.js', '.jsx')) for f in files),
+    'react': lambda files: any(f.endswith(('.tsx', '.jsx')) for f in files),
+    'node_package': lambda files: 'package.json' in files,
+    'python': lambda files: any(f.endswith('.py') for f in files),
+    'sql': lambda files: any(f.endswith('.sql') for f in files),
+    'ci_or_iac': lambda files: any(f.startswith('.github/workflows/') or f.endswith(('Dockerfile', '.tf')) for f in files),
+    'openapi': lambda files: any(f.split('/')[-1].startswith(('openapi.', 'swagger.')) for f in files),
+}
+
+
 def rule_applies(rule, files):
     """Whether a tool's `applies` rule (upstreams/toolchain.json) holds for a project's files."""
-    if rule == 'all': return True
-    if rule == 'js': return any(f.endswith(('.ts', '.tsx', '.js', '.jsx')) for f in files)
-    if rule == 'react': return any(f.endswith(('.tsx', '.jsx')) for f in files)
-    if rule == 'node_package': return 'package.json' in files
-    if rule == 'python': return any(f.endswith('.py') for f in files)
-    if rule == 'sql': return any(f.endswith('.sql') for f in files)
-    if rule == 'ci_or_iac': return any(f.startswith('.github/workflows/') or f.endswith(('Dockerfile', '.tf')) for f in files)
-    if rule == 'openapi': return any(f.split('/')[-1].startswith(('openapi.', 'swagger.')) for f in files)
-    return False
+    test = RULES.get(rule)
+    return bool(test(files)) if test else False
 
 
 def for_the_check(tool, files):
@@ -114,44 +119,56 @@ def _checkout(tool):
     return home() / tool['install']['dir']
 
 
-def found_version(tool):
-    if tool['install']['method'] == 'git':
-        # A pinned repository of data (rules), not a program: its version is the commit it is at.
-        done = subprocess.run(['git', '-C', str(_checkout(tool)), 'rev-parse', 'HEAD'], capture_output=True, text=True)
-        return (done.stdout.strip(), '') if done.returncode == 0 else (None, 'not installed')
-    if tool['install'].get('library'):
-        # A Node library EAOS's own helper scripts import (axe, the CSS analyzer): it has no executable, and its
-        # version is the one its package.json declares in the tool's own prefix.
-        found = package_version(tool, tool['install']['package'])
-        if not found: return None, 'not installed'
-        missing = _companions_missing(tool)
-        return (None, missing) if missing else (found, '')
-    path = binary_path(tool)
-    if not path: return None, 'not installed'
-    if tool.get('version_from') == 'package':
-        # A command with no --version (the react-docgen CLI): the version is the one its npm package records.
-        found = package_version(tool)
-        return (found, '') if found else (None, f"{tool['install']['package']} is not installed in {npm_prefix(tool)}")
+def _git_version(tool):
+    # A pinned repository of data (rules), not a program: its version is the commit it is at.
+    done = subprocess.run(['git', '-C', str(_checkout(tool)), 'rev-parse', 'HEAD'], capture_output=True, text=True)
+    return (done.stdout.strip(), '') if done.returncode == 0 else (None, 'not installed')
+
+
+def _library_version(tool):
+    # A Node library EAOS's own helper scripts import (axe, the CSS analyzer): it has no executable, and its
+    # version is the one its package.json declares in the tool's own prefix.
+    found = package_version(tool, tool['install']['package'])
+    if not found: return None, 'not installed'
+    missing = _companions_missing(tool)
+    return (None, missing) if missing else (found, '')
+
+
+def _version_output(tool, path):
+    """(what `path --version` printed, None), or (None, why it could not run)."""
     try:
         # A tool that runs on another (the Structurizr CLI on the JRE) finds it in the pinned bin first.
         done = subprocess.run([path, *tool.get('version_args', ['--version'])], capture_output=True, text=True, timeout=120,
                               env={**tool_env(), 'NO_COLOR': '1', 'PATH': str(home() / 'bin') + os.pathsep + os.environ.get('PATH', '')})
     except (OSError, subprocess.TimeoutExpired) as problem:
         return None, f'{path} --version failed: {problem}'
-    output = done.stdout + done.stderr
+    return done.stdout + done.stderr, None
+
+
+def _patterned_version(tool, path, output):
     # A tool numbered with two parts (vulture 2.16) names its own pattern; the rest read as x.y.z.
-    if tool.get('version_pattern'):
-        match = re.search(tool['version_pattern'], output)
-        if not match: return None, f'{path} --version printed no version'
-        missing = _companions_missing(tool)
-        return (None, missing) if missing else (match.group(1), '')
+    match = re.search(tool['version_pattern'], output)
+    if not match: return None, f'{path} --version printed no version'
+    missing = _companions_missing(tool)
+    return (None, missing) if missing else (match.group(1), '')
+
+
+def _version_match(tool, output):
     # A tool may print another program's version first (dependency-cruiser names the Node.js it refuses):
     # the pinned version anywhere in the output is the tool's own; a refusal of Node.js is said as such.
     if tool['version'] in VERSION.findall(output) and not tool.get('version_reports'):
-        match = re.search('(' + re.escape(tool['version']) + ')', output)
-    else:
-        match = VERSION.search(output)
-    if tool['version'] not in output and re.search(r'node', output, re.I) and re.search(r'not supported|unsupported|requires|engine', output, re.I):
+        return re.search('(' + re.escape(tool['version']) + ')', output)
+    return VERSION.search(output)
+
+
+def _refuses_node(tool, output):
+    return (tool['version'] not in output and re.search(r'node', output, re.I)
+            and re.search(r'not supported|unsupported|requires|engine', output, re.I))
+
+
+def _reported_version(tool, path, output):
+    match = _version_match(tool, output)
+    if _refuses_node(tool, output):
         return None, f"{tool['name']} needs a newer Node.js than this computer has ({output.strip()[:160]})"
     if not match: return None, f'{path} --version printed no version'
     missing = _companions_missing(tool)
@@ -161,6 +178,25 @@ def found_version(tool):
     if tool.get('version_reports'):
         return (tool['version'], '') if match.group(1) == tool['version_reports'] else (match.group(1), '')
     return match.group(1), ''
+
+
+def _binary_version(tool, path):
+    if tool.get('version_from') == 'package':
+        # A command with no --version (the react-docgen CLI): the version is the one its npm package records.
+        found = package_version(tool)
+        return (found, '') if found else (None, f"{tool['install']['package']} is not installed in {npm_prefix(tool)}")
+    output, failure = _version_output(tool, path)
+    if failure: return None, failure
+    if tool.get('version_pattern'): return _patterned_version(tool, path, output)
+    return _reported_version(tool, path, output)
+
+
+def found_version(tool):
+    if tool['install']['method'] == 'git': return _git_version(tool)
+    if tool['install'].get('library'): return _library_version(tool)
+    path = binary_path(tool)
+    if not path: return None, 'not installed'
+    return _binary_version(tool, path)
 
 
 def package_version(tool, name=None):
@@ -201,32 +237,45 @@ def pip_version(name, venv=None):
     return None
 
 
+STAGE_FILTERS = {'assessment': lambda stages: any(s <= 'S07' for s in stages),
+                 'execution': lambda stages: any(s > 'S07' for s in stages)}
+
+
 def selected(names=None, stage=None, skip=()):
-    tools = [t for t in registry()['tools'] if t['name'] not in set(skip)]
-    if names: tools = [t for t in tools if t['name'] in set(names)]
-    if stage == 'assessment': tools = [t for t in tools if any(s <= 'S07' for s in t['stages'])]
-    elif stage == 'execution': tools = [t for t in tools if any(s > 'S07' for s in t['stages'])]
-    return tools
+    skipped, wanted = set(skip), set(names or ())
+    keep = STAGE_FILTERS.get(stage, lambda stages: True)
+    return [t for t in registry()['tools']
+            if t['name'] not in skipped and (not names or t['name'] in wanted) and keep(t['stages'])]
+
+
+def _with_browsers(tool, ok, reason):
+    """Playwright counts as ready only with its browsers."""
+    if not (ok and tool['name'] == 'playwright'): return ok, reason
+    missing = browser_missing()
+    return (False, missing) if missing else (ok, reason)
+
+
+def _release_unavailable(tool, reason):
+    try: release_spec(tool)
+    except Unavailable as problem: return str(problem), True
+    return reason, False
+
+
+def _doctor_row(tool):
+    found, reason = found_version(tool)
+    ok = found == tool['version']
+    if found and not ok: reason = f'found {found}, pinned {tool["version"]}'
+    ok, reason = _with_browsers(tool, ok, reason)
+    unavailable = False
+    if not ok and tool['install']['method'] == 'release': reason, unavailable = _release_unavailable(tool, reason)
+    row = {'name': tool['name'], 'role': tool['role'], 'stages': tool['stages'], 'pinned': tool['version'],
+           'found': found, 'ok': ok, 'reason': reason, 'unavailable': unavailable}
+    if tool.get('license_note'): row['license_note'] = tool['license_note']
+    return row
 
 
 def doctor(names=None, stage=None, skip=()):
-    rows = []
-    for tool in selected(names, stage, skip):
-        found, reason = found_version(tool)
-        ok = found == tool['version']
-        if found and not ok: reason = f'found {found}, pinned {tool["version"]}'
-        if ok and tool['name'] == 'playwright':
-            missing = browser_missing()
-            if missing: ok, reason = False, missing
-        unavailable = False
-        if not ok and tool['install']['method'] == 'release':
-            try: release_spec(tool)
-            except Unavailable as problem: reason, unavailable = str(problem), True
-        row = {'name': tool['name'], 'role': tool['role'], 'stages': tool['stages'], 'pinned': tool['version'],
-               'found': found, 'ok': ok, 'reason': reason, 'unavailable': unavailable}
-        if tool.get('license_note'): row['license_note'] = tool['license_note']
-        rows.append(row)
-    return {'tools': rows}
+    return {'tools': [_doctor_row(tool) for tool in selected(names, stage, skip)]}
 
 
 def _link(source, name):
