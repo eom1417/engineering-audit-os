@@ -144,10 +144,9 @@ def _build_words(component, rebuild):
     exit_ = ('Every card here passes; the behaviour lock matches on the new path; the old path is removed '
              'in its own step only after parity (E7).' if rebuild else
              'Every card here passes, and the next audit places every file of the component in its target layer.')
-    if True:
-        goal_ar = (f"إعادة بناء `{component}` في طبقته المستهدفة خلف علم (Strangler Fig)، بالسلوك نفسه." if rebuild
-                       else f"تشكيل `{component}` على صورته المستهدفة: بطاقاته منجزة وملفاته في أماكنها.")
-            exit_ar = ('كل بطاقة هنا تمر، وتثبيت السلوك يطابق على المسار الجديد، والمسار القديم يُزال في خطوة مستقلة بعد التكافؤ (E7).'
+    goal_ar = (f"إعادة بناء `{component}` في طبقته المستهدفة خلف علم (Strangler Fig)، بالسلوك نفسه." if rebuild
+               else f"تشكيل `{component}` على صورته المستهدفة: بطاقاته منجزة وملفاته في أماكنها.")
+    exit_ar = ('كل بطاقة هنا تمر، وتثبيت السلوك يطابق على المسار الجديد، والمسار القديم يُزال في خطوة مستقلة بعد التكافؤ (E7).'
                        if rebuild else 'كل بطاقة هنا تمر، ويضع التدقيق التالي كل ملف من المكوّن في طبقته المستهدفة.')
     return goal, exit_, goal_ar, exit_ar
 
