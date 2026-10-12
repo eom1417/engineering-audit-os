@@ -126,16 +126,7 @@ def run(target, out, command=None, timeout=900, execute=True):
         return result
     with tempfile.TemporaryDirectory() as workspace:
         project = isolated_copy(target, Path(workspace) / 'project')
-        candidates = [command] if command else DEFAULT_COMMANDS
-        attempts = []
-        chosen = None
-        for argv in candidates:
-            instrumented = coverage_command(argv)
-            outcome = run_command(project, instrumented or argv, timeout)
-            attempts.append(outcome)
-            if outcome['exit_code'] == 0:
-                chosen = outcome
-                break
+        attempts, chosen = _first_passing(project, [command] if command else DEFAULT_COMMANDS, timeout)
         result['attempts'] = attempts
         result['executed'] = chosen is not None
         if chosen is None:
@@ -148,25 +139,49 @@ def run(target, out, command=None, timeout=900, execute=True):
             result['reason'] = 'The command ran but coverage data could not be produced; install the runtime extra.'
             write(out / 'verification.json', result)
             return result
-        files = {}
-        for name, entry in sorted(data.get('files', {}).items()):
-            relative = Path(name).as_posix()
-            if relative.startswith('./'): relative = relative[2:]
-            summary = entry.get('summary', {})
-            files[relative] = {'covered_lines': summary.get('covered_lines', 0),
-                               'statements': summary.get('num_statements', 0),
-                               'percent': round(summary.get('percent_covered', 0.0), 1),
-                               'missing_lines': entry.get('missing_lines', [])[:40]}
-        reachable = {fact['location']['path'] for fact in sets.get('graph', {}).get('facts', [])
-                     if fact['kind'] == 'graph_node' and fact['value'].get('entry_distance') is not None}
-        uncovered_critical = sorted(path for path in reachable if files.get(path, {}).get('percent', 0) == 0)
+        files = _coverage_rows(data)
+        reachable = _reachable(sets)
         result.update({'coverage': files,
                        'overall_percent': round(data.get('totals', {}).get('percent_covered', 0.0), 1),
                        'entry_reachable_files': len(reachable),
-                       'uncovered_entry_reachable_files': uncovered_critical})
+                       'uncovered_entry_reachable_files': _uncovered(reachable, files)})
     write(out / 'verification.json', result)
     publish_facts(out, result)
     return result
+
+
+def _first_passing(project, candidates, timeout):
+    """(every attempt, the first that passed or None): the commands run in order until one passes."""
+    attempts = []
+    for argv in candidates:
+        outcome = run_command(project, coverage_command(argv) or argv, timeout)
+        attempts.append(outcome)
+        if outcome['exit_code'] == 0: return attempts, outcome
+    return attempts, None
+
+
+def _coverage_rows(data):
+    """{path: covered lines, statements, percent, missing lines} from a Coverage.py JSON report."""
+    files = {}
+    for name, entry in sorted(data.get('files', {}).items()):
+        relative = Path(name).as_posix()
+        if relative.startswith('./'): relative = relative[2:]
+        summary = entry.get('summary', {})
+        files[relative] = {'covered_lines': summary.get('covered_lines', 0),
+                           'statements': summary.get('num_statements', 0),
+                           'percent': round(summary.get('percent_covered', 0.0), 1),
+                           'missing_lines': entry.get('missing_lines', [])[:40]}
+    return files
+
+
+def _reachable(sets):
+    """The files an entry point can reach, from the graph facts."""
+    return {fact['location']['path'] for fact in sets.get('graph', {}).get('facts', [])
+            if fact['kind'] == 'graph_node' and fact['value'].get('entry_distance') is not None}
+
+
+def _uncovered(reachable, files):
+    return sorted(path for path in reachable if files.get(path, {}).get('percent', 0) == 0)
 
 
 TEST_WORDS = re.compile(r'(^|[^a-z])(test|tests|pytest|unittest|vitest|jest|mocha)([^a-z]|$)')
@@ -193,26 +208,35 @@ def declared(target, out, reason, source=None):
 def v8_coverage(folder, root):
     """{path: {functions, functions_hit, percent}} from Node's V8 coverage files in `folder`, for the project's own
     source files under `root` (the sandbox copy): a function counts as run when its outermost range ran."""
-    from .vocabulary import classify
     root = Path(root).resolve().as_posix().rstrip('/') + '/'
     files = {}
     for path in sorted(Path(folder).glob('*.json')):
         try: scripts = json.loads(path.read_text(encoding='utf-8')).get('result') or []
         except (OSError, ValueError): continue
         for script in scripts:
-            url = str(script.get('url') or '')
-            name = url[len('file://'):] if url.startswith('file://') else url
-            if not name.startswith(root) or '/node_modules/' in name: continue
-            relative = name[len(root):].split('?')[0]
-            if classify(relative) != 'source': continue
-            row = files.setdefault(relative, {'functions': 0, 'functions_hit': 0})
-            for function in script.get('functions') or []:
-                ranges = function.get('ranges') or []
-                if not ranges or not function.get('functionName'): continue
-                row['functions'] += 1
-                row['functions_hit'] += ranges[0].get('count', 0) > 0
+            relative = _own_source(script, root)
+            if relative: _count_functions(files.setdefault(relative, {'functions': 0, 'functions_hit': 0}), script)
     return {path: {**row, 'percent': round(100 * row['functions_hit'] / row['functions'], 1) if row['functions'] else 100.0}
             for path, row in files.items()}
+
+
+def _own_source(script, root):
+    """The script's path relative to `root` when it is one of the project's own source files, else None."""
+    from .vocabulary import classify
+    url = str(script.get('url') or '')
+    name = url[len('file://'):] if url.startswith('file://') else url
+    if not name.startswith(root) or '/node_modules/' in name: return None
+    relative = name[len(root):].split('?')[0]
+    return relative if classify(relative) == 'source' else None
+
+
+def _count_functions(row, script):
+    """Add a script's named functions to its row, and those whose outermost range ran."""
+    for function in script.get('functions') or []:
+        ranges = function.get('ranges') or []
+        if not ranges or not function.get('functionName'): continue
+        row['functions'] += 1
+        row['functions_hit'] += ranges[0].get('count', 0) > 0
 
 
 # Per-test measurements, read from the runners' own reports and Coverage.py's "who tests what" (dynamic contexts):
@@ -292,35 +316,13 @@ def run_profile(target, out, runtime, timeout=1800):
     tests, covered = discover_tests(source, sets)
     result = {'target': str(target), 'out': str(out), 'test_files': tests, 'declared_coverage': covered,
               'executed': False, 'limitations': LIMITATIONS, 'attempts': []}
-    files, python, contexts = {}, None, {}
+    files, contexts = {}, {}
     try:
         live.setup()
         app = live.sandbox.copy / (live.profile.get('app') or '')
         (app / '.eaos-coveragerc').write_text(COVERAGERC, encoding='utf-8')
-        for argv in commands:
-            started = time.monotonic()
-            run_argv = argv
-            if Path(str(argv[0])).name in INTERPRETER_NAMES and live.run([argv[0], '-c', 'import coverage'], timeout=60)[0] == 0:
-                run_argv, python = [argv[0], '-m', 'coverage', 'run', '--rcfile=.eaos-coveragerc', *argv[1:]], argv[0]
-            run_argv = with_timing(run_argv, app)
-            code, stdout, stderr = live.run(run_argv, timeout=timeout, env={'NODE_V8_COVERAGE': str(v8)})
-            result['attempts'].append({'argv': [str(a) for a in argv], 'exit_code': code, 'timed_out': f'stopped after {timeout}s' in stderr,
-                                       'duration_seconds': round(time.monotonic() - started, 2), 'output_tail': (stdout + stderr)[-2000:]})
-        if python:
-            code, _, _ = live.run([python, '-m', 'coverage', 'json', '--rcfile=.eaos-coveragerc', '--show-contexts', '-o', '.eaos-coverage.json'],
-                                  timeout=300)
-            report = app / '.eaos-coverage.json'
-            if code == 0 and report.is_file():
-                prefix = Path(live.profile.get('app') or '.').as_posix().strip('./')
-                for name, entry in json.loads(report.read_text(encoding='utf-8')).get('files', {}).items():
-                    for line, tests in (entry.get('contexts') or {}).items():
-                        for test in tests:
-                            if test: contexts.setdefault(test, set()).add((name, line))
-                    relative = Path(name).as_posix().removeprefix('./')
-                    relative = f'{prefix}/{relative}' if prefix else relative
-                    summary = entry.get('summary', {})
-                    files[relative] = {'covered_lines': summary.get('covered_lines', 0), 'statements': summary.get('num_statements', 0),
-                                       'percent': round(summary.get('percent_covered', 0.0), 1)}
+        python = _run_tests(live, commands, app, v8, timeout, result['attempts'])
+        if python: files, contexts = _python_coverage(live, python, app)
         result['suite'] = suite_health(app, contexts)
         for path, row in v8_coverage(v8, live.sandbox.copy).items():
             files.setdefault(path, {'covered_lines': row['functions_hit'], 'statements': row['functions'], 'percent': row['percent'],
@@ -332,20 +334,57 @@ def run_profile(target, out, runtime, timeout=1800):
     result['executed'] = bool(result['attempts'])
     result['command'] = [str(a) for a in commands[0]]
     result['passed'] = all(a['exit_code'] == 0 for a in result['attempts'])
-    if files:
-        reachable = {fact['location']['path'] for fact in sets.get('graph', {}).get('facts', [])
-                     if fact['kind'] == 'graph_node' and fact['value'].get('entry_distance') is not None}
-        total = sum(row['statements'] or 0 for row in files.values())
-        result.update({'coverage': dict(sorted(files.items())),
-                       'overall_percent': round(100 * sum(row['covered_lines'] or 0 for row in files.values()) / total, 1) if total else 0.0,
-                       'entry_reachable_files': len(reachable),
-                       'uncovered_entry_reachable_files': sorted(p for p in reachable if files.get(p, {}).get('percent', 0) == 0)})
+    if files: result.update(_coverage_summary(files, sets))
     else:
         result['reason'] = ('The tests ran, but no coverage could be read from them (no Python coverage module in the project, '
                             'and no Node process wrote V8 coverage).')
     write(out / 'verification.json', result)
     publish_facts(out, result)
     return result
+
+
+def _run_tests(live, commands, app, v8, timeout, attempts):
+    """Run each test command in the sandbox, Python ones under coverage when the project has it, each with its runner's
+    per-test report and Node's V8 coverage on; every run goes to `attempts`. The Python that ran coverage, or None."""
+    python = None
+    for argv in commands:
+        started = time.monotonic()
+        run_argv = argv
+        if Path(str(argv[0])).name in INTERPRETER_NAMES and live.run([argv[0], '-c', 'import coverage'], timeout=60)[0] == 0:
+            run_argv, python = [argv[0], '-m', 'coverage', 'run', '--rcfile=.eaos-coveragerc', *argv[1:]], argv[0]
+        code, stdout, stderr = live.run(with_timing(run_argv, app), timeout=timeout, env={'NODE_V8_COVERAGE': str(v8)})
+        attempts.append({'argv': [str(a) for a in argv], 'exit_code': code, 'timed_out': f'stopped after {timeout}s' in stderr,
+                         'duration_seconds': round(time.monotonic() - started, 2), 'output_tail': (stdout + stderr)[-2000:]})
+    return python
+
+
+def _python_coverage(live, python, app):
+    """({path: coverage row}, {test: lines it ran}) from Coverage.py's report with its contexts; empty when none was made."""
+    files, contexts = {}, {}
+    code, _, _ = live.run([python, '-m', 'coverage', 'json', '--rcfile=.eaos-coveragerc', '--show-contexts', '-o', '.eaos-coverage.json'],
+                          timeout=300)
+    report = app / '.eaos-coverage.json'
+    if code != 0 or not report.is_file(): return files, contexts
+    prefix = Path(live.profile.get('app') or '.').as_posix().strip('./')
+    for name, entry in json.loads(report.read_text(encoding='utf-8')).get('files', {}).items():
+        for line, tests in (entry.get('contexts') or {}).items():
+            for test in filter(None, tests): contexts.setdefault(test, set()).add((name, line))
+        relative = Path(name).as_posix().removeprefix('./')
+        relative = f'{prefix}/{relative}' if prefix else relative
+        summary = entry.get('summary', {})
+        files[relative] = {'covered_lines': summary.get('covered_lines', 0), 'statements': summary.get('num_statements', 0),
+                           'percent': round(summary.get('percent_covered', 0.0), 1)}
+    return files, contexts
+
+
+def _coverage_summary(files, sets):
+    """The coverage fields of verification.json: per file, overall, and the entry-reachable files no test ran."""
+    reachable = _reachable(sets)
+    total = sum(row['statements'] or 0 for row in files.values())
+    return {'coverage': dict(sorted(files.items())),
+            'overall_percent': round(100 * sum(row['covered_lines'] or 0 for row in files.values()) / total, 1) if total else 0.0,
+            'entry_reachable_files': len(reachable),
+            'uncovered_entry_reachable_files': _uncovered(reachable, files)}
 
 
 def publish_facts(out, result):
