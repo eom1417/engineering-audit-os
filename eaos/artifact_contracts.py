@@ -30,36 +30,63 @@ def _resolve(schema, root):
     return schema
 
 
+def _type_problem(value, schema, where):
+    kinds = schema.get('type')
+    if kinds is None: return None
+    kinds = [kinds] if isinstance(kinds, str) else kinds
+    if any(_is(value, kind) for kind in kinds): return None
+    return f'{where}: expected {"/".join(kinds)}, got {type(value).__name__}'
+
+
+def _number_problems(value, schema, where, root):
+    problems = []
+    if 'minimum' in schema and value < schema['minimum']: problems.append(f'{where}: {value} below {schema["minimum"]}')
+    if 'maximum' in schema and value > schema['maximum']: problems.append(f'{where}: {value} above {schema["maximum"]}')
+    return problems
+
+
+def _text_problems(value, schema, where, root):
+    problems = []
+    if len(value) < schema.get('minLength', 0): problems.append(f'{where}: shorter than {schema["minLength"]}')
+    if 'pattern' in schema and not re.search(schema['pattern'], value): problems.append(f'{where}: {value!r} does not match {schema["pattern"]}')
+    return problems
+
+
+def _object_problems(value, schema, where, root):
+    problems = [f'{where}: missing required field {key!r}' for key in schema.get('required', []) if key not in value]
+    properties = schema.get('properties', {})
+    for key, item in value.items():
+        if key in properties: problems += validate(item, properties[key], f'{where}.{key}', root)
+        elif schema.get('additionalProperties') is False: problems.append(f'{where}: unexpected field {key!r}')
+    return problems
+
+
+def _list_problems(value, schema, where, root):
+    problems = []
+    if len(value) < schema.get('minItems', 0): problems.append(f'{where}: fewer than {schema["minItems"]} item(s)')
+    for index, item in enumerate(value if 'items' in schema else []):
+        problems += validate(item, schema['items'], f'{where}[{index}]', root)
+    return problems
+
+
+def _shape_problems(value, schema, where, root):
+    if _is(value, 'number'): return _number_problems(value, schema, where, root)
+    if isinstance(value, str): return _text_problems(value, schema, where, root)
+    if isinstance(value, dict): return _object_problems(value, schema, where, root)
+    if isinstance(value, list): return _list_problems(value, schema, where, root)
+    return []
+
+
 def validate(value, schema, where='$', root=None):
     """Every way `value` breaks `schema`, as readable lines; empty when it conforms."""
     root = schema if root is None else root
     schema = _resolve(schema, root)
+    wrong_type = _type_problem(value, schema, where)
+    if wrong_type: return [wrong_type]
     problems = []
-    kinds = schema.get('type')
-    if kinds is not None:
-        kinds = [kinds] if isinstance(kinds, str) else kinds
-        if not any(_is(value, kind) for kind in kinds):
-            return [f'{where}: expected {"/".join(kinds)}, got {type(value).__name__}']
     if 'const' in schema and value != schema['const']: problems.append(f'{where}: must be {schema["const"]!r}')
     if 'enum' in schema and value not in schema['enum']: problems.append(f'{where}: {value!r} not in {schema["enum"]}')
-    if _is(value, 'number'):
-        if 'minimum' in schema and value < schema['minimum']: problems.append(f'{where}: {value} below {schema["minimum"]}')
-        if 'maximum' in schema and value > schema['maximum']: problems.append(f'{where}: {value} above {schema["maximum"]}')
-    if isinstance(value, str):
-        if len(value) < schema.get('minLength', 0): problems.append(f'{where}: shorter than {schema["minLength"]}')
-        if 'pattern' in schema and not re.search(schema['pattern'], value): problems.append(f'{where}: {value!r} does not match {schema["pattern"]}')
-    if isinstance(value, dict):
-        for key in schema.get('required', []):
-            if key not in value: problems.append(f'{where}: missing required field {key!r}')
-        properties = schema.get('properties', {})
-        for key, item in value.items():
-            if key in properties: problems += validate(item, properties[key], f'{where}.{key}', root)
-            elif schema.get('additionalProperties') is False: problems.append(f'{where}: unexpected field {key!r}')
-    if isinstance(value, list):
-        if len(value) < schema.get('minItems', 0): problems.append(f'{where}: fewer than {schema["minItems"]} item(s)')
-        if 'items' in schema:
-            for index, item in enumerate(value): problems += validate(item, schema['items'], f'{where}[{index}]', root)
-    return problems
+    return problems + _shape_problems(value, schema, where, root)
 
 
 def contracts():
